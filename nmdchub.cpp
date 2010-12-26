@@ -914,6 +914,8 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	} else {
 		dc = "AirDC++";
 
+		//keep it here, will have svnversion string maybe
+		version = VERSIONSTRING;
 		if(Util::getAway()) {
 			StatusMode |= Identity::AWAY;
 		}
