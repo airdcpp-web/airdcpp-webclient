@@ -994,10 +994,14 @@ void buildMap(const DirectoryListing::Directory* dir) throw() {
 }
 }
 
-
+int QueueManager::getnewsources() {
+	
+	return newsources;
+}
 
 int QueueManager::matchListing(const DirectoryListing& dl) throw() {
 	int matches = 0;
+	newsources = 0;
 	{
 		Lock l(cs);
 		tthMap.clear();
@@ -1013,6 +1017,7 @@ int QueueManager::matchListing(const DirectoryListing& dl) throw() {
 			if(j != tthMap.end() && i->second->getSize() == qi->getSize()) {
 				try {
 					addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);   
+					newsources++; 
 				} catch(...) {
 					// Ignore...
 				}

@@ -39,11 +39,16 @@ bool UPnP::open(const unsigned short port, const Protocol protocol, const string
 bool UPnP::close() {
 	bool ret = true;
 
-	for(std::vector<rule>::const_iterator i = rules.begin(), iend = rules.end(); i != iend; ++i)
+	 for(auto i = rules.cbegin(), iend = rules.cend(); i != iend; ++i)
 		ret &= remove(i->first, i->second);
 	rules.clear();
 
 	return ret;
+}
+
+bool UPnP::hasRules() const {
+ 
+       return !rules.empty();
 }
 
 } // namespace dcpp

@@ -1150,5 +1150,7 @@ enum Strings { // @DontAdd
 	SETTING_DONT_DL_ALREADY_QUEUED, // "Dont Download Files already in Queue"
 	FILE_WITH_SAME_TTH, // "File with same TTH allready exists in Queue"
 	FAV_SHOW_JOIN, // "Show User Joins / Parts"
+	UPNP_REMOVED_MAPPINGS, // "Successfully removed port mappings"
+	SETTINGS_DOWNLOADS_EXPAND, // "Auto Expand Downloads in TransferView"
 	LAST // @DontAdd
 };

@@ -123,8 +123,8 @@ int UPnPManager::run() {
 }
 
 void UPnPManager::close(UPnP& impl) {
-	if(!impl.close()) {
-		log(STRING(UPNP_FAILED_TO_REMOVE_MAPPINGS));
+	if(impl.hasRules()) {
+		log(impl.close() ? STRING(UPNP_REMOVED_MAPPINGS) : STRING(UPNP_FAILED_TO_REMOVE_MAPPINGS));
 	}
 }
 

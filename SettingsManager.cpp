@@ -147,7 +147,7 @@ const string SettingsManager::settingTags[] =
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "DisableRefreshOnSharepage", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
-	"DontDlAlreadyQueued", "AutoDetectIncomingConnection",
+	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -623,6 +623,7 @@ SettingsManager::SettingsManager()
 	setDefault(USE_ADLS, true);
 	setDefault(USE_ADLS_OWN_LIST, true);
 	setDefault(DONT_DL_ALREADY_QUEUED, false);
+	setDefault(DOWNLOADS_EXPAND, false);
 	
 /*
 #ifdef _WIN32

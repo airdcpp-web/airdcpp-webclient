@@ -22,7 +22,7 @@
 #define BETADATE "Beta Compiled : 28.12.2010"
 #define VERSIONFLOAT 2.084
 
-#define DCVERSIONSTRING "0.770"
+#define DCVERSIONSTRING "0.777"
 #define VERSION_URL "http://airdc.sourceforge.net/xmls/beta_airdcversion.php"
 
 

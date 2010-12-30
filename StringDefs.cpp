@@ -1143,6 +1143,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Dont Download Files already in Queue", 
 "File with same TTH allready exists in Queue", 
 "Show User Joins / Parts", 
+"Successfully removed port mappings", 
+"Auto Expand Downloads in TransferView", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2286,4 +2288,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingDontDlAlreadyQueued", 
 "FileWithSameTth", 
 "FavShowJoin", 
+"UpnpRemovedMappings", 
+"SettingsDownloadsExpand", 
 };

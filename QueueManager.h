@@ -90,6 +90,8 @@ public:
 		QueueItem::Priority p = QueueItem::DEFAULT) throw();
 	void addDirectorySearch(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p = QueueItem::DEFAULT) throw();
 	int matchListing(const DirectoryListing& dl) throw();
+	int newsources;
+	int getnewsources();
 
 	bool getTTH(const string& name, TTHValue& tth) const throw();
 
