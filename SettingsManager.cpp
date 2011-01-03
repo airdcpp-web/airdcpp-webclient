@@ -732,7 +732,7 @@ void SettingsManager::load(string const& aFileName)
 			set(LOG_FILE_SYSTEM, Util::emptyString);
 		}
 
-		if(v <= 0.770 && SETTING(INCOMING_CONNECTIONS) != INCOMING_FIREWALL_PASSIVE) {
+		if(v <= 2.07 && SETTING(INCOMING_CONNECTIONS) != INCOMING_FIREWALL_PASSIVE) {
 			set(AUTO_DETECT_CONNECTION, false); //Don't touch if it works
 		}
 
