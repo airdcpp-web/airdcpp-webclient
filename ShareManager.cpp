@@ -420,6 +420,8 @@ bool ShareManager::loadCache() throw() {
 			updateIndices(*d);
 		}
 
+		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
+
 		return true;
 	} catch(const Exception& e) {
 		dcdebug("%s\n", e.getError().c_str());
