@@ -95,7 +95,7 @@ const string SettingsManager::settingTags[] =
 	"TextFavBackColor", "TextFavForeColor", "TextFavBold", "TextFavItalic", 
 	"TextOPBackColor", "TextOPForeColor", "TextOPBold", "TextOPItalic", 
 	"TextURLBackColor", "TextURLForeColor", "TextURLBold", "TextURLItalic", 
-	"BoldAuthorsMess", "HubSlots", 
+	"HubSlots", 
 	"RemoveForbidden", "ProgressTextDown", "ProgressTextUp", "ShowInfoTips", "ExtraDownloadSlots",
 	"MinimizeOnStratup", "ConfirmDelete", "DefaultSearchFreeSlots", "SendUnknownCommands",
 	"ErrorColor", "ExpandQueue", "TransferSplitSize",
@@ -147,7 +147,7 @@ const string SettingsManager::settingTags[] =
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "DisableRefreshOnSharepage", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
-	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand",
+	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -395,12 +395,16 @@ SettingsManager::SettingsManager()
 	setDefault(TEXT_OP_BOLD, true);
 	setDefault(TEXT_OP_ITALIC, false);
 
+	setDefault(TEXT_NORM_BACK_COLOR, RGB(255,255,255));
+	setDefault(TEXT_NORM_FORE_COLOR, RGB(0,0,0));
+	setDefault(TEXT_NORM_BOLD, true);
+	setDefault(TEXT_NORM_ITALIC, false);
+
 	setDefault(TEXT_URL_BACK_COLOR, RGB(255,255,255));
 	setDefault(TEXT_URL_FORE_COLOR, RGB(0,0,255));
 	setDefault(TEXT_URL_BOLD, false);
 	setDefault(TEXT_URL_ITALIC, false);
 
-	setDefault(BOLD_AUTHOR_MESS, true);
 	setDefault(KICK_MSG_RECENT_01, "");
 	setDefault(KICK_MSG_RECENT_02, "");
 	setDefault(KICK_MSG_RECENT_03, "");
