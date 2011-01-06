@@ -1149,6 +1149,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Show User Joins / Parts", 
 "Successfully removed port mappings", 
 "Auto Expand Downloads in TransferView", 
+"Show Finished Uploads in System Log", 
+"Show Finished Downloads in System Log", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2298,4 +2300,6 @@ std::string dcpp::ResourceManager::names[] = {
 "FavShowJoin", 
 "UpnpRemovedMappings", 
 "SettingsDownloadsExpand", 
+"SystemShowFinishedUploads", 
+"SystemShowFinishedDownloads", 
 };

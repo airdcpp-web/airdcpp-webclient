@@ -1156,5 +1156,7 @@ enum Strings { // @DontAdd
 	FAV_SHOW_JOIN, // "Show User Joins / Parts"
 	UPNP_REMOVED_MAPPINGS, // "Successfully removed port mappings"
 	SETTINGS_DOWNLOADS_EXPAND, // "Auto Expand Downloads in TransferView"
+	SYSTEM_SHOW_FINISHED_UPLOADS, // "Show Finished Uploads in System Log"
+	SYSTEM_SHOW_FINISHED_DOWNLOADS, // "Show Finished Downloads in System Log"
 	LAST // @DontAdd
 };

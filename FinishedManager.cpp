@@ -86,7 +86,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItem* qi, co
 		}
 			
 		fire(FinishedManagerListener::AddedDl(), item);
-	
+		if(BOOLSETTING(SYSTEM_SHOW_DOWNLOADS)) {
 		size_t BUF_SIZE = STRING(FINISHED_DOWNLOAD).size() + MAX_PATH + 128;
 		char* buf = new char[BUF_SIZE];
 		snprintf(buf, BUF_SIZE, CSTRING(FINISHED_DOWNLOAD), Util::getFileName(qi->getTarget()).c_str(), 
@@ -94,6 +94,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItem* qi, co
 
 		LogManager::getInstance()->message(buf);
 		delete[] buf;
+		}
 	}
 }
 
@@ -110,7 +111,7 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) throw
 		}
 
 		fire(FinishedManagerListener::AddedUl(), item);
-
+		if(BOOLSETTING(SYSTEM_SHOW_UPLOADS)) {
 		size_t BUF_SIZE = STRING(FINISHED_UPLOAD).size() + MAX_PATH + 128;
 		char* buf = new char[BUF_SIZE];
 		snprintf(buf, BUF_SIZE, CSTRING(FINISHED_UPLOAD), (Util::getFileName(u->getPath())).c_str(), 
@@ -118,7 +119,8 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) throw
 
 		LogManager::getInstance()->message(buf);
 		delete[] buf;		
-	}
+			}
+		}
 }
 
 bool FinishedManager::getTarget(const string& aTTH, string& target) {

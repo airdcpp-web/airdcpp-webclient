@@ -148,6 +148,7 @@ const string SettingsManager::settingTags[] =
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "DisableRefreshOnSharepage", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
+	"SystemShowUploads", "SystemShowDownloads",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -628,6 +629,8 @@ SettingsManager::SettingsManager()
 	setDefault(USE_ADLS_OWN_LIST, true);
 	setDefault(DONT_DL_ALREADY_QUEUED, false);
 	setDefault(DOWNLOADS_EXPAND, false);
+	setDefault(SYSTEM_SHOW_UPLOADS, true);
+	setDefault(SYSTEM_SHOW_DOWNLOADS, true);
 	
 /*
 #ifdef _WIN32
