@@ -509,7 +509,7 @@ enum Strings { // @DontAdd
 	REMOVE_SOURCE, // "Remove source"
 	RENAMED_TO, // " renamed to "
 	REPORT, // "Report user"
-	REPORT_ALTERNATES, // "Report auto search for alternates in status bar"
+	REPORT_ALTERNATES, // "Show auto search for alternates in System Log"
 	RESUME, // "Resume"
 	RETRIEVING_DATA, // "Retrieving data"
 	RIGHT_COLOR, // "Right color"

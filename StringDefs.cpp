@@ -506,7 +506,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Remove source", 
 " renamed to ", 
 "Report user", 
-"Report auto search for alternates in status bar", 
+"Show auto search for alternates in System Log", 
 "Resume", 
 "Retrieving data", 
 "Right color", 
