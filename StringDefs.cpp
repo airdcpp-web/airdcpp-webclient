@@ -1151,6 +1151,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Auto Expand Downloads in TransferView", 
 "Show Finished Uploads in System Log", 
 "Show Finished Downloads in System Log", 
+"Settings Wizard", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2302,4 +2303,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsDownloadsExpand", 
 "SystemShowFinishedUploads", 
 "SystemShowFinishedDownloads", 
+"Wizard", 
 };

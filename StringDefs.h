@@ -1158,5 +1158,6 @@ enum Strings { // @DontAdd
 	SETTINGS_DOWNLOADS_EXPAND, // "Auto Expand Downloads in TransferView"
 	SYSTEM_SHOW_FINISHED_UPLOADS, // "Show Finished Uploads in System Log"
 	SYSTEM_SHOW_FINISHED_DOWNLOADS, // "Show Finished Downloads in System Log"
+	WIZARD, // "Settings Wizard"
 	LAST // @DontAdd
 };
