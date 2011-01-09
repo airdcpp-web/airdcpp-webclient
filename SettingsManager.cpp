@@ -66,7 +66,7 @@ const string SettingsManager::settingTags[] =
 	"AntivirPath",
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
-	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3",
+	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed",
 
 	"SENTRY", 
 	// Ints
@@ -632,6 +632,7 @@ SettingsManager::SettingsManager()
 	setDefault(SYSTEM_SHOW_UPLOADS, true);
 	setDefault(SYSTEM_SHOW_DOWNLOADS, true);
 	setDefault(SETTINGS_PROFILE, PROFILE_PUBLIC);
+	setDefault(DOWNLOAD_SPEED, connectionSpeeds[11]);
 	
 /*
 #ifdef _WIN32
