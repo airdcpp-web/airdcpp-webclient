@@ -43,6 +43,7 @@
 
 #include "../windows/IgnoreManager.h"
 #include "../windows/PopupManager.h"
+#include "../windows/Wizard.h"
 #include "HighlightManager.h"
 #include "AutoSearchManager.h"
 
@@ -90,6 +91,13 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 
 	SettingsManager::getInstance()->load();	
 	AutoSearchManager::getInstance()->AutosearchLoad();
+
+	if(BOOLSETTING(WIZARD_RUN)) {
+	WizardDlg dlg;
+	dlg.DoModal(/*m_hWnd*/);
+	SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN, false); //wizard has run on startup
+	}
+
 
 	if(!SETTING(LANGUAGE_FILE).empty()) {
 		string languageFile = SETTING(LANGUAGE_FILE);

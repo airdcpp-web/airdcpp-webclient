@@ -34,6 +34,7 @@
 namespace dcpp {
 
 StringList SettingsManager::connectionSpeeds;
+StringList SettingsManager::Languages;
 
 const string SettingsManager::settingTags[] =
 {
@@ -148,7 +149,7 @@ const string SettingsManager::settingTags[] =
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "DisableRefreshOnSharepage", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
-	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile",
+	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRun",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -176,6 +177,20 @@ SettingsManager::SettingsManager()
 	connectionSpeeds.push_back("50");
 	connectionSpeeds.push_back("100");
 	connectionSpeeds.push_back("1000");
+
+	Languages.push_back("English");   //0
+	Languages.push_back("Swedish");   //1
+	Languages.push_back("Finnish");   //2
+	Languages.push_back("Italian");   //3
+	Languages.push_back("Hungarian"); //4
+	Languages.push_back("Romanian");  //5
+	Languages.push_back("Danish");    //6
+	Languages.push_back("Norwegian"); //7 
+	Languages.push_back("Portuguese");//8
+	Languages.push_back("Polish");    //9
+	Languages.push_back("French");    //10
+	Languages.push_back("Dutch");     //11
+	Languages.push_back("Russian");   //12
 
 	for(int i=0; i<SETTINGS_LAST; i++)
 		isSet[i] = false;
@@ -632,7 +647,9 @@ SettingsManager::SettingsManager()
 	setDefault(SYSTEM_SHOW_UPLOADS, true);
 	setDefault(SYSTEM_SHOW_DOWNLOADS, true);
 	setDefault(SETTINGS_PROFILE, PROFILE_PUBLIC);
-	setDefault(DOWNLOAD_SPEED, connectionSpeeds[11]);
+	setDefault(DOWNLOAD_SPEED, connectionSpeeds[10]);
+	setDefault(LANGUAGE_SWITCH, 0);
+	setDefault(WIZARD_RUN, true); // run wizard on startup
 	
 /*
 #ifdef _WIN32
@@ -741,9 +758,22 @@ void SettingsManager::load(string const& aFileName)
 			set(LOG_FILE_SYSTEM, Util::emptyString);
 		}
 
+		//Convert the old lang_switch to new one with correct counts... Oh Zinden why why..
+		//Zinden had 0,1,2 switch for english
+		if(v <= 2.08) {
+			if(SETTING(LANG_SWITCH) == 0 || SETTING(LANG_SWITCH) == 1 || SETTING(LANG_SWITCH) == 2) {
+			      set(LANGUAGE_SWITCH, 0); 
+			} else {
+				set(LANGUAGE_SWITCH, (LANG_SWITCH - 2));
+				 
+			}
+		}
+
 		if(v <= 2.07 && SETTING(INCOMING_CONNECTIONS) != INCOMING_FIREWALL_PASSIVE) {
 			set(AUTO_DETECT_CONNECTION, false); //Don't touch if it works
 		}
+
+
 
 		setDefault(UDP_PORT, SETTING(TCP_PORT));
 
