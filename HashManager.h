@@ -129,7 +129,7 @@ private:
 
 		void stopHashing(const string& baseDir);
 		int run();
-		bool fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size) throw(FileException);
+		bool fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size);
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft);
 		void shutdown() { stop = true; if(paused) s.signal(); s.signal(); }
 		void scheduleRebuild() { rebuild = true; if(paused) s.signal(); s.signal(); }
