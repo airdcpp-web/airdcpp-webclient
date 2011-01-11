@@ -180,7 +180,7 @@ public:
 
 	enum {  MAGNET_AUTO_SEARCH, MAGNET_AUTO_DOWNLOAD };
 	
-	enum {  PROFILE_PUBLIC, PROFILE_RAR, PROFILE_NONSEGMENT };
+	enum {  PROFILE_PUBLIC, PROFILE_RAR, PROFILE_PRIVATE };
 
 	const string& get(StrSetting key, bool useDefault = true) const {
 		return (isSet[key] || !useDefault) ? strSettings[key - STR_FIRST] : strDefaults[key - STR_FIRST];
