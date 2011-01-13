@@ -35,6 +35,7 @@
 #include "Singleton.h"
 #include "DirectoryListing.h"
 #include "pme.h"
+#include "LogManager.h"
 
 namespace dcpp {
 
@@ -257,10 +258,15 @@ private:
 	bool SearchAll(const string& s) {
 		//decide if regexps should be used
 		if(isRegexp) {
+			try {
 			PME reg(searchString, isCaseSensitive ? "" : "i");
 			if(reg.IsValid()) {
 				return reg.match(s) > 0;
 			}else{
+				return false;
+			}
+			} catch (...) {
+				LogManager::getInstance()->message("Adl Search regexp caught an Error");
 				return false;
 			}
 		} else {
