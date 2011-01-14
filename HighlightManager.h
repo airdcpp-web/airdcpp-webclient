@@ -47,6 +47,9 @@ public:
 		colorSettings.clear();
 		colorSettings = settings;
 	}
+	void add(ColorSettings settings) {
+		colorSettings.push_back(settings);
+	}
 
 private:
 	//store all highlights
