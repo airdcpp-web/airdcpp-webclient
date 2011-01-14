@@ -29,6 +29,7 @@
 #include "ColorSettings.h"
 #include "SimpleXML.h"
 
+
 namespace dcpp {
 typedef vector<ColorSettings> ColorList;
 typedef ColorList::iterator ColorIter;
@@ -48,7 +49,15 @@ public:
 		colorSettings = settings;
 	}
 	void add(ColorSettings settings) {
-		colorSettings.push_back(settings);
+		if(!colorSettings.empty()){
+		for(ColorIter i = colorSettings.begin(); i != colorSettings.end(); ++i) {
+			if(stricmp(i->getMatch(), settings.getMatch()) != 0) //dont add the same ones
+			colorSettings.push_back(settings);
+		}
+		}else{
+			colorSettings.push_back(settings);
+		}
+	
 	}
 
 private:
