@@ -1270,6 +1270,7 @@ string Util::base64_decode(string const& encoded_string) {
 }
 
 
+
 } // namespace dcpp
 
 /**
