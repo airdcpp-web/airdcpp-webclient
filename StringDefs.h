@@ -1157,5 +1157,6 @@ enum Strings { // @DontAdd
 	SYSTEM_SHOW_FINISHED_UPLOADS, // "Show Finished Uploads in System Log"
 	SYSTEM_SHOW_FINISHED_DOWNLOADS, // "Show Finished Downloads in System Log"
 	WIZARD, // "Settings Wizard"
+	FORMAT_RELEASE, // "Make release names and files clickable in chat"
 	LAST // @DontAdd
 };

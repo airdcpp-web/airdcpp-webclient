@@ -149,7 +149,7 @@ const string SettingsManager::settingTags[] =
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "DisableRefreshOnSharepage", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
-	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRun",
+	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRun", "FormatRelease",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -650,7 +650,7 @@ SettingsManager::SettingsManager()
 	setDefault(DOWNLOAD_SPEED, connectionSpeeds[10]);
 	setDefault(LANGUAGE_SWITCH, 0);
 	setDefault(WIZARD_RUN, true); // run wizard on startup
-	
+	setDefault(FORMAT_RELEASE, true);
 /*
 #ifdef _WIN32
 	OSVERSIONINFO ver;
