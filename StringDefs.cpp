@@ -1150,7 +1150,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Show Finished Uploads in System Log", 
 "Show Finished Downloads in System Log", 
 "Settings Wizard", 
-"Make release names and files clickable in chat", 
+"Make release names clickable in chat", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
