@@ -1158,5 +1158,7 @@ enum Strings { // @DontAdd
 	SYSTEM_SHOW_FINISHED_DOWNLOADS, // "Show Finished Downloads in System Log"
 	WIZARD, // "Settings Wizard"
 	FORMAT_RELEASE, // "Make release names clickable in chat"
+	COPY_DIRECTORY, // "Copy Directory"
+	SEARCH_FOR_ALTERNATES_DIR, // "Search Directory for alternatives"
 	LAST // @DontAdd
 };
