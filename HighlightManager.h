@@ -48,17 +48,7 @@ public:
 		colorSettings.clear();
 		colorSettings = settings;
 	}
-	void add(ColorSettings settings) {
-		if(!colorSettings.empty()){
-		for(ColorIter i = colorSettings.begin(); i != colorSettings.end(); ++i) {
-			if(stricmp(i->getMatch(), settings.getMatch()) != 0) //dont add the same ones
-			colorSettings.push_back(settings);
-		}
-		}else{
-			colorSettings.push_back(settings);
-		}
-	
-	}
+
 
 private:
 	//store all highlights
