@@ -1150,7 +1150,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Show Finished Uploads in System Log", 
 "Show Finished Downloads in System Log", 
 "Settings Wizard", 
-"Make release names clickable in chat", 
+"Format Release Names as Links in chat", 
 "Copy Directory", 
 "Search Directory for alternatives", 
 "calculated CRC32 does not match the one found in SFV file.", 

@@ -1157,7 +1157,7 @@ enum Strings { // @DontAdd
 	SYSTEM_SHOW_FINISHED_UPLOADS, // "Show Finished Uploads in System Log"
 	SYSTEM_SHOW_FINISHED_DOWNLOADS, // "Show Finished Downloads in System Log"
 	WIZARD, // "Settings Wizard"
-	FORMAT_RELEASE, // "Make release names clickable in chat"
+	FORMAT_RELEASE, // "Format Release Names as Links in chat"
 	COPY_DIRECTORY, // "Copy Directory"
 	SEARCH_FOR_ALTERNATES_DIR, // "Search Directory for alternatives"
 	ERROR_HASHING_CRC32, // "calculated CRC32 does not match the one found in SFV file."
