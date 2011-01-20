@@ -33,6 +33,7 @@ namespace dcpp {
 
 STANDARD_EXCEPTION(HashException);
 class File;
+class CRC32Filter;
 
 class HashManagerListener {
 public:
@@ -129,7 +130,7 @@ private:
 
 		void stopHashing(const string& baseDir);
 		int run();
-		bool fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size);
+		bool fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size, CRC32Filter* xcrc32);
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft);
 		void shutdown() { stop = true; if(paused) s.signal(); s.signal(); }
 		void scheduleRebuild() { rebuild = true; if(paused) s.signal(); s.signal(); }

@@ -24,6 +24,8 @@
 #include "SimpleXML.h"
 #include "LogManager.h"
 #include "File.h"
+#include "ZUtils.h"
+#include "SFVReader.h"
 
 #ifndef _WIN32
 #include <sys/mman.h> // mmap, munmap, madvise
@@ -534,7 +536,7 @@ void HashManager::Hasher::instantPause() {
 #ifdef _WIN32
 #define BUF_SIZE (256*1024)
 
-bool HashManager::Hasher::fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size) {
+bool HashManager::Hasher::fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size, CRC32Filter* xcrc32) {
 	HANDLE h = INVALID_HANDLE_VALUE;
 	DWORD x, y;
 	if (!GetDiskFreeSpace(Text::toT(Util::getFilePath(fname)).c_str(), &y, &x, &y, &y)) {
@@ -600,6 +602,8 @@ bool HashManager::Hasher::fastHash(const string& fname, uint8_t* buf, TigerTree&
 		}
 
 		tth.update(hbuf, hn);
+		if (xcrc32)
+			(*xcrc32)(hbuf, hn);
 	
 		{
 			Lock l(cs);
@@ -801,15 +805,23 @@ int HashManager::Hasher::run() {
 				uint64_t timestamp = f.getLastModified();
 				TigerTree slowTTH(bs);
 				TigerTree* tth = &slowTTH;
+
+				CRC32Filter crc32;
+				SFVReader sfv(fname);
+				CRC32Filter* xcrc32 = 0;
+				if(sfv.hasCRC())
+					xcrc32 = &crc32;
+
 				size_t n = 0;
 				TigerTree fastTTH(bs);
 				tth = &fastTTH;
 #ifdef _WIN32
-				if(!virtualBuf || !BOOLSETTING(FAST_HASH) || !fastHash(fname, buf, fastTTH, size)) {
+				if(!virtualBuf || !BOOLSETTING(FAST_HASH) || !fastHash(fname, buf, fastTTH, size, xcrc32)) {
 #else
-				if(!BOOLSETTING(FAST_HASH) || !fastHash(fname, 0, fastTTH, size)) {
+				if(!BOOLSETTING(FAST_HASH) || !fastHash(fname, 0, fastTTH, size, xcrc32)) {
 #endif
 					tth = &slowTTH;
+					crc32 = CRC32Filter();
 					uint64_t lastRead = GET_TICK();
 
 					do {
@@ -826,6 +838,8 @@ int HashManager::Hasher::run() {
 						}
 						n = f.read(buf, bufSize);
 						tth->update(buf, n);
+						if(xcrc32)
+							(*xcrc32)(buf, n);
 
 						{
 							Lock l(cs);
@@ -846,7 +860,15 @@ int HashManager::Hasher::run() {
 				if(end > start) {
 					speed = size * _LL(1000) / (end - start);
 				}
-				HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
+				if (SETTING(MAX_HASH_SPEED)) {
+					if(xcrc32 && xcrc32->getValue() != sfv.getCRC()) {
+						LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32));
+					} else {
+						HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
+					}
+				} else {
+					HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
+				}
 			} catch(const FileException& e) {
 				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError());
 			}

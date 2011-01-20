@@ -1153,6 +1153,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Make release names clickable in chat", 
 "Copy Directory", 
 "Search Directory for alternatives", 
+"calculated CRC32 does not match the one found in SFV file.", 
+"Don't perform SFV check for files being hashed into share", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2306,4 +2308,6 @@ std::string dcpp::ResourceManager::names[] = {
 "FormatRelease", 
 "CopyDirectory", 
 "SearchForAlternatesDir", 
+"ErrorHashingCrc32", 
+"SettingsShareSfv", 
 };

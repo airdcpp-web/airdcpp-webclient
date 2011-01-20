@@ -149,7 +149,7 @@ const string SettingsManager::settingTags[] =
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "DisableRefreshOnSharepage", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
-	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRun", "FormatRelease",
+	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRun", "FormatRelease", "ShareSFV",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -217,6 +217,7 @@ SettingsManager::SettingsManager()
 	setDefault(AUTO_FOLLOW, true);
 	setDefault(CLEAR_SEARCH, true);
 	setDefault(SHARE_HIDDEN, false);
+	setDefault(SHARE_SFV, false);
 	setDefault(FILTER_MESSAGES, true);
 	setDefault(MINIMIZE_TRAY, true);
 	setDefault(AUTO_SEARCH, true);
