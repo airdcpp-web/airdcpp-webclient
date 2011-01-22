@@ -255,30 +255,8 @@ private:
 	// Substring searches
 	StringSearch::List stringSearchList;
 
-	bool SearchAll(const string& s) {
-		//decide if regexps should be used
-		if(isRegexp) {
-			try {
-			PME reg(searchString, isCaseSensitive ? "" : "i");
-			if(reg.IsValid()) {
-				return reg.match(s) > 0;
-			}else{
-				return false;
-			}
-			} catch (...) {
-				LogManager::getInstance()->message("Adl Search regexp caught an Error");
-				return false;
-			}
-		} else {
-		// Match all substrings
-		for(StringSearch::List::const_iterator i = stringSearchList.begin(); i != stringSearchList.end(); ++i) {
-			if(!i->match(s)) {
-				return false;
-			}
-		}
-		return (stringSearchList.size() != 0);
-		}
-	}
+	bool SearchAll(const string& s);
+
 
 	bool SearchAllTTH(const string& root) {
 		if(root.empty()) { return false; }
