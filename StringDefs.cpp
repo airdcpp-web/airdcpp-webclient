@@ -706,7 +706,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Show InfoTips in lists", 
 "Show joins / parts in chat by default", 
 "Show progress bars for transfers (uses some CPU)", 
-"Show shell menu in finished transfers", 
+"Show shell menu in finished transfers and Own FileList", 
 "Skip zero-byte files", 
 "SOCKS5", 
 "Socks IP", 
