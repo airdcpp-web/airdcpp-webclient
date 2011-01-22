@@ -1155,6 +1155,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search Directory for alternatives", 
 "calculated CRC32 does not match the one found in SFV file.", 
 "Don't perform SFV check for files being hashed into share", 
+"Search Directory", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2310,4 +2311,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchForAlternatesDir", 
 "ErrorHashingCrc32", 
 "SettingsShareSfv", 
+"SearchDirectory", 
 };

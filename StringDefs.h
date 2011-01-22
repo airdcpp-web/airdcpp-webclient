@@ -1162,5 +1162,6 @@ enum Strings { // @DontAdd
 	SEARCH_FOR_ALTERNATES_DIR, // "Search Directory for alternatives"
 	ERROR_HASHING_CRC32, // "calculated CRC32 does not match the one found in SFV file."
 	SETTINGS_SHARE_SFV, // "Don't perform SFV check for files being hashed into share"
+	SEARCH_DIRECTORY, // "Search Directory"
 	LAST // @DontAdd
 };
