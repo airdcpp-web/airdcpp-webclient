@@ -219,7 +219,7 @@ SettingsManager::SettingsManager()
 	setDefault(SHARE_HIDDEN, false);
 	setDefault(SHARE_SFV, false);
 	setDefault(FILTER_MESSAGES, true);
-	setDefault(MINIMIZE_TRAY, true);
+	setDefault(MINIMIZE_TRAY, false);
 	setDefault(AUTO_SEARCH, true);
 	setDefault(TIME_STAMPS, true);
 	setDefault(CONFIRM_EXIT, true);
@@ -344,7 +344,7 @@ SettingsManager::SettingsManager()
 	setDefault(ALLOW_UNTRUSTED_CLIENTS, true);		
 	setDefault(FAST_HASH, true);
 	setDefault(SORT_FAVUSERS_FIRST, false);
-	setDefault(SHOW_SHELL_MENU, false);	
+	setDefault(SHOW_SHELL_MENU, true);	
 	setDefault(CORAL, true);	
 	setDefault(NUMBER_OF_SEGMENTS, 3);
 	setDefault(SEGMENTS_MANUAL, false);
