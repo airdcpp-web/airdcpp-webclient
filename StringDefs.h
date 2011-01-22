@@ -709,7 +709,7 @@ enum Strings { // @DontAdd
 	SETTINGS_SHOW_INFO_TIPS, // "Show InfoTips in lists"
 	SETTINGS_SHOW_JOINS, // "Show joins / parts in chat by default"
 	SETTINGS_SHOW_PROGRESS_BARS, // "Show progress bars for transfers (uses some CPU)"
-	SETTINGS_SHOW_SHELL_MENU, // "Show shell menu in finished transfers"
+	SETTINGS_SHOW_SHELL_MENU, // "Show shell menu in finished transfers and Own FileList"
 	SETTINGS_SKIP_ZERO_BYTE, // "Skip zero-byte files"
 	SETTINGS_SOCKS5, // "SOCKS5"
 	SETTINGS_SOCKS5_IP, // "Socks IP"
