@@ -351,6 +351,16 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 	for(DirectoryListing::File::Iter i = files.begin(); i != files.end(); ++i) l.insert((*i)->getTTH());
 }
 
+string DirectoryListing::getLocalPaths(const Directory* d) {
+	try {
+		return ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)));
+
+	} catch(const ShareException&) {
+
+		return Util::emptyString;
+	}
+}
+
 int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
 	int64_t x = getSize();
 	for(Iter i = directories.begin(); i != directories.end(); ++i) {

@@ -124,6 +124,10 @@ public:
 			return getName() + '\\';
 		}
 		uint8_t checkDupes();
+		
+	
+	
+
 
 		
 		GETSET(string, name, Name);
@@ -164,6 +168,7 @@ public:
 
 	const Directory* getRoot() const { return root; }
 	Directory* getRoot() { return root; }
+	string getLocalPaths(const Directory* d);
 
 	static UserPtr getUserFromFilename(const string& fileName);
 	void checkDupes();

@@ -287,6 +287,24 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::findFile(const 
 	return it;
 }
 
+string ShareManager::getRealPaths(const std::string path) {
+		string result = "";
+		Directory::Ptr d = splitVirtual(path).first;
+
+		if(d->getParent()) {
+			result = d->getParent()->getRealPath(d->getName());
+		} else {
+ 			for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
+				if(stricmp(i->second, d->getName()) == 0) {
+					if(FileFindIter(i->first.substr(0, i->first.size() - 1)) != FileFindIter()) {
+					result = i->first;
+
+					}
+				}
+			}
+		}
+		return result;
+	}
 string ShareManager::validateVirtual(const string& aVirt) const throw() {
 	string tmp = aVirt;
 	string::size_type idx = 0;

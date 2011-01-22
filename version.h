@@ -18,11 +18,17 @@
 
 
 #define APPNAME "AirDC++"
-#define VERSIONSTRING "2.09 Beta 1"
-#define BETADATE "Beta Compiled : 20.01.2011"
-#define VERSIONFLOAT 2.090
+#define VERSIONSTRING "2.09 Beta 2"
+#define BETADATE "Beta Compiled : 21.01.2011"
+#define VERSIONFLOAT 2.091
 
 #define DCVERSIONSTRING "0.777"
+
+#ifdef _WIN64
+# define CONFIGURATION_TYPE "x86-64"
+#else
+# define CONFIGURATION_TYPE "x86-32"
+#endif
 
 #ifdef BETADATE
 #define VERSION_URL "http://airdc.sourceforge.net/xmls/beta_airdcversion.php"
