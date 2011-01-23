@@ -1155,6 +1155,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search TV.com", 
 "Search Imdb", 
 "Search Metacritic", 
+"Log Mainchat", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2310,4 +2311,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchTvcom", 
 "SearchImdb", 
 "SearchMetacritic", 
+"FavLogChat", 
 };

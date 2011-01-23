@@ -1162,5 +1162,6 @@ enum Strings { // @DontAdd
 	SEARCH_TVCOM, // "Search TV.com"
 	SEARCH_IMDB, // "Search Imdb"
 	SEARCH_METACRITIC, // "Search Metacritic"
+	FAV_LOG_CHAT, // "Log Mainchat"
 	LAST // @DontAdd
 };

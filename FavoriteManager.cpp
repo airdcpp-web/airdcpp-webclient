@@ -421,6 +421,7 @@ void FavoriteManager::save() {
 			xml.addChildAttrib("HideShare", (*i)->getHideShare()); //Hide Share Mod
 			xml.addChildAttrib("FavNoPM", (*i)->getFavNoPM());	
 			xml.addChildAttrib("HubShowJoins", (*i)->getHubShowJoins());	//show joins
+			xml.addChildAttrib("HubLogMainchat", (*i)->getHubLogMainchat());
 			xml.addChildAttrib("SearchInterval", Util::toString((*i)->getSearchInterval()));
 			xml.addChildAttrib("Group", (*i)->getGroup());
 		}
@@ -602,6 +603,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setHideShare(aXml.getBoolChildAttrib("HideShare")); //Hide Share Mod
 			e->setFavNoPM(aXml.getBoolChildAttrib("FavNoPM"));
 			e->setHubShowJoins(aXml.getBoolChildAttrib("HubShowJoins")); //show joins
+			e->setHubLogMainchat(aXml.getBoolChildAttrib("HubLogMainchat")); 
 			e->setSearchInterval(Util::toUInt32(aXml.getChildAttrib("SearchInterval")));
 			e->setGroup(aXml.getChildAttrib("Group"));
 			favoriteHubs.push_back(e);

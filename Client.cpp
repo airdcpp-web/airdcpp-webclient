@@ -86,6 +86,7 @@ void Client::reloadSettings(bool updateNick) {
 		setHideShare(hub->getHideShare()); // Hide Share Mod
 		setFavNoPM(hub->getFavNoPM());
 		setHubShowJoins(hub->getHubShowJoins()); //show joins
+		setHubLogMainchat(hub->getHubLogMainchat());
 		if(!hub->getEncoding().empty())
 			setEncoding(const_cast<string*>(&hub->getEncoding()));
 		
@@ -103,6 +104,7 @@ void Client::reloadSettings(bool updateNick) {
 		setHideShare(false); // Hide Share Mod
 		setFavNoPM(false);
 		setHubShowJoins(false);
+		setHubLogMainchat(true);
 		setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
 	}
 }
