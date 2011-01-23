@@ -307,6 +307,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, DirectoryListing:
 	}
 }
 
+//ToDo a Total cleanup
 bool ADLSearch::SearchAll(const string& s) {
 		//decide if regexps should be used
 		if(isRegexp) {
@@ -314,9 +315,9 @@ bool ADLSearch::SearchAll(const string& s) {
 			PME reg(searchString, isCaseSensitive ? "" : "i");
 			if(reg.IsValid()) {
 				return reg.match(s) > 0;
-		}else{
+			}else{
 				return false;
-			}
+				}
 			} catch (...) {
 				LogManager::getInstance()->message("Adl Search regexp caught an Error");
 			}
@@ -325,11 +326,12 @@ bool ADLSearch::SearchAll(const string& s) {
 		for(StringSearch::List::const_iterator i = stringSearchList.begin(); i != stringSearchList.end(); ++i) {
 			if(!i->match(s)) {
 				return false;
+				}
 			}
 		}
 		return (stringSearchList.size() != 0);
-		}
 	}
+
 
 
 void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, DirectoryListing::Directory* currentDir, string& fullPath) {
