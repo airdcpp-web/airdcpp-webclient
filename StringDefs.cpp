@@ -856,7 +856,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Command Type", 
 "User Menu", 
 "Create / Modify Command", 
-"Command Types:\r\nSeparator: Adds a separator to the menu\r\nRaw: Sends raw command to the hub (experts only, end it with '|'!)\r\nChat: Sends command as if you were typing it in the chat\r\nPM: Sends command as if you sent it by pm\r\nContexts determine where the command is shown:\r\nHub Menu: Hub tab (at the bottom of the screen) right-click menu\r\nChat Menu: User right-click menu in chat and PM tab menu\r\nSearch Menu: Search right-click menu\r\nParameters:\r\nName: Name (use '\\' to create submenus)\r\nCommand: Command text (may contain parameters)\r\nHub: Hub ip as typed when connecting (empty = all hubs, \"op\" = hubs where you're op)\r\nTo: PM recipient\r\nOnly once: Send only once per user from search frame\r\nIn the parameters, you can use %[xxx] variables and date/time specifiers (%Y, %m, ...). The following are available:\r\n%[myNI]: your own nick\r\n%[userNI]: the users nick (user && search context only)\r\n%[userTAG]: user tag (user && search context only)\r\n%[userDE]: user description (user && search context only)\r\n%[userEM]: user email (user && search context only)\r\n%[userSS]: user shared bytes (exact) (user && search context only)\r\n%[userSSshort]: user shared bytes (formatted) (user && search context only)\r\n%[userI4]: user ip (if supported by hub)\r\n%[fileFN]: filename (search context only)\r\n%[line:reason]: opens up a window asking for \"reason\"", 
+"Command Types:\r\nSeparator: Adds a separator to the menu\r\nRaw: Sends raw command to the hub (experts only, end it with '|'!)\r\nChat: Sends command as if you were typing it in the chat\r\nPM: Sends command as if you sent it by pm\r\nContexts determine where the command is shown:\r\nHub Menu: Hub tab (at the bottom of the screen) right-click menu\r\nChat Menu: User right-click menu in chat and PM tab menu\r\nSearch Menu: Search right-click menu\r\nParameters:\r\nName: Name (use '/' to create submenus)\r\nCommand: Command text (may contain parameters)\r\nHub: Hub ip as typed when connecting (empty = all hubs, \"op\" = hubs where you're op)\r\nTo: PM recipient\r\nOnly once: Send only once per user from search frame\r\nIn the parameters, you can use %[xxx] variables and date/time specifiers (%Y, %m, ...). The following are available:\r\n%[myNI]: your own nick\r\n%[userNI]: the users nick (user && search context only)\r\n%[userTAG]: user tag (user && search context only)\r\n%[userDE]: user description (user && search context only)\r\n%[userEM]: user email (user && search context only)\r\n%[userSS]: user shared bytes (exact) (user && search context only)\r\n%[userSSshort]: user shared bytes (formatted) (user && search context only)\r\n%[userI4]: user ip (if supported by hub)\r\n%[fileFN]: filename (search context only)\r\n%[line:reason]: opens up a window asking for \"reason\"", 
 "User Description", 
 "User offline", 
 "Running... (user online)", 
@@ -1156,6 +1156,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search Imdb", 
 "Search Metacritic", 
 "Log Mainchat", 
+"Max Log Lines To Open Internally", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2312,4 +2313,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchImdb", 
 "SearchMetacritic", 
 "FavLogChat", 
+"MaxLogLines", 
 };
