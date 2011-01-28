@@ -987,7 +987,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Display Popup", 
 "Play Sound", 
 "Flash Window", 
-"Include Nick", 
+"Use Highlight for Nicklist (only text color)", 
 "Whole Line", 
 "Entire Word", 
 "Change Tabcolor", 
@@ -1156,7 +1156,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search Imdb", 
 "Search Metacritic", 
 "Log Mainchat", 
-"Max Log Lines To Open Internally", 
+"Max View History Lines", 
+"View Chat History", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2144,7 +2145,7 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsPopup", 
 "SettingsPlaySound", 
 "SettingsFlashWindow", 
-"SettingsIncludeNick", 
+"SettingsIncludeNicklist", 
 "SettingsWholeLine", 
 "SettingsEntireWord", 
 "SettingsTabColor", 
@@ -2314,4 +2315,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchMetacritic", 
 "FavLogChat", 
 "MaxLogLines", 
+"ViewHistory", 
 };

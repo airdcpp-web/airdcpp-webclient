@@ -44,6 +44,7 @@ typedef scoped_handle<SSL, SSL_free> SSL;
 typedef scoped_handle<SSL_CTX, SSL_CTX_free> SSL_CTX;
 
 #ifdef HEADER_OPENSSLV_H
+typedef scoped_handle<ASN1_INTEGER, ASN1_INTEGER_free> ASN1_INTEGER;
 typedef scoped_handle<DH, DH_free> DH;
 typedef scoped_handle<BIGNUM, BN_free> BIGNUM;
 

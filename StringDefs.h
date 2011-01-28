@@ -991,7 +991,7 @@ enum Strings { // @DontAdd
 	SETTINGS_POPUP, // "Display Popup"
 	SETTINGS_PLAY_SOUND, // "Play Sound"
 	SETTINGS_FLASH_WINDOW, // "Flash Window"
-	SETTINGS_INCLUDE_NICK, // "Include Nick"
+	SETTINGS_INCLUDE_NICKLIST, // "Use Highlight for Nicklist (only text color)"
 	SETTINGS_WHOLE_LINE, // "Whole Line"
 	SETTINGS_ENTIRE_WORD, // "Entire Word"
 	SETTINGS_TAB_COLOR, // "Change Tabcolor"
@@ -1163,6 +1163,7 @@ enum Strings { // @DontAdd
 	SEARCH_IMDB, // "Search Imdb"
 	SEARCH_METACRITIC, // "Search Metacritic"
 	FAV_LOG_CHAT, // "Log Mainchat"
-	MAX_LOG_LINES, // "Max Log Lines To Open Internally"
+	MAX_LOG_LINES, // "Max View History Lines"
+	VIEW_HISTORY, // "View Chat History"
 	LAST // @DontAdd
 };

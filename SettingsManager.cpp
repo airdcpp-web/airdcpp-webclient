@@ -652,7 +652,7 @@ SettingsManager::SettingsManager()
 	setDefault(LANGUAGE_SWITCH, 0);
 	setDefault(WIZARD_RUN, true); // run wizard on startup
 	setDefault(FORMAT_RELEASE, true);
-	setDefault(LOG_LINES, 1000);
+	setDefault(LOG_LINES, 500);
 /*
 #ifdef _WIN32
 	OSVERSIONINFO ver;

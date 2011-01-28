@@ -44,6 +44,9 @@ public:
 		return &colorSettings;
 	}
 
+
+
+
 	void replaceList(ColorList& settings) {
 		colorSettings.clear();
 		colorSettings = settings;
