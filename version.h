@@ -19,15 +19,17 @@
 
 #define APPNAME "AirDC++"
 #define VERSIONSTRING "2.09 Beta 2"
-#define BETADATE "Beta Compiled : 28.01.2011"
+#define BETADATE "Beta Compiled : 29.01.2011"
 #define VERSIONFLOAT 2.091
 
-#define DCVERSIONSTRING "0.777"
+#define DCVERSIONSTRING "0.781"
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"
+#define INSTALLER "AirDC_Installer64.exe"
 #else
 # define CONFIGURATION_TYPE "x86-32"
+#define INSTALLER "AirDC_Installer.exe"
 #endif
 
 #ifdef BETADATE

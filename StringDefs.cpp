@@ -987,7 +987,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Display Popup", 
 "Play Sound", 
 "Flash Window", 
-"Use Highlight for Nicklist (only text color)", 
+"Use Highlight for Nicklist (Wildcards or $Re: for Regex)", 
 "Whole Line", 
 "Entire Word", 
 "Change Tabcolor", 
