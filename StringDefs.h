@@ -991,7 +991,7 @@ enum Strings { // @DontAdd
 	SETTINGS_POPUP, // "Display Popup"
 	SETTINGS_PLAY_SOUND, // "Play Sound"
 	SETTINGS_FLASH_WINDOW, // "Flash Window"
-	SETTINGS_INCLUDE_NICKLIST, // "Use Highlight for Nicklist (only text color)"
+	SETTINGS_INCLUDE_NICKLIST, // "Use Highlight for Nicklist (Wildcards or $Re: for Regex)"
 	SETTINGS_WHOLE_LINE, // "Whole Line"
 	SETTINGS_ENTIRE_WORD, // "Entire Word"
 	SETTINGS_TAB_COLOR, // "Change Tabcolor"

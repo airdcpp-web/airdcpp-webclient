@@ -461,7 +461,7 @@ bool ADLSearch::SearchAll(const string& s) {
 	if(isRegexp) {
 		try {
 
-		boost::regex reg(searchString, isCaseSensitive ? boost::regex_constants::icase :  boost::match_default);
+		boost::regex reg(searchString, isCaseSensitive ? boost::match_default : boost::regex_constants::icase );
 		return boost::regex_search(s, reg);
 
 	} catch(...) { 
