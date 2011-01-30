@@ -810,9 +810,10 @@ int HashManager::Hasher::run() {
 				SFVReader sfv(fname);
 				CRC32Filter* xcrc32 = 0;
 
-				if (!SETTING(SHARE_SFV) && sfv.hasCRC())
+				if (!SETTING(SHARE_SFV)) {
+					if (sfv.hasCRC())
 						xcrc32 = &crc32;
-
+				}
 				size_t n = 0;
 				TigerTree fastTTH(bs);
 				tth = &fastTTH;
