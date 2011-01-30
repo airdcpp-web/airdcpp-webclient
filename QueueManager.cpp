@@ -1294,8 +1294,8 @@ void QueueManager::moveFile_(const string& source, const string& target) {
 	try {
 		File::renameFile(source, target);
 		getInstance()->fire(QueueManagerListener::FileMoved(), target);
-	} catch(const FileException& /*e1*/) {
-     //todo a log message here!
+	} catch(const FileException& e1) {
+		 LogManager::getInstance()->message(source + " " + STRING(UNABLE_TO_MOVE) + " " + target + ": " + e1.getError() );
 		// Try to just rename it to the correct name at least
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
 		try {
