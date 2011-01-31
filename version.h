@@ -19,7 +19,7 @@
 
 #define APPNAME "AirDC++"
 #define VERSIONSTRING "2.09 Beta 2"
-#define BETADATE "Beta Compiled : 30.01.2011"
+#define BETADATE "Beta Compiled : 31.01.2011"
 #define VERSIONFLOAT 2.091
 
 #define DCVERSIONSTRING "0.781"
