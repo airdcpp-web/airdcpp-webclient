@@ -405,7 +405,7 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, S
 	 * switched to storing only reliable HintedUsers (found with the token of the ADC command),
 	 * change this call to findOnlineUser_hint. */
 	OnlineUser* ou = findOnlineUser(user.user->getCID(), user.hint.empty() ? uc.getHub() : user.hint, false);
-	if(ou)
+	if(!ou)
 		return;
 
 	ou->getIdentity().getParams(params, "user", compatibility);

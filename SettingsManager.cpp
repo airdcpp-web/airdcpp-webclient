@@ -465,7 +465,7 @@ SettingsManager::SettingsManager()
 	setDefault(DONT_BEGIN_SEGMENT_SPEED, 512);
 
 	setDefault(USE_VERTICAL_VIEW, true);
-	setDefault(SEARCH_TIME, 10);
+	setDefault(SEARCH_TIME, 20);
 	setDefault(SUPPRESS_MAIN_CHAT, false);
 	setDefault(AUTO_SLOTS, 5);	
 	
@@ -499,7 +499,7 @@ SettingsManager::SettingsManager()
 
 	setDefault(AWAY, false);
 	setDefault(SHUTDOWN_ACTION, 0);
-	setDefault(MINIMUM_SEARCH_INTERVAL, 10);
+	setDefault(MINIMUM_SEARCH_INTERVAL, 15);
 	setDefault(PROGRESSBAR_ODC_STYLE, true);
 
 	setDefault(PROGRESS_3DDEPTH, 4);
