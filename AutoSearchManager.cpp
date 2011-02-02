@@ -27,7 +27,7 @@
 #include "Pointer.h"
 #include "SearchResult.h"
 #include "SimpleXML.h"
-
+#include "User.h"
 
 namespace dcpp {
 AutoSearchManager::AutoSearchManager() {
@@ -172,6 +172,13 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 							} else if((*i)->getAction() == 1) {
 								addToQueue(sr, true);
 								break;
+							
+							} else if((*i)->getAction() == 2) {
+								ClientManager* c = ClientManager::getInstance();
+								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
+								Client* client = &u->getClient();
+								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
+								break;
 							}
 						};
 					} catch(...) {
@@ -195,6 +202,12 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 							} else if((*i)->getAction() == 1) {
 								addToQueue(sr, true);
 								break;
+							} else if((*i)->getAction() == 2) {
+								ClientManager* c = ClientManager::getInstance();
+								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
+								Client* client = &u->getClient();
+								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
+								break;
 							}
 						}
 					} else if((*i)->getFileType() == 7 && sr->getType() == SearchResult::TYPE_DIRECTORY) { //directory
@@ -205,6 +218,12 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								break;
 							} else if((*i)->getAction() == 1) {
 								addToQueue(sr, true);
+								break;
+							} else if((*i)->getAction() == 2) {
+								ClientManager* c = ClientManager::getInstance();
+								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
+								Client* client = &u->getClient();
+								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
 								break;
 							}
 						}
@@ -228,7 +247,13 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								} else if((*i)->getAction() == 1) {
 									addToQueue(sr, true);
 									break;
-								}
+								} else if((*i)->getAction() == 2) {
+								ClientManager* c = ClientManager::getInstance();
+								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
+								Client* client = &u->getClient();
+								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
+								break;
+							}
 							}
 						}
 					}

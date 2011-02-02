@@ -823,6 +823,7 @@ connect:
 	if(wantConnection && aUser.user->isOnline())
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 
+	//hmm.. will need to test this one, cant see why it would cause a deadlock
 	// auto search, prevent DEADLOCK
 	if(newItem && BOOLSETTING(AUTO_SEARCH)){
 		SearchManager::getInstance()->search(TTHValue(root).toBase32(), 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto");

@@ -136,6 +136,10 @@ public:
 	string getMyNick() const { return getMyIdentity().getNick(); }
 	string getHubName() const { return getHubIdentity().getNick().empty() ? getHubUrl() : getHubIdentity().getNick(); }
 	string getHubDescription() const { return getHubIdentity().getDescription(); }
+	
+	void Message(const string& msg) {
+		fire(ClientListener::AddLine(), this, msg);
+	}
 
 	Identity& getHubIdentity() { return hubIdentity; }
 

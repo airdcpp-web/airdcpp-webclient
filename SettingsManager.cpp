@@ -465,7 +465,7 @@ SettingsManager::SettingsManager()
 	setDefault(DONT_BEGIN_SEGMENT_SPEED, 512);
 
 	setDefault(USE_VERTICAL_VIEW, true);
-	setDefault(SEARCH_TIME, 20);
+	setDefault(SEARCH_TIME, 15);
 	setDefault(SUPPRESS_MAIN_CHAT, false);
 	setDefault(AUTO_SLOTS, 5);	
 	

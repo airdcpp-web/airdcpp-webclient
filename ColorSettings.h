@@ -28,7 +28,7 @@ class ColorSettings
 public:
 	ColorSettings(): bTimestamps(false), bUsers(false), bMyNick(false), bUsingRegexp(false), 
 		strMatch(Util::emptyStringT), strSoundFile(Util::emptyStringT), bWholeWord(false), 
-		bWholeLine(false), bIncludeNick(false), bCaseSensitive(false), bPopup(false), bTab(false),
+		bWholeLine(false), bIncludeNickList(false), bCaseSensitive(false), bPopup(false), bTab(false),
 		bPlaySound(false), bBold(false), bUnderline(false), bItalic(false), bStrikeout(false), 
 		bLastLog(false), bFlashWindow(false), iMatchType(1), iBgColor(0), iFgColor(0), bHasBgColor(false),
 		bHasFgColor(false) {	}
@@ -36,7 +36,7 @@ public:
 
 	GETSET(bool, bWholeWord, WholeWord);
 	GETSET(bool, bWholeLine, WholeLine);
-	GETSET(bool, bIncludeNick, IncludeNick);
+	GETSET(bool, bIncludeNickList, IncludeNickList);
 	GETSET(bool, bCaseSensitive, CaseSensitive);
 	GETSET(bool, bPopup, Popup);
 	GETSET(bool, bTab, Tab);

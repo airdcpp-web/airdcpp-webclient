@@ -1166,5 +1166,6 @@ enum Strings { // @DontAdd
 	MAX_LOG_LINES, // "Max View History Lines"
 	VIEW_HISTORY, // "View Chat History"
 	UNABLE_TO_MOVE, // "Could not Move Finished File"
+	AS_REPORT, // "Report Hit in Mainchat"
 	LAST // @DontAdd
 };

@@ -44,7 +44,7 @@ void HighlightManager::load(SimpleXML& aXml){
 			cs.setItalic( aXml.getBoolChildAttrib("Italic") );
 			cs.setUnderline( aXml.getBoolChildAttrib("Underline") );
 			cs.setStrikeout( aXml.getBoolChildAttrib("Strikeout") );
-			cs.setIncludeNick( aXml.getBoolChildAttrib("IncludeNick") );
+			cs.setIncludeNickList( aXml.getBoolChildAttrib("IncludeNickList") );
 			cs.setCaseSensitive( aXml.getBoolChildAttrib("CaseSensitive") );
 			cs.setWholeLine( aXml.getBoolChildAttrib("WholeLine") );
 			cs.setWholeWord( aXml.getBoolChildAttrib("WholeWord") );
@@ -81,7 +81,7 @@ void HighlightManager::save(SimpleXML& aXml){
 		aXml.addChildAttrib("Italic", (*iter).getItalic());
 		aXml.addChildAttrib("Underline", (*iter).getUnderline());
 		aXml.addChildAttrib("Strikeout", (*iter).getStrikeout());
-		aXml.addChildAttrib("IncludeNick", (*iter).getIncludeNick());
+		aXml.addChildAttrib("IncludeNickList", (*iter).getIncludeNickList());
 		aXml.addChildAttrib("CaseSensitive", (*iter).getCaseSensitive());
 		aXml.addChildAttrib("WholeLine", (*iter).getWholeLine());
 		aXml.addChildAttrib("WholeWord", (*iter).getWholeWord());

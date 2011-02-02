@@ -722,9 +722,12 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 				continue;
 			}*/
 		}else{
+			try{
 			if( Wildcard::patternMatch( name, SETTING(SKIPLIST_SHARE), '|' ) ){
 				continue;
 			}
+			}catch(...) { }
+			
 		}
 
 		if(name == "." || name == "..")

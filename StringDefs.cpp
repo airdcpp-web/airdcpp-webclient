@@ -1159,6 +1159,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Max View History Lines", 
 "View Chat History", 
 "Could not Move Finished File", 
+"Report Hit in Mainchat", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2318,4 +2319,5 @@ std::string dcpp::ResourceManager::names[] = {
 "MaxLogLines", 
 "ViewHistory", 
 "UnableToMove", 
+"AsReport", 
 };
