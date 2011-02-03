@@ -19,7 +19,7 @@
 
 #define APPNAME "AirDC++"
 #define VERSIONSTRING "2.09 Beta 2"
-#define BETADATE "Beta Compiled : 02.02.2011"
+
 #define VERSIONFLOAT 2.091
 
 #define DCVERSIONSTRING "0.781"
@@ -32,12 +32,21 @@
 #define INSTALLER "AirDC_Installer.exe"
 #endif
 
+#define BETADATE
+
 #ifdef BETADATE
 #define VERSION_URL "http://airdc.sourceforge.net/xmls/beta_airdcversion.php"
 #else
 #define VERSION_URL "http://airdc.sourceforge.net/xmls/airdcversion.php"
 #endif
 
+
+
+#ifndef BETADATE
+# define COMPLETEVERSIONSTRING _T(APPNAME) _T(" ") _T(VERSIONSTRING)  _T(" ") _T(CONFIGURATION_TYPE)
+#else
+# define COMPLETEVERSIONSTRING Text::toT(APPNAME " " VERSIONSTRING  " " CONFIGURATION_TYPE " - Beta Compiled : " + WinUtil::getCompileDate()).c_str()
+#endif
 /* Update the .rc file as well... */
 
 /**
