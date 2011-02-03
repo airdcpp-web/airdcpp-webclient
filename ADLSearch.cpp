@@ -459,14 +459,22 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, DirectoryListing:
 bool ADLSearch::SearchAll(const string& s) {
 		//decide if regexps should be used
 	if(isRegexp) {
-		try {
+	try {
+		PME reg(searchString, isCaseSensitive ? "" : "i");
+			if(reg.IsValid()) {
+				return reg.match(s) > 0;
+		} 
+		}catch(...) { }
+
+		//boost regex
+/*				try {
 
 		boost::regex reg(searchString, isCaseSensitive ? boost::match_default : boost::regex_constants::icase );
 		return boost::regex_search(s, reg);
 
 	} catch(...) { 
 
-		}
+		}*/
 	}
 		// Match all substrings
 		for(StringSearch::List::const_iterator i = stringSearchList.begin(); i != stringSearchList.end(); ++i) {
