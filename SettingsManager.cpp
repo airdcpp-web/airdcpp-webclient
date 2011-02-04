@@ -579,7 +579,7 @@ SettingsManager::SettingsManager()
 	setDefault(IP_UPDATE, true);
 	setDefault(SERVER_COMMANDS, true);
 	setDefault(CLIENT_COMMANDS, true);
-	setDefault(SKIPLIST_SHARE, ".*\\.(bc(!)?|dctmp|getright|antifrag|jc|!ut|tmp|scn|asd|lnk|url|log|bad|missing|crc|dat|sfk|mxm)$|thumbs.db$|System Volume Information$|RECYCLER$|rushchk.log$");
+	setDefault(SKIPLIST_SHARE, ".*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm)$|rushchk.log|$");
 	setDefault(FREE_SLOTS_EXTENSIONS, "*.nfo|*.sfv");
 	setDefault(POPUP_FONT, "MS Shell Dlg,-11,400,0");
 	setDefault(POPUP_TITLE_FONT, "MS Shell Dlg,-11,400,0");

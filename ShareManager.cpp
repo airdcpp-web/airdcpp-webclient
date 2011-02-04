@@ -740,15 +740,19 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			if ((stricmp(fileExt.c_str(), ".tdc") == 0) ||
 				(stricmp(fileExt.c_str(), ".GetRight") == 0) ||
 				(stricmp(fileExt.c_str(), ".temp") == 0) ||
+				(stricmp(fileExt.c_str(), ".tmp") == 0) ||
 				(stricmp(fileExt.c_str(), ".jc!") == 0) ||	//FlashGet
 				(stricmp(fileExt.c_str(), ".dmf") == 0) ||	//Download Master
 				(stricmp(fileExt.c_str(), ".!ut") == 0) ||	//uTorrent
 				(stricmp(fileExt.c_str(), ".bc!") == 0) ||	//BitComet
+				(stricmp(fileExt.c_str(), ".missing") == 0) ||
+				(stricmp(fileExt.c_str(), ".bak") == 0) ||
+				(stricmp(fileExt.c_str(), ".bad") == 0) ||
 				(nameLen > 9 && name.rfind("part.met") == nameLen - 8) ||				
 				(name.find("__padding_") == 0) ||			//BitComet padding
 				(name.find("__INCOMPLETE__") == 0) ||		//winmx
-				(name.find("__incomplete__") == 0) ||		//winmx
-				(nameLen >= 28 && name.find("download") == 0 && name.rfind(".dat") == nameLen - 4 && Util::toInt64(name.substr(8, 16)))) {		//kazaa temps
+				(name.find("__incomplete__") == 0)		//winmx
+				) {		//kazaa temps
 					LogManager::getInstance()->message("Forbidden file will not be shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(File::getSize(name)) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
 					continue;
 			}

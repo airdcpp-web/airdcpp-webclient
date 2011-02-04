@@ -548,7 +548,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Private message sound", 
 "Progressbar colors", 
 "Progressbar text colors", 
-"Remove Forbidden (Unfinished Kazaa, Win MX, GetRight, eMule, AirDC++)", 
+"Remove common forbidden files from share", 
 "Disconnecting slow downloads", 
 "Small file size", 
 "Small Upload Slots", 
