@@ -1167,5 +1167,6 @@ enum Strings { // @DontAdd
 	VIEW_HISTORY, // "View Chat History"
 	UNABLE_TO_MOVE, // "Could not Move Finished File"
 	AS_REPORT, // "Report Hit in Mainchat"
+	SETTINGS_LGER, // "German"
 	LAST // @DontAdd
 };

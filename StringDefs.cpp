@@ -548,7 +548,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Private message sound", 
 "Progressbar colors", 
 "Progressbar text colors", 
-"Remove common forbidden files from share", 
+"Remove Forbidden (Unfinished Kazaa, Win MX, GetRight, eMule, AirDC++)", 
 "Disconnecting slow downloads", 
 "Small file size", 
 "Small Upload Slots", 
@@ -1160,6 +1160,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "View Chat History", 
 "Could not Move Finished File", 
 "Report Hit in Mainchat", 
+"German", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2320,4 +2321,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ViewHistory", 
 "UnableToMove", 
 "AsReport", 
+"SettingsLger", 
 };

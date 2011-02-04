@@ -191,6 +191,7 @@ SettingsManager::SettingsManager()
 	Languages.push_back("French");    //10
 	Languages.push_back("Dutch");     //11
 	Languages.push_back("Russian");   //12
+	Languages.push_back("German");    //13
 
 	for(int i=0; i<SETTINGS_LAST; i++)
 		isSet[i] = false;
