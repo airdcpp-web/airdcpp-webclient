@@ -187,7 +187,7 @@ public:
 	template<typename T> void handle(T , const AdcCommand& ) { }
 
 	int64_t getChunkSize() const {
-		int min_seg_size = (SETTING(MIN_SEGMENT_SIZE)*1024);
+		int64_t min_seg_size = (SETTING(MIN_SEGMENT_SIZE)*1024);
 		if(chunkSize < min_seg_size) {
 			return min_seg_size;
 		}else{
