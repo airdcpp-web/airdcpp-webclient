@@ -57,11 +57,12 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 	return false;
 }
 
-bool SFVReader::findMissing(const string& sfvFile) throw(FileException) {
 
-	//string sfv = File(sfvFile, File::READ, File::OPEN).read();
-	string path = Util::getFilePath(sfvFile);
+bool SFVReader::findMissing(const string& path) throw(FileException) {
+
 	StringList files;
+	string sfvFile;
+	StringList sfvFiles = File::findFiles(path, "*.sfv");
 
 	//regex to match crc32
 	boost::wregex reg;
@@ -70,17 +71,24 @@ bool SFVReader::findMissing(const string& sfvFile) throw(FileException) {
 	ifstream sfv;
 	string line;
 
-	sfv.open(sfvFile);
-	while( getline( sfv, line ) ) {
-		if(regex_match(Text::toT(line), reg))
-			//only keep the filename
-			regex_replace(Text::toT(line), reg, "");
-			files = File::findFiles(path, line);
-			if (files.size() == NULL)
-				LogManager::getInstance()->message("File missing: " + path + line);
-	}
-	sfv.close();
 
+	for(StringIter i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
+		sfvFile = *i;
+
+		sfv.open(sfvFile);
+		while( getline( sfv, line ) ) {
+			//make sure that the line is valid
+			if(regex_match(Text::toT(line), reg))
+				//only keep the filename
+				regex_replace(Text::toT(line), reg, "");
+				files = File::findFiles(path, line);
+				if (files.size() == NULL)
+					LogManager::getInstance()->message("File missing: " + path + line);
+				else
+					files.clear();
+		}
+		sfv.close();
+	}
 	/*
 	string::size_type i = 0;
 	ifstream filestream(sfv);
@@ -128,5 +136,7 @@ void SFVReader::load(const string& fileName) throw() {
 		}
 	}
 }
+
+
 
 } // namespace dcpp
