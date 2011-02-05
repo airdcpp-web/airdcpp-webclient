@@ -56,14 +56,32 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 
 	return false;
 }
-/*
-bool SFVReader::tryFolder(const string& sfvFile) throw(FileException) {
 
-	string sfv = File(sfvFile, File::READ, File::OPEN).read();
+bool SFVReader::findMissing(const string& sfvFile) throw(FileException) {
+
+	//string sfv = File(sfvFile, File::READ, File::OPEN).read();
 	string path = Util::getFilePath(sfvFile);
 	StringList files;
-	string fileName;
 
+	//regex to match crc32
+	boost::wregex reg;
+	reg.assign(_T("(\\s(\\w{8})$)"));
+
+	ifstream sfv;
+	string line;
+
+	sfv.open(sfvFile);
+	while( getline( sfv, line ) ) {
+		if(regex_match(Text::toT(line), reg))
+			//only keep the filename
+			regex_replace(Text::toT(line), reg, "");
+			files = File::findFiles(path, line);
+			if (files.size() == NULL)
+				LogManager::getInstance()->message("File missing: " + path + line);
+	}
+	sfv.close();
+
+	/*
 	string::size_type i = 0;
 	ifstream filestream(sfv);
 	fileName = istream::getline (filestream, 200, "\n" );
@@ -77,10 +95,10 @@ bool SFVReader::tryFolder(const string& sfvFile) throw(FileException) {
 		}
 		i += fileName.length();
 	}
-
+	*/
 	return false;
 }
-
+/*
 void SFVReader::loadTest(const string& fileName) throw() {
 
   char buffer[256];
@@ -96,22 +114,6 @@ void SFVReader::loadTest(const string& fileName) throw() {
  */
 
 void SFVReader::load(const string& fileName) throw() {
-	string path = Util::getFilePath(fileName);
-	string fname = Util::getFileName(fileName);
-	StringList files = File::findFiles(path, "*.sfv");
-
-	for(StringIter i = files.begin(); i != files.end(); ++i) {
-		try {
-			if (tryFile(*i, fname)) {
-				return;
-			}
-		} catch(const FileException&) {
-			// Ignore...
-		}
-	}
-}
-
-void SFVReader::loadFromFolder(const string& fileName) throw() {
 	string path = Util::getFilePath(fileName);
 	string fname = Util::getFileName(fileName);
 	StringList files = File::findFiles(path, "*.sfv");

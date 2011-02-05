@@ -49,7 +49,7 @@ private:
 	bool crcFound;
 
 	bool tryFile(const string& sfvFile, const string& fileName) throw(FileException);
-	bool tryFolder(const string& sfvFile) throw(FileException);
+	bool findMissing(const string& sfvFile) throw(FileException);
 
 };
 
