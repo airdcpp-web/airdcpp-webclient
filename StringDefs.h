@@ -1168,5 +1168,6 @@ enum Strings { // @DontAdd
 	UNABLE_TO_MOVE, // "Could not Move Finished File"
 	AS_REPORT, // "Report Hit in Mainchat"
 	SETTINGS_LGER, // "German"
+	FILE_MISSING, // "FILE MISSING: "
 	LAST // @DontAdd
 };

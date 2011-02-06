@@ -41,6 +41,7 @@ public:
 	void loadFromFolder(const string& fullPath) throw();
 
 	bool hasCRC() const throw() { return crcFound; }
+	static int findMissing(const string& path) throw(FileException);
 	uint32_t getCRC() const throw() { return crc32; }
 
 private:
@@ -49,7 +50,6 @@ private:
 	bool crcFound;
 
 	bool tryFile(const string& sfvFile, const string& fileName) throw(FileException);
-	bool findMissing(const string& path) throw(FileException);
 
 };
 

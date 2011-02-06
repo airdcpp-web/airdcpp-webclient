@@ -58,15 +58,16 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 }
 
 
-bool SFVReader::findMissing(const string& path) throw(FileException) {
-
+int SFVReader::findMissing(const string& path) throw(FileException) {
 	StringList files;
 	string sfvFile;
 	StringList sfvFiles = File::findFiles(path, "*.sfv");
+	int missingFiles=0;
+	int pos;
 
 	//regex to match crc32
 	boost::wregex reg;
-	reg.assign(_T("(\\s(\\w{8})$)"));
+	reg.assign(_T("(\\s(\\w{8}).*$)"));
 
 	ifstream sfv;
 	string line;
@@ -78,48 +79,23 @@ bool SFVReader::findMissing(const string& path) throw(FileException) {
 		sfv.open(sfvFile);
 		while( getline( sfv, line ) ) {
 			//make sure that the line is valid
-			if(regex_match(Text::toT(line), reg))
+			if(regex_search(Text::toT(line), reg)) {
 				//only keep the filename
-				regex_replace(Text::toT(line), reg, "");
+				pos = line.rfind(" ");
+				line = line.substr(0,pos+1);
 				files = File::findFiles(path, line);
-				if (files.size() == NULL)
-					LogManager::getInstance()->message("File missing: " + path + line);
-				else
+				if (files.size() == NULL) {
+					LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
+					missingFiles++;
+				} else {
 					files.clear();
+				}
+			}
 		}
 		sfv.close();
 	}
-	/*
-	string::size_type i = 0;
-	ifstream filestream(sfv);
-	fileName = istream::getline (filestream, 200, "\n" );
-	while( (i = Util::findSubString(sfv, fullPath, i)) != string::npos) {
-		// Either we're at the beginning of the file or the line...otherwise skip...
-		if( (i == 0) || (sfv[i-1] == '\n') ) {
-			string::size_type j = i + fileName.length() + 1;
-			files = File::findFiles(path, fileName);
-			if (files.size() == NULL)
-				LogManager::getInstance()->message("File missing: " + path + fileName);
-		}
-		i += fileName.length();
-	}
-	*/
-	return false;
+	return missingFiles;
 }
-/*
-void SFVReader::loadTest(const string& fileName) throw() {
-
-  char buffer[256];
-  std::ifstream myfile (fileName);
-  while (! myfile.eof() )
-  {
-    //myfile.getline (buffer,100, "\n");
-    cout << buffer << endl;
-  }
-  return line;
-
-}
- */
 
 void SFVReader::load(const string& fileName) throw() {
 	string path = Util::getFilePath(fileName);

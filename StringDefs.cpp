@@ -1161,6 +1161,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Could not Move Finished File", 
 "Report Hit in Mainchat", 
 "German", 
+"FILE MISSING: ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2322,4 +2323,5 @@ std::string dcpp::ResourceManager::names[] = {
 "UnableToMove", 
 "AsReport", 
 "SettingsLger", 
+"FileMissing", 
 };
