@@ -67,7 +67,7 @@ int SFVReader::findMissing(const string& path) throw(FileException) {
 
 	//regex to match crc32
 	boost::wregex reg;
-	reg.assign(_T("(\\s(\\w{8}).*$)"));
+	reg.assign(_T("(\\s(\\w{8})$)"));
 
 	ifstream sfv;
 	string line;

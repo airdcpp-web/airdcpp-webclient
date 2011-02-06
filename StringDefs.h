@@ -1169,5 +1169,9 @@ enum Strings { // @DontAdd
 	AS_REPORT, // "Report Hit in Mainchat"
 	SETTINGS_LGER, // "German"
 	FILE_MISSING, // "FILE MISSING: "
+	MENU_SCAN_MISSING, // "Scan share for missing files"
+	MISSING_FINISHED, // "Scan for missing files finished, %s missing files found"
+	SCAN_FOLDER_MISSING, // "Scan folder for missing files"
+	MISSING_FOUND, // "%s missing files found"
 	LAST // @DontAdd
 };

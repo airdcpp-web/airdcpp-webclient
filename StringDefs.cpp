@@ -1162,6 +1162,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Report Hit in Mainchat", 
 "German", 
 "FILE MISSING: ", 
+"Scan share for missing files", 
+"Scan for missing files finished, %s missing files found", 
+"Scan folder for missing files", 
+"%s missing files found", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2324,4 +2328,8 @@ std::string dcpp::ResourceManager::names[] = {
 "AsReport", 
 "SettingsLger", 
 "FileMissing", 
+"MenuScanMissing", 
+"MissingFinished", 
+"ScanFolderMissing", 
+"MissingFound", 
 };
