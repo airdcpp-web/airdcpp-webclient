@@ -71,20 +71,35 @@ int SFVReader::findMissing(const string& path) throw(FileException) {
 
 	ifstream sfv;
 	string line;
-	if (sfvFiles.size() == NULL) {
-		if (SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) {
+
+
+	if (SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) {
+		StringList nfoFiles = File::findFiles(path, "*.nfo");
+
+		//Check for multiple NFO or SFV files
+		if (nfoFiles.size() > 1)
+			LogManager::getInstance()->message(STRING(MULTIPLE_NFO) + path);
+		if (sfvFiles.size() > 1)
+			LogManager::getInstance()->message(STRING(MULTIPLE_SFV) + path);
+
+		if ((nfoFiles.size() == NULL) || (sfvFiles.size() == NULL)) {
+
+			//Check that it's a release folder
 			StringList releases = File::findFiles(path, "*.rar");
 			if (releases.size() == NULL) {
 				releases = File::findFiles(path, "*.000");
 			}
+
+			//Report missing SFV or NFO for release folders
 			if (releases.size() != NULL) {
-				LogManager::getInstance()->message("SFV file possibly missing: " + path);
+				if (nfoFiles.size() == NULL)
+					LogManager::getInstance()->message(STRING(NFO_MISSING) + path);
+				if (sfvFiles.size() == NULL) 
+					LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
 			}
 		}
-		return 0;
-	} else {
-
-		for(StringIter i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
+	}
+	for(StringIter i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
 			sfvFile = *i;
 
 			sfv.open(sfvFile);
@@ -105,7 +120,7 @@ int SFVReader::findMissing(const string& path) throw(FileException) {
 			}
 			sfv.close();
 		}
-	}
+	
 	return missingFiles;
 }
 

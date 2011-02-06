@@ -1166,6 +1166,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Scan for missing files finished, %s missing files found", 
 "Scan folder for missing files", 
 "%s missing files found", 
+"NFO file possibly missing: ", 
+"SFV file possibly missing: ", 
+"Multiple NFO files found: ", 
+"Multiple SFV files found: ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2332,4 +2336,8 @@ std::string dcpp::ResourceManager::names[] = {
 "MissingFinished", 
 "ScanFolderMissing", 
 "MissingFound", 
+"NfoMissing", 
+"SfvMissing", 
+"MultipleNfo", 
+"MultipleSfv", 
 };

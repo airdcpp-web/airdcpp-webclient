@@ -1173,5 +1173,9 @@ enum Strings { // @DontAdd
 	MISSING_FINISHED, // "Scan for missing files finished, %s missing files found"
 	SCAN_FOLDER_MISSING, // "Scan folder for missing files"
 	MISSING_FOUND, // "%s missing files found"
+	NFO_MISSING, // "NFO file possibly missing: "
+	SFV_MISSING, // "SFV file possibly missing: "
+	MULTIPLE_NFO, // "Multiple NFO files found: "
+	MULTIPLE_SFV, // "Multiple SFV files found: "
 	LAST // @DontAdd
 };
