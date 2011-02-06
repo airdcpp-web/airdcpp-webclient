@@ -71,28 +71,40 @@ int SFVReader::findMissing(const string& path) throw(FileException) {
 
 	ifstream sfv;
 	string line;
-
-
-	for(StringIter i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
-		sfvFile = *i;
-
-		sfv.open(sfvFile);
-		while( getline( sfv, line ) ) {
-			//make sure that the line is valid
-			if(regex_search(Text::toT(line), reg)) {
-				//only keep the filename
-				pos = line.rfind(" ");
-				line = line.substr(0,pos+1);
-				files = File::findFiles(path, line);
-				if (files.size() == NULL) {
-					LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
-					missingFiles++;
-				} else {
-					files.clear();
-				}
+	if (sfvFiles.size() == NULL) {
+		if (SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) {
+			StringList releases = File::findFiles(path, "*.rar");
+			if (releases.size() == NULL) {
+				releases = File::findFiles(path, "*.000");
+			}
+			if (releases.size() != NULL) {
+				LogManager::getInstance()->message("SFV file possibly missing: " + path);
 			}
 		}
-		sfv.close();
+		return 0;
+	} else {
+
+		for(StringIter i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
+			sfvFile = *i;
+
+			sfv.open(sfvFile);
+			while( getline( sfv, line ) ) {
+				//make sure that the line is valid
+				if(regex_search(Text::toT(line), reg)) {
+					//only keep the filename
+					pos = line.rfind(" ");
+					line = line.substr(0,pos+1);
+					files = File::findFiles(path, line);
+					if (files.size() == NULL) {
+						LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
+						missingFiles++;
+					} else {
+						files.clear();
+					}
+				}
+			}
+			sfv.close();
+		}
 	}
 	return missingFiles;
 }
