@@ -125,9 +125,6 @@ int SFVReader::findMissing(const string& path) throw(FileException) {
 			}
 			sfv.close();
 		}
-	
-	if(missingFiles == 0)
-		LogManager::getInstance()->message("No Missing Files Found");
 
 	return missingFiles;
 }
