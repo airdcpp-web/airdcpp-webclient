@@ -20,10 +20,15 @@
 #define SFV_READER_H
 
 #include "File.h"
+#include "Thread.h"
+#include "Singleton.h"
+#include <atomic>
 
 namespace dcpp {
 
-class SFVReader {
+class SFVReaderManager;
+
+class SFVReader  {
 public:
 	/** @see load */
 	SFVReader(const string& aFileName) : crc32(0), crcFound(false) { load(aFileName); }
@@ -39,19 +44,41 @@ public:
 	 */
 	void load(const string& fileName) throw();
 	void loadFromFolder(const string& fullPath) throw();
-	static void find (const string& path);
+	
 	bool hasCRC() const throw() { return crcFound; }
-	static int findMissing(const string& path) throw(FileException);
+
 	uint32_t getCRC() const throw() { return crc32; }
-	static int scan();
+	
 
 private:
-
+	
+	friend class SFVReaderManager;
 	uint32_t crc32;
 	bool crcFound;
 
 	bool tryFile(const string& sfvFile, const string& fileName) throw(FileException);
+	
+};
+ 
 
+class SFVReaderManager: public Singleton<SFVReaderManager>, private Thread
+{
+ 
+public:
+
+ void find (const string& path);
+ int findMissing(const string& path) throw(FileException);
+ int scan();
+
+ 
+private:
+friend class Singleton<SFVReaderManager>;
+
+	SFVReaderManager() : scanning(false){ }
+	virtual ~SFVReaderManager() throw() { }
+
+ int run();
+ atomic_flag scanning;
 };
 
 } // namespace dcpp

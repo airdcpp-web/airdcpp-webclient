@@ -57,20 +57,29 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 	return false;
 }
 
-int SFVReader::scan() {
+int SFVReaderManager::scan() {
+	if(scanning.test_and_set())
+		LogManager::getInstance()->message("Scan in Progress");
+
+	start();
+	
+	return 0;
+}
+int SFVReaderManager::run() {
 	StringPairList dirs = ShareManager::getInstance()->getDirectories(ShareManager::REFRESH_ALL);
 
 	for(StringPairIter i = dirs.begin(); i != dirs.end();    i++) {
-		SFVReader::find(i->second);
-		SFVReader::findMissing(i->second);
+		find(i->second);
+		findMissing(i->second);
 		LogManager::getInstance()->message("Scanned " + i->second);
 	}
 	
+	scanning.clear();
 	return 0;
 }
 
 //Test if this works, have another way of doing it but it would need some work
-void SFVReader::find(const string& path) {
+void SFVReaderManager::find(const string& path) {
 	
 	string dir;
 	StringList dirs;
@@ -78,7 +87,7 @@ void SFVReader::find(const string& path) {
 			if(i->isDirectory()){
 		if (strcmpi (i->getFileName().c_str(), ".") != 0 && strcmpi (i->getFileName().c_str(), "..") != 0) {
 				dir = path + i->getFileName() + "\\";
-				
+
 				findMissing(dir);
 				LogManager::getInstance()->message("Scanned " + dir);
 				dirs.push_back(dir);
@@ -89,7 +98,7 @@ void SFVReader::find(const string& path) {
 			find(*j);
 		}	}
 
-int SFVReader::findMissing(const string& path) throw(FileException) {
+int SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	StringList files;
 	string sfvFile;
 	StringList sfvFiles = File::findFiles(path, "*.sfv");
