@@ -43,6 +43,7 @@ public:
 	bool hasCRC() const throw() { return crcFound; }
 	static int findMissing(const string& path) throw(FileException);
 	uint32_t getCRC() const throw() { return crc32; }
+	static int scan();
 
 private:
 

@@ -21,7 +21,7 @@
 
 #include "SFVReader.h"
 #include "LogManager.h"
-
+#include "ShareManager.h"
 #include "StringTokenizer.h"
 
 #include <cstdlib>
@@ -57,8 +57,21 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 	return false;
 }
 
+int SFVReader::scan() {
+	StringPairList dirs = ShareManager::getInstance()->getDirectories(ShareManager::REFRESH_ALL);
+
+	for(StringPairIter i = dirs.begin(); i != dirs.end();    i++) {
+		SFVReader::find(i->second);
+		SFVReader::findMissing(i->second);
+		LogManager::getInstance()->message("Scanned " + i->second);
+	}
+	
+	return 0;
+}
+
 //Test if this works, have another way of doing it but it would need some work
 void SFVReader::find(const string& path) {
+	
 	string dir;
 	StringList dirs;
 	 for(FileFindIter i(path + "*"); i != FileFindIter(); ++i) {
