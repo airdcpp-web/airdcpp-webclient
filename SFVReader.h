@@ -67,9 +67,8 @@ class SFVReaderManager: public Singleton<SFVReaderManager>, private Thread
 public:
 
  void find (const string& path);
- int findMissing(const string& path) throw(FileException);
+ void findMissing(const string& path) throw(FileException);
  int scan();
-
  
 private:
 friend class Singleton<SFVReaderManager>;
@@ -79,6 +78,7 @@ friend class Singleton<SFVReaderManager>;
 
  int run();
  atomic_flag scanning;
+ int missingFiles;
 };
 
 } // namespace dcpp

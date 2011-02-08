@@ -73,7 +73,11 @@ int SFVReaderManager::run() {
 		findMissing(i->second);
 		LogManager::getInstance()->message("Scanned " + i->second);
 	}
-	
+	string tmp;	 
+    tmp.resize(STRING(MISSING_FINISHED).size() + 16);	 
+    tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), Util::toString(missingFiles)));	 
+    LogManager::getInstance()->message(tmp);
+
 	scanning.clear();
 	return 0;
 }
@@ -89,7 +93,6 @@ void SFVReaderManager::find(const string& path) {
 				dir = path + i->getFileName() + "\\";
 
 				findMissing(dir);
-				LogManager::getInstance()->message("Scanned " + dir);
 				dirs.push_back(dir);
 				}
 			}
@@ -98,11 +101,10 @@ void SFVReaderManager::find(const string& path) {
 			find(*j);
 		}	}
 
-int SFVReaderManager::findMissing(const string& path) throw(FileException) {
+void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	StringList files;
 	string sfvFile;
 	StringList sfvFiles = File::findFiles(path, "*.sfv");
-	int missingFiles=0;
 	int pos;
 
 	//regex to match crc32
@@ -161,7 +163,7 @@ int SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			sfv.close();
 		}
 	
-	return missingFiles;
+	return;
 }
 
 void SFVReader::load(const string& fileName) throw() {
