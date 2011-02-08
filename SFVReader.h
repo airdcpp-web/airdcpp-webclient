@@ -39,7 +39,7 @@ public:
 	 */
 	void load(const string& fileName) throw();
 	void loadFromFolder(const string& fullPath) throw();
-
+	static void find (const string& path);
 	bool hasCRC() const throw() { return crcFound; }
 	static int findMissing(const string& path) throw(FileException);
 	uint32_t getCRC() const throw() { return crc32; }

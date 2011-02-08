@@ -57,6 +57,24 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 	return false;
 }
 
+//Test if this works, have another way of doing it but it would need some work
+void SFVReader::find(const string& path) {
+	string dir;
+	StringList dirs;
+	 for(FileFindIter i(path + "*"); i != FileFindIter(); ++i) {
+			if(i->isDirectory()){
+		if (strcmpi (i->getFileName().c_str(), ".") != 0 && strcmpi (i->getFileName().c_str(), "..") != 0) {
+				dir = path + i->getFileName() + "\\";
+				
+				findMissing(dir);
+				LogManager::getInstance()->message("Scanned " + dir);
+				dirs.push_back(dir);
+				}
+			}
+	 }
+		for(StringIterC j = dirs.begin(); j != dirs.end(); j++) {
+			find(*j);
+		}	}
 
 int SFVReader::findMissing(const string& path) throw(FileException) {
 	StringList files;
@@ -92,15 +110,10 @@ int SFVReader::findMissing(const string& path) throw(FileException) {
 
 			//Report missing SFV or NFO for release folders
 			if (!releases.empty()) {
-				if (nfoFiles.empty()){
+				if (nfoFiles.empty())
 					LogManager::getInstance()->message(STRING(NFO_MISSING) + path);
-					missingFiles++;
-				}
-				if (sfvFiles.empty()){ 
+				if (sfvFiles.empty()) 
 					LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
-					missingFiles++;
-					return missingFiles; //dont check if dont have sfv file
-				}
 			}
 		}
 	}
@@ -125,7 +138,7 @@ int SFVReader::findMissing(const string& path) throw(FileException) {
 			}
 			sfv.close();
 		}
-
+	
 	return missingFiles;
 }
 
