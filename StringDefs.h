@@ -1172,7 +1172,7 @@ enum Strings { // @DontAdd
 	MENU_SCAN_MISSING, // "Scan share for missing files"
 	MISSING_FINISHED, // "Scan for missing files finished, %d missing files found"
 	SCAN_FOLDER_MISSING, // "Scan folder for missing files"
-	MISSING_FOUND, // "%s missing files found"
+	EXTRA_FILES_SAMPLEDIR, // "Extra files in Sample folder: "
 	NFO_MISSING, // "NFO file possibly missing: "
 	SFV_MISSING, // "SFV file possibly missing: "
 	MULTIPLE_NFO, // "Multiple NFO files found: "

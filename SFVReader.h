@@ -81,7 +81,7 @@ StringList Paths;
  int run();
  atomic_flag scanning;
  int missingFiles;
-
+ static tstring getDir(tstring dir);
 };
 
 } // namespace dcpp

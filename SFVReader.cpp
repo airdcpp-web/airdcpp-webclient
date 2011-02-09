@@ -126,17 +126,14 @@ void SFVReaderManager::find(const string& path) {
 	}
 
 void SFVReaderManager::findMissing(const string& path) throw(FileException) {
+	tstring dirName = getDir(Text::toT(path));
 	StringList files;
 	string sfvFile;
-
-	LogManager::getInstance()->message("Scanned " + path);
-
 	StringList sfvFiles = File::findFiles(path, "*.sfv");
 	int pos;
 
 	//regex to match crc32
 	boost::wregex reg;
-	reg.assign(_T("(\\s(\\w{8})$)"));
 
 	ifstream sfv;
 	string line;
@@ -144,37 +141,72 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 	if (SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) {
 		StringList nfoFiles = File::findFiles(path, "*.nfo");
-
+		StringList sampleExtras;
+		bool isSample=false;
+		bool sampleExtra=false;
 		//Check for multiple NFO or SFV files
 		if (nfoFiles.size() > 1)
 			LogManager::getInstance()->message(STRING(MULTIPLE_NFO) + path);
 		if (sfvFiles.size() > 1)
 			LogManager::getInstance()->message(STRING(MULTIPLE_SFV) + path);
 
-		if (nfoFiles.empty() || sfvFiles.empty()) {
+		//Check if it's sample folder
+		if (!strcmp(Text::fromT(Text::toLower(dirName)).c_str(), "sample")) {
+			isSample=true;
+		}
 
-			//Check that it's a release folder
+		if (nfoFiles.empty() || sfvFiles.empty() || isSample) {
+
+			//Check if it's a release folder
 			StringList releases = File::findFiles(path, "*.rar");
 			if (releases.empty()) {
 				releases = File::findFiles(path, "*.000");
+			} 	if (releases.empty() && isSample) {
+				files = File::findFiles(path, "*");
+				string sampleFile;
+				reg.assign(_T("(.+\\.r\\w{2})"));
+				for(StringIter i = sfvFiles.begin(); i != sfvFiles.end() && !(sampleExtra); ++i) {
+					sampleFile = *i;
+					if (regex_match(Text::toT(*i), reg))
+						sampleExtra=true;
+				}
 			}
 
-			//Report missing SFV or NFO for release folders
+			//Report extra files in sample folder
+			if (isSample && (!releases.empty() || !nfoFiles.empty() || !sfvFiles.empty() || sampleExtra)) {
+				LogManager::getInstance()->message(STRING(EXTRA_FILES_SAMPLEDIR) + path);
+			}
+
+			if (isSample)
+				return;
+
+			//Report missing SFV or NFO
 			if (!releases.empty()) {
-				if (nfoFiles.empty())
+				//Simple regex for release names
+				reg.assign(_T("([A-Z0-9][A-Za-z0-9]\\S{3,})-(\\w{2,})"));
+				if (nfoFiles.empty() && regex_match(dirName,reg))
 					LogManager::getInstance()->message(STRING(NFO_MISSING) + path);
-				if (sfvFiles.empty()) 
-					LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
+				if (sfvFiles.empty()) {
+					reg.assign(_T("(.{2,5}[Ss]ub(s)?)")); //avoid extra matches
+					if (!regex_match(dirName,reg))
+						LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
+					return;
+				}
 			}
 		}
 	}
+
+	//regex to match crc32
+	reg.assign(_T("(\\s(\\w{8})$)"));
+
 	for(StringIter i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
 			sfvFile = *i;
 
 			sfv.open(sfvFile);
 			while( getline( sfv, line ) ) {
 				//make sure that the line is valid
-				if(regex_search(Text::toT(line), reg)) {
+				pos = line.find(";");
+				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos)) {
 					//only keep the filename
 					pos = line.rfind(" ");
 					line = line.substr(0,pos+1);
@@ -190,7 +222,22 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			sfv.close();
 		}
 	
+	return;
 }
+
+tstring SFVReaderManager::getDir(tstring dir) {
+		string directory = Text::fromT(dir);
+		if (dir != Util::emptyStringT) {
+			directory = directory.substr(0, directory.size()-1);
+
+			int dpos = directory.rfind("\\");
+			if(dpos != wstring::npos) {
+				directory = directory.substr(dpos+1,directory.size());
+			}
+		}
+		return Text::toT(directory);
+}
+
 
 void SFVReader::load(const string& fileName) throw() {
 	string path = Util::getFilePath(fileName);
