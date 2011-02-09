@@ -1171,6 +1171,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Multiple NFO files found: ", 
 "Multiple SFV files found: ", 
 "Scan for Missing Files Started...", 
+"Dupe found: ", 
+"is the same as", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2342,4 +2344,6 @@ std::string dcpp::ResourceManager::names[] = {
 "MultipleNfo", 
 "MultipleSfv", 
 "ScanStarted", 
+"DupeFound", 
+"DupeIsSame", 
 };

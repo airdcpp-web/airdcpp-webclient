@@ -82,6 +82,8 @@ StringList Paths;
  atomic_flag scanning;
  int missingFiles;
  static tstring getDir(tstring dir);
+ void findDupes(const string& path) throw(FileException);
+ StringPairList dupeDirs;
 };
 
 } // namespace dcpp

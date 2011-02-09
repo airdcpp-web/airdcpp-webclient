@@ -1178,5 +1178,7 @@ enum Strings { // @DontAdd
 	MULTIPLE_NFO, // "Multiple NFO files found: "
 	MULTIPLE_SFV, // "Multiple SFV files found: "
 	SCAN_STARTED, // "Scan for Missing Files Started..."
+	DUPE_FOUND, // "Dupe found: "
+	DUPE_IS_SAME, // "is the same as"
 	LAST // @DontAdd
 };

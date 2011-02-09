@@ -100,6 +100,7 @@ int SFVReaderManager::run() {
     LogManager::getInstance()->message(tmp);
 	
 	scanning.clear();
+	dupeDirs.clear();
 	missingFiles = 0;
 	Paths.clear();
 	partialScan = false;
@@ -116,6 +117,7 @@ void SFVReaderManager::find(const string& path) {
 		if (strcmpi (i->getFileName().c_str(), ".") != 0 && strcmpi (i->getFileName().c_str(), "..") != 0) {
 				dir = path + i->getFileName() + "\\";
 				findMissing(dir);
+				findDupes(dir);
 				dirs.push_back(dir);
 				}
 			}
@@ -125,23 +127,39 @@ void SFVReaderManager::find(const string& path) {
 		}	
 	}
 
-void SFVReaderManager::findMissing(const string& path) throw(FileException) {
+void SFVReaderManager::findDupes(const string& path) throw(FileException) {
+	boost::wregex reg;
+	int dupes=0;
+	reg.assign(_T("([A-Z0-9][A-Za-z0-9]\\S{3,})-(\\w{2,})"));
 	tstring dirName = getDir(Text::toT(path));
+	string listfolder;
+	if (!regex_match(dirName, reg))
+		return;
+
+
+	if (dupeDirs.size() != NULL) {
+		for(StringPairIter i = dupeDirs.begin(); i != dupeDirs.end();    i++) {
+			std::string listfolder = i->first;
+			if (!stricmp(Text::fromT(dirName), listfolder)) {
+				dupes++;
+				LogManager::getInstance()->message(STRING(DUPE_FOUND) + path + " " + STRING(DUPE_IS_SAME) + " " + (i->second) + ")");
+			}
+		}
+	}
+	dupeDirs.push_back(make_pair(Text::fromT(dirName), path));
+	return;
+}
+
+void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	StringList files;
-	string sfvFile;
 	StringList sfvFiles = File::findFiles(path, "*.sfv");
 	int pos;
-
-	//regex to match crc32
 	boost::wregex reg;
-
-	ifstream sfv;
-	string line;
 
 
 	if (SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) {
+		tstring dirName = getDir(Text::toT(path));
 		StringList nfoFiles = File::findFiles(path, "*.nfo");
-		StringList sampleExtras;
 		bool isSample=false;
 		bool sampleExtra=false;
 		//Check for multiple NFO or SFV files
@@ -163,10 +181,8 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				releases = File::findFiles(path, "*.000");
 			} 	if (releases.empty() && isSample) {
 				files = File::findFiles(path, "*");
-				string sampleFile;
 				reg.assign(_T("(.+\\.r\\w{2})"));
 				for(StringIter i = sfvFiles.begin(); i != sfvFiles.end() && !(sampleExtra); ++i) {
-					sampleFile = *i;
 					if (regex_match(Text::toT(*i), reg))
 						sampleExtra=true;
 				}
@@ -195,6 +211,11 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			}
 		}
 	}
+
+	
+	ifstream sfv;
+	string line;
+	string sfvFile;
 
 	//regex to match crc32
 	reg.assign(_T("(\\s(\\w{8})$)"));
