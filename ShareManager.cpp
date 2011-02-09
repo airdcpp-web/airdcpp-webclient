@@ -287,21 +287,30 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::findFile(const 
 	return it;
 }
 
-string ShareManager::getRealPaths(const std::string path) {
-		string result = "";
+StringList ShareManager::getRealPaths(const std::string path) {
+	if(path.empty())
+		throw ShareException("empty virtual path");
+
+		StringList result;	
+	
 		Directory::Ptr d = splitVirtual(path).first;
 
+		if(*(path.end() - 1) == '/') {
+
 		if(d->getParent()) {
-			result = d->getParent()->getRealPath(d->getName());
+			result.push_back( d->getParent()->getRealPath(d->getName()));
 		} else {
  			for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
 				if(stricmp(i->second, d->getName()) == 0) {
 					if(FileFindIter(i->first.substr(0, i->first.size() - 1)) != FileFindIter()) {
-					result = i->first;
+					result.push_back(  i->first );
 
 					}
 				}
 			}
+		}
+		}else { //its a file
+			result.push_back(toReal(path, true));
 		}
 		return result;
 	}

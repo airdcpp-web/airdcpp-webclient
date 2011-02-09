@@ -57,28 +57,52 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 	return false;
 }
 
-int SFVReaderManager::scan() {
-	if(scanning.test_and_set())
-		LogManager::getInstance()->message("Scan in Progress");
+int SFVReaderManager::scan(StringList paths) {
+	partialScan = false;
+
+	if(scanning.test_and_set()){
+		LogManager::getInstance()->message("Scan in Progress"); //translate
+		return 1;
+	}
+		
+	if(!paths.empty()) {
+		partialScan = true;
+		Paths = paths;
+	}
 
 	start();
-	
+	missingFiles = 0;
+	LogManager::getInstance()->message(STRING(SCAN_STARTED)); 
 	return 0;
 }
 int SFVReaderManager::run() {
+	
+	if(partialScan) {
+		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
+		findMissing(*j);
+		find(*j);
+		}
+	} else {
+
 	StringPairList dirs = ShareManager::getInstance()->getDirectories(ShareManager::REFRESH_ALL);
 
 	for(StringPairIter i = dirs.begin(); i != dirs.end();    i++) {
-		find(i->second);
 		findMissing(i->second);
-		LogManager::getInstance()->message("Scanned " + i->second);
+		find(i->second);
+		//LogManager::getInstance()->message("Scanned " + i->second);
+		}
 	}
+
+	//toString would work too but int MissingFiles needs to be initialized, otherwise to string will crash it
 	string tmp;	 
     tmp.resize(STRING(MISSING_FINISHED).size() + 16);	 
-    tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), Util::toString(missingFiles)));	 
+    tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles));	 
     LogManager::getInstance()->message(tmp);
-
+	
 	scanning.clear();
+	missingFiles = 0;
+	Paths.clear();
+	partialScan = false;
 	return 0;
 }
 
@@ -91,7 +115,6 @@ void SFVReaderManager::find(const string& path) {
 			if(i->isDirectory()){
 		if (strcmpi (i->getFileName().c_str(), ".") != 0 && strcmpi (i->getFileName().c_str(), "..") != 0) {
 				dir = path + i->getFileName() + "\\";
-
 				findMissing(dir);
 				dirs.push_back(dir);
 				}
@@ -99,11 +122,15 @@ void SFVReaderManager::find(const string& path) {
 	 }
 		for(StringIterC j = dirs.begin(); j != dirs.end(); j++) {
 			find(*j);
-		}	}
+		}	
+	}
 
 void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	StringList files;
 	string sfvFile;
+
+	LogManager::getInstance()->message("Scanned " + path);
+
 	StringList sfvFiles = File::findFiles(path, "*.sfv");
 	int pos;
 
@@ -163,7 +190,6 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			sfv.close();
 		}
 	
-	return;
 }
 
 void SFVReader::load(const string& fileName) throw() {

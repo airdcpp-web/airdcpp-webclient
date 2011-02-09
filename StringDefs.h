@@ -1170,12 +1170,13 @@ enum Strings { // @DontAdd
 	SETTINGS_LGER, // "German"
 	FILE_MISSING, // "FILE MISSING: "
 	MENU_SCAN_MISSING, // "Scan share for missing files"
-	MISSING_FINISHED, // "Scan for missing files finished, %s missing files found"
+	MISSING_FINISHED, // "Scan for missing files finished, %d missing files found"
 	SCAN_FOLDER_MISSING, // "Scan folder for missing files"
 	MISSING_FOUND, // "%s missing files found"
 	NFO_MISSING, // "NFO file possibly missing: "
 	SFV_MISSING, // "SFV file possibly missing: "
 	MULTIPLE_NFO, // "Multiple NFO files found: "
 	MULTIPLE_SFV, // "Multiple SFV files found: "
+	SCAN_STARTED, // "Scan for Missing Files Started..."
 	LAST // @DontAdd
 };

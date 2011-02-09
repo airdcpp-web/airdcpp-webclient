@@ -116,7 +116,7 @@ public:
 		Lock l(cs);
 		return tthIndex.find(tth) != tthIndex.end();
 	}
-	string getRealPaths(const std::string path);
+	StringList getRealPaths(const std::string path);
 
 
 	string getRealPath(const TTHValue& root) {
