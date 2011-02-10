@@ -463,8 +463,12 @@ bool ADLSearch::SearchAll(const string& s) {
 		PME reg(searchString, isCaseSensitive ? "" : "i");
 			if(reg.IsValid()) {
 				return reg.match(s) > 0;
-		} 
-		}catch(...) { }
+				} else { 
+				return false;
+				}
+		} catch(...) {
+	   return false;
+	}
 
 		//boost regex
 /*				try {

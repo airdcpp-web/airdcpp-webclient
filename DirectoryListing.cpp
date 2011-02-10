@@ -99,7 +99,7 @@ void DirectoryListing::loadFile(const string& name) throw(Exception) {
 	} else if(stricmp(ext, ".xml") == 0) {
 		loadXML(ff, false);
 	}
-	ff.close();
+	
 }
 
 class ListLoader : public dcpp::SimpleXMLReader::CallBack {
