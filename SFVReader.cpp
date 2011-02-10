@@ -57,14 +57,15 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 	return false;
 }
 
-int SFVReaderManager::scan(StringList paths) {
-	partialScan = false;
 
+int SFVReaderManager::scan(StringList paths) {
+	
 	if(scanning.test_and_set()){
 		LogManager::getInstance()->message("Scan in Progress"); //translate
 		return 1;
 	}
-		
+	partialScan = false;
+
 	if(!paths.empty()) {
 		partialScan = true;
 		Paths = paths;
@@ -93,7 +94,6 @@ int SFVReaderManager::run() {
 		}
 	}
 
-	//toString would work too but int MissingFiles needs to be initialized, otherwise to string will crash it
 	string tmp;	 
     tmp.resize(STRING(MISSING_FINISHED).size() + 16);	 
     tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles));	 
@@ -109,35 +109,48 @@ int SFVReaderManager::run() {
 
 //Test if this works, have another way of doing it but it would need some work
 void SFVReaderManager::find(const string& path) {
-	
+	if(path.empty())
+		return;
+
 	string dir;
 	StringList dirs;
+	
 	 for(FileFindIter i(path + "*"); i != FileFindIter(); ++i) {
-			if(i->isDirectory()){
-		if (strcmpi (i->getFileName().c_str(), ".") != 0 && strcmpi (i->getFileName().c_str(), "..") != 0) {
+		try {
+		 if(i->isDirectory()){
+		if (strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0) {
 				dir = path + i->getFileName() + "\\";
 				findMissing(dir);
 				findDupes(dir);
 				dirs.push_back(dir);
 				}
 			}
+		} catch(const FileException&) { } 
 	 }
+
+		if(!dirs.empty()) {
 		for(StringIterC j = dirs.begin(); j != dirs.end(); j++) {
 			find(*j);
-		}	
+			}	
+		}
 	}
 
 void SFVReaderManager::findDupes(const string& path) throw(FileException) {
-	boost::wregex reg;
-	int dupes=0;
-	reg.assign(_T("([A-Z0-9][A-Za-z0-9]\\S{3,})-(\\w{2,})"));
-	tstring dirName = getDir(Text::toT(path));
-	string listfolder;
-	if (!regex_match(dirName, reg))
+	if(path.empty())
 		return;
 
+	int dupes=0;
+	
+	tstring dirName = getDir(Text::toT(path));
+	string listfolder;
 
-	if (dupeDirs.size() != NULL) {
+	boost::wregex reg;
+	reg.assign(_T("([A-Z0-9][A-Za-z0-9]\\S{3,})-(\\w{2,})"));
+	if (!regex_match(dirName, reg))
+		return;
+	
+
+	if (!dupeDirs.empty()) {
 		for(StringPairIter i = dupeDirs.begin(); i != dupeDirs.end();    i++) {
 			std::string listfolder = i->first;
 			if (!stricmp(Text::fromT(dirName), listfolder)) {
@@ -147,10 +160,12 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 		}
 	}
 	dupeDirs.push_back(make_pair(Text::fromT(dirName), path));
-	return;
 }
 
 void SFVReaderManager::findMissing(const string& path) throw(FileException) {
+	if(path.empty())
+		return;
+
 	StringList files;
 	StringList sfvFiles = File::findFiles(path, "*.sfv");
 	int pos;
@@ -242,8 +257,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			}
 			sfv.close();
 		}
-	
-	return;
+
 }
 
 tstring SFVReaderManager::getDir(tstring dir) {
