@@ -214,7 +214,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			//Report missing SFV or NFO
 			if (!releases.empty()) {
 				//Simple regex for release names
-				reg.assign(_T("([A-Z0-9][A-Za-z0-9]\\S{3,})-(\\w{2,})"));
+				reg.assign(_T("([A-Z0-9][A-Za-z0-9]\\S{3,})-([A-Za-z0-9]{2,})"));
 				if (nfoFiles.empty() && regex_match(dirName,reg))
 					LogManager::getInstance()->message(STRING(NFO_MISSING) + path);
 				if (sfvFiles.empty()) {
