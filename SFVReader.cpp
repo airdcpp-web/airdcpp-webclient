@@ -145,7 +145,7 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 	string listfolder;
 
 	boost::wregex reg;
-	reg.assign(_T("([A-Z0-9][A-Za-z0-9]\\S{3,})-([A-Za-z0-9]{2,})"));
+	reg.assign(_T("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))"));
 	if (!regex_match(dirName, reg))
 		return;
 	
@@ -214,11 +214,11 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			//Report missing SFV or NFO
 			if (!releases.empty()) {
 				//Simple regex for release names
-				reg.assign(_T("([A-Z0-9][A-Za-z0-9]\\S{3,})-([A-Za-z0-9]{2,})"));
+				reg.assign(_T("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))"));
 				if (nfoFiles.empty() && regex_match(dirName,reg))
 					LogManager::getInstance()->message(STRING(NFO_MISSING) + path);
 				if (sfvFiles.empty()) {
-					reg.assign(_T("(.*[Ss]ub(s)?)")); //avoid extra matches
+					reg.assign(_T("(.{0,5}[Ss]ub(s)?)")); //avoid extra matches
 					if (!regex_match(dirName,reg))
 						LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
 					return;
