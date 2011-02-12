@@ -1166,6 +1166,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Scan finished, found %d missing release files, %d dupe folders, %d missing SFV files, %d missing NFO files and %d folders with extra files", 
 "Scan folder for missing/extra files", 
 "Extra files in Sample folder: ", 
+"Extra files in Release folder: ", 
 "NFO file possibly missing: ", 
 "SFV file possibly missing: ", 
 "Multiple NFO files found: ", 
@@ -1178,7 +1179,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Check missing NFO files", 
 "Check missing SFV or NFO files from MP3 directories (if enabled)", 
 "Check extra SFV/NFO files", 
-"Check extra files in sample folders", 
+"Check extra files in the release folders", 
 "Check duplicate directory names", 
 "Scanning options for missing/extra files", 
 };
@@ -2347,6 +2348,7 @@ std::string dcpp::ResourceManager::names[] = {
 "MissingFinished", 
 "ScanFolderMissing", 
 "ExtraFilesSampledir", 
+"ExtraFilesRlsdir", 
 "NfoMissing", 
 "SfvMissing", 
 "MultipleNfo", 
@@ -2359,7 +2361,7 @@ std::string dcpp::ResourceManager::names[] = {
 "CheckNfo", 
 "CheckMp3Dir", 
 "CheckExtraSfvNfo", 
-"CheckSampleExtras", 
+"CheckExtraFiles", 
 "CheckDupes", 
 "SettingsScanOptions", 
 };

@@ -150,7 +150,7 @@ const string SettingsManager::settingTags[] =
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
 	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRun", "FormatRelease", "ShareSFV", "LogLines",
-	"CheckMissing", "CheckSfv", "CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckSampleExtras", "CheckDupes",
+	"CheckMissing", "CheckSfv", "CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -660,7 +660,7 @@ SettingsManager::SettingsManager()
 	setDefault(CHECK_NFO, false);
 	setDefault(CHECK_MP3_DIR, false);
 	setDefault(CHECK_EXTRA_SFV_NFO, false);
-	setDefault(CHECK_SAMPLE_EXTRAS, false);
+	setDefault(CHECK_EXTRA_FILES, false);
 	setDefault(CHECK_DUPES, false);
 /*
 #ifdef _WIN32
