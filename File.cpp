@@ -430,7 +430,7 @@ StringList File::findFiles(const string& path, const string& pattern) {
 	hFind = ::FindFirstFile(Text::toT(path + pattern).c_str(), &data);
 	if(hFind != INVALID_HANDLE_VALUE) {
 		do {
-			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && !(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
 				ret.push_back(path + Text::fromT(data.cFileName));
 		} while(::FindNextFile(hFind, &data));
 
