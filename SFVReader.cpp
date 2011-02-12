@@ -314,7 +314,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			int otherAllowed = 0;
 			//Find extra files from the release folder
 			for(i = fileList.begin(); i != fileList.end(); ++i) {
-				reg.assign(_T("(.+\\.(jpg|jpeg|m3u))"), boost::regex_constants::icase);
+				reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue))"), boost::regex_constants::icase);
 				if (regex_match(Text::toT(*i), reg))
 					otherAllowed++;
 			}
