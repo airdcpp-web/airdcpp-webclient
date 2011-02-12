@@ -1171,7 +1171,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "SFV file possibly missing: ", 
 "Multiple NFO files found: ", 
 "Multiple SFV files found: ", 
-"Scan for Missing Files Started...", 
+"Scan for missing/extra files started...", 
 "Dupe found: ", 
 "is the same as", 
 "Check missing release files", 

@@ -124,6 +124,8 @@ void SFVReaderManager::find(const string& path) {
 		if (strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0) {
 				dir = path + i->getFileName() + "\\";
 				findMissing(dir);
+				if(SETTING(CHECK_DUPES))
+					findDupes(dir);
 				dirs.push_back(dir);
 				}
 			}
@@ -136,6 +138,33 @@ void SFVReaderManager::find(const string& path) {
 			}	
 		}
 	}
+
+
+void SFVReaderManager::findDupes(const string& path) throw(FileException) {
+	if(path.empty())
+		return;
+	
+	tstring dirName = getDir(Text::toT(path));
+	string listfolder;
+
+	boost::wregex reg;
+	reg.assign(_T("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))"));
+	if (!regex_match(dirName, reg))
+		return;
+	
+
+	if (!dupeDirs.empty()) {
+		for(StringPairIter i = dupeDirs.begin(); i != dupeDirs.end();    i++) {
+			std::string listfolder = i->first;
+			if (!stricmp(Text::fromT(dirName), listfolder)) {
+				dupesFound++;
+				LogManager::getInstance()->message(STRING(DUPE_FOUND) + path + " " + STRING(DUPE_IS_SAME) + " " + (i->second) + ")");
+			}
+		}
+	}
+	dupeDirs.push_back(make_pair(Text::fromT(dirName), path));
+}
+
 
 
 void SFVReaderManager::findMissing(const string& path) throw(FileException) {
@@ -241,7 +270,9 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		}
 	}
 
-	if (SETTING(CHECK_MISSING) && (sfvFiles > 0)) {
+	if (sfvFiles == 0)
+		return;
+
 
 		ifstream sfv;
 		string line;
@@ -266,8 +297,9 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 					line = line.substr(0,pos+1);
 					for (StringIter j = fileList.begin(); j != fileList.end(); ++j) {
 						if (!stricmp(*j, line)) {
-							LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
 							loopMissing++;
+							if (SETTING(CHECK_MISSING))
+								LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
 						}
 					}
 				}
@@ -277,9 +309,9 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 		missingFiles += loopMissing;
 		releaseFiles = releaseFiles - loopMissing;
-		int otherAllowed = 0;
 
 		if(SETTING(CHECK_EXTRA_FILES)) {
+			int otherAllowed = 0;
 			//Find extra files from the release folder
 			for(i = fileList.begin(); i != fileList.end(); ++i) {
 				reg.assign(_T("(.+\\.(jpg|jpeg|m3u))"), boost::regex_constants::icase);
@@ -292,27 +324,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				extrasFound++;
 			}
 		}
-
-		if(SETTING(CHECK_DUPES)) {
-			string listfolder;
-
-			reg.assign(_T("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))"));
-			if (!regex_match(dirName, reg))
-				return;
 	
-
-			if (!dupeDirs.empty()) {
-				for(StringPairIter i = dupeDirs.begin(); i != dupeDirs.end();    i++) {
-					std::string listfolder = i->first;
-					if (!stricmp(Text::fromT(dirName), listfolder)) {
-						dupesFound++;
-						LogManager::getInstance()->message(STRING(DUPE_FOUND) + path + " " + STRING(DUPE_IS_SAME) + " " + (i->second) + ")");
-					}
-				}
-			}
-			dupeDirs.push_back(make_pair(Text::fromT(dirName), path));
-		}
-	}
 }
 
 tstring SFVReaderManager::getDir(tstring dir) {
