@@ -275,10 +275,10 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		return;
 
 
-		fstream sfv;
+		ifstream sfv;
 		string line;
 		string sfvFile;
-
+		
 		//regex to match crc32
 		reg.assign(_T("(\\s(\\w{8})$)"));
 		int releaseFiles=0;
@@ -321,9 +321,9 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		if(SETTING(CHECK_EXTRA_FILES)) {
 			int otherAllowed = 0;
 			//Find extra files from the release folder
-			for(StringIterC m = fileList.begin(); m != fileList.end(); ++m) {
+			for(i = fileList.begin(); i != fileList.end(); ++i) {
 				reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue))"), boost::regex_constants::icase);
-				if (regex_match(Text::toT(*m), reg))
+				if (regex_match(Text::toT(*i), reg))
 					otherAllowed++;
 			}
 			int allowed = releaseFiles + nfoFiles + sfvFiles + otherAllowed;
