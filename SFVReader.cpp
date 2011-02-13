@@ -99,7 +99,7 @@ int SFVReaderManager::run() {
 	}
 
 	string tmp;	 
-    tmp.resize(STRING(MISSING_FINISHED).size() + 20);	 
+    tmp.resize(STRING(MISSING_FINISHED).size() + 64);	 
     tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
     LogManager::getInstance()->message(tmp);
 	
@@ -291,7 +291,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			sfv.open(Text::utf8ToAcp(sfvFile));
 
 			if(!sfv.is_open())
-				LogManager::getInstance()->message("failed to open sfv file");
+				LogManager::getInstance()->message("failed to open " + sfvFile);
 
 			while( getline( sfv, line ) ) {
 				//make sure that the line is valid
