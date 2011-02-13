@@ -172,12 +172,13 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		return;
 
 	StringList fileList = File::findFiles(path, "*");
+	
 	int pos;
 	boost::wregex reg;
 	int nfoFiles=0;
 	int sfvFiles=0;
 	StringList sfvFileList;
-	StringIter i;
+	StringIterC i;
 	tstring dirName = getDir(Text::toT(path));
 
 	bool isSample=false;
@@ -274,7 +275,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		return;
 
 
-		ifstream sfv;
+		fstream sfv;
 		string line;
 		string sfvFile;
 
@@ -285,8 +286,13 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 		for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
 			sfvFile = *i;
+			
+			//incase we have some extended characters in the path
+			sfv.open(Text::utf8ToAcp(sfvFile));
 
-			sfv.open(sfvFile);
+			if(!sfv.is_open())
+				LogManager::getInstance()->message("failed to open sfv file");
+
 			while( getline( sfv, line ) ) {
 				//make sure that the line is valid
 				pos = line.find(";");
@@ -294,13 +300,15 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 					releaseFiles++;
 					//only keep the filename
 					pos = line.rfind(" ");
-					line = line.substr(0,pos+1);
-					for (StringIter j = fileList.begin(); j != fileList.end(); ++j) {
-						if (!stricmp(*j, line)) {
+					line = line.substr(0,pos);
+					/*add the path to the filename in line,
+					or iterate and use Util::getFileName to get file in fileList for comparing*/
+					line = path + line;
+					StringIter k = std::find(fileList.begin(), fileList.end(), line);
+						if(k == fileList.end()) { 
 							loopMissing++;
 							if (SETTING(CHECK_MISSING))
-								LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
-						}
+								LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + line);
 					}
 				}
 			}
@@ -313,14 +321,14 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		if(SETTING(CHECK_EXTRA_FILES)) {
 			int otherAllowed = 0;
 			//Find extra files from the release folder
-			for(i = fileList.begin(); i != fileList.end(); ++i) {
+			for(StringIterC m = fileList.begin(); m != fileList.end(); ++m) {
 				reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue))"), boost::regex_constants::icase);
-				if (regex_match(Text::toT(*i), reg))
+				if (regex_match(Text::toT(*m), reg))
 					otherAllowed++;
 			}
 			int allowed = releaseFiles + nfoFiles + sfvFiles + otherAllowed;
-			if (fileList.size() > allowed) {
-				LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path + line);
+			if ((int)fileList.size() > allowed) {
+				LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
 				extrasFound++;
 			}
 		}
