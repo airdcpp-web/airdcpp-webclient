@@ -165,14 +165,30 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 	dupeDirs.push_back(make_pair(Text::fromT(dirName), path));
 }
 
+StringList SFVReaderManager::findFiles(const string& path, const string& pattern) {
+	StringList ret;
 
+	WIN32_FIND_DATA data;
+	HANDLE hFind;
+
+	hFind = ::FindFirstFile(Text::toT(path + pattern).c_str(), &data);
+	if(hFind != INVALID_HANDLE_VALUE) {
+		do {
+			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && !(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
+				ret.push_back(Text::toLower(Text::fromT(data.cFileName)));
+		} while(::FindNextFile(hFind, &data));
+
+		::FindClose(hFind);
+	}
+	return ret;
+}
 
 void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	if(path.empty())
 		return;
 
-	StringList fileList = File::findFiles(path, "*");
-	
+	StringList fileList = findFiles(path, "*");
+
 	int pos;
 	boost::wregex reg;
 	int nfoFiles=0;
@@ -186,15 +202,15 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 	//NfoFileList
 	for(i = fileList.begin(); i != fileList.end(); ++i) {
-		reg.assign(_T("(.+\\.nfo)"), boost::regex_constants::icase);
+		reg.assign(_T("(.+\\.nfo)"));
 		if (regex_match(Text::toT(*i), reg))
 			nfoFiles++;
 	}
 	//SFVFileList
 	for(i = fileList.begin(); i != fileList.end(); ++i) {
-		reg.assign(_T("(.+\\.sfv)"), boost::regex_constants::icase);
+		reg.assign(_T("(.+\\.sfv)"));
 		if (regex_match(Text::toT(*i), reg)) {
-			sfvFileList.push_back(*i);
+			sfvFileList.push_back(path + *i);
 			sfvFiles++;
 		}
 	}
@@ -283,6 +299,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		reg.assign(_T("(\\s(\\w{8})$)"));
 		int releaseFiles=0;
 		int loopMissing=0;
+		string lineCompare;
 
 		for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
 			sfvFile = *i;
@@ -300,15 +317,13 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 					releaseFiles++;
 					//only keep the filename
 					pos = line.rfind(" ");
-					line = line.substr(0,pos);
-					/*add the path to the filename in line,
-					or iterate and use Util::getFileName to get file in fileList for comparing*/
-					line = path + line;
+					line = Text::toLower(line.substr(0,pos));
+
 					StringIter k = std::find(fileList.begin(), fileList.end(), line);
 						if(k == fileList.end()) { 
 							loopMissing++;
 							if (SETTING(CHECK_MISSING))
-								LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + line);
+								LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
 					}
 				}
 			}
@@ -322,7 +337,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			int otherAllowed = 0;
 			//Find extra files from the release folder
 			for(i = fileList.begin(); i != fileList.end(); ++i) {
-				reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue))"), boost::regex_constants::icase);
+				reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue|diz))"));
 				if (regex_match(Text::toT(*i), reg))
 					otherAllowed++;
 			}

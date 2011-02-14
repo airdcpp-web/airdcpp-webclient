@@ -581,7 +581,7 @@ SettingsManager::SettingsManager()
 	setDefault(IP_UPDATE, true);
 	setDefault(SERVER_COMMANDS, true);
 	setDefault(CLIENT_COMMANDS, true);
-	setDefault(SKIPLIST_SHARE, "*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm)$|rushchk.log|$");
+	setDefault(SKIPLIST_SHARE, "(.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log)");
 	setDefault(FREE_SLOTS_EXTENSIONS, "*.nfo|*.sfv");
 	setDefault(POPUP_FONT, "MS Shell Dlg,-11,400,0");
 	setDefault(POPUP_TITLE_FONT, "MS Shell Dlg,-11,400,0");

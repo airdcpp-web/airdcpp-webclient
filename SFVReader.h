@@ -88,6 +88,7 @@ StringList Paths;
  static tstring getDir(tstring dir);
  void findDupes(const string& path) throw(FileException);
  StringPairList dupeDirs;
+ StringList findFiles(const string& path, const string& pattern);
 };
 
 } // namespace dcpp
