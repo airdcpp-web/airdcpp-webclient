@@ -299,7 +299,6 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		reg.assign(_T("(\\s(\\w{8})$)"));
 		int releaseFiles=0;
 		int loopMissing=0;
-		string lineCompare;
 
 		for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
 			sfvFile = *i;
