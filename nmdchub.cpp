@@ -781,7 +781,8 @@ void NmdcHub::onLine(const string& aLine) throw() {
 		}
 	} else if(cmd == "To:") {
 
-		if(getFavNoPM()) return;
+		if(getFavNoPM()) 
+			return;
 
 		string::size_type i = param.find("From:");
 		if(i == string::npos)

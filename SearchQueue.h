@@ -36,8 +36,8 @@ struct Search
 		 return this->sizeType == rhs.sizeType && 
 		 		this->size == rhs.size && 
 		 		this->fileType == rhs.fileType && 
-		 		this->query == rhs.query &&
-				this->token == rhs.token;
+		 		this->query == rhs.query /*&&
+				this->token == rhs.token*/;
 	}
 };
 
