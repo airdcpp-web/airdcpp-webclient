@@ -41,9 +41,9 @@ File::File(const string& aFileName, int access, int mode) throw(FileException) {
 			dcassert(0);
 		}
 	}
-	DWORD shared = FILE_SHARE_READ | (mode & SHARED ? FILE_SHARE_WRITE : 0);
+	DWORD shared = FILE_SHARE_READ | (mode & SHARED ? (FILE_SHARE_WRITE | FILE_SHARE_DELETE) : 0);
 
-	h = ::CreateFile(Text::toT(aFileName).c_str(), access, shared, NULL, m, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	h = ::CreateFile(Text::toT(aFileName).c_str(), access, shared, NULL, m, mode & NO_CACHE_HINT ? 0 : FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 
 	if(h == INVALID_HANDLE_VALUE) {
 		throw FileException(Util::translateError(GetLastError()));
@@ -60,11 +60,12 @@ uint32_t File::convertTime(FILETIME* f) {
 	SYSTEMTIME s = { 1970, 1, 0, 1, 0, 0, 0, 0 };
 	FILETIME f2 = {0};
 	if(::SystemTimeToFileTime(&s, &f2)) {
-		uint64_t* a = (uint64_t*)f;
-		uint64_t* b = (uint64_t*)&f2;
-		*a -= *b;
-		*a /= (1000LL*1000LL*1000LL/100LL);		// 100ns > s
-		return (uint32_t)*a;
+		ULARGE_INTEGER a,b;
+		a.LowPart =f->dwLowDateTime;
+		a.HighPart=f->dwHighDateTime;
+		b.LowPart =f2.dwLowDateTime;
+		b.HighPart=f2.dwHighDateTime;
+		return (a.QuadPart - b.QuadPart) / (10000000LL); // 100ns > s
 	}
 	return 0;
 }
@@ -407,7 +408,7 @@ bool File::isAbsolute(const string& path) throw() {
 string File::read(size_t len) throw(FileException) {
 	string s(len, 0);
 	size_t x = read(&s[0], len);
-	if(x != len)
+	if(x != s.size())
 		s.resize(x);
 	return s;
 }
@@ -539,7 +540,7 @@ FileFindIter& FileFindIter::operator++() {
 	return *this;
 }
 
-bool operator FileFindIter::!=(const FileFindIter& rhs) const {
+bool FileFindIter::operator!=(const FileFindIter& rhs) const {
 	// good enough to to say if it's null
 	return dir != rhs.dir;
 }
