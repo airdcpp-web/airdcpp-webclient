@@ -74,6 +74,9 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) throw() {
 
 	DownloadList tickList;
 
+	averageSpeedMap.clear();
+	averagePosMap.clear();
+
 		// Tick each ongoing download
 		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
 			Download* d = *i;
@@ -101,8 +104,23 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) throw() {
 					}
 				}
 			}
+	
+			//averages for the download folders
+		string tmp = d->getPath().substr(0, d->getPath().rfind("\\"));
+		StringIntIter j = averageSpeedMap.find(tmp);
+		if(j != averageSpeedMap.end())
+			j->second += d->getAverageSpeed();
+		else
+			averageSpeedMap.insert(StringIntPair(tmp, d->getAverageSpeed()));
 		
 		
+		j = averagePosMap.find(tmp);
+		if(j != averagePosMap.end())
+			j->second += d->getPos();
+		else
+			averagePosMap.insert(StringIntPair(tmp, d->getPos()));
+
+
 		if(SETTING(FAV_DL_SPEED) > 0) {
 			UserPtr fstusr = d->getUser();
 			if(FavoriteManager::getInstance()->isFavoriteUser(fstusr) == false) {

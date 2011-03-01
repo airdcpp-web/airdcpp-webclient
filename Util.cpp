@@ -878,18 +878,23 @@ bool Util::fileExists(const string &aFile) {
 
 string Util::formatTime(const string &msg, const time_t t) {
 	if (!msg.empty()) {
-		size_t bufsize = msg.size() + 256;
-		struct tm* loc = localtime(&t);
+		tm* loc = localtime(&t);
 
 		if(!loc) {
 			return Util::emptyString;
 		}
 
+		size_t bufsize = msg.size() + 256;
 		string buf(bufsize, 0);
+
+		errno = 0;
 
 		buf.resize(strftime(&buf[0], bufsize-1, msg.c_str(), loc));
 		
 		while(buf.empty()) {
+			if(errno == EINVAL)
+				return Util::emptyString;
+
 			bufsize+=64;
 			buf.resize(bufsize);
 			buf.resize(strftime(&buf[0], bufsize-1, msg.c_str(), loc));
