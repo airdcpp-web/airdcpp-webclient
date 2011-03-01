@@ -1189,5 +1189,6 @@ enum Strings { // @DontAdd
 	CHECK_EXTRA_FILES, // "Check extra files in the release folders"
 	CHECK_DUPES, // "Check duplicate directory names"
 	SETTINGS_SCAN_OPTIONS, // "Scanning options for missing/extra files"
+	REBUILD_STARTED, // "Hash Database rebuild Started"
 	LAST // @DontAdd
 };

@@ -56,7 +56,7 @@ public:
 	/** We don't keep leaves for blocks smaller than this... */
 	static const int64_t MIN_BLOCK_SIZE;
 
-	HashManager() {
+	HashManager(): lastSave(0) {
 		TimerManager::getInstance()->addListener(this);
 	}
 	~HashManager() throw() {
@@ -246,9 +246,13 @@ private:
 		store.rebuild();
 	}
 
+	uint64_t  lastSave;
 	void on(TimerManagerListener::Minute, uint64_t) throw() {
+		if(GET_TICK() - lastSave > 5*60*1000) { //only every 5 minutes? is it a problem? certainly not everyminute.
 		Lock l(cs);
 		store.save();
+		lastSave = GET_TICK();
+		}
 	}
 };
 

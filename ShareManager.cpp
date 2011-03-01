@@ -55,7 +55,7 @@ namespace dcpp {
 
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), initial(true), listN(0), refreshing(0),
-	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0)
+	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -441,6 +441,7 @@ bool ShareManager::loadCache() throw() {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
 
 		xml.parse(f);
+		
 
 		for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			const Directory::Ptr& d = *i;
@@ -448,7 +449,7 @@ bool ShareManager::loadCache() throw() {
 		}
 
 		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
-
+		setDirty();
 		return true;
 	} catch(const Exception& e) {
 		dcdebug("%s\n", e.getError().c_str());
@@ -868,6 +869,7 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 	bloom.add(Text::toLower(f.getName()));
 }
 
+
 int ShareManager::refreshDirs( StringList dirs ){
 	
 	int result = REFRESH_PATH_NOT_FOUND;
@@ -1070,6 +1072,15 @@ int ShareManager::run() {
 	if(refreshOptions & REFRESH_UPDATE) {
 		ClientManager::getInstance()->infoUpdated();
 	}
+
+	//make sure we have a refresh before doing a rebuild
+	if(rebuild) {
+		HashManager::getInstance()->rebuild();
+		LogManager::getInstance()->message(STRING(REBUILD_STARTED));
+		rebuild = false;
+	}
+		
+	
 	refreshing = 0;
 	return 0;
 }
@@ -1737,6 +1748,12 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) throw() {
 			refresh(ShareManager::REFRESH_ALL | ShareManager::REFRESH_UPDATE);
 		}
 	}
+}
+
+void ShareManager::Rebuild() {
+	//make sure we refreshed before doing a rebuild
+	rebuild = true;
+	refresh(ShareManager::REFRESH_ALL | ShareManager::REFRESH_UPDATE);
 }
 
 bool ShareManager::shareFolder(const string& path, bool thoroughCheck /* = false */) const {

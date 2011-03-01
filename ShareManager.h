@@ -69,7 +69,8 @@ public:
 	StringList getIncoming() { return incoming; };
 	void setIncoming(const string& Vname, bool isIncoming);
 	void DelIncoming();
-	
+	void Rebuild();
+
 	bool shareFolder(const string& path, bool thoroughCheck = false) const;
 	int64_t removeExcludeFolder(const string &path, bool returnSize = true);
 	int64_t addExcludeFolder(const string &path);
@@ -273,6 +274,7 @@ private:
 	bool xmlDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
 	bool initial;
+	bool rebuild;
 
 	int listN;
 
@@ -326,6 +328,7 @@ private:
 	int refreshOptions;
 
 	int run();
+	
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::FileMoved, const string& n) throw();
