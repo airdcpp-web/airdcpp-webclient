@@ -814,17 +814,17 @@ void NmdcHub::onLine(const string& aLine) throw() {
 		if(!message.replyTo || !message.from) {
 			if(!message.replyTo) {
 				// Assume it's from the hub
-				OnlineUser* replyTo = &getUser(rtNick);
-				replyTo->getIdentity().setHub(true);
-				replyTo->getIdentity().setHidden(true);
-				fire(ClientListener::UserUpdated(), this, replyTo);
+				OnlineUser& replyTo = getUser(rtNick);
+				replyTo.getIdentity().setHub(true);
+				replyTo.getIdentity().setHidden(true);
+				fire(ClientListener::UserUpdated(), this, &replyTo);
 			}
 			if(!message.from) {
 				// Assume it's from the hub
-				OnlineUser* from = &getUser(fromNick);
-				from->getIdentity().setHub(true);
-				from->getIdentity().setHidden(true);
-				fire(ClientListener::UserUpdated(), this, from);
+				OnlineUser& from = getUser(fromNick);
+				from.getIdentity().setHub(true);
+				from.getIdentity().setHidden(true);
+				fire(ClientListener::UserUpdated(), this, &from);
 			}
 
 			// Update pointers just in case they've been invalidated
