@@ -251,11 +251,13 @@ void BufferedSocket::threadRead() throw(Exception) {
 				break;
 			case MODE_DATA:
 				while(left > 0) {
+					
 					if(dataBytes == -1) {
 						fire(BufferedSocketListener::Data(), &inbuf[bufpos], left);
 						bufpos += (left - rollback);
 						left = rollback;
 						rollback = 0;
+						
 					} else {
 						int high = (int)min(dataBytes, (int64_t)left);
 						fire(BufferedSocketListener::Data(), &inbuf[bufpos], high);

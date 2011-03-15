@@ -237,6 +237,7 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 		dcdebug("DM::onFileLength Bad state, ignoring\n");
 		return;
 	}
+
 	if(!aSource->getDownload()) {
 		aSource->disconnect(true);
 		return;

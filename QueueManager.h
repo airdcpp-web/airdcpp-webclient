@@ -127,6 +127,7 @@ public:
 
 	void noDeleteFileList(const string& path);
 	
+
 	bool handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo);
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
 	

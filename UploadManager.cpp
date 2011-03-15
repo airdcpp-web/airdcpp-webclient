@@ -447,6 +447,7 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 		}
 
 		aSource->send(cmd);
+		
 
 		u->setStart(GET_TICK());
 		u->tick();
