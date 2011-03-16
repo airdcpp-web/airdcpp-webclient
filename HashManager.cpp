@@ -786,7 +786,7 @@ int HashManager::Hasher::run() {
 		if(!fname.empty()) {
 			int64_t size = File::getSize(fname);
 			int64_t sizeLeft = size;
-#if defined(_WIN32) || defined(_WIN64) //check 64, virtual alloc for 64?
+#ifdef _WIN32
 			if(buf == NULL) {
 				virtualBuf = true;
 				buf = (uint8_t*)VirtualAlloc(NULL, 2*BUF_SIZE, MEM_COMMIT, PAGE_READWRITE);
@@ -877,7 +877,7 @@ int HashManager::Hasher::run() {
 		running = false;
 		if(buf != NULL && (last || stop)) {
 			if(virtualBuf) {
-#if defined(_WIN32) || defined(_WIN64) //check
+#ifdef _WIN32
 				VirtualFree(buf, 0, MEM_RELEASE);
 #endif
 			} else {

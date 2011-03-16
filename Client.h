@@ -131,7 +131,7 @@ public:
 	bool isActive() const;
 
 	void send(const string& aMessage) { send(aMessage.c_str(), aMessage.length()); }
-	void send(const char* aMessage, size_t aLen);
+	void send(const char* aMessage, size_t aLen) throw();
 
 	string getMyNick() const { return getMyIdentity().getNick(); }
 	string getHubName() const { return getHubIdentity().getNick().empty() ? getHubUrl() : getHubIdentity().getNick(); }

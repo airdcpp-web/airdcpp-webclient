@@ -1014,6 +1014,7 @@ StringPairList ShareManager::getDirectories(int refreshOptions) const throw() {
 
 int ShareManager::run() {
 		
+	
 	StringPairList dirs = getDirectories(refreshOptions);
 
 	if(refreshOptions & REFRESH_ALL) 

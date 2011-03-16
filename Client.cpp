@@ -141,8 +141,8 @@ void Client::connect() {
 	updateActivity();
 }
 
-void Client::send(const char* aMessage, size_t aLen) {
-	if(!isReady()) {
+void Client::send(const char* aMessage, size_t aLen) throw()  {
+	if(!isReady() || !sock) {
 		dcassert(0);
 		return;
 	}
