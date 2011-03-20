@@ -1190,5 +1190,6 @@ enum Strings { // @DontAdd
 	CHECK_DUPES, // "Check duplicate directory names"
 	SETTINGS_SCAN_OPTIONS, // "Scanning options for missing/extra files"
 	REBUILD_STARTED, // "Hash Database rebuild Started"
+	SORT_DIRS, // "Sort Directories First in SearchWindow"
 	LAST // @DontAdd
 };

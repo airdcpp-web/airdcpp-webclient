@@ -1183,6 +1183,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Check duplicate directory names", 
 "Scanning options for missing/extra files", 
 "Hash Database rebuild Started", 
+"Sort Directories First in SearchWindow", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2366,4 +2367,5 @@ std::string dcpp::ResourceManager::names[] = {
 "CheckDupes", 
 "SettingsScanOptions", 
 "RebuildStarted", 
+"SortDirs", 
 };
