@@ -26,10 +26,6 @@
 
 namespace dcpp {
 	
-#ifndef _WIN32
-pthread_mutex_t Thread::mtx = PTHREAD_MUTEX_INITIALIZER;
-#endif
-
 #ifdef _WIN32
 DWORD threadId;
 void Thread::start() throw(ThreadException) {

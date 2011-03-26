@@ -1184,6 +1184,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Scanning options for missing/extra files", 
 "Hash Database rebuild Started", 
 "Sort Directories First in SearchWindow", 
+"Decrease Ram WorkingSet size on minimize", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2368,4 +2369,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsScanOptions", 
 "RebuildStarted", 
 "SortDirs", 
+"DecreaseRam", 
 };

@@ -253,7 +253,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})))"));
 			else
 				reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)))"));
-			for(StringIter i = fileList.begin(); i != fileList.end() && !(isRelease); ++i) {
+			for(StringIterC i = fileList.begin(); i != fileList.end() && !(isRelease); ++i) {
 				if (regex_match(Text::toT(*i), reg))
 					isRelease=true;
 			}
@@ -318,7 +318,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 					pos = line.rfind(" ");
 					line = Text::toLower(line.substr(0,pos));
 
-					StringIter k = std::find(fileList.begin(), fileList.end(), line);
+					StringIterC k = std::find(fileList.begin(), fileList.end(), line);
 						if(k == fileList.end()) { 
 							loopMissing++;
 							if (SETTING(CHECK_MISSING))
@@ -349,7 +349,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	
 }
 
-tstring SFVReaderManager::getDir(tstring dir) {
+tstring SFVReaderManager::getDir(const tstring& dir) {
 		string directory = Text::fromT(dir);
 		if (dir != Util::emptyStringT) {
 			directory = directory.substr(0, directory.size()-1);
@@ -368,7 +368,7 @@ void SFVReader::load(const string& fileName) throw() {
 	string fname = Util::getFileName(fileName);
 	StringList files = File::findFiles(path, "*.sfv");
 
-	for(StringIter i = files.begin(); i != files.end(); ++i) {
+	for(StringIterC i = files.begin(); i != files.end(); ++i) {
 		try {
 			if (tryFile(*i, fname)) {
 				return;

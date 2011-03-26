@@ -85,7 +85,7 @@ StringList Paths;
  int missingNFO;
  int missingSFV;
  int dupesFound;
- static tstring getDir(tstring dir);
+ static tstring getDir(const tstring& dir);
  void findDupes(const string& path) throw(FileException);
  StringPairList dupeDirs;
  StringList findFiles(const string& path, const string& pattern);

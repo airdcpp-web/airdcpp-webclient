@@ -61,11 +61,12 @@ public:
 	string toReal(const string& virtualFile, bool isInSharingHub) throw(ShareException);
 	TTHValue getTTH(const string& virtualFile) const throw(ShareException);
 	
-	int refresh(int refreshOptions) throw();
+	int refresh(int refreshOptions);
+	int startRefresh(int refreshOptions) throw();
 	int refresh(const string& aDir);
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
-	void setDirty() { xmlDirty = true; }
+	void setDirty() {shareXmlDirty = xmlDirty = true; }
 	StringList getIncoming() { return incoming; };
 	void setIncoming(const string& Vname, bool isIncoming);
 	void DelIncoming();
@@ -109,7 +110,7 @@ public:
 	}
 
 	string getOwnListFile() {
-		generateXmlList();
+		generateXmlList(true);
 		return getBZXmlFile();
 	}
 
@@ -272,13 +273,14 @@ private:
 	unique_ptr<File> bzXmlRef;
 
 	bool xmlDirty;
+	bool shareXmlDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
 	bool initial;
 	bool rebuild;
 
 	int listN;
 
-	volatile long refreshing;
+	atomic_flag refreshing;
 	
 	uint64_t lastXmlUpdate;
 	uint64_t lastFullUpdate;
@@ -312,7 +314,7 @@ private:
 	
 	Directory::Ptr merge(const Directory::Ptr& directory);
 	
-	void generateXmlList();
+	void generateXmlList(bool forced = false);
 	StringList notShared;
 	StringList incoming;
 	
@@ -339,6 +341,10 @@ private:
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) throw() {
 		save(xml);
+		if(shareXmlDirty) {
+			generateXmlList(true);
+			shareXmlDirty = false;
+		}
 	}
 	void on(SettingsManagerListener::Load, SimpleXML& xml) throw() {
 		load(xml);

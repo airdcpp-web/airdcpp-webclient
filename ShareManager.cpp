@@ -54,8 +54,9 @@
 namespace dcpp {
 
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
-	xmlDirty(true), forceXmlRefresh(false), initial(true), listN(0), refreshing(0),
-	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false)
+	xmlDirty(true), forceXmlRefresh(false), initial(true), listN(0), refreshing(false),
+	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false),
+	shareXmlDirty(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -70,6 +71,9 @@ ShareManager::~ShareManager() {
 	HashManager::getInstance()->removeListener(this);
 
 	join();
+
+	StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
+	for_each(lists.begin(), lists.end(), File::deleteFile);
 
 /*
 	if(bzXmlRef.get()) {
@@ -435,14 +439,13 @@ private:
 bool ShareManager::loadCache() throw() {
 	try {
 		ShareLoader loader(directories);
-		SimpleXMLReader xml(&loader);
+		//SimpleXMLReader xml(&loader);
 
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2", dcpp::File::READ, dcpp::File::OPEN);
 		FilteredInputStream<UnBZFilter, false> f(&ff);
 
-		xml.parse(f);
+		SimpleXMLReader(&loader).parse(f);
 		
-
 		for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			const Directory::Ptr& d = *i;
 			updateIndices(*d);
@@ -450,6 +453,7 @@ bool ShareManager::loadCache() throw() {
 
 		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
 		setDirty();
+		
 		return true;
 	} catch(const Exception& e) {
 		dcdebug("%s\n", e.getError().c_str());
@@ -874,8 +878,13 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 int ShareManager::refreshDirs( StringList dirs ){
 	
 	int result = REFRESH_PATH_NOT_FOUND;
-	if(Thread::safeInc(refreshing) == 1) {
-		{
+	
+	if(refreshing.test_and_set()) {
+		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
+		return REFRESH_IN_PROGRESS;
+	}
+		
+	{
 			Lock l(cs);
 			refreshPaths.clear();
 			
@@ -892,21 +901,23 @@ int ShareManager::refreshDirs( StringList dirs ){
 			}
 
 		}
-		Thread::safeDec(refreshing);
+		
 		if(result == REFRESH_STARTED)
-			result = refresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
+			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
 
 		return result;
 	}
 
-	Thread::safeDec(refreshing);
-	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
-	return REFRESH_IN_PROGRESS;
-}
+
 
 int ShareManager::refreshIncoming( ){
 	int result = REFRESH_PATH_NOT_FOUND;
-	if(Thread::safeInc(refreshing) == 1) {
+	
+		if(refreshing.test_and_set()) {
+			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
+			return REFRESH_IN_PROGRESS;
+			}
+
 		{
 			Lock l(cs);
 			refreshPaths.clear();
@@ -926,23 +937,22 @@ int ShareManager::refreshIncoming( ){
 			}
 
 		}
-		Thread::safeDec(refreshing);
+		
 		if(result == REFRESH_STARTED)
-			result = refresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
+			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
 
 		return result;
 	}
 
-	Thread::safeDec(refreshing);
-	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
-	return REFRESH_IN_PROGRESS;
-}
+
 
 int ShareManager::refresh( const string& aDir ){
 	int result = REFRESH_PATH_NOT_FOUND;
 
-	if(Thread::safeInc(refreshing) == 1) {
-
+	if(refreshing.test_and_set()) {
+			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
+			return REFRESH_IN_PROGRESS;
+	}
 		{
 			Lock l(cs);
 			refreshPaths.clear();
@@ -957,25 +967,26 @@ int ShareManager::refresh( const string& aDir ){
 	
 		}
 
-		Thread::safeDec(refreshing);
 		if(result == REFRESH_STARTED)
-			result = refresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
+			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
 
 		return result;
 	}
 
-	Thread::safeDec(refreshing);
+
+int ShareManager::refresh(int aRefreshOptions){
+	
+	if(refreshing.test_and_set()) {
 	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
 	return REFRESH_IN_PROGRESS;
-}
-int ShareManager::refresh(int aRefreshOptions) throw() {
-	
-if(Thread::safeInc(refreshing) > 1) {
-		Thread::safeDec(refreshing);
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
-		return REFRESH_IN_PROGRESS;
 	}
+		
+	startRefresh(aRefreshOptions);
+	return REFRESH_STARTED;
 
+}
+int ShareManager::startRefresh(int aRefreshOptions) throw() {
+	
 	refreshOptions = aRefreshOptions;
 
 	join();
@@ -1050,14 +1061,15 @@ int ShareManager::run() {
 				}
 			}
 		}
-			//force xml update here for now so users wont complain about subdirectories not showing in own list
-			//lastFullupdate isnt set for directory refresh so need to make it bybass the 15mins guard.
-			forceXmlRefresh = true;
+
 
 		} else if(refreshOptions & REFRESH_ALL) {
 				directories.clear();
 			}
 
+			//force xml update here for now so users wont complain about subdirectories not showing in own list
+			//lastFullupdate isnt set for directory refresh so need to make it bybass the 15mins guard.
+			forceXmlRefresh = true;
 
 			for(DirList::iterator i = newDirs.begin(); i != newDirs.end(); ++i) {
 				merge(*i);
@@ -1083,7 +1095,7 @@ int ShareManager::run() {
 	}
 		
 	
-	refreshing = 0;
+	refreshing.clear();
 	return 0;
 }
 		
@@ -1099,9 +1111,9 @@ void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
 	bloom.copy_to(v);
 }
 
-void ShareManager::generateXmlList() {
+void ShareManager::generateXmlList(bool forced /*false*/) {
 	Lock l(cs);
-	if(forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
+	if(forced || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
 		listN++;
 
 		try {
@@ -1740,13 +1752,13 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) throw() {
 	}
 	if(SETTING(INCOMING_REFRESH_TIME) > 0 && !incoming.empty()){
 			if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
-		//	setDirty();
+			setDirty();
 			refreshIncoming();
 		}
 	}
 	if(SETTING(AUTO_REFRESH_TIME) > 0) {
 		if(lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= tick) {
-		//	setDirty();
+			setDirty();
 			refresh(ShareManager::REFRESH_ALL | ShareManager::REFRESH_UPDATE);
 		}
 	}

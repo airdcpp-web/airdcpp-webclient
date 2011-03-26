@@ -347,7 +347,7 @@ OnlineUser* ClientManager::findOnlineUser_hint(const CID& cid, const string& hin
 		return 0;
 
 	if(!hintUrl.empty()) {
-		for(OnlineIterC i = p.first; i != p.second; ++i) {
+		for(auto i = p.first; i != p.second; ++i) {
 			OnlineUser* u = i->second;
 			if(u->getClientBase().getHubUrl() == hintUrl) {
 				return u;

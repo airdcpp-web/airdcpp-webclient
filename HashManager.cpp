@@ -366,7 +366,7 @@ void HashManager::HashStore::load() {
 		File f(getIndexFile(), File::READ, File::OPEN);
 		SimpleXMLReader(&l).parse(f);
 	} catch (const Exception&) {
-		// ...
+		
 	}
 }
 

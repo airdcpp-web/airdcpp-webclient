@@ -1191,5 +1191,6 @@ enum Strings { // @DontAdd
 	SETTINGS_SCAN_OPTIONS, // "Scanning options for missing/extra files"
 	REBUILD_STARTED, // "Hash Database rebuild Started"
 	SORT_DIRS, // "Sort Directories First in SearchWindow"
+	DECREASE_RAM, // "Decrease Ram WorkingSet size on minimize"
 	LAST // @DontAdd
 };
