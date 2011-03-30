@@ -517,10 +517,6 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 		throw ShareException(STRING(DONT_SHARE_TEMP_DIRECTORY));
 	}
 
-	if(stricmp(SETTING(DOWNLOAD_DIRECTORY), realPath) == 0) {
-		throw ShareException(STRING(DONT_SHARE_DOWNLOAD_DIRECTORY));
-	}
-
 #ifdef _WIN32
 	// don't share Windows directory
 	TCHAR path[MAX_PATH];

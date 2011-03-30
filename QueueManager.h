@@ -290,7 +290,7 @@ private:
 	friend class Singleton<QueueManager>;
 	
 	QueueManager();
-	virtual ~QueueManager() throw();
+	~QueueManager() throw();
 	
 	mutable CriticalSection cs;
 	

@@ -29,7 +29,7 @@ struct FavHubGroupProperties {
 	bool priv;
 };
 
-typedef std::unordered_map<string, FavHubGroupProperties> FavHubGroups;
+typedef unordered_map<string, FavHubGroupProperties> FavHubGroups;
 typedef FavHubGroups::value_type FavHubGroup;
 
 } // namespace dcpp

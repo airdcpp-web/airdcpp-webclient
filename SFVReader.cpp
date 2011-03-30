@@ -84,8 +84,13 @@ int SFVReaderManager::run() {
 	
 	if(partialScan) {
 		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
-		findMissing(*j);
-		find(*j);
+		string dir = *j;
+		if(dir[dir.size() -1] != '//')
+			dir += "//";
+
+		findMissing(dir);
+		find(dir);
+		//LogManager::getInstance()->message("Scanned " + dir);
 		}
 	} else {
 

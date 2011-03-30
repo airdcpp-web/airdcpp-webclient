@@ -209,6 +209,7 @@ private:
 		string getRealPath(const std::string& path) const throw(ShareException);
 
 		int64_t getSize() const throw();
+		int64_t getSize(const string& realpath) const throw();
 		size_t countFiles() const throw(); //ApexDC
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) const throw();
