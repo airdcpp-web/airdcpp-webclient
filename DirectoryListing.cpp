@@ -90,16 +90,14 @@ void DirectoryListing::loadFile(const string& name) throw(Exception) {
 	
 	// For now, we detect type by ending...
 	string ext = Util::getFileExt(name);
-	
-	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN | dcpp::File::NO_CACHE_HINT);
+
+	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
 	if(stricmp(ext, ".bz2") == 0) {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
 		loadXML(f, false);
 	} else if(stricmp(ext, ".xml") == 0) {
 		loadXML(ff, false);
 	}
-
-	ff.close();
 }
 
 class ListLoader : public dcpp::SimpleXMLReader::CallBack {

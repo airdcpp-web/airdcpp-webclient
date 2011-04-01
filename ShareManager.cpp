@@ -685,9 +685,11 @@ int64_t ShareManager::getShareSize(const string& realPath) const throw() {
 int64_t ShareManager::getShareSize() const throw() {
 	Lock l(cs);
 	int64_t tmp = 0;
+	
 	for(HashFileMap::const_iterator i = tthIndex.begin(); i != tthIndex.end(); ++i) {
 		tmp += i->second->getSize();
 	}
+	
 	return tmp;
 }
 
