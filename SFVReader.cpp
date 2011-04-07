@@ -195,6 +195,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	StringList fileList = findFiles(path, "*");
 
 	int pos;
+	int pos2;
 	boost::wregex reg;
 	int nfoFiles=0;
 	int sfvFiles=0;
@@ -317,7 +318,8 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			while( getline( sfv, line ) ) {
 				//make sure that the line is valid
 				pos = line.find(";");
-				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos)) {
+				pos2 = line.find("\\");
+				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
 					releaseFiles++;
 					//only keep the filename
 					pos = line.rfind(" ");
