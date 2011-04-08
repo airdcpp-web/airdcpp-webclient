@@ -23,6 +23,8 @@
 #include "Exception.h"
 #include "ResourceManager.h"
 
+
+
 namespace dcpp {
 
 STANDARD_EXCEPTION(FileException);
@@ -84,11 +86,11 @@ public:
 		memcpy(buf, src.data(), src.size());
 	}
 
-	~MemoryInputStream() throw() {
+	virtual ~MemoryInputStream() throw() {
 		delete[] buf;
 	}
 
-	size_t read(void* tgt, size_t& len) throw(Exception) {
+	virtual size_t read(void* tgt, size_t& len) throw(Exception) {
 		len = min(len, size - pos);
 		memcpy(tgt, buf+pos, len);
 		pos += len;
@@ -111,7 +113,7 @@ class LimitedInputStream : public InputStream {
 public:
 	LimitedInputStream(InputStream* is, int64_t aMaxBytes) : s(is), maxBytes(aMaxBytes) {
 	}
-	~LimitedInputStream() throw() { if(managed) delete s; }
+	virtual ~LimitedInputStream() throw() { if(managed) delete s; }
 
 	size_t read(void* buf, size_t& len) throw(FileException) {
 		dcassert(maxBytes >= 0);
@@ -160,7 +162,7 @@ public:
 	using OutputStream::write;
 
 	BufferedOutputStream(OutputStream* aStream, size_t aBufSize = SETTING(BUFFER_SIZE) * 1024) : s(aStream), pos(0), buf(aBufSize) { }
-	~BufferedOutputStream() throw() {
+	virtual ~BufferedOutputStream() throw() {
 		try {
 			// We must do this in order not to lose bytes when a download
 			// is disconnected prematurely
@@ -209,7 +211,7 @@ private:
 class StringOutputStream : public OutputStream {
 public:
 	StringOutputStream(string& out) : str(out) { }
-	~StringOutputStream() throw() { }
+	virtual ~StringOutputStream() throw() { }
 	using OutputStream::write;
 
 	size_t flush() throw(Exception) { return 0; }

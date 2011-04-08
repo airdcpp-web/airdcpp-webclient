@@ -107,6 +107,7 @@
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
+
 #else
 #include <assert.h>
 #endif
@@ -150,7 +151,9 @@
 
 namespace dcpp {
 	using namespace std;
+
 }
+
 
 #endif // !defined(STDINC_H)
 

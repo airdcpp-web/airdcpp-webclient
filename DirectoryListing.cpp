@@ -39,6 +39,7 @@
 #undef ff
 #endif
 
+
 namespace dcpp {
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser) : 

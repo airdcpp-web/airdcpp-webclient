@@ -26,8 +26,9 @@
 #endif
 
 #include "Exception.h"
-
 #include <boost/thread.hpp>
+
+
 
 namespace dcpp {
 
@@ -103,9 +104,14 @@ protected:
 	virtual int run() = 0;
 	
 #ifdef _WIN32
+
+
 	HANDLE threadHandle;
 
 	static unsigned int  WINAPI starter(void* p) {
+		#ifdef _DEBUG
+		_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+		#endif
 		Thread* t = (Thread*)p;
 		t->run();
 		return 0;

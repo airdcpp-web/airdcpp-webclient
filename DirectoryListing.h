@@ -26,6 +26,7 @@
 #include "Streams.h"
 #include "QueueItem.h"
 
+
 namespace dcpp {
 	
 class ListLoader;
@@ -125,11 +126,6 @@ public:
 		}
 		uint8_t checkDupes();
 		
-	
-	
-
-
-		
 		GETSET(string, name, Name);
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
@@ -149,7 +145,7 @@ public:
 	};
 
 	DirectoryListing(const HintedUser& aUser);
-	~DirectoryListing();
+	virtual ~DirectoryListing();
 	
 	void loadFile(const string& name) throw(Exception);
 
