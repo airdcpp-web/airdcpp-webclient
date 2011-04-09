@@ -1185,6 +1185,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Hash Database rebuild Started", 
 "Sort Directories First in SearchWindow", 
 "Decrease Ram WorkingSet size on minimize", 
+"Stop", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2370,4 +2371,5 @@ std::string dcpp::ResourceManager::names[] = {
 "RebuildStarted", 
 "SortDirs", 
 "DecreaseRam", 
+"Stop", 
 };

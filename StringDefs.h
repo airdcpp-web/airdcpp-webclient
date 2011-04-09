@@ -1192,5 +1192,6 @@ enum Strings { // @DontAdd
 	REBUILD_STARTED, // "Hash Database rebuild Started"
 	SORT_DIRS, // "Sort Directories First in SearchWindow"
 	DECREASE_RAM, // "Decrease Ram WorkingSet size on minimize"
+	STOP, // "Stop"
 	LAST // @DontAdd
 };

@@ -96,6 +96,10 @@ public:
 
 	void startup() { hasher.start(); store.load(); }
 
+	void Stop() {
+		hasher.clear();
+	}
+
 	void shutdown() {
 		hasher.shutdown();
 		hasher.join();
@@ -127,6 +131,11 @@ private:
 		bool pause();
 		void resume();
 		bool isPaused() const;
+		
+		void clear() {
+			Lock l(cs);
+			w.clear();
+		}
 
 		void stopHashing(const string& baseDir);
 		int run();

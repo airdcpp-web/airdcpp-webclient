@@ -1056,11 +1056,9 @@ int ShareManager::run() {
 			//lookup for the root dirs under the Vname and erase only those.
 		for(DirList::const_iterator j = directories.begin(); j != directories.end();) {	
 		if(stricmp((*j)->getName(), virtualname) == 0) {
-			//delete directories[*j];
 			//directories.erase(j++);
 			directories.erase(j);
-			
-				}else ++j;
+				} else ++j; // in a vector erase all elements are moved to new positions so make sure we dont skip anything.
 			}
 		}
 
