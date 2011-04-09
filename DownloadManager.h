@@ -116,7 +116,7 @@ private:
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) throw();
 
-	typedef unordered_map< string, int64_t > StringIntMap;
+	typedef boost::unordered_map< string, int64_t > StringIntMap;
 	typedef StringIntMap::iterator StringIntIter;
 	typedef pair< string, int64_t > StringIntPair;
 

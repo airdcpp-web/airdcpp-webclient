@@ -150,7 +150,7 @@ private:
 	class Directory : public FastAlloc<Directory>, public intrusive_ptr_base<Directory>, boost::noncopyable {
 	public:
 		typedef boost::intrusive_ptr<Directory> Ptr;
-		typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
+		typedef boost::unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
 		typedef Map::iterator MapIter;
 
 		struct File {
@@ -290,7 +290,10 @@ private:
 	mutable CriticalSection cs;
 
 	// List of root directory items
-	typedef std::list<Directory::Ptr> DirList;
+	//typedef std::list<Directory::Ptr> DirList;
+	//would a vector be more efficient here, we are not inserting in the middle so much and usually it only grows?
+	//experimental, vector works a bit differently so will need to test adding / removing share etc. might have missed something.
+	typedef std::vector<Directory::Ptr> DirList; 
 	DirList directories;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */

@@ -184,8 +184,8 @@ if(aType == Transfer::names[Transfer::TYPE_FILE]) {
 
 			TTHValue fileHash(aFile.substr(4));
 
-            if(	QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile) ||
-				FinishedManager::getInstance()->getTarget(fileHash.toBase32(), sourceFile))
+            if((SETTING(EXTRA_PARTIAL_SLOTS) !=0) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile) ||
+				FinishedManager::getInstance()->getTarget(fileHash.toBase32(), sourceFile)  )
 			{				
 				try {
 					SharedFileStream* ss = new SharedFileStream(sourceFile, File::READ, File::OPEN | File::SHARED | File::NO_CACHE_HINT);

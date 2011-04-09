@@ -467,7 +467,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 	adc.getParam("TO", 0, token);
 
 	// TODO: don't send replies to passive users
-	if(results.empty()) {
+	if(results.empty() && (SETTING(EXTRA_PARTIAL_SLOTS) !=0)) {
 		string tth;
 		if(!adc.getParam("TR", 0, tth))
 			return;

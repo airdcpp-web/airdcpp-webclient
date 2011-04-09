@@ -566,7 +566,7 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 }
 
 ShareManager::Directory::Ptr ShareManager::merge(const Directory::Ptr& directory) {
-	for(DirList::iterator i = directories.begin(); i != directories.end(); ++i) {
+	for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 		if(stricmp((*i)->getName(), directory->getName()) == 0) {
 			dcdebug("Merging directory %s\n", directory->getName().c_str());
 			(*i)->merge(directory);
@@ -629,9 +629,10 @@ void ShareManager::removeDirectory(const string& realPath) {
 	}
 
 	std::string vName = i->second;
-	for(DirList::iterator j = directories.begin(); j != directories.end(); ) {
+	for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {
 		if(stricmp((*j)->getName(), vName) == 0) {
-			directories.erase(j++);
+			//directories.erase(j++);
+			directories.erase(j);
 		} else {
 			++j;
 		}
@@ -1053,10 +1054,13 @@ int ShareManager::run() {
 			std::string virtualname = i->first;
 
 			//lookup for the root dirs under the Vname and erase only those.
-		for(DirList::iterator j = directories.begin(); j != directories.end(); ++j) {	
+		for(DirList::const_iterator j = directories.begin(); j != directories.end();) {	
 		if(stricmp((*j)->getName(), virtualname) == 0) {
-			directories.erase(j++);
-				}
+			//delete directories[*j];
+			//directories.erase(j++);
+			directories.erase(j);
+			
+				}else ++j;
 			}
 		}
 
@@ -1069,7 +1073,7 @@ int ShareManager::run() {
 			//lastFullupdate isnt set for directory refresh so need to make it bybass the 15mins guard.
 			forceXmlRefresh = true;
 
-			for(DirList::iterator i = newDirs.begin(); i != newDirs.end(); ++i) {
+			for(DirList::const_iterator i = newDirs.begin(); i != newDirs.end(); ++i) {
 				merge(*i);
 			}
 			
@@ -1671,7 +1675,7 @@ ShareManager::Directory::Ptr ShareManager::getDirectory(const string& fname) {
 	for(StringMapIter mi = shares.begin(); mi != shares.end(); ++mi) {
 		if(strnicmp(fname, mi->first, mi->first.length()) == 0) {
 			Directory::Ptr d;
-			for(DirList::iterator i = directories.begin(); i != directories.end(); ++i) {
+			for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 				if(stricmp((*i)->getName(), mi->second) == 0) {
 					d = *i;
 				}

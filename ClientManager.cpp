@@ -489,6 +489,9 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			}
 		}
 	} else if(!isPassive && (aFileType == SearchManager::TYPE_TTH) && (aString.compare(0, 4, "TTH:") == 0)) {
+		if(SETTING(EXTRA_PARTIAL_SLOTS) == 0) //disable partial uploads by setting 0
+			return;
+
 		PartsInfo partialInfo;
 		TTHValue aTTH(aString.substr(4));
 		if(!QueueManager::getInstance()->handlePartialSearch(aTTH, partialInfo)) {
