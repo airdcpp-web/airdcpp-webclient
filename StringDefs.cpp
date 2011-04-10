@@ -1185,6 +1185,12 @@ std::string dcpp::ResourceManager::strings[] = {
 "Hash Database rebuild Started", 
 "Sort Directories First in SearchWindow", 
 "Decrease Ram WorkingSet size on minimize", 
+"Perform SFV check", 
+"CRC Mismatch: ", 
+"CRC OK: ", 
+"Unable to check file: ", 
+"No SFV file found", 
+"Failed to open SFV file: ", 
 "Stop", 
 };
 std::string dcpp::ResourceManager::names[] = {
@@ -2371,5 +2377,11 @@ std::string dcpp::ResourceManager::names[] = {
 "RebuildStarted", 
 "SortDirs", 
 "DecreaseRam", 
+"RunSfvCheck", 
+"CrcFailed", 
+"CrcOk", 
+"CrcFileError", 
+"NoSfvFile", 
+"CantOpenSfv", 
 "Stop", 
 };

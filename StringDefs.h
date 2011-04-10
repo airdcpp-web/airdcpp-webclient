@@ -1192,6 +1192,12 @@ enum Strings { // @DontAdd
 	REBUILD_STARTED, // "Hash Database rebuild Started"
 	SORT_DIRS, // "Sort Directories First in SearchWindow"
 	DECREASE_RAM, // "Decrease Ram WorkingSet size on minimize"
+	RUN_SFV_CHECK, // "Perform SFV check"
+	CRC_FAILED, // "CRC Mismatch: "
+	CRC_OK, // "CRC OK: "
+	CRC_FILE_ERROR, // "Unable to check file: "
+	NO_SFV_FILE, // "No SFV file found"
+	CANT_OPEN_SFV, // "Failed to open SFV file: "
 	STOP, // "Stop"
 	LAST // @DontAdd
 };

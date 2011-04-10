@@ -18,11 +18,13 @@
 
 #include "stdinc.h"
 #include "DCPlusPlus.h"
+#include "HashManager.h"
 
 #include "SFVReader.h"
 #include "LogManager.h"
 #include "ShareManager.h"
 #include "StringTokenizer.h"
+#include "FilteredFile.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -35,28 +37,6 @@
 #endif
 
 namespace dcpp {
-
-bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(FileException) {
-
-	string sfv = File(sfvFile, File::READ, File::OPEN).read();
-
-	string::size_type i = 0;
-	while( (i = Util::findSubString(sfv, fileName, i)) != string::npos) {
-		// Either we're at the beginning of the file or the line...otherwise skip...
-		if( (i == 0) || (sfv[i-1] == '\n') ) {
-			string::size_type j = i + fileName.length() + 1;
-			if(j < sfv.length() - 8) {
-				sscanf(sfv.c_str() + j, "%x", &crc32);
-				crcFound = true;
-				return true;
-			}
-		}
-		i += fileName.length();
-	}
-
-	return false;
-}
-
 
 int SFVReaderManager::scan(StringList paths) {
 	
@@ -188,9 +168,9 @@ StringList SFVReaderManager::findFiles(const string& path, const string& pattern
 	return ret;
 }
 
-void SFVReaderManager::findMissing(const string& path) throw(FileException) {
+bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	if(path.empty())
-		return;
+		return false;
 
 	StringList fileList = findFiles(path, "*");
 
@@ -271,7 +251,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			}
 
 			if (isSample)
-				return;
+				return false;
 
 			//Report missing SFV or NFO
 			if (isRelease) {
@@ -287,14 +267,14 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 						LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
 						missingSFV++;
 					}
-					return;
+					return false;
 				}
 			}
 		}
 	}
 
 	if (sfvFiles == 0)
-		return;
+		return false;
 
 
 		ifstream sfv;
@@ -313,7 +293,7 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			sfv.open(Text::utf8ToAcp(sfvFile));
 
 			if(!sfv.is_open())
-				LogManager::getInstance()->message("failed to open " + sfvFile);
+				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
 
 			while( getline( sfv, line ) ) {
 				//make sure that the line is valid
@@ -353,7 +333,85 @@ void SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				extrasFound++;
 			}
 		}
-	
+	if (loopMissing > 0)
+		return true;
+	else
+		return false;
+}
+
+void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
+	StringList sfvFileList = findFiles(path, "*.sfv");
+
+	int pos;
+	int pos2;
+	boost::wregex reg;
+	StringIterC i;
+
+
+	if (sfvFileList.size() == 0) {
+		LogManager::getInstance()->message(STRING(NO_SFV_FILE));
+		return;
+	} else {
+
+		ifstream sfv;
+		string line;
+		string sfvFile;
+		
+		//regex to match crc32
+		reg.assign(_T("(\\s(\\w{8})$)"));
+
+		for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
+			sfvFile = *i;
+			
+			//incase we have some extended characters in the path
+			sfv.open(Text::utf8ToAcp(path + sfvFile));
+
+			if(!sfv.is_open())
+				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+
+			while( getline( sfv, line ) ) {
+				//make sure that the line is valid
+				pos = line.find(";");
+				pos2 = line.find("\\");
+				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
+					//get crc32 and fileName from the SFV file
+					uint32_t crc32;
+					pos = line.rfind(" ");
+					string line2 = line;
+					string crcstring = line2.substr(pos, line.size());
+					char crcchar [8];
+					strcpy(crcchar, crcstring.c_str());
+					sscanf(crcchar, "%x", &crc32);
+					string fileName = line.substr(0,pos);
+
+					//Check and compare values
+					bool crcMatch = false;
+					try {
+						crcMatch = calcCrc32(path + fileName) == crc32;
+					} catch(const FileException& ) {
+						LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + fileName);
+					}
+					if (crcMatch)
+						LogManager::getInstance()->message(STRING(CRC_OK) + fileName);
+					else
+						LogManager::getInstance()->message(STRING(CRC_FAILED) + fileName);
+				}
+			}
+			sfv.close();
+		}
+	}
+}
+
+uint32_t SFVReaderManager::calcCrc32(const string& file) {
+	File ff(file, File::READ, File::OPEN);
+	CalcInputStream<CRC32Filter, false> f(&ff);
+
+	const size_t BUF_SIZE = 1024*1024;
+	boost::scoped_array<uint8_t> b(new uint8_t[BUF_SIZE]);
+	size_t n = BUF_SIZE;
+	while(f.read(&b[0], n) > 0)
+		;		// Keep on looping...
+	return f.getFilter().getValue();
 }
 
 tstring SFVReaderManager::getDir(const tstring& dir) {
@@ -369,6 +427,27 @@ tstring SFVReaderManager::getDir(const tstring& dir) {
 		return Text::toT(directory);
 }
 
+
+bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(FileException) {
+
+	string sfv = File(sfvFile, File::READ, File::OPEN).read();
+
+	string::size_type i = 0;
+	while( (i = Util::findSubString(sfv, fileName, i)) != string::npos) {
+		// Either we're at the beginning of the file or the line...otherwise skip...
+		if( (i == 0) || (sfv[i-1] == '\n') ) {
+			string::size_type j = i + fileName.length() + 1;
+			if(j < sfv.length() - 8) {
+				sscanf(sfv.c_str() + j, "%x", &crc32);
+				crcFound = true;
+				return true;
+			}
+		}
+		i += fileName.length();
+	}
+
+	return false;
+}
 
 void SFVReader::load(const string& fileName) throw() {
 	string path = Util::getFilePath(fileName);
