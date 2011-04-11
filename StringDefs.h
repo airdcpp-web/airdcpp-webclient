@@ -1200,6 +1200,7 @@ enum Strings { // @DontAdd
 	CRC_FILE_ERROR, // "Unable to check file: "
 	NO_SFV_FILE, // "No SFV file found"
 	CANT_OPEN_SFV, // "Failed to open SFV file: "
+	SEE_SYSLOG_FOR_RESULTS, // "Open System Log to see the scan results"
 	STOP, // "Stop"
 	LAST // @DontAdd
 };

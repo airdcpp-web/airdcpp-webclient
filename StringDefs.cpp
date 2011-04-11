@@ -1193,6 +1193,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Unable to check file: ", 
 "No SFV file found", 
 "Failed to open SFV file: ", 
+"Open System Log to see the scan results", 
 "Stop", 
 };
 std::string dcpp::ResourceManager::names[] = {
@@ -2387,5 +2388,6 @@ std::string dcpp::ResourceManager::names[] = {
 "CrcFileError", 
 "NoSfvFile", 
 "CantOpenSfv", 
+"SeeSyslogForResults", 
 "Stop", 
 };
