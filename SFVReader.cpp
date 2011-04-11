@@ -38,17 +38,28 @@
 
 namespace dcpp {
 
-int SFVReaderManager::scan(StringList paths) {
-	
+int SFVReaderManager::scan(StringList paths, bool sfv /*false*/, bool files /*false*/) {
+	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
 		LogManager::getInstance()->message("Scan in Progress"); //translate
 		return 1;
 	}
 	partialScan = false;
+	sfvCheckFolder = false;
+	sfvCheckFile = false;
 
+	if(sfv) {
+		if(files) {
+			sfvCheckFile = true;
+		} else {
+			sfvCheckFolder = true;
+		}
+			Paths = paths;
+	} else {
 	if(!paths.empty()) {
 		partialScan = true;
 		Paths = paths;
+	}
 	}
 
 	start();
@@ -57,11 +68,28 @@ int SFVReaderManager::scan(StringList paths) {
 	extrasFound = 0;
 	missingNFO = 0;
 	missingSFV = 0;
+	if(sfv)
+		LogManager::getInstance()->message("Svf Check started"); // dont really need a started message? 
+	else
 	LogManager::getInstance()->message(STRING(SCAN_STARTED)); 
 	return 0;
 }
 int SFVReaderManager::run() {
 	
+	if(sfvCheckFolder) {
+		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
+		string dir = *j;
+		if(dir[dir.size() -1] != '\\')
+			dir += "\\";
+			
+		checkFolderSFV(dir);
+		}
+	} else if(sfvCheckFile) {
+		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
+			checkFileSFV(*j);
+		}
+	} else {
+
 	if(partialScan) {
 		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
 		string dir = *j;
@@ -88,6 +116,8 @@ int SFVReaderManager::run() {
     tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
     LogManager::getInstance()->message(tmp);
 	
+	}
+
 	scanning.clear();
 	dupeDirs.clear();
 	Paths.clear();

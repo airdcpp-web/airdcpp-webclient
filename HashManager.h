@@ -214,7 +214,7 @@ private:
 		typedef FileInfoList::iterator FileInfoIter;
 		typedef FileInfoList::const_iterator FileInfoIterC;
 
-		typedef boost::unordered_map<string, FileInfoList> DirMap;
+		typedef unordered_map<string, FileInfoList> DirMap;
 		typedef DirMap::iterator DirIter;
 		typedef DirMap::const_iterator DirIterC;
 

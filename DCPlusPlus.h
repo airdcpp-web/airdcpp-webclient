@@ -70,7 +70,7 @@ typedef pair<string, string> StringPair;
 typedef vector<StringPair> StringPairList;
 typedef StringPairList::iterator StringPairIter;
 
-typedef boost::unordered_map<string, string> StringMap;
+typedef unordered_map<string, string> StringMap;
 typedef StringMap::iterator StringMapIter;
 
 typedef std::unordered_set<string> StringSet;

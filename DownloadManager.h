@@ -61,6 +61,7 @@ public:
 	bool startDownload(QueueItem::Priority prio);
 		
 	int64_t getAverageSpeed(const string & path){
+		Lock l(cs);
 		size_t pos = path.rfind("\\");
 		string tmp = path.substr(0, pos);
 		
@@ -68,6 +69,7 @@ public:
 	}
 
 	uint64_t getAveragePos(const string & path) {
+		Lock l(cs);
 		size_t pos = path.rfind("\\");
 		string tmp = path.substr(0, pos);
 
@@ -116,7 +118,7 @@ private:
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) throw();
 
-	typedef boost::unordered_map< string, int64_t > StringIntMap;
+	typedef map< string, int64_t > StringIntMap;
 	typedef StringIntMap::iterator StringIntIter;
 	typedef pair< string, int64_t > StringIntPair;
 
