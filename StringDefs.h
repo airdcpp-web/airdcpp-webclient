@@ -1193,6 +1193,8 @@ enum Strings { // @DontAdd
 	SORT_DIRS, // "Sort Directories First in SearchWindow"
 	DECREASE_RAM, // "Decrease Ram WorkingSet size on minimize"
 	RUN_SFV_CHECK, // "Perform SFV check"
+	SFV_CHECK_FOLDER, // "Perform SFV check (whole folder)"
+	SFV_CHECK_FILE, // "Perform SFV check (file only)"
 	CRC_FAILED, // "CRC Mismatch: "
 	CRC_OK, // "CRC OK: "
 	CRC_FILE_ERROR, // "Unable to check file: "

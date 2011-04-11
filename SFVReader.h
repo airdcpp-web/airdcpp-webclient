@@ -69,7 +69,8 @@ public:
  void find (const string& path);
  bool findMissing(const string& path)  throw(FileException);
  int scan(StringList paths = StringList());
- void SFVReaderManager::checkSFV(const string& path) throw(FileException);
+ void SFVReaderManager::checkFolderSFV(const string& path) throw(FileException);
+ void SFVReaderManager::checkFileSFV(const string& path) throw(FileException);
  
 private:
 friend class Singleton<SFVReaderManager>;

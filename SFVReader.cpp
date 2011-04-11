@@ -339,7 +339,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		return false;
 }
 
-void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
+void SFVReaderManager::checkFolderSFV(const string& path) throw(FileException) {
 	StringList sfvFileList = findFiles(path, "*.sfv");
 
 	int pos;
@@ -389,15 +389,35 @@ void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
 					try {
 						crcMatch = calcCrc32(path + fileName) == crc32;
 					} catch(const FileException& ) {
-						LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + fileName);
+						LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + path + fileName);
 					}
 					if (crcMatch)
-						LogManager::getInstance()->message(STRING(CRC_OK) + fileName);
+						LogManager::getInstance()->message(STRING(CRC_OK) + path + fileName);
 					else
-						LogManager::getInstance()->message(STRING(CRC_FAILED) + fileName);
+						LogManager::getInstance()->message(STRING(CRC_FAILED) + path + fileName);
 				}
 			}
 			sfv.close();
+		}
+	}
+}
+
+void SFVReaderManager::checkFileSFV(const string& path) throw(FileException) {
+
+	SFVReader sfv(path);
+
+	if(sfv.hasCRC()) {
+		bool crcMatch = false;
+		try {
+			crcMatch = (calcCrc32(path) == sfv.getCRC());
+		} catch(const FileException& ) {
+			// Couldn't read the file to get the CRC(!!!)
+		}
+
+		if(crcMatch) {
+			LogManager::getInstance()->message(STRING(CRC_OK) + path);
+		} else {
+			LogManager::getInstance()->message(STRING(CRC_FAILED) + path);
 		}
 	}
 }

@@ -53,6 +53,7 @@ public:
 	 * @param aDirectory Physical directory location
 	 * @param aName Virtual name
 	 */
+	bool filesMissing;
 	void addDirectory(const string& realPath, const string &virtualName) throw(ShareException);
 	void removeDirectory(const string& realPath);
 	void renameDirectory(const string& realPath, const string& virtualName) throw(ShareException);

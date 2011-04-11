@@ -41,6 +41,7 @@
 #include "HashBloom.h"
 #include "SearchResult.h"
 #include "Wildcards.h"
+#include "SFVReader.h"
 
 #ifndef _WIN32
 #include <dirent.h>
@@ -705,6 +706,8 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 	Directory::File::Set::iterator lastFileIter = dir->files.begin();
 
 	FileFindIter end;
+
+
 #ifdef _WIN32
 		for(FileFindIter i(aName + "*"); i != end; ++i) {
 #else
@@ -778,6 +781,8 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
  			
 		if(i->isDirectory()) {
 			string newName = aName + name + PATH_SEPARATOR;
+			if (!SFVReaderManager::getInstance()->findMissing(newName))
+				continue;
 
 #ifdef _WIN32
 			// don't share Windows directory
@@ -818,7 +823,6 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			}
 		}
 	}
-
 	return dir;
 }
 
@@ -1038,11 +1042,11 @@ int ShareManager::run() {
 
 		DirList newDirs;
 		for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
-			if (checkHidden(i->second)) {
-				Directory::Ptr dp = buildTree(i->second, Directory::Ptr());
-				dp->setName(i->first);
-				newDirs.push_back(dp);
-		}
+				if (checkHidden(i->second)) {
+					Directory::Ptr dp = buildTree(i->second, Directory::Ptr());
+					dp->setName(i->first);
+					newDirs.push_back(dp);
+				}
 		}
 		{
 		Lock l(cs);
