@@ -38,22 +38,17 @@
 
 namespace dcpp {
 
-int SFVReaderManager::scan(StringList paths, bool sfv /*false*/, bool files /*false*/) {
+int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
 		LogManager::getInstance()->message("Scan in Progress"); //translate
 		return 1;
 	}
 	partialScan = false;
-	sfvCheckFolder = false;
-	sfvCheckFile = false;
+	isCheckSFV = false;
 
 	if(sfv) {
-		if(files) {
-			sfvCheckFile = true;
-		} else {
-			sfvCheckFolder = true;
-		}
+			isCheckSFV = true;
 			Paths = paths;
 	} else {
 	if(!paths.empty()) {
@@ -76,17 +71,9 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/, bool files /*fa
 }
 int SFVReaderManager::run() {
 	
-	if(sfvCheckFolder) {
+	if(isCheckSFV) {
 		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
-		string dir = *j;
-		if(dir[dir.size() -1] != '\\')
-			dir += "\\";
-			
-		checkFolderSFV(dir);
-		}
-	} else if(sfvCheckFile) {
-		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
-			checkFileSFV(*j);
+			checkSFV(*j);
 		}
 	} else {
 
@@ -369,7 +356,8 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		return false;
 }
 
-void SFVReaderManager::checkFolderSFV(const string& path) throw(FileException) {
+void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
+if(path[path.size() -1] == '\\') {
 	StringList sfvFileList = findFiles(path, "*.sfv");
 
 	int pos;
@@ -430,10 +418,7 @@ void SFVReaderManager::checkFolderSFV(const string& path) throw(FileException) {
 			sfv.close();
 		}
 	}
-}
-
-void SFVReaderManager::checkFileSFV(const string& path) throw(FileException) {
-
+} else {
 	SFVReader sfv(path);
 
 	if(sfv.hasCRC()) {
@@ -453,6 +438,7 @@ void SFVReaderManager::checkFileSFV(const string& path) throw(FileException) {
 	} else {
 		LogManager::getInstance()->message(STRING(NO_CRC32));
 	}
+}
 }
 
 uint32_t SFVReaderManager::calcCrc32(const string& file) {

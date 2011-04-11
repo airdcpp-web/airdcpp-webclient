@@ -68,9 +68,8 @@ public:
 
  void find (const string& path);
  bool findMissing(const string& path)  throw(FileException);
- int scan(StringList paths = StringList(), bool sfv = false, bool files = false);
- void checkFolderSFV(const string& path) throw(FileException);
- void checkFileSFV(const string& path) throw(FileException);
+ int scan(StringList paths = StringList(), bool sfv = false);
+ void checkSFV(const string& path) throw(FileException);
  
 private:
 friend class Singleton<SFVReaderManager>;
@@ -80,8 +79,7 @@ friend class Singleton<SFVReaderManager>;
 
 StringList Paths;
  bool partialScan;
- bool sfvCheckFolder;
- bool sfvCheckFile;
+ bool isCheckSFV;
  int run();
  atomic_flag scanning;
  int extrasFound;
