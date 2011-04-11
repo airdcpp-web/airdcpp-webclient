@@ -41,7 +41,6 @@
 #include "HashBloom.h"
 #include "SearchResult.h"
 #include "Wildcards.h"
-#include "SFVReader.h"
 
 #ifndef _WIN32
 #include <dirent.h>
@@ -781,8 +780,6 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
  			
 		if(i->isDirectory()) {
 			string newName = aName + name + PATH_SEPARATOR;
-			if (!SFVReaderManager::getInstance()->findMissing(newName))
-				continue;
 
 #ifdef _WIN32
 			// don't share Windows directory
