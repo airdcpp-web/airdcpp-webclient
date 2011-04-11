@@ -384,7 +384,7 @@ void SFVReaderManager::checkFolderSFV(const string& path) throw(FileException) {
 					sscanf(crcchar, "%x", &crc32);
 					string fileName = line.substr(0,pos);
 
-					//Check and compare values
+					//Check it
 					bool crcMatch = false;
 					try {
 						crcMatch = calcCrc32(path + fileName) == crc32;
@@ -412,6 +412,7 @@ void SFVReaderManager::checkFileSFV(const string& path) throw(FileException) {
 			crcMatch = (calcCrc32(path) == sfv.getCRC());
 		} catch(const FileException& ) {
 			// Couldn't read the file to get the CRC(!!!)
+			LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + path);
 		}
 
 		if(crcMatch) {
@@ -419,6 +420,8 @@ void SFVReaderManager::checkFileSFV(const string& path) throw(FileException) {
 		} else {
 			LogManager::getInstance()->message(STRING(CRC_FAILED) + path);
 		}
+	} else {
+		LogManager::getInstance()->message(STRING(NO_CRC32));
 	}
 }
 

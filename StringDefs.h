@@ -1199,6 +1199,8 @@ enum Strings { // @DontAdd
 	CRC_OK, // "CRC OK: "
 	CRC_FILE_ERROR, // "Unable to check file: "
 	NO_SFV_FILE, // "No SFV file found"
+	NO_CRC32, // "No SFV file found or the selected file isn't listed in it"
+	NO_FILES_IN_FOLDER, // "There are no files in this folder"
 	CANT_OPEN_SFV, // "Failed to open SFV file: "
 	SEE_SYSLOG_FOR_RESULTS, // "Open System Log to see the scan results"
 	STOP, // "Stop"
