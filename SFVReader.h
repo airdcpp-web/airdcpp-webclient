@@ -61,7 +61,7 @@ private:
 };
  
 
-class SFVReaderManager: public Singleton<SFVReaderManager>, private Thread
+class SFVReaderManager: public Singleton<SFVReaderManager>, public Thread
 {
  
 public:
@@ -70,23 +70,29 @@ public:
  bool findMissing(const string& path)  throw(FileException);
  int scan(StringList paths = StringList(), bool sfv = false);
  void checkSFV(const string& path) throw(FileException);
- 
+ void Stop();
+
 private:
 friend class Singleton<SFVReaderManager>;
 
 	SFVReaderManager() : scanning(false){ }
-	virtual ~SFVReaderManager() throw() { }
-
-StringList Paths;
- bool partialScan;
- bool isCheckSFV;
+	virtual ~SFVReaderManager() throw() { 
+	
+	}
+	
  int run();
+
+ StringList Paths;
+ bool isCheckSFV;
+
+ //Semaphore scanner;
  atomic_flag scanning;
  int extrasFound;
  int missingNFO;
  int missingSFV;
  int dupesFound;
  int missingFiles;
+ bool stop;
  static tstring getDir(const tstring& dir);
  void findDupes(const string& path) throw(FileException);
  StringPairList dupeDirs;

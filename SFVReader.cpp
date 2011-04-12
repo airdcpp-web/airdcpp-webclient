@@ -39,22 +39,26 @@
 namespace dcpp {
 
 int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
+	stop = false;
 	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
 		LogManager::getInstance()->message("Scan in Progress"); //translate
 		return 1;
 	}
-	partialScan = false;
 	isCheckSFV = false;
 
 	if(sfv) {
 			isCheckSFV = true;
 			Paths = paths;
-	} else {
-	if(!paths.empty()) {
-		partialScan = true;
+	} else if(!paths.empty())  {
 		Paths = paths;
-	}
+	} else {
+	
+		StringPairList dirs = ShareManager::getInstance()->getDirectories(ShareManager::REFRESH_ALL);
+
+			for(StringPairIter i = dirs.begin(); i != dirs.end();   i++) {
+			Paths.push_back(i->second);
+		}
 	}
 
 	start();
@@ -63,52 +67,132 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 	extrasFound = 0;
 	missingNFO = 0;
 	missingSFV = 0;
+	
+
 	if(sfv)
-		LogManager::getInstance()->message("Svf Check started"); // dont really need a started message? 
+		LogManager::getInstance()->message("Svf Check started, use /stop to stop"); // dont really need a started message? 
 	else
 	LogManager::getInstance()->message(STRING(SCAN_STARTED)); 
 	return 0;
 }
+void SFVReaderManager::Stop() {
+		Paths.clear();
+		stop = true;
+}
 int SFVReaderManager::run() {
-	
+	string dir;
+	for(;;) { // endless loop
+		
+		if(Paths.empty() || stop)
+			break;
+
+		StringIterC j = Paths.begin();
+		dir = *j;
+		Paths.erase(Paths.begin());
+
 	if(isCheckSFV) {
-		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
-			checkSFV(*j);
-		}
+
+	if(dir[dir.size() -1] == '\\') {
+		/*todo, for recursive scan, StringMap <string, string> sfvfile , path 
+		add in map every path which contains sfvfile.
+		
+		Tho having it this way is really messy, would it be enough to stop only after one folder check is finished?
+		*/
+		StringList sfvFileList = findFiles(dir, "*.sfv");
+
+		int pos;
+		int pos2;
+		boost::wregex reg;
+		
+
+	if (sfvFileList.size() == 0) {
+		LogManager::getInstance()->message(STRING(NO_SFV_FILE) + dir);
+		
+
 	} else {
 
-	if(partialScan) {
-		for(StringIterC j = Paths.begin(); j != Paths.end(); j++) {
-		string dir = *j;
+		ifstream sfv;
+		string line;
+		string sfvFile;
+		
+		//regex to match crc32
+		reg.assign(_T("(\\s(\\w{8})$)"));
+
+		for(;;) {
+			if(sfvFileList.empty() || stop)
+				break;
+
+			StringIterC i = sfvFileList.begin();
+			sfvFile = *i; //in map i->first
+			//path = i->second
+			sfvFileList.erase(sfvFileList.begin());
+			
+			//incase we have some extended characters in the path
+			sfv.open(Text::utf8ToAcp(dir + sfvFile));
+
+			if(!sfv.is_open())
+				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+
+			while( getline( sfv, line ) ) {
+				if(stop)
+					break;
+				//make sure that the line is valid
+				pos = line.find(";");
+				pos2 = line.find("\\");
+				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
+					//get crc32 and fileName from the SFV file
+					uint32_t crc32;
+					pos = line.rfind(" ");
+					string line2 = line;
+					string crcstring = line2.substr(pos, line.size());
+					char crcchar [8];
+					strcpy(crcchar, crcstring.c_str());
+					sscanf(crcchar, "%x", &crc32);
+					string fileName = line.substr(0,pos);
+
+					//Check it
+					bool crcMatch = false;
+					try {
+						crcMatch = calcCrc32(dir + fileName) == crc32;
+					} catch(const FileException& ) {
+						LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + dir + fileName);
+					}
+					if (crcMatch)
+						LogManager::getInstance()->message(STRING(CRC_OK) + dir + fileName);
+					else
+						LogManager::getInstance()->message(STRING(CRC_FAILED) + dir + fileName);
+				}
+			}
+			sfv.close();
+		}
+	}
+	} else {
+		checkSFV(dir); //could just make a list of files and call this everytime but it would be finding the sfvfile thousands of times
+	}
+
+	} else {
+		
 		if(dir[dir.size() -1] != '\\')
 			dir += "\\";
 
 		findMissing(dir);
 		find(dir);
 		//LogManager::getInstance()->message("Scanned " + dir);
+		
 		}
-	} else {
-
-	StringPairList dirs = ShareManager::getInstance()->getDirectories(ShareManager::REFRESH_ALL);
-
-	for(StringPairIter i = dirs.begin(); i != dirs.end();    i++) {
-		findMissing(i->second);
-		find(i->second);
-		//LogManager::getInstance()->message("Scanned " + i->second);
-		}
-	}
-
+	
+	} //end for
+	
+	if(!isCheckSFV){
 	string tmp;	 
     tmp.resize(STRING(MISSING_FINISHED).size() + 64);	 
     tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
     LogManager::getInstance()->message(tmp);
-	
 	}
-
+	
 	scanning.clear();
 	dupeDirs.clear();
 	Paths.clear();
-	partialScan = false;
 	return 0;
 }
 
@@ -357,68 +441,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 }
 
 void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
-if(path[path.size() -1] == '\\') {
-	StringList sfvFileList = findFiles(path, "*.sfv");
-
-	int pos;
-	int pos2;
-	boost::wregex reg;
-	StringIterC i;
-
-
-	if (sfvFileList.size() == 0) {
-		LogManager::getInstance()->message(STRING(NO_SFV_FILE));
-		return;
-	} else {
-
-		ifstream sfv;
-		string line;
-		string sfvFile;
-		
-		//regex to match crc32
-		reg.assign(_T("(\\s(\\w{8})$)"));
-
-		for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
-			sfvFile = *i;
-			
-			//incase we have some extended characters in the path
-			sfv.open(Text::utf8ToAcp(path + sfvFile));
-
-			if(!sfv.is_open())
-				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-
-			while( getline( sfv, line ) ) {
-				//make sure that the line is valid
-				pos = line.find(";");
-				pos2 = line.find("\\");
-				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
-					//get crc32 and fileName from the SFV file
-					uint32_t crc32;
-					pos = line.rfind(" ");
-					string line2 = line;
-					string crcstring = line2.substr(pos, line.size());
-					char crcchar [8];
-					strcpy(crcchar, crcstring.c_str());
-					sscanf(crcchar, "%x", &crc32);
-					string fileName = line.substr(0,pos);
-
-					//Check it
-					bool crcMatch = false;
-					try {
-						crcMatch = calcCrc32(path + fileName) == crc32;
-					} catch(const FileException& ) {
-						LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + path + fileName);
-					}
-					if (crcMatch)
-						LogManager::getInstance()->message(STRING(CRC_OK) + path + fileName);
-					else
-						LogManager::getInstance()->message(STRING(CRC_FAILED) + path + fileName);
-				}
-			}
-			sfv.close();
-		}
-	}
-} else {
+ 
 	SFVReader sfv(path);
 
 	if(sfv.hasCRC()) {
@@ -438,7 +461,7 @@ if(path[path.size() -1] == '\\') {
 	} else {
 		LogManager::getInstance()->message(STRING(NO_CRC32));
 	}
-}
+
 }
 
 uint32_t SFVReaderManager::calcCrc32(const string& file) {
