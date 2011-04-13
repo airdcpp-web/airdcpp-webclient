@@ -150,7 +150,7 @@ private:
 	class Directory : public FastAlloc<Directory>, public intrusive_ptr_base<Directory>, boost::noncopyable {
 	public:
 		typedef boost::intrusive_ptr<Directory> Ptr;
-		typedef boost::unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
+		typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
 		typedef Map::iterator MapIter;
 
 		struct File {

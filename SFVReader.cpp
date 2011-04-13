@@ -70,7 +70,7 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 	
 
 	if(sfv)
-		LogManager::getInstance()->message("Svf Check started, use /stop to stop"); // dont really need a started message? 
+		LogManager::getInstance()->message("SFV Check started.. Use /stop in chat to Stop"); // dont really need a started message? 
 	else
 	LogManager::getInstance()->message(STRING(SCAN_STARTED)); 
 	return 0;
@@ -81,6 +81,7 @@ void SFVReaderManager::Stop() {
 }
 int SFVReaderManager::run() {
 	string dir;
+	
 	for(;;) { // endless loop
 		
 		if(Paths.empty() || stop)
@@ -92,82 +93,32 @@ int SFVReaderManager::run() {
 
 	if(isCheckSFV) {
 
-	if(dir[dir.size() -1] == '\\') {
-		/*todo, for recursive scan, StringMap <string, string> sfvfile , path 
-		add in map every path which contains sfvfile.
-		
-		Tho having it this way is really messy, would it be enough to stop only after one folder check is finished?
-		*/
-		StringList sfvFileList = findFiles(dir, "*.sfv");
+		if(dir[dir.size() -1] == '\\') {
+			string sfvFile;
+			StringList FileList = findFiles(dir, "*"); // find all files in dir
 
-		int pos;
-		int pos2;
-		boost::wregex reg;
-		
+			
+		if(FileList.size() == 0) {
+				LogManager::getInstance()->message("No Files in " + dir);
+		} else {
 
-	if (sfvFileList.size() == 0) {
-		LogManager::getInstance()->message(STRING(NO_SFV_FILE) + dir);
-		
-
-	} else {
-
-		ifstream sfv;
-		string line;
-		string sfvFile;
-		
-		//regex to match crc32
-		reg.assign(_T("(\\s(\\w{8})$)"));
-
-		for(;;) {
-			if(sfvFileList.empty() || stop)
+		for(;;) { // loop until no files Listed
+			
+			if(FileList.empty() || stop)
 				break;
 
-			StringIterC i = sfvFileList.begin();
-			sfvFile = *i; //in map i->first
-			//path = i->second
-			sfvFileList.erase(sfvFileList.begin());
-			
-			//incase we have some extended characters in the path
-			sfv.open(Text::utf8ToAcp(dir + sfvFile));
-
-			if(!sfv.is_open())
-				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-
-			while( getline( sfv, line ) ) {
-				if(stop)
-					break;
-				//make sure that the line is valid
-				pos = line.find(";");
-				pos2 = line.find("\\");
-				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
-					//get crc32 and fileName from the SFV file
-					uint32_t crc32;
-					pos = line.rfind(" ");
-					string line2 = line;
-					string crcstring = line2.substr(pos, line.size());
-					char crcchar [8];
-					strcpy(crcchar, crcstring.c_str());
-					sscanf(crcchar, "%x", &crc32);
-					string fileName = line.substr(0,pos);
-
-					//Check it
-					bool crcMatch = false;
-					try {
-						crcMatch = calcCrc32(dir + fileName) == crc32;
-					} catch(const FileException& ) {
-						LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + dir + fileName);
-					}
-					if (crcMatch)
-						LogManager::getInstance()->message(STRING(CRC_OK) + dir + fileName);
-					else
-						LogManager::getInstance()->message(STRING(CRC_FAILED) + dir + fileName);
-				}
-			}
-			sfv.close();
+			StringIterC i = FileList.begin();
+			sfvFile = dir + *i; 
+			FileList.erase(FileList.begin());
+			if((sfvFile.find(".nfo") == string::npos) && sfvFile.find(".sfv") == string::npos) // just srip out the nfo and sfv file, others are ok or extra anyways?
+			checkSFV(sfvFile);
 		}
+		FileList.clear();
 	}
+	
+
 	} else {
-		checkSFV(dir); //could just make a list of files and call this everytime but it would be finding the sfvfile thousands of times
+		checkSFV(dir); 
 	}
 
 	} else {
@@ -188,8 +139,10 @@ int SFVReaderManager::run() {
     tmp.resize(STRING(MISSING_FINISHED).size() + 64);	 
     tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
     LogManager::getInstance()->message(tmp);
-	}
+	} else if(stop)
+		LogManager::getInstance()->message("SFV Checking Stopped.");
 	
+
 	scanning.clear();
 	dupeDirs.clear();
 	Paths.clear();
@@ -459,7 +412,7 @@ void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
 			LogManager::getInstance()->message(STRING(CRC_FAILED) + path);
 		}
 	} else {
-		LogManager::getInstance()->message(STRING(NO_CRC32));
+		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + path);
 	}
 
 }

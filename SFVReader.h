@@ -85,7 +85,6 @@ friend class Singleton<SFVReaderManager>;
  StringList Paths;
  bool isCheckSFV;
 
- //Semaphore scanner;
  atomic_flag scanning;
  int extrasFound;
  int missingNFO;
