@@ -81,6 +81,13 @@ void SFVReaderManager::Stop() {
 }
 int SFVReaderManager::run() {
 	string dir;
+
+	if (isCheckSFV) {
+		scanFolderSize = 0;
+		for(StringIterC i = Paths.begin(); i != Paths.end();    i++) {
+			getScanSize(*i);
+		}
+	}
 	
 	for(;;) { // endless loop
 		
@@ -392,6 +399,47 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		return false;
 }
 
+void SFVReaderManager::getScanSize(const string& path) throw(FileException) {
+	if(path[path.size() -1] == '\\') {
+		StringList sfvFileList = findFiles(path, "*.sfv");
+
+		int pos;
+		int pos2;
+		string line;
+		boost::wregex reg;
+		ifstream sfv;
+		reg.assign(_T("(\\s(\\w{8})$)"));
+		for(;;) {
+			if(sfvFileList.empty())
+				break;
+
+			StringIterC i = sfvFileList.begin();
+			string sfvFile = *i; //in map i->first
+			//path = i->second
+			sfvFileList.erase(sfvFileList.begin());
+		
+			//incase we have some extended characters in the path
+			sfv.open(Text::utf8ToAcp(path + sfvFile));
+
+			if(!sfv.is_open())
+				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+
+			while( getline( sfv, line ) ) {
+				//make sure that the line is valid
+				pos = line.find(";");
+				pos2 = line.find("\\");
+				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
+					pos = line.rfind(" ");
+					line = line.substr(0,pos);
+					scanFolderSize = scanFolderSize + File::getSize(path + line);
+				}
+			}
+		}
+	} else {
+		scanFolderSize = scanFolderSize + File::getSize(path);
+	}
+}
+
 void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
  
 	SFVReader sfv(path);
@@ -410,6 +458,14 @@ void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
 		} else {
 			LogManager::getInstance()->message(STRING(CRC_FAILED) + path);
 		}
+
+		scanFolderSize = scanFolderSize - File::getSize(path);
+
+		if (scanFolderSize > 0)
+			LogManager::getInstance()->message("Remaining: " + Util::formatBytes(scanFolderSize));
+		else
+			LogManager::getInstance()->message("SFV check finished");
+
 	} else {
 		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + path);
 	}

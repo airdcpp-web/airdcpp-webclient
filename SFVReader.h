@@ -91,12 +91,14 @@ friend class Singleton<SFVReaderManager>;
  int missingSFV;
  int dupesFound;
  int missingFiles;
+ int64_t scanFolderSize;
  bool stop;
  static tstring getDir(const tstring& dir);
  void findDupes(const string& path) throw(FileException);
  StringPairList dupeDirs;
  StringList findFiles(const string& path, const string& pattern);
  uint32_t calcCrc32(const string& file) throw(FileException);
+ void getScanSize(const string& path) throw(FileException);
 };
 
 } // namespace dcpp
