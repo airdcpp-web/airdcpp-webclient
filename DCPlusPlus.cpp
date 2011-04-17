@@ -134,7 +134,6 @@ void shutdown() {
 	
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
-	ShareManager::getInstance()->Shutdown();
 
 	UPnPManager::deleteInstance();
 	ConnectivityManager::deleteInstance();
