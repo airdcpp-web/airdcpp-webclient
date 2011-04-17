@@ -71,6 +71,18 @@ public:
 	void setIncoming(const string& Vname, bool isIncoming);
 	void DelIncoming();
 	void Rebuild();
+	
+	void Startup() {
+		start();
+		tasks.push_back(LOAD);
+		Stask.signal();
+	}
+
+	void Shutdown() {
+		stop = true;
+		Stask.signal();
+		join();
+	}
 
 	bool shareFolder(const string& path, bool thoroughCheck = false) const;
 	int64_t removeExcludeFolder(const string &path, bool returnSize = true);
@@ -139,6 +151,13 @@ public:
 		REFRESH_DIRECTORY = 0x2,
 		REFRESH_BLOCKING = 0x4,
 		REFRESH_UPDATE = 0x8
+	};
+
+	enum Task {
+		LOAD,
+		REFRESH,
+		FILELIST,
+		ADD
 	};
 
 	GETSET(size_t, hits, Hits);
@@ -279,6 +298,8 @@ private:
 	bool initial;
 	bool rebuild;
 
+	bool stop;
+	
 	int listN;
 
 	atomic_flag refreshing;
@@ -319,6 +340,7 @@ private:
 	Directory::Ptr merge(const Directory::Ptr& directory);
 	
 	void generateXmlList(bool forced = false);
+	void generateList();
 	StringList notShared;
 	StringList incoming;
 	
@@ -334,7 +356,11 @@ private:
 	int refreshOptions;
 
 	int run();
-	
+	typedef vector<Task> TaskList;
+	typedef TaskList::const_iterator TaskIter;
+	TaskList tasks;
+
+	Semaphore Stask;
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::FileMoved, const string& n) throw();

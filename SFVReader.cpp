@@ -149,7 +149,6 @@ int SFVReaderManager::run() {
 	return 0;
 }
 
-//Test if this works, have another way of doing it but it would need some work
 void SFVReaderManager::find(const string& path) {
 	if(path.empty())
 		return;

@@ -257,7 +257,7 @@ private:
 
 	uint64_t  lastSave;
 	void on(TimerManagerListener::Minute, uint64_t) throw() {
-		if(GET_TICK() - lastSave > 5*60*1000) { 
+		if(GET_TICK() - lastSave > 15*60*1000) { 
 		Lock l(cs);
 		store.save();
 		lastSave = GET_TICK();

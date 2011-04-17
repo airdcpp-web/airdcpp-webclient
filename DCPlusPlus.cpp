@@ -116,9 +116,10 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	if(f != NULL)
 		(*f)(p, TSTRING(SHARED_FILES));
 
-if( !ShareManager::getInstance()->loadCache() ){
-	ShareManager::getInstance()->refresh(ShareManager::REFRESH_ALL | ShareManager::REFRESH_BLOCKING);
-}
+	ShareManager::getInstance()->Startup();
+//if( !ShareManager::getInstance()->loadCache() ){
+	//ShareManager::getInstance()->refresh(ShareManager::REFRESH_ALL | ShareManager::REFRESH_BLOCKING);
+//}
 	if(f != NULL)
 		(*f)(p, TSTRING(DOWNLOAD_QUEUE));
 	QueueManager::getInstance()->loadQueue();
@@ -133,6 +134,7 @@ void shutdown() {
 	
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
+	ShareManager::getInstance()->Shutdown();
 
 	UPnPManager::deleteInstance();
 	ConnectivityManager::deleteInstance();

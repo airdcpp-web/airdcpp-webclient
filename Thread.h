@@ -36,7 +36,8 @@ STANDARD_EXCEPTION(ThreadException);
 
 typedef boost::recursive_mutex	CriticalSection;
 typedef boost::detail::spinlock	FastCriticalSection;
-typedef boost::lock_guard<boost::recursive_mutex> Lock;
+//typedef boost::lock_guard<boost::recursive_mutex> Lock;
+typedef boost::unique_lock<boost::recursive_mutex> Lock;
 typedef boost::lock_guard<boost::detail::spinlock> FastLock;
 
 class Thread : private boost::noncopyable
