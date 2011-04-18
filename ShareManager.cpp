@@ -69,8 +69,13 @@ ShareManager::~ShareManager() {
 	TimerManager::getInstance()->removeListener(this);
 	QueueManager::getInstance()->removeListener(this);
 	HashManager::getInstance()->removeListener(this);
+	
+	if(shareXmlDirty) {
+			generateXmlList(true);
+			shareXmlDirty = false;
+		}
 
-	//join();
+	join();
 
 	StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
 	for_each(lists.begin(), lists.end(), File::deleteFile);
@@ -903,7 +908,7 @@ int ShareManager::refreshDirs( StringList dirs ){
 		}
 		
 		if(result == REFRESH_STARTED)
-			startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
+			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
 
 		return result;
 	}
@@ -939,7 +944,7 @@ int ShareManager::refreshIncoming( ){
 		}
 		
 		if(result == REFRESH_STARTED)
-			startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
+			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
 
 		return result;
 	}
@@ -968,7 +973,7 @@ int ShareManager::refresh( const string& aDir ){
 		}
 
 		if(result == REFRESH_STARTED)
-			startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
+			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
 
 		return result;
 	}
@@ -985,15 +990,25 @@ int ShareManager::refresh(int aRefreshOptions){
 	return REFRESH_STARTED;
 
 }
-void ShareManager::startRefresh(int aRefreshOptions)  {
-	Lock l(cs);
+int ShareManager::startRefresh(int aRefreshOptions) throw() {
+	
 	refreshOptions = aRefreshOptions;
-	Worker* w = new Worker(REFRESH); 
-	w->start();
 
-	if(refreshOptions & REFRESH_BLOCKING)
-		w->join();
+	join();
+	
+	try {
+		start();
+		if(refreshOptions & REFRESH_BLOCKING) { 
+			join();
+		} else {
+			setThreadPriority(Thread::LOW);
+		}
 
+	} catch(const ThreadException& e) {
+		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError());
+	}
+
+	return REFRESH_STARTED;
 }
 
 StringPairList ShareManager::getDirectories(int refreshOptions) const throw() {
@@ -1013,9 +1028,9 @@ StringPairList ShareManager::getDirectories(int refreshOptions) const throw() {
 	return ret;
 }
 
-void ShareManager::RefreshInit() {
-	Lock l(cs);
-
+int ShareManager::run() {
+		
+	
 	StringPairList dirs = getDirectories(refreshOptions);
 
 	if(refreshOptions & REFRESH_ALL) 
@@ -1036,7 +1051,7 @@ void ShareManager::RefreshInit() {
 				}
 		}
 		{
-		
+		Lock l(cs);
 
 		//only go here when needed
 		if(refreshOptions & REFRESH_DIRECTORY){ 
@@ -1084,9 +1099,10 @@ void ShareManager::RefreshInit() {
 		LogManager::getInstance()->message(STRING(REBUILD_STARTED));
 		rebuild = false;
 	}
+		
 	
 	refreshing.clear();
-			
+	return 0;
 }
 		
 void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
@@ -1102,20 +1118,8 @@ void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
 }
 
 void ShareManager::generateXmlList(bool forced /*false*/) {
-	
+	Lock l(cs);
 	if(forced || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
-		Worker* w = new Worker(FILELIST);
-		
-		//w->join();
-		w->start();
-		
-		if(forced)
-			w->join();
-
-	}
-}
-void ShareManager::generateList() {
-		Lock l(cs);
 		listN++;
 
 		try {
@@ -1178,9 +1182,8 @@ void ShareManager::generateList() {
 		xmlDirty = false;
 		forceXmlRefresh = false;
 		lastXmlUpdate = GET_TICK();
-	
+	}
 }
-
 
 MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse) const {
 	if(dir[0] != '/' || dir[dir.size()-1] != '/')
