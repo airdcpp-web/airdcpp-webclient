@@ -69,12 +69,8 @@ ShareManager::~ShareManager() {
 	TimerManager::getInstance()->removeListener(this);
 	QueueManager::getInstance()->removeListener(this);
 	HashManager::getInstance()->removeListener(this);
-	
-	if(shareXmlDirty) {
-			generateXmlList(true);
-			shareXmlDirty = false;
-		}
 
+	worker.join();
 	join();
 
 	StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
@@ -990,12 +986,11 @@ int ShareManager::refresh(int aRefreshOptions){
 	return REFRESH_STARTED;
 
 }
-int ShareManager::startRefresh(int aRefreshOptions) throw() {
+int ShareManager::startRefresh(int aRefreshOptions)  {
 	
 	refreshOptions = aRefreshOptions;
-
 	join();
-	
+
 	try {
 		start();
 		if(refreshOptions & REFRESH_BLOCKING) { 
@@ -1029,8 +1024,8 @@ StringPairList ShareManager::getDirectories(int refreshOptions) const throw() {
 }
 
 int ShareManager::run() {
-		
 	
+
 	StringPairList dirs = getDirectories(refreshOptions);
 
 	if(refreshOptions & REFRESH_ALL) 
@@ -1099,8 +1094,11 @@ int ShareManager::run() {
 		LogManager::getInstance()->message(STRING(REBUILD_STARTED));
 		rebuild = false;
 	}
-		
-	
+
+	if(refreshOptions & REFRESH_BLOCKING)
+		generateList();
+
+
 	refreshing.clear();
 	return 0;
 }
@@ -1118,8 +1116,18 @@ void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
 }
 
 void ShareManager::generateXmlList(bool forced /*false*/) {
-	Lock l(cs);
+
 	if(forced || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
+		worker.join();
+		worker.Task(FILELIST);
+
+		if(forced)
+			worker.join();
+
+	}
+}
+void ShareManager::generateList() {
+		Lock l(cs);
 		listN++;
 
 		try {
@@ -1178,12 +1186,12 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 		} catch(const Exception&) {
 			// No new file lists...
 		}
-
 		xmlDirty = false;
 		forceXmlRefresh = false;
 		lastXmlUpdate = GET_TICK();
-	}
+	
 }
+
 
 MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse) const {
 	if(dir[0] != '/' || dir[dir.size()-1] != '/')

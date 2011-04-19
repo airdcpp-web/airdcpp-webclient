@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
  *
@@ -34,6 +33,7 @@
 #include "FastAlloc.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
+#include "../client/LogManager.h"
 
 namespace dcpp {
 
@@ -44,9 +44,9 @@ class Client;
 class File;
 class OutputStream;
 class MemoryInputStream;
-
+class Worker;
 struct ShareLoader;
-class ShareManager : public Singleton<ShareManager>, private SettingsManagerListener, private Thread, private TimerManagerListener,
+class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener,
 	private HashManagerListener, private QueueManagerListener
 {
 public:
@@ -63,7 +63,7 @@ public:
 	TTHValue getTTH(const string& virtualFile) const throw(ShareException);
 	
 	int refresh(int refreshOptions);
-	int startRefresh(int refreshOptions) throw();
+	int startRefresh(int refreshOptions);
 	int refresh(const string& aDir);
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
@@ -72,6 +72,12 @@ public:
 	void setIncoming(const string& Vname, bool isIncoming);
 	void DelIncoming();
 	void Rebuild();
+	
+	void Startup() {
+		worker.Task(LOAD);
+		worker.join();
+	}
+
 
 	bool shareFolder(const string& path, bool thoroughCheck = false) const;
 	int64_t removeExcludeFolder(const string &path, bool returnSize = true);
@@ -140,6 +146,12 @@ public:
 		REFRESH_DIRECTORY = 0x2,
 		REFRESH_BLOCKING = 0x4,
 		REFRESH_UPDATE = 0x8
+	};
+
+	enum Task {
+		LOAD = 0x10,
+		FILELIST = 0x20,
+		ADD = 0x40 //Todo adding new share directories with worker thread
 	};
 
 	GETSET(size_t, hits, Hits);
@@ -239,6 +251,38 @@ private:
 
 	};
 
+class Worker : public Thread {
+public:
+	Worker() { }
+	
+	~Worker() { }
+
+void Task(const int& task) {
+  options = task;
+  start();
+ }
+
+private:
+
+	int options;
+	
+	int run() {
+		
+		setThreadPriority(Thread::LOW);
+		
+		if(options == ShareManager::FILELIST) {	
+			 ShareManager::getInstance()->generateList();
+			
+		}else if(options == ShareManager::LOAD){
+				if(!ShareManager::getInstance()->loadCache())
+					ShareManager::getInstance()->refresh(REFRESH_ALL | REFRESH_BLOCKING);
+			}
+		options = 0;
+		return 0;
+	}
+
+};
+	friend class Worker;
 	friend class Directory;
 	friend struct ShareLoader;
 
@@ -280,8 +324,10 @@ private:
 	bool initial;
 	bool rebuild;
 
+	
 	int listN;
 
+	Worker worker;
 	atomic_flag refreshing;
 	
 	uint64_t lastXmlUpdate;
@@ -320,6 +366,7 @@ private:
 	Directory::Ptr merge(const Directory::Ptr& directory);
 	
 	void generateXmlList(bool forced = false);
+	void generateList();
 	StringList notShared;
 	StringList incoming;
 	
@@ -335,7 +382,6 @@ private:
 	int refreshOptions;
 
 	int run();
-	
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::FileMoved, const string& n) throw();
@@ -347,9 +393,11 @@ private:
 	void on(SettingsManagerListener::Save, SimpleXML& xml) throw() {
 		save(xml);
 		if(shareXmlDirty) {
-			generateXmlList(true);
+			forceXmlRefresh = true;
+			generateXmlList();
 			shareXmlDirty = false;
 		}
+
 	}
 	void on(SettingsManagerListener::Load, SimpleXML& xml) throw() {
 		load(xml);
