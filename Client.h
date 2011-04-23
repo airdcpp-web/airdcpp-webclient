@@ -166,6 +166,7 @@ public:
 	GETSET(bool, hideShare, HideShare); // Hide Share Mod
 	GETSET(bool, hubShowJoins, HubShowJoins); // Show joins
 	GETSET(bool, hubLogMainchat, HubLogMainchat);
+	GETSET(bool, chatNotify, ChatNotify);
 
 protected:
 	friend class ClientManager;

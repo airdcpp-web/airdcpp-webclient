@@ -1204,5 +1204,6 @@ enum Strings { // @DontAdd
 	CANT_OPEN_SFV, // "Failed to open SFV file: "
 	SEE_SYSLOG_FOR_RESULTS, // "Open System Log to see the scan results"
 	STOP, // "Stop"
+	CHAT_NOTIFY, // "Show Notify Icon on chat messages"
 	LAST // @DontAdd
 };

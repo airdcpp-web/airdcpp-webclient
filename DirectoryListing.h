@@ -45,7 +45,7 @@ public:
 				return stricmp(a->getName().c_str(), b->getName().c_str()) < 0;
 			}
 		};
-		typedef boost::interprocess::vector<Ptr> List;
+		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
 		File(Directory* aDir, const string& aName, int64_t aSize, const string& aTTH) throw() : 
@@ -85,7 +85,7 @@ public:
 				return stricmp(a->getName().c_str(), b->getName().c_str()) < 0;
 			}
 		};
-		typedef boost::interprocess::vector<Ptr> List;
+		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		typedef unordered_set<TTHValue> TTHSet;
 		

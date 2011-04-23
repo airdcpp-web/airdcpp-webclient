@@ -424,6 +424,7 @@ void FavoriteManager::save() {
 			xml.addChildAttrib("HubLogMainchat", (*i)->getHubLogMainchat());
 			xml.addChildAttrib("SearchInterval", Util::toString((*i)->getSearchInterval()));
 			xml.addChildAttrib("Group", (*i)->getGroup());
+			xml.addChildAttrib("ChatNotify", (*i)->getChatNotify());
 		}
 
 		xml.stepOut();
@@ -606,6 +607,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setHubLogMainchat(aXml.getBoolChildAttrib("HubLogMainchat")); 
 			e->setSearchInterval(Util::toUInt32(aXml.getChildAttrib("SearchInterval")));
 			e->setGroup(aXml.getChildAttrib("Group"));
+			e->setChatNotify(aXml.getBoolChildAttrib("ChatNotify")); 
 			favoriteHubs.push_back(e);
 		}
 

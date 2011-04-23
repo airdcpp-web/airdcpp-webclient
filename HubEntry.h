@@ -65,13 +65,13 @@ public:
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
 
-	FavoriteHubEntry() throw() : connect(true), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL))  { }
+	FavoriteHubEntry() throw() : connect(true), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), chatNotify(false), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL))  { }
 	FavoriteHubEntry(const HubEntry& rhs) throw() : name(rhs.getName()), server(rhs.getServer()), encoding(Text::systemCharset), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL)),
-		description(rhs.getDescription()), connect(true), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false) { }
+		description(rhs.getDescription()), connect(true), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), chatNotify(false) { }
 	FavoriteHubEntry(const FavoriteHubEntry& rhs) throw() : userdescription(rhs.userdescription), name(rhs.getName()), 
 		server(rhs.getServer()), description(rhs.getDescription()), password(rhs.getPassword()), connect(rhs.getConnect()), 
 		nick(rhs.nick), chatusersplit(rhs.chatusersplit), favnoPM(rhs.favnoPM), hubShowJoins(rhs.hubShowJoins), hubLogMainchat(rhs.hubLogMainchat), stealth(rhs.stealth), searchInterval(rhs.searchInterval),
-		userliststate(rhs.userliststate), mode(rhs.mode), ip(rhs.ip), hideShare(rhs.hideShare), encoding(rhs.getEncoding()) { }
+		userliststate(rhs.userliststate), mode(rhs.mode), ip(rhs.ip), hideShare(rhs.hideShare), chatNotify(rhs.chatNotify), encoding(rhs.getEncoding()) { }
 	~FavoriteHubEntry() throw() { }
 	
 	const string& getNick(bool useDefault = true) const { 
@@ -101,6 +101,7 @@ public:
 	GETSET(bool, hubLogMainchat, HubLogMainchat);
 	GETSET(uint32_t, searchInterval, SearchInterval);
 	GETSET(string, group, Group);	
+	GETSET(bool, chatNotify, ChatNotify);
 
 private:
 	string nick;
