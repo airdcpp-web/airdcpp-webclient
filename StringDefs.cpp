@@ -1198,6 +1198,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Open System Log to see the scan results", 
 "Stop", 
 "Show Notify Icon on chat messages", 
+"Use Chat Notify Icon", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2396,4 +2397,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SeeSyslogForResults", 
 "Stop", 
 "ChatNotify", 
+"Notify", 
 };

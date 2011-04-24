@@ -1205,5 +1205,6 @@ enum Strings { // @DontAdd
 	SEE_SYSLOG_FOR_RESULTS, // "Open System Log to see the scan results"
 	STOP, // "Stop"
 	CHAT_NOTIFY, // "Show Notify Icon on chat messages"
+	NOTIFY, // "Use Chat Notify Icon"
 	LAST // @DontAdd
 };
