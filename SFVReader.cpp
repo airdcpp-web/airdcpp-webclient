@@ -443,23 +443,34 @@ void SFVReaderManager::getScanSize(const string& path) throw(FileException) {
 void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
  
 	SFVReader sfv(path);
+	uint64_t checkStart = 0;
+	uint64_t checkEnd = 0;
 
 	if(sfv.hasCRC()) {
 		bool crcMatch = false;
 		try {
+			checkStart = GET_TICK();
 			crcMatch = (calcCrc32(path) == sfv.getCRC());
+			checkEnd = GET_TICK();
 		} catch(const FileException& ) {
 			// Couldn't read the file to get the CRC(!!!)
 			LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + path);
 		}
 
-		if(crcMatch) {
-			LogManager::getInstance()->message(STRING(CRC_OK) + path);
-		} else {
-			LogManager::getInstance()->message(STRING(CRC_FAILED) + path);
+		int64_t size = File::getSize(path);
+		int64_t speed = 0;
+		if(checkEnd > checkStart) {
+			speed = size * _LL(1000) / (checkEnd - checkStart);
 		}
 
-		scanFolderSize = scanFolderSize - File::getSize(path);
+		if(crcMatch) {
+			LogManager::getInstance()->message(STRING(CRC_OK) + path + " (" + Util::formatBytes(speed) + "/s)");
+		} else {
+			LogManager::getInstance()->message(STRING(CRC_FAILED) + path + " (" + Util::formatBytes(speed) + "/s)");
+		}
+
+
+		scanFolderSize = scanFolderSize - size;
 
 		if (scanFolderSize > 0)
 			LogManager::getInstance()->message("Remaining: " + Util::formatBytes(scanFolderSize));

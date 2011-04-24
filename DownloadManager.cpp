@@ -584,8 +584,14 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource) {
 		removeConnection(aSource);
 		QueueManager::getInstance()->addList(aSource->getHintedUser(), QueueItem::FLAG_MATCH_QUEUE);
 		return;
+	} else if ((d->getType() == Transfer::TYPE_PARTIAL_LIST) && (d->isSet(Download::FLAG_NFO))){
+		dcdebug("Partial list & View NFO. File not available\n");
+		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
+		removeConnection(aSource);
+		//Show error message?!?!
+		return;
 	} 
-	
+
 	QueueManager::getInstance()->removeSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
 
 	QueueManager::getInstance()->putDownload(d, false);

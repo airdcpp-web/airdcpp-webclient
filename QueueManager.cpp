@@ -997,8 +997,6 @@ void buildMap(const DirectoryListing::Directory* dir) throw() {
 }
 }
 
-
-
 int QueueManager::matchListing(const DirectoryListing& dl) throw() {
 	int matches = 0;
 	{
@@ -1356,14 +1354,16 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 			if(q) {
 				if(!aDownload->getPFS().empty()) {
 					if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(aDownload->getUser()) != directories.end()) ||
-						(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) )
+						(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) ||
+						(q->isSet(QueueItem::FLAG_VIEW_NFO)))
 					{
 						dcassert(finished);
 											
 						fl_fname = aDownload->getPFS();
 						fl_user = aDownload->getHintedUser();
 						fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? (QueueItem::FLAG_DIRECTORY_DOWNLOAD) : 0)
-							| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT;
+							| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT
+							| (q->isSet(QueueItem::FLAG_VIEW_NFO) ? QueueItem::FLAG_VIEW_NFO : 0);
 					} else {
 						fire(QueueManagerListener::PartialList(), aDownload->getHintedUser(), aDownload->getPFS());
 					}
@@ -1403,14 +1403,16 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 					} else {
 						// Now, let's see if this was a directory download filelist...
 						if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(aDownload->getHintedUser()) != directories.end()) ||
-							(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) ) 
+							(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) ||
+							(q->isSet(QueueItem::FLAG_VIEW_NFO))) 
 					//	dcassert(!q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD));
 					//	if(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) 
 						{
 							fl_fname = q->getListName();
 							fl_user = aDownload->getHintedUser();
 							fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? QueueItem::FLAG_DIRECTORY_DOWNLOAD : 0)
-								| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0);
+								| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0)
+								| (q->isSet(QueueItem::FLAG_VIEW_NFO) ? QueueItem::FLAG_VIEW_NFO : 0);
 					//		flag = q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0;
 						} 
 
@@ -1577,6 +1579,32 @@ void QueueManager::processList(const string& name, const HintedUser& user, int f
 		snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matchListing(dirList));
 		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
 	}
+	if(flags & QueueItem::FLAG_VIEW_NFO) {
+		findNfo(dirList.getRoot(), dirList);
+	}
+}
+
+int QueueManager::findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) throw() {
+
+	for(DirectoryListing::Directory::List::const_iterator j = dl->directories.begin(); j != dl->directories.end(); ++j) {
+		if(!(*j)->getAdls())
+			findNfo(*j, dir);
+	}
+
+	for(DirectoryListing::File::List::const_iterator i = dl->files.begin(); i != dl->files.end(); ++i) {
+		const DirectoryListing::File* df = *i;
+		boost::wregex reg;
+		reg.assign(_T("(.+\\.nfo)"));
+		if (regex_match(Text::toT(df->getName()), reg)) {
+			QueueManager::getInstance()->add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), dir.getHintedUser(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
+			return true;
+		} else {
+			LogManager::getInstance()->message(STRING(NO_NFO_FOUND));
+			return false;
+		}
+	}
+	
+	return false;
 }
 
 void QueueManager::recheck(const string& aTarget) {

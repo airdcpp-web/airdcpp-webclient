@@ -71,8 +71,10 @@ public:
 		FLAG_XML_BZLIST			= 0x20,
 		/** Only download a part of the file list */
 		FLAG_PARTIAL_LIST 		= 0x40,
-		/** Autodrop slow source is enabled for this file */
-		FLAG_AUTODROP			= 0x80
+		/** Autodrop slow souis enabled for this file */
+		FLAG_AUTODROP			= 0x80,
+		/** Find NFO from partial list and view it */
+		FLAG_VIEW_NFO			= 0x160
 	};
 
 	/**

@@ -46,6 +46,8 @@ Download::Download(UserConnection& conn, QueueItem& qi, const string& path) thro
 		setFlag(FLAG_VIEW);
 	if(qi.isSet(QueueItem::FLAG_MATCH_QUEUE))
 		setFlag(FLAG_QUEUE);
+	if(qi.isSet(QueueItem::FLAG_VIEW_NFO))
+		setFlag(FLAG_NFO);
 	
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
 		if(HashManager::getInstance()->getTree(getTTH(), getTigerTree())) {

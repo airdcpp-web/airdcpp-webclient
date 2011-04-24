@@ -1206,5 +1206,7 @@ enum Strings { // @DontAdd
 	STOP, // "Stop"
 	CHAT_NOTIFY, // "Show Notify Icon on chat messages"
 	NOTIFY, // "Use Chat Notify Icon"
+	VIEW_NFO, // "View NFO"
+	NO_NFO_FOUND, // "No NFO files found!"
 	LAST // @DontAdd
 };

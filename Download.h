@@ -26,8 +26,8 @@ public:
 		FLAG_PARTIAL			= 0x40,
 		FLAG_OVERLAP			= 0x80,
 		FLAG_VIEW				= 0x100,
-		FLAG_QUEUE				= 0x400
-
+		FLAG_QUEUE				= 0x400,
+		FLAG_NFO				= 0x800
 	};
 
 	Download(UserConnection& conn, QueueItem& qi, const string& path) throw();

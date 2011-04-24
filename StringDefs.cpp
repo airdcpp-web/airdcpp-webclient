@@ -1199,6 +1199,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Stop", 
 "Show Notify Icon on chat messages", 
 "Use Chat Notify Icon", 
+"View NFO", 
+"No NFO files found!", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2398,4 +2400,6 @@ std::string dcpp::ResourceManager::names[] = {
 "Stop", 
 "ChatNotify", 
 "Notify", 
+"ViewNfo", 
+"NoNfoFound", 
 };
