@@ -42,7 +42,7 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 	stop = false;
 	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
-		LogManager::getInstance()->message("Scan in Progress"); //translate
+		LogManager::getInstance()->message(STRING(SCAN_RUNNING)); //translate
 		return 1;
 	}
 	isCheckSFV = false;
@@ -70,7 +70,7 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 	
 
 	if(sfv)
-		LogManager::getInstance()->message("SFV Check started.. Use /stop in chat to Stop"); // dont really need a started message? 
+		LogManager::getInstance()->message(STRING(CRC_STARTED)); // dont really need a started message? 
 	else
 	LogManager::getInstance()->message(STRING(SCAN_STARTED)); 
 	return 0;
@@ -106,7 +106,7 @@ int SFVReaderManager::run() {
 
 			
 		if(FileList.size() == 0) {
-				LogManager::getInstance()->message("No Files in " + dir);
+				LogManager::getInstance()->message(STRING(NO_FILES_IN_FOLDER));
 		} else {
 
 		for(;;) { // loop until no files Listed
@@ -147,7 +147,7 @@ int SFVReaderManager::run() {
     tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
     LogManager::getInstance()->message(tmp);
 	} else if(stop)
-		LogManager::getInstance()->message("SFV Checking Stopped.");
+		LogManager::getInstance()->message(STRING(CRC_STOPPED));
 	
 
 	scanning.clear();
@@ -463,19 +463,25 @@ void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
 			speed = size * _LL(1000) / (checkEnd - checkStart);
 		}
 
+		string message;
+
 		if(crcMatch) {
-			LogManager::getInstance()->message(STRING(CRC_OK) + path + " (" + Util::formatBytes(speed) + "/s)");
+			message = STRING(CRC_OK);
 		} else {
-			LogManager::getInstance()->message(STRING(CRC_FAILED) + path + " (" + Util::formatBytes(speed) + "/s)");
+			message = STRING(CRC_FAILED);
 		}
 
+		message += path + " (" + Util::formatBytes(speed) + "/s), ";
 
 		scanFolderSize = scanFolderSize - size;
 
-		if (scanFolderSize > 0)
-			LogManager::getInstance()->message("Remaining: " + Util::formatBytes(scanFolderSize));
-		else
-			LogManager::getInstance()->message("SFV check finished");
+		if (scanFolderSize > 0) {
+			message += STRING(CRC_REMAINING) + Util::formatBytes(scanFolderSize);
+			LogManager::getInstance()->message(message);
+		} else {
+			LogManager::getInstance()->message(message);
+			LogManager::getInstance()->message(STRING(CRC_FINISHED));
+		}
 
 	} else {
 		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + path);

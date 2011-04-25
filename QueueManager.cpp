@@ -1594,7 +1594,7 @@ int QueueManager::findNfo(const DirectoryListing::Directory* dl, const Directory
 	for(DirectoryListing::File::List::const_iterator i = dl->files.begin(); i != dl->files.end(); ++i) {
 		const DirectoryListing::File* df = *i;
 		boost::wregex reg;
-		reg.assign(_T("(.+\\.nfo)"));
+		reg.assign(_T("(.+\\.nfo)"), boost::regex_constants::icase);
 		if (regex_match(Text::toT(df->getName()), reg)) {
 			QueueManager::getInstance()->add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), dir.getHintedUser(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
 			return true;

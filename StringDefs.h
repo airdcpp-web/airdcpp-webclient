@@ -1197,6 +1197,10 @@ enum Strings { // @DontAdd
 	SFV_CHECK_FILE, // "Perform SFV check (file only)"
 	CRC_FAILED, // "CRC Mismatch: "
 	CRC_OK, // "CRC OK: "
+	CRC_REMAINING, // "files remaining: "
+	CRC_FINISHED, // "SFV check finished"
+	CRC_STARTED, // "SFV check started, type /stop in chat to stop it"
+	CRC_STOPPED, // "SFV check stopped"
 	CRC_FILE_ERROR, // "Unable to check file: "
 	NO_SFV_FILE, // "No SFV file found"
 	NO_CRC32, // "No SFV file found or the selected file isn't listed in it"
@@ -1208,5 +1212,6 @@ enum Strings { // @DontAdd
 	NOTIFY, // "Use Chat Notify Icon"
 	VIEW_NFO, // "View NFO"
 	NO_NFO_FOUND, // "No NFO files found!"
+	SCAN_RUNNING, // "Scan in progress"
 	LAST // @DontAdd
 };

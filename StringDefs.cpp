@@ -1190,6 +1190,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Perform SFV check (file only)", 
 "CRC Mismatch: ", 
 "CRC OK: ", 
+"files remaining: ", 
+"SFV check finished", 
+"SFV check started, type /stop in chat to stop it", 
+"SFV check stopped", 
 "Unable to check file: ", 
 "No SFV file found", 
 "No SFV file found or the selected file isn't listed in it", 
@@ -1201,6 +1205,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Use Chat Notify Icon", 
 "View NFO", 
 "No NFO files found!", 
+"Scan in progress", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2391,6 +2396,10 @@ std::string dcpp::ResourceManager::names[] = {
 "SfvCheckFile", 
 "CrcFailed", 
 "CrcOk", 
+"CrcRemaining", 
+"CrcFinished", 
+"CrcStarted", 
+"CrcStopped", 
 "CrcFileError", 
 "NoSfvFile", 
 "NoCrc32", 
@@ -2402,4 +2411,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Notify", 
 "ViewNfo", 
 "NoNfoFound", 
+"ScanRunning", 
 };
