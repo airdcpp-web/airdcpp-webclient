@@ -471,17 +471,17 @@ void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
 			message = STRING(CRC_FAILED);
 		}
 
-		message += path + " (" + Util::formatBytes(speed) + "/s), ";
+		message += path + " (" + Util::formatBytes(speed) + "/s)";
 
 		scanFolderSize = scanFolderSize - size;
 
 		if (scanFolderSize > 0) {
-			message += STRING(CRC_REMAINING) + Util::formatBytes(scanFolderSize);
-			LogManager::getInstance()->message(message);
+			message += ", " + STRING(CRC_REMAINING) + Util::formatBytes(scanFolderSize);
 		} else {
-			LogManager::getInstance()->message(message);
-			LogManager::getInstance()->message(STRING(CRC_FINISHED));
+			message += ", " + STRING(CRC_FINISHED);
 		}
+
+		LogManager::getInstance()->message(message);
 
 	} else {
 		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + path);
