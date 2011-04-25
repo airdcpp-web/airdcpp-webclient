@@ -550,7 +550,17 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource) {
 	dcdebug("File Not Available: %s\n", d->getPath().c_str());
 
 	removeDownload(d);
-	fire(DownloadManagerListener::Failed(), d, STRING(FILE_NOT_AVAILABLE));
+	if (d->isSet(Download::FLAG_NFO)) {
+		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT));
+		dcdebug("Partial list & View NFO. File not available\n");
+		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
+		removeConnection(aSource);
+		return;
+	} else if (d->getType() == Transfer::TYPE_PARTIAL_LIST) {
+		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT_RETRY));
+	} else {
+		fire(DownloadManagerListener::Failed(), d, STRING(FILE_NOT_AVAILABLE));
+	}
 
 	if (d->getType() == Transfer::TYPE_FULL_LIST) {
 	
@@ -584,13 +594,7 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource) {
 		removeConnection(aSource);
 		QueueManager::getInstance()->addList(aSource->getHintedUser(), QueueItem::FLAG_MATCH_QUEUE);
 		return;
-	} else if ((d->getType() == Transfer::TYPE_PARTIAL_LIST) && (d->isSet(Download::FLAG_NFO))){
-		dcdebug("Partial list & View NFO. File not available\n");
-		aSource->getUser()->setFlag(User::NO_PARTIAL); //won't be displayed in transferview yet...
-		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
-		removeConnection(aSource);
-		return;
-	} 
+	}
 
 	QueueManager::getInstance()->removeSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
 

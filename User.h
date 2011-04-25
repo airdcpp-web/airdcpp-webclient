@@ -46,7 +46,6 @@ public:
 		NO_ADC_1_0_PROTOCOL		=  0x80,	//< Doesn't support "ADC/1.0" (dc++ <=0.703)
 		NO_ADCS_0_10_PROTOCOL	= 0x100,	//< Doesn't support "ADCS/0.10"
 		NAT_TRAVERSAL			= 0x200,	//< Client supports NAT Traversal
-		NO_PARTIAL				= 0x400		//< No support for partial lists
 	};
 
 	struct Hash {
