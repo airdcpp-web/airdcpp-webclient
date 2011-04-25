@@ -586,9 +586,9 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource) {
 		return;
 	} else if ((d->getType() == Transfer::TYPE_PARTIAL_LIST) && (d->isSet(Download::FLAG_NFO))){
 		dcdebug("Partial list & View NFO. File not available\n");
+		aSource->getUser()->setFlag(User::NO_PARTIAL); //won't be displayed in transferview yet...
 		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
 		removeConnection(aSource);
-		//Show error message?!?!
 		return;
 	} 
 

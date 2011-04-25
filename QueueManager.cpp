@@ -1370,8 +1370,8 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 				} else {
 					// partial filelist probably failed, redownload full list
 					dcassert(!finished);
-					
-					downloadList = true;
+					if (!q->isSet(QueueItem::FLAG_VIEW_NFO))
+						downloadList = true;
 					fl_flag = q->getFlags() & ~QueueItem::FLAG_PARTIAL_LIST;	
 				}
 					

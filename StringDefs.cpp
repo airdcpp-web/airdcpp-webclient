@@ -1206,6 +1206,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "View NFO", 
 "No NFO files found!", 
 "Scan in progress", 
+"The remote client doesn't support this feature", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2412,4 +2413,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ViewNfo", 
 "NoNfoFound", 
 "ScanRunning", 
+"NoPartialSupport", 
 };

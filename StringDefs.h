@@ -1213,5 +1213,6 @@ enum Strings { // @DontAdd
 	VIEW_NFO, // "View NFO"
 	NO_NFO_FOUND, // "No NFO files found!"
 	SCAN_RUNNING, // "Scan in progress"
+	NO_PARTIAL_SUPPORT, // "The remote client doesn't support this feature"
 	LAST // @DontAdd
 };
