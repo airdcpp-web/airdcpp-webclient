@@ -189,7 +189,7 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 	if(path.empty())
 		return;
 	
-	tstring dirName = getDir(Text::toT(path));
+	tstring dirName = Util::getDir(Text::toT(path));
 	string listfolder;
 
 	boost::wregex reg;
@@ -241,7 +241,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	int sfvFiles=0;
 	StringList sfvFileList;
 	StringIterC i;
-	tstring dirName = getDir(Text::toT(path));
+	tstring dirName = Util::getDir(Text::toT(path));
 
 	bool isSample=false;
 	bool isRelease=false;
@@ -264,16 +264,6 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 
 	if(SETTING(CHECK_NFO) || SETTING(CHECK_SFV) || SETTING(CHECK_EXTRA_FILES) || SETTING(CHECK_EXTRA_SFV_NFO)) {
-
-		//Check if it's a release folder
-		if (!SETTING(CHECK_MP3_DIR))
-			reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})))"));
-		else
-			reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)))"));
-		for(i = fileList.begin(); i != fileList.end() && !(isRelease); ++i) {
-			if (regex_match(Text::toT(*i), reg))
-				isRelease=true;
-		}
 
 		//Check for multiple NFO or SFV files
 		if (SETTING(CHECK_EXTRA_SFV_NFO)) {
@@ -380,8 +370,8 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		releaseFiles = releaseFiles - loopMissing;
 
 		if(SETTING(CHECK_EXTRA_FILES)) {
+			//Find allowed extra files from the release folder
 			int otherAllowed = 0;
-			//Find extra files from the release folder
 			for(i = fileList.begin(); i != fileList.end(); ++i) {
 				reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue|diz))"));
 				if (regex_match(Text::toT(*i), reg))
@@ -500,20 +490,6 @@ uint32_t SFVReaderManager::calcCrc32(const string& file) {
 		;		// Keep on looping...
 	return f.getFilter().getValue();
 }
-
-tstring SFVReaderManager::getDir(const tstring& dir) {
-		string directory = Text::fromT(dir);
-		if (dir != Util::emptyStringT) {
-			directory = directory.substr(0, directory.size()-1);
-
-			int dpos = directory.rfind("\\");
-			if(dpos != wstring::npos) {
-				directory = directory.substr(dpos+1,directory.size());
-			}
-		}
-		return Text::toT(directory);
-}
-
 
 bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(FileException) {
 

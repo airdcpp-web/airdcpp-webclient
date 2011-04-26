@@ -32,6 +32,7 @@
 #include "SimpleXML.h"
 #include "User.h"
 
+
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -1274,7 +1275,36 @@ string Util::base64_decode(string const& encoded_string) {
 	return ret;
 }
 
+tstring Util::getDir(tstring dir) {
+		string directory = Text::fromT(dir);
+		if (dir != Util::emptyStringT) {
+			if(dir[dir.size() -1] == '\\')
+				directory = directory.substr(0, directory.size()-1);
 
+			int dpos = directory.rfind("\\");
+			if(dpos != (int)tstring::npos) {
+				directory = directory.substr(dpos+1,directory.size());
+			}
+		}
+		return Text::toT(directory);
+}
+
+tstring Util::validateDir(tstring dir) {
+	boost::wregex reg;
+	string directory = Text::fromT(dir);
+	if (dir != Util::emptyStringT) {
+		reg.assign(_T("(.*\\\\((((DVD)|(CD)|(DIS(K|C)))(_)?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))\\\\)"), boost::regex_constants::icase);
+		if (regex_match(Text::toT(directory), reg)) {
+			if(dir[dir.size() -1] == '\\')
+				directory = directory.substr(0, directory.size()-1);
+			int dpos = directory.rfind("\\");
+			if(dpos != (int)tstring::npos) {
+				directory = directory.substr(0,dpos+1);
+			}
+		}
+	}
+	return Text::toT(directory);
+}
 
 } // namespace dcpp
 
