@@ -203,7 +203,7 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 			std::string listfolder = i->first;
 			if (!stricmp(Text::fromT(dirName), listfolder)) {
 				dupesFound++;
-				LogManager::getInstance()->message(STRING(DUPE_FOUND) + path + " " + STRING(DUPE_IS_SAME) + " " + (i->second) + ")");
+				LogManager::getInstance()->message(STRING(DUPE_FOUND) + path + " " + STRING(DUPE_IS_SAME) + " " + (i->second));
 			}
 		}
 	}
