@@ -152,11 +152,12 @@ void shutdown() {
 	FavoriteManager::deleteInstance();
 	ClientManager::deleteInstance();
 	HashManager::deleteInstance();
+	SFVReaderManager::deleteInstance();
 	LogManager::deleteInstance();
 	SettingsManager::deleteInstance();
 	TimerManager::deleteInstance();
 	ResourceManager::deleteInstance();
-	SFVReaderManager::deleteInstance();
+	
 
 #ifdef _WIN32	
 	::WSACleanup();

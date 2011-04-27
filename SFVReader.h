@@ -76,7 +76,8 @@ private:
 friend class Singleton<SFVReaderManager>;
 
 	SFVReaderManager() : scanning(false){ }
-	virtual ~SFVReaderManager() throw() { 
+	~SFVReaderManager() throw() { 
+		Stop();
 		join();
 	}
 	
