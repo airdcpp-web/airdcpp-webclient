@@ -1193,13 +1193,23 @@ void ShareManager::generateList() {
 }
 
 
-MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse) const {
+MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, bool isInSharingHub) const {
 	if(dir[0] != '/' || dir[dir.size()-1] != '/')
 		return 0;
+	 
+	if(!isInSharingHub) {
+				string xml = SimpleXML::utf8Header;
+                string tmp;
+                xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"" APPNAME " " VERSIONSTRING "\">\r\n";
+                StringOutputStream sos(xml);
+                xml += "</FileListing>";
+                return new MemoryInputStream(xml);
+	 }
+
 
 	string xml = SimpleXML::utf8Header;
 	string tmp;
-	xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n";
+	xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"" APPNAME " " DCVERSIONSTRING "\">\r\n";
 	StringOutputStream sos(xml);
 	string indent = "\t";
 
