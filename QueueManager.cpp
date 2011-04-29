@@ -1584,24 +1584,26 @@ void QueueManager::processList(const string& name, const HintedUser& user, int f
 	}
 }
 
-int QueueManager::findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) throw() {
+bool QueueManager::findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) throw() {
 
 	for(DirectoryListing::Directory::List::const_iterator j = dl->directories.begin(); j != dl->directories.end(); ++j) {
 		if(!(*j)->getAdls())
 			findNfo(*j, dir);
 	}
 
-	for(DirectoryListing::File::List::const_iterator i = dl->files.begin(); i != dl->files.end(); ++i) {
-		const DirectoryListing::File* df = *i;
+
+	if (!dl->files.empty()) {
 		boost::wregex reg;
 		reg.assign(_T("(.+\\.nfo)"), boost::regex_constants::icase);
-		if (regex_match(Text::toT(df->getName()), reg)) {
-			QueueManager::getInstance()->add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), dir.getHintedUser(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
-			return true;
-		} else {
-			LogManager::getInstance()->message(STRING(NO_NFO_FOUND));
-			return false;
+		for(DirectoryListing::File::List::const_iterator i = dl->files.begin(); i != dl->files.end(); ++i) {
+			const DirectoryListing::File* df = *i;
+			if (regex_match(Text::toT(df->getName()), reg)) {
+				QueueManager::getInstance()->add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), dir.getHintedUser(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
+				return true;
+			}
 		}
+		//can be reported because this is the only folder containing files in partial list
+		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(dir.getHintedUser())) + ": " + STRING(NO_NFO_FOUND));
 	}
 	
 	return false;
