@@ -1116,8 +1116,8 @@ void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
 }
 
 void ShareManager::generateXmlList(bool forced /*false*/) {
-
-	if(forced || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
+	//forced not used now, Todo: remove if dont need it anymore
+	if(forced || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 10 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
 		worker.join();
 		worker.Task(FILELIST);
 
@@ -1196,7 +1196,7 @@ void ShareManager::generateList() {
 MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, bool isInSharingHub) const {
 	if(dir[0] != '/' || dir[dir.size()-1] != '/')
 		return 0;
-	 
+	
 	if(!isInSharingHub) {
 				string xml = SimpleXML::utf8Header;
                 string tmp;
@@ -1758,8 +1758,8 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 			Directory::File::Set::iterator it = d->files.insert(Directory::File(name, size, d, root)).first;
 			updateIndices(*d, it);
 		}
-		setDirty();
-		forceXmlRefresh = true;
+		setDirty(); // this will generate it but changes will be pooled for 10mins
+		//forceXmlRefresh = true; no need to force the filelist to generate after every file hashed
 	}
 }
 

@@ -117,8 +117,16 @@ public:
 	}
 
 	string getOwnListFile() {
-		generateXmlList(true);
+		//Directorylisting load thread will generate own list, so dont generate here.
+		
+		//generateXmlList(/*true*/); 
 		return getBZXmlFile();
+		/*filelist will be re generated when all files have been hashed*/
+	}
+
+	void generateOwnList() {
+	if(xmlDirty)
+		generateList();
 	}
 
 	bool isTTHShared(const TTHValue& tth) const {
@@ -151,7 +159,7 @@ public:
 	enum Task {
 		LOAD = 0x10,
 		FILELIST = 0x20,
-		ADD = 0x40 //Todo adding new share directories with worker thread
+		ADD = 0x40, //Todo adding new share directories with worker thread
 	};
 
 	GETSET(size_t, hits, Hits);

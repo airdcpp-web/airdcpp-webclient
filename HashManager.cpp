@@ -26,6 +26,7 @@
 #include "File.h"
 #include "ZUtils.h"
 #include "SFVReader.h"
+#include "ShareManager.h"
 
 #ifndef _WIN32
 #include <sys/mman.h> // mmap, munmap, madvise
@@ -884,6 +885,7 @@ int HashManager::Hasher::run() {
 				delete [] buf;
 			}
 			buf = NULL;
+			ShareManager::getInstance()->generateOwnList();
 		}
 	}
 	return 0;
