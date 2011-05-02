@@ -92,6 +92,11 @@ friend class Singleton<SFVReaderManager>;
  int missingSFV;
  int dupesFound;
  int missingFiles;
+
+ int crcOk;
+ int crcInvalid;
+ int checkFailed;
+
  int64_t scanFolderSize;
  bool stop;
  static tstring getDir(const tstring& dir);

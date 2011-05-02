@@ -1293,13 +1293,17 @@ tstring Util::validateDir(tstring dir) {
 	boost::wregex reg;
 	string directory = Text::fromT(dir);
 	if (dir != Util::emptyStringT) {
-		reg.assign(_T("(.*\\\\((((DVD)|(CD)|(DIS(K|C)))(_)?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))\\\\)"), boost::regex_constants::icase);
-		if (regex_match(Text::toT(directory), reg)) {
-			if(dir[dir.size() -1] == '\\')
-				directory = directory.substr(0, directory.size()-1);
-			int dpos = directory.rfind("\\");
-			if(dpos != (int)tstring::npos) {
-				directory = directory.substr(0,dpos+1);
+		for (;;) {
+			reg.assign(_T("(.*\\\\((((DVD)|(CD)|(DIS(K|C)))(_)?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))\\\\)"), boost::regex_constants::icase);
+			if (regex_match(Text::toT(directory), reg)) {
+				if(dir[dir.size() -1] == '\\')
+					directory = directory.substr(0, directory.size()-1);
+				int dpos = directory.rfind("\\");
+				if(dpos != (int)tstring::npos) {
+					directory = directory.substr(0,dpos+1);
+				}
+			} else {
+				break;
 			}
 		}
 	}

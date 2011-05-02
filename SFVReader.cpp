@@ -62,17 +62,21 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 	}
 
 	start();
-	missingFiles = 0;
-	dupesFound = 0;
-	extrasFound = 0;
-	missingNFO = 0;
-	missingSFV = 0;
 	
 
-	if(sfv)
-		LogManager::getInstance()->message(STRING(CRC_STARTED)); // dont really need a started message? 
-	else
-	LogManager::getInstance()->message(STRING(SCAN_STARTED)); 
+	if(sfv) {
+		LogManager::getInstance()->message(STRING(CRC_STARTED));
+		crcOk = 0;
+		crcInvalid = 0;
+		checkFailed = 0;
+	} else {
+		missingFiles = 0;
+		dupesFound = 0;
+		extrasFound = 0;
+		missingNFO = 0;
+		missingSFV = 0;
+		LogManager::getInstance()->message(STRING(SCAN_STARTED));
+	}
 	return 0;
 }
 void SFVReaderManager::Stop() {
@@ -457,24 +461,29 @@ void SFVReaderManager::checkSFV(const string& path) throw(FileException) {
 
 		if(crcMatch) {
 			message = STRING(CRC_OK);
+			crcOk++;
 		} else {
 			message = STRING(CRC_FAILED);
+			crcInvalid++;
 		}
 
 		message += path + " (" + Util::formatBytes(speed) + "/s)";
 
 		scanFolderSize = scanFolderSize - size;
-
-		if (scanFolderSize > 0) {
-			message += ", " + STRING(CRC_REMAINING) + Util::formatBytes(scanFolderSize);
-		} else {
-			message += ", " + STRING(CRC_FINISHED);
-		}
-
+		message += ", " + STRING(CRC_REMAINING) + Util::formatBytes(scanFolderSize);
 		LogManager::getInstance()->message(message);
+
 
 	} else {
 		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + path);
+		checkFailed++;
+	}
+
+	if (scanFolderSize <= 0) {
+		string tmp;	 
+		tmp.resize(STRING(CRC_FINISHED).size() + 64);	 
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(CRC_FINISHED), crcOk, crcInvalid, checkFailed));	 
+		LogManager::getInstance()->message(tmp);
 	}
 
 }
