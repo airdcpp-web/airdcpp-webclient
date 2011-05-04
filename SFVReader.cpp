@@ -238,9 +238,11 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 	StringList fileList = findFiles(path, "*");
 
+	bool extrasInFolder = false;
 	int pos;
 	int pos2;
 	boost::wregex reg;
+	boost::wregex reg2;
 	int nfoFiles=0;
 	int sfvFiles=0;
 	StringList sfvFileList;
@@ -250,22 +252,18 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	bool isSample=false;
 	bool isRelease=false;
 
-	//NfoFileList
+	reg.assign(_T("(.+\\.nfo)"));
+	reg2.assign(_T("(.+\\.sfv)"));
+
+	// Find NFO and SFV files
 	for(i = fileList.begin(); i != fileList.end(); ++i) {
-		reg.assign(_T("(.+\\.nfo)"));
-		if (regex_match(Text::toT(*i), reg))
-			nfoFiles++;
-	}
-	//SFVFileList
-	for(i = fileList.begin(); i != fileList.end(); ++i) {
-		reg.assign(_T("(.+\\.sfv)"));
 		if (regex_match(Text::toT(*i), reg)) {
+			nfoFiles++;
+		} else if (regex_match(Text::toT(*i), reg2)) {
 			sfvFileList.push_back(path + *i);
 			sfvFiles++;
 		}
 	}
-
-
 
 	if(SETTING(CHECK_NFO) || SETTING(CHECK_SFV) || SETTING(CHECK_EXTRA_FILES) || SETTING(CHECK_EXTRA_SFV_NFO)) {
 
@@ -274,15 +272,19 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			if (nfoFiles > 1) {
 				LogManager::getInstance()->message(STRING(MULTIPLE_NFO) + path);
 				extrasFound++;
+				extrasInFolder = true;
 			}
 			if (sfvFiles > 1) {
 				LogManager::getInstance()->message(STRING(MULTIPLE_SFV) + path);
-				extrasFound++;
+				if (!extrasInFolder) {
+					extrasInFolder = true;
+					extrasFound++;
+				}
 			}
 		}
 
-		//Check if it's sample folder
-		if (!strcmp(Text::fromT(Text::toLower(dirName)).c_str(), "sample") && SETTING(CHECK_EXTRA_FILES)) {
+		//Check if it's a sample folder
+		if (!strcmp(Text::fromT(Text::toLower(dirName)).c_str(), "sample")) {
 			isSample=true;
 		}
 
@@ -293,6 +295,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})))"));
 			else
 				reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)))"));
+
 			for(StringIterC i = fileList.begin(); i != fileList.end() && !(isRelease); ++i) {
 				if (regex_match(Text::toT(*i), reg))
 					isRelease=true;
@@ -329,7 +332,6 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 	if (sfvFiles == 0)
 		return false;
-
 
 		ifstream sfv;
 		string line;
@@ -376,15 +378,16 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		if(SETTING(CHECK_EXTRA_FILES)) {
 			//Find allowed extra files from the release folder
 			int otherAllowed = 0;
+			reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue|diz))"));
 			for(i = fileList.begin(); i != fileList.end(); ++i) {
-				reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue|diz))"));
 				if (regex_match(Text::toT(*i), reg))
 					otherAllowed++;
 			}
-			int allowed = releaseFiles + nfoFiles + sfvFiles + otherAllowed;
-			if ((int)fileList.size() > allowed) {
+
+			if ((int)fileList.size() > (releaseFiles + nfoFiles + sfvFiles + otherAllowed)) {
 				LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
-				extrasFound++;
+				if (!extrasInFolder)
+					extrasFound++;
 			}
 		}
 	if (loopMissing > 0)
