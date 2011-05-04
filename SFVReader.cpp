@@ -302,7 +302,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			}
 
 			//Report extra files in sample folder
-			if (isSample && (nfoFiles > 0 || sfvFiles > 0 || isRelease)) {
+			if (SETTING(CHECK_EXTRA_FILES) && isSample && (nfoFiles > 0 || sfvFiles > 0 || isRelease)) {
 				LogManager::getInstance()->message(STRING(EXTRA_FILES_SAMPLEDIR) + path);
 				extrasFound++;
 			}
