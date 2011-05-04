@@ -428,12 +428,24 @@ void SFVReaderManager::getScanSize(const string& path) throw(FileException) {
 				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
 					pos = line.rfind(" ");
 					line = line.substr(0,pos);
-					scanFolderSize = scanFolderSize + File::getSize(path + line);
+					ifstream ifile(path + line);
+					if (ifile) {
+						scanFolderSize = scanFolderSize + File::getSize(path + line);
+					} else {
+						LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
+						checkFailed++;
+					}
 				}
 			}
 		}
 	} else {
-		scanFolderSize = scanFolderSize + File::getSize(path);
+		ifstream ifile(path);
+		if (ifile) {
+			scanFolderSize = scanFolderSize + File::getSize(path);
+		} else {
+			LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path);
+			checkFailed++;
+		}
 	}
 }
 
