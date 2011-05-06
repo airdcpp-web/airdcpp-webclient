@@ -20,7 +20,7 @@
 #define APPNAME "AirDC++"
 #define VERSIONSTRING "2.10 Beta 1"
 
-#define VERSIONFLOAT 2.092
+#define VERSIONFLOAT 2.101
 
 #define DCVERSIONSTRING "0.781"
 
@@ -35,9 +35,9 @@
 #define BETADATE
 
 #ifdef BETADATE
-#define VERSION_URL "http://airdc.sourceforge.net/xmls/beta_airdcversion.php"
+#define VERSION_URL "http://version.airdcpp.net/beta_airdcversion.php"
 #else
-#define VERSION_URL "http://airdc.sourceforge.net/xmls/airdcversion.php"
+#define VERSION_URL "http://version.airdcpp.net/airdcversion.php"
 #endif
 
 
