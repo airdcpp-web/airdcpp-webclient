@@ -1208,6 +1208,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Scan in progress", 
 "The remote client doesn't support this feature", 
 "The remote client is too old, retrying soon with full list...", 
+"Download customizations", 
+"Guides", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2416,4 +2418,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ScanRunning", 
 "NoPartialSupport", 
 "NoPartialSupportRetry", 
+"MenuCustomize", 
+"MenuGuides", 
 };

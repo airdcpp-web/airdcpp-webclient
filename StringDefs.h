@@ -1215,5 +1215,7 @@ enum Strings { // @DontAdd
 	SCAN_RUNNING, // "Scan in progress"
 	NO_PARTIAL_SUPPORT, // "The remote client doesn't support this feature"
 	NO_PARTIAL_SUPPORT_RETRY, // "The remote client is too old, retrying soon with full list..."
+	MENU_CUSTOMIZE, // "Download customizations"
+	MENU_GUIDES, // "Guides"
 	LAST // @DontAdd
 };
