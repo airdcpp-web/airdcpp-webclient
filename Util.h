@@ -103,6 +103,7 @@ public:
 	static tstring emptyStringT;
 	static string emptyString;
 	static wstring emptyStringW;
+	static string getOsVersion(bool http = false);
 
 	enum Paths {
 		/** Global configuration */

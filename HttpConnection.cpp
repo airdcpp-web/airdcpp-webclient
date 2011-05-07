@@ -88,10 +88,16 @@ void HttpConnection::downloadFile(const string& aUrl) {
 	} catch(...) { }
 }
 
+
 void HttpConnection::on(BufferedSocketListener::Connected) throw() { 
 	dcassert(socket); 
+	string version = VERSIONSTRING;
+	size_t found = version.find_first_of(" ");
+	if (found != string::npos) {
+		version = version.substr(0,found);
+	}
 	socket->write("GET " + file + " HTTP/1.1\r\n"); 
-	socket->write("User-Agent: " APPNAME " v" VERSIONSTRING "\r\n"); 
+	socket->write("User-Agent: Airdcpp/" + version + " " + Util::getOsVersion(true) + "\r\n"); 
 
 	string sRemoteServer = server; 
 	if(!SETTING(HTTP_PROXY).empty()) 

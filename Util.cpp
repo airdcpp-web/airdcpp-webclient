@@ -1310,6 +1310,176 @@ tstring Util::validateDir(tstring dir) {
 	return Text::toT(directory);
 }
 
+string Util::getOsVersion(bool http /* = false */) {
+#ifdef _WIN32
+	typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
+	typedef BOOL (WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
+	string os;
+
+	OSVERSIONINFOEX ver;
+	memset(&ver, 0, sizeof(OSVERSIONINFOEX));
+	ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+	SYSTEM_INFO si;
+	PGNSI pGNSI;
+	DWORD dwType;
+	PGPI pGPI;
+	ZeroMemory(&si, sizeof(SYSTEM_INFO));
+	pGNSI = (PGNSI) GetProcAddress(
+		GetModuleHandle(TEXT("kernel32.dll")), "GetNativeSystemInfo");
+	if(NULL != pGNSI)
+		pGNSI(&si);
+	else GetSystemInfo(&si);
+
+	if(!GetVersionEx((OSVERSIONINFO*)&ver)) {
+		ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+		if(!GetVersionEx((OSVERSIONINFO*)&ver)) {
+			os = "Windows (version unknown)";
+		}
+	}
+	if (!http) {
+		if(os.empty()) {
+			if(ver.dwPlatformId != VER_PLATFORM_WIN32_NT) {
+				os = "Win9x/ME/Junk";
+			} else if(ver.dwMajorVersion == 4) {
+				os = "Windows NT4";
+			} else if(ver.dwMajorVersion == 5) {
+				switch(ver.dwMinorVersion) {
+					case 0: os = "Windows 2000"; break;
+					case 1:
+						if (ver.wSuiteMask & VER_SUITE_PERSONAL)
+							os = "Windows XP Home Edition";
+						else
+							os = "Windows XP Professional";
+						break;
+					case 2: 
+						if(GetSystemMetrics(SM_SERVERR2))
+							os = "Windows Server 2003 R2";
+						else if (ver.wProductType == VER_NT_WORKSTATION &&
+								si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64)
+							os = "Windows XP Professional x64 Edition";
+						else
+							os = "Windows Server 2003";
+						break;
+					default: os = "Unknown Windows NT5";
+				}
+			} else if(ver.dwMajorVersion == 6) {
+				switch(ver.dwMinorVersion) {
+					case 0:
+						if (ver.wProductType == VER_NT_WORKSTATION)
+							os = "Windows Vista";
+						else
+							os = "Windows Server 2008";
+						break;
+					case 1:
+						if (ver.wProductType == VER_NT_WORKSTATION)
+							os = "Windows 7";
+						else
+							os = "Windows Server 2008 R2";
+						break;
+					default: os = "Unknown Windows 6-family";
+					}
+				}
+			}
+
+			if(ver.dwMajorVersion == 6) {
+			pGPI = (PGPI) GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
+			pGPI(ver.dwMajorVersion, ver.dwMinorVersion, 0, 0, &dwType);
+			 switch(dwType)
+			 {
+				case PRODUCT_ULTIMATE:
+				   os += " Ultimate Edition";
+				   break;
+				case PRODUCT_PROFESSIONAL:
+				   os += " Professional";
+				   break;
+				case PRODUCT_HOME_PREMIUM:
+				   os += " Home Premium Edition";
+				   break;
+				case PRODUCT_HOME_BASIC:
+				   os += " Home Basic Edition";
+				   break;
+				case PRODUCT_ENTERPRISE:
+				   os += " Enterprise Edition";
+				   break;
+				case PRODUCT_BUSINESS:
+				   os += " Business Edition";
+				   break;
+				case PRODUCT_STARTER:
+				   os += " Starter Edition";
+				   break;
+				case PRODUCT_CLUSTER_SERVER:
+				   os += " Cluster Server Edition";
+				   break;
+				case PRODUCT_DATACENTER_SERVER:
+				   os += " Datacenter Edition";
+				   break;
+				case PRODUCT_DATACENTER_SERVER_CORE:
+				   os += " Datacenter Edition (core installation)";
+				   break;
+				case PRODUCT_ENTERPRISE_SERVER:
+				   os += " Enterprise Edition";
+				   break;
+				case PRODUCT_ENTERPRISE_SERVER_CORE:
+				   os += " Enterprise Edition (core installation)";
+				   break;
+				case PRODUCT_ENTERPRISE_SERVER_IA64:
+				   os += " Enterprise Edition for Itanium-based Systems";
+				   break;
+				case PRODUCT_SMALLBUSINESS_SERVER:
+				   os += " Small Business Server";
+				   break;
+				case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
+				   os += " Small Business Server Premium Edition";
+				   break;
+				case PRODUCT_STANDARD_SERVER:
+				   os += " Standard Edition";
+				   break;
+				case PRODUCT_STANDARD_SERVER_CORE:
+				   os += " Standard Edition (core installation)";
+				   break;
+				case PRODUCT_WEB_SERVER:
+				   os += " Web Server Edition";
+				   break;
+			 }
+
+			if ( ver.dwMajorVersion >= 6 ) {
+				if ( si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64 )
+					os += " 64-bit";
+				else if (si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_INTEL )
+					os += " 32-bit";
+			}
+
+			tstring spver(ver.szCSDVersion);
+			if(!spver.empty()) {
+				os += " " + Text::fromT(spver);
+			}
+		}
+	} else {
+		TCHAR buf[255];
+		_stprintf(buf, _T("%d.%d"),
+			(DWORD)ver.dwMajorVersion, (DWORD)ver.dwMinorVersion);
+
+		os = "(Windows " + Text::fromT(buf);
+		if ( si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64 )
+			os += "; WOW64)";
+		else 
+			os += ")";
+	}
+	return os;
+
+#else // _WIN32
+	utsname n;
+
+	if(uname(&n) != 0) {
+		return "unix (unknown version)";
+	}
+
+	return string(n.sysname) + " " + string(n.release) + " (" + string(n.machine) + ")";
+
+#endif // _WIN32
+}
+
+
 } // namespace dcpp
 
 /**
