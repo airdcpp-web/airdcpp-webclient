@@ -561,6 +561,8 @@ QueueManager::QueueManager() :
 	SearchManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 
+	regexp.Init("[Rr0-9][Aa0-9][Rr0-9]");
+
 	File::ensureDirectory(Util::getListPath());
 }
 
@@ -2040,12 +2042,16 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
 				try {
 					users = qi->countOnlineUsers();
-					if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) || (users >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))){
+				//i think we can add the source for the file even if we are matching the list afterwards, makes the download start faster.
+					//	if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) || (users >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))){
 						if(BOOLSETTING(AUTO_ADD_SOURCE)){
 						wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
 						}
-					}
+				//	}
 					added = true;
+					if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 )
+						addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
+
 				} catch(const Exception&) {
 					// ...
 				}
@@ -2068,6 +2074,40 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 
 }
 
+bool QueueManager::addAlternates(string aFile, const dcpp::HintedUser& aUser) {
+	string path, file;
+	string::size_type pos, pos2;
+	bool wantConnection = false;
+	try {
+		//check wether we're using old style naming on the rar-files
+		//if so just cut the file ending, else we have to cut after .part
+		pos = aFile.find(".part");
+		if (pos != string::npos) {
+			pos += 4;
+		} else {
+			pos = aFile.find_last_of(".");
+		}
+		pos2 = aFile.find_last_of("\\");
+		file = aFile.substr(pos2+1, pos - pos2);
+		path = aFile.substr(0, pos2);
+
+		QueueItem::StringIter i;
+		QueueItem::StringMap queue = fileQueue.getQueue();
+
+		//iterate through the entire queue and add the user as source
+		//where the filenames match
+		for(i = queue.begin(); i != queue.end(); ++i) {
+			if( i->first->find(file) != string::npos) {
+				string file = path + i->first->substr(i->first->find_last_of("\\"));
+				if(!i->second->isSource(aUser)) {
+					wantConnection = addSource(i->second, aUser, 0);
+				}	
+			}
+		}
+	}catch(QueueException) {}
+
+	return wantConnection;
+}
 // ClientManagerListener
 void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser) throw() {
 	bool hasDown = false;

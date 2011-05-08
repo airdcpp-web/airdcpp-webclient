@@ -34,6 +34,7 @@
 #include "SearchManagerListener.h"
 #include "ClientManagerListener.h"
 #include "LogManager.h"
+#include "pme.h"
 
 namespace dcpp {
 
@@ -295,6 +296,10 @@ private:
 	
 	mutable CriticalSection cs;
 	
+	//using pme for now
+	PME regexp;
+	bool addAlternates(string, const dcpp::HintedUser&);
+
 	/** QueueItems by user */
 	UserQueue userQueue;
 	/** Directories queued for downloading */
