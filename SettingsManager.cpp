@@ -663,7 +663,11 @@ SettingsManager::SettingsManager()
 	setDefault(CHECK_EXTRA_FILES, false);
 	setDefault(CHECK_DUPES, false);
 	setDefault(SORT_DIRS, false);
-	setDefault(DECREASE_RAM, true);
+#ifdef _WIN64
+	setDefault(DECREASE_RAM, false);  
+#else
+	setDefault(DECREASE_RAM, true); //32 bit windows will most likely have less ram to spend (4gb max)
+#endif
 /*
 #ifdef _WIN32
 	OSVERSIONINFO ver;
