@@ -439,6 +439,9 @@ private:
 
 bool ShareManager::loadCache() throw() {
 	try {
+
+		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
+
 		ShareLoader loader(directories);
 		//SimpleXMLReader xml(&loader);
 
@@ -452,7 +455,7 @@ bool ShareManager::loadCache() throw() {
 			updateIndices(*d);
 		}
 
-		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
+		
 		setDirty();
 		
 		return true;
@@ -1758,8 +1761,8 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 			Directory::File::Set::iterator it = d->files.insert(Directory::File(name, size, d, root)).first;
 			updateIndices(*d, it);
 		}
-		setDirty(); // this will generate it but changes will be pooled for 10mins
-		//forceXmlRefresh = true; no need to force the filelist to generate after every file hashed
+		setDirty(); //i think we can wait the 10mins interval between filelist rebuild
+		//forceXmlRefresh = true; 
 	}
 }
 

@@ -67,7 +67,7 @@ public:
 	int refresh(const string& aDir);
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
-	void setDirty() {shareXmlDirty = xmlDirty = true; }
+	void setDirty() {xmlDirty = true; }
 	StringList getIncoming() { return incoming; };
 	void setIncoming(const string& Vname, bool isIncoming);
 	void DelIncoming();
@@ -118,10 +118,8 @@ public:
 
 	string getOwnListFile() {
 		//Directorylisting load thread will generate own list, so dont generate here.
-		
-		//generateXmlList(/*true*/); 
+		worker.join();
 		return getBZXmlFile();
-		/*filelist will be re generated when all files have been hashed*/
 	}
 
 	void generateOwnList() {
@@ -327,7 +325,6 @@ private:
 	unique_ptr<File> bzXmlRef;
 
 	bool xmlDirty;
-	bool shareXmlDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
 	bool initial;
 	bool rebuild;
@@ -400,10 +397,9 @@ private:
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) throw() {
 		save(xml);
-		if(shareXmlDirty) {
+		if(xmlDirty) {
 			forceXmlRefresh = true;
 			generateXmlList();
-			shareXmlDirty = false;
 		}
 
 	}

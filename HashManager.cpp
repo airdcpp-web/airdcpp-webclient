@@ -885,7 +885,7 @@ int HashManager::Hasher::run() {
 				delete [] buf;
 			}
 			buf = NULL;
-			ShareManager::getInstance()->generateOwnList();
+			
 		}
 	}
 	return 0;
