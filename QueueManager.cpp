@@ -2041,16 +2041,16 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
 				try {
-					users = qi->countOnlineUsers();
-				//i think we can add the source for the file even if we are matching the list afterwards, makes the download start faster.
-					//	if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) || (users >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))){
-						if(BOOLSETTING(AUTO_ADD_SOURCE)){
+					
+					if(BOOLSETTING(AUTO_ADD_SOURCE)){
+						if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 )
+						wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
+						else
 						wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
 						}
-				//	}
+				
 					added = true;
-					if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 )
-						addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
+					users = qi->countOnlineUsers();
 
 				} catch(const Exception&) {
 					// ...
