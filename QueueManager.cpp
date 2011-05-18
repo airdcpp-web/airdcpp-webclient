@@ -2044,9 +2044,9 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 					
 					if(BOOLSETTING(AUTO_ADD_SOURCE)){
 						if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 )
-						wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
+							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
 						else
-						wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
+							wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
 						}
 				
 					added = true;
