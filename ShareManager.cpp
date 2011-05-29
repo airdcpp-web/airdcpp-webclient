@@ -64,6 +64,10 @@ ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 }
 
 ShareManager::~ShareManager() {
+	
+	if(xmlDirty)
+		generateList(); //generate filelist when exit if its dirty so we dont loose any hashed files.
+
 	SettingsManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
 	QueueManager::getInstance()->removeListener(this);
@@ -1760,8 +1764,8 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 			Directory::File::Set::iterator it = d->files.insert(Directory::File(name, size, d, root)).first;
 			updateIndices(*d, it);
 		}
-		setDirty(); //i think we can wait the 10mins interval between filelist rebuild
-		//forceXmlRefresh = true; 
+		setDirty(); 
+		forceXmlRefresh = true; 
 	}
 }
 

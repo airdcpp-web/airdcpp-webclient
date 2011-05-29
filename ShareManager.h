@@ -397,10 +397,10 @@ private:
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) throw() {
 		save(xml);
-		if(xmlDirty) {
+	/*	if(xmlDirty) {
 			forceXmlRefresh = true;
 			generateXmlList();
-		}
+		}*/
 
 	}
 	void on(SettingsManagerListener::Load, SimpleXML& xml) throw() {
