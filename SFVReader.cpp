@@ -167,15 +167,15 @@ void SFVReaderManager::find(const string& path) {
 	string dir;
 	StringList dirs;
 	
-	 for(FileFindIter i(path + "*"); i != FileFindIter(); ++i) {
+	for(FileFindIter i(path + "*"); i != FileFindIter(); ++i) {
 		try {
-		 if(i->isDirectory()){
-		if (strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0) {
-				dir = path + i->getFileName() + "\\";
-				findMissing(dir);
-				if(SETTING(CHECK_DUPES))
-					findDupes(dir);
-				dirs.push_back(dir);
+			if(i->isDirectory()){
+				if (strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0) {
+					dir = path + i->getFileName() + "\\";
+					findMissing(dir);
+					if(SETTING(CHECK_DUPES))
+						findDupes(dir);
+					dirs.push_back(dir);
 				}
 			}
 		} catch(const FileException&) { } 

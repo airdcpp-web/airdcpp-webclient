@@ -1217,5 +1217,7 @@ enum Strings { // @DontAdd
 	NO_PARTIAL_SUPPORT_RETRY, // "The remote client is too old, retrying soon with full list..."
 	MENU_CUSTOMIZE, // "Download customizations"
 	MENU_GUIDES, // "Guides"
+	SPOTIFY_HELP, // "/spotify - For Spotify media spamming\r\n- %[title]		Artist and the title of the currently playing item\r\n- %[link]		Spotify link to the track being played\r\n\r\nEmpty = Default String -> /me playing on Spotify: %[title] %[link]"
+	SPOTIFY_HELP_DESC, // "Spotify Help"
 	LAST // @DontAdd
 };

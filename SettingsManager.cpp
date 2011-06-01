@@ -63,7 +63,7 @@ const string SettingsManager::settingTags[] =
 	"FinishedVisible", "FinishedULVisible", "DirectoryListingFrameVisible",
 	"RecentFrameOrder", "RecentFrameWidths",
 
-	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "WinampPath",
+	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat","WinampPath",
 	"AntivirPath",
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
@@ -445,6 +445,7 @@ SettingsManager::SettingsManager()
 	setDefault(KICK_MSG_RECENT_19, "");
 	setDefault(KICK_MSG_RECENT_20, "");
 	setDefault(WINAMP_FORMAT, "winamp(%[version]) %[state](%[title]) stats(%[percent] of %[length] %[bar])");
+	setDefault(SPOTIFY_FORMAT, "/me playing on Spotify: %[title] %[link]");
 	setDefault(PROGRESS_TEXT_COLOR_DOWN, RGB(255, 255, 255));
 	setDefault(PROGRESS_TEXT_COLOR_UP, RGB(255, 255, 255));
 	setDefault(SHOW_INFOTIPS, true);

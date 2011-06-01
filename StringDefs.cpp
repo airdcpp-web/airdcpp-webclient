@@ -1210,6 +1210,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "The remote client is too old, retrying soon with full list...", 
 "Download customizations", 
 "Guides", 
+"/spotify - For Spotify media spamming\r\n- %[title]		Artist and the title of the currently playing item\r\n- %[link]		Spotify link to the track being played\r\n\r\nEmpty = Default String -> /me playing on Spotify: %[title] %[link]", 
+"Spotify Help", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2420,4 +2422,6 @@ std::string dcpp::ResourceManager::names[] = {
 "NoPartialSupportRetry", 
 "MenuCustomize", 
 "MenuGuides", 
+"SpotifyHelp", 
+"SpotifyHelpDesc", 
 };
