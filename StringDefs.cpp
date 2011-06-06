@@ -1212,6 +1212,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Guides", 
 "/spotify - For Spotify media spamming\r\n- %[title]		Artist and the title of the currently playing item\r\n- %[link]		Spotify link to the track being played\r\n\r\nEmpty = Default String -> /me playing on Spotify: %[title] %[link]", 
 "Spotify Help", 
+"Play this track on Spotify", 
+"View this artist on Spotify", 
+"View this album on Spotify", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2424,4 +2427,7 @@ std::string dcpp::ResourceManager::names[] = {
 "MenuGuides", 
 "SpotifyHelp", 
 "SpotifyHelpDesc", 
+"SpotifyTrack", 
+"SpotifyArtist", 
+"SpotifyAlbum", 
 };

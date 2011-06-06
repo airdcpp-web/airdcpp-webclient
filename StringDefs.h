@@ -1219,5 +1219,8 @@ enum Strings { // @DontAdd
 	MENU_GUIDES, // "Guides"
 	SPOTIFY_HELP, // "/spotify - For Spotify media spamming\r\n- %[title]		Artist and the title of the currently playing item\r\n- %[link]		Spotify link to the track being played\r\n\r\nEmpty = Default String -> /me playing on Spotify: %[title] %[link]"
 	SPOTIFY_HELP_DESC, // "Spotify Help"
+	SPOTIFY_TRACK, // "Play this track on Spotify"
+	SPOTIFY_ARTIST, // "View this artist on Spotify"
+	SPOTIFY_ALBUM, // "View this album on Spotify"
 	LAST // @DontAdd
 };

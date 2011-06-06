@@ -445,7 +445,7 @@ SettingsManager::SettingsManager()
 	setDefault(KICK_MSG_RECENT_19, "");
 	setDefault(KICK_MSG_RECENT_20, "");
 	setDefault(WINAMP_FORMAT, "winamp(%[version]) %[state](%[title]) stats(%[percent] of %[length] %[bar])");
-	setDefault(SPOTIFY_FORMAT, "/me playing on Spotify: %[title] %[link]");
+	setDefault(SPOTIFY_FORMAT, "/me playing: %[title]     %[link]");
 	setDefault(PROGRESS_TEXT_COLOR_DOWN, RGB(255, 255, 255));
 	setDefault(PROGRESS_TEXT_COLOR_UP, RGB(255, 255, 255));
 	setDefault(SHOW_INFOTIPS, true);
@@ -571,9 +571,9 @@ SettingsManager::SettingsManager()
 	
 	setDefault(SHOW_WINAMP_CONTROL, false);
 	setDefault(MEDIA_PLAYER, 0);
-	setDefault(WMP_FORMAT, "+me playing: %[title] at %[bitrate] <Windows Media Player %[version]>");
-	setDefault(ITUNES_FORMAT, "+me playing: %[title] at %[bitrate] <iTunes %[version]>");
-	setDefault(MPLAYERC_FORMAT, "+me playing: %[title] <Media Player Classic>");
+	setDefault(WMP_FORMAT, "/me playing: %[title] at %[bitrate] <Windows Media Player %[version]>");
+	setDefault(ITUNES_FORMAT, "/me playing: %[title] at %[bitrate] <iTunes %[version]>");
+	setDefault(MPLAYERC_FORMAT, "/me playing: %[title] <Media Player Classic>");
 	setDefault(WINAMP_PATH, "C:\\Program Files\\Winamp\\winamp.exe");
 	setDefault(IGNORE_USE_REGEXP_OR_WC, true);
 	setDefault(NAT_SORT, true);
