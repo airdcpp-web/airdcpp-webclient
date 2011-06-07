@@ -122,9 +122,11 @@ public:
 		return getBZXmlFile();
 	}
 
-	void generateOwnList() {
+	string generateOwnList() {
 	if(xmlDirty)
 		generateList();
+
+	return getBZXmlFile();
 	}
 
 	bool isTTHShared(const TTHValue& tth) const {
