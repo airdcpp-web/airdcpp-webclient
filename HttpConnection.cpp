@@ -160,7 +160,8 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 		}
 		fire(HttpConnectionListener::Redirected(), this, location302);
 
-		downloadFile(location302);
+		//coralizeState = CST_DEFAULT;			
+		downloadFile(location302); 		
 
 	} else if(aLine == "\x0d") {
 		socket->setDataMode(size);
