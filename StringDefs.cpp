@@ -1215,6 +1215,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Play this track on Spotify", 
 "View this artist on Spotify", 
 "View this album on Spotify", 
+"File too big, not shared:", 
+"Don't share files bigger than (0=disable)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2430,4 +2432,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SpotifyTrack", 
 "SpotifyArtist", 
 "SpotifyAlbum", 
+"BigFileNotShared", 
+"DontShareBiggerThan", 
 };

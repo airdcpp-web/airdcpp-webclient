@@ -777,6 +777,10 @@ int HashManager::Hasher::run() {
 				currentSize = w.begin()->second;
 				w.erase(w.begin());
 				last = w.empty();
+				if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (currentSize > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
+					LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + fname);
+					continue;
+				}
 			} else {
 				last = true;
 				fname.clear();

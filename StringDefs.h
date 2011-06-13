@@ -1222,5 +1222,7 @@ enum Strings { // @DontAdd
 	SPOTIFY_TRACK, // "Play this track on Spotify"
 	SPOTIFY_ARTIST, // "View this artist on Spotify"
 	SPOTIFY_ALBUM, // "View this album on Spotify"
+	BIG_FILE_NOT_SHARED, // "File too big, not shared:"
+	DONT_SHARE_BIGGER_THAN, // "Don't share files bigger than (0=disable)"
 	LAST // @DontAdd
 };
