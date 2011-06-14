@@ -123,7 +123,7 @@ private:
 
 	GETSET(uint16_t, time, Time);
 
-	void addToQueue(SearchResultPtr sr, bool pausePrio = false/*, bool dir = false*/);
+	void addToQueue(SearchResultPtr sr, bool pausePrio = false);
 	SearchResultPtr sr;
 	bool endOfList;
 	uint16_t recheckTime;

@@ -283,13 +283,13 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 	}
 }
 
-void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*//*, bool dir False*/ ) {
+void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*/ ) {
 	const string& fullpath = SETTING(DOWNLOAD_DIRECTORY) + Util::getFileName(sr->getFile());
 	if(!ShareManager::getInstance()->isTTHShared(sr->getTTH())) {
 		try {
-			//if(dir)
-			//QueueManager::getInstance()->addDirectorySearch(sr->getFile(), sr->getUser(), sr->getHubURL(), fullpath);
-			//else
+			if(sr->getType() == SearchResult::TYPE_DIRECTORY)
+			QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath);
+			else
 			QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
 			
 			if(pausePrio)
