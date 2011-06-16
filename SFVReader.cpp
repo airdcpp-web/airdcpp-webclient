@@ -214,7 +214,7 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 	dupeDirs.push_back(make_pair(Text::fromT(dirName), path));
 }
 
-StringList SFVReaderManager::findFiles(const string& path, const string& pattern) {
+StringList SFVReaderManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/) {
 	StringList ret;
 
 	WIN32_FIND_DATA data;
@@ -223,8 +223,15 @@ StringList SFVReaderManager::findFiles(const string& path, const string& pattern
 	hFind = ::FindFirstFile(Text::toT(path + pattern).c_str(), &data);
 	if(hFind != INVALID_HANDLE_VALUE) {
 		do {
-			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && !(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
-				ret.push_back(Text::toLower(Text::fromT(data.cFileName)));
+			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)) {
+				if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+					if (dirs && Text::fromT(data.cFileName)[0] != '.') {
+						ret.push_back(Text::fromT(data.cFileName));
+					}
+				} else {
+					ret.push_back(Text::toLower(Text::fromT(data.cFileName)));
+				}
+			}
 		} while(::FindNextFile(hFind, &data));
 
 		::FindClose(hFind);
@@ -237,6 +244,16 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		return false;
 
 	StringList fileList = findFiles(path, "*");
+	StringList folderList;
+
+	if (fileList.empty()) {
+		//check if there are folders
+		folderList = findFiles(path, "*", true);
+		if (folderList.empty()) {
+			LogManager::getInstance()->message(STRING(DIR_EMPTY) + " " + path);
+			return false;
+		}
+	}
 
 	bool extrasInFolder = false;
 	int pos;
@@ -251,6 +268,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 	bool isSample=false;
 	bool isRelease=false;
+	bool found = false;
 
 	reg.assign(_T("(.+\\.nfo)"));
 	reg2.assign(_T("(.+\\.sfv)"));
@@ -296,36 +314,68 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			else
 				reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)))"));
 
-			for(StringIterC i = fileList.begin(); i != fileList.end() && !(isRelease); ++i) {
+			for(i = fileList.begin(); i != fileList.end() && !(isRelease); ++i) {
 				if (regex_match(Text::toT(*i), reg))
 					isRelease=true;
 			}
 
 			//Report extra files in sample folder
-			if (SETTING(CHECK_EXTRA_FILES) && isSample && (nfoFiles > 0 || sfvFiles > 0 || isRelease)) {
-				LogManager::getInstance()->message(STRING(EXTRA_FILES_SAMPLEDIR) + path);
-				extrasFound++;
+			if (SETTING(CHECK_EXTRA_FILES) && isSample) {
+				found = false;
+				if (fileList.size() > 1 && !fileList.empty()) {
+					//check that all files have the same extension.. otherwise there are extras
+					string extensionFirst = fileList[0], extensionLoop;
+					int extPos = extensionFirst.find_last_of(".");
+					if (extPos != string::npos) {
+						extensionFirst = Text::toLower(extensionFirst.substr(extPos, extensionFirst.length()));
+						for(i = fileList.begin(); i != fileList.end(); ++i) {
+							extensionLoop = *i;
+							int extPos = extensionLoop.find_last_of(".");
+							if (extPos != string::npos)
+								extensionLoop = Text::toLower(extensionLoop.substr(extPos, extensionLoop.length()));
+							if (strcmp(extensionLoop.c_str(), extensionFirst.c_str())) {
+								found = true;
+								break;
+							}
+						}
+					}
+				}
+				if (nfoFiles > 0 || sfvFiles > 0 || isRelease || found) {
+					LogManager::getInstance()->message(STRING(EXTRA_FILES_SAMPLEDIR) + path);
+					extrasFound++;
+				}
 			}
 
 			if (isSample)
 				return false;
 
-			//Report missing SFV or NFO
-			if (isRelease) {
-				//Simple regex for release names
-				reg.assign(_T("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))"));
-				if (SETTING(CHECK_NFO) && nfoFiles == 0 && regex_match(dirName,reg)) {
+			//Report missing NFO
+			reg.assign(_T("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))")); //Simple regex for release names
+			if (SETTING(CHECK_NFO) && nfoFiles == 0 && regex_match(dirName,reg)) {
+				found = false;
+				if (fileList.empty()) {
+					//check if there are other releases inside
+					folderList = findFiles(path, "*", true);
+					for(i = folderList.begin(); i != folderList.end(); ++i) {
+						if (regex_match(Text::toT(*i),reg))
+							found = true;
+					}
+				}
+
+				if (!found) {
 					LogManager::getInstance()->message(STRING(NFO_MISSING) + path);
 					missingNFO++;
 				}
-				if (sfvFiles == 0) {
-					reg.assign(_T("(.{0,5}[Ss]ub(s)?)")); //avoid extra matches
-					if (!regex_match(dirName,reg) && SETTING(CHECK_SFV)) {
-						LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
-						missingSFV++;
-					}
-					return false;
+			}
+
+			//Report missing SFV
+			if (sfvFiles == 0 && isRelease) {
+				reg.assign(_T("(.{0,5}[Ss]ub(s)?)")); //avoid extra matches
+				if (!regex_match(dirName,reg) && SETTING(CHECK_SFV)) {
+					LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
+					missingSFV++;
 				}
+				return false;
 			}
 		}
 	}

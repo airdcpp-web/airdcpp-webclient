@@ -102,7 +102,7 @@ friend class Singleton<SFVReaderManager>;
  static tstring getDir(const tstring& dir);
  void findDupes(const string& path) throw(FileException);
  StringPairList dupeDirs;
- StringList findFiles(const string& path, const string& pattern);
+ StringList findFiles(const string& path, const string& pattern, bool dirs = false);
  uint32_t calcCrc32(const string& file) throw(FileException);
  void getScanSize(const string& path) throw(FileException);
 };
