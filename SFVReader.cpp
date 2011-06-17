@@ -352,13 +352,22 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			//Report missing NFO
 			reg.assign(_T("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))")); //Simple regex for release names
 			if (SETTING(CHECK_NFO) && nfoFiles == 0 && regex_match(dirName,reg)) {
+				StringList filesListSub;
 				found = false;
 				if (fileList.empty()) {
-					//check if there are other releases inside
+					found = true;
+					reg.assign(_T("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))"), boost::regex_constants::icase);
 					folderList = findFiles(path, "*", true);
+					//check if there are multiple disks and nfo inside them
 					for(i = folderList.begin(); i != folderList.end(); ++i) {
-						if (regex_match(Text::toT(*i),reg))
-							found = true;
+						if (regex_match(Text::toT(*i),reg)) {
+							found = false;
+							filesListSub = findFiles(path + *i + "\\", "*.nfo");
+							if (!filesListSub.empty()) {
+									found = true;
+									break;
+							}
+						}
 					}
 				}
 

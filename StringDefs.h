@@ -1152,7 +1152,7 @@ enum Strings { // @DontAdd
 	WIZARD, // "Settings Wizard"
 	FORMAT_RELEASE, // "Format Release Names as Links in chat"
 	COPY_DIRECTORY, // "Copy Directory"
-	SEARCH_FOR_ALTERNATES_DIR, // "Search Directory for alternatives"
+	SEARCH_FOR_ALTERNATES_DIR, // "Search Directory for alternates"
 	ERROR_HASHING_CRC32, // "calculated CRC32 does not match the one found in SFV file."
 	SETTINGS_SHARE_SFV, // "Don't perform SFV check for files being hashed into share"
 	SEARCH_DIRECTORY, // "Search Directory"
@@ -1225,5 +1225,6 @@ enum Strings { // @DontAdd
 	BIG_FILE_NOT_SHARED, // "File too big, not shared:"
 	DONT_SHARE_BIGGER_THAN, // "Don't share files bigger than (0=disable)"
 	DIR_EMPTY, // "The directory is empty:"
+	SEARCH_FOR_ALTERNATES_FILE, // "Search File for alternates"
 	LAST // @DontAdd
 };

@@ -1145,7 +1145,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Settings Wizard", 
 "Format Release Names as Links in chat", 
 "Copy Directory", 
-"Search Directory for alternatives", 
+"Search Directory for alternates", 
 "calculated CRC32 does not match the one found in SFV file.", 
 "Don't perform SFV check for files being hashed into share", 
 "Search Directory", 
@@ -1218,6 +1218,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "File too big, not shared:", 
 "Don't share files bigger than (0=disable)", 
 "The directory is empty:", 
+"Search File for alternates", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2436,4 +2437,5 @@ std::string dcpp::ResourceManager::names[] = {
 "BigFileNotShared", 
 "DontShareBiggerThan", 
 "DirEmpty", 
+"SearchForAlternatesFile", 
 };
