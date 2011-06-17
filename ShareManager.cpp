@@ -64,9 +64,6 @@ ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 }
 
 ShareManager::~ShareManager() {
-	
-	if(xmlDirty)
-		generateList(); //generate filelist when exit if its dirty so we dont loose any hashed files.
 
 	SettingsManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
@@ -394,7 +391,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			const string& name = getAttrib(attribs, SNAME, 0);
 			if(!name.empty()) {
 				if(depth == 0) {
-					for(ShareManager::DirList::iterator i = dirs.begin(); i != dirs.end(); ++i) {
+					for(ShareManager::DirList::const_iterator i = dirs.begin(); i != dirs.end(); ++i) {
 						if(stricmp((*i)->getName(), name) == 0) {
 							cur = *i;
 							break;
@@ -1061,7 +1058,7 @@ int ShareManager::run() {
 			std::string virtualname = i->first;
 
 			//lookup for the root dirs under the Vname and erase only those.
-		for(DirList::const_iterator j = directories.begin(); j != directories.end();) {	
+		for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {	
 		if(stricmp((*j)->getName(), virtualname) == 0) {
 			//directories.erase(j++);
 			directories.erase(j);
@@ -1074,8 +1071,6 @@ int ShareManager::run() {
 				directories.clear();
 			}
 
-			//force xml update here for now so users wont complain about subdirectories not showing in own list
-			//lastFullupdate isnt set for directory refresh so need to make it bybass the 15mins guard.
 			forceXmlRefresh = true;
 
 			for(DirList::const_iterator i = newDirs.begin(); i != newDirs.end(); ++i) {

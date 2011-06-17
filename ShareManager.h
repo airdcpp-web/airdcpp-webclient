@@ -63,7 +63,7 @@ public:
 	TTHValue getTTH(const string& virtualFile) const throw(ShareException);
 	
 	int refresh(int refreshOptions);
-	int startRefresh(int refreshOptions);
+	int startRefresh(int refreshOptions) throw();
 	int refresh(const string& aDir);
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
@@ -78,6 +78,20 @@ public:
 		worker.join();
 	}
 
+	void shutdown() {
+		if(xmlDirty || !Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2"))
+			generateList();  //generate filelist when exit if its dirty so we dont loose any hashed files.
+
+		//make sure we have the files.xml.bz2 for next startup so we dont need to refresh
+		if(!Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2")) {
+				string file = getBZXmlFile();
+			try {
+				File::renameFile(file, Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
+			} catch(const FileException&) {
+				// ...
+			}
+		}
+	}
 
 	bool shareFolder(const string& path, bool thoroughCheck = false) const;
 	int64_t removeExcludeFolder(const string &path, bool returnSize = true);
@@ -123,7 +137,8 @@ public:
 	}
 
 	string generateOwnList() {
-	if(xmlDirty)
+	worker.join();
+	if(xmlDirty) 
 		generateList();
 
 	return getBZXmlFile();
