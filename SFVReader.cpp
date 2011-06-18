@@ -228,7 +228,7 @@ StringList SFVReaderManager::findFiles(const string& path, const string& pattern
 					if (dirs && Text::fromT(data.cFileName)[0] != '.') {
 						ret.push_back(Text::fromT(data.cFileName));
 					}
-				} else {
+				} else if (!dirs) {
 					ret.push_back(Text::toLower(Text::fromT(data.cFileName)));
 				}
 			}
@@ -258,28 +258,39 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	bool extrasInFolder = false;
 	int pos;
 	int pos2;
-	boost::wregex reg;
-	boost::wregex reg2;
+	boost::regex reg;
+	boost::regex reg2;
 	int nfoFiles=0;
 	int sfvFiles=0;
 	StringList sfvFileList;
 	StringIterC i;
-	tstring dirName = Util::getDir(Text::toT(path));
+	string dirName = Text::fromT(Util::getDir(Text::toT(path)));
 
 	bool isSample=false;
 	bool isRelease=false;
 	bool found = false;
 
-	reg.assign(_T("(.+\\.nfo)"));
-	reg2.assign(_T("(.+\\.sfv)"));
+	reg.assign("(.+\\.nfo)");
+	reg2.assign("(.+\\.sfv)");
 
 	// Find NFO and SFV files
 	for(i = fileList.begin(); i != fileList.end(); ++i) {
-		if (regex_match(Text::toT(*i), reg)) {
+		if (regex_match(*i, reg)) {
 			nfoFiles++;
-		} else if (regex_match(Text::toT(*i), reg2)) {
+		} else if (regex_match(*i, reg2)) {
 			sfvFileList.push_back(path + *i);
 			sfvFiles++;
+		}
+	}
+
+	if (!fileList.empty() && ((nfoFiles + sfvFiles) == fileList.size()) && (SETTING(CHECK_MISSING))) {
+		reg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
+		if (!regex_match(dirName,reg)) {
+			folderList = findFiles(path, "*", true);
+			if (folderList.empty()) {
+				LogManager::getInstance()->message(STRING(RELEASE_FILES_MISSING) + " " + path);
+				return false;
+			}
 		}
 	}
 
@@ -302,7 +313,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		}
 
 		//Check if it's a sample folder
-		if (!strcmp(Text::fromT(Text::toLower(dirName)).c_str(), "sample")) {
+		if (!strcmp(Text::toLower(dirName).c_str(), "sample")) {
 			isSample=true;
 		}
 
@@ -310,19 +321,19 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 			//Check if it's a release folder
 			if (!SETTING(CHECK_MP3_DIR))
-				reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})))"));
+				reg.assign("(.+\\.((r\\w{2})|(0\\d{2})))");
 			else
-				reg.assign(_T("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)))"));
+				reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)))");
 
 			for(i = fileList.begin(); i != fileList.end() && !(isRelease); ++i) {
-				if (regex_match(Text::toT(*i), reg))
+				if (regex_match(*i, reg))
 					isRelease=true;
 			}
 
 			//Report extra files in sample folder
 			if (SETTING(CHECK_EXTRA_FILES) && isSample) {
 				found = false;
-				if (fileList.size() > 1 && !fileList.empty()) {
+				if (fileList.size() > 1) {
 					//check that all files have the same extension.. otherwise there are extras
 					string extensionFirst = fileList[0], extensionLoop;
 					int extPos = extensionFirst.find_last_of(".");
@@ -330,7 +341,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 						extensionFirst = Text::toLower(extensionFirst.substr(extPos, extensionFirst.length()));
 						for(i = fileList.begin(); i != fileList.end(); ++i) {
 							extensionLoop = *i;
-							int extPos = extensionLoop.find_last_of(".");
+							extPos = extensionLoop.find_last_of(".");
 							if (extPos != string::npos)
 								extensionLoop = Text::toLower(extensionLoop.substr(extPos, extensionLoop.length()));
 							if (strcmp(extensionLoop.c_str(), extensionFirst.c_str())) {
@@ -350,17 +361,17 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				return false;
 
 			//Report missing NFO
-			reg.assign(_T("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))")); //Simple regex for release names
+			reg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))"); //Simple regex for release names
 			if (SETTING(CHECK_NFO) && nfoFiles == 0 && regex_match(dirName,reg)) {
 				StringList filesListSub;
 				found = false;
 				if (fileList.empty()) {
 					found = true;
-					reg.assign(_T("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))"), boost::regex_constants::icase);
+					reg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);
 					folderList = findFiles(path, "*", true);
 					//check if there are multiple disks and nfo inside them
 					for(i = folderList.begin(); i != folderList.end(); ++i) {
-						if (regex_match(Text::toT(*i),reg)) {
+						if (regex_match(*i,reg)) {
 							found = false;
 							filesListSub = findFiles(path + *i + "\\", "*.nfo");
 							if (!filesListSub.empty()) {
@@ -379,7 +390,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 			//Report missing SFV
 			if (sfvFiles == 0 && isRelease) {
-				reg.assign(_T("(.{0,5}[Ss]ub(s)?)")); //avoid extra matches
+				reg.assign("(.{0,8}[Ss]ub(s|pack)?)"); //avoid extra matches
 				if (!regex_match(dirName,reg) && SETTING(CHECK_SFV)) {
 					LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
 					missingSFV++;
@@ -397,7 +408,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		string sfvFile;
 		
 		//regex to match crc32
-		reg.assign(_T("(\\s(\\w{8})$)"));
+		reg.assign("(\\s(\\w{8})$)");
 		int releaseFiles=0;
 		int loopMissing=0;
 
@@ -414,7 +425,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				//make sure that the line is valid
 				pos = line.find(";");
 				pos2 = line.find("\\");
-				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
+				if(regex_search(line, reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
 					releaseFiles++;
 					//only keep the filename
 					pos = line.rfind(" ");
@@ -437,9 +448,9 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		if(SETTING(CHECK_EXTRA_FILES)) {
 			//Find allowed extra files from the release folder
 			int otherAllowed = 0;
-			reg.assign(_T("(.+\\.(jpg|jpeg|m3u|cue|diz))"));
+			reg.assign("(.+\\.(jpg|jpeg|m3u|cue|diz))");
 			for(i = fileList.begin(); i != fileList.end(); ++i) {
-				if (regex_match(Text::toT(*i), reg))
+				if (regex_match(*i, reg))
 					otherAllowed++;
 			}
 

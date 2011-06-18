@@ -1226,5 +1226,6 @@ enum Strings { // @DontAdd
 	DONT_SHARE_BIGGER_THAN, // "Don't share files bigger than (0=disable)"
 	DIR_EMPTY, // "The directory is empty:"
 	SEARCH_FOR_ALTERNATES_FILE, // "Search File for alternates"
+	RELEASE_FILES_MISSING, // "NFO/SFV found but there are no other files in the folder:"
 	LAST // @DontAdd
 };

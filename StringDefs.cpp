@@ -1219,6 +1219,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Don't share files bigger than (0=disable)", 
 "The directory is empty:", 
 "Search File for alternates", 
+"NFO/SFV found but there are no other files in the folder:", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2438,4 +2439,5 @@ std::string dcpp::ResourceManager::names[] = {
 "DontShareBiggerThan", 
 "DirEmpty", 
 "SearchForAlternatesFile", 
+"ReleaseFilesMissing", 
 };
