@@ -243,32 +243,24 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	if(path.empty())
 		return false;
 
-	StringList fileList = findFiles(path, "*");
-	StringList folderList;
+	StringList sfvFileList, folderList, fileList = findFiles(path, "*");
 
 	if (fileList.empty()) {
 		//check if there are folders
 		folderList = findFiles(path, "*", true);
 		if (folderList.empty()) {
-			LogManager::getInstance()->message(STRING(DIR_EMPTY) + " " + path);
+			if (SETTING(CHECK_EMPTY_DIRS))
+				LogManager::getInstance()->message(STRING(DIR_EMPTY) + " " + path);
 			return false;
 		}
 	}
 
-	bool extrasInFolder = false;
-	int pos;
-	int pos2;
-	boost::regex reg;
-	boost::regex reg2;
-	int nfoFiles=0;
-	int sfvFiles=0;
-	StringList sfvFileList;
+	boost::regex reg, reg2;
+	int nfoFiles=0, sfvFiles=0, pos, pos2;
+	bool isSample=false, isRelease=false, found = false, extrasInFolder = false;
+
 	StringIterC i;
 	string dirName = Text::fromT(Util::getDir(Text::toT(path)));
-
-	bool isSample=false;
-	bool isRelease=false;
-	bool found = false;
 
 	reg.assign("(.+\\.nfo)");
 	reg2.assign("(.+\\.sfv)");
@@ -283,7 +275,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		}
 	}
 
-	if (!fileList.empty() && ((nfoFiles + sfvFiles) == fileList.size()) && (SETTING(CHECK_MISSING))) {
+	if (!fileList.empty() && ((nfoFiles + sfvFiles) == fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
 		reg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
 		if (!regex_match(dirName,reg)) {
 			folderList = findFiles(path, "*", true);

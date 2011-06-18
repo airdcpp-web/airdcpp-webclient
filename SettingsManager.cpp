@@ -151,6 +151,7 @@ const string SettingsManager::settingTags[] =
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
 	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRun", "FormatRelease", "ShareSFV", "LogLines",
 	"CheckMissing", "CheckSfv", "CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "SortDirs", "DecreaseRam", "MaxFileSizeShared",
+	"CheckEmptyDirs","CheckEmptyReleases",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -662,6 +663,9 @@ SettingsManager::SettingsManager()
 	setDefault(CHECK_MP3_DIR, false);
 	setDefault(CHECK_EXTRA_SFV_NFO, false);
 	setDefault(CHECK_EXTRA_FILES, false);
+	setDefault(CHECK_DUPES, false);
+	setDefault(CHECK_EMPTY_DIRS, true);
+	setDefault(CHECK_EMPTY_RELEASES, true);
 	setDefault(CHECK_DUPES, false);
 	setDefault(SORT_DIRS, false);
 	setDefault(MAX_FILE_SIZE_SHARED, 0);

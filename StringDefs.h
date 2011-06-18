@@ -1227,5 +1227,7 @@ enum Strings { // @DontAdd
 	DIR_EMPTY, // "The directory is empty:"
 	SEARCH_FOR_ALTERNATES_FILE, // "Search File for alternates"
 	RELEASE_FILES_MISSING, // "NFO/SFV found but there are no other files in the folder:"
+	CHECK_EMPTY_RELEASES, // "Check if the folder only contains NFO/SFV file"
+	CHECK_EMPTY_DIRS, // "Check if the directory is empty"
 	LAST // @DontAdd
 };
