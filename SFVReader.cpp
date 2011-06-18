@@ -327,15 +327,27 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				found = false;
 				if (fileList.size() > 1) {
 					//check that all files have the same extension.. otherwise there are extras
-					string extensionFirst = fileList[0], extensionLoop;
-					int extPos = extensionFirst.find_last_of(".");
-					if (extPos != string::npos) {
-						extensionFirst = Text::toLower(extensionFirst.substr(extPos, extensionFirst.length()));
+					reg.assign("(.*jp(e)?g)", boost::regex_constants::icase);
+					string extensionFirst, extensionLoop;
+					int extPos;
+					for(i = fileList.begin(); i != fileList.end(); ++i) {
+						if (!regex_match(*i, reg)) {
+							extensionFirst = *i;
+							extPos = extensionFirst.find_last_of(".");
+							if (extPos != string::npos)
+								extensionFirst = Text::toLower(extensionFirst.substr(extPos, extensionFirst.length()));
+							break;
+						}
+					}
+					if (!extensionFirst.empty()) {
 						for(i = fileList.begin(); i != fileList.end(); ++i) {
 							extensionLoop = *i;
 							extPos = extensionLoop.find_last_of(".");
-							if (extPos != string::npos)
+							if (extPos != string::npos) {
 								extensionLoop = Text::toLower(extensionLoop.substr(extPos, extensionLoop.length()));
+								if (regex_match(extensionLoop, reg))
+									continue;
+							}
 							if (strcmp(extensionLoop.c_str(), extensionFirst.c_str())) {
 								found = true;
 								break;
