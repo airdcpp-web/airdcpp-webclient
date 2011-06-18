@@ -350,6 +350,19 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 	for(Iter i = directories.begin(); i != directories.end(); ++i) (*i)->getHashList(l);
 	for(DirectoryListing::File::Iter i = files.begin(); i != files.end(); ++i) l.insert((*i)->getTTH());
 }
+	
+StringList DirectoryListing::getLocalPaths(const File* f) {
+	
+	try {
+	
+		return ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()));
+
+	} catch(const ShareException&) {
+
+		return StringList();
+	}
+}
+
 
 StringList DirectoryListing::getLocalPaths(const Directory* d) {
 	

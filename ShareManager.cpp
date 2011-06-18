@@ -297,18 +297,25 @@ StringList ShareManager::getRealPaths(const std::string path) {
 		throw ShareException("empty virtual path");
 
 		StringList result;	
-	
+		string dir;
 		Directory::Ptr d = splitVirtual(path).first;
 
 		if(*(path.end() - 1) == '/') {
 
 		if(d->getParent()) {
-			result.push_back( d->getParent()->getRealPath(d->getName()));
+			dir = d->getParent()->getRealPath(d->getName());
+			if(dir[dir.size() -1] != '\\') 
+				dir += "\\";
+			result.push_back( dir );
 		} else {
  			for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
 				if(stricmp(i->second, d->getName()) == 0) {
 					if(FileFindIter(i->first.substr(0, i->first.size() - 1)) != FileFindIter()) {
-					result.push_back(  i->first );
+						dir = i->first;
+						if(dir[dir.size() -1] != '\\') 
+						dir += "\\";
+
+						result.push_back( dir );
 
 					}
 				}

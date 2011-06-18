@@ -165,6 +165,7 @@ public:
 	const Directory* getRoot() const { return root; }
 	Directory* getRoot() { return root; }
 	StringList getLocalPaths(const Directory* d);
+	StringList getLocalPaths(const File* f);
 
 	static UserPtr getUserFromFilename(const string& fileName);
 	void checkDupes();
