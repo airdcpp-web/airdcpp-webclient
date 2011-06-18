@@ -666,7 +666,6 @@ SettingsManager::SettingsManager()
 	setDefault(CHECK_DUPES, false);
 	setDefault(CHECK_EMPTY_DIRS, true);
 	setDefault(CHECK_EMPTY_RELEASES, true);
-	setDefault(CHECK_DUPES, false);
 	setDefault(SORT_DIRS, false);
 	setDefault(MAX_FILE_SIZE_SHARED, 0);
 
