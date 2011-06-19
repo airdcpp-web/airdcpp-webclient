@@ -1177,7 +1177,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Check missing release files", 
 "Check missing SFV files", 
 "Check missing NFO files", 
-"Check missing SFV or NFO files from MP3 directories (if enabled)", 
+"Check missing SFV or NFO files from music directories (if enabled)", 
 "Check extra SFV/NFO files", 
 "Check extra files in the release folders", 
 "Check duplicate directory names", 

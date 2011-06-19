@@ -257,7 +257,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 	boost::regex reg, reg2;
 	int nfoFiles=0, sfvFiles=0, pos, pos2;
-	bool isSample=false, isRelease=false, found = false, extrasInFolder = false;
+	bool isSample=false, isRelease=false, isZipRls=false, found = false, extrasInFolder = false;
 
 	StringIterC i;
 	string dirName = Text::fromT(Util::getDir(Text::toT(path)));
@@ -311,15 +311,57 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 		if (nfoFiles == 0 || sfvFiles == 0 || isSample) {
 
-			//Check if it's a release folder
+			//Check if it's a RAR/Music release folder
 			if (!SETTING(CHECK_MP3_DIR))
 				reg.assign("(.+\\.((r\\w{2})|(0\\d{2})))");
 			else
-				reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)))");
+				reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))");
 
-			for(i = fileList.begin(); i != fileList.end() && !(isRelease); ++i) {
-				if (regex_match(*i, reg))
+			for(i = fileList.begin(); i != fileList.end(); ++i) {
+				if (regex_match(*i, reg)) {
 					isRelease=true;
+					break;
+				}
+			}
+
+			if (!isRelease) {
+
+				//Check if it's a zip release folder
+				reg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+				if (regex_match(dirName, reg)) {
+					reg.assign("(.+\\.zip)");
+					for(i = fileList.begin(); i != fileList.end(); ++i) {
+						if (regex_match(*i, reg)) {
+							isZipRls=true;
+							break;
+						}
+					}
+				}
+
+				//Check if it's a Mvid release folder
+				reg.assign("(?=\\S*[A-Z]\\S*)(([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S+)))(\\S+)-(\\w{2,})");
+				if (!isZipRls && regex_match(dirName, reg)) {
+					reg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))");
+					for(i = fileList.begin(); i != fileList.end(); ++i) {
+						if (regex_match(*i, reg)) {
+							isRelease=true;
+							break;
+						}
+					}
+				}
+
+				//Report extra files in a zip folder
+				if (isZipRls && SETTING(CHECK_EXTRA_FILES)) {
+					reg.assign("(.+\\.(jp(e)?g|m3u|cue|diz|zip|nfo))");
+					for(i = fileList.begin(); i != fileList.end(); ++i) {
+						if (!regex_match(*i, reg)) {
+							LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path + *i);
+							extrasInFolder = true;
+						}
+					}
+					if (extrasInFolder)
+						extrasFound++;
+				}
 			}
 
 			//Report extra files in sample folder
@@ -452,7 +494,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		if(SETTING(CHECK_EXTRA_FILES)) {
 			//Find allowed extra files from the release folder
 			int otherAllowed = 0;
-			reg.assign("(.+\\.(jpg|jpeg|m3u|cue|diz))");
+			reg.assign("(.+\\.(jp(e)?g|m3u|cue|diz))");
 			for(i = fileList.begin(); i != fileList.end(); ++i) {
 				if (regex_match(*i, reg))
 					otherAllowed++;

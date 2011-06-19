@@ -1184,7 +1184,7 @@ enum Strings { // @DontAdd
 	CHECK_MISSING, // "Check missing release files"
 	CHECK_SFV, // "Check missing SFV files"
 	CHECK_NFO, // "Check missing NFO files"
-	CHECK_MP3_DIR, // "Check missing SFV or NFO files from MP3 directories (if enabled)"
+	CHECK_MP3_DIR, // "Check missing SFV or NFO files from music directories (if enabled)"
 	CHECK_EXTRA_SFV_NFO, // "Check extra SFV/NFO files"
 	CHECK_EXTRA_FILES, // "Check extra files in the release folders"
 	CHECK_DUPES, // "Check duplicate directory names"
