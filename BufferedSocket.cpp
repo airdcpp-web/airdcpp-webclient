@@ -107,7 +107,7 @@ void BufferedSocket::connect(const string& aAddress, uint16_t aPort, uint16_t lo
 
 	s->create();
 	setSocket(move(s));
-	sock->bind(localPort, SETTING(BIND_ADDRESS));
+	sock->bind(localPort, BOOLSETTING(AUTO_DETECT_CONNECTION) ? Util::emptyString : SETTING(BIND_ADDRESS));
 	
 	Lock l(cs);
 	addTask(CONNECT, new ConnectInfo(aAddress, aPort, localPort, natRole, proxy && (SETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5)));

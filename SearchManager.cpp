@@ -145,7 +145,7 @@ int SearchManager::run() {
 				socket->create(Socket::TYPE_UDP);
 				socket->setBlocking(true);
 				socket->setSocketOpt(SO_RCVBUF, SETTING(SOCKET_IN_BUFFER));
-				socket->bind(port, SETTING(BIND_ADDRESS));
+				socket->bind(port, BOOLSETTING(AUTO_DETECT_CONNECTION) ? Util::emptyString : SETTING(BIND_ADDRESS));
 				if(failed) {
 					LogManager::getInstance()->message("Search enabled again"); // TODO: translate
 					failed = false;

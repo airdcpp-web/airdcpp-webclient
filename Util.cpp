@@ -1281,8 +1281,8 @@ tstring Util::getDir(tstring dir) {
 			if(dir[dir.size() -1] == '\\')
 				directory = directory.substr(0, directory.size()-1);
 
-			int dpos = directory.rfind("\\");
-			if(dpos != (int)tstring::npos) {
+			size_t dpos = directory.rfind("\\");
+			if(dpos != tstring::npos) {
 				directory = directory.substr(dpos+1,directory.size());
 			}
 		}
@@ -1298,8 +1298,8 @@ tstring Util::validateDir(tstring dir) {
 			if (regex_match(Text::toT(directory), reg)) {
 				if(dir[dir.size() -1] == '\\')
 					directory = directory.substr(0, directory.size()-1);
-				int dpos = directory.rfind("\\");
-				if(dpos != (int)tstring::npos) {
+				size_t dpos = directory.rfind("\\");
+				if(dpos != tstring::npos) {
 					directory = directory.substr(0,dpos+1);
 				}
 			} else {

@@ -633,7 +633,7 @@ enum Strings { // @DontAdd
 	SETTINGS_FILTER_ENTER, // "Activate search/userlist filter by pressing Enter"
 	SETTINGS_FIREWALL_NAT, // "Firewall with manual port forwarding"
 	SETTINGS_FIREWALL_PASSIVE, // "Firewall (passive, worst case)"
-	SETTINGS_FIREWALL_UPNP, // "Firewall with UPnP (WinXP+ only)"
+	SETTINGS_FIREWALL_UPNP, // "Firewall with UPnP"
 	SETTINGS_FORMAT, // "Format"
 	SETTINGS_GENERAL, // "General"
 	SETTINGS_GET_USER_COUNTRY, // "Get User Country"

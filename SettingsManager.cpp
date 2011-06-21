@@ -281,7 +281,7 @@ SettingsManager::SettingsManager()
 	setDefault(SKIP_ZERO_BYTE, false);
 	setDefault(ADLS_BREAK_ON_FIRST, false);
 	setDefault(HUB_USER_COMMANDS, true);
-	setDefault(AUTO_SEARCH_AUTO_MATCH, true);
+	setDefault(AUTO_SEARCH_AUTO_MATCH, false);
 	setDefault(LOG_FILELIST_TRANSFERS, false);
 	setDefault(LOG_SYSTEM, true);
 	setDefault(SEND_UNKNOWN_COMMANDS, false);

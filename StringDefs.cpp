@@ -630,7 +630,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Activate search/userlist filter by pressing Enter", 
 "Firewall with manual port forwarding", 
 "Firewall (passive, worst case)", 
-"Firewall with UPnP (WinXP+ only)", 
+"Firewall with UPnP", 
 "Format", 
 "General", 
 "Get User Country", 
