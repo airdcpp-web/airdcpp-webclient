@@ -257,7 +257,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 	boost::regex reg, reg2;
 	int nfoFiles=0, sfvFiles=0, pos, pos2;
-	bool isSample=false, isRelease=false, isZipRls=false, found = false, extrasInFolder = false;
+	bool isSample=false, isRelease=false, isZipRls=false, found=false, extrasInFolder = false;
 
 	StringIterC i;
 	string dirName = Text::fromT(Util::getDir(Text::toT(path)));
@@ -309,7 +309,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 			isSample=true;
 		}
 
-		if (nfoFiles == 0 || sfvFiles == 0 || isSample) {
+		if (nfoFiles == 0 || sfvFiles == 0 || isSample || SETTING(CHECK_EXTRA_FILES)) {
 
 			//Check if it's a RAR/Music release folder
 			if (!SETTING(CHECK_MP3_DIR))
@@ -352,7 +352,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 				//Report extra files in a zip folder
 				if (isZipRls && SETTING(CHECK_EXTRA_FILES)) {
-					reg.assign("(.+\\.(jp(e)?g|m3u|cue|diz|zip|nfo))");
+					reg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo))");
 					for(i = fileList.begin(); i != fileList.end(); ++i) {
 						if (!regex_match(*i, reg)) {
 							LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path + *i);
@@ -369,7 +369,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				found = false;
 				if (fileList.size() > 1) {
 					//check that all files have the same extension.. otherwise there are extras
-					reg.assign("(.*jp(e)?g)", boost::regex_constants::icase);
+					reg.assign("(.*(jp(e)?g|png))", boost::regex_constants::icase);
 					string extensionFirst, extensionLoop;
 					int extPos;
 					for(i = fileList.begin(); i != fileList.end(); ++i) {
@@ -491,10 +491,19 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		missingFiles += loopMissing;
 		releaseFiles = releaseFiles - loopMissing;
 
-		if(SETTING(CHECK_EXTRA_FILES)) {
+		if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles)) {
 			//Find allowed extra files from the release folder
 			int otherAllowed = 0;
-			reg.assign("(.+\\.(jp(e)?g|m3u|cue|diz))");
+			reg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
+			reg2.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
+			if (regex_match(dirName, reg)) {
+				reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
+			}
+			else if (regex_match(dirName, reg2))
+				reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
+			else
+				reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
+
 			for(i = fileList.begin(); i != fileList.end(); ++i) {
 				if (regex_match(*i, reg))
 					otherAllowed++;
