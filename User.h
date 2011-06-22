@@ -102,7 +102,7 @@ public:
 		AWAY		= 0x02,
 		TLS			= 0x10,
 		NAT			= 0x20,
-		AIRDC		= 0x80,
+		AIRDC		= 0x40
 	};
 	
 	Identity() { }
