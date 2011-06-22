@@ -114,14 +114,14 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 		if(!param.empty()) {
 			x = param.find(" Pk=");
 			if(x != string::npos) {
-				fire(UserConnectionListener::CLock(), this, param.substr(0, x), param.substr(x + 4));
+				fire(UserConnectionListener::CLock(), this, param.substr(0, x));
 			} else {
 				// Workaround for faulty linux clients...
 				x = param.find(' ');
 				if(x != string::npos) {
-					fire(UserConnectionListener::CLock(), this, param.substr(0, x), Util::emptyString);
+					fire(UserConnectionListener::CLock(), this, param.substr(0, x));
 	    		} else {
-					fire(UserConnectionListener::CLock(), this, param, Util::emptyString);
+					fire(UserConnectionListener::CLock(), this, param);
     			}
 	        }
        	}

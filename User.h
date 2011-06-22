@@ -37,7 +37,7 @@ public:
 	/** Each flag is set if it's true in at least one hub */
 	enum UserFlags {
 		ONLINE					= 0x01,
-		DCPLUSPLUS				= 0x02,
+		AIRDCPLUSPLUS			= 0x02,
 		PASSIVE					= 0x04,
 		NMDC					= 0x08,
 		BOT						= 0x10,
@@ -101,7 +101,8 @@ public:
 		NORMAL		= 0x01,
 		AWAY		= 0x02,
 		TLS			= 0x10,
-		NAT			= 0x20
+		NAT			= 0x20,
+		AIRDC		= 0x80,
 	};
 	
 	Identity() { }

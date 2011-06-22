@@ -148,6 +148,7 @@
 //#include <regex>
 
 namespace dcpp {
+
 	using namespace std;
 
 }

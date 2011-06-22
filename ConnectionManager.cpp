@@ -137,7 +137,7 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) throw(
 
 void ConnectionManager::putConnection(UserConnection* aConn) {
 	aConn->removeListener(this);
-	aConn->disconnect(true);
+	aConn->disconnect();
 
 	Lock l(cs);
 	userConnections.erase(remove(userConnections.begin(), userConnections.end(), aConn), userConnections.end());
@@ -578,7 +578,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 	aSource->setState(UserConnection::STATE_LOCK);
 }
 
-void ConnectionManager::on(UserConnectionListener::CLock, UserConnection* aSource, const string& aLock, const string& aPk) throw() {
+void ConnectionManager::on(UserConnectionListener::CLock, UserConnection* aSource, const string& aLock) throw() {
 	if(aSource->getState() != UserConnection::STATE_LOCK) {
 		dcdebug("CM::onLock %p received lock twice, ignoring\n", (void*)aSource);
 		return;
@@ -586,9 +586,9 @@ void ConnectionManager::on(UserConnectionListener::CLock, UserConnection* aSourc
 
 	if( CryptoManager::getInstance()->isExtended(aLock) ) {
 		// Alright, we have an extended protocol, set a user flag for this user and refresh his info...
-		if( (aPk.find("DCPLUSPLUS") != string::npos) && aSource->getUser() && !aSource->getUser()->isSet(User::DCPLUSPLUS)) {
-			aSource->getUser()->setFlag(User::DCPLUSPLUS);
-		}
+	//	if( (aPk.find("DCPLUSPLUS") != string::npos) && aSource->getUser() && !aSource->getUser()->isSet(User::DCPLUSPLUS)) {
+		//	aSource->getUser()->setFlag(User::DCPLUSPLUS);
+		//}
 		StringList defFeatures = features;
 		if(BOOLSETTING(COMPRESS_TRANSFERS)) {
 			defFeatures.push_back(UserConnection::FEATURE_ZLIB_GET);
@@ -872,6 +872,8 @@ void ConnectionManager::on(UserConnectionListener::Supports, UserConnection* con
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_TTHF);
 		} else if(*i == UserConnection::FEATURE_AIRDC) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_AIRDC);
+			if(!conn->getUser()->isSet(User::AIRDCPLUSPLUS))
+			conn->getUser()->setFlag(User::AIRDCPLUSPLUS);
 		}
 	}
 

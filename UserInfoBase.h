@@ -47,7 +47,7 @@ public:
 	static uint8_t getImage(const Identity& u, const Client* c) {
 		uint8_t image = u.isOp() ? IMAGE_OP : IMAGE_USER;
 
-		if(u.getUser()->isSet(User::DCPLUSPLUS)) {
+		if(u.getUser()->isSet(User::AIRDCPLUSPLUS)) {
 			image += 2;
 		}
 

@@ -185,7 +185,7 @@ private:
 	void on(Connected, UserConnection*) throw();
 	void on(Failed, UserConnection*, const string&) throw();
 	void on(ProtocolError, UserConnection*, const string&) throw();
-	void on(CLock, UserConnection*, const string&, const string&) throw();
+	void on(CLock, UserConnection*, const string&) throw();
 	void on(Key, UserConnection*, const string&) throw();
 	void on(Direction, UserConnection*, const string&, const string&) throw();
 	void on(MyNick, UserConnection*, const string&) throw();

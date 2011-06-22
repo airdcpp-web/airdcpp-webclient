@@ -419,6 +419,12 @@ void NmdcHub::onLine(const string& aLine) throw() {
 			u.getUser()->unsetFlag(User::TLS);
 		}
 
+		if(u.getIdentity().getStatus() & Identity::AIRDC) {
+			u.getUser()->setFlag(User::AIRDCPLUSPLUS);
+		} else {
+			u.getUser()->unsetFlag(User::AIRDCPLUSPLUS);
+		}
+
 		if(u.getIdentity().getStatus() & Identity::NAT) {
 			u.getUser()->setFlag(User::NAT_TRAVERSAL);
 		} else {
@@ -674,7 +680,7 @@ void NmdcHub::onLine(const string& aLine) throw() {
 			OnlineUser& u = getUser(param);
 
 			if(u.getUser() == getMyIdentity().getUser()) {
-				u.getUser()->setFlag(User::DCPLUSPLUS);
+				u.getUser()->setFlag(User::AIRDCPLUSPLUS);
 				if(isActive())
 					u.getUser()->unsetFlag(User::PASSIVE);
 				else
@@ -914,6 +920,8 @@ void NmdcHub::myInfo(bool alwaysSend) {
 		dc = "++";
 	} else {
 		dc = "AirDC++";
+
+		StatusMode |= Identity::AIRDC;
 
 		//keep it here, will have svnversion string maybe
 		version = VERSIONSTRING;

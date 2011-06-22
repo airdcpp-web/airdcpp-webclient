@@ -55,7 +55,7 @@ public:
 	virtual void on(Data, UserConnection*, const uint8_t*, size_t) throw() { }
 	virtual void on(Failed, UserConnection*, const string&) throw() { }
 	virtual void on(ProtocolError, UserConnection*, const string&) throw() { }
-	virtual void on(CLock, UserConnection*, const string&, const string&) throw() { }
+	virtual void on(CLock, UserConnection*, const string&) throw() { }
 	virtual void on(Key, UserConnection*, const string&) throw() { }
 	virtual void on(Direction, UserConnection*, const string&, const string&) throw() { }
 	virtual void on(Get, UserConnection*, const string&, int64_t) throw() { }
