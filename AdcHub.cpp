@@ -176,6 +176,14 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) throw() {
 		} else {
 			u->getIdentity().set(i->c_str(), i->substr(2));
 		}
+		
+		if(i->substr(0, 2) == "VE") {
+			if (i->find("AirDC++") != string::npos) {
+				u->getUser()->setFlag(User::AIRDCPLUSPLUS);
+			} else {
+				u->getUser()->unsetFlag(User::AIRDCPLUSPLUS);
+			}
+		}
 	}
 
 	if(u->getIdentity().isBot()) {
