@@ -157,6 +157,9 @@ void NmdcHub::updateFromTag(Identity& id, const string& tag) {
 	string::size_type j;
 	size_t slots = 1;
 	id.set("US", Util::emptyString);
+	if(tag.find("AirDC++") != string::npos)
+		id.getUser()->setFlag(User::AIRDCPLUSPLUS);
+
 	for(StringIter i = tok.getTokens().begin(); i != tok.getTokens().end(); ++i) {
 		if(i->length() < 2)
 			continue;
@@ -419,11 +422,9 @@ void NmdcHub::onLine(const string& aLine) throw() {
 			u.getUser()->unsetFlag(User::TLS);
 		}
 
-		if(u.getIdentity().getStatus() & Identity::AIRDC) {
-			u.getUser()->setFlag(User::AIRDCPLUSPLUS);
-		} else {
-			u.getUser()->unsetFlag(User::AIRDCPLUSPLUS);
-		}
+		if((u.getIdentity().getStatus() & Identity::AIRDC) && !u.getUser()->isSet(User::AIRDCPLUSPLUS))
+			u.getUser()->setFlag(User::AIRDCPLUSPLUS); //if we have a tag its already set.
+
 
 		if(u.getIdentity().getStatus() & Identity::NAT) {
 			u.getUser()->setFlag(User::NAT_TRAVERSAL);
@@ -925,9 +926,6 @@ void NmdcHub::myInfo(bool alwaysSend) {
 
 		//keep it here, will have svnversion string maybe
 		version = VERSIONSTRING;
-		if(Util::getAway()) {
-			StatusMode |= Identity::AWAY;
-		}
 
 		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL) && !isActive()) {
 			StatusMode |= Identity::NAT;

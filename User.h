@@ -99,8 +99,7 @@ public:
 	
 	enum StatusFlags {
 		NORMAL		= 0x01,
-		AWAY		= 0x02,
-		TLS			= 0x10,
+		TLS			= 0x10, //do not change the values so its compatible with older...
 		NAT			= 0x20,
 		AIRDC		= 0x40
 	};
@@ -142,7 +141,6 @@ public:
 	bool isRegistered() const { return isClientType(CT_REGGED) || isSet("RG"); }
 	bool isHidden() const { return isClientType(CT_HIDDEN) || isSet("HI"); }
 	bool isBot() const { return isClientType(CT_BOT) || isSet("BO"); }
-	bool isAway() const { return (getStatus() & AWAY) || isSet("AW"); }
 	bool isTcpActive(const Client* = NULL) const;
 	bool isUdpActive() const;
 	string get(const char* name) const;
