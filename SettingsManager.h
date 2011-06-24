@@ -316,7 +316,42 @@ public:
 	const SearchTypes& getSearchTypes() const {
 		return searchTypes;
 	}
+	
 	const StringList& getExtensions(const string& name);
+
+	TStringList getSearchHistory() const {
+		Lock l(cs);
+		return searchHistory;
+	}
+
+	bool addSearchToHistory(const tstring& search) {
+		if(search.empty())
+			return false;
+		Lock l(cs);
+		bool found=false;
+
+		for(TStringIterC i = searchHistory.begin(); i != searchHistory.end(); ++i) {
+			string histItem = Text::fromT(*i);
+			if (strcmp(histItem.c_str(), Text::fromT(search).c_str()) == 0) {
+				searchHistory.erase(i);
+				found=true;
+			}
+		}
+
+		if (!found) {
+			if (searchHistory.size() > (getInstance()->get(SEARCH_HISTORY)))
+				searchHistory.erase(searchHistory.begin());
+		}
+
+		searchHistory.push_back(search);
+
+		return true;
+	}
+
+	void clearSearchHistory() {
+		Lock l(cs);
+		searchHistory.clear();
+	}
 
 private:
 	friend class Singleton<SettingsManager>;
@@ -332,6 +367,7 @@ private:
 	int    intDefaults[INT_LAST - INT_FIRST];
 	int64_t int64Defaults[INT64_LAST - INT64_FIRST];
 	bool isSet[SETTINGS_LAST];
+	TStringList searchHistory;
 
 	StringPairList fileEvents;
 	mutable CriticalSection cs;

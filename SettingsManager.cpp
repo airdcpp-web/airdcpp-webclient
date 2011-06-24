@@ -757,6 +757,16 @@ void SettingsManager::load(string const& aFileName)
 			}
 		}
 
+		xml.resetCurrentChild();
+		if(xml.findChild("SearchHistory")) {
+			xml.stepIn();
+			while(xml.findChild("Search")) {
+				addSearchToHistory(Text::toT(xml.getChildData()));
+			}
+			xml.stepOut();
+		}
+
+
 		if(SETTING(PRIVATE_ID).length() != 39 || CID(SETTING(PRIVATE_ID)).isZero()) {
 			set(PRIVATE_ID, CID::generate().toBase32());
 		}
@@ -861,6 +871,17 @@ void SettingsManager::save(string const& aFileName) {
 		{
 			xml.addTag(settingTags[i], get(Int64Setting(i), false));
 			xml.addChildAttrib(type, curType);
+		}
+	}
+	xml.stepOut();
+
+	xml.addTag("SearchHistory");
+	xml.stepIn();
+	{
+		Lock l(cs);
+		for(TStringIter i = searchHistory.begin(); i != searchHistory.end(); ++i) {
+			string tmp = Text::fromT(*i);
+			xml.addTag("Search", tmp);
 		}
 	}
 	xml.stepOut();
