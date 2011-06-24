@@ -56,6 +56,10 @@ public:
 			image += 4;
 		}		
 
+		if(u.getUser()->isSet(User::BOT)) {
+			image = 8;
+		}
+
 		return image;
 	}
 };
