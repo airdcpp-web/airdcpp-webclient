@@ -124,7 +124,6 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 }
 
 void shutdown() {
-	ShareManager::getInstance()->shutdown();
 	TimerManager::getInstance()->shutdown();
 	HashManager::getInstance()->shutdown();
 	ConnectionManager::getInstance()->shutdown();
@@ -133,7 +132,7 @@ void shutdown() {
 	
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
-	
+	ShareManager::getInstance()->shutdown();
 
 	UPnPManager::deleteInstance();
 	ConnectivityManager::deleteInstance();

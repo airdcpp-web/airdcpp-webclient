@@ -1548,7 +1548,40 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 namespace {
 	inline uint16_t toCode(char a, char b) { return (uint16_t)a | ((uint16_t)b)<<8; }
 }
+bool ShareManager::isDirShared(const string& directory) {
+	bool found = false;
+	string dir = directory;
 
+	if(dir[dir.size() -1] == '\\') 
+		dir = dir.substr(0, (dir.size() -1));
+
+	boost::regex reg;
+	reg.assign("((([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S*)))(\\S+)-((?=\\w*[A-Z]\\w*)|\\d{3,7})(\\w+))");
+	if(!boost::regex_match(dir, reg))  //if its not a release folder dont bother to check
+		return false;
+
+
+	for(DirList::const_iterator j = directories.begin(); j != directories.end(); ++j) {
+		found = (*j)->find(dir);
+		if(found)
+			break;
+	}
+	return found;
+}
+
+bool ShareManager::Directory::find(const string& dir) {
+	bool found = false;
+	
+	if(stricmp(Text::toLower(dir), Text::toLower(name)) == 0)
+		return true;
+
+	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
+			found = l->second->find(dir);
+			if(found)
+				break;
+	}
+	return found;
+}
 ShareManager::AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
 	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false)
 {

@@ -79,7 +79,7 @@ public:
 	}
 
 	void shutdown() {
-		if(xmlDirty || !Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2"))
+		if(xmlDirty)
 			generateList();  //generate filelist when exit if its dirty so we dont loose any hashed files.
 
 		//make sure we have the files.xml.bz2 for next startup so we dont need to refresh
@@ -88,6 +88,7 @@ public:
 			try {
 				File::renameFile(file, Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
 			} catch(const FileException&) {
+				generateList(); //for some reason we failed to rename
 				// ...
 			}
 		}
@@ -99,6 +100,7 @@ public:
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) throw();
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) throw();
+	bool isDirShared(const string& directory);
 
 	bool loadCache() throw();
 
@@ -250,7 +252,8 @@ private:
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) const throw();
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const throw();
-		
+		bool find(const string& dir);
+
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
 
