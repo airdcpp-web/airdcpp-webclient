@@ -193,7 +193,7 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 	if(path.empty())
 		return;
 	
-	tstring dirName = Util::getDir(Text::toT(path));
+	tstring dirName = Util::getDir(Text::toT(path), false, true);
 	string listfolder;
 
 	boost::wregex reg;
@@ -260,7 +260,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	bool isSample=false, isRelease=false, isZipRls=false, found=false, extrasInFolder = false;
 
 	StringIterC i;
-	string dirName = Text::fromT(Util::getDir(Text::toT(path)));
+	string dirName = Text::fromT(Util::getDir(Text::toT(path), false, true));
 
 	reg.assign("(.+\\.nfo)");
 	reg2.assign("(.+\\.sfv)");

@@ -328,20 +328,9 @@ public:
 		if(search.empty())
 			return false;
 		Lock l(cs);
-		bool found=false;
 
-		for(TStringIterC i = searchHistory.begin(); i != searchHistory.end(); ++i) {
-			string histItem = Text::fromT(*i);
-			if (strcmp(histItem.c_str(), Text::fromT(search).c_str()) == 0) {
-				searchHistory.erase(i);
-				found=true;
-			}
-		}
-
-		if (!found) {
-			if (searchHistory.size() > (getInstance()->get(SEARCH_HISTORY)))
+		if (searchHistory.size() > (getInstance()->get(SEARCH_HISTORY)))
 				searchHistory.erase(searchHistory.begin());
-		}
 
 		searchHistory.push_back(search);
 

@@ -1275,39 +1275,45 @@ string Util::base64_decode(string const& encoded_string) {
 	return ret;
 }
 
-tstring Util::getDir(tstring dir) {
+tstring Util::getDir(tstring dir, bool validate, bool cut) {
+		if (dir == Util::emptyStringT)
+			return dir;
 		string directory = Text::fromT(dir);
-		if (dir != Util::emptyStringT) {
+		boost::regex reg;
+		boost::smatch result;
+		size_t dpos;
+		reg.assign(".*[^\\\\]+\\\\([^\\\\]+\\.[a-z0-9]{2,10})$");
+		if (regex_match(directory, reg)) {
+			dpos = directory.rfind("\\");
+			if(dpos != tstring::npos) {
+				directory = directory.substr(0,dpos+1);
+			}
+		}
+		if (validate) {
+			for (;;) {
+				reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))\\\\)", boost::regex_constants::icase);
+				if (regex_match(directory, reg)) {
+					if(dir[dir.size() -1] == '\\')
+						directory = directory.substr(0, directory.size()-1);
+					dpos = directory.rfind("\\");
+					if(dpos != tstring::npos) {
+						directory = directory.substr(0,dpos+1);
+					}
+				} else {
+					break;
+				}
+			}
+		}
+
+		if (cut) {
 			if(dir[dir.size() -1] == '\\')
 				directory = directory.substr(0, directory.size()-1);
-
 			size_t dpos = directory.rfind("\\");
 			if(dpos != tstring::npos) {
 				directory = directory.substr(dpos+1,directory.size());
 			}
 		}
 		return Text::toT(directory);
-}
-
-tstring Util::validateDir(tstring dir) {
-	boost::wregex reg;
-	string directory = Text::fromT(dir);
-	if (dir != Util::emptyStringT) {
-		for (;;) {
-			reg.assign(_T("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))\\\\)"), boost::regex_constants::icase);
-			if (regex_match(Text::toT(directory), reg)) {
-				if(dir[dir.size() -1] == '\\')
-					directory = directory.substr(0, directory.size()-1);
-				size_t dpos = directory.rfind("\\");
-				if(dpos != tstring::npos) {
-					directory = directory.substr(0,dpos+1);
-				}
-			} else {
-				break;
-			}
-		}
-	}
-	return Text::toT(directory);
 }
 
 string Util::getOsVersion(bool http /* = false */) {
