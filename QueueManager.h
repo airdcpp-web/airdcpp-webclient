@@ -89,7 +89,7 @@ public:
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
 		QueueItem::Priority p = QueueItem::DEFAULT) throw();
-	void addDirectorySearch(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p = QueueItem::DEFAULT) throw();
+	void addDirectorySearch(const string& aDir, const HintedUser& aUser, const string& aTarget, bool adc, QueueItem::Priority p = QueueItem::DEFAULT) throw();
 	int matchListing(const DirectoryListing& dl) throw();
 	bool findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) throw();
 

@@ -917,7 +917,7 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 
 	return wantConnection;
 }
-void QueueManager::addDirectorySearch(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p /* = QueueItem::DEFAULT */) throw() {
+void QueueManager::addDirectorySearch(const string& aDir, const HintedUser& aUser, const string& aTarget, bool adc, QueueItem::Priority p /* = QueueItem::DEFAULT */) throw() {
 	bool needList;
 	{
 		Lock l(cs);
@@ -937,8 +937,10 @@ void QueueManager::addDirectorySearch(const string& aDir, const HintedUser& aUse
 
 	if(needList) {
 		try {
-			//addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST, aDir);
-			addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD);
+			if (adc)
+				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST, aDir);
+			else
+				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD);
 		} catch(const Exception&) {
 			// Ignore, we don't really care...
 		}
@@ -2043,7 +2045,11 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 				try {
 					
 					if(BOOLSETTING(AUTO_ADD_SOURCE)){
-						if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 )
+						if ((sr->getHubURL().find("adc://") != string::npos) || (sr->getHubURL().find("adcs://") != string::npos)) {
+							string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
+							addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | (path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
+						}
+						else if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 )
 							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
 						else
 							wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);

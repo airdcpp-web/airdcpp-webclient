@@ -1275,29 +1275,29 @@ string Util::base64_decode(string const& encoded_string) {
 	return ret;
 }
 
-tstring Util::getDir(tstring dir, bool validate, bool cut) {
-		if (dir == Util::emptyStringT)
+string Util::getDir(string dir, bool validate, bool cut) {
+		if (dir == Util::emptyString)
 			return dir;
-		string directory = Text::fromT(dir);
+
 		boost::regex reg;
 		boost::smatch result;
 		size_t dpos;
 		reg.assign(".*[^\\\\]+\\\\([^\\\\]+\\.[a-z0-9]{2,10})$");
-		if (regex_match(directory, reg)) {
-			dpos = directory.rfind("\\");
+		if (regex_match(dir, reg)) {
+			dpos = dir.rfind("\\");
 			if(dpos != tstring::npos) {
-				directory = directory.substr(0,dpos+1);
+				dir = dir.substr(0,dpos+1);
 			}
 		}
 		if (validate) {
 			for (;;) {
 				reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))\\\\)", boost::regex_constants::icase);
-				if (regex_match(directory, reg)) {
+				if (regex_match(dir, reg)) {
 					if(dir[dir.size() -1] == '\\')
-						directory = directory.substr(0, directory.size()-1);
-					dpos = directory.rfind("\\");
+						dir = dir.substr(0, dir.size()-1);
+					dpos = dir.rfind("\\");
 					if(dpos != tstring::npos) {
-						directory = directory.substr(0,dpos+1);
+						dir = dir.substr(0,dpos+1);
 					}
 				} else {
 					break;
@@ -1307,13 +1307,13 @@ tstring Util::getDir(tstring dir, bool validate, bool cut) {
 
 		if (cut) {
 			if(dir[dir.size() -1] == '\\')
-				directory = directory.substr(0, directory.size()-1);
-			size_t dpos = directory.rfind("\\");
+				dir = dir.substr(0, dir.size()-1);
+			size_t dpos = dir.rfind("\\");
 			if(dpos != tstring::npos) {
-				directory = directory.substr(dpos+1,directory.size());
+				dir = dir.substr(dpos+1,dir.size());
 			}
 		}
-		return Text::toT(directory);
+		return dir;
 }
 
 string Util::getOsVersion(bool http /* = false */) {

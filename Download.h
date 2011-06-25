@@ -26,6 +26,7 @@ public:
 		FLAG_PARTIAL			= 0x40,
 		FLAG_OVERLAP			= 0x80,
 		FLAG_VIEW				= 0x100,
+		FLAG_DIRECTORY			= 0x200,
 		FLAG_QUEUE				= 0x400,
 		FLAG_NFO				= 0x800
 	};

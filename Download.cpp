@@ -48,6 +48,8 @@ Download::Download(UserConnection& conn, QueueItem& qi, const string& path) thro
 		setFlag(FLAG_QUEUE);
 	if(qi.isSet(QueueItem::FLAG_VIEW_NFO))
 		setFlag(FLAG_NFO);
+	if(qi.isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD))
+		setFlag(FLAG_DIRECTORY);
 	
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
 		if(HashManager::getInstance()->getTree(getTTH(), getTigerTree())) {
@@ -109,6 +111,10 @@ AdcCommand Download::getCommand(bool zlib) const {
 
 	if(zlib && BOOLSETTING(COMPRESS_TRANSFERS)) {
 		cmd.addParam("ZL1");
+	}
+
+	if(getType() == TYPE_PARTIAL_LIST && (isSet(Download::FLAG_QUEUE) || isSet(Download::FLAG_DIRECTORY))) {
+		cmd.addParam("RE1");
 	}
 
 	return cmd;

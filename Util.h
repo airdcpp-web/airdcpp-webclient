@@ -484,7 +484,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static uint64_t getDirSize(const string &sFullPath);
 	static bool validatePath(const string &sPath);
 	static bool fileExists(const string &aFile);
-	static tstring getDir(tstring dir, bool validate, bool cut);
+	static string getDir(string dir, bool validate, bool cut);
 
 	static uint32_t rand();
 	static uint32_t rand(uint32_t high) { return rand() % high; }
