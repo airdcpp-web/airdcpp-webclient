@@ -73,15 +73,47 @@ ShareManager::~ShareManager() {
 	worker.join();
 	join();
 
-	StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
-	for_each(lists.begin(), lists.end(), File::deleteFile);
-
 /*
 	if(bzXmlRef.get()) {
 		bzXmlRef.reset();
 		File::deleteFile(getBZXmlFile());
 	}*/
 }
+
+void ShareManager::shutdown() {
+		if(xmlDirty)
+			generateList();  //generate filelist when exit if its dirty so we dont loose any hashed files.
+
+		string file = getBZXmlFile();
+
+		try {
+		StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
+			for(StringList::const_iterator i = lists.begin(); i != lists.end(); ++i) {
+				if(stricmp(*i, file) == 0)   //first delete everything but the latest filelist
+					continue;
+		
+				File::deleteFile(*i);
+			}
+			lists.clear();
+		} catch(...) {
+		//ignore, we just failed to delete
+		}
+
+		//make sure we have the list name as files.xml.bz2 for next startup so we dont need to refresh
+		if(!Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2")) {
+			try {
+				File::renameFile(file, Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2"); //rename the latest filelist
+				
+				if(bzXmlRef.get()) { 
+					bzXmlRef.reset();
+					File::deleteFile(file);  //and finally delete the old filelist because rename couldnt do it.
+				}
+			} catch(const FileException&) {
+				generateList(); //for some reason we failed to rename
+				// ...
+			}
+		}
+	}
 
 ShareManager::Directory::Directory(const string& aName, const ShareManager::Directory::Ptr& aParent) :
 	size(0),

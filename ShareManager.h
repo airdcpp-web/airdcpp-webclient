@@ -78,22 +78,7 @@ public:
 		worker.join();
 	}
 
-	void shutdown() {
-		if(xmlDirty)
-			generateList();  //generate filelist when exit if its dirty so we dont loose any hashed files.
-
-		//make sure we have the files.xml.bz2 for next startup so we dont need to refresh
-		if(!Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2")) {
-				string file = getBZXmlFile();
-			try {
-				File::renameFile(file, Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
-			} catch(const FileException&) {
-				generateList(); //for some reason we failed to rename
-				// ...
-			}
-		}
-	}
-
+	void shutdown();
 	bool shareFolder(const string& path, bool thoroughCheck = false) const;
 	int64_t removeExcludeFolder(const string &path, bool returnSize = true);
 	int64_t addExcludeFolder(const string &path);
