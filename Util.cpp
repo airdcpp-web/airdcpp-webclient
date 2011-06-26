@@ -1291,7 +1291,7 @@ string Util::getDir(string dir, bool validate, bool cut) {
 		}
 		if (validate) {
 			for (;;) {
-				reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))\\\\)", boost::regex_constants::icase);
+				reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
 				if (regex_match(dir, reg)) {
 					if(dir[dir.size() -1] == '\\')
 						dir = dir.substr(0, dir.size()-1);

@@ -1588,7 +1588,7 @@ bool ShareManager::isDirShared(const string& directory) {
 		dir = dir.substr(0, (dir.size() -1));
 
 	boost::regex reg;
-	reg.assign("((([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S*)))(\\S+)-((?=\\w*[A-Z]\\w*)|\\d{3,7})(\\w+))");
+	reg.assign("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
 	if(!boost::regex_match(dir, reg))  //if its not a release folder dont bother to check
 		return false;
 
