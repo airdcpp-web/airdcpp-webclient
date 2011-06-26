@@ -1066,8 +1066,6 @@ enum Strings { // @DontAdd
 	INVALID_REGEXP, // "Invalid RegExp!"
 	CASE_INSENSITIVE_REGEXP, // "Case insensitive RegExp"
 	MATCH, // "Match"
-	IDC_MIN_SEGMENT_SIZE_LABEL, // "Minimum segment size"
-	IDC_SETTINGS_SEGMENTS, // "Segments"
 	RAW, // "Raw"
 	DIRECTORY_SHARED, // "Directory already shared"
 	DIRECTORY_PARENT, // "Remove all subdirectories before adding this one"
