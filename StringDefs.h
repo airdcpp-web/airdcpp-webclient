@@ -609,7 +609,6 @@ enum Strings { // @DontAdd
 	SETTINGS_CONFIRM_ITEM_REMOVAL, // "Confirm item removal in download queue"
 	SETTINGS_CZDC, // "AirDC++"
 	SETTINGS_CZDC_EXTRA_DOWNLOADS, // "Highest Priority Extra Download Slots"
-	SETTINGS_DEBUG_COMMANDS, // "Debug commands"
 	SETTINGS_DEFAULT_AWAY_MSG, // "Default away message"
 	SETTINGS_DIRECT, // "Direct connection"
 	SETTINGS_DIRECTORIES, // "Directories"

@@ -106,7 +106,7 @@ const string SettingsManager::settingTags[] =
 	"DisconnectFileSize", "UploadQueueFrameShowTree",
 	"SegmentsManual", "NumberOfSegments",
 	"AutoUpdateIP", "MaxHashSpeed", "GetUserCountry", "DisableCZDiacritic",
-	"DebugCommands", "UseAutoPriorityByDefault", "UseOldSharingUI",
+	"UseAutoPriorityByDefault", "UseOldSharingUI",
 	"FavShowJoins", "LogStatusMessages", "PMLogLines", "SearchAlternateColour", "SoundsDisabled",
 	"ReportFoundAlternates",
 	"SearchTime", "DontBeginSegment", "DontBeginSegmentSpeed", "PopunderPm", "PopunderFilelist",
@@ -353,7 +353,6 @@ SettingsManager::SettingsManager()
 	setDefault(SEGMENTS_MANUAL, false);
 	setDefault(HUB_SLOTS, 0);
 	setDefault(TEXT_FONT, "Tahoma,-11,400,0");
-	setDefault(DEBUG_COMMANDS, false);
 	setDefault(EXTRA_SLOTS, 3);
 	setDefault(EXTRA_PARTIAL_SLOTS, 1);
 	setDefault(SHUTDOWN_TIMEOUT, 150);
