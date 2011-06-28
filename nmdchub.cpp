@@ -402,6 +402,17 @@ void NmdcHub::onLine(const string& aLine) throw() {
 
 		string connection = (i == j) ? Util::emptyString : param.substr(i, j-i-1);
 		
+		 if(connection.empty()) { 	 
+	        // No connection = bot... 	 VERY unreliable but... 
+			 //Users cant understand why it sends away messages to bots/opchats so...
+	           u.getUser()->setFlag(User::BOT); 	 
+	           u.getIdentity().setBot(true); 	 
+	             } else { 	 
+	           u.getUser()->unsetFlag(User::BOT); 	 
+	           u.getIdentity().setBot(false); 	 
+	           }
+
+
 		u.getIdentity().setHub(false);
 		u.getIdentity().setHidden(false);
 

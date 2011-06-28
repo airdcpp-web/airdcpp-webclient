@@ -73,11 +73,6 @@ ShareManager::~ShareManager() {
 	worker.join();
 	join();
 
-/*
-	if(bzXmlRef.get()) {
-		bzXmlRef.reset();
-		File::deleteFile(getBZXmlFile());
-	}*/
 }
 
 void ShareManager::shutdown() {
