@@ -102,54 +102,49 @@ int SFVReaderManager::run() {
 		dir = *j;
 		Paths.erase(Paths.begin());
 
-	if(isCheckSFV) {
+		if(isCheckSFV) {
 
-		if(dir[dir.size() -1] == '\\') {
-			string sfvFile;
-			StringList FileList = findFiles(dir, "*"); // find all files in dir
+			if(dir[dir.size() -1] == '\\') {
+				string sfvFile;
+				StringList FileList = findFiles(dir, "*"); // find all files in dir
 
+				if(FileList.size() == 0) {
+					LogManager::getInstance()->message(STRING(NO_FILES_IN_FOLDER));
+				} else {
+
+					for(;;) { // loop until no files Listed
 			
-		if(FileList.size() == 0) {
-				LogManager::getInstance()->message(STRING(NO_FILES_IN_FOLDER));
+						if(FileList.empty() || stop)
+							break;
+
+						StringIterC i = FileList.begin();
+						sfvFile = dir + *i; 
+						FileList.erase(FileList.begin());
+						if((sfvFile.find(".nfo") == string::npos) && sfvFile.find(".sfv") == string::npos) // just srip out the nfo and sfv file, others are ok or extra anyways?
+							checkSFV(sfvFile);
+					}
+					FileList.clear();
+				}
+			} else {
+				checkSFV(dir); 
+			}
 		} else {
+			if(dir[dir.size() -1] != '\\')
+				dir += "\\";
 
-		for(;;) { // loop until no files Listed
-			
-			if(FileList.empty() || stop)
-				break;
-
-			StringIterC i = FileList.begin();
-			sfvFile = dir + *i; 
-			FileList.erase(FileList.begin());
-			if((sfvFile.find(".nfo") == string::npos) && sfvFile.find(".sfv") == string::npos) // just srip out the nfo and sfv file, others are ok or extra anyways?
-			checkSFV(sfvFile);
+			if(GetFileAttributes(Text::toT(dir).c_str()) != INVALID_FILE_ATTRIBUTES) {
+				findMissing(dir);
+				find(dir);
+			}
+			//LogManager::getInstance()->message("Scanned " + dir);
 		}
-		FileList.clear();
-	}
-	
-
-	} else {
-		checkSFV(dir); 
-	}
-
-	} else {
-		
-		if(dir[dir.size() -1] != '\\')
-			dir += "\\";
-
-		findMissing(dir);
-		find(dir);
-		//LogManager::getInstance()->message("Scanned " + dir);
-		
-		}
-	
 	} //end for
 	
 	if(!isCheckSFV){
-	string tmp;	 
-    tmp.resize(STRING(MISSING_FINISHED).size() + 64);	 
-    tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
-    LogManager::getInstance()->message(tmp);
+		string tmp;	 
+		tmp.resize(STRING(MISSING_FINISHED).size() + 64);	 
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
+		LogManager::getInstance()->message(tmp);
 	} else if(stop)
 		LogManager::getInstance()->message(STRING(CRC_STOPPED));
 	
