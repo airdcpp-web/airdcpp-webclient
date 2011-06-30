@@ -55,10 +55,10 @@ public:
 			// Users we can't connect to...
 			image += 4;
 		}		
-		/*
-		if(u.getUser()->isSet(User::BOT)) {
+
+		if(u.getUser()->isSet(User::BOT) && !u.getUser()->isSet(User::NMDC)) {
 			image = 8;
-		}*/
+		}
 
 		return image;
 	}

@@ -502,7 +502,7 @@ SettingsManager::SettingsManager()
 
 	setDefault(AWAY, false);
 	setDefault(SHUTDOWN_ACTION, 0);
-	setDefault(MINIMUM_SEARCH_INTERVAL, 15);
+	setDefault(MINIMUM_SEARCH_INTERVAL, 5);
 	setDefault(PROGRESSBAR_ODC_STYLE, true);
 
 	setDefault(PROGRESS_3DDEPTH, 4);
