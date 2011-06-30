@@ -289,7 +289,7 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				bool adc=false;
-				if ((sr->getHubURL().find("adc://") != string::npos) || (sr->getHubURL().find("adcs://") != string::npos)) {
+				if (!sr->getUser()->isSet(User::NMDC)) {
 					adc=true;
 				}
 				QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, adc);

@@ -48,8 +48,8 @@ Download::Download(UserConnection& conn, QueueItem& qi, const string& path) thro
 		setFlag(FLAG_QUEUE);
 	if(qi.isSet(QueueItem::FLAG_VIEW_NFO))
 		setFlag(FLAG_NFO);
-	if(qi.isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD))
-		setFlag(FLAG_DIRECTORY);
+	if(qi.isSet(QueueItem::FLAG_RECURSIVE_LIST))
+		setFlag(FLAG_RECURSIVE);
 	
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
 		if(HashManager::getInstance()->getTree(getTTH(), getTigerTree())) {
@@ -113,7 +113,7 @@ AdcCommand Download::getCommand(bool zlib) const {
 		cmd.addParam("ZL1");
 	}
 
-	if(getType() == TYPE_PARTIAL_LIST && (isSet(Download::FLAG_QUEUE) || isSet(Download::FLAG_DIRECTORY))) {
+	if(isSet(Download::FLAG_RECURSIVE)) {
 		cmd.addParam("RE1");
 	}
 

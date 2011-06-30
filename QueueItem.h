@@ -74,7 +74,9 @@ public:
 		/** Autodrop slow source is enabled for this file */
 		FLAG_AUTODROP			= 0x80,
 		/** Find NFO from partial list and view it */
-		FLAG_VIEW_NFO			= 0x160
+		FLAG_VIEW_NFO			= 0x100,
+		/** Recursive partial list */
+		FLAG_RECURSIVE_LIST		= 0x200
 	};
 
 	/**

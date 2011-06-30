@@ -938,7 +938,7 @@ void QueueManager::addDirectorySearch(const string& aDir, const HintedUser& aUse
 	if(needList) {
 		try {
 			if (adc)
-				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST, aDir);
+				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_RECURSIVE_LIST | QueueItem::FLAG_PARTIAL_LIST, aDir);
 			else
 				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD);
 		} catch(const Exception&) {
@@ -2045,9 +2045,9 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 				try {
 					
 					if(BOOLSETTING(AUTO_ADD_SOURCE)){
-						if ((sr->getHubURL().find("adc://") != string::npos) || (sr->getHubURL().find("adcs://") != string::npos)) {
+						if (!sr->getUser()->isSet(User::NMDC)) {
 							string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
-							addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | (path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
+							addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
 						}
 						else if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 )
 							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
