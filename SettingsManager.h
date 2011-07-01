@@ -329,7 +329,7 @@ public:
 			return false;
 		Lock l(cs);
 
-		if (searchHistory.size() > (getInstance()->get(SEARCH_HISTORY)))
+		if ((int)searchHistory.size() > (getInstance()->get(SEARCH_HISTORY)))
 				searchHistory.erase(searchHistory.begin());
 
 		searchHistory.push_back(search);
