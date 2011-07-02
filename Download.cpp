@@ -113,7 +113,7 @@ AdcCommand Download::getCommand(bool zlib) const {
 		cmd.addParam("ZL1");
 	}
 
-	if(isSet(Download::FLAG_RECURSIVE)) {
+	if(isSet(Download::FLAG_RECURSIVE) && getType() == TYPE_PARTIAL_LIST) {
 		cmd.addParam("RE1");
 	}
 

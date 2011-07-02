@@ -65,11 +65,11 @@ public:
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
 
-	FavoriteHubEntry() throw() : connect(true), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), chatNotify(false), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL))  { }
+	FavoriteHubEntry() throw() : connect(true), bottom(0), top(0), left(0), right(0), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), chatNotify(false), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL))  { }
 	FavoriteHubEntry(const HubEntry& rhs) throw() : name(rhs.getName()), server(rhs.getServer()), encoding(Text::systemCharset), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL)),
-		description(rhs.getDescription()), connect(true), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), chatNotify(false) { }
+		description(rhs.getDescription()), connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), chatNotify(false) { }
 	FavoriteHubEntry(const FavoriteHubEntry& rhs) throw() : userdescription(rhs.userdescription), name(rhs.getName()), 
-		server(rhs.getServer()), description(rhs.getDescription()), password(rhs.getPassword()), connect(rhs.getConnect()), 
+		server(rhs.getServer()), description(rhs.getDescription()), password(rhs.getPassword()), connect(rhs.getConnect()), bottom(0), top(0), left(0), right(0),
 		nick(rhs.nick), chatusersplit(rhs.chatusersplit), favnoPM(rhs.favnoPM), hubShowJoins(rhs.hubShowJoins), hubLogMainchat(rhs.hubLogMainchat), stealth(rhs.stealth), searchInterval(rhs.searchInterval),
 		userliststate(rhs.userliststate), mode(rhs.mode), ip(rhs.ip), hideShare(rhs.hideShare), chatNotify(rhs.chatNotify), encoding(rhs.getEncoding()) { }
 	~FavoriteHubEntry() throw() { }
@@ -88,6 +88,10 @@ public:
 	GETSET(string, headerOrder, HeaderOrder);
 	GETSET(string, headerWidths, HeaderWidths);
 	GETSET(string, headerVisible, HeaderVisible);
+	GETSET(uint16_t, bottom, Bottom);
+	GETSET(uint16_t, top, Top);
+	GETSET(uint16_t, left, Left);
+	GETSET(uint16_t, right, Right);
 	GETSET(bool, connect, Connect);
 	GETSET(string, encoding, Encoding);
 	GETSET(int, chatusersplit, ChatUserSplit);

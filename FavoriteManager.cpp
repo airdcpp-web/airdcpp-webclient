@@ -425,6 +425,10 @@ void FavoriteManager::save() {
 			xml.addChildAttrib("SearchInterval", Util::toString((*i)->getSearchInterval()));
 			xml.addChildAttrib("Group", (*i)->getGroup());
 			xml.addChildAttrib("ChatNotify", (*i)->getChatNotify());
+			xml.addChildAttrib("Bottom",			Util::toString((*i)->getBottom()));
+			xml.addChildAttrib("Top",				Util::toString((*i)->getTop()));
+			xml.addChildAttrib("Right",				Util::toString((*i)->getRight()));
+			xml.addChildAttrib("Left",				Util::toString((*i)->getLeft()));
 		}
 
 		xml.stepOut();
@@ -599,6 +603,10 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setHeaderOrder(aXml.getChildAttrib("HubFrameOrder", SETTING(HUBFRAME_ORDER)));
 			e->setHeaderWidths(aXml.getChildAttrib("HubFrameWidths", SETTING(HUBFRAME_WIDTHS)));
 			e->setHeaderVisible(aXml.getChildAttrib("HubFrameVisible", SETTING(HUBFRAME_VISIBLE)));
+			e->setBottom((uint16_t)aXml.getIntChildAttrib("Bottom") );
+			e->setTop((uint16_t)	aXml.getIntChildAttrib("Top"));
+			e->setRight((uint16_t)	aXml.getIntChildAttrib("Right"));
+			e->setLeft((uint16_t)	aXml.getIntChildAttrib("Left"));
 			e->setMode(Util::toInt(aXml.getChildAttrib("Mode")));
 			e->setIP(aXml.getChildAttrib("IP"));
 			e->setHideShare(aXml.getBoolChildAttrib("HideShare")); //Hide Share Mod
