@@ -239,8 +239,10 @@ private:
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const throw();
 		bool find(const string& dir);
 
-		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
+		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList, bool create) const;
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
+		//for filelist caching
+		void toXmlList(OutputStream* xmlFile, string& indent, const string& path);
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 
@@ -336,7 +338,10 @@ private:
 
 	
 	int listN;
+	//for filelist caching
+	void saveXmlList();
 
+	void VnameToXml(const string& vname, OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
 	Worker worker;
 	atomic_flag refreshing;
 	
@@ -347,12 +352,10 @@ private:
 	mutable CriticalSection cs;
 
 	// List of root directory items
-	//typedef std::list<Directory::Ptr> DirList;
-	//would a vector be more efficient here, we are not inserting in the middle so much and usually it only grows?
-	//experimental, vector works a bit differently so will need to test adding / removing share etc. might have missed something.
-	typedef std::vector<Directory::Ptr> DirList; 
-	DirList directories;
+	typedef map<string, Directory::Ptr> DirMap; 
+	DirMap directories;
 
+	typedef std::vector<Directory::Ptr> Dirs;
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	StringMap shares;
 
@@ -373,7 +376,7 @@ private:
 	void updateIndices(Directory& aDirectory);
 	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
 	
-	Directory::Ptr merge(const Directory::Ptr& directory);
+	Directory::Ptr merge(const string& realPath, const Directory::Ptr& directory);
 	
 	void generateXmlList(bool forced = false);
 	void generateList();
@@ -382,7 +385,7 @@ private:
 	
 
 
-	DirList::const_iterator getByVirtual(const string& virtualName) const throw();
+	Dirs getByVirtual(const string& virtualName) const throw();
 	pair<Directory::Ptr, string> splitVirtual(const string& virtualPath) const throw(ShareException);
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const throw(ShareException);
 
