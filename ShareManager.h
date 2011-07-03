@@ -69,8 +69,9 @@ public:
 	int refreshIncoming();
 	void setDirty() {xmlDirty = true; }
 	StringList getIncoming() { return incoming; };
-	void setIncoming(const string& Vname, bool isIncoming);
-	void DelIncoming();
+	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
+	void DelIncoming() { incoming.clear(); };
+
 	void Rebuild();
 	
 	void Startup() {
@@ -351,11 +352,12 @@ private:
 
 	mutable CriticalSection cs;
 
-	// List of root directory items
-	typedef map<string, Directory::Ptr> DirMap; 
+	// Map realpath to root directory items
+	typedef unordered_map<string, Directory::Ptr> DirMap; 
 	DirMap directories;
 
 	typedef std::vector<Directory::Ptr> Dirs;
+
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	StringMap shares;
 

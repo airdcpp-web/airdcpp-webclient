@@ -554,18 +554,6 @@ void ShareManager::save(SimpleXML& aXml) {
 	aXml.stepOut();
 
 } 
-void ShareManager::setIncoming(const string& Vname, bool isIncoming) {
-
-	if (isIncoming) {
-		incoming.push_back(Vname);
-	}
-
-}
-void ShareManager::DelIncoming() {
-
-incoming.clear();
-		
-}	
 
 void ShareManager::addDirectory(const string& realPath, const string& virtualName) throw(ShareException) {
 //	if(!Util::fileExists(realPath))
@@ -702,16 +690,7 @@ void ShareManager::removeDirectory(const string& realPath) {
 	shares.erase(i);
 
 	HashManager::HashPauser pauser;
-	/*
-	// Readd all directories with the same vName
-	for(i = shares.begin(); i != shares.end(); ++i) {
-		if(stricmp(i->second, vName) == 0 && checkHidden(i->first)) {
-			Directory::Ptr dp = buildTree(i->first, 0);
-			dp->setName(i->second);
-			merge(dp);
-		}
-	}
-	*/
+
 	rebuildIndices();
 	setDirty();
 }
@@ -1021,14 +1000,17 @@ int ShareManager::refresh( const string& aDir ){
 			Lock l(cs);
 			refreshPaths.clear();
 			
+
 				//loopup the Virtualname selected from share and add it to refreshPaths List
 				for(StringMap::const_iterator j = shares.begin(); j != shares.end(); ++j) {
 					if( stricmp( j->second, aDir ) == 0 ) {
 						refreshPaths.push_back( j->first );
 						result = REFRESH_STARTED;
-					}
+					} else if(stricmp( Text::toLower(j->first), Text::toLower(aDir) ) == 0 ){
+						refreshPaths.push_back( j->first ); //if we typed /refresh "realpath"
+						result = REFRESH_STARTED;
 				}
-	
+			}
 		}
 
 		if(result == REFRESH_STARTED)
@@ -1366,6 +1348,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		Directory::Ptr root;
 		
 		bool first = true;
+		bool found = false;
 		while( (i = dir.find('/', j)) != string::npos) {
 			if(i == j) {
 				j++;
@@ -1379,28 +1362,52 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 				if(temp.empty())
 					return 0;
 				
-				
+			
 			} else {
+			
+			if(!found) {
 				for(Dirs::const_iterator f = temp.begin(); f != temp.end(); f++) {
 					root = *f;
 				Directory::Map::const_iterator it2 = root->directories.find(dir.substr(j, i-j));
-				if(it2 == root->directories.end()) {
+					if(it2 != root->directories.end()) {
+						found = true;
+						root = it2->second;
+						}
+					}
+				} else {
+				Directory::Map::const_iterator it2 = root->directories.find(dir.substr(j, i-j));
+					if(it2 != root->directories.end()) {
+						found = true;
+						root = it2->second;
+						}
+					}
+			
+				if(!found) // if havent found anything at this point, return.
 					return 0;
-				}
-				root = it2->second;
 			}
+
 			j = i + 1;
-			}
 		}
 
 		if(first)
 			return NULL;
 
-		for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
+		if(!found) { //if we are here, it means we are asking for root virtual dir, add everything under that vname.
+			for(Dirs::const_iterator f = temp.begin(); f != temp.end(); f++) {
+				root = *f;
+			for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
+				it2->second->toXml(sos, indent, tmp, recurse, true);
+				}
+				root->filesToXml(sos, indent, tmp);
+			}
+		} else {
+			for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
 			it2->second->toXml(sos, indent, tmp, recurse, true);
+			}
+			root->filesToXml(sos, indent, tmp);
 		}
-		root->filesToXml(sos, indent, tmp);
 	}
+
 
 	xml += "</FileListing>";
 	return new MemoryInputStream(xml);
