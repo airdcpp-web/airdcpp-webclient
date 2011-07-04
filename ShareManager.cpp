@@ -289,8 +289,9 @@ AdcCommand ShareManager::getFileInfo(const string& aFile) throw(ShareException) 
 	return cmd;
 }
 
-pair<ShareManager::Directory::Ptr, string> ShareManager::splitVirtual(const string& virtualPath) const throw(ShareException) {
+ShareManager::DirPairList ShareManager::splitVirtual(const string& virtualPath) const throw(ShareException) {
 	Dirs temp;
+	DirPairList dirs;
 	if(virtualPath.empty() || virtualPath[0] != '/') {
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
@@ -305,20 +306,30 @@ pair<ShareManager::Directory::Ptr, string> ShareManager::splitVirtual(const stri
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
 
-	
+	bool found = false;
+
 	Directory::MapIter mi;
+	for(Dirs::const_iterator k = temp.begin(); k != temp.end(); k++) {
+	Directory::Ptr d = *k;
 	string::size_type j = i + 1;
-	while((i = virtualPath.find('/', j)) != string::npos) {
-		for(Dirs::const_iterator k = temp.begin(); k != temp.end(); k++) {
-			Directory::Ptr d = *k;
+	if(virtualPath.find('/', j) == string::npos) //if we dont find path under vname return
+		dirs.push_back(make_pair(d, virtualPath.substr(j)));
+
+	while((i = virtualPath.find('/', j)) != string::npos) { 
 			mi = d->directories.find(virtualPath.substr(j, i - j));
+				if(mi != d->directories.end()) {
+						found = true;
+						d = mi->second;
+						} else 
+							break;
 			j = i + 1;
-			if(mi != d->directories.end()) {
-				d = mi->second;
-			return make_pair(d, virtualPath.substr(j));
-			}		
 		}
+		if(found)
+			dirs.push_back(make_pair(d, virtualPath.substr(j)));
 	}
+	if(!dirs.empty())
+		return dirs;
+
 	//if we are here it means we didnt find anything, throw.
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	
@@ -333,12 +344,17 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::findFile(const 
 		return i->second;
 	}
 
-	pair<Directory::Ptr, string> v = splitVirtual(virtualFile);
+	DirPairList dirs = splitVirtual(virtualFile); 
+	/*Most likely we just have 1 item, but need to check for files shared under root virtualname,
+	and those can contain many separately listed Directory items now*/
+	for(DirPairList::const_iterator i = dirs.begin(); i != dirs.end(); ++i) {
+		pair<Directory::Ptr, string> v = *i;
 	Directory::File::Set::const_iterator it = find_if(v.first->files.begin(), v.first->files.end(),
 		Directory::File::StringComp(v.second));
-	if(it == v.first->files.end())
-		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
-	return it;
+	if(it != v.first->files.end())
+		return it;
+	}
+	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
 StringList ShareManager::getRealPaths(const std::string path) {
@@ -347,7 +363,7 @@ StringList ShareManager::getRealPaths(const std::string path) {
 
 		StringList result;	
 		string dir;
-		Directory::Ptr d = splitVirtual(path).first;
+		Directory::Ptr d = splitVirtual(path).begin()->first;
 
 		if(*(path.end() - 1) == '/') {
 
@@ -363,7 +379,6 @@ StringList ShareManager::getRealPaths(const std::string path) {
 						dir = i->first;
 						if(dir[dir.size() -1] != '\\') 
 						dir += "\\";
-
 						result.push_back( dir );
 
 					}

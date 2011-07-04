@@ -351,6 +351,7 @@ private:
 	uint64_t lastIncomingUpdate;
 
 	mutable CriticalSection cs;
+	typedef vector<pair<ShareManager::Directory::Ptr, string>> DirPairList;
 
 	// Map realpath to root directory items
 	typedef unordered_map<string, Directory::Ptr> DirMap; 
@@ -388,7 +389,7 @@ private:
 
 
 	Dirs getByVirtual(const string& virtualName) const throw();
-	pair<Directory::Ptr, string> splitVirtual(const string& virtualPath) const throw(ShareException);
+	ShareManager::DirPairList splitVirtual(const string& virtualPath) const throw(ShareException);
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const throw(ShareException);
 
 	Directory::Ptr getDirectory(const string& fname);
