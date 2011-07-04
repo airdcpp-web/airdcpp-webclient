@@ -965,6 +965,9 @@ int ShareManager::refreshDirs( StringList dirs ){
 		if(result == REFRESH_STARTED)
 			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
 
+		if(result == REFRESH_PATH_NOT_FOUND)
+			refreshing.clear();
+
 		return result;
 	}
 
@@ -999,6 +1002,9 @@ int ShareManager::refreshIncoming( ){
 		if(result == REFRESH_STARTED)
 			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
 
+		if(result == REFRESH_PATH_NOT_FOUND)
+			refreshing.clear();
+
 		return result;
 	}
 
@@ -1030,6 +1036,9 @@ int ShareManager::refresh( const string& aDir ){
 
 		if(result == REFRESH_STARTED)
 			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
+		
+		if(result == REFRESH_PATH_NOT_FOUND)
+			refreshing.clear();
 
 		return result;
 	}
@@ -1061,6 +1070,7 @@ int ShareManager::startRefresh(int aRefreshOptions)  {
 
 	} catch(const ThreadException& e) {
 		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError());
+		refreshing.clear();
 	}
 
 	return REFRESH_STARTED;
