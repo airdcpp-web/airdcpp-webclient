@@ -444,72 +444,79 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	if (sfvFiles == 0)
 		return false;
 
-		ifstream sfv;
-		string line;
-		string sfvFile;
+	ifstream sfv;
+	string line;
+	string sfvFile;
 		
-		//regex to match crc32
-		reg.assign("(\\s(\\w{8})$)");
-		int releaseFiles=0;
-		int loopMissing=0;
+	//regex to match crc32
+	reg.assign("(\\s(\\w{8})$)");
+	int releaseFiles=0;
+	int loopMissing=0;
 
-		for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
-			sfvFile = *i;
-			
-			//incase we have some extended characters in the path
-			sfv.open(Text::utf8ToAcp(sfvFile));
+	for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
+		sfvFile = *i;
 
-			if(!sfv.is_open())
-				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+		if (File::getSize(Text::utf8ToAcp(sfvFile)) > 1000000) {
+			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+			continue;
+		}
 
-			while( getline( sfv, line ) ) {
-				//make sure that the line is valid
-				pos = line.find(";");
-				pos2 = line.find("\\");
-				if(regex_search(line, reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
-					releaseFiles++;
-					//only keep the filename
-					pos = line.rfind(" ");
-					line = Text::toLower(line.substr(0,pos));
+		//incase we have some extended characters in the path
+		sfv.open(Text::utf8ToAcp(sfvFile));
 
-					StringIterC k = std::find(fileList.begin(), fileList.end(), line);
-						if(k == fileList.end()) { 
-							loopMissing++;
-							if (SETTING(CHECK_MISSING))
-								LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
-					}
+		if(!sfv.is_open())
+			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+
+		while( getline( sfv, line ) ) {
+			//make sure that the line is valid
+			pos = line.find(";");
+			pos2 = line.find("\\");
+			if(regex_search(line, reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
+				releaseFiles++;
+				//only keep the filename
+				pos = line.rfind(" ");
+				line = Text::toLower(line.substr(0,pos));
+				if (line.length() < 5)
+					continue;
+
+				StringIterC k = std::find(fileList.begin(), fileList.end(), line);
+					if(k == fileList.end()) { 
+						loopMissing++;
+						if (SETTING(CHECK_MISSING))
+							LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
 				}
 			}
-			sfv.close();
+		}
+		sfv.close();
+	}
+
+	missingFiles += loopMissing;
+	releaseFiles = releaseFiles - loopMissing;
+
+	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles)) {
+		//Find allowed extra files from the release folder
+		int otherAllowed = 0;
+		reg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
+		reg2.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
+		if (regex_match(dirName, reg)) {
+			reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
+		}
+		else if (regex_match(dirName, reg2))
+			reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
+		else
+			reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
+
+		for(i = fileList.begin(); i != fileList.end(); ++i) {
+			if (regex_match(*i, reg))
+				otherAllowed++;
 		}
 
-		missingFiles += loopMissing;
-		releaseFiles = releaseFiles - loopMissing;
-
-		if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles)) {
-			//Find allowed extra files from the release folder
-			int otherAllowed = 0;
-			reg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
-			reg2.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
-			if (regex_match(dirName, reg)) {
-				reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
-			}
-			else if (regex_match(dirName, reg2))
-				reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
-			else
-				reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
-
-			for(i = fileList.begin(); i != fileList.end(); ++i) {
-				if (regex_match(*i, reg))
-					otherAllowed++;
-			}
-
-			if ((int)fileList.size() > (releaseFiles + nfoFiles + sfvFiles + otherAllowed)) {
-				LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
-				if (!extrasInFolder)
-					extrasFound++;
-			}
+		if ((int)fileList.size() > (releaseFiles + nfoFiles + sfvFiles + otherAllowed)) {
+			LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
+			if (!extrasInFolder)
+				extrasFound++;
 		}
+	}
 	if (loopMissing > 0)
 		return true;
 	else

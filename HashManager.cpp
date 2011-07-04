@@ -813,10 +813,9 @@ int HashManager::Hasher::run() {
 				SFVReader sfv(fname);
 				CRC32Filter* xcrc32 = 0;
 
-				if (!SETTING(SHARE_SFV)) {
-					if (sfv.hasCRC())
-						xcrc32 = &crc32;
-				}
+				if (sfv.hasCRC())
+					xcrc32 = &crc32;
+
 				size_t n = 0;
 				TigerTree fastTTH(bs);
 				tth = &fastTTH;
@@ -865,11 +864,13 @@ int HashManager::Hasher::run() {
 				if(end > start) {
 					speed = size * _LL(1000) / (end - start);
 				}
+				if (!SETTING(SHARE_SFV)) {
 					if(xcrc32 && xcrc32->getValue() != sfv.getCRC()) {
 						LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32));
-					} else {
-						HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
 					}
+				} else {
+					HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
+				}
 			} catch(const FileException& e) {
 				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError());
 			}
