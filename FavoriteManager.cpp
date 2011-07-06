@@ -229,14 +229,6 @@ void FavoriteManager::removeFavorite(const FavoriteHubEntry* entry) {
 	save();
 }
 
-bool FavoriteManager::isFavoriteHub(const std::string& url) {
-	FavoriteHubEntryList::const_iterator i = getFavoriteHub(url);
-	if(i != favoriteHubs.end()) {
-		return true;
-	}
-	return false;
-}
-
 bool FavoriteManager::addFavoriteDir(const string& aDirectory, const string & aName){
 	string path = aDirectory;
 
@@ -256,33 +248,19 @@ bool FavoriteManager::addFavoriteDir(const string& aDirectory, const string & aN
 	return true;
 }
 
-bool FavoriteManager::removeFavoriteDir(const string& aName) {
-	string d(aName);
-
-	if(d[d.length() - 1] != PATH_SEPARATOR)
-		d += PATH_SEPARATOR;
-
-	for(StringPairIter j = favoriteDirs.begin(); j != favoriteDirs.end(); ++j) {
-		if(stricmp(j->first.c_str(), d.c_str()) == 0) {
-			favoriteDirs.erase(j);
-			save();
-			return true;
-		}
+bool FavoriteManager::isFavoriteHub(const std::string& url) {
+	FavoriteHubEntryList::const_iterator i = getFavoriteHub(url);
+	if(i != favoriteHubs.end()) {
+		return true;
 	}
 	return false;
 }
-
-bool FavoriteManager::renameFavoriteDir(const string& aName, const string& anotherName) {
-
-	for(StringPairIter j = favoriteDirs.begin(); j != favoriteDirs.end(); ++j) {
-		if(stricmp(j->second.c_str(), aName.c_str()) == 0) {
-			j->second = anotherName;
-			save();
-			return true;
-		}
-	}
-	return false;
+void FavoriteManager::saveFavoriteDirs(StringPairList dirs) {
+	favoriteDirs.clear();
+	favoriteDirs = dirs;
+	save();
 }
+
 
 void FavoriteManager::addRecent(const RecentHubEntry& aEntry) {
 	RecentHubEntry::Iter i = getRecentHub(aEntry.getServer());

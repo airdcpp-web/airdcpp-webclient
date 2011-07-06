@@ -108,8 +108,7 @@ public:
 
 // Favorite Directories
 	bool addFavoriteDir(const string& aDirectory, const string& aName);
-	bool removeFavoriteDir(const string& aName);
-	bool renameFavoriteDir(const string& aName, const string& anotherName);
+	void saveFavoriteDirs(StringPairList dirs);
 	StringPairList getFavoriteDirs() { return favoriteDirs; }
 
 // Recent Hubs

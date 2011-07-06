@@ -867,7 +867,8 @@ int HashManager::Hasher::run() {
 				if (!SETTING(SHARE_SFV)) {
 					if(xcrc32 && xcrc32->getValue() != sfv.getCRC()) {
 						LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32));
-					}
+					} else
+						HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
 				} else {
 					HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
 				}

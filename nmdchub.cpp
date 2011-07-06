@@ -927,7 +927,6 @@ void NmdcHub::myInfo(bool alwaysSend) {
 
 		StatusMode |= Identity::AIRDC;
 
-		//keep it here, will have svnversion string maybe
 		version = VERSIONSTRING;
 
 		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL) && !isActive()) {
