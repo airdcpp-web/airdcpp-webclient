@@ -37,6 +37,8 @@ public:
 	typedef ConnectionQueueItem* Ptr;
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
+	//typedef std::map<size_t, const HintedUser&> idList;
+	//typedef vector<const HintedUser&> userList;
 	
 	enum State {
 		CONNECTING,					// Recently sent request to connect
@@ -45,19 +47,33 @@ public:
 		ACTIVE						// In one up/downmanager
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, bool aDownload) : token(Util::toString(Util::rand())), 
-		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser) { }
+	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, int dlType) : token(Util::toString(Util::rand())), 
+		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), type(dlType) { }
 	
 	GETSET(string, token, Token);
+
 	GETSET(uint64_t, lastAttempt, LastAttempt);
 	GETSET(int, errors, Errors); // Number of connection errors, or -1 after a protocol error
 	GETSET(State, state, State);
 	GETSET(bool, download, Download);
-
+	GETSET(int, type, Type);
+	GETSET(int, id, Id);
+	//idList connIds;
+	//list<const HintedUser&> userList;
+	//ConnectionQueueItem::List userList;
+	const HintedUser getHintedUser(int id) const {
+		return userList[id];
+	}
 	const HintedUser& getUser() const { return user; }
 
 private:
 	HintedUser user;
+	HintedUserList userList;
+	int newId(const HintedUser& aUser) {
+		int value=userList.size()+1;
+		userList.push_back(aUser);
+		return value;
+	}
 };
 
 class ExpectedMap {
@@ -105,11 +121,13 @@ public:
 	void adcConnect(const OnlineUser& aUser, uint16_t aPort, const string& aToken, bool secure);
 	void adcConnect(const OnlineUser& aUser, uint16_t aPort, uint16_t localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
 
-	void getDownloadConnection(const HintedUser& aUser);
+	void getDownloadConnection(const HintedUser& aUser, bool partialList=false);
+	void force(string token);
 	void force(const UserPtr& aUser);
 	
 	void disconnect(const UserPtr& aUser); // disconnect downloads and uploads
 	void disconnect(const UserPtr& aUser, int isDownload);
+	void disconnect(const string token, int isDownload);
 
 	void shutdown();
 	bool isShuttingDown() const { return shuttingDown; }
@@ -172,7 +190,7 @@ private:
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download);
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, int type);
 	void putCQI(ConnectionQueueItem* cqi);
 
 	void accept(const Socket& sock, bool secure) throw();

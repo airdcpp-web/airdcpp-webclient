@@ -117,12 +117,12 @@ public:
 	vector<Segment> getChunksVisualisation(const QueueItem* qi, int type) const { Lock l(cs); return qi->getChunksVisualisation(type); }
 
 	bool getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& aSize, int& aFlags) throw();
-	Download* getDownload(UserConnection& aSource, string& aMessage) throw();
+	Download* getDownload(UserConnection& aSource, string& aMessage, bool partial) throw();
 	void putDownload(Download* aDownload, bool finished, bool reportFinish = true) throw();
 	void setFile(Download* download);
 	
 	/** @return The highest priority download the user has, PAUSED may also mean no downloads */
-	QueueItem::Priority hasDownload(const UserPtr& aUser) throw();
+	QueueItem::Priority hasDownload(const UserPtr& aUser, bool partial) throw();
 	
 	void loadQueue() throw();
 	void saveQueue(bool force = false) throw();
@@ -262,7 +262,7 @@ private:
 	public:
 		void add(QueueItem* qi);
 		void add(QueueItem* qi, const UserPtr& aUser);
-		QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false);
+		QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool partial=false);
 		QueueItem* getRunning(const UserPtr& aUser);
 		void addDownload(QueueItem* qi, Download* d);
 		void removeDownload(QueueItem* qi, const UserPtr& d);

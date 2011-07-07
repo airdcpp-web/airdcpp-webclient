@@ -49,6 +49,7 @@ ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServe
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BASE);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_TIGR);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BZIP);
+	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_MCN1);
 }
 
 void ConnectionManager::listen() throw(SocketException){
@@ -83,24 +84,54 @@ void ConnectionManager::listen() throw(SocketException){
  * for downloading.
  * @param aUser The user to connect to.
  */
-void ConnectionManager::getDownloadConnection(const HintedUser& aUser) {
+void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool partialList) {
+	bool found=false;
 	dcassert((bool)aUser.user);
 	{
-		Lock l(cs);
-		ConnectionQueueItem::Iter i = find(downloads.begin(), downloads.end(), aUser.user);
-		if(i == downloads.end()) {
-			getCQI(aUser, true);
-		} else {
-			DownloadManager::getInstance()->checkIdle(aUser.user);
+	if (!DownloadManager::getInstance()->checkIdle(aUser.user, partialList)) {
+		LogManager::getInstance()->message("Idle not found");
+		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
+			ConnectionQueueItem* cqi = *i;
+			if (cqi->getUser().user == aUser.user) {
+				if ((!partialList && cqi->getType() == 1) || (partialList && cqi->getType() != 1)) {
+					LogManager::getInstance()->message("No partial for other connection types");
+					continue;
+				}
+				found=true;
+				break;
+			}
 		}
+		if (!found) {
+			int type=0;
+			if (partialList)
+				type=1;
+			LogManager::getInstance()->message("Get CQI");
+			getCQI(aUser, true, type);
+		} else {
+			LogManager::getInstance()->message("Don't get CQI");
+		}
+	} else {
+		LogManager::getInstance()->message("Idle found");
+	}
 	}
 }
 
-ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download) {
-	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download);
+ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, int type) {
+	LogManager::getInstance()->message("Getting cqi");
+	if (type==1)
+		LogManager::getInstance()->message("Getting cqi type1");
+	else if (type==2)
+		LogManager::getInstance()->message("Getting cqi type2");
+	else if (type==0)
+		LogManager::getInstance()->message("Getting cqi type0");
+	else
+		LogManager::getInstance()->message("Getting cqi type OTHER");
+
+	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download, type);
 	if(download) {
 		dcassert(find(downloads.begin(), downloads.end(), aUser.user) == downloads.end());
 		downloads.push_back(cqi);
+		LogManager::getInstance()->message("Download added: : " + cqi->getToken());
 	} else {
 		dcassert(find(uploads.begin(), uploads.end(), aUser.user) == uploads.end());
 		uploads.push_back(cqi);
@@ -136,6 +167,7 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) throw(
 }
 
 void ConnectionManager::putConnection(UserConnection* aConn) {
+	LogManager::getInstance()->message("UC removed" + aConn->getToken());
 	aConn->removeListener(this);
 	aConn->disconnect();
 
@@ -146,7 +178,8 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw() {
 	UserList passiveUsers;
 	ConnectionQueueItem::List removed;
-
+	ConnectionQueueItem::List multiUsers;
+	ConnectionQueueItem::List waitingMultiConn;
 	{
 		Lock l(cs);
 
@@ -161,14 +194,19 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 					removed.push_back(cqi);
 					continue;
 				} 
-				
-				/*if(	cqi->getUser().user->isSet(User::PASSIVE) &&
-					!ClientManager::getInstance()->isActive(cqi->getUser().hint)) 
-				{
-					passiveUsers.push_back(cqi->getUser());
-					removed.push_back(cqi);
-					continue;
-				}*/
+
+				if (cqi->getType() == 2) {
+					ConnectionQueueItem::Iter u = find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
+					if(u == waitingMultiConn.end()) {
+						LogManager::getInstance()->message("Type multi check NOT active, not listed in waitingMultiConn: " + cqi->getToken());
+						waitingMultiConn.push_back(cqi);
+					} else {
+						//there should be only one of these
+						LogManager::getInstance()->message("Type multi MULTIPLE waiting, add removed: " + cqi->getToken());
+						removed.push_back(cqi);
+						continue;
+					}
+				}
 
 				if(cqi->getErrors() == -1 && cqi->getLastAttempt() != 0) {
 					// protocol error, don't reconnect except after a forced attempt
@@ -180,7 +218,11 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 				{
 					cqi->setLastAttempt(aTick);
 
-					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser());
+					bool partial=false;
+					if (cqi->getType() == 1)
+						partial=true;
+
+					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), partial);
 
 					if(prio == QueueItem::PAUSED) {
 						removed.push_back(cqi);
@@ -191,6 +233,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown) {
+							LogManager::getInstance()->message("Startdown: " + cqi->getToken());
 							cqi->setState(ConnectionQueueItem::CONNECTING);							
 							ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken());
 							fire(ConnectionManagerListener::StatusChanged(), cqi);
@@ -209,6 +252,42 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 					fire(ConnectionManagerListener::Failed(), cqi, STRING(CONNECTION_TIMEOUT));
 					cqi->setState(ConnectionQueueItem::WAITING);
 				}
+			} else {
+				if(!cqi->getUser().user->isOnline()) {
+					// No new connections for offline users...
+					continue;
+				} 
+				if (cqi->getType() == 2) {
+					LogManager::getInstance()->message("Type multi check running: " + cqi->getToken());
+					ConnectionQueueItem::Iter u = find(multiUsers.begin(), multiUsers.end(), cqi->getUser());
+
+					if(u == multiUsers.end())
+						multiUsers.push_back(cqi);
+				}
+			}
+		}
+
+		bool found=false;
+		for(ConnectionQueueItem::Iter k = multiUsers.begin(); k != multiUsers.end(); ++k) {
+			ConnectionQueueItem* cqi = *k;
+			found=false;
+			for(ConnectionQueueItem::Iter u = waitingMultiConn.begin(); u != waitingMultiConn.end(); ++u) {
+				ConnectionQueueItem* cqi2 = *u;
+				if (cqi2->getUser() == cqi->getUser()) {
+					found=true;
+					break;
+				}
+			}
+			if (!found) {
+				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
+				if(prio != QueueItem::PAUSED) {
+					LogManager::getInstance()->message("Type multi, getCQI: " + cqi->getToken());
+					getCQI(cqi->getUser(),true,2);
+				} else {
+					LogManager::getInstance()->message("No downloads: " + cqi->getToken());
+				}
+			} else {
+				LogManager::getInstance()->message("Type multi, NO getCQI: " + cqi->getToken());
 			}
 		}
 
@@ -402,6 +481,7 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, uint16_t aPort, uint
 	uc->setEncoding(const_cast<string*>(&Text::utf8));
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setHubUrl(aUser.getClient().getHubUrl());
+	LogManager::getInstance()->message("New uc: " + aToken);
 	if(aUser.getIdentity().isOp()) {
 		uc->setFlag(UserConnection::FLAG_OP);
 	}
@@ -446,8 +526,6 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 				aSource->setFlag(UserConnection::FLAG_SUPPORTS_TTHL);
 				// For compatibility with older clients...
 				aSource->setFlag(UserConnection::FLAG_SUPPORTS_XML_BZLIST);
-				//AirDC++ to AirDC++ connections
-				aSource->setFlag(UserConnection::FLAG_SUPPORTS_AIRDC);
 
 			} else if(feat == UserConnection::FEATURE_ZLIB_GET) {
 				aSource->setFlag(UserConnection::FLAG_SUPPORTS_ZLIB_GET);
@@ -455,6 +533,9 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 				aSource->setFlag(UserConnection::FLAG_SUPPORTS_XML_BZLIST);
 			} else if(feat == UserConnection::FEATURE_ADC_TIGR) {
 				tigrOk = true;
+			}
+			if(feat == UserConnection::FEATURE_ADC_MCN1) {
+				aSource->setFlag(UserConnection::FLAG_MCN1);
 			}
 		}
 	}
@@ -641,26 +722,48 @@ void ConnectionManager::on(UserConnectionListener::Direction, UserConnection* aS
 void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_DOWNLOAD));
 	bool addConn = false;
-	{
-		Lock l(cs);
-
-		ConnectionQueueItem::Iter i = find(downloads.begin(), downloads.end(), uc->getUser());
+	Lock l(cs);
+	if (!uc->isSet(UserConnection::FLAG_MCN1)) {
+		LogManager::getInstance()->message("Not MCN1: " + uc->getToken());
+		ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), uc->getUser());
 		if(i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
 			if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 				cqi->setState(ConnectionQueueItem::ACTIVE);
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-
 				fire(ConnectionManagerListener::Connected(), cqi);
-				
 				dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");
 				addConn = true;
+			}
+		}
+	} else {
+		LogManager::getInstance()->message("MCN1: " + uc->getToken());
+		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
+			ConnectionQueueItem* cqi = *i;
+			if (cqi->getToken() == uc->getToken()) {
+				if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
+					cqi->setState(ConnectionQueueItem::ACTIVE);
+					if (cqi->getType() == 1) {
+						uc->setFlag(UserConnection::FLAG_PARTIAL);
+						LogManager::getInstance()->message("Set UC type1: " + uc->getToken());
+					} else {
+						cqi->setType(2);
+						LogManager::getInstance()->message("Set CQI+UC type2: " + uc->getToken());
+					}
+					uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+					LogManager::getInstance()->message("Tokens match: " + uc->getToken());
+					fire(ConnectionManagerListener::Connected(), cqi);
+				
+					dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");
+					addConn = true;
+				}
 			}
 		}
 	}
 
 	if(addConn) {
 		DownloadManager::getInstance()->addConnection(uc);
+		LogManager::getInstance()->message("addConnection: " + uc->getToken());
 	} else {
 		putConnection(uc);
 	}
@@ -674,8 +777,8 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 		Lock l(cs);
 
 		ConnectionQueueItem::Iter i = find(uploads.begin(), uploads.end(), uc->getUser());
-		if(i == uploads.end()) {
-			ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false);
+		//if(i == uploads.end()) {
+			ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, 0);
 
 			cqi->setState(ConnectionQueueItem::ACTIVE);
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
@@ -684,7 +787,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 
 			dcdebug("ConnectionManager::addUploadConnection, leaving to uploadmanager\n");
 			addConn = true;
-		}
+		//}
 	}
 
 	if(addConn) {
@@ -747,27 +850,49 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	bool down = false;
 	{
 		Lock l(cs);
-		ConnectionQueueItem::Iter i = find(downloads.begin(), downloads.end(), aSource->getUser());
-		
-		if(i != downloads.end()) {
-			(*i)->setErrors(0);
-
-			const string& to = (*i)->getToken();
+		//ConnectionQueueItem::Iter i = find(downloads.begin(), downloads.end(), aSource->getToken());
+		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
+			ConnectionQueueItem* cqi = *i;
+			//ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), uc->getUser());
+			//if(i != downloads.end()) {
+			const string& to = cqi->getToken();
+			if (to == aSource->getToken()) {
+				(*i)->setErrors(0);
 			
-			if(to == token) {
-				down = true;
+				if(to == token) {
+					down = true;
+				}
 			}
 		}
 		/** @todo check tokens for upload connections */
 	}
 
 	if(down) {
+		LogManager::getInstance()->message("INF ok, start: " + token);
 		aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
 		addDownloadConnection(aSource);
 	} else {
+		LogManager::getInstance()->message("Start Upload (?): " + token);
 		aSource->setFlag(UserConnection::FLAG_UPLOAD);
 		addUploadConnection(aSource);
 	}
+}
+
+void ConnectionManager::force(const string aToken) {
+	Lock l(cs);
+
+	for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
+		ConnectionQueueItem* cqi = *i;
+		if (cqi->getToken() == aToken)
+			(*i)->setLastAttempt(0);
+	}
+
+	//ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), &aToken);
+	//if(i == downloads.end()) {
+		return;
+	//}
+
+	//(*i)->setLastAttempt(0);
 }
 
 void ConnectionManager::force(const UserPtr& aUser) {
@@ -780,6 +905,7 @@ void ConnectionManager::force(const UserPtr& aUser) {
 
 	(*i)->setLastAttempt(0);
 }
+
 
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool protocolError) {
 	Lock l(cs);
@@ -817,6 +943,17 @@ void ConnectionManager::disconnect(const UserPtr& aUser) {
 		UserConnection* uc = *i;
 		if(uc->getUser() == aUser)
 			uc->disconnect(true);
+	}
+}
+
+void ConnectionManager::disconnect(const string token, int isDownload) {
+	Lock l(cs);
+	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
+		UserConnection* uc = *i;
+		if(uc->getToken() == token && uc->isSet((Flags::MaskType)(isDownload ? UserConnection::FLAG_DOWNLOAD : UserConnection::FLAG_UPLOAD))) {
+			uc->disconnect(true);
+			break;
+		}
 	}
 }
 
@@ -871,9 +1008,8 @@ void ConnectionManager::on(UserConnectionListener::Supports, UserConnection* con
 		} else if(*i == UserConnection::FEATURE_TTHF) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_TTHF);
 		} else if(*i == UserConnection::FEATURE_AIRDC) {
-			conn->setFlag(UserConnection::FLAG_SUPPORTS_AIRDC);
 			if(!conn->getUser()->isSet(User::AIRDCPLUSPLUS))
-			conn->getUser()->setFlag(User::AIRDCPLUSPLUS);
+				conn->getUser()->setFlag(User::AIRDCPLUSPLUS);
 		}
 	}
 

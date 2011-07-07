@@ -142,6 +142,8 @@ Default = true;
 
 void QueueManager::FileQueue::add(QueueItem* qi) {
 	queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi));
+	//string dir = Util::getDir(qi->getTarget(), true, true);
+	//releaselist.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi->getTTH()));
 }
 
 void QueueManager::FileQueue::remove(QueueItem* qi) {
@@ -151,6 +153,7 @@ void QueueManager::FileQueue::remove(QueueItem* qi) {
 
 QueueItem* QueueManager::FileQueue::find(const string& target) const {
 	QueueItem::StringIter i = queue.find(const_cast<string*>(&target));
+
 	return (i == queue.end()) ? NULL : i->second;
 }
 
@@ -254,7 +257,7 @@ void QueueManager::UserQueue::add(QueueItem* qi, const UserPtr& aUser) {
 	}
 }
 
-QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove) {
+QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool partialChannel) {
 	int p = QueueItem::LAST - 1;
 	lastError = Util::emptyString;
 
@@ -264,8 +267,27 @@ QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Pri
 			dcassert(!i->second.empty());
 			for(QueueItem::Iter j = i->second.begin(); j != i->second.end(); ++j) {
 				QueueItem* qi = *j;
-				
 				QueueItem::SourceConstIter source = qi->getSource(aUser);
+
+				if(partialChannel && !qi->isSet(QueueItem::FLAG_PARTIAL_LIST)) {
+					//don't even think of stealing our priority channel
+					continue;
+				}
+
+				//don't try to get a file that we are currently downloading
+				if(!qi->isWaiting()) {
+					bool found=false;
+					for(DownloadList::iterator i = qi->getDownloads().begin(); i != qi->getDownloads().end(); ++i) {
+						if((*i)->getUser() == aUser) {
+							LogManager::getInstance()->message("Already downloading!");
+							found=true;
+							break;
+						}
+					}
+					if (found)
+						continue;
+				}
+
 				if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
 					// check partial source
 					int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
@@ -824,8 +846,17 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		setDirty();
 	}
 connect:
-	if(wantConnection && aUser.user->isOnline())
-		ConnectionManager::getInstance()->getDownloadConnection(aUser);
+	bool partial=false;
+	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST) {
+		partial=true;
+		LogManager::getInstance()->message("Partial1");
+	}
+	//if(wantConnection && aUser.user->isOnline())
+	if(aUser.user->isOnline()) {
+		ConnectionManager::getInstance()->getDownloadConnection(aUser, partial);
+	} else {
+		LogManager::getInstance()->message("Don't want");
+	}
 
 	//hmm.. will need to test this one, cant see why it would cause a deadlock
 	// auto search, prevent DEADLOCK
@@ -973,9 +1004,9 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 	}
 }
 
-QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser) throw() {
+QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool partial) throw() {
 	Lock l(cs);
-	QueueItem* qi = userQueue.getNext(aUser, QueueItem::LOWEST);
+	QueueItem* qi = userQueue.getNext(aUser, QueueItem::LOWEST, 0, 0, false, partial);
 	if(!qi) {
 		return QueueItem::PAUSED;
 	}
@@ -1132,13 +1163,13 @@ void QueueManager::getTargets(const TTHValue& tth, StringList& sl) {
 	}
 }
 
-Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage) throw() {
+Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, bool partial) throw() {
 	Lock l(cs);
 
 	const UserPtr& u = aSource.getUser();
 	dcdebug("Getting download for %s...", u->getCID().toBase32().c_str());
 
-	QueueItem* q = userQueue.getNext(u, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), true);
+	QueueItem* q = userQueue.getNext(u, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), true, partial);
 
 	if(!q) {
 		aMessage = userQueue.getLastError();

@@ -143,15 +143,18 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) throw() {
 	}
 }
 
-void DownloadManager::checkIdle(const UserPtr& user) {	
+bool DownloadManager::checkIdle(const UserPtr& user, bool partialList) {
 	Lock l(cs);	
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;	
-		if(uc->getUser() == user) {	
+		if(uc->getUser() == user) {
+			if ((!partialList && uc->isSet(UserConnection::FLAG_PARTIAL)) || (partialList && !uc->isSet(UserConnection::FLAG_PARTIAL)))
+				continue;
 			uc->updated();
-			return;	
+			return true;
 		}	
-	}	
+	}
+	return false;
 }
 
 void DownloadManager::addConnection(UserConnectionPtr conn) {
@@ -196,14 +199,18 @@ bool DownloadManager::startDownload(QueueItem::Priority prio) {
 void DownloadManager::checkDownloads(UserConnection* aConn) {
 	dcassert(aConn->getDownload() == NULL);
 
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser());
+	bool partial=false;
+	if (aConn->isSet(UserConnection::FLAG_PARTIAL) == 1)
+		partial=true;
+
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), partial);
 	if(!startDownload(prio)) {
 		removeConnection(aConn);
 		return;
 	}
 
 	string errorMessage = Util::emptyString;
-	Download* d = QueueManager::getInstance()->getDownload(*aConn, errorMessage);
+	Download* d = QueueManager::getInstance()->getDownload(*aConn, errorMessage, partial);
 
 	if(!d) {
 		if(!errorMessage.empty()) {
@@ -224,6 +231,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	
 	{
 		Lock l(cs);
+		LogManager::getInstance()->message("Download push back: " + aConn->getToken());
 		downloads.push_back(d);
 	}
 	fire(DownloadManagerListener::Requesting(), d);

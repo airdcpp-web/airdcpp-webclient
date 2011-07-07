@@ -238,14 +238,11 @@ ok:
 			bool supportsFree = aSource.isSet(UserConnection::FLAG_SUPPORTS_MINISLOTS);
 			bool allowedFree = (slotType == UserConnection::EXTRASLOT) || aSource.isSet(UserConnection::FLAG_OP) || getFreeExtraSlots() > 0;
 			bool partialFree = partial && ((slotType == UserConnection::PARTIALSLOT) || (extraPartial < SETTING(EXTRA_PARTIAL_SLOTS)));
-			bool AirdcFree = aSource.isSet(UserConnection::FLAG_SUPPORTS_AIRDC) && extraAir < SETTING(EXTRA_AIRDC_SLOTS);
 
 			if(free && supportsFree && allowedFree) {
 				slotType = UserConnection::EXTRASLOT;
 			} else if(partialFree) {
 				slotType = UserConnection::PARTIALSLOT;
-			} else if(AirdcFree) {
-				slotType = UserConnection::AIRDCSLOT;
 			} else {
 				delete is;
 				aSource.maxedOut(addFailedUpload(aSource, sourceFile, aStartPos, fileSize));
@@ -309,14 +306,12 @@ ok:
 			case UserConnection::STDSLOT: running--; break;
 			case UserConnection::EXTRASLOT: extra--; break;
 			case UserConnection::PARTIALSLOT: extraPartial--; break;
-			case UserConnection::AIRDCSLOT: extraAir--; break;
 		}
 		// set new slot count
 		switch(slotType) {
 			case UserConnection::STDSLOT: running++; break;
 			case UserConnection::EXTRASLOT: extra++; break;
 			case UserConnection::PARTIALSLOT: extraPartial++; break;
-			case UserConnection::AIRDCSLOT: extraAir++; break;
 		}
 		
 		// user got a slot
@@ -567,7 +562,6 @@ void UploadManager::removeConnection(UserConnection* aSource) {
 		case UserConnection::STDSLOT: running--; break;
 		case UserConnection::EXTRASLOT: extra--; break;
 		case UserConnection::PARTIALSLOT: extraPartial--; break;
-		case UserConnection::AIRDCSLOT: extraAir--; break;
 	}
 	aSource->setSlotType(UserConnection::NOSLOT);
 }

@@ -50,6 +50,7 @@ public:
 	static const string FEATURE_ADC_BASE;
 	static const string FEATURE_ADC_BZIP;
 	static const string FEATURE_ADC_TIGR;
+	static const string FEATURE_ADC_MCN1;
 
 	static const string FILE_NOT_AVAILABLE;
 	static const string FEATURE_AIRDC;
@@ -69,7 +70,8 @@ public:
 		FLAG_SUPPORTS_TTHF			= 0x800,
 		FLAG_STEALTH				= 0x1000,
 		FLAG_SECURE					= 0x2000,
-		FLAG_SUPPORTS_AIRDC			= 0x4000
+		FLAG_MCN1					= 0x4000,
+		FLAG_PARTIAL				= 0x8000
 	};
 	
 	enum States {
@@ -101,9 +103,8 @@ public:
 		NOSLOT		= 0,
 		STDSLOT		= 1,
 		EXTRASLOT	= 2,
-		PARTIALSLOT	= 3,
-		AIRDCSLOT	= 4
-	};	
+		PARTIALSLOT	= 3
+	};
 
 	short getNumber() const { return (short)((((size_t)this)>>2) & 0x7fff); }
 
