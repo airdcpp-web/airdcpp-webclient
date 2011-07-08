@@ -48,7 +48,7 @@ public:
 	};
 
 	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, int dlType) : token(Util::toString(Util::rand())), 
-		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), type(dlType) { }
+		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), type(dlType), id(Util::rand()) { }
 	
 	GETSET(string, token, Token);
 

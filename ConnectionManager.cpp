@@ -102,6 +102,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool part
 			}
 		}
 		if (!found) {
+			//0=default, 1=partial, 2=mcn
 			int type=0;
 			if (partialList)
 				type=1;
@@ -280,7 +281,8 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 			}
 			if (!found) {
 				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
-				if(prio != QueueItem::PAUSED) {
+				bool startDown = DownloadManager::getInstance()->startDownload(prio);
+				if(prio != QueueItem::PAUSED && startDown) {
 					LogManager::getInstance()->message("Type multi, getCQI: " + cqi->getToken());
 					getCQI(cqi->getUser(),true,2);
 				} else {
@@ -426,8 +428,14 @@ bool ConnectionManager::checkIpFlood(const string& aServer, uint16_t aPort, cons
 		if(uc.socket == NULL || !uc.socket->hasSocket())
 			continue;
 
+		if (uc.isSet(UserConnection::FLAG_MCN1)) {
+			//yes, these may have more than 5 connections.. make a better fix later
+			continue;
+		}
+
 		if(uc.getRemoteIp() == aServer && uc.getPort() == aPort) {
-			if(++count >= 5) {
+			count++;
+			if(count >= 5) {
 				// More than 5 outbound connections to the same addr/port? Can't trust that..
 				dcdebug("ConnectionManager::connect Tried to connect more than 5 times to %s:%hu, connect dropped\n", aServer.c_str(), aPort);
 				return true;
@@ -477,10 +485,10 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, uint16_t aPort, uint
 		return;
 
 	UserConnection* uc = getConnection(false, secure);
-	uc->setToken(aToken);
 	uc->setEncoding(const_cast<string*>(&Text::utf8));
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setHubUrl(aUser.getClient().getHubUrl());
+	uc->setToken(aToken);
 	LogManager::getInstance()->message("New uc: " + aToken);
 	if(aUser.getIdentity().isOp()) {
 		uc->setFlag(UserConnection::FLAG_OP);
@@ -744,7 +752,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 				if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 					cqi->setState(ConnectionQueueItem::ACTIVE);
 					if (cqi->getType() == 1) {
-						uc->setFlag(UserConnection::FLAG_PARTIAL);
+						uc->setFlag(UserConnection::FLAG_PARTIAL_LIST);
 						LogManager::getInstance()->message("Set UC type1: " + uc->getToken());
 					} else {
 						cqi->setType(2);
@@ -856,12 +864,12 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			//ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), uc->getUser());
 			//if(i != downloads.end()) {
 			const string& to = cqi->getToken();
-			if (to == aSource->getToken()) {
+			if(to == token) {
 				(*i)->setErrors(0);
-			
-				if(to == token) {
-					down = true;
-				}
+				aSource->setToken(token);
+				down = true;
+			} else {
+				LogManager::getInstance()->message("Token mismatch2: " + aSource->getToken() + " with: " + to);
 			}
 		}
 		/** @todo check tokens for upload connections */

@@ -71,7 +71,7 @@ public:
 		FLAG_STEALTH				= 0x1000,
 		FLAG_SECURE					= 0x2000,
 		FLAG_MCN1					= 0x4000,
-		FLAG_PARTIAL				= 0x8000
+		FLAG_PARTIAL_LIST			= 0x8000
 	};
 	
 	enum States {
@@ -103,7 +103,8 @@ public:
 		NOSLOT		= 0,
 		STDSLOT		= 1,
 		EXTRASLOT	= 2,
-		PARTIALSLOT	= 3
+		PARTIALSLOT	= 3,
+		MCNSLOT	= 4
 	};
 
 	short getNumber() const { return (short)((((size_t)this)>>2) & 0x7fff); }

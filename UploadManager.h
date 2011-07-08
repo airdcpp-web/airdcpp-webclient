@@ -120,6 +120,12 @@ public:
 	const UploadQueueItem::SlotQueue getWaitingUsers();
 	bool hasReservedSlot(const UserPtr& aUser) { Lock l(cs); return reservedSlots.find(aUser) != reservedSlots.end(); }
 	bool isConnecting(const UserPtr& aUser) const { return connectingUsers.find(aUser) != connectingUsers.end(); }
+	bool isUploading(const CID cid) const { return multiUploads.find(cid) != multiUploads.end(); }
+	//bool isUploading(const UserPtr& aUser);
+	void unreserveSlot(const UserPtr& aUser, bool add);
+	bool getMultiConn(const CID cid);
+	void changeMultiConnSlot(const CID cid, bool remove);
+	void removeMultiConn();
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
@@ -133,8 +139,10 @@ public:
 	GETSET(uint64_t, lastGrant, LastGrant);
 	GETSET(uint8_t, extraAir, ExtraAir);
 
+
 private:
 	uint8_t running;
+	uint8_t mcnSlots;
 
 	UploadList uploads;
 	UploadList delayUploads;
@@ -142,10 +150,13 @@ private:
 
 	int lastFreeSlots; /// amount of free slots at the previous minute
 	
+	typedef unordered_map<CID, uint8_t> MultiConnMap;
+	typedef MultiConnMap::iterator MultiConnIter;
 	typedef unordered_map<UserPtr, uint64_t, User::Hash> SlotMap;
 	typedef SlotMap::iterator SlotIter;
 	SlotMap reservedSlots;
 	SlotMap connectingUsers;
+	MultiConnMap multiUploads;
 	UploadQueueItem::SlotQueue waitingUsers;
 
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);

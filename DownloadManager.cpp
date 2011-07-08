@@ -148,7 +148,7 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool partialList) {
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;	
 		if(uc->getUser() == user) {
-			if ((!partialList && uc->isSet(UserConnection::FLAG_PARTIAL)) || (partialList && !uc->isSet(UserConnection::FLAG_PARTIAL)))
+			if ((!partialList && uc->isSet(UserConnection::FLAG_PARTIAL_LIST)) || (partialList && !uc->isSet(UserConnection::FLAG_PARTIAL_LIST)))
 				continue;
 			uc->updated();
 			return true;
@@ -200,7 +200,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	dcassert(aConn->getDownload() == NULL);
 
 	bool partial=false;
-	if (aConn->isSet(UserConnection::FLAG_PARTIAL) == 1)
+	if (aConn->isSet(UserConnection::FLAG_PARTIAL_LIST) == 1)
 		partial=true;
 
 	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), partial);
