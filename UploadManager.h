@@ -123,7 +123,7 @@ public:
 	bool isUploading(const CID cid) const { return multiUploads.find(cid) != multiUploads.end(); }
 	//bool isUploading(const UserPtr& aUser);
 	void unreserveSlot(const UserPtr& aUser, bool add);
-	bool getMultiConn(const CID cid);
+	bool getMultiConn(const UserConnection& aSource);
 	void changeMultiConnSlot(const CID cid, bool remove);
 	void removeMultiConn();
 
