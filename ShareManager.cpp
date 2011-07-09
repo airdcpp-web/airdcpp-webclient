@@ -54,7 +54,7 @@
 namespace dcpp {
 
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
-	xmlDirty(true), forceXmlRefresh(false), initial(true), listN(0), refreshing(false),
+	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
 	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
@@ -91,40 +91,7 @@ void ShareManager::shutdown() {
 					bzXmlRef.reset();
 					File::deleteFile(getBZXmlFile()); 
 				}
-
-		/*if(xmlDirty)
-			generateList();  //generate filelist when exit if its dirty so we dont loose any hashed files.
-
-		string file = getBZXmlFile();
-
-		try {
-		StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
-			for(StringList::const_iterator i = lists.begin(); i != lists.end(); ++i) {
-				if(stricmp(*i, file) == 0)   //first delete everything but the latest filelist
-					continue;
-		
-				File::deleteFile(*i);
-			}
-			lists.clear();
-		} catch(...) {
-		//ignore, we just failed to delete
-		}
-
-		//make sure we have the list name as files.xml.bz2 for next startup so we dont need to refresh
-		if(!Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2")) {
-			try {
-				File::renameFile(file, Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2"); //rename the latest filelist
-				
-				if(bzXmlRef.get()) { 
-					bzXmlRef.reset();
-					File::deleteFile(file);  //and finally delete the old filelist because rename couldnt do it.
-				}
-			} catch(const FileException&) {
-				generateList(); //for some reason we failed to rename
-				// ...
-			}
-		}
-	*/}
+	}
 
 ShareManager::Directory::Directory(const string& aName, const ShareManager::Directory::Ptr& aParent) :
 	size(0),
@@ -296,12 +263,12 @@ ShareManager::DirPairList ShareManager::splitVirtual(const string& virtualPath) 
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
 
-	string::size_type i = virtualPath.find('/', 1);
-	if(i == string::npos || i == 1) {
+	string::size_type start = virtualPath.find('/', 1);
+	if(start == string::npos || start == 1) {
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
 
-	temp = getByVirtual( virtualPath.substr(1, i - 1));
+	temp = getByVirtual( virtualPath.substr(1, start - 1));
 	if(temp.empty()) {
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
@@ -311,7 +278,8 @@ ShareManager::DirPairList ShareManager::splitVirtual(const string& virtualPath) 
 	Directory::MapIter mi;
 	for(Dirs::const_iterator k = temp.begin(); k != temp.end(); k++) {
 	Directory::Ptr d = *k;
-	string::size_type j = i + 1;
+	string::size_type j = start + 1;
+	string::size_type i = start;  //start again from the beginning.
 	if(virtualPath.find('/', j) == string::npos) //if we dont find path under vname return
 		dirs.push_back(make_pair(d, virtualPath.substr(j)));
 
@@ -520,7 +488,6 @@ bool ShareManager::loadCache() throw() {
 		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
 
 		ShareLoader loader(directories);
-		//SimpleXMLReader xml(&loader);
 
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2", dcpp::File::READ, dcpp::File::OPEN);
 		FilteredInputStream<UnBZFilter, false> f(&ff);
@@ -532,9 +499,10 @@ bool ShareManager::loadCache() throw() {
 			updateIndices(*d);
 		}
 
-		
 		setDirty();
+
 		generateList();
+
 		return true;
 	} catch(const Exception& e) {
 		dcdebug("%s\n", e.getError().c_str());
@@ -1986,16 +1954,7 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 }
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) throw() {
-//could just remove the forced refresh and use autorefresh for it
-//but maybe better to have one separate and no limits to autorefresh time setting
-//startup refresh has limit max to 100 mins from startup
-	if(SETTING(REFRESH_STARTUP) != 0) {
-	if((lastFullUpdate + SETTING(REFRESH_STARTUP) * 60 * 1000 <= tick) && initial) {
-	setDirty();
-	refresh(ShareManager::REFRESH_ALL | ShareManager::REFRESH_UPDATE);
-	initial = false;
-	}
-	}
+
 	if(SETTING(INCOMING_REFRESH_TIME) > 0 && !incoming.empty()){
 			if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
 			setDirty();

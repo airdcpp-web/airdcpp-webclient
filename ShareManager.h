@@ -334,7 +334,6 @@ private:
 
 	bool xmlDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
-	bool initial;
 	bool rebuild;
 
 	

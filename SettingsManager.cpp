@@ -144,9 +144,9 @@ const string SettingsManager::settingTags[] =
 	"LangSwitch", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp",
 	"OverlapChunks", "MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "DupeText", "OpenSystemLog",
-	"FirstRun", "LastSearchFiletype", "MaxResizeLines", "DontShareEmptyDirs", "OnlyShareFullDirs", "RefreshStartup", "ExtraAirDCSlots",
+	"FirstRun", "LastSearchFiletype", "MaxResizeLines", "DontShareEmptyDirs", "OnlyShareFullDirs", "ExtraAirDCSlots",
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
-	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "DisableRefreshOnSharepage", "RefreshVnameOnSharePage",
+	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
 	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRun", "FormatRelease", "ShareSFV", "LogLines",
@@ -627,7 +627,6 @@ SettingsManager::SettingsManager()
 	setDefault(MAX_RESIZE_LINES, 2);
 	setDefault(DONT_SHARE_EMPTY_DIRS, false);
 	setDefault(ONLY_SHARE_FULL_DIRS, false);
-	setDefault(REFRESH_STARTUP, 5);
 	setDefault(EXTRA_AIRDC_SLOTS, 0);
 	setDefault(DUPE_SEARCH, true);
 	setDefault(PASSWD_PROTECT, false);
@@ -639,8 +638,7 @@ SettingsManager::SettingsManager()
 	setDefault(SKIP_MSG_01, "*DISK2*|*cd2*");
 	setDefault(SKIP_MSG_02, "*sample*");
 	setDefault(SKIP_MSG_03, "*cover*");
-	setDefault(DISABLE_REFRESH_ON_SHAREPAGE, false);
-	setDefault(REFRESH_VNAME_ON_SHAREPAGE, false);
+	setDefault(REFRESH_VNAME_ON_SHAREPAGE, true);
 	setDefault(AUTO_ADD_SOURCE, true);
 	setDefault(KEEP_FINISHED_FILES, false);
 	setDefault(ALLOW_NAT_TRAVERSAL, true);
@@ -651,8 +649,8 @@ SettingsManager::SettingsManager()
 	setDefault(USE_ADLS_OWN_LIST, true);
 	setDefault(DONT_DL_ALREADY_QUEUED, false);
 	setDefault(DOWNLOADS_EXPAND, false);
-	setDefault(SYSTEM_SHOW_UPLOADS, true);
-	setDefault(SYSTEM_SHOW_DOWNLOADS, true);
+	setDefault(SYSTEM_SHOW_UPLOADS, false);
+	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
 	setDefault(SETTINGS_PROFILE, PROFILE_PUBLIC);
 	setDefault(DOWNLOAD_SPEED, connectionSpeeds[10]);
 	setDefault(LANGUAGE_SWITCH, 0);
