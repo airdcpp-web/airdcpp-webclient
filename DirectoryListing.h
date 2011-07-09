@@ -92,8 +92,8 @@ public:
 		List directories;
 		File::List files;
 		enum { NONE, PARTIAL_DUPE, DUPE };
-		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete) 
-			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0) { }
+		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString) 
+			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), dirsize(Size) { }
 		
 		virtual ~Directory() {
 			for_each(directories.begin(), directories.end(), DeleteFunction());
@@ -127,6 +127,7 @@ public:
 		uint8_t checkDupes();
 		
 		GETSET(string, name, Name);
+		GETSET(string, dirsize, DirSize);
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);

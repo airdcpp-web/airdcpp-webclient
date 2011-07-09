@@ -1134,7 +1134,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "File with same TTH allready exists in Queue", 
 "Show User Joins / Parts", 
 "Successfully removed port mappings", 
-"Expand Downloads in TransferView", 
+"Dont Group Downloads in TransferView", 
 "Show Finished Uploads in System Log", 
 "Show Finished Downloads in System Log", 
 "Settings Wizard", 

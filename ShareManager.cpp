@@ -1441,7 +1441,10 @@ void ShareManager::Directory::toXml(OutputStream& xmlFile, string& indent, strin
 		if(directories.empty() && files.empty()) {
 			xmlFile.write(LITERAL("\" />\r\n"));
 		} else {
-			xmlFile.write(LITERAL("\" Incomplete=\"1\" />\r\n"));
+			xmlFile.write(LITERAL("\" Incomplete=\"1"));
+			xmlFile.write(LITERAL("\" Size=\""));
+			xmlFile.write(SimpleXML::escape(Util::toString(getSize()), tmp2, true));
+			xmlFile.write(LITERAL("\" />\r\n"));
 			}
 		}
 	}

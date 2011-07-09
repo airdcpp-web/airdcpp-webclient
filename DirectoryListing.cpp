@@ -171,6 +171,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				throw SimpleXMLException("Directory missing name attribute");
 			}
 			bool incomp = getAttrib(attribs, sIncomplete, 1) == "1";
+			const string& size = getAttrib(attribs, sSize, 2);
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
 				for(DirectoryListing::Directory::Iter i  = cur->directories.begin(); i != cur->directories.end(); ++i) {
@@ -183,7 +184,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				}
 			}
 			if(d == NULL) {
-				d = new DirectoryListing::Directory(cur, n, false, !incomp);
+				d = new DirectoryListing::Directory(cur, n, false, !incomp, size);
 				cur->directories.push_back(d);
 			}
 			cur = d;
@@ -376,12 +377,16 @@ StringList DirectoryListing::getLocalPaths(const Directory* d) {
 }
 
 int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
+	if(!getComplete())
+		return Util::toInt64(getDirSize());
+	
 	int64_t x = getSize();
 	for(Iter i = directories.begin(); i != directories.end(); ++i) {
 		if(!(adl && (*i)->getAdls()))
 			x += (*i)->getTotalSize(adls);
 	}
-	return x;
+	
+		return x;
 }
 
 size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
