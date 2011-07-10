@@ -197,6 +197,7 @@ private:
 	void failed(UserConnection* aSource, const string& aError, bool protocolError);
 
 	bool checkIpFlood(const string& aServer, uint16_t aPort, const string& userInfo);
+	void checkWaitingMCN() throw();
 	
 	// UserConnectionListener
 	void on(Connected, UserConnection*) throw();

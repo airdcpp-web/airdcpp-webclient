@@ -179,8 +179,6 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 
 void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw() {
 	UserList passiveUsers;
-	ConnectionQueueItem::List waitingMultiConn;
-	ConnectionQueueItem::List multiUsers;
 	ConnectionQueueItem::List removed;
 	{
 		Lock l(cs);
@@ -195,19 +193,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 					// Not online anymore...remove it from the pending...
 					removed.push_back(cqi);
 					continue;
-				} 
-
-				if (cqi->getType() == 2) {
-					ConnectionQueueItem::Iter u = find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
-					if(u == waitingMultiConn.end()) {
-						LogManager::getInstance()->message("Type multi check NOT active, not listed in waitingMultiConn: " + cqi->getToken());
-						waitingMultiConn.push_back(cqi);
-					} else {
-						//there should be only one of these
-						LogManager::getInstance()->message("Type multi MULTIPLE waiting, add removed: " + cqi->getToken());
-						removed.push_back(cqi);
-						continue;
-					}
 				}
 
 				if(cqi->getErrors() == -1 && cqi->getLastAttempt() != 0) {
@@ -254,7 +239,48 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 					fire(ConnectionManagerListener::Failed(), cqi, STRING(CONNECTION_TIMEOUT));
 					cqi->setState(ConnectionQueueItem::WAITING);
 				}
+			}
+		}
+
+		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
+			putCQI(*m);
+		}
+
+	}
+
+	for(UserList::iterator ui = passiveUsers.begin(); ui != passiveUsers.end(); ++ui) {
+		QueueManager::getInstance()->removeSource(*ui, QueueItem::Source::FLAG_PASSIVE);
+	}
+}
+
+void ConnectionManager::checkWaitingMCN() throw() {
+	LogManager::getInstance()->message("Check waiting MCN1");
+	ConnectionQueueItem::List waitingMultiConn;
+	ConnectionQueueItem::List multiUsers;
+	ConnectionQueueItem::List removed;
+	{
+
+		Lock l(cs);
+
+		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
+			LogManager::getInstance()->message("Check waiting MCN1");
+			ConnectionQueueItem* cqi = *i;
+			if(cqi->getState() != ConnectionQueueItem::ACTIVE) {
+				LogManager::getInstance()->message("Check waiting  != active");
+				if (cqi->getType() == 2) {
+					ConnectionQueueItem::Iter u = find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
+					if(u == waitingMultiConn.end()) {
+						LogManager::getInstance()->message("Type multi check NOT active, not listed in waitingMultiConn: " + cqi->getToken());
+						waitingMultiConn.push_back(cqi);
+					} else {
+						//there should be only one of these
+						LogManager::getInstance()->message("Type multi MULTIPLE waiting, add removed: " + cqi->getToken());
+						removed.push_back(cqi);
+						continue;
+					}
+				}
 			} else {
+				LogManager::getInstance()->message("Check waiting active");
 				if(!cqi->getUser().user->isOnline()) {
 					// No new connections for offline users...
 					continue;
@@ -309,11 +335,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 				putConnection(*s);
 			}
 		}
-
-	}
-
-	for(UserList::iterator ui = passiveUsers.begin(); ui != passiveUsers.end(); ++ui) {
-		QueueManager::getInstance()->removeSource(*ui, QueueItem::Source::FLAG_PASSIVE);
 	}
 }
 
@@ -781,6 +802,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 				}
 			}
 		}
+		checkWaitingMCN();
 	}
 
 	if(addConn) {
@@ -964,13 +986,16 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 		}
 	}
 	putConnection(aSource);
+	checkWaitingMCN();
 }
 
 void ConnectionManager::on(UserConnectionListener::Failed, UserConnection* aSource, const string& aError) throw() {
+	checkWaitingMCN();
 	failed(aSource, aError, false);
 }
 
 void ConnectionManager::on(UserConnectionListener::ProtocolError, UserConnection* aSource, const string& aError) throw() {
+	checkWaitingMCN();
 	failed(aSource, aError, true);
 }
 
