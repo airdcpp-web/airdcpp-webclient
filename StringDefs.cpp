@@ -1217,6 +1217,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "NFO/SFV found but there are no other files in the folder:", 
 "Check if the folder only contains NFO/SFV file", 
 "Check if the directory is empty", 
+"Date", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2434,4 +2435,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ReleaseFilesMissing", 
 "CheckEmptyReleases", 
 "CheckEmptyDirs", 
+"Date", 
 };

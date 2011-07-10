@@ -1012,6 +1012,16 @@ string Util::getIpCountry(const string& IP) {
 	return Util::emptyString; //if doesn't returned anything already, something is wrong...
 }
 
+string Util::getDateTime(time_t t) {
+	char buf[64];
+	tm _tm;
+	localtime_s(&_tm, &t);
+	strftime(buf, 64, "%d.%m.%Y", &_tm);
+	
+	return buf;
+}
+
+
 string Util::getTimeString() {
 	char buf[64];
 	time_t _tt;

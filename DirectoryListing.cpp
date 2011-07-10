@@ -145,7 +145,7 @@ static const string sFile = "File";
 static const string sName = "Name";
 static const string sSize = "Size";
 static const string sTTH = "TTH";
-
+static const string sDate = "Date";
 void ListLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
 	if(list->getAbort()) {
 		throw AbortException();
@@ -172,6 +172,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 			bool incomp = getAttrib(attribs, sIncomplete, 1) == "1";
 			const string& size = getAttrib(attribs, sSize, 2);
+			const string& date = getAttrib(attribs, sDate, 3);
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
 				for(DirectoryListing::Directory::Iter i  = cur->directories.begin(); i != cur->directories.end(); ++i) {
@@ -184,7 +185,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				}
 			}
 			if(d == NULL) {
-				d = new DirectoryListing::Directory(cur, n, false, !incomp, size);
+				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, date);
 				cur->directories.push_back(d);
 			}
 			cur = d;

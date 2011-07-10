@@ -70,6 +70,7 @@ uint32_t File::convertTime(FILETIME* f) {
 	return 0;
 }
 
+
 bool File::isOpen() const throw() {
 	return h != INVALID_HANDLE_VALUE;
 }

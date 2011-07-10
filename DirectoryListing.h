@@ -92,8 +92,8 @@ public:
 		List directories;
 		File::List files;
 		enum { NONE, PARTIAL_DUPE, DUPE };
-		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString) 
-			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), dirsize(Size) { }
+		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString, const string& Date = Util::emptyString) 
+			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), dirsize(Size), dirdate(Date) { }
 		
 		virtual ~Directory() {
 			for_each(directories.begin(), directories.end(), DeleteFunction());
@@ -128,6 +128,7 @@ public:
 		
 		GETSET(string, name, Name);
 		GETSET(string, dirsize, DirSize);
+		GETSET(string, dirdate, DirDate);
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);

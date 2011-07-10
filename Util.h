@@ -228,6 +228,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static string getTimeStamp(time_t t = time(NULL) );
 
 	static string getTimeString();
+	static string getDateTime(time_t t);
 	static string toAdcFile(const string& file);
 	static string toNmdcFile(const string& file);
 	

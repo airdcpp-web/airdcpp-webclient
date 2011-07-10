@@ -55,7 +55,7 @@ namespace dcpp {
 
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
-	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false)
+	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false), ShareCacheDirty(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -76,7 +76,8 @@ ShareManager::~ShareManager() {
 }
 
 void ShareManager::shutdown() {
-	saveXmlList();
+	if(ShareCacheDirty || !Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2"))
+		saveXmlList();
 
 	try {
 		StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
@@ -423,14 +424,16 @@ static const string SNAME = "Name";
 static const string SSIZE = "Size";
 static const string STTH = "TTH";
 static const string PATH = "Path";
+static const string DATE = "Date";
 
 struct ShareLoader : public SimpleXMLReader::CallBack {
 	ShareLoader(ShareManager::DirMap& aDirs) : dirs(aDirs), cur(0), depth(0) { }
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
 		if(name == SDIRECTORY) {
 			const string& name = getAttrib(attribs, SNAME, 0);
-			string path = getAttrib(attribs, PATH, 0);
-			
+			string path = getAttrib(attribs, PATH, 1);
+			string date = getAttrib(attribs, DATE, 2);
+
 			if(path[path.length() - 1] != PATH_SEPARATOR)
 				path += PATH_SEPARATOR;
 
@@ -444,6 +447,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 					}
 				} else if(cur) {
 					cur = ShareManager::Directory::create(name, cur);
+					cur->setLastWrite(date);
 					cur->getParent()->directories[cur->getName()] = cur;
 				}
 			}
@@ -498,8 +502,6 @@ bool ShareManager::loadCache() throw() {
 			const Directory::Ptr& d = i->second;
 			updateIndices(*d);
 		}
-
-		setDirty();
 
 		generateList();
 
@@ -808,6 +810,8 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
  			
 		if(i->isDirectory()) {
 			string newName = aName + name + PATH_SEPARATOR;
+			
+			dir->setLastWrite(Util::getDateTime(i->getLastWriteTime()));
 
 #ifdef _WIN32
 			// don't share Windows directory
@@ -820,6 +824,9 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			if((stricmp(newName, SETTING(TEMP_DOWNLOAD_DIRECTORY)) != 0) && shareFolder(newName)) {
 				//ApexDC
 				Directory::Ptr tmpDir = buildTree(newName, dir);
+				//add the date to the last dir
+				tmpDir->setLastWrite(Util::getDateTime(i->getLastWriteTime()));
+
 				if((!BOOLSETTING(DONT_SHARE_EMPTY_DIRS) || tmpDir->countFiles() > 0) && (!BOOLSETTING(ONLY_SHARE_FULL_DIRS) || tmpDir->getFullyHashed())) {
 					dir->directories[name] = tmpDir;
 				}
@@ -1255,6 +1262,8 @@ void ShareManager::Directory::toXmlList(OutputStream* xmlFile, string& indent, c
 	xmlFile->write(SimpleXML::escape(name, tmp, true));
 	xmlFile->write(LITERAL("\" Path=\""));
 	xmlFile->write(SimpleXML::escape(path, tmp, true));
+	xmlFile->write(LITERAL("\" Date=\""));
+	xmlFile->write(SimpleXML::escape(lastwrite, tmp, true));
 	xmlFile->write(LITERAL("\">\r\n"));
 
 	indent += '\t';
@@ -1444,6 +1453,8 @@ void ShareManager::Directory::toXml(OutputStream& xmlFile, string& indent, strin
 			xmlFile.write(LITERAL("\" Incomplete=\"1"));
 			xmlFile.write(LITERAL("\" Size=\""));
 			xmlFile.write(SimpleXML::escape(Util::toString(getSize()), tmp2, true));
+			xmlFile.write(LITERAL("\" Date=\""));
+			xmlFile.write(SimpleXML::escape(lastwrite, tmp2, true));
 			xmlFile.write(LITERAL("\" />\r\n"));
 			}
 		}

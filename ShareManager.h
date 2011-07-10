@@ -67,7 +67,7 @@ public:
 	int refresh(const string& aDir);
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
-	void setDirty() {xmlDirty = true; }
+	void setDirty() {xmlDirty = true;  ShareCacheDirty = true;}
 	StringList getIncoming() { return incoming; };
 	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
 	void DelIncoming() { incoming.clear(); };
@@ -250,7 +250,7 @@ private:
 		void merge(const Ptr& source);
 
 
-		
+		GETSET(string, lastwrite, LastWrite);
 		GETSET(string, name, Name);
 		GETSET(Directory*, parent, Parent);
 		GETSET(bool, fullyHashed, FullyHashed); //ApexDC
@@ -333,6 +333,7 @@ private:
 	unique_ptr<File> bzXmlRef;
 
 	bool xmlDirty;
+	bool ShareCacheDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
 	bool rebuild;
 
