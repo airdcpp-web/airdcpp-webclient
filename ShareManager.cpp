@@ -1300,10 +1300,13 @@ void ShareManager::VnameToXml(const string& vname, OutputStream& xmlFile, string
 	xmlFile.write(LITERAL("<Directory Name=\""));
 	xmlFile.write(SimpleXML::escape(vname, tmp2, true));
 	
+	Dirs temp = getByVirtual(vname);
+
+	if(fullList) {
 		xmlFile.write(LITERAL("\">\r\n"));
 		indent += '\t';
 
-			Dirs temp = getByVirtual(vname);
+			
 
 			for(Dirs::const_iterator k = temp.begin(); k != temp.end(); k++) { 
 				(*k)->toXml(xmlFile, indent, tmp2, fullList, false);
@@ -1312,6 +1315,17 @@ void ShareManager::VnameToXml(const string& vname, OutputStream& xmlFile, string
 		indent.erase(indent.length()-1);
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("</Directory>\r\n"));
+	}else {
+			int64_t size = 0;
+			for(Dirs::const_iterator k = temp.begin(); k != temp.end(); k++) { 
+				size += (*k)->getSize();
+			}
+
+			xmlFile.write(LITERAL("\" Incomplete=\"1"));
+			xmlFile.write(LITERAL("\" Size=\""));
+			xmlFile.write(SimpleXML::escape(Util::toString(size), tmp2, true));
+			xmlFile.write(LITERAL("\" />\r\n"));
+	}
 }
 
 MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, bool isInSharingHub) const {
@@ -1369,11 +1383,12 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 			
 			if(!found) {
 				for(Dirs::const_iterator f = temp.begin(); f != temp.end(); f++) {
-					root = *f;
-				Directory::Map::const_iterator it2 = root->directories.find(dir.substr(j, i-j));
-					if(it2 != root->directories.end()) {
+		
+				Directory::Map::const_iterator it2 = (*f)->directories.find(dir.substr(j, i-j));
+					if(it2 != (*f)->directories.end()) {
 						found = true;
 						root = it2->second;
+						break;
 						}
 					}
 				} else {
