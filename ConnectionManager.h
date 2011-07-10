@@ -47,8 +47,8 @@ public:
 		ACTIVE						// In one up/downmanager
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, int dlType) : token(Util::toString(Util::rand())), 
-		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), type(dlType), id(Util::rand()) { }
+	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, int dlType, string aToken) : token(aToken), 
+		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), type(dlType) { }
 	
 	GETSET(string, token, Token);
 
@@ -57,7 +57,6 @@ public:
 	GETSET(State, state, State);
 	GETSET(bool, download, Download);
 	GETSET(int, type, Type);
-	GETSET(int, id, Id);
 	//idList connIds;
 	//list<const HintedUser&> userList;
 	//ConnectionQueueItem::List userList;
@@ -127,7 +126,7 @@ public:
 	
 	void disconnect(const UserPtr& aUser); // disconnect downloads and uploads
 	void disconnect(const UserPtr& aUser, int isDownload);
-	void disconnect(const string token, int isDownload);
+	void disconnect(const string token);
 
 	void shutdown();
 	bool isShuttingDown() const { return shuttingDown; }
@@ -190,7 +189,7 @@ private:
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, int type);
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, int type, string token = Util::toString(Util::rand()));
 	void putCQI(ConnectionQueueItem* cqi);
 
 	void accept(const Socket& sock, bool secure) throw();

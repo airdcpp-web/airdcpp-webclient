@@ -148,7 +148,7 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool partialList) {
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;	
 		if(uc->getUser() == user) {
-			if ((!partialList && uc->isSet(UserConnection::FLAG_PARTIAL_LIST)) || (partialList && !uc->isSet(UserConnection::FLAG_PARTIAL_LIST)))
+			if ((!partialList && uc->isSet(UserConnection::FLAG_PARTIAL_LIST)) || (partialList && !uc->isSet(UserConnection::FLAG_PARTIAL_LIST)) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
 			uc->updated();
 			return true;

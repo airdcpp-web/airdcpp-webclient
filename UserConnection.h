@@ -104,7 +104,8 @@ public:
 		STDSLOT		= 1,
 		EXTRASLOT	= 2,
 		PARTIALSLOT	= 3,
-		MCNSLOT	= 4
+		MCNSLOT	= 4,
+		PARTIALLISTSLOT = 5
 	};
 
 	short getNumber() const { return (short)((((size_t)this)>>2) & 0x7fff); }

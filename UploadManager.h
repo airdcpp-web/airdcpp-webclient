@@ -125,7 +125,7 @@ public:
 	void unreserveSlot(const UserPtr& aUser, bool add);
 	bool getMultiConn(const UserConnection& aSource);
 	void changeMultiConnSlot(const CID cid, bool remove);
-	void removeMultiConn();
+	void checkMultiConn();
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
@@ -143,6 +143,7 @@ public:
 private:
 	uint8_t running;
 	uint8_t mcnSlots;
+	uint8_t partialListSlots;
 
 	UploadList uploads;
 	UploadList delayUploads;
