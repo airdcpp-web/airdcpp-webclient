@@ -37,8 +37,6 @@ public:
 	typedef ConnectionQueueItem* Ptr;
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
-	//typedef std::map<size_t, const HintedUser&> idList;
-	//typedef vector<const HintedUser&> userList;
 	
 	enum State {
 		CONNECTING,					// Recently sent request to connect
@@ -57,22 +55,11 @@ public:
 	GETSET(State, state, State);
 	GETSET(bool, download, Download);
 	GETSET(int, type, Type);
-	//idList connIds;
-	//list<const HintedUser&> userList;
-	//ConnectionQueueItem::List userList;
-	const HintedUser getHintedUser(int id) const {
-		return userList[id];
-	}
 	const HintedUser& getUser() const { return user; }
 
 private:
 	HintedUser user;
 	HintedUserList userList;
-	int newId(const HintedUser& aUser) {
-		int value=userList.size()+1;
-		userList.push_back(aUser);
-		return value;
-	}
 };
 
 class ExpectedMap {
@@ -170,6 +157,8 @@ private:
 	StringList adcFeatures;
 
 	ExpectedMap expectedConnections;
+	typedef unordered_map<CID, uint8_t> MultiConnMap;
+	typedef MultiConnMap::iterator MultiConnIter;
 
 	uint64_t floodCounter;
 

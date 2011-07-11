@@ -231,7 +231,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	
 	{
 		Lock l(cs);
-		LogManager::getInstance()->message("Download push back: " + aConn->getToken());
 		downloads.push_back(d);
 	}
 	fire(DownloadManagerListener::Requesting(), d);

@@ -89,12 +89,10 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool part
 	dcassert((bool)aUser.user);
 	{
 	if (!DownloadManager::getInstance()->checkIdle(aUser.user, partialList)) {
-		LogManager::getInstance()->message("Idle not found");
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if (cqi->getUser().user == aUser.user) {
 				if ((!partialList && cqi->getType() == 1) || (partialList && cqi->getType() != 1)) {
-					LogManager::getInstance()->message("No partial for other connection types");
 					continue;
 				}
 				found=true;
@@ -106,33 +104,17 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool part
 			int type=0;
 			if (partialList)
 				type=1;
-			LogManager::getInstance()->message("Get CQI");
 			getCQI(aUser, true, type);
-		} else {
-			LogManager::getInstance()->message("Don't get CQI");
 		}
-	} else {
-		LogManager::getInstance()->message("Idle found");
 	}
 	}
 }
 
 ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, int type, string token) {
-	LogManager::getInstance()->message("Getting cqi");
-	if (type==1)
-		LogManager::getInstance()->message("Getting cqi type1");
-	else if (type==2)
-		LogManager::getInstance()->message("Getting cqi type2");
-	else if (type==0)
-		LogManager::getInstance()->message("Getting cqi type0");
-	else
-		LogManager::getInstance()->message("Getting cqi type OTHER");
-
 	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download, type, token);
 	if(download) {
 		dcassert(find(downloads.begin(), downloads.end(), aUser.user) == downloads.end());
 		downloads.push_back(cqi);
-		LogManager::getInstance()->message("Download added: : " + cqi->getToken());
 	} else {
 		dcassert(find(uploads.begin(), uploads.end(), aUser.user) == uploads.end());
 		uploads.push_back(cqi);
@@ -147,7 +129,6 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 	if(cqi->getDownload()) {
 		dcassert(find(downloads.begin(), downloads.end(), cqi) != downloads.end());
 		downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
-		LogManager::getInstance()->message("putCQI: : " + cqi->getToken());
 	} else {
 		UploadManager::getInstance()->removeDelayUpload(cqi->getUser());
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
@@ -169,7 +150,6 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) throw(
 }
 
 void ConnectionManager::putConnection(UserConnection* aConn) {
-	LogManager::getInstance()->message("UC removed" + aConn->getToken());
 	aConn->removeListener(this);
 	aConn->disconnect();
 
@@ -220,7 +200,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown) {
-							LogManager::getInstance()->message("Startdown: " + cqi->getToken());
 							cqi->setState(ConnectionQueueItem::CONNECTING);							
 							ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken());
 							fire(ConnectionManagerListener::StatusChanged(), cqi);
@@ -254,69 +233,60 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 }
 
 void ConnectionManager::checkWaitingMCN() throw() {
-	LogManager::getInstance()->message("Check waiting MCN1");
 	ConnectionQueueItem::List waitingMultiConn;
 	ConnectionQueueItem::List multiUsers;
 	ConnectionQueueItem::List removed;
+	MultiConnMap mcnConnections;
 	{
 
 		Lock l(cs);
 
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
-			LogManager::getInstance()->message("Check waiting MCN1");
 			ConnectionQueueItem* cqi = *i;
-			if(cqi->getState() != ConnectionQueueItem::ACTIVE) {
-				LogManager::getInstance()->message("Check waiting  != active");
-				if (cqi->getType() == 2) {
+			if (cqi->getType() == 2) {
+				if(cqi->getState() != ConnectionQueueItem::ACTIVE) {
 					ConnectionQueueItem::Iter u = find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
 					if(u == waitingMultiConn.end()) {
-						LogManager::getInstance()->message("Type multi check NOT active, not listed in waitingMultiConn: " + cqi->getToken());
 						waitingMultiConn.push_back(cqi);
 					} else {
-						//there should be only one of these
-						LogManager::getInstance()->message("Type multi MULTIPLE waiting, add removed: " + cqi->getToken());
+						//there should be only one cqi waiting
 						removed.push_back(cqi);
 						continue;
 					}
-				}
-			} else {
-				LogManager::getInstance()->message("Check waiting active");
-				if(!cqi->getUser().user->isOnline()) {
-					// No new connections for offline users...
-					continue;
-				} 
-				if (cqi->getType() == 2) {
-					LogManager::getInstance()->message("Type multi check running: " + cqi->getToken());
+				} else {
+					if(!cqi->getUser().user->isOnline()) {
+						// No new connections for offline users...
+						continue;
+					}
 					ConnectionQueueItem::Iter u = find(multiUsers.begin(), multiUsers.end(), cqi->getUser());
-
 					if(u == multiUsers.end())
 						multiUsers.push_back(cqi);
+				}
+				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
+				if (y == mcnConnections.end()) {
+					mcnConnections[cqi->getUser().user->getCID()] = 1;
+				} else {
+					y->second++;
 				}
 			}
 		}
 
-		bool found=false;
 		for(ConnectionQueueItem::Iter k = multiUsers.begin(); k != multiUsers.end(); ++k) {
 			ConnectionQueueItem* cqi = *k;
-			found=false;
-			for(ConnectionQueueItem::Iter u = waitingMultiConn.begin(); u != waitingMultiConn.end(); ++u) {
-				ConnectionQueueItem* cqi2 = *u;
-				if (cqi2->getUser() == cqi->getUser()) {
-					found=true;
-					break;
+			ConnectionQueueItem::Iter u = std::find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
+			if (u == waitingMultiConn.end()) {
+				//no connection waiting, check if we can create a new one
+				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
+				if (y != mcnConnections.end()) {
+					if (y->second >= SETTING(MAX_MCN_DOWNLOADS) && SETTING(MAX_MCN_DOWNLOADS) != 0) {
+						continue;
+					}
 				}
-			}
-			if (!found) {
 				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
 				bool startDown = DownloadManager::getInstance()->startDownload(prio);
 				if(prio != QueueItem::PAUSED && startDown) {
-					LogManager::getInstance()->message("Type multi, getCQI: " + cqi->getToken());
 					getCQI(cqi->getUser(),true,2);
-				} else {
-					LogManager::getInstance()->message("No downloads: " + cqi->getToken());
 				}
-			} else {
-				LogManager::getInstance()->message("Type multi, NO getCQI: " + cqi->getToken());
 			}
 		}
 
@@ -324,6 +294,7 @@ void ConnectionManager::checkWaitingMCN() throw() {
 			ConnectionQueueItem* cqi1 = *m;
 			putCQI(cqi1);
 			UserConnectionList removedUc;
+			//also remove the corresponding UserConnection
 			for(UserConnectionList::const_iterator k = userConnections.begin(); k != userConnections.end(); ++k) {
 				UserConnection* uc = *k;
 				if (cqi1->getToken() == uc->getToken()) {
@@ -523,7 +494,6 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, uint16_t aPort, uint
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setHubUrl(aUser.getClient().getHubUrl());
 	uc->setToken(aToken);
-	LogManager::getInstance()->message("New uc: " + aToken);
 	if(aUser.getIdentity().isOp()) {
 		uc->setFlag(UserConnection::FLAG_OP);
 	}
@@ -766,7 +736,6 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 	bool addConn = false;
 	Lock l(cs);
 	if (!uc->isSet(UserConnection::FLAG_MCN1)) {
-		LogManager::getInstance()->message("Not MCN1: " + uc->getToken());
 		ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), uc->getUser());
 		if(i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
@@ -780,7 +749,6 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 			}
 		}
 	} else {
-		LogManager::getInstance()->message("MCN1: " + uc->getToken());
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if (cqi->getToken() == uc->getToken()) {
@@ -788,13 +756,10 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 					cqi->setState(ConnectionQueueItem::ACTIVE);
 					if (cqi->getType() == 1) {
 						uc->setFlag(UserConnection::FLAG_PARTIAL_LIST);
-						LogManager::getInstance()->message("Set UC type1: " + uc->getToken());
 					} else {
 						cqi->setType(2);
-						LogManager::getInstance()->message("Set CQI+UC type2: " + uc->getToken());
 					}
 					uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-					LogManager::getInstance()->message("Tokens match: " + uc->getToken());
 					fire(ConnectionManagerListener::Connected(), cqi);
 				
 					dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");
@@ -807,7 +772,6 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 
 	if(addConn) {
 		DownloadManager::getInstance()->addConnection(uc);
-		LogManager::getInstance()->message("addConnection: " + uc->getToken());
 	} else {
 		putConnection(uc);
 	}
@@ -895,29 +859,22 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	bool down = false;
 	{
 		Lock l(cs);
-		//ConnectionQueueItem::Iter i = find(downloads.begin(), downloads.end(), aSource->getToken());
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
-			//ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), uc->getUser());
-			//if(i != downloads.end()) {
 			const string& to = cqi->getToken();
 			if(to == token) {
 				(*i)->setErrors(0);
 				aSource->setToken(token);
 				down = true;
-			} else {
-				LogManager::getInstance()->message("Token mismatch2: " + aSource->getToken() + " with: " + to);
 			}
 		}
 		/** @todo check tokens for upload connections */
 	}
 
 	if(down) {
-		LogManager::getInstance()->message("INF ok, start: " + token);
 		aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
 		addDownloadConnection(aSource);
 	} else {
-		LogManager::getInstance()->message("Start Upload (?): " + token);
 		aSource->setFlag(UserConnection::FLAG_UPLOAD);
 		addUploadConnection(aSource);
 	}
@@ -930,15 +887,9 @@ void ConnectionManager::force(const string aToken) {
 		ConnectionQueueItem* cqi = *i;
 		if (cqi->getToken() == aToken)
 			(*i)->setLastAttempt(0);
-			LogManager::getInstance()->message("FORCE: token found: " + aToken);
 	}
 
-	//ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), &aToken);
-	//if(i == downloads.end()) {
-		return;
-	//}
-
-	//(*i)->setLastAttempt(0);
+	return;
 }
 
 void ConnectionManager::force(const UserPtr& aUser) {
@@ -961,10 +912,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 				ConnectionQueueItem* cqi = *i;
 				if (aSource->getToken() == cqi->getToken()) {
 					dcassert(i != downloads.end());
-					//ConnectionQueueItem::Iter i = find(downloads.begin(), downloads.end(), aSource->getToken());
-					//dcassert(i != downloads.end());
 					cqi->setState(ConnectionQueueItem::WAITING);
-					LogManager::getInstance()->message("ConnectionManager::failed, cqi state changed to waiting: " + cqi->getToken());
 					cqi->setLastAttempt(GET_TICK());
 					cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
 					fire(ConnectionManagerListener::Failed(), cqi, aError);
@@ -1014,7 +962,6 @@ void ConnectionManager::disconnect(const string token) {
 		UserConnection* uc = *i;
 		if(uc->getToken() == token) {
 			uc->disconnect(true);
-			LogManager::getInstance()->message("DISCONNECT: token found: " + token);
 			break;
 		}
 	}

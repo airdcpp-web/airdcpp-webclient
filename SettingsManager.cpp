@@ -154,7 +154,7 @@ const string SettingsManager::settingTags[] =
 	"CheckEmptyDirs","CheckEmptyReleases", "FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
-	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight",
+	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -668,6 +668,7 @@ SettingsManager::SettingsManager()
 	setDefault(CHECK_EMPTY_RELEASES, true);
 	setDefault(SORT_DIRS, false);
 	setDefault(MAX_FILE_SIZE_SHARED, 0);
+	setDefault(MAX_MCN_DOWNLOADS, 0);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

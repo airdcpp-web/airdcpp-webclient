@@ -447,9 +447,8 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	ifstream sfv;
 	string line;
 	string sfvFile;
-		
-	//regex to match crc32
-	reg.assign("(\\s(\\w{8})$)");
+
+	reg.assign("(.{5,50}\\s(\\w{8})$)");
 	int releaseFiles=0;
 	int loopMissing=0;
 

@@ -1224,6 +1224,7 @@ enum Strings { // @DontAdd
 	RELEASE_FILES_MISSING, // "NFO/SFV found but there are no other files in the folder:"
 	CHECK_EMPTY_RELEASES, // "Check if the folder only contains NFO/SFV file"
 	CHECK_EMPTY_DIRS, // "Check if the directory is empty"
-	DATE, // "Date"
+	DATE, // "Date Modified"
+	SETTINGS_MAX_MCN, // "Maximum number of downloads per user"
 	LAST // @DontAdd
 };

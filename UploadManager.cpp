@@ -240,15 +240,11 @@ ok:
 		if (aSource.isSet(UserConnection::FLAG_MCN1)) {
 			//int free = getSlots() - running - mcnSlots + multiUploads.size();
 			if (getMultiConn(aSource) && ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser()))) {
-				LogManager::getInstance()->message("Free slot for MCN");
 				slotType = UserConnection::MCNSLOT;
 				//changeMultiConnSlot(aSource.getUser()->getCID(), false);
 			} else {
-				LogManager::getInstance()->message("No MCN slots");
 				if ((hasReserved || isFavorite || getAutoSlot()) && !isUploading(aSource.getUser()->getCID())) {
 					slotType = UserConnection::MCNSLOT;
-					//changeMultiConnSlot(aSource.getUser()->getCID(), false);
-					LogManager::getInstance()->message("Hmm..........................................");
 				} else {
 					noSlots=true;
 				}
@@ -263,19 +259,10 @@ ok:
 			bool partialFree = partial && ((slotType == UserConnection::PARTIALSLOT) || (extraPartial < SETTING(EXTRA_PARTIAL_SLOTS)));
 
 			if(free && supportsFree && allowedFree) {
-				if (free)
-					LogManager::getInstance()->message("EXTRASLOT: free");
-				if (allowedFree)
-					LogManager::getInstance()->message("EXTRASLOT: allowedfree");
-				if (getFreeExtraSlots() > 0)
-					LogManager::getInstance()->message("EXTRASLOT: getFreeExtraSlots() > 0");
-				if (aSource.isSet(UserConnection::FLAG_OP))
-					LogManager::getInstance()->message("EXTRASLOT: aSource.isSet(UserConnection::FLAG_OP)");
 				slotType = UserConnection::EXTRASLOT;
 			} else if(partialFree) {
 				slotType = UserConnection::PARTIALSLOT;
 			} else {
-				LogManager::getInstance()->message("No free slots");
 				delete is;
 				if (aSource.isSet(UserConnection::FLAG_MCN1) && isUploading(aSource.getUser()->getCID())) {
 					//don't queue MCN requests for existing uploaders
@@ -291,8 +278,6 @@ ok:
 		}
 
 		setLastGrant(GET_TICK());
-	} else {
-		LogManager::getInstance()->message("MCN/normal slot exists");
 	}
 	
 	// remove user from connecting list
@@ -340,22 +325,17 @@ ok:
 		// remove old count
 		switch(aSource.getSlotType()) {
 			case UserConnection::STDSLOT:
-				LogManager::getInstance()->message("Type STDSLOT remove old");
 				running--;
 				break;
 			case UserConnection::EXTRASLOT:
-				LogManager::getInstance()->message("Type EXTRASLOT remove old");
 				extra--;
 				break;
 			case UserConnection::PARTIALSLOT:
-				LogManager::getInstance()->message("Type PARTIALSLOT old");
 				extraPartial--;
 				break;
 			case UserConnection::MCNSLOT:
 				mcnSlots--;
-				LogManager::getInstance()->message("Type MCNSLOT remove old");
 				changeMultiConnSlot(aSource.getUser()->getCID(), true);
-				LogManager::getInstance()->message("MCN slot removing done");
 				break;
 			case UserConnection::PARTIALLISTSLOT:
 				partialListSlots--;
@@ -365,24 +345,19 @@ ok:
 		switch(slotType) {
 			case UserConnection::STDSLOT:
 				clearUserFiles(aSource.getUser());
-				LogManager::getInstance()->message("Type STDSLOT add new");
 				checkMultiConn();
 				running++;
 				break;
 			case UserConnection::EXTRASLOT:
-				LogManager::getInstance()->message("Type EXTRASLOT add new");
 				extra++;
 				break;
 			case UserConnection::PARTIALSLOT:
-				LogManager::getInstance()->message("Type PARTIALSLOT add new");
 				extraPartial++;
 				break;
 			case UserConnection::MCNSLOT:
 				clearUserFiles(aSource.getUser());
 				mcnSlots++;
-				LogManager::getInstance()->message("Setting new MCN slots");
 				changeMultiConnSlot(aSource.getUser()->getCID(), false); 
-				LogManager::getInstance()->message("MCN slot adding done");
 				checkMultiConn();
 				break;
 			case UserConnection::PARTIALLISTSLOT:
@@ -404,17 +379,14 @@ void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
 		MultiConnIter uis = multiUploads.find(cid);
 		if (uis != multiUploads.end()) {
 			if (remove) {
-				LogManager::getInstance()->message("changeMultiConnSlot: remove slot");
 				uis->second--;
 				if (uis->second == 0) {
 					multiUploads.erase(uis);
-					LogManager::getInstance()->message("changeMultiConnSlot: remove whole conn");
 					//no uploads to this user, remove the reserved slot
 					running--;
 				}
 				return;
 			} else {
-				LogManager::getInstance()->message("changeMultiConnSlot: add slot");
 				uis->second++;
 			}
 		} else if (!remove) {
@@ -425,7 +397,6 @@ void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
 	}
 
 	if (notFound) {
-		LogManager::getInstance()->message("changeMultiConnSlot: not found!");
 		//a new MCN upload
 		multiUploads[cid] = 1;
 		running++;
@@ -437,13 +408,9 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 	bool hasFreeSlot=false;
 	if ((int)(getSlots() - running - mcnSlots + multiUploads.size()) > 0) {
-		LogManager::getInstance()->message(Util::toString(getSlots() - running - mcnSlots + multiUploads.size()));
 		if ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser())) {
 			hasFreeSlot=true;
-			LogManager::getInstance()->message("hasFreeSlot2 true");
 		}
-	} else {
-		LogManager::getInstance()->message("hasFreeSlot false");
 	}
 	//hasFreeSlot = (hasFreeSlot && ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser())));
 	Lock l(cs);
@@ -461,15 +428,8 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 		MultiConnIter uis = multiUploads.find(cid);
 		if (uis != multiUploads.end()) {
 			if ((highest > uis->second + 1) || hasFreeSlot) {
-				if (highest > uis->second + 1)
-					LogManager::getInstance()->message("highest > uis->second + 1");
-				else if (hasFreeSlot)
-					LogManager::getInstance()->message("hasFreeSlot");
-				LogManager::getInstance()->message(Util::toString(getSlots() - running - mcnSlots + multiUploads.size()));
-				LogManager::getInstance()->message("TotalSlots" + Util::toString(getSlots()) + "Running: " + Util::toString(running) + " Highest: " + Util::toString(highest) + " mcnSlots: " + Util::toString(mcnSlots) + " multiUploads.size: " + Util::toString(multiUploads.size()));
 				return true;
 			} else {
-				LogManager::getInstance()->message("Don't add new MCN connection!");
 				return false;
 			}
 		}
@@ -478,10 +438,8 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 	//he's not uploading from us yet, check if we can allow new ones
 	hasFreeSlot = (getFreeSlots() > 0) && ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser()));
 	if (hasFreeSlot) {
-		LogManager::getInstance()->message("Add new MCN connection2!");
 		return true;
 	} else {
-		LogManager::getInstance()->message("Don't add new MCN connection, no free (total) slots");
 		return false;
 	}
 }
@@ -490,39 +448,31 @@ void UploadManager::checkMultiConn() {
 	Lock l(cs);
 	int extras = getSlots() - running - mcnSlots + multiUploads.size();
 	if ((int)extras > 0) {
-		LogManager::getInstance()->message("Not removing: " + Util::toString(getSlots() - running - mcnSlots + multiUploads.size()));
 		return; //no reason to remove anything
-	} else {
-		LogManager::getInstance()->message("Removing: " + Util::toString(getSlots() - running - mcnSlots + multiUploads.size()));
 	}
 
 	int uploadsStart=0;
 	MultiConnMap compare=multiUploads;
 	while (extras < 0) {
 		if (!compare.empty()) {
-			LogManager::getInstance()->message("Removing extra MCN 1!");
 			int highest=0;
 			for(MultiConnIter i = compare.begin(); i != compare.end(); ++i) {
 				if (i->second > highest) {
 					highest = i->second;
 				}
 			}
-			LogManager::getInstance()->message("Highest to remove: " + Util::toString(highest));
 			if (highest <= 1) {
-				LogManager::getInstance()->message("Highest too small, don't remove anything");
 				break;
 			}
 
 			for(MultiConnIter i = compare.begin(); i != compare.end(); ++i) {
 				if (i->second == highest) {
-					LogManager::getInstance()->message("Removing extra MCN 2!");
 					//find the correct upload to kill
 					for(UploadList::const_iterator s = uploads.begin()+uploadsStart; s != uploads.end(); ++s) {
 						uploadsStart++;
 						Upload* u = *s;
 						if (u->getUser()->getCID() == i->first && u) {
 							i->second--;
-							LogManager::getInstance()->message("Removing extra MCN 3!");
 							u->getUserConnection().disconnect(true);
 							break;
 						}
@@ -532,7 +482,6 @@ void UploadManager::checkMultiConn() {
 			}
 			extras++;
 		} else {
-			LogManager::getInstance()->message("Can't remove uploads, the list is empty!");
 			break;
 		}
 	}
@@ -773,7 +722,6 @@ void UploadManager::addConnection(UserConnectionPtr conn) {
 void UploadManager::removeConnection(UserConnection* aSource) {
 	dcassert(aSource->getUpload() == NULL);
 	aSource->removeListener(this);
-	LogManager::getInstance()->message("removeConnection");
 
 	// slot lost
 	switch(aSource->getSlotType()) {

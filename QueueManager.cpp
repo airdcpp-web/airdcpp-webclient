@@ -279,7 +279,6 @@ QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Pri
 					bool found=false;
 					for(DownloadList::iterator i = qi->getDownloads().begin(); i != qi->getDownloads().end(); ++i) {
 						if((*i)->getUser() == aUser) {
-							LogManager::getInstance()->message("Already downloading!");
 							found=true;
 							break;
 						}
@@ -849,13 +848,10 @@ connect:
 	bool partial=false;
 	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST) {
 		partial=true;
-		LogManager::getInstance()->message("Partial1");
 	}
 	//if(wantConnection && aUser.user->isOnline())
 	if(aUser.user->isOnline()) {
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, partial);
-	} else {
-		LogManager::getInstance()->message("Don't want");
 	}
 
 	//hmm.. will need to test this one, cant see why it would cause a deadlock
