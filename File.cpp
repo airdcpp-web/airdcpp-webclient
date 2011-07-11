@@ -491,7 +491,7 @@ bool FileFindIter::DirData::isDirectory() {
 }
 
 bool FileFindIter::DirData::isHidden() {
-	return ((dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) || (cFileName[0] == L'.'));
+	return ((dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) || (cFileName[0] == L'.') || (dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) || (dwFileAttributes & FILE_ATTRIBUTE_OFFLINE));
 }
 
 bool FileFindIter::DirData::isLink() {

@@ -132,7 +132,8 @@ int SFVReaderManager::run() {
 			if(dir[dir.size() -1] != '\\')
 				dir += "\\";
 
-			if(GetFileAttributes(Text::toT(dir).c_str()) != INVALID_FILE_ATTRIBUTES) {
+			DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
+			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
 				findMissing(dir);
 				find(dir);
 			}
@@ -218,7 +219,7 @@ StringList SFVReaderManager::findFiles(const string& path, const string& pattern
 	hFind = ::FindFirstFile(Text::toT(path + pattern).c_str(), &data);
 	if(hFind != INVALID_HANDLE_VALUE) {
 		do {
-			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)) {
+			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM)) {
 				if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
 					if (dirs && Text::fromT(data.cFileName)[0] != '.') {
 						ret.push_back(Text::fromT(data.cFileName));
