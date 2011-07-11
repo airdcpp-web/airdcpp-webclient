@@ -891,7 +891,6 @@ int HashManager::Hasher::run() {
 				delete [] buf;
 			}
 			buf = NULL;
-			
 		}
 	}
 	return 0;

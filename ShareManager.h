@@ -44,7 +44,6 @@ class Client;
 class File;
 class OutputStream;
 class MemoryInputStream;
-class Worker;
 struct ShareLoader;
 class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener,
 	private HashManagerListener, private QueueManagerListener
@@ -75,8 +74,8 @@ public:
 	void Rebuild();
 	
 	void Startup() {
-		worker.Task(LOAD);
-		worker.join();
+		if(!loadCache())
+			refresh(REFRESH_ALL | REFRESH_BLOCKING);
 	}
 
 	void shutdown();
@@ -120,17 +119,17 @@ public:
 
 	string getOwnListFile() {
 		//Directorylisting load thread will generate own list, so dont generate here.
-		worker.join();
 		return getBZXmlFile();
 	}
 
 	string generateOwnList() {
-	worker.join();
+	
 	if(xmlDirty) 
-		generateList();
+		generateXmlList(true);
 
 	return getBZXmlFile();
 	}
+	void generateXmlList(bool forced = false);
 
 	bool isTTHShared(const TTHValue& tth) const {
 		Lock l(cs);
@@ -159,11 +158,6 @@ public:
 		REFRESH_UPDATE = 0x8
 	};
 
-	enum Task {
-		LOAD = 0x10,
-		FILELIST = 0x20,
-		ADD = 0x40, //Todo adding new share directories with worker thread
-	};
 
 	GETSET(size_t, hits, Hits);
 	GETSET(string, bzXmlFile, BZXmlFile);
@@ -265,38 +259,6 @@ private:
 
 	};
 
-class Worker : public Thread {
-public:
-	Worker() { }
-	
-	~Worker() { }
-
-void Task(const int& task) {
-  options = task;
-  start();
- }
-
-private:
-
-	int options;
-	
-	int run() {
-		
-		setThreadPriority(Thread::LOW);
-		
-		if(options == ShareManager::FILELIST) {	
-			 ShareManager::getInstance()->generateList();
-			
-		}else if(options == ShareManager::LOAD){
-				if(!ShareManager::getInstance()->loadCache())
-					ShareManager::getInstance()->refresh(REFRESH_ALL | REFRESH_BLOCKING);
-			}
-		options = 0;
-		return 0;
-	}
-
-};
-	friend class Worker;
 	friend class Directory;
 	friend struct ShareLoader;
 
@@ -343,9 +305,10 @@ private:
 	void saveXmlList();
 
 	void VnameToXml(const string& vname, OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
-	Worker worker;
+
 	atomic_flag refreshing;
-	
+	atomic_flag GeneratingXmlList;
+
 	uint64_t lastXmlUpdate;
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
@@ -381,12 +344,9 @@ private:
 	
 	Directory::Ptr merge(const string& realPath, const Directory::Ptr& directory);
 	
-	void generateXmlList(bool forced = false);
-	void generateList();
+	
 	StringList notShared;
 	StringList incoming;
-	
-
 
 	Dirs getByVirtual(const string& virtualName) const throw();
 	ShareManager::DirPairList splitVirtual(const string& virtualPath) const throw(ShareException);
@@ -408,11 +368,6 @@ private:
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) throw() {
 		save(xml);
-	/*	if(xmlDirty) {
-			forceXmlRefresh = true;
-			generateXmlList();
-		}*/
-
 	}
 	void on(SettingsManagerListener::Load, SimpleXML& xml) throw() {
 		load(xml);

@@ -55,7 +55,7 @@ namespace dcpp {
 
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
-	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false), ShareCacheDirty(false)
+	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false), ShareCacheDirty(false), GeneratingXmlList(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -70,7 +70,6 @@ ShareManager::~ShareManager() {
 	QueueManager::getInstance()->removeListener(this);
 	HashManager::getInstance()->removeListener(this);
 
-	worker.join();
 	join();
 
 }
@@ -503,7 +502,7 @@ bool ShareManager::loadCache() throw() {
 			updateIndices(*d);
 		}
 
-		generateList();
+		generateXmlList(true);
 
 		return true;
 	} catch(const Exception& e) {
@@ -1109,8 +1108,7 @@ int ShareManager::run() {
 				directories.clear();
 			}
 
-			forceXmlRefresh = true;
-
+			
 			for(DirMap::const_iterator i = newDirs.begin(); i != newDirs.end(); ++i) {
 				merge(i->first, i->second);
 			}
@@ -1134,9 +1132,12 @@ int ShareManager::run() {
 		rebuild = false;
 	}
 
-	if(refreshOptions & REFRESH_BLOCKING)
-		generateList();
+	forceXmlRefresh = true;
 
+	if(refreshOptions & REFRESH_BLOCKING)
+		generateXmlList(true);
+
+	
 
 	refreshing.clear();
 	return 0;
@@ -1155,17 +1156,14 @@ void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
 }
 
 void ShareManager::generateXmlList(bool forced /*false*/) {
-	//forced not used now, Todo: remove if dont need it anymore
-	if(forced || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 10 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
-		worker.join();
-		worker.Task(FILELIST);
 
-		if(forced)
-			worker.join();
+	if(forced || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
+		
+		if(GeneratingXmlList.test_and_set()) //dont pile up generate calls to the lock, if its already generating return.
+			return;
 
-	}
-}
-void ShareManager::generateList() {
+		LogManager::getInstance()->message("Filelist Generate Started..."); //just to see how much time it really takes.
+		
 		Lock l(cs);
 		listN++;
 		StringList created;
@@ -1233,7 +1231,9 @@ void ShareManager::generateList() {
 		xmlDirty = false;
 		forceXmlRefresh = false;
 		lastXmlUpdate = GET_TICK();
-	
+		GeneratingXmlList.clear();
+		LogManager::getInstance()->message("Filelist Generated");
+	}
 }
 #define LITERAL(n) n, sizeof(n)-1
 void ShareManager::saveXmlList(){
@@ -1305,8 +1305,6 @@ void ShareManager::VnameToXml(const string& vname, OutputStream& xmlFile, string
 	if(fullList) {
 		xmlFile.write(LITERAL("\">\r\n"));
 		indent += '\t';
-
-			
 
 			for(Dirs::const_iterator k = temp.begin(); k != temp.end(); k++) { 
 				(*k)->toXml(xmlFile, indent, tmp2, fullList, false);
@@ -1978,11 +1976,12 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 			updateIndices(*d, it);
 		}
 		setDirty(); 
-		forceXmlRefresh = true; 
 	}
 }
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) throw() {
+	//this will only generate it every 15minutes if its dirty
+	//generateXmlList();
 
 	if(SETTING(INCOMING_REFRESH_TIME) > 0 && !incoming.empty()){
 			if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
