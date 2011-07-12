@@ -28,9 +28,14 @@
 
 inline void CDECL debugTrace(const char* format, ...)
 {
+	//show the debug info in output window.
 	va_list args;
 	va_start(args, format);
-	vprintf(format, args);
+	char str[512];
+	vsprintf(str, format, args);
+	wchar_t str2[512];
+	::MultiByteToWideChar(  CP_ACP, NULL,str, -1, str2, sizeof(str2)-1);
+	OutputDebugString(str2);
 	va_end(args);
 }
 

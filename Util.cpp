@@ -453,9 +453,10 @@ void Util::decodeUrl(const string& url, string& aServer, uint16_t& aPort, string
 		aServer = url.substr(i, k-i);
 }
 
-void Util::setAway(bool aAway) {
+void Util::setAway(bool aAway, bool byminimize /*false*/) {
 	away = aAway;
-
+	
+	if(!byminimize) //only save the state if away mode is set by user
 	SettingsManager::getInstance()->set(SettingsManager::AWAY, aAway);
 
 	if (away)

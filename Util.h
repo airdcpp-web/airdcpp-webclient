@@ -469,7 +469,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static string getIpCountry (const string& IP);
 
 	static bool getAway() { return away; }
-	static void setAway(bool aAway);
+	static void setAway(bool aAway, bool byminimize = false);
 	static string getAwayMessage(StringMap& params);
 	
 	static bool toBool(const int aNumber) {
