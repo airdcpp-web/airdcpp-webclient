@@ -113,10 +113,10 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool part
 ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, int type, string token) {
 	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download, type, token);
 	if(download) {
-		dcassert(find(downloads.begin(), downloads.end(), aUser.user) == downloads.end());
+		//dcassert(find(downloads.begin(), downloads.end(), aUser.user) == downloads.end());
 		downloads.push_back(cqi);
 	} else {
-		dcassert(find(uploads.begin(), uploads.end(), aUser.user) == uploads.end());
+		//dcassert(find(uploads.begin(), uploads.end(), aUser.user) == uploads.end());
 		uploads.push_back(cqi);
 	}
 
@@ -281,7 +281,11 @@ void ConnectionManager::checkWaitingMCN() throw() {
 					if (y->second >= SETTING(MAX_MCN_DOWNLOADS) && SETTING(MAX_MCN_DOWNLOADS) != 0) {
 						continue;
 					}
+					if (y->second >= cqi->getMaxConns() && cqi->getMaxConns() != 0) {
+						continue;
+					}
 				}
+
 				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
 				bool startDown = DownloadManager::getInstance()->startDownload(prio);
 				if(prio != QueueItem::PAUSED && startDown) {
@@ -292,19 +296,9 @@ void ConnectionManager::checkWaitingMCN() throw() {
 
 		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
 			ConnectionQueueItem* cqi1 = *m;
+			dcdebug("uc+cqi remove");
+			disconnect(cqi1->getToken());
 			putCQI(cqi1);
-			UserConnectionList removedUc;
-			//also remove the corresponding UserConnection
-			for(UserConnectionList::const_iterator k = userConnections.begin(); k != userConnections.end(); ++k) {
-				UserConnection* uc = *k;
-				if (cqi1->getToken() == uc->getToken()) {
-					removedUc.push_back(uc);
-					break;
-				}
-			}
-			for(UserConnectionList::const_iterator s = removedUc.begin(); s != removedUc.end(); ++s) {
-				putConnection(*s);
-			}
 		}
 	}
 }
@@ -563,8 +557,15 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 		if(BOOLSETTING(COMPRESS_TRANSFERS)) {
 			defFeatures.push_back("AD" + UserConnection::FEATURE_ZLIB_GET);
 		}
+		int mcn = 0;
+		if(aSource->isSet(UserConnection::FLAG_MCN1)) {
+			int slots = 0;
+			slots = UploadManager::getInstance()->getSlotsPerUser();
+			if (slots != 0)
+				mcn=UploadManager::getInstance()->getSlotsPerUser() ;
+		}
 		aSource->sup(defFeatures);
-		aSource->inf(false);
+		aSource->inf(false, mcn);
 	} else {
 		aSource->inf(true);
 	}
@@ -784,7 +785,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	{
 		Lock l(cs);
 
-		ConnectionQueueItem::Iter i = find(uploads.begin(), uploads.end(), uc->getUser());
+		//ConnectionQueueItem::Iter i = find(uploads.begin(), uploads.end(), uc->getUser());
 		//if(i == uploads.end()) {
 		uc->setToken(Util::toString(Util::rand()));
 		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, 0, uc->getToken());
@@ -844,7 +845,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		putConnection(aSource);
 		return;
 	}
-
 	string token;
 	if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
 		if(!cmd.getParam("TO", 0, token)) {
@@ -863,9 +863,18 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			ConnectionQueueItem* cqi = *i;
 			const string& to = cqi->getToken();
 			if(to == token) {
-				(*i)->setErrors(0);
+				if(aSource->isSet(UserConnection::FLAG_MCN1)) {
+					string slots;
+					cmd.getParam("CO", 0, slots);
+					if (Util::toInt(slots) > 0) {
+						//dcdebug("DownloadSlots: %s", Util::toInt(slots));
+						cqi->setMaxConns(Util::toInt(slots));
+					}
+				}
+				cqi->setErrors(0);
 				aSource->setToken(token);
 				down = true;
+				break;
 			}
 		}
 		/** @todo check tokens for upload connections */
@@ -875,6 +884,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
 		addDownloadConnection(aSource);
 	} else {
+		dcdebug("inf uppi");
 		aSource->setFlag(UserConnection::FLAG_UPLOAD);
 		addUploadConnection(aSource);
 	}
@@ -933,8 +943,8 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			}
 		}
 	}
-	putConnection(aSource);
 	checkWaitingMCN();
+	putConnection(aSource);
 }
 
 void ConnectionManager::on(UserConnectionListener::Failed, UserConnection* aSource, const string& aError) throw() {

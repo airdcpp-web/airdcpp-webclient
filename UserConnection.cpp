@@ -162,9 +162,11 @@ void UserConnection::accept(const Socket& aServer) throw(SocketException, Thread
 	socket->accept(aServer, isSet(FLAG_SECURE), BOOLSETTING(ALLOW_UNTRUSTED_CLIENTS));
 }
 
-void UserConnection::inf(bool withToken) { 
+void UserConnection::inf(bool withToken, int mcnSlots) { 
 	AdcCommand c(AdcCommand::CMD_INF);
 	c.addParam("ID", ClientManager::getInstance()->getMyCID().toBase32());
+	if(mcnSlots > 0)
+		c.addParam("CO", Util::toString(mcnSlots));
 	if(withToken) {
 		c.addParam("TO", getToken());
 	}

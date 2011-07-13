@@ -403,6 +403,23 @@ void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
 	}
 }
 
+int UploadManager::getSlotsPerUser() {
+	int slots;
+	if (Util::toInt(SETTING(UPLOAD_SPEED)) == 10)
+		slots=2;
+	else if (Util::toInt(SETTING(UPLOAD_SPEED)) > 10 && Util::toInt(SETTING(UPLOAD_SPEED)) <= 20)
+		slots=3;
+	else if (Util::toInt(SETTING(UPLOAD_SPEED)) > 20 && Util::toInt(SETTING(UPLOAD_SPEED)) <= 50)
+		slots=5;
+	else if (Util::toInt(SETTING(UPLOAD_SPEED)) > 50 && Util::toInt(SETTING(UPLOAD_SPEED)) <= 100)
+		slots=7;
+	else if (Util::toInt(SETTING(UPLOAD_SPEED)) > 100)
+		slots=0;
+	else
+		slots=1;
+	return slots;
+}
+
 bool UploadManager::getMultiConn(const UserConnection& aSource) {
 	CID cid = aSource.getUser()->getCID();
 
@@ -427,7 +444,7 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 		MultiConnIter uis = multiUploads.find(cid);
 		if (uis != multiUploads.end()) {
-			if ((highest > uis->second + 1) || hasFreeSlot) {
+			if (((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= getSlotsPerUser() || getSlotsPerUser() == 0)) {
 				return true;
 			} else {
 				return false;
@@ -726,8 +743,9 @@ void UploadManager::removeConnection(UserConnection* aSource) {
 	// slot lost
 	switch(aSource->getSlotType()) {
 		case UserConnection::STDSLOT: running--; break;
-		case UserConnection::EXTRASLOT: extra--; break;
-		case UserConnection::PARTIALSLOT: extraPartial--; break;
+		case UserConnection::EXTRASLOT: clearUserFiles(aSource->getUser()); extra--; break;
+		case UserConnection::PARTIALSLOT: clearUserFiles(aSource->getUser()); extraPartial--; break;
+		case UserConnection::PARTIALLISTSLOT: clearUserFiles(aSource->getUser()); partialListSlots--; break;
 		case UserConnection::MCNSLOT:
 			mcnSlots--;
 			changeMultiConnSlot(aSource->getUser()->getCID(), true); 

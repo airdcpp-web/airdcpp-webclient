@@ -345,7 +345,7 @@ void QueueManager::UserQueue::addDownload(QueueItem* qi, Download* d) {
 	qi->getDownloads().push_back(d);
 
 	// Only one download per user...
-	dcassert(running.find(d->getUser()) == running.end());
+	//dcassert(running.find(d->getUser()) == running.end());
 	running[d->getUser()] = qi;
 }
 

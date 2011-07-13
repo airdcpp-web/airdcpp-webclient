@@ -46,10 +46,11 @@ public:
 	};
 
 	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, int dlType, string aToken) : token(aToken), 
-		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), type(dlType) { }
+		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), type(dlType), maxConns(0) { }
 	
 	GETSET(string, token, Token);
 
+	GETSET(uint8_t, maxConns, MaxConns);
 	GETSET(uint64_t, lastAttempt, LastAttempt);
 	GETSET(int, errors, Errors); // Number of connection errors, or -1 after a protocol error
 	GETSET(State, state, State);

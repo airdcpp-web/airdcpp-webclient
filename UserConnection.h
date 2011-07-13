@@ -140,7 +140,7 @@ public:
 
 	// ADC Stuff
 	void sup(const StringList& features);
-	void inf(bool withToken);
+	void inf(bool withToken, int mcnSlots = 0);
 	void get(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {  send(AdcCommand(AdcCommand::CMD_GET).addParam(aType).addParam(aName).addParam(Util::toString(aStart)).addParam(Util::toString(aBytes))); }
 	void snd(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {  send(AdcCommand(AdcCommand::CMD_SND).addParam(aType).addParam(aName).addParam(Util::toString(aStart)).addParam(Util::toString(aBytes))); }
 	void send(const AdcCommand& c) { send(c.toString(0, isSet(FLAG_NMDC))); }
