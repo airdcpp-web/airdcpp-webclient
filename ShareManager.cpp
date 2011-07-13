@@ -1746,9 +1746,15 @@ bool ShareManager::isDirShared(const string& directory) {
 }
 
 bool ShareManager::Directory::find(const string& dir) {
+	if(dir.empty())
+		return false;
+
 	bool found = false;
-	
-	if(stricmp(Text::toLower(dir), Text::toLower(name)) == 0)
+
+	string dir_lower = Text::toLower(dir);
+	string name_lower = Text::toLower(name);
+
+	if(stricmp(dir_lower, name_lower ) == 0)
 		return true;
 
 	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
