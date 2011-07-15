@@ -230,18 +230,16 @@ ok:
 	uint8_t slotType = aSource.getSlotType();
 	
 	bool noSlots = false;
-	if (type==Transfer::TYPE_PARTIAL_LIST && partialListSlots <= 6) {
-		slotType = UserConnection::PARTIALLISTSLOT;
-	} else if (slotType != UserConnection::STDSLOT || slotType != UserConnection::MCNSLOT) {
+	if (slotType != UserConnection::STDSLOT || slotType != UserConnection::MCNSLOT) {
 		bool hasReserved = reservedSlots.find(aSource.getUser()) != reservedSlots.end();
 		bool isFavorite = FavoriteManager::getInstance()->hasSlot(aSource.getUser());
 		bool hasFreeSlot = (getFreeSlots() > 0) && ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser()));
 
-		if (aSource.isSet(UserConnection::FLAG_MCN1)) {
-			//int free = getSlots() - running - mcnSlots + multiUploads.size();
+		if (type==Transfer::TYPE_PARTIAL_LIST && partialListSlots <= 6) {
+			slotType = UserConnection::PARTIALLISTSLOT;
+		} else if (aSource.isSet(UserConnection::FLAG_MCN1)) {
 			if (getMultiConn(aSource) && ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser()))) {
 				slotType = UserConnection::MCNSLOT;
-				//changeMultiConnSlot(aSource.getUser()->getCID(), false);
 			} else {
 				if ((hasReserved || isFavorite || getAutoSlot()) && !isUploading(aSource.getUser()->getCID())) {
 					slotType = UserConnection::MCNSLOT;
@@ -385,10 +383,10 @@ void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
 					//no uploads to this user, remove the reserved slot
 					running--;
 				}
-				return;
 			} else {
 				uis->second++;
 			}
+			return;
 		} else if (!remove) {
 			notFound=true;
 		}
@@ -429,7 +427,7 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 			hasFreeSlot=true;
 		}
 	}
-	//hasFreeSlot = (hasFreeSlot && ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser())));
+
 	Lock l(cs);
 	if (!multiUploads.empty()) {
 		uint8_t highest=0;
@@ -489,8 +487,8 @@ void UploadManager::checkMultiConn() {
 						uploadsStart++;
 						Upload* u = *s;
 						if (u->getUser()->getCID() == i->first && u) {
-							i->second--;
 							u->getUserConnection().disconnect(true);
+							//changeMultiConnSlot(u->getUser()->getCID(), true);
 							break;
 						}
 					}

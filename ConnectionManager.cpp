@@ -562,7 +562,7 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 			int slots = 0;
 			slots = UploadManager::getInstance()->getSlotsPerUser();
 			if (slots != 0)
-				mcn=UploadManager::getInstance()->getSlotsPerUser() ;
+				mcn=slots;
 		}
 		aSource->sup(defFeatures);
 		aSource->inf(false, mcn);

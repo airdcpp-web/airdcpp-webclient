@@ -731,9 +731,11 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 
 	// Check if we're not downloading something already in our share
 	if (BOOLSETTING(DONT_DL_ALREADY_SHARED)){
-		if (ShareManager::getInstance()->isTTHShared(root)){
-			LogManager::getInstance()->message(STRING(FILE_ALREADY_SHARED) + " " + aTarget );
-			throw QueueException(STRING(TTH_ALREADY_SHARED));
+		if (!(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_USER_LIST) && !(aFlags & QueueItem::FLAG_PARTIAL_LIST)) {
+			if (ShareManager::getInstance()->isTTHShared(root)){
+				LogManager::getInstance()->message(STRING(FILE_ALREADY_SHARED) + " " + aTarget );
+				throw QueueException(STRING(TTH_ALREADY_SHARED));
+			}
 		}
 	}
     
