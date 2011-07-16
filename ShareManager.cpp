@@ -507,8 +507,8 @@ bool ShareManager::loadCache() throw() {
 		return true;
 	} catch(const Exception& e) {
 		dcdebug("%s\n", e.getError().c_str());
-		return false;
 	}
+
 	return false;
 }
 

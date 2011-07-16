@@ -2073,13 +2073,15 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
 				try {
 					
-					if(BOOLSETTING(AUTO_ADD_SOURCE)){
-						if (!sr->getUser()->isSet(User::NMDC)) {
+					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
+						//if its a rar release add the sources to all files.
+						if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 ) {
+							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
+						} //else match with partial list
+						else if (!sr->getUser()->isSet(User::NMDC)) {
 							string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
 							addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
 						}
-						else if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 )
-							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
 						else
 							wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
 						}
