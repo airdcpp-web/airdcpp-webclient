@@ -250,8 +250,9 @@ void ConnectionManager::checkWaitingMCN() throw() {
 						waitingMultiConn.push_back(cqi);
 					} else {
 						//there should be only one cqi waiting
-						removed.push_back(cqi);
-						continue;
+						if (cqi->getState() != ConnectionQueueItem::CONNECTING) {
+							removed.push_back(cqi);
+						}
 					}
 				} else {
 					if(!cqi->getUser().user->isOnline()) {
@@ -296,7 +297,7 @@ void ConnectionManager::checkWaitingMCN() throw() {
 
 		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
 			ConnectionQueueItem* cqi1 = *m;
-			dcdebug("uc+cqi remove");
+			dcdebug("uc+cqi remove!");
 			disconnect(cqi1->getToken());
 			putCQI(cqi1);
 		}
@@ -552,22 +553,23 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 		return;
 	}
 
+	int mcn = 0;
+	if(aSource->isSet(UserConnection::FLAG_MCN1)) {
+		int slots = 0;
+		slots = UploadManager::getInstance()->getSlotsPerUser();
+		if (slots != 0)
+			mcn=slots;
+	}
+
 	if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
 		StringList defFeatures = adcFeatures;
 		if(BOOLSETTING(COMPRESS_TRANSFERS)) {
 			defFeatures.push_back("AD" + UserConnection::FEATURE_ZLIB_GET);
 		}
-		int mcn = 0;
-		if(aSource->isSet(UserConnection::FLAG_MCN1)) {
-			int slots = 0;
-			slots = UploadManager::getInstance()->getSlotsPerUser();
-			if (slots != 0)
-				mcn=slots;
-		}
 		aSource->sup(defFeatures);
 		aSource->inf(false, mcn);
 	} else {
-		aSource->inf(true);
+		aSource->inf(true, mcn);
 	}
 	aSource->setState(UserConnection::STATE_INF);
 }
@@ -948,12 +950,10 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 }
 
 void ConnectionManager::on(UserConnectionListener::Failed, UserConnection* aSource, const string& aError) throw() {
-	checkWaitingMCN();
 	failed(aSource, aError, false);
 }
 
 void ConnectionManager::on(UserConnectionListener::ProtocolError, UserConnection* aSource, const string& aError) throw() {
-	checkWaitingMCN();
 	failed(aSource, aError, true);
 }
 
