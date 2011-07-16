@@ -126,6 +126,7 @@ public:
 	uint16_t getPort() const { return server ? static_cast<uint16_t>(server->getPort()) : 0; }
 	uint16_t getSecurePort() const { return secureServer ? static_cast<uint16_t>(secureServer->getPort()) : 0; }
 	static uint16_t iConnToMeCount;	
+	void checkWaitingMCN() throw();
 private:
 
 	class Server : public Thread {
@@ -187,7 +188,7 @@ private:
 	void failed(UserConnection* aSource, const string& aError, bool protocolError);
 
 	bool checkIpFlood(const string& aServer, uint16_t aPort, const string& userInfo);
-	void checkWaitingMCN() throw();
+	bool isUCRunning(const string token);
 	
 	// UserConnectionListener
 	void on(Connected, UserConnection*) throw();

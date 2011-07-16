@@ -18,7 +18,7 @@
 
 #include "stdinc.h"
 #include "DCPlusPlus.h"
-
+#include "ConnectionManager.h"
 #include "DownloadManager.h"
 
 #include "ResourceManager.h"
@@ -325,6 +325,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	aSource->setState(UserConnection::STATE_RUNNING);
 
 	fire(DownloadManagerListener::Starting(), d);
+	ConnectionManager::getInstance()->checkWaitingMCN();
 
 	if(d->getPos() == d->getSize()) {
 		try {

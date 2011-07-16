@@ -244,7 +244,15 @@ void ConnectionManager::checkWaitingMCN() throw() {
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if (cqi->getType() == 2) {
-				if(cqi->getState() != ConnectionQueueItem::ACTIVE) {
+				if(cqi->getState() == ConnectionQueueItem::ACTIVE && isUCRunning(cqi->getToken())) {
+					if(!cqi->getUser().user->isOnline()) {
+						// No new connections for offline users...
+						continue;
+					}
+					ConnectionQueueItem::Iter u = find(multiUsers.begin(), multiUsers.end(), cqi->getUser());
+					if(u == multiUsers.end())
+						multiUsers.push_back(cqi);
+				} else {
 					ConnectionQueueItem::Iter u = find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
 					if(u == waitingMultiConn.end()) {
 						waitingMultiConn.push_back(cqi);
@@ -254,14 +262,6 @@ void ConnectionManager::checkWaitingMCN() throw() {
 							removed.push_back(cqi);
 						}
 					}
-				} else {
-					if(!cqi->getUser().user->isOnline()) {
-						// No new connections for offline users...
-						continue;
-					}
-					ConnectionQueueItem::Iter u = find(multiUsers.begin(), multiUsers.end(), cqi->getUser());
-					if(u == multiUsers.end())
-						multiUsers.push_back(cqi);
 				}
 				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
 				if (y == mcnConnections.end()) {
@@ -302,6 +302,21 @@ void ConnectionManager::checkWaitingMCN() throw() {
 			putCQI(cqi1);
 		}
 	}
+}
+
+bool ConnectionManager::isUCRunning(const string token) {
+	Lock l(cs);
+	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
+		UserConnection* uc = *i;
+		if(uc->getToken() == token) {
+			if(uc->getState() == UserConnection::STATE_RUNNING) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+	return false;
 }
 
 void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) throw() {
@@ -770,7 +785,6 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 				}
 			}
 		}
-		checkWaitingMCN();
 	}
 
 	if(addConn) {
@@ -789,7 +803,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 
 		//ConnectionQueueItem::Iter i = find(uploads.begin(), uploads.end(), uc->getUser());
 		//if(i == uploads.end()) {
-		uc->setToken(Util::toString(Util::rand()));
+		//uc->setToken(Util::toString(Util::rand()));
 		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, 0, uc->getToken());
 
 			cqi->setState(ConnectionQueueItem::ACTIVE);
