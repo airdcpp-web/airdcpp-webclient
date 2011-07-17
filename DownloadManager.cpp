@@ -148,7 +148,7 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool partialList) {
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;	
 		if(uc->getUser() == user) {
-			if ((!partialList && uc->isSet(UserConnection::FLAG_PARTIAL_LIST)) || (partialList && !uc->isSet(UserConnection::FLAG_PARTIAL_LIST)) && uc->isSet(UserConnection::FLAG_MCN1))
+			if (((!partialList && uc->isSet(UserConnection::FLAG_PARTIAL_LIST)) || (partialList && !uc->isSet(UserConnection::FLAG_PARTIAL_LIST))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
 			uc->updated();
 			return true;
@@ -254,6 +254,9 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 	const string& type = cmd.getParam(0);
 	int64_t start = Util::toInt64(cmd.getParam(2));
 	int64_t bytes = Util::toInt64(cmd.getParam(3));
+	
+	if(cmd.hasFlag("TL", 4))
+		aSource->getDownload()->setFlag(Download::FLAG_TTHLIST);
 
 	if(type != Transfer::names[aSource->getDownload()->getType()]) {
 		// Uhh??? We didn't ask for this...
@@ -325,7 +328,8 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	aSource->setState(UserConnection::STATE_RUNNING);
 
 	fire(DownloadManagerListener::Starting(), d);
-	ConnectionManager::getInstance()->checkWaitingMCN();
+	if (aSource->isSet(UserConnection::FLAG_MCN1))
+		ConnectionManager::getInstance()->checkWaitingMCN();
 
 	if(d->getPos() == d->getSize()) {
 		try {

@@ -318,6 +318,7 @@ private:
 	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException);
 
 	void processList(const string& name, const HintedUser& user, int flags);
+	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
 	void load(const SimpleXML& aXml);
 	void moveFile(const string& source, const string& target);

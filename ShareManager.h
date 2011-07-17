@@ -91,7 +91,7 @@ public:
 
 	StringPairList getDirectories(int refreshOptions) const throw();
 	static bool checkType(const string& aString, int aType);
-	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub) const;
+	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub, bool tthList) const;
 	MemoryInputStream* getTree(const string& virtualFile) const;
 
 	AdcCommand getFileInfo(const string& aFile) throw(ShareException);
@@ -234,6 +234,7 @@ private:
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const throw();
 		bool find(const string& dir);
 
+		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList, bool create) const;
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
 		//for filelist caching

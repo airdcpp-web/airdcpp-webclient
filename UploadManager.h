@@ -192,7 +192,7 @@ private:
 	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) throw();
 	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) throw();
 
-	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, bool listRecursive = false);
+	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, bool listRecursive = false, bool tthList = false);
 };
 
 } // namespace dcpp

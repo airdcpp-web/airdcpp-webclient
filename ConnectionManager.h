@@ -32,7 +32,7 @@ namespace dcpp {
 
 class SocketException;
 
-class ConnectionQueueItem : boost::noncopyable {
+class ConnectionQueueItem : boost::noncopyable, public Flags {
 public:
 	typedef ConnectionQueueItem* Ptr;
 	typedef vector<Ptr> List;
@@ -45,8 +45,14 @@ public:
 		ACTIVE						// In one up/downmanager
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, int dlType, string aToken) : token(aToken), 
-		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), type(dlType), maxConns(0) { }
+	enum Flags {
+		FLAG_MCN1				= 0x01,
+		FLAG_PARTIAL			= 0x02,
+		FLAG_PARTIAL_CONF		= 0x04
+	};
+
+	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken) : token(aToken), 
+		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), maxConns(0) { }
 	
 	GETSET(string, token, Token);
 
@@ -55,7 +61,6 @@ public:
 	GETSET(int, errors, Errors); // Number of connection errors, or -1 after a protocol error
 	GETSET(State, state, State);
 	GETSET(bool, download, Download);
-	GETSET(int, type, Type);
 	const HintedUser& getUser() const { return user; }
 
 private:
@@ -180,7 +185,7 @@ private:
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, int type, string token = Util::toString(Util::rand()));
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, string token = Util::toString(Util::rand()));
 	void putCQI(ConnectionQueueItem* cqi);
 
 	void accept(const Socket& sock, bool secure) throw();

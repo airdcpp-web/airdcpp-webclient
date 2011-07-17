@@ -43,6 +43,8 @@
 #include "MerkleCheckOutputStream.h"
 
 #include <limits>
+#include <iostream>
+#include <fstream>
 
 #if !defined(_WIN32) && !defined(PATH_MAX) // Extra PATH_MAX check for Mac OS X
 #include <sys/syslimits.h>
@@ -1375,6 +1377,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	HintedUser fl_user = aDownload->getHintedUser();
 	Flags::MaskType fl_flag = 0;
 	bool downloadList = false;
+	bool tthList = aDownload->isSet(Download::FLAG_TTHLIST);
 
 	{
 		Lock l(cs);
@@ -1563,7 +1566,10 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	}
 
 	if(!fl_fname.empty()) {
-		processList(fl_fname, fl_user, fl_flag);
+		if (tthList)
+			matchTTHList(fl_fname, fl_user, fl_flag);
+		else
+			processList(fl_fname, fl_user, fl_flag);
 	}
 
 	// partial file list failed, redownload full list
@@ -1571,6 +1577,57 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 		try {
 			addList(fl_user, fl_flag);
 		} catch(const Exception&) {}
+	}
+}
+
+void QueueManager::matchTTHList(const string& name, const HintedUser& user, int flags) {
+	dcdebug("matchTTHList");
+	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
+		int matches = 0;
+		{
+			Lock l(cs);
+
+			typedef unordered_set<TTHValue> TTHSet;
+			typedef TTHSet::const_iterator TTHSetIter;
+			TTHSet tthList;
+
+			size_t start = 0;
+			while (start+39 < name.length()) {
+				tthList.insert(name.substr(start, 39));
+				start = start+40;
+			}
+
+			if(tthList.empty())
+				return;
+
+			for(QueueItem::StringMap::const_iterator i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
+				QueueItem* qi = i->second;
+				if(qi->isFinished())
+					continue;
+				if(qi->isSet(QueueItem::FLAG_USER_LIST))
+					continue;
+				TTHSetIter j = tthList.find(qi->getTTH());
+				if(j != tthList.end()) {
+					try {
+						addSource(qi, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);    
+					} catch(...) {
+						// Ignore...
+					}
+					matches++;
+				}
+			}
+		}
+
+		if(matches > 0)
+			ConnectionManager::getInstance()->getDownloadConnection(user);
+
+		if(!(flags & QueueItem::FLAG_PARTIAL_LIST)) {
+			const size_t BUF_SIZE = STRING(MATCHED_FILES).size() + 16;
+			string tmp;
+			tmp.resize(BUF_SIZE);
+			snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matches);
+			LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
+		}
 	}
 }
 
@@ -1610,7 +1667,9 @@ void QueueManager::processList(const string& name, const HintedUser& user, int f
 		string tmp;
 		tmp.resize(BUF_SIZE);
 		snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matchListing(dirList));
-		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
+		if(!(flags & QueueItem::FLAG_PARTIAL_LIST)) {
+			LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
+		}
 	}
 	if(flags & QueueItem::FLAG_VIEW_NFO) {
 		findNfo(dirList.getRoot(), dirList);
@@ -1647,7 +1706,7 @@ void QueueManager::recheck(const string& aTarget) {
 }
 
 void QueueManager::remove(const string& aTarget) throw() {
-	UserList x;
+	UserConnectionList x;
 
 	{
 		Lock l(cs);
@@ -1670,7 +1729,8 @@ void QueueManager::remove(const string& aTarget) throw() {
 
 		if(q->isRunning()) {
 			for(DownloadList::iterator i = q->getDownloads().begin(); i != q->getDownloads().end(); ++i) {
-				x.push_back((*i)->getUser());
+				UserConnection* uc = &(*i)->getUserConnection();
+				x.push_back(uc);
 			}
 		} else if(!q->getTempTarget().empty() && q->getTempTarget() != q->getTarget()) {
 			File::deleteFile(q->getTempTarget());
@@ -1686,8 +1746,8 @@ void QueueManager::remove(const string& aTarget) throw() {
 		setDirty();
 	}
 
-	for(UserList::iterator i = x.begin(); i != x.end(); ++i) {
-		ConnectionManager::getInstance()->disconnect(*i, true);
+	for(UserConnectionList::const_iterator i = x.begin(); i != x.end(); ++i) {
+		(*i)->disconnect(true);
 	}
 }
 
@@ -2075,10 +2135,10 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 					
 					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
 						//if its a rar release add the sources to all files.
-						if( regexp.match(sr->getFile(), sr->getFile().length()-4) > 0 ) {
+						if((!BOOLSETTING(PARTIAL_MATCH_ADC) || sr->getUser()->isSet(User::NMDC)) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
 							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
 						} //else match with partial list
-						else if (!sr->getUser()->isSet(User::NMDC)) {
+						else if (!sr->getUser()->isSet(User::NMDC) && BOOLSETTING(PARTIAL_MATCH_ADC) && !BOOLSETTING(AUTO_SEARCH_AUTO_MATCH)) {
 							string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
 							addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
 						}

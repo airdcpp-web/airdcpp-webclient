@@ -73,7 +73,7 @@ UploadManager::~UploadManager() throw() {
 	}
 }
 
-bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aStartPos, int64_t& aBytes, bool listRecursive) {
+bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aStartPos, int64_t& aBytes, bool listRecursive, bool tthList) {
 	dcdebug("Preparing %s %s " I64_FMT " " I64_FMT " %d\n", aType.c_str(), aFile.c_str(), aStartPos, aBytes, listRecursive);
 
 	if(aFile.empty() || aStartPos < 0 || aBytes < -1 || aBytes == 0) {
@@ -163,7 +163,7 @@ if(aType == Transfer::names[Transfer::TYPE_FILE]) {
 			type = Transfer::TYPE_TREE;			
 		} else if(aType == Transfer::names[Transfer::TYPE_PARTIAL_LIST]) {
 			// Partial file list
-			MemoryInputStream* mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, isInSharingHub);
+			MemoryInputStream* mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, isInSharingHub, tthList);
 			if(mis == NULL) {
 				aSource.fileNotAvail();
 				return false;
@@ -608,7 +608,7 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 	int64_t aStartPos = Util::toInt64(c.getParam(2));
 	int64_t aBytes = Util::toInt64(c.getParam(3));
 
-	if(prepareFile(*aSource, type, fname, aStartPos, aBytes, c.hasFlag("RE", 4))) {
+	if(prepareFile(*aSource, type, fname, aStartPos, aBytes, c.hasFlag("RE", 4), c.hasFlag("TL", 4))) {
 		Upload* u = aSource->getUpload();
 		dcassert(u != NULL);
 
@@ -621,6 +621,10 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 			u->setStream(new FilteredInputStream<ZFilter, true>(u->getStream()));
 			u->setFlag(Upload::FLAG_ZUPLOAD);
 			cmd.addParam("ZL1");
+		}
+
+		if(c.hasFlag("TL", 4)) {
+			cmd.addParam("TL1");
 		}
 
 		aSource->send(cmd);

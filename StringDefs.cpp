@@ -1219,6 +1219,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Check if the directory is empty", 
 "Date Modified", 
 "Maximum number of downloads per user", 
+"Add sources by using recursive partial lists (ADC only)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2438,4 +2439,5 @@ std::string dcpp::ResourceManager::names[] = {
 "CheckEmptyDirs", 
 "Date", 
 "SettingsMaxMcn", 
+"AutoSearchAutoMatch", 
 };
