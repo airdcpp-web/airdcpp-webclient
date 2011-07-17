@@ -43,8 +43,6 @@
 #include "MerkleCheckOutputStream.h"
 
 #include <limits>
-#include <iostream>
-#include <fstream>
 
 #if !defined(_WIN32) && !defined(PATH_MAX) // Extra PATH_MAX check for Mac OS X
 #include <sys/syslimits.h>
@@ -2138,7 +2136,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) thro
 						if((!BOOLSETTING(PARTIAL_MATCH_ADC) || sr->getUser()->isSet(User::NMDC)) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
 							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
 						} //else match with partial list
-						else if (!sr->getUser()->isSet(User::NMDC) && BOOLSETTING(PARTIAL_MATCH_ADC) && !BOOLSETTING(AUTO_SEARCH_AUTO_MATCH)) {
+						else if (!sr->getUser()->isSet(User::NMDC) && !BOOLSETTING(AUTO_SEARCH_AUTO_MATCH)) {
 							string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
 							addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
 						}

@@ -2439,5 +2439,5 @@ std::string dcpp::ResourceManager::names[] = {
 "CheckEmptyDirs", 
 "Date", 
 "SettingsMaxMcn", 
-"AutoSearchAutoMatch", 
+"PartialMatchAdc", 
 };

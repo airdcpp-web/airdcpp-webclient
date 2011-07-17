@@ -1226,6 +1226,6 @@ enum Strings { // @DontAdd
 	CHECK_EMPTY_DIRS, // "Check if the directory is empty"
 	DATE, // "Date Modified"
 	SETTINGS_MAX_MCN, // "Maximum number of downloads per user"
-	AUTO_SEARCH_AUTO_MATCH, // "Add sources by using recursive partial lists (ADC only)"
+	PARTIAL_MATCH_ADC, // "Add sources by using recursive partial lists (ADC only)"
 	LAST // @DontAdd
 };
