@@ -1442,9 +1442,12 @@ void ShareManager::Directory::toXml(OutputStream& xmlFile, string& indent, strin
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));
 	xmlFile.write(SimpleXML::escape(name, tmp2, true));
-	
+	xmlFile.write(LITERAL("\" Date=\""));
+	xmlFile.write(SimpleXML::escape(lastwrite, tmp2, true));
+
 	if(fullList) {
-		
+	
+
 		xmlFile.write(LITERAL("\">\r\n"));
 		indent += '\t';
 		
@@ -1466,8 +1469,8 @@ void ShareManager::Directory::toXml(OutputStream& xmlFile, string& indent, strin
 			xmlFile.write(LITERAL("\" Incomplete=\"1"));
 			xmlFile.write(LITERAL("\" Size=\""));
 			xmlFile.write(SimpleXML::escape(Util::toString(getSize()), tmp2, true));
-			xmlFile.write(LITERAL("\" Date=\""));
-			xmlFile.write(SimpleXML::escape(lastwrite, tmp2, true));
+		//	xmlFile.write(LITERAL("\" Date=\""));
+		//  xmlFile.write(SimpleXML::escape(lastwrite, tmp2, true));
 			xmlFile.write(LITERAL("\" />\r\n"));
 			}
 		}

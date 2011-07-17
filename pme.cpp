@@ -248,7 +248,7 @@ PME::match(const std::string & s, ///< s String to match against
 			 unsigned offset ///< offset Offset at which to start matching
 			 )
 {
-	size_t msize;
+	size_t msize = 0; //fix possible bad alloc
 	pcre_fullinfo(re, 0, PCRE_INFO_CAPTURECOUNT, &msize);
 	msize = 3*(msize+1);
 	int *m = new int[msize];
