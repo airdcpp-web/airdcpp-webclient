@@ -833,6 +833,7 @@ void ConnectionManager::on(UserConnectionListener::Key, UserConnection* aSource,
 		return;
 	}
 
+	aSource->setToken(Util::toString(Util::rand()));
 	dcassert(aSource->getUser());
 
 	if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
