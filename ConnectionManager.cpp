@@ -84,11 +84,11 @@ void ConnectionManager::listen() throw(SocketException){
  * for downloading.
  * @param aUser The user to connect to.
  */
-void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool partialList) {
+void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smallSlot) {
 	bool found=false,supportMcn=false;
 	dcassert((bool)aUser.user);
 	{
-	if (!DownloadManager::getInstance()->checkIdle(aUser.user, partialList)) {
+	if (!DownloadManager::getInstance()->checkIdle(aUser.user, smallSlot)) {
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if (cqi->getUser().user == aUser.user) {
@@ -96,20 +96,24 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool part
 				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 					supportMcn=true;
 				}
-				if ((!partialList && cqi->isSet(ConnectionQueueItem::FLAG_PARTIAL_CONF)) || (partialList && !cqi->isSet(ConnectionQueueItem::FLAG_PARTIAL_CONF))) {
+				if ((!smallSlot && cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) || (smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))) {
 					continue;
 				}
 				if (supportMcn)
 					checkWaitingMCN();
+				dcdebug("Returning1!");
 				return;
 			}
 		}
-		if (partialList && !supportMcn && found)
+		if (smallSlot && !supportMcn && found) {
+			dcdebug("Returning2!");
 			return;
+		}
 
+		dcdebug("Get cqi");
 		ConnectionQueueItem* cqi = getCQI(aUser, true);
-		if (partialList)
-			cqi->setFlag(ConnectionQueueItem::FLAG_PARTIAL);
+		if (smallSlot)
+			cqi->setFlag(ConnectionQueueItem::FLAG_SMALL);
 	}
 	}
 }
@@ -187,11 +191,11 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 				{
 					cqi->setLastAttempt(aTick);
 
-					bool partial=false;
-					if (cqi->isSet(ConnectionQueueItem::FLAG_PARTIAL))
-						partial=true;
+					bool smallSlot=false;
+					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL))
+						smallSlot=true;
 
-					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), partial);
+					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), smallSlot);
 
 					if(prio == QueueItem::PAUSED) {
 						removed.push_back(cqi);
@@ -775,9 +779,9 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 			if (cqi->getToken() == uc->getToken()) {
 				if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 					cqi->setState(ConnectionQueueItem::ACTIVE);
-					if (cqi->isSet(ConnectionQueueItem::FLAG_PARTIAL)) {
-						uc->setFlag(UserConnection::FLAG_PARTIAL_LIST);
-						cqi->setFlag(ConnectionQueueItem::FLAG_PARTIAL_CONF);
+					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL)) {
+						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
+						cqi->setFlag(ConnectionQueueItem::FLAG_SMALL_CONF);
 					} else {
 						cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
 					}

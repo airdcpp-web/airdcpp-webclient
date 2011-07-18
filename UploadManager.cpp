@@ -45,7 +45,7 @@ namespace dcpp {
 	
 static const string UPLOAD_AREA = "Uploads";
 
-UploadManager::UploadManager() throw() : running(0), extra(0), lastGrant(0), lastFreeSlots(-1), extraPartial(0), mcnSlots(0), partialListSlots(0) {	
+UploadManager::UploadManager() throw() : running(0), extra(0), lastGrant(0), lastFreeSlots(-1), extraPartial(0), mcnSlots(0), smallSlots(0) {	
 	ClientManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
 }
@@ -235,8 +235,8 @@ ok:
 		bool isFavorite = FavoriteManager::getInstance()->hasSlot(aSource.getUser());
 		bool hasFreeSlot = (getFreeSlots() > 0) && ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser()));
 
-		if (type==Transfer::TYPE_PARTIAL_LIST && partialListSlots <= 6) {
-			slotType = UserConnection::PARTIALLISTSLOT;
+		if ((type==Transfer::TYPE_PARTIAL_LIST || fileSize <= 65792) && smallSlots <= 8) {
+			slotType = UserConnection::SMALLSLOT;
 		} else if (aSource.isSet(UserConnection::FLAG_MCN1)) {
 			if (getMultiConn(aSource)) {
 				slotType = UserConnection::MCNSLOT;
@@ -334,16 +334,16 @@ ok:
 			case UserConnection::MCNSLOT:
 				changeMultiConnSlot(aSource.getUser()->getCID(), true);
 				break;
-			case UserConnection::PARTIALLISTSLOT:
-				partialListSlots--;
+			case UserConnection::SMALLSLOT:
+				smallSlots--;
 				break;
 		}
 		// set new slot count
 		switch(slotType) {
 			case UserConnection::STDSLOT:
 				clearUserFiles(aSource.getUser());
-				checkMultiConn();
 				running++;
+				checkMultiConn();
 				break;
 			case UserConnection::EXTRASLOT:
 				extra++;
@@ -356,8 +356,8 @@ ok:
 				changeMultiConnSlot(aSource.getUser()->getCID(), false); 
 				checkMultiConn();
 				break;
-			case UserConnection::PARTIALLISTSLOT:
-				partialListSlots++;
+			case UserConnection::SMALLSLOT:
+				smallSlots++;
 				break;
 		}
 		
@@ -489,7 +489,7 @@ void UploadManager::checkMultiConn() {
 						Upload* u = *s;
 						if (u->getUser()->getCID() == i->first && u) {
 							u->getUserConnection().disconnect(true);
-							changeMultiConnSlot(u->getUser()->getCID(), true);
+							//changeMultiConnSlot(u->getUser()->getCID(), true);
 							break;
 						}
 					}
@@ -748,7 +748,7 @@ void UploadManager::removeConnection(UserConnection* aSource) {
 		case UserConnection::STDSLOT: running--; break;
 		case UserConnection::EXTRASLOT: clearUserFiles(aSource->getUser()); extra--; break;
 		case UserConnection::PARTIALSLOT: clearUserFiles(aSource->getUser()); extraPartial--; break;
-		case UserConnection::PARTIALLISTSLOT: clearUserFiles(aSource->getUser()); partialListSlots--; break;
+		case UserConnection::SMALLSLOT: clearUserFiles(aSource->getUser()); smallSlots--; break;
 		case UserConnection::MCNSLOT:
 			changeMultiConnSlot(aSource->getUser()->getCID(), true); 
 			break;

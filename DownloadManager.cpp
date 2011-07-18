@@ -143,14 +143,15 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) throw() {
 	}
 }
 
-bool DownloadManager::checkIdle(const UserPtr& user, bool partialList) {
+bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
 	Lock l(cs);	
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;	
 		if(uc->getUser() == user) {
-			if (((!partialList && uc->isSet(UserConnection::FLAG_PARTIAL_LIST)) || (partialList && !uc->isSet(UserConnection::FLAG_PARTIAL_LIST))) && uc->isSet(UserConnection::FLAG_MCN1))
+			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
 			uc->updated();
+			dcdebug("uc updated");
 			return true;
 		}	
 	}
@@ -199,18 +200,18 @@ bool DownloadManager::startDownload(QueueItem::Priority prio) {
 void DownloadManager::checkDownloads(UserConnection* aConn) {
 	dcassert(aConn->getDownload() == NULL);
 
-	bool partial=false;
-	if (aConn->isSet(UserConnection::FLAG_PARTIAL_LIST) == 1)
-		partial=true;
+	bool smallSlot=false;
+	if (aConn->isSet(UserConnection::FLAG_SMALL_SLOT) == 1)
+		smallSlot=true;
 
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), partial);
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot);
 	if(!startDownload(prio)) {
 		removeConnection(aConn);
 		return;
 	}
 
 	string errorMessage = Util::emptyString;
-	Download* d = QueueManager::getInstance()->getDownload(*aConn, errorMessage, partial);
+	Download* d = QueueManager::getInstance()->getDownload(*aConn, errorMessage, smallSlot);
 
 	if(!d) {
 		if(!errorMessage.empty()) {

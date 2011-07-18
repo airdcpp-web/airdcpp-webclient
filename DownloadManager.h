@@ -44,7 +44,7 @@ public:
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
-	bool checkIdle(const UserPtr& user, bool partialList);
+	bool checkIdle(const UserPtr& user, bool smallSlot);
 
 	/** @internal */
 	void abortDownload(const string& aTarget);

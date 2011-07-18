@@ -144,7 +144,7 @@ public:
 private:
 	uint8_t running;
 	uint8_t mcnSlots;
-	uint8_t partialListSlots;
+	uint8_t smallSlots;
 
 	UploadList uploads;
 	UploadList delayUploads;

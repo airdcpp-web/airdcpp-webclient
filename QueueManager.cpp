@@ -257,7 +257,7 @@ void QueueManager::UserQueue::add(QueueItem* qi, const UserPtr& aUser) {
 	}
 }
 
-QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool partialChannel) {
+QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
 	int p = QueueItem::LAST - 1;
 	lastError = Util::emptyString;
 
@@ -269,7 +269,7 @@ QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Pri
 				QueueItem* qi = *j;
 				QueueItem::SourceConstIter source = qi->getSource(aUser);
 
-				if(partialChannel && !qi->isSet(QueueItem::FLAG_PARTIAL_LIST)) {
+				if(smallSlot && !qi->isSet(QueueItem::FLAG_PARTIAL_LIST) && qi->getSize() > 65792) {
 					//don't even think of stealing our priority channel
 					continue;
 				}
@@ -847,13 +847,13 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		setDirty();
 	}
 connect:
-	bool partial=false;
-	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST) {
-		partial=true;
+	bool smallSlot=false;
+	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST || aSize <= 65792) {
+		smallSlot=true;
 	}
 	//if(wantConnection && aUser.user->isOnline())
 	if(aUser.user->isOnline()) {
-		ConnectionManager::getInstance()->getDownloadConnection(aUser, partial);
+		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
 	}
 
 	//hmm.. will need to test this one, cant see why it would cause a deadlock
@@ -1002,9 +1002,9 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 	}
 }
 
-QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool partial) throw() {
+QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSlot) throw() {
 	Lock l(cs);
-	QueueItem* qi = userQueue.getNext(aUser, QueueItem::LOWEST, 0, 0, false, partial);
+	QueueItem* qi = userQueue.getNext(aUser, QueueItem::LOWEST, 0, 0, false, smallSlot);
 	if(!qi) {
 		return QueueItem::PAUSED;
 	}
@@ -1161,13 +1161,13 @@ void QueueManager::getTargets(const TTHValue& tth, StringList& sl) {
 	}
 }
 
-Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, bool partial) throw() {
+Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, bool smallSlot) throw() {
 	Lock l(cs);
 
 	const UserPtr& u = aSource.getUser();
 	dcdebug("Getting download for %s...", u->getCID().toBase32().c_str());
 
-	QueueItem* q = userQueue.getNext(u, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), true, partial);
+	QueueItem* q = userQueue.getNext(u, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), true, smallSlot);
 
 	if(!q) {
 		aMessage = userQueue.getLastError();
@@ -1396,6 +1396,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 						fl_fname = aDownload->getPFS();
 						fl_user = aDownload->getHintedUser();
 						fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? (QueueItem::FLAG_DIRECTORY_DOWNLOAD) : 0)
+							| (q->isSet(QueueItem::FLAG_PARTIAL_LIST) ? (QueueItem::FLAG_PARTIAL_LIST) : 0)
 							| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT
 							| (q->isSet(QueueItem::FLAG_VIEW_NFO) ? QueueItem::FLAG_VIEW_NFO : 0);
 					} else {
@@ -1619,7 +1620,9 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 		if(matches > 0)
 			ConnectionManager::getInstance()->getDownloadConnection(user);
 
-		if(!(flags & QueueItem::FLAG_PARTIAL_LIST)) {
+		if(flags & QueueItem::FLAG_PARTIAL_LIST) {
+			//no reports yet..
+		} else {
 			const size_t BUF_SIZE = STRING(MATCHED_FILES).size() + 16;
 			string tmp;
 			tmp.resize(BUF_SIZE);
@@ -1665,7 +1668,9 @@ void QueueManager::processList(const string& name, const HintedUser& user, int f
 		string tmp;
 		tmp.resize(BUF_SIZE);
 		snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matchListing(dirList));
-		if(!(flags & QueueItem::FLAG_PARTIAL_LIST)) {
+		if(flags & QueueItem::FLAG_PARTIAL_LIST) {
+			//no report
+		} else {
 			LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
 		}
 	}

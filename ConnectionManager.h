@@ -47,8 +47,8 @@ public:
 
 	enum Flags {
 		FLAG_MCN1				= 0x01,
-		FLAG_PARTIAL			= 0x02,
-		FLAG_PARTIAL_CONF		= 0x04
+		FLAG_SMALL				= 0x02,
+		FLAG_SMALL_CONF			= 0x04
 	};
 
 	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken) : token(aToken), 
@@ -113,7 +113,7 @@ public:
 	void adcConnect(const OnlineUser& aUser, uint16_t aPort, const string& aToken, bool secure);
 	void adcConnect(const OnlineUser& aUser, uint16_t aPort, uint16_t localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
 
-	void getDownloadConnection(const HintedUser& aUser, bool partialList=false);
+	void getDownloadConnection(const HintedUser& aUser, bool smallSlot=false);
 	void force(string token);
 	void force(const UserPtr& aUser);
 	
