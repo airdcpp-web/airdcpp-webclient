@@ -144,7 +144,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) throw() {
 }
 
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
-	Lock l(cs);	
+	Lock l(cs);
+	bool found=false;
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;	
 		if(uc->getUser() == user) {
@@ -152,10 +153,13 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
 				continue;
 			uc->updated();
 			dcdebug("uc updated");
-			return true;
+			found = true;
 		}	
 	}
-	return false;
+	if (found)
+		return true;
+	else
+		return false;
 }
 
 void DownloadManager::addConnection(UserConnectionPtr conn) {
@@ -569,7 +573,7 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource) {
 		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
 		removeConnection(aSource);
 		return;
-	} else if (d->getType() == Transfer::TYPE_PARTIAL_LIST) {
+	} else if (d->getType() == Transfer::TYPE_PARTIAL_LIST && !aSource->isSet(UserConnection::FLAG_SMALL_SLOT)) {
 		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT_RETRY));
 	} else {
 		fire(DownloadManagerListener::Failed(), d, STRING(FILE_NOT_AVAILABLE));

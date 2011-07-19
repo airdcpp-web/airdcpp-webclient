@@ -230,7 +230,7 @@ ok:
 	uint8_t slotType = aSource.getSlotType();
 	
 	bool noSlots = false;
-	if (slotType != UserConnection::STDSLOT || slotType != UserConnection::MCNSLOT) {
+	if (slotType != UserConnection::STDSLOT && slotType != UserConnection::MCNSLOT) {
 		bool hasReserved = reservedSlots.find(aSource.getUser()) != reservedSlots.end();
 		bool isFavorite = FavoriteManager::getInstance()->hasSlot(aSource.getUser());
 		bool hasFreeSlot = (getFreeSlots() > 0) && ((waitingUsers.empty() && connectingUsers.empty()) || isConnecting(aSource.getUser()));
@@ -238,16 +238,12 @@ ok:
 		if ((type==Transfer::TYPE_PARTIAL_LIST || fileSize <= 65792) && smallSlots <= 8) {
 			slotType = UserConnection::SMALLSLOT;
 		} else if (aSource.isSet(UserConnection::FLAG_MCN1)) {
-			if (getMultiConn(aSource)) {
+			if (getMultiConn(aSource) || ((hasReserved || isFavorite) && !isUploading(aSource.getUser()->getCID()))) {
 				slotType = UserConnection::MCNSLOT;
 			} else {
-				if ((hasReserved || isFavorite || getAutoSlot()) && !isUploading(aSource.getUser()->getCID())) {
-					slotType = UserConnection::MCNSLOT;
-				} else {
-					noSlots=true;
-				}
+				noSlots=true;
 			}
-		} else if (!(hasReserved || isFavorite || getAutoSlot() || hasFreeSlot)) {
+		} else if (!(hasReserved || isFavorite || hasFreeSlot || getAutoSlot())) {
 			noSlots=true;
 		} else {
 			slotType = UserConnection::STDSLOT;
@@ -353,7 +349,7 @@ ok:
 				break;
 			case UserConnection::MCNSLOT:
 				clearUserFiles(aSource.getUser());
-				changeMultiConnSlot(aSource.getUser()->getCID(), false); 
+				changeMultiConnSlot(aSource.getUser()->getCID(), false);
 				checkMultiConn();
 				break;
 			case UserConnection::SMALLSLOT:
@@ -463,7 +459,7 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 void UploadManager::checkMultiConn() {
 	Lock l(cs);
 	int extras = getSlots() - running - mcnSlots + multiUploads.size();
-	if ((int)extras > 0) {
+	if ((int)extras > 0 || getAutoSlot()) {
 		return; //no reason to remove anything
 	}
 
