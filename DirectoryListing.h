@@ -151,6 +151,7 @@ public:
 	
 	void loadFile(const string& name) throw(Exception);
 
+
 	string updateXML(const std::string&);
 	string loadXML(InputStream& xml, bool updating);
 

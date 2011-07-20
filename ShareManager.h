@@ -34,6 +34,7 @@
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "../client/LogManager.h"
+#include "pme.h"
 
 namespace dcpp {
 
@@ -56,6 +57,9 @@ public:
 	void addDirectory(const string& realPath, const string &virtualName) throw(ShareException);
 	void removeDirectory(const string& realPath);
 	void renameDirectory(const string& realPath, const string& virtualName) throw(ShareException);
+
+	void addReleaseDir(const string& aName);
+	void deleteReleaseDir(const string& aName);
 
 	string toVirtual(const TTHValue& tth) const throw(ShareException);
 	string toReal(const string& virtualFile, bool isInSharingHub) throw(ShareException);
@@ -232,7 +236,7 @@ private:
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) const throw();
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const throw();
-		bool find(const string& dir);
+		void findRemoved();
 
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
@@ -299,7 +303,7 @@ private:
 	bool ShareCacheDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
 	bool rebuild;
-
+	PME releaseReg;
 	
 	int listN;
 	//for filelist caching
@@ -316,7 +320,10 @@ private:
 	mutable CriticalSection cs;
 
 	
-
+	
+	typedef unordered_map<int, string> nameMap;
+	nameMap dirNames;
+	StringList dirNameList;
 
 
 	typedef std::vector<Directory::Ptr> DirList;

@@ -61,6 +61,8 @@ ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	TimerManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
+	releaseReg.Init("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+	releaseReg.study();
 }
 
 ShareManager::~ShareManager() {
@@ -374,6 +376,7 @@ void ShareManager::load(SimpleXML& aXml) {
 			shares.insert(std::make_pair(realPath, vName));
 			if(getByVirtual(vName) == directories.end()) {
 				directories.push_back(Directory::create(vName));
+				addReleaseDir(Util::getLastDir(realPath));
 			}
 		}
 		aXml.stepOut();
@@ -422,6 +425,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 						}
 					}
 				} else if(cur) {
+					ShareManager::getInstance()->addReleaseDir(name);
 					cur = ShareManager::Directory::create(name, cur);
 					cur->setLastWrite(date);
 					cur->getParent()->directories[cur->getName()] = cur;
@@ -647,6 +651,7 @@ void ShareManager::removeDirectory(const string& realPath) {
 	for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {
 		if(stricmp((*j)->getName(), vName) == 0) {
 			//directories.erase(j++);
+			(*j)->findRemoved();
 			directories.erase(j);
 		} else {
 			++j;
@@ -668,6 +673,13 @@ void ShareManager::removeDirectory(const string& realPath) {
 
 	rebuildIndices();
 	setDirty();
+}
+
+void ShareManager::Directory::findRemoved() {
+	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
+		 l->second->findRemoved();
+	}
+	ShareManager::getInstance()->deleteReleaseDir(name);
 }
 
 void ShareManager::renameDirectory(const string& realPath, const string& virtualName) throw(ShareException) {
@@ -714,8 +726,29 @@ size_t ShareManager::getSharedFiles() const throw() {
 	return tthIndex.size();
 }
 
+void ShareManager::addReleaseDir(const string& aName) {
+	if(releaseReg.match(aName) > 0 ) {
+		dirNameList.push_back(Text::toLower(aName));
+	}
+}
+
+void ShareManager::deleteReleaseDir(const string& aName) {
+	if(releaseReg.match(aName) == 0 ) {
+		return;
+	}
+
+	string dir = Text::toLower(aName);
+	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
+		if ((*i) == dir) {
+			dirNameList.erase(i);
+			return;
+		}
+	}
+}
+
 ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent) {
 	Directory::Ptr dir = Directory::create(Util::getLastDir(aName), aParent);
+	addReleaseDir(Util::getLastDir(aName));
 
 	Directory::File::Set::iterator lastFileIter = dir->files.begin();
 
@@ -1058,9 +1091,10 @@ int ShareManager::run() {
 
 	StringPairList dirs = getDirectories(refreshOptions);
 
-	if(refreshOptions & REFRESH_ALL) 
+	if(refreshOptions & REFRESH_ALL) {
+		dirNameList.clear();
 		lastFullUpdate = GET_TICK();
-
+	}
 		HashManager::HashPauser pauser;
 				
 		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_INITIATED));
@@ -1085,10 +1119,11 @@ int ShareManager::run() {
 			std::string virtualname = i->first;
 
 			//lookup for the root dirs under the Vname and erase only those.
-		for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {	
-		if(stricmp((*j)->getName(), virtualname) == 0) {
-			//directories.erase(j++);
-			directories.erase(j);
+			for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {	
+				if(stricmp((*j)->getName(), virtualname) == 0) {
+					//directories.erase(j++);
+					(*j)->findRemoved();
+					directories.erase(j);
 				} else ++j; // in a vector erase all elements are moved to new positions so make sure we dont skip anything.
 			}
 		}
@@ -1680,45 +1715,22 @@ namespace {
 	inline uint16_t toCode(char a, char b) { return (uint16_t)a | ((uint16_t)b)<<8; }
 }
 bool ShareManager::isDirShared(const string& directory) {
-	bool found = false;
 	string dir = directory;
 
 	if(dir[dir.size() -1] == '\\') 
 		dir = dir.substr(0, (dir.size() -1));
 
-	boost::regex reg;
-	reg.assign("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
-	if(!boost::regex_match(dir, reg))  //if its not a release folder dont bother to check
+	if(releaseReg.match(dir) == 0 )
 		return false;
 
-
-	for(DirList::const_iterator j = directories.begin(); j != directories.end(); ++j) {
-		found = (*j)->find(dir);
-		if(found)
-			break;
+	dir = Text::toLower(dir);
+	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
+		if ((*i) == dir)
+			return true;
 	}
-	return found;
+	return false;
 }
 
-bool ShareManager::Directory::find(const string& dir) {
-	if(dir.empty())
-		return false;
-
-	bool found = false;
-
-	string dir_lower = Text::toLower(dir);
-	string name_lower = Text::toLower(name);
-
-	if(stricmp(dir_lower, name_lower ) == 0)
-		return true;
-
-	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
-			found = l->second->find(dir);
-			if(found)
-				break;
-	}
-	return found;
-}
 ShareManager::AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
 	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false)
 {

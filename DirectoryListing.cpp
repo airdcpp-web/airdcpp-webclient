@@ -88,7 +88,6 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 }
 
 void DirectoryListing::loadFile(const string& name) throw(Exception) {
-	
 	// For now, we detect type by ending...
 	string ext = Util::getFileExt(name);
 
@@ -162,9 +161,12 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& h = getAttrib(attribs, sTTH, 2);
 			if(h.empty()) {
 				return;
-			}			
+			}
 			DirectoryListing::File* f = new DirectoryListing::File(cur, n, Util::toInt64(s), h);
 			cur->files.push_back(f);
+			if(f->getSize() > 0) {
+				f->setDupe(ShareManager::getInstance()->isTTHShared(f->getTTH()));
+			}
 		} else if(name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
 			if(n.empty()) {
@@ -186,6 +188,11 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 			if(d == NULL) {
 				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, date);
+				if (incomp) {
+					if (ShareManager::getInstance()->isDirShared(n)) {
+						d->setDupe(2);
+					}
+				}
 				cur->directories.push_back(d);
 			}
 			cur = d;
@@ -256,14 +263,29 @@ string DirectoryListing::getPath(const Directory* d) const {
 
 void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio) {
 
-	string target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
+	string target = aTarget;
 
 	if(!aDir->getComplete()) {
 		// folder is not completed (partial list?), so we need to download it first
-		QueueManager::getInstance()->addDirectory("", hintedUser, target, prio);
-	} else {	
-		// First, recurse over the directories
+		if (hintedUser.user->isSet(User::NMDC)) {
+			target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
+			QueueManager::getInstance()->addDirectory("", hintedUser, target, prio);
+		} else {
+			QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
+		}
+	} else {
 		Directory::List& lst = aDir->directories;
+		//check if there are incomplete dirs
+		if (!hintedUser.user->isSet(User::NMDC)) {
+			for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
+				if (!(*j)->getComplete()) {
+					QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
+					return;
+				}
+			}
+		}
+		target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
+		// First, recurse over the directories
 		sort(lst.begin(), lst.end(), Directory::DirSort());
 		for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
 			download(*j, target, highPrio, prio);
@@ -409,7 +431,6 @@ uint8_t DirectoryListing::Directory::checkDupes() {
 			setDupe(Directory::PARTIAL_DUPE);
 		else if(getDupe() == Directory::DUPE && result != Directory::DUPE)
 			setDupe(Directory::PARTIAL_DUPE);
-		
 		first = false;
 	}
 
@@ -418,7 +439,7 @@ uint8_t DirectoryListing::Directory::checkDupes() {
 		//don't count 0 byte files since it'll give lots of partial dupes
 		//of no interest
 		if((*i)->getSize() > 0) {
-			(*i)->setDupe(ShareManager::getInstance()->isTTHShared((*i)->getTTH()));
+			//(*i)->setDupe(ShareManager::getInstance()->isTTHShared((*i)->getTTH()));
 			
 			//if it's the first file in the dir and no sub-folders exist mark it as a dupe.
 			if(getDupe() == Directory::NONE && (*i)->getDupe() && directories.empty() && first)

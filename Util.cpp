@@ -1291,17 +1291,17 @@ string Util::getDir(string dir, bool validate, bool cut) {
 		if (dir == Util::emptyString)
 			return dir;
 
-		boost::regex reg;
-		boost::smatch result;
+		//boost::smatch result;
 		size_t dpos;
-		reg.assign(".*[^\\\\]+\\\\([^\\\\]+\\.[a-z0-9]{2,10})$");
-		if (regex_match(dir, reg)) {
-			dpos = dir.rfind("\\");
-			if(dpos != tstring::npos) {
-				dir = dir.substr(0,dpos+1);
-			}
-		}
+		//reg.assign(".*[^\\\\]+\\\\([^\\\\]+\\.[a-z0-9]{2,10})$");
+		//if (regex_match(dir, reg)) {
+		//	dpos = dir.rfind("\\");
+		//	if(dpos != tstring::npos) {
+		//		dir = dir.substr(0,dpos+1);
+		//	}
+		//}
 		if (validate) {
+			boost::regex reg;
 			for (;;) {
 				reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
 				if (regex_match(dir, reg)) {
