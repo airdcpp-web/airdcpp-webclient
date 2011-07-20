@@ -135,10 +135,11 @@ public:
 	}
 	void generateXmlList(bool forced = false);
 
-	bool isTTHShared(const TTHValue& tth) const {
+	bool isTTHShared(const TTHValue& tth) {
 		Lock l(cs);
 		return tthIndex.find(tth) != tthIndex.end();
 	}
+
 	StringList getRealPaths(const std::string path);
 
 
