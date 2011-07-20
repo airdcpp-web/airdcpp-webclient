@@ -963,8 +963,6 @@ void QueueManager::addDirectorySearch(const string& aDir, const HintedUser& aUse
 		needList = (dp.first == dp.second);
 		setDirty();
 	}
-	LogManager::getInstance()->message(aTarget);
-	LogManager::getInstance()->message(aDir);
 	if(needList) {
 		try {
 			if (adc)
@@ -993,8 +991,6 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 		needList = (dp.first == dp.second);
 		setDirty();
 	}
-	LogManager::getInstance()->message(aTarget);
-	LogManager::getInstance()->message(aDir);
 	if(needList) {
 		try {
 			if (aUser.user->isSet(User::NMDC))
