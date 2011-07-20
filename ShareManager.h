@@ -235,10 +235,10 @@ private:
 		bool find(const string& dir);
 
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
-		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList, bool create) const;
+		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
 		//for filelist caching
-		void toXmlList(OutputStream* xmlFile, string& indent, const string& path);
+		void toXmlList(OutputStream* xmlFile, string& indent);
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 
@@ -305,7 +305,6 @@ private:
 	//for filelist caching
 	void saveXmlList();
 
-	void VnameToXml(const string& vname, OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
 
 	atomic_flag refreshing;
 	atomic_flag GeneratingXmlList;
@@ -315,13 +314,13 @@ private:
 	uint64_t lastIncomingUpdate;
 
 	mutable CriticalSection cs;
-	typedef vector<pair<ShareManager::Directory::Ptr, string>> DirPairList;
 
-	// Map realpath to root directory items
-	typedef unordered_map<string, Directory::Ptr> DirMap; 
-	DirMap directories;
+	
 
-	typedef std::vector<Directory::Ptr> Dirs;
+
+
+	typedef std::vector<Directory::Ptr> DirList;
+	DirList directories;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	StringMap shares;
@@ -343,14 +342,13 @@ private:
 	void updateIndices(Directory& aDirectory);
 	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
 	
-	Directory::Ptr merge(const string& realPath, const Directory::Ptr& directory);
-	
+	Directory::Ptr merge(const Directory::Ptr& directory);
 	
 	StringList notShared;
 	StringList incoming;
 
-	Dirs getByVirtual(const string& virtualName) const throw();
-	ShareManager::DirPairList splitVirtual(const string& virtualPath) const throw(ShareException);
+	DirList::const_iterator getByVirtual(const string& virtualName) const throw();
+	pair<Directory::Ptr, string> splitVirtual(const string& virtualPath) const throw(ShareException);
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const throw(ShareException);
 
 	Directory::Ptr getDirectory(const string& fname);
