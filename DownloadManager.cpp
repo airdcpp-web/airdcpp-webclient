@@ -176,7 +176,7 @@ void DownloadManager::addConnection(UserConnectionPtr conn) {
 	checkDownloads(conn);
 }
 
-bool DownloadManager::startDownload(QueueItem::Priority prio) {
+bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
 
 	size_t downloadCount = getDownloadCount();
 
@@ -186,7 +186,7 @@ bool DownloadManager::startDownload(QueueItem::Priority prio) {
 
 	if(full) {
 		bool extraFull = (SETTING(DOWNLOAD_SLOTS) != 0) && (getDownloadCount() >= (size_t)(SETTING(DOWNLOAD_SLOTS)+SETTING(EXTRA_DOWNLOAD_SLOTS)));
-		if(extraFull) {
+		if(extraFull || mcn) {
 			return false;
 		}
 		return prio == QueueItem::HIGHEST;
@@ -205,11 +205,12 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	dcassert(aConn->getDownload() == NULL);
 
 	bool smallSlot=false;
-	if (aConn->isSet(UserConnection::FLAG_SMALL_SLOT) == 1)
+	if (aConn->isSet(UserConnection::FLAG_SMALL_SLOT)) {
 		smallSlot=true;
+	}
 
 	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot);
-	if(!startDownload(prio)) {
+	if(!startDownload(prio) && !smallSlot) {
 		removeConnection(aConn);
 		return;
 	}
@@ -221,7 +222,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
 		}
-
 		Lock l(cs);
 		aConn->setState(UserConnection::STATE_IDLE);
  	    idlers.push_back(aConn);

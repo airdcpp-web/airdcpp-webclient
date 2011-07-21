@@ -848,7 +848,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	}
 connect:
 	bool smallSlot=false;
-	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST || aSize <= 65792) {
+	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST || (aSize <= 65792 && !(aFlags & QueueItem::FLAG_USER_LIST))) {
 		smallSlot=true;
 	}
 	//if(wantConnection && aUser.user->isOnline())

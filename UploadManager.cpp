@@ -238,7 +238,7 @@ ok:
 		if ((type==Transfer::TYPE_PARTIAL_LIST || fileSize <= 65792) && smallSlots <= 8) {
 			slotType = UserConnection::SMALLSLOT;
 		} else if (aSource.isSet(UserConnection::FLAG_MCN1)) {
-			if (getMultiConn(aSource) || ((hasReserved || isFavorite) && !isUploading(aSource.getUser()->getCID()))) {
+			if (getMultiConn(aSource) || ((hasReserved || isFavorite|| getAutoSlot()) && !isUploading(aSource.getUser()->getCID()))) {
 				slotType = UserConnection::MCNSLOT;
 			} else {
 				noSlots=true;
@@ -366,7 +366,6 @@ ok:
 
 
 void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
-	bool notFound=false;
 	if (!multiUploads.empty()) {
 		MultiConnIter uis = multiUploads.find(cid);
 		if (uis != multiUploads.end()) {
@@ -383,14 +382,10 @@ void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
 				mcnSlots++;
 			}
 			return;
-		} else if (!remove) {
-			notFound=true;
 		}
-	} else if (!remove) {
-		notFound=true;
 	}
 
-	if (notFound) {
+	if (!remove) {
 		//a new MCN upload
 		multiUploads[cid] = 1;
 		running++;
@@ -400,18 +395,26 @@ void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
 
 int UploadManager::getSlotsPerUser() {
 	int slots;
-	if (Util::toInt(SETTING(UPLOAD_SPEED)) == 10)
+	int upload = Util::toInt(SETTING(UPLOAD_SPEED));
+
+	if (upload == 10)
 		slots=2;
-	else if (Util::toInt(SETTING(UPLOAD_SPEED)) > 10 && Util::toInt(SETTING(UPLOAD_SPEED)) <= 20)
+	else if (upload > 10 && upload <= 20)
 		slots=3;
-	else if (Util::toInt(SETTING(UPLOAD_SPEED)) > 20 && Util::toInt(SETTING(UPLOAD_SPEED)) <= 50)
+	else if (upload > 20 && upload <= 50)
 		slots=5;
-	else if (Util::toInt(SETTING(UPLOAD_SPEED)) > 50 && Util::toInt(SETTING(UPLOAD_SPEED)) <= 100)
+	else if (upload > 50 && upload < 100)
 		slots=7;
-	else if (Util::toInt(SETTING(UPLOAD_SPEED)) > 100)
+	else if (upload == 100)
+		slots=9;
+	else if (upload > 100)
 		slots=0;
 	else
 		slots=1;
+
+	if (slots > getSlots())
+		slots = getSlots();
+
 	return slots;
 }
 
@@ -463,18 +466,18 @@ void UploadManager::checkMultiConn() {
 		return; //no reason to remove anything
 	}
 
-	int uploadsStart=0;
+	int uploadsStart=0, highest=0;
 	MultiConnMap compare=multiUploads;
 	while (extras < 0) {
 		if (!compare.empty()) {
-			int highest=0;
+			highest=0;
 			for(MultiConnIter i = compare.begin(); i != compare.end(); ++i) {
 				if (i->second > highest) {
 					highest = i->second;
 				}
 			}
 			if (highest <= 1) {
-				break;
+				return;
 			}
 
 			for(MultiConnIter i = compare.begin(); i != compare.end(); ++i) {

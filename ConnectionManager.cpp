@@ -294,7 +294,7 @@ void ConnectionManager::checkWaitingMCN() throw() {
 				}
 
 				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
-				bool startDown = DownloadManager::getInstance()->startDownload(prio);
+				bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
 				if(prio != QueueItem::PAUSED && startDown) {
 					ConnectionQueueItem* cqiNew = getCQI(cqi->getUser(),true);
 					cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
@@ -790,7 +790,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 					uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 					fire(ConnectionManagerListener::Connected(), cqi);
 				
-					dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");
+					dcdebug("ConnectionManager::addDownloadConnection MCN, leaving to downloadmanager\n");
 					addConn = true;
 				}
 			}

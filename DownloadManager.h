@@ -58,7 +58,7 @@ public:
 		return downloads.size();
 	}
 
-	bool startDownload(QueueItem::Priority prio);
+	bool startDownload(QueueItem::Priority prio, bool mcn=false);
 		
 	int64_t getAverageSpeed(const string & path){
 		Lock l(cs);
