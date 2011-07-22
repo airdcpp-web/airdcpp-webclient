@@ -716,6 +716,7 @@ size_t UploadManager::addFailedUpload(const UserConnection& source, const string
 }
 
 void UploadManager::clearUserFiles(const UserPtr& aUser) {
+	Lock l(cs);
 	UploadQueueItem::SlotQueue::iterator it = find_if(waitingUsers.begin(), waitingUsers.end(), CompareFirst<UserPtr, UploadQueueItem::List>(aUser));
 	if(it != waitingUsers.end()) {
 		for(UploadQueueItem::List::const_iterator i = it->second.begin(); i != it->second.end(); i++) {

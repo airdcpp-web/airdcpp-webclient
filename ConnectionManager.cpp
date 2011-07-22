@@ -173,6 +173,8 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) throw()
 
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
+			if(cqi == NULL)
+				continue;
 
 			if(cqi->getState() != ConnectionQueueItem::ACTIVE) {
 				if(!cqi->getUser().user->isOnline()) {

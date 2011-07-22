@@ -857,6 +857,9 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 				(stricmp(Util::getFileExt(name).c_str(), ".antifrag") != 0) ){
 
 				int64_t size = i->getSize();
+				if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
+					continue;
+
 				string fileName = aName + name;
 				if(stricmp(fileName, SETTING(TLS_PRIVATE_KEY_FILE)) == 0) {
 					continue;
@@ -1424,8 +1427,6 @@ void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, boo
 }
 
 void ShareManager::Directory::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const {
-	dcdebug("toXml");
-
 	
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));

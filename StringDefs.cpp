@@ -1220,6 +1220,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Date Modified", 
 "Maximum number of downloads per user", 
 "Add sources by using recursive partial lists (ADC only)", 
+"Don't share 0 Byte files", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2440,4 +2441,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Date", 
 "SettingsMaxMcn", 
 "PartialMatchAdc", 
+"SettingsNoZeroByte", 
 };

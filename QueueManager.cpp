@@ -915,6 +915,10 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence) thr
 
 /** Add a source to an existing queue item */
 bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException) {
+	
+	if (!aUser.user) //fix freeze??
+	throw QueueException("Can't find user to add : " + Util::getFileName(qi->getTarget()));
+
 	bool wantConnection = (qi->getPriority() != QueueItem::PAUSED) && !userQueue.getRunning(aUser);
 
 	if(qi->isSource(aUser)) {

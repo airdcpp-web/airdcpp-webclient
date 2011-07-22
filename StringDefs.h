@@ -1227,5 +1227,6 @@ enum Strings { // @DontAdd
 	DATE, // "Date Modified"
 	SETTINGS_MAX_MCN, // "Maximum number of downloads per user"
 	PARTIAL_MATCH_ADC, // "Add sources by using recursive partial lists (ADC only)"
+	SETTINGS_NO_ZERO_BYTE, // "Don't share 0 Byte files"
 	LAST // @DontAdd
 };

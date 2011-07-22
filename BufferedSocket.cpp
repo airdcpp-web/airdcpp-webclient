@@ -298,7 +298,7 @@ void BufferedSocket::threadSendFile(InputStream* file) throw(Exception) {
 
 	bool readDone = false;
 	dcdebug("Starting threadSend\n");
-	while(!disconnecting) {
+	while(!disconnecting && sock.get()) {
 		if(!readDone && readBuf.size() > readPos) {
 			// Fill read buffer
 			size_t bytesRead = readBuf.size() - readPos;
