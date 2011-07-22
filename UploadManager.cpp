@@ -366,6 +366,7 @@ ok:
 
 
 void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
+	Lock l(cs);
 	if (!multiUploads.empty()) {
 		MultiConnIter uis = multiUploads.find(cid);
 		if (uis != multiUploads.end()) {
@@ -419,6 +420,7 @@ int UploadManager::getSlotsPerUser() {
 }
 
 bool UploadManager::getMultiConn(const UserConnection& aSource) {
+
 	CID cid = aSource.getUser()->getCID();
 
 	bool hasFreeSlot=false;
@@ -428,7 +430,6 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 		}
 	}
 
-	Lock l(cs);
 	if (!multiUploads.empty()) {
 		uint8_t highest=0;
 		for(MultiConnIter i = multiUploads.begin(); i != multiUploads.end(); ++i) {
@@ -460,12 +461,13 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 }
 
 void UploadManager::checkMultiConn() {
-	Lock l(cs);
+
 	int extras = getSlots() - running - mcnSlots + multiUploads.size();
 	if ((int)extras > 0 || getAutoSlot()) {
 		return; //no reason to remove anything
 	}
 
+	Lock l(cs);
 	int uploadsStart=0, highest=0;
 	MultiConnMap compare=multiUploads;
 	while (extras < 0) {

@@ -737,6 +737,7 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 		return;
 	}
 
+	Lock l(cs);
 	string dir = Text::toLower(aName);
 	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
 		if ((*i) == dir) {
