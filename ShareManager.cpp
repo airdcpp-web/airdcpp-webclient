@@ -73,7 +73,7 @@ ShareManager::~ShareManager() {
 	HashManager::getInstance()->removeListener(this);
 
 	join();
-
+	w.join();
 }
 
 void ShareManager::shutdown() {
@@ -1260,11 +1260,15 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 		LogManager::getInstance()->message("Filelist Generated");
 	}
 }
+
 #define LITERAL(n) n, sizeof(n)-1
+
 void ShareManager::saveXmlList(){
 	Lock l(cs);
 	string indent;
-	FilteredOutputStream<BZFilter, true> *xmlFile = new FilteredOutputStream<BZFilter, true>(new File(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2", File::WRITE, File::TRUNCATE | File::CREATE));
+	//create a backup first incase we get interrupted on creation.
+	string newCache = Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2.bak";
+	FilteredOutputStream<BZFilter, true> *xmlFile = new FilteredOutputStream<BZFilter, true>(new File(newCache, File::WRITE, File::TRUNCATE | File::CREATE));
 	try{
 		xmlFile->write(SimpleXML::utf8Header);
 		xmlFile->write("<Share>\r\n");
@@ -1274,9 +1278,12 @@ void ShareManager::saveXmlList(){
 		}
 		xmlFile->write("</Share>");
 		xmlFile->flush();
+		File::renameFile(newCache,  (Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2"));
 	}catch(Exception&){}
 
 	delete xmlFile;
+
+	ShareCacheDirty = false;
 }
 
 void ShareManager::Directory::toXmlList(OutputStream* xmlFile, string& indent){

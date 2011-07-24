@@ -126,13 +126,13 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 void shutdown() {
 	TimerManager::getInstance()->shutdown();
 	HashManager::getInstance()->shutdown();
+	ShareManager::getInstance()->shutdown();
 	ConnectionManager::getInstance()->shutdown();
 	UPnPManager::getInstance()->close();
 	BufferedSocket::waitShutdown();
 	
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
-	ShareManager::getInstance()->shutdown();
 
 	UPnPManager::deleteInstance();
 	ConnectivityManager::deleteInstance();

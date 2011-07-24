@@ -18,11 +18,10 @@
 
 #if !defined(FAST_ALLOC_H)
 #define FAST_ALLOC_H
+
 namespace dcpp {
-#pragma once
 
-#ifdef USE_FAST_ALLOC
-
+/*
 #include "Thread.h"
 
 
@@ -35,7 +34,7 @@ struct FastAllocBase {
 /** 
  * Fast new/delete replacements for constant sized objects, that also give nice
  * reference locality...
- */
+ */ /*
 template<class T>
 struct FastAlloc : public FastAllocBase 
 {
@@ -106,9 +105,9 @@ private:
 	}
 };
 template<class T> void* FastAlloc<T>::freeList = NULL;
-#else
+#else*/
 template<class T> struct FastAlloc { };
-#endif
+//#endif
 
 } // namespace dcpp
 

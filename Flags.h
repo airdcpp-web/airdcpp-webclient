@@ -16,6 +16,7 @@ class Flags {
 		void unsetFlag(MaskType aFlag) { flags &= ~aFlag; }
 		MaskType getFlags() const { return flags; }
 		Flags& operator=(const Flags& rhs) { flags = rhs.flags; return *this; }
+
 protected:
 	~Flags() { }
 	private:

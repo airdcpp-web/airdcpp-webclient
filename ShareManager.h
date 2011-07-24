@@ -46,6 +46,7 @@ class File;
 class OutputStream;
 class MemoryInputStream;
 struct ShareLoader;
+class Worker;
 class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener,
 	private HashManagerListener, private QueueManagerListener
 {
@@ -77,6 +78,12 @@ public:
 
 	void Rebuild();
 	
+   void save() { 
+		w.join();
+		LogManager::getInstance()->message("Creating share cache...");
+		w.start();
+	}
+
 	void Startup() {
 		if(!loadCache())
 			refresh(REFRESH_ALL | REFRESH_BLOCKING);
@@ -269,6 +276,7 @@ private:
 	friend struct ShareLoader;
 
 	friend class Singleton<ShareManager>;
+	
 	ShareManager();
 	
 	~ShareManager();
@@ -320,7 +328,6 @@ private:
 
 	mutable CriticalSection cs;
 
-	
 	
 	typedef unordered_map<int, string> nameMap;
 	nameMap dirNames;
@@ -385,7 +392,26 @@ private:
 	void load(SimpleXML& aXml);
 	void save(SimpleXML& aXml);
 	
-};
+
+/*This will only be used by the big sharing people probobly*/
+class Worker: public Thread
+{
+public:
+	Worker() { }
+	 ~Worker() {}
+
+private:
+		int run() {
+			ShareManager::getInstance()->saveXmlList();
+			LogManager::getInstance()->message("Share cache Created.");
+			return 0;
+		}
+	};//worker end
+
+friend class Worker;
+Worker w;
+
+}; //sharemanager end
 
 } // namespace dcpp
 
