@@ -36,16 +36,18 @@ class DirectoryListing : boost::noncopyable, public UserInfoBase
 {
 public:
 	class Directory;
-
-	class File : public FastAlloc<File> {
+	class File : public FastAlloc<File> 
+{
 	public:
 		typedef File* Ptr;
-		struct FileSort {
-			bool operator()(const Ptr& a, const Ptr& b) const {
+		struct FileSort 
+{
+			bool operator()(const Ptr& a, const Ptr& b) const 
+{
 				return stricmp(a->getName().c_str(), b->getName().c_str()) < 0;
 			}
 		};
-		typedef std::vector<Ptr> List;
+		typedef vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
 		File(Directory* aDir, const string& aName, int64_t aSize, const string& aTTH) throw() : 
@@ -147,7 +149,7 @@ public:
 	};
 
 	DirectoryListing(const HintedUser& aUser);
-	virtual ~DirectoryListing();
+	~DirectoryListing();
 	
 	void loadFile(const string& name) throw(Exception);
 

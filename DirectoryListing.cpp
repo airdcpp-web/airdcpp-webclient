@@ -23,6 +23,7 @@
 
 #include "QueueManager.h"
 #include "SearchManager.h"
+#include "ShareManager.h"
 
 #include "StringTokenizer.h"
 #include "SimpleXML.h"
@@ -33,7 +34,7 @@
 #include "SimpleXMLReader.h"
 #include "User.h"
 
-#include "ShareManager.h"
+
 
 #ifdef ff
 #undef ff
@@ -100,12 +101,13 @@ void DirectoryListing::loadFile(const string& name) throw(Exception) {
 	}
 }
 
-class ListLoader : public dcpp::SimpleXMLReader::CallBack {
+class ListLoader : public dcpp::SimpleXMLReader::CallBack 
+{
 public:
 	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser) : list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser) { 
 	}
 
-	virtual ~ListLoader() { }
+	~ListLoader() { }
 
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name, const string& data);
@@ -230,6 +232,8 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			// To handle <Directory Name="..." />
 			endTag(name, Util::emptyString);
 		}
+		
+
 	}
 }
 

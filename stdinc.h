@@ -23,6 +23,7 @@
 
 #define _SECURE_SCL  0
 #define _ITERATOR_DEBUG_LEVEL 0
+#define _SECURE_SCL_THROWS 0
 #define _HAS_ITERATOR_DEBUGGING 0
 
 #ifndef _DEBUG
@@ -137,15 +138,18 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#define BOOST_ALL_NO_LIB 1
+
 #include <boost/scoped_array.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/interprocess/containers/vector.hpp>
 
 //#define BOOST_REGEX_NO_LIB 1
 //#define BOOST_THREAD_NO_LIB 1
-#define BOOST_ALL_NO_LIB 1
 #include <boost/regex.hpp>
 //#include <regex>
+
 
 namespace dcpp {
 

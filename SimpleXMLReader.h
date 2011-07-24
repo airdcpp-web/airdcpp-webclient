@@ -6,7 +6,8 @@ namespace dcpp {
 
 class InputStream;
 
-class SimpleXMLReader {
+class SimpleXMLReader 
+{
 public:
 	struct CallBack : private boost::noncopyable {
 		virtual ~CallBack() { }
@@ -16,6 +17,7 @@ public:
 	protected:
 		static const std::string& getAttrib(dcpp::StringPairList& attribs, const std::string& name, size_t hint);
 	};
+
 
 	SimpleXMLReader(CallBack* callback);
 	virtual ~SimpleXMLReader() { }

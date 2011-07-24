@@ -86,7 +86,7 @@ public:
 		memcpy(buf, src.data(), src.size());
 	}
 
-	virtual ~MemoryInputStream() throw() {
+	 ~MemoryInputStream() throw() {
 		delete[] buf;
 	}
 
@@ -113,7 +113,7 @@ class LimitedInputStream : public InputStream {
 public:
 	LimitedInputStream(InputStream* is, int64_t aMaxBytes) : s(is), maxBytes(aMaxBytes) {
 	}
-	virtual ~LimitedInputStream() throw() { if(managed) delete s; }
+	 ~LimitedInputStream() throw() { if(managed) delete s; }
 
 	size_t read(void* buf, size_t& len) throw(FileException) {
 		dcassert(maxBytes >= 0);

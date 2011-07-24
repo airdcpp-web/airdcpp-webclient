@@ -520,16 +520,22 @@ void HashManager::Hasher::getStats(string& curFile, int64_t& bytesLeft, size_t& 
 }
 
 void HashManager::Hasher::instantPause() {
-	bool wait = false;
-	{
-		Lock l(cs);
-		if(paused > 0) {
+	//Lock l(cs); lock in here freezes it so more threads are accessing here.   
+
+	/*see if this helps for really pausing it..
+	if we set the wait to false at first and more threads are accessing this, 
+	it will have time to set wait to false even if we are about to pause.
+	So i think this will serve the same purpose*/
+	//bool wait = false;
+
+	if(paused > 0) {
 			paused++;
-			wait = true;
+			//wait = true;
+			s.wait();
 		}
-	}
-	if(wait)
-		s.wait();
+	
+	//if(wait)
+		
 }
 
 #ifdef _WIN32
@@ -906,17 +912,17 @@ HashManager::HashPauser::~HashPauser() {
 }
 
 bool HashManager::pauseHashing() {
-	Lock l(cs);
+	//Lock l(cs);
 	return hasher.pause();
 }
 
 void HashManager::resumeHashing() {
-	Lock l(cs);
+	//Lock l(cs);
 	hasher.resume();
 }
 
 bool HashManager::isHashingPaused() const {
-	Lock l(cs);
+	//Lock l(cs);
 	return hasher.isPaused();
 }
 

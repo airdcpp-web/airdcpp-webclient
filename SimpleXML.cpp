@@ -143,7 +143,9 @@ void SimpleXML::Tag::toXML(int indent, OutputStream* f) {
 
 bool SimpleXML::findChild(const string& aName) throw() {
 	dcassert(current != NULL);
-	
+	if (!current)
+		return false;
+
 	if(found && currentChild != current->children.end())
 		currentChild++;
 	
