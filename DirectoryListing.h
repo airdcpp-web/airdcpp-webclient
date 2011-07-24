@@ -126,7 +126,7 @@ public:
 		}
 			return getName() + '\\';
 		}
-		uint8_t checkDupes();
+		uint8_t checkDupes(const DirectoryListing* dl);
 		
 		GETSET(string, name, Name);
 		GETSET(string, dirsize, DirSize);

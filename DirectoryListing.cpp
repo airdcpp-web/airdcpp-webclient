@@ -424,11 +424,11 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
 	}
 	return x;
 }
-uint8_t DirectoryListing::Directory::checkDupes() {
+uint8_t DirectoryListing::Directory::checkDupes(const DirectoryListing* dl) {
 	uint8_t result = Directory::NONE;
 	bool first = true;
 	for(Directory::Iter i = directories.begin(); i != directories.end(); ++i) {
-		result = (*i)->checkDupes();
+		result = (*i)->checkDupes(dl);
 		if(getDupe() == Directory::NONE && first)
 			setDupe(result);
 		else if(result != Directory::NONE && getDupe() == Directory::NONE && !first)
@@ -468,7 +468,7 @@ uint8_t DirectoryListing::Directory::checkDupes() {
 }
 
 void DirectoryListing::checkDupes() {
-	root->checkDupes();
+	root->checkDupes(this);
 	root->setDupe(false); //newer show the root as a dupe or partial dupe.
 }
 } // namespace dcpp
