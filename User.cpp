@@ -33,7 +33,7 @@
 
 namespace dcpp {
 
-FastCriticalSection Identity::cs;
+CriticalSection Identity::cs;
 
 OnlineUser::OnlineUser(const UserPtr& ptr, ClientBase& client_, uint32_t sid_) : identity(ptr, sid_), client(client_), isInList(false) { 
 }
@@ -56,7 +56,7 @@ bool Identity::isUdpActive() const {
 
 void Identity::getParams(StringMap& sm, const string& prefix, bool compatibility) const {
 	{
-		FastLock l(cs);
+		Lock l(cs);
 		for(InfIter i = info.begin(); i != info.end(); ++i) {
 			sm[prefix + string((char*)(&i->first), 2)] = i->second;
 		}
@@ -103,20 +103,20 @@ string Identity::getTag() const {
 }
 
 string Identity::get(const char* name) const {
-	FastLock l(cs);
+	Lock l(cs);
 	InfIter i = info.find(*(short*)name);
 	return i == info.end() ? Util::emptyString : i->second;
 }
 
 bool Identity::isSet(const char* name) const {
-	FastLock l(cs);
+	Lock l(cs);
 	InfIter i = info.find(*(short*)name);
 	return i != info.end();
 }
 
 
 void Identity::set(const char* name, const string& val) {
-	FastLock l(cs);
+	Lock l(cs);
 	if(val.empty())
 		info.erase(*(short*)name);
 	else

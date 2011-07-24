@@ -18,12 +18,16 @@
 
 #if !defined(FAST_ALLOC_H)
 #define FAST_ALLOC_H
+namespace dcpp {
+#pragma once
+
+#ifdef USE_FAST_ALLOC
 
 #include "Thread.h"
 
-namespace dcpp {
 
-#ifndef _DEBUG
+
+//#ifndef _DEBUG
 struct FastAllocBase {
 	static FastCriticalSection cs;
 };
@@ -33,27 +37,35 @@ struct FastAllocBase {
  * reference locality...
  */
 template<class T>
-struct FastAlloc : public FastAllocBase {
+struct FastAlloc : public FastAllocBase 
+{
 	// Custom new & delete that (hopefully) use the node allocator
-	static void* operator new(size_t s) {
+	static void* operator new(size_t s) 
+{
 		if(s != sizeof(T))
 			return ::operator new(s);
 		return allocate();
 	}
 
 	// Avoid hiding placement new that's needed by the stl containers...
-	static void* operator new(size_t, void* m) {
+	static void* operator new(size_t, void* m) 
+{
 		return m;
 	}
 	// ...and the warning about missing placement delete...
-	static void operator delete(void*, void*) {
+	static void operator delete(void*, void*) 
+{
 		// ? We didn't allocate so...
 	}
 
-	static void operator delete(void* m, size_t s) {
-		if (s != sizeof(T)) {
+	static void operator delete(void* m, size_t s) 
+{
+		if (s != sizeof(T)) 
+{
 			::operator delete(m);
-		} else if(m != NULL) {
+		} 
+			else if(m != NULL) 
+{
 			deallocate((uint8_t*)m);
 		}
 	}

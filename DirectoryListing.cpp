@@ -36,11 +36,6 @@
 
 
 
-#ifdef ff
-#undef ff
-#endif
-
-
 namespace dcpp {
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser) : 
@@ -88,23 +83,23 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 	return ClientManager::getInstance()->getUser(cid);
 }
 
-void DirectoryListing::loadFile(const string& name) throw(Exception) {
+void DirectoryListing::loadFile(const string& name, bool checkdupe) throw(Exception) {
 	// For now, we detect type by ending...
 	string ext = Util::getFileExt(name);
 
 	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
 	if(stricmp(ext, ".bz2") == 0) {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
-		loadXML(f, false);
+		loadXML(f, false, checkdupe);
 	} else if(stricmp(ext, ".xml") == 0) {
-		loadXML(ff, false);
+		loadXML(ff, false, checkdupe);
 	}
 }
 
 class ListLoader : public dcpp::SimpleXMLReader::CallBack 
 {
 public:
-	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser) : list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser) { 
+	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe) : list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkdupe(aCheckDupe) { 
 	}
 
 	~ListLoader() { }
@@ -122,15 +117,16 @@ private:
 	string base;
 	bool inListing;
 	bool updating;
+	bool checkdupe;
 };
 
-string DirectoryListing::updateXML(const string& xml) {
+string DirectoryListing::updateXML(const string& xml, bool checkdupe ) {
 	MemoryInputStream mis(xml);
-	return loadXML(mis, true);
+	return loadXML(mis, true, checkdupe);
 }
 
-string DirectoryListing::loadXML(InputStream& is, bool updating) {
-	ListLoader ll(this, getRoot(), updating, getUser());
+string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkdupe) {
+	ListLoader ll(this, getRoot(), updating, getUser(), checkdupe);
 
 	dcpp::SimpleXMLReader(&ll).parse(is);
 
@@ -166,7 +162,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 			DirectoryListing::File* f = new DirectoryListing::File(cur, n, Util::toInt64(s), h);
 			cur->files.push_back(f);
-			if(f->getSize() > 0) {
+			if((f->getSize() > 0) && checkdupe) {
 				f->setDupe(ShareManager::getInstance()->isTTHShared(f->getTTH()));
 			}
 		} else if(name == sDirectory) {
@@ -190,7 +186,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 			if(d == NULL) {
 				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, date);
-				if (incomp) {
+				if (incomp && checkdupe) {
 					if (ShareManager::getInstance()->isDirShared(n)) {
 						d->setDupe(2);
 					}
@@ -424,11 +420,11 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
 	}
 	return x;
 }
-uint8_t DirectoryListing::Directory::checkDupes(const DirectoryListing* dl) {
+uint8_t DirectoryListing::Directory::checkDupes() {
 	uint8_t result = Directory::NONE;
 	bool first = true;
 	for(Directory::Iter i = directories.begin(); i != directories.end(); ++i) {
-		result = (*i)->checkDupes(dl);
+		result = (*i)->checkDupes();
 		if(getDupe() == Directory::NONE && first)
 			setDupe(result);
 		else if(result != Directory::NONE && getDupe() == Directory::NONE && !first)
@@ -468,8 +464,8 @@ uint8_t DirectoryListing::Directory::checkDupes(const DirectoryListing* dl) {
 }
 
 void DirectoryListing::checkDupes() {
-	root->checkDupes(this);
-	root->setDupe(false); //newer show the root as a dupe or partial dupe.
+	root->checkDupes();
+	root->setDupe(Directory::NONE); //newer show the root as a dupe or partial dupe.
 }
 } // namespace dcpp
 /**

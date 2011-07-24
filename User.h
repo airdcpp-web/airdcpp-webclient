@@ -25,7 +25,7 @@
 #include "FastAlloc.h"
 #include "Flags.h"
 #include "forward.h"
-
+#include "Thread.h"
 namespace dcpp {
 
 class ClientBase;
@@ -107,7 +107,7 @@ public:
 	Identity() { }
 	Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr) { setSID(aSID); }
 	Identity(const Identity& rhs) { *this = rhs; } // Use operator= since we have to lock before reading...
-	Identity& operator=(const Identity& rhs) { FastLock l(cs); user = rhs.user; info = rhs.info; return *this; }
+	Identity& operator=(const Identity& rhs) { Lock l(cs); user = rhs.user; info = rhs.info; return *this; }
 	~Identity() { }
 
 // GS is already defined on some systems (e.g. OpenSolaris)
@@ -161,7 +161,7 @@ private:
 	typedef InfMap::const_iterator InfIter;
 	InfMap info;
 
-	static FastCriticalSection cs;
+	static CriticalSection cs;
 };
 
 class NmdcHub;

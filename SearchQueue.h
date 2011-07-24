@@ -19,6 +19,7 @@
 #pragma once
 
 #include "MerkleTree.h"
+#include "Thread.h"
 
 namespace dcpp {
 

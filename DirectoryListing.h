@@ -126,7 +126,7 @@ public:
 		}
 			return getName() + '\\';
 		}
-		uint8_t checkDupes(const DirectoryListing* dl);
+		uint8_t checkDupes();
 		
 		GETSET(string, name, Name);
 		GETSET(string, dirsize, DirSize);
@@ -151,11 +151,11 @@ public:
 	DirectoryListing(const HintedUser& aUser);
 	~DirectoryListing();
 	
-	void loadFile(const string& name) throw(Exception);
+	void loadFile(const string& name, bool checkdupe) throw(Exception);
 
 
-	string updateXML(const std::string&);
-	string loadXML(InputStream& xml, bool updating);
+	string updateXML(const std::string&, bool checkdupe);
+	string loadXML(InputStream& xml, bool updating, bool checkdupe);
 
 	void download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT);
 	void download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT);

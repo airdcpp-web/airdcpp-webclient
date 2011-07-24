@@ -1642,9 +1642,9 @@ void QueueManager::processList(const string& name, const HintedUser& user, int f
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(name);
-			dirList.loadXML(mis, true);
+			dirList.loadXML(mis, true, false);
 		} else {
-			dirList.loadFile(name);
+			dirList.loadFile(name, false);
 		}
 	} catch(const Exception&) {
 		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + name);
