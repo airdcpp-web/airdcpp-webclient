@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,8 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "QueueItem.h"
+
 #include "HashManager.h"
 #include "Download.h"
 #include "File.h"
@@ -93,7 +92,7 @@ const string& QueueItem::getTempTarget() {
 uint64_t QueueItem::getAverageSpeed() const {
 	uint64_t totalSpeed = 0;
 	
-	for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); i++) {
+	for(auto i = downloads.begin(); i != downloads.end(); i++) {
 		totalSpeed += static_cast<int64_t>((*i)->getAverageSpeed());
 	}
 
@@ -184,7 +183,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 			}
 		}
 		
-		for(DownloadList::const_iterator i = downloads.begin(); !overlaps && i != downloads.end(); ++i) {
+		for(auto i = downloads.begin(); !overlaps && i != downloads.end(); ++i) {
 			overlaps = block.overlaps((*i)->getSegment());
 		}
 		
@@ -229,7 +228,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 	if(partialSource == NULL && BOOLSETTING(OVERLAP_CHUNKS) && lastSpeed > 0) {
 		// overlap slow running chunk
 
-		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
+		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			Download* d = *i;
 			
 			// current chunk mustn't be already overlapped
@@ -264,12 +263,12 @@ uint64_t QueueItem::getDownloadedBytes() const {
 	uint64_t total = 0;
 
 	// count done segments
-	for(SegmentSet::const_iterator i = done.begin(); i != done.end(); ++i) {
+	for(auto i = done.begin(); i != done.end(); ++i) {
 		total += i->getSize();
 	}
 
 	// count running segments
-	for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
+	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 		total += (*i)->getPos();
 	}
 

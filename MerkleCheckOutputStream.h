@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,9 +40,9 @@ public:
 		cur.getLeaves().insert(cur.getLeaves().begin(), aTree.getLeaves().begin(), aTree.getLeaves().begin() + nBlocks);
 	}
 
-	~MerkleCheckOutputStream() throw() { if(managed) delete s; }
+	~MerkleCheckOutputStream() { if(managed) delete s; }
 
-	size_t flush() throw(FileException) {
+	size_t flush() {
 		if (bufPos != 0)
 			cur.update(buf, bufPos);
 		bufPos = 0;
@@ -57,7 +57,7 @@ public:
 		return s->flush();
 	}
 
-	void commitBytes(const void* b, size_t len) throw(FileException) {
+	void commitBytes(const void* b, size_t len) {
 		uint8_t* xb = (uint8_t*)b;
 		size_t pos = 0;
 		
@@ -87,7 +87,7 @@ public:
 		}
 	}
 
-	size_t write(const void* b, size_t len) throw(FileException) {
+	size_t write(const void* b, size_t len) {
 		commitBytes(b, len);
 		checkTrees();
 		return s->write(b, len);
@@ -105,7 +105,7 @@ private:
 	uint8_t buf[TreeType::BASE_BLOCK_SIZE];
 	size_t bufPos;
 
-	void checkTrees() throw(FileException) {
+	void checkTrees() {
 		while(cur.getLeaves().size() > verified) {
 			if(cur.getLeaves().size() > real.getLeaves().size() ||
 				!(cur.getLeaves()[verified] == real.getLeaves()[verified])) 
@@ -123,5 +123,5 @@ private:
 
 /**
  * @file
- * $Id: MerkleCheckOutputStream.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: MerkleCheckOutputStream.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

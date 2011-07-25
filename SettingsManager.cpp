@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+/*
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,9 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "SettingsManager.h"
-#include "ResourceManager.h"
 
+#include "ResourceManager.h"
 #include "SimpleXML.h"
 #include "Util.h"
 #include "File.h"
@@ -61,7 +59,7 @@ const string SettingsManager::settingTags[] =
 	"MainFrameVisible", "SearchFrameVisible", "QueueFrameVisible", "HubFrameVisible", "UploadQueueFrameVisible", 
 	"EmoticonsFile", "TLSPrivateKeyFile", "TLSCertificateFile", "TLSTrustedCertificatesPath",
 	"FinishedVisible", "FinishedULVisible", "DirectoryListingFrameVisible",
-	"RecentFrameOrder", "RecentFrameWidths",
+	"RecentFrameOrder", "RecentFrameWidths", "Mapper",
 
 	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat","WinampPath",
 	"AntivirPath",
@@ -810,6 +808,9 @@ void SettingsManager::load(string const& aFileName)
 		}
 
 
+#ifdef _DEBUG
+		set(PRIVATE_ID, CID::generate().toBase32());
+#endif
 
 		setDefault(UDP_PORT, SETTING(TCP_PORT));
 
@@ -826,14 +827,14 @@ void SettingsManager::load(string const& aFileName)
 
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT || INCOMING_FIREWALL_UPNP || INCOMING_FIREWALL_NAT) {
 	if(SETTING(TLS_PORT) == 0) {
-		set(TLS_PORT, (int)Util::rand(1025, 32000));
+		set(TLS_PORT, (int)Util::rand(10000, 32000));
 		}
 	}
 
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT) {
-		set(TCP_PORT, (int)Util::rand(1025, 32000));
-		set(UDP_PORT, (int)Util::rand(1025, 32000));
-		set(TLS_PORT, (int)Util::rand(1025, 32000));
+		set(TCP_PORT, (int)Util::rand(10000, 32000));
+		set(UDP_PORT, (int)Util::rand(10000, 32000));
+		set(TLS_PORT, (int)Util::rand(10000, 32000));
 	}
 }
 

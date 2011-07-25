@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_CLIENT_H
 #define DCPLUSPLUS_DCPP_CLIENT_H
 
+#include "compiler.h"
+
+#include <atomic>
+
 #include "forward.h"
 
 #include "User.h"
@@ -28,8 +32,7 @@
 #include "ClientListener.h"
 #include "DebugManager.h"
 #include "SearchQueue.h"
-
-#include <atomic>
+#include "OnlineUser.h"
 
 namespace dcpp {
 
@@ -84,6 +87,7 @@ public:
 	bool isSecure() const;
 	bool isTrusted() const;
 	std::string getCipherName() const;
+	vector<uint8_t> getKeyprint() const;
 
 	bool isOp() const { return getMyIdentity().isOp(); }
 
@@ -131,7 +135,7 @@ public:
 	bool isActive() const;
 
 	void send(const string& aMessage) { send(aMessage.c_str(), aMessage.length()); }
-	void send(const char* aMessage, size_t aLen) throw();
+	void send(const char* aMessage, size_t aLen);
 
 	string getMyNick() const { return getMyIdentity().getNick(); }
 	string getHubName() const { return getHubIdentity().getNick().empty() ? getHubUrl() : getHubIdentity().getNick(); }
@@ -171,7 +175,7 @@ public:
 protected:
 	friend class ClientManager;
 	Client(const string& hubURL, char separator, bool secure_);
-	virtual ~Client() throw();
+	virtual ~Client();
 
 	enum CountType {
 		COUNT_NORMAL,
@@ -206,12 +210,12 @@ protected:
 	virtual void search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) = 0;
 
 	// TimerManagerListener
-	virtual void on(Second, uint64_t aTick) throw();
+	virtual void on(Second, uint64_t aTick) noexcept;
 	// BufferedSocketListener
-	virtual void on(Connecting) throw() { fire(ClientListener::Connecting(), this); }
-	virtual void on(Connected) throw();
-	virtual void on(Line, const string& aLine) throw();
-	virtual void on(Failed, const string&) throw();
+	virtual void on(Connecting) noexcept { fire(ClientListener::Connecting(), this); }
+	virtual void on(Connected) noexcept;
+	virtual void on(Line, const string& aLine) noexcept;
+	virtual void on(Failed, const string&) noexcept;
 
 private:
 
@@ -222,6 +226,8 @@ private:
 	string address;
 	string ip;
 	string localIp;
+	string keyprint;
+
 	uint16_t port;
 	char separator;
 	bool secure;

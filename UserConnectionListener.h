@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,33 +50,33 @@ public:
 	typedef X<20> FileNotAvailable;
 	typedef X<21> ListLength; 
 
-	virtual void on(BytesSent, UserConnection*, size_t, size_t) throw() { }
-	virtual void on(Connected, UserConnection*) throw() { }
-	virtual void on(Data, UserConnection*, const uint8_t*, size_t) throw() { }
-	virtual void on(Failed, UserConnection*, const string&) throw() { }
-	virtual void on(ProtocolError, UserConnection*, const string&) throw() { }
-	virtual void on(CLock, UserConnection*, const string&) throw() { }
-	virtual void on(Key, UserConnection*, const string&) throw() { }
-	virtual void on(Direction, UserConnection*, const string&, const string&) throw() { }
-	virtual void on(Get, UserConnection*, const string&, int64_t) throw() { }
-	virtual void on(Send, UserConnection*) throw() { }
-	virtual void on(GetListLength, UserConnection*) throw() { }
-	virtual void on(MaxedOut, UserConnection*, string param = Util::emptyString) throw() { }
-	virtual void on(ModeChange, UserConnection*) throw() { }
-	virtual void on(MyNick, UserConnection*, const string&) throw() { }
-	virtual void on(TransmitDone, UserConnection*) throw() { }
-	virtual void on(Supports, UserConnection*, const StringList&) throw() { }
-	virtual void on(FileNotAvailable, UserConnection*) throw() { }
-	virtual void on(Updated, UserConnection*) throw() { }
-	virtual void on(ListLength, UserConnection*, const string&) throw() { }
+	virtual void on(BytesSent, UserConnection*, size_t, size_t) noexcept { }
+	virtual void on(Connected, UserConnection*) noexcept { }
+	virtual void on(Data, UserConnection*, const uint8_t*, size_t) noexcept { }
+	virtual void on(Failed, UserConnection*, const string&) noexcept { }
+	virtual void on(ProtocolError, UserConnection*, const string&) noexcept { }
+	virtual void on(CLock, UserConnection*, const string&) noexcept { }
+	virtual void on(Key, UserConnection*, const string&) noexcept { }
+	virtual void on(Direction, UserConnection*, const string&, const string&) noexcept { }
+	virtual void on(Get, UserConnection*, const string&, int64_t) noexcept { }
+	virtual void on(Send, UserConnection*) noexcept { }
+	virtual void on(GetListLength, UserConnection*) noexcept { }
+	virtual void on(MaxedOut, UserConnection*, string param = Util::emptyString) noexcept { }
+	virtual void on(ModeChange, UserConnection*) noexcept { }
+	virtual void on(MyNick, UserConnection*, const string&) noexcept { }
+	virtual void on(TransmitDone, UserConnection*) noexcept { }
+	virtual void on(Supports, UserConnection*, const StringList&) noexcept { }
+	virtual void on(FileNotAvailable, UserConnection*) noexcept { }
+	virtual void on(Updated, UserConnection*) noexcept { }
+	virtual void on(ListLength, UserConnection*, const string&) noexcept { }
 
-	virtual void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) throw() { }
-	virtual void on(AdcCommand::INF, UserConnection*, const AdcCommand&) throw() { }
-	virtual void on(AdcCommand::GET, UserConnection*, const AdcCommand&) throw() { }
-	virtual void on(AdcCommand::SND, UserConnection*, const AdcCommand&) throw() { }
-	virtual void on(AdcCommand::STA, UserConnection*, const AdcCommand&) throw() { }
-	virtual void on(AdcCommand::RES, UserConnection*, const AdcCommand&) throw() { }
-	virtual void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) throw() { }
+	virtual void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept { }
+	virtual void on(AdcCommand::INF, UserConnection*, const AdcCommand&) noexcept { }
+	virtual void on(AdcCommand::GET, UserConnection*, const AdcCommand&) noexcept { }
+	virtual void on(AdcCommand::SND, UserConnection*, const AdcCommand&) noexcept { }
+	virtual void on(AdcCommand::STA, UserConnection*, const AdcCommand&) noexcept { }
+	virtual void on(AdcCommand::RES, UserConnection*, const AdcCommand&) noexcept { }
+	virtual void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept { }
 };
 
 } // namespace dcpp

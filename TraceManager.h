@@ -31,9 +31,9 @@ namespace dcpp {
 class TraceManager : public Singleton<TraceManager>
 {
 public:
-	void CDECL trace_print(const char* format, ...) throw();
-	void CDECL trace_start(const char* format, ...) throw();
-	void CDECL trace_end(const char* format, ...) throw();
+	void CDECL trace_print(const char* format, ...) noexcept;
+	void CDECL trace_start(const char* format, ...) noexcept;
+	void CDECL trace_end(const char* format, ...) noexcept;
 
 private:
 
@@ -64,5 +64,5 @@ private:
 
 /**
  * @file
- * $Id: TraceManager.h 473 2010-01-12 23:17:33Z bigmuscle $
+ * $Id: TraceManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

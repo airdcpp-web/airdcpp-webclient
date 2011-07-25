@@ -1,9 +1,9 @@
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "HashBloom.h"
 
 #include <cmath>
+
+#include "MerkleTree.h"
 
 namespace dcpp {
 

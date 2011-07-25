@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,5 +61,5 @@ public:
 
 /**
  * @file
- * $Id: StringTokenizer.h 373 2008-02-06 17:23:49Z bigmuscle $
+ * $Id: StringTokenizer.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,9 +16,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(MERKLE_TREE_H)
-#define MERKLE_TREE_H
+#ifndef DCPLUSPLUS_DCPP_MERKLE_TREE_H
+#define DCPLUSPLUS_DCPP_MERKLE_TREE_H
 
+#include "debug.h"
+#include "typedefs.h"
 #include "TigerHash.h"
 #include "Encoder.h"
 #include "HashValue.h"
@@ -234,9 +236,9 @@ private:
 
 } // namespace dcpp
 
-#endif // !defined(MERKLE_TREE_H)
+#endif // DCPLUSPLUS_DCPP_MERKLE_TREE_H
 
 /**
  * @file
- * $Id: MerkleTree.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: MerkleTree.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

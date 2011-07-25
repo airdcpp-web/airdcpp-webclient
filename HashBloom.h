@@ -1,7 +1,7 @@
 #ifndef HASHBLOOM_H_
 #define HASHBLOOM_H_
 
-#include "MerkleTree.h"
+#include "typedefs.h"
 
 namespace dcpp {
 /**

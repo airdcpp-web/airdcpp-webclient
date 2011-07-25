@@ -19,6 +19,8 @@
 #include "stdinc.h"
 #include "DCPlusPlus.h"
 
+#include "DCPlusPlus.h"
+
 #include "SearchQueue.h"
 
 #include "TimerManager.h"

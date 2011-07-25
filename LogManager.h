@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2009 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_LOG_MANAGER_H
 #define DCPLUSPLUS_DCPP_LOG_MANAGER_H
 
+#include "typedefs.h"
+
 #include "File.h"
 #include "Singleton.h"
 #include "TimerManager.h"
@@ -31,7 +33,7 @@ public:
 	template<int I>	struct X { enum { TYPE = I };  };
 
 	typedef X<0> Message;
-	virtual void on(Message, time_t, const string&) throw() { }
+	virtual void on(Message, time_t, const string&) noexcept { }
 };
 
 class LogManager : public Singleton<LogManager>, public Speaker<LogManagerListener>
@@ -42,7 +44,7 @@ public:
 
 	deque<pair<time_t, string> > getLastLogs() { Lock l(cs); return lastLogs; }
 
-	void log(Area area, StringMap& params) throw() {
+	void log(Area area, StringMap& params) noexcept {
 		string path = SETTING(LOG_DIRECTORY);
 		string msg;
 	
@@ -80,7 +82,7 @@ public:
 	}
 
 private:
-	void log(const string& area, const string& msg) throw() {
+	void log(const string& area, const string& msg) noexcept {
 		Lock l(cs);
 		try {
 			string aArea = Util::validateFileName(area);
@@ -117,7 +119,7 @@ private:
 		logOptions[STATUS][FILE]		= SettingsManager::LOG_FILE_STATUS;
 		logOptions[STATUS][FORMAT]		= SettingsManager::LOG_FORMAT_STATUS;
 	}
-	~LogManager() throw() { }
+	~LogManager() noexcept { }
 
 };
 

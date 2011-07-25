@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_USER_COMMAND_H
 #define DCPLUSPLUS_DCPP_USER_COMMAND_H
 
-#include "Util.h"
 #include "Flags.h"
+#include "Util.h"
+#include "noexcept.h"
 
 namespace dcpp {
 
@@ -40,10 +41,10 @@ public:
 
 	enum {
 		CONTEXT_HUB = 0x01,
-		CONTEXT_CHAT = 0x02,
+		CONTEXT_USER = 0x02,
 		CONTEXT_SEARCH = 0x04,
 		CONTEXT_FILELIST = 0x08,
-		CONTEXT_MASK = CONTEXT_HUB | CONTEXT_CHAT | CONTEXT_SEARCH | CONTEXT_FILELIST
+		CONTEXT_MASK = CONTEXT_HUB | CONTEXT_USER | CONTEXT_SEARCH | CONTEXT_FILELIST
 	};
 
 	enum {
@@ -51,7 +52,7 @@ public:
 	};
 
 	UserCommand() : cid(0), type(0), ctx(0) { }
-	UserCommand(int aId, int aType, int aCtx, Flags::MaskType aFlags, const string& aName, const string& aCommand, const string& aTo, const string& aHub) throw()
+	UserCommand(int aId, int aType, int aCtx, Flags::MaskType aFlags, const string& aName, const string& aCommand, const string& aTo, const string& aHub) noexcept
 		: Flags(aFlags), cid(aId), type(aType), ctx(aCtx), name(aName), command(aCommand), to(aTo), hub(aHub) 
 	{ 
 		setDisplayName();
@@ -106,5 +107,5 @@ private:
 
 /**
  * @file
- * $Id: UserCommand.h 492 2010-03-26 14:31:56Z bigmuscle $
+ * $Id: UserCommand.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

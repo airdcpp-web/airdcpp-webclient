@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +17,16 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
+#include "ConnectivityManager.h"
 
 #include "ConnectivityManager.h"
 #include "SettingsManager.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
-#include "SearchManager.h"
 #include "LogManager.h"
-#include "UPnPManager.h"
+#include "MappingManager.h"
+#include "SearchManager.h"
+#include "SettingsManager.h"
 
 
 namespace dcpp {
@@ -47,18 +48,28 @@ void ConnectivityManager::startSocket() {
 
 		// must be done after listen calls; otherwise ports won't be set
 		if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP)
-			UPnPManager::getInstance()->open();
+			MappingManager::getInstance()->open();
 	//}
 }
 
 void ConnectivityManager::detectConnection() {
 	if (running)
 		return;
-
 	running = true;
 
-	if (UPnPManager::getInstance()->getOpened()) {
-		UPnPManager::getInstance()->close();
+	status.clear();
+	fire(ConnectivityManagerListener::Started());
+
+	// restore connectivity settings to their default value.
+	SettingsManager::getInstance()->unset(SettingsManager::TCP_PORT);
+	SettingsManager::getInstance()->unset(SettingsManager::UDP_PORT);
+	SettingsManager::getInstance()->unset(SettingsManager::TLS_PORT);
+	SettingsManager::getInstance()->unset(SettingsManager::EXTERNAL_IP);
+	SettingsManager::getInstance()->unset(SettingsManager::NO_IP_OVERRIDE);
+	SettingsManager::getInstance()->unset(SettingsManager::BIND_ADDRESS);
+
+	if (MappingManager::getInstance()->getOpened()) {
+		MappingManager::getInstance()->close();
 	}
 
 	disconnect();
@@ -88,34 +99,36 @@ void ConnectivityManager::detectConnection() {
 	SettingsManager::getInstance()->set(SettingsManager::INCOMING_CONNECTIONS, SettingsManager::INCOMING_FIREWALL_UPNP);
 	log("Local network with possible NAT detected, trying to map the ports using UPnP...");
 	
-	if (!UPnPManager::getInstance()->open()) {
+	if (!MappingManager::getInstance()->open()) {
 		running = false;
 	}
 }
 
-void ConnectivityManager::setup(bool settingsChanged, int lastConnectionMode) {
+void ConnectivityManager::setup(bool settingsChanged) {
 	if(BOOLSETTING(AUTO_DETECT_CONNECTION)) {
 		if (!autoDetected) detectConnection();
 	} else {
 		if(autoDetected || settingsChanged) {
-			if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP || lastConnectionMode == SettingsManager::INCOMING_FIREWALL_UPNP) {
-				UPnPManager::getInstance()->close();
+			if(settingsChanged || (SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_FIREWALL_UPNP)) {
+				MappingManager::getInstance()->close();
 			}
 			startSocket();
-		} else if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP && !UPnPManager::getInstance()->getOpened()) {
-			// previous UPnP mappings had failed; try again
-			UPnPManager::getInstance()->open();
+		} else if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP && !MappingManager::getInstance()->getOpened()) {
+			// previous mappings had failed; try again
+			MappingManager::getInstance()->open();
 		}
 	}
 }
 
-void ConnectivityManager::mappingFinished(bool success) {
+void ConnectivityManager::mappingFinished(const string& mapper) {
 	if(BOOLSETTING(AUTO_DETECT_CONNECTION)) {
-		if (!success) {
+		if(mapper.empty()) {
 			disconnect();
 			SettingsManager::getInstance()->set(SettingsManager::INCOMING_CONNECTIONS, SettingsManager::INCOMING_FIREWALL_PASSIVE);
 			SettingsManager::getInstance()->set(SettingsManager::ALLOW_NAT_TRAVERSAL, true);
 			log("Automatic setup of active mode has failed. You may want to set up your connection manually for better connectivity");
+		} else {
+			SettingsManager::getInstance()->set(SettingsManager::MAPPER, mapper);
 		}
 		fire(ConnectivityManagerListener::Finished());
 	}
@@ -145,8 +158,9 @@ void ConnectivityManager::disconnect() {
 
 void ConnectivityManager::log(const string& message) {
 	if(BOOLSETTING(AUTO_DETECT_CONNECTION)) {
-		LogManager::getInstance()->message("Connectivity: " + message);
-		fire(ConnectivityManagerListener::Message(), message);
+		status = move(message);
+		LogManager::getInstance()->message("Connectivity: " + status);
+		fire(ConnectivityManagerListener::Message(), status);
 	} else {
 		LogManager::getInstance()->message(message);
 	}

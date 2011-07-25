@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ namespace dcpp {
 struct Task {
 	virtual ~Task() { };
 };
+
 struct StringTask : public Task {
 	StringTask(const string& str_) : str(str_) { }
 	string str;
@@ -33,7 +34,7 @@ struct StringTask : public Task {
 
 class TaskQueue {
 public:
-	typedef pair<uint8_t, Task*> Pair;
+	typedef pair<uint8_t, unique_ptr<Task>> Pair;
 	typedef vector<Pair> List;
 	typedef List::const_iterator Iter;
 
@@ -44,14 +45,11 @@ public:
 		clear();
 	}
 
-	void add(uint8_t type, Task* data) { Lock l(cs); tasks.push_back(make_pair(type, data)); }
+	void add(uint8_t type, std::unique_ptr<Task> && data) { Lock l(cs); tasks.push_back(make_pair(type, move(data))); }
 	void get(List& list) { Lock l(cs); swap(tasks, list); }
 	void clear() {
 		List tmp;
 		get(tmp);
-		for(Iter i = tmp.begin(); i != tmp.end(); ++i) {
-			delete i->second;
-		}
 	}
 private:
 

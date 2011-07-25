@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ struct HashValue : FastAlloc<HashValue<Hasher> >{
 	static const size_t BYTES = Hasher::BYTES;
 	
 	HashValue() { }
-	explicit HashValue(uint8_t* aData) { memcpy(data, aData, BYTES); }
+	explicit HashValue(const uint8_t* aData) { memcpy(data, aData, BYTES); }
 	explicit HashValue(const std::string& base32) { Encoder::fromBase32(base32.c_str(), data, BYTES); }
 	HashValue(const HashValue& rhs) { memcpy(data, rhs.data, BYTES); }
 	HashValue& operator=(const HashValue& rhs) { memcpy(data, rhs.data, BYTES); return *this; }
@@ -77,5 +77,5 @@ struct equal_to<dcpp::HashValue<T>*> {
 
 /**
 * @file
-* $Id: HashValue.h 536 2010-07-28 14:40:14Z bigmuscle $
+* $Id: HashValue.h 568 2011-07-24 18:28:43Z bigmuscle $
 */

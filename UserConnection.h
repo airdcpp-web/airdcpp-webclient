@@ -148,8 +148,8 @@ public:
 	void setDataMode(int64_t aBytes = -1) { dcassert(socket); socket->setDataMode(aBytes); }
 	void setLineMode(size_t rollback) { dcassert(socket); socket->setLineMode(rollback); }
 
-	void connect(const string& aServer, uint16_t aPort, uint16_t localPort, const BufferedSocket::NatRoles natRole) throw(SocketException, ThreadException);
-	void accept(const Socket& aServer) throw(SocketException, ThreadException);
+	void connect(const string& aServer, uint16_t aPort, uint16_t localPort, const BufferedSocket::NatRoles natRole);
+	void accept(const Socket& aServer);
 
 	void updated() { if(socket) socket->updated(); }
 
@@ -168,6 +168,7 @@ public:
 	bool isSecure() const { return socket && socket->isSecure(); }
 	bool isTrusted() const { return socket && socket->isTrusted(); }
 	std::string getCipherName() const { return socket ? socket->getCipherName() : Util::emptyString; }
+	vector<uint8_t> getKeyprint() const { return socket ? socket->getKeyprint() : vector<uint8_t>(); }
 
 	const string& getRemoteIp() const { if(socket) return socket->getIp(); else return Util::emptyString; }
 	Download* getDownload() { dcassert(isSet(FLAG_DOWNLOAD)); return download; }
@@ -175,8 +176,6 @@ public:
 	void setDownload(Download* d) { dcassert(isSet(FLAG_DOWNLOAD)); download = d; }
 	Upload* getUpload() { dcassert(isSet(FLAG_UPLOAD)); return upload; }
 	void setUpload(Upload* u) { dcassert(isSet(FLAG_UPLOAD)); upload = u; }
-
-
 	
 	void handle(AdcCommand::SUP t, const AdcCommand& c) { fire(t, this, c); }
 	void handle(AdcCommand::INF t, const AdcCommand& c) { fire(t, this, c); }
@@ -204,7 +203,6 @@ public:
 	GETSET(string, token, Token);
 	GETSET(int64_t, speed, Speed);
 	GETSET(uint64_t, lastActivity, LastActivity);
-
 	GETSET(string*, encoding, Encoding);
 	GETSET(States, state, State);
 	GETSET(uint8_t, slotType, SlotType);
@@ -224,16 +222,15 @@ private:
 	};
 
 	// We only want ConnectionManager to create this...
-	UserConnection(bool secure_) throw() : encoding(const_cast<string*>(&Text::systemCharset)), state(STATE_UNCONNECTED),
+	UserConnection(bool secure_) noexcept : encoding(const_cast<string*>(&Text::systemCharset)), state(STATE_UNCONNECTED),
 		lastActivity(0), speed(0), chunkSize(0), socket(0), download(NULL), slotType(NOSLOT) {
 		if(secure_) {
 			setFlag(FLAG_SECURE);
 		}
 	}
 
-	~UserConnection() throw() {
+	~UserConnection() {
 		BufferedSocket::putSocket(socket);
-		dcassert(!download);
 	}
 
 	friend struct DeleteFunction;
@@ -242,22 +239,18 @@ private:
 		user = aUser;
 	}
 
-	void onLine(const string& aLine) throw();
+	void onLine(const string& aLine) noexcept;
 	
-	void send(const string& aString) {
-		lastActivity = GET_TICK();
-		COMMAND_DEBUG(aString, DebugManager::CLIENT_OUT, getRemoteIp());
-		socket->write(aString);
-	}
+	void send(const string& aString);
 
-	void on(Connected) throw();
-	void on(Line, const string&) throw();
-	void on(Data, uint8_t* data, size_t len) throw();
-	void on(BytesSent, size_t bytes, size_t actual) throw() ;
-	void on(ModeChange) throw();
-	void on(TransmitDone) throw();
-	void on(Failed, const string&) throw();
-	void on(Updated) throw();
+	void on(Connected) noexcept;
+	void on(Line, const string&) noexcept;
+	void on(Data, uint8_t* data, size_t len) noexcept;
+	void on(BytesSent, size_t bytes, size_t actual) noexcept ;
+	void on(ModeChange) noexcept;
+	void on(TransmitDone) noexcept;
+	void on(Failed, const string&) noexcept;
+	void on(Updated) noexcept;
 };
 
 } // namespace dcpp
@@ -266,5 +259,5 @@ private:
 
 /**
  * @file
- * $Id: UserConnection.h 476 2010-01-25 21:43:12Z bigmuscle $
+ * $Id: UserConnection.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

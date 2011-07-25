@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,14 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_BUFFERED_SOCKET_H
 #define DCPLUSPLUS_DCPP_BUFFERED_SOCKET_H
 
-#include "forward.h"
+#include <atomic>
+
+#include "typedefs.h"
+
 #include "BufferedSocketListener.h"
 #include "Semaphore.h"
 #include "Thread.h"
 #include "Speaker.h"
 #include "Util.h"
 #include "Socket.h"
-#include <atomic>
+
 
 namespace dcpp {
 
@@ -49,7 +52,7 @@ public:
 	 * @param sep Line separator
 	 * @return An unconnected socket
 	 */
-	static BufferedSocket* getSocket(char sep) throw(ThreadException) {
+	static BufferedSocket* getSocket(char sep) {
 		return new BufferedSocket(sep); 
 	}
 
@@ -65,9 +68,9 @@ public:
 			Thread::sleep(100);
 	}
 
-	void accept(const Socket& srv, bool secure, bool allowUntrusted) throw(SocketException);
-	void connect(const string& aAddress, uint16_t aPort, bool secure, bool allowUntrusted, bool proxy) throw(SocketException);
-	void connect(const string& aAddress, uint16_t aPort, uint16_t localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy) throw(SocketException);
+	void accept(const Socket& srv, bool secure, bool allowUntrusted);
+	void connect(const string& aAddress, uint16_t aPort, bool secure, bool allowUntrusted, bool proxy);
+	void connect(const string& aAddress, uint16_t aPort, uint16_t localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy);
 
 	/** Sets data mode for aBytes bytes. Must be called within onLine. */
 	void setDataMode(int64_t aBytes = -1) { mode = MODE_DATA; dataBytes = aBytes; }
@@ -86,16 +89,17 @@ public:
 	bool isSecure() const { return sock->isSecure(); }
 	bool isTrusted() const { return sock->isTrusted(); }
 	std::string getCipherName() const { return sock->getCipherName(); }
+	vector<uint8_t> getKeyprint() const { return sock->getKeyprint(); }
 
 	void write(const string& aData) { write(aData.data(), aData.length()); }
-	void write(const char* aBuf, size_t aLen) throw();
+	void write(const char* aBuf, size_t aLen) noexcept;
 	/** Send the file f over this socket. */
 	void transmitFile(InputStream* f) { Lock l(cs); addTask(SEND_FILE, new SendFileInfo(f)); }
 
 	/** Send an updated signal to all listeners */
 	void updated() { Lock l(cs); addTask(UPDATED, 0); }
 
-	void disconnect(bool graceless = false) throw() { Lock l(cs); if(graceless) disconnecting = true; addTask(DISCONNECT, 0); }
+	void disconnect(bool graceless = false) noexcept { Lock l(cs); if(graceless) disconnecting = true; addTask(DISCONNECT, 0); }
 
 	string getLocalIp() const { return sock->getLocalIp(); }
 	uint16_t getLocalPort() const { return sock->getLocalPort(); }
@@ -135,14 +139,14 @@ private:
 		InputStream* stream;
 	};
 
-	BufferedSocket(char aSeparator) throw(ThreadException);
+	BufferedSocket(char aSeparator);
 
-	~BufferedSocket() throw();
+	~BufferedSocket();
 
 	CriticalSection cs;
 
 	Semaphore taskSem;
-	deque<pair<Tasks, shared_ptr<TaskData> > > tasks;
+	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
 	ByteVector inbuf;
 	ByteVector writeBuf;
 	ByteVector sendBuf;
@@ -161,17 +165,17 @@ private:
 	
 	int run();
 
-	void threadConnect(const string& aAddr, uint16_t aPort, uint16_t localPort, NatRoles natRole, bool proxy) throw(SocketException);
-	void threadAccept() throw(SocketException);
-	void threadRead() throw(Exception);
-	void threadSendFile(InputStream* is) throw(Exception);
-	void threadSendData() throw(Exception);
+	void threadConnect(const string& aAddr, uint16_t aPort, uint16_t localPort, NatRoles natRole, bool proxy);
+	void threadAccept();
+	void threadRead();
+	void threadSendFile(InputStream* is);
+	void threadSendData();
 
 	void fail(const string& aError);	
 	static atomic<long> sockets;
 
-	bool checkEvents() throw(Exception);
-	void checkSocket() throw(Exception);
+	bool checkEvents();
+	void checkSocket();
 
 	void setSocket(std::unique_ptr<Socket> s);
 	void shutdown();
@@ -184,5 +188,5 @@ private:
 
 /**
  * @file
- * $Id: BufferedSocket.h 548 2010-09-06 08:54:37Z bigmuscle $
+ * $Id: BufferedSocket.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

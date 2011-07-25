@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,39 +16,36 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "stdinc.h"
-#include "DCPlusPlus.h"
+#ifndef DCPLUSPLUS_DCPP_HINTEDUSER_H_
+#define DCPLUSPLUS_DCPP_HINTEDUSER_H_
 
-#include "UPnP.h"
+#include <string>
+
+#include "forward.h"
+#include "User.h"
 
 namespace dcpp {
 
-const char* UPnP::protocols[PROTOCOL_LAST] = {
-	"TCP",
-	"UDP"
+using std::string;
+
+/** User pointer associated to a hub url */
+struct HintedUser {
+	UserPtr user;
+	string hint;
+
+	explicit HintedUser(const UserPtr& user_, const string& hint_) : user(user_), hint(hint_) { }
+
+	bool operator==(const UserPtr& rhs) const {
+		return user == rhs;
+	}
+	bool operator==(const HintedUser& rhs) const {
+		return user == rhs.user;
+		// ignore the hint, we don't want lists with multiple instances of the same user...
+	}
+
+	operator UserPtr() const { return user; }
 };
 
-bool UPnP::open(const unsigned short port, const Protocol protocol, const string& description) {
-	if(!add(port, protocol, description))
-		return false;
-
-	rules.push_back(make_pair(port, protocol));
-	return true;
 }
 
-bool UPnP::close() {
-	bool ret = true;
-
-	 for(auto i = rules.cbegin(), iend = rules.cend(); i != iend; ++i)
-		ret &= remove(i->first, i->second);
-	rules.clear();
-
-	return ret;
-}
-
-bool UPnP::hasRules() const {
- 
-       return !rules.empty();
-}
-
-} // namespace dcpp
+#endif /* HINTEDUSER_H_ */

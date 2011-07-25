@@ -12,7 +12,7 @@
  */
 
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,27 +30,19 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "TigerHash.h"
 
-namespace dcpp {
+#include "debug.h"
 
-#ifdef _WIN32
-#if defined(_M_X64)
-#define TIGER_ARCH64
-#endif
-#if !(defined(_M_IX86) || defined(_M_X64))
+#ifdef BOOST_BIG_ENDIAN
 #define TIGER_BIG_ENDIAN
 #endif
-#else // _WIN32
-#if defined(__x86_64__) || defined(__alpha)
+
+#if defined(_M_X64) || defined(__amd64__) || defined(__x86_64__) || defined(__alpha)
 #define TIGER_ARCH64
 #endif
-#if !(defined(__i386__) || defined(__x86_64__) || defined(__alpha))
-#define TIGER_BIG_ENDIAN
-#endif
-#endif // _WIN32
+
+namespace dcpp {
 
 #define PASSES 3
 
@@ -169,7 +161,7 @@ void TigerHash::tigerCompress(const uint64_t *str, uint64_t state[3]) {
 }
 
 void TigerHash::update(const void* data, size_t length) {
-	size_t tmppos = (uint32_t)(pos & BLOCK_SIZE - 1);
+	size_t tmppos = (uint32_t)(pos & (BLOCK_SIZE - 1));
 #ifdef TIGER_BIG_ENDIAN
 	uint8_t buf[BLOCK_SIZE];
 	int j;

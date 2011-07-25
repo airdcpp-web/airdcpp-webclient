@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "FavoriteManager.h"
 
 #include "ClientManager.h"
@@ -41,7 +39,7 @@ FavoriteManager::FavoriteManager() : lastId(0), useHttp(false), running(false), 
 	File::ensureDirectory(Util::getHubListsPath());
 }
 
-FavoriteManager::~FavoriteManager() throw() {
+FavoriteManager::~FavoriteManager() {
 	ClientManager::getInstance()->removeListener(this);
 	SettingsManager::getInstance()->removeListener(this);
 	if(c) {
@@ -323,7 +321,7 @@ private:
 	HubEntryList& publicHubs;
 };
 
-bool FavoriteManager::onHttpFinished(bool fromHttp) throw() {
+bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
 	MemoryInputStream mis(downloadBuf);
 	bool success = true;
 
@@ -507,7 +505,7 @@ void FavoriteManager::load() {
 	// Add NMDC standard op commands
 	static const char kickstr[] = 
 		"$To: %[userNI] From: %[myNI] $<%[myNI]> You are being kicked because: %[kickline:Reason]|<%[myNI]> is kicking %[userNI] because: %[kickline:Reason]|$Kick %[userNI]|";
-	addUserCommand(UserCommand::TYPE_RAW_ONCE, UserCommand::CONTEXT_CHAT | UserCommand::CONTEXT_SEARCH, UserCommand::FLAG_NOSAVE, 
+	addUserCommand(UserCommand::TYPE_RAW_ONCE, UserCommand::CONTEXT_USER | UserCommand::CONTEXT_SEARCH, UserCommand::FLAG_NOSAVE, 
 		STRING(KICK_USER), kickstr, "", "op");
 	static const char kickfilestr[] = 
 		"$To: %[userNI] From: %[myNI] $<%[myNI]> You are being kicked because: %[kickline:Reason] %[fileFN]|<%[myNI]> is kicking %[userNI] because: %[kickline:Reason] %[fileFN]|$Kick %[userNI]|";
@@ -515,7 +513,7 @@ void FavoriteManager::load() {
 		STRING(KICK_USER_FILE), kickfilestr, "", "op");
 	static const char redirstr[] =
 		"$OpForceMove $Who:%[userNI]$Where:%[line:Target Server]$Msg:%[line:Message]|";
-	addUserCommand(UserCommand::TYPE_RAW_ONCE, UserCommand::CONTEXT_CHAT | UserCommand::CONTEXT_SEARCH, UserCommand::FLAG_NOSAVE, 
+	addUserCommand(UserCommand::TYPE_RAW_ONCE, UserCommand::CONTEXT_USER | UserCommand::CONTEXT_SEARCH, UserCommand::FLAG_NOSAVE, 
 		STRING(REDIRECT_USER), redirstr, "", "op");
 
 	try {
@@ -879,12 +877,12 @@ UserCommand::List FavoriteManager::getUserCommands(int ctx, const StringList& hu
 }
 
 // HttpConnectionListener
-void FavoriteManager::on(Data, HttpConnection*, const uint8_t* buf, size_t len) throw() { 
+void FavoriteManager::on(Data, HttpConnection*, const uint8_t* buf, size_t len) noexcept { 
 	if(useHttp)
 		downloadBuf.append((const char*)buf, len);
 }
 
-void FavoriteManager::on(Failed, HttpConnection*, const string& aLine) throw() { 
+void FavoriteManager::on(Failed, HttpConnection*, const string& aLine) noexcept { 
 	c->removeListener(this);
 	lastServer++;
 	running = false;
@@ -893,7 +891,7 @@ void FavoriteManager::on(Failed, HttpConnection*, const string& aLine) throw() {
 		fire(FavoriteManagerListener::DownloadFailed(), aLine);
 	}
 }
-void FavoriteManager::on(Complete, HttpConnection*, const string& aLine, bool fromCoral) throw() {
+void FavoriteManager::on(Complete, HttpConnection*, const string& aLine, bool fromCoral) noexcept {
 	bool parseSuccess = false;
 
 	c->removeListener(this);
@@ -905,28 +903,28 @@ void FavoriteManager::on(Complete, HttpConnection*, const string& aLine, bool fr
 		fire(FavoriteManagerListener::DownloadFinished(), aLine, fromCoral);
 	}
 }
-void FavoriteManager::on(Redirected, HttpConnection*, const string& aLine) throw() { 
+void FavoriteManager::on(Redirected, HttpConnection*, const string& aLine) noexcept { 
 	if(useHttp)
 		fire(FavoriteManagerListener::DownloadStarting(), aLine);
 }
-void FavoriteManager::on(TypeNormal, HttpConnection*) throw() { 
+void FavoriteManager::on(TypeNormal, HttpConnection*) noexcept { 
 	if(useHttp)
 		listType = TYPE_NORMAL; 
 }
-void FavoriteManager::on(TypeBZ2, HttpConnection*) throw() { 
+void FavoriteManager::on(TypeBZ2, HttpConnection*) noexcept { 
 	if(useHttp)
 		listType = TYPE_BZIP2; 
 }
 
-void FavoriteManager::on(Retried, HttpConnection*, const bool Connected) throw() {
+void FavoriteManager::on(Retried, HttpConnection*, const bool Connected) noexcept {
 	if (Connected)
 		downloadBuf = Util::emptyString;
 }
 
-void FavoriteManager::on(UserUpdated, const OnlineUser& user) throw() {
+void FavoriteManager::on(UserUpdated, const OnlineUser& user) noexcept {
 	userUpdated(user);
 }
-void FavoriteManager::on(UserDisconnected, const UserPtr& user) throw() {
+void FavoriteManager::on(UserDisconnected, const UserPtr& user) noexcept {
 	bool isFav = false;
 	{
 		Lock l(cs);
@@ -941,7 +939,7 @@ void FavoriteManager::on(UserDisconnected, const UserPtr& user) throw() {
 		fire(FavoriteManagerListener::StatusChanged(), user);
 }
 
-void FavoriteManager::on(UserConnected, const UserPtr& user) throw() {
+void FavoriteManager::on(UserConnected, const UserPtr& user) noexcept {
 	bool isFav = false;
 	{
 		Lock l(cs);
@@ -983,5 +981,5 @@ void FavoriteManager::previewsave(SimpleXML& aXml){
 
 /**
  * @file
- * $Id: FavoriteManager.cpp 551 2010-12-18 12:14:16Z bigmuscle $
+ * $Id: FavoriteManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

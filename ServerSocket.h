@@ -30,15 +30,15 @@ public:
 	template<int I>	struct X { enum { TYPE = I };  };
 
 	typedef X<0> IncomingConnection;
-	virtual void on(IncomingConnection) throw() = 0;
+	virtual void on(IncomingConnection) noexcept = 0;
 };
 
 class ServerSocket : public Speaker<ServerSocketListener> {
 public:
-	ServerSocket() throw() { }
+	ServerSocket() noexcept { }
 
-	void listen(uint16_t port) throw(SocketException);
-	void disconnect() throw() { socket.disconnect(); }
+	void listen(uint16_t port);
+	void disconnect() noexcept { socket.disconnect(); }
 
 	/** This is called by windows whenever an "FD_ACCEPT" is sent...doesn't work with unix... */
 	void incoming() {
@@ -63,5 +63,5 @@ private:
 
 /**
  * @file
- * $Id: ServerSocket.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: ServerSocket.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

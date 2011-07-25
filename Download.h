@@ -2,6 +2,7 @@
 #define DCPLUSPLUS_DCPP_DOWNLOAD_H_
 
 #include "forward.h"
+#include "noexcept.h"
 #include "Transfer.h"
 #include "MerkleTree.h"
 #include "Flags.h"
@@ -32,7 +33,7 @@ public:
 		FLAG_TTHLIST			= 0x1000
 	};
 
-	Download(UserConnection& conn, QueueItem& qi, const string& path) throw();
+	Download(UserConnection& conn, QueueItem& qi, const string& path) noexcept;
 
 	void getParams(const UserConnection& aSource, StringMap& params);
 

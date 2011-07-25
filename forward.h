@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,13 @@
  * This file contains forward declarations for the various DC++ classes
  */
 
-#include "Pointer.h"
+#include <boost/intrusive_ptr.hpp>
 
 namespace dcpp {
 
 class AdcCommand;
+
+class ADLSearch;
 
 class BufferedSocket;
 
@@ -42,6 +44,9 @@ class Client;
 class ClientManager;
 
 class ConnectionQueueItem;
+
+class DirectoryItem;
+typedef DirectoryItem* DirectoryItemPtr;
 
 class Download;
 typedef Download* DownloadPtr;
@@ -61,6 +66,9 @@ typedef std::vector<FinishedItemPtr> FinishedItemList;
 
 class FinishedManager;
 
+template<class Hasher>
+struct HashValue;
+
 struct HintedUser;
 typedef std::vector<HintedUser> HintedUserList;
 
@@ -71,11 +79,17 @@ class Identity;
 
 class InputStream;
 
+class LogManager;
+
 class OnlineUser;
+//typedef OnlineUser* OnlineUserPtr;
 typedef boost::intrusive_ptr<OnlineUser> OnlineUserPtr;
 typedef std::vector<OnlineUserPtr> OnlineUserList;
 
+class OutputStream;
+
 class QueueItem;
+typedef QueueItem* QueueItemPtr;
 
 class RecentHubEntry;
 
@@ -90,7 +104,11 @@ class SocketException;
 
 class StringSearch;
 
+class TigerHash;
+
 class Transfer;
+
+typedef HashValue<TigerHash> TTHValue;
 
 class UnZFilter;
 

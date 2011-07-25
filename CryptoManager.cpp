@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "CryptoManager.h"
 
 #include "BitInputStream.h"
@@ -201,11 +199,11 @@ CryptoManager::~CryptoManager() {
 	CRYPTO_cleanup_all_ex_data();
 }
 
-bool CryptoManager::TLSOk() const throw() { 
-	return BOOLSETTING(USE_TLS) && certsLoaded; 
+bool CryptoManager::TLSOk() const noexcept { 
+	return BOOLSETTING(USE_TLS) && certsLoaded && !keyprint.empty();
 }
 
-void CryptoManager::generateCertificate() throw(CryptoException) {
+void CryptoManager::generateCertificate() {
 	// Generate certificate using OpenSSL
 	if(SETTING(TLS_PRIVATE_KEY_FILE).empty()) {
 		throw CryptoException("No private key file chosen");
@@ -218,12 +216,12 @@ void CryptoManager::generateCertificate() throw(CryptoException) {
 	ssl::BIGNUM bn(BN_new());
 	ssl::RSA rsa(RSA_new());
 	ssl::EVP_PKEY pkey(EVP_PKEY_new());
-	ssl::ASN1_INTEGER sn(ASN1_INTEGER_new());
 	ssl::X509_NAME nm(X509_NAME_new());
 	const EVP_MD *digest = EVP_sha1();
 	ssl::X509 x509ss(X509_new());
+	ssl::ASN1_INTEGER serial(ASN1_INTEGER_new());
 	
-	if(!bn || !rsa || !pkey || !sn || !nm || !x509ss) {
+	if(!bn || !rsa || !pkey || !nm || !x509ss || !serial) {
 		throw CryptoException("Error creating objects for cert generation");
 	}
 	
@@ -241,9 +239,10 @@ void CryptoManager::generateCertificate() throw(CryptoException) {
 	CHECK((X509_NAME_add_entry_by_txt(nm, "CN", MBSTRING_ASC,
 		(const unsigned char*)ClientManager::getInstance()->getMyCID().toBase32().c_str(), -1, -1, 0)))
 
+
 	// Prepare self-signed cert
-	CHECK((ASN1_INTEGER_set(sn, 1))) // set the serial number to just "1"
-	CHECK((X509_set_serialNumber(x509ss, sn)))
+	ASN1_INTEGER_set(serial, (long)Util::rand());
+	CHECK((X509_set_serialNumber(x509ss, serial)))
 	CHECK((X509_set_issuer_name(x509ss, nm)))
 	CHECK((X509_set_subject_name(x509ss, nm)))
 	CHECK((X509_gmtime_adj(X509_get_notBefore(x509ss), 0)))
@@ -277,10 +276,12 @@ void CryptoManager::generateCertificate() throw(CryptoException) {
 #endif
 }
 
-void CryptoManager::loadCertificates() throw() {
+void CryptoManager::loadCertificates() noexcept {
 	if(!BOOLSETTING(USE_TLS) || !clientContext || !clientVerContext || !serverContext || !serverVerContext)
 		return;
 
+	keyprint.clear();
+	certsLoaded = false;
 
 	const string& cert = SETTING(TLS_CERTIFICATE_FILE);
 	const string& key = SETTING(TLS_PRIVATE_KEY_FILE);
@@ -352,10 +353,13 @@ void CryptoManager::loadCertificates() throw() {
 		}
 	}
 #endif
+
+	loadKeyprint(cert.c_str());
+
 	certsLoaded = true;
 }
 
-bool CryptoManager::checkCertificate() throw() {
+bool CryptoManager::checkCertificate() noexcept {
 	FILE* f = fopen(SETTING(TLS_CERTIFICATE_FILE).c_str(), "r");
 	if(!f) {
 		return false;
@@ -371,7 +375,6 @@ bool CryptoManager::checkCertificate() throw() {
 	}
 	ssl::X509 x509(tmpx509);
 	
-	// Check subject name
 	ASN1_INTEGER* sn = X509_get_serialNumber(x509);
 	if(!sn || !ASN1_INTEGER_get(sn)) {
 		return false;
@@ -413,14 +416,37 @@ bool CryptoManager::checkCertificate() throw() {
 	return true;
 }
 
-SSLSocket* CryptoManager::getClientSocket(bool allowUntrusted) throw(SocketException) {
+const vector<uint8_t>& CryptoManager::getKeyprint() const noexcept {
+	return keyprint;
+}
+
+void CryptoManager::loadKeyprint(const string& /*file*/) noexcept {
+	FILE* f = fopen(SETTING(TLS_CERTIFICATE_FILE).c_str(), "r");
+	if(!f) {
+		return;
+	}
+
+	X509* tmpx509 = NULL;
+	PEM_read_X509(f, &tmpx509, NULL, NULL);
+	fclose(f);
+
+	if(!tmpx509) {
+		return;
+	}
+
+	ssl::X509 x509(tmpx509);
+	
+	keyprint = ssl::X509_digest(x509, EVP_sha256());
+}
+
+SSLSocket* CryptoManager::getClientSocket(bool allowUntrusted) {
 	return new SSLSocket(allowUntrusted ? clientContext : clientVerContext);
 }
-SSLSocket* CryptoManager::getServerSocket(bool allowUntrusted) throw(SocketException) {
+SSLSocket* CryptoManager::getServerSocket(bool allowUntrusted) {
 	return new SSLSocket(allowUntrusted ? serverContext : serverVerContext);
 }
 
-void CryptoManager::decodeBZ2(const uint8_t* is, unsigned int sz, string& os) throw (CryptoException) {
+void CryptoManager::decodeBZ2(const uint8_t* is, unsigned int sz, string& os) {
 	bz_stream bs = { 0 };
 
 	if(BZ2_bzDecompressInit(&bs, 0, 0) != BZ_OK)
@@ -532,5 +558,5 @@ void CryptoManager::locking_function(int mode, int n, const char* /*file*/, int 
 
 /**
  * @file
- * $Id: CryptoManager.cpp 536 2010-07-28 14:40:14Z bigmuscle $
+ * $Id: CryptoManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

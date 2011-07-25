@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,17 +16,16 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(CONNECTION_MANAGER_H)
-#define CONNECTION_MANAGER_H
+#ifndef DCPLUSPLUS_DCPP_CONNECTION_MANAGER_H
+#define DCPLUSPLUS_DCPP_CONNECTION_MANAGER_H
 
 #include "TimerManager.h"
 
 #include "UserConnection.h"
-#include "User.h"
 #include "Singleton.h"
 #include "Util.h"
-
 #include "ConnectionManagerListener.h"
+#include "HintedUser.h"
 
 namespace dcpp {
 
@@ -65,7 +64,6 @@ public:
 
 private:
 	HintedUser user;
-	HintedUserList userList;
 };
 
 class ExpectedMap {
@@ -125,13 +123,13 @@ public:
 	bool isShuttingDown() const { return shuttingDown; }
 
 	/** Find a suitable port to listen on, and start doing it */
-	void listen() throw(SocketException);
-	void disconnect() throw();
+	void listen();
+	void disconnect() noexcept;
 
 	uint16_t getPort() const { return server ? static_cast<uint16_t>(server->getPort()) : 0; }
 	uint16_t getSecurePort() const { return secureServer ? static_cast<uint16_t>(secureServer->getPort()) : 0; }
 	static uint16_t iConnToMeCount;	
-	void checkWaitingMCN() throw();
+	void checkWaitingMCN() noexcept;
 private:
 
 	class Server : public Thread {
@@ -140,7 +138,7 @@ private:
 		uint16_t getPort() const { return port; }
 		~Server() { die = true; join(); }
 	private:
-		int run() throw();
+		int run() noexcept;
 
 		Socket sock;
 		uint16_t port;
@@ -177,9 +175,9 @@ private:
 	friend class Singleton<ConnectionManager>;
 	ConnectionManager();
 
-	~ConnectionManager() throw() { shutdown(); }
+	~ConnectionManager() { shutdown(); }
 	
-	UserConnection* getConnection(bool aNmdc, bool secure) throw();
+	UserConnection* getConnection(bool aNmdc, bool secure) noexcept;
 	void putConnection(UserConnection* aConn);
 
 	void addUploadConnection(UserConnection* uc);
@@ -188,7 +186,9 @@ private:
 	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, string token = Util::toString(Util::rand()));
 	void putCQI(ConnectionQueueItem* cqi);
 
-	void accept(const Socket& sock, bool secure) throw();
+	void accept(const Socket& sock, bool secure) noexcept;
+
+	bool checkKeyprint(UserConnection *aSource);
 
 	void failed(UserConnection* aSource, const string& aError, bool protocolError);
 
@@ -196,22 +196,22 @@ private:
 	bool isUCRunning(const string token, bool requesting);
 	
 	// UserConnectionListener
-	void on(Connected, UserConnection*) throw();
-	void on(Failed, UserConnection*, const string&) throw();
-	void on(ProtocolError, UserConnection*, const string&) throw();
-	void on(CLock, UserConnection*, const string&) throw();
-	void on(Key, UserConnection*, const string&) throw();
-	void on(Direction, UserConnection*, const string&, const string&) throw();
-	void on(MyNick, UserConnection*, const string&) throw();
-	void on(Supports, UserConnection*, const StringList&) throw();
+	void on(Connected, UserConnection*) noexcept;
+	void on(Failed, UserConnection*, const string&) noexcept;
+	void on(ProtocolError, UserConnection*, const string&) noexcept;
+	void on(CLock, UserConnection*, const string&, const string&) noexcept;
+	void on(Key, UserConnection*, const string&) noexcept;
+	void on(Direction, UserConnection*, const string&, const string&) noexcept;
+	void on(MyNick, UserConnection*, const string&) noexcept;
+	void on(Supports, UserConnection*, const StringList&) noexcept;
 
-	void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) throw();
-	void on(AdcCommand::INF, UserConnection*, const AdcCommand&) throw();
-	void on(AdcCommand::STA, UserConnection*, const AdcCommand&) throw();
+	void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept;
+	void on(AdcCommand::INF, UserConnection*, const AdcCommand&) noexcept;
+	void on(AdcCommand::STA, UserConnection*, const AdcCommand&) noexcept;
 
 	// TimerManagerListener
-	void on(TimerManagerListener::Second, uint64_t aTick) throw();
-	void on(TimerManagerListener::Minute, uint64_t aTick) throw();
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 
 };
 
@@ -221,5 +221,5 @@ private:
 
 /**
  * @file
- * $Id: ConnectionManager.h 500 2010-06-25 22:08:18Z bigmuscle $
+ * $Id: ConnectionManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

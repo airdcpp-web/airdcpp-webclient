@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,31 +16,35 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(SEMAPHORE_H)
-#define SEMAPHORE_H
+#ifndef DCPLUSPLUS_DCPP_SEMAPHORE_H
+#define DCPLUSPLUS_DCPP_SEMAPHORE_H
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include "w.h"
+#else
 #include <errno.h>
 #include <semaphore.h>
 #include <sys/time.h>
 #endif
 
+#include "noexcept.h"
+
 namespace dcpp {
 
-class Semaphore
+class Semaphore  
 {
 #ifdef _WIN32
 public:
-	Semaphore() throw() {
+	Semaphore() noexcept {
 		h = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 	}
 
-	void signal() throw() {
+	void signal() noexcept {
 		ReleaseSemaphore(h, 1, NULL);
 	}
 
-	bool wait() throw() { return WaitForSingleObject(h, INFINITE) == WAIT_OBJECT_0; }
-	bool wait(uint32_t millis) throw() { return WaitForSingleObject(h, millis) == WAIT_OBJECT_0; }
+	bool wait() noexcept { return WaitForSingleObject(h, INFINITE) == WAIT_OBJECT_0; }
+	bool wait(uint32_t millis) noexcept { return WaitForSingleObject(h, millis) == WAIT_OBJECT_0; }
 
 	~Semaphore() {
 		CloseHandle(h);
@@ -50,7 +54,7 @@ private:
 	HANDLE h;
 #else
 public:
-	Semaphore() throw() { 
+	Semaphore() noexcept { 
 		sem_init(&semaphore, 0, 0); 
 	}
 	
@@ -58,11 +62,11 @@ public:
 		sem_destroy(&semaphore); 
 	}
 
-	void signal() throw() { 
+	void signal() noexcept { 
 		sem_post(&semaphore); 
 	}
 
-	bool wait() throw() {
+	bool wait() noexcept { 
 		int retval = 0;
 		do {
 			retval = sem_wait(&semaphore);
@@ -71,7 +75,7 @@ public:
 		return true;
 	}
 
-	bool wait(uint32_t millis) throw() {
+	bool wait(uint32_t millis) noexcept { 
 		timeval timev;
 		timespec t;
 		gettimeofday(&timev, NULL);
@@ -83,7 +87,7 @@ public:
 			ret = sem_timedwait(&semaphore, &t);
 		} while (ret != 0 && errno == EINTR);
 
-		if (ret != 0) {
+		if(ret != 0) {
 			return false;
 		}
 
@@ -99,9 +103,10 @@ private:
 };
 
 } // namespace dcpp
-#endif // !defined(SEMAPHORE_H)
+
+#endif // DCPLUSPLUS_DCPP_SEMAPHORE_H
 
 /**
  * @file
- * $Id: Semaphore.h 548 2010-09-06 08:54:37Z bigmuscle $
+ * $Id: Semaphore.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

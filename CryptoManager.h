@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,16 +42,17 @@ public:
 	const string& getPk() const  { return pk; }
 	bool isExtended(const string& aLock) const { return strncmp(aLock.c_str(), "EXTENDEDPROTOCOL", 16) == 0; }
 
-	void decodeBZ2(const uint8_t* is, unsigned int sz, string& os) throw(CryptoException);
+	void decodeBZ2(const uint8_t* is, unsigned int sz, string& os);
 
-	SSLSocket* getClientSocket(bool allowUntrusted) throw(SocketException);
-	SSLSocket* getServerSocket(bool allowUntrusted) throw(SocketException);
+	SSLSocket* getClientSocket(bool allowUntrusted);
+	SSLSocket* getServerSocket(bool allowUntrusted);
 
-	void loadCertificates() throw();
-	void generateCertificate() throw(CryptoException);
-	bool checkCertificate() throw();
+	void loadCertificates() noexcept;
+	void generateCertificate();
+	bool checkCertificate() noexcept;
+	const vector<uint8_t>& getKeyprint() const noexcept;
 
-	bool TLSOk() const throw();
+	bool TLSOk() const noexcept;
 
 #ifdef HEADER_OPENSSLV_H	
 	static void __cdecl locking_function(int mode, int n, const char *file, int line);
@@ -76,6 +77,7 @@ private:
 	
 	bool certsLoaded;
 
+	vector<uint8_t> keyprint;
 	const string lock;
 	const string pk;
 	
@@ -87,6 +89,8 @@ private:
 	bool isExtra(uint8_t b) const {
 		return (b == 0 || b==5 || b==124 || b==96 || b==126 || b==36);
 	}
+
+	void loadKeyprint(const string& file) noexcept;
 };
 
 } // namespace dcpp
@@ -95,5 +99,5 @@ private:
 
 /**
  * @file
- * $Id: CryptoManager.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: CryptoManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

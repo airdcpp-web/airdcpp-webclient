@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(FAVORITE_USER_H)
-#define FAVORITE_USER_H
+#ifndef DCPLUSPLUS_DCPP_FAVORITE_USER_H
+#define DCPLUSPLUS_DCPP_FAVORITE_USER_H
 
 #include "FastAlloc.h"
 #include "User.h"
@@ -50,5 +50,5 @@ public:
 
 /**
  * @file
- * $Id: FavoriteUser.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: FavoriteUser.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

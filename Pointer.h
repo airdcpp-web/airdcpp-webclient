@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,26 +22,28 @@
 #include <boost/intrusive_ptr.hpp>
 #include <boost/smart_ptr/detail/atomic_count.hpp>
 
+#include "noexcept.h"
+
 namespace dcpp {
 
 template<typename T>
 class intrusive_ptr_base
 {
 public:
-	void inc() throw() {
+	void inc() noexcept {
 		intrusive_ptr_add_ref(this);
 	}
 
-	void dec() throw() {
+	void dec() noexcept {
 		intrusive_ptr_release(this);
 	}
 
-	bool unique(int val = 1) const throw() {
+	bool unique(int val = 1) const noexcept {
 		return (ref <= val);
 	}
 	
 protected:
-	intrusive_ptr_base() throw() : ref(0) { }
+	intrusive_ptr_base() noexcept : ref(0) { }
 	virtual ~intrusive_ptr_base() { }
 	
 private:
@@ -63,5 +65,5 @@ struct DeleteFunction {
 
 /**
  * @file
- * $Id: Pointer.h 548 2010-09-06 08:54:37Z bigmuscle $
+ * $Id: Pointer.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

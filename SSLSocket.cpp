@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,8 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "SSLSocket.h"
+
 #include "LogManager.h"
 #include "SettingsManager.h"
 
@@ -33,7 +32,7 @@
 
 namespace dcpp {
 
-SSLSocket::SSLSocket(SSL_CTX* context) throw(SocketException) : ctx(context), ssl(0)
+SSLSocket::SSLSocket(SSL_CTX* context) : ctx(context), ssl(0)
 #ifndef HEADER_OPENSSLV_H
 , finished(false) 
 #endif
@@ -42,7 +41,7 @@ SSLSocket::SSLSocket(SSL_CTX* context) throw(SocketException) : ctx(context), ss
 
 }
 
-void SSLSocket::connect(const string& aIp, uint16_t aPort) throw(SocketException) {
+void SSLSocket::connect(const string& aIp, uint16_t aPort) {
 	Socket::connect(aIp, aPort);
 	
 	waitConnected(0);
@@ -80,7 +79,7 @@ bool SSLSocket::waitConnected(uint64_t millis) {
 	}
 }
 
-void SSLSocket::accept(const Socket& listeningSocket) throw(SocketException) {
+void SSLSocket::accept(const Socket& listeningSocket) {
 	Socket::accept(listeningSocket);
 
 	waitAccepted(0);
@@ -143,7 +142,7 @@ bool SSLSocket::waitWant(int ret, uint64_t millis) {
 	return true;
 }
 
-int SSLSocket::read(void* aBuffer, int aBufLen) throw(SocketException) {
+int SSLSocket::read(void* aBuffer, int aBufLen) {
 	if(!ssl) {
 		return -1;
 	}
@@ -156,7 +155,7 @@ int SSLSocket::read(void* aBuffer, int aBufLen) throw(SocketException) {
 	return len;
 }
 
-int SSLSocket::write(const void* aBuffer, int aLen) throw(SocketException) {
+int SSLSocket::write(const void* aBuffer, int aLen) {
 	if(!ssl) {
 		return -1;
 	}
@@ -168,7 +167,7 @@ int SSLSocket::write(const void* aBuffer, int aLen) throw(SocketException) {
 	return ret;
 }
 
-int SSLSocket::checkSSL(int ret) throw(SocketException) {
+int SSLSocket::checkSSL(int ret) {
 	if(!ssl) {
 		return -1;
 	}
@@ -205,7 +204,7 @@ int SSLSocket::checkSSL(int ret) throw(SocketException) {
 	return ret;
 }
 
-int SSLSocket::wait(uint64_t millis, int waitFor) throw(SocketException) {
+int SSLSocket::wait(uint64_t millis, int waitFor) {
 #ifdef HEADER_OPENSSLV_H
 	if(ssl && (waitFor & Socket::WAIT_READ)) {
 		/** @todo Take writing into account as well if reading is possible? */
@@ -217,7 +216,7 @@ int SSLSocket::wait(uint64_t millis, int waitFor) throw(SocketException) {
 	return Socket::wait(millis, waitFor);
 }
 
-bool SSLSocket::isTrusted() throw() {
+bool SSLSocket::isTrusted() noexcept {
 	if(!ssl) {
 		return false;
 	}
@@ -242,34 +241,34 @@ bool SSLSocket::isTrusted() throw() {
 	return true;
 }
 
-std::string SSLSocket::getCipherName() throw() {
+std::string SSLSocket::getCipherName() noexcept {
 	if(!ssl)
 		return Util::emptyString;
 	
 	return SSL_get_cipher_name(ssl);
 }
 
-std::string SSLSocket::getDigest() const throw() {
+vector<uint8_t> SSLSocket::getKeyprint() const noexcept {
 #ifdef HEADER_OPENSSLV_H
-
 	if(!ssl)
-		return Util::emptyString;
+		return vector<uint8_t>();
 	X509* x509 = SSL_get_peer_certificate(ssl);
+
 	if(!x509)
-		return Util::emptyString;
+		return vector<uint8_t>();
 	
-	return ssl::X509_digest(x509, EVP_sha1());
+	return ssl::X509_digest(x509, EVP_sha256());
 #else
-	return Util::emptyString;
+	return vector<uint8_t>();
 #endif
 }
 
-void SSLSocket::shutdown() throw() {
+void SSLSocket::shutdown() noexcept {
 	if(ssl)
 		SSL_shutdown(ssl);
 }
 
-void SSLSocket::close() throw() {
+void SSLSocket::close() noexcept {
 	if(ssl) {
 		ssl.reset();
 	}

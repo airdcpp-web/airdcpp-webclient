@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_DOWNLOADMANAGERLISTENER_H_
 #define DCPLUSPLUS_DCPP_DOWNLOADMANAGERLISTENER_H_
 
-#include "forward.h"
+#include "typedefs.h"
+#include "noexcept.h"
 
 namespace dcpp {
 
@@ -52,23 +53,23 @@ public:
 	 * This is the first message sent before a download starts.
 	 * No other messages will be sent before this.
 	 */
-	virtual void on(Requesting, const Download*) throw() { }
+	virtual void on(Requesting, const Download*) noexcept { }
 
 	/**
 	 * This is the first message sent before a download starts.
 	 */
-	virtual void on(Starting, const Download*) throw() { }
+	virtual void on(Starting, const Download*) noexcept { }
 
 	/**
 	 * Sent once a second if something has actually been downloaded.
 	 */
-	virtual void on(Tick, const DownloadList&) throw() { }
+	virtual void on(Tick, const DownloadList&) noexcept { }
 
 	/**
 	 * This is the last message sent before a download is deleted.
 	 * No more messages will be sent after it.
 	 */
-	virtual void on(Complete, const Download*, bool) throw() { }
+	virtual void on(Complete, const Download*, bool) noexcept { }
 
 	/**
 	 * This indicates some sort of failure with a particular download.
@@ -77,8 +78,8 @@ public:
 	 * @remarks Should send an error code instead of a string and let the GUI
 	 * display an error string.
 	 */
-	virtual void on(Failed, const Download*, const string&) throw() { }
-	virtual void on(Status, const UserConnection*, const string&) throw() { }
+	virtual void on(Failed, const Download*, const string&) noexcept { }
+	virtual void on(Status, const UserConnection*, const string&) noexcept { }
 };
 
 } // namespace dcpp

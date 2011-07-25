@@ -20,6 +20,8 @@
 #include "stdinc.h"
 #include "DCPlusPlus.h"
 
+#include "DCPlusPlus.h"
+
 #include "SharedFileStream.h"
 
 #ifdef _WIN32
@@ -106,7 +108,7 @@ size_t SharedFileStream::read(void* buf, size_t& len) throw(Exception) {
 	return len;
 }
 
-int64_t SharedFileStream::getSize() const throw()
+int64_t SharedFileStream::getSize() const noexcept
 {
 	Lock l(*shared_handle_ptr);
 	return shared_handle_ptr->getSize();

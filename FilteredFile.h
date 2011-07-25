@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(FILTERED_FILE_H)
-#define FILTERED_FILE_H
+#ifndef DCPLUSPLUS_DCPP_FILTERED_FILE_H
+#define DCPLUSPLUS_DCPP_FILTERED_FILE_H
 
 #include "Streams.h"
 #include "Util.h"
@@ -29,14 +29,14 @@ class CountOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
 	CountOutputStream(OutputStream* aStream) : s(aStream), count(0) { }
-	~CountOutputStream() throw() { if(managed) delete s; }
+	~CountOutputStream() { if(managed) delete s; }
 
-	size_t flush() throw(Exception) {
+	size_t flush() {
 		size_t n = s->flush();
 		count += n;
 		return n;
 	}
-	size_t write(const void* buf, size_t len) throw(Exception) {
+	size_t write(const void* buf, size_t len) {
 		size_t n = s->write(buf, len);
 		count += n;
 		return n;
@@ -54,13 +54,13 @@ public:
 	using OutputStream::write;
 
 	CalcOutputStream(OutputStream* aStream) : s(aStream) { }
-	~CalcOutputStream() throw() { if(managed) delete s; }
+	~CalcOutputStream() { if(managed) delete s; }
 
-	size_t flush() throw(Exception) {
+	size_t flush() {
 		return s->flush();
 	}
 
-	size_t write(const void* buf, size_t len) throw(Exception) {
+	size_t write(const void* buf, size_t len) {
 		filter(buf, len);
 		return s->write(buf, len);
 	}
@@ -76,9 +76,9 @@ template<class Filter, bool managed>
 class CalcInputStream : public InputStream {
 public:
 	CalcInputStream(InputStream* aStream) : s(aStream) { }
-	~CalcInputStream() throw() { if(managed) delete s; }
+	~CalcInputStream() { if(managed) delete s; }
 
-	size_t read(void* buf, size_t& len) throw(Exception) {
+	size_t read(void* buf, size_t& len) {
 		size_t x = s->read(buf, len);
 		filter(buf, x);
 		return x;
@@ -96,9 +96,9 @@ public:
 	using OutputStream::write;
 
 	FilteredOutputStream(OutputStream* aFile) : f(aFile), buf(new uint8_t[BUF_SIZE]), flushed(false), more(true) { }
-	~FilteredOutputStream() throw() { if(manage) delete f; }
+	~FilteredOutputStream() { if(manage) delete f; }
 
-	size_t flush() throw(Exception) {
+	size_t flush() {
 		if(flushed)
 			return 0;
 
@@ -118,7 +118,7 @@ public:
 		return written + f->flush();
 	}
 
-	size_t write(const void* wbuf, size_t len) throw(Exception) {
+	size_t write(const void* wbuf, size_t len) {
 		if(flushed)
 			throw Exception("No filtered writes after flush");
 
@@ -161,10 +161,7 @@ template<class Filter, bool managed>
 class FilteredInputStream : public InputStream {
 public:
 	FilteredInputStream(InputStream* aFile) : f(aFile), buf(new uint8_t[BUF_SIZE]), pos(0), valid(0), more(true) { }
-	~FilteredInputStream() throw() { 
-		if(managed) 
-			delete f;
-	}
+	~FilteredInputStream() noexcept { if(managed) delete f; }
 
 	/**
 	* Read data through filter, keep calling until len returns 0.
@@ -172,7 +169,7 @@ public:
 	* @param len Buffer size on entry, bytes actually read on exit
 	* @return Length of data in buffer
 	*/
-	size_t read(void* rbuf, size_t& len) throw(Exception) {
+	size_t read(void* rbuf, size_t& len) {
 		uint8_t* rb = (uint8_t*)rbuf;
 
 		size_t totalRead = 0;
@@ -217,5 +214,5 @@ private:
 
 /**
 * @file
-* $Id: FilteredFile.h 493 2010-03-28 16:59:43Z bigmuscle $
+* $Id: FilteredFile.h 568 2011-07-24 18:28:43Z bigmuscle $
 */

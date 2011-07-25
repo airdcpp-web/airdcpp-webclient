@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,9 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
+#include "Thread.h"
 
 #include <process.h>
-#include "Thread.h"
 
 #include "ResourceManager.h"
 
@@ -28,7 +27,7 @@ namespace dcpp {
 	
 #ifdef _WIN32
 DWORD threadId;
-void Thread::start() throw(ThreadException) {
+void Thread::start() {
 	join();
 	if( (threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, &starter, this, 0, reinterpret_cast<unsigned int*>(&threadId)))) == NULL) {
 		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
@@ -36,7 +35,7 @@ void Thread::start() throw(ThreadException) {
 }
 
 #else
-void Thread::start() throw(ThreadException) {
+void Thread::start() {
 	join();
 	if(pthread_create(&threadHandle, NULL, &starter, this) != 0) {
 		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
@@ -48,5 +47,5 @@ void Thread::start() throw(ThreadException) {
 
 /**
  * @file
- * $Id: Thread.cpp 548 2010-09-06 08:54:37Z bigmuscle $
+ * $Id: Thread.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

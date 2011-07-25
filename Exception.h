@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,18 +19,24 @@
 #ifndef DCPLUSPLUS_DCPP_EXCEPTION_H
 #define DCPLUSPLUS_DCPP_EXCEPTION_H
 
+#include <string>
+
+#include "debug.h"
+
 namespace dcpp {
+
+using std::string;
 
 class Exception : public std::exception
 {
 public:
 	Exception() { }
-	Exception(const string& aError) throw() : error(aError) { dcdrun(if(error.size()>0)) dcdebug("Thrown: %s\n", error.c_str()); }
+	Exception(const string& aError) : error(aError) { dcdrun(if(error.size()>0)) dcdebug("Thrown: %s\n", error.c_str()); }
 	
 	virtual const char* what() const throw() { return getError().c_str(); }
 	
 	virtual ~Exception() throw() { }
-	virtual const string& getError() const throw() { return error; }
+	virtual const string& getError() const { return error; }
 protected:
 	string error;
 };
@@ -39,8 +45,8 @@ protected:
 
 #define STANDARD_EXCEPTION(name) class name : public Exception { \
 public:\
-	name() throw() : Exception(#name) { } \
-	name(const string& aError) throw() : Exception(#name ": " + aError) { } \
+	name() : Exception(#name) { } \
+	name(const string& aError) : Exception(#name ": " + aError) { } \
 	virtual ~name() throw() { } \
 }
 
@@ -48,8 +54,8 @@ public:\
 
 #define STANDARD_EXCEPTION(name) class name : public Exception { \
 public:\
-	name() throw() : Exception() { } \
-	name(const string& aError) throw() : Exception(aError) { } \
+	name() : Exception() { } \
+	name(const string& aError) : Exception(aError) { } \
 	virtual ~name() throw() { } \
 }
 #endif
@@ -60,5 +66,5 @@ public:\
 
 /**
  * @file
- * $Id: Exception.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: Exception.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,8 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "UserConnection.h"
+
 #include "ClientManager.h"
 #include "ResourceManager.h"
 
@@ -74,6 +73,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 		fire(UserConnectionListener::ProtocolError(), this, "Invalid data");  // TODO: translate
 		return;
 	}
+
 	string cmd;
 	string param;
 
@@ -95,7 +95,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 			fire(UserConnectionListener::Direction(), this, param.substr(0, x), param.substr(x+1));
 		}
 	} else if(cmd == "Error") {
-		if(stricmp(param.c_str(), FILE_NOT_AVAILABLE) == 0 || 
+		if(stricmp(param.c_str(), FILE_NOT_AVAILABLE) == 0 ||
 			param.rfind(/*path/file*/" no more exists") != string::npos) { 
     		fire(UserConnectionListener::FileNotAvailable(), this);
     	} else {
@@ -147,7 +147,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 	}
 }
 
-void UserConnection::connect(const string& aServer, uint16_t aPort, uint16_t localPort, BufferedSocket::NatRoles natRole) throw(SocketException, ThreadException) {
+void UserConnection::connect(const string& aServer, uint16_t aPort, uint16_t localPort, BufferedSocket::NatRoles natRole) {
 	dcassert(!socket);
 
 	socket = BufferedSocket::getSocket(0);
@@ -155,7 +155,7 @@ void UserConnection::connect(const string& aServer, uint16_t aPort, uint16_t loc
 	socket->connect(aServer, aPort, localPort, natRole, isSet(FLAG_SECURE), BOOLSETTING(ALLOW_UNTRUSTED_CLIENTS), true);
 }
 
-void UserConnection::accept(const Socket& aServer) throw(SocketException, ThreadException) {
+void UserConnection::accept(const Socket& aServer) {
 	dcassert(!socket);
 	socket = BufferedSocket::getSocket(0);
 	socket->addListener(this);
@@ -200,35 +200,35 @@ void UserConnection::handle(AdcCommand::STA t, const AdcCommand& c) {
 	fire(t, this, c);
 }
 
-void UserConnection::on(Connected) throw() {
+void UserConnection::on(Connected) noexcept {
 	lastActivity = GET_TICK();
     fire(UserConnectionListener::Connected(), this); 
 }
 
-void UserConnection::on(Data, uint8_t* data, size_t len) throw() { 
+void UserConnection::on(Data, uint8_t* data, size_t len) noexcept { 
 	lastActivity = GET_TICK(); 
 	fire(UserConnectionListener::Data(), this, data, len); 
 }
 
-void UserConnection::on(BytesSent, size_t bytes, size_t actual) throw() { 
+void UserConnection::on(BytesSent, size_t bytes, size_t actual) noexcept { 
 	lastActivity = GET_TICK();
 	fire(UserConnectionListener::BytesSent(), this, bytes, actual); 
 }
 
-void UserConnection::on(ModeChange) throw() { 
+void UserConnection::on(ModeChange) noexcept { 
 	lastActivity = GET_TICK(); 
 	fire(UserConnectionListener::ModeChange(), this); 
 }
 
-void UserConnection::on(TransmitDone) throw() {
+void UserConnection::on(TransmitDone) noexcept {
 	fire(UserConnectionListener::TransmitDone(), this);
 }
 
-void UserConnection::on(Updated) throw() { 
+void UserConnection::on(Updated) noexcept { 
 	fire(UserConnectionListener::Updated(), this); 
 }
 
-void UserConnection::on(Failed, const string& aLine) throw() {
+void UserConnection::on(Failed, const string& aLine) noexcept {
 	setState(STATE_UNCONNECTED);
 	fire(UserConnectionListener::Failed(), this, aLine);
 
@@ -274,9 +274,15 @@ void UserConnection::updateChunkSize(int64_t leafSize, int64_t lastChunk, uint64
 	chunkSize = targetSize;
 }
 
+void UserConnection::send(const string& aString) {
+	lastActivity = GET_TICK();
+	COMMAND_DEBUG(aString, DebugManager::CLIENT_OUT, getRemoteIp());
+	socket->write(aString);
+}
+
 } // namespace dcpp
 
 /**
  * @file
- * $Id: UserConnection.cpp 500 2010-06-25 22:08:18Z bigmuscle $
+ * $Id: UserConnection.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

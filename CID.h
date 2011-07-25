@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,15 +46,9 @@ public:
 	}
 	const uint8_t* data() const { return cid; }
 	
-	bool isZero() const { return find_if(cid, cid+SIZE, bind2nd(not_equal_to<uint8_t>(), 0)) == (cid+SIZE); }
+	bool isZero() const { return find_if(cid, cid+SIZE, [](uint8_t c) { return c != 0; }) == (cid+SIZE); }
 
-	static CID generate() { 
-		uint8_t data[CID::SIZE];
-		for(size_t i = 0; i < sizeof(data); ++i) {
-			data[i] = (uint8_t)Util::rand();
-		}
-		return CID(data);
-	}
+	static CID generate();
 
 private:
 	uint8_t cid[SIZE];
@@ -91,5 +85,5 @@ struct equal_to<dcpp::CID*> {
 
 /**
 * @file
-* $Id: CID.h 536 2010-07-28 14:40:14Z bigmuscle $
+* $Id: CID.h 568 2011-07-24 18:28:43Z bigmuscle $
 */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,8 +31,8 @@ public:
 	typedef X<0> AddedUl;
 	typedef X<1> AddedDl;
 
-	virtual void on(AddedDl, FinishedItem*) throw() { }
-	virtual void on(AddedUl, FinishedItem*) throw() { }
+	virtual void on(AddedDl, FinishedItem*) noexcept { }
+	virtual void on(AddedUl, FinishedItem*) noexcept { }
 
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "Transfer.h"
 
 #include "UserConnection.h"
@@ -107,6 +105,7 @@ void Transfer::getParams(const UserConnection& aSource, StringMap& params) const
 UserPtr Transfer::getUser() {
 	return getUserConnection().getUser();
 }
+
 const UserPtr Transfer::getUser() const {
 	return getUserConnection().getUser();
 }

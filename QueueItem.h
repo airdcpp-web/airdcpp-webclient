@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "Flags.h"
 #include "forward.h"
 #include "Segment.h"
+#include "HintedUser.h"
 
 namespace dcpp {
 
@@ -33,15 +34,7 @@ class Download;
 
 class QueueItem : public Flags, public FastAlloc<QueueItem>, public intrusive_ptr_base<QueueItem> {
 public:
-	typedef QueueItem* Ptr;
-	typedef deque<Ptr> List;
-	typedef List::const_iterator Iter;
-	typedef unordered_map<string*, Ptr, noCaseStringHash, noCaseStringEq> StringMap;
-	typedef StringMap::const_iterator StringIter;
-	typedef unordered_map<UserPtr, Ptr, User::Hash> UserMap;
-	typedef UserMap::const_iterator UserIter;
-	typedef unordered_map<UserPtr, List, User::Hash> UserListMap;
-	typedef UserListMap::const_iterator UserListIter;
+	typedef unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 
 	enum Priority {
 		DEFAULT = -1,
@@ -308,5 +301,5 @@ private:
 
 /**
 * @file
-* $Id: QueueItem.h 501 2010-06-28 15:33:19Z bigmuscle $
+* $Id: QueueItem.h 568 2011-07-24 18:28:43Z bigmuscle $
 */

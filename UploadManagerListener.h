@@ -1,7 +1,10 @@
-#ifndef UPLOADMANAGERLISTENER_H_
-#define UPLOADMANAGERLISTENER_H_
+#ifndef DCPLUSPLUS_DCPP_UPLOADMANAGERLISTENER_H_
+#define DCPLUSPLUS_DCPP_UPLOADMANAGERLISTENER_H_
 
 #include "forward.h"
+#include "typedefs.h"
+
+#include "noexcept.h"
 
 namespace dcpp {
 
@@ -20,14 +23,14 @@ public:
 	typedef X<6> QueueItemRemove;
 	typedef X<7> QueueUpdate;
 
-	virtual void on(Starting, const Upload*) throw() { }
-	virtual void on(Tick, const UploadList&) throw() { }
-	virtual void on(Complete, const Upload*) throw() { }
-	virtual void on(Failed, const Upload*, const string&) throw() { }
-	virtual void on(QueueAdd, UploadQueueItem*) throw() { }
-	virtual void on(QueueRemove, const UserPtr&) throw() { }
-	virtual void on(QueueItemRemove, UploadQueueItem*) throw() { }
-	virtual void on(QueueUpdate) throw() { }
+	virtual void on(Starting, const Upload*) noexcept { }
+	virtual void on(Tick, const UploadList&) noexcept { }
+	virtual void on(Complete, const Upload*) noexcept { }
+	virtual void on(Failed, const Upload*, const string&) noexcept { }
+	virtual void on(QueueAdd, UploadQueueItem*) noexcept { }
+	virtual void on(QueueRemove, const UserPtr&) noexcept { }
+	virtual void on(QueueItemRemove, UploadQueueItem*) noexcept { }
+	virtual void on(QueueUpdate) noexcept { }
 
 };
 

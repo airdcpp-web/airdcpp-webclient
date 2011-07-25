@@ -19,12 +19,14 @@
 #include "stdinc.h"
 #include "DCPlusPlus.h"
 
+#include "DCPlusPlus.h"
+
 #include "ServerSocket.h"
 #include "SettingsManager.h"
 
 namespace dcpp {
 
-void ServerSocket::listen(uint16_t aPort) throw(SocketException) {
+void ServerSocket::listen(uint16_t aPort) {
 	socket.disconnect();
 	socket.create(Socket::TYPE_TCP);
 	// Set reuse address option...
@@ -37,5 +39,5 @@ void ServerSocket::listen(uint16_t aPort) throw(SocketException) {
 
 /**
  * @file
- * $Id: ServerSocket.cpp 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: ServerSocket.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

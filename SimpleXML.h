@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_SIMPLE_XML_H
 #define DCPLUSPLUS_DCPP_SIMPLE_XML_H
 
+#include "forward.h"
+#include "noexcept.h"
 #include "Exception.h"
 
 #include "File.h"
@@ -40,30 +42,30 @@ public:
 	}
 	~SimpleXML() { }
 	
-	void addTag(const string& aName, const string& aData = Util::emptyString) throw(SimpleXMLException);
-	void addTag(const string& aName, int aData) throw(SimpleXMLException) {
+	void addTag(const string& aName, const string& aData = Util::emptyString);
+	void addTag(const string& aName, int aData) {
 		addTag(aName, Util::toString(aData));
 	}
-	void addTag(const string& aName, int64_t aData) throw(SimpleXMLException) {
+	void addTag(const string& aName, int64_t aData) {
 		addTag(aName, Util::toString(aData));
 	}
 
 	template<typename T>
-	void addAttrib(const string& aName, const T& aData) throw(SimpleXMLException) {
+	void addAttrib(const string& aName, const T& aData) {
 		addAttrib(aName, Util::toString(aData));
 	}
 
-	void addAttrib(const string& aName, const string& aData) throw(SimpleXMLException);
-	void addAttrib(const string& aName, bool aData) throw(SimpleXMLException) {	
+	void addAttrib(const string& aName, const string& aData);
+	void addAttrib(const string& aName, bool aData) {	
 		addAttrib(aName, string(aData ? "1" : "0"));
 	}
 	
 	template <typename T>
-    void addChildAttrib(const string& aName, const T& aData) throw(SimpleXMLException) {	
+    void addChildAttrib(const string& aName, const T& aData) {	
 		addChildAttrib(aName, Util::toString(aData));
 	}
-	void addChildAttrib(const string& aName, const string& aData) throw(SimpleXMLException);
-	void addChildAttrib(const string& aName, bool aData) throw(SimpleXMLException) {	
+	void addChildAttrib(const string& aName, const string& aData);
+	void addChildAttrib(const string& aName, bool aData) {	
 		addChildAttrib(aName, string(aData ? "1" : "0"));
 	}
 	
@@ -72,14 +74,14 @@ public:
 		return current->data;
 	}
 	
-	void stepIn() throw(SimpleXMLException) {
+	void stepIn() {
 		checkChildSelected();
 		current = *currentChild;
 		currentChild = current->children.begin();
 		found = false;
 	}
 
-	void stepOut() throw(SimpleXMLException) {
+	void stepOut() {
 		if(current == &root)
 			throw SimpleXMLException("Already at lowest level");
 
@@ -91,40 +93,40 @@ public:
 		found = true;
 	}
 
-	void resetCurrentChild() throw() {
+	void resetCurrentChild() noexcept {
 		found = false;
 		dcassert(current != NULL);
 		currentChild = current->children.begin();
 	}
 
-	bool findChild(const string& aName) throw();
+	bool findChild(const string& aName) noexcept;
 
-	const string& getChildData() const throw(SimpleXMLException) {
+	const string& getChildData() const {
 		checkChildSelected();
 		return (*currentChild)->data;
 	}
 
-	const string& getChildAttrib(const string& aName, const string& aDefault = Util::emptyString) const throw(SimpleXMLException) {
+	const string& getChildAttrib(const string& aName, const string& aDefault = Util::emptyString) const {
 		checkChildSelected();
 		return (*currentChild)->getAttrib(aName, aDefault);
 	}
 
-	int getIntChildAttrib(const string& aName) const throw(SimpleXMLException) {
+	int getIntChildAttrib(const string& aName) const {
 		checkChildSelected();
 		return Util::toInt(getChildAttrib(aName));
 	}
-	int64_t getLongLongChildAttrib(const string& aName) const throw(SimpleXMLException) {
+	int64_t getLongLongChildAttrib(const string& aName) const {
 		checkChildSelected();
 		return Util::toInt64(getChildAttrib(aName));
 	}
-	bool getBoolChildAttrib(const string& aName) const throw(SimpleXMLException) {
+	bool getBoolChildAttrib(const string& aName) const {
 		checkChildSelected();
 		const string& tmp = getChildAttrib(aName);
 
 		return (tmp.size() > 0) && tmp[0] == '1';
 	}
 	
-	void fromXML(const string& aXML) throw(SimpleXMLException);
+	void fromXML(const string& aXML);
 	string toXML() { string tmp; StringOutputStream os(tmp); toXML(&os); return tmp; }
 	void toXML(OutputStream* f) throw(FileException) { if(!root.children.empty()) root.children[0]->toXML(0, f); }
 	
@@ -225,7 +227,7 @@ private:
 
 	Tag::Iter currentChild;
 
-	void checkChildSelected() const throw() {
+	void checkChildSelected() const noexcept {
 		dcassert(current != NULL);
 		dcassert(currentChild != current->children.end());
 	}
@@ -239,5 +241,5 @@ private:
 
 /**
  * @file
- * $Id: SimpleXML.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: SimpleXML.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

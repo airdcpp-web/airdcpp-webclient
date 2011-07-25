@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,12 +28,12 @@
 #include "FastAlloc.h"
 #include "Text.h"
 #include "Streams.h"
+#include "ZUtils.h"
 
 namespace dcpp {
 
 STANDARD_EXCEPTION(HashException);
 class File;
-class CRC32Filter;
 
 class HashManagerListener {
 public:
@@ -42,7 +42,7 @@ public:
 
 	typedef X<0> TTHDone;
 
-	virtual void on(TTHDone, const string& /* fileName */, const TTHValue& /* root */) throw() = 0;
+	virtual void on(TTHDone, const string& /* fileName */, const TTHValue& /* root */) noexcept = 0;
 };
 
 class HashLoader;
@@ -59,7 +59,7 @@ public:
 	HashManager(): lastSave(0) {
 		TimerManager::getInstance()->addListener(this);
 	}
-	~HashManager() throw() {
+	~HashManager() {
 		TimerManager::getInstance()->removeListener(this);
 		hasher.join();
 	}
@@ -73,7 +73,7 @@ public:
 	void setPriority(Thread::Priority p) { hasher.setThreadPriority(p); }
 
 	/** @return TTH root */
-	TTHValue getTTH(const string& aFileName, int64_t aSize) throw(HashException);
+	TTHValue getTTH(const string& aFileName, int64_t aSize);
 
 	bool getTree(const TTHValue& root, TigerTree& tt);
 
@@ -178,7 +178,7 @@ private:
 
 		bool checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp);
 
-		void addTree(const TigerTree& tt) throw();
+		void addTree(const TigerTree& tt) noexcept;
 		const TTHValue* getTTH(const string& aFileName);
 		bool getTree(const TTHValue& root, TigerTree& tth);
 		size_t getBlockSize(const TTHValue& root) const;
@@ -232,10 +232,10 @@ private:
 		void createDataFile(const string& name);
 
 		bool loadTree(File& dataFile, const TreeInfo& ti, const TTHValue& root, TigerTree& tt);
-		int64_t saveTree(File& dataFile, const TigerTree& tt) throw(FileException);
+		int64_t saveTree(File& dataFile, const TigerTree& tt);
 
-		string getIndexFile() { return Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml"; }
-		string getDataFile() { return Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat"; }
+		static string getIndexFile();
+		static string getDataFile();
 	};
 
 	friend class HashLoader;
@@ -256,7 +256,7 @@ private:
 	}
 
 	uint64_t  lastSave;
-	void on(TimerManagerListener::Minute, uint64_t) throw() {
+	void on(TimerManagerListener::Minute, uint64_t) noexcept {
 		if(GET_TICK() - lastSave > 15*60*1000) { 
 		Lock l(cs);
 		store.save();
@@ -271,5 +271,5 @@ private:
 
 /**
  * @file
- * $Id: HashManager.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: HashManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

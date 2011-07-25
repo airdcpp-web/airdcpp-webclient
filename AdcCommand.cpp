@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,8 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "AdcCommand.h"
+
 #include "ClientManager.h"
 
 namespace dcpp {
@@ -31,11 +30,11 @@ AdcCommand::AdcCommand(Severity sev, Error err, const string& desc, char aType /
 	addParam(desc);
 }
 
-AdcCommand::AdcCommand(const string& aLine, bool nmdc /* = false */) throw(ParseException) : cmdInt(0), type(TYPE_CLIENT) {
+AdcCommand::AdcCommand(const string& aLine, bool nmdc /* = false */) : cmdInt(0), type(TYPE_CLIENT) {
 	parse(aLine, nmdc);
 }
 
-void AdcCommand::parse(const string& aLine, bool nmdc /* = false */) throw(ParseException) {
+void AdcCommand::parse(const string& aLine, bool nmdc /* = false */) {
 	string::size_type i = 5;
 
 	if(nmdc) {
@@ -264,5 +263,5 @@ bool AdcCommand::hasFlag(const char* name, size_t start) const {
 
 /**
  * @file
- * $Id: AdcCommand.cpp 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: AdcCommand.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

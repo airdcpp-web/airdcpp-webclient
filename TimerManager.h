@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(TIMER_MANAGER_H)
-#define TIMER_MANAGER_H
+#ifndef DCPLUSPLUS_DCPP_TIMER_MANAGER_H
+#define DCPLUSPLUS_DCPP_TIMER_MANAGER_H
 
 #include "Thread.h"
 #include "Speaker.h"
@@ -39,8 +39,8 @@ public:
 	typedef X<0> Second;
 	typedef X<1> Minute;
 
-	virtual void on(Second, uint64_t) throw() { }
-	virtual void on(Minute, uint64_t) throw() { }
+	virtual void on(Second, uint64_t) noexcept { }
+	virtual void on(Minute, uint64_t) noexcept { }
 };
 
 class TimerManager : public Speaker<TimerManagerListener>, public Singleton<TimerManager>, public Thread
@@ -55,7 +55,7 @@ private:
 	boost::timed_mutex mtx;
 
 	TimerManager();
-	~TimerManager() throw();
+	~TimerManager();
 	
 	int run();
 };
@@ -65,9 +65,9 @@ private:
 
 } // namespace dcpp
 
-#endif // !defined(TIMER_MANAGER_H)
+#endif // DCPLUSPLUS_DCPP_TIMER_MANAGER_H
 
 /**
  * @file
- * $Id: TimerManager.h 548 2010-09-06 08:54:37Z bigmuscle $
+ * $Id: TimerManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

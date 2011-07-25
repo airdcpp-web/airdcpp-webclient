@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,10 @@
 
 #ifndef DCPLUSPLUS_DCPP_TEXT_H
 #define DCPLUSPLUS_DCPP_TEXT_H
+
+#include "debug.h"
+#include "typedefs.h"
+#include "noexcept.h"
 
 namespace dcpp {
 
@@ -39,38 +43,38 @@ namespace Text {
 
 	void initialize();
 
-	const string& acpToUtf8(const string& str, string& tmp, const string& fromCharset = "") throw();
-	inline string acpToUtf8(const string& str, const string& fromCharset = "") throw() {
+	const string& acpToUtf8(const string& str, string& tmp, const string& fromCharset = "") noexcept;
+	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept {
 		string tmp;
 		return acpToUtf8(str, tmp, fromCharset);
 	}
 
-	const wstring& acpToWide(const string& str, wstring& tmp, const string& fromCharset = "") throw();
-	inline wstring acpToWide(const string& str, const string& fromCharset = "") throw() {
+	const wstring& acpToWide(const string& str, wstring& tmp, const string& fromCharset = "") noexcept;
+	inline wstring acpToWide(const string& str, const string& fromCharset = "") noexcept {
 		wstring tmp;
 		return acpToWide(str, tmp, fromCharset);
 	}
 
-	const string& utf8ToAcp(const string& str, string& tmp, const string& toCharset = "") throw();
-	inline string utf8ToAcp(const string& str, const string& toCharset = "") throw() {
+	const string& utf8ToAcp(const string& str, string& tmp, const string& toCharset = "") noexcept;
+	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept {
 		string tmp;
 		return utf8ToAcp(str, tmp, toCharset);
 	}
 
-	const wstring& utf8ToWide(const string& str, wstring& tmp) throw();
-	inline wstring utf8ToWide(const string& str) throw() {
+	const wstring& utf8ToWide(const string& str, wstring& tmp) noexcept;
+	inline wstring utf8ToWide(const string& str) noexcept {
 		wstring tmp;
 		return utf8ToWide(str, tmp);
 	}
 
-	const string& wideToAcp(const wstring& str, string& tmp, const string& toCharset = "") throw();
-	inline string wideToAcp(const wstring& str, const string& toCharset = "") throw() {
+	const string& wideToAcp(const wstring& str, string& tmp, const string& toCharset = "") noexcept;
+	inline string wideToAcp(const wstring& str, const string& toCharset = "") noexcept {
 		string tmp;
 		return wideToAcp(str, tmp, toCharset);
 	}
 	
-	const string& wideToUtf8(const wstring& str, string& tmp) throw();
-	inline string wideToUtf8(const wstring& str) throw() {
+	const string& wideToUtf8(const wstring& str, string& tmp) noexcept;
+	inline string wideToUtf8(const wstring& str) noexcept {
 		string tmp;
 		return wideToUtf8(str, tmp);
 	}
@@ -79,27 +83,27 @@ namespace Text {
 	void wcToUtf8(wchar_t c, string& str);
 
 #ifdef UNICODE
-	inline const tstring& toT(const string& str, tstring& tmp) throw() { return utf8ToWide(str, tmp); }
-	inline tstring toT(const string& str) throw() { return utf8ToWide(str); }
+	inline const tstring& toT(const string& str, tstring& tmp) noexcept { return utf8ToWide(str, tmp); }
+	inline tstring toT(const string& str) noexcept { return utf8ToWide(str); }
 
-	inline const string& fromT(const tstring& str, string& tmp) throw() { return wideToUtf8(str, tmp); }
-	inline string fromT(const tstring& str) throw() { return wideToUtf8(str); }
+	inline const string& fromT(const tstring& str, string& tmp) noexcept { return wideToUtf8(str, tmp); }
+	inline string fromT(const tstring& str) noexcept { return wideToUtf8(str); }
 #else
-	inline const tstring& toT(const string& str, tstring& tmp) throw() { return utf8ToAcp(str, tmp); }
-	inline tstring toT(const string& str) throw() { return utf8ToAcp(str); }
+	inline const tstring& toT(const string& str, tstring& tmp) noexcept { return utf8ToAcp(str, tmp); }
+	inline tstring toT(const string& str) noexcept { return utf8ToAcp(str); }
 
-	inline const string& fromT(const tstring& str, string& tmp) throw() { return acpToUtf8(str, tmp); }
-	inline string fromT(const tstring& str) throw() { return acpToUtf8(str); }
+	inline const string& fromT(const tstring& str, string& tmp) noexcept { return acpToUtf8(str, tmp); }
+	inline string fromT(const tstring& str) noexcept { return acpToUtf8(str); }
 #endif
 
-	inline bool isAscii(const string& str) throw() { return isAscii(str.c_str()); }
-	bool isAscii(const char* str) throw();
+	inline bool isAscii(const string& str) noexcept { return isAscii(str.c_str()); }
+	bool isAscii(const char* str) noexcept;
 	
-	bool validateUtf8(const string& str) throw();
+	bool validateUtf8(const string& str) noexcept;
 
 	inline char asciiToLower(char c) { dcassert((((uint8_t)c) & 0x80) == 0); return (char)tolower(c); }
 
-	inline wchar_t toLower(wchar_t c) throw() {
+	inline wchar_t toLower(wchar_t c) noexcept {
 #ifdef _WIN32
 		return static_cast<wchar_t>(reinterpret_cast<ptrdiff_t>(CharLowerW((LPWSTR)c)));
 #else
@@ -107,32 +111,32 @@ namespace Text {
 #endif
 	}
 	
-	const wstring& toLower(const wstring& str, wstring& tmp) throw();
-	inline wstring toLower(const wstring& str) throw() {
+	const wstring& toLower(const wstring& str, wstring& tmp) noexcept;
+	inline wstring toLower(const wstring& str) noexcept {
 		wstring tmp;
 		return toLower(str, tmp);
 	}
 	
-	const string& toLower(const string& str, string& tmp) throw();
-	inline string toLower(const string& str) throw() {
+	const string& toLower(const string& str, string& tmp) noexcept;
+	inline string toLower(const string& str) noexcept {
 		string tmp;
 		return toLower(str, tmp);
 	}
 
-	const string& convert(const string& str, string& tmp, const string& fromCharset, const string& toCharset) throw();
-	inline string convert(const string& str, const string& fromCharset, const string& toCharset) throw() {
+	const string& convert(const string& str, string& tmp, const string& fromCharset, const string& toCharset) noexcept;
+	inline string convert(const string& str, const string& fromCharset, const string& toCharset) noexcept {
 		string tmp;
 		return convert(str, tmp, fromCharset, toCharset);
 	}
 
-	const string& toUtf8(const string& str, const string& fromCharset, string& tmp) throw();
+	const string& toUtf8(const string& str, const string& fromCharset, string& tmp) noexcept;
 	inline string toUtf8(const string& str, const string& fromCharset = systemCharset) {
 		string tmp;
 		return toUtf8(str, fromCharset, tmp);
 	}
 	
-	const string& fromUtf8(const string& str, const string& toCharset, string& tmp) throw();
-	inline string fromUtf8(const string& str, const string& toCharset = systemCharset) throw() {
+	const string& fromUtf8(const string& str, const string& toCharset, string& tmp) noexcept;
+	inline string fromUtf8(const string& str, const string& toCharset = systemCharset) noexcept {
 		string tmp;
 		return fromUtf8(str, toCharset, tmp);
 	}

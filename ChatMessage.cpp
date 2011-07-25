@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,9 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "ChatMessage.h"
 
-#include "User.h"
+#include "OnlineUser.h"
 #include "Util.h"
 
 namespace dcpp {
@@ -35,7 +33,7 @@ string ChatMessage::format() const {
 
 	const string& nick = from->getIdentity().getNick();
 	// let's *not* obey the spec here and add a space after the star. :P
-	tmp += (thirdPerson ? "* " + nick + " " : "<" + nick + "> ") + text;
+	tmp += (thirdPerson ? "* " + nick + ' ' : '<' + nick + "> ") + text;
 
 	// Check all '<' and '[' after newlines as they're probably pastes...
 	size_t i = 0;

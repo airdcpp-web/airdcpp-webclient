@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_FAVORITEMANAGERLISTENER_H_
 
 #include "forward.h"
+#include "noexcept.h"
 
 namespace dcpp {
 
@@ -42,19 +43,19 @@ public:
 	typedef X<11> RecentRemoved;
 	typedef X<12> RecentUpdated;
 
-	virtual void on(DownloadStarting, const string&) throw() { }
-	virtual void on(DownloadFailed, const string&) throw() { }
-	virtual void on(DownloadFinished, const string&, bool) throw() { }
-	virtual void on(FavoriteAdded, const FavoriteHubEntry*) throw() { }
-	virtual void on(FavoriteRemoved, const FavoriteHubEntry*) throw() { }
-	virtual void on(UserAdded, const FavoriteUser&) throw() { }
-	virtual void on(UserRemoved, const FavoriteUser&) throw() { }
-	virtual void on(StatusChanged, const UserPtr&) throw() { }
-	virtual void on(LoadedFromCache, const string&, const string&) throw() { }
-	virtual void on(Corrupted, const string&) throw() { }
-	virtual void on(RecentAdded, const RecentHubEntry*) throw() { }
-	virtual void on(RecentRemoved, const RecentHubEntry*) throw() { }
-	virtual void on(RecentUpdated, const RecentHubEntry*) throw() { }
+	virtual void on(DownloadStarting, const string&) noexcept { }
+	virtual void on(DownloadFailed, const string&) noexcept { }
+	virtual void on(DownloadFinished, const string&, bool) noexcept { }
+	virtual void on(FavoriteAdded, const FavoriteHubEntry*) noexcept { }
+	virtual void on(FavoriteRemoved, const FavoriteHubEntry*) noexcept { }
+	virtual void on(UserAdded, const FavoriteUser&) noexcept { }
+	virtual void on(UserRemoved, const FavoriteUser&) noexcept { }
+	virtual void on(StatusChanged, const UserPtr&) noexcept { }
+	virtual void on(LoadedFromCache, const string&, const string&) noexcept { }
+	virtual void on(Corrupted, const string&) noexcept { }
+	virtual void on(RecentAdded, const RecentHubEntry*) noexcept { }
+	virtual void on(RecentRemoved, const RecentHubEntry*) noexcept { }
+	virtual void on(RecentUpdated, const RecentHubEntry*) noexcept { }
 };
 
 } // namespace dcpp

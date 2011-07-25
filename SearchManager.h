@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,8 +82,8 @@ public:
 		return port;
 	}
 
-	void listen() throw(SocketException);
-	void disconnect() throw();
+	void listen();
+	void disconnect() noexcept;
 	void onSearchResult(const string& aLine) {
 		onData((const uint8_t*)aLine.data(), aLine.length(), Util::emptyString);
 	}
@@ -96,7 +96,7 @@ private:
 	class UdpQueue: public Thread {
 	public:
 		UdpQueue() : stop(false) {}
-		~UdpQueue() throw() { shutdown(); }
+		~UdpQueue() { shutdown(); }
 
 		int run();
 		void shutdown() {
@@ -131,7 +131,7 @@ private:
 	static std::string normalizeWhitespace(const std::string& aString);
 	int run();
 
-	~SearchManager() throw();
+	~SearchManager();
 	void onData(const uint8_t* buf, size_t aLen, const string& address);
 
 	string getPartsString(const PartsInfo& partsInfo) const;
@@ -143,5 +143,5 @@ private:
 
 /**
  * @file
- * $Id: SearchManager.h 551 2010-12-18 12:14:16Z bigmuscle $
+ * $Id: SearchManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "Encoder.h"
+
+#include "Exception.h"
+
+#include <cstring>
+
+#include "debug.h"
 
 namespace dcpp {
 
@@ -115,9 +119,29 @@ bool Encoder::isBase32(const char* src)
 	return true;
 }
 
+uint8_t decode16(char c) {
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'A' && c <= 'F')
+		return c - 'A';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a';
+	throw Exception("can't decode");
+}
+
+void Encoder::fromBase16(const char* src, uint8_t* dst, size_t len) {
+	memset(dst, 0, len);
+	for(size_t i = 0; src[i] && src[i+1] && i < len * 2; i += 2) {
+		// Skip what we don't recognise
+		auto tmp = decode16(src[i]);
+		auto tmp2 = decode16(src[i+1]);
+		dst[i/2] = (tmp << 4) + tmp2;
+	}
+}
+
 } // namespace dcpp
 
 /**
  * @file
- * $Id: Encoder.cpp 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: Encoder.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

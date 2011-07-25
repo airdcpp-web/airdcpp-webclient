@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,11 @@ public:
 	typedef X<3> Failed;
 	typedef X<4> StatusChanged;
 
-	virtual void on(Added, const ConnectionQueueItem*) throw() { }
-	virtual void on(Connected, const ConnectionQueueItem*) throw() { }
-	virtual void on(Removed, const ConnectionQueueItem*) throw() { }
-	virtual void on(Failed, const ConnectionQueueItem*, const string&) throw() { }
-	virtual void on(StatusChanged, const ConnectionQueueItem*) throw() { }
+	virtual void on(Added, const ConnectionQueueItem*) noexcept { }
+	virtual void on(Connected, const ConnectionQueueItem*) noexcept { }
+	virtual void on(Removed, const ConnectionQueueItem*) noexcept { }
+	virtual void on(Failed, const ConnectionQueueItem*, const string&) noexcept { }
+	virtual void on(StatusChanged, const ConnectionQueueItem*) noexcept { }
 };
 
 } // namespace dcpp
@@ -47,5 +47,5 @@ public:
 
 /**
 * @file
-* $Id: ConnectionManagerListener.h 482 2010-02-13 10:49:30Z bigmuscle $
+* $Id: ConnectionManagerListener.h 568 2011-07-24 18:28:43Z bigmuscle $
 */

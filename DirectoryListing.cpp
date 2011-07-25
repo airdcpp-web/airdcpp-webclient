@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "DirectoryListing.h"
 
 #include "QueueManager.h"
@@ -48,15 +46,11 @@ DirectoryListing::~DirectoryListing() {
 }
 
 UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
-	// General file list name format: [username].[CID].[xml|xml.bz2|DcLst]
+	// General file list name format: [username].[CID].[xml|xml.bz2]
 
 	string name = Util::getFileName(fileName);
 
 	// Strip off any extensions
-	if(stricmp(name.c_str() + name.length() - 6, ".DcLst") == 0) {
-		name.erase(name.length() - 6);
-	}
-
 	if(stricmp(name.c_str() + name.length() - 4, ".bz2") == 0) {
 		name.erase(name.length() - 4);
 	}
@@ -83,7 +77,7 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 	return ClientManager::getInstance()->getUser(cid);
 }
 
-void DirectoryListing::loadFile(const string& name, bool checkdupe) throw(Exception) {
+void DirectoryListing::loadFile(const string& name, bool checkdupe) {
 	// For now, we detect type by ending...
 	string ext = Util::getFileExt(name);
 
@@ -96,8 +90,7 @@ void DirectoryListing::loadFile(const string& name, bool checkdupe) throw(Except
 	}
 }
 
-class ListLoader : public dcpp::SimpleXMLReader::CallBack 
-{
+class ListLoader : public SimpleXMLReader::CallBack {
 public:
 	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe) : list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkdupe(aCheckDupe) { 
 	}
@@ -156,11 +149,28 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& s = getAttrib(attribs, sSize, 1);
 			if(s.empty())
 				return;
+			auto size = Util::toInt64(s);
+
 			const string& h = getAttrib(attribs, sTTH, 2);
-			if(h.empty()) {
-				return;
+			if(h.empty())
+				return;		
+			TTHValue tth(h); /// @todo verify validity?
+
+			if(updating) {
+				// just update the current file if it is already there.
+				for(auto i = cur->files.cbegin(), iend = cur->files.cend(); i != iend; ++i) {
+					auto& file = **i;
+					/// @todo comparisons should be case-insensitive but it takes too long - add a cache
+					if(file.getTTH() == tth || file.getName() == n) {
+						file.setName(n);
+						file.setSize(size);
+						file.setTTH(tth);
+						return;
+					}
+				}
 			}
-			DirectoryListing::File* f = new DirectoryListing::File(cur, n, Util::toInt64(s), h);
+
+			DirectoryListing::File* f = new DirectoryListing::File(cur, n, size, tth);
 			cur->files.push_back(f);
 			if((f->getSize() > 0) && checkdupe) {
 				f->setDupe(ShareManager::getInstance()->isTTHShared(f->getTTH()));
@@ -176,6 +186,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
 				for(DirectoryListing::Directory::Iter i  = cur->directories.begin(); i != cur->directories.end(); ++i) {
+					/// @todo comparisons should be case-insensitive but it takes too long - add a cache
 					if((*i)->getName() == n) {
 						d = *i;
 						if(!d->getComplete())
@@ -228,8 +239,6 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			// To handle <Directory Name="..." />
 			endTag(name, Util::emptyString);
 		}
-		
-
 	}
 }
 
@@ -355,6 +364,11 @@ struct DirectoryEmpty {
 		return r;
 	}
 };
+
+DirectoryListing::Directory::~Directory() {
+	for_each(directories.begin(), directories.end(), DeleteFunction());
+	for_each(files.begin(), files.end(), DeleteFunction());
+}
 
 void DirectoryListing::Directory::filterList(DirectoryListing& dirList) {
 		DirectoryListing::Directory* d = dirList.getRoot();

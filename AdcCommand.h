@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_ADC_COMMAND_H
 #define DCPLUSPLUS_DCPP_ADC_COMMAND_H
 
+#include "typedefs.h"
+
 #include "SettingsManager.h"
 #include "Exception.h"
 
@@ -119,13 +121,13 @@ public:
 	explicit AdcCommand(uint32_t aCmd, char aType = TYPE_CLIENT);
 	explicit AdcCommand(uint32_t aCmd, const uint32_t aTarget, char aType);
 	explicit AdcCommand(Severity sev, Error err, const string& desc, char aType = TYPE_CLIENT);
-	explicit AdcCommand(const string& aLine, bool nmdc = false) throw(ParseException);
-	void parse(const string& aLine, bool nmdc = false) throw(ParseException);
+	explicit AdcCommand(const string& aLine, bool nmdc = false);
+	void parse(const string& aLine, bool nmdc = false);
 
 	uint32_t getCommand() const { return cmdInt; }
 	char getType() const { return type; }
 	void setType(char t) { type = t; }
-	string getFourCC() const { string tmp(4, '\0'); tmp[0] = type; tmp[1] = cmd[0]; tmp[2] = cmd[1]; tmp[3] = cmd[2]; return tmp; }
+	string getFourCC() const { string tmp(4, 0); tmp[0] = type; tmp[1] = cmd[0]; tmp[2] = cmd[1]; tmp[3] = cmd[2]; return tmp; }
 
 	const string& getFeatures() const { return features; }
 	AdcCommand& setFeatures(const string& feat) { features = feat; return *this; }
@@ -227,5 +229,5 @@ public:
 
 /**
 * @file
-* $Id: AdcCommand.h 551 2010-12-18 12:14:16Z bigmuscle $
+* $Id: AdcCommand.h 568 2011-07-24 18:28:43Z bigmuscle $
 */

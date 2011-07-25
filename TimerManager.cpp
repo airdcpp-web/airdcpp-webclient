@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "TimerManager.h"
 
 #include <boost/date_time/posix_time/ptime.hpp>
@@ -32,7 +30,7 @@ TimerManager::TimerManager() {
 	mtx.lock();
 }
 
-TimerManager::~TimerManager() throw() {
+TimerManager::~TimerManager() {
 	dcassert(listeners.size() == 0);
 }
 
@@ -75,5 +73,5 @@ uint64_t TimerManager::getTick() {
 
 /**
  * @file
- * $Id: TimerManager.cpp 548 2010-09-06 08:54:37Z bigmuscle $
+ * $Id: TimerManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

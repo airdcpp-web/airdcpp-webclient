@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(HTTP_CONNECTION_H)
-#define HTTP_CONNECTION_H
+#ifndef DCPLUSPLUS_DCPP_HTTP_CONNECTION_H
+#define DCPLUSPLUS_DCPP_HTTP_CONNECTION_H
 
 #include "BufferedSocket.h"
 
@@ -38,13 +38,13 @@ public:
 	typedef X<5> TypeBZ2;
 	typedef X<6> Retried;
 
-	virtual void on(Data, HttpConnection*, const uint8_t*, size_t) throw() =0;
-	virtual void on(Failed, HttpConnection*, const string&) throw() { }
-	virtual void on(Complete, HttpConnection*, const string&, bool) throw() { }
-	virtual void on(Redirected, HttpConnection*, const string&) throw() { }
-	virtual void on(TypeNormal, HttpConnection*) throw() { }
-	virtual void on(TypeBZ2, HttpConnection*) throw() { }
-	virtual void on(Retried, HttpConnection*, const bool) throw() { }
+	virtual void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept =0;
+	virtual void on(Failed, HttpConnection*, const string&) noexcept { }
+	virtual void on(Complete, HttpConnection*, const string&, bool) noexcept { }
+	virtual void on(Redirected, HttpConnection*, const string&) noexcept { }
+	virtual void on(TypeNormal, HttpConnection*) noexcept { }
+	virtual void on(TypeBZ2, HttpConnection*) noexcept { }
+	virtual void on(Retried, HttpConnection*, const bool) noexcept { }
 };
 
 class HttpConnection : BufferedSocketListener, public Speaker<HttpConnectionListener>
@@ -52,7 +52,7 @@ class HttpConnection : BufferedSocketListener, public Speaker<HttpConnectionList
 public:
 	void downloadFile(const string& aUrl);
 	HttpConnection() : ok(false), port(80), size(-1), moved302(false), coralizeState(CST_DEFAULT), socket(NULL) { }
-	~HttpConnection() throw() {
+	~HttpConnection() {
 		if(socket) {
 			socket->removeListener(this); 
 			BufferedSocket::putSocket(socket);
@@ -82,11 +82,11 @@ private:
 	BufferedSocket* socket;
 
 	// BufferedSocketListener
-	void on(Connected) throw();
-	void on(Line, const string&) throw();
-	void on(Data, uint8_t*, size_t) throw();
-	void on(ModeChange) throw();
-	void on(Failed, const string&) throw();
+	void on(Connected) noexcept;
+	void on(Line, const string&) noexcept;
+	void on(Data, uint8_t*, size_t) noexcept;
+	void on(ModeChange) noexcept;
+	void on(Failed, const string&) noexcept;
 
 	void onConnected(); 
 	void onLine(const string& aLine);
@@ -99,5 +99,5 @@ private:
 
 /**
  * @file
- * $Id: HttpConnection.h 470 2010-01-02 23:23:39Z bigmuscle $
+ * $Id: HttpConnection.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

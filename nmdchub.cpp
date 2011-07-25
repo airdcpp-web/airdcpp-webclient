@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "NmdcHub.h"
 
 #include "ResourceManager.h"
@@ -44,7 +42,7 @@ NmdcHub::NmdcHub(const string& aHubURL, bool secure) : Client(aHubURL, '|', secu
 {
 }
 
-NmdcHub::~NmdcHub() throw() {
+NmdcHub::~NmdcHub() {
 	clearUsers();
 }
 
@@ -193,7 +191,7 @@ void NmdcHub::updateFromTag(Identity& id, const string& tag) {
 	id.set("TA", '<' + tag + '>');
 }
 
-void NmdcHub::onLine(const string& aLine) throw() {
+void NmdcHub::onLine(const string& aLine) noexcept {
 	if(aLine.length() == 0)
 		return;
 
@@ -856,7 +854,12 @@ void NmdcHub::onLine(const string& aLine) throw() {
 	} else if(cmd == "BadPass") {
 		setPassword(Util::emptyString);
 	} else if(cmd == "ZOn") {
-		sock->setMode(BufferedSocket::MODE_ZPIPE);
+		try {
+			sock->setMode(BufferedSocket::MODE_ZPIPE);
+		} catch (const Exception& e) {
+			dcdebug("NmdcHub::onLine %s failed with error: %s\n", cmd.c_str(), e.getError().c_str());
+		}
+
 	} else if(cmd == "HubTopic") {
 		fire(ClientListener::HubTopic(), this, param);
 	} else {
@@ -1060,8 +1063,12 @@ void NmdcHub::clearFlooders(uint64_t aTick) {
 	}
 }
 
-void NmdcHub::on(Connected) throw() {
+void NmdcHub::on(Connected) noexcept {
 	Client::on(Connected());
+
+	if(state != STATE_PROTOCOL) {
+		return;
+	}
 
 	supportFlags = 0;
 	lastMyInfo.clear();
@@ -1069,18 +1076,18 @@ void NmdcHub::on(Connected) throw() {
 	lastUpdate = 0;
 }
 
-void NmdcHub::on(Line, const string& aLine) throw() {
+void NmdcHub::on(Line, const string& aLine) noexcept {
 	Client::on(Line(), aLine);
 	onLine(aLine);
 }
 
-void NmdcHub::on(Failed, const string& aLine) throw() {
+void NmdcHub::on(Failed, const string& aLine) noexcept {
 	clearUsers();
 	Client::on(Failed(), aLine);
 	updateCounts(true);	
 }
 
-void NmdcHub::on(Second, uint64_t aTick) throw() {
+void NmdcHub::on(Second, uint64_t aTick) noexcept {
 	Client::on(Second(), aTick);
 
 	if(state == STATE_NORMAL && (aTick > (getLastActivity() + 120*1000)) ) {

@@ -21,6 +21,14 @@
 
 #include "forward.h"
 
+//#include "AdcHub.h"
+//#include "OnlineUser.h"
+#include "User.h"
+#include "Util.h"
+
+namespace dcpp
+{
+
 class UserInfoBase {
 public:
 	UserInfoBase() { }
@@ -37,31 +45,15 @@ public:
 	void addFav();
 	void removeAll();
 	void connectFav();
-
-	enum {
-		IMAGE_USER = 0, IMAGE_OP
-	};
 	
 	virtual const UserPtr& getUser() const = 0;
 
-	static uint8_t getImage(const Identity& u, const Client* c) {
-		uint8_t image = u.isOp() ? IMAGE_OP : IMAGE_USER;
-
-		if(u.getUser()->isSet(User::AIRDCPLUSPLUS)) {
-			image += 2;
-		}
-
-		if(!u.isTcpActive(c)) {
-			// Users we can't connect to...
-			image += 4;
-		}		
-
-		if(u.getUser()->isSet(User::BOT) && !u.getUser()->isSet(User::NMDC)) {
-			image = 8;
-		}
-
-		return image;
-	}
+	static uint8_t getImage(const Identity& identity, const Client* c);
+	enum {
+		IMAGE_USER = 0, IMAGE_OP
+	};
 };
+
+} // namespace dcpp
 
 #endif

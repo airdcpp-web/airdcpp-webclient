@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ public:
 			case COLUMN_SIZE: return compare(a->size, b->size);
 			case COLUMN_ADDED:
 			case COLUMN_WAITING: return compare(a->time, b->time);
-			default: return Util::DefaultSort(a->getText(col).c_str(), b->getText(col).c_str());
+			default: return lstrcmpi(a->getText(col).c_str(), b->getText(col).c_str());
 		}
 		return 0;
 	}
@@ -82,6 +82,7 @@ public:
 	uint64_t getTime() const { return time; }
 
 	GETSET(int64_t, pos, Pos);
+	
 private:
 	string file;
 	int64_t size;
@@ -93,7 +94,6 @@ private:
 class UploadManager : private ClientManagerListener, private UserConnectionListener, public Speaker<UploadManagerListener>, private TimerManagerListener, public Singleton<UploadManager>
 {
 public:
-	
 	/** @return Number of uploads. */ 
 	size_t getUploadCount() { Lock l(cs); return uploads.size(); }
 
@@ -117,7 +117,7 @@ public:
 	void reserveSlot(const HintedUser& aUser, uint64_t aTime);
 	void unreserveSlot(const UserPtr& aUser);
 	void clearUserFiles(const UserPtr&);
-	const UploadQueueItem::SlotQueue getWaitingUsers();
+	const UploadQueueItem::SlotQueue getUploadQueue();
 	bool hasReservedSlot(const UserPtr& aUser) { Lock l(cs); return reservedSlots.find(aUser) != reservedSlots.end(); }
 	bool isConnecting(const UserPtr& aUser) const { return connectingUsers.find(aUser) != connectingUsers.end(); }
 	bool isUploading(const CID cid) const { return multiUploads.find(cid) != multiUploads.end(); }
@@ -132,9 +132,7 @@ public:
 	void addConnection(UserConnectionPtr conn);
 	void removeDelayUpload(const UserPtr& aUser);
 	void abortUpload(const string& aFile, bool waiting = true);
-	
-
-	
+		
 	GETSET(uint8_t, extraPartial, ExtraPartial);
 	GETSET(uint8_t, extra, Extra);
 	GETSET(uint64_t, lastGrant, LastGrant);
@@ -159,15 +157,15 @@ private:
 	SlotMap reservedSlots;
 	SlotMap connectingUsers;
 	MultiConnMap multiUploads;
-	UploadQueueItem::SlotQueue waitingUsers;
+	UploadQueueItem::SlotQueue uploadQueue;
 
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
 	void notifyQueuedUsers();
 
 
 	friend class Singleton<UploadManager>;
-	UploadManager() throw();
-	~UploadManager() throw();
+	UploadManager() noexcept;
+	~UploadManager();
 
 	bool getAutoSlot();
 	void removeConnection(UserConnection* aConn);
@@ -175,22 +173,22 @@ private:
 	void logUpload(const Upload* u);
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) throw();
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
 	
 	// TimerManagerListener
-	void on(Second, uint64_t aTick) throw();
-	void on(Minute, uint64_t aTick) throw();
+	void on(Second, uint64_t aTick) noexcept;
+	void on(Minute, uint64_t aTick) noexcept;
 
 	// UserConnectionListener
-	void on(BytesSent, UserConnection*, size_t, size_t) throw();
-	void on(Failed, UserConnection*, const string&) throw();
-	void on(Get, UserConnection*, const string&, int64_t) throw();
-	void on(Send, UserConnection*) throw();
-	void on(GetListLength, UserConnection* conn) throw();
-	void on(TransmitDone, UserConnection*) throw();
+	void on(BytesSent, UserConnection*, size_t, size_t) noexcept;
+	void on(Failed, UserConnection*, const string&) noexcept;
+	void on(Get, UserConnection*, const string&, int64_t) noexcept;
+	void on(Send, UserConnection*) noexcept;
+	void on(GetListLength, UserConnection* conn) noexcept;
+	void on(TransmitDone, UserConnection*) noexcept;
 	
-	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) throw();
-	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) throw();
+	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) noexcept;
+	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept;
 
 	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, bool listRecursive = false, bool tthList = false);
 };
@@ -201,5 +199,5 @@ private:
 
 /**
  * @file
- * $Id: UploadManager.h 500 2010-06-25 22:08:18Z bigmuscle $
+ * $Id: UploadManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

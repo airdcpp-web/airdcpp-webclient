@@ -30,7 +30,7 @@ struct SharedFileHandle : File, CriticalSection
     int					ref_cnt;
 
 	SharedFileHandle(const string& aFileName, int access, int mode);
-	~SharedFileHandle() throw() { }
+	~SharedFileHandle() noexcept { }
 };
 
 class SharedFileStream : public IOStream
@@ -46,7 +46,7 @@ public:
 	size_t write(const void* buf, size_t len) throw(Exception);
 	size_t read(void* buf, size_t& len) throw(Exception);
 
-	int64_t getSize() const throw();
+	int64_t getSize() const noexcept;
 	void setSize(int64_t newSize) throw(FileException);
 
 	size_t flush() throw(Exception) 

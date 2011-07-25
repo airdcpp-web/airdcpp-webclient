@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,9 +37,9 @@ namespace dcpp {
 class SSLSocketException : public SocketException {
 public:
 #ifdef _DEBUG
-	SSLSocketException(const string& aError) throw() : SocketException("SSLSocketException: " + aError) { }
+	SSLSocketException(const string& aError) noexcept : SocketException("SSLSocketException: " + aError) { }
 #else //_DEBUG
-	SSLSocketException(const string& aError) throw() : SocketException(aError) { }
+	SSLSocketException(const string& aError) noexcept : SocketException(aError) { }
 #endif // _DEBUG
 
 	virtual ~SSLSocketException() throw() { }
@@ -49,29 +49,28 @@ class CryptoManager;
 
 class SSLSocket : public Socket {
 public:
-	~SSLSocket() throw() { disconnect(); }
+	~SSLSocket() { }
 
-	void accept(const Socket& listeningSocket) throw(SocketException);
-	void connect(const string& aIp, uint16_t aPort) throw(SocketException);
-	int read(void* aBuffer, int aBufLen) throw(SocketException);
-	int write(const void* aBuffer, int aLen) throw(SocketException);
-	int wait(uint64_t millis, int waitFor) throw(SocketException);
-	void shutdown() throw();
-	void close() throw();
+	void accept(const Socket& listeningSocket);
+	void connect(const string& aIp, uint16_t aPort);
+	int read(void* aBuffer, int aBufLen);
+	int write(const void* aBuffer, int aLen);
+	int wait(uint64_t millis, int waitFor);
+	void shutdown() noexcept;
+	void close() noexcept;
 
-	bool isSecure() const throw() { return true; }
-	bool isTrusted() throw();
-	std::string getCipherName() throw();
-	std::string getDigest() const throw();
+	bool isSecure() const noexcept { return true; }
+	bool isTrusted() noexcept;
+	std::string getCipherName() noexcept;
+	vector<uint8_t> getKeyprint() const noexcept;
 
 	bool waitConnected(uint64_t millis);
 	bool waitAccepted(uint64_t millis);
 
-
 private:
 	friend class CryptoManager;
 	
-	SSLSocket(SSL_CTX* context) throw(SocketException);
+	SSLSocket(SSL_CTX* context);
 	SSLSocket(const SSLSocket&);
 	SSLSocket& operator=(const SSLSocket&);
 
@@ -82,7 +81,7 @@ private:
 	bool finished;
 #endif
 	
-	int checkSSL(int ret) throw(SocketException);
+	int checkSSL(int ret);
 	bool waitWant(int ret, uint64_t millis);
 };
 

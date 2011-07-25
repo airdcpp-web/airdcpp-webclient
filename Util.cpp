@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,21 +17,30 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "Util.h"
+
+#ifdef _WIN32
+
+#include "w.h"
+#include "shlobj.h"
+
+#endif
+
+#include "CID.h"
+#include "FastAlloc.h"
 #include "File.h"
 
 #include "SettingsManager.h"
 #include "ResourceManager.h"
 #include "StringTokenizer.h"
 #include "SettingsManager.h"
-#include "LogManager.h"
+#include "SimpleXML.h"
 #include "version.h"
 #include "File.h"
-#include "SimpleXML.h"
-#include "User.h"
+#include "OnlineUser.h"
+#include "LogManager.h"
 
+#include "User.h"
 
 #ifndef _WIN32
 #include <sys/socket.h>
@@ -42,10 +51,6 @@
 #include <ctype.h>
 #endif
 #include <locale.h>
-
-#include "CID.h"
-
-#include "FastAlloc.h"
 
 namespace dcpp {
 
@@ -63,6 +68,7 @@ string Util::awayMsg;
 time_t Util::awayTime;
 
 Util::CountryList Util::countries;
+StringList Util::countryNames;
 
 string Util::paths[Util::PATH_LAST];
 
@@ -153,7 +159,8 @@ void Util::initialize() {
 
 		paths[PATH_USER_LOCAL] = ::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK ? Text::fromT(buf) + "\\AirDC++\\" : paths[PATH_USER_CONFIG];
 	}
-
+	
+	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 	paths[PATH_RESOURCES] = exePath;
 	paths[PATH_LOCALE] = exePath;
 	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
@@ -178,10 +185,8 @@ void Util::initialize() {
 	}
 
 	paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
-
-	// @todo paths[PATH_RESOURCES] = <replace from sconscript?>;
-	// @todo paths[PATH_LOCALE] = <replace from sconscript?>;
-
+	paths[PATH_RESOURCES] = "/usr/share/";
+	paths[PATH_LOCALE] = paths[PATH_RESOURCES] + "locale/";
 	paths[PATH_DOWNLOADS] = home + "/Downloads/";
 #endif
 
@@ -201,33 +206,43 @@ void Util::initialize() {
 
 		const char* start = data.c_str();
 		string::size_type linestart = 0;
-		string::size_type comma1 = 0;
-		string::size_type comma2 = 0;
-		string::size_type comma3 = 0;
-		string::size_type comma4 = 0;
 		string::size_type lineend = 0;
-		CountryIter last = countries.end();
+		auto last = countries.end();
 		uint32_t startIP = 0;
 		uint32_t endIP = 0, endIPprev = 0;
 
-		for(;;) {
-			comma1 = data.find(',', linestart);
-			if(comma1 == string::npos) break;
-			comma2 = data.find(',', comma1 + 1);
-			if(comma2 == string::npos) break;
-			comma3 = data.find(',', comma2 + 1);
-			if(comma3 == string::npos) break;
-			comma4 = data.find(',', comma3 + 1);
-			if(comma4 == string::npos) break;
-			lineend = data.find('\n', comma4);
+		countryNames.push_back(STRING(UNKNOWN));
+		auto addCountry = [](const string& countryName) -> size_t {
+			auto begin = countryNames.cbegin(), end = countryNames.cend();
+			auto pos = std::find(begin, end, countryName);
+			if(pos != end)
+				return pos - begin;
+			countryNames.push_back(countryName);
+			return countryNames.size() - 1;
+		};
+
+		while(true) {
+			auto pos = data.find(',', linestart);
+			if(pos == string::npos) break;
+			pos = data.find(',', pos + 1);
+			if(pos == string::npos) break;
+			startIP = toUInt32(start + pos + 2) - 1;
+
+			pos = data.find(',', pos + 1);
+			if(pos == string::npos) break;
+			endIP = toUInt32(start + pos + 2);
+
+			pos = data.find(',', pos + 1);
+			if(pos == string::npos) break;
+			pos = data.find(',', pos + 1);
+			if(pos == string::npos) break;
+			lineend = data.find('\n', pos);
 			if(lineend == string::npos) break;
 
-			startIP = Util::toUInt32(start + comma2 + 2);
-			endIP = Util::toUInt32(start + comma3 + 2);
-			uint16_t* country = (uint16_t*)(start + comma4 + 2);
-			if((startIP-1) != endIPprev)
-				last = countries.insert(last, make_pair((startIP-1), (uint16_t)16191));
-			last = countries.insert(last, make_pair(endIP, *country));
+			if(startIP != endIPprev)
+				last = countries.insert(last, make_pair(startIP, 0));
+			pos += 2;
+			last = countries.insert(last, make_pair(endIP, addCountry(data.substr(pos, lineend - 1 - pos))));
 
 			endIPprev = endIP;
 			linestart = lineend + 1;
@@ -236,7 +251,7 @@ void Util::initialize() {
 	}
 }
 
-void Util::migrate(const string& file) throw() {
+void Util::migrate(const string& file) {
 	if(localMode) {
 		return;
 	}
@@ -407,50 +422,123 @@ string Util::getShortTimeString(time_t t) {
  * https:// -> port 443
  * dchub:// -> port 411
  */
-void Util::decodeUrl(const string& url, string& aServer, uint16_t& aPort, string& aFile, bool& isSecure) {
-	// First, check for a protocol: xxxx://
-	string::size_type i = 0, j, k;
-	
-	aServer = emptyString;
-	aFile = emptyString;
-	isSecure = false;
+void Util::decodeUrl(const string& url, string& protocol, string& host, uint16_t& port, string& path, bool& isSecure, string& query, string& fragment) {
+	auto fragmentEnd = url.size();
+	auto fragmentStart = url.rfind('#');
 
-	if( (j=url.find("://", i)) != string::npos) {
-		// Protocol found
-		string protocol = url.substr(0, j);
-		i = j + 3;
-
-		if(protocol == "http") {
-			aPort = 80;
-		} else if(protocol == "https") {
-			aPort = 443;
-			isSecure = true;
-		} else if(protocol == "dchub") {
-			aPort = 411;
-		}
-	}
-
-	if( (j=url.find('/', i)) != string::npos) {
-		// We have a filename...
-		aFile = url.substr(j);
-	}
-
-	if( (k=url.find(':', i)) != string::npos) {
-		// Port
-		if(j == string::npos) {
-			aPort = static_cast<uint16_t>(Util::toInt(url.substr(k+1)));
-		} else if(k < j) {
-			aPort = static_cast<uint16_t>(Util::toInt(url.substr(k+1, j-k-1)));
-		}
+	size_t queryEnd;
+	if(fragmentStart == string::npos) {
+		queryEnd = fragmentStart = fragmentEnd;
 	} else {
-		k = j;
+		dcdebug("f");
+		queryEnd = fragmentStart;
+		fragmentStart++;
 	}
 
-	if(k == string::npos) {
-		aServer = url.substr(i);
-		if(i==0) aPort = 411;
-	} else
-		aServer = url.substr(i, k-i);
+	auto queryStart = url.rfind('?', queryEnd);
+	size_t fileEnd;
+
+	if(queryStart == string::npos) {
+		fileEnd = queryStart = queryEnd;
+	} else {
+		dcdebug("q");
+		fileEnd = queryStart;
+		queryStart++;
+	}
+
+	auto protoStart = 0;
+	auto protoEnd = url.find("://", protoStart);
+
+	auto authorityStart = protoEnd == string::npos ? protoStart : protoEnd + 3;
+	auto authorityEnd = url.find_first_of("/#?", authorityStart);
+
+	size_t fileStart;
+	if(authorityEnd == string::npos) {
+		authorityEnd = fileStart = fileEnd;
+	} else {
+		dcdebug("a");
+		fileStart = authorityEnd;
+	}
+
+	protocol = (protoEnd == string::npos ? Util::emptyString : url.substr(protoStart, protoEnd - protoStart));
+
+	if(authorityEnd > authorityStart) {
+		dcdebug("x");
+		size_t portStart = string::npos;
+		if(url[authorityStart] == '[') {
+			// IPv6?
+			auto hostEnd = url.find(']');
+			if(hostEnd == string::npos) {
+				return;
+			}
+
+			host = url.substr(authorityStart, hostEnd - authorityStart);
+			if(hostEnd + 1 < url.size() && url[hostEnd + 1] == ':') {
+				portStart = hostEnd + 1;
+			}
+		} else {
+			size_t hostEnd;
+			portStart = url.find(':', authorityStart);
+			if(portStart != string::npos && portStart > authorityEnd) {
+				portStart = string::npos;
+			}
+
+			if(portStart == string::npos) {
+				hostEnd = authorityEnd;
+			} else {
+				hostEnd = portStart;
+				portStart++;
+			}
+
+			dcdebug("h");
+			host = url.substr(authorityStart, hostEnd - authorityStart);
+		}
+
+		if(portStart == string::npos) {
+			if(protocol == "http") {
+				port = 80;
+			} else if(protocol == "https") {
+				port = 443;
+				isSecure = true;
+			} else if(protocol == "dchub"  || protocol.empty()) {
+				port = 411;
+			}
+		} else {
+			dcdebug("p");
+			port = static_cast<uint16_t>(Util::toInt(url.substr(portStart, authorityEnd - portStart)));
+		}
+	}
+
+	dcdebug("\n");
+	path = url.substr(fileStart, fileEnd - fileStart);
+	query = url.substr(queryStart, queryEnd - queryStart);
+	fragment = url.substr(fragmentStart, fragmentStart);
+}
+
+map<string, string> Util::decodeQuery(const string& query) {
+	map<string, string> ret;
+	size_t start = 0;
+	while(start < query.size()) {
+		auto eq = query.find('=', start);
+		if(eq == string::npos) {
+			break;
+		}
+
+		auto param = eq + 1;
+		auto end = query.find('&', param);
+
+		if(end == string::npos) {
+			end = query.size();
+		}
+
+		if(eq > start && end > param) {
+			ret[query.substr(start, eq-start)] = query.substr(param, end - param);
+		}
+
+		start = end + 1;
+	}
+
+	return ret;
 }
 
 void Util::setAway(bool aAway, bool byminimize /*false*/) {
@@ -650,7 +738,7 @@ string Util::toString(const StringList& lst) {
 	return tmp;
 }
 
-string::size_type Util::findSubString(const string& aString, const string& aSubString, string::size_type start) throw() {
+string::size_type Util::findSubString(const string& aString, const string& aSubString, string::size_type start) noexcept {
 	if(aString.length() < start)
 		return (string::size_type)string::npos;
 
@@ -686,7 +774,7 @@ string::size_type Util::findSubString(const string& aString, const string& aSubS
 	return (string::size_type)string::npos;
 }
 
-wstring::size_type Util::findSubString(const wstring& aString, const wstring& aSubString, wstring::size_type pos) throw() {
+wstring::size_type Util::findSubString(const wstring& aString, const wstring& aSubString, wstring::size_type pos) noexcept {
 	if(aString.length() < pos)
 		return static_cast<wstring::size_type>(wstring::npos);
 
@@ -881,7 +969,6 @@ bool Util::fileExists(const string &aFile) {
 string Util::formatTime(const string &msg, const time_t t) {
 	if (!msg.empty()) {
 		tm* loc = localtime(&t);
-
 		if(!loc) {
 			return Util::emptyString;
 		}
@@ -1502,5 +1589,5 @@ string Util::getOsVersion(bool http /* = false */) {
 
 /**
  * @file
- * $Id: Util.cpp 481 2010-02-11 12:31:20Z bigmuscle $
+ * $Id: Util.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

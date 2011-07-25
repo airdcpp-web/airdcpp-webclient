@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,12 +24,14 @@
 #include "Client.h"
 #include "Singleton.h"
 #include "SettingsManager.h"
-#include "User.h"
+#include "OnlineUser.h"
 #include "Socket.h"
 #include "DirectoryListing.h"
 #include "FavoriteManager.h"
 
+#include "CID.h"
 #include "ClientManagerListener.h"
+#include "HintedUser.h"
 
 namespace dcpp {
 
@@ -50,7 +52,7 @@ public:
 	StringList getHubs(const CID& cid, const string& hintUrl, bool priv) const;
 	StringList getHubNames(const CID& cid, const string& hintUrl, bool priv) const;
 	StringList getNicks(const CID& cid, const string& hintUrl, bool priv) const;
-
+	string getField(const CID& cid, const string& hintUrl, const char* field) const;
 	StringList getNicks(const HintedUser& user) const { return getNicks(user.user->getCID(), user.hint); }
 	StringList getHubNames(const HintedUser& user) const { return getHubNames(user.user->getCID(), user.hint); }
 
@@ -66,8 +68,8 @@ public:
 		
 	void infoUpdated();
 
-	UserPtr getUser(const string& aNick, const string& aHubUrl) throw();
-	UserPtr getUser(const CID& cid) throw();
+	UserPtr getUser(const string& aNick, const string& aHubUrl) noexcept;
+	UserPtr getUser(const CID& cid) noexcept;
 
 	string findHub(const string& ipPort) const;
 	const string& findHubEncoding(const string& aUrl) const;
@@ -76,13 +78,14 @@ public:
 	* @param priv discard any user that doesn't match the hint.
 	* @return OnlineUser* found by CID and hint; might be only by CID if priv is false.
 	*/
-	OnlineUser* findOnlineUser(const CID& cid, const string& hintUrl, bool priv) const throw();
+	OnlineUser* findOnlineUser(const HintedUser& user, bool priv) const;
+	OnlineUser* findOnlineUser(const CID& cid, const string& hintUrl, bool priv) const;
 
-	UserPtr findUser(const string& aNick, const string& aHubUrl) const throw() { return findUser(makeCid(aNick, aHubUrl)); }
-	UserPtr findUser(const CID& cid) const throw();
-	UserPtr findLegacyUser(const string& aNick) const throw();
+	UserPtr findUser(const string& aNick, const string& aHubUrl) const noexcept { return findUser(makeCid(aNick, aHubUrl)); }
+	UserPtr findUser(const CID& cid) const noexcept;
+	UserPtr findLegacyUser(const string& aNick) const noexcept;
 	
-	void updateNick(const UserPtr& user, const string& nick) throw();
+	void updateNick(const UserPtr& user, const string& nick) noexcept;
 	string getMyNick(const string& hubUrl) const;
 	
 	void setIPUser(const UserPtr& user, const string& IP, uint16_t udpPort = 0) {
@@ -100,7 +103,7 @@ public:
 	
 	bool isSharingHub(const HintedUser& p) {
 		Lock l(cs);
-		OnlineUser* u = findOnlineUser_hint(p.user->getCID(), p.hint);
+		OnlineUser* u = findOnlineUserHint(p.user->getCID(), p.hint);
 		if(u)
 			return (!u->getClient().getHideShare());
 		return true;
@@ -110,14 +113,15 @@ public:
 	bool isStealth(const string& aHubUrl) const;
 
 	/** Constructs a synthetic, hopefully unique CID */
-	CID makeCid(const string& nick, const string& hubUrl) const throw();
+	CID makeCid(const string& nick, const string& hubUrl) const noexcept;
 
-	void putOnline(OnlineUser* ou) throw();
-	void putOffline(OnlineUser* ou, bool disconnect = false) throw();
+	void putOnline(OnlineUser* ou) noexcept;
+	void putOffline(OnlineUser* ou, bool disconnect = false) noexcept;
 
 	UserPtr& getMe();
 	
 	void send(AdcCommand& c, const CID& to);
+
 	void connect(const HintedUser& user, const string& token);
 	void privateMessage(const HintedUser& user, const string& msg, bool thirdPerson);
 	void userCommand(const HintedUser& user, const UserCommand& uc, StringMap& params, bool compatibility);
@@ -125,8 +129,8 @@ public:
 	int getMode(const string& aHubUrl) const;
 	bool isActive(const string& aHubUrl = Util::emptyString) const { return getMode(aHubUrl) != SettingsManager::INCOMING_FIREWALL_PASSIVE; }
 
-	void lock() throw() { cs.lock(); }
-	void unlock() throw() { cs.unlock(); }
+	void lock() noexcept { cs.lock(); }
+	void unlock() noexcept { cs.unlock(); }
 
 	const Client::List& getClients() const { return clients; }
 
@@ -170,35 +174,35 @@ private:
 		TimerManager::getInstance()->addListener(this); 
 	}
 
-	~ClientManager() throw() {
+	~ClientManager() {
 		TimerManager::getInstance()->removeListener(this); 
 	}
 
-	void updateNick(const OnlineUser& user) throw();
+	void updateNick(const OnlineUser& user) noexcept;
 		
 	/// @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
-	OnlineUser* findOnlineUser_hint(const CID& cid, const string& hintUrl) const throw() {
+	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl) const {
 		OnlinePairC p;
-		return findOnlineUser_hint(cid, hintUrl, p);
+		return findOnlineUserHint(cid, hintUrl, p);
 	}
 	/**
 	* @param p OnlinePair of all the users found by CID, even those who don't match the hint.
 	* @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	*/
-	OnlineUser* findOnlineUser_hint(const CID& cid, const string& hintUrl, OnlinePairC& p) const throw();
+	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const;
 
 	// ClientListener
-	void on(Connected, const Client* c) throw();
-	void on(UserUpdated, const Client*, const OnlineUserPtr& user) throw();
-	void on(UsersUpdated, const Client* c, const OnlineUserList&) throw();
-	void on(Failed, const Client*, const string&) throw();
-	void on(HubUpdated, const Client* c) throw();
-	void on(HubUserCommand, const Client*, int, int, const string&, const string&) throw();
+	void on(Connected, const Client* c) noexcept;
+	void on(UserUpdated, const Client*, const OnlineUserPtr& user) noexcept;
+	void on(UsersUpdated, const Client* c, const OnlineUserList&) noexcept;
+	void on(Failed, const Client*, const string&) noexcept;
+	void on(HubUpdated, const Client* c) noexcept;
+	void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
 	void on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
-		int aFileType, const string& aString, bool) throw();
-	void on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) throw();
+		int aFileType, const string& aString, bool) noexcept;
+	void on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept;
 	// TimerManagerListener
-	void on(TimerManagerListener::Minute, uint64_t aTick) throw();
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 };
 
 } // namespace dcpp
@@ -207,5 +211,5 @@ private:
 
 /**
  * @file
- * $Id: ClientManager.h 551 2010-12-18 12:14:16Z bigmuscle $
+ * $Id: ClientManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

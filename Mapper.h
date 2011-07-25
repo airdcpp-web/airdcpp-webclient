@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,41 +16,54 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPLUSPLUS_WIN32_UPNP_H
-#define DCPLUSPLUS_WIN32_UPNP_H
+#ifndef DCPLUSPLUS_DCPP_MAPPER_H
+#define DCPLUSPLUS_DCPP_MAPPER_H
 
 namespace dcpp {
 
-class UPnP : boost::noncopyable
+/** abstract class to represent an implementation usable by MappingManager. */
+class Mapper : boost::noncopyable
 {
 public:
-	UPnP() { }
-	virtual ~UPnP() { }
-
-	virtual bool init() = 0;
+	Mapper() { }
+	virtual ~Mapper() { }
 
 	enum Protocol {
 		PROTOCOL_TCP,
 		PROTOCOL_UDP,
 		PROTOCOL_LAST
 	};
+	static const char* protocols[PROTOCOL_LAST];
+
+	/** begin the initialization phase.
+	@return true if the initialization passed; false otherwise. */
+	virtual bool init() = 0;
+	/** end the initialization phase. called regardless of the return value of init(). */
+	virtual void uninit() = 0;
 
 	bool open(const unsigned short port, const Protocol protocol, const string& description);
 	bool close();
 	bool hasRules() const;
 
+	/** interval after which ports should be re-mapped, in minutes. 0 = no renewal. */
+	virtual uint32_t renewal() const = 0;
+
+	virtual string getDeviceName() = 0;
 	virtual string getExternalIP() = 0;
+
+	/* by contract, implementations of this class should define a public user-friendly name in:
+	static const string name; */
+
+	/** user-friendly name for this implementation. */
 	virtual const string& getName() const = 0;
 
-protected:
-	static const char* protocols[PROTOCOL_LAST];
-
 private:
+	/** add a port mapping rule. */
 	virtual bool add(const unsigned short port, const Protocol protocol, const string& description) = 0;
+	/** remove a port mapping rule. */
 	virtual bool remove(const unsigned short port, const Protocol protocol) = 0;
 
-	typedef std::pair<unsigned short, Protocol> rule;
-	std::vector<rule> rules;
+	std::vector<std::pair<unsigned short, Protocol>> rules;
 };
 
 } // namespace dcpp

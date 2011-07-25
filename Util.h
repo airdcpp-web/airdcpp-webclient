@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +19,22 @@
 #ifndef DCPLUSPLUS_DCPP_UTIL_H
 #define DCPLUSPLUS_DCPP_UTIL_H
 
-#ifndef _WIN32
+#include "compiler.h"
+
+#ifdef _WIN32
+
+# define PATH_SEPARATOR '\\'
+# define PATH_SEPARATOR_STR "\\"
+
+#else
+
+# define PATH_SEPARATOR '/'
+# define PATH_SEPARATOR_STR "/"
+
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
+
 #endif
 
 #include "Text.h"
@@ -216,8 +228,10 @@ public:
 		replace(string_t(search), string_t(replacement), str);
 	}
 
-	static void decodeUrl(const string& aUrl, string& aServer, uint16_t& aPort, string& aFile) { bool isSecure; decodeUrl(aUrl, aServer, aPort, aFile, isSecure); }
-	static void decodeUrl(const string& aUrl, string& aServer, uint16_t& aPort, string& aFile, bool& isSecure);
+	static void decodeUrl(const string& aUrl, string& protocol, string& host, uint16_t& port, string& path, string& query, string& fragment) { bool isSecure; decodeUrl(aUrl, protocol, host, port, path, isSecure, query, fragment); }
+	static void decodeUrl(const string& aUrl, string& protocol, string& host, uint16_t& port, string& path, bool& isSecure, string& query, string& fragment);
+	static map<string, string> decodeQuery(const string& query);
+
 	static string validateFileName(string aFile);
 	static string cleanPathChars(string aNick);
 	static string formatStatus(int iStatus);
@@ -460,8 +474,8 @@ static string getShortTimeString(time_t t = time(NULL) );
 	 * Case insensitive substring search.
 	 * @return First position found or string::npos
 	 */
-	static string::size_type findSubString(const string& aString, const string& aSubString, string::size_type start = 0) throw();
-	static wstring::size_type findSubString(const wstring& aString, const wstring& aSubString, wstring::size_type start = 0) throw();
+	static string::size_type findSubString(const string& aString, const string& aSubString, string::size_type start = 0) noexcept;
+	static wstring::size_type findSubString(const wstring& aString, const wstring& aSubString, wstring::size_type start = 0) noexcept;
 	
 	static void replace(string& aString, const string& findStr, const string& replaceStr);
 	static TCHAR* strstr(const TCHAR *str1, const TCHAR *str2, int *pnIdxFound);
@@ -507,6 +521,7 @@ private:
 	typedef map<uint32_t, uint16_t> CountryList;
 	typedef CountryList::iterator CountryIter;
 	static CountryList countries;
+	static StringList countryNames;
 
 	static void loadBootConfig();
 	

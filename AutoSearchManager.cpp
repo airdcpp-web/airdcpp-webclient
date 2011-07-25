@@ -99,7 +99,7 @@ string AutoSearchManager::matchDirectory(const string& aFile, const string& aStr
 	}
 }
 
-void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) throw() {
+void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
 	if(BOOLSETTING(AUTOSEARCH_ENABLED_TIME) && BOOLSETTING(AUTOSEARCH_ENABLED)) {
 		Lock l(cs);
 		//empty list...
@@ -153,7 +153,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) thr
 	}
 }
 
-void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) throw() {
+void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	if(!as.empty() && BOOLSETTING(AUTOSEARCH_ENABLED) && !allowedHubs.empty()) {
 		UserPtr user = static_cast<UserPtr>(sr->getUser());
 		if(users.find(user) == users.end()) {

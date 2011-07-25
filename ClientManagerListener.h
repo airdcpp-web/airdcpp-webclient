@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_CLIENT_MANAGER_LISTENER_H
 
 #include "forward.h"
+#include "noexcept.h"
 
 namespace dcpp {
 
@@ -37,14 +38,14 @@ public:
 	typedef X<6> ClientDisconnected;
 
 	/** User online in at least one hub */
-	virtual void on(UserConnected, const UserPtr&) throw() { }
-	virtual void on(UserUpdated, const OnlineUser&) throw() { }
+	virtual void on(UserConnected, const UserPtr&) noexcept { }
+	virtual void on(UserUpdated, const OnlineUser&) noexcept { }
 	/** User offline in all hubs */
-	virtual void on(UserDisconnected, const UserPtr&) throw() { }
-	virtual void on(IncomingSearch, const string&) throw() { }
-	virtual void on(ClientConnected, const Client*) throw() { }
-	virtual void on(ClientUpdated, const Client*) throw() { }
-	virtual void on(ClientDisconnected, const Client*) throw() { }
+	virtual void on(UserDisconnected, const UserPtr&) noexcept { }
+	virtual void on(IncomingSearch, const string&) noexcept { }
+	virtual void on(ClientConnected, const Client*) noexcept { }
+	virtual void on(ClientUpdated, const Client*) noexcept { }
+	virtual void on(ClientDisconnected, const Client*) noexcept { }
 };
 
 } // namespace dcpp
@@ -53,5 +54,5 @@ public:
 
 /**
  * @file
- * $Id: ClientManagerListener.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: ClientManagerListener.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

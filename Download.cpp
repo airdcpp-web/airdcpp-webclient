@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "Download.h"
 
 #include "UserConnection.h"
@@ -27,7 +25,7 @@
 
 namespace dcpp {
 
-Download::Download(UserConnection& conn, QueueItem& qi, const string& path) throw() : Transfer(conn, path, qi.getTTH()),
+Download::Download(UserConnection& conn, QueueItem& qi, const string& path) noexcept : Transfer(conn, path, qi.getTTH()),
 	tempTarget(qi.getTempTarget()), file(0), lastTick(GET_TICK()), treeValid(false)
 {
 	conn.setDownload(this);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_BUFFEREDSOCKETLISTENER_H_
 #define DCPLUSPLUS_DCPP_BUFFEREDSOCKETLISTENER_H_
 
+#include "noexcept.h"
+
 namespace dcpp {
 
 class BufferedSocketListener {
@@ -36,15 +38,15 @@ public:
 	typedef X<7> Failed;
 	typedef X<8> Updated;
 
-	virtual void on(Connecting) throw() { }
-	virtual void on(Connected) throw() { }
-	virtual void on(Line, const string&) throw() { }
-	virtual void on(Data, uint8_t*, size_t) throw() { }
-	virtual void on(BytesSent, size_t, size_t) throw() { }
-	virtual void on(ModeChange) throw() { }
-	virtual void on(TransmitDone) throw() { }
-	virtual void on(Failed, const string&) throw() { }
-	virtual void on(Updated) throw() { }
+	virtual void on(Connecting) noexcept { }
+	virtual void on(Connected) noexcept { }
+	virtual void on(Line, const string&) noexcept { }
+	virtual void on(Data, uint8_t*, size_t) noexcept { }
+	virtual void on(BytesSent, size_t, size_t) noexcept { }
+	virtual void on(ModeChange) noexcept { }
+	virtual void on(TransmitDone) noexcept { }
+	virtual void on(Failed, const string&) noexcept { }
+	virtual void on(Updated) noexcept { }
 };
 
 } // namespace dcpp

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,148 +19,80 @@
 #ifndef DCPLUSPLUS_DCPP_STDINC_H
 #define DCPLUSPLUS_DCPP_STDINC_H
 
-#include "memcpy_amd.h"
-
-#define _SECURE_SCL  0
-#define _ITERATOR_DEBUG_LEVEL 0
-#define _SECURE_SCL_THROWS 0
-#define _HAS_ITERATOR_DEBUGGING 0
+#include "compiler.h"
 
 #ifndef _DEBUG
 # define BOOST_DISABLE_ASSERTS 1
-#endif
-
-// This enables stlport's debug mode (and slows it down to a crawl...)
-//#define _STLP_DEBUG 1
-//#define _STLP_USE_MALLOC 1
-//#define _STLP_USE_NEWALLOC 1
-//#define _STLP_LEAKS_PEDANTIC 1
-
-// --- Shouldn't have to change anything under here...
-
-#ifndef _REENTRANT
-# define _REENTRANT 1
 #endif
 
 #ifndef BZ_NO_STDIO
 #define BZ_NO_STDIO 1
 #endif
 
-#ifdef _MSC_VER
-
-//disable the deprecated warnings for the CRT functions.
-#define _CRT_SECURE_NO_DEPRECATE 1
-#define _ATL_SECURE_NO_DEPRECATE 1
-#define _CRT_NON_CONFORMING_SWPRINTFS 1
-
-# pragma warning(disable: 4711) // function 'xxx' selected for automatic inline expansion
-# pragma warning(disable: 4786) // identifier was truncated to '255' characters in the debug information
-# pragma warning(disable: 4290) // C++ Exception Specification ignored
-# pragma warning(disable: 4127) // constant expression
-# pragma warning(disable: 4710) // function not inlined
-# pragma warning(disable: 4503) // decorated name length exceeded, name was truncated
-# pragma warning(disable: 4428) // universal-character-name encountered in source
-# pragma warning(disable: 4201) // nonstadard extension used : nameless struct/union
-# pragma warning(disable: 4244) // converting string to unsigned char to int
-
-#ifdef _WIN64
-# pragma warning(disable: 4244) // conversion from 'xxx' to 'yyy', possible loss of data
-# pragma warning(disable: 4267) // conversion from 'xxx' to 'yyy', possible loss of data
-#endif
-
-# ifndef CDECL
-#  define CDECL _cdecl
-# endif
-
-#else // _MSC_VER
-
-# ifndef CDECL
-#  define CDECL
-# endif
-
-#endif // _MSC_VER
-
 #ifdef _WIN32
-# define _WIN32_WINNT 0x0502
-# define _WIN32_IE	0x0501
-# define WINVER 0x501
-
-#define STRICT
-#define WIN32_LEAN_AND_MEAN
-
-#if _MSC_VER == 1400 || _MSC_VER == 1500
-#define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES 1
-//disable the deprecated warnings for the crt functions.
-#pragma warning(disable: 4996)
-#endif
-
-#include <winsock2.h>
-
-#include <windows.h>
-#include <mmsystem.h>
-
-#include <tchar.h>
-#include <shlobj.h>
-
+#include "w.h"
 #else
 #include <unistd.h>
+#define BOOST_PTHREAD_HAS_MUTEXATTR_SETTYPE
 #endif
 
-#ifdef _MSC_VER
-#include <crtdbg.h>
+/*#ifndef _WIN64
+# undef memcpy
+# undef memset
+# undef memzero
+# define memcpy memcpy2
+# define memset memset2
+#endif*/
 
-#else
-#include <assert.h>
-#endif
-
-#include <cctype>
-#include <clocale>
-#include <cstdarg>
-#include <cstdint>
-#include <cstdio>
-#include <ctime>
-
+#include <wchar.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include <memory.h>
 #include <sys/types.h>
+#include <time.h>
+#include <locale.h>
+#ifndef _MSC_VER
+#include <stdint.h>
+#endif
 
 #include <algorithm>
-#include <vector>
-#include <string>
-#include <map>
-#include <set>
 #include <deque>
-#include <list>
-#include <utility>
 #include <functional>
+#include <list>
+#include <map>
 #include <memory>
+#include <set>
+#include <string>
 #include <numeric>
 #include <limits>
 #include <unordered_map>
 #include <unordered_set>
-
-#define BOOST_ALL_NO_LIB 1
+#include <utility>
+#include <vector>
 
 #include <boost/scoped_array.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/interprocess/containers/vector.hpp>
 
 //#define BOOST_REGEX_NO_LIB 1
 //#define BOOST_THREAD_NO_LIB 1
+#define BOOST_ALL_NO_LIB 1
 #include <boost/regex.hpp>
 //#include <regex>
 
-
 namespace dcpp {
-
 	using namespace std;
-
+	
+	inline int stricmp(const string& a, const string& b) { return _stricmp(a.c_str(), b.c_str()); }
+	inline int strnicmp(const string& a, const string& b, size_t n) { return _strnicmp(a.c_str(), b.c_str(), n); }
+	inline int stricmp(const wstring& a, const wstring& b) { return _wcsicmp(a.c_str(), b.c_str()); }
+	inline int strnicmp(const wstring& a, const wstring& b, size_t n) { return _wcsnicmp(a.c_str(), b.c_str(), n); }
 }
-
 
 #endif // !defined(STDINC_H)
 
 /**
  * @file
- * $Id: stdinc.h 548 2010-09-06 08:54:37Z bigmuscle $
+ * $Id: stdinc.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

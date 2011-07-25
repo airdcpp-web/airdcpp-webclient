@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include "SettingsManager.h"
 
 #include "HttpConnection.h"
-#include "User.h"
 #include "UserCommand.h"
 #include "FavoriteUser.h"
 #include "Singleton.h"
@@ -30,6 +29,7 @@
 #include "FavoriteManagerListener.h"
 #include "HubEntry.h"
 #include "FavHubGroup.h"
+#include "User.h"
 
 namespace dcpp {
 	
@@ -39,9 +39,9 @@ public:
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
 
-	PreviewApplication() throw() {}
+	PreviewApplication() noexcept {}
 	PreviewApplication(string n, string a, string r, string e) : name(n), application(a), arguments(r), extension(e) {};
-	~PreviewApplication() throw() { }	
+	~PreviewApplication() noexcept { }	
 
 	GETSET(string, name, Name);
 	GETSET(string, application, Application);
@@ -202,35 +202,35 @@ private:
 	friend class Singleton<FavoriteManager>;
 	
 	FavoriteManager();
-	~FavoriteManager() throw();
+	~FavoriteManager();
 	
 	FavoriteHubEntryList::const_iterator getFavoriteHub(const string& aServer) const;
 	RecentHubEntry::Iter getRecentHub(const string& aServer) const;
 
 	// ClientManagerListener
-	void on(UserUpdated, const OnlineUser& user) throw();
-	void on(UserConnected, const UserPtr& user) throw();
-	void on(UserDisconnected, const UserPtr& user) throw();
+	void on(UserUpdated, const OnlineUser& user) noexcept;
+	void on(UserConnected, const UserPtr& user) noexcept;
+	void on(UserDisconnected, const UserPtr& user) noexcept;
 
 	// HttpConnectionListener
-	void on(Data, HttpConnection*, const uint8_t*, size_t) throw();
-	void on(Failed, HttpConnection*, const string&) throw();
-	void on(Complete, HttpConnection*, const string&, bool) throw();
-	void on(Redirected, HttpConnection*, const string&) throw();
-	void on(TypeNormal, HttpConnection*) throw();
-	void on(TypeBZ2, HttpConnection*) throw();
-	void on(Retried, HttpConnection*, const bool) throw(); 
+	void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept;
+	void on(Failed, HttpConnection*, const string&) noexcept;
+	void on(Complete, HttpConnection*, const string&, bool) noexcept;
+	void on(Redirected, HttpConnection*, const string&) noexcept;
+	void on(TypeNormal, HttpConnection*) noexcept;
+	void on(TypeBZ2, HttpConnection*) noexcept;
+	void on(Retried, HttpConnection*, const bool) noexcept; 
 
-	bool onHttpFinished(bool fromHttp) throw();
+	bool onHttpFinished(bool fromHttp) noexcept;
 
 	// SettingsManagerListener
-	void on(SettingsManagerListener::Load, SimpleXML& xml) throw() {
+	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
 		load(xml);
 		recentload(xml);
 		previewload(xml);
 	}
 
-	void on(SettingsManagerListener::Save, SimpleXML& xml) throw() {
+	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
 		previewsave(xml);
 	}
 
@@ -248,5 +248,5 @@ private:
 
 /**
  * @file
- * $Id: FavoriteManager.h 481 2010-02-11 12:31:20Z bigmuscle $
+ * $Id: FavoriteManager.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

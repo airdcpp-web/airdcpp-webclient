@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,14 +19,12 @@
 #if !defined(FAST_ALLOC_H)
 #define FAST_ALLOC_H
 
+#include "Thread.h"
+#include "debug.h"
+
 namespace dcpp {
 
-/*
-#include "Thread.h"
-
-
-
-//#ifndef _DEBUG
+#ifndef _DEBUG
 struct FastAllocBase {
 	static FastCriticalSection cs;
 };
@@ -34,37 +32,29 @@ struct FastAllocBase {
 /** 
  * Fast new/delete replacements for constant sized objects, that also give nice
  * reference locality...
- */ /*
+ */
 template<class T>
-struct FastAlloc : public FastAllocBase 
-{
+struct FastAlloc : public FastAllocBase {
 	// Custom new & delete that (hopefully) use the node allocator
-	static void* operator new(size_t s) 
-{
+	static void* operator new(size_t s) {
 		if(s != sizeof(T))
 			return ::operator new(s);
 		return allocate();
 	}
 
 	// Avoid hiding placement new that's needed by the stl containers...
-	static void* operator new(size_t, void* m) 
-{
+	static void* operator new(size_t, void* m) {
 		return m;
 	}
 	// ...and the warning about missing placement delete...
-	static void operator delete(void*, void*) 
-{
+	static void operator delete(void*, void*) {
 		// ? We didn't allocate so...
 	}
 
-	static void operator delete(void* m, size_t s) 
-{
-		if (s != sizeof(T)) 
-{
+	static void operator delete(void* m, size_t s) {
+		if (s != sizeof(T)) {
 			::operator delete(m);
-		} 
-			else if(m != NULL) 
-{
+		} else if(m != NULL) {
 			deallocate((uint8_t*)m);
 		}
 	}
@@ -105,9 +95,9 @@ private:
 	}
 };
 template<class T> void* FastAlloc<T>::freeList = NULL;
-#else*/
+#else
 template<class T> struct FastAlloc { };
-//#endif
+#endif
 
 } // namespace dcpp
 
@@ -115,5 +105,5 @@ template<class T> struct FastAlloc { };
 
 /**
  * @file
- * $Id: FastAlloc.h 482 2010-02-13 10:49:30Z bigmuscle $
+ * $Id: FastAlloc.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

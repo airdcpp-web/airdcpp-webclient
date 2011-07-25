@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "User.h"
 
 #include "AdcHub.h"
@@ -33,7 +31,7 @@
 
 namespace dcpp {
 
-CriticalSection Identity::cs;
+FastCriticalSection Identity::cs;
 
 OnlineUser::OnlineUser(const UserPtr& ptr, ClientBase& client_, uint32_t sid_) : identity(ptr, sid_), client(client_), isInList(false) { 
 }
@@ -56,7 +54,7 @@ bool Identity::isUdpActive() const {
 
 void Identity::getParams(StringMap& sm, const string& prefix, bool compatibility) const {
 	{
-		Lock l(cs);
+		FastLock l(cs);
 		for(InfIter i = info.begin(); i != info.end(); ++i) {
 			sm[prefix + string((char*)(&i->first), 2)] = i->second;
 		}
@@ -98,25 +96,45 @@ string Identity::getTag() const {
 		return get("TA");
 	if(get("VE").empty() || get("HN").empty() || get("HR").empty() || get("HO").empty() || get("SL").empty())
 		return Util::emptyString;
-	return "<" + get("VE") + ",M:" + string(isTcpActive() ? "A" : "P") + ",H:" + get("HN") + "/" +
-		get("HR") + "/" + get("HO") + ",S:" + get("SL") + ">";
+	return "<" + getApplication() + ",M:" + string(isTcpActive() ? "A" : "P") + 
+		",H:" + get("HN") + "/" + get("HR") + "/" + get("HO") + ",S:" + get("SL") + ">";
+}
+
+string Identity::getApplication() const {
+	auto application = get("AP");
+	auto version = get("VE");
+
+	if(version.empty()) {
+		return application;
+	}
+
+	if(application.empty()) {
+		// AP is an extension, so we can't guarantee that the other party supports it, so default to VE.
+		return version;
+	}
+
+	return application + ' ' + version;
+}
+
+const string& Identity::getCountry() const {
+	return Util::getIpCountry(getIp());
 }
 
 string Identity::get(const char* name) const {
-	Lock l(cs);
+	FastLock l(cs);
 	InfIter i = info.find(*(short*)name);
 	return i == info.end() ? Util::emptyString : i->second;
 }
 
 bool Identity::isSet(const char* name) const {
-	Lock l(cs);
+	FastLock l(cs);
 	InfIter i = info.find(*(short*)name);
 	return i != info.end();
 }
 
 
 void Identity::set(const char* name, const string& val) {
-	Lock l(cs);
+	FastLock l(cs);
 	if(val.empty())
 		info.erase(*(short*)name);
 	else
@@ -208,9 +226,28 @@ bool OnlineUser::update(int sortCol, const tstring& oldText) {
 	return needsSort;
 }
 
+uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
+	uint8_t image = identity.isOp() ? IMAGE_OP : IMAGE_USER;
+
+	if(identity.getUser()->isSet(User::AIRDCPLUSPLUS)) {
+		image += 2;
+	}
+
+	if(!identity.isTcpActive(c)) {
+		// Users we can't connect to...
+		image += 4;
+	}		
+
+	if(identity.getUser()->isSet(User::BOT) && !identity.getUser()->isSet(User::NMDC)) {
+		image = 8;
+	}
+
+	return image;
+}
+
 } // namespace dcpp
 
 /**
  * @file
- * $Id: User.cpp 484 2010-02-26 22:01:25Z bigmuscle $
+ * $Id: User.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

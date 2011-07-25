@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,19 +55,19 @@ public:
 	 * @param aDirectory Physical directory location
 	 * @param aName Virtual name
 	 */
-	void addDirectory(const string& realPath, const string &virtualName) throw(ShareException);
+	void addDirectory(const string& realPath, const string &virtualName);
 	void removeDirectory(const string& realPath);
-	void renameDirectory(const string& realPath, const string& virtualName) throw(ShareException);
+	void renameDirectory(const string& realPath, const string& virtualName);
 
 	void addReleaseDir(const string& aName);
 	void deleteReleaseDir(const string& aName);
 
-	string toVirtual(const TTHValue& tth) const throw(ShareException);
-	string toReal(const string& virtualFile, bool isInSharingHub) throw(ShareException);
-	TTHValue getTTH(const string& virtualFile) const throw(ShareException);
+	string toVirtual(const TTHValue& tth) const;
+	string toReal(const string& virtualFile, bool isInSharingHub);
+	TTHValue getTTH(const string& virtualFile) const;
 	
 	int refresh(int refreshOptions);
-	int startRefresh(int refreshOptions) throw();
+	int startRefresh(int refreshOptions) noexcept;
 	int refresh(const string& aDir);
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
@@ -94,35 +94,35 @@ public:
 	int64_t removeExcludeFolder(const string &path, bool returnSize = true);
 	int64_t addExcludeFolder(const string &path);
 
-	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) throw();
-	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) throw();
+	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
+	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) noexcept;
 	bool isDirShared(const string& directory);
 
-	bool loadCache() throw();
+	bool loadCache() noexcept;
 
-	StringPairList getDirectories(int refreshOptions) const throw();
+	StringPairList getDirectories(int refreshOptions) const noexcept;
 	static bool checkType(const string& aString, int aType);
 	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub, bool tthList) const;
 	MemoryInputStream* getTree(const string& virtualFile) const;
 
-	AdcCommand getFileInfo(const string& aFile) throw(ShareException);
+	AdcCommand getFileInfo(const string& aFile);
 
-	int64_t getShareSize() const throw();
-	int64_t getShareSize(const string& realPath) const throw();
+	int64_t getShareSize() const noexcept;
+	int64_t getShareSize(const string& realPath) const noexcept;
 
-	size_t getSharedFiles() const throw();
+	size_t getSharedFiles() const noexcept;
 
 	string getShareSizeString() const { return Util::toString(getShareSize()); }
 	string getShareSizeString(const string& aDir) const { return Util::toString(getShareSize(aDir)); }
 	
 	void getBloom(ByteVector& v, size_t k, size_t m, size_t h) const;
 
-	SearchManager::TypeModes getType(const string& fileName) const throw();
+	SearchManager::TypeModes getType(const string& fileName) const noexcept;
 
 	StringList getVirtualNames();
 
-	string validateVirtual(const string& /*aVirt*/) const throw();
-	bool hasVirtual(const string& name) const throw();
+	string validateVirtual(const string& /*aVirt*/) const noexcept;
+	bool hasVirtual(const string& name) const noexcept;
 
 	void addHits(uint32_t aHits) {
 		hits += aHits;
@@ -229,21 +229,21 @@ private:
 
 		static Ptr create(const string& aName, const Ptr& aParent = Ptr()) { return Ptr(new Directory(aName, aParent)); }
 
-		bool hasType(uint32_t type) const throw() {
+		bool hasType(uint32_t type) const noexcept {
 			return ( (type == SearchManager::TYPE_ANY) || (fileTypes & (1 << type)) );
 		}
-		void addType(uint32_t type) throw();
+		void addType(uint32_t type) noexcept;
 
-		string getADCPath() const throw();
-		string getFullName() const throw(); 
-		string getRealPath(const std::string& path) const throw(ShareException);
+		string getADCPath() const noexcept;
+		string getFullName() const noexcept; 
+		string getRealPath(const std::string& path) const;
 
-		int64_t getSize() const throw();
-		int64_t getSize(const string& realpath) const throw();
-		size_t countFiles() const throw(); //ApexDC
+		int64_t getSize() const noexcept;
+		int64_t getSize(const string& realpath) const noexcept;
+		size_t countFiles() const noexcept; //ApexDC
 
-		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) const throw();
-		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const throw();
+		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) const noexcept;
+		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept;
 		void findRemoved();
 
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
@@ -347,7 +347,7 @@ private:
 
 	BloomFilter<5> bloom;
 	
-	Directory::File::Set::const_iterator findFile(const string& virtualFile) const throw(ShareException);
+	Directory::File::Set::const_iterator findFile(const string& virtualFile) const;
 
 	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent);
 	bool checkHidden(const string& aName) const;
@@ -362,9 +362,9 @@ private:
 	StringList notShared;
 	StringList incoming;
 
-	DirList::const_iterator getByVirtual(const string& virtualName) const throw();
-	pair<Directory::Ptr, string> splitVirtual(const string& virtualPath) const throw(ShareException);
-	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const throw(ShareException);
+	DirList::const_iterator getByVirtual(const string& virtualName) const noexcept;
+	pair<Directory::Ptr, string> splitVirtual(const string& virtualPath) const;
+	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr getDirectory(const string& fname);
 
@@ -374,21 +374,21 @@ private:
 	int run();
 
 	// QueueManagerListener
-	virtual void on(QueueManagerListener::FileMoved, const string& n) throw();
+	virtual void on(QueueManagerListener::FileMoved, const string& n) noexcept;
 
 	// HashManagerListener
-	void on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) throw();
+	void on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) noexcept;
 
 	// SettingsManagerListener
-	void on(SettingsManagerListener::Save, SimpleXML& xml) throw() {
+	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
 		save(xml);
 	}
-	void on(SettingsManagerListener::Load, SimpleXML& xml) throw() {
+	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
 		load(xml);
 	}
 	
 	// TimerManagerListener
-	void on(TimerManagerListener::Minute, uint64_t tick) throw();
+	void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
 	void load(SimpleXML& aXml);
 	void save(SimpleXML& aXml);
 	

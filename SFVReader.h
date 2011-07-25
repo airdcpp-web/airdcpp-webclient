@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,15 +16,20 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(SFV_READER_H)
-#define SFV_READER_H
+#ifndef DCPLUSPLUS_DCPP_SFV_READER_H
+#define DCPLUSPLUS_DCPP_SFV_READER_H
 
 #include "File.h"
 #include "Thread.h"
 #include "Singleton.h"
 #include <atomic>
+#include <string>
+
+#include "noexcept.h"
 
 namespace dcpp {
+
+using std::string;
 
 class SFVReaderManager;
 
@@ -42,12 +47,12 @@ public:
 	 * considered comments, and we throw away lines with ' ' or '#' as well
 	 * (pdSFV 1.2 does this...).
 	 */
-	void load(const string& fileName) throw();
-	void loadFromFolder(const string& fullPath) throw();
+	void load(const string& fileName) noexcept;
+	void loadFromFolder(const string& fullPath) noexcept;
 	
-	bool hasCRC() const throw() { return crcFound; }
+	bool hasCRC() const noexcept { return crcFound; }
 
-	uint32_t getCRC() const throw() { return crc32; }
+	uint32_t getCRC() const noexcept { return crc32; }
 	
 
 private:
@@ -56,7 +61,7 @@ private:
 	uint32_t crc32;
 	bool crcFound;
 
-	bool tryFile(const string& sfvFile, const string& fileName) throw(FileException);
+	bool tryFile(const string& sfvFile, const string& fileName);
 	
 };
  
@@ -67,16 +72,16 @@ class SFVReaderManager: public Singleton<SFVReaderManager>, public Thread
 public:
 
  void find (const string& path);
- bool findMissing(const string& path)  throw(FileException);
+ bool findMissing(const string& path);
  int scan(StringList paths = StringList(), bool sfv = false);
- void checkSFV(const string& path) throw(FileException);
+ void checkSFV(const string& path);
  void Stop();
 
 private:
 friend class Singleton<SFVReaderManager>;
 
 	SFVReaderManager() : scanning(false){ }
-	~SFVReaderManager() throw() { 
+	~SFVReaderManager() { 
 		Stop();
 		join();
 	}
@@ -99,11 +104,11 @@ friend class Singleton<SFVReaderManager>;
 
  int64_t scanFolderSize;
  bool stop;
- void findDupes(const string& path) throw(FileException);
+ void findDupes(const string& path);
  StringPairList dupeDirs;
  StringList findFiles(const string& path, const string& pattern, bool dirs = false);
- uint32_t calcCrc32(const string& file) throw(FileException);
- void getScanSize(const string& path) throw(FileException);
+ uint32_t calcCrc32(const string& file);
+ void getScanSize(const string& path);
 };
 
 } // namespace dcpp

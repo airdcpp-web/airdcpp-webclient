@@ -19,6 +19,8 @@
 #include "stdinc.h"
 #include "DCPlusPlus.h"
 
+#include "DCPlusPlus.h"
+
 #include "TraceManager.h"
 
 namespace dcpp {
@@ -46,7 +48,7 @@ void  TraceManager::print(string msg)
 
 }
 
-void CDECL TraceManager::trace_print(const char* format, ...) throw() {
+void CDECL TraceManager::trace_print(const char* format, ...) noexcept {
 	va_list args;
 	va_start(args, format);
 
@@ -59,7 +61,7 @@ void CDECL TraceManager::trace_print(const char* format, ...) throw() {
 
 };
 
-void CDECL TraceManager::trace_start(const char* format, ...) throw()
+void CDECL TraceManager::trace_start(const char* format, ...) noexcept
 {
 	va_list args;
 	va_start(args, format);
@@ -74,7 +76,7 @@ void CDECL TraceManager::trace_start(const char* format, ...) throw()
 	va_end(args);
 }
 
-void CDECL TraceManager::trace_end(const char* format, ...) throw()
+void CDECL TraceManager::trace_end(const char* format, ...) noexcept
 {
 	va_list args;
 	va_start(args, format);
@@ -94,5 +96,5 @@ void CDECL TraceManager::trace_end(const char* format, ...) throw()
 
 /**
  * @file
- * $Id: TraceManager.cpp 373 2008-02-06 17:23:49Z bigmuscle $
+ * $Id: TraceManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
  */

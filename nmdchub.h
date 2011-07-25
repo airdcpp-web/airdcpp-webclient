@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -92,14 +92,14 @@ private:
 	FloodMap flooders;
 
 	NmdcHub(const string& aHubURL, bool secure);
-	~NmdcHub() throw();
+	~NmdcHub();
 
 	// Dummy
 	NmdcHub(const NmdcHub&);
 	NmdcHub& operator=(const NmdcHub&);
 
 	void clearUsers();
-	void onLine(const string& aLine) throw();
+	void onLine(const string& aLine) noexcept;
 
 	OnlineUser& getUser(const string& aNick);
 	OnlineUserPtr findUser(const string& aNick) const;
@@ -125,11 +125,11 @@ private:
 	string checkNick(const string& aNick);
 
 	// TimerManagerListener
-	void on(Second, uint64_t aTick) throw();
+	void on(Second, uint64_t aTick) noexcept;
 
-	void on(Connected) throw();
-	void on(Line, const string& l) throw();
-	void on(Failed, const string&) throw();
+	void on(Connected) noexcept;
+	void on(Line, const string& l) noexcept;
+	void on(Failed, const string&) noexcept;
 
 };
 
@@ -139,5 +139,5 @@ private:
 
 /**
  * @file
- * $Id: nmdchub.h 551 2010-12-18 12:14:16Z bigmuscle $
+ * $Id: nmdchub.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

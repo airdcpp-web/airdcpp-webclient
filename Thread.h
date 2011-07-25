@@ -19,16 +19,18 @@
 #ifndef DCPLUSPLUS_DCPP_THREAD_H
 #define DCPLUSPLUS_DCPP_THREAD_H
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include "w.h"
+#else
 #include <pthread.h>
 #include <sched.h>
 #include <sys/resource.h>
 #endif
 
+#include <boost/noncopyable.hpp>
 #include "Exception.h"
+
 #include <boost/thread.hpp>
-
-
 
 namespace dcpp {
 
@@ -51,14 +53,14 @@ public:
 		HIGH = THREAD_PRIORITY_ABOVE_NORMAL
 	};
 
-	Thread() throw() : threadHandle(INVALID_HANDLE_VALUE) { }
+	Thread() : threadHandle(INVALID_HANDLE_VALUE) { }
 	virtual ~Thread() { 
 		if(threadHandle != INVALID_HANDLE_VALUE)
 			CloseHandle(threadHandle);
 	}
 	
-	void start() throw(ThreadException);
-	void join() throw(ThreadException) {
+	void start();
+	void join() {
 		if(threadHandle == INVALID_HANDLE_VALUE) {
 			return;
 		}
@@ -68,7 +70,7 @@ public:
 		threadHandle = INVALID_HANDLE_VALUE;
 	}
 
-	void setThreadPriority(Priority p) throw() { ::SetThreadPriority(threadHandle, p); }
+	void setThreadPriority(Priority p) { ::SetThreadPriority(threadHandle, p); }
 	
 	static void sleep(uint64_t millis) { ::Sleep(static_cast<DWORD>(millis)); }
 	static void yield() { ::Sleep(0); }
@@ -82,14 +84,14 @@ public:
 		NORMAL = 0,
 		HIGH = -1
 	};
-	Thread() throw() : threadHandle(0) { }
+	Thread() : threadHandle(0) { }
 	virtual ~Thread() { 
 		if(threadHandle != 0) {
 			pthread_detach(threadHandle);
 		}
 	}
-	void start() throw(ThreadException);
-	void join() throw() { 
+	void start();
+	void join() { 
 		if (threadHandle) {
 			pthread_join(threadHandle, 0);
 			threadHandle = 0;
@@ -105,8 +107,6 @@ protected:
 	virtual int run() = 0;
 	
 #ifdef _WIN32
-
-
 	HANDLE threadHandle;
 
 	static unsigned int  WINAPI starter(void* p) {
@@ -133,5 +133,5 @@ protected:
 
 /**
  * @file
- * $Id: Thread.h 548 2010-09-06 08:54:37Z bigmuscle $
+ * $Id: Thread.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

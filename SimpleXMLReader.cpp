@@ -1,7 +1,6 @@
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
 #include "SimpleXMLReader.h"
+
 #include "SimpleXML.h"
 
 #include "Text.h"

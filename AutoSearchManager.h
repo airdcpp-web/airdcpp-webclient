@@ -37,7 +37,7 @@ public:
 
 	Autosearch() { };
 	Autosearch(bool aEnabled, const string& aSearchString, int aFileType, int aAction)
-		throw() : enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction) { };
+		noexcept : enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction) { };
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
@@ -52,8 +52,8 @@ public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
-	void on(TimerManagerListener::Minute, uint64_t aTick) throw();
-	void on(SearchManagerListener::SR, const SearchResultPtr&) throw();
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
 
 	Autosearch* addAutosearch(bool en, const string& ss, int ft, int act) {
 		Autosearch* ipw = new Autosearch(en, ss, ft, act);

@@ -17,7 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
 #include "HashManager.h"
 
 #include "SFVReader.h"
@@ -25,6 +24,7 @@
 #include "ShareManager.h"
 #include "StringTokenizer.h"
 #include "FilteredFile.h"
+#include "File.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -639,6 +639,7 @@ uint32_t SFVReaderManager::calcCrc32(const string& file) {
 	size_t n = BUF_SIZE;
 	while(f.read(&b[0], n) > 0)
 		;		// Keep on looping...
+
 	return f.getFilter().getValue();
 }
 
@@ -663,7 +664,7 @@ bool SFVReader::tryFile(const string& sfvFile, const string& fileName) throw(Fil
 	return false;
 }
 
-void SFVReader::load(const string& fileName) throw() {
+void SFVReader::load(const string& fileName) noexcept {
 	string path = Util::getFilePath(fileName);
 	string fname = Util::getFileName(fileName);
 	StringList files = File::findFiles(path, "*.sfv");
