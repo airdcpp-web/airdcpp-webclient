@@ -612,6 +612,8 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 	if(prepareFile(*aSource, type, fname, aStartPos, aBytes, c.hasFlag("RE", 4), c.hasFlag("TL", 4))) {
 		Upload* u = aSource->getUpload();
 		dcassert(u != NULL);
+		//dcassert(!u->getToken().empty());
+		//LogManager::getInstance()->message(u->);
 
 		AdcCommand cmd(AdcCommand::CMD_SND);
 		cmd.addParam(type).addParam(fname)
@@ -624,7 +626,7 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 			cmd.addParam("ZL1");
 		}
 
-		if(c.hasFlag("TL", 4)) {
+		if(c.hasFlag("TL", 4) && type == Transfer::names[Transfer::TYPE_PARTIAL_LIST]) {
 			cmd.addParam("TL1");
 		}
 
