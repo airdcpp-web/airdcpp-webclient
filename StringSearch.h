@@ -59,6 +59,13 @@ public:
 
 	/** Match a text against the pattern */
 	bool match(const string& aText) const noexcept {
+		
+		//check for the length first. -Night
+		string::size_type plen = pattern.length();
+
+		if(aText.length() < plen) {
+			return false;
+		}
 
 		// Lower-case representation of UTF-8 string, since we no longer have that 1 char = 1 byte...
 		string lower;
@@ -67,12 +74,6 @@ public:
 		// uint8_t to avoid problems with signed char pointer arithmetic
 		uint8_t *tx = (uint8_t*)lower.c_str();
 		uint8_t *px = (uint8_t*)pattern.c_str();
-
-		string::size_type plen = pattern.length();
-
-		if(aText.length() < plen) {
-			return false;
-		}
 
 		uint8_t *end = tx + aText.length() - plen + 1;
 		while(tx < end) {

@@ -21,6 +21,12 @@
 
 #include "compiler.h"
 
+//disable secure scl so containers are not shit slow. -Night
+#define _SECURE_SCL  0
+#define _ITERATOR_DEBUG_LEVEL 0
+#define _SECURE_SCL_THROWS 0
+#define _HAS_ITERATOR_DEBUGGING 0
+
 #ifndef _DEBUG
 # define BOOST_DISABLE_ASSERTS 1
 #endif
@@ -74,7 +80,7 @@
 #include <boost/scoped_array.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
-
+#include <boost/pool/pool_alloc.hpp>
 //#define BOOST_REGEX_NO_LIB 1
 //#define BOOST_THREAD_NO_LIB 1
 #define BOOST_ALL_NO_LIB 1

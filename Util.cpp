@@ -54,7 +54,7 @@
 
 namespace dcpp {
 
-#ifdef USE_FAST_ALLOC
+#ifndef _DEBUG
 FastCriticalSection FastAllocBase::cs;
 #endif
 
