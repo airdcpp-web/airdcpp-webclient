@@ -64,6 +64,9 @@ void HttpConnection::downloadFile(const string& aUrl) {
 		file = currentUrl;
 	}
 
+	if(!query.empty())
+		file += '?' + query;
+
 	if(BOOLSETTING(CORAL) && coralizeState != CST_NOCORALIZE) {
 		if(server.length() > CORAL_SUFFIX.length() && server.compare(server.length() - CORAL_SUFFIX.length(), CORAL_SUFFIX.length(), CORAL_SUFFIX) !=0) {
 			server += CORAL_SUFFIX;
@@ -209,5 +212,5 @@ void HttpConnection::on(BufferedSocketListener::Data, uint8_t* aBuf, size_t aLen
 
 /**
  * @file
- * $Id: HttpConnection.cpp 568 2011-07-24 18:28:43Z bigmuscle $
+ * $Id: HttpConnection.cpp 569 2011-07-25 19:48:51Z bigmuscle $
  */

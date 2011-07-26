@@ -17,11 +17,8 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
-
-#include "DCPlusPlus.h"
-
 #include "ServerSocket.h"
+
 #include "SettingsManager.h"
 
 namespace dcpp {
@@ -39,5 +36,5 @@ void ServerSocket::listen(uint16_t aPort) {
 
 /**
  * @file
- * $Id: ServerSocket.cpp 568 2011-07-24 18:28:43Z bigmuscle $
+ * $Id: ServerSocket.cpp 569 2011-07-25 19:48:51Z bigmuscle $
  */
