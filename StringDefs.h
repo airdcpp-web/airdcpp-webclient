@@ -1228,5 +1228,6 @@ enum Strings { // @DontAdd
 	SETTINGS_MAX_MCN, // "Maximum number of downloads per user"
 	PARTIAL_MATCH_ADC, // "Add sources by using recursive partial lists (ADC only)"
 	SETTINGS_NO_ZERO_BYTE, // "Don't share 0 Byte files"
+	SETTINGS_DOWNLOAD_LINE_SPEED, // "Line Speed (download)"
 	LAST // @DontAdd
 };

@@ -295,6 +295,7 @@ ok:
 	}
 
 	Upload* u = new Upload(aSource, sourceFile, TTHValue());
+	//LogManager::getInstance()->message("Token2: " + aSource.getToken());
 	u->setStream(is);
 	u->setSegment(Segment(start, size));
 		
@@ -393,31 +394,6 @@ void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
 	}
 }
 
-int UploadManager::getSlotsPerUser() {
-	int slots;
-	int upload = Util::toInt(SETTING(UPLOAD_SPEED));
-
-	if (upload == 10)
-		slots=2;
-	else if (upload > 10 && upload <= 20)
-		slots=3;
-	else if (upload > 20 && upload <= 50)
-		slots=5;
-	else if (upload > 50 && upload < 100)
-		slots=7;
-	else if (upload == 100)
-		slots=9;
-	else if (upload > 100)
-		slots=0;
-	else
-		slots=1;
-
-	if (slots > getSlots())
-		slots = getSlots();
-
-	return slots;
-}
-
 bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 	CID cid = aSource.getUser()->getCID();
@@ -442,7 +418,7 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 		MultiConnIter uis = multiUploads.find(cid);
 		if (uis != multiUploads.end()) {
-			if (((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= getSlotsPerUser() || getSlotsPerUser() == 0)) {
+			if (((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= Util::getSlotsPerUser(false, false) || Util::getSlotsPerUser(false, false) == 0)) {
 				return true;
 			} else {
 				return false;
@@ -487,7 +463,8 @@ void UploadManager::checkMultiConn() {
 					for(UploadList::const_iterator s = uploads.begin()+uploadsStart; s != uploads.end(); ++s) {
 						uploadsStart++;
 						Upload* u = *s;
-						if (u->getUser()->getCID() == i->first && u) {
+						if (u == NULL) continue;
+						if (u->getUser()->getCID() == i->first) {
 							u->getUserConnection().disconnect(true);
 							//changeMultiConnSlot(u->getUser()->getCID(), true);
 							break;
@@ -605,7 +582,7 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 	const string& fname = c.getParam(1);
 	int64_t aStartPos = Util::toInt64(c.getParam(2));
 	int64_t aBytes = Util::toInt64(c.getParam(3));
-
+	//LogManager::getInstance()->message("Token1: " + aSource->getToken());
 	if(prepareFile(*aSource, type, fname, aStartPos, aBytes, c.hasFlag("RE", 4), c.hasFlag("TL", 4))) {
 		Upload* u = aSource->getUpload();
 		dcassert(u != NULL);

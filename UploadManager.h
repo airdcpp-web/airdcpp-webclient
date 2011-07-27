@@ -126,7 +126,6 @@ public:
 	bool getMultiConn(const UserConnection& aSource);
 	void changeMultiConnSlot(const CID cid, bool remove);
 	void checkMultiConn();
-	int getSlotsPerUser();
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);

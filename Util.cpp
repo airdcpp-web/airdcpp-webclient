@@ -1071,29 +1071,28 @@ uint32_t Util::rand() {
 }
 
 /*	getIpCountry
-	This function returns the country(Abbreviation) of an ip
-	for exemple: it returns "PT", whitch standards for "Portugal"
+	This function returns the full country name of an ip, eg "Portugal".
 	more info: http://www.maxmind.com/app/csv
 */
-string Util::getIpCountry(const string& IP) {
-	if(BOOLSETTING(GET_USER_COUNTRY)) {
+const string& Util::getIpCountry (const string& IP) {
+	if (BOOLSETTING(GET_USER_COUNTRY)) {
 		if(count(IP.begin(), IP.end(), '.') != 3)
-			return Util::emptyString;
+			return emptyString;
 
 		//e.g IP 23.24.25.26 : w=23, x=24, y=25, z=26
 		string::size_type a = IP.find('.');
 		string::size_type b = IP.find('.', a+1);
 		string::size_type c = IP.find('.', b+2);
 
-		uint32_t ipnum = (Util::toUInt32(IP.c_str()) << 24) | 
-			(Util::toUInt32(IP.c_str() + a + 1) << 16) | 
-			(Util::toUInt32(IP.c_str() + b + 1) << 8) | 
-			(Util::toUInt32(IP.c_str() + c + 1) );
+		/// @todo this is impl dependant and is working by chance because we are currently using atoi!
+		uint32_t ipnum = (toUInt32(IP.c_str()) << 24) |
+			(toUInt32(IP.c_str() + a + 1) << 16) |
+			(toUInt32(IP.c_str() + b + 1) << 8) |
+			(toUInt32(IP.c_str() + c + 1) );
 
-		CountryList::const_iterator i = countries.lower_bound(ipnum);
-
+		auto i = countries.lower_bound(ipnum);
 		if(i != countries.end()) {
-			return string((char*)&(i->second), 2);
+			return countryNames[i->second];
 		}
 	}
 
@@ -1584,6 +1583,49 @@ string Util::getOsVersion(bool http /* = false */) {
 #endif // _WIN32
 }
 
+
+int Util::getSlotsPerUser(bool download, bool autoOnly) {
+	int slots;
+	int totalSlots;
+	int speed;
+
+	if (download) {
+		totalSlots=SETTING(DOWNLOAD_SLOTS);
+		speed = Util::toInt(SETTING(DOWNLOAD_SPEED));
+	} else {
+		totalSlots=SETTING(SLOTS);
+		speed = Util::toInt(SETTING(UPLOAD_SPEED));
+	}
+
+	if (!SETTING(MCN_SLOTS_AUTO) && !autoOnly) {
+		if (download)
+			return SETTING(MAX_MCN_DOWNLOADS);
+		else
+			return SETTING(MAX_MCN_UPLOADS);
+	}
+
+	//LogManager::getInstance()->message("Slots: " + Util::toString(slots));
+
+	if (speed == 10)
+		slots=2;
+	else if (speed > 10 && speed <= 25)
+		slots=3;
+	else if (speed > 25 && speed <= 50)
+		slots=5;
+	else if (speed > 50 && speed < 100)
+		slots=7;
+	else if (speed == 100)
+		slots=9;
+	else if (speed > 100)
+		slots=0;
+	else
+		slots=1;
+
+	if (slots > totalSlots)
+		slots = totalSlots;
+	//LogManager::getInstance()->message("Slots: " + Util::toString(slots));
+	return slots;
+}
 
 } // namespace dcpp
 

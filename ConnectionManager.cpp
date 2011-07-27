@@ -74,6 +74,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 	if (!DownloadManager::getInstance()->checkIdle(aUser.user, smallSlot)) {
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
+			if (cqi == NULL) continue;
 			if (cqi->getUser().user == aUser.user) {
 				found=true;
 				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
@@ -234,6 +235,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
+			if (cqi == NULL) continue;
 			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 				if(cqi->getState() == ConnectionQueueItem::ACTIVE && isUCRunning(cqi->getToken(), false)) {
 					if(!cqi->getUser().user->isOnline()) {
@@ -265,12 +267,13 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 
 		for(ConnectionQueueItem::Iter k = multiUsers.begin(); k != multiUsers.end(); ++k) {
 			ConnectionQueueItem* cqi = *k;
+			if (cqi == NULL) continue;
 			ConnectionQueueItem::Iter u = std::find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
 			if (u == waitingMultiConn.end()) {
 				//no connection waiting, check if we can create a new one
 				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
 				if (y != mcnConnections.end()) {
-					if (y->second >= SETTING(MAX_MCN_DOWNLOADS) && SETTING(MAX_MCN_DOWNLOADS) != 0) {
+					if (y->second >= Util::getSlotsPerUser(true, false) && Util::getSlotsPerUser(true, false) != 0) {
 						continue;
 					}
 					if (y->second >= cqi->getMaxConns() && cqi->getMaxConns() != 0) {
@@ -289,6 +292,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 
 		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
 			ConnectionQueueItem* cqi1 = *m;
+			if (cqi1 == NULL) continue;
 			dcdebug("uc+cqi remove!");
 			disconnect(cqi1->getToken());
 			putCQI(cqi1);
@@ -565,7 +569,7 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 	int mcn = 0;
 	if(aSource->isSet(UserConnection::FLAG_MCN1)) {
 		int slots = 0;
-		slots = UploadManager::getInstance()->getSlotsPerUser();
+		slots = Util::getSlotsPerUser(false, false);
 		if (slots != 0)
 			mcn=slots;
 	}
@@ -750,6 +754,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 		ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), uc->getUser());
 		if(i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
+			if (cqi == NULL) return;
 			if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 				cqi->setState(ConnectionQueueItem::ACTIVE);
 				uc->setToken(cqi->getToken());
@@ -762,6 +767,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 	} else {
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
+			if (cqi == NULL) continue;
 			if (cqi->getToken() == uc->getToken()) {
 				if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 					cqi->setState(ConnectionQueueItem::ACTIVE);
@@ -878,6 +884,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		Lock l(cs);
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
+			if (cqi == NULL) continue;
 			const string& to = cqi->getToken();
 			if(to == token) {
 				if(aSource->isSet(UserConnection::FLAG_MCN1)) {
@@ -901,6 +908,10 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
 		addDownloadConnection(aSource);
 	} else {
+		if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
+			cmd.getParam("TO", 0, token);
+			aSource->setToken(token);
+		}
 		aSource->setFlag(UserConnection::FLAG_UPLOAD);
 		addUploadConnection(aSource);
 	}
@@ -966,6 +977,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD) && !downloads.empty()) {
 			for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
+				if (cqi == NULL) continue;
 				if (aSource->getToken() == cqi->getToken()) {
 					dcassert(i != downloads.end());
 					cqi->setState(ConnectionQueueItem::WAITING);
@@ -979,6 +991,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			ConnectionQueueItem::List removed;
 			for(ConnectionQueueItem::Iter i = uploads.begin(); i != uploads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
+				if (cqi == NULL) continue;
 				if (aSource->getToken() == cqi->getToken()) {
 					removed.push_back(cqi);
 					break;
@@ -1014,6 +1027,7 @@ void ConnectionManager::disconnect(const string token) {
 	Lock l(cs);
 	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
 		UserConnection* uc = *i;
+		if (uc == NULL) continue;
 		if(uc->getToken() == token) {
 			uc->disconnect(true);
 			break;
@@ -1025,6 +1039,7 @@ void ConnectionManager::disconnect(const UserPtr& aUser, int isDownload) {
 	Lock l(cs);
 	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
 		UserConnection* uc = *i;
+		if (uc == NULL) continue;
 		if(uc->getUser() == aUser && uc->isSet((Flags::MaskType)(isDownload ? UserConnection::FLAG_DOWNLOAD : UserConnection::FLAG_UPLOAD))) {
 			uc->disconnect(true);
 			break;

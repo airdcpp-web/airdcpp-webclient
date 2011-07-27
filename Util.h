@@ -402,6 +402,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 		snprintf(buf, sizeof(buf), "%0.2f", val);
 		return buf;
 	}
+
 	static string toString(const string& sep, const StringList& lst);
 	static string toString(const StringList& lst);
 
@@ -480,7 +481,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static void replace(string& aString, const string& findStr, const string& replaceStr);
 	static TCHAR* strstr(const TCHAR *str1, const TCHAR *str2, int *pnIdxFound);
 	static tstring replace(const tstring& aString, const tstring& fStr, const tstring& rStr);
-	static string getIpCountry (const string& IP);
+	static const string& getIpCountry (const string& IP);
 
 	static bool getAway() { return away; }
 	static void setAway(bool aAway, bool byminimize = false);
@@ -500,6 +501,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static bool validatePath(const string &sPath);
 	static bool fileExists(const string &aFile);
 	static string getDir(string dir, bool validate, bool cut);
+	static int getSlotsPerUser(bool download, bool autoOnly);
 
 	static uint32_t rand();
 	static uint32_t rand(uint32_t high) { return rand() % high; }
