@@ -472,9 +472,9 @@ void Util::decodeUrl(const string& url, string& protocol, string& host, uint16_t
 				return;
 			}
 
-			host = url.substr(authorityStart, hostEnd - authorityStart);
+			host = url.substr(authorityStart + 1, hostEnd - authorityStart - 1);
 			if(hostEnd + 1 < url.size() && url[hostEnd + 1] == ':') {
-				portStart = hostEnd + 1;
+				portStart = hostEnd + 2;
 			}
 		} else {
 			size_t hostEnd;
