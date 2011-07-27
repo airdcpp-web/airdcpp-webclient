@@ -177,8 +177,8 @@ void Client::on(Connected) noexcept {
 		}
 	}
 
-	state = STATE_PROTOCOL;
 	fire(ClientListener::Connected(), this);
+	state = STATE_PROTOCOL;
 	
 }
 

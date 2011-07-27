@@ -130,7 +130,7 @@ private:
 	string getPkVersion() const;
 };
 
-class OnlineUser : public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, public UserInfoBase, private boost::noncopyable {
+class OnlineUser :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, public UserInfoBase, private boost::noncopyable {
 public:
 	enum {
 		COLUMN_FIRST,

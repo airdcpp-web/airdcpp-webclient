@@ -40,7 +40,7 @@ struct WaitingUser {
 	operator const UserPtr&() const { return user.user; }
 };
 
-class UploadQueueItem : public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
+class UploadQueueItem :  public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
 public:
 	UploadQueueItem(const HintedUser& u, const string& _file, int64_t p, int64_t sz, uint64_t itime) :
 		user(u), file(_file), pos(p), size(sz), time(itime) { inc(); }

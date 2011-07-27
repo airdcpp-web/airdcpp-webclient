@@ -177,7 +177,7 @@ public:
 
 private:
 	struct AdcSearch;
-	class Directory : public FastAlloc<Directory>, public intrusive_ptr_base<Directory>, boost::noncopyable {
+	class Directory :/* public FastAlloc<Directory>,*/ public intrusive_ptr_base<Directory>, boost::noncopyable {
 	public:
 		typedef boost::intrusive_ptr<Directory> Ptr;
 		typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;

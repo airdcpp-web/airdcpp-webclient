@@ -32,7 +32,7 @@ namespace dcpp {
 class QueueManager;
 class Download;
 
-class QueueItem : public Flags, public FastAlloc<QueueItem>, public intrusive_ptr_base<QueueItem> {
+class QueueItem : public Flags, /*public FastAlloc<QueueItem>,*/ public intrusive_ptr_base<QueueItem> {
 public:
 	typedef unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 
