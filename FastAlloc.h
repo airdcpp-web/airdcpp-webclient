@@ -21,6 +21,7 @@
 
 #include "Thread.h"
 #include "debug.h"
+#include <boost/pool/pool.hpp>
 
 namespace dcpp {
 
@@ -29,76 +30,46 @@ struct FastAllocBase {
 	static FastCriticalSection cs;
 };
 
-/** 
- * Fast new/delete replacements for constant sized objects, that also give nice
- * reference locality...
- */
-template<class T>
-struct FastAlloc : public FastAllocBase {
-	// Custom new & delete that (hopefully) use the node allocator
-	static void* operator new(size_t s) {
-		if(s != sizeof(T))
-			return ::operator new(s);
-		return allocate();
-	}
-
-	// Avoid hiding placement new that's needed by the stl containers...
-	static void* operator new(size_t, void* m) {
-		return m;
-	}
-	// ...and the warning about missing placement delete...
-	static void operator delete(void*, void*) {
-		// ? We didn't allocate so...
-	}
-
-	static void operator delete(void* m, size_t s) {
-		if (s != sizeof(T)) {
-			::operator delete(m);
-		} else if(m != NULL) {
-			deallocate((uint8_t*)m);
+/*
+cannot use this with subclasses, it will reserve the wrong amount of memory for a subclass.
+*/
+template <class T>
+class FastAlloc : public FastAllocBase  {
+	
+	public:
+		static void* operator new ( size_t s ) {
+			
+			if(s != sizeof(T)) {
+				return ::operator new(s); //use default new
+			}
+			FastLock l(cs);
+			return pool.malloc();
 		}
-	}
-protected:
-	~FastAlloc() { }
 
-private:
-
-	static void* allocate() {
-		FastLock l(cs);
-		if(freeList == NULL) {
-			grow();
+		static void operator delete(void* m, size_t s) {
+			
+			if (s != sizeof(T)) 
+				::operator delete(m); //use default delete
+		
+			else if(m) {
+				FastLock l(cs);
+				pool.free(m);
+			}
 		}
-		void* tmp = freeList;
-		freeList = *((void**)freeList);
-		return tmp;
-	}
 
-	static void deallocate(void* p) {
-		FastLock l(cs);
-		*(void**)p = freeList;
-		freeList = p;
-	}
+	protected:
+		~FastAlloc() { }
 
-	static void* freeList;
+	private:
+		static boost::pool< > pool;
+	};
 
-	static void grow() {
-		dcassert(sizeof(T) >= sizeof(void*));
-		// We want to grow by approximately 128kb at a time...
-		size_t items = ((128*1024 + sizeof(T) - 1)/sizeof(T));
-		freeList = new uint8_t[sizeof(T)*items];
-		uint8_t* tmp = (uint8_t*)freeList;
-		for(size_t i = 0; i < items - 1; i++) {
-			*(void**)tmp = tmp + sizeof(T);
-			tmp += sizeof(T);
-		}
-		*(void**)tmp = NULL;
-	}
-};
-template<class T> void* FastAlloc<T>::freeList = NULL;
+	
+	template <class T> boost::pool< > FastAlloc<T> ::pool( sizeof(T) );
+
 #else
 template<class T> struct FastAlloc { };
 #endif
-
 } // namespace dcpp
 
 #endif // !defined(FAST_ALLOC_H)

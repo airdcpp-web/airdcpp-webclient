@@ -38,7 +38,7 @@ class DirectoryListing : boost::noncopyable, public UserInfoBase
 {
 public:
 	class Directory;
-	class File : public FastAlloc<File> 
+	class File
 {
 	public:
 		typedef File* Ptr;
@@ -81,7 +81,7 @@ public:
 		GETSET(bool, dupe, Dupe)
 	};
 
-	class Directory : public FastAlloc<Directory>, boost::noncopyable {
+	class Directory :  boost::noncopyable {
 	public:
 		typedef Directory* Ptr;
 		struct DirSort {

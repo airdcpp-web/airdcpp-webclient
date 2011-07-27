@@ -33,6 +33,7 @@
 #define _SECURE_SCL  0
 #define _ITERATOR_DEBUG_LEVEL 0
 #define _HAS_ITERATOR_DEBUGGING 0
+#define _SECURE_SCL_THROWS 0
 #define memzero(dest, n) memset(dest, 0, n)
 
 //disable the deprecated warnings for the CRT functions.
