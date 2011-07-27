@@ -177,8 +177,9 @@ void Client::on(Connected) noexcept {
 		}
 	}
 
-	fire(ClientListener::Connected(), this);
 	state = STATE_PROTOCOL;
+	fire(ClientListener::Connected(), this);
+	
 }
 
 void Client::on(Failed, const string& aLine) noexcept {

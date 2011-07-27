@@ -199,7 +199,7 @@ private:
 	void on(Connected, UserConnection*) noexcept;
 	void on(Failed, UserConnection*, const string&) noexcept;
 	void on(ProtocolError, UserConnection*, const string&) noexcept;
-	void on(CLock, UserConnection*, const string&, const string&) noexcept;
+	void on(CLock, UserConnection*, const string&) noexcept;
 	void on(Key, UserConnection*, const string&) noexcept;
 	void on(Direction, UserConnection*, const string&, const string&) noexcept;
 	void on(MyNick, UserConnection*, const string&) noexcept;

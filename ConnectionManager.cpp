@@ -683,7 +683,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 	aSource->setState(UserConnection::STATE_LOCK);
 }
 
-void ConnectionManager::on(UserConnectionListener::CLock, UserConnection* aSource, const string& aLock, const string& aPk) noexcept {
+void ConnectionManager::on(UserConnectionListener::CLock, UserConnection* aSource, const string& aLock) noexcept {
 	if(aSource->getState() != UserConnection::STATE_LOCK) {
 		dcdebug("CM::onLock %p received lock twice, ignoring\n", (void*)aSource);
 		return;
