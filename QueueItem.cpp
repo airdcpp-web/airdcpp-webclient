@@ -66,6 +66,9 @@ void QueueItem::addSource(const HintedUser& aUser) {
 void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) {
 	SourceIter i = getSource(aUser);
 	dcassert(i != sources.end());
+	if(i == sources.end())
+		return;
+
 	i->setFlag(reason);
 	badSources.push_back(*i);
 	sources.erase(i);

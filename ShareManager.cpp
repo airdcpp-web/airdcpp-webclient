@@ -1121,11 +1121,10 @@ int ShareManager::run() {
 		if(refreshOptions & REFRESH_DIRECTORY){ 
 		
 		for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
-			std::string virtualname = i->first;
-
+		
 			//lookup for the root dirs under the Vname and erase only those.
 			for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {	
-				if(stricmp((*j)->getName(), virtualname) == 0) {
+				if(stricmp((*j)->getName(), i->first) == 0) {
 					//directories.erase(j++);
 					(*j)->findRemoved();
 					directories.erase(j);
