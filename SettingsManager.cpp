@@ -810,10 +810,6 @@ void SettingsManager::load(string const& aFileName)
 		}
 
 
-#ifdef _DEBUG
-		set(PRIVATE_ID, CID::generate().toBase32());
-#endif
-
 		setDefault(UDP_PORT, SETTING(TCP_PORT));
 
 		File::ensureDirectory(SETTING(TLS_TRUSTED_CERTIFICATES_PATH));

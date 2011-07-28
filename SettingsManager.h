@@ -208,6 +208,14 @@ public:
 			strSettings[key - STR_FIRST] = value.substr(0, 50);
 		} else if ( (key == EMAIL) && (value.size() > 64) ) {
 			strSettings[key - STR_FIRST] = value.substr(0, 64);
+		} else if (key == UPLOAD_SPEED || key == DOWNLOAD_SPEED) {
+			boost::regex reg;
+			reg.assign("(\\d+(\\.\\d+)?)");
+			if (!regex_match(value, reg)) {
+				strSettings[key - STR_FIRST] = connectionSpeeds[0];
+			} else {
+				strSettings[key - STR_FIRST] = value;
+			}
 		} else {
 			strSettings[key - STR_FIRST] = value;
 		}
