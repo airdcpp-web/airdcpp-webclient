@@ -181,6 +181,15 @@ string ClientManager::getConnection(const CID& cid) const {
 	return STRING(OFFLINE);
 }
 
+string ClientManager::getDLSpeed(const CID& cid) const {
+	Lock l(cs);
+	OnlineIterC i = onlineUsers.find(const_cast<CID*>(&cid));
+	if(i != onlineUsers.end()) {
+		return Util::formatBytes(i->second->getIdentity().get("DS")) + "/s";
+	}
+	return STRING(OFFLINE);
+}
+
 uint8_t ClientManager::getSlots(const CID& cid) const
 {
 	Lock l(cs);

@@ -57,6 +57,7 @@ public:
 	StringList getHubNames(const HintedUser& user) const { return getHubNames(user.user->getCID(), user.hint); }
 
 	string getConnection(const CID& cid) const;
+	string getDLSpeed(const CID& cid) const;
 	uint8_t getSlots(const CID& cid) const;
 
 	bool isConnected(const string& aUrl) const;

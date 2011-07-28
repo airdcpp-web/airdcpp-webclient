@@ -65,6 +65,7 @@ void Identity::getParams(StringMap& sm, const string& prefix, bool compatibility
 		sm[prefix + "CID"] = user->getCID().toBase32();
 		sm[prefix + "TAG"] = getTag();
 		sm[prefix + "CO"] = getConnection();
+		sm[prefix + "DS"] = getDLSpeed();
 		sm[prefix + "SSshort"] = Util::formatBytes(get("SS"));
 
 		if(compatibility) {
@@ -190,7 +191,8 @@ tstring OnlineUser::getText(uint8_t col) const {
 		case COLUMN_EXACT_SHARED: return Util::formatExactSize(identity.getBytesShared());
 		case COLUMN_DESCRIPTION: return Text::toT(identity.getDescription());
 		case COLUMN_TAG: return Text::toT(identity.getTag());
-		case COLUMN_CONNECTION: return identity.get("US").empty() ? Text::toT(identity.getConnection()) : (Text::toT(Util::formatBytes(identity.get("US"))) + _T("/s"));
+		case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getConnection()) : (Text::toT(Util::formatBytes(identity.get("US"))) + _T("/s"));
+		case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Text::toT(Util::formatBytes(identity.get("DS"))) + _T("/s"));
 		case COLUMN_IP: {
 			string ip = identity.getIp();
 			string country = ip.empty() ? Util::emptyString : Util::getIpCountry(ip);

@@ -996,13 +996,14 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "HO", Util::toString(counts[COUNT_OP]));	
 	
 	addParam(lastInfoMap, c, "US", Util::toString((long)(Util::toDouble(SETTING(UPLOAD_SPEED))*1024*1024)));
+	addParam(lastInfoMap, c, "DS", Util::toString((long)(Util::toDouble(SETTING(DOWNLOAD_SPEED))*1024*1024)));
 
 	addParam(lastInfoMap, c, "AP", "AirDC++");
 	addParam(lastInfoMap, c, "VE", VERSIONSTRING);
 	addParam(lastInfoMap, c, "AW", Util::getAway() ? "1" : Util::emptyString);
 	
 	
-		addParam(lastInfoMap, c, "DS", Util::emptyString);
+		//addParam(lastInfoMap, c, "DS", Util::emptyString);
 	
 	string su(SEGA_FEATURE);
 

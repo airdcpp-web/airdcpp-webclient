@@ -74,6 +74,7 @@ public:
 	GS(UdpPort, "U4")
 	GS(Email, "EM")
 	GS(Connection, "CO")
+	GS(DLSpeed, "DS")
 
 	void setBytesShared(const string& bs) { set("SS", bs); }
 	int64_t getBytesShared() const { return Util::toInt64(get("SS")); }
@@ -139,7 +140,8 @@ public:
 		COLUMN_EXACT_SHARED, 
 		COLUMN_DESCRIPTION, 
 		COLUMN_TAG,
-		COLUMN_CONNECTION, 
+		COLUMN_ULSPEED,
+		COLUMN_DLSPEED,
 		COLUMN_IP,
 		COLUMN_EMAIL, 
 		COLUMN_VERSION, 
