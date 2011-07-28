@@ -273,7 +273,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 				//no connection waiting, check if we can create a new one
 				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
 				if (y != mcnConnections.end()) {
-					if (y->second >= Util::getSlotsPerUser(true, false) && Util::getSlotsPerUser(true, false) != 0) {
+					if (y->second >= SETTING(MAX_MCN_DOWNLOADS) && SETTING(MAX_MCN_DOWNLOADS) != 0) {
 						continue;
 					}
 					if (y->second >= cqi->getMaxConns() && cqi->getMaxConns() != 0) {
