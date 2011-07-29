@@ -50,7 +50,7 @@ public:
 		FLAG_SMALL_CONF			= 0x04
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken) : token(aToken), 
+	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, const string& aToken) : token(aToken), 
 		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), maxConns(0) { }
 	
 	GETSET(string, token, Token);
@@ -117,7 +117,7 @@ public:
 	
 	void disconnect(const UserPtr& aUser); // disconnect downloads and uploads
 	void disconnect(const UserPtr& aUser, int isDownload);
-	void disconnect(const string token);
+	void disconnect(const string& token);
 
 	void shutdown();
 	bool isShuttingDown() const { return shuttingDown; }
@@ -183,7 +183,7 @@ private:
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string token);
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token);
 	void putCQI(ConnectionQueueItem* cqi);
 
 	void accept(const Socket& sock, bool secure) noexcept;

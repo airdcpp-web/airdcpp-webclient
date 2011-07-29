@@ -102,7 +102,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 	}
 }
 
-ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, string token) {
+ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, const string& token) {
 	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download, token);
 	if(download) {
 		downloads.push_back(cqi);
@@ -1023,7 +1023,7 @@ void ConnectionManager::disconnect(const UserPtr& aUser) {
 	}
 }
 
-void ConnectionManager::disconnect(const string token) {
+void ConnectionManager::disconnect(const string& token) {
 	Lock l(cs);
 	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
 		UserConnection* uc = *i;
