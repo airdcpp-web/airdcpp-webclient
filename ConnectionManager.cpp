@@ -95,7 +95,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 		}
 
 		dcdebug("Get cqi");
-		ConnectionQueueItem* cqi = getCQI(aUser, true);
+		ConnectionQueueItem* cqi = getCQI(aUser, true, Util::toString(Util::rand()));
 		if (smallSlot)
 			cqi->setFlag(ConnectionQueueItem::FLAG_SMALL);
 	}
@@ -284,7 +284,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
 				bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
 				if(prio != QueueItem::PAUSED && startDown) {
-					ConnectionQueueItem* cqiNew = getCQI(cqi->getUser(),true);
+					ConnectionQueueItem* cqiNew = getCQI(cqi->getUser(),true, Util::toString(Util::rand()));
 					cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
 				}
 			}

@@ -183,7 +183,7 @@ private:
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, string token = Util::toString(Util::rand()));
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string token);
 	void putCQI(ConnectionQueueItem* cqi);
 
 	void accept(const Socket& sock, bool secure) noexcept;
