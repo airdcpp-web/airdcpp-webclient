@@ -495,7 +495,7 @@ bool UploadManager::getAutoSlot() {
 	if(Util::getSpeedLimit(false) == 0)
 		return false;
 	/** Max slots */
-	if(getSlots() + SETTING(AUTO_SLOTS) < running)
+	if(getSlots() + Util::getMaxAutoOpened() < running)
 		return false;		
 	/** Only grant one slot per 30 sec */
 	if(GET_TICK() < getLastGrant() + 30*1000)

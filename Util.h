@@ -501,10 +501,10 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static bool validatePath(const string &sPath);
 	static bool fileExists(const string &aFile);
 	static string getDir(string dir, bool validate, bool cut);
-	static int getSlotsPerUser(bool download, int value=0);
-	static int getSlots(bool download, int value=0, bool rarLimits=false);
+	static int getSlotsPerUser(bool download, double value=0);
+	static int getSlots(bool download, double value=0, bool rarLimits=false);
 	static int getSpeedLimit(bool download, double value=0);
-	static int getMaxAutoOpened(int value = 0);
+	static int getMaxAutoOpened(double value = 0);
 
 	static uint32_t rand();
 	static uint32_t rand(uint32_t high) { return rand() % high; }

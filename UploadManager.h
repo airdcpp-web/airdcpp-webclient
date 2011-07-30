@@ -111,7 +111,7 @@ public:
 	uint8_t getFreeSlots() const { return (uint8_t)max((getSlots() - running), 0); }
 	
 	/** @internal */
-	int getFreeExtraSlots() const { return max(Util::getMaxAutoOpened() - getExtra(), 0); }
+	int getFreeExtraSlots() const { return max(SETTING(EXTRA_SLOTS) - getExtra(), 0); }
 	
 	/** @param aUser Reserve an upload slot for this user and connect. */
 	void reserveSlot(const HintedUser& aUser, uint64_t aTime);
