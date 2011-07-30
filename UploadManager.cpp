@@ -418,7 +418,7 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 		MultiConnIter uis = multiUploads.find(cid);
 		if (uis != multiUploads.end()) {
-			if (((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= Util::getSlotsPerUser(false, false) || Util::getSlotsPerUser(false, false) == 0)) {
+			if (((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= Util::getSlotsPerUser(false) || Util::getSlotsPerUser(false) == 0)) {
 				return true;
 			} else {
 				return false;
@@ -492,7 +492,7 @@ int64_t UploadManager::getRunningAverage() {
 
 bool UploadManager::getAutoSlot() {
 	/** A 0 in settings means disable */
-	if(SETTING(MIN_UPLOAD_SPEED) == 0)
+	if(Util::getSpeedLimit(false) == 0)
 		return false;
 	/** Max slots */
 	if(getSlots() + SETTING(AUTO_SLOTS) < running)
@@ -501,7 +501,7 @@ bool UploadManager::getAutoSlot() {
 	if(GET_TICK() < getLastGrant() + 30*1000)
 		return false;
 	/** Grant if upload speed is less than the threshold speed */
-	return getRunningAverage() < (SETTING(MIN_UPLOAD_SPEED)*1024);
+	return getRunningAverage() < (Util::getSpeedLimit(false)*1024);
 }
 
 void UploadManager::removeUpload(Upload* aUpload, bool delay) {

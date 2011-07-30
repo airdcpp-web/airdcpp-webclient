@@ -1225,9 +1225,14 @@ enum Strings { // @DontAdd
 	CHECK_EMPTY_RELEASES, // "Check if the folder only contains NFO/SFV file"
 	CHECK_EMPTY_DIRS, // "Check if the directory is empty"
 	DATE, // "Date Modified"
-	SETTINGS_MAX_MCN, // "Maximum number of downloads per user"
+	SETTINGS_MCNSLOTS, // "Per user limits"
+	SETTINGS_MAX_MCN_DL, // "Maximum number of downloads per user"
+	SETTINGS_MAX_MCN_UL, // "Maximum number of uploads per user"
 	PARTIAL_MATCH_ADC, // "Add sources by using recursive partial lists (ADC only)"
 	SETTINGS_NO_ZERO_BYTE, // "Don't share 0 Byte files"
 	SETTINGS_DOWNLOAD_LINE_SPEED, // "Line Speed (download)"
+	AUTODETECT, // "Detect automatically"
+	LINE_SPEED, // "Line Speed"
+	SETTINGS_SPEED_LIMITS, // "Speed & Limits"
 	LAST // @DontAdd
 };

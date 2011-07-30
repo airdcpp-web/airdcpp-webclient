@@ -1584,20 +1584,26 @@ string Util::getOsVersion(bool http /* = false */) {
 }
 
 
-int Util::getSlotsPerUser(bool download, bool autoOnly) {
+int Util::getSlotsPerUser(bool download, int value) {
 	int slots;
 	int totalSlots;
 	int speed;
 
 	if (download) {
-		totalSlots=SETTING(DOWNLOAD_SLOTS);
-		speed = Util::toInt(SETTING(DOWNLOAD_SPEED));
+		totalSlots=getSlots(true, value);
+		if (value != 0)
+			speed=value;
+		else
+			speed = Util::toInt(SETTING(DOWNLOAD_SPEED));
 	} else {
-		totalSlots=SETTING(SLOTS);
-		speed = Util::toInt(SETTING(UPLOAD_SPEED));
+		totalSlots=getSlots(false, value);
+		if (value != 0)
+			speed=value;
+		else
+			speed = Util::toInt(SETTING(UPLOAD_SPEED));
 	}
 
-	if (!SETTING(MCN_SLOTS_AUTO) && !autoOnly) {
+	if (!SETTING(MCN_AUTODETECT) && value == 0) {
 		if (download)
 			return SETTING(MAX_MCN_DOWNLOADS);
 		else
@@ -1624,6 +1630,183 @@ int Util::getSlotsPerUser(bool download, bool autoOnly) {
 	if (slots > totalSlots)
 		slots = totalSlots;
 	//LogManager::getInstance()->message("Slots: " + Util::toString(slots));
+	return slots;
+}
+
+
+int Util::getSlots(bool download, int value, bool rarLimits) {
+
+	if (!SETTING(DL_AUTODETECT) && value == 0 && download) {
+		//LogManager::getInstance()->message("Slots1");
+		return SETTING(DOWNLOAD_SLOTS);
+	} else if (!SETTING(UL_AUTODETECT) && value == 0 && !download) {
+		//LogManager::getInstance()->message("Slots2");
+		return SETTING(SLOTS);
+	}
+
+	int speed;
+	if (download) {
+		if (value != 0)
+			speed=value;
+		else
+			speed = Util::toInt(SETTING(DOWNLOAD_SPEED));
+	} else {
+		if (value != 0)
+			speed=value;
+		else
+			speed = Util::toInt(SETTING(UPLOAD_SPEED));
+	}
+
+	int slots=3;
+
+	bool rar = false;
+	if ((SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) || rarLimits) {
+		rar=true;
+	}
+
+	if (speed <= 1) {
+		if (rar) {
+			slots=1;
+		} else {
+			if (download)
+				slots=10;
+			else
+				slots=2;
+		}
+	} else if (speed > 1 && speed <= 2) {
+		if (rar) {
+			slots=2;
+		} else {
+			if (download)
+				slots=15;
+			else
+				slots=3;
+		}
+	} else if (speed > 2 && speed <= 4) {
+		if (rar) {
+			slots=2;
+		} else {
+			if (download)
+				slots=15;
+			else
+				slots=4;
+		}
+	} else if (speed > 4 && speed <= 6) {
+		if (rar) {
+			slots=2;
+		} else {
+			if (download)
+				slots=20;
+			else
+				slots=5;
+		}
+	} else if (speed > 6 && speed <= 10) {
+		if (rar) {
+			slots=3;
+			if (speed==10)
+				slots=4;
+		} else {
+			if (download)
+				slots=20;
+			else
+				slots=8;
+		}
+	} else if (speed > 10 && speed <= 50) {
+		if (rar) {
+			slots= value / 10;
+			if (download)
+				slots=value+3;
+		} else {
+			if (download)
+				slots=30;
+			else
+				slots=9;
+		}
+	} else if(speed > 50 && speed < 100) {
+		if (rar) {
+			slots= speed / 10;
+		} else {
+			if (download)
+				slots=50;
+			else
+				slots=12;
+		}
+	} else if (speed >= 100) {
+		if (rar) {
+			slots= speed / 8;
+			if (slots > 15 && !download)
+				slots=15;
+		} else {
+			slots= speed / 10;
+			if (slots > 30 && !download)
+				slots=30;
+		}
+	}
+	//LogManager::getInstance()->message("Slots3: " + Util::toString(slots));
+	return slots;
+
+}
+
+int Util::getSpeedLimit(bool download, double value) {
+
+	if (!SETTING(DL_AUTODETECT) && value == 0 && download) {
+		//LogManager::getInstance()->message("Slots1");
+		return SETTING(MAX_DOWNLOAD_SPEED);
+	} else if (!SETTING(UL_AUTODETECT) && value == 0 && !download) {
+		//LogManager::getInstance()->message("Slots2");
+		return SETTING(MIN_UPLOAD_SPEED);
+	}
+
+
+	string speed;
+	if (download) {
+		if (value != 0)
+			speed=Util::toString(value);
+		else
+			speed = SETTING(DOWNLOAD_SPEED);
+	} else {
+		if (value != 0)
+			speed=Util::toString(value);
+		else
+			speed = SETTING(UPLOAD_SPEED);
+	}
+
+	double lineSpeed = Util::toDouble(speed);
+
+	int ret;
+	if (download) {
+		ret = lineSpeed*100;
+	} else {
+		ret = lineSpeed*90;
+	}
+	return ret;
+}
+
+int Util::getMaxAutoOpened(int value) {
+	if (!SETTING(UL_AUTODETECT) && value == 0) {
+		return SETTING(EXTRA_SLOTS);
+	}
+
+	int speed;
+	if (value != 0)
+		speed=value;
+	else
+		speed = Util::toInt(SETTING(UPLOAD_SPEED));
+
+	int slots=1;
+
+	if (speed < 1) {
+		slots=1;
+	} else if (speed >= 1 && speed <= 5) {
+		slots=2;
+	}  else if (speed > 5 && speed <= 20) {
+		slots=3;
+	} else if (speed > 20 && speed < 100) {
+		slots=4;
+	} else if (speed >= 100) {
+		slots=5;
+	}
+
 	return slots;
 }
 

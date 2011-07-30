@@ -105,13 +105,13 @@ public:
 	 */
 	int64_t getRunningAverage();
 	
-	uint8_t getSlots() const { return (uint8_t)(max(SETTING(SLOTS), max(SETTING(HUB_SLOTS),0) * Client::getTotalCounts())); }
+	uint8_t getSlots() const { return (uint8_t)(max(Util::getSlots(false), max(SETTING(HUB_SLOTS),0) * Client::getTotalCounts())); }
 
 	/** @return Number of free slots. */
 	uint8_t getFreeSlots() const { return (uint8_t)max((getSlots() - running), 0); }
 	
 	/** @internal */
-	int getFreeExtraSlots() const { return max(SETTING(EXTRA_SLOTS) - getExtra(), 0); }
+	int getFreeExtraSlots() const { return max(Util::getMaxAutoOpened() - getExtra(), 0); }
 	
 	/** @param aUser Reserve an upload slot for this user and connect. */
 	void reserveSlot(const HintedUser& aUser, uint64_t aTime);

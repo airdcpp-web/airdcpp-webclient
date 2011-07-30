@@ -117,7 +117,7 @@ const string SettingsManager::settingTags[] =
     "ReservedSlotColor", "IgnoredColor", "FavoriteColor","NormalColour",
 	"PasiveColor", "OpColor", "DontDLAlreadyShared",
 	"ConfirmHubRemoval", "SuppressMainChat", "ProgressBackColor", "ProgressCompressColor", "ProgressSegmentColor",
-	"UseVerticalView", "OpenNewWindow", "FileSlots",  "UDPPort", "MultiChunk",
+	"UseVerticalView", "OpenNewWindow", "UDPPort", "MultiChunk",
  	"UserListDoubleClick", "TransferListDoubleClick", "ChatDoubleClick", "AdcDebug",
 	"ToggleActiveWindow", "ProgressbaroDCStyle", "SearchHistory", 
 	"OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue", "OpenFinishedDownloads",
@@ -152,7 +152,8 @@ const string SettingsManager::settingTags[] =
 	"CheckEmptyDirs","CheckEmptyReleases", "FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
-	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNSlotsAuto",
+	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
+	"DLAutoDetect", "ULAutoDetect",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -234,7 +235,6 @@ SettingsManager::SettingsManager()
 	setDefault(BUFFER_SIZE, 64);
 	setDefault(HUBLIST_SERVERS, "http://dchublist.com/hublist.xml.bz2;http://www.hublista.hu/hublist.xml.bz2;http://hublist.openhublist.org/hublist.xml.bz2;");
 	setDefault(DOWNLOAD_SLOTS, 50);
-    setDefault(FILE_SLOTS, 15);
 	setDefault(MAX_DOWNLOAD_SPEED, 0);
 	setDefault(LOG_DIRECTORY, Util::getPath(Util::PATH_USER_LOCAL) + "Logs" PATH_SEPARATOR_STR);
 	setDefault(LOG_UPLOADS, false);
@@ -669,7 +669,9 @@ SettingsManager::SettingsManager()
 	setDefault(MAX_MCN_DOWNLOADS, 0);
 	setDefault(PARTIAL_MATCH_ADC, true);
 	setDefault(NO_ZERO_BYTE, false);
-	setDefault(MCN_SLOTS_AUTO, true);
+	setDefault(MCN_AUTODETECT, true);
+	setDefault(DL_AUTODETECT, true);
+	setDefault(UL_AUTODETECT, true);
 	setDefault(MAX_MCN_UPLOADS, 0);
 
 #ifdef _WIN64

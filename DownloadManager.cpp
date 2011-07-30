@@ -181,11 +181,11 @@ bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
 	size_t downloadCount = getDownloadCount();
 
 
-	bool full = (SETTING(DOWNLOAD_SLOTS) != 0) && (downloadCount >= (size_t)SETTING(DOWNLOAD_SLOTS));
-	full = full || ((SETTING(MAX_DOWNLOAD_SPEED) != 0) && (getRunningAverage() >= (SETTING(MAX_DOWNLOAD_SPEED)*1024)));
+	bool full = (Util::getSlots(true) != 0) && (downloadCount >= (size_t)Util::getSlots(true));
+	full = full || ((Util::getSpeedLimit(true) != 0) && (getRunningAverage() >= (Util::getSpeedLimit(true)*1024)));
 
 	if(full) {
-		bool extraFull = (SETTING(DOWNLOAD_SLOTS) != 0) && (getDownloadCount() >= (size_t)(SETTING(DOWNLOAD_SLOTS)+SETTING(EXTRA_DOWNLOAD_SLOTS)));
+		bool extraFull = (Util::getSlots(true) != 0) && (getDownloadCount() >= (size_t)(Util::getSlots(true)+SETTING(EXTRA_DOWNLOAD_SLOTS)));
 		if(extraFull || mcn) {
 			return false;
 		}

@@ -332,15 +332,7 @@ QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Pri
 				}
 
 				if(qi->isWaiting()) {
-					// check maximum simultaneous files setting
-					if(SETTING(FILE_SLOTS) == 0 || qi->isSet(QueueItem::FLAG_USER_LIST) ||
-						QueueManager::getInstance()->getRunningFiles().size() < (size_t)SETTING(FILE_SLOTS)) 
-					{
-						return qi;
-					} else {
-						lastError = STRING(ALL_FILE_SLOTS_TAKEN);
-						continue;
-					}
+					return qi;
 				}
 				
 				// No segmented downloading when getting the tree

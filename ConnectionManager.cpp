@@ -275,7 +275,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 				//no connection waiting, check if we can create a new one
 				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
 				if (y != mcnConnections.end()) {
-					if (y->second >= SETTING(MAX_MCN_DOWNLOADS) && SETTING(MAX_MCN_DOWNLOADS) != 0) {
+					if (y->second >= Util::getSlotsPerUser(true) && Util::getSlotsPerUser(true) != 0) {
 						continue;
 					}
 					if (y->second >= cqi->getMaxConns() && cqi->getMaxConns() != 0) {
@@ -563,7 +563,7 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 	int mcn = 0;
 	if(aSource->isSet(UserConnection::FLAG_MCN1)) {
 		int slots = 0;
-		slots = Util::getSlotsPerUser(false, false);
+		slots = Util::getSlotsPerUser(false);
 		if (slots != 0)
 			mcn=slots;
 	}
