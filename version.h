@@ -18,11 +18,11 @@
 
 
 #define APPNAME "AirDC++"
-#define VERSIONSTRING "2.20 Beta 1"
+#define VERSIONSTRING "2.20 Beta 2"
 
-#define VERSIONFLOAT 2.201
+#define VERSIONFLOAT 2.202
 
-#define DCVERSIONSTRING "0.781"
+#define DCVERSIONSTRING "0.782"
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"

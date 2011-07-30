@@ -125,6 +125,7 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
 	}
 	delete cqi;
+	checkWaitingMCN();
 }
 
 UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) noexcept {
@@ -162,7 +163,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 				continue;
 
 			if(cqi->getState() != ConnectionQueueItem::ACTIVE) {
-				if(!cqi->getUser().user->isOnline()) {
+				if(!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					// Not online anymore...remove it from the pending...
 					removed.push_back(cqi);
 					continue;
@@ -225,10 +226,9 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 }
 
 void ConnectionManager::checkWaitingMCN() noexcept {
-	ConnectionQueueItem::List waitingMultiConn;
 	ConnectionQueueItem::List multiUsers;
-	ConnectionQueueItem::List removed;
 	MultiConnMap mcnConnections;
+	MultiConnMap waitingMultiConn;
 	{
 
 		Lock l(cs);
@@ -246,13 +246,15 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 					if(u == multiUsers.end())
 						multiUsers.push_back(cqi);
 				} else {
-					ConnectionQueueItem::Iter u = find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
+					MultiConnIter u = waitingMultiConn.find(cqi->getUser().user->getCID());
 					if(u == waitingMultiConn.end()) {
-						waitingMultiConn.push_back(cqi);
+						waitingMultiConn[cqi->getUser().user->getCID()] = 1;
 					} else {
 						//there should be only one cqi waiting
 						if (cqi->getState() != ConnectionQueueItem::CONNECTING && !isUCRunning(cqi->getToken(), true)) {
-							removed.push_back(cqi);
+							disconnect(cqi->getToken());
+							cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
+							continue;
 						}
 					}
 				}
@@ -268,7 +270,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 		for(ConnectionQueueItem::Iter k = multiUsers.begin(); k != multiUsers.end(); ++k) {
 			ConnectionQueueItem* cqi = *k;
 			if (cqi == NULL) continue;
-			ConnectionQueueItem::Iter u = std::find(waitingMultiConn.begin(), waitingMultiConn.end(), cqi->getUser());
+			MultiConnIter u = waitingMultiConn.find(cqi->getUser().user->getCID());
 			if (u == waitingMultiConn.end()) {
 				//no connection waiting, check if we can create a new one
 				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
@@ -288,14 +290,6 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 					cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
 				}
 			}
-		}
-
-		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
-			ConnectionQueueItem* cqi1 = *m;
-			if (cqi1 == NULL) continue;
-			dcdebug("uc+cqi remove!");
-			disconnect(cqi1->getToken());
-			putCQI(cqi1);
 		}
 	}
 }
@@ -1002,7 +996,6 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			}
 		}
 	}
-	checkWaitingMCN();
 	putConnection(aSource);
 }
 
@@ -1030,7 +1023,7 @@ void ConnectionManager::disconnect(const string& token) {
 		if (uc == NULL) continue;
 		if(uc->getToken() == token) {
 			uc->disconnect(true);
-			break;
+			return;
 		}
 	}
 }
@@ -1042,7 +1035,6 @@ void ConnectionManager::disconnect(const UserPtr& aUser, int isDownload) {
 		if (uc == NULL) continue;
 		if(uc->getUser() == aUser && uc->isSet((Flags::MaskType)(isDownload ? UserConnection::FLAG_DOWNLOAD : UserConnection::FLAG_UPLOAD))) {
 			uc->disconnect(true);
-			break;
 		}
 	}
 }

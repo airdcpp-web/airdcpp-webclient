@@ -47,7 +47,8 @@ public:
 	enum Flags {
 		FLAG_MCN1				= 0x01,
 		FLAG_SMALL				= 0x02,
-		FLAG_SMALL_CONF			= 0x04
+		FLAG_SMALL_CONF			= 0x04,
+		FLAG_REMOVE				= 0x08
 	};
 
 	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, const string& aToken) : token(aToken), 
