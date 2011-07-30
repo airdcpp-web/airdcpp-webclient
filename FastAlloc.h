@@ -31,7 +31,7 @@ struct FastAllocBase {
 };
 
 /*
-cannot use this with subclasses, it will reserve the wrong amount of memory for a subclass.
+cannot use this with a class that has subclasses, it will reserve the wrong amount of memory for a subclass.
 */
 template <class T>
 class FastAlloc : public FastAllocBase  {
