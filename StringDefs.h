@@ -616,7 +616,6 @@ enum Strings { // @DontAdd
 	SETTINGS_DONT_DL_ALREADY_SHARED, // "Don't download files already in share"
 	SETTINGS_DOWNCONN, // "Dwnld attempts/second"
 	SETTINGS_DOWNLOAD_DIRECTORY, // "Default download directory"
-	SETTINGS_DOWNLOAD_LIMITS, // "Limits"
 	SETTINGS_DOWNLOADS, // "Downloads"
 	SETTINGS_DOWNLOADS_MAX, // "Maximum simultaneous downloads (0 = infinite)"
 	SETTINGS_DOWNLOADS_SPEED_PAUSE, // "No new downloads if speed exceeds (kB/s, 0 = disable)"
@@ -1099,7 +1098,6 @@ enum Strings { // @DontAdd
 	MAX_RESIZE_LINES, // "Max resize lines"
 	DONT_SHARE_EMPTY_DIRS, // "Don't share empty directories"
 	ONLY_SHARE_FULL_DIRS, // "Only share fully hashed directories"
-	ST_AIRDC_SLOT, // "Extraslots to fellow AirDC++ users(version 2.05->)"
 	SETTINGS_DUPE_SEARCH, // "Use Dupe Color in Search"
 	SETTINGS_LRUS, // "Russian"
 	FILE_ALREADY_SHARED, // "Trying to Download File already shared! File: "
@@ -1234,5 +1232,12 @@ enum Strings { // @DontAdd
 	AUTODETECT, // "Detect automatically"
 	LINE_SPEED, // "Line Speed"
 	SETTINGS_SPEED_LIMITS, // "Speed & Limits"
+	UPLOAD_LIMITS, // "Upload Limits"
+	UPLOAD_LIMITS_ADD, // "Upload Limits (additional)"
+	DOWNLOAD_LIMITS, // "Download Limits"
+	SETTINGS_PROFILE, // "Settings Profile"
+	PROFILE_PUBLIC, // "Public Hubs (default)"
+	PROFILE_RAR, // "Rar Hubs"
+	PROFILE_PRIVATE, // "Private Hubs"
 	LAST // @DontAdd
 };

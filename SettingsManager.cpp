@@ -142,7 +142,7 @@ const string SettingsManager::settingTags[] =
 	"LangSwitch", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp",
 	"OverlapChunks", "MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "DupeText", "OpenSystemLog",
-	"FirstRun", "LastSearchFiletype", "MaxResizeLines", "DontShareEmptyDirs", "OnlyShareFullDirs", "ExtraAirDCSlots",
+	"FirstRun", "LastSearchFiletype", "MaxResizeLines", "DontShareEmptyDirs", "OnlyShareFullDirs",
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
@@ -625,7 +625,6 @@ SettingsManager::SettingsManager()
 	setDefault(MAX_RESIZE_LINES, 2);
 	setDefault(DONT_SHARE_EMPTY_DIRS, false);
 	setDefault(ONLY_SHARE_FULL_DIRS, false);
-	setDefault(EXTRA_AIRDC_SLOTS, 0);
 	setDefault(DUPE_SEARCH, true);
 	setDefault(PASSWD_PROTECT, false);
 	setDefault(PASSWD_PROTECT_TRAY, false);
