@@ -32,6 +32,7 @@ struct FastAllocBase {
 
 /*
 cannot use this with a class that has subclasses, it will reserve the wrong amount of memory for a subclass.
+Changed to Boost pools -Night
 */
 template <class T>
 class FastAlloc : public FastAllocBase  {
@@ -74,7 +75,4 @@ template<class T> struct FastAlloc { };
 
 #endif // !defined(FAST_ALLOC_H)
 
-/**
- * @file
- * $Id: FastAlloc.h 568 2011-07-24 18:28:43Z bigmuscle $
- */
+

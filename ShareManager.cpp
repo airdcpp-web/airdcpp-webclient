@@ -83,16 +83,21 @@ void ShareManager::shutdown() {
 	try {
 		StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
 			for(StringList::const_iterator i = lists.begin(); i != lists.end(); ++i) {
-				File::deleteFile(*i);
+				File::deleteFile(*i); // cannot delete the current filelist due to the bzxmlref.
 			}
 			lists.clear();
+			
+			//leave the latest filelist undeleted, and rename it to files.xml.bz2
+			if(bzXmlRef.get()) 
+				bzXmlRef.reset(); 
+
+				if(!Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2"))				
+					File::renameFile(getBZXmlFile(), (Util::getPath(Util::PATH_USER_CONFIG), "files.xml.bz2")); 
+				
 		} catch(...) {
 		//ignore, we just failed to delete
 		}
-			if(bzXmlRef.get()) { 
-					bzXmlRef.reset();
-					File::deleteFile(getBZXmlFile()); 
-				}
+			
 	}
 
 ShareManager::Directory::Directory(const string& aName, const ShareManager::Directory::Ptr& aParent) :
@@ -469,21 +474,32 @@ private:
 bool ShareManager::loadCache() noexcept {
 	try {
 
-		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
+		
 
 		ShareLoader loader(directories);
+		bool zipped = false;
+		try {
+		//look for share.xml
+		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml", dcpp::File::READ, dcpp::File::OPEN);
+		SimpleXMLReader(&loader).parse(ff);
+		}catch(...) 
+			//migrate the old bzipped cache, remove this at some point
+		{	
+			dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2", dcpp::File::READ, dcpp::File::OPEN);
+			FilteredInputStream<UnBZFilter, false> f(&ff);
+			SimpleXMLReader(&loader).parse(f);
+		}
 
-		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2", dcpp::File::READ, dcpp::File::OPEN);
-		FilteredInputStream<UnBZFilter, false> f(&ff);
-
-		SimpleXMLReader(&loader).parse(f);
+		
 		
 		for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			const Directory::Ptr& d = *i;
 			updateIndices(*d);
 		}
-
-		generateXmlList(true);
+		
+		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
+		if(!Util::fileExists(getBZXmlFile())) //only generate if we dont find old filelist
+			generateXmlList(true);
 
 		return true;
 	} catch(const Exception& e) {
@@ -1093,7 +1109,6 @@ StringPairList ShareManager::getDirectories(int refreshOptions) const noexcept {
 
 int ShareManager::run() {
 	
-
 	StringPairList dirs = getDirectories(refreshOptions);
 
 	if(refreshOptions & REFRESH_ALL) {
@@ -1167,7 +1182,6 @@ int ShareManager::run() {
 	if(refreshOptions & REFRESH_BLOCKING)
 		generateXmlList(true);
 
-	
 
 	refreshing.clear();
 	return 0;
@@ -1267,39 +1281,44 @@ void ShareManager::saveXmlList(){
 	Lock l(cs);
 	string indent;
 	//create a backup first incase we get interrupted on creation.
-	string newCache = Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2.bak";
-	FilteredOutputStream<BZFilter, true> *xmlFile = new FilteredOutputStream<BZFilter, true>(new File(newCache, File::WRITE, File::TRUNCATE | File::CREATE));
+	string newCache = Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.tmp";
+	File ff(newCache, File::WRITE, File::TRUNCATE | File::CREATE);
+	BufferedOutputStream<false> xmlFile(&ff);
+	//FilteredOutputStream<BZFilter, true> *xmlFile = new FilteredOutputStream<BZFilter, true>(new File(newCache, File::WRITE, File::TRUNCATE | File::CREATE));
 	try{
-		xmlFile->write(SimpleXML::utf8Header);
-		xmlFile->write("<Share>\r\n");
+		xmlFile.write(SimpleXML::utf8Header);
+		xmlFile.write("<Share>\r\n");
 
 		for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			(*i)->toXmlList(xmlFile, indent);
 		}
-		xmlFile->write("</Share>");
-		xmlFile->flush();
-		File::renameFile(newCache,  (Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2"));
+		xmlFile.write("</Share>");
+		xmlFile.flush();
+		ff.close();
+		File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml");
+		File::renameFile(newCache,  (Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml"));
+		File::deleteFile(newCache);
 	}catch(Exception&){}
 
-	delete xmlFile;
+	//delete xmlFile;
 
 	ShareCacheDirty = false;
 }
 
-void ShareManager::Directory::toXmlList(OutputStream* xmlFile, string& indent){
+void ShareManager::Directory::toXmlList(OutputStream& xmlFile, string& indent) const{
 	string tmp, tmp2;
 
-	xmlFile->write(indent);
-	xmlFile->write(LITERAL("<Directory Name=\""));
-	xmlFile->write(SimpleXML::escape(name, tmp, true));
+	xmlFile.write(indent);
+	xmlFile.write(LITERAL("<Directory Name=\""));
+	xmlFile.write(SimpleXML::escape(name, tmp, true));
 //	xmlFile->write(LITERAL("\" Path=\""));
 //	xmlFile->write(SimpleXML::escape(path, tmp, true));
-	xmlFile->write(LITERAL("\" Date=\""));
-	xmlFile->write(SimpleXML::escape(lastwrite, tmp, true));
-	xmlFile->write(LITERAL("\">\r\n"));
+	xmlFile.write(LITERAL("\" Date=\""));
+	xmlFile.write(SimpleXML::escape(lastwrite, tmp, true));
+	xmlFile.write(LITERAL("\">\r\n"));
 
 	indent += '\t';
-	for(MapIter i = directories.begin(); i != directories.end(); ++i) {
+	for(Map::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 
 			i->second->toXmlList(xmlFile, indent);
 	
@@ -1308,20 +1327,20 @@ void ShareManager::Directory::toXmlList(OutputStream* xmlFile, string& indent){
 	for(Directory::File::Set::const_iterator i = files.begin(); i != files.end(); ++i) {
 		const Directory::File& f = *i;
 
-		xmlFile->write(indent);
-		xmlFile->write(LITERAL("<File Name=\""));
-		xmlFile->write(SimpleXML::escape(f.getName(), tmp2, true));
-		xmlFile->write(LITERAL("\" Size=\""));
-		xmlFile->write(Util::toString(f.getSize()));
-		xmlFile->write(LITERAL("\" TTH=\""));
+		xmlFile.write(indent);
+		xmlFile.write(LITERAL("<File Name=\""));
+		xmlFile.write(SimpleXML::escape(f.getName(), tmp2, true));
+		xmlFile.write(LITERAL("\" Size=\""));
+		xmlFile.write(Util::toString(f.getSize()));
+		xmlFile.write(LITERAL("\" TTH=\""));
 		tmp2.clear();
-		xmlFile->write(f.getTTH().toBase32(tmp2));
-		xmlFile->write(LITERAL("\"/>\r\n"));
+		xmlFile.write(f.getTTH().toBase32(tmp2));
+		xmlFile.write(LITERAL("\"/>\r\n"));
 	}
 
 	indent.erase(indent.length()-1);
-	xmlFile->write(indent);
-	xmlFile->write(LITERAL("</Directory>\r\n"));
+	xmlFile.write(indent);
+	xmlFile.write(LITERAL("</Directory>\r\n"));
 }
 
 

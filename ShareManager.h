@@ -250,7 +250,7 @@ private:
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
 		//for filelist caching
-		void toXmlList(OutputStream* xmlFile, string& indent);
+		void toXmlList(OutputStream& xmlFile, string& indent) const;
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 

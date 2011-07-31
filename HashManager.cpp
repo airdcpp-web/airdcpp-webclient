@@ -282,6 +282,8 @@ void HashManager::HashStore::rebuild() {
 
 void HashManager::HashStore::save() {
 	if (dirty) {
+		//debug info to see how long it takes, and helps tracking down possible freezes.
+		LogManager::getInstance()->message("saving hashdata...");
 		try {
 			File ff(getIndexFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 			BufferedOutputStream<false> f(&ff);
@@ -331,6 +333,7 @@ void HashManager::HashStore::save() {
 			File::renameFile(getIndexFile() + ".tmp", getIndexFile());
 
 			dirty = false;
+			LogManager::getInstance()->message("hashdata saved.");
 		} catch (const FileException& e) {
 			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError());
 		}
@@ -532,11 +535,9 @@ void HashManager::Hasher::instantPause() {
 
 	if(paused > 0) {
 			paused++;
-			//wait = true;
 			s.wait();
 		}
 	
-	//if(wait)
 		
 }
 
