@@ -123,7 +123,7 @@ public:
 private:
 	class Hasher : public Thread {
 	public:
-		Hasher() : stop(false), running(false), paused(0), rebuild(false), currentSize(0) { }
+		Hasher() : stop(false), running(false), paused(0), rebuild(false), currentSize(0), saveData(false) { }
 
 		void hashFile(const string& fileName, int64_t size);
 
@@ -142,7 +142,8 @@ private:
 		bool fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size, CRC32Filter* xcrc32);
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft);
 		void shutdown() {  stop = true; if(paused) resume(); s.signal(); clear();}
-		void scheduleRebuild() { rebuild = true; if(paused) s.signal(); s.signal(); }
+		void scheduleRebuild() { rebuild = true; if(paused) resume(); s.signal(); }
+		void save() { saveData = true; s.signal(); }
 
 	private:
 		// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.
@@ -158,6 +159,7 @@ private:
 		bool running;
 		unsigned paused;
 		bool rebuild;
+		bool saveData;
 		string currentFile;
 		int64_t currentSize;
 
@@ -254,13 +256,22 @@ private:
 		Lock l(cs);
 		store.rebuild();
 	}
+	void SaveData() {
+		Lock l(cs);
+		store.save();
+	}
 
 	uint64_t  lastSave;
 	void on(TimerManagerListener::Minute, uint64_t) noexcept {
+		
 		if(GET_TICK() - lastSave > 15*60*1000) { 
-		Lock l(cs);
-		store.save();
-		lastSave = GET_TICK();
+		
+		if(store.isDirty()) {
+			Lock l(cs);
+			hasher.save();
+			}
+
+			lastSave = GET_TICK();
 		}
 	}
 };

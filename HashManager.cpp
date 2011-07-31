@@ -779,6 +779,11 @@ int HashManager::Hasher::run() {
 			LogManager::getInstance()->message(STRING(HASH_REBUILT));
 			continue;
 		}
+		if(saveData) {
+			HashManager::getInstance()->SaveData();
+			saveData = false;
+			continue;
+		}
 		{
 			Lock l(cs);
 			if(!w.empty()) {
