@@ -164,10 +164,6 @@ SettingsManager::SettingsManager()
 {
 	fileEvents.resize(2);
 
-	connectionSpeeds.push_back("0.005");
-	connectionSpeeds.push_back("0.01");
-	connectionSpeeds.push_back("0.02");
-	connectionSpeeds.push_back("0.05");
 	connectionSpeeds.push_back("0.1");
 	connectionSpeeds.push_back("0.2");
 	connectionSpeeds.push_back("0.5");
@@ -176,10 +172,13 @@ SettingsManager::SettingsManager()
 	connectionSpeeds.push_back("5");
 	connectionSpeeds.push_back("8");
 	connectionSpeeds.push_back("10");
-	connectionSpeeds.push_back("15");
 	connectionSpeeds.push_back("20");
+	connectionSpeeds.push_back("30");
+	connectionSpeeds.push_back("40");
 	connectionSpeeds.push_back("50");
+	connectionSpeeds.push_back("60");
 	connectionSpeeds.push_back("100");
+	connectionSpeeds.push_back("200");
 	connectionSpeeds.push_back("1000");
 
 	Languages.push_back("English");   //0
@@ -649,7 +648,7 @@ SettingsManager::SettingsManager()
 	setDefault(SYSTEM_SHOW_UPLOADS, false);
 	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
 	setDefault(SETTINGS_PROFILE, PROFILE_PUBLIC);
-	setDefault(DOWNLOAD_SPEED, connectionSpeeds[10]);
+	setDefault(DOWNLOAD_SPEED, connectionSpeeds[0]);
 	setDefault(LANGUAGE_SWITCH, 0);
 	setDefault(WIZARD_RUN, true); // run wizard on startup
 	setDefault(FORMAT_RELEASE, true);
@@ -665,13 +664,13 @@ SettingsManager::SettingsManager()
 	setDefault(CHECK_EMPTY_RELEASES, true);
 	setDefault(SORT_DIRS, false);
 	setDefault(MAX_FILE_SIZE_SHARED, 0);
-	setDefault(MAX_MCN_DOWNLOADS, 0);
+	setDefault(MAX_MCN_DOWNLOADS, 1);
 	setDefault(PARTIAL_MATCH_ADC, true);
 	setDefault(NO_ZERO_BYTE, false);
 	setDefault(MCN_AUTODETECT, true);
 	setDefault(DL_AUTODETECT, true);
 	setDefault(UL_AUTODETECT, true);
-	setDefault(MAX_MCN_UPLOADS, 0);
+	setDefault(MAX_MCN_UPLOADS, 1);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

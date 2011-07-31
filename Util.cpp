@@ -1626,7 +1626,7 @@ int Util::getSlotsPerUser(bool download, double value) {
 		slots=1;
 	}
 
-	if (!download && (slots > totalSlots))
+	if (slots > totalSlots)
 		slots = totalSlots;
 	//LogManager::getInstance()->message("Slots: " + Util::toString(slots));
 	return slots;
@@ -1663,7 +1663,16 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 		rar=true;
 	}
 
-	if (speed > 1 && speed <= 2) {
+	if (speed <= 1) {
+		if (rar) {
+			slots=1;
+		} else {
+			if (download)
+				slots=6;
+			else
+				slots=2;
+		}
+	} else if (speed > 1 && speed <= 2.5) {
 		if (rar) {
 			slots=2;
 		} else {
@@ -1672,9 +1681,13 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 			else
 				slots=3;
 		}
-	} else if (speed > 2 && speed <= 4) {
+	} else if (speed > 2.5 && speed <= 4) {
 		if (rar) {
-			slots=2;
+			if (!download) {
+				slots=2;
+			} else {
+				slots=3;
+			}
 		} else {
 			if (download)
 				slots=15;
@@ -1683,7 +1696,11 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 		}
 	} else if (speed > 4 && speed <= 6) {
 		if (rar) {
-			slots=2;
+			if (!download) {
+				slots=3;
+			} else {
+				slots=3;
+			}
 		} else {
 			if (download)
 				slots=20;
@@ -1692,7 +1709,11 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 		}
 	} else if (speed > 6 && speed < 10) {
 		if (rar) {
-			slots=3;
+			if (!download) {
+				slots=3;
+			} else {
+				slots=5;
+			}
 		} else {
 			if (download)
 				slots=20;
@@ -1701,12 +1722,14 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 		}
 	} else if (speed >= 10 && speed <= 50) {
 		if (rar) {
-			if (speed <= 20)
+			if (speed <= 20) {
 				slots=4;
-			else
+			} else {
 				slots=5;
-			if (download)
+			}
+			if (download) {
 				slots=slots+3;
+			}
 		} else {
 			if (download)
 				slots=30;
@@ -1716,9 +1739,11 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 	} else if(speed > 50 && speed < 100) {
 		if (rar) {
 			slots= speed / 10;
+			if (download)
+				slots=slots+3;
 		} else {
 			if (download)
-				slots=50;
+				slots=40;
 			else
 				slots=12;
 		}
@@ -1739,15 +1764,6 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 				if (slots > 30 && !download)
 					slots=30;
 			}
-		}
-	} else  {
-		if (rar) {
-			slots=1;
-		} else {
-			if (download)
-				slots=6;
-			else
-				slots=2;
 		}
 	}
 	//LogManager::getInstance()->message("Slots3: " + Util::toString(slots));
@@ -1785,7 +1801,7 @@ int Util::getSpeedLimit(bool download, double value) {
 	if (download) {
 		ret = lineSpeed*100;
 	} else {
-		ret = lineSpeed*80;
+		ret = lineSpeed*50;
 	}
 	return ret;
 }
