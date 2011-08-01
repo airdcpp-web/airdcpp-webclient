@@ -1587,23 +1587,33 @@ string Util::getOsVersion(bool http /* = false */) {
 }
 
 
-int Util::getSlotsPerUser(bool download, double value) {
+int Util::getSlotsPerUser(bool download, double value, int aSlots) {
 	int slots;
 	int totalSlots;
 	double speed;
 
 	if (download) {
-		totalSlots=getSlots(true, value);
-		if (value != 0)
+		if (aSlots ==0) {
+			totalSlots=getSlots(true);
+		} else {
+			totalSlots=aSlots;
+		} 
+		if (value != 0) {
 			speed=value;
-		else
+		} else {
 			speed = Util::toDouble(SETTING(DOWNLOAD_SPEED));
+		}
 	} else {
-		totalSlots=getSlots(false, value);
-		if (value != 0)
+		if (aSlots ==0) {
+			totalSlots=getSlots(false);
+		} else {
+			totalSlots=aSlots;
+		} 
+		if (value != 0) {
 			speed=value;
-		else
+		} else {
 			speed = Util::toDouble(SETTING(UPLOAD_SPEED));
+		}
 	}
 
 	if (!SETTING(MCN_AUTODETECT) && value == 0) {
@@ -1631,13 +1641,12 @@ int Util::getSlotsPerUser(bool download, double value) {
 
 	if (slots > totalSlots)
 		slots = totalSlots;
-	//LogManager::getInstance()->message("Slots: " + Util::toString(slots));
+	//LogManager::getInstance()->message("Slots: " + Util::toString(slots) + " TotalSlots: " + Util::toString(totalSlots) + " Speed: " + Util::toString(speed));
 	return slots;
 }
 
 
 int Util::getSlots(bool download, double value, bool rarLimits) {
-
 	if (!SETTING(DL_AUTODETECT) && value == 0 && download) {
 		//LogManager::getInstance()->message("Slots1");
 		return SETTING(DOWNLOAD_SLOTS);
@@ -1662,7 +1671,7 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 	int slots=3;
 
 	bool rar = false;
-	if (((SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) && (value == 0)) || rarLimits) {
+	if (((SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) && (value == 0)) || (rarLimits && value != 0)) {
 		rar=true;
 	}
 
