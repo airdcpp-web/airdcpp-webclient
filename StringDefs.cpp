@@ -1217,8 +1217,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Check if the directory is empty", 
 "Date Modified", 
 "Per user limits", 
-"Maximum number of downloads per user", 
-"Maximum number of uploads per user", 
+"Max downloads per user", 
+"Max uploads per user", 
 "Add sources by using recursive partial lists (ADC only)", 
 "Don't share 0 Byte files", 
 "Line Speed (download)", 
@@ -1232,6 +1232,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Public Hubs (default)", 
 "Rar Hubs", 
 "Private Hubs", 
+"* Lowering the upload connections from the default value will result the download connections to be set to the same value", 
+"* Using target drive means that unfinished files are always being saved to an own folder on the same drive where the final destination is", 
+"Use Target Drive for unfinished files", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2464,4 +2467,7 @@ std::string dcpp::ResourceManager::names[] = {
 "ProfilePublic", 
 "ProfileRar", 
 "ProfilePrivate", 
+"SettingsMcnNote", 
+"SettingsTargetdriveNote", 
+"SettingsUseTargetdrive", 
 };

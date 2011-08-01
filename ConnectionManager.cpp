@@ -236,8 +236,9 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if (cqi == NULL) continue;
+			if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) continue;
 			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
-				if(cqi->getState() == ConnectionQueueItem::ACTIVE && isUCRunning(cqi->getToken(), false)) {
+				if(cqi->getState() == ConnectionQueueItem::ACTIVE && !isRequesting(cqi->getToken())) {
 					if(!cqi->getUser().user->isOnline()) {
 						// No new connections for offline users...
 						continue;
@@ -251,11 +252,9 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 						waitingMultiConn[cqi->getUser().user->getCID()] = 1;
 					} else {
 						//there should be only one cqi waiting
-						if (cqi->getState() != ConnectionQueueItem::CONNECTING && !isUCRunning(cqi->getToken(), true)) {
-							disconnect(cqi->getToken());
-							cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
-							continue;
-						}
+						disconnect(cqi->getToken());
+						cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
+						continue;
 					}
 				}
 				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
@@ -294,14 +293,12 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 	}
 }
 
-bool ConnectionManager::isUCRunning(const string token, bool requesting) {
+bool ConnectionManager::isRequesting(const string token) {
 	Lock l(cs);
 	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
 		UserConnection* uc = *i;
 		if(uc->getToken() == token) {
-			if(uc->getState() == UserConnection::STATE_RUNNING) {
-				return true;
-			} else if (requesting && (uc->getState() == UserConnection::STATE_SND || uc->getState() == UserConnection::STATE_IDLE)) {
+			if ((uc->getState() == UserConnection::STATE_SND || uc->getState() == UserConnection::STATE_IDLE)) {
 				return true;
 			} else {
 				return false;

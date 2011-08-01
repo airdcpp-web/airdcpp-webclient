@@ -1799,7 +1799,7 @@ int Util::getSpeedLimit(bool download, double value) {
 
 	int ret;
 	if (download) {
-		ret = lineSpeed*100;
+		ret = lineSpeed*110;
 	} else {
 		ret = lineSpeed*50;
 	}

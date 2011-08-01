@@ -92,10 +92,10 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	SettingsManager::getInstance()->load();	
 	AutoSearchManager::getInstance()->AutosearchLoad();
 
-	if(BOOLSETTING(WIZARD_RUN)) {
-	WizardDlg dlg;
-	dlg.DoModal(/*m_hWnd*/);
-	SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN, false); //wizard has run on startup
+	if(BOOLSETTING(WIZARD_RUN_NEW)) {
+		WizardDlg dlg;
+		dlg.DoModal(/*m_hWnd*/);
+		SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN_NEW, false); //wizard has run on startup
 	}
 
 

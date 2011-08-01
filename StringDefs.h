@@ -1224,8 +1224,8 @@ enum Strings { // @DontAdd
 	CHECK_EMPTY_DIRS, // "Check if the directory is empty"
 	DATE, // "Date Modified"
 	SETTINGS_MCNSLOTS, // "Per user limits"
-	SETTINGS_MAX_MCN_DL, // "Maximum number of downloads per user"
-	SETTINGS_MAX_MCN_UL, // "Maximum number of uploads per user"
+	SETTINGS_MAX_MCN_DL, // "Max downloads per user"
+	SETTINGS_MAX_MCN_UL, // "Max uploads per user"
 	PARTIAL_MATCH_ADC, // "Add sources by using recursive partial lists (ADC only)"
 	SETTINGS_NO_ZERO_BYTE, // "Don't share 0 Byte files"
 	SETTINGS_DOWNLOAD_LINE_SPEED, // "Line Speed (download)"
@@ -1239,5 +1239,8 @@ enum Strings { // @DontAdd
 	PROFILE_PUBLIC, // "Public Hubs (default)"
 	PROFILE_RAR, // "Rar Hubs"
 	PROFILE_PRIVATE, // "Private Hubs"
+	SETTINGS_MCN_NOTE, // "* Lowering the upload connections from the default value will result the download connections to be set to the same value"
+	SETTINGS_TARGETDRIVE_NOTE, // "* Using target drive means that unfinished files are always being saved to an own folder on the same drive where the final destination is"
+	SETTINGS_USE_TARGETDRIVE, // "Use Target Drive for unfinished files"
 	LAST // @DontAdd
 };
