@@ -326,11 +326,12 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 					QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, adc, QueueItem::PAUSED);
 					else
 					QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, adc);
-			} else
+			} else {
 			QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
 			
 			if(pausePrio)
 				QueueManager::getInstance()->setPriority(fullpath, QueueItem::PAUSED);
+			}
 		} catch(...) {
 			//...
 		}

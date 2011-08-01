@@ -1679,7 +1679,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, int f
 
 		for(auto i = dl.begin(); i != dl.end(); ++i) {
 			DirectoryItem* di = *i;
-			dirList.download(di->getName(), di->getTarget(), false);
+			dirList.download(di->getName(), di->getTarget(), false, di->getPriority());
 			delete di;
 		}
 	}
