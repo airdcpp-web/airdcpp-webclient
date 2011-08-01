@@ -962,6 +962,9 @@ bool Util::validatePath(const string &sPath) {
 }
 
 bool Util::fileExists(const string &aFile) {
+	if(aFile.empty())
+		return false;
+
 	DWORD attr = GetFileAttributes(Text::toT(aFile).c_str());
 	return (attr != 0xFFFFFFFF);
 }

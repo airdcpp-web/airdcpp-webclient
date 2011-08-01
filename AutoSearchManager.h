@@ -36,13 +36,15 @@ public:
 	typedef vector<Ptr> List;
 
 	Autosearch() { };
-	Autosearch(bool aEnabled, const string& aSearchString, int aFileType, int aAction)
-		noexcept : enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction) { };
+	Autosearch(bool aEnabled, const string& aSearchString, int aFileType, int aAction, bool aRemove, const string& aTarget)
+		noexcept : enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget) { };
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
 	GETSET(int, action, Action);
 	GETSET(int, fileType, FileType);
+	GETSET(bool, remove, Remove); //remove after 1 hit
+	GETSET(string, target, Target); //download to Target
 };
 
 class SimpleXML;
@@ -55,8 +57,8 @@ public:
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
 
-	Autosearch* addAutosearch(bool en, const string& ss, int ft, int act) {
-		Autosearch* ipw = new Autosearch(en, ss, ft, act);
+	Autosearch* addAutosearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ) {
+		Autosearch* ipw = new Autosearch(en, ss, ft, act, remove, targ);
 		as.push_back(ipw);
 		return ipw;
 	}
@@ -123,7 +125,7 @@ private:
 
 	GETSET(uint16_t, time, Time);
 
-	void addToQueue(SearchResultPtr sr, bool pausePrio = false);
+	void addToQueue(SearchResultPtr sr, bool pausePrio = false, const string& dTarget = Util::emptyString );
 	SearchResultPtr sr;
 	bool endOfList;
 	uint16_t recheckTime;

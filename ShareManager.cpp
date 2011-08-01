@@ -473,11 +473,8 @@ private:
 
 bool ShareManager::loadCache() noexcept {
 	try {
-
-		
-
 		ShareLoader loader(directories);
-		bool zipped = false;
+		
 		try {
 		//look for share.xml
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml", dcpp::File::READ, dcpp::File::OPEN);
@@ -490,8 +487,6 @@ bool ShareManager::loadCache() noexcept {
 			SimpleXMLReader(&loader).parse(f);
 		}
 
-		
-		
 		for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			const Directory::Ptr& d = *i;
 			updateIndices(*d);
@@ -586,7 +581,6 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 	HashManager::HashPauser pauser;	
 	
 	Directory::Ptr dp = buildTree(realPath, Directory::Ptr());
-
 	string vName = validateVirtual(virtualName);
 	dp->setName(vName);
 

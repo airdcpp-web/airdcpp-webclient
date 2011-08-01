@@ -1235,6 +1235,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "* Lowering the upload connections from the default value will result the download connections to be set to the same value", 
 "* Using target drive means that unfinished files are always being saved to an own folder on the same drive where the final destination is", 
 "Use Target Drive for unfinished files", 
+"Remove after found", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2470,4 +2471,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsMcnNote", 
 "SettingsTargetdriveNote", 
 "SettingsUseTargetdrive", 
+"RemoveOnHit", 
 };

@@ -1242,5 +1242,6 @@ enum Strings { // @DontAdd
 	SETTINGS_MCN_NOTE, // "* Lowering the upload connections from the default value will result the download connections to be set to the same value"
 	SETTINGS_TARGETDRIVE_NOTE, // "* Using target drive means that unfinished files are always being saved to an own folder on the same drive where the final destination is"
 	SETTINGS_USE_TARGETDRIVE, // "Use Target Drive for unfinished files"
+	REMOVE_ON_HIT, // "Remove after found"
 	LAST // @DontAdd
 };

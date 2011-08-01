@@ -167,11 +167,11 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 						boost::regex reg(str1);
 						if(boost::regex_search(str2.begin(), str2.end(), reg)){
 							if((*i)->getAction() == 0) { 
-								addToQueue(sr);
-								break;
+								addToQueue(sr, false , (*i)->getTarget());
+								
 							} else if((*i)->getAction() == 1) {
-								addToQueue(sr, true);
-								break;
+								addToQueue(sr, true, (*i)->getTarget());
+								
 							
 								} else if((*i)->getAction() == 2) {
 								ClientManager* c = ClientManager::getInstance();
@@ -182,9 +182,15 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 									break;
 
 								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
-								break;
+								
 								 }
 								}
+							if((*i)->getRemove()) {
+								 i = as.erase(i);
+								 i--;
+								 curPos--;
+							}
+							break;
 						};
 					} catch(...) {
 					}
@@ -202,11 +208,11 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 					if((*i)->getFileType() == 8) { //TTH
 						if(sr->getTTH().toBase32() == (*i)->getSearchString()) {
 							if((*i)->getAction() == 0) { 
-								addToQueue(sr);
-								break;
+								addToQueue(sr, false, (*i)->getTarget());
+								
 							} else if((*i)->getAction() == 1) {
-								addToQueue(sr, true);
-								break;
+								addToQueue(sr, true, (*i)->getTarget());
+								
 								} else if((*i)->getAction() == 2) {
 								ClientManager* c = ClientManager::getInstance();
 								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
@@ -216,19 +222,25 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 									break;
 
 								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
-								break;
+								
 								 }
 								}
+							if((*i)->getRemove()) {
+								 i = as.erase(i);
+								 i--;
+								 curPos--;
+							}
+							break;
 						}
 					} else if((*i)->getFileType() == 7 && sr->getType() == SearchResult::TYPE_DIRECTORY) { //directory
 						string matchedDir = matchDirectory(sr->getFile(), (*i)->getSearchString());
 						if(!matchedDir.empty()) {
 							if((*i)->getAction() == 0) { 
-								addToQueue(sr);
-								break;
+								addToQueue(sr, false, (*i)->getTarget() );
+								
 							} else if((*i)->getAction() == 1) {
-								addToQueue(sr, true);
-								break;
+								addToQueue(sr, true, (*i)->getTarget());
+								
 								} else if((*i)->getAction() == 2) {
 								ClientManager* c = ClientManager::getInstance();
 								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
@@ -238,9 +250,15 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 									break;
 
 								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
-								break;
+								
 								 }
 								}
+							if((*i)->getRemove()) {
+								 i = as.erase(i);
+								 i--;
+								 curPos--;
+							}
+							break;
 						}
 					} else if(ShareManager::getInstance()->checkType(sr->getFile(), (*i)->getFileType())) {
 						if(!sr->getFile().empty()) {
@@ -257,11 +275,11 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 							}
 							if(matched) {
 								if((*i)->getAction() == 0) { 
-									addToQueue(sr);
-									break;
+									addToQueue(sr, false, (*i)->getTarget());
+									
 								} else if((*i)->getAction() == 1) {
-									addToQueue(sr, true);
-									break;
+									addToQueue(sr, true, (*i)->getTarget());
+									
 								} else if((*i)->getAction() == 2) {
 								ClientManager* c = ClientManager::getInstance();
 								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
@@ -271,10 +289,16 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 									break;
 
 								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
-								break;
+								
 								 }
 								}
 							}
+							if((*i)->getRemove()) {
+								 i = as.erase(i);
+								 i--;
+								 curPos--;
+							}
+							break;
 						}
 					}
 				}
@@ -283,16 +307,25 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 	}
 }
 
-void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*/ ) {
-	const string& fullpath = SETTING(DOWNLOAD_DIRECTORY) + Util::getFileName(sr->getFile());
-	if(!ShareManager::getInstance()->isTTHShared(sr->getTTH())) {
+void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*/, const string& dTarget ) {
+	string fullpath;
+	
+	if((dTarget != Util::emptyString) && Util::fileExists(dTarget))
+		fullpath = dTarget + Util::getFileName(sr->getFile());
+	else
+		fullpath = SETTING(DOWNLOAD_DIRECTORY) + Util::getFileName(sr->getFile());
+	
+	if(!BOOLSETTING(DONT_DL_ALREADY_SHARED) || !ShareManager::getInstance()->isTTHShared(sr->getTTH())) {
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				bool adc=false;
 				if (!sr->getUser()->isSet(User::NMDC)) {
 					adc=true;
 				}
-				QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, adc);
+				if(pausePrio)
+					QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, adc, QueueItem::PAUSED);
+					else
+					QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, adc);
 			} else
 			QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
 			
@@ -319,6 +352,8 @@ void AutoSearchManager::AutosearchSave() {
 			xml.addChildAttrib("SearchString", (*i)->getSearchString());
 			xml.addChildAttrib("FileType", (*i)->getFileType());
 			xml.addChildAttrib("Action", (*i)->getAction());
+			xml.addChildAttrib("Remove", (*i)->getRemove());
+			xml.addChildAttrib("Target", (*i)->getTarget());
 		}
 
 		xml.stepOut();
@@ -346,7 +381,9 @@ void AutoSearchManager::loadAutosearch(SimpleXML& aXml) {
 			addAutosearch(aXml.getBoolChildAttrib("Enabled"),
 				aXml.getChildAttrib("SearchString"), 
 				aXml.getIntChildAttrib("FileType"), 
-				aXml.getIntChildAttrib("Action"));
+				aXml.getIntChildAttrib("Action"),
+				aXml.getBoolChildAttrib("Remove"),
+				aXml.getChildAttrib("Target"));
 		}
 		aXml.stepOut();
 	}
