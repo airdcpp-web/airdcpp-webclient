@@ -58,6 +58,10 @@ public:
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
 
 	Autosearch* addAutosearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ) {
+		for(Autosearch::List::iterator i = as.begin(); i != as.end(); ++i) {
+				if(stricmp((*i)->getSearchString(), ss) == 0)
+					return NULL; //already exists
+				}
 		Autosearch* ipw = new Autosearch(en, ss, ft, act, remove, targ);
 		as.push_back(ipw);
 		return ipw;

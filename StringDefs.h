@@ -1022,7 +1022,7 @@ enum Strings { // @DontAdd
 	FLASH_WINDOW_ON_MYNICK, // "Flash window on my nick in PM/Hub"
 
 	SETTINGS_AIRSEARCH, // "Search"
-	AUTOSEARCH_ENABLE, // "Enable search for specified files / TTH"
+	AUTOSEARCH_ENABLE, // "Enable Automatic search for specified files / Directories"
 	AUTOSEARCH_ENABLE_TIME, // "Automatically search every"
 	AUTOSEARCH_RECHECK_TEXT,// "Recheck All items after"
 	SETTINGS_VALUE, // "Value"
@@ -1243,5 +1243,6 @@ enum Strings { // @DontAdd
 	SETTINGS_TARGETDRIVE_NOTE, // "* Using target drive means that unfinished files are always being saved to an own folder on the same drive where the final destination is"
 	SETTINGS_USE_TARGETDRIVE, // "Use Target Drive for unfinished files"
 	REMOVE_ON_HIT, // "Remove after found"
+	SEARCH_ADDED, // "Search Added to Autosearch List: "
 	LAST // @DontAdd
 };

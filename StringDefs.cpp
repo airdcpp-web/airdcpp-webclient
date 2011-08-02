@@ -1017,7 +1017,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Flash window on PM only if it's from a new user", 
 "Flash window on my nick in PM/Hub", 
 "Search", 
-"Enable search for specified files / TTH", 
+"Enable Automatic search for specified files / Directories", 
 "Automatically search every", 
 "Recheck All items after", 
 "Value", 
@@ -1236,6 +1236,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "* Using target drive means that unfinished files are always being saved to an own folder on the same drive where the final destination is", 
 "Use Target Drive for unfinished files", 
 "Remove after found", 
+"Search Added to Autosearch List: ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2472,4 +2473,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsTargetdriveNote", 
 "SettingsUseTargetdrive", 
 "RemoveOnHit", 
+"SearchAdded", 
 };
