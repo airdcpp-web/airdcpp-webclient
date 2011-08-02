@@ -143,7 +143,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 			setTime(0);
 			LogManager::getInstance()->message("[A][S:" + Util::toString(curPos) + "]Searching for: " + (*pos)->getSearchString());
 		} else {
-			LogManager::getInstance()->message("[A]Next search after " + Util::toString(SETTING(AUTOSEARCH_RECHECK_TIME))+ " minutes.");
+			LogManager::getInstance()->message("[A]Recheck Items, Next search after " + Util::toString(SETTING(AUTOSEARCH_RECHECK_TIME))+ " minutes.");
 			setTime(0);
 			curPos = 0;
 			endOfList = true;
@@ -154,11 +154,12 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
+	Lock l(cs);
 	if(!as.empty() && BOOLSETTING(AUTOSEARCH_ENABLED) && !allowedHubs.empty()) {
 		UserPtr user = static_cast<UserPtr>(sr->getUser());
 		if(users.find(user) == users.end()) {
 			users.insert(user);
-			for(Autosearch::List::const_iterator i = as.begin(); i != as.end(); ++i) {
+			for(Autosearch::List::iterator i = as.begin(); i != as.end(); ++i) {
 				if((*i)->getFileType() == 9) { //regexp
 
 					string str1 = (*i)->getSearchString();
@@ -308,6 +309,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 }
 
 void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*/, const string& dTarget ) {
+	Lock l(cs);
 	string fullpath;
 	
 	if((dTarget != Util::emptyString) && Util::fileExists(dTarget))
@@ -333,7 +335,7 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 				QueueManager::getInstance()->setPriority(fullpath, QueueItem::PAUSED);
 			}
 		} catch(...) {
-			//...
+			LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
 		}
 	}
 }
