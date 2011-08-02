@@ -1752,7 +1752,7 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 		if (rar) {
 			slots= speed / 10;
 			if (download)
-				slots=slots+3;
+				slots=slots+4;
 		} else {
 			if (download)
 				slots=40;
@@ -1762,7 +1762,7 @@ int Util::getSlots(bool download, double value, bool rarLimits) {
 	} else if (speed >= 100) {
 		if (rar) {
 			if (download) {
-				slots = speed / 8;
+				slots = speed / 7;
 			} else {
 				slots = speed / 12;
 				if (slots > 15)
@@ -1811,9 +1811,9 @@ int Util::getSpeedLimit(bool download, double value) {
 
 	int ret;
 	if (download) {
-		ret = lineSpeed*110;
+		ret = lineSpeed*105;
 	} else {
-		ret = lineSpeed*50;
+		ret = lineSpeed*60;
 	}
 	return ret;
 }
