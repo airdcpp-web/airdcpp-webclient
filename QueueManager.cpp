@@ -1664,26 +1664,30 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 	}
 
 	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
-		vector<DirectoryItemPtr> dl;
-		{
-			Lock l(cs);
-			if (!path.empty()) {
-				auto dp = directories.equal_range(user); // | map_values;
+		if (!path.empty()) {
+			{
+				Lock l(cs);
+				auto dp = directories.equal_range(user);
 				for(auto i = dp.first; i != dp.second; ++i) {
 					if(stricmp(path.c_str(), i->second->getName().c_str()) == 0) {
 						dirList.download(i->second->getName(), i->second->getTarget(), false, i->second->getPriority());
+						directories.erase(i);
 						break;
 					}
 				}
-			} else {
+			}
+		} else {
+			vector<DirectoryItemPtr> dl;
+			{
+				Lock l(cs);
 				auto dpf = directories.equal_range(user) | map_values;
 				dl.assign(boost::begin(dpf), boost::end(dpf));
 				directories.erase(user);
-				for(auto i = dl.begin(); i != dl.end(); ++i) {
-					DirectoryItem* di = *i;
-					dirList.download(di->getName(), di->getTarget(), false, di->getPriority());
-					delete di;
-				}
+			}
+			for(auto i = dl.begin(); i != dl.end(); ++i) {
+				DirectoryItem* di = *i;
+				dirList.download(di->getName(), di->getTarget(), false, di->getPriority());
+				delete di;
 			}
 		}
 	}

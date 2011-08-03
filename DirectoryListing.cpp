@@ -276,23 +276,17 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 
 	if(!aDir->getComplete()) {
 		// folder is not completed (partial list?), so we need to download it first
-		if (hintedUser.user->isSet(User::NMDC)) {
-			target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
-			QueueManager::getInstance()->addDirectory("", hintedUser, target, prio);
-		} else {
-			QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
-		}
+		QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
 	} else {
 		Directory::List& lst = aDir->directories;
-		//check if there are incomplete dirs
-		if (!hintedUser.user->isSet(User::NMDC)) {
-			for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-				if (!(*j)->getComplete()) {
-					QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
-					return;
-				}
+		//check if there are incomplete subdirs
+		for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
+			if (!(*j)->getComplete()) {
+				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
+				return;
 			}
 		}
+
 		target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 		// First, recurse over the directories
 		sort(lst.begin(), lst.end(), Directory::DirSort());

@@ -25,6 +25,7 @@
 #include "StringTokenizer.h"
 #include "FilteredFile.h"
 #include "File.h"
+#include "Wildcards.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -46,6 +47,8 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 		return 1;
 	}
 	isCheckSFV = false;
+	skipListReg.Init(SETTING(SKIPLIST_SHARE));
+	skipListReg.study();
 
 	if(sfv) {
 			isCheckSFV = true;
@@ -134,6 +137,9 @@ int SFVReaderManager::run() {
 
 			DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
 			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
+				if (matchSkipList(Util::getDir(dir, false, true))) {
+					continue;
+				}
 				findMissing(dir);
 				find(dir);
 			}
@@ -156,6 +162,29 @@ int SFVReaderManager::run() {
 	return 0;
 }
 
+bool SFVReaderManager::matchSkipList(const string& dir) {
+	if (SETTING(CHECK_USE_SKIPLIST)) {
+		if (BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)) {
+			try {
+				if (skipListReg.match(dir) > 0) {
+					return true;
+				} else {
+					return false;
+				}
+			} catch(...) { }
+		} else {
+			try {
+				if (Wildcard::patternMatch(dir, SETTING(SKIPLIST_SHARE), '|')) {
+					return true;
+				} else {
+					return false;
+				}
+			} catch(...) { }
+		}
+	}
+	return false;
+}
+
 void SFVReaderManager::find(const string& path) {
 	if(path.empty())
 		return;
@@ -167,11 +196,17 @@ void SFVReaderManager::find(const string& path) {
 		try {
 			if(i->isDirectory()){
 				if (strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0) {
+					if (matchSkipList(i->getFileName())) {
+						continue;
+					}
 					dir = path + i->getFileName() + "\\";
-					findMissing(dir);
-					if(SETTING(CHECK_DUPES))
-						findDupes(dir);
-					dirs.push_back(dir);
+					DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
+					if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
+						findMissing(dir);
+						if(SETTING(CHECK_DUPES))
+							findDupes(dir);
+						dirs.push_back(dir);
+					}
 				}
 			}
 		} catch(const FileException&) { } 
@@ -212,6 +247,7 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 
 StringList SFVReaderManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/) {
 	StringList ret;
+	int64_t size;
 
 	WIN32_FIND_DATA data;
 	HANDLE hFind;
@@ -220,11 +256,19 @@ StringList SFVReaderManager::findFiles(const string& path, const string& pattern
 	if(hFind != INVALID_HANDLE_VALUE) {
 		do {
 			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM)) {
+				if (matchSkipList(Text::fromT(data.cFileName))) {
+					continue;
+				}
 				if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
 					if (dirs && Text::fromT(data.cFileName)[0] != '.') {
 						ret.push_back(Text::fromT(data.cFileName));
 					}
 				} else if (!dirs) {
+					if (SETTING(CHECK_IGNORE_ZERO_BYTE)) {
+						if (File::getSize(path + Text::fromT(data.cFileName)) <= 0) {
+							continue;
+						}
+					}
 					ret.push_back(Text::toLower(Text::fromT(data.cFileName)));
 				}
 			}
@@ -449,23 +493,29 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	string line;
 	string sfvFile;
 
-	reg.assign("(.{5,50}\\s(\\w{8})$)");
+	reg.assign("(.{5,200}\\s(\\w{8})$)");
+	reg2.assign("(\".+\")");
 	int releaseFiles=0;
 	int loopMissing=0;
+	bool invalidFile=false;
 
 	for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
 		sfvFile = *i;
 
 		if (File::getSize(Text::utf8ToAcp(sfvFile)) > 1000000) {
 			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+			invalidFile = true;
 			continue;
 		}
 
 		//incase we have some extended characters in the path
 		sfv.open(Text::utf8ToAcp(sfvFile));
 
-		if(!sfv.is_open())
+		if(!sfv.is_open()) {
 			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+			invalidFile = true;
+			continue;
+		}
 
 		while( getline( sfv, line ) ) {
 			//make sure that the line is valid
@@ -478,6 +528,15 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 				line = Text::toLower(line.substr(0,pos));
 				if (line.length() < 5)
 					continue;
+				if (line.length() > 150) {
+					LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+					invalidFile = true;
+					break;
+				}
+
+				if (regex_match(line, reg2)) {
+					line = line.substr(1,line.length()-2);
+				}
 
 				StringIterC k = std::find(fileList.begin(), fileList.end(), line);
 					if(k == fileList.end()) { 
@@ -493,7 +552,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 	missingFiles += loopMissing;
 	releaseFiles = releaseFiles - loopMissing;
 
-	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles)) {
+	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles) && !invalidFile) {
 		//Find allowed extra files from the release folder
 		int otherAllowed = 0;
 		reg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);

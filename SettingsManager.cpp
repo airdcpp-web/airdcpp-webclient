@@ -153,7 +153,7 @@ const string SettingsManager::settingTags[] =
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
-	"DLAutoDetect", "ULAutoDetect",
+	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -662,6 +662,8 @@ SettingsManager::SettingsManager()
 	setDefault(CHECK_DUPES, false);
 	setDefault(CHECK_EMPTY_DIRS, true);
 	setDefault(CHECK_EMPTY_RELEASES, true);
+	setDefault(CHECK_USE_SKIPLIST, false);
+	setDefault(CHECK_IGNORE_ZERO_BYTE, false);
 	setDefault(SORT_DIRS, false);
 	setDefault(MAX_FILE_SIZE_SHARED, 0);
 	setDefault(MAX_MCN_DOWNLOADS, 1);

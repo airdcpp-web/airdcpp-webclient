@@ -1237,6 +1237,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Use Target Drive for unfinished files", 
 "Remove after found", 
 "Search Added to Autosearch List: ", 
+"Ignore items matching the share skiplist", 
+"Ignore zero byte files", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2474,4 +2476,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsUseTargetdrive", 
 "RemoveOnHit", 
 "SearchAdded", 
+"CheckUseSkiplist", 
+"CheckIgnoreZeroByte", 
 };

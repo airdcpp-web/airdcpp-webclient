@@ -991,7 +991,8 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 					cqi->setLastAttempt(GET_TICK());
 					cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
 					fire(ConnectionManagerListener::Failed(), cqi, aError);
-					checkWaitingMCN(cqi->getUser());
+					if (aSource->isSet(UserConnection::FLAG_MCN1))
+						checkWaitingMCN(cqi->getUser());
 					break;
 				}
 			}

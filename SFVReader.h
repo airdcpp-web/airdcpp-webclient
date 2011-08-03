@@ -24,6 +24,7 @@
 #include "Singleton.h"
 #include <atomic>
 #include <string>
+#include "pme.h"
 
 #include "noexcept.h"
 
@@ -56,7 +57,6 @@ public:
 	
 
 private:
-	
 	friend class SFVReaderManager;
 	uint32_t crc32;
 	bool crcFound;
@@ -87,6 +87,8 @@ friend class Singleton<SFVReaderManager>;
 	}
 	
  int run();
+ PME skipListReg;
+ bool matchSkipList(const string& dir);
 
  StringList Paths;
  bool isCheckSFV;

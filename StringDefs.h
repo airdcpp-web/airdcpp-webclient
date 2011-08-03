@@ -1244,5 +1244,7 @@ enum Strings { // @DontAdd
 	SETTINGS_USE_TARGETDRIVE, // "Use Target Drive for unfinished files"
 	REMOVE_ON_HIT, // "Remove after found"
 	SEARCH_ADDED, // "Search Added to Autosearch List: "
+	CHECK_USE_SKIPLIST, // "Ignore items matching the share skiplist"
+	CHECK_IGNORE_ZERO_BYTE, // "Ignore zero byte files"
 	LAST // @DontAdd
 };
