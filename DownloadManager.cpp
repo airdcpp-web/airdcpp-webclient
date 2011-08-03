@@ -334,7 +334,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 	fire(DownloadManagerListener::Starting(), d);
 	if (aSource->isSet(UserConnection::FLAG_MCN1))
-		ConnectionManager::getInstance()->checkWaitingMCN();
+		ConnectionManager::getInstance()->checkWaitingMCN(aSource);
 
 	if(d->getPos() == d->getSize()) {
 		try {

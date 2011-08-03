@@ -42,7 +42,7 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 	stop = false;
 	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
-		LogManager::getInstance()->message(STRING(SCAN_RUNNING)); //translate
+		LogManager::getInstance()->message(STRING(SCAN_RUNNING));
 		return 1;
 	}
 	isCheckSFV = false;

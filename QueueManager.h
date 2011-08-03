@@ -63,7 +63,6 @@ public:
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
 		QueueItem::Priority p = QueueItem::DEFAULT) noexcept;
-	void addDirectorySearch(const string& aDir, const HintedUser& aUser, const string& aTarget, bool adc, QueueItem::Priority p = QueueItem::DEFAULT) noexcept;
 	int matchListing(const DirectoryListing& dl) noexcept;
 	bool findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) noexcept;
 
@@ -289,7 +288,7 @@ private:
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException);
 
-	void processList(const string& name, const HintedUser& user, int flags);
+	void processList(const string& name, const HintedUser& user, const string path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
 	void load(const SimpleXML& aXml);

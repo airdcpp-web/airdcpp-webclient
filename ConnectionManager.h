@@ -51,7 +51,7 @@ public:
 		FLAG_REMOVE				= 0x08
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, const string& aToken) : token(aToken), 
+	ConnectionQueueItem(const HintedUser& aUser, bool aDownload) : token(Util::toString(Util::rand())), 
 		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), maxConns(0) { }
 	
 	GETSET(string, token, Token);
@@ -130,7 +130,7 @@ public:
 	uint16_t getPort() const { return server ? static_cast<uint16_t>(server->getPort()) : 0; }
 	uint16_t getSecurePort() const { return secureServer ? static_cast<uint16_t>(secureServer->getPort()) : 0; }
 	static uint16_t iConnToMeCount;	
-	void checkWaitingMCN() noexcept;
+	void checkWaitingMCN(const UserConnection *aSource) noexcept;
 private:
 
 	class Server : public Thread {
@@ -184,7 +184,8 @@ private:
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token);
+	void checkWaitingMCN(const HintedUser& aUser) noexcept;
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token=Util::emptyString);
 	void putCQI(ConnectionQueueItem* cqi);
 
 	void accept(const Socket& sock, bool secure) noexcept;

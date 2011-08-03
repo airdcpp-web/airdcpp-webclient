@@ -320,14 +320,8 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 	if(!BOOLSETTING(DONT_DL_ALREADY_SHARED) || !ShareManager::getInstance()->isTTHShared(sr->getTTH())) {
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-				bool adc=false;
-				if (!sr->getUser()->isSet(User::NMDC)) {
-					adc=true;
-				}
 				if(pausePrio)
-					QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, adc, QueueItem::PAUSED);
-					else
-					QueueManager::getInstance()->addDirectorySearch(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, adc);
+					QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, QueueItem::PAUSED);
 			} else {
 			QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
 			

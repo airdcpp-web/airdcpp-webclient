@@ -760,7 +760,13 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	string target;
 	string tempTarget;
 	if((aFlags & QueueItem::FLAG_USER_LIST) == QueueItem::FLAG_USER_LIST) {
-		target = getListPath(aUser);
+		if((aFlags & QueueItem::FLAG_PARTIAL_LIST) && !aTarget.empty()) {
+			StringList nicks = ClientManager::getInstance()->getNicks(aUser);
+			string nick = nicks.empty() ? Util::emptyString : Util::cleanPathChars(nicks[0]) + ".";
+			target = Util::getListPath() + nick + Util::toString(Util::rand());
+		} else {
+			target = getListPath(aUser);
+		}
 		tempTarget = aTarget;
 	} else {
 		target = checkTarget(aTarget, /*checkExistence*/ true);
@@ -968,35 +974,11 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 
 	return wantConnection;
 }
-void QueueManager::addDirectorySearch(const string& aDir, const HintedUser& aUser, const string& aTarget, bool adc, QueueItem::Priority p /* = QueueItem::DEFAULT */) noexcept {
-	bool needList;
-	{
-		Lock l(cs);
-		
-		auto dp = directories.equal_range(aUser);
-		
-		for(auto i = dp.first; i != dp.second; ++i) {
-			if(stricmp(aTarget.c_str(), i->second->getName().c_str()) == 0)
-				return;
-		}
-		
-		// Unique directory, fine...
-		directories.insert(make_pair(aUser, new DirectoryItem(aUser, aDir, aTarget, p)));
-		needList = (dp.first == dp.second);
-		setDirty();
-	}
-	if(needList) {
-		try {
-			if (adc)
-				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_RECURSIVE_LIST | QueueItem::FLAG_PARTIAL_LIST, aDir);
-			else
-				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD);
-		} catch(const Exception&) {
-			// Ignore, we don't really care...
-		}
-	}
-}
+
 void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p /* = QueueItem::DEFAULT */) noexcept {
+	bool adc=true;
+	if (aUser.user->isSet(User::NMDC))
+		adc=false;
 	bool needList;
 	{
 		Lock l(cs);
@@ -1013,10 +995,10 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 		needList = (dp.first == dp.second);
 		setDirty();
 	}
-	if(needList) {
+	if(needList || adc) {
 		try {
-			if (aUser.user->isSet(User::NMDC))
-				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST, aDir);
+			if (!adc)
+				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD, aDir);
 			else
 				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, aDir);
 		} catch(const Exception&) {
@@ -1205,9 +1187,13 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 			q->resetDownloaded();
 		}
 	}
+
+	bool partial = q->isSet(QueueItem::FLAG_PARTIAL_LIST);
 	
-	Download* d = new Download(aSource, *q, q->isSet(QueueItem::FLAG_PARTIAL_LIST) ? q->getTempTarget() : q->getTarget());
-	
+	Download* d = new Download(aSource, *q, partial ? q->getTempTarget() : q->getTarget());
+	if (partial) {
+		d->setTempTarget(q->getTarget());
+	}
 	userQueue.addDownload(q, d);	
 
 	fire(QueueManagerListener::SourcesUpdated(), q);
@@ -1394,6 +1380,7 @@ void QueueManager::rechecked(QueueItem* qi) {
 void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFinish) noexcept {
 	HintedUserList getConn;
  	string fl_fname;
+	string fl_path = Util::emptyString;
 	HintedUser fl_user = aDownload->getHintedUser();
 	Flags::MaskType fl_flag = 0;
 	bool downloadList = false;
@@ -1406,7 +1393,13 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 		aDownload->setFile(0);
 
 		if(aDownload->getType() == Transfer::TYPE_PARTIAL_LIST) {
-			QueueItem* q = fileQueue.find(getListPath(aDownload->getHintedUser()));
+			QueueItem* q;
+			if (!aDownload->getPath().empty()) {
+				q = fileQueue.find(aDownload->getTempTarget());
+			} else {
+				//root directory in the partial list
+				q = fileQueue.find(getListPath(aDownload->getHintedUser()));
+			}
 			if(q) {
 				if(!aDownload->getPFS().empty()) {
 					if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(aDownload->getUser()) != directories.end()) ||
@@ -1417,6 +1410,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 											
 						fl_fname = aDownload->getPFS();
 						fl_user = aDownload->getHintedUser();
+						fl_path = aDownload->getPath();
 						fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? (QueueItem::FLAG_DIRECTORY_DOWNLOAD) : 0)
 							| (q->isSet(QueueItem::FLAG_PARTIAL_LIST) ? (QueueItem::FLAG_PARTIAL_LIST) : 0)
 							| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT
@@ -1587,10 +1581,11 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	}
 
 	if(!fl_fname.empty()) {
-		if (tthList)
+		if (tthList) {
 			matchTTHList(fl_fname, fl_user, fl_flag);
-		else
-			processList(fl_fname, fl_user, fl_flag);
+		} else {
+			processList(fl_fname, fl_user, fl_path, fl_flag);
+		}
 	}
 
 	// partial file list failed, redownload full list
@@ -1654,7 +1649,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 	}
 }
 
-void QueueManager::processList(const string& name, const HintedUser& user, int flags) {
+void QueueManager::processList(const string& name, const HintedUser& user, const string path, int flags) {
 	DirectoryListing dirList(user);
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
@@ -1672,15 +1667,24 @@ void QueueManager::processList(const string& name, const HintedUser& user, int f
 		vector<DirectoryItemPtr> dl;
 		{
 			Lock l(cs);
-			auto dp = directories.equal_range(user) | map_values;
-			dl.assign(boost::begin(dp), boost::end(dp));
-			directories.erase(user);
-		}
-
-		for(auto i = dl.begin(); i != dl.end(); ++i) {
-			DirectoryItem* di = *i;
-			dirList.download(di->getName(), di->getTarget(), false, di->getPriority());
-			delete di;
+			if (!path.empty()) {
+				auto dp = directories.equal_range(user); // | map_values;
+				for(auto i = dp.first; i != dp.second; ++i) {
+					if(stricmp(path.c_str(), i->second->getName().c_str()) == 0) {
+						dirList.download(i->second->getName(), i->second->getTarget(), false, i->second->getPriority());
+						break;
+					}
+				}
+			} else {
+				auto dpf = directories.equal_range(user) | map_values;
+				dl.assign(boost::begin(dpf), boost::end(dpf));
+				directories.erase(user);
+				for(auto i = dl.begin(); i != dl.end(); ++i) {
+					DirectoryItem* di = *i;
+					dirList.download(di->getName(), di->getTarget(), false, di->getPriority());
+					delete di;
+				}
+			}
 		}
 	}
 	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
@@ -1694,7 +1698,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, int f
 			LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
 		}
 	}
-	if(flags & QueueItem::FLAG_VIEW_NFO) {
+	if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
 		findNfo(dirList.getRoot(), dirList);
 	}
 }
