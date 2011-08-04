@@ -183,8 +183,10 @@ bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
 
 	bool full = (Util::getSlots(true) != 0) && (downloadCount >= (size_t)Util::getSlots(true));
 	full = full || ((Util::getSpeedLimit(true) != 0) && (getRunningAverage() >= (Util::getSpeedLimit(true)*1024)));
+	//LogManager::getInstance()->message("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
 
 	if(full) {
+		//LogManager::getInstance()->message("Full");
 		bool extraFull = (Util::getSlots(true) != 0) && (getDownloadCount() >= (size_t)(Util::getSlots(true)+SETTING(EXTRA_DOWNLOAD_SLOTS)));
 		if(extraFull || mcn) {
 			return false;
@@ -333,7 +335,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	aSource->setState(UserConnection::STATE_RUNNING);
 
 	fire(DownloadManagerListener::Starting(), d);
-	if (aSource->isSet(UserConnection::FLAG_MCN1))
+	if (aSource->isSet(UserConnection::FLAG_MCN1) || aSource->isSet(UserConnection::FLAG_SMALL_SLOT))
 		ConnectionManager::getInstance()->checkWaitingMCN(aSource);
 
 	if(d->getPos() == d->getSize()) {

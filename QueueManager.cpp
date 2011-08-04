@@ -305,13 +305,17 @@ QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Pri
 				if(!qi->isWaiting()) {
 					bool found=false;
 					for(DownloadList::iterator i = qi->getDownloads().begin(); i != qi->getDownloads().end(); ++i) {
+						//LogManager::getInstance()->message("USER: " + aUser->getCID().toBase32() + " comparing: " + Util::toString(ClientManager::getInstance()->getNicks((*i)->getHintedUser())));
 						if((*i)->getUser() == aUser) {
+							//LogManager::getInstance()->message("FOUND USER: " + aUser->getCID().toBase32() + " comparing: " + Util::toString(ClientManager::getInstance()->getNicks((*i)->getHintedUser())));
 							found=true;
 							break;
 						}
 					}
-					if (found)
+					if (found) {
+						lastError = STRING(NO_FILES_AVAILABLE);
 						continue;
+					}
 				}
 
 				if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
@@ -346,7 +350,8 @@ QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Pri
 
 					Segment segment = qi->getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
 					if(segment.getSize() == 0) {
-						lastError = segment.getStart() == -1 ? STRING(ALL_DOWNLOAD_SLOTS_TAKEN) : STRING(NO_FREE_BLOCK);
+						lastError = (segment.getStart() == -1 || qi->getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
+						//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
 						dcdebug("No segment for %s in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), qi->getTarget().c_str(), blockSize);
 						continue;
 					}

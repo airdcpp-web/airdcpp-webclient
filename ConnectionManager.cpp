@@ -108,9 +108,15 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool dow
 		cqi->setToken(token);
 
 	if(download) {
-		downloads.push_back(cqi);
+		{
+			Lock l(cs);
+			downloads.push_back(cqi);
+		}
 	} else {
-		uploads.push_back(cqi);
+		{
+			Lock l(cs);
+			uploads.push_back(cqi);
+		}
 	}
 
 	fire(ConnectionManagerListener::Added(), cqi);
@@ -122,12 +128,21 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 	fire(ConnectionManagerListener::Removed(), cqi);
 	if(cqi->getDownload()) {
 		dcassert(find(downloads.begin(), downloads.end(), cqi) != downloads.end());
-		downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
+		{
+			Lock l(cs);
+			downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
+		}
 	} else {
 		UploadManager::getInstance()->removeDelayUpload(cqi->getUser());
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
-		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
+		{
+			Lock l(cs);
+			uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
+		}
 	}
+	if ((cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) && cqi->getDownload())
+		checkWaitingMCN(cqi->getUser());
+	//disconnect(cqi->getToken());
 	delete cqi;
 }
 
@@ -885,7 +900,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	} else {
 		token = aSource->getToken();
 	}
-
+	dcassert(!token.empty());
 	bool down = false;
 	{
 		Lock l(cs);
@@ -991,8 +1006,6 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 					cqi->setLastAttempt(GET_TICK());
 					cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
 					fire(ConnectionManagerListener::Failed(), cqi, aError);
-					if (aSource->isSet(UserConnection::FLAG_MCN1))
-						checkWaitingMCN(cqi->getUser());
 					break;
 				}
 			}

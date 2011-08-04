@@ -1246,5 +1246,6 @@ enum Strings { // @DontAdd
 	SEARCH_ADDED, // "Search Added to Autosearch List: "
 	CHECK_USE_SKIPLIST, // "Ignore items matching the share skiplist"
 	CHECK_IGNORE_ZERO_BYTE, // "Ignore zero byte files"
+	NO_FILES_AVAILABLE, // "No files available"
 	LAST // @DontAdd
 };

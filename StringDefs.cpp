@@ -1239,6 +1239,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search Added to Autosearch List: ", 
 "Ignore items matching the share skiplist", 
 "Ignore zero byte files", 
+"No files available", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2478,4 +2479,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchAdded", 
 "CheckUseSkiplist", 
 "CheckIgnoreZeroByte", 
+"NoFilesAvailable", 
 };
