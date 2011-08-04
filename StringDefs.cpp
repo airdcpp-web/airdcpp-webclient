@@ -290,7 +290,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Application ""%s"" caused an unhandled exception in AirDC++. Please uninstall it, upgrade it or use an alternate product.", 
 "Upload Limit", 
 "Listening socket failed (you need to restart AirDC++): ", 
-"File list loaded.", 
+"File list loaded in ", 
 "Loading AirDC++, please wait...", 
 "Loading file list, this may take a while if the list is large.", 
 "Lock", 

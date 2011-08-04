@@ -320,8 +320,11 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 	if(!BOOLSETTING(DONT_DL_ALREADY_SHARED) || !ShareManager::getInstance()->isTTHShared(sr->getTTH())) {
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-				if(pausePrio)
+				if(pausePrio) //add with paused priority
 					QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, QueueItem::PAUSED);
+				else // start downloading
+					QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath);
+
 			} else {
 			QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
 			

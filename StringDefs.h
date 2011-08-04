@@ -293,7 +293,7 @@ enum Strings { // @DontAdd
 	LIB_CRASH, // "Application ""%s"" caused an unhandled exception in AirDC++. Please uninstall it, upgrade it or use an alternate product."
 	LIMIT, // "Upload Limit"
 	LISTENER_FAILED, // "Listening socket failed (you need to restart AirDC++): "
-	LOADED_FILE_LIST, // "File list loaded."
+	LOADED_FILE_LIST, // "File list loaded in "
 	LOADING, // "Loading AirDC++, please wait..."
 	LOADING_FILE_LIST, // "Loading file list, this may take a while if the list is large."
 	LOCK, // "Lock"
