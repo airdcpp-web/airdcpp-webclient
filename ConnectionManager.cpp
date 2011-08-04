@@ -152,12 +152,12 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 }
 
 void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	UserList passiveUsers;
+	
+	Lock l(cs);
+	
+	//UserList passiveUsers;
 	ConnectionQueueItem::List removed;
-
-	{
-		Lock l(cs);
-
+	
 		uint16_t attempts = 0;
 
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
@@ -221,11 +221,11 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 			putCQI(*m);
 		}
 
-	}
+	
 
-	for(UserList::iterator ui = passiveUsers.begin(); ui != passiveUsers.end(); ++ui) {
-		QueueManager::getInstance()->removeSource(*ui, QueueItem::Source::FLAG_PASSIVE);
-	}
+	//for(UserList::iterator ui = passiveUsers.begin(); ui != passiveUsers.end(); ++ui) {
+		//QueueManager::getInstance()->removeSource(*ui, QueueItem::Source::FLAG_PASSIVE);
+	//}
 }
 
 void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {

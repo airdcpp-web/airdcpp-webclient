@@ -30,7 +30,7 @@
 #include "UserInfoBase.h"
 
 namespace dcpp {
-	
+
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
@@ -49,7 +49,7 @@ public:
 				return stricmp(a->getName().c_str(), b->getName().c_str()) < 0;
 			}
 		};
-		typedef vector<Ptr> List;
+		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
 		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH) noexcept : 
