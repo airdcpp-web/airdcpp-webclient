@@ -132,6 +132,9 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 			Lock l(cs);
 			downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
 		}
+		if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+			checkWaitingMCN(cqi->getUser());
+		}
 	} else {
 		UploadManager::getInstance()->removeDelayUpload(cqi->getUser());
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
@@ -140,9 +143,6 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 			uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
 		}
 	}
-	if ((cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) && cqi->getDownload())
-		checkWaitingMCN(cqi->getUser());
-	//disconnect(cqi->getToken());
 	delete cqi;
 }
 
@@ -180,7 +180,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 			if(cqi == NULL)
 				continue;
 
-			if(cqi->getState() != ConnectionQueueItem::ACTIVE) {
+			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING) {
 				if(!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					// Not online anymore...remove it from the pending...
 					removed.push_back(cqi);
@@ -248,11 +248,13 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 		// No new connections for offline users...
 		return;
 	}
+
 	CID cid=aUser.user->getCID();
 	bool hasRunning=false;
 	int totalConnections=0;
 	bool waitingConnection=false;
 	int maxConnections=0;
+	bool smallSlot = false;
 	{
 
 		Lock l(cs);
@@ -262,25 +264,29 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 			if (cqi == NULL) continue;
 			if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) continue;
 
-			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && (cqi->getUser().user->getCID() == cid)) {
-				if(cqi->getState() == ConnectionQueueItem::ACTIVE && !isRequesting(cqi->getToken())) {
-					hasRunning=true;
-				} else {
-					if(!waitingConnection) {
-						waitingConnection=true;
+			if (cqi->getUser().user->getCID() == cid) {
+				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
+					if(cqi->getState() == ConnectionQueueItem::RUNNING) {
+						hasRunning=true;
 					} else {
-						//there should be only one cqi waiting
-						disconnect(cqi->getToken());
-						cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
-						continue;
+						if(!waitingConnection) {
+							waitingConnection=true;
+						} else if (cqi->getState() != ConnectionQueueItem::CONNECTING) {
+							//there should be only one cqi waiting
+							disconnect(cqi->getToken());
+							cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
+							continue;
+						}
 					}
+					totalConnections++;
+					maxConnections=cqi->getMaxConns();
 				}
-				totalConnections++;
-				maxConnections=cqi->getMaxConns();
+			} else if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+				smallSlot=true;
 			}
 		}
 
-		if (hasRunning && !waitingConnection) {
+		if ((hasRunning && !waitingConnection) || (!hasRunning && !waitingConnection && smallSlot)) {
 			if (totalConnections >= Util::getSlotsPerUser(true) && Util::getSlotsPerUser(true) != 0) {
 				return;
 			}
@@ -300,10 +306,13 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 
 void ConnectionManager::checkWaitingMCN(const UserConnection *aSource) noexcept {
 	string token = aSource->getToken();
+
+
 	for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
-		if ((*i) == NULL) continue;
-		if ((*i)->getToken() == token) {
-			checkWaitingMCN((*i)->getUser());
+		ConnectionQueueItem* cqi = *i;
+		if (cqi->getToken() == token) {
+			cqi->setState(ConnectionQueueItem::RUNNING);
+			checkWaitingMCN(cqi->getUser());
 			return;
 		}
 	}
@@ -323,6 +332,7 @@ bool ConnectionManager::isRequesting(const string token) {
 	}
 	return false;
 }
+
 
 void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	Lock l(cs);

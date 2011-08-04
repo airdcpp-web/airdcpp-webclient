@@ -41,7 +41,8 @@ public:
 		CONNECTING,					// Recently sent request to connect
 		WAITING,					// Waiting to send request to connect
 		NO_DOWNLOAD_SLOTS,			// Not needed right now
-		ACTIVE						// In one up/downmanager
+		ACTIVE,						// In one up/downmanager
+		RUNNING						// Running
 	};
 
 	enum Flags {
