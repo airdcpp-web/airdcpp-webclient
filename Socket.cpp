@@ -33,10 +33,9 @@
 
 namespace dcpp {
 
-string Socket::udpServer;
-uint16_t Socket::udpPort;
-
-#define checkconnected() if(!isConnected()) throw SocketException(ENOTCONN))
+Socket::addr Socket::udpAddr;
+socklen_t Socket::udpAddrLen;
+uint16_t Socket::family = AF_INET6;	// IPv6 as default, unsupported OS will fallback to IPv4
 
 #ifdef _DEBUG
 
@@ -63,6 +62,7 @@ string SocketException::errorToString(int aError) noexcept {
 		snprintf(tmp, sizeof(tmp), CSTRING(UNKNOWN_ERROR), aError);
 		msg = tmp;
 	}
+
 	return msg;
 }
 
@@ -72,14 +72,36 @@ void Socket::create(uint8_t aType /* = TYPE_TCP */) {
 
 	switch(aType) {
 	case TYPE_TCP:
-		sock = checksocket(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+		sock = socket(family, SOCK_STREAM, IPPROTO_TCP);
 		break;
 	case TYPE_UDP:
-		sock = checksocket(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP));
+		sock = socket(family, SOCK_DGRAM, IPPROTO_UDP);
 		break;
 	default:
 		dcassert(0);
 	}
+	
+	if(sock == SOCKET_ERROR) {
+		int err = getLastError();
+		if((err == WSAEAFNOSUPPORT) && (family == AF_INET6)) {	// FIXME: WSAEAFNOSUPPORT on non-Windows
+			// IPv6 unsupported, fallback to IPv4
+			family = AF_INET;
+			create(aType);
+		} else
+			throw SocketException(err); 
+	}
+		
+
+	if(family == AF_INET6) {
+		// enable hybrid dual stack (IPv4 and IPv6 via one socket)
+		int val = 0;
+		if(::setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&val, sizeof(val)) == SOCKET_ERROR) {
+			// hybrid socket unsupported, fallback to IPv4
+			family = AF_INET;
+			create(aType);
+		}
+	}
+
 	type = aType;
 	setBlocking(false);
 }
@@ -88,11 +110,11 @@ void Socket::accept(const Socket& listeningSocket) {
 	if(sock != INVALID_SOCKET) {
 		disconnect();
 	}
-	sockaddr_in sock_addr;
+	addr sock_addr = { { 0 } };
 	socklen_t sz = sizeof(sock_addr);
 
 	do {
-		sock = ::accept(listeningSocket.sock, (sockaddr*)&sock_addr, &sz);
+		sock = ::accept(listeningSocket.sock, &sock_addr.sa, &sz);
 	} while (sock == SOCKET_ERROR && getLastError() == EINTR);
 	check(sock);
 
@@ -103,26 +125,29 @@ void Socket::accept(const Socket& listeningSocket) {
 
 	type = TYPE_TCP;
 
-	setIp(inet_ntoa(sock_addr.sin_addr));
+	setIp(resolveName(sock_addr));
+
 	connected = true;
 	setBlocking(false);
 }
 
 
 uint16_t Socket::bind(uint16_t aPort, const string& aIp /* = 0.0.0.0 */){
-	sockaddr_in sock_addr;
-		
-	sock_addr.sin_family = AF_INET;
-	sock_addr.sin_port = htons(aPort);
-	sock_addr.sin_addr.s_addr = inet_addr(aIp.c_str());
-	if(::bind(sock, (sockaddr *)&sock_addr, sizeof(sock_addr)) == SOCKET_ERROR) {
-		dcdebug("Bind failed, retrying with INADDR_ANY: %s\n", SocketException(getLastError()).getError().c_str());
-		sock_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	    check(::bind(sock, (sockaddr *)&sock_addr, sizeof(sock_addr)));
+	addrinfo_p res = resolveAddr(aIp, aPort, AI_PASSIVE | AI_ADDRCONFIG);
+
+	if(::bind(sock, res->ai_addr, res->ai_addrlen) == SOCKET_ERROR) {
+		dcdebug("Bind failed, retrying with INADDR_ANY: %s\n", SocketException(getLastError()).getError().c_str());	
+		if(res->ai_family == AF_INET6)
+			((sockaddr_in6*)res->ai_addr)->sin6_addr = in6addr_any;
+		else
+			((sockaddr_in*)res->ai_addr)->sin_addr.s_addr = htonl(INADDR_ANY);
+
+		check(::bind(sock, res->ai_addr, res->ai_addrlen));
 	}
-	socklen_t size = sizeof(sock_addr);
-	getsockname(sock, (sockaddr*)&sock_addr, (socklen_t*)&size);
-	return ntohs(sock_addr.sin_port);
+	socklen_t size = res->ai_addrlen;
+	getsockname(sock, res->ai_addr, &size);
+
+	return ntohs(res->ai_family == AF_INET6 ? ((sockaddr_in6*)res->ai_addr)->sin6_port : ((sockaddr_in*)res->ai_addr)->sin_port);
 }
 
 void Socket::listen() {
@@ -131,27 +156,22 @@ void Socket::listen() {
 }
 
 void Socket::connect(const string& aAddr, uint16_t aPort) {
-	sockaddr_in  serv_addr;
-
 	if(sock == INVALID_SOCKET) {
 		create(TYPE_TCP);
 	}
 
-	string addr = resolve(aAddr);
-
-	memzero(&serv_addr, sizeof(serv_addr));
-    serv_addr.sin_port = htons(aPort);
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr(addr.c_str());
+	addrinfo_p res = resolveAddr(aAddr, aPort);
 
 	int result;
 	do {
-		result = ::connect(sock,(sockaddr*)&serv_addr,sizeof(serv_addr));
+		result = ::connect(sock, res->ai_addr, res->ai_addrlen);
 	} while (result < 0 && getLastError() == EINTR);
+
 	check(result, true);
 
 	connected = true;
-	setIp(addr);
+
+	setIp(resolveName((addr&)*res->ai_addr));
 	setPort(aPort);
 }
 
@@ -168,7 +188,6 @@ namespace {
 }
 
 void Socket::socksConnect(const string& aAddr, uint16_t aPort, uint32_t timeout) {
-
 	if(SETTING(SOCKS_SERVER).empty() || SETTING(SOCKS_PORT) == 0) {
 		throw SocketException(STRING(SOCKS_FAILED));
 	}
@@ -195,10 +214,17 @@ void Socket::socksConnect(const string& aAddr, uint16_t aPort, uint32_t timeout)
 		connStr.push_back((uint8_t)aAddr.size());
 		connStr.insert(connStr.end(), aAddr.begin(), aAddr.end());
 	} else {
-		connStr.push_back(1);		// Address type: IPv4;
-		unsigned long addr = inet_addr(resolve(aAddr).c_str());
-		uint8_t* paddr = (uint8_t*)&addr;
-		connStr.insert(connStr.end(), paddr, paddr+4);
+		auto ai = resolveAddr(aAddr, aPort);
+
+		if(ai->ai_family == AF_INET) {
+			connStr.push_back(1);		// Address type: IPv4
+			uint8_t* paddr = (uint8_t*)&((sockaddr_in*)ai->ai_addr)->sin_addr;
+			connStr.insert(connStr.end(), paddr, paddr+4);
+		} else if(ai->ai_family == AF_INET6) {
+			connStr.push_back(4);		// Address type: IPv6
+			uint8_t* paddr = (uint8_t*)&((sockaddr_in6*)ai->ai_addr)->sin6_addr;
+			connStr.insert(connStr.end(), paddr, paddr+16);
+		}
 	}
 
 	uint16_t port = htons(aPort);
@@ -312,15 +338,15 @@ int Socket::read(void* aBuffer, int aBufLen) {
 	return len;
 }
 
-int Socket::read(void* aBuffer, int aBufLen, sockaddr_in &remote) {
+int Socket::read(void* aBuffer, int aBufLen, addr &remote) {
 	dcassert(type == TYPE_UDP);
 
-	sockaddr_in remote_addr = { 0 };
+	addr remote_addr = { { 0 } };
 	socklen_t addr_length = sizeof(remote_addr);
 
 	int len;
 	do {
-		len = ::recvfrom(sock, (char*)aBuffer, aBufLen, 0, (sockaddr*)&remote_addr, &addr_length);
+		len = ::recvfrom(sock, (char*)aBuffer, aBufLen, 0, &remote_addr.sa, &addr_length);
 	} while (len < 0 && getLastError() == EINTR);
 
 	check(len, true);
@@ -328,6 +354,7 @@ int Socket::read(void* aBuffer, int aBufLen, sockaddr_in &remote) {
 		stats.totalDown += len;
 	}
 	remote = remote_addr;
+
 	return len;
 }
 
@@ -394,9 +421,13 @@ void Socket::writeTo(const string& aAddr, uint16_t aPort, const void* aBuffer, i
 	if(aPort == 80 || aPort == 2501) {
 		LogManager::getInstance()->message("Someone is trying to use your client to spam " + aAddr + ", please urge hub owner to fix this");
 		return;
-	}		
+	}
+		
+	if(aAddr.empty() || aPort == 0) {
+		throw SocketException(EADDRNOTAVAIL);
+	}
 
-	uint8_t* buf = (uint8_t*)aBuffer;
+	auto buf = (const uint8_t*)aBuffer;
 	if(sock == INVALID_SOCKET) {
 		create(TYPE_UDP);
 		setSocketOpt(SO_SNDTIMEO, 250);
@@ -404,27 +435,15 @@ void Socket::writeTo(const string& aAddr, uint16_t aPort, const void* aBuffer, i
 
 	dcassert(type == TYPE_UDP);
 
-	sockaddr_in serv_addr;
-
-	if(aAddr.empty() || aPort == 0) {
-		throw SocketException(EADDRNOTAVAIL);
-	}
-
-	memzero(&serv_addr, sizeof(serv_addr));
-
 	int sent;
 	if(SETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5 && proxy) {
-		if(udpServer.empty() || udpPort == 0) {
+		if(udpAddr.sa.sa_family == 0) {
 			throw SocketException(STRING(SOCKS_SETUP_ERROR));
 		}
 
-		serv_addr.sin_port = htons(udpPort);
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_addr.s_addr = inet_addr(udpServer.c_str());
-		
-		string s = BOOLSETTING(SOCKS_RESOLVE) ? resolve(ip) : ip;
-
 		vector<uint8_t> connStr;
+
+		connStr.reserve(aLen + 24);
 
 		connStr.push_back(0);		// Reserved
 		connStr.push_back(0);		// Reserved
@@ -432,26 +451,31 @@ void Socket::writeTo(const string& aAddr, uint16_t aPort, const void* aBuffer, i
 		
 		if(BOOLSETTING(SOCKS_RESOLVE)) {
 			connStr.push_back(3);
-			connStr.push_back((uint8_t)s.size());
+			connStr.push_back((uint8_t)aAddr.size());
 			connStr.insert(connStr.end(), aAddr.begin(), aAddr.end());
 		} else {
-			connStr.push_back(1);		// Address type: IPv4;
-			unsigned long addr = inet_addr(resolve(aAddr).c_str());
-			uint8_t* paddr = (uint8_t*)&addr;
-			connStr.insert(connStr.end(), paddr, paddr+4);
+			auto ai = resolveAddr(aAddr, aPort);
+
+			if(ai->ai_family == AF_INET) {
+				connStr.push_back(1);		// Address type: IPv4
+				uint8_t* paddr = (uint8_t*)&((sockaddr_in*)ai->ai_addr)->sin_addr;
+				connStr.insert(connStr.end(), paddr, paddr+4);
+			} else if(ai->ai_family == AF_INET6) {
+				connStr.push_back(4);		// Address type: IPv6
+				uint8_t* paddr = (uint8_t*)&((sockaddr_in6*)ai->ai_addr)->sin6_addr;
+				connStr.insert(connStr.end(), paddr, paddr+16);
+			}
 		}
 
 		connStr.insert(connStr.end(), buf, buf + aLen);
 
 		do {
-			sent = ::sendto(sock, (const char*)&connStr[0], connStr.size(), 0, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+			sent = ::sendto(sock, (const char*)&connStr[0], connStr.size(), 0, &udpAddr.sa, udpAddrLen);
 		} while (sent < 0 && getLastError() == EINTR);
 	} else {
-		serv_addr.sin_port = htons(aPort);
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_addr.s_addr = inet_addr(resolve(aAddr).c_str());
+		addrinfo_p res = resolveAddr(aAddr, aPort);
 		do {
-			sent = ::sendto(sock, (const char*)aBuffer, (int)aLen, 0, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+			sent = ::sendto(sock, (const char*)aBuffer, (int)aLen, 0, res->ai_addr, res->ai_addrlen);
 		} while (sent < 0 && getLastError() == EINTR);
 	}
 		
@@ -545,53 +569,71 @@ bool Socket::waitAccepted(uint64_t /*millis*/) {
 	return true;
 }
 
-string Socket::resolve(const string& aDns) {
-#ifdef _WIN32
-	sockaddr_in sock_addr;
+string Socket::resolve(const string& aDns)
+{
+	addrinfo_p result = resolveAddr(aDns, 0);
+	return resolveName((addr&)*result->ai_addr);
+}
 
-	memzero(&sock_addr, sizeof(sock_addr));
-	sock_addr.sin_port = 0;
-	sock_addr.sin_family = AF_INET;
-	sock_addr.sin_addr.s_addr = inet_addr(aDns.c_str());
-
-	if (sock_addr.sin_addr.s_addr == INADDR_NONE) {   /* server address is a name or invalid */
-		hostent* host;
-		host = gethostbyname(aDns.c_str());
-		if (host == NULL) {
-			return Util::emptyString;
-		}
-		sock_addr.sin_addr.s_addr = *((uint32_t*)host->h_addr);
-		return inet_ntoa(sock_addr.sin_addr);
-	} else {
-		return aDns;
-	}
-#else
-	// POSIX doesn't guarantee the gethostbyname to be thread safe. And it may (will) return a pointer to static data.
-	string address = Util::emptyString;
+Socket::addrinfo_p Socket::resolveAddr(const string& aDns, uint16_t port, int flags) {
 	addrinfo hints = { 0 };
-	addrinfo *result;
-	hints.ai_family = AF_INET;
+	addrinfo* result;
+	hints.ai_family = family;
+	hints.ai_flags = flags | (family == AF_INET6 ? AI_V4MAPPED : 0);
 
-	if (getaddrinfo(aDns.c_str(), NULL, &hints, &result) == 0) {
-		if (result->ai_addr != NULL)
-			address = inet_ntoa(((sockaddr_in*)(result->ai_addr))->sin_addr);
+	string dns = aDns;
 
-		freeaddrinfo(result);
-	}
+	// zone ID should be removed from IP
+	string::size_type suffix = aDns.find('%');
+	if(suffix != string::npos)
+		dns = dns.substr(0, suffix);
+	
+	// getaddrinfo isn't able to map 0.0.0.0 to IPv6 format
+	if(family == AF_INET6 && dns == "0.0.0.0")
+		dns = "::";
 
-	return address;		
-#endif
+	int ret = ::getaddrinfo(dns.c_str(), port == 0 ? NULL : Util::toString(port).c_str(), &hints, &result);
+	if(ret != 0)
+		throw SocketException(ret);
+
+	return addrinfo_p(result, &freeaddrinfo);
+}
+
+string Socket::resolveName(const addr& serv_addr, uint16_t* port) {
+	char buf[1024];
+	check(::getnameinfo((sockaddr*)&serv_addr, (serv_addr.sas.ss_family == AF_INET6) ? sizeof(serv_addr.sai6) : sizeof(serv_addr.sai), buf, sizeof(buf), NULL, 0, NI_NUMERICHOST));
+	string ip(buf);
+
+	switch(serv_addr.sas.ss_family) {
+        case AF_INET:
+			if(port != NULL) *port = serv_addr.sai.sin_port;
+            break;
+
+        case AF_INET6:
+			if(port != NULL) *port = serv_addr.sai6.sin6_port;
+
+			// if it is IPv4 mapped address then convert to IPv4
+			if(ip.substr(0, 7) == "::ffff:")
+				ip = ip.substr(7);
+            break;
+
+        default:
+            dcassert(0);
+    }
+
+	return ip;
 }
 
 string Socket::getLocalIp() const noexcept {
 	if(sock == INVALID_SOCKET)
 		return Util::emptyString;
 
-	sockaddr_in sock_addr;
+	addr sock_addr;
 	socklen_t len = sizeof(sock_addr);
-	if(getsockname(sock, (sockaddr*)&sock_addr, &len) == 0) {
-		return inet_ntoa(sock_addr.sin_addr);
+	if(getsockname(sock, &sock_addr.sa, &len) == 0) {
+		return resolveName(sock_addr);
 	}
+
 	return Util::emptyString;
 }
 
@@ -599,17 +641,21 @@ uint16_t Socket::getLocalPort() noexcept {
 	if(sock == INVALID_SOCKET)
 		return 0;
 
-	sockaddr_in sock_addr;
+	addr sock_addr;
 	socklen_t len = sizeof(sock_addr);
-	if(getsockname(sock, (sockaddr*)&sock_addr, &len) == 0) {
-		return ntohs(sock_addr.sin_port);
+	if(getsockname(sock, &sock_addr.sa, &len) == 0) {
+		if(sock_addr.sa.sa_family == AF_INET) {
+			return ntohs(sock_addr.sai.sin_port);
+		} else if(sock_addr.sa.sa_family == AF_INET6) {
+			return ntohs(sock_addr.sai6.sin6_port);
+		}
 	}
 	return 0;
 }
 
 void Socket::socksUpdated() {
-	udpServer.clear();
-	udpPort = 0;
+	memset(&udpAddr, 0, sizeof(udpAddr));
+	udpAddrLen = sizeof(udpAddr);
 	
 	if(SETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5) {
 		try {
@@ -638,13 +684,10 @@ void Socket::socksUpdated() {
 				return;
 			}
 
-			udpPort = static_cast<uint16_t>(ntohs(*((uint16_t*)(&connStr[8]))));
-
-			in_addr serv_addr;
-			
-			memzero(&serv_addr, sizeof(serv_addr));
-			serv_addr.s_addr = *((long*)(&connStr[4]));
-			udpServer = inet_ntoa(serv_addr);
+			udpAddr.sa.sa_family = AF_INET;	// TODO: what about AF_INET6?
+			udpAddr.sai.sin_port = *((uint16_t*)(&connStr[8]));
+			udpAddr.sai.sin_addr.S_un.S_addr = *((long*)(&connStr[4]));
+			udpAddrLen = sizeof(udpAddr.sai);
 		} catch(const SocketException&) {
 			dcdebug("Socket: Failed to register with socks server\n");
 		}
@@ -680,7 +723,7 @@ string Socket::getRemoteHost(const string& aIp) {
 	unsigned int addr;
 	addr = inet_addr(aIp.c_str());
 
-	h = gethostbyaddr(reinterpret_cast<char *>(&addr), 4, AF_INET);
+	h = gethostbyaddr(reinterpret_cast<char *>(&addr), 4, AF_UNSPEC);
 	if (h == NULL) {
 		return Util::emptyString;
 	} else {
@@ -692,5 +735,5 @@ string Socket::getRemoteHost(const string& aIp) {
 
 /**
  * @file
- * $Id: Socket.cpp 568 2011-07-24 18:28:43Z bigmuscle $
+ * $Id: Socket.cpp 573 2011-08-04 22:33:45Z bigmuscle $
  */

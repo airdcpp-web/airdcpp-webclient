@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -119,13 +119,13 @@ void SearchManager::disconnect() noexcept {
 int SearchManager::run() {
 	boost::scoped_array<uint8_t> buf(new uint8_t[BUFSIZE]);
 	int len;
-	sockaddr_in remoteAddr = { 0 };
+	Socket::addr remoteAddr = { 0 };
 
 	queue.start();
 	while(!stop) {
 		try {
 			while( (len = socket->read(&buf[0], BUFSIZE, remoteAddr)) > 0) {
-				onData(&buf[0], len, inet_ntoa(remoteAddr.sin_addr));
+				onData(&buf[0], len, Socket::resolveName(remoteAddr));
 			}
 		} catch(const SocketException& e) {
 			dcdebug("SearchManager::run Error: %s\n", e.getError().c_str());
@@ -531,5 +531,5 @@ AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const s
 
 /**
  * @file
- * $Id: SearchManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
+ * $Id: SearchManager.cpp 573 2011-08-04 22:33:45Z bigmuscle $
  */

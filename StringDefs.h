@@ -1223,7 +1223,7 @@ enum Strings { // @DontAdd
 	CHECK_EMPTY_RELEASES, // "Check if the folder only contains NFO/SFV file"
 	CHECK_EMPTY_DIRS, // "Check if the directory is empty"
 	DATE, // "Date Modified"
-	SETTINGS_MCNSLOTS, // "Per user limits"
+	SETTINGS_MCNSLOTS, // "Per user limits (only used in ADC hubs)"
 	SETTINGS_MAX_MCN_DL, // "Max downloads per user"
 	SETTINGS_MAX_MCN_UL, // "Max uploads per user"
 	PARTIAL_MATCH_ADC, // "Add sources by using recursive partial lists (ADC only)"

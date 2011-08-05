@@ -1216,7 +1216,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Check if the folder only contains NFO/SFV file", 
 "Check if the directory is empty", 
 "Date Modified", 
-"Per user limits", 
+"Per user limits (only used in ADC hubs)", 
 "Max downloads per user", 
 "Max uploads per user", 
 "Add sources by using recursive partial lists (ADC only)", 
