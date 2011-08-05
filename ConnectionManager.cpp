@@ -136,12 +136,10 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 			checkWaitingMCN(cqi->getUser());
 		}
 	} else {
+		Lock l(cs);
 		UploadManager::getInstance()->removeDelayUpload(cqi->getUser());
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
-		{
-			Lock l(cs);
-			uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
-		}
+		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
 	}
 	delete cqi;
 }
