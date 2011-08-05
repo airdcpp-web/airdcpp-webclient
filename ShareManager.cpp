@@ -1199,8 +1199,6 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 		
 		if(GeneratingXmlList.test_and_set()) //dont pile up generate calls to the lock, if its already generating return.
 			return;
-
-		LogManager::getInstance()->message("Filelist Generate Started..."); //just to see how much time it really takes.
 		
 		Lock l(cs);
 		listN++;
@@ -1265,7 +1263,6 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 		forceXmlRefresh = false;
 		lastXmlUpdate = GET_TICK();
 		GeneratingXmlList.clear();
-		LogManager::getInstance()->message("Filelist Generated");
 	}
 }
 

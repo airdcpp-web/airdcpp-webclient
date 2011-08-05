@@ -133,6 +133,7 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 		{
 			Lock l(cs);
 			downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
+			delayedTokens[cqi->getToken()] = GET_TICK();
 		}
 	} else {
 		Lock l(cs);
@@ -345,6 +346,14 @@ bool ConnectionManager::isRequesting(const string token) {
 
 void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	Lock l(cs);
+
+		
+	for(delayIter i = delayedTokens.begin(); i != delayedTokens.end();) {
+		if((i->second + (90 * 1000)) < aTick) {
+			delayedTokens.erase(i++);
+		} else
+			++i;
+	}
 
 	for(UserConnectionList::const_iterator j = userConnections.begin(); j != userConnections.end(); ++j) {
 		if(((*j)->getLastActivity() + 180*1000) < aTick) {
@@ -800,7 +809,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
 						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
 						cqi->setFlag(ConnectionQueueItem::FLAG_SMALL_CONF);
-						cqi->unsetFlag(ConnectionQueueItem::FLAG_SMALL);
+						//cqi->unsetFlag(ConnectionQueueItem::FLAG_SMALL);
 					} else {
 						cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
 					}
@@ -950,6 +959,11 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
 		addDownloadConnection(aSource);
 	} else {
+		if (delayedTokens.find(token) != delayedTokens.end()) {
+			//cqi removed while the connection was being negotiated
+			putConnection(aSource);
+			return;
+		}
 		if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
 			cmd.getParam("TO", 0, token);
 			aSource->setToken(token);

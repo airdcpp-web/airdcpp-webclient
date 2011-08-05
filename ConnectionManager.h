@@ -165,8 +165,9 @@ private:
 	StringList adcFeatures;
 
 	ExpectedMap expectedConnections;
-	typedef unordered_map<CID, uint8_t> MultiConnMap;
-	typedef MultiConnMap::iterator MultiConnIter;
+	typedef unordered_map<string, uint64_t> delayMap;
+	typedef delayMap::iterator delayIter;
+	delayMap delayedTokens;
 
 	uint64_t floodCounter;
 
