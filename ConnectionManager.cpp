@@ -302,14 +302,17 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 	}
 }
 
-void ConnectionManager::checkWaitingMCN(const UserConnection *aSource) noexcept {
+void ConnectionManager::checkWaitingMCN(const UserConnection *aSource, bool stateIdle) noexcept {
 	string token = aSource->getToken();
 
 
 	for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 		ConnectionQueueItem* cqi = *i;
 		if (cqi->getToken() == token) {
-			cqi->setState(ConnectionQueueItem::RUNNING);
+			if (stateIdle)
+				cqi->setState(ConnectionQueueItem::ACTIVE);
+			else
+				cqi->setState(ConnectionQueueItem::RUNNING);
 			checkWaitingMCN(cqi->getUser());
 			return;
 		}

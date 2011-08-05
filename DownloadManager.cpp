@@ -227,6 +227,8 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		Lock l(cs);
 		aConn->setState(UserConnection::STATE_IDLE);
  	    idlers.push_back(aConn);
+		if (aConn->isSet(UserConnection::FLAG_MCN1) || aConn->isSet(UserConnection::FLAG_SMALL_SLOT))
+			ConnectionManager::getInstance()->checkWaitingMCN(aConn, true);
 		return;
 	}
 
@@ -336,7 +338,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 	fire(DownloadManagerListener::Starting(), d);
 	if (aSource->isSet(UserConnection::FLAG_MCN1) || aSource->isSet(UserConnection::FLAG_SMALL_SLOT))
-		ConnectionManager::getInstance()->checkWaitingMCN(aSource);
+		ConnectionManager::getInstance()->checkWaitingMCN(aSource, false);
 
 	if(d->getPos() == d->getSize()) {
 		try {
