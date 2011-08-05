@@ -247,7 +247,6 @@ void SFVReaderManager::findDupes(const string& path) throw(FileException) {
 
 StringList SFVReaderManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/) {
 	StringList ret;
-	int64_t size;
 
 	WIN32_FIND_DATA data;
 	HANDLE hFind;
@@ -597,8 +596,7 @@ void SFVReaderManager::getScanSize(const string& path) throw(FileException) {
 				break;
 
 			StringIterC i = sfvFileList.begin();
-			string sfvFile = *i; //in map i->first
-			//path = i->second
+			string sfvFile = *i;
 			sfvFileList.erase(sfvFileList.begin());
 		
 			//incase we have some extended characters in the path
