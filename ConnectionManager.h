@@ -42,6 +42,7 @@ public:
 		WAITING,					// Waiting to send request to connect
 		NO_DOWNLOAD_SLOTS,			// Not needed right now
 		ACTIVE,						// In one up/downmanager
+		IDLE,						// Idle
 		RUNNING						// Running
 	};
 

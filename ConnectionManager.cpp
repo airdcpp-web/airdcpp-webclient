@@ -75,16 +75,18 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if (cqi == NULL) continue;
-			if (cqi->getUser().user == aUser.user) {
+			if (cqi->getUser() == aUser) {
 				found=true;
-				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
+				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
 					supportMcn=true;
 				}
 				if ((!smallSlot && cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) || (smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))) {
 					continue;
 				}
-				if (supportMcn)
+				if (supportMcn) {
+					dcdebug("CheckWaiting!");
 					checkWaitingMCN(aUser);
+				}
 				dcdebug("Returning1!");
 				return;
 			}
@@ -132,9 +134,6 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 			Lock l(cs);
 			downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
 		}
-		if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
-			checkWaitingMCN(cqi->getUser());
-		}
 	} else {
 		Lock l(cs);
 		UploadManager::getInstance()->removeDelayUpload(cqi->getUser());
@@ -178,11 +177,21 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 			if(cqi == NULL)
 				continue;
 
-			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING) {
+			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING && cqi->getState() != ConnectionQueueItem::IDLE) {
 				if(!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					// Not online anymore...remove it from the pending...
 					removed.push_back(cqi);
 					continue;
+				}
+
+				if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+					if (cqi->getState() == ConnectionQueueItem::WAITING) {
+						removed.push_back(cqi);
+						continue;
+					} else if (cqi->getState() == ConnectionQueueItem::RUNNING) {
+						//an idle connection may become running if new files are added
+						cqi->unsetFlag(ConnectionQueueItem::FLAG_REMOVE);
+					}
 				}
 
 				if(cqi->getErrors() == -1 && cqi->getLastAttempt() != 0) {
@@ -264,23 +273,22 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 
 			if (cqi->getUser().user->getCID() == cid) {
 				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
-					if(cqi->getState() == ConnectionQueueItem::RUNNING) {
+					if(cqi->getState() == ConnectionQueueItem::RUNNING || cqi->getState() == ConnectionQueueItem::IDLE) {
 						hasRunning=true;
 					} else {
 						if(!waitingConnection) {
 							waitingConnection=true;
-						} else if (cqi->getState() != ConnectionQueueItem::CONNECTING) {
+						} else {
 							//there should be only one cqi waiting
-							disconnect(cqi->getToken());
 							cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
 							continue;
 						}
 					}
 					totalConnections++;
 					maxConnections=cqi->getMaxConns();
+				} else if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+					smallSlot=true;
 				}
-			} else if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
-				smallSlot=true;
 			}
 		}
 
@@ -310,7 +318,7 @@ void ConnectionManager::checkWaitingMCN(const UserConnection *aSource, bool stat
 		ConnectionQueueItem* cqi = *i;
 		if (cqi->getToken() == token) {
 			if (stateIdle)
-				cqi->setState(ConnectionQueueItem::ACTIVE);
+				cqi->setState(ConnectionQueueItem::IDLE);
 			else
 				cqi->setState(ConnectionQueueItem::RUNNING);
 			checkWaitingMCN(cqi->getUser());
@@ -789,9 +797,10 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 			if (cqi->getToken() == uc->getToken()) {
 				if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 					cqi->setState(ConnectionQueueItem::ACTIVE);
-					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL)) {
+					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
 						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
 						cqi->setFlag(ConnectionQueueItem::FLAG_SMALL_CONF);
+						cqi->unsetFlag(ConnectionQueueItem::FLAG_SMALL);
 					} else {
 						cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
 					}
@@ -1017,6 +1026,9 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 					cqi->setLastAttempt(GET_TICK());
 					cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
 					fire(ConnectionManagerListener::Failed(), cqi, aError);
+					if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+						checkWaitingMCN(cqi->getUser());
+					}
 					break;
 				}
 			}
