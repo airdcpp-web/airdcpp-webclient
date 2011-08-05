@@ -154,8 +154,9 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
-	Lock l(cs);
+	
 	if(!as.empty() && BOOLSETTING(AUTOSEARCH_ENABLED) && !allowedHubs.empty()) {
+		Lock l(cs);
 		UserPtr user = static_cast<UserPtr>(sr->getUser());
 		if(users.find(user) == users.end()) {
 			users.insert(user);
@@ -311,22 +312,30 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*/, const string& dTarget ) {
 	Lock l(cs);
 	string fullpath;
-	
-	if((dTarget != Util::emptyString) && Util::fileExists(dTarget))
-		fullpath = dTarget + Util::getFileName(sr->getFile());
-	else
-		fullpath = SETTING(DOWNLOAD_DIRECTORY) + Util::getFileName(sr->getFile());
-	
-	if(!BOOLSETTING(DONT_DL_ALREADY_SHARED) || !ShareManager::getInstance()->isTTHShared(sr->getTTH())) {
+
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
+
+				if((dTarget != Util::emptyString) && Util::fileExists(dTarget)) {
+						fullpath = dTarget;
+					} else {
+						fullpath = SETTING(DOWNLOAD_DIRECTORY);
+					}
+
 				if(pausePrio) //add with paused priority
 					QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, QueueItem::PAUSED);
 				else // start downloading
 					QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath);
 
 			} else {
-			QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
+			
+				if((dTarget != Util::emptyString) && Util::fileExists(dTarget)) {
+						fullpath = dTarget + Util::getFileName(sr->getFile());
+				} else {
+						fullpath = SETTING(DOWNLOAD_DIRECTORY) + Util::getFileName(sr->getFile());
+				}
+
+				QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
 			
 			if(pausePrio)
 				QueueManager::getInstance()->setPriority(fullpath, QueueItem::PAUSED);
@@ -334,7 +343,7 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 		} catch(...) {
 			LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
 		}
-	}
+	
 }
 
 void AutoSearchManager::AutosearchSave() {
