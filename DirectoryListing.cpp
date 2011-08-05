@@ -120,9 +120,13 @@ string DirectoryListing::updateXML(const string& xml, bool checkdupe ) {
 
 string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkdupe) {
 	ListLoader ll(this, getRoot(), updating, getUser(), checkdupe);
-
+	try {
 	dcpp::SimpleXMLReader(&ll).parse(is);
-
+	}catch(SimpleXMLException& e) {
+		//log message for now, change to debug later.
+		LogManager::getInstance()->message("Error in Filelist loading: " + e.getError());
+		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
+	}
 	return ll.getBase();
 }
 

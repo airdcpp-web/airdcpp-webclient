@@ -62,7 +62,7 @@ private:
 	OutputStream& operator=(const OutputStream&);
 };
 
-class InputStream {
+class InputStream  {
 public:
 	InputStream() { }
 	virtual ~InputStream() { }
@@ -79,10 +79,10 @@ private:
 
 class MemoryInputStream : public InputStream {
 public:
-	MemoryInputStream(const uint8_t* src, size_t len) : pos(0), size(len), buf(new uint8_t[len]) {
+	MemoryInputStream(const uint8_t* src, size_t len) : pos(0), size(len), buf(new uint64_t[len]) {
 		memcpy(buf, src, len);
 	}
-	MemoryInputStream(const string& src) : pos(0), size(src.size()), buf(new uint8_t[src.size()]) {
+	MemoryInputStream(const string& src) : pos(0), size(src.size()), buf(new uint64_t[src.size()]) {
 		memcpy(buf, src.data(), src.size());
 	}
 
@@ -102,7 +102,7 @@ public:
 private:
 	size_t pos;
 	size_t size;
-	uint8_t* buf;
+	uint64_t* buf;
 };
 
 class IOStream : public InputStream, public OutputStream {

@@ -39,7 +39,8 @@ AutoSearchManager::AutoSearchManager() {
 	endOfList = false;
 	recheckTime = 0;
 	curSearch = Util::emptyString;
-
+	dirty = false;
+	lastsave = GET_TICK();
 	setTime((uint16_t)SETTING(AUTOSEARCH_EVERY) -1); //1 minute delay
 }
 
@@ -105,6 +106,11 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 		//empty list...
 		if(!as.size())
 			return;
+
+		if(dirty && (GET_TICK() - lastsave > 15*60*1000)) { //save every 15mins if dirty
+			AutosearchSave();
+		}
+
 
 		if(endOfList) {
 			recheckTime++;
@@ -191,6 +197,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
+								 dirty = true;
 							}
 							break;
 						};
@@ -231,6 +238,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
+								 dirty = true;
 							}
 							break;
 						}
@@ -259,6 +267,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
+								 dirty = true;
 							}
 							break;
 						}
@@ -299,6 +308,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
+								 dirty = true;
 							}
 							break;
 						}
@@ -347,6 +357,7 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 }
 
 void AutoSearchManager::AutosearchSave() {
+	Lock l(cs);
 	try {
 		SimpleXML xml;
 

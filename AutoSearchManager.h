@@ -64,6 +64,7 @@ public:
 				}
 		Autosearch* ipw = new Autosearch(en, ss, ft, act, remove, targ);
 		as.push_back(ipw);
+		dirty = true;
 		return ipw;
 	}
 	Autosearch* getAutosearch(unsigned int index, Autosearch &ipw) {
@@ -129,6 +130,8 @@ private:
 
 	GETSET(uint16_t, time, Time);
 
+	bool dirty;
+	int64_t lastsave;
 	void addToQueue(SearchResultPtr sr, bool pausePrio = false, const string& dTarget = Util::emptyString );
 	SearchResultPtr sr;
 	bool endOfList;

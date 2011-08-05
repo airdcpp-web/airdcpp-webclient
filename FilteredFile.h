@@ -147,7 +147,7 @@ public:
 	virtual bool eof() { return !more; }
 
 private:
-	static const size_t BUF_SIZE = 64*1024;
+	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64, test
 
 	OutputStream* f;
 	Filter filter;
@@ -198,7 +198,7 @@ public:
 	}
 
 private:
-	static const size_t BUF_SIZE = 64*1024;
+	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64
 
 	InputStream* f;
 	Filter filter;

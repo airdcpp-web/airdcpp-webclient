@@ -132,6 +132,7 @@ void shutdown() {
 	MappingManager::getInstance()->close();
 	BufferedSocket::waitShutdown();
 	
+	AutoSearchManager::getInstance()->AutosearchSave();
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
 	MappingManager::deleteInstance();
