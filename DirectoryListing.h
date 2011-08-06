@@ -81,7 +81,7 @@ public:
 		GETSET(bool, dupe, Dupe)
 	};
 
-	class Directory :  boost::noncopyable {
+	class Directory :  public FastAllocator, boost::noncopyable {
 	public:
 		typedef Directory* Ptr;
 		struct DirSort {

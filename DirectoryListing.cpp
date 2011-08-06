@@ -121,11 +121,12 @@ string DirectoryListing::updateXML(const string& xml, bool checkdupe ) {
 string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkdupe) {
 	ListLoader ll(this, getRoot(), updating, getUser(), checkdupe);
 	try {
+		
 	dcpp::SimpleXMLReader(&ll).parse(is);
 	}catch(SimpleXMLException& e) {
-		//log message for now, change to debug later.
+		//remove the log message later, but we shouldnt get errors here.
 		LogManager::getInstance()->message("Error in Filelist loading: " + e.getError());
-		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
+		dcdebug("DirectoryListing loadxml error: %s", e.getError());
 	}
 	return ll.getBase();
 }
@@ -144,8 +145,9 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 	if(list->getAbort()) {
 		throw AbortException();
 	}
-
+	
 	if(inListing) {
+		
 		if(name == sFile) {
 			const string& n = getAttrib(attribs, sName, 0);
 			if(n.empty())
@@ -159,7 +161,6 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			if(h.empty())
 				return;		
 			TTHValue tth(h); /// @todo verify validity?
-
 			if(updating) {
 				// just update the current file if it is already there.
 				for(auto i = cur->files.cbegin(), iend = cur->files.cend(); i != iend; ++i) {
@@ -188,7 +189,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& size = getAttrib(attribs, sSize, 2);
 			const string& date = getAttrib(attribs, sDate, 3);
 			DirectoryListing::Directory* d = NULL;
-			if(updating) {
+			if(updating) {  //this slows partials down quite a bit :(
 				for(DirectoryListing::Directory::Iter i  = cur->directories.begin(); i != cur->directories.end(); ++i) {
 					/// @todo comparisons should be case-insensitive but it takes too long - add a cache
 					if((*i)->getName() == n) {

@@ -30,8 +30,75 @@ struct FastAllocBase {
 	static FastCriticalSection cs;
 };
 
+#ifndef SMALL_OBJECT_SIZE
+		#define SMALL_OBJECT_SIZE 256  //change the small object size to a suitable value.
+	#endif
+
+
+class AllocManager : public FastAllocBase {
+	
+public:
+		static AllocManager& getInstance() {
+			static AllocManager Instance;
+			return Instance;
+		}
+
+		void* allocate(size_t size) {
+			
+			if (size > SMALL_OBJECT_SIZE) {
+				return ::operator new(size); //use normal new
+			}
+
+			FastLock l(cs);
+			return Pools[size-1]->malloc();
+		}
+
+		void deallocate(void* m, size_t size) {
+			if (size > SMALL_OBJECT_SIZE) {
+				::delete(m); //use normal delete
+			} else {
+			FastLock l(cs);
+				if (m)
+					Pools[size-1]->free(m);
+			}
+		}
+		~AllocManager() {
+			FastLock l(cs);
+			for (int i = 0; i < SMALL_OBJECT_SIZE; ++i)
+					delete Pools[i];
+		}
+
+	private:
+		AllocManager() 
+		{
+			for(int i = 0; i < SMALL_OBJECT_SIZE; ++i)
+				Pools[i] = new boost::pool<>(i + 1);
+		}
+
+		AllocManager(const AllocManager&);
+		const AllocManager& operator=(const AllocManager&);
+
+		boost::pool<>* Pools[SMALL_OBJECT_SIZE];
+	};
+
+class FastAllocator {
+	public:
+		
+		static void* operator new(size_t size) {
+
+			return AllocManager::getInstance().allocate(size);
+		}
+
+		static void operator delete(void* m, size_t size) {
+
+			AllocManager::getInstance().deallocate(m, size);
+		}
+
+	virtual ~FastAllocator() { }
+
+	};
+
 /*
-cannot use this with a class that has subclasses, it will reserve the wrong amount of memory for a subclass.
 Changed to Boost pools -Night
 */
 template <class T>

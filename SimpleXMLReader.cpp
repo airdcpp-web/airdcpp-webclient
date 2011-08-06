@@ -54,8 +54,8 @@ static bool isNameChar(int c) {
 SimpleXMLReader::SimpleXMLReader(SimpleXMLReader::CallBack* callback) :
 	bufPos(0), pos(0), cb(callback), state(STATE_START)
 {
-	elements.reserve(128);   //reserve more for vector to be faster with big list
-	attribs.reserve(128);     //for testing 
+	elements.reserve(256);   //reserve more for vector to be faster with big list.
+	attribs.reserve(32);    
 }
 
 void SimpleXMLReader::append(std::string& str, size_t maxLen, int c) {
@@ -531,7 +531,7 @@ bool SimpleXMLReader::needChars(size_t n) const {
 #define LITN(x) x, sizeof(x)-1
 
 void SimpleXMLReader::parse(InputStream& stream, size_t maxSize) {
-	const size_t BUF_SIZE = 256*1024;   //testing with 256k buffer, old 64
+	const size_t BUF_SIZE = 128*1024;
 	size_t bytesRead = 0;
 	do {
 		size_t old = buf.size();
