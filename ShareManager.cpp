@@ -400,7 +400,6 @@ void ShareManager::load(SimpleXML& aXml) {
 	
 		aXml.stepOut();
 	}
-	sortReleaseList();
 }
 
 static const string SDIRECTORY = "Directory";
@@ -496,12 +495,11 @@ bool ShareManager::loadCache() noexcept {
 		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
 		if(!Util::fileExists(getBZXmlFile())) //only generate if we dont find old filelist
 			generateXmlList(true);
-
+		sortReleaseList();
 		return true;
 	} catch(const Exception& e) {
 		dcdebug("%s\n", e.getError().c_str());
 	}
-
 	return false;
 }
 
@@ -736,6 +734,22 @@ int64_t ShareManager::getShareSize() const noexcept {
 size_t ShareManager::getSharedFiles() const noexcept {
 	Lock l(cs);
 	return tthIndex.size();
+}
+
+bool ShareManager::isDirShared(const string& directory) {
+	string dir = directory;
+
+	if(dir[dir.size() -1] == '\\') 
+		dir = dir.substr(0, (dir.size() -1));
+
+	if(releaseReg.match(dir) == 0 )
+		return false;
+
+	if (std::binary_search(dirNameList.begin(), dirNameList.end(), Text::toLower(dir))) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 void ShareManager::sortReleaseList() {
@@ -1740,21 +1754,6 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 
 namespace {
 	inline uint16_t toCode(char a, char b) { return (uint16_t)a | ((uint16_t)b)<<8; }
-}
-bool ShareManager::isDirShared(const string& directory) {
-	string dir = directory;
-
-	if(dir[dir.size() -1] == '\\') 
-		dir = dir.substr(0, (dir.size() -1));
-
-	if(releaseReg.match(dir) == 0 )
-		return false;
-
-	if (std::binary_search(dirNameList.begin(), dirNameList.end(), Text::toLower(dir))) {
-		return true;
-	} else {
-		return false;
-	}
 }
 
 ShareManager::AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 

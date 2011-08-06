@@ -59,9 +59,6 @@ public:
 	void removeDirectory(const string& realPath);
 	void renameDirectory(const string& realPath, const string& virtualName);
 
-	void addReleaseDir(const string& aName);
-	void deleteReleaseDir(const string& aName);
-	void sortReleaseList();
 
 	string toVirtual(const TTHValue& tth) const;
 	string toReal(const string& virtualFile, bool isInSharingHub);
@@ -333,6 +330,10 @@ private:
 	typedef unordered_map<int, string> nameMap;
 	nameMap dirNames;
 	StringList dirNameList;
+
+	void addReleaseDir(const string& aName);
+	void deleteReleaseDir(const string& aName);
+	void sortReleaseList();
 
 
 	typedef std::vector<Directory::Ptr> DirList;
