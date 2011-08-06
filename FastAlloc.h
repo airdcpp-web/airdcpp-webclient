@@ -137,6 +137,7 @@ class FastAlloc : public FastAllocBase  {
 
 #else
 template<class T> struct FastAlloc { };
+class FastAllocator {};
 #endif
 } // namespace dcpp
 

@@ -1586,6 +1586,9 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	}
 
 	if(!fl_fname.empty()) {
+		/*protect both matchTTHList and process list, only calls to matchtthlist here, 
+		so removed the lock from the matchTTHList -Night*/
+		Lock l(cs);  
 		if (tthList) {
 			matchTTHList(fl_fname, fl_user, fl_flag);
 		} else {
@@ -1606,7 +1609,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
 		int matches = 0;
 		{
-			Lock l(cs);
+			//Lock l(cs);   if use this for something else check this again.
 
 			typedef unordered_set<TTHValue> TTHSet;
 			typedef TTHSet::const_iterator TTHSetIter;
