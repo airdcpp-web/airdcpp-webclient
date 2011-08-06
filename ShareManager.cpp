@@ -400,6 +400,7 @@ void ShareManager::load(SimpleXML& aXml) {
 	
 		aXml.stepOut();
 	}
+	sortReleaseList();
 }
 
 static const string SDIRECTORY = "Directory";
@@ -592,6 +593,7 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 		
 		setDirty();
 	}
+	sortReleaseList();
 }
 
 ShareManager::Directory::Ptr ShareManager::merge(const Directory::Ptr& directory) {
@@ -680,7 +682,7 @@ void ShareManager::removeDirectory(const string& realPath) {
 			merge(dp);
 		}
 	}
-
+	sortReleaseList();
 	rebuildIndices();
 	setDirty();
 }
@@ -736,8 +738,14 @@ size_t ShareManager::getSharedFiles() const noexcept {
 	return tthIndex.size();
 }
 
+void ShareManager::sortReleaseList() {
+	Lock l(cs);
+	sort(dirNameList.begin(), dirNameList.end());
+}
+
 void ShareManager::addReleaseDir(const string& aName) {
 	if(releaseReg.match(aName) > 0 ) {
+		Lock l(cs);
 		dirNameList.push_back(Text::toLower(aName));
 	}
 }
@@ -1176,7 +1184,7 @@ int ShareManager::run() {
 	if(refreshOptions & REFRESH_BLOCKING)
 		generateXmlList(true);
 
-
+	sortReleaseList();
 	refreshing.clear();
 	return 0;
 }
@@ -1742,12 +1750,11 @@ bool ShareManager::isDirShared(const string& directory) {
 	if(releaseReg.match(dir) == 0 )
 		return false;
 
-	dir = Text::toLower(dir);
-	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
-		if ((*i) == dir)
-			return true;
+	if (std::binary_search(dirNameList.begin(), dirNameList.end(), Text::toLower(dir))) {
+		return true;
+	} else {
+		return false;
 	}
-	return false;
 }
 
 ShareManager::AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 

@@ -61,6 +61,7 @@ public:
 
 	void addReleaseDir(const string& aName);
 	void deleteReleaseDir(const string& aName);
+	void sortReleaseList();
 
 	string toVirtual(const TTHValue& tth) const;
 	string toReal(const string& virtualFile, bool isInSharingHub);
