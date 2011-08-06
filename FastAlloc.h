@@ -64,9 +64,11 @@ public:
 		}
 		~AllocManager() {
 			FastLock l(cs);
-			for (int i = 0; i < SMALL_OBJECT_SIZE; ++i)
-					delete Pools[i];
-		}
+			for (int i = 0; i < SMALL_OBJECT_SIZE; ++i) {
+				//Pools[i]->purge_memory();	
+				delete Pools[i];
+				}
+			}
 
 	private:
 		AllocManager() 

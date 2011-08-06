@@ -34,7 +34,7 @@ namespace dcpp {
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
-class DirectoryListing : boost::noncopyable, public UserInfoBase
+class DirectoryListing : public FastAllocator, boost::noncopyable, public UserInfoBase
 {
 public:
 	class Directory;
@@ -81,7 +81,7 @@ public:
 		GETSET(bool, dupe, Dupe)
 	};
 
-	class Directory :  public FastAllocator, boost::noncopyable {
+	class Directory :  boost::noncopyable {
 	public:
 		typedef Directory* Ptr;
 		struct DirSort {
@@ -144,7 +144,7 @@ public:
 	};
 
 	DirectoryListing(const HintedUser& aUser);
-	~DirectoryListing();
+	virtual ~DirectoryListing();
 	
 	void loadFile(const string& name, bool checkdupe);
 
