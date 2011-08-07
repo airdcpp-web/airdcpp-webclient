@@ -63,6 +63,8 @@ ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	HashManager::getInstance()->addListener(this);
 	releaseReg.Init("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
 	releaseReg.study();
+	subDirReg.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
+	subDirReg.study();
 }
 
 ShareManager::~ShareManager() {
@@ -381,7 +383,7 @@ void ShareManager::load(SimpleXML& aXml) {
 			shares.insert(std::make_pair(realPath, vName));
 			if(getByVirtual(vName) == directories.end()) {
 				directories.push_back(Directory::create(vName));
-				addReleaseDir(Util::getLastDir(realPath));
+				addReleaseDir(realPath);
 			}
 		}
 		aXml.stepOut();
@@ -430,10 +432,10 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 						}
 					}
 				} else if(cur) {
-					ShareManager::getInstance()->addReleaseDir(name);
 					cur = ShareManager::Directory::create(name, cur);
 					cur->setLastWrite(date);
 					cur->getParent()->directories[cur->getName()] = cur;
+					ShareManager::getInstance()->addReleaseDir(cur->getFullName());
 				}
 			}
 
@@ -737,19 +739,60 @@ size_t ShareManager::getSharedFiles() const noexcept {
 }
 
 bool ShareManager::isDirShared(const string& directory) {
-	string dir = directory;
 
-	if(dir[dir.size() -1] == '\\') 
-		dir = dir.substr(0, (dir.size() -1));
-
-	if(releaseReg.match(dir) == 0 )
+	string dir = getReleaseDir(directory);
+	if (dir.empty())
 		return false;
 
-	if (std::binary_search(dirNameList.begin(), dirNameList.end(), Text::toLower(dir))) {
+	if (std::binary_search(dirNameList.begin(), dirNameList.end(), dir)) {
 		return true;
 	} else {
 		return false;
 	}
+}
+
+string ShareManager::getReleaseDir(const string& aName) {
+	//LogManager::getInstance()->message("aName: " + aName);
+	string dir = aName;
+	if(dir[dir.size() -1] == '\\') 
+		dir = dir.substr(0, (dir.size() -1));
+
+	int dpos=dir.size();
+	string dirMatch=dir;
+	for (;;) {
+		//LogManager::getInstance()->message("Loop compare: " + dirMatch);
+		if (subDirReg.match(dirMatch) > 0) {
+			dpos = dirMatch.rfind("\\");
+			if(dpos != string::npos) {
+				dirMatch = dirMatch.substr(0,dpos);
+			}
+		} else {
+			//LogManager::getInstance()->message("No match: " + dirMatch);
+			break;
+		}
+	}
+	
+	if(dirMatch[dirMatch.size() -1] == '\\') 
+		dirMatch = dirMatch.substr(0, (dirMatch.size() -1));
+
+	dpos = dirMatch.rfind("\\");
+	if(dpos != string::npos) {
+		dpos++;
+		dirMatch = dirMatch.substr(dpos, dirMatch.size()-dpos);
+	} else {
+		dpos=0;
+	}
+
+	if (releaseReg.match(dirMatch) > 0) {
+		dir = Text::toLower(dir.substr(dpos, dir.size()));
+		//LogManager::getInstance()->message("Return String: " + dir);
+		return dir;
+	} else {
+		//LogManager::getInstance()->message("Return EMPTY: " + dirMatch);
+		return Util::emptyString;
+	}
+
+
 }
 
 void ShareManager::sortReleaseList() {
@@ -758,19 +801,21 @@ void ShareManager::sortReleaseList() {
 }
 
 void ShareManager::addReleaseDir(const string& aName) {
-	if(releaseReg.match(aName) > 0 ) {
-		Lock l(cs);
-		dirNameList.push_back(Text::toLower(aName));
-	}
+	string dir = getReleaseDir(aName);
+	if (dir.empty())
+		return;
+
+	Lock l(cs);
+	dirNameList.push_back(dir);
 }
 
 void ShareManager::deleteReleaseDir(const string& aName) {
-	if(releaseReg.match(aName) == 0 ) {
+
+	string dir = getReleaseDir(aName);
+	if (dir.empty())
 		return;
-	}
 
 	Lock l(cs);
-	string dir = Text::toLower(aName);
 	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
 		if ((*i) == dir) {
 			dirNameList.erase(i);
@@ -781,7 +826,7 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 
 ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent) {
 	Directory::Ptr dir = Directory::create(Util::getLastDir(aName), aParent);
-	addReleaseDir(Util::getLastDir(aName));
+	addReleaseDir(dir->getFullName());
 
 	Directory::File::Set::iterator lastFileIter = dir->files.begin();
 

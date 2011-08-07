@@ -310,7 +310,7 @@ private:
 	bool ShareCacheDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
 	bool rebuild;
-	PME releaseReg;
+	PME releaseReg, subDirReg;
 	
 	int listN;
 	//for filelist caching
@@ -333,6 +333,7 @@ private:
 
 	void addReleaseDir(const string& aName);
 	void deleteReleaseDir(const string& aName);
+	string getReleaseDir(const string& aName);
 	void sortReleaseList();
 
 

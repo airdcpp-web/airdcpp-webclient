@@ -132,7 +132,7 @@ public:
 	uint16_t getPort() const { return server ? static_cast<uint16_t>(server->getPort()) : 0; }
 	uint16_t getSecurePort() const { return secureServer ? static_cast<uint16_t>(secureServer->getPort()) : 0; }
 	static uint16_t iConnToMeCount;	
-	void checkWaitingMCN(const UserConnection *aSource, bool stateIdle) noexcept;
+	void changeCQIState(const UserConnection *aSource, bool stateIdle) noexcept;
 private:
 
 	class Server : public Thread {

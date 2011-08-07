@@ -186,13 +186,8 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 				}
 
 				if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					if (cqi->getState() == ConnectionQueueItem::WAITING) {
-						removed.push_back(cqi);
-						continue;
-					} else if (cqi->getState() == ConnectionQueueItem::RUNNING) {
-						//an idle connection may become running if new files are added
-						cqi->unsetFlag(ConnectionQueueItem::FLAG_REMOVE);
-					}
+					removed.push_back(cqi);
+					continue;
 				}
 
 				if(cqi->getErrors() == -1 && cqi->getLastAttempt() != 0) {
@@ -236,6 +231,9 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					cqi->setErrors(cqi->getErrors() + 1);
 					fire(ConnectionManagerListener::Failed(), cqi, STRING(CONNECTION_TIMEOUT));
 					cqi->setState(ConnectionQueueItem::WAITING);
+				} else if (cqi->getState() == ConnectionQueueItem::RUNNING && cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+					//an idle connection may become running if new files are added
+					cqi->unsetFlag(ConnectionQueueItem::FLAG_REMOVE);
 				}
 			}
 		}
@@ -311,18 +309,21 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 	}
 }
 
-void ConnectionManager::checkWaitingMCN(const UserConnection *aSource, bool stateIdle) noexcept {
+void ConnectionManager::changeCQIState(const UserConnection *aSource, bool stateIdle) noexcept {
 	string token = aSource->getToken();
 
 
 	for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 		ConnectionQueueItem* cqi = *i;
 		if (cqi->getToken() == token) {
-			if (stateIdle)
+			if (stateIdle) {
 				cqi->setState(ConnectionQueueItem::IDLE);
-			else
+			} else {
 				cqi->setState(ConnectionQueueItem::RUNNING);
-			checkWaitingMCN(cqi->getUser());
+				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+					 checkWaitingMCN(cqi->getUser());
+				}
+			}
 			return;
 		}
 	}
@@ -1036,9 +1037,14 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 				if (cqi == NULL) continue;
 				if (aSource->getToken() == cqi->getToken()) {
 					dcassert(i != downloads.end());
-					cqi->setState(ConnectionQueueItem::WAITING);
-					cqi->setLastAttempt(GET_TICK());
-					cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
+					if (cqi->getState() == ConnectionQueueItem::IDLE) {
+						cqi->setState(ConnectionQueueItem::WAITING);
+						cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
+					} else {
+						cqi->setState(ConnectionQueueItem::WAITING);
+						cqi->setLastAttempt(GET_TICK());
+						cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
+					}
 					fire(ConnectionManagerListener::Failed(), cqi, aError);
 					if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
 						checkWaitingMCN(cqi->getUser());
