@@ -1399,6 +1399,8 @@ string Util::getDir(string dir, bool validate, bool cut) {
 					dpos = dir.rfind("\\");
 					if(dpos != tstring::npos) {
 						dir = dir.substr(0,dpos+1);
+					} else {
+						break;
 					}
 				} else {
 					break;

@@ -753,28 +753,48 @@ bool ShareManager::isDirShared(const string& directory) {
 
 string ShareManager::getReleaseDir(const string& aName) {
 	//LogManager::getInstance()->message("aName: " + aName);
-	string dir = aName;
+	string dir=aName;
 	if(dir[dir.size() -1] == '\\') 
 		dir = dir.substr(0, (dir.size() -1));
-
-	int dpos=dir.size();
 	string dirMatch=dir;
+
+	//check if the release name is the last one before checking subdirs
+	int dpos = dirMatch.rfind("\\");
+	if(dpos != string::npos) {
+		dpos++;
+		dirMatch = dirMatch.substr(dpos, dirMatch.size()-dpos);
+	} else {
+		dpos=0;
+	}
+
+	if (releaseReg.match(dirMatch) > 0) {
+		dir = Text::toLower(dir.substr(dpos, dir.size()));
+		return dir;
+	}
+
+
+	//check the subdirs then
+	dpos=dir.size();
+	dirMatch=dir;
+	bool match=false;
 	for (;;) {
-		//LogManager::getInstance()->message("Loop compare: " + dirMatch);
 		if (subDirReg.match(dirMatch) > 0) {
 			dpos = dirMatch.rfind("\\");
 			if(dpos != string::npos) {
+				match=true;
 				dirMatch = dirMatch.substr(0,dpos);
+			} else {
+				break;
 			}
 		} else {
-			//LogManager::getInstance()->message("No match: " + dirMatch);
 			break;
 		}
 	}
-	
-	if(dirMatch[dirMatch.size() -1] == '\\') 
-		dirMatch = dirMatch.substr(0, (dirMatch.size() -1));
 
+	if (!match)
+		return Util::emptyString;
+	
+	//check the release name again without subdirs
 	dpos = dirMatch.rfind("\\");
 	if(dpos != string::npos) {
 		dpos++;
@@ -785,10 +805,8 @@ string ShareManager::getReleaseDir(const string& aName) {
 
 	if (releaseReg.match(dirMatch) > 0) {
 		dir = Text::toLower(dir.substr(dpos, dir.size()));
-		//LogManager::getInstance()->message("Return String: " + dir);
 		return dir;
 	} else {
-		//LogManager::getInstance()->message("Return EMPTY: " + dirMatch);
 		return Util::emptyString;
 	}
 
