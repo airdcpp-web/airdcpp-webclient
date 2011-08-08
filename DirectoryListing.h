@@ -92,9 +92,14 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		typedef unordered_set<TTHValue> TTHSet;
+
+		typedef std::unordered_map<string, Ptr> DirMap;
+		typedef List::const_iterator DirIter;
 		
 		List directories;
 		File::List files;
+		DirMap visitedDirs;
+
 		enum { NONE, PARTIAL_DUPE, DUPE };
 		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString, const string& Date = Util::emptyString) 
 			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), dirsize(Size), dirdate(Date) { }
@@ -169,6 +174,7 @@ public:
 
 	static UserPtr getUserFromFilename(const string& fileName);
 	void checkDupes();
+
 	
 	const UserPtr& getUser() const { return hintedUser.user; }	
 		
@@ -181,6 +187,7 @@ private:
 	Directory* root;
 		
 	Directory* find(const string& aName, Directory* current);
+
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }
