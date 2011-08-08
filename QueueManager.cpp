@@ -965,6 +965,8 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 	if(qi->isBadSourceExcept(aUser, addBad)) {
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
+	{ 
+		Lock l(cs);
 
 		qi->addSource(aUser);
 
@@ -978,6 +980,7 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 			PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
 		userQueue.add(qi, aUser);
 		}
+	}
 
 	fire(QueueManagerListener::SourcesUpdated(), qi);
 	setDirty();
