@@ -885,9 +885,9 @@ connect:
 	if(!aUser.user)
 		return;
 
-	if(wantConnection && aUser.user->isOnline() /*|| aUser.user->isOnline() && smallSlot*/) {
+	if(wantConnection && aUser.user->isOnline() || aUser.user->isOnline() && smallSlot) {
 	//if(aUser.user->isOnline()) {
-		ConnectionManager::getInstance()->getDownloadConnection(aUser/*, smallSlot*/);
+		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
 	}
 
 	//hmm.. will need to test this one, cant see why it would cause a deadlock
