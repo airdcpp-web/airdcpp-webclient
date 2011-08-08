@@ -871,18 +871,23 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 
 			q->setFlag(aFlags);
 		}
-
+		try {
 		wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0));
+		}catch(...) {
+		}
 		setDirty();
 	}
 connect:
 	bool smallSlot=false;
 	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST || (aSize <= 65792 && !(aFlags & QueueItem::FLAG_USER_LIST))) {
-		smallSlot=true;
+			smallSlot=true;
 	}
-	//if(wantConnection && aUser.user->isOnline())
-	if(aUser.user->isOnline()) {
-		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
+	if(!aUser.user)
+		return;
+
+	if(wantConnection && aUser.user->isOnline() /*|| aUser.user->isOnline() && smallSlot*/) {
+	//if(aUser.user->isOnline()) {
+		ConnectionManager::getInstance()->getDownloadConnection(aUser/*, smallSlot*/);
 	}
 
 	//hmm.. will need to test this one, cant see why it would cause a deadlock
@@ -947,7 +952,7 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 	
 	if (!aUser.user) //fix freeze??
 	throw QueueException("Can't find user to add : " + Util::getFileName(qi->getTarget()));
-
+	
 	bool wantConnection = (qi->getPriority() != QueueItem::PAUSED) && !userQueue.getRunning(aUser);
 
 	if(qi->isSource(aUser)) {
@@ -961,7 +966,7 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
 
-	qi->addSource(aUser);
+		qi->addSource(aUser);
 
 	/*if(aUser.user->isSet(User::PASSIVE) && !ClientManager::getInstance()->isActive(aUser.hint)) {
 		qi->removeSource(aUser, QueueItem::Source::FLAG_PASSIVE);
@@ -972,22 +977,20 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 		if ((!SETTING(SOURCEFILE).empty()) && (!BOOLSETTING(SOUNDS_DISABLED)))
 			PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
 		userQueue.add(qi, aUser);
-	}
+		}
 
 	fire(QueueManagerListener::SourcesUpdated(), qi);
 	setDirty();
 
 	return wantConnection;
+	
 }
 
 void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p /* = QueueItem::DEFAULT */) noexcept {
-	bool adc=true;
-	if (aUser.user->isSet(User::NMDC))
-		adc=false;
+	
 	bool needList;
 	{
 		Lock l(cs);
-		
 		auto dp = directories.equal_range(aUser);
 		
 		for(auto i = dp.first; i != dp.second; ++i) {
@@ -1000,10 +1003,10 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 		needList = (dp.first == dp.second);
 		setDirty();
 	}
-	if(needList || adc) {
+	if(needList/* || adc*/) {
 		try {
-			if (!adc)
-				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD, aDir);
+			if (aUser.user->isSet(User::NMDC))
+				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD);
 			else
 				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, aDir);
 		} catch(const Exception&) {
@@ -1042,6 +1045,7 @@ void buildMap(const DirectoryListing::Directory* dir) noexcept {
 
 int QueueManager::matchListing(const DirectoryListing& dl) noexcept {
 	int matches = 0;
+	bool wantConnection = false;
 	{
 		Lock l(cs);
 		tthMap.clear();
@@ -1056,7 +1060,7 @@ int QueueManager::matchListing(const DirectoryListing& dl) noexcept {
 			TTHMap::iterator j = tthMap.find(qi->getTTH());
 			if(j != tthMap.end() && i->second->getSize() == qi->getSize()) {
 				try {
-					addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);    
+					wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);    
 				} catch(...) {
 					// Ignore...
 				}
@@ -1064,7 +1068,7 @@ int QueueManager::matchListing(const DirectoryListing& dl) noexcept {
 			}
 		}
 	}
-	if(matches > 0)
+	if((matches > 0) && wantConnection)
 		ConnectionManager::getInstance()->getDownloadConnection(dl.getHintedUser());
 		return matches;
 }
@@ -1607,6 +1611,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 void QueueManager::matchTTHList(const string& name, const HintedUser& user, int flags) {
 	dcdebug("matchTTHList");
 	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
+		bool wantConnection = false;
 		int matches = 0;
 		{
 			//Lock l(cs);   if use this for something else check this again.
@@ -1633,7 +1638,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 				TTHSetIter j = tthList.find(qi->getTTH());
 				if(j != tthList.end()) {
 					try {
-						addSource(qi, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);    
+						wantConnection = addSource(qi, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);    
 					} catch(...) {
 						// Ignore...
 					}
@@ -1642,7 +1647,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 			}
 		}
 
-		if(matches > 0)
+		if((matches > 0) && wantConnection)
 			ConnectionManager::getInstance()->getDownloadConnection(user);
 
 		if(flags & QueueItem::FLAG_PARTIAL_LIST) {

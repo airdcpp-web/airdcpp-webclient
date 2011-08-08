@@ -111,7 +111,7 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool dow
 
 	if(download) {
 		{
-			Lock l(cs);
+			//Lock l(cs);
 			downloads.push_back(cqi);
 		}
 	} else {
@@ -261,9 +261,6 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 	bool waitingConnection=false;
 	int maxConnections=0;
 	bool smallSlot = false;
-	{
-
-		Lock l(cs);
 
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
@@ -278,6 +275,7 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 						if(!waitingConnection) {
 							waitingConnection=true;
 						} else {
+							dcdebug("flagging remove\r\n");
 							//there should be only one cqi waiting
 							cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
 							continue;
@@ -302,11 +300,11 @@ void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
 			QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aUser, false);
 			bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
 			if(prio != QueueItem::PAUSED && startDown) {
+				dcdebug("cqinew in checkwaiting! \r\n"); 
 				ConnectionQueueItem* cqiNew = getCQI(aUser, true);
 				cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
 			}
 		}
-	}
 }
 
 void ConnectionManager::changeCQIState(const UserConnection *aSource, bool stateIdle) noexcept {
@@ -330,7 +328,6 @@ void ConnectionManager::changeCQIState(const UserConnection *aSource, bool state
 }
 
 bool ConnectionManager::isRequesting(const string token) {
-	Lock l(cs);
 	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
 		UserConnection* uc = *i;
 		if(uc->getToken() == token) {
