@@ -149,7 +149,7 @@ public:
 
 
 	string getRealPath(const TTHValue& root) {
-		string result = "";
+		string result = Util::emptyString;
 		HashFileIter i = tthIndex.find(root);
 		if(i != tthIndex.end()) {
 			result = i->second->getRealPath();
