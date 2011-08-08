@@ -143,7 +143,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 }
 
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
-	Lock l(cs);
+
 	bool found=false;
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;

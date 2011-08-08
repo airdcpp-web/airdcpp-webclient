@@ -47,6 +47,8 @@ ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServe
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_TIGR);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BZIP);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_MCN1);
+
+	downloads.reserve(16); //many small allocations so reserve a little.
 }
 
 void ConnectionManager::listen() {
@@ -115,10 +117,10 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool dow
 			downloads.push_back(cqi);
 		}
 	} else {
-		{
-			Lock l(cs);
+		
+			//Lock l(cs); caller locked
 			uploads.push_back(cqi);
-		}
+		
 	}
 
 	fire(ConnectionManagerListener::Added(), cqi);
@@ -131,12 +133,12 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 	if(cqi->getDownload()) {
 		dcassert(find(downloads.begin(), downloads.end(), cqi) != downloads.end());
 		{
-			Lock l(cs);
+			//Lock l(cs); no need, the only caller, timermanager is locked
 			downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
 			delayedTokens[cqi->getToken()] = GET_TICK();
 		}
 	} else {
-		Lock l(cs);
+		//Lock l(cs); no need, the only caller is locked
 		UploadManager::getInstance()->removeDelayUpload(cqi->getUser());
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
 		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
@@ -170,9 +172,8 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 	
 	//UserList passiveUsers;
 	ConnectionQueueItem::List removed;
+	uint16_t attempts = 0;
 	
-		uint16_t attempts = 0;
-
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if(cqi == NULL)
@@ -237,7 +238,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 				}
 			}
 		}
-
 		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
 			putCQI(*m);
 		}
@@ -832,8 +832,6 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_UPLOAD));
 
 	bool addConn = false;
-	{
-		Lock l(cs);
 
 		if (uc->isSet(UserConnection::FLAG_MCN1)) {
 			//check that the token is unique so nasty clients can't mess up our transfers
@@ -853,9 +851,10 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 				addConn = true;
 			}
 		}
-	}
+	
 
 	if(addConn) {
+		Lock l(cs);
 		string token = uc->getToken();
 		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, token);
 
@@ -1026,9 +1025,10 @@ bool ConnectionManager::checkKeyprint(UserConnection *aSource) {
 }
 
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool protocolError) {
-	Lock l(cs);
+	
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD) && !downloads.empty()) {
+			Lock l(cs);
 			for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
 				if (cqi == NULL) continue;
@@ -1050,6 +1050,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 				}
 			}
 		} else if(aSource->isSet(UserConnection::FLAG_UPLOAD) && !uploads.empty()) {
+			Lock l(cs);
 			ConnectionQueueItem::List removed;
 			for(ConnectionQueueItem::Iter i = uploads.begin(); i != uploads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
