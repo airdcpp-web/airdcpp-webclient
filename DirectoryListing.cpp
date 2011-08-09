@@ -121,8 +121,8 @@ string DirectoryListing::updateXML(const string& xml, bool checkdupe ) {
 string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkdupe) {
 	ListLoader ll(this, getRoot(), updating, getUser(), checkdupe);
 	try {
-	dcpp::SimpleXMLReader(&ll).parse(is);
-	}catch(SimpleXMLException& e) {
+		dcpp::SimpleXMLReader(&ll).parse(is);
+	} catch(SimpleXMLException& e) {
 		//log message for now, change to debug later.
 		LogManager::getInstance()->message("Error in Filelist loading: " + e.getError());
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
@@ -189,10 +189,10 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& date = getAttrib(attribs, sDate, 3);
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
-				for(DirectoryListing::Directory::Iter i  = cur->directories.begin(); i != cur->directories.end(); ++i) {
-					/// @todo comparisons should be case-insensitive but it takes too long - add a cache
-					if((*i)->getName() == n) {
-						d = *i;
+				string compare = Text::toLower(n);
+				for(DirectoryListing::Directory::DirMap::const_iterator i = cur->visitedDirs.begin(); i != cur->visitedDirs.end(); ++i) {
+					if(i->first == compare) {
+						d = i->second;
 						if(!d->getComplete())
 							d->setComplete(!incomp);
 						break;
@@ -223,15 +223,28 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 		StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
 		for(StringIter i = sl.begin(); i != sl.end(); ++i) {
 			DirectoryListing::Directory* d = NULL;
-			for(DirectoryListing::Directory::Iter j = cur->directories.begin(); j != cur->directories.end(); ++j) {
-				if((*j)->getName() == *i) {
-					d = *j;
-					break;
+
+			
+			if (i == sl.end()-1) {
+				for(DirectoryListing::Directory::Iter j = cur->directories.begin(); j != cur->directories.end(); ++j) {
+					if((*j)->getName() == *i) {
+						d = *j;
+						cur->visitedDirs.insert(make_pair(Text::toLower(*i), d));
+						break;
+					}
+				}
+			} else {
+				for(DirectoryListing::Directory::DirMap::const_iterator j = cur->visitedDirs.begin(); j != cur->visitedDirs.end(); ++j) {
+					if (j->first == Text::toLower(*i)) {
+						d = j->second;
+						break;
+					}
 				}
 			}
 			if(d == NULL) {
 				d = new DirectoryListing::Directory(cur, *i, false, false);
 				cur->directories.push_back(d);
+				cur->visitedDirs.insert(make_pair(Text::toLower(*i), d));
 			}
 			cur = d;
 		}

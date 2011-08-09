@@ -92,9 +92,7 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		typedef unordered_set<TTHValue> TTHSet;
-
 		typedef std::unordered_map<string, Ptr> DirMap;
-		typedef List::const_iterator DirIter;
 		
 		List directories;
 		File::List files;
