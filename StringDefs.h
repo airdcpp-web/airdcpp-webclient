@@ -1248,6 +1248,6 @@ enum Strings { // @DontAdd
 	CHECK_IGNORE_ZERO_BYTE, // "Ignore zero byte files"
 	NO_FILES_AVAILABLE, // "No files to download"
 	MATCHING_FILE_LIST, // "Matching File lists, this may take a while if the lists are large."
-	SKIP_SUBTRACT_TEXT, // "Subtract Filelist: Skip Files smaller than "
+	SKIP_SUBTRACT_TEXT, // "Subtract list: Skip Dirs with ONLY 2 or less files smaller than"
 	LAST // @DontAdd
 };

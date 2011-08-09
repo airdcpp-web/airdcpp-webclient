@@ -30,6 +30,7 @@ public:
 	typedef X<18> AdcSearch;
 	typedef X<19> HubTopic;
 	typedef X<20> AddLine;
+	typedef X<21> HubCounts;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -55,6 +56,7 @@ public:
 	virtual void on(AdcSearch, const Client*, const AdcCommand&, const CID&) noexcept { }
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
+	virtual void on(HubCounts, const Client*) noexcept { }
 };
 
 } // namespace dcpp

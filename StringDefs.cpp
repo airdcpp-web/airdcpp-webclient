@@ -1241,7 +1241,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Ignore zero byte files", 
 "No files to download", 
 "Matching File lists, this may take a while if the lists are large.", 
-"Subtract Filelist: Skip Files smaller than ", 
+"Subtract list: Skip Dirs with ONLY 2 or less files smaller than", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 

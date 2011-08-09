@@ -225,6 +225,7 @@ void Client::updateCounts(bool aRemove) {
 		} else {
 			countType = COUNT_NORMAL;
 		}
+		fire(ClientListener::HubCounts(), this);
 		++counts[countType];
 	}
 }
