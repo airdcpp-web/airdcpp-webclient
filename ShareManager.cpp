@@ -1038,7 +1038,7 @@ int ShareManager::refreshDirs( StringList dirs ){
 	}
 		
 	{
-			Lock l(cs);
+			//Lock l(cs); atomic flag will protect here
 			refreshPaths.clear();
 			
 			for(StringIter d = dirs.begin(); d != dirs.end(); ++d) {
@@ -1075,7 +1075,7 @@ int ShareManager::refreshIncoming( ){
 			}
 
 		{
-			Lock l(cs);
+			//Lock l(cs); atomic flag will protect here
 			refreshPaths.clear();
 
 			lastIncomingUpdate = GET_TICK();
@@ -1114,7 +1114,7 @@ int ShareManager::refresh( const string& aDir ){
 			return REFRESH_IN_PROGRESS;
 	}
 		{
-			Lock l(cs);
+		//	Lock l(cs); atomic flag will protect here
 			refreshPaths.clear();
 			
 
@@ -2190,7 +2190,7 @@ int64_t ShareManager::removeExcludeFolder(const string &path, bool returnSize /*
 StringList ShareManager::getVirtualNames() {
 	StringList result;
 
-	Lock l(cs);
+
 
 	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i){
 		bool exists = false;

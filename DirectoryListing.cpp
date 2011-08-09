@@ -121,8 +121,8 @@ string DirectoryListing::updateXML(const string& xml, bool checkdupe ) {
 string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkdupe) {
 	ListLoader ll(this, getRoot(), updating, getUser(), checkdupe);
 	try {
-		dcpp::SimpleXMLReader(&ll).parse(is);
-	} catch(SimpleXMLException& e) {
+	dcpp::SimpleXMLReader(&ll).parse(is);
+	}catch(SimpleXMLException& e) {
 		//log message for now, change to debug later.
 		LogManager::getInstance()->message("Error in Filelist loading: " + e.getError());
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
@@ -159,6 +159,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			if(h.empty())
 				return;		
 			TTHValue tth(h); /// @todo verify validity?
+
 			if(updating) {
 				// just update the current file if it is already there.
 				for(auto i = cur->files.cbegin(), iend = cur->files.cend(); i != iend; ++i) {
@@ -188,10 +189,10 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& date = getAttrib(attribs, sDate, 3);
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
-				string compare = Text::toLower(n);
-				for(DirectoryListing::Directory::DirMap::const_iterator i = cur->visitedDirs.begin(); i != cur->visitedDirs.end(); ++i) {
-					if(i->first == compare) {
-						d = i->second;
+				for(DirectoryListing::Directory::Iter i  = cur->directories.begin(); i != cur->directories.end(); ++i) {
+					/// @todo comparisons should be case-insensitive but it takes too long - add a cache
+					if((*i)->getName() == n) {
+						d = *i;
 						if(!d->getComplete())
 							d->setComplete(!incomp);
 						break;
@@ -220,35 +221,19 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			base = b;
 		}
 		StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
-
 		for(StringIter i = sl.begin(); i != sl.end(); ++i) {
 			DirectoryListing::Directory* d = NULL;
-
-			
-			if (i == sl.end()-1) {
-				for(DirectoryListing::Directory::Iter j = cur->directories.begin(); j != cur->directories.end(); ++j) {
-					if((*j)->getName() == *i) {
-						d = *j;
-						cur->visitedDirs.insert(make_pair(Text::toLower(*i), d));
-						break;
-					}
-				}
-			} else {
-				for(DirectoryListing::Directory::DirMap::const_iterator j = cur->visitedDirs.begin(); j != cur->visitedDirs.end(); ++j) {
-					if (j->first == Text::toLower(*i)) {
-						d = j->second;
-						break;
-					}
+			for(DirectoryListing::Directory::Iter j = cur->directories.begin(); j != cur->directories.end(); ++j) {
+				if((*j)->getName() == *i) {
+					d = *j;
+					break;
 				}
 			}
-
 			if(d == NULL) {
 				d = new DirectoryListing::Directory(cur, *i, false, false);
 				cur->directories.push_back(d);
-				cur->visitedDirs.insert(make_pair(Text::toLower(*i), d));
 			}
 			cur = d;
-
 		}
 		cur->setComplete(true);
 
@@ -393,13 +378,24 @@ void DirectoryListing::Directory::filterList(DirectoryListing& dirList) {
 
 void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet& l) {
 	for(Iter i = directories.begin(); i != directories.end(); ++i) (*i)->filterList(l);
+
 	directories.erase(std::remove_if(directories.begin(),directories.end(),DirectoryEmpty()),directories.end());
+
 	files.erase(std::remove_if(files.begin(),files.end(),HashContained(l)),files.end());
+	if((SETTING(SKIP_SUBTRACT) > 0) && (files.size() < 2)) {   //setting for only skip if folder filecount under x ?
+	for(File::Iter f = files.begin(); f != files.end(); ) {
+		if((*f)->getSize() < (SETTING(SKIP_SUBTRACT) *1024) ) {
+			files.erase(f);
+			} else ++f;
+		}
+	}
+
+
 }
 
 void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSet& l) {
 	for(Iter i = directories.begin(); i != directories.end(); ++i) (*i)->getHashList(l);
-	for(DirectoryListing::File::Iter i = files.begin(); i != files.end(); ++i) l.insert((*i)->getTTH());
+		for(DirectoryListing::File::Iter i = files.begin(); i != files.end(); ++i) l.insert((*i)->getTTH());
 }
 	
 StringList DirectoryListing::getLocalPaths(const File* f) {

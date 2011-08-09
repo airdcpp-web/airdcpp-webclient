@@ -153,7 +153,7 @@ const string SettingsManager::settingTags[] =
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
-	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte",
+	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -673,7 +673,7 @@ SettingsManager::SettingsManager()
 	setDefault(DL_AUTODETECT, true);
 	setDefault(UL_AUTODETECT, true);
 	setDefault(MAX_MCN_UPLOADS, 1);
-
+	setDefault(SKIP_SUBTRACT, 0);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

@@ -1240,6 +1240,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Ignore items matching the share skiplist", 
 "Ignore zero byte files", 
 "No files to download", 
+"Matching File lists, this may take a while if the lists are large.", 
+"Subtract Filelist: Skip Files smaller than ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2480,4 +2482,6 @@ std::string dcpp::ResourceManager::names[] = {
 "CheckUseSkiplist", 
 "CheckIgnoreZeroByte", 
 "NoFilesAvailable", 
+"MatchingFileList", 
+"SkipSubtractText", 
 };

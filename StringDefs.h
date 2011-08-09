@@ -1247,5 +1247,7 @@ enum Strings { // @DontAdd
 	CHECK_USE_SKIPLIST, // "Ignore items matching the share skiplist"
 	CHECK_IGNORE_ZERO_BYTE, // "Ignore zero byte files"
 	NO_FILES_AVAILABLE, // "No files to download"
+	MATCHING_FILE_LIST, // "Matching File lists, this may take a while if the lists are large."
+	SKIP_SUBTRACT_TEXT, // "Subtract Filelist: Skip Files smaller than "
 	LAST // @DontAdd
 };
