@@ -1249,5 +1249,7 @@ enum Strings { // @DontAdd
 	NO_FILES_AVAILABLE, // "No files to download"
 	MATCHING_FILE_LIST, // "Matching File lists, this may take a while if the lists are large."
 	SKIP_SUBTRACT_TEXT, // "Subtract list: Skip Dirs with ONLY 2 or less files smaller than"
+	PROPPAGE_DUPE_TEXT, // "Dupe folders/files"
+	PROPPAGE_DUPE_MSG, // "Release.Example-AIRDC"
 	LAST // @DontAdd
 };

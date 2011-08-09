@@ -153,7 +153,7 @@ const string SettingsManager::settingTags[] =
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
-	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip",
+	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -424,6 +424,11 @@ SettingsManager::SettingsManager()
 	setDefault(TEXT_URL_BOLD, false);
 	setDefault(TEXT_URL_ITALIC, false);
 
+	setDefault(TEXT_DUPE_BACK_COLOR, RGB(255, 255, 255));
+	setDefault(DUPE_COLOR, RGB(255, 128, 255));
+	setDefault(TEXT_DUPE_BOLD, false);
+	setDefault(TEXT_DUPE_ITALIC, false);
+
 	setDefault(KICK_MSG_RECENT_01, "");
 	setDefault(KICK_MSG_RECENT_02, "");
 	setDefault(KICK_MSG_RECENT_03, "");
@@ -605,7 +610,6 @@ SettingsManager::SettingsManager()
 	setDefault(TB_IMAGE_SIZE, 22);
 	setDefault(TB_IMAGE_SIZE_HOT, 22);
 	setDefault(USE_HIGHLIGHT, false);
-	setDefault(DUPE_COLOR, RGB(255, 128, 255));
 	setDefault(SHOW_QUEUE_BARS, true);
 	setDefault(SEND_BLOOM, true);
 	setDefault(LANG_SWITCH, 0);
