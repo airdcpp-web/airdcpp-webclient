@@ -1251,5 +1251,7 @@ enum Strings { // @DontAdd
 	SKIP_SUBTRACT_TEXT, // "Subtract list: Skip Dirs with ONLY 2 or less files smaller than"
 	PROPPAGE_DUPE_TEXT, // "Dupe folders/files"
 	PROPPAGE_DUPE_MSG, // "Release.Example-AIRDC"
+	PROPPAGE_UNDERLINE_LINKS, // "Underline links"
+	PROPPAGE_UNDERLINE_DUPES, // "Underline dupes"
 	LAST // @DontAdd
 };

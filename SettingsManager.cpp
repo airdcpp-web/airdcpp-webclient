@@ -153,7 +153,8 @@ const string SettingsManager::settingTags[] =
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
-	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic",
+	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
+	"UnderlineDupes",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -420,14 +421,16 @@ SettingsManager::SettingsManager()
 	setDefault(TEXT_NORM_ITALIC, false);
 
 	setDefault(TEXT_URL_BACK_COLOR, RGB(255,255,255));
-	setDefault(TEXT_URL_FORE_COLOR, RGB(0,0,255));
+	setDefault(TEXT_URL_FORE_COLOR, RGB(0,102,204));
 	setDefault(TEXT_URL_BOLD, false);
 	setDefault(TEXT_URL_ITALIC, false);
+	setDefault(UNDERLINE_LINKS, true);
 
 	setDefault(TEXT_DUPE_BACK_COLOR, RGB(255, 255, 255));
 	setDefault(DUPE_COLOR, RGB(255, 128, 255));
 	setDefault(TEXT_DUPE_BOLD, false);
 	setDefault(TEXT_DUPE_ITALIC, false);
+	setDefault(UNDERLINE_DUPES, true);
 
 	setDefault(KICK_MSG_RECENT_01, "");
 	setDefault(KICK_MSG_RECENT_02, "");

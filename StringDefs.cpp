@@ -1244,6 +1244,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Subtract list: Skip Dirs with ONLY 2 or less files smaller than", 
 "Dupe folders/files", 
 "Release.Example-AIRDC", 
+"Underline links", 
+"Underline dupes", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2488,4 +2490,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SkipSubtractText", 
 "ProppageDupeText", 
 "ProppageDupeMsg", 
+"ProppageUnderlineLinks", 
+"ProppageUnderlineDupes", 
 };
