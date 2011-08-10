@@ -891,7 +891,6 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 	Lock l(cs);
 	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
 		if ((*i) == dir) {
-			LogManager::getInstance()->message(dir);
 			dirNameList.erase(i);
 			return;
 		}
