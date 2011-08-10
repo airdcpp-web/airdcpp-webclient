@@ -83,7 +83,7 @@ enum Strings { // @DontAdd
 	CONNECTED, // "Connected"
 	CONNECTING, // "Connecting..."
 	CONNECTING_FORCED, // "Connecting (forced)..."
-	CONNECTING_TO, // "Connecting to "
+	CONNECTING_TO, // "Connecting to"
 	CONNECTING_TO_SERVER, // "Connecting to server"
 	CONNECTION, // "Connection"
 	CONNECTION_CLOSED, // "Connection closed"

@@ -95,6 +95,7 @@ public:
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) noexcept;
 	bool isDirShared(const string& directory);
+	tstring getDirPath(const string& directory);
 
 	bool loadCache() noexcept;
 
@@ -253,7 +254,7 @@ private:
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 
 		void merge(const Ptr& source);
-
+		string find(const string& dir);
 
 		GETSET(string, lastwrite, LastWrite);
 		GETSET(string, name, Name);
@@ -329,7 +330,11 @@ private:
 	
 	typedef unordered_map<int, string> nameMap;
 	nameMap dirNames;
+
+
 	StringList dirNameList;
+	//typedef std::multimap<string, string> DirNameMap;
+	//DirNameMap dirNameList;
 
 	void addReleaseDir(const string& aName);
 	void deleteReleaseDir(const string& aName);

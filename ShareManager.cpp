@@ -751,6 +751,61 @@ bool ShareManager::isDirShared(const string& directory) {
 	}
 }
 
+tstring ShareManager::getDirPath(const string& directory) {
+	string dir = getReleaseDir(directory);
+	if (dir.empty())
+		return Util::emptyStringT;
+
+	string found = Util::emptyString;
+	string dirNew;
+	for(DirList::const_iterator j = directories.begin(); j != directories.end(); ++j) {
+		dirNew = getReleaseDir((*j)->getFullName());
+		if (!dirNew.empty()) {
+			if (dir == dirNew) {
+				found=dirNew;
+				break;
+			}
+		}
+		found = (*j)->find(dir);
+		if(!found.empty())
+			break;
+	}
+
+	if (found.empty())
+		return Util::emptyStringT;
+
+	StringList ret;
+	try {
+		ret = getRealPaths(Util::toAdcFile(found));
+	} catch(const ShareException&) {
+		return Util::emptyStringT;
+	}
+
+	if (!ret.empty()) {
+		return Text::toT(ret[0]);
+	}
+	return Util::emptyStringT;
+}
+
+
+string ShareManager::Directory::find(const string& dir) {
+	string ret = Util::emptyString;
+	string dirNew = ShareManager::getInstance()->getReleaseDir(this->getFullName());
+
+	if (!dirNew.empty()) {
+		if (dir == dirNew) {
+			return this->getFullName();
+		}
+	}
+
+	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
+		ret = l->second->find(dir);
+		if(!ret.empty())
+			break;
+	}
+	return ret;
+}
+
 string ShareManager::getReleaseDir(const string& aName) {
 	//LogManager::getInstance()->message("aName: " + aName);
 	string dir=aName;
@@ -825,17 +880,18 @@ void ShareManager::addReleaseDir(const string& aName) {
 
 	Lock l(cs);
 	dirNameList.push_back(dir);
+	//dirNameList.insert(dir, aName);
+	//dirNameList.push_back(make_pair(dir, aName));
 }
 
 void ShareManager::deleteReleaseDir(const string& aName) {
 
-	string dir = getReleaseDir(aName);
-	if (dir.empty())
+	if (getReleaseDir(aName).empty())
 		return;
 
 	Lock l(cs);
 	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
-		if ((*i) == dir) {
+		if ((*i) == aName) {
 			dirNameList.erase(i);
 			return;
 		}

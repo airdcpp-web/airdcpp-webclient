@@ -80,7 +80,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Connected", 
 "Connecting...", 
 "Connecting (forced)...", 
-"Connecting to ", 
+"Connecting to", 
 "Connecting to server", 
 "Connection", 
 "Connection closed", 
