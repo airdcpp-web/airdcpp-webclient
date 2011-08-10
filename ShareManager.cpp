@@ -880,18 +880,18 @@ void ShareManager::addReleaseDir(const string& aName) {
 
 	Lock l(cs);
 	dirNameList.push_back(dir);
-	//dirNameList.insert(dir, aName);
-	//dirNameList.push_back(make_pair(dir, aName));
 }
 
 void ShareManager::deleteReleaseDir(const string& aName) {
 
-	if (getReleaseDir(aName).empty())
+	string dir = getReleaseDir(aName);
+	if (dir.empty())
 		return;
 
 	Lock l(cs);
 	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
-		if ((*i) == aName) {
+		if ((*i) == dir) {
+			LogManager::getInstance()->message(dir);
 			dirNameList.erase(i);
 			return;
 		}
