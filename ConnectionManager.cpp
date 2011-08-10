@@ -32,7 +32,7 @@ namespace dcpp {
 
 uint16_t ConnectionManager::iConnToMeCount = 0;
 
-ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServer(0), shuttingDown(false) {
+ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServer(0), shuttingDown(false), running(0) {
 	TimerManager::getInstance()->addListener(this);
 
 	features.push_back(UserConnection::FEATURE_MINISLOTS);
@@ -168,9 +168,11 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 
 void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	
-	Lock l(cs);
+	if(running.test_and_set()) //dont pile up if we didnt finish, just a test now
+		return;
+
+	//Lock l(cs);
 	
-	//UserList passiveUsers;
 	ConnectionQueueItem::List removed;
 	uint16_t attempts = 0;
 	
@@ -196,7 +198,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					continue;
 				}
 
-				if(cqi->getLastAttempt() == 0 || ((SETTING(DOWNCONN_PER_SEC) == 0 || attempts < SETTING(DOWNCONN_PER_SEC)) &&
+				if(cqi->getLastAttempt() == 0 || ( (attempts < 1) &&
 					cqi->getLastAttempt() + 60 * 1000 * max(1, cqi->getErrors()) < aTick))
 				{
 					cqi->setLastAttempt(aTick);
@@ -241,12 +243,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
 			putCQI(*m);
 		}
-
-	
-
-	//for(UserList::iterator ui = passiveUsers.begin(); ui != passiveUsers.end(); ++ui) {
-		//QueueManager::getInstance()->removeSource(*ui, QueueItem::Source::FLAG_PASSIVE);
-	//}
+		running.clear();
 }
 
 void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {

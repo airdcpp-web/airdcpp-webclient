@@ -814,18 +814,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	}
 
 	{
-		Lock l(cs);
-		/*
-		QueueItem* q = fileQueue.find(target);
-		if(q == NULL && !(aFlags & QueueItem::FLAG_USER_LIST)) {
-			QueueItemList ql;
-			fileQueue.find(ql, root);
-			if(!ql.empty()){
-				dcassert(ql.size() == 1);
-				q = ql.front();
-			}
-		}
-	*/
+
 
 		// This will be pretty slow on large queues...
 		if(BOOLSETTING(DONT_DL_ALREADY_QUEUED) && !(aFlags & QueueItem::FLAG_USER_LIST)) {
@@ -853,10 +842,11 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		QueueItem* q = fileQueue.find(target);
 			
 		if(q == NULL) {
+			Lock l(cs);
 			q = fileQueue.add(target, aSize, aFlags, QueueItem::DEFAULT, tempTarget, GET_TIME(), root);
 			fire(QueueManagerListener::Added(), q);
 
-			newItem = !q->isSet(QueueItem::FLAG_USER_LIST);
+			newItem = true;
 		} else {
 			if(q->getSize() != aSize) {
 				throw QueueException(STRING(FILE_WITH_DIFFERENT_SIZE));
@@ -879,7 +869,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	}
 connect:
 	bool smallSlot=false;
-	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST || (aSize <= 65792 && !(aFlags & QueueItem::FLAG_USER_LIST))) {
+	if(newItem && ((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST || (aSize <= 65792 && !(aFlags & QueueItem::FLAG_USER_LIST)))) {
 			smallSlot=true;
 	}
 	if(!aUser.user)
@@ -966,14 +956,12 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
 	{ 
-		Lock l(cs);
+		//Lock l(cs);
 
 		qi->addSource(aUser);
 
-	/*if(aUser.user->isSet(User::PASSIVE) && !ClientManager::getInstance()->isActive(aUser.hint)) {
-		qi->removeSource(aUser, QueueItem::Source::FLAG_PASSIVE);
-		wantConnection = false;
-	} else */if(qi->isFinished()) {
+
+	if(qi->isFinished()) {
 		wantConnection = false;
 	} else {
 		if ((!SETTING(SOURCEFILE).empty()) && (!BOOLSETTING(SOUNDS_DISABLED)))
@@ -1682,7 +1670,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
 		if (!path.empty()) {
 			{
-				Lock l(cs);
+				//Lock l(cs);
 				auto dp = directories.equal_range(user);
 				for(auto i = dp.first; i != dp.second; ++i) {
 					if(stricmp(path.c_str(), i->second->getName().c_str()) == 0) {
@@ -1695,7 +1683,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 		} else {
 			vector<DirectoryItemPtr> dl;
 			{
-				Lock l(cs);
+				//Lock l(cs);
 				auto dpf = directories.equal_range(user) | map_values;
 				dl.assign(boost::begin(dpf), boost::end(dpf));
 				directories.erase(user);
