@@ -141,7 +141,7 @@ const string SettingsManager::settingTags[] =
 	"TbImageSize", "TbImageSizeHot", "UseHighlight", "DupeColor", "ShowQueueBars", "SendBloom", 
 	"LangSwitch", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp",
-	"OverlapChunks", "MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "DupeText", "OpenSystemLog",
+	"OverlapChunks", "MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "OpenSystemLog",
 	"FirstRun", "LastSearchFiletype", "MaxResizeLines", "DontShareEmptyDirs", "OnlyShareFullDirs",
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "RefreshVnameOnSharePage",
@@ -154,7 +154,7 @@ const string SettingsManager::settingTags[] =
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
-	"UnderlineDupes",
+	"UnderlineDupes", "DupesInFilelists", "DupesInChat",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -623,7 +623,6 @@ SettingsManager::SettingsManager()
 	setDefault(OVERLAP_CHUNKS, true);
 	setDefault(MIN_SEGMENT_SIZE, 1024);
 	setDefault(OPEN_LOGS_INTERNAL, true);
-	setDefault(DUPE_TEXT, true);
 	setDefault(OPEN_SYSTEM_LOG, true);
 	setDefault(FIRST_RUN, true);
 	setDefault(USE_OLD_SHARING_UI, true);
@@ -681,6 +680,8 @@ SettingsManager::SettingsManager()
 	setDefault(UL_AUTODETECT, true);
 	setDefault(MAX_MCN_UPLOADS, 1);
 	setDefault(SKIP_SUBTRACT, 0);
+	setDefault(DUPES_IN_FILELIST, true);
+	setDefault(DUPES_IN_CHAT, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

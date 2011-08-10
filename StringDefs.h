@@ -1253,5 +1253,7 @@ enum Strings { // @DontAdd
 	PROPPAGE_DUPE_MSG, // "Release.Example-AIRDC"
 	PROPPAGE_UNDERLINE_LINKS, // "Underline links"
 	PROPPAGE_UNDERLINE_DUPES, // "Underline dupes"
+	SETTINGS_DUPE_FILELIST, // "Use dupe color in filelists"
+	SETTINGS_DUPE_CHAT, // "Use dupe color in chat"
 	LAST // @DontAdd
 };

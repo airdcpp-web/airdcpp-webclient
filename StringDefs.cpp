@@ -1246,6 +1246,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Release.Example-AIRDC", 
 "Underline links", 
 "Underline dupes", 
+"Use dupe color in filelists", 
+"Use dupe color in chat", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2492,4 +2494,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ProppageDupeMsg", 
 "ProppageUnderlineLinks", 
 "ProppageUnderlineDupes", 
+"SettingsDupeFilelist", 
+"SettingsDupeChat", 
 };
