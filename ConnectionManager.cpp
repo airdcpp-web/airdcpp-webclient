@@ -35,7 +35,7 @@ uint16_t ConnectionManager::iConnToMeCount = 0;
 ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServer(0), shuttingDown(false) {
 	TimerManager::getInstance()->addListener(this);
 	//cqiAddTick = GET_TICK()-2000;
-	queueAddTick = GET_TICK()-5000;
+	queueAddTick = GET_TICK();
 	checkWaitingTick = GET_TICK();
 
 	features.push_back(UserConnection::FEATURE_MINISLOTS);
@@ -171,7 +171,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 	ConnectionQueueItem::List removed;
 	
 	{
-	Lock l(cs);
+		Lock l(cs);
 
 		bool attemptdone = false;
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
@@ -181,12 +181,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING && cqi->getState() != ConnectionQueueItem::IDLE) {
 				if(!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					// Not online anymore...remove it from the pending...
-					removed.push_back(cqi);
-					continue;
-				}
-
-				if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					removed.push_back(cqi);
 					continue;
 				}
@@ -232,9 +226,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					cqi->setErrors(cqi->getErrors() + 1);
 					fire(ConnectionManagerListener::Failed(), cqi, STRING(CONNECTION_TIMEOUT));
 					cqi->setState(ConnectionQueueItem::WAITING);
-				} else if (cqi->getState() == ConnectionQueueItem::RUNNING && cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					//an idle connection may become running if new files are added
-					cqi->unsetFlag(ConnectionQueueItem::FLAG_REMOVE);
 				}
 			}
 		}
@@ -250,9 +241,9 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 
 void ConnectionManager::checkWaitingMCN() noexcept {
-	ConnectionQueueItem::List multiUsers;
 	MultiConnMap mcnConnections;
 	CIDList waitingMultiConn;
+	CQIList multiUsers;
 	{
 
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
@@ -265,9 +256,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 						// No new connections for offline users...
 						continue;
 					}
-					ConnectionQueueItem::Iter u = find(multiUsers.begin(), multiUsers.end(), cqi->getUser());
-					if(u == multiUsers.end())
-						multiUsers.push_back(cqi);
+					multiUsers.insert(cqi);
 				} else {
 					CIDList::const_iterator u = waitingMultiConn.find(cqi->getUser().user->getCID());
 					if(u == waitingMultiConn.end()) {
@@ -287,7 +276,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 			}
 		}
 
-		for(ConnectionQueueItem::Iter k = multiUsers.begin(); k != multiUsers.end(); ++k) {
+		for(CQIList::const_iterator k = multiUsers.begin(); k != multiUsers.end(); ++k) {
 			ConnectionQueueItem* cqi = *k;
 			if (cqi == NULL) continue;
 			CIDList::const_iterator u = waitingMultiConn.find(cqi->getUser().user->getCID());
@@ -306,8 +295,9 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
 				bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
 				if(prio != QueueItem::PAUSED && startDown) {
-					if (checkWaitingTick+1000 < GET_TICK() && queueAddTick+3000 < GET_TICK()) {
-						checkWaitingTick=GET_TICK();
+					uint64_t tick = GET_TICK();
+					if ((checkWaitingTick+1000 < tick) && (queueAddTick+3000 < tick)) {
+						checkWaitingTick=tick;
 						ConnectionQueueItem* cqiNew = getCQI(cqi->getUser(),true);
 						cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
 					}
