@@ -154,8 +154,6 @@ private:
 
 	CriticalSection cs;
 
-	atomic_flag running;
-
 	/** All ConnectionQueueItems */
 	ConnectionQueueItem::List downloads;
 	ConnectionQueueItem::List uploads;

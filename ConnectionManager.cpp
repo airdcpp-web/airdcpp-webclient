@@ -32,7 +32,7 @@ namespace dcpp {
 
 uint16_t ConnectionManager::iConnToMeCount = 0;
 
-ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServer(0), shuttingDown(false), running(0) {
+ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServer(0), shuttingDown(false) {
 	TimerManager::getInstance()->addListener(this);
 
 	features.push_back(UserConnection::FEATURE_MINISLOTS);
@@ -113,7 +113,7 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool dow
 
 	if(download) {
 		{
-			//Lock l(cs);
+			Lock l(cs);
 			downloads.push_back(cqi);
 		}
 	} else {
@@ -168,19 +168,16 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 
 void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	
-	if(running.test_and_set()) //dont pile up if we didnt finish, just a test now
-		return;
 
-	
-	
 	ConnectionQueueItem::List removed;
-	bool attemptdone = false;
+	
 	{
 	Lock l(cs);
 
+		bool attemptdone = false;
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
-			if(cqi == NULL)
+			if(cqi == nullptr)
 				continue;
 
 			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING && cqi->getState() != ConnectionQueueItem::IDLE) {
@@ -200,7 +197,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					continue;
 				}
 
-				if(cqi->getLastAttempt() == 0 || ( (!attemptdone) &&
+				if(cqi->getLastAttempt() == 0 || ( !attemptdone &&
 					cqi->getLastAttempt() + 60 * 1000 * max(1, cqi->getErrors()) < aTick))
 				{
 					cqi->setLastAttempt(aTick);
@@ -245,7 +242,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
 			putCQI(*m);
 		}
-		running.clear();
 	}
 }
 
