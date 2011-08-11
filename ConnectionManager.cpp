@@ -172,8 +172,8 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 	
 	{
 		Lock l(cs);
-
-		bool attemptdone = false;
+		int attemptLimit = SETTING(DOWNCONN_PER_SEC);
+		uint16_t attempts = 0;
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if(cqi == nullptr)
@@ -190,7 +190,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					continue;
 				}
 
-				if(cqi->getLastAttempt() == 0 || ( !attemptdone && (checkWaitingTick+1000 < aTick) &&
+				if(cqi->getLastAttempt() == 0 || ((attemptLimit == 0 || attempts < attemptLimit) &&
 					cqi->getLastAttempt() + 60 * 1000 * max(1, cqi->getErrors()) < aTick))
 				{
 					cqi->setLastAttempt(aTick);
@@ -213,7 +213,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 							cqi->setState(ConnectionQueueItem::CONNECTING);							
 							ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken());
 							fire(ConnectionManagerListener::StatusChanged(), cqi);
-							attemptdone = true;
+							attempts++;
 						} else {
 							cqi->setState(ConnectionQueueItem::NO_DOWNLOAD_SLOTS);
 							fire(ConnectionManagerListener::Failed(), cqi, STRING(ALL_DOWNLOAD_SLOTS_TAKEN));
@@ -233,7 +233,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 			putCQI(*m);
 		}
 
-		if ((checkWaitingTick+1000 < aTick) && (queueAddTick+3000 < aTick)) {
+		if ((checkWaitingTick+1000 < aTick) && (queueAddTick+3000 < aTick) && (attempts < attemptLimit)) {
 			checkWaitingMCN();
 		}
 	}

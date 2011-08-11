@@ -262,9 +262,6 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 	int64_t start = Util::toInt64(cmd.getParam(2));
 	int64_t bytes = Util::toInt64(cmd.getParam(3));
 	
-	if(cmd.hasFlag("TL", 4))
-		aSource->getDownload()->setFlag(Download::FLAG_TTHLIST);
-
 	if(type != Transfer::names[aSource->getDownload()->getType()]) {
 		// Uhh??? We didn't ask for this...
 		aSource->disconnect();

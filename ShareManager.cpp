@@ -1475,7 +1475,7 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, string& indent) c
 }
 
 
-MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, bool isInSharingHub, bool tthList) const {
+MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, bool isInSharingHub) const {
 	if(dir[0] != '/' || dir[dir.size()-1] != '/')
 		return 0;
 	
@@ -1491,19 +1491,14 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 	
 	string xml;
 	string tmp;
-	if (!tthList) {
-		xml = SimpleXML::utf8Header;
-		xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"" APPNAME " " DCVERSIONSTRING "\">\r\n";
-	}
+	xml = SimpleXML::utf8Header;
+	xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"" APPNAME " " DCVERSIONSTRING "\">\r\n";
+
 	StringOutputStream sos(xml);
 	string indent = "\t";
 
 	Lock l(cs);
 	if(dir == "/") {
-		if (tthList) {
-			//no partial tthlists from the whole share
-			return 0;
-		}
 		for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			tmp.clear();
 			(*i)->toXml(sos, indent, tmp, recurse);
@@ -1543,44 +1538,20 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		if(!root)
 			return 0;
 
-				for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
-					if (!tthList) {
-						it2->second->toXml(sos, indent, tmp, recurse);
-					} else {
-						it2->second->toTTHList(sos, tmp, recurse);
-					}
-				}
-				if (!tthList) {
-					root->filesToXml(sos, indent, tmp);
-				} else {
-					root->toTTHList(sos, tmp, recurse);
-				}
+		for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
+			it2->second->toXml(sos, indent, tmp, recurse);
+		}
+		root->filesToXml(sos, indent, tmp);
 			
 	
 	}
 
-	if (!tthList)
-		xml += "</FileListing>";
+	xml += "</FileListing>";
 	if (xml.empty()) {
 		dcdebug("Partial NULL");
 		return NULL;
 	} else {
 		return new MemoryInputStream(xml);
-	}
-}
-
-void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const {
-	dcdebug("toTTHList2");
-	if (recursive) {
-		for(Map::const_iterator i = directories.begin(); i != directories.end(); ++i) {
-			i->second->toTTHList(tthList, tmp2, recursive);
-		}
-	}
-	for(Directory::File::Set::const_iterator i = files.begin(); i != files.end(); ++i) {
-		const Directory::File& f = *i;
-		tmp2.clear();
-		tthList.write(f.getTTH().toBase32(tmp2));
-		tthList.write(LITERAL(" "));
 	}
 }
 

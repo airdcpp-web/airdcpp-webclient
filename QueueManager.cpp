@@ -978,10 +978,13 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 }
 
 void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p /* = QueueItem::DEFAULT */) noexcept {
-	
+	bool adc=true;
+	if (aUser.user->isSet(User::NMDC))
+		adc=false;
 	bool needList;
 	{
 		Lock l(cs);
+		
 		auto dp = directories.equal_range(aUser);
 		
 		for(auto i = dp.first; i != dp.second; ++i) {
@@ -994,10 +997,10 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 		needList = (dp.first == dp.second);
 		setDirty();
 	}
-	if(needList/* || adc*/) {
+	if(needList || adc) {
 		try {
-			if (aUser.user->isSet(User::NMDC))
-				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD);
+			if (!adc)
+				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD, aDir);
 			else
 				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, aDir);
 		} catch(const Exception&) {
@@ -1384,7 +1387,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	HintedUser fl_user = aDownload->getHintedUser();
 	Flags::MaskType fl_flag = 0;
 	bool downloadList = false;
-	bool tthList = aDownload->isSet(Download::FLAG_TTHLIST);
 
 	{
 		Lock l(cs);
@@ -1581,14 +1583,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	}
 
 	if(!fl_fname.empty()) {
-		/*protect both matchTTHList and process list, only calls to matchtthlist here, 
-		so removed the lock from the matchTTHList -Night*/
-		Lock l(cs);  
-		if (tthList) {
-			matchTTHList(fl_fname, fl_user, fl_flag);
-		} else {
-			processList(fl_fname, fl_user, fl_path, fl_flag);
-		}
+		processList(fl_fname, fl_user, fl_path, fl_flag);
 	}
 
 	// partial file list failed, redownload full list
@@ -1596,60 +1591,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 		try {
 			addList(fl_user, fl_flag);
 		} catch(const Exception&) {}
-	}
-}
-
-void QueueManager::matchTTHList(const string& name, const HintedUser& user, int flags) {
-	dcdebug("matchTTHList");
-	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
-		bool wantConnection = false;
-		int matches = 0;
-		{
-			//Lock l(cs);   if use this for something else check this again.
-
-			typedef unordered_set<TTHValue> TTHSet;
-			typedef TTHSet::const_iterator TTHSetIter;
-			TTHSet tthList;
-
-			size_t start = 0;
-			while (start+39 < name.length()) {
-				tthList.insert(name.substr(start, 39));
-				start = start+40;
-			}
-
-			if(tthList.empty())
-				return;
-
-			for(QueueItem::StringMap::const_iterator i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
-				QueueItem* qi = i->second;
-				if(qi->isFinished())
-					continue;
-				if(qi->isSet(QueueItem::FLAG_USER_LIST))
-					continue;
-				TTHSetIter j = tthList.find(qi->getTTH());
-				if(j != tthList.end()) {
-					try {
-						wantConnection = addSource(qi, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);    
-					} catch(...) {
-						// Ignore...
-					}
-					matches++;
-				}
-			}
-		}
-
-		if((matches > 0) && wantConnection)
-			ConnectionManager::getInstance()->getDownloadConnection(user);
-
-		if(flags & QueueItem::FLAG_PARTIAL_LIST) {
-			//no reports yet..
-		} else {
-			const size_t BUF_SIZE = STRING(MATCHED_FILES).size() + 16;
-			string tmp;
-			tmp.resize(BUF_SIZE);
-			snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matches);
-			LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
-		}
 	}
 }
 
@@ -1670,7 +1611,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
 		if (!path.empty()) {
 			{
-				//Lock l(cs);
+				Lock l(cs);
 				auto dp = directories.equal_range(user);
 				for(auto i = dp.first; i != dp.second; ++i) {
 					if(stricmp(path.c_str(), i->second->getName().c_str()) == 0) {
@@ -1683,7 +1624,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 		} else {
 			vector<DirectoryItemPtr> dl;
 			{
-				//Lock l(cs);
+				Lock l(cs);
 				auto dpf = directories.equal_range(user) | map_values;
 				dl.assign(boost::begin(dpf), boost::end(dpf));
 				directories.erase(user);

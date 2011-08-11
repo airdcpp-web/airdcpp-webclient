@@ -101,7 +101,7 @@ public:
 
 	StringPairList getDirectories(int refreshOptions) const noexcept;
 	static bool checkType(const string& aString, int aType);
-	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub, bool tthList) const;
+	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub) const;
 	MemoryInputStream* getTree(const string& virtualFile) const;
 
 	AdcCommand getFileInfo(const string& aFile);
@@ -245,7 +245,6 @@ private:
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept;
 		void findRemoved();
 
-		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
 		//for filelist caching
