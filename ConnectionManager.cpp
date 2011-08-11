@@ -171,11 +171,13 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 	if(running.test_and_set()) //dont pile up if we didnt finish, just a test now
 		return;
 
-	//Lock l(cs);
+	
 	
 	ConnectionQueueItem::List removed;
-	uint16_t attempts = 0;
-	
+	bool attemptdone = false;
+	{
+	Lock l(cs);
+
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if(cqi == NULL)
@@ -198,7 +200,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					continue;
 				}
 
-				if(cqi->getLastAttempt() == 0 || ( (attempts < 1) &&
+				if(cqi->getLastAttempt() == 0 || ( (!attemptdone) &&
 					cqi->getLastAttempt() + 60 * 1000 * max(1, cqi->getErrors()) < aTick))
 				{
 					cqi->setLastAttempt(aTick);
@@ -221,7 +223,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 							cqi->setState(ConnectionQueueItem::CONNECTING);							
 							ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken());
 							fire(ConnectionManagerListener::StatusChanged(), cqi);
-							attempts++;
+							attemptdone = true;
 						} else {
 							cqi->setState(ConnectionQueueItem::NO_DOWNLOAD_SLOTS);
 							fire(ConnectionManagerListener::Failed(), cqi, STRING(ALL_DOWNLOAD_SLOTS_TAKEN));
@@ -244,6 +246,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 			putCQI(*m);
 		}
 		running.clear();
+	}
 }
 
 void ConnectionManager::checkWaitingMCN(const HintedUser& aUser) noexcept {
