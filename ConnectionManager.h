@@ -170,6 +170,9 @@ private:
 	delayMap delayedTokens;
 
 	uint64_t floodCounter;
+	uint64_t queueAddTick;
+	uint64_t cqiAddTick;
+	uint64_t checkWaitingTick;
 
 	Server* server;
 	Server* secureServer;
@@ -187,7 +190,11 @@ private:
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
 
-	void checkWaitingMCN(const HintedUser& aUser) noexcept;
+	void checkWaitingMCN() noexcept;
+	typedef unordered_map<CID, uint8_t> MultiConnMap;
+	typedef unordered_set<CID> CIDList;
+	typedef MultiConnMap::iterator MultiConnIter;
+
 	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token=Util::emptyString);
 	void putCQI(ConnectionQueueItem* cqi);
 
@@ -198,7 +205,6 @@ private:
 	void failed(UserConnection* aSource, const string& aError, bool protocolError);
 
 	bool checkIpFlood(const string& aServer, uint16_t aPort, const string& userInfo);
-	bool isRequesting(const string token);
 	
 	// UserConnectionListener
 	void on(Connected, UserConnection*) noexcept;
