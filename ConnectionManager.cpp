@@ -48,7 +48,6 @@ ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServe
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BZIP);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_MCN1);
 
-	downloads.reserve(16); //many small allocations so reserve a little.
 }
 
 void ConnectionManager::listen() {
@@ -76,7 +75,6 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 	if (!DownloadManager::getInstance()->checkIdle(aUser.user, smallSlot)) {
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
-			if (cqi == NULL) continue;
 			if (cqi->getUser() == aUser) {
 				found=true;
 				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
@@ -150,7 +148,7 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) noexce
 	UserConnection* uc = new UserConnection(secure);
 	uc->addListener(this);
 	{
-		Lock l(cs);
+		//Lock l(cs);
 		userConnections.push_back(uc);
 	}
 	if(aNmdc)
@@ -783,7 +781,6 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 		ConnectionQueueItem::Iter i = std::find(downloads.begin(), downloads.end(), uc->getUser());
 		if(i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
-			if (cqi == NULL) return;
 			if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 				cqi->setState(ConnectionQueueItem::ACTIVE);
 				uc->setToken(cqi->getToken());
@@ -796,7 +793,6 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 	} else {
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
-			if (cqi == NULL) continue;
 			if (cqi->getToken() == uc->getToken()) {
 				if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 					cqi->setState(ConnectionQueueItem::ACTIVE);
@@ -826,14 +822,13 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 
 void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_UPLOAD));
-
+	Lock l(cs);
 	bool addConn = false;
 
 		if (uc->isSet(UserConnection::FLAG_MCN1)) {
 			//check that the token is unique so nasty clients can't mess up our transfers
 			for(ConnectionQueueItem::Iter i = uploads.begin(); i != uploads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
-				if (cqi == NULL) continue;
 				if(cqi->getToken() == uc->getToken()) {
 					putConnection(uc);
 					return;
@@ -850,7 +845,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	
 
 	if(addConn) {
-		Lock l(cs);
+	
 		string token = uc->getToken();
 		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, token);
 
@@ -928,7 +923,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		Lock l(cs);
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
-			if (cqi == NULL) continue;
 			const string& to = cqi->getToken();
 			if(to == token) {
 				if(aSource->isSet(UserConnection::FLAG_MCN1)) {
@@ -1027,7 +1021,6 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			Lock l(cs);
 			for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
-				if (cqi == NULL) continue;
 				if (aSource->getToken() == cqi->getToken()) {
 					dcassert(i != downloads.end());
 					if (cqi->getState() == ConnectionQueueItem::IDLE) {

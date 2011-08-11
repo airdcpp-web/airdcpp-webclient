@@ -147,7 +147,6 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
 	bool found=false;
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;
-		if (uc == NULL) continue;
 		if(uc->getUser() == user) {
 			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;

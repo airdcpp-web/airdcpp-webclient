@@ -694,7 +694,6 @@ size_t UploadManager::addFailedUpload(const UserConnection& source, const string
 }
 
 void UploadManager::clearUserFiles(const UserPtr& aUser) {
-	Lock l(cs);
 	UploadQueueItem::SlotQueue::iterator it = find_if(uploadQueue.begin(), uploadQueue.end(), CompareFirst<UserPtr, UploadQueueItem::List>(aUser));
 	if(it != uploadQueue.end()) {
 		for(UploadQueueItem::List::const_iterator i = it->second.begin(); i != it->second.end(); i++) {
@@ -841,7 +840,7 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 }
 
 // TimerManagerListener
-void UploadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
 	{
 		Lock l(cs);
 		UploadList ticks;
