@@ -272,6 +272,9 @@ ok:
 
 		setLastGrant(GET_TICK());
 	}
+
+	// remove file from upload queue
+	clearUserFiles(aSource.getUser());
 	
 	// remove user from connecting list
 	SlotIter cu = connectingUsers.find(aSource.getUser());
@@ -337,7 +340,7 @@ ok:
 		// set new slot count
 		switch(slotType) {
 			case UserConnection::STDSLOT:
-				clearUserFiles(aSource.getUser());
+				//clearUserFiles(aSource.getUser());
 				running++;
 				checkMultiConn();
 				break;
@@ -348,7 +351,7 @@ ok:
 				extraPartial++;
 				break;
 			case UserConnection::MCNSLOT:
-				clearUserFiles(aSource.getUser());
+				//clearUserFiles(aSource.getUser());
 				changeMultiConnSlot(aSource.getUser()->getCID(), false);
 				checkMultiConn();
 				break;
@@ -718,9 +721,9 @@ void UploadManager::removeConnection(UserConnection* aSource) {
 	// slot lost
 	switch(aSource->getSlotType()) {
 		case UserConnection::STDSLOT: running--; break;
-		case UserConnection::EXTRASLOT: clearUserFiles(aSource->getUser()); extra--; break;
-		case UserConnection::PARTIALSLOT: clearUserFiles(aSource->getUser()); extraPartial--; break;
-		case UserConnection::SMALLSLOT: clearUserFiles(aSource->getUser()); smallSlots--; break;
+		case UserConnection::EXTRASLOT: extra--; break;
+		case UserConnection::PARTIALSLOT: extraPartial--; break;
+		case UserConnection::SMALLSLOT: smallSlots--; break;
 		case UserConnection::MCNSLOT:
 			changeMultiConnSlot(aSource->getUser()->getCID(), true); 
 			break;
