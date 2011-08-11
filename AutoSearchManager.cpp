@@ -40,7 +40,6 @@ AutoSearchManager::AutoSearchManager() {
 	recheckTime = 0;
 	curSearch = Util::emptyString;
 	dirty = false;
-	lastsave = GET_TICK();
 	setTime((uint16_t)SETTING(AUTOSEARCH_EVERY) -1); //1 minute delay
 }
 
@@ -101,16 +100,17 @@ string AutoSearchManager::matchDirectory(const string& aFile, const string& aStr
 }
 
 void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
+	
 	if(BOOLSETTING(AUTOSEARCH_ENABLED_TIME) && BOOLSETTING(AUTOSEARCH_ENABLED)) {
 		Lock l(cs);
+
+		if(dirty) { //save if its dirty
+		AutosearchSave();
+		dirty = false;
+		}
 		//empty list...
 		if(!as.size())
 			return;
-
-		if(dirty && (GET_TICK() - lastsave > 15*60*1000)) { //save every 15mins if dirty
-			AutosearchSave();
-		}
-
 
 		if(endOfList) {
 			recheckTime++;

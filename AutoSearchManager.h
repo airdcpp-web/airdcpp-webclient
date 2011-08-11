@@ -131,7 +131,6 @@ private:
 	GETSET(uint16_t, time, Time);
 
 	bool dirty;
-	int64_t lastsave;
 	void addToQueue(SearchResultPtr sr, bool pausePrio = false, const string& dTarget = Util::emptyString );
 	SearchResultPtr sr;
 	bool endOfList;
