@@ -228,6 +228,8 @@ private:
 	string localIp;
 	string keyprint;
 
+	int seticons;
+
 	uint16_t port;
 	char separator;
 	bool secure;

@@ -35,7 +35,7 @@ Client::Client(const string& hubURL, char separator_, bool secure_) :
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	encoding(const_cast<string*>(&Text::systemCharset)), state(STATE_DISCONNECTED), sock(0),
 	hubUrl(hubURL), port(0), separator(separator_),
-	secure(secure_), countType(COUNT_UNCOUNTED), availableBytes(0)
+	secure(secure_), countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0)
 {
 	string file, proto, query, fragment;
 	Util::decodeUrl(hubURL, proto, address, port, file, query, fragment);
@@ -176,8 +176,9 @@ void Client::on(Connected) noexcept {
 			}
 		}
 	}
-
+	
 	fire(ClientListener::Connected(), this);
+	seticons = 0;
 	state = STATE_PROTOCOL;
 	
 }
@@ -223,9 +224,21 @@ void Client::updateCounts(bool aRemove) {
 		} else if(getMyIdentity().isRegistered()) {
 			countType = COUNT_REGISTERED;
 		} else {
+				//disconnect before the hubcount is updated.
+			if(BOOLSETTING(DISALLOW_CONNECTION_TO_PASSED_HUBS)) {
+				fire(ClientListener::AddLine(), this, STRING(HUB_NOT_PROTECTED));
+				disconnect(true);
+				setAutoReconnect(false);
+				return;
+				}
+
 			countType = COUNT_NORMAL;
 		}
-		fire(ClientListener::HubCounts(), this);
+		if(seticons < 2) { //set more than once due to some nmdc hubs
+			fire(ClientListener::SetIcons(), this);
+			seticons++;
+		}
+
 		++counts[countType];
 	}
 }

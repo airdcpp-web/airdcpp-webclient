@@ -123,7 +123,7 @@ string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkdupe)
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
-		//log message for now, change to debug later.
+		//Better to abort and show the error, than just leave it hanging.
 		LogManager::getInstance()->message("Error in Filelist loading: " + e.getError());
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
 	}

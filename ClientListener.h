@@ -13,24 +13,24 @@ public:
 
 	typedef X<0> Connecting;
 	typedef X<1> Connected;
-	typedef X<3> UserUpdated;
-	typedef X<4> UsersUpdated;
-	typedef X<5> UserRemoved;
-	typedef X<6> Redirect;
-	typedef X<7> Failed;
-	typedef X<8> GetPassword;
-	typedef X<9> HubUpdated;
-	typedef X<11> Message;
-	typedef X<12> StatusMessage;
-	typedef X<13> HubUserCommand;
-	typedef X<14> HubFull;
-	typedef X<15> NickTaken;
-	typedef X<16> SearchFlood;
-	typedef X<17> NmdcSearch;
-	typedef X<18> AdcSearch;
-	typedef X<19> HubTopic;
-	typedef X<20> AddLine;
-	typedef X<21> HubCounts;
+	typedef X<2> UserUpdated;
+	typedef X<3> UsersUpdated;
+	typedef X<4> UserRemoved;
+	typedef X<5> Redirect;
+	typedef X<6> Failed;
+	typedef X<7> GetPassword;
+	typedef X<8> HubUpdated;
+	typedef X<9> Message;
+	typedef X<10> StatusMessage;
+	typedef X<11> HubUserCommand;
+	typedef X<12> HubFull;
+	typedef X<13> NickTaken;
+	typedef X<14> SearchFlood;
+	typedef X<15> NmdcSearch;
+	typedef X<16> AdcSearch;
+	typedef X<17> HubTopic;
+	typedef X<18> AddLine;
+	typedef X<19> SetIcons;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -56,7 +56,7 @@ public:
 	virtual void on(AdcSearch, const Client*, const AdcCommand&, const CID&) noexcept { }
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
-	virtual void on(HubCounts, const Client*) noexcept { }
+	virtual void on(SetIcons, const Client*) noexcept { }
 };
 
 } // namespace dcpp
