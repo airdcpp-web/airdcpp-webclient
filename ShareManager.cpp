@@ -590,10 +590,10 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 
 		shares.insert(std::make_pair(realPath, vName));
 		updateIndices(*merge(dp));
+		sortReleaseList();
 		
 		setDirty();
 	}
-	sortReleaseList();
 }
 
 ShareManager::Directory::Ptr ShareManager::merge(const Directory::Ptr& directory) {
@@ -1299,7 +1299,7 @@ int ShareManager::run() {
 				merge(*i);
 			}
 			
-	
+			sortReleaseList();
 			rebuildIndices();
 		}
 
@@ -1323,7 +1323,6 @@ int ShareManager::run() {
 	if(refreshOptions & REFRESH_BLOCKING)
 		generateXmlList(true);
 
-	sortReleaseList();
 	refreshing.clear();
 	return 0;
 }

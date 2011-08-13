@@ -49,6 +49,7 @@ const string AdcHub::BAS0_SUPPORT("ADBAS0");
 const string AdcHub::TIGR_SUPPORT("ADTIGR");
 const string AdcHub::UCM0_SUPPORT("ADUCM0");
 const string AdcHub::BLO0_SUPPORT("ADBLO0");
+const string AdcHub::ZLIF_SUPPORT("ADZLIF");
 
 const vector<StringList> AdcHub::searchExts;
 
@@ -363,6 +364,22 @@ void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 	}
 
 	ConnectionManager::getInstance()->adcConnect(*u, static_cast<uint16_t>(Util::toInt(port)), token, secure);
+}
+
+void AdcHub::handle(AdcCommand::ZON, AdcCommand& c) noexcept {
+	try {
+		sock->setMode(BufferedSocket::MODE_ZPIPE);
+	} catch (const Exception& e) {
+		dcdebug("AdcHub::handleZON failed with error: %s\n", e.getError().c_str());
+	}
+}
+
+void AdcHub::handle(AdcCommand::ZOF, AdcCommand& c) noexcept {
+	try {
+		sock->setMode(BufferedSocket::MODE_LINE);
+	} catch (const Exception& e) {
+		dcdebug("AdcHub::handleZOF failed with error: %s\n", e.getError().c_str());
+	}
 }
 
 void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
@@ -1002,6 +1019,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 
 	addParam(lastInfoMap, c, "VE", "AirDC++ " VERSIONSTRING);
 	addParam(lastInfoMap, c, "AW", Util::getAway() ? "1" : Util::emptyString);
+	addParam(lastInfoMap, c, "LC", Util::getLocale());
 	
 	
 		//addParam(lastInfoMap, c, "DS", Util::emptyString);
@@ -1104,6 +1122,7 @@ void AdcHub::on(Connected c) noexcept {
 	if(BOOLSETTING(SEND_BLOOM)) {
 		cmd.addParam(BLO0_SUPPORT);
 	}
+	cmd.addParam(ZLIF_SUPPORT);
 	send(cmd);
 }
 

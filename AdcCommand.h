@@ -111,6 +111,8 @@ public:
 	C(RNT, 'R','N','T');
 	C(PSR, 'P','S','R');
 	C(PUB, 'P','U','B');
+	C(ZON, 'Z','O','N');
+	C(ZOF, 'Z','O','F');
 #undef C
 
 	static const uint32_t HUB_SID = 0xffffffff;		// No client will have this sid
@@ -210,6 +212,8 @@ public:
 				C(NAT);
 				C(RNT);
 				C(PSR);
+				C(ZON);
+				C(ZOF);
 			default: 
 				dcdebug("Unknown ADC command: %.50s\n", aLine.c_str());
 				break;
