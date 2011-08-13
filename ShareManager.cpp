@@ -608,6 +608,7 @@ ShareManager::Directory::Ptr ShareManager::merge(const Directory::Ptr& directory
 	dcdebug("Adding new directory %s\n", directory->getName().c_str());
 	
 	directories.push_back(directory);
+	directory->findDirsRE(false);
 	return directory;
 }
 
@@ -621,6 +622,7 @@ void ShareManager::Directory::merge(const Directory::Ptr& source) {
 				dcdebug("File named the same as directory");
 			} else {
 				directories.insert(std::make_pair(subSource->getName(), subSource));
+				subSource->findDirsRE(false);
 				subSource->parent = this;
 			}
 		} else {
@@ -631,6 +633,7 @@ void ShareManager::Directory::merge(const Directory::Ptr& source) {
 
 	// All subdirs either deleted or moved to target...
 	source->directories.clear();
+	source->findDirsRE(true);
 	
 	for(File::Set::iterator i = source->files.begin(); i != source->files.end(); ++i) {
 		if(findFile(i->getName()) == files.end()) {
@@ -663,7 +666,7 @@ void ShareManager::removeDirectory(const string& realPath) {
 	for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {
 		if(stricmp((*j)->getName(), vName) == 0) {
 			//directories.erase(j++);
-			(*j)->findRemoved();
+			(*j)->findDirsRE(true);
 			directories.erase(j);
 		} else {
 			++j;
@@ -685,13 +688,6 @@ void ShareManager::removeDirectory(const string& realPath) {
 	sortReleaseList();
 	rebuildIndices();
 	setDirty();
-}
-
-void ShareManager::Directory::findRemoved() {
-	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
-		 l->second->findRemoved();
-	}
-	ShareManager::getInstance()->deleteReleaseDir(name);
 }
 
 void ShareManager::renameDirectory(const string& realPath, const string& virtualName)  {
@@ -873,6 +869,18 @@ void ShareManager::sortReleaseList() {
 	sort(dirNameList.begin(), dirNameList.end());
 }
 
+void ShareManager::Directory::findDirsRE(bool remove) {
+	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
+		 l->second->findDirsRE(remove);
+	}
+
+	if (remove) {
+		ShareManager::getInstance()->deleteReleaseDir(this->getFullName());
+	} else {
+		ShareManager::getInstance()->addReleaseDir(this->getFullName());
+	}
+}
+
 void ShareManager::addReleaseDir(const string& aName) {
 	string dir = getReleaseDir(aName);
 	if (dir.empty())
@@ -899,7 +907,6 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 
 ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent) {
 	Directory::Ptr dir = Directory::create(Util::getLastDir(aName), aParent);
-	addReleaseDir(dir->getFullName());
 
 	Directory::File::Set::iterator lastFileIter = dir->files.begin();
 
@@ -1246,7 +1253,6 @@ int ShareManager::run() {
 	StringPairList dirs = getDirectories(refreshOptions);
 
 	if(refreshOptions & REFRESH_ALL) {
-		dirNameList.clear();
 		lastFullUpdate = GET_TICK();
 	}
 		HashManager::HashPauser pauser;
@@ -1264,26 +1270,27 @@ int ShareManager::run() {
 				}
 		}
 		{
-		Lock l(cs);
+			Lock l(cs);
 
-		//only go here when needed
-		if(refreshOptions & REFRESH_DIRECTORY){ 
+			//only go here when needed
+			if(refreshOptions & REFRESH_DIRECTORY){ 
 		
-		for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
+				for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
 		
-			//lookup for the root dirs under the Vname and erase only those.
-			for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {	
-				if(stricmp((*j)->getName(), i->first) == 0) {
-					//directories.erase(j++);
-					(*j)->findRemoved();
-					directories.erase(j);
-				} else ++j; // in a vector erase all elements are moved to new positions so make sure we dont skip anything.
-			}
-		}
+					//lookup for the root dirs under the Vname and erase only those.
+					for(DirList::const_iterator j = directories.begin(); j != directories.end(); ) {	
+						if(stricmp((*j)->getName(), i->first) == 0) {
+							//directories.erase(j++);
+							(*j)->findDirsRE(true);
+							directories.erase(j);
+						} else ++j; // in a vector erase all elements are moved to new positions so make sure we dont skip anything.
+					}
+				}
 
 
-		} else if(refreshOptions & REFRESH_ALL) {
+			} else if(refreshOptions & REFRESH_ALL) {
 				directories.clear();
+				dirNameList.clear();
 			}
 
 			forceXmlRefresh = true;
