@@ -178,11 +178,9 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			u->getIdentity().set(i->c_str(), i->substr(2));
 		}
 		
-		if(i->substr(0, 2) == "VE") {
+		if((i->substr(0, 2) == "VE") || (i->substr(0, 2) == "AP")) {
 			if (i->find("AirDC++") != string::npos) {
 				u->getUser()->setFlag(User::AIRDCPLUSPLUS);
-			} else {
-				u->getUser()->unsetFlag(User::AIRDCPLUSPLUS);
 			}
 		}
 	}

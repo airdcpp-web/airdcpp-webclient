@@ -92,7 +92,7 @@ void DirectoryListing::loadFile(const string& name, bool checkdupe) {
 
 class ListLoader : public SimpleXMLReader::CallBack {
 public:
-	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe) : list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkdupe(aCheckDupe) { 
+	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe) : list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkdupe(aCheckDupe), useCache(true) { 
 	}
 
 	~ListLoader() { }
@@ -111,6 +111,7 @@ private:
 	bool inListing;
 	bool updating;
 	bool checkdupe;
+	bool useCache;
 };
 
 string DirectoryListing::updateXML(const string& xml, bool checkdupe ) {
@@ -189,13 +190,24 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& date = getAttrib(attribs, sDate, 3);
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
-				string compare = Text::toLower(n);
-				for(DirectoryListing::Directory::DirMap::const_iterator i = cur->visitedDirs.begin(); i != cur->visitedDirs.end(); ++i) {
-					if(i->first == compare) {
-						d = i->second;
-						if(!d->getComplete())
-							d->setComplete(!incomp);
-						break;
+				if (useCache) {
+					string compare = Text::toLower(n);
+					for(DirectoryListing::Directory::DirMap::const_iterator i = cur->visitedDirs.begin(); i != cur->visitedDirs.end(); ++i) {
+						if(i->first == compare) {
+							d = i->second;
+							if(!d->getComplete())
+								d->setComplete(!incomp);
+							break;
+						}
+					}
+				} else {
+					for(DirectoryListing::Directory::Iter i  = cur->directories.begin(); i != cur->directories.end(); ++i) {
+						if((*i)->getName() == n) {
+							d = *i;
+							if(!d->getComplete())
+								d->setComplete(!incomp);
+							break;
+						}
 					}
 				}
 			}
@@ -225,22 +237,13 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			DirectoryListing::Directory* d = NULL;
 
 			
-			if (i == sl.end()-1) {
-				for(DirectoryListing::Directory::Iter j = cur->directories.begin(); j != cur->directories.end(); ++j) {
-					if((*j)->getName() == *i) {
-						d = *j;
-						cur->visitedDirs.insert(make_pair(Text::toLower(*i), d));
-						break;
-					}
-				}
-			} else {
-				for(DirectoryListing::Directory::DirMap::const_iterator j = cur->visitedDirs.begin(); j != cur->visitedDirs.end(); ++j) {
-					if (j->first == Text::toLower(*i)) {
-						d = j->second;
-						break;
-					}
+			for(DirectoryListing::Directory::Iter j = cur->directories.begin(); j != cur->directories.end(); ++j) {
+				if((*j)->getName() == *i) {
+					d = *j;
+					break;
 				}
 			}
+
 			if(d == NULL) {
 				d = new DirectoryListing::Directory(cur, *i, false, false);
 				cur->directories.push_back(d);
@@ -248,6 +251,11 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 			cur = d;
 		}
+		if (sl.empty() && cur->visitedDirs.empty()) {
+			//root dir loaded again
+			useCache=false;
+		}
+
 		cur->setComplete(true);
 
 		inListing = true;

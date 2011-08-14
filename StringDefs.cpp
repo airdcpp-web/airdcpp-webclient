@@ -1248,6 +1248,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Underline dupes", 
 "Use dupe color in filelists", 
 "Use dupe color in chat", 
+"Client version", 
+"Language version", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2496,4 +2498,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ProppageUnderlineDupes", 
 "SettingsDupeFilelist", 
 "SettingsDupeChat", 
+"ClientVersion", 
+"LanguageVersion", 
 };
