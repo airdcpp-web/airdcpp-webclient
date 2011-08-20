@@ -872,7 +872,7 @@ connect:
 	if(newItem && ((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST || (aSize <= 65792 && !(aFlags & QueueItem::FLAG_USER_LIST)))) {
 			smallSlot=true;
 	}
-	if(!aUser.user)
+	if(!aUser.user) //atleast magnet links can cause this to happen.
 		return;
 
 	if(wantConnection && aUser.user->isOnline() || aUser.user->isOnline() && smallSlot) {
@@ -940,8 +940,8 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence) thr
 /** Add a source to an existing queue item */
 bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException) {
 	
-	if (!aUser.user) //fix freeze??
-	throw QueueException("Can't find user to add : " + Util::getFileName(qi->getTarget()));
+	if (!aUser.user) //atleast magnet links can cause this to happen.
+	throw QueueException("Can't find Source user to add For Target: " + Util::getFileName(qi->getTarget()));
 	
 	bool wantConnection = (qi->getPriority() != QueueItem::PAUSED) && !userQueue.getRunning(aUser);
 

@@ -112,7 +112,7 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool dow
 
 	if(download) {
 		{
-			//Lock l(cs);
+			Lock l(cs);
 			downloads.push_back(cqi);
 		}
 	} else {
