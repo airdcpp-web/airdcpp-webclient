@@ -209,7 +209,8 @@ static QueueItem* findCandidate(QueueItem::StringMap::const_iterator start, Queu
 		QueueItem* q = i->second;
 
 		// We prefer to search for things that are not running...
-		if((cand != NULL) && q->getNextSegment(0, 0, 0, NULL).getSize() == 0) 
+		//if((cand != NULL) && q->getNextSegment(0, 0, 0, NULL).getSize() == 0) 
+		if((cand != NULL) && q->isRunning())
 			continue;
 		// No finished files
 		if(q->isFinished())
@@ -229,15 +230,17 @@ static QueueItem* findCandidate(QueueItem::StringMap::const_iterator start, Queu
 
 		cand = q;
 
-		if(cand->getNextSegment(0, 0, 0, NULL).getSize() != 0)
+		//if(cand->getNextSegment(0, 0, 0, NULL).getSize() != 0)
+		if(cand->isWaiting())
 			break;
 	}
 
 	//check this again, if the first item we pick is running and there are no
 	//other suitable items this will be true
-	if((cand != NULL) && (cand->getNextSegment(0, 0, 0, NULL).getSize() == 0)) {
-		cand = NULL;
-	}
+	//if((cand != NULL) && (cand->getNextSegment(0, 0, 0, NULL).getSize() == 0)) {
+		//cand = NULL;
+	//}
+
 
 	return cand;
 }
@@ -250,6 +253,9 @@ QueueItem* QueueManager::FileQueue::findAutoSearch(deque<string>& recent) const 
 	advance(i, start);
 
 	QueueItem* cand = findCandidate(i, queue.end(), recent);
+/*	why so complex, hope this will fix the deadlock freeze with bigger queue, 
+	or do we just need to keep the searches alive even if item is running?
+
 	if(cand == NULL) {
 		cand = findCandidate(queue.begin(), i, recent);
 	} else if(cand->getNextSegment(0, 0, 0, NULL).getSize() == 0) {
@@ -257,7 +263,14 @@ QueueItem* QueueManager::FileQueue::findAutoSearch(deque<string>& recent) const 
 		if(cand2 != NULL && cand2->getNextSegment(0, 0, 0, NULL).getSize() != 0) {
 			cand = cand2;
 		}
+	}*/
+	if(cand == NULL || cand->isRunning()) {
+		cand = findCandidate(queue.begin(), i, recent);  
 	}
+
+	if((cand != NULL) && cand->isRunning()) //if its still a running one dont search?
+		cand = NULL;
+
 	return cand;
 }
 
@@ -702,10 +715,10 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 			if(qi != NULL) {
 				searchString = qi->getTTH().toBase32();
 				recent.push_back(qi->getTarget());
-				nextSearch = aTick + (SETTING(SEARCH_TIME) * 60000);
 				if(BOOLSETTING(REPORT_ALTERNATES))
 					LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + Util::getFileName(qi->getTargetFileName()));		
 			}
+			nextSearch = aTick + (SETTING(SEARCH_TIME) * 60000); //this is also the time for next check, set it here so we dont need to start checking every minute
 		}
 	}
 
