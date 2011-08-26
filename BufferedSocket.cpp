@@ -29,7 +29,6 @@
 #include "ZUtils.h"
 
 
-
 namespace dcpp {
 
 // Polling is used for tasks...should be fixed...
@@ -71,15 +70,14 @@ void BufferedSocket::setMode (Modes aMode, size_t aRollback) {
 
 void BufferedSocket::setSocket(std::unique_ptr<Socket> s) {
 	dcassert(!sock.get());
-	if(SETTING(SOCKET_IN_BUFFER) > 0)
-		s->setSocketOpt(SO_RCVBUF, SETTING(SOCKET_IN_BUFFER));
-	if(SETTING(SOCKET_OUT_BUFFER) > 0)
-		s->setSocketOpt(SO_SNDBUF, SETTING(SOCKET_OUT_BUFFER));
-	s->setSocketOpt(SO_REUSEADDR, 1);	// NAT traversal
-
-	inbuf.resize(s->getSocketOptInt(SO_RCVBUF));
-	
 	sock = move(s);
+}
+
+void BufferedSocket::setOptions() {
+	if(SETTING(SOCKET_IN_BUFFER) > 0)
+		sock->setSocketOpt(SO_RCVBUF, SETTING(SOCKET_IN_BUFFER));
+	if(SETTING(SOCKET_OUT_BUFFER) > 0)
+		sock->setSocketOpt(SO_SNDBUF, SETTING(SOCKET_OUT_BUFFER));
 }
 
 void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted) {
@@ -90,6 +88,7 @@ void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted)
 	s->accept(srv);
 	
 	setSocket(move(s));
+	setOptions();
 
 	Lock l(cs);
 	addTask(ACCEPTED, 0);
@@ -105,7 +104,7 @@ void BufferedSocket::connect(const string& aAddress, uint16_t aPort, uint16_t lo
 
 	s->create();
 	setSocket(move(s));
-	sock->bind(localPort, SETTING(BIND_ADDRESS));
+	sock->bind(localPort, Socket::getBindAddress());
 	
 	Lock l(cs);
 	addTask(CONNECT, new ConnectInfo(aAddress, aPort, localPort, natRole, proxy && (SETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5)));
@@ -131,16 +130,20 @@ void BufferedSocket::threadConnect(const string& aAddr, uint16_t aPort, uint16_t
 				sock->connect(aAddr, aPort);
 			}
 	
+			setOptions();
 			bool connSucceeded;
 			while((connSucceeded = sock->waitConnected(POLL_TIMEOUT)) == false && endTime >= GET_TICK()) {
 				if(disconnecting) return;
 			}
 	
 			if (connSucceeded) {
+				inbuf.resize(sock->getSocketOptInt(SO_RCVBUF));
+
 				fire(BufferedSocketListener::Connected());
 				return;
 			}
-		} catch (const SSLSocketException&) {
+		} 
+		catch (const SSLSocketException&) {
 			throw;
 		} catch (const SocketException&) {
 			if (natRole == NAT_NONE)
@@ -159,6 +162,8 @@ void BufferedSocket::threadAccept() {
 
 	state = RUNNING;
 
+	inbuf.resize(sock->getSocketOptInt(SO_RCVBUF));
+
 	uint64_t startTime = GET_TICK();
 	while(!sock->waitAccepted(POLL_TIMEOUT)) {
 		if(disconnecting)
@@ -174,8 +179,7 @@ void BufferedSocket::threadRead() {
 	if(state != RUNNING)
 		return;
 
-	size_t readsize = inbuf.size();
-	int left = sock->read(&inbuf[0], (int)readsize);
+	int left = sock->read(&inbuf[0], (int)inbuf.size());
 	if(left == -1) {
 		// EWOULDBLOCK, no data received...
 		return;
@@ -183,6 +187,7 @@ void BufferedSocket::threadRead() {
 		// This socket has been closed...
 		throw SocketException(STRING(CONNECTION_CLOSED));
 	}
+
 	string::size_type pos = 0;
     // always uncompressed data
 	string l;
@@ -515,5 +520,5 @@ void BufferedSocket::addTask(Tasks task, TaskData* data) {
 
 /**
  * @file
- * $Id: BufferedSocket.cpp 568 2011-07-24 18:28:43Z bigmuscle $
+ * $Id: BufferedSocket.cpp 575 2011-08-25 19:38:04Z bigmuscle $
  */

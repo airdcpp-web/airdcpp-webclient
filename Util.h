@@ -481,7 +481,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static void replace(string& aString, const string& findStr, const string& replaceStr);
 	static TCHAR* strstr(const TCHAR *str1, const TCHAR *str2, int *pnIdxFound);
 	static tstring replace(const tstring& aString, const tstring& fStr, const tstring& rStr);
-	static const string& getIpCountry (const string& IP);
+	static const string getIpCountry (const string& IP);
 
 	static bool getAway() { return away; }
 	static void setAway(bool aAway, bool byminimize = false);
@@ -527,7 +527,6 @@ private:
 	typedef map<uint32_t, uint16_t> CountryList;
 	typedef CountryList::iterator CountryIter;
 	static CountryList countries;
-	static StringList countryNames;
 
 	static void loadBootConfig();
 	

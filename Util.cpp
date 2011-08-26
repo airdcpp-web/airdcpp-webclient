@@ -29,7 +29,6 @@
 #include "CID.h"
 #include "FastAlloc.h"
 #include "File.h"
-
 #include "SettingsManager.h"
 #include "ResourceManager.h"
 #include "StringTokenizer.h"
@@ -38,6 +37,7 @@
 #include "version.h"
 #include "File.h"
 #include "OnlineUser.h"
+#include "Socket.h"
 #include "LogManager.h"
 
 #include "User.h"
@@ -68,7 +68,6 @@ string Util::awayMsg;
 time_t Util::awayTime;
 
 Util::CountryList Util::countries;
-StringList Util::countryNames;
 
 string Util::paths[Util::PATH_LAST];
 
@@ -206,43 +205,33 @@ void Util::initialize() {
 
 		const char* start = data.c_str();
 		string::size_type linestart = 0;
+		string::size_type comma1 = 0;
+		string::size_type comma2 = 0;
+		string::size_type comma3 = 0;
+		string::size_type comma4 = 0;
 		string::size_type lineend = 0;
-		auto last = countries.end();
+		CountryIter last = countries.end();
 		uint32_t startIP = 0;
 		uint32_t endIP = 0, endIPprev = 0;
 
-		countryNames.push_back(STRING(UNKNOWN));
-		auto addCountry = [](const string& countryName) -> size_t {
-			auto begin = countryNames.cbegin(), end = countryNames.cend();
-			auto pos = std::find(begin, end, countryName);
-			if(pos != end)
-				return pos - begin;
-			countryNames.push_back(countryName);
-			return countryNames.size() - 1;
-		};
-
-		while(true) {
-			auto pos = data.find(',', linestart);
-			if(pos == string::npos) break;
-			pos = data.find(',', pos + 1);
-			if(pos == string::npos) break;
-			startIP = toUInt32(start + pos + 2) - 1;
-
-			pos = data.find(',', pos + 1);
-			if(pos == string::npos) break;
-			endIP = toUInt32(start + pos + 2);
-
-			pos = data.find(',', pos + 1);
-			if(pos == string::npos) break;
-			pos = data.find(',', pos + 1);
-			if(pos == string::npos) break;
-			lineend = data.find('\n', pos);
+		for(;;) {
+			comma1 = data.find(',', linestart);
+			if(comma1 == string::npos) break;
+			comma2 = data.find(',', comma1 + 1);
+			if(comma2 == string::npos) break;
+			comma3 = data.find(',', comma2 + 1);
+			if(comma3 == string::npos) break;
+			comma4 = data.find(',', comma3 + 1);
+			if(comma4 == string::npos) break;
+			lineend = data.find('\n', comma4);
 			if(lineend == string::npos) break;
 
-			if(startIP != endIPprev)
-				last = countries.insert(last, make_pair(startIP, 0));
-			pos += 2;
-			last = countries.insert(last, make_pair(endIP, addCountry(data.substr(pos, lineend - 1 - pos))));
+			startIP = Util::toUInt32(start + comma2 + 2);
+			endIP = Util::toUInt32(start + comma3 + 2);
+			uint16_t* country = (uint16_t*)(start + comma4 + 2);
+			if((startIP-1) != endIPprev)
+				last = countries.insert(last, make_pair((startIP-1), (uint16_t)16191));
+			last = countries.insert(last, make_pair(endIP, *country));
 
 			endIPprev = endIP;
 			linestart = lineend + 1;
@@ -631,6 +620,10 @@ wstring Util::formatExactSize(int64_t aBytes) {
 }
 
 string Util::getLocalIp() {
+	if(!SettingsManager::getInstance()->isDefault(SettingsManager::BIND_INTERFACE)) {
+		return Socket::getBindAddress();
+	}
+
 	string tmp;
 	
 	char buf[256];
@@ -1074,10 +1067,11 @@ uint32_t Util::rand() {
 }
 
 /*	getIpCountry
-	This function returns the full country name of an ip, eg "Portugal".
+	This function returns the country(Abbreviation) of an ip
+	for exemple: it returns "PT", whitch standards for "Portugal"
 	more info: http://www.maxmind.com/app/csv
 */
-const string& Util::getIpCountry (const string& IP) {
+const string Util::getIpCountry (const string& IP) {
 	if (BOOLSETTING(GET_USER_COUNTRY)) {
 		if(count(IP.begin(), IP.end(), '.') != 3)
 			return emptyString;
@@ -1095,11 +1089,12 @@ const string& Util::getIpCountry (const string& IP) {
 
 		auto i = countries.lower_bound(ipnum);
 		if(i != countries.end()) {
-			return countryNames[i->second];
+			return string((char*)&(i->second), 2);
+			//return countryNames[i->second];
 		}
 	}
 
-	return Util::emptyString; //if doesn't returned anything already, something is wrong...
+	return emptyString;
 }
 
 string Util::getDateTime(time_t t) {
