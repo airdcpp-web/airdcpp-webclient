@@ -506,7 +506,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static int getSpeedLimit(bool download, double value=0);
 	static int getMaxAutoOpened(double value = 0);
 	static string getLocale();
-	static void setProfile(int profile);
+	static void setProfile(int profile, bool setSkiplist=false);
 
 	static uint32_t rand();
 	static uint32_t rand(uint32_t high) { return rand() % high; }
