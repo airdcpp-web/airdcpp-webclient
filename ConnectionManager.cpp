@@ -117,7 +117,7 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool dow
 		}
 	} else {
 		
-			//Lock l(cs); caller locked
+			Lock l(cs);
 			uploads.push_back(cqi);
 		
 	}
@@ -132,12 +132,12 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 	if(cqi->getDownload()) {
 		dcassert(find(downloads.begin(), downloads.end(), cqi) != downloads.end());
 		{
-			//Lock l(cs); no need, the only caller, timermanager is locked
+			Lock l(cs);
 			downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
 			delayedTokens[cqi->getToken()] = GET_TICK();
 		}
 	} else {
-		//Lock l(cs); no need, the only caller is locked
+		Lock l(cs);
 		UploadManager::getInstance()->removeDelayUpload(cqi->getUser());
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
 		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
