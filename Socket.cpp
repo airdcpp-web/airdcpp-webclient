@@ -622,7 +622,7 @@ Socket::addrinfo_p Socket::resolveAddr(const string& aDns, uint16_t port, int fl
 }
 
 string Socket::resolveName(const addr& serv_addr, uint16_t* port) {
-	char buf[1024];
+	char buf[NI_MAXHOST];
 	check(::getnameinfo((sockaddr*)&serv_addr, (serv_addr.sas.ss_family == AF_INET6) ? sizeof(serv_addr.sai6) : sizeof(serv_addr.sai), buf, sizeof(buf), NULL, 0, NI_NUMERICHOST));
 	string ip(buf);
 
@@ -753,75 +753,49 @@ string Socket::getRemoteHost(const string& aIp) {
 	}
 }
 
+#define UNSPEC_IP	(family == AF_INET6 ? "::" : "0.0.0.0")
 string Socket::getBindAddress() {
 	if(SettingsManager::getInstance()->isDefault(SettingsManager::BIND_INTERFACE))
-		return "::";
+		return UNSPEC_IP;
 
 	// care about win32 only now (see wx build for *nix version)
-#define WORKING_BUFFER_SIZE 8192
-#define MAX_TRIES 3
-
-	IP_ADAPTER_ADDRESSES* adapterInfo = NULL;
-	ULONG len = WORKING_BUFFER_SIZE;
-	ULONG ret = 0;
-	int iterations = 0;
-
-	do
+	ULONG len =	8192; // begin with 8 kB, it should be enough in most of cases
+	for(int i = 0; i < 3; ++i)
 	{
-		adapterInfo = (IP_ADAPTER_ADDRESSES*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+		PIP_ADAPTER_ADDRESSES adapterInfo = (PIP_ADAPTER_ADDRESSES)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+		ULONG ret = GetAdaptersAddresses(AF_INET, GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, NULL, adapterInfo, &len);
 
-		// since this is experimental, allow binding to IPv4 interface only
-		ret = GetAdaptersAddresses(AF_INET, GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, NULL, adapterInfo, &len);
+		if(ret == ERROR_SUCCESS)
+		{
+			for(PIP_ADAPTER_ADDRESSES pAdapterInfo = adapterInfo; pAdapterInfo != NULL; pAdapterInfo = pAdapterInfo->Next)
+			{
+				if(SETTING(BIND_INTERFACE) != pAdapterInfo->AdapterName)
+					continue;
+
+				// we want only enabled ethernet interfaces
+				if(pAdapterInfo->FirstUnicastAddress && pAdapterInfo->OperStatus == IfOperStatusUp && (pAdapterInfo->IfType == IF_TYPE_ETHERNET_CSMACD || pAdapterInfo->IfType == IF_TYPE_IEEE80211))
+				{
+					string ip = resolveName((addr&)*pAdapterInfo->FirstUnicastAddress->Address.lpSockaddr);
+					HeapFree(GetProcessHeap(), 0, adapterInfo);
+					return ip;
+				}
+
+				break;
+			}
+		}
+
+		HeapFree(GetProcessHeap(), 0, adapterInfo);
 
 		if(ret != ERROR_BUFFER_OVERFLOW)
 			break;
-
-		HeapFree(GetProcessHeap(), 0, adapterInfo);
-
-		++iterations;
-	}
-	while (ret == ERROR_BUFFER_OVERFLOW && iterations < MAX_TRIES);
-
-	if(ret == ERROR_SUCCESS)
-	{
-		PIP_ADAPTER_ADDRESSES  pAdapterInfo = adapterInfo;
-		while (pAdapterInfo)
-		{
-			// we want only enabled ethernet interfaces
-			if(pAdapterInfo->OperStatus == IfOperStatusUp && (pAdapterInfo->IfType == IF_TYPE_ETHERNET_CSMACD || pAdapterInfo->IfType == IF_TYPE_IEEE80211))
-			{
-				if(pAdapterInfo->AdapterName == SETTING(BIND_INTERFACE))
-				{
-					PIP_ADAPTER_UNICAST_ADDRESS pIpList = pAdapterInfo->FirstUnicastAddress;
-					while (pIpList)
-					{
-						char ip[NI_MAXHOST];
-						int s = getnameinfo(pIpList->Address.lpSockaddr, pIpList->Address.iSockaddrLength, ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
-						if (s == 0) 
-						{
-							HeapFree(GetProcessHeap(), 0, adapterInfo);
-							return ip;
-						}
-						pIpList = pIpList->Next;
-					}
-
-					// something wrong? selected interface has no appropriate address
-					return "::";
-				}
-			}
-			pAdapterInfo = pAdapterInfo->Next;
-		}
 	}
 
-	if(adapterInfo)
-		HeapFree(GetProcessHeap(), 0, adapterInfo);
-
-	return "::";	// no interface found, return empty address
+	return UNSPEC_IP;	// no interface found, return unspecified address
 }
 
 } // namespace dcpp
 
 /**
  * @file
- * $Id: Socket.cpp 575 2011-08-25 19:38:04Z bigmuscle $
+ * $Id: Socket.cpp 576 2011-08-29 17:50:49Z bigmuscle $
  */
