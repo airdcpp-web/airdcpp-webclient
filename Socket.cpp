@@ -597,7 +597,7 @@ string Socket::resolve(const string& aDns)
 Socket::addrinfo_p Socket::resolveAddr(const string& aDns, uint16_t port, int flags) {
 	addrinfo hints = { 0 };
 	addrinfo* result;
-	hints.ai_family = AF_INET6;
+	hints.ai_family = family;
 	hints.ai_flags = flags | (family == AF_INET6 ? (AI_ALL | AI_V4MAPPED) : 0);
 
 	string dns = aDns;
