@@ -1109,7 +1109,7 @@ enum Strings { // @DontAdd
 	PASSWD_PROTECT_TRAY_CHCKBOX, // "Protect Tray"
 	NOTE, // "Note; If you disable password protection your password will be reset!"
 	READD_ALL, // "Readd all Sources"
-	HUB_NOT_PROTECTED, // "No password was required/provided at login, disconnecting hub."
+	HUB_NOT_PROTECTED, // "No password was required/provided at login, disconnecting hub. (Setting @ AirDCpage)"
 	DISALLOW_CONNECTION_TO_PASSED_HUBS, // "Automatically disconnect hubs if not registered"
 	DONT_SHARE_DOWNLOAD_DIRECTORY, // "The download directory cannot be shared"
 	TOTAL_TIME_LEFT, // "Total Time left"
@@ -1254,8 +1254,12 @@ enum Strings { // @DontAdd
 	PROPPAGE_UNDERLINE_LINKS, // "Underline links"
 	PROPPAGE_UNDERLINE_DUPES, // "Underline dupes"
 	SETTINGS_DUPE_FILELIST, // "Use dupe color in filelists"
-	SETTINGS_DUPE_CHAT, // "Use dupe color in chat"
+	SETTINGS_DUPE_CHAT, // "Use dupe color in chat" 
 	CLIENT_VERSION, // "Client version"
 	LANGUAGE_VERSION, // "Language version"
+	PROPPAGE_LIST_HL, // "FileList Highlight"
+	PROPPAGE_LIST_HL_PREV, // "Highlighted.Release.Example-AIRDC"
+	LIST_HL_TEXT, // "HighLight matches in Filelists (wildcards, | separate)"
+	LIST_HL_EXAMPLE, // "Example, *NORDIC* (this may slow down filelist loading...)"
 	LAST // @DontAdd
 };

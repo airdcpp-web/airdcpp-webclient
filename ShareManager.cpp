@@ -927,35 +927,10 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			LogManager::getInstance()->message("Invalid file name found while hashing folder "+ aName + ".");
 			continue;
 		}
-
-		if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
-			string str1 = SETTING(SKIPLIST_SHARE);
-			string str2 = name;
-			try {
-				boost::regex reg(str1);
-				if(boost::regex_search(str2.begin(), str2.end(), reg)){
-					continue;
-				};
-			} catch(...) {
-			}
-			/*PME regexp;
-			regexp.Init(Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)));
-			if((regexp.IsValid()) && (regexp.match(Text::utf8ToAcp(name)))) {
-				continue;
-			}*/
-		}else{
-			try{
-			if( Wildcard::patternMatch( name, SETTING(SKIPLIST_SHARE), '|' ) ){
-				continue;
-			}
-			}catch(...) { }
-			
-		}
-
 		if(name == "." || name == "..")
 			continue;
 
-		//check for forbidden file patterns
+				//check for forbidden file patterns
 		if(BOOLSETTING(REMOVE_FORBIDDEN)) {
 			string::size_type nameLen = name.size();
 			string fileExt = Util::getFileExt(name);
@@ -979,8 +954,37 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 					continue;
 			}
 		}
+
 		if(!BOOLSETTING(SHARE_HIDDEN) && i->isHidden())
 			continue;
+
+		if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
+			string str1 = SETTING(SKIPLIST_SHARE);
+			string str2 = name;
+			try {
+				boost::regex reg(str1);
+				if(boost::regex_search(str2.begin(), str2.end(), reg)){
+					LogManager::getInstance()->message("Forbidden file will not be shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(File::getSize(name)) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+					continue;
+				};
+			} catch(...) {
+			}
+			/*PME regexp;
+			regexp.Init(Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)));
+			if((regexp.IsValid()) && (regexp.match(Text::utf8ToAcp(name)))) {
+				continue;
+			}*/
+		}else{
+			try{
+			if( Wildcard::patternMatch( name, SETTING(SKIPLIST_SHARE), '|' ) ){
+				LogManager::getInstance()->message("Forbidden file will not be shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(File::getSize(name)) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+				continue;
+			}
+			}catch(...) { }
+			
+		}
+
+		
 /*
 		if(i->isLink())
  			continue;

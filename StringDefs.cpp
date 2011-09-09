@@ -1250,6 +1250,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Use dupe color in chat", 
 "Client version", 
 "Language version", 
+"FileList Highlight",
+"Highlighted.Release.Example-AIRDC",
+"HighLight matches in Filelists (wildcards, | separate)",
+"Example, *NORDIC* (this may slow down filelist loading...)",
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2500,4 +2504,8 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsDupeChat", 
 "ClientVersion", 
 "LanguageVersion", 
+"ProppageListHL",
+"ProppageListHLPrev",
+"ListHLText",
+"ListHLExample",
 };

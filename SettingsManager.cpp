@@ -65,7 +65,7 @@ const string SettingsManager::settingTags[] =
 	"AntivirPath",
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
-	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed",
+	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList",
 
 	"SENTRY", 
 	// Ints
@@ -154,7 +154,7 @@ const string SettingsManager::settingTags[] =
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
-	"UnderlineDupes", "DupesInFilelists", "DupesInChat",
+	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -431,6 +431,11 @@ SettingsManager::SettingsManager()
 	setDefault(TEXT_DUPE_ITALIC, false);
 	setDefault(UNDERLINE_DUPES, true);
 
+	setDefault(LIST_HL_BG_COLOR, RGB(255, 255, 255));
+	setDefault(LIST_HL_COLOR, RGB(126, 189, 202));
+	setDefault(LIST_HL_BOLD, false);
+	setDefault(LIST_HL_ITALIC, false);
+
 	setDefault(KICK_MSG_RECENT_01, "");
 	setDefault(KICK_MSG_RECENT_02, "");
 	setDefault(KICK_MSG_RECENT_03, "");
@@ -681,6 +686,8 @@ SettingsManager::SettingsManager()
 	setDefault(SKIP_SUBTRACT, 0);
 	setDefault(DUPES_IN_FILELIST, true);
 	setDefault(DUPES_IN_CHAT, true);
+	setDefault(HIGHLIGHT_LIST, "");
+
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

@@ -238,12 +238,12 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 			if(d->getOverlapped())
 				continue;
 
-			// current chunk must be running at least for 2 seconds
-			if(d->getStart() == 0 || GET_TICK() - d->getStart() < 2000) 
+			// current chunk must be running at least for 4 seconds
+			if(d->getStart() == 0 || GET_TICK() - d->getStart() < 4000) 
 				continue;
 
-			// current chunk mustn't be finished in next 10 seconds
-			if(d->getSecondsLeft() < 10)
+			// current chunk mustn't be finished in next 20 seconds
+			if(d->getSecondsLeft() < 20)
 				continue;
 
 			// overlap current chunk at last block boundary

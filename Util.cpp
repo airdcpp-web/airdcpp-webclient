@@ -1911,6 +1911,7 @@ void Util::setProfile(int profile, bool setSkiplist) {
 			SettingsManager::getInstance()->set(SettingsManager::SEARCH_TIME, 5);
 			SettingsManager::getInstance()->set(SettingsManager::AUTO_SEARCH_LIMIT, 10);
 			SettingsManager::getInstance()->set(SettingsManager::AUTO_FOLLOW, false);
+			SettingsManager::getInstance()->set(SettingsManager::OVERLAP_CHUNKS, false);
 			//add more here
 
 			SettingsManager::getInstance()->set(SettingsManager::SETTINGS_PROFILE, SettingsManager::PROFILE_RAR);
