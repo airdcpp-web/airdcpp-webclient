@@ -1251,7 +1251,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Client version", 
 "Language version", 
 "FileList Highlight", 
-"Highlight.Example-AIRDC", 
+"Highlight-AIRDC", 
 "HighLight matches in Filelists (wildcards, | separate)", 
 "Example, *NORDIC* (this may slow down filelist loading...)", 
 };

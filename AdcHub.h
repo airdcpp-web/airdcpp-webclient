@@ -69,7 +69,7 @@ public:
 	static const string TIGR_SUPPORT;
 	static const string UCM0_SUPPORT;
 	static const string BLO0_SUPPORT;
-	//static const string ZLIF_SUPPORT;
+	static const string ZLIF_SUPPORT;
 
 private:
 	friend class ClientManager;
@@ -145,8 +145,8 @@ private:
 	void handle(AdcCommand::NAT, AdcCommand& c) noexcept;
 	void handle(AdcCommand::RNT, AdcCommand& c) noexcept;
 	void handle(AdcCommand::PSR, AdcCommand& c) noexcept;
-//	void handle(AdcCommand::ZON, AdcCommand& c) noexcept;
-//	void handle(AdcCommand::ZOF, AdcCommand& c) noexcept;
+	void handle(AdcCommand::ZON, AdcCommand& c) noexcept;
+	void handle(AdcCommand::ZOF, AdcCommand& c) noexcept;
 
 	template<typename T> void handle(T, AdcCommand&) { }
 
