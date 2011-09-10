@@ -1258,7 +1258,7 @@ enum Strings { // @DontAdd
 	CLIENT_VERSION, // "Client version"
 	LANGUAGE_VERSION, // "Language version"
 	PROPPAGE_LIST_HL, // "FileList Highlight"
-	PROPPAGE_LIST_HL_PREV, // "Highlighted.Release.Example-AIRDC"
+	PROPPAGE_LIST_HL_MSG, // "Highlight.Example-AIRDC"
 	LIST_HL_TEXT, // "HighLight matches in Filelists (wildcards, | separate)"
 	LIST_HL_EXAMPLE, // "Example, *NORDIC* (this may slow down filelist loading...)"
 	LAST // @DontAdd

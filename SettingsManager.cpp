@@ -22,6 +22,7 @@
 #include "ResourceManager.h"
 #include "SimpleXML.h"
 #include "Util.h"
+#include "AirUtil.h"
 #include "File.h"
 #include "version.h"
 #include "AdcHub.h"

@@ -25,7 +25,7 @@
 #include "MappingManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
-
+#include "AirUtil.h"
 
 namespace dcpp {
 
@@ -86,7 +86,7 @@ void ConnectivityManager::detectConnection() {
 
 	autoDetected = true;
 
-	if (!Util::isPrivateIp(Util::getLocalIp())) {
+	if (!Util::isPrivateIp(AirUtil::getLocalIp())) {
 		SettingsManager::getInstance()->set(SettingsManager::INCOMING_CONNECTIONS, SettingsManager::INCOMING_DIRECT);
 		log("Public IP address detected, selecting active mode with direct connection");
 		fire(ConnectivityManagerListener::Finished());

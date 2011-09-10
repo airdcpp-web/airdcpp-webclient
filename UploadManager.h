@@ -28,6 +28,7 @@
 #include "ClientManagerListener.h"
 #include "MerkleTree.h"
 #include "FastAlloc.h"
+#include "AirUtil.h"
 
 namespace dcpp {
 
@@ -105,7 +106,7 @@ public:
 	 */
 	int64_t getRunningAverage();
 	
-	uint8_t getSlots() const { return (uint8_t)(max(Util::getSlots(false), max(SETTING(HUB_SLOTS),0) * Client::getTotalCounts())); }
+	uint8_t getSlots() const { return (uint8_t)(max(AirUtil::getSlots(false), max(SETTING(HUB_SLOTS),0) * Client::getTotalCounts())); }
 
 	/** @return Number of free slots. */
 	uint8_t getFreeSlots() const { return (uint8_t)max((getSlots() - running), 0); }

@@ -421,7 +421,7 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 		MultiConnIter uis = multiUploads.find(cid);
 		if (uis != multiUploads.end()) {
-			if (((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= Util::getSlotsPerUser(false) || Util::getSlotsPerUser(false) == 0)) {
+			if (((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= AirUtil::getSlotsPerUser(false) || AirUtil::getSlotsPerUser(false) == 0)) {
 				return true;
 			} else {
 				return false;
@@ -495,16 +495,16 @@ int64_t UploadManager::getRunningAverage() {
 
 bool UploadManager::getAutoSlot() {
 	/** A 0 in settings means disable */
-	if(Util::getSpeedLimit(false) == 0)
+	if(AirUtil::getSpeedLimit(false) == 0)
 		return false;
 	/** Max slots */
-	if(getSlots() + Util::getMaxAutoOpened() < running)
+	if(getSlots() + AirUtil::getMaxAutoOpened() < running)
 		return false;		
 	/** Only grant one slot per 30 sec */
 	if(GET_TICK() < getLastGrant() + 30*1000)
 		return false;
 	/** Grant if upload speed is less than the threshold speed */
-	return getRunningAverage() < (Util::getSpeedLimit(false)*1024);
+	return getRunningAverage() < (AirUtil::getSpeedLimit(false)*1024);
 }
 
 void UploadManager::removeUpload(Upload* aUpload, bool delay) {

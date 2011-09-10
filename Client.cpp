@@ -25,6 +25,7 @@
 #include "TimerManager.h"
 #include "ResourceManager.h"
 #include "ClientManager.h"
+#include "AirUtil.h"
 
 namespace dcpp {
 
@@ -258,7 +259,7 @@ string Client::getLocalIp() const {
 	}
 
 	if(localIp.empty()) {
-		return Util::getLocalIp();
+		return AirUtil::getLocalIp();
 	}
 
 	return localIp;

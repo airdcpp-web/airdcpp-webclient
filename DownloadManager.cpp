@@ -180,13 +180,13 @@ bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
 	size_t downloadCount = getDownloadCount();
 
 
-	bool full = (Util::getSlots(true) != 0) && (downloadCount >= (size_t)Util::getSlots(true));
-	full = full || ((Util::getSpeedLimit(true) != 0) && (getRunningAverage() >= (Util::getSpeedLimit(true)*1024)));
+	bool full = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t)AirUtil::getSlots(true));
+	full = full || ((AirUtil::getSpeedLimit(true) != 0) && (getRunningAverage() >= (AirUtil::getSpeedLimit(true)*1024)));
 	//LogManager::getInstance()->message("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
 
 	if(full) {
 		//LogManager::getInstance()->message("Full");
-		bool extraFull = (Util::getSlots(true) != 0) && (getDownloadCount() >= (size_t)(Util::getSlots(true)+SETTING(EXTRA_DOWNLOAD_SLOTS)));
+		bool extraFull = (AirUtil::getSlots(true) != 0) && (getDownloadCount() >= (size_t)(AirUtil::getSlots(true)+SETTING(EXTRA_DOWNLOAD_SLOTS)));
 		if(extraFull || mcn) {
 			return false;
 		}
