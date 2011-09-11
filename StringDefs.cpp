@@ -1028,7 +1028,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "AirDC++\\Appearance", 
 "Get IP", 
 "Use Highlights", 
-"Dupes Background Color", 
 "Background color used in file lists to show files that are already shared", 
 "Show Progress bars in Queue", 
 "Language"	, 
@@ -1254,6 +1253,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Highlight-AIRDC", 
 "HighLight matches in Filelists (wildcards, | separate)", 
 "Example, *NORDIC* (this may slow down filelist loading...)", 
+"Dupes Settings", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2282,7 +2282,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsAirappearance", 
 "GetIp", 
 "UseHighlight", 
-"SettingsDupes", 
 "SettingsDupeDescription", 
 "SettingsShowQueueBars", 
 "SettingsLanguage", 
@@ -2508,4 +2507,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ProppageListHlMsg", 
 "ListHlText", 
 "ListHlExample", 
+"SettingsDupes", 
 };

@@ -1033,7 +1033,6 @@ enum Strings { // @DontAdd
 	SETTINGS_AIRAPPEARANCE, // "AirDC++\\Appearance"
 	GET_IP, // "Get IP"
 	USE_HIGHLIGHT, // "Use Highlights"
-	SETTINGS_DUPES, // "Dupes Background Color"
 	SETTINGS_DUPE_DESCRIPTION, // "Background color used in file lists to show files that are already shared"
 	SETTINGS_SHOW_QUEUE_BARS, // "Show Progress bars in Queue"
 	SETTINGS_LANGUAGE, // "Language"	
@@ -1261,5 +1260,6 @@ enum Strings { // @DontAdd
 	PROPPAGE_LIST_HL_MSG, // "Highlight-AIRDC"
 	LIST_HL_TEXT, // "HighLight matches in Filelists (wildcards, | separate)"
 	LIST_HL_EXAMPLE, // "Example, *NORDIC* (this may slow down filelist loading...)"
+	SETTINGS_DUPES, // "Dupes Settings"
 	LAST // @DontAdd
 };
