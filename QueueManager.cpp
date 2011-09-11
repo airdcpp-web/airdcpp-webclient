@@ -705,13 +705,14 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		if(BOOLSETTING(AUTO_SEARCH) && (aTick >= nextSearch) && (fileQueue.getSize() > 0)) {
 			// We keep 30 recent searches to avoid duplicate searches
 			while((recent.size() >= fileQueue.getSize()) || (recent.size() > 30)) {
-				recent.pop_front();
+				recent.erase(recent.begin());
 			}
 
 			QueueItem* qi;
-			while((qi = fileQueue.findAutoSearch(recent)) == NULL && !recent.empty()) {
-				recent.pop_front();
-			}
+			qi = fileQueue.findAutoSearch(recent);
+			//while((qi = fileQueue.findAutoSearch(recent)) == NULL && !recent.empty()) {
+				//recent.pop_front();
+			//}
 			if(qi != NULL) {
 				searchString = qi->getTTH().toBase32();
 				recent.push_back(qi->getTarget());
@@ -839,6 +840,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				for(auto i = ql.begin(); i != ql.end(); ++i) {
 					if(!(*i)->isSource(aUser)) {
 						try {
+
 							wantConnection = addSource(*i, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0);
 							sourceAdded = true;
 						} catch(...) { }
@@ -846,6 +848,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				}
 
 				if(!sourceAdded) {
+					LogManager::getInstance()->message(STRING(FILE_WITH_SAME_TTH) + " " + aTarget );
 					throw QueueException(STRING(FILE_WITH_SAME_TTH));
 				}
 				goto connect;
