@@ -202,8 +202,7 @@ void QueueManager::FileQueue::find(QueueItemList& ql, const TTHValue& tth) {
 	}
 }
 
-static QueueItem* findCandidate(QueueItem::StringMap::const_iterator start, QueueItem::StringMap::const_iterator end, deque<string>& recent) {
-	QueueItem* cand = NULL;
+static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::const_iterator start, QueueItem::StringMap::const_iterator end, deque<string>& recent) {
 
 	for(auto i = start; i != end; ++i) {
 		QueueItem* q = i->second;
@@ -252,7 +251,7 @@ QueueItem* QueueManager::FileQueue::findAutoSearch(deque<string>& recent) const 
 	auto i = queue.begin();
 	advance(i, start);
 
-	QueueItem* cand = findCandidate(i, queue.end(), recent);
+	QueueItem* cand = findCandidate(NULL, i, queue.end(), recent);
 /*	why so complex, hope this will fix the deadlock freeze with bigger queue, 
 	or do we just need to keep the searches alive even if item is running?
 
@@ -265,11 +264,11 @@ QueueItem* QueueManager::FileQueue::findAutoSearch(deque<string>& recent) const 
 		}
 	}*/
 	if(cand == NULL || cand->isRunning()) {
-		cand = findCandidate(queue.begin(), i, recent);  
+		cand = findCandidate(cand, queue.begin(), i, recent);  
 	}
 
-	if((cand != NULL) && cand->isRunning()) //if its still a running one dont search?
-		cand = NULL;
+	//if((cand != NULL) && cand->isRunning()) //if its still a running one dont search?
+		//cand = NULL;
 
 	return cand;
 }
