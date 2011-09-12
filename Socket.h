@@ -198,7 +198,6 @@ public:
 	static void socksUpdated();
 	static string getRemoteHost(const string& aIp);
 	static string resolveName(const addr& serv_addr, uint16_t* port = NULL);
-	static string getBindAddress();
 	
 	GETSET(string, ip, Ip);
 	GETSET(uint16_t, port, Port);
@@ -262,5 +261,5 @@ private:
 
 /**
  * @file
- * $Id: Socket.h 575 2011-08-25 19:38:04Z bigmuscle $
+ * $Id: Socket.h 573 2011-08-04 22:33:45Z bigmuscle $
  */

@@ -44,7 +44,7 @@ const string SettingsManager::settingTags[] =
 	"HublistServers", "QueueFrameOrder", "QueueFrameWidths", "PublicHubsFrameOrder", "PublicHubsFrameWidths", 
 	"UsersFrameOrder", "UsersFrameWidths", "HttpProxy", "LogDirectory", "LogFormatPostDownload", 
 	"LogFormatPostUpload", "LogFormatMainChat", "LogFormatPrivateChat", "FinishedOrder", "FinishedWidths",	 
-	"TempDownloadDirectory", "BindInterface", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", 
+	"TempDownloadDirectory", "BindAddress", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", 
 	"DefaultAwayMessage", "TimeStampsFormat", "ADLSearchFrameOrder", "ADLSearchFrameWidths", 
 	"FinishedULWidths", "FinishedULOrder", "CID", "SpyFrameWidths", "SpyFrameOrder", 
 	"BeepFile", "BeginFile", "FinishedFile", "SourceFile", "UploadFile", "FakerFile", "ChatNameFile", "WinampFormat",
@@ -265,6 +265,7 @@ SettingsManager::SettingsManager()
 	setDefault(GET_USER_INFO, true);
 	setDefault(URL_HANDLER, true);
 	setDefault(AUTO_AWAY, false);
+	setDefault(BIND_ADDRESS, "0.0.0.0");
 	setDefault(SOCKS_PORT, 1080);
 	setDefault(SOCKS_RESOLVE, 1);
 	setDefault(CONFIG_VERSION, "0.181");		// 0.181 is the last version missing configversion

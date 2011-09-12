@@ -84,6 +84,7 @@ public:
 	Modes getMode() const { return mode; }
 	const string& getIp() const { return sock->getIp(); }
 	const uint16_t getPort() { return sock->getPort(); }
+	bool isConnected() const { return sock->isConnected(); }
 	
 	bool isSecure() const { return sock->isSecure(); }
 	bool isTrusted() const { return sock->isTrusted(); }
@@ -177,7 +178,6 @@ private:
 	void checkSocket();
 
 	void setSocket(std::unique_ptr<Socket> s);
-	void setOptions();
 	void shutdown();
 	void addTask(Tasks task, TaskData* data);
 };
@@ -188,5 +188,5 @@ private:
 
 /**
  * @file
- * $Id: BufferedSocket.h 575 2011-08-25 19:38:04Z bigmuscle $
+ * $Id: BufferedSocket.h 568 2011-07-24 18:28:43Z bigmuscle $
  */

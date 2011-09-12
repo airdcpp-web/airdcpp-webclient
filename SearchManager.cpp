@@ -92,7 +92,7 @@ void SearchManager::listen() {
 		socket->create(Socket::TYPE_UDP);
 		socket->setBlocking(true);
 		socket->setSocketOpt(SO_RCVBUF, SETTING(SOCKET_IN_BUFFER));
-		port = socket->bind(static_cast<uint16_t>(SETTING(UDP_PORT)), Socket::getBindAddress());
+		port = socket->bind(static_cast<uint16_t>(SETTING(UDP_PORT)), SETTING(BIND_ADDRESS));
 		start();
 	} catch(...) {
 		socket.reset();
@@ -138,7 +138,7 @@ int SearchManager::run() {
 				socket->create(Socket::TYPE_UDP);
 				socket->setBlocking(true);
 				socket->setSocketOpt(SO_RCVBUF, SETTING(SOCKET_IN_BUFFER));
-				socket->bind(port, Socket::getBindAddress());
+				socket->bind(port, BOOLSETTING(AUTO_DETECT_CONNECTION) ? Util::emptyString : SETTING(BIND_ADDRESS));
 				if(failed) {
 					LogManager::getInstance()->message("Search enabled again"); // TODO: translate
 					failed = false;
@@ -531,5 +531,5 @@ AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const s
 
 /**
  * @file
- * $Id: SearchManager.cpp 575 2011-08-25 19:38:04Z bigmuscle $
+ * $Id: SearchManager.cpp 573 2011-08-04 22:33:45Z bigmuscle $
  */

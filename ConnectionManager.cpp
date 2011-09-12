@@ -57,13 +57,13 @@ ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServe
 void ConnectionManager::listen() {
 	disconnect();
 
-	server = new Server(false, static_cast<uint16_t>(SETTING(TCP_PORT)), Socket::getBindAddress());
+	server = new Server(false, static_cast<uint16_t>(SETTING(TCP_PORT)), SETTING(BIND_ADDRESS));
 
 	if(!CryptoManager::getInstance()->TLSOk()) {
 		dcdebug("Skipping secure port: %d\n", SETTING(TLS_PORT));
 		return;
 	}
-	secureServer = new Server(true, static_cast<uint16_t>(SETTING(TLS_PORT)), Socket::getBindAddress());
+	secureServer = new Server(true, static_cast<uint16_t>(SETTING(TLS_PORT)), SETTING(BIND_ADDRESS));
 }
 
 /**

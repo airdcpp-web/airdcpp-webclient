@@ -391,7 +391,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 
 				//Report extra files in a zip folder
 				if (isZipRls && SETTING(CHECK_EXTRA_FILES)) {
-					reg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo))");
+					reg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
 					for(i = fileList.begin(); i != fileList.end(); ++i) {
 						if (!regex_match(*i, reg)) {
 							LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path + *i);

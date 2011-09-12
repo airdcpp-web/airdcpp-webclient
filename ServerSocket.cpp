@@ -28,7 +28,7 @@ void ServerSocket::listen(uint16_t aPort) {
 	socket.create(Socket::TYPE_TCP);
 	// Set reuse address option...
 	socket.setSocketOpt(SO_REUSEADDR, 1);
-	socket.bind(aPort, Socket::getBindAddress());
+	socket.bind(aPort, SETTING(BIND_ADDRESS));
 	socket.listen();
 }
 
@@ -36,5 +36,5 @@ void ServerSocket::listen(uint16_t aPort) {
 
 /**
  * @file
- * $Id: ServerSocket.cpp 575 2011-08-25 19:38:04Z bigmuscle $
+ * $Id: ServerSocket.cpp 569 2011-07-25 19:48:51Z bigmuscle $
  */
