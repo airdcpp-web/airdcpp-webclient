@@ -180,7 +180,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 			if(cqi == nullptr)
 				continue;
 
-			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING && cqi->getState() != ConnectionQueueItem::IDLE) {
+			if ((cqi->getLastAttempt() == 0 || cqi->getLastAttempt() + 60 * 1000 * max(1, cqi->getErrors()) < aTick) && (attemptLimit == 0 || attempts < attemptLimit)) {
 				if(!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					removed.push_back(cqi);
 					continue;

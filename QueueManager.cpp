@@ -875,7 +875,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	}
 connect:
 	bool smallSlot=false;
-	if(newItem && ((aFlags & QueueItem::FLAG_PARTIAL_LIST) == QueueItem::FLAG_PARTIAL_LIST || (aSize <= 65792 && !(aFlags & QueueItem::FLAG_USER_LIST)))) {
+	if (newItem && (((aFlags & QueueItem::FLAG_PARTIAL_LIST) || (aSize <= 65792 && !(aFlags & QueueItem::FLAG_USER_LIST))) && (aFlags & QueueItem::FLAG_CLIENT_VIEW))) {
 			smallSlot=true;
 	}
 	if(!aUser.user) //atleast magnet links can cause this to happen.
