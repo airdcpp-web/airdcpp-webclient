@@ -66,7 +66,7 @@ public:
 	int matchListing(const DirectoryListing& dl) noexcept;
 	bool findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) noexcept;
 
-	bool getTTH(const string& name, TTHValue& tth) const noexcept;
+	bool getTTH(const string& name, TTHValue& tth) noexcept;
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const string& aSource, const string& aTarget) noexcept;
@@ -108,7 +108,7 @@ public:
 	
 	bool dropSource(Download* d);
 
-	const QueueItemList getRunningFiles() const noexcept {
+	const QueueItemList getRunningFiles() noexcept {
 		QueueItemList ql;
 		for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
 			QueueItem* q = i->second;
@@ -193,14 +193,14 @@ public:
 	/** All queue items by target */
 	class FileQueue {
 	public:
-		FileQueue() { }
+		FileQueue() : lastInsert(queue.end()){ }
 		~FileQueue();
 		void add(QueueItem* qi);
 		QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
 			const string& aTempTarget, time_t aAdded, const TTHValue& root)
 			throw(QueueException, FileException);
 
-		QueueItem* find(const string& target) const;
+		QueueItem* find(const string& target);
 		void find(QueueItemList& sl, int64_t aSize, const string& ext);
 		uint8_t getMaxSegments(int64_t filesize) const;
 		void find(StringList& sl, int64_t aSize, const string& ext);
@@ -211,9 +211,9 @@ public:
 		// Total Time Left /* ttlf */
 		int64_t getTotalSize(const string & path);
 
-		QueueItem* findAutoSearch(deque<string>& recent) const;
-		size_t getSize() const { return queue.size(); }
-		const QueueItem::StringMap& getQueue() const { return queue; }
+		QueueItem* findAutoSearch(StringList& recent);
+		size_t getSize() { return queue.size(); }
+		QueueItem::StringMap& getQueue() { return queue; }
 		void move(QueueItem* qi, const string& aTarget);
 		void remove(QueueItem* qi);
 
@@ -221,6 +221,8 @@ public:
 
 	private:
 		QueueItem::StringMap queue;
+
+		QueueItem::StringMap::iterator lastInsert;
 	};
 
 	/** QueueItems by target */
@@ -241,8 +243,8 @@ private:
 		void remove(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
 		void setPriority(QueueItem* qi, QueueItem::Priority p);
 
-		const unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i) const { return userQueue[i]; }
-		const unordered_map<UserPtr, QueueItemPtr, User::Hash>& getRunning() const { return running; }
+		unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
+		unordered_map<UserPtr, QueueItemPtr, User::Hash>& getRunning()  { return running; }
 
 		string getLastError() { 
 			string tmp = lastError;
@@ -276,7 +278,7 @@ private:
 	/** Directories queued for downloading */
 	unordered_multimap<UserPtr, DirectoryItemPtr, User::Hash> directories;
 	/** Recent searches list, to avoid searching for the same thing too often */
-	deque<string> recent;
+	StringList recent;
 	/** The queue needs to be saved */
 	bool dirty;
 	/** Next search */

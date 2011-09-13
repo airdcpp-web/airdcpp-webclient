@@ -136,8 +136,6 @@ Default = true;
 
 
 
-
-
 	QueueItem* qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root);
 
 	if(qi->isSet(QueueItem::FLAG_USER_LIST)) {
@@ -167,17 +165,27 @@ Default = true;
 }
 
 void QueueManager::FileQueue::add(QueueItem* qi) {
-	queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi));
+	if(lastInsert == queue.end())
+		lastInsert = queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi)).first;
+	else
+		lastInsert = queue.insert(lastInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
+
+//	queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi));
 	//string dir = Util::getDir(qi->getTarget(), true, true);
 	//releaselist.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi->getTTH()));
 }
 
 void QueueManager::FileQueue::remove(QueueItem* qi) {
+	if(lastInsert != queue.end() && stricmp(*lastInsert->first, qi->getTarget()) == 0)
+		++lastInsert;
 	queue.erase(const_cast<string*>(&qi->getTarget()));
+	//delete qi;
+
+	//queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->dec();
 }
 
-QueueItem* QueueManager::FileQueue::find(const string& target) const {
+QueueItem* QueueManager::FileQueue::find(const string& target) {
 	auto i = queue.find(const_cast<string*>(&target));
 	return (i == queue.end()) ? NULL : i->second;
 }
@@ -202,13 +210,12 @@ void QueueManager::FileQueue::find(QueueItemList& ql, const TTHValue& tth) {
 	}
 }
 
-static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::const_iterator start, QueueItem::StringMap::const_iterator end, deque<string>& recent) {
+static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::const_iterator start, QueueItem::StringMap::const_iterator end, StringList& recent) {
 
 	for(auto i = start; i != end; ++i) {
 		QueueItem* q = i->second;
 
 		// We prefer to search for things that are not running...
-		//if((cand != NULL) && q->getNextSegment(0, 0, 0, NULL).getSize() == 0) 
 		if((cand != NULL) && q->isRunning())
 			continue;
 		// No finished files
@@ -229,51 +236,35 @@ static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::const_ite
 
 		cand = q;
 
-		//if(cand->getNextSegment(0, 0, 0, NULL).getSize() != 0)
 		if(cand->isWaiting())
 			break;
 	}
-
-	//check this again, if the first item we pick is running and there are no
-	//other suitable items this will be true
-	//if((cand != NULL) && (cand->getNextSegment(0, 0, 0, NULL).getSize() == 0)) {
-		//cand = NULL;
-	//}
-
-
 	return cand;
 }
 
-QueueItem* QueueManager::FileQueue::findAutoSearch(deque<string>& recent) const {
+QueueItem* QueueManager::FileQueue::findAutoSearch(StringList& recent){
 	// We pick a start position at random, hoping that we will find something to search for...
-	auto start = (QueueItem::StringMap::size_type)Util::rand((uint32_t)queue.size());
+	auto start = (QueueItem::StringMap::difference_type)Util::rand((uint32_t)queue.size());
 
 	auto i = queue.begin();
 	advance(i, start);
 
 	QueueItem* cand = findCandidate(NULL, i, queue.end(), recent);
-/*	why so complex, hope this will fix the deadlock freeze with bigger queue, 
-	or do we just need to keep the searches alive even if item is running?
 
-	if(cand == NULL) {
-		cand = findCandidate(queue.begin(), i, recent);
-	} else if(cand->getNextSegment(0, 0, 0, NULL).getSize() == 0) {
-		QueueItem* cand2 = findCandidate(queue.begin(), i, recent);
-		if(cand2 != NULL && cand2->getNextSegment(0, 0, 0, NULL).getSize() != 0) {
-			cand = cand2;
-		}
-	}*/
 	if(cand == NULL || cand->isRunning()) {
 		cand = findCandidate(cand, queue.begin(), i, recent);  
 	}
 
-	//if((cand != NULL) && cand->isRunning()) //if its still a running one dont search?
-		//cand = NULL;
 
 	return cand;
 }
 
 void QueueManager::FileQueue::move(QueueItem* qi, const string& aTarget) {
+/*	queue.erase(const_cast<string*>(&qi->getTarget()));
+	qi->setTarget(aTarget);
+	add(qi);*/
+	if(lastInsert != queue.end() && stricmp(*lastInsert->first, qi->getTarget()) == 0)
+		lastInsert = queue.end();
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
 	add(qi);
@@ -646,7 +637,7 @@ QueueManager::~QueueManager() noexcept {
 	}
 }
 
-bool QueueManager::getTTH(const string& name, TTHValue& tth) const noexcept {
+bool QueueManager::getTTH(const string& name, TTHValue& tth) noexcept {
 	Lock l(cs);
 	QueueItem* qi = fileQueue.find(name);
 	if(qi) {
@@ -891,7 +882,6 @@ connect:
 		return;
 
 	if(wantConnection && aUser.user->isOnline() || aUser.user->isOnline() && smallSlot) {
-	//if(aUser.user->isOnline()) {
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
 	}
 
@@ -971,7 +961,7 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
 	{ 
-		//Lock l(cs);
+	
 
 		qi->addSource(aUser);
 
