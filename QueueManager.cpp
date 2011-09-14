@@ -201,16 +201,18 @@ void QueueManager::FileQueue::find(QueueItemList& sl, int64_t aSize, const strin
 	}
 }
 
-void QueueManager::FileQueue::find(QueueItemList& ql, const TTHValue& tth) {
+QueueManager::QueueItemList QueueManager::FileQueue::find(const TTHValue& tth) {
+		QueueItemList ql;
 	for(auto i = queue.begin(); i != queue.end(); ++i) {
 		QueueItem* qi = i->second;
 		if(qi->getTTH() == tth) {
 			ql.push_back(qi);
 		}
 	}
+	return ql;
 }
 
-static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::const_iterator start, QueueItem::StringMap::const_iterator end, StringList& recent) {
+static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::iterator start, QueueItem::StringMap::iterator end, const StringList& recent) {
 
 	for(auto i = start; i != end; ++i) {
 		QueueItem* q = i->second;
@@ -260,9 +262,6 @@ QueueItem* QueueManager::FileQueue::findAutoSearch(StringList& recent){
 }
 
 void QueueManager::FileQueue::move(QueueItem* qi, const string& aTarget) {
-/*	queue.erase(const_cast<string*>(&qi->getTarget()));
-	qi->setTarget(aTarget);
-	add(qi);*/
 	if(lastInsert != queue.end() && stricmp(*lastInsert->first, qi->getTarget()) == 0)
 		lastInsert = queue.end();
 	queue.erase(const_cast<string*>(&qi->getTarget()));
@@ -446,6 +445,7 @@ int QueueManager::FileMover::run() {
 		}
 		moveFile_(next.first, next.second);
 	}
+	return 0;
 }
 
 void QueueManager::Rechecker::add(const string& file) {
@@ -822,15 +822,13 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 
 		// This will be pretty slow on large queues...
 		if(BOOLSETTING(DONT_DL_ALREADY_QUEUED) && !(aFlags & QueueItem::FLAG_USER_LIST)) {
-			QueueItemList ql;
-			fileQueue.find(ql, root);
+			QueueItemList ql = fileQueue.find(root);
 			if (ql.size() > 0) {
 				// Found one or more existing queue items, lets see if we can add the source to them
 				bool sourceAdded = false;
 				for(auto i = ql.begin(); i != ql.end(); ++i) {
 					if(!(*i)->isSource(aUser)) {
 						try {
-
 							wantConnection = addSource(*i, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0);
 							sourceAdded = true;
 						} catch(...) { }
@@ -845,10 +843,8 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			}
 		}
 
-		QueueItem* q = fileQueue.find(target);
-			
+		QueueItem* q = fileQueue.find(target);	
 		if(q == NULL) {
-			
 			q = fileQueue.add(target, aSize, aFlags, QueueItem::DEFAULT, tempTarget, GET_TIME(), root);
 			fire(QueueManagerListener::Added(), q);
 
@@ -1165,13 +1161,14 @@ uint8_t QueueManager::FileQueue::getMaxSegments(int64_t filesize) const {
 #endif
 }
 
-void QueueManager::getTargets(const TTHValue& tth, StringList& sl) {
+StringList QueueManager::getTargets(const TTHValue& tth) {
 	Lock l(cs);
-	QueueItemList ql;
-	fileQueue.find(ql, tth);
+	QueueItemList ql = fileQueue.find(tth);
+	StringList sl;
 	for(auto i = ql.begin(); i != ql.end(); ++i) {
 		sl.push_back((*i)->getTarget());
 	}
+	return sl;
 }
 
 Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, bool smallSlot) noexcept {
@@ -1203,7 +1200,6 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 		d->setTempTarget(q->getTarget());
 	}
 	userQueue.addDownload(q, d);	
-
 	fire(QueueManagerListener::SourcesUpdated(), q);
 	dcdebug("found %s\n", q->getTarget().c_str());
 	return d;
@@ -1358,6 +1354,7 @@ void QueueManager::moveFile_(const string& source, const string& target) {
 	}
 }
 
+
 void QueueManager::moveStuckFile(QueueItem* qi) {
 	moveFile(qi->getTempTarget(), qi->getTarget());
 
@@ -1463,18 +1460,16 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 						if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(aDownload->getHintedUser()) != directories.end()) ||
 							(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) ||
 							(q->isSet(QueueItem::FLAG_VIEW_NFO))) 
-					//	dcassert(!q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD));
-					//	if(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) 
 						{
 							fl_fname = q->getListName();
 							fl_user = aDownload->getHintedUser();
 							fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? QueueItem::FLAG_DIRECTORY_DOWNLOAD : 0)
 								| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0)
 								| (q->isSet(QueueItem::FLAG_VIEW_NFO) ? QueueItem::FLAG_VIEW_NFO : 0);
-					//		flag = q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0;
 						} 
 
 						string dir;
+
 						if(aDownload->getType() == Transfer::TYPE_FULL_LIST) {
 							dir = q->getTempTarget();
 							q->addSegment(Segment(0, q->getSize()));
@@ -1508,8 +1503,10 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 							}
 							
 							fire(QueueManagerListener::Finished(), q, dir, aDownload);
+							
 							userQueue.remove(q);
 							
+						
 							if(!BOOLSETTING(KEEP_FINISHED_FILES) || aDownload->getType() == Transfer::TYPE_FULL_LIST) {
 								fire(QueueManagerListener::Removed(), q);						
 								fileQueue.remove(q);
@@ -1876,7 +1873,9 @@ void QueueManager::saveQueue(bool force) noexcept {
 	if(!dirty && !force)
 		return;
 		
-	try {
+	
+
+try {
 		Lock l(cs);	
 		
 		File ff(getQueueFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
@@ -2001,6 +2000,8 @@ static const string sStart = "Start";
 static const string sAutoPriority = "AutoPriority";
 static const string sMaxSegments = "MaxSegments";
 
+
+
 void QueueLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
 	QueueManager* qm = QueueManager::getInstance();	
 	if(!inDownloads && name == "Downloads") {
@@ -2081,6 +2082,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 }
 
 void QueueLoader::endTag(const string& name, const string&) {
+	
 	if(inDownloads) {
 		if(name == sDownload) {
 			cur = NULL;
@@ -2089,6 +2091,7 @@ void QueueLoader::endTag(const string& name, const string&) {
 		}
 	}
 }
+
 
 void QueueManager::noDeleteFileList(const string& path) {
 	if(!BOOLSETTING(KEEP_LISTS)) {
@@ -2104,9 +2107,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 
 	{
 		Lock l(cs);
-		QueueItemList matches;
-
-		fileQueue.find(matches, sr->getTTH());
+		QueueItemList  matches = fileQueue.find(sr->getTTH());
 
 		for(auto i = matches.begin(); i != matches.end(); ++i) {
 			QueueItem* qi = *i;
@@ -2307,9 +2308,8 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 		Lock l(cs);
 
 		// Locate target QueueItem in download queue
-		QueueItemList ql;
-		fileQueue.find(ql, tth);
-
+		QueueItemList ql = fileQueue.find(tth);
+		
 		if(ql.empty()){
 			dcdebug("Not found in download queue\n");
 			return false;
@@ -2382,8 +2382,7 @@ bool QueueManager::handlePartialSearch(const TTHValue& tth, PartsInfo& _outParts
 		Lock l(cs);
 
 		// Locate target QueueItem in download queue
-		QueueItemList ql;
-		fileQueue.find(ql, tth);
+		QueueItemList ql = fileQueue.find(tth);
 
 		if(ql.empty()){
 			return false;

@@ -80,7 +80,7 @@ public:
 	void setPriority(const string& aTarget, QueueItem::Priority p) noexcept;
 	void setAutoPriority(const string& aTarget, bool ap) noexcept;
 
-	void getTargets(const TTHValue& tth, StringList& sl);
+	StringList getTargets(const TTHValue& tth);
 	const QueueItem::StringMap& lockQueue() noexcept { cs.lock(); return fileQueue.getQueue(); } ;
 	void unlockQueue() noexcept { cs.unlock(); }
 
@@ -121,9 +121,8 @@ public:
 
 	bool getTargetByRoot(const TTHValue& tth, string& target, string& tempTarget) {
 		Lock l(cs);
-		QueueItemList ql;
-		fileQueue.find(ql, tth);
-
+		QueueItemList  ql = fileQueue.find(tth);
+	
 		if(ql.empty()) return false;
 
 		target = ql.front()->getTarget();
@@ -133,9 +132,8 @@ public:
 
 	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& tempTarget) {
 		Lock l(cs);
-		QueueItemList ql;
-		fileQueue.find(ql, tth);
-
+		QueueItemList ql = fileQueue.find(tth);
+		
 		if(ql.empty()) return false;
 
 		QueueItem* qi = ql.front();
@@ -204,7 +202,7 @@ public:
 		void find(QueueItemList& sl, int64_t aSize, const string& ext);
 		uint8_t getMaxSegments(int64_t filesize) const;
 		void find(StringList& sl, int64_t aSize, const string& ext);
-		void find(QueueItemList& ql, const TTHValue& tth);
+		QueueItemList find(const TTHValue& tth);
 
 		// find some PFS sources to exchange parts info
 		void findPFSSources(PFSSourceList&);

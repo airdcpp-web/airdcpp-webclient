@@ -155,7 +155,8 @@ public:
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
 
-	SourceList& getSources() { return sources; }
+	
+SourceList& getSources() { return sources; }
 	const SourceList& getSources() const { return sources; }
 	SourceList& getBadSources() { return badSources; }
 	const SourceList& getBadSources() const { return badSources; }
