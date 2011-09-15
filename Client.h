@@ -200,7 +200,7 @@ protected:
 
 	int64_t availableBytes;
 
-	void updateCounts(bool aRemove);
+	bool updateCounts(bool aRemove);
 	void updateActivity() { lastActivity = GET_TICK(); }
 
 	/** Reload details from favmanager or settings */

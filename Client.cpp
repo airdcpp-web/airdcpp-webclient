@@ -212,7 +212,7 @@ vector<uint8_t> Client::getKeyprint() const {
 	return isReady() ? sock->getKeyprint() : vector<uint8_t>();
 }
 
-void Client::updateCounts(bool aRemove) {
+bool Client::updateCounts(bool aRemove) {
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
 		--counts[countType];
@@ -230,7 +230,7 @@ void Client::updateCounts(bool aRemove) {
 				fire(ClientListener::AddLine(), this, STRING(HUB_NOT_PROTECTED));
 				disconnect(true);
 				setAutoReconnect(false);
-				return;
+				return false;
 				}
 
 			countType = COUNT_NORMAL;
@@ -242,6 +242,7 @@ void Client::updateCounts(bool aRemove) {
 
 		++counts[countType];
 	}
+	return true;
 }
 
 string Client::getLocalIp() const {
