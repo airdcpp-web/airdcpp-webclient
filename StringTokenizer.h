@@ -38,7 +38,7 @@ public:
 			tokens.push_back(aString.substr(j, aString.size()-j));
 	}
 
-	StringTokenizer(const T& aString, const typename T::value_type* aToken) {
+	StringTokenizer(const T& aString, const char* aToken) {
 		string::size_type i = 0;
 		string::size_type j = 0;
 		size_t l = strlen(aToken);
@@ -48,6 +48,18 @@ public:
 		}
 		if(j < aString.size())
 			tokens.push_back(aString.substr(j, aString.size()-j));
+	}
+
+	StringTokenizer(const T& aString, const wchar_t* aToken) {
+		string::size_type i = 0;
+		string::size_type j = 0;
+		size_t l = wcslen(aToken);
+		while( (i=aString.find(aToken, j)) != string::npos ) {
+			tokens.push_back(aString.substr(j, i-j));
+			j = i + l;
+		}
+		if(j < aString.size())
+					tokens.push_back(aString.substr(j, aString.size()-j));
 	}
 
 	vector<T>& getTokens() { return tokens; }

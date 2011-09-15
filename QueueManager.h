@@ -269,7 +269,7 @@ private:
 	
 	//using pme for now
 	PME regexp;
-	bool addAlternates(string, const HintedUser&);
+	bool addAlternates(const string& aFile, const HintedUser& aUser);
 
 	/** QueueItems by user */
 	UserQueue userQueue;

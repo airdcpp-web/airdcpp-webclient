@@ -881,12 +881,6 @@ connect:
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
 	}
 
-	//hmm.. will need to test this one, cant see why it would cause a deadlock
-	// auto search, prevent DEADLOCK
-	//if(newItem && BOOLSETTING(AUTO_SEARCH)){
-		//SearchManager::getInstance()->search(TTHValue(root).toBase32(), 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto");
-	//}
-	
 }
 
 void QueueManager::readd(const string& target, const HintedUser& aUser) throw(QueueException) {
@@ -2154,7 +2148,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 
 }
 
-bool QueueManager::addAlternates(string aFile, const dcpp::HintedUser& aUser) {
+bool QueueManager::addAlternates(const string& aFile, const dcpp::HintedUser& aUser) {
 	string path, file;
 	string::size_type pos, pos2;
 	bool wantConnection = false;
@@ -2175,7 +2169,7 @@ bool QueueManager::addAlternates(string aFile, const dcpp::HintedUser& aUser) {
 		//where the filenames match
 		for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
 			if( i->first->find(file) != string::npos) {
-				string file = path + i->first->substr(i->first->find_last_of("\\"));
+				file = path + i->first->substr(i->first->find_last_of("\\"));
 				if(!i->second->isSource(aUser)) {
 					wantConnection = addSource(i->second, aUser, 0);
 				}	

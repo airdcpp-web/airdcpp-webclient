@@ -59,7 +59,7 @@ public:
 
 	bool startDownload(QueueItem::Priority prio, bool mcn=false);
 		
-	int64_t getAverageSpeed(const string & path){
+	int64_t getAverageSpeed(const string& path){
 		Lock l(cs);
 		size_t pos = path.rfind("\\");
 		string tmp = path.substr(0, pos);
@@ -67,7 +67,7 @@ public:
 		return averageSpeedMap.find(tmp)->second;
 	}
 
-	uint64_t getAveragePos(const string & path) {
+	uint64_t getAveragePos(const string& path) {
 		Lock l(cs);
 		size_t pos = path.rfind("\\");
 		string tmp = path.substr(0, pos);
