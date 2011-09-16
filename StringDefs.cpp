@@ -1254,6 +1254,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "HighLight matches in Filelists (wildcards, | separate)", 
 "Example, *NORDIC* (this may slow down filelist loading...)", 
 "Dupes Settings", 
+"Show Skiplist blocked files in systemlog", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2508,4 +2509,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ListHlText", 
 "ListHlExample", 
 "SettingsDupes", 
+"ReportSkiplist", 
 };

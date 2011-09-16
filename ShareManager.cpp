@@ -964,7 +964,9 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			try {
 				boost::regex reg(str1);
 				if(boost::regex_search(str2.begin(), str2.end(), reg)){
-					LogManager::getInstance()->message("Forbidden file will not be shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(i->getSize()) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+					if(BOOLSETTING(REPORT_SKIPLIST))
+					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(i->getSize()) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+					
 					continue;
 				};
 			} catch(...) {
@@ -977,7 +979,9 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 		}else{
 			try{
 			if( Wildcard::patternMatch( name, SETTING(SKIPLIST_SHARE), '|' ) ){
-				LogManager::getInstance()->message("Forbidden file will not be shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(i->getSize()) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+				if(BOOLSETTING(REPORT_SKIPLIST))
+				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(i->getSize()) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+				
 				continue;
 			}
 			}catch(...) { }

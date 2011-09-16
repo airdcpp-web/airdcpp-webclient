@@ -1261,5 +1261,6 @@ enum Strings { // @DontAdd
 	LIST_HL_TEXT, // "HighLight matches in Filelists (wildcards, | separate)"
 	LIST_HL_EXAMPLE, // "Example, *NORDIC* (this may slow down filelist loading...)"
 	SETTINGS_DUPES, // "Dupes Settings"
+	REPORT_SKIPLIST, // "Show Skiplist blocked files in systemlog"
 	LAST // @DontAdd
 };

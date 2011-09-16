@@ -951,7 +951,7 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
 	{ 
-	
+		Lock l(cs);
 
 		qi->addSource(aUser);
 
