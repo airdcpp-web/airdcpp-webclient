@@ -972,9 +972,9 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 	
 }
 
-void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p /* = QueueItem::DEFAULT */) noexcept {
+void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p /* = QueueItem::DEFAULT */, bool useFullList) noexcept {
 	bool adc=true;
-	if (aUser.user->isSet(User::NMDC))
+	if (aUser.user->isSet(User::NMDC) || useFullList)
 		adc=false;
 	bool needList;
 	{
@@ -994,10 +994,11 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 	}
 	if(needList || adc) {
 		try {
-			if (!adc)
+			if (!adc) {
 				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD, aDir);
-			else
+			} else {
 				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, aDir);
+			}
 		} catch(const Exception&) {
 			// Ignore, we don't really care...
 		}
@@ -1611,7 +1612,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 				auto dp = directories.equal_range(user);
 				for(auto i = dp.first; i != dp.second; ++i) {
 					if(stricmp(path.c_str(), i->second->getName().c_str()) == 0) {
-						dirList.download(i->second->getName(), i->second->getTarget(), false, i->second->getPriority());
+						dirList.download(i->second->getName(), i->second->getTarget(), false, i->second->getPriority(), true);
 						directories.erase(i);
 						break;
 					}

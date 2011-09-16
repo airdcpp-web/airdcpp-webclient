@@ -62,7 +62,7 @@ public:
 	void readd(const string& target, const HintedUser& aUser) throw(QueueException);
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
-		QueueItem::Priority p = QueueItem::DEFAULT) noexcept;
+		QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
 	int matchListing(const DirectoryListing& dl) noexcept;
 	bool findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) noexcept;
 

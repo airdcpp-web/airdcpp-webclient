@@ -295,7 +295,7 @@ string DirectoryListing::getPath(const Directory* d) const {
 	return dir;
 }
 
-void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio) {
+void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList) {
 
 	string target = aTarget;
 
@@ -307,7 +307,12 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		//check if there are incomplete subdirs
 		for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
 			if (!(*j)->getComplete()) {
-				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
+				if (!recursiveList) {
+					QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
+				} else {
+					//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
+					QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio, true);
+				}
 				return;
 			}
 		}
@@ -334,12 +339,12 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 	}
 }
 
-void DirectoryListing::download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio) {
+void DirectoryListing::download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = find(aDir, getRoot());
 	if(d != NULL)
-		download(d, aTarget, highPrio, prio);
+		download(d, aTarget, highPrio, prio, recursiveList);
 }
 
 void DirectoryListing::download(File* aFile, const string& aTarget, bool view, bool highPrio, QueueItem::Priority prio) {
