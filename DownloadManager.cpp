@@ -80,6 +80,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		// Tick each ongoing download
 		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
 			Download* d = *i;
+			double speed = d->getAverageSpeed();
 
 			if(d->getPos() > 0) {
 				tickList.push_back(d);
@@ -90,7 +91,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			{
 				if (d->getTigerTree().getFileSize() > (SETTING(DISCONNECT_FILESIZE) * 1048576))
 				{
-					if((d->getAverageSpeed() < SETTING(DISCONNECT_SPEED) * 1024))
+					if((speed < SETTING(DISCONNECT_SPEED) * 1024))
 					{
 						if(aTick - d->getLastTick() > (uint32_t)SETTING(DISCONNECT_TIME) * 1000)
 						{
@@ -105,13 +106,15 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 				}
 			}
 	
+		if(d->getType() == Transfer::TYPE_FILE) { //no reason to count for filelists
 			//averages for the download folders
 		string tmp = d->getPath().substr(0, d->getPath().rfind("\\"));
+		if(!tmp.empty()) {
 		StringIntIter j = averageSpeedMap.find(tmp);
 		if(j != averageSpeedMap.end())
-			j->second += d->getAverageSpeed();
+			j->second += speed;
 		else
-			averageSpeedMap.insert(StringIntPair(tmp, d->getAverageSpeed()));
+			averageSpeedMap.insert(StringIntPair(tmp, speed));
 		
 		
 		j = averagePosMap.find(tmp);
@@ -119,12 +122,13 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			j->second += d->getPos();
 		else
 			averagePosMap.insert(StringIntPair(tmp, d->getPos()));
-
+			}
+		}
 
 		if(SETTING(FAV_DL_SPEED) > 0) {
 			UserPtr fstusr = d->getUser();
 			if(FavoriteManager::getInstance()->isFavoriteUser(fstusr) == false) {
-				if(d->getAverageSpeed() > SETTING(FAV_DL_SPEED)*1024) {
+				if(speed > SETTING(FAV_DL_SPEED)*1024) {
 					if((aTick - d->getStart()) > 7000) {
 						FavoriteManager::getInstance()->addFavoriteUserB(fstusr);
 						FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1024) + "KB/s)"));
@@ -141,6 +145,25 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		QueueManager::getInstance()->removeSource(i->first, i->second, QueueItem::Source::FLAG_SLOW_SOURCE);
 	}
 }
+
+int64_t DownloadManager::getTotalTime(const string& path) {
+		if(path.empty())
+			return 0;
+
+		Lock l(cs);
+		uint64_t timeleft = 0;
+		/* ttlf */
+		int64_t avg = getAverageSpeed(path);	 
+		uint64_t avgpos = getAveragePos(path);	 
+		uint64_t totalsize = QueueManager::getInstance()->fileQueue.getTotalSize(path);	 
+		if(totalsize == 0)	 
+			totalsize = avgpos;	 
+
+		timeleft =  (avg > 0) ? ((totalsize - avgpos) / avg) : 0;	 
+ 	 
+		return (timeleft > 0) ?	timeleft : 0; 
+}
+
 
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
 

@@ -246,7 +246,7 @@ static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::iterator 
 
 QueueItem* QueueManager::FileQueue::findAutoSearch(StringList& recent){
 	// We pick a start position at random, hoping that we will find something to search for...
-	auto start = (QueueItem::StringMap::difference_type)Util::rand((uint32_t)queue.size());
+	auto start = (QueueItem::StringMap::size_type)Util::rand((uint32_t)queue.size());
 
 	auto i = queue.begin();
 	advance(i, start);
@@ -951,7 +951,7 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
 	{ 
-		Lock l(cs);
+		//Lock l(cs);
 
 		qi->addSource(aUser);
 
@@ -2161,10 +2161,18 @@ bool QueueManager::addAlternates(const string& aFile, const dcpp::HintedUser& aU
 			pos += 4;
 		} else {
 			pos = aFile.find_last_of(".");
+		if(pos == string::npos)
+			return false;
 		}
 		pos2 = aFile.find_last_of("\\");
+		if(pos2 == string::npos)
+			return false;
+
 		file = aFile.substr(pos2+1, pos - pos2);
 		path = aFile.substr(0, pos2);
+
+		if(file.empty() || path.empty())
+			return false;
 
 		//iterate through the entire queue and add the user as source
 		//where the filenames match
