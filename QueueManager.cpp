@@ -831,8 +831,8 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 						try {
 							wantConnection = addSource(*i, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0);
 							sourceAdded = true;
-						} catch(const Exception& e) {
-						LogManager::getInstance()->message(e.getError());
+						} catch(const Exception&) {
+						//...
 						}
 					}
 				}
@@ -867,8 +867,8 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		}
 		try {
 		wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0));
-		} catch(const Exception& e) {
-			LogManager::getInstance()->message(e.getError());
+		} catch(const Exception&) {
+			//...
 			}
 		setDirty();
 	}
@@ -1054,8 +1054,8 @@ int QueueManager::matchListing(const DirectoryListing& dl) noexcept {
 			if(j != tthMap.end() && i->second->getSize() == qi->getSize()) {
 				try {
 					wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);    
-					} catch(const Exception& e) {
-					LogManager::getInstance()->message(e.getError());
+					} catch(const Exception&) {
+					//...
 					}
 				matches++;
 			}
@@ -1100,8 +1100,8 @@ void QueueManager::move(const string& aSource, const string& aTarget) noexcept {
 			for(QueueItem::SourceConstIter i = qs->getSources().begin(); i != qs->getSources().end(); ++i) {
 				try {
 					addSource(qt, i->getUser(), QueueItem::Source::FLAG_MASK);
-				} catch(const Exception& e) {
-					LogManager::getInstance()->message(e.getError());
+				} catch(const Exception&) {
+					//..
 				}
 			}
 			delSource = true;
@@ -2132,6 +2132,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					users = qi->countOnlineUsers();
 
 					} catch(const Exception& e) {
+						//show error here dont spam too much??
 						LogManager::getInstance()->message(e.getError());
 					}
 				break;
@@ -2184,12 +2185,15 @@ bool QueueManager::addAlternates(const string& aFile, const dcpp::HintedUser& aU
 			if( i->first->find(file) != string::npos) {
 				file = path + i->first->substr(i->first->find_last_of("\\"));
 				if(!i->second->isSource(aUser)) {
+					try{
 					wantConnection = addSource(i->second, aUser, 0);
+					}catch(...) { //catch here so it can continue the loop, and add other sources
+						//errors can spam syslog here
+					}
 				}	
 			}
 		}
-		} catch(const Exception& e) {
-			LogManager::getInstance()->message(e.getError());
+		} catch(const Exception&) {
 			}
 
 	return wantConnection;
