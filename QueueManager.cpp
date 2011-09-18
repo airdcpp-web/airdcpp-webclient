@@ -831,7 +831,9 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 						try {
 							wantConnection = addSource(*i, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0);
 							sourceAdded = true;
-						} catch(...) { }
+						} catch(const Exception& e) {
+						LogManager::getInstance()->message(e.getError());
+						}
 					}
 				}
 
@@ -865,8 +867,9 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		}
 		try {
 		wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0));
-		}catch(...) {
-		}
+		} catch(const Exception& e) {
+			LogManager::getInstance()->message(e.getError());
+			}
 		setDirty();
 	}
 connect:
@@ -1051,9 +1054,9 @@ int QueueManager::matchListing(const DirectoryListing& dl) noexcept {
 			if(j != tthMap.end() && i->second->getSize() == qi->getSize()) {
 				try {
 					wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);    
-				} catch(...) {
-					// Ignore...
-				}
+					} catch(const Exception& e) {
+					LogManager::getInstance()->message(e.getError());
+					}
 				matches++;
 			}
 		}
@@ -1097,7 +1100,8 @@ void QueueManager::move(const string& aSource, const string& aTarget) noexcept {
 			for(QueueItem::SourceConstIter i = qs->getSources().begin(); i != qs->getSources().end(); ++i) {
 				try {
 					addSource(qt, i->getUser(), QueueItem::Source::FLAG_MASK);
-				} catch(const Exception&) {
+				} catch(const Exception& e) {
+					LogManager::getInstance()->message(e.getError());
 				}
 			}
 			delSource = true;
@@ -2127,9 +2131,9 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					added = true;
 					users = qi->countOnlineUsers();
 
-				} catch(const Exception&) {
-					// ...
-				}
+					} catch(const Exception& e) {
+						LogManager::getInstance()->message(e.getError());
+					}
 				break;
 			}
 		}
@@ -2184,7 +2188,9 @@ bool QueueManager::addAlternates(const string& aFile, const dcpp::HintedUser& aU
 				}	
 			}
 		}
-	}catch(QueueException) {}
+		} catch(const Exception& e) {
+			LogManager::getInstance()->message(e.getError());
+			}
 
 	return wantConnection;
 }

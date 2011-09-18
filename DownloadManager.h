@@ -62,17 +62,23 @@ public:
 	int64_t getTotalTime(const string& path);
 
 	int64_t getAverageSpeed(const string& path){
+		int64_t result = 0;
 		size_t pos = path.rfind("\\");
 		string tmp = path.substr(0, pos);
-		
-		return averageSpeedMap.find(tmp)->second;
+		if(!tmp.empty())
+			result = averageSpeedMap.find(tmp)->second;
+
+		return result;
 	}
 
 	uint64_t getAveragePos(const string& path) {
+		uint64_t result = 0;
 		size_t pos = path.rfind("\\");
 		string tmp = path.substr(0, pos);
+		if(!tmp.empty())
+			result = averagePosMap.find(tmp)->second;
 
-		return averagePosMap.find(tmp)->second;
+		return result;
 	}
 	
 
