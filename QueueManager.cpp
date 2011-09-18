@@ -962,9 +962,9 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 	if(qi->isFinished()) {
 		wantConnection = false;
 	} else {
+		userQueue.add(qi, aUser);
 		if ((!SETTING(SOURCEFILE).empty()) && (!BOOLSETTING(SOUNDS_DISABLED)))
 			PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
-		userQueue.add(qi, aUser);
 		}
 	}
 
@@ -2183,7 +2183,6 @@ bool QueueManager::addAlternates(const string& aFile, const dcpp::HintedUser& aU
 		//where the filenames match
 		for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
 			if( i->first->find(file) != string::npos) {
-				file = path + i->first->substr(i->first->find_last_of("\\"));
 				if(!i->second->isSource(aUser)) {
 					try{
 					wantConnection = addSource(i->second, aUser, 0);
