@@ -2081,8 +2081,6 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 }
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
-	//this will only generate it every 15minutes if its dirty
-	//generateXmlList();
 
 	if(SETTING(INCOMING_REFRESH_TIME) > 0 && !incoming.empty()){
 			if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {

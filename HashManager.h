@@ -143,7 +143,7 @@ private:
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft);
 		void shutdown() { stop = true; if(paused) s.signal(); s.signal(); }
 		void scheduleRebuild() { rebuild = true; if(paused) s.signal(); s.signal(); }
-		void save() { saveData = true; s.signal(); }
+		void save() { saveData = true; if(paused) s.signal(); s.signal(); }
 
 	private:
 		// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.

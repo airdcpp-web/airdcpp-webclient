@@ -2131,9 +2131,8 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					added = true;
 					users = qi->countOnlineUsers();
 
-					} catch(const Exception& e) {
-						//show error here dont spam too much??
-						LogManager::getInstance()->message(e.getError());
+					} catch(const Exception&) {
+					//...
 					}
 				break;
 			}
@@ -2465,7 +2464,7 @@ int64_t QueueManager::FileQueue::getTotalSize(const string & path){
 	int64_t totalSize=0;
 	
 	for(auto i = queue.begin(); i != queue.end(); ++i) {
-		const QueueItem* q = i->second;
+		QueueItem* q = i->second;
 		queueTargetPath = q->getTarget();
 		qpos = queueTargetPath.rfind("\\");
 		queueTargetPath = queueTargetPath.substr(0, qpos);
