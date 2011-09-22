@@ -77,6 +77,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 	queueAddTick = GET_TICK();
 	dcassert((bool)aUser.user);
 	{
+		//Lock l(cs);  ??
 	if (!DownloadManager::getInstance()->checkIdle(aUser.user, smallSlot)) {
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
