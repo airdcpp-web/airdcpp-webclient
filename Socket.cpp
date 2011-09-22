@@ -24,10 +24,23 @@
 #include "TimerManager.h"
 #include "LogManager.h"
 
+#include <IPHlpApi.h>
+#pragma comment(lib, "iphlpapi.lib")
+
 /// @todo remove when MinGW has this
 #ifdef __MINGW32__
 #ifndef EADDRNOTAVAIL
 #define EADDRNOTAVAIL WSAEADDRNOTAVAIL
+#endif
+#endif
+
+#ifndef AI_ADDRCONFIG
+#define AI_ADDRCONFIG 0
+#endif
+
+#ifndef IPV6_V6ONLY
+#ifdef _WIN32 // Mingw seems to lack this...
+#define IPV6_V6ONLY 27
 #endif
 #endif
 
@@ -104,6 +117,7 @@ void Socket::create(uint8_t aType /* = TYPE_TCP */) {
 
 	type = aType;
 	setBlocking(false);
+	setSocketOpt(SO_REUSEADDR, 1);
 }
 
 void Socket::accept(const Socket& listeningSocket) {
@@ -160,18 +174,23 @@ void Socket::connect(const string& aAddr, uint16_t aPort) {
 		create(TYPE_TCP);
 	}
 
-	addrinfo_p res = resolveAddr(aAddr, aPort);
+	addrinfo_p res = resolveAddr(aAddr, aPort, AI_NUMERICSERV);
+
+	// resolveAddr can return more addresses (e.g. IPv4 and IPv6) and we are supposed to connect to all of them
+	// since we have experimental IPv6 now, connect only to last address in list (which is IPv4 if it exists)
+	auto ai = res.get();
+	while(ai->ai_next) ai = ai->ai_next;
 
 	int result;
 	do {
-		result = ::connect(sock, res->ai_addr, res->ai_addrlen);
+		result = ::connect(sock, ai->ai_addr, ai->ai_addrlen);
 	} while (result < 0 && getLastError() == EINTR);
 
 	check(result, true);
 
 	connected = true;
 
-	setIp(resolveName((addr&)*res->ai_addr));
+	setIp(resolveName((addr&)*ai->ai_addr));
 	setPort(aPort);
 }
 
@@ -579,7 +598,7 @@ Socket::addrinfo_p Socket::resolveAddr(const string& aDns, uint16_t port, int fl
 	addrinfo hints = { 0 };
 	addrinfo* result;
 	hints.ai_family = family;
-	hints.ai_flags = flags | (family == AF_INET6 ? AI_V4MAPPED : 0);
+	hints.ai_flags = flags | (family == AF_INET6 ? (AI_ALL | AI_V4MAPPED) : 0);
 
 	string dns = aDns;
 
@@ -596,11 +615,14 @@ Socket::addrinfo_p Socket::resolveAddr(const string& aDns, uint16_t port, int fl
 	if(ret != 0)
 		throw SocketException(ret);
 
+	dcdebug("Resolved %s:%d to %s, next is %p\n", aDns.c_str(), port,
+		resolveName((addr&)*result->ai_addr, NULL).c_str(), result->ai_next);
+
 	return addrinfo_p(result, &freeaddrinfo);
 }
 
 string Socket::resolveName(const addr& serv_addr, uint16_t* port) {
-	char buf[1024];
+	char buf[NI_MAXHOST];
 	check(::getnameinfo((sockaddr*)&serv_addr, (serv_addr.sas.ss_family == AF_INET6) ? sizeof(serv_addr.sai6) : sizeof(serv_addr.sai), buf, sizeof(buf), NULL, 0, NI_NUMERICHOST));
 	string ip(buf);
 
@@ -613,7 +635,7 @@ string Socket::resolveName(const addr& serv_addr, uint16_t* port) {
 			if(port != NULL) *port = serv_addr.sai6.sin6_port;
 
 			// if it is IPv4 mapped address then convert to IPv4
-			if(ip.substr(0, 7) == "::ffff:")
+			if(IN6_IS_ADDR_V4MAPPED(&serv_addr.sai6.sin6_addr))
 				ip = ip.substr(7);
             break;
 
@@ -731,9 +753,49 @@ string Socket::getRemoteHost(const string& aIp) {
 	}
 }
 
+#define UNSPEC_IP	(family == AF_INET6 ? "::" : "0.0.0.0")
+string Socket::getBindAddress() {
+	if(SettingsManager::getInstance()->isDefault(SettingsManager::BIND_INTERFACE))
+		return UNSPEC_IP;
+
+	// care about win32 only now (see wx build for *nix version)
+	ULONG len =	8192; // begin with 8 kB, it should be enough in most of cases
+	for(int i = 0; i < 3; ++i)
+	{
+		PIP_ADAPTER_ADDRESSES adapterInfo = (PIP_ADAPTER_ADDRESSES)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+		ULONG ret = GetAdaptersAddresses(AF_INET, GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, NULL, adapterInfo, &len);
+
+		if(ret == ERROR_SUCCESS)
+		{
+			for(PIP_ADAPTER_ADDRESSES pAdapterInfo = adapterInfo; pAdapterInfo != NULL; pAdapterInfo = pAdapterInfo->Next)
+			{
+				if(SETTING(BIND_INTERFACE) != pAdapterInfo->AdapterName)
+					continue;
+
+				// we want only enabled ethernet interfaces
+				if(pAdapterInfo->FirstUnicastAddress && pAdapterInfo->OperStatus == IfOperStatusUp && (pAdapterInfo->IfType == IF_TYPE_ETHERNET_CSMACD || pAdapterInfo->IfType == IF_TYPE_IEEE80211))
+				{
+					string ip = resolveName((addr&)*pAdapterInfo->FirstUnicastAddress->Address.lpSockaddr);
+					HeapFree(GetProcessHeap(), 0, adapterInfo);
+					return ip;
+				}
+
+				break;
+			}
+		}
+
+		HeapFree(GetProcessHeap(), 0, adapterInfo);
+
+		if(ret != ERROR_BUFFER_OVERFLOW)
+			break;
+	}
+
+	return UNSPEC_IP;	// no interface found, return unspecified address
+}
+
 } // namespace dcpp
 
 /**
  * @file
- * $Id: Socket.cpp 573 2011-08-04 22:33:45Z bigmuscle $
+ * $Id: Socket.cpp 576 2011-08-29 17:50:49Z bigmuscle $
  */

@@ -64,7 +64,7 @@ void ConnectivityManager::detectConnection() {
 	SettingsManager::getInstance()->unset(SettingsManager::TLS_PORT);
 	SettingsManager::getInstance()->unset(SettingsManager::EXTERNAL_IP);
 	SettingsManager::getInstance()->unset(SettingsManager::NO_IP_OVERRIDE);
-	SettingsManager::getInstance()->unset(SettingsManager::BIND_ADDRESS);
+	SettingsManager::getInstance()->unset(SettingsManager::BIND_INTERFACE);
 
 	if (MappingManager::getInstance()->getOpened()) {
 		MappingManager::getInstance()->close();

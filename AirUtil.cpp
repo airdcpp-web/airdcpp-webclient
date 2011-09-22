@@ -18,6 +18,9 @@
 namespace dcpp {
 
 string AirUtil::getLocalIp() {
+	if(!SettingsManager::getInstance()->isDefault(SettingsManager::BIND_INTERFACE)) {
+		return Socket::getBindAddress();
+	}
 
 	string tmp;
 	
