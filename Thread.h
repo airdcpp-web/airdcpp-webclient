@@ -71,7 +71,23 @@ public:
 	}
 
 	void setThreadPriority(Priority p) { ::SetThreadPriority(threadHandle, p); }
+
+	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources.
+	if(threadHandle == INVALID_HANDLE_VALUE) {
+			return;
+		}
+		::SuspendThread(threadHandle);
+	}
+	void t_resume() {
+		if(threadHandle == INVALID_HANDLE_VALUE) {
+			return;
+		}
+		::ResumeThread(threadHandle);
+	}
 	
+
+	
+
 	static void sleep(uint64_t millis) { ::Sleep(static_cast<DWORD>(millis)); }
 	static void yield() { ::Sleep(0); }
 	

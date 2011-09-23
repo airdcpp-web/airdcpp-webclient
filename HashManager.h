@@ -123,7 +123,7 @@ public:
 private:
 	class Hasher : public Thread {
 	public:
-		Hasher() : stop(false), running(false), paused(0), rebuild(false), currentSize(0), saveData(false) { }
+		Hasher() : stop(false), running(false), paused(false), rebuild(false), currentSize(0), saveData(false) { }
 
 		void hashFile(const string& fileName, int64_t size);
 
@@ -141,9 +141,9 @@ private:
 		int run();
 		bool fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size, CRC32Filter* xcrc32);
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft);
-		void shutdown() { stop = true; if(paused) s.signal(); s.signal(); }
-		void scheduleRebuild() { rebuild = true; if(paused) s.signal(); s.signal(); }
-		void save() { saveData = true; if(paused) s.signal(); s.signal(); }
+		void shutdown() { stop = true; if(paused) t_resume(); s.signal(); }
+		void scheduleRebuild() { rebuild = true; if(paused) t_resume(); s.signal(); }
+		void save() { saveData = true; if(paused) t_resume(); s.signal();}
 
 	private:
 		// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.
@@ -157,7 +157,7 @@ private:
 
 		bool stop;
 		bool running;
-		unsigned paused;
+		bool paused;
 		bool rebuild;
 		bool saveData;
 		string currentFile;
@@ -244,7 +244,7 @@ private:
 
 	Hasher hasher;
 	HashStore store;
-
+	
 	mutable CriticalSection cs;
 
 	/** Single node tree where node = root, no storage in HashData.dat */
@@ -269,9 +269,8 @@ private:
 		if(store.isDirty()) {
 			Lock l(cs);
 			hasher.save();
-			}
-
 			lastSave = GET_TICK();
+			}
 		}
 	}
 };
