@@ -31,7 +31,7 @@ struct FastAllocBase {
 };
 
 #ifndef SMALL_OBJECT_SIZE
-		#define SMALL_OBJECT_SIZE 256  //change the small object size to a suitable value.
+		#define SMALL_OBJECT_SIZE 128  //change the small object size to a suitable value.
 	#endif
 
 

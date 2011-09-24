@@ -246,7 +246,7 @@ static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::iterator 
 
 QueueItem* QueueManager::FileQueue::findAutoSearch(StringList& recent){
 	// We pick a start position at random, hoping that we will find something to search for...
-	auto start = (QueueItem::StringMap::size_type)Util::rand((uint32_t)queue.size());
+	 auto start = (QueueItem::StringMap::difference_type)Util::rand((uint32_t)queue.size());
 
 	auto i = queue.begin();
 	advance(i, start);
@@ -848,6 +848,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		QueueItem* q = fileQueue.find(target);	
 		if(q == NULL) {
 			q = fileQueue.add(target, aSize, aFlags, QueueItem::DEFAULT, tempTarget, GET_TIME(), root);
+			updateDirSize(q->getTarget(), q->getSize(), true);
 			fire(QueueManagerListener::Added(), q);
 
 			newItem = true;
@@ -1093,6 +1094,8 @@ void QueueManager::move(const string& aSource, const string& aTarget) noexcept {
 			// Good, update the target and move in the queue...
 			fire(QueueManagerListener::Moved(), qs, aSource);
 			fileQueue.move(qs, target);
+			updateDirSize(aSource, qs->getSize(), true);
+			updateDirSize(target, qs->getSize(), true);
 			fire(QueueManagerListener::Added(), qs);
 			setDirty();
 		} else {
@@ -1113,6 +1116,7 @@ void QueueManager::move(const string& aSource, const string& aTarget) noexcept {
 
 	if(delSource) {
 		remove(aSource);
+		updateDirSize(aSource, qs->getSize(), false);
 	}
 }
 
@@ -1521,6 +1525,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 								fire(QueueManagerListener::StatusUpdated(), q);
 							}
 						}
+						updateDirSize(q->getTarget(), q->getSize(), false);
 						setDirty();
 					}
 				} else {
@@ -1722,7 +1727,7 @@ void QueueManager::remove(const string& aTarget) noexcept {
 			userQueue.remove(q);
 		}
 		fileQueue.remove(q);
-
+		updateDirSize(q->getTarget(), q->getSize(), false);
 		setDirty();
 	}
 
@@ -2049,7 +2054,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				bool ap = Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1;
 				qi->setAutoPriority(ap);
 				qi->setMaxSegments(max((uint8_t)1, maxSegments));
-				
+				qm->updateDirSize(target, size, true);
 				qm->fire(QueueManagerListener::Added(), qi);
 			}
 			if(!simple)
@@ -2119,21 +2124,23 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 				try {
 					
 					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
-						//if its a rar release add the sources to all files.
-						if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (!BOOLSETTING(PARTIAL_MATCH_ADC) || (sr->getUser()->isSet(User::NMDC)) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0)) {
-							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
-						} //else match with partial list
-						else if (!sr->getUser()->isSet(User::NMDC) && !BOOLSETTING(AUTO_SEARCH_AUTO_MATCH)) {
+						//first just add the source to the 1 file.
+						wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
+						added = true;
+						users = qi->countOnlineUsers();
+						
+						if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH)) {
+						//if we are in adc hub match with partial list
+						if(BOOLSETTING(PARTIAL_MATCH_ADC) && !sr->getUser()->isSet(User::NMDC)) {
 							string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
 							addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
+							}
+						//if its a rar release add the sources to all files.
+						else if(sr->getUser()->isSet(User::NMDC) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
+							addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
+							}
 						}
-						else
-							wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
-						}
-				
-					added = true;
-					users = qi->countOnlineUsers();
-
+					}
 					} catch(const Exception&) {
 					//...
 					}
@@ -2160,17 +2167,13 @@ bool QueueManager::addAlternates(const string& aFile, const dcpp::HintedUser& aU
 	string path, file;
 	string::size_type pos, pos2;
 	bool wantConnection = false;
+
 	try {
-		//check wether we're using old style naming on the rar-files
-		//if so just cut the file ending, else we have to cut after .part
-		pos = aFile.find(".part");
-		if (pos != string::npos) {
-			pos += 4;
-		} else {
-			pos = aFile.find_last_of(".");
+		
+		pos = aFile.find_last_of(".");
 		if(pos == string::npos)
 			return false;
-		}
+		
 		pos2 = aFile.find_last_of("\\");
 		if(pos2 == string::npos)
 			return false;
@@ -2181,9 +2184,11 @@ bool QueueManager::addAlternates(const string& aFile, const dcpp::HintedUser& aU
 		if(file.empty() || path.empty())
 			return false;
 
+		QueueItem::StringMap::const_iterator i;
+		QueueItem::StringMap queue = fileQueue.getQueue();
 		//iterate through the entire queue and add the user as source
 		//where the filenames match
-		for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
+		for(i = queue.begin(); i != queue.end(); ++i) {
 			if( i->first->find(file) != string::npos) {
 				if(!i->second->isSource(aUser)) {
 					try{
@@ -2457,8 +2462,9 @@ void QueueManager::FileQueue::findPFSSources(PFSSourceList& sl)
 		sl.push_back(i->second);
 	}
 }
-/**/
-// Total Time Left /* ttlf */
+
+// Total Time Left /* ttlf */ 
+/*
 int64_t QueueManager::FileQueue::getTotalSize(const string & path){
 
 	int qpos,pos = path.rfind("\\");
@@ -2479,9 +2485,8 @@ int64_t QueueManager::FileQueue::getTotalSize(const string & path){
 	}
 	
 	return totalSize;
-/**/
 }
-
+*/
 uint64_t QueueManager::FileQueue::getTotalQueueSize(){
 
 	uint64_t totalsize = 0;
@@ -2495,6 +2500,44 @@ uint64_t QueueManager::FileQueue::getTotalQueueSize(){
 
 	return totalsize;
 }
+
+void QueueManager::updateDirSize(const string& path, const int64_t& size, bool add/*true*/){
+	if(path.find("FileLists") != string::npos)
+		return;
+
+	int pos = path.rfind("\\");
+	string tmp = path.substr(0, pos);
+	StringIntMap::iterator i = dirSizeMap.find(tmp);
+
+	if(add) {
+		if( i == dirSizeMap.end() ) 
+			dirSizeMap.insert(make_pair(tmp, size));
+		else
+			i->second += size;
+	} else {
+		if(i != dirSizeMap.end()) {
+			i->second -= size;
+			if(i->second <= 0)
+				dirSizeMap.erase(i);
+		}
+	}
+}
+int64_t QueueManager::getDirSize(const string& path){
+	if(path.find("FileLists") != string::npos)
+		return 0;
+
+	int pos = path.rfind("\\");
+
+	string tmp = path.substr(0, pos);
+
+	StringIntMap::iterator i = dirSizeMap.find(tmp);
+
+	if(i == dirSizeMap.end())
+		return 0;
+	else
+		return i->second;
+}
+
 } // namespace dcpp
 
 /**

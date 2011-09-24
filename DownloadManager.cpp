@@ -154,7 +154,7 @@ int64_t DownloadManager::getTotalTime(const string& path) {
 		/* ttlf */
 		int64_t avg = getAverageSpeed(path);	 
 		uint64_t avgpos = getAveragePos(path);	 
-		uint64_t totalsize = QueueManager::getInstance()->fileQueue.getTotalSize(path);	 
+		uint64_t totalsize = QueueManager::getInstance()->getDirSize(path);	 
 		if(totalsize == 0)	 
 			totalsize = avgpos;	 
 

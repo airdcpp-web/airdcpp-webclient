@@ -18,7 +18,6 @@ static bool inRange(int c, int a, int b) {
 
 static bool isNameStartChar(int c) {
 	return 	c == ':'
-		|| c == '+'
 		|| inRange(c, 'A', 'Z')
 		|| c == '_'
 		|| inRange(c, 'a', 'z')
@@ -40,7 +39,6 @@ static bool isNameStartChar(int c) {
 
 static bool isNameChar(int c) {
 	return isNameStartChar(c)
-		|| c == '+'
 		|| c == '-'
 		|| c == '.'
 		|| inRange(c, '0', '9')
@@ -54,8 +52,8 @@ static bool isNameChar(int c) {
 SimpleXMLReader::SimpleXMLReader(SimpleXMLReader::CallBack* callback) :
 	bufPos(0), pos(0), cb(callback), state(STATE_START)
 {
-	elements.reserve(256);   //reserve more for vector to be faster with big list.
-	attribs.reserve(32);    
+	elements.reserve(64);
+	attribs.reserve(16);
 }
 
 void SimpleXMLReader::append(std::string& str, size_t maxLen, int c) {
@@ -531,7 +529,7 @@ bool SimpleXMLReader::needChars(size_t n) const {
 #define LITN(x) x, sizeof(x)-1
 
 void SimpleXMLReader::parse(InputStream& stream, size_t maxSize) {
-	const size_t BUF_SIZE = 128*1024;
+	const size_t BUF_SIZE = 64*1024;
 	size_t bytesRead = 0;
 	do {
 		size_t old = buf.size();

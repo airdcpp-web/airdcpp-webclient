@@ -102,6 +102,7 @@ public:
 
 	void noDeleteFileList(const string& path);
 	
+	int64_t getDirSize(const string& path);
 
 	bool handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo);
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
@@ -207,7 +208,7 @@ public:
 		// find some PFS sources to exchange parts info
 		void findPFSSources(PFSSourceList&);
 		// Total Time Left /* ttlf */
-		int64_t getTotalSize(const string & path);
+		//int64_t getTotalSize(const string & path);
 
 		QueueItem* findAutoSearch(StringList& recent);
 		size_t getSize() { return queue.size(); }
@@ -297,6 +298,10 @@ private:
 	void rechecked(QueueItem* qi);
 
 	void setDirty();
+
+	typedef std::map<std::string, int64_t> StringIntMap;
+	StringIntMap dirSizeMap;
+	void updateDirSize(const string& path, const int64_t& size, bool add = true);
 
 	string getListPath(const HintedUser& user);
 
