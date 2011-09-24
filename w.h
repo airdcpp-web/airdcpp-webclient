@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_W_H_
 
 #ifdef _WIN32
+#define UNC_MAX_PATH 32760
 
 #ifndef _WIN32_WINNT
 # define _WIN32_WINNT 0x0600

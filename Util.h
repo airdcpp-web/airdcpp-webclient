@@ -279,6 +279,27 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static inline int roundUp(int size, int blockSize) {
 		return ((size + blockSize - 1) / blockSize) * blockSize;
 	}
+
+	inline static string FormatPath(const string& path)
+		{
+			string temp;
+			if ((path[0] == '\\') & (path[1] == '\\'))
+				temp = "\\\\?\\UNC\\" + path.substr(2);
+			else
+				temp = "\\\\?\\" + path;
+			return temp;
+		}
+		
+	inline static tstring FormatPath(const tstring& path)
+		{
+			tstring temp;
+			if ((path[0] == '\\') & (path[1] == '\\'))
+				temp = _T("\\\\?\\UNC\\") + path.substr(2);
+			else
+				temp = _T("\\\\?\\") + path;
+			return temp;
+		}
+
 	static wstring formatSecondsW(int64_t aSec) {
 		wchar_t buf[64];
 		swprintf(buf, L"%01I64d:%02d:%02d", aSec / (60*60), (int)((aSec / 60) % 60), (int)(aSec % 60));

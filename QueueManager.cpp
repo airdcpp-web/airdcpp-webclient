@@ -908,7 +908,7 @@ void QueueManager::setDirty() {
 
 string QueueManager::checkTarget(const string& aTarget, bool checkExistence) throw(QueueException, FileException) {
 #ifdef _WIN32
-	if(aTarget.length() > MAX_PATH) {
+	if(aTarget.length() > UNC_MAX_PATH) {
 		throw QueueException(STRING(TARGET_FILENAME_TOO_LONG));
 	}
 	// Check that target starts with a drive or is an UNC path
@@ -940,6 +940,9 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 	
 	if (!aUser.user) //atleast magnet links can cause this to happen.
 	throw QueueException("Can't find Source user to add For Target: " + Util::getFileName(qi->getTarget()));
+
+	if(qi->isFinished()) //no need to add source to finished item.
+		throw QueueException("Already Finished: " + Util::getFileName(qi->getTarget()));
 	
 	bool wantConnection = (qi->getPriority() != QueueItem::PAUSED) && !userQueue.getRunning(aUser);
 
@@ -2117,7 +2120,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					
 					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
 						//if its a rar release add the sources to all files.
-						if((!BOOLSETTING(PARTIAL_MATCH_ADC) || sr->getUser()->isSet(User::NMDC)) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
+						if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (!BOOLSETTING(PARTIAL_MATCH_ADC) || (sr->getUser()->isSet(User::NMDC)) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0)) {
 							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
 						} //else match with partial list
 						else if (!sr->getUser()->isSet(User::NMDC) && !BOOLSETTING(AUTO_SEARCH_AUTO_MATCH)) {

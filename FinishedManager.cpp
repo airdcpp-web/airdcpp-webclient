@@ -85,7 +85,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItem* qi, co
 			
 		fire(FinishedManagerListener::AddedDl(), item);
 		if(BOOLSETTING(SYSTEM_SHOW_DOWNLOADS)) {
-		size_t BUF_SIZE = STRING(FINISHED_DOWNLOAD).size() + MAX_PATH + 128;
+		size_t BUF_SIZE = STRING(FINISHED_DOWNLOAD).size() + UNC_MAX_PATH + 128;
 		char* buf = new char[BUF_SIZE];
 		snprintf(buf, BUF_SIZE, CSTRING(FINISHED_DOWNLOAD), Util::getFileName(qi->getTarget()).c_str(), 
 			Util::toString(ClientManager::getInstance()->getNicks(d->getHintedUser())).c_str());
@@ -110,7 +110,7 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexc
 
 		fire(FinishedManagerListener::AddedUl(), item);
 		if(BOOLSETTING(SYSTEM_SHOW_UPLOADS)) {
-		size_t BUF_SIZE = STRING(FINISHED_UPLOAD).size() + MAX_PATH + 128;
+		size_t BUF_SIZE = STRING(FINISHED_UPLOAD).size() + UNC_MAX_PATH + 128;
 		char* buf = new char[BUF_SIZE];
 		snprintf(buf, BUF_SIZE, CSTRING(FINISHED_UPLOAD), (Util::getFileName(u->getPath())).c_str(), 
 			Util::toString(ClientManager::getInstance()->getNicks(u->getHintedUser())).c_str());

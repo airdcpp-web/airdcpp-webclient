@@ -22,7 +22,7 @@
 namespace dcpp {
 
 #ifdef _WIN32
-File::File(const string& aFileName, int access, int mode) {
+File::File(const string& aFileName, int access, int mode, bool isAbsolute) {
 	dcassert(access == WRITE || access == READ || access == (READ | WRITE));
 
 	int m = 0;
@@ -40,8 +40,12 @@ File::File(const string& aFileName, int access, int mode) {
 		}
 	}
 	DWORD shared = FILE_SHARE_READ | (mode & SHARED ? (FILE_SHARE_WRITE | FILE_SHARE_DELETE) : 0);
+	
+	string path = aFileName;
+	if(isAbsolute)
+		path = Util::FormatPath(aFileName);
 
-	h = ::CreateFile(Text::toT(aFileName).c_str(), access, shared, NULL, m, mode & NO_CACHE_HINT ? 0 : FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	h = ::CreateFile(Text::toT(path).c_str(), access, shared, NULL, m, mode & NO_CACHE_HINT ? 0 : FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 
 	if(h == INVALID_HANDLE_VALUE) {
 		throw FileException(Util::translateError(GetLastError()));
@@ -146,7 +150,7 @@ size_t File::flush() {
 }
 
 void File::renameFile(const string& source, const string& target) {
-	if(!::MoveFile(Text::toT(source).c_str(), Text::toT(target).c_str())) {
+	if(!::MoveFile(Text::toT(Util::FormatPath(source)).c_str(), Text::toT(Util::FormatPath(target)).c_str())) {
 		// Can't move, try copy/delete...
 		copyFile(source, target);
 		deleteFile(source);
@@ -154,21 +158,21 @@ void File::renameFile(const string& source, const string& target) {
 }
 
 void File::copyFile(const string& src, const string& target) {
-	if(!::CopyFile(Text::toT(src).c_str(), Text::toT(target).c_str(), FALSE)) {
+	if(!::CopyFile(Text::toT(Util::FormatPath(src)).c_str(), Text::toT(Util::FormatPath(target)).c_str(), FALSE)) {
 		throw FileException(Util::translateError(GetLastError()));
 	}
 }
 
 void File::deleteFile(const string& aFileName) noexcept
 {
-	::DeleteFile(Text::toT(aFileName).c_str());
+	::DeleteFile(Text::toT(Util::FormatPath(aFileName)).c_str());
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
 
-	hFind = FindFirstFile(Text::toT(aFileName).c_str(), &fd);
+	hFind = FindFirstFile(Text::toT(Util::FormatPath(aFileName)).c_str(), &fd);
 
 	if (hFind == INVALID_HANDLE_VALUE) {
 		return -1;
@@ -187,7 +191,7 @@ void File::ensureDirectory(const string& aFile) noexcept {
 		return;
 	start++;
 	while( (start = file.find_first_of(_T("\\/"), start)) != string::npos) {
-		::CreateDirectory(file.substr(0, start+1).c_str(), NULL);
+		::CreateDirectory((Util::FormatPath(file.substr(0, start+1))).c_str(), NULL);
 		start++;
 	}
 }
@@ -426,7 +430,7 @@ StringList File::findFiles(const string& path, const string& pattern) {
 	WIN32_FIND_DATA data;
 	HANDLE hFind;
 
-	hFind = ::FindFirstFile(Text::toT(path + pattern).c_str(), &data);
+	hFind = ::FindFirstFile(Text::toT(Util::FormatPath(path + pattern)).c_str(), &data);
 	if(hFind != INVALID_HANDLE_VALUE) {
 		do {
 			const char* extra = (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? "\\" : ""; 
@@ -458,7 +462,7 @@ StringList File::findFiles(const string& path, const string& pattern) {
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
 FileFindIter::FileFindIter(const string& path) : handle(INVALID_HANDLE_VALUE) {
-	handle = ::FindFirstFile(Text::toT(path).c_str(), &data);
+	handle = ::FindFirstFile(Text::toT(Util::FormatPath(path)).c_str(), &data);
 }
 
 FileFindIter::~FileFindIter() {

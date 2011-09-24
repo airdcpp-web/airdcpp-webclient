@@ -70,7 +70,7 @@ public:
 
 #endif // !_WIN32
 
-	File(const string& aFileName, int access, int mode);
+	File(const string& aFileName, int access, int mode, bool isAbsolute = true);
 
 	bool isOpen() const noexcept;
 	void close() noexcept;

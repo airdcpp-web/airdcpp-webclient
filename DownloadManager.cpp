@@ -150,7 +150,6 @@ int64_t DownloadManager::getTotalTime(const string& path) {
 		if(path.empty())
 			return 0;
 
-		Lock l(cs);
 		uint64_t timeleft = 0;
 		/* ttlf */
 		int64_t avg = getAverageSpeed(path);	 

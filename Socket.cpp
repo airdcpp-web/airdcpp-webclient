@@ -343,8 +343,12 @@ int Socket::read(void* aBuffer, int aBufLen) {
 	dcassert(type == TYPE_TCP || type == TYPE_UDP);
 	do {
 		if(type == TYPE_TCP) {
+		if (sock == INVALID_SOCKET)
+				break;
 			len = ::recv(sock, (char*)aBuffer, aBufLen, 0);
 		} else {
+			if (sock == INVALID_SOCKET)
+				break;
 			len = ::recvfrom(sock, (char*)aBuffer, aBufLen, 0, NULL, NULL);
 		}
 	} while (len < 0 && getLastError() == EINTR);
