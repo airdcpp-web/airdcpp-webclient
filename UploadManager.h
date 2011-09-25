@@ -127,10 +127,13 @@ public:
 	bool getMultiConn(const UserConnection& aSource);
 	void changeMultiConnSlot(const CID cid, bool remove);
 	void checkMultiConn();
+	void onUBD(const AdcCommand& cmd);
+	void onUBN(const AdcCommand& cmd);
+	BundlePtr findBundle(const string bundleToken);
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
-	void removeDelayUpload(const UserPtr& aUser);
+	void removeDelayUpload(const string& token);
 	void abortUpload(const string& aFile, bool waiting = true);
 		
 	GETSET(uint8_t, extraPartial, ExtraPartial);
@@ -158,7 +161,10 @@ private:
 	SlotMap connectingUsers;
 	MultiConnMap multiUploads;
 	UploadQueueItem::SlotQueue uploadQueue;
+	BundleList bundles;
+	typedef unordered_map<string, BundlePtr> tokenMap;
 
+	void findRemovedToken(const string aToken, bool delay);
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
 	void notifyQueuedUsers();
 
@@ -190,7 +196,7 @@ private:
 	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) noexcept;
 	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept;
 
-	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, bool listRecursive = false);
+	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, bool listRecursive=false, bool tthList=false);
 };
 
 } // namespace dcpp

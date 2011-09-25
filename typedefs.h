@@ -37,6 +37,9 @@ typedef StringMap::iterator StringMapIter;
 typedef std::unordered_set<string> StringSet;
 typedef StringSet::iterator StringSetIter;
 
+typedef std::unordered_map <string, int64_t> StringIntMap;
+typedef StringIntMap::iterator StringIntIter;
+
 typedef vector<wstring> WStringList;
 typedef WStringList::iterator WStringIter;
 typedef WStringList::const_iterator WStringIterC;

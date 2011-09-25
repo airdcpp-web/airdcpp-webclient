@@ -47,13 +47,20 @@ public:
 	
 	typedef X<15> FileMoved;
 
+	typedef X<16> BundleFinished;
+	typedef X<17> BundleWaiting;
+	typedef X<18> BundleRemoved;
+
 	virtual void on(Added, QueueItem*) noexcept { }
 	virtual void on(Finished, const QueueItem*, const string&, const Download*) noexcept { }
 	virtual void on(Removed, const QueueItem*) noexcept { }
 	virtual void on(Moved, const QueueItem*, const string&) noexcept { }
 	virtual void on(SourcesUpdated, const QueueItem*) noexcept { }
-	virtual void on(StatusUpdated, const QueueItem*) noexcept { }
+	virtual void on(StatusUpdated, const QueueItem*, bool) noexcept { }
 	virtual void on(PartialList, const HintedUser&, const string&) noexcept { }
+	virtual void on(BundleFinished, const string&) noexcept { }
+	virtual void on(BundleWaiting, const string&) noexcept { }
+	virtual void on(BundleRemoved, const string&) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }
 	virtual void on(RecheckNoFile, const string&) noexcept { }

@@ -48,6 +48,7 @@ public:
 	typedef X<3> Tick;
 	typedef X<4> Requesting;
 	typedef X<5> Status;
+	typedef X<6> BundleFinished;
 
 	/**
 	 * This is the first message sent before a download starts.
@@ -63,7 +64,7 @@ public:
 	/**
 	 * Sent once a second if something has actually been downloaded.
 	 */
-	virtual void on(Tick, const DownloadList&) noexcept { }
+	virtual void on(Tick, const DownloadList&, const BundleList&) noexcept { }
 
 	/**
 	 * This is the last message sent before a download is deleted.
@@ -80,6 +81,7 @@ public:
 	 */
 	virtual void on(Failed, const Download*, const string&) noexcept { }
 	virtual void on(Status, const UserConnection*, const string&) noexcept { }
+	virtual void on(BundleFinished, const string&) noexcept { }
 };
 
 } // namespace dcpp

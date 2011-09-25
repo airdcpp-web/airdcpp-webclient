@@ -163,6 +163,10 @@ string AdcCommand::toString(const CID& aCID) const {
 	return getHeaderString(aCID) + getParamString(false);
 }
 
+string AdcCommand::toString() const {
+	return getHeaderString() + getParamString(false);
+}
+
 string AdcCommand::toString(uint32_t sid /* = 0 */, bool nmdc /* = false */) const {
 	return getHeaderString(sid, nmdc) + getParamString(nmdc);
 }
@@ -220,6 +224,15 @@ string AdcCommand::getHeaderString(const CID& cid) const {
 	tmp += cmdChar;
 	tmp += ' ';
 	tmp += cid.toBase32();
+	return tmp;
+}
+
+string AdcCommand::getHeaderString() const {
+	dcassert(type == TYPE_UDP);
+	string tmp;
+	
+	tmp += getType();
+	tmp += cmdChar;
 	return tmp;
 }
 

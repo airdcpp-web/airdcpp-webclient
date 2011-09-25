@@ -67,15 +67,15 @@ DownloadManager::~DownloadManager() {
 
 void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	typedef vector<pair<string, UserPtr> > TargetList;
+	typedef vector<pair<BundlePtr, double>> BundleSpeedMap;
+	BundleSpeedMap bundles;
 	TargetList dropTargets;
-	
+	StringList targets;
+	HintedUserList notifyUsers;
 	{
 		Lock l(cs);
 
-	DownloadList tickList;
-
-	averageSpeedMap.clear();
-	averagePosMap.clear();
+		DownloadList tickList;
 
 		// Tick each ongoing download
 		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
@@ -106,39 +106,75 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 				}
 			}
 	
-		if(d->getType() == Transfer::TYPE_FILE) { //no reason to count for filelists
-			//averages for the download folders
-		string tmp = d->getPath().substr(0, d->getPath().rfind("\\"));
-		if(!tmp.empty()) {
-		StringIntIter j = averageSpeedMap.find(tmp);
-		if(j != averageSpeedMap.end())
-			j->second += speed;
-		else
-			averageSpeedMap.insert(StringIntPair(tmp, speed));
-		
-		
-		j = averagePosMap.find(tmp);
-		if(j != averagePosMap.end())
-			j->second += d->getPos();
-		else
-			averagePosMap.insert(StringIntPair(tmp, d->getPos()));
-			}
-		}
+			if(d->getType() == Transfer::TYPE_FILE) { //no reason to count for filelists
+				BundlePtr bundle = d->getBundle();
+				if (bundle) {
+					bool found=false;
+					for (BundleSpeedMap::iterator j = bundles.begin(); j != bundles.end(); ++j) {
+						if ((*j).first->getToken() == bundle->getToken()) {
+							j->second += speed;
+							bundle->setRunning(bundle->getRunning() + 1);
+							found=true;
+							break;
+						}
+					}
+					if (!found) {
+						bundle->setRunning(1);
+						//bundle->uploadNotifyUsers.clear();
+						bundles.push_back(make_pair(bundle, speed));
+					}
 
-		if(SETTING(FAV_DL_SPEED) > 0) {
-			UserPtr fstusr = d->getUser();
-			if(FavoriteManager::getInstance()->isFavoriteUser(fstusr) == false) {
-				if(speed > SETTING(FAV_DL_SPEED)*1024) {
-					if((aTick - d->getStart()) > 7000) {
-						FavoriteManager::getInstance()->addFavoriteUserB(fstusr);
-						FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1024) + "KB/s)"));
+					//if (d->getUser()->isSet(User::BUNDLES)) {
+					//	LogManager::getInstance()->message("ADD IN BUNDLENOTIFYLIST!!!!!");
+						//bundle->uploadNotifyUsers.push_back(d->getHintedUser());
+					//}
+				}
+			}
+
+			if(SETTING(FAV_DL_SPEED) > 0) {
+				UserPtr fstusr = d->getUser();
+				if(FavoriteManager::getInstance()->isFavoriteUser(fstusr) == false) {
+					if(speed > SETTING(FAV_DL_SPEED)*1024) {
+						if((aTick - d->getStart()) > 7000) {
+							FavoriteManager::getInstance()->addFavoriteUserB(fstusr);
+							FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1024) + "KB/s)"));
+						}
 					}
 				}
 			}
 		}
-}
-		if(tickList.size() > 0)
-			fire(DownloadManagerListener::Tick(), tickList);
+
+
+		/*StringIntMap posCompareList = oldBundlePositions;
+		oldBundlePositions = bundlePositions;
+		for (StringIntIter i = posCompareList.begin(); i != posCompareList.end(); ++i) {
+			int64_t oldPos = (*i).second;
+			StringIntIter j = bundlePositions.find((*i).first);
+			if(j != bundlePositions.end()) {
+				int64_t newPos = (*j).second;
+				//LogManager::getInstance()->message("New pos: " + Util::toString(newPos) + " old pos: " + Util::toString(oldPos));
+				if (newPos > oldPos) {
+					//LogManager::getInstance()->message("Modified pos: " + Util::toString(newPos-oldPos));
+					j->second = newPos-oldPos;
+				}
+			}
+		}
+
+		QueueManager::getInstance()->updateBundles(bundleSpeeds, bundlePositions, true); */
+		//QueueManager::getInstance()->updateBundles(bundleSpeeds, tickList, true);
+		BundleList retBundles;
+		for (BundleSpeedMap::iterator i = bundles.begin(); i != bundles.end(); ++i) {
+			(*i).first->setSpeed((*i).second);
+			retBundles.push_back((*i).first);
+			//LogManager::getInstance()->message("Bundle status updated, speed: " + Util::formatBytes((*i).first->getSpeed()));
+			//LogManager::getInstance()->message("Bundle status updated, downloaded: " + Util::formatBytes((*i).first->getDownloaded()));
+		}
+
+		updateBundles(retBundles);
+
+		if(tickList.size() > 0) {
+			fire(DownloadManagerListener::Tick(), tickList, retBundles);
+		}
 	}
 
 	for(TargetList::iterator i = dropTargets.begin(); i != dropTargets.end(); ++i) {
@@ -146,23 +182,168 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 	}
 }
 
-int64_t DownloadManager::getTotalTime(const string& path) {
-		if(path.empty())
-			return 0;
 
-		uint64_t timeleft = 0;
-		/* ttlf */
-		int64_t avg = getAverageSpeed(path);	 
-		uint64_t avgpos = getAveragePos(path);	 
-		uint64_t totalsize = QueueManager::getInstance()->getDirSize(path);	 
-		if(totalsize == 0)	 
-			totalsize = avgpos;	 
+void DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly) {
+	LogManager::getInstance()->message("DOWNLOADMANAGER SENDBUNDLE");
+	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
-		timeleft =  (avg > 0) ? ((totalsize - avgpos) / avg) : 0;	 
- 	 
-		return (timeleft > 0) ?	timeleft : 0; 
+	cmd.addParam("HI", aSource->getHintedUser().hint);
+	cmd.addParam("TO", aSource->getToken());
+	cmd.addParam("BU", aBundle->getToken());
+	if (!updateOnly) {
+		cmd.addParam("SI", Util::toString(aBundle->getSize()));
+		cmd.addParam("NA", aBundle->getName());
+		cmd.addParam("DL", Util::toString(aBundle->getDownloaded()));
+		if (aBundle->runningUsers.size() == 1) {
+			cmd.addParam("SU1");
+		} else {
+			cmd.addParam("MU1");
+		}
+	}
+	ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID());
+	//aSource->getUser()
+	
+	//OnlineUser* u = AdcHub::findUser(c.getFrom());
+	//if(!u || u->getUser() == ClientManager::getInstance()->getMe())
+	//	return;
+
+	//aSource->send(cmd);
+	//ClientManager::getInstance()->send(cmd, aSource->getUser()->get);
 }
 
+void DownloadManager::updateBundles(BundleList bundles) {
+	for(BundleList::iterator j = bundles.begin(); j != bundles.end(); ++j) {
+		BundlePtr bundle = *j;
+		if (bundle->runningUsers.size() == 1 || bundle->uploadReports.empty()) {
+			bundle->setTotalSpeed(0);
+			bundle->setLastPercent(0);
+			continue;
+		}
+		string speed;
+		string bundleToken = bundle->getToken();
+		double percent = 0;
+		float change = (((float)bundle->getSpeed() - (float)bundle->getTotalSpeed()) / (((float)bundle->getSpeed() + (float)bundle->getTotalSpeed()) / 2.00000));
+		//LogManager::getInstance()->message("SPEEDCHANGE: " + Util::toString(change) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
+		//bundle->setTotalSpeed(bundle->getSpeed());
+
+		if (abs(change) > 0.05) {
+			LogManager::getInstance()->message("SEND SPEEDCHANGE: " + Util::toString(abs(change)) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
+			speed = formatDownloaded(bundle->getSpeed());
+			bundle->setTotalSpeed(bundle->getSpeed());
+		} else {
+			LogManager::getInstance()->message("DONT SEND");
+		}
+		//LogManager::getInstance()->message("SpeedCompare: " + Util::toString(bundle->getSpeed() - bundle->getTotalSpeed()) + " should be bigger than " + Util::toString(bundle->getSpeed()*0.05));
+
+		if (floor(bundle->getLastPercent()) < floor(((float)bundle->getDownloaded() / (float)bundle->getSize())* 10000)) {
+			percent = (((float)bundle->getDownloaded() / (float)bundle->getSize())*100);
+			bundle->setLastPercent(percent*100.000);
+		}
+		LogManager::getInstance()->message("PercentCompare: " + Util::toString(bundle->getLastPercent()) + " should be smaller than " + Util::toString(floor(((float)bundle->getDownloaded() / (float)bundle->getSize())* 10000)));
+
+		//LogManager::getInstance()->message("Bundle notify info, percent: " + Util::toString(percent) + " speed: " + speed);
+		if (!speed.empty() || percent > 0) {
+			for(auto i = bundle->uploadReports.begin(); i != bundle->uploadReports.end(); ++i) {
+				sendBundleUpdate((*i), speed, percent, bundleToken);
+			}
+		}
+	}
+}
+
+void DownloadManager::sendBundleUpdate(HintedUser user, const string speed, const double percent, const string bundleToken) {
+	AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
+
+	cmd.addParam("HI", user.hint);
+	cmd.addParam("BU", bundleToken);
+	if (!speed.empty())
+		cmd.addParam("DS", speed);
+	if (percent > 0)
+		cmd.addParam("PE", Util::toString(percent));
+
+	ClientManager::getInstance()->send(cmd, user.user->getCID(), true);
+}
+
+string DownloadManager::formatDownloaded(int64_t aBytes) {
+	char buf[64];
+	if(aBytes < 1024) {
+		snprintf(buf, sizeof(buf), "%d%s", (int)(aBytes&0xffffffff), "b");
+	} else if(aBytes < 1048576) {
+		snprintf(buf, sizeof(buf), "%.02f%s", (double)aBytes/(1024.0), "k");
+	} else {
+		snprintf(buf, sizeof(buf), "%.02f%s", (double)aBytes/(1048576.0), "m");
+	}
+	return buf;
+}
+
+void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
+	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != aBundle->getToken()) {
+		Lock l (cs);
+		bool updateOnly = false;
+		CID cid = aSource->getUser()->getCID();
+		if (!aSource->getLastBundle().empty()) {
+			LogManager::getInstance()->message("LASTBUNDLE NOT EMPTY, REMOVE");
+			QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), cid);
+		} 
+
+		{
+
+			if (aBundle->runningUsers.empty()) {
+				aBundle->setStart(GET_TICK());
+			}
+
+			auto y =  aBundle->runningUsers.find(cid);
+			if (y == aBundle->runningUsers.end()) {
+				LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
+				if (aBundle->runningUsers.size() == 1) {
+					LogManager::getInstance()->message("SEND BUNDLE MODE");
+					sendBundleMode(aBundle, false);
+				}
+				aBundle->runningUsers[cid] = 1;
+			} else {
+				LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS");
+				updateOnly = true;
+				y->second++;
+			}
+		}
+
+		if (aSource->getUser()->isSet(User::BUNDLES)  && !aSource->getUser()->isSet(User::PASSIVE)) {
+			if (!updateOnly) {
+				aBundle->uploadReports.push_back(aSource->getHintedUser());
+			}
+			sendBundle(aSource, aBundle, updateOnly);
+		}
+
+		aSource->setLastBundle(aBundle->getToken());
+	}
+}
+
+void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
+	for(auto i = aBundle->uploadReports.begin(); i != aBundle->uploadReports.end(); ++i) {
+		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+
+		//cmd.addParam("HI", (*i).hint);
+		cmd.addParam("BU", aBundle->getToken());
+		if (singleUser)
+			cmd.addParam("SU1");
+		else
+			cmd.addParam("MU1");
+
+		ClientManager::getInstance()->send(cmd, (*i).user->getCID());
+	}
+}
+
+void DownloadManager::findRemovedToken(UserConnection* aSource) {
+	tokenMap::iterator i = tokens.find(aSource->getToken());
+	if (i != tokens.end()) {
+		BundlePtr b = (*i).second;
+		b->decreaseRunning();
+		//if (b->getRunning() == 0) {
+		//	LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
+		//	bundles.erase(std::remove(bundles.begin(), bundles.end(), b), bundles.end());
+		//	//b->dec();
+		//}
+	}
+}
 
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
 
@@ -283,6 +464,9 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 	const string& type = cmd.getParam(0);
 	int64_t start = Util::toInt64(cmd.getParam(2));
 	int64_t bytes = Util::toInt64(cmd.getParam(3));
+
+	if(cmd.hasFlag("TL", 4))	 
+		aSource->getDownload()->setFlag(Download::FLAG_TTHLIST);
 	
 	if(type != Transfer::names[aSource->getDownload()->getType()]) {
 		// Uhh??? We didn't ask for this...
@@ -355,6 +539,9 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 	fire(DownloadManagerListener::Starting(), d);
 	ConnectionManager::getInstance()->changeCQIState(aSource, false);
+	BundlePtr bundle = d->getBundle();
+	if (bundle)
+		startBundle(aSource, bundle);
 
 	if(d->getPos() == d->getSize()) {
 		try {
@@ -366,14 +553,18 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	} else {
 		aSource->setDataMode();
 	}
-}	
+}
 
 void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, const uint8_t* aData, size_t aLen) noexcept {
 	Download* d = aSource->getDownload();
+	BundlePtr bundle = d->getBundle();
 	dcassert(d != NULL);
 
 	try {
 		d->addPos(d->getFile()->write(aData, aLen), aLen);
+		//LogManager::getInstance()->message("pos: " + Util::toString(pos) + "   aLen: " + Util::toString(aLen));
+		if (bundle)
+			bundle->increaseDownloaded(aLen);
 		d->tick();
 
 		if(d->getFile()->eof()) {
@@ -498,6 +689,14 @@ void DownloadManager::removeDownload(Download* d) {
 			} catch(const Exception&) {
 			}
 		}
+	}
+
+	if (d->getBundle()) {
+		//int64_t size = d->getBundle()->getSize();
+		//if (d->getBundle()->getDownloaded() == d->getBundle()->getSize()) {
+			LogManager::getInstance()->message("FIRE DOWNLOAD BUNDLEFINISHED");
+			//fire(DownloadManagerListener::BundleFinished(), d->getBundle()->getToken());
+		//}
 	}
 
 	{

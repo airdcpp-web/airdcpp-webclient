@@ -50,6 +50,7 @@ const string AdcHub::TIGR_SUPPORT("ADTIGR");
 const string AdcHub::UCM0_SUPPORT("ADUCM0");
 const string AdcHub::BLO0_SUPPORT("ADBLO0");
 const string AdcHub::ZLIF_SUPPORT("ADZLIF");
+const string AdcHub::BNDL_FEATURE("BNDL");
 
 const vector<StringList> AdcHub::searchExts;
 
@@ -193,6 +194,11 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 	if(u->getIdentity().supports(ADCS_FEATURE)) {
 		u->getUser()->setFlag(User::TLS);
+	}
+
+	if(u->getIdentity().supports(BNDL_FEATURE)) {
+		LogManager::getInstance()->message("BNDL ADDED");
+		u->getUser()->setFlag(User::BUNDLES);
 	}
 
 	if(u->getUser() == getMyIdentity().getUser()) {
@@ -462,6 +468,7 @@ void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 		ip = ou.getIdentity().getIp();
 		port = static_cast<uint16_t>(Util::toInt(ou.getIdentity().getUdpPort()));
 		command = cmd.toString(ou.getUser()->getCID());
+		LogManager::getInstance()->message("COMMAAAAAAAAAAAAAAAAAAAAAAAAAAAAND: " + command);
 	}
 	try {
 		udp.writeTo(ip, port, command);
@@ -550,6 +557,22 @@ void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
 		return;
 	}
 	SearchManager::getInstance()->onPSR(c, ou->getUser());
+}
+
+void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {
+	LogManager::getInstance()->message("GOT PBD TCP");
+	OnlineUser* ou = findUser(c.getFrom());
+	if(!ou) {
+		dcdebug("Invalid user in AdcHub::onPBD\n");
+		return;
+	}
+	SearchManager::getInstance()->onPBD(c, ou->getUser());
+}
+
+
+void AdcHub::handle(AdcCommand::UBD, AdcCommand& c) noexcept {
+	LogManager::getInstance()->message("GOT UBD TCP");
+	UploadManager::getInstance()->onUBD(c);
 }
 
 void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
@@ -1042,6 +1065,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		}
 	}
 
+	su += "," + BNDL_FEATURE;
 	if(isActive()) {
 		addParam(lastInfoMap, c, "U4", Util::toString(SearchManager::getInstance()->getPort()));
 		su += "," + TCP4_FEATURE;
@@ -1118,9 +1142,9 @@ void AdcHub::on(Connected c) noexcept {
 	if(BOOLSETTING(HUB_USER_COMMANDS)) {
 		cmd.addParam(UCM0_SUPPORT);
 	}
-	if(BOOLSETTING(SEND_BLOOM)) {
-		cmd.addParam(BLO0_SUPPORT);
-	}
+	//if(BOOLSETTING(SEND_BLOOM)) {
+	//	cmd.addParam(BLO0_SUPPORT);
+	//}
 	cmd.addParam(ZLIF_SUPPORT);
 	send(cmd);
 }

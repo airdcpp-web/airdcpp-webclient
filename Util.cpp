@@ -1375,6 +1375,14 @@ string Util::getDir(string dir, bool validate, bool cut) {
 
 		//boost::smatch result;
 		size_t dpos;
+		if(dir[dir.size() -1] != '\\') {
+			dpos = dir.rfind("\\");
+			if(dpos != tstring::npos) {
+				dir = dir.substr(0,dpos+1);
+			} else {
+				return dir;
+			}
+		}
 		//reg.assign(".*[^\\\\]+\\\\([^\\\\]+\\.[a-z0-9]{2,10})$");
 		//if (regex_match(dir, reg)) {
 		//	dpos = dir.rfind("\\");

@@ -201,6 +201,7 @@ public:
 	
 	GETSET(string, hubUrl, HubUrl);
 	GETSET(string, token, Token);
+	GETSET(string, lastBundle, LastBundle);
 	GETSET(int64_t, speed, Speed);
 	GETSET(uint64_t, lastActivity, LastActivity);
 	GETSET(string*, encoding, Encoding);
@@ -223,7 +224,7 @@ private:
 
 	// We only want ConnectionManager to create this...
 	UserConnection(bool secure_) noexcept : encoding(const_cast<string*>(&Text::systemCharset)), state(STATE_UNCONNECTED),
-		lastActivity(0), speed(0), chunkSize(0), socket(0), download(NULL), slotType(NOSLOT) {
+		lastActivity(0), speed(0), chunkSize(0), socket(0), download(NULL), slotType(NOSLOT), lastBundle(Util::emptyString) {
 		if(secure_) {
 			setFlag(FLAG_SECURE);
 		}

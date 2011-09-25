@@ -113,6 +113,9 @@ public:
 	C(PUB, 'P','U','B');
 	C(ZON, 'Z','O','N');
 	C(ZOF, 'Z','O','F');
+	C(PBD, 'P','B','D');
+	C(UBD, 'U','B','D');
+	C(UBN, 'U','B','N');
 #undef C
 
 	static const uint32_t HUB_SID = 0xffffffff;		// No client will have this sid
@@ -137,6 +140,7 @@ public:
 	StringList& getParameters() { return parameters; }
 	const StringList& getParameters() const { return parameters; }
 
+	string toString() const;
 	string toString(const CID& aCID) const;
 	string toString(uint32_t sid, bool nmdc = false) const;
 
@@ -169,6 +173,7 @@ public:
 	static string fromSID(const uint32_t aSID) { return string(reinterpret_cast<const char*>(&aSID), sizeof(aSID)); }
 private:
 	string getHeaderString(const CID& cid) const;
+	string getHeaderString() const;
 	string getHeaderString(uint32_t sid, bool nmdc) const;
 	string getParamString(bool nmdc) const;
 	StringList parameters;
@@ -212,6 +217,8 @@ public:
 				C(NAT);
 				C(RNT);
 				C(PSR);
+				C(PBD);
+				C(UBD);
 				C(ZON);
 				C(ZOF);
 			default: 

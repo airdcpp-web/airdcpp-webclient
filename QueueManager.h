@@ -53,7 +53,7 @@ public:
 
 	/** Add a file to the queue. */
 	void add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,
-		Flags::MaskType aFlags = 0, bool addBad = true) throw(QueueException, FileException);
+		Flags::MaskType aFlags = 0, BundlePtr aBundle = NULL, bool addBad = true) throw(QueueException, FileException);
 		/** Add a user's filelist to the queue. */
 	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
 	void addListDir(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
@@ -102,10 +102,24 @@ public:
 
 	void noDeleteFileList(const string& path);
 	
-	int64_t getDirSize(const string& path);
 
-	bool handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo);
+	bool handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle);
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
+	void addTTHList(const HintedUser& aUser, const string& bundle);
+	MemoryInputStream* generateTTHList(const HintedUser aUser, const string& bundleToken, bool isInSharingHub);
+	bool addBundle(BundlePtr aBundle);
+	int mergeBundle(BundlePtr aBundle, BundlePtr tempBundle);
+	void addBundleItem(QueueItem* qi, const string bundleToken);
+	//void updateBundles(StringIntMap bundleSpeeds, StringIntMap bundlePositions, bool download);
+	void removeBundleItem(const QueueItem* qi, bool finished);
+	void removeBundle(const string bundleToken, bool removeItems);
+	void removeRunningUser(const string bundleToken, CID cid);
+	BundlePtr findBundle(const string bundleToken);
+	void findBundle(QueueItem* qi);
+	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
+	void updatePBD(const HintedUser aUser, const string bundleToken, const TTHValue aTTH);
+	void sendBundleChange(BundlePtr aBundle, int64_t aSize, const string aName);
+	void sendBundleFinished(BundlePtr aBundle);
 	
 	bool dropSource(Download* d);
 
@@ -208,7 +222,7 @@ public:
 		// find some PFS sources to exchange parts info
 		void findPFSSources(PFSSourceList&);
 		// Total Time Left /* ttlf */
-		//int64_t getTotalSize(const string & path);
+		int64_t getTotalSize(const string & path);
 
 		QueueItem* findAutoSearch(StringList& recent);
 		size_t getSize() { return queue.size(); }
@@ -272,6 +286,12 @@ private:
 	PME regexp;
 	bool addAlternates(const string& aFile, const HintedUser& aUser);
 
+	/** Bundles */	
+	typedef unordered_map<string, BundlePtr> BundleMap;
+	typedef BundleMap::const_iterator BundleMapIter;
+	BundleMap bundles;
+	BundleMap bundleTargets;
+
 	/** QueueItems by user */
 	UserQueue userQueue;
 	/** Directories queued for downloading */
@@ -288,8 +308,16 @@ private:
 	static string checkTarget(const string& aTarget, bool checkExsistence) throw(QueueException, FileException);
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException);
-
+	 
 	void processList(const string& name, const HintedUser& user, const string path, int flags);
+	void matchTTHList(const string& name, const HintedUser& user, int flags);
+
+	void sendPBD(const CID cid, const string hubIpPort, const TTHValue& tth, const string bundleToken);
+	string findFinished(const TTHValue& tth) const;
+	typedef unordered_map<TTHValue, string> FinishedTTHMap;
+	typedef FinishedTTHMap::const_iterator FinishedTTHIter;
+	FinishedTTHMap finishedItems;
+
 
 	void load(const SimpleXML& aXml);
 	void moveFile(const string& source, const string& target);
@@ -298,10 +326,6 @@ private:
 	void rechecked(QueueItem* qi);
 
 	void setDirty();
-
-	typedef std::map<std::string, int64_t> StringIntMap;
-	StringIntMap dirSizeMap;
-	void updateDirSize(const string& path, const int64_t& size, bool add = true);
 
 	string getListPath(const HintedUser& user);
 

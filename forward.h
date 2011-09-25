@@ -33,6 +33,11 @@ class ADLSearch;
 
 class BufferedSocket;
 
+
+class Bundle;
+typedef boost::intrusive_ptr<Bundle> BundlePtr;
+typedef std::vector<BundlePtr> BundleList;
+
 struct ChatMessage;
 
 class CID;

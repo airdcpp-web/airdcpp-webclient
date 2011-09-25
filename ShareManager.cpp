@@ -747,22 +747,29 @@ bool ShareManager::isDirShared(const string& directory) {
 	}
 }
 
-tstring ShareManager::getDirPath(const string& directory) {
-	string dir = getReleaseDir(directory);
-	if (dir.empty())
-		return Util::emptyStringT;
+tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
+	string dir = directory;
+	if (validateDir) {
+		dir = getReleaseDir(directory);
+		if (dir.empty())
+			return Util::emptyStringT;
+	}
 
 	string found = Util::emptyString;
 	string dirNew;
 	for(DirList::const_iterator j = directories.begin(); j != directories.end(); ++j) {
-		dirNew = getReleaseDir((*j)->getFullName());
+		dirNew = (*j)->getFullName();
+		if (validateDir) {
+			dirNew = getReleaseDir(dirNew);
+		}
+
 		if (!dirNew.empty()) {
 			if (dir == dirNew) {
 				found=dirNew;
 				break;
 			}
 		}
-		found = (*j)->find(dir);
+		found = (*j)->find(dir, validateDir);
 		if(!found.empty())
 			break;
 	}
@@ -784,9 +791,11 @@ tstring ShareManager::getDirPath(const string& directory) {
 }
 
 
-string ShareManager::Directory::find(const string& dir) {
+string ShareManager::Directory::find(const string& dir, bool validateDir) {
 	string ret = Util::emptyString;
-	string dirNew = ShareManager::getInstance()->getReleaseDir(this->getFullName());
+	string dirNew = dir;
+	if (validateDir)
+		dirNew = ShareManager::getInstance()->getReleaseDir(this->getFullName());
 
 	if (!dirNew.empty()) {
 		if (dir == dirNew) {
@@ -795,7 +804,7 @@ string ShareManager::Directory::find(const string& dir) {
 	}
 
 	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
-		ret = l->second->find(dir);
+		ret = l->second->find(dir, validateDir);
 		if(!ret.empty())
 			break;
 	}
@@ -1494,13 +1503,13 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		return 0;
 	
 	if(!isInSharingHub) {
-				string xml = SimpleXML::utf8Header;
-                string tmp;
-                xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"" APPNAME " " VERSIONSTRING "\">\r\n";
-                StringOutputStream sos(xml);
-                xml += "</FileListing>";
-                return new MemoryInputStream(xml);
-	 }
+		string xml = SimpleXML::utf8Header;
+		string tmp;
+		xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"" APPNAME " " VERSIONSTRING "\">\r\n";
+		StringOutputStream sos(xml);
+		xml += "</FileListing>";
+		return new MemoryInputStream(xml);
+	}
 
 	
 	string xml;

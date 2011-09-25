@@ -70,6 +70,7 @@ public:
 	static const string UCM0_SUPPORT;
 	static const string BLO0_SUPPORT;
 	static const string ZLIF_SUPPORT;
+	static const string BNDL_FEATURE;
 
 private:
 	friend class ClientManager;
@@ -145,6 +146,8 @@ private:
 	void handle(AdcCommand::NAT, AdcCommand& c) noexcept;
 	void handle(AdcCommand::RNT, AdcCommand& c) noexcept;
 	void handle(AdcCommand::PSR, AdcCommand& c) noexcept;
+	void handle(AdcCommand::PBD, AdcCommand& c) noexcept;
+	void handle(AdcCommand::UBD, AdcCommand& c) noexcept;
 	void handle(AdcCommand::ZON, AdcCommand& c) noexcept;
 	void handle(AdcCommand::ZOF, AdcCommand& c) noexcept;
 

@@ -44,6 +44,8 @@ public:
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
 	bool checkIdle(const UserPtr& user, bool smallSlot);
+	void findRemovedToken(UserConnection* aSource);
+	void sendBundleMode(BundlePtr aBundle, bool singleUser);
 
 	/** @internal */
 	void abortDownload(const string& aTarget);
@@ -58,28 +60,6 @@ public:
 	}
 
 	bool startDownload(QueueItem::Priority prio, bool mcn=false);
-	
-	int64_t getTotalTime(const string& path);
-
-	int64_t getAverageSpeed(const string& path){
-		int64_t result = 0;
-		size_t pos = path.rfind("\\");
-		string tmp = path.substr(0, pos);
-		if(!tmp.empty())
-			result = averageSpeedMap.find(tmp)->second;
-
-		return result;
-	}
-
-	uint64_t getAveragePos(const string& path) {
-		uint64_t result = 0;
-		size_t pos = path.rfind("\\");
-		string tmp = path.substr(0, pos);
-		if(!tmp.empty())
-			result = averagePosMap.find(tmp)->second;
-
-		return result;
-	}
 	
 
 
@@ -103,8 +83,17 @@ private:
 	DownloadManager();
 	~DownloadManager();
 
+	typedef unordered_set<CID> CIDList;
 	void checkDownloads(UserConnection* aConn);
 	void startData(UserConnection* aSource, int64_t start, int64_t newSize, bool z);
+	void startBundle(UserConnection* aSource, BundlePtr aBundle);
+	void sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly);
+	void sendBundleUpdate(HintedUser user, const string speed, const double percent, const string bundleToken);
+	void updateBundles(BundleList bundles);
+	typedef unordered_map<string, BundlePtr> tokenMap;
+	tokenMap tokens;
+
+	string formatDownloaded(int64_t aBytes);
 	void endData(UserConnection* aSource);
 
 	void onFailed(UserConnection* aSource, const string& aError);
@@ -123,12 +112,9 @@ private:
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
-	typedef map< string, int64_t > StringIntMap;
-	typedef StringIntMap::iterator StringIntIter;
 	typedef pair< string, int64_t > StringIntPair;
 
-	StringIntMap averageSpeedMap;
-	StringIntMap averagePosMap;
+	StringIntMap oldBundlePositions;
 
 };
 

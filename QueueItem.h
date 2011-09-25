@@ -26,6 +26,7 @@
 #include "forward.h"
 #include "Segment.h"
 #include "HintedUser.h"
+#include "Bundle.h"
 
 namespace dcpp {
 
@@ -69,7 +70,9 @@ public:
 		/** Find NFO from partial list and view it */
 		FLAG_VIEW_NFO			= 0x100,
 		/** Recursive partial list */
-		FLAG_RECURSIVE_LIST		= 0x200
+		FLAG_RECURSIVE_LIST		= 0x200,
+		/** TTH list */
+		FLAG_TTHLIST			= 0x400
 	};
 
 	/**
@@ -135,7 +138,8 @@ public:
 		time_t aAdded, const TTHValue& tth) :
 		Flags(aFlag), target(aTarget), maxSegments(1), fileBegin(0),
 		size(aSize), priority(aPriority), added(aAdded),
-		tthRoot(tth), autoPriority(false), nextPublishingTime(0)
+		tthRoot(tth), autoPriority(false), nextPublishingTime(0),
+		bundle(NULL)
 	{
 		inc();
 		setFlag(FLAG_AUTODROP);
@@ -155,8 +159,8 @@ public:
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
 
-	
-SourceList& getSources() { return sources; }
+	string getFolder() const { return Util::getDir(target, false, false); };
+	SourceList& getSources() { return sources; }
 	const SourceList& getSources() const { return sources; }
 	SourceList& getBadSources() { return badSources; }
 	const SourceList& getBadSources() const { return badSources; }
@@ -250,6 +254,7 @@ SourceList& getSources() { return sources; }
 	GETSET(Priority, priority, Priority);
 	GETSET(uint8_t, maxSegments, MaxSegments);
 	GETSET(bool, autoPriority, AutoPriority);
+	GETSET(BundlePtr, bundle, Bundle);
 	
 	QueueItem::Priority calculateAutoPriority() const {
 		if(autoPriority) {

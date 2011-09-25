@@ -22,10 +22,12 @@ public:
 	typedef X<5> QueueRemove;
 	typedef X<6> QueueItemRemove;
 	typedef X<7> QueueUpdate;
+	typedef X<8> BundleComplete;
 
 	virtual void on(Starting, const Upload*) noexcept { }
-	virtual void on(Tick, const UploadList&) noexcept { }
+	virtual void on(Tick, const UploadList&, const BundleList&) noexcept { }
 	virtual void on(Complete, const Upload*) noexcept { }
+	virtual void on(BundleComplete, const string&) noexcept { }
 	virtual void on(Failed, const Upload*, const string&) noexcept { }
 	virtual void on(QueueAdd, UploadQueueItem*) noexcept { }
 	virtual void on(QueueRemove, const UserPtr&) noexcept { }

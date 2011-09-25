@@ -17,6 +17,7 @@
  */
 
 #include "stdinc.h"
+#include "Bundle.h"
 #include "DirectoryListing.h"
 
 #include "QueueManager.h"
@@ -295,15 +296,20 @@ string DirectoryListing::getPath(const Directory* d) const {
 	return dir;
 }
 
-void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList) {
-
+void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
 	string target = aTarget;
+	boost::regex reg;
+	//BundlePtr bundle;
+	reg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+	bool useRoot=false;
 
 	if(!aDir->getComplete()) {
 		// folder is not completed (partial list?), so we need to download it first
 		QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
 	} else {
 		Directory::List& lst = aDir->directories;
+		File::List& l = aDir->files;
+
 		//check if there are incomplete subdirs
 		for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
 			if (!(*j)->getComplete()) {
@@ -314,27 +320,65 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 					QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio, true);
 				}
 				return;
+			} else if (!regex_match((*j)->getName(), reg)) {
+				useRoot=true;
 			}
 		}
 
 		target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
+		//create bundles
+		if (first) {
+			if (lst.empty() || useRoot || l.empty()) {
+				//bundle = QueueManager::getInstance()->createBundle(target);
+				aBundle = BundlePtr(new Bundle(target, true));
+				LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE1: " + aBundle->getTarget());
+			} else {
+				sort(lst.begin(), lst.end(), Directory::DirSort());
+				for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
+					aBundle = BundlePtr(new Bundle(target, true));
+					LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
+					download(*j, target, highPrio, prio, false, false, aBundle);
+
+					sort(l.begin(), l.end(), File::FileSort());
+					for(File::Iter i = aDir->files.begin(); i != aDir->files.end(); ++i) {
+						File* file = *i;
+						try {
+							download(file, target + file->getName(), false, highPrio, prio, aBundle);
+						} catch(const QueueException&) {
+							// Catch it here to allow parts of directories to be added...
+						} catch(const FileException&) {
+							//..
+						}
+					}
+					QueueManager::getInstance()->addBundle(aBundle);
+				}
+				return;
+			}
+		}
+
 		// First, recurse over the directories
 		sort(lst.begin(), lst.end(), Directory::DirSort());
 		for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-			download(*j, target, highPrio, prio);
+			download(*j, target, highPrio, prio, false, false, aBundle);
 		}
 		// Then add the files
-		File::List& l = aDir->files;
 		sort(l.begin(), l.end(), File::FileSort());
 		for(File::Iter i = aDir->files.begin(); i != aDir->files.end(); ++i) {
 			File* file = *i;
 			try {
-				download(file, target + file->getName(), false, highPrio, prio);
+				download(file, target + file->getName(), false, highPrio, prio, aBundle);
 			} catch(const QueueException&) {
 				// Catch it here to allow parts of directories to be added...
 			} catch(const FileException&) {
 				//..
 			}
+		}
+
+		if (first && aBundle) {
+			LogManager::getInstance()->message("QueueManager::getInstance()->addBundle");
+			QueueManager::getInstance()->addBundle(aBundle);
+		} else {
+			LogManager::getInstance()->message("QueueManager::getInstance()->addBundle FAILEEEEEEEEEEEEEEEEEEEEEED (no bundle?)");
 		}
 	}
 }
@@ -347,10 +391,10 @@ void DirectoryListing::download(const string& aDir, const string& aTarget, bool 
 		download(d, aTarget, highPrio, prio, recursiveList);
 }
 
-void DirectoryListing::download(File* aFile, const string& aTarget, bool view, bool highPrio, QueueItem::Priority prio) {
+void DirectoryListing::download(File* aFile, const string& aTarget, bool view, bool highPrio, QueueItem::Priority prio, BundlePtr aBundle) {
 	Flags::MaskType flags = (Flags::MaskType)(view ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : 0);
 
-	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), flags);
+	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), flags, aBundle);
 
 	if(highPrio || (prio != QueueItem::DEFAULT))
 		QueueManager::getInstance()->setPriority(aTarget, highPrio ? QueueItem::HIGHEST : prio);

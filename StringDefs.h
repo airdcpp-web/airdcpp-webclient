@@ -250,7 +250,7 @@ enum Strings { // @DontAdd
 	HUB_LIST_EDIT, // "Edit the hublist"
 	HUB_LIST_LOADED_FROM_CACHE, // "Hub list loaded from cache..."
 	HUB_NAME, // "Name"
-	HUB_SEGMENTS, // "Hub / Segments"
+	HUB_SEGMENTS, // "Hub / Connections"
 	HUB_TOPIC, // "Hub Topic :"
 	HUB_USERS, // "Users"
 	HUBLIST_CACHE_CORRUPTED, // "Cached hub list is corrupted or unsupported..."
@@ -1111,7 +1111,6 @@ enum Strings { // @DontAdd
 	HUB_NOT_PROTECTED, // "No password was required/provided at login, disconnecting hub. (Setting @ AirDCpage)"
 	DISALLOW_CONNECTION_TO_PASSED_HUBS, // "Automatically disconnect hubs if not registered"
 	DONT_SHARE_DOWNLOAD_DIRECTORY, // "The download directory cannot be shared"
-	TOTAL_TIME_LEFT, // "Total Time left"
 	BOLD_HUB_TABS_ON_KICK, // "Bold hub's tabs on kick messages"
 	SKIPLIST, // "Skiplist, Wildcards, Separate | "
 	SETTINGS_SEARH_SKIPLIST_PRESET, // "Presets for Search Skiplist, Separate with | *wildcards allowed"
@@ -1262,5 +1261,11 @@ enum Strings { // @DontAdd
 	LIST_HL_EXAMPLE, // "Example, *NORDIC* (this may slow down filelist loading...)"
 	SETTINGS_DUPES, // "Dupes Settings"
 	REPORT_SKIPLIST, // "Show Skiplist blocked files in systemlog"
+	NUMBER_OF_USERS, // "user(s)"
+	NUMBER_OF_CONNECTIONS, // "connection(s)"
+	BUNDLE_FILENAME, // "Bundle / Filename"
+	BUNDLE, // "Bundle"
+	REMOVE_BUNDLE, // "Remove bundle"
+	BUNDLE_REMOVED, // "Bundle removed"
 	LAST // @DontAdd
 };

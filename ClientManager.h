@@ -121,7 +121,7 @@ public:
 
 	UserPtr& getMe();
 	
-	void send(AdcCommand& c, const CID& to);
+	void send(AdcCommand& c, const CID& to, bool noCID=false);
 
 	void connect(const HintedUser& user, const string& token);
 	void privateMessage(const HintedUser& user, const string& msg, bool thirdPerson);

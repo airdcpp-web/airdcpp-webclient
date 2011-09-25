@@ -84,6 +84,7 @@ public:
 	GETSET(Segment, segment, Segment);
 	GETSET(Type, type, Type);
 	GETSET(uint64_t, start, Start);
+	GETSET(BundlePtr, bundle, Bundle);
 private:
 	
 	typedef std::pair<uint64_t, int64_t> Sample;

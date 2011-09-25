@@ -140,7 +140,7 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 		}
 	} else {
 		Lock l(cs);
-		UploadManager::getInstance()->removeDelayUpload(cqi->getUser());
+		UploadManager::getInstance()->removeDelayUpload(cqi->getToken());
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
 		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
 	}
@@ -160,6 +160,9 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) noexce
 }
 
 void ConnectionManager::putConnection(UserConnection* aConn) {
+	if (!aConn->getLastBundle().empty()) {
+		QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID());
+	}
 	aConn->removeListener(this);
 	aConn->disconnect(true);
 
@@ -1012,7 +1015,6 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
 				if (aSource->getToken() == cqi->getToken()) {
-					dcassert(i != downloads.end());
 					if (cqi->getState() == ConnectionQueueItem::IDLE) {
 						cqi->setState(ConnectionQueueItem::WAITING);
 						cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
