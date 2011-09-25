@@ -313,7 +313,7 @@ int SearchManager::UdpQueue::run() {
 			SearchManager::getInstance()->onPSR(c, user, remoteIp);
 		
 		} else if (x.compare(1, 4, "PBD ") == 0 && x[x.length() - 1] == 0x0a) {
-			LogManager::getInstance()->message("GOT PBD UDP: " + x);
+			//LogManager::getInstance()->message("GOT PBD UDP: " + x);
 			AdcCommand c(x.substr(0, x.length()-1));
 			if(c.getParameters().empty())
 				continue;
@@ -322,7 +322,6 @@ int SearchManager::UdpQueue::run() {
 				continue;
 
 			UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-			// when user == NULL then it is probably NMDC user, check it later
 			
 			c.getParameters().erase(c.getParameters().begin());			
 			
@@ -332,20 +331,14 @@ int SearchManager::UdpQueue::run() {
 			AdcCommand c(x.substr(0, x.length()-1));
 			if(c.getParameters().empty())
 				continue;
-			//string cid = c.getParam(0);
-			//if(cid.size() != 39)
-			//	continue;
-
-			//UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-			// when user == NULL then it is probably NMDC user, check it later
 			
 			c.getParameters().erase(c.getParameters().begin());			
 			
 			if (x.compare(1, 4, "UBN ") == 0) {
-				LogManager::getInstance()->message("GOT UBN UDP: " + x);
+				//LogManager::getInstance()->message("GOT UBN UDP: " + x);
 				UploadManager::getInstance()->onUBN(c);
 			} else {
-				LogManager::getInstance()->message("GOT UBD UDP: " + x);
+				//LogManager::getInstance()->message("GOT UBD UDP: " + x);
 				UploadManager::getInstance()->onUBD(c);
 			}
 		}
@@ -440,11 +433,11 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	string url = ClientManager::getInstance()->findHub(hubIpPort);
 	if (add) {
 		if (!QueueManager::getInstance()->getTargets(TTHValue(tth)).empty()) {
-			LogManager::getInstance()->message("PBD ADDTTHLIST");
+			//LogManager::getInstance()->message("PBD ADDTTHLIST");
 			QueueManager::getInstance()->addTTHList(HintedUser(from, url), bundle);
 		}
 	} else if (update) {
-		LogManager::getInstance()->message("PBD UPDATE TTH");
+		//LogManager::getInstance()->message("PBD UPDATE TTH");
 		QueueManager::getInstance()->updatePBD(HintedUser(from, url), bundle, TTHValue(tth));
 	}
 }
@@ -539,7 +532,6 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 
 	// TODO: don't send replies to passive users
 	if(results.empty()) {
-		LogManager::getInstance()->message("SEARCH RESULT");
 		string tth;
 		if(!adc.getParam("TR", 0, tth))
 			return;
@@ -547,7 +539,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		PartsInfo partialInfo;
 		string bundle;
 		if(!QueueManager::getInstance()->handlePartialSearch(TTHValue(tth), partialInfo, bundle)) {
-			LogManager::getInstance()->message("NOTHING FOUND!!!!");
+			//LogManager::getInstance()->message("NOTHING FOUND!!!!");
 			return;
 		}
 
@@ -557,7 +549,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		}
 		
 		if (!bundle.empty()) {
-			LogManager::getInstance()->message("BUNDLE FOUND");
+			//LogManager::getInstance()->message("BUNDLE FOUND");
 			if (QueueManager::getInstance()->checkFinishedNotify(from, bundle, false, hubIpPort)) {
 				AdcCommand cmd = toPBD(hubIpPort, bundle, tth);
 				ClientManager::getInstance()->send(cmd, from);

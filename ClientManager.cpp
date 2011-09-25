@@ -465,7 +465,7 @@ void ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID) {
 				Socket udp;
 				if (noCID) {
 					udp.writeTo(u.getIdentity().getIp(), static_cast<uint16_t>(Util::toInt(u.getIdentity().getUdpPort())), cmd.toString());
-					LogManager::getInstance()->message("NOCID SENT: " + cmd.toString());
+					//LogManager::getInstance()->message("NOCID SENT: " + cmd.toString());
 				} else {
 					udp.writeTo(u.getIdentity().getIp(), static_cast<uint16_t>(Util::toInt(u.getIdentity().getUdpPort())), cmd.toString(getMe()->getCID()));
 				}

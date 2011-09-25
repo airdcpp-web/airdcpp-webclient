@@ -328,15 +328,15 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 		//create bundles
 		if (first) {
-			if (lst.empty() || useRoot || l.empty()) {
+			if (lst.empty() || useRoot) {
 				//bundle = QueueManager::getInstance()->createBundle(target);
 				aBundle = BundlePtr(new Bundle(target, true));
-				LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE1: " + aBundle->getTarget());
+				//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE1: " + aBundle->getTarget());
 			} else {
 				sort(lst.begin(), lst.end(), Directory::DirSort());
 				for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
 					aBundle = BundlePtr(new Bundle(target, true));
-					LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
+					//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
 					download(*j, target, highPrio, prio, false, false, aBundle);
 
 					sort(l.begin(), l.end(), File::FileSort());
@@ -375,10 +375,8 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		}
 
 		if (first && aBundle) {
-			LogManager::getInstance()->message("QueueManager::getInstance()->addBundle");
+			//LogManager::getInstance()->message("QueueManager::getInstance()->addBundle");
 			QueueManager::getInstance()->addBundle(aBundle);
-		} else {
-			LogManager::getInstance()->message("QueueManager::getInstance()->addBundle FAILEEEEEEEEEEEEEEEEEEEEEED (no bundle?)");
 		}
 	}
 }

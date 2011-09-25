@@ -120,14 +120,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 					}
 					if (!found) {
 						bundle->setRunning(1);
-						//bundle->uploadNotifyUsers.clear();
 						bundles.push_back(make_pair(bundle, speed));
 					}
-
-					//if (d->getUser()->isSet(User::BUNDLES)) {
-					//	LogManager::getInstance()->message("ADD IN BUNDLENOTIFYLIST!!!!!");
-						//bundle->uploadNotifyUsers.push_back(d->getHintedUser());
-					//}
 				}
 			}
 
@@ -144,24 +138,6 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			}
 		}
 
-
-		/*StringIntMap posCompareList = oldBundlePositions;
-		oldBundlePositions = bundlePositions;
-		for (StringIntIter i = posCompareList.begin(); i != posCompareList.end(); ++i) {
-			int64_t oldPos = (*i).second;
-			StringIntIter j = bundlePositions.find((*i).first);
-			if(j != bundlePositions.end()) {
-				int64_t newPos = (*j).second;
-				//LogManager::getInstance()->message("New pos: " + Util::toString(newPos) + " old pos: " + Util::toString(oldPos));
-				if (newPos > oldPos) {
-					//LogManager::getInstance()->message("Modified pos: " + Util::toString(newPos-oldPos));
-					j->second = newPos-oldPos;
-				}
-			}
-		}
-
-		QueueManager::getInstance()->updateBundles(bundleSpeeds, bundlePositions, true); */
-		//QueueManager::getInstance()->updateBundles(bundleSpeeds, tickList, true);
 		BundleList retBundles;
 		for (BundleSpeedMap::iterator i = bundles.begin(); i != bundles.end(); ++i) {
 			(*i).first->setSpeed((*i).second);
@@ -184,7 +160,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 
 void DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly) {
-	LogManager::getInstance()->message("DOWNLOADMANAGER SENDBUNDLE");
+	//LogManager::getInstance()->message("DOWNLOADMANAGER SENDBUNDLE");
 	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 	cmd.addParam("HI", aSource->getHintedUser().hint);
@@ -224,14 +200,13 @@ void DownloadManager::updateBundles(BundleList bundles) {
 		double percent = 0;
 		float change = (((float)bundle->getSpeed() - (float)bundle->getTotalSpeed()) / (((float)bundle->getSpeed() + (float)bundle->getTotalSpeed()) / 2.00000));
 		//LogManager::getInstance()->message("SPEEDCHANGE: " + Util::toString(change) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
-		//bundle->setTotalSpeed(bundle->getSpeed());
 
 		if (abs(change) > 0.05) {
-			LogManager::getInstance()->message("SEND SPEEDCHANGE: " + Util::toString(abs(change)) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
+			//LogManager::getInstance()->message("SEND SPEEDCHANGE: " + Util::toString(abs(change)) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
 			speed = formatDownloaded(bundle->getSpeed());
 			bundle->setTotalSpeed(bundle->getSpeed());
 		} else {
-			LogManager::getInstance()->message("DONT SEND");
+			//LogManager::getInstance()->message("DONT SEND");
 		}
 		//LogManager::getInstance()->message("SpeedCompare: " + Util::toString(bundle->getSpeed() - bundle->getTotalSpeed()) + " should be bigger than " + Util::toString(bundle->getSpeed()*0.05));
 
@@ -239,7 +214,7 @@ void DownloadManager::updateBundles(BundleList bundles) {
 			percent = (((float)bundle->getDownloaded() / (float)bundle->getSize())*100);
 			bundle->setLastPercent(percent*100.000);
 		}
-		LogManager::getInstance()->message("PercentCompare: " + Util::toString(bundle->getLastPercent()) + " should be smaller than " + Util::toString(floor(((float)bundle->getDownloaded() / (float)bundle->getSize())* 10000)));
+		//LogManager::getInstance()->message("PercentCompare: " + Util::toString(bundle->getLastPercent()) + " should be smaller than " + Util::toString(floor(((float)bundle->getDownloaded() / (float)bundle->getSize())* 10000)));
 
 		//LogManager::getInstance()->message("Bundle notify info, percent: " + Util::toString(percent) + " speed: " + speed);
 		if (!speed.empty() || percent > 0) {
@@ -281,7 +256,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		bool updateOnly = false;
 		CID cid = aSource->getUser()->getCID();
 		if (!aSource->getLastBundle().empty()) {
-			LogManager::getInstance()->message("LASTBUNDLE NOT EMPTY, REMOVE");
+			//LogManager::getInstance()->message("LASTBUNDLE NOT EMPTY, REMOVE");
 			QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), cid);
 		} 
 
@@ -293,14 +268,14 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 
 			auto y =  aBundle->runningUsers.find(cid);
 			if (y == aBundle->runningUsers.end()) {
-				LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
+				//LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
 				if (aBundle->runningUsers.size() == 1) {
-					LogManager::getInstance()->message("SEND BUNDLE MODE");
+					//LogManager::getInstance()->message("SEND BUNDLE MODE");
 					sendBundleMode(aBundle, false);
 				}
 				aBundle->runningUsers[cid] = 1;
 			} else {
-				LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS");
+				//LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS");
 				updateOnly = true;
 				y->second++;
 			}
@@ -689,14 +664,6 @@ void DownloadManager::removeDownload(Download* d) {
 			} catch(const Exception&) {
 			}
 		}
-	}
-
-	if (d->getBundle()) {
-		//int64_t size = d->getBundle()->getSize();
-		//if (d->getBundle()->getDownloaded() == d->getBundle()->getSize()) {
-			LogManager::getInstance()->message("FIRE DOWNLOAD BUNDLEFINISHED");
-			//fire(DownloadManagerListener::BundleFinished(), d->getBundle()->getToken());
-		//}
 	}
 
 	{

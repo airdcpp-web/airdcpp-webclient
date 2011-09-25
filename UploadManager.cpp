@@ -523,7 +523,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 	BundlePtr bundle = findBundle(bundleToken);
 	if (bundle) {
 		if (bundle->getSingleUser()) {
-			LogManager::getInstance()->message("SINGLEUSER, RETURN");
+			//LogManager::getInstance()->message("SINGLEUSER, RETURN");
 			return;
 		}
 
@@ -538,18 +538,11 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 					speed = downloaded*1048576.0;
 				} else if (speedStr[length-1] == 'b') {
 					speed = downloaded;
-				} else {
-					 LogManager::getInstance()->message("NO SPEED MATCH " + speedStr.substr(0, length-1));
 				}
 
 				if (speed > 0) {
-					LogManager::getInstance()->message("SET SPEED: " + Util::toString(speed));
 					bundle->setTotalSpeed(speed);
-				} else {
-					LogManager::getInstance()->message("NO SPEED " + speedStr.substr(0, length-1));
 				}
-			} else {
-				LogManager::getInstance()->message("DOWNLOADED < 0: " + speedStr.substr(0, length-1));
 			}
 		}
 
@@ -599,17 +592,15 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 		return;
 	}
 
-	//string url = ClientManager::getInstance()->findHub(hubIpPort);
-
 	{
 		Lock l (cs);
 		BundlePtr bundle = findBundle(bundleToken);
 		if (bundle) {
-			LogManager::getInstance()->message("BUNDLE FOUND UBD1");
+			//LogManager::getInstance()->message("BUNDLE FOUND UBD1");
 			if (token.empty()) {
-				LogManager::getInstance()->message("TOKEN EMPTY UBD1");
+				//LogManager::getInstance()->message("TOKEN EMPTY UBD1");
 				if (finished) {
-					LogManager::getInstance()->message("BUNDLE FOUND FINISHED1");
+					//LogManager::getInstance()->message("BUNDLE FOUND FINISHED1");
 					//don't update the status if some notifications arrive after this
 					bundle->setSingleUser(true);
 					fire(UploadManagerListener::BundleComplete(), bundle->getToken());
@@ -628,8 +619,7 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 				}
 			}
 		} else if (finished) {
-			LogManager::getInstance()->message("BUNDLE NOT FOUND FINISHED2");
-			//don't update the status if some notifications arrive after this
+			//LogManager::getInstance()->message("BUNDLE NOT FOUND FINISHED2");
 			fire(UploadManagerListener::BundleComplete(), bundleToken);
 			return;
 		}
@@ -641,15 +631,15 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 
 		Upload* u = NULL;
 		BundlePtr oldBundle = NULL;
-		LogManager::getInstance()->message("START LOOPING");
+		//LogManager::getInstance()->message("START LOOPING");
 		for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
 			if ((*i)->getUserConnection().getToken() == token) {
-				LogManager::getInstance()->message("TOKEN MATCH");
+				//LogManager::getInstance()->message("TOKEN MATCH");
 				u = *i;
 				oldBundle = u->getBundle();
 				bool sameBundle = false;
 				if (oldBundle) {
-					LogManager::getInstance()->message("OLD BUNDLE FOUND");
+					//LogManager::getInstance()->message("OLD BUNDLE FOUND");
 					if (bundle) {
 						if (oldBundle->getToken() == bundle->getToken())
 							sameBundle = true;
@@ -657,7 +647,7 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 					if (!sameBundle) {
 						oldBundle->decreaseRunning();
 						if (oldBundle->getRunning() == 0) {
-							LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
+							//LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
 							bundles.erase(std::remove(bundles.begin(), bundles.end(), oldBundle), bundles.end());
 							//b->dec();
 						}
@@ -667,10 +657,10 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 				if (bundle && !sameBundle) {
 					bundle->increaseRunning();
 					u->setBundle(bundle);
-					LogManager::getInstance()->message("BUNDLE UPDATED");
+					//LogManager::getInstance()->message("UPLOAD BUNDLE UPDATED");
 					return;
 				} else {
-					LogManager::getInstance()->message("BUNDLE NOT UPDATED, SOMETHING ELSE !?!?!?!?!");
+					//LogManager::getInstance()->message("UPLOAD BUNDLE NOT UPDATED");
 					size_t pos = u->getPath().find(name);
 					if (pos != string::npos) {
 						name = (name.substr(0, u->getPath().length()-pos));
@@ -689,10 +679,7 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 		}
 
 		//create new bundle
-		LogManager::getInstance()->message("ADD UPLOAD BUNDLE");
-		//string target = Text::fromT(ShareManager::getInstance()->getDirPath(name, false));
-		//if (target.empty())
-		//	target = name;
+		//LogManager::getInstance()->message("ADD UPLOAD BUNDLE");
 
 		bundle = BundlePtr(new Bundle(name, false));
 		bundle->setToken(bundleToken);
@@ -710,37 +697,13 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 		}
 		u->setBundle(bundle);
 		bundle->increaseRunning();
-
-		/*
-		for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
-			Upload* u = *i;
-			if (u->getUserConnection().getToken() == token) {
-				BundlePtr b = u->getBundle();
-				if (b) {
-					b->decreaseRunning();
-					if (b->getRunning() == 0) {
-						LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
-						bundles.erase(std::remove(bundles.begin(), bundles.end(), b), bundles.end());
-						//b->dec();
-					}
-				}
-				LogManager::getInstance()->message("ONUBD SETBUNDLE");
-				u->setBundle(bundle);
-
-				size_t pos = u->getPath().find(name);
-				if (pos != string::npos) {
-					bundle->setTarget(name.substr(0, u->getPath().length()-pos));
-				}
-			}
-		}
-		*/
 	}
 }
 
 BundlePtr UploadManager::findBundle(const string bundleToken) {
 	for (BundleList::iterator i = bundles.begin(); i != bundles.end(); ++i) {
 		if ((*i)->getToken() == bundleToken) {
-			LogManager::getInstance()->message("FOUND UPLOAD BUNDLE TARGET");
+			//LogManager::getInstance()->message("FOUND UPLOAD BUNDLE TARGET");
 			return *i;
 		}
 	}
@@ -759,11 +722,11 @@ void UploadManager::findRemovedToken(const string aToken, bool delay) {
 			if (b) {
 				b->decreaseRunning();
 				if (b->getRunning() == 0) {
-					LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
+					//LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
 					bundles.erase(std::remove(bundles.begin(), bundles.end(), b), bundles.end());
 					//b->dec();
 				} else {
-					LogManager::getInstance()->message("DON'T ERASE UPLOAD BUNDLE, RUNNING: " + Util::toString(b->getRunning()));
+					//LogManager::getInstance()->message("DON'T ERASE UPLOAD BUNDLE, RUNNING: " + Util::toString(b->getRunning()));
 				}
 			}
 		}

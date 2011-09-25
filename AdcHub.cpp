@@ -197,7 +197,6 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 	}
 
 	if(u->getIdentity().supports(BNDL_FEATURE)) {
-		LogManager::getInstance()->message("BNDL ADDED");
 		u->getUser()->setFlag(User::BUNDLES);
 	}
 
@@ -468,7 +467,6 @@ void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 		ip = ou.getIdentity().getIp();
 		port = static_cast<uint16_t>(Util::toInt(ou.getIdentity().getUdpPort()));
 		command = cmd.toString(ou.getUser()->getCID());
-		LogManager::getInstance()->message("COMMAAAAAAAAAAAAAAAAAAAAAAAAAAAAND: " + command);
 	}
 	try {
 		udp.writeTo(ip, port, command);
@@ -560,7 +558,7 @@ void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {
-	LogManager::getInstance()->message("GOT PBD TCP");
+	//LogManager::getInstance()->message("GOT PBD TCP");
 	OnlineUser* ou = findUser(c.getFrom());
 	if(!ou) {
 		dcdebug("Invalid user in AdcHub::onPBD\n");
@@ -571,7 +569,6 @@ void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {
 
 
 void AdcHub::handle(AdcCommand::UBD, AdcCommand& c) noexcept {
-	LogManager::getInstance()->message("GOT UBD TCP");
 	UploadManager::getInstance()->onUBD(c);
 }
 
