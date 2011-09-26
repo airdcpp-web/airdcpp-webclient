@@ -613,25 +613,28 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 					return;
 				} else if (size > 0) {
 					bundle->setSize(size);
-					if (name.empty()) {
-						return;
+					if (!name.empty()) {
+						bundle->setTarget(name);
 					}
+					return;
 				}
 			}
 		} else if (finished) {
 			//LogManager::getInstance()->message("BUNDLE NOT FOUND FINISHED2");
 			fire(UploadManagerListener::BundleComplete(), bundleToken);
 			return;
+		} else {
+			//LogManager::getInstance()->message("NO BUNDLE");
 		}
 
 		if (token.empty()) {
-			LogManager::getInstance()->message("TOKEN EMPTY UBD2");
+			//LogManager::getInstance()->message("TOKEN EMPTY UBD2");
 			return;
 		}
 
 		Upload* u = NULL;
 		BundlePtr oldBundle = NULL;
-		//LogManager::getInstance()->message("START LOOPING");
+		//LogManager::getInstance()->message("START LOOPING, bundle: " + bundleToken + " token " + token);
 		for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
 			if ((*i)->getUserConnection().getToken() == token) {
 				//LogManager::getInstance()->message("TOKEN MATCH");
@@ -671,11 +674,20 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 						return;
 					}
 				}
+			} else {
+				//LogManager::getInstance()->message("NO TOKEN MATCH");
 			}
 		}
 
 		if (name.empty() || !u || size <= 0 || bundle) {
-			LogManager::getInstance()->message("INVALID UBD2");
+			/*if (name.empty())
+				LogManager::getInstance()->message("INVALID UBD2, name empty");
+			else if (!u)
+				LogManager::getInstance()->message("INVALID UBD2, upload missing");
+			else if (size <= 0)
+				LogManager::getInstance()->message("INVALID UBD2, upload missing");
+			else if (bundle)
+				LogManager::getInstance()->message("INVALID UBD2, has bundle"); */
 			return;
 		}
 
