@@ -34,7 +34,7 @@ namespace dcpp {
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
-class DirectoryListing : public FastAllocator, boost::noncopyable, public UserInfoBase
+class DirectoryListing : /*public FastAllocator,*/ boost::noncopyable, public UserInfoBase
 {
 public:
 	class Directory;

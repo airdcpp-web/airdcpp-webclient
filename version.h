@@ -16,13 +16,13 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-
 #define APPNAME "AirDC++"
-#define VERSIONSTRING "2.21 Beta 1"
-
-#define VERSIONFLOAT "2.208"
+#define VERSIONSTRING "2.30"
+#define VERSIONFLOAT "2.30"
 
 #define DCVERSIONSTRING "0.782"
+
+#define SVNVERSION "r469"
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"
@@ -32,24 +32,21 @@
 #define INSTALLER "AirDC_Installer.exe"
 #endif
 
-#define BETADATE
-
-#ifdef BETADATE
+#ifdef SVNVERSION
 #define VERSION_URL "http://version.airdcpp.net/beta_airdcversion.php"
 #else
 #define VERSION_URL "http://version.airdcpp.net/airdcversion.php"
 #endif
 
-
-
-#ifndef BETADATE
-# define COMPLETEVERSIONSTRING _T(APPNAME) _T(" ") _T(VERSIONSTRING)  _T(" ") _T(CONFIGURATION_TYPE)
+#ifdef SVNVERSION
+# define COMPLETEVERSIONSTRING	_T(APPNAME) _T(" ") _T(VERSIONSTRING) _T(" ") _T(CONFIGURATION_TYPE) _T(" ") _T(SVNVERSION) _T(" / ") _T(DCVERSIONSTRING)
 #else
-# define COMPLETEVERSIONSTRING Text::toT(APPNAME " " VERSIONSTRING  " " CONFIGURATION_TYPE " - Beta Compiled : " + WinUtil::getCompileDate()).c_str()
+# define COMPLETEVERSIONSTRING	_T(APPNAME) _T(" ") _T(VERSIONSTRING) _T(" ") _T(CONFIGURATION_TYPE)
 #endif
+
 /* Update the .rc file as well... */
 
 /**
  * @file
- * $Id: version.h 568 2011-07-24 18:28:43Z bigmuscle $
+ * $Id: version.h 487 2010-02-27 17:50:12Z bigmuscle $
  */

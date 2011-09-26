@@ -1036,7 +1036,14 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "US", Util::toString((long)(Util::toDouble(SETTING(UPLOAD_SPEED))*1024*1024)));
 	addParam(lastInfoMap, c, "DS", Util::toString((long)(Util::toDouble(SETTING(DOWNLOAD_SPEED))*1024*1024)));
 
-	addParam(lastInfoMap, c, "VE", "AirDC++ " VERSIONSTRING);
+
+#ifdef SVNVERSION
+#define VER VERSIONSTRING SVNVERSION
+#else
+#define VER VERSIONSTRING
+#endif
+
+	addParam(lastInfoMap, c, "VE", "AirDC++ " VER);
 	addParam(lastInfoMap, c, "AW", Util::getAway() ? "1" : Util::emptyString);
 	addParam(lastInfoMap, c, "LC", AirUtil::getLocale());
 	

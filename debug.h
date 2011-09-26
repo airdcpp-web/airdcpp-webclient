@@ -22,7 +22,7 @@
 #include <cstdio>
 
 #ifdef _DEBUG
-
+#define NO_FAST_ALLOC
 #include <cassert>
 
 inline void CDECL debugTrace(const char* format, ...)

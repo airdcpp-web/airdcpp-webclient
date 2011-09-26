@@ -25,7 +25,9 @@
 
 namespace dcpp {
 
-#ifndef _DEBUG
+#define NO_FAST_ALLOC
+
+#ifndef NO_FAST_ALLOC
 struct FastAllocBase {
 	static FastCriticalSection cs;
 };

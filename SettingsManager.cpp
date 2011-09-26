@@ -846,6 +846,10 @@ void SettingsManager::load(string const& aFileName)
 		set(TLS_PORT, (int)Util::rand(10000, 32000));
 		}
 	}
+	
+	if(SETTING(DOWNCONN_PER_SEC) > 5) {
+			set(DOWNCONN_PER_SEC, 5);
+		}
 
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT) {
 		set(TCP_PORT, (int)Util::rand(10000, 32000));

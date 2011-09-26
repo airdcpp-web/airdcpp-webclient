@@ -82,12 +82,12 @@ public:
 	void setLineMode(size_t aRollback) { setMode (MODE_LINE, aRollback);}
 	void setMode(Modes mode, size_t aRollback = 0);
 	Modes getMode() const { return mode; }
-	const string& getIp() const { return sock->getIp(); }
-	const uint16_t getPort() { return sock->getPort(); }
+	const string& getIp() const { return sock.get() ? sock->getIp() : Util::emptyString; }
+	const uint16_t getPort() { return sock.get() ? sock->getPort() : 0; }
 	
-	bool isSecure() const { return sock->isSecure(); }
-	bool isTrusted() const { return sock->isTrusted(); }
-	std::string getCipherName() const { return sock->getCipherName(); }
+	bool isSecure() const { return sock.get() && sock->isSecure(); }
+	bool isTrusted() const { return sock.get() && sock->isTrusted(); }
+	std::string getCipherName() const { return sock.get() ? sock->getCipherName() : Util::emptyString; }
 	vector<uint8_t> getKeyprint() const { return sock->getKeyprint(); }
 
 	void write(const string& aData) { write(aData.data(), aData.length()); }
@@ -100,8 +100,8 @@ public:
 
 	void disconnect(bool graceless = false) noexcept { Lock l(cs); if(graceless) disconnecting = true; addTask(DISCONNECT, 0); }
 
-	string getLocalIp() const { return sock->getLocalIp(); }
-	uint16_t getLocalPort() const { return sock->getLocalPort(); }
+	string getLocalIp() const { return sock.get() ?  sock->getLocalIp() : Util::emptyString; }
+	uint16_t getLocalPort() const { return sock.get() ? sock->getLocalPort() : 0; }
 	bool hasSocket() const { return sock.get() != NULL; }
 
 	GETSET(char, separator, Separator)

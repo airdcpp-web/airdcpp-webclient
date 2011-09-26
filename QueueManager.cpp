@@ -1126,7 +1126,7 @@ void QueueManager::move(const string& aSource, const string& aTarget) noexcept {
 	}
 }
 
-bool QueueManager::getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& aSize, int& aFlags) noexcept {
+bool QueueManager::getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept {
 	Lock l(cs);
 	QueueItem* qi = userQueue.getNext(aUser);
 	if(qi == NULL)
@@ -1135,6 +1135,9 @@ bool QueueManager::getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& 
 	aTarget = qi->getTarget();
 	aSize = qi->getSize();
 	aFlags = qi->getFlags();
+	if (qi->getBundle()) {
+		bundleToken = qi->getBundle()->getToken();
+	}
 
 	return true;
 }

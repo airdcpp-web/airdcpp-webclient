@@ -192,6 +192,7 @@ void Client::on(Failed, const string& aLine) noexcept {
 }
 
 void Client::disconnect(bool graceLess) {
+	state = STATE_DISCONNECTED;
 	if(sock) 
 		sock->disconnect(graceLess);
 }
