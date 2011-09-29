@@ -296,13 +296,12 @@ ok:
 			if (up->getBundle()) {
 				bundle = up->getBundle();
 			}
-			delayUploads.erase(i);
 			if(sourceFile != up->getPath() && !bundle) {
 				logUpload(up);
 			} else {
 				resumed = true;
 			}
-			delete up;
+			removeDelayUpload(aSource.getToken());
 			break;
 		}
 	}
@@ -512,7 +511,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 		} else if (str.compare(0, 2, "PE") == 0) {
 			percent = Util::toFloat(str.substr(2));
 		} else {
-			LogManager::getInstance()->message("ONPBD UNKNOWN PARAM");
+			//LogManager::getInstance()->message("ONUBN UNKNOWN PARAM: " + str);
 		}
 	}
 
@@ -546,13 +545,13 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 			}
 		}
 
-		if (percent > 0 && percent < 1) {
+		if (percent > 0 && percent < 100) {
 			bundle->setDownloaded(bundle->getSize()*(percent / 100.00000));
 		}
 	}
 }
 
-void UploadManager::onUBD(const AdcCommand& cmd) {
+void UploadManager::createBundle(const AdcCommand& cmd) {
 
 	string bundleToken;
 	string hubIpPort;
@@ -560,13 +559,11 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 	string name;
 	int64_t size=0;
 	int64_t downloaded=0;
-	bool singleUser = false, multiUser = false, finished = false;
+	bool singleUser = false, multiUser = false;
 
 	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
-		if(str.compare(0, 2, "HI") == 0) {
-			hubIpPort = str.substr(2);
-		} else if(str.compare(0, 2, "BU") == 0) {
+		if(str.compare(0, 2, "BU") == 0) {
 			bundleToken = str.substr(2);
 		} else if(str.compare(0, 2, "TO") == 0) {
 			token = str.substr(2);
@@ -580,136 +577,207 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 			singleUser = true;
 		} else if (str.compare(0, 2, "MU") == 0) {
 			multiUser = true;
-		} else if (str.compare(0, 2, "FI") == 0) {
-			finished = true;
 		} else {
-			LogManager::getInstance()->message("ONPBD UNKNOWN PARAM");
+			//LogManager::getInstance()->message("ONUBD CREATE UNKNOWN PARAM");
 		}
 	}
 	
-	if (bundleToken.empty()) {
+	if (bundleToken.empty() || name.empty() || size <= 0 || token.empty()) {
 		LogManager::getInstance()->message("INVALID UBD1");
 		return;
 	}
 
+	dcassert(bundleTokens.find(token) == bundleTokens.end());
+	dcassert(!findBundle(bundleToken));
+
+
+	BundlePtr bundle = BundlePtr(new Bundle(getBundleTarget(token, name), false));
+	bundle->setToken(bundleToken);
+	bundle->setSize(size);
+	bundle->setStart(GET_TICK());
+	if (downloaded > 0) {
+		bundle->setDownloaded(downloaded);
+	}
+
+	if (multiUser) {
+		bundle->setSingleUser(false);
+	} else if (singleUser) {
+		bundle->setSingleUser(true);
+	}
+	bundle->increaseRunning();
+
 	{
 		Lock l (cs);
-		BundlePtr bundle = findBundle(bundleToken);
-		if (bundle) {
-			//LogManager::getInstance()->message("BUNDLE FOUND UBD1");
-			if (token.empty()) {
-				//LogManager::getInstance()->message("TOKEN EMPTY UBD1");
-				if (finished) {
-					//LogManager::getInstance()->message("BUNDLE FOUND FINISHED1");
-					//don't update the status if some notifications arrive after this
-					bundle->setSingleUser(true);
-					fire(UploadManagerListener::BundleComplete(), bundle->getToken());
-					return;
-				} else if (multiUser) {
-					bundle->setSingleUser(false);
-					return;
-				} else if (singleUser) {
-					bundle->setSingleUser(true);
-					return;
-				} else if (size > 0) {
-					bundle->setSize(size);
-					if (!name.empty()) {
-						bundle->setTarget(name);
-					}
-					return;
-				}
-			}
-		} else if (finished) {
-			//LogManager::getInstance()->message("BUNDLE NOT FOUND FINISHED2");
-			fire(UploadManagerListener::BundleComplete(), bundleToken);
-			return;
-		} else {
-			//LogManager::getInstance()->message("NO BUNDLE");
-		}
-
-		if (token.empty()) {
-			//LogManager::getInstance()->message("TOKEN EMPTY UBD2");
-			return;
-		}
-
-		Upload* u = NULL;
-		BundlePtr oldBundle = NULL;
-		//LogManager::getInstance()->message("START LOOPING, bundle: " + bundleToken + " token " + token);
-		for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
-			if ((*i)->getUserConnection().getToken() == token) {
-				//LogManager::getInstance()->message("TOKEN MATCH");
-				u = *i;
-				oldBundle = u->getBundle();
-				bool sameBundle = false;
-				if (oldBundle) {
-					//LogManager::getInstance()->message("OLD BUNDLE FOUND");
-					if (bundle) {
-						if (oldBundle->getToken() == bundle->getToken())
-							sameBundle = true;
-					}
-					if (!sameBundle) {
-						oldBundle->decreaseRunning();
-						if (oldBundle->getRunning() == 0) {
-							//LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
-							bundles.erase(std::remove(bundles.begin(), bundles.end(), oldBundle), bundles.end());
-							//b->dec();
-						}
-					}
-				}
-
-				if (bundle && !sameBundle) {
-					bundle->increaseRunning();
-					u->setBundle(bundle);
-					//LogManager::getInstance()->message("UPLOAD BUNDLE UPDATED");
-					return;
-				} else {
-					//LogManager::getInstance()->message("UPLOAD BUNDLE NOT UPDATED");
-					size_t pos = u->getPath().find(name);
-					if (pos != string::npos) {
-						name = (name.substr(0, u->getPath().length()-pos));
-					}
-
-					if (sameBundle) {
-						bundle->setTarget(name);
-						return;
-					}
-				}
-			} else {
-				//LogManager::getInstance()->message("NO TOKEN MATCH");
-			}
-		}
-
-		if (name.empty() || !u || size <= 0 || bundle) {
-			/*if (name.empty())
-				LogManager::getInstance()->message("INVALID UBD2, name empty");
-			else if (!u)
-				LogManager::getInstance()->message("INVALID UBD2, upload missing");
-			else if (size <= 0)
-				LogManager::getInstance()->message("INVALID UBD2, upload missing");
-			else if (bundle)
-				LogManager::getInstance()->message("INVALID UBD2, has bundle"); */
-			return;
-		}
-
-		//create new bundle
-		//LogManager::getInstance()->message("ADD UPLOAD BUNDLE");
-
-		bundle = BundlePtr(new Bundle(name, false));
-		bundle->setToken(bundleToken);
-		bundle->setSize(size);
-		bundle->setStart(GET_TICK());
+		bundleTokens.insert(make_pair(token, bundle));
 		bundles.push_back(bundle);
-		if (downloaded > 0) {
-			bundle->setDownloaded(downloaded);
-			bundle->setSingleUser(true);
+	}
+
+	setBundle(token, bundle);
+
+}
+
+void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
+
+
+	string bundleToken;
+	string name;
+	int64_t size=0;
+	bool singleUser = false, multiUser = false, finished = false;
+
+	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+		const string& str = *i;
+		if(str.compare(0, 2, "BU") == 0) {
+			bundleToken = str.substr(2);
+		} else if(str.compare(0, 2, "SI") == 0) {
+			size = Util::toInt64(str.substr(2));
+		} else if (str.compare(0, 2, "NA") == 0) {
+			name = str.substr(2);
+		}  else if (str.compare(0, 2, "SU") == 0) {
+			singleUser = true;
+		} else if (str.compare(0, 2, "MU") == 0) {
+			multiUser = true;
+		} else {
+			//LogManager::getInstance()->message("ONUBD UPDATE UNKNOWN PARAM: " + str);
 		}
+	}
+
+	if (bundleToken.empty()) {
+		LogManager::getInstance()->message("INVALID UBD1: UPDATE");
+		return;
+	}
+
+	BundlePtr bundle = findBundle(bundleToken);
+	if (bundle) {
 		if (multiUser) {
 			bundle->setSingleUser(false);
 		} else if (singleUser) {
 			bundle->setSingleUser(true);
+			bundle->setTotalSpeed(0);
+		} else if (size > 0) {
+			bundle->setSize(size);
+			if (!name.empty()) {
+				bundle->setTarget(getBundleTarget(bundleToken, name));
+			}
 		}
-		u->setBundle(bundle);
-		bundle->increaseRunning();
+		return;
+	}
+}
+
+void UploadManager::changeBundle(const AdcCommand& cmd) {
+	string bundleToken;
+	string token;
+
+	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+		const string& str = *i;
+		if(str.compare(0, 2, "BU") == 0) {
+			bundleToken = str.substr(2);
+		} else if(str.compare(0, 2, "TO") == 0) {
+			token = str.substr(2);
+		} else {
+			//LogManager::getInstance()->message("ONUBD CHANGE UNKNOWN PARAM");
+		}
+	}
+	
+	if (bundleToken.empty() || token.empty()) {
+		LogManager::getInstance()->message("INVALID UBD1: CHANGE");
+		return;
+	}
+
+	BundlePtr bundle = findBundle(bundleToken);
+	dcassert(bundle);
+
+	if (bundle) {
+		if (!findRemovedToken(token, false)) {
+			dcassert(bundleTokens.find(token) == bundleTokens.end());
+			Lock l (cs);
+			bundleTokens.insert(make_pair(token, bundle));
+		}
+		setBundle(token, bundle);
+	}
+}
+
+
+void UploadManager::finishBundle(const AdcCommand& cmd) {
+	string bundleToken;
+	string token;
+
+	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+		const string& str = *i;
+		if(str.compare(0, 2, "BU") == 0) {
+			bundleToken = str.substr(2);
+		}
+	}
+	
+	if (bundleToken.empty()) {
+		LogManager::getInstance()->message("INVALID UBD1: FINISH");
+		return;
+	}
+
+	BundlePtr bundle = findBundle(bundleToken);
+	//dcassert(!bundle);
+
+	if (bundle) {
+		//ignore bundle updates that may arrive after this
+		bundle->setSingleUser(true);
+	}
+	fire(UploadManagerListener::BundleComplete(), bundleToken);
+}
+
+void UploadManager::setBundle(const string aToken, BundlePtr aBundle) {
+	for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
+		if ((*i)->getUserConnection().getToken() == aToken) {
+			Upload* u = *i;
+			u->setBundle(aBundle);
+		}
+	}
+}
+
+string UploadManager::getBundleTarget(const string aToken, const string aName) {
+	string path;
+	for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
+		if ((*i)->getUserConnection().getToken() == aToken) {
+			//LogManager::getInstance()->message("UPLOAD BUNDLE, NAME TOKEN UPLOAD");
+			path = (*i)->getPath();
+			break;
+		}
+		if (!(*i)->getBundle()) continue;
+		if ((*i)->getBundle()->getToken() == aToken) {
+			//LogManager::getInstance()->message("UPLOAD BUNDLE, NAME TOKEN BUNDLE");
+			path = (*i)->getPath();
+			break;
+		}
+	}
+	if (!path.empty()) {
+		//LogManager::getInstance()->message("UPLOAD BUNDLE, ANAME: " + aName);
+		size_t pos = path.find(aName);
+		string target;
+		if (pos != string::npos && path.length() > pos+aName.length()) {
+			target = (path.substr(0, pos+aName.length()+1));
+			//LogManager::getInstance()->message("UPLOAD BUNDLE, GETTARGET: " + target);
+			return target;
+		}
+	} else {
+		//LogManager::getInstance()->message("GETTARGET PATH EMPTY");
+	}
+	return aName;
+}
+
+void UploadManager::onUBD(const AdcCommand& cmd) {
+
+	if (cmd.hasFlag("AD", 1)) {
+		//LogManager::getInstance()->message("ADD UPLOAD BUNDLE");
+		createBundle(cmd);
+	} else if (cmd.hasFlag("CH", 1)) {
+		//LogManager::getInstance()->message("CHANGE UPLOAD BUNDLE");
+		changeBundle(cmd);
+	} else if (cmd.hasFlag("UD", 1)) {
+		//LogManager::getInstance()->message("UPDATE UPLOAD BUNDLE");
+		updateBundleInfo(cmd);
+	} else if (cmd.hasFlag("FI", 1)) {
+		//LogManager::getInstance()->message("REMOVE UPLOAD BUNDLE");
+		finishBundle(cmd);
+	} else {
+		//LogManager::getInstance()->message("NO FLAG");
 	}
 }
 
@@ -723,27 +791,25 @@ BundlePtr UploadManager::findBundle(const string bundleToken) {
 	return NULL;
 }
 
-void UploadManager::findRemovedToken(const string aToken, bool delay) {
-	UploadList uls = uploads;
-	if (delay)
-		uls = delayUploads;
-
-	for(UploadList::const_iterator i = uls.begin(); i != uls.end(); ++i) {
-		Upload* u = *i;
-		if (u->getUserConnection().getToken() == aToken) {
-			BundlePtr b = u->getBundle();
-			if (b) {
-				b->decreaseRunning();
-				if (b->getRunning() == 0) {
-					//LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
-					bundles.erase(std::remove(bundles.begin(), bundles.end(), b), bundles.end());
-					//b->dec();
-				} else {
-					//LogManager::getInstance()->message("DON'T ERASE UPLOAD BUNDLE, RUNNING: " + Util::toString(b->getRunning()));
-				}
+bool UploadManager::findRemovedToken(const string aToken, bool delay) {
+	Lock l (cs);
+	auto i = bundleTokens.find(aToken);
+	if (i != bundleTokens.end()) {
+		BundlePtr b = i->second;
+		if (b) {
+			b->decreaseRunning();
+			if (b->getRunning() == 0) {
+				//LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
+				bundles.erase(std::remove(bundles.begin(), bundles.end(), b), bundles.end());
+				bundleTokens.erase(i);
+				//b->dec();
+			} else {
+				//LogManager::getInstance()->message("DON'T ERASE UPLOAD BUNDLE, RUNNING: " + Util::toString(b->getRunning()));
 			}
 		}
+		return true;
 	}
+	return false;
 }
 
 int64_t UploadManager::getRunningAverage() {
@@ -1125,17 +1191,11 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		Lock l(cs);
 		UploadList ticks;
 		
-		for(UploadList::iterator i = delayUploads.begin(); i != delayUploads.end();) {
+		for(UploadList::iterator i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 			Upload* u = *i;
-			
 			if(++u->delayTime > 10) {
-				logUpload(u);
-				delete u;
-
-				delayUploads.erase(i);
-				i = delayUploads.begin();
-			} else {
-				i++;
+				removeDelayUpload(u->getUserConnection().getToken());
+				break;
 			}
 		}
 
@@ -1186,8 +1246,8 @@ void UploadManager::on(ClientManagerListener::UserDisconnected, const UserPtr& a
 }
 
 void UploadManager::removeDelayUpload(const string& aToken) {
-	Lock l(cs);
 	findRemovedToken(aToken, true);
+	Lock l(cs);
 	for(UploadList::iterator i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 		Upload* up = *i;
 		if(aToken == up->getUserConnection().getToken()) {

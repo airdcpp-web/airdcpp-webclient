@@ -39,7 +39,7 @@
 
 namespace dcpp {
 
-int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
+int SFVReaderManager::scan(StringList paths, bool sfv /*false*/, bool bundle /*false*/) {
 	stop = false;
 	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
@@ -50,16 +50,19 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 	skipListReg.Init(SETTING(SKIPLIST_SHARE));
 	skipListReg.study();
 
+	isBundleCheck = false;
+	if (bundle) {
+		isBundleCheck = true;
+	}
+
 	if(sfv) {
-			isCheckSFV = true;
-			Paths = paths;
+		isCheckSFV = true;
+		Paths = paths;
 	} else if(!paths.empty())  {
 		Paths = paths;
 	} else {
-	
 		StringPairList dirs = ShareManager::getInstance()->getDirectories(ShareManager::REFRESH_ALL);
-
-			for(StringPairIter i = dirs.begin(); i != dirs.end();   i++) {
+		for(StringPairIter i = dirs.begin(); i != dirs.end();   i++) {
 			Paths.push_back(i->second);
 		}
 	}
@@ -78,7 +81,9 @@ int SFVReaderManager::scan(StringList paths, bool sfv /*false*/) {
 		extrasFound = 0;
 		missingNFO = 0;
 		missingSFV = 0;
-		LogManager::getInstance()->message(STRING(SCAN_STARTED));
+		if (!isBundleCheck) {
+			LogManager::getInstance()->message(STRING(SCAN_STARTED));
+		}
 	}
 	return 0;
 }
@@ -96,6 +101,7 @@ int SFVReaderManager::run() {
 		}
 	}
 	
+	string dirName;
 	for(;;) { // endless loop
 		
 		if(Paths.empty() || stop)
@@ -142,18 +148,35 @@ int SFVReaderManager::run() {
 				}
 				findMissing(dir);
 				find(dir);
+
+				//pick the dirname for bundles
+				if (isBundleCheck) {
+					dirName = Util::getDir(dir, false, true);
+				}
 			}
 			//LogManager::getInstance()->message("Scanned " + dir);
 		}
 	} //end for
 	
 	if(!isCheckSFV){
-		string tmp;	 
-		tmp.resize(STRING(MISSING_FINISHED).size() + 64);	 
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
-		LogManager::getInstance()->message(tmp);
-	} else if(stop)
+		string tmp;
+		if (!isBundleCheck) {
+			tmp.resize(STRING(MISSING_FINISHED).size() + 64);	 
+			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(MISSING_FINISHED), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));	 
+			LogManager::getInstance()->message(tmp);
+		} else {
+			if (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0) {
+				tmp.resize(STRING(BUNDLE_SCAN_FINISHED).size() + 256);
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_SCAN_FINISHED), dirName.c_str()));
+			} else {
+				tmp.resize(STRING(BUNDLE_SCAN_MISSING).size() + 256);
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_SCAN_MISSING), dirName.c_str(), missingFiles, dupesFound, missingSFV, missingNFO, extrasFound));
+			}
+			LogManager::getInstance()->message(tmp);
+		}
+	} else if(stop) {
 		LogManager::getInstance()->message(STRING(CRC_STOPPED));
+	}
 	
 
 	scanning.clear();

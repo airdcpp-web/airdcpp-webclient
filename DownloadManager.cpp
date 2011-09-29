@@ -175,6 +175,9 @@ void DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, boo
 		} else {
 			cmd.addParam("MU1");
 		}
+		cmd.addParam("AD1");
+	} else {
+		cmd.addParam("CH1");
 	}
 	ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID());
 	//aSource->getUser()
@@ -272,6 +275,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 				if (aBundle->runningUsers.size() == 1) {
 					//LogManager::getInstance()->message("SEND BUNDLE MODE");
 					sendBundleMode(aBundle, false);
+					aBundle->setSingleUser(false);
 				}
 				aBundle->runningUsers[cid] = 1;
 			} else {
@@ -293,11 +297,27 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 }
 
 void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
+	string bundleToken = aBundle->getToken();
+	if (singleUser) {
+		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
+		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
+			Download* d = *i;
+			if (d->getBundle()) {
+				if (d->getBundle()->getToken() == bundleToken) {
+					fire(DownloadManagerListener::BundleMode(), bundleToken, d->getHintedUser());
+				}
+			}
+		}
+	} else {
+		//LogManager::getInstance()->message("SET BUNDLE MULTIUSER, RUNNING: " + aBundle->runningUsers.size());
+	}
+
 	for(auto i = aBundle->uploadReports.begin(); i != aBundle->uploadReports.end(); ++i) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
-		//cmd.addParam("HI", (*i).hint);
-		cmd.addParam("BU", aBundle->getToken());
+		cmd.addParam("HI", (*i).hint);
+		cmd.addParam("UD1");
+		cmd.addParam("BU", bundleToken);
 		if (singleUser)
 			cmd.addParam("SU1");
 		else
@@ -320,7 +340,7 @@ void DownloadManager::findRemovedToken(UserConnection* aSource) {
 	}
 }
 
-bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
+bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
 
 	bool found=false;
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
@@ -328,15 +348,14 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot) {
 		if(uc->getUser() == user) {
 			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
-			uc->updated();
+			if (!reportOnly)
+				uc->updated();
 			dcdebug("uc updated");
 			found = true;
+			return true;
 		}	
 	}
-	if (found)
-		return true;
-	else
-		return false;
+	return false;
 }
 
 void DownloadManager::addConnection(UserConnectionPtr conn) {
@@ -401,10 +420,15 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
 		}
-		Lock l(cs);
-		aConn->setState(UserConnection::STATE_IDLE);
- 	    idlers.push_back(aConn);
-		ConnectionManager::getInstance()->changeCQIState(aConn, true);
+		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
+			Lock l(cs);
+			aConn->setState(UserConnection::STATE_IDLE);
+ 			idlers.push_back(aConn);
+			aConn->setLastBundle(Util::emptyString);
+			ConnectionManager::getInstance()->changeCQIState(aConn, true);
+		} else {
+			aConn->disconnect(true);
+		}
 		return;
 	}
 

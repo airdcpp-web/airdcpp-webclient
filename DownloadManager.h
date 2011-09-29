@@ -43,7 +43,7 @@ public:
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
-	bool checkIdle(const UserPtr& user, bool smallSlot);
+	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
 	void findRemovedToken(UserConnection* aSource);
 	void sendBundleMode(BundlePtr aBundle, bool singleUser);
 

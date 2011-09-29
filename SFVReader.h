@@ -73,7 +73,7 @@ public:
 
  void find (const string& path);
  bool findMissing(const string& path);
- int scan(StringList paths = StringList(), bool sfv = false);
+ int scan(StringList paths = StringList(), bool sfv = false, bool bundle = false);
  void checkSFV(const string& path);
  void Stop();
 
@@ -92,6 +92,7 @@ friend class Singleton<SFVReaderManager>;
 
  StringList Paths;
  bool isCheckSFV;
+ bool isBundleCheck;
 
  atomic_flag scanning;
  int extrasFound;

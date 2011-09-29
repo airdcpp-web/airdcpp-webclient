@@ -163,8 +163,17 @@ private:
 	UploadQueueItem::SlotQueue uploadQueue;
 	BundleList bundles;
 	typedef unordered_map<string, BundlePtr> tokenMap;
+	tokenMap bundleTokens;
 
-	void findRemovedToken(const string aToken, bool delay);
+	void createBundle(const AdcCommand& cmd);
+	void changeBundle(const AdcCommand& cmd);
+	void updateBundleInfo(const AdcCommand& cmd);
+	void finishBundle(const AdcCommand& cmd);
+
+	void setBundle(const string aToken, BundlePtr aBundle);
+	string getBundleTarget(const string bundleToken, const string aName);
+	bool findRemovedToken(const string aToken, bool delay);
+
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
 	void notifyQueuedUsers();
 

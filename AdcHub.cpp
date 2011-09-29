@@ -558,7 +558,7 @@ void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {
-	//LogManager::getInstance()->message("GOT PBD TCP");
+	//LogManager::getInstance()->message("GOT PBD TCP: " + c.toString());
 	OnlineUser* ou = findUser(c.getFrom());
 	if(!ou) {
 		dcdebug("Invalid user in AdcHub::onPBD\n");
@@ -1069,7 +1069,9 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		}
 	}
 
-	su += "," + BNDL_FEATURE;
+	if (BOOLSETTING(ENABLE_BUNDLES)) {
+		su += "," + BNDL_FEATURE;
+	}
 	if(isActive()) {
 		addParam(lastInfoMap, c, "U4", Util::toString(SearchManager::getInstance()->getPort()));
 		su += "," + TCP4_FEATURE;

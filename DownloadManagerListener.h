@@ -49,6 +49,7 @@ public:
 	typedef X<4> Requesting;
 	typedef X<5> Status;
 	typedef X<6> BundleFinished;
+	typedef X<7> BundleMode;
 
 	/**
 	 * This is the first message sent before a download starts.
@@ -82,6 +83,7 @@ public:
 	virtual void on(Failed, const Download*, const string&) noexcept { }
 	virtual void on(Status, const UserConnection*, const string&) noexcept { }
 	virtual void on(BundleFinished, const string&) noexcept { }
+	virtual void on(BundleMode, const string&, const HintedUser&) noexcept { }
 };
 
 } // namespace dcpp

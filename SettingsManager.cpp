@@ -155,7 +155,8 @@ const string SettingsManager::settingTags[] =
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
-	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
+	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist", "EnableBundles",
+	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", 
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -689,6 +690,12 @@ SettingsManager::SettingsManager()
 	setDefault(DUPES_IN_CHAT, true);
 	setDefault(HIGHLIGHT_LIST, "");
 	setDefault(REPORT_SKIPLIST, true);
+
+	setDefault(ENABLE_BUNDLES, true);
+	setDefault(SCAN_DL_BUNDLES, true);
+	setDefault(USE_PARTIAL_SHARING, true);
+	setDefault(POPUP_BUNDLE_DLS, true);
+	setDefault(POPUP_BUNDLE_ULS, false);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

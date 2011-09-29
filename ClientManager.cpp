@@ -533,9 +533,10 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			return;
 
 		PartsInfo partialInfo;
-		string bundle="notused";
+		string bundle;
+		bool add=false, reply=false;
 		TTHValue aTTH(aString.substr(4));
-		if(!QueueManager::getInstance()->handlePartialSearch(aTTH, partialInfo, bundle)) {
+		if(!QueueManager::getInstance()->handlePartialSearch(aTTH, partialInfo, bundle, reply, add)) {
 			// if not found, try to find in finished list
 			if(!FinishedManager::getInstance()->handlePartialRequest(aTTH, partialInfo)) {
 				return;

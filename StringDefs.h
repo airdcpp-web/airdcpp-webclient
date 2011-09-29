@@ -1267,5 +1267,14 @@ enum Strings { // @DontAdd
 	BUNDLE, // "Bundle"
 	REMOVE_BUNDLE, // "Remove bundle"
 	BUNDLE_REMOVED, // "Bundle removed"
+	PARTIAL_SHARING, // "Enable partial bundle/file sharing"
+	SETTINGS_ENABLE_BUNDLES, // "Enable bundles"
+	SETTINGS_BUNDLE_DL_POPUP, // "Show popup on bundle download finished"
+	SETTINGS_BUNDLE_UL_POPUP, // "Show popup on bundle upload finished"
+	SETTINGS_SCAN_FINISHED_BUNDLES, // "Scan finished bundles for missing/extra files"
+	DL_BUNDLE_FINISHED, // "The bundle %s has finished downloading"
+	DL_BUNDLE_FINISHED_SCAN, // "The bundle %s has finished downloading and will be scanned for missing/extra files"
+	BUNDLE_SCAN_FINISHED, // "The bundle %s has finished downloading and has been scanned for missing/extra files, no problems found"
+	BUNDLE_SCAN_MISSING, // "The bundle %s has finished downloading and has been checked for missing/extra files: found %d missing release files, %d dupe folders, %d missing SFV files, %d missing NFO files and %d folders with extra files"
 	LAST // @DontAdd
 };

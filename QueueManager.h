@@ -103,7 +103,7 @@ public:
 	void noDeleteFileList(const string& path);
 	
 
-	bool handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle);
+	bool handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add);
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
 	void addTTHList(const HintedUser& aUser, const string& bundle);
 	MemoryInputStream* generateTTHList(const HintedUser aUser, const string& bundleToken, bool isInSharingHub);
@@ -117,8 +117,10 @@ public:
 	BundlePtr findBundle(const string bundleToken);
 	void findBundle(QueueItem* qi);
 	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
+	void checkPBDReply(const HintedUser aUser, const TTHValue aTTH, string& _bundleToken, bool& _notify, bool& _add);
 	void updatePBD(const HintedUser aUser, const string bundleToken, const TTHValue aTTH);
-	void sendBundleChange(BundlePtr aBundle, int64_t aSize, const string aName);
+	void removeBundleNotify(const CID cid, const string bundleToken);
+	void sendBundleUpdate(const string bundleToken);
 	void sendBundleFinished(BundlePtr aBundle);
 	
 	bool dropSource(Download* d);
@@ -234,6 +236,9 @@ public:
 
 	private:
 		QueueItem::StringMap queue;
+		typedef unordered_set<TTHValue> TTHMap;
+		typedef TTHMap::const_iterator TTHMapIter;
+		TTHMap tthIndex;
 
 		QueueItem::StringMap::iterator lastInsert;
 	};
@@ -312,12 +317,18 @@ private:
 	void processList(const string& name, const HintedUser& user, const string path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
+	void addBundleUpdate(const string bundleToken);
 	void sendPBD(const CID cid, const string hubIpPort, const TTHValue& tth, const string bundleToken);
 	string findFinished(const TTHValue& tth) const;
 	typedef unordered_map<TTHValue, string> FinishedTTHMap;
 	typedef FinishedTTHMap::const_iterator FinishedTTHIter;
 	FinishedTTHMap finishedItems;
+	typedef vector<pair<string, uint64_t>> bundleTickMap;
+	bundleTickMap bundleUpdates;
+	void addFinishedTTH(const string& tth, BundlePtr aBundle);
 
+	//typedef unordered_map<TTHValue, FileQueue::const_iterator> TTHMap;
+	//typedef HashFileMap::const_iterator HashFileIter;
 
 	void load(const SimpleXML& aXml);
 	void moveFile(const string& source, const string& target);

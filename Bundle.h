@@ -22,8 +22,7 @@
 #include <string>
 #include <set>
 
-#include "TigerHash.h"
-#include "MerkleTree.h"
+#include "Flags.h"
 #include "Pointer.h"
 #include "QueueItem.h"
 #include "forward.h"
@@ -40,8 +39,14 @@ using std::string;
  * compute the compute the hash. Then calculate the combined hash value by passing the concatenated hashes
  * of each file through the hash function.
  */
-class Bundle : public intrusive_ptr_base<Bundle> {
+class Bundle : public Flags, public intrusive_ptr_base<Bundle> {
 public:
+	enum Updates {
+		UPDATE_SIZE				= 0x01,
+		UPDATE_NAME				= 0x02,
+		UPDATE_MODE				= 0x04
+	};
+
 	typedef QueueItem* Ptr;
 	typedef vector<Ptr> qiList;
 	typedef qiList::const_iterator Iter;
@@ -62,6 +67,7 @@ public:
 	GETSET(uint16_t, running, Running);
 	GETSET(bool, singleUser, SingleUser);
 	
+	string target;
 	bool download;
 	qiList items;
 	CIDList notifiedUsers;
@@ -108,8 +114,6 @@ public:
 	}
 
 	string getName();
-
-	string target;
 
 	/*
 	bool addUploadReport(const CID cid) {

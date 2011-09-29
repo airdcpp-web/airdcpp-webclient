@@ -327,7 +327,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 
 		target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 		//create bundles
-		if (first) {
+		if (first && SETTING(ENABLE_BUNDLES)) {
 			if (lst.empty() || useRoot) {
 				//bundle = QueueManager::getInstance()->createBundle(target);
 				aBundle = BundlePtr(new Bundle(target, true));
