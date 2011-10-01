@@ -129,11 +129,11 @@ public:
 	void checkMultiConn();
 	void onUBD(const AdcCommand& cmd);
 	void onUBN(const AdcCommand& cmd);
-	BundlePtr findBundle(const string bundleToken);
+	UploadBundlePtr findBundle(const string bundleToken);
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
-	void removeDelayUpload(const string& token);
+	void removeDelayUpload(const string& token, bool removeBundle);
 	void abortUpload(const string& aFile, bool waiting = true);
 		
 	GETSET(uint8_t, extraPartial, ExtraPartial);
@@ -161,8 +161,8 @@ private:
 	SlotMap connectingUsers;
 	MultiConnMap multiUploads;
 	UploadQueueItem::SlotQueue uploadQueue;
-	BundleList bundles;
-	typedef unordered_map<string, BundlePtr> tokenMap;
+	UploadBundleList bundles;
+	typedef unordered_map<string, UploadBundlePtr> tokenMap;
 	tokenMap bundleTokens;
 
 	void createBundle(const AdcCommand& cmd);
@@ -170,9 +170,9 @@ private:
 	void updateBundleInfo(const AdcCommand& cmd);
 	void finishBundle(const AdcCommand& cmd);
 
-	void setBundle(const string aToken, BundlePtr aBundle);
+	void setBundle(const string aToken, UploadBundlePtr aBundle);
 	string getBundleTarget(const string bundleToken, const string aName);
-	bool findRemovedToken(const string aToken, bool delay);
+	bool findRemovedToken(const string aToken);
 
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
 	void notifyQueuedUsers();

@@ -25,7 +25,7 @@ public:
 	typedef X<8> BundleComplete;
 
 	virtual void on(Starting, const Upload*) noexcept { }
-	virtual void on(Tick, const UploadList&, const BundleList&) noexcept { }
+	virtual void on(Tick, const UploadList&, const UploadBundleList&) noexcept { }
 	virtual void on(Complete, const Upload*) noexcept { }
 	virtual void on(BundleComplete, const string&) noexcept { }
 	virtual void on(Failed, const Upload*, const string&) noexcept { }

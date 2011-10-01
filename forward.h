@@ -57,6 +57,10 @@ class Download;
 typedef Download* DownloadPtr;
 typedef std::vector<DownloadPtr> DownloadList;
 
+class DownloadBundle;
+typedef boost::intrusive_ptr<DownloadBundle> DownloadBundlePtr;
+typedef std::vector<DownloadBundlePtr> DownloadBundleList;
+
 class FavoriteHubEntry;
 typedef FavoriteHubEntry* FavoriteHubEntryPtr;
 typedef std::vector<FavoriteHubEntryPtr> FavoriteHubEntryList;
@@ -120,6 +124,10 @@ class UnZFilter;
 class Upload;
 typedef Upload* UploadPtr;
 typedef std::vector<UploadPtr> UploadList;
+
+class UploadBundle;
+typedef boost::intrusive_ptr<UploadBundle> UploadBundlePtr;
+typedef std::vector<UploadBundlePtr> UploadBundleList;
 
 class UploadQueueItem;
 

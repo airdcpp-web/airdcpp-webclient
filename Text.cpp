@@ -279,6 +279,9 @@ const string& utf8ToAcp(const string& str, string& tmp, const string& toCharset)
 
 const wstring& utf8ToWide(const string& str, wstring& tgt) noexcept {
 #ifdef _WIN32
+	if(str.empty()) //fix, no empty strings
+		return Util::emptyStringW;
+
 	int size = 0;
 	tgt.resize( str.length()+1 );
 	while( ( size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], (int)tgt.length()) ) == 0 ){

@@ -142,7 +142,7 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 		}
 	} else {
 		Lock l(cs);
-		UploadManager::getInstance()->removeDelayUpload(cqi->getToken());
+		UploadManager::getInstance()->removeDelayUpload(cqi->getToken(), false);
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
 		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
 	}
@@ -163,7 +163,7 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) noexce
 
 void ConnectionManager::putConnection(UserConnection* aConn) {
 	if (!aConn->getLastBundle().empty()) {
-		QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID());
+		//QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID());
 	}
 	aConn->removeListener(this);
 	aConn->disconnect(true);

@@ -113,7 +113,7 @@ public:
 	//void updateBundles(StringIntMap bundleSpeeds, StringIntMap bundlePositions, bool download);
 	void removeBundleItem(const QueueItem* qi, bool finished);
 	void removeBundle(const string bundleToken, bool removeItems);
-	void removeRunningUser(const string bundleToken, CID cid);
+	void removeRunningUser(const string bundleToken, CID cid, bool finished);
 	BundlePtr findBundle(const string bundleToken);
 	void findBundle(QueueItem* qi);
 	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
@@ -255,7 +255,7 @@ private:
 		QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
 		QueueItem* getRunning(const UserPtr& aUser);
 		void addDownload(QueueItem* qi, Download* d);
-		void removeDownload(QueueItem* qi, const UserPtr& d);
+		void removeDownload(QueueItem* qi, const UserPtr& d, bool tree = false);
 
 		void remove(QueueItem* qi, bool removeRunning = true);
 		void remove(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
@@ -317,7 +317,7 @@ private:
 	void processList(const string& name, const HintedUser& user, const string path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
-	void addBundleUpdate(const string bundleToken);
+	void addBundleUpdate(const string bundleToken, bool finished = false);
 	void sendPBD(const CID cid, const string hubIpPort, const TTHValue& tth, const string bundleToken);
 	string findFinished(const TTHValue& tth) const;
 	typedef unordered_map<TTHValue, string> FinishedTTHMap;

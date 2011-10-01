@@ -8,6 +8,7 @@
 #include "Flags.h"
 #include "Streams.h"
 #include "QueueItem.h"
+#include "Bundle.h"
 
 namespace dcpp {
 
@@ -63,6 +64,7 @@ public:
 	GETSET(uint64_t, lastTick, LastTick);
 	GETSET(OutputStream*, file, File);
 	GETSET(bool, treeValid, TreeValid);
+	GETSET(BundlePtr, bundle, Bundle);
 private:
 	Download(const Download&);
 	Download& operator=(const Download&);

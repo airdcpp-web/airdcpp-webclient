@@ -170,7 +170,7 @@ void DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, boo
 		cmd.addParam("SI", Util::toString(aBundle->getSize()));
 		cmd.addParam("NA", aBundle->getName());
 		cmd.addParam("DL", Util::toString(aBundle->getDownloaded()));
-		if (aBundle->runningUsers.size() == 1) {
+		if (aBundle->getSingleUser()) {
 			cmd.addParam("SU1");
 		} else {
 			cmd.addParam("MU1");
@@ -180,34 +180,26 @@ void DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, boo
 		cmd.addParam("CH1");
 	}
 	ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID());
-	//aSource->getUser()
-	
-	//OnlineUser* u = AdcHub::findUser(c.getFrom());
-	//if(!u || u->getUser() == ClientManager::getInstance()->getMe())
-	//	return;
-
-	//aSource->send(cmd);
-	//ClientManager::getInstance()->send(cmd, aSource->getUser()->get);
 }
 
 void DownloadManager::updateBundles(BundleList bundles) {
 	for(BundleList::iterator j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr bundle = *j;
-		if (bundle->runningUsers.size() == 1 || bundle->uploadReports.empty()) {
-			bundle->setTotalSpeed(0);
+		if (bundle->getSingleUser() || bundle->uploadReports.empty()) {
+			bundle->setLastSpeed(0);
 			bundle->setLastPercent(0);
 			continue;
 		}
 		string speed;
 		string bundleToken = bundle->getToken();
 		double percent = 0;
-		float change = (((float)bundle->getSpeed() - (float)bundle->getTotalSpeed()) / (((float)bundle->getSpeed() + (float)bundle->getTotalSpeed()) / 2.00000));
+		float change = (((float)bundle->getSpeed() - (float)bundle->getLastSpeed()) / (((float)bundle->getSpeed() + (float)bundle->getLastSpeed()) / 2.00000));
 		//LogManager::getInstance()->message("SPEEDCHANGE: " + Util::toString(change) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
 
 		if (abs(change) > 0.05) {
 			//LogManager::getInstance()->message("SEND SPEEDCHANGE: " + Util::toString(abs(change)) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
 			speed = formatDownloaded(bundle->getSpeed());
-			bundle->setTotalSpeed(bundle->getSpeed());
+			bundle->setLastSpeed(bundle->getSpeed());
 		} else {
 			//LogManager::getInstance()->message("DONT SEND");
 		}
@@ -260,7 +252,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		CID cid = aSource->getUser()->getCID();
 		if (!aSource->getLastBundle().empty()) {
 			//LogManager::getInstance()->message("LASTBUNDLE NOT EMPTY, REMOVE");
-			QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), cid);
+			//QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), cid);
 		} 
 
 		{
@@ -272,10 +264,9 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 			auto y =  aBundle->runningUsers.find(cid);
 			if (y == aBundle->runningUsers.end()) {
 				//LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
-				if (aBundle->runningUsers.size() == 1) {
+				if (aBundle->getSingleUser()) {
 					//LogManager::getInstance()->message("SEND BUNDLE MODE");
 					sendBundleMode(aBundle, false);
-					aBundle->setSingleUser(false);
 				}
 				aBundle->runningUsers[cid] = 1;
 			} else {
@@ -299,6 +290,11 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 	string bundleToken = aBundle->getToken();
 	if (singleUser) {
+		if (aBundle->runningUsers.size() != 1) {
+			//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, FAAAAILED: " + Util::toString(aBundle->runningUsers.size()));
+			return;
+		}
+		aBundle->setSingleUser(true);
 		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
 		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
 			Download* d = *i;
@@ -309,6 +305,7 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 			}
 		}
 	} else {
+		aBundle->setSingleUser(false);
 		//LogManager::getInstance()->message("SET BUNDLE MULTIUSER, RUNNING: " + aBundle->runningUsers.size());
 	}
 

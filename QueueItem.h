@@ -139,7 +139,7 @@ public:
 		Flags(aFlag), target(aTarget), maxSegments(1), fileBegin(0),
 		size(aSize), priority(aPriority), added(aAdded),
 		tthRoot(tth), autoPriority(false), nextPublishingTime(0),
-		bundle(NULL)
+		bundleToken(Util::emptyString)
 	{
 		inc();
 		setFlag(FLAG_AUTODROP);
@@ -254,7 +254,7 @@ public:
 	GETSET(Priority, priority, Priority);
 	GETSET(uint8_t, maxSegments, MaxSegments);
 	GETSET(bool, autoPriority, AutoPriority);
-	GETSET(BundlePtr, bundle, Bundle);
+	GETSET(string, bundleToken, BundleToken);
 	
 	QueueItem::Priority calculateAutoPriority() const {
 		if(autoPriority) {

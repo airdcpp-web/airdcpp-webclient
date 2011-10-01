@@ -3,6 +3,7 @@
 
 #include "forward.h"
 #include "Transfer.h"
+#include "UploadBundle.h"
 #include "Flags.h"
 
 namespace dcpp {
@@ -24,6 +25,7 @@ public:
 
 	GETSET(int64_t, fileSize, FileSize);
 	GETSET(InputStream*, stream, Stream);
+	GETSET(UploadBundlePtr, bundle, Bundle);
 
 	uint8_t delayTime;
 };
