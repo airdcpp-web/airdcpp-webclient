@@ -185,7 +185,7 @@ void DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, boo
 void DownloadManager::updateBundles(BundleList bundles) {
 	for(BundleList::iterator j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr bundle = *j;
-		if (bundle->getSingleUser() || bundle->uploadReports.empty()) {
+		if (bundle->getSingleUser() || bundle->getUploadReports().empty()) {
 			bundle->setLastSpeed(0);
 			bundle->setLastPercent(0);
 			continue;
@@ -213,7 +213,7 @@ void DownloadManager::updateBundles(BundleList bundles) {
 
 		//LogManager::getInstance()->message("Bundle notify info, percent: " + Util::toString(percent) + " speed: " + speed);
 		if (!speed.empty() || percent > 0) {
-			for(auto i = bundle->uploadReports.begin(); i != bundle->uploadReports.end(); ++i) {
+			for(auto i = bundle->getUploadReports().begin(); i != bundle->getUploadReports().end(); ++i) {
 				sendBundleUpdate((*i), speed, percent, bundleToken);
 			}
 		}
@@ -257,18 +257,18 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 
 		{
 
-			if (aBundle->runningUsers.empty()) {
+			if (aBundle->getRunningUsers().empty()) {
 				aBundle->setStart(GET_TICK());
 			}
 
-			auto y =  aBundle->runningUsers.find(cid);
-			if (y == aBundle->runningUsers.end()) {
+			auto y =  aBundle->getRunningUsers().find(cid);
+			if (y == aBundle->getRunningUsers().end()) {
 				//LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
 				if (aBundle->getSingleUser()) {
 					//LogManager::getInstance()->message("SEND BUNDLE MODE");
 					sendBundleMode(aBundle, false);
 				}
-				aBundle->runningUsers[cid] = 1;
+				aBundle->getRunningUsers()[cid] = 1;
 			} else {
 				//LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS");
 				updateOnly = true;
@@ -278,7 +278,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 
 		if (aSource->getUser()->isSet(User::BUNDLES)  && !aSource->getUser()->isSet(User::PASSIVE)) {
 			if (!updateOnly) {
-				aBundle->uploadReports.push_back(aSource->getHintedUser());
+				aBundle->getUploadReports().push_back(aSource->getHintedUser());
 			}
 			sendBundle(aSource, aBundle, updateOnly);
 		}
@@ -290,7 +290,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 	string bundleToken = aBundle->getToken();
 	if (singleUser) {
-		if (aBundle->runningUsers.size() != 1) {
+		if (aBundle->getRunningUsers().size() != 1) {
 			//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, FAAAAILED: " + Util::toString(aBundle->runningUsers.size()));
 			return;
 		}
@@ -309,7 +309,7 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 		//LogManager::getInstance()->message("SET BUNDLE MULTIUSER, RUNNING: " + aBundle->runningUsers.size());
 	}
 
-	for(auto i = aBundle->uploadReports.begin(); i != aBundle->uploadReports.end(); ++i) {
+	for(auto i = aBundle->getUploadReports().begin(); i != aBundle->getUploadReports().end(); ++i) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 		cmd.addParam("HI", (*i).hint);

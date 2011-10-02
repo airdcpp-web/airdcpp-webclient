@@ -147,18 +147,7 @@ public:
 		return true;
 	}
 
-	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& tempTarget) {
-		Lock l(cs);
-		QueueItemList ql = fileQueue.find(tth);
-		
-		if(ql.empty()) return false;
-
-		QueueItem* qi = ql.front();
-
-		tempTarget = qi->getTempTarget();
-
-		return qi->isChunkDownloaded(startPos, bytes);
-	}
+	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& tempTarget);
 	
 	GETSET(uint64_t, lastSave, LastSave);
 	GETSET(string, queueFile, QueueFile);
@@ -310,7 +299,7 @@ private:
 	/** File lists not to delete */
 	StringList protectedFileLists;
 	/** Sanity check for the target filename */
-	static string checkTarget(const string& aTarget, bool checkExsistence) throw(QueueException, FileException);
+	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException);
 	 
@@ -319,16 +308,15 @@ private:
 
 	void addBundleUpdate(const string bundleToken, bool finished = false);
 	void sendPBD(const CID cid, const string hubIpPort, const TTHValue& tth, const string bundleToken);
-	string findFinished(const TTHValue& tth) const;
+
 	typedef unordered_map<TTHValue, string> FinishedTTHMap;
 	typedef FinishedTTHMap::const_iterator FinishedTTHIter;
-	FinishedTTHMap finishedItems;
+	FinishedTTHMap finishedTTHs;
+	void addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
+	string findFinished(const TTHValue& tth) const;
+
 	typedef vector<pair<string, uint64_t>> bundleTickMap;
 	bundleTickMap bundleUpdates;
-	void addFinishedTTH(const string& tth, BundlePtr aBundle);
-
-	//typedef unordered_map<TTHValue, FileQueue::const_iterator> TTHMap;
-	//typedef HashFileMap::const_iterator HashFileIter;
 
 	void load(const SimpleXML& aXml);
 	void moveFile(const string& source, const string& target);

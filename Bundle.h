@@ -53,6 +53,7 @@ public:
 	typedef qiList::const_iterator Iter;
 	typedef unordered_map<CID, string> CIDList;
 	typedef unordered_map<CID, uint8_t> RunningMap;
+	typedef unordered_map<TTHValue, string> FinishedItemMap;
 
 
 	Bundle(const string& target, bool download) : target(target), download(download), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
@@ -67,13 +68,22 @@ public:
 	GETSET(uint64_t, start, Start);
 	GETSET(uint16_t, running, Running);
 	GETSET(bool, singleUser, SingleUser);
+	GETSET(CIDList, notifiedUsers, NotifiedUsers);
+	GETSET(RunningMap, runningUsers, RunningUsers);
+	GETSET(qiList, queueItems, QueueItems);
+	GETSET(qiList, finishedItems, finishedItems);
+	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
+	GETSET(HintedUserList, uploadReports, UploadReports);
+
 	
 	string target;
 	bool download;
-	qiList items;
-	CIDList notifiedUsers;
-	RunningMap runningUsers;
-	HintedUserList uploadReports;
+
+	RunningMap& getRunningUsers() { return runningUsers; }
+	CIDList& getNotifiedUsers() { return notifiedUsers; }
+	qiList& getFinishedFiles() { return finishedItems; }
+	HintedUserList& getUploadReports() { return uploadReports; }
+	qiList& getQueueItems() { return queueItems; }
 
 	bool getDownload() {
 		return download;
