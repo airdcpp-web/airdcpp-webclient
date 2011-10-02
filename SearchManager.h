@@ -91,8 +91,10 @@ public:
 	void onRES(const AdcCommand& cmd, const UserPtr& from, const string& remoteIp = Util::emptyString);
 	void onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp = Util::emptyString);
 	void onPBD(const AdcCommand& cmd, UserPtr from);
+	void removeRemoteNotification(const string& ownBundleToken);
 	AdcCommand toPSR(bool wantResponse, const string& myNick, const string& hubIpPort, const string& tth, const vector<uint16_t>& partialInfo) const;
 	AdcCommand toPBD(const string& hubIpPort, const string& bundle, const string& aTTH, bool reply, bool add, bool notify = false) const;
+	AdcCommand removePBD(const string& hubIpPort, const string& bundle, const string& aTTH = Util::emptyString) const;
 
 private:
 	class UdpQueue: public Thread {
@@ -121,6 +123,12 @@ private:
 		
 		bool stop;
 	} queue;
+
+	typedef pair<HintedUser, StringPair> UserBundlePair;
+	typedef vector<UserBundlePair> BundleTranslationMap;
+	BundleTranslationMap bundleTranslations; // in order: <HintedUser, <own, remote>>
+	void addBundles(const string& ownToken, const string& remoteToken, HintedUser aUser);
+	bool findRemoteBundle(const string& bundleToken);
 
 	CriticalSection cs;
 	std::unique_ptr<Socket> socket;

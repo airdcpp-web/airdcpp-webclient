@@ -696,7 +696,7 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 			Lock l (cs);
 			bundleTokens.insert(make_pair(token, bundle));
 			bundle->increaseRunning();
-			LogManager::getInstance()->message("CHANGE UPLOAD BUNDLE, INCREASE CONNECTIONS: " + Util::toString(bundle->getRunning()));
+			//LogManager::getInstance()->message("CHANGE UPLOAD BUNDLE, INCREASE CONNECTIONS: " + Util::toString(bundle->getRunning()));
 		//}
 		setBundle(token, bundle);
 	}

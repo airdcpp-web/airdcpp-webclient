@@ -117,11 +117,12 @@ public:
 	BundlePtr findBundle(const string bundleToken);
 	void findBundle(QueueItem* qi);
 	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
-	void checkPBDReply(const HintedUser aUser, const TTHValue aTTH, string& _bundleToken, bool& _notify, bool& _add);
+	bool checkPBDReply(const HintedUser aUser, const TTHValue aTTH, string& _bundleToken, bool& _notify, bool& _add);
 	void updatePBD(const HintedUser aUser, const string bundleToken, const TTHValue aTTH);
 	void removeBundleNotify(const CID cid, const string bundleToken);
 	void sendBundleUpdate(const string bundleToken);
 	void sendBundleFinished(BundlePtr aBundle);
+	string hasQueueBundle(const TTHValue& tth);
 	
 	bool dropSource(Download* d);
 
@@ -300,6 +301,7 @@ private:
 	StringList protectedFileLists;
 	/** Sanity check for the target filename */
 	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
+	static string checkTarget(const string& aTarget, const string bundleToken) throw(QueueException, FileException);
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException);
 	 

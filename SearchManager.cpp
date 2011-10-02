@@ -442,7 +442,9 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	if (remove) {
 		//LogManager::getInstance()->message("ONPBD REMOVE");
 		QueueManager::getInstance()->removeBundleNotify(from->getCID(), bundle);
-		return;
+		if (!reply) {
+			return;
+		}
 	}
 
 	if (tth.empty()) {
@@ -454,39 +456,87 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 
 	if (update) {
 		//LogManager::getInstance()->message("PBD UPDATE TTH");
-		QueueManager::getInstance()->updatePBD(HintedUser(from, url), bundle, TTHValue(tth));
+		if (findRemoteBundle(bundle)) {
+			//LogManager::getInstance()->message("PBD UPDATE TTH, TOKEN FOUND");
+			QueueManager::getInstance()->updatePBD(HintedUser(from, url), bundle, TTHValue(tth));
+		} else {
+			//LogManager::getInstance()->message("PBD UPDATE TTH, TOKEN NOT LISTED");
+			AdcCommand cmd = removePBD(url, bundle);
+			//do we still have a bundle containing this tth in queue?
+			if (!QueueManager::getInstance()->getTargets(TTHValue(tth)).empty()) {
+				cmd = removePBD(url, bundle, tth);
+			}
+			ClientManager::getInstance()->send(cmd, from->getCID());
+		}
 		return;
 	} else if (notify) {
 		//LogManager::getInstance()->message("PBD NOTIFYONLY");
-		//TODO: save bundle here
+		string ownBundle = QueueManager::getInstance()->hasQueueBundle(TTHValue(tth));
+		if (!ownBundle.empty()) {
+			//LogManager::getInstance()->message("PBD ADD NOTIFY, BUNDLE FOUND");
+			addBundles(ownBundle, bundle, HintedUser(from, url));
+		} else {
+			//HMM?
+			//LogManager::getInstance()->message("PBD ADD NOTIFY, BUNDLE NOT FOUND");
+			AdcCommand cmd = removePBD(url, bundle);
+			ClientManager::getInstance()->send(cmd, from->getCID());
+		}
 		return;
 	} else if (reply) {
 		//LogManager::getInstance()->message("PBD REQUIRE REPLY");
-		//if (QueueManager::getInstance()->checkFinishedNotify(from->getCID(), bundle, false, hubIpPort)) {
-			//TODO: save bundle here
-			string bundleToken;
-			bool notify = false, add = false;
-			QueueManager::getInstance()->checkPBDReply(HintedUser(from, url), TTHValue(tth), bundleToken, notify, add);
-			if (!bundleToken.empty()) {
-				//LogManager::getInstance()->message("PBD REPLY: BUNDLETOKEN NOT EMPTY");
-				AdcCommand cmd = toPBD(hubIpPort, bundle, tth, false, add, notify);
-				ClientManager::getInstance()->send(cmd, from->getCID());
-			} else {
-				//LogManager::getInstance()->message("PBD REPLY: BUNDLETOKEN EMPTY");
-			}
-		//} else {
-		//	LogManager::getInstance()->message("PBD REPLY: FINISHEDNOTIFY FAAAAIL");
-		//}
+		string bundleToken;
+		bool notify = false, add = false;
+		if (QueueManager::getInstance()->checkPBDReply(HintedUser(from, url), TTHValue(tth), bundleToken, notify, add)) {
+			//LogManager::getInstance()->message("PBD REPLY: ACCEPTED");
+			addBundles(bundleToken, bundle, HintedUser(from, url));
+			AdcCommand cmd = toPBD(hubIpPort, bundle, tth, false, add, notify);
+			ClientManager::getInstance()->send(cmd, from->getCID());
+		} else {
+			//LogManager::getInstance()->message("PBD REPLY: QUEUEMANAGER FAIL");
+		}
 	}
 
 	if (add) {
-		if (!QueueManager::getInstance()->getTargets(TTHValue(tth)).empty()) {
+		if (!QueueManager::getInstance()->hasQueueBundle(TTHValue(tth)).empty()) {
 			//LogManager::getInstance()->message("PBD ADDTTHLIST");
 			QueueManager::getInstance()->addTTHList(HintedUser(from, url), bundle);
 		} else {
 			//LogManager::getInstance()->message("DONT PBD ADDTTHLIST, TARGETFAIL");
 		}
 	}
+}
+
+void SearchManager::addBundles(const string& ownToken, const string& remoteToken, HintedUser aUser) {
+	Lock l (cs);
+	if (!findRemoteBundle(remoteToken)) {
+		bundleTranslations.push_back(make_pair(aUser, make_pair(ownToken, remoteToken)));
+	}
+}
+
+bool SearchManager::findRemoteBundle(const string& bundleToken) {
+	for (BundleTranslationMap::const_iterator i = bundleTranslations.begin(); i != bundleTranslations.end(); ++i) {
+		if (i->second.second == bundleToken) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void SearchManager::removeRemoteNotification(const string& ownBundleToken) {
+	Lock l (cs);
+	//LogManager::getInstance()->message("removeRemoteNotification");
+	for (BundleTranslationMap::iterator i = bundleTranslations.begin(); i != bundleTranslations.end();) {
+		if (i->second.first == ownBundleToken) {
+			//LogManager::getInstance()->message("removeRemoteNotification, BUNDLE FOUND");
+			AdcCommand cmd = removePBD(i->first.hint, i->second.second);
+			ClientManager::getInstance()->send(cmd, i->first.user->getCID());
+			bundleTranslations.erase(i);
+			i = bundleTranslations.begin();
+		} else {
+			i++;
+		}
+	}
+	//remove(bundleTranslations.begin(), bundleTranslations.end(), 
 }
 
 void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp) {
@@ -653,6 +703,20 @@ AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const s
 	cmd.addParam("PC", Util::toString(partialInfo.size() / 2));
 	cmd.addParam("PI", getPartsString(partialInfo));
 	
+	return cmd;
+}
+
+AdcCommand SearchManager::removePBD(const string& hubIpPort, const string& bundle, const string& aTTH) const {
+	AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
+
+	cmd.addParam("HI", hubIpPort);
+	cmd.addParam("BU", bundle);
+	cmd.addParam("RM1");
+	if (!aTTH.empty()) {
+		cmd.addParam("RE1");
+		cmd.addParam("TH", aTTH);
+	}
+
 	return cmd;
 }
 
