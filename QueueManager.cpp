@@ -388,9 +388,9 @@ void QueueManager::UserQueue::addDownload(QueueItem* qi, Download* d) {
 
 void QueueManager::UserQueue::removeDownload(QueueItem* qi, const UserPtr& user, bool tree) {
 	running.erase(user);
-	if (!qi->getBundleToken().empty()) {
-		QueueManager::getInstance()->removeRunningUser(qi->getBundleToken(), user->getCID(), tree);
-	}
+	//if (!qi->getBundleToken().empty()) {
+	//	QueueManager::getInstance()->removeRunningUser(qi->getBundleToken(), user->getCID(), tree);
+	//}
 
 	for(DownloadList::iterator i = qi->getDownloads().begin(); i != qi->getDownloads().end(); ++i) {
 		if((*i)->getUser() == user) {
@@ -1544,9 +1544,9 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 							}
 							
 							fire(QueueManagerListener::Finished(), q, dir, aDownload);
-							if (aDownload->getBundle()) {
-								removeRunningUser(aDownload->getBundle()->getToken(), aDownload->getUser()->getCID(), true);
-							}
+							//if (aDownload->getBundle()) {
+							//	removeRunningUser(aDownload->getBundle()->getToken(), aDownload->getUser()->getCID(), true);
+							//}
 							userQueue.remove(q);
 							
 						

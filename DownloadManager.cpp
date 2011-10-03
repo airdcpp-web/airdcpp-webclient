@@ -252,7 +252,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		CID cid = aSource->getUser()->getCID();
 		if (!aSource->getLastBundle().empty()) {
 			//LogManager::getInstance()->message("LASTBUNDLE NOT EMPTY, REMOVE");
-			//QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), cid);
+			QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), cid, false);
 		} 
 
 		{
@@ -284,6 +284,8 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		}
 
 		aSource->setLastBundle(aBundle->getToken());
+	} else  {
+
 	}
 }
 
@@ -420,6 +422,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
 			Lock l(cs);
 			aConn->setState(UserConnection::STATE_IDLE);
+			QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
  			idlers.push_back(aConn);
 			aConn->setLastBundle(Util::emptyString);
 			ConnectionManager::getInstance()->changeCQIState(aConn, true);
@@ -536,8 +539,11 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	fire(DownloadManagerListener::Starting(), d);
 	ConnectionManager::getInstance()->changeCQIState(aSource, false);
 	BundlePtr bundle = d->getBundle();
-	if (bundle)
+	if (bundle) {
 		startBundle(aSource, bundle);
+	} else if (!aSource->getLastBundle().empty()) {
+		QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), aSource->getUser()->getCID(), false);
+	}
 
 	if(d->getPos() == d->getSize()) {
 		try {

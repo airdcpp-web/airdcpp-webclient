@@ -163,7 +163,7 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) noexce
 
 void ConnectionManager::putConnection(UserConnection* aConn) {
 	if (!aConn->getLastBundle().empty()) {
-		//QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID());
+		QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
 	}
 	aConn->removeListener(this);
 	aConn->disconnect(true);

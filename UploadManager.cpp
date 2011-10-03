@@ -326,8 +326,6 @@ ok:
 
 	uploads.push_back(u);
 
-	
-	aSource.getUser()->getCID();
 	if(aSource.getSlotType() != slotType) {
 		// remove old count
 		switch(aSource.getSlotType()) {
