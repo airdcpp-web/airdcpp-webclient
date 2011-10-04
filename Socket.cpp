@@ -343,12 +343,8 @@ int Socket::read(void* aBuffer, int aBufLen) {
 	dcassert(type == TYPE_TCP || type == TYPE_UDP);
 	do {
 		if(type == TYPE_TCP) {
-		if (sock == INVALID_SOCKET)
-				break;
 			len = ::recv(sock, (char*)aBuffer, aBufLen, 0);
 		} else {
-			if (sock == INVALID_SOCKET)
-				break;
 			len = ::recvfrom(sock, (char*)aBuffer, aBufLen, 0, NULL, NULL);
 		}
 	} while (len < 0 && getLastError() == EINTR);
@@ -592,10 +588,14 @@ bool Socket::waitAccepted(uint64_t /*millis*/) {
 	return true;
 }
 
-string Socket::resolve(const string& aDns)
-{
-	addrinfo_p result = resolveAddr(aDns, 0);
-	return resolveName((addr&)*result->ai_addr);
+string Socket::resolve(const string& aDns) {
+	try {
+		addrinfo_p result = resolveAddr(aDns, 0);
+		return resolveName((addr&)*result->ai_addr);
+	} catch(const SocketException&) { 
+		// what to do now?
+		return Util::emptyString;
+	}
 }
 
 Socket::addrinfo_p Socket::resolveAddr(const string& aDns, uint16_t port, int flags) {
@@ -801,5 +801,5 @@ string Socket::getBindAddress() {
 
 /**
  * @file
- * $Id: Socket.cpp 576 2011-08-29 17:50:49Z bigmuscle $
+ * $Id: Socket.cpp 578 2011-10-04 14:27:51Z bigmuscle $
  */

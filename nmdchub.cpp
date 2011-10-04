@@ -129,7 +129,7 @@ void NmdcHub::putUser(const string& aNick) {
 		ou = i->second;
 		users.erase(i);
 
-	availableBytes -= ou->getIdentity().getBytesShared();
+		availableBytes -= ou->getIdentity().getBytesShared();
 	}
 	ClientManager::getInstance()->putOffline(ou);
 	ou->dec();
@@ -232,6 +232,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 		ChatMessage chatMessage = { unescape(message), findUser(nick) };
+
 		if(!chatMessage.from) {
 			OnlineUserPtr o = &getUser(nick);
 			// Assume that messages from unknown users come from the hub
@@ -416,6 +417,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 		u.getIdentity().setConnection(connection);
 		u.getIdentity().setStatus(Util::toString(param[j-1]));
+		
 		
 		if(u.getIdentity().getStatus() & Identity::TLS) {
 			u.getUser()->setFlag(User::TLS);
@@ -908,8 +910,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	reloadSettings(false);
 
 	
-	char StatusMode = Identity::NORMAL;
-
+	char status = Identity::NORMAL;
 	char modeChar = '?';
 	if(SETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5)
 		modeChar = '5';
@@ -928,7 +929,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	} else {
 		dc = "AirDC++";
 
-		StatusMode |= Identity::AIRDC;
+		status |= Identity::AIRDC;
 
 
 #ifdef SVNVERSION
@@ -936,20 +937,22 @@ void NmdcHub::myInfo(bool alwaysSend) {
 #else
 		version = VERSIONSTRING;
 #endif
-
+		if(Util::getAway()) {
+			status |= Identity::AWAY;
+		}
 		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL) && !isActive()) {
-			StatusMode |= Identity::NAT;
+			status |= Identity::NAT;
 		}
 	}
 	
 	if (CryptoManager::getInstance()->TLSOk()) {
-		StatusMode |= Identity::TLS;
+		status |= Identity::TLS;
 	}	
 
 	char myInfo[256];
 	snprintf(myInfo, sizeof(myInfo), "$MyINFO $ALL %s %s<%s V:%s,M:%c,H:%s,S:%d>$ $%s%c$%s$", fromUtf8(getCurrentNick()).c_str(),
 		fromUtf8(escape(getCurrentDescription())).c_str(), dc.c_str(), version.c_str(), modeChar, getCounts().c_str(), 
-		UploadManager::getInstance()->getSlots(), fromUtf8(escape(SETTING(UPLOAD_SPEED))).c_str(), StatusMode, fromUtf8(escape(SETTING(EMAIL))).c_str());
+		UploadManager::getInstance()->getSlots(), fromUtf8(escape(SETTING(UPLOAD_SPEED))).c_str(), status, fromUtf8(escape(SETTING(EMAIL))).c_str());
 
 	int64_t newBytesShared = getHideShare() ? 0 : ShareManager::getInstance()->getShareSize(); //Hide Share Mod
 	if (strcmp(myInfo, lastMyInfo.c_str()) != 0 || alwaysSend || (newBytesShared != lastBytesShared && lastUpdate + 15*60*1000 < GET_TICK())) {

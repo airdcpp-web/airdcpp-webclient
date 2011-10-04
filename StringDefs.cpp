@@ -876,7 +876,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Waiting time", 
 "Waiting to retry...", 
 "Waiting (User online)", 
-"Waiting Users", 
 "Waiting (%d of %d users online)", 
 "What's &this?", 
 "Whois ", 
@@ -1258,7 +1257,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "connection(s)", 
 "Bundle / Filename", 
 "Bundle", 
-"Remove bundle", 
+"Remove bundle from queue", 
+"Remove bundle, including finished files", 
 "Bundle removed", 
 "Enable partial bundle/file sharing", 
 "Enable bundles", 
@@ -1269,6 +1269,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The bundle %s has finished downloading and will be scanned for missing/extra files", 
 "The bundle %s has finished downloading and has been scanned for missing/extra files, no problems found", 
 "The bundle %s has finished downloading and has been checked for missing/extra files: found %d missing release files, %d dupe folders, %d missing SFV files, %d missing NFO files and %d folders with extra files", 
+"Upload queue", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2145,7 +2146,6 @@ std::string dcpp::ResourceManager::names[] = {
 "WaitingTime", 
 "WaitingToRetry", 
 "WaitingUserOnline", 
-"WaitingUsers", 
 "WaitingUsersOnline", 
 "WhatsThis", 
 "WhoIs", 
@@ -2528,6 +2528,7 @@ std::string dcpp::ResourceManager::names[] = {
 "BundleFilename", 
 "Bundle", 
 "RemoveBundle", 
+"RemoveBundleFinished", 
 "BundleRemoved", 
 "PartialSharing", 
 "SettingsEnableBundles", 
@@ -2538,4 +2539,5 @@ std::string dcpp::ResourceManager::names[] = {
 "DlBundleFinishedScan", 
 "BundleScanFinished", 
 "BundleScanMissing", 
+"UploadQueue", 
 };

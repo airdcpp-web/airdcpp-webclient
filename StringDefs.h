@@ -879,7 +879,6 @@ enum Strings { // @DontAdd
 	WAITING_TIME, // "Waiting time"
 	WAITING_TO_RETRY, // "Waiting to retry..."
 	WAITING_USER_ONLINE, // "Waiting (User online)"
-	WAITING_USERS, // "Waiting Users"
 	WAITING_USERS_ONLINE, // "Waiting (%d of %d users online)"
 	WHATS_THIS, // "What's &this?"
 	WHO_IS, // "Whois "
@@ -1265,7 +1264,8 @@ enum Strings { // @DontAdd
 	NUMBER_OF_CONNECTIONS, // "connection(s)"
 	BUNDLE_FILENAME, // "Bundle / Filename"
 	BUNDLE, // "Bundle"
-	REMOVE_BUNDLE, // "Remove bundle"
+	REMOVE_BUNDLE, // "Remove bundle from queue"
+	REMOVE_BUNDLE_FINISHED, // "Remove bundle, including finished files"
 	BUNDLE_REMOVED, // "Bundle removed"
 	PARTIAL_SHARING, // "Enable partial bundle/file sharing"
 	SETTINGS_ENABLE_BUNDLES, // "Enable bundles"
@@ -1276,5 +1276,6 @@ enum Strings { // @DontAdd
 	DL_BUNDLE_FINISHED_SCAN, // "The bundle %s has finished downloading and will be scanned for missing/extra files"
 	BUNDLE_SCAN_FINISHED, // "The bundle %s has finished downloading and has been scanned for missing/extra files, no problems found"
 	BUNDLE_SCAN_MISSING, // "The bundle %s has finished downloading and has been checked for missing/extra files: found %d missing release files, %d dupe folders, %d missing SFV files, %d missing NFO files and %d folders with extra files"
+	UPLOAD_QUEUE, // "Upload queue"
 	LAST // @DontAdd
 };

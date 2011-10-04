@@ -357,6 +357,11 @@ QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Pri
 					continue;
 				}
 				if(!qi->isSet(QueueItem::FLAG_USER_LIST)) {
+					
+					// don't share when file does not exist
+					if(!Util::fileExists(qi->isFinished() ? qi->getTarget() : qi->getTempTarget()))
+						return false;
+
 					int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
 					if(blockSize == 0)
 						blockSize = qi->getSize();
@@ -1406,7 +1411,6 @@ void QueueManager::moveStuckFile(QueueItem* qi) {
 	if(!BOOLSETTING(KEEP_FINISHED_FILES)) {
 		fire(QueueManagerListener::Removed(), qi);
 		removeBundleItem(qi, true);
-		fileQueue.remove(qi);
 	 } else {
 		qi->addSegment(Segment(0, qi->getSize()));
 		fire(QueueManagerListener::StatusUpdated(), qi, false);
@@ -1560,7 +1564,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 								//	}
 								//}
 								removeBundleItem(q, true);
-								fileQueue.remove(q);
 							} else {
 								fire(QueueManagerListener::StatusUpdated(), q, false);
 							}
@@ -1817,7 +1820,6 @@ void QueueManager::remove(const string& aTarget) noexcept {
 			userQueue.remove(q);
 		}
 		removeBundleItem(q, false);
-		fileQueue.remove(q);
 
 		setDirty();
 	}
@@ -2083,7 +2085,7 @@ try {
 		ff.close();
 
 		File::deleteFile(getQueueFile() + ".bak");
-		CopyFile(Text::toT(getQueueFile()).c_str(), Text::toT(getQueueFile() + ".bak").c_str(), FALSE);
+		File::copyFile(getQueueFile(), getQueueFile() + ".bak");
 		File::deleteFile(getQueueFile());
 		File::renameFile(getQueueFile() + ".tmp", getQueueFile());
 
@@ -2309,7 +2311,9 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
 				try {
-					
+					if(qi->isFinished())
+						break;  // don't add sources to already finished files
+
 					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
 						//if its a rar release add the sources to all files.
 						if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (!BOOLSETTING(PARTIAL_MATCH_ADC) || (sr->getUser()->isSet(User::NMDC)) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0)) {
@@ -2654,6 +2658,10 @@ bool QueueManager::handlePartialSearch(const TTHValue& tth, PartsInfo& _outParts
 			return false;  
 		}
 
+		// don't share when file does not exist
+		if(!Util::fileExists(qi->isFinished() ? qi->getTarget() : qi->getTempTarget()))
+			return false;
+
 		int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
 		if(blockSize == 0)
 			blockSize = qi->getSize();
@@ -2913,9 +2921,14 @@ void QueueManager::sendBundleFinished(BundlePtr aBundle) {
 	}
 }
 
-void QueueManager::removeBundle(const string bundleToken, bool removeItems) {
+void QueueManager::removeBundle(const string bundleToken, bool removeFinished) {
 	BundlePtr bundle = findBundle(bundleToken);
-	if (bundle && removeItems) {
+	if (bundle) {
+		if (removeFinished) {
+			for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
+				File::deleteFile((*i)->getTarget());
+			}
+		}
 		typedef vector<QueueItem*> qiList;
 		qiList removeList = bundle->getQueueItems();
 		for (auto i = removeList.begin(); i != removeList.end(); ++i) {
@@ -2924,8 +2937,9 @@ void QueueManager::removeBundle(const string bundleToken, bool removeItems) {
 	}
 }
 
-void QueueManager::removeBundleItem(const QueueItem* qi, bool finished) {
+void QueueManager::removeBundleItem(QueueItem* qi, bool finished) {
 	if (qi->getBundleToken().empty()) {
+		fileQueue.remove(qi);
 		return;
 	}
 
@@ -2999,10 +3013,10 @@ void QueueManager::removeBundleItem(const QueueItem* qi, bool finished) {
 			bundles.erase(i);
 			//bundle->dec();
 		}
-		return;
 	} else {
 		//LogManager::getInstance()->message("QueueManager::removeBundleItem BUNDLE NOT FOUND");
 	}
+	fileQueue.remove(qi);
 }
 
 MemoryInputStream* QueueManager::generateTTHList(const HintedUser aUser, const string& bundleToken, bool isInSharingHub) {
@@ -3014,21 +3028,21 @@ MemoryInputStream* QueueManager::generateTTHList(const HintedUser aUser, const s
 	}
 
 	//write finished items
-	/*for(FinishedTTHIter i = finishedTTHs.begin(); i != finishedTTHs.end(); ++i) {
+	for(FinishedTTHIter i = finishedTTHs.begin(); i != finishedTTHs.end(); ++i) {
 		//LogManager::getInstance()->message("FINISHED BUNDLE FIRST: " + (*i).second + " COMPARE " + bundleCompare);
 		if((*i).second == bundleCompare) {
 			//LogManager::getInstance()->message("TTHLIST FINISHED FOUND");
 			tmp2.clear();
 			tthList.write((*i).first.toBase32(tmp2));
 		}
-	} */
+	}
 
 	//write finished items
-	BundlePtr bundle = findBundle(bundleToken);
+	/*BundlePtr bundle = findBundle(bundleToken);
 	for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
 		tmp2.clear();
 		tthList.write((*i)->getTTH().toBase32(tmp2));
-	}
+	} */
 
 	checkFinishedNotify(aUser.user->getCID(), bundleCompare, true, aUser.hint);
 
@@ -3160,9 +3174,13 @@ void QueueManager::FileQueue::findPFSSources(PFSSourceList& sl)
 	uint64_t now = GET_TICK();
 
 	for(auto i = queue.begin(); i != queue.end(); ++i) {
-		const QueueItem* q = i->second;
+		QueueItem* q = i->second;
 
 		if(q->getSize() < PARTIAL_SHARE_MIN_SIZE) continue;
+
+		// don't share when file does not exist
+		if(!Util::fileExists(q->isFinished() ? q->getTarget() : q->getTempTarget()))
+			continue;
 
 		const QueueItem::SourceList& sources = q->getSources();
 		const QueueItem::SourceList& badSources = q->getBadSources();

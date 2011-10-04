@@ -111,8 +111,8 @@ public:
 	int mergeBundle(BundlePtr aBundle, BundlePtr tempBundle);
 	void addBundleItem(QueueItem* qi, const string bundleToken);
 	//void updateBundles(StringIntMap bundleSpeeds, StringIntMap bundlePositions, bool download);
-	void removeBundleItem(const QueueItem* qi, bool finished);
-	void removeBundle(const string bundleToken, bool removeItems);
+	void removeBundleItem(QueueItem* qi, bool finished);
+	void removeBundle(const string bundleToken, bool removeFinished);
 	void removeRunningUser(const string bundleToken, CID cid, bool finished);
 	BundlePtr findBundle(const string bundleToken);
 	void findBundle(QueueItem* qi);

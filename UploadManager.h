@@ -32,22 +32,10 @@
 
 namespace dcpp {
 
-struct WaitingUser {
-	HintedUser user;
-	string token;
-	
-	WaitingUser(const HintedUser& _user, const std::string& _token) : user(_user), token(_token) { }
-	
-	operator const UserPtr&() const { return user.user; }
-};
-
-class UploadQueueItem :  public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
+class UploadQueueItem : public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
 public:
-	UploadQueueItem(const HintedUser& u, const string& _file, int64_t p, int64_t sz, uint64_t itime) :
-		user(u), file(_file), pos(p), size(sz), time(itime) { inc(); }
-	
-	typedef vector<UploadQueueItem*> List;
-	typedef deque<pair<WaitingUser, UploadQueueItem::List>> SlotQueue;
+	UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size) :
+		user(_user), file(_file), pos(_pos), size(_size), time(GET_TIME()) { inc(); }
 
 	static int compareItems(const UploadQueueItem* a, const UploadQueueItem* b, uint8_t col) {
 		switch(col) {
@@ -76,20 +64,30 @@ public:
 	const tstring getText(uint8_t col) const;
 	int getImageIndex() const;
 
+	int64_t getSize() const { return size; }
+	uint64_t getTime() const { return time; }
 	const string& getFile() const { return file; }
 	const UserPtr& getUser() const { return user.user; }
 	const HintedUser& getHintedUser() const { return user; }
-	int64_t getSize() const { return size; }
-	uint64_t getTime() const { return time; }
 
 	GETSET(int64_t, pos, Pos);
 	
 private:
-	string file;
-	int64_t size;
-	uint64_t time;
-	
-	HintedUser user;	
+
+	int64_t		size;
+	uint64_t	time;	
+	string		file;
+	HintedUser	user;
+};
+
+struct WaitingUser {
+
+	WaitingUser(const HintedUser& _user, const std::string& _token) : user(_user), token(_token) { }
+	operator const UserPtr&() const { return user.user; }
+
+	string					token;
+	set<UploadQueueItem*>	files;
+	HintedUser				user;	
 };
 
 class UploadManager : private ClientManagerListener, private UserConnectionListener, public Speaker<UploadManagerListener>, private TimerManagerListener, public Singleton<UploadManager>
@@ -118,9 +116,12 @@ public:
 	void reserveSlot(const HintedUser& aUser, uint64_t aTime);
 	void unreserveSlot(const UserPtr& aUser);
 	void clearUserFiles(const UserPtr&);
-	const UploadQueueItem::SlotQueue getUploadQueue();
-	bool hasReservedSlot(const UserPtr& aUser) { Lock l(cs); return reservedSlots.find(aUser) != reservedSlots.end(); }
-	bool isConnecting(const UserPtr& aUser) const { return connectingUsers.find(aUser) != connectingUsers.end(); }
+	bool hasReservedSlot(const UserPtr& aUser) const { Lock l(cs); return reservedSlots.find(aUser) != reservedSlots.end(); }
+	bool isNotifiedUser(const UserPtr& aUser) const { return notifiedUsers.find(aUser) != notifiedUsers.end(); }
+	typedef vector<WaitingUser> SlotQueue;
+	SlotQueue getUploadQueue() const { Lock l(cs); return uploadQueue; }
+
+
 	bool isUploading(const CID cid) const { return multiUploads.find(cid) != multiUploads.end(); }
 	//bool isUploading(const UserPtr& aUser);
 	void unreserveSlot(const UserPtr& aUser, bool add);
@@ -139,8 +140,6 @@ public:
 	GETSET(uint8_t, extraPartial, ExtraPartial);
 	GETSET(uint8_t, extra, Extra);
 	GETSET(uint64_t, lastGrant, LastGrant);
-	GETSET(uint8_t, extraAir, ExtraAir);
-
 
 private:
 	uint8_t running;
@@ -149,7 +148,7 @@ private:
 
 	UploadList uploads;
 	UploadList delayUploads;
-	CriticalSection cs;
+	mutable CriticalSection cs;
 
 	int lastFreeSlots; /// amount of free slots at the previous minute
 	
@@ -158,9 +157,13 @@ private:
 	typedef unordered_map<UserPtr, uint64_t, User::Hash> SlotMap;
 	typedef SlotMap::iterator SlotIter;
 	SlotMap reservedSlots;
-	SlotMap connectingUsers;
+	SlotMap notifiedUsers;
+	SlotQueue uploadQueue;
+
+	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
+	void notifyQueuedUsers();
+
 	MultiConnMap multiUploads;
-	UploadQueueItem::SlotQueue uploadQueue;
 	UploadBundleList bundles;
 	typedef unordered_map<string, UploadBundlePtr> tokenMap;
 	tokenMap bundleTokens;
@@ -173,9 +176,6 @@ private:
 	void setBundle(const string aToken, UploadBundlePtr aBundle);
 	string getBundleTarget(const string bundleToken, const string aName);
 	bool findRemovedToken(const string aToken);
-
-	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
-	void notifyQueuedUsers();
 
 
 	friend class Singleton<UploadManager>;
@@ -214,5 +214,5 @@ private:
 
 /**
  * @file
- * $Id: UploadManager.h 568 2011-07-24 18:28:43Z bigmuscle $
+ * $Id: UploadManager.h 578 2011-10-04 14:27:51Z bigmuscle $
  */
