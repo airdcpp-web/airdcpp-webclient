@@ -56,7 +56,7 @@ public:
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
 
 
-	Bundle(const string& target, bool download) : target(target), download(download), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
+	Bundle(const string& target, bool fileBundle) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
 		running(0), lastPercent(0), singleUser(true) { }
 
 	GETSET(int64_t, size, Size);
@@ -74,19 +74,21 @@ public:
 	GETSET(qiList, finishedItems, finishedItems);
 	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
+	GETSET(DownloadList, downloads, Downloads);
 
 	
 	string target;
-	bool download;
+	bool fileBundle;
 
 	RunningMap& getRunningUsers() { return runningUsers; }
 	CIDList& getNotifiedUsers() { return notifiedUsers; }
 	qiList& getFinishedFiles() { return finishedItems; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	qiList& getQueueItems() { return queueItems; }
+	DownloadList& getBundleDownloads() { return downloads; }
 
-	bool getDownload() {
-		return download;
+	bool getFileBundle() {
+		return fileBundle;
 	}
 	void increaseSize(int64_t aSize) {
 		size += aSize;

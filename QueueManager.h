@@ -243,16 +243,16 @@ private:
 		void add(QueueItem* qi);
 		void add(QueueItem* qi, const UserPtr& aUser);
 		QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
-		QueueItem* getRunning(const UserPtr& aUser);
+		QueueItemList getRunning(const UserPtr& aUser);
 		void addDownload(QueueItem* qi, Download* d);
-		void removeDownload(QueueItem* qi, const UserPtr& d, bool tree = false);
+		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
 
 		void remove(QueueItem* qi, bool removeRunning = true);
 		void remove(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
 		void setPriority(QueueItem* qi, QueueItem::Priority p);
 
 		unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
-		unordered_map<UserPtr, QueueItemPtr, User::Hash>& getRunning()  { return running; }
+		unordered_map<UserPtr, QueueItemList, User::Hash>& getRunning()  { return running; }
 
 		string getLastError() { 
 			string tmp = lastError;
@@ -264,7 +264,7 @@ private:
 		/** QueueItems by priority and user (this is where the download order is determined) */
 		unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[QueueItem::LAST];
 		/** Currently running downloads, a QueueItem is always either here or in the userQueue */
-		unordered_map<UserPtr, QueueItemPtr, User::Hash> running;
+		unordered_map<UserPtr, QueueItemList, User::Hash> running;
 		/** Last error message to sent to TransferView */
 		string lastError;
 	};

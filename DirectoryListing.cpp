@@ -330,12 +330,12 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		if (first && SETTING(ENABLE_BUNDLES)) {
 			if (lst.empty() || useRoot) {
 				//bundle = QueueManager::getInstance()->createBundle(target);
-				aBundle = BundlePtr(new Bundle(target, true));
+				aBundle = BundlePtr(new Bundle(target, false));
 				//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE1: " + aBundle->getTarget());
 			} else {
 				sort(lst.begin(), lst.end(), Directory::DirSort());
 				for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-					aBundle = BundlePtr(new Bundle(target, true));
+					aBundle = BundlePtr(new Bundle(target, false));
 					//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
 					download(*j, target, highPrio, prio, false, false, aBundle);
 
