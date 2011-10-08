@@ -63,7 +63,7 @@ public:
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
 		QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
-	int matchListing(const DirectoryListing& dl) noexcept;
+	int matchListing(const DirectoryListing& dl, bool partialList) noexcept;
 	bool findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) noexcept;
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
@@ -284,7 +284,7 @@ private:
 	
 	//using pme for now
 	PME regexp;
-	bool addAlternates(const string& aFile, const HintedUser& aUser);
+	bool addAlternates(QueueItem* qi, const HintedUser& aUser);
 
 	/** Bundles */	
 	typedef unordered_map<string, BundlePtr> BundleMap;

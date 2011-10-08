@@ -1119,7 +1119,7 @@ void buildMap(const DirectoryListing::Directory* dir) noexcept {
 }
 }
 
-int QueueManager::matchListing(const DirectoryListing& dl) noexcept {
+int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noexcept {
 	int matches = 0;
 	bool wantConnection = false;
 	{
@@ -1127,20 +1127,45 @@ int QueueManager::matchListing(const DirectoryListing& dl) noexcept {
 		tthMap.clear();
 		buildMap(dl.getRoot());
 
-		for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
-			QueueItem* qi = i->second;
-			if(qi->isFinished())
-				continue;
-			if(qi->isSet(QueueItem::FLAG_USER_LIST))
-				continue;
-			TTHMap::iterator j = tthMap.find(qi->getTTH());
-			if(j != tthMap.end() && i->second->getSize() == qi->getSize()) {
-				try {
-					wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);	
-					} catch(const Exception&) {
-					//...
+		//our queue is most likely bigger than the partial list, so do it in this order
+		if (partialList) {
+			//LogManager::getInstance()->message("MATCHING PARTIAL LIST");
+ 			for (auto s = tthMap.begin(); s != tthMap.end(); ++s) {
+				QueueItemList ql = fileQueue.find((*s).first);
+				if (!ql.empty()) {
+					for (auto i = ql.begin(); i != ql.end(); ++i) {
+						QueueItem* qi = (*i);
+						if(qi->isFinished())
+							continue;
+						if(qi->isSet(QueueItem::FLAG_USER_LIST))
+							continue;
+
+						try {	 
+							wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
+						} catch(...) {
+							// Ignore...
+						}
+						matches++;
 					}
-				matches++;
+				}
+			}
+		} else {
+			//LogManager::getInstance()->message("MATCHING FULL LIST");
+			for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
+				QueueItem* qi = i->second;
+				if(qi->isFinished())
+					continue;
+				if(qi->isSet(QueueItem::FLAG_USER_LIST))
+					continue;
+				TTHMap::iterator j = tthMap.find(qi->getTTH());
+				if(j != tthMap.end() && i->second->getSize() == qi->getSize()) {
+					try {
+						wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);	
+					} catch(const Exception&) {
+						//...
+					}
+					matches++;
+				}
 			}
 		}
 	}
@@ -1719,8 +1744,28 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
  	 
 			if(tthList.empty())
 				return;
- 	 
-			for(QueueItem::StringMap::const_iterator i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
+ 			
+			for (auto s = tthList.begin(); s != tthList.end(); ++s) {
+				QueueItemList ql = fileQueue.find(*s);
+				if (!ql.empty()) {
+					for (auto i = ql.begin(); i != ql.end(); ++i) {
+						QueueItem* qi = (*i);
+						if(qi->isFinished())
+							continue;
+						if(qi->isSet(QueueItem::FLAG_USER_LIST))
+							continue;
+
+						try {	 
+							wantConnection = addSource(qi, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
+						} catch(...) {
+							// Ignore...
+						}
+						matches++;
+					}
+				}
+			}
+
+			/*for(QueueItem::StringMap::const_iterator i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
 				QueueItem* qi = i->second;
 				if(qi->isFinished())
 					continue;
@@ -1735,7 +1780,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 					}
 					matches++;
 				}
-			}
+			} */
 		}
 
 		if((matches > 0) && wantConnection)
@@ -1789,7 +1834,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 		const size_t BUF_SIZE = STRING(MATCHED_FILES).size() + 16;
 		string tmp;
 		tmp.resize(BUF_SIZE);
-		snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matchListing(dirList));
+		snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matchListing(dirList, flags & QueueItem::FLAG_PARTIAL_LIST));
 		if(flags & QueueItem::FLAG_PARTIAL_LIST) {
 			//no report
 		} else {
@@ -2409,7 +2454,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
 						//if its a rar release add the sources to all files.
 						if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (!BOOLSETTING(PARTIAL_MATCH_ADC) || (sr->getUser()->isSet(User::NMDC)) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0)) {
-							wantConnection = addAlternates(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()));
+							wantConnection = addAlternates(qi, HintedUser(sr->getUser(), sr->getHubURL()));
 						} //else match with partial list
 						else if (!sr->getUser()->isSet(User::NMDC) && !BOOLSETTING(AUTO_SEARCH_AUTO_MATCH)) {
 							string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
@@ -2444,46 +2489,53 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 
 }
 
-bool QueueManager::addAlternates(const string& aFile, const dcpp::HintedUser& aUser) {
+bool QueueManager::addAlternates(QueueItem* qi, const dcpp::HintedUser& aUser) {
 	string path, file;
 	string::size_type pos, pos2;
 	bool wantConnection = false;
-	try {
-		//check wether we're using old style naming on the rar-files
-		//if so just cut the file ending, else we have to cut after .part
-		pos = aFile.find(".part");
-		if (pos != string::npos) {
-			pos += 4;
-		} else {
-			pos = aFile.find_last_of(".");
-		if(pos == string::npos)
+	string aFile = qi->getTarget();
+
+	pos = aFile.find(".part");
+	if (pos != string::npos) {
+		pos += 4;
+	} else {
+		pos = aFile.find_last_of(".");
+		if(pos == string::npos) {
 			return false;
 		}
-		pos2 = aFile.find_last_of("\\");
-		if(pos2 == string::npos)
-			return false;
+	}
+	pos2 = aFile.find_last_of("\\");
+	if(pos2 == string::npos) {
+		return false;
+	}
 
-		file = aFile.substr(pos2+1, pos - pos2);
-		path = aFile.substr(0, pos2);
+	file = aFile.substr(pos2+1, pos - pos2);
+	path = aFile.substr(0, pos2);
 
-		if(file.empty() || path.empty())
-			return false;
+	if(file.empty() || path.empty() || qi->getBundleToken().empty()) {
+		return false;
+	}
 
-		//iterate through the entire queue and add the user as source
-		//where the filenames match
-		for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
-			if( i->first->find(file) != string::npos) {
-				if(!i->second->isSource(aUser)) {
-					try{
-					wantConnection = addSource(i->second, aUser, 0);
-					}catch(...) { //catch here so it can continue the loop, and add other sources
-						//errors can spam syslog here
+	BundlePtr bundle = findBundle(qi->getBundleToken());
+	if (bundle) {
+		for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
+			QueueItem* bundleItem = *i;
+			if(bundleItem->getTarget().find(file) != string::npos) {
+				if(bundleItem->isFinished())
+					continue;
+				if(bundleItem->isSet(QueueItem::FLAG_USER_LIST))
+					continue;
+
+				try {	 
+					if (addSource(bundleItem, aUser, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+						wantConnection = true;
 					}
-				}	
+				} catch(...) {
+					// Ignore...
+				}
 			}
 		}
-		} catch(const Exception&) {
-			}
+	}
 
 	return wantConnection;
 }
