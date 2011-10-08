@@ -2110,6 +2110,7 @@ try {
 		for (auto i = bundles.begin(); i != bundles.end(); ++i) {
 			BundlePtr bundle = i->second;
 			if (bundle->getFileBundle()) {
+				//LogManager::getInstance()->message("DON'T SAVE FILEBUNDLE");
 				//no need to save these, qi has all information to create a new bundle
 				continue;
 			}
@@ -2129,14 +2130,6 @@ try {
 				}
 				f.write(LIT("\">\r\n"));
 
-				/* for(auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
-					//LogManager::getInstance()->message("QUEUE SAVE: write finished TTH");
-					f.write(LIT("\t\t<Finished TTH=\""));
-					f.write((*i).first.toBase32());
-					f.write(LIT("\" Target=\""));
-					f.write((*i).second);
-					f.write(LIT("\"/>\r\n"));
-				} */
 				for (auto k = bundle->getFinishedFiles().begin(); k != bundle->getFinishedFiles().end(); ++k) {
 					QueueItem* qi = *k;
 					f.write(LIT("\t\t<Finished TTH=\""));
@@ -2150,6 +2143,8 @@ try {
 					f.write(LIT("\"/>\r\n"));
 				}
 				f.write(LIT("\t</Bundle>\r\n"));
+			} else {
+				//LogManager::getInstance()->message("ITEMS EMPTY, DONT SAVE");
 			}
 		}
 		for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
@@ -2327,12 +2322,13 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				qi->setAutoPriority(ap);
 				qi->setMaxSegments(max((uint8_t)1, maxSegments));
 
-				//LogManager::getInstance()->message("itemtoken: " + bundleToken);
 				//bundles
 				if (!bundleToken.empty()) {
+					//LogManager::getInstance()->message("itemtoken exists: " + bundleToken);
 					qm->addBundleItem(qi, bundleToken);
 				} else {
 					//assign bundles for old queue items
+					//LogManager::getInstance()->message("BUNDLETOKEN EMPTY");
 					qm->addBundleItem(qi, Util::toString(Util::rand()));
 				}
 				
@@ -2378,7 +2374,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			int64_t downloaded = Util::toInt64(getAttrib(attribs, sDownloaded, 2));
 			const string& prio = getAttrib(attribs, sPriority, 3);
 
-			BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, true));
+			BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, false));
 			if (!prio.empty()) {
 				bundle->setPriority((Bundle::Priority)Util::toInt(prio));
 			}
@@ -2974,22 +2970,27 @@ void QueueManager::findBundle(QueueItem* qi) {
 }
 
 void QueueManager::addBundleItem(QueueItem* qi, const string bundleToken) {
-	BundlePtr bundle = findBundle(bundleToken);
-	if (bundle) {
-		bundle->getQueueItems().push_back(qi);
-		qi->setBundleToken(bundleToken);
-		//LogManager::getInstance()->message("ADD BUNDLEITEM2, sizeLeft: " + Util::toString(bundle->getDownloaded()));
-	} else {
-		bundle = BundlePtr(new Bundle(qi->getTarget(), true));
-		bundle->setToken(bundleToken);
-		qi->setBundleToken(bundleToken);
-		bundle->getQueueItems().push_back(qi);
-		bundle->increaseSize(qi->getSize());
-		bundle->setDownloaded(qi->getDownloadedBytes());
-		bundle->setPriority((Bundle::Priority)qi->getPriority());
-		bundle->setAutoPriority(qi->getAutoPriority());
-		addBundle(bundle);
+	BundlePtr bundle;
+	if (!bundleToken.empty()) {
+		bundle = findBundle(bundleToken);
+		if (bundle) {
+			bundle->getQueueItems().push_back(qi);
+			qi->setBundleToken(bundleToken);
+			//LogManager::getInstance()->message("ADD BUNDLEITEM2, sizeLeft: " + Util::toString(bundle->getDownloaded()));
+			return;
+		}
 	}
+	
+	//LogManager::getInstance()->message("CREATE NEW BUNDLE");
+	bundle = BundlePtr(new Bundle(qi->getTarget(), true));
+	bundle->setToken(bundleToken);
+	qi->setBundleToken(bundleToken);
+	bundle->getQueueItems().push_back(qi);
+	bundle->increaseSize(qi->getSize());
+	bundle->setDownloaded(qi->getDownloadedBytes());
+	bundle->setPriority((Bundle::Priority)qi->getPriority());
+	bundle->setAutoPriority(qi->getAutoPriority());
+	addBundle(bundle);
 }
 
 BundlePtr QueueManager::findBundle(const string bundleToken) {
