@@ -55,7 +55,8 @@ namespace dcpp {
 
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
-	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false), ShareCacheDirty(false), GeneratingXmlList(false)
+	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), rebuild(false), ShareCacheDirty(false), GeneratingXmlList(false),
+	c_size_dirty(true), c_shareSize(0)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -718,15 +719,19 @@ int64_t ShareManager::getShareSize(const string& realPath) const noexcept {
 	return -1;
 }
 
-int64_t ShareManager::getShareSize() const noexcept {
+int64_t ShareManager::getShareSize() noexcept {
 	Lock l(cs);
-	int64_t tmp = 0;
-	
-	for(HashFileMap::const_iterator i = tthIndex.begin(); i != tthIndex.end(); ++i) {
-		tmp += i->second->getSize();
-	}
-	
-	return tmp;
+	/*store the updated sharesize so we dont need to count it on every myinfo update*/
+	if(c_size_dirty) {
+		int64_t tmp = 0;
+		for(HashFileMap::const_iterator i = tthIndex.begin(); i != tthIndex.end(); ++i) {
+			tmp += i->second->getSize();
+		}
+		c_shareSize = tmp;
+		c_size_dirty = false;
+		}
+
+	return c_shareSize;
 }
 
 size_t ShareManager::getSharedFiles() const noexcept {
@@ -742,9 +747,9 @@ bool ShareManager::isDirShared(const string& directory) {
 
 	if (std::binary_search(dirNameList.begin(), dirNameList.end(), dir)) {
 		return true;
-	} else {
-		return false;
 	}
+		
+	return false;
 }
 
 tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
@@ -987,7 +992,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			}*/
 		}else{
 			try{
-			if( Wildcard::patternMatch( name, SETTING(SKIPLIST_SHARE), '|' ) ){
+			if( Wildcard::patternMatch( Text::utf8ToAcp(name), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' ) ){   // or validate filename for bad chars?
 				if(BOOLSETTING(REPORT_SKIPLIST))
 				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(i->getSize()) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
 				
@@ -1310,7 +1315,6 @@ int ShareManager::run() {
 				dirNameList.clear();
 			}
 
-			forceXmlRefresh = true;
 
 			for(DirList::const_iterator i = newDirs.begin(); i != newDirs.end(); ++i) {
 				merge(*i);
@@ -1335,6 +1339,7 @@ int ShareManager::run() {
 		rebuild = false;
 	}
 
+	setDirty();
 	forceXmlRefresh = true;
 
 	if(refreshOptions & REFRESH_BLOCKING)
@@ -1362,7 +1367,7 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 		
 		if(GeneratingXmlList.test_and_set()) //dont pile up generate calls to the lock, if its already generating return.
 			return;
-		
+		{
 		Lock l(cs);
 		listN++;
 
@@ -1426,6 +1431,7 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 		forceXmlRefresh = false;
 		lastXmlUpdate = GET_TICK();
 		GeneratingXmlList.clear();
+		}
 	}
 }
 
@@ -1461,7 +1467,7 @@ void ShareManager::saveXmlList(){
 
 void ShareManager::Directory::toXmlList(OutputStream& xmlFile, string& indent) const{
 	string tmp, tmp2;
-
+	
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));
 	xmlFile.write(SimpleXML::escape(name, tmp, true));
@@ -2085,6 +2091,7 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 			Directory::File::Set::iterator it = d->files.insert(Directory::File(name, size, d, root)).first;
 			updateIndices(*d, it);
 		}
+		
 		setDirty(); 
 	}
 }
@@ -2093,13 +2100,13 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 
 	if(SETTING(INCOMING_REFRESH_TIME) > 0 && !incoming.empty()){
 			if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
-			setDirty();
+			//setDirty();
 			refreshIncoming();
 		}
 	}
 	if(SETTING(AUTO_REFRESH_TIME) > 0) {
 		if(lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= tick) {
-			setDirty();
+			//setDirty();
 			refresh(ShareManager::REFRESH_ALL | ShareManager::REFRESH_UPDATE);
 		}
 	}

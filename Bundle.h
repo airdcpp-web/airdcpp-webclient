@@ -39,8 +39,21 @@ using std::string;
  * compute the compute the hash. Then calculate the combined hash value by passing the concatenated hashes
  * of each file through the hash function.
  */
+
 class Bundle : public Flags, public intrusive_ptr_base<Bundle> {
 public:
+
+	enum Priority {
+		DEFAULT = -1,
+		PAUSED = 0,
+		LOWEST,
+		LOW,
+		NORMAL,
+		HIGH,
+		HIGHEST,
+		LAST
+	};
+
 	enum Updates {
 		UPDATE_SIZE				= 0x01,
 		UPDATE_NAME				= 0x02,
@@ -56,8 +69,8 @@ public:
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
 
 
-	Bundle(const string& target, bool fileBundle) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true) { }
+	Bundle(const string& target, bool fileBundle, Priority priority = DEFAULT) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
+		running(0), lastPercent(0), singleUser(true), priority(priority), autoPriority(false) { }
 
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, downloaded, Downloaded);
@@ -75,6 +88,8 @@ public:
 	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
 	GETSET(DownloadList, downloads, Downloads);
+	GETSET(Priority, priority, Priority);
+	GETSET(bool, autoPriority, AutoPriority);
 
 	
 	string target;

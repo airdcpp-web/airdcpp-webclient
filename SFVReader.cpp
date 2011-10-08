@@ -197,7 +197,7 @@ bool SFVReaderManager::matchSkipList(const string& dir) {
 			} catch(...) { }
 		} else {
 			try {
-				if (Wildcard::patternMatch(dir, SETTING(SKIPLIST_SHARE), '|')) {
+				if (Wildcard::patternMatch(Text::utf8ToAcp(dir), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|')) {
 					return true;
 				} else {
 					return false;

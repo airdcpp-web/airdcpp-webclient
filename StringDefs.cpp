@@ -1270,6 +1270,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "The bundle %s has finished downloading and has been scanned for missing/extra files, no problems found", 
 "The bundle %s has finished downloading and has been checked for missing/extra files: found %d missing release files, %d dupe folders, %d missing SFV files, %d missing NFO files and %d folders with extra files", 
 "Upload queue", 
+"Remove user from this bundle", 
+"Bundle Priority", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2540,4 +2542,6 @@ std::string dcpp::ResourceManager::names[] = {
 "BundleScanFinished", 
 "BundleScanMissing", 
 "UploadQueue", 
+"RemoveBundleSource", 
+"BundlePriority", 
 };

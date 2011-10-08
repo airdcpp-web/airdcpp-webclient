@@ -128,7 +128,7 @@ QueueItem* QueueManager::FileQueue::add(const string& aTarget, int64_t aSize,
 				} catch(...) {
 				}
 			}else{
-				if(Wildcard::patternMatch(aTarget.substr(pos), SETTING(HIGH_PRIO_FILES), '|')) {
+				if(Wildcard::patternMatch(Text::utf8ToAcp(aTarget.substr(pos)), Text::utf8ToAcp(SETTING(HIGH_PRIO_FILES)), '|')) {
 					p = QueueItem::HIGH;
 					Default = false;
 				}
@@ -172,9 +172,14 @@ void QueueManager::FileQueue::add(QueueItem* qi) {
 	else
 		lastInsert = queue.insert(lastInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
 
-	tthIndex.insert(qi->getTTH());
-//	queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi));
-	//string dir = Util::getDir(qi->getTarget(), true, true);
+	auto i = tthIndex.find(qi->getTTH());
+	if (i != tthIndex.end()) {
+		i->second.push_back(qi);
+	} else {
+		QueueItemList tmp;
+		tmp.push_back(qi);
+		tthIndex[qi->getTTH()] = tmp;
+	}
 }
 
 void QueueManager::FileQueue::remove(QueueItem* qi) {
@@ -182,10 +187,20 @@ void QueueManager::FileQueue::remove(QueueItem* qi) {
 		++lastInsert;
 
 	queue.erase(const_cast<string*>(&qi->getTarget()));
-	tthIndex.erase(qi->getTTH());
-	//delete qi;
 
-	//queue.erase(const_cast<string*>(&qi->getTarget()));
+	auto i = tthIndex.find(qi->getTTH());
+	if (i != tthIndex.end()) {
+		if (i->second.size() == 1) {
+			tthIndex.erase(i);
+		} else {
+			for (auto s = i->second.begin(); s != i->second.end(); ++s) {
+				if ((*s)->getTarget() == qi->getTarget()) {
+					i->second.erase(s);
+					break;
+				}
+			}
+		}
+	}
 	qi->dec();
 }
 
@@ -207,14 +222,9 @@ void QueueManager::FileQueue::find(QueueItemList& sl, int64_t aSize, const strin
 
 QueueManager::QueueItemList QueueManager::FileQueue::find(const TTHValue& tth) {
 	QueueItemList ql;
-	if (tthIndex.find(tth) == tthIndex.end()) {
-		return ql;
-	}
-	for(auto i = queue.begin(); i != queue.end(); ++i) {
-		QueueItem* qi = i->second;
-		if(qi->getTTH() == tth) {
-			ql.push_back(qi);
-		}
+	auto i = tthIndex.find(tth);
+	if (i != tthIndex.end()) {
+		ql = i->second;
 	}
 	return ql;
 }
@@ -869,7 +879,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				return;
 			}*/
 		}else{
-			if(Wildcard::patternMatch(aTarget.substr(pos), SETTING(SKIPLIST_DOWNLOAD), '|') ){
+			if(Wildcard::patternMatch(Text::utf8ToAcp(aTarget.substr(pos)), Text::utf8ToAcp(SETTING(SKIPLIST_DOWNLOAD)), '|') ){
 				return;
 			}
 		}
@@ -877,8 +887,6 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 
 	{
 		Lock l(cs);
-
-		// This will be pretty slow on large queues...
 		if(BOOLSETTING(DONT_DL_ALREADY_QUEUED) && !(aFlags & QueueItem::FLAG_USER_LIST)) {
 			QueueItemList ql = fileQueue.find(root);
 			if (ql.size() > 0) {
@@ -1961,6 +1969,31 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) no
 	}	
 }
 
+void QueueManager::setBundlePriority(const string& bundleToken, QueueItem::Priority p) noexcept {
+	BundlePtr bundle = findBundle(bundleToken);
+	if (bundle) {
+		bundle->setAutoPriority(false);
+		bundle->setPriority((Bundle::Priority)p);
+	}
+}
+
+void QueueManager::setBundleAutoPriority(const string& bundleToken) noexcept {
+	BundlePtr bundle = findBundle(bundleToken);
+	if (bundle) {
+		bundle->setAutoPriority(!bundle->getAutoPriority());
+	}
+}
+
+void QueueManager::removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept {
+	BundlePtr bundle = findBundle(bundleToken);
+	if (bundle) {
+		for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
+			//(*i)->removeSource(aUser, QueueItem::Source::FLAG_REMOVED);
+			removeSource((*i)->getTarget(), aUser, QueueItem::Source::FLAG_REMOVED);
+		}
+	}
+}
+
 void QueueManager::setPriority(const string& aTarget, QueueItem::Priority p) noexcept {
 	HintedUserList getConn;
 	bool running = false;
@@ -1971,7 +2004,6 @@ void QueueManager::setPriority(const string& aTarget, QueueItem::Priority p) noe
 		QueueItem* q = fileQueue.find(aTarget);
 		if( (q != NULL) && (q->getPriority() != p) && !q->isFinished() ) {
 			running = q->isRunning();
-
 			if(q->getPriority() == QueueItem::PAUSED || p == QueueItem::HIGHEST) {
 				// Problem, we have to request connections to all these users...
 				q->getOnlineUsers(getConn);
@@ -2046,6 +2078,10 @@ try {
 				f.write(Util::toString(bundle->getSize()));
 				f.write(LIT("\" Downloaded=\""));
 				f.write(Util::toString(bundle->getDownloaded()));
+				if (!bundle->getAutoPriority()) {
+					f.write(LIT("\" Priority=\""));
+					f.write(Util::toString((int)bundle->getPriority()));
+				}
 				f.write(LIT("\">\r\n"));
 
 				/* for(auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
@@ -2295,8 +2331,12 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 
 			int64_t downloaded = Util::toInt64(getAttrib(attribs, sDownloaded, 2));
+			const string& prio = getAttrib(attribs, sPriority, 3);
 
 			BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, true));
+			if (!prio.empty()) {
+				bundle->setPriority((Bundle::Priority)Util::toInt(prio));
+			}
 			bundle->setToken(token);
 			bundle->setSize(totalSize);
 			if (downloaded > 0) {
@@ -2525,8 +2565,9 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 }
 
 bool QueueManager::dropSource(Download* d) {
-	size_t activeSegments = 0, onlineUsers;
-	uint64_t overallSpeed;
+	size_t activeSegments = 0, onlineUsers = 0;
+	uint64_t overallSpeed = 0;
+	bool found=false;
 
 	{
 		Lock l(cs);
@@ -2534,7 +2575,7 @@ bool QueueManager::dropSource(Download* d) {
 		for (auto s = runningItems.begin(); s != runningItems.end(); ++s) {
 			QueueItem* q = *s;
 			if (q->getTarget() == d->getDownloadTarget()) {
-
+				found=true;
    				dcassert(q->isSource(d->getUser()));
 
 				if(!q->isSet(QueueItem::FLAG_AUTODROP))
@@ -2556,6 +2597,9 @@ bool QueueManager::dropSource(Download* d) {
 			}
 		}
 	}
+
+	if (!found)
+		return false;
 
 	if(!SETTING(DROP_MULTISOURCE_ONLY) || (activeSegments >= 2)) {
 		size_t iHighSpeed = SETTING(DISCONNECT_FILE_SPEED);
@@ -2802,6 +2846,10 @@ bool QueueManager::addBundle(BundlePtr aBundle) {
 		LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been created with " + Util::toString(aBundle->getQueueItems().size()) + " items (total size: " + Util::formatBytes(aBundle->getSize()) + ")");
 	}
 
+	if (aBundle->getPriority() == Bundle::DEFAULT) {
+		aBundle->setAutoPriority(true);
+	}
+
 	{
 		Lock l(cs);
 		bundles.insert(make_pair(aBundle->getToken(), aBundle));
@@ -2865,6 +2913,8 @@ void QueueManager::findBundle(QueueItem* qi) {
 	bundle->setToken(token);
 	qi->setBundleToken(token);
 
+	bundle->setPriority((Bundle::Priority)qi->getPriority());
+	bundle->setAutoPriority(qi->getAutoPriority());
 	bundle->getQueueItems().push_back(qi);
 	bundle->increaseSize(qi->getSize());
 	addBundle(bundle);
@@ -2884,6 +2934,8 @@ void QueueManager::addBundleItem(QueueItem* qi, const string bundleToken) {
 		bundle->getQueueItems().push_back(qi);
 		bundle->increaseSize(qi->getSize());
 		bundle->setDownloaded(qi->getDownloadedBytes());
+		bundle->setPriority((Bundle::Priority)qi->getPriority());
+		bundle->setAutoPriority(qi->getAutoPriority());
 		addBundle(bundle);
 	}
 }
@@ -3230,14 +3282,15 @@ void QueueManager::sendPBD(const CID cid, const string hubIpPort, const TTHValue
 
 void QueueManager::updatePBD(const HintedUser aUser, const string bundleToken, const TTHValue aTTH) {
 	//LogManager::getInstance()->message("UPDATEPBD");
- 	for(QueueItem::StringMap::const_iterator i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
-		QueueItem* qi = i->second;
-		if(qi->isFinished())
-			continue;
-		if(qi->isSet(QueueItem::FLAG_USER_LIST))
-			continue;
+	QueueItemList qiList = fileQueue.find(aTTH);
+	if (!qiList.empty()) {
+		for (auto i = qiList.begin(); i != qiList.end(); ++i) {
+			QueueItem* qi = *i;
+			if(qi->isFinished())
+				continue;
+			if(qi->isSet(QueueItem::FLAG_USER_LIST))
+				continue;
 
-		if(qi->getTTH() == aTTH) {
 			try {
 				//LogManager::getInstance()->message("ADDSOURCE");
 				if (addSource(qi, aUser, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {

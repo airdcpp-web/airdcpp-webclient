@@ -68,7 +68,12 @@ public:
 	int refresh(const string& aDir);
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
-	void setDirty() {xmlDirty = true;  ShareCacheDirty = true;}
+	void setDirty() {
+		xmlDirty = true;  
+		ShareCacheDirty = true; 
+		c_size_dirty = true; //everytime xml is dirty the share size needs an update too.
+	}
+
 	StringList getIncoming() { return incoming; };
 	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
 	void DelIncoming() { incoming.clear(); };
@@ -105,12 +110,12 @@ public:
 
 	AdcCommand getFileInfo(const string& aFile);
 
-	int64_t getShareSize() const noexcept;
+	int64_t getShareSize() noexcept;
 	int64_t getShareSize(const string& realPath) const noexcept;
 
 	size_t getSharedFiles() const noexcept;
 
-	string getShareSizeString() const { return Util::toString(getShareSize()); }
+	string getShareSizeString() { return Util::toString(getShareSize()); }
 	string getShareSizeString(const string& aDir) const { return Util::toString(getShareSize(aDir)); }
 	
 	void getBloom(ByteVector& v, size_t k, size_t m, size_t h) const;
@@ -322,6 +327,10 @@ private:
 	uint64_t lastXmlUpdate;
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
+	
+	//caching the share size so we dont need to loop tthindex everytime
+	int64_t	 c_shareSize;
+	bool	 c_size_dirty;
 
 	mutable CriticalSection cs;
 

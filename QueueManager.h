@@ -123,6 +123,10 @@ public:
 	void sendBundleUpdate(const string bundleToken);
 	void sendBundleFinished(BundlePtr aBundle);
 	string hasQueueBundle(const TTHValue& tth);
+	bool isTTHQueued(const TTHValue& tth) { return fileQueue.isTTHQueued(tth); }
+	void setBundlePriority(const string& bundleToken, QueueItem::Priority p) noexcept;
+	void setBundleAutoPriority(const string& bundleToken) noexcept;
+	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	
 	bool dropSource(Download* d);
 
@@ -221,12 +225,13 @@ public:
 		QueueItem::StringMap& getQueue() { return queue; }
 		void move(QueueItem* qi, const string& aTarget);
 		void remove(QueueItem* qi);
+		bool isTTHQueued(const TTHValue& tth) { return tthIndex.find(tth) != tthIndex.end(); }
 
 		uint64_t getTotalQueueSize();
 
 	private:
 		QueueItem::StringMap queue;
-		typedef unordered_set<TTHValue> TTHMap;
+		typedef unordered_map<TTHValue, QueueItemList> TTHMap;
 		typedef TTHMap::const_iterator TTHMapIter;
 		TTHMap tthIndex;
 

@@ -1277,5 +1277,7 @@ enum Strings { // @DontAdd
 	BUNDLE_SCAN_FINISHED, // "The bundle %s has finished downloading and has been scanned for missing/extra files, no problems found"
 	BUNDLE_SCAN_MISSING, // "The bundle %s has finished downloading and has been checked for missing/extra files: found %d missing release files, %d dupe folders, %d missing SFV files, %d missing NFO files and %d folders with extra files"
 	UPLOAD_QUEUE, // "Upload queue"
+	REMOVE_BUNDLE_SOURCE, // "Remove user from this bundle"
+	BUNDLE_PRIORITY, // "Bundle Priority"
 	LAST // @DontAdd
 };
