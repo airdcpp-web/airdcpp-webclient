@@ -140,6 +140,8 @@ public:
 		PATH_NOTEPAD,
 		/** Folder with emoticons packs*/
 		PATH_EMOPACKS,
+		/** XML files for each bundle*/
+		PATH_BUNDLES,
 		PATH_LAST
 	};
 
@@ -168,6 +170,8 @@ public:
 	static string getHubListsPath() { return getPath(PATH_HUB_LISTS); }
 	/** Notepad filename */
 	static string getNotepadFile() { return getPath(PATH_NOTEPAD); }
+	/** Path of bundles */
+	static string getBundlePath() { return getPath(PATH_BUNDLES); }
 
 	static string translateError(int aError);
 

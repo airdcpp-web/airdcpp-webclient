@@ -70,6 +70,7 @@ private:
 	UserConnectionList idlers;
 
 	void removeConnection(UserConnectionPtr aConn);
+	void removeBundleConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource);
 	void noSlots(UserConnection* aSource, string param = Util::emptyString);

@@ -99,6 +99,7 @@ class OutputStream;
 
 class QueueItem;
 typedef QueueItem* QueueItemPtr;
+typedef list<QueueItemPtr> QueueItemList;
 
 class RecentHubEntry;
 

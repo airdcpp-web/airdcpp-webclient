@@ -688,14 +688,13 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 	dcassert(bundle);
 
 	if (bundle) {
-		//if (!findRemovedToken(token)) {
-			findRemovedToken(token);
-			dcassert(bundleTokens.find(token) == bundleTokens.end());
-			Lock l (cs);
-			bundleTokens.insert(make_pair(token, bundle));
-			bundle->increaseRunning();
-			//LogManager::getInstance()->message("CHANGE UPLOAD BUNDLE, INCREASE CONNECTIONS: " + Util::toString(bundle->getRunning()));
-		//}
+		findRemovedToken(token);
+		dcassert(bundleTokens.find(token) == bundleTokens.end());
+
+		Lock l (cs);
+		bundleTokens.insert(make_pair(token, bundle));
+		bundle->increaseRunning();
+		//LogManager::getInstance()->message("CHANGE UPLOAD BUNDLE, INCREASE CONNECTIONS: " + Util::toString(bundle->getRunning()));
 		setBundle(token, bundle);
 	}
 }
@@ -703,7 +702,6 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 
 void UploadManager::finishBundle(const AdcCommand& cmd) {
 	string bundleToken;
-	string token;
 
 	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
@@ -723,8 +721,23 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 	if (bundle) {
 		//ignore bundle updates that may arrive after this
 		bundle->setSingleUser(true);
+		fire(UploadManagerListener::BundleComplete(), bundle->getToken(), bundle->getName());
 	}
-	fire(UploadManagerListener::BundleComplete(), bundleToken);
+}
+
+void UploadManager::removeBundleConnection(const AdcCommand& cmd) {
+	string token;
+
+	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+		const string& str = *i;
+		if(str.compare(0, 2, "TO") == 0) {
+			token = str.substr(2);
+		}
+	}
+
+	if (!token.empty()) {
+		findRemovedToken(token);
+	}
 }
 
 void UploadManager::setBundle(const string aToken, UploadBundlePtr aBundle) {
@@ -780,6 +793,9 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 	} else if (cmd.hasFlag("FI", 1)) {
 		//LogManager::getInstance()->message("REMOVE UPLOAD BUNDLE");
 		finishBundle(cmd);
+	} else if (cmd.hasFlag("RM", 1)) {
+		//LogManager::getInstance()->message("REMOVE UPLOAD BUNDLE");
+		removeBundleConnection(cmd);
 	} else {
 		//LogManager::getInstance()->message("NO FLAG");
 	}
@@ -803,6 +819,7 @@ bool UploadManager::findRemovedToken(const string aToken) {
 		if (b) {
 			bundleTokens.erase(i);
 			b->decreaseRunning();
+			setBundle(aToken, NULL);
 			if (b->getRunning() == 0) {
 				//LogManager::getInstance()->message("ERASE UPLOAD BUNDLE");
 				bundles.erase(std::remove(bundles.begin(), bundles.end(), b), bundles.end());

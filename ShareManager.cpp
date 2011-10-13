@@ -1623,7 +1623,6 @@ void ShareManager::Directory::toXml(OutputStream& xmlFile, string& indent, strin
 }
 
 void ShareManager::Directory::filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const {
-	dcdebug("filesToXml");
 	for(Directory::File::Set::const_iterator i = files.begin(); i != files.end(); ++i) {
 		const Directory::File& f = *i;
 

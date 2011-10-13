@@ -57,20 +57,18 @@ public:
 	enum Updates {
 		UPDATE_SIZE				= 0x01,
 		UPDATE_NAME				= 0x02,
-		UPDATE_MODE				= 0x04,
+		UPDATE_SINGLEUSER		= 0x04,
 		SET_WAITING				= 0x08
 	};
 
 	typedef QueueItem* Ptr;
-	typedef vector<Ptr> qiList;
-	typedef qiList::const_iterator Iter;
 	typedef unordered_map<CID, string> CIDList;
 	typedef unordered_map<CID, uint8_t> RunningMap;
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
 
 
 	Bundle(const string& target, bool fileBundle, Priority priority = DEFAULT) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true), priority(priority), autoPriority(false) { }
+		running(0), lastPercent(0), singleUser(true), priority(priority), autoPriority(false), lastSave(0), dirty(true) { }
 
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, downloaded, Downloaded);
@@ -83,23 +81,26 @@ public:
 	GETSET(bool, singleUser, SingleUser);
 	GETSET(CIDList, notifiedUsers, NotifiedUsers);
 	GETSET(RunningMap, runningUsers, RunningUsers);
-	GETSET(qiList, queueItems, QueueItems);
-	GETSET(qiList, finishedItems, finishedItems);
+	GETSET(QueueItemList, queueItems, QueueItems);
+	GETSET(QueueItemList, finishedItems, finishedItems);
 	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
 	GETSET(DownloadList, downloads, Downloads);
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
+	GETSET(uint16_t, lastSave, LastSave);
+	GETSET(StringList, bundleDirs, BundleDirs);
 
 	
 	string target;
 	bool fileBundle;
+	bool dirty;
 
 	RunningMap& getRunningUsers() { return runningUsers; }
 	CIDList& getNotifiedUsers() { return notifiedUsers; }
-	qiList& getFinishedFiles() { return finishedItems; }
+	QueueItemList& getFinishedFiles() { return finishedItems; }
 	HintedUserList& getUploadReports() { return uploadReports; }
-	qiList& getQueueItems() { return queueItems; }
+	QueueItemList& getQueueItems() { return queueItems; }
 	DownloadList& getBundleDownloads() { return downloads; }
 
 	bool getFileBundle() {
@@ -136,12 +137,18 @@ public:
 		return target;
 	}
 
+	string getBundleFile();
 
 	void setTarget(string targetNew) {
 		target =  targetNew;
 	}
 
 	string getName();
+	void setDirty(bool enable);
+
+	bool getDirty() {
+		return dirty;
+	}
 
 	/*
 	bool addUploadReport(const CID cid) {

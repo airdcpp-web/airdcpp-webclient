@@ -58,9 +58,9 @@ public:
 	virtual void on(SourcesUpdated, const QueueItem*) noexcept { }
 	virtual void on(StatusUpdated, const QueueItem*, bool) noexcept { }
 	virtual void on(PartialList, const HintedUser&, const string&) noexcept { }
-	virtual void on(BundleFinished, const string&) noexcept { }
-	virtual void on(BundleWaiting, const string&) noexcept { }
-	virtual void on(BundleRemoved, const string&) noexcept { }
+	virtual void on(BundleFinished, const BundlePtr) noexcept { }
+	virtual void on(BundleWaiting, const BundlePtr) noexcept { }
+	virtual void on(BundleRemoved, const BundlePtr) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }
 	virtual void on(RecheckNoFile, const string&) noexcept { }

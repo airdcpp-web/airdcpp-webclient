@@ -322,8 +322,26 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 		else
 			cmd.addParam("MU1");
 
-		ClientManager::getInstance()->send(cmd, (*i).user->getCID());
+		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
 	}
+}
+
+void DownloadManager::removeBundleConnection(UserConnectionPtr aConn) {
+	BundlePtr bundle = QueueManager::getInstance()->findBundle(aConn->getLastBundle());
+	if (!bundle)
+		return;
+
+	for(auto i = bundle->getUploadReports().begin(); i != bundle->getUploadReports().end(); ++i) {
+		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+
+		cmd.addParam("HI", (*i).hint);
+		cmd.addParam("RM1");
+		cmd.addParam("TO", aConn->getLastBundle());
+
+		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
+	}
+
+	aConn->setLastBundle(Util::emptyString);
 }
 
 void DownloadManager::findRemovedToken(UserConnection* aSource) {
@@ -542,7 +560,8 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	if (bundle) {
 		startBundle(aSource, bundle);
 	} else if (!aSource->getLastBundle().empty()) {
-		QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), aSource->getUser()->getCID(), false);
+		removeBundleConnection(aSource);
+		//QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), aSource->getUser()->getCID(), false);
 	}
 
 	if(d->getPos() == d->getSize()) {

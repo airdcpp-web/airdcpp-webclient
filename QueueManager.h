@@ -49,8 +49,6 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 	private SearchManagerListener, private ClientManagerListener
 {
 public:
-	typedef list<QueueItemPtr> QueueItemList;
-
 	/** Add a file to the queue. */
 	void add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,
 		Flags::MaskType aFlags = 0, BundlePtr aBundle = NULL, bool addBad = true) throw(QueueException, FileException);
@@ -67,9 +65,6 @@ public:
 	bool findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) noexcept;
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
-
-	/** Move the target location of a queued item. Running items are silently ignored */
-	void move(const string& aSource, const string& aTarget) noexcept;
 
 	void remove(const string& aTarget) noexcept;
 	void removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
@@ -98,7 +93,8 @@ public:
 	QueueItem::Priority hasDownload(const UserPtr& aUser, bool smallSlot) noexcept;
 	
 	void loadQueue() noexcept;
-	void saveQueue(bool force = false) noexcept;
+	void saveQueue(bool force, uint64_t aTick = 0) noexcept;
+	void saveQI(OutputStream &save, QueueItem* qi, string tmp, string b32tmp, bool bundle);
 
 	void noDeleteFileList(const string& path);
 	
@@ -107,26 +103,42 @@ public:
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
 	void addTTHList(const HintedUser& aUser, const string& bundle);
 	MemoryInputStream* generateTTHList(const HintedUser aUser, const string& bundleToken, bool isInSharingHub);
-	bool addBundle(BundlePtr aBundle);
-	int mergeBundle(BundlePtr aBundle, BundlePtr tempBundle);
-	void addBundleItem(QueueItem* qi, const string bundleToken);
-	//void updateBundles(StringIntMap bundleSpeeds, StringIntMap bundlePositions, bool download);
-	void removeBundleItem(QueueItem* qi, bool finished);
+
+	//merging, adding, deletion
+	bool addBundle(BundlePtr aBundle, bool loading = false);
+	BundlePtr getMergeBundle(const string& aTarget);
+	int mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle);
+	void mergeFileBundles(BundlePtr aBundle);
+	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, QueueItemList movedItems);
+	void moveFileBundles(QueueItemList ql, const string& aTarget) noexcept;
+	void createFileBundle(QueueItem* qi);
+	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle);
+	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
 	void removeBundle(const string bundleToken, bool removeFinished);
 	void removeRunningUser(const string bundleToken, CID cid, bool finished);
+	bool findBundle(QueueItem* qi, bool allowAdd);
+
 	BundlePtr findBundle(const string bundleToken);
-	void findBundle(QueueItem* qi);
 	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
 	bool checkPBDReply(const HintedUser aUser, const TTHValue aTTH, string& _bundleToken, bool& _notify, bool& _add);
 	void updatePBD(const HintedUser aUser, const string bundleToken, const TTHValue aTTH);
 	void removeBundleNotify(const CID cid, const string bundleToken);
-	void sendBundleUpdate(const string bundleToken);
+	void sendBundleUpdate(BundlePtr aBundle);
 	void sendBundleFinished(BundlePtr aBundle);
 	string hasQueueBundle(const TTHValue& tth);
-	bool isTTHQueued(const TTHValue& tth) { return fileQueue.isTTHQueued(tth); }
 	void setBundlePriority(const string& bundleToken, QueueItem::Priority p) noexcept;
 	void setBundleAutoPriority(const string& bundleToken) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
+	void changeBundleSource(QueueItem* qi, const UserPtr& aUser, bool add) noexcept;
+	BundlePtr findBundleFinished(const string& aSource, QueueItemList& finishedFiles);
+	void handleBundleUpdate(const string& bundleToken);
+
+	void moveDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, QueueItemList& finishedFiles);
+	bool move(QueueItem* qs, const string& aTarget, const string& aSource = Util::emptyString) noexcept;
+	void moveQL(QueueItemList ql, const string& aTarget, const string& bundleSource);
+	/** Move the target location of a queued item. Running items are silently ignored */
+	void move(const StringPairList& sourceTargetList) noexcept;
+	bool isTTHQueued(const TTHValue& tth) { return fileQueue.isTTHQueued(tth); }
 	
 	bool dropSource(Download* d);
 

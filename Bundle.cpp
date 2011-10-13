@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 #include "Bundle.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 
@@ -29,6 +30,23 @@ uint64_t Bundle::getSecondsLeft() {
 
 string Bundle::getName() {
 	return Util::getDir(target, false, true);
+}
+
+void Bundle::setDirty(bool enable) {
+	if (enable) {
+		if(!dirty) {
+			dirty = true;
+			lastSave = GET_TICK();
+		}
+	} else {
+		dirty = false;
+		lastSave = GET_TICK();
+	}
+}
+
+
+string Bundle::getBundleFile() {
+	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + token + ".xml";
 }
 
 }

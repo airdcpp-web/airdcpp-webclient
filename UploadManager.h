@@ -172,6 +172,7 @@ private:
 	void changeBundle(const AdcCommand& cmd);
 	void updateBundleInfo(const AdcCommand& cmd);
 	void finishBundle(const AdcCommand& cmd);
+	void removeBundleConnection(const AdcCommand& cmd);
 
 	void setBundle(const string aToken, UploadBundlePtr aBundle);
 	string getBundleTarget(const string bundleToken, const string aName);
