@@ -1272,6 +1272,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Upload queue", 
 "Remove user from this bundle", 
 "Bundle Priority", 
+"Reload", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2544,4 +2545,5 @@ std::string dcpp::ResourceManager::names[] = {
 "UploadQueue", 
 "RemoveBundleSource", 
 "BundlePriority", 
+"Reload", 
 };

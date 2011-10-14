@@ -111,7 +111,7 @@ public:
 	void mergeFileBundles(BundlePtr aBundle);
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, QueueItemList movedItems);
 	void moveFileBundles(QueueItemList ql, const string& aTarget) noexcept;
-	void createFileBundle(QueueItem* qi);
+	BundlePtr createFileBundle(QueueItem* qi);
 	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle);
 	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
 	void removeBundle(BundlePtr aBundle, bool finished);

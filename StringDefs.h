@@ -1279,5 +1279,6 @@ enum Strings { // @DontAdd
 	UPLOAD_QUEUE, // "Upload queue"
 	REMOVE_BUNDLE_SOURCE, // "Remove user from this bundle"
 	BUNDLE_PRIORITY, // "Bundle Priority"
+	RELOAD, // "Reload"
 	LAST // @DontAdd
 };
