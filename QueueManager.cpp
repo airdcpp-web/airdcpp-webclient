@@ -2851,12 +2851,6 @@ bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int6
 						return true;
 					}
 				}
-				/* auto i = bundle->getFinishedFiles().find(tth);
-				if (i !=  bundle->getFinishedFiles().end()) {
-					tempTarget = i->second;
-					bytes = startPos;
-					return true;
-				} */
 			}
 		}
 		return false;
@@ -3376,7 +3370,6 @@ void QueueManager::removeRunningUser(const string bundleToken, CID cid, bool fin
 
 void QueueManager::addBundleUpdate(const string bundleToken, bool finished) {
 	//LogManager::getInstance()->message("QueueManager::addBundleUpdate");
-	auto i = bundleUpdates.find(bundleToken);
 	for (bundleTickMap::iterator i = bundleUpdates.begin(); i != bundleUpdates.end(); ++i) {
 		if (i->first == bundleToken) {
 			i->second = GET_TICK();
