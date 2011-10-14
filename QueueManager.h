@@ -114,6 +114,7 @@ public:
 	void createFileBundle(QueueItem* qi);
 	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle);
 	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
+	void removeBundle(BundlePtr aBundle, bool finished);
 	void removeBundle(const string bundleToken, bool removeFinished);
 	void removeRunningUser(const string bundleToken, CID cid, bool finished);
 	bool findBundle(QueueItem* qi, bool allowAdd);
@@ -318,7 +319,6 @@ private:
 	StringList protectedFileLists;
 	/** Sanity check for the target filename */
 	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
-	static string checkTarget(const string& aTarget, const string bundleToken) throw(QueueException, FileException);
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException);
 	 
