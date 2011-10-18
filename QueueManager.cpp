@@ -3660,6 +3660,15 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 	//handle dirs
 	if (!aBundle->getFileBundle()) {
 		string releaseDir = ShareManager::getInstance()->getReleaseDir(aBundle->getTarget());
+		if (!releaseDir.empty()) {
+			bundleDirs.erase(releaseDir);
+		}
+		for (auto i = aBundle->getBundleDirs().begin(); i != aBundle->getBundleDirs().end(); ++i) {
+			releaseDir = ShareManager::getInstance()->getReleaseDir(*i);
+			if (!releaseDir.empty()) {
+				bundleDirs.erase(releaseDir);
+			}
+		}
 	}
 
 	SearchManager::getInstance()->removeRemoteNotification(aBundle->getToken());
