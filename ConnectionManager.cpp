@@ -51,7 +51,7 @@ ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServe
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_TIGR);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BZIP);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_MCN1);
-
+	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_UBN1);
 }
 
 void ConnectionManager::listen() {
@@ -577,9 +577,10 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 				aSource->setFlag(UserConnection::FLAG_SUPPORTS_XML_BZLIST);
 			} else if(feat == UserConnection::FEATURE_ADC_TIGR) {
 				tigrOk = true;
-			}
-			if(feat == UserConnection::FEATURE_ADC_MCN1) {
+			} else if(feat == UserConnection::FEATURE_ADC_MCN1) {
 				aSource->setFlag(UserConnection::FLAG_MCN1);
+			} else if(feat == UserConnection::FEATURE_ADC_UBN1) {
+				aSource->setFlag(UserConnection::FLAG_UBN1);
 			}
 		}
 	}

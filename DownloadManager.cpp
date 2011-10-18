@@ -264,21 +264,24 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 			auto y =  aBundle->getRunningUsers().find(cid);
 			if (y == aBundle->getRunningUsers().end()) {
 				//LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
-				if (aBundle->getSingleUser()) {
+				if (aBundle->getSingleUser() && !aBundle->getRunningUsers().empty()) {
 					//LogManager::getInstance()->message("SEND BUNDLE MODE");
 					sendBundleMode(aBundle, false);
+				} else if (aBundle->getRunningUsers().empty()) {
+					//..
 				}
 				aBundle->getRunningUsers()[cid] = 1;
 			} else {
-				//LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS");
 				updateOnly = true;
 				y->second++;
+				//LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS: " + Util::toString(y->second));
 			}
 		}
 
-		if (aSource->getUser()->isSet(User::BUNDLES)  && !aSource->getUser()->isSet(User::PASSIVE)) {
+		if (aSource->isSet(UserConnection::FLAG_UBN1) && !aSource->getUser()->isSet(User::PASSIVE)) {
 			if (!updateOnly) {
 				aBundle->getUploadReports().push_back(aSource->getHintedUser());
+				//LogManager::getInstance()->message("ADD UPLOAD REPORT: " + Util::toString(aBundle->getUploadReports().size()));
 			}
 			sendBundle(aSource, aBundle, updateOnly);
 		}
@@ -302,7 +305,7 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 			Download* d = *i;
 			if (d->getBundle()) {
 				if (d->getBundle()->getToken() == bundleToken) {
-					fire(DownloadManagerListener::BundleMode(), bundleToken, d->getHintedUser());
+					fire(DownloadManagerListener::BundleUser(), bundleToken, d->getHintedUser());
 				}
 			}
 		}
@@ -315,8 +318,8 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 		cmd.addParam("HI", (*i).hint);
-		cmd.addParam("UD1");
 		cmd.addParam("BU", bundleToken);
+		cmd.addParam("UD1");
 		if (singleUser)
 			cmd.addParam("SU1");
 		else
@@ -335,13 +338,11 @@ void DownloadManager::removeBundleConnection(UserConnectionPtr aConn) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 		cmd.addParam("HI", (*i).hint);
-		cmd.addParam("RM1");
 		cmd.addParam("TO", aConn->getLastBundle());
+		cmd.addParam("RM1");
 
 		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
 	}
-
-	aConn->setLastBundle(Util::emptyString);
 }
 
 void DownloadManager::findRemovedToken(UserConnection* aSource) {
@@ -442,12 +443,24 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 			aConn->setState(UserConnection::STATE_IDLE);
 			QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
  			idlers.push_back(aConn);
-			aConn->setLastBundle(Util::emptyString);
+			if (!aConn->getLastBundle().empty()) {
+				//fire(DownloadManagerListener::BundleFinished(), aConn->getLastBundle());
+				aConn->setLastBundle(Util::emptyString);
+			}
 			ConnectionManager::getInstance()->changeCQIState(aConn, true);
 		} else {
 			aConn->disconnect(true);
 		}
 		return;
+	} else if (!d->getBundle() && !aConn->getLastBundle().empty()) {
+		//QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
+		//aConn->setLastBundle(Util::emptyString);
+	}
+
+	if (d->getBundle()) {
+		if (d->getBundle()->getRunningUsers().empty()) {
+			fire(DownloadManagerListener::BundleUser(), d->getBundle()->getToken(), aConn->getHintedUser());
+		}
 	}
 
 	aConn->setState(UserConnection::STATE_SND);
@@ -561,7 +574,8 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 		startBundle(aSource, bundle);
 	} else if (!aSource->getLastBundle().empty()) {
 		removeBundleConnection(aSource);
-		//QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), aSource->getUser()->getCID(), false);
+		QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), aSource->getUser()->getCID(), false);
+		aSource->setLastBundle(Util::emptyString);
 	}
 
 	if(d->getPos() == d->getSize()) {
@@ -644,8 +658,8 @@ void DownloadManager::endData(UserConnection* aSource) {
 
 	removeDownload(d);
 
-	if(d->getType() != Transfer::TYPE_FILE)
-		fire(DownloadManagerListener::Complete(), d, d->getType() == Transfer::TYPE_TREE);
+	//if(d->getType() != Transfer::TYPE_FILE)
+	fire(DownloadManagerListener::Complete(), d, d->getType() == Transfer::TYPE_TREE);
 
 	QueueManager::getInstance()->putDownload(d, true, false);	
 	checkDownloads(aSource);

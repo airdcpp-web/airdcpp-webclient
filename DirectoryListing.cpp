@@ -78,22 +78,23 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 	return ClientManager::getInstance()->getUser(cid);
 }
 
-void DirectoryListing::loadFile(const string& name, bool checkdupe) {
+void DirectoryListing::loadFile(const string& name, bool checkdupe, bool partialList) {
 	// For now, we detect type by ending...
 	string ext = Util::getFileExt(name);
 
 	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
 	if(stricmp(ext, ".bz2") == 0) {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
-		loadXML(f, false, checkdupe);
+		loadXML(f, false, checkdupe, partialList);
 	} else if(stricmp(ext, ".xml") == 0) {
-		loadXML(ff, false, checkdupe);
+		loadXML(ff, false, checkdupe, partialList);
 	}
 }
 
 class ListLoader : public SimpleXMLReader::CallBack {
 public:
-	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe) : list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkdupe(aCheckDupe), useCache(true) { 
+	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList) : 
+	  list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkdupe(aCheckDupe), partialList(aPartialList), useCache(true) { 
 	}
 
 	~ListLoader() { }
@@ -112,16 +113,17 @@ private:
 	bool inListing;
 	bool updating;
 	bool checkdupe;
+	bool partialList;
 	bool useCache;
 };
 
-string DirectoryListing::updateXML(const string& xml, bool checkdupe ) {
+string DirectoryListing::updateXML(const string& xml, bool checkdupe) {
 	MemoryInputStream mis(xml);
-	return loadXML(mis, true, checkdupe);
+	return loadXML(mis, true, checkdupe, true);
 }
 
-string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkdupe) {
-	ListLoader ll(this, getRoot(), updating, getUser(), checkdupe);
+string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkShareDupe, bool partialList) {
+	ListLoader ll(this, getRoot(), updating, getUser(), checkShareDupe, partialList);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
@@ -178,8 +180,16 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			DirectoryListing::File* f = new DirectoryListing::File(cur, n, size, tth);
 			cur->files.push_back(f);
-			if((f->getSize() > 0) && checkdupe) {
-				f->setDupe(ShareManager::getInstance()->isTTHShared(f->getTTH()));
+			if(f->getSize() > 0) {
+				if (checkdupe) {
+					if (ShareManager::getInstance()->isTTHShared(f->getTTH())) {
+						f->setShareDupe(ShareManager::getInstance()->isTTHShared(f->getTTH()));
+					} else if (partialList) {
+						if (QueueManager::getInstance()->isTTHQueued(f->getTTH())) {
+							f->setQueueDupe(true);
+						}
+					}
+				}
 			}
 		} else if(name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
@@ -214,9 +224,13 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 			if(d == NULL) {
 				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, date);
-				if (incomp && checkdupe) {
+				if (checkdupe) {
 					if (ShareManager::getInstance()->isDirShared(d->getPath())) {
-						d->setDupe(2);
+						d->setShareDupe(2);
+					} else if (partialList) {
+						if (QueueManager::getInstance()->isDirQueued(d->getPath())) {
+							d->setQueueDupe(2);
+						}
 					}
 				}
 				cur->directories.push_back(d);
@@ -327,7 +341,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 
 		target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 		//create bundles
-		if (first && SETTING(ENABLE_BUNDLES)) {
+		if (first) {
 			if (lst.empty() || useRoot) {
 				//bundle = QueueManager::getInstance()->createBundle(target);
 				aBundle = BundlePtr(new Bundle(target, false));
@@ -356,6 +370,8 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 				}
 				return;
 			}
+		} else {
+			aBundle->getBundleDirs().push_back(target);
 		}
 
 		// First, recurse over the directories
@@ -513,17 +529,18 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
 	}
 	return x;
 }
-uint8_t DirectoryListing::Directory::checkDupes() {
+
+uint8_t DirectoryListing::Directory::checkShareDupes() {
 	uint8_t result = Directory::NONE;
 	bool first = true;
 	for(Directory::Iter i = directories.begin(); i != directories.end(); ++i) {
-		result = (*i)->checkDupes();
-		if(getDupe() == Directory::NONE && first)
-			setDupe(result);
-		else if(result != Directory::NONE && getDupe() == Directory::NONE && !first)
-			setDupe(Directory::PARTIAL_DUPE);
-		else if(getDupe() == Directory::DUPE && result != Directory::DUPE)
-			setDupe(Directory::PARTIAL_DUPE);
+		result = (*i)->checkShareDupes();
+		if(getShareDupe() == Directory::NONE && first)
+			setShareDupe(result);
+		else if(result != Directory::NONE && getShareDupe() == Directory::NONE && !first)
+			setShareDupe(Directory::PARTIAL_DUPE);
+		else if(getShareDupe() == Directory::SHARE_DUPE && result != Directory::SHARE_DUPE)
+			setShareDupe(Directory::PARTIAL_DUPE);
 		first = false;
 	}
 
@@ -531,35 +548,34 @@ uint8_t DirectoryListing::Directory::checkDupes() {
 	for(File::Iter i = files.begin(); i != files.end(); ++i) {
 		//don't count 0 byte files since it'll give lots of partial dupes
 		//of no interest
-		if((*i)->getSize() > 0) {
-			//(*i)->setDupe(ShareManager::getInstance()->isTTHShared((*i)->getTTH()));
-			
+		if((*i)->getSize() > 0) {			
 			//if it's the first file in the dir and no sub-folders exist mark it as a dupe.
-			if(getDupe() == Directory::NONE && (*i)->getDupe() && directories.empty() && first)
-				setDupe(Directory::DUPE);
+			if(getShareDupe() == Directory::NONE && (*i)->getShareDupe() && directories.empty() && first)
+				setShareDupe(Directory::SHARE_DUPE);
 
 			//if it's the first file in the dir and we do have sub-folders but no dupes, mark as partial.
-			else if(getDupe() == Directory::NONE && (*i)->getDupe() && !directories.empty() && first)
-				setDupe(Directory::PARTIAL_DUPE);
+			else if(getShareDupe() == Directory::NONE && (*i)->getShareDupe() && !directories.empty() && first)
+				setShareDupe(Directory::PARTIAL_DUPE);
 			
 			//if it's not the first file in the dir and we still don't have a dupe, mark it as partial.
-			else if(getDupe() == Directory::NONE && (*i)->getDupe() && !first)
-				setDupe(Directory::PARTIAL_DUPE);
+			else if(getShareDupe() == Directory::NONE && (*i)->getShareDupe() && !first)
+				setShareDupe(Directory::PARTIAL_DUPE);
 			
 			//if it's a dupe and we find a non-dupe, mark as partial.
-			else if(getDupe() == Directory::DUPE && !(*i)->getDupe())
-				setDupe(Directory::PARTIAL_DUPE);
+			else if(getShareDupe() == Directory::SHARE_DUPE && !(*i)->getShareDupe())
+				setShareDupe(Directory::PARTIAL_DUPE);
 
 			first = false;
 		}
 	}
-	return getDupe();
+	return getShareDupe();
 }
 
-void DirectoryListing::checkDupes() {
-	root->checkDupes();
-	root->setDupe(Directory::NONE); //newer show the root as a dupe or partial dupe.
+void DirectoryListing::checkShareDupes() {
+	root->checkShareDupes();
+	root->setShareDupe(Directory::NONE); //newer show the root as a dupe or partial dupe.
 }
+
 } // namespace dcpp
 /**
  * @file

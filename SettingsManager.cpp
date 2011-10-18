@@ -156,7 +156,7 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist", "EnableBundles",
-	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", 
+	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -432,6 +432,12 @@ SettingsManager::SettingsManager()
 	setDefault(TEXT_DUPE_BOLD, false);
 	setDefault(TEXT_DUPE_ITALIC, false);
 	setDefault(UNDERLINE_DUPES, true);
+
+	setDefault(TEXT_QUEUE_BACK_COLOR, RGB(255, 255, 255));
+	setDefault(QUEUE_COLOR, RGB(255,200,0));
+	setDefault(TEXT_QUEUE_BOLD, false);
+	setDefault(TEXT_QUEUE_ITALIC, false);
+	setDefault(UNDERLINE_QUEUE, true);
 
 	setDefault(LIST_HL_BG_COLOR, RGB(255, 255, 255));
 	setDefault(LIST_HL_COLOR, RGB(126, 189, 202));

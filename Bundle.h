@@ -62,9 +62,12 @@ public:
 	};
 
 	typedef QueueItem* Ptr;
-	typedef unordered_map<CID, string> CIDList;
-	typedef unordered_map<CID, uint8_t> RunningMap;
+	typedef unordered_map<CID, string> CIDStringList;
+	typedef unordered_map<CID, uint8_t> CIDIntMap;
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
+	typedef vector<HintedUser&> SourceList;
+	typedef pair<HintedUser&, uint8_t> UserRunningPair;
+	typedef vector<UserRunningPair> SourceIntList;
 
 
 	Bundle(const string& target, bool fileBundle, Priority priority = DEFAULT) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
@@ -79,8 +82,8 @@ public:
 	GETSET(uint64_t, start, Start);
 	GETSET(uint16_t, running, Running);
 	GETSET(bool, singleUser, SingleUser);
-	GETSET(CIDList, notifiedUsers, NotifiedUsers);
-	GETSET(RunningMap, runningUsers, RunningUsers);
+	GETSET(CIDStringList, notifiedUsers, NotifiedUsers);
+	GETSET(CIDIntMap, runningUsers, RunningUsers);
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedItems, finishedItems);
 	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
@@ -96,12 +99,20 @@ public:
 	bool fileBundle;
 	bool dirty;
 
-	RunningMap& getRunningUsers() { return runningUsers; }
-	CIDList& getNotifiedUsers() { return notifiedUsers; }
+	CIDIntMap& getRunningUsers() { return runningUsers; }
+	CIDStringList& getNotifiedUsers() { return notifiedUsers; }
 	QueueItemList& getFinishedFiles() { return finishedItems; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
-	DownloadList& getBundleDownloads() { return downloads; }
+	DownloadList& getDownloads() { return downloads; }
+	StringList& getBundleDirs() { return bundleDirs; }
+
+	SourceIntList sources;
+	//const SourceList& getSources() const { return sources; }
+	uint64_t getDownloadedBytes() const;
+	QueueItem* findQI(const string& aTarget) const;
+	void addSource(const HintedUser& aUser);
+	void removeSource(const UserPtr& aUser);
 
 	bool getFileBundle() {
 		return fileBundle;
@@ -150,25 +161,42 @@ public:
 		return dirty;
 	}
 
-	/*
-	bool addUploadReport(const CID cid) {
-		CIDList::const_iterator j = uploadReports.find(cid);
-		if (j != uploadReports.end()) {
-			return false;
-		}
-		uploadReports.insert(cid);
-		return true;
-	}
+//private:
 
-	void removeUploadReport(const CID cid) {
-		uploadReports.erase(cid);
-	}
+	/** All queue items indexed by user */
+	class BundleUserQueue {
+	public:
+		void add(QueueItem* qi);
+		void add(QueueItem* qi, const UserPtr& aUser);
+		QueueItemPtr getNext(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
+		QueueItemList getRunning(const UserPtr& aUser);
+		void addDownload(QueueItem* qi, Download* d);
+		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
 
-	checkUploadReports(const CID cid) {
+		void remove(QueueItem* qi, bool removeRunning = true);
+		void remove(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
+		//void setPriority(QueueItem* qi, QueueItem::Priority p);
 
-	}
-	*/
+		unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
+		unordered_map<UserPtr, QueueItemList, User::Hash>& getRunning()  { return running; }
 
+		//string getLastError() { 
+		//	string tmp = lastError;
+		//	lastError = Util::emptyString;
+		//	return tmp;
+		//}
+
+	private:
+		/** QueueItems by priority and user (this is where the download order is determined) */
+		unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[LAST];
+		/** Currently running downloads, a QueueItem is always either here or in the userQueue */
+		unordered_map<UserPtr, QueueItemList, User::Hash> running;
+		/** Last error message to sent to TransferView */
+		//string lastError;
+	};
+
+	BundleUserQueue userQueue;
+	const BundleUserQueue& getUserQueue() const { return userQueue; }
 };
 
 }

@@ -477,7 +477,6 @@ void UploadManager::checkMultiConn() {
 						if (u == NULL) continue;
 						if (u->getUser()->getCID() == i->first) {
 							u->getUserConnection().disconnect(true);
-							//changeMultiConnSlot(u->getUser()->getCID(), true);
 							break;
 						}
 					}
@@ -588,6 +587,7 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 	//dcassert(bundleTokens.find(token) == bundleTokens.end());
 	//dcassert(!findBundle(bundleToken));
 	if (findBundle(bundleToken)) {
+		//LogManager::getInstance()->message("ADDBUNDLE, BUNDLE FOUND!");
 		changeBundle(cmd);
 		return;
 	}
@@ -608,6 +608,7 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 
 	{
 		Lock l (cs);
+		//LogManager::getInstance()->message("ADDBUNDLE, BUNDLE ADDED!");
 		bundleTokens.insert(make_pair(token, bundle));
 		bundles.push_back(bundle);
 	}
@@ -642,11 +643,12 @@ void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
 	}
 
 	if (bundleToken.empty()) {
-		LogManager::getInstance()->message("INVALID UBD1: UPDATE");
+		//LogManager::getInstance()->message("INVALID UBD1: UPDATE");
 		return;
 	}
 
 	UploadBundlePtr bundle = findBundle(bundleToken);
+	dcassert(bundle);
 	if (bundle) {
 		if (multiUser) {
 			bundle->setSingleUser(false);
@@ -745,8 +747,10 @@ void UploadManager::setBundle(const string aToken, UploadBundlePtr aBundle) {
 		if ((*i)->getUserConnection().getToken() == aToken) {
 			Upload* u = *i;
 			u->setBundle(aBundle);
+			return;
 		}
 	}
+	//LogManager::getInstance()->message("UPLOAD BUNDLE, SETBUNDLE FAILED: " + aToken);
 }
 
 string UploadManager::getBundleTarget(const string aToken, const string aName) {
@@ -791,7 +795,7 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 		//LogManager::getInstance()->message("UPDATE UPLOAD BUNDLE");
 		updateBundleInfo(cmd);
 	} else if (cmd.hasFlag("FI", 1)) {
-		//LogManager::getInstance()->message("REMOVE UPLOAD BUNDLE");
+		//LogManager::getInstance()->message("FINISH UPLOAD BUNDLE");
 		finishBundle(cmd);
 	} else if (cmd.hasFlag("RM", 1)) {
 		//LogManager::getInstance()->message("REMOVE UPLOAD BUNDLE");

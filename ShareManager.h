@@ -99,6 +99,7 @@ public:
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) noexcept;
 	bool isDirShared(const string& directory);
+	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory, bool validate = true);
 
 	bool loadCache() noexcept;
@@ -345,7 +346,6 @@ private:
 
 	void addReleaseDir(const string& aName);
 	void deleteReleaseDir(const string& aName);
-	string getReleaseDir(const string& aName);
 	void sortReleaseList();
 
 

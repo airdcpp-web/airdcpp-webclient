@@ -1239,7 +1239,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "No files to download", 
 "Matching File lists, this may take a while if the lists are large.", 
 "Subtract list: Skip Dirs with ONLY 2 or less files smaller than", 
-"Dupe folders/files", 
 "Release.Example-AIRDC", 
 "Underline links", 
 "Underline dupes", 
@@ -1273,6 +1272,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Remove user from this bundle", 
 "Bundle Priority", 
 "Reload", 
+"Dupe share folders/files", 
+"Dupe queue folders/files", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2512,7 +2513,6 @@ std::string dcpp::ResourceManager::names[] = {
 "NoFilesAvailable", 
 "MatchingFileList", 
 "SkipSubtractText", 
-"ProppageDupeText", 
 "ProppageDupeMsg", 
 "ProppageUnderlineLinks", 
 "ProppageUnderlineDupes", 
@@ -2546,4 +2546,6 @@ std::string dcpp::ResourceManager::names[] = {
 "RemoveBundleSource", 
 "BundlePriority", 
 "Reload", 
+"ProppageShareDupeText", 
+"ProppageQueueDupeText", 
 };

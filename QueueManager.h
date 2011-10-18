@@ -112,12 +112,15 @@ public:
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, QueueItemList movedItems);
 	void moveFileBundles(QueueItemList ql, const string& aTarget) noexcept;
 	BundlePtr createFileBundle(QueueItem* qi);
-	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle);
+	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading = false);
 	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
 	void removeBundle(BundlePtr aBundle, bool finished);
 	void removeBundle(const string bundleToken, bool removeFinished);
-	void removeRunningUser(const string bundleToken, CID cid, bool finished);
+	void removeRunningUser(const string& bundleToken, CID cid, bool finished);
 	bool findBundle(QueueItem* qi, bool allowAdd);
+	void setBundleDirty(const string& bundleToken);
+	bool isDirQueued(const string& aDir);
+	tstring getDirPath(const string& aDir);
 
 	BundlePtr findBundle(const string bundleToken);
 	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
@@ -130,7 +133,7 @@ public:
 	void setBundlePriority(const string& bundleToken, QueueItem::Priority p) noexcept;
 	void setBundleAutoPriority(const string& bundleToken) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
-	void changeBundleSource(QueueItem* qi, const UserPtr& aUser, bool add) noexcept;
+	void changeBundleSource(QueueItem* qi, const HintedUser& aUser, bool add) noexcept;
 	BundlePtr findBundleFinished(const string& aSource, QueueItemList& finishedFiles);
 	void handleBundleUpdate(const string& bundleToken);
 
@@ -301,9 +304,11 @@ private:
 
 	/** Bundles */	
 	typedef unordered_map<string, BundlePtr> BundleMap;
-	typedef BundleMap::const_iterator BundleMapIter;
+	typedef unordered_map<string, string> BundleDirMap;
+	/** All bundles */
 	BundleMap bundles;
-	BundleMap bundleTargets;
+	/** ReleaseDirs for bundles */
+	BundleDirMap bundleDirs;
 
 	/** QueueItems by user */
 	UserQueue userQueue;

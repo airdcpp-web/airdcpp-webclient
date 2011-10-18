@@ -1246,7 +1246,6 @@ enum Strings { // @DontAdd
 	NO_FILES_AVAILABLE, // "No files to download"
 	MATCHING_FILE_LIST, // "Matching File lists, this may take a while if the lists are large."
 	SKIP_SUBTRACT_TEXT, // "Subtract list: Skip Dirs with ONLY 2 or less files smaller than"
-	PROPPAGE_DUPE_TEXT, // "Dupe folders/files"
 	PROPPAGE_DUPE_MSG, // "Release.Example-AIRDC"
 	PROPPAGE_UNDERLINE_LINKS, // "Underline links"
 	PROPPAGE_UNDERLINE_DUPES, // "Underline dupes"
@@ -1280,5 +1279,7 @@ enum Strings { // @DontAdd
 	REMOVE_BUNDLE_SOURCE, // "Remove user from this bundle"
 	BUNDLE_PRIORITY, // "Bundle Priority"
 	RELOAD, // "Reload"
+	PROPPAGE_SHARE_DUPE_TEXT, // "Dupe share folders/files"
+	PROPPAGE_QUEUE_DUPE_TEXT, // "Dupe queue folders/files"
 	LAST // @DontAdd
 };

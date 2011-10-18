@@ -53,16 +53,16 @@ public:
 		typedef List::const_iterator Iter;
 		
 		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH) noexcept : 
-			name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(false)
+			name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), shareDupe(false), queueDupe(false)
 		{
 		}
 
-		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe)
+		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), shareDupe(rhs.shareDupe), queueDupe(rhs.queueDupe)
 		{
 		}
 
 		File& operator=(const File& rhs) {
-			name = rhs.name; size = rhs.size; parent = rhs.parent; tthRoot = rhs.tthRoot; dupe = rhs.dupe;
+			name = rhs.name; size = rhs.size; parent = rhs.parent; tthRoot = rhs.tthRoot; shareDupe = rhs.shareDupe; queueDupe = rhs.queueDupe;
 			return *this;
 		}
 
@@ -78,7 +78,8 @@ public:
 		GETSET(int64_t, size, Size);
 		GETSET(Directory*, parent, Parent);
 		GETSET(bool, adls, Adls);
-		GETSET(bool, dupe, Dupe)
+		GETSET(bool, shareDupe, ShareDupe)
+		GETSET(bool, queueDupe, QueueDupe)
 	};
 
 	class Directory :  boost::noncopyable {
@@ -98,9 +99,9 @@ public:
 		File::List files;
 		DirMap visitedDirs;
 
-		enum { NONE, PARTIAL_DUPE, DUPE };
+		enum { NONE, PARTIAL_DUPE, SHARE_DUPE, QUEUE_DUPE };
 		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString, const string& Date = Util::emptyString) 
-			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), dirsize(Size), dirdate(Date) { }
+			: name(aName), parent(aParent), adls(_adls), complete(aComplete), shareDupe(0), queueDupe(0), dirsize(Size), dirdate(Date) { }
 		
 		virtual ~Directory();
 
@@ -128,7 +129,7 @@ public:
 		}
 			return getName() + '\\';
 		}
-		uint8_t checkDupes();
+		uint8_t checkShareDupes();
 		
 		GETSET(string, name, Name);
 		GETSET(string, dirsize, DirSize);
@@ -136,7 +137,8 @@ public:
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);
-		GETSET(uint8_t, dupe, Dupe)
+		GETSET(uint8_t, shareDupe, ShareDupe)
+		GETSET(uint8_t, queueDupe, QueueDupe)
 	};
 
 	class AdlDirectory : public Directory {
@@ -149,11 +151,11 @@ public:
 	DirectoryListing(const HintedUser& aUser);
 	virtual ~DirectoryListing();
 	
-	void loadFile(const string& name, bool checkdupe);
+	void loadFile(const string& name, bool checkdupe, bool partialList);
 
 
 	string updateXML(const std::string&, bool checkdupe);
-	string loadXML(InputStream& xml, bool updating, bool checkdupe);
+	string loadXML(InputStream& xml, bool updating, bool checkShareDupe, bool partialList);
 
 	void download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
 	void download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
@@ -171,7 +173,7 @@ public:
 	StringList getLocalPaths(const File* f);
 
 	static UserPtr getUserFromFilename(const string& fileName);
-	void checkDupes();
+	void checkShareDupes();
 
 	
 	const UserPtr& getUser() const { return hintedUser.user; }	
