@@ -142,7 +142,8 @@ public:
 	void moveQL(QueueItemList ql, const string& aTarget, const string& bundleSource);
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
-	bool isTTHQueued(const TTHValue& tth) { return fileQueue.isTTHQueued(tth); }
+	int isTTHQueued(const TTHValue& tth);
+	tstring getFinishedTTHPath(const TTHValue& tth);
 	
 	bool dropSource(Download* d);
 

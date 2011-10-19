@@ -1987,11 +1987,12 @@ void QueueManager::changeBundleSource(QueueItem* qi, const HintedUser& aUser, bo
 
 	BundlePtr bundle = findBundle(bundleToken);
 	if (bundle) {
-		if (add) {
+		bundle->setDirty(true);
+		/*if (add) {
 			bundle->addSource(aUser);
 		} else {
 			bundle->removeSource(aUser.user);
-		}
+		} */
 	}
 }
 
@@ -2855,6 +2856,30 @@ bool QueueManager::handlePartialSearch(const TTHValue& tth, PartsInfo& _outParts
 	}
 
 	return !_outPartsInfo.empty();
+}
+
+tstring QueueManager::getFinishedTTHPath(const TTHValue& tth) {
+	auto i = finishedTTHs.find(tth);
+	if (i != finishedTTHs.end()) {
+		BundlePtr bundle = findBundle(i->second);
+		if (bundle) {
+			for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
+				if ((*i)->getTTH() == tth) {
+					return Text::toT((*i)->getTarget());
+				}
+			}
+		}
+	}
+	return Util::emptyStringT;
+}
+
+int QueueManager::isTTHQueued(const TTHValue& tth) { 
+	if (fileQueue.isTTHQueued(tth)) {
+		return 1;
+	} else if (finishedTTHs.find(tth) != finishedTTHs.end()) {
+		return 2;
+	}
+	return 0;
 }
 
 bool QueueManager::isDirQueued(const string& aDir) {

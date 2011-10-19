@@ -52,17 +52,18 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
+		enum { NONE, SHARE_DUPE, QUEUED_DUPE, FINISHED_DUPE };
 		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH) noexcept : 
-			name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), shareDupe(false), queueDupe(false)
+			name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(0)
 		{
 		}
 
-		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), shareDupe(rhs.shareDupe), queueDupe(rhs.queueDupe)
+		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe)
 		{
 		}
 
 		File& operator=(const File& rhs) {
-			name = rhs.name; size = rhs.size; parent = rhs.parent; tthRoot = rhs.tthRoot; shareDupe = rhs.shareDupe; queueDupe = rhs.queueDupe;
+			name = rhs.name; size = rhs.size; parent = rhs.parent; tthRoot = rhs.tthRoot; dupe = rhs.dupe;
 			return *this;
 		}
 
@@ -78,8 +79,10 @@ public:
 		GETSET(int64_t, size, Size);
 		GETSET(Directory*, parent, Parent);
 		GETSET(bool, adls, Adls);
-		GETSET(bool, shareDupe, ShareDupe)
-		GETSET(bool, queueDupe, QueueDupe)
+		GETSET(uint8_t, dupe, Dupe)
+		bool isQueued() {
+			return (dupe > 1);
+		}
 	};
 
 	class Directory :  boost::noncopyable {
@@ -99,9 +102,9 @@ public:
 		File::List files;
 		DirMap visitedDirs;
 
-		enum { NONE, PARTIAL_DUPE, SHARE_DUPE, QUEUE_DUPE };
+		enum { NONE, PARTIAL_SHARE_DUPE, SHARE_DUPE, PARTIAL_QUEUE_DUPE, QUEUE_DUPE, SHARE_QUEUE_DUPE };
 		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString, const string& Date = Util::emptyString) 
-			: name(aName), parent(aParent), adls(_adls), complete(aComplete), shareDupe(0), queueDupe(0), dirsize(Size), dirdate(Date) { }
+			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), dirsize(Size), dirdate(Date) { }
 		
 		virtual ~Directory();
 
@@ -137,8 +140,7 @@ public:
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);
-		GETSET(uint8_t, shareDupe, ShareDupe)
-		GETSET(uint8_t, queueDupe, QueueDupe)
+		GETSET(uint8_t, dupe, Dupe)
 	};
 
 	class AdlDirectory : public Directory {
