@@ -109,6 +109,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 }
 
 ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, const string& token) {
+	//allways called from inside a lock, safe.
 	cqiAddTick = GET_TICK();
 	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download);
 	if (!token.empty())
@@ -131,6 +132,7 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool dow
 }
 
 void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
+	//allways called from inside lock but leave these locks in for now.
 
 	fire(ConnectionManagerListener::Removed(), cqi);
 	if(cqi->getDownload()) {
@@ -254,7 +256,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 	CIDList waitingMultiConn;
 	CQIList multiUsers;
 	{
-
+		//called from inside a lock. safe.
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if (cqi == NULL) continue;
@@ -319,8 +321,8 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 
 void ConnectionManager::changeCQIState(const UserConnection *aSource, bool stateIdle) noexcept {
 	string token = aSource->getToken();
-	//need a lock
-	Lock l(cs);
+	//need a lock, calls from downloadmanager
+	//Lock l(cs);
 	for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 		ConnectionQueueItem* cqi = *i;
 		if (cqi->getToken() == token) {

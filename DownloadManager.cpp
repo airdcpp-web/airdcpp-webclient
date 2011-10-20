@@ -301,8 +301,8 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 		}
 		aBundle->setSingleUser(true);
 		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
-		//need a lock
-		Lock l(cs);
+		//need a lock, check this we need to protect downloads, call from queuemanager makes it unprotected.
+		//Lock l(cs);
 		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
 			Download* d = *i;
 			if (d->getBundle()) {
@@ -363,6 +363,7 @@ void DownloadManager::findRemovedToken(UserConnection* aSource) {
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
 
 	bool found=false;
+	//idlers need protection.
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;
 		if(uc->getUser() == user) {
