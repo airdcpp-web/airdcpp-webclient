@@ -358,18 +358,16 @@ StringList ShareManager::getRealPaths(const std::string path) {
 				dir += "\\";
 			result.push_back( dir );
 		} else {
- 			for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
-				if(stricmp(i->second, d->getName()) == 0) {
-					if(FileFindIter(i->first.substr(0, i->first.size() - 1)) != FileFindIter()) {
-						dir = i->first;
-						if(dir[dir.size() -1] != '\\') 
-						dir += "\\";
-						result.push_back( dir );
+				dir = d->getRootPath();
+				if(dir.empty())
+					return result;
 
-					}
-				}
+					if(dir[dir.size() -1] != '\\') 
+						dir += "\\";
+						
+					result.push_back( dir );
+
 			}
-		}
 		}
 		}else { //its a file
 			result.push_back(toReal(path, true));
