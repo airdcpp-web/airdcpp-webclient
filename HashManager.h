@@ -102,9 +102,9 @@ public:
 
 	void shutdown() {
 		hasher.shutdown();
-		hasher.join();
 		Lock l(cs);
-		store.save();
+		store.save(); //attemp to save tha hashdata before waiting the hash thread to shutdown, some users are too eager to shutdown pc while its saving.
+		hasher.join();
 	}
 
 	struct HashPauser {
@@ -264,7 +264,7 @@ private:
 	uint64_t  lastSave;
 	void on(TimerManagerListener::Minute, uint64_t) noexcept {
 		
-		if(GET_TICK() - lastSave > 15*60*1000) { 
+		if(GET_TICK() - lastSave > 10*60*1000) { 
 		
 		if(store.isDirty()) {
 			Lock l(cs);

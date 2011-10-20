@@ -283,7 +283,7 @@ void HashManager::HashStore::rebuild() {
 void HashManager::HashStore::save() {
 	if (dirty) {
 		try {
-			File ff(getIndexFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
+			File ff(getIndexFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE, false);
 			BufferedOutputStream<false> f(&ff);
 
 			string tmp;
@@ -751,20 +751,21 @@ int HashManager::Hasher::run() {
 	bool last = false;
 	for(;;) {
 		s.wait();
-		instantPause(); //must be really careful with suspending, but i think this is a safe place to pause.
 		if(stop)
 			break;
+		if(saveData) {
+			HashManager::getInstance()->SaveData();
+			saveData = false;
+			continue;
+		}
+		instantPause(); //must be really careful with suspending, but i think this is a safe place to pause.
 		if(rebuild) {
 			HashManager::getInstance()->doRebuild();
 			rebuild = false;
 			LogManager::getInstance()->message(STRING(HASH_REBUILT));
 			continue;
 		}
-		if(saveData) {
-			HashManager::getInstance()->SaveData();
-			saveData = false;
-			continue;
-		}
+
 		{
 			Lock l(cs);
 			if(!w.empty()) {

@@ -41,6 +41,9 @@ typedef boost::detail::spinlock	FastCriticalSection;
 typedef boost::lock_guard<boost::recursive_mutex> Lock;
 //typedef boost::unique_lock<boost::recursive_mutex> Lock;
 typedef boost::lock_guard<boost::detail::spinlock> FastLock;
+typedef boost::shared_mutex	SharedMutex;
+typedef boost::shared_lock<boost::shared_mutex> RLock;
+typedef boost::unique_lock<boost::shared_mutex> WLock;
 
 class Thread : private boost::noncopyable
 {

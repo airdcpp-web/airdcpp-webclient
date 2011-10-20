@@ -74,7 +74,7 @@
 #include <boost/scoped_array.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/pool/pool_alloc.hpp>
+//#include <boost/pool/pool_alloc.hpp>
 //#define BOOST_REGEX_NO_LIB 1
 //#define BOOST_THREAD_NO_LIB 1
 #define BOOST_ALL_NO_LIB 1

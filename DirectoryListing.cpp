@@ -128,7 +128,7 @@ string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkShare
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
 		//Better to abort and show the error, than just leave it hanging.
-		LogManager::getInstance()->message("Error in Filelist loading: " + e.getError());
+	LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " + Util::toString(ClientManager::getInstance()->getNicks(HintedUser(getUser(), Util::emptyString))) + " ]");
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
 	}
 	return ll.getBase();

@@ -241,7 +241,7 @@ const string& ClientManager::findHubEncoding(const string& aUrl) const {
 
 	Client::Iter i = clients.find(const_cast<string*>(&aUrl));
 	if(i != clients.end()) {
-		return *(i->second->getEncoding());
+		return i->second->getEncoding();
 	}
 	return Text::systemCharset;
 }
@@ -502,7 +502,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 				const SearchResultPtr& sr = *i;
 				str += sr->toSR(*aClient);
 				str[str.length()-1] = 5;
-				str += Text::fromUtf8(name, *(aClient->getEncoding()));
+				str += Text::fromUtf8(name, aClient->getEncoding());
 				str += '|';
 			}
 			

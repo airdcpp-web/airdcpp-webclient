@@ -34,7 +34,7 @@ atomic<long> Client::counts[COUNT_UNCOUNTED];
 Client::Client(const string& hubURL, char separator_, bool secure_) : 
 	myIdentity(ClientManager::getInstance()->getMe(), 0),
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
-	encoding(const_cast<string*>(&Text::systemCharset)), state(STATE_DISCONNECTED), sock(0),
+	encoding(Text::systemCharset), state(STATE_DISCONNECTED), sock(0),
 	hubUrl(hubURL), port(0), separator(separator_),
 	secure(secure_), countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0)
 {
@@ -96,7 +96,7 @@ void Client::reloadSettings(bool updateNick) {
 		setHubLogMainchat(hub->getHubLogMainchat());
 		setChatNotify(hub->getChatNotify());
 		if(!hub->getEncoding().empty())
-			setEncoding(const_cast<string*>(&hub->getEncoding()));
+			setEncoding(hub->getEncoding());
 		
 		if(hub->getSearchInterval() < 10)
 			setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
@@ -179,9 +179,8 @@ void Client::on(Connected) noexcept {
 	}
 	
 	fire(ClientListener::Connected(), this);
-	seticons = 0;
 	state = STATE_PROTOCOL;
-	
+	seticons = 0;
 }
 
 void Client::on(Failed, const string& aLine) noexcept {

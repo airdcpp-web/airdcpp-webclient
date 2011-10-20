@@ -103,12 +103,10 @@ void Transfer::getParams(const UserConnection& aSource, StringMap& params) const
 }
 
 UserPtr Transfer::getUser() {
-	Lock l(cs);
 	return getUserConnection().getUser();
 }
 
 const UserPtr Transfer::getUser() const {
-	Lock l(cs);
 	return getUserConnection().getUser();
 }
 

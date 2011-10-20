@@ -531,7 +531,7 @@ bool SFVReaderManager::findMissing(const string& path) throw(FileException) {
 		}
 
 		//incase we have some extended characters in the path
-		sfv.open(Text::utf8ToAcp(sfvFile));
+		sfv.open(Text::utf8ToAcp(Util::FormatPath(sfvFile)));
 
 		if(!sfv.is_open()) {
 			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);

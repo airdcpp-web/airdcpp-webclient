@@ -50,6 +50,11 @@ public:
 		addTag(aName, Util::toString(aData));
 	}
 
+	void forceEndTag(bool force = true) {
+		checkChildSelected();
+		(*currentChild)->forceEndTag = force;
+	}
+
 	template<typename T>
 	void addAttrib(const string& aName, const T& aData) {
 		addAttrib(aName, Util::toString(aData));
@@ -68,7 +73,8 @@ public:
 	void addChildAttrib(const string& aName, bool aData) {	
 		addChildAttrib(aName, string(aData ? "1" : "0"));
 	}
-	
+	void replaceChildAttrib(const string& aName, const string& aData);
+
 	const string& getData() const {
 		dcassert(current != NULL);
 		return current->data;
@@ -174,11 +180,12 @@ private:
 				
 		/** Parent tag, for easy traversal */
 		Ptr parent;
+		bool forceEndTag;
 
-		Tag(const string& aName, const StringPairList& a, Ptr aParent) : attribs(a), name(aName), data(), parent(aParent) { 
+		Tag(const string& aName, const StringPairList& a, Ptr aParent) : attribs(a), name(aName), data(), parent(aParent), forceEndTag(false) { 
 		}
 
-		Tag(const string& aName, const string& d, Ptr aParent) : name(aName), data(d), parent(aParent) { 
+		Tag(const string& aName, const string& d, Ptr aParent) : name(aName), data(d), parent(aParent), forceEndTag(false) { 
 		}
 		
 		const string& getAttrib(const string& aName, const string& aDefault = Util::emptyString) const {

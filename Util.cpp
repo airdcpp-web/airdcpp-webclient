@@ -957,7 +957,12 @@ bool Util::fileExists(const string &aFile) {
 	if(aFile.empty())
 		return false;
 
-	DWORD attr = GetFileAttributes(Text::toT(Util::FormatPath(aFile)).c_str());
+	string path = aFile;
+	
+	if(path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\')) //if its absolute path use the unc name.
+		path = Util::FormatPath(aFile);
+
+	DWORD attr = GetFileAttributes(Text::toT(path).c_str());
 	return (attr != 0xFFFFFFFF);
 }
 

@@ -113,7 +113,7 @@ public:
 	short getNumber() const { return (short)((((size_t)this)>>2) & 0x7fff); }
 
 	// NMDC stuff
-	void myNick(const string& aNick) { send("$MyNick " + Text::fromUtf8(aNick, *encoding) + '|'); }
+	void myNick(const string& aNick) { send("$MyNick " + Text::fromUtf8(aNick, encoding) + '|'); }
 	void lock(const string& aLock, const string& aPk) { send ("$Lock " + aLock + " Pk=" + aPk + '|'); }
 	void key(const string& aKey) { send("$Key " + aKey + '|'); }
 	void direction(const string& aDirection, int aNumber) { send("$Direction " + aDirection + " " + Util::toString(aNumber) + '|'); }
@@ -206,7 +206,7 @@ public:
 	GETSET(string, lastBundle, LastBundle);
 	GETSET(int64_t, speed, Speed);
 	GETSET(uint64_t, lastActivity, LastActivity);
-	GETSET(string*, encoding, Encoding);
+	GETSET(string, encoding, Encoding);
 	GETSET(States, state, State);
 	GETSET(uint8_t, slotType, SlotType);
 	
@@ -225,7 +225,7 @@ private:
 	};
 
 	// We only want ConnectionManager to create this...
-	UserConnection(bool secure_) noexcept : encoding(const_cast<string*>(&Text::systemCharset)), state(STATE_UNCONNECTED),
+	UserConnection(bool secure_) noexcept : encoding(Text::systemCharset), state(STATE_UNCONNECTED),
 		lastActivity(0), speed(0), chunkSize(0), socket(0), download(NULL), slotType(NOSLOT), lastBundle(Util::emptyString) {
 		if(secure_) {
 			setFlag(FLAG_SECURE);

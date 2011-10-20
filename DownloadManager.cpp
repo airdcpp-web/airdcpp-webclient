@@ -301,6 +301,8 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 		}
 		aBundle->setSingleUser(true);
 		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
+		//need a lock
+		Lock l(cs);
 		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
 			Download* d = *i;
 			if (d->getBundle()) {

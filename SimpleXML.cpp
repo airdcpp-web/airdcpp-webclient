@@ -97,7 +97,7 @@ void SimpleXML::Tag::appendAttribString(string& tmp) {
  * file, otherwise things will be very slow (I assume write is not expensive and call it a lot
  */
 void SimpleXML::Tag::toXML(int indent, OutputStream* f) {
-	if(children.empty() && data.empty()) {
+	if(children.empty() && data.empty() && !forceEndTag) {
 		string tmp;
 		tmp.reserve(indent + name.length() + 30);
 		tmp.append(indent, '\t');
@@ -181,6 +181,18 @@ void SimpleXML::addChildAttrib(const string& aName, const string& aData) {
 	checkChildSelected();
 
 	(*currentChild)->attribs.push_back(make_pair(aName, aData));
+}
+
+void SimpleXML::replaceChildAttrib(const string& aName, const string& aData) {
+	checkChildSelected();
+
+	StringPairIter i = find_if((*currentChild)->attribs.begin(), (*currentChild)->attribs.end(), CompareFirst<string,string>(aName));
+	if(i != (*currentChild)->attribs.end()){
+		(*currentChild)->attribs.erase(i);
+		(*currentChild)->attribs.push_back(make_pair(aName, aData));
+	} else
+		(*currentChild)->attribs.push_back(make_pair(aName, aData));
+
 }
 
 void SimpleXML::fromXML(const string& aXML) {

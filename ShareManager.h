@@ -69,16 +69,16 @@ public:
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
 	void setDirty() {
-		xmlDirty = true;  
-		ShareCacheDirty = true; 
-		c_size_dirty = true; //everytime xml is dirty the share size needs an update too.
+	xmlDirty = true;  
+	ShareCacheDirty = true; 
+	c_size_dirty = true; //everytime xml is dirty the share size needs an update too.
 	}
 
 	StringList getIncoming() { return incoming; };
 	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
 	void DelIncoming() { incoming.clear(); };
 
-	void Rebuild();
+	
 	
    void save() { 
 		w.join();
@@ -106,7 +106,7 @@ public:
 
 	StringPairList getDirectories(int refreshOptions) const noexcept;
 	static bool checkType(const string& aString, int aType);
-	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub) const;
+	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub);
 	MemoryInputStream* getTree(const string& virtualFile) const;
 
 	AdcCommand getFileInfo(const string& aFile);
@@ -147,7 +147,7 @@ public:
 	void generateXmlList(bool forced = false);
 
 	bool isTTHShared(const TTHValue& tth) {
-		Lock l(cs);
+		RLock l(cs);
 		return tthIndex.find(tth) != tthIndex.end();
 	}
 
@@ -155,7 +155,8 @@ public:
 
 
 	string getRealPath(const TTHValue& root) {
-		string result = "";
+		RLock l(cs); //better the possible small freeze than a crash right?
+		string result = ""; 
 		HashFileIter i = tthIndex.find(root);
 		if(i != tthIndex.end()) {
 			result = i->second->getRealPath();
@@ -250,18 +251,19 @@ private:
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept;
 		void findDirsRE(bool remove);
 
-		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
-		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
+		void toXml(SimpleXML& aXml, bool fullList);
+		void filesToXml(SimpleXML& aXml) const;
 		//for filelist caching
-		void toXmlList(OutputStream& xmlFile, string& indent) const;
+		void toXmlList(OutputStream& xmlFile, const string& path, string& indent) const;
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 
-		void merge(const Ptr& source);
+	//	void merge(const Ptr& source);
 		string find(const string& dir, bool validateDir);
 
 		GETSET(string, lastwrite, LastWrite);
 		GETSET(string, name, Name);
+		GETSET(string, rootpath, RootPath); //saved only for root items.
 		GETSET(Directory*, parent, Parent);
 		GETSET(bool, fullyHashed, FullyHashed); //ApexDC
 	private:
@@ -314,7 +316,7 @@ private:
 	bool xmlDirty;
 	bool ShareCacheDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
-	bool rebuild;
+	
 	PME releaseReg, subDirReg;
 	
 	int listN;
@@ -333,13 +335,9 @@ private:
 	int64_t	 c_shareSize;
 	bool	 c_size_dirty;
 
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
 
 	
-	typedef unordered_map<int, string> nameMap;
-	nameMap dirNames;
-
-
 	StringList dirNameList;
 	//typedef std::multimap<string, string> DirNameMap;
 	//DirNameMap dirNameList;
@@ -348,9 +346,15 @@ private:
 	void deleteReleaseDir(const string& aName);
 	void sortReleaseList();
 
+	/*
+	List of root directory items mapped to realpath,
+	multimap to allow multiple same key values, needed to return from some functions.
+	*/
+	typedef multimap<string, Directory::Ptr> DirMap; 
+	DirMap directories;
 
-	typedef std::vector<Directory::Ptr> DirList;
-	DirList directories;
+	//list to return multiple directory item pointers
+	typedef std::vector<Directory::Ptr> Dirs;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	StringMap shares;
@@ -372,13 +376,13 @@ private:
 	void updateIndices(Directory& aDirectory);
 	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
 	
-	Directory::Ptr merge(const Directory::Ptr& directory);
+	//Directory::Ptr merge(const Directory::Ptr& directory);
 	
 	StringList notShared;
 	StringList incoming;
 
-	DirList::const_iterator getByVirtual(const string& virtualName) const noexcept;
-	pair<Directory::Ptr, string> splitVirtual(const string& virtualPath) const;
+	Dirs getByVirtual(const string& virtualName) const noexcept;
+	DirMap splitVirtual(const string& virtualPath) const;
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr getDirectory(const string& fname);
