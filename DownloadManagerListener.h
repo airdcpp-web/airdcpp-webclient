@@ -48,8 +48,9 @@ public:
 	typedef X<3> Tick;
 	typedef X<4> Requesting;
 	typedef X<5> Status;
-	typedef X<6> BundleFinished;
-	typedef X<7> BundleUser;
+	typedef X<6> Target;
+	typedef X<7> BundleFinished;
+	typedef X<8> BundleUser;
 
 	/**
 	 * This is the first message sent before a download starts.
@@ -72,6 +73,9 @@ public:
 	 * No more messages will be sent after it.
 	 */
 	virtual void on(Complete, const Download*, bool) noexcept { }
+
+	/* format: token, bundletoken, target */
+	virtual void on(Target, const string&, const string&, const string&) noexcept { }
 
 	/**
 	 * This indicates some sort of failure with a particular download.

@@ -59,7 +59,7 @@ public:
 		return downloads.size();
 	}
 
-	bool startDownload(QueueItem::Priority prio, bool mcn=false);
+	bool startDownload(QueueItem::Priority prio, const string bundleToken, const string aTarget, const string aToken, bool mcn=false);
 	
 
 

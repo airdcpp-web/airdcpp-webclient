@@ -90,7 +90,7 @@ public:
 	void setFile(Download* download);
 	
 	/** @return The highest priority download the user has, PAUSED may also mean no downloads */
-	QueueItem::Priority hasDownload(const UserPtr& aUser, bool smallSlot) noexcept;
+	QueueItem::Priority hasDownload(const UserPtr& aUser, bool smallSlot, string& bundleToken, string& target) noexcept;
 	
 	void loadQueue() noexcept;
 	void saveQueue(bool force, uint64_t aTick = 0) noexcept;
