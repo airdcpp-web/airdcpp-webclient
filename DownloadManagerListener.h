@@ -74,8 +74,8 @@ public:
 	 */
 	virtual void on(Complete, const Download*, bool) noexcept { }
 
-	/* format: token, bundletoken, target */
-	virtual void on(Target, const string&, const string&, const string&) noexcept { }
+	/* format: user, token */
+	virtual void on(Target, const UserPtr&, const string&) noexcept { }
 
 	/**
 	 * This indicates some sort of failure with a particular download.

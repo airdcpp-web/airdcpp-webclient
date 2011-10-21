@@ -1080,17 +1080,14 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 	}
 }
 
-QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSlot, string& bundleToken, string& target) noexcept {
+QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSlot) noexcept {
 	Lock l(cs);
 	QueueItem* qi = userQueue.getNext(aUser, QueueItem::LOWEST, 0, 0, false, smallSlot);
 	if(!qi) {
 		return QueueItem::PAUSED;
 	}
-	target = qi->getTarget();
-	bundleToken = qi->getBundleToken();
 	return qi->getPriority();
 }
-
 namespace {
 typedef unordered_map<TTHValue, const DirectoryListing::File*> TTHMap;
 

@@ -393,11 +393,11 @@ void DownloadManager::addConnection(UserConnectionPtr conn) {
 	checkDownloads(conn);
 }
 
-bool DownloadManager::startDownload(QueueItem::Priority prio, const string bundleToken, const string aTarget, const string aToken, bool mcn) {
+bool DownloadManager::startDownload(QueueItem::Priority prio, const UserPtr& user, const string& aToken, bool mcn) {
 
-	if (!aToken.empty()) {
+	if (user) {
 		//update the target in transferview for better grouping
-		fire(DownloadManagerListener::Target(), aToken, bundleToken, aTarget);
+		fire(DownloadManagerListener::Target(), user, aToken);
 	}
 	size_t downloadCount = getDownloadCount();
 
@@ -432,10 +432,9 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		smallSlot=true;
 	}
 
-	string target;
-	string bundleToken;
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot, bundleToken, target);
-	if(!startDownload(prio, bundleToken, target, aConn->getToken()) && !smallSlot) {
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot);
+	bool start = startDownload(prio, aConn->getUser(), aConn->getToken());
+	if(!start && !smallSlot) {
 		removeConnection(aConn);
 		return;
 	}

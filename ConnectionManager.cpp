@@ -208,16 +208,14 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL))
 						smallSlot=true;
 
-					string target;
-					string bundleToken;
-					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), smallSlot, bundleToken, target);
+					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), smallSlot);
 
 					if(prio == QueueItem::PAUSED) {
 						removed.push_back(cqi);
 						continue;
 					}
 
-					bool startDown = DownloadManager::getInstance()->startDownload(prio, bundleToken, target, cqi->getToken());
+					bool startDown = DownloadManager::getInstance()->startDownload(prio, cqi->getUser(), cqi->getToken());
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown) {
@@ -305,11 +303,8 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 					}
 				}
 
-				string target;
-				string bundleToken;
-
-				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false, bundleToken, target);
-				bool startDown = DownloadManager::getInstance()->startDownload(prio, Util::emptyString, Util::emptyString, Util::emptyString, true);
+				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
+				bool startDown = DownloadManager::getInstance()->startDownload(prio, NULL, Util::emptyString, true);
 				if(prio != QueueItem::PAUSED && startDown) {
 					uint64_t tick = GET_TICK();
 					if ((checkWaitingTick+1000 < tick) && (queueAddTick+3000 < tick)) {
