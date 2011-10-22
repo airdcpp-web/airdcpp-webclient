@@ -1400,10 +1400,6 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 	try {
 		File::renameFile(source, target);
 		//getInstance()->fire(QueueManagerListener::FileMoved(), target);
-		dcassert(aBundle);
-		if (aBundle->getQueueItems().empty()) {
-			getInstance()->fire(QueueManagerListener::BundleFilesMoved(), aBundle);
-		}
 	} catch(const FileException& /*e1*/) {
 		// Try to just rename it to the correct name at least
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
@@ -1413,6 +1409,11 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 		} catch(const FileException& e2) {
 			LogManager::getInstance()->message(STRING(UNABLE_TO_RENAME) + " " + source + ": " + e2.getError());
 		}
+	}
+
+	dcassert(aBundle);
+	if (aBundle->getQueueItems().empty()) {
+		getInstance()->fire(QueueManagerListener::BundleFilesMoved(), aBundle);
 	}
 }
 
