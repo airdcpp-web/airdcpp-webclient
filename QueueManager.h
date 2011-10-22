@@ -180,12 +180,11 @@ public:
 		FileMover() : active(false) { }
 		virtual ~FileMover() { join(); }
 
-		void moveFile(const string& source, const string& target);
+		void moveFile(const string& source, const string& target, BundlePtr aBundle);
 		virtual int run();
 	private:
-		typedef pair<string, string> FilePair;
-		typedef vector<FilePair> FileList;
-		typedef FileList::iterator FileIter;
+		typedef pair<BundlePtr, StringPair> FileBundlePair;
+		typedef vector<FileBundlePair> FileList;
 
 		bool active;
 
@@ -344,8 +343,8 @@ private:
 	bundleTickMap bundleUpdates;
 
 	void load(const SimpleXML& aXml);
-	void moveFile(const string& source, const string& target);
-	static void moveFile_(const string& source, const string& target);
+	void moveFile(const string& source, const string& target, BundlePtr aBundle);
+	static void moveFile_(const string& source, const string& target, BundlePtr aBundle);
 	void moveStuckFile(QueueItem* qi);
 	void rechecked(QueueItem* qi);
 

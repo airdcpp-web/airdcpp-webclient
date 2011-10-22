@@ -478,9 +478,9 @@ void QueueManager::UserQueue::remove(QueueItem* qi, const UserPtr& aUser, bool r
 	}
 }
 
-void QueueManager::FileMover::moveFile(const string& source, const string& target) {
+void QueueManager::FileMover::moveFile(const string& source, const string& target, BundlePtr aBundle) {
 	Lock l(cs);
-	files.push_back(make_pair(source, target));
+	files.push_back(make_pair(aBundle, make_pair(source, target)));
 	if(!active) {
 		active = true;
 		start();
@@ -489,7 +489,7 @@ void QueueManager::FileMover::moveFile(const string& source, const string& targe
 
 int QueueManager::FileMover::run() {
 	for(;;) {
-		FilePair next;
+		FileBundlePair next;
 		{
 			Lock l(cs);
 			if(files.empty()) {
@@ -499,7 +499,7 @@ int QueueManager::FileMover::run() {
 			next = files.back();
 			files.pop_back();
 		}
-		moveFile_(next.first, next.second);
+		moveFile_(next.second.first, next.second.second, next.first);
 	}
 }
 
@@ -1387,19 +1387,23 @@ void QueueManager::setFile(Download* d) {
 	}
 }
 
-void QueueManager::moveFile(const string& source, const string& target) {
+void QueueManager::moveFile(const string& source, const string& target, BundlePtr aBundle) {
 	File::ensureDirectory(target);
 	if(File::getSize(source) > MOVER_LIMIT) {
-		mover.moveFile(source, target);
+		mover.moveFile(source, target, aBundle);
 	} else {
-		moveFile_(source, target);
+		moveFile_(source, target, aBundle);
 	}
 }
 
-void QueueManager::moveFile_(const string& source, const string& target) {
+void QueueManager::moveFile_(const string& source, const string& target, BundlePtr aBundle) {
 	try {
 		File::renameFile(source, target);
-		getInstance()->fire(QueueManagerListener::FileMoved(), target);
+		//getInstance()->fire(QueueManagerListener::FileMoved(), target);
+		dcassert(aBundle);
+		if (aBundle->getQueueItems().empty()) {
+			getInstance()->fire(QueueManagerListener::BundleFilesMoved(), aBundle);
+		}
 	} catch(const FileException& /*e1*/) {
 		// Try to just rename it to the correct name at least
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
@@ -1414,7 +1418,9 @@ void QueueManager::moveFile_(const string& source, const string& target) {
 
 
 void QueueManager::moveStuckFile(QueueItem* qi) {
-	moveFile(qi->getTempTarget(), qi->getTarget());
+	BundlePtr bundle = findBundle(qi->getBundleToken());
+
+	moveFile(qi->getTempTarget(), qi->getTarget(), bundle);
 
 	if(qi->isFinished()) {
 		userQueue.remove(qi);
@@ -1549,11 +1555,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 										(*i)->getUserConnection().disconnect();
 								}
 							}
-						
-							// Check if we need to move the file
-							if( aDownload->getType() == Transfer::TYPE_FILE && !aDownload->getTempTarget().empty() && (stricmp(aDownload->getPath().c_str(), aDownload->getTempTarget().c_str()) != 0) ) {
-								moveFile(aDownload->getTempTarget(), aDownload->getPath());
-							}
 
 							if(BOOLSETTING(LOG_DOWNLOADS) && (BOOLSETTING(LOG_FILELIST_TRANSFERS) || aDownload->getType() == Transfer::TYPE_FILE)) {
 								StringMap params;
@@ -1562,25 +1563,33 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 							}
 							
 							fire(QueueManagerListener::Finished(), q, dir, aDownload);
-							//if (aDownload->getBundle()) {
-							//	removeRunningUser(aDownload->getBundle()->getToken(), aDownload->getUser()->getCID(), true);
-							//}
+
 							userQueue.remove(q);
-							
-						
-							if(!BOOLSETTING(KEEP_FINISHED_FILES) || aDownload->getType() == Transfer::TYPE_FULL_LIST) {
-								fire(QueueManagerListener::Removed(), q);
-								//BundlePtr bundle = q->getBundle();
-								//if (bundle) {
-								//	if (bundle->items.size() == 1) {
-								//		LogManager::getInstance()->message("BUNDLE FINISHED");
-										//QueueManager::getInstance()->fire(QueueManagerListener::BundleFinished(), bundle->getName());
-								//	}
-								//}
-								removeBundleItem(q, true, true);
-							} else {
-								fire(QueueManagerListener::StatusUpdated(), q, false);
+							fire(QueueManagerListener::Removed(), q);
+
+							BundlePtr bundle;
+							if (!q->getBundleToken().empty()) {
+								bundle = findBundle(q->getBundleToken());
+								if (bundle) {
+									removeBundleItem(q, true, true);
+								} 
 							}
+							
+							if (!bundle) {
+								fileQueue.remove(q);
+							}
+
+							// Check if we need to move the file
+							if( aDownload->getType() == Transfer::TYPE_FILE && !aDownload->getTempTarget().empty() && (stricmp(aDownload->getPath().c_str(), aDownload->getTempTarget().c_str()) != 0) ) {
+								moveFile(aDownload->getTempTarget(), aDownload->getPath(), bundle);
+							}
+
+							//if(!BOOLSETTING(KEEP_FINISHED_FILES) || aDownload->getType() == Transfer::TYPE_FULL_LIST) {
+							//	fire(QueueManagerListener::Removed(), q);
+							//	removeBundleItem(q, true, true);
+							//} else {
+							//	fire(QueueManagerListener::StatusUpdated(), q, false);
+							//}
 						} else {
 							userQueue.removeDownload(q, aDownload->getUser(), aDownload->getUserConnection().getToken());
 							if(aDownload->getType() != Transfer::TYPE_FILE || (reportFinish && q->isWaiting())) {
@@ -3542,24 +3551,24 @@ void QueueManager::handleBundleUpdate(const string& bundleToken) {
 void QueueManager::sendBundleUpdate(BundlePtr aBundle) {
 	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
 
-	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-	cmd.addParam("HI1");
-	cmd.addParam("BU", aBundle->getToken());
-
-	if (aBundle->isSet(Bundle::UPDATE_SIZE)) {
-		aBundle->unsetFlag(Bundle::UPDATE_SIZE);
-		cmd.addParam("SI", Util::toString(aBundle->getSize()));
-	}
-
-	if (aBundle->isSet(Bundle::UPDATE_NAME)) {
-		aBundle->unsetFlag(Bundle::UPDATE_NAME);
-		cmd.addParam("NA", aBundle->getName());
-		//LogManager::getInstance()->message("Name: " + bundle->getName());
-	}
-
-	cmd.addParam("UD1");
-
 	for(auto i = aBundle->getUploadReports().begin(); i != aBundle->getUploadReports().end(); ++i) {
+		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+		cmd.addParam("HI", (*i).hint);
+		cmd.addParam("BU", aBundle->getToken());
+
+		if (aBundle->isSet(Bundle::UPDATE_SIZE)) {
+			aBundle->unsetFlag(Bundle::UPDATE_SIZE);
+			cmd.addParam("SI", Util::toString(aBundle->getSize()));
+		}
+
+		if (aBundle->isSet(Bundle::UPDATE_NAME)) {
+			aBundle->unsetFlag(Bundle::UPDATE_NAME);
+			cmd.addParam("NA", aBundle->getName());
+			//LogManager::getInstance()->message("Name: " + bundle->getName());
+		}
+
+		cmd.addParam("UD1");
+
 		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
 	}
 }
@@ -3598,15 +3607,13 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool deleteQI)
 		return;
 	}
 	bool emptyBundle = false;
-	BundlePtr bundle;
+	string bundleToken = qi->getBundleToken();
+	BundlePtr bundle = findBundle(bundleToken);
 
 	//LogManager::getInstance()->message("QueueManager::removeBundleItem, token: " + qi->getBundle()->getToken());
 	{
 		Lock l (cs);
-		string bundleToken = qi->getBundleToken();
-		auto i = bundles.find(bundleToken);
-		if (i != bundles.end()) {
-			bundle=(*i).second;
+		if (bundle) {
 			bundle->getQueueItems().erase(std::remove(bundle->getQueueItems().begin(), bundle->getQueueItems().end(), qi), bundle->getQueueItems().end());
 
 			if (finished) {
