@@ -2119,6 +2119,10 @@ void ShareManager::on(QueueManagerListener::FileMoved, const string& n) noexcept
 	}
 }
 
+void ShareManager::on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept {
+	return;
+}
+
 void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) noexcept {
 	WLock l(cs);
 	Directory::Ptr d = getDirectory(fname);

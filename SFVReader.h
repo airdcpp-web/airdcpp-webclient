@@ -19,12 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SFV_READER_H
 #define DCPLUSPLUS_DCPP_SFV_READER_H
 
-#include "File.h"
-#include "Thread.h"
-#include "Singleton.h"
-#include <atomic>
 #include <string>
-#include "pme.h"
 
 #include "noexcept.h"
 
@@ -32,9 +27,7 @@ namespace dcpp {
 
 using std::string;
 
-class SFVReaderManager;
-
-class SFVReader  {
+class SFVReader {
 public:
 	/** @see load */
 	SFVReader(const string& aFileName) : crc32(0), crcFound(false) { load(aFileName); }
@@ -49,69 +42,17 @@ public:
 	 * (pdSFV 1.2 does this...).
 	 */
 	void load(const string& fileName) noexcept;
-	void loadFromFolder(const string& fullPath) noexcept;
-	
-	bool hasCRC() const noexcept { return crcFound; }
 
+	bool hasCRC() const noexcept { return crcFound; }
 	uint32_t getCRC() const noexcept { return crc32; }
-	
 
 private:
-	friend class SFVReaderManager;
+
 	uint32_t crc32;
 	bool crcFound;
 
 	bool tryFile(const string& sfvFile, const string& fileName);
-	
-};
- 
 
-class SFVReaderManager: public Singleton<SFVReaderManager>, public Thread
-{
- 
-public:
-
- void find (const string& path);
- bool findMissing(const string& path);
- int scan(StringList paths = StringList(), bool sfv = false, bool bundle = false);
- void checkSFV(const string& path);
- void Stop();
-
-private:
-friend class Singleton<SFVReaderManager>;
-
-	SFVReaderManager() : scanning(false){ }
-	~SFVReaderManager() { 
-		Stop();
-		join();
-	}
-	
- int run();
- PME skipListReg;
- bool matchSkipList(const string& dir);
-
- StringList Paths;
- bool isCheckSFV;
- bool isBundleCheck;
-
- atomic_flag scanning;
- int extrasFound;
- int missingNFO;
- int missingSFV;
- int dupesFound;
- int missingFiles;
-
- int crcOk;
- int crcInvalid;
- int checkFailed;
-
- int64_t scanFolderSize;
- bool stop;
- void findDupes(const string& path);
- StringPairList dupeDirs;
- StringList findFiles(const string& path, const string& pattern, bool dirs = false);
- uint32_t calcCrc32(const string& file);
- void getScanSize(const string& path);
 };
 
 } // namespace dcpp

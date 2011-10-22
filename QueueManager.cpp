@@ -32,7 +32,7 @@
 #include "LogManager.h"
 #include "ResourceManager.h"
 #include "SearchManager.h"
-#include "SFVReader.h"
+#include "ShareScannerManager.h"
 #include "ShareManager.h"
 #include "SimpleXML.h"
 #include "StringTokenizer.h"
@@ -1414,6 +1414,14 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 	dcassert(aBundle);
 	if (aBundle->getQueueItems().empty()) {
 		getInstance()->fire(QueueManagerListener::BundleFilesMoved(), aBundle);
+		if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
+			ShareScannerManager::getInstance()->scanBundle(aBundle);
+		} else {
+			string tmp;
+			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 64);	 
+			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
+			LogManager::getInstance()->message(tmp);
+		}
 	}
 }
 
@@ -3655,7 +3663,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 	if (finished) {
 		fire(QueueManagerListener::BundleFinished(), aBundle);
 		sendBundleFinished(aBundle);
-		string tmp;
+		/*string tmp;
 		if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
 			//tmp.resize(STRING(DL_BUNDLE_FINISHED_SCAN).size() + 64);	 
 			//tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED_SCAN), bundle->getName().c_str()));	 
@@ -3663,13 +3671,13 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 
 			StringList scan;
 			scan.push_back(aBundle->getTarget());
-			SFVReaderManager::getInstance()->scan(scan, false, true);
+			ShareScannerManager::getInstance()->scan(scan, false);
 		} else {
 			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 64);	 
 			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
 			LogManager::getInstance()->message(tmp);
 			//LogManager::getInstance()->message("The Bundle " + bundle->getName() + " has finished downloading!");
-		}
+		} */
 	} else {
 		LogManager::getInstance()->message("The Bundle " + aBundle->getName() + " has been removed");
 
@@ -3708,7 +3716,10 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 	bundles.erase(aBundle->getToken());
 	File::deleteFile(aBundle->getBundleFile() + ".bak");
 	File::deleteFile(aBundle->getBundleFile());
-	//aBundle->dec();
+	if (!finished) {
+		//Can't delete yet
+		//aBundle->dec();
+	}
 }
 
 MemoryInputStream* QueueManager::generateTTHList(const HintedUser aUser, const string& bundleToken, bool isInSharingHub) {

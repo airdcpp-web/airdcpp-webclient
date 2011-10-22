@@ -46,7 +46,7 @@
 #include "../windows/Wizard.h"
 #include "HighlightManager.h"
 #include "AutoSearchManager.h"
-#include "SFVReader.h"
+#include "ShareScannerManager.h"
 namespace dcpp {
 
 void startup(void (*f)(void*, const tstring&), void* p) {
@@ -86,7 +86,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	IgnoreManager::newInstance();
 	AutoSearchManager::newInstance();
 	HighlightManager::newInstance();
-	SFVReaderManager::newInstance();
+	ShareScannerManager::newInstance();
 
 
 	SettingsManager::getInstance()->load();	
@@ -154,7 +154,7 @@ void shutdown() {
 	FavoriteManager::deleteInstance();
 	ClientManager::deleteInstance();
 	HashManager::deleteInstance();
-	SFVReaderManager::deleteInstance();
+	ShareScannerManager::deleteInstance();
 	LogManager::deleteInstance();
 	SettingsManager::deleteInstance();
 	TimerManager::deleteInstance();

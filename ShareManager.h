@@ -393,6 +393,7 @@ private:
 	int run();
 
 	// QueueManagerListener
+	virtual void on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept;
 	virtual void on(QueueManagerListener::FileMoved, const string& n) noexcept;
 
 	// HashManagerListener
