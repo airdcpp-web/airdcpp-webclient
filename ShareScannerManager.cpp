@@ -706,10 +706,6 @@ uint32_t ShareScannerManager::calcCrc32(const string& file) {
 
 void ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
-		//tmp.resize(STRING(DL_BUNDLE_FINISHED_SCAN).size() + 64);	 
-		//tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED_SCAN), bundle->getName().c_str()));	 
-		//LogManager::getInstance()->message(tmp);
-
 		string dir = aBundle->getTarget();
 		int missingFiles = 0;
 		int dupesFound = 0;
@@ -726,19 +722,13 @@ void ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 }
 
 void ShareScannerManager::reportResults(const string& dir, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound) {
-	LogManager::getInstance()->message("missing: " + Util::toString(missingFiles) + ", missingSFV: " + Util::toString(missingSFV) + ", missingNFO: " + Util::toString(missingNFO) + ", extrasFound" 
-		+ Util::toString(extrasFound) + ", emptyFolders: " + Util::toString(emptyFolders) + ", dupesFound: " + Util::toString(dupesFound));
+	//LogManager::getInstance()->message("missing: " + Util::toString(missingFiles) + ", missingSFV: " + Util::toString(missingSFV) + ", missingNFO: " + Util::toString(missingNFO) + ", extrasFound" 
+	//	+ Util::toString(extrasFound) + ", emptyFolders: " + Util::toString(emptyFolders) + ", dupesFound: " + Util::toString(dupesFound));
 		string tmp, tmp2;
 		if (scanType == 0) {
-			//tmp2.resize(STRING(SCAN_SHARE_FINISHED).size() + 1000);
-			//tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_SHARE_FINISHED)));
 			tmp = CSTRING(SCAN_SHARE_FINISHED);
-			//tmp2.clear();
 		} else if (scanType == 1) {
-			//tmp2.resize(STRING(SCAN_FOLDER_FINISHED).size() + 1000);
-			//tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_FOLDER_FINISHED)));
 			tmp = CSTRING(SCAN_FOLDER_FINISHED);
-			//tmp2.clear();
 		} else {
 			tmp2.resize(STRING(SCAN_BUNDLE_FINISHED).size() + dir.size());
 			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_BUNDLE_FINISHED), dir.c_str()));
