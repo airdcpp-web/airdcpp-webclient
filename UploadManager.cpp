@@ -229,16 +229,20 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 ok:
 
-	Lock l(cs);
+
 
 	uint8_t slotType = aSource.getSlotType();
 	
 	bool noSlots = false;
 	if (slotType != UserConnection::STDSLOT && slotType != UserConnection::MCNSLOT) {
-		bool hasReserved = reservedSlots.find(aSource.getUser()) != reservedSlots.end();
+		bool hasReserved = false;
 		bool isFavorite = FavoriteManager::getInstance()->hasSlot(aSource.getUser());
-		bool hasFreeSlot = (getFreeSlots() > 0) && ((uploadQueue.empty() && notifiedUsers.empty()) || isNotifiedUser(aSource.getUser()));
-
+		bool hasFreeSlot = false;
+		{
+		Lock l(cs);
+		hasReserved = reservedSlots.find(aSource.getUser()) != reservedSlots.end();
+		hasFreeSlot = (getFreeSlots() > 0) && ((uploadQueue.empty() && notifiedUsers.empty()) || isNotifiedUser(aSource.getUser()));
+		
 		if ((type==Transfer::TYPE_PARTIAL_LIST || fileSize <= 65792) && smallSlots <= 8) {
 			slotType = UserConnection::SMALLSLOT;
 		} else if (aSource.isSet(UserConnection::FLAG_MCN1)) {
@@ -252,7 +256,7 @@ ok:
 		} else {
 			slotType = UserConnection::STDSLOT;
 		}
-
+		}//lock free
 		if (noSlots) {
 			bool supportsFree = aSource.isSet(UserConnection::FLAG_SUPPORTS_MINISLOTS);
 			bool allowedFree = (slotType == UserConnection::EXTRASLOT) || aSource.isSet(UserConnection::FLAG_OP) || getFreeExtraSlots() > 0;
@@ -281,14 +285,18 @@ ok:
 	// remove file from upload queue
 	clearUserFiles(aSource.getUser());
 	
+	bool resumed = false;
+	UploadBundlePtr bundle;
+
 	// remove user from notified list
+	{
+		Lock l(cs);
 	SlotIter cu = notifiedUsers.find(aSource.getUser());
 	if(cu != notifiedUsers.end()) {
 		notifiedUsers.erase(cu);
-	}
+		}
+	
 
-	bool resumed = false;
-	UploadBundlePtr bundle;
 	for(UploadList::iterator i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 		Upload* up = *i;
 		if(&aSource == &up->getUserConnection()) {
@@ -302,8 +310,9 @@ ok:
 			}
 			removeDelayUpload(aSource.getToken(), false);
 			break;
+			}
 		}
-	}
+	} //lock free
 
 	Upload* u = new Upload(aSource, sourceFile, TTHValue());
 	//LogManager::getInstance()->message("Token2: " + aSource.getToken());
@@ -324,8 +333,10 @@ ok:
 	u->setFileSize(fileSize);
 	u->setType(type);
 
+	{
+	Lock l(cs);
 	uploads.push_back(u);
-
+	}
 	if(aSource.getSlotType() != slotType) {
 		// remove old count
 		switch(aSource.getSlotType()) {
@@ -406,7 +417,7 @@ void UploadManager::changeMultiConnSlot(const CID cid, bool remove) {
 }
 
 bool UploadManager::getMultiConn(const UserConnection& aSource) {
-
+	//inside a lock.
 	CID cid = aSource.getUser()->getCID();
 
 	bool hasFreeSlot=false;
@@ -692,10 +703,11 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 	if (bundle) {
 		findRemovedToken(token);
 		dcassert(bundleTokens.find(token) == bundleTokens.end());
-
+		{
 		Lock l (cs);
 		bundleTokens.insert(make_pair(token, bundle));
 		bundle->increaseRunning();
+		}
 		//LogManager::getInstance()->message("CHANGE UPLOAD BUNDLE, INCREASE CONNECTIONS: " + Util::toString(bundle->getRunning()));
 		setBundle(token, bundle);
 	}
@@ -743,6 +755,7 @@ void UploadManager::removeBundleConnection(const AdcCommand& cmd) {
 }
 
 void UploadManager::setBundle(const string aToken, UploadBundlePtr aBundle) {
+	Lock l(cs);
 	for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
 		if ((*i)->getUserConnection().getToken() == aToken) {
 			Upload* u = *i;
@@ -755,6 +768,8 @@ void UploadManager::setBundle(const string aToken, UploadBundlePtr aBundle) {
 
 string UploadManager::getBundleTarget(const string aToken, const string aName) {
 	string path;
+	{
+		Lock l(cs);
 	for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
 		if ((*i)->getUserConnection().getToken() == aToken) {
 			//LogManager::getInstance()->message("UPLOAD BUNDLE, NAME TOKEN UPLOAD");
@@ -766,8 +781,9 @@ string UploadManager::getBundleTarget(const string aToken, const string aName) {
 			//LogManager::getInstance()->message("UPLOAD BUNDLE, NAME TOKEN BUNDLE");
 			path = (*i)->getPath();
 			break;
+			}
 		}
-	}
+	} //lock free
 	if (!path.empty()) {
 		//LogManager::getInstance()->message("UPLOAD BUNDLE, ANAME: " + aName);
 		size_t pos = path.find(aName);
@@ -806,6 +822,7 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 }
 
 UploadBundlePtr UploadManager::findBundle(const string bundleToken) {
+	Lock l(cs);
 	for (UploadBundleList::iterator i = bundles.begin(); i != bundles.end(); ++i) {
 		if ((*i)->getToken() == bundleToken) {
 			//LogManager::getInstance()->message("FOUND UPLOAD BUNDLE TARGET");
@@ -862,13 +879,13 @@ bool UploadManager::getAutoSlot() {
 }
 
 void UploadManager::removeUpload(Upload* aUpload, bool delay) {
+	{
 	Lock l(cs);
 	dcassert(find(uploads.begin(), uploads.end(), aUpload) != uploads.end());
-	//if (!delay)
-	//	findRemovedToken(aUpload->getUserConnection().getToken());
 	uploads.erase(remove(uploads.begin(), uploads.end(), aUpload), uploads.end());
-
+	}
 	if(delay) {
+		Lock l(cs);
 		delayUploads.push_back(aUpload);
 	} else {
 		findRemovedToken(aUpload->getUserConnection().getToken());
@@ -1055,6 +1072,7 @@ size_t UploadManager::addFailedUpload(const UserConnection& source, const string
 }
 
 void UploadManager::clearUserFiles(const UserPtr& aUser) {
+	
 	Lock l (cs);
 	auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser; });
 	if(it != uploadQueue.cend()) {
@@ -1200,10 +1218,9 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
 	typedef vector<pair<UploadBundlePtr, double>> BundleSpeedMap;
 	BundleSpeedMap bundleSpeeds;
+	UploadList ticks;
 	{
 		Lock l(cs);
-		UploadList ticks;
-		
 		for(UploadList::iterator i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
@@ -1217,7 +1234,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 				ticks.push_back(*i);
 				(*i)->tick();
 			}
-
+		
 			UploadBundlePtr bundle = (*i)->getBundle();
 			if (bundle) {
 				double speed = (*i)->getAverageSpeed();
@@ -1236,7 +1253,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 				}
 			}
 		}
-
+	}
 		for (BundleSpeedMap::iterator i = bundleSpeeds.begin(); i != bundleSpeeds.end(); ++i) {
 			(*i).first->setSpeed((*i).second);
 			//LogManager::getInstance()->message("Bundle status updated, speed: " + Util::formatBytes((*i).first->getSpeed()));
@@ -1248,12 +1265,11 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 
 		notifyQueuedUsers();
 		fire(UploadManagerListener::QueueUpdate());
-	}
+	
 }
 
 void UploadManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept {
 	if(!aUser->isOnline()) {
-		Lock l(cs);
 		clearUserFiles(aUser);
 	}
 }

@@ -72,8 +72,8 @@ public:
 		FLAG_STEALTH				= 0x1000,
 		FLAG_SECURE					= 0x2000,
 		FLAG_MCN1					= 0x4000,
-		FLAG_SMALL_SLOT				= 0x8000,
-		FLAG_UBN1					= 0x16000
+		FLAG_SMALL_SLOT				= 0x6000,
+		FLAG_UBN1					= 0x8000
 	};
 	
 	enum States {

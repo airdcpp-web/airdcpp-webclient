@@ -11,7 +11,7 @@ enum Strings { // @DontAdd
 	ACTIVE_SEARCH_STRING, // "Enabled / Search String"
 	ADD, // "&Add"
 	ADD_AS_SOURCE, // "Add as source"
-	ADD_FINISHED_INSTANTLY, // "Add finished files to share instantly (if shared)"
+	ADD_FINISHED_INSTANTLY, // "Add finished Bundles to share instantly (if shared)"
 	ADD_TO_FAVORITES, // "Add To Favorites"
 	ADD_TO_QUEUE, // "Add to Queue"
 	ADDED, // "Added"

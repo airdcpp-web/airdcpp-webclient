@@ -8,7 +8,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Enabled / Search String", 
 "&Add", 
 "Add as source", 
-"Add finished files to share instantly (if shared)", 
+"Add finished Bundles to share instantly (if shared)", 
 "Add To Favorites", 
 "Add to Queue", 
 "Added", 

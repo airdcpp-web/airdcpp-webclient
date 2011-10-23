@@ -136,7 +136,6 @@ string ShareManager::Directory::getRealPath(const std::string& path) const {
 	if(getParent()) {
 		return getParent()->getRealPath(getName() + PATH_SEPARATOR_STR + path);
 	}else if(!getRootPath().empty()) {
-		dcdebug("found rootPath: %s", getRootPath());
 		return (getRootPath() + path);
 	} else { //shouldnt need to go here
 		return ShareManager::getInstance()->findRealRoot(getName(), path);
@@ -484,7 +483,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			}
 			/*dont save TTHs, check them from hashmanager, just need path and size.
 			this will keep us sync to hashindex, alltho might take a bit longer to startup maybe? not too much for myself tho*/
+			try {
 			cur->files.insert(ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname), Util::toInt64(size))));
+			}catch(HashException &) { }
 		}
 	}
 	void endTag(const string& name, const string&) {
@@ -622,11 +623,13 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 		shares.insert(std::make_pair(realPath, vName));
 		directories.insert(make_pair(realPath, dp));
 		updateIndices(*dp);
-		dp->findDirsRE(false);
-		sortReleaseList();
-		
+
 		setDirty();
 	}
+		//after the wlock on purpose, these have own locking
+		dp->findDirsRE(false);
+		sortReleaseList();
+
 }
 /*
 ShareManager::Directory::Ptr ShareManager::merge(const Directory::Ptr& directory) {
@@ -794,8 +797,8 @@ bool ShareManager::isDirShared(const string& directory) {
 	string dir = getReleaseDir(directory);
 	if (dir.empty())
 		return false;
-	/*we need to protect this, but same mutex used here is too much, it will freeze during refreshing even with chat releasenames
-	Todo add own mutex to protect dirnamelist*/
+	/*we need to protect this, but same mutex used here is too much, it will freeze during refreshing even with chat releasenames*/
+	Lock l(dirnamelist);
 	if (std::binary_search(dirNameList.begin(), dirNameList.end(), dir)) {
 		return true;
 	}
@@ -930,7 +933,7 @@ string ShareManager::getReleaseDir(const string& aName) {
 }
 
 void ShareManager::sortReleaseList() {
-	//Lock l(cs);
+	Lock l(dirnamelist);
 	sort(dirNameList.begin(), dirNameList.end());
 }
 
@@ -951,7 +954,7 @@ void ShareManager::addReleaseDir(const string& aName) {
 	if (dir.empty())
 		return;
 
-	//Lock l(cs);
+	Lock l(dirnamelist);
 	dirNameList.push_back(dir);
 }
 
@@ -961,9 +964,10 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 	if (dir.empty())
 		return;
 
-//	Lock l(cs);
+//	hmm, dont see a situation when the name list could change during removing.
 	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
 		if ((*i) == dir) {
+			Lock l(dirnamelist);
 			dirNameList.erase(i);
 			return;
 		}
@@ -1376,6 +1380,7 @@ int ShareManager::run() {
 
 			} else if(refreshOptions & REFRESH_ALL) {
 				directories.clear();
+				Lock l(dirnamelist);
 				dirNameList.clear();
 			}
 		
@@ -2101,6 +2106,9 @@ ShareManager::Directory::Ptr ShareManager::getDirectory(const string& fname) {
 	return Directory::Ptr();
 }
 
+
+
+/*
 void ShareManager::on(QueueManagerListener::FileMoved, const string& n) noexcept {
 	if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 		// Check if finished download is supposed to be shared
@@ -2118,10 +2126,78 @@ void ShareManager::on(QueueManagerListener::FileMoved, const string& n) noexcept
 		}
 	}
 }
-
+*/
 void ShareManager::on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept {
-	return;
+	
+if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
+	if(!aBundle->getFileBundle()) {
+		string path = aBundle->getTarget();
+		
+		RLock l(cs);
+		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
+
+			if(strnicmp(i->first, path, i->first.size()) == 0 && path[i->first.size() - 1] == PATH_SEPARATOR) { //check if we have a share folder.
+				//LogManager::getInstance()->message("bundle fullpath = " + path);
+				pair<Directory::Ptr, string> p = findDirectory(path);
+
+				if(!p.first || p.second.empty())
+					return;
+
+				//LogManager::getInstance()->message("realpath to add = " + p.second);
+				//LogManager::getInstance()->message("parent name where to add = " + p.first->getName());
+				string realPath = p.second;
+				
+				if(realPath[realPath.size() - 1] != PATH_SEPARATOR)  //add the missing path separator
+					realPath += PATH_SEPARATOR;
+				
+				Directory::Ptr parent = p.first;
+				Directory::Ptr dp = buildTree(realPath, parent);
+				string name = Util::getLastDir(realPath);
+				bool addreleasedir = true;
+
+				/* if we have already refreshed the bundle directory in, act as a refresh and add all files*/
+				Directory::Map::const_iterator i = parent->directories.find(name);  
+				if(i != parent->directories.end()) {
+					parent->directories.erase(i);
+					addreleasedir = false;  //removing releasedir here is a waste, we will need to add the same one back anyway.
+				}
+				parent->directories.insert(make_pair(name,dp));
+				LogManager::getInstance()->message("Added new directory name = " + name + " in path " + parent->getRealPath(Util::emptyString));
+				if(addreleasedir) {
+					dp->findDirsRE(false);
+					sortReleaseList();
+				}
+				}
+			}
+		}
+	}
 }
+
+pair<ShareManager::Directory::Ptr, string> ShareManager::findDirectory(const string& fname) {
+	
+	for(DirMap::iterator mi = directories.begin(); mi != directories.end(); ++mi) {
+		if(strnicmp(fname, mi->first, mi->first.length()) == 0) {
+			Directory::Ptr d = mi->second;
+				
+			if(!d) {
+				return make_pair(Directory::Ptr(), Util::emptyString);
+			}
+			string::size_type i;
+			string::size_type j = mi->first.length();
+			while( (i = fname.find(PATH_SEPARATOR, j)) != string::npos) {
+				Directory::MapIter dmi = d->directories.find(fname.substr(j, i-j));
+				j = i + 1;
+				if(dmi == d->directories.end())
+					return make_pair(d, fname.substr(0, i));   //return the last dir we found as parent for new dir, return the path up to where we stopped.
+				d = dmi->second;
+			}
+			return make_pair(d->getParent(), fname.substr(0, i)); // we found the searched directory, already refreshed in. return the parent of it.
+		}
+	}
+
+	return make_pair(Directory::Ptr(), Util::emptyString);
+}
+
 
 void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) noexcept {
 	WLock l(cs);

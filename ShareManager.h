@@ -336,7 +336,7 @@ private:
 	bool	 c_size_dirty;
 
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
-
+	mutable CriticalSection dirnamelist;
 	
 	StringList dirNameList;
 	//typedef std::multimap<string, string> DirNameMap;
@@ -386,6 +386,7 @@ private:
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr getDirectory(const string& fname);
+	pair<Directory::Ptr, string> findDirectory(const string& fname);
 
 	StringList refreshPaths;
 	int refreshOptions;
@@ -394,7 +395,7 @@ private:
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept;
-	virtual void on(QueueManagerListener::FileMoved, const string& n) noexcept;
+	//virtual void on(QueueManagerListener::FileMoved, const string& n) noexcept;
 
 	// HashManagerListener
 	void on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) noexcept;

@@ -1779,7 +1779,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 		const size_t BUF_SIZE = STRING(MATCHED_FILES).size() + 16;
 		string tmp;
 		tmp.resize(BUF_SIZE);
-		snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matchListing(dirList, flags & QueueItem::FLAG_PARTIAL_LIST));
+		snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matchListing(dirList, (flags & QueueItem::FLAG_PARTIAL_LIST ? true : false)));
 		if(flags & QueueItem::FLAG_PARTIAL_LIST) {
 			//no report
 		} else {

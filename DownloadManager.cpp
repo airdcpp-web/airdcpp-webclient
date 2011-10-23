@@ -247,7 +247,8 @@ string DownloadManager::formatDownloaded(int64_t aBytes) {
 
 void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != aBundle->getToken()) {
-		Lock l (cs);
+		//is there anything to protect?
+		//Lock l (cs);
 		bool updateOnly = false;
 		CID cid = aSource->getUser()->getCID();
 		if (!aSource->getLastBundle().empty()) {
@@ -302,7 +303,7 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 		aBundle->setSingleUser(true);
 		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
 		//need a lock, check this we need to protect downloads, call from queuemanager makes it unprotected.
-		//Lock l(cs);
+		Lock l(cs);
 		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
 			Download* d = *i;
 			if (d->getBundle()) {
@@ -363,7 +364,7 @@ void DownloadManager::findRemovedToken(UserConnection* aSource) {
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
 
 	bool found=false;
-	//idlers need protection.
+	Lock l(cs);
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;
 		if(uc->getUser() == user) {
@@ -447,10 +448,13 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
 		}
 		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
-			Lock l(cs);
+			
 			aConn->setState(UserConnection::STATE_IDLE);
 			QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
+			{
+			Lock l(cs);
  			idlers.push_back(aConn);
+			}
 			if (!aConn->getLastBundle().empty()) {
 				//fire(DownloadManagerListener::BundleFinished(), aConn->getLastBundle());
 				aConn->setLastBundle(Util::emptyString);
