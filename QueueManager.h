@@ -110,7 +110,7 @@ public:
 	int mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle);
 	void mergeFileBundles(BundlePtr aBundle);
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, QueueItemList movedItems);
-	void moveFileBundles(QueueItemList ql, const string& aTarget) noexcept;
+	void moveFileBundle(BundlePtr aBundle, const string& aTarget) noexcept;
 	BundlePtr createFileBundle(QueueItem* qi);
 	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading = false);
 	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
@@ -121,6 +121,7 @@ public:
 	void setBundleDirty(const string& bundleToken);
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
+	void saveBundle(BundlePtr aBundle);
 
 	BundlePtr findBundle(const string bundleToken);
 	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
@@ -134,12 +135,16 @@ public:
 	void setBundleAutoPriority(const string& bundleToken) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void changeBundleSource(QueueItem* qi, const HintedUser& aUser, bool add) noexcept;
-	BundlePtr findBundleFinished(const string& aSource, QueueItemList& finishedFiles);
+	BundleList findBundleFinished(const string& aSource, int& finishedFiles, int& dirBundles, int& fileBundles);
 	void handleBundleUpdate(const string& bundleToken);
 
-	void moveDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, QueueItemList& finishedFiles);
+	void moveDir(const string& aSource, const string& aTarget, BundleList sourceBundles, bool moveFinished);
 	bool move(QueueItem* qs, const string& aTarget, const string& aSource = Util::emptyString) noexcept;
 	void moveQL(QueueItemList ql, const string& aTarget, const string& bundleSource);
+	string convertMovePath(const string& aSource, const string& aTarget, const string& bundleSource);
+	void convertMoveDirs(const string& aSource, const string& aTarget, BundlePtr sourceBundle, BundlePtr targetBundle) noexcept;
+	void rebuildBundleDirs(BundlePtr aBundle, bool loading = false);
+
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
 	int isTTHQueued(const TTHValue& tth);
@@ -316,8 +321,6 @@ private:
 	unordered_multimap<UserPtr, DirectoryItemPtr, User::Hash> directories;
 	/** Recent searches list, to avoid searching for the same thing too often */
 	StringList recent;
-	/** The queue needs to be saved */
-	bool dirty;
 	/** Next search */
 	uint64_t nextSearch;
 	/** File lists not to delete */
@@ -347,8 +350,6 @@ private:
 	static void moveFile_(const string& source, const string& target, BundlePtr aBundle);
 	void moveStuckFile(QueueItem* qi);
 	void rechecked(QueueItem* qi);
-
-	void setDirty();
 
 	string getListPath(const HintedUser& user);
 

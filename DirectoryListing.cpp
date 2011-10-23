@@ -372,7 +372,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 				return;
 			}
 		} else {
-			aBundle->getBundleDirs().push_back(target);
+			//aBundle->getBundleDirs().push_back(target);
 		}
 
 		// First, recurse over the directories

@@ -85,7 +85,7 @@ public:
 	GETSET(CIDStringList, notifiedUsers, NotifiedUsers);
 	GETSET(CIDIntMap, runningUsers, RunningUsers);
 	GETSET(QueueItemList, queueItems, QueueItems);
-	GETSET(QueueItemList, finishedItems, finishedItems);
+	GETSET(QueueItemList, finishedFiles, FinishedFiles);
 	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
 	GETSET(DownloadList, downloads, Downloads);
@@ -101,7 +101,7 @@ public:
 
 	CIDIntMap& getRunningUsers() { return runningUsers; }
 	CIDStringList& getNotifiedUsers() { return notifiedUsers; }
-	QueueItemList& getFinishedFiles() { return finishedItems; }
+	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
 	DownloadList& getDownloads() { return downloads; }
