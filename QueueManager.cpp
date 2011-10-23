@@ -2952,24 +2952,6 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 				if (merged > 0) {
 					//LogManager::getInstance()->message("MERGE BUNDLE " + j->second->getTarget() + " and " + aBundle->getTarget());
 				}
-
-				/*//handle the dirs here because mergeBundle is also used for moved bundles
-				for(auto s = aBundle->getBundleDirs().begin(); s != aBundle->getBundleDirs().end(); ++s) {
-					bool found = false;
-					for(auto k = oldBundle->getBundleDirs().begin(); k != oldBundle->getBundleDirs().end(); ++k) {
-						if (*k == *s) {
-							found = true;
-							break;
-						}
-					}
-					if (!found) {
-						oldBundle->getBundleDirs().push_back(*s);
-						string releaseDir = ShareManager::getInstance()->getReleaseDir(*s);
-						if (!releaseDir.empty()) {
-							bundleDirs[releaseDir] = *s;
-						}
-					}
-				} */
 				//aBundle->dec();
 				return false;
 			}
@@ -3147,6 +3129,47 @@ BundleList QueueManager::findBundleFinished(const string& aSource, int& finished
 	return retBundles;
 }
 
+void QueueManager::removeDir(const string& aSource, BundleList sourceBundles, bool removeFinished) {
+
+	if (sourceBundles.empty()) {
+		//LogManager::getInstance()->message("moveDir, sourceBundles empty");
+		return;
+	}
+
+	BundlePtr bundle;
+
+	if (sourceBundles.size() == 1 && stricmp(sourceBundles.front()->getTarget(), aSource) != 0) {
+		//we aren't removing the whole bundle
+		bundle = sourceBundles.front();
+		QueueItemList ql;
+		for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
+			if ((*i)->getTarget().find(aSource) != string::npos) {
+				LogManager::getInstance()->message("removeDir subdirlist, source: " + aSource + " found from : " + (*i)->getTarget());
+				ql.push_back(*i);
+			} else {
+				LogManager::getInstance()->message("DON'T REMOVE: removeDir subdirlist, source: " + aSource + " found from : " + (*i)->getTarget());
+			}
+		}
+		for (auto i = ql.begin(); i != ql.end(); ++i) {
+			remove((*i)->getTarget());
+		}
+
+		if (removeFinished) {
+			for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
+				if ((*i)->getTarget().find(aSource) != string::npos) {
+					bundle->getFinishedFiles().erase(i);
+					File::deleteFile((*i)->getTarget());
+				}
+			}
+		}
+	} else {
+		for (auto r = sourceBundles.begin(); r != sourceBundles.end(); ++r) {
+			bundle = *r;
+			removeBundle(bundle->getToken(), removeFinished);
+		}
+	}
+}
+
 void QueueManager::moveDir(const string& aSource, const string& aTarget, BundleList sourceBundles, bool moveFinished) {
 	//LogManager::getInstance()->message("moveDir, source: " + aSource + " target: " + aTarget);
 	if (sourceBundles.empty()) {
@@ -3171,25 +3194,41 @@ void QueueManager::moveDir(const string& aSource, const string& aTarget, BundleL
 				//migrate the QIs
 				string sourceBundleTarget = sourceBundle->getTarget();
 				moveQL(sourceBundle->getQueueItems(), aTarget, sourceBundleTarget);
+
+				//remove old
+				string releaseDir = ShareManager::getInstance()->getReleaseDir(sourceBundleTarget);
+				if (!releaseDir.empty()) {
+					auto s = bundleDirs.find(releaseDir);
+					if (s != bundleDirs.end()) {
+						bundleDirs.erase(s);
+					}
+				}
+
 				//we are moving the root bundle folder, check if we have an existing bundle to merge
 				BundlePtr newBundle = getMergeBundle(aTarget);
 				if (newBundle) {
 					//LogManager::getInstance()->message("moveDir, merge bundle found: " + newBundle->getTarget());
 					//migrate the QIs
 					mergeBundle(newBundle, sourceBundle);
+					//sourceBundle->dec();
 				} else {
 					//LogManager::getInstance()->message("moveDir, no merge bundle");
 					//nothing to merge to, move the old bundle
 					//convertMoveDirs(aSource, aTarget, sourceBundle, sourceBundle);
 					rebuildBundleDirs(sourceBundle);
-					bool changeName = !(sourceBundle->getTarget() == Util::getDir(aTarget, false, true));
+					bool changeName = !(sourceBundle->getName() == Util::getDir(aTarget, false, true));
 					sourceBundle->setTarget(aTarget);
 					if (changeName) {
 						sourceBundle->setFlag(Bundle::UPDATE_NAME);
 						addBundleUpdate(sourceBundle->getToken(), false);
 					}
 					newBundle = sourceBundle;
-					//sourceBundle->setDirty(true);
+					//add new release dir
+					releaseDir = ShareManager::getInstance()->getReleaseDir(newBundle->getTarget());
+					if (!releaseDir.empty()) {
+						bundleDirs[releaseDir] = newBundle->getTarget();
+					}
+					sourceBundle->setDirty(true);
 				}
 
 				if (moveFinished) {
@@ -3280,17 +3319,9 @@ void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget) noex
 		//LogManager::getInstance()->message("moveFileBundles, mergebundle found");
 		removeBundleItem(qi, false, false);
 	} else {
-		//LogManager::getInstance()->message("moveFileBundles, mergebundle NOT found");
-		//has the file been renamed?
-		//if (Util::getFileName(fileBundle->getTarget()) == qs->getTargetFileName()) {
-			aBundle->setTarget(qi->getTarget());
-			aBundle->setDirty(true);
-		//} else {
-		//	fileBundle->setTarget(qs->getTarget());
-		//	fileBundle->setFlag(Bundle::UPDATE_NAME);
-		//	fileBundle->setDirty(true);
-		//	addBundleUpdate(fileBundle->getToken(), false);
-		//}
+		//LogManager::getInstance()->message("moveFileBundles, no mergebundle");
+		aBundle->setTarget(qi->getTarget());
+		aBundle->setDirty(true);
 	}
 }
 
@@ -3364,86 +3395,12 @@ void QueueManager::rebuildBundleDirs(BundlePtr aBundle, bool loading) {
 	}
 }
 
-void QueueManager::convertMoveDirs(const string& aSource, const string& aTarget, BundlePtr sourceBundle, BundlePtr targetBundle) noexcept {
-	if (!aSource.empty()) {
-		if (sourceBundle->getTarget() == targetBundle->getTarget()) {
-			//we are moving the whole bundle
-			for(auto s = sourceBundle->getBundleDirs().begin(); s != sourceBundle->getBundleDirs().end(); ++s) {
-				//replace the bundle path
-				string targetPath = convertMovePath(aSource, aTarget, sourceBundle->getTarget());
-				(*s) = targetPath;
-
-				//replace the release cache path
-				string releaseDir = ShareManager::getInstance()->getReleaseDir(aSource);
-				if (!releaseDir.empty()) {
-					auto k = bundleDirs.find(releaseDir);
-					if (k != bundleDirs.end()) {
-						k->second = targetPath;
-					}
-				}
-			}
-		} else {
-			//splitting/merging, handle subdirs
-			for(auto s = sourceBundle->getBundleDirs().begin(); s != sourceBundle->getBundleDirs().end();) {
-				if (((*s).find(aSource) != string::npos) && (*s) != aTarget) {
-					sourceBundle->getBundleDirs().erase(s);
-					string targetPath = convertMovePath(aSource, aTarget, sourceBundle->getTarget());
-
-					bool found = false;
-					for(auto k = targetBundle->getBundleDirs().begin(); k != targetBundle->getBundleDirs().end(); ++k) {
-						if (*k == targetPath) {
-							found = true;
-							break;
-						}
-					}
-
-					if (!found) {
-						targetBundle->getBundleDirs().push_back(targetPath);
-						string releaseDir = ShareManager::getInstance()->getReleaseDir(aSource);
-						if (!releaseDir.empty()) {
-							auto k = bundleDirs.find(releaseDir);
-							if (k != bundleDirs.end()) {
-								k->second = targetPath;
-							}
-						}
-					}
-					s = sourceBundle->getBundleDirs().begin();
-				} else {
-					s++;
-				}
-			}
-		}
-
-		//handle the root dir
-		string releaseDir = ShareManager::getInstance()->getReleaseDir(aSource);
-		if (!releaseDir.empty()) {
-			auto k = bundleDirs.find(releaseDir);
-			if (k != bundleDirs.end()) {
-				k->second = convertMovePath(aSource, aTarget, sourceBundle->getTarget());
-			}
-		}
-	}
-}
-
 string QueueManager::convertMovePath(const string& aSource, const string& aTarget, const string& bundleSource) noexcept {
 	if (!bundleSource.empty()) {
 		//cut the filename
 		string oldDir = Util::getDir(aSource, false, false);
-		/*//bundle name
-		string bundleName = Util::getDir(bundleSource, false, true);
-		//
-		string lastDir = Util::getDir(aSource, false, true);
-		
 		string extraDir;
-		size_t pos;
-		//get extras from aSource compared to bundle source
-		if (aSource.length() > bundleSource.length()) {
-			extraDir = aSource.substr(bundleSource.length(), lastDir.length() - bundleSource.length());
-		} */
 
-
-
-		string extraDir;
 		if (aSource.length() > bundleSource.length()) {
 			extraDir = oldDir.substr(bundleSource.length(), oldDir.length() - bundleSource.length());
 			//an extra check in case of moving subdirs to prevent duplicate folders
@@ -3607,28 +3564,6 @@ bool QueueManager::addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundl
 			return false;
 		}
 	}
-
-	/*if (loading) {
-		bool found = false;
-		string dir = Util::getDir(qi->getTarget(), false, false);
-		if (dir != aBundle->getTarget()) {
-
-			for (auto i = aBundle->getBundleDirs().begin(); i != aBundle->getBundleDirs().end(); ++i) {
-				if (dir == *i) {
-					found=true;
-					break;
-				}
-			}
-			if (!found) {
-				//LogManager::getInstance()->message("ADD NEW DIR: " + dir);
-				aBundle->getBundleDirs().push_back(dir);
-				string releaseDir = ShareManager::getInstance()->getReleaseDir(dir);
-				if (!releaseDir.empty()) {
-					bundleDirs[releaseDir] = dir;
-				}
-			}
-		}
-	} */
 
 	qi->setBundleToken(aBundle->getToken());
 	aBundle->getQueueItems().push_back(qi);
@@ -3833,21 +3768,13 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 	if (finished) {
 		fire(QueueManagerListener::BundleFinished(), aBundle);
 		sendBundleFinished(aBundle);
-		/*string tmp;
-		if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
-			//tmp.resize(STRING(DL_BUNDLE_FINISHED_SCAN).size() + 64);	 
-			//tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED_SCAN), bundle->getName().c_str()));	 
-			//LogManager::getInstance()->message(tmp);
-
-			StringList scan;
-			scan.push_back(aBundle->getTarget());
-			ShareScannerManager::getInstance()->scan(scan, false);
-		} else {
+		string tmp;
+		if (!SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
 			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 64);	 
 			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
 			LogManager::getInstance()->message(tmp);
 			//LogManager::getInstance()->message("The Bundle " + bundle->getName() + " has finished downloading!");
-		} */
+		}
 	} else {
 		//LogManager::getInstance()->message("The Bundle " + aBundle->getName() + " has been removed");
 

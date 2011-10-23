@@ -1289,5 +1289,17 @@ enum Strings { // @DontAdd
 	X_FOLDERS_EXTRAS, // "%d folders with extra files"
 	X_EMPTY_FOLDERS, // "%d empty folders"
 	X_DUPE_FOLDERS, // "%d duplicate folders"
+	CONFIRM_REMOVE_DIR_MULTIPLE, // "The selected folder contains %d directory bundles and %d file bundles. Are you sure want to remove them?"
+	CONFIRM_REMOVE_DIR_BUNDLE, // "Are you sure want to remove the bundle %s?"
+	CONFIRM_REMOVE_DIR_BUNDLE_PART, // "Are you sure want to remove the directory %s in the bundle %s?"
+	CONFIRM_REMOVE_DIR_FINISHED_MULTIPLE, // "The bundles in the selected directory contain total of %d finished files. Do you also want to remove them?"
+	CONFIRM_REMOVE_DIR_FINISHED_BUNDLE, // "The selected bundle contains total of %d finished files. Do you also want to remove them?"
+	CONFIRM_REMOVE_DIR_FINISHED_BUNDLE_PART, // "The selected bundle directory contains total of %d finished files. Do you also want to remove them?"
+	CONFIRM_MOVE_DIR_MULTIPLE, // "The selected folder contains %d directory bundles and %d file bundles. Are you sure want to move them to %s?"
+	CONFIRM_MOVE_DIR_BUNDLE, // "Are you sure want to move the bundle %s to %s?"
+	CONFIRM_MOVE_DIR_BUNDLE_PART, // "Are you sure want to move the directory %s in the bundle %s to %s?"
+	CONFIRM_MOVE_DIR_FINISHED_MULTIPLE, // "The bundles in the selected directory contain total of %d finished files. Do you also want to move them?"
+	CONFIRM_MOVE_DIR_FINISHED_BUNDLE, // "The selected bundle contains total of %d finished files. Do you also want to move them?"
+	CONFIRM_MOVE_DIR_FINISHED_BUNDLE_PART, // "The selected bundle directory contains total of %d finished files. Do you also want to move them?"
 	LAST // @DontAdd
 };

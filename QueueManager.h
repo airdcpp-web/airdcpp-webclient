@@ -139,10 +139,10 @@ public:
 	void handleBundleUpdate(const string& bundleToken);
 
 	void moveDir(const string& aSource, const string& aTarget, BundleList sourceBundles, bool moveFinished);
+	void removeDir(const string& aSource, BundleList sourceBundles, bool removeFinished);
 	bool move(QueueItem* qs, const string& aTarget, const string& aSource = Util::emptyString) noexcept;
 	void moveQL(QueueItemList ql, const string& aTarget, const string& bundleSource);
 	string convertMovePath(const string& aSource, const string& aTarget, const string& bundleSource);
-	void convertMoveDirs(const string& aSource, const string& aTarget, BundlePtr sourceBundle, BundlePtr targetBundle) noexcept;
 	void rebuildBundleDirs(BundlePtr aBundle, bool loading = false);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
