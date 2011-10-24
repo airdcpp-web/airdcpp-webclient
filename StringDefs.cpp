@@ -1294,6 +1294,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "The bundles in the selected directory contain total of %d finished files. Do you also want to move them?", 
 "The selected bundle contains total of %d finished files. Do you also want to move them?", 
 "The selected bundle directory contains total of %d finished files. Do you also want to move them?", 
+"ADLSearch", 
+"Matching Filelist with ADLSearch, this might take a while if the list is large...", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2588,4 +2590,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ConfirmMoveDirFinishedMultiple", 
 "ConfirmMoveDirFinishedBundle", 
 "ConfirmMoveDirFinishedBundlePart", 
+"MatchAdl", 
+"MatchingAdl", 
 };

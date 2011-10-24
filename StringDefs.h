@@ -1301,5 +1301,7 @@ enum Strings { // @DontAdd
 	CONFIRM_MOVE_DIR_FINISHED_MULTIPLE, // "The bundles in the selected directory contain total of %d finished files. Do you also want to move them?"
 	CONFIRM_MOVE_DIR_FINISHED_BUNDLE, // "The selected bundle contains total of %d finished files. Do you also want to move them?"
 	CONFIRM_MOVE_DIR_FINISHED_BUNDLE_PART, // "The selected bundle directory contains total of %d finished files. Do you also want to move them?"
+	MATCH_ADL, // "ADLSearch"
+	MATCHING_ADL, // "Matching Filelist with ADLSearch, this might take a while if the list is large..."
 	LAST // @DontAdd
 };

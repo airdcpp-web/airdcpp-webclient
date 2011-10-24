@@ -2162,6 +2162,8 @@ if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 					addreleasedir = false;  //removing releasedir here is a waste, we will need to add the same one back anyway.
 				}
 				parent->directories.insert(make_pair(name,dp));
+				setDirty();
+				//Todo remove this message or change it something without so much useless info.
 				LogManager::getInstance()->message("Added new directory name = " + name + " in path " + parent->getRealPath(Util::emptyString));
 				if(addreleasedir) {
 					dp->findDirsRE(false);
