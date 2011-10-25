@@ -109,7 +109,8 @@ public:
 	BundlePtr getMergeBundle(const string& aTarget);
 	int mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle);
 	void mergeFileBundles(BundlePtr aBundle);
-	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, QueueItemList movedItems);
+	void moveBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
+	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void moveFileBundle(BundlePtr aBundle, const string& aTarget) noexcept;
 	BundlePtr createFileBundle(QueueItem* qi);
 	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading = false);
@@ -117,7 +118,7 @@ public:
 	void removeBundle(BundlePtr aBundle, bool finished);
 	void removeBundle(const string bundleToken, bool removeFinished);
 	void removeRunningUser(const string& bundleToken, CID cid, bool finished);
-	bool findBundle(QueueItem* qi, bool allowAdd);
+	BundlePtr findBundle(QueueItem* qi, bool allowAdd);
 	void setBundleDirty(const string& bundleToken);
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
@@ -141,8 +142,8 @@ public:
 	void moveDir(const string& aSource, const string& aTarget, BundleList sourceBundles, bool moveFinished);
 	void removeDir(const string& aSource, BundleList sourceBundles, bool removeFinished);
 	bool move(QueueItem* qs, const string& aTarget, const string& aSource = Util::emptyString) noexcept;
-	void moveQL(QueueItemList ql, const string& aTarget, const string& bundleSource);
-	string convertMovePath(const string& aSource, const string& aTarget, const string& bundleSource);
+	void moveQL(QueueItemList ql, const string& aSource, const string& aTarget);
+	string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
 	void rebuildBundleDirs(BundlePtr aBundle, bool loading = false);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
