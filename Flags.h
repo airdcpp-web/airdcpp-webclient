@@ -5,7 +5,7 @@ namespace dcpp {
 
 class Flags {
 	public:
-		typedef uint16_t MaskType;
+		typedef uint32_t MaskType;
 
 		Flags() : flags(0) { }
 		Flags(const Flags& rhs) : flags(rhs.flags) { }

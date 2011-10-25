@@ -2452,6 +2452,7 @@ void QueueManager::noDeleteFileList(const string& path) {
 void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	bool added = false;
 	bool wantConnection = false;
+	bool matchPartial = false;
 	size_t users = 0;
 
 	{
@@ -2464,24 +2465,31 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
 				try {
+					
 					if(qi->isFinished())
 						break;  // don't add sources to already finished files
 
+						users = qi->countOnlineUsers(); 
+
 					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
+					
+						 //We wont be matching full list due to number of sources but still keep on adding.
+					if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) || (users >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
+						//if we are in adc hub match with partial list
+						if(BOOLSETTING(PARTIAL_MATCH_ADC) && !sr->getUser()->isSet(User::NMDC)) {
+							matchPartial = true;
+							}
 						//if its a rar release add the sources to all files.
-						if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (!BOOLSETTING(PARTIAL_MATCH_ADC) || (sr->getUser()->isSet(User::NMDC)) && regexp.match(sr->getFile(), sr->getFile().length()-4) > 0)) {
+						else if(regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
 							wantConnection = addAlternates(qi, HintedUser(sr->getUser(), sr->getHubURL()));
-						} //else match with partial list
-						else if (!sr->getUser()->isSet(User::NMDC) && !BOOLSETTING(AUTO_SEARCH_AUTO_MATCH)) {
-							string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
-							addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
-						}
-						else
+						} else {
+							// this is how sdc has it, dont add sources and receive wantconnection if we are about to match queue.
 							wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
+							}
 						}
-				
+					}
+
 					added = true;
-					users = qi->countOnlineUsers();
 
 					} catch(const Exception&) {
 					//...
@@ -2489,6 +2497,14 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 				break;
 			}
 		}
+	}
+
+	//moved outside lock range.
+	if(added && matchPartial) {
+		try {
+			string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
+			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
+		}catch(...) { }
 	}
 
 	if(added && BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (users < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
