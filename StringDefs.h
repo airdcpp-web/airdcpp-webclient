@@ -1263,7 +1263,6 @@ enum Strings { // @DontAdd
 	BUNDLE_FILENAME, // "Bundle / Filename"
 	BUNDLE, // "Bundle"
 	REMOVE_BUNDLE, // "Remove bundle from queue"
-	REMOVE_BUNDLE_FINISHED, // "Remove bundle, including finished files"
 	BUNDLE_REMOVED, // "Bundle removed"
 	PARTIAL_SHARING, // "Enable partial bundle/file sharing"
 	SETTINGS_ENABLE_BUNDLES, // "Enable bundles"

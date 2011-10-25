@@ -116,7 +116,7 @@ public:
 	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading = false);
 	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
 	void removeBundle(BundlePtr aBundle, bool finished);
-	void removeBundle(const string bundleToken, bool removeFinished);
+	void removeBundleFiles(BundlePtr aBundle, bool removeFinished);
 	void removeRunningUser(const string& bundleToken, CID cid, bool finished);
 	BundlePtr findBundle(QueueItem* qi, bool allowAdd);
 	void setBundleDirty(const string& bundleToken);
@@ -136,13 +136,12 @@ public:
 	void setBundleAutoPriority(const string& bundleToken) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void changeBundleSource(QueueItem* qi, const HintedUser& aUser, bool add) noexcept;
-	BundleList findBundleFinished(const string& aSource, int& finishedFiles, int& dirBundles, int& fileBundles);
+	BundleList getBundleInfo(const string& aSource, int& finishedFiles, int& dirBundles, int& fileBundles);
 	void handleBundleUpdate(const string& bundleToken);
 
 	void moveDir(const string& aSource, const string& aTarget, BundleList sourceBundles, bool moveFinished);
 	void removeDir(const string& aSource, BundleList sourceBundles, bool removeFinished);
-	bool move(QueueItem* qs, const string& aTarget, const string& aSource = Util::emptyString) noexcept;
-	void moveQL(QueueItemList ql, const string& aSource, const string& aTarget);
+	bool move(QueueItem* qs, const string& aTarget) noexcept;
 	string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
 	void rebuildBundleDirs(BundlePtr aBundle, bool loading = false);
 
