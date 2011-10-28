@@ -2154,14 +2154,17 @@ if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 				Directory::Ptr dp = buildTree(realPath, parent);
 				string name = Util::getLastDir(realPath);
 				bool addreleasedir = true;
+				bool add = true;
 
 				/* if we have already refreshed the bundle directory in, act as a refresh and add all files*/
 				Directory::Map::const_iterator i = parent->directories.find(name);  
 				if(i != parent->directories.end()) {
-					parent->directories.erase(i);
+					add = false;
 					addreleasedir = false;  //removing releasedir here is a waste, we will need to add the same one back anyway.
 				}
-				parent->directories.insert(make_pair(name,dp));
+				if(add)
+					parent->directories.insert(make_pair(name,dp));
+
 				setDirty();
 				//Todo remove this message or change it something without so much useless info.
 				LogManager::getInstance()->message("Added new directory name = " + name + " in path " + parent->getRealPath(Util::emptyString));
