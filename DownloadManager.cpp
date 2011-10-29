@@ -448,7 +448,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
 		}
 		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
-			
 			aConn->setState(UserConnection::STATE_IDLE);
 			QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
 			{

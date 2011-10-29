@@ -36,6 +36,8 @@
 #include "LogManager.h"
 #include "pme.h"
 
+#include "boost/unordered_map.hpp"
+
 namespace dcpp {
 
 STANDARD_EXCEPTION(QueueException);
@@ -119,7 +121,7 @@ public:
 	void removeBundleFiles(BundlePtr aBundle, bool removeFinished);
 	void removeRunningUser(const string& bundleToken, CID cid, bool finished);
 	BundlePtr findBundle(QueueItem* qi, bool allowAdd);
-	void setBundleDirty(const string& bundleToken);
+	void setBundleDirty(BundlePtr aBundle);
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
 	void saveBundle(BundlePtr aBundle);
@@ -144,6 +146,8 @@ public:
 	bool move(QueueItem* qs, const string& aTarget) noexcept;
 	string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
 	void rebuildBundleDirs(BundlePtr aBundle, bool loading = false);
+
+	void setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
@@ -269,15 +273,20 @@ private:
 		void add(QueueItem* qi);
 		void add(QueueItem* qi, const UserPtr& aUser);
 		QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
+		QueueItem* getNextPrioQI(const UserPtr& aUser, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
+		BundlePtr getNextBundle(const UserPtr& aUser, Bundle::Priority minPrio = Bundle::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
 		QueueItemList getRunning(const UserPtr& aUser);
 		void addDownload(QueueItem* qi, Download* d);
 		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
 
-		void remove(QueueItem* qi, bool removeRunning = true);
-		void remove(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
-		void setPriority(QueueItem* qi, QueueItem::Priority p);
+		void removeQI(QueueItem* qi, bool removeRunning = true);
+		void removeQI(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
+		void setQIPriority(QueueItem* qi, QueueItem::Priority p);
 
-		unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
+		void setBundlePriority(BundlePtr aBundle, Bundle::Priority p);
+
+		unordered_map<UserPtr, BundleList, User::Hash>& getBundleList(size_t i)  { return userBundleQueue[i]; }
+		unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }
 		unordered_map<UserPtr, QueueItemList, User::Hash>& getRunning()  { return running; }
 
 		string getLastError() { 
@@ -287,8 +296,10 @@ private:
 		}
 
 	private:
-		/** QueueItems by priority and user (this is where the download order is determined) */
-		unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[QueueItem::LAST];
+		/** Bundles by priority and user (this is where the download order is determined) */
+		unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue[Bundle::LAST];
+		/** High priority QueueItems by user (this is where the download order is determined) */
+		unordered_map<UserPtr, QueueItemList, User::Hash> userPrioQueue;
 		/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 		unordered_map<UserPtr, QueueItemList, User::Hash> running;
 		/** Last error message to sent to TransferView */

@@ -358,4 +358,58 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 	return v;
 }
 
+bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
+	QueueItem::SourceConstIter source = getSource(aUser);
+	dcassert(isSource(aUser));
+	dcassert(!isFinished());
+
+	if(smallSlot && !isSet(QueueItem::FLAG_PARTIAL_LIST) && getSize() > 65792) {
+		//don't even think of stealing our priority channel
+		return false;
+	}
+
+	/*if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
+		// check partial source
+		int64_t blockSize = HashManager::getInstance()->getBlockSize(getTTH());
+		if(blockSize == 0)
+			blockSize = getSize();
+				
+		Segment segment = getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
+		if(allowRemove && segment.getStart() != -1 && segment.getSize() == 0) {
+			// no other partial chunk from this user, remove him from queue
+			//remove(qi, aUser);
+			removeSource(aUser, QueueItem::Source::FLAG_NO_NEED_PARTS);
+			lastError = STRING(NO_NEEDED_PART);
+			break;
+		}
+	} */
+
+	if(isWaiting()) {
+		return true;
+	}
+				
+	// No segmented downloading when getting the tree
+	if(getDownloads()[0]->getType() == Transfer::TYPE_TREE) {
+		return false;
+	}
+	if(!isSet(QueueItem::FLAG_USER_LIST)) {
+
+		int64_t blockSize = HashManager::getInstance()->getBlockSize(getTTH());
+		if(blockSize == 0)
+			blockSize = getSize();
+
+		Segment segment = getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
+		if(segment.getSize() == 0) {
+			lastError = (segment.getStart() == -1 || getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
+			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
+			dcdebug("No segment for %s in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), getTarget().c_str(), blockSize);
+			return false;
+		}
+	} else if (!isWaiting()) {
+		//don't try to create multiple connections for filelists
+		return false;
+	}
+	return true;
+}
+
 }

@@ -139,7 +139,7 @@ public:
 		Flags(aFlag), target(aTarget), maxSegments(1), fileBegin(0),
 		size(aSize), priority(aPriority), added(aAdded),
 		tthRoot(tth), autoPriority(false), nextPublishingTime(0),
-		bundleToken(Util::emptyString)
+		bundle(NULL)
 	{
 		inc();
 		setFlag(FLAG_AUTODROP);
@@ -158,6 +158,7 @@ public:
 
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
+	bool hasSegment(const UserPtr& aUser, string& lastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
 
 	string getFolder() const { return Util::getDir(target, false, false); };
 	SourceList& getSources() { return sources; }
@@ -254,7 +255,7 @@ public:
 	GETSET(Priority, priority, Priority);
 	GETSET(uint8_t, maxSegments, MaxSegments);
 	GETSET(bool, autoPriority, AutoPriority);
-	GETSET(string, bundleToken, BundleToken);
+	GETSET(BundlePtr, bundle, Bundle);
 	
 	QueueItem::Priority calculateAutoPriority() const {
 		if(autoPriority) {

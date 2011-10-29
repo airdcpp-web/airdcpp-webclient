@@ -27,6 +27,8 @@
 #include "QueueItem.h"
 #include "forward.h"
 
+#include "boost/unordered_map.hpp"
+
 namespace dcpp {
 
 using std::string;
@@ -88,7 +90,7 @@ public:
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
 	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
-	GETSET(DownloadList, downloads, Downloads);
+	//GETSET(DownloadList, downloads, Downloads);
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(uint16_t, lastSave, LastSave);
@@ -104,15 +106,15 @@ public:
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
-	DownloadList& getDownloads() { return downloads; }
+	//DownloadList& getDownloads() { return downloads; }
 	StringList& getBundleDirs() { return bundleDirs; }
 
 	SourceIntList sources;
-	//const SourceList& getSources() const { return sources; }
+	const SourceIntList& getSources() const { return sources; }
 	uint64_t getDownloadedBytes() const;
 	QueueItem* findQI(const string& aTarget) const;
-	void addSource(const HintedUser& aUser);
-	void removeSource(const UserPtr& aUser);
+	bool addSource(const HintedUser& aUser);
+	bool removeSource(const UserPtr& aUser);
 
 	bool getFileBundle() {
 		return fileBundle;
@@ -164,21 +166,26 @@ public:
 //private:
 
 	/** All queue items indexed by user */
-	class BundleUserQueue {
-	public:
-		void add(QueueItem* qi);
-		void add(QueueItem* qi, const UserPtr& aUser);
-		QueueItemPtr getNext(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
-		QueueItemList getRunning(const UserPtr& aUser);
+	//class BundleUserQueue {
+	//public:
+		void getQISources(HintedUserList& l);
+		bool isSource(const UserPtr& aUser);
+		void getDownloads(DownloadList& l);
+		//bool isRunning() { return !getDownloads().empty(); }
+		QueueItemList getItems(const UserPtr& aUser) const;
+		void addQueue(QueueItem* qi);
+		void addQueue(QueueItem* qi, const UserPtr& aUser);
+		QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
+		QueueItemList getRunningQIs(const UserPtr& aUser);
 		void addDownload(QueueItem* qi, Download* d);
 		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
 
-		void remove(QueueItem* qi, bool removeRunning = true);
-		void remove(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
+		void removeQueue(QueueItem* qi, bool removeRunning = true);
+		bool removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
 		//void setPriority(QueueItem* qi, QueueItem::Priority p);
 
-		unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
-		unordered_map<UserPtr, QueueItemList, User::Hash>& getRunning()  { return running; }
+		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
+		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }
 
 		//string getLastError() { 
 		//	string tmp = lastError;
@@ -188,15 +195,15 @@ public:
 
 	private:
 		/** QueueItems by priority and user (this is where the download order is determined) */
-		unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[LAST];
+		boost::unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[LAST];
 		/** Currently running downloads, a QueueItem is always either here or in the userQueue */
-		unordered_map<UserPtr, QueueItemList, User::Hash> running;
+		boost::unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
 		/** Last error message to sent to TransferView */
 		//string lastError;
-	};
+	//};
 
-	BundleUserQueue userQueue;
-	const BundleUserQueue& getUserQueue() const { return userQueue; }
+	//BundleUserQueue userQueue;
+	//const BundleUserQueue& getUserQueue() const { return userQueue; }
 };
 
 }
