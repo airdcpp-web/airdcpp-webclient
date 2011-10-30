@@ -338,10 +338,10 @@ int SearchManager::UdpQueue::run() {
 			c.getParameters().erase(c.getParameters().begin());			
 			
 			if (x.compare(1, 4, "UBN ") == 0) {
-				//LogManager::getInstance()->message("GOT UBN UDP: " + x);
+				LogManager::getInstance()->message("GOT UBN UDP: " + x);
 				UploadManager::getInstance()->onUBN(c);
 			} else {
-				//LogManager::getInstance()->message("GOT UBD UDP: " + x);
+				LogManager::getInstance()->message("GOT UBD UDP: " + x);
 				UploadManager::getInstance()->onUBD(c);
 			}
 		}

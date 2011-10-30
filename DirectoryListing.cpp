@@ -351,7 +351,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 			} else {
 				sort(lst.begin(), lst.end(), Directory::DirSort());
 				for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-					aBundle = BundlePtr(new Bundle(target, false));
+					aBundle = BundlePtr(new Bundle(target + (*j)->getName() + PATH_SEPARATOR, false));
 					aBundle->setPriority((Bundle::Priority)prio);
 					//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
 					download(*j, target, highPrio, prio, false, false, aBundle);

@@ -763,6 +763,14 @@ void UploadManager::setBundle(const string aToken, UploadBundlePtr aBundle) {
 			return;
 		}
 	}
+
+	for(UploadList::const_iterator i = delayUploads.begin(); i != delayUploads.end(); ++i) {
+		if ((*i)->getUserConnection().getToken() == aToken) {
+			Upload* u = *i;
+			u->setBundle(aBundle);
+			return;
+		}
+	}
 	//LogManager::getInstance()->message("UPLOAD BUNDLE, SETBUNDLE FAILED: " + aToken);
 }
 
@@ -888,7 +896,9 @@ void UploadManager::removeUpload(Upload* aUpload, bool delay) {
 		Lock l(cs);
 		delayUploads.push_back(aUpload);
 	} else {
-		findRemovedToken(aUpload->getUserConnection().getToken());
+		if (aUpload->getBundle()) {
+			findRemovedToken(aUpload->getUserConnection().getToken());
+		}
 		delete aUpload;
 	}
 }
@@ -1023,7 +1033,7 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 
 	if(!u->isSet(Upload::FLAG_CHUNKED) && !u->getBundle()) {
 		logUpload(u);
-		removeUpload(u);
+		removeUpload(u, true);
 	} else {
 		if (u->getBundle()) {
 			logUpload(u);
