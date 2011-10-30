@@ -1087,8 +1087,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Operator", 
 "Other users", 
 "Max resize lines", 
-"Don't share empty directories", 
-"Only share fully hashed directories", 
 "Use Dupe Color in Search", 
 "Russian", 
 "Trying to Download File already shared! File: ", 
@@ -1295,6 +1293,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The selected bundle directory contains total of %d finished files. Do you also want to move them?", 
 "ADLSearch", 
 "Matching Filelist with ADLSearch, this might take a while if the list is large...", 
+"Show Hashing Files in systemlog", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2382,8 +2381,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ProppageOperator", 
 "ProppageNorm", 
 "MaxResizeLines", 
-"DontShareEmptyDirs", 
-"OnlyShareFullDirs", 
 "SettingsDupeSearch", 
 "SettingsLrus", 
 "FileAlreadyShared", 
@@ -2590,4 +2587,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ConfirmMoveDirFinishedBundlePart", 
 "MatchAdl", 
 "MatchingAdl", 
+"LogHashing", 
 };

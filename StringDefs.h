@@ -1094,8 +1094,6 @@ enum Strings { // @DontAdd
 	PROPPAGE_OPERATOR, // "Operator"
 	PROPPAGE_NORM, // "Other users"
 	MAX_RESIZE_LINES, // "Max resize lines"
-	DONT_SHARE_EMPTY_DIRS, // "Don't share empty directories"
-	ONLY_SHARE_FULL_DIRS, // "Only share fully hashed directories"
 	SETTINGS_DUPE_SEARCH, // "Use Dupe Color in Search"
 	SETTINGS_LRUS, // "Russian"
 	FILE_ALREADY_SHARED, // "Trying to Download File already shared! File: "
@@ -1302,5 +1300,6 @@ enum Strings { // @DontAdd
 	CONFIRM_MOVE_DIR_FINISHED_BUNDLE_PART, // "The selected bundle directory contains total of %d finished files. Do you also want to move them?"
 	MATCH_ADL, // "ADLSearch"
 	MATCHING_ADL, // "Matching Filelist with ADLSearch, this might take a while if the list is large..."
+	LOG_HASHING, // "Show Hashing Files in systemlog"
 	LAST // @DontAdd
 };

@@ -107,8 +107,7 @@ ShareManager::Directory::Directory(const string& aName, const ShareManager::Dire
 	size(0),
 	name(aName),
 	parent(aParent.get()),
-	fileTypes(1 << SearchManager::TYPE_DIRECTORY),
-	fullyHashed(true)//ApexDC
+	fileTypes(1 << SearchManager::TYPE_DIRECTORY)
 {
 }
 
@@ -1056,8 +1055,6 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			}catch(...) { }
 			
 		}
-
-		
 /*
 		if(i->isLink())
  			continue;
@@ -1076,14 +1073,10 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 #endif
 
 			if((stricmp(newName, SETTING(TEMP_DOWNLOAD_DIRECTORY)) != 0) && shareFolder(newName)) {
-				//ApexDC
 				Directory::Ptr tmpDir = buildTree(newName, dir);
 				//add the date to the last dir
 				tmpDir->setLastWrite(Util::getDateTime(i->getLastWriteTime()));
-
-				if((!BOOLSETTING(DONT_SHARE_EMPTY_DIRS) || tmpDir->countFiles() > 0) && (!BOOLSETTING(ONLY_SHARE_FULL_DIRS) || tmpDir->getFullyHashed())) {
-					dir->directories[name] = tmpDir;
-				}
+				dir->directories[name] = tmpDir;
 			}
 		} else {
 			// Not a directory, assume it's a file...make sure we're not sharing the settings file...
@@ -1101,12 +1094,8 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 					continue;
 				}
 				try {
-					//ApexDC
-					if(HashManager::getInstance()->checkTTH(fileName, size, i->getLastWriteTime())) {
+					if(HashManager::getInstance()->checkTTH(fileName, size, i->getLastWriteTime())) 
 						lastFileIter = dir->files.insert(lastFileIter, Directory::File(name, size, dir, HashManager::getInstance()->getTTH(fileName, size)));
-					} else {
-						dir->setFullyHashed(false);
-					}
 				} catch(const HashException&) {
 				}
 			}
@@ -2130,28 +2119,32 @@ void ShareManager::on(QueueManagerListener::FileMoved, const string& n) noexcept
 void ShareManager::on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept {
 	
 if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
-	if(!aBundle->getFileBundle()) {
+		
 		string path = aBundle->getTarget();
 		
 		RLock l(cs);
 		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
-
+			
 			if(strnicmp(i->first, path, i->first.size()) == 0 && path[i->first.size() - 1] == PATH_SEPARATOR) { //check if we have a share folder.
-				//LogManager::getInstance()->message("bundle fullpath = " + path);
+					
+			if(!aBundle->getFileBundle()) {
+				
 				pair<Directory::Ptr, string> p = findDirectory(path);
 
 				if(!p.first || p.second.empty())
 					return;
 
-				//LogManager::getInstance()->message("realpath to add = " + p.second);
-				//LogManager::getInstance()->message("parent name where to add = " + p.first->getName());
+
 				string realPath = p.second;
 				
 				if(realPath[realPath.size() - 1] != PATH_SEPARATOR)  //add the missing path separator
 					realPath += PATH_SEPARATOR;
 				
 				Directory::Ptr parent = p.first;
+
+				
 				Directory::Ptr dp = buildTree(realPath, parent);
+
 				string name = Util::getLastDir(realPath);
 				bool addreleasedir = true;
 				bool add = true;
@@ -2162,17 +2155,28 @@ if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 					add = false;
 					addreleasedir = false;  //removing releasedir here is a waste, we will need to add the same one back anyway.
 				}
-				if(add)
+				if(add) {
 					parent->directories.insert(make_pair(name,dp));
-
-				setDirty();
-				//Todo remove this message or change it something without so much useless info.
-				LogManager::getInstance()->message("Added new directory name = " + name + " in path " + parent->getRealPath(Util::emptyString));
+				}
+				setDirty(); 
+			
+				LogManager::getInstance()->message("Adding new directory... " + name);
+				
 				if(addreleasedir) {
 					dp->findDirsRE(false);
 					sortReleaseList();
 				}
+
+				} else { //filebundle
+					
+					try {
+					// Schedule for hashing, it'll be added automatically later on...
+					HashManager::getInstance()->checkTTH(path, File::getSize(path), 0);
+				} catch(const Exception&) {
+					// Not a vital feature...
+					}
 				}
+			break;
 			}
 		}
 	}
@@ -2216,6 +2220,7 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 			Directory::File* f = const_cast<Directory::File*>(&(*i));
 			f->setTTH(root);
 			tthIndex.insert(make_pair(f->getTTH(), i));
+
 		} else {
 			string name = Util::getFileName(fname);
 			int64_t size = File::getSize(fname);

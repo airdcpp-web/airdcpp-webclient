@@ -265,7 +265,6 @@ private:
 		GETSET(string, name, Name);
 		GETSET(string, rootpath, RootPath); //saved only for root items.
 		GETSET(Directory*, parent, Parent);
-		GETSET(bool, fullyHashed, FullyHashed); //ApexDC
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 

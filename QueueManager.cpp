@@ -1504,7 +1504,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 
 	dcassert(aBundle);
 	if (aBundle->getQueueItems().empty()) {
-		getInstance()->fire(QueueManagerListener::BundleFilesMoved(), aBundle);
+		
 		if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
 			ShareScannerManager::getInstance()->scanBundle(aBundle);
 		} else {
@@ -1513,6 +1513,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
 			LogManager::getInstance()->message(tmp);
 		}
+		getInstance()->fire(QueueManagerListener::BundleFilesMoved(), aBundle);
 	}
 }
 

@@ -76,21 +76,24 @@ void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const T
 		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError());
 		return;
 	}
+	
+	if(BOOLSETTING(LOG_HASHING)) {
+			string fn = aFileName;
+		if (count(fn.begin(), fn.end(), PATH_SEPARATOR) >= 2) {
+			string::size_type i = fn.rfind(PATH_SEPARATOR);
+			i = fn.rfind(PATH_SEPARATOR, i - 1);
+			fn.erase(0, i);
+			fn.insert(0, "...");
+		}
+	
+		if (speed > 0) {
+			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)");
+		} else {
+			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn);
+		}
+	}
 
 	fire(HashManagerListener::TTHDone(), aFileName, tth.getRoot());
-
-	string fn = aFileName;
-	if (count(fn.begin(), fn.end(), PATH_SEPARATOR) >= 2) {
-		string::size_type i = fn.rfind(PATH_SEPARATOR);
-		i = fn.rfind(PATH_SEPARATOR, i - 1);
-		fn.erase(0, i);
-		fn.insert(0, "...");
-	}
-	if (speed > 0) {
-		LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)");
-	} else {
-		LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn);
-	}
 }
 
 void HashManager::HashStore::addFile(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed) {

@@ -143,7 +143,7 @@ const string SettingsManager::settingTags[] =
 	"LangSwitch", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp",
 	"OverlapChunks", "MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "OpenSystemLog",
-	"FirstRun", "LastSearchFiletype", "MaxResizeLines", "DontShareEmptyDirs", "OnlyShareFullDirs",
+	"FirstRun", "LastSearchFiletype", "MaxResizeLines", 
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
@@ -156,7 +156,7 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist", "EnableBundles",
-	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue",
+	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -640,8 +640,6 @@ SettingsManager::SettingsManager()
 	setDefault(USE_OLD_SHARING_UI, true);
 	setDefault(LAST_SEARCH_FILETYPE, 0);
 	setDefault(MAX_RESIZE_LINES, 2);
-	setDefault(DONT_SHARE_EMPTY_DIRS, false);
-	setDefault(ONLY_SHARE_FULL_DIRS, false);
 	setDefault(DUPE_SEARCH, true);
 	setDefault(PASSWD_PROTECT, false);
 	setDefault(PASSWD_PROTECT_TRAY, false);
@@ -702,6 +700,7 @@ SettingsManager::SettingsManager()
 	setDefault(USE_PARTIAL_SHARING, true);
 	setDefault(POPUP_BUNDLE_DLS, true);
 	setDefault(POPUP_BUNDLE_ULS, false);
+	setDefault(LOG_HASHING, true);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
