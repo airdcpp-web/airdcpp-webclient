@@ -358,7 +358,7 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 	return v;
 }
 
-bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
+bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
 	QueueItem::SourceConstIter source = getSource(aUser);
 	dcassert(isSource(aUser));
 	dcassert(!isFinished());
@@ -367,22 +367,6 @@ bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, Priority min
 		//don't even think of stealing our priority channel
 		return false;
 	}
-
-	/*if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
-		// check partial source
-		int64_t blockSize = HashManager::getInstance()->getBlockSize(getTTH());
-		if(blockSize == 0)
-			blockSize = getSize();
-				
-		Segment segment = getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
-		if(allowRemove && segment.getStart() != -1 && segment.getSize() == 0) {
-			// no other partial chunk from this user, remove him from queue
-			//remove(qi, aUser);
-			removeSource(aUser, QueueItem::Source::FLAG_NO_NEED_PARTS);
-			lastError = STRING(NO_NEEDED_PART);
-			break;
-		}
-	} */
 
 	if(isWaiting()) {
 		return true;

@@ -273,8 +273,8 @@ private:
 		void add(QueueItem* qi);
 		void add(QueueItem* qi, const UserPtr& aUser);
 		QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
-		QueueItem* getNextPrioQI(const UserPtr& aUser, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
-		BundlePtr getNextBundle(const UserPtr& aUser, Bundle::Priority minPrio = Bundle::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
+		QueueItem* getNextPrioQI(const UserPtr& aUser, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
+		BundlePtr getNextBundle(const UserPtr& aUser, Bundle::Priority minPrio = Bundle::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 		QueueItemList getRunning(const UserPtr& aUser);
 		void addDownload(QueueItem* qi, Download* d);
 		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
@@ -285,9 +285,9 @@ private:
 
 		void setBundlePriority(BundlePtr aBundle, Bundle::Priority p);
 
-		unordered_map<UserPtr, BundleList, User::Hash>& getBundleList(size_t i)  { return userBundleQueue[i]; }
-		unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }
-		unordered_map<UserPtr, QueueItemList, User::Hash>& getRunning()  { return running; }
+		boost::unordered_map<UserPtr, BundleList, User::Hash>& getBundleList(size_t i)  { return userBundleQueue[i]; }
+		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }
+		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunning()  { return running; }
 
 		string getLastError() { 
 			string tmp = lastError;
@@ -297,11 +297,11 @@ private:
 
 	private:
 		/** Bundles by priority and user (this is where the download order is determined) */
-		unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue[Bundle::LAST];
+		boost::unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue[Bundle::LAST];
 		/** High priority QueueItems by user (this is where the download order is determined) */
-		unordered_map<UserPtr, QueueItemList, User::Hash> userPrioQueue;
+		boost::unordered_map<UserPtr, QueueItemList, User::Hash> userPrioQueue;
 		/** Currently running downloads, a QueueItem is always either here or in the userQueue */
-		unordered_map<UserPtr, QueueItemList, User::Hash> running;
+		boost::unordered_map<UserPtr, QueueItemList, User::Hash> running;
 		/** Last error message to sent to TransferView */
 		string lastError;
 	};

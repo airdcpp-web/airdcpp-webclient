@@ -139,20 +139,29 @@ void Bundle::addQueue(QueueItem* qi) {
 	}
 }
 
-void Bundle::addQueue(QueueItem* qi, const UserPtr& aUser) {
+bool Bundle::addQueue(QueueItem* qi, const UserPtr& aUser) {
+	bool newUser = false;
 	auto& l = userQueue[qi->getPriority()][aUser];
-	//if (l.empty()){
+	if (l.empty()) {
+		newUser = true;
+		for(int i = 0; i < Bundle::LAST; ++i) {
+			auto j = userQueue[i].find(aUser);
+			if(j != userQueue[i].end() && i != qi->getPriority()) {
+				newUser = false;
+			}
+		}
 	//	LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, add new user " + aUser->getCID().toBase32());
-	//}
+	}
 	if(qi->getDownloadedBytes() > 0 ) {
 		l.push_front(qi);
 	} else {
 		l.push_back(qi);
 	}
+	return newUser;
 	//LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, total items for the user " + aUser->getCID().toBase32() + ": " + Util::toString(l.size()));
 }
 
-QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
+QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
 	int p = QueueItem::LAST - 1;
 	//lastError = Util::emptyString;
 
@@ -162,58 +171,9 @@ QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority m
 			dcassert(!i->second.empty());
 			for(auto j = i->second.begin(); j != i->second.end(); ++j) {
 				QueueItem* qi = *j;
-				
-				QueueItem::SourceConstIter source = qi->getSource(aUser);
-				/*user is not a source anymore?? removed but still in userqueue?
-				item just finished, dont go further?, pick another one.*/
-				if(!qi->isSource(aUser) || qi->isFinished())
-					continue;
-
-				if(smallSlot && !qi->isSet(QueueItem::FLAG_PARTIAL_LIST) && qi->getSize() > 65792) {
-					//don't even think of stealing our priority channel
-					continue;
-				}
-
-				if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
-					// check partial source
-					int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-					if(blockSize == 0)
-						blockSize = qi->getSize();
-					
-					Segment segment = qi->getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
-					if(allowRemove && segment.getStart() != -1 && segment.getSize() == 0) {
-						// no other partial chunk from this user, remove him from queue
-						removeQueue(qi, aUser);
-						//qi->removeSource(aUser, QueueItem::Source::FLAG_NO_NEED_PARTS);
-						aLastError = STRING(NO_NEEDED_PART);
-						p++;
-						break;
-					}
-				}
-
-				if(qi->isWaiting()) {
+				if (qi->hasSegment(aUser, aLastError, wantedSize, lastSpeed, smallSlot)) {
 					return qi;
 				}
-				
-				// No segmented downloading when getting the tree
-				if(qi->getDownloads()[0]->getType() == Transfer::TYPE_TREE) {
-					continue;
-				}
-				if(!qi->isSet(QueueItem::FLAG_USER_LIST)) {
-
-					int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-					if(blockSize == 0)
-						blockSize = qi->getSize();
-
-					Segment segment = qi->getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
-					if(segment.getSize() == 0) {
-						aLastError = (segment.getStart() == -1 || qi->getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
-						//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
-						dcdebug("No segment for %s in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), qi->getTarget().c_str(), blockSize);
-						continue;
-					}
-				}
-				return qi;
 			}
 		}
 		p--;
@@ -344,6 +304,12 @@ bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning
 
 	if(l.empty()) {
 		ulm.erase(j);
+		for(int i = 0; i < Bundle::LAST; ++i) {
+			auto j = userQueue[i].find(aUser);
+			if(j != userQueue[i].end()) {
+				return false;
+			}
+		}
 		return true;
 	}
 	return false;

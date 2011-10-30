@@ -320,107 +320,64 @@ void QueueManager::UserQueue::add(QueueItem* qi, const UserPtr& aUser) {
 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
-		bundle->addQueue(qi, aUser);
-		//bundles can't be added here with the priority DEFAULT
-		auto& s = userBundleQueue[bundle->getPriority() == Bundle::DEFAULT ? Bundle::LOW : bundle->getPriority()];
-		auto l = s.find(aUser);
-
-		if (l != s.end()) {
-			for (auto i = l->second.begin(); i != l->second.end(); ++i) {
-				BundlePtr b = *i;
-				if (b->getToken() == qi->getBundle()->getToken()) {
-					return;
-				}
-			}
-			l->second.push_back(bundle);
-			//LogManager::getInstance()->message("New bundle " + bundle->getName() + " has been added for old user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(l->second.size()));
+		if (bundle->addQueue(qi, aUser)) {
+			//bundles can't be added here with the priority DEFAULT
+			auto& s = userBundleQueue[bundle->getPriority() == Bundle::DEFAULT ? Bundle::LOW : bundle->getPriority()][aUser];
+			s.push_back(bundle);
+			//LogManager::getInstance()->message("Add new bundle " + bundle->getName() + " for an user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(s.size()));
 		} else {
-			//LogManager::getInstance()->message("Nundle " + bundle->getName() + " has been added for new user: " + aUser->getCID().toBase32());
-			BundleList bl;
-			bl.push_back(bundle);
-			s[aUser] = bl;
+			//LogManager::getInstance()->message("Don't add new bundle " + bundle->getName() + " for an user: " + aUser->getCID().toBase32());
 		}
 	}
 }
 
 QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
-	QueueItem* qi = getNextPrioQI(aUser, 0, 0, false, smallSlot);
-	if(qi) {
-		return qi;
+	QueueItem* qi = getNextPrioQI(aUser, 0, 0, smallSlot);
+	if(!qi) {
+		BundlePtr bundle = getNextBundle(aUser, (Bundle::Priority)minPrio, 0, 0, smallSlot);
+		if (bundle) {
+			qi = bundle->getNextQI(aUser, lastError, (Bundle::Priority)minPrio, wantedSize, lastSpeed, smallSlot);
+		}
 	}
 
-	BundlePtr bundle = getNextBundle(aUser, (Bundle::Priority)minPrio, 0, 0, false, smallSlot);
-	if (bundle) {
-		qi = bundle->getNextQI(aUser, lastError, (Bundle::Priority)minPrio, wantedSize, lastSpeed, allowRemove, smallSlot);
+	//Check partial sources here
+	if (qi && allowRemove) {
+		QueueItem::SourceConstIter source = qi->getSource(aUser);
+		if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
+			int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
+			if(blockSize == 0)
+				blockSize = qi->getSize();
+					
+			Segment segment = qi->getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
+			if(segment.getStart() != -1 && segment.getSize() == 0) {
+				// no other partial chunk from this user, remove him from queue
+				removeQI(qi, aUser);
+				qi->removeSource(aUser, QueueItem::Source::FLAG_NO_NEED_PARTS);
+				lastError = STRING(NO_NEEDED_PART);
+				qi = NULL;
+			}
+		}
 	}
+
 	return qi;
 }
 
-QueueItem* QueueManager::UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
+QueueItem* QueueManager::UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
 	lastError = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
 		for(auto j = i->second.begin(); j != i->second.end(); ++j) {
 			QueueItem* qi = *j;
-
-			dcassert(qi->isSource(aUser));
-			dcassert(!qi->isFinished());
-			QueueItem::SourceConstIter source = qi->getSource(aUser);
-
-			if(smallSlot && !qi->isSet(QueueItem::FLAG_PARTIAL_LIST) && qi->getSize() > 65792) {
-				//don't even think of stealing our priority channel
-				continue;
-			}
-
-			if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
-				// check partial source
-				int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-				if(blockSize == 0)
-					blockSize = qi->getSize();
-					
-				Segment segment = qi->getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
-				if(allowRemove && segment.getStart() != -1 && segment.getSize() == 0) {
-					// no other partial chunk from this user, remove him from queue
-					removeQI(qi, aUser);
-					qi->removeSource(aUser, QueueItem::Source::FLAG_NO_NEED_PARTS);
-					lastError = STRING(NO_NEEDED_PART);
-					break;
-				}
-			}
-
-			if(qi->isWaiting()) {
+			if (qi->hasSegment(aUser, lastError, wantedSize, lastSpeed, smallSlot)) {
 				return qi;
 			}
-				
-			// No segmented downloading when getting the tree
-			if(qi->getDownloads()[0]->getType() == Transfer::TYPE_TREE) {
-				continue;
-			}
-			if(!qi->isSet(QueueItem::FLAG_USER_LIST)) {
-
-				int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-				if(blockSize == 0)
-					blockSize = qi->getSize();
-
-				Segment segment = qi->getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
-				if(segment.getSize() == 0) {
-					lastError = (segment.getStart() == -1 || qi->getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
-					//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
-					dcdebug("No segment for %s in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), qi->getTarget().c_str(), blockSize);
-					continue;
-				}
-			} else if (!qi->isWaiting()) {
-				//don't try to create multiple connections for filelists
-				continue;
-			}
-			return qi;
 		}
 	}
 	return NULL;
 }
 
-BundlePtr QueueManager::UserQueue::getNextBundle(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
+BundlePtr QueueManager::UserQueue::getNextBundle(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
 	int p = Bundle::LAST - 1;
 	lastError = Util::emptyString;
 
@@ -432,7 +389,7 @@ BundlePtr QueueManager::UserQueue::getNextBundle(const UserPtr& aUser, Bundle::P
 				BundlePtr bundle = *j;
 				
 				//QueueItem::SourceConstIter source = qi->getSource(aUser);
-				if (bundle->getNextQI(aUser, lastError, Bundle::LOWEST, wantedSize, lastSpeed, allowRemove, smallSlot)) {
+				if (bundle->getNextQI(aUser, lastError, Bundle::LOWEST, wantedSize, lastSpeed, smallSlot)) {
 					return bundle;
 				}
 			}
@@ -551,11 +508,13 @@ void QueueManager::UserQueue::removeQI(QueueItem* qi, const UserPtr& aUser, bool
 			} else {
 				//LogManager::getInstance()->message("Remove bundle " + bundle->getName() + " from user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(l.size()));
 			}
+			//LogManager::getInstance()->message("Remove bundle " + bundle->getName() + " from an user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(l.size()));
+		} else {
+			//LogManager::getInstance()->message("Don't remove bundle " + bundle->getName() + " from an user: " + aUser->getCID().toBase32());
 		}
 	}
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
-		//auto& ulm = userPrioQueue[aUser];
 		auto j = userPrioQueue.find(aUser);
 		dcassert(j != userPrioQueue.end());
 		auto& l = j->second;
@@ -601,31 +560,8 @@ void QueueManager::UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Prior
 		}
 
 		//insert new
-		/*ulm = userBundleQueue[p];
-		j = ulm.find(aUser);
-		if (j != ulm.end()) {
-			l = j->second;
-			l.push_back(aBundle);
-		} else {
-			auto& a = userBundleQueue[p][aUser];
-			a.push_back(aBundle);
-		} */
-		auto& ulm2 = userBundleQueue[p];
-		auto a = ulm2.find(aUser);
-
-		if (a != ulm2.end()) {
-			/*for (auto i = a->second.begin(); i != a->second.end(); ++i) {
-				BundlePtr b = *i;
-				if (b->getToken() == qi->getBundle()->getToken()) {
-					return;
-				}
-			} */
-			a->second.push_back(aBundle);
-		} else {
-			BundleList bl;
-			bl.push_back(aBundle);
-			ulm2[aUser] = bl;
-		}
+		auto& ulm2 = userBundleQueue[p][aUser];
+		ulm2.push_back(aBundle);
 		//for(auto y = ulm2.begin(); y != ulm2.end(); ++y) {
 		//	LogManager::getInstance()->message("NEW PRIO ULM CID: " + (*y).first->getCID().toBase32());
 		//}
@@ -1224,13 +1160,13 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 
 QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSlot) noexcept {
 	Lock l(cs);
-	QueueItem* qi = userQueue.getNextPrioQI(aUser, 0, 0, false, smallSlot);
+	QueueItem* qi = userQueue.getNextPrioQI(aUser, 0, 0, smallSlot);
 	if(qi) {
 		dcassert(qi->getPriority() == QueueItem::HIGHEST);
 		return QueueItem::HIGHEST;
 	}
 
-	BundlePtr bundle = userQueue.getNextBundle(aUser, Bundle::LOWEST, 0, 0, false, smallSlot);
+	BundlePtr bundle = userQueue.getNextBundle(aUser, Bundle::LOWEST, 0, 0, smallSlot);
 	if (bundle) {
 		return (QueueItem::Priority)bundle->getPriority();
 	}
@@ -2107,19 +2043,20 @@ void QueueManager::setBundlePriority(const string& bundleToken, QueueItem::Prior
 			//LogManager::getInstance()->message("Prio not changed: " + Util::toString(oldPrio));
 			return;
 		}
-		userQueue.setBundlePriority(bundle, (Bundle::Priority)p);
+		{
+			Lock l (cs);
+			userQueue.setBundlePriority(bundle, (Bundle::Priority)p);
+		}
 		bundle->setAutoPriority(false);
 		if (p == Bundle::PAUSED) {
 			//LogManager::getInstance()->message("Pausing bundle...");
-			for(auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
-				DownloadManager::getInstance()->abortDownload((*i)->getTarget());
-			}
-			/*DownloadList& disconnect = bundle->getDownloads();
+			DownloadList disconnect;
+			bundle->getDownloads(disconnect);
 			for(auto i = disconnect.begin(); i != disconnect.end(); ++i) {
-				LogManager::getInstance()->message("Disconnecting download!");
+				//LogManager::getInstance()->message("Disconnecting download!");
 				Download* d = *i;
 				d->getUserConnection().disconnect(true);
-			} */
+			}
 		} else if (oldPrio == Bundle::PAUSED) {
 			//LogManager::getInstance()->message("Starting paused bundle");
 			HintedUserList sources;

@@ -174,8 +174,8 @@ public:
 		//bool isRunning() { return !getDownloads().empty(); }
 		QueueItemList getItems(const UserPtr& aUser) const;
 		void addQueue(QueueItem* qi);
-		void addQueue(QueueItem* qi, const UserPtr& aUser);
-		QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
+		bool addQueue(QueueItem* qi, const UserPtr& aUser);
+		QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 		QueueItemList getRunningQIs(const UserPtr& aUser);
 		void addDownload(QueueItem* qi, Download* d);
 		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
