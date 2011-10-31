@@ -196,10 +196,6 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		u->getUser()->setFlag(User::TLS);
 	}
 
-	if(u->getIdentity().supports(BNDL_FEATURE)) {
-		u->getUser()->setFlag(User::BUNDLES);
-	}
-
 	if(u->getUser() == getMyIdentity().getUser()) {
 		state = STATE_NORMAL;
 		setAutoReconnect(true);

@@ -745,12 +745,17 @@ void DownloadManager::removeDownload(Download* d) {
 	}
 }
 
-void DownloadManager::abortDownload(const string& aTarget) {
+void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser) {
 	Lock l(cs);
 	
 	for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
 		Download* d = *i;
 		if(d->getPath() == aTarget) {
+			if (aUser) {
+				if (d->getUser() != aUser) {
+					continue;
+				}
+			}
 			dcdebug("Trying to close connection for download 0x%X\n", d);
 			d->getUserConnection().disconnect(true);
 		}

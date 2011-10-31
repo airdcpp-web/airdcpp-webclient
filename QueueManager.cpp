@@ -311,10 +311,10 @@ void QueueManager::UserQueue::add(QueueItem* qi) {
 	}
 }
 
-void QueueManager::UserQueue::add(QueueItem* qi, const UserPtr& aUser) {
+void QueueManager::UserQueue::add(QueueItem* qi, const HintedUser& aUser) {
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
-		auto& l = userPrioQueue[aUser];
+		auto& l = userPrioQueue[aUser.user];
 
 		if(qi->getDownloadedBytes() > 0 ) {
 			l.push_front(qi);
@@ -325,9 +325,9 @@ void QueueManager::UserQueue::add(QueueItem* qi, const UserPtr& aUser) {
 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
-		if (bundle->addQueue(qi, aUser)) {
+		if (bundle->addQueue(qi, aUser.user)) {
 			//bundles can't be added here with the priority DEFAULT
-			auto& s = userBundleQueue[bundle->getPriority() == Bundle::DEFAULT ? Bundle::LOW : bundle->getPriority()][aUser];
+			auto& s = userBundleQueue[bundle->getPriority() == Bundle::DEFAULT ? Bundle::LOW : bundle->getPriority()][aUser.user];
 			s.push_back(bundle);
 			//LogManager::getInstance()->message("Add new bundle " + bundle->getName() + " for an user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(s.size()));
 		} else {
@@ -339,10 +339,7 @@ void QueueManager::UserQueue::add(QueueItem* qi, const UserPtr& aUser) {
 QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
 	QueueItem* qi = getNextPrioQI(aUser, 0, 0, smallSlot);
 	if(!qi) {
-		BundlePtr bundle = getNextBundle(aUser, (Bundle::Priority)minPrio, 0, 0, smallSlot);
-		if (bundle) {
-			qi = bundle->getNextQI(aUser, lastError, (Bundle::Priority)minPrio, wantedSize, lastSpeed, smallSlot);
-		}
+		qi = getNextBundleQI(aUser, (Bundle::Priority)minPrio, 0, 0, smallSlot);
 	}
 
 	//Check partial sources here
@@ -367,14 +364,14 @@ QueueItem* QueueManager::UserQueue::getNext(const UserPtr& aUser, QueueItem::Pri
 	return qi;
 }
 
-QueueItem* QueueManager::UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
+QueueItem* QueueManager::UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool listAll) {
 	lastError = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
 		for(auto j = i->second.begin(); j != i->second.end(); ++j) {
 			QueueItem* qi = *j;
-			if (qi->hasSegment(aUser, lastError, wantedSize, lastSpeed, smallSlot)) {
+			if (qi->hasSegment(aUser, lastError, wantedSize, lastSpeed, smallSlot) || listAll) {
 				return qi;
 			}
 		}
@@ -382,7 +379,7 @@ QueueItem* QueueManager::UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t 
 	return NULL;
 }
 
-BundlePtr QueueManager::UserQueue::getNextBundle(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
+QueueItem* QueueManager::UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
 	int p = Bundle::LAST - 1;
 	lastError = Util::emptyString;
 
@@ -391,11 +388,9 @@ BundlePtr QueueManager::UserQueue::getNextBundle(const UserPtr& aUser, Bundle::P
 		if(i != userBundleQueue[p].end()) {
 			dcassert(!i->second.empty());
 			for(auto j = i->second.begin(); j != i->second.end(); ++j) {
-				BundlePtr bundle = *j;
-				
-				//QueueItem::SourceConstIter source = qi->getSource(aUser);
-				if (bundle->getNextQI(aUser, lastError, Bundle::LOWEST, wantedSize, lastSpeed, smallSlot)) {
-					return bundle;
+				QueueItem* qi = (*j)->getNextQI(aUser, lastError, minPrio, wantedSize, lastSpeed, smallSlot);
+				if (qi) {
+					return qi;
 				}
 			}
 		}
@@ -406,16 +401,9 @@ BundlePtr QueueManager::UserQueue::getNextBundle(const UserPtr& aUser, Bundle::P
 
 void QueueManager::UserQueue::addDownload(QueueItem* qi, Download* d) {
 	qi->getDownloads().push_back(d);
-
-	auto i = running.find(d->getUser());
-	if (i != running.end()) {
-		i->second.push_back(qi);
-		//LogManager::getInstance()->message("Running size for the user: " + Util::toString(i->second.size()));
-	} else {
-		QueueItemList tmp;
-		tmp.push_back(qi);
-		running[d->getUser()] = tmp;
-	}
+	auto& j = running[d->getUser()];
+	j.push_back(qi);
+	//LogManager::getInstance()->message("addDownload, Running size for the user: " + Util::toString(j.size()));
 }
 
 void QueueManager::UserQueue::removeDownload(QueueItem* qi, const UserPtr& user, const string& token) {
@@ -1174,11 +1162,11 @@ QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSl
 	if(qi) {
 		dcassert(qi->getPriority() == QueueItem::HIGHEST);
 		return QueueItem::HIGHEST;
-	}
-
-	BundlePtr bundle = userQueue.getNextBundle(aUser, Bundle::LOWEST, 0, 0, smallSlot);
-	if (bundle) {
-		return (QueueItem::Priority)bundle->getPriority();
+	} else {
+		qi = userQueue.getNextBundleQI(aUser, Bundle::LOWEST, 0, 0, smallSlot);
+		if (qi) {
+			return (QueueItem::Priority)qi->getBundle()->getPriority();
+		}
 	}
 	return QueueItem::PAUSED;
 }
@@ -1975,18 +1963,10 @@ void QueueManager::removeSource(const string& aTarget, const UserPtr& aUser, Fla
 		}
 
 		if(q->isRunning()) {
-			QueueItemList runningItems = userQueue.getRunning(aUser);
-			for (auto s = runningItems.begin(); s != runningItems.end(); ++s) {
-				if (q == *s) {
-					isRunning = true;
-					userQueue.removeDownload(q, aUser);
-					fire(QueueManagerListener::StatusUpdated(), q, false);
-					break;
-				}
-			}
+			isRunning = true;
 		}
 		if(!q->isFinished()) {
-			userQueue.removeQI(q, aUser);
+			userQueue.removeQI(q, aUser, false);
 		}
 		q->removeSource(aUser, reason);
 		
@@ -1995,7 +1975,7 @@ void QueueManager::removeSource(const string& aTarget, const UserPtr& aUser, Fla
 	}
 endCheck:
 	if(isRunning && removeConn) {
-		ConnectionManager::getInstance()->disconnect(aUser, true);
+		DownloadManager::getInstance()->abortDownload(aTarget, aUser);
 	}
 	if(removeCompletely) {
 		remove(aTarget);
@@ -2013,28 +1993,14 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) no
 			if(qi->isSet(QueueItem::FLAG_USER_LIST)) {
 				remove(qi->getTarget());
 			} else {
-				userQueue.removeQI(qi, aUser);
+				userQueue.removeQI(qi, aUser, false);
 				qi->removeSource(aUser, reason);
 				fire(QueueManagerListener::SourcesUpdated(), qi);
 				setBundleDirty(qi->getBundle());
 			}
 		}
 
-		QueueItemList runningItems = userQueue.getRunning(aUser);
-		for (auto s = runningItems.begin(); s != runningItems.end(); ++s) {
-			qi = *s;
-			if(qi->isSet(QueueItem::FLAG_USER_LIST)) {
-				removeRunning = qi->getTarget();
-			} else {
-				userQueue.removeDownload(qi, aUser);
-				userQueue.removeQI(qi, aUser);
-				isRunning = true;
-				qi->removeSource(aUser, reason);
-				fire(QueueManagerListener::StatusUpdated(), qi, false);
-				fire(QueueManagerListener::SourcesUpdated(), qi);
-				setBundleDirty(qi->getBundle());
-			}
-		}
+		isRunning = !userQueue.getRunning(aUser).empty();
 	}
 
 	if(isRunning) {
@@ -2073,7 +2039,6 @@ void QueueManager::setBundlePriority(const string& bundleToken, QueueItem::Prior
 			HintedUserList sources;
 			bundle->getQISources(sources);
 			for (auto i = sources.begin(); i != sources.end(); ++i) {
-				//HintedUser aUser = i->first;
 				HintedUser aUser = *i;
 				if(aUser.user->isOnline()) {
 					ConnectionManager::getInstance()->getDownloadConnection(aUser);
@@ -2519,7 +2484,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				bundle->setPriority((Bundle::Priority)Util::toInt(prio));
 			} else {
 				bundle->setAutoPriority(true);
-				bundle->setPriority(Bundle::Priority::LOW);
+				bundle->setPriority(Bundle::LOW);
 			}
 			bundle->setToken(token);
 			qm->addBundle(bundle, true);

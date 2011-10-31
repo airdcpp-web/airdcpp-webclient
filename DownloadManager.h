@@ -48,7 +48,7 @@ public:
 	void sendBundleMode(BundlePtr aBundle, bool singleUser);
 
 	/** @internal */
-	void abortDownload(const string& aTarget);
+	void abortDownload(const string& aTarget, const UserPtr& aUser = NULL);
 
 	/** @return Running average download speed in Bytes/s */
 	int64_t getRunningAverage();
