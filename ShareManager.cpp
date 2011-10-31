@@ -135,7 +135,12 @@ string ShareManager::Directory::getRealPath(const std::string& path) const {
 	if(getParent()) {
 		return getParent()->getRealPath(getName() + PATH_SEPARATOR_STR + path);
 	}else if(!getRootPath().empty()) {
-		return (getRootPath() + path);
+		string root = getRootPath() + path;
+		//check for the existance here if we have moved the file/folder and only refreshed the new location.
+		if(Util::fileExists(root))
+			return root;
+		else
+			return ShareManager::getInstance()->findRealRoot(getName(), path);
 	} else { //shouldnt need to go here
 		return ShareManager::getInstance()->findRealRoot(getName(), path);
 	}

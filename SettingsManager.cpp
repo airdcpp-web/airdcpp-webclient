@@ -510,9 +510,9 @@ SettingsManager::SettingsManager()
 	setDefault(POPUP_HUB_CONNECTED, false);
 	setDefault(POPUP_HUB_DISCONNECTED, false);
 	setDefault(POPUP_FAVORITE_CONNECTED, true);
-	setDefault(POPUP_DOWNLOAD_START, true);
+	setDefault(POPUP_DOWNLOAD_START, false);
 	setDefault(POPUP_DOWNLOAD_FAILED, false);
-	setDefault(POPUP_DOWNLOAD_FINISHED, true);
+	setDefault(POPUP_DOWNLOAD_FINISHED, false);
 	setDefault(POPUP_UPLOAD_FINISHED, false);
 	setDefault(POPUP_PM, false);
 	setDefault(POPUP_NEW_PM, true);

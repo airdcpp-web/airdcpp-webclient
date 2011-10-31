@@ -22,7 +22,7 @@
 
 #define DCVERSIONSTRING "0.782"
 
-#define SVNVERSION "r535"
+#define SVNVERSION "r536"
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"
