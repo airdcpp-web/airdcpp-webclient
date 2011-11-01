@@ -376,8 +376,8 @@ bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t want
 	if(getDownloads()[0]->getType() == Transfer::TYPE_TREE) {
 		return false;
 	}
-	if(!isSet(QueueItem::FLAG_USER_LIST)) {
 
+	if(!isSet(QueueItem::FLAG_USER_LIST) && !isSet(QueueItem::FLAG_CLIENT_VIEW)) {
 		int64_t blockSize = HashManager::getInstance()->getBlockSize(getTTH());
 		if(blockSize == 0)
 			blockSize = getSize();
@@ -390,7 +390,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t want
 			return false;
 		}
 	} else if (!isWaiting()) {
-		//don't try to create multiple connections for filelists
+		//don't try to create multiple connections for filelists or files viewed in client
 		return false;
 	}
 	return true;

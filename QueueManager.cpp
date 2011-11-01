@@ -989,7 +989,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				aBundle->increaseSize(q->getSize());
 				//LogManager::getInstance()->message("ADD BUNDLEITEM, items: " + Util::toString(aBundle->items.size()) + " totalsize: " + Util::formatBytes(aBundle->getSize()));
 				q->setBundle(aBundle);
-			} else if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST) {
+			} else if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW) {
 				findBundle(q, true);
 				//LogManager::getInstance()->message("ADD QI: NO BUNDLE");
 			}
@@ -1490,14 +1490,18 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 		}
 	}
 
-	dcassert(aBundle);
+	//dcassert(aBundle);
+	if (!aBundle) {
+		return;
+	}
+
 	if (aBundle->getQueueItems().empty()) {
 		
 		if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
 			ShareScannerManager::getInstance()->scanBundle(aBundle);
 		} else {
 			string tmp;
-			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 64);	 
+			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 512);	 
 			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
 			LogManager::getInstance()->message(tmp);
 		}
@@ -1930,8 +1934,6 @@ void QueueManager::remove(const string& aTarget) noexcept {
 		if(!q->isFinished()) {
 			userQueue.removeQI(q);
 		}
-		
-		//setBundleDirty(q->getBundle());
 		
 		removeBundleItem(q, false, true);
 
