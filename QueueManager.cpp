@@ -1930,9 +1930,11 @@ void QueueManager::remove(const string& aTarget) noexcept {
 		if(!q->isFinished()) {
 			userQueue.removeQI(q);
 		}
+		
+		//setBundleDirty(q->getBundle());
+		
 		removeBundleItem(q, false, true);
 
-		setBundleDirty(q->getBundle());
 	}
 
 	for(UserConnectionList::const_iterator i = x.begin(); i != x.end(); ++i) {
