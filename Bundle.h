@@ -90,7 +90,7 @@ public:
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
 	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
-	//GETSET(DownloadList, downloads, Downloads);
+	GETSET(DownloadList, downloads, Downloads);
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(uint16_t, lastSave, LastSave);
@@ -106,7 +106,7 @@ public:
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
-	//DownloadList& getDownloads() { return downloads; }
+	DownloadList& getDownloads() { return downloads; }
 	StringList& getBundleDirs() { return bundleDirs; }
 
 	SourceIntList sources;
@@ -170,15 +170,15 @@ public:
 	//public:
 		void getQISources(HintedUserList& l);
 		bool isSource(const UserPtr& aUser);
-		void getDownloads(DownloadList& l);
+		void getDownloadsQI(DownloadList& l);
 		//bool isRunning() { return !getDownloads().empty(); }
 		QueueItemList getItems(const UserPtr& aUser) const;
 		void addQueue(QueueItem* qi);
 		bool addQueue(QueueItem* qi, const UserPtr& aUser);
 		QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 		QueueItemList getRunningQIs(const UserPtr& aUser);
-		void addDownload(QueueItem* qi, Download* d);
-		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
+		bool addDownload(Download* d);
+		int removeDownload(const string& token);
 
 		void removeQueue(QueueItem* qi, bool removeRunning = true);
 		bool removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);

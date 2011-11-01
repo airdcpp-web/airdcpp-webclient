@@ -53,6 +53,7 @@ public:
 	typedef X<19> BundleRenamed;
 	typedef X<20> BundleStatus;
 	typedef X<21> BundleFilesMoved;
+	typedef X<22> BundleUser;
 
 	virtual void on(Added, QueueItem*) noexcept { }
 	virtual void on(Finished, const QueueItem*, const string&, const Download*) noexcept { }
@@ -68,6 +69,7 @@ public:
 	virtual void on(BundleRenamed, const BundlePtr) noexcept { }
 	virtual void on(BundleStatus, const BundlePtr) noexcept { }
 	virtual void on(BundleFilesMoved, const BundlePtr) noexcept { }
+	virtual void on(BundleUser, const string&, const HintedUser&) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }
 	virtual void on(RecheckNoFile, const string&) noexcept { }

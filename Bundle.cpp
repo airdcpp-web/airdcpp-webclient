@@ -182,7 +182,7 @@ QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority m
 	return NULL;
 }
 
-void Bundle::getDownloads(DownloadList& l) {
+void Bundle::getDownloadsQI(DownloadList& l) {
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
 		QueueItem* qi = *s;
 		for (auto k = qi->getDownloads().begin(); k != qi->getDownloads().end(); ++k) {
@@ -210,22 +210,22 @@ void Bundle::getQISources(HintedUserList& l) {
 	//LogManager::getInstance()->message("getQISources, size: " + Util::toString(l.size()));
 }
 
-void Bundle::addDownload(QueueItem* qi, Download* d) {
-	qi->getDownloads().push_back(d);
-
-	auto i = runningItems.find(d->getUser());
-	if (i != runningItems.end()) {
-		i->second.push_back(qi);
-		//LogManager::getInstance()->message("Running size for the user: " + Util::toString(i->second.size()));
-	} else {
-		QueueItemList tmp;
-		tmp.push_back(qi);
-		runningItems[d->getUser()] = tmp;
-	}
+bool Bundle::addDownload(Download* d) {
+	bool downloadsEmpty = downloads.empty();
+	downloads.push_back(d);
+	return downloadsEmpty;
 }
 
-void Bundle::removeDownload(QueueItem* qi, const UserPtr& user, const string& token) {
-	auto i = runningItems.find(user);
+int Bundle::removeDownload(const string& token) {
+	for(DownloadList::iterator i = downloads.begin(); i != downloads.end(); ++i) {
+		if ((*i)->getUserConnection().getToken() == token) {
+			downloads.erase(i);
+			break;
+		}
+	}
+	return downloads.size(); 
+
+	/*auto i = runningItems.find(user);
 	if (i != runningItems.end()) {
 		for (auto s = i->second.begin(); s != i->second.end(); ++s) {
 			if (qi == *s) {
@@ -239,7 +239,6 @@ void Bundle::removeDownload(QueueItem* qi, const UserPtr& user, const string& to
 			}
 		}
 	}
-
 	if (!token.empty()) {
 		for(DownloadList::iterator i = qi->getDownloads().begin(); i != qi->getDownloads().end(); ++i) {
 			if ((*i)->getUserConnection().getToken() == token) {
@@ -257,7 +256,7 @@ void Bundle::removeDownload(QueueItem* qi, const UserPtr& user, const string& to
 				i++;
 			}
 		}
-	}
+	} */
 }
 
 /*void Bundle::BundleUserQueue::setPriority(QueueItem* qi, QueueItem::Priority p) {
@@ -283,7 +282,7 @@ void Bundle::removeQueue(QueueItem* qi, bool removeRunning) {
 
 bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning) {
 
-	if(removeRunning) {
+	/*if(removeRunning) {
 		QueueItemList runningItems = getRunningQIs(aUser);
 		for (auto s = runningItems.begin(); s != runningItems.end(); ++s) {
 			if (qi == *s) {
@@ -291,7 +290,7 @@ bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning
 				break;
 			}
 		}
-	}
+	} */
 
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];

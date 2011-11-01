@@ -302,16 +302,6 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 		}
 		aBundle->setSingleUser(true);
 		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
-		//need a lock, check this we need to protect downloads, call from queuemanager makes it unprotected.
-		Lock l(cs);
-		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
-			Download* d = *i;
-			if (d->getBundle()) {
-				if (d->getBundle()->getToken() == bundleToken) {
-					fire(DownloadManagerListener::BundleUser(), bundleToken, d->getHintedUser());
-				}
-			}
-		}
 	} else {
 		aBundle->setSingleUser(false);
 		//LogManager::getInstance()->message("SET BUNDLE MULTIUSER, RUNNING: " + aBundle->runningUsers.size());
@@ -466,12 +456,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	} else if (!d->getBundle() && !aConn->getLastBundle().empty()) {
 		//QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
 		//aConn->setLastBundle(Util::emptyString);
-	}
-
-	if (d->getBundle()) {
-		if (d->getBundle()->getRunningUsers().empty()) {
-			fire(DownloadManagerListener::BundleUser(), d->getBundle()->getToken(), aConn->getHintedUser());
-		}
 	}
 
 	aConn->setState(UserConnection::STATE_SND);
