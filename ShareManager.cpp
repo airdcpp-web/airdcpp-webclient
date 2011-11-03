@@ -479,17 +479,17 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			}
 		} else if(cur && name == SFILE) {
 			const string& fname = getAttrib(attribs, SNAME, 0);
-			const string& size = getAttrib(attribs, SSIZE, 1);
-			//const string& root = getAttrib(attribs, STTH, 2);    
-			if(fname.empty() || size.empty() /*|| (root.size() != 39)*/) {
+			const string& size = getAttrib(attribs, SSIZE, 1);   
+			if(fname.empty() || size.empty() ) {
 				dcdebug("Invalid file found: %s\n", fname.c_str());
 				return;
 			}
 			/*dont save TTHs, check them from hashmanager, just need path and size.
-			this will keep us sync to hashindex, alltho might take a bit longer to startup maybe? not too much for myself tho*/
+			this will keep us sync to hashindex */
 			try {
 			cur->files.insert(ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname), Util::toInt64(size))));
-			}catch(...) { }
+			}catch(...) { 
+			}
 		}
 	}
 	void endTag(const string& name, const string&) {
@@ -512,29 +512,24 @@ bool ShareManager::loadCache() noexcept {
 	try {
 		ShareLoader loader(directories);
 		
-		try {
 		//look for shares.xml
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN);
 		SimpleXMLReader(&loader).parse(ff);
-		}catch(...) 
-			//migrate the old bzipped cache, remove this at some point
-		{	
-			dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2", dcpp::File::READ, dcpp::File::OPEN);
-			FilteredInputStream<UnBZFilter, false> f(&ff);
-			SimpleXMLReader(&loader).parse(f);
-		}
 
 		for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			const Directory::Ptr& d = i->second;
 			updateIndices(*d);
 		}
-		
+		try { //not vital to our cache loading.
 		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
 		if(!Util::fileExists(getBZXmlFile())) //only generate if we dont find old filelist
 			generateXmlList(true);
+		}catch(...) { }
+
 		sortReleaseList();
 		return true;
 	} catch(const Exception& e) {
+		LogManager::getInstance()->message("Errors Loading share cache: " + e.getError());
 		dcdebug("%s\n", e.getError().c_str());
 	}
 	return false;
@@ -1531,7 +1526,6 @@ void ShareManager::saveXmlList(){
 		ff.close();
 		File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml");
 		File::renameFile(newCache,  (Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"));
-		File::deleteFile(newCache);
 	}catch(Exception&){}
 
 	//delete xmlFile;
@@ -1567,9 +1561,6 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 		xmlFile.write(SimpleXML::escape(f.getName(), tmp2, true));
 		xmlFile.write(LITERAL("\" Size=\""));
 		xmlFile.write(Util::toString(f.getSize()));
-		//xmlFile.write(LITERAL("\" TTH=\""));
-		tmp2.clear();
-		//xmlFile.write(f.getTTH().toBase32(tmp2));
 		xmlFile.write(LITERAL("\"/>\r\n"));
 	}
 
