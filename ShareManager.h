@@ -111,7 +111,7 @@ public:
 
 	AdcCommand getFileInfo(const string& aFile);
 
-	int64_t getShareSize() noexcept;
+	int64_t getShareSize() const noexcept;
 	int64_t getShareSize(const string& realPath) const noexcept;
 
 	size_t getSharedFiles() const noexcept;
@@ -331,8 +331,8 @@ private:
 	uint64_t lastIncomingUpdate;
 	
 	//caching the share size so we dont need to loop tthindex everytime
-	int64_t	 c_shareSize;
-	bool	 c_size_dirty;
+	mutable int64_t	 c_shareSize;
+	mutable bool	 c_size_dirty;
 
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
 	mutable CriticalSection dirnamelist;

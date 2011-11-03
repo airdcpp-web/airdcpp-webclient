@@ -489,7 +489,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			this will keep us sync to hashindex, alltho might take a bit longer to startup maybe? not too much for myself tho*/
 			try {
 			cur->files.insert(ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname), Util::toInt64(size))));
-			}catch(HashException &) { }
+			}catch(...) { }
 		}
 	}
 	void endTag(const string& name, const string&) {
@@ -519,7 +519,7 @@ bool ShareManager::loadCache() noexcept {
 		}catch(...) 
 			//migrate the old bzipped cache, remove this at some point
 		{	
-			dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml.bz2", dcpp::File::READ, dcpp::File::OPEN);
+			dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2", dcpp::File::READ, dcpp::File::OPEN);
 			FilteredInputStream<UnBZFilter, false> f(&ff);
 			SimpleXMLReader(&loader).parse(f);
 		}
@@ -776,17 +776,18 @@ int64_t ShareManager::getShareSize(const string& realPath) const noexcept {
 	return -1;
 }
 
-int64_t ShareManager::getShareSize() noexcept {
+int64_t ShareManager::getShareSize() const noexcept {
 	RLock l(cs);
 	/*store the updated sharesize so we dont need to count it on every myinfo update*/
 	if(c_size_dirty) {
+		c_size_dirty = false;
 		int64_t tmp = 0;
 		for(HashFileMap::const_iterator i = tthIndex.begin(); i != tthIndex.end(); ++i) {
 			tmp += i->second->getSize();
 		}
 		c_shareSize = tmp;
-		c_size_dirty = false;
-		}
+
+	}
 
 	return c_shareSize;
 }

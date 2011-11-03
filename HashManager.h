@@ -102,8 +102,10 @@ public:
 
 	void shutdown() {
 		hasher.shutdown();
-		Lock l(cs);
-		store.save(); //attemp to save tha hashdata before waiting the hash thread to shutdown, some users are too eager to shutdown pc while its saving.
+		{	
+		Lock l(cs); //lock only here, prevent deadlock on shutdown (while hashing, hashdone has a lock too if we join inside a lock....)
+		store.save(); 
+		}
 		hasher.join();
 	}
 
