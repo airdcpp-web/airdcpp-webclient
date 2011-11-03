@@ -124,13 +124,13 @@ void BufferedSocket::threadConnect(const string& aAddr, uint16_t aPort, uint16_t
 	while (GET_TICK() < endTime) {
 		dcdebug("threadConnect attempt to addr \"%s\"\n", aAddr.c_str());
 		try {
+			setOptions();
 			if(proxy) {
 				sock->socksConnect(aAddr, aPort, LONG_TIMEOUT);
 			} else {
 				sock->connect(aAddr, aPort);
 			}
 	
-			setOptions();
 			bool connSucceeded;
 			while((connSucceeded = sock->waitConnected(POLL_TIMEOUT)) == false && endTime >= GET_TICK()) {
 				if(disconnecting) return;
@@ -520,5 +520,5 @@ void BufferedSocket::addTask(Tasks task, TaskData* data) {
 
 /**
  * @file
- * $Id: BufferedSocket.cpp 575 2011-08-25 19:38:04Z bigmuscle $
+ * $Id: BufferedSocket.cpp 581 2011-11-02 18:59:46Z bigmuscle $
  */

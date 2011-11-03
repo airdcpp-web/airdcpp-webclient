@@ -140,6 +140,7 @@ void ADLSearchManager::Load()
 		search.adlsComment = "Filters preteen porn, this is an example only!";
 		search.isRegexp = true;
 		search.isCaseSensitive = false;
+		search.isActive = false;
 		collection.push_back(search);
 	}
 //ApexDC end

@@ -632,11 +632,11 @@ string Socket::resolveName(const addr& serv_addr, uint16_t* port) {
 
 	switch(serv_addr.sas.ss_family) {
         case AF_INET:
-			if(port != NULL) *port = serv_addr.sai.sin_port;
+			if(port != NULL) *port = ntohs(serv_addr.sai.sin_port);
             break;
 
         case AF_INET6:
-			if(port != NULL) *port = serv_addr.sai6.sin6_port;
+			if(port != NULL) *port = ntohs(serv_addr.sai6.sin6_port);
 
 			// if it is IPv4 mapped address then convert to IPv4
 			if(IN6_IS_ADDR_V4MAPPED(&serv_addr.sai6.sin6_addr))
