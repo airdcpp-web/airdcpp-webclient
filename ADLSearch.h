@@ -111,26 +111,9 @@ public:
 
 private:
 	friend class ADLSearchManager;
-	// Prepare search
-	void Prepare(StringMap& params);
-
-	void unprepare();
 
 	// Search for file match 
-	bool MatchesFile(const string& f, const string& fp, const string& root, int64_t size);
-
-	bool MatchesDirectory(const string& d);
-
-
-	StringSearch::List stringSearchList;
-
-	bool SearchAll(const string& s);
-
-
-	bool SearchAllTTH(const string& root) {
-		if(root.empty()) { return false; }
-		return root == searchString;
-	}
+	bool checkSize(int64_t size);
 };
 
 class ADLSearchManager : public Singleton<ADLSearchManager>
@@ -149,9 +132,29 @@ public:
 	ADLSearchManager();
 	~ADLSearchManager();
 
-	// Search collection
+	// Search collections
 	typedef vector<ADLSearch> SearchCollection;
+
+	typedef pair<PME, ADLSearch> regexPair;
+	typedef vector<regexPair> RegexSearchCollection;
+
+	typedef pair<StringSearch::List, ADLSearch> ssPair;
+	typedef vector<ssPair> StringSearchCollection;
+
+	typedef unordered_map<TTHValue, ADLSearch> TTHSearchCollection;
+
 	SearchCollection collection;
+
+	//for files
+	RegexSearchCollection regexCol;
+	TTHSearchCollection tthCol;
+	StringSearchCollection ssCol;
+
+	//for dirs
+	RegexSearchCollection regexColDir;
+	TTHSearchCollection tthColDir;
+	StringSearchCollection ssColDir;
+
 
 	// Load/save search collection to XML file
 	void Load();
@@ -160,6 +163,9 @@ public:
 	// Settings
 	GETSET(bool, breakOnFirst, BreakOnFirst)
 	GETSET(HintedUser, user, User)
+	GETSET(bool, compareTTH, CompareTTH)
+	GETSET(bool, compareSS, CompareSS)
+	GETSET(bool, compareRE, CompareRE)
 
 	// @remarks Used to add ADLSearch directories to an existing DirectoryListing
 	void matchListing(DirectoryListing& /*aDirList*/) noexcept;
@@ -173,6 +179,9 @@ private:
 	void MatchesDirectory(DestDirList& destDirVector, DirectoryListing::Directory* currentDir, string& fullPath);
 	// Step up directory
 	void stepUpDirectory(DestDirList& destDirVector);
+
+	bool matchSS(const string& s, const StringSearch::List stringSearchList);
+	bool matchTTH(const TTHValue fileTTH) { return tthCol.find(fileTTH) != tthCol.end(); }
 
 	// Prepare destination directory indexing
 	void PrepareDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory* root, StringMap& params);

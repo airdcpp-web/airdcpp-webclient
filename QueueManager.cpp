@@ -3097,7 +3097,9 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 	//check that there are no file bundles inside the bundle that will be created and merge them in that case
 	mergeFileBundles(aBundle);
 
-	LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been created with " + Util::toString(aBundle->getQueueItems().size()) + " items (total size: " + Util::formatBytes(aBundle->getSize()) + ")");
+	if (!loading) {
+		LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been created with " + Util::toString(aBundle->getQueueItems().size()) + " items (total size: " + Util::formatBytes(aBundle->getSize()) + ")");
+	}
 
 	if (aBundle->getPriority() == Bundle::DEFAULT) {
 		aBundle->setPriority(Bundle::LOW);
@@ -3177,8 +3179,8 @@ BundlePtr QueueManager::getMergeBundle(const string& aTarget) {
 int QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 	int added = 0;
 
-	bool changeName = (targetBundle->getTarget().find(sourceBundle->getTarget()) != string::npos) && (targetBundle->getTarget().length() > sourceBundle->getTarget().length());
-	string sourceBundleName = sourceBundle->getName();
+	string sourceBundleTarget = sourceBundle->getTarget();
+	bool changeName = (targetBundle->getTarget().find(sourceBundleTarget) != string::npos) && (targetBundle->getTarget().length() > sourceBundleTarget.length());
 
 	QueueItemList ql = sourceBundle->getQueueItems();
 	for (auto i = ql.begin(); i != ql.end(); ++i) {
@@ -3206,12 +3208,12 @@ int QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 					bundleDirs.erase(s);
 				}
 			}
-			releaseDir = ShareManager::getInstance()->getReleaseDir(sourceBundleName);
+			releaseDir = ShareManager::getInstance()->getReleaseDir(sourceBundleTarget);
 			if (!releaseDir.empty()) {
-				bundleDirs[releaseDir] = sourceBundleName;
+				bundleDirs[releaseDir] = sourceBundleTarget;
 			}
 
-			targetBundle->setTarget(sourceBundleName);
+			targetBundle->setTarget(sourceBundleTarget);
 			//check that there are no file bundles inside the new target dir and merge them in that case
 			mergeFileBundles(targetBundle);
 			targetBundle->setFlag(Bundle::UPDATE_NAME);
