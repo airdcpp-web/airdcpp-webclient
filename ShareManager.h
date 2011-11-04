@@ -102,7 +102,7 @@ public:
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory, bool validate = true);
 
-	bool loadCache() noexcept;
+	bool loadCache();
 
 	StringPairList getDirectories(int refreshOptions) const noexcept;
 	static bool checkType(const string& aString, int aType);
@@ -242,7 +242,7 @@ private:
 
 		string getADCPath() const noexcept;
 		string getFullName() const noexcept; 
-		string getRealPath(const std::string& path) const;
+		string getRealPath(const std::string& path, bool loading = false) const;
 
 		int64_t getSize() const noexcept;
 		int64_t getSize(const string& realpath) const noexcept;
@@ -256,7 +256,7 @@ private:
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
 		void filesToXml(SimpleXML& aXml) const;
 		//for filelist caching
-		void toXmlList(OutputStream& xmlFile, const string& path, string& indent) const;
+		void toXmlList(OutputStream& xmlFile, const string& path, string& indent);
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 

@@ -53,6 +53,8 @@
 
 namespace dcpp {
 
+#define SHARE_CACHE_VERSION "1"
+
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
 	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false), GeneratingXmlList(false),
@@ -131,12 +133,17 @@ void ShareManager::Directory::addType(uint32_t type) noexcept {
 	}
 }
 
-string ShareManager::Directory::getRealPath(const std::string& path) const {
+string ShareManager::Directory::getRealPath(const std::string& path, bool loading/*false*/) const {
 	if(getParent()) {
 		return getParent()->getRealPath(getName() + PATH_SEPARATOR_STR + path);
 	}else if(!getRootPath().empty()) {
 		string root = getRootPath() + path;
-		//check for the existance here if we have moved the file/folder and only refreshed the new location.
+
+		if(loading) //no extra checks for finding the file while loading share cache.
+			return root;
+
+		/*check for the existance here if we have moved the file/folder and only refreshed the new location.
+		should we even look, what's moved is moved, user should refresh both locations.*/
 		if(Util::fileExists(root))
 			return root;
 		else
@@ -487,7 +494,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			/*dont save TTHs, check them from hashmanager, just need path and size.
 			this will keep us sync to hashindex */
 			try {
-			cur->files.insert(ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname), Util::toInt64(size))));
+			cur->files.insert(ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname, true), Util::toInt64(size))));
 			}catch(...) { 
 			}
 		}
@@ -508,7 +515,7 @@ private:
 	size_t depth;
 };
 
-bool ShareManager::loadCache() noexcept {
+bool ShareManager::loadCache() {
 	try {
 		ShareLoader loader(directories);
 		
@@ -739,7 +746,7 @@ void ShareManager::renameDirectory(const string& realPath, const string& virtual
 		return;
 
 	j->second->setName(vName);
-
+	setDirty();
 }
 
 ShareManager::Dirs ShareManager::getByVirtual(const string& virtualName) const throw() {
@@ -1508,31 +1515,36 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 void ShareManager::saveXmlList(){
 	RLock l(cs);
 	string indent;
+	try{
 	//create a backup first incase we get interrupted on creation.
 	string newCache = Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml.tmp";
 	File ff(newCache, File::WRITE, File::TRUNCATE | File::CREATE);
 	BufferedOutputStream<false> xmlFile(&ff);
 	//FilteredOutputStream<BZFilter, true> *xmlFile = new FilteredOutputStream<BZFilter, true>(new File(newCache, File::WRITE, File::TRUNCATE | File::CREATE));
-	try{
+	
 		xmlFile.write(SimpleXML::utf8Header);
-		xmlFile.write("<Share>\r\n");
+		xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION "\">\r\n"));
+		indent +='\t';
 
 		for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			i->second->toXmlList(xmlFile, i->first, indent);
 		}
-		xmlFile.write("</Share>");
+
+		xmlFile.write(LITERAL("</Share>"));
 		xmlFile.flush();
 		ff.close();
 		File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml");
 		File::renameFile(newCache,  (Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"));
-	}catch(Exception&){}
+	}catch(Exception& e){
+		LogManager::getInstance()->message("Error Saving Share Cache: " + e.getError());
+	}
 
 	//delete xmlFile;
 
 	ShareCacheDirty = false;
 }
 
-void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& path, string& indent) const{
+void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& path, string& indent){
 	string tmp, tmp2;
 	
 	xmlFile.write(indent);
@@ -1574,15 +1586,18 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 	StringOutputStream sos(tths);
 
 	RLock l(cs);
+	try{
 	DirMap result = splitVirtual(dir);
 	for(DirMap::const_iterator it = result.begin(); it != result.end(); ++it) {
 		dcdebug("result name %s \n", it->second->getName());
 		Directory::Ptr root = it->second;
 		for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
 			it2->second->toTTHList(sos, tmp, recurse);
+			}
 		}
+	} catch(...) {
+		return NULL;
 	}
-
 
 
 	if (tths.empty()) {
@@ -1642,7 +1657,9 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		}
 	} else {
 		dcdebug("wanted %s \n", dir);
+		try {
 		DirMap result = splitVirtual(dir);
+
 		for(DirMap::const_iterator it = result.begin(); it != result.end(); ++it) {
 			dcdebug("result name %s \n", it->second->getName());
 			Directory::Ptr root = it->second;
@@ -1650,6 +1667,9 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 				it2->second->toXml(sXml, recurse);
 			}
 			root->filesToXml(sXml);
+			}
+		} catch(...) {
+			return NULL;
 		}
 	}
 	sXml.stepOut();
