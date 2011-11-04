@@ -450,7 +450,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 		if(name == SDIRECTORY) {
 			const string& name = getAttrib(attribs, SNAME, 0);
 			string path = getAttrib(attribs, PATH, 1);
-			string date = getAttrib(attribs, DATE, 2);
+			const string& date = getAttrib(attribs, DATE, 2);
 
 			if(path[path.length() - 1] != PATH_SEPARATOR)
 				path += PATH_SEPARATOR;
@@ -517,8 +517,7 @@ bool ShareManager::loadCache() noexcept {
 		SimpleXMLReader(&loader).parse(ff);
 
 		for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
-			const Directory::Ptr& d = i->second;
-			updateIndices(*d);
+			updateIndices(*i->second);
 		}
 		try { //not vital to our cache loading.
 		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");

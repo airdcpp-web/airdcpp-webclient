@@ -839,6 +839,15 @@ void SettingsManager::load(string const& aFileName)
 			set(AUTO_DETECT_CONNECTION, false); //Don't touch if it works
 		}
 
+		if(v <= 2.30) {
+		try {
+			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2"))			
+				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2");
+
+			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml"))			
+				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml");
+		}catch(...) { }
+		}
 
 		setDefault(UDP_PORT, SETTING(TCP_PORT));
 
