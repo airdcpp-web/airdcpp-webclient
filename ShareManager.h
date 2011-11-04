@@ -107,6 +107,7 @@ public:
 	StringPairList getDirectories(int refreshOptions) const noexcept;
 	static bool checkType(const string& aString, int aType);
 	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub);
+	MemoryInputStream* generateTTHList(const string& dir, bool recurse, bool isInSharingHub);
 	MemoryInputStream* getTree(const string& virtualFile) const;
 
 	AdcCommand getFileInfo(const string& aFile);
@@ -252,6 +253,7 @@ private:
 		void findDirsRE(bool remove);
 
 		void toXml(SimpleXML& aXml, bool fullList);
+		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
 		void filesToXml(SimpleXML& aXml) const;
 		//for filelist caching
 		void toXmlList(OutputStream& xmlFile, const string& path, string& indent) const;

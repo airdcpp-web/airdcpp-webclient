@@ -295,7 +295,7 @@ ShareManager::DirMap ShareManager::splitVirtual(const string& virtualPath) const
 		string::size_type j = i + 1;
 		Directory::Ptr d = *k;
 
-	if(virtualPath.find('/', j) == string::npos) {          // we only have root virtualpaths.
+	if(virtualPath.find('/', j) == string::npos) {	  // we only have root virtualpaths.
 			ret.insert(make_pair(virtualPath.substr(j), d));
 		
 	} else {
@@ -675,9 +675,9 @@ void ShareManager::Directory::merge(const Directory::Ptr& source) {
 				dcdebug("Directory named the same as file");
 			} else {
 				 std::pair<File::Set::iterator, bool> added = files.insert(*i);
-                   if(added.second) {
+		   if(added.second) {
 				   const_cast<File&>(*added.first).setParent(this);
-                  }
+		  }
 			}
 		}
 	}
@@ -1568,18 +1568,58 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 	xmlFile.write(LITERAL("</Directory>\r\n"));
 }
 
+MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse, bool isInSharingHub) {
+	string tths;
+	string tmp;
+	StringOutputStream sos(tths);
+
+	RLock l(cs);
+	DirMap result = splitVirtual(dir);
+	for(DirMap::const_iterator it = result.begin(); it != result.end(); ++it) {
+		dcdebug("result name %s \n", it->second->getName());
+		Directory::Ptr root = it->second;
+		for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
+			it2->second->toTTHList(sos, tmp, recurse);
+		}
+	}
+
+
+
+	if (tths.empty()) {
+		dcdebug("Partial NULL");
+		return NULL;
+	} else {
+		LogManager::getInstance()->message(tths);
+		return new MemoryInputStream(tths);
+	}
+}
+
+void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, bool recursive) {
+	dcdebug("toTTHList2");
+	if (recursive) {
+		for(Map::const_iterator i = directories.begin(); i != directories.end(); ++i) {
+			i->second->toTTHList(tthList, tmp2, recursive);
+		}
+	}
+	for(Directory::File::Set::const_iterator i = files.begin(); i != files.end(); ++i) {
+		const Directory::File& f = *i;
+		tmp2.clear();
+		tthList.write(f.getTTH().toBase32(tmp2));
+		tthList.write(LITERAL(" "));
+	}
+}
 
 MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, bool isInSharingHub) {
 	if(dir[0] != '/' || dir[dir.size()-1] != '/')
 		return 0;
 	
 	if(!isInSharingHub) {
-				string xml = SimpleXML::utf8Header;
-                string tmp;
-                xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"" APPNAME " " VERSIONSTRING "\">\r\n";
-                StringOutputStream sos(xml);
-                xml += "</FileListing>";
-                return new MemoryInputStream(xml);
+		string xml = SimpleXML::utf8Header;
+		string tmp;
+		xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"" + SimpleXML::escape(dir, tmp, false) + "\" Generator=\"" APPNAME " " VERSIONSTRING "\">\r\n";
+		StringOutputStream sos(xml);
+		xml += "</FileListing>";
+		return new MemoryInputStream(xml);
 	 }
 
 	
@@ -1608,10 +1648,9 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 			Directory::Ptr root = it->second;
 			for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
 				it2->second->toXml(sXml, recurse);
+			}
+			root->filesToXml(sXml);
 		}
-		root->filesToXml(sXml);
-		}
-
 	}
 	sXml.stepOut();
 	StringOutputStream sos(xml);

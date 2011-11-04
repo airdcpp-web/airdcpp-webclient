@@ -165,7 +165,13 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			MemoryInputStream* mis;
 			// Partial file list
 			if (tthList) {
-				mis = QueueManager::getInstance()->generateTTHList(aSource.getHintedUser(), aFile, isInSharingHub);
+				if (aFile[0] != '/') {
+					if (QueueManager::getInstance()->findBundle(aFile)) {
+						mis = QueueManager::getInstance()->generateTTHList(aSource.getHintedUser(), aFile, isInSharingHub);
+					}
+				} else {
+					mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, isInSharingHub);
+				}
 			} else {
 				mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, isInSharingHub);
 			}
@@ -190,7 +196,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 			TTHValue fileHash(aFile.substr(4));
 
-            if (BOOLSETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile)) {				
+	    if (BOOLSETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile)) {				
 				try {
 					SharedFileStream* ss = new SharedFileStream(sourceFile, File::READ, File::OPEN | File::SHARED | File::NO_CACHE_HINT);
 					
