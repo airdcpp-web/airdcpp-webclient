@@ -2610,8 +2610,9 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 	//moved outside lock range.
 	if(added && matchPartial) {
 		try {
-			string path = Util::getDir(Util::getFilePath(sr->getFile()), true, false);
-			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
+			string path = Util::toAdcFile(Util::getDir(Util::getFilePath(sr->getFile()), true, false));
+			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST) | 
+				QueueItem::FLAG_TTHLIST, path);
 		}catch(...) { }
 	}
 
