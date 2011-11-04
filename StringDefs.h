@@ -1301,5 +1301,6 @@ enum Strings { // @DontAdd
 	MATCH_ADL, // "ADLSearch"
 	MATCHING_ADL, // "Matching Filelist with ADLSearch, this might take a while if the list is large..."
 	LOG_HASHING, // "Show Hashing Files in systemlog"
+	ADLSEARCH_IN_PROGRESS, // "The ADLSearch list can't be modified while matching is in progress!"
 	LAST // @DontAdd
 };

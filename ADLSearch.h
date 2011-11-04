@@ -133,27 +133,17 @@ public:
 	~ADLSearchManager();
 
 	// Search collections
-	typedef vector<ADLSearch> SearchCollection;
+	typedef vector<ADLSearch*> SearchCollection;
 
-	typedef pair<PME, ADLSearch> regexPair;
+	typedef pair<PME, ADLSearch*> regexPair;
 	typedef vector<regexPair> RegexSearchCollection;
 
-	typedef pair<StringSearch::List, ADLSearch> ssPair;
+	typedef pair<StringSearch::List, ADLSearch*> ssPair;
 	typedef vector<ssPair> StringSearchCollection;
 
-	typedef unordered_map<TTHValue, ADLSearch> TTHSearchCollection;
+	typedef unordered_map<TTHValue, ADLSearch*> TTHSearchCollection;
 
 	SearchCollection collection;
-
-	//for files
-	RegexSearchCollection regexCol;
-	TTHSearchCollection tthCol;
-	StringSearchCollection ssCol;
-
-	//for dirs
-	RegexSearchCollection regexColDir;
-	TTHSearchCollection tthColDir;
-	StringSearchCollection ssColDir;
 
 
 	// Load/save search collection to XML file
@@ -169,8 +159,20 @@ public:
 
 	// @remarks Used to add ADLSearch directories to an existing DirectoryListing
 	void matchListing(DirectoryListing& /*aDirList*/) noexcept;
-
+	bool addCollection(ADLSearch* search, bool addMain, bool addSub, bool useIndex=false, int index = 0);
+	bool removeCollection(int index, bool move);
+	int8_t getRunning() { return running; }
 private:
+
+	//for files
+	RegexSearchCollection regexCol;
+	TTHSearchCollection tthCol;
+	StringSearchCollection ssCol;
+
+	//for dirs
+	RegexSearchCollection regexColDir;
+	StringSearchCollection ssColDir;
+
 	// @internal
 	void matchRecurse(DestDirList& /*aDestList*/, DirectoryListing::Directory* /*aDir*/, string& /*aPath*/);
 	// Search for file match
@@ -184,11 +186,13 @@ private:
 	bool matchTTH(const TTHValue fileTTH) { return tthCol.find(fileTTH) != tthCol.end(); }
 
 	// Prepare destination directory indexing
-	void PrepareDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory* root, StringMap& params);
+	void PrepareDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory* root);
 	// Finalize destination directories
 	void FinalizeDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory* root);
 
+	int8_t running;
 	static string getConfigFile();
+
 };
 
 } // namespace dcpp

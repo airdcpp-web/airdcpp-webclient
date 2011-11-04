@@ -1294,6 +1294,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "ADLSearch", 
 "Matching Filelist with ADLSearch, this might take a while if the list is large...", 
 "Show Hashing Files in systemlog", 
+"The ADLSearch list can't be modified while matching is in progress!", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2588,4 +2589,5 @@ std::string dcpp::ResourceManager::names[] = {
 "MatchAdl", 
 "MatchingAdl", 
 "LogHashing", 
+"AdlsearchInProgress", 
 };
