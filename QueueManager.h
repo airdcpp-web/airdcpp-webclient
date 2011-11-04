@@ -96,7 +96,7 @@ public:
 	
 	void loadQueue() noexcept;
 	void saveQueue(bool force, uint64_t aTick = 0) noexcept;
-	void saveQI(OutputStream &save, QueueItem* qi, string tmp, string b32tmp, bool bundle);
+	void saveQI(OutputStream &save, QueueItem* qi, string tmp, string b32tmp);
 
 	void noDeleteFileList(const string& path);
 	

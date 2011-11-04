@@ -2177,40 +2177,9 @@ void QueueManager::saveQueue(bool force, uint64_t aTick) noexcept {
 		BundleList fileBundles;
 		for (auto i = bundles.begin(); i != bundles.end(); ++i) {
 			BundlePtr bundle = i->second;
-			if (bundle->getFileBundle()) {
-				//LogManager::getInstance()->message("DON'T SAVE FILEBUNDLE");
-				if(bundle->getDirty() || force) {
-					//LogManager::getInstance()->message("SAVE FILEBUNDLE: " + bundle->getName());
-					fileBundles.push_back(bundle);
-				}
-				continue;
-			}
 			if (!bundle->getQueueItems().empty() && (bundle->getDirty() || force)) {
 				saveBundle(bundle);
 			}
-		}
-
-		if (!fileBundles.empty()) {
-			//LogManager::getInstance()->message("SAVING FILEBUNDLES!!!, size: " + Util::toString(fileBundles.size()));
-			File ff(getQueueFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
-			BufferedOutputStream<false> f(&ff);
-		
-			f.write(SimpleXML::utf8Header);
-			f.write(LIT("<Downloads Version=\"" VERSIONSTRING "\">\r\n"));
-			string tmp;
-			string b32tmp;
-			for (auto i = fileBundles.begin(); i != fileBundles.end(); ++i) {
-				saveQI(f, (*i)->getQueueItems().front(), tmp, b32tmp, false);
-			}
-
-			f.write("</Downloads>\r\n");
-			f.flush();
-			ff.close();
-
-			File::deleteFile(getQueueFile() + ".bak");
-			File::copyFile(getQueueFile(), getQueueFile() + ".bak");
-			File::deleteFile(getQueueFile());
-			File::renameFile(getQueueFile() + ".tmp", getQueueFile());
 		}
 	} catch(...) {
 		// ...
@@ -2220,63 +2189,73 @@ void QueueManager::saveQueue(bool force, uint64_t aTick) noexcept {
 }
 
 void QueueManager::saveBundle(BundlePtr bundle) {
-	//LogManager::getInstance()->message("SAVING BUNDLE: " + bundle->getName());
+	LogManager::getInstance()->message("SAVING BUNDLE: " + bundle->getName());
 	File ff(bundle->getBundleFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 	BufferedOutputStream<false> f(&ff);
-		
 	f.write(SimpleXML::utf8Header);
-	f.write(LIT("<Downloads Version=\"" VERSIONSTRING "\">\r\n"));
 	string tmp;
 	string b32tmp;
-	
-	string bundleToken = bundle->getToken();
-	f.write(LIT("\t<Bundle Target=\""));
-	f.write(SimpleXML::escape(bundle->getTarget(), tmp, true));
-	f.write(LIT("\" Token=\""));
-	f.write(bundleToken);
-	f.write(LIT("\" Size=\""));
-	f.write(Util::toString(bundle->getSize()));
-	f.write(LIT("\" Downloaded=\""));
-	f.write(Util::toString(bundle->getDownloaded()));
-	if (!bundle->getAutoPriority()) {
-		f.write(LIT("\" Priority=\""));
-		f.write(Util::toString((int)bundle->getPriority()));
-	}
-	f.write(LIT("\">\r\n"));
 
-	for (auto k = bundle->getFinishedFiles().begin(); k != bundle->getFinishedFiles().end(); ++k) {
-		QueueItem* qi = *k;
-		f.write(LIT("\t\t<Finished TTH=\""));
-		f.write(qi->getTTH().toBase32());
-		f.write(LIT("\" Target=\""));
-		f.write(qi->getTarget());
+	if (bundle->getFileBundle()) {
+		f.write(LIT("<File Version=\"1.0\" Token=\""));
+		f.write(bundle->getToken());
+		f.write(LIT("\">\r\n"));
+		saveQI(f, bundle->getQueueItems().front(), tmp, b32tmp);
+		f.write(LIT("</File>\r\n"));
+	} else {
+		//f.write(LIT("<Downloads Version=\"" VERSIONSTRING "\">\r\n"));
+		f.write(LIT("<Bundle Version=\"1.0\" Target=\""));
+		f.write(SimpleXML::escape(bundle->getTarget(), tmp, true));
+		f.write(LIT("\" Token=\""));
+		f.write(bundle->getToken());
 		f.write(LIT("\" Size=\""));
-		f.write(Util::toString(qi->getSize()));
-		f.write(LIT("\" Added=\""));
-		f.write(Util::toString(qi->getAdded()));
-		f.write(LIT("\"/>\r\n"));
+		f.write(Util::toString(bundle->getSize()));
+		f.write(LIT("\" Downloaded=\""));
+		f.write(Util::toString(bundle->getDownloaded()));
+		if (!bundle->getAutoPriority()) {
+			f.write(LIT("\" Priority=\""));
+			f.write(Util::toString((int)bundle->getPriority()));
+		}
+		f.write(LIT("\">\r\n"));
+
+		for (auto k = bundle->getFinishedFiles().begin(); k != bundle->getFinishedFiles().end(); ++k) {
+			QueueItem* qi = *k;
+			f.write(LIT("\t<Finished TTH=\""));
+			f.write(qi->getTTH().toBase32());
+			f.write(LIT("\" Target=\""));
+			f.write(qi->getTarget());
+			f.write(LIT("\" Size=\""));
+			f.write(Util::toString(qi->getSize()));
+			f.write(LIT("\" Added=\""));
+			f.write(Util::toString(qi->getAdded()));
+			f.write(LIT("\"/>\r\n"));
+		}
+
+		for (auto j = bundle->getQueueItems().begin(); j != bundle->getQueueItems().end(); ++j) {
+			saveQI(f, *j, tmp, b32tmp);
+		}
+
+		f.write(LIT("</Bundle>\r\n"));
+		//f.write("</Downloads>\r\n");
 	}
 
-	for (auto j = bundle->getQueueItems().begin(); j != bundle->getQueueItems().end(); ++j) {
-		saveQI(f, *j, tmp, b32tmp, true);
-	}
-
-	f.write(LIT("\t</Bundle>\r\n"));
-	f.write("</Downloads>\r\n");
 	f.flush();
 	ff.close();
-
 	//File::deleteFile(bundle->getBundleFile() + ".bak");
 	//File::copyFile(bundle->getBundleFile(), bundle->getBundleFile() + ".bak");
-	File::deleteFile(bundle->getBundleFile());
-	File::renameFile(bundle->getBundleFile() + ".tmp", bundle->getBundleFile());
+	try {
+		File::deleteFile(bundle->getBundleFile());
+		File::renameFile(bundle->getBundleFile() + ".tmp", bundle->getBundleFile());
+	}catch(...) {
+		LogManager::getInstance()->message("ERROR WHEN MOVING BUNDLEXML: " + bundle->getName());
+	}
 	bundle->setDirty(false);
 }
 
-void QueueManager::saveQI(OutputStream &f, QueueItem* qi, string tmp, string b32tmp, bool bundle) {
+void QueueManager::saveQI(OutputStream &f, QueueItem* qi, string tmp, string b32tmp) {
 	string indent = "\t";
-	if (bundle)
-		indent = "\t\t";
+	//if (bundle)
+	//	indent = "\t\t";
 
 	f.write(indent);
 	f.write(LIT("<Download Target=\""));
@@ -2338,7 +2317,7 @@ void QueueManager::saveQI(OutputStream &f, QueueItem* qi, string tmp, string b32
 
 class QueueLoader : public SimpleXMLReader::CallBack {
 public:
-	QueueLoader() : cur(NULL), inDownloads(false), inBundle(false) { }
+	QueueLoader() : cur(NULL), inDownloads(false), inBundle(false), inFile(false) { }
 	~QueueLoader() { }
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name, const string& data);
@@ -2349,6 +2328,7 @@ private:
 	BundlePtr curBundle;
 	bool inDownloads;
 	bool inBundle;
+	bool inFile;
 };
 
 void QueueManager::loadQueue() noexcept {
@@ -2381,6 +2361,7 @@ void QueueManager::loadQueue() noexcept {
 	}
 }
 
+static const string sFile = "File";
 static const string sBundle = "Bundle";
 static const string sName = "Name";
 static const string sToken = "Token";
@@ -2410,12 +2391,37 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 	QueueManager* qm = QueueManager::getInstance();
 	if(!inDownloads && name == "Downloads") {
 		inDownloads = true;
-	} else if(inDownloads) {
+	} else if (!inFile && name == sFile) {
+		const string& token = getAttrib(attribs, sToken, 1);
+		if(token.empty())
+			return;
+		curBundle = BundlePtr(new Bundle(Util::emptyString, true));
+		curBundle->setToken(token);
+		inFile = true;		
+	} else if (!inBundle && name == sBundle) {
+		const string& bundleTarget = getAttrib(attribs, sTarget, 0);
+		//LogManager::getInstance()->message("BUNDLEFOUND!!!!!!!!!!!!!: " + bundleTarget);
+		const string& token = getAttrib(attribs, sToken, 1);
+		if(token.empty())
+			return;
+
+		const string& prio = getAttrib(attribs, sPriority, 3);
+
+		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, false));
+		if (!prio.empty()) {
+			bundle->setPriority((Bundle::Priority)Util::toInt(prio));
+		} else {
+			bundle->setAutoPriority(true);
+			bundle->setPriority(Bundle::LOW);
+		}
+		bundle->setToken(token);
+		curBundle = bundle;
+		inBundle = true;		
+	} else if(inDownloads || inBundle || inFile) {
 		if(cur == NULL && name == sDownload) {
 			int64_t size = Util::toInt64(getAttrib(attribs, sSize, 1));
 			if(size == 0)
 				return;
-			//string bundleToken = getAttrib(attribs, sBundleToken, 7);
 			try {
 				const string& tgt = getAttrib(attribs, sTarget, 0);
 				// @todo do something better about existing files
@@ -2454,10 +2460,10 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				qi->setMaxSegments(max((uint8_t)1, maxSegments));
 
 				//bundles
-				if (curBundle && inBundle) {
+				if (curBundle && (inBundle || inFile)) {
 					//LogManager::getInstance()->message("itemtoken exists: " + bundleToken);
 					qm->addBundleItem(qi, curBundle, true, true);
-				} else {
+				} else if (inDownloads) {
 					//assign bundles for old queue items / single file bundle
 					//LogManager::getInstance()->message("BUNDLETOKEN EMPTY");
 					curBundle = qm->createFileBundle(qi);
@@ -2495,25 +2501,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			} catch(const Exception&) {
 				return;
 			}
-		} else if(name == sBundle) {
-			const string& bundleTarget = getAttrib(attribs, sTarget, 0);
-			//LogManager::getInstance()->message("BUNDLEFOUND!!!!!!!!!!!!!: " + bundleTarget);
-			const string& token = getAttrib(attribs, sToken, 1);
-			if(token.empty())
-				return;
-
-			const string& prio = getAttrib(attribs, sPriority, 3);
-
-			BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, false));
-			if (!prio.empty()) {
-				bundle->setPriority((Bundle::Priority)Util::toInt(prio));
-			} else {
-				bundle->setAutoPriority(true);
-				bundle->setPriority(Bundle::LOW);
-			}
-			bundle->setToken(token);
-			curBundle = bundle;
-			inBundle=true;
 		} else if(inBundle && curBundle && name == sFinished) {
 			//LogManager::getInstance()->message("FOUND FINISHED TTH");
 			const string& tth = getAttrib(attribs, sTTH, 0);
@@ -2535,11 +2522,18 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 
 void QueueLoader::endTag(const string& name, const string&) {
 	
-	if(inDownloads) {
+	if(inDownloads || inBundle || inFile) {
 		if(name == sDownload) {
 			cur = NULL;
 		} else if(name == "Downloads") {
 			inDownloads = false;
+		} else if(name == sFile) {
+			if (!curBundle->getQueueItems().empty()) {
+				curBundle->setTarget(curBundle->getQueueItems().front()->getTarget());
+				QueueManager::getInstance()->addBundle(curBundle, true);
+			}
+			curBundle = NULL;
+			inFile = false;
 		} else if(name == sBundle) {
 			QueueManager::getInstance()->addBundle(curBundle, true);
 			curBundle = NULL;
@@ -3108,8 +3102,8 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 
 	{
 		Lock l(cs);
-		if (!loading && !aBundle->getFileBundle()) {
-			File f(aBundle->getBundleFile(), File::WRITE, File::CREATE);
+		if (!loading) {
+			//File f(aBundle->getBundleFile(), File::WRITE, File::CREATE);
 		}
 		bundles.insert(make_pair(aBundle->getToken(), aBundle));
 
