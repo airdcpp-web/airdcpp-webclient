@@ -2189,7 +2189,7 @@ void QueueManager::saveQueue(bool force, uint64_t aTick) noexcept {
 }
 
 void QueueManager::saveBundle(BundlePtr bundle) {
-	LogManager::getInstance()->message("SAVING BUNDLE: " + bundle->getName());
+	//LogManager::getInstance()->message("SAVING BUNDLE: " + bundle->getName());
 	File ff(bundle->getBundleFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 	BufferedOutputStream<false> f(&ff);
 	f.write(SimpleXML::utf8Header);
