@@ -282,6 +282,11 @@ void QueueItem::addSegment(const Segment& segment) {
 	dcassert(segment.getOverlapped() == false);
 	done.insert(segment);
 
+	//cache for bundles
+	if (bundle) {
+		bundle->increaseDownloaded(segment.getSize());
+	}
+
 	// Consolidate segments
 	if(done.size() == 1)
 		return;
@@ -297,11 +302,6 @@ void QueueItem::addSegment(const Segment& segment) {
 		} else {
 			++i;
 		}
-	}
-
-	//cache for bundles
-	if (bundle) {
-		bundle->increaseDownloaded(segment.getSize());
 	}
 }
 

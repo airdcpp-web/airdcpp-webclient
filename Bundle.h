@@ -63,6 +63,15 @@ public:
 		SET_WAITING				= 0x08
 	};
 
+
+	struct Hash {
+		size_t operator()(const BundlePtr x) const { return hash<string>()(x->getToken()); }
+	};
+
+	bool operator==(const BundlePtr aBundle) const {
+		return token == aBundle->getToken();
+	}
+
 	typedef QueueItem* Ptr;
 	typedef unordered_map<CID, string> CIDStringList;
 	typedef unordered_map<CID, uint8_t> CIDIntMap;

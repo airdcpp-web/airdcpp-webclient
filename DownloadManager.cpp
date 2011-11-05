@@ -230,6 +230,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		{
 
 			if (aBundle->getRunningUsers().empty()) {
+				fire(DownloadManagerListener::BundleUser(), aBundle->getToken(), aSource->getHintedUser());
 				aBundle->setStart(GET_TICK());
 			}
 
