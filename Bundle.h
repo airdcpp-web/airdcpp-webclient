@@ -80,6 +80,7 @@ public:
 	GETSET(double, lastPercent, LastPercent);
 	GETSET(string, token, Token);
 	GETSET(int64_t, speed, Speed);
+	GETSET(int64_t, actual, Actual);
 	GETSET(int64_t, lastSpeed, LastSpeed);
 	GETSET(uint64_t, start, Start);
 	GETSET(uint16_t, running, Running);
@@ -112,6 +113,7 @@ public:
 	SourceIntList sources;
 	const SourceIntList& getSources() const { return sources; }
 	uint64_t getDownloadedBytes() const;
+	//int64_t getActual() const;
 	QueueItem* findQI(const string& aTarget) const;
 	bool addSource(const HintedUser& aUser);
 	bool removeSource(const UserPtr& aUser);

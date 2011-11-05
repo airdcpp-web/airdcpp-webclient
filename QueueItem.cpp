@@ -298,6 +298,11 @@ void QueueItem::addSegment(const Segment& segment) {
 			++i;
 		}
 	}
+
+	//cache for bundles
+	if (bundle) {
+		bundle->increaseDownloaded(segment.getSize());
+	}
 }
 
 bool QueueItem::isNeededPart(const PartsInfo& partsInfo, int64_t blockSize)

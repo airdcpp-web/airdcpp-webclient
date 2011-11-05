@@ -166,9 +166,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			// Partial file list
 			if (tthList) {
 				if (aFile[0] != '/') {
-					if (QueueManager::getInstance()->findBundle(aFile)) {
-						mis = QueueManager::getInstance()->generateTTHList(aSource.getHintedUser(), aFile, isInSharingHub);
-					}
+					mis = QueueManager::getInstance()->generateTTHList(aSource.getHintedUser(), aFile, isInSharingHub);
 				} else {
 					mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, isInSharingHub);
 				}

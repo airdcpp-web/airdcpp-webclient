@@ -1587,13 +1587,10 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 
 	RLock l(cs);
 	try{
-	DirMap result = splitVirtual(dir);
-	for(DirMap::const_iterator it = result.begin(); it != result.end(); ++it) {
-		dcdebug("result name %s \n", it->second->getName());
-		Directory::Ptr root = it->second;
-		for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
-			it2->second->toTTHList(sos, tmp, recurse);
-			}
+		DirMap result = splitVirtual(dir);
+		for(DirMap::const_iterator it = result.begin(); it != result.end(); ++it) {
+			dcdebug("result name %s \n", it->second->getName());
+			it->second->toTTHList(sos, tmp, recurse);
 		}
 	} catch(...) {
 		return NULL;

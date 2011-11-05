@@ -105,25 +105,6 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 					}
 				}
 			}
-	
-			if(d->getType() == Transfer::TYPE_FILE) { //no reason to count for filelists
-				BundlePtr bundle = d->getBundle();
-				if (bundle) {
-					bool found=false;
-					for (BundleSpeedMap::iterator j = bundles.begin(); j != bundles.end(); ++j) {
-						if ((*j).first->getToken() == bundle->getToken()) {
-							j->second += speed;
-							bundle->setRunning(bundle->getRunning() + 1);
-							found=true;
-							break;
-						}
-					}
-					if (!found) {
-						bundle->setRunning(1);
-						bundles.push_back(make_pair(bundle, speed));
-					}
-				}
-			}
 
 			if(SETTING(FAV_DL_SPEED) > 0) {
 				UserPtr fstusr = d->getUser();
@@ -138,18 +119,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			}
 		}
 
-		BundleList retBundles;
-		for (BundleSpeedMap::iterator i = bundles.begin(); i != bundles.end(); ++i) {
-			(*i).first->setSpeed((*i).second);
-			retBundles.push_back((*i).first);
-			//LogManager::getInstance()->message("Bundle status updated, speed: " + Util::formatBytes((*i).first->getSpeed()));
-			//LogManager::getInstance()->message("Bundle status updated, downloaded: " + Util::formatBytes((*i).first->getDownloaded()));
-		}
-
-		updateBundles(retBundles);
-
 		if(tickList.size() > 0) {
-			fire(DownloadManagerListener::Tick(), tickList, retBundles);
+			fire(DownloadManagerListener::Tick(), tickList);
 		}
 	}
 
@@ -587,14 +558,14 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, const uint8_t* aData, size_t aLen) noexcept {
 	Download* d = aSource->getDownload();
-	BundlePtr bundle = d->getBundle();
+	//BundlePtr bundle = d->getBundle();
 	dcassert(d != NULL);
 
 	try {
 		d->addPos(d->getFile()->write(aData, aLen), aLen);
 		//LogManager::getInstance()->message("pos: " + Util::toString(pos) + "   aLen: " + Util::toString(aLen));
-		if (bundle)
-			bundle->increaseDownloaded(aLen);
+		//if (bundle)
+		//	bundle->increaseDownloaded(aLen);
 		d->tick();
 
 		if(d->getFile()->eof()) {

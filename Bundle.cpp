@@ -54,21 +54,34 @@ void Bundle::setDirty(bool enable) {
 }
 
 uint64_t Bundle::getDownloadedBytes() const {
-	uint64_t total = 0;
+	uint64_t total = downloaded;
 
 	// count done segments
-	for(auto i = queueItems.begin(); i != queueItems.end(); ++i) {
+	/*for(auto i = queueItems.begin(); i != queueItems.end(); ++i) {
 		total += (*i)->getDownloadedBytes();
-	}
+	} */
 
 	// count running segments
-	/*DownloadList dl = getDownloads();
+	DownloadList dl = getDownloads();
 	for(auto i = dl.begin(); i != dl.end(); ++i) {
 		total += (*i)->getPos();
-	} */
+	}
+	//LogManager::getInstance()->message("Bundle pos: " + Util::toString(total));
 
 	return total;
 }
+
+/*int64_t Bundle::getActual() const {
+	uint64_t total = 0;
+
+	DownloadList dl = getDownloads();
+	for(auto i = dl.begin(); i != dl.end(); ++i) {
+		total += (*i)->getActual();
+	}
+
+	LogManager::getInstance()->message("Bundle actual: " + Util::toString(total));
+	return total;
+} */
 
 QueueItem* Bundle::findQI(const string& aTarget) const {
 	for(auto i = queueItems.begin(); i != queueItems.end(); ++i) {

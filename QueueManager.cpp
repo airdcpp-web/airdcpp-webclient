@@ -1546,7 +1546,7 @@ void QueueManager::moveStuckFile(QueueItem* qi) {
 		removeBundleItem(qi, true, true);
 	 } else {
 		qi->addSegment(Segment(0, qi->getSize()));
-		fire(QueueManagerListener::StatusUpdated(), qi, false);
+		fire(QueueManagerListener::StatusUpdated(), qi);
 	}
 
 	fire(QueueManagerListener::RecheckAlreadyFinished(), target);
@@ -1554,7 +1554,7 @@ void QueueManager::moveStuckFile(QueueItem* qi) {
 
 void QueueManager::rechecked(QueueItem* qi) {
 	fire(QueueManagerListener::RecheckDone(), qi->getTarget());
-	fire(QueueManagerListener::StatusUpdated(), qi, false);
+	fire(QueueManagerListener::StatusUpdated(), qi);
 
 	setBundleDirty(qi->getBundle());
 }
@@ -1632,7 +1632,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 						HashManager::getInstance()->addTree(aDownload->getTigerTree());
 
 						userQueue.removeDownload(q, aDownload->getUser(), aDownload->getUserConnection().getToken());
-						fire(QueueManagerListener::StatusUpdated(), q, false);
+						fire(QueueManagerListener::StatusUpdated(), q);
 					} else {
 						// Now, let's see if this was a directory download filelist...
 						if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(aDownload->getHintedUser()) != directories.end()) ||
@@ -1701,7 +1701,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 						} else {
 							userQueue.removeDownload(q, aDownload->getUser(), aDownload->getUserConnection().getToken());
 							if(aDownload->getType() != Transfer::TYPE_FILE || (reportFinish && q->isWaiting())) {
-								fire(QueueManagerListener::StatusUpdated(), q, false);
+								fire(QueueManagerListener::StatusUpdated(), q);
 							}
 							if (q->getBundle()) {
 								setBundleDirty(q->getBundle());
@@ -1737,7 +1737,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 					}
 	
 					userQueue.removeDownload(q, aDownload->getUser(), aDownload->getUserConnection().getToken());
-					fire(QueueManagerListener::StatusUpdated(), q, false);
+					fire(QueueManagerListener::StatusUpdated(), q);
 
 					if(aDownload->isSet(Download::FLAG_OVERLAP)) {
 						// overlapping segment disconnected, unoverlap original segment
@@ -2134,7 +2134,7 @@ void QueueManager::setPriority(const string& aTarget, QueueItem::Priority p) noe
 			}
 			userQueue.setQIPriority(q, p);
 			setBundleDirty(q->getBundle());
-			fire(QueueManagerListener::StatusUpdated(), q, false);
+			fire(QueueManagerListener::StatusUpdated(), q);
 		}
 	}
 
@@ -2161,7 +2161,7 @@ void QueueManager::setAutoPriority(const string& aTarget, bool ap) noexcept {
 				priorities.push_back(make_pair(q->getTarget(), q->calculateAutoPriority()));
 			}
 			setBundleDirty(q->getBundle());
-			fire(QueueManagerListener::StatusUpdated(), q, false);
+			fire(QueueManagerListener::StatusUpdated(), q);
 		}
 	}
 
@@ -2693,7 +2693,7 @@ void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser
 					QueueItemList items = bundle->getItems(aUser);
 					for(auto s = items.begin(); s != items.end(); ++s) {
 						QueueItem* qi = *s;
-						fire(QueueManagerListener::StatusUpdated(), qi, false);
+						fire(QueueManagerListener::StatusUpdated(), qi);
 						if((i != QueueItem::PAUSED && qi->getPriority() != QueueItem::PAUSED) || qi->getPriority() == QueueItem::HIGHEST) {
 							hasDown = true;
 						}
@@ -2719,7 +2719,7 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 					BundlePtr bundle = *m;
 					QueueItemList items = bundle->getItems(aUser);
 					for(auto s = items.begin(); s != items.end(); ++s) {
-						fire(QueueManagerListener::StatusUpdated(), *s, false);
+						fire(QueueManagerListener::StatusUpdated(), *s);
 					}
 				}
 			}
@@ -2780,6 +2780,34 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	}
 	*/
 
+	Lock l (cs);
+	BundleList runningBundles;
+	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
+		BundlePtr bundle = i->second;
+		int64_t bundleSpeed = 0, bundleRatio = 0;
+		int downloads = 0;
+		for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
+			Download* d = *s;
+			if (d->getAverageSpeed() > 0 && d->getStart() > 0) {
+				downloads++;
+				bundleSpeed += d->getAverageSpeed();
+				bundleRatio += d->getPos() > 0 ? (double)d->getActual() / (double)d->getPos() : 1.00;
+			}
+		}
+		if (bundleSpeed > 0) {
+			bundleRatio = bundleRatio / downloads;
+			bundle->setActual((int64_t)((double)bundle->getDownloadedBytes() * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+			bundle->setSpeed(bundleSpeed);
+			runningBundles.push_back(bundle);
+			fire(QueueManagerListener::BundleTick(), bundle);
+		}
+	}
+
+	if (!runningBundles.empty()) {
+		DownloadManager::getInstance()->updateBundles(runningBundles);
+		calculateBundlePriorities(runningBundles);
+	}
+
 	if (!bundleUpdates.empty()) {
 		for (bundleTickMap::const_iterator i = bundleUpdates.begin(); i != bundleUpdates.end(); ++i) {
 			if (aTick > i->second + 1000) {
@@ -2789,6 +2817,10 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 			}
 		}
 	}
+
+}
+
+void QueueManager::calculateBundlePriorities(BundleList& runningBundles) {
 
 }
 
@@ -4064,20 +4096,32 @@ MemoryInputStream* QueueManager::generateTTHList(const HintedUser aUser, const s
 	}
 
 	//write finished items
-	for(FinishedTTHIter i = finishedTTHs.begin(); i != finishedTTHs.end(); ++i) {
+	/*for(FinishedTTHIter i = finishedTTHs.begin(); i != finishedTTHs.end(); ++i) {
 		//LogManager::getInstance()->message("FINISHED BUNDLE FIRST: " + (*i).second + " COMPARE " + bundleCompare);
 		if((*i).second == bundleCompare) {
 			//LogManager::getInstance()->message("TTHLIST FINISHED FOUND");
 			tmp2.clear();
 			tthList.write((*i).first.toBase32(tmp2));
 		}
+	} */
+	
+	BundlePtr bundle = findBundle(bundleToken);
+	if (bundle) {
+		for(auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
+			tmp2.clear();
+			tthList.write((*i)->getTTH().toBase32(tmp2) + " ");
+		}
+		checkFinishedNotify(aUser.user->getCID(), bundleCompare, true, aUser.hint);
 	}
-
-	checkFinishedNotify(aUser.user->getCID(), bundleCompare, true, aUser.hint);
 
 	//LogManager::getInstance()->message("TTHLIST: " + tths);
 
-	return new MemoryInputStream(tths);
+	if (tths.empty()) {
+		dcdebug("QUEUEMANAGER TTHLIST NULL");
+		return NULL;
+	} else {
+		return new MemoryInputStream(tths);
+	}
 }
 
 string QueueManager::findFinished(const TTHValue& tth) const {

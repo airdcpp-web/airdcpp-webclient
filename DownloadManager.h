@@ -61,7 +61,7 @@ public:
 
 	bool startDownload(QueueItem::Priority prio, const UserPtr& user, const string& aToken, bool mcn=false);
 	
-
+	void updateBundles(BundleList bundles);
 
 private:
 	
@@ -90,7 +90,6 @@ private:
 	void startBundle(UserConnection* aSource, BundlePtr aBundle);
 	void sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly);
 	void sendBundleUpdate(HintedUser user, const string speed, const double percent, const string bundleToken);
-	void updateBundles(BundleList bundles);
 	typedef unordered_map<string, BundlePtr> tokenMap;
 	tokenMap tokens;
 

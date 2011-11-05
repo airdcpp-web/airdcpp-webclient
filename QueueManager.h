@@ -148,6 +148,7 @@ public:
 	void rebuildBundleDirs(BundlePtr aBundle, bool loading = false);
 
 	void setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p);
+	void calculateBundlePriorities(BundleList& runningBundles);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
