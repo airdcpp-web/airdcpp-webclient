@@ -2798,6 +2798,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 			bundleRatio = bundleRatio / downloads;
 			bundle->setActual((int64_t)((double)bundle->getDownloadedBytes() * (bundleRatio == 0 ? 1.00 : bundleRatio)));
 			bundle->setSpeed(bundleSpeed);
+			bundle->setRunning(downloads);
 			runningBundles.push_back(bundle);
 			fire(QueueManagerListener::BundleTick(), bundle);
 		}
