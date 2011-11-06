@@ -49,7 +49,7 @@ public:
 		size_t operator()(const UserPtr& x) const { return ((size_t)(&(*x)))/sizeof(User); }
 	};
 
-	User(const CID& aCID) : cid(aCID) { }
+	User(const CID& aCID) : cid(aCID), speed(0) { }
 
 	~User() { }
 

@@ -2433,6 +2433,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 
 		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, false, added));
 		if (!prio.empty()) {
+			bundle->setAutoPriority(false);
 			bundle->setPriority((Bundle::Priority)Util::toInt(prio));
 		} else {
 			bundle->setAutoPriority(true);
@@ -2864,7 +2865,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	}
 
 	for(vector<pair<BundlePtr, Bundle::Priority>>::const_iterator p = priorities.begin(); p != priorities.end(); p++) {
-		setBundlePriority((*p).first, (*p).second);
+		setBundlePriority((*p).first, (*p).second, true);
 	}
 
 }
@@ -2888,16 +2889,12 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 	}
 
 	//analyze the size
-	int prioGroup = 1;
 	if (autoPrioMap.size() <= 1) {
 		if (verbose) {
 			LogManager::getInstance()->message("Not enough bundles with autoprio to calculate anything!");
 		}
 		return;
-	} else if (autoPrioMap.size() > 2) {
-		prioGroup = autoPrioMap.size() / 3;
 	}
-	//int size = autoPrioMap.size() == 2 ? 2 : 3;
 
 
 	//create priorization maps
@@ -2906,54 +2903,100 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 
 	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
 		BundlePtr bundle = i->first;
+		bool test = bundle->getName() == "Breaking.Bad.S02E08.720p.Bluray.x264-CLUE";
 		int64_t bundleSpeed = 0;
-		int8_t sources = 0;
+		double sources = 0;
 		for (auto s = bundle->getBundleSources().begin(); s != bundle->getBundleSources().end(); ++s) {
 			UserPtr& user = (*s).first.user;
 			if (user->isOnline()) {
 				bundleSpeed += user->getSpeed();
-				sources += 2;
+				sources += s->second;
 			} else {
-				sources++;
+				sources += s->second / 2.0;
 			}
 		}
+		sources = sources / bundle->getQueueItems().size();
+		///if (verbose) {
+		//	LogManager::getInstance()->message("Sourcepoints for bundle " + bundle->getName() + " : " + Util::toString(sources));
+		//}
 		speedMap.insert(make_pair((double)bundleSpeed, bundle));
-		sourceMap.insert(make_pair((double)sources, bundle));
+		sourceMap.insert(make_pair(sources, bundle));
 	}
 
 	//scale the priorization maps
-	double factor = 100 / max_element(speedMap.begin(), speedMap.end())->first;
-	for (auto i = speedMap.begin(); i != speedMap.end(); ++i) {
-		autoPrioMap[i->second] = i->first * factor;
+	double factor;
+	double max = max_element(speedMap.begin(), speedMap.end())->first;
+	if (max > 0) {
+		double factor = 100 / max_element(speedMap.begin(), speedMap.end())->first;
+		for (auto i = speedMap.begin(); i != speedMap.end(); ++i) {
+			autoPrioMap[i->second] = i->first * factor;
+		}
 	}
-	factor = 100 / max_element(sourceMap.begin(), sourceMap.end())->first;
-	for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
-		autoPrioMap[i->second] += i->first * factor;
+
+	max = max_element(sourceMap.begin(), sourceMap.end())->first;
+	if (max > 0) {
+		factor = 100 / max_element(sourceMap.begin(), sourceMap.end())->first;
+		for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
+			autoPrioMap[i->second] += i->first * factor;
+		}
 	}
 
 	//prepare to set the prios
-	multimap<double, BundlePtr> finalMap;
+	multimap<int, BundlePtr> finalMap;
+	int uniqueValues = 0;
 	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
+		double tmp = i->second;
+		if (finalMap.find(i->second) == finalMap.end()) {
+			uniqueValues++;
+		}
 		finalMap.insert(make_pair(i->second, i->first));
 	}
 
 
+	int prioGroup = 1;
+	if (uniqueValues <= 1) {
+		if (verbose) {
+			LogManager::getInstance()->message("Not enough bundles with unique points to perform the priotization!");
+		}
+		return;
+	} else if (uniqueValues > 2) {
+		prioGroup = uniqueValues / 3;
+	}
+
+	if (verbose) {
+		LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
+	}
+	//int size = autoPrioMap.size() == 2 ? 2 : 3;
+	//priority to set (4-2, high-low)
 	int prio = 4;
-	int lastPoints = 0;
-	int prioSet=0;
+
+	//counters for analyzing identical points
+	int lastPoints = 999;
+	int prioSet=0, skippedIncrements=0;
+	bool groupDecreased;
 
 	for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
-		if (verbose) {
-			LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + Util::toString(prio));
-		}
-		setBundlePriority(i->second, (Bundle::Priority)prio, true);
+		bool tmp = (prio == 3);
+		tmp = (i->first == 15);
 		if (lastPoints==i->first) {
+			if (verbose) {
+				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + Util::toString(prio));
+			}
+			setBundlePriority(i->second, (Bundle::Priority)prio, true);
 			//don't increase the prio if two bundles have identical points
+			if (prioSet < prioGroup) {
+				prioSet++;
+			}
 		} else {
-			prioSet++;
 			if (prioSet == prioGroup && prio != 2) {
 				prio--;
+				prioSet=0;
+			} 
+			if (verbose) {
+				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + Util::toString(prio));
 			}
+			setBundlePriority(i->second, (Bundle::Priority)prio, true);
+			prioSet++;
 			lastPoints=i->first;
 		}
 	}
