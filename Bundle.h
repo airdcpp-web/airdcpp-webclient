@@ -76,13 +76,12 @@ public:
 	typedef unordered_map<CID, string> CIDStringList;
 	typedef unordered_map<CID, uint8_t> CIDIntMap;
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
-	typedef vector<HintedUser&> SourceList;
-	typedef pair<HintedUser&, uint8_t> UserRunningPair;
+	typedef pair<HintedUser, uint8_t> UserRunningPair;
 	typedef vector<UserRunningPair> SourceIntList;
 
 
-	Bundle(const string& target, bool fileBundle, Priority priority = DEFAULT) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true), priority(priority), autoPriority(false), lastSave(0), dirty(true) { }
+	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
+		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), lastSave(0), dirty(true), added(added) { }
 
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, downloaded, Downloaded);
@@ -93,6 +92,7 @@ public:
 	GETSET(int64_t, lastSpeed, LastSpeed);
 	GETSET(uint64_t, start, Start);
 	GETSET(uint16_t, running, Running);
+	GETSET(time_t, added, Added);
 	GETSET(bool, singleUser, SingleUser);
 	GETSET(CIDStringList, notifiedUsers, NotifiedUsers);
 	GETSET(CIDIntMap, runningUsers, RunningUsers);
@@ -105,7 +105,7 @@ public:
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(uint16_t, lastSave, LastSave);
 	GETSET(StringList, bundleDirs, BundleDirs);
-
+	GETSET(SourceIntList, sources, Sources);
 	
 	string target;
 	bool fileBundle;
@@ -118,14 +118,16 @@ public:
 	QueueItemList& getQueueItems() { return queueItems; }
 	DownloadList& getDownloads() { return downloads; }
 	StringList& getBundleDirs() { return bundleDirs; }
+	SourceIntList& getBundleSources() { return sources; }
 
-	SourceIntList sources;
-	const SourceIntList& getSources() const { return sources; }
+	//SourceIntList sources;
+	//SourceIntList& getSources() { return sources; }
 	uint64_t getDownloadedBytes() const;
 	//int64_t getActual() const;
 	QueueItem* findQI(const string& aTarget) const;
 	bool addSource(const HintedUser& aUser);
 	bool removeSource(const UserPtr& aUser);
+	Bundle::Priority calculateAutoPriority() const;
 
 	bool getFileBundle() {
 		return fileBundle;
@@ -185,7 +187,7 @@ public:
 		//bool isRunning() { return !getDownloads().empty(); }
 		QueueItemList getItems(const UserPtr& aUser) const;
 		void addQueue(QueueItem* qi);
-		bool addQueue(QueueItem* qi, const UserPtr& aUser);
+		bool addQueue(QueueItem* qi, const HintedUser& aUser);
 		QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 		QueueItemList getRunningQIs(const UserPtr& aUser);
 		bool addDownload(Download* d);

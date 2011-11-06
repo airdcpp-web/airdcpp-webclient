@@ -152,25 +152,54 @@ void Bundle::addQueue(QueueItem* qi) {
 	}
 }
 
-bool Bundle::addQueue(QueueItem* qi, const UserPtr& aUser) {
+bool Bundle::addQueue(QueueItem* qi, const HintedUser& aUser) {
 	bool newUser = false;
-	auto& l = userQueue[qi->getPriority()][aUser];
+	auto& l = userQueue[qi->getPriority()][aUser.user];
 	if (l.empty()) {
 		newUser = true;
 		for(int i = 0; i < Bundle::LAST; ++i) {
-			auto j = userQueue[i].find(aUser);
+			auto j = userQueue[i].find(aUser.user);
 			if(j != userQueue[i].end() && i != qi->getPriority()) {
 				newUser = false;
 			}
 		}
 	//	LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, add new user " + aUser->getCID().toBase32());
 	}
+
+	if (l.size() > 1) {
+		auto i = l.begin();
+		auto start = (size_t)Util::rand((uint32_t)l.size());
+		advance(i, start);
+
+		l.insert(i, qi);
+	} else {
+		l.push_back(qi);
+	}
+	//auto i = queue.begin();
+	//advance(i, start);
+
+	/*
 	if(qi->getDownloadedBytes() > 0 ) {
 		l.push_front(qi);
 	} else {
 		l.push_back(qi);
 	}
-	return newUser;
+	*/
+
+	HintedUser tmp = aUser;
+
+	if (!newUser) {
+		auto i = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
+		//auto& i = find(sources.begin(), sources.end(), aUser);
+		dcassert(i != sources.end());
+		i->second++;
+		return false;
+	} else {
+		sources.push_back(make_pair(tmp, 1));
+		dcassert(!sources.empty());
+		return true;
+	}
+	//return newUser;
 	//LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, total items for the user " + aUser->getCID().toBase32() + ": " + Util::toString(l.size()));
 }
 
@@ -314,18 +343,59 @@ bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning
 	dcassert(i != l.end());
 	l.erase(i);
 
+
 	if(l.empty()) {
 		ulm.erase(j);
-		for(int i = 0; i < Bundle::LAST; ++i) {
+		/*for(int i = 0; i < Bundle::LAST; ++i) {
 			auto j = userQueue[i].find(aUser);
 			if(j != userQueue[i].end()) {
 				return false;
 			}
 		}
+		return true; */
+	}
+	//return false;
+	auto m = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; });
+	//auto& m = find(sources.begin(), sources.end(), aUser);
+	dcassert(m != sources.end());
+	m->second--;
+	if (m->second == 0) {
+		sources.erase(m);
 		return true;
 	}
 	return false;
 }
 
+	
+Bundle::Priority Bundle::calculateAutoPriority() const {
+	if(autoPriority) {
+		Bundle::Priority p;
+		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
+		switch(percent){
+				case 0:
+				case 1:
+				case 2:
+					p = Bundle::LOW;
+					break;
+				case 3:
+				case 4:
+				case 5:						
+				default:
+					p = Bundle::NORMAL;
+					break;
+				case 6:
+				case 7:
+				case 8:
+					p = Bundle::HIGH;
+					break;
+					case 9:
+					case 10:
+					p = Bundle::HIGHEST;			
+					break;
+		}
+		return p;			
+	}
+	return priority;
+}
 
 }

@@ -325,10 +325,20 @@ void QueueManager::UserQueue::add(QueueItem* qi, const HintedUser& aUser) {
 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
-		if (bundle->addQueue(qi, aUser.user)) {
+		if (bundle->addQueue(qi, aUser)) {
 			//bundles can't be added here with the priority DEFAULT
 			auto& s = userBundleQueue[bundle->getPriority() == Bundle::DEFAULT ? Bundle::LOW : bundle->getPriority()][aUser.user];
-			s.push_back(bundle);
+
+			if (SETTING(DOWNLOAD_ORDER) != SettingsManager::ORDER_RANDOM) {
+				s.insert(upper_bound(s.begin(), s.end(), bundle, [](const BundlePtr leftBundle, const BundlePtr rightBundle) { return leftBundle->getAdded() < rightBundle->getAdded(); }), bundle);
+			} else {
+				auto i = s.begin();
+				auto start = (size_t)Util::rand((uint32_t)s.size());
+				advance(i, start);
+
+				s.insert(i, bundle);
+			}
+
 			//LogManager::getInstance()->message("Add new bundle " + bundle->getName() + " for an user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(s.size()));
 		} else {
 			//LogManager::getInstance()->message("Don't add new bundle " + bundle->getName() + " for an user: " + aUser->getCID().toBase32());
@@ -756,7 +766,8 @@ int QueueManager::Rechecker::run() {
 }
 
 QueueManager::QueueManager() : 
-	lastSave(0), 
+	lastSave(0),
+	lastAutoPrio(0), 
 	queueFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml"),
 	rechecker(this),
 	nextSearch(0)
@@ -1037,13 +1048,13 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 connect:
 	bool smallSlot=false;
 	if ((aFlags & QueueItem::FLAG_PARTIAL_LIST) || (aSize <= 65792 && !(aFlags & QueueItem::FLAG_USER_LIST) && (aFlags & QueueItem::FLAG_CLIENT_VIEW))) {
-			smallSlot=true;
+		smallSlot=true;
 	}
 
 	if(!aUser.user->isOnline())
 		return;
 
-	if(wantConnection) {
+	if(wantConnection || smallSlot) {
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
 	}
 
@@ -2036,43 +2047,51 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) no
 	}	
 }
 
-void QueueManager::setBundlePriority(const string& bundleToken, QueueItem::Priority p) noexcept {
+void QueueManager::setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept {
 	BundlePtr bundle = findBundle(bundleToken);
 	if (bundle) {
-		//LogManager::getInstance()->message("Changing priority to: " + Util::toString(p));
-		Bundle::Priority oldPrio = bundle->getPriority();
-		if (oldPrio == (Bundle::Priority)p) {
-			//LogManager::getInstance()->message("Prio not changed: " + Util::toString(oldPrio));
-			return;
-		}
-		{
-			Lock l (cs);
-			userQueue.setBundlePriority(bundle, (Bundle::Priority)p);
-		}
-		bundle->setAutoPriority(false);
-		if (p == Bundle::PAUSED) {
-			//LogManager::getInstance()->message("Pausing bundle...");
-			DownloadList disconnect = bundle->getDownloads();
-			//bundle->getDownloadsQI(disconnect);
-			for(auto i = disconnect.begin(); i != disconnect.end(); ++i) {
-				//LogManager::getInstance()->message("Disconnecting download!");
-				Download* d = *i;
-				d->getUserConnection().disconnect(true);
-			}
-		} else if (oldPrio == Bundle::PAUSED) {
-			//LogManager::getInstance()->message("Starting paused bundle");
-			HintedUserList sources;
-			bundle->getQISources(sources);
-			for (auto i = sources.begin(); i != sources.end(); ++i) {
-				HintedUser aUser = *i;
-				if(aUser.user->isOnline()) {
-					ConnectionManager::getInstance()->getDownloadConnection(aUser);
-				}
-			}
-		}
-		bundle->setDirty(true);
-		//LogManager::getInstance()->message("Prio changed to: " + Util::toString(bundle->getPriority()));
+		setBundlePriority(bundle, p, false);
 	}
+}
+
+void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto) noexcept {
+
+	//LogManager::getInstance()->message("Changing priority to: " + Util::toString(p));
+	Bundle::Priority oldPrio = aBundle->getPriority();
+	if (oldPrio == p) {
+		//LogManager::getInstance()->message("Prio not changed: " + Util::toString(oldPrio));
+		return;
+	}
+	{
+		Lock l (cs);
+		userQueue.setBundlePriority(aBundle, (Bundle::Priority)p);
+	}
+	if (!isAuto) {
+		aBundle->setAutoPriority(false);
+	}
+
+	if (p == Bundle::PAUSED) {
+		//LogManager::getInstance()->message("Pausing bundle...");
+		DownloadList disconnect = aBundle->getDownloads();
+		//bundle->getDownloadsQI(disconnect);
+		for(auto i = disconnect.begin(); i != disconnect.end(); ++i) {
+			//LogManager::getInstance()->message("Disconnecting download!");
+			Download* d = *i;
+			d->getUserConnection().disconnect(true);
+		}
+	} else if (oldPrio == Bundle::PAUSED) {
+		//LogManager::getInstance()->message("Starting paused bundle");
+		HintedUserList sources;
+		aBundle->getQISources(sources);
+		for (auto i = sources.begin(); i != sources.end(); ++i) {
+			HintedUser aUser = *i;
+			if(aUser.user->isOnline()) {
+				ConnectionManager::getInstance()->getDownloadConnection(aUser);
+			}
+		}
+	}
+	aBundle->setDirty(true);
+	//LogManager::getInstance()->message("Prio changed to: " + Util::toString(bundle->getPriority()));
 }
 
 void QueueManager::setBundleAutoPriority(const string& bundleToken) noexcept {
@@ -2210,8 +2229,8 @@ void QueueManager::saveBundle(BundlePtr bundle) {
 		f.write(bundle->getToken());
 		f.write(LIT("\" Size=\""));
 		f.write(Util::toString(bundle->getSize()));
-		f.write(LIT("\" Downloaded=\""));
-		f.write(Util::toString(bundle->getDownloaded()));
+		f.write(LIT("\" Added=\""));
+		f.write(Util::toString(bundle->getAdded()));
 		if (!bundle->getAutoPriority()) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)bundle->getPriority()));
@@ -2395,7 +2414,8 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		const string& token = getAttrib(attribs, sToken, 1);
 		if(token.empty())
 			return;
-		curBundle = BundlePtr(new Bundle(Util::emptyString, true));
+
+		curBundle = BundlePtr(new Bundle(Util::emptyString, true, GET_TIME()));
 		curBundle->setToken(token);
 		inFile = true;		
 	} else if (!inBundle && name == sBundle) {
@@ -2406,8 +2426,12 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			return;
 
 		const string& prio = getAttrib(attribs, sPriority, 3);
+		time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 4)));
+		if(added == 0) {
+			added = GET_TIME();
+		}
 
-		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, false));
+		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, false, added));
 		if (!prio.empty()) {
 			bundle->setPriority((Bundle::Priority)Util::toInt(prio));
 		} else {
@@ -2530,6 +2554,7 @@ void QueueLoader::endTag(const string& name, const string&) {
 		} else if(name == sFile) {
 			if (!curBundle->getQueueItems().empty()) {
 				curBundle->setTarget(curBundle->getQueueItems().front()->getTarget());
+				curBundle->setAdded(curBundle->getQueueItems().front()->getAdded());
 				QueueManager::getInstance()->addBundle(curBundle, true);
 			}
 			curBundle = NULL;
@@ -2780,49 +2805,158 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	}
 	*/
 
-	Lock l (cs);
 	BundleList runningBundles;
-	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
-		BundlePtr bundle = i->second;
-		int64_t bundleSpeed = 0, bundleRatio = 0;
-		int downloads = 0;
-		for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
-			Download* d = *s;
-			if (d->getAverageSpeed() > 0 && d->getStart() > 0) {
-				downloads++;
-				bundleSpeed += d->getAverageSpeed();
-				bundleRatio += d->getPos() > 0 ? (double)d->getActual() / (double)d->getPos() : 1.00;
+	vector<pair<BundlePtr, Bundle::Priority>> priorities;
+
+	{
+		Lock l (cs);
+		for (auto i = bundles.begin(); i != bundles.end(); ++i) {
+			BundlePtr bundle = i->second;
+			int64_t bundleSpeed = 0, bundleRatio = 0;
+			int downloads = 0;
+			for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
+				Download* d = *s;
+				if (d->getAverageSpeed() > 0 && d->getStart() > 0) {
+					downloads++;
+					bundleSpeed += d->getAverageSpeed();
+					bundleRatio += d->getPos() > 0 ? (double)d->getActual() / (double)d->getPos() : 1.00;
+				}
+			}
+			if (bundleSpeed > 0) {
+				if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS && bundle->getAutoPriority()) {
+					Bundle::Priority p1 = bundle->getPriority();
+					if(p1 != Bundle::PAUSED) {
+						Bundle::Priority p2 = bundle->calculateAutoPriority();
+						if(p1 != p2) {
+							priorities.push_back(make_pair(bundle, p2));
+						}
+					}
+				}
+				bundleRatio = bundleRatio / downloads;
+				bundle->setActual((int64_t)((double)bundle->getDownloadedBytes() * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+				bundle->setSpeed(bundleSpeed);
+				bundle->setRunning(downloads);
+				runningBundles.push_back(bundle);
+				fire(QueueManagerListener::BundleTick(), bundle);
 			}
 		}
-		if (bundleSpeed > 0) {
-			bundleRatio = bundleRatio / downloads;
-			bundle->setActual((int64_t)((double)bundle->getDownloadedBytes() * (bundleRatio == 0 ? 1.00 : bundleRatio)));
-			bundle->setSpeed(bundleSpeed);
-			bundle->setRunning(downloads);
-			runningBundles.push_back(bundle);
-			fire(QueueManagerListener::BundleTick(), bundle);
+
+		if (!bundleUpdates.empty()) {
+			for (bundleTickMap::const_iterator i = bundleUpdates.begin(); i != bundleUpdates.end(); ++i) {
+				if (aTick > i->second + 1000) {
+					handleBundleUpdate(i->first);
+					bundleUpdates.erase(i);
+					break; // one update per second
+				}
+			}
 		}
 	}
+
 
 	if (!runningBundles.empty()) {
 		DownloadManager::getInstance()->updateBundles(runningBundles);
-		calculateBundlePriorities(runningBundles);
 	}
 
-	if (!bundleUpdates.empty()) {
-		for (bundleTickMap::const_iterator i = bundleUpdates.begin(); i != bundleUpdates.end(); ++i) {
-			if (aTick > i->second + 1000) {
-				handleBundleUpdate(i->first);
-				bundleUpdates.erase(i);
-				break; // one update per second
-			}
-		}
+	if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_BALANCED && aTick > lastAutoPrio + 5000) {
+		//LogManager::getInstance()->message("Calculate autoprio");
+		calculateBundlePriorities(false);
+		setLastAutoPrio(aTick);
+	}
+
+	for(vector<pair<BundlePtr, Bundle::Priority>>::const_iterator p = priorities.begin(); p != priorities.end(); p++) {
+		setBundlePriority((*p).first, (*p).second);
 	}
 
 }
 
-void QueueManager::calculateBundlePriorities(BundleList& runningBundles) {
+void QueueManager::calculateBundlePriorities(bool verbose) {
+	//get bundles with auto priority and update user speeds
+	boost::unordered_map<BundlePtr, double, Bundle::Hash> autoPrioMap;
+	boost::unordered_map<UserPtr, int64_t> userSpeedMap;
+	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
+		BundlePtr bundle = i->second;
+		if (bundle->getAutoPriority()) {
+			autoPrioMap[bundle] = 0;
+			for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
+				userSpeedMap[(*s)->getUser()] += (*s)->getAverageSpeed();
+			}
+		}
+	}
 
+	for (auto i = userSpeedMap.begin(); i != userSpeedMap.end(); ++i) {
+		i->first->setSpeed(i->second);
+	}
+
+	//analyze the size
+	int prioGroup = 1;
+	if (autoPrioMap.size() <= 1) {
+		if (verbose) {
+			LogManager::getInstance()->message("Not enough bundles with autoprio to calculate anything!");
+		}
+		return;
+	} else if (autoPrioMap.size() > 2) {
+		prioGroup = autoPrioMap.size() / 3;
+	}
+	//int size = autoPrioMap.size() == 2 ? 2 : 3;
+
+
+	//create priorization maps
+	multimap<double, BundlePtr> speedMap;
+	multimap<double, BundlePtr> sourceMap;
+
+	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
+		BundlePtr bundle = i->first;
+		int64_t bundleSpeed = 0;
+		int8_t sources = 0;
+		for (auto s = bundle->getBundleSources().begin(); s != bundle->getBundleSources().end(); ++s) {
+			UserPtr& user = (*s).first.user;
+			if (user->isOnline()) {
+				bundleSpeed += user->getSpeed();
+				sources += 2;
+			} else {
+				sources++;
+			}
+		}
+		speedMap.insert(make_pair((double)bundleSpeed, bundle));
+		sourceMap.insert(make_pair((double)sources, bundle));
+	}
+
+	//scale the priorization maps
+	double factor = 100 / max_element(speedMap.begin(), speedMap.end())->first;
+	for (auto i = speedMap.begin(); i != speedMap.end(); ++i) {
+		autoPrioMap[i->second] = i->first * factor;
+	}
+	factor = 100 / max_element(sourceMap.begin(), sourceMap.end())->first;
+	for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
+		autoPrioMap[i->second] += i->first * factor;
+	}
+
+	//prepare to set the prios
+	multimap<double, BundlePtr> finalMap;
+	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
+		finalMap.insert(make_pair(i->second, i->first));
+	}
+
+
+	int prio = 4;
+	int lastPoints = 0;
+	int prioSet=0;
+
+	for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
+		if (verbose) {
+			LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + Util::toString(prio));
+		}
+		setBundlePriority(i->second, (Bundle::Priority)prio, true);
+		if (lastPoints==i->first) {
+			//don't increase the prio if two bundles have identical points
+		} else {
+			prioSet++;
+			if (prioSet == prioGroup && prio != 2) {
+				prio--;
+			}
+			lastPoints=i->first;
+		}
+	}
 }
 
 bool QueueManager::dropSource(Download* d) {
@@ -3320,7 +3454,7 @@ BundleList QueueManager::getBundleInfo(const string& aSource, int& finishedFiles
 	return retBundles;
 }
 
-void QueueManager::setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p) {
+void QueueManager::setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p, bool autoPrio) {
 	//LogManager::getInstance()->message("Setting priorities for " + Util::toString(sourceBundles.size()) + " bundles");
 	if (sourceBundles.empty()) {
 		//LogManager::getInstance()->message("moveDir, sourceBundles empty");
@@ -3342,11 +3476,19 @@ void QueueManager::setBundlePriorities(const string& aSource, BundleList sourceB
 			}
 		}
 		for (auto i = ql.begin(); i != ql.end(); ++i) {
-			setPriority((*i)->getTarget(), (QueueItem::Priority)p);
+			if (autoPrio) {
+				setAutoPriority((*i)->getTarget(), (*i)->getAutoPriority());
+			} else {
+				setPriority((*i)->getTarget(), (QueueItem::Priority)p);
+			}
 		}
 	} else {
 		for (auto r = sourceBundles.begin(); r != sourceBundles.end(); ++r) {
-			setBundlePriority((*r)->getToken(), (QueueItem::Priority)p);
+			if (autoPrio) {
+				setBundleAutoPriority((*r)->getToken());
+			} else {
+				setBundlePriority(*r, (Bundle::Priority)p);
+			}
 		}
 	}
 }
@@ -3530,7 +3672,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	}
 
 	//create a temp bundle for split items
-	BundlePtr tempBundle = BundlePtr(new Bundle(aTarget, false));
+	BundlePtr tempBundle = BundlePtr(new Bundle(aTarget, false, GET_TIME()));
 
 	//can we merge the split folder?
 	bool hasMergeBundle = false;
@@ -3791,7 +3933,7 @@ BundlePtr QueueManager::findBundle(QueueItem* qi, bool allowAdd) {
 BundlePtr QueueManager::createFileBundle(QueueItem* qi) {
 	//LogManager::getInstance()->message("CREATE NEW FILEBUNDLE");
 	string bundleToken = Util::toString(Util::rand());
-	BundlePtr bundle = BundlePtr(new Bundle(qi->getTarget(), true));
+	BundlePtr bundle = BundlePtr(new Bundle(qi->getTarget(), true, qi->getAdded()));
 	bundle->setToken(bundleToken);
 	qi->setBundle(bundle);
 	bundle->getQueueItems().push_back(qi);

@@ -134,7 +134,8 @@ public:
 	void sendBundleUpdate(BundlePtr aBundle);
 	void sendBundleFinished(BundlePtr aBundle);
 	string hasQueueBundle(const TTHValue& tth);
-	void setBundlePriority(const string& bundleToken, QueueItem::Priority p) noexcept;
+	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
+	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void changeBundleSource(QueueItem* qi, const HintedUser& aUser, bool add) noexcept;
@@ -147,8 +148,8 @@ public:
 	string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
 	void rebuildBundleDirs(BundlePtr aBundle, bool loading = false);
 
-	void setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p);
-	void calculateBundlePriorities(BundleList& runningBundles);
+	void setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p, bool autoPrio=false);
+	void calculateBundlePriorities(bool verbose);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
@@ -182,6 +183,7 @@ public:
 	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& tempTarget);
 	
 	GETSET(uint64_t, lastSave, LastSave);
+	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);
 	GETSET(string, queueFile, QueueFile);
 
 	enum { MOVER_LIMIT = 10*1024*1024 };

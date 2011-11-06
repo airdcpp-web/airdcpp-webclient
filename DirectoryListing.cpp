@@ -345,14 +345,20 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		if (first) {
 			if (lst.empty() || useRoot) {
 				//bundle = QueueManager::getInstance()->createBundle(target);
-				aBundle = BundlePtr(new Bundle(target, false));
-				aBundle->setPriority((Bundle::Priority)prio);
+				aBundle = BundlePtr(new Bundle(target, false, GET_TIME()));
+				if (prio != QueueItem::DEFAULT) {
+					aBundle->setPriority((Bundle::Priority)prio);
+					aBundle->setAutoPriority(false);
+				}
 				//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE1: " + aBundle->getTarget());
 			} else {
 				sort(lst.begin(), lst.end(), Directory::DirSort());
 				for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-					aBundle = BundlePtr(new Bundle(target + (*j)->getName() + PATH_SEPARATOR, false));
-					aBundle->setPriority((Bundle::Priority)prio);
+					aBundle = BundlePtr(new Bundle(target + (*j)->getName() + PATH_SEPARATOR, false, GET_TIME()));
+					if (prio != QueueItem::DEFAULT) {
+						aBundle->setPriority((Bundle::Priority)prio);
+						aBundle->setAutoPriority(false);
+					}
 					//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
 					download(*j, target, highPrio, prio, false, false, aBundle);
 

@@ -58,6 +58,7 @@ public:
 
 	bool isOnline() const { return isSet(ONLINE); }
 	bool isNMDC() const { return isSet(NMDC); }
+	GETSET(int64_t, speed, Speed);
 
 private:
 	CID cid;

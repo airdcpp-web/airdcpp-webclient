@@ -1065,9 +1065,6 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		}
 	}
 
-	if (BOOLSETTING(ENABLE_BUNDLES)) {
-		su += "," + BNDL_FEATURE;
-	}
 	if(isActive()) {
 		addParam(lastInfoMap, c, "U4", Util::toString(SearchManager::getInstance()->getPort()));
 		su += "," + TCP4_FEATURE;
