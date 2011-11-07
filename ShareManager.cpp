@@ -279,9 +279,9 @@ AdcCommand ShareManager::getFileInfo(const string& aFile) {
 	return cmd;
 }
 
-ShareManager::DirMap ShareManager::splitVirtual(const string& virtualPath) const throw(ShareException) {
+ShareManager::DirMultiMap ShareManager::splitVirtual(const string& virtualPath) const throw(ShareException) {
 	Dirs virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
-	DirMap ret;
+	DirMultiMap ret;
 	if(virtualPath.empty() || virtualPath[0] != '/') {
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
@@ -341,8 +341,8 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::findFile(const 
 		return i->second;
 	}
 
-	DirMap dirs = splitVirtual(virtualFile);
-	for(DirMap::iterator v = dirs.begin(); v != dirs.end(); ++v) {
+	DirMultiMap dirs = splitVirtual(virtualFile);
+	for(DirMultiMap::iterator v = dirs.begin(); v != dirs.end(); ++v) {
 	Directory::File::Set::const_iterator it = find_if(v->second->files.begin(), v->second->files.end(),
 		Directory::File::StringComp(v->first));
 	if(it != v->second->files.end())
@@ -357,10 +357,10 @@ StringList ShareManager::getRealPaths(const std::string path) {
 
 		StringList result;	
 		string dir;
-		DirMap dirs = splitVirtual(path);
+		DirMultiMap dirs = splitVirtual(path);
 
 		if(*(path.end() - 1) == '/') {
-		for(DirMap::iterator i = dirs.begin(); i != dirs.end(); ++i) {
+		for(DirMultiMap::iterator i = dirs.begin(); i != dirs.end(); ++i) {
 			Directory::Ptr d = i->second;
 		if(d->getParent()) {
 			dir = d->getParent()->getRealPath(d->getName());
@@ -529,7 +529,14 @@ bool ShareManager::loadCache() {
 		
 		//look for shares.xml
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
+		
+		try {
+		
 		SimpleXMLReader(&loader).parse(ff);
+		}catch(SimpleXMLException& e) {
+			LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError());
+			return false;
+		}
 
 		for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 			updateIndices(*i->second);
@@ -1595,8 +1602,8 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 
 	RLock l(cs);
 	try{
-		DirMap result = splitVirtual(dir);
-		for(DirMap::const_iterator it = result.begin(); it != result.end(); ++it) {
+		DirMultiMap result = splitVirtual(dir);
+		for(DirMultiMap::const_iterator it = result.begin(); it != result.end(); ++it) {
 			dcdebug("result name %s \n", it->second->getName());
 			it->second->toTTHList(sos, tmp, recurse);
 		}
@@ -1663,9 +1670,9 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 	} else {
 		dcdebug("wanted %s \n", dir);
 		try {
-		DirMap result = splitVirtual(dir);
+		DirMultiMap result = splitVirtual(dir);
 
-		for(DirMap::const_iterator it = result.begin(); it != result.end(); ++it) {
+		for(DirMultiMap::const_iterator it = result.begin(); it != result.end(); ++it) {
 			dcdebug("result name %s \n", it->second->getName());
 			Directory::Ptr root = it->second;
 			for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {

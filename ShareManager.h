@@ -348,14 +348,16 @@ private:
 	void sortReleaseList();
 
 	/*
-	List of root directory items mapped to realpath,
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
-	typedef multimap<string, Directory::Ptr> DirMap; 
-	DirMap directories;
+	typedef std::multimap<string, Directory::Ptr> DirMultiMap; 
 
 	//list to return multiple directory item pointers
 	typedef std::vector<Directory::Ptr> Dirs;
+
+	/*Map of root directory items mapped to realpath*/
+	typedef std::map<string, Directory::Ptr> DirMap; 
+	DirMap directories;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	StringMap shares;
@@ -383,7 +385,7 @@ private:
 	StringList incoming;
 
 	Dirs getByVirtual(const string& virtualName) const noexcept;
-	DirMap splitVirtual(const string& virtualPath) const;
+	DirMultiMap splitVirtual(const string& virtualPath) const;
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr getDirectory(const string& fname);
