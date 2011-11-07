@@ -135,7 +135,7 @@ void ShareManager::Directory::addType(uint32_t type) noexcept {
 
 string ShareManager::Directory::getRealPath(const std::string& path, bool loading/*false*/) const {
 	if(getParent()) {
-		return getParent()->getRealPath(getName() + PATH_SEPARATOR_STR + path);
+		return getParent()->getRealPath(getName() + PATH_SEPARATOR_STR + path, loading);
 	}else if(!getRootPath().empty()) {
 		string root = getRootPath() + path;
 
@@ -454,6 +454,8 @@ static const string DATE = "Date";
 struct ShareLoader : public SimpleXMLReader::CallBack {
 	ShareLoader(ShareManager::DirMap& aDirs) : dirs(aDirs), cur(0), depth(0) { }
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
+
+		
 		if(name == SDIRECTORY) {
 			const string& name = getAttrib(attribs, SNAME, 0);
 			string path = getAttrib(attribs, PATH, 1);
@@ -473,7 +475,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 					cur = ShareManager::Directory::create(name, cur);
 					cur->setLastWrite(date);
 					cur->getParent()->directories[cur->getName()] = cur;
+					try {
 					ShareManager::getInstance()->addReleaseDir(cur->getFullName());
+					}catch(...) { }
 				}
 			}
 
@@ -493,9 +497,13 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			}
 			/*dont save TTHs, check them from hashmanager, just need path and size.
 			this will keep us sync to hashindex */
+			string filepath;
 			try {
-			cur->files.insert(ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname, true), Util::toInt64(size))));
-			}catch(...) { 
+				filepath = cur->getRealPath(fname, true);
+				TTHValue tth = HashManager::getInstance()->getTTH(filepath, Util::toInt64(size));
+				cur->files.insert(ShareManager::Directory::File(fname, Util::toInt64(size), cur, tth));
+			}catch(Exception& e) { 
+				dcdebug("Error loading filelist %s \n", e.getError().c_str());
 			}
 		}
 	}
@@ -520,7 +528,7 @@ bool ShareManager::loadCache() {
 		ShareLoader loader(directories);
 		
 		//look for shares.xml
-		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN);
+		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
 		SimpleXMLReader(&loader).parse(ff);
 
 		for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
@@ -781,12 +789,12 @@ int64_t ShareManager::getShareSize() const noexcept {
 	RLock l(cs);
 	/*store the updated sharesize so we dont need to count it on every myinfo update*/
 	if(c_size_dirty) {
-		c_size_dirty = false;
 		int64_t tmp = 0;
 		for(HashFileMap::const_iterator i = tthIndex.begin(); i != tthIndex.end(); ++i) {
 			tmp += i->second->getSize();
 		}
 		c_shareSize = tmp;
+		c_size_dirty = false;
 
 	}
 
@@ -970,7 +978,7 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 	if (dir.empty())
 		return;
 
-//	hmm, dont see a situation when the name list could change during removing.
+//	hmm, dont see a situation when the name list could change during remove looping.
 	for(StringList::const_iterator i = dirNameList.begin(); i != dirNameList.end(); ++i) {
 		if ((*i) == dir) {
 			Lock l(dirnamelist);

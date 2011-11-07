@@ -45,7 +45,7 @@ public:
 	bool parse(const char* data, size_t len, bool more);
 private:
 
-	static const size_t MAX_NAME_SIZE = 256;  //name cant be more than 256
+	static const size_t MAX_NAME_SIZE = 1024; 
 	static const size_t MAX_VALUE_SIZE = 64*1024;
 	static const size_t MAX_NESTING = 32;
 
