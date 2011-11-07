@@ -2883,12 +2883,10 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 			}
 		}
 	}
-
 	for (auto i = userSpeedMap.begin(); i != userSpeedMap.end(); ++i) {
 		i->first->setSpeed(i->second);
 	}
 
-	//analyze the size
 	if (autoPrioMap.size() <= 1) {
 		if (verbose) {
 			LogManager::getInstance()->message("Not enough bundles with autoprio to calculate anything!");
@@ -2903,7 +2901,6 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 
 	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
 		BundlePtr bundle = i->first;
-		bool test = bundle->getName() == "Breaking.Bad.S02E08.720p.Bluray.x264-CLUE";
 		int64_t bundleSpeed = 0;
 		double sources = 0;
 		for (auto s = bundle->getBundleSources().begin(); s != bundle->getBundleSources().end(); ++s) {
@@ -2926,8 +2923,8 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 	//scale the priorization maps
 	double factor;
 	double max = max_element(speedMap.begin(), speedMap.end())->first;
-	if (max > 0) {
-		double factor = 100 / max_element(speedMap.begin(), speedMap.end())->first;
+	if (max) {
+		double factor = 100 / max;
 		for (auto i = speedMap.begin(); i != speedMap.end(); ++i) {
 			autoPrioMap[i->second] = i->first * factor;
 		}
@@ -2935,7 +2932,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 
 	max = max_element(sourceMap.begin(), sourceMap.end())->first;
 	if (max > 0) {
-		factor = 100 / max_element(sourceMap.begin(), sourceMap.end())->first;
+		factor = 100 / max;
 		for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
 			autoPrioMap[i->second] += i->first * factor;
 		}
@@ -2966,7 +2963,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 	if (verbose) {
 		LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
 	}
-	//int size = autoPrioMap.size() == 2 ? 2 : 3;
+
 	//priority to set (4-2, high-low)
 	int prio = 4;
 
@@ -2976,8 +2973,6 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 	bool groupDecreased;
 
 	for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
-		bool tmp = (prio == 3);
-		tmp = (i->first == 15);
 		if (lastPoints==i->first) {
 			if (verbose) {
 				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + Util::toString(prio));
