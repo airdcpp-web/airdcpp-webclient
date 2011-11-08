@@ -900,7 +900,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 
 	if(!searchString.empty()) {
-		SearchManager::getInstance()->search(searchString, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto");
+		SearchManager::getInstance()->search(searchString, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
 	}
 }
  
@@ -3008,7 +3008,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 				prioSet=0;
 			} 
 			if (verbose) {
-				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + Util::toString(prio));
+				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
 			}
 			setBundlePriority(i->second, (Bundle::Priority)prio, true);
 			prioSet++;
@@ -4057,17 +4057,17 @@ BundlePtr QueueManager::findBundle(const string bundleToken) {
 	return NULL;
 }
 
-void QueueManager::removeRunningUser(const string& bundleToken, CID cid, bool finished) {
+void QueueManager::removeRunningUser(const string& bundleToken, const UserPtr& aUser, bool finished) {
 	//Lock l (cs);
 	BundlePtr bundle = findBundle(bundleToken);
 	if (bundle) {
-		auto y =  bundle->getRunningUsers().find(cid);
+		auto y =  bundle->getRunningUsers().find(aUser);
 		if (y != bundle->getRunningUsers().end()) {
 			y->second--;
 			if (y->second == 0) {
 				bundle->getRunningUsers().erase(y);
 				for(auto i = bundle->getUploadReports().begin(); i != bundle->getUploadReports().end(); ++i) {
-					if (i->user->getCID() == cid) {
+					if (i->user == aUser) {
 						bundle->getUploadReports().erase(i);
 						//LogManager::getInstance()->message("ERASE UPLOAD REPORT: " + Util::toString(bundle->getUploadReports().size()));
 						break;

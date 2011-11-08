@@ -191,10 +191,7 @@ private:
 	void addDownloadConnection(UserConnection* uc);
 
 	void checkWaitingMCN() noexcept;
-	typedef unordered_map<CID, uint8_t> MultiConnMap;
-	typedef unordered_set<CID> CIDList;
 	typedef unordered_set<ConnectionQueueItem*> CQIList;
-	typedef MultiConnMap::iterator MultiConnIter;
 
 	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token=Util::emptyString);
 	void putCQI(ConnectionQueueItem* cqi);

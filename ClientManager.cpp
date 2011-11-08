@@ -575,18 +575,18 @@ void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const 
 	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort());
 }
 
-void ClientManager::search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, void* aOwner) {
+void ClientManager::search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, Search::searchType sType, void* aOwner) {
 	Lock l(cs);
 
 	for(auto i = clients.begin(); i != clients.end(); ++i) {
 		Client* c = i->second;
 		if(c->isConnected()) {
-			c->search(aSizeMode, aSize, aFileType, aString, aToken, StringList() /*ExtList*/, aOwner);
+			c->search(aSizeMode, aSize, aFileType, aString, aToken, StringList() /*ExtList*/, sType, aOwner);
 		}
 	}
 }
 
-uint64_t ClientManager::search(StringList& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, void* aOwner) {
+uint64_t ClientManager::search(StringList& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner) {
 	Lock l(cs);
 
 	uint64_t estimateSearchSpan = 0;
@@ -596,7 +596,7 @@ uint64_t ClientManager::search(StringList& who, int aSizeMode, int64_t aSize, in
 		
 		Client::Iter i = clients.find(const_cast<string*>(&client));
 		if(i != clients.end() && i->second->isConnected()) {
-			uint64_t ret = i->second->search(aSizeMode, aSize, aFileType, aString, aToken, aExtList, aOwner);
+			uint64_t ret = i->second->search(aSizeMode, aSize, aFileType, aString, aToken, aExtList, sType, aOwner);
 			estimateSearchSpan = max(estimateSearchSpan, ret);			
 		}
 	}

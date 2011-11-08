@@ -24,6 +24,13 @@ namespace dcpp {
 
 struct Search
 {
+	enum searchType {
+		MANUAL,
+		ALT,
+		ALT_AUTO,
+		AUTO_SEARCH,
+	};
+
 	int32_t		sizeType;
 	int64_t		size;
 	int32_t		fileType;
@@ -31,6 +38,7 @@ struct Search
 	string		token;
 	StringList	exts;
 	set<void*>	owners;
+	searchType	type;
 	
 	bool operator==(const Search& rhs) const {
 		 return this->sizeType == rhs.sizeType && 
@@ -38,6 +46,10 @@ struct Search
 		 		this->fileType == rhs.fileType && 
 		 		this->query == rhs.query &&
 				this->token == rhs.token;
+	}
+
+	bool operator<(const Search& rhs) const {
+		 return this->type < rhs.type;
 	}
 };
 
@@ -71,8 +83,8 @@ public:
 	uint32_t interval;
 
 private:
-	deque<Search>   searchQueue;
-	uint64_t       lastSearchTime;	
+	deque<Search>	searchQueue;
+	uint64_t		lastSearchTime;	
 	CriticalSection cs;
 };
 

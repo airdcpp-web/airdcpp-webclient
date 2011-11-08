@@ -28,50 +28,26 @@ namespace dcpp {
 bool SearchQueue::add(const Search& s)
 {
 	dcassert(s.owners.size() == 1);
-	dcassert(interval >= 10000); // min interval is 15 seconds
+	dcassert(interval >= 4000); // min interval is 5 seconds
 
 	Lock l(cs);
 	
-	for(deque<Search>::iterator i = searchQueue.begin(); i != searchQueue.end(); i++)
-	{
-		// check dupe
-		if(*i == s) {
-			void* aOwner = *s.owners.begin();
-			i->owners.insert(aOwner);
+	// check dupe
+	auto i = find(searchQueue.begin(), searchQueue.end(), s);
+	if (i != searchQueue.end()) {
+		void* aOwner = *s.owners.begin();
+		i->owners.insert(aOwner);
 			
-			// if previous search was autosearch and current one isn't, it should be readded before autosearches
-			if(s.token != "auto" && i->token == "auto")
-			{
-				searchQueue.erase(i);
-				break;
-			}
-			
+		// erase the old search if it has lower prio
+		if(s.type > i->type) {
+			searchQueue.erase(i);
+		} else {
 			return false;
 		}
 	}
 
-	if(s.token == "auto") {
-		// Insert last (automatic search)
-		searchQueue.push_back(s);
-	} else {
-		bool added = false;
-		if(searchQueue.empty()) {
-			searchQueue.push_front(s);
-			added = true;
-		} else {
-			// Insert before the automatic searches (manual search) 
-			for(deque<Search>::iterator i = searchQueue.begin(); i != searchQueue.end(); i++) {
-				if(i->token == "auto") {
-					searchQueue.insert(i, s);
-					added = true;
-					break;
-				}
-			}
-		}
-		if (!added) {
-			searchQueue.push_back(s);
-		}
-	}
+	//insert based on the type
+	searchQueue.insert(upper_bound(searchQueue.begin(), searchQueue.end(), s), s);
 	return true;
 }
 
@@ -103,7 +79,7 @@ uint64_t SearchQueue::getSearchTime(void* aOwner){
 
 	uint64_t x = max(lastSearchTime, GET_TICK() - interval);
 
-	for(deque<Search>::iterator i = searchQueue.begin(); i != searchQueue.end(); i++){
+	for(auto i = searchQueue.begin(); i != searchQueue.end(); i++){
 		x += interval;
 
 		if(i->owners.count(aOwner))
@@ -119,7 +95,7 @@ bool SearchQueue::cancelSearch(void* aOwner){
 	dcassert(aOwner);
 
 	Lock l(cs);
-	for(deque<Search>::iterator i = searchQueue.begin(); i != searchQueue.end(); i++){
+	for(auto i = searchQueue.begin(); i != searchQueue.end(); i++){
 		if(i->owners.count(aOwner)){
 			i->owners.erase(aOwner);
 			if(i->owners.empty())

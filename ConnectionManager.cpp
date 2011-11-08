@@ -157,7 +157,7 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) noexce
 
 void ConnectionManager::putConnection(UserConnection* aConn) {
 	if (!aConn->getLastBundle().empty()) {
-		QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
+		QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser(), false);
 	}
 	aConn->removeListener(this);
 	aConn->disconnect(true);
@@ -244,14 +244,13 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 
 void ConnectionManager::checkWaitingMCN() noexcept {
-	MultiConnMap mcnConnections;
-	CIDList waitingMultiConn;
+	unordered_map<UserPtr, uint8_t, User::Hash> mcnConnections;
+	unordered_set<UserPtr, User::Hash> waitingMultiConn;
 	CQIList multiUsers;
 	{
 		//called from inside a lock. safe.
-		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
+		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
-			if (cqi == NULL) continue;
 			if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) continue;
 			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 				if(cqi->getState() == ConnectionQueueItem::RUNNING || cqi->getState() == ConnectionQueueItem::IDLE) {
@@ -261,31 +260,24 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 					}
 					multiUsers.insert(cqi);
 				} else {
-					CIDList::const_iterator u = waitingMultiConn.find(cqi->getUser().user->getCID());
-					if(u == waitingMultiConn.end()) {
-						waitingMultiConn.insert(cqi->getUser().user->getCID());
+					if (waitingMultiConn.find(cqi->getUser().user) == waitingMultiConn.end()) {
+						waitingMultiConn.insert(cqi->getUser().user);
 					} else {
 						//there should be only one cqi waiting
 						cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
 						continue;
 					}
 				}
-				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
-				if (y == mcnConnections.end()) {
-					mcnConnections[cqi->getUser().user->getCID()] = 1;
-				} else {
-					y->second++;
-				}
+				mcnConnections[cqi->getUser().user]++;
 			}
 		}
 
-		for(CQIList::const_iterator k = multiUsers.begin(); k != multiUsers.end(); ++k) {
+		for(auto k = multiUsers.begin(); k != multiUsers.end(); ++k) {
 			ConnectionQueueItem* cqi = *k;
 			if (cqi == NULL) continue;
-			CIDList::const_iterator u = waitingMultiConn.find(cqi->getUser().user->getCID());
-			if (u == waitingMultiConn.end()) {
+			if (waitingMultiConn.find(cqi->getUser().user) == waitingMultiConn.end()) {
 				//no connection waiting, check if we can create a new one
-				MultiConnIter y = mcnConnections.find(cqi->getUser().user->getCID());
+				auto y = mcnConnections.find(cqi->getUser().user);
 				if (y != mcnConnections.end()) {
 					if (y->second >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) {
 						continue;

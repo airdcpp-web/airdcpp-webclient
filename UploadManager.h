@@ -30,6 +30,8 @@
 #include "FastAlloc.h"
 #include "AirUtil.h"
 
+#include "boost/unordered_map.hpp"
+
 namespace dcpp {
 
 class UploadQueueItem : public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
@@ -121,13 +123,7 @@ public:
 	typedef vector<WaitingUser> SlotQueue;
 	SlotQueue getUploadQueue() const { Lock l(cs); return uploadQueue; }
 
-
-	bool isUploading(const CID cid) const { return multiUploads.find(cid) != multiUploads.end(); }
-	//bool isUploading(const UserPtr& aUser);
 	void unreserveSlot(const UserPtr& aUser, bool add);
-	bool getMultiConn(const UserConnection& aSource);
-	void changeMultiConnSlot(const CID cid, bool remove);
-	void checkMultiConn();
 	void onUBD(const AdcCommand& cmd);
 	void onUBN(const AdcCommand& cmd);
 	UploadBundlePtr findBundle(const string bundleToken);
@@ -152,8 +148,9 @@ private:
 
 	int lastFreeSlots; /// amount of free slots at the previous minute
 	
-	typedef unordered_map<CID, uint8_t> MultiConnMap;
-	typedef MultiConnMap::iterator MultiConnIter;
+	typedef boost::unordered_map<UserPtr, uint8_t> MultiConnMap;
+	MultiConnMap multiUploads;
+
 	typedef unordered_map<UserPtr, uint64_t, User::Hash> SlotMap;
 	typedef SlotMap::iterator SlotIter;
 	SlotMap reservedSlots;
@@ -163,7 +160,11 @@ private:
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
 	void notifyQueuedUsers();
 
-	MultiConnMap multiUploads;
+	bool isUploading(const UserPtr& aUser) const { return multiUploads.find(aUser) != multiUploads.end(); }
+	bool getMultiConn(const UserConnection& aSource);
+	void changeMultiConnSlot(const UserPtr& aUser, bool remove);
+	void checkMultiConn();
+
 	UploadBundleList bundles;
 	typedef unordered_map<string, UploadBundlePtr> tokenMap;
 	tokenMap bundleTokens;

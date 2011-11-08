@@ -221,10 +221,10 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		//is there anything to protect?
 		//Lock l (cs);
 		bool updateOnly = false;
-		CID cid = aSource->getUser()->getCID();
+		UserPtr& u = aSource->getUser();
 		if (!aSource->getLastBundle().empty()) {
 			//LogManager::getInstance()->message("LASTBUNDLE NOT EMPTY, REMOVE");
-			QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), cid, false);
+			QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), aSource->getUser(), false);
 		} 
 
 		{
@@ -234,7 +234,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 				aBundle->setStart(GET_TICK());
 			}
 
-			auto y =  aBundle->getRunningUsers().find(cid);
+			auto y =  aBundle->getRunningUsers().find(u);
 			if (y == aBundle->getRunningUsers().end()) {
 				//LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
 				if (aBundle->getSingleUser() && !aBundle->getRunningUsers().empty()) {
@@ -243,7 +243,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 				} else if (aBundle->getRunningUsers().empty()) {
 					//..
 				}
-				aBundle->getRunningUsers()[cid] = 1;
+				aBundle->getRunningUsers()[u] = 1;
 			} else {
 				updateOnly = true;
 				y->second++;
@@ -411,7 +411,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		}
 		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
 			aConn->setState(UserConnection::STATE_IDLE);
-			QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser()->getCID(), false);
+			QueueManager::getInstance()->removeRunningUser(aConn->getLastBundle(), aConn->getUser(), false);
 			{
 			Lock l(cs);
  			idlers.push_back(aConn);
@@ -541,7 +541,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 		startBundle(aSource, bundle);
 	} else if (!aSource->getLastBundle().empty()) {
 		removeBundleConnection(aSource);
-		QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), aSource->getUser()->getCID(), false);
+		QueueManager::getInstance()->removeRunningUser(aSource->getLastBundle(), aSource->getUser(), false);
 		aSource->setLastBundle(Util::emptyString);
 	}
 

@@ -26,6 +26,7 @@
 #include "Pointer.h"
 #include "QueueItem.h"
 #include "forward.h"
+#include "User.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -74,7 +75,7 @@ public:
 
 	typedef QueueItem* Ptr;
 	typedef unordered_map<CID, string> CIDStringList;
-	typedef unordered_map<CID, uint8_t> CIDIntMap;
+	typedef unordered_map<UserPtr, uint8_t, User::Hash> UserIntMap;
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
 	typedef pair<HintedUser, uint8_t> UserRunningPair;
 	typedef vector<UserRunningPair> SourceIntList;
@@ -95,7 +96,7 @@ public:
 	GETSET(time_t, added, Added);
 	GETSET(bool, singleUser, SingleUser);
 	GETSET(CIDStringList, notifiedUsers, NotifiedUsers);
-	GETSET(CIDIntMap, runningUsers, RunningUsers);
+	GETSET(UserIntMap, runningUsers, RunningUsers);
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
 	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
@@ -111,7 +112,7 @@ public:
 	bool fileBundle;
 	bool dirty;
 
-	CIDIntMap& getRunningUsers() { return runningUsers; }
+	UserIntMap& getRunningUsers() { return runningUsers; }
 	CIDStringList& getNotifiedUsers() { return notifiedUsers; }
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	HintedUserList& getUploadReports() { return uploadReports; }

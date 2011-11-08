@@ -69,7 +69,7 @@ public:
 	virtual void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false) = 0;
 	virtual void sendUserCmd(const UserCommand& command, const StringMap& params) = 0;
 
-	uint64_t search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, void* owner);
+	uint64_t search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* owner);
 	void cancelSearch(void* aOwner) { searchQueue.cancelSearch(aOwner); }
 	
 	virtual void password(const string& pwd) = 0;

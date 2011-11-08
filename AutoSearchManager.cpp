@@ -143,7 +143,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 			// NIGHT LOOK HERE
 				// TODO: Get ADC searchtype extensions if any is selected
 			StringList extList;
-			SearchManager::getInstance()->search(allowedHubs, (*pos)->getSearchString(), 0, (SearchManager::TypeModes)(*pos)->getFileType(), SearchManager::SIZE_DONTCARE, "auto", extList);
+			SearchManager::getInstance()->search(allowedHubs, (*pos)->getSearchString(), 0, (SearchManager::TypeModes)(*pos)->getFileType(), SearchManager::SIZE_DONTCARE, "auto", extList, Search::AUTO_SEARCH);
 			curSearch = (*pos)->getSearchString();
 			curPos++;
 			setTime(0);
