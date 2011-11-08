@@ -522,10 +522,10 @@ bool SearchManager::findRemoteBundle(const string& bundleToken) {
 	return false;
 }
 
-void SearchManager::removeRemoteNotification(const string& ownBundleToken) {
+void SearchManager::removeBundlePBD(const string& ownBundleToken) {
 	Lock l (cs);
 	//LogManager::getInstance()->message("removeRemoteNotification");
-	for (BundleTranslationMap::iterator i = bundleTranslations.begin(); i != bundleTranslations.end();) {
+	for (auto i = bundleTranslations.begin(); i != bundleTranslations.end();) {
 		if (i->second.first == ownBundleToken) {
 			//LogManager::getInstance()->message("removeRemoteNotification, BUNDLE FOUND");
 			AdcCommand cmd = removePBD(i->first.hint, i->second.second);
@@ -537,6 +537,27 @@ void SearchManager::removeRemoteNotification(const string& ownBundleToken) {
 		}
 	}
 	//remove(bundleTranslations.begin(), bundleTranslations.end(), 
+}
+
+void SearchManager::removeUserPBD(const UserPtr& aUser, BundlePtr aBundle) {
+	Lock l (cs);
+	//LogManager::getInstance()->message("removeRemoteNotification");
+	for (auto i = bundleTranslations.begin(); i != bundleTranslations.end();) {
+		if (i->first.user == aUser) {
+			if (aBundle) {
+				if (i->second.first != aBundle->getToken()) {
+					continue;
+				}
+			}
+			//LogManager::getInstance()->message("removeRemoteNotification, BUNDLE FOUND");
+			AdcCommand cmd = removePBD(i->first.hint, i->second.second);
+			ClientManager::getInstance()->send(cmd, i->first.user->getCID());
+			bundleTranslations.erase(i);
+			i = bundleTranslations.begin();
+		} else {
+			i++;
+		}
+	}
 }
 
 void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp) {

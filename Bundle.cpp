@@ -138,12 +138,13 @@ bool Bundle::removeSource(const UserPtr& aUser) {
 }
 
 bool Bundle::isSource(const UserPtr& aUser) {
-	for(auto i = sources.begin(); i != sources.end(); ++i) {
+	/*for(auto i = sources.begin(); i != sources.end(); ++i) {
 		if ((*i).first.user == aUser) {
 			return true;
 		}
 	}
-	return false;
+	return false; */
+	return find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; }) != sources.end();
 }
 
 void Bundle::addQueue(QueueItem* qi) {
@@ -346,17 +347,10 @@ bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning
 
 	if(l.empty()) {
 		ulm.erase(j);
-		/*for(int i = 0; i < Bundle::LAST; ++i) {
-			auto j = userQueue[i].find(aUser);
-			if(j != userQueue[i].end()) {
-				return false;
-			}
-		}
-		return true; */
 	}
-	//return false;
+
+	//check bundle sources
 	auto m = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; });
-	//auto& m = find(sources.begin(), sources.end(), aUser);
 	dcassert(m != sources.end());
 	m->second--;
 	if (m->second == 0) {

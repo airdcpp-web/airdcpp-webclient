@@ -399,5 +399,16 @@ void AirUtil::setProfile(int profile, bool setSkiplist) {
 	}
 }
 
+string AirUtil::getPrioText(int prio) {
+	switch(prio) {
+		case 0: return STRING(PAUSED);
+		case 1: return STRING(LOWEST);
+		case 2: return STRING(LOW);
+		case 3: return STRING(NORMAL);
+		case 4: return STRING(HIGH);
+		case 5: return STRING(HIGHEST);
+		default: return STRING(PAUSED);
+	}
+}
 
 }

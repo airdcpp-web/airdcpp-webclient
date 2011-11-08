@@ -138,6 +138,7 @@ public:
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
+	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
 	void changeBundleSource(QueueItem* qi, const HintedUser& aUser, bool add) noexcept;
 	BundleList getBundleInfo(const string& aSource, int& finishedFiles, int& dirBundles, int& fileBundles);
 	void handleBundleUpdate(const string& bundleToken);

@@ -22,6 +22,7 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/for_each.hpp>
 
+#include "AirUtil.h"
 #include "Bundle.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
@@ -2090,6 +2091,7 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 			}
 		}
 	}
+	fire(QueueManagerListener::BundlePriority(), aBundle);
 	aBundle->setDirty(true);
 	//LogManager::getInstance()->message("Prio changed to: " + Util::toString(bundle->getPriority()));
 }
@@ -2105,10 +2107,19 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken) noexcept {
 void QueueManager::removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept {
 	BundlePtr bundle = findBundle(bundleToken);
 	if (bundle) {
-		for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
+		removeBundleSource(bundle, aUser);
+	}
+}
+
+void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept {
+	if (aBundle) {
+		for (auto i = aBundle->getQueueItems().begin(); i != aBundle->getQueueItems().end(); ++i) {
 			//(*i)->removeSource(aUser, QueueItem::Source::FLAG_REMOVED);
 			removeSource((*i)->getTarget(), aUser, QueueItem::Source::FLAG_REMOVED);
 		}
+		dcassert(!aBundle->isSource(aUser));
+		//TODO: handle in correct place
+		SearchManager::getInstance()->removeUserPBD(aUser, aBundle);
 	}
 }
 
@@ -2975,7 +2986,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 	for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
 		if (lastPoints==i->first) {
 			if (verbose) {
-				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + Util::toString(prio));
+				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
 			}
 			setBundlePriority(i->second, (Bundle::Priority)prio, true);
 			//don't increase the prio if two bundles have identical points
@@ -4253,7 +4264,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 		}
 	}
 
-	SearchManager::getInstance()->removeRemoteNotification(aBundle->getToken());
+	SearchManager::getInstance()->removeBundlePBD(aBundle->getToken());
 	bundles.erase(aBundle->getToken());
 	try {
 		File::deleteFile(aBundle->getBundleFile() + ".bak");

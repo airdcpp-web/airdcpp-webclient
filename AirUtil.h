@@ -18,7 +18,7 @@ namespace dcpp {
 	static int getSlots(bool download, double value=0, bool rarLimits=false);
 	static int getSpeedLimit(bool download, double value=0);
 	static int getMaxAutoOpened(double value = 0);
-	
+	static string getPrioText(int prio);
 	
 	};
 }
