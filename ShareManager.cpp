@@ -1616,7 +1616,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 		dcdebug("Partial NULL");
 		return NULL;
 	} else {
-		LogManager::getInstance()->message(tths);
+		//LogManager::getInstance()->message(tths);
 		return new MemoryInputStream(tths);
 	}
 }

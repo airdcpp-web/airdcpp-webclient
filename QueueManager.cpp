@@ -1044,7 +1044,11 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		} catch(const Exception&) {
 			//...
 		}
-		//setDirty();
+
+		if (aBundle) {
+			//don't connect to directory bundle sources here
+			return;
+		}
 	}
 connect:
 	bool smallSlot=false;
@@ -2819,6 +2823,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 
 	BundleList runningBundles;
 	vector<pair<BundlePtr, Bundle::Priority>> priorities;
+	boost::unordered_map<UserPtr, int64_t> userSpeedMap;
 
 	{
 		Lock l (cs);
@@ -2832,6 +2837,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 					downloads++;
 					bundleSpeed += d->getAverageSpeed();
 					bundleRatio += d->getPos() > 0 ? (double)d->getActual() / (double)d->getPos() : 1.00;
+					userSpeedMap[d->getUser()] += d->getAverageSpeed();
 				}
 			}
 			if (bundleSpeed > 0) {
@@ -2864,6 +2870,9 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		}
 	}
 
+	for (auto i = userSpeedMap.begin(); i != userSpeedMap.end(); ++i) {
+		i->first->setSpeed(i->second);
+	}
 
 	if (!runningBundles.empty()) {
 		DownloadManager::getInstance()->updateBundles(runningBundles);
@@ -2884,19 +2893,19 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 void QueueManager::calculateBundlePriorities(bool verbose) {
 	//get bundles with auto priority and update user speeds
 	boost::unordered_map<BundlePtr, double, Bundle::Hash> autoPrioMap;
-	boost::unordered_map<UserPtr, int64_t> userSpeedMap;
+	//boost::unordered_map<UserPtr, int64_t> userSpeedMap;
 	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
 		BundlePtr bundle = i->second;
 		if (bundle->getAutoPriority()) {
 			autoPrioMap[bundle] = 0;
-			for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
+			/*for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
 				userSpeedMap[(*s)->getUser()] += (*s)->getAverageSpeed();
-			}
+			} */
 		}
 	}
-	for (auto i = userSpeedMap.begin(); i != userSpeedMap.end(); ++i) {
+	/*for (auto i = userSpeedMap.begin(); i != userSpeedMap.end(); ++i) {
 		i->first->setSpeed(i->second);
-	}
+	} */
 
 	if (autoPrioMap.size() <= 1) {
 		if (verbose) {
@@ -3332,6 +3341,15 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 			}
 			rebuildBundleDirs(aBundle, true);
 		}
+	}
+
+	if (!loading && !aBundle->getSources().empty()) {
+		bool wantConnection = aBundle->getSources().front().first.user && (aBundle->getPriority() != Bundle::PAUSED) && userQueue.getRunning(aBundle->getSources().front().first.user).empty();
+
+		if(wantConnection) {
+			ConnectionManager::getInstance()->getDownloadConnection(aBundle->getSources().front().first, false);
+		}
+
 	}
 	return true;
 }
