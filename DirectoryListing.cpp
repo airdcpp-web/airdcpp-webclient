@@ -97,7 +97,7 @@ public:
 	  list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkdupe(aCheckDupe), partialList(aPartialList), useCache(true) { 
 	}
 
-	~ListLoader() { }
+	virtual ~ListLoader() { }
 
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name, const string& data);

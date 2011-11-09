@@ -157,6 +157,7 @@ const string SettingsManager::settingTags[] =
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
+	"ShareSaveTime",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -701,6 +702,7 @@ SettingsManager::SettingsManager()
 	setDefault(POPUP_BUNDLE_ULS, false);
 	setDefault(LOG_HASHING, true);
 	setDefault(DOWNLOAD_ORDER, 0);
+	setDefault(SHARE_SAVE_TIME, 30);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

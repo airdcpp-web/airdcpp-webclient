@@ -451,7 +451,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, DirectoryListing:
 	}
 
 	string filePath = fullPath + "\\" + currentFile->getName();
-	ADLSearch* match;
+	ADLSearch* match = NULL;
 	bool hasMatch = false;
 
 	//Match tth
@@ -547,7 +547,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, DirectoryLis
 		return;
 	}
 
-	ADLSearch* match;
+	ADLSearch* match = NULL;
 	bool hasMatch = false;
 
 	//Match regexes

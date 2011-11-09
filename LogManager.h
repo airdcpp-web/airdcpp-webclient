@@ -87,7 +87,7 @@ private:
 		try {
 			string aArea = Util::validateFileName(area);
 			File::ensureDirectory(aArea);
-			File f(aArea, File::WRITE, File::OPEN | File::CREATE);
+			File f(aArea, File::WRITE, File::OPEN | File::CREATE, false);
 			f.setEndPos(0);
 			if(f.getPos() == 0) {
 				f.write("\xef\xbb\xbf");

@@ -1301,6 +1301,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Queue options", 
 "Download order", 
 "Priorities", 
+"Automatically save shares every ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2602,4 +2603,5 @@ std::string dcpp::ResourceManager::names[] = {
 "QueueOptions", 
 "DownloadOrder", 
 "Priorities", 
+"SaveShare", 
 };

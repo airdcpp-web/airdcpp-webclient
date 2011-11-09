@@ -58,7 +58,7 @@ namespace dcpp {
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
 	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false), GeneratingXmlList(false),
-	c_size_dirty(true), c_shareSize(0)
+	c_size_dirty(true), c_shareSize(0), xml_saving(false), lastSave(GET_TICK())
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -1528,6 +1528,14 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 #define LITERAL(n) n, sizeof(n)-1
 
 void ShareManager::saveXmlList(){
+
+	if(xml_saving)
+		return;
+
+	xml_saving = true;
+
+	LogManager::getInstance()->message("Saving shares.xml...");
+
 	RLock l(cs);
 	string indent;
 	try{
@@ -1551,12 +1559,13 @@ void ShareManager::saveXmlList(){
 		File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml");
 		File::renameFile(newCache,  (Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"));
 	}catch(Exception& e){
-		LogManager::getInstance()->message("Error Saving Share Cache: " + e.getError());
+		LogManager::getInstance()->message("Error Saving Shares.xml: " + e.getError());
 	}
 
 	//delete xmlFile;
-
+	xml_saving = false;
 	ShareCacheDirty = false;
+	LogManager::getInstance()->message("shares.xml saved.");
 }
 
 void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& path, string& indent){
@@ -2300,6 +2309,11 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 }
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
+
+	if(SETTING(SHARE_SAVE_TIME) > 0){
+		if(lastSave + SETTING(SHARE_SAVE_TIME) *60 *1000 <= tick)
+			saveXmlList();
+	}
 
 	if(SETTING(INCOMING_REFRESH_TIME) > 0 && !incoming.empty()){
 			if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {

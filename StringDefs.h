@@ -1308,5 +1308,6 @@ enum Strings { // @DontAdd
 	QUEUE_OPTIONS, // "Queue options"
 	DOWNLOAD_ORDER, // "Download order"
 	PRIORITIES, // "Priorities"
+	SAVE_SHARE, // "Automatically save shares every "
 	LAST // @DontAdd
 };

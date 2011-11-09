@@ -1230,7 +1230,7 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 	bool wantConnection = false;
 	{
 		Lock l(cs);
-		tthMap.clear();
+		tthMap.clear(); //incase we throw, map was not cleared at the end.
 		buildMap(dl.getRoot());
 
 		//our queue is most likely bigger than the partial list, so do it in this order
@@ -1264,7 +1264,8 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 				if(qi->isSet(QueueItem::FLAG_USER_LIST))
 					continue;
 				TTHMap::iterator j = tthMap.find(qi->getTTH());
-				if(j != tthMap.end() && i->second->getSize() == qi->getSize()) {
+				//if(j != tthMap.end() && i->second->getSize() == qi->getSize()) { is this right?? i->second ?? why would we map file pointer then. in dc++ too.
+				if(j != tthMap.end() && j->second->getSize() == qi->getSize()) {
 					try {
 						wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);	
 					} catch(const Exception&) {
@@ -1274,9 +1275,11 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 				}
 			}
 		}
+		tthMap.clear();
 	}
 	if((matches > 0) && wantConnection)
 		ConnectionManager::getInstance()->getDownloadConnection(dl.getHintedUser());
+
 		return matches;
 }
 

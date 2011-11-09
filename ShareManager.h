@@ -82,7 +82,7 @@ public:
 	
    void save() { 
 		w.join();
-		LogManager::getInstance()->message("Creating share cache...");
+		//LogManager::getInstance()->message("Creating share cache...");
 		w.start();
 	}
 
@@ -331,10 +331,12 @@ private:
 	uint64_t lastXmlUpdate;
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
+	uint64_t lastSave;
 	
 	//caching the share size so we dont need to loop tthindex everytime
 	mutable int64_t	 c_shareSize;
 	mutable bool	 c_size_dirty;
+	bool xml_saving;
 
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
 	mutable CriticalSection dirnamelist;
@@ -427,7 +429,7 @@ public:
 private:
 		int run() {
 			ShareManager::getInstance()->saveXmlList();
-			LogManager::getInstance()->message("Share cache Created.");
+			//LogManager::getInstance()->message("Share cache Created.");
 			return 0;
 		}
 	};//worker end
