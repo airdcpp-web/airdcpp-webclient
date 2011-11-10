@@ -263,7 +263,7 @@ private:
 	//	void merge(const Ptr& source);
 		string find(const string& dir, bool validateDir);
 
-		GETSET(string, lastwrite, LastWrite);
+		GETSET(time_t, lastwrite, LastWrite);
 		GETSET(string, name, Name);
 		GETSET(string, rootpath, RootPath); //saved only for root items.
 		GETSET(Directory*, parent, Parent);

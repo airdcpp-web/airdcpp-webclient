@@ -200,6 +200,27 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			bool incomp = getAttrib(attribs, sIncomplete, 1) == "1";
 			const string& size = getAttrib(attribs, sSize, 2);
 			const string& date = getAttrib(attribs, sDate, 3);
+			time_t dateRaw = 0;
+			if (!date.empty()) {
+				dateRaw = static_cast<time_t>(Util::toInt(date));
+				//workaround for versions 2.2x
+				if (dateRaw < 10000) {
+					if (date.length() == 10) {
+						int yy=0, mm=0, dd=0;
+						struct tm when;
+						sscanf_s(date.c_str(), "%d-%d-%d", &yy, &mm, &dd );
+						when.tm_year = yy - 1900;
+						when.tm_mon = mm - 1;
+						when.tm_mday = dd;
+						when.tm_isdst = 0;
+						when.tm_hour=16;
+						when.tm_min=0;
+						when.tm_sec=0;
+						dateRaw = mktime(&when);
+					}
+				}
+			}
+
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
 				if (useCache) {
@@ -224,7 +245,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				}
 			}
 			if(d == NULL) {
-				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, date);
+				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, dateRaw);
 				if (checkdupe) {
 					if (ShareManager::getInstance()->isDirShared(d->getPath())) {
 						d->setDupe(2);
@@ -350,6 +371,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 					aBundle->setPriority((Bundle::Priority)prio);
 					aBundle->setAutoPriority(false);
 				}
+				aBundle->setDirDate(aDir->getDirDate());
 				//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE1: " + aBundle->getTarget());
 			} else {
 				sort(lst.begin(), lst.end(), Directory::DirSort());
@@ -359,6 +381,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 						aBundle->setPriority((Bundle::Priority)prio);
 						aBundle->setAutoPriority(false);
 					}
+					aBundle->setDirDate(aDir->getDirDate());
 					//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
 					download(*j, target, highPrio, prio, false, false, aBundle);
 

@@ -2257,6 +2257,8 @@ void QueueManager::saveBundle(BundlePtr bundle) {
 		f.write(Util::toString(bundle->getSize()));
 		f.write(LIT("\" Added=\""));
 		f.write(Util::toString(bundle->getAdded()));
+		f.write(LIT("\" Date=\""));
+		f.write(Util::toString(bundle->getDirDate()));
 		if (!bundle->getAutoPriority()) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)bundle->getPriority()));
@@ -2420,6 +2422,7 @@ static const string sSource = "Source";
 static const string sNick = "Nick";
 static const string sDirectory = "Directory";
 static const string sAdded = "Added";
+static const string sDate = "Date";
 static const string sTTH = "TTH";
 static const string sCID = "CID";
 static const string sHubHint = "HubHint";
@@ -2453,6 +2456,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 
 		const string& prio = getAttrib(attribs, sPriority, 3);
 		time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 4)));
+		time_t dirDate = static_cast<time_t>(Util::toInt(getAttrib(attribs, sDate, 5)));
 		if(added == 0) {
 			added = GET_TIME();
 		}
@@ -2465,6 +2469,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			bundle->setAutoPriority(true);
 			bundle->setPriority(Bundle::LOW);
 		}
+		bundle->setDirDate(dirDate);
 		bundle->setToken(token);
 		curBundle = bundle;
 		inBundle = true;		

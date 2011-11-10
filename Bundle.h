@@ -82,7 +82,7 @@ public:
 
 
 	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), lastSave(0), dirty(true), added(added) { }
+		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), lastSave(0), dirty(true), added(added), dirDate(0) { }
 
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, downloaded, Downloaded);
@@ -94,6 +94,7 @@ public:
 	GETSET(uint64_t, start, Start);
 	GETSET(uint16_t, running, Running);
 	GETSET(time_t, added, Added);
+	GETSET(time_t, dirDate, DirDate);
 	GETSET(bool, singleUser, SingleUser);
 	GETSET(CIDStringList, notifiedUsers, NotifiedUsers);
 	GETSET(UserIntMap, runningUsers, RunningUsers);

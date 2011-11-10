@@ -473,7 +473,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 						}
 				} else if(cur) {
 					cur = ShareManager::Directory::create(name, cur);
-					cur->setLastWrite(date);
+					cur->setLastWrite(static_cast<time_t>(Util::toInt(date)));
 					cur->getParent()->directories[cur->getName()] = cur;
 					try {
 					ShareManager::getInstance()->addReleaseDir(cur->getFullName());
@@ -1084,7 +1084,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 		if(i->isDirectory()) {
 			string newName = aName + name + PATH_SEPARATOR;
 			
-			dir->setLastWrite(Util::getDateTime(i->getLastWriteTime()));
+			dir->setLastWrite((time_t)i->getLastWriteTime());
 
 #ifdef _WIN32
 			// don't share Windows directory
@@ -1097,7 +1097,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			if((stricmp(newName, SETTING(TEMP_DOWNLOAD_DIRECTORY)) != 0) && shareFolder(newName)) {
 				Directory::Ptr tmpDir = buildTree(newName, dir);
 				//add the date to the last dir
-				tmpDir->setLastWrite(Util::getDateTime(i->getLastWriteTime()));
+				tmpDir->setLastWrite((time_t)i->getLastWriteTime());
 				dir->directories[name] = tmpDir;
 			}
 		} else {
@@ -1578,7 +1578,7 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 	xmlFile.write(LITERAL("\" Path=\""));
 	xmlFile.write(SimpleXML::escape(path, tmp, true));
 	xmlFile.write(LITERAL("\" Date=\""));
-	xmlFile.write(SimpleXML::escape(lastwrite, tmp, true));
+	xmlFile.write(SimpleXML::escape(Util::toString(lastwrite), tmp, true));
 	xmlFile.write(LITERAL("\">\r\n"));
 
 	indent += '\t';
@@ -1722,7 +1722,7 @@ void ShareManager::Directory::toXml(SimpleXML& xmlFile, bool fullList){
 		xmlFile.addTag("Directory");
 		xmlFile.forceEndTag();
 		xmlFile.addChildAttrib("Name", name);
-		xmlFile.addChildAttrib("Date", lastwrite);
+		xmlFile.addChildAttrib("Date", Util::toString(lastwrite));
 	}
 
 	if(fullList) {
