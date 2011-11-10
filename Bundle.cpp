@@ -352,10 +352,12 @@ bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning
 	//check bundle sources
 	auto m = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; });
 	dcassert(m != sources.end());
-	m->second--;
-	if (m->second == 0) {
-		sources.erase(m);
-		return true;
+	if(m != sources.end()) { 
+		m->second--;
+		if (m->second == 0) {
+			sources.erase(m);   //crashed when nothing found to erase with only 1 source and removing multiple bundles.
+			return true;
+		}
 	}
 	return false;
 }

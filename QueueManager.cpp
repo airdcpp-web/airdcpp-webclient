@@ -1867,17 +1867,25 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 
 	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
 		if (!path.empty()) {
+			DirectoryItem* d = NULL;
 			{
 				Lock l(cs);
 				auto dp = directories.equal_range(user);
 				for(auto i = dp.first; i != dp.second; ++i) {
 					if(stricmp(path.c_str(), i->second->getName().c_str()) == 0) {
-						dirList.download(i->second->getName(), i->second->getTarget(), false, i->second->getPriority(), true);
+						d = i->second;
 						directories.erase(i);
 						break;
 					}
 				}
 			}
+			if(d != NULL){
+				/* fix deadlock!!  cant call to download inside a lock, the lock time becomes too long and goes too deep,
+				threads in Queuemanager and Connectionmanager will lock each other. */
+				dirList.download(d->getName(), d->getTarget(), false, d->getPriority(), true);
+				delete d;
+			}
+
 		} else {
 			vector<DirectoryItemPtr> dl;
 			{
