@@ -2312,7 +2312,7 @@ void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const T
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 
 	if(SETTING(SHARE_SAVE_TIME) > 0){
-		if(lastSave + SETTING(SHARE_SAVE_TIME) *60 *1000 <= tick)
+		if(ShareCacheDirty && lastSave + SETTING(SHARE_SAVE_TIME) *60 *1000 <= tick)
 			saveXmlList();
 	}
 
