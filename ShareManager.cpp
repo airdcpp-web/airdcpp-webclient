@@ -1565,6 +1565,7 @@ void ShareManager::saveXmlList(){
 	//delete xmlFile;
 	xml_saving = false;
 	ShareCacheDirty = false;
+	lastSave = GET_TICK();
 	LogManager::getInstance()->message("shares.xml saved.");
 }
 
