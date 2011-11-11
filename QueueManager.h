@@ -125,6 +125,7 @@ public:
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
 	void saveBundle(BundlePtr aBundle);
+	void getBundlePaths(StringList& bundles);
 
 	BundlePtr findBundle(const string bundleToken);
 	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);

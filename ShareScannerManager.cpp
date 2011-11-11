@@ -28,6 +28,7 @@
 #include "File.h"
 #include "Wildcards.h"
 #include "SFVReader.h"
+#include "QueueManager.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -91,6 +92,9 @@ int ShareScannerManager::run() {
 		for(StringIterC i = Paths.begin(); i != Paths.end();    i++) {
 			getScanSize(*i);
 		}
+	} else {
+		QueueManager::getInstance()->getBundlePaths(bundleDirs);
+		sort(bundleDirs.begin(), bundleDirs.end());
 	}
 	
 	string dirName;
@@ -145,8 +149,11 @@ int ShareScannerManager::run() {
 				if (matchSkipList(Util::getDir(dir, false, true))) {
 					continue;
 				}
+				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {
+					continue;
+				}
 				scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
-				find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders);
+				find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, true);
 			}
 			//LogManager::getInstance()->message("Scanned " + dir);
 		}
@@ -158,7 +165,7 @@ int ShareScannerManager::run() {
 		LogManager::getInstance()->message(STRING(CRC_STOPPED));
 	}
 	
-
+	bundleDirs.clear();
 	scanning.clear();
 	dupeDirs.clear();
 	Paths.clear();
@@ -188,7 +195,7 @@ bool ShareScannerManager::matchSkipList(const string& dir) {
 	return false;
 }
 
-void ShareScannerManager::find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders) {
+void ShareScannerManager::find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, bool checkBundles) {
 	if(path.empty())
 		return;
 
@@ -203,6 +210,11 @@ void ShareScannerManager::find(const string& path, int& missingFiles, int& missi
 						continue;
 					}
 					dir = path + i->getFileName() + "\\";
+					if (checkBundles) {
+						if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {
+							continue;
+						}
+					}
 					DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
 					if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
 						scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
@@ -217,7 +229,7 @@ void ShareScannerManager::find(const string& path, int& missingFiles, int& missi
 
 	if(!dirs.empty()) {
 		for(StringIterC j = dirs.begin(); j != dirs.end(); j++) {
-			find(*j, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders);
+			find(*j, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, checkBundles);
 		}	
 	}
 }
@@ -715,7 +727,7 @@ void ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 		int emptyFolders = 0;
 
 		scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
-		find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders);
+		find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, false);
 
 		reportResults(aBundle->getName(), 2, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 	}

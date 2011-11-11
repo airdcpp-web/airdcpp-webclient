@@ -3289,6 +3289,15 @@ tstring QueueManager::getDirPath(const string& aDir) {
 	return Util::emptyStringT;
 }
 
+void QueueManager::getBundlePaths(StringList& retBundles) {
+	Lock l (cs);
+	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
+		if (!i->second->getFileBundle()) {
+			retBundles.push_back(i->second->getTarget());
+		}
+	}
+}
+
 bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& target) {
 	Lock l(cs);
 	QueueItemList ql = fileQueue.find(tth);

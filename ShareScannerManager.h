@@ -37,7 +37,7 @@ class ShareScannerManager: public Singleton<ShareScannerManager>, public Thread 
  
 public:
 
-	void find (const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders);
+	void find (const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, bool checkBundles);
 	bool scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders);
 	int scan(StringList paths = StringList(), bool sfv = false);
 	void scanBundle(BundlePtr aBundle);
@@ -74,6 +74,7 @@ private:
 	StringList findFiles(const string& path, const string& pattern, bool dirs = false);
 	void getScanSize(const string& path);
 	uint32_t calcCrc32(const string& file);
+	StringList bundleDirs;
 
 	void reportResults(const string& path, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound = 0);
 };
