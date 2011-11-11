@@ -1206,7 +1206,8 @@ QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSl
 	return QueueItem::PAUSED;
 }
 namespace {
-typedef unordered_map<TTHValue, const DirectoryListing::File*> TTHMap;
+	//using vector for testing, atleast ram is cleared.
+typedef vector<pair<TTHValue, const DirectoryListing::File*>> TTHMap;
 
 // *** WARNING *** 
 // Lock(cs) makes sure that there's only one thread accessing this
@@ -1220,7 +1221,7 @@ void buildMap(const DirectoryListing::Directory* dir) noexcept {
 
 	for(DirectoryListing::File::List::const_iterator i = dir->files.begin(); i != dir->files.end(); ++i) {
 		const DirectoryListing::File* df = *i;
-		tthMap.insert(make_pair(df->getTTH(), df));
+		tthMap.push_back(make_pair(df->getTTH(), df));
 	}
 }
 }
@@ -1237,7 +1238,7 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 		if (partialList) {
 			//LogManager::getInstance()->message("MATCHING PARTIAL LIST");
  			for (auto s = tthMap.begin(); s != tthMap.end(); ++s) {
-				QueueItemList ql = fileQueue.find((*s).first);
+				QueueItemList ql = fileQueue.find(s->first);
 				if (!ql.empty()) {
 					for (auto i = ql.begin(); i != ql.end(); ++i) {
 						QueueItem* qi = (*i);
@@ -1263,9 +1264,9 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 					continue;
 				if(qi->isSet(QueueItem::FLAG_USER_LIST))
 					continue;
-				TTHMap::iterator j = tthMap.find(qi->getTTH());
-				//if(j != tthMap.end() && i->second->getSize() == qi->getSize()) { is this right?? i->second ?? why would we map file pointer then. in dc++ too.
-				if(j != tthMap.end() && j->second->getSize() == qi->getSize()) {
+					TTHMap::iterator j = find_if(tthMap.begin(), tthMap.end(), CompareFirst<TTHValue, const DirectoryListing::File*>(qi->getTTH()));
+					if(j != tthMap.end()) {
+					if(j->second->getSize() == qi->getSize()) {
 					try {
 						wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);	
 					} catch(const Exception&) {
@@ -1274,6 +1275,7 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 					matches++;
 				}
 			}
+		}
 		}
 		tthMap.clear();
 	}
