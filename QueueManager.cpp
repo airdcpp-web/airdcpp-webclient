@@ -2588,7 +2588,7 @@ void QueueLoader::endTag(const string& name, const string&) {
 }
 
 void QueueManager::addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, int64_t aSize, time_t aFinished) {
-	LogManager::getInstance()->message("ADD FINISHED TTH: " + tth.toBase32());
+	//LogManager::getInstance()->message("ADD FINISHED TTH: " + tth.toBase32());
 	QueueItem* qi = new QueueItem(aTarget, aSize, QueueItem::DEFAULT, QueueItem::FLAG_NORMAL, aFinished, tth);
 	qi->addSegment(Segment(0, aSize)); //make it complete
 	fileQueue.add(qi, true);

@@ -32,6 +32,10 @@ bool SearchQueue::add(const Search& s)
 
 	Lock l(cs);
 	
+	if (s.type == Search::MANUAL) {
+		nextInterval = min(interval, nextInterval);
+	}
+
 	// check dupe
 	auto i = find(searchQueue.begin(), searchQueue.end(), s);
 	if (i != searchQueue.end()) {
@@ -53,10 +57,11 @@ bool SearchQueue::add(const Search& s)
 
 bool SearchQueue::pop(Search& s)
 {
-	dcassert(interval);
-
+	dcassert(nextInterval);
 	uint64_t now = GET_TICK();
-	if(now <= lastSearchTime + interval) 
+
+
+	if(now <= lastSearchTime + nextInterval) 
 		return false;
 	
 	{
@@ -65,6 +70,15 @@ bool SearchQueue::pop(Search& s)
 			s = searchQueue.front();
 			searchQueue.pop_front();
 			lastSearchTime = now;
+			nextInterval = interval;
+			if(!searchQueue.empty()) { 
+				Search::searchType type = searchQueue.front().type;
+				if (type == Search::ALT_AUTO) {
+					nextInterval = max(interval, (uint32_t)15000);
+				} else if (type == Search::AUTO_SEARCH) {
+					nextInterval = max(interval, (uint32_t)15000);
+				}
+			}
 			return true;
 		}
 	}
@@ -80,7 +94,7 @@ uint64_t SearchQueue::getSearchTime(void* aOwner){
 	uint64_t x = max(lastSearchTime, GET_TICK() - interval);
 
 	for(auto i = searchQueue.begin(); i != searchQueue.end(); i++){
-		x += interval;
+		x += interval; //it's fine if the time is only being counted correctly for manual searches
 
 		if(i->owners.count(aOwner))
 			return x;

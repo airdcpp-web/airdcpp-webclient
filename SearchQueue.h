@@ -84,7 +84,8 @@ public:
 
 private:
 	deque<Search>	searchQueue;
-	uint64_t		lastSearchTime;	
+	uint64_t		lastSearchTime;
+	uint32_t		nextInterval;
 	CriticalSection cs;
 };
 
