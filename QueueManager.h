@@ -128,13 +128,13 @@ public:
 	void getBundlePaths(StringList& bundles);
 
 	BundlePtr findBundle(const string bundleToken);
+	BundlePtr findBundle(const TTHValue& tth);
 	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
 	bool checkPBDReply(const HintedUser aUser, const TTHValue aTTH, string& _bundleToken, bool& _notify, bool& _add);
 	void updatePBD(const HintedUser aUser, const string bundleToken, const TTHValue aTTH);
 	void removeBundleNotify(const CID cid, const string bundleToken);
 	void sendBundleUpdate(BundlePtr aBundle);
 	void sendBundleFinished(BundlePtr aBundle);
-	string hasQueueBundle(const TTHValue& tth);
 	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken) noexcept;
@@ -155,8 +155,7 @@ public:
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
-	int isTTHQueued(const TTHValue& tth);
-	tstring getFinishedTTHPath(const TTHValue& tth);
+	int isTTHQueued(const TTHValue& tth) { return fileQueue.isTTHQueued(tth); }
 	
 	bool dropSource(Download* d);
 
@@ -232,9 +231,9 @@ public:
 	/** All queue items by target */
 	class FileQueue {
 	public:
-		FileQueue() : lastInsert(queue.end()){ }
+		FileQueue() { }
 		~FileQueue();
-		void add(QueueItem* qi);
+		void add(QueueItem* qi, bool addFinished, bool addTTH = true);
 		QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
 			const string& aTempTarget, time_t aAdded, const TTHValue& root)
 			throw(QueueException, FileException);
@@ -254,8 +253,9 @@ public:
 		size_t getSize() { return queue.size(); }
 		QueueItem::StringMap& getQueue() { return queue; }
 		void move(QueueItem* qi, const string& aTarget);
-		void remove(QueueItem* qi);
-		bool isTTHQueued(const TTHValue& tth) { return tthIndex.find(tth) != tthIndex.end(); }
+		void remove(QueueItem* qi, bool isFinished = false);
+		void removeTTH(QueueItem* qi);
+		int isTTHQueued(const TTHValue& tth);
 
 		uint64_t getTotalQueueSize();
 
@@ -264,8 +264,6 @@ public:
 		typedef unordered_map<TTHValue, QueueItemList> TTHMap;
 		typedef TTHMap::const_iterator TTHMapIter;
 		TTHMap tthIndex;
-
-		QueueItem::StringMap::iterator lastInsert;
 	};
 
 	/** QueueItems by target */
@@ -352,11 +350,7 @@ private:
 	void addBundleUpdate(const string bundleToken, bool finished = false);
 	void sendPBD(const CID cid, const string hubIpPort, const TTHValue& tth, const string bundleToken);
 
-	typedef unordered_map<TTHValue, string> FinishedTTHMap;
-	typedef FinishedTTHMap::const_iterator FinishedTTHIter;
-	FinishedTTHMap finishedTTHs;
 	void addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
-	string findFinished(const TTHValue& tth) const;
 
 	typedef vector<pair<string, uint64_t>> bundleTickMap;
 	bundleTickMap bundleUpdates;

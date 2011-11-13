@@ -469,10 +469,10 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 		return;
 	} else if (notify) {
 		//LogManager::getInstance()->message("PBD NOTIFYONLY");
-		string ownBundle = QueueManager::getInstance()->hasQueueBundle(TTHValue(tth));
-		if (!ownBundle.empty()) {
+		BundlePtr ownBundle = QueueManager::getInstance()->findBundle(TTHValue(tth));
+		if (ownBundle) {
 			//LogManager::getInstance()->message("PBD ADD NOTIFY, BUNDLE FOUND");
-			addBundles(ownBundle, bundle, HintedUser(from, url));
+			addBundles(ownBundle->getToken(), bundle, HintedUser(from, url));
 		} else {
 			//HMM?
 			//LogManager::getInstance()->message("PBD ADD NOTIFY, BUNDLE NOT FOUND");
@@ -495,7 +495,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	}
 
 	if (add) {
-		if (!QueueManager::getInstance()->hasQueueBundle(TTHValue(tth)).empty()) {
+		if (QueueManager::getInstance()->findBundle(TTHValue(tth))) {
 			//LogManager::getInstance()->message("PBD ADDTTHLIST");
 			QueueManager::getInstance()->addTTHList(HintedUser(from, url), bundle);
 		} else {

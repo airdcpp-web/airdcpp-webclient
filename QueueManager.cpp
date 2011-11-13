@@ -163,47 +163,40 @@ QueueItem* QueueManager::FileQueue::add(const string& aTarget, int64_t aSize,
 	}
 			
 	dcassert(find(aTarget) == NULL);
-	add(qi);
+	add(qi, false);
 	return qi;
 }
 
-void QueueManager::FileQueue::add(QueueItem* qi) {
-	if(lastInsert == queue.end())
-		lastInsert = queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi)).first;
-	else
-		lastInsert = queue.insert(lastInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
+void QueueManager::FileQueue::add(QueueItem* qi, bool addFinished, bool addTTH) {
+	if (!addFinished) {
+		queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi)).first;
+	}
 
-	auto i = tthIndex.find(qi->getTTH());
-	if (i != tthIndex.end()) {
-		i->second.push_back(qi);
-	} else {
-		QueueItemList tmp;
-		tmp.push_back(qi);
-		tthIndex[qi->getTTH()] = tmp;
+	if (addTTH) {
+		tthIndex[qi->getTTH()].push_back(qi);
 	}
 }
 
-void QueueManager::FileQueue::remove(QueueItem* qi) {
-	if(lastInsert != queue.end() && stricmp(*lastInsert->first, qi->getTarget()) == 0)
-		++lastInsert;
-
+void QueueManager::FileQueue::remove(QueueItem* qi, bool isFinished) {
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 
+	if (!isFinished) {
+		removeTTH(qi);
+	}
+}
+
+void QueueManager::FileQueue::removeTTH(QueueItem* qi) {
 	auto i = tthIndex.find(qi->getTTH());
 	if (i != tthIndex.end()) {
 		if (i->second.size() == 1) {
 			tthIndex.erase(i);
 		} else {
-			for (auto s = i->second.begin(); s != i->second.end(); ++s) {
-				if ((*s)->getTarget() == qi->getTarget()) {
-					i->second.erase(s);
-					break;
-				}
-			}
+			i->second.erase(std::remove(i->second.begin(), i->second.end(), qi), i->second.end());
 		}
 	}
 	qi->dec();
 }
+
 
 QueueItem* QueueManager::FileQueue::find(const string& target) {
 	auto i = queue.find(const_cast<string*>(&target));
@@ -228,6 +221,15 @@ QueueItemList QueueManager::FileQueue::find(const TTHValue& tth) {
 		ql = i->second;
 	}
 	return ql;
+}
+
+int QueueManager::FileQueue::isTTHQueued(const TTHValue& tth) {
+	auto i = tthIndex.find(tth);
+	if (i != tthIndex.end()) {
+		return ((*i).second.front()->isFinished() ? 2 : 1);
+	} else {
+		return 0;
+	}
 }
 
 static QueueItem* findCandidate(QueueItem* cand, QueueItem::StringMap::iterator start, QueueItem::StringMap::iterator end, const StringList& recent) {
@@ -285,25 +287,9 @@ QueueItem* QueueManager::FileQueue::findAutoSearch(StringList& recent){
 }
 
 void QueueManager::FileQueue::move(QueueItem* qi, const string& aTarget) {
-	if(lastInsert != queue.end() && stricmp(*lastInsert->first, qi->getTarget()) == 0)
-		lastInsert = queue.end();
-
-	auto i = tthIndex.find(qi->getTTH());
-	if (i != tthIndex.end()) {
-		if (i->second.size() == 1) {
-			tthIndex.erase(i);
-		} else {
-			for (auto s = i->second.begin(); s != i->second.end(); ++s) {
-				if ((*s)->getTarget() == qi->getTarget()) {
-					i->second.erase(s);
-					break;
-				}
-			}
-		}
-	}
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
-	add(qi);
+	add(qi, false, false);
 }
 
 void QueueManager::UserQueue::add(QueueItem* qi) {
@@ -2602,9 +2588,10 @@ void QueueLoader::endTag(const string& name, const string&) {
 }
 
 void QueueManager::addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, int64_t aSize, time_t aFinished) {
-	//LogManager::getInstance()->message("ADD FINISHED TTH: " + tth);
-	finishedTTHs.insert(make_pair(tth, aBundle->getToken()));
+	LogManager::getInstance()->message("ADD FINISHED TTH: " + tth.toBase32());
 	QueueItem* qi = new QueueItem(aTarget, aSize, QueueItem::DEFAULT, QueueItem::FLAG_NORMAL, aFinished, tth);
+	qi->addSegment(Segment(0, aSize)); //make it complete
+	fileQueue.add(qi, true);
 	aBundle->getFinishedFiles().push_back(qi);
 	//LogManager::getInstance()->message("added finished tth, totalsize: " + Util::toString(aBundle->getFinishedFiles().size()));
 }
@@ -2980,7 +2967,6 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 	multimap<int, BundlePtr> finalMap;
 	int uniqueValues = 0;
 	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
-		double tmp = i->second;
 		if (finalMap.find(i->second) == finalMap.end()) {
 			uniqueValues++;
 		}
@@ -3007,8 +2993,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 
 	//counters for analyzing identical points
 	int lastPoints = 999;
-	int prioSet=0, skippedIncrements=0;
-	bool groupDecreased;
+	int prioSet=0;
 
 	for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
 		if (lastPoints==i->first) {
@@ -3166,22 +3151,13 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 	return true;
 }
 
-string QueueManager::hasQueueBundle(const TTHValue& tth) {
+BundlePtr QueueManager::findBundle(const TTHValue& tth) {
 	Lock l (cs);
-	string bundleToken = findFinished(tth);
-	if (!bundleToken.empty()) {
-		BundlePtr bundle = findBundle(bundleToken);
-		if (bundle) {
-			return bundleToken;
-		}
-	} else {
-		QueueItemList ql = fileQueue.find(tth);
-		QueueItemPtr qi = ql.front();
-		if (qi->getBundle()) {
-			return qi->getBundle()->getToken();
-		}
+	QueueItemList ql = fileQueue.find(tth);
+	if (!ql.empty()) {
+		return ql.front()->getBundle();
 	}
-	return Util::emptyString;
+	return NULL;
 }
 
 bool QueueManager::handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add) {
@@ -3191,30 +3167,18 @@ bool QueueManager::handlePartialSearch(const TTHValue& tth, PartsInfo& _outParts
 
 		// Locate target QueueItem in download queue
 		QueueItemList ql = fileQueue.find(tth);
-		string bundleToken = findFinished(tth);
-		if (!bundleToken.empty()) {
-			//LogManager::getInstance()->message("FINISHED FOUND");
-			_bundle = bundleToken;
-			_add = true;
-			BundlePtr bundle = findBundle(bundleToken);
-			if (bundle) {
-				_reply = true;
-			}
-		} else {
-			//LogManager::getInstance()->message("FINISHED NOT FOUND");
-		}
-		
 		if (ql.empty()) {
 			//LogManager::getInstance()->message("QL EMPTY, QUIIIIIIIT");
 			return false;
 		}
 
 		QueueItemPtr qi = ql.front();
-		if (qi->getBundle() && bundleToken.empty()) {
+		if (qi->getBundle()) {
 			//LogManager::getInstance()->message("handlePartialSearch: QI FOUND");
-			bundleToken = qi->getBundle()->getToken();
-			_reply = true;
-			_bundle = bundleToken;
+			_bundle = qi->getBundle()->getToken();
+			if (!qi->getBundle()->getQueueItems().empty()) {
+				_reply = true;
+			}
 			if (!qi->getBundle()->getFinishedFiles().empty()) {
 				_add = true;
 			}
@@ -3237,30 +3201,6 @@ bool QueueManager::handlePartialSearch(const TTHValue& tth, PartsInfo& _outParts
 	}
 
 	return !_outPartsInfo.empty();
-}
-
-tstring QueueManager::getFinishedTTHPath(const TTHValue& tth) {
-	auto i = finishedTTHs.find(tth);
-	if (i != finishedTTHs.end()) {
-		BundlePtr bundle = findBundle(i->second);
-		if (bundle) {
-			for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
-				if ((*i)->getTTH() == tth) {
-					return Text::toT((*i)->getTarget());
-				}
-			}
-		}
-	}
-	return Util::emptyStringT;
-}
-
-int QueueManager::isTTHQueued(const TTHValue& tth) { 
-	if (fileQueue.isTTHQueued(tth)) {
-		return 1;
-	} else if (finishedTTHs.find(tth) != finishedTTHs.end()) {
-		return 2;
-	}
-	return 0;
 }
 
 bool QueueManager::isDirQueued(const string& aDir) {
@@ -3301,27 +3241,14 @@ void QueueManager::getBundlePaths(StringList& retBundles) {
 bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& target) {
 	Lock l(cs);
 	QueueItemList ql = fileQueue.find(tth);
-		
-	if(ql.empty()) {
-		string bundleToken = findFinished(tth);
-		if (!bundleToken.empty()) {
-			BundlePtr bundle = findBundle(bundleToken);
-			if (bundle) {
-				for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
-					if ((*i)->getTTH() == tth) {
-						target = (*i)->getTarget();
-						bytes = (*i)->getSize();
-						return true;
-					}
-				}
-			}
-		}
-		return false;
-	} else {
-		QueueItem* qi = ql.front();
-		target = qi->isFinished() ? qi->getTarget() : qi->getTempTarget();
-		return qi->isChunkDownloaded(startPos, bytes);
-	}
+
+	if(ql.empty()) return false;
+
+	QueueItem* qi = ql.front();
+
+	target = qi->isFinished() ? qi->getTarget() : qi->getTempTarget();
+
+	return qi->isChunkDownloaded(startPos, bytes);
 }
 
 bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
@@ -3704,10 +3631,6 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 			string qiTarget = qi->getTarget();
 			if (hasMergeBundle) {
 				newBundle->getFinishedFiles().push_back(qi);
-				auto k = finishedTTHs.find(qi->getTTH());
-				if (k != finishedTTHs.end()) {
-					k->second = newBundle->getToken();
-				}
 			}
 			moveFile(qiTarget, targetPath, newBundle);
 			qi->setTarget(targetPath);
@@ -3788,10 +3711,6 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 				newBundle->getFinishedFiles().push_back(qi);
 				moveFile(qi->getTarget(), targetPath, newBundle);
 				qi->setTarget(targetPath);
-				auto k = finishedTTHs.find(qi->getTTH());
-				if (k != finishedTTHs.end()) {
-					k->second = newBundle->getToken();
-				}
 				i = sourceBundle->getFinishedFiles().begin();
 			} else {
 				i++;
@@ -4213,7 +4132,7 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool deleteQI)
 	BundlePtr bundle = qi->getBundle();
 	if (!bundle) {
 		//LogManager::getInstance()->message("QueueManager::removeBundleItem, token empty!");
-		fileQueue.remove(qi);
+		fileQueue.remove(qi, false);
 		return;
 	}
 	bool emptyBundle = false;
@@ -4225,13 +4144,13 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool deleteQI)
 			bundle->getQueueItems().erase(std::remove(bundle->getQueueItems().begin(), bundle->getQueueItems().end(), qi), bundle->getQueueItems().end());
 
 			if (finished) {
-				addFinishedTTH(qi->getTTH(), bundle, qi->getTarget(), qi->getSize(), GET_TIME());
 				//LogManager::getInstance()->message("REMOVE FINISHED BUNDLEITEM, items: " + Util::toString(bundle->items.size()) + " totalsize: " + Util::formatBytes(bundle->getSize()));
 				//notify users
 				for (auto s = bundle->getNotifiedUsers().begin(); s != bundle->getNotifiedUsers().end(); ++s) {
 					sendPBD((*s).first, (*s).second, qi->getTTH(), bundle->getToken());
 				}
-				//bundle->setDirty(true);
+				fileQueue.remove(qi, true);
+				bundle->getFinishedFiles().push_back(qi);
 			} else {
 				if (qi->getDownloadedBytes() > 0) {
 					bundle->decreaseDownloaded(qi->getDownloadedBytes());
@@ -4239,6 +4158,9 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool deleteQI)
 				bundle->decreaseSize(qi->getSize());
 				bundle->setFlag(Bundle::UPDATE_SIZE);
 				addBundleUpdate(bundle->getToken());
+				if (deleteQI) {
+					fileQueue.remove(qi, false);
+				}
 				//LogManager::getInstance()->message("REMOVE FAILED BUNDLEITEM, items: " + Util::toString(bundle->getQueueItems().size()) + " totalsize: " + Util::formatBytes(bundle->getSize()));
 			}
 
@@ -4251,9 +4173,6 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool deleteQI)
 		} else {
 			//LogManager::getInstance()->message("QueueManager::removeBundleItem BUNDLE NOT FOUND");
 		}
-	}
-	if (deleteQI) {
-		fileQueue.remove(qi);
 	}
 	if (emptyBundle) {
 		removeBundle(bundle, finished);
@@ -4275,19 +4194,10 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 		//LogManager::getInstance()->message("The Bundle " + aBundle->getName() + " has been removed");
 
 		//clean finished files
-		typedef unordered_set<TTHValue> TTHSet;
-		TTHSet removed;
 		{
 			Lock l (cs);
-			for(FinishedTTHIter s = finishedTTHs.begin(); s != finishedTTHs.end(); ++s) {
-				//LogManager::getInstance()->message("FINISHED BUNDLE FIRST: " + (*i).second + " COMPARE " + bundleCompare);
-				if(s->second == aBundle->getToken()) {
-					//LogManager::getInstance()->message("REMOVED BUNDLE ERASE FINISHED: " + s->first.toBase32());
-					removed.insert(s->first);
-				}
-			}
-			for(TTHSet::const_iterator k = removed.begin(); k != removed.end(); ++k) {
-				finishedTTHs.erase(*k);
+			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
+				fileQueue.removeTTH(*i);
 			}
 		}
 
@@ -4333,15 +4243,6 @@ MemoryInputStream* QueueManager::generateTTHList(const HintedUser aUser, const s
 	}
 
 	//write finished items
-	/*for(FinishedTTHIter i = finishedTTHs.begin(); i != finishedTTHs.end(); ++i) {
-		//LogManager::getInstance()->message("FINISHED BUNDLE FIRST: " + (*i).second + " COMPARE " + bundleCompare);
-		if((*i).second == bundleCompare) {
-			//LogManager::getInstance()->message("TTHLIST FINISHED FOUND");
-			tmp2.clear();
-			tthList.write((*i).first.toBase32(tmp2));
-		}
-	} */
-	
 	BundlePtr bundle = findBundle(bundleToken);
 	if (bundle) {
 		for(auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end(); ++i) {
@@ -4359,15 +4260,6 @@ MemoryInputStream* QueueManager::generateTTHList(const HintedUser aUser, const s
 	} else {
 		return new MemoryInputStream(tths);
 	}
-}
-
-string QueueManager::findFinished(const TTHValue& tth) const {
-	FinishedTTHIter i = finishedTTHs.find(tth);
-	if(i != finishedTTHs.end()) {
-		//LogManager::getInstance()->message("FINISHED FOUND");
-		return i->second;
-	}
-	return Util::emptyString;
 }
 
 void QueueManager::addTTHList(const HintedUser& aUser, const string& bundle) {
@@ -4399,30 +4291,23 @@ bool QueueManager::checkFinishedNotify(const CID cid, const string bundleToken, 
 
 bool QueueManager::checkPBDReply(const HintedUser aUser, const TTHValue aTTH, string& _bundleToken, bool& _notify, bool& _add) {
 	Lock l (cs);
-	string finishedToken = findFinished(aTTH);
-	if (!finishedToken.empty()) {
+	BundlePtr bundle = findBundle(aTTH);
+	if (bundle) {
 		//LogManager::getInstance()->message("checkPBDReply: FINISHED FOUND");
-		BundlePtr bundle = findBundle(finishedToken);
-		if (bundle) {
+		_bundleToken = bundle->getToken();
+		if (!bundle->getQueueItems().empty()) {
 			_notify = true;
 		}
-		_add=true;
-		_bundleToken = finishedToken;
-	} else {
-		QueueItemList ql = fileQueue.find(aTTH);
-		QueueItemPtr qi = ql.front();
-		if (qi->getBundle()) {
-			//LogManager::getInstance()->message("checkPBDReply: QI FOUND");
-			_notify = true;
-			_bundleToken = qi->getBundle()->getToken();
+
+		if (!bundle->getFinishedFiles().empty()) {
+			_add=true;
 		}
-	}
-	if (!_bundleToken.empty()) {
+
 		if (checkFinishedNotify(aUser.user->getCID(), _bundleToken, true, aUser.hint)) {
 			return true;
 		}
-		//LogManager::getInstance()->message("checkPBDReply: CHECKNOTIFY FAIL");
 	}
+	//LogManager::getInstance()->message("checkPBDReply: CHECKNOTIFY FAIL");
 	return false;
 }
 
