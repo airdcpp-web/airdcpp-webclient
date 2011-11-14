@@ -77,14 +77,14 @@ public:
 	typedef unordered_map<CID, string> CIDStringList;
 	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
-	typedef pair<HintedUser, uint16_t> UserRunningPair;
+	typedef pair<HintedUser, uint32_t> UserRunningPair;
 	typedef vector<UserRunningPair> SourceIntList;
 	typedef unordered_map<string, QueueItemList> DirMap;
 
 
 
 	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), lastSave(0), dirty(true), added(added), dirDate(0) { }
+		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), lastSave(0), dirty(true), added(added), dirDate(0), simpleMatching(true) { }
 
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, downloaded, Downloaded);
@@ -98,6 +98,7 @@ public:
 	GETSET(time_t, added, Added);
 	GETSET(time_t, dirDate, DirDate);
 	GETSET(bool, singleUser, SingleUser);
+	GETSET(bool, simpleMatching, SimpleMatching);
 	GETSET(CIDStringList, notifiedUsers, NotifiedUsers);
 	GETSET(UserIntMap, runningUsers, RunningUsers);
 	GETSET(QueueItemList, queueItems, QueueItems);

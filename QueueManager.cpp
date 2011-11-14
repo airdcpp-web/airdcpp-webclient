@@ -283,15 +283,18 @@ BundlePtr QueueManager::FileQueue::findAutoSearch() {
 			int s = 0;
 			while (s <= size) {
 				if (bundlePrioQueue[p].empty()) {
-					s++;
-					continue;
+					break;
 				}
 				BundlePtr tmp = bundlePrioQueue[p].front();
 				bundlePrioQueue[p].pop_front();
 				bundlePrioQueue[p].push_back(tmp);
+				if (tmp->countOnlineUsers() >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES)) {
+					s++;
+					continue;
+				}
 				for (auto k = tmp->getQueueItems().begin(); k != tmp->getQueueItems().end(); ++k) {
 					QueueItem* q = *k;
-					if(q->getPriority() == QueueItem::PAUSED)
+					if(q->getPriority() == QueueItem::PAUSED || q->countOnlineUsers() >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))
 						continue;
 					if(q->isRunning()) {
 						//it's ok but see if we can find better
@@ -927,13 +930,13 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 
 void QueueManager::searchBundle(BundlePtr aBundle) {
 	string searchString;
-	unordered_set<string> searched;
+	//boost::unordered_map<string, string> searches;
+	StringPairList searches;
 	for (auto i = aBundle->getBundleDirs().begin(); i != aBundle->getBundleDirs().end(); ++i) {
 		string dir = Util::getDir(i->first, true, false);
-		if (searched.find(dir) != searched.end()) {
+		//if (searches.find(dir) != searches.end()) {
+		if (find_if(searches.begin(), searches.end(), [&](const StringPair& sp) { return sp.first == dir; }) != searches.end()) {
 			continue;
-		} else {
-			searched.insert(dir);
 		}
 
 		QueueItemList ql = i->second;
@@ -965,13 +968,40 @@ void QueueManager::searchBundle(BundlePtr aBundle) {
 		}
 
 		if (!searchString.empty()) {
-			SearchManager::getInstance()->search(searchString, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
+			searches.push_back(make_pair(dir, searchString));
+			//searches[dir] = searchString;
+			//SearchManager::getInstance()->search(searchString, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
+		}
+	}
+
+	if (searches.size() <= 5) {
+		aBundle->setSimpleMatching(true);
+		for (auto i = searches.begin(); i != searches.end(); ++i) {
+			//LogManager::getInstance()->message("QueueManager::searchBundle, searchString: " + i->second);
+			SearchManager::getInstance()->search(i->second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
+		}
+	} else {
+		//use an alternative matching, choose random items to search for
+		aBundle->setSimpleMatching(false);
+		int k = 0;
+		while (k < 5) {
+			auto pos = searches.begin();
+			auto rand = Util::rand(searches.size());
+			advance(pos, rand);
+			//LogManager::getInstance()->message("QueueManager::searchBundle, ALT searchString: " + pos->second);
+			SearchManager::getInstance()->search(pos->second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
+			searches.erase(pos);
+			k++;
 		}
 	}
 
 	if(BOOLSETTING(REPORT_ALTERNATES)) {
 		//LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + Util::getFileName(qi->getTargetFileName()));
-		LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", performed " + Util::toString(searched.size()) + " search(es)");
+		if (aBundle->getSimpleMatching()) {
+			LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", performed " + Util::toString(searches.size()) + " search(es)");
+		} else {
+			LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists");
+		}
 	}
 }
  
@@ -2691,74 +2721,100 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 	bool matchPartialADC = false;
 	bool matchPartialNMDC = false;
 	size_t users = 0;
+	BundlePtr bundle = NULL;
+
+	if (!BOOLSETTING(AUTO_ADD_SOURCE)) {
+		return;
+	}
 
 	{
 		Lock l(cs);
-		QueueItemList  matches = fileQueue.find(sr->getTTH());
-
+		QueueItemList matches = fileQueue.find(sr->getTTH());
 		for(auto i = matches.begin(); i != matches.end(); ++i) {
+			if (!(*i)->getBundle()) {
+				continue;
+			}
 			QueueItem* qi = *i;
-
+			bundle = qi->getBundle();
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
 				try {
-					
-					if(qi->isFinished())
-						break;  // don't add sources to already finished files
-
-					users = qi->countOnlineUsers(); 
-
-					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
-					
-						bool nmdcUser = sr->getUser()->isSet(User::NMDC);
-						/* match with partial list allways but decide if we are in nmdc hub here. 
-						( dont want to change the settings, would just break what user has set already, 
-						alltho would make a bit more sense to have just 1 match queue option, but since many have that disabled totally and we prefer to match partials in adchubs... ) */
-						if(BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (users < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
-							if(nmdcUser)							
-								matchPartialNMDC = true;
-							else
-								matchPartialADC = true;
-						//if we are in adc hub match with recursive partial list
-						} else if(BOOLSETTING(PARTIAL_MATCH_ADC) && !nmdcUser) {
-								matchPartialADC = true;
-							//if its a rar release add the sources to all files.
-						} else if (regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
-								wantConnection = addAlternates(qi, HintedUser(sr->getUser(), sr->getHubURL()));
-							// this is how sdc has it, dont add sources and receive wantconnection if we are about to match queue.
-						} else {
-								wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
+				
+					if(qi->isFinished()) {
+						if (bundle->isSource(sr->getUser())) {
+							bundle = NULL;
+							continue;
 						}
 					}
 
-					added = true;
-
-					} catch(const Exception&) {
-					//...
+					users = qi->getBundle()->countOnlineUsers(); 
+					
+					bool nmdcUser = sr->getUser()->isSet(User::NMDC);
+					/* match with partial list allways but decide if we are in nmdc hub here. 
+					( dont want to change the settings, would just break what user has set already, 
+					alltho would make a bit more sense to have just 1 match queue option, but since many have that disabled totally and we prefer to match partials in adchubs... ) */
+					if(BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (users < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
+						if(nmdcUser) {
+							matchPartialNMDC = true;
+						} else {
+							matchPartialADC = true;
+						}
+					} else if (!nmdcUser) {
+						matchPartialADC = true;
+					}else if (regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
+						wantConnection = addAlternates(qi, HintedUser(sr->getUser(), sr->getHubURL()));
+						// this is how sdc has it, dont add sources and receive wantconnection if we are about to match queue.
+					} else if (!qi->isFinished()) {
+						wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
 					}
+				} catch(const Exception&) {
+					//...
+				}
+				added = true;
 				break;
 			}
 		}
 	}
 
-	//moved outside lock range.
-	if(added && matchPartialADC) {
-		try {
-			string path = Util::toAdcFile(Util::getDir(Util::getFilePath(sr->getFile()), true, false));
-			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST) | 
-				QueueItem::FLAG_TTHLIST, path);
-		}catch(...) { }
+	if (!added) {
+		return;
 	}
 
-	if(added && matchPartialNMDC) {
+	//moved outside lock range.
+	if(matchPartialADC && bundle) {
+		string path;
+		if (bundle->getSimpleMatching()) {
+			path = Util::toAdcFile(Util::getDir(Util::getFilePath(sr->getFile()), true, false));
+		} else {
+			//try to find the corrent location from the path manually
+			size_t pos = sr->getFile().find(bundle->getName());
+			if (pos != string::npos) {
+				//LogManager::getInstance()->message("ALT RELEASE MATCH, PATH: " + path);
+				path = Util::toAdcFile(Util::getFilePath(sr->getFile().substr(0, pos+bundle->getName().length()+1)));
+			} else {
+				//failed, should we use full filelist now?
+				//LogManager::getInstance()->message("ALT NO RELEASE MATCH, PATH: " + sr->getFile());
+			}
+		}
+		if (!path.empty()) {
+			try {
+				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST) | 
+					QueueItem::FLAG_TTHLIST, path);
+			} catch(...) { }
+			return;
+		}
+	}
+
+	if(matchPartialNMDC) {
 		try {
 			string path = Util::getFilePath(sr->getFile());
 			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
 		} catch(const Exception&) {
 			// ...
 		}
+		return;
 	}
-	if(added && sr->getUser()->isOnline() && wantConnection) {
+	if(sr->getUser()->isOnline() && wantConnection) {
 		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(sr->getUser(), sr->getHubURL()));
 	}
 

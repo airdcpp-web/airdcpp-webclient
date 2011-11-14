@@ -58,7 +58,7 @@ class SearchQueue
 public:
 	
 	SearchQueue(uint32_t aInterval = 0) 
-		: lastSearchTime(0), interval(aInterval)
+		: lastSearchTime(0), interval(aInterval), nextInterval(aInterval)
 	{
 	}
 

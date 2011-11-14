@@ -48,8 +48,6 @@ Download::Download(UserConnection& conn, QueueItem& qi, const string& path) noex
 		setFlag(FLAG_NFO);
 	if(qi.isSet(QueueItem::FLAG_RECURSIVE_LIST))
 		setFlag(FLAG_RECURSIVE);
-	if(qi.isSet(QueueItem::FLAG_TTHLIST))
-		setFlag(FLAG_TTHLIST);
 
 	
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
@@ -122,7 +120,7 @@ AdcCommand Download::getCommand(bool zlib) const {
 		cmd.addParam("RE1");
 	}
 	
-	if(isSet(Download::FLAG_TTHLIST) && getType() == TYPE_PARTIAL_LIST) {	 
+	if(isSet(Download::FLAG_QUEUE) && getType() == TYPE_PARTIAL_LIST) {	 
 		cmd.addParam("TL1");	 
 	}
 

@@ -153,7 +153,7 @@ const string SettingsManager::settingTags[] =
 	"CheckEmptyDirs","CheckEmptyReleases", "FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
-	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "PartialMatchADC", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
+	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
@@ -684,7 +684,6 @@ SettingsManager::SettingsManager()
 	setDefault(SORT_DIRS, false);
 	setDefault(MAX_FILE_SIZE_SHARED, 0);
 	setDefault(MAX_MCN_DOWNLOADS, 1);
-	setDefault(PARTIAL_MATCH_ADC, true);
 	setDefault(NO_ZERO_BYTE, false);
 	setDefault(MCN_AUTODETECT, true);
 	setDefault(DL_AUTODETECT, true);

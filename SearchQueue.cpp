@@ -57,10 +57,7 @@ bool SearchQueue::add(const Search& s)
 
 bool SearchQueue::pop(Search& s)
 {
-	dcassert(nextInterval);
 	uint64_t now = GET_TICK();
-
-
 	if(now <= lastSearchTime + nextInterval) 
 		return false;
 	
