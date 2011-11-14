@@ -58,7 +58,7 @@ namespace dcpp {
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
 	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false), GeneratingXmlList(false),
-	c_size_dirty(true), c_shareSize(0), xml_saving(false), lastSave(GET_TICK())
+	c_size_dirty(true), c_shareSize(0), xml_saving(false), lastSave(GET_TICK()), aShutdown(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -102,8 +102,9 @@ void ShareManager::shutdown() {
 		} catch(...) {
 		//ignore, we just failed to delete
 		}
-			
-	}
+	//abort buildtree, we are shutting down.
+	aShutdown = true;		
+}
 
 ShareManager::Directory::Directory(const string& aName, const ShareManager::Directory::Ptr& aParent) :
 	size(0),
@@ -995,7 +996,7 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 	}
 }
 
-ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent) {
+ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued /*false*/) {
 	Directory::Ptr dir = Directory::create(Util::getLastDir(aName), aParent);
 
 	Directory::File::Set::iterator lastFileIter = dir->files.begin();
@@ -1004,7 +1005,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 
 
 #ifdef _WIN32
-		for(FileFindIter i(aName + "*"); i != end; ++i) {
+		for(FileFindIter i(aName + "*"); i != end && !aShutdown; ++i) {
 #else
 	//the fileiter just searches directorys for now, not sure if more 
 	//will be needed later
@@ -1012,6 +1013,10 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 	for(FileFindIter i(aName); i != end; ++i) {
 #endif
 		string name = i->getFileName();
+
+		//check queue so we dont add incomplete stuff to share automatically.
+		if(checkQueued &&  i->isDirectory() && QueueManager::getInstance()->isDirQueued(name))
+				continue;
 
 		if(name.empty()) {
 			LogManager::getInstance()->message("Invalid file name found while hashing folder "+ aName + ".");
@@ -1082,6 +1087,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
  			continue;
 */ 			
 		if(i->isDirectory()) {
+
 			string newName = aName + name + PATH_SEPARATOR;
 			
 			dir->setLastWrite((time_t)i->getLastWriteTime());
@@ -1095,7 +1101,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 #endif
 
 			if((stricmp(newName, SETTING(TEMP_DOWNLOAD_DIRECTORY)) != 0) && shareFolder(newName)) {
-				Directory::Ptr tmpDir = buildTree(newName, dir);
+				Directory::Ptr tmpDir = buildTree(newName, dir, checkQueued);
 				//add the date to the last dir
 				tmpDir->setLastWrite((time_t)i->getLastWriteTime());
 				dir->directories[name] = tmpDir;
@@ -2219,8 +2225,14 @@ if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 				
 				Directory::Ptr parent = p.first;
 
-				
-				Directory::Ptr dp = buildTree(realPath, parent);
+				bool checkQueued = false;
+
+				/*if we are adding a parent directory of the bundle dont add anything incomplete from the same directory */
+				if(stricmp(path, realPath) != 0) {
+					checkQueued = true;
+				}
+
+				Directory::Ptr dp = buildTree(realPath, parent, checkQueued);
 
 				string name = Util::getLastDir(realPath);
 				bool addreleasedir = true;
@@ -2237,7 +2249,7 @@ if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 				}
 				setDirty(); 
 			
-				LogManager::getInstance()->message("Adding new directory... " + name);
+				LogManager::getInstance()->message("Adding new directory... " + parent->getName() + PATH_SEPARATOR + name);
 				
 				if(addreleasedir) {
 					dp->findDirsRE(false);

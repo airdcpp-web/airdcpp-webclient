@@ -2606,7 +2606,8 @@ void QueueManager::noDeleteFileList(const string& path) {
 void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	bool added = false;
 	bool wantConnection = false;
-	bool matchPartial = false;
+	bool matchPartialADC = false;
+	bool matchPartialNMDC = false;
 	size_t users = 0;
 
 	{
@@ -2627,19 +2628,24 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 
 					if(BOOLSETTING(AUTO_ADD_SOURCE)) {
 					
-						//We wont be matching full list due to number of sources but still keep on adding.
-						if(!BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) || (users >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
-							//if we are in adc hub match with partial list
-							if(BOOLSETTING(PARTIAL_MATCH_ADC) && !sr->getUser()->isSet(User::NMDC)) {
-								matchPartial = true;
-							}
+						bool nmdcUser = sr->getUser()->isSet(User::NMDC);
+						/* match with partial list allways but decide if we are in nmdc hub here. 
+						( dont want to change the settings, would just break what user has set already, 
+						alltho would make a bit more sense to have just 1 match queue option, but since many have that disabled totally and we prefer to match partials in adchubs... ) */
+						if(BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (users < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
+							if(nmdcUser)							
+								matchPartialNMDC = true;
+							else
+								matchPartialADC = true;
+						//if we are in adc hub match with recursive partial list
+						} else if(BOOLSETTING(PARTIAL_MATCH_ADC) && !nmdcUser) {
+								matchPartialADC = true;
 							//if its a rar release add the sources to all files.
-							else if (regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
+						} else if (regexp.match(sr->getFile(), sr->getFile().length()-4) > 0) {
 								wantConnection = addAlternates(qi, HintedUser(sr->getUser(), sr->getHubURL()));
-							} else {
-								// this is how sdc has it, dont add sources and receive wantconnection if we are about to match queue.
+							// this is how sdc has it, dont add sources and receive wantconnection if we are about to match queue.
+						} else {
 								wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
-							}
 						}
 					}
 
@@ -2654,7 +2660,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 	}
 
 	//moved outside lock range.
-	if(added && matchPartial) {
+	if(added && matchPartialADC) {
 		try {
 			string path = Util::toAdcFile(Util::getDir(Util::getFilePath(sr->getFile()), true, false));
 			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST) | 
@@ -2662,10 +2668,10 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		}catch(...) { }
 	}
 
-	if(added && BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (users < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
+	if(added && matchPartialNMDC) {
 		try {
 			string path = Util::getFilePath(sr->getFile());
-			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE);
+			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
 		} catch(const Exception&) {
 			// ...
 		}

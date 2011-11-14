@@ -317,7 +317,8 @@ private:
 	bool xmlDirty;
 	bool ShareCacheDirty;
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
-	
+	bool aShutdown;
+
 	PME releaseReg, subDirReg;
 	
 	int listN;
@@ -373,7 +374,7 @@ private:
 	
 	Directory::File::Set::const_iterator findFile(const string& virtualFile) const;
 
-	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent);
+	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued = false);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
