@@ -187,8 +187,6 @@ bool Bundle::addQueue(QueueItem* qi, const HintedUser& aUser) {
 	}
 	*/
 
-	HintedUser tmp = aUser;
-
 	if (!newUser) {
 		auto i = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
 		//auto& i = find(sources.begin(), sources.end(), aUser);
@@ -196,7 +194,7 @@ bool Bundle::addQueue(QueueItem* qi, const HintedUser& aUser) {
 		i->second++;
 		return false;
 	} else {
-		sources.push_back(make_pair(tmp, 1));
+		sources.push_back(make_pair(aUser, 1));
 		dcassert(!sources.empty());
 		return true;
 	}
@@ -392,6 +390,18 @@ Bundle::Priority Bundle::calculateAutoPriority() const {
 		return p;			
 	}
 	return priority;
+}
+
+size_t Bundle::countOnlineUsers() const {
+	size_t users = 0;
+	int files = 0;
+	for(auto i = sources.begin(); i != sources.end(); ++i) {
+		if(i->first.user->isOnline()) {
+			users++;
+			files += i->second;
+		}
+	}
+	return users / files;
 }
 
 }

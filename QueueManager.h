@@ -148,10 +148,10 @@ public:
 	void removeDir(const string& aSource, BundleList sourceBundles, bool removeFinished);
 	bool move(QueueItem* qs, const string& aTarget) noexcept;
 	string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
-	void rebuildBundleDirs(BundlePtr aBundle, bool loading = false);
 
 	void setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p, bool autoPrio=false);
 	void calculateBundlePriorities(bool verbose);
+	void searchBundle(BundlePtr aBundle);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
@@ -249,7 +249,7 @@ public:
 		// Total Time Left /* ttlf */
 		int64_t getTotalSize(const string & path);
 
-		QueueItem* findAutoSearch(StringList& recent);
+		BundlePtr findAutoSearch();
 		size_t getSize() { return queue.size(); }
 		QueueItem::StringMap& getQueue() { return queue; }
 		void move(QueueItem* qi, const string& aTarget);
@@ -259,11 +259,18 @@ public:
 
 		uint64_t getTotalQueueSize();
 
+		void addBundlePrio(BundlePtr aBundle, Bundle::Priority p);
+		void removeBundlePrio(BundlePtr aBundle, Bundle::Priority p);
+
+		void setBundlePriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio);
+
 	private:
 		QueueItem::StringMap queue;
 		typedef unordered_map<TTHValue, QueueItemList> TTHMap;
 		typedef TTHMap::const_iterator TTHMapIter;
 		TTHMap tthIndex;
+		/** Bundles by priority (low-highest, for auto search) */
+		deque<BundlePtr> bundlePrioQueue[Bundle::LAST];
 	};
 
 	/** QueueItems by target */
@@ -320,6 +327,9 @@ private:
 	//using pme for now
 	PME regexp;
 	bool addAlternates(QueueItem* qi, const HintedUser& aUser);
+
+	//temp stats
+	int highestSel, highSel, normalSel, lowSel, calculations;
 
 	/** Bundles */	
 	typedef unordered_map<string, BundlePtr> BundleMap;

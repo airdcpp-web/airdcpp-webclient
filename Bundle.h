@@ -79,6 +79,8 @@ public:
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
 	typedef pair<HintedUser, uint8_t> UserRunningPair;
 	typedef vector<UserRunningPair> SourceIntList;
+	typedef unordered_map<string, QueueItemList> DirMap;
+
 
 
 	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
@@ -106,7 +108,7 @@ public:
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(uint16_t, lastSave, LastSave);
-	GETSET(StringList, bundleDirs, BundleDirs);
+	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceIntList, sources, Sources);
 	
 	string target;
@@ -119,7 +121,7 @@ public:
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
 	DownloadList& getDownloads() { return downloads; }
-	StringList& getBundleDirs() { return bundleDirs; }
+	DirMap& getBundleDirs() { return bundleDirs; }
 	SourceIntList& getBundleSources() { return sources; }
 
 	//SourceIntList sources;
@@ -130,6 +132,7 @@ public:
 	bool addSource(const HintedUser& aUser);
 	bool removeSource(const UserPtr& aUser);
 	Bundle::Priority calculateAutoPriority() const;
+	size_t countOnlineUsers() const;
 
 	bool getFileBundle() {
 		return fileBundle;
