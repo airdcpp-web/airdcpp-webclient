@@ -75,9 +75,9 @@ public:
 
 	typedef QueueItem* Ptr;
 	typedef unordered_map<CID, string> CIDStringList;
-	typedef unordered_map<UserPtr, uint8_t, User::Hash> UserIntMap;
+	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
 	typedef unordered_map<TTHValue, string> FinishedItemMap;
-	typedef pair<HintedUser, uint8_t> UserRunningPair;
+	typedef pair<HintedUser, uint16_t> UserRunningPair;
 	typedef vector<UserRunningPair> SourceIntList;
 	typedef unordered_map<string, QueueItemList> DirMap;
 

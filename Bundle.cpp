@@ -156,16 +156,6 @@ void Bundle::addQueue(QueueItem* qi) {
 bool Bundle::addQueue(QueueItem* qi, const HintedUser& aUser) {
 	bool newUser = false;
 	auto& l = userQueue[qi->getPriority()][aUser.user];
-	if (l.empty()) {
-		newUser = true;
-		for(int i = 0; i < Bundle::LAST; ++i) {
-			auto j = userQueue[i].find(aUser.user);
-			if(j != userQueue[i].end() && i != qi->getPriority()) {
-				newUser = false;
-			}
-		}
-	//	LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, add new user " + aUser->getCID().toBase32());
-	}
 
 	if (l.size() > 1) {
 		auto i = l.begin();
@@ -176,22 +166,11 @@ bool Bundle::addQueue(QueueItem* qi, const HintedUser& aUser) {
 	} else {
 		l.push_back(qi);
 	}
-	//auto i = queue.begin();
-	//advance(i, start);
 
-	/*
-	if(qi->getDownloadedBytes() > 0 ) {
-		l.push_front(qi);
-	} else {
-		l.push_back(qi);
-	}
-	*/
-
-	if (!newUser) {
-		auto i = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
-		//auto& i = find(sources.begin(), sources.end(), aUser);
-		dcassert(i != sources.end());
+	auto i = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
+	if (i != sources.end()) {
 		i->second++;
+		//LogManager::getInstance()->message("ADD, SOURCE FOR " + Util::toString(i->second) + " ITEMS");
 		return false;
 	} else {
 		sources.push_back(make_pair(aUser, 1));
@@ -350,12 +329,11 @@ bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning
 	//check bundle sources
 	auto m = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; });
 	dcassert(m != sources.end());
-	if(m != sources.end()) { 
-		m->second--;
-		if (m->second == 0) {
-			sources.erase(m);   //crashed when nothing found to erase with only 1 source and removing multiple bundles.
-			return true;
-		}
+	m->second--;
+	//LogManager::getInstance()->message("REMOVE, SOURCE FOR " + Util::toString(m->second) + " ITEMS");
+	if (m->second == 0) {
+		sources.erase(m);   //crashed when nothing found to erase with only 1 source and removing multiple bundles.
+		return true;
 	}
 	return false;
 }
