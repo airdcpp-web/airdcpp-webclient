@@ -94,7 +94,8 @@ AdcCommand Download::getCommand(bool zlib) const {
 	cmd.addParam(Transfer::names[getType()]);
 
 	if(getType() == TYPE_PARTIAL_LIST) {
-		if (isSet(Download::FLAG_TTHLIST)) {
+		if (isSet(Download::FLAG_QUEUE)) {
+			//these must be converted to adc file when adding (if needed, no slash for bundle requests)
 			cmd.addParam(getPath());
 		} else {
 			cmd.addParam(Util::toAdcFile(getPath()));

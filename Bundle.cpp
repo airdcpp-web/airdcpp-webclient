@@ -379,7 +379,7 @@ size_t Bundle::countOnlineUsers() const {
 			files += i->second;
 		}
 	}
-	return users / files;
+	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
 }
 
 }
