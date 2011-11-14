@@ -39,6 +39,7 @@
 #include "HashBloom.h"
 #include "SearchResult.h"
 #include "Wildcards.h"
+#include "AirUtil.h"
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -64,10 +65,7 @@ ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	TimerManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
-	releaseReg.Init("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
-	releaseReg.study();
-	subDirReg.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
-	subDirReg.study();
+
 }
 
 ShareManager::~ShareManager() {
@@ -816,7 +814,7 @@ size_t ShareManager::getSharedFiles() const noexcept {
 
 bool ShareManager::isDirShared(const string& directory) {
 
-	string dir = getReleaseDir(directory);
+	string dir = AirUtil::getReleaseDir(directory);
 	if (dir.empty())
 		return false;
 	/*we need to protect this, but same mutex used here is too much, it will freeze during refreshing even with chat releasenames*/
@@ -830,7 +828,7 @@ bool ShareManager::isDirShared(const string& directory) {
 tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
 	string dir = directory;
 	if (validateDir) {
-		dir = getReleaseDir(directory);
+		dir = AirUtil::getReleaseDir(directory);
 	if (dir.empty())
  		return Util::emptyStringT;
  	}
@@ -840,7 +838,7 @@ tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
  	for(DirMap::const_iterator j = directories.begin(); j != directories.end(); ++j) {
 		dirNew = j->second->getFullName();
  	if (validateDir) {
- 		dirNew = getReleaseDir(dirNew);
+ 		dirNew = AirUtil::getReleaseDir(dirNew);
  	}
  	
  	if (!dirNew.empty()) {
@@ -876,7 +874,7 @@ string ShareManager::Directory::find(const string& dir, bool validateDir) {
 	string ret = Util::emptyString;
 	string dirNew = dir;
 	if (validateDir)
-		dirNew = ShareManager::getInstance()->getReleaseDir(this->getFullName());
+		dirNew = AirUtil::getReleaseDir(this->getFullName());
 
 	if (!dirNew.empty()) {
 		if (dir == dirNew) {
@@ -892,67 +890,6 @@ string ShareManager::Directory::find(const string& dir, bool validateDir) {
 	return ret;
 }
 
-string ShareManager::getReleaseDir(const string& aName) {
-	//LogManager::getInstance()->message("aName: " + aName);
-	string dir=aName;
-	if(dir[dir.size() -1] == '\\') 
-		dir = dir.substr(0, (dir.size() -1));
-	string dirMatch=dir;
-
-	//check if the release name is the last one before checking subdirs
-	int dpos = dirMatch.rfind("\\");
-	if(dpos != string::npos) {
-		dpos++;
-		dirMatch = dirMatch.substr(dpos, dirMatch.size()-dpos);
-	} else {
-		dpos=0;
-	}
-
-	if (releaseReg.match(dirMatch) > 0) {
-		dir = Text::toLower(dir.substr(dpos, dir.size()));
-		return dir;
-	}
-
-
-	//check the subdirs then
-	dpos=dir.size();
-	dirMatch=dir;
-	bool match=false;
-	for (;;) {
-		if (subDirReg.match(dirMatch) > 0) {
-			dpos = dirMatch.rfind("\\");
-			if(dpos != string::npos) {
-				match=true;
-				dirMatch = dirMatch.substr(0,dpos);
-			} else {
-				break;
-			}
-		} else {
-			break;
-		}
-	}
-
-	if (!match)
-		return Util::emptyString;
-	
-	//check the release name again without subdirs
-	dpos = dirMatch.rfind("\\");
-	if(dpos != string::npos) {
-		dpos++;
-		dirMatch = dirMatch.substr(dpos, dirMatch.size()-dpos);
-	} else {
-		dpos=0;
-	}
-
-	if (releaseReg.match(dirMatch) > 0) {
-		dir = Text::toLower(dir.substr(dpos, dir.size()));
-		return dir;
-	} else {
-		return Util::emptyString;
-	}
-
-
-}
 
 void ShareManager::sortReleaseList() {
 	Lock l(dirnamelist);
@@ -972,7 +909,7 @@ void ShareManager::Directory::findDirsRE(bool remove) {
 }
 
 void ShareManager::addReleaseDir(const string& aName) {
-	string dir = getReleaseDir(aName);
+	string dir = AirUtil::getReleaseDir(aName);
 	if (dir.empty())
 		return;
 
@@ -982,7 +919,7 @@ void ShareManager::addReleaseDir(const string& aName) {
 
 void ShareManager::deleteReleaseDir(const string& aName) {
 
-	string dir = getReleaseDir(aName);
+	string dir = AirUtil::getReleaseDir(aName);
 	if (dir.empty())
 		return;
 

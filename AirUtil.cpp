@@ -17,6 +17,74 @@
 
 namespace dcpp {
 
+void AirUtil::init() {
+	releaseReg.Init("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+	releaseReg.study();
+	subDirReg.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
+	subDirReg.study();
+}
+
+string AirUtil::getReleaseDir(const string& aName) {
+	//LogManager::getInstance()->message("aName: " + aName);
+	string dir=aName;
+	if(dir[dir.size() -1] == '\\') 
+		dir = dir.substr(0, (dir.size() -1));
+	string dirMatch=dir;
+
+	//check if the release name is the last one before checking subdirs
+	int dpos = dirMatch.rfind("\\");
+	if(dpos != string::npos) {
+		dpos++;
+		dirMatch = dirMatch.substr(dpos, dirMatch.size()-dpos);
+	} else {
+		dpos=0;
+	}
+
+	if (releaseReg.match(dirMatch) > 0) {
+		dir = Text::toLower(dir.substr(dpos, dir.size()));
+		return dir;
+	}
+
+
+	//check the subdirs then
+	dpos=dir.size();
+	dirMatch=dir;
+	bool match=false;
+	for (;;) {
+		if (subDirReg.match(dirMatch) > 0) {
+			dpos = dirMatch.rfind("\\");
+			if(dpos != string::npos) {
+				match=true;
+				dirMatch = dirMatch.substr(0,dpos);
+			} else {
+				break;
+			}
+		} else {
+			break;
+		}
+	}
+
+	if (!match)
+		return Util::emptyString;
+	
+	//check the release name again without subdirs
+	dpos = dirMatch.rfind("\\");
+	if(dpos != string::npos) {
+		dpos++;
+		dirMatch = dirMatch.substr(dpos, dirMatch.size()-dpos);
+	} else {
+		dpos=0;
+	}
+
+	if (releaseReg.match(dirMatch) > 0) {
+		dir = Text::toLower(dir.substr(dpos, dir.size()));
+		return dir;
+	} else {
+		return Util::emptyString;
+	}
+
+
+}
 string AirUtil::getLocalIp() {
 	if(!SettingsManager::getInstance()->isDefault(SettingsManager::BIND_INTERFACE)) {
 		return Socket::getBindAddress();

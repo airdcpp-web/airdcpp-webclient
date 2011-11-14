@@ -1209,13 +1209,13 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 	if(qi->isBadSourceExcept(aUser, addBad)) {
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
-	{ 
-		Lock l(cs);
+
 		qi->addSource(aUser);
 		userQueue.add(qi, aUser);
+
 		if ((!SETTING(SOURCEFILE).empty()) && (!BOOLSETTING(SOUNDS_DISABLED)))
 			PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
-	}
+	
 
 	fire(QueueManagerListener::SourcesUpdated(), qi);
 	changeBundleSource(qi, aUser, true);
@@ -1624,7 +1624,7 @@ void QueueManager::moveStuckFile(QueueItem* qi) {
 	moveFile(qi->getTempTarget(), qi->getTarget(), qi->getBundle());
 
 	if(qi->isFinished()) {
-		Lock l (cs);
+		//Lock l (cs);
 		userQueue.removeQI(qi);
 	}
 
@@ -1881,7 +1881,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
 		bool wantConnection = false;
 		int matches = 0;
-		{	  
+		 
 			typedef unordered_set<TTHValue> TTHSet;
 			typedef TTHSet::const_iterator TTHSetIter;
 			TTHSet tthList;
@@ -1894,7 +1894,9 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
  	 
 			if(tthList.empty())
 				return;
- 			
+ 			{	 
+				Lock l(cs);
+
 			for (auto s = tthList.begin(); s != tthList.end(); ++s) {
 				QueueItemList ql = fileQueue.find(*s);
 				if (!ql.empty()) {
@@ -2791,7 +2793,7 @@ bool QueueManager::addAlternates(QueueItem* qi, const dcpp::HintedUser& aUser) {
 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
-		Lock l (cs);
+		//Lock l (cs); inside a lock already
 		for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
 			QueueItem* bundleItem = *i;
 			if(bundleItem->getTarget().find(file) != string::npos) {
@@ -3296,7 +3298,7 @@ bool QueueManager::handlePartialSearch(const TTHValue& tth, PartsInfo& _outParts
 }
 
 bool QueueManager::isDirQueued(const string& aDir) {
-	string dir = ShareManager::getInstance()->getReleaseDir(aDir);
+	string dir = AirUtil::getReleaseDir(aDir);
 	if (dir.empty()) {
 		return false;
 	}
@@ -3310,7 +3312,7 @@ bool QueueManager::isDirQueued(const string& aDir) {
 }
 
 tstring QueueManager::getDirPath(const string& aDir) {
-	string dir = ShareManager::getInstance()->getReleaseDir(aDir);
+	string dir = AirUtil::getReleaseDir(aDir);
 	if (dir.empty()) {
 		return false;
 	}
@@ -3384,7 +3386,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		if (aBundle->getBundleDirs().find(target) == aBundle->getBundleDirs().end()) {
 			QueueItemList ql;
 			aBundle->getBundleDirs()[target] = ql;
-			string releaseDir = ShareManager::getInstance()->getReleaseDir(target);
+			string releaseDir = AirUtil::getReleaseDir(target);
 			if (!releaseDir.empty()) {
 				Lock l (cs);
 				bundleDirs[releaseDir] = target;
@@ -3491,7 +3493,7 @@ int QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 				Lock l (cs);
 				QueueItemList ql;
 				targetBundle->getBundleDirs()[sourceBundleTarget] = ql;
-				string releaseDir = ShareManager::getInstance()->getReleaseDir(sourceBundleTarget);
+				string releaseDir = AirUtil::getReleaseDir(sourceBundleTarget);
 				if (!releaseDir.empty()) {
 					Lock l (cs);
 					bundleDirs[releaseDir] = sourceBundleTarget;
@@ -4034,7 +4036,7 @@ bool QueueManager::addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundl
 	auto& s = aBundle->getBundleDirs()[dir];
 	s.push_back(qi);
 	if (s.size() == 1) {
-		string releaseDir = ShareManager::getInstance()->getReleaseDir(dir);
+		string releaseDir = AirUtil::getReleaseDir(dir);
 		if (!releaseDir.empty()) {
 			bundleDirs[releaseDir] = dir;
 		}
@@ -4271,7 +4273,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 		//handle dirs
 		if (!aBundle->getFileBundle()) {
 			for (auto i = aBundle->getBundleDirs().begin(); i != aBundle->getBundleDirs().end(); ++i) {
-				string releaseDir = ShareManager::getInstance()->getReleaseDir(i->first);
+				string releaseDir = AirUtil::getReleaseDir(i->first);
 				if (!releaseDir.empty()) {
 					bundleDirs.erase(releaseDir);
 				}
@@ -4407,6 +4409,9 @@ void QueueManager::sendPBD(const CID cid, const string hubIpPort, const TTHValue
 
 void QueueManager::updatePBD(const HintedUser aUser, const string bundleToken, const TTHValue aTTH) {
 	//LogManager::getInstance()->message("UPDATEPBD");
+	bool wantConnection = false;
+	{
+	Lock l(cs);
 	QueueItemList qiList = fileQueue.find(aTTH);
 	if (!qiList.empty()) {
 		for (auto i = qiList.begin(); i != qiList.end(); ++i) {
@@ -4418,14 +4423,15 @@ void QueueManager::updatePBD(const HintedUser aUser, const string bundleToken, c
 
 			try {
 				//LogManager::getInstance()->message("ADDSOURCE");
-				if (addSource(qi, aUser, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
-					ConnectionManager::getInstance()->getDownloadConnection(aUser);
-				}
+				wantConnection = addSource(qi, aUser, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE); 
 			} catch(...) {
 				// Ignore...
+				}
 			}
 		}
 	}
+	if(wantConnection && aUser.user->isOnline())
+		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
 
 // compare nextQueryTime, get the oldest ones

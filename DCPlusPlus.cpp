@@ -61,6 +61,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 #endif
 
 	Util::initialize();
+	AirUtil::init();
 
 	ResourceManager::newInstance();
 	SettingsManager::newInstance();
