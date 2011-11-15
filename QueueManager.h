@@ -231,7 +231,7 @@ public:
 	/** All queue items by target */
 	class FileQueue {
 	public:
-		FileQueue() { }
+		FileQueue() : targetMapInsert(queue.end()), queueSize(0) { }
 		~FileQueue();
 		void add(QueueItem* qi, bool addFinished, bool addTTH = true);
 		QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
@@ -246,8 +246,6 @@ public:
 
 		// find some PFS sources to exchange parts info
 		void findPFSSources(PFSSourceList&);
-		// Total Time Left /* ttlf */
-		int64_t getTotalSize(const string & path);
 
 		BundlePtr findAutoSearch();
 		size_t getSize() { return queue.size(); }
@@ -257,7 +255,7 @@ public:
 		void removeTTH(QueueItem* qi);
 		int isTTHQueued(const TTHValue& tth);
 
-		uint64_t getTotalQueueSize();
+		uint64_t getTotalQueueSize() { return queueSize; };
 
 		void addBundlePrio(BundlePtr aBundle, Bundle::Priority p);
 		void removeBundlePrio(BundlePtr aBundle, Bundle::Priority p);
@@ -269,6 +267,10 @@ public:
 		typedef unordered_map<TTHValue, QueueItemList> TTHMap;
 		typedef TTHMap::const_iterator TTHMapIter;
 		TTHMap tthIndex;
+
+		uint64_t queueSize;
+		QueueItem::StringMap::iterator targetMapInsert;
+
 		/** Bundles by priority (low-highest, for auto search) */
 		deque<BundlePtr> bundlePrioQueue[Bundle::LAST];
 	};

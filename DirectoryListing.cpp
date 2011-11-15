@@ -370,6 +370,8 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 				if (prio != QueueItem::DEFAULT) {
 					aBundle->setPriority((Bundle::Priority)prio);
 					aBundle->setAutoPriority(false);
+				} else {
+					aBundle->setPriority(Bundle::LOW);
 				}
 				aBundle->setDirDate(aDir->getDirDate());
 				//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE1: " + aBundle->getTarget());
@@ -380,6 +382,8 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 					if (prio != QueueItem::DEFAULT) {
 						aBundle->setPriority((Bundle::Priority)prio);
 						aBundle->setAutoPriority(false);
+					} else {
+						aBundle->setPriority(Bundle::LOW);
 					}
 					aBundle->setDirDate(aDir->getDirDate());
 					//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
