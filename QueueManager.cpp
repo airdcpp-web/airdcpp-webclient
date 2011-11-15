@@ -349,21 +349,25 @@ void QueueManager::UserQueue::add(QueueItem* qi, const HintedUser& aUser) {
 	if (bundle) {
 		if (bundle->addQueue(qi, aUser)) {
 			//bundles can't be added here with the priority DEFAULT
-			dcassert(userBundleQueue[bundle->getPriority()].find(aUser.user) == userBundleQueue[bundle->getPriority()].end());
-			auto& s = userBundleQueue[bundle->getPriority()][aUser.user];
+			//dcassert(userBundleQueue.find(aUser.user) == userBundleQueue.end());
+			auto& s = userBundleQueue[aUser.user];
 			if (SETTING(DOWNLOAD_ORDER) != SettingsManager::ORDER_RANDOM) {
-				s.insert(upper_bound(s.begin(), s.end(), bundle, [](const BundlePtr leftBundle, const BundlePtr rightBundle) { return leftBundle->getAdded() < rightBundle->getAdded(); }), bundle);
+				s.insert(upper_bound(s.begin(), s.end(), bundle, Bundle::SortOrder()), bundle);
+				/*for (auto k = s.begin(); k != s.end(); ++k) {
+					LogManager::getInstance()->message("USERQUEUE: " + (*k)->getName() + " prio " + AirUtil::getPrioText((*k)->getPriority()) + " CID " + aUser.user->getCID().toBase32());
+				} */
 			} else {
-				auto i = s.begin();
+				/*auto i = s.begin();
 				auto start = (size_t)Util::rand((uint32_t)s.size());
 				advance(i, start);
 
-				s.insert(i, bundle);
+				s.insert(i, bundle); */
+				s.insert(upper_bound(s.begin(), s.end(), bundle, [](const BundlePtr leftBundle, const BundlePtr rightBundle) { return leftBundle->getPriority() > rightBundle->getPriority(); }), bundle);
 			}
 
 			//LogManager::getInstance()->message("Add new bundle " + bundle->getName() + " for an user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(s.size()));
 		} else {
-			dcassert(userBundleQueue[bundle->getPriority()].find(aUser.user) != userBundleQueue[bundle->getPriority()].end());
+			dcassert(userBundleQueue.find(aUser.user) != userBundleQueue.end());
 			//LogManager::getInstance()->message("Don't add new bundle " + bundle->getName() + " for an user: " + aUser->getCID().toBase32());
 		}
 	}
@@ -413,22 +417,22 @@ QueueItem* QueueManager::UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t 
 }
 
 QueueItem* QueueManager::UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
-	int p = Bundle::LAST - 1;
 	lastError = Util::emptyString;
 
-	do {
-		auto i = userBundleQueue[p].find(aUser);
-		if(i != userBundleQueue[p].end()) {
-			dcassert(!i->second.empty());
-			for(auto j = i->second.begin(); j != i->second.end(); ++j) {
-				QueueItem* qi = (*j)->getNextQI(aUser, lastError, minPrio, wantedSize, lastSpeed, smallSlot);
-				if (qi) {
-					return qi;
-				}
+	auto i = userBundleQueue.find(aUser);
+	if(i != userBundleQueue.end()) {
+		dcassert(!i->second.empty());
+		//auto j = prev(i->second.end());
+		for (auto j = i->second.begin(); j != i->second.end(); ++j) {
+			if ((*j)->getPriority() < minPrio) {
+				break;
+			}
+			QueueItem* qi = (*j)->getNextQI(aUser, lastError, minPrio, wantedSize, lastSpeed, smallSlot);
+			if (qi) {
+				return qi;
 			}
 		}
-		p--;
-	} while(p >= minPrio);
+	}
 	return NULL;
 }
 
@@ -539,9 +543,8 @@ void QueueManager::UserQueue::removeQI(QueueItem* qi, const UserPtr& aUser, bool
 	if (bundle) {
 		if (qi->getBundle()->removeQueue(qi, aUser)) {
 			//no bundle should come here with the default prio... fix those by not starting to download incomplete bundles
-			auto& ulm = userBundleQueue[bundle->getPriority()];
-			auto j = ulm.find(aUser);
-			dcassert(j != ulm.end());
+			auto j = userBundleQueue.find(aUser);
+			dcassert(j != userBundleQueue.end());
 			auto& l = j->second;
 			auto s = find(l.begin(), l.end(), bundle);
 			dcassert(s != l.end());
@@ -549,13 +552,13 @@ void QueueManager::UserQueue::removeQI(QueueItem* qi, const UserPtr& aUser, bool
 
 			if(l.empty()) {
 				//LogManager::getInstance()->message("Remove bundle " + bundle->getName() + " and the whole user " + aUser->getCID().toBase32());
-				ulm.erase(j);
+				userBundleQueue.erase(j);
 			} else {
 				//LogManager::getInstance()->message("Remove bundle " + bundle->getName() + " from user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(l.size()));
 			}
 			//LogManager::getInstance()->message("Remove bundle " + bundle->getName() + " from an user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(l.size()));
 		} else {
-			dcassert(userBundleQueue[bundle->getPriority()].find(aUser) != userBundleQueue[bundle->getPriority()].end());
+			dcassert(userBundleQueue.find(aUser) != userBundleQueue.end());
 			//LogManager::getInstance()->message("Don't remove bundle " + bundle->getName() + " from an user: " + aUser->getCID().toBase32());
 		}
 	}
@@ -589,12 +592,11 @@ void QueueManager::UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Prior
 		//dcassert(aBundle->isSource(aUser));
 
 		//erase old
-		auto& ulm = userBundleQueue[oldPrio];
 		//for(auto y = ulm.begin(); y != ulm.end(); ++y) {
 		//	LogManager::getInstance()->message("OLD PRIO ULM CID: " + (*y).first->getCID().toBase32());
 		//}
-		auto j = ulm.find(aUser);
-		dcassert(j != ulm.end());
+		auto j = userBundleQueue.find(aUser);
+		dcassert(j != userBundleQueue.end());
 		//LogManager::getInstance()->message("CID TAKEN FROM ULM: " + j->first->getCID().toBase32());
 		auto& l = j->second;
 		auto s = find(l.begin(), l.end(), aBundle);
@@ -602,12 +604,16 @@ void QueueManager::UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Prior
 		l.erase(s);
 
 		if(l.empty()) {
-			ulm.erase(j);
+			userBundleQueue.erase(j);
 		}
 
 		//insert new
-		auto& ulm2 = userBundleQueue[p][aUser];
-		ulm2.push_back(aBundle);
+		auto& ulm2 = userBundleQueue[aUser];
+		ulm2.insert(upper_bound(ulm2.begin(), ulm2.end(), aBundle, Bundle::SortOrder()), aBundle);
+		/*for (auto k = ulm2.begin(); k != ulm2.end(); ++k) {
+			LogManager::getInstance()->message("USERQUEUE: " + (*k)->getName() + " prio " + AirUtil::getPrioText((*k)->getPriority()));
+		} */
+		//ulm2.push_back(aBundle);
 		//for(auto y = ulm2.begin(); y != ulm2.end(); ++y) {
 		//	LogManager::getInstance()->message("NEW PRIO ULM CID: " + (*y).first->getCID().toBase32());
 		//}
@@ -851,7 +857,7 @@ struct PartsInfoReqParam{
 };
 
 void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-	string searchString;
+	BundlePtr bundle;
 	vector<const PartsInfoReqParam*> params;
 
 	{
@@ -887,28 +893,29 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		}
 
 		if(BOOLSETTING(AUTO_SEARCH) && (aTick >= nextSearch) && (bundles.size() > 0)) {
-			BundlePtr bundle = fileQueue.findAutoSearch();
-			if(bundle != NULL) {
-				calculations++;
-				switch((int)bundle->getPriority()) {
-					case 2:
-						lowSel++;
-						break;
-					case 3:
-						normalSel++;
-						break;
-					case 4:
-						highSel++;
-						break;
-					case 5:
-						highestSel++;
-						break;
-				}
-				//LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
-				searchBundle(bundle);
-			}
+			bundle = fileQueue.findAutoSearch();
 			nextSearch = aTick + (SETTING(SEARCH_TIME) * 60000); //this is also the time for next check, set it here so we dont need to start checking every minute
 		}
+	}
+
+	if(bundle != NULL) {
+		calculations++;
+		switch((int)bundle->getPriority()) {
+			case 2:
+				lowSel++;
+				break;
+			case 3:
+				normalSel++;
+				break;
+			case 4:
+				highSel++;
+				break;
+			case 5:
+				highestSel++;
+				break;
+		}
+		//LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
+		searchBundle(bundle);
 	}
 
 	// Request parts info from partial file sharing sources
@@ -925,10 +932,6 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		}
 		
 		delete param;
-	}
-
-	if(!searchString.empty()) {
-		SearchManager::getInstance()->search(searchString, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
 	}
 }
 
@@ -2876,18 +2879,16 @@ void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser
 	bool hasDown = false;
 	{
 		Lock l(cs);
-		for(int i = 0; i < QueueItem::LAST; ++i) {
-			auto j = userQueue.getBundleList(i).find(aUser);
-			if(j != userQueue.getBundleList(i).end()) {
-				for(auto m = j->second.begin(); m != j->second.end(); ++m) {
-					BundlePtr bundle = *m;
-					QueueItemList items = bundle->getItems(aUser);
-					for(auto s = items.begin(); s != items.end(); ++s) {
-						QueueItem* qi = *s;
-						fire(QueueManagerListener::StatusUpdated(), qi);
-						if((i != QueueItem::PAUSED && qi->getPriority() != QueueItem::PAUSED) || qi->getPriority() == QueueItem::HIGHEST) {
-							hasDown = true;
-						}
+		auto j = userQueue.getBundleList().find(aUser);
+		if(j != userQueue.getBundleList().end()) {
+			for(auto m = j->second.begin(); m != j->second.end(); ++m) {
+				BundlePtr bundle = *m;
+				QueueItemList items = bundle->getItems(aUser);
+				for(auto s = items.begin(); s != items.end(); ++s) {
+					QueueItem* qi = *s;
+					fire(QueueManagerListener::StatusUpdated(), qi);
+					if((bundle->getPriority() != QueueItem::PAUSED && qi->getPriority() != QueueItem::PAUSED) || qi->getPriority() == QueueItem::HIGHEST) {
+						hasDown = true;
 					}
 				}
 			}
@@ -2902,17 +2903,13 @@ void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser
 
 void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept {
 	Lock l(cs);
-	for(int i = 0; i < QueueItem::LAST; ++i) {
-		auto j = userQueue.getBundleList(i).find(aUser);
-		if(j != userQueue.getBundleList(i).end()) {
-			for(auto m = j->second.begin(); m != j->second.end(); ++m) {
-				for(auto m = j->second.begin(); m != j->second.end(); ++m) {
-					BundlePtr bundle = *m;
-					QueueItemList items = bundle->getItems(aUser);
-					for(auto s = items.begin(); s != items.end(); ++s) {
-						fire(QueueManagerListener::StatusUpdated(), *s);
-					}
-				}
+	auto j = userQueue.getBundleList().find(aUser);
+	if(j != userQueue.getBundleList().end()) {
+		for(auto m = j->second.begin(); m != j->second.end(); ++m) {
+			BundlePtr bundle = *m;
+			QueueItemList items = bundle->getItems(aUser);
+			for(auto s = items.begin(); s != items.end(); ++s) {
+				fire(QueueManagerListener::StatusUpdated(), *s);
 			}
 		}
 	}

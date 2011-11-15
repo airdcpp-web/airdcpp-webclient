@@ -297,7 +297,7 @@ private:
 
 		void setBundlePriority(BundlePtr aBundle, Bundle::Priority p);
 
-		boost::unordered_map<UserPtr, BundleList, User::Hash>& getBundleList(size_t i)  { return userBundleQueue[i]; }
+		boost::unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunning()  { return running; }
 
@@ -309,7 +309,7 @@ private:
 
 	private:
 		/** Bundles by priority and user (this is where the download order is determined) */
-		boost::unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue[Bundle::LAST];
+		boost::unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue;
 		/** High priority QueueItems by user (this is where the download order is determined) */
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash> userPrioQueue;
 		/** Currently running downloads, a QueueItem is always either here or in the userQueue */

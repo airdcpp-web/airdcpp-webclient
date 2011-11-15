@@ -73,6 +73,16 @@ public:
 		return token == aBundle->getToken();
 	}
 
+	struct SortOrder {
+		bool operator()(const BundlePtr left, const BundlePtr right) const {
+			if (left->getPriority() == right->getPriority()) {
+				return left->getAdded() < right->getAdded();
+			} else {
+				return left->getPriority() > right->getPriority();
+			}
+		}
+	};
+
 	typedef QueueItem* Ptr;
 	typedef unordered_map<CID, string> CIDStringList;
 	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;

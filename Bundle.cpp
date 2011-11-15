@@ -27,6 +27,14 @@
 
 namespace dcpp {
 
+/*bool Bundle::operator<(const BundlePtr aBundle) const {
+	if (aBundle->getPriority() == priority) {
+		return added < aBundle->getAdded();
+	} else {
+		return priority > aBundle->getPriority();
+	}
+} */
+
 uint64_t Bundle::getSecondsLeft() {
 	double avg = getSpeed();
 	int64_t bytesLeft =  getSize() - getDownloaded();
@@ -154,7 +162,6 @@ void Bundle::addQueue(QueueItem* qi) {
 }
 
 bool Bundle::addQueue(QueueItem* qi, const HintedUser& aUser) {
-	bool newUser = false;
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 
 	if (l.size() > 1) {
@@ -191,7 +198,7 @@ QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority m
 			dcassert(!i->second.empty());
 			for(auto j = i->second.begin(); j != i->second.end(); ++j) {
 				QueueItem* qi = *j;
-				if (qi->hasSegment(aUser, aLastError, wantedSize, lastSpeed, smallSlot)) {
+				if (qi->hasSegment(aUser, aLastError, wantedSize, lastSpeed, smallSlot) || minPrio == PAUSED) {
 					return qi;
 				}
 			}
