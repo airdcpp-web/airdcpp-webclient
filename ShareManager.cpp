@@ -1203,17 +1203,17 @@ int ShareManager::refresh( const string& aDir ){
 			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
 			return REFRESH_IN_PROGRESS;
 	}
-		//string path = Text::toLower(aDir);
+		string path = aDir;
 
-		//if(path[ path.length() -1 ] != PATH_SEPARATOR)
-			//path += PATH_SEPARATOR;
+		if(path[ path.length() -1 ] != PATH_SEPARATOR)
+			path += PATH_SEPARATOR;
 
 		{
 			RLock l(cs);
 			refreshPaths.clear();
 			
-				DirMap::iterator i = directories.find(aDir); //case sensitive for now...
-				if(i == directories.end()) {
+			DirMap::iterator i = directories.find(path); //case insensitive
+			if(i == directories.end()) {
 				//loopup the Virtualname selected from share and add it to refreshPaths List
 				for(StringMap::const_iterator j = shares.begin(); j != shares.end(); ++j) {
 					if( stricmp( j->second, aDir ) == 0 ) {
@@ -1224,7 +1224,7 @@ int ShareManager::refresh( const string& aDir ){
 			} else {
 				refreshPaths.push_back(i->first);
 				result = REFRESH_STARTED;
-				}
+			}
 		}
 
 		if(result == REFRESH_STARTED)

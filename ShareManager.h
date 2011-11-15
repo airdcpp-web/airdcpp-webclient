@@ -359,7 +359,7 @@ private:
 	typedef std::vector<Directory::Ptr> Dirs;
 
 	/*Map of root directory items mapped to realpath*/
-	typedef std::map<string, Directory::Ptr> DirMap; 
+	typedef std::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap; 
 	DirMap directories;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
