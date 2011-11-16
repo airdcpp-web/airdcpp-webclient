@@ -27,14 +27,6 @@
 
 namespace dcpp {
 
-/*bool Bundle::operator<(const BundlePtr aBundle) const {
-	if (aBundle->getPriority() == priority) {
-		return added < aBundle->getAdded();
-	} else {
-		return priority > aBundle->getPriority();
-	}
-} */
-
 uint64_t Bundle::getSecondsLeft() {
 	double avg = getSpeed();
 	int64_t bytesLeft =  getSize() - getDownloaded();

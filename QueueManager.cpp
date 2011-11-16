@@ -169,7 +169,9 @@ QueueItem* QueueManager::FileQueue::add(const string& aTarget, int64_t aSize,
 
 void QueueManager::FileQueue::add(QueueItem* qi, bool addFinished, bool addTTH) {
 	if (!addFinished) {
-		queueSize += qi->getSize();
+		if (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
+			queueSize += qi->getSize();
+		}
 		targetMapInsert = queue.insert(targetMapInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
 		//queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi)).first;
 	}
@@ -182,6 +184,10 @@ void QueueManager::FileQueue::add(QueueItem* qi, bool addFinished, bool addTTH) 
 void QueueManager::FileQueue::remove(QueueItem* qi, bool isFinished) {
 	prev(targetMapInsert);
 	queue.erase(const_cast<string*>(&qi->getTarget()));
+	if  (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
+		queueSize -= qi->getSize();
+	}
+
 	queueSize -= qi->getSize();
 
 	if (!isFinished) {
@@ -236,41 +242,76 @@ int QueueManager::FileQueue::isTTHQueued(const TTHValue& tth) {
 	}
 }
 
-void QueueManager::FileQueue::addBundlePrio(BundlePtr aBundle, Bundle::Priority p) {
-	bundlePrioQueue[p].push_back(aBundle);
+void QueueManager::FileQueue::addSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
+	if (aBundle->getRecent()) {
+		recentSearchQueue.push_back(aBundle);
+		return;
+	}
+	prioSearchQueue[p].push_back(aBundle);
 }
 
-void QueueManager::FileQueue::removeBundlePrio(BundlePtr aBundle, Bundle::Priority p) {
-	auto i = std::find(bundlePrioQueue[p].begin(), bundlePrioQueue[p].end(), aBundle);
-	dcassert(i != bundlePrioQueue[p].end());
-	bundlePrioQueue[p].erase(i);
+void QueueManager::FileQueue::removeSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
+	auto& q = prioSearchQueue[p];
+	if (aBundle->getRecent()) {
+		q = recentSearchQueue;
+	}
+	auto i = std::find(q.begin(), q.end(), aBundle);
+	dcassert(i != q.end());
+	q.erase(i);
 }
 
-void QueueManager::FileQueue::setBundlePriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio) {
+void QueueManager::FileQueue::setSearchPriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio) {
+	if (aBundle->getRecent()) {
+		return;
+	}
+
 	if (oldPrio >= Bundle::LOW) {
-		removeBundlePrio(aBundle, oldPrio);
+		removeSearchPrio(aBundle, oldPrio);
 	}
 
 	if (newPrio >= Bundle::LOW) {
-		addBundlePrio(aBundle, newPrio);
+		addSearchPrio(aBundle, newPrio);
 	}
 }
 
-BundlePtr QueueManager::FileQueue::findAutoSearch() {
+BundlePtr QueueManager::FileQueue::findRecent(int& recentBundles) {
+	//if (bundlePrioQueue[p].empty()) {
+	if ((int)recentSearchQueue.size() == 0) {
+		return NULL;
+	}
+	BundlePtr tmp = recentSearchQueue.front();
+	recentSearchQueue.pop_front();
+	//check if the bundle still belongs to here
+	if ((tmp->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) < (GET_TIME())) {
+	//if (tmp->getDirDate() < (GET_TIME() - SETTING(RECENT_BUNDLE_HOURS)*60*60*1000)) {
+		recentSearchQueue.push_back(tmp);
+	} else {
+		tmp->setRecent(false);
+	}
+	recentBundles = recentSearchQueue.size();
+	return tmp;
+}
+
+BundlePtr QueueManager::FileQueue::findAutoSearch(int& prioBundles) {
 
 	int p = Bundle::LAST - 1;
 	int prioSum = 0;
-
+	//int loopBundles = 0;
 	do {
-		//if (!bundlePrioQueue[p].empty()) {
-			//LogManager::getInstance()->message("BUNDLES IN PRIO " + AirUtil::getPrioText(p));
-			prioSum += (int)(p-1)*bundlePrioQueue[p].size();
-		//}
+		for (auto k = prioSearchQueue[p].begin(); k != prioSearchQueue[p].end(); ++k) {
+			if ((*k)->countOnlineUsers() > (size_t)SETTING(AUTO_SEARCH_LIMIT)) {
+				continue;
+			}
+			prioBundles++;
+			//loopBundles++;
+		}
+		//prioBundles += loopBundles;
+		prioSum += (int)(p-1)*prioSearchQueue[p].size();
 		p--;
 	} while(p >= Bundle::LOW);
 
 	//do we have anything where to search from?
-	if (prioSum == 0) {
+	if (prioBundles == 0) {
 		return NULL;
 	}
 
@@ -281,17 +322,17 @@ BundlePtr QueueManager::FileQueue::findAutoSearch() {
 
 	p = Bundle::LOW;
 	do {
-		size_t size = bundlePrioQueue[p].size();
+		size_t size = prioSearchQueue[p].size();
 		if (rand < (int)(p-1)*size) {
 			//we got the prio
 			int s = 0;
 			while (s <= size) {
-				if (bundlePrioQueue[p].empty()) {
+				if (prioSearchQueue[p].empty()) {
 					break;
 				}
-				BundlePtr tmp = bundlePrioQueue[p].front();
-				bundlePrioQueue[p].pop_front();
-				bundlePrioQueue[p].push_back(tmp);
+				BundlePtr tmp = prioSearchQueue[p].front();
+				prioSearchQueue[p].pop_front();
+				prioSearchQueue[p].push_back(tmp);
 				if (tmp->countOnlineUsers() > (size_t)SETTING(AUTO_SEARCH_LIMIT)) {
 					s++;
 					continue;
@@ -357,12 +398,12 @@ void QueueManager::UserQueue::add(QueueItem* qi, const HintedUser& aUser) {
 					LogManager::getInstance()->message("USERQUEUE: " + (*k)->getName() + " prio " + AirUtil::getPrioText((*k)->getPriority()) + " CID " + aUser.user->getCID().toBase32());
 				} */
 			} else {
-				/*auto i = s.begin();
-				auto start = (size_t)Util::rand((uint32_t)s.size());
-				advance(i, start);
-
-				s.insert(i, bundle); */
-				s.insert(upper_bound(s.begin(), s.end(), bundle, [](const BundlePtr leftBundle, const BundlePtr rightBundle) { return leftBundle->getPriority() > rightBundle->getPriority(); }), bundle);
+				auto pp = equal_range(s.begin(), s.end(), bundle, [](const BundlePtr leftBundle, const BundlePtr rightBundle) { return leftBundle->getPriority() > rightBundle->getPriority(); });
+				int dist = distance(pp.first, pp.second);
+				if (dist > 0) {
+					std::advance(pp.first, Util::rand(dist));
+				}
+				s.insert(pp.first, bundle);
 			}
 
 			//LogManager::getInstance()->message("Add new bundle " + bundle->getName() + " for an user: " + aUser->getCID().toBase32() + ", total bundles" + Util::toString(s.size()));
@@ -579,7 +620,7 @@ void QueueManager::UserQueue::removeQI(QueueItem* qi, const UserPtr& aUser, bool
 
 
 void QueueManager::UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Priority p) {
-	Bundle::Priority oldPrio = aBundle->getPriority();
+	//Bundle::Priority oldPrio = aBundle->getPriority();
 	aBundle->setPriority(p);
 	HintedUserList sources;
 	aBundle->getQISources(sources);
@@ -800,7 +841,8 @@ QueueManager::QueueManager() :
 	lastAutoPrio(0), 
 	queueFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml"),
 	rechecker(this),
-	nextSearch(0)
+	nextSearch(0),
+	nextRecentSearch(0)
 { 
 	TimerManager::getInstance()->addListener(this); 
 	SearchManager::getInstance()->addListener(this);
@@ -892,30 +934,11 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 
 		}
 
-		if(BOOLSETTING(AUTO_SEARCH) && (aTick >= nextSearch) && (bundles.size() > 0)) {
-			bundle = fileQueue.findAutoSearch();
-			nextSearch = aTick + (SETTING(SEARCH_TIME) * 60000); //this is also the time for next check, set it here so we dont need to start checking every minute
-		}
+		bundle = findSearchBundle(aTick);
 	}
 
 	if(bundle != NULL) {
-		calculations++;
-		switch((int)bundle->getPriority()) {
-			case 2:
-				lowSel++;
-				break;
-			case 3:
-				normalSel++;
-				break;
-			case 4:
-				highSel++;
-				break;
-			case 5:
-				highestSel++;
-				break;
-		}
-		//LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
-		searchBundle(bundle);
+		searchBundle(bundle, false);
 	}
 
 	// Request parts info from partial file sharing sources
@@ -935,7 +958,56 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
-void QueueManager::searchBundle(BundlePtr aBundle) {
+BundlePtr QueueManager::findSearchBundle(uint64_t aTick, bool force /* =false */) {
+	BundlePtr bundle = NULL;
+	if((BOOLSETTING(AUTO_SEARCH) && (aTick >= nextSearch) && (bundles.size() > 0)) || force) {
+		int prioBundles = 0;
+		bundle = fileQueue.findAutoSearch(prioBundles);
+		int next = SETTING(SEARCH_TIME);
+		if (bundle && prioBundles > 0) {
+			next = max(60 / prioBundles, next);
+		}
+		nextSearch = aTick + (next * 60 * 1000); //this is also the time for next check, set it here so we dont need to start checking every minute
+		//LogManager::getInstance()->message("Next search in " + Util::toString(next) + " minutes");
+	} 
+	
+	if(!bundle && (BOOLSETTING(AUTO_SEARCH) && (aTick >= nextRecentSearch) || force)) {
+		int recentBundles = 0;
+		bundle = fileQueue.findRecent(recentBundles);
+		//int next = SETTING(SEARCH_TIME);
+		//if (bundle && recentBundles > 0) {
+		//	next = max(60 / recentBundles, next);
+		//}
+		nextRecentSearch = aTick + ((recentBundles > 1 ? 5 : 10) * 60 * 1000);
+		//LogManager::getInstance()->message("Next recent search in " + Util::toString(recentBundles > 1 ? 5 : 10) + " minutes");
+	}
+
+	if(bundle != NULL) {
+		if (!bundle->getRecent()) {
+			calculations++;
+			switch((int)bundle->getPriority()) {
+				case 2:
+					lowSel++;
+					break;
+				case 3:
+					normalSel++;
+					break;
+				case 4:
+					highSel++;
+					break;
+				case 5:
+					highestSel++;
+					break;
+			}
+		} else {
+			LogManager::getInstance()->message("Performing search for a RECENT bundle: " + bundle->getName());
+		}
+		//LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
+	}
+	return bundle;
+}
+
+void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle) {
 	string searchString;
 	//boost::unordered_map<string, string> searches;
 	StringPairList searches;
@@ -1005,9 +1077,13 @@ void QueueManager::searchBundle(BundlePtr aBundle) {
 	if(BOOLSETTING(REPORT_ALTERNATES)) {
 		//LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + Util::getFileName(qi->getTargetFileName()));
 		if (aBundle->getSimpleMatching()) {
-			LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", performed " + Util::toString(searches.size()) + " search(es)");
+			if (!aBundle->getRecent()) {
+				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", queued " + Util::toString(searches.size()) + " search(es), next search in " + Util::toString((nextSearch - GET_TICK()) / (60*1000)) + " minutes");
+			} else {
+				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", queued " + Util::toString(searches.size()) + " recent search(es), next recent search in " + Util::toString((nextRecentSearch - GET_TICK()) / (60*1000)) + " minutes and normal search in " + Util::toString((nextSearch - GET_TICK()) / (60*1000)) + " minutes");
+			}
 		} else {
-			LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists");
+			LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::formatTime(nextSearch - GET_TICK()));
 		}
 	}
 }
@@ -1335,7 +1411,7 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 	bool wantConnection = false;
 	{
 		Lock l(cs);
-		uint64_t start = GET_TICK();
+		//uint64_t start = GET_TICK();
 		tthMap.clear(); //incase we throw, map was not cleared at the end.
 		buildMap(dl.getRoot());
 
@@ -1383,8 +1459,8 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 		}
 		}
 		tthMap.clear();
-		uint64_t end = GET_TICK();
-		LogManager::getInstance()->message("List matched in " + Util::toString(end-start) + " ms");
+		//uint64_t end = GET_TICK();
+		//LogManager::getInstance()->message("List matched in " + Util::toString(end-start) + " ms");
 	}
 	if((matches > 0) && wantConnection)
 		ConnectionManager::getInstance()->getDownloadConnection(dl.getHintedUser());
@@ -2193,7 +2269,7 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 	{
 		Lock l (cs);
 		userQueue.setBundlePriority(aBundle, p);
-		fileQueue.setBundlePriority(aBundle, oldPrio, p);
+		fileQueue.setSearchPriority(aBundle, oldPrio, p);
 	}
 	if (!isAuto) {
 		aBundle->setAutoPriority(false);
@@ -2919,28 +2995,13 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	if((lastSave + 10000) < aTick) {
 		saveQueue(false, aTick);
 	}
-	/*BundlePtr bundle = fileQueue.findAutoSearch();
+	/*BundlePtr bundle = findSearchBundle(aTick, true);
 	if(bundle != NULL) {
-		calculations++;
-		switch((int)bundle->getPriority()) {
-			case 2:
-				lowSel++;
-				break;
-			case 3:
-				normalSel++;
-				break;
-			case 4:
-				highSel++;
-				break;
-			case 5:
-				highestSel++;
-				break;
-		}
-		LogManager::getInstance()->message("HAS BUNDLE");
-		//LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
+		LogManager::getInstance()->message("next search in " + Util::toString((nextSearch - aTick) / (60*1000)) + " minutes");
+		LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
 	} else {
 		LogManager::getInstance()->message("NO BUNDLE");
-	}*/
+	} */
 	/*vector<pair<string, QueueItem::Priority>> priorities;
 
 	for (auto s = userQueue.getRunning().begin(); s != userQueue.getRunning().end(); ++s) {
@@ -3449,10 +3510,19 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		aBundle->setAutoPriority(true);
 	} */
 
+	if ((aBundle->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > (GET_TIME())) {
+		/*LogManager::getInstance()->message("Time: " + Util::toString(GET_TIME()));
+		LogManager::getInstance()->message("dirDate: " + Util::toString(aBundle->getDirDate()));
+		LogManager::getInstance()->message("settingHours: " + Util::toString(SETTING(RECENT_BUNDLE_HOURS)));
+		LogManager::getInstance()->message("recentMS: " + Util::toString(SETTING(RECENT_BUNDLE_HOURS)*60*60*1000));
+		LogManager::getInstance()->message("Bundle set as recent: " + aBundle->getName() + ", age: " + Text::fromT(Util::formatSeconds(GET_TIME()-aBundle->getDirDate()))); */
+		aBundle->setRecent(true);
+	}
+
 	{
 		Lock l(cs);
 		bundles.insert(make_pair(aBundle->getToken(), aBundle));
-		fileQueue.addBundlePrio(aBundle, aBundle->getPriority());
+		fileQueue.addSearchPrio(aBundle, aBundle->getPriority());
 	}
 
 	//check if we need to insert the root bundle dir
@@ -3480,7 +3550,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 	}
 
 	if (!loading && BOOLSETTING(AUTO_SEARCH)) {
-		searchBundle(aBundle);
+		searchBundle(aBundle, true);
 	}
 	return true;
 }
@@ -4389,7 +4459,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 		}
 
 		bundles.erase(aBundle->getToken());
-		fileQueue.removeBundlePrio(aBundle, aBundle->getPriority());
+		fileQueue.removeSearchPrio(aBundle, aBundle->getPriority());
 	}
 
 	SearchManager::getInstance()->removeBundlePBD(aBundle->getToken());

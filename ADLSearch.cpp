@@ -140,22 +140,6 @@ void ADLSearchManager::Load()
 	regexColDir.clear();
 	tthCol.clear();
 
-//ApexDC start
-	// If there is nothing to load (new install) insert our default example
-	if(!Util::fileExists(getConfigFile())) {
-		ADLSearch search;
-		search.searchString = "^(?=.*?\\b(pre.?teen|incest|lolita|r@ygold|rape|raped|underage|kiddy)\\b.*?\\b(sex|fuck|porn|xxx)\\b).+\\.(avi|mpg|mpeg|mov|jpg|bmp|gif|asf|wmv|dctmp|asf)$";
-		search.sourceType = search.StringToSourceType("Filename");
-		search.destDir = STRING(ADLS_DISCARD);
-		search.adlsComment = "Filters preteen porn, this is an example only!";
-		search.isRegexp = true;
-		search.isCaseSensitive = false;
-		search.isActive = false;
-		collection.push_back(&search);
-	}
-//ApexDC end
-
-
 	// Load file as a string
 	try {
 		SimpleXML xml;

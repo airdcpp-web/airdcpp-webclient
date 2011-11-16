@@ -151,7 +151,8 @@ public:
 
 	void setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p, bool autoPrio=false);
 	void calculateBundlePriorities(bool verbose);
-	void searchBundle(BundlePtr aBundle);
+	void searchBundle(BundlePtr aBundle, bool newBundle);
+	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
@@ -247,7 +248,8 @@ public:
 		// find some PFS sources to exchange parts info
 		void findPFSSources(PFSSourceList&);
 
-		BundlePtr findAutoSearch();
+		BundlePtr findRecent(int& recentBundles);
+		BundlePtr findAutoSearch(int& prioBundles);
 		size_t getSize() { return queue.size(); }
 		QueueItem::StringMap& getQueue() { return queue; }
 		void move(QueueItem* qi, const string& aTarget);
@@ -257,10 +259,10 @@ public:
 
 		uint64_t getTotalQueueSize() { return queueSize; };
 
-		void addBundlePrio(BundlePtr aBundle, Bundle::Priority p);
-		void removeBundlePrio(BundlePtr aBundle, Bundle::Priority p);
+		void addSearchPrio(BundlePtr aBundle, Bundle::Priority p);
+		void removeSearchPrio(BundlePtr aBundle, Bundle::Priority p);
 
-		void setBundlePriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio);
+		void setSearchPriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio);
 
 	private:
 		QueueItem::StringMap queue;
@@ -272,7 +274,8 @@ public:
 		QueueItem::StringMap::iterator targetMapInsert;
 
 		/** Bundles by priority (low-highest, for auto search) */
-		deque<BundlePtr> bundlePrioQueue[Bundle::LAST];
+		deque<BundlePtr> prioSearchQueue[Bundle::LAST];
+		deque<BundlePtr> recentSearchQueue;
 	};
 
 	/** QueueItems by target */
@@ -349,6 +352,8 @@ private:
 	StringList recent;
 	/** Next search */
 	uint64_t nextSearch;
+	/** Next recent search */
+	uint64_t nextRecentSearch;
 	/** File lists not to delete */
 	StringList protectedFileLists;
 	/** Sanity check for the target filename */
