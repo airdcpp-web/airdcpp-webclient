@@ -95,7 +95,7 @@ void ShareManager::shutdown() {
 				bzXmlRef.reset(); 
 
 				if(!Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2"))				
-					File::renameFile(getBZXmlFile(), (Util::getPath(Util::PATH_USER_CONFIG), "files.xml.bz2")); 
+					File::renameFile(getBZXmlFile(), (Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2")); 
 				
 		} catch(...) {
 		//ignore, we just failed to delete
@@ -1303,6 +1303,7 @@ int ShareManager::run() {
 		for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
 				if (checkHidden(i->second)) {
 					Directory::Ptr dp = buildTree(i->second, Directory::Ptr());
+					if(aShutdown) goto end;  //abort refresh
 					dp->setName(i->first);
 					dp->setRootPath(i->second);
 					newDirs.insert(make_pair(i->second, dp));
@@ -1368,6 +1369,8 @@ int ShareManager::run() {
 		generateXmlList(true);
 		saveXmlList();
 	}
+
+end:
 	refreshing.clear();
 	return 0;
 }
