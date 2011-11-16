@@ -381,16 +381,16 @@ void QueueManager::UserQueue::add(QueueItem* qi, const HintedUser& aUser) {
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
 
-		if(qi->getDownloadedBytes() > 0 ) {
-			l.push_front(qi);
-		} else {
+		//if(qi->getDownloadedBytes() > 0 ) {
+		//	l.push_front(qi);
+		//} else {
 			l.push_back(qi);
-		}
+		//}
 	}
 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
-		if (bundle->addQueue(qi, aUser)) {
+		if (bundle->addUserQueue(qi, aUser)) {
 			//bundles can't be added here with the priority DEFAULT
 			//dcassert(userBundleQueue.find(aUser.user) == userBundleQueue.end());
 			auto& s = userBundleQueue[aUser.user];
@@ -584,7 +584,7 @@ void QueueManager::UserQueue::removeQI(QueueItem* qi, const UserPtr& aUser, bool
 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
-		if (qi->getBundle()->removeQueue(qi, aUser)) {
+		if (qi->getBundle()->removeUserQueue(qi, aUser)) {
 			//no bundle should come here with the default prio... fix those by not starting to download incomplete bundles
 			auto j = userBundleQueue.find(aUser);
 			dcassert(j != userBundleQueue.end());
@@ -4390,7 +4390,7 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool deleteQI)
 	{
 		Lock l (cs);
 		if (bundle) {
-			bundle->getQueueItems().erase(std::remove(bundle->getQueueItems().begin(), bundle->getQueueItems().end(), qi), bundle->getQueueItems().end());
+			bundle->removeQueue(qi);
 
 			if (finished) {
 				//LogManager::getInstance()->message("REMOVE FINISHED BUNDLEITEM, items: " + Util::toString(bundle->items.size()) + " totalsize: " + Util::formatBytes(bundle->getSize()));

@@ -141,6 +141,8 @@ public:
 	Bundle::Priority calculateAutoPriority() const;
 	size_t countOnlineUsers() const;
 
+	void removeQueue(QueueItem* qi);
+
 	bool getFileBundle() {
 		return fileBundle;
 	}
@@ -197,15 +199,15 @@ public:
 		bool isSource(const UserPtr& aUser);
 		void getDownloadsQI(DownloadList& l);
 		QueueItemList getItems(const UserPtr& aUser) const;
-		void addQueue(QueueItem* qi);
-		bool addQueue(QueueItem* qi, const HintedUser& aUser);
+		void addUserQueue(QueueItem* qi);
+		bool addUserQueue(QueueItem* qi, const HintedUser& aUser);
 		QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 		QueueItemList getRunningQIs(const UserPtr& aUser);
 		bool addDownload(Download* d);
 		int removeDownload(const string& token);
 
-		void removeQueue(QueueItem* qi, bool removeRunning = true);
-		bool removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
+		void removeUserQueue(QueueItem* qi, bool removeRunning = true);
+		bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
 
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }

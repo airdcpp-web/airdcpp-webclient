@@ -99,7 +99,7 @@ class OutputStream;
 
 class QueueItem;
 typedef QueueItem* QueueItemPtr;
-typedef list<QueueItemPtr> QueueItemList;
+typedef std::vector<QueueItemPtr> QueueItemList;
 
 class RecentHubEntry;
 

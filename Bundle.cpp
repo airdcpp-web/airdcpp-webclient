@@ -78,22 +78,34 @@ QueueItemList Bundle::getItems(const UserPtr& aUser) const {
 	return ret;
 }
 
+void Bundle::removeQueue(QueueItem* qi) {
+	int pos = 0;
+	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
+		if ((*s) == qi) {
+			swap(queueItems[pos], queueItems[queueItems.size()-1]);
+			queueItems.pop_back();
+			return;
+		}
+		pos++;
+	}
+}
+
 bool Bundle::isSource(const UserPtr& aUser) {
 	return find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; }) != sources.end();
 }
 
-void Bundle::addQueue(QueueItem* qi) {
+void Bundle::addUserQueue(QueueItem* qi) {
 	for(QueueItem::SourceConstIter i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		addQueue(qi, i->getUser());
+		addUserQueue(qi, i->getUser());
 	}
 }
 
-bool Bundle::addQueue(QueueItem* qi, const HintedUser& aUser) {
+bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 
 	if (l.size() > 1) {
 		auto i = l.begin();
-		auto start = (size_t)Util::rand((uint32_t)l.size());
+		auto start = (size_t)Util::rand((uint32_t)(l.size() < 200 ? l.size() : 200)); //limit the max value to lower the required moving distance
 		advance(i, start);
 
 		l.insert(i, qi);
@@ -188,13 +200,13 @@ QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) {
 	return ret;
 }
 
-void Bundle::removeQueue(QueueItem* qi, bool removeRunning) {
+void Bundle::removeUserQueue(QueueItem* qi, bool removeRunning) {
 	for(QueueItem::SourceConstIter i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		removeQueue(qi, i->getUser(), removeRunning);
+		removeUserQueue(qi, i->getUser(), removeRunning);
 	}
 }
 
-bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning) {
+bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning) {
 
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];
