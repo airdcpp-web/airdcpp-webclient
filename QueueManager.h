@@ -95,7 +95,7 @@ public:
 	QueueItem::Priority hasDownload(const UserPtr& aUser, bool smallSlot) noexcept;
 	
 	void loadQueue() noexcept;
-	void saveQueue(bool force, uint64_t aTick = 0) noexcept;
+	void saveQueue(bool force) noexcept;
 	void saveQI(OutputStream &save, QueueItem* qi, string tmp, string b32tmp);
 
 	void noDeleteFileList(const string& path);
@@ -248,6 +248,8 @@ public:
 		// find some PFS sources to exchange parts info
 		void findPFSSources(PFSSourceList&);
 
+		int getRecentSize() { return (int)recentSearchQueue.size(); }
+		int getPrioSum(int& prioBundles);
 		BundlePtr findRecent(int& recentBundles);
 		BundlePtr findAutoSearch(int& prioBundles);
 		size_t getSize() { return queue.size(); }

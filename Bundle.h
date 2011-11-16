@@ -94,35 +94,35 @@ public:
 
 
 	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), lastSave(0), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false) { }
+		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false), bytesDownloaded(0) { }
 
+	GETSET(string, token, Token);
+	GETSET(uint16_t, running, Running);
+	GETSET(uint64_t, start, Start);
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, downloaded, Downloaded);
-	GETSET(double, lastPercent, LastPercent);
-	GETSET(string, token, Token);
 	GETSET(int64_t, speed, Speed);
 	GETSET(int64_t, actual, Actual);
 	GETSET(int64_t, lastSpeed, LastSpeed);
-	GETSET(uint64_t, start, Start);
-	GETSET(uint16_t, running, Running);
+	GETSET(double, lastPercent, LastPercent);
+	GETSET(Priority, priority, Priority);
+	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(time_t, added, Added);
 	GETSET(time_t, dirDate, DirDate);
 	GETSET(bool, singleUser, SingleUser);
 	GETSET(bool, simpleMatching, SimpleMatching);
 	GETSET(bool, recent, Recent);
+
 	GETSET(CIDStringList, notifiedUsers, NotifiedUsers);
 	GETSET(UserIntMap, runningUsers, RunningUsers);
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
-	//GETSET(FinishedItemMap, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
 	GETSET(DownloadList, downloads, Downloads);
-	GETSET(Priority, priority, Priority);
-	GETSET(bool, autoPriority, AutoPriority);
-	GETSET(uint16_t, lastSave, LastSave);
 	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceIntList, sources, Sources);
 	
+	uint64_t bytesDownloaded;
 	string target;
 	bool fileBundle;
 	bool dirty;
@@ -136,13 +136,8 @@ public:
 	DirMap& getBundleDirs() { return bundleDirs; }
 	SourceIntList& getBundleSources() { return sources; }
 
-	//SourceIntList sources;
-	//SourceIntList& getSources() { return sources; }
-	uint64_t getDownloadedBytes() const;
-	//int64_t getActual() const;
+	uint64_t getDownloadedBytes() const { return bytesDownloaded; }
 	QueueItem* findQI(const string& aTarget) const;
-	bool addSource(const HintedUser& aUser);
-	bool removeSource(const UserPtr& aUser);
 	Bundle::Priority calculateAutoPriority() const;
 	size_t countOnlineUsers() const;
 
@@ -155,6 +150,10 @@ public:
 
 	void decreaseSize(int64_t aSize) {
 		size -= aSize;
+	}
+
+	void increaseDownloadedBytes(int64_t aSize) {
+		bytesDownloaded += aSize;
 	}
 
 	void increaseDownloaded(int64_t aSize) {
@@ -193,15 +192,10 @@ public:
 		return dirty;
 	}
 
-//private:
-
 	/** All queue items indexed by user */
-	//class BundleUserQueue {
-	//public:
 		void getQISources(HintedUserList& l);
 		bool isSource(const UserPtr& aUser);
 		void getDownloadsQI(DownloadList& l);
-		//bool isRunning() { return !getDownloads().empty(); }
 		QueueItemList getItems(const UserPtr& aUser) const;
 		void addQueue(QueueItem* qi);
 		bool addQueue(QueueItem* qi, const HintedUser& aUser);
@@ -212,28 +206,14 @@ public:
 
 		void removeQueue(QueueItem* qi, bool removeRunning = true);
 		bool removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
-		//void setPriority(QueueItem* qi, QueueItem::Priority p);
 
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }
-
-		//string getLastError() { 
-		//	string tmp = lastError;
-		//	lastError = Util::emptyString;
-		//	return tmp;
-		//}
-
 	private:
 		/** QueueItems by priority and user (this is where the download order is determined) */
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[LAST];
 		/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 		boost::unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
-		/** Last error message to sent to TransferView */
-		//string lastError;
-	//};
-
-	//BundleUserQueue userQueue;
-	//const BundleUserQueue& getUserQueue() const { return userQueue; }
 };
 
 }

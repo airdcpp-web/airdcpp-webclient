@@ -29,8 +29,7 @@ namespace dcpp {
 
 uint64_t Bundle::getSecondsLeft() {
 	double avg = getSpeed();
-	int64_t bytesLeft =  getSize() - getDownloaded();
-	return (avg > 0) ? static_cast<int64_t>(bytesLeft / avg) : 0;
+	return (avg > 0) ? static_cast<int64_t>((size - bytesDownloaded) / avg) : 0;
 }
 
 string Bundle::getName() {
@@ -45,43 +44,11 @@ void Bundle::setDirty(bool enable) {
 	if (enable) {
 		if(!dirty) {
 			dirty = true;
-			lastSave = GET_TICK();
 		}
 	} else {
 		dirty = false;
-		lastSave = GET_TICK();
 	}
 }
-
-uint64_t Bundle::getDownloadedBytes() const {
-	uint64_t total = downloaded;
-
-	// count done segments
-	/*for(auto i = queueItems.begin(); i != queueItems.end(); ++i) {
-		total += (*i)->getDownloadedBytes();
-	} */
-
-	// count running segments
-	DownloadList dl = getDownloads();
-	for(auto i = dl.begin(); i != dl.end(); ++i) {
-		total += (*i)->getPos();
-	}
-	//LogManager::getInstance()->message("Bundle pos: " + Util::toString(total));
-
-	return total;
-}
-
-/*int64_t Bundle::getActual() const {
-	uint64_t total = 0;
-
-	DownloadList dl = getDownloads();
-	for(auto i = dl.begin(); i != dl.end(); ++i) {
-		total += (*i)->getActual();
-	}
-
-	LogManager::getInstance()->message("Bundle actual: " + Util::toString(total));
-	return total;
-} */
 
 QueueItem* Bundle::findQI(const string& aTarget) const {
 	for(auto i = queueItems.begin(); i != queueItems.end(); ++i) {
@@ -111,39 +78,7 @@ QueueItemList Bundle::getItems(const UserPtr& aUser) const {
 	return ret;
 }
 
-bool Bundle::addSource(const HintedUser& aUser) {
-	for (auto i = sources.begin(); i != sources.end(); ++i) {
-		if (i->first == aUser) {
-			i->second++;
-			return false;
-		}
-	}
-	//sources[aUser] = 1;
-	sources.push_back(make_pair(aUser, 1));
-	return true;
-}
-
-bool Bundle::removeSource(const UserPtr& aUser) {
-	for (auto i = sources.begin(); i != sources.end(); ++i) {
-		if (i->first.user == aUser) {
-			i->second--;
-			if (i->second == 0) {
-				sources.erase(i);
-				return true;
-			}
-			return false;
-		}
-	}
-	return false;
-}
-
 bool Bundle::isSource(const UserPtr& aUser) {
-	/*for(auto i = sources.begin(); i != sources.end(); ++i) {
-		if ((*i).first.user == aUser) {
-			return true;
-		}
-	}
-	return false; */
 	return find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; }) != sources.end();
 }
 
@@ -176,7 +111,6 @@ bool Bundle::addQueue(QueueItem* qi, const HintedUser& aUser) {
 		dcassert(!sources.empty());
 		return true;
 	}
-	//return newUser;
 	//LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, total items for the user " + aUser->getCID().toBase32() + ": " + Util::toString(l.size()));
 }
 
@@ -243,46 +177,7 @@ int Bundle::removeDownload(const string& token) {
 		}
 	}
 	return downloads.size(); 
-
-	/*auto i = runningItems.find(user);
-	if (i != runningItems.end()) {
-		for (auto s = i->second.begin(); s != i->second.end(); ++s) {
-			if (qi == *s) {
-				i->second.erase(s);
-				//LogManager::getInstance()->message("Running size for the user: " + Util::toString(i->second.size()));
-				if (i->second.empty()) {
-					//LogManager::getInstance()->message("ERASE RUNNING USER");
-					runningItems.erase(i);
-				}
-				break;
-			}
-		}
-	}
-	if (!token.empty()) {
-		for(DownloadList::iterator i = qi->getDownloads().begin(); i != qi->getDownloads().end(); ++i) {
-			if ((*i)->getUserConnection().getToken() == token) {
-				qi->getDownloads().erase(i);
-				return;
-			}
-		}
-	} else {
-		//erase all downloads from this user
-		for(DownloadList::iterator i = qi->getDownloads().begin(); i != qi->getDownloads().end();) {
-			if((*i)->getUser() == user) {
-				qi->getDownloads().erase(i);
-				i = qi->getDownloads().begin();
-			} else {
-				i++;
-			}
-		}
-	} */
 }
-
-/*void Bundle::BundleUserQueue::setPriority(QueueItem* qi, QueueItem::Priority p) {
-	remove(qi, false);
-	qi->setPriority(p);
-	add(qi);
-} */
 
 QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) {
 	QueueItemList ret;
@@ -300,16 +195,6 @@ void Bundle::removeQueue(QueueItem* qi, bool removeRunning) {
 }
 
 bool Bundle::removeQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning) {
-
-	/*if(removeRunning) {
-		QueueItemList runningItems = getRunningQIs(aUser);
-		for (auto s = runningItems.begin(); s != runningItems.end(); ++s) {
-			if (qi == *s) {
-				removeDownload(qi, aUser);
-				break;
-			}
-		}
-	} */
 
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];
