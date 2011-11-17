@@ -103,14 +103,13 @@ void Bundle::addUserQueue(QueueItem* qi) {
 bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 
+	l.push_back(qi);
 	if (l.size() > 1) {
 		auto i = l.begin();
 		auto start = (size_t)Util::rand((uint32_t)(l.size() < 200 ? l.size() : 200)); //limit the max value to lower the required moving distance
 		advance(i, start);
-
-		l.insert(i, qi);
-	} else {
-		l.push_back(qi);
+		swap(queueItems[start], queueItems[queueItems.size()-1]);
+		//l.insert(i, qi);
 	}
 
 	auto i = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
@@ -213,10 +212,15 @@ bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRun
 	auto j = ulm.find(aUser);
 	dcassert(j != ulm.end());
 	auto& l = j->second;
-	auto i = find(l.begin(), l.end(), qi);
-	dcassert(i != l.end());
-	l.erase(i);
-
+	int pos = 0;
+	for (auto s = l.begin(); s != l.end(); ++s) {
+		if ((*s) == qi) {
+			swap(l[pos], l[l.size()-1]);
+			l.pop_back();
+			break;
+		}
+		pos++;
+	}
 
 	if(l.empty()) {
 		ulm.erase(j);

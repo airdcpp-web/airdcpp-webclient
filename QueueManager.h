@@ -68,7 +68,8 @@ public:
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
 
-	void remove(const string& aTarget) noexcept;
+	void remove(QueueItem* qi, bool removeBundle=false) noexcept;
+	void remove(const string aTarget) noexcept;
 	void removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
@@ -361,7 +362,7 @@ private:
 	/** Sanity check for the target filename */
 	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
 	/** Add a source to an existing queue item */
-	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException);
+	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle=false) throw(QueueException, FileException);
 	 
 	void processList(const string& name, const HintedUser& user, const string path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);

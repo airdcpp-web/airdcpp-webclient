@@ -1218,10 +1218,11 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				addBundleItem(q, aBundle, true, false);
 				//LogManager::getInstance()->message("ADD BUNDLEITEM, items: " + Util::toString(aBundle->items.size()) + " totalsize: " + Util::formatBytes(aBundle->getSize()));
 			} else if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW) {
-				findBundle(q, true);
+				aBundle = findBundle(q, true);
 				//LogManager::getInstance()->message("ADD QI: NO BUNDLE");
+			} else {
+				fire(QueueManagerListener::Added(), q);
 			}
-			fire(QueueManagerListener::Added(), q);
 		} else {
 			if(q->getSize() != aSize) {
 				throw QueueException(STRING(FILE_WITH_DIFFERENT_SIZE));
@@ -1237,7 +1238,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			q->setFlag(aFlags);
 		}
 		try {
-			wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0));
+			wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aBundle);
 		} catch(const Exception&) {
 			//...
 		}
@@ -1310,7 +1311,7 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence, Bun
 }
 
 /** Add a source to an existing queue item */
-bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad) throw(QueueException, FileException) {
+bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle) throw(QueueException, FileException) {
 	
 	if (!aUser.user) //atleast magnet links can cause this to happen.
 	throw QueueException("Can't find Source user to add For Target: " + Util::getFileName(qi->getTarget()));
@@ -1344,8 +1345,9 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 		if ((!SETTING(SOURCEFILE).empty()) && (!BOOLSETTING(SOUNDS_DISABLED)))
 			PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
 	
-
-	fire(QueueManagerListener::SourcesUpdated(), qi);
+	if (!newBundle) {
+		fire(QueueManagerListener::SourcesUpdated(), qi);
+	}
 	changeBundleSource(qi, aUser, true);
 	//setDirty();
 
@@ -2149,15 +2151,22 @@ void QueueManager::recheck(const string& aTarget) {
 	rechecker.add(aTarget);
 }
 
-void QueueManager::remove(const string& aTarget) noexcept {
-	UserConnectionList x;
+void QueueManager::remove(const string aTarget) noexcept {
+	QueueItem* qi = NULL;
+	{
+		Lock l (cs);
+		qi = fileQueue.find(aTarget);
+	}
+	if (qi) {
+		remove(qi, false);
+	}
+}
 
+void QueueManager::remove(QueueItem* q, bool removeBundle) noexcept {
+	UserConnectionList x;
+	dcassert(q);
 	{
 		Lock l(cs);
-
-		QueueItem* q = fileQueue.find(aTarget);
-		if(!q)
-			return;
 
 		if(q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) {
 			dcassert(q->getSources().size() == 1);
@@ -2180,14 +2189,14 @@ void QueueManager::remove(const string& aTarget) noexcept {
 			File::deleteFile(q->getTempTarget());
 		}
 
-		fire(QueueManagerListener::Removed(), q);
-
 		if(!q->isFinished()) {
 			userQueue.removeQI(q);
 		}
-		
-		removeBundleItem(q, false, true);
 
+		if (!removeBundle) {
+			fire(QueueManagerListener::Removed(), q);
+			removeBundleItem(q, false, true);
+		}
 	}
 
 	for(UserConnectionList::const_iterator i = x.begin(); i != x.end(); ++i) {
@@ -2198,9 +2207,10 @@ void QueueManager::remove(const string& aTarget) noexcept {
 void QueueManager::removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
 	bool isRunning = false;
 	bool removeCompletely = false;
+	QueueItem* q;
 	{
 		Lock l(cs);
-		QueueItem* q = fileQueue.find(aTarget);
+		q = fileQueue.find(aTarget);
 		if(!q)
 			return;
 
@@ -2233,20 +2243,19 @@ endCheck:
 		DownloadManager::getInstance()->abortDownload(aTarget, aUser);
 	}
 	if(removeCompletely) {
-		remove(aTarget);
+		remove(q);
 	}	
 }
 
 void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept {
 	// @todo remove from finished items
 	bool isRunning = false;
-	string removeRunning;
 	{
 		Lock l(cs);
 		QueueItem* qi = NULL;
 		while( (qi = userQueue.getNext(aUser, QueueItem::PAUSED)) != NULL) {
 			if(qi->isSet(QueueItem::FLAG_USER_LIST)) {
-				remove(qi->getTarget());
+				remove(qi);
 			} else {
 				userQueue.removeQI(qi, aUser, false);
 				qi->removeSource(aUser, reason);
@@ -2261,9 +2270,6 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) no
 	if(isRunning) {
 		ConnectionManager::getInstance()->disconnect(aUser, true);
 	}
-	if(!removeRunning.empty()) {
-		remove(removeRunning);
-	}	
 }
 
 void QueueManager::setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept {
@@ -3540,6 +3546,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		bundles.insert(make_pair(aBundle->getToken(), aBundle));
 		fileQueue.addSearchPrio(aBundle, aBundle->getPriority());
 	}
+	fire(QueueManagerListener::BundleAdded(), aBundle);
 
 	//check if we need to insert the root bundle dir
 	if (!aBundle->getFileBundle()) {
@@ -3824,7 +3831,7 @@ void QueueManager::removeDir(const string& aSource, BundleList sourceBundles, bo
 			}
 		}
 		for (auto i = ql.begin(); i != ql.end(); ++i) {
-			remove((*i)->getTarget());
+			remove(*i);
 		}
 	} else {
 		for (auto r = sourceBundles.begin(); r != sourceBundles.end(); ++r) {
@@ -4085,7 +4092,7 @@ bool QueueManager::move(QueueItem* qs, const string& aTarget) noexcept {
 		//Does the file exist already on the disk?
 		if(Util::fileExists(target)) {
 			//LogManager::getInstance()->message("FILE EXISTS");
-			remove(qs->getTarget());
+			remove(qs);
 			return false;
 		}
 		// Good, update the target and move in the queue...
@@ -4116,7 +4123,7 @@ bool QueueManager::move(QueueItem* qs, const string& aTarget) noexcept {
 			}
 		}
 		removeBundleItem(qs, false, false);
-		remove(qs->getTarget());
+		remove(qs);
 	}
 	return false;
 }
@@ -4368,10 +4375,18 @@ void QueueManager::removeBundleFiles(BundlePtr aBundle, bool removeFinished) {
 				File::deleteFile((*i)->getTarget());
 			}
 		}
+
+		fire(QueueManagerListener::BundleRemoved(), aBundle);
+
 		QueueItemList removeList = aBundle->getQueueItems();
 		for (auto i = removeList.begin(); i != removeList.end(); ++i) {
-			remove((*i)->getTarget());
+			QueueItem* qi = *i;
+			auto& s = aBundle->getBundleDirs()[Util::getDir(qi->getTarget(), false, false)];
+			s.erase(std::remove(s.begin(), s.end(), qi), s.end());
+			remove(qi, true);
+			fileQueue.remove(qi, false);
 		}
+		removeBundle(aBundle, false);
 	}
 }
 
@@ -4459,7 +4474,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 			}
 		}
 
-		fire(QueueManagerListener::BundleRemoved(), aBundle);
+		//fire(QueueManagerListener::BundleRemoved(), aBundle);
 	}
 
 	{

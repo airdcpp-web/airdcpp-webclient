@@ -155,7 +155,7 @@ public:
 	}
 
 	void increaseDownloadedBytes(int64_t aSize) {
-		bytesDownloaded += aSize;
+		bytesDownloaded = aSize + downloaded;
 	}
 
 	void increaseDownloaded(int64_t aSize) {
