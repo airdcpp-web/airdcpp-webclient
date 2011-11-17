@@ -42,6 +42,16 @@
 
 namespace dcpp {
 
+ShareScannerManager::ShareScannerManager() : scanning(false) { 
+	QueueManager::getInstance()->addListener(this); 
+}
+
+ShareScannerManager::~ShareScannerManager() {
+	QueueManager::getInstance()->removeListener(this);
+	Stop();
+	join();
+}
+
 int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 	stop = false;
 	//initiate the thread always here for now.
@@ -716,7 +726,7 @@ uint32_t ShareScannerManager::calcCrc32(const string& file) {
 	return f.getFilter().getValue();
 }
 
-void ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
+void ShareScannerManager::on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept {
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
 		string dir = aBundle->getTarget();
 		int missingFiles = 0;
@@ -731,6 +741,7 @@ void ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 
 		reportResults(aBundle->getName(), 2, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 	}
+	aBundle->dec();
 }
 
 void ShareScannerManager::reportResults(const string& dir, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound) {

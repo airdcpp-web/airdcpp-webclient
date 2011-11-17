@@ -1739,9 +1739,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 
 	if (aBundle->getQueueItems().empty()) {
 		
-		if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
-			ShareScannerManager::getInstance()->scanBundle(aBundle);
-		} else {
+		if (!SETTING(SCAN_DL_BUNDLES) || aBundle->getFileBundle()) {
 			string tmp;
 			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 512);	 
 			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
@@ -3939,7 +3937,6 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 	if (hasMergeBundle) {
 		//LogManager::getInstance()->message("moveDir, merge bundle found: " + newBundle->getTarget());
 		mergeBundle(newBundle, sourceBundle);
-		//sourceBundle->dec();
 	} else {
 		//LogManager::getInstance()->message("moveDir, no merge bundle");
 		//nothing to merge to, move the old bundle
@@ -4022,7 +4019,6 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 		//merge the temp bundle
 		//LogManager::getInstance()->message("splitBundle, mergebundle found");
 		mergeBundle(newBundle, tempBundle);
-		//tempBundle->dec();
 	} else {
 		//LogManager::getInstance()->message("splitBundle, no mergebundle found, create new");
 		addBundle(tempBundle);
@@ -4502,9 +4498,11 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 		LogManager::getInstance()->message("ERROR WHEN DELETING BUNDLE XML: " + aBundle->getName() + " file: " + aBundle->getBundleFile());
 	}
 
-	if (!finished) {
-		//TODO: delete from memory
-		//aBundle->dec();
+	if (finished) {
+		//this is the second one, decreased in sharescannermanager and sharemanager
+		aBundle->inc();
+	} else {
+		aBundle->dec();
 	}
 }
 

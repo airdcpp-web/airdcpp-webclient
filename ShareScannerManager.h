@@ -26,6 +26,8 @@
 #include <string>
 #include "pme.h"
 
+#include "QueueManagerListener.h"
+
 #include "noexcept.h"
 
 namespace dcpp {
@@ -33,25 +35,21 @@ namespace dcpp {
 using std::string;
 
 
-class ShareScannerManager: public Singleton<ShareScannerManager>, public Thread {
+class ShareScannerManager: public Singleton<ShareScannerManager>, public Thread, private QueueManagerListener {
  
 public:
 
 	void find (const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, bool checkBundles);
 	bool scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders);
 	int scan(StringList paths = StringList(), bool sfv = false);
-	void scanBundle(BundlePtr aBundle);
 	void checkSFV(const string& path);
 	void Stop();
 
 private:
 	friend class Singleton<ShareScannerManager>;
 
-	ShareScannerManager() : scanning(false){ }
-	~ShareScannerManager() { 
-		Stop();
-		join();
-	}
+	ShareScannerManager();
+	~ShareScannerManager();
 	
 	int run();
 	PME skipListReg;
@@ -75,6 +73,7 @@ private:
 	void getScanSize(const string& path);
 	uint32_t calcCrc32(const string& file);
 	StringList bundleDirs;
+	virtual void on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept;
 
 	void reportResults(const string& path, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound = 0);
 };

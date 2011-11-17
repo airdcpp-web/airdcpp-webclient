@@ -2141,7 +2141,7 @@ void ShareManager::on(QueueManagerListener::FileMoved, const string& n) noexcept
 */
 void ShareManager::on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept {
 	
-if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
+	if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 		
 		string path = aBundle->getTarget();
 		
@@ -2209,6 +2209,7 @@ if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 			}
 		}
 	}
+	aBundle->dec();
 }
 
 pair<ShareManager::Directory::Ptr, string> ShareManager::findDirectory(const string& fname) {

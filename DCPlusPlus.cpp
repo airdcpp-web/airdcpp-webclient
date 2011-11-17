@@ -149,13 +149,13 @@ void shutdown() {
 	CryptoManager::deleteInstance();
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();
+	ShareScannerManager::deleteInstance();
 	QueueManager::deleteInstance();
 	ConnectionManager::deleteInstance();
 	SearchManager::deleteInstance();
 	FavoriteManager::deleteInstance();
 	ClientManager::deleteInstance();
 	HashManager::deleteInstance();
-	ShareScannerManager::deleteInstance();
 	LogManager::deleteInstance();
 	SettingsManager::deleteInstance();
 	TimerManager::deleteInstance();
