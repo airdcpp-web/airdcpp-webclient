@@ -24,6 +24,7 @@
  */
 
 #include <boost/intrusive_ptr.hpp>
+#include <stdint.h>
 
 namespace dcpp {
 

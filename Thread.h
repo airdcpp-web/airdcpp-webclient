@@ -29,6 +29,7 @@
 
 #include <boost/noncopyable.hpp>
 #include "Exception.h"
+#include <stdint.h>
 
 #include <boost/thread.hpp>
 

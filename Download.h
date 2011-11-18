@@ -64,7 +64,7 @@ public:
 	GETSET(uint64_t, lastTick, LastTick);
 	GETSET(OutputStream*, file, File);
 	GETSET(bool, treeValid, TreeValid);
-	GETSET(BundlePtr, bundle, Bundle);
+	GETSET(string, bundleToken, BundleToken);
 private:
 	Download(const Download&);
 	Download& operator=(const Download&);

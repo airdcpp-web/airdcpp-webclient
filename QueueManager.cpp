@@ -188,8 +188,6 @@ void QueueManager::FileQueue::remove(QueueItem* qi, bool isFinished) {
 		queueSize -= qi->getSize();
 	}
 
-	queueSize -= qi->getSize();
-
 	if (!isFinished) {
 		removeTTH(qi);
 	}
@@ -243,21 +241,27 @@ int QueueManager::FileQueue::isTTHQueued(const TTHValue& tth) {
 }
 
 void QueueManager::FileQueue::addSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
+	return;
 	if (aBundle->getRecent()) {
+		dcassert(std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle) == recentSearchQueue.end());
 		recentSearchQueue.push_back(aBundle);
 		return;
 	}
+	dcassert(std::find(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), aBundle) == prioSearchQueue[p].end());
 	prioSearchQueue[p].push_back(aBundle);
 }
 
 void QueueManager::FileQueue::removeSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
-	auto& q = prioSearchQueue[p];
+	return;
 	if (aBundle->getRecent()) {
-		q = recentSearchQueue;
+		auto i = std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle);
+		dcassert(i != recentSearchQueue.end());
+		recentSearchQueue.erase(i);
+	} else {
+		auto i = std::find(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), aBundle);
+		dcassert(i != prioSearchQueue[p].end());
+		prioSearchQueue[p].erase(i);
 	}
-	auto i = std::find(q.begin(), q.end(), aBundle);
-	dcassert(i != q.end());
-	q.erase(i);
 }
 
 void QueueManager::FileQueue::setSearchPriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio) {
@@ -1571,7 +1575,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 	
 	Download* d = new Download(aSource, *q, partial ? q->getTempTarget() : q->getTarget());
 	if (q->getBundle()) {
-		d->setBundle(q->getBundle());
+		d->setBundleToken(q->getBundle()->getToken());
 	}
 	if (partial) {
 		d->setTempTarget(q->getTarget());
@@ -2156,11 +2160,11 @@ void QueueManager::remove(const string aTarget) noexcept {
 		qi = fileQueue.find(aTarget);
 	}
 	if (qi) {
-		remove(qi, false);
+		remove(qi);
 	}
 }
 
-void QueueManager::remove(QueueItem* q, bool removeBundle) noexcept {
+void QueueManager::remove(QueueItem* q) noexcept {
 	UserConnectionList x;
 	dcassert(q);
 	{
@@ -2191,10 +2195,8 @@ void QueueManager::remove(QueueItem* q, bool removeBundle) noexcept {
 			userQueue.removeQI(q);
 		}
 
-		if (!removeBundle) {
-			fire(QueueManagerListener::Removed(), q);
-			removeBundleItem(q, false, true);
-		}
+		fire(QueueManagerListener::Removed(), q);
+		removeBundleItem(q, false, true);
 	}
 
 	for(UserConnectionList::const_iterator i = x.begin(); i != x.end(); ++i) {
@@ -2728,7 +2730,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 					curBundle = qm->createFileBundle(qi);
 				}
 				
-				qm->fire(QueueManagerListener::Added(), qi);
+				//qm->fire(QueueManagerListener::Added(), qi);
 			}
 			if(!simple)
 				cur = qi;
@@ -4365,22 +4367,51 @@ void QueueManager::sendBundleFinished(BundlePtr aBundle) {
 
 void QueueManager::removeBundleFiles(BundlePtr aBundle, bool removeFinished) {
 	if (aBundle) {
-		if (removeFinished) {
+		UserConnectionList x;
+		{
 			Lock l (cs);
-			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
-				File::deleteFile((*i)->getTarget());
+			if (removeFinished) {
+				for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
+					UploadManager::getInstance()->abortUpload((*i)->getTarget());
+					File::deleteFile((*i)->getTarget());
+				}
+			}
+
+			fire(QueueManagerListener::BundleRemoved(), aBundle);
+			for(auto i = aBundle->getDownloads().begin(); i != aBundle->getDownloads().end(); ++i) {
+				UserConnection* uc = &(*i)->getUserConnection();
+				x.push_back(uc);
+			}
+			//QueueItemList removeList = aBundle->getQueueItems();
+			for (;;) {
+				if (aBundle->getQueueItems().empty()) {
+					break;
+				}
+				QueueItem* qi = *aBundle->getQueueItems().begin();
+
+				UploadManager::getInstance()->abortUpload(qi->getTarget());
+
+				auto& s = aBundle->getBundleDirs()[Util::getDir(qi->getTarget(), false, false)];
+				s.erase(std::remove(s.begin(), s.end(), qi), s.end());
+				if (qi->isRunning()) {
+
+				} else if(!qi->getTempTarget().empty() && qi->getTempTarget() != qi->getTarget()) {
+					File::deleteFile(qi->getTempTarget());
+				}
+
+				if(!qi->isFinished()) {
+					userQueue.removeQI(qi);
+				}
+
+				swap(aBundle->getQueueItems()[0], aBundle->getQueueItems()[aBundle->getQueueItems().size()-1]);
+				aBundle->getQueueItems().pop_back();
+
+				fileQueue.remove(qi, false);
 			}
 		}
 
-		fire(QueueManagerListener::BundleRemoved(), aBundle);
-
-		QueueItemList removeList = aBundle->getQueueItems();
-		for (auto i = removeList.begin(); i != removeList.end(); ++i) {
-			QueueItem* qi = *i;
-			auto& s = aBundle->getBundleDirs()[Util::getDir(qi->getTarget(), false, false)];
-			s.erase(std::remove(s.begin(), s.end(), qi), s.end());
-			remove(qi, true);
-			fileQueue.remove(qi, false);
+		for(auto i = x.begin(); i != x.end(); ++i) {
+			(*i)->disconnect(true);
 		}
 		removeBundle(aBundle, false);
 	}
@@ -4452,23 +4483,29 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 	if (finished) {
 		fire(QueueManagerListener::BundleFinished(), aBundle);
 		sendBundleFinished(aBundle);
-		string tmp;
+		/*string tmp;
 		if (!SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
 			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 64);	 
 			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
 			LogManager::getInstance()->message(tmp);
 			//LogManager::getInstance()->message("The Bundle " + bundle->getName() + " has finished downloading!");
-		}
-	} else {
+		} */
+	} //else {
 		//LogManager::getInstance()->message("The Bundle " + aBundle->getName() + " has been removed");
 
 		//clean finished files
 		{
 			Lock l (cs);
-			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
-				fileQueue.removeTTH(*i);
+			for (;;) {
+				if (aBundle->getFinishedFiles().empty()) {
+					break;
+				}
+				QueueItem* qi = *aBundle->getFinishedFiles().begin();
+				swap(aBundle->getFinishedFiles()[0], aBundle->getFinishedFiles()[aBundle->getFinishedFiles().size()-1]);
+				aBundle->getFinishedFiles().pop_back();
+				fileQueue.removeTTH(qi);
 			}
-		}
+	//	}
 
 		//fire(QueueManagerListener::BundleRemoved(), aBundle);
 	}
@@ -4478,6 +4515,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 		//handle dirs
 		if (!aBundle->getFileBundle()) {
 			for (auto i = aBundle->getBundleDirs().begin(); i != aBundle->getBundleDirs().end(); ++i) {
+				dcassert(i->second.empty());
 				string releaseDir = AirUtil::getReleaseDir(i->first);
 				if (!releaseDir.empty()) {
 					bundleDirs.erase(releaseDir);
@@ -4496,13 +4534,6 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 		File::deleteFile(aBundle->getBundleFile());
 	} catch(const FileException& /*e1*/) {
 		LogManager::getInstance()->message("ERROR WHEN DELETING BUNDLE XML: " + aBundle->getName() + " file: " + aBundle->getBundleFile());
-	}
-
-	if (finished) {
-		//this is the second one, decreased in sharescannermanager and sharemanager
-		aBundle->inc();
-	} else {
-		aBundle->dec();
 	}
 }
 

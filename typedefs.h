@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_TYPEDEFS_H_
 #define DCPLUSPLUS_DCPP_TYPEDEFS_H_
 
+#include <stdint.h>
 #include "forward.h"
 
 namespace dcpp {

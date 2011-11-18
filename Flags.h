@@ -1,6 +1,8 @@
 #ifndef DCPLUSPLUS_DCPP_FLAGS_H_
 #define DCPLUSPLUS_DCPP_FLAGS_H_
 
+#include <stdint.h>
+
 namespace dcpp {
 
 class Flags {

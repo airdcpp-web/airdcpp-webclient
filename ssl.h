@@ -7,6 +7,7 @@
 
 // enable this for compiling with OpenSSL
 #include <openssl/ssl.h>
+#include <stdint.h>
 
 namespace dcpp {
 

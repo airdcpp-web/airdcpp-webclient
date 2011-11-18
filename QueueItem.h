@@ -156,7 +156,7 @@ public:
 		inc();
 	}
 
-	~QueueItem() { }
+	~QueueItem();
 
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;

@@ -741,7 +741,6 @@ void ShareScannerManager::on(QueueManagerListener::BundleFilesMoved, const Bundl
 
 		reportResults(aBundle->getName(), 2, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 	}
-	aBundle->dec();
 }
 
 void ShareScannerManager::reportResults(const string& dir, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound) {

@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SFV_READER_H
 #define DCPLUSPLUS_DCPP_SFV_READER_H
 
+#include <stdint.h>
 #include <string>
 
 #include "noexcept.h"

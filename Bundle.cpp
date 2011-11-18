@@ -27,6 +27,10 @@
 
 namespace dcpp {
 
+Bundle::~Bundle() { 
+	//bla
+}
+
 uint64_t Bundle::getSecondsLeft() {
 	double avg = getSpeed();
 	return (avg > 0) ? static_cast<int64_t>((size - bytesDownloaded) / avg) : 0;
@@ -175,9 +179,8 @@ void Bundle::getQISources(HintedUserList& l) {
 }
 
 bool Bundle::addDownload(Download* d) {
-	bool downloadsEmpty = downloads.empty();
 	downloads.push_back(d);
-	return downloadsEmpty;
+	return downloads.size() == 1;
 }
 
 int Bundle::removeDownload(const string& token) {

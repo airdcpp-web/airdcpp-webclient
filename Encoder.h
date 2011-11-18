@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_ENCODER_H
 
 #include <string>
+#include <stdint.h>
 
 namespace dcpp {
 

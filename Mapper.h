@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_MAPPER_H
 #define DCPLUSPLUS_DCPP_MAPPER_H
 
+#include <stdint.h>
+
 namespace dcpp {
 
 /** abstract class to represent an implementation usable by MappingManager. */

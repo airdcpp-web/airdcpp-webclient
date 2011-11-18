@@ -2209,7 +2209,6 @@ void ShareManager::on(QueueManagerListener::BundleFilesMoved, const BundlePtr aB
 			}
 		}
 	}
-	aBundle->dec();
 }
 
 pair<ShareManager::Directory::Ptr, string> ShareManager::findDirectory(const string& fname) {

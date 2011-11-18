@@ -46,6 +46,10 @@ size_t QueueItem::countOnlineUsers() const {
 	return n;
 }
 
+QueueItem::~QueueItem() {
+	//bla
+}
+
 void QueueItem::getOnlineUsers(HintedUserList& l) const {
 	for(SourceConstIter i = sources.begin(), iend = sources.end(); i != iend; ++i)
 		if(i->getUser().user->isOnline())

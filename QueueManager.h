@@ -68,7 +68,7 @@ public:
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
 
-	void remove(QueueItem* qi, bool removeBundle=false) noexcept;
+	void remove(QueueItem* qi) noexcept;
 	void remove(const string aTarget) noexcept;
 	void removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
