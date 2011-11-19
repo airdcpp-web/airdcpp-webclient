@@ -241,7 +241,6 @@ int QueueManager::FileQueue::isTTHQueued(const TTHValue& tth) {
 }
 
 void QueueManager::FileQueue::addSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
-	return;
 	if (aBundle->getRecent()) {
 		dcassert(std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle) == recentSearchQueue.end());
 		recentSearchQueue.push_back(aBundle);
@@ -252,7 +251,6 @@ void QueueManager::FileQueue::addSearchPrio(BundlePtr aBundle, Bundle::Priority 
 }
 
 void QueueManager::FileQueue::removeSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
-	return;
 	if (aBundle->getRecent()) {
 		auto i = std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle);
 		dcassert(i != recentSearchQueue.end());
