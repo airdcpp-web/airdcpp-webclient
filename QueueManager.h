@@ -380,6 +380,7 @@ private:
 	static void moveFile_(const string& source, const string& target, BundlePtr aBundle);
 	void moveStuckFile(QueueItem* qi);
 	void rechecked(QueueItem* qi);
+	void fileEvent(const string& tgt, bool file = false);
 
 	string getListPath(const HintedUser& user);
 

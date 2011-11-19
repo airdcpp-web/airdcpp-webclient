@@ -164,13 +164,14 @@ const wstring& acpToWide(const string& str, wstring& tmp, const string& fromChar
 	if(str.empty())
 		return Util::emptyStringW;
 #ifdef _WIN32
-	int n = MultiByteToWideChar(getCodePage(fromCharset), MB_PRECOMPOSED, str.c_str(), (int)str.length(), NULL, 0);
+	const int codepage = getCodePage(fromCharset);
+	int n = MultiByteToWideChar(codepage, MB_PRECOMPOSED, str.c_str(), (int)str.length(), NULL, 0);
 	if(n == 0) {
 		return Util::emptyStringW;
 	}
 
 	tmp.resize(n);
-	n = MultiByteToWideChar(getCodePage(fromCharset), MB_PRECOMPOSED, str.c_str(), (int)str.length(), &tmp[0], n);
+	n = MultiByteToWideChar(codepage, MB_PRECOMPOSED, str.c_str(), (int)str.length(), &tmp[0], n);
 	if(n == 0) {
 		return Util::emptyStringW;
 	}
@@ -207,7 +208,7 @@ const string& wideToUtf8(const wstring& str, string& tgt) noexcept {
 		return Util::emptyString;
 	}
 #ifdef _WIN32
-	int size = 0;
+	wstring::size_type size = 0;
 	tgt.resize( str.length() * 2 );
 
 	while( ( size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], tgt.length(), NULL, NULL) ) == 0 ){
@@ -233,13 +234,14 @@ const string& wideToAcp(const wstring& str, string& tmp, const string& toCharset
 	if(str.empty())
 		return Util::emptyString;
 #ifdef _WIN32
-	int n = WideCharToMultiByte(getCodePage(toCharset), 0, str.c_str(), (int)str.length(), NULL, 0, NULL, NULL);
+	const int codepage = getCodePage(toCharset);
+	int n = WideCharToMultiByte(codepage, 0, str.c_str(), (int)str.length(), NULL, 0, NULL, NULL);
 	if(n == 0) {
 		return Util::emptyString;
 	}
 
 	tmp.resize(n);
-	n = WideCharToMultiByte(getCodePage(toCharset), 0, str.c_str(), (int)str.length(), &tmp[0], n, NULL, NULL);
+	n = WideCharToMultiByte(codepage, 0, str.c_str(), (int)str.length(), &tmp[0], n, NULL, NULL);
 	if(n == 0) {
 		return Util::emptyString;
 	}
@@ -282,7 +284,7 @@ const wstring& utf8ToWide(const string& str, wstring& tgt) noexcept {
 	if(str.empty()) //fix, no empty strings
 		return Util::emptyStringW;
 
-	int size = 0;
+	wstring::size_type size = 0;
 	tgt.resize( str.length()+1 );
 	while( ( size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], (int)tgt.length()) ) == 0 ){
 		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER ) {
@@ -349,7 +351,7 @@ const string& toUtf8(const string& str, const string& fromCharset, string& tmp) 
 	}
 	
 #ifdef _WIN32
-	if (fromCharset == utf8 || toLower(fromCharset, tmp) == utf8) {
+	if (checkUtf8(fromCharset, tmp)) {
 		return str;
 	}
 
@@ -365,7 +367,7 @@ const string& fromUtf8(const string& str, const string& toCharset, string& tmp) 
 	}
 	
 #ifdef _WIN32
-	if (toCharset == utf8 || toLower(toCharset, tmp) == utf8) {
+	if (checkUtf8(toCharset, tmp)) {
 		return str;
 	}
 
@@ -382,9 +384,9 @@ const string& convert(const string& str, string& tmp, const string& fromCharset,
 #ifdef _WIN32
 	if (stricmp(fromCharset, toCharset) == 0)
 		return str;
-	if(toCharset == utf8 || toLower(toCharset, tmp) == utf8)
+	if (checkUtf8(toCharset, tmp))
 		return acpToUtf8(str, tmp);
-	if(fromCharset == utf8 || toLower(fromCharset, tmp) == utf8)
+	if (checkUtf8(fromCharset, tmp))
 		return utf8ToAcp(str, tmp);
 
 	// We don't know how to convert arbitrary charsets

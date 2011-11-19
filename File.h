@@ -96,6 +96,7 @@ public:
 	static int64_t getSize(const string& aFileName) noexcept;
 
 	static void ensureDirectory(const string& aFile) noexcept;
+	static bool createDirectory(const string& aFile);
 	static bool isAbsolute(const string& path) noexcept;
 
 	virtual ~File() { File::close(); }

@@ -1308,5 +1308,6 @@ enum Strings { // @DontAdd
 	DOWNLOAD_ORDER, // "Download order"
 	PRIORITIES, // "Priorities"
 	SAVE_SHARE, // "Automatically save shares every "
+	USE_FTP_LOGGER, // "Use external sfv checking (ex. FTPLogger, Enable this only if you know what you are doing)  "
 	LAST // @DontAdd
 };

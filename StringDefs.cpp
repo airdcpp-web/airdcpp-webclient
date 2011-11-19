@@ -1301,6 +1301,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Download order", 
 "Priorities", 
 "Automatically save shares every ", 
+"Use external sfv checking (ex. FTPLogger, Enable this only if you know what you are doing)  ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2602,4 +2603,5 @@ std::string dcpp::ResourceManager::names[] = {
 "DownloadOrder", 
 "Priorities", 
 "SaveShare", 
+"UseFtpLogger", 
 };

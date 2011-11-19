@@ -95,12 +95,12 @@ void ShareManager::shutdown() {
 				bzXmlRef.reset(); 
 
 				if(!Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2"))				
-					File::renameFile(getBZXmlFile(), (Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2")); 
+					File::renameFile(getBZXmlFile(), ( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2") ); 
 				
 		} catch(...) {
 		//ignore, we just failed to delete
 		}
-	//abort buildtree, we are shutting down.
+	//abort buildtree and refresh, we are shutting down.
 	aShutdown = true;		
 }
 
@@ -463,17 +463,20 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			if(path[path.length() - 1] != PATH_SEPARATOR)
 				path += PATH_SEPARATOR;
 
+
 			if(!name.empty()) {
 				if(depth == 0) {
 						ShareManager::DirMap::const_iterator i = dirs.find(path); 
 						if(i != dirs.end()) {
 							cur = i->second;
 							cur->setRootPath(path);
+							lastFileIter = cur->files.begin();
 						}
 				} else if(cur) {
 					cur = ShareManager::Directory::create(name, cur);
 					cur->setLastWrite(static_cast<time_t>(Util::toInt(date)));
 					cur->getParent()->directories[cur->getName()] = cur;
+					lastFileIter = cur->files.begin();
 					try {
 					ShareManager::getInstance()->addReleaseDir(cur->getFullName());
 					}catch(...) { }
@@ -483,6 +486,8 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			if(simple) {
 				if(cur) {
 					cur = cur->getParent();
+					if(cur)
+						lastFileIter = cur->files.begin();
 				}
 			} else {
 				depth++;
@@ -496,11 +501,8 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			}
 			/*dont save TTHs, check them from hashmanager, just need path and size.
 			this will keep us sync to hashindex */
-			string filepath;
 			try {
-				filepath = cur->getRealPath(fname, true);
-				TTHValue tth = HashManager::getInstance()->getTTH(filepath, Util::toInt64(size));
-				cur->files.insert(ShareManager::Directory::File(fname, Util::toInt64(size), cur, tth));
+				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname, true), Util::toInt64(size))));
 			}catch(Exception& e) { 
 				dcdebug("Error loading filelist %s \n", e.getError().c_str());
 			}
@@ -511,6 +513,8 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			depth--;
 			if(cur) {
 				cur = cur->getParent();
+				if(cur)
+					lastFileIter = cur->files.begin();
 			}
 		}
 	}
@@ -518,6 +522,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 private:
 	ShareManager::DirMap& dirs;
 
+	ShareManager::Directory::File::Set::iterator lastFileIter;
 	ShareManager::Directory::Ptr cur;
 	size_t depth;
 };

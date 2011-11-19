@@ -157,7 +157,7 @@ const string SettingsManager::settingTags[] =
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
-	"ShareSaveTime", "RecentBundleHours",
+	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -166,6 +166,8 @@ const string SettingsManager::settingTags[] =
 
 SettingsManager::SettingsManager()
 {
+	//make sure it can fit our events without using push_back since
+	//that might cause them to be in the wrong position.
 	fileEvents.resize(2);
 
 	connectionSpeeds.push_back("0.1");
@@ -703,6 +705,7 @@ SettingsManager::SettingsManager()
 	setDefault(DOWNLOAD_ORDER, 0);
 	setDefault(SHARE_SAVE_TIME, 30);
 	setDefault(RECENT_BUNDLE_HOURS, 24);
+	setDefault(USE_FTP_LOGGER, false);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
@@ -800,7 +803,25 @@ void SettingsManager::load(string const& aFileName)
 			}
 			xml.stepOut();
 		}
-
+		
+		xml.resetCurrentChild();
+		if(xml.findChild("FileEvents")) {
+			xml.stepIn();
+			if(xml.findChild("OnFileComplete")) {
+				StringPair sp;
+				sp.first = xml.getChildAttrib("Command");
+				sp.second = xml.getChildAttrib("CommandLine");
+				fileEvents[ON_FILE_COMPLETE] = sp;
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("OnDirCreated")) {
+				StringPair sp;
+				sp.first = xml.getChildAttrib("Command");
+				sp.second = xml.getChildAttrib("CommandLine");
+				fileEvents[ON_DIR_CREATED] = sp;
+			}
+			xml.stepOut();
+		}
 
 		if(SETTING(PRIVATE_ID).length() != 39 || CID(SETTING(PRIVATE_ID)).isZero()) {
 			set(PRIVATE_ID, CID::generate().toBase32());
@@ -940,6 +961,16 @@ void SettingsManager::save(string const& aFileName) {
 		xml.addChildAttrib("Id", i->first);
 	}
 	xml.stepOut();*/
+	xml.addTag("FileEvents");
+	xml.stepIn();
+	xml.addTag("OnFileComplete");
+	xml.addChildAttrib("Command", fileEvents[ON_FILE_COMPLETE].first);
+	xml.addChildAttrib("CommandLine", fileEvents[ON_FILE_COMPLETE].second);
+	xml.addTag("OnDirCreated");
+	xml.addChildAttrib("Command", fileEvents[ON_DIR_CREATED].first);
+	xml.addChildAttrib("CommandLine", fileEvents[ON_DIR_CREATED].second);
+	xml.stepOut();
+
 
 	fire(SettingsManagerListener::Save(), xml);
 

@@ -196,6 +196,30 @@ void File::ensureDirectory(const string& aFile) noexcept {
 	}
 }
 
+bool File::createDirectory(const string& aFile) {
+	// Skip the first dir...
+	int result = 0;
+	tstring file;
+	Text::toT(aFile, file);
+	wstring::size_type start = file.find_first_of(L"\\/");
+	if(start == string::npos)
+		return false;
+	start++;
+	while( (start = file.find_first_of(L"\\/", start)) != string::npos) {
+		result = CreateDirectory(file.substr(0, start+1).c_str(), NULL);
+		start++;
+	}
+	if(result == 0) {
+		result = GetLastError();
+		if(result == ERROR_ALREADY_EXISTS || result == ERROR_SUCCESS)
+			return false;
+		else if(result == ERROR_PATH_NOT_FOUND) //we can't recover from this gracefully.
+			throw FileException(Util::translateError(result));
+	}
+
+	return true;
+}
+
 bool File::isAbsolute(const string& path) noexcept {
 	return path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\');
 }

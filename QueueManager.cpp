@@ -1117,7 +1117,91 @@ string QueueManager::getListPath(const HintedUser& user) {
 	string nick = nicks.empty() ? Util::emptyString : Util::cleanPathChars(nicks[0]) + ".";
 	return checkTarget(Util::getListPath() + nick + user.user->getCID().toBase32(), /*checkExistence*/ false);
 }
-	
+
+//fuldc ftp logger support
+void QueueManager::fileEvent(const string& tgt, bool file /*false*/) {
+	string target = tgt;
+if(file) {
+		if(File::getSize(target) != -1) {
+			StringPair sp = SettingsManager::getInstance()->getFileEvent(SettingsManager::ON_FILE_COMPLETE);
+			if(sp.first.length() > 0) {
+				STARTUPINFO si = { sizeof(si), 0 };
+				PROCESS_INFORMATION pi = { 0 };
+				StringMap params;
+				params["file"] = target;
+				wstring cmdLine = Text::toT(Util::formatParams(sp.second, params, false));
+				wstring cmd = Text::toT(sp.first);
+
+				AutoArray<TCHAR> cmdLineBuf(cmdLine.length() + 1);
+				_tcscpy(cmdLineBuf, cmdLine.c_str());
+
+				AutoArray<TCHAR> cmdBuf(cmd.length() + 1);
+				_tcscpy(cmdBuf, cmd.c_str());
+
+				if(::CreateProcess(cmdBuf, cmdLineBuf, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+					::CloseHandle(pi.hThread);
+					::CloseHandle(pi.hProcess);
+				}
+			}
+		}
+} else {
+	if(File::createDirectory(target)) {
+		StringPair sp = SettingsManager::getInstance()->getFileEvent(SettingsManager::ON_DIR_CREATED);
+		if(sp.first.length() > 0) {
+			STARTUPINFO si = { sizeof(si), 0 };
+			PROCESS_INFORMATION pi = { 0 };
+			StringMap params;
+			params["dir"] = target;
+			wstring cmdLine = Text::toT(Util::formatParams(sp.second, params, true));
+			wstring cmd = Text::toT(sp.first);
+
+			AutoArray<TCHAR> cmdLineBuf(cmdLine.length() + 1);
+			_tcscpy(cmdLineBuf, cmdLine.c_str());
+
+			AutoArray<TCHAR> cmdBuf(cmd.length() + 1);
+			_tcscpy(cmdBuf, cmd.c_str());
+
+			if(::CreateProcess(cmdBuf, cmdLineBuf, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+				//wait for the process to finish executing
+				if(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE)) {
+					DWORD code = 0;
+					//retrieve the error code to check if we should stop this download.
+					if(0 != GetExitCodeProcess(pi.hProcess, &code)) {
+						if(code != 0) { //assume 0 is the only valid return code, everything else is an error
+							string::size_type end = target.find_last_of("\\/");
+							if(end != string::npos) {
+								tstring tmp = Text::toT(target.substr(0, end));
+								RemoveDirectory(tmp.c_str());
+
+								//the directory we removed might be a sub directory of
+								//the real one, check to see if that's the case.
+								end = tmp.find_last_of(_T("\\/"));
+								if(end != string::npos) {
+									tstring dir = tmp.substr(end+1);
+									if( strnicmp(dir, _T("sample"), 6) == 0 ||
+										strnicmp(dir, _T("subs"), 4) == 0 ||
+										strnicmp(dir, _T("cover"), 5) == 0 ||
+										strnicmp(dir, _T("cd"), 2) == 0) {
+											RemoveDirectory(tmp.substr(0, end).c_str());
+									}
+								}
+								
+								::CloseHandle(pi.hThread);
+								::CloseHandle(pi.hProcess);
+
+								throw QueueException("An external sfv tool stopped the download of this file");
+							}
+						}
+					}
+				}
+				
+				::CloseHandle(pi.hThread);
+				::CloseHandle(pi.hProcess);
+				}
+			}
+		}
+	}
+}
 void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,
 					   Flags::MaskType aFlags /* = 0 */, BundlePtr aBundle, bool addBad /* = true */) throw(QueueException, FileException)
 {
@@ -1150,7 +1234,12 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		}
 		tempTarget = aTarget;
 	} else {
-		target = checkTarget(aTarget, /*checkExistence*/ true, aBundle);
+		if(BOOLSETTING(USE_FTP_LOGGER)) {
+			target = checkTarget(aTarget, /*checkExistence*/ false);
+			fileEvent(target);
+		} else
+			target = checkTarget(aTarget, /*checkExistence*/ true);
+	
 	}
 
 	// Check if it's a zero-byte file, if so, create and return...
@@ -1735,6 +1824,8 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 			LogManager::getInstance()->message(STRING(UNABLE_TO_RENAME) + " " + source + ": " + e2.getError());
 		}
 	}
+	if(BOOLSETTING(USE_FTP_LOGGER))
+		getInstance()->fileEvent(target, true);
 
 	//dcassert(aBundle);
 	if (!aBundle) {

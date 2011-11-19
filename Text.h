@@ -110,7 +110,7 @@ namespace Text {
 		return (wchar_t)towlower(c);
 #endif
 	}
-	
+
 	const wstring& toLower(const wstring& str, wstring& tmp) noexcept;
 	inline wstring toLower(const wstring& str) noexcept {
 		wstring tmp;
@@ -140,7 +140,15 @@ namespace Text {
 		string tmp;
 		return fromUtf8(str, toCharset, tmp);
 	}
-	
+
+	inline bool checkUtf8(const string& charset, string& lowerCharset) {
+		//compare size first will hopefully avoid a few lower conversions
+		if(utf8.size() == charset.size() && (charset == utf8 || toLower(charset, lowerCharset) == utf8)) 
+			return true;
+		else
+			return false;
+	}
+
 	string toDOS(string tmp);
 	wstring toDOS(wstring tmp);
 	
