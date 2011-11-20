@@ -32,8 +32,9 @@
 #include "BloomFilter.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
-#include "../client/LogManager.h"
+#include "LogManager.h"
 #include "pme.h"
+#include "AirUtil.h"
 
 namespace dcpp {
 
@@ -87,6 +88,7 @@ public:
 	}
 
 	void Startup() {
+		AirUtil::setSkiplist();
 		if(!loadCache())
 			refresh(REFRESH_ALL | REFRESH_BLOCKING);
 	}
@@ -204,29 +206,37 @@ private:
 
 			File() : size(0), parent(0) { }
 			File(const string& aName, int64_t aSize, Directory::Ptr aParent, const TTHValue& aRoot) : 
-				name(aName), tth(aRoot), size(aSize), parent(aParent.get()) { }
+				name(aName), tth(aRoot), size(aSize), parent(aParent.get()), nameLower(Text::toLower(aName)) { }
 			File(const File& rhs) : 
-				name(rhs.getName()), tth(rhs.getTTH()), size(rhs.getSize()), parent(rhs.getParent()) { }
+				name(rhs.getName()), tth(rhs.getTTH()), size(rhs.getSize()), parent(rhs.getParent()), nameLower(Text::toLower(rhs.getName())) { }
 
 			~File() { }
 
 			File& operator=(const File& rhs) {
-				name = rhs.name; size = rhs.size; parent = rhs.parent; tth = rhs.tth;
+				name = rhs.name; size = rhs.size; parent = rhs.parent; tth = rhs.tth; nameLower = Text::toLower(rhs.name);
 				return *this;
 			}
 
 			bool operator==(const File& rhs) const {
 				return getParent() == rhs.getParent() && (stricmp(getName(), rhs.getName()) == 0);
 			}
-
+		
 			string getADCPath() const { return parent->getADCPath() + name; }
 			string getFullName() const { return parent->getFullName() + name; }
 			string getRealPath() const { return parent->getRealPath(name); }
+			const string& getName() const { return name; }
+			const string& getNameLower() const { return nameLower; }
+			void setName(const string& aName) { name = aName; nameLower = Text::toLower(aName); }
+
 
 			GETSET(TTHValue, tth, TTH);
-			GETSET(string, name, Name);
+			//GETSET(string, name, Name);
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
+		private:
+			string name;
+			string nameLower;
+
 		};
 
 		Map directories;
@@ -260,11 +270,15 @@ private:
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 
-	//	void merge(const Ptr& source);
 		string find(const string& dir, bool validateDir);
 
+		const string& getName() const { return name; }
+		const string& getNameLower() const { return nameLower; }
+		void setName(const string& aName) { name = aName; nameLower = Text::toLower(aName); }
+
+
 		GETSET(time_t, lastwrite, LastWrite);
-		GETSET(string, name, Name);
+		//GETSET(string, name, Name);
 		GETSET(string, rootpath, RootPath); //saved only for root items.
 		GETSET(Directory*, parent, Parent);
 	private:
@@ -272,6 +286,9 @@ private:
 
 		Directory(const string& aName, const Ptr& aParent);
 		~Directory() { }
+		
+		string name;
+		string nameLower;
 
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;

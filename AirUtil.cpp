@@ -23,6 +23,21 @@ void AirUtil::init() {
 	subDirReg.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
 	subDirReg.study();
 }
+void AirUtil::setSkiplist() {
+	try{
+	skiplistReg.assign(SETTING(SKIPLIST_SHARE));
+	}catch(...) {
+		LogManager::getInstance()->message("Error setting Share skiplist!");
+	}
+}
+bool AirUtil::matchSkiplist(const string& str) {
+	try {
+	if(boost::regex_search(str.begin(), str.end(), skiplistReg))
+		return true;
+	}catch(...) { }
+
+	return false;
+}
 
 string AirUtil::getReleaseDir(const string& aName) {
 	//LogManager::getInstance()->message("aName: " + aName);

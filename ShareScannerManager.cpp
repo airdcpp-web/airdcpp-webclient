@@ -61,8 +61,8 @@ int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 	}
 	isCheckSFV = false;
 	isDirScan = false;
-	skipListReg.Init(SETTING(SKIPLIST_SHARE));
-	skipListReg.study();
+	//skipListReg.Init(SETTING(SKIPLIST_SHARE));
+	//skipListReg.study();
 
 	if(sfv) {
 		isCheckSFV = true;
@@ -185,13 +185,7 @@ int ShareScannerManager::run() {
 bool ShareScannerManager::matchSkipList(const string& dir) {
 	if (SETTING(CHECK_USE_SKIPLIST)) {
 		if (BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)) {
-			try {
-				if (skipListReg.match(dir) > 0) {
-					return true;
-				} else {
-					return false;
-				}
-			} catch(...) { }
+			return AirUtil::matchSkiplist(dir);
 		} else {
 			try {
 				if (Wildcard::patternMatch(Text::utf8ToAcp(dir), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|')) {

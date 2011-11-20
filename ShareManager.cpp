@@ -65,7 +65,7 @@ ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	TimerManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
-
+	
 }
 
 ShareManager::~ShareManager() {
@@ -996,23 +996,12 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			continue;
 
 		if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
-			string str1 = SETTING(SKIPLIST_SHARE);
-			string str2 = name;
-			try {
-				boost::regex reg(str1);
-				if(boost::regex_search(str2.begin(), str2.end(), reg)){
-					if(BOOLSETTING(REPORT_SKIPLIST))
+			if(AirUtil::matchSkiplist(Text::utf8ToAcp(name))) {
+				if(BOOLSETTING(REPORT_SKIPLIST))
 					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(i->getSize()) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
 					
-					continue;
-				};
-			} catch(...) {
-			}
-			/*PME regexp;
-			regexp.Init(Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)));
-			if((regexp.IsValid()) && (regexp.match(Text::utf8ToAcp(name)))) {
 				continue;
-			}*/
+			}
 		}else{
 			try{
 			if( Wildcard::patternMatch( Text::utf8ToAcp(name), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' ) ){   // or validate filename for bad chars?
@@ -1853,7 +1842,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 
 	// Find any matches in the directory name
 	for(StringSearch::List::const_iterator k = aStrings.begin(); k != aStrings.end(); ++k) {
-		if(k->match(name)) {
+		if(k->matchLower(nameLower)) {
 			if(!newStr.get()) {
 				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(aStrings));
 			}
@@ -1883,7 +1872,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 				continue;
 			}	
 			StringSearch::List::const_iterator j = cur->begin();
-			for(; j != cur->end() && j->match(i->getName()); ++j) 
+			for(; j != cur->end() && j->matchLower(i->getNameLower()); ++j) 
 				;	// Empty
 			
 			if(j != cur->end())
@@ -2011,7 +2000,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 	// Find any matches in the directory name
 	for(StringSearch::List::const_iterator k = cur->begin(); k != cur->end(); ++k) {
-		if(k->match(name) && !aStrings.isExcluded(name)) {
+		if(k->matchLower(nameLower) && !aStrings.isExcluded(name)) {
 			if(!newStr.get()) {
 				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(*cur));
 			}
@@ -2044,7 +2033,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 				continue;
 
 			StringSearch::List::const_iterator j = cur->begin();
-			for(; j != cur->end() && j->match(i->getName()); ++j) 
+			for(; j != cur->end() && j->matchLower(i->getNameLower()); ++j) 
 				;	// Empty
 
 			if(j != cur->end())

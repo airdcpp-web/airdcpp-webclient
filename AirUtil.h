@@ -11,11 +11,14 @@ namespace dcpp {
 
 static PME releaseReg;
 static PME subDirReg;
+static boost::regex skiplistReg; //boost is faster on this??
 
 class AirUtil {
 	
 	public:
 		static void init();
+		static void setSkiplist();
+		static bool matchSkiplist(const string& str);
 		static string getLocalIp();
 		static string getLocale();
 		static void setProfile(int profile, bool setSkiplist=false);
