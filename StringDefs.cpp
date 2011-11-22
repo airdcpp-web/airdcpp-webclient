@@ -1302,6 +1302,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Priorities", 
 "Automatically save shares every ", 
 "Use external sfv checking (ex. FTPLogger, Enable this only if you know what you are doing)  ", 
+"The selected Theme has custom icons, do you wish to load them?\r\n You will need to restart airdc++ for the icons to load.", 
+"Restore Default icons?\r\n You will need to restart airdc++ for the icons to load.", 
+"Default Icons", 
+"Themes: ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2604,4 +2608,8 @@ std::string dcpp::ResourceManager::names[] = {
 "Priorities", 
 "SaveShare", 
 "UseFtpLogger", 
+"IconsInTheme", 
+"IconsRestore", 
+"IconsDefault", 
+"ThemeText", 
 };

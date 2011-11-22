@@ -192,9 +192,11 @@ void Util::initialize() {
 	paths[PATH_NOTEPAD] = paths[PATH_USER_CONFIG] + "Notepad.txt";
 	paths[PATH_EMOPACKS] = paths[PATH_RESOURCES] + "EmoPacks" PATH_SEPARATOR_STR;
 	paths[PATH_BUNDLES] = paths[PATH_USER_LOCAL] + "Bundles" PATH_SEPARATOR_STR;
-	
+	paths[PATH_THEMES] = paths[PATH_GLOBAL_CONFIG] + "Themes" PATH_SEPARATOR_STR;
+
 	File::ensureDirectory(paths[PATH_USER_CONFIG]);
 	File::ensureDirectory(paths[PATH_USER_LOCAL]);
+	File::ensureDirectory(paths[PATH_THEMES]);
 	
 	try {
 		// This product includes GeoIP data created by MaxMind, available from http://maxmind.com/

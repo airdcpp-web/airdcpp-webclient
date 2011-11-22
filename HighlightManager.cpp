@@ -49,9 +49,9 @@ void HighlightManager::load(SimpleXML& aXml){
 			cs.setWholeLine( aXml.getBoolChildAttrib("WholeLine") );
 			cs.setWholeWord( aXml.getBoolChildAttrib("WholeWord") );
 			cs.setPopup( aXml.getBoolChildAttrib("Popup") );
-			cs.setTab( aXml.getBoolChildAttrib("Tab") );
+			//cs.setTab( aXml.getBoolChildAttrib("Tab") );
 			cs.setPlaySound( aXml.getBoolChildAttrib("PlaySound") );
-			cs.setLog( aXml.getBoolChildAttrib("LastLog") );
+			//cs.setLog( aXml.getBoolChildAttrib("LastLog") );
 			cs.setFlashWindow( aXml.getBoolChildAttrib("FlashWindow") );
 			cs.setMatchType( aXml.getIntChildAttrib("MatchType") );
 			cs.setHasFgColor( aXml.getBoolChildAttrib("HasFgColor") );
@@ -86,9 +86,9 @@ void HighlightManager::save(SimpleXML& aXml){
 		aXml.addChildAttrib("WholeLine", (*iter).getWholeLine());
 		aXml.addChildAttrib("WholeWord", (*iter).getWholeWord());
 		aXml.addChildAttrib("Popup", (*iter).getPopup());
-		aXml.addChildAttrib("Tab", (*iter).getTab());
+		//aXml.addChildAttrib("Tab", (*iter).getTab());
 		aXml.addChildAttrib("PlaySound", (*iter).getPlaySound());
-		aXml.addChildAttrib("LastLog", (*iter).getLog());
+		//aXml.addChildAttrib("LastLog", (*iter).getLog());
 		aXml.addChildAttrib("FlashWindow", (*iter).getFlashWindow() );
 		aXml.addChildAttrib("MatchType", (*iter).getMatchType());
 		aXml.addChildAttrib("HasFgColor", (*iter).getHasFgColor());

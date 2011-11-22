@@ -1309,5 +1309,9 @@ enum Strings { // @DontAdd
 	PRIORITIES, // "Priorities"
 	SAVE_SHARE, // "Automatically save shares every "
 	USE_FTP_LOGGER, // "Use external sfv checking (ex. FTPLogger, Enable this only if you know what you are doing)  "
+	ICONS_IN_THEME, // "The selected Theme has custom icons, do you wish to load them?\r\n You will need to restart airdc++ for the icons to load."
+	ICONS_RESTORE, // "Restore Default icons?\r\n You will need to restart airdc++ for the icons to load."
+	ICONS_DEFAULT, // "Default Icons"
+	THEME_TEXT, // "Themes: "
 	LAST // @DontAdd
 };

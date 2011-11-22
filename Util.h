@@ -158,6 +158,8 @@ public:
 		PATH_EMOPACKS,
 		/** XML files for each bundle*/
 		PATH_BUNDLES,
+		/** Path to Theme Files*/
+		PATH_THEMES,
 		PATH_LAST
 	};
 

@@ -206,14 +206,14 @@ private:
 
 			File() : size(0), parent(0) { }
 			File(const string& aName, int64_t aSize, Directory::Ptr aParent, const TTHValue& aRoot) : 
-				name(aName), tth(aRoot), size(aSize), parent(aParent.get()), nameLower(Text::toLower(aName)) { }
+				name(aName), tth(aRoot), size(aSize), parent(aParent.get()) { }
 			File(const File& rhs) : 
-				name(rhs.getName()), tth(rhs.getTTH()), size(rhs.getSize()), parent(rhs.getParent()), nameLower(Text::toLower(rhs.getName())) { }
+				name(rhs.getName()), tth(rhs.getTTH()), size(rhs.getSize()), parent(rhs.getParent()) { }
 
 			~File() { }
 
 			File& operator=(const File& rhs) {
-				name = rhs.name; size = rhs.size; parent = rhs.parent; tth = rhs.tth; nameLower = Text::toLower(rhs.name);
+				name = rhs.name; size = rhs.size; parent = rhs.parent; tth = rhs.tth;
 				return *this;
 			}
 
@@ -224,18 +224,11 @@ private:
 			string getADCPath() const { return parent->getADCPath() + name; }
 			string getFullName() const { return parent->getFullName() + name; }
 			string getRealPath() const { return parent->getRealPath(name); }
-			const string& getName() const { return name; }
-			const string& getNameLower() const { return nameLower; }
-			void setName(const string& aName) { name = aName; nameLower = Text::toLower(aName); }
-
 
 			GETSET(TTHValue, tth, TTH);
-			//GETSET(string, name, Name);
+			GETSET(string, name, Name);
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
-		private:
-			string name;
-			string nameLower;
 
 		};
 
@@ -272,13 +265,9 @@ private:
 
 		string find(const string& dir, bool validateDir);
 
-		const string& getName() const { return name; }
-		const string& getNameLower() const { return nameLower; }
-		void setName(const string& aName) { name = aName; nameLower = Text::toLower(aName); }
-
 
 		GETSET(time_t, lastwrite, LastWrite);
-		//GETSET(string, name, Name);
+		GETSET(string, name, Name);
 		GETSET(string, rootpath, RootPath); //saved only for root items.
 		GETSET(Directory*, parent, Parent);
 	private:
@@ -286,9 +275,6 @@ private:
 
 		Directory(const string& aName, const Ptr& aParent);
 		~Directory() { }
-		
-		string name;
-		string nameLower;
 
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;

@@ -28,9 +28,9 @@ class ColorSettings
 public:
 	ColorSettings(): bTimestamps(false), bUsers(false), bMyNick(false), bUsingRegexp(false), 
 		strMatch(Util::emptyStringT), strSoundFile(Util::emptyStringT), bWholeWord(false), 
-		bWholeLine(false), bIncludeNickList(false), bCaseSensitive(false), bPopup(false), bTab(false),
+		bWholeLine(false), bIncludeNickList(false), bCaseSensitive(false), bPopup(false), /*bTab(false),*/
 		bPlaySound(false), bBold(false), bUnderline(false), bItalic(false), bStrikeout(false), 
-		bLastLog(false), bFlashWindow(false), iMatchType(1), iBgColor(0), iFgColor(0), bHasBgColor(false),
+		/*bLastLog(false),*/ bFlashWindow(false), iMatchType(1), iBgColor(0), iFgColor(0), bHasBgColor(false),
 		bHasFgColor(false) {	}
 	~ColorSettings(){};
 
@@ -39,13 +39,13 @@ public:
 	GETSET(bool, bIncludeNickList, IncludeNickList);
 	GETSET(bool, bCaseSensitive, CaseSensitive);
 	GETSET(bool, bPopup, Popup);
-	GETSET(bool, bTab, Tab);
+	//GETSET(bool, bTab, Tab);
 	GETSET(bool, bPlaySound, PlaySound);
 	GETSET(bool, bBold, Bold);
 	GETSET(bool, bUnderline, Underline);
 	GETSET(bool, bItalic, Italic);
 	GETSET(bool, bStrikeout, Strikeout);
-	GETSET(bool, bLastLog, Log);
+	//GETSET(bool, bLastLog, Log);
 	GETSET(bool, bFlashWindow, FlashWindow);
 	GETSET(int,  iMatchType, MatchType);
 	GETSET(int,  iBgColor, BgColor);

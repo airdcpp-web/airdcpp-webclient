@@ -66,7 +66,7 @@ const string SettingsManager::settingTags[] =
 	"AntivirPath",
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
-	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList",
+	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",
 
 	"SENTRY", 
 	// Ints
@@ -706,6 +706,7 @@ SettingsManager::SettingsManager()
 	setDefault(SHARE_SAVE_TIME, 30);
 	setDefault(RECENT_BUNDLE_HOURS, 24);
 	setDefault(USE_FTP_LOGGER, false);
+	setDefault(ICON_PATH, "icons");
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

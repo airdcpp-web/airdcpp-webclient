@@ -1842,7 +1842,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 
 	// Find any matches in the directory name
 	for(StringSearch::List::const_iterator k = aStrings.begin(); k != aStrings.end(); ++k) {
-		if(k->matchLower(nameLower)) {
+		if(k->match(name)) {
 			if(!newStr.get()) {
 				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(aStrings));
 			}
@@ -1872,7 +1872,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 				continue;
 			}	
 			StringSearch::List::const_iterator j = cur->begin();
-			for(; j != cur->end() && j->matchLower(i->getNameLower()); ++j) 
+			for(; j != cur->end() && j->match(i->getName()); ++j) 
 				;	// Empty
 			
 			if(j != cur->end())
@@ -2000,7 +2000,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 	// Find any matches in the directory name
 	for(StringSearch::List::const_iterator k = cur->begin(); k != cur->end(); ++k) {
-		if(k->matchLower(nameLower) && !aStrings.isExcluded(name)) {
+		if(k->match(name) && !aStrings.isExcluded(name)) {
 			if(!newStr.get()) {
 				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(*cur));
 			}
@@ -2033,7 +2033,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 				continue;
 
 			StringSearch::List::const_iterator j = cur->begin();
-			for(; j != cur->end() && j->matchLower(i->getNameLower()); ++j) 
+			for(; j != cur->end() && j->match(i->getName()); ++j) 
 				;	// Empty
 
 			if(j != cur->end())
