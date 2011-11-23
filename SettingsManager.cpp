@@ -653,7 +653,7 @@ SettingsManager::SettingsManager()
 	setDefault(SKIP_MSG_01, "*DISK2*|*cd2*");
 	setDefault(SKIP_MSG_02, "*sample*");
 	setDefault(SKIP_MSG_03, "*cover*");
-	setDefault(REFRESH_VNAME_ON_SHAREPAGE, true);
+	setDefault(REFRESH_VNAME_ON_SHAREPAGE, false);
 	setDefault(AUTO_ADD_SOURCE, true);
 	setDefault(KEEP_FINISHED_FILES, false);
 	setDefault(ALLOW_NAT_TRAVERSAL, true);
