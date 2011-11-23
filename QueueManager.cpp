@@ -1087,10 +1087,14 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle) {
 			if (!aBundle->getRecent()) {
 				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", queued " + Util::toString(searches.size()) + " search(es), next search in " + Util::toString((nextSearch - GET_TICK()) / (60*1000)) + " minutes");
 			} else {
-				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", queued " + Util::toString(searches.size()) + " recent search(es), next recent search in " + Util::toString((nextRecentSearch - GET_TICK()) / (60*1000)) + " minutes and normal search in " + Util::toString((nextSearch - GET_TICK()) / (60*1000)) + " minutes");
+				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", queued " + Util::toString(searches.size()) + " recent search(es), next recent search in " + Util::toString((nextRecentSearch - GET_TICK()) / (60*1000)) + " minutes");
 			}
 		} else {
-			LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::formatTime(nextSearch - GET_TICK()));
+			if (!aBundle->getRecent()) {
+				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::toString((nextSearch - GET_TICK()) / (60*1000)) + " minutes");
+			} else {
+				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next recent search in " + Util::toString((nextRecentSearch - GET_TICK()) / (60*1000)) + " minutes");
+			}
 		}
 	}
 }
@@ -1837,6 +1841,7 @@ void QueueManager::onBundleFilesMoved(BundlePtr aBundle) {
 	}
 
 	if(BOOLSETTING(ADD_FINISHED_INSTANTLY) && ShareManager::getInstance()->isBundleShared(aBundle)) {
+		aBundle->setFlag(Bundle::FLAG_HASH);
 		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
 			QueueItem* qi = *i;
 			if (AirUtil::checkSharedName(Util::getFileName(qi->getTarget()), false, false) && Util::fileExists(qi->getTarget())) {
@@ -1858,17 +1863,29 @@ void QueueManager::onBundleFilesMoved(BundlePtr aBundle) {
 			aBundle->getFinishedFiles().erase(i);
 			fileQueue.remove(qi);
 		}
-	} else if (!BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
+	} else if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 		LogManager::getInstance()->message("The bundle " + aBundle->getName() + " isn't in a shared folder, please add it in share manually");
+	} else {
+		LogManager::getInstance()->message("The instant sharing feature is disabled, please add the bundle in share manually");
 	}
-
-	//fire(QueueManagerListener::BundleFilesMoved(), aBundle);
 }
 
 void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool failed) {
 	//LogManager::getInstance()->message("onFileHashed");
+	QueueItem* qi = NULL;
 	Lock l (cs);
-	QueueItem* qi = fileQueue.find(fname);
+	if (failed) {
+		qi = fileQueue.find(fname);
+	} else {
+		QueueItemList ql = fileQueue.find(root);
+		for (auto s = ql.begin(); s != ql.end(); ++s) {
+			if ((*s)->getTargetFileName() == Util::getFileName(fname)) {
+				qi = (*s);
+				break;
+			}
+		}
+	}
+
 	if (!qi) {
 		//LogManager::getInstance()->message("onFileHashed, no QI");
 		if (!failed) {
@@ -1887,13 +1904,18 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 	}
 
 	if (b->getHashed() == b->getFinishedFiles().size()) {
-		if (b->isSet(Bundle::FLAG_HASH_FAILED)) {
-			for (auto i = b->getFinishedFiles().begin(); i != b->getFinishedFiles().end(); ++i) {
-				(*i)->dec();
+		if (b->isSet(Bundle::FLAG_HASH)) {
+			if (!b->isSet(Bundle::FLAG_HASH_FAILED)) {
+				fire(QueueManagerListener::BundleHashed(), b);
+			} else {
+				for (auto i = b->getFinishedFiles().begin(); i != b->getFinishedFiles().end(); ++i) {
+					(*i)->dec();
+				}
+				LogManager::getInstance()->message("Failed to hash the bundle " + b->getName() + ", not shared");
 			}
-			LogManager::getInstance()->message("Failed to hash the bundle " + b->getName() + ", not shared");
 		} else {
-			fire(QueueManagerListener::BundleHashed(), b);
+			//instant sharing disabled/the folder wasn't shared when the bundle finished
+			LogManager::getInstance()->message("The bundle " + b->getName() + " has been finished hashing");
 		}
 	}
 
@@ -2736,24 +2758,30 @@ private:
 };
 
 void QueueManager::loadQueue() noexcept {
-	try {
-		QueueLoader l;
-		Util::migrate(getQueueFile());
+	QueueLoader l;
+	Util::migrate(getQueueFile());
 
-		StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
-		for (StringIter i = fileList.begin(); i != fileList.end(); ++i) {
-			//LogManager::getInstance()->message("LOADING BUNDLE1: " + *i);
-			if ((*i).substr((*i).length()-4, 4) == ".xml") {
-				//LogManager::getInstance()->message("LOADING BUNDLE2: " + *i);
+	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
+	for (StringIter i = fileList.begin(); i != fileList.end(); ++i) {
+		//LogManager::getInstance()->message("LOADING BUNDLE1: " + *i);
+		if ((*i).substr((*i).length()-4, 4) == ".xml") {
+			//LogManager::getInstance()->message("LOADING BUNDLE2: " + *i);
+			try {
 				File f(*i, File::READ, File::OPEN);
 				SimpleXMLReader(&l).parse(f);
+			} catch(const Exception&) {
+				LogManager::getInstance()->message("Failed to load the bundle: " + *i);
 			}
 		}
+	}
 
-		//load the old queue file
+	try {
+		//load the old queue file and delete it
 		File f(getQueueFile(), File::READ, File::OPEN);
 		SimpleXMLReader(&l).parse(f);
+		File::deleteFile(getQueueFile());
 	} catch(const Exception&) {
+		getQueueFile();
 		//LogManager::getInstance()->message("QUEUEUEUEUE EXCEPTION");
 		// ...
 	}
@@ -3718,7 +3746,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 
 	}
 
-	if (!loading && BOOLSETTING(AUTO_SEARCH)) {
+	if (!loading && BOOLSETTING(AUTO_SEARCH) && aBundle->getPriority() != Bundle::PAUSED) {
 		searchBundle(aBundle, true);
 	}
 	return true;
