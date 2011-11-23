@@ -35,6 +35,7 @@
 #include "ClientManagerListener.h"
 #include "LogManager.h"
 #include "pme.h"
+#include "HashManager.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -48,7 +49,7 @@ class ConnectionQueueItem;
 class QueueLoader;
 
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 
-	private SearchManagerListener, private ClientManagerListener
+	private SearchManagerListener, private ClientManagerListener, private HashManagerListener
 {
 public:
 	/** Add a file to the queue. */
@@ -235,7 +236,7 @@ public:
 	public:
 		FileQueue() : targetMapInsert(queue.end()), queueSize(0) { }
 		~FileQueue();
-		void add(QueueItem* qi, bool addFinished, bool addTTH = true);
+		void add(QueueItem* qi, bool addFinished);
 		QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
 			const string& aTempTarget, time_t aAdded, const TTHValue& root)
 			throw(QueueException, FileException);
@@ -256,8 +257,7 @@ public:
 		size_t getSize() { return queue.size(); }
 		QueueItem::StringMap& getQueue() { return queue; }
 		void move(QueueItem* qi, const string& aTarget);
-		void remove(QueueItem* qi, bool isFinished = false);
-		void removeTTH(QueueItem* qi);
+		void remove(QueueItem* qi);
 		int isTTHQueued(const TTHValue& tth);
 
 		uint64_t getTotalQueueSize() { return queueSize; };
@@ -381,6 +381,8 @@ private:
 	void moveStuckFile(QueueItem* qi);
 	void rechecked(QueueItem* qi);
 	void fileEvent(const string& tgt, bool file = false);
+	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
+	void onBundleFilesMoved(BundlePtr aBundle);
 
 	string getListPath(const HintedUser& user);
 
@@ -390,6 +392,10 @@ private:
 	
 	// SearchManagerListener
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
+	
+	// HashManagerListener
+	void on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) noexcept { onFileHashed(fname, root, false); }
+	void on(HashManagerListener::HashFailed, const string& fname) noexcept { onFileHashed(fname, TTHValue(Util::emptyString), true); }
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const UserPtr& aUser) noexcept;

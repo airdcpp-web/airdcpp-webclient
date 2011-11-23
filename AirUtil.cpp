@@ -13,6 +13,7 @@
 #include "SimpleXML.h"
 #include "Socket.h"
 #include "LogManager.h"
+#include "Wildcards.h"
 #include <locale.h>
 
 namespace dcpp {
@@ -492,6 +493,71 @@ string AirUtil::getPrioText(int prio) {
 		case 5: return STRING(HIGHEST);
 		default: return STRING(PAUSED);
 	}
+}
+
+
+bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*/) {
+	if(aName.empty()) {
+		LogManager::getInstance()->message("Invalid file name found while hashing folder "+ aName + ".");
+		return false;
+	}
+
+	if(aName == "." || aName == "..")
+		return false;
+
+	if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
+		if(AirUtil::matchSkiplist(Text::utf8ToAcp(aName))) {
+			if(BOOLSETTING(REPORT_SKIPLIST) && report)
+				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aName + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+			return false;
+		}
+	} else {
+		try {
+			if (Wildcard::patternMatch( Text::utf8ToAcp(aName), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' )) {   // or validate filename for bad chars?
+				if(BOOLSETTING(REPORT_SKIPLIST) && report)
+					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aName + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+				return false;
+			}
+		} catch(...) { }
+	}
+
+	if (!dir) {
+		if( (stricmp(aName.c_str(), "DCPlusPlus.xml") == 0) || 
+			(stricmp(aName.c_str(), "Favorites.xml") == 0) ||
+			(stricmp(Util::getFileExt(aName).c_str(), ".dctmp") == 0) ||
+			(stricmp(Util::getFileExt(aName).c_str(), ".antifrag") == 0) ) 
+		{
+			return false;
+		}
+
+		//check for forbidden file patterns
+		if(BOOLSETTING(REMOVE_FORBIDDEN)) {
+			string::size_type nameLen = aName.size();
+			string fileExt = Util::getFileExt(aName);
+			if ((stricmp(fileExt.c_str(), ".tdc") == 0) ||
+				(stricmp(fileExt.c_str(), ".GetRight") == 0) ||
+				(stricmp(fileExt.c_str(), ".temp") == 0) ||
+				(stricmp(fileExt.c_str(), ".tmp") == 0) ||
+				(stricmp(fileExt.c_str(), ".jc!") == 0) ||	//FlashGet
+				(stricmp(fileExt.c_str(), ".dmf") == 0) ||	//Download Master
+				(stricmp(fileExt.c_str(), ".!ut") == 0) ||	//uTorrent
+				(stricmp(fileExt.c_str(), ".bc!") == 0) ||	//BitComet
+				(stricmp(fileExt.c_str(), ".missing") == 0) ||
+				(stricmp(fileExt.c_str(), ".bak") == 0) ||
+				(stricmp(fileExt.c_str(), ".bad") == 0) ||
+				(nameLen > 9 && aName.rfind("part.met") == nameLen - 8) ||				
+				(aName.find("__padding_") == 0) ||			//BitComet padding
+				(aName.find("__INCOMPLETE__") == 0) ||		//winmx
+				(aName.find("__incomplete__") == 0)		//winmx
+				) {
+					if (report) {
+						LogManager::getInstance()->message("Forbidden file will not be shared: " + aName + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+					}
+					return false;
+			}
+		}
+	}
+	return true;
 }
 
 }

@@ -41,8 +41,10 @@ public:
 	template<int I>	struct X { enum { TYPE = I };  };
 
 	typedef X<0> TTHDone;
+	typedef X<1> HashFailed;
 
-	virtual void on(TTHDone, const string& /* fileName */, const TTHValue& /* root */) noexcept = 0;
+	virtual void on(TTHDone, const string& /* fileName */, const TTHValue& /* root */) noexcept { }
+	virtual void on(HashFailed, const string& /* fileName */) noexcept { }
 };
 
 class HashLoader;

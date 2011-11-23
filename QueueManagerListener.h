@@ -56,6 +56,9 @@ public:
 	typedef X<22> BundleUser;
 	typedef X<23> BundlePriority;
 	typedef X<24> BundleAdded;
+	typedef X<25> BundleHashed;
+
+	typedef X<26> FileHashed;
 
 	virtual void on(Added, QueueItem*) noexcept { }
 	virtual void on(Finished, const QueueItem*, const string&, const Download*) noexcept { }
@@ -74,6 +77,8 @@ public:
 	virtual void on(BundleUser, const string&, const HintedUser&) noexcept { }
 	virtual void on(BundlePriority, const BundlePtr) noexcept { }
 	virtual void on(BundleAdded, const BundlePtr) noexcept { }
+	virtual void on(BundleHashed, const BundlePtr) noexcept { }
+	virtual void on(FileHashed, const string& /* fileName */, const TTHValue& /* root */) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }
 	virtual void on(RecheckNoFile, const string&) noexcept { }

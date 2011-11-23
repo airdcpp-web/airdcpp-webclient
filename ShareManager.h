@@ -47,8 +47,7 @@ class OutputStream;
 class MemoryInputStream;
 struct ShareLoader;
 class Worker;
-class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener,
-	private HashManagerListener, private QueueManagerListener
+class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener, private QueueManagerListener
 {
 public:
 	/**
@@ -101,6 +100,7 @@ public:
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) noexcept;
 	bool isDirShared(const string& directory);
+	bool isBundleShared(const BundlePtr aBundle);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory, bool validate = true);
 
@@ -385,6 +385,8 @@ private:
 	void updateIndices(Directory& aDirectory);
 	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
 	
+	void onFileHashed(const string fname, const TTHValue root);
+
 	//Directory::Ptr merge(const Directory::Ptr& directory);
 	
 	StringList notShared;
@@ -403,11 +405,9 @@ private:
 	int run();
 
 	// QueueManagerListener
-	virtual void on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept;
-	//virtual void on(QueueManagerListener::FileMoved, const string& n) noexcept;
-
-	// HashManagerListener
-	void on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) noexcept;
+	//virtual void on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept;
+	virtual void on(QueueManagerListener::BundleHashed, const BundlePtr aBundle) noexcept;
+	virtual void on(QueueManagerListener::FileHashed, const string& fname, const TTHValue& root) noexcept { onFileHashed(fname, root); }
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {

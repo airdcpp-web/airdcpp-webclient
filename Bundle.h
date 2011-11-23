@@ -57,11 +57,12 @@ public:
 		LAST
 	};
 
-	enum Updates {
-		UPDATE_SIZE				= 0x01,
-		UPDATE_NAME				= 0x02,
-		UPDATE_SINGLEUSER		= 0x04,
-		SET_WAITING				= 0x08
+	enum Flags {
+		FLAG_UPDATE_SIZE			= 0x01,
+		FLAG_UPDATE_NAME			= 0x02,
+		FLAG_UPDATE_SINGLEUSER		= 0x04,
+		FLAG_SET_WAITING			= 0x08,
+		FLAG_HASH_FAILED			= 0x16,
 	};
 
 
@@ -94,7 +95,8 @@ public:
 
 
 	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false), bytesDownloaded(0) { }
+		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false), bytesDownloaded(0),
+		hashed(0) { }
 
 	~Bundle();
 
@@ -123,11 +125,6 @@ public:
 	GETSET(DownloadList, downloads, Downloads);
 	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceIntList, sources, Sources);
-	
-	uint64_t bytesDownloaded;
-	string target;
-	bool fileBundle;
-	bool dirty;
 
 	UserIntMap& getRunningUsers() { return runningUsers; }
 	CIDStringList& getNotifiedUsers() { return notifiedUsers; }
@@ -137,6 +134,7 @@ public:
 	DownloadList& getDownloads() { return downloads; }
 	DirMap& getBundleDirs() { return bundleDirs; }
 	SourceIntList& getBundleSources() { return sources; }
+	int getHashed() { return hashed; }
 
 	uint64_t getDownloadedBytes() const { return bytesDownloaded; }
 	QueueItem* findQI(const string& aTarget) const;
@@ -148,6 +146,11 @@ public:
 	bool getFileBundle() {
 		return fileBundle;
 	}
+
+	void increaseHashed() {
+		hashed++;
+	}
+
 	void increaseSize(int64_t aSize) {
 		size += aSize;
 	}
@@ -197,27 +200,33 @@ public:
 	}
 
 	/** All queue items indexed by user */
-		void getQISources(HintedUserList& l);
-		bool isSource(const UserPtr& aUser);
-		void getDownloadsQI(DownloadList& l);
-		QueueItemList getItems(const UserPtr& aUser) const;
-		void addUserQueue(QueueItem* qi);
-		bool addUserQueue(QueueItem* qi, const HintedUser& aUser);
-		QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
-		QueueItemList getRunningQIs(const UserPtr& aUser);
-		bool addDownload(Download* d);
-		int removeDownload(const string& token);
+	void getQISources(HintedUserList& l);
+	bool isSource(const UserPtr& aUser);
+	void getDownloadsQI(DownloadList& l);
+	QueueItemList getItems(const UserPtr& aUser) const;
+	void addUserQueue(QueueItem* qi);
+	bool addUserQueue(QueueItem* qi, const HintedUser& aUser);
+	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
+	QueueItemList getRunningQIs(const UserPtr& aUser);
+	bool addDownload(Download* d);
+	int removeDownload(const string& token);
 
-		void removeUserQueue(QueueItem* qi, bool removeRunning = true);
-		bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
+	void removeUserQueue(QueueItem* qi, bool removeRunning = true);
+	bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
 
-		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
-		boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }
-	private:
-		/** QueueItems by priority and user (this is where the download order is determined) */
-		boost::unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[LAST];
-		/** Currently running downloads, a QueueItem is always either here or in the userQueue */
-		boost::unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
+	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
+	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }
+private:
+	uint64_t bytesDownloaded;
+	string target;
+	bool fileBundle;
+	bool dirty;
+	int hashed;
+
+	/** QueueItems by priority and user (this is where the download order is determined) */
+	boost::unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[LAST];
+	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
+	boost::unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
 };
 
 }

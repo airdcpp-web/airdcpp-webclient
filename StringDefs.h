@@ -1139,7 +1139,6 @@ enum Strings { // @DontAdd
 	COPY_DIRECTORY, // "Copy Directory"
 	SEARCH_FOR_ALTERNATES_DIR, // "Search Directory for alternates"
 	ERROR_HASHING_CRC32, // "calculated CRC32 does not match the one found in SFV file."
-	SETTINGS_SHARE_SFV, // "Don't perform SFV check for files being hashed into share"
 	SEARCH_DIRECTORY, // "Search Directory"
 	SEARCH_GOOGLE, // "Search Google"
 	SEARCH_GOOGLE_TITLE, // "Search Google (title only)"

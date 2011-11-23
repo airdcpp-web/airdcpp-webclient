@@ -64,8 +64,6 @@ ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
-	HashManager::getInstance()->addListener(this);
-	
 }
 
 ShareManager::~ShareManager() {
@@ -73,7 +71,6 @@ ShareManager::~ShareManager() {
 	SettingsManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
 	QueueManager::getInstance()->removeListener(this);
-	HashManager::getInstance()->removeListener(this);
 
 	join();
 	w.join();
@@ -947,7 +944,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 
 
 #ifdef _WIN32
-		for(FileFindIter i(aName + "*"); i != end && !aShutdown; ++i) {
+	for(FileFindIter i(aName + "*"); i != end && !aShutdown; ++i) {
 #else
 	//the fileiter just searches directorys for now, not sure if more 
 	//will be needed later
@@ -955,74 +952,19 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 	for(FileFindIter i(aName); i != end; ++i) {
 #endif
 		string name = i->getFileName();
-
-		//check queue so we dont add incomplete stuff to share automatically.
-		if(checkQueued &&  i->isDirectory() && QueueManager::getInstance()->isDirQueued(name))
-				continue;
-
-		if(name.empty()) {
-			LogManager::getInstance()->message("Invalid file name found while hashing folder "+ aName + ".");
-			continue;
-		}
-		if(name == "." || name == "..")
-			continue;
-
-				//check for forbidden file patterns
-		if(BOOLSETTING(REMOVE_FORBIDDEN)) {
-			string::size_type nameLen = name.size();
-			string fileExt = Util::getFileExt(name);
-			if ((stricmp(fileExt.c_str(), ".tdc") == 0) ||
-				(stricmp(fileExt.c_str(), ".GetRight") == 0) ||
-				(stricmp(fileExt.c_str(), ".temp") == 0) ||
-				(stricmp(fileExt.c_str(), ".tmp") == 0) ||
-				(stricmp(fileExt.c_str(), ".jc!") == 0) ||	//FlashGet
-				(stricmp(fileExt.c_str(), ".dmf") == 0) ||	//Download Master
-				(stricmp(fileExt.c_str(), ".!ut") == 0) ||	//uTorrent
-				(stricmp(fileExt.c_str(), ".bc!") == 0) ||	//BitComet
-				(stricmp(fileExt.c_str(), ".missing") == 0) ||
-				(stricmp(fileExt.c_str(), ".bak") == 0) ||
-				(stricmp(fileExt.c_str(), ".bad") == 0) ||
-				(nameLen > 9 && name.rfind("part.met") == nameLen - 8) ||				
-				(name.find("__padding_") == 0) ||			//BitComet padding
-				(name.find("__INCOMPLETE__") == 0) ||		//winmx
-				(name.find("__incomplete__") == 0)		//winmx
-				) {		//kazaa temps
-					LogManager::getInstance()->message("Forbidden file will not be shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(File::getSize(name)) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
-					continue;
-			}
-		}
-
 		if(!BOOLSETTING(SHARE_HIDDEN) && i->isHidden())
 			continue;
 
-		if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
-			if(AirUtil::matchSkiplist(Text::utf8ToAcp(name))) {
-				if(BOOLSETTING(REPORT_SKIPLIST))
-					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(i->getSize()) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
-					
-				continue;
-			}
-		}else{
-			try{
-			if( Wildcard::patternMatch( Text::utf8ToAcp(name), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' ) ){   // or validate filename for bad chars?
-				if(BOOLSETTING(REPORT_SKIPLIST))
-				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + name + " (" + STRING(SIZE) + ": " + Util::toString(i->getSize()) + " " + STRING(B) + ") (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
-				
-				continue;
-			}
-			}catch(...) { }
-			
-		}
-/*
-		if(i->isLink())
- 			continue;
-*/ 			
 		if(i->isDirectory()) {
-
+			if (!AirUtil::checkSharedName(name, true)) {
+				continue;
+			}
+			//check queue so we dont add incomplete stuff to share automatically.
+			if(checkQueued && QueueManager::getInstance()->isDirQueued(aName)) {
+				return false;
+			}
 			string newName = aName + name + PATH_SEPARATOR;
-			
 			dir->setLastWrite((time_t)i->getLastWriteTime());
-
 #ifdef _WIN32
 			// don't share Windows directory
 			TCHAR path[MAX_PATH];
@@ -1038,25 +980,22 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 				dir->directories[name] = tmpDir;
 			}
 		} else {
-			// Not a directory, assume it's a file...make sure we're not sharing the settings file...
-			if( (stricmp(name.c_str(), "DCPlusPlus.xml") != 0) && 
-				(stricmp(name.c_str(), "Favorites.xml") != 0) &&
-				(stricmp(Util::getFileExt(name).c_str(), ".dctmp") != 0) &&
-				(stricmp(Util::getFileExt(name).c_str(), ".antifrag") != 0) ){
+			// Not a directory, assume it's a file...make sure we're not sharing the settings file..
+			if (!AirUtil::checkSharedName(name, false)) {
+				continue;
+			}
+			int64_t size = i->getSize();
+			if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
+				continue;
 
-				int64_t size = i->getSize();
-				if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
-					continue;
-
-				string fileName = aName + name;
-				if(stricmp(fileName, SETTING(TLS_PRIVATE_KEY_FILE)) == 0) {
-					continue;
-				}
-				try {
-					if(HashManager::getInstance()->checkTTH(fileName, size, i->getLastWriteTime())) 
-						lastFileIter = dir->files.insert(lastFileIter, Directory::File(name, size, dir, HashManager::getInstance()->getTTH(fileName, size)));
-				} catch(const HashException&) {
-				}
+			string fileName = aName + name;
+			if(stricmp(fileName, SETTING(TLS_PRIVATE_KEY_FILE)) == 0) {
+				continue;
+			}
+			try {
+				if(HashManager::getInstance()->checkTTH(fileName, size, i->getLastWriteTime())) 
+					lastFileIter = dir->files.insert(lastFileIter, Directory::File(name, size, dir, HashManager::getInstance()->getTTH(fileName, size)));
+			} catch(const HashException&) {
 			}
 		}
 	}
@@ -2133,17 +2072,18 @@ void ShareManager::on(QueueManagerListener::FileMoved, const string& n) noexcept
 	}
 }
 */
-void ShareManager::on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept {
-	
-	if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
+
+void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundle) noexcept {
+	string path = aBundle->getTarget();
 		
-		string path = aBundle->getTarget();
-		
+	{
 		RLock l(cs);
 		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
 			
-			if(strnicmp(i->first, path, i->first.size()) == 0 && path[i->first.size() - 1] == PATH_SEPARATOR) { //check if we have a share folder.
-					
+			if(strnicmp(i->first, path, i->first.size()) != 0) { //check if we have a share folder.
+				continue;
+			}
+			
 			if(!aBundle->getFileBundle()) {
 				
 				pair<Directory::Ptr, string> p = findDirectory(path);
@@ -2183,30 +2123,52 @@ void ShareManager::on(QueueManagerListener::BundleFilesMoved, const BundlePtr aB
 				}
 				setDirty(); 
 			
-				LogManager::getInstance()->message("Adding new directory... " + parent->getName() + PATH_SEPARATOR + name);
+				//LogManager::getInstance()->message("Adding new directory... " + parent->getName() + PATH_SEPARATOR + name);
 				
 				if(addreleasedir) {
 					dp->findDirsRE(false);
 					sortReleaseList();
 				}
 
-				} else { //filebundle
-					
-					try {
-					// Schedule for hashing, it'll be added automatically later on...
-					HashManager::getInstance()->checkTTH(path, File::getSize(path), 0);
-				} catch(const Exception&) {
-					// Not a vital feature...
-					}
-				}
-			break;
 			}
 		}
 	}
+
+	for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
+		QueueItem* qi = *i;
+		onFileHashed(qi->getTarget(), qi->getTTH());
+		qi->dec();
+	}
+
+	/*for (;;) {
+		if (aBundle->getFinishedFiles().empty()) {
+			break;
+		}
+		QueueItem* qi = *aBundle->getFinishedFiles().begin();
+		onFileHashed(qi->getTarget(), qi->getTTH());
+		swap(aBundle->getFinishedFiles()[0], aBundle->getFinishedFiles()[aBundle->getFinishedFiles().size()-1]);
+		aBundle->getFinishedFiles().pop_back();
+	} */
+	LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been added in share");
+}
+
+bool ShareManager::isBundleShared(const BundlePtr aBundle) noexcept {
+	//LogManager::getInstance()->message("QueueManagerListener::BundleFilesMoved");
+	string path = aBundle->getTarget();
+		
+	{
+		RLock l(cs);
+		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
+			if(strnicmp(i->first, path, i->first.size()) == 0) { //check if we have a share folder.
+				//we should probably check the folder names too?
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 pair<ShareManager::Directory::Ptr, string> ShareManager::findDirectory(const string& fname) {
-	
 	for(DirMap::iterator mi = directories.begin(); mi != directories.end(); ++mi) {
 		if(strnicmp(fname, mi->first, mi->first.length()) == 0) {
 			Directory::Ptr d = mi->second;
@@ -2230,8 +2192,7 @@ pair<ShareManager::Directory::Ptr, string> ShareManager::findDirectory(const str
 	return make_pair(Directory::Ptr(), Util::emptyString);
 }
 
-
-void ShareManager::on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) noexcept {
+void ShareManager::onFileHashed(const string fname, const TTHValue root) noexcept {
 	WLock l(cs);
 	Directory::Ptr d = getDirectory(fname);
 	if(d) {

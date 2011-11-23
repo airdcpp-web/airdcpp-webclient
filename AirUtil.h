@@ -28,6 +28,7 @@ class AirUtil {
 		static int getMaxAutoOpened(double value = 0);
 		static string getPrioText(int prio);
 		static string getReleaseDir(const string& aName);
+		static bool checkSharedName(const string& aName, bool dir, bool report = true);
 
 	private:
 
