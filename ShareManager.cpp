@@ -467,12 +467,12 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 						if(i != dirs.end()) {
 							cur = i->second;
 							cur->setRootPath(path);
-							cur->setLastWrite(Util::toInt64(date));
+							cur->setLastWrite(Util::toUInt32(date));
 							lastFileIter = cur->files.begin();
 						}
 				} else if(cur) {
 					cur = ShareManager::Directory::create(name, cur);
-					cur->setLastWrite(Util::toInt64(date));
+					cur->setLastWrite(Util::toUInt32(date));
 					cur->getParent()->directories[cur->getName()] = cur;
 					lastFileIter = cur->files.begin();
 					try {
@@ -1012,7 +1012,7 @@ bool ShareManager::checkHidden(const string& aName) const {
 	return true;
 }
 
-int64_t ShareManager::findLastWrite(const string& aName) const {
+uint32_t ShareManager::findLastWrite(const string& aName) const {
 	FileFindIter ff = FileFindIter(aName.substr(0, aName.size() - 1));
 
 	if (ff != FileFindIter()) {
@@ -1604,7 +1604,7 @@ void ShareManager::Directory::toXml(SimpleXML& xmlFile, bool fullList){
 	while( xmlFile.findChild("Directory") ){
 		if( stricmp(xmlFile.getChildAttrib("Name"), name) == 0 ){
 			string curdate = xmlFile.getChildAttrib("Date");
-			if(!curdate.empty() && Util::toInt64(curdate) < lastwrite) //compare the dates and add the last modified
+			if(!curdate.empty() && Util::toUInt32(curdate) < lastwrite) //compare the dates and add the last modified
 				xmlFile.replaceChildAttrib("Date", Util::toString(lastwrite));
 			
 			create = false;

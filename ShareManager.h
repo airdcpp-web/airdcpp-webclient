@@ -266,7 +266,7 @@ private:
 		string find(const string& dir, bool validateDir);
 
 
-		GETSET(int64_t, lastwrite, LastWrite);
+		GETSET(uint32_t, lastwrite, LastWrite);
 		GETSET(string, name, Name);
 		GETSET(string, rootpath, RootPath); //saved only for root items.
 		GETSET(Directory*, parent, Parent);
@@ -336,7 +336,7 @@ private:
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
 	uint64_t lastSave;
-	int64_t findLastWrite(const string& aName) const; 
+	uint32_t findLastWrite(const string& aName) const; 
 	
 	//caching the share size so we dont need to loop tthindex everytime
 	mutable int64_t	 c_shareSize;
