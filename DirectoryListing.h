@@ -103,7 +103,7 @@ public:
 		DirMap visitedDirs;
 
 		enum { NONE, PARTIAL_SHARE_DUPE, SHARE_DUPE, PARTIAL_QUEUE_DUPE, QUEUE_DUPE, SHARE_QUEUE_DUPE };
-		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString, time_t date = 0) 
+		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString, int64_t date = 0) 
 			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), dirsize(Size), dirdate(date) { }
 		
 		virtual ~Directory();
@@ -136,7 +136,7 @@ public:
 		
 		GETSET(string, name, Name);
 		GETSET(string, dirsize, DirSize);
-		GETSET(time_t, dirdate, DirDate);
+		GETSET(int64_t, dirdate, DirDate);
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);

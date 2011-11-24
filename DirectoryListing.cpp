@@ -200,9 +200,9 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			bool incomp = getAttrib(attribs, sIncomplete, 1) == "1";
 			const string& size = getAttrib(attribs, sSize, 2);
 			const string& date = getAttrib(attribs, sDate, 3);
-			time_t dateRaw = 0;
+			int64_t dateRaw = 0;
 			if (!date.empty()) {
-				dateRaw = static_cast<time_t>(Util::toInt(date));
+				dateRaw = Util::toInt64(date);
 				//workaround for versions 2.2x
 				if (dateRaw < 10000) {
 					if (date.length() == 10) {

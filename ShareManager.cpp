@@ -467,11 +467,12 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 						if(i != dirs.end()) {
 							cur = i->second;
 							cur->setRootPath(path);
+							cur->setLastWrite(Util::toInt64(date));
 							lastFileIter = cur->files.begin();
 						}
 				} else if(cur) {
 					cur = ShareManager::Directory::create(name, cur);
-					cur->setLastWrite(static_cast<time_t>(Util::toInt(date)));
+					cur->setLastWrite(Util::toInt64(date));
 					cur->getParent()->directories[cur->getName()] = cur;
 					lastFileIter = cur->files.begin();
 					try {
@@ -637,6 +638,7 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 	string vName = validateVirtual(virtualName);
 	dp->setName(vName);
 	dp->setRootPath(realPath);
+	dp->setLastWrite(findLastWrite(realPath));
 
 	{
 		WLock l(cs);
@@ -964,7 +966,6 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 				return false;
 			}
 			string newName = aName + name + PATH_SEPARATOR;
-			dir->setLastWrite((time_t)i->getLastWriteTime());
 #ifdef _WIN32
 			// don't share Windows directory
 			TCHAR path[MAX_PATH];
@@ -975,8 +976,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 
 			if((stricmp(newName, SETTING(TEMP_DOWNLOAD_DIRECTORY)) != 0) && shareFolder(newName)) {
 				Directory::Ptr tmpDir = buildTree(newName, dir, checkQueued);
-				//add the date to the last dir
-				tmpDir->setLastWrite((time_t)i->getLastWriteTime());
+				tmpDir->setLastWrite(i->getLastWriteTime()); //add the date starting from the first found directory.
 				dir->directories[name] = tmpDir;
 			}
 		} else {
@@ -1010,6 +1010,16 @@ bool ShareManager::checkHidden(const string& aName) const {
 	}
 
 	return true;
+}
+
+int64_t ShareManager::findLastWrite(const string& aName) const {
+	FileFindIter ff = FileFindIter(aName.substr(0, aName.size() - 1));
+
+	if (ff != FileFindIter()) {
+		return ff->getLastWriteTime();
+	}
+
+	return 0;
 }
 
 void ShareManager::updateIndices(Directory& dir) {
@@ -1239,6 +1249,7 @@ int ShareManager::run() {
 					if(aShutdown) goto end;  //abort refresh
 					dp->setName(i->first);
 					dp->setRootPath(i->second);
+					dp->setLastWrite(findLastWrite(i->second));
 					newDirs.insert(make_pair(i->second, dp));
 				}
 		}
@@ -1592,6 +1603,10 @@ void ShareManager::Directory::toXml(SimpleXML& xmlFile, bool fullList){
 	
 	while( xmlFile.findChild("Directory") ){
 		if( stricmp(xmlFile.getChildAttrib("Name"), name) == 0 ){
+			string curdate = xmlFile.getChildAttrib("Date");
+			if(!curdate.empty() && Util::toInt64(curdate) < lastwrite) //compare the dates and add the last modified
+				xmlFile.replaceChildAttrib("Date", Util::toString(lastwrite));
+			
 			create = false;
 			break;	
 		}
@@ -2091,7 +2106,6 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundl
 				if(!p.first || p.second.empty())
 					return;
 
-
 				string realPath = p.second;
 				
 				if(realPath[realPath.size() - 1] != PATH_SEPARATOR)  //add the missing path separator
@@ -2107,6 +2121,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundl
 				}
 
 				Directory::Ptr dp = buildTree(realPath, parent, checkQueued);
+				dp->setLastWrite(findLastWrite(realPath));
 
 				string name = Util::getLastDir(realPath);
 				bool addreleasedir = true;
@@ -2120,7 +2135,9 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundl
 				}
 				if(add) {
 					parent->directories.insert(make_pair(name,dp));
-				}
+				} else
+					i->second->setLastWrite(findLastWrite(realPath));  //update the lastwritedate, might be the same date but we cant know that...
+
 				setDirty(); 
 			
 				//LogManager::getInstance()->message("Adding new directory... " + parent->getName() + PATH_SEPARATOR + name);
