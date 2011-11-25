@@ -1272,6 +1272,7 @@ enum Strings { // @DontAdd
 	SCAN_SHARE_FINISHED, // "The share has been scanned for missing/extra files"
 	SCAN_FOLDER_FINISHED, // "The selected folders have been scanned for missing/extra files"
 	SCAN_BUNDLE_FINISHED, // "The bundle %s has finished downloading and has been scanned for missing/extra files"
+	SCAN_FAILED_BUNDLE_FINISHED, // "The bundle %s won't be shared because the following problems were found: "
 	SCAN_NO_PROBLEMS, // "no problems were found"
 	SCAN_PROBLEMS_FOUND, // "and the following problems were found"
 	X_MISSING_RELEASE_FILES, // "%d missing release files"

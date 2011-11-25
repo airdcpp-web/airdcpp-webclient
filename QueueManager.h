@@ -127,7 +127,8 @@ public:
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
 	void saveBundle(BundlePtr aBundle);
-	void getBundlePaths(StringList& bundles);
+	void getUnfinishedPaths(StringList& bundles);
+	void getForbiddenPaths(StringList& bundles, bool partial, StringList paths);
 
 	BundlePtr findBundle(const string bundleToken);
 	BundlePtr findBundle(const TTHValue& tth);
@@ -382,7 +383,7 @@ private:
 	void rechecked(QueueItem* qi);
 	void fileEvent(const string& tgt, bool file = false);
 	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
-	void onBundleFilesMoved(BundlePtr aBundle);
+	void hashBundle(BundlePtr aBundle);
 
 	string getListPath(const HintedUser& user);
 

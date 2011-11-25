@@ -63,7 +63,8 @@ public:
 		FLAG_UPDATE_SINGLEUSER		= 0x04,
 		FLAG_SET_WAITING			= 0x08,
 		FLAG_HASH					= 0x16,
-		FLAG_HASH_FAILED			= 0x32
+		FLAG_HASH_FAILED			= 0x32,
+		FLAG_SCAN_FAILED			= 0x64
 	};
 
 
@@ -143,11 +144,13 @@ public:
 	size_t countOnlineUsers() const;
 
 	void removeQueue(QueueItem* qi);
+	void addQueue(QueueItem* qi);
 
 	bool getFileBundle() {
 		return fileBundle;
 	}
 
+	void resetHashed() { hashed = 0; }
 	void increaseHashed() {
 		hashed++;
 	}
@@ -203,6 +206,7 @@ public:
 	/** All queue items indexed by user */
 	void getQISources(HintedUserList& l);
 	bool isSource(const UserPtr& aUser);
+	bool isFinished() { return queueItems.empty(); }
 	void getDownloadsQI(DownloadList& l);
 	QueueItemList getItems(const UserPtr& aUser) const;
 	void addUserQueue(QueueItem* qi);

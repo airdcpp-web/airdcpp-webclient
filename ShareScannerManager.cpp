@@ -93,7 +93,7 @@ int ShareScannerManager::run() {
 			getScanSize(*i);
 		}
 	} else {
-		QueueManager::getInstance()->getBundlePaths(bundleDirs);
+		QueueManager::getInstance()->getUnfinishedPaths(bundleDirs);
 		sort(bundleDirs.begin(), bundleDirs.end());
 	}
 	
@@ -723,7 +723,7 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 		scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 		find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, false);
 
-		reportResults(aBundle->getName(), 2, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
+		reportResults(aBundle->getName(), !aBundle->isSet(Bundle::FLAG_SCAN_FAILED) ? 2 : 3, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 		return (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0); //allow choosing the level when it shouldn't be added?
 	}
 	return true;
@@ -737,14 +737,23 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 			tmp = CSTRING(SCAN_SHARE_FINISHED);
 		} else if (scanType == 1) {
 			tmp = CSTRING(SCAN_FOLDER_FINISHED);
-		} else {
+		} else if (scanType == 2) {
 			tmp2.resize(STRING(SCAN_BUNDLE_FINISHED).size() + dir.size());
 			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_BUNDLE_FINISHED), dir.c_str()));
+			tmp += tmp2;
+			tmp2.clear();
+		} else {
+			tmp2.resize(STRING(SCAN_FAILED_BUNDLE_FINISHED).size() + dir.size());
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_FAILED_BUNDLE_FINISHED), dir.c_str()));
 			tmp += tmp2;
 			tmp2.clear();
 		}
 
 		if (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0) {
+			if (scanType == 3) {
+				//no report for clean bundles
+				return;
+			}
 			tmp += ", ";
 			tmp += CSTRING(SCAN_NO_PROBLEMS);
 		} else {

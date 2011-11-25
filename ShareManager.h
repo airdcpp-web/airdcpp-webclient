@@ -398,7 +398,7 @@ private:
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr getDirectory(const string& fname);
-	pair<Directory::Ptr, string> findDirectory(const string& fname);
+	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);
 
 	StringList refreshPaths;
 	int refreshOptions;

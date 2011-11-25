@@ -82,6 +82,11 @@ QueueItemList Bundle::getItems(const UserPtr& aUser) const {
 	return ret;
 }
 
+void Bundle::addQueue(QueueItem* qi) {
+	//qi->inc();
+	queueItems.push_back(qi);
+}
+
 void Bundle::removeQueue(QueueItem* qi) {
 	int pos = 0;
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {

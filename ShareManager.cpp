@@ -2090,8 +2090,9 @@ void ShareManager::on(QueueManagerListener::FileMoved, const string& n) noexcept
 
 void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundle) noexcept {
 	string path = aBundle->getTarget();
-		
+	bool added = false;
 	{
+
 		RLock l(cs);
 		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
 			
@@ -2101,72 +2102,35 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundl
 			
 			if(!aBundle->getFileBundle()) {
 				
-				pair<Directory::Ptr, string> p = findDirectory(path);
-
-				if(!p.first || p.second.empty())
-					return;
-
-				string realPath = p.second;
-				
-				if(realPath[realPath.size() - 1] != PATH_SEPARATOR)  //add the missing path separator
-					realPath += PATH_SEPARATOR;
-				
-				Directory::Ptr parent = p.first;
-
-				bool checkQueued = false;
-
-				/*if we are adding a parent directory of the bundle dont add anything incomplete from the same directory */
-				if(stricmp(path, realPath) != 0) {
-					checkQueued = true;
+				Directory::Ptr dir = findDirectory(path, true, true);
+				if (!dir) {
+					break;
 				}
 
-				Directory::Ptr dp = buildTree(realPath, parent, checkQueued);
-				dp->setLastWrite(findLastWrite(realPath));
-
-				string name = Util::getLastDir(realPath);
-				bool addreleasedir = true;
-				bool add = true;
-
-				/* if we have already refreshed the bundle directory in, act as a refresh and add all files*/
-				Directory::Map::const_iterator i = parent->directories.find(name);  
-				if(i != parent->directories.end()) {
-					add = false;
-					addreleasedir = false;  //removing releasedir here is a waste, we will need to add the same one back anyway.
-				}
-				if(add) {
-					parent->directories.insert(make_pair(name,dp));
-				} else
-					i->second->setLastWrite(findLastWrite(realPath));  //update the lastwritedate, might be the same date but we cant know that...
-
-				setDirty(); 
-			
-				//LogManager::getInstance()->message("Adding new directory... " + parent->getName() + PATH_SEPARATOR + name);
-				
-				if(addreleasedir) {
-					dp->findDirsRE(false);
-					sortReleaseList();
+				if (stricmp(dir->getName(), Util::getLastDir(path)) != 0) {
+					break;
 				}
 
+				added = true;
+				buildTree(path, dir, false);
+				sortReleaseList();
+				setDirty();
 			}
 		}
 	}
 
-	for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
-		QueueItem* qi = *i;
-		onFileHashed(qi->getTarget(), qi->getTTH());
-		qi->dec();
-	}
-
-	/*for (;;) {
-		if (aBundle->getFinishedFiles().empty()) {
-			break;
+	if (!added) {
+		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
+			(*i)->dec();
 		}
-		QueueItem* qi = *aBundle->getFinishedFiles().begin();
-		onFileHashed(qi->getTarget(), qi->getTTH());
-		swap(aBundle->getFinishedFiles()[0], aBundle->getFinishedFiles()[aBundle->getFinishedFiles().size()-1]);
-		aBundle->getFinishedFiles().pop_back();
-	} */
-	LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been added in share");
+		LogManager::getInstance()->message("Failed to add the bundle " + aBundle->getName() + " in share");
+	} else { 
+		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
+			onFileHashed((*i)->getTarget(), (*i)->getTTH());
+			(*i)->dec();
+		}
+		LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been added in share");
+	}
 }
 
 bool ShareManager::isBundleShared(const BundlePtr aBundle) noexcept {
@@ -2185,28 +2149,30 @@ bool ShareManager::isBundleShared(const BundlePtr aBundle) noexcept {
 	return false;
 }
 
-pair<ShareManager::Directory::Ptr, string> ShareManager::findDirectory(const string& fname) {
-	for(DirMap::iterator mi = directories.begin(); mi != directories.end(); ++mi) {
+ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bool allowAdd, bool report) {
+	Directory::Ptr cur = NULL;
+	for (auto mi = directories.begin(); mi != directories.end(); ++mi) {
 		if(strnicmp(fname, mi->first, mi->first.length()) == 0) {
-			Directory::Ptr d = mi->second;
-				
-			if(!d) {
-				return make_pair(Directory::Ptr(), Util::emptyString);
+			cur = mi->second;
+			StringList sl = StringTokenizer<string>(fname.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
+			for(auto i = sl.begin(); i != sl.end(); ++i) {
+				auto j = cur->directories.find(*i);
+				if (j != cur->directories.end()) {
+					cur = j->second;
+				} else if (!AirUtil::checkSharedName((*i), true, report) || !allowAdd) {
+					break;
+				} else {
+					Directory::Ptr newDir = Directory::create(*i, cur);
+					newDir->setLastWrite(GET_TIME());
+					cur->directories[*i] = newDir;
+					cur = newDir;
+					cur->findDirsRE(false);
+				}
 			}
-			string::size_type i;
-			string::size_type j = mi->first.length();
-			while( (i = fname.find(PATH_SEPARATOR, j)) != string::npos) {
-				Directory::MapIter dmi = d->directories.find(fname.substr(j, i-j));
-				j = i + 1;
-				if(dmi == d->directories.end())
-					return make_pair(d, fname.substr(0, i));   //return the last dir we found as parent for new dir, return the path up to where we stopped.
-				d = dmi->second;
-			}
-			return make_pair(d->getParent(), fname.substr(0, i)); // we found the searched directory, already refreshed in. return the parent of it.
+			break;
 		}
 	}
-
-	return make_pair(Directory::Ptr(), Util::emptyString);
+	return cur;
 }
 
 void ShareManager::onFileHashed(const string fname, const TTHValue root) noexcept {
