@@ -937,8 +937,12 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 	}
 }
 
-ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued) {
-	Directory::Ptr dir = Directory::create(Util::getLastDir(aName), aParent);
+ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued /*false*/, bool create/*true*/) {
+	Directory::Ptr dir;
+	if(create)
+		dir = Directory::create(Util::getLastDir(aName), aParent);
+	else
+		dir = aParent;
 
 	Directory::File::Set::iterator lastFileIter = dir->files.begin();
 
@@ -2056,7 +2060,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundl
 	string path = aBundle->getTarget();
 	bool added = false;
 	{
-		RLock l(cs);
+		WLock l(cs);
 
 		Directory::Ptr dir = findDirectory(path, true, true);
 		if (!dir) {
@@ -2069,25 +2073,23 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundl
 
 		added = true;
 		if(!aBundle->getFileBundle()) {
-			buildTree(path, dir, false);
+			buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
+			updateIndices(*dir);
 		}
 		setDirty();
 	}
 
 done:
 	if (!added) {
-		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
-			(*i)->dec();
-		}
 		LogManager::getInstance()->message("Failed to add the bundle " + aBundle->getName() + " in share");
 	} else {
 		sortReleaseList();
-		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
-			onFileHashed((*i)->getTarget(), (*i)->getTTH());
-			(*i)->dec();
-		}
 		LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been added in share");
 	}
+	
+	for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
+			(*i)->dec();
+		}
 }
 
 bool ShareManager::isBundleShared(const BundlePtr aBundle) noexcept {

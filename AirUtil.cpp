@@ -25,10 +25,12 @@ void AirUtil::init() {
 	subDirReg.study();
 }
 void AirUtil::setSkiplist() {
-	try{
-	skiplistReg.assign(SETTING(SKIPLIST_SHARE));
-	}catch(...) {
-		LogManager::getInstance()->message("Error setting Share skiplist!");
+if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
+		try{
+			skiplistReg.assign(SETTING(SKIPLIST_SHARE));
+		}catch(...) {
+			LogManager::getInstance()->message("Error setting Share skiplist!");
+		}
 	}
 }
 bool AirUtil::matchSkiplist(const string& str) {

@@ -376,7 +376,7 @@ private:
 	
 	Directory::File::Set::const_iterator findFile(const string& virtualFile) const;
 
-	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued);
+	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued = false, bool create = true);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();

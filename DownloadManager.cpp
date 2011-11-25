@@ -325,7 +325,6 @@ void DownloadManager::findRemovedToken(UserConnection* aSource) {
 
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
 
-	bool found=false;
 	Lock l(cs);
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;
@@ -335,7 +334,6 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool report
 			if (!reportOnly)
 				uc->updated();
 			dcdebug("uc updated");
-			found = true;
 			return true;
 		}	
 	}

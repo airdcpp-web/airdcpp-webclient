@@ -29,7 +29,7 @@ wstring ResourceManager::wstrings[ResourceManager::LAST];
 
 void ResourceManager::loadLanguage(const string& aFile) {
 	try {
-		File f(aFile, File::READ, File::OPEN);
+		File f(aFile, File::READ, File::OPEN, false);
 		SimpleXML xml;
 		xml.fromXML(f.read());
 
