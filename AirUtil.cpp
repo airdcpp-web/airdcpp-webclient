@@ -25,11 +25,13 @@ void AirUtil::init() {
 	subDirReg.study();
 }
 void AirUtil::setSkiplist() {
+
 if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
 		try{
 			skiplistReg.assign(SETTING(SKIPLIST_SHARE));
 		}catch(...) {
-			LogManager::getInstance()->message("Error setting Share skiplist!");
+			skiplistReg.assign("(.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log)");
+			LogManager::getInstance()->message("Error setting Share skiplist! using default: (.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log) ");
 		}
 	}
 }
