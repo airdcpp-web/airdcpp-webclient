@@ -634,7 +634,7 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 	
 	HashManager::HashPauser pauser;	
 	
-	Directory::Ptr dp = buildTree(realPath, Directory::Ptr());
+	Directory::Ptr dp = buildTree(realPath, Directory::Ptr(), true);
 	string vName = validateVirtual(virtualName);
 	dp->setName(vName);
 	dp->setRootPath(realPath);
@@ -937,7 +937,7 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 	}
 }
 
-ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued /*false*/) {
+ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued) {
 	Directory::Ptr dir = Directory::create(Util::getLastDir(aName), aParent);
 
 	Directory::File::Set::iterator lastFileIter = dir->files.begin();
@@ -961,11 +961,15 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			if (!AirUtil::checkSharedName(name, true)) {
 				continue;
 			}
-			//check queue so we dont add incomplete stuff to share automatically.
-			if(checkQueued && QueueManager::getInstance()->isDirQueued(aName)) {
-				return false;
-			}
+
 			string newName = aName + name + PATH_SEPARATOR;
+
+			//check queue so we dont add incomplete stuff to share automatically.
+			if(checkQueued) {
+				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), newName)) {
+					continue;
+				}
+			}
 #ifdef _WIN32
 			// don't share Windows directory
 			TCHAR path[MAX_PATH];
@@ -984,14 +988,22 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			if (!AirUtil::checkSharedName(name, false)) {
 				continue;
 			}
+
 			int64_t size = i->getSize();
 			if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
 				continue;
 
 			string fileName = aName + name;
+
+			if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
+				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + fileName);
+				continue;
+			}
+
 			if(stricmp(fileName, SETTING(TLS_PRIVATE_KEY_FILE)) == 0) {
 				continue;
 			}
+
 			try {
 				if(HashManager::getInstance()->checkTTH(fileName, size, i->getLastWriteTime())) 
 					lastFileIter = dir->files.insert(lastFileIter, Directory::File(name, size, dir, HashManager::getInstance()->getTTH(fileName, size)));
@@ -1216,12 +1228,12 @@ StringPairList ShareManager::getDirectories(int refreshOptions) const noexcept {
 	RLock l(cs);
 	StringPairList ret;
 	if(refreshOptions & REFRESH_ALL) {
-	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
-		ret.push_back(make_pair(i->second, i->first));
-	}
-	}else if(refreshOptions & REFRESH_DIRECTORY){
-	for(StringIterC j = refreshPaths.begin(); j != refreshPaths.end(); ++j) {
-		std::string bla = *j;
+		for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
+			ret.push_back(make_pair(i->second, i->first));
+		}
+	} else if(refreshOptions & REFRESH_DIRECTORY){
+		for(StringIterC j = refreshPaths.begin(); j != refreshPaths.end(); ++j) {
+			std::string bla = *j;
 			// lookup in share the realpaths for refreshpaths
 			ret.push_back(make_pair(shares.find(bla)->second, bla));
 		}
@@ -1236,33 +1248,35 @@ int ShareManager::run() {
 	if(refreshOptions & REFRESH_ALL) {
 		lastFullUpdate = GET_TICK();
 	}
-		HashManager::HashPauser pauser;
+
+	HashManager::HashPauser pauser;
 				
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_INITIATED));
-		//sharedSize = 0;
-		
+	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_INITIATED));
 
-		DirMap newDirs;
-		for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
-				if (checkHidden(i->second)) {
-					Directory::Ptr dp = buildTree(i->second, Directory::Ptr());
-					if(aShutdown) goto end;  //abort refresh
-					dp->setName(i->first);
-					dp->setRootPath(i->second);
-					dp->setLastWrite(findLastWrite(i->second));
-					newDirs.insert(make_pair(i->second, dp));
-				}
+	bundleDirs.clear();
+	QueueManager::getInstance()->getForbiddenPaths(bundleDirs, dirs);
+	DirMap newDirs;
+
+	for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
+		if (checkHidden(i->second)) {
+			Directory::Ptr dp = buildTree(i->second, Directory::Ptr(), true);
+			if(aShutdown) goto end;  //abort refresh
+			dp->setName(i->first);
+			dp->setRootPath(i->second);
+			dp->setLastWrite(findLastWrite(i->second));
+			newDirs.insert(make_pair(i->second, dp));
 		}
-		{
-			
-			WLock l(cs);
+	}
 
-			//only go here when needed
-			if(refreshOptions & REFRESH_DIRECTORY){ 
+	{		
+		WLock l(cs);
+
+		//only go here when needed
+		if(refreshOptions & REFRESH_DIRECTORY){ 
 		
-				for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
-					DirMap::const_iterator m = directories.find(i->second);
-					if(m == directories.end()) { 
+			for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
+				DirMap::const_iterator m = directories.find(i->second);
+				if(m == directories.end()) { 
 					//lookup for the root dirs under the Vname and erase only those.
 					for(DirMap::const_iterator j = directories.begin(); j != directories.end(); ++j) {	
 						if(stricmp(j->second->getName(), i->first) == 0) {
@@ -1274,39 +1288,36 @@ int ShareManager::run() {
 				} else {
 					m->second->findDirsRE(true);
 					directories.erase(m);
-					}
+				}
 			}
 
-			} else if(refreshOptions & REFRESH_ALL) {
-				directories.clear();
-				Lock l(dirnamelist);
-				dirNameList.clear();
-			}
-		
-				directories.insert(newDirs.begin(), newDirs.end());
-				
-			for(DirMap::iterator i = newDirs.begin(); i != newDirs.end(); ++i)
-					i->second->findDirsRE(false);
-			
-			/*set filelist dirty here, will make the open own list thread need to wait with filelist creation,
-			decreases chances hitting lock on getrealpath for files in own list rightclick, 
-			filelist will take a bit longer to open in that case but prevents the gui freeze (for ex. when winshellmenu is used or trying to open folder)
-			*/
-			setDirty();
-
-			rebuildIndices();
-			sortReleaseList();
+		} else if(refreshOptions & REFRESH_ALL) {
+			directories.clear();
+			Lock l(dirnamelist);
+			dirNameList.clear();
 		}
+		
+		directories.insert(newDirs.begin(), newDirs.end());
+				
+		for(DirMap::iterator i = newDirs.begin(); i != newDirs.end(); ++i)
+			i->second->findDirsRE(false);
+			
+		/*set filelist dirty here, will make the open own list thread need to wait with filelist creation,
+		decreases chances hitting lock on getrealpath for files in own list rightclick, 
+		filelist will take a bit longer to open in that case but prevents the gui freeze (for ex. when winshellmenu is used or trying to open folder)
+		*/
+		setDirty();
 
+		rebuildIndices();
+		sortReleaseList();
+	}
 
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED));
+	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED));
 	
-
 	if(refreshOptions & REFRESH_UPDATE) {
 		ClientManager::getInstance()->infoUpdated();
 	}
 
-	
 	forceXmlRefresh = true;
 
 	if(refreshOptions & REFRESH_BLOCKING) {
@@ -1315,6 +1326,7 @@ int ShareManager::run() {
 	}
 
 end:
+	bundleDirs.clear();
 	refreshing.clear();
 	return 0;
 }
@@ -2040,91 +2052,36 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 	}
 }
 
-ShareManager::Directory::Ptr ShareManager::getDirectory(const string& fname) {
-	
-	for(DirMap::iterator mi = directories.begin(); mi != directories.end(); ++mi) {
-		if(strnicmp(fname, mi->first, mi->first.length()) == 0) {
-			Directory::Ptr d = mi->second;
-				
-			
-			if(!d) {
-				return Directory::Ptr();
-			}
-
-			string::size_type i;
-			string::size_type j = mi->first.length();
-			while( (i = fname.find(PATH_SEPARATOR, j)) != string::npos) {
-				Directory::MapIter dmi = d->directories.find(fname.substr(j, i-j));
-				j = i + 1;
-				if(dmi == d->directories.end())
-					return Directory::Ptr();
-				d = dmi->second;
-			}
-			return d;
-		}
-	}
-	return Directory::Ptr();
-}
-
-
-
-/*
-void ShareManager::on(QueueManagerListener::FileMoved, const string& n) noexcept {
-	if(BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
-		// Check if finished download is supposed to be shared
-		RLock l(cs);
-		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
-			if(strnicmp(i->first, n, i->first.size()) == 0 && n[i->first.size() - 1] == PATH_SEPARATOR) {
-				try {
-					// Schedule for hashing, it'll be added automatically later on...
-					HashManager::getInstance()->checkTTH(n, File::getSize(n), 0);
-				} catch(const Exception&) {
-					// Not a vital feature...
-				}
-				break;
-			}
-		}
-	}
-}
-*/
-
 void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundle) noexcept {
 	string path = aBundle->getTarget();
 	bool added = false;
 	{
-
 		RLock l(cs);
-		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
-			
-			if(strnicmp(i->first, path, i->first.size()) != 0) { //check if we have a share folder.
-				continue;
-			}
-			
-			if(!aBundle->getFileBundle()) {
-				
-				Directory::Ptr dir = findDirectory(path, true, true);
-				if (!dir) {
-					break;
-				}
 
-				if (stricmp(dir->getName(), Util::getLastDir(path)) != 0) {
-					break;
-				}
-
-				added = true;
-				buildTree(path, dir, false);
-				sortReleaseList();
-				setDirty();
-			}
+		Directory::Ptr dir = findDirectory(path, true, true);
+		if (!dir) {
+			goto done;
 		}
+
+		if (stricmp(dir->getName(), Util::getLastDir(path)) != 0) {
+			goto done;
+		}
+
+		added = true;
+		if(!aBundle->getFileBundle()) {
+			buildTree(path, dir, false);
+		}
+		setDirty();
 	}
 
+done:
 	if (!added) {
 		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
 			(*i)->dec();
 		}
 		LogManager::getInstance()->message("Failed to add the bundle " + aBundle->getName() + " in share");
-	} else { 
+	} else {
+		sortReleaseList();
 		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
 			onFileHashed((*i)->getTarget(), (*i)->getTTH());
 			(*i)->dec();
@@ -2141,7 +2098,13 @@ bool ShareManager::isBundleShared(const BundlePtr aBundle) noexcept {
 		RLock l(cs);
 		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
 			if(strnicmp(i->first, path, i->first.size()) == 0) { //check if we have a share folder.
-				//we should probably check the folder names too?
+				//check the skiplist
+				StringList sl = StringTokenizer<string>(path.substr(i->first.length()), PATH_SEPARATOR).getTokens();
+				for(auto i = sl.begin(); i != sl.end(); ++i) {
+					if (!AirUtil::checkSharedName((*i), true, true)) {
+						return false;
+					}
+				}
 				return true;
 			}
 		}
@@ -2159,7 +2122,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 				auto j = cur->directories.find(*i);
 				if (j != cur->directories.end()) {
 					cur = j->second;
-				} else if (!AirUtil::checkSharedName((*i), true, report) || !allowAdd) {
+				} else if (!allowAdd || !AirUtil::checkSharedName((*i), true, report)) {
 					break;
 				} else {
 					Directory::Ptr newDir = Directory::create(*i, cur);
@@ -2177,26 +2140,31 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 
 void ShareManager::onFileHashed(const string fname, const TTHValue root) noexcept {
 	WLock l(cs);
-	Directory::Ptr d = getDirectory(fname);
-	if(d) {
-		Directory::File::Set::const_iterator i = d->findFile(Util::getFileName(fname));
-		if(i != d->files.end()) {
-			if(root != i->getTTH())
-				tthIndex.erase(i->getTTH());
-			// Get rid of false constness...
-			Directory::File* f = const_cast<Directory::File*>(&(*i));
-			f->setTTH(root);
-			tthIndex.insert(make_pair(f->getTTH(), i));
-
-		} else {
-			string name = Util::getFileName(fname);
-			int64_t size = File::getSize(fname);
-			Directory::File::Set::iterator it = d->files.insert(Directory::File(name, size, d, root)).first;
-			updateIndices(*d, it);
-		}
-		
-		setDirty(); 
+	Directory::Ptr d = findDirectory(fname, false, false);
+	if (!d) {
+		return;
 	}
+	if (stricmp(d->getName(), Util::getLastDir(fname)) != 0) {
+		return;
+	}
+
+	Directory::File::Set::const_iterator i = d->findFile(Util::getFileName(fname));
+	if(i != d->files.end()) {
+		if(root != i->getTTH())
+			tthIndex.erase(i->getTTH());
+		// Get rid of false constness...
+		Directory::File* f = const_cast<Directory::File*>(&(*i));
+		f->setTTH(root);
+		tthIndex.insert(make_pair(f->getTTH(), i));
+
+	} else {
+		string name = Util::getFileName(fname);
+		int64_t size = File::getSize(fname);
+		Directory::File::Set::iterator it = d->files.insert(Directory::File(name, size, d, root)).first;
+		updateIndices(*d, it);
+	}
+		
+	setDirty();
 }
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {

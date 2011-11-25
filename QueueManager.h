@@ -128,7 +128,7 @@ public:
 	tstring getDirPath(const string& aDir);
 	void saveBundle(BundlePtr aBundle);
 	void getUnfinishedPaths(StringList& bundles);
-	void getForbiddenPaths(StringList& bundles, bool partial, StringList paths);
+	void getForbiddenPaths(StringList& bundles, StringPairList paths);
 
 	BundlePtr findBundle(const string bundleToken);
 	BundlePtr findBundle(const TTHValue& tth);

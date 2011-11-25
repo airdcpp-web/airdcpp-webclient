@@ -776,10 +776,6 @@ int HashManager::Hasher::run() {
 				currentSize = w.begin()->second;
 				w.erase(w.begin());
 				last = w.empty();
-				if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (currentSize > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
-					LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + fname);
-					continue;
-				}
 			} else {
 				last = true;
 				fname.clear();
@@ -864,14 +860,14 @@ int HashManager::Hasher::run() {
 					speed = size * _LL(1000) / (end - start);
 				}
 				if(xcrc32 && xcrc32->getValue() != sfv.getCRC()) {
-					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 					LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32));
+					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				} else {
 					HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
 				}
 			} catch(const FileException& e) {
-				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError());
+				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 			}
 		}
 		{

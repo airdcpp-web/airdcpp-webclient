@@ -346,10 +346,8 @@ private:
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
 	mutable CriticalSection dirnamelist;
 	
+	/* Releases */
 	StringList dirNameList;
-	//typedef std::multimap<string, string> DirNameMap;
-	//DirNameMap dirNameList;
-
 	void addReleaseDir(const string& aName);
 	void deleteReleaseDir(const string& aName);
 	void sortReleaseList();
@@ -378,7 +376,7 @@ private:
 	
 	Directory::File::Set::const_iterator findFile(const string& virtualFile) const;
 
-	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued = false);
+	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
@@ -397,8 +395,8 @@ private:
 	DirMultiMap splitVirtual(const string& virtualPath) const;
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
-	Directory::Ptr getDirectory(const string& fname);
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);
+	StringList bundleDirs;
 
 	StringList refreshPaths;
 	int refreshOptions;

@@ -231,16 +231,23 @@ int QueueManager::FileQueue::isTTHQueued(const TTHValue& tth) {
 }
 
 void QueueManager::FileQueue::addSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
+	if (p < Bundle::LOW) {
+		return;
+	}
 	if (aBundle->getRecent()) {
 		dcassert(std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle) == recentSearchQueue.end());
 		recentSearchQueue.push_back(aBundle);
 		return;
+	} else {
+		dcassert(std::find(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), aBundle) == prioSearchQueue[p].end());
+		prioSearchQueue[p].push_back(aBundle);
 	}
-	dcassert(std::find(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), aBundle) == prioSearchQueue[p].end());
-	prioSearchQueue[p].push_back(aBundle);
 }
 
 void QueueManager::FileQueue::removeSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
+	if (p < Bundle::LOW) {
+		return;
+	}
 	if (aBundle->getRecent()) {
 		auto i = std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle);
 		dcassert(i != recentSearchQueue.end());
@@ -253,17 +260,8 @@ void QueueManager::FileQueue::removeSearchPrio(BundlePtr aBundle, Bundle::Priori
 }
 
 void QueueManager::FileQueue::setSearchPriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio) {
-	if (aBundle->getRecent()) {
-		return;
-	}
-
-	if (oldPrio >= Bundle::LOW) {
-		removeSearchPrio(aBundle, oldPrio);
-	}
-
-	if (newPrio >= Bundle::LOW) {
-		addSearchPrio(aBundle, newPrio);
-	}
+	removeSearchPrio(aBundle, oldPrio);
+	addSearchPrio(aBundle, newPrio);
 }
 
 BundlePtr QueueManager::FileQueue::findRecent(int& recentBundles) {
@@ -274,10 +272,11 @@ BundlePtr QueueManager::FileQueue::findRecent(int& recentBundles) {
 	BundlePtr tmp = recentSearchQueue.front();
 	recentSearchQueue.pop_front();
 	//check if the bundle still belongs to here
-	if ((tmp->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) < (GET_TIME())) {
-	//if (tmp->getDirDate() < (GET_TIME() - SETTING(RECENT_BUNDLE_HOURS)*60*60*1000)) {
+	if ((tmp->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > (GET_TIME())) {
+		//LogManager::getInstance()->message("Time remaining as recent: " + Util::toString(((tmp->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) - GET_TIME()) / (60)) + " minutes");
 		recentSearchQueue.push_back(tmp);
 	} else {
+		//LogManager::getInstance()->message("REMOVE RECENT");
 		tmp->setRecent(false);
 	}
 	recentBundles = recentSearchQueue.size();
@@ -3005,6 +3004,7 @@ void QueueManager::addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const 
 	Lock l (cs);
 	fileQueue.add(qi, true);
 	aBundle->getFinishedFiles().push_back(qi);
+	qi->setBundle(aBundle);
 	//LogManager::getInstance()->message("added finished tth, totalsize: " + Util::toString(aBundle->getFinishedFiles().size()));
 }
 
@@ -3272,6 +3272,9 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		Lock l (cs);
 		for (auto i = bundles.begin(); i != bundles.end(); ++i) {
 			BundlePtr bundle = i->second;
+			if (bundle->isFinished()) {
+				continue;
+			}
 			int64_t bundleSpeed = 0, bundleRatio = 0;
 			int downloads = 0;
 			for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
@@ -3679,41 +3682,44 @@ tstring QueueManager::getDirPath(const string& aDir) {
 void QueueManager::getUnfinishedPaths(StringList& retBundles) {
 	Lock l (cs);
 	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
-		if (!i->second->getFileBundle() && !i->second->isSet(Bundle::FLAG_SCAN_FAILED) && !i->second->isSet(Bundle::FLAG_HASH_FAILED)) {
+		if (!i->second->getFileBundle() && !i->second->isFinished()) {
 			retBundles.push_back(i->second->getTarget());
 		}
 	}
 }
 
-void QueueManager::getForbiddenPaths(StringList& retBundles, bool partial, StringList paths) {
+void QueueManager::getForbiddenPaths(StringList& retBundles, StringPairList paths) {
 	Lock l (cs);
 	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
-		if (partial) {
-			bool found = false;
-			for (auto s = paths.begin(); s != paths.end(); ++s) {
-				if (i->second->getTarget().find(*s) != string::npos) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				continue;
+		//check the path
+		bool found = false;
+		for (auto s = paths.begin(); s != paths.end(); ++s) {
+			if (i->second->getTarget().find(s->second) != string::npos) {
+				found = true;
+				break;
 			}
 		}
+		if (!found) {
+			continue;
+		}
+
 		if (!i->second->getFileBundle()) {
 			if (i->second->isSet(Bundle::FLAG_SCAN_FAILED)) {
 				if (ShareScannerManager::getInstance()->scanBundle(i->second)) {
-					//i->second->unsetFlag(Bundle::FLAG_SCAN_FAILED);
-					continue;
+					i->second->unsetFlag(Bundle::FLAG_SCAN_FAILED);
+					i->second->setFlag(Bundle::FLAG_HASH);
+					hashBundle(i->second);
 				}
 			} else if (i->second->isSet(Bundle::FLAG_HASH_FAILED)) {
 				//schedule for hashing and handle the results elsewhere
 				i->second->unsetFlag(Bundle::FLAG_HASH_FAILED);
+				i->second->setFlag(Bundle::FLAG_HASH);
 				hashBundle(i->second);
 			}
 			retBundles.push_back(i->second->getTarget());
 		}
 	}
+	sort(retBundles.begin(), retBundles.end());
 }
 
 bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& target) {
@@ -3762,6 +3768,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		LogManager::getInstance()->message("settingHours: " + Util::toString(SETTING(RECENT_BUNDLE_HOURS)));
 		LogManager::getInstance()->message("recentMS: " + Util::toString(SETTING(RECENT_BUNDLE_HOURS)*60*60*1000));
 		LogManager::getInstance()->message("Bundle set as recent: " + aBundle->getName() + ", age: " + Text::fromT(Util::formatSeconds(GET_TIME()-aBundle->getDirDate()))); */
+		//LogManager::getInstance()->message("Time remaining as recent: " + Util::toString(((aBundle->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) - GET_TIME()) / (60)) + " minutes");
 		aBundle->setRecent(true);
 	}
 
@@ -3921,6 +3928,9 @@ BundleList QueueManager::getBundleInfo(const string& aSource, int& finishedFiles
 		Lock l (cs);
 		for (auto j = bundles.begin(); j != bundles.end(); ++j) {
 			tmpBundle = (*j).second;
+			if (tmpBundle->isFinished()) {
+				continue;
+			}
 			if (tmpBundle->getTarget().find(aSource) != string::npos) {
 				//LogManager::getInstance()->message("findBundleFinished target found (root bundle): " + j->second->getTarget());
 				retBundles.push_back(tmpBundle);
@@ -4708,6 +4718,7 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool deleteQI)
 
 void QueueManager::removeBundle(BundlePtr aBundle, bool finished) {
 	if (finished) {
+		aBundle->setSpeed(0);
 		fire(QueueManagerListener::BundleFinished(), aBundle);
 		sendBundleFinished(aBundle);
 	} else {

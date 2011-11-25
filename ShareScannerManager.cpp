@@ -758,9 +758,11 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 			tmp += CSTRING(SCAN_NO_PROBLEMS);
 		} else {
 
-			tmp += " ";
-			tmp += CSTRING(SCAN_PROBLEMS_FOUND);
-			tmp += ":  ";
+			if (scanType != 3) {
+				tmp += " ";
+				tmp += CSTRING(SCAN_PROBLEMS_FOUND);
+				tmp += ":  ";
+			}
 
 			bool first = true;
 			if (SETTING(CHECK_MISSING) && missingFiles > 0) {
