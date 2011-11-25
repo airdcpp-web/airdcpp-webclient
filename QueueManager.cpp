@@ -1298,15 +1298,22 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		QueueItem* q = fileQueue.find(target);	
 		if(q == NULL) {
 			q = fileQueue.add(target, aSize, aFlags, QueueItem::DEFAULT, tempTarget, GET_TIME(), root);
-			if (aBundle) {
-				addBundleItem(q, aBundle, true, false);
-				//LogManager::getInstance()->message("ADD BUNDLEITEM, items: " + Util::toString(aBundle->items.size()) + " totalsize: " + Util::formatBytes(aBundle->getSize()));
-			} else if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW) {
-				aBundle = findBundle(q, true);
-				//LogManager::getInstance()->message("ADD QI: NO BUNDLE");
+			if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW) {
+				if (aBundle) {
+					addBundleItem(q, aBundle, true, false);
+					//LogManager::getInstance()->message("ADD BUNDLEITEM, items: " + Util::toString(aBundle->items.size()) + " totalsize: " + Util::formatBytes(aBundle->getSize()));
+				} else {
+					aBundle = findMergeBundle(q);
+					//LogManager::getInstance()->message("ADD QI: NO BUNDLE");
+				}
+
+				if (!aBundle) {
+					aBundle = createFileBundle(q);
+				}
 			} else {
 				fire(QueueManagerListener::Added(), q);
 			}
+	                  
 		} else {
 			if(q->getSize() != aSize) {
 				throw QueueException(STRING(FILE_WITH_DIFFERENT_SIZE));
@@ -1321,6 +1328,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 
 			q->setFlag(aFlags);
 		}
+
 		try {
 			wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aBundle);
 		} catch(const Exception&) {
@@ -1328,6 +1336,9 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		}
 
 		if (aBundle) {
+			if (aBundle->getFileBundle()) {
+				addBundle(aBundle, false);
+			}
 			//don't connect to directory bundle sources here
 			return;
 		}
@@ -1846,7 +1857,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 }
 
 void QueueManager::hashBundle(BundlePtr aBundle) {
-	if(ShareManager::getInstance()->isBundleShared(aBundle)) {
+	if(ShareManager::getInstance()->addBundle(aBundle->getTarget())) {
 		aBundle->setFlag(Bundle::FLAG_HASH);
 		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
 			QueueItem* qi = *i;
@@ -1918,12 +1929,18 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 	if (b->getHashed() == b->getFinishedFiles().size()) {
 		if (b->isSet(Bundle::FLAG_HASH)) {
 			if (!b->isSet(Bundle::FLAG_HASH_FAILED)) {
+				if (!b->getFileBundle()) {
+					fire(QueueManagerListener::BundleHashed(), b->getTarget());
+				} else {
+					if (AirUtil::checkSharedName(b->getFinishedFiles().front()->getTargetFileName(), false)) {
+						fire(QueueManagerListener::FileHashed(), fname, root);
+					}
+				}
+
 				//remove from partial sharing
 				for (auto i = b->getFinishedFiles().begin(); i != b->getFinishedFiles().end(); ++i) {
-					(*i)->inc(); //otherwise it would be deleted after being removed from the filequeue
 					fileQueue.remove(*i);
 				}
-				fire(QueueManagerListener::BundleHashed(), b);
 				bundles.erase(b->getToken());
 			} else {
 				b->resetHashed(); //for the next attempts
@@ -4269,7 +4286,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget) noexcept {
 	QueueItem* qi = aBundle->getQueueItems().front();
 
-	BundlePtr mergeBundle = findBundle(qi, false);
+	BundlePtr mergeBundle = findMergeBundle(qi);
 	if (mergeBundle) {
 		LogManager::getInstance()->message("The file bundle " + aBundle->getName() + " has been merged into bundle " + mergeBundle->getName());
 		removeBundleItem(qi, false, false);
@@ -4382,7 +4399,7 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 	}
 }
 
-BundlePtr QueueManager::findBundle(QueueItem* qi, bool allowAdd) {
+BundlePtr QueueManager::findMergeBundle(QueueItem* qi) {
 	BundlePtr bundle;
 	{
 		Lock l (cs);
@@ -4406,12 +4423,6 @@ BundlePtr QueueManager::findBundle(QueueItem* qi, bool allowAdd) {
 
 	if (bundle) {
 		addBundleItem(qi, bundle, false);
-		return bundle;
-	}
-
-	if (allowAdd) {
-		//create a new single file bundle
-		return createFileBundle(qi);
 	}
 	return bundle;
 	//LogManager::getInstance()->message("FINDBUNDLE, NO BUNDLES FOUND");
@@ -4428,11 +4439,7 @@ BundlePtr QueueManager::createFileBundle(QueueItem* qi) {
 	bundle->setDownloaded(qi->getDownloadedBytes());
 	bundle->setPriority((Bundle::Priority)qi->getPriority());
 	bundle->setAutoPriority(qi->getAutoPriority());
-	if (addBundle(bundle, true)) {
-		return bundle;
-	} else {
-		return NULL;
-	}
+	return bundle;
 }
 
 bool QueueManager::addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading) {

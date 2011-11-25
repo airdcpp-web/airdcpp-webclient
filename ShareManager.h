@@ -100,7 +100,7 @@ public:
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) noexcept;
 	bool isDirShared(const string& directory);
-	bool isBundleShared(const BundlePtr aBundle);
+	bool addBundle(const string& dir);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory, bool validate = true);
 
@@ -384,7 +384,7 @@ private:
 	void updateIndices(Directory& aDirectory);
 	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
 	
-	void onFileHashed(const string fname, const TTHValue root);
+	void onFileHashed(const string& fname, const TTHValue& root);
 
 	//Directory::Ptr merge(const Directory::Ptr& directory);
 	
@@ -404,8 +404,7 @@ private:
 	int run();
 
 	// QueueManagerListener
-	//virtual void on(QueueManagerListener::BundleFilesMoved, const BundlePtr aBundle) noexcept;
-	virtual void on(QueueManagerListener::BundleHashed, const BundlePtr aBundle) noexcept;
+	virtual void on(QueueManagerListener::BundleHashed, const string& path) noexcept;
 	virtual void on(QueueManagerListener::FileHashed, const string& fname, const TTHValue& root) noexcept { onFileHashed(fname, root); }
 
 	// SettingsManagerListener

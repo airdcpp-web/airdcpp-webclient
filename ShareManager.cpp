@@ -2056,8 +2056,7 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 	}
 }
 
-void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundle) noexcept {
-	string path = aBundle->getTarget();
+void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) noexcept {
 	bool added = false;
 	{
 		WLock l(cs);
@@ -2072,33 +2071,25 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const BundlePtr aBundl
 		}
 
 		added = true;
-		if(!aBundle->getFileBundle()) {
-			buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
-			updateIndices(*dir);
-		}
+		buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
+		updateIndices(*dir);
 		setDirty();
 	}
 
 done:
 	if (!added) {
-		LogManager::getInstance()->message("Failed to add the bundle " + aBundle->getName() + " in share");
+		LogManager::getInstance()->message("Failed to add the bundle " + Util::getLastDir(path) + " in share");
 	} else {
 		sortReleaseList();
-		LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been added in share");
+		LogManager::getInstance()->message("The bundle " + Util::getLastDir(path) + " has been added in share");
 	}
-	
-	for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ++i) {
-			(*i)->dec();
-		}
 }
 
-bool ShareManager::isBundleShared(const BundlePtr aBundle) noexcept {
+bool ShareManager::addBundle(const string& path) noexcept {
 	//LogManager::getInstance()->message("QueueManagerListener::BundleFilesMoved");
-	string path = aBundle->getTarget();
-		
 	{
 		RLock l(cs);
-		for(StringMapIter i = shares.begin(); i != shares.end(); i++) {
+		for(auto i = shares.begin(); i != shares.end(); i++) {
 			if(strnicmp(i->first, path, i->first.size()) == 0) { //check if we have a share folder.
 				//check the skiplist
 				StringList sl = StringTokenizer<string>(path.substr(i->first.length()), PATH_SEPARATOR).getTokens();
@@ -2140,9 +2131,9 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 	return cur;
 }
 
-void ShareManager::onFileHashed(const string fname, const TTHValue root) noexcept {
+void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexcept {
 	WLock l(cs);
-	Directory::Ptr d = findDirectory(fname, false, false);
+	Directory::Ptr d = findDirectory(Util::getDir(fname, false, false), true, false);
 	if (!d) {
 		return;
 	}

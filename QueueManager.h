@@ -122,7 +122,7 @@ public:
 	void removeBundle(BundlePtr aBundle, bool finished);
 	void removeBundleFiles(BundlePtr aBundle, bool removeFinished);
 	void removeRunningUser(const string& bundleToken, const UserPtr& aUser, bool finished);
-	BundlePtr findBundle(QueueItem* qi, bool allowAdd);
+	BundlePtr findMergeBundle(QueueItem* qi);
 	void setBundleDirty(BundlePtr aBundle);
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);

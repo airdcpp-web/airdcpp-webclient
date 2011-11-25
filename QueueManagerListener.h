@@ -77,7 +77,7 @@ public:
 	virtual void on(BundleUser, const string&, const HintedUser&) noexcept { }
 	virtual void on(BundlePriority, const BundlePtr) noexcept { }
 	virtual void on(BundleAdded, const BundlePtr) noexcept { }
-	virtual void on(BundleHashed, const BundlePtr) noexcept { }
+	virtual void on(BundleHashed, const string&) noexcept { }
 	virtual void on(FileHashed, const string& /* fileName */, const TTHValue& /* root */) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }
