@@ -288,7 +288,7 @@ void QueueItem::addSegment(const Segment& segment) {
 
 	//cache for bundles
 	if (bundle) {
-		bundle->increaseDownloaded(segment.getSize());
+		bundle->addDownloadedSegment(segment.getSize());
 	}
 
 	// Consolidate segments

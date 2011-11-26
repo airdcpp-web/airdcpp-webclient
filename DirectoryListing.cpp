@@ -447,7 +447,7 @@ void DirectoryListing::download(File* aFile, const string& aTarget, bool view, b
 	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), flags, aBundle);
 
 	if(highPrio || (prio != QueueItem::DEFAULT))
-		QueueManager::getInstance()->setPriority(aTarget, highPrio ? QueueItem::HIGHEST : prio);
+		QueueManager::getInstance()->setQIPriority(aTarget, highPrio ? QueueItem::HIGHEST : prio);
 }
 
 DirectoryListing::Directory* DirectoryListing::find(const string& aName, Directory* current) {

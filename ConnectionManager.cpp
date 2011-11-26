@@ -309,7 +309,7 @@ void ConnectionManager::changeCQIState(const UserConnection *aSource, bool state
 	Lock l(cs);
 	for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 		ConnectionQueueItem* cqi = *i;
-		if (cqi->getToken() == token) {
+		if (compare(cqi->getToken(), token) == 0) {
 			if (stateIdle) {
 				cqi->setState(ConnectionQueueItem::IDLE);
 			} else {
@@ -783,7 +783,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 		Lock l(cs);
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
-			if (cqi->getToken() == uc->getToken()) {
+			if (compare(cqi->getToken(), uc->getToken()) == 0) {
 				if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 					cqi->setState(ConnectionQueueItem::ACTIVE);
 					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
@@ -820,7 +820,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 			//check that the token is unique so nasty clients can't mess up our transfers
 			for(ConnectionQueueItem::Iter i = uploads.begin(); i != uploads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
-				if(cqi->getToken() == uc->getToken()) {
+				if(compare(cqi->getToken(), uc->getToken())==0) {
 					putConnection(uc);
 					return;
 				}
@@ -917,7 +917,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			const string& to = cqi->getToken();
-			if(to == token) {
+			if(compare(to, token)==0) {
 				if(aSource->isSet(UserConnection::FLAG_MCN1)) {
 					string slots;
 					cmd.getParam("CO", 0, slots);
@@ -958,7 +958,7 @@ void ConnectionManager::force(const string aToken) {
 
 	for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 		ConnectionQueueItem* cqi = *i;
-		if (cqi->getToken() == aToken)
+		if (compare(cqi->getToken(), aToken)==0)
 			(*i)->setLastAttempt(0);
 	}
 
@@ -1014,7 +1014,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			Lock l(cs);
 			for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
-				if (aSource->getToken() == cqi->getToken()) {
+				if (compare(aSource->getToken(), cqi->getToken())==0) {
 					if (cqi->getState() == ConnectionQueueItem::IDLE) {
 						cqi->setState(ConnectionQueueItem::WAITING);
 						cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
@@ -1033,7 +1033,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			for(ConnectionQueueItem::Iter i = uploads.begin(); i != uploads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
 				if (cqi == NULL) continue;
-				if (aSource->getToken() == cqi->getToken()) {
+				if (compare(aSource->getToken(), cqi->getToken())==0) {
 					removed.push_back(cqi);
 					break;
 				}
@@ -1068,7 +1068,7 @@ void ConnectionManager::disconnect(const string& token) {
 	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
 		UserConnection* uc = *i;
 		if (uc == NULL) continue;
-		if(uc->getToken() == token) {
+		if(compare(uc->getToken(), token)==0) {
 			uc->disconnect(true);
 			return;
 		}

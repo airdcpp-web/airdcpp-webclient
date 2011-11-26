@@ -50,6 +50,8 @@ public:
 		LAST
 	};
 
+	typedef vector<pair<QueueItemPtr, Priority>> PrioList;
+
 	enum FileFlags {
 		/** Normal download, no flags set */
 		FLAG_NORMAL				= 0x00, 

@@ -34,15 +34,6 @@ namespace dcpp {
 
 using std::string;
 
-/**
- * A bundle is a set of related files that can be searched for by a single hash value.
- *
- * The hash is defined as follows:
- * For each file in the set, ordered by name (byte-order, not linguistic), except those specially marked,
- * compute the compute the hash. Then calculate the combined hash value by passing the concatenated hashes
- * of each file through the hash function.
- */
-
 class Bundle : public Flags, public intrusive_ptr_base<Bundle> {
 public:
 
@@ -73,7 +64,7 @@ public:
 	};
 
 	bool operator==(const BundlePtr aBundle) const {
-		return token == aBundle->getToken();
+		return compare(token, aBundle->getToken()) == 0;
 	}
 
 	struct SortOrder {
@@ -95,8 +86,12 @@ public:
 	typedef unordered_map<string, QueueItemList> DirMap;
 
 
+	typedef vector<pair<QueueItem*, int8_t>> PrioList;
+	typedef multimap<double, BundlePtr> SourceSpeedMapB;
+	typedef multimap<double, QueueItem*> SourceSpeedMapQI;
 
-	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloaded(0), speed(0), lastSpeed(0), 
+
+	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloadedSegments(0), speed(0), lastSpeed(0), 
 		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false), bytesDownloaded(0),
 		hashed(0) { }
 
@@ -106,7 +101,7 @@ public:
 	GETSET(uint16_t, running, Running);
 	GETSET(uint64_t, start, Start);
 	GETSET(int64_t, size, Size);
-	GETSET(int64_t, downloaded, Downloaded);
+	GETSET(int64_t, downloadedSegments, DownloadedSegments);
 	GETSET(int64_t, speed, Speed);
 	GETSET(int64_t, actual, Actual);
 	GETSET(int64_t, lastSpeed, LastSpeed);
@@ -140,7 +135,6 @@ public:
 
 	uint64_t getDownloadedBytes() const { return bytesDownloaded; }
 	QueueItem* findQI(const string& aTarget) const;
-	Bundle::Priority calculateAutoPriority() const;
 	size_t countOnlineUsers() const;
 
 	void removeQueue(QueueItem* qi);
@@ -163,16 +157,16 @@ public:
 		size -= aSize;
 	}
 
-	void increaseDownloadedBytes(int64_t aSize) {
-		bytesDownloaded = aSize + downloaded;
+	void setDownloadedBytes(int64_t aSize) {
+		bytesDownloaded = aSize + downloadedSegments;
 	}
 
-	void increaseDownloaded(int64_t aSize) {
-		downloaded += aSize;
+	void addDownloadedSegment(int64_t aSize) {
+		downloadedSegments += aSize;
 	}
 
-	void decreaseDownloaded(int64_t aSize) {
-		downloaded -= aSize;
+	void removeDownloadedSegment(int64_t aSize) {
+		downloadedSegments -= aSize;
 	}
 
 	void increaseRunning() {
@@ -215,6 +209,14 @@ public:
 	QueueItemList getRunningQIs(const UserPtr& aUser);
 	bool addDownload(Download* d);
 	int removeDownload(const string& token);
+
+	void calculateProgressPriorities(PrioList& priorities);
+	Priority calculateProgressPriority() const;
+
+	void getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap);
+	void getBundleBalanceMaps(SourceSpeedMapB& speedMap, SourceSpeedMapB& sourceMap);
+
+	void calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speeds, SourceSpeedMapQI& sources, bool verbose);
 
 	void removeUserQueue(QueueItem* qi, bool removeRunning = true);
 	bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);

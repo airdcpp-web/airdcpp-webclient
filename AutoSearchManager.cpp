@@ -348,7 +348,7 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 				QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
 			
 			if(pausePrio)
-				QueueManager::getInstance()->setPriority(fullpath, QueueItem::PAUSED);
+				QueueManager::getInstance()->setQIPriority(fullpath, QueueItem::PAUSED);
 			}
 		} catch(...) {
 			LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());

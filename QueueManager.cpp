@@ -172,6 +172,7 @@ void QueueManager::FileQueue::add(QueueItem* qi, bool addFinished) {
 		if (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
 			queueSize += qi->getSize();
 		}
+		dcassert(queueSize >= 0);
 		targetMapInsert = queue.insert(targetMapInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
 	}
 	targetMapInsert = queue.insert(targetMapInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
@@ -184,6 +185,7 @@ void QueueManager::FileQueue::remove(QueueItem* qi) {
 	if  (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
 		queueSize -= qi->getSize();
 	}
+	dcassert(queueSize >= 0);
 
 	auto i = tthIndex.find(qi->getTTH());
 	if (i != tthIndex.end()) {
@@ -265,7 +267,6 @@ void QueueManager::FileQueue::setSearchPriority(BundlePtr aBundle, Bundle::Prior
 }
 
 BundlePtr QueueManager::FileQueue::findRecent(int& recentBundles) {
-	//if (bundlePrioQueue[p].empty()) {
 	if ((int)recentSearchQueue.size() == 0) {
 		return NULL;
 	}
@@ -278,6 +279,7 @@ BundlePtr QueueManager::FileQueue::findRecent(int& recentBundles) {
 	} else {
 		//LogManager::getInstance()->message("REMOVE RECENT");
 		tmp->setRecent(false);
+		addSearchPrio(tmp, tmp->getPriority());
 	}
 	recentBundles = recentSearchQueue.size();
 	return tmp;
@@ -369,12 +371,7 @@ void QueueManager::UserQueue::add(QueueItem* qi, const HintedUser& aUser) {
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
-
-		//if(qi->getDownloadedBytes() > 0 ) {
-		//	l.push_front(qi);
-		//} else {
-			l.push_back(qi);
-		//}
+		l.push_back(qi);
 	}
 
 	BundlePtr bundle = qi->getBundle();
@@ -454,7 +451,6 @@ QueueItem* QueueManager::UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle
 	auto i = userBundleQueue.find(aUser);
 	if(i != userBundleQueue.end()) {
 		dcassert(!i->second.empty());
-		//auto j = prev(i->second.end());
 		for (auto j = i->second.begin(); j != i->second.end(); ++j) {
 			if ((*j)->getPriority() < minPrio) {
 				break;
@@ -496,10 +492,6 @@ void QueueManager::UserQueue::removeDownload(QueueItem* qi, const UserPtr& user,
 			}
 		}
 	}
-
-	//if (!qi->getBundleToken().empty()) {
-	//	QueueManager::getInstance()->removeRunningUser(qi->getBundleToken(), user->getCID(), tree);
-	//}
 
 	BundlePtr bundle;
 	if (!token.empty()) {
@@ -611,7 +603,6 @@ void QueueManager::UserQueue::removeQI(QueueItem* qi, const UserPtr& aUser, bool
 
 
 void QueueManager::UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Priority p) {
-	//Bundle::Priority oldPrio = aBundle->getPriority();
 	aBundle->setPriority(p);
 	HintedUserList sources;
 	aBundle->getQISources(sources);
@@ -624,9 +615,6 @@ void QueueManager::UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Prior
 		//dcassert(aBundle->isSource(aUser));
 
 		//erase old
-		//for(auto y = ulm.begin(); y != ulm.end(); ++y) {
-		//	LogManager::getInstance()->message("OLD PRIO ULM CID: " + (*y).first->getCID().toBase32());
-		//}
 		auto j = userBundleQueue.find(aUser);
 		dcassert(j != userBundleQueue.end());
 		//LogManager::getInstance()->message("CID TAKEN FROM ULM: " + j->first->getCID().toBase32());
@@ -642,13 +630,6 @@ void QueueManager::UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Prior
 		//insert new
 		auto& ulm2 = userBundleQueue[aUser];
 		ulm2.insert(upper_bound(ulm2.begin(), ulm2.end(), aBundle, Bundle::SortOrder()), aBundle);
-		/*for (auto k = ulm2.begin(); k != ulm2.end(); ++k) {
-			LogManager::getInstance()->message("USERQUEUE: " + (*k)->getName() + " prio " + AirUtil::getPrioText((*k)->getPriority()));
-		} */
-		//ulm2.push_back(aBundle);
-		//for(auto y = ulm2.begin(); y != ulm2.end(); ++y) {
-		//	LogManager::getInstance()->message("NEW PRIO ULM CID: " + (*y).first->getCID().toBase32());
-		//}
 	}
 }
 
@@ -1397,7 +1378,7 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence, Bun
 	if(checkExistence && File::getSize(target) != -1) {
 		if (aBundle) {
 			int64_t size = File::getSize(target);
-			aBundle->increaseDownloaded(size);
+			aBundle->addDownloadedSegment(size);
 			aBundle->increaseSize(size);
 		}
 		throw FileException(target + ": " + STRING(TARGET_FILE_EXISTS));
@@ -1932,9 +1913,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 				if (!b->getFileBundle()) {
 					fire(QueueManagerListener::BundleHashed(), b->getTarget());
 				} else {
-					if (AirUtil::checkSharedName(b->getFinishedFiles().front()->getTargetFileName(), false)) {
-						fire(QueueManagerListener::FileHashed(), fname, root);
-					}
+					fire(QueueManagerListener::FileHashed(), fname, root);
 				}
 
 				//remove from partial sharing
@@ -2573,15 +2552,22 @@ void QueueManager::changeBundleSource(QueueItem* qi, const HintedUser& aUser, bo
 	} */
 }
 
-void QueueManager::setPriority(const string& aTarget, QueueItem::Priority p) noexcept {
+void QueueManager::setQIPriority(const string& aTarget, QueueItem::Priority p) noexcept {
+	QueueItem* q = NULL;
+	{
+		Lock l(cs);
+		q = fileQueue.find(aTarget);
+	}
+	setQIPriority(q, p);
+}
+
+void QueueManager::setQIPriority(QueueItem* q, QueueItem::Priority p) noexcept {
 	HintedUserList getConn;
 	bool running = false;
 
 	{
 		Lock l(cs);
-	
-		QueueItem* q = fileQueue.find(aTarget);
-		if( (q != NULL) && (q->getPriority() != p) && !q->isFinished() ) {
+		if((q != NULL) && (q->getPriority() != p) && !q->isFinished() ) {
 			if (!q->getBundle()) {
 				//those should always use the highest prio
 				return;
@@ -2599,7 +2585,7 @@ void QueueManager::setPriority(const string& aTarget, QueueItem::Priority p) noe
 
 	if(p == QueueItem::PAUSED) {
 		if(running)
-			DownloadManager::getInstance()->abortDownload(aTarget);
+			DownloadManager::getInstance()->abortDownload(q->getTarget());
 	} else {
 		for(HintedUserList::const_iterator i = getConn.begin(); i != getConn.end(); ++i) {
 			ConnectionManager::getInstance()->getDownloadConnection(*i);
@@ -2608,7 +2594,7 @@ void QueueManager::setPriority(const string& aTarget, QueueItem::Priority p) noe
 }
 
 void QueueManager::setAutoPriority(const string& aTarget, bool ap) noexcept {
-	vector<pair<string, QueueItem::Priority>> priorities;
+	QueueItem::PrioList priorities;
 
 	{
 		Lock l(cs);
@@ -2617,15 +2603,15 @@ void QueueManager::setAutoPriority(const string& aTarget, bool ap) noexcept {
 		if( (q != NULL) && (q->getAutoPriority() != ap) ) {
 			q->setAutoPriority(ap);
 			if(ap) {
-				priorities.push_back(make_pair(q->getTarget(), q->calculateAutoPriority()));
+				priorities.push_back(make_pair(q, q->calculateAutoPriority()));
 			}
 			setBundleDirty(q->getBundle());
 			fire(QueueManagerListener::StatusUpdated(), q);
 		}
 	}
 
-	for(vector<pair<string, QueueItem::Priority>>::const_iterator p = priorities.begin(); p != priorities.end(); p++) {
-		setPriority((*p).first, (*p).second);
+	for(QueueItem::PrioList::const_iterator p = priorities.begin(); p != priorities.end(); p++) {
+		setQIPriority((*p).first, (*p).second);
 	}
 }
 
@@ -2922,11 +2908,13 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				qi = qm->fileQueue.add(target, size, 0, p, tempTarget, added, TTHValue(tthRoot));
 				if(downloaded > 0) {
 					qi->addSegment(Segment(0, downloaded));
-					qi->setPriority(qi->calculateAutoPriority());
 				}
 
 				bool ap = Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1;
 				qi->setAutoPriority(ap);
+				if (ap) {
+					qi->setPriority(QueueItem::LOW);
+				}
 				qi->setMaxSegments(max((uint8_t)1, maxSegments));
 
 				//bundles
@@ -2949,9 +2937,11 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			
 			if(size > 0 && start >= 0 && (start + size) <= cur->getSize()) {
 				cur->addSegment(Segment(start, size));
-				cur->setPriority(cur->calculateAutoPriority());
+				if (cur->getAutoPriority() && SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
+					cur->setPriority(cur->calculateAutoPriority());
+				}
 				if (curBundle) {
-					curBundle->increaseDownloaded(size);
+					curBundle->addDownloadedSegment(size);
 				}
 			}
 		} else if(cur && name == sSource) {
@@ -2983,7 +2973,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 			qm->addFinishedTTH(TTHValue(tth), curBundle, target, size, added);
 			curBundle->increaseSize(size);
-			curBundle->increaseDownloaded(size);
+			curBundle->addDownloadedSegment(size);
 		} else {
 			LogManager::getInstance()->message("QUEUE LOADING ERROR");
 		}
@@ -3226,64 +3216,11 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	if((lastSave + 10000) < aTick) {
 		saveQueue(false);
 	}
-	/*BundlePtr bundle = findSearchBundle(aTick, true);
-	if(bundle != NULL) {
-		LogManager::getInstance()->message("next search in " + Util::toString((nextSearch - aTick) / (60*1000)) + " minutes");
-		LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
-	} else {
-		LogManager::getInstance()->message("NO BUNDLE");
-	} */
-	/*vector<pair<string, QueueItem::Priority>> priorities;
-
-	for (auto s = userQueue.getRunning().begin(); s != userQueue.getRunning().end(); ++s) {
-		QueueItemList ql = s->second;
-		for (auto j = ql.begin(); j != ql.end(); ++j) {
-			QueueItem* q = *j;
-			if(q->getAutoPriority()) {
-				QueueItem::Priority p1 = q->getPriority();
-				if(p1 != QueueItem::PAUSED) {
-					QueueItem::Priority p2 = q->calculateAutoPriority();
-					if(p1 != p2)
-						priorities.push_back(make_pair(q->getTarget(), p2));
-				}
-			}
-		}
-	}
-
-	for(vector<pair<string, QueueItem::Priority>>::const_iterator p = priorities.begin(); p != priorities.end(); p++) {
-		setPriority((*p).first, (*p).second);
-	}
-	 */
-	/*
-	vector<pair<string, QueueItem::Priority>> priorities;
-
-	{
-		Lock l(cs);
-
-		QueueItemList um = getRunningFiles();
-		for(auto j = um.begin(); j != um.end(); ++j) {
-			QueueItem* q = *j;
-
-			if(q->getAutoPriority()) {
-				QueueItem::Priority p1 = q->getPriority();
-				if(p1 != QueueItem::PAUSED) {
-					QueueItem::Priority p2 = q->calculateAutoPriority();
-					if(p1 != p2)
-						priorities.push_back(make_pair(q->getTarget(), p2));
-				}
-			}
-			fire(QueueManagerListener::StatusUpdated(), q, true);
-		}
-	}
-
-	for(vector<pair<string, QueueItem::Priority>>::const_iterator p = priorities.begin(); p != priorities.end(); p++) {
-		setPriority((*p).first, (*p).second);
-	}
-	*/
 
 	BundleList runningBundles;
-	vector<pair<BundlePtr, Bundle::Priority>> priorities;
+	Bundle::PrioList qiPriorities;
 	boost::unordered_map<UserPtr, int64_t> userSpeedMap;
+	vector<pair<BundlePtr, Bundle::Priority>> bundlePriorities;
 
 	{
 		Lock l (cs);
@@ -3292,32 +3229,38 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 			if (bundle->isFinished()) {
 				continue;
 			}
-			int64_t bundleSpeed = 0, bundleRatio = 0;
+			int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
 			int downloads = 0;
 			for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
 				Download* d = *s;
 				if (d->getAverageSpeed() > 0 && d->getStart() > 0) {
 					downloads++;
-					bundle->increaseDownloadedBytes(d->getPos());
+					//bundle->setDownloadedBytes(d->getPos());
+					int64_t pos = d->getPos();
 					bundleSpeed += d->getAverageSpeed();
-					bundleRatio += d->getPos() > 0 ? (double)d->getActual() / (double)d->getPos() : 1.00;
+					bundleRatio += pos > 0 ? (double)d->getActual() / (double)pos : 1.00;
 					userSpeedMap[d->getUser()] += d->getAverageSpeed();
+					bundlePos += pos;
 				}
 			}
 			if (bundleSpeed > 0) {
 				if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS && bundle->getAutoPriority()) {
 					Bundle::Priority p1 = bundle->getPriority();
 					if(p1 != Bundle::PAUSED) {
-						Bundle::Priority p2 = bundle->calculateAutoPriority();
+						Bundle::Priority p2 = bundle->calculateProgressPriority();
 						if(p1 != p2) {
-							priorities.push_back(make_pair(bundle, p2));
+							bundlePriorities.push_back(make_pair(bundle, p2));
 						}
+					}
+					if (BOOLSETTING(QI_AUTOPRIO)) {
+						bundle->calculateProgressPriorities(qiPriorities);
 					}
 				}
 				bundleRatio = bundleRatio / downloads;
 				bundle->setActual((int64_t)((double)bundle->getDownloadedBytes() * (bundleRatio == 0 ? 1.00 : bundleRatio)));
 				bundle->setSpeed(bundleSpeed);
 				bundle->setRunning(downloads);
+				bundle->setDownloadedBytes(bundlePos);
 				runningBundles.push_back(bundle);
 				fire(QueueManagerListener::BundleTick(), bundle);
 			}
@@ -3348,10 +3291,13 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		setLastAutoPrio(aTick);
 	}
 
-	for(vector<pair<BundlePtr, Bundle::Priority>>::const_iterator p = priorities.begin(); p != priorities.end(); p++) {
+	for(auto p = bundlePriorities.begin(); p != bundlePriorities.end(); p++) {
 		setBundlePriority((*p).first, (*p).second, true);
 	}
 
+	for(Bundle::PrioList::const_iterator p = qiPriorities.begin(); p != qiPriorities.end(); p++) {
+		setQIPriority((*p).first, (QueueItem::Priority)(*p).second);
+	}
 }
 
 void QueueManager::calculateBundlePriorities(bool verbose) {
@@ -3375,113 +3321,119 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 		if (verbose) {
 			LogManager::getInstance()->message("Not enough bundles with autoprio to calculate anything!");
 		}
-		return;
+		goto checkQIprios;
 	}
-
-
-	//create priorization maps
-	multimap<double, BundlePtr> speedMap;
-	multimap<double, BundlePtr> sourceMap;
 
 	{
-		Lock l (cs);
+		//create priorization maps
+		Bundle::SourceSpeedMapB speedMap;
+		Bundle::SourceSpeedMapB sourceMap;
+
+		{
+			Lock l (cs);
+			for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
+				i->first->getBundleBalanceMaps(speedMap, sourceMap);
+			}
+		}
+
+		//scale the priorization maps
+		double factor;
+		double max = max_element(speedMap.begin(), speedMap.end())->first;
+		if (max) {
+			double factor = 100 / max;
+			for (auto i = speedMap.begin(); i != speedMap.end(); ++i) {
+				autoPrioMap[i->second] = i->first * factor;
+			}
+		}
+
+		max = max_element(sourceMap.begin(), sourceMap.end())->first;
+		if (max > 0) {
+			factor = 100 / max;
+			for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
+				autoPrioMap[i->second] += i->first * factor;
+			}
+		}
+
+		//prepare to set the prios
+		multimap<int, BundlePtr> finalMap;
+		int uniqueValues = 0;
 		for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
-			BundlePtr bundle = i->first;
-			int64_t bundleSpeed = 0;
-			double sources = 0;
-			for (auto s = bundle->getBundleSources().begin(); s != bundle->getBundleSources().end(); ++s) {
-				UserPtr& user = (*s).first.user;
-				if (user->isOnline()) {
-					bundleSpeed += user->getSpeed();
-					sources += s->second;
-				} else {
-					sources += s->second / 2.0;
-				}
+			if (finalMap.find(i->second) == finalMap.end()) {
+				uniqueValues++;
 			}
-			sources = sources / bundle->getQueueItems().size();
-			///if (verbose) {
-			//	LogManager::getInstance()->message("Sourcepoints for bundle " + bundle->getName() + " : " + Util::toString(sources));
-			//}
-			speedMap.insert(make_pair((double)bundleSpeed, bundle));
-			sourceMap.insert(make_pair(sources, bundle));
+			finalMap.insert(make_pair(i->second, i->first));
 		}
-	}
 
-	//scale the priorization maps
-	double factor;
-	double max = max_element(speedMap.begin(), speedMap.end())->first;
-	if (max) {
-		double factor = 100 / max;
-		for (auto i = speedMap.begin(); i != speedMap.end(); ++i) {
-			autoPrioMap[i->second] = i->first * factor;
+
+		int prioGroup = 1;
+		if (uniqueValues <= 1) {
+			if (verbose) {
+				LogManager::getInstance()->message("Not enough bundles with unique points to perform the priotization!");
+			}
+			goto checkQIprios;
+		} else if (uniqueValues > 2) {
+			prioGroup = uniqueValues / 3;
 		}
-	}
 
-	max = max_element(sourceMap.begin(), sourceMap.end())->first;
-	if (max > 0) {
-		factor = 100 / max;
-		for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
-			autoPrioMap[i->second] += i->first * factor;
-		}
-	}
-
-	//prepare to set the prios
-	multimap<int, BundlePtr> finalMap;
-	int uniqueValues = 0;
-	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
-		if (finalMap.find(i->second) == finalMap.end()) {
-			uniqueValues++;
-		}
-		finalMap.insert(make_pair(i->second, i->first));
-	}
-
-
-	int prioGroup = 1;
-	if (uniqueValues <= 1) {
 		if (verbose) {
-			LogManager::getInstance()->message("Not enough bundles with unique points to perform the priotization!");
+			LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
 		}
-		return;
-	} else if (uniqueValues > 2) {
-		prioGroup = uniqueValues / 3;
-	}
 
-	if (verbose) {
-		LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
-	}
+		//priority to set (4-2, high-low)
+		int prio = 4;
 
-	//priority to set (4-2, high-low)
-	int prio = 4;
+		//counters for analyzing identical points
+		int lastPoints = 999;
+		int prioSet=0;
 
-	//counters for analyzing identical points
-	int lastPoints = 999;
-	int prioSet=0;
-
-	for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
-		if (lastPoints==i->first) {
-			if (verbose) {
-				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
-			}
-			setBundlePriority(i->second, (Bundle::Priority)prio, true);
-			//don't increase the prio if two bundles have identical points
-			if (prioSet < prioGroup) {
+		for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
+			if (lastPoints==i->first) {
+				if (verbose) {
+					LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
+				}
+				setBundlePriority(i->second, (Bundle::Priority)prio, true);
+				//don't increase the prio if two bundles have identical points
+				if (prioSet < prioGroup) {
+					prioSet++;
+				}
+			} else {
+				if (prioSet == prioGroup && prio != 2) {
+					prio--;
+					prioSet=0;
+				} 
+				if (verbose) {
+					LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
+				}
+				setBundlePriority(i->second, (Bundle::Priority)prio, true);
 				prioSet++;
+				lastPoints=i->first;
+
 			}
-		} else {
-			if (prioSet == prioGroup && prio != 2) {
-				prio--;
-				prioSet=0;
-			} 
-			if (verbose) {
-				LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
+		}
+	}
+
+checkQIprios:
+	if (BOOLSETTING(QI_AUTOPRIO)) {
+		{
+			Bundle::PrioList qiPriorities;
+			for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
+				Bundle::SourceSpeedMapQI qiSpeedMap;
+				Bundle::SourceSpeedMapQI qiSourceMap;
+				{
+					Lock l(cs);
+					(*i).first->getQIBalanceMaps(qiSpeedMap, qiSourceMap);
+				}
+				(*i).first->calculateBalancedPriorities(qiPriorities, qiSpeedMap, qiSourceMap, verbose);
 			}
-			setBundlePriority(i->second, (Bundle::Priority)prio, true);
-			prioSet++;
-			lastPoints=i->first;
+			for(Bundle::PrioList::const_iterator p = qiPriorities.begin(); p != qiPriorities.end(); p++) {
+				setQIPriority((*p).first, (QueueItem::Priority)(*p).second);
+			}
 		}
 	}
 	if (verbose) {
-		LogManager::getInstance()->message("Autosearch calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
+		LogManager::getInstance()->message("Autosearch calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + 
+			"%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + 
+			"%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
 	}
 }
 
@@ -4030,7 +3982,7 @@ void QueueManager::setBundlePriorities(const string& aSource, BundleList sourceB
 			if (autoPrio) {
 				setAutoPriority((*i)->getTarget(), (*i)->getAutoPriority());
 			} else {
-				setPriority((*i)->getTarget(), (QueueItem::Priority)p);
+				setQIPriority((*i), (QueueItem::Priority)p);
 			}
 		}
 	} else {
@@ -4436,7 +4388,7 @@ BundlePtr QueueManager::createFileBundle(QueueItem* qi) {
 	qi->setBundle(bundle);
 	bundle->addQueue(qi);
 	bundle->increaseSize(qi->getSize());
-	bundle->setDownloaded(qi->getDownloadedBytes());
+	//bundle->setDownloaded(qi->getDownloadedBytes());
 	bundle->setPriority((Bundle::Priority)qi->getPriority());
 	bundle->setAutoPriority(qi->getAutoPriority());
 	return bundle;
@@ -4683,7 +4635,7 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool deleteQI)
 				bundle->getFinishedFiles().push_back(qi);
 			} else {
 				if (qi->getDownloadedBytes() > 0) {
-					bundle->decreaseDownloaded(qi->getDownloadedBytes());
+					bundle->removeDownloadedSegment(qi->getDownloadedBytes());
 				}
 				bundle->decreaseSize(qi->getSize());
 				bundle->setFlag(Bundle::FLAG_UPDATE_SIZE);

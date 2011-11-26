@@ -140,7 +140,7 @@ void DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, boo
 	if (!updateOnly) {
 		cmd.addParam("SI", Util::toString(aBundle->getSize()));
 		cmd.addParam("NA", aBundle->getName());
-		cmd.addParam("DL", Util::toString(aBundle->getDownloaded()));
+		cmd.addParam("DL", Util::toString(aBundle->getDownloadedBytes()));
 		if (aBundle->getSingleUser()) {
 			cmd.addParam("SU1");
 		} else {
@@ -176,8 +176,8 @@ void DownloadManager::updateBundles(BundleList bundles) {
 		}
 		//LogManager::getInstance()->message("SpeedCompare: " + Util::toString(bundle->getSpeed() - bundle->getTotalSpeed()) + " should be bigger than " + Util::toString(bundle->getSpeed()*0.05));
 
-		if (floor(bundle->getLastPercent()) < floor(((float)bundle->getDownloaded() / (float)bundle->getSize())* 10000)) {
-			percent = (((float)bundle->getDownloaded() / (float)bundle->getSize())*100);
+		if (floor(bundle->getLastPercent()) < floor(((float)bundle->getDownloadedBytes() / (float)bundle->getSize())* 10000)) {
+			percent = (((float)bundle->getDownloadedBytes() / (float)bundle->getSize())*100);
 			bundle->setLastPercent(percent*100.000);
 		}
 		//LogManager::getInstance()->message("PercentCompare: " + Util::toString(bundle->getLastPercent()) + " should be smaller than " + Util::toString(floor(((float)bundle->getDownloaded() / (float)bundle->getSize())* 10000)));

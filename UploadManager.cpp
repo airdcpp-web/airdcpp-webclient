@@ -556,7 +556,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 			}
 		}
 
-		if (percent > 0 && percent < 100) {
+		if (percent > 0 && percent < 100.00) {
 			bundle->setUploaded(bundle->getSize()*(percent / 100.00000));
 		}
 	}
@@ -761,7 +761,7 @@ void UploadManager::removeBundleConnection(const AdcCommand& cmd) {
 void UploadManager::setBundle(const string aToken, UploadBundlePtr aBundle) {
 	Lock l(cs);
 	for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
-		if ((*i)->getUserConnection().getToken() == aToken) {
+		if (compare((*i)->getUserConnection().getToken(), aToken)==0) {
 			Upload* u = *i;
 			u->setBundle(aBundle);
 			return;
@@ -769,7 +769,7 @@ void UploadManager::setBundle(const string aToken, UploadBundlePtr aBundle) {
 	}
 
 	for(UploadList::const_iterator i = delayUploads.begin(); i != delayUploads.end(); ++i) {
-		if ((*i)->getUserConnection().getToken() == aToken) {
+		if (compare((*i)->getUserConnection().getToken(), aToken)==0) {
 			Upload* u = *i;
 			u->setBundle(aBundle);
 			return;
@@ -783,13 +783,13 @@ string UploadManager::getBundleTarget(const string aToken, const string aName) {
 	{
 		Lock l(cs);
 	for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
-		if ((*i)->getUserConnection().getToken() == aToken) {
+		if (compare((*i)->getUserConnection().getToken(), aToken)==0) {
 			//LogManager::getInstance()->message("UPLOAD BUNDLE, NAME TOKEN UPLOAD");
 			path = (*i)->getPath();
 			break;
 		}
 		if (!(*i)->getBundle()) continue;
-		if ((*i)->getBundle()->getToken() == aToken) {
+		if (compare((*i)->getBundle()->getToken(), aToken)==0) {
 			//LogManager::getInstance()->message("UPLOAD BUNDLE, NAME TOKEN BUNDLE");
 			path = (*i)->getPath();
 			break;
@@ -836,7 +836,7 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 UploadBundlePtr UploadManager::findBundle(const string bundleToken) {
 	Lock l(cs);
 	for (UploadBundleList::iterator i = bundles.begin(); i != bundles.end(); ++i) {
-		if ((*i)->getToken() == bundleToken) {
+		if (compare((*i)->getToken(), bundleToken)==0) {
 			//LogManager::getInstance()->message("FOUND UPLOAD BUNDLE TARGET");
 			return *i;
 		}
@@ -1230,12 +1230,11 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 
 // TimerManagerListener
 void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
-	typedef vector<pair<UploadBundlePtr, double>> BundleSpeedMap;
-	BundleSpeedMap bundleSpeeds;
+	vector<pair<UploadBundlePtr, double>> bundleSpeeds;
 	UploadList ticks;
 	{
 		Lock l(cs);
-		for(UploadList::iterator i = delayUploads.begin(); i != delayUploads.end(); ++i) {
+		for(auto i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
 				removeDelayUpload(u->getUserConnection().getToken(), true);
@@ -1253,8 +1252,8 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			if (bundle) {
 				double speed = (*i)->getAverageSpeed();
 				bool found=false;
-				for (BundleSpeedMap::iterator j = bundleSpeeds.begin(); j != bundleSpeeds.end(); ++j) {
-					if ((*j).first->getToken() == bundle->getToken()) {
+				for (auto j = bundleSpeeds.begin(); j != bundleSpeeds.end(); ++j) {
+					if (compare((*j).first->getToken(), bundle->getToken())==0) {
 						j->second += speed;
 						bundle->setRunning(bundle->getRunning() + 1);
 						found=true;
@@ -1268,7 +1267,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			}
 		}
 	}
-		for (BundleSpeedMap::iterator i = bundleSpeeds.begin(); i != bundleSpeeds.end(); ++i) {
+		for (auto i = bundleSpeeds.begin(); i != bundleSpeeds.end(); ++i) {
 			(*i).first->setSpeed((*i).second);
 			//LogManager::getInstance()->message("Bundle status updated, speed: " + Util::formatBytes((*i).first->getSpeed()));
 			//LogManager::getInstance()->message("Bundle status updated, downloaded: " + Util::formatBytes((*i).first->getDownloaded()));
@@ -1293,7 +1292,7 @@ void UploadManager::removeDelayUpload(const string& aToken, bool removeBundle) {
 		findRemovedToken(aToken);
 	}
 	Lock l(cs);
-	for(UploadList::iterator i = delayUploads.begin(); i != delayUploads.end(); ++i) {
+	for(auto i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 		Upload* up = *i;
 		if(aToken == up->getUserConnection().getToken()) {
 			delayUploads.erase(i);

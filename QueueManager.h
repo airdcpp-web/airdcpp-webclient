@@ -76,7 +76,8 @@ public:
 
 	void recheck(const string& aTarget);
 
-	void setPriority(const string& aTarget, QueueItem::Priority p) noexcept;
+	void setQIPriority(const string& aTarget, QueueItem::Priority p) noexcept;
+	void setQIPriority(QueueItem* qi, QueueItem::Priority p) noexcept;
 	void setAutoPriority(const string& aTarget, bool ap) noexcept;
 
 	StringList getTargets(const TTHValue& tth);
