@@ -35,6 +35,7 @@ AutoSearchManager::AutoSearchManager() {
 	SearchManager::getInstance()->addListener(this);
 	removeRegExpFromSearches();
 
+	lastSave = GET_TICK();
 	curPos = 0;
 	endOfList = false;
 	recheckTime = 0;
@@ -101,13 +102,9 @@ string AutoSearchManager::matchDirectory(const string& aFile, const string& aStr
 
 void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
 	
-	if(BOOLSETTING(AUTOSEARCH_ENABLED_TIME) && BOOLSETTING(AUTOSEARCH_ENABLED)) {
+	//todo check the locking
 		Lock l(cs);
 
-		if(dirty) { //save if its dirty
-		AutosearchSave();
-		dirty = false;
-		}
 		//empty list...
 		if(!as.size())
 			return;
@@ -156,12 +153,11 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 			recheckTime = 0;
 			curSearch = Util::emptyString;
 		}
-	}
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	
-	if(!as.empty() && BOOLSETTING(AUTOSEARCH_ENABLED) && !allowedHubs.empty()) {
+	if(!as.empty() && !allowedHubs.empty()) {
 		Lock l(cs);
 		UserPtr user = static_cast<UserPtr>(sr->getUser());
 		if(users.find(user) == users.end()) {
@@ -194,6 +190,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 }
 								}
 							if((*i)->getRemove()) {
+								 fire(AutosearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
@@ -203,16 +200,6 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 						};
 					} catch(...) {
 					}
-					/*PME reg((*i)->getSearchString(), "gims");
-					if(reg.match(sr->getFile())) {
-						if((*i)->getAction() == 0) { 
-							addToQueue(sr);
-							break;
-						} else if((*i)->getAction() == 1) {
-							addToQueue(sr, true);
-							break;
-						}
-					}*/
 				} else if(curSearch.compare((*i)->getSearchString()) == 0) { //match only to current search
 					if((*i)->getFileType() == 8) { //TTH
 						if(sr->getTTH().toBase32() == (*i)->getSearchString()) {
@@ -235,6 +222,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 }
 								}
 							if((*i)->getRemove()) {
+								 fire(AutosearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
@@ -264,6 +252,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 }
 								}
 							if((*i)->getRemove()) {
+								 fire(AutosearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
@@ -305,6 +294,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								}
 							}
 							if((*i)->getRemove()) {
+								 fire(AutosearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
@@ -359,6 +349,7 @@ void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*
 void AutoSearchManager::AutosearchSave() {
 	Lock l(cs);
 	try {
+		dirty = false;
 		SimpleXML xml;
 
 		xml.addTag("Autosearch");
@@ -387,6 +378,7 @@ void AutoSearchManager::AutosearchSave() {
 		f.close();
 		File::deleteFile(fname);
 		File::renameFile(fname + ".tmp", fname);
+		
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::recentsave: %s\n", e.getError().c_str());
 	}

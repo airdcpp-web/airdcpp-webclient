@@ -1304,6 +1304,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Restore Default icons?\r\n You will need to restart airdc++ for the icons to load.", 
 "Default Icons", 
 "Themes: ", 
+"AutoSearch", 
+"Enable Item(s)", 
+"Disable Item(s)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2608,4 +2611,7 @@ std::string dcpp::ResourceManager::names[] = {
 "IconsRestore", 
 "IconsDefault", 
 "ThemeText", 
+"Autosearch", 
+"EnableAutosearch", 
+"DisableAutosearch", 
 };

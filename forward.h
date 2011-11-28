@@ -143,6 +143,9 @@ class UserConnection;
 typedef UserConnection* UserConnectionPtr;
 typedef std::vector<UserConnectionPtr> UserConnectionList;
 
+class Autosearch;
+typedef Autosearch* AutosearchPtr;
+
 } // namespace dcpp
 
 #endif /*DCPLUSPLUS_CLIENT_FORWARD_H_*/

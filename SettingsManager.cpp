@@ -67,6 +67,7 @@ const string SettingsManager::settingTags[] =
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",
+	"AutoSearchFrameOrder", "AutoSearchFrameWidths",
 
 	"SENTRY", 
 	// Ints
@@ -138,7 +139,7 @@ const string SettingsManager::settingTags[] =
 	"FavDownloadSpeed", "OpenFirstXHubs", "IPUpdate", "serverCommands", "ClientCommands",
 	"PreviewPm", "PopupTime", "MaxMsgLength", "PopupBackColor", "PopupTextColor", "PopupTitleTextColor",
 	"FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick",
-	"AutoSearchEvery", "AutoSearchEnabledTime", "AutoSearchEnabled", "AutoSearchRecheckTime",
+	"AutoSearchEvery", "AutoSearchRecheckTime",
 	"TbImageSize", "TbImageSizeHot", "UseHighlight", "DupeColor", "ShowQueueBars", "SendBloom", 
 	"LangSwitch", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp",
@@ -361,7 +362,7 @@ SettingsManager::SettingsManager()
 	setDefault(EXTRA_PARTIAL_SLOTS, 1);
 	setDefault(SHUTDOWN_TIMEOUT, 150);
 	setDefault(SEARCH_PASSIVE, false);
-	setDefault(TOOLBAR, "0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,16,17,-1,19,20,21,22");
+	setDefault(TOOLBAR, "0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,16,17,-1,19,20,21,22,23");
 	setDefault(MEDIATOOLBAR, "0,-1,1,-1,2,3,4,5,6,7,8,9,-1");
 	setDefault(SEARCH_ALTERNATE_COLOUR, RGB(255,200,0));
 	setDefault(AUTO_PRIORITY_DEFAULT, false);
@@ -621,8 +622,6 @@ SettingsManager::SettingsManager()
 	setDefault(FLASH_WINDOW_ON_NEW_PM, false);
 	setDefault(FLASH_WINDOW_ON_MYNICK, false);
 	setDefault(AUTOSEARCH_EVERY, 15);
-	setDefault(AUTOSEARCH_ENABLED_TIME, false);
-	setDefault(AUTOSEARCH_ENABLED, false);
 	setDefault(AUTOSEARCH_RECHECK_TIME, 30);
 	setDefault(TB_IMAGE_SIZE, 22);
 	setDefault(TB_IMAGE_SIZE_HOT, 22);

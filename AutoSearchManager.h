@@ -17,12 +17,13 @@
 #ifndef AUTO_SEARCH_MANAGER_H
 #define AUTO_SEARCH_MANAGER_H
 
+#include "forward.h"
 #include "TimerManager.h"
 #include "SearchManager.h"
 #include "SearchManagerListener.h"
-
-
+#include "Speaker.h"
 #include "Singleton.h"
+#include "AutosearchManagerListener.h"
 #include "Util.h"
 #include "SearchResult.h"
 
@@ -31,11 +32,10 @@ namespace dcpp {
 
 class Autosearch {
 public:
-
-	typedef Autosearch* Ptr;
-	typedef vector<Ptr> List;
+	typedef vector<AutosearchPtr> List;
 
 	Autosearch() { };
+
 	Autosearch(bool aEnabled, const string& aSearchString, int aFileType, int aAction, bool aRemove, const string& aTarget)
 		noexcept : enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget) { };
 
@@ -49,15 +49,24 @@ public:
 
 class SimpleXML;
 
-class AutoSearchManager : public Singleton<AutoSearchManager>, private TimerManagerListener, private SearchManagerListener {
+class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutosearchManagerListener>, private TimerManagerListener, private SearchManagerListener {
 public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
+	
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+		if(dirty && ((lastSave + 20 *1000) > aTick)) { //20 second delay between saves.
+			lastSave = aTick;
+			dirty = false;
+			AutosearchSave();
+		}
+	}
 
 	Autosearch* addAutosearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ) {
+		Lock l(acs);
 		for(Autosearch::List::iterator i = as.begin(); i != as.end(); ++i) {
 				if(stricmp((*i)->getSearchString(), ss) == 0)
 					return NULL; //already exists
@@ -65,22 +74,33 @@ public:
 		Autosearch* ipw = new Autosearch(en, ss, ft, act, remove, targ);
 		as.push_back(ipw);
 		dirty = true;
+		fire(AutosearchManagerListener::AddItem(), ipw);
 		return ipw;
 	}
 	Autosearch* getAutosearch(unsigned int index, Autosearch &ipw) {
+		Lock l(acs);
 		if(as.size() > index)
 			ipw = *as[index];
+
 		return NULL;
 	}
 	Autosearch* updateAutosearch(unsigned int index, Autosearch &ipw) {
+		Lock l(acs);
 		*as[index] = ipw;
+		dirty = true;
 		return NULL;
 	}
-	Autosearch* removeAutosearch(unsigned int index) {
-		if(as.size() > index)
-			as.erase(as.begin() + index);
-		return NULL;
+	void removeAutosearch(AutosearchPtr a) {
+		Lock l(acs);
+		Autosearch::List::const_iterator i = find_if(as.begin(), as.end(), [&](AutosearchPtr& c) { return c == a; });
+
+		if(i != as.end()) {	
+			fire(AutosearchManagerListener::RemoveItem(), a->getSearchString());
+			as.erase(i);
+			dirty = true;
+		}
 	}
+	
 	Autosearch::List& getAutosearch() { 
 		Lock l(acs);
 		return as; 
@@ -91,6 +111,7 @@ public:
 		//hack =]
 		if(as.size() > id) {
 			swap(as[id], as[id-1]);
+			dirty = true;
 		}
 	}
 
@@ -99,18 +120,23 @@ public:
 		//hack =]
 		if(as.size() > id) {
 			swap(as[id], as[id+1]);
+			dirty = true;
 		}
 	}
 
 	void setActiveItem(unsigned int index, bool active) {
+		Lock l(acs);
 		Autosearch::List::iterator i = as.begin() + index;
 		if(i < as.end()) {
 			(*i)->setEnabled(active);
+			dirty = true;
 		}
 	}
 
 	void AutosearchLoad();
 	void AutosearchSave();
+
+	int temp;
 private:
 	CriticalSection cs, acs;
 
@@ -137,6 +163,9 @@ private:
 	uint16_t recheckTime;
 	string curSearch;
 	set<UserPtr> users;
+	uint64_t lastSave;
+
+
 };
 }
 #endif
