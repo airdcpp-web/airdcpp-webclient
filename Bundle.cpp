@@ -84,6 +84,7 @@ QueueItemList Bundle::getItems(const UserPtr& aUser) const {
 
 void Bundle::addQueue(QueueItem* qi) {
 	//qi->inc();
+	dcassert(find(queueItems.begin(), queueItems.end(), qi) == queueItems.end());
 	queueItems.push_back(qi);
 }
 
@@ -111,7 +112,7 @@ void Bundle::addUserQueue(QueueItem* qi) {
 
 bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
-
+	dcassert(find(l.begin(), l.end(), qi) == l.end());
 	l.push_back(qi);
 	if (l.size() > 1) {
 		auto i = l.begin();
@@ -128,7 +129,6 @@ bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
 		return false;
 	} else {
 		sources.push_back(make_pair(aUser, 1));
-		dcassert(!sources.empty());
 		return true;
 	}
 	//LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, total items for the user " + aUser->getCID().toBase32() + ": " + Util::toString(l.size()));
@@ -207,13 +207,13 @@ QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) {
 	return ret;
 }
 
-void Bundle::removeUserQueue(QueueItem* qi, bool removeRunning) {
+void Bundle::removeUserQueue(QueueItem* qi) {
 	for(QueueItem::SourceConstIter i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		removeUserQueue(qi, i->getUser(), removeRunning);
+		removeUserQueue(qi, i->getUser(), false);
 	}
 }
 
-bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning) {
+bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) {
 
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];
@@ -237,6 +237,16 @@ bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRun
 	//check bundle sources
 	auto m = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; });
 	dcassert(m != sources.end());
+
+	if (addBad) {
+		auto bsi = find_if(badSources.begin(), badSources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; });
+		if (bsi == badSources.end()) {
+			badSources.push_back(make_pair(m->first, 1));
+		} else {
+			bsi->second++;
+		}
+	}
+
 	m->second--;
 	//LogManager::getInstance()->message("REMOVE, SOURCE FOR " + Util::toString(m->second) + " ITEMS");
 	if (m->second == 0) {
@@ -246,6 +256,17 @@ bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRun
 	return false;
 }
 
+void Bundle::removeBadSource(const HintedUser& aUser) {
+	auto m = find_if(badSources.begin(), badSources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
+	dcassert(m != badSources.end());
+	if (m != badSources.end()) {
+		badSources.erase(m);
+		/*if (added > 0) {
+			sources.push_back(make_pair(aUser, files));
+		} */
+	}
+	dcassert(m == badSources.end());
+}
 	
 Bundle::Priority Bundle::calculateProgressPriority() const {
 	if(autoPriority) {
@@ -276,20 +297,6 @@ Bundle::Priority Bundle::calculateProgressPriority() const {
 		return p;			
 	}
 	return priority;
-}
-
-void Bundle::calculateProgressPriorities(PrioList& priorities) {
-	for (auto j = queueItems.begin(); j != queueItems.end(); ++j) {
-		QueueItem* q = *j;
-		if(q->getAutoPriority() && q->isRunning()) {
-			QueueItem::Priority p1 = q->getPriority();
-			if(p1 != QueueItem::PAUSED) {
-				QueueItem::Priority p2 = q->calculateAutoPriority();
-				if(p1 != p2)
-					priorities.push_back(make_pair(q, (int8_t)p2));
-			}
-		}
-	}
 }
 
 void Bundle::getBundleBalanceMaps(SourceSpeedMapB& speedMap, SourceSpeedMapB& sourceMap) {
@@ -381,7 +388,7 @@ void Bundle::calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI&
 	}
 
 	if (verbose) {
-		LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
+		LogManager::getInstance()->message("BUNDLE QIs: Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
 	}
 
 
@@ -408,7 +415,7 @@ void Bundle::calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI&
 				prioSet=0;
 			} 
 			if (verbose) {
-				LogManager::getInstance()->message("Bundle: " + i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
+				LogManager::getInstance()->message("QueueItem: " + i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
 			}
 			priorities.push_back(make_pair(i->second, (int8_t)prio));
 			prioSet++;
@@ -427,6 +434,15 @@ size_t Bundle::countOnlineUsers() const {
 		}
 	}
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
+}
+
+tstring Bundle::getBundleText() {
+	double percent = (double)bytesDownloaded*100.0/(double)size;
+	if (fileBundle) {
+		return Text::toT(getName());
+	} else {
+		return Text::toT(getName()) + _T(" (") + Util::toStringW(percent) + _T("%, ") + Text::toT(AirUtil::getPrioText(priority)) + _T(", ") + Util::toStringW(sources.size()) + _T(" sources)");
+	}
 }
 
 }

@@ -60,7 +60,8 @@ public:
 	void addListDir(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
 
 	/** Readd a source that was removed */
-	void readd(const string& target, const HintedUser& aUser) throw(QueueException);
+	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
+	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) throw(QueueException);
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
 		QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
@@ -77,8 +78,8 @@ public:
 	void recheck(const string& aTarget);
 
 	void setQIPriority(const string& aTarget, QueueItem::Priority p) noexcept;
-	void setQIPriority(QueueItem* qi, QueueItem::Priority p) noexcept;
-	void setAutoPriority(const string& aTarget, bool ap) noexcept;
+	void setQIPriority(QueueItem* qi, QueueItem::Priority p, bool isAP=false, bool isBundleChange=false) noexcept;
+	void setQIAutoPriority(const string& aTarget, bool ap, bool isBundleChange=false) noexcept;
 
 	StringList getTargets(const TTHValue& tth);
 	const QueueItem::StringMap& lockQueue() noexcept { cs.lock(); return fileQueue.getQueue(); } ;
@@ -106,7 +107,7 @@ public:
 
 	bool handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add);
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
-	void addTTHList(const HintedUser& aUser, const string& bundle);
+	void addBundleTTHList(const HintedUser& aUser, const string& bundle);
 	MemoryInputStream* generateTTHList(const HintedUser aUser, const string& bundleToken, bool isInSharingHub);
 
 	//merging, adding, deletion
@@ -120,8 +121,7 @@ public:
 	BundlePtr createFileBundle(QueueItem* qi);
 	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading = false);
 	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
-	void removeBundle(BundlePtr aBundle, bool finished);
-	void removeBundleFiles(BundlePtr aBundle, bool removeFinished);
+	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished);
 	void removeRunningUser(const string& bundleToken, const UserPtr& aUser, bool finished);
 	BundlePtr findMergeBundle(QueueItem* qi);
 	void setBundleDirty(BundlePtr aBundle);
@@ -140,8 +140,8 @@ public:
 	void sendBundleUpdate(BundlePtr aBundle);
 	void sendBundleFinished(BundlePtr aBundle);
 	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
-	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false) noexcept;
-	void setBundleAutoPriority(const string& bundleToken) noexcept;
+	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
+	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
 	void changeBundleSource(QueueItem* qi, const HintedUser& aUser, bool add) noexcept;
@@ -300,7 +300,7 @@ private:
 		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
 
 		void removeQI(QueueItem* qi, bool removeRunning = true);
-		void removeQI(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
+		void removeQI(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true, bool addBad = false);
 		void setQIPriority(QueueItem* qi, QueueItem::Priority p);
 
 		void setBundlePriority(BundlePtr aBundle, Bundle::Priority p);
@@ -385,6 +385,8 @@ private:
 	void fileEvent(const string& tgt, bool file = false);
 	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
 	void hashBundle(BundlePtr aBundle);
+
+	void removeSource(QueueItem* qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
 	string getListPath(const HintedUser& user);
 

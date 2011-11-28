@@ -121,6 +121,7 @@ public:
 	GETSET(HintedUserList, uploadReports, UploadReports);
 	GETSET(DownloadList, downloads, Downloads);
 	GETSET(DirMap, bundleDirs, BundleDirs);
+	GETSET(SourceIntList, badSources, BadSources);
 	GETSET(SourceIntList, sources, Sources);
 
 	UserIntMap& getRunningUsers() { return runningUsers; }
@@ -197,6 +198,8 @@ public:
 		return dirty;
 	}
 
+	tstring getBundleText();
+
 	/** All queue items indexed by user */
 	void getQISources(HintedUserList& l);
 	bool isSource(const UserPtr& aUser);
@@ -210,7 +213,8 @@ public:
 	bool addDownload(Download* d);
 	int removeDownload(const string& token);
 
-	void calculateProgressPriorities(PrioList& priorities);
+	void removeBadSource(const HintedUser& aUser);
+
 	Priority calculateProgressPriority() const;
 
 	void getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap);
@@ -218,8 +222,8 @@ public:
 
 	void calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speeds, SourceSpeedMapQI& sources, bool verbose);
 
-	void removeUserQueue(QueueItem* qi, bool removeRunning = true);
-	bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true);
+	void removeUserQueue(QueueItem* qi);
+	bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad);
 
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }

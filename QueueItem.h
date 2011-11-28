@@ -75,8 +75,8 @@ public:
 		FLAG_VIEW_NFO			= 0x100,
 		/** Recursive partial list */
 		FLAG_RECURSIVE_LIST		= 0x200,
-		/** TTH list */
-		FLAG_TTHLIST			= 0x400
+		/** TTH list for partial bundle sharing */
+		FLAG_TTHLIST_BUNDLE		= 0x400
 	};
 
 	/**

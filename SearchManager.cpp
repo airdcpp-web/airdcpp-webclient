@@ -497,7 +497,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	if (add) {
 		if (QueueManager::getInstance()->findBundle(TTHValue(tth))) {
 			//LogManager::getInstance()->message("PBD ADDTTHLIST");
-			QueueManager::getInstance()->addTTHList(HintedUser(from, url), bundle);
+			QueueManager::getInstance()->addBundleTTHList(HintedUser(from, url), bundle);
 		} else {
 			//LogManager::getInstance()->message("DONT PBD ADDTTHLIST, TARGETFAIL");
 		}

@@ -48,6 +48,8 @@ Download::Download(UserConnection& conn, QueueItem& qi, const string& path) noex
 		setFlag(FLAG_NFO);
 	if(qi.isSet(QueueItem::FLAG_RECURSIVE_LIST))
 		setFlag(FLAG_RECURSIVE);
+	if(qi.isSet(QueueItem::FLAG_TTHLIST_BUNDLE))
+		setFlag(FLAG_TTHLIST_BUNDLE);
 
 	
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
@@ -94,7 +96,7 @@ AdcCommand Download::getCommand(bool zlib) const {
 	cmd.addParam(Transfer::names[getType()]);
 
 	if(getType() == TYPE_PARTIAL_LIST) {
-		if (isSet(Download::FLAG_QUEUE)) {
+		if (isSet(Download::FLAG_TTHLIST_BUNDLE)) {
 			//these must be converted to adc file when adding (if needed, no slash for bundle requests)
 			cmd.addParam(getPath());
 		} else {

@@ -45,7 +45,7 @@ public:
 	typedef X<13> RecheckAlreadyFinished;
 	typedef X<14> RecheckDone;
 	
-	typedef X<15> FileMoved;
+	typedef X<15> BundleSources;
 
 	typedef X<16> BundleFinished;
 	typedef X<17> BundleWaiting;
@@ -68,6 +68,7 @@ public:
 	virtual void on(StatusUpdated, const QueueItem*) noexcept { }
 	virtual void on(PartialList, const HintedUser&, const string&) noexcept { }
 
+	virtual void on(BundleSources, const BundlePtr) noexcept { }
 	virtual void on(BundleFinished, const BundlePtr) noexcept { }
 	virtual void on(BundleWaiting, const BundlePtr) noexcept { }
 	virtual void on(BundleRemoved, const BundlePtr) noexcept { }
@@ -87,8 +88,6 @@ public:
 	virtual void on(RecheckNoTree, const string&) noexcept { }
 	virtual void on(RecheckAlreadyFinished, const string&) noexcept { }
 	virtual void on(RecheckDone, const string&) noexcept { }
-
-	virtual void on(FileMoved, const string&) noexcept { }
 };
 
 } // namespace dcpp
