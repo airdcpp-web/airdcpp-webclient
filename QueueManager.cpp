@@ -170,6 +170,7 @@ QueueItem* QueueManager::FileQueue::add(const string& aTarget, int64_t aSize,
 void QueueManager::FileQueue::add(QueueItem* qi, bool addFinished) {
 	if (!addFinished) {
 		if (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
+			dcassert(qi->getSize() >= 0);
 			queueSize += qi->getSize();
 		}
 		dcassert(queueSize >= 0);
@@ -183,6 +184,7 @@ void QueueManager::FileQueue::remove(QueueItem* qi) {
 	prev(targetMapInsert);
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	if  (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
+		dcassert(qi->getSize() >= 0);
 		queueSize -= qi->getSize();
 	}
 	dcassert(queueSize >= 0);
@@ -1409,11 +1411,11 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence, Bun
 	string target = Util::validateFileName(aTarget);
 
 	// Check that the file doesn't already exist...
-	if(checkExistence && File::getSize(target) != -1) {
+	int64_t size = File::getSize(target);
+	if(checkExistence && size != -1) {
 		if (aBundle) {
-			int64_t size = File::getSize(target);
-			aBundle->addDownloadedSegment(size);
 			aBundle->increaseSize(size);
+			aBundle->addDownloadedSegment(size);
 		}
 		throw FileException(target + ": " + STRING(TARGET_FILE_EXISTS));
 	}
@@ -2951,10 +2953,14 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			try {
 				const string& tgt = getAttrib(attribs, sTarget, 0);
 				// @todo do something better about existing files
-				target = QueueManager::checkTarget(tgt, false, (curBundle ? curBundle : NULL));
+				target = QueueManager::checkTarget(tgt, false, NULL);
 				if(target.empty())
 					return;
 			} catch(const Exception&) {
+				if (curBundle) {
+					//just count it as downloaded
+					curBundle->addDownloadedSegment(size);
+				}
 				return;
 			}
 			QueueItem::Priority p = (QueueItem::Priority)Util::toInt(getAttrib(attribs, sPriority, 3));
@@ -2965,9 +2971,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 
 			string tempTarget = getAttrib(attribs, sTempTarget, 5);
 			uint8_t maxSegments = (uint8_t)Util::toInt(getAttrib(attribs, sMaxSegments, 5));
-			int64_t downloaded = Util::toInt64(getAttrib(attribs, sDownloaded, 5));
-			if (downloaded > size || downloaded < 0)
-				downloaded = 0;
 
 			if(added == 0)
 				added = GET_TIME();
@@ -2976,9 +2979,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 
 			if(qi == NULL) {
 				qi = qm->fileQueue.add(target, size, 0, p, tempTarget, added, TTHValue(tthRoot));
-				if(downloaded > 0) {
-					qi->addSegment(Segment(0, downloaded));
-				}
 
 				bool ap = Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1;
 				qi->setAutoPriority(ap);
@@ -3008,9 +3008,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				cur->addSegment(Segment(start, size));
 				if (cur->getAutoPriority() && SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
 					cur->setPriority(cur->calculateAutoPriority());
-				}
-				if (curBundle) {
-					curBundle->addDownloadedSegment(size);
 				}
 			}
 		} else if(cur && name == sSource) {
@@ -3042,7 +3039,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 			qm->addFinishedTTH(TTHValue(tth), curBundle, target, size, added);
 			curBundle->increaseSize(size);
-			curBundle->addDownloadedSegment(size);
 		} else {
 			LogManager::getInstance()->message("QUEUE LOADING ERROR");
 		}

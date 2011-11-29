@@ -178,6 +178,7 @@ void DownloadManager::updateBundles(BundleList bundles) {
 
 		if (floor(bundle->getLastPercent()) < floor(((float)bundle->getDownloadedBytes() / (float)bundle->getSize())* 10000)) {
 			percent = (((float)bundle->getDownloadedBytes() / (float)bundle->getSize())*100);
+			dcassert(percent <= 100.00);
 			bundle->setLastPercent(percent*100.000);
 		}
 		//LogManager::getInstance()->message("PercentCompare: " + Util::toString(bundle->getLastPercent()) + " should be smaller than " + Util::toString(floor(((float)bundle->getDownloaded() / (float)bundle->getSize())* 10000)));

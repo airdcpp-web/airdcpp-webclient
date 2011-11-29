@@ -31,6 +31,22 @@ Bundle::~Bundle() {
 	//bla
 }
 
+void Bundle::setDownloadedBytes(int64_t aSize) {
+	dcassert(aSize + downloadedSegments <= size);
+	dcassert(aSize + downloadedSegments >= bytesDownloaded);
+	bytesDownloaded = aSize + downloadedSegments;
+}
+
+void Bundle::addDownloadedSegment(int64_t aSize) {
+	dcassert(aSize + downloadedSegments <= size);
+	downloadedSegments += aSize;
+}
+
+void Bundle::removeDownloadedSegment(int64_t aSize) {
+	dcassert(downloadedSegments - aSize > 0);
+	downloadedSegments -= aSize;
+}
+
 uint64_t Bundle::getSecondsLeft() {
 	double avg = getSpeed();
 	return (avg > 0) ? static_cast<int64_t>((size - bytesDownloaded) / avg) : 0;
@@ -438,6 +454,7 @@ size_t Bundle::countOnlineUsers() const {
 
 tstring Bundle::getBundleText() {
 	double percent = (double)bytesDownloaded*100.0/(double)size;
+	dcassert(percent <= 100.00);
 	if (fileBundle) {
 		return Text::toT(getName());
 	} else {

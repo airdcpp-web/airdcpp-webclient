@@ -158,17 +158,9 @@ public:
 		size -= aSize;
 	}
 
-	void setDownloadedBytes(int64_t aSize) {
-		bytesDownloaded = aSize + downloadedSegments;
-	}
-
-	void addDownloadedSegment(int64_t aSize) {
-		downloadedSegments += aSize;
-	}
-
-	void removeDownloadedSegment(int64_t aSize) {
-		downloadedSegments -= aSize;
-	}
+	void setDownloadedBytes(int64_t aSize);
+	void addDownloadedSegment(int64_t aSize);
+	void removeDownloadedSegment(int64_t aSize);
 
 	void increaseRunning() {
 		running++;
