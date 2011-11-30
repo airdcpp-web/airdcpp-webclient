@@ -1348,11 +1348,7 @@ void QueueManager::readdQISource(const string& target, const HintedUser& aUser) 
 		Lock l(cs);
 		QueueItem* q = fileQueue.find(target);
 		if(q && q->isBadSource(aUser)) {
-			try {
-				wantConnection = addSource(q, aUser, QueueItem::Source::FLAG_MASK);
-			} catch(...) {
-				//......
-			}
+			wantConnection = addSource(q, aUser, QueueItem::Source::FLAG_MASK);
 		}
 	}
 	if(wantConnection && aUser.user->isOnline())
