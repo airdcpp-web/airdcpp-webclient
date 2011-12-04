@@ -527,22 +527,27 @@ private:
 
 bool ShareManager::loadCache() {
 	try {
-		ShareLoader loader(directories);
+		{
+			WLock l(cs);
+				
+			ShareLoader loader(directories);
 		
-		//look for shares.xml
-		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
+			//look for shares.xml
+			dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
 		
-		try {
+			try {
 		
-		SimpleXMLReader(&loader).parse(ff);
-		}catch(SimpleXMLException& e) {
-			LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError());
-			return false;
-		}
+			SimpleXMLReader(&loader).parse(ff);
+			}catch(SimpleXMLException& e) {
+				LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError());
+				return false;
+			}
 
-		for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
-			updateIndices(*i->second);
-		}
+			for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
+				updateIndices(*i->second);
+			}
+		} //lock free
+
 		try { //not vital to our cache loading.
 		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
 		if(!Util::fileExists(getBZXmlFile())) //only generate if we dont find old filelist
@@ -713,7 +718,7 @@ void ShareManager::removeDirectory(const string& realPath) {
 		return;
 
 	HashManager::getInstance()->stopHashing(realPath);
-	
+	{
 	WLock l(cs);
 
 	StringMapIter i = shares.find(realPath);
@@ -728,21 +733,9 @@ void ShareManager::removeDirectory(const string& realPath) {
 	
 	j->second->findDirsRE(true);
 	directories.erase(j);
-
-	/*
-	HashManager::HashPauser pauser;
-
-	// Readd all directories with the same vName
-	for(i = shares.begin(); i != shares.end(); ++i) {
-		if(stricmp(i->second, vName) == 0 && checkHidden(i->first)) {
-			Directory::Ptr dp = buildTree(i->first, 0);
-			dp->setName(i->second);
-			merge(dp);
-		}
-	}
-	*/
-	sortReleaseList();
 	rebuildIndices();
+	}
+	sortReleaseList();
 	setDirty();
 }
 

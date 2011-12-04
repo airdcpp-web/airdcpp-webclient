@@ -47,7 +47,7 @@ public:
 
 	size_t getUserCount() const { Lock l(cs); return users.size(); }
 
-	string escape(string const& str) const { return AdcCommand::escape(str, false); }
+	static string escape(const string& str) { return AdcCommand::escape(str, false); }
 	void send(const AdcCommand& cmd);
 
 	string getMySID() { return AdcCommand::fromSID(sid); }
