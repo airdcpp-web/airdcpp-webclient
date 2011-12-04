@@ -439,7 +439,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 
 	if (remove) {
 		//LogManager::getInstance()->message("ONPBD REMOVE");
-		QueueManager::getInstance()->removeBundleNotify(from->getCID(), bundle);
+		QueueManager::getInstance()->removeBundleNotify(from, bundle);
 		if (!reply) {
 			return;
 		}
@@ -464,7 +464,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 			if (!QueueManager::getInstance()->getTargets(TTHValue(tth)).empty()) {
 				cmd = removePBD(url, bundle, tth);
 			}
-			ClientManager::getInstance()->send(cmd, from->getCID());
+			ClientManager::getInstance()->send(cmd, from->getCID(), false, true);
 		}
 		return;
 	} else if (notify) {
@@ -488,7 +488,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 			//LogManager::getInstance()->message("PBD REPLY: ACCEPTED");
 			addBundles(bundleToken, bundle, HintedUser(from, url));
 			AdcCommand cmd = toPBD(hubIpPort, bundle, tth, false, add, notify);
-			ClientManager::getInstance()->send(cmd, from->getCID());
+			ClientManager::getInstance()->send(cmd, from->getCID(), false, true);
 		} else {
 			//LogManager::getInstance()->message("PBD REPLY: QUEUEMANAGER FAIL");
 		}
@@ -622,7 +622,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 	if((udpPort > 0) && !outPartialInfo.empty()) {
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(false, ps.getMyNick(), hubIpPort, tth, outPartialInfo);
-			ClientManager::getInstance()->send(cmd, from->getCID());
+			ClientManager::getInstance()->send(cmd, from->getCID(), false, true);
 		} catch(...) {
 			dcdebug("Partial search caught error\n");
 		}
@@ -655,22 +655,18 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		PartsInfo partialInfo;
 		string bundle;
 		bool reply = false, add = false;
-		QueueManager::getInstance()->handlePartialSearch(TTHValue(tth), partialInfo, bundle, reply, add);
+		QueueManager::getInstance()->handlePartialSearch(from, TTHValue(tth), partialInfo, bundle, reply, add, false);
 
 		if (!partialInfo.empty()) {
 			//LogManager::getInstance()->message("SEARCH RESPOND: PARTIALINFO NOT EMPTY");
 			AdcCommand cmd = toPSR(true, Util::emptyString, hubIpPort, tth, partialInfo);
-			ClientManager::getInstance()->send(cmd, from);
+			ClientManager::getInstance()->send(cmd, from, false, true);
 		}
 		
 		if (!bundle.empty()) {
 			//LogManager::getInstance()->message("SEARCH RESPOND: BUNDLE NOT EMPTY");
-			if (QueueManager::getInstance()->checkFinishedNotify(from, bundle, false, hubIpPort)) {
-				AdcCommand cmd = toPBD(hubIpPort, bundle, tth, reply, add);
-				ClientManager::getInstance()->send(cmd, from);
-			} else {
-				//LogManager::getInstance()->message("FINISHEDNOTIFY FAIIIIIIIL");
-			}
+			AdcCommand cmd = toPBD(hubIpPort, bundle, tth, reply, add);
+			ClientManager::getInstance()->send(cmd, from, false, true);
 		}
 
 		return;

@@ -44,11 +44,13 @@ public:
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
 	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
-	void findRemovedToken(UserConnection* aSource);
 	void sendBundleMode(BundlePtr aBundle, bool singleUser);
+	void sendBundleFinished(BundlePtr aBundle);
+	BundlePtr findRunningBundle(const string& bundleToken);
 
 	/** @internal */
 	void abortDownload(const string& aTarget, const UserPtr& aUser = NULL);
+	void disconnectBundle(BundlePtr aBundle, const UserPtr& aUser = NULL);
 
 	/** @return Running average download speed in Bytes/s */
 	int64_t getRunningAverage();
@@ -67,10 +69,11 @@ private:
 	
 	CriticalSection cs;
 	DownloadList downloads;
+	Bundle::BundleTokenMap runningBundles;
 	UserConnectionList idlers;
 
+	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false);
 	void removeConnection(UserConnectionPtr aConn);
-	void removeBundleConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource);
 	void noSlots(UserConnection* aSource, string param = Util::emptyString);
@@ -88,7 +91,7 @@ private:
 	void checkDownloads(UserConnection* aConn);
 	void startData(UserConnection* aSource, int64_t start, int64_t newSize, bool z);
 	void startBundle(UserConnection* aSource, BundlePtr aBundle);
-	void sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly);
+	bool sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly);
 	void sendBundleUpdate(HintedUser user, const string speed, const double percent, const string bundleToken);
 	typedef unordered_map<string, BundlePtr> tokenMap;
 	tokenMap tokens;
@@ -113,8 +116,6 @@ private:
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
 	typedef pair< string, int64_t > StringIntPair;
-
-	StringIntMap oldBundlePositions;
 
 };
 

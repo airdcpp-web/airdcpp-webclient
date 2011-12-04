@@ -27,6 +27,7 @@
 #include "Segment.h"
 #include "HintedUser.h"
 #include "Bundle.h"
+#include "Pointer.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -38,6 +39,7 @@ class Download;
 class QueueItem : public Flags, /*public FastAlloc<QueueItem>,*/ public intrusive_ptr_base<QueueItem> {
 public:
 	typedef boost::unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
+	typedef unordered_map<TTHValue, QueueItemList> TTHMap;
 
 	enum Priority {
 		DEFAULT = -1,

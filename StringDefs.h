@@ -1314,5 +1314,6 @@ enum Strings { // @DontAdd
 	AUTOSEARCH, // "AutoSearch"
 	ENABLE_AUTOSEARCH, // "Enable Item(s)"
 	DISABLE_AUTOSEARCH, // "Disable Item(s)"
+	SEARCH_BUNDLE_ALT, // "Search bundle for alternatives"
 	LAST // @DontAdd
 };

@@ -33,6 +33,7 @@
 #include "QueueManagerListener.h"
 #include "SearchManagerListener.h"
 #include "ClientManagerListener.h"
+#include "DownloadManagerListener.h"
 #include "LogManager.h"
 #include "pme.h"
 #include "HashManager.h"
@@ -49,7 +50,7 @@ class ConnectionQueueItem;
 class QueueLoader;
 
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 
-	private SearchManagerListener, private ClientManagerListener, private HashManagerListener
+	private SearchManagerListener, private ClientManagerListener, private HashManagerListener, private DownloadManagerListener
 {
 public:
 	/** Add a file to the queue. */
@@ -105,10 +106,10 @@ public:
 	void noDeleteFileList(const string& path);
 	
 
-	bool handlePartialSearch(const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add);
+	bool handlePartialSearch(const CID& cid, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add, bool nmdc);
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
 	void addBundleTTHList(const HintedUser& aUser, const string& bundle);
-	MemoryInputStream* generateTTHList(const HintedUser aUser, const string& bundleToken, bool isInSharingHub);
+	MemoryInputStream* generateTTHList(const HintedUser& aUser, const string& bundleToken, bool isInSharingHub);
 
 	//merging, adding, deletion
 	bool addBundle(BundlePtr aBundle, bool loading = false);
@@ -122,7 +123,6 @@ public:
 	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading = false);
 	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
 	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished);
-	void removeRunningUser(const string& bundleToken, const UserPtr& aUser, bool finished);
 	BundlePtr findMergeBundle(QueueItem* qi);
 	void setBundleDirty(BundlePtr aBundle);
 	bool isDirQueued(const string& aDir);
@@ -131,20 +131,19 @@ public:
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundles, StringPairList paths);
 
-	BundlePtr findBundle(const string bundleToken);
+	BundlePtr getBundle(const string& bundleToken) { Lock l (cs); return findBundle(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth);
-	bool checkFinishedNotify(const CID cid, const string bundleToken, bool addNotify, const string hubIpPort);
-	bool checkPBDReply(const HintedUser aUser, const TTHValue aTTH, string& _bundleToken, bool& _notify, bool& _add);
-	void updatePBD(const HintedUser aUser, const string bundleToken, const TTHValue aTTH);
-	void removeBundleNotify(const CID cid, const string bundleToken);
+	bool checkPBDReply(const HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add);
+	void updatePBD(const HintedUser& aUser, const string& bundleToken, const TTHValue& aTTH);
+	void removeBundleNotify(const UserPtr& aUser, const string& bundleToken);
 	void sendBundleUpdate(BundlePtr aBundle);
-	void sendBundleFinished(BundlePtr aBundle);
 	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;
+	void getBundleSources(BundlePtr aBundle, Bundle::SourceIntList& sources, Bundle::SourceIntList& badSources) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
-	void changeBundleSource(QueueItem* qi, const HintedUser& aUser, bool add) noexcept;
+	void removeBundleSources(BundlePtr aBundle) noexcept;
 	BundleList getBundleInfo(const string& aSource, int& finishedFiles, int& dirBundles, int& fileBundles);
 	void handleBundleUpdate(const string& bundleToken);
 
@@ -155,7 +154,7 @@ public:
 
 	void setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p, bool autoPrio=false);
 	void calculateBundlePriorities(bool verbose);
-	void searchBundle(BundlePtr aBundle, bool newBundle);
+	void searchBundle(BundlePtr aBundle, bool newBundle, bool manual);
 	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
@@ -238,7 +237,7 @@ public:
 	public:
 		FileQueue() : targetMapInsert(queue.end()), queueSize(0) { }
 		~FileQueue();
-		void add(QueueItem* qi, bool addFinished);
+		void add(QueueItem* qi, bool addFinished, bool addTTH = true);
 		QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
 			const string& aTempTarget, time_t aAdded, const TTHValue& root)
 			throw(QueueException, FileException);
@@ -258,8 +257,10 @@ public:
 		BundlePtr findAutoSearch(int& prioBundles);
 		size_t getSize() { return queue.size(); }
 		QueueItem::StringMap& getQueue() { return queue; }
+		QueueItem::TTHMap& getTTHIndex() { return tthIndex; }
 		void move(QueueItem* qi, const string& aTarget);
-		void remove(QueueItem* qi);
+		void remove(QueueItem* qi, bool removeTTH);
+		void removeTTH(QueueItem* qi);
 		int isTTHQueued(const TTHValue& tth);
 
 		uint64_t getTotalQueueSize() { return queueSize; };
@@ -271,9 +272,7 @@ public:
 
 	private:
 		QueueItem::StringMap queue;
-		typedef unordered_map<TTHValue, QueueItemList> TTHMap;
-		typedef TTHMap::const_iterator TTHMapIter;
-		TTHMap tthIndex;
+		QueueItem::TTHMap tthIndex;
 
 		uint64_t queueSize;
 		QueueItem::StringMap::iterator targetMapInsert;
@@ -290,8 +289,8 @@ private:
 	/** All queue items indexed by user (this is a cache for the FileQueue really...) */
 	class UserQueue {
 	public:
-		void add(QueueItem* qi);
-		void add(QueueItem* qi, const HintedUser& aUser);
+		void add(QueueItem* qi, bool newBundle=false);
+		void add(QueueItem* qi, const HintedUser& aUser, bool newBundle=false);
 		QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
 		QueueItem* getNextPrioQI(const UserPtr& aUser, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool listAll=false);
 		QueueItem* getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio = Bundle::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
@@ -299,8 +298,8 @@ private:
 		bool addDownload(QueueItem* qi, Download* d);
 		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
 
-		void removeQI(QueueItem* qi, bool removeRunning = true);
-		void removeQI(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true, bool addBad = false);
+		void removeQI(QueueItem* qi, bool removeRunning = true, bool removeBundle=false);
+		void removeQI(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true, bool addBad = false, bool removeBundle=false);
 		void setQIPriority(QueueItem* qi, QueueItem::Priority p);
 
 		void setBundlePriority(BundlePtr aBundle, Bundle::Priority p);
@@ -342,10 +341,9 @@ private:
 	int highestSel, highSel, normalSel, lowSel, calculations;
 
 	/** Bundles */	
-	typedef unordered_map<string, BundlePtr> BundleMap;
 	typedef unordered_map<string, string> BundleDirMap;
 	/** All bundles */
-	BundleMap bundles;
+	Bundle::BundleTokenMap bundles;
 	/** ReleaseDirs for bundles */
 	BundleDirMap bundleDirs;
 
@@ -369,8 +367,9 @@ private:
 	void processList(const string& name, const HintedUser& user, const string path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
+	BundlePtr findBundle(const string bundleToken);
 	void addBundleUpdate(const string bundleToken, bool finished = false);
-	void sendPBD(const CID cid, const string hubIpPort, const TTHValue& tth, const string bundleToken);
+	void sendPBD(HintedUser& aUser, const TTHValue& tth, const string& bundleToken);
 
 	void addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
 
@@ -404,6 +403,9 @@ private:
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const UserPtr& aUser) noexcept;
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
+
+	//DownloadManagerListener
+	void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles) noexcept;
 };
 
 } // namespace dcpp

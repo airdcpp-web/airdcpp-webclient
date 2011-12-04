@@ -393,7 +393,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 					for(File::Iter i = aDir->files.begin(); i != aDir->files.end(); ++i) {
 						File* file = *i;
 						try {
-							download(file, target + file->getName(), false, highPrio, prio, aBundle);
+							download(file, target + file->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
 						} catch(const QueueException&) {
 							// Catch it here to allow parts of directories to be added...
 						} catch(const FileException&) {
@@ -418,7 +418,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		for(File::Iter i = aDir->files.begin(); i != aDir->files.end(); ++i) {
 			File* file = *i;
 			try {
-				download(file, target + file->getName(), false, highPrio, prio, aBundle);
+				download(file, target + file->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
 			} catch(const QueueException&) {
 				// Catch it here to allow parts of directories to be added...
 			} catch(const FileException&) {

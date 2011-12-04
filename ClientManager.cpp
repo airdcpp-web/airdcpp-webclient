@@ -449,14 +449,14 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, S
 	ou->getClient().sendUserCmd(uc, params);
 }
 
-void ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID) {
+bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, bool noPassive /*false*/) {
 	Lock l(cs);
 	OnlineIterC i = onlineUsers.find(const_cast<CID*>(&cid));
 	if(i != onlineUsers.end()) {
 		OnlineUser& u = *i->second;
 		if(cmd.getType() == AdcCommand::TYPE_UDP && !u.getIdentity().isUdpActive()) {
-			if(u.getUser()->isNMDC())
-				return;
+			if(u.getUser()->isNMDC() || noPassive)
+				return false;
 			cmd.setType(AdcCommand::TYPE_DIRECT);
 			cmd.setTo(u.getIdentity().getSID());
 			u.getClient().send(cmd);
@@ -473,7 +473,9 @@ void ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID) {
 				dcdebug("Socket exception sending ADC UDP command\n");
 			}
 		}
+		return true;
 	}
+	return false;
 }
 
 void ClientManager::infoUpdated() {
@@ -536,11 +538,8 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		string bundle;
 		bool add=false, reply=false;
 		TTHValue aTTH(aString.substr(4));
-		if(!QueueManager::getInstance()->handlePartialSearch(aTTH, partialInfo, bundle, reply, add)) {
-			// if not found, try to find in finished list
-			if(!FinishedManager::getInstance()->handlePartialRequest(aTTH, partialInfo)) {
-				return;
-			}
+		if(!QueueManager::getInstance()->handlePartialSearch(CID(Util::emptyString), aTTH, partialInfo, bundle, reply, add, true)) {
+			return;
 		}
 		
 		string ip, file, proto, query, fragment;

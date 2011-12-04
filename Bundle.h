@@ -51,11 +51,9 @@ public:
 	enum Flags {
 		FLAG_UPDATE_SIZE			= 0x01,
 		FLAG_UPDATE_NAME			= 0x02,
-		FLAG_UPDATE_SINGLEUSER		= 0x04,
-		FLAG_SET_WAITING			= 0x08,
-		FLAG_HASH					= 0x10,
-		FLAG_HASH_FAILED			= 0x40,
-		FLAG_SCAN_FAILED			= 0x80
+		FLAG_HASH					= 0x04,
+		FLAG_HASH_FAILED			= 0x08,
+		FLAG_SCAN_FAILED			= 0x10
 	};
 
 
@@ -78,12 +76,11 @@ public:
 	};
 
 	typedef QueueItem* Ptr;
-	typedef unordered_map<CID, string> CIDStringList;
 	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
-	typedef unordered_map<TTHValue, string> FinishedItemMap;
 	typedef pair<HintedUser, uint32_t> UserRunningPair;
 	typedef vector<UserRunningPair> SourceIntList;
 	typedef unordered_map<string, QueueItemList> DirMap;
+	typedef unordered_map<string, BundlePtr> BundleTokenMap;
 
 
 	typedef vector<pair<QueueItem*, int8_t>> PrioList;
@@ -114,7 +111,7 @@ public:
 	GETSET(bool, simpleMatching, SimpleMatching);
 	GETSET(bool, recent, Recent);
 
-	GETSET(CIDStringList, notifiedUsers, NotifiedUsers);
+	GETSET(HintedUserList, notifiedUsers, NotifiedUsers);
 	GETSET(UserIntMap, runningUsers, RunningUsers);
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
@@ -125,7 +122,7 @@ public:
 	GETSET(SourceIntList, sources, Sources);
 
 	UserIntMap& getRunningUsers() { return runningUsers; }
-	CIDStringList& getNotifiedUsers() { return notifiedUsers; }
+	HintedUserList& getNotifiedUsers() { return notifiedUsers; }
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
@@ -191,10 +188,13 @@ public:
 	}
 
 	tstring getBundleText();
+	bool allowFinishedNotify(const CID& cid);
 
 	/** All queue items indexed by user */
 	void getQISources(HintedUserList& l);
 	bool isSource(const UserPtr& aUser);
+	bool isSource(const CID& cid);
+	bool isBadSource(const CID& cid);
 	bool isFinished() { return queueItems.empty(); }
 	void getDownloadsQI(DownloadList& l);
 	QueueItemList getItems(const UserPtr& aUser) const;
@@ -202,8 +202,8 @@ public:
 	bool addUserQueue(QueueItem* qi, const HintedUser& aUser);
 	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 	QueueItemList getRunningQIs(const UserPtr& aUser);
-	bool addDownload(Download* d);
-	int removeDownload(const string& token);
+	void addDownload(Download* d);
+	void removeDownload(const string& token);
 
 	void removeBadSource(const HintedUser& aUser);
 

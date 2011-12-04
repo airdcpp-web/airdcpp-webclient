@@ -33,7 +33,7 @@ Bundle::~Bundle() {
 
 void Bundle::setDownloadedBytes(int64_t aSize) {
 	dcassert(aSize + downloadedSegments <= size);
-	dcassert(aSize + downloadedSegments >= bytesDownloaded);
+	dcassert(((uint64_t)(aSize + downloadedSegments)) >= bytesDownloaded);
 	bytesDownloaded = aSize + downloadedSegments;
 }
 
@@ -120,6 +120,14 @@ bool Bundle::isSource(const UserPtr& aUser) {
 	return find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; }) != sources.end();
 }
 
+bool Bundle::isSource(const CID& cid) {
+	return find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user->getCID() == cid; }) != sources.end();
+}
+
+bool Bundle::isBadSource(const CID& cid) {
+	return find_if(badSources.begin(), badSources.end(), [&](const UserRunningPair& urp) { return urp.first.user->getCID() == cid; }) != badSources.end();
+}
+
 void Bundle::addUserQueue(QueueItem* qi) {
 	for(QueueItem::SourceConstIter i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
 		addUserQueue(qi, i->getUser());
@@ -171,6 +179,20 @@ QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority m
 	return NULL;
 }
 
+bool Bundle::allowFinishedNotify(const CID& cid) {
+	if (isBadSource(cid)) {
+		return false;
+	}
+	//check if the user is being notified already
+	for (auto s = notifiedUsers.begin(); s != notifiedUsers.end(); ++s) {
+		if ((*s).user->getCID() == cid) {
+			//LogManager::getInstance()->message("checkFinishedNotify: ALREADY NOTIFIED");
+			return false;
+		}
+	}
+	return true;
+}
+
 void Bundle::getDownloadsQI(DownloadList& l) {
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
 		QueueItem* qi = *s;
@@ -199,19 +221,16 @@ void Bundle::getQISources(HintedUserList& l) {
 	//LogManager::getInstance()->message("getQISources, size: " + Util::toString(l.size()));
 }
 
-bool Bundle::addDownload(Download* d) {
+void Bundle::addDownload(Download* d) {
 	downloads.push_back(d);
-	return downloads.size() == 1;
 }
 
-int Bundle::removeDownload(const string& token) {
-	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-		if ((*i)->getUserConnection().getToken() == token) {
-			downloads.erase(i);
-			break;
-		}
+void Bundle::removeDownload(const string& token) {
+	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getUserConnection().getToken(), token) == 0; });
+	dcassert(m != downloads.end());
+	if (m != downloads.end()) {
+		downloads.erase(m);
 	}
-	return downloads.size(); 
 }
 
 QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) {
