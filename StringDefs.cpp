@@ -1235,7 +1235,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Underline links", 
 "Underline dupes", 
 "Use dupe color in filelists", 
-"Use dupe color in chat" , 
+"Use dupe color in chat", 
 "Client version", 
 "Language version", 
 "FileList Highlight", 

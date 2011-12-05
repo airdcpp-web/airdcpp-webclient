@@ -1242,7 +1242,7 @@ enum Strings { // @DontAdd
 	PROPPAGE_UNDERLINE_LINKS, // "Underline links"
 	PROPPAGE_UNDERLINE_DUPES, // "Underline dupes"
 	SETTINGS_DUPE_FILELIST, // "Use dupe color in filelists"
-	SETTINGS_DUPE_CHAT, // "Use dupe color in chat" 
+	SETTINGS_DUPE_CHAT, // "Use dupe color in chat"
 	CLIENT_VERSION, // "Client version"
 	LANGUAGE_VERSION, // "Language version"
 	PROPPAGE_LIST_HL, // "FileList Highlight"

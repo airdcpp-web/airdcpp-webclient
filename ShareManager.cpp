@@ -546,6 +546,7 @@ bool ShareManager::loadCache() {
 			for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 				updateIndices(*i->second);
 			}
+			c_size_dirty = true;
 		} //lock free
 
 		try { //not vital to our cache loading.
@@ -659,59 +660,6 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 		sortReleaseList();
 
 }
-/*
-ShareManager::Directory::Ptr ShareManager::merge(const Directory::Ptr& directory) {
-	for(DirList::const_iterator i = directories.begin(); i != directories.end(); ++i) {
-		if(stricmp((*i)->getName(), directory->getName()) == 0) {
-			dcdebug("Merging directory %s\n", directory->getName().c_str());
-			(*i)->merge(directory);
-			return *i;
-		}
-	}
-	
-	dcdebug("Adding new directory %s\n", directory->getName().c_str());
-	
-	directories.push_back(directory);
-	directory->findDirsRE(false);
-	return directory;
-}
-
-void ShareManager::Directory::merge(const Directory::Ptr& source) {
-	for(MapIter i = source->directories.begin(); i != source->directories.end(); ++i) {
-		Directory::Ptr subSource = i->second;
-		
-		MapIter ti = directories.find(subSource->getName());
-		if(ti == directories.end()) {
-			if(findFile(subSource->getName()) != files.end()) {
-				dcdebug("File named the same as directory");
-			} else {
-				directories.insert(std::make_pair(subSource->getName(), subSource));
-				subSource->findDirsRE(false);
-				subSource->parent = this;
-			}
-		} else {
-			Directory::Ptr subTarget = ti->second;
-			subTarget->merge(subSource);
-		}
-	}
-
-	// All subdirs either deleted or moved to target...
-	source->directories.clear();
-	source->findDirsRE(true);
-	
-	for(File::Set::iterator i = source->files.begin(); i != source->files.end(); ++i) {
-		if(findFile(i->getName()) == files.end()) {
-			if(directories.find(i->getName()) != directories.end()) {
-				dcdebug("Directory named the same as file");
-			} else {
-				 std::pair<File::Set::iterator, bool> added = files.insert(*i);
-		   if(added.second) {
-				   const_cast<File&>(*added.first).setParent(this);
-		  }
-			}
-		}
-	}
-}*/
 
 void ShareManager::removeDirectory(const string& realPath) {
 	if(realPath.empty())
@@ -740,8 +688,7 @@ void ShareManager::removeDirectory(const string& realPath) {
 }
 
 void ShareManager::renameDirectory(const string& realPath, const string& virtualName)  {
-	//removeDirectory(realPath);
-	//addDirectory(realPath, virtualName);
+
 	WLock l(cs);
 	string vName = validateVirtual(virtualName);
 	

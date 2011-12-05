@@ -127,7 +127,6 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 void shutdown() {
 	TimerManager::getInstance()->shutdown();
 	HashManager::getInstance()->shutdown();
-	//sharemanager needs to save things too now. -Night
 	ShareManager::getInstance()->shutdown();
 	ConnectionManager::getInstance()->shutdown();
 	MappingManager::getInstance()->close();
