@@ -191,7 +191,7 @@ bool DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, boo
 	return ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true);
 }
 
-void DownloadManager::updateBundles(BundleList bundles) {
+void DownloadManager::updateBundles(BundleList& bundles) {
 	for(BundleList::iterator j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr bundle = *j;
 		if (bundle->getSingleUser() || bundle->getUploadReports().empty()) {
@@ -231,7 +231,7 @@ void DownloadManager::updateBundles(BundleList bundles) {
 	}
 }
 
-void DownloadManager::sendBundleUBN(HintedUser user, const string speed, const double percent, const string bundleToken) {
+void DownloadManager::sendBundleUBN(HintedUser& user, const string& speed, const double percent, const string& bundleToken) {
 	AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
 
 	cmd.addParam("HI", user.hint);
