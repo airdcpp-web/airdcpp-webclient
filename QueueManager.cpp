@@ -1405,7 +1405,7 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 						wantConnection = true;
 					}
 				} catch(...) {
-					//LogManager::getInstance()->message("READD CATCH");
+					LogManager::getInstance()->message("Failed to add the source for " + q->getTarget());
 				}
 				//LogManager::getInstance()->message("SOURCE ADDED FOR: " + q->getTarget() + " CID " + aUser.user->getCID().toBase32());
 			} else {
@@ -2550,10 +2550,13 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) no
 }
 
 void QueueManager::setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept {
-	BundlePtr bundle = findBundle(bundleToken);
-	if (bundle) {
-		setBundlePriority(bundle, p, false);
+	BundlePtr bundle = NULL;
+	{
+		Lock l (cs);
+		bundle = findBundle(bundleToken);
 	}
+
+	setBundlePriority(bundle, p, false);
 }
 
 void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto, bool isQIChange /*false*/) noexcept {
@@ -2648,32 +2651,37 @@ void QueueManager::removeBundleSources(BundlePtr aBundle) noexcept {
 }
 
 void QueueManager::removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept {
-	BundlePtr bundle = findBundle(bundleToken);
-	if (bundle) {
-		removeBundleSource(bundle, aUser);
+	BundlePtr bundle = NULL;
+	{
+		Lock l (cs);
+		bundle = findBundle(bundleToken);
 	}
+	removeBundleSource(bundle, aUser);
 }
 
 void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept {
 	if (aBundle) {
+		QueueItemList ql;
 		{
-			QueueItemList ql;
-			{
-				Lock l (cs);
-				ql = aBundle->getQueueItems();
-			}
-
-			for (auto i = ql.begin(); i != ql.end(); ++i) {
-				//(*i)->removeSource(aUser, QueueItem::Source::FLAG_REMOVED);
-				//LogManager::getInstance()->message("Remove bundle source: " + aUser->getCID().toBase32());
-				removeSource(*i, aUser, QueueItem::Source::FLAG_REMOVED);
-				dcassert((*i)->isBadSource(aUser));
-				dcassert(!(*i)->isSource(aUser));
-				//LogManager::getInstance()->message("SOURCE REMOVED FROM: " + (*i)->getTarget());
-				LogManager::getInstance()->message("REMOVE, BAD SOURCES: " + Util::toString((*i)->getBadSources().size()));
+			Lock l (cs);
+			for (auto i = aBundle->getQueueItems().begin(); i != aBundle->getQueueItems().end(); ++i) {
+				if ((*i)->isSource(aUser)) {
+					ql.push_back(*i);
+				}
 			}
 		}
-		LogManager::getInstance()->message("Source removed: " + aUser->getCID().toBase32());
+
+		for (auto i = ql.begin(); i != ql.end(); ++i) {
+			//(*i)->removeSource(aUser, QueueItem::Source::FLAG_REMOVED);
+			//LogManager::getInstance()->message("Remove bundle source: " + aUser->getCID().toBase32());
+			removeSource(*i, aUser, QueueItem::Source::FLAG_REMOVED);
+			dcassert((*i)->isBadSource(aUser));
+			dcassert(!(*i)->isSource(aUser));
+			//LogManager::getInstance()->message("SOURCE REMOVED FROM: " + (*i)->getTarget());
+			//LogManager::getInstance()->message("REMOVE, BAD SOURCES: " + Util::toString((*i)->getBadSources().size()));
+		}
+
+		//LogManager::getInstance()->message("Source removed: " + aUser->getCID().toBase32());
 		dcassert(!aBundle->isSource(aUser));
 		//TODO: handle in correct place
 		SearchManager::getInstance()->removeUserPBD(aUser, aBundle);
@@ -3412,14 +3420,24 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		saveQueue(false);
 	}
 
-	if (!bundleUpdates.empty()) {
-		for (bundleTickMap::const_iterator i = bundleUpdates.begin(); i != bundleUpdates.end(); ++i) {
-			if (aTick > i->second + 1000) {
-				handleBundleUpdate(i->first);
-				bundleUpdates.erase(i);
-				break; // one update per second
+	StringList updateTokens;
+	{
+		Lock l (cs);
+		if (!bundleUpdates.empty()) {
+			for (bundleTickMap::const_iterator i = bundleUpdates.begin(); i != bundleUpdates.end();) {
+				if (aTick > i->second + 1000) {
+					updateTokens.push_back(i->first);
+					bundleUpdates.erase(i);
+					i = bundleUpdates.begin();
+				} else {
+					i++;
+				}
 			}
 		}
+	}
+
+	for (auto i = updateTokens.begin(); i != updateTokens.end(); ++i) {
+		handleBundleUpdate((*i));
 	}
 }
 
@@ -4576,33 +4594,8 @@ void QueueManager::handleBundleUpdate(const string& bundleToken) {
 	BundlePtr bundle = findBundle(bundleToken);
 	if (bundle) {
 		if (bundle->isSet(Bundle::FLAG_UPDATE_SIZE) || bundle->isSet(Bundle::FLAG_UPDATE_NAME)) {
-			sendBundleUpdate(bundle);
+			DownloadManager::getInstance()->sendSizeNameUpdate(bundle);
 		}
-	}
-}
-
-void QueueManager::sendBundleUpdate(BundlePtr aBundle) {
-	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
-
-	for(auto i = aBundle->getUploadReports().begin(); i != aBundle->getUploadReports().end(); ++i) {
-		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-		cmd.addParam("HI", (*i).hint);
-		cmd.addParam("BU", aBundle->getToken());
-
-		if (aBundle->isSet(Bundle::FLAG_UPDATE_SIZE)) {
-			aBundle->unsetFlag(Bundle::FLAG_UPDATE_SIZE);
-			cmd.addParam("SI", Util::toString(aBundle->getSize()));
-		}
-
-		if (aBundle->isSet(Bundle::FLAG_UPDATE_NAME)) {
-			aBundle->unsetFlag(Bundle::FLAG_UPDATE_NAME);
-			cmd.addParam("NA", aBundle->getName());
-			//LogManager::getInstance()->message("Name: " + bundle->getName());
-		}
-
-		cmd.addParam("UD1");
-
-		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
 	}
 }
 
@@ -4796,8 +4789,8 @@ void QueueManager::addBundleTTHList(const HintedUser& aUser, const string& bundl
 }
 
 bool QueueManager::checkPBDReply(const HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add) {
-	BundlePtr bundle = findBundle(aTTH);
 	Lock l (cs);
+	BundlePtr bundle = findBundle(aTTH);
 	if (bundle) {
 		//LogManager::getInstance()->message("checkPBDReply: FINISHED FOUND");
 		_bundleToken = bundle->getToken();

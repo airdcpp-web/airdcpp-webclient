@@ -46,6 +46,7 @@ public:
 	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
 	void sendBundleMode(BundlePtr aBundle, bool singleUser);
 	void sendBundleFinished(BundlePtr aBundle);
+	void sendSizeNameUpdate(BundlePtr aBundle);
 	BundlePtr findRunningBundle(const string& bundleToken);
 
 	/** @internal */
@@ -92,7 +93,7 @@ private:
 	void startData(UserConnection* aSource, int64_t start, int64_t newSize, bool z);
 	void startBundle(UserConnection* aSource, BundlePtr aBundle);
 	bool sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly);
-	void sendBundleUpdate(HintedUser user, const string speed, const double percent, const string bundleToken);
+	void sendBundleUBN(HintedUser user, const string speed, const double percent, const string bundleToken);
 	typedef unordered_map<string, BundlePtr> tokenMap;
 	tokenMap tokens;
 

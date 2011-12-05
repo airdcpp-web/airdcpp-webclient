@@ -417,15 +417,15 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 			bundle = str.substr(2);
 		} else if(str.compare(0, 2, "TH") == 0) {
 			tth = str.substr(2);
-		} else if(str.compare(0, 2, "UP") == 0) { //add source for the sent tth
+		} else if(str.compare(0, 2, "UP") == 0) { //new notification of a finished TTH
 			update=true;
-		} else if (str.compare(0, 2, "AD") == 0) { //add tthlist
+		} else if (str.compare(0, 2, "AD") == 0) { //add TTHList
 			add=true;
 		} else if (str.compare(0, 2, "RE") == 0) { //require reply
 			reply=true;
-		} else if (str.compare(0, 2, "NO") == 0) { //notify only, don't add list
+		} else if (str.compare(0, 2, "NO") == 0) { //notify only, don't download TTHList
 			notify=true;
-		} else if (str.compare(0, 2, "RM") == 0) { //remove notify for the sent bundle
+		} else if (str.compare(0, 2, "RM") == 0) { //remove notifications for a selected user and bundle
 			remove=true;
 		} else {
 			//LogManager::getInstance()->message("ONPBD UNKNOWN PARAM: " + str);
@@ -534,7 +534,6 @@ void SearchManager::removeBundlePBD(const string& ownBundleToken) {
 			i++;
 		}
 	}
-	//remove(bundleTranslations.begin(), bundleTranslations.end(), 
 }
 
 void SearchManager::removeUserPBD(const UserPtr& aUser, BundlePtr aBundle) {

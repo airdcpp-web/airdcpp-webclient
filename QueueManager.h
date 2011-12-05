@@ -136,7 +136,6 @@ public:
 	bool checkPBDReply(const HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add);
 	void updatePBD(const HintedUser& aUser, const string& bundleToken, const TTHValue& aTTH);
 	void removeBundleNotify(const UserPtr& aUser, const string& bundleToken);
-	void sendBundleUpdate(BundlePtr aBundle);
 	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;

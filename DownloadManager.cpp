@@ -153,6 +153,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 	}
 
 	if (!bundleTicks.empty()) {
+		updateBundles(bundleTicks);
 		fire(DownloadManagerListener::BundleTick(), bundleTicks);
 	}
 
@@ -163,7 +164,12 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 
 bool DownloadManager::sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly) {
-	//LogManager::getInstance()->message("DOWNLOADMANAGER SENDBUNDLE");
+	/*if (updateOnly) {
+		LogManager::getInstance()->message("DOWNLOADMANAGER SENDBUNDLE: " + aBundle->getName() + ", updateOnly");
+	} else {
+		LogManager::getInstance()->message("DOWNLOADMANAGER SENDBUNDLE: " + aBundle->getName());
+	} */
+
 	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 	cmd.addParam("HI", aSource->getHintedUser().hint);
@@ -217,14 +223,15 @@ void DownloadManager::updateBundles(BundleList bundles) {
 
 		//LogManager::getInstance()->message("Bundle notify info, percent: " + Util::toString(percent) + " speed: " + speed);
 		if (!speed.empty() || percent > 0) {
+			Lock l (cs);
 			for(auto i = bundle->getUploadReports().begin(); i != bundle->getUploadReports().end(); ++i) {
-				sendBundleUpdate((*i), speed, percent, bundleToken);
+				sendBundleUBN((*i), speed, percent, bundleToken);
 			}
 		}
 	}
 }
 
-void DownloadManager::sendBundleUpdate(HintedUser user, const string speed, const double percent, const string bundleToken) {
+void DownloadManager::sendBundleUBN(HintedUser user, const string speed, const double percent, const string bundleToken) {
 	AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
 
 	cmd.addParam("HI", user.hint);
@@ -235,6 +242,32 @@ void DownloadManager::sendBundleUpdate(HintedUser user, const string speed, cons
 		cmd.addParam("PE", Util::toString(percent));
 
 	ClientManager::getInstance()->send(cmd, user.user->getCID(), true);
+}
+
+void DownloadManager::sendSizeNameUpdate(BundlePtr aBundle) {
+	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
+	Lock l (cs);
+	for(auto i = aBundle->getUploadReports().begin(); i != aBundle->getUploadReports().end(); ++i) {
+		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+		cmd.addParam("HI", (*i).hint);
+		cmd.addParam("BU", aBundle->getToken());
+
+		if (aBundle->isSet(Bundle::FLAG_UPDATE_SIZE)) {
+			aBundle->unsetFlag(Bundle::FLAG_UPDATE_SIZE);
+			cmd.addParam("SI", Util::toString(aBundle->getSize()));
+			//LogManager::getInstance()->message("UBD for bundle: " + aBundle->getName() + ", size: " + Util::toString(aBundle->getSize()));
+		}
+
+		if (aBundle->isSet(Bundle::FLAG_UPDATE_NAME)) {
+			aBundle->unsetFlag(Bundle::FLAG_UPDATE_NAME);
+			cmd.addParam("NA", aBundle->getName());
+			//LogManager::getInstance()->message("UBD for bundle: " + aBundle->getName() + ", name: " + aBundle->getName());
+		}
+
+		cmd.addParam("UD1");
+
+		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
+	}
 }
 
 string DownloadManager::formatDownloaded(int64_t aBytes) {
@@ -291,7 +324,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		}
 
 		if (aSource->isSet(UserConnection::FLAG_UBN1)) {
-			if (!updateOnly && sendBundle(aSource, aBundle, updateOnly)) {
+			if (sendBundle(aSource, aBundle, updateOnly) && !updateOnly) {
 				Lock l (cs);
 				aBundle->getUploadReports().push_back(aSource->getHintedUser());
 				//LogManager::getInstance()->message("ADD UPLOAD REPORT: " + Util::toString(aBundle->getUploadReports().size()));
