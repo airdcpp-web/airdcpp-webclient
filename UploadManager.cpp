@@ -462,13 +462,13 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 }
 
 void UploadManager::checkMultiConn() {
-
+	Lock l(cs);
 	int extras = getSlots() - running - mcnSlots + multiUploads.size();
 	if ((int)extras > 0 || getAutoSlot()) {
 		return; //no reason to remove anything
 	}
 
-	Lock l(cs);
+
 	int uploadsStart=0, highest=0;
 	MultiConnMap compare=multiUploads;
 	while (extras < 0) {
@@ -908,18 +908,24 @@ void UploadManager::removeUpload(Upload* aUpload, bool delay) {
 }
 
 void UploadManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) {
+	bool connect = false;
+	string token;
 	{
 		Lock l(cs);
 		reservedSlots[aUser] = GET_TICK() + aTime*1000;
-	}
-	if(aUser.user->isOnline())
-	{
+	
+	if(aUser.user->isOnline()){
 		// find user in uploadqueue to connect with correct token
 		auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser.user; });
 		if(it != uploadQueue.cend()) {
-			ClientManager::getInstance()->connect(aUser, it->token);
+			token = it->first.token;
+			connect = true;
+		}
 		}
 	}
+
+	if(connect)
+		ClientManager::getInstance()->connect(aUser, token);
 }
 
 void UploadManager::unreserveSlot(const UserPtr& aUser) {
@@ -1058,7 +1064,7 @@ void UploadManager::logUpload(const Upload* u) {
 
 size_t UploadManager::addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size) {
 	size_t queue_position = 0;
-
+	Lock l(cs);
 	auto it = find_if(uploadQueue.begin(), uploadQueue.end(), [&](const UserPtr& u) -> bool { ++queue_position; return u == source.getUser(); });
 	if(it != uploadQueue.end()) {
 		it->token = source.getToken();

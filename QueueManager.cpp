@@ -1547,8 +1547,8 @@ QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSl
 	return QueueItem::PAUSED;
 }
 namespace {
-	//using vector for testing, atleast ram is cleared.
-typedef vector<pair<TTHValue, const DirectoryListing::File*>> TTHMap;
+
+typedef std::unordered_map<TTHValue, const DirectoryListing::File*> TTHMap;
 
 // *** WARNING *** 
 // Lock(cs) makes sure that there's only one thread accessing this
@@ -1562,7 +1562,7 @@ void buildMap(const DirectoryListing::Directory* dir) noexcept {
 
 	for(DirectoryListing::File::List::const_iterator i = dir->files.begin(); i != dir->files.end(); ++i) {
 		const DirectoryListing::File* df = *i;
-		tthMap.push_back(make_pair(df->getTTH(), df));
+		tthMap.insert(make_pair(df->getTTH(), df));
 	}
 }
 }
@@ -1606,7 +1606,7 @@ int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noe
 					continue;
 				if(qi->isSet(QueueItem::FLAG_USER_LIST))
 					continue;
-					TTHMap::iterator j = find_if(tthMap.begin(), tthMap.end(), CompareFirst<TTHValue, const DirectoryListing::File*>(qi->getTTH()));
+					TTHMap::iterator j = tthMap.find(qi->getTTH());
 					if(j != tthMap.end()) {
 					if(j->second->getSize() == qi->getSize()) {
 					try {
