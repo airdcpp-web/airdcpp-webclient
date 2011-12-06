@@ -918,7 +918,7 @@ void UploadManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) {
 		// find user in uploadqueue to connect with correct token
 		auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser.user; });
 		if(it != uploadQueue.cend()) {
-			token = it->first.token;
+			token = it->token;
 			connect = true;
 		}
 		}
