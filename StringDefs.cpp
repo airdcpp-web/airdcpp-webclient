@@ -1308,6 +1308,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Enable Item(s)", 
 "Disable Item(s)", 
 "Search bundle for alternatives", 
+"Match partialList", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2616,4 +2617,5 @@ std::string dcpp::ResourceManager::names[] = {
 "EnableAutosearch", 
 "DisableAutosearch", 
 "SearchBundleAlt", 
+"MatchPartial", 
 };
