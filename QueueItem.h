@@ -147,7 +147,6 @@ public:
 		tthRoot(tth), autoPriority(false), nextPublishingTime(0),
 		bundle(NULL)
 	{
-		inc();
 		setFlag(FLAG_AUTODROP);
 	}
 

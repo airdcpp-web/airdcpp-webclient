@@ -538,7 +538,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		string bundle;
 		bool add=false, reply=false;
 		TTHValue aTTH(aString.substr(4));
-		if(!QueueManager::getInstance()->handlePartialSearch(CID(Util::emptyString), aTTH, partialInfo, bundle, reply, add, true)) {
+		if(!QueueManager::getInstance()->handlePartialSearch(NULL, aTTH, partialInfo, bundle, reply, add)) {
 			return;
 		}
 		

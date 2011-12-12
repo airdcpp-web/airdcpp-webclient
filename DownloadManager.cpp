@@ -195,8 +195,6 @@ void DownloadManager::updateBundles(BundleList& bundles) {
 	for(BundleList::iterator j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr bundle = *j;
 		if (bundle->getSingleUser() || bundle->getUploadReports().empty()) {
-			bundle->setLastSpeed(0);
-			bundle->setLastPercent(0);
 			continue;
 		}
 		string speed;
@@ -326,6 +324,10 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		if (aSource->isSet(UserConnection::FLAG_UBN1)) {
 			if (sendBundle(aSource, aBundle, updateOnly) && !updateOnly) {
 				Lock l (cs);
+				if (aBundle->getUploadReports().empty()) {
+					aBundle->setLastSpeed(0);
+					aBundle->setLastPercent(0);
+				}
 				aBundle->getUploadReports().push_back(aSource->getHintedUser());
 				//LogManager::getInstance()->message("ADD UPLOAD REPORT: " + Util::toString(aBundle->getUploadReports().size()));
 			}
@@ -346,6 +348,8 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 			//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, FAAAAILED: " + Util::toString(aBundle->runningUsers.size()));
 			return;
 		}
+		aBundle->setLastSpeed(0);
+		aBundle->setLastPercent(0);
 		aBundle->setSingleUser(true);
 		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
 	} else {
@@ -472,10 +476,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 				Lock l(cs);
  				idlers.push_back(aConn);
 			}
-			/*if (!aConn->getLastBundle().empty()) {
-				//fire(DownloadManagerListener::BundleFinished(), aConn->getLastBundle());
-				aConn->setLastBundle(Util::emptyString);
-			} */
 			ConnectionManager::getInstance()->changeCQIState(aConn, true);
 		} else {
 			aConn->disconnect(true);

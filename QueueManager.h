@@ -106,10 +106,10 @@ public:
 	void noDeleteFileList(const string& path);
 	
 
-	bool handlePartialSearch(const CID& cid, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add, bool nmdc);
+	bool handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add);
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
-	void addBundleTTHList(const HintedUser& aUser, const string& bundle);
-	MemoryInputStream* generateTTHList(const HintedUser& aUser, const string& bundleToken, bool isInSharingHub);
+	void addBundleTTHList(const HintedUser& aUser, const string& bundle, const TTHValue& tth);
+	MemoryInputStream* generateTTHList(const string& bundleToken, bool isInSharingHub);
 
 	//merging, adding, deletion
 	bool addBundle(BundlePtr aBundle, bool loading = false);
@@ -121,10 +121,9 @@ public:
 	void moveFileBundle(BundlePtr aBundle, const string& aTarget) noexcept;
 	BundlePtr createFileBundle(QueueItem* qi);
 	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading = false);
-	void removeBundleItem(QueueItem* qi, bool finished, bool deleteQI);
+	void removeBundleItem(QueueItem* qi, bool finished);
 	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished);
 	BundlePtr findMergeBundle(QueueItem* qi);
-	void setBundleDirty(BundlePtr aBundle);
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
 	void saveBundle(BundlePtr aBundle);
@@ -133,9 +132,11 @@ public:
 
 	BundlePtr getBundle(const string& bundleToken) { Lock l (cs); return findBundle(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth);
-	bool checkPBDReply(const HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add);
-	void updatePBD(const HintedUser& aUser, const string& bundleToken, const TTHValue& aTTH);
+	bool checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add, const string& remoteBundle);
+	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle);
+	void updatePBD(const HintedUser& aUser, const TTHValue& aTTH);
 	void removeBundleNotify(const UserPtr& aUser, const string& bundleToken);
+	void sendRemovePBD(const UserPtr& aUser, BundlePtr aBundle);
 	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;

@@ -124,8 +124,8 @@ bool Bundle::isSource(const CID& cid) {
 	return find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user->getCID() == cid; }) != sources.end();
 }
 
-bool Bundle::isBadSource(const CID& cid) {
-	return find_if(badSources.begin(), badSources.end(), [&](const UserRunningPair& urp) { return urp.first.user->getCID() == cid; }) != badSources.end();
+bool Bundle::isBadSource(const UserPtr& aUser) {
+	return find_if(badSources.begin(), badSources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; }) != badSources.end();
 }
 
 void Bundle::addUserQueue(QueueItem* qi) {
@@ -179,18 +179,24 @@ QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority m
 	return NULL;
 }
 
-bool Bundle::allowFinishedNotify(const CID& cid) {
-	if (isBadSource(cid)) {
-		return false;
+bool Bundle::isFinishedNotified(const UserPtr& aUser) {
+	return find_if(finishedNotifications.begin(), finishedNotifications.end(), [&](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();;
+}
+
+void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) {
+	if (!isFinishedNotified(aUser.user) && !isBadSource(aUser)) {
+		finishedNotifications.push_back(make_pair(aUser, remoteBundle));
 	}
-	//check if the user is being notified already
-	for (auto s = notifiedUsers.begin(); s != notifiedUsers.end(); ++s) {
-		if ((*s).user->getCID() == cid) {
-			//LogManager::getInstance()->message("checkFinishedNotify: ALREADY NOTIFIED");
-			return false;
+}
+
+void Bundle::removeFinishedNotify(const UserPtr& aUser) {
+	for (auto s = finishedNotifications.begin(); s != finishedNotifications.end(); ++s) {
+		if (s->first.user == aUser) {
+			//LogManager::getInstance()->message("QueueManager::removeBundleNotify: CID found");
+			finishedNotifications.erase(s);
+			return;
 		}
 	}
-	return true;
 }
 
 void Bundle::getDownloadsQI(DownloadList& l) {

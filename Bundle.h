@@ -79,6 +79,8 @@ public:
 	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
 	typedef pair<HintedUser, uint32_t> UserRunningPair;
 	typedef vector<UserRunningPair> SourceIntList;
+	typedef pair<HintedUser, string> UserBundlePair;
+	typedef vector<UserBundlePair> FinishedNotifyList;
 	typedef unordered_map<string, QueueItemList> DirMap;
 	typedef unordered_map<string, BundlePtr> BundleTokenMap;
 
@@ -111,7 +113,7 @@ public:
 	GETSET(bool, simpleMatching, SimpleMatching);
 	GETSET(bool, recent, Recent);
 
-	GETSET(HintedUserList, notifiedUsers, NotifiedUsers);
+	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);
 	GETSET(UserIntMap, runningUsers, RunningUsers);
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
@@ -122,7 +124,7 @@ public:
 	GETSET(SourceIntList, sources, Sources);
 
 	UserIntMap& getRunningUsers() { return runningUsers; }
-	HintedUserList& getNotifiedUsers() { return notifiedUsers; }
+	FinishedNotifyList& getNotifiedUsers() { return finishedNotifications; }
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
@@ -188,13 +190,15 @@ public:
 	}
 
 	tstring getBundleText();
-	bool allowFinishedNotify(const CID& cid);
+	bool isFinishedNotified(const UserPtr& aUser);
+	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle);
+	void removeFinishedNotify(const UserPtr& aUser);
 
 	/** All queue items indexed by user */
 	void getQISources(HintedUserList& l);
 	bool isSource(const UserPtr& aUser);
 	bool isSource(const CID& cid);
-	bool isBadSource(const CID& cid);
+	bool isBadSource(const UserPtr& aUser);
 	bool isFinished() { return queueItems.empty(); }
 	void getDownloadsQI(DownloadList& l);
 	QueueItemList getItems(const UserPtr& aUser) const;

@@ -384,7 +384,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	}
 
 	if(!file.empty() && freeSlots != -1 && size != -1) {
-
+		TTHValue th;
 		/// @todo get the hub this was sent from, to be passed as a hint? (eg by using the token?)
 		StringList names = ClientManager::getInstance()->getHubNames(from->getCID(), Util::emptyString);
 		string hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
@@ -394,17 +394,27 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		SearchResult::Types type = (file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
 		if(type == SearchResult::TYPE_FILE && tth.empty())
 			return;
+
+		if (type == SearchResult::TYPE_DIRECTORY) {
+			//calculate a TTH from the directory name and size
+			TigerHash tmp;
+			string tmp2 = Util::getLastDir(file) + Util::toString(size);
+			tmp.update(Text::toLower(tmp2).c_str(), tmp2.length());
+			th = TTHValue(tmp.finalize());
+		} else {
+			th = TTHValue(tth);
+		}
 		
 		uint8_t slots = ClientManager::getInstance()->getSlots(from->getCID());
 		SearchResultPtr sr(new SearchResult(from, type, slots, (uint8_t)freeSlots, size,
-			file, hubName, hub, remoteIp, TTHValue(tth), token));
+			file, hubName, hub, remoteIp, th, token));
 		fire(SearchManagerListener::SR(), sr);
 	}
 }
 
 
 void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
-	string bundle;
+	string remoteBundle;
 	string hubIpPort;
 	string tth;
 	bool add=false, update=false, reply=false, notify = false, remove = false;
@@ -414,7 +424,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 		if(str.compare(0, 2, "HI") == 0) {
 			hubIpPort = str.substr(2);
 		} else if(str.compare(0, 2, "BU") == 0) {
-			bundle = str.substr(2);
+			remoteBundle = str.substr(2);
 		} else if(str.compare(0, 2, "TH") == 0) {
 			tth = str.substr(2);
 		} else if(str.compare(0, 2, "UP") == 0) { //new notification of a finished TTH
@@ -431,18 +441,10 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 			//LogManager::getInstance()->message("ONPBD UNKNOWN PARAM: " + str);
 		}
 	}
-	
-	if (bundle.empty()) {
-		//LogManager::getInstance()->message("ONPBD EMPTY BUNDLE");
-		return;
-	}
 
-	if (remove) {
+	if (remove && !remoteBundle.empty()) {
 		//LogManager::getInstance()->message("ONPBD REMOVE");
-		QueueManager::getInstance()->removeBundleNotify(from, bundle);
-		if (!reply) {
-			return;
-		}
+		QueueManager::getInstance()->removeBundleNotify(from, remoteBundle);
 	}
 
 	if (tth.empty()) {
@@ -454,40 +456,25 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 
 	if (update) {
 		//LogManager::getInstance()->message("PBD UPDATE TTH");
-		if (findRemoteBundle(bundle)) {
-			//LogManager::getInstance()->message("PBD UPDATE TTH, TOKEN FOUND");
-			QueueManager::getInstance()->updatePBD(HintedUser(from, url), bundle, TTHValue(tth));
-		} else {
-			//LogManager::getInstance()->message("PBD UPDATE TTH, TOKEN NOT LISTED");
-			AdcCommand cmd = removePBD(url, bundle);
-			//do we still have a bundle containing this tth in queue?
-			if (!QueueManager::getInstance()->getTargets(TTHValue(tth)).empty()) {
-				cmd = removePBD(url, bundle, tth);
-			}
-			ClientManager::getInstance()->send(cmd, from->getCID(), false, true);
-		}
+		QueueManager::getInstance()->updatePBD(HintedUser(from, url), TTHValue(tth));
 		return;
-	} else if (notify) {
-		//LogManager::getInstance()->message("PBD NOTIFYONLY");
-		BundlePtr ownBundle = QueueManager::getInstance()->findBundle(TTHValue(tth));
-		if (ownBundle) {
-			//LogManager::getInstance()->message("PBD ADD NOTIFY, BUNDLE FOUND");
-			addBundles(ownBundle->getToken(), bundle, HintedUser(from, url));
-		} else {
-			//HMM?
-			//LogManager::getInstance()->message("PBD ADD NOTIFY, BUNDLE NOT FOUND");
-			AdcCommand cmd = removePBD(url, bundle);
-			ClientManager::getInstance()->send(cmd, from->getCID());
-		}
+	} else if (remoteBundle.empty()) {
+		//LogManager::getInstance()->message("ONPBD EMPTY BUNDLE");
 		return;
+	}
+
+	HintedUser u = HintedUser(from, url);
+	if (notify) {
+		//LogManager::getInstance()->message("PBD NOTIFY");
+		QueueManager::getInstance()->addFinishedNotify(u, TTHValue(tth), remoteBundle);
 	} else if (reply) {
 		//LogManager::getInstance()->message("PBD REQUIRE REPLY");
-		string bundleToken;
+
+		string localBundle;
 		bool notify = false, add = false;
-		if (QueueManager::getInstance()->checkPBDReply(HintedUser(from, url), TTHValue(tth), bundleToken, notify, add)) {
+		if (QueueManager::getInstance()->checkPBDReply(u, TTHValue(tth), localBundle, notify, add, remoteBundle)) {
 			//LogManager::getInstance()->message("PBD REPLY: ACCEPTED");
-			addBundles(bundleToken, bundle, HintedUser(from, url));
-			AdcCommand cmd = toPBD(hubIpPort, bundle, tth, false, add, notify);
+			AdcCommand cmd = toPBD(hubIpPort, localBundle, tth, false, add, notify);
 			ClientManager::getInstance()->send(cmd, from->getCID(), false, true);
 		} else {
 			//LogManager::getInstance()->message("PBD REPLY: QUEUEMANAGER FAIL");
@@ -495,65 +482,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	}
 
 	if (add) {
-		if (QueueManager::getInstance()->findBundle(TTHValue(tth))) {
-			//LogManager::getInstance()->message("PBD ADDTTHLIST");
-			QueueManager::getInstance()->addBundleTTHList(HintedUser(from, url), bundle);
-		} else {
-			//LogManager::getInstance()->message("DONT PBD ADDTTHLIST, TARGETFAIL");
-		}
-	}
-}
-
-void SearchManager::addBundles(const string& ownToken, const string& remoteToken, HintedUser aUser) {
-	Lock l (cs);
-	if (!findRemoteBundle(remoteToken)) {
-		bundleTranslations.push_back(make_pair(aUser, make_pair(ownToken, remoteToken)));
-	}
-}
-
-bool SearchManager::findRemoteBundle(const string& bundleToken) {
-	for (BundleTranslationMap::const_iterator i = bundleTranslations.begin(); i != bundleTranslations.end(); ++i) {
-		if (i->second.second == bundleToken) {
-			return true;
-		}
-	}
-	return false;
-}
-
-void SearchManager::removeBundlePBD(const string& ownBundleToken) {
-	Lock l (cs);
-	//LogManager::getInstance()->message("removeRemoteNotification");
-	for (auto i = bundleTranslations.begin(); i != bundleTranslations.end();) {
-		if (i->second.first == ownBundleToken) {
-			//LogManager::getInstance()->message("removeRemoteNotification, BUNDLE FOUND");
-			AdcCommand cmd = removePBD(i->first.hint, i->second.second);
-			ClientManager::getInstance()->send(cmd, i->first.user->getCID());
-			bundleTranslations.erase(i);
-			i = bundleTranslations.begin();
-		} else {
-			i++;
-		}
-	}
-}
-
-void SearchManager::removeUserPBD(const UserPtr& aUser, BundlePtr aBundle) {
-	Lock l (cs);
-	//LogManager::getInstance()->message("removeRemoteNotification");
-	for (auto i = bundleTranslations.begin(); i != bundleTranslations.end();) {
-		if (i->first.user == aUser) {
-			if (aBundle) {
-				if (i->second.first != aBundle->getToken()) {
-					continue;
-				}
-			}
-			//LogManager::getInstance()->message("removeRemoteNotification, BUNDLE FOUND");
-			AdcCommand cmd = removePBD(i->first.hint, i->second.second);
-			ClientManager::getInstance()->send(cmd, i->first.user->getCID());
-			bundleTranslations.erase(i);
-			i = bundleTranslations.begin();
-		} else {
-			i++;
-		}
+		QueueManager::getInstance()->addBundleTTHList(u, remoteBundle, TTHValue(tth));
 	}
 }
 
@@ -654,7 +583,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		PartsInfo partialInfo;
 		string bundle;
 		bool reply = false, add = false;
-		QueueManager::getInstance()->handlePartialSearch(from, TTHValue(tth), partialInfo, bundle, reply, add, false);
+		QueueManager::getInstance()->handlePartialSearch(p, TTHValue(tth), partialInfo, bundle, reply, add);
 
 		if (!partialInfo.empty()) {
 			//LogManager::getInstance()->message("SEARCH RESPOND: PARTIALINFO NOT EMPTY");
@@ -719,21 +648,6 @@ AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const s
 	
 	return cmd;
 }
-
-AdcCommand SearchManager::removePBD(const string& hubIpPort, const string& bundle, const string& aTTH) const {
-	AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
-
-	cmd.addParam("HI", hubIpPort);
-	cmd.addParam("BU", bundle);
-	cmd.addParam("RM1");
-	if (!aTTH.empty()) {
-		cmd.addParam("RE1");
-		cmd.addParam("TH", aTTH);
-	}
-
-	return cmd;
-}
-
 
 AdcCommand SearchManager::toPBD(const string& hubIpPort, const string& bundle, const string& aTTH, bool reply, bool add, bool notify) const {
 	AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
