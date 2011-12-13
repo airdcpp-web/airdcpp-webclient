@@ -1309,6 +1309,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Disable Item(s)", 
 "Search bundle for alternatives", 
 "Match partialList", 
+"Show shared directories in the ""Download to"" menu", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2618,4 +2619,5 @@ std::string dcpp::ResourceManager::names[] = {
 "DisableAutosearch", 
 "SearchBundleAlt", 
 "MatchPartial", 
+"FavdirsShowShared", 
 };

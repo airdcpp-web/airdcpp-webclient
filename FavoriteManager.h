@@ -107,9 +107,14 @@ public:
 	bool isPrivate(const string& url) const;
 
 // Favorite Directories
-	bool addFavoriteDir(const string& aDirectory, const string& aName);
-	void saveFavoriteDirs(StringPairList dirs);
-	StringPairList getFavoriteDirs() { return favoriteDirs; }
+	typedef pair<string, StringList> FavDirPair;
+	typedef vector<FavDirPair> FavDirList;
+
+	bool addFavoriteDir(const string& aName, const StringList& aTargets);
+	string getFavoriteTarget(int pos);
+	string getFavoriteTarget(const string& vName);
+	void saveFavoriteDirs(FavDirList dirs);
+	FavDirList getFavoriteDirs() { return favoriteDirs; }
 
 // Recent Hubs
 	RecentHubEntry::List& getRecentHubs() { return recentHubs; };
@@ -176,7 +181,7 @@ public:
 private:
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
-	StringPairList favoriteDirs;
+	FavDirList favoriteDirs;
 	RecentHubEntry::List recentHubs;
 	PreviewApplication::List previewApplications;
 	UserCommand::List userCommands;

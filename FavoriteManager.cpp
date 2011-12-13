@@ -227,23 +227,35 @@ void FavoriteManager::removeFavorite(const FavoriteHubEntry* entry) {
 	save();
 }
 
-bool FavoriteManager::addFavoriteDir(const string& aDirectory, const string & aName){
-	string path = aDirectory;
-
-	if( path[ path.length() -1 ] != PATH_SEPARATOR )
-		path += PATH_SEPARATOR;
-
-	for(StringPairIter i = favoriteDirs.begin(); i != favoriteDirs.end(); ++i) {
-		if((strnicmp(path, i->first, i->first.length()) == 0) && (strnicmp(path, i->first, path.length()) == 0)) {
-			return false;
-		}
-		if(stricmp(aName, i->second) == 0) {
+bool FavoriteManager::addFavoriteDir(const string& aName, const StringList& aTargets){
+	for(auto i = favoriteDirs.begin(); i != favoriteDirs.end(); ++i) {
+		if(stricmp(aName, i->first) == 0) {
 			return false;
 		}
 	}
-	favoriteDirs.push_back(make_pair(aDirectory, aName));
+
+	favoriteDirs.push_back(make_pair(aName, aTargets));
 	save();
 	return true;
+}
+
+string FavoriteManager::getFavoriteTarget(const string& vName) {
+	StringList targets;
+	int pos = 0;
+	for(auto i = favoriteDirs.begin(); i != favoriteDirs.end(); ++i) {
+		if(stricmp(vName, i->first) == 0) {
+			return getFavoriteTarget(pos);
+		}
+		pos++;
+	}
+	return Util::emptyString;
+}
+
+string FavoriteManager::getFavoriteTarget(int pos) {
+	dcassert(pos < (int)favoriteDirs.size());
+	StringList targets = favoriteDirs[pos].second;
+
+	return targets.front();
 }
 
 bool FavoriteManager::isFavoriteHub(const std::string& url) {
@@ -253,7 +265,7 @@ bool FavoriteManager::isFavoriteHub(const std::string& url) {
 	}
 	return false;
 }
-void FavoriteManager::saveFavoriteDirs(StringPairList dirs) {
+void FavoriteManager::saveFavoriteDirs(FavDirList dirs) {
 	favoriteDirs.clear();
 	favoriteDirs = dirs;
 	save();
@@ -439,11 +451,17 @@ void FavoriteManager::save() {
 
 		//Favorite download to dirs
 		xml.addTag("FavoriteDirs");
+		xml.addChildAttrib("Version", 2);
 		xml.stepIn();
-		StringPairList spl = getFavoriteDirs();
-		for(StringPairIter i = spl.begin(), iend = spl.end(); i != iend; ++i) {
+		FavDirList spl = getFavoriteDirs();
+		for(auto i = spl.begin(), iend = spl.end(); i != iend; ++i) {
 			xml.addTag("Directory", i->first);
-			xml.addChildAttrib("Name", i->second);
+			xml.addChildAttrib("Name", i->first);
+			xml.stepIn();
+			for (auto s = i->second.begin(); s != i->second.end(); ++s) {
+				xml.addTag("Target", (*s));
+			}
+			xml.stepOut();
 		}
 		xml.stepOut();
 
@@ -638,11 +656,41 @@ void FavoriteManager::load(SimpleXML& aXml) {
 	//Favorite download to dirs
 	aXml.resetCurrentChild();
 	if(aXml.findChild("FavoriteDirs")) {
+		string version = aXml.getChildAttrib("Version");
 		aXml.stepIn();
-		while(aXml.findChild("Directory")) {
-			string virt = aXml.getChildAttrib("Name");
-			string d(aXml.getChildData());
-			FavoriteManager::getInstance()->addFavoriteDir(d, virt);
+		if (version.empty() || Util::toInt(version) < 2) {
+			//convert old directories
+			while(aXml.findChild("Directory")) {
+				string virt = aXml.getChildAttrib("Name");
+				string d(aXml.getChildData());
+				StringList targets;
+				targets.push_back(d);
+				FavoriteManager::getInstance()->addFavoriteDir(virt, targets);
+			}
+			needSave = true;
+		} else {
+			while(aXml.findChild("Directory")) {
+				string name = aXml.getChildAttrib("Name");
+				if (!name.empty()) {
+					aXml.stepIn();
+					StringList targets;
+					while(aXml.findChild("Target")) {
+						aXml.stepIn();
+						string path = aXml.getData();
+						if( path[ path.length() -1 ] != PATH_SEPARATOR ) {
+							path += PATH_SEPARATOR;
+						}
+						if (find(targets.begin(), targets.end(), path) == targets.end()) {
+							targets.push_back(path);
+						}
+						aXml.stepOut();
+					}
+					if (!targets.empty()) {
+						FavoriteManager::getInstance()->addFavoriteDir(name, targets);
+					}
+					aXml.stepOut();
+				}
+			}
 		}
 		aXml.stepOut();
 	}

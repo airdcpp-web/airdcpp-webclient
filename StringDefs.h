@@ -1316,5 +1316,6 @@ enum Strings { // @DontAdd
 	DISABLE_AUTOSEARCH, // "Disable Item(s)"
 	SEARCH_BUNDLE_ALT, // "Search bundle for alternatives"
 	MATCH_PARTIAL, // "Match partialList"
+	FAVDIRS_SHOW_SHARED, // "Show shared directories in the ""Download to"" menu"
 	LAST // @DontAdd
 };
