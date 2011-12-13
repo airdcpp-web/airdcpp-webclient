@@ -3764,6 +3764,36 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 	return !_outPartsInfo.empty();
 }
 
+void QueueManager::getDiskInfo(UIntStringList& dirs) {
+	string tempVol;
+	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("targetdrive") == string::npos);
+	if (useSingleTempDir) {
+		tempVol = AirUtil::getMountPoint(SETTING(TEMP_DOWNLOAD_DIRECTORY));
+	}
+
+	Lock l (cs);
+	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
+		BundlePtr b = (*i).second;
+		string bundleVol = AirUtil::getMountPoint(b->getTarget());
+		if (!bundleVol.empty()) {
+			int64_t size = 0;
+			bool countAll = (useSingleTempDir && (bundleVol != tempVol));
+			for (auto i = b->getQueueItems().begin(); i != b->getQueueItems().end(); ++i) {
+				if (countAll || (*i)->getDownloadedBytes() == 0) {
+					size += (*i)->getSize();
+				}
+			}
+
+			for (auto i = dirs.begin(); i != dirs.end(); ++i) {
+				if (i->second == bundleVol) {
+					i->first -= size;
+					break;
+				}
+			}
+		}
+	}
+}
+
 bool QueueManager::isDirQueued(const string& aDir) {
 	string dir = AirUtil::getReleaseDir(aDir);
 	if (dir.empty()) {

@@ -32,6 +32,9 @@ typedef pair<string, string> StringPair;
 typedef vector<StringPair> StringPairList;
 typedef StringPairList::iterator StringPairIter;
 
+typedef pair<uint64_t, string> UIntStringPair;
+typedef vector<UIntStringPair> UIntStringList;
+
 typedef std::unordered_map<string, string> StringMap;
 typedef StringMap::iterator StringMapIter;
 

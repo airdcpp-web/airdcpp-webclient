@@ -564,4 +564,21 @@ bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*
 	return true;
 }
 
+string AirUtil::getMountPoint(const string& aPath) {
+	TCHAR buf[MAX_PATH];
+	string::size_type l = aPath.length();
+	BOOL found = false;
+	while (!found) {
+		l = aPath.rfind('\\', l-2);
+		if (l == string::npos)
+			break;
+		found = GetVolumeNameForVolumeMountPoint(Text::toT(aPath.substr(0, l+1)).c_str(), buf, MAX_PATH);
+	}
+
+	if (found) {
+		return Text::fromT(buf);
+	}
+	return Util::emptyString;
+}
+
 }

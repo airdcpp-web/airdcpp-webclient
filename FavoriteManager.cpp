@@ -19,10 +19,12 @@
 #include "stdinc.h"
 #include "FavoriteManager.h"
 
+#include "AirUtil.h"
 #include "ClientManager.h"
 #include "ResourceManager.h"
 #include "CryptoManager.h"
 #include "LogManager.h"
+#include "QueueManager.h"
 
 #include "HttpConnection.h"
 #include "StringTokenizer.h"
@@ -260,23 +262,43 @@ string FavoriteManager::getFavoriteTarget(int pos) {
 		return targets.front();
 	}
 
-	typedef pair<uint64_t, string> UserRunningPair;
-	typedef vector<UserRunningPair> SourceIntList;
-	SourceIntList sizeTargetList;
+	UIntStringList sizeVolumeList;
 
 	for(auto i = targets.begin(); i != targets.end(); ++i) {
-		int64_t free = 0, size = 0;
-		GetDiskFreeSpaceEx(Text::toT(*i).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&free);
-		sizeTargetList.push_back(make_pair(free, (*i)));
+		string targetVol = AirUtil::getMountPoint(*i);
+		if (!targetVol.empty()) {
+
+			//don't add the same volume multiple times
+			for(auto k = sizeVolumeList.begin(); k != sizeVolumeList.end(); ++k) {
+				if (k->second == targetVol) {
+					continue;
+				}
+			}
+
+			int64_t free = 0, size = 0;
+			GetDiskFreeSpaceEx(Text::toT(*i).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&free);
+			sizeVolumeList.push_back(make_pair(free, targetVol));
+		}
 	}
 
-	sort(sizeTargetList.begin(), sizeTargetList.end());
+	QueueManager::getInstance()->getDiskInfo(sizeVolumeList);
+
+	sort(sizeVolumeList.begin(), sizeVolumeList.end());
+	string& volume = sizeVolumeList.back().second;
 
 	/*for(auto i = sizeTargetList.begin(); i != sizeTargetList.end(); ++i) {
 		LogManager::getInstance()->message("Target " + i->second + ", size" + Util::toString(i->first));
 	} */
 
-	return sizeTargetList.back().second;
+	for(auto i = targets.begin(); i != targets.end(); ++i) {
+		string targetVol = AirUtil::getMountPoint(*i);
+		if (!targetVol.empty()) {
+			if (targetVol == volume) {
+				return (*i);
+			}
+		}
+	}
+	return Util::emptyString;
 }
 
 bool FavoriteManager::isFavoriteHub(const std::string& url) {
