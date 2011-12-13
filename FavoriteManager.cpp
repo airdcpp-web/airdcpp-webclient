@@ -22,6 +22,7 @@
 #include "ClientManager.h"
 #include "ResourceManager.h"
 #include "CryptoManager.h"
+#include "LogManager.h"
 
 #include "HttpConnection.h"
 #include "StringTokenizer.h"
@@ -255,7 +256,27 @@ string FavoriteManager::getFavoriteTarget(int pos) {
 	dcassert(pos < (int)favoriteDirs.size());
 	StringList targets = favoriteDirs[pos].second;
 
-	return targets.front();
+	if (targets.size() == 1) {
+		return targets.front();
+	}
+
+	typedef pair<uint64_t, string> UserRunningPair;
+	typedef vector<UserRunningPair> SourceIntList;
+	SourceIntList sizeTargetList;
+
+	for(auto i = targets.begin(); i != targets.end(); ++i) {
+		int64_t free = 0, size = 0;
+		GetDiskFreeSpaceEx(Text::toT(*i).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&free);
+		sizeTargetList.push_back(make_pair(free, (*i)));
+	}
+
+	sort(sizeTargetList.begin(), sizeTargetList.end());
+
+	/*for(auto i = sizeTargetList.begin(); i != sizeTargetList.end(); ++i) {
+		LogManager::getInstance()->message("Target " + i->second + ", size" + Util::toString(i->first));
+	} */
+
+	return sizeTargetList.back().second;
 }
 
 bool FavoriteManager::isFavoriteHub(const std::string& url) {
