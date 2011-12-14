@@ -30,6 +30,7 @@ class AirUtil {
 		static string getReleaseDir(const string& aName);
 		static string getMountPoint(const string& aPath);
 		static bool checkSharedName(const string& aName, bool dir, bool report = true);
+		static void getTarget(StringList& targets, string& target, uint64_t& size);
 
 	private:
 

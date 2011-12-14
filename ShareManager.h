@@ -107,6 +107,7 @@ public:
 	bool loadCache();
 
 	StringPairList getDirectories(int refreshOptions) const noexcept;
+	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
 	static bool checkType(const string& aString, int aType);
 	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub);
 	MemoryInputStream* generateTTHList(const string& dir, bool recurse, bool isInSharingHub);

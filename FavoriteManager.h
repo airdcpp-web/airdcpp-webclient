@@ -111,8 +111,7 @@ public:
 	typedef vector<FavDirPair> FavDirList;
 
 	bool addFavoriteDir(const string& aName, const StringList& aTargets);
-	string getFavoriteTarget(int pos);
-	string getFavoriteTarget(const string& vName);
+	void getFavoriteTarget(int pos, string& target, uint64_t& size);
 	void saveFavoriteDirs(FavDirList dirs);
 	FavDirList getFavoriteDirs() { return favoriteDirs; }
 

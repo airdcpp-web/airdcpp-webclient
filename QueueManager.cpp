@@ -3794,6 +3794,37 @@ void QueueManager::getDiskInfo(UIntStringList& dirs) {
 	}
 }
 
+uint64_t QueueManager::getDiskInfo(const string& aPath) {
+	string tempVol;
+	uint64_t ret = 0, tmp = 0;
+	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("targetdrive") == string::npos);
+	if (useSingleTempDir) {
+		tempVol = AirUtil::getMountPoint(SETTING(TEMP_DOWNLOAD_DIRECTORY));
+	}
+
+
+	GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&tmp, (PULARGE_INTEGER)&ret);
+	string pathVol = AirUtil::getMountPoint(aPath);
+	if (pathVol.empty()) {
+		return -1;
+	}
+
+	Lock l (cs);
+	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
+		BundlePtr b = (*i).second;
+		string bundleVol = AirUtil::getMountPoint(b->getTarget());
+		if (bundleVol == pathVol) {
+			bool countAll = (useSingleTempDir && (bundleVol != tempVol));
+			for (auto i = b->getQueueItems().begin(); i != b->getQueueItems().end(); ++i) {
+				if (countAll || (*i)->getDownloadedBytes() == 0) {
+					ret -= (*i)->getSize();
+				}
+			}
+		}
+	}
+	return ret;
+}
+
 bool QueueManager::isDirQueued(const string& aDir) {
 	string dir = AirUtil::getReleaseDir(aDir);
 	if (dir.empty()) {

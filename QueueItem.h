@@ -155,9 +155,7 @@ public:
 		size(rhs.size), priority(rhs.priority), added(rhs.added), tthRoot(rhs.tthRoot),
 		autoPriority(rhs.autoPriority), maxSegments(rhs.maxSegments), fileBegin(rhs.fileBegin),
 		sources(rhs.sources), badSources(rhs.badSources), tempTarget(rhs.tempTarget), nextPublishingTime(rhs.nextPublishingTime)
-	{
-		inc();
-	}
+	{ }
 
 	~QueueItem();
 

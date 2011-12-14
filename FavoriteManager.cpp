@@ -24,7 +24,7 @@
 #include "ResourceManager.h"
 #include "CryptoManager.h"
 #include "LogManager.h"
-#include "QueueManager.h"
+#include "ShareManager.h"
 
 #include "HttpConnection.h"
 #include "StringTokenizer.h"
@@ -242,63 +242,10 @@ bool FavoriteManager::addFavoriteDir(const string& aName, const StringList& aTar
 	return true;
 }
 
-string FavoriteManager::getFavoriteTarget(const string& vName) {
-	StringList targets;
-	int pos = 0;
-	for(auto i = favoriteDirs.begin(); i != favoriteDirs.end(); ++i) {
-		if(stricmp(vName, i->first) == 0) {
-			return getFavoriteTarget(pos);
-		}
-		pos++;
-	}
-	return Util::emptyString;
-}
-
-string FavoriteManager::getFavoriteTarget(int pos) {
+void FavoriteManager::getFavoriteTarget(int pos, string& target, uint64_t& size) {
 	dcassert(pos < (int)favoriteDirs.size());
 	StringList targets = favoriteDirs[pos].second;
-
-	if (targets.size() == 1) {
-		return targets.front();
-	}
-
-	UIntStringList sizeVolumeList;
-
-	for(auto i = targets.begin(); i != targets.end(); ++i) {
-		string targetVol = AirUtil::getMountPoint(*i);
-		if (!targetVol.empty()) {
-
-			//don't add the same volume multiple times
-			for(auto k = sizeVolumeList.begin(); k != sizeVolumeList.end(); ++k) {
-				if (k->second == targetVol) {
-					continue;
-				}
-			}
-
-			int64_t free = 0, size = 0;
-			GetDiskFreeSpaceEx(Text::toT(*i).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&free);
-			sizeVolumeList.push_back(make_pair(free, targetVol));
-		}
-	}
-
-	QueueManager::getInstance()->getDiskInfo(sizeVolumeList);
-
-	sort(sizeVolumeList.begin(), sizeVolumeList.end());
-	string& volume = sizeVolumeList.back().second;
-
-	/*for(auto i = sizeTargetList.begin(); i != sizeTargetList.end(); ++i) {
-		LogManager::getInstance()->message("Target " + i->second + ", size" + Util::toString(i->first));
-	} */
-
-	for(auto i = targets.begin(); i != targets.end(); ++i) {
-		string targetVol = AirUtil::getMountPoint(*i);
-		if (!targetVol.empty()) {
-			if (targetVol == volume) {
-				return (*i);
-			}
-		}
-	}
-	return Util::emptyString;
+	AirUtil::getTarget(targets, target, size);
 }
 
 bool FavoriteManager::isFavoriteHub(const std::string& url) {

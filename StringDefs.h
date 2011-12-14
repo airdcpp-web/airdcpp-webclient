@@ -1317,5 +1317,6 @@ enum Strings { // @DontAdd
 	SEARCH_BUNDLE_ALT, // "Search bundle for alternatives"
 	MATCH_PARTIAL, // "Match partialList"
 	FAVDIRS_SHOW_SHARED, // "Show shared directories in the ""Download to"" menu"
+	CONFIRM_SIZE_WARNING, // "There is only %s remaining in the directory %s while %s is needed. Do you want to continue?"
 	LAST // @DontAdd
 };

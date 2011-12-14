@@ -1185,6 +1185,23 @@ StringPairList ShareManager::getDirectories(int refreshOptions) const noexcept {
 	return ret;
 }
 
+vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noexcept {
+	vector<pair<string, StringList>> ret;
+	RLock l(cs);
+	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
+		for (auto k = ret.begin(); k != ret.end(); ++k) {
+			if (k->first == i->second) {
+				k->second.push_back(i->first);
+				continue;
+			}
+		}
+		StringList tmp;
+		tmp.push_back(i->first);
+		ret.push_back(make_pair(i->second, tmp));
+	}
+	return ret;
+}
+
 int ShareManager::run() {
 	
 	StringPairList dirs = getDirectories(refreshOptions);

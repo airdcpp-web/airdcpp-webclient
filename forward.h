@@ -143,8 +143,8 @@ class UserConnection;
 typedef UserConnection* UserConnectionPtr;
 typedef std::vector<UserConnectionPtr> UserConnectionList;
 
-class Autosearch;
-typedef Autosearch* AutosearchPtr;
+class AutoSearch;
+typedef AutoSearch* AutoSearchPtr;
 
 } // namespace dcpp
 

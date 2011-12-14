@@ -91,7 +91,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 
 
 	SettingsManager::getInstance()->load();	
-	AutoSearchManager::getInstance()->AutosearchLoad();
+	AutoSearchManager::getInstance()->AutoSearchLoad();
 
 	if(BOOLSETTING(WIZARD_RUN_NEW)) {
 		WizardDlg dlg;
@@ -132,7 +132,7 @@ void shutdown() {
 	MappingManager::getInstance()->close();
 	BufferedSocket::waitShutdown();
 	
-	AutoSearchManager::getInstance()->AutosearchSave();
+	AutoSearchManager::getInstance()->AutoSearchSave();
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
 	MappingManager::deleteInstance();

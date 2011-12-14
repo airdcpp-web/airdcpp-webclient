@@ -50,10 +50,50 @@ AutoSearchManager::~AutoSearchManager() {
 	for_each(as.begin(), as.end(), DeleteFunction());
 }
 
+
+AutoSearch* AutoSearchManager::addAutoSearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ, AutoSearch::targetType aTargetType /* TARGET_PATH */) {
+	Lock l(acs);
+	for(AutoSearch::List::iterator i = as.begin(); i != as.end(); ++i) {
+		if(stricmp((*i)->getSearchString(), ss) == 0)
+			return NULL; //already exists
+	}
+	AutoSearch* ipw = new AutoSearch(en, ss, ft, act, remove, targ, aTargetType);
+	as.push_back(ipw);
+	dirty = true;
+	fire(AutoSearchManagerListener::AddItem(), ipw);
+	return ipw;
+}
+
+AutoSearch* AutoSearchManager::getAutoSearch(unsigned int index, AutoSearch &ipw) {
+	Lock l(acs);
+	if(as.size() > index)
+		ipw = *as[index];
+
+	return NULL;
+}
+
+AutoSearch* AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearch &ipw) {
+	Lock l(acs);
+	*as[index] = ipw;
+	dirty = true;
+	return NULL;
+}
+
+void AutoSearchManager::removeAutoSearch(AutoSearchPtr a) {
+	Lock l(acs);
+	AutoSearch::List::const_iterator i = find_if(as.begin(), as.end(), [&](AutoSearchPtr& c) { return c == a; });
+
+	if(i != as.end()) {	
+		fire(AutoSearchManagerListener::RemoveItem(), a->getSearchString());
+		as.erase(i);
+		dirty = true;
+	}
+}
+
 void AutoSearchManager::removeRegExpFromSearches() {
 	//clear old data
 	vs.clear();
-	for(Autosearch::List::const_iterator j = as.begin(); j != as.end(); j++) {
+	for(AutoSearch::List::const_iterator j = as.begin(); j != as.end(); j++) {
 		if((*j)->getEnabled()) {
 			if(((*j)->getFileType() != 9)) {
 				vs.push_back((*j));			//valid searches - we can search for it
@@ -76,7 +116,7 @@ void AutoSearchManager::getAllowedHubs() {
 		if (!client->isConnected())
 			continue;
 	
-	//if(client->getUseAutosearch())
+	//if(client->getUseAutoSearch())
 			allowedHubs.push_back(client->getHubUrl());
 	}
 	cm->unlock();
@@ -133,7 +173,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 		if(!vs.size()) {
 			return;
 		}
-		Autosearch::List::const_iterator pos = vs.begin() + curPos;
+		AutoSearch::List::const_iterator pos = vs.begin() + curPos;
 		users.clear();
 
 		if(pos < vs.end()) {
@@ -162,7 +202,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 		UserPtr user = static_cast<UserPtr>(sr->getUser());
 		if(users.find(user) == users.end()) {
 			users.insert(user);
-			for(Autosearch::List::iterator i = as.begin(); i != as.end(); ++i) {
+			for(AutoSearch::List::iterator i = as.begin(); i != as.end(); ++i) {
 				if((*i)->getFileType() == 9) { //regexp
 
 					string str1 = (*i)->getSearchString();
@@ -170,14 +210,10 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 					try {
 						boost::regex reg(str1);
 						if(boost::regex_search(str2.begin(), str2.end(), reg)){
-							if((*i)->getAction() == 0) { 
-								addToQueue(sr, false , (*i)->getTarget());
+							if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
+								addToQueue(sr, *i);
 								
-							} else if((*i)->getAction() == 1) {
-								addToQueue(sr, true, (*i)->getTarget());
-								
-							
-								} else if((*i)->getAction() == 2) {
+							} else if((*i)->getAction() == 2) {
 								ClientManager* c = ClientManager::getInstance();
 								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
 								if(u) {
@@ -190,7 +226,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 }
 								}
 							if((*i)->getRemove()) {
-								 fire(AutosearchManagerListener::RemoveItem(), (*i)->getSearchString());
+								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
@@ -203,13 +239,9 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				} else if(curSearch.compare((*i)->getSearchString()) == 0) { //match only to current search
 					if((*i)->getFileType() == 8) { //TTH
 						if(sr->getTTH().toBase32() == (*i)->getSearchString()) {
-							if((*i)->getAction() == 0) { 
-								addToQueue(sr, false, (*i)->getTarget());
-								
-							} else if((*i)->getAction() == 1) {
-								addToQueue(sr, true, (*i)->getTarget());
-								
-								} else if((*i)->getAction() == 2) {
+							if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
+								addToQueue(sr, *i);
+							} else if((*i)->getAction() == 2) {
 								ClientManager* c = ClientManager::getInstance();
 								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
 								if(u) {
@@ -222,7 +254,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 }
 								}
 							if((*i)->getRemove()) {
-								 fire(AutosearchManagerListener::RemoveItem(), (*i)->getSearchString());
+								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
@@ -233,13 +265,9 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 					} else if((*i)->getFileType() == 7 && sr->getType() == SearchResult::TYPE_DIRECTORY) { //directory
 						string matchedDir = matchDirectory(sr->getFile(), (*i)->getSearchString());
 						if(!matchedDir.empty()) {
-							if((*i)->getAction() == 0) { 
-								addToQueue(sr, false, (*i)->getTarget() );
-								
-							} else if((*i)->getAction() == 1) {
-								addToQueue(sr, true, (*i)->getTarget());
-								
-								} else if((*i)->getAction() == 2) {
+							if((*i)->getAction() == 1 || (*i)->getAction() == 0) {
+								addToQueue(sr, *i);
+							} else if((*i)->getAction() == 2) {
 								ClientManager* c = ClientManager::getInstance();
 								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
 								if(u) {
@@ -252,7 +280,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								 }
 								}
 							if((*i)->getRemove()) {
-								 fire(AutosearchManagerListener::RemoveItem(), (*i)->getSearchString());
+								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
@@ -274,12 +302,8 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								}
 							}
 							if(matched) {
-								if((*i)->getAction() == 0) { 
-									addToQueue(sr, false, (*i)->getTarget());
-									
-								} else if((*i)->getAction() == 1) {
-									addToQueue(sr, true, (*i)->getTarget());
-									
+								if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
+									addToQueue(sr, *i);
 								} else if((*i)->getAction() == 2) {
 								ClientManager* c = ClientManager::getInstance();
 								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
@@ -294,7 +318,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								}
 							}
 							if((*i)->getRemove()) {
-								 fire(AutosearchManagerListener::RemoveItem(), (*i)->getSearchString());
+								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
 								 i--;
 								 curPos--;
@@ -309,44 +333,69 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 	}
 }
 
-void AutoSearchManager::addToQueue(SearchResultPtr sr, bool pausePrio/* = false*/, const string& dTarget ) {
-	Lock l(cs);
-	string fullpath;
+void AutoSearchManager::addToQueue(const SearchResultPtr sr, const AutoSearchPtr as) {
+	string path;
+	if (!getTarget(sr, as, path)) {
+		//not enough space, do something fun
+	}
 
-		try {
-			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-
-				if((dTarget != Util::emptyString) && Util::fileExists(dTarget)) {
-						fullpath = dTarget;
-					} else {
-						fullpath = SETTING(DOWNLOAD_DIRECTORY);
-					}
-
-				if(pausePrio) //add with paused priority
-					QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath, QueueItem::PAUSED);
-				else // start downloading
-					QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), fullpath);
-
-			} else {
-			
-				if((dTarget != Util::emptyString) && Util::fileExists(dTarget)) {
-						fullpath = dTarget + Util::getFileName(sr->getFile());
-				} else {
-						fullpath = SETTING(DOWNLOAD_DIRECTORY) + Util::getFileName(sr->getFile());
-				}
-
-				QueueManager::getInstance()->add(fullpath, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()));
-			
-			if(pausePrio)
-				QueueManager::getInstance()->setQIPriority(fullpath, QueueItem::PAUSED);
+	try {
+		if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
+			QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), path, as->getAction() == 1 ? QueueItem::PAUSED : QueueItem::DEFAULT);
+		} else {
+			path = path + Util::getFileName(sr->getFile());
+			QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0);
+			if(as->getAction() == 1) {
+				QueueManager::getInstance()->setQIPriority(path, QueueItem::PAUSED);
 			}
-		} catch(...) {
-			LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
 		}
-	
+	} catch(...) {
+		LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
+	}
 }
 
-void AutoSearchManager::AutosearchSave() {
+bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target) {
+	string aTarget = as->getTarget();
+	if (as->getTargetType() == AutoSearch::TARGET_PATH) {
+		target = aTarget;
+		if (target.empty()) {
+			target = SETTING(DOWNLOAD_DIRECTORY);
+		}
+		return (QueueManager::getInstance()->getDiskInfo(aTarget) > (uint64_t)sr->getSize());
+	} 
+	
+	StringList targets;
+	if (as->getTargetType() == AutoSearch::TARGET_FAVORITE) {
+		auto spl = FavoriteManager::getInstance()->getFavoriteDirs();
+		for(auto i = spl.begin(); i != spl.end(); ++i) {
+			if(stricmp(aTarget, i->first) == 0) {
+				targets = i->second;
+				break;
+			}
+		}
+	} else {
+		auto shareDirs = ShareManager::getInstance()->getGroupedDirectories();
+		for(auto i = shareDirs.begin(); i != shareDirs.end(); ++i) {
+			if(stricmp(aTarget, i->first) == 0) {
+				targets = i->second;
+				break;
+			}
+		}
+	}
+
+	uint64_t freeSpace = 0;
+	AirUtil::getTarget(targets, target, freeSpace);
+
+	if (target.empty()) {
+		int64_t size = 0;
+		target = SETTING(DOWNLOAD_DIRECTORY);
+		GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&freeSpace);
+	}
+
+	return (freeSpace > (uint64_t)sr->getSize());
+}
+
+void AutoSearchManager::AutoSearchSave() {
 	Lock l(cs);
 	try {
 		dirty = false;
@@ -357,7 +406,7 @@ void AutoSearchManager::AutosearchSave() {
 		xml.addTag("Autosearch");
 		xml.stepIn();
 
-		for(Autosearch::List::const_iterator i = as.begin(); i != as.end(); ++i) {
+		for(AutoSearch::List::const_iterator i = as.begin(); i != as.end(); ++i) {
 			xml.addTag("Autosearch");
 			xml.addChildAttrib("Enabled", (*i)->getEnabled());
 			xml.addChildAttrib("SearchString", (*i)->getSearchString());
@@ -384,13 +433,13 @@ void AutoSearchManager::AutosearchSave() {
 	}
 }
 
-void AutoSearchManager::loadAutosearch(SimpleXML& aXml) {
+void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 	as.clear();
 	aXml.resetCurrentChild();
 	if(aXml.findChild("Autosearch")) {
 		aXml.stepIn();
 		while(aXml.findChild("Autosearch")) {					
-			addAutosearch(aXml.getBoolChildAttrib("Enabled"),
+			addAutoSearch(aXml.getBoolChildAttrib("Enabled"),
 				aXml.getChildAttrib("SearchString"), 
 				aXml.getIntChildAttrib("FileType"), 
 				aXml.getIntChildAttrib("Action"),
@@ -401,13 +450,13 @@ void AutoSearchManager::loadAutosearch(SimpleXML& aXml) {
 	}
 }
 
-void AutoSearchManager::AutosearchLoad() {
+void AutoSearchManager::AutoSearchLoad() {
 	try {
 		SimpleXML xml;
 		xml.fromXML(File(Util::getPath(Util::PATH_USER_CONFIG) + AUTOSEARCH_FILE, File::READ, File::OPEN).read());
 		if(xml.findChild("Autosearch")) {
 			xml.stepIn();
-			loadAutosearch(xml);
+			loadAutoSearch(xml);
 			xml.stepOut();
 		}
 	} catch(const Exception& e) {

@@ -1310,6 +1310,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search bundle for alternatives", 
 "Match partialList", 
 "Show shared directories in the ""Download to"" menu", 
+"There is only %s remaining in the directory %s while %s is needed. Do you want to continue?", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2620,4 +2621,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchBundleAlt", 
 "MatchPartial", 
 "FavdirsShowShared", 
+"ConfirmSizeWarning", 
 };

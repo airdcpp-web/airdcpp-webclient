@@ -127,6 +127,7 @@ public:
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
 	void getDiskInfo(UIntStringList& dirs);
+	uint64_t getDiskInfo(const string& aPath);
 	void saveBundle(BundlePtr aBundle);
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundles, StringPairList paths);

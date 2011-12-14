@@ -7,6 +7,7 @@
 #include "Util.h"
 
 #include "File.h"
+#include "QueueManager.h"
 #include "SettingsManager.h"
 #include "ResourceManager.h"
 #include "StringTokenizer.h"
@@ -579,6 +580,58 @@ string AirUtil::getMountPoint(const string& aPath) {
 		return Text::fromT(buf);
 	}
 	return Util::emptyString;
+}
+
+void AirUtil::getTarget(StringList& targets, string& target, uint64_t& size) {
+	UIntStringList sizeVolumeList;
+
+	for(auto i = targets.begin(); i != targets.end(); ++i) {
+		string targetVol = AirUtil::getMountPoint(*i);
+		if (!targetVol.empty()) {
+
+			//don't add the same volume multiple times
+			for(auto k = sizeVolumeList.begin(); k != sizeVolumeList.end(); ++k) {
+				if (k->second == targetVol) {
+					continue;
+				}
+			}
+
+			int64_t free = 0, size = 0;
+			GetDiskFreeSpaceEx(Text::toT(*i).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&free);
+			sizeVolumeList.push_back(make_pair(free, targetVol));
+		}
+	}
+
+	if (sizeVolumeList.empty()) {
+		if (!targets.empty()) {
+			target = targets.front();
+			size = QueueManager::getInstance()->getDiskInfo(target);
+			return;
+		}
+		/*int64_t size = 0, freeSpace = 0;
+		target = SETTING(DOWNLOAD_DIRECTORY);
+		GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&freeSpace); */
+	}
+
+	QueueManager::getInstance()->getDiskInfo(sizeVolumeList);
+
+	sort(sizeVolumeList.begin(), sizeVolumeList.end());
+	string& volume = sizeVolumeList.back().second;
+	size = sizeVolumeList.back().first;
+
+	/*for(auto i = sizeTargetList.begin(); i != sizeTargetList.end(); ++i) {
+		LogManager::getInstance()->message("Target " + i->second + ", size" + Util::toString(i->first));
+	} */
+
+	for(auto i = targets.begin(); i != targets.end(); ++i) {
+		string targetVol = AirUtil::getMountPoint(*i);
+		if (!targetVol.empty()) {
+			if (targetVol == volume) {
+				target = (*i);
+				return;
+			}
+		}
+	}
 }
 
 }
