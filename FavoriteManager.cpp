@@ -242,7 +242,7 @@ bool FavoriteManager::addFavoriteDir(const string& aName, const StringList& aTar
 	return true;
 }
 
-void FavoriteManager::getFavoriteTarget(int pos, string& target, uint64_t& size) {
+void FavoriteManager::getFavoriteTarget(int pos, string& target, int64_t& size) {
 	dcassert(pos < (int)favoriteDirs.size());
 	StringList targets = favoriteDirs[pos].second;
 	AirUtil::getTarget(targets, target, size);

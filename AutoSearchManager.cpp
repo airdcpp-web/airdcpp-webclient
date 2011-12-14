@@ -358,10 +358,12 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 	string aTarget = as->getTarget();
 	if (as->getTargetType() == AutoSearch::TARGET_PATH) {
 		target = aTarget;
+		int64_t freeSpace = 0;
 		if (target.empty()) {
 			target = SETTING(DOWNLOAD_DIRECTORY);
 		}
-		return (QueueManager::getInstance()->getDiskInfo(aTarget) > (uint64_t)sr->getSize());
+		QueueManager::getInstance()->getDiskInfo(aTarget, freeSpace);
+		return (freeSpace > sr->getSize());
 	} 
 	
 	StringList targets;
@@ -383,7 +385,7 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 		}
 	}
 
-	uint64_t freeSpace = 0;
+	int64_t freeSpace = 0;
 	AirUtil::getTarget(targets, target, freeSpace);
 
 	if (target.empty()) {
@@ -392,7 +394,7 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 		GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&freeSpace);
 	}
 
-	return (freeSpace > (uint64_t)sr->getSize());
+	return (freeSpace > sr->getSize());
 }
 
 void AutoSearchManager::AutoSearchSave() {

@@ -582,8 +582,8 @@ string AirUtil::getMountPoint(const string& aPath) {
 	return Util::emptyString;
 }
 
-void AirUtil::getTarget(StringList& targets, string& target, uint64_t& size) {
-	UIntStringList sizeVolumeList;
+void AirUtil::getTarget(StringList& targets, string& target, int64_t& size) {
+	IntStringList sizeVolumeList;
 
 	for(auto i = targets.begin(); i != targets.end(); ++i) {
 		string targetVol = AirUtil::getMountPoint(*i);
@@ -605,7 +605,7 @@ void AirUtil::getTarget(StringList& targets, string& target, uint64_t& size) {
 	if (sizeVolumeList.empty()) {
 		if (!targets.empty()) {
 			target = targets.front();
-			size = QueueManager::getInstance()->getDiskInfo(target);
+			QueueManager::getInstance()->getDiskInfo(target, size);
 			return;
 		}
 		/*int64_t size = 0, freeSpace = 0;
