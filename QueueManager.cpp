@@ -3800,31 +3800,28 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 	return !_outPartsInfo.empty();
 }
 
-void QueueManager::getDiskInfo(IntStringList& dirs) {
+void QueueManager::getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes) {
 	string tempVol;
 	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("targetdrive") == string::npos);
 	if (useSingleTempDir) {
-		tempVol = AirUtil::getMountPoint(SETTING(TEMP_DOWNLOAD_DIRECTORY));
+		tempVol = AirUtil::getMountPath(SETTING(TEMP_DOWNLOAD_DIRECTORY), volumes);
 	}
 
 	Lock l (cs);
 	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
 		BundlePtr b = (*i).second;
-		string bundleVol = AirUtil::getMountPoint(b->getTarget());
-		if (!bundleVol.empty()) {
-			int64_t size = 0;
-			bool countAll = (useSingleTempDir && (bundleVol != tempVol));
-			for (auto i = b->getQueueItems().begin(); i != b->getQueueItems().end(); ++i) {
-				if (countAll || (*i)->getDownloadedBytes() == 0) {
-					size += (*i)->getSize();
+		string mountPath = AirUtil::getMountPath(b->getTarget(), volumes);
+		if (!mountPath.empty()) {
+			auto s = dirMap.find(mountPath);
+			if (s != dirMap.end()) {
+				int64_t size = 0;
+				bool countAll = (useSingleTempDir && (mountPath != tempVol));
+				for (auto p = b->getQueueItems().begin(); p != b->getQueueItems().end(); ++p) {
+					if (countAll || (*p)->getDownloadedBytes() == 0) {
+						size += (*p)->getSize();
+					}
 				}
-			}
-
-			for (auto i = dirs.begin(); i != dirs.end(); ++i) {
-				if (i->second == bundleVol) {
-					i->first -= size;
-					break;
-				}
+				s->second.second -= size;
 			}
 		}
 	}
@@ -3833,14 +3830,15 @@ void QueueManager::getDiskInfo(IntStringList& dirs) {
 bool QueueManager::getDiskInfo(const string& aPath, int64_t& freeSpace) {
 	string tempVol;
 	int64_t totalSize = 0;
+	StringSet volumes;
+	AirUtil::getVolumes(volumes);
 	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("targetdrive") == string::npos);
 	if (useSingleTempDir) {
-		tempVol = AirUtil::getMountPoint(SETTING(TEMP_DOWNLOAD_DIRECTORY));
+		tempVol = AirUtil::getMountPath(SETTING(TEMP_DOWNLOAD_DIRECTORY), volumes);
 	}
 
-
 	GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&totalSize, (PULARGE_INTEGER)&freeSpace);
-	string pathVol = AirUtil::getMountPoint(aPath);
+	string pathVol = AirUtil::getMountPath(aPath, volumes);
 	if (pathVol.empty()) {
 		return false;
 	}
@@ -3848,7 +3846,7 @@ bool QueueManager::getDiskInfo(const string& aPath, int64_t& freeSpace) {
 	Lock l (cs);
 	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
 		BundlePtr b = (*i).second;
-		string bundleVol = AirUtil::getMountPoint(b->getTarget());
+		string bundleVol = AirUtil::getMountPath(b->getTarget(), volumes);
 		if (bundleVol == pathVol) {
 			bool countAll = (useSingleTempDir && (bundleVol != tempVol));
 			for (auto i = b->getQueueItems().begin(); i != b->getQueueItems().end(); ++i) {

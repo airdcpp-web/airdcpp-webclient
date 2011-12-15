@@ -1,8 +1,8 @@
 /*
 
 */
-
 #include "stdinc.h"
+#include <direct.h>
 #include "AirUtil.h"
 #include "Util.h"
 
@@ -565,47 +565,68 @@ bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*
 	return true;
 }
 
-string AirUtil::getMountPoint(const string& aPath) {
+string AirUtil::getMountPath(const string& aPath) {
 	TCHAR buf[MAX_PATH];
+	TCHAR buf2[MAX_PATH];
 	string::size_type l = aPath.length();
-	BOOL found = false;
-	while (!found) {
+	for (;;) {
 		l = aPath.rfind('\\', l-2);
-		if (l == string::npos)
+		if (l == string::npos || l <= 1)
 			break;
-		found = GetVolumeNameForVolumeMountPoint(Text::toT(aPath.substr(0, l+1)).c_str(), buf, MAX_PATH);
-	}
-
-	if (found) {
-		return Text::fromT(buf);
+		if (GetVolumeNameForVolumeMountPoint(Text::toT(aPath.substr(0, l+1)).c_str(), buf, MAX_PATH) && GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL)) {
+			return Text::fromT(buf2);
+		}
 	}
 	return Util::emptyString;
 }
 
-void AirUtil::getTarget(StringList& targets, string& target, int64_t& size) {
-	IntStringList sizeVolumeList;
+string AirUtil::getMountPath(const string& aPath, const StringSet& aVolumes) {
+	if (aVolumes.find(aPath) != aVolumes.end()) {
+		return aPath;
+	}
+	string::size_type l = aPath.length();
+	for (;;) {
+		l = aPath.rfind('\\', l-2);
+		if (l == string::npos || l <= 1)
+			break;
+		if (aVolumes.find(aPath.substr(0, l+1)) != aVolumes.end()) {
+			return aPath.substr(0, l+1);
+		}
+	}
+	//network path?
+	if (aPath.length() > 2 && aPath.substr(0,2) == "\\\\") {
+		l = aPath.find("\\", 2);
+		if (l != string::npos) {
+			//get the drive letter
+			l = aPath.find("\\", l+1);
+			if (l != string::npos) {
+				return aPath.substr(0, l+1);
+			}
+		}
+	}
+	return Util::emptyString;
+}
+
+void AirUtil::getTarget(StringList& targets, string& target, int64_t& freeSpace) {
+	StringSet volumes;
+	getVolumes(volumes);
+	map<string, pair<string, int64_t>> targetMap;
+
 
 	for(auto i = targets.begin(); i != targets.end(); ++i) {
-		string targetVol = AirUtil::getMountPoint(*i);
-		if (!targetVol.empty()) {
-
-			//don't add the same volume multiple times
-			for(auto k = sizeVolumeList.begin(); k != sizeVolumeList.end(); ++k) {
-				if (k->second == targetVol) {
-					continue;
-				}
-			}
-
+		string target = getMountPath(*i, volumes);
+		if (!target.empty() && targetMap.find(target) == targetMap.end()) {
 			int64_t free = 0, size = 0;
-			GetDiskFreeSpaceEx(Text::toT(*i).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&free);
-			sizeVolumeList.push_back(make_pair(free, targetVol));
+			if (GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&free)) {
+				targetMap[target] = make_pair(*i, free);
+			}
 		}
 	}
 
-	if (sizeVolumeList.empty()) {
+	if (targetMap.empty()) {
 		if (!targets.empty()) {
 			target = targets.front();
-			QueueManager::getInstance()->getDiskInfo(target, size);
+			QueueManager::getInstance()->getDiskInfo(target, freeSpace);
 			return;
 		}
 		/*int64_t size = 0, freeSpace = 0;
@@ -613,24 +634,52 @@ void AirUtil::getTarget(StringList& targets, string& target, int64_t& size) {
 		GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&freeSpace); */
 	}
 
-	QueueManager::getInstance()->getDiskInfo(sizeVolumeList);
+	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
 
-	sort(sizeVolumeList.begin(), sizeVolumeList.end());
-	string& volume = sizeVolumeList.back().second;
-	size = sizeVolumeList.back().first;
-
-	/*for(auto i = sizeTargetList.begin(); i != sizeTargetList.end(); ++i) {
-		LogManager::getInstance()->message("Target " + i->second + ", size" + Util::toString(i->first));
-	} */
-
-	for(auto i = targets.begin(); i != targets.end(); ++i) {
-		string targetVol = AirUtil::getMountPoint(*i);
-		if (!targetVol.empty()) {
-			if (targetVol == volume) {
-				target = (*i);
-				return;
-			}
+	for(auto i = targetMap.begin(); i != targetMap.end(); ++i) {
+		if (i->second.second > freeSpace) {
+			freeSpace = i->second.second;
+			target = i->second.first;
 		}
+	}
+}
+
+void AirUtil::getVolumes(StringSet& volumes) {
+	TCHAR   buf[MAX_PATH];  
+	HANDLE  hVol;    
+	BOOL    found;
+	TCHAR   buf2[MAX_PATH];
+
+	// lookup drive volumes.
+	hVol = FindFirstVolume(buf, MAX_PATH);
+	if(hVol != INVALID_HANDLE_VALUE) {
+		found = true;
+		//GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL);
+		//while we find drive volumes.
+		while(found) {
+			if(GetDriveType(buf) != DRIVE_CDROM && GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL)) {
+				volumes.insert(Text::fromT(buf2));
+			}
+			found = FindNextVolume( hVol, buf, MAX_PATH );
+		}
+   		found = FindVolumeClose(hVol);
+	}
+
+	// and a check for mounted Network drives, todo fix a better way for network space
+	ULONG drives = _getdrives();
+	TCHAR drive[3] = { _T('A'), _T(':'), _T('\0') };
+
+	while(drives != 0) {
+		if(drives & 1 && ( GetDriveType(drive) != DRIVE_CDROM && GetDriveType(drive) == DRIVE_REMOTE) ){
+			string path = Text::fromT(drive);
+			if( path[ path.length() -1 ] != PATH_SEPARATOR ) {
+				path += PATH_SEPARATOR;
+			}
+			volumes.insert(path);
+		}
+
+		++drive[0];
+		drives = (drives >> 1);
 	}
 }
 

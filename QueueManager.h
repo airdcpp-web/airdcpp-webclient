@@ -126,7 +126,7 @@ public:
 	BundlePtr findMergeBundle(QueueItem* qi);
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
-	void getDiskInfo(IntStringList& dirs);
+	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes);
 	bool getDiskInfo(const string& aPath, int64_t& freeSpace);
 	void saveBundle(BundlePtr aBundle);
 	void getUnfinishedPaths(StringList& bundles);

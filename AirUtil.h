@@ -28,9 +28,11 @@ class AirUtil {
 		static int getMaxAutoOpened(double value = 0);
 		static string getPrioText(int prio);
 		static string getReleaseDir(const string& aName);
-		static string getMountPoint(const string& aPath);
+		static string getMountPath(const string& aPath);
+		static string getMountPath(const string& aPath, const StringSet& aVolumes);
 		static bool checkSharedName(const string& aName, bool dir, bool report = true);
 		static void getTarget(StringList& targets, string& target, int64_t& size);
+		static void getVolumes(StringSet& volumes);
 
 	private:
 
