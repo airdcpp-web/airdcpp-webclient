@@ -158,6 +158,7 @@ public:
 	void calculateBundlePriorities(bool verbose);
 	void searchBundle(BundlePtr aBundle, bool newBundle, bool manual);
 	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
+	void recalculateSearchTimes(BundlePtr aBundle);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;

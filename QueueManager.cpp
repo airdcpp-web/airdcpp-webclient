@@ -1077,29 +1077,38 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 	}
 
 	if (newBundle) {
-		Lock l (cs);
+		recalculateSearchTimes(aBundle);
+		string tmp, tmp2;
+		tmp.resize(tmp.size() + STRING(BUNDLE_CREATED_ALT).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED_ALT), aBundle->getName().c_str(), aBundle->getQueueItems().size(), Util::formatBytes(aBundle->getSize()), searches.size()));
 		if (!aBundle->getRecent()) {
-			int prioBundles = 0;
-			fileQueue.getPrioSum(prioBundles);
-			int next = SETTING(SEARCH_TIME);
-			if (prioBundles > 0) {
-				next = max(60 / prioBundles, next);
-			}
-			nextSearch = GET_TICK() + (next * 60 * 1000);
+			tmp2.resize(tmp2.size() + STRING(NEXT_SEARCH_IN).size() + 1024);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_SEARCH_IN), (nextSearch - GET_TICK()) / (60*1000)));
 		} else {
-			int recentBundles = fileQueue.getRecentSize();
-			nextRecentSearch = GET_TICK() + ((recentBundles > 1 ? 5 : 10) * 60 * 1000);
+			tmp2.resize(tmp2.size() + STRING(NEXT_RECENT_SEARCH_IN).size() + 1024);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_RECENT_SEARCH_IN), (nextRecentSearch - GET_TICK()) / (60*1000)));
 		}
-		//return;
+		LogManager::getInstance()->message(tmp + " " + tmp2);
+		return;
 	}
 
 	if(BOOLSETTING(REPORT_ALTERNATES) && !manual) {
 		//LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + Util::getFileName(qi->getTargetFileName()));
 		if (aBundle->getSimpleMatching()) {
 			if (!aBundle->getRecent()) {
-				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", queued " + Util::toString(searches.size()) + " search(es), next search in " + Util::toString((nextSearch - GET_TICK()) / (60*1000)) + " minutes");
+				string tmp, tmp2;
+				tmp.resize(tmp.size() + STRING(BUNDLE_ALT_SEARCH).size() + 1024);
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH), aBundle->getName().c_str(), searches.size()));
+				tmp2.resize(tmp2.size() + STRING(NEXT_SEARCH_IN).size() + 1024);
+				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_SEARCH_IN), (nextSearch - GET_TICK()) / (60*1000)));
+				LogManager::getInstance()->message(tmp + " " + tmp2);
 			} else {
-				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", queued " + Util::toString(searches.size()) + " recent search(es), next recent search in " + Util::toString((nextRecentSearch - GET_TICK()) / (60*1000)) + " minutes");
+				string tmp, tmp2;
+				tmp.resize(tmp.size() + STRING(BUNDLE_ALT_SEARCH_RECENT).size() + 1024);
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH_RECENT), aBundle->getName().c_str(), searches.size()));
+				tmp2.resize(tmp2.size() + STRING(NEXT_RECENT_SEARCH_IN).size() + 1024);
+				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_RECENT_SEARCH_IN), (nextRecentSearch - GET_TICK()) / (60*1000)));
+				LogManager::getInstance()->message(tmp + " " + tmp2);
 			}
 		} else {
 			if (!aBundle->getRecent()) {
@@ -1109,7 +1118,26 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 			}
 		}
 	} else if (manual) {
-		LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", queued " + Util::toString(searches.size()) + " search(es)");
+		string tmp;
+		tmp.resize(tmp.size() + STRING(BUNDLE_ALT_SEARCH).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH), aBundle->getName().c_str(), searches.size()));
+		LogManager::getInstance()->message(tmp);
+	}
+}
+
+void QueueManager::recalculateSearchTimes(BundlePtr aBundle) {
+	Lock l (cs);
+	if (!aBundle->getRecent()) {
+		int prioBundles = 0;
+		fileQueue.getPrioSum(prioBundles);
+		int next = SETTING(SEARCH_TIME);
+		if (prioBundles > 0) {
+			next = max(60 / prioBundles, next);
+		}
+		nextSearch = GET_TICK() + (next * 60 * 1000);
+	} else {
+		int recentBundles = fileQueue.getRecentSize();
+		nextRecentSearch = GET_TICK() + ((recentBundles > 1 ? 5 : 10) * 60 * 1000);
 	}
 }
  
@@ -1899,7 +1927,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 		if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 			getInstance()->hashBundle(aBundle);
 		} else {
-			LogManager::getInstance()->message("The instant sharing feature is disabled, please add the bundle in share manually");
+			LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED));
 		}
 	}
 }
@@ -1928,9 +1956,12 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 			fileQueue.removeTTH(qi);
 		}
 	} else if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
-		LogManager::getInstance()->message("The bundle " + aBundle->getName() + " isn't in a shared folder, please add it in share manually");
+		string tmp;
+		tmp.resize(tmp.size() + STRING(NOT_IN_SHARED_DIR).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(NOT_IN_SHARED_DIR), aBundle->getName().c_str()));
+		LogManager::getInstance()->message(tmp);
 	} else {
-		LogManager::getInstance()->message("The instant sharing feature is disabled, please add the bundle in share manually");
+		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED));
 	}
 }
 
@@ -2000,14 +2031,20 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 				bundles.erase(b->getToken());
 			} else {
 				b->resetHashed(); //for the next attempts
-				LogManager::getInstance()->message("Failed to hash the bundle " + b->getName() + ", not shared");
+				string tmp;
+				tmp.resize(tmp.size() + STRING(BUNDLE_HASH_FAILED).size() + 1024);
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_HASH_FAILED), b->getName().c_str()));
+				LogManager::getInstance()->message(tmp);
 			}
 		} else {
 			//instant sharing disabled/the folder wasn't shared when the bundle finished
 			for (auto i = b->getFinishedFiles().begin(); i != b->getFinishedFiles().end(); ++i) {
 				fileQueue.removeTTH(*i);
 			}
-			LogManager::getInstance()->message("The bundle " + b->getName() + " has been finished hashing");
+			string tmp;
+			tmp.resize(tmp.size() + STRING(BUNDLE_HASHED).size() + 1024);
+			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_HASHED), b->getName().c_str()));
+			LogManager::getInstance()->message(tmp);
 			bundles.erase(b->getToken());
 		}
 	}
@@ -2484,10 +2521,6 @@ void QueueManager::removeSource(QueueItem* q, const UserPtr& aUser, Flags::MaskT
 	BundlePtr removePBD = NULL;
 	{
 		Lock l (cs);
-		if (!q) {
-			return;
-		}
-
 		if(!q->isSource(aUser))
 			return;
 	
@@ -2535,19 +2568,20 @@ endCheck:
 
 void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept {
 	// @todo remove from finished items
-	QueueItemList removed;
+	//QueueItemList removed;
 
 	{
 		Lock l(cs);
 		QueueItem* qi = NULL;
 		while( (qi = userQueue.getNext(aUser, QueueItem::PAUSED)) != NULL) {
-			removed.push_back(qi);
+			removeSource(qi, aUser, reason);
+			//removed.push_back(qi);
 		}
 	}
 
-	for(auto i = removed.begin(); i != removed.end(); ++i) {
+	/*for(auto i = removed.begin(); i != removed.end(); ++i) {
 		removeSource(*i, aUser, reason);
-	}
+	} */
 }
 
 void QueueManager::setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept {
@@ -2563,12 +2597,10 @@ void QueueManager::setBundlePriority(const string& bundleToken, Bundle::Priority
 void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto, bool isQIChange /*false*/) noexcept {
 	HintedUserList getConn;
 	QueueItem* fileBundleQI = NULL;
+	Bundle::Priority oldPrio = aBundle->getPriority();
 	//LogManager::getInstance()->message("Changing priority to: " + Util::toString(p));
 	{
 		Lock l (cs);
-		if (!aBundle)
-			return;
-		Bundle::Priority oldPrio = aBundle->getPriority();
 		if (oldPrio == p) {
 			//LogManager::getInstance()->message("Prio not changed: " + Util::toString(oldPrio));
 			return;
@@ -2599,7 +2631,8 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 
 	if(p == Bundle::PAUSED) {
 		DownloadManager::getInstance()->disconnectBundle(aBundle);
-	} else {
+	} else if (oldPrio == Bundle::PAUSED || oldPrio == Bundle::LOWEST) {
+		recalculateSearchTimes(aBundle);
 		for(HintedUserList::const_iterator i = getConn.begin(); i != getConn.end(); ++i) {
 			ConnectionManager::getInstance()->getDownloadConnection(*i);
 		}
@@ -2637,16 +2670,19 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQICha
 }
 
 void QueueManager::getBundleSources(BundlePtr aBundle, Bundle::SourceIntList& sources, Bundle::SourceIntList& badSources) noexcept {
-	/*for(auto si = aBundle->getSources().begin(); si != aBundle->getSources().end(); si++) {
-		removeBundleSource(aBundle, si->first);
-	} */
 	Lock l (cs);
 	sources = aBundle->getSources();
 	badSources = aBundle->getBadSources();
 }
 
 void QueueManager::removeBundleSources(BundlePtr aBundle) noexcept {
-	for(auto si = aBundle->getSources().begin(); si != aBundle->getSources().end(); si++) {
+	Bundle::SourceIntList tmp;
+	{
+		Lock l (cs);
+		tmp = aBundle->getSources();
+	}
+
+	for(auto si = tmp.begin(); si != tmp.end(); si++) {
 		removeBundleSource(aBundle, si->first);
 	}
 }
@@ -3927,10 +3963,6 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 	//check that there are no file bundles inside the bundle that will be created and merge them in that case
 	mergeFileBundles(aBundle);
 
-	if (!loading) {
-		LogManager::getInstance()->message("The bundle " + aBundle->getName() + " has been created with " + Util::toString(aBundle->getQueueItems().size()) + " items (total size: " + Util::formatBytes(aBundle->getSize()) + ")");
-	}
-
 	/*if (aBundle->getPriority() == Bundle::DEFAULT) {
 		aBundle->setPriority(Bundle::LOW);
 		aBundle->setAutoPriority(true);
@@ -3969,18 +4001,25 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		}
 	}
 
+	if (loading)
+		return true;
 
-	if (!loading && !aBundle->getSources().empty()) {
+	if (BOOLSETTING(AUTO_SEARCH) && aBundle->getPriority() != Bundle::PAUSED) {
+		searchBundle(aBundle, true, false);
+	} else {
+		string tmp;
+		tmp.resize(tmp.size() + STRING(BUNDLE_CREATED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED), aBundle->getName().c_str(), aBundle->getQueueItems().size(), Util::formatBytes(aBundle->getSize())));
+		LogManager::getInstance()->message(tmp);
+	}
+
+	if (!aBundle->getSources().empty()) {
 		bool wantConnection = aBundle->getSources().front().first.user && (aBundle->getPriority() != Bundle::PAUSED) && userQueue.getRunning(aBundle->getSources().front().first.user).empty();
 
 		if(wantConnection) {
 			ConnectionManager::getInstance()->getDownloadConnection(aBundle->getSources().front().first, false);
 		}
 
-	}
-
-	if (!loading && BOOLSETTING(AUTO_SEARCH) && aBundle->getPriority() != Bundle::PAUSED) {
-		searchBundle(aBundle, true, false);
 	}
 	return true;
 }
@@ -3998,7 +4037,10 @@ void QueueManager::mergeFileBundles(BundlePtr aBundle) {
 			if (pos != string::npos) {
 				//dcassert(compareBundle->getFileBundle());
 				//LogManager::getInstance()->message("FILEBUNDLE FOUND");
-				LogManager::getInstance()->message("The file bundle " + compareBundle->getName() + " has been merged with the bundle " + aBundle->getName());
+				string tmp;
+				tmp.resize(tmp.size() + STRING(FILEBUNDLE_MERGED).size() + 1024);
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(FILEBUNDLE_MERGED), compareBundle->getName().c_str(), aBundle->getName().c_str()));
+				LogManager::getInstance()->message(tmp);
 				mergeBundleItems.push_back(compareBundle->getQueueItems().front());
 			}
 		}
@@ -4095,7 +4137,10 @@ int QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 	targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	targetBundle->setDirty(true);
 	addBundleUpdate(targetBundle->getToken());
-	LogManager::getInstance()->message("Added " + Util::toString(added) + " items to an existing bundle " + targetBundle->getName());
+	string tmp;
+	tmp.resize(tmp.size() + STRING(BUNDLE_MERGED).size() + 1024);
+	tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_MERGED), Util::getLastDir(sourceBundleTarget).c_str(), targetBundle->getName().c_str(), added));
+	LogManager::getInstance()->message(tmp);
 
 	return added;
 }
@@ -4367,7 +4412,10 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 		} */
 
 		sourceBundle->setDirty(true);
-		LogManager::getInstance()->message("The bundle " + sourceBundle->getName() + " has been moved to " + sourceBundle->getTarget());
+		string tmp;
+		tmp.resize(tmp.size() + STRING(BUNDLE_MOVED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_MOVED), sourceBundle->getName().c_str(), sourceBundle->getTarget().c_str()));
+		LogManager::getInstance()->message(tmp);
 	}
 }
 
@@ -4447,10 +4495,16 @@ void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget) noex
 
 	BundlePtr mergeBundle = findMergeBundle(qi);
 	if (mergeBundle) {
-		LogManager::getInstance()->message("The file bundle " + aBundle->getName() + " has been merged into bundle " + mergeBundle->getName());
+		string tmp;
+		tmp.resize(tmp.size() + STRING(FILEBUNDLE_MERGED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(FILEBUNDLE_MERGED), aBundle->getName().c_str(), mergeBundle->getName().c_str()));
+		LogManager::getInstance()->message(tmp);
 		removeBundleItem(qi, false);
 	} else {
-		LogManager::getInstance()->message("The file bundle " + aBundle->getName() + " has been moved to " + aBundle->getTarget());
+		string tmp;
+		tmp.resize(tmp.size() + STRING(FILEBUNDLE_MOVED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(FILEBUNDLE_MOVED), aBundle->getName().c_str(), aBundle->getTarget().c_str()));
+		LogManager::getInstance()->message(tmp);
 		aBundle->setTarget(qi->getTarget());
 		aBundle->setDirty(true);
 	}
@@ -4684,7 +4738,6 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished) {
 						notified.push_back(s->first);
 					}
 				}
-				fileQueue.remove(qi, false);
 				bundle->getFinishedFiles().push_back(qi);
 			} else {
 				if (qi->getDownloadedBytes() > 0) {

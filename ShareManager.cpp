@@ -2040,10 +2040,16 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 
 done:
 	if (!added) {
-		LogManager::getInstance()->message("Failed to add the bundle " + Util::getLastDir(path) + " in share");
+		string tmp;
+		tmp.resize(tmp.size() + STRING(BUNDLE_SHARING_FAILED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_SHARING_FAILED), Util::getLastDir(path).c_str()));
+		LogManager::getInstance()->message(tmp);
 	} else {
 		sortReleaseList();
-		LogManager::getInstance()->message("The bundle " + Util::getLastDir(path) + " has been added in share");
+		string tmp;
+		tmp.resize(tmp.size() + STRING(BUNDLE_SHARED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_SHARED), Util::getLastDir(path).c_str()));
+		LogManager::getInstance()->message(tmp);
 	}
 }
 
