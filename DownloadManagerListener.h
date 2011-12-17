@@ -49,7 +49,8 @@ public:
 	typedef X<4> Requesting;
 	typedef X<5> Status;
 	typedef X<6> Target;
-	typedef X<7> BundleWaiting;
+	typedef X<7> TargetChanged;
+	typedef X<8> BundleWaiting;
 	typedef X<9> BundleUser;
 	typedef X<10> BundleTick;
 
@@ -77,6 +78,12 @@ public:
 
 	/* format: user, token */
 	virtual void on(Target, const UserPtr&, const string&) noexcept { }
+	/* format: target, token, bundleToken */
+	virtual void on(TargetChanged, const string&, const string&, const string&) noexcept { }
+
+	virtual void on(BundleWaiting, const BundlePtr) noexcept { }
+	virtual void on(BundleUser, const string&, const HintedUser&) noexcept { }
+	virtual void on(BundleTick, const BundleList&) noexcept { }
 
 	/**
 	 * This indicates some sort of failure with a particular download.
@@ -87,9 +94,6 @@ public:
 	 */
 	virtual void on(Failed, const Download*, const string&) noexcept { }
 	virtual void on(Status, const UserConnection*, const string&) noexcept { }
-	virtual void on(BundleWaiting, const BundlePtr) noexcept { }
-	virtual void on(BundleUser, const string&, const HintedUser&) noexcept { }
-	virtual void on(BundleTick, const BundleList&) noexcept { }
 };
 
 } // namespace dcpp

@@ -49,8 +49,8 @@ public:
 
 	typedef X<16> BundleFinished;
 	typedef X<18> BundleRemoved;
-	typedef X<19> BundleRenamed;
-	typedef X<21> BundleFilesMoved;
+	typedef X<19> BundleMoved;
+	typedef X<20> BundleRenamed;
 	typedef X<22> BundleUser;
 	typedef X<23> BundlePriority;
 	typedef X<24> BundleAdded;
@@ -69,8 +69,8 @@ public:
 	virtual void on(BundleSources, const BundlePtr) noexcept { }
 	virtual void on(BundleFinished, const BundlePtr) noexcept { }
 	virtual void on(BundleRemoved, const BundlePtr) noexcept { }
+	virtual void on(BundleMoved, const BundlePtr) noexcept { }
 	virtual void on(BundleRenamed, const BundlePtr) noexcept { }
-	virtual void on(BundleFilesMoved, const BundlePtr) noexcept { }
 	virtual void on(BundleUser, const string&, const HintedUser&) noexcept { }
 	virtual void on(BundlePriority, const BundlePtr) noexcept { }
 	virtual void on(BundleAdded, const BundlePtr) noexcept { }

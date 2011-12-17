@@ -34,17 +34,23 @@ Bundle::~Bundle() {
 void Bundle::setDownloadedBytes(int64_t aSize) {
 	dcassert(aSize + downloadedSegments <= size);
 	dcassert(((uint64_t)(aSize + downloadedSegments)) >= bytesDownloaded);
-	bytesDownloaded = aSize + downloadedSegments;
+	dcassert(((aSize + downloadedSegments)) >= 0);
+	bytesDownloaded = downloadedSegments + aSize;
+	dcassert(bytesDownloaded <= (uint64_t)size);
 }
 
 void Bundle::addDownloadedSegment(int64_t aSize) {
 	dcassert(aSize + downloadedSegments <= size);
 	downloadedSegments += aSize;
+	dcassert(downloadedSegments <= size);
 }
 
 void Bundle::removeDownloadedSegment(int64_t aSize) {
-	dcassert(downloadedSegments - aSize > 0);
+	dcassert(downloadedSegments - aSize >= 0);
 	downloadedSegments -= aSize;
+	bytesDownloaded -= aSize;
+	dcassert(downloadedSegments <= size);
+	dcassert(bytesDownloaded <= (uint64_t)size);
 }
 
 uint64_t Bundle::getSecondsLeft() {
@@ -98,22 +104,62 @@ QueueItemList Bundle::getItems(const UserPtr& aUser) const {
 	return ret;
 }
 
-void Bundle::addQueue(QueueItem* qi) {
-	//qi->inc();
-	dcassert(find(queueItems.begin(), queueItems.end(), qi) == queueItems.end());
-	queueItems.push_back(qi);
+void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
+	if (!finished) {
+		increaseSize(qi->getSize());
+		addDownloadedSegment(qi->getSize());
+	}
+	finishedFiles.push_back(qi);
 }
 
-void Bundle::removeQueue(QueueItem* qi) {
+bool Bundle::addQueue(QueueItem* qi) {
+	//qi->inc();
+	dcassert(find(queueItems.begin(), queueItems.end(), qi) == queueItems.end());
+	qi->setBundle(this);
+	queueItems.push_back(qi);
+	increaseSize(qi->getSize());
+	if (qi->getDownloadedSegments() > 0) {
+		addDownloadedSegment(qi->getDownloadedSegments());
+		bytesDownloaded += qi->getDownloadedSegments();
+	}
+
+	string dir = Util::getDir(qi->getTarget(), false, false);
+	auto& s = bundleDirs[dir];
+	s.push_back(qi);
+	if (s.size() == 1) {
+		return true;
+	}
+	return false;
+}
+
+bool Bundle::removeQueue(QueueItem* qi, bool finished) {
 	int pos = 0;
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
 		if ((*s) == qi) {
 			swap(queueItems[pos], queueItems[queueItems.size()-1]);
 			queueItems.pop_back();
-			return;
+			break;
 		}
 		pos++;
 	}
+
+	if (!finished) {
+		if (qi->getDownloadedSegments() > 0) {
+			removeDownloadedSegment(qi->getDownloadedSegments());
+		}
+		decreaseSize(qi->getSize());
+		setFlag(Bundle::FLAG_UPDATE_SIZE);
+	} else {
+		addFinishedItem(qi, true);
+	}
+
+	auto& s = bundleDirs[Util::getDir(qi->getTarget(), false, false)];
+	s.erase(std::remove(s.begin(), s.end(), qi), s.end());
+	if (s.empty()) {
+		bundleDirs.erase(Util::getDir(qi->getTarget(), false, false));
+		return true;
+	}
+	return false;
 }
 
 bool Bundle::isSource(const UserPtr& aUser) {
@@ -231,10 +277,15 @@ void Bundle::addDownload(Download* d) {
 	downloads.push_back(d);
 }
 
-void Bundle::removeDownload(const string& token) {
+void Bundle::removeDownload(const string& token, bool finished /* true */) {
 	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getUserConnection().getToken(), token) == 0; });
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
+		if (!finished) {
+			dcassert((bytesDownloaded - (*m)->getPos()) >= 0);
+			bytesDownloaded -= (*m)->getPos();
+			dcassert(bytesDownloaded <= (uint64_t)size);
+		}
 		downloads.erase(m);
 	}
 }

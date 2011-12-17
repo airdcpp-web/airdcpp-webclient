@@ -71,7 +71,7 @@ public:
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
 
-	void remove(QueueItem* qi) noexcept;
+	void remove(QueueItem* qi, bool moved = false) noexcept;
 	void remove(const string aTarget) noexcept;
 	void removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
@@ -114,15 +114,17 @@ public:
 	//merging, adding, deletion
 	bool addBundle(BundlePtr aBundle, bool loading = false);
 	BundlePtr getMergeBundle(const string& aTarget);
-	int mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle);
-	void mergeFileBundles(BundlePtr aBundle);
+	void mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle);
+	void mergeFileBundles(BundlePtr aBundle, bool fireAdded);
 	void moveBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
-	void moveFileBundle(BundlePtr aBundle, const string& aTarget) noexcept;
+	void moveFileBundle(BundlePtr aBundle, const string& aTarget, const string& aSource) noexcept;
 	BundlePtr createFileBundle(QueueItem* qi);
-	bool addBundleItem(QueueItem* qi, BundlePtr aBundle, bool newBundle, bool loading = false);
+	void addBundleItem(QueueItem* qi, BundlePtr aBundle);
 	void removeBundleItem(QueueItem* qi, bool finished);
-	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished);
+	void moveBundleItem(QueueItem* qi, BundlePtr targetBundle);
+	void moveBundleItems(const QueueItemList& ql, BundlePtr targetBundle, bool fireAdded, bool fireBundleRemoved);
+	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished, bool fireBundleRemoved = true);
 	BundlePtr findMergeBundle(QueueItem* qi);
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
@@ -146,7 +148,7 @@ public:
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
 	void removeBundleSources(BundlePtr aBundle) noexcept;
-	BundleList getBundleInfo(const string& aSource, int& finishedFiles, int& dirBundles, int& fileBundles);
+	int getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles);
 	void handleBundleUpdate(const string& bundleToken);
 
 	void moveDir(const string& aSource, const string& aTarget, BundleList sourceBundles, bool moveFinished);

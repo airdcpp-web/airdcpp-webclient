@@ -45,6 +45,8 @@ public:
 	void addConnection(UserConnectionPtr conn);
 	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
 	void sendBundleMode(BundlePtr aBundle, bool singleUser);
+	void setTarget(const string& oldTarget, const string& newTarget);
+	void changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path);
 	void sendBundleFinished(BundlePtr aBundle);
 	void sendSizeNameUpdate(BundlePtr aBundle);
 	BundlePtr findRunningBundle(const string& bundleToken);

@@ -137,8 +137,10 @@ public:
 	QueueItem* findQI(const string& aTarget) const;
 	size_t countOnlineUsers() const;
 
-	void removeQueue(QueueItem* qi);
-	void addQueue(QueueItem* qi);
+	bool removeQueue(QueueItem* qi, bool finished);
+	bool addQueue(QueueItem* qi);
+
+	void addFinishedItem(QueueItem* qi, bool finished);
 
 	bool getFileBundle() {
 		return fileBundle;
@@ -207,7 +209,7 @@ public:
 	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 	QueueItemList getRunningQIs(const UserPtr& aUser);
 	void addDownload(Download* d);
-	void removeDownload(const string& token);
+	void removeDownload(const string& token, bool finished = true);
 
 	void removeBadSource(const HintedUser& aUser);
 

@@ -758,6 +758,42 @@ void DownloadManager::removeDownload(Download* d) {
 	}
 }
 
+void DownloadManager::setTarget(const string& oldTarget, const string& newTarget) {
+	Lock l (cs);
+	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
+		Download* d = *i;
+		if (d->getPath() == oldTarget) {
+			d->setPath(newTarget);
+			dcassert(d->getBundle());
+			//update the target in transferview
+			fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getUserConnection().getToken(), d->getBundle()->getToken());
+		}
+	}
+}
+
+void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path) {
+	UserConnectionList ucl;
+	{
+		Lock l (cs);
+		for(auto i = sourceBundle->getDownloads().begin(); i != sourceBundle->getDownloads().end();) {
+			Download* d = *i;
+			if (d->getPath() == path) {
+				targetBundle->addDownload(d);
+				d->setBundle(targetBundle);
+				//update the bundle in transferview
+				//fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getUserConnection().getToken(), d->getBundle()->getToken());
+				ucl.push_back(&d->getUserConnection());
+				sourceBundle->removeDownload(d->getUserConnection().getToken(), false);
+			} else {
+				i++;
+			}
+		}
+	}
+
+	for(auto i = ucl.begin(); i != ucl.end(); ++i) {
+		startBundle(*i, targetBundle);
+	}
+}
 
 BundlePtr DownloadManager::findRunningBundle(const string& bundleToken) {
 	auto s = runningBundles.find(bundleToken);

@@ -75,12 +75,13 @@ public:
 	const UserPtr getUser() const;
 	const HintedUser getHintedUser() const;
 	
-	const string& getPath() const { return path; }
+	//const string& getPath() const { return path; }
 	const TTHValue& getTTH() const { return tth; }
 
 	UserConnection& getUserConnection() { return userConnection; }
 	const UserConnection& getUserConnection() const { return userConnection; }
 
+	GETSET(string, path, Path);
 	GETSET(Segment, segment, Segment);
 	GETSET(Type, type, Type);
 	GETSET(uint64_t, start, Start);
@@ -93,7 +94,7 @@ private:
 	mutable CriticalSection cs;
 	
 	/** The file being transferred */
-	string path;
+	//string path;
 	/** TTH of the file being transferred */
 	TTHValue tth;
 	/** Bytes transferred over socket */
