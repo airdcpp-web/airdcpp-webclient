@@ -1327,6 +1327,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to add the bundle %s in share", 
 "The bundle %s has finished hashing", 
 "The bundle %s has finished hashing and it has been added into shared", 
+"Only from users with nick Matching:  (Wildcards, | separate)", 
+"User Match", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2654,4 +2656,6 @@ std::string dcpp::ResourceManager::names[] = {
 "BundleSharingFailed", 
 "BundleHashed", 
 "BundleShared", 
+"AsUserMatch", 
+"UserMatch", 
 };

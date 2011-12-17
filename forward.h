@@ -144,7 +144,8 @@ typedef UserConnection* UserConnectionPtr;
 typedef std::vector<UserConnectionPtr> UserConnectionList;
 
 class AutoSearch;
-typedef AutoSearch* AutoSearchPtr;
+typedef boost::intrusive_ptr<AutoSearch> AutoSearchPtr;
+typedef std::vector<AutoSearchPtr> AutoSearchList;
 
 } // namespace dcpp
 

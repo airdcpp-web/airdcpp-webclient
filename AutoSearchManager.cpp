@@ -28,6 +28,7 @@
 #include "SearchResult.h"
 #include "SimpleXML.h"
 #include "User.h"
+#include "Wildcards.h"
 
 namespace dcpp {
 AutoSearchManager::AutoSearchManager() {
@@ -47,41 +48,38 @@ AutoSearchManager::AutoSearchManager() {
 AutoSearchManager::~AutoSearchManager() {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
-	for_each(as.begin(), as.end(), DeleteFunction());
+	//for_each(as.begin(), as.end(), DeleteFunction());
 }
 
 
-AutoSearch* AutoSearchManager::addAutoSearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ, AutoSearch::targetType aTargetType /* TARGET_PATH */) {
+bool AutoSearchManager::addAutoSearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ, AutoSearch::targetType aTargetType, const string& aUserMatch) {
 	Lock l(acs);
-	for(AutoSearch::List::iterator i = as.begin(); i != as.end(); ++i) {
+	for(AutoSearchList::iterator i = as.begin(); i != as.end(); ++i) {
 		if(stricmp((*i)->getSearchString(), ss) == 0)
-			return NULL; //already exists
+			return false; //already exists
 	}
-	AutoSearch* ipw = new AutoSearch(en, ss, ft, act, remove, targ, aTargetType);
+	AutoSearchPtr ipw = AutoSearchPtr(new AutoSearch(en, ss, ft, act, remove, targ, aTargetType, aUserMatch));
 	as.push_back(ipw);
 	dirty = true;
 	fire(AutoSearchManagerListener::AddItem(), ipw);
-	return ipw;
+	return true;
 }
 
-AutoSearch* AutoSearchManager::getAutoSearch(unsigned int index, AutoSearch &ipw) {
+void AutoSearchManager::getAutoSearch(unsigned int index, AutoSearchPtr &ipw) {
 	Lock l(acs);
 	if(as.size() > index)
-		ipw = *as[index];
-
-	return NULL;
+		ipw = as[index];
 }
 
-AutoSearch* AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearch &ipw) {
+void AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr &ipw) {
 	Lock l(acs);
-	*as[index] = ipw;
+	as[index] = ipw;
 	dirty = true;
-	return NULL;
 }
 
 void AutoSearchManager::removeAutoSearch(AutoSearchPtr a) {
 	Lock l(acs);
-	AutoSearch::List::const_iterator i = find_if(as.begin(), as.end(), [&](AutoSearchPtr& c) { return c == a; });
+	AutoSearchList::const_iterator i = find_if(as.begin(), as.end(), [&](AutoSearchPtr& c) { return c == a; });
 
 	if(i != as.end()) {	
 		fire(AutoSearchManagerListener::RemoveItem(), a->getSearchString());
@@ -93,7 +91,7 @@ void AutoSearchManager::removeAutoSearch(AutoSearchPtr a) {
 void AutoSearchManager::removeRegExpFromSearches() {
 	//clear old data
 	vs.clear();
-	for(AutoSearch::List::const_iterator j = as.begin(); j != as.end(); j++) {
+	for(AutoSearchList::const_iterator j = as.begin(); j != as.end(); j++) {
 		if((*j)->getEnabled()) {
 			if(((*j)->getFileType() != 9)) {
 				vs.push_back((*j));			//valid searches - we can search for it
@@ -173,7 +171,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 		if(!vs.size()) {
 			return;
 		}
-		AutoSearch::List::const_iterator pos = vs.begin() + curPos;
+		AutoSearchList::const_iterator pos = vs.begin() + curPos;
 		users.clear();
 
 		if(pos < vs.end()) {
@@ -202,7 +200,14 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 		UserPtr user = static_cast<UserPtr>(sr->getUser());
 		if(users.find(user) == users.end()) {
 			users.insert(user);
-			for(AutoSearch::List::iterator i = as.begin(); i != as.end(); ++i) {
+			for(AutoSearchList::iterator i = as.begin(); i != as.end(); ++i) {
+				
+				if(!(*i)->getUserMatch().empty()) {
+					//user nicks should be kinda simple to match so only use wildcards.
+					if(!Wildcard::patternMatch( Text::utf8ToAcp(Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL()))), Text::utf8ToAcp((*i)->getUserMatch()), '|' ))
+						continue;
+				}
+
 				if((*i)->getFileType() == 9) { //regexp
 
 					string str1 = (*i)->getSearchString();
@@ -408,7 +413,7 @@ void AutoSearchManager::AutoSearchSave() {
 		xml.addTag("Autosearch");
 		xml.stepIn();
 
-		for(AutoSearch::List::const_iterator i = as.begin(); i != as.end(); ++i) {
+		for(AutoSearchList::const_iterator i = as.begin(); i != as.end(); ++i) {
 			xml.addTag("Autosearch");
 			xml.addChildAttrib("Enabled", (*i)->getEnabled());
 			xml.addChildAttrib("SearchString", (*i)->getSearchString());
@@ -416,6 +421,8 @@ void AutoSearchManager::AutoSearchSave() {
 			xml.addChildAttrib("Action", (*i)->getAction());
 			xml.addChildAttrib("Remove", (*i)->getRemove());
 			xml.addChildAttrib("Target", (*i)->getTarget());
+			xml.addChildAttrib("TargetType", (*i)->getTargetType());
+			xml.addChildAttrib("UserMatch", (*i)->getUserMatch());
 		}
 
 		xml.stepOut();
@@ -446,7 +453,9 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.getIntChildAttrib("FileType"), 
 				aXml.getIntChildAttrib("Action"),
 				aXml.getBoolChildAttrib("Remove"),
-				aXml.getChildAttrib("Target"));
+				aXml.getChildAttrib("Target"),
+				(AutoSearch::targetType)aXml.getIntChildAttrib("TargetType"),
+				aXml.getChildAttrib("UserMatch"));
 		}
 		aXml.stepOut();
 	}

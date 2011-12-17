@@ -30,12 +30,10 @@
 namespace dcpp {
 #define AUTOSEARCH_FILE "AutoSearch.xml"
 
-class AutoSearch {
+class AutoSearch  : public intrusive_ptr_base<AutoSearch> {
 public:
-	typedef vector<AutoSearchPtr> List;
 
 	AutoSearch() { };
-
 
 	enum targetType {
 		TARGET_PATH,
@@ -43,8 +41,8 @@ public:
 		TARGET_SHARE,
 	};
 
-	AutoSearch(bool aEnabled, const string& aSearchString, int aFileType, int aAction, bool aRemove, const string& aTarget, targetType aTargetType)
-		noexcept : enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType) { };
+	AutoSearch(bool aEnabled, const string& aSearchString, int aFileType, int aAction, bool aRemove, const string& aTarget, targetType aTargetType, const string& aUserMatch)
+		noexcept : enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), userMatch(aUserMatch) { };
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
@@ -53,6 +51,7 @@ public:
 	GETSET(bool, remove, Remove); //remove after 1 hit
 	GETSET(string, target, Target); //download to Target
 	GETSET(targetType, tType, TargetType);
+	GETSET(string, userMatch, UserMatch); //only results from users matching...
 };
 
 class SimpleXML;
@@ -73,12 +72,12 @@ public:
 		}
 	}
 
-	AutoSearch* addAutoSearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ, AutoSearch::targetType aTargetType = AutoSearch::TARGET_PATH);
-	AutoSearch* getAutoSearch(unsigned int index, AutoSearch &ipw);
-	AutoSearch* updateAutoSearch(unsigned int index, AutoSearch &ipw);
+	bool addAutoSearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ, AutoSearch::targetType aTargetType, const string& aUserMatch = Util::emptyString);
+	void getAutoSearch(unsigned int index, AutoSearchPtr &ipw);
+	void updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
 	
-	AutoSearch::List& getAutoSearch() { 
+	AutoSearchList& getAutoSearch() { 
 		Lock l(acs);
 		return as; 
 	};
@@ -103,7 +102,7 @@ public:
 
 	void setActiveItem(unsigned int index, bool active) {
 		Lock l(acs);
-		AutoSearch::List::iterator i = as.begin() + index;
+		AutoSearchList::iterator i = as.begin() + index;
 		if(i < as.end()) {
 			(*i)->setEnabled(active);
 			dirty = true;
@@ -117,8 +116,8 @@ public:
 private:
 	CriticalSection cs, acs;
 
-	AutoSearch::List vs; //valid searches
-	AutoSearch::List as; //all searches
+	AutoSearchList vs; //valid searches
+	AutoSearchList as; //all searches
 
 	void loadAutoSearch(SimpleXML& aXml);
 
@@ -142,7 +141,6 @@ private:
 	string curSearch;
 	set<UserPtr> users;
 	uint64_t lastSave;
-
 
 };
 }

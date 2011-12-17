@@ -1334,5 +1334,7 @@ enum Strings { // @DontAdd
 	BUNDLE_SHARING_FAILED, // "Failed to add the bundle %s in share"
 	BUNDLE_HASHED, // "The bundle %s has finished hashing"
 	BUNDLE_SHARED, // "The bundle %s has finished hashing and it has been added into shared"
+	AS_USER_MATCH, // "Only from users with nick Matching:  (Wildcards, | separate)"
+	USER_MATCH, // "User Match"
 	LAST // @DontAdd
 };
