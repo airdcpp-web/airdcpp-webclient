@@ -182,10 +182,10 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			cur->files.push_back(f);
 			if(f->getSize() > 0) {
 				if (checkdupe) {
-					if (ShareManager::getInstance()->isTTHShared(f->getTTH())) {
+					if (ShareManager::getInstance()->isFileShared(f->getTTH(), f->getName())) {
 						f->setDupe(1);
 					} else {
-						int queued = QueueManager::getInstance()->isTTHQueued(f->getTTH());
+						int queued = QueueManager::getInstance()->isFileQueued(f->getTTH(), f->getName());
 						if (queued > 0) {
 							f->setDupe(queued+1);
 						}

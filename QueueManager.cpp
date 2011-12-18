@@ -231,13 +231,24 @@ QueueItemList QueueManager::FileQueue::find(const TTHValue& tth) {
 	return ql;
 }
 
-int QueueManager::FileQueue::isTTHQueued(const TTHValue& tth) {
-	auto i = tthIndex.find(tth);
-	if (i != tthIndex.end()) {
-		return ((*i).second.front()->isFinished() ? 2 : 1);
-	} else {
-		return 0;
+int QueueManager::FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) {
+	QueueItem* qi = getQueuedFile(aTTH, fileName);
+	if (qi) {
+		return (qi->isFinished() ? 2 : 1);
 	}
+	return 0;
+}
+
+QueueItem* QueueManager::FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) {
+	auto i = tthIndex.find(aTTH);
+	if (i != tthIndex.end()) {
+		for(auto k = i->second.begin(); k != i->second.end(); ++k) {
+			if(stricmp(fileName.c_str(), (*k)->getTargetFileName().c_str()) == 0) {
+				return *k;
+			}
+		}
+	}
+	return NULL;
 }
 
 void QueueManager::FileQueue::addSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
@@ -1249,7 +1260,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	// Check if we're not downloading something already in our share
 	if (BOOLSETTING(DONT_DL_ALREADY_SHARED)){
 		if (!(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_USER_LIST) && !(aFlags & QueueItem::FLAG_PARTIAL_LIST)) {
-			if (ShareManager::getInstance()->isTTHShared(root)){
+			if (ShareManager::getInstance()->isFileShared(root, Util::getFileName(aTarget))){
 				LogManager::getInstance()->message(STRING(FILE_ALREADY_SHARED) + " " + aTarget );
 				throw QueueException(STRING(TTH_ALREADY_SHARED));
 			}
@@ -1298,13 +1309,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				if(boost::regex_search(str2.begin(), str2.end(), reg)){
 					return;
 				};
-			} catch(...) {
-			}
-			/*PME regexp;
-			regexp.Init(Text::utf8ToAcp(SETTING(SKIPLIST_DOWNLOAD)));
-			if((regexp.IsValid()) && (regexp.match(Text::utf8ToAcp(aTarget.substr(pos))))) {
-				return;
-			}*/
+			} catch(...) { }
 		}else{
 			if(Wildcard::patternMatch(Text::utf8ToAcp(aTarget.substr(pos)), Text::utf8ToAcp(SETTING(SKIPLIST_DOWNLOAD)), '|') ){
 				return;
@@ -1315,26 +1320,19 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	{
 		Lock l(cs);
 		if(BOOLSETTING(DONT_DL_ALREADY_QUEUED) && !(aFlags & QueueItem::FLAG_USER_LIST)) {
-			QueueItemList ql = fileQueue.find(root);
-			if (ql.size() > 0) {
-				// Found one or more existing queue items, lets see if we can add the source to them
-				bool sourceAdded = false;
-				for(auto i = ql.begin(); i != ql.end(); ++i) {
-					if(!(*i)->isSource(aUser)) {
-						try {
-							wantConnection = addSource(*i, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0);
-							sourceAdded = true;
-						} catch(const Exception&) {
-						//...
+			QueueItem* qi = fileQueue.getQueuedFile(root, Util::getFileName(aTarget));
+			if (qi) {
+				if(!qi->isSource(aUser)) {
+					try {
+						if (addSource(qi, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0)) {
+							goto connect;
 						}
+					} catch(const Exception&) {
+						//...
 					}
 				}
-
-				if(!sourceAdded) {
-					LogManager::getInstance()->message(STRING(FILE_WITH_SAME_TTH) + " " + aTarget );
-					throw QueueException(STRING(FILE_WITH_SAME_TTH));
-				}
-				goto connect;
+				LogManager::getInstance()->message(STRING(FILE_WITH_SAME_TTH) + " " + aTarget );
+				throw QueueException(STRING(FILE_WITH_SAME_TTH));
 			}
 		}
 

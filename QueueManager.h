@@ -164,7 +164,7 @@ public:
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
-	int isTTHQueued(const TTHValue& tth) { return fileQueue.isTTHQueued(tth); }
+	int isFileQueued(const TTHValue& aTTH, const string& aFile) { Lock l (cs); return fileQueue.isFileQueued(aTTH, aFile); }
 	
 	bool dropSource(Download* d);
 
@@ -266,7 +266,8 @@ public:
 		void move(QueueItem* qi, const string& aTarget);
 		void remove(QueueItem* qi, bool removeTTH);
 		void removeTTH(QueueItem* qi);
-		int isTTHQueued(const TTHValue& tth);
+		int isFileQueued(const TTHValue& aTTH, const string& aFile);
+		QueueItem* getQueuedFile(const TTHValue& aTTH, const string& aFile);
 
 		uint64_t getTotalQueueSize() { return queueSize; };
 

@@ -100,6 +100,7 @@ public:
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) noexcept;
 	bool isDirShared(const string& directory);
+	bool isFileShared(const TTHValue aTTH, const string& fileName);
 	bool addBundle(const string& dir);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory, bool validate = true);
@@ -362,7 +363,7 @@ private:
 	typedef std::vector<Directory::Ptr> Dirs;
 
 	/*Map of root directory items mapped to realpath*/
-	typedef std::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap; 
+	typedef std::unordered_multimap<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap; 
 	DirMap directories;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */

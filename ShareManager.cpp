@@ -769,6 +769,18 @@ bool ShareManager::isDirShared(const string& directory) {
 		
 	return false;
 }
+
+bool ShareManager::isFileShared(const TTHValue aTTH, const string& fileName) {
+	RLock l (cs);
+	auto files = tthIndex.equal_range(aTTH);
+	for(auto i = files.first; i != files.second; ++i) {
+		if(stricmp(fileName.c_str(), i->second->getName().c_str()) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
 tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
 	string dir = directory;
 	if (validateDir) {
@@ -1007,11 +1019,8 @@ void ShareManager::rebuildIndices() {
 void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::iterator& i) {
 	const Directory::File& f = *i;
 
-	HashFileIter j = tthIndex.find(f.getTTH());
-	if(j == tthIndex.end()) {
-		dir.size+=f.getSize();
-		sharedSize += f.getSize();
-	}
+	dir.size+=f.getSize();
+	sharedSize += f.getSize();
 
 	dir.addType(getType(f.getName()));
 
@@ -2111,8 +2120,13 @@ void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexc
 
 	Directory::File::Set::const_iterator i = d->findFile(Util::getFileName(fname));
 	if(i != d->files.end()) {
-		if(root != i->getTTH())
-			tthIndex.erase(i->getTTH());
+		auto files = tthIndex.equal_range(i->getTTH());
+		for(auto k = files.first; k != files.second; ++k) {
+			if(stricmp(Util::getFileName(fname).c_str(), k->second->getName().c_str()) == 0) {
+				tthIndex.erase(k);
+			}
+		}
+
 		// Get rid of false constness...
 		Directory::File* f = const_cast<Directory::File*>(&(*i));
 		f->setTTH(root);
