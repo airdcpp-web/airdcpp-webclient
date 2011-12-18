@@ -781,7 +781,7 @@ void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundl
 				targetBundle->addDownload(d);
 				d->setBundle(targetBundle);
 				//update the bundle in transferview
-				//fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getUserConnection().getToken(), d->getBundle()->getToken());
+				fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getUserConnection().getToken(), d->getBundle()->getToken());
 				ucl.push_back(&d->getUserConnection());
 				sourceBundle->removeDownload(d->getUserConnection().getToken(), false);
 			} else {
