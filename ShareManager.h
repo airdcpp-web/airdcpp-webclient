@@ -363,13 +363,13 @@ private:
 	typedef std::vector<Directory::Ptr> Dirs;
 
 	/*Map of root directory items mapped to realpath*/
-	typedef std::unordered_multimap<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap; 
+	typedef std::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap; 
 	DirMap directories;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	StringMap shares;
 
-	typedef unordered_map<TTHValue, Directory::File::Set::const_iterator> HashFileMap;
+	typedef unordered_multimap<TTHValue, Directory::File::Set::const_iterator> HashFileMap;
 	typedef HashFileMap::const_iterator HashFileIter;
 
 	HashFileMap tthIndex;
