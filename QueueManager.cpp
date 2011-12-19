@@ -4066,9 +4066,9 @@ BundlePtr QueueManager::getMergeBundle(const string& aTarget) {
 
 		//LogManager::getInstance()->message("Comparebundletarget: " + compareBundle->getTarget() + " aTarget: " + aTarget);
 		//don't try to merge with this bundle
-		if (compareBundle->getTarget() == aTarget) {
+		/*if (compareBundle->getTarget() == aTarget) {
 			continue;
-		}
+		} */
 
 		size_t pos = compareBundle->getTarget().find(aTarget);
 		if (pos == string::npos) {
@@ -4116,27 +4116,17 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 			fire(QueueManagerListener::BundleMoved(), targetBundle);
 			ql = sourceBundle->getQueueItems();
 		}
+		added = (int)ql.size();
 		moveBundleItems(ql, targetBundle, false);
 	}
 
-	//do we need to change the bundle target?
+	targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	if (changeName) {
-		//handle release dirs
-		if (targetBundle->getBundleDirs().find(sourceBundleTarget) == targetBundle->getBundleDirs().end()) {
-			Lock l (cs);
-			QueueItemList ql;
-			targetBundle->getBundleDirs()[sourceBundleTarget] = ql;
-			string releaseDir = AirUtil::getReleaseDir(sourceBundleTarget);
-			if (!releaseDir.empty()) {
-				bundleDirs[releaseDir] = sourceBundleTarget;
-			}
-		}
-
-		targetBundle->setTarget(sourceBundleTarget);
-		//check that there are no file bundles inside the new target dir and merge them in that case
-		mergeFileBundles(targetBundle);
-		targetBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
+		changeBundleTarget(targetBundle, sourceBundleTarget);
 		//LogManager::getInstance()->message("MERGE CHANGE TARGET");
+	} else {
+		targetBundle->setDirty(true);
+		addBundleUpdate(targetBundle->getToken());
 	}
 
 	{
@@ -4144,14 +4134,47 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 		fire(QueueManagerListener::BundleAdded(), targetBundle);
 	}
 
-	targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
-	targetBundle->setDirty(true);
-	addBundleUpdate(targetBundle->getToken());
-
 	string tmp;
-	tmp.resize(tmp.size() + STRING(BUNDLE_MERGED).size() + 1024);
-	tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_MERGED), Util::getLastDir(sourceBundleTarget).c_str(), targetBundle->getName().c_str(), added));
-	LogManager::getInstance()->message(tmp);
+	if (targetBundle->getTarget() == sourceBundle->getTarget()) {
+		tmp.resize(tmp.size() + STRING(X_BUNDLE_ITEMS_ADDED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(X_BUNDLE_ITEMS_ADDED), added, targetBundle->getName().c_str()));
+		LogManager::getInstance()->message(tmp);
+	} else {
+		tmp.resize(tmp.size() + STRING(BUNDLE_MERGED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_MERGED), Util::getLastDir(sourceBundleTarget).c_str(), targetBundle->getName().c_str(), added));
+		LogManager::getInstance()->message(tmp);
+	}
+}
+
+void QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget) {
+	string oldTarget = aBundle->getTarget();
+	aBundle->setTarget(newTarget);
+
+	mergeFileBundles(aBundle);
+
+	aBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
+	addBundleUpdate(aBundle->getToken(), false);
+	aBundle->setDirty(true);
+
+	{
+		Lock l (cs);
+		//remove old
+		/*string releaseDir = AirUtil::getReleaseDir(oldTarget);
+		if (!releaseDir.empty()) {
+			bundleDirs.erase(releaseDir);
+			bundleDirs[releaseDir] = aBundle->getTarget();
+		}*/
+
+		//add new root release dir
+		string releaseDir = AirUtil::getReleaseDir(aBundle->getTarget());
+		if (!releaseDir.empty()) {
+			bundleDirs.erase(releaseDir);
+			bundleDirs[releaseDir] = aBundle->getTarget();
+		}
+	}
+
+	/* update the bundle path in transferview */
+	fire(QueueManagerListener::BundleRenamed(), aBundle);
 }
 
 int QueueManager::getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) {
@@ -4407,13 +4430,8 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 		//LogManager::getInstance()->message("moveDir, no merge bundle");
 		//nothing to merge to, move the old bundle
 		//fire(QueueManagerListener::BundleRemoved(), sourceBundle);
-		bool changeName = !(sourceBundle->getName() == Util::getDir(aTarget, false, true));
-		sourceBundle->setTarget(convertMovePath(sourceBundleTarget, aSource, aTarget));
-		mergeFileBundles(sourceBundle);
-		if (changeName) {
-			sourceBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
-			addBundleUpdate(sourceBundle->getToken(), false);
-		}
+		//bool changeName = !(sourceBundle->getName() == Util::getDir(aTarget, false, true));
+		changeBundleTarget(sourceBundle, convertMovePath(sourceBundleTarget, aSource, aTarget));
 
 		{
 			Lock l (cs);
@@ -4436,20 +4454,9 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 				}
 			}
 
-			//add new root release dir
-			string releaseDir = AirUtil::getReleaseDir(newBundle->getTarget());
-			if (!releaseDir.empty()) {
-				bundleDirs.erase(releaseDir);
-				bundleDirs[releaseDir] = newBundle->getTarget();
-			}
-
 			fire(QueueManagerListener::BundleAdded(), sourceBundle);
 		}
 
-		/* update the bundle path in transferview */
-		fire(QueueManagerListener::BundleRenamed(), sourceBundle);
-
-		sourceBundle->setDirty(true);
 		string tmp;
 		tmp.resize(tmp.size() + STRING(BUNDLE_MOVED).size() + 1024);
 		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_MOVED), sourceBundle->getName().c_str(), sourceBundle->getTarget().c_str()));
@@ -4816,6 +4823,14 @@ BundlePtr QueueManager::findMergeBundle(QueueItem* qi) {
 
 	if (!qi->getBundle() && bundle) {
 		addBundleItem(qi, bundle);
+		fire(QueueManagerListener::Added(), qi);
+		addBundleUpdate(bundle->getToken());
+		bundle->setDirty(true);
+
+		string tmp;
+		tmp.resize(tmp.size() + STRING(BUNDLE_ITEM_ADDED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ITEM_ADDED), qi->getTarget().c_str(), bundle->getName().c_str()));
+		LogManager::getInstance()->message(tmp);
 	}
 	return bundle;
 	//LogManager::getInstance()->message("FINDBUNDLE, NO BUNDLES FOUND");
@@ -4919,6 +4934,13 @@ void QueueManager::removeBundleItem(QueueItem* qi, bool finished, bool moved /*f
 }
 
 void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFinished, bool moved /*false*/) {
+	{
+		Lock l (cs);
+		if (bundles.find(aBundle->getToken()) == bundles.end()) {
+			return;
+		}
+	}
+
 	if (finished) {
 		aBundle->setSpeed(0);
 		fire(QueueManagerListener::BundleFinished(), aBundle);

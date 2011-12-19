@@ -104,6 +104,7 @@ public:
 	bool addBundle(const string& dir);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory, bool validate = true);
+	string getBloomStats();
 
 	bool loadCache();
 
@@ -347,6 +348,8 @@ private:
 
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
 	mutable CriticalSection dirnamelist;
+
+	int allSearches, stoppedSearches;
 	
 	/* Releases */
 	StringList dirNameList;

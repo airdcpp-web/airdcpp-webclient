@@ -118,6 +118,7 @@ public:
 	void mergeFileBundles(BundlePtr aBundle);
 	void moveBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
+	void changeBundleTarget(BundlePtr aBundle, const string& newTarget);
 	void moveFileBundle(BundlePtr aBundle, const string& aTarget, const string& aSource) noexcept;
 	BundlePtr createFileBundle(QueueItem* qi);
 	void addBundleItem(QueueItem* qi, BundlePtr aBundle);

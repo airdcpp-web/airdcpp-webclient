@@ -59,7 +59,7 @@ namespace dcpp {
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
 	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false), GeneratingXmlList(false),
-	c_size_dirty(true), c_shareSize(0), xml_saving(false), lastSave(GET_TICK()), aShutdown(false)
+	c_size_dirty(true), c_shareSize(0), xml_saving(false), lastSave(GET_TICK()), aShutdown(false), allSearches(0), stoppedSearches(0)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -1017,6 +1017,13 @@ void ShareManager::rebuildIndices() {
 }
 
 void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::iterator& i) {
+	auto files = tthIndex.equal_range(i->getTTH());
+	for(auto k = files.first; k != files.second; ++k) {
+		if(stricmp((*i).getFullName().c_str(), k->second->getRealPath().c_str()) == 0) {
+			return;
+		}
+	}
+
 	const Directory::File& f = *i;
 
 	dir.size+=f.getSize();
@@ -1854,8 +1861,12 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 	}
 	StringTokenizer<string> t(Text::toLower(aString), '$');
 	StringList& sl = t.getTokens();
-	if(!bloom.match(sl))
+	allSearches++;
+	if(!bloom.match(sl)) {
+		stoppedSearches++;
 		return;
+	}
+
 
 	StringSearch::List ssl;
 	for(StringList::const_iterator i = sl.begin(); i != sl.end(); ++i) {
@@ -1869,6 +1880,13 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 	for(DirMap::const_iterator j = directories.begin(); (j != directories.end()) && (results.size() < maxResults); ++j) {
 		j->second->search(results, ssl, aSearchType, aSize, aFileType, aClient, maxResults);
 	}
+}
+
+string ShareManager::getBloomStats() {
+	vector<string> s;
+	string ret = "Total StringSearches: " + Util::toString(allSearches) + ", stopped " + Util::toString((stoppedSearches > 0) ? (((double)stoppedSearches / (double)allSearches)*100) : 0) + " % (" + Util::toString(stoppedSearches) + " searches)";
+	//ret += "Bloom size: " + Util::toString(bloom.getSize()) + ", length " + Util::toString(bloom.getLength());
+	return ret;
 }
 
 namespace {
@@ -2017,9 +2035,12 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 		return;
 	}
 
+	allSearches++;
 	for(StringSearch::List::const_iterator i = srch.includeX.begin(); i != srch.includeX.end(); ++i) {
-		if(!bloom.match(i->getPattern()))
+		if(!bloom.match(i->getPattern())) {
+			stoppedSearches++;
 			return;
+		}
 	}
 
 	for(DirMap::const_iterator j = directories.begin(); (j != directories.end()) && (results.size() < maxResults); ++j) {
@@ -2120,18 +2141,18 @@ void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexc
 
 	Directory::File::Set::const_iterator i = d->findFile(Util::getFileName(fname));
 	if(i != d->files.end()) {
+		// Get rid of false constness...
 		auto files = tthIndex.equal_range(i->getTTH());
 		for(auto k = files.first; k != files.second; ++k) {
-			if(stricmp(Util::getFileName(fname).c_str(), k->second->getName().c_str()) == 0) {
+			if(stricmp(fname.c_str(), k->second->getRealPath().c_str()) == 0) {
 				tthIndex.erase(k);
+				break;
 			}
 		}
 
-		// Get rid of false constness...
 		Directory::File* f = const_cast<Directory::File*>(&(*i));
 		f->setTTH(root);
 		tthIndex.insert(make_pair(f->getTTH(), i));
-
 	} else {
 		string name = Util::getFileName(fname);
 		int64_t size = File::getSize(fname);
