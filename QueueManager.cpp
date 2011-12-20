@@ -3153,7 +3153,6 @@ void QueueManager::addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const 
 
 	fileQueue.add(qi, true, true);
 	aBundle->addFinishedItem(qi, false);
-	qi->setBundle(aBundle);
 	//LogManager::getInstance()->message("added finished tth, totalsize: " + Util::toString(aBundle->getFinishedFiles().size()));
 }
 
@@ -4025,6 +4024,13 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 	}
 
 	if (!first) {
+		{
+			Lock l (cs);
+			for (auto j = sourceBundle->getFinishedFiles().begin(); j != sourceBundle->getFinishedFiles().end(); ++j) {
+				targetBundle->addFinishedItem(*j, false);
+				sourceBundle->removeFinishedItem(*j);
+			}
+		}
 		return;
 	}
 
@@ -4095,9 +4101,7 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 		}
 	}
 
-	for (auto j = mBundles.begin(); j != mBundles.end(); ++j) {
-		mergeBundle(aBundle, *j, false);
-	}
+	for_each(mBundles.begin(), mBundles.end(), [&] (BundlePtr b) { mergeBundle(aBundle, b, false); });
 
 	aBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
 	addBundleUpdate(aBundle->getToken(), false);

@@ -106,11 +106,14 @@ QueueItemList Bundle::getItems(const UserPtr& aUser) const {
 }
 
 void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
-	if (!finished) {
-		increaseSize(qi->getSize());
-		addDownloadedSegment(qi->getSize());
+	if (find(finishedFiles.begin(), finishedFiles.end(), qi) == finishedFiles.end()) {
+		if (!finished) {
+			increaseSize(qi->getSize());
+			addDownloadedSegment(qi->getSize());
+			qi->setBundle(this);
+		}
+		finishedFiles.push_back(qi);
 	}
-	finishedFiles.push_back(qi);
 }
 
 void Bundle::removeFinishedItem(QueueItem* qi) {
