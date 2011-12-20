@@ -3930,8 +3930,8 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 	} else {
 		string tmp;
 		tmp.resize(tmp.size() + STRING(BUNDLE_CREATED).size() + 1024);
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED), aBundle->getName().c_str(), aBundle->getQueueItems().size(), Util::formatBytes(aBundle->getSize())));
-		LogManager::getInstance()->message(tmp);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED), aBundle->getName().c_str(), aBundle->getQueueItems().size()));
+		LogManager::getInstance()->message(tmp + " (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(aBundle->getSize()) + ")");
 	}
 
 	if (!aBundle->getSources().empty()) {
@@ -3988,7 +3988,7 @@ BundlePtr QueueManager::getMergeBundle(const string& aTarget) {
 	return NULL;
 }
 
-void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
+void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, bool first /*true*/) {
 	if (sourceBundle->getFileBundle()) {
 		dcassert(sourceBundle->getFileBundle());
 		{
@@ -4011,23 +4011,27 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 
 	int added = 0;
 
-	string sourceBundleTarget = sourceBundle->getTarget();
-	bool changeName = (targetBundle->getTarget().find(sourceBundleTarget) != string::npos) && (targetBundle->getTarget().length() > sourceBundleTarget.length());
-
 	{
 		QueueItemList ql;
 		{
 			Lock l (cs);
-			fire(QueueManagerListener::BundleMoved(), targetBundle);
+			if (first) {
+				fire(QueueManagerListener::BundleMoved(), targetBundle);
+			}
 			ql = sourceBundle->getQueueItems();
 		}
 		added = (int)ql.size();
 		moveBundleItems(ql, targetBundle, false);
 	}
 
+	if (!first) {
+		return;
+	}
+
+	bool changeName = (targetBundle->getTarget().find(sourceBundle->getTarget()) != string::npos) && (targetBundle->getTarget().length() > sourceBundle->getTarget().length());
 	targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	if (changeName) {
-		changeBundleTarget(targetBundle, sourceBundleTarget);
+		added = changeBundleTarget(targetBundle, sourceBundle->getTarget());
 		//LogManager::getInstance()->message("MERGE CHANGE TARGET");
 	} else {
 		targetBundle->setDirty(true);
@@ -4040,22 +4044,60 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 	}
 
 	string tmp;
-	if (targetBundle->getTarget() == sourceBundle->getTarget()) {
+	if (changeName) {
+		string tmp2;
+		tmp.resize(tmp.size() + STRING(BUNDLE_CREATED).size() + 1024);
+		{
+			Lock l (cs);
+			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED), targetBundle->getName().c_str(), targetBundle->getQueueItems().size()));
+		}
+		if (added > 0) {
+			tmp2.resize(tmp2.size() + STRING(EXISTING_BUNDLES_MERGED).size() + 1024);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(EXISTING_BUNDLES_MERGED), added));
+			LogManager::getInstance()->message(tmp + ", " + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()) + " (" + tmp2 + ")");
+		} else {
+			LogManager::getInstance()->message(tmp + " (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()) + ")");
+		}
+	} else if (targetBundle->getTarget() == sourceBundle->getTarget()) {
 		tmp.resize(tmp.size() + STRING(X_BUNDLE_ITEMS_ADDED).size() + 1024);
 		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(X_BUNDLE_ITEMS_ADDED), added, targetBundle->getName().c_str()));
 		LogManager::getInstance()->message(tmp);
 	} else {
 		tmp.resize(tmp.size() + STRING(BUNDLE_MERGED).size() + 1024);
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_MERGED), Util::getLastDir(sourceBundleTarget).c_str(), targetBundle->getName().c_str(), added));
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_MERGED), Util::getLastDir(sourceBundle->getTarget()).c_str(), targetBundle->getName().c_str(), added));
 		LogManager::getInstance()->message(tmp);
 	}
 }
 
-void QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget) {
+int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget) {
 	string oldTarget = aBundle->getTarget();
 	aBundle->setTarget(newTarget);
 
 	mergeFileBundles(aBundle);
+
+	/* In this case we also need check if there are directory bundles inside the subdirectories */
+	BundleList mBundles;
+	{
+		Lock l (cs);
+		for (auto j = bundles.begin(); j != bundles.end(); ++j) {
+			BundlePtr compareBundle = (*j).second;
+			if (compareBundle->getFileBundle() || compareBundle->isFinished()) {
+				continue;
+			}
+			//LogManager::getInstance()->message("Comparebundletarget: " + compareBundle->getTarget() + " aTarget: " + aTarget);
+			if (compareBundle->getTarget() != newTarget) {
+				size_t pos = compareBundle->getTarget().find(newTarget);
+				if (pos != string::npos) {
+					fire(QueueManagerListener::BundleMoved(), compareBundle);
+					mBundles.push_back(compareBundle);
+				}
+			}
+		}
+	}
+
+	for (auto j = mBundles.begin(); j != mBundles.end(); ++j) {
+		mergeBundle(aBundle, *j, false);
+	}
 
 	aBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
 	addBundleUpdate(aBundle->getToken(), false);
@@ -4073,13 +4115,15 @@ void QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget
 		//add new root release dir
 		string releaseDir = AirUtil::getReleaseDir(aBundle->getTarget());
 		if (!releaseDir.empty()) {
-			bundleDirs.erase(releaseDir);
+			//bundleDirs.erase(releaseDir);
 			bundleDirs[releaseDir] = aBundle->getTarget();
 		}
 	}
 
 	/* update the bundle path in transferview */
 	fire(QueueManagerListener::BundleRenamed(), aBundle);
+
+	return (int)mBundles.size();
 }
 
 int QueueManager::getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) {
