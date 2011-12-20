@@ -2066,6 +2066,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 		buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
 		updateIndices(*dir);
 		setDirty();
+		forceXmlRefresh = true;
 	}
 
 done:
