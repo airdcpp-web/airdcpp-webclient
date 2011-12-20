@@ -28,7 +28,7 @@
 namespace dcpp {
 
 class SearchManager;
-//check the use of fastalloc here.
+
 class SearchResult : public FastAlloc<SearchResult>, public intrusive_ptr_base<SearchResult> {
 public:	
 	enum Types {

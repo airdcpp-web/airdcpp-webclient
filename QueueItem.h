@@ -36,7 +36,7 @@ namespace dcpp {
 class QueueManager;
 class Download;
 
-class QueueItem : public Flags, /*public FastAlloc<QueueItem>,*/ public intrusive_ptr_base<QueueItem> {
+class QueueItem : public Flags, public intrusive_ptr_base<QueueItem> {
 public:
 	typedef boost::unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 	typedef unordered_map<TTHValue, QueueItemList> TTHMap;
