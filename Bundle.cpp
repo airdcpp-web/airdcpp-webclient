@@ -24,6 +24,7 @@
 #include "QueueItem.h"
 #include "LogManager.h"
 #include "AirUtil.h"
+#include "SearchResult.h"
 
 namespace dcpp {
 
@@ -112,6 +113,20 @@ void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
 	finishedFiles.push_back(qi);
 }
 
+void Bundle::removeFinishedItem(QueueItem* qi) {
+	int pos = 0;
+	for (auto s = finishedFiles.begin(); s != finishedFiles.end(); ++s) {
+		if ((*s) == qi) {
+			decreaseSize(qi->getSize());
+			removeDownloadedSegment(qi->getSize());
+			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
+			finishedFiles.pop_back();
+			return;
+		}
+		pos++;
+	}
+}
+
 bool Bundle::addQueue(QueueItem* qi) {
 	//qi->inc();
 	dcassert(find(queueItems.begin(), queueItems.end(), qi) == queueItems.end());
@@ -124,9 +139,8 @@ bool Bundle::addQueue(QueueItem* qi) {
 	}
 
 	string dir = Util::getDir(qi->getTarget(), false, false);
-	auto& s = bundleDirs[dir];
-	s.push_back(qi);
-	if (s.size() == 1) {
+	bundleDirs[dir]++;
+	if (bundleDirs[dir] == 1) {
 		return true;
 	}
 	return false;
@@ -153,9 +167,8 @@ bool Bundle::removeQueue(QueueItem* qi, bool finished) {
 		addFinishedItem(qi, true);
 	}
 
-	auto& s = bundleDirs[Util::getDir(qi->getTarget(), false, false)];
-	s.erase(std::remove(s.begin(), s.end(), qi), s.end());
-	if (s.empty()) {
+	bundleDirs[Util::getDir(qi->getTarget(), false, false)]--;
+	if (bundleDirs[Util::getDir(qi->getTarget(), false, false)] == 0) {
 		bundleDirs.erase(Util::getDir(qi->getTarget(), false, false));
 		return true;
 	}
@@ -273,6 +286,48 @@ void Bundle::getQISources(HintedUserList& l) {
 	//LogManager::getInstance()->message("getQISources, size: " + Util::toString(l.size()));
 }
 
+void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
+	if (aDir == target) {
+		ql = queueItems;
+		return;
+	}
+
+	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
+		QueueItem* qi = *s;
+		if (qi->getTarget().length() < aDir.length()) {
+			continue;
+		}
+
+		if (qi->getTarget().substr(0, aDir.length()) == aDir) {
+			ql.push_back(qi);
+		}
+	}
+}
+
+void Bundle::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
+	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
+		QueueItem* qi = *s;
+		if (qi->isSource(aUser)) {
+			ql.push_back(qi);
+		}
+	}
+}
+
+string Bundle::getMatchPath(const SearchResultPtr& sr) {
+	string path;
+	if (simpleMatching) {
+		path = Util::getDir(sr->getFile(), true, false);
+	} else {
+		//try to find the corrent location from the path manually
+		size_t pos = sr->getFile().find(getName() + "\\");
+		if (pos != string::npos) {
+			path = Util::getFilePath(sr->getFile().substr(0, pos+getName().length()+1));
+			//LogManager::getInstance()->message("ALT RELEASE MATCH, PATH: " + path);
+		}
+	}
+	return path;
+}
+
 void Bundle::addDownload(Download* d) {
 	downloads.push_back(d);
 }
@@ -311,6 +366,9 @@ bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) {
 	auto& ulm = userQueue[qi->getPriority()];
 	auto j = ulm.find(aUser);
 	dcassert(j != ulm.end());
+	if (j == ulm.end()) {
+		return false;
+	}
 	auto& l = j->second;
 	int pos = 0;
 	for (auto s = l.begin(); s != l.end(); ++s) {

@@ -81,7 +81,7 @@ public:
 	typedef vector<UserRunningPair> SourceIntList;
 	typedef pair<HintedUser, string> UserBundlePair;
 	typedef vector<UserBundlePair> FinishedNotifyList;
-	typedef unordered_map<string, QueueItemList> DirMap;
+	typedef unordered_map<string, uint32_t> DirMap;
 	typedef unordered_map<string, BundlePtr> BundleTokenMap;
 
 
@@ -141,6 +141,7 @@ public:
 	bool addQueue(QueueItem* qi);
 
 	void addFinishedItem(QueueItem* qi, bool finished);
+	void removeFinishedItem(QueueItem* qi);
 
 	bool getFileBundle() {
 		return fileBundle;
@@ -195,6 +196,9 @@ public:
 	bool isFinishedNotified(const UserPtr& aUser);
 	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle);
 	void removeFinishedNotify(const UserPtr& aUser);
+	void getDirQIs(const string& aDir, QueueItemList& ql);
+	void getUserQIs(const UserPtr& aUser, QueueItemList& ql);
+	string getMatchPath(const SearchResultPtr& sr);
 
 	/** All queue items indexed by user */
 	void getQISources(HintedUserList& l);

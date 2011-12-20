@@ -71,7 +71,7 @@ public:
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
 
-	void remove(QueueItem* qi, bool moved = false) noexcept;
+	void removeQI(QueueItem* qi, bool moved = false) noexcept;
 	void remove(const string aTarget) noexcept;
 	void removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
@@ -302,7 +302,7 @@ private:
 		QueueItem* getNextPrioQI(const UserPtr& aUser, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool listAll=false);
 		QueueItem* getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio = Bundle::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 		QueueItemList getRunning(const UserPtr& aUser);
-		bool addDownload(QueueItem* qi, Download* d);
+		void addDownload(QueueItem* qi, Download* d);
 		void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
 
 		void removeQI(QueueItem* qi, bool removeRunning = true, bool removeBundle=false);
@@ -342,7 +342,7 @@ private:
 	
 	//using pme for now
 	PME regexp;
-	bool addAlternates(QueueItem* qi, const HintedUser& aUser);
+	bool addBundleAlternates(QueueItem* qi, const HintedUser& aUser);
 
 	//temp stats
 	int highestSel, highSel, normalSel, lowSel, calculations;

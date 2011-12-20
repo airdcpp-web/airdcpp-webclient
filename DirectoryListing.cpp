@@ -334,102 +334,67 @@ string DirectoryListing::getPath(const Directory* d) const {
 
 void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
 	string target = aTarget;
-	boost::regex reg;
-	//BundlePtr bundle;
-	reg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
-	bool useRoot=false;
-
 	if(!aDir->getComplete()) {
-		// folder is not completed (partial list?), so we need to download it first
-		QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
-	} else {
-		Directory::List& lst = aDir->directories;
-		File::List& l = aDir->files;
-
-		//check if there are incomplete subdirs
-		for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-			if (!(*j)->getComplete()) {
-				if (!recursiveList) {
-					QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
-				} else {
-					//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-					QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio, true);
-				}
-				return;
-			} else if (!regex_match((*j)->getName(), reg)) {
-				useRoot=true;
-			}
-		}
-
-		target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
-		//create bundles
-		if (first) {
-			if (useRoot || !l.empty() || lst.empty()) {
-				//bundle = QueueManager::getInstance()->createBundle(target);
-				aBundle = BundlePtr(new Bundle(target, false, GET_TIME()));
-				if (prio != QueueItem::DEFAULT) {
-					aBundle->setPriority((Bundle::Priority)prio);
-					aBundle->setAutoPriority(false);
-				} else {
-					aBundle->setPriority(Bundle::LOW);
-				}
-				aBundle->setDirDate(aDir->getDirDate());
-				//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE1: " + aBundle->getTarget());
-			} else {
-				sort(lst.begin(), lst.end(), Directory::DirSort());
-				for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-					aBundle = BundlePtr(new Bundle(target + (*j)->getName() + PATH_SEPARATOR, false, GET_TIME()));
-					if (prio != QueueItem::DEFAULT) {
-						aBundle->setPriority((Bundle::Priority)prio);
-						aBundle->setAutoPriority(false);
-					} else {
-						aBundle->setPriority(Bundle::LOW);
-					}
-					aBundle->setDirDate(aDir->getDirDate());
-					//LogManager::getInstance()->message("DirectoryListing::download ADDBUNDLE2: " + aBundle->getTarget());
-					download(*j, target, highPrio, prio, false, false, aBundle);
-
-					sort(l.begin(), l.end(), File::FileSort());
-					for(File::Iter i = aDir->files.begin(); i != aDir->files.end(); ++i) {
-						File* file = *i;
-						try {
-							download(file, target + file->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
-						} catch(const QueueException&) {
-							// Catch it here to allow parts of directories to be added...
-						} catch(const FileException&) {
-							//..
-						}
-					}
-					QueueManager::getInstance()->addBundle(aBundle);
-				}
-				return;
-			}
+		// the folder is not completed (partial list?), so we need to download it first
+		if (!recursiveList) {
+			QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
 		} else {
-			//aBundle->getBundleDirs().push_back(target);
+			//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
+			QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio, true);
 		}
+		return;
+	}
 
-		// First, recurse over the directories
-		sort(lst.begin(), lst.end(), Directory::DirSort());
-		for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-			download(*j, target, highPrio, prio, false, false, aBundle);
-		}
-		// Then add the files
-		sort(l.begin(), l.end(), File::FileSort());
-		for(File::Iter i = aDir->files.begin(); i != aDir->files.end(); ++i) {
-			File* file = *i;
-			try {
-				download(file, target + file->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
-			} catch(const QueueException&) {
-				// Catch it here to allow parts of directories to be added...
-			} catch(const FileException&) {
-				//..
+	Directory::List& lst = aDir->directories;
+	File::List& l = aDir->files;
+
+	//check if there are incomplete subdirs
+	for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
+		if (!(*j)->getComplete()) {
+			if (!recursiveList) {
+				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
+			} else {
+				//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
+				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio, true);
 			}
+			return;
 		}
+	}
 
-		if (first && aBundle) {
-			//LogManager::getInstance()->message("QueueManager::getInstance()->addBundle");
-			QueueManager::getInstance()->addBundle(aBundle);
+	target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
+	//create bundles
+	if (first) {
+		aBundle = BundlePtr(new Bundle(target, false, GET_TIME()));
+		if (prio != QueueItem::DEFAULT) {
+			aBundle->setPriority((Bundle::Priority)prio);
+			aBundle->setAutoPriority(false);
+		} else {
+			aBundle->setPriority(Bundle::LOW);
 		}
+		aBundle->setDirDate(aDir->getDirDate());
+	}
+
+	// First, recurse over the directories
+	sort(lst.begin(), lst.end(), Directory::DirSort());
+	for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
+		download(*j, target, highPrio, prio, false, false, aBundle);
+	}
+
+	// Then add the files
+	sort(l.begin(), l.end(), File::FileSort());
+	for(File::Iter i = aDir->files.begin(); i != aDir->files.end(); ++i) {
+		File* file = *i;
+		try {
+			download(file, target + file->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
+		} catch(const QueueException&) {
+			// Catch it here to allow parts of directories to be added...
+		} catch(const FileException&) {
+			//..
+		}
+	}
+
+	if (first) {
+		QueueManager::getInstance()->addBundle(aBundle);
 	}
 }
 
