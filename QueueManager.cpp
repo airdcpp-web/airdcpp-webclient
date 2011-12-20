@@ -4026,7 +4026,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 	if (!first) {
 		{
 			Lock l (cs);
-			for (auto j = sourceBundle->getFinishedFiles().begin(); j != sourceBundle->getFinishedFiles().end(); ++j) {
+			for (auto j = sourceBundle->getFinishedFiles().begin(); j != sourceBundle->getFinishedFiles().end();) {
 				targetBundle->addFinishedItem(*j, false);
 				sourceBundle->removeFinishedItem(*j);
 			}
