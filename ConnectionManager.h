@@ -58,6 +58,7 @@ public:
 	
 	GETSET(string, token, Token);
 
+	GETSET(string, lastBundle, LastBundle);
 	GETSET(uint8_t, maxConns, MaxConns);
 	GETSET(uint64_t, lastAttempt, LastAttempt);
 	GETSET(int, errors, Errors); // Number of connection errors, or -1 after a protocol error

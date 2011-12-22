@@ -455,8 +455,9 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		smallSlot=true;
 	}
 
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot);
-	bool start = startDownload(prio, aConn->getUser(), aConn->getToken());
+	string bundleToken;
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot, bundleToken);
+	bool start = startDownload(prio, aConn->getUser(), bundleToken);
 	if(!start && !smallSlot) {
 		removeConnection(aConn);
 		return;

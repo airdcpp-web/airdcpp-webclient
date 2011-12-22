@@ -1548,7 +1548,7 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 	}
 }
 
-QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSlot) noexcept {
+QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSlot, string& bundleToken) noexcept {
 	Lock l(cs);
 	QueueItem* qi = userQueue.getNextPrioQI(aUser, 0, 0, smallSlot);
 	if(qi) {
@@ -1557,6 +1557,7 @@ QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSl
 	} else {
 		qi = userQueue.getNextBundleQI(aUser, Bundle::LOWEST, 0, 0, smallSlot);
 		if (qi) {
+			bundleToken = qi->getBundle()->getToken();
 			return (QueueItem::Priority)qi->getBundle()->getPriority();
 		}
 	}
@@ -3186,16 +3187,14 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 			bundle = qi->getBundle();
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
-				try {
-					if(qi->isFinished() && bundle->isSource(sr->getUser())) {
-						//no need to match this
-						bundle = NULL;
-						continue;
-					}
+				if(qi->isFinished() && bundle->isSource(sr->getUser())) {
+					//no need to match this
+					continue;
+				}
+				users = qi->getBundle()->countOnlineUsers(); 
+				bool nmdcUser = sr->getUser()->isSet(User::NMDC);
 
-					users = qi->getBundle()->countOnlineUsers(); 
-					
-					bool nmdcUser = sr->getUser()->isSet(User::NMDC);
+				try {
 					/* match with partial list allways but decide if we are in nmdc hub here. 
 					( dont want to change the settings, would just break what user has set already, 
 					alltho would make a bit more sense to have just 1 match queue option, but since many have that disabled totally and we prefer to match partials in adchubs... ) */
@@ -3210,7 +3209,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					} else if (qi->getTargetFileName() == sr->getFileName() && bundle->getSimpleMatching() && Util::getDir(sr->getFile(), true, true) == bundle->getName()) {
 						wantConnection = addBundleAlternates(qi, HintedUser(sr->getUser(), sr->getHubURL()));
 						// this is how sdc has it, dont add sources and receive wantconnection if we are about to match queue.
-					} else if (!qi->isFinished()) {
+					} else {
 						wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
 					}
 					added = true;
@@ -4059,7 +4058,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 		}
 		if (added > 0) {
 			tmp2.resize(tmp2.size() + STRING(EXISTING_BUNDLES_MERGED).size() + 1024);
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(EXISTING_BUNDLES_MERGED), added));
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(EXISTING_BUNDLES_MERGED), added+1));
 			LogManager::getInstance()->message(tmp + ", " + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()) + " (" + tmp2 + ")");
 		} else {
 			LogManager::getInstance()->message(tmp + " (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()) + ")");
@@ -4366,7 +4365,7 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 	} else {
 		//LogManager::getInstance()->message("moveDir, no merge bundle");
 		//nothing to merge to, move the old bundle
-		changeBundleTarget(sourceBundle, convertMovePath(sourceBundleTarget, aSource, aTarget));
+		int merged = changeBundleTarget(sourceBundle, convertMovePath(sourceBundleTarget, aSource, aTarget));
 
 		{
 			Lock l (cs);
@@ -4395,7 +4394,14 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 		string tmp;
 		tmp.resize(tmp.size() + STRING(BUNDLE_MOVED).size() + 1024);
 		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_MOVED), sourceBundle->getName().c_str(), sourceBundle->getTarget().c_str()));
-		LogManager::getInstance()->message(tmp);
+		if (merged > 0) {
+			string tmp2;
+			tmp2.resize(tmp2.size() + STRING(EXISTING_BUNDLES_MERGED).size() + 1024);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(EXISTING_BUNDLES_MERGED), merged));
+			LogManager::getInstance()->message(tmp + " (" + tmp2 + ")");
+		} else {
+			LogManager::getInstance()->message(tmp);
+		}
 	}
 }
 
@@ -4626,11 +4632,6 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 		//all files should be part of the same directory bundle
 		QueueItem* qi = ql.front();
 		BundlePtr sourceBundle = qi->getBundle();
-
-		/*{
-			Lock l (cs);
-			fire(QueueManagerListener::BundleMoved(), sourceBundle);
-		} */
 
 		BundlePtr targetBundle = findMergeBundle(qi);
 		if (targetBundle) {

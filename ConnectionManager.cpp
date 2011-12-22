@@ -176,7 +176,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 			ConnectionQueueItem* cqi = *i;
 			if(!cqi)
 				continue;
-			//maksis check this again if needed.
 			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING && cqi->getState() != ConnectionQueueItem::IDLE) {
 				if(!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					removed.push_back(cqi);
@@ -197,14 +196,16 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL))
 						smallSlot=true;
 
-					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), smallSlot);
+					string bundleToken;
+					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), smallSlot, bundleToken);
+					cqi->setLastBundle(bundleToken);
 
 					if(prio == QueueItem::PAUSED) {
 						removed.push_back(cqi);
 						continue;
 					}
 
-					bool startDown = DownloadManager::getInstance()->startDownload(prio, cqi->getUser(), cqi->getToken());
+					bool startDown = DownloadManager::getInstance()->startDownload(prio, cqi->getUser(), bundleToken);
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown) {
@@ -284,7 +285,8 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 					}
 				}
 
-				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false);
+				string bundleToken;
+				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false, bundleToken);
 				bool startDown = DownloadManager::getInstance()->startDownload(prio, NULL, Util::emptyString, true);
 				if(prio != QueueItem::PAUSED && startDown) {
 					uint64_t tick = GET_TICK();
