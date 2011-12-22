@@ -110,11 +110,6 @@ QueueItem* QueueManager::FileQueue::add(const string& aTarget, int64_t aSize,
 			int pos = aTarget.rfind("\\")+1;
 		
 			if(BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP)){
-				/*PME regexp;
-				regexp.Init(Text::utf8ToAcp(SETTING(HIGH_PRIO_FILES)));
-				if((regexp.IsValid()) && (regexp.match(Text::utf8ToAcp(aTarget.substr(pos))))) {
-					p = QueueItem::HIGH;
-				}*/
 				string str1 = SETTING(HIGH_PRIO_FILES);
 				string str2 = aTarget.substr(pos);
 				try {
@@ -850,8 +845,6 @@ QueueManager::QueueManager() :
 	ClientManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
 	DownloadManager::getInstance()->addListener(this);
-
-	regexp.Init("[Rr0-9][Aa0-9][Rr0-9]");
 
 	highestSel=0, highSel=0, normalSel=0, lowSel=0, calculations=0;
 	File::ensureDirectory(Util::getListPath());
@@ -1721,17 +1714,12 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 			q->resetDownloaded();
 		}
 	}
-
-	bool partial = q->isSet(QueueItem::FLAG_PARTIAL_LIST);
 	
-	Download* d = new Download(aSource, *q, partial ? q->getTempTarget() : q->getTarget());
+	Download* d = new Download(aSource, *q, q->getTarget());
 	if (q->getBundle()) {
 		dcassert(!q->isSet(QueueItem::FLAG_USER_LIST));
 		dcassert(!q->isSet(QueueItem::FLAG_TEXT));
 		d->setBundle(q->getBundle());
-	}
-	if (partial) {
-		d->setTempTarget(q->getTarget());
 	}
 	userQueue.addDownload(q, d);
 	fire(QueueManagerListener::SourcesUpdated(), q);
@@ -2079,12 +2067,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 		aDownload->setFile(0);
 
 		if(aDownload->getType() == Transfer::TYPE_PARTIAL_LIST) {
-			if (!aDownload->getPath().empty()) {
-				q = fileQueue.find(aDownload->getTempTarget());
-			} else {
-				//root directory in the partial list
-				q = fileQueue.find(getListPath(aDownload->getHintedUser()));
-			}
+			q = fileQueue.find(aDownload->getPath());
 			if(q) {
 				if(!aDownload->getPFS().empty()) {
 					if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(aDownload->getUser()) != directories.end()) ||
@@ -3165,105 +3148,94 @@ void QueueManager::noDeleteFileList(const string& path) {
 
 // SearchManagerListener
 void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
-	bool added = false;
-	bool wantConnection = false;
-	bool matchPartialADC = false;
-	bool matchPartialNMDC = false;
-	size_t users = 0;
-	BundlePtr bundle = NULL;
-
 	if (!BOOLSETTING(AUTO_ADD_SOURCE)) {
 		return;
 	}
+
+	bool wantConnection = false;
+	bool addSources = false;
+	size_t users = 0;
+	BundlePtr bundle = NULL;
 
 	{
 		Lock l(cs);
 		QueueItemList matches = fileQueue.find(sr->getTTH());
 		for(auto i = matches.begin(); i != matches.end(); ++i) {
-			if (!(*i)->getBundle()) {
-				continue;
-			}
 			QueueItem* qi = *i;
-			bundle = qi->getBundle();
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
-				if(qi->isFinished() && bundle->isSource(sr->getUser())) {
-					//no need to match this
-					continue;
-				}
-				users = qi->getBundle()->countOnlineUsers(); 
-				bool nmdcUser = sr->getUser()->isSet(User::NMDC);
-
-				try {
-					/* match with partial list allways but decide if we are in nmdc hub here. 
-					( dont want to change the settings, would just break what user has set already, 
-					alltho would make a bit more sense to have just 1 match queue option, but since many have that disabled totally and we prefer to match partials in adchubs... ) */
-					if(BOOLSETTING(AUTO_SEARCH_AUTO_MATCH) && (users < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
-						if(nmdcUser) {
-							matchPartialNMDC = true;
-						} else {
-							matchPartialADC = true;
-						}
-					} else if (!nmdcUser) {
-						matchPartialADC = true;
-					} else if (qi->getTargetFileName() == sr->getFileName() && bundle->getSimpleMatching() && Util::getDir(sr->getFile(), true, true) == bundle->getName()) {
-						wantConnection = addBundleAlternates(qi, HintedUser(sr->getUser(), sr->getHubURL()));
-						// this is how sdc has it, dont add sources and receive wantconnection if we are about to match queue.
-					} else {
-						wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0);
+				if (qi->getBundle()) {
+					bundle = qi->getBundle();
+					if(qi->isFinished() && bundle->isSource(sr->getUser())) {
+						//no need to match this bundle
+						continue;
 					}
-					added = true;
-					break;
-				} catch(const Exception&) {
-					//...
+
+					if((bundle->countOnlineUsers() < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
+						addSources = true;
+					} 
+				} else {
+					if(qi->isFinished()) {
+						continue;
+					}
+
+					try {
+						if (addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), 0)) {
+							wantConnection = true;
+						}
+					} catch(const Exception&) {
+						//...
+					}
 				}
+				break;
 			}
 		}
 	}
 
-	if (!added) {
-		return;
-	}
-
 	//moved outside lock range.
-	if(matchPartialADC && bundle) {
+	if(addSources && !sr->getUser()->isSet(User::NMDC)) {
+		//ADC
 		string path = bundle->getMatchPath(sr);
 		if (!path.empty()) {
 			try {
 				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
 			} catch(...) { }
-		} else {
-			//failed, should we use full filelist now?
+		} else if (BOOLSETTING(ALLOW_MATCH_FULL_LIST)) {
+			//failed, use full filelist
+			try {
+				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE);
+			} catch(const Exception&) {
+				// ...
+			}
 		}
-	} else if(matchPartialNMDC) {
-		try {
-			string path = Util::getFilePath(sr->getFile());
-			addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
-		} catch(const Exception&) {
-			// ...
-		}
-	} else if(sr->getUser()->isOnline() && wantConnection) {
-		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(sr->getUser(), sr->getHubURL()));
-	}
-
-}
-
-bool QueueManager::addBundleAlternates(QueueItem* qi, const dcpp::HintedUser& aUser) {
-	bool wantConnection = false;
-	BundlePtr b = qi->getBundle();
-	if (b) {
-		for (auto i = b->getQueueItems().begin(); i != b->getQueueItems().end(); ++i) {
-			try {	 
-				if (addSource(*i, aUser, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
-					wantConnection = true;
+		return;
+	} else if (addSources) {
+		//NMDC
+		if ((bundle->getSimpleMatching() && Util::getDir(sr->getFile(), true, true) == bundle->getName()) || (sr->getFile().find(getName() + "\\") != string::npos)) {
+			Lock l (cs);
+			for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
+				try {	 
+					if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+						wantConnection = true;
+					}
+				} catch(...) {
+					// Ignore...
 				}
-			} catch(...) {
-				// Ignore...
+			}
+		} else if (BOOLSETTING(ALLOW_MATCH_FULL_LIST)) {
+			try {
+				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE);
+			} catch(const Exception&) {
+				// ...
 			}
 		}
 	}
-	return wantConnection;
+
+	if(wantConnection) {
+		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(sr->getUser(), sr->getHubURL()));
+	}
 }
+
 // ClientManagerListener
 void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser) noexcept {
 	bool hasDown = false;

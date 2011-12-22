@@ -581,7 +581,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Use Auto Priority by default", 
 "Auto refresh time", 
 "Automatically search for alternative TTH source every", 
-"Automatically match queue for auto search hits", 
 "Max sources for autosearch", 
 "Maximum auto opened", 
 "File Preview", 
@@ -1334,6 +1333,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Seems that you are trying to move all files in the bundle %s. Do you want to move the whole bundle directory instead?", 
 "Only from users with nick Matching:  (Wildcards, | separate)", 
 "User Match", 
+"Use full filelists as last resort if adding sources fails", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -1915,7 +1915,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsAutoPriorityDefault", 
 "SettingsAutoRefreshTime", 
 "SettingsAutoSearch", 
-"SettingsAutoSearchAutoMatch", 
 "SettingsAutoSearchLimit", 
 "SettingsAutoSlots", 
 "SettingsAvipreview", 
@@ -2668,4 +2667,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ConfirmMoveDirAllFiles", 
 "AsUserMatch", 
 "UserMatch", 
+"SettingsAllowMatchFullList", 
 };

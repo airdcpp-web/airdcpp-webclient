@@ -82,7 +82,7 @@ const string SettingsManager::settingTags[] =
 	"CompressTransfers", "ShowProgressBars", "MaxTabRows",
 	"MaxCompression", "AntiFragMethod", "MDIMaxmimized", "NoAwayMsgToBots",
 	"SkipZeroByte", "AdlsBreakOnFirst",
-	"HubUserCommands", "AutoSearchAutoMatch", "DownloadBarColor", "UploadBarColor", "LogSystem",
+	"HubUserCommands", "AllowMatchFullList", "DownloadBarColor", "UploadBarColor", "LogSystem",
 	"LogFilelistTransfers", "ShowStatusbar", "BandwidthSettingMode", "ShowToolbar", "ShowTransferview", 
 	"SearchPassiveAlways", "SetMinislotSize", "ShutdownInterval", "DontAnnounceNewVersions", 
 	"ExtraSlots", "ExtraPartialSlots",
@@ -286,7 +286,6 @@ SettingsManager::SettingsManager()
 	setDefault(SKIP_ZERO_BYTE, false);
 	setDefault(ADLS_BREAK_ON_FIRST, false);
 	setDefault(HUB_USER_COMMANDS, true);
-	setDefault(AUTO_SEARCH_AUTO_MATCH, false);
 	setDefault(LOG_FILELIST_TRANSFERS, false);
 	setDefault(LOG_SYSTEM, true);
 	setDefault(SEND_UNKNOWN_COMMANDS, false);
@@ -707,6 +706,7 @@ SettingsManager::SettingsManager()
 	setDefault(ICON_PATH, "icons");
 	setDefault(QI_AUTOPRIO, true);
 	setDefault(SHOW_SHARED_DIRS_FAV, true);
+	setDefault(ALLOW_MATCH_FULL_LIST, false);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

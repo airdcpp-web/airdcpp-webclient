@@ -339,10 +339,6 @@ private:
 	~QueueManager();
 	
 	mutable CriticalSection cs;
-	
-	//using pme for now
-	PME regexp;
-	bool addBundleAlternates(QueueItem* qi, const HintedUser& aUser);
 
 	//temp stats
 	int highestSel, highSel, normalSel, lowSel, calculations;

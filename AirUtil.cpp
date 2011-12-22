@@ -456,11 +456,6 @@ void AirUtil::setProfile(int profile, bool setSkiplist) {
 			SettingsManager::getInstance()->set(SettingsManager::CHECK_EXTRA_FILES, true);
 			SettingsManager::getInstance()->set(SettingsManager::CHECK_DUPES, true);
 			SettingsManager::getInstance()->set(SettingsManager::MAX_FILE_SIZE_SHARED, 600);
-			/*with rar hubs we dont need the matching, will lower ram usage not use that
-			since autosearch adds sources to all rars. 
-			But a good settings for max sources for autosearch depending download connection ?? 
-			or well most users are found with 1 search anyway so second search wont find much more anyway*/
-			SettingsManager::getInstance()->set(SettingsManager::AUTO_SEARCH_AUTO_MATCH, false);
 			SettingsManager::getInstance()->set(SettingsManager::SEARCH_TIME, 5);
 			SettingsManager::getInstance()->set(SettingsManager::AUTO_SEARCH_LIMIT, 10);
 			SettingsManager::getInstance()->set(SettingsManager::AUTO_FOLLOW, false);

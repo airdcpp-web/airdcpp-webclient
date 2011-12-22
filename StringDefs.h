@@ -584,7 +584,6 @@ enum Strings { // @DontAdd
 	SETTINGS_AUTO_PRIORITY_DEFAULT, // "Use Auto Priority by default"
 	SETTINGS_AUTO_REFRESH_TIME, // "Auto refresh time"
 	SETTINGS_AUTO_SEARCH, // "Automatically search for alternative TTH source every"
-	SETTINGS_AUTO_SEARCH_AUTO_MATCH, // "Automatically match queue for auto search hits"
 	SETTINGS_AUTO_SEARCH_LIMIT, // "Max sources for autosearch"
 	SETTINGS_AUTO_SLOTS, // "Maximum auto opened"
 	SETTINGS_AVIPREVIEW, // "File Preview"
@@ -1341,5 +1340,6 @@ enum Strings { // @DontAdd
 	CONFIRM_MOVE_DIR_ALL_FILES, // "Seems that you are trying to move all files in the bundle %s. Do you want to move the whole bundle directory instead?"
 	AS_USER_MATCH, // "Only from users with nick Matching:  (Wildcards, | separate)"
 	USER_MATCH, // "User Match"
+	SETTINGS_ALLOW_MATCH_FULL_LIST, // "Use full filelists as last resort if adding sources fails"
 	LAST // @DontAdd
 };
