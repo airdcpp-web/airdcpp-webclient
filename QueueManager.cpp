@@ -3211,7 +3211,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		return;
 	} else if (addSources) {
 		//NMDC
-		if ((bundle->getSimpleMatching() && Util::getDir(sr->getFile(), true, true) == bundle->getName()) || (sr->getFile().find(getName() + "\\") != string::npos)) {
+		if ((bundle->getSimpleMatching() && Util::getDir(sr->getFile(), true, true) == bundle->getName()) || (sr->getFile().find(bundle->getName() + "\\") != string::npos)) {
 			Lock l (cs);
 			for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
 				try {	 
