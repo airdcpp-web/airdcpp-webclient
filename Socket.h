@@ -42,6 +42,7 @@ const int INVALID_SOCKET = -1;
 #define SOCKET_ERROR -1
 #endif
 
+#include "GetSet.h"
 #include "Util.h"
 #include "Exception.h"
 

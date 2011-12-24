@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 AirDC++ Project
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +16,17 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "stdinc.h"
-#include "UploadBundle.h"
+#ifndef DCPLUSPLUS_DCPP_GET_SET_H
+#define DCPLUSPLUS_DCPP_GET_SET_H
 
-namespace dcpp {
+#include <boost/mpl/if.hpp>
+#include <type_traits>
 
-uint64_t UploadBundle::getSecondsLeft() {
-	double avg = getSpeed();
-	int64_t bytesLeft =  getSize() - getUploaded();
-	return (avg > 0) ? static_cast<int64_t>(bytesLeft / avg) : 0;
-}
+#define REF_OR_COPY(t) boost::mpl::if_c<std::is_class<t>::value, const t&, t>::type
 
-string UploadBundle::getName() {
-	return Util::getDir(target, false, true);
-}
+#define GETSET(type, name, name2) \
+private: type name; \
+public: REF_OR_COPY(type) get##name2() const { return name; } \
+	void set##name2(REF_OR_COPY(type) name) { this->name = name; }
 
-}
+#endif /* GETSET_H_ */

@@ -9,6 +9,7 @@
 #include "Streams.h"
 #include "QueueItem.h"
 #include "Bundle.h"
+#include "GetSet.h"
 
 namespace dcpp {
 
@@ -42,9 +43,7 @@ public:
 	~Download();
 
 	/** @return Target filename without path. */
-	string getTargetFileName() const {
-		return Util::getFileName(getPath());
-	}
+	string getTargetFileName();
 
 	/** @internal */
 	const string& getDownloadTarget() const {

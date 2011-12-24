@@ -19,7 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_HUBENTRY_H_
 #define DCPLUSPLUS_DCPP_HUBENTRY_H_
 
+#include <string>
+
+#include "SettingsManager.h"
+#include "GetSet.h"
+
 namespace dcpp {
+
+using std::string;
 
 class HubEntry {
 public:
@@ -31,19 +38,19 @@ public:
 
 	HubEntry(const string& aName, const string& aServer, const string& aDescription, const string& aUsers, const string& aCountry,
 		const string& aShared, const string& aMinShare, const string& aMinSlots, const string& aMaxHubs, const string& aMaxUsers,
-		const string& aReliability, const string& aRating) : name(aName), server(aServer), description(aDescription), country(aCountry), 
+		const string& aReliability, const string& aRating) : name(aName), server(aServer), description(aDescription), country(aCountry),
 		rating(aRating), reliability((float)(Util::toFloat(aReliability) / 100.0)), shared(Util::toInt64(aShared)), minShare(Util::toInt64(aMinShare)),
-		users(Util::toInt(aUsers)), minSlots(Util::toInt(aMinSlots)), maxHubs(Util::toInt(aMaxHubs)), maxUsers(Util::toInt(aMaxUsers)) 
+		users(Util::toInt(aUsers)), minSlots(Util::toInt(aMinSlots)), maxHubs(Util::toInt(aMaxHubs)), maxUsers(Util::toInt(aMaxUsers))
 	{
 
 	}
 
-	HubEntry() noexcept { }
-	HubEntry(const HubEntry& rhs) noexcept : name(rhs.name), server(rhs.server), description(rhs.description), country(rhs.country), 
+	HubEntry() { }
+	HubEntry(const HubEntry& rhs) : name(rhs.name), server(rhs.server), description(rhs.description), country(rhs.country),
 		rating(rhs.rating), reliability(rhs.reliability), shared(rhs.shared), minShare(rhs.minShare), users(rhs.users), minSlots(rhs.minSlots),
 		maxHubs(rhs.maxHubs), maxUsers(rhs.maxUsers) { }
 
-	~HubEntry() noexcept { }
+	~HubEntry() { }
 
 	GETSET(string, name, Name);
 	GETSET(string, server, Server);

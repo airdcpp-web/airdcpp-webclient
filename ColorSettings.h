@@ -20,7 +20,8 @@
 #define COLORSETTINGS_H
 
 #include "stdinc.h"
-#include "DcPlusPlus.h"
+#include "DCPlusPlus.h"
+#include "GetSet.h"
 
 namespace dcpp {
 class ColorSettings

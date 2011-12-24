@@ -26,6 +26,7 @@
 #include "forward.h"
 #include "Flags.h"
 #include "FastAlloc.h"
+#include "GetSet.h"
 #include "Util.h"
 #include "User.h"
 #include "UserInfoBase.h"

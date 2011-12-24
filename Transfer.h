@@ -22,7 +22,7 @@
 #include "forward.h"
 #include "MerkleTree.h"
 #include "TimerManager.h"
-#include "Util.h"
+#include "GetSet.h"
 #include "Segment.h"
 
 namespace dcpp {

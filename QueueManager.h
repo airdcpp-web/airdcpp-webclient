@@ -195,7 +195,6 @@ public:
 	
 	GETSET(uint64_t, lastSave, LastSave);
 	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);
-	GETSET(string, queueFile, QueueFile);
 
 	enum { MOVER_LIMIT = 10*1024*1024 };
 	class FileMover : public Thread {
@@ -370,8 +369,8 @@ private:
 	void processList(const string& name, const HintedUser& user, const string path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
-	BundlePtr findBundle(const string bundleToken);
-	void addBundleUpdate(const string bundleToken, bool finished = false);
+	BundlePtr findBundle(const string& bundleToken);
+	void addBundleUpdate(const string& bundleToken, bool finished = false);
 	void sendPBD(HintedUser& aUser, const TTHValue& tth, const string& bundleToken);
 
 	void addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);

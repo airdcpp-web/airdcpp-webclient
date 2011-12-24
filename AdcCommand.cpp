@@ -236,6 +236,10 @@ string AdcCommand::getHeaderString() const {
 	return tmp;
 }
 
+const string& AdcCommand::getParam(size_t n) const {
+	return getParameters().size() > n ? getParameters()[n] : Util::emptyString;
+}
+
 string AdcCommand::getParamString(bool nmdc) const {
 	string tmp;
 	for(StringIterC i = getParameters().begin(); i != getParameters().end(); ++i) {

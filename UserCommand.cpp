@@ -20,6 +20,7 @@
 #include "UserCommand.h"
 
 #include "StringTokenizer.h"
+#include "Util.h"
 
 namespace dcpp {
 

@@ -28,6 +28,7 @@
 #include "HintedUser.h"
 #include "Bundle.h"
 #include "Pointer.h"
+#include "GetSet.h"
 
 #include "boost/unordered_map.hpp"
 

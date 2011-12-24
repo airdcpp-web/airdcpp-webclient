@@ -28,6 +28,7 @@
 #include "Streams.h"
 #include "QueueItem.h"
 #include "UserInfoBase.h"
+#include "GetSet.h"
 
 namespace dcpp {
 

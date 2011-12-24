@@ -60,6 +60,8 @@ int TimerManager::run() {
 		}
 	}
 
+	mtx.unlock();
+
 	dcdebug("TimerManager done\n");
 	return 0;
 }

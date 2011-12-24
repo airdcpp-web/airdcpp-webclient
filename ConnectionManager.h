@@ -23,7 +23,6 @@
 
 #include "UserConnection.h"
 #include "Singleton.h"
-#include "Util.h"
 #include "ConnectionManagerListener.h"
 #include "HintedUser.h"
 

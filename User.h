@@ -24,6 +24,7 @@
 #include "CID.h"
 #include "FastAlloc.h"
 #include "Flags.h"
+#include "GetSet.h"
 
 namespace dcpp {
 

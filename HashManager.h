@@ -24,11 +24,11 @@
 #include "Thread.h"
 #include "Semaphore.h"
 #include "TimerManager.h"
-#include "Util.h"
 #include "FastAlloc.h"
 #include "Text.h"
 #include "Streams.h"
 #include "ZUtils.h"
+#include "GetSet.h"
 
 namespace dcpp {
 

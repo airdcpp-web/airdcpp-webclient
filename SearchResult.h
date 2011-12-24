@@ -24,6 +24,7 @@
 #include "MerkleTree.h"
 #include "AdcCommand.h"
 #include "Pointer.h"
+#include "Util.h"
 
 namespace dcpp {
 

@@ -1,12 +1,14 @@
 #include "stdinc.h"
 #include "SSL.h"
 
-#include "Util.h"
+#include <vector>
 
 #ifdef HEADER_OPENSSLV_H
 
 namespace dcpp {
 namespace ssl {
+
+using std::vector;
 
 vector<uint8_t> X509_digest(::X509* x509, const ::EVP_MD* md) {
 	unsigned int n;

@@ -5,6 +5,7 @@
 #include "Transfer.h"
 #include "UploadBundle.h"
 #include "Flags.h"
+#include "GetSet.h"
 
 namespace dcpp {
 

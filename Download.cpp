@@ -135,4 +135,8 @@ void Download::getParams(const UserConnection& aSource, StringMap& params) {
 	params["target"] = getPath();
 }
 
+string Download::getTargetFileName() {
+	return Util::getFileName(getPath());
+}
+
 } // namespace dcpp
