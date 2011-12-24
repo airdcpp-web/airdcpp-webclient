@@ -216,13 +216,28 @@ void QueueManager::FileQueue::find(QueueItemList& sl, int64_t aSize, const strin
 	}
 }
 
-QueueItemList QueueManager::FileQueue::find(const TTHValue& tth) {
-	QueueItemList ql;
+void QueueManager::FileQueue::find(const TTHValue& tth, QueueItemList& ql) {
 	auto i = tthIndex.find(tth);
 	if (i != tthIndex.end()) {
 		ql = i->second;
 	}
-	return ql;
+}
+
+void QueueManager::FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItemList& ql) noexcept {
+	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
+		if(!(*j)->getAdls())
+			matchDir(*j, ql);
+	}
+
+	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
+		auto s = tthIndex.find((*i)->getTTH());
+		if (s != tthIndex.end()) {
+			DirectoryListing::File* f = *i;
+			//LogManager::getInstance()->message("MATCH, PATH: " + f->getPath());
+			for_each(s->second.begin(), s->second.end(), [&](QueueItem* qi) { if (qi->getSize() == f->getSize() && 
+				std::find(ql.begin(), ql.end(), qi) == ql.end()) ql.push_back(qi); } );
+		}
+	}
 }
 
 int QueueManager::FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) {
@@ -1561,81 +1576,34 @@ QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSl
 	}
 	return QueueItem::PAUSED;
 }
-namespace {
 
-typedef std::unordered_map<TTHValue, const DirectoryListing::File*> TTHMap;
-
-// *** WARNING *** 
-// Lock(cs) makes sure that there's only one thread accessing this
-static TTHMap tthMap;
-
-void buildMap(const DirectoryListing::Directory* dir) noexcept {
-	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
-		if(!(*j)->getAdls())
-			buildMap(*j);
-	}
-
-	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
-		const DirectoryListing::File* df = *i;
-		tthMap.insert(make_pair(df->getTTH(), df));
-	}
-}
-}
-
-int QueueManager::matchListing(const DirectoryListing& dl, bool partialList) noexcept {
-	int matches = 0;
+void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept {
 	bool wantConnection = false;
+	QueueItemList ql;
 	{
 		Lock l(cs);
 		//uint64_t start = GET_TICK();
-		tthMap.clear(); //incase we throw, map was not cleared at the end.
-		buildMap(dl.getRoot());
-
-		//our queue is most likely bigger than the partial list, so do it in this order
-		if (partialList) {
-			//LogManager::getInstance()->message("MATCHING PARTIAL LIST");
- 			for (auto s = tthMap.begin(); s != tthMap.end(); ++s) {
-				QueueItemList ql = fileQueue.find(s->first);
-				if (!ql.empty()) {
-					for (auto i = ql.begin(); i != ql.end(); ++i) {
-						try {	 
-							wantConnection = addSource(*i, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
-						} catch(...) {
-							// Ignore...
-						}
-						matches++;
-					}
+		fileQueue.matchDir(dl.getRoot(), ql);
+		for(auto i = ql.begin(); i != ql.end(); ++i) {
+			QueueItem* qi = *i;
+			try {
+				if (addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+					wantConnection = true;
 				}
+				newFiles++;
+			} catch(const Exception&) {
+				//...
 			}
-		} else {
-			//LogManager::getInstance()->message("MATCHING FULL LIST");
-			for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
-				QueueItem* qi = i->second;
-				if(qi->isFinished())
-					continue;
-				if(qi->isSet(QueueItem::FLAG_USER_LIST))
-					continue;
-				auto j = tthMap.find(qi->getTTH());
-				if(j != tthMap.end()) {
-					if(j->second->getSize() == qi->getSize()) {
-						try {
-							wantConnection = addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);	
-						} catch(const Exception&) {
-							//...
-						}
-						matches++;
-					}
-				}
+			if (qi->getBundle() && find(bundles.begin(), bundles.end(), qi->getBundle()) == bundles.end()) {
+				bundles.push_back(qi->getBundle());
 			}
 		}
-		tthMap.clear();
 		//uint64_t end = GET_TICK();
-		//LogManager::getInstance()->message("List matched in " + Util::toString(end-start) + " ms");
+		//LogManager::getInstance()->message("List matched in " + Util::toString(end-start) + " ms WITHOUT buildMap");
 	}
-	if((matches > 0) && wantConnection)
+	matches = (int)ql.size();
+	if(wantConnection)
 		ConnectionManager::getInstance()->getDownloadConnection(dl.getHintedUser());
-
-	return matches;
 }
 
 bool QueueManager::getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept {
@@ -1690,7 +1658,8 @@ uint8_t QueueManager::FileQueue::getMaxSegments(int64_t filesize) const {
 
 StringList QueueManager::getTargets(const TTHValue& tth) {
 	Lock l(cs);
-	QueueItemList ql = fileQueue.find(tth);
+	QueueItemList ql;
+	fileQueue.find(tth, ql);
 	StringList sl;
 	for(auto i = ql.begin(); i != ql.end(); ++i) {
 		sl.push_back((*i)->getTarget());
@@ -1959,7 +1928,8 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 			}
 		}
 	} else {
-		QueueItemList ql = fileQueue.find(root);
+		QueueItemList ql;
+		fileQueue.find(root, ql);
 		for (auto s = ql.begin(); s != ql.end(); ++s) {
 			if ((*s)->getTargetFileName() == Util::getFileName(fname)) {
 				qi = (*s);
@@ -2299,11 +2269,14 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 				Lock l(cs);
 
 			for (auto s = tthList.begin(); s != tthList.end(); ++s) {
-				QueueItemList ql = fileQueue.find(*s);
+				QueueItemList ql;
+				fileQueue.find(*s, ql);
 				if (!ql.empty()) {
 					for (auto i = ql.begin(); i != ql.end(); ++i) {
-						try {	 
-							wantConnection = addSource(*i, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
+						try {
+							if (addSource(*i, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+								wantConnection = true;
+							}
 						} catch(...) {
 							// Ignore...
 						}
@@ -2369,17 +2342,40 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 		}
 	}
 	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
-		const size_t BUF_SIZE = STRING(MATCHED_FILES).size() + 16;
+		int matches=0, newFiles=0;
+		BundleList bundles;
+		matchListing(dirList, matches, newFiles, bundles);
 		string tmp;
-		tmp.resize(BUF_SIZE);
-		snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES), matchListing(dirList, (flags & QueueItem::FLAG_PARTIAL_LIST ? true : false)));
-		if(flags & QueueItem::FLAG_PARTIAL_LIST) {
-			//no report
+
+		if((flags & QueueItem::FLAG_PARTIAL_LIST)) {
+			//partial lists
+			if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0 && !bundles.empty()) {
+				if (bundles.size() == 1) {
+					tmp.resize(STRING(MATCH_SOURCE_ADDED).size() + 32 + bundles.front()->getName().size());
+					snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED), newFiles, bundles.front()->getName().c_str());
+				} else {
+					tmp.resize(STRING(MATCH_SOURCE_ADDED_X_BUNDLES).size() + 32);
+					snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED_X_BUNDLES), newFiles, (int)bundles.size());
+				}
+			} else {
+				return;
+			}
 		} else {
-			LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
+			//full lists
+			if (matches > 0) {
+				if (bundles.size() == 1) {
+					tmp.resize(STRING(MATCHED_FILES_BUNDLE).size() + 32 + bundles.front()->getName().size());
+					snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES_BUNDLE), matches, bundles.front()->getName().c_str(), newFiles);
+				} else {
+					tmp.resize(STRING(MATCHED_FILES_X_BUNDLES).size() + 32);
+					snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES_X_BUNDLES), matches, (int)bundles.size(), newFiles);
+				}
+			} else {
+				tmp = CSTRING(NO_MATCHED_FILES);
+			}
 		}
-	}
-	if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
+		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
+	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
 		findNfo(dirList.getRoot(), dirList);
 	}
 }
@@ -3157,12 +3153,12 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 
 	bool wantConnection = false;
 	bool addSources = false;
-	size_t users = 0;
 	BundlePtr bundle = NULL;
 
 	{
 		Lock l(cs);
-		QueueItemList matches = fileQueue.find(sr->getTTH());
+		QueueItemList matches;
+		fileQueue.find(sr->getTTH(), matches);
 		for(auto i = matches.begin(); i != matches.end(); ++i) {
 			QueueItem* qi = *i;
 			// Size compare to avoid popular spoof
@@ -3215,15 +3211,25 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 	} else if (addSources) {
 		//NMDC
 		if ((bundle->getSimpleMatching() && Util::getDir(sr->getFile(), true, true) == bundle->getName()) || (sr->getFile().find(bundle->getName() + "\\") != string::npos)) {
-			Lock l (cs);
-			for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
-				try {	 
-					if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
-						wantConnection = true;
+			int newFiles = 0;
+			{
+				Lock l (cs);
+				for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
+					try {	 
+						if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+							wantConnection = true;
+						}
+						newFiles++;
+					} catch(...) {
+						// Ignore...
 					}
-				} catch(...) {
-					// Ignore...
 				}
+			}
+			if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
+				string tmp;
+				tmp.resize(STRING(MATCH_SOURCE_ADDED).size() + 16 + bundle->getName().size());
+				snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED), newFiles, bundle->getName().c_str());
+				LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(HintedUser(sr->getUser(), sr->getHubURL()))) + ": " + tmp);
 			}
 		} else if (BOOLSETTING(ALLOW_MATCH_FULL_LIST)) {
 			try {
@@ -3553,7 +3559,8 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 		Lock l(cs);
 
 		// Locate target QueueItem in download queue
-		QueueItemList ql = fileQueue.find(tth);
+		QueueItemList ql;
+		fileQueue.find(tth, ql);
 		
 		if(ql.empty()){
 			dcdebug("Not found in download queue\n");
@@ -3624,7 +3631,8 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 
 BundlePtr QueueManager::findBundle(const TTHValue& tth) {
 	Lock l (cs);
-	QueueItemList ql = fileQueue.find(tth);
+	QueueItemList ql;
+	fileQueue.find(tth, ql);
 	if (!ql.empty()) {
 		return ql.front()->getBundle();
 	}
@@ -3637,7 +3645,8 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 		Lock l(cs);
 
 		// Locate target QueueItem in download queue
-		QueueItemList ql = fileQueue.find(tth);
+		QueueItemList ql;
+		fileQueue.find(tth, ql);
 		if (ql.empty()) {
 			//LogManager::getInstance()->message("QL EMPTY, QUIIIIIIIT");
 			return false;
@@ -3815,8 +3824,10 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, StringPairList path
 }
 
 bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& target) {
+	QueueItemList ql;
+
 	Lock l(cs);
-	QueueItemList ql = fileQueue.find(tth);
+	fileQueue.find(tth, ql);
 
 	if(ql.empty()) return false;
 
@@ -4999,9 +5010,10 @@ void QueueManager::sendPBD(HintedUser& aUser, const TTHValue& tth, const string&
 void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) {
 	//LogManager::getInstance()->message("UPDATEPBD");
 	bool wantConnection = false;
+	QueueItemList qiList;
 	{
 		Lock l(cs);
-		QueueItemList qiList = fileQueue.find(aTTH);
+		fileQueue.find(aTTH, qiList);
 		if (!qiList.empty()) {
 			for (auto i = qiList.begin(); i != qiList.end(); ++i) {
 				try {

@@ -158,7 +158,7 @@ const string SettingsManager::settingTags[] =
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
-	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav",
+	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -707,6 +707,7 @@ SettingsManager::SettingsManager()
 	setDefault(QI_AUTOPRIO, true);
 	setDefault(SHOW_SHARED_DIRS_FAV, true);
 	setDefault(ALLOW_MATCH_FULL_LIST, false);
+	setDefault(REPORT_ADDED_SOURCES, true);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

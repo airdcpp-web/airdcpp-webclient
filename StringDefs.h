@@ -320,7 +320,6 @@ enum Strings { // @DontAdd
 	MAGNET_SHELL_DESC, // "URL:MAGNET URI"
 	MANAGE_GROUPS, // "Manage Groups"
 	MATCH_QUEUE, // "Match queue"
-	MATCHED_FILES, // "Matched %d file(s)"
 	MAX_HUBS, // "Max Hubs"
 	MAX_SEGMENTS_NUMBER, // "Max number of segments"
 	MAX_SIZE, // "Max Size"
@@ -1341,5 +1340,11 @@ enum Strings { // @DontAdd
 	AS_USER_MATCH, // "Only from users with nick Matching:  (Wildcards, | separate)"
 	USER_MATCH, // "User Match"
 	SETTINGS_ALLOW_MATCH_FULL_LIST, // "Use full filelists as last resort if adding sources fails"
+	MATCHED_FILES_BUNDLE, // "Matched %d file(s) in the bundle %s, of which %d were new"
+	MATCHED_FILES_X_BUNDLES, // "Matched %d file(s) in %d bundles, of which %d were new"
+	NO_MATCHED_FILES, // "No matching files were found!"
+	MATCH_SOURCE_ADDED, // "Added as source for %d items in the bundle %s"
+	MATCH_SOURCE_ADDED_X_BUNDLES, // "Added as source for %d items in %d bundles"
+	SETTINGS_REPORT_ADDED_SOURCES, // "Report added sources in System Log"
 	LAST // @DontAdd
 };

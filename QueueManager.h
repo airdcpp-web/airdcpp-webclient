@@ -66,7 +66,7 @@ public:
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
 		QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
-	int matchListing(const DirectoryListing& dl, bool partialList) noexcept;
+	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept;
 	bool findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) noexcept;
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
@@ -169,28 +169,6 @@ public:
 	
 	bool dropSource(Download* d);
 
-	const QueueItemList getRunningFiles() noexcept {
-		QueueItemList ql;
-		for(auto i = fileQueue.getQueue().begin(); i != fileQueue.getQueue().end(); ++i) {
-			QueueItem* q = i->second;
-			if(q->isRunning()) {
-				ql.push_back(q);
-			}
-		}
-		return ql;
-	}
-
-	bool getTargetByRoot(const TTHValue& tth, string& target, string& tempTarget) {
-		Lock l(cs);
-		QueueItemList  ql = fileQueue.find(tth);
-	
-		if(ql.empty()) return false;
-
-		target = ql.front()->getTarget();
-		tempTarget = ql.front()->getTempTarget();
-		return true;
-	}
-
 	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& tempTarget);
 	
 	GETSET(uint64_t, lastSave, LastSave);
@@ -251,7 +229,8 @@ public:
 		void find(QueueItemList& sl, int64_t aSize, const string& ext);
 		uint8_t getMaxSegments(int64_t filesize) const;
 		void find(StringList& sl, int64_t aSize, const string& ext);
-		QueueItemList find(const TTHValue& tth);
+		void find(const TTHValue& tth, QueueItemList& ql);
+		void matchDir(const DirectoryListing::Directory* dir, QueueItemList& ql) noexcept;
 
 		// find some PFS sources to exchange parts info
 		void findPFSSources(PFSSourceList&);
