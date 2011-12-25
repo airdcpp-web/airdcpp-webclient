@@ -1688,13 +1688,18 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 			q->resetDownloaded();
 		}
 	}
-	
-	Download* d = new Download(aSource, *q, q->getTarget());
+	 
+	bool partial = q->isSet(QueueItem::FLAG_PARTIAL_LIST);
+	//Download* d = new Download(aSource, *q, q->getTarget());
+	Download* d = new Download(aSource, *q, partial ? q->getTempTarget() : q->getTarget());
 	if (q->getBundle()) {
 		dcassert(!q->isSet(QueueItem::FLAG_USER_LIST));
 		dcassert(!q->isSet(QueueItem::FLAG_TEXT));
 		d->setBundle(q->getBundle());
 	}
+	if(partial) { 	 
+	   d->setTempTarget(q->getTarget()); 	 
+	 }
 	userQueue.addDownload(q, d);
 	fire(QueueManagerListener::SourcesUpdated(), q);
 	dcdebug("found %s\n", q->getTarget().c_str());
@@ -2042,7 +2047,13 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 		aDownload->setFile(0);
 
 		if(aDownload->getType() == Transfer::TYPE_PARTIAL_LIST) {
-			q = fileQueue.find(aDownload->getPath());
+			//q = fileQueue.find(aDownload->getPath());
+			if (!aDownload->getPath().empty()) {
+	            q = fileQueue.find(aDownload->getTempTarget()); 	 
+			} else { 	 
+	            //root directory in the partial list 	 
+	             q = fileQueue.find(getListPath(aDownload->getHintedUser())); 	 
+	        }
 			if(q) {
 				if(!aDownload->getPFS().empty()) {
 					if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(aDownload->getUser()) != directories.end()) ||

@@ -100,7 +100,8 @@ AdcCommand Download::getCommand(bool zlib) const {
 			//these must be converted to adc file when adding (if needed, no slash for bundle requests)
 			cmd.addParam(getPath());
 		} else {
-			cmd.addParam(Util::toAdcFile(getTempTarget()));
+			//cmd.addParam(Util::toAdcFile(getTempTarget()));
+			cmd.addParam(Util::toAdcFile(getPath()));
 		}
 	} else if(getType() == TYPE_FULL_LIST) {
 		if(isSet(Download::FLAG_XML_BZ_LIST)) {
