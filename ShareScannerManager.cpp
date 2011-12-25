@@ -324,7 +324,7 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		}
 	}
 
-	if (!fileList.empty() && ((nfoFiles + sfvFiles) == fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
+	if (!fileList.empty() && ((nfoFiles + sfvFiles) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
 		reg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
 		if (!regex_match(dirName,reg)) {
 			folderList = findFiles(path, "*", true);

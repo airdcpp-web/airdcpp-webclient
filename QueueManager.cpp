@@ -351,7 +351,7 @@ BundlePtr QueueManager::FileQueue::findAutoSearch(int& prioBundles) {
 
 	int p = Bundle::LOW;
 	do {
-		size_t size = prioSearchQueue[p].size();
+		int size = (int)prioSearchQueue[p].size();
 		if (rand < (int)(p-1)*size) {
 			//we got the prio
 			int s = 0;
@@ -1098,7 +1098,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 		recalculateSearchTimes(aBundle);
 		string tmp, tmp2;
 		tmp.resize(tmp.size() + STRING(BUNDLE_CREATED_ALT).size() + 1024);
-		snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED_ALT), aBundle->getName().c_str(), (int)aBundle->getQueueItems().size(), Util::formatBytes(aBundle->getSize()).c_str(), (int)searches.size());
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED_ALT), aBundle->getName().c_str(), aBundle->getQueueItems().size(), Util::formatBytes(aBundle->getSize()).c_str(), searches.size()));
 		if (!aBundle->getRecent()) {
 			tmp2.resize(tmp2.size() + STRING(NEXT_SEARCH_IN).size() + 1024);
 			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_SEARCH_IN), (nextSearch - GET_TICK()) / (60*1000)));
@@ -1688,18 +1688,13 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 			q->resetDownloaded();
 		}
 	}
-	 
-	bool partial = q->isSet(QueueItem::FLAG_PARTIAL_LIST);
-	//Download* d = new Download(aSource, *q, q->getTarget());
-	Download* d = new Download(aSource, *q, partial ? q->getTempTarget() : q->getTarget());
+	
+	Download* d = new Download(aSource, *q, q->getTarget());
 	if (q->getBundle()) {
 		dcassert(!q->isSet(QueueItem::FLAG_USER_LIST));
 		dcassert(!q->isSet(QueueItem::FLAG_TEXT));
 		d->setBundle(q->getBundle());
 	}
-	if(partial) { 	 
-	   d->setTempTarget(q->getTarget()); 	 
-	 }
 	userQueue.addDownload(q, d);
 	fire(QueueManagerListener::SourcesUpdated(), q);
 	dcdebug("found %s\n", q->getTarget().c_str());
@@ -1967,7 +1962,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 		b->setFlag(Bundle::FLAG_HASH_FAILED);
 	}
 
-	if (b->getHashed() == b->getFinishedFiles().size()) {
+	if (b->getHashed() == (int)b->getFinishedFiles().size()) {
 		if (b->isSet(Bundle::FLAG_HASH)) {
 			if (!b->isSet(Bundle::FLAG_HASH_FAILED)) {
 				if (!b->getFileBundle()) {
@@ -2031,8 +2026,7 @@ void QueueManager::rechecked(QueueItem* qi) {
 
 void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFinish) noexcept {
 	HintedUserList getConn;
- 	string fl_fname;
-	string fl_path = Util::emptyString;
+ 	string fl_fname, fl_path;
 	HintedUser fl_user = aDownload->getHintedUser();
 	Flags::MaskType fl_flag = 0;
 	bool downloadList = false;
@@ -2047,13 +2041,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 		aDownload->setFile(0);
 
 		if(aDownload->getType() == Transfer::TYPE_PARTIAL_LIST) {
-			//q = fileQueue.find(aDownload->getPath());
-			if (!aDownload->getPath().empty()) {
-	            q = fileQueue.find(aDownload->getTempTarget()); 	 
-			} else { 	 
-	            //root directory in the partial list 	 
-	             q = fileQueue.find(getListPath(aDownload->getHintedUser())); 	 
-	        }
+			q = fileQueue.find(aDownload->getPath());
 			if(q) {
 				if(!aDownload->getPFS().empty()) {
 					if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(aDownload->getUser()) != directories.end()) ||
@@ -2064,7 +2052,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 											
 						fl_fname = aDownload->getPFS();
 						fl_user = aDownload->getHintedUser();
-						fl_path = aDownload->getPath();
+						fl_path = aDownload->getTempTarget();
 						fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? (QueueItem::FLAG_DIRECTORY_DOWNLOAD) : 0)
 							| (q->isSet(QueueItem::FLAG_PARTIAL_LIST) ? (QueueItem::FLAG_PARTIAL_LIST) : 0)
 							| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT
@@ -2302,7 +2290,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 	}
  }
 
-void QueueManager::processList(const string& name, const HintedUser& user, const string path, int flags) {
+void QueueManager::processList(const string& name, const HintedUser& user, const string& path, int flags) {
 	DirectoryListing dirList(user);
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
@@ -3922,7 +3910,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		string tmp;
 		tmp.resize(tmp.size() + STRING(BUNDLE_CREATED).size() + 1024);
 		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED), aBundle->getName().c_str(), aBundle->getQueueItems().size()));
-		LogManager::getInstance()->message(tmp + " (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(aBundle->getSize()) + ")");
+		LogManager::getInstance()->message(tmp + " (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(aBundle->getSize()).c_str() + ")");
 	}
 
 	if (!aBundle->getSources().empty()) {
@@ -4052,9 +4040,9 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 		if (added > 0) {
 			tmp2.resize(tmp2.size() + STRING(EXISTING_BUNDLES_MERGED).size() + 1024);
 			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(EXISTING_BUNDLES_MERGED), added+1));
-			LogManager::getInstance()->message(tmp + ", " + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()) + " (" + tmp2 + ")");
+			LogManager::getInstance()->message(tmp + ", " + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()).c_str() + " (" + tmp2 + ")");
 		} else {
-			LogManager::getInstance()->message(tmp + " (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()) + ")");
+			LogManager::getInstance()->message(tmp + " (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()).c_str() + ")");
 		}
 	} else if (targetBundle->getTarget() == sourceBundle->getTarget()) {
 		tmp.resize(tmp.size() + STRING(X_BUNDLE_ITEMS_ADDED).size() + 1024);

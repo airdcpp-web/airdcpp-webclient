@@ -345,7 +345,7 @@ private:
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItem* qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle=false) throw(QueueException, FileException);
 	 
-	void processList(const string& name, const HintedUser& user, const string path, int flags);
+	void processList(const string& name, const HintedUser& user, const string& path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
 	BundlePtr findBundle(const string& bundleToken);
