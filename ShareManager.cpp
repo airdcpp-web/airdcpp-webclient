@@ -1418,7 +1418,7 @@ void ShareManager::saveXmlList(){
 
 	xml_saving = true;
 
-	LogManager::getInstance()->message("Saving shares.xml...");
+	//LogManager::getInstance()->message("Saving shares.xml...");
 
 	RLock l(cs);
 	string indent;
@@ -1427,7 +1427,6 @@ void ShareManager::saveXmlList(){
 	string newCache = Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml.tmp";
 	File ff(newCache, File::WRITE, File::TRUNCATE | File::CREATE);
 	BufferedOutputStream<false> xmlFile(&ff);
-	//FilteredOutputStream<BZFilter, true> *xmlFile = new FilteredOutputStream<BZFilter, true>(new File(newCache, File::WRITE, File::TRUNCATE | File::CREATE));
 	
 		xmlFile.write(SimpleXML::utf8Header);
 		xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION "\">\r\n"));
