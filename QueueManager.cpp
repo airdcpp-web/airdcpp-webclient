@@ -1098,7 +1098,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 		recalculateSearchTimes(aBundle);
 		string tmp, tmp2;
 		tmp.resize(tmp.size() + STRING(BUNDLE_CREATED_ALT).size() + 1024);
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED_ALT), aBundle->getName().c_str(), aBundle->getQueueItems().size(), Util::formatBytes(aBundle->getSize()), searches.size()));
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED_ALT), aBundle->getName().c_str(), Util::toString(aBundle->getQueueItems().size()), Util::formatBytes(aBundle->getSize()), searches.size()));
 		if (!aBundle->getRecent()) {
 			tmp2.resize(tmp2.size() + STRING(NEXT_SEARCH_IN).size() + 1024);
 			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_SEARCH_IN), (nextSearch - GET_TICK()) / (60*1000)));
