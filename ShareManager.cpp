@@ -1284,13 +1284,8 @@ int ShareManager::run() {
 		for(DirMap::iterator i = newDirs.begin(); i != newDirs.end(); ++i)
 			i->second->findDirsRE(false);
 			
-		/*set filelist dirty here, will make the open own list thread need to wait with filelist creation,
-		decreases chances hitting lock on getrealpath for files in own list rightclick, 
-		filelist will take a bit longer to open in that case but prevents the gui freeze (for ex. when winshellmenu is used or trying to open folder)
-		*/
-		setDirty();
-
 		rebuildIndices();
+		setDirty(); 
 		sortReleaseList();
 	}
 
@@ -1336,8 +1331,6 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 		listN++;
 
 		try {
-			//string tmp2;
-			//string indent;
 			
 				string newXmlName = Util::getPath(Util::PATH_USER_CONFIG) + "files" + Util::toString(listN) + ".xml.bz2";
 				SimpleXML xml;
@@ -1411,7 +1404,7 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 
 #define LITERAL(n) n, sizeof(n)-1
 
-void ShareManager::saveXmlList(){
+void ShareManager::saveXmlList() {
 
 	if(xml_saving)
 		return;
@@ -1422,11 +1415,11 @@ void ShareManager::saveXmlList(){
 
 	RLock l(cs);
 	string indent;
-	try{
-	//create a backup first incase we get interrupted on creation.
-	string newCache = Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml.tmp";
-	File ff(newCache, File::WRITE, File::TRUNCATE | File::CREATE);
-	BufferedOutputStream<false> xmlFile(&ff);
+	try {
+		//create a backup first incase we get interrupted on creation.
+		string newCache = Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml.tmp";
+		File ff(newCache, File::WRITE, File::TRUNCATE | File::CREATE);
+		BufferedOutputStream<false> xmlFile(&ff);
 	
 		xmlFile.write(SimpleXML::utf8Header);
 		xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION "\">\r\n"));
@@ -1489,6 +1482,10 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 }
 
 MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse, bool isInSharingHub) {
+	
+	if(!isInSharingHub)
+		return NULL;
+	
 	string tths;
 	string tmp;
 	StringOutputStream sos(tths);

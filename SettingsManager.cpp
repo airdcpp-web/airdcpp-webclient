@@ -707,7 +707,7 @@ SettingsManager::SettingsManager()
 	setDefault(QI_AUTOPRIO, true);
 	setDefault(SHOW_SHARED_DIRS_FAV, true);
 	setDefault(ALLOW_MATCH_FULL_LIST, false);
-	setDefault(REPORT_ADDED_SOURCES, true);
+	setDefault(REPORT_ADDED_SOURCES, false);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

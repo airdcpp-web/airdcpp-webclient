@@ -508,14 +508,14 @@ bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*
 	if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
 		if(AirUtil::matchSkiplist(Text::utf8ToAcp(aName))) {
 			if(BOOLSETTING(REPORT_SKIPLIST) && report)
-				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aName + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aName /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
 			return false;
 		}
 	} else {
 		try {
 			if (Wildcard::patternMatch( Text::utf8ToAcp(aName), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' )) {   // or validate filename for bad chars?
 				if(BOOLSETTING(REPORT_SKIPLIST) && report)
-					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aName + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aName /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
 				return false;
 			}
 		} catch(...) { }
@@ -551,7 +551,7 @@ bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*
 				(aName.find("__incomplete__") == 0)		//winmx
 				) {
 					if (report) {
-						LogManager::getInstance()->message("Forbidden file will not be shared: " + aName + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")");
+						LogManager::getInstance()->message("Forbidden file will not be shared: " + aName/* + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
 					}
 					return false;
 			}

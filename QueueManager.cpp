@@ -4903,6 +4903,9 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 }
 
 MemoryInputStream* QueueManager::generateTTHList(const string& bundleToken, bool isInSharingHub) {
+	if(!isInSharingHub)
+		return NULL;
+
 	string tths, tmp2;
 	StringOutputStream tthList(tths);
 	{
