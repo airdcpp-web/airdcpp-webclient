@@ -120,7 +120,6 @@ public:
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	int changeBundleTarget(BundlePtr aBundle, const string& newTarget);
 	void moveFileBundle(BundlePtr aBundle, const string& aTarget, const string& aSource) noexcept;
-	BundlePtr createFileBundle(QueueItem* qi);
 	void addBundleItem(QueueItem* qi, BundlePtr aBundle);
 	void removeBundleItem(QueueItem* qi, bool finished, bool moved = false);
 	void moveBundleItem(QueueItem* qi, BundlePtr targetBundle, bool fireAdded);

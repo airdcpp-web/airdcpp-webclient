@@ -364,7 +364,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 	target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 	//create bundles
 	if (first) {
-		aBundle = BundlePtr(new Bundle(target, false, GET_TIME()));
+		aBundle = BundlePtr(new Bundle(target, GET_TIME()));
 		if (prio != QueueItem::DEFAULT) {
 			aBundle->setPriority((Bundle::Priority)prio);
 			aBundle->setAutoPriority(false);

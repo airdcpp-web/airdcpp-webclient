@@ -27,6 +27,18 @@
 #include "SearchResult.h"
 
 namespace dcpp {
+	
+Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
+	downloadedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), 
+	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
+	bytesDownloaded(qi->getDownloadedBytes()), hashed(0) {
+	qi->setBundle(this);
+	queueItems.push_back(qi);
+}
+
+Bundle::Bundle(const string& target, time_t added) : target(target), fileBundle(false), token(Util::toString(Util::rand())), size(0), downloadedSegments(0), speed(0), lastSpeed(0), 
+		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false), bytesDownloaded(0),
+		hashed(0) { }
 
 Bundle::~Bundle() { 
 	//bla

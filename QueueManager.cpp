@@ -1355,7 +1355,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				}
 
 				if (!aBundle) {
-					aBundle = createFileBundle(q);
+					aBundle = new Bundle(q);
 				}
 			} else {
 				fire(QueueManagerListener::Added(), q);
@@ -2907,6 +2907,7 @@ private:
 	bool inDownloads;
 	bool inBundle;
 	bool inFile;
+	string curToken;
 };
 
 void QueueManager::loadQueue() noexcept {
@@ -2932,6 +2933,7 @@ void QueueManager::loadQueue() noexcept {
 		File f(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml", File::READ, File::OPEN);
 		SimpleXMLReader(&l).parse(f);
 		f.close();
+		File::copyFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml", Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml.bak");
 		File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml");
 	} catch(const Exception&) {
 		// ...
@@ -2970,12 +2972,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 	if(!inDownloads && name == "Downloads") {
 		inDownloads = true;
 	} else if (!inFile && name == sFile) {
-		const string& token = getAttrib(attribs, sToken, 1);
-		if(token.empty())
-			return;
-
-		curBundle = BundlePtr(new Bundle(Util::emptyString, true, GET_TIME()));
-		curBundle->setToken(token);
+		curToken = getAttrib(attribs, sToken, 1);
 		inFile = true;		
 	} else if (!inBundle && name == sBundle) {
 		const string& bundleTarget = getAttrib(attribs, sTarget, 0);
@@ -2991,7 +2988,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			added = GET_TIME();
 		}
 
-		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, false, added));
+		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, added));
 		if (!prio.empty()) {
 			bundle->setAutoPriority(false);
 			bundle->setPriority((Bundle::Priority)Util::toInt(prio));
@@ -3046,12 +3043,14 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				qi->setMaxSegments(max((uint8_t)1, maxSegments));
 
 				//bundles
-				if (curBundle && (inBundle || inFile)) {
+				if (curBundle && inBundle) {
 					//LogManager::getInstance()->message("itemtoken exists: " + bundleToken);
 					qm->addBundleItem(qi, curBundle);
 				} else if (inDownloads) {
 					//assign bundles for the items in the old queue file
-					curBundle = qm->createFileBundle(qi);
+					curBundle = new Bundle(qi);
+				} else if (inFile && !curToken.empty()) {
+					curBundle = new Bundle(qi, curToken);
 				}
 				
 				//qm->fire(QueueManagerListener::Added(), qi);
@@ -3106,24 +3105,20 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 void QueueLoader::endTag(const string& name, const string&) {
 	
 	if(inDownloads || inBundle || inFile) {
-		if(name == sDownload) {
-			cur = NULL;
-		} else if(name == "Downloads") {
+		if(name == "Downloads") {
 			inDownloads = false;
-		} else if(name == sFile) {
-			if (!curBundle->getQueueItems().empty()) {
-				curBundle->setTarget(curBundle->getQueueItems().front()->getTarget());
-				curBundle->setAdded(curBundle->getQueueItems().front()->getAdded());
-				curBundle->setAutoPriority(curBundle->getQueueItems().front()->getAutoPriority());
-				curBundle->setPriority((Bundle::Priority)curBundle->getQueueItems().front()->getPriority());
-				QueueManager::getInstance()->addBundle(curBundle, true);
-			}
-			curBundle = NULL;
-			inFile = false;
 		} else if(name == sBundle) {
 			QueueManager::getInstance()->addBundle(curBundle, true);
 			curBundle = NULL;
 			inBundle = false;
+		} else if(name == sFile) {
+			curToken = Util::emptyString;
+			inFile = false;
+		} else if(name == sDownload) {
+			if (curBundle->getFileBundle() && !curBundle->getQueueItems().empty()) {
+				QueueManager::getInstance()->addBundle(curBundle, true);
+			}
+			cur = NULL;
 		}
 	}
 }
@@ -4134,7 +4129,7 @@ int QueueManager::getBundleInfo(const string& aSource, BundleList& retBundles, i
 					if (s->second != 0 && s->first.find(aSource) != string::npos) {
 						//LogManager::getInstance()->message("findBundleFinished target found (subdir): " + *s);
 						retBundles.push_back(tmpBundle);
-						bundleFiles += tmpBundle->getQueueItems().size();
+						bundleFiles += s->second;
 						subFolder = true;
 						break; //there can be only one bundle containing the subdir
 					} else {
@@ -4395,7 +4390,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	}
 
 	//create a temp bundle for split items
-	BundlePtr tempBundle = BundlePtr(new Bundle(aTarget, false, GET_TIME()));
+	BundlePtr tempBundle = BundlePtr(new Bundle(aTarget, GET_TIME()));
 
 	//can we merge the split folder?
 	bool hasMergeBundle = false;
@@ -4625,14 +4620,21 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 				for (auto k = ql.begin(); k != ql.end(); ++k) {
 					qi = *k;
 
-					targetBundle = BundlePtr(new Bundle(qi->getTarget(), true, qi->getAdded()));
+					sourceBundle->removeQueue(qi, false);
+					userQueue.removeQI(qi, false); //we definately don't want to remove downloads because the QI will stay the same
+					targetBundle = BundlePtr(new Bundle(qi));
 					targetBundle->setPriority(sourceBundle->getPriority());
 					targetBundle->setAutoPriority(sourceBundle->getAutoPriority());
 
-					moveBundleItem(qi, targetBundle, false);
+					if (qi->isRunning()) {
+						//now we need to move the download(s) to correct bundle... the target has been changed earlier, if needed
+						DownloadManager::getInstance()->changeBundle(sourceBundle, targetBundle, qi->getTarget());
+					}
 
-					userQueue.setQIPriority(qi, (QueueItem::Priority)sourceBundle->getPriority());
+					/* ADDING */
+					qi->setPriority((QueueItem::Priority)sourceBundle->getPriority());
 					qi->setAutoPriority(sourceBundle->getAutoPriority());
+					userQueue.add(qi);
 					newBundles.push_back(targetBundle);
 				}
 			}
@@ -4726,15 +4728,6 @@ BundlePtr QueueManager::findMergeBundle(QueueItem* qi) {
 	}
 	return bundle;
 	//LogManager::getInstance()->message("FINDBUNDLE, NO BUNDLES FOUND");
-}
-
-BundlePtr QueueManager::createFileBundle(QueueItem* qi) {
-	//LogManager::getInstance()->message("CREATE NEW FILEBUNDLE");
-	BundlePtr bundle = BundlePtr(new Bundle(qi->getTarget(), true, qi->getAdded()));
-	bundle->addQueue(qi);
-	bundle->setPriority((Bundle::Priority)qi->getPriority());
-	bundle->setAutoPriority(qi->getAutoPriority());
-	return bundle;
 }
 
 BundlePtr QueueManager::findBundle(const string& bundleToken) {

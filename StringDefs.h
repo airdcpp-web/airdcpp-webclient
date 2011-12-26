@@ -531,7 +531,6 @@ enum Strings { // @DontAdd
 	SEND_PUBLIC_MESSAGE, // "Send public message"
 	SEPARATOR, // "Separator"
 	SERVER, // "Server"
-	SET_PRIORITY, // "Set priority"
 	SETCZDC_BACK_COLOR, // "Back color"
 	SETCZDC_CZCHARS_DISABLE, // "Remove diacritic marks from Czech chars"
 	SETCZDC_DEFAULT_STYLE, // "Default style"
@@ -1253,6 +1252,7 @@ enum Strings { // @DontAdd
 	NUMBER_OF_CONNECTIONS, // "connection(s)"
 	BUNDLE_FILENAME, // "Bundle / Filename"
 	BUNDLE, // "Bundle"
+	BUNDLES, // "bundles"
 	REMOVE_BUNDLE, // "Remove bundle from queue"
 	BUNDLE_REMOVED, // "Bundle removed"
 	PARTIAL_SHARING, // "Enable partial bundle/file sharing"
@@ -1346,5 +1346,9 @@ enum Strings { // @DontAdd
 	MATCH_SOURCE_ADDED, // "Added as source for %d items in the bundle %s"
 	MATCH_SOURCE_ADDED_X_BUNDLES, // "Added as source for %d items in %d bundles"
 	SETTINGS_REPORT_ADDED_SOURCES, // "Report added sources in System Log"
+	SET_BUNDLE_PRIORITY, // "Set the bundle priority"
+	SET_BUNDLE_PRIORITIES, // "Set the bundle priorities"
+	SET_FILE_PRIORITY, // "Set the file priority"
+	SET_FILE_PRIORITIES, // "Set the file priorities"
 	LAST // @DontAdd
 };

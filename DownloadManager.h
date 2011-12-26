@@ -64,7 +64,7 @@ public:
 		return downloads.size();
 	}
 
-	bool startDownload(QueueItem::Priority prio, const UserPtr& user, const string& aToken, bool mcn=false);
+	bool startDownload(QueueItem::Priority prio, bool mcn=false);
 	
 	void updateBundles(BundleList& bundles);
 

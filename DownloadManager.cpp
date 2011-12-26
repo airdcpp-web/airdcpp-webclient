@@ -416,15 +416,8 @@ void DownloadManager::addConnection(UserConnectionPtr conn) {
 	checkDownloads(conn);
 }
 
-bool DownloadManager::startDownload(QueueItem::Priority prio, const UserPtr& user, const string& aToken, bool mcn) {
-
-	if (user) {
-		//update the target in transferview for better grouping
-		fire(DownloadManagerListener::Target(), user, aToken);
-	}
+bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
 	size_t downloadCount = getDownloadCount();
-
-
 	bool full = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t)AirUtil::getSlots(true));
 	full = full || ((AirUtil::getSpeedLimit(true) != 0) && (getRunningAverage() >= (AirUtil::getSpeedLimit(true)*1024)));
 	//LogManager::getInstance()->message("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
@@ -438,7 +431,6 @@ bool DownloadManager::startDownload(QueueItem::Priority prio, const UserPtr& use
 		return prio == QueueItem::HIGHEST;
 
 	}
-
 
 	if(downloadCount > 0) {
 		return prio != QueueItem::LOWEST;
@@ -457,7 +449,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	string bundleToken;
 	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot, bundleToken);
-	bool start = startDownload(prio, aConn->getUser(), bundleToken);
+	bool start = startDownload(prio);
 	if(!start && !smallSlot) {
 		removeConnection(aConn);
 		return;

@@ -91,10 +91,8 @@ public:
 	typedef multimap<double, QueueItem*> SourceSpeedMapQI;
 
 
-	Bundle(const string& target, bool fileBundle, time_t added) : target(target), fileBundle(fileBundle), token(Util::toString(Util::rand())), size(0), downloadedSegments(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false), bytesDownloaded(0),
-		hashed(0) { }
-
+	Bundle(const string& target, time_t added) noexcept;
+	Bundle(QueueItem* qi, const string& aToken = Util::toString(Util::rand())) noexcept;
 	~Bundle();
 
 	GETSET(string, token, Token);

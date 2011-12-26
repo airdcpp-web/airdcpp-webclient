@@ -205,7 +205,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 						continue;
 					}
 
-					bool startDown = DownloadManager::getInstance()->startDownload(prio, cqi->getUser(), bundleToken);
+					bool startDown = DownloadManager::getInstance()->startDownload(prio);
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown) {
@@ -287,7 +287,7 @@ void ConnectionManager::checkWaitingMCN() noexcept {
 
 				string bundleToken;
 				QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false, bundleToken);
-				bool startDown = DownloadManager::getInstance()->startDownload(prio, NULL, Util::emptyString, true);
+				bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
 				if(prio != QueueItem::PAUSED && startDown) {
 					uint64_t tick = GET_TICK();
 					if ((checkWaitingTick+1000 < tick) && (queueAddTick+3000 < tick)) {
