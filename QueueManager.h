@@ -148,7 +148,7 @@ public:
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
 	void removeBundleSources(BundlePtr aBundle) noexcept;
-	int getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles);
+	void getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles);
 	void handleBundleUpdate(const string& bundleToken);
 
 	void moveDir(const string& aSource, const string& aTarget, BundleList sourceBundles, bool moveFinished);
@@ -161,6 +161,10 @@ public:
 	void searchBundle(BundlePtr aBundle, bool newBundle, bool manual);
 	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
 	void recalculateSearchTimes(BundlePtr aBundle);
+
+	int getBundleItemCount(const BundlePtr aBundle) noexcept;
+	int getFinishedItemCount(const BundlePtr aBundle) noexcept;
+	int getDirItemCount(const BundlePtr aBundle, const string& aDir) noexcept;
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;

@@ -26,6 +26,7 @@
 #include "forward.h"
 #include "CID.h"
 #include "GetSet.h"
+#include "Upload.h"
 
 namespace dcpp {
 
@@ -47,31 +48,32 @@ public:
 
 
 	UploadBundle(const string& target, const string& token) : target(target), token(token), size(0), uploaded(0), speed(0), totalSpeed(0), 
-		running(0), singleUser(false) { }
+		singleUser(false), uploadedSegments(0) { }
 
 	GETSET(int64_t, size, Size);
-	GETSET(int64_t, uploaded, Uploaded);
 	GETSET(int64_t, speed, Speed);
 	GETSET(int64_t, totalSpeed, TotalSpeed);
+	GETSET(int64_t, actual, Actual);
 	GETSET(uint64_t, start, Start);
-	GETSET(uint16_t, running, Running);
 	GETSET(bool, singleUser, SingleUser);
+	GETSET(int64_t, uploadedSegments, UploadedSegments);
+
+	GETSET(UploadList, uploads, Uploads);
 	
 	string token;
 	string target;
+	int getRunning() { return (int)uploads.size(); }
 
-	void increaseUploaded(int64_t aSize) {
-		uploaded += aSize;
+	void addUpload(Upload* u);
+	bool removeUpload(Upload* u);
+
+	uint64_t countSpeed();
+	void addUploadedSegment(int64_t aSize);
+	uint64_t getUploaded() const {
+		return uploaded + uploadedSegments;
 	}
 
-	void increaseRunning() {
-		running++;
-	}
-
-	void decreaseRunning() {
-		running--;
-	}
-
+	void findBundlePath(const string& aName);
 	uint64_t getSecondsLeft();
 
 
@@ -88,6 +90,9 @@ public:
 	}
 
 	string getName();
+
+private:
+	uint64_t uploaded;
 
 };
 

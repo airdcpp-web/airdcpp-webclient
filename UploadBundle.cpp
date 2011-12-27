@@ -21,6 +21,12 @@
 
 namespace dcpp {
 
+void UploadBundle::addUploadedSegment(int64_t aSize) {
+	dcassert(aSize + uploadedSegments <= size);
+	uploadedSegments += aSize;
+	dcassert(uploadedSegments <= size);
+}
+
 uint64_t UploadBundle::getSecondsLeft() {
 	double avg = getSpeed();
 	int64_t bytesLeft =  getSize() - getUploaded();
@@ -29,6 +35,60 @@ uint64_t UploadBundle::getSecondsLeft() {
 
 string UploadBundle::getName() {
 	return Util::getDir(target, false, true);
+}
+
+void UploadBundle::addUpload(Upload* u) {
+	uploads.push_back(u);
+	u->setBundle(this);
+}
+
+bool UploadBundle::removeUpload(Upload* u) {
+	auto s = find(uploads.begin(), uploads.end(), u);
+	dcassert(s != uploads.end());
+	if (s != uploads.end()) {
+		addUploadedSegment(u->getSize());
+		uploads.erase(s);
+	}
+	return uploads.empty();
+}
+
+uint64_t UploadBundle::countSpeed() {
+	if (!singleUser) {
+		return totalSpeed;
+	}
+
+	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
+	int up = 0;
+	for (auto s = uploads.begin(); s != uploads.end(); ++s) {
+		Upload* u = *s;
+		if (u->getAverageSpeed() > 0 && u->getStart() > 0) {
+			up++;
+			int64_t pos = u->getPos();
+			bundleSpeed += u->getAverageSpeed();
+			bundleRatio += pos > 0 ? (double)u->getActual() / (double)pos : 1.00;
+			bundlePos += pos;
+		}
+	}
+
+	if (bundleSpeed > 0) {
+		bundleRatio = bundleRatio / up;
+		actual = ((int64_t)((double)uploaded * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+		speed = bundleSpeed;
+		uploaded = bundlePos;
+	}
+	return bundleSpeed;
+}
+
+void UploadBundle::findBundlePath(const string& aName) {
+	if (uploads.empty())
+		return;
+
+	Upload* u = uploads.front();
+	string upath = u->getPath();
+	size_t pos = u->getPath().find(aName + "\\");
+	if (pos != string::npos) {
+		target = upath.substr(0, pos + aName.length() + 1);
+	}
 }
 
 }

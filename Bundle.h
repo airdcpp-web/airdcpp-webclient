@@ -135,6 +135,7 @@ public:
 	uint64_t getDownloadedBytes() const { return bytesDownloaded; }
 	QueueItem* findQI(const string& aTarget) const;
 	size_t countOnlineUsers() const;
+	uint64_t countSpeed();
 
 	bool removeQueue(QueueItem* qi, bool finished);
 	bool addQueue(QueueItem* qi);

@@ -70,37 +70,16 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 	TargetList dropTargets;
 	StringList targets;
 	BundleList bundleTicks;
+	boost::unordered_map<UserPtr, int64_t> userSpeedMap;
+
 	{
 		Lock l(cs);
 		boost::unordered_map<UserPtr, int64_t> userSpeedMap;
 		for (auto i = runningBundles.begin(); i != runningBundles.end(); ++i) {
 			BundlePtr bundle = i->second;
-			int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
-			int downloads = 0;
-			for (auto s = bundle->getDownloads().begin(); s != bundle->getDownloads().end(); ++s) {
-				Download* d = *s;
-				if (d->getAverageSpeed() > 0 && d->getStart() > 0) {
-					downloads++;
-					//bundle->setDownloadedBytes(d->getPos());
-					int64_t pos = d->getPos();
-					bundleSpeed += d->getAverageSpeed();
-					bundleRatio += pos > 0 ? (double)d->getActual() / (double)pos : 1.00;
-					userSpeedMap[d->getUser()] += d->getAverageSpeed();
-					bundlePos += pos;
-				}
-			}
-			if (bundleSpeed > 0) {
-				bundleRatio = bundleRatio / downloads;
-				bundle->setActual((int64_t)((double)bundle->getDownloadedBytes() * (bundleRatio == 0 ? 1.00 : bundleRatio)));
-				bundle->setSpeed(bundleSpeed);
-				bundle->setRunning(downloads);
-				bundle->setDownloadedBytes(bundlePos);
+			if (bundle->countSpeed() > 0) {
 				bundleTicks.push_back(bundle);
 			}
-		}
-
-		for (auto i = userSpeedMap.begin(); i != userSpeedMap.end(); ++i) {
-			i->first->setSpeed(i->second);
 		}
 
 		DownloadList tickList;
@@ -111,6 +90,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			double speed = d->getAverageSpeed();
 
 			if(d->getPos() > 0) {
+				userSpeedMap[d->getUser()] += speed;
 				tickList.push_back(d);
 				d->tick();
 			}
@@ -147,6 +127,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			}
 		}
 
+		for_each(userSpeedMap.begin(), userSpeedMap.end(), [](pair<UserPtr, int64_t> us) { us.first->setSpeed(us.second); });
+
 		if(tickList.size() > 0) {
 			fire(DownloadManagerListener::Tick(), tickList);
 		}
@@ -157,9 +139,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		fire(DownloadManagerListener::BundleTick(), bundleTicks);
 	}
 
-	for(TargetList::iterator i = dropTargets.begin(); i != dropTargets.end(); ++i) {
-		QueueManager::getInstance()->removeSource(i->first, i->second, QueueItem::Source::FLAG_SLOW_SOURCE);
-	}
+	for_each(dropTargets.begin(), dropTargets.end(), [](pair<string, UserPtr>& dt) { QueueManager::getInstance()->removeSource(dt.first, dt.second, QueueItem::Source::FLAG_SLOW_SOURCE);});
 }
 
 
@@ -743,7 +723,7 @@ void DownloadManager::removeDownload(Download* d) {
 
 		BundlePtr bundle = d->getBundle();
 		if (bundle) {
-			bundle->removeDownload(d->getUserConnection().getToken());
+			bundle->removeDownload(d->getToken());
 		}
 
 		dcassert(find(downloads.begin(), downloads.end(), d) != downloads.end());
@@ -759,7 +739,7 @@ void DownloadManager::setTarget(const string& oldTarget, const string& newTarget
 			d->setPath(newTarget);
 			dcassert(d->getBundle());
 			//update the target in transferview
-			fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getUserConnection().getToken(), d->getBundle()->getToken());
+			fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getToken(), d->getBundle()->getToken());
 		}
 	}
 }
@@ -774,9 +754,9 @@ void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundl
 				targetBundle->addDownload(d);
 				d->setBundle(targetBundle);
 				//update the bundle in transferview
-				fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getUserConnection().getToken(), d->getBundle()->getToken());
+				fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getToken(), d->getBundle()->getToken());
 				ucl.push_back(&d->getUserConnection());
-				sourceBundle->removeDownload(d->getUserConnection().getToken(), false);
+				sourceBundle->removeDownload(d->getToken(), false);
 			} else {
 				i++;
 			}

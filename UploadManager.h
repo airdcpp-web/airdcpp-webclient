@@ -126,7 +126,7 @@ public:
 	void unreserveSlot(const UserPtr& aUser, bool add);
 	void onUBD(const AdcCommand& cmd);
 	void onUBN(const AdcCommand& cmd);
-	UploadBundlePtr findBundle(const string bundleToken);
+	UploadBundlePtr findBundle(const string& bundleToken);
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
@@ -148,7 +148,7 @@ private:
 
 	int lastFreeSlots; /// amount of free slots at the previous minute
 	
-	typedef boost::unordered_map<UserPtr, uint8_t> MultiConnMap;
+	typedef boost::unordered_map<UserPtr, uint16_t> MultiConnMap;
 	MultiConnMap multiUploads;
 
 	typedef unordered_map<UserPtr, uint64_t, User::Hash> SlotMap;
@@ -165,20 +165,18 @@ private:
 	void changeMultiConnSlot(const UserPtr& aUser, bool remove);
 	void checkMultiConn();
 
-	UploadBundleList bundles;
+	/* bundles */
 	typedef unordered_map<string, UploadBundlePtr> tokenMap;
-	tokenMap bundleTokens;
+	tokenMap bundles;
 
 	void createBundle(const AdcCommand& cmd);
 	void changeBundle(const AdcCommand& cmd);
 	void updateBundleInfo(const AdcCommand& cmd);
 	void finishBundle(const AdcCommand& cmd);
 	void removeBundleConnection(const AdcCommand& cmd);
+	void removeBundleItem(Upload* aUpload);
 
-	void setBundle(const string aToken, UploadBundlePtr aBundle);
-	string getBundleTarget(const string bundleToken, const string aName);
-	bool findRemovedToken(const string aToken);
-
+	Upload* findUpload(const string& aToken);
 
 	friend class Singleton<UploadManager>;
 	UploadManager() noexcept;

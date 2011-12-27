@@ -80,6 +80,7 @@ public:
 
 	UserConnection& getUserConnection() { return userConnection; }
 	const UserConnection& getUserConnection() const { return userConnection; }
+	const string& getToken() const;
 
 	GETSET(string, path, Path);
 	GETSET(Segment, segment, Segment);

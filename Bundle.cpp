@@ -601,6 +601,30 @@ size_t Bundle::countOnlineUsers() const {
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
 }
 
+uint64_t Bundle::countSpeed() {
+	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
+	int down = 0;
+	for (auto s = downloads.begin(); s != downloads.end(); ++s) {
+		Download* d = *s;
+		if (d->getAverageSpeed() > 0 && d->getStart() > 0) {
+			down++;
+			int64_t pos = d->getPos();
+			bundleSpeed += d->getAverageSpeed();
+			bundleRatio += pos > 0 ? (double)d->getActual() / (double)pos : 1.00;
+			bundlePos += pos;
+		}
+	}
+
+	if (bundleSpeed > 0) {
+		bundleRatio = bundleRatio / down;
+		actual = ((int64_t)((double)bytesDownloaded * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+		speed = bundleSpeed;
+		running = down;
+		setDownloadedBytes(bundlePos);
+	}
+	return bundleSpeed;
+}
+
 tstring Bundle::getBundleText() {
 	double percent = (double)bytesDownloaded*100.0/(double)size;
 	dcassert(percent <= 100.00);

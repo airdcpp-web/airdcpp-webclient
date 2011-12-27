@@ -114,4 +114,10 @@ const HintedUser Transfer::getHintedUser() const {
 	return getUserConnection().getHintedUser();
 }
 
+const string& Transfer::getToken() const { 
+	return userConnection.getToken(); 
+}
+
+
+
 } // namespace dcpp

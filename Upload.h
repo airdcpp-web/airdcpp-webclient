@@ -19,6 +19,10 @@ public:
 		FLAG_PARTIAL = 0x10
 	};
 
+	bool operator==(const Upload* u) const {
+		return compare(getToken(), u->getToken()) == 0;
+	}
+
 	Upload(UserConnection& conn, const string& path, const TTHValue& tth);
 	~Upload();
 

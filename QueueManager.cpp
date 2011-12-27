@@ -4105,7 +4105,24 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 	return (int)mBundles.size();
 }
 
-int QueueManager::getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) {
+int QueueManager::getDirItemCount(const BundlePtr aBundle, const string& aDir) noexcept { 
+	Lock l (cs);
+	QueueItemList ql;
+	aBundle->getDirQIs(aDir, ql);
+	return (int)ql.size();
+}
+
+int QueueManager::getBundleItemCount(const BundlePtr aBundle) noexcept {
+	Lock l (cs); 
+	return aBundle->getQueueItems().size(); 
+}
+
+int QueueManager::getFinishedItemCount(const BundlePtr aBundle) noexcept { 
+	Lock l (cs); 
+	return (int)aBundle->getFinishedFiles().size(); 
+}
+
+void QueueManager::getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) {
 	BundlePtr tmpBundle;
 	bool subFolder = false;
 	int bundleFiles = 0;
@@ -4156,7 +4173,7 @@ int QueueManager::getBundleInfo(const string& aSource, BundleList& retBundles, i
 			for_each(tmpBundle->getFinishedFiles().begin(), tmpBundle->getFinishedFiles().end(), [&](QueueItem* qi) { if(qi->getTarget().find(aSource) != string::npos) finishedFiles++; } );
 			int queuedFiles;
 			for_each(tmpBundle->getQueueItems().begin(), tmpBundle->getQueueItems().end(), [&](QueueItem* qi) { if(qi->getTarget().find(aSource) != string::npos) queuedFiles++; } );
-			return bundleFiles;
+			return;
 		}
 
 		finishedFiles += tmpBundle->getFinishedFiles().size();
@@ -4164,7 +4181,7 @@ int QueueManager::getBundleInfo(const string& aSource, BundleList& retBundles, i
 	//for (auto r = retBundles.begin(); r != retBundles.end(); ++r) {
 	//	LogManager::getInstance()->message("retBundle: " + (*r)->getTarget());
 	//}
-	return bundleFiles;
+	return;
 }
 
 void QueueManager::setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p, bool autoPrio) {
