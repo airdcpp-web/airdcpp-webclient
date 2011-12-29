@@ -75,7 +75,7 @@ private:
 	Bundle::BundleTokenMap runningBundles;
 	UserConnectionList idlers;
 
-	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false);
+	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false, bool sendFinished=false);
 	void removeConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource);
@@ -96,6 +96,7 @@ private:
 	void startBundle(UserConnection* aSource, BundlePtr aBundle);
 	bool sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly);
 	void sendBundleUBN(HintedUser& user, const string& speed, const double percent, const string& bundleToken);
+	void sendBundleFinished(BundlePtr aBundle, const HintedUser& aUser);
 	typedef unordered_map<string, BundlePtr> tokenMap;
 	tokenMap tokens;
 

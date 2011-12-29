@@ -616,11 +616,12 @@ uint64_t Bundle::countSpeed() {
 	}
 
 	if (bundleSpeed > 0) {
-		bundleRatio = bundleRatio / down;
-		actual = ((int64_t)((double)bytesDownloaded * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+		setDownloadedBytes(bundlePos);
 		speed = bundleSpeed;
 		running = down;
-		setDownloadedBytes(bundlePos);
+
+		bundleRatio = bundleRatio / down;
+		actual = ((int64_t)((double)bytesDownloaded * (bundleRatio == 0 ? 1.00 : bundleRatio)));
 	}
 	return bundleSpeed;
 }

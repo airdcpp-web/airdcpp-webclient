@@ -48,14 +48,13 @@ public:
 
 
 	UploadBundle(const string& target, const string& token) : target(target), token(token), size(0), uploaded(0), speed(0), totalSpeed(0), 
-		singleUser(false), uploadedSegments(0) { }
+		singleUser(true), uploadedSegments(0) { }
 
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, speed, Speed);
 	GETSET(int64_t, totalSpeed, TotalSpeed);
 	GETSET(int64_t, actual, Actual);
 	GETSET(uint64_t, start, Start);
-	GETSET(bool, singleUser, SingleUser);
 	GETSET(int64_t, uploadedSegments, UploadedSegments);
 
 	GETSET(UploadList, uploads, Uploads);
@@ -73,6 +72,8 @@ public:
 		return uploaded + uploadedSegments;
 	}
 
+	bool getSingleUser() { return singleUser; }
+	void setSingleUser(bool aSingleUser);
 	void findBundlePath(const string& aName);
 	uint64_t getSecondsLeft();
 
@@ -93,7 +94,7 @@ public:
 
 private:
 	uint64_t uploaded;
-
+	bool singleUser;
 };
 
 }

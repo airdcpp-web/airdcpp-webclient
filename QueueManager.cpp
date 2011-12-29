@@ -31,6 +31,8 @@
 #include "DownloadManager.h"
 #include "HashManager.h"
 #include "LogManager.h"
+#include "MerkleCheckOutputStream.h"
+#include "MerkleTreeOutputStream.h"
 #include "ResourceManager.h"
 #include "SearchManager.h"
 #include "ShareScannerManager.h"
@@ -44,7 +46,6 @@
 #include "Wildcards.h"
 #include "SearchResult.h"
 #include "SharedFileStream.h"
-#include "MerkleCheckOutputStream.h"
 
 #include <limits>
 
@@ -1701,45 +1702,6 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 	return d;
 }
 
-namespace {
-class TreeOutputStream : public OutputStream {
-public:
-	TreeOutputStream(TigerTree& aTree) : tree(aTree), bufPos(0) {
-	}
-
-	virtual size_t write(const void* xbuf, size_t len) throw(Exception) {
-		size_t pos = 0;
-		uint8_t* b = (uint8_t*)xbuf;
-		while(pos < len) {
-			size_t left = len - pos;
-			if(bufPos == 0 && left >= TigerTree::BYTES) {
-				tree.getLeaves().push_back(TTHValue(b + pos));
-				pos += TigerTree::BYTES;
-			} else {
-				size_t bytes = min(TigerTree::BYTES - bufPos, left);
-				memcpy(buf + bufPos, b + pos, bytes);
-				bufPos += bytes;
-				pos += bytes;
-				if(bufPos == TigerTree::BYTES) {
-					tree.getLeaves().push_back(TTHValue(buf));
-					bufPos = 0;
-				}
-			}
-		}
-		return len;
-	}
-
-	virtual size_t flush() throw(Exception) {
-		return 0;
-	}
-private:
-	TigerTree& tree;
-	uint8_t buf[TigerTree::BYTES];
-	size_t bufPos;
-};
-
-}
-
 void QueueManager::setFile(Download* d) {
 	if(d->getType() == Transfer::TYPE_FILE) {
 		Lock l(cs);
@@ -1821,7 +1783,7 @@ void QueueManager::setFile(Download* d) {
 	} else if(d->getType() == Transfer::TYPE_PARTIAL_LIST) {
 		d->setFile(new StringOutputStream(d->getPFS()));
 	} else if(d->getType() == Transfer::TYPE_TREE) {
-		d->setFile(new TreeOutputStream(d->getTigerTree()));		
+		d->setFile(new MerkleTreeOutputStream<TigerTree>(d->getTigerTree()));		
 	}
 }
 
@@ -2038,7 +2000,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 		Lock l(cs);
 
 		delete aDownload->getFile();
-		aDownload->setFile(0);
+		aDownload->setFile(nullptr);
 
 		if(aDownload->getType() == Transfer::TYPE_PARTIAL_LIST) {
 			q = fileQueue.find(aDownload->getPath());

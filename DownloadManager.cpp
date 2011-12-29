@@ -355,14 +355,18 @@ void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
 void DownloadManager::sendBundleFinished(BundlePtr aBundle) {
 	Lock l (cs);
 	for(auto i = aBundle->getUploadReports().begin(); i != aBundle->getUploadReports().end(); ++i) {
-		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-
-		cmd.addParam("HI", (*i).hint);
-		cmd.addParam("BU", aBundle->getToken());
-		cmd.addParam("FI1");
-
-		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
+		sendBundleFinished(aBundle, *i);
 	}
+}
+
+void DownloadManager::sendBundleFinished(BundlePtr aBundle, const HintedUser& aUser) {
+	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+
+	cmd.addParam("HI", aUser.hint);
+	cmd.addParam("BU", aBundle->getToken());
+	cmd.addParam("FI1");
+
+	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), true);
 }
 
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
@@ -444,7 +448,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		}
 		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
 			aConn->setState(UserConnection::STATE_IDLE);
-			removeRunningUser(aConn);
+			removeRunningUser(aConn, false, true);
 			{
 				Lock l(cs);
  				idlers.push_back(aConn);
@@ -541,7 +545,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 		return;
 	} catch(...) {
 		delete d->getFile();
-		d->setFile(NULL);
+		d->setFile(nullptr);
 		return;			
 	}
 			
@@ -776,7 +780,7 @@ BundlePtr DownloadManager::findRunningBundle(const string& bundleToken) {
 	return NULL;
 }
 
-void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove /*false*/) {
+void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove /*false*/, bool sendFinished /*false*/) {
 	if (aSource->getLastBundle().empty()) {
 		return;
 	}
@@ -806,6 +810,9 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 						dcassert(runningBundles.find(bundle->getToken()) != runningBundles.end());
 						runningBundles.erase(bundle->getToken());
 						fire(DownloadManagerListener::BundleWaiting(), bundle);
+						if (sendFinished) {
+							sendBundleFinished(bundle, aSource->getHintedUser());
+						}
 					}
 				} else {
 					//LogManager::getInstance()->message("STILL RUNNING: " + Util::toString(y->second));

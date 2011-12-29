@@ -307,13 +307,15 @@ ok:
 			if(&aSource == &up->getUserConnection()) {
 				if (up->getBundle()) {
 					bundle = up->getBundle();
+					bundle->removeUpload(up);
 				}
 				if(sourceFile != up->getPath() && !bundle) {
 					logUpload(up);
 				} else {
 					resumed = true;
 				}
-				removeDelayUpload(aSource.getToken(), true);
+				delayUploads.erase(i);
+				delete up;
 				break;
 			}
 		}
