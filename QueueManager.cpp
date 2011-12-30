@@ -2262,36 +2262,10 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 		int matches=0, newFiles=0;
 		BundleList bundles;
 		matchListing(dirList, matches, newFiles, bundles);
-		string tmp;
-
-		if((flags & QueueItem::FLAG_PARTIAL_LIST)) {
-			//partial lists
-			if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0 && !bundles.empty()) {
-				if (bundles.size() == 1) {
-					tmp.resize(STRING(MATCH_SOURCE_ADDED).size() + 32 + bundles.front()->getName().size());
-					snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED), newFiles, bundles.front()->getName().c_str());
-				} else {
-					tmp.resize(STRING(MATCH_SOURCE_ADDED_X_BUNDLES).size() + 32);
-					snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED_X_BUNDLES), newFiles, (int)bundles.size());
-				}
-			} else {
-				return;
-			}
-		} else {
-			//full lists
-			if (matches > 0) {
-				if (bundles.size() == 1) {
-					tmp.resize(STRING(MATCHED_FILES_BUNDLE).size() + 32 + bundles.front()->getName().size());
-					snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES_BUNDLE), matches, bundles.front()->getName().c_str(), newFiles);
-				} else {
-					tmp.resize(STRING(MATCHED_FILES_X_BUNDLES).size() + 32);
-					snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES_X_BUNDLES), matches, (int)bundles.size(), newFiles);
-				}
-			} else {
-				tmp = CSTRING(NO_MATCHED_FILES);
-			}
+		if ((flags & QueueItem::FLAG_PARTIAL_LIST) && (!SETTING(REPORT_ADDED_SOURCES) || newFiles == 0 || bundles.empty())) {
+			return;
 		}
-		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + tmp);
+		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + AirUtil::formatMatchResults(matches, newFiles, bundles, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0));
 	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
 		findNfo(dirList.getRoot(), dirList);
 	}

@@ -686,4 +686,32 @@ int AirUtil::listRegexCount(const StringList& l, const boost::regex& aReg) {
 	return count_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); } );
 }
 
+string AirUtil::formatMatchResults(int matches, int newFiles, BundleList bundles, bool partial) {
+	string tmp;
+	if(partial) {
+		//partial lists
+		if (bundles.size() == 1) {
+			tmp.resize(STRING(MATCH_SOURCE_ADDED).size() + 32 + bundles.front()->getName().size());
+			snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED), newFiles, bundles.front()->getName().c_str());
+		} else {
+			tmp.resize(STRING(MATCH_SOURCE_ADDED_X_BUNDLES).size() + 32);
+			snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED_X_BUNDLES), newFiles, (int)bundles.size());
+		}
+	} else {
+		//full lists
+		if (matches > 0) {
+			if (bundles.size() == 1) {
+				tmp.resize(STRING(MATCHED_FILES_BUNDLE).size() + 32 + bundles.front()->getName().size());
+				snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES_BUNDLE), matches, bundles.front()->getName().c_str(), newFiles);
+			} else {
+				tmp.resize(STRING(MATCHED_FILES_X_BUNDLES).size() + 32);
+				snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES_X_BUNDLES), matches, (int)bundles.size(), newFiles);
+			}
+		} else {
+			tmp = CSTRING(NO_MATCHED_FILES);
+		}
+	}
+	return tmp;
+}
+
 }

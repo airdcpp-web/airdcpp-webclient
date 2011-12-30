@@ -577,8 +577,6 @@ bool ShareScannerManager::getFileSFV(string& line, bool& invalidFile) {
 void ShareScannerManager::getScanSize(const string& path) throw(FileException) {
 	if(path[path.size() -1] == '\\') {
 		StringList sfvFileList = findFiles(path, "*.sfv");
-
-		int pos = 0;
 		string line;
 		ifstream sfv;
 		for(;;) {
