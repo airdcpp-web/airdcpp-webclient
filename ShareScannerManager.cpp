@@ -321,7 +321,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		}
 	}
 
-	int nfoFiles=0, sfvFiles=0, pos;
+	int nfoFiles=0, sfvFiles=0;
 	bool isSample=false, isRelease=false, isZipRls=false, found=false, extrasInFolder = false;
 
 	string dirName = Util::getDir(path, false, true);
@@ -475,62 +475,38 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	ifstream sfv;
 	string line;
 	string sfvFile;
+	bool hasValidSFV = false;
 
 	int releaseFiles=0;
 	int loopMissing=0;
-	bool invalidFile=false;
 
 	for(auto i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
 		sfvFile = *i;
-
-		if (File::getSize(Text::utf8ToAcp(sfvFile)) > 1000000) {
+		try {
+			openSFV(sfvFile, sfv);
+		} catch(const FileException&) {
 			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-			invalidFile = true;
-			continue;
-		}
-
-		//incase we have some extended characters in the path
-		sfv.open(Text::utf8ToAcp(Util::FormatPath(sfvFile)));
-
-		if(!sfv.is_open()) {
-			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-			invalidFile = true;
 			continue;
 		}
 
 		while( getline( sfv, line ) ) {
 			//make sure that the line is valid
-			if(regex_search(line, crcReg) && (line.find("\\") == string::npos) && (line.find(";") == string::npos)) {
-				releaseFiles++;
-
-				//only keep the filename
-				pos = line.rfind(" ");
-				if (pos == string::npos) {
-					continue;
-				}
-				line = Text::toLower(line.substr(0,pos));
-
-				//extra checks to ignore invalid lines
-				if (line.length() < 5)
-					continue;
-				if (line.length() > 150) {
-					//can't most likely to detect the line breaks
+			bool invalidFile=false;
+			if (!getFileSFV(line, invalidFile)) {
+				if (invalidFile) {
 					LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-					invalidFile = true;
 					break;
 				}
+				continue;
+			}
+			hasValidSFV = true;
+			releaseFiles++;
 
-				//quoted line?
-				if (line[0] == '\"' && line[line.length()-1] == '\"') {
-					line = line.substr(1,line.length()-2);
-				}
-
-				auto k = std::find(fileList.begin(), fileList.end(), line);
-				if(k == fileList.end()) { 
-					loopMissing++;
-					if (SETTING(CHECK_MISSING))
-						LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
-				}
+			auto k = std::find(fileList.begin(), fileList.end(), line);
+			if(k == fileList.end()) { 
+				loopMissing++;
+				if (SETTING(CHECK_MISSING))
+					LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
 			}
 		}
 		sfv.close();
@@ -539,7 +515,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	missingFiles += loopMissing;
 	releaseFiles = releaseFiles - loopMissing;
 
-	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles) && !invalidFile) {
+	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles) && hasValidSFV) {
 		//Find allowed extra files from the release folder
 		boost::regex otherAllowedReg;
 		if (regex_match(dirName, audioBookReg)) {
@@ -558,12 +534,51 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	}
 }
 
+void ShareScannerManager::openSFV(const string& path, ifstream& stream) {
+	if (File::getSize(Text::utf8ToAcp(path)) > 1000000) {
+		throw FileException();
+	}
+
+	//incase we have some extended characters in the path
+	stream.open(Text::utf8ToAcp(Util::FormatPath(path)));
+
+	if(!stream.is_open()) {
+		throw FileException();
+	}
+}
+
+bool ShareScannerManager::getFileSFV(string& line, bool& invalidFile) {
+	if(regex_search(line, crcReg) && (line.find("\\") == string::npos) && (line.find(";") == string::npos)) {
+		//only keep the filename
+		size_t pos = line.rfind(" ");
+		if (pos == string::npos) {
+			return false;
+		}
+		line = Text::toLower(line.substr(0,pos));
+
+		//extra checks to ignore invalid lines
+		if (line.length() < 5)
+			return false;
+		if (line.length() > 150) {
+			//can't most likely to detect the line breaks
+			invalidFile = true;
+			return false;
+		}
+
+		//quoted line?
+		if (line[0] == '\"' && line[line.length()-1] == '\"') {
+			line = line.substr(1,line.length()-2);
+		}
+		return true;
+	}
+	return false;
+}
+
 void ShareScannerManager::getScanSize(const string& path) throw(FileException) {
 	if(path[path.size() -1] == '\\') {
 		StringList sfvFileList = findFiles(path, "*.sfv");
 
-		int pos;
-		int pos2;
+		int pos = 0;
 		string line;
 		ifstream sfv;
 		for(;;) {
@@ -571,37 +586,32 @@ void ShareScannerManager::getScanSize(const string& path) throw(FileException) {
 				break;
 
 			StringIterC i = sfvFileList.begin();
-			string sfvFile = *i;
+			string sfvFile = path + *i;
 			sfvFileList.erase(sfvFileList.begin());
 		
-
-			if (File::getSize(Text::utf8ToAcp(sfvFile)) > 1000000) {
-				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-				continue;
-			}
-
-			//incase we have some extended characters in the path
-			sfv.open(Text::utf8ToAcp(Util::FormatPath(sfvFile)));
-
-			if(!sfv.is_open()) {
+			try {
+				openSFV(sfvFile, sfv);
+			} catch(const FileException&) {
 				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
 				continue;
 			}
 
 			while( getline( sfv, line ) ) {
-				//make sure that the line is valid
-				pos = line.find(";");
-				pos2 = line.find("\\");
-				if(regex_search(line, crcReg) && (pos == string::npos) && (pos2 == string::npos)) {
-					pos = line.rfind(" ");
-					line = line.substr(0,pos);
-					ifstream ifile(path + line);
-					if (ifile) {
-						scanFolderSize = scanFolderSize + File::getSize(path + line);
-					} else {
-						LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
-						checkFailed++;
+				bool invalidFile = false;
+				if (!getFileSFV(line, invalidFile)) {
+					if (invalidFile) {
+						LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + path);
+						break;
 					}
+					continue;
+				}
+
+				ifstream ifile(path + line);
+				if (ifile) {
+					scanFolderSize = scanFolderSize + File::getSize(path + line);
+				} else {
+					LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
+					checkFailed++;
 				}
 			}
 		}
@@ -703,104 +713,101 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 }
 
 void ShareScannerManager::reportResults(const string& dir, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound) {
-	//LogManager::getInstance()->message("missing: " + Util::toString(missingFiles) + ", missingSFV: " + Util::toString(missingSFV) + ", missingNFO: " + Util::toString(missingNFO) + ", extrasFound" 
-	//	+ Util::toString(extrasFound) + ", emptyFolders: " + Util::toString(emptyFolders) + ", dupesFound: " + Util::toString(dupesFound));
-		string tmp, tmp2;
-		if (scanType == 0) {
-			tmp = CSTRING(SCAN_SHARE_FINISHED);
-		} else if (scanType == 1) {
-			tmp = CSTRING(SCAN_FOLDER_FINISHED);
-		} else if (scanType == 2) {
-			tmp2.resize(STRING(SCAN_BUNDLE_FINISHED).size() + dir.size());
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_BUNDLE_FINISHED), dir.c_str()));
-			tmp += tmp2;
-			tmp2.clear();
-		} else {
-			tmp2.resize(STRING(SCAN_FAILED_BUNDLE_FINISHED).size() + dir.size());
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_FAILED_BUNDLE_FINISHED), dir.c_str()));
+	string tmp, tmp2;
+	if (scanType == 0) {
+		tmp = CSTRING(SCAN_SHARE_FINISHED);
+	} else if (scanType == 1) {
+		tmp = CSTRING(SCAN_FOLDER_FINISHED);
+	} else if (scanType == 2) {
+		tmp2.resize(STRING(SCAN_BUNDLE_FINISHED).size() + dir.size());
+		tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_BUNDLE_FINISHED), dir.c_str()));
+		tmp += tmp2;
+		tmp2.clear();
+	} else {
+		tmp2.resize(STRING(SCAN_FAILED_BUNDLE_FINISHED).size() + dir.size());
+		tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_FAILED_BUNDLE_FINISHED), dir.c_str()));
+		tmp += tmp2;
+		tmp2.clear();
+	}
+
+	if (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0) {
+		if (scanType == 3) {
+			//no report for clean bundles
+			return;
+		}
+		tmp += ", ";
+		tmp += CSTRING(SCAN_NO_PROBLEMS);
+	} else {
+		if (scanType != 3) {
+			tmp += " ";
+			tmp += CSTRING(SCAN_PROBLEMS_FOUND);
+			tmp += ":  ";
+		}
+
+		bool first = true;
+		if (SETTING(CHECK_MISSING) && missingFiles > 0) {
+			first = false;
+			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_RELEASE_FILES), missingFiles));
 			tmp += tmp2;
 			tmp2.clear();
 		}
 
-		if (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0) {
-			if (scanType == 3) {
-				//no report for clean bundles
-				return;
+		if (SETTING(CHECK_SFV) && missingSFV > 0) {
+			if (!first) {
+				tmp += ", ";
 			}
-			tmp += ", ";
-			tmp += CSTRING(SCAN_NO_PROBLEMS);
-		} else {
-
-			if (scanType != 3) {
-				tmp += " ";
-				tmp += CSTRING(SCAN_PROBLEMS_FOUND);
-				tmp += ":  ";
-			}
-
-			bool first = true;
-			if (SETTING(CHECK_MISSING) && missingFiles > 0) {
-				first = false;
-				tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_RELEASE_FILES), missingFiles));
-				tmp += tmp2;
-				tmp2.clear();
-			}
-
-			if (SETTING(CHECK_SFV) && missingSFV > 0) {
-				if (!first) {
-					tmp += ", ";
-				}
-				first = false;
-				tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_SFV_FILES), missingSFV));
-				tmp += tmp2;
-				tmp2.clear();
-			}
-
-			if (SETTING(CHECK_NFO) && missingNFO > 0) {
-				if (!first) {
-					tmp += ", ";
-				}
-				first = false;
-				tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_NFO_FILES), missingNFO));
-				tmp += tmp2;
-				tmp2.clear();
-			}
-
-			if (SETTING(CHECK_EXTRA_FILES) && extrasFound > 0) {
-				if (!first) {
-					tmp += ", ";
-				}
-				first = false;
-				tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_FOLDERS_EXTRAS), extrasFound));
-				tmp += tmp2;
-				tmp2.clear();
-			}
-
-			if (SETTING(CHECK_EMPTY_DIRS) && emptyFolders > 0) {
-				if (!first) {
-					tmp += ", ";
-				}
-				first = false;
-				tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_EMPTY_FOLDERS), emptyFolders));
-				tmp += tmp2;
-				tmp2.clear();
-			}
-
-			if (SETTING(CHECK_DUPES) && dupesFound > 0) {
-				if (!first) {
-					tmp += ", ";
-				}
-				tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_DUPE_FOLDERS), dupesFound));
-				tmp += tmp2;
-				tmp2.clear();
-			}
+			first = false;
+			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_SFV_FILES), missingSFV));
+			tmp += tmp2;
+			tmp2.clear();
 		}
-		LogManager::getInstance()->message(tmp);
+
+		if (SETTING(CHECK_NFO) && missingNFO > 0) {
+			if (!first) {
+				tmp += ", ";
+			}
+			first = false;
+			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_NFO_FILES), missingNFO));
+			tmp += tmp2;
+			tmp2.clear();
+		}
+
+		if (SETTING(CHECK_EXTRA_FILES) && extrasFound > 0) {
+			if (!first) {
+				tmp += ", ";
+			}
+			first = false;
+			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_FOLDERS_EXTRAS), extrasFound));
+			tmp += tmp2;
+			tmp2.clear();
+		}
+
+		if (SETTING(CHECK_EMPTY_DIRS) && emptyFolders > 0) {
+			if (!first) {
+				tmp += ", ";
+			}
+			first = false;
+			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_EMPTY_FOLDERS), emptyFolders));
+			tmp += tmp2;
+			tmp2.clear();
+		}
+
+		if (SETTING(CHECK_DUPES) && dupesFound > 0) {
+			if (!first) {
+				tmp += ", ";
+			}
+			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
+			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_DUPE_FOLDERS), dupesFound));
+			tmp += tmp2;
+			tmp2.clear();
+		}
+	}
+	LogManager::getInstance()->message(tmp);
 }
 
 } // namespace dcpp

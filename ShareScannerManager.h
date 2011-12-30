@@ -87,6 +87,9 @@ private:
 	uint32_t calcCrc32(const string& file);
 	StringList bundleDirs;
 
+	bool getFileSFV(string& line, bool& invalidFile);
+	void openSFV(const string& path, ifstream& stream);
+
 	void reportResults(const string& path, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound = 0);
 };
 
