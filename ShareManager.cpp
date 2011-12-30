@@ -1017,9 +1017,10 @@ void ShareManager::rebuildIndices() {
 }
 
 void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::iterator& i) {
+	
 	auto files = tthIndex.equal_range(i->getTTH());
 	for(auto k = files.first; k != files.second; ++k) {
-		if(stricmp((*i).getFullName().c_str(), k->second->getFullName().c_str()) == 0) {
+		if(stricmp((*i).getFullName(), k->second->getFullName()) == 0) {
 			return;
 		}
 	}
@@ -2301,8 +2302,6 @@ int64_t ShareManager::removeExcludeFolder(const string &path, bool returnSize /*
 
 StringList ShareManager::getVirtualNames() {
 	StringList result;
-
-
 
 	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i){
 		bool exists = false;

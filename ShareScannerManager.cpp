@@ -276,7 +276,7 @@ StringList ShareScannerManager::findFiles(const string& path, const string& patt
 	WIN32_FIND_DATA data;
 	HANDLE hFind;
 
-	hFind = ::FindFirstFile(Text::toT(path + pattern).c_str(), &data);
+	hFind = ::FindFirstFile(Text::toT(Util::FormatPath(path + pattern)).c_str(), &data);
 	if(hFind != INVALID_HANDLE_VALUE) {
 		do {
 			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM)) {
