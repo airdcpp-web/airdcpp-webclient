@@ -37,6 +37,8 @@
 
 #ifndef DCPLUSPLUS_SIMPLE_GETSET
 
+#pragma warning(disable:4100)
+
 #define GETSET(t, name, name2) \
 private: t name; \
 public: boost::mpl::if_c<std::is_class<t>::value, const t&, t>::type get##name2() const { return name; } \
