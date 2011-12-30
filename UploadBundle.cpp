@@ -18,8 +18,20 @@
 
 #include "stdinc.h"
 #include "UploadBundle.h"
+#include "Util.h"
 
 namespace dcpp {
+
+UploadBundle::UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded) : target(aTarget), token(aToken), size(aSize),
+	speed(0), totalSpeed(0), singleUser(aSingleUser), start(GET_TICK()) {
+	if (singleUser) {
+		uploadedSegments = aUploaded;
+		uploaded = 0;
+	} else {
+		uploaded = aUploaded;
+		uploadedSegments = 0;
+	}
+}
 
 void UploadBundle::addUploadedSegment(int64_t aSize) {
 	if (singleUser) {
@@ -34,6 +46,7 @@ void UploadBundle::addUploadedSegment(int64_t aSize) {
 void UploadBundle::setSingleUser(bool aSingleUser) {
 	if (aSingleUser) {
 		singleUser = true;
+		totalSpeed = 0;
 	} else {
 		singleUser = false;
 		uploaded = 0;

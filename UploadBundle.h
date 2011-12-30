@@ -24,7 +24,6 @@
 
 #include "Pointer.h"
 #include "forward.h"
-#include "CID.h"
 #include "GetSet.h"
 #include "Upload.h"
 
@@ -32,69 +31,51 @@ namespace dcpp {
 
 using std::string;
 
-/**
- * A bundle is a set of related files that can be searched for by a single hash value.
- *
- * The hash is defined as follows:
- * For each file in the set, ordered by name (byte-order, not linguistic), except those specially marked,
- * compute the compute the hash. Then calculate the combined hash value by passing the concatenated hashes
- * of each file through the hash function.
- */
 class UploadBundle : public intrusive_ptr_base<UploadBundle> {
 public:
-
-	typedef unordered_map<CID, string> CIDList;
-	typedef unordered_map<CID, uint8_t> RunningMap;
-
-
-	UploadBundle(const string& target, const string& token) : target(target), token(token), size(0), uploaded(0), speed(0), totalSpeed(0), 
-		singleUser(true), uploadedSegments(0) { }
+	UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded);
 
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, speed, Speed);
 	GETSET(int64_t, totalSpeed, TotalSpeed);
 	GETSET(int64_t, actual, Actual);
-	GETSET(uint64_t, start, Start);
 	GETSET(int64_t, uploadedSegments, UploadedSegments);
 
 	GETSET(UploadList, uploads, Uploads);
 	
-	string token;
-	string target;
 	int getRunning() { return (int)uploads.size(); }
+
+	uint64_t getStart() const { return start; }
+
+	bool getSingleUser() { return singleUser; }
+	void setSingleUser(bool aSingleUser);
+
+	string getName();
+	string getTarget() { return target; }
+	void setTarget(string targetNew) { target = targetNew; }
+
+	string getToken() { return token; }
+
+	uint64_t getSecondsLeft();
+	uint64_t getUploaded() const { return uploaded + uploadedSegments; }
+
+	void findBundlePath(const string& aName);
+
+	/* DownloadManager */
+	void addUploadedSegment(int64_t aSize);
 
 	void addUpload(Upload* u);
 	bool removeUpload(Upload* u);
 
 	uint64_t countSpeed();
-	void addUploadedSegment(int64_t aSize);
-	uint64_t getUploaded() const {
-		return uploaded + uploadedSegments;
-	}
-
-	bool getSingleUser() { return singleUser; }
-	void setSingleUser(bool aSingleUser);
-	void findBundlePath(const string& aName);
-	uint64_t getSecondsLeft();
-
-
-	string getTarget() {
-		return target;
-	}
-
-	string getToken() {
-		return token;
-	}
-
-	void setTarget(string targetNew) {
-		target =  targetNew;
-	}
-
-	string getName();
 
 private:
 	uint64_t uploaded;
 	bool singleUser;
+	uint64_t start;
+
+	string token;
+	string target;
 };
 
 }

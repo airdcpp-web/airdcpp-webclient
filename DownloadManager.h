@@ -94,9 +94,6 @@ private:
 	void checkDownloads(UserConnection* aConn);
 	void startData(UserConnection* aSource, int64_t start, int64_t newSize, bool z);
 	void startBundle(UserConnection* aSource, BundlePtr aBundle);
-	bool sendBundle(UserConnection* aSource, BundlePtr aBundle, bool updateOnly);
-	void sendBundleUBN(HintedUser& user, const string& speed, const double percent, const string& bundleToken);
-	void sendBundleFinished(BundlePtr aBundle, const HintedUser& aUser);
 	typedef unordered_map<string, BundlePtr> tokenMap;
 	tokenMap tokens;
 

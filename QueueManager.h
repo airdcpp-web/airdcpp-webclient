@@ -132,7 +132,7 @@ public:
 	bool getDiskInfo(const string& aPath, int64_t& freeSpace);
 	void saveBundle(BundlePtr aBundle);
 	void getUnfinishedPaths(StringList& bundles);
-	void getForbiddenPaths(StringList& bundles, StringPairList paths);
+	void getForbiddenPaths(StringList& bundles, const StringPairList& paths);
 
 	BundlePtr getBundle(const string& bundleToken) { Lock l (cs); return findBundle(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth);
@@ -140,7 +140,6 @@ public:
 	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle);
 	void updatePBD(const HintedUser& aUser, const TTHValue& aTTH);
 	void removeBundleNotify(const UserPtr& aUser, const string& bundleToken);
-	void sendRemovePBD(const UserPtr& aUser, BundlePtr aBundle);
 	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;
@@ -151,12 +150,12 @@ public:
 	void getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles);
 	void handleBundleUpdate(const string& bundleToken);
 
-	void moveDir(const string& aSource, const string& aTarget, BundleList sourceBundles, bool moveFinished);
-	void removeDir(const string& aSource, BundleList sourceBundles, bool removeFinished);
+	void moveDir(const string aSource, const string& aTarget, const BundleList& sourceBundles, bool moveFinished);
+	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished);
 	bool move(QueueItem* qs, const string& aTarget) noexcept;
 	string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
 
-	void setBundlePriorities(const string& aSource, BundleList sourceBundles, Bundle::Priority p, bool autoPrio=false);
+	void setBundlePriorities(const string& aSource, const BundleList& sourceBundles, Bundle::Priority p, bool autoPrio=false);
 	void calculateBundlePriorities(bool verbose);
 	void searchBundle(BundlePtr aBundle, bool newBundle, bool manual);
 	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
@@ -352,7 +351,7 @@ private:
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
 	BundlePtr findBundle(const string& bundleToken);
-	void addBundleUpdate(const string& bundleToken, bool finished = false);
+	void addBundleUpdate(const string& bundleToken);
 	void sendPBD(HintedUser& aUser, const TTHValue& tth, const string& bundleToken);
 
 	void addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);

@@ -813,9 +813,9 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_UPLOAD));
 
 	bool addConn = false;
-
+	{
+		Lock l(cs);
 		if (uc->isSet(UserConnection::FLAG_MCN1)) {
-			Lock l(cs);
 			//check that the token is unique so nasty clients can't mess up our transfers
 			for(ConnectionQueueItem::Iter i = uploads.begin(); i != uploads.end(); ++i) {
 				ConnectionQueueItem* cqi = *i;
@@ -827,13 +827,12 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 			addConn = true;
 		} else {
 			//no multiple connections for these
-			Lock l(cs);
 			ConnectionQueueItem::Iter i = find(uploads.begin(), uploads.end(), uc->getUser());
 			if(i == uploads.end()) {
 				addConn = true;
 			}
 		}
-	
+	}
 
 	if(addConn) {
 	

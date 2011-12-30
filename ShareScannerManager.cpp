@@ -42,6 +42,27 @@
 
 namespace dcpp {
 
+ShareScannerManager::ShareScannerManager() : scanning(false) {
+	releaseReg.assign("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+	emptyDirReg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
+	crcReg.assign("(.{5,200}\\s(\\w{8})$)");
+	rarReg.assign("(.+\\.((r\\w{2})|(0\\d{2})))");
+	rarMp3Reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))");
+	audioBookReg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
+	flacReg.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
+	zipReg.assign("(.+\\.zip)");
+	longReleaseReg.assign("(?=\\S*[A-Z]\\S*)(([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S+)))(\\S+)-(\\w{2,})");
+	mvidReg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))");
+	zipExtraReg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
+	proofImageReg.assign("(.*(jp(e)?g|png))", boost::regex_constants::icase);
+}
+
+ShareScannerManager::~ShareScannerManager() { 
+	Stop();
+	join();
+}
+
 int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 	stop = false;
 	//initiate the thread always here for now.
@@ -51,8 +72,6 @@ int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 	}
 	isCheckSFV = false;
 	isDirScan = false;
-	//skipListReg.Init(SETTING(SKIPLIST_SHARE));
-	//skipListReg.study();
 
 	if(sfv) {
 		isCheckSFV = true;
@@ -80,10 +99,12 @@ int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 	}
 	return 0;
 }
+
 void ShareScannerManager::Stop() {
 		Paths.clear();
 		stop = true;
 }
+
 int ShareScannerManager::run() {
 	string dir;
 
@@ -115,27 +136,26 @@ int ShareScannerManager::run() {
 		Paths.erase(Paths.begin());
 
 		if(isCheckSFV) {
-
 			if(dir[dir.size() -1] == '\\') {
 				string sfvFile;
-				StringList FileList = findFiles(dir, "*"); // find all files in dir
+				StringList dirFiles = findFiles(dir, "*"); // find all files in dir
 
-				if(FileList.size() == 0) {
+				if(dirFiles.size() == 0) {
 					LogManager::getInstance()->message(STRING(NO_FILES_IN_FOLDER));
 				} else {
 
 					for(;;) { // loop until no files Listed
 			
-						if(FileList.empty() || stop)
+						if(dirFiles.empty() || stop)
 							break;
 
-						StringIterC i = FileList.begin();
+						StringIterC i = dirFiles.begin();
 						sfvFile = dir + *i; 
-						FileList.erase(FileList.begin());
+						dirFiles.erase(dirFiles.begin());
 						if((sfvFile.find(".nfo") == string::npos) && sfvFile.find(".sfv") == string::npos) // just srip out the nfo and sfv file, others are ok or extra anyways?
 							checkSFV(sfvFile);
 					}
-					FileList.clear();
+					dirFiles.clear();
 				}
 			} else {
 				checkSFV(dir); 
@@ -236,16 +256,12 @@ void ShareScannerManager::findDupes(const string& path, int& dupesFound) throw(F
 	string dirName = Util::getDir(path, false, true);
 	string listfolder;
 
-	boost::regex reg;
-	reg.assign("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
-	if (!regex_match(dirName, reg))
+	if (!regex_match(dirName, releaseReg))
 		return;
 	
-
 	if (!dupeDirs.empty()) {
-		for(StringPairIter i = dupeDirs.begin(); i != dupeDirs.end();    i++) {
-			std::string listfolder = i->first;
-			if (!stricmp(dirName, listfolder)) {
+		for(auto i = dupeDirs.begin(); i != dupeDirs.end();    i++) {
+			if (stricmp(dirName, i->first) == 0) {
 				dupesFound++;
 				LogManager::getInstance()->message(STRING(DUPE_FOUND) + path + " " + STRING(DUPE_IS_SAME) + " " + (i->second));
 			}
@@ -287,9 +303,9 @@ StringList ShareScannerManager::findFiles(const string& path, const string& patt
 	return ret;
 }
 
-bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders) throw(FileException) {
+void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders) throw(FileException) {
 	if(path.empty())
-		return false;
+		return;
 
 	StringList sfvFileList, folderList, fileList = findFiles(path, "*");
 
@@ -297,46 +313,40 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		//check if there are folders
 		folderList = findFiles(path, "*", true);
 		if (folderList.empty()) {
-			if (SETTING(CHECK_EMPTY_DIRS))
+			if (SETTING(CHECK_EMPTY_DIRS)) {
 				LogManager::getInstance()->message(STRING(DIR_EMPTY) + " " + path);
 				emptyFolders++;
-			return false;
+			}
+			return;
 		}
 	}
 
-	boost::regex reg, reg2;
-	int nfoFiles=0, sfvFiles=0, pos, pos2;
+	int nfoFiles=0, sfvFiles=0, pos;
 	bool isSample=false, isRelease=false, isZipRls=false, found=false, extrasInFolder = false;
 
-	StringIterC i;
 	string dirName = Util::getDir(path, false, true);
 
-	reg.assign("(.+\\.nfo)");
-	reg2.assign("(.+\\.sfv)");
-
 	// Find NFO and SFV files
-	for(i = fileList.begin(); i != fileList.end(); ++i) {
-		if (regex_match(*i, reg)) {
+	for(auto i = fileList.begin(); i != fileList.end(); ++i) {
+		if (Util::getFileExt(*i) == ".nfo") {
 			nfoFiles++;
-		} else if (regex_match(*i, reg2)) {
+		} else if (Util::getFileExt(*i) == ".sfv") {
 			sfvFileList.push_back(path + *i);
 			sfvFiles++;
 		}
 	}
 
 	if (!fileList.empty() && ((nfoFiles + sfvFiles) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
-		reg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
-		if (!regex_match(dirName,reg)) {
+		if (!regex_match(dirName, emptyDirReg)) {
 			folderList = findFiles(path, "*", true);
 			if (folderList.empty()) {
 				LogManager::getInstance()->message(STRING(RELEASE_FILES_MISSING) + " " + path);
-				return false;
+				return;
 			}
 		}
 	}
 
 	if(SETTING(CHECK_NFO) || SETTING(CHECK_SFV) || SETTING(CHECK_EXTRA_FILES) || SETTING(CHECK_EXTRA_SFV_NFO)) {
-
 		//Check for multiple NFO or SFV files
 		if (SETTING(CHECK_EXTRA_SFV_NFO)) {
 			if (nfoFiles > 1) {
@@ -354,60 +364,26 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		}
 
 		//Check if it's a sample folder
-		if (!strcmp(Text::toLower(dirName).c_str(), "sample")) {
-			isSample=true;
-		}
+		isSample = (strcmp(Text::toLower(dirName).c_str(), "sample") == 0);
 
 		if (nfoFiles == 0 || sfvFiles == 0 || isSample || SETTING(CHECK_EXTRA_FILES)) {
-
 			//Check if it's a RAR/Music release folder
-			if (!SETTING(CHECK_MP3_DIR))
-				reg.assign("(.+\\.((r\\w{2})|(0\\d{2})))");
-			else
-				reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))");
-
-			for(i = fileList.begin(); i != fileList.end(); ++i) {
-				if (regex_match(*i, reg)) {
-					isRelease=true;
-					break;
-				}
-			}
+			isRelease = AirUtil::listRegexMatch(fileList, (SETTING(CHECK_MP3_DIR) ? rarMp3Reg : rarReg));
 
 			if (!isRelease) {
-
 				//Check if it's a zip release folder
-				reg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
-				if (regex_match(dirName, reg)) {
-					reg.assign("(.+\\.zip)");
-					for(i = fileList.begin(); i != fileList.end(); ++i) {
-						if (regex_match(*i, reg)) {
-							isZipRls=true;
-							break;
-						}
-					}
+				if (regex_match(dirName, simpleReleaseReg)) {
+					isZipRls = AirUtil::listRegexMatch(fileList, zipReg);
 				}
 
 				//Check if it's a Mvid release folder
-				reg.assign("(?=\\S*[A-Z]\\S*)(([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S+)))(\\S+)-(\\w{2,})");
-				if (!isZipRls && regex_match(dirName, reg)) {
-					reg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))");
-					for(i = fileList.begin(); i != fileList.end(); ++i) {
-						if (regex_match(*i, reg)) {
-							isRelease=true;
-							break;
-						}
-					}
+				if (!isZipRls && regex_match(dirName, longReleaseReg)) {
+					isRelease = AirUtil::listRegexMatch(fileList, mvidReg);
 				}
 
 				//Report extra files in a zip folder
 				if (isZipRls && SETTING(CHECK_EXTRA_FILES)) {
-					reg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
-					for(i = fileList.begin(); i != fileList.end(); ++i) {
-						if (!regex_match(*i, reg)) {
-							LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path + *i);
-							extrasInFolder = true;
-						}
-					}
+					extrasInFolder = AirUtil::listRegexMatch(fileList, zipExtraReg);
 					if (extrasInFolder)
 						extrasFound++;
 				}
@@ -418,11 +394,10 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				found = false;
 				if (fileList.size() > 1) {
 					//check that all files have the same extension.. otherwise there are extras
-					reg.assign("(.*(jp(e)?g|png))", boost::regex_constants::icase);
 					string extensionFirst, extensionLoop;
 					int extPos;
-					for(i = fileList.begin(); i != fileList.end(); ++i) {
-						if (!regex_match(*i, reg)) {
+					for(auto i = fileList.begin(); i != fileList.end(); ++i) {
+						if (!regex_match(*i, proofImageReg)) {
 							extensionFirst = *i;
 							extPos = extensionFirst.find_last_of(".");
 							if (extPos != string::npos)
@@ -431,12 +406,12 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 						}
 					}
 					if (!extensionFirst.empty()) {
-						for(i = fileList.begin(); i != fileList.end(); ++i) {
+						for(auto i = fileList.begin(); i != fileList.end(); ++i) {
 							extensionLoop = *i;
 							extPos = extensionLoop.find_last_of(".");
 							if (extPos != string::npos) {
 								extensionLoop = Text::toLower(extensionLoop.substr(extPos, extensionLoop.length()));
-								if (regex_match(extensionLoop, reg))
+								if (regex_match(extensionLoop, proofImageReg))
 									continue;
 							}
 							if (strcmp(extensionLoop.c_str(), extensionFirst.c_str())) {
@@ -453,25 +428,24 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 			}
 
 			if (isSample)
-				return false;
+				return;
 
+			boost::regex reg;
 			//Report missing NFO
-			reg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))"); //Simple regex for release names
-			if (SETTING(CHECK_NFO) && nfoFiles == 0 && regex_match(dirName,reg)) {
-				StringList filesListSub;
+			if (SETTING(CHECK_NFO) && nfoFiles == 0 && regex_match(dirName, simpleReleaseReg)) {
 				found = false;
 				if (fileList.empty()) {
 					found = true;
 					reg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);
 					folderList = findFiles(path, "*", true);
 					//check if there are multiple disks and nfo inside them
-					for(i = folderList.begin(); i != folderList.end(); ++i) {
-						if (regex_match(*i,reg)) {
+					for(auto i = folderList.begin(); i != folderList.end(); ++i) {
+						if (regex_match(*i, simpleReleaseReg)) {
 							found = false;
-							filesListSub = findFiles(path + *i + "\\", "*.nfo");
+							StringList filesListSub = findFiles(path + *i + "\\", "*.nfo");
 							if (!filesListSub.empty()) {
-									found = true;
-									break;
+								found = true;
+								break;
 							}
 						}
 					}
@@ -490,25 +464,23 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 					LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
 					missingSFV++;
 				}
-				return false;
+				return;
 			}
 		}
 	}
 
 	if (sfvFiles == 0)
-		return false;
+		return;
 
 	ifstream sfv;
 	string line;
 	string sfvFile;
 
-	reg.assign("(.{5,200}\\s(\\w{8})$)");
-	reg2.assign("(\".+\")");
 	int releaseFiles=0;
 	int loopMissing=0;
 	bool invalidFile=false;
 
-	for(i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
+	for(auto i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
 		sfvFile = *i;
 
 		if (File::getSize(Text::utf8ToAcp(sfvFile)) > 1000000) {
@@ -528,30 +500,36 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 		while( getline( sfv, line ) ) {
 			//make sure that the line is valid
-			pos = line.find(";");
-			pos2 = line.find("\\");
-			if(regex_search(line, reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
+			if(regex_search(line, crcReg) && (line.find("\\") == string::npos) && (line.find(";") == string::npos)) {
 				releaseFiles++;
+
 				//only keep the filename
 				pos = line.rfind(" ");
+				if (pos == string::npos) {
+					continue;
+				}
 				line = Text::toLower(line.substr(0,pos));
+
+				//extra checks to ignore invalid lines
 				if (line.length() < 5)
 					continue;
 				if (line.length() > 150) {
+					//can't most likely to detect the line breaks
 					LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
 					invalidFile = true;
 					break;
 				}
 
-				if (regex_match(line, reg2)) {
+				//quoted line?
+				if (line[0] == '\"' && line[line.length()-1] == '\"') {
 					line = line.substr(1,line.length()-2);
 				}
 
-				StringIterC k = std::find(fileList.begin(), fileList.end(), line);
-					if(k == fileList.end()) { 
-						loopMissing++;
-						if (SETTING(CHECK_MISSING))
-							LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
+				auto k = std::find(fileList.begin(), fileList.end(), line);
+				if(k == fileList.end()) { 
+					loopMissing++;
+					if (SETTING(CHECK_MISSING))
+						LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
 				}
 			}
 		}
@@ -563,32 +541,21 @@ bool ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles) && !invalidFile) {
 		//Find allowed extra files from the release folder
-		int otherAllowed = 0;
-		reg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
-		reg2.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
-		if (regex_match(dirName, reg)) {
-			reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
-		}
-		else if (regex_match(dirName, reg2))
-			reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
-		else
-			reg.assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
-
-		for(i = fileList.begin(); i != fileList.end(); ++i) {
-			if (regex_match(*i, reg))
-				otherAllowed++;
+		boost::regex otherAllowedReg;
+		if (regex_match(dirName, audioBookReg)) {
+			otherAllowedReg.assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
+		} else if (regex_match(dirName, flacReg)) {
+			otherAllowedReg.assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
+		} else {
+			otherAllowedReg.assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
 		}
 
-		if ((int)fileList.size() > (releaseFiles + nfoFiles + sfvFiles + otherAllowed)) {
+		if ((int)fileList.size() > (releaseFiles + nfoFiles + sfvFiles + AirUtil::listRegexCount(fileList, otherAllowedReg))) {
 			LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
 			if (!extrasInFolder)
 				extrasFound++;
 		}
 	}
-	if (loopMissing > 0)
-		return true;
-	else
-		return false;
 }
 
 void ShareScannerManager::getScanSize(const string& path) throw(FileException) {
@@ -598,9 +565,7 @@ void ShareScannerManager::getScanSize(const string& path) throw(FileException) {
 		int pos;
 		int pos2;
 		string line;
-		boost::wregex reg;
 		ifstream sfv;
-		reg.assign(_T("(\\s(\\w{8})$)"));
 		for(;;) {
 			if(sfvFileList.empty())
 				break;
@@ -609,17 +574,25 @@ void ShareScannerManager::getScanSize(const string& path) throw(FileException) {
 			string sfvFile = *i;
 			sfvFileList.erase(sfvFileList.begin());
 		
-			//incase we have some extended characters in the path
-			sfv.open(Text::utf8ToAcp(path + sfvFile));
 
-			if(!sfv.is_open())
+			if (File::getSize(Text::utf8ToAcp(sfvFile)) > 1000000) {
 				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+				continue;
+			}
+
+			//incase we have some extended characters in the path
+			sfv.open(Text::utf8ToAcp(Util::FormatPath(sfvFile)));
+
+			if(!sfv.is_open()) {
+				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
+				continue;
+			}
 
 			while( getline( sfv, line ) ) {
 				//make sure that the line is valid
 				pos = line.find(";");
 				pos2 = line.find("\\");
-				if(regex_search(Text::toT(line), reg) && !(std::string::npos != pos) && !(std::string::npos != pos2)) {
+				if(regex_search(line, crcReg) && (pos == string::npos) && (pos2 == string::npos)) {
 					pos = line.rfind(" ");
 					line = line.substr(0,pos);
 					ifstream ifile(path + line);

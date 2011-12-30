@@ -38,7 +38,7 @@ class ShareScannerManager: public Singleton<ShareScannerManager>, public Thread 
 public:
 
 	void find (const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, bool checkBundles);
-	bool scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders);
+	void scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders);
 	int scan(StringList paths = StringList(), bool sfv = false);
 	bool scanBundle(BundlePtr aBundle);
 	void checkSFV(const string& path);
@@ -47,15 +47,26 @@ public:
 private:
 	friend class Singleton<ShareScannerManager>;
 
-	ShareScannerManager() : scanning(false){ }
-	~ShareScannerManager() { 
-		Stop();
-		join();
-	}
+	ShareScannerManager();
+	~ShareScannerManager();
 	
 	int run();
 	PME skipListReg;
 	bool matchSkipList(const string& dir);
+
+	boost::regex rarReg;
+	boost::regex rarMp3Reg;
+	boost::regex longReleaseReg;
+	boost::regex releaseReg;
+	boost::regex simpleReleaseReg;
+	boost::regex audioBookReg;
+	boost::regex flacReg;
+	boost::regex emptyDirReg;
+	boost::regex crcReg;
+	boost::regex mvidReg;
+	boost::regex zipReg;
+	boost::regex zipExtraReg;
+	boost::regex proofImageReg;
 
 	StringList Paths;
 	bool isCheckSFV;

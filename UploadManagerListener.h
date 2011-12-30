@@ -9,7 +9,7 @@
 namespace dcpp {
 
 class UploadManagerListener {
-	friend class UploadQueueItem; 
+	friend class UploadQueueItem;
 public:
 	virtual ~UploadManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I }; };
@@ -23,19 +23,22 @@ public:
 	typedef X<6> QueueItemRemove;
 	typedef X<7> QueueUpdate;
 	typedef X<8> BundleComplete;
-	typedef X<9> BundleRenamed;
+	typedef X<9> BundleSizeName;
+	typedef X<10> BundleTick;
 
 	virtual void on(Starting, const Upload*) noexcept { }
-	virtual void on(Tick, const UploadList&, const UploadBundleList&) noexcept { }
+	virtual void on(Tick, const UploadList&) noexcept { }
 	virtual void on(Complete, const Upload*) noexcept { }
-	virtual void on(BundleComplete, const string&, const string&) noexcept { }
-	virtual void on(BundleRenamed, const string&, const string&) noexcept { }
 	virtual void on(Failed, const Upload*, const string&) noexcept { }
+
 	virtual void on(QueueAdd, UploadQueueItem*) noexcept { }
 	virtual void on(QueueRemove, const UserPtr&) noexcept { }
 	virtual void on(QueueItemRemove, UploadQueueItem*) noexcept { }
 	virtual void on(QueueUpdate) noexcept { }
 
+	virtual void on(BundleComplete, const string&, const string&) noexcept { }
+	virtual void on(BundleSizeName, const string&, const string&, int64_t) noexcept { }
+	virtual void on(BundleTick, const UploadBundleList&) noexcept { }
 };
 
 } // namespace dcpp

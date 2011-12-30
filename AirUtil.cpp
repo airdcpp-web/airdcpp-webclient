@@ -678,4 +678,12 @@ void AirUtil::getVolumes(StringSet& volumes) {
 	}
 }
 
+bool AirUtil::listRegexMatch(const StringList& l, const boost::regex& aReg) {
+	return find_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); } ) != l.end();
+}
+
+int AirUtil::listRegexCount(const StringList& l, const boost::regex& aReg) {
+	return count_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); } );
+}
+
 }

@@ -130,99 +130,97 @@ public:
 	DownloadList& getDownloads() { return downloads; }
 	DirMap& getBundleDirs() { return bundleDirs; }
 	SourceIntList& getBundleSources() { return sources; }
-	int getHashed() { return hashed; }
+
+
+	/* Misc */
+	bool getFileBundle() { return fileBundle;}
 
 	uint64_t getDownloadedBytes() const { return bytesDownloaded; }
-	QueueItem* findQI(const string& aTarget) const;
-	size_t countOnlineUsers() const;
-	uint64_t countSpeed();
+	uint64_t getSecondsLeft();
 
+	string getTarget() { return target; }
+	string getName();
+
+	string getBundleFile();
+
+	void setDirty(bool dirty);
+	bool getDirty() { return dirty; }
+
+	tstring getBundleText();
+
+
+	/* QueueManager */
 	bool removeQueue(QueueItem* qi, bool finished);
 	bool addQueue(QueueItem* qi);
+
+	void getDirQIs(const string& aDir, QueueItemList& ql);
+	void getDownloadsQI(DownloadList& l);
 
 	void addFinishedItem(QueueItem* qi, bool finished);
 	void removeFinishedItem(QueueItem* qi);
 
-	bool getFileBundle() {
-		return fileBundle;
-	}
+	void sendRemovePBD(const UserPtr& aUser);
+	bool isFinishedNotified(const UserPtr& aUser);
+	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle);
+	void removeFinishedNotify(const UserPtr& aUser);
 
+	string getMatchPath(const SearchResultPtr& sr);
+	QueueItem* findQI(const string& aTarget) const;
+	size_t countOnlineUsers() const;
+
+	Priority calculateProgressPriority() const;
+	void getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap);
+	void getBundleBalanceMaps(SourceSpeedMapB& speedMap, SourceSpeedMapB& sourceMap);
+	void calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speeds, SourceSpeedMapQI& sources, bool verbose);
+
+	void increaseSize(int64_t aSize) { size += aSize; }
+	void decreaseSize(int64_t aSize) { size -= aSize; }
+
+	int getHashed() { return hashed; }
 	void resetHashed() { hashed = 0; }
-	void increaseHashed() {
-		hashed++;
-	}
+	void increaseHashed() { hashed++; }
 
-	void increaseSize(int64_t aSize) {
-		size += aSize;
-	}
+	void setTarget(string targetNew) { target =  targetNew; }
 
-	void decreaseSize(int64_t aSize) {
-		size -= aSize;
-	}
+	/* DownloadManager */
+	void addUploadReport(const HintedUser& aUser);
+	void removeUploadReport(const UserPtr& aUser);
 
+	bool sendBundle(UserConnection* aSource, bool updateOnly);
+	void sendBundleMode();
+	void sendBundleFinished();
+	void sendBundleFinished(const HintedUser& aUser);
+	void sendSizeNameUpdate();
+	void sendUBN(const string& speed, double percent);
+
+	void addDownload(Download* d);
+	void removeDownload(const string& token, bool finished = true);
+
+	void getTTHList(OutputStream& tthList);
+	void getSearchItems(StringPairList& searches, bool manual);
+
+	uint64_t countSpeed();
 	void setDownloadedBytes(int64_t aSize);
 	void addDownloadedSegment(int64_t aSize);
 	void removeDownloadedSegment(int64_t aSize);
 
-	void increaseRunning() {
-		running++;
-	}
+	void increaseRunning() { running++; }
+	void decreaseRunning() { running--; }
 
-	void decreaseRunning() {
-		running--;
-	}
-
-	uint64_t getSecondsLeft();
-
-
-	string getTarget() {
-		return target;
-	}
-
-	string getBundleFile();
-
-	void setTarget(string targetNew) {
-		target =  targetNew;
-	}
-
-	string getName();
-	void setDirty(bool enable);
-
-	bool getDirty() {
-		return dirty;
-	}
-
-	tstring getBundleText();
-	bool isFinishedNotified(const UserPtr& aUser);
-	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle);
-	void removeFinishedNotify(const UserPtr& aUser);
-	void getDirQIs(const string& aDir, QueueItemList& ql);
-	void getUserQIs(const UserPtr& aUser, QueueItemList& ql);
-	string getMatchPath(const SearchResultPtr& sr);
-
-	/** All queue items indexed by user */
+	/* Sources*/
 	void getQISources(HintedUserList& l);
 	bool isSource(const UserPtr& aUser);
 	bool isSource(const CID& cid);
 	bool isBadSource(const UserPtr& aUser);
 	bool isFinished() { return queueItems.empty(); }
-	void getDownloadsQI(DownloadList& l);
-	QueueItemList getItems(const UserPtr& aUser) const;
+	void removeBadSource(const HintedUser& aUser);
+
+	/** All queue items indexed by user */
 	void addUserQueue(QueueItem* qi);
 	bool addUserQueue(QueueItem* qi, const HintedUser& aUser);
 	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
 	QueueItemList getRunningQIs(const UserPtr& aUser);
-	void addDownload(Download* d);
-	void removeDownload(const string& token, bool finished = true);
-
-	void removeBadSource(const HintedUser& aUser);
-
-	Priority calculateProgressPriority() const;
-
-	void getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap);
-	void getBundleBalanceMaps(SourceSpeedMapB& speedMap, SourceSpeedMapB& sourceMap);
-
-	void calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speeds, SourceSpeedMapQI& sources, bool verbose);
+	void getItems(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
 	void removeUserQueue(QueueItem* qi);
 	bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad);

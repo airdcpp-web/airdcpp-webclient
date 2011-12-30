@@ -791,7 +791,7 @@ tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
  	
  	string found = Util::emptyString;
  	string dirNew;
- 	for(DirMap::const_iterator j = directories.begin(); j != directories.end(); ++j) {
+ 	for(auto j = directories.begin(); j != directories.end(); ++j) {
 		dirNew = j->second->getFullName();
  	if (validateDir) {
  		dirNew = AirUtil::getReleaseDir(dirNew);
@@ -830,15 +830,15 @@ string ShareManager::Directory::find(const string& dir, bool validateDir) {
 	string ret = Util::emptyString;
 	string dirNew = dir;
 	if (validateDir)
-		dirNew = AirUtil::getReleaseDir(this->getFullName());
+		dirNew = AirUtil::getReleaseDir(getFullName());
 
 	if (!dirNew.empty()) {
 		if (dir == dirNew) {
-			return this->getFullName();
+			return getFullName();
 		}
 	}
 
-	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
+	for(auto l = directories.begin(); l != directories.end(); ++l) {
 		ret = l->second->find(dir, validateDir);
 		if(!ret.empty())
 			break;
@@ -853,7 +853,7 @@ void ShareManager::sortReleaseList() {
 }
 
 void ShareManager::Directory::findDirsRE(bool remove) {
-	for(Directory::Map::const_iterator l = directories.begin(); l != directories.end(); ++l) {
+	for(auto l = directories.begin(); l != directories.end(); ++l) {
 		 l->second->findDirsRE(remove);
 	}
 
@@ -1019,7 +1019,7 @@ void ShareManager::rebuildIndices() {
 void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::iterator& i) {
 	auto files = tthIndex.equal_range(i->getTTH());
 	for(auto k = files.first; k != files.second; ++k) {
-		if(stricmp((*i).getFullName().c_str(), k->second->getRealPath().c_str()) == 0) {
+		if(stricmp((*i).getFullName().c_str(), k->second->getFullName().c_str()) == 0) {
 			return;
 		}
 	}
@@ -1514,7 +1514,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, bool recursive) {
 	dcdebug("toTTHList2");
 	if (recursive) {
-		for(Map::const_iterator i = directories.begin(); i != directories.end(); ++i) {
+		for(auto i = directories.begin(); i != directories.end(); ++i) {
 			i->second->toTTHList(tthList, tmp2, recursive);
 		}
 	}
@@ -1835,7 +1835,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 	}
 
 	for(Directory::Map::const_iterator l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
-			l->second->search(aResults, *cur, aSearchType, aSize, aFileType, aClient, maxResults);
+		l->second->search(aResults, *cur, aSearchType, aSize, aFileType, aClient, maxResults);
 	}
 }
 
@@ -2101,42 +2101,37 @@ bool ShareManager::addBundle(const string& path) noexcept {
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bool allowAdd, bool report) {
-	Directory::Ptr cur = NULL;
-	for (auto mi = directories.begin(); mi != directories.end(); ++mi) {
-		if(strnicmp(fname, mi->first, mi->first.length()) == 0) {
-			cur = mi->second;
-			StringList sl = StringTokenizer<string>(fname.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
-			for(auto i = sl.begin(); i != sl.end(); ++i) {
-				auto j = cur->directories.find(*i);
-				if (j != cur->directories.end()) {
-					cur = j->second;
-				} else if (!allowAdd || !AirUtil::checkSharedName((*i), true, report)) {
-					break;
-				} else {
-					Directory::Ptr newDir = Directory::create(*i, cur);
-					newDir->setLastWrite(GET_TIME());
-					cur->directories[*i] = newDir;
-					cur = newDir;
-					cur->findDirsRE(false);
-				}
+	auto mi = find_if(directories.begin(), directories.end(), [&](pair<string, Directory::Ptr> dp) { return strnicmp(fname, dp.first, dp.first.length()) == 0; });
+	if (mi != directories.end()) {
+		auto curDir = mi->second;
+		StringList sl = StringTokenizer<string>(fname.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
+		for(auto i = sl.begin(); i != sl.end(); ++i) {
+			auto j = curDir->directories.find(*i);
+			if (j != curDir->directories.end()) {
+				curDir = j->second;
+			} else if (!allowAdd || !AirUtil::checkSharedName((*i), true, report)) {
+				return NULL;
+			} else {
+				auto newDir = Directory::create(*i, curDir);
+				newDir->setLastWrite(GET_TIME());
+				curDir->directories[*i] = newDir;
+				addReleaseDir(newDir->getFullName());
+				curDir = newDir;
 			}
-			break;
 		}
+		return curDir;
 	}
-	return cur;
+	return NULL;
 }
 
 void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexcept {
 	WLock l(cs);
 	Directory::Ptr d = findDirectory(Util::getDir(fname, false, false), true, false);
-	if (!d) {
-		return;
-	}
-	if (stricmp(d->getName(), Util::getLastDir(fname)) != 0) {
+	if (!d || stricmp(d->getName(), Util::getLastDir(fname)) != 0) {
 		return;
 	}
 
-	Directory::File::Set::const_iterator i = d->findFile(Util::getFileName(fname));
+	auto i = d->findFile(Util::getFileName(fname));
 	if(i != d->files.end()) {
 		// Get rid of false constness...
 		auto files = tthIndex.equal_range(i->getTTH());
@@ -2153,7 +2148,7 @@ void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexc
 	} else {
 		string name = Util::getFileName(fname);
 		int64_t size = File::getSize(fname);
-		Directory::File::Set::iterator it = d->files.insert(Directory::File(name, size, d, root)).first;
+		auto it = d->files.insert(Directory::File(name, size, d, root)).first;
 		updateIndices(*d, it);
 	}
 		

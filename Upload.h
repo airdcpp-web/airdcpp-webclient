@@ -6,6 +6,7 @@
 #include "UploadBundle.h"
 #include "Flags.h"
 #include "GetSet.h"
+#include "Util.h"
 
 namespace dcpp {
 

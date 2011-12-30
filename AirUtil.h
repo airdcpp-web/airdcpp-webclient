@@ -34,6 +34,9 @@ class AirUtil {
 		static void getTarget(StringList& targets, string& target, int64_t& size);
 		static void getVolumes(StringSet& volumes);
 
+		static bool listRegexMatch(const StringList& l, const boost::regex& aReg);
+		static int listRegexCount(const StringList& l, const boost::regex& aReg);
+
 	private:
 
 	};

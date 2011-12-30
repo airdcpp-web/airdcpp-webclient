@@ -104,17 +104,15 @@ string Bundle::getBundleFile() {
 }
 
 
-QueueItemList Bundle::getItems(const UserPtr& aUser) const {
-	QueueItemList ret;
+void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) noexcept {
 	for(int i = 0; i < QueueItem::LAST; ++i) {
 		auto j = userQueue[i].find(aUser);
 		if(j != userQueue[i].end()) {
 			for(auto m = j->second.begin(); m != j->second.end(); ++m) {
-				ret.push_back(*m);
+				ql.push_back(*m);
 			}
 		}
 	}
-	return ret;
 }
 
 void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
@@ -143,7 +141,6 @@ void Bundle::removeFinishedItem(QueueItem* qi) {
 }
 
 bool Bundle::addQueue(QueueItem* qi) {
-	//qi->inc();
 	dcassert(find(queueItems.begin(), queueItems.end(), qi) == queueItems.end());
 	qi->setBundle(this);
 	queueItems.push_back(qi);
@@ -217,7 +214,6 @@ bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
 		auto start = (size_t)Util::rand((uint32_t)(l.size() < 200 ? l.size() : 200)); //limit the max value to lower the required moving distance
 		advance(i, start);
 		swap(queueItems[start], queueItems[queueItems.size()-1]);
-		//l.insert(i, qi);
 	}
 
 	auto i = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
@@ -319,15 +315,6 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
 	}
 }
 
-void Bundle::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
-	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
-		QueueItem* qi = *s;
-		if (qi->isSource(aUser)) {
-			ql.push_back(qi);
-		}
-	}
-}
-
 string Bundle::getMatchPath(const SearchResultPtr& sr) {
 	string path;
 	if (simpleMatching) {
@@ -341,23 +328,6 @@ string Bundle::getMatchPath(const SearchResultPtr& sr) {
 		}
 	}
 	return path;
-}
-
-void Bundle::addDownload(Download* d) {
-	downloads.push_back(d);
-}
-
-void Bundle::removeDownload(const string& token, bool finished /* true */) {
-	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getUserConnection().getToken(), token) == 0; });
-	dcassert(m != downloads.end());
-	if (m != downloads.end()) {
-		if (!finished) {
-			dcassert((bytesDownloaded - (*m)->getPos()) >= 0);
-			bytesDownloaded -= (*m)->getPos();
-			dcassert(bytesDownloaded <= (uint64_t)size);
-		}
-		downloads.erase(m);
-	}
 }
 
 QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) {
@@ -426,9 +396,6 @@ void Bundle::removeBadSource(const HintedUser& aUser) {
 	dcassert(m != badSources.end());
 	if (m != badSources.end()) {
 		badSources.erase(m);
-		/*if (added > 0) {
-			sources.push_back(make_pair(aUser, files));
-		} */
 	}
 	dcassert(m == badSources.end());
 }
@@ -601,6 +568,104 @@ size_t Bundle::countOnlineUsers() const {
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
 }
 
+tstring Bundle::getBundleText() {
+	double percent = (double)bytesDownloaded*100.0/(double)size;
+	dcassert(percent <= 100.00);
+	if (fileBundle) {
+		return Text::toT(getName());
+	} else {
+		return Text::toT(getName()) + _T(" (") + Util::toStringW(percent) + _T("%, ") + Text::toT(AirUtil::getPrioText(priority)) + _T(", ") + Util::toStringW(sources.size()) + _T(" sources)");
+	}
+}
+
+void Bundle::sendRemovePBD(const UserPtr& aUser) {
+	//LogManager::getInstance()->message("QueueManager::sendRemovePBD");
+	for (auto s = finishedNotifications.begin(); s != finishedNotifications.end(); ++s) {
+		if (s->first.user == aUser) {
+			AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
+
+			cmd.addParam("HI", s->first.hint);
+			cmd.addParam("BU", s->second);
+			cmd.addParam("RM1");
+			ClientManager::getInstance()->send(cmd, s->first.user->getCID());
+			return;
+			//LogManager::getInstance()->message("QueueManager::sendRemovePBD: user found");
+		}
+	}
+}
+
+void Bundle::getTTHList(OutputStream& tthList) {
+	string tmp2;
+	for(auto i = finishedFiles.begin(); i != finishedFiles.end(); ++i) {
+		tmp2.clear();
+		tthList.write((*i)->getTTH().toBase32(tmp2) + " ");
+	}
+}
+
+void Bundle::getSearchItems(StringPairList& searches, bool manual) {
+	string searchString;
+	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
+		string dir = Util::getDir(i->first, true, false);
+		//don't add the same directory twice
+		if (find_if(searches.begin(), searches.end(), [&](const StringPair& sp) { return sp.first == dir; }) != searches.end()) {
+			continue;
+		}
+
+		QueueItemList ql;
+		getDirQIs(dir, ql);
+
+		if (ql.empty()) {
+			continue;
+		}
+
+		size_t s = 0;
+		searchString = Util::emptyString;
+
+		//do a few guesses to get a random item
+		while (s <= ql.size()) {
+			auto pos = ql.begin();
+			auto rand = Util::rand(ql.size());
+			advance(pos, rand);
+			QueueItem* q = *pos;
+			if(q->getPriority() == QueueItem::PAUSED && !manual) {
+				s++;
+				continue;
+			}
+			if(q->isRunning() || (q->getPriority() == QueueItem::PAUSED)) {
+				//it's ok but see if we can find better one
+				searchString = q->getTTH().toBase32();
+			} else {
+				searchString = q->getTTH().toBase32();
+				break;
+			}
+			s++;
+		}
+
+		if (!searchString.empty()) {
+			searches.push_back(make_pair(dir, searchString));
+		}
+	}
+}
+
+/* ONLY CALLED FROM DOWNLOADMANAGER BEGIN */
+
+void Bundle::addDownload(Download* d) {
+	downloads.push_back(d);
+}
+
+void Bundle::removeDownload(const string& token, bool finished /* true */) {
+	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getUserConnection().getToken(), token) == 0; });
+	dcassert(m != downloads.end());
+	if (m != downloads.end()) {
+		if (!finished) {
+			dcassert((bytesDownloaded - (*m)->getPos()) >= 0);
+			bytesDownloaded -= (*m)->getPos();
+			dcassert(bytesDownloaded <= (uint64_t)size);
+		}
+		downloads.erase(m);
+	}
+}
+
 uint64_t Bundle::countSpeed() {
 	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
 	int down = 0;
@@ -626,14 +691,118 @@ uint64_t Bundle::countSpeed() {
 	return bundleSpeed;
 }
 
-tstring Bundle::getBundleText() {
-	double percent = (double)bytesDownloaded*100.0/(double)size;
-	dcassert(percent <= 100.00);
-	if (fileBundle) {
-		return Text::toT(getName());
-	} else {
-		return Text::toT(getName()) + _T(" (") + Util::toStringW(percent) + _T("%, ") + Text::toT(AirUtil::getPrioText(priority)) + _T(", ") + Util::toStringW(sources.size()) + _T(" sources)");
+void Bundle::addUploadReport(const HintedUser& aUser) {
+	if (uploadReports.empty()) {
+		lastSpeed = 0;
+		lastPercent = 0;
+	}
+	uploadReports.push_back(aUser);
+}
+
+void Bundle::removeUploadReport(const UserPtr& aUser) {
+	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
+		if (i->user == aUser) {
+			uploadReports.erase(i);
+			//LogManager::getInstance()->message("ERASE UPLOAD REPORT: " + Util::toString(bundle->getUploadReports().size()));
+			break;
+		}
 	}
 }
+
+void Bundle::sendUBN(const string& speed, double percent) {
+	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
+		AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
+
+		cmd.addParam("HI", i->hint);
+		cmd.addParam("BU", token);
+		if (!speed.empty())
+			cmd.addParam("DS", speed);
+		if (percent > 0)
+			cmd.addParam("PE", Util::toString(percent));
+
+		ClientManager::getInstance()->send(cmd, i->user->getCID(), true);
+	}
+}
+
+bool Bundle::sendBundle(UserConnection* aSource, bool updateOnly) {
+	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+
+	cmd.addParam("HI", aSource->getHintedUser().hint);
+	cmd.addParam("TO", aSource->getToken());
+	cmd.addParam("BU", token);
+	if (!updateOnly) {
+		cmd.addParam("SI", Util::toString(size));
+		cmd.addParam("NA", getName());
+		cmd.addParam("DL", Util::toString(bytesDownloaded));
+		if (singleUser) {
+			cmd.addParam("SU1");
+		} else {
+			cmd.addParam("MU1");
+		}
+		cmd.addParam("AD1");
+	} else {
+		cmd.addParam("CH1");
+	}
+	return ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true);
+}
+
+void Bundle::sendBundleMode() {
+	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
+		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+
+		cmd.addParam("HI", (*i).hint);
+		cmd.addParam("BU", token);
+		cmd.addParam("UD1");
+		if (singleUser)
+			cmd.addParam("SU1");
+		else
+			cmd.addParam("MU1");
+
+		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
+	}
+}
+
+void Bundle::sendBundleFinished() {
+	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
+		sendBundleFinished(*i);
+	}
+}
+
+void Bundle::sendBundleFinished(const HintedUser& aUser) {
+	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+
+	cmd.addParam("HI", aUser.hint);
+	cmd.addParam("BU", token);
+	cmd.addParam("FI1");
+
+	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), true);
+}
+
+void Bundle::sendSizeNameUpdate() {
+	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
+	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
+		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+		cmd.addParam("HI", (*i).hint);
+		cmd.addParam("BU", token);
+
+		if (isSet(FLAG_UPDATE_SIZE)) {
+			unsetFlag(FLAG_UPDATE_SIZE);
+			cmd.addParam("SI", Util::toString(size));
+			//LogManager::getInstance()->message("UBD for bundle: " + aBundle->getName() + ", size: " + Util::toString(aBundle->getSize()));
+		}
+
+		if (isSet(FLAG_UPDATE_NAME)) {
+			unsetFlag(FLAG_UPDATE_NAME);
+			cmd.addParam("NA", getName());
+			//LogManager::getInstance()->message("UBD for bundle: " + aBundle->getName() + ", name: " + aBundle->getName());
+		}
+
+		cmd.addParam("UD1");
+
+		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
+	}
+}
+
+/* ONLY CALLED FROM DOWNLOADMANAGER END */
 
 }

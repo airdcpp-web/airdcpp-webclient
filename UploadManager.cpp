@@ -239,13 +239,11 @@ ok:
 	
 	bool noSlots = false;
 	if (slotType != UserConnection::STDSLOT && slotType != UserConnection::MCNSLOT) {
-		bool hasReserved = false;
 		bool isFavorite = FavoriteManager::getInstance()->hasSlot(aSource.getUser());
-		bool hasFreeSlot = false;
 		{
 			Lock l(cs);
-			hasReserved = reservedSlots.find(aSource.getUser()) != reservedSlots.end();
-			hasFreeSlot = (getFreeSlots() > 0) && ((uploadQueue.empty() && notifiedUsers.empty()) || isNotifiedUser(aSource.getUser()));
+			bool hasReserved = reservedSlots.find(aSource.getUser()) != reservedSlots.end();
+			bool hasFreeSlot = (getFreeSlots() > 0) && ((uploadQueue.empty() && notifiedUsers.empty()) || isNotifiedUser(aSource.getUser()));
 		
 			if ((type==Transfer::TYPE_PARTIAL_LIST || fileSize <= 65792) && smallSlots <= 8) {
 				slotType = UserConnection::SMALLSLOT;
@@ -325,10 +323,6 @@ ok:
 	//LogManager::getInstance()->message("Token2: " + aSource.getToken());
 	u->setStream(is);
 	u->setSegment(Segment(start, size));
-	if (bundle) {
-		Lock l (cs);
-		bundle->addUpload(u);
-	}
 		
 	if(u->getSize() != fileSize)
 		u->setFlag(Upload::FLAG_CHUNKED);
@@ -345,6 +339,9 @@ ok:
 	{
 		Lock l(cs);
 		uploads.push_back(u);
+		if (bundle) {
+			bundle->addUpload(u);
+		}
 	}
 
 	if(aSource.getSlotType() != slotType) {
@@ -366,6 +363,10 @@ ok:
 				smallSlots--;
 				break;
 		}
+		
+		// user got a slot
+		aSource.setSlotType(slotType);
+
 		// set new slot count
 		switch(slotType) {
 			case UserConnection::STDSLOT:
@@ -388,9 +389,6 @@ ok:
 				smallSlots++;
 				break;
 		}
-		
-		// user got a slot
-		aSource.setSlotType(slotType);
 	}
 
 	return true;
@@ -479,7 +477,7 @@ void UploadManager::checkMultiConn() {
 	}
 
 	//find the correct upload to kill
-	Upload* u = *find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return up->getUser() == highest->first; } );
+	Upload* u = *find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return up->getUser() == highest->first && up->getUserConnection().getSlotType() == UserConnection::MCNSLOT; } );
 	if (u) {
 		u->getUserConnection().disconnect(true);
 	}
@@ -491,7 +489,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 	float percent = 0;
 	string speedStr;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
 		if(str.compare(0, 2, "HI") == 0) {
 			hubIpPort = str.substr(2);
@@ -506,7 +504,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 		}
 	}
 
-	if ((percent <= 0 && speedStr.empty()) || bundleToken.empty()) {
+	if ((percent < 0.00 && speedStr.empty()) || bundleToken.empty()) {
 		return;
 	}
 
@@ -536,23 +534,21 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 			}
 		}
 
-		if (percent > 0 && percent < 100.00) {
+		if (percent >= 0.00 && percent < 100.00) {
 			bundle->setUploadedSegments(bundle->getSize()*(percent / 100.00000));
 		}
 	}
 }
 
 void UploadManager::createBundle(const AdcCommand& cmd) {
-
 	string bundleToken;
 	string hubIpPort;
 	string token;
 	string name;
-	int64_t size=0;
-	int64_t downloaded=0;
-	bool singleUser = false, multiUser = false;
+	int64_t size=0, downloaded=0;
+	bool singleUser = false;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
 		if(str.compare(0, 2, "BU") == 0) {
 			bundleToken = str.substr(2);
@@ -566,8 +562,6 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 			downloaded = Util::toInt64(str.substr(2));
 		} else if (str.compare(0, 2, "SU") == 0) {
 			singleUser = true;
-		} else if (str.compare(0, 2, "MU") == 0) {
-			multiUser = true;
 		} else {
 			//LogManager::getInstance()->message("ONUBD CREATE UNKNOWN PARAM");
 		}
@@ -585,19 +579,7 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 		return;
 	}
 
-	UploadBundlePtr bundle = UploadBundlePtr(new UploadBundle(name, bundleToken));
-	bundle->setSize(size);
-	bundle->setStart(GET_TICK());
-	if (downloaded > 0) {
-		bundle->addUploadedSegment(downloaded);
-	}
-
-	if (multiUser) {
-		bundle->setSingleUser(false);
-	} else if (singleUser) {
-		bundle->setSingleUser(true);
-	}
-
+	UploadBundlePtr bundle = UploadBundlePtr(new UploadBundle(name, bundleToken, size, singleUser, downloaded));
 	{
 		Lock l (cs);
 		Upload* u = findUpload(token);
@@ -618,7 +600,7 @@ void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
 	int64_t size=0;
 	bool singleUser = false, multiUser = false;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
 		if(str.compare(0, 2, "BU") == 0) {
 			bundleToken = str.substr(2);
@@ -646,14 +628,13 @@ void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
 		if (multiUser) {
 			bundle->setSingleUser(false);
 		} else if (singleUser) {
-			//LogManager::getInstance()->message("UpdateBundleInfo: SINGLEUSER");
 			bundle->setSingleUser(true);
-			bundle->setTotalSpeed(0);
 		} else if (size > 0) {
 			bundle->setSize(size);
 			if (!name.empty()) {
 				bundle->findBundlePath(name);
 			}
+			fire(UploadManagerListener::BundleSizeName(), bundle->getToken(), bundle->getTarget(), bundle->getSize());
 		}
 		return;
 	}
@@ -663,7 +644,7 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 	string bundleToken;
 	string token;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
 		if(str.compare(0, 2, "BU") == 0) {
 			bundleToken = str.substr(2);
@@ -706,10 +687,9 @@ void UploadManager::removeBundleItem(Upload* aUpload) {
 void UploadManager::finishBundle(const AdcCommand& cmd) {
 	string bundleToken;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
-		if(str.compare(0, 2, "BU") == 0) {
-			bundleToken = str.substr(2);
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+		if((*i).compare(0, 2, "BU") == 0) {
+			bundleToken = (*i).substr(2);
 		}
 	}
 	
@@ -788,12 +768,10 @@ Upload* UploadManager::findUpload(const string& aToken) {
 
 
 int64_t UploadManager::getRunningAverage() {
-	Lock l(cs);
 	int64_t avg = 0;
-	for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
-		Upload* u = *i;
-		avg += static_cast<int64_t>(u->getAverageSpeed());
-	}
+
+	Lock l(cs);
+	for_each(uploads.begin(), uploads.end(), [&](const Upload* u) { avg += static_cast<int64_t>(u->getAverageSpeed()); });
 	return avg;
 }
 
@@ -830,13 +808,13 @@ void UploadManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) {
 		Lock l(cs);
 		reservedSlots[aUser] = GET_TICK() + aTime*1000;
 	
-	if(aUser.user->isOnline()){
-		// find user in uploadqueue to connect with correct token
-		auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser.user; });
-		if(it != uploadQueue.cend()) {
-			token = it->token;
-			connect = true;
-		}
+		if(aUser.user->isOnline()){
+			// find user in uploadqueue to connect with correct token
+			auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser.user; });
+			if(it != uploadQueue.cend()) {
+				token = it->token;
+				connect = true;
+			}
 		}
 	}
 
@@ -846,7 +824,7 @@ void UploadManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) {
 
 void UploadManager::unreserveSlot(const UserPtr& aUser) {
 	Lock l(cs);
-	SlotIter uis = reservedSlots.find(aUser);
+	auto uis = reservedSlots.find(aUser);
 	if(uis != reservedSlots.end())
 		reservedSlots.erase(uis);
 }
@@ -952,11 +930,8 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 
 	if(!u->isSet(Upload::FLAG_CHUNKED) && !u->getBundle()) {
 		logUpload(u);
-		removeUpload(u, true);
+		removeUpload(u);
 	} else {
-		if (u->getBundle()) {
-			logUpload(u);
-		}
 		removeUpload(u, true);
 	}
 }
@@ -1150,11 +1125,15 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 	UploadBundleList tickBundles;
 	{
 		Lock l(cs);
-		for(auto i = delayUploads.begin(); i != delayUploads.end(); ++i) {
+		for(auto i = delayUploads.begin(); i != delayUploads.end();) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
-				removeDelayUpload(u->getToken(), true);
-				break;
+				removeBundleItem(u);
+				delayUploads.erase(i);
+				delete u;
+				i = delayUploads.begin();
+			} else {
+				i++;
 			}
 		}
 
@@ -1165,7 +1144,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			}
 		}
 
-		for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
+		for(auto i = uploads.begin(); i != uploads.end(); ++i) {
 			if((*i)->getPos() > 0) {
 				ticks.push_back(*i);
 				(*i)->tick();
@@ -1174,7 +1153,10 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 	}
 
 	if(ticks.size() > 0)
-		fire(UploadManagerListener::Tick(), ticks, tickBundles);
+		fire(UploadManagerListener::Tick(), ticks);
+
+	if (!tickBundles.empty())
+		fire(UploadManagerListener::BundleTick(), tickBundles);
 
 	notifyQueuedUsers();
 	fire(UploadManagerListener::QueueUpdate());
