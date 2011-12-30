@@ -838,6 +838,7 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource) {
 	dcdebug("File Not Available: %s\n", d->getPath().c_str());
 
 	removeDownload(d);
+	removeRunningUser(aSource, false, false);
 
 	if (d->isSet(Download::FLAG_NFO)) {
 		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT));

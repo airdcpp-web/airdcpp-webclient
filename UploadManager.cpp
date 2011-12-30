@@ -307,7 +307,7 @@ ok:
 					bundle = up->getBundle();
 					bundle->removeUpload(up);
 				}
-				if(sourceFile != up->getPath() && !bundle) {
+				if(sourceFile != up->getPath() && up->isSet(Upload::FLAG_CHUNKED)) {
 					logUpload(up);
 				} else {
 					resumed = true;
@@ -703,7 +703,17 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 
 	if (bundle) {
 		//ignore bundle updates that may arrive after this
-		bundle->setSingleUser(true);
+		{
+			Lock l (cs);
+			for (auto i = bundle->getUploads().begin(); i != bundle->getUploads().end();) {
+				removeDelayUpload((*i)->getToken(), true);
+				i = bundle->getUploads().begin();
+			}
+			//for_each(bundle->getUploads().begin(), bundle->getUploads().end(), [&](Upload* up) { removeDelayUpload(aToken, true); });
+			dcassert(bundles.find(bundle->getToken()) == bundles.end());
+			//bundles.erase(bundle->getToken());
+		}
+		//bundle->setSingleUser(true);
 		fire(UploadManagerListener::BundleComplete(), bundle->getToken(), bundle->getName());
 	}
 }
@@ -759,11 +769,15 @@ UploadBundlePtr UploadManager::findBundle(const string& bundleToken) {
 }
 
 Upload* UploadManager::findUpload(const string& aToken) {
-	Upload* u = *find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return up->getToken() == aToken; });
-	if (!u) {
-		u = *find_if(delayUploads.begin(), delayUploads.end(), [&](Upload* up) { return up->getToken() == aToken; });
+	auto u = find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return up->getToken() == aToken; });
+	if (u != uploads.end()) {
+		return *u;
 	}
-	return u;
+	auto s = find_if(delayUploads.begin(), delayUploads.end(), [&](Upload* up) { return up->getToken() == aToken; });
+	if (s != delayUploads.end()) {
+		return *s;
+	}
+	return NULL;
 }
 
 
@@ -932,6 +946,9 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 		logUpload(u);
 		removeUpload(u);
 	} else {
+		if(!u->isSet(Upload::FLAG_CHUNKED)) {
+			logUpload(u);
+		}
 		removeUpload(u, true);
 	}
 }
@@ -1128,6 +1145,9 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		for(auto i = delayUploads.begin(); i != delayUploads.end();) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
+				if(u->isSet(Upload::FLAG_CHUNKED)) {
+					logUpload(u);
+				}
 				removeBundleItem(u);
 				delayUploads.erase(i);
 				delete u;
@@ -1174,9 +1194,7 @@ void UploadManager::removeDelayUpload(const string& aToken, bool removeBundle) {
 		Upload* up = *i;
 		if(aToken == up->getToken()) {
 			delayUploads.erase(i);
-			if (removeBundle) {
-				removeBundleItem(up);
-			}
+			removeBundleItem(up);
 			delete up;
 			break;
 		}

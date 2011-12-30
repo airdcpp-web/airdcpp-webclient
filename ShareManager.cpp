@@ -2055,10 +2055,6 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 			goto done;
 		}
 
-		if (stricmp(dir->getName(), Util::getLastDir(path)) != 0) {
-			goto done;
-		}
-
 		added = true;
 		buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
 		updateIndices(*dir);
@@ -2128,7 +2124,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexcept {
 	WLock l(cs);
 	Directory::Ptr d = findDirectory(Util::getDir(fname, false, false), true, false);
-	if (!d || stricmp(d->getName(), Util::getLastDir(fname)) != 0) {
+	if (!d) {
 		return;
 	}
 
