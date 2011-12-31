@@ -54,8 +54,13 @@ ShareScannerManager::ShareScannerManager() : scanning(false) {
 	zipReg.assign("(.+\\.zip)");
 	longReleaseReg.assign("(?=\\S*[A-Z]\\S*)(([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S+)))(\\S+)-(\\w{2,})");
 	mvidReg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))");
-	zipExtraReg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
 	proofImageReg.assign("(.*(jp(e)?g|png))", boost::regex_constants::icase);
+	subDirReg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);
+	extraRegs[AUDIOBOOK].assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
+	extraRegs[FLAC].assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
+	extraRegs[NORMAL].assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
+	extraRegs[ZIP].assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
+	subReg.assign("(.{0,8}[Ss]ub(s|pack)?)");
 }
 
 ShareScannerManager::~ShareScannerManager() { 
@@ -383,7 +388,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 				//Report extra files in a zip folder
 				if (isZipRls && SETTING(CHECK_EXTRA_FILES)) {
-					extrasInFolder = AirUtil::listRegexMatch(fileList, zipExtraReg);
+					extrasInFolder = AirUtil::listRegexMatch(fileList, extraRegs[ZIP]);
 					if (extrasInFolder)
 						extrasFound++;
 				}
@@ -430,17 +435,15 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 			if (isSample)
 				return;
 
-			boost::regex reg;
 			//Report missing NFO
 			if (SETTING(CHECK_NFO) && nfoFiles == 0 && regex_match(dirName, simpleReleaseReg)) {
 				found = false;
 				if (fileList.empty()) {
 					found = true;
-					reg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);
 					folderList = findFiles(path, "*", true);
 					//check if there are multiple disks and nfo inside them
 					for(auto i = folderList.begin(); i != folderList.end(); ++i) {
-						if (regex_match(*i, simpleReleaseReg)) {
+						if (regex_match(*i, subDirReg)) {
 							found = false;
 							StringList filesListSub = findFiles(path + *i + "\\", "*.nfo");
 							if (!filesListSub.empty()) {
@@ -459,8 +462,8 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 			//Report missing SFV
 			if (sfvFiles == 0 && isRelease) {
-				reg.assign("(.{0,8}[Ss]ub(s|pack)?)"); //avoid extra matches
-				if (!regex_match(dirName,reg) && SETTING(CHECK_SFV)) {
+				//avoid extra matches
+				if (!regex_match(dirName,subReg) && SETTING(CHECK_SFV)) {
 					LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
 					missingSFV++;
 				}
@@ -517,16 +520,14 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles) && hasValidSFV) {
 		//Find allowed extra files from the release folder
-		boost::regex otherAllowedReg;
+		int8_t extrasType = NORMAL;
 		if (regex_match(dirName, audioBookReg)) {
-			otherAllowedReg.assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
+			extrasType = AUDIOBOOK;
 		} else if (regex_match(dirName, flacReg)) {
-			otherAllowedReg.assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
-		} else {
-			otherAllowedReg.assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
+			extrasType = FLAC;
 		}
 
-		if ((int)fileList.size() > (releaseFiles + nfoFiles + sfvFiles + AirUtil::listRegexCount(fileList, otherAllowedReg))) {
+		if ((int)fileList.size() > (releaseFiles + nfoFiles + sfvFiles + AirUtil::listRegexCount(fileList, extraRegs[extrasType]))) {
 			LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
 			if (!extrasInFolder)
 				extrasFound++;

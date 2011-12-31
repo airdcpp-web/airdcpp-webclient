@@ -54,6 +54,14 @@ private:
 	PME skipListReg;
 	bool matchSkipList(const string& dir);
 
+
+	enum extraTypes {
+		AUDIOBOOK,
+		FLAC,
+		NORMAL,
+		ZIP,
+	};
+
 	boost::regex rarReg;
 	boost::regex rarMp3Reg;
 	boost::regex longReleaseReg;
@@ -65,8 +73,10 @@ private:
 	boost::regex crcReg;
 	boost::regex mvidReg;
 	boost::regex zipReg;
-	boost::regex zipExtraReg;
 	boost::regex proofImageReg;
+	boost::regex subDirReg;
+	boost::regex subReg;
+	boost::regex extraRegs[4];
 
 	StringList Paths;
 	bool isCheckSFV;
