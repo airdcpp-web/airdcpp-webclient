@@ -6,6 +6,7 @@
 
 #include "Text.h"
 #include "pme.h"
+#include "File.h"
 
 namespace dcpp {
 
@@ -33,6 +34,16 @@ class AirUtil {
 		static bool checkSharedName(const string& aName, bool dir, bool report = true);
 		static void getTarget(StringList& targets, string& target, int64_t& size);
 		static void getVolumes(StringSet& volumes);
+
+		static uint32_t getLastWrite(const string& path) {
+							
+			FileFindIter ff = FileFindIter(path);
+
+			if (ff != FileFindIter()) {
+				return ff->getLastWriteTime();
+			}
+		return 0;
+		}
 
 		static bool listRegexMatch(const StringList& l, const boost::regex& aReg);
 		static int listRegexCount(const StringList& l, const boost::regex& aReg);

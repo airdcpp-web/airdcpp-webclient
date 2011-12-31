@@ -1802,9 +1802,10 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
 			QueueItem* qi = *i;
 			if (AirUtil::checkSharedName(Util::getFileName(qi->getTarget()), false, false) && Util::fileExists(qi->getTarget())) {
+
 				try {
 					// Schedule for hashing, it'll be added automatically later on...
-					if (!HashManager::getInstance()->checkTTH(qi->getTarget(), qi->getSize(), 0)) {
+					if (!HashManager::getInstance()->checkTTH(qi->getTarget(), qi->getSize(), AirUtil::getLastWrite(qi->getTarget()))) {
 						i++;
 						continue;
 					} else {
@@ -3673,7 +3674,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
 		BundlePtr b = i->second;
 		//check the path
-		if (find_if(paths.begin(), paths.end(), [&](StringPair sp) { return b->getTarget().find(sp.second) != string::npos; }) != paths.end()) {
+		 if (find_if(paths.begin(), paths.end(), [&](StringPair sp) { return b->getTarget().find(sp.second) != string::npos; }) == paths.end()) {
 			continue;
 		}
 
