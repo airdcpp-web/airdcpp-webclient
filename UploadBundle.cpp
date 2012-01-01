@@ -23,15 +23,7 @@
 namespace dcpp {
 
 UploadBundle::UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded) : target(aTarget), token(aToken), size(aSize),
-	speed(0), totalSpeed(0), singleUser(aSingleUser), start(GET_TICK()) {
-	if (singleUser) {
-		uploadedSegments = aUploaded;
-		uploaded = 0;
-	} else {
-		uploaded = aUploaded;
-		uploadedSegments = 0;
-	}
-}
+	speed(0), totalSpeed(0), singleUser(aSingleUser), start(GET_TICK()), delayTime(0), uploadedSegments(aUploaded), uploaded(0) { }
 
 void UploadBundle::addUploadedSegment(int64_t aSize) {
 	if (singleUser) {
@@ -43,10 +35,11 @@ void UploadBundle::addUploadedSegment(int64_t aSize) {
 	}
 }
 
-void UploadBundle::setSingleUser(bool aSingleUser) {
+void UploadBundle::setSingleUser(bool aSingleUser, int64_t aUploadedSegments) {
 	if (aSingleUser) {
 		singleUser = true;
 		totalSpeed = 0;
+		uploadedSegments = aUploadedSegments;
 	} else {
 		singleUser = false;
 		uploaded = 0;
@@ -66,11 +59,15 @@ string UploadBundle::getName() {
 void UploadBundle::addUpload(Upload* u) {
 	uploads.push_back(u);
 	u->setBundle(this);
+	if (uploads.size() == 1) {
+		findBundlePath(target);
+		delayTime = 0;
+	}
 }
 
 bool UploadBundle::removeUpload(Upload* u) {
 	auto s = find(uploads.begin(), uploads.end(), u);
-	dcassert(s != uploads.end());
+	//dcassert(s != uploads.end());
 	if (s != uploads.end()) {
 		addUploadedSegment(u->getPos());
 		uploads.erase(s);

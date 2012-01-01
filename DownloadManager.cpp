@@ -594,8 +594,6 @@ void DownloadManager::onFailed(UserConnection* aSource, const string& aError) {
 }
 
 void DownloadManager::failDownload(UserConnection* aSource, const string& reason) {
-
-	removeRunningUser(aSource);
 	Download* d = aSource->getDownload();
 	if(d) {
 		removeDownload(d);
@@ -603,6 +601,7 @@ void DownloadManager::failDownload(UserConnection* aSource, const string& reason
 		QueueManager::getInstance()->putDownload(d, false);
 	}
 
+	removeRunningUser(aSource);
 	removeConnection(aSource);
 }
 

@@ -657,11 +657,9 @@ void Bundle::removeDownload(const string& token, bool finished /* true */) {
 	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getUserConnection().getToken(), token) == 0; });
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
-		if (!finished) {
-			dcassert((bytesDownloaded - (*m)->getPos()) >= 0);
-			bytesDownloaded -= (*m)->getPos();
-			dcassert(bytesDownloaded <= (uint64_t)size);
-		}
+		countSpeed();
+		bytesDownloaded -= (*m)->getPos();
+		addDownloadedSegment((*m)->getPos());
 		downloads.erase(m);
 	}
 }
@@ -753,10 +751,12 @@ void Bundle::sendBundleMode() {
 		cmd.addParam("HI", (*i).hint);
 		cmd.addParam("BU", token);
 		cmd.addParam("UD1");
-		if (singleUser)
+		if (singleUser) {
 			cmd.addParam("SU1");
-		else
+			cmd.addParam("DL", Util::toString(downloadedSegments));
+		} else {
 			cmd.addParam("MU1");
+		}
 
 		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
 	}

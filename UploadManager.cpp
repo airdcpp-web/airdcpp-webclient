@@ -289,7 +289,6 @@ ok:
 	clearUserFiles(aSource.getUser());
 	
 	bool resumed = false;
-	UploadBundlePtr bundle;
 
 	{
 		Lock l(cs);
@@ -303,10 +302,6 @@ ok:
 		for(auto i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 			Upload* up = *i;
 			if(&aSource == &up->getUserConnection()) {
-				if (up->getBundle()) {
-					bundle = up->getBundle();
-					bundle->removeUpload(up);
-				}
 				if(sourceFile != up->getPath() && up->isSet(Upload::FLAG_CHUNKED)) {
 					logUpload(up);
 				} else {
@@ -335,6 +330,11 @@ ok:
 
 	u->setFileSize(fileSize);
 	u->setType(type);
+
+	UploadBundlePtr bundle = NULL;
+	if (!aSource.getLastBundle().empty()) {
+		bundle = findBundle(aSource.getLastBundle());
+	}
 
 	{
 		Lock l(cs);
@@ -534,7 +534,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 			}
 		}
 
-		if (percent >= 0.00 && percent < 100.00) {
+		if (percent > 0.00 && percent < 100.00) {
 			bundle->setUploadedSegments(bundle->getSize()*(percent / 100.00000));
 		}
 	}
@@ -587,17 +587,18 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 			bundle->addUpload(u);
 			bundle->findBundlePath(name);
 			bundles[bundle->getToken()] = bundle;
+			u->getUserConnection().setLastBundle(bundleToken);
+		} else if (ConnectionManager::getInstance()->setBundle(token, bundleToken)) {
+			bundles[bundle->getToken()] = bundle;
 		}
 		//LogManager::getInstance()->message("ADDBUNDLE, BUNDLE ADDED!");
 	}
 }
 
 void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
-
-
 	string bundleToken;
 	string name;
-	int64_t size=0;
+	int64_t size=0, downloaded=0;
 	bool singleUser = false, multiUser = false;
 
 	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
@@ -612,6 +613,8 @@ void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
 			singleUser = true;
 		} else if (str.compare(0, 2, "MU") == 0) {
 			multiUser = true;
+		} else if (str.compare(0, 2, "DL") == 0) {
+			downloaded = Util::toInt64(str.substr(2));
 		} else {
 			//LogManager::getInstance()->message("ONUBD UPDATE UNKNOWN PARAM: " + str);
 		}
@@ -628,7 +631,7 @@ void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
 		if (multiUser) {
 			bundle->setSingleUser(false);
 		} else if (singleUser) {
-			bundle->setSingleUser(true);
+			bundle->setSingleUser(true, downloaded);
 		} else if (size > 0) {
 			bundle->setSize(size);
 			if (!name.empty()) {
@@ -667,19 +670,12 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 		Lock l (cs);
 		Upload* u = findUpload(token);
 		if (u) {
-			removeBundleItem(u);
+			b->removeUpload(u);
+			b->addUpload(u);
+			u->getUserConnection().setLastBundle(bundleToken);
+		} else {
+			ConnectionManager::getInstance()->setBundle(token, bundleToken);
 		}
-		b->addUpload(u);
-	}
-}
-
-void UploadManager::removeBundleItem(Upload* aUpload) {
-	UploadBundlePtr b = aUpload->getBundle();
-	if (!b)
-		return;
-
-	if (b->removeUpload(aUpload)) {
-		bundles.erase(b->getToken());
 	}
 }
 
@@ -705,11 +701,8 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 		//ignore bundle updates that may arrive after this
 		{
 			Lock l (cs);
-			for (auto i = bundle->getUploads().begin(); i != bundle->getUploads().end();) {
-				removeDelayUpload((*i)->getToken(), true);
-				i = bundle->getUploads().begin();
-			}
 			//for_each(bundle->getUploads().begin(), bundle->getUploads().end(), [&](Upload* up) { removeDelayUpload(aToken, true); });
+			bundles.erase(bundle->getToken());
 			dcassert(bundles.find(bundle->getToken()) == bundles.end());
 			//bundles.erase(bundle->getToken());
 		}
@@ -731,8 +724,9 @@ void UploadManager::removeBundleConnection(const AdcCommand& cmd) {
 	if (!token.empty()) {
 		Lock l (cs);
 		Upload* u = findUpload(token);
-		if (u) {
-			removeBundleItem(u);
+		if (u && u->getBundle()) {
+			u->getBundle()->removeUpload(u);
+			u->getUserConnection().setLastBundle(Util::emptyString);
 		}
 	}
 }
@@ -807,10 +801,14 @@ void UploadManager::removeUpload(Upload* aUpload, bool delay) {
 	Lock l(cs);
 	dcassert(find(uploads.begin(), uploads.end(), aUpload) != uploads.end());
 	uploads.erase(remove(uploads.begin(), uploads.end(), aUpload), uploads.end());
+	dcassert(find(uploads.begin(), uploads.end(), aUpload) == uploads.end());
+	if (aUpload->getBundle()) {
+		aUpload->getBundle()->removeUpload(aUpload);
+	}
+
 	if(delay) {
 		delayUploads.push_back(aUpload);
 	} else {
-		removeBundleItem(aUpload);
 		delete aUpload;
 	}
 }
@@ -942,13 +940,10 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 
 	aSource->setState(UserConnection::STATE_GET);
 
-	if(!u->isSet(Upload::FLAG_CHUNKED) && !u->getBundle()) {
+	if(!u->isSet(Upload::FLAG_CHUNKED)) {
 		logUpload(u);
 		removeUpload(u);
 	} else {
-		if(!u->isSet(Upload::FLAG_CHUNKED)) {
-			logUpload(u);
-		}
 		removeUpload(u, true);
 	}
 }
@@ -1148,7 +1143,6 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 				if(u->isSet(Upload::FLAG_CHUNKED)) {
 					logUpload(u);
 				}
-				removeBundleItem(u);
 				delayUploads.erase(i);
 				delete u;
 				i = delayUploads.begin();
@@ -1157,10 +1151,15 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			}
 		}
 
-		for(auto i = bundles.begin(); i != bundles.end(); ++i) {
+		for(auto i = bundles.begin(); i != bundles.end();) {
 			UploadBundlePtr ub = i->second;
-			if (ub->countSpeed() > 0) {
-				tickBundles.push_back(ub);
+			if (ub->getUploads().empty() && ++ub->delayTime > 10) {
+				bundles.erase(i);
+				i = bundles.begin();
+			} else {
+				if (ub->countSpeed() > 0)
+					tickBundles.push_back(ub);
+				i++;
 			}
 		}
 
@@ -1170,11 +1169,12 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 				(*i)->tick();
 			}
 		}
+		
+		if(ticks.size() > 0)
+			fire(UploadManagerListener::Tick(), ticks);
 	}
 
-	if(ticks.size() > 0)
-		fire(UploadManagerListener::Tick(), ticks);
-
+	//this shouldn't need lock
 	if (!tickBundles.empty())
 		fire(UploadManagerListener::BundleTick(), tickBundles);
 
@@ -1194,7 +1194,6 @@ void UploadManager::removeDelayUpload(const string& aToken, bool removeBundle) {
 		Upload* up = *i;
 		if(aToken == up->getToken()) {
 			delayUploads.erase(i);
-			removeBundleItem(up);
 			delete up;
 			break;
 		}

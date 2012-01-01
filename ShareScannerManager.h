@@ -59,7 +59,6 @@ private:
 		AUDIOBOOK,
 		FLAC,
 		NORMAL,
-		ZIP,
 	};
 
 	boost::regex rarReg;
@@ -73,10 +72,11 @@ private:
 	boost::regex crcReg;
 	boost::regex mvidReg;
 	boost::regex zipReg;
+	boost::regex zipFolderReg;
 	boost::regex proofImageReg;
 	boost::regex subDirReg;
 	boost::regex subReg;
-	boost::regex extraRegs[4];
+	boost::regex extraRegs[3];
 
 	StringList Paths;
 	bool isCheckSFV;

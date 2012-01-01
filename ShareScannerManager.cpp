@@ -59,7 +59,7 @@ ShareScannerManager::ShareScannerManager() : scanning(false) {
 	extraRegs[AUDIOBOOK].assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
 	extraRegs[FLAC].assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
 	extraRegs[NORMAL].assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
-	extraRegs[ZIP].assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
+	zipFolderReg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
 	subReg.assign("(.{0,8}[Ss]ub(s|pack)?)");
 }
 
@@ -388,9 +388,11 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 				//Report extra files in a zip folder
 				if (isZipRls && SETTING(CHECK_EXTRA_FILES)) {
-					extrasInFolder = AirUtil::listRegexMatch(fileList, extraRegs[ZIP]);
-					if (extrasInFolder)
+					extrasInFolder = !AirUtil::listRegexMatch(fileList, zipFolderReg);
+					if (extrasInFolder) {
+						LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
 						extrasFound++;
+					}
 				}
 			}
 

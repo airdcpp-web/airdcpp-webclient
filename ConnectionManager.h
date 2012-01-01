@@ -121,6 +121,7 @@ public:
 	void disconnect(const UserPtr& aUser); // disconnect downloads and uploads
 	void disconnect(const UserPtr& aUser, int isDownload);
 	void disconnect(const string& token);
+	bool setBundle(const string& token, const string& bundleToken);
 
 	void shutdown();
 	bool isShuttingDown() const { return shuttingDown; }

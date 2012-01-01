@@ -17,6 +17,15 @@
 #include "Wildcards.h"
 #include <locale.h>
 
+#ifdef _WIN32
+# include <ShlObj.h>
+#else
+# include <dirent.h>
+# include <sys/stat.h>
+# include <unistd.h>
+# include <fnmatch.h>
+#endif
+
 namespace dcpp {
 
 void AirUtil::init() {
@@ -24,10 +33,16 @@ void AirUtil::init() {
 	releaseReg.study();
 	subDirReg.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
 	subDirReg.study();
+#ifdef _WIN32
+	// don't share Windows directory
+	TCHAR path[MAX_PATH];
+	::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
+	winDir = Text::fromT((tstring)path) + PATH_SEPARATOR;
+#endif
 }
-void AirUtil::setSkiplist() {
 
-if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
+void AirUtil::updateCachedSettings() {
+	if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
 		try{
 			skiplistReg.assign(SETTING(SKIPLIST_SHARE));
 		}catch(...) {
@@ -35,7 +50,10 @@ if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
 			LogManager::getInstance()->message("Error setting Share skiplist! using default: (.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log) ");
 		}
 	}
+	privKeyFile = Text::toLower(SETTING(TLS_PRIVATE_KEY_FILE));
+	tempDLDir = Text::toLower(SETTING(TEMP_DOWNLOAD_DIRECTORY));
 }
+
 bool AirUtil::matchSkiplist(const string& str) {
 	try {
 	if(boost::regex_search(str.begin(), str.end(), skiplistReg))
@@ -468,6 +486,7 @@ void AirUtil::setProfile(int profile, bool setSkiplist) {
 		if (setSkiplist) {
 			SettingsManager::getInstance()->set(SettingsManager::SHARE_SKIPLIST_USE_REGEXP, true);
 			SettingsManager::getInstance()->set(SettingsManager::SKIPLIST_SHARE, "(.*(\\.(scn|asd|lnk|cmd|conf|dll|url|log|crc|dat|sfk|mxm|txt|message|iso|inf|sub|exe|img|bin|aac|mrg|tmp|xml|sup|ini|db|debug|pls|ac3|ape|par2|htm(l)?|bat|idx|srt|doc(x)?|ion|b4s|bgl|cab|cat|bat)$))|((All-Files-CRC-OK|xCOMPLETEx|imdb.nfo|- Copy|(.*\\s\\(\\d\\).*)).*$)");
+			updateCachedSettings();
 		}
 
 	} else if (profile == 2 && SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_PRIVATE) {
@@ -496,11 +515,13 @@ string AirUtil::getPrioText(int prio) {
 }
 
 
-bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*/) {
-	if(aName.empty()) {
-		LogManager::getInstance()->message("Invalid file name found while hashing folder "+ aName + ".");
-		return false;
-	}
+bool AirUtil::checkSharedName(const string& fullPath, bool dir, bool report /*true*/, const int64_t& size /*0*/) {
+	/* THE PATH SHOULD BE CONVERTED TO LOWERCASE BEFORE SENDING IT HERE */
+	string aName;
+	if (dir)
+		aName = Util::getLastDir(fullPath);
+	else
+		aName = Util::getFileName(fullPath);
 
 	if(aName == "." || aName == "..")
 		return false;
@@ -513,7 +534,7 @@ bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*
 		}
 	} else {
 		try {
-			if (Wildcard::patternMatch( Text::utf8ToAcp(aName), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' )) {   // or validate filename for bad chars?
+			if (Wildcard::patternMatch(Text::utf8ToAcp(aName), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' )) {   // or validate filename for bad chars?
 				if(BOOLSETTING(REPORT_SKIPLIST) && report)
 					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aName /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
 				return false;
@@ -522,10 +543,11 @@ bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*
 	}
 
 	if (!dir) {
-		if( (stricmp(aName.c_str(), "DCPlusPlus.xml") == 0) || 
-			(stricmp(aName.c_str(), "Favorites.xml") == 0) ||
-			(stricmp(Util::getFileExt(aName).c_str(), ".dctmp") == 0) ||
-			(stricmp(Util::getFileExt(aName).c_str(), ".antifrag") == 0) ) 
+		string fileExt = Util::getFileExt(aName);
+		if( (strcmp(aName.c_str(), "dcplusplus.xml") == 0) || 
+			(strcmp(aName.c_str(), "favorites.xml") == 0) ||
+			(strcmp(fileExt.c_str(), ".dctmp") == 0) ||
+			(strcmp(fileExt.c_str(), ".antifrag") == 0) ) 
 		{
 			return false;
 		}
@@ -533,21 +555,19 @@ bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*
 		//check for forbidden file patterns
 		if(BOOLSETTING(REMOVE_FORBIDDEN)) {
 			string::size_type nameLen = aName.size();
-			string fileExt = Util::getFileExt(aName);
-			if ((stricmp(fileExt.c_str(), ".tdc") == 0) ||
-				(stricmp(fileExt.c_str(), ".GetRight") == 0) ||
-				(stricmp(fileExt.c_str(), ".temp") == 0) ||
-				(stricmp(fileExt.c_str(), ".tmp") == 0) ||
-				(stricmp(fileExt.c_str(), ".jc!") == 0) ||	//FlashGet
-				(stricmp(fileExt.c_str(), ".dmf") == 0) ||	//Download Master
-				(stricmp(fileExt.c_str(), ".!ut") == 0) ||	//uTorrent
-				(stricmp(fileExt.c_str(), ".bc!") == 0) ||	//BitComet
-				(stricmp(fileExt.c_str(), ".missing") == 0) ||
-				(stricmp(fileExt.c_str(), ".bak") == 0) ||
-				(stricmp(fileExt.c_str(), ".bad") == 0) ||
+			if ((strcmp(fileExt.c_str(), ".tdc") == 0) ||
+				(strcmp(fileExt.c_str(), ".getright") == 0) ||
+				(strcmp(fileExt.c_str(), ".temp") == 0) ||
+				(strcmp(fileExt.c_str(), ".tmp") == 0) ||
+				(strcmp(fileExt.c_str(), ".jc!") == 0) ||	//FlashGet
+				(strcmp(fileExt.c_str(), ".dmf") == 0) ||	//Download Master
+				(strcmp(fileExt.c_str(), ".!ut") == 0) ||	//uTorrent
+				(strcmp(fileExt.c_str(), ".bc!") == 0) ||	//BitComet
+				(strcmp(fileExt.c_str(), ".missing") == 0) ||
+				(strcmp(fileExt.c_str(), ".bak") == 0) ||
+				(strcmp(fileExt.c_str(), ".bad") == 0) ||
 				(nameLen > 9 && aName.rfind("part.met") == nameLen - 8) ||				
 				(aName.find("__padding_") == 0) ||			//BitComet padding
-				(aName.find("__INCOMPLETE__") == 0) ||		//winmx
 				(aName.find("__incomplete__") == 0)		//winmx
 				) {
 					if (report) {
@@ -555,6 +575,29 @@ bool AirUtil::checkSharedName(const string& aName, bool dir, bool report /*true*
 					}
 					return false;
 			}
+		}
+
+		if(compare(fullPath, privKeyFile) == 0) {
+			return false;
+		}
+
+		if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
+			return false;
+
+		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
+			if (report) {
+				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + fullPath);
+			}
+			return false;
+		}
+	} else {
+#ifdef _WIN32
+		// don't share Windows directory
+		if(fullPath.length() >= winDir.length() && compare(fullPath.substr(0, winDir.length()), winDir) == 0)
+			return false;
+#endif
+		if((compare(fullPath, tempDLDir) == 0)) {
+			return false;
 		}
 	}
 	return true;

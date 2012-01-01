@@ -87,7 +87,7 @@ public:
 	}
 
 	void Startup() {
-		AirUtil::setSkiplist();
+		AirUtil::updateCachedSettings();
 		if(!loadCache())
 			refresh(REFRESH_ALL | REFRESH_BLOCKING);
 	}

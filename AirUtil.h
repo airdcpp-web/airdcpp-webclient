@@ -14,11 +14,16 @@ static PME releaseReg;
 static PME subDirReg;
 static boost::regex skiplistReg; //boost is faster on this??
 
+/* Cache some things to lower case */
+static string privKeyFile;
+static string tempDLDir;
+static string winDir;
+
 class AirUtil {
 	
 	public:
 		static void init();
-		static void setSkiplist();
+		static void updateCachedSettings();
 		static bool matchSkiplist(const string& str);
 		static string getLocalIp();
 		static string getLocale();
@@ -31,7 +36,7 @@ class AirUtil {
 		static string getReleaseDir(const string& aName);
 		static string getMountPath(const string& aPath);
 		static string getMountPath(const string& aPath, const StringSet& aVolumes);
-		static bool checkSharedName(const string& aName, bool dir, bool report = true);
+		static bool checkSharedName(const string& fullPath, bool dir, bool report = true, const int64_t& size = 0);
 		static void getTarget(StringList& targets, string& target, int64_t& size);
 		static void getVolumes(StringSet& volumes);
 

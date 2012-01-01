@@ -1084,6 +1084,17 @@ void ConnectionManager::disconnect(const UserPtr& aUser, int isDownload) {
 	}
 }
 
+bool ConnectionManager::setBundle(const string& token, const string& bundleToken) {
+	for(auto i = userConnections.begin(); i != userConnections.end(); ++i) {
+		UserConnection* uc = *i;
+		if(compare(uc->getToken(), token)==0) {
+			uc->setLastBundle(bundleToken);
+			return true;
+		}
+	}
+	return true;
+}
+
 void ConnectionManager::shutdown() {
 	TimerManager::getInstance()->removeListener(this);
 	shuttingDown = true;

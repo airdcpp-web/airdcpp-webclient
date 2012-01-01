@@ -1804,7 +1804,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 			Lock l (cs);
 			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
 				QueueItem* qi = *i;
-				if (AirUtil::checkSharedName(Util::getFileName(qi->getTarget()), false, false) && Util::fileExists(qi->getTarget())) {
+				if (AirUtil::checkSharedName(Text::toLower(qi->getTarget()), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
 					try {
 						// Schedule for hashing, it'll be added automatically later on...
 						if (!HashManager::getInstance()->checkTTH(qi->getTarget(), qi->getSize(), AirUtil::getLastWrite(qi->getTarget()))) {
@@ -3702,7 +3702,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 					b->unsetFlag(Bundle::FLAG_HASH_FAILED);
 					hash.push_back(b);
 				}
-				retBundles.push_back(b->getTarget());
+				retBundles.push_back(Text::toLower(b->getTarget()));
 			}
 		}
 	}

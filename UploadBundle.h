@@ -40,6 +40,7 @@ public:
 	GETSET(int64_t, totalSpeed, TotalSpeed);
 	GETSET(int64_t, actual, Actual);
 	GETSET(int64_t, uploadedSegments, UploadedSegments);
+	int delayTime;
 
 	GETSET(UploadList, uploads, Uploads);
 	
@@ -48,7 +49,7 @@ public:
 	uint64_t getStart() const { return start; }
 
 	bool getSingleUser() { return singleUser; }
-	void setSingleUser(bool aSingleUser);
+	void setSingleUser(bool aSingleUser, int64_t uploadedSegments = 0);
 
 	string getName();
 	string getTarget() { return target; }

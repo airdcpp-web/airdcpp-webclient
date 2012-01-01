@@ -174,7 +174,6 @@ private:
 	void updateBundleInfo(const AdcCommand& cmd);
 	void finishBundle(const AdcCommand& cmd);
 	void removeBundleConnection(const AdcCommand& cmd);
-	void removeBundleItem(Upload* aUpload);
 
 	Upload* findUpload(const string& aToken);
 

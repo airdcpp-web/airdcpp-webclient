@@ -609,9 +609,7 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 
 #ifdef _WIN32
 	// don't share Windows directory
-	TCHAR path[MAX_PATH];
-	::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
-	if(strnicmp(realPath, Text::fromT((tstring)path) + PATH_SEPARATOR, _tcslen(path) + 1) == 0) {
+	if(strnicmp(realPath, winDir, winDir.length()) == 0) {
 		char buf[MAX_PATH];
 		snprintf(buf, sizeof(buf), CSTRING(CHECK_FORBIDDEN), realPath.c_str());
 		throw ShareException(buf);
@@ -910,59 +908,46 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 	for(FileFindIter i(aName); i != end; ++i) {
 #endif
 		string name = i->getFileName();
+		if(name.empty()) {
+			LogManager::getInstance()->message("Invalid file name found while hashing folder "+ aName + ".");
+			return false;
+		}
+
 		if(!BOOLSETTING(SHARE_HIDDEN) && i->isHidden())
 			continue;
 
 		if(i->isDirectory()) {
-			if (!AirUtil::checkSharedName(name, true)) {
+			string newName = aName + name + PATH_SEPARATOR;
+			string pathLower = Text::toLower(newName);
+
+			if (!AirUtil::checkSharedName(pathLower, true)) {
 				continue;
 			}
-
-			string newName = aName + name + PATH_SEPARATOR;
 
 			//check queue so we dont add incomplete stuff to share automatically.
 			if(checkQueued) {
-				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), newName)) {
+				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), pathLower)) {
 					continue;
 				}
 			}
-#ifdef _WIN32
-			// don't share Windows directory
-			TCHAR path[MAX_PATH];
-			::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
-			if(strnicmp(newName, Text::fromT((tstring)path) + PATH_SEPARATOR, _tcslen(path) + 1) == 0)
-				continue;
-#endif
 
-			if((stricmp(newName, SETTING(TEMP_DOWNLOAD_DIRECTORY)) != 0) && shareFolder(newName)) {
+			if(shareFolder(pathLower)) {
 				Directory::Ptr tmpDir = buildTree(newName, dir, checkQueued);
 				tmpDir->setLastWrite(i->getLastWriteTime()); //add the date starting from the first found directory.
 				dir->directories[name] = tmpDir;
 			}
 		} else {
-			// Not a directory, assume it's a file...make sure we're not sharing the settings file..
-			if (!AirUtil::checkSharedName(name, false)) {
-				continue;
-			}
-
+			// Not a directory, assume it's a file...
+			string path = aName + name;
 			int64_t size = i->getSize();
-			if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
-				continue;
 
-			string fileName = aName + name;
-
-			if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
-				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + fileName);
-				continue;
-			}
-
-			if(stricmp(fileName, SETTING(TLS_PRIVATE_KEY_FILE)) == 0) {
+			if (!AirUtil::checkSharedName(Text::toLower(path), false, true, size)) {
 				continue;
 			}
 
 			try {
-				if(HashManager::getInstance()->checkTTH(fileName, size, i->getLastWriteTime())) 
-					lastFileIter = dir->files.insert(lastFileIter, Directory::File(name, size, dir, HashManager::getInstance()->getTTH(fileName, size)));
+				if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) 
+					lastFileIter = dir->files.insert(lastFileIter, Directory::File(name, size, dir, HashManager::getInstance()->getTTH(path, size)));
 			} catch(const HashException&) {
 			}
 		}
@@ -1221,6 +1206,7 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 			ret.push_back(make_pair(i->second, tmp));
 		}
 	}
+	sort(ret.begin(), ret.end());
 	return ret;
 }
 
@@ -2085,8 +2071,10 @@ bool ShareManager::addBundle(const string& path) noexcept {
 			if(strnicmp(i->first, path, i->first.size()) == 0) { //check if we have a share folder.
 				//check the skiplist
 				StringList sl = StringTokenizer<string>(path.substr(i->first.length()), PATH_SEPARATOR).getTokens();
+				string fullPathLower = Text::toLower(i->first);
 				for(auto i = sl.begin(); i != sl.end(); ++i) {
-					if (!AirUtil::checkSharedName((*i), true, true)) {
+					fullPathLower += Text::toLower(*i) + PATH_SEPARATOR;
+					if (!AirUtil::checkSharedName(fullPathLower, true, true) || !shareFolder(fullPathLower)) {
 						return false;
 					}
 				}
@@ -2102,11 +2090,13 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 	if (mi != directories.end()) {
 		auto curDir = mi->second;
 		StringList sl = StringTokenizer<string>(fname.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
+		string fullPathLower = Text::toLower(mi->first);
 		for(auto i = sl.begin(); i != sl.end(); ++i) {
+			fullPathLower += Text::toLower(*i) + PATH_SEPARATOR;
 			auto j = curDir->directories.find(*i);
 			if (j != curDir->directories.end()) {
 				curDir = j->second;
-			} else if (!allowAdd || !AirUtil::checkSharedName((*i), true, report)) {
+			} else if (!allowAdd || !AirUtil::checkSharedName(fullPathLower, true, report) || !shareFolder(fullPathLower)) {
 				return NULL;
 			} else {
 				auto newDir = Directory::create(*i, curDir);
@@ -2180,13 +2170,12 @@ bool ShareManager::shareFolder(const string& path, bool thoroughCheck /* = false
 		for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i)
 		{
 			// is it a perfect match
-			if((path.size() == i->first.size()) && (stricmp(path, i->first) == 0))
+			if((path.size() == i->first.size()) && (compare(path, Text::toLower(i->first)) == 0))
 				return true;
 			else if (path.size() > i->first.size()) // this might be a subfolder of a shared folder
 			{
-				string temp = path.substr(0, i->first.size());
 				// if the left-hand side matches and there is a \ in the remainder then it is a subfolder
-				if((stricmp(temp, i->first) == 0) && (path.find('\\', i->first.size()) != string::npos))
+				if((stricmp(path.substr(0, i->first.size()), i->first) == 0) && (path.find('\\', i->first.size()) != string::npos))
 				{
 					result = true;
 					break;
@@ -2201,15 +2190,14 @@ bool ShareManager::shareFolder(const string& path, bool thoroughCheck /* = false
 	// check if it's an excluded folder or a sub folder of an excluded folder
 	for(StringIterC j = notShared.begin(); j != notShared.end(); ++j)
 	{		
-		if(stricmp(path, *j) == 0)
+		if(compare(path, *j) == 0)
 			return false;
 
 		if(thoroughCheck)
 		{
 			if(path.size() > (*j).size())
 			{
-				string temp = path.substr(0, (*j).size());
-				if((stricmp(temp, *j) == 0) && (path[(*j).size()] == '\\'))
+				if((stricmp(path.substr(0, (*j).size()), *j) == 0) && (path[(*j).size()] == '\\'))
 					return false;
 			}
 		}
@@ -2267,7 +2255,7 @@ int64_t ShareManager::addExcludeFolder(const string &path) {
 	}
 
 	// add it to the list
-	notShared.push_back(path);
+	notShared.push_back(Text::toLower(path));
 
 	int64_t bytesRemoved = Util::getDirSize(path);
 
