@@ -889,10 +889,12 @@ void ShareManager::deleteReleaseDir(const string& aName) {
 
 ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued /*false*/, bool create/*true*/) {
 	Directory::Ptr dir;
+
 	if(create)
 		dir = Directory::create(Util::getLastDir(aName), aParent);
 	else
 		dir = aParent;
+	
 
 	Directory::File::Set::iterator lastFileIter = dir->files.begin();
 
@@ -924,7 +926,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 				continue;
 			}
 
-			//check queue so we dont add incomplete stuff to share automatically.
+			//check queue so we dont add incomplete stuff to share.
 			if(checkQueued) {
 				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), pathLower)) {
 					continue;
@@ -2042,6 +2044,36 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 		}
 
 		added = true;
+		/* get rid of any existing crap we might have in the bundle directory and refresh it.
+			done at this point as the file and directory pointers should still be valid, if there are any */
+		bool needClean = false;
+		Directory::File::Set eraselist;
+		if(!dir->files.empty()) {
+			needClean = true;
+			for(auto i = dir->files.begin(); i != dir->files.end(); ++i)
+				eraselist.insert(*i);
+		}
+		if(!dir->directories.empty()) {
+			needClean = true;
+			for(auto i = dir->directories.begin(); i != dir->directories.end(); ++i) {
+				for(auto mi = i->second->files.begin(); mi != i->second->files.end(); ++mi)
+					eraselist.insert(*mi);
+			}
+		}
+		if(needClean) {
+			for(auto i = eraselist.begin(); i != eraselist.end(); ++i) {
+				auto flst = tthIndex.equal_range(i->getTTH());
+					for(auto f = flst.first; f != flst.second; ++f) {
+						if(stricmp(f->second->getRealPath(), i->getRealPath()) == 0) {
+							tthIndex.erase(f);
+							break;
+						}
+					}
+			}
+			dir->files.clear();
+			dir->directories.clear();
+		}
+
 		buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
 		updateIndices(*dir);
 		setDirty();
