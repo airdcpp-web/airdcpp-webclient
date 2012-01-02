@@ -116,6 +116,8 @@ public:
 		void filterList(DirectoryListing& dirList);
 		void filterList(TTHSet& l);
 		void getHashList(TTHSet& l);
+
+		bool findIncomplete();
 		
 		size_t getFileCount() { return files.size(); }
 		
@@ -153,14 +155,14 @@ public:
 		GETSET(string, fullPath, FullPath);
 	};
 
-	DirectoryListing(const HintedUser& aUser);
+	DirectoryListing(const HintedUser& aUser, bool aPartial);
 	~DirectoryListing();
 	
-	void loadFile(const string& name, bool checkdupe, bool partialList);
+	void loadFile(const string& name, bool checkdupe);
 
 
 	string updateXML(const std::string&, bool checkdupe);
-	string loadXML(InputStream& xml, bool updating, bool checkShareDupe, bool partialList);
+	string loadXML(InputStream& xml, bool updating, bool checkDupes);
 
 	void download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
 	void download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
@@ -179,11 +181,12 @@ public:
 
 	static UserPtr getUserFromFilename(const string& fileName);
 	void checkShareDupes();
-	DirectoryListing::Directory* findDirectory(const string& aPath);
+	void findNfo(const string& aPath);
 	
 	const UserPtr& getUser() const { return hintedUser.user; }	
 		
 	GETSET(HintedUser, hintedUser, HintedUser);
+	GETSET(bool, partialList, PartialList);
 	GETSET(bool, abort, Abort);
 	
 private:
@@ -192,7 +195,6 @@ private:
 	Directory* root;
 		
 	Directory* find(const string& aName, Directory* current);
-
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }

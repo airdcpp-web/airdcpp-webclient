@@ -67,7 +67,6 @@ public:
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
 		QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
 	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept;
-	bool findNfo(DirectoryListing& dl, const string& aPath) noexcept;
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
 

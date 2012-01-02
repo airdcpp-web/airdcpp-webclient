@@ -37,8 +37,8 @@
 
 namespace dcpp {
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser) : 
-	hintedUser(aUser), abort(false), root(new Directory(NULL, Util::emptyString, false, false)) 
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial) : 
+	hintedUser(aUser), abort(false), root(new Directory(NULL, Util::emptyString, false, false)), partialList(aPartial) 
 {
 }
 
@@ -78,16 +78,16 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 	return ClientManager::getInstance()->getUser(cid);
 }
 
-void DirectoryListing::loadFile(const string& name, bool checkdupe, bool partialList) {
+void DirectoryListing::loadFile(const string& name, bool checkdupe) {
 	// For now, we detect type by ending...
 	string ext = Util::getFileExt(name);
 
 	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
 	if(stricmp(ext, ".bz2") == 0) {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
-		loadXML(f, false, checkdupe, partialList);
+		loadXML(f, false, checkdupe);
 	} else if(stricmp(ext, ".xml") == 0) {
-		loadXML(ff, false, checkdupe, partialList);
+		loadXML(ff, false, checkdupe);
 	}
 }
 
@@ -119,11 +119,11 @@ private:
 
 string DirectoryListing::updateXML(const string& xml, bool checkdupe) {
 	MemoryInputStream mis(xml);
-	return loadXML(mis, true, checkdupe, true);
+	return loadXML(mis, true, checkdupe);
 }
 
-string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkShareDupe, bool partialList) {
-	ListLoader ll(this, getRoot(), updating, getUser(), checkShareDupe, partialList);
+string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkDupes) {
+	ListLoader ll(this, getRoot(), updating, getUser(), checkDupes, partialList);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
@@ -273,15 +273,15 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			if (s == cur->directories.end()) {
 				auto d = new DirectoryListing::Directory(cur, *i, false, false);
 				cur->directories.push_back(d);
-				cur->visitedDirs.insert(make_pair(Text::toLower(*i), d));
+				cur->visitedDirs[*i] = d;
 				cur = d;
 			} else {
 				cur = *s;
 			}
 		}
 
-		if (sl.empty() && cur->visitedDirs.empty()) {
-			//root dir loaded again
+		if (!cur->directories.empty()) {
+			//we have loaded this already, need to go through all dirs
 			useCache=false;
 		}
 
@@ -324,12 +324,19 @@ string DirectoryListing::getPath(const Directory* d) const {
 	return dir;
 }
 
+bool DirectoryListing::Directory::findIncomplete() {
+	/* Recursive check for incomplete dirs */
+	if(!complete) {
+		return true;
+	}
+	return find_if(directories.begin(), directories.end(), [&](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
+}
+
 void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
 	string target = aTarget;
 
-	/* TODO: proper check for incomplete dirs, only perform with the partial param */
-	if(!aDir->getComplete()) {
-		// the folder is not completed (partial list?), so we need to download it first
+	//check if there are incomplete dirs in a partial list
+	if (first && partialList && aDir->findIncomplete()) {
 		if (!recursiveList) {
 			QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
 		} else {
@@ -342,20 +349,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 	Directory::List& lst = aDir->directories;
 	File::List& l = aDir->files;
 
-	//check if there are incomplete subdirs
-	for(auto j = lst.begin(); j != lst.end(); ++j) {
-		if (!(*j)->getComplete()) {
-			if (!recursiveList) {
-				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
-			} else {
-				//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio, true);
-			}
-			return;
-		}
-	}
-
-	target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
+	target = first ? aTarget : (aTarget + aDir->getName() + PATH_SEPARATOR);
 	//create bundles
 	if (first) {
 		aBundle = BundlePtr(new Bundle(target, GET_TIME()));
@@ -421,18 +415,20 @@ DirectoryListing::Directory* DirectoryListing::find(const string& aName, Directo
 	return NULL;
 }
 
-DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aPath) {
-	auto cur = root;
-	StringList sl = StringTokenizer<string>(Util::toAdcFile(aPath).substr(1), '/').getTokens();
-	for(auto i = sl.begin(); i != sl.end(); ++i) {
-		auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == *i; });
-		if (s == cur->directories.end()) {
-			return NULL;
-		} else {
-			cur = *s;
+void DirectoryListing::findNfo(const string& aPath) {
+	auto dir = find(aPath, root);
+	if (dir) {
+		boost::wregex reg;
+		reg.assign(_T("(.+\\.nfo)"), boost::regex_constants::icase);
+		for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
+			auto df = *i;
+			if (regex_match(Text::toT(df->getName()), reg)) {
+				QueueManager::getInstance()->add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), hintedUser, QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
+				return;
+			}
 		}
 	}
-	return cur;
+	LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) + ": " + STRING(NO_NFO_FOUND));
 }
 
 struct HashContained {

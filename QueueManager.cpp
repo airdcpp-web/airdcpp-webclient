@@ -2057,13 +2057,13 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
  }
 
 void QueueManager::processList(const string& name, const HintedUser& user, const string& path, int flags) {
-	DirectoryListing dirList(user);
+	DirectoryListing dirList(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0);
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(name);
-			dirList.loadXML(mis, true, false, false);
+			dirList.loadXML(mis, true, false);
 		} else {
-			dirList.loadFile(name, false, false);
+			dirList.loadFile(name, false);
 		}
 	} catch(const Exception&) {
 		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + name);
@@ -2071,7 +2071,7 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 	}
 
 	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
-		if (!path.empty()) {
+		if ((flags & QueueItem::FLAG_PARTIAL_LIST) && !path.empty()) {
 			//partial list
 			DirectoryItem* d = NULL;
 			{
@@ -2114,27 +2114,8 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 		}
 		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + AirUtil::formatMatchResults(matches, newFiles, bundles, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0));
 	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
-		findNfo(dirList, path);
+		dirList.findNfo(path);
 	}
-}
-
-bool QueueManager::findNfo(DirectoryListing& dl, const string& aPath) noexcept {
-	string tmp = Util::toAdcFile(aPath);
-	auto dir = dl.findDirectory(aPath);
-	if (dir) {
-		boost::wregex reg;
-		reg.assign(_T("(.+\\.nfo)"), boost::regex_constants::icase);
-		for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
-			auto df = *i;
-			if (regex_match(Text::toT(df->getName()), reg)) {
-				add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), dl.getHintedUser(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
-				return true;
-			}
-		}
-	}
-
-	LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(dl.getHintedUser())) + ": " + STRING(NO_NFO_FOUND));
-	return false;
 }
 
 void QueueManager::recheck(const string& aTarget) {
