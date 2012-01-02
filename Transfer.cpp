@@ -110,7 +110,7 @@ const UserPtr Transfer::getUser() const {
 	return getUserConnection().getUser();
 }
 
-const HintedUser Transfer::getHintedUser() const {
+HintedUser Transfer::getHintedUser() const {
 	return getUserConnection().getHintedUser();
 }
 

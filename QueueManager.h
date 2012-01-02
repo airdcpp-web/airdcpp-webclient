@@ -67,7 +67,7 @@ public:
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
 		QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
 	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept;
-	bool findNfo(const DirectoryListing::Directory* dl, const DirectoryListing& dir) noexcept;
+	bool findNfo(DirectoryListing& dl, const string& aPath) noexcept;
 
 	bool getTTH(const string& name, TTHValue& tth) noexcept;
 
@@ -94,7 +94,6 @@ public:
 	bool getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
 	Download* getDownload(UserConnection& aSource, string& aMessage, bool smallSlot) noexcept;
 	void putDownload(Download* aDownload, bool finished, bool reportFinish = true) noexcept;
-	void setFile(Download* download);
 	
 	/** @return The highest priority download the user has, PAUSED may also mean no downloads */
 	QueueItem::Priority hasDownload(const UserPtr& aUser, bool smallSlot, string& bundleToken) noexcept;
@@ -113,6 +112,8 @@ public:
 
 	//merging, adding, deletion
 	bool addBundle(BundlePtr aBundle, bool loading = false);
+	void readdBundle(BundlePtr aBundle);
+	void connectBundleSources(BundlePtr aBundle);
 	BundlePtr getMergeBundle(const string& aTarget);
 	void mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, bool first=true);
 	void mergeFileBundles(BundlePtr aBundle);
@@ -367,6 +368,7 @@ private:
 	void fileEvent(const string& tgt, bool file = false);
 	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
 	void hashBundle(BundlePtr aBundle);
+	void deleteBundle(BundlePtr aBundle);
 
 	void removeSource(QueueItem* qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 

@@ -67,7 +67,7 @@ void FinishedManager::removeAll(bool upload /* = false */) {
 	}
 }
 
-void FinishedManager::on(QueueManagerListener::Finished, const QueueItem* qi, const string&, const Download* d) noexcept
+void FinishedManager::on(QueueManagerListener::Finished, const QueueItem* qi, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept
 {
 	bool isFile = !qi->isSet(QueueItem::FLAG_USER_LIST);
 
@@ -77,7 +77,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItem* qi, co
 		
 	if(isFile || (qi->isSet(QueueItem::FLAG_USER_LIST) && BOOLSETTING(LOG_FILELIST_TRANSFERS))) {
 		
-		FinishedItemPtr item = new FinishedItem(qi->getTarget(), d->getHintedUser(), qi->getSize(), static_cast<int64_t>(d->getAverageSpeed()), GET_TIME(), qi->getTTH().toBase32());
+		FinishedItemPtr item = new FinishedItem(qi->getTarget(), aUser, qi->getSize(), static_cast<int64_t>(aSpeed), GET_TIME(), qi->getTTH().toBase32());
 		{
 			Lock l(cs);
 			downloads.push_back(item);
@@ -88,7 +88,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItem* qi, co
 			size_t BUF_SIZE = STRING(FINISHED_DOWNLOAD).size() + UNC_MAX_PATH + 128;
 			char* buf = new char[BUF_SIZE];
 			snprintf(buf, BUF_SIZE, CSTRING(FINISHED_DOWNLOAD), Util::getFileName(qi->getTarget()).c_str(), 
-			Util::toString(ClientManager::getInstance()->getNicks(d->getHintedUser())).c_str());
+			Util::toString(ClientManager::getInstance()->getNicks(aUser)).c_str());
 
 			LogManager::getInstance()->message(buf);
 			delete[] buf;

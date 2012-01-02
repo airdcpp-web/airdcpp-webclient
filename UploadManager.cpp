@@ -307,6 +307,8 @@ ok:
 				} else {
 					resumed = true;
 				}
+				if (up->getBundle())
+					up->getBundle()->removeUpload(up);
 				delayUploads.erase(i);
 				delete up;
 				break;
@@ -1140,9 +1142,9 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		for(auto i = delayUploads.begin(); i != delayUploads.end();) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
-				if(u->isSet(Upload::FLAG_CHUNKED)) {
-					logUpload(u);
-				}
+				logUpload(u);
+				if (u->getBundle())
+					u->getBundle()->removeUpload(u);
 				delayUploads.erase(i);
 				delete u;
 				i = delayUploads.begin();
@@ -1193,6 +1195,8 @@ void UploadManager::removeDelayUpload(const string& aToken, bool removeBundle) {
 	for(auto i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 		Upload* up = *i;
 		if(aToken == up->getToken()) {
+			if (up->getBundle())
+				up->getBundle()->removeUpload(up);
 			delayUploads.erase(i);
 			delete up;
 			break;

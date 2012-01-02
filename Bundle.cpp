@@ -34,11 +34,14 @@ Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), f
 	bytesDownloaded(qi->getDownloadedBytes()), hashed(0) {
 	qi->setBundle(this);
 	queueItems.push_back(qi);
+	setFlag(FLAG_NEW);
 }
 
 Bundle::Bundle(const string& target, time_t added) : target(target), fileBundle(false), token(Util::toString(Util::rand())), size(0), downloadedSegments(0), speed(0), lastSpeed(0), 
 		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false), bytesDownloaded(0),
-		hashed(0) { }
+		hashed(0) { 
+	setFlag(FLAG_NEW);
+}
 
 Bundle::~Bundle() { 
 	//bla
@@ -653,8 +656,8 @@ void Bundle::addDownload(Download* d) {
 	downloads.push_back(d);
 }
 
-void Bundle::removeDownload(const string& token, bool finished /* true */) {
-	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getUserConnection().getToken(), token) == 0; });
+void Bundle::removeDownload(Download* d) {
+	auto m = find(downloads.begin(), downloads.end(), d);
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
 		countSpeed();

@@ -60,7 +60,7 @@ public:
 	typedef X<26> FileHashed;
 
 	virtual void on(Added, QueueItem*) noexcept { }
-	virtual void on(Finished, const QueueItem*, const string&, const Download*) noexcept { }
+	virtual void on(Finished, const QueueItem*, const string&, const HintedUser&, int64_t) noexcept { }
 	virtual void on(Removed, const QueueItem*) noexcept { }
 	virtual void on(Moved, const QueueItem*, const string&) noexcept { }
 	virtual void on(SourcesUpdated, const QueueItem*) noexcept { }

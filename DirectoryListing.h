@@ -30,6 +30,8 @@
 #include "UserInfoBase.h"
 #include "GetSet.h"
 
+#include "boost/unordered_map.hpp"
+
 namespace dcpp {
 
 class ListLoader;
@@ -97,7 +99,7 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		typedef unordered_set<TTHValue> TTHSet;
-		typedef std::unordered_map<string, Ptr> DirMap;
+		typedef boost::unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> DirMap;
 		
 		List directories;
 		File::List files;
@@ -177,7 +179,7 @@ public:
 
 	static UserPtr getUserFromFilename(const string& fileName);
 	void checkShareDupes();
-
+	DirectoryListing::Directory* findDirectory(const string& aPath);
 	
 	const UserPtr& getUser() const { return hintedUser.user; }	
 		

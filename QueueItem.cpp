@@ -374,7 +374,10 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
 	QueueItem::SourceConstIter source = getSource(aUser);
 	dcassert(isSource(aUser));
-	dcassert(!isFinished());
+	//dcassert(!isFinished());
+	if (isFinished()) {
+		return false;
+	}
 
 	if(smallSlot && !isSet(QueueItem::FLAG_PARTIAL_LIST) && getSize() > 65792) {
 		//don't even think of stealing our priority channel
@@ -407,6 +410,27 @@ bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t want
 		return false;
 	}
 	return true;
+}
+
+void QueueItem::removeDownload(const string& aToken) {
+	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getToken(), aToken) == 0; });
+	dcassert(m != downloads.end());
+	if (m != downloads.end()) {
+		downloads.erase(m);
+		return;
+	}
+}
+
+void QueueItem::removeDownloads(const UserPtr& aUser) {
+	//erase all downloads from this user
+	for(auto i = downloads.begin(); i != downloads.end();) {
+		if((*i)->getUser() == aUser) {
+			downloads.erase(i);
+			i = downloads.begin();
+		} else {
+			i++;
+		}
+	}
 }
 
 }

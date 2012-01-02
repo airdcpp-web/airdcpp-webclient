@@ -22,11 +22,16 @@
 #include "UserConnection.h"
 #include "QueueItem.h"
 #include "HashManager.h"
+#include "MerkleCheckOutputStream.h"
+#include "MerkleTreeOutputStream.h"
+#include "File.h"
+#include "FilteredFile.h"
+#include "ZUtils.h"
 
 namespace dcpp {
 
-Download::Download(UserConnection& conn, QueueItem& qi, const string& path) noexcept : Transfer(conn, path, qi.getTTH()),
-	tempTarget(qi.getTempTarget()), file(0), lastTick(GET_TICK()), treeValid(false)
+Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn, qi.getTarget(), qi.getTTH()),
+	tempTarget(qi.getTempTarget()), lastTick(GET_TICK()), treeValid(false)
 {
 	conn.setDownload(this);
 	
@@ -76,7 +81,7 @@ Download::Download(UserConnection& conn, QueueItem& qi, const string& path) noex
 			setFlag(FLAG_OVERLAP);
 
 			// set overlapped flag to original segment
-			for(DownloadList::const_iterator i = qi.getDownloads().begin(); i != qi.getDownloads().end(); ++i) {
+			for(auto i = qi.getDownloads().begin(); i != qi.getDownloads().end(); ++i) {
 				if((*i)->getSegment().contains(getSegment())) {
 					(*i)->setOverlapped(true);
 					break;
@@ -135,8 +140,78 @@ void Download::getParams(const UserConnection& aSource, StringMap& params) {
 	params["target"] = getPath();
 }
 
-string Download::getTargetFileName() {
+string Download::getTargetFileName() const {
 	return Util::getFileName(getPath());
+}
+
+const string& Download::getDownloadTarget() const {
+	return (getTempTarget().empty() ? getPath() : getTempTarget());
+}
+
+void Download::open(int64_t bytes, bool z) {
+	if(getType() == Transfer::TYPE_FILE) {
+		auto target = getDownloadTarget();
+		auto fullSize = tt.getFileSize();
+
+		if(getSegment().getStart() > 0) {
+			if(File::getSize(target) != fullSize) {
+				// When trying the download the next time, the resume pos will be reset
+				throw Exception(CSTRING(TARGET_FILE_MISSING));
+			}
+		} else {
+			File::ensureDirectory(target);
+		}
+
+		unique_ptr<File> f(new File(target, File::WRITE, File::OPEN | File::CREATE | File::SHARED));
+
+		if(f->getSize() != fullSize) {
+			f->setSize(fullSize);
+		}
+
+		f->setPos(getSegment().getStart());
+		output = move(f);
+		tempTarget = target;
+	} else if(getType() == Transfer::TYPE_FULL_LIST) {
+		auto target = getPath();
+		File::ensureDirectory(target);
+
+		if(isSet(Download::FLAG_XML_BZ_LIST)) {
+			target += ".xml.bz2";
+		} else {
+			target += ".xml";
+		}
+
+		output.reset(new File(target, File::WRITE, File::OPEN | File::TRUNCATE | File::CREATE));
+		tempTarget = target;
+	} else if(getType() == Transfer::TYPE_PARTIAL_LIST) {
+		output.reset(new StringOutputStream(pfs));
+	} else if(getType() == Transfer::TYPE_TREE) {
+		output.reset(new MerkleTreeOutputStream<TigerTree>(tt));
+	}
+
+	if((getType() == Transfer::TYPE_FILE || getType() == Transfer::TYPE_FULL_LIST) && SETTING(BUFFER_SIZE) > 0 ) {
+		output.reset(new BufferedOutputStream<true>(output.release()));
+	}
+
+	if(getType() == Transfer::TYPE_FILE) {
+		typedef MerkleCheckOutputStream<TigerTree, true> MerkleStream;
+
+		output.reset(new MerkleStream(tt, output.release(), getStartPos()));
+		setFlag(Download::FLAG_TTH_CHECK);
+	}
+
+	// Check that we don't get too many bytes
+	output.reset(new LimitedOutputStream<true>(output.release(), bytes));
+
+	if(z) {
+		setFlag(Download::FLAG_ZDOWNLOAD);
+		output.reset(new FilteredOutputStream<UnZFilter, true>(output.release()));
+	}
+}
+
+void Download::close()
+{
+	output.reset();
 }
 
 } // namespace dcpp

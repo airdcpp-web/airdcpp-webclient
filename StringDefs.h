@@ -1350,5 +1350,7 @@ enum Strings { // @DontAdd
 	SET_BUNDLE_PRIORITIES, // "Set the bundle priorities"
 	SET_FILE_PRIORITY, // "Set the file priority"
 	SET_FILE_PRIORITIES, // "Set the file priorities"
+	BUNDLE_READDED, // "A failed bundle %s has been readded in queue"
+	TARGET_FILE_MISSING, // "Target file is missing or wrong size"
 	LAST // @DontAdd
 };

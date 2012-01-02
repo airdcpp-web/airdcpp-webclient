@@ -54,7 +54,8 @@ public:
 		FLAG_UPDATE_NAME			= 0x02,
 		FLAG_HASH					= 0x04,
 		FLAG_HASH_FAILED			= 0x08,
-		FLAG_SCAN_FAILED			= 0x10
+		FLAG_SCAN_FAILED			= 0x10,
+		FLAG_NEW					= 0x20
 	};
 
 
@@ -194,7 +195,7 @@ public:
 	void sendUBN(const string& speed, double percent);
 
 	void addDownload(Download* d);
-	void removeDownload(const string& token, bool finished = true);
+	void removeDownload(Download* d);
 
 	void getTTHList(OutputStream& tthList);
 	void getSearchItems(StringPairList& searches, bool manual);

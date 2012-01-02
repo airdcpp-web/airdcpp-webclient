@@ -203,7 +203,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			time_t dateRaw = 0;
 			if (!date.empty()) {
 				dateRaw = static_cast<time_t>(Util::toUInt32(date));
-				//workaround for versions 2.2x
+				//workaround for versions 2.2x, remove later
 				if (dateRaw < 10000) {
 					if (date.length() == 10) {
 						int yy=0, mm=0, dd=0;
@@ -224,26 +224,23 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
 				if (useCache) {
-					string compare = Text::toLower(n);
-					for(DirectoryListing::Directory::DirMap::const_iterator i = cur->visitedDirs.begin(); i != cur->visitedDirs.end(); ++i) {
-						if(i->first == compare) {
-							d = i->second;
-							if(!d->getComplete())
-								d->setComplete(!incomp);
-							break;
+					auto s =  cur->visitedDirs.find(n);
+					if (s != cur->visitedDirs.end()) {
+						d = s->second;
+						if(!d->getComplete()) {
+							d->setComplete(!incomp);
 						}
 					}
 				} else {
-					for(DirectoryListing::Directory::Iter i  = cur->directories.begin(); i != cur->directories.end(); ++i) {
-						if((*i)->getName() == n) {
-							d = *i;
-							if(!d->getComplete())
-								d->setComplete(!incomp);
-							break;
-						}
+					auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == n; });
+					if (s != cur->directories.end()) {
+						d = *s;
+						if(!d->getComplete())
+							d->setComplete(!incomp);
 					}
 				}
 			}
+
 			if(d == NULL) {
 				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, dateRaw);
 				if (checkdupe) {
@@ -269,25 +266,20 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 		if(b.size() >= 1 && b[0] == '/' && b[b.size()-1] == '/') {
 			base = b;
 		}
+
 		StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
-		for(StringIter i = sl.begin(); i != sl.end(); ++i) {
-			DirectoryListing::Directory* d = NULL;
-
-			
-			for(DirectoryListing::Directory::Iter j = cur->directories.begin(); j != cur->directories.end(); ++j) {
-				if((*j)->getName() == *i) {
-					d = *j;
-					break;
-				}
-			}
-
-			if(d == NULL) {
-				d = new DirectoryListing::Directory(cur, *i, false, false);
+		for(auto i = sl.begin(); i != sl.end(); ++i) {
+			auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == *i; });
+			if (s == cur->directories.end()) {
+				auto d = new DirectoryListing::Directory(cur, *i, false, false);
 				cur->directories.push_back(d);
 				cur->visitedDirs.insert(make_pair(Text::toLower(*i), d));
+				cur = d;
+			} else {
+				cur = *s;
 			}
-			cur = d;
 		}
+
 		if (sl.empty() && cur->visitedDirs.empty()) {
 			//root dir loaded again
 			useCache=false;
@@ -334,6 +326,8 @@ string DirectoryListing::getPath(const Directory* d) const {
 
 void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
 	string target = aTarget;
+
+	/* TODO: proper check for incomplete dirs, only perform with the partial param */
 	if(!aDir->getComplete()) {
 		// the folder is not completed (partial list?), so we need to download it first
 		if (!recursiveList) {
@@ -349,7 +343,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 	File::List& l = aDir->files;
 
 	//check if there are incomplete subdirs
-	for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
+	for(auto j = lst.begin(); j != lst.end(); ++j) {
 		if (!(*j)->getComplete()) {
 			if (!recursiveList) {
 				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
@@ -376,16 +370,13 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 
 	// First, recurse over the directories
 	sort(lst.begin(), lst.end(), Directory::DirSort());
-	for(Directory::Iter j = lst.begin(); j != lst.end(); ++j) {
-		download(*j, target, highPrio, prio, false, false, aBundle);
-	}
+	for_each(lst.begin(), lst.end(), [&](Directory* dir) { download(dir, target, highPrio, prio, false, false, aBundle); });
 
 	// Then add the files
 	sort(l.begin(), l.end(), File::FileSort());
-	for(File::Iter i = aDir->files.begin(); i != aDir->files.end(); ++i) {
-		File* file = *i;
+	for(auto i = aDir->files.begin(); i != aDir->files.end(); ++i) {
 		try {
-			download(file, target + file->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
+			download(*i, target + (*i)->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
 		} catch(const QueueException&) {
 			// Catch it here to allow parts of directories to be added...
 		} catch(const FileException&) {
@@ -428,6 +419,20 @@ DirectoryListing::Directory* DirectoryListing::find(const string& aName, Directo
 			return find(aName.substr(end + 1), *i);
 	}
 	return NULL;
+}
+
+DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aPath) {
+	auto cur = root;
+	StringList sl = StringTokenizer<string>(Util::toAdcFile(aPath).substr(1), '/').getTokens();
+	for(auto i = sl.begin(); i != sl.end(); ++i) {
+		auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == *i; });
+		if (s == cur->directories.end()) {
+			return NULL;
+		} else {
+			cur = *s;
+		}
+	}
+	return cur;
 }
 
 struct HashContained {

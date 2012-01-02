@@ -32,7 +32,6 @@
 		* one setter function that binds to the rest and assigns a copy of the value passed as
 		parameter to the member variable. */
 
-#include <boost/mpl/if.hpp>
 #include <type_traits>
 
 #ifndef DCPLUSPLUS_SIMPLE_GETSET
@@ -41,7 +40,7 @@
 
 #define GETSET(t, name, name2) \
 private: t name; \
-public: boost::mpl::if_c<std::is_class<t>::value, const t&, t>::type get##name2() const { return name; } \
+public: std::conditional<std::is_class<t>::value, const t&, t>::type get##name2() const { return name; } \
 	\
 	template<typename GetSetT> typename std::enable_if<!std::is_class<GetSetT>::value, void>::type \
 	set##name2(GetSetT name) { this->name = name; } /* small type: simple setter that just copies */ \

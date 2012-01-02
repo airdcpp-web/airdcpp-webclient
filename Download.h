@@ -2,19 +2,20 @@
 #define DCPLUSPLUS_DCPP_DOWNLOAD_H_
 
 #include <string>
+#include <memory>
+
 #include "forward.h"
 #include "noexcept.h"
 #include "Transfer.h"
 #include "MerkleTree.h"
 #include "Flags.h"
-#include "Streams.h"
-#include "QueueItem.h"
 #include "Bundle.h"
 #include "GetSet.h"
 
 namespace dcpp {
 
 using std::string;
+using std::unique_ptr;
 
 /**
  * Comes as an argument in the DownloadManagerListener functions.
@@ -39,39 +40,44 @@ public:
 		FLAG_TTHLIST_BUNDLE		= 0x2000
 	};
 
-	Download(UserConnection& conn, QueueItem& qi, const string& path) noexcept;
+	bool operator==(const Download* d) const {
+		return compare(getToken(), d->getToken()) == 0;
+	}
+
+	Download(UserConnection& conn, QueueItem& qi) noexcept;
 
 	void getParams(const UserConnection& aSource, StringMap& params);
 
 	~Download();
 
 	/** @return Target filename without path. */
-	string getTargetFileName();
+	string getTargetFileName() const;
 
-	/** @internal */
-	const string& getDownloadTarget() const {
-		return (getTempTarget().empty() ? getPath() : getTempTarget());
-	}
+	/** Open the target output for writing */
+	void open(int64_t bytes, bool z);
+
+	/** Release the target output */
+	void close();
 
 	/** @internal */
 	TigerTree& getTigerTree() { return tt; }
-	string& getPFS() { return pfs; }
-	
-	const TigerTree& getTigerTree() const { return tt; }
 	const string& getPFS() const { return pfs; }
 
 	/** @internal */
 	AdcCommand getCommand(bool zlib) const;
+	const unique_ptr<OutputStream>& getOutput() const { return output; }
 
 	GETSET(string, tempTarget, TempTarget);
 	GETSET(uint64_t, lastTick, LastTick);
-	GETSET(OutputStream*, file, File);
 	GETSET(bool, treeValid, TreeValid);
 	GETSET(BundlePtr, bundle, Bundle);
 private:
 	Download(const Download&);
 	Download& operator=(const Download&);
 
+	const string& getDownloadTarget() const;
+
+	unique_ptr<OutputStream> output;
 	TigerTree tt;
 	string pfs;
 };
