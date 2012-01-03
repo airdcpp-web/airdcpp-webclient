@@ -129,7 +129,6 @@ public:
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
 	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes);
-	bool getDiskInfo(const string& aPath, int64_t& freeSpace);
 	void saveBundle(BundlePtr aBundle);
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundles, const StringPairList& paths);
@@ -143,7 +142,7 @@ public:
 	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;
-	void getBundleSources(BundlePtr aBundle, Bundle::SourceIntList& sources, Bundle::SourceIntList& badSources) noexcept;
+	void getBundleSources(BundlePtr aBundle, Bundle::SourceInfoList& sources, Bundle::SourceInfoList& badSources) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
 	void removeBundleSources(BundlePtr aBundle) noexcept;

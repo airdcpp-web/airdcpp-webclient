@@ -39,6 +39,7 @@ class AirUtil {
 		static bool checkSharedName(const string& fullPath, bool dir, bool report = true, const int64_t& size = 0);
 		static void getTarget(StringList& targets, string& target, int64_t& size);
 		static void getVolumes(StringSet& volumes);
+		static bool getDiskInfo(const string& aPath, int64_t& freeSpace);
 
 		static uint32_t getLastWrite(const string& path) {
 							

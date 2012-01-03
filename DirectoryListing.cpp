@@ -204,20 +204,18 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			if (!date.empty()) {
 				dateRaw = static_cast<time_t>(Util::toUInt32(date));
 				//workaround for versions 2.2x, remove later
-				if (dateRaw < 10000) {
-					if (date.length() == 10) {
-						int yy=0, mm=0, dd=0;
-						struct tm when;
-						sscanf_s(date.c_str(), "%d-%d-%d", &yy, &mm, &dd );
-						when.tm_year = yy - 1900;
-						when.tm_mon = mm - 1;
-						when.tm_mday = dd;
-						when.tm_isdst = 0;
-						when.tm_hour=16;
-						when.tm_min=0;
-						when.tm_sec=0;
-						dateRaw = mktime(&when);
-					}
+				if (dateRaw < 10000 && date.length() == 10) {
+					int yy=0, mm=0, dd=0;
+					struct tm when;
+					sscanf_s(date.c_str(), "%d-%d-%d", &yy, &mm, &dd );
+					when.tm_year = yy - 1900;
+					when.tm_mon = mm - 1;
+					when.tm_mday = dd;
+					when.tm_isdst = 0;
+					when.tm_hour=16;
+					when.tm_min=0;
+					when.tm_sec=0;
+					dateRaw = mktime(&when);
 				}
 			}
 
@@ -349,7 +347,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 	Directory::List& lst = aDir->directories;
 	File::List& l = aDir->files;
 
-	target = first ? aTarget : (aTarget + aDir->getName() + PATH_SEPARATOR);
+	target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 	//create bundles
 	if (first) {
 		aBundle = BundlePtr(new Bundle(target, GET_TIME()));
@@ -475,8 +473,6 @@ void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet
 			} else ++f;
 		}
 	}
-
-
 }
 
 void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSet& l) {
@@ -496,14 +492,10 @@ StringList DirectoryListing::getLocalPaths(const File* f) {
 	}
 }
 
-
 StringList DirectoryListing::getLocalPaths(const Directory* d) {
-	
 	try {
 		return ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)));
-
 	} catch(const ShareException&) {
-
 		return StringList();
 	}
 }
@@ -517,8 +509,7 @@ int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
 		if(!(adl && (*i)->getAdls()))
 			x += (*i)->getTotalSize(adls);
 	}
-	
-		return x;
+	return x;
 }
 
 size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {

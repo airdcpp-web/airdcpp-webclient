@@ -649,13 +649,13 @@ void AirUtil::getTarget(StringList& targets, string& target, int64_t& freeSpace)
 	StringSet volumes;
 	getVolumes(volumes);
 	map<string, pair<string, int64_t>> targetMap;
-
+	int64_t tmpSize = 0;
 
 	for(auto i = targets.begin(); i != targets.end(); ++i) {
 		string target = getMountPath(*i, volumes);
 		if (!target.empty() && targetMap.find(target) == targetMap.end()) {
-			int64_t free = 0, size = 0;
-			if (GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&free)) {
+			int64_t free = 0;
+			if (GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&free)) {
 				targetMap[target] = make_pair(*i, free);
 			}
 		}
@@ -664,12 +664,9 @@ void AirUtil::getTarget(StringList& targets, string& target, int64_t& freeSpace)
 	if (targetMap.empty()) {
 		if (!targets.empty()) {
 			target = targets.front();
-			QueueManager::getInstance()->getDiskInfo(target, freeSpace);
+			GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&freeSpace);
 			return;
 		}
-		/*int64_t size = 0, freeSpace = 0;
-		target = SETTING(DOWNLOAD_DIRECTORY);
-		GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&freeSpace); */
 	}
 
 	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
@@ -680,6 +677,23 @@ void AirUtil::getTarget(StringList& targets, string& target, int64_t& freeSpace)
 			target = i->second.first;
 		}
 	}
+}
+
+bool AirUtil::getDiskInfo(const string& aPath, int64_t& freeSpace) {
+	int64_t totalSize = 0;
+	StringSet volumes;
+	AirUtil::getVolumes(volumes);
+
+	GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&totalSize, (PULARGE_INTEGER)&freeSpace);
+	string pathVol = AirUtil::getMountPath(aPath, volumes);
+	if (pathVol.empty()) {
+		return false;
+	}
+	map<string, pair<string, int64_t>> targetMap;
+	targetMap[pathVol] = make_pair(aPath, freeSpace);
+
+	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
+	return true;
 }
 
 void AirUtil::getVolumes(StringSet& volumes) {

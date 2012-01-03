@@ -26,6 +26,9 @@
 #include "AirUtil.h"
 #include "SearchResult.h"
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/numeric.hpp>
+
 namespace dcpp {
 	
 Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
@@ -118,6 +121,16 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) noexcept {
 	}
 }
 
+int64_t Bundle::getDiskUse(bool countAll) {
+	int64_t size = 0; 
+	for (auto p = queueItems.begin(); p != queueItems.end(); ++p) {
+		if (countAll || (*p)->getDownloadedBytes() == 0) {
+			size += (*p)->getSize();
+		}
+	}
+	return size;
+}
+
 void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
 	if (find(finishedFiles.begin(), finishedFiles.end(), qi) == finishedFiles.end()) {
 		if (!finished) {
@@ -191,15 +204,11 @@ bool Bundle::removeQueue(QueueItem* qi, bool finished) {
 }
 
 bool Bundle::isSource(const UserPtr& aUser) {
-	return find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; }) != sources.end();
-}
-
-bool Bundle::isSource(const CID& cid) {
-	return find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user->getCID() == cid; }) != sources.end();
+	return find_if(sources.begin(), sources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
 }
 
 bool Bundle::isBadSource(const UserPtr& aUser) {
-	return find_if(badSources.begin(), badSources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; }) != badSources.end();
+	return find_if(badSources.begin(), badSources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
 }
 
 void Bundle::addUserQueue(QueueItem* qi) {
@@ -219,13 +228,14 @@ bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
 		swap(queueItems[start], queueItems[queueItems.size()-1]);
 	}
 
-	auto i = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
+	auto i = find_if(sources.begin(), sources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	if (i != sources.end()) {
-		i->second++;
+		get<SOURCE_FILES>(*i)++;
+		get<SOURCE_SIZE>(*i) += qi->getSize();
 		//LogManager::getInstance()->message("ADD, SOURCE FOR " + Util::toString(i->second) + " ITEMS");
 		return false;
 	} else {
-		sources.push_back(make_pair(aUser, 1));
+		sources.push_back(make_tuple(aUser, qi->getSize() - qi->getDownloadedSegments(), 1));
 		return true;
 	}
 	//LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, total items for the user " + aUser->getCID().toBase32() + ": " + Util::toString(l.size()));
@@ -373,21 +383,23 @@ bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) {
 	}
 
 	//check bundle sources
-	auto m = find_if(sources.begin(), sources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; });
+	auto m = find_if(sources.begin(), sources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 	dcassert(m != sources.end());
 
 	if (addBad) {
-		auto bsi = find_if(badSources.begin(), badSources.end(), [&](const UserRunningPair& urp) { return urp.first.user == aUser; });
+		auto bsi = find_if(badSources.begin(), badSources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 		if (bsi == badSources.end()) {
-			badSources.push_back(make_pair(m->first, 1));
+			badSources.push_back(make_tuple(get<SOURCE_USER>(*m), qi->getSize(), 1));
 		} else {
-			bsi->second++;
+			get<SOURCE_FILES>(*bsi)++;
+			get<SOURCE_SIZE>(*bsi) += qi->getSize();
 		}
 	}
 
-	m->second--;
+	get<SOURCE_FILES>(*m)--;
+	get<SOURCE_SIZE>(*m) -= qi->getSize();
 	//LogManager::getInstance()->message("REMOVE, SOURCE FOR " + Util::toString(m->second) + " ITEMS");
-	if (m->second == 0) {
+	if (get<SOURCE_FILES>(*m) == 0) {
 		sources.erase(m);   //crashed when nothing found to erase with only 1 source and removing multiple bundles.
 		return true;
 	}
@@ -395,7 +407,7 @@ bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) {
 }
 
 void Bundle::removeBadSource(const HintedUser& aUser) {
-	auto m = find_if(badSources.begin(), badSources.end(), [&](const UserRunningPair& urp) { return urp.first == aUser; });
+	auto m = find_if(badSources.begin(), badSources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	dcassert(m != badSources.end());
 	if (m != badSources.end()) {
 		badSources.erase(m);
@@ -434,24 +446,23 @@ Bundle::Priority Bundle::calculateProgressPriority() const {
 	return priority;
 }
 
-void Bundle::getBundleBalanceMaps(SourceSpeedMapB& speedMap, SourceSpeedMapB& sourceMap) {
-	int64_t bundleSpeed = 0;
-	double bundleSources = 0;
+pair<int64_t, double> Bundle::getPrioInfo() {
+	vector<int64_t> speedList, sizeList;
 	for (auto s = sources.begin(); s != sources.end(); ++s) {
-		UserPtr& user = (*s).first.user;
-		if (user->isOnline()) {
-			bundleSpeed += user->getSpeed();
-			bundleSources += s->second;
-		} else {
-			bundleSources += s->second / 2.0;
-		}
+		UserPtr& u = get<SOURCE_USER>(*s).user;
+		int64_t filesSize = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItem* qi) {
+			return qi->isSource(u) ? old + (qi->getSize() - qi->getDownloadedSegments()) : old; 
+		});
+		int64_t timeLeft = static_cast<int64_t>(filesSize * u->getSpeed());
+
+		//lower prio for offline users
+		sizeList.push_back(u->isOnline() ? filesSize : filesSize*2);
+		if (timeLeft > 0)
+			speedList.push_back(timeLeft);
 	}
-	bundleSources = bundleSources / queueItems.size();
-	///if (verbose) {
-	//	LogManager::getInstance()->message("Sourcepoints for bundle " + bundle->getName() + " : " + Util::toString(sources));
-	//}
-	speedMap.insert(make_pair((double)bundleSpeed, this));
-	sourceMap.insert(make_pair(bundleSources, this));
+	int64_t speedRatio = speedList.empty() ? 0 : dcpp::accumulate(speedList.begin(), speedList.end(), (int64_t)0) / speedList.size();
+	double sizeRatio = dcpp::accumulate(sizeList.begin(), sizeList.end(), (double)0) / static_cast<double>(size);
+	return make_pair(speedRatio, (sizeRatio > 0 ? sizeRatio : 1));
 }
 
 void Bundle::getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap) {
@@ -563,9 +574,9 @@ size_t Bundle::countOnlineUsers() const {
 	size_t users = 0;
 	int files = 0;
 	for(auto i = sources.begin(); i != sources.end(); ++i) {
-		if(i->first.user->isOnline()) {
+		if(get<SOURCE_USER>(*i).user->isOnline()) {
 			users++;
-			files += i->second;
+			files += get<SOURCE_FILES>(*i);
 		}
 	}
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));

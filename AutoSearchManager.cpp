@@ -367,7 +367,7 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 		if (target.empty()) {
 			target = SETTING(DOWNLOAD_DIRECTORY);
 		}
-		QueueManager::getInstance()->getDiskInfo(aTarget, freeSpace);
+		AirUtil::getDiskInfo(aTarget, freeSpace);
 		return (freeSpace > sr->getSize());
 	} 
 	

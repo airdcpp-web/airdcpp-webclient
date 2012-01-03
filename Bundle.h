@@ -58,6 +58,11 @@ public:
 		FLAG_NEW					= 0x20
 	};
 
+	enum SourceInfo {
+		SOURCE_USER					= 0,
+		SOURCE_SIZE					= 1,
+		SOURCE_FILES				= 2,
+	};
 
 	struct Hash {
 		size_t operator()(const BundlePtr x) const { return hash<string>()(x->getToken()); }
@@ -80,7 +85,8 @@ public:
 	typedef QueueItem* Ptr;
 	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
 	typedef pair<HintedUser, uint32_t> UserRunningPair;
-	typedef vector<UserRunningPair> SourceIntList;
+	typedef tuple<HintedUser, uint64_t, uint32_t> SourceTuple;
+	typedef vector<SourceTuple> SourceInfoList;
 	typedef pair<HintedUser, string> UserBundlePair;
 	typedef vector<UserBundlePair> FinishedNotifyList;
 	typedef unordered_map<string, uint32_t> DirMap;
@@ -120,8 +126,8 @@ public:
 	GETSET(HintedUserList, uploadReports, UploadReports);
 	GETSET(DownloadList, downloads, Downloads);
 	GETSET(DirMap, bundleDirs, BundleDirs);
-	GETSET(SourceIntList, badSources, BadSources);
-	GETSET(SourceIntList, sources, Sources);
+	GETSET(SourceInfoList, badSources, BadSources);
+	GETSET(SourceInfoList, sources, Sources);
 
 	UserIntMap& getRunningUsers() { return runningUsers; }
 	FinishedNotifyList& getNotifiedUsers() { return finishedNotifications; }
@@ -130,8 +136,8 @@ public:
 	QueueItemList& getQueueItems() { return queueItems; }
 	DownloadList& getDownloads() { return downloads; }
 	DirMap& getBundleDirs() { return bundleDirs; }
-	SourceIntList& getBundleSources() { return sources; }
-
+	SourceInfoList& getBundleSources() { return sources; }
+	SourceInfoList& getBadSources() { return badSources; }
 
 	/* Misc */
 	bool getFileBundle() { return fileBundle;}
@@ -171,8 +177,8 @@ public:
 
 	Priority calculateProgressPriority() const;
 	void getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap);
-	void getBundleBalanceMaps(SourceSpeedMapB& speedMap, SourceSpeedMapB& sourceMap);
 	void calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speeds, SourceSpeedMapQI& sources, bool verbose);
+	pair<int64_t, double> getPrioInfo();
 
 	void increaseSize(int64_t aSize) { size += aSize; }
 	void decreaseSize(int64_t aSize) { size -= aSize; }
@@ -182,6 +188,8 @@ public:
 	void increaseHashed() { hashed++; }
 
 	void setTarget(string targetNew) { target =  targetNew; }
+
+	int64_t getDiskUse(bool countAll);
 
 	/* DownloadManager */
 	void addUploadReport(const HintedUser& aUser);
@@ -211,7 +219,6 @@ public:
 	/* Sources*/
 	void getQISources(HintedUserList& l);
 	bool isSource(const UserPtr& aUser);
-	bool isSource(const CID& cid);
 	bool isBadSource(const UserPtr& aUser);
 	bool isFinished() { return queueItems.empty(); }
 	void removeBadSource(const HintedUser& aUser);
