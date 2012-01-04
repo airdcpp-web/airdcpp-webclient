@@ -344,8 +344,8 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		return;
 	}
 
-	Directory::List& lst = aDir->directories;
-	File::List& l = aDir->files;
+	auto& dirList = aDir->directories;
+	auto& fileList = aDir->files;
 
 	target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 	//create bundles
@@ -361,12 +361,12 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 	}
 
 	// First, recurse over the directories
-	sort(lst.begin(), lst.end(), Directory::DirSort());
-	for_each(lst.begin(), lst.end(), [&](Directory* dir) { download(dir, target, highPrio, prio, false, false, aBundle); });
+	sort(dirList.begin(), dirList.end(), Directory::DirSort());
+	for_each(dirList.begin(), dirList.end(), [&](Directory* dir) { download(dir, target, highPrio, prio, false, false, aBundle); });
 
 	// Then add the files
-	sort(l.begin(), l.end(), File::FileSort());
-	for(auto i = aDir->files.begin(); i != aDir->files.end(); ++i) {
+	sort(fileList.begin(), fileList.end(), File::FileSort());
+	for(auto i = fileList.begin(); i != fileList.end(); ++i) {
 		try {
 			download(*i, target + (*i)->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
 		} catch(const QueueException&) {

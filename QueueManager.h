@@ -125,7 +125,6 @@ public:
 	void moveBundleItem(QueueItem* qi, BundlePtr targetBundle, bool fireAdded);
 	void moveBundleItems(const QueueItemList& ql, BundlePtr targetBundle, bool fireAdded);
 	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished, bool moved = false);
-	BundlePtr findMergeBundle(QueueItem* qi);
 	bool isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
 	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes);

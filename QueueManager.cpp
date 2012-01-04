@@ -172,7 +172,7 @@ void QueueManager::FileQueue::add(QueueItem* qi, bool addFinished, bool addTTH) 
 	}
 
 	if (addTTH) {
-		tthIndex[qi->getTTH()].push_back(qi);
+		tthIndex.insert(make_pair(qi->getTTH(), qi));
 	}
 }
 
@@ -191,13 +191,11 @@ void QueueManager::FileQueue::remove(QueueItem* qi, bool aRemoveTTH) {
 }
 
 void QueueManager::FileQueue::removeTTH(QueueItem* qi) {
-	auto i = tthIndex.find(qi->getTTH());
-	if (i != tthIndex.end()) {
-		if (i->second.size() == 1) {
-			tthIndex.erase(i);
-		} else {
-			i->second.erase(std::remove(i->second.begin(), i->second.end(), qi), i->second.end());
-		}
+	auto s = tthIndex.equal_range(qi->getTTH());
+	dcassert(s.first != s.second);
+	auto k = find_if(s.first, s.second, CompareSecond<TTHValue, QueueItem*>(qi));
+	if (k != s.second) {
+		tthIndex.erase(k);
 	}
 }
 
@@ -218,9 +216,9 @@ void QueueManager::FileQueue::find(QueueItemList& sl, int64_t aSize, const strin
 }
 
 void QueueManager::FileQueue::find(const TTHValue& tth, QueueItemList& ql) {
-	auto i = tthIndex.find(tth);
-	if (i != tthIndex.end()) {
-		ql = i->second;
+	auto s = tthIndex.equal_range(tth);
+	if (s.first != s.second) {
+		for_each(s.first, s.second, [&](pair<TTHValue, QueueItem*> tqp) { ql.push_back(tqp.second); } );
 	}
 }
 
@@ -231,12 +229,13 @@ void QueueManager::FileQueue::matchDir(const DirectoryListing::Directory* dir, Q
 	}
 
 	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
-		auto s = tthIndex.find((*i)->getTTH());
-		if (s != tthIndex.end()) {
+		auto s = tthIndex.equal_range((*i)->getTTH());
+		if (s.first != s.second) {
 			DirectoryListing::File* f = *i;
 			//LogManager::getInstance()->message("MATCH, PATH: " + f->getPath());
-			for_each(s->second.begin(), s->second.end(), [&](QueueItem* qi) { if (!qi->isFinished() && qi->getSize() == f->getSize() && 
-				std::find(ql.begin(), ql.end(), qi) == ql.end()) ql.push_back(qi); } );
+			for_each(s.first, s.second, [&](pair<TTHValue, QueueItem*> tqp) {
+				if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && std::find(ql.begin(), ql.end(), tqp.second) == ql.end()) 
+					ql.push_back(tqp.second); } );
 		}
 	}
 }
@@ -250,12 +249,11 @@ int QueueManager::FileQueue::isFileQueued(const TTHValue& aTTH, const string& fi
 }
 
 QueueItem* QueueManager::FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) {
-	auto i = tthIndex.find(aTTH);
-	if (i != tthIndex.end()) {
-		for(auto k = i->second.begin(); k != i->second.end(); ++k) {
-			if(stricmp(fileName.c_str(), (*k)->getTargetFileName().c_str()) == 0) {
-				return *k;
-			}
+	auto s = tthIndex.equal_range(aTTH);
+	if (s.first != s.second) {
+		auto k = find_if(s.first, s.second, [&](pair<TTHValue, QueueItem*> tqp) { return (stricmp(fileName.c_str(), tqp.second->getTargetFileName().c_str()) == 0); });
+		if (k != s.second) {
+			return k->second;
 		}
 	}
 	return NULL;
@@ -1256,7 +1254,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		if (aBundle) {
 			addBundleItem(q, aBundle);
 		} else {
-			aBundle = findMergeBundle(q);
+			aBundle = getMergeBundle(q->getTarget());
 			if (aBundle) {
 				merged = true;
 				//finished bundle but failed hashing/scanning?
@@ -1707,12 +1705,10 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 		if (failed) {
 			string file = Util::getFileName(fname);
 			for (auto s = fileQueue.getTTHIndex().begin(); s != fileQueue.getTTHIndex().end(); ++s) {
-				for (auto k = s->second.begin(); k != s->second.end(); ++k) {
-					if ((*k)->getTargetFileName() == Util::getFileName(file)) {
-						qi = *k;
-						if (qi->getTarget() == fname) {
-							break;
-						}
+				if (s->second->getTargetFileName() == Util::getFileName(file)) {
+					qi = s->second;
+					if (qi->getTarget() == fname) { //prefer exact matches
+						break;
 					}
 				}
 			}
@@ -3610,13 +3606,9 @@ BundlePtr QueueManager::getMergeBundle(const string& aTarget) {
 			continue;
 		}
 
-		size_t pos = compareBundle->getTarget().find(aTarget);
-		if (pos == string::npos) {
-			pos = aTarget.find(compareBundle->getTarget());
-			if (pos != string::npos) {
-				return compareBundle;
-			}
-		} else {
+		if (compareBundle->getTarget().length() >= aTarget.length() && (stricmp(compareBundle->getTarget().substr(0, aTarget.length()), aTarget) == 0)) { //are we trying to merge a parent folder?
+			return compareBundle;
+		} else if (stricmp(aTarget.substr(0, compareBundle->getTarget().length()), compareBundle->getTarget()) == 0) { //subdir of the current bundle?
 			return compareBundle;
 		}
 	}
@@ -3743,12 +3735,9 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 				continue;
 			}
 
-			if (compareBundle->getTarget() != newTarget) {
-				size_t pos = compareBundle->getTarget().find(newTarget);
-				if (pos != string::npos) {
-					fire(QueueManagerListener::BundleMoved(), compareBundle);
-					mBundles.push_back(compareBundle);
-				}
+			if (compareBundle->getTarget().length() > newTarget.length() && (stricmp(compareBundle->getTarget().substr(0, newTarget.length()), newTarget) == 0)) {
+				fire(QueueManagerListener::BundleMoved(), compareBundle);
+				mBundles.push_back(compareBundle);
 			}
 		}
 	}
@@ -4127,7 +4116,7 @@ void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget, cons
 		return;
 	}
 
-	BundlePtr targetBundle = findMergeBundle(qi);
+	BundlePtr targetBundle = getMergeBundle(qi->getTarget());
 	if (targetBundle) {
 		mergeBundle(targetBundle, aBundle);
 		fire(QueueManagerListener::Added(), qi);
@@ -4185,10 +4174,8 @@ bool QueueManager::move(QueueItem* qs, const string& aTarget) noexcept {
 	}
 
 	if(qt == NULL) {
-		//LogManager::getInstance()->message("QT NOT FOUND");
 		//Does the file exist already on the disk?
 		if(Util::fileExists(target)) {
-			//LogManager::getInstance()->message("FILE EXISTS");
 			removeQI(qs, true);
 			return false;
 		}
@@ -4202,7 +4189,6 @@ bool QueueManager::move(QueueItem* qs, const string& aTarget) noexcept {
 		}
 		return true;
 	} else {
-		//LogManager::getInstance()->message("QT FOUND: " + qt->getTarget());
 		// Don't move to target of different size
 		if(qs->getSize() != qt->getSize() || qs->getTTH() != qt->getTTH())
 			return false;
@@ -4222,13 +4208,9 @@ bool QueueManager::move(QueueItem* qs, const string& aTarget) noexcept {
 	return false;
 }
 
-
 void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
-	//vector<pair<QueueItem*, string>> ql;
 	QueueItemList ql;
 	bool movedFired = false;
-	//BundlePtr sourceBundle;
-	//string aTarget = Util::getDir(sourceTargetList[0].second, false, false);;
 	for (auto k = sourceTargetList.begin(); k != sourceTargetList.end(); ++k) {
 		string source = k->first;
 		Lock l (cs);
@@ -4263,12 +4245,12 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 		QueueItem* qi = ql.front();
 		BundlePtr sourceBundle = qi->getBundle();
 
-		BundlePtr targetBundle = findMergeBundle(qi);
+		BundlePtr targetBundle = getMergeBundle(qi->getTarget());
 		if (targetBundle) {
 			bool finished = targetBundle->isFinished();
 			moveBundleItems(ql, targetBundle, !finished);
 			if (finished) {
-
+				readdBundle(targetBundle);
 			}
 		} else {
 			//split into file bundles
@@ -4323,9 +4305,7 @@ void QueueManager::moveBundleItems(const QueueItemList& ql, BundlePtr targetBund
 
 	{
 		Lock l (cs);
-		for (auto k = ql.begin(); k != ql.end(); ++k) {
-			moveBundleItem(*k, targetBundle, fireAdded);
-		}
+		for_each(ql.begin(), ql.end(), [&](QueueItem* qi) { moveBundleItem(qi, targetBundle, fireAdded); });
 	}	
 
 	if (sourceBundle->getQueueItems().empty()) {
@@ -4357,17 +4337,6 @@ void QueueManager::moveBundleItem(QueueItem* qi, BundlePtr targetBundle, bool fi
 	if (fireAdded) {
 		fire(QueueManagerListener::Added(), qi);
 	}
-}
-
-BundlePtr QueueManager::findMergeBundle(QueueItem* qi) {
-	Lock l (cs);
-	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
-		size_t pos = qi->getFolder().find((*j).second->getTarget());
-		if (pos != string::npos) {
-			return j->second;
-		}
-	}
-	return NULL;
 }
 
 BundlePtr QueueManager::findBundle(const string& bundleToken) {

@@ -40,7 +40,7 @@ class Download;
 class QueueItem : public Flags, public intrusive_ptr_base<QueueItem> {
 public:
 	typedef boost::unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
-	typedef unordered_map<TTHValue, QueueItemList> TTHMap;
+	typedef unordered_multimap<TTHValue, QueueItemPtr> TTHMap;
 
 	enum Priority {
 		DEFAULT = -1,

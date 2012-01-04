@@ -361,44 +361,26 @@ void AutoSearchManager::addToQueue(const SearchResultPtr sr, const AutoSearchPtr
 
 bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target) {
 	string aTarget = as->getTarget();
+	int64_t freeSpace = 0;
 	if (as->getTargetType() == AutoSearch::TARGET_PATH) {
 		target = aTarget;
-		int64_t freeSpace = 0;
-		if (target.empty()) {
-			target = SETTING(DOWNLOAD_DIRECTORY);
-		}
-		AirUtil::getDiskInfo(aTarget, freeSpace);
-		return (freeSpace > sr->getSize());
-	} 
-	
-	StringList targets;
-	if (as->getTargetType() == AutoSearch::TARGET_FAVORITE) {
-		auto spl = FavoriteManager::getInstance()->getFavoriteDirs();
-		for(auto i = spl.begin(); i != spl.end(); ++i) {
-			if(stricmp(aTarget, i->first) == 0) {
-				targets = i->second;
-				break;
-			}
-		}
 	} else {
-		auto shareDirs = ShareManager::getInstance()->getGroupedDirectories();
-		for(auto i = shareDirs.begin(); i != shareDirs.end(); ++i) {
-			if(stricmp(aTarget, i->first) == 0) {
-				targets = i->second;
-				break;
+		auto dirList = (as->getTargetType() == AutoSearch::TARGET_FAVORITE) ? FavoriteManager::getInstance()->getFavoriteDirs() : ShareManager::getInstance()->getGroupedDirectories();
+		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));
+		if (s != dirList.end()) {
+			StringList targets = s->second;
+			AirUtil::getTarget(targets, target, freeSpace);
+			if (!target.empty()) {
+				return (freeSpace > sr->getSize());
 			}
 		}
 	}
-
-	int64_t freeSpace = 0;
-	AirUtil::getTarget(targets, target, freeSpace);
 
 	if (target.empty()) {
-		int64_t size = 0;
+		//failed to get the target, use the default one
 		target = SETTING(DOWNLOAD_DIRECTORY);
-		GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&size, (PULARGE_INTEGER)&freeSpace);
 	}
-
+	AirUtil::getDiskInfo(target, freeSpace);
 	return (freeSpace > sr->getSize());
 }
 
