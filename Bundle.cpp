@@ -25,6 +25,7 @@
 #include "LogManager.h"
 #include "AirUtil.h"
 #include "SearchResult.h"
+#include "SimpleXML.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/numeric.hpp>
@@ -328,19 +329,36 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
 	}
 }
 
-string Bundle::getMatchPath(const SearchResultPtr& sr) {
+string Bundle::getMatchPath(const string& aDir) {
 	string path;
 	if (simpleMatching) {
-		path = Util::getDir(sr->getFile(), true, false);
+		path = Util::getDir(aDir, true, false);
 	} else {
 		//try to find the corrent location from the path manually
-		size_t pos = sr->getFile().find(getName() + "\\");
+		size_t pos = aDir.find(getName() + "\\");
 		if (pos != string::npos) {
-			path = Util::getFilePath(sr->getFile().substr(0, pos+getName().length()+1));
+			path = Util::getFilePath(aDir.substr(0, pos+getName().length()+1));
 			//LogManager::getInstance()->message("ALT RELEASE MATCH, PATH: " + path);
 		}
 	}
 	return path;
+}
+
+string Bundle::getDirPath(const string& aDir) {
+	string path;
+	string releaseDir = AirUtil::getReleaseDir(Util::getDir(aDir, false, false));
+	if (releaseDir.empty())
+		return Util::emptyString;
+
+	//size_t pos = Text::toLower(aDir).find(Text::toLower(getName()) + "\\");
+	for (auto s = bundleDirs.begin(); s != bundleDirs.end(); ++s) {
+		if (s->first.length() > releaseDir.length()) {
+			//compare the end of the dir with the release dir
+			if (stricmp(s->first.substr(s->first.length()-releaseDir.length()-1, releaseDir.length()), releaseDir) == 0)
+				return s->first;
+		}
+	}
+	return Util::emptyString;
 }
 
 QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) {
@@ -818,5 +836,68 @@ void Bundle::sendSizeNameUpdate() {
 }
 
 /* ONLY CALLED FROM DOWNLOADMANAGER END */
+
+
+void Bundle::save() {
+	//LogManager::getInstance()->message("SAVING BUNDLE: " + bundle->getName());
+	File ff(getBundleFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
+	BufferedOutputStream<false> f(&ff);
+	f.write(SimpleXML::utf8Header);
+	string tmp;
+	string b32tmp;
+
+	if (getFileBundle()) {
+		f.write(LIT("<File Version=\"1.0\" Token=\""));
+		f.write(token);
+		f.write(LIT("\">\r\n"));
+		queueItems.front()->save(f, tmp, b32tmp);
+		f.write(LIT("</File>\r\n"));
+	} else {
+		f.write(LIT("<Bundle Version=\"1\" Target=\""));
+		f.write(SimpleXML::escape(target, tmp, true));
+		f.write(LIT("\" Token=\""));
+		f.write(token);
+		f.write(LIT("\" Size=\""));
+		f.write(Util::toString(size));
+		f.write(LIT("\" Added=\""));
+		f.write(Util::toString(added));
+		f.write(LIT("\" Date=\""));
+		f.write(Util::toString(dirDate));
+		if (!autoPriority) {
+			f.write(LIT("\" Priority=\""));
+			f.write(Util::toString((int)priority));
+		}
+		f.write(LIT("\">\r\n"));
+
+		for (auto k = finishedFiles.begin(); k != finishedFiles.end(); ++k) {
+			QueueItem* qi = *k;
+			f.write(LIT("\t<Finished TTH=\""));
+			f.write(qi->getTTH().toBase32());
+			f.write(LIT("\" Target=\""));
+			f.write(qi->getTarget());
+			f.write(LIT("\" Size=\""));
+			f.write(Util::toString(qi->getSize()));
+			f.write(LIT("\" Added=\""));
+			f.write(Util::toString(qi->getAdded()));
+			f.write(LIT("\"/>\r\n"));
+		}
+
+		for (auto j = queueItems.begin(); j != queueItems.end(); ++j) {
+			(*j)->save(f, tmp, b32tmp);
+		}
+
+		f.write(LIT("</Bundle>\r\n"));
+	}
+
+	f.flush();
+	ff.close();
+	try {
+		File::deleteFile(getBundleFile());
+		File::renameFile(getBundleFile() + ".tmp", getBundleFile());
+	}catch(...) {
+		LogManager::getInstance()->message("ERROR WHEN MOVING BUNDLEXML: " + getName());
+	}
+	setDirty(false);
+}
 
 }

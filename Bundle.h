@@ -82,15 +82,14 @@ public:
 		}
 	};
 
-	typedef QueueItem* Ptr;
-	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
-	typedef pair<HintedUser, uint32_t> UserRunningPair;
+	typedef boost::unordered_map<string, BundlePtr> StringBundleMap;
+
+	typedef boost::unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
 	typedef tuple<HintedUser, uint64_t, uint32_t> SourceTuple;
 	typedef vector<SourceTuple> SourceInfoList;
 	typedef pair<HintedUser, string> UserBundlePair;
 	typedef vector<UserBundlePair> FinishedNotifyList;
-	typedef unordered_map<string, uint32_t> DirMap;
-	typedef unordered_map<string, BundlePtr> BundleTokenMap;
+	typedef boost::unordered_map<string, uint32_t> DirIntMap;
 
 
 	typedef vector<pair<QueueItem*, int8_t>> PrioList;
@@ -125,7 +124,7 @@ public:
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
 	GETSET(DownloadList, downloads, Downloads);
-	GETSET(DirMap, bundleDirs, BundleDirs);
+	GETSET(DirIntMap, bundleDirs, BundleDirs);
 	GETSET(SourceInfoList, badSources, BadSources);
 	GETSET(SourceInfoList, sources, Sources);
 
@@ -135,7 +134,7 @@ public:
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
 	DownloadList& getDownloads() { return downloads; }
-	DirMap& getBundleDirs() { return bundleDirs; }
+	DirIntMap& getBundleDirs() { return bundleDirs; }
 	SourceInfoList& getBundleSources() { return sources; }
 	SourceInfoList& getBadSources() { return badSources; }
 
@@ -155,8 +154,8 @@ public:
 
 	tstring getBundleText();
 
-
 	/* QueueManager */
+	void save();
 	bool removeQueue(QueueItem* qi, bool finished);
 	bool addQueue(QueueItem* qi);
 
@@ -171,7 +170,8 @@ public:
 	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle);
 	void removeFinishedNotify(const UserPtr& aUser);
 
-	string getMatchPath(const SearchResultPtr& sr);
+	string getDirPath(const string& aDir);
+	string getMatchPath(const string& aDir);
 	QueueItem* findQI(const string& aTarget) const;
 	size_t countOnlineUsers() const;
 

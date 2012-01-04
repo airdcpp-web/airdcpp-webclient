@@ -72,7 +72,7 @@ private:
 	
 	CriticalSection cs;
 	DownloadList downloads;
-	Bundle::BundleTokenMap runningBundles;
+	Bundle::StringBundleMap runningBundles;
 	UserConnectionList idlers;
 
 	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false, bool sendFinished=false);

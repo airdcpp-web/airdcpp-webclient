@@ -35,6 +35,8 @@
 namespace dcpp {
 
 class QueueManager;
+class UserQueue;
+class FileQueue;
 class Download;
 
 class QueueItem : public Flags, public intrusive_ptr_base<QueueItem> {
@@ -136,6 +138,7 @@ public:
 
 	typedef vector<Source> SourceList;
 	typedef SourceList::iterator SourceIter;
+
 	typedef SourceList::const_iterator SourceConstIter;
 
 	typedef set<Segment> SegmentSet;
@@ -160,6 +163,7 @@ public:
 
 	~QueueItem();
 
+	void save(OutputStream &save, string tmp, string b32tmp);
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
 	bool hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
@@ -301,6 +305,7 @@ private:
 	QueueItem& operator=(const QueueItem&);
 
 	friend class QueueManager;
+	friend class UserQueue;
 	SourceList sources;
 	SourceList badSources;
 	string tempTarget;

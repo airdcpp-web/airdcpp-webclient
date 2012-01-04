@@ -19,6 +19,8 @@
 #include "stdinc.h"
 #include "QueueItem.h"
 
+#include "SimpleXml.h"
+#include "ClientManager.h"
 #include "HashManager.h"
 #include "Download.h"
 #include "File.h"
@@ -431,6 +433,66 @@ void QueueItem::removeDownloads(const UserPtr& aUser) {
 			i++;
 		}
 	}
+}
+
+
+void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
+	string indent = "\t";
+	//if (bundle)
+	//	indent = "\t\t";
+
+	f.write(indent);
+	f.write(LIT("<Download Target=\""));
+	f.write(SimpleXML::escape(target, tmp, true));
+	f.write(LIT("\" Size=\""));
+	f.write(Util::toString(size));
+	f.write(LIT("\" Priority=\""));
+	f.write(Util::toString((int)priority));
+	f.write(LIT("\" Added=\""));
+	f.write(Util::toString(added));
+	b32tmp.clear();
+	f.write(LIT("\" TTH=\""));
+	f.write(tthRoot.toBase32(b32tmp));
+	if(!done.empty()) {
+		f.write(LIT("\" TempTarget=\""));
+		f.write(SimpleXML::escape(tempTarget, tmp, true));
+	}
+	f.write(LIT("\" AutoPriority=\""));
+	f.write(Util::toString(autoPriority));
+	f.write(LIT("\" MaxSegments=\""));
+	f.write(Util::toString(maxSegments));
+
+	f.write(LIT("\">\r\n"));
+
+	for(auto i = done.begin(); i != done.end(); ++i) {
+		f.write(indent);
+		f.write(LIT("\t<Segment Start=\""));
+		f.write(Util::toString(i->getStart()));
+		f.write(LIT("\" Size=\""));
+		f.write(Util::toString(i->getSize()));
+		f.write(LIT("\"/>\r\n"));
+	}
+
+	for(auto j = sources.begin(); j != sources.end(); ++j) {
+		if(j->isSet(QueueItem::Source::FLAG_PARTIAL)) continue;
+					
+		const CID& cid = j->getUser().user->getCID();
+		const string& hint = j->getUser().hint;
+
+		f.write(indent);
+		f.write(LIT("\t<Source CID=\""));
+		f.write(cid.toBase32());
+		f.write(LIT("\" Nick=\""));
+		f.write(SimpleXML::escape(ClientManager::getInstance()->getNicks(cid, hint)[0], tmp, true));
+		if(!hint.empty()) {
+			f.write(LIT("\" HubHint=\""));
+			f.write(hint);
+		}
+		f.write(LIT("\"/>\r\n"));
+	}
+
+	f.write(indent);
+	f.write(LIT("</Download>\r\n"));
 }
 
 }
