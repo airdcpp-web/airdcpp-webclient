@@ -133,8 +133,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 
 				if(!SETTING(FREE_SLOTS_EXTENSIONS).empty()){
-				    int pos = sourceFile.rfind("\\")+1;
-					if(Wildcard::patternMatch(Text::utf8ToAcp(sourceFile.substr(pos)), Text::utf8ToAcp(SETTING(FREE_SLOTS_EXTENSIONS)), '|')) {
+					if(Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(sourceFile)), Text::utf8ToAcp(SETTING(FREE_SLOTS_EXTENSIONS)), '|')) {
 						free = true;
 					}
 				}

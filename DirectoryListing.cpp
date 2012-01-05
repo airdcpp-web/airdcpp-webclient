@@ -350,14 +350,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 	target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 	//create bundles
 	if (first) {
-		aBundle = BundlePtr(new Bundle(target, GET_TIME()));
-		if (prio != QueueItem::DEFAULT) {
-			aBundle->setPriority((Bundle::Priority)prio);
-			aBundle->setAutoPriority(false);
-		} else {
-			aBundle->setPriority(Bundle::LOW);
-		}
-		aBundle->setDirDate(aDir->getDirDate());
+		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, aDir->getDirDate()));
 	}
 
 	// First, recurse over the directories
@@ -392,10 +385,7 @@ void DirectoryListing::download(const string& aDir, const string& aTarget, bool 
 void DirectoryListing::download(File* aFile, const string& aTarget, bool view, bool highPrio, QueueItem::Priority prio, BundlePtr aBundle) {
 	Flags::MaskType flags = (Flags::MaskType)(view ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : 0);
 
-	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), flags, aBundle);
-
-	if(highPrio || (prio != QueueItem::DEFAULT))
-		QueueManager::getInstance()->setQIPriority(aTarget, highPrio ? QueueItem::HIGHEST : prio);
+	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), flags, true, prio, aBundle);
 }
 
 DirectoryListing::Directory* DirectoryListing::find(const string& aName, Directory* current) {

@@ -285,14 +285,20 @@ bool Wildcard::patternMatch(const wstring& text, const wstring& pattern, bool us
 }
 
 bool Wildcard::patternMatch(const string& text, const string& patternlist, char delimiter, bool useSet) {
-	StringTokenizer<string> st(patternlist, delimiter);
+	if (patternlist.empty())
+		return false;
+
 	bool bMatched = false;
-	for(StringIter i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
+	try {
+		StringTokenizer<string> st(patternlist, delimiter);
+		bool bMatched = false;
+		for(StringIter i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
 		bMatched = patternMatch(text, *i, useSet);
 		if (bMatched) {
 			return true;
 		}
-	}
+		}
+	} catch(...) { }
 	return bMatched;
 }
 

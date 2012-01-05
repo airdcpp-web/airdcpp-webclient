@@ -144,15 +144,7 @@ public:
 	typedef set<Segment> SegmentSet;
 	typedef SegmentSet::const_iterator SegmentConstIter;
 	
-	QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag,
-		time_t aAdded, const TTHValue& tth) :
-		Flags(aFlag), target(aTarget), maxSegments(1), fileBegin(0),
-		size(aSize), priority(aPriority), added(aAdded),
-		tthRoot(tth), autoPriority(false), nextPublishingTime(0),
-		bundle(NULL)
-	{
-		setFlag(FLAG_AUTODROP);
-	}
+	QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag, time_t aAdded, const TTHValue& tth, const string& aTempTarget);
 
 	QueueItem(const QueueItem& rhs) : 
 		Flags(rhs), done(rhs.done), downloads(rhs.downloads), target(rhs.target), 
@@ -229,7 +221,7 @@ public:
 	/** Next segment that is not done and not being downloaded, zero-sized segment returned if there is none is found */
 	Segment getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource) const;
 	
-	void addSegment(const Segment& segment);
+	void addSegment(const Segment& segment, bool downloaded);
 	void resetDownloaded() { done.clear(); }
 	
 	bool isFinished() const {
@@ -312,6 +304,7 @@ private:
 
 	void addSource(const HintedUser& aUser);
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason);
+	uint8_t getMaxSegments(int64_t filesize) const noexcept;
 };
 
 } // namespace dcpp

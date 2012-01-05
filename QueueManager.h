@@ -57,9 +57,10 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 	private SearchManagerListener, private ClientManagerListener, private HashManagerListener, private DownloadManagerListener
 {
 public:
+	bool allowAdd(const string& aTarget, const TTHValue& root) throw(QueueException, FileException);
 	/** Add a file to the queue. */
 	void add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,
-		Flags::MaskType aFlags = 0, BundlePtr aBundle = NULL, bool addBad = true) throw(QueueException, FileException);
+		Flags::MaskType aFlags = 0, bool addBad = true, QueueItem::Priority aPrio = QueueItem::DEFAULT, BundlePtr aBundle=NULL) throw(QueueException, FileException);
 		/** Add a user's filelist to the queue. */
 	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
 	void addListDir(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);

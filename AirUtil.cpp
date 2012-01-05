@@ -875,4 +875,15 @@ void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
 	}
 }
 
+bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
+	if (aReg.empty())
+		return false;
+
+	try {
+		boost::regex reg(aReg);
+		return boost::regex_match(aString, reg);
+	} catch(...) { }
+	return false;
+}
+
 }

@@ -53,6 +53,7 @@ class AirUtil {
 
 		static bool listRegexMatch(const StringList& l, const boost::regex& aReg);
 		static int listRegexCount(const StringList& l, const boost::regex& aReg);
+		static bool stringRegexMatch(const string& aReg, const string& aString);
 		static string formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial);
 		static string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
 		static void fileEvent(const string& tgt, bool file=false);

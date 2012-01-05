@@ -1345,6 +1345,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Set the file priorities", 
 "A failed bundle %s has been readded in queue", 
 "Target file is missing or wrong size", 
+"The file matches the download skiplist", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2690,4 +2691,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SetFilePriorities", 
 "BundleReadded", 
 "TargetFileMissing", 
+"DownloadSkiplistMatch", 
 };

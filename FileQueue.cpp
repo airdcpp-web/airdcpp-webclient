@@ -21,7 +21,6 @@
 
 #include "FileQueue.h"
 #include "SettingsManager.h"
-#include "Wildcards.h"
 #include "Text.h"
 #include "QueueManager.h"
 #include "Util.h"
@@ -32,86 +31,16 @@ namespace dcpp {
 
 FileQueue::~FileQueue() { }
 
-QueueItem* FileQueue::add(const string& aTarget, int64_t aSize, 
-						  Flags::MaskType aFlags, QueueItem::Priority p, const string& aTempTarget, 
-						  time_t aAdded, const TTHValue& root)
-{
-//remember the default state so high_prio files are matched
-//even if priority is set with priority by size setting
-	bool Default = false;
+QueueItem* FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
+	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
-	if(p == QueueItem::DEFAULT)
-		Default = true;
-
-	if(p == QueueItem::DEFAULT) {
-		if(aSize <= SETTING(PRIO_HIGHEST_SIZE)*1024) {
-			p = QueueItem::HIGHEST;
-		} else if(aSize <= SETTING(PRIO_HIGH_SIZE)*1024) {
-			p = QueueItem::HIGH;
-		} else if(aSize <= SETTING(PRIO_NORMAL_SIZE)*1024) {
-			p = QueueItem::NORMAL;
-		} else if(aSize <= SETTING(PRIO_LOW_SIZE)*1024) {
-			p = QueueItem::LOW;
-		} else if(SETTING(PRIO_LOWEST)) {
-			p = QueueItem::LOWEST;
-		}
-	}
-
-	if((p != QueueItem::HIGHEST) && ( Default )){
-		if(!SETTING(HIGH_PRIO_FILES).empty()){
-			int pos = aTarget.rfind("\\")+1;
-		
-			if(BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP)){
-				string str1 = SETTING(HIGH_PRIO_FILES);
-				string str2 = aTarget.substr(pos);
-				try {
-					boost::regex reg(str1);
-					if(boost::regex_search(str2.begin(), str2.end(), reg)){
-						p = QueueItem::HIGH;
-						Default = false;
-					};
-				} catch(...) {
-				}
-			}else{
-				if(Wildcard::patternMatch(Text::utf8ToAcp(aTarget.substr(pos)), Text::utf8ToAcp(SETTING(HIGH_PRIO_FILES)), '|')) {
-					p = QueueItem::HIGH;
-					Default = false;
-				}
-			}
-		}
-	}
-
-
-
-	QueueItem* qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root);
-
-	if(qi->isSet(QueueItem::FLAG_USER_LIST) || qi->isSet(QueueItem::FLAG_CLIENT_VIEW) || qi->isSet(QueueItem::FLAG_VIEW_NFO)) {
-		qi->setPriority(QueueItem::HIGHEST);
-	} else {
-		qi->setMaxSegments(getMaxSegments(qi->getSize()));
-		
-		if(p == QueueItem::DEFAULT) {
-			if(BOOLSETTING(AUTO_PRIORITY_DEFAULT)) {
-				qi->setAutoPriority(true);
-				qi->setPriority(QueueItem::LOW);
-			} else {
-				qi->setPriority(QueueItem::NORMAL);
-			}
-		}
-	}
-
-	qi->setTempTarget(aTempTarget);
-	if(!Util::fileExists(aTempTarget) && Util::fileExists(aTempTarget + ".antifrag")) {
-		// load old antifrag file
-		File::renameFile(aTempTarget + ".antifrag", qi->getTempTarget());
-	}
-			
+	QueueItem* qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
 	dcassert(find(aTarget) == NULL);
 	add(qi, false);
 	return qi;
 }
 
-void FileQueue::add(QueueItem* qi, bool addFinished, bool addTTH) {
+void FileQueue::add(QueueItem* qi, bool addFinished, bool addTTH) noexcept {
 	if (!addFinished) {
 		if (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
 			dcassert(qi->getSize() >= 0);
@@ -127,7 +56,7 @@ void FileQueue::add(QueueItem* qi, bool addFinished, bool addTTH) {
 	}
 }
 
-void FileQueue::remove(QueueItem* qi, bool aRemoveTTH) {
+void FileQueue::remove(QueueItem* qi, bool aRemoveTTH) noexcept {
 	prev(targetMapInsert);
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	if  (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
@@ -141,7 +70,7 @@ void FileQueue::remove(QueueItem* qi, bool aRemoveTTH) {
 	}
 }
 
-void FileQueue::removeTTH(QueueItem* qi) {
+void FileQueue::removeTTH(QueueItem* qi) noexcept {
 	auto s = tthIndex.equal_range(qi->getTTH());
 	dcassert(s.first != s.second);
 	auto k = find_if(s.first, s.second, CompareSecond<TTHValue, QueueItem*>(qi));
@@ -150,12 +79,12 @@ void FileQueue::removeTTH(QueueItem* qi) {
 	}
 }
 
-QueueItem* FileQueue::find(const string& target) {
+QueueItem* FileQueue::find(const string& target) noexcept {
 	auto i = queue.find(const_cast<string*>(&target));
 	return (i == queue.end()) ? NULL : i->second;
 }
 
-void FileQueue::find(QueueItemList& sl, int64_t aSize, const string& suffix) {
+void FileQueue::find(QueueItemList& sl, int64_t aSize, const string& suffix) noexcept {
 	for(auto i = queue.begin(); i != queue.end(); ++i) {
 		if(i->second->getSize() == aSize) {
 			const string& t = i->second->getTarget();
@@ -166,7 +95,7 @@ void FileQueue::find(QueueItemList& sl, int64_t aSize, const string& suffix) {
 	}
 }
 
-void FileQueue::find(const TTHValue& tth, QueueItemList& ql) {
+void FileQueue::find(const TTHValue& tth, QueueItemList& ql) noexcept {
 	auto s = tthIndex.equal_range(tth);
 	if (s.first != s.second) {
 		for_each(s.first, s.second, [&](pair<TTHValue, QueueItem*> tqp) { ql.push_back(tqp.second); } );
@@ -191,7 +120,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItemList& 
 	}
 }
 
-int FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) {
+int FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) noexcept {
 	QueueItem* qi = getQueuedFile(aTTH, fileName);
 	if (qi) {
 		return (qi->isFinished() ? 2 : 1);
@@ -199,7 +128,7 @@ int FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) {
 	return 0;
 }
 
-QueueItem* FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) {
+QueueItem* FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) noexcept {
 	auto s = tthIndex.equal_range(aTTH);
 	if (s.first != s.second) {
 		auto k = find_if(s.first, s.second, [&](pair<TTHValue, QueueItem*> tqp) { return (stricmp(fileName.c_str(), tqp.second->getTargetFileName().c_str()) == 0); });
@@ -210,48 +139,14 @@ QueueItem* FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName
 	return NULL;
 }
 
-void FileQueue::move(QueueItem* qi, const string& aTarget) {
+void FileQueue::move(QueueItem* qi, const string& aTarget) noexcept {
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
 	add(qi, false, false);
 }
 
-uint8_t FileQueue::getMaxSegments(int64_t filesize) const {
-	uint8_t MaxSegments = 1;
-
-	if(BOOLSETTING(SEGMENTS_MANUAL)) {
-		MaxSegments = min((uint8_t)SETTING(NUMBER_OF_SEGMENTS), (uint8_t)10);
-	} else {
-		if((filesize >= 2*1048576) && (filesize < 15*1048576)) {
-			MaxSegments = 2;
-		} else if((filesize >= (int64_t)15*1048576) && (filesize < (int64_t)30*1048576)) {
-			MaxSegments = 3;
-		} else if((filesize >= (int64_t)30*1048576) && (filesize < (int64_t)60*1048576)) {
-			MaxSegments = 4;
-		} else if((filesize >= (int64_t)60*1048576) && (filesize < (int64_t)120*1048576)) {
-			MaxSegments = 5;
-		} else if((filesize >= (int64_t)120*1048576) && (filesize < (int64_t)240*1048576)) {
-			MaxSegments = 6;
-		} else if((filesize >= (int64_t)240*1048576) && (filesize < (int64_t)480*1048576)) {
-			MaxSegments = 7;
-		} else if((filesize >= (int64_t)480*1048576) && (filesize < (int64_t)960*1048576)) {
-			MaxSegments = 8;
-		} else if((filesize >= (int64_t)960*1048576) && (filesize < (int64_t)1920*1048576)) {
-			MaxSegments = 9;
-		} else if(filesize >= (int64_t)1920*1048576) {
-			MaxSegments = 10;
-		}
-	}
-
-#ifdef _DEBUG
-	return 88;
-#else
-	return MaxSegments;
-#endif
-}
-
 // compare nextQueryTime, get the oldest ones
-void FileQueue::findPFSSources(PFSSourceList& sl) {
+void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 	typedef multimap<time_t, pair<QueueItem::SourceConstIter, const QueueItem*> > Buffer;
 	Buffer buffer;
 	uint64_t now = GET_TICK();

@@ -1352,5 +1352,6 @@ enum Strings { // @DontAdd
 	SET_FILE_PRIORITIES, // "Set the file priorities"
 	BUNDLE_READDED, // "A failed bundle %s has been readded in queue"
 	TARGET_FILE_MISSING, // "Target file is missing or wrong size"
+	DOWNLOAD_SKIPLIST_MATCH, // "The file matches the download skiplist"
 	LAST // @DontAdd
 };

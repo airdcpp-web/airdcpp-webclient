@@ -101,7 +101,7 @@ public:
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) noexcept;
 	bool isDirShared(const string& directory);
 	bool isFileShared(const TTHValue aTTH, const string& fileName);
-	bool addBundle(const string& dir);
+	bool allowAddDir(const string& dir);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory, bool validate = true);
 	string getBloomStats();

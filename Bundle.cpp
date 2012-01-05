@@ -33,17 +33,30 @@
 namespace dcpp {
 	
 Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
-	downloadedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), 
+	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
-	bytesDownloaded(qi->getDownloadedBytes()), hashed(0) {
+	currentDownloaded(qi->getDownloadedBytes()), hashed(0) {
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	setFlag(FLAG_NEW);
 }
 
-Bundle::Bundle(const string& target, time_t added) : target(target), fileBundle(false), token(Util::toString(Util::rand())), size(0), downloadedSegments(0), speed(0), lastSpeed(0), 
-		running(0), lastPercent(0), singleUser(true), priority(DEFAULT), autoPriority(true), dirty(true), added(added), dirDate(0), simpleMatching(true), recent(false), bytesDownloaded(0),
-		hashed(0) { 
+Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate /*0*/) : target(target), fileBundle(false), token(Util::toString(Util::rand())), size(0), 
+	finishedSegments(0), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), 
+	recent(false), currentDownloaded(0), hashed(0) {
+
+	if (dirDate > 0) {
+		recent = (dirDate + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > GET_TIME();
+	} else {
+		dirDate = GET_TIME();
+	}
+
+	if (aPriority != DEFAULT) {
+		autoPriority = false;
+	} else {
+		priority = LOW;
+		autoPriority = true;
+	}
 	setFlag(FLAG_NEW);
 }
 
@@ -52,30 +65,34 @@ Bundle::~Bundle() {
 }
 
 void Bundle::setDownloadedBytes(int64_t aSize) {
-	dcassert(aSize + downloadedSegments <= size);
-	dcassert(((uint64_t)(aSize + downloadedSegments)) >= bytesDownloaded);
-	dcassert(((aSize + downloadedSegments)) >= 0);
-	bytesDownloaded = downloadedSegments + aSize;
-	dcassert(bytesDownloaded <= (uint64_t)size);
+	dcassert(aSize + finishedSegments <= size);
+	dcassert(((uint64_t)(aSize + finishedSegments)) >= currentDownloaded);
+	dcassert(((aSize + finishedSegments)) >= 0);
+	currentDownloaded = aSize;
+	dcassert(currentDownloaded <= (uint64_t)size);
 }
 
-void Bundle::addDownloadedSegment(int64_t aSize) {
-	dcassert(aSize + downloadedSegments <= size);
-	downloadedSegments += aSize;
-	dcassert(downloadedSegments <= size);
+void Bundle::addSegment(int64_t aSize, bool downloaded) {
+	dcassert(aSize + finishedSegments <= size);
+	finishedSegments += aSize;
+	/*if (downloaded) {
+		currentDownloaded -= aSize;
+	} */
+	dcassert(currentDownloaded >= 0);
+	dcassert(currentDownloaded <= (uint64_t)size);
+	dcassert(finishedSegments <= size);
 }
 
 void Bundle::removeDownloadedSegment(int64_t aSize) {
-	dcassert(downloadedSegments - aSize >= 0);
-	downloadedSegments -= aSize;
-	bytesDownloaded -= aSize;
-	dcassert(downloadedSegments <= size);
-	dcassert(bytesDownloaded <= (uint64_t)size);
+	dcassert(finishedSegments - aSize >= 0);
+	finishedSegments -= aSize;
+	dcassert(finishedSegments <= size);
+	dcassert(currentDownloaded <= (uint64_t)size);
 }
 
 uint64_t Bundle::getSecondsLeft() {
 	double avg = getSpeed();
-	return (avg > 0) ? static_cast<int64_t>((size - bytesDownloaded) / avg) : 0;
+	return (avg > 0) ? static_cast<int64_t>((size - (currentDownloaded+finishedSegments)) / avg) : 0;
 }
 
 string Bundle::getName() {
@@ -136,7 +153,7 @@ void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
 	if (find(finishedFiles.begin(), finishedFiles.end(), qi) == finishedFiles.end()) {
 		if (!finished) {
 			increaseSize(qi->getSize());
-			addDownloadedSegment(qi->getSize());
+			addSegment(qi->getSize(), false);
 			qi->setBundle(this);
 		}
 		finishedFiles.push_back(qi);
@@ -163,8 +180,7 @@ bool Bundle::addQueue(QueueItem* qi) {
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
 	if (qi->getDownloadedSegments() > 0) {
-		addDownloadedSegment(qi->getDownloadedSegments());
-		bytesDownloaded += qi->getDownloadedSegments();
+		addSegment(qi->getDownloadedSegments(), false);
 	}
 
 	string dir = Util::getDir(qi->getTarget(), false, false);
@@ -344,7 +360,7 @@ string Bundle::getMatchPath(const string& aDir) {
 	return path;
 }
 
-string Bundle::getDirPath(const string& aDir) {
+string Bundle::getDirPath(const string& aDir) noexcept {
 	string path;
 	string releaseDir = AirUtil::getReleaseDir(Util::getDir(aDir, false, false));
 	if (releaseDir.empty())
@@ -361,7 +377,7 @@ string Bundle::getDirPath(const string& aDir) {
 	return Util::emptyString;
 }
 
-QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) {
+QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) noexcept {
 	QueueItemList ret;
 	auto i = runningItems.find(aUser);
 	if (i != runningItems.end()) {
@@ -370,13 +386,13 @@ QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) {
 	return ret;
 }
 
-void Bundle::removeUserQueue(QueueItem* qi) {
+void Bundle::removeUserQueue(QueueItem* qi) noexcept {
 	for(QueueItem::SourceConstIter i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
 		removeUserQueue(qi, i->getUser(), false);
 	}
 }
 
-bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) {
+bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) noexcept {
 
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];
@@ -424,7 +440,7 @@ bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) {
 	return false;
 }
 
-void Bundle::removeBadSource(const HintedUser& aUser) {
+void Bundle::removeBadSource(const HintedUser& aUser) noexcept {
 	auto m = find_if(badSources.begin(), badSources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	dcassert(m != badSources.end());
 	if (m != badSources.end()) {
@@ -433,7 +449,7 @@ void Bundle::removeBadSource(const HintedUser& aUser) {
 	dcassert(m == badSources.end());
 }
 	
-Bundle::Priority Bundle::calculateProgressPriority() const {
+Bundle::Priority Bundle::calculateProgressPriority() const noexcept {
 	if(autoPriority) {
 		Bundle::Priority p;
 		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
@@ -464,7 +480,7 @@ Bundle::Priority Bundle::calculateProgressPriority() const {
 	return priority;
 }
 
-pair<int64_t, double> Bundle::getPrioInfo() {
+pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	vector<int64_t> speedList, sizeList;
 	for (auto s = sources.begin(); s != sources.end(); ++s) {
 		UserPtr& u = get<SOURCE_USER>(*s).user;
@@ -483,7 +499,7 @@ pair<int64_t, double> Bundle::getPrioInfo() {
 	return make_pair(speedRatio, (sizeRatio > 0 ? sizeRatio : 1));
 }
 
-void Bundle::getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap) {
+void Bundle::getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap) noexcept {
 	for (auto j = queueItems.begin(); j != queueItems.end(); ++j) {
 		QueueItem* q = *j;
 		if(q->getAutoPriority()) {
@@ -509,7 +525,7 @@ void Bundle::getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sour
 	}
 }
 
-void Bundle::calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap, bool verbose) {
+void Bundle::calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap, bool verbose) noexcept {
 	map<QueueItem*, double> autoPrioMap;
 	//scale the priorization maps
 	double factor;
@@ -588,7 +604,7 @@ void Bundle::calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI&
 	}
 }
 
-size_t Bundle::countOnlineUsers() const {
+size_t Bundle::countOnlineUsers() const noexcept {
 	size_t users = 0;
 	int files = 0;
 	for(auto i = sources.begin(); i != sources.end(); ++i) {
@@ -600,8 +616,8 @@ size_t Bundle::countOnlineUsers() const {
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
 }
 
-tstring Bundle::getBundleText() {
-	double percent = (double)bytesDownloaded*100.0/(double)size;
+tstring Bundle::getBundleText() noexcept {
+	double percent = (double)((currentDownloaded+finishedSegments)*100.0)/(double)size;
 	dcassert(percent <= 100.00);
 	if (fileBundle) {
 		return Text::toT(getName());
@@ -610,7 +626,7 @@ tstring Bundle::getBundleText() {
 	}
 }
 
-void Bundle::sendRemovePBD(const UserPtr& aUser) {
+void Bundle::sendRemovePBD(const UserPtr& aUser) noexcept {
 	//LogManager::getInstance()->message("QueueManager::sendRemovePBD");
 	for (auto s = finishedNotifications.begin(); s != finishedNotifications.end(); ++s) {
 		if (s->first.user == aUser) {
@@ -626,7 +642,7 @@ void Bundle::sendRemovePBD(const UserPtr& aUser) {
 	}
 }
 
-void Bundle::getTTHList(OutputStream& tthList) {
+void Bundle::getTTHList(OutputStream& tthList) noexcept {
 	string tmp2;
 	for(auto i = finishedFiles.begin(); i != finishedFiles.end(); ++i) {
 		tmp2.clear();
@@ -634,7 +650,7 @@ void Bundle::getTTHList(OutputStream& tthList) {
 	}
 }
 
-void Bundle::getSearchItems(StringPairList& searches, bool manual) {
+void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {
 	string searchString;
 	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
 		string dir = Util::getDir(i->first, true, false);
@@ -681,22 +697,20 @@ void Bundle::getSearchItems(StringPairList& searches, bool manual) {
 
 /* ONLY CALLED FROM DOWNLOADMANAGER BEGIN */
 
-void Bundle::addDownload(Download* d) {
+void Bundle::addDownload(Download* d) noexcept {
 	downloads.push_back(d);
 }
 
-void Bundle::removeDownload(Download* d) {
+void Bundle::removeDownload(Download* d) noexcept {
 	auto m = find(downloads.begin(), downloads.end(), d);
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
 		countSpeed();
-		bytesDownloaded -= (*m)->getPos();
-		addDownloadedSegment((*m)->getPos());
 		downloads.erase(m);
 	}
 }
 
-uint64_t Bundle::countSpeed() {
+uint64_t Bundle::countSpeed() noexcept {
 	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
 	int down = 0;
 	for (auto s = downloads.begin(); s != downloads.end(); ++s) {
@@ -716,12 +730,12 @@ uint64_t Bundle::countSpeed() {
 		running = down;
 
 		bundleRatio = bundleRatio / down;
-		actual = ((int64_t)((double)bytesDownloaded * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+		actual = ((int64_t)((double)(finishedSegments+bundlePos) * (bundleRatio == 0 ? 1.00 : bundleRatio)));
 	}
 	return bundleSpeed;
 }
 
-void Bundle::addUploadReport(const HintedUser& aUser) {
+void Bundle::addUploadReport(const HintedUser& aUser) noexcept {
 	if (uploadReports.empty()) {
 		lastSpeed = 0;
 		lastPercent = 0;
@@ -729,7 +743,7 @@ void Bundle::addUploadReport(const HintedUser& aUser) {
 	uploadReports.push_back(aUser);
 }
 
-void Bundle::removeUploadReport(const UserPtr& aUser) {
+void Bundle::removeUploadReport(const UserPtr& aUser) noexcept {
 	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
 		if (i->user == aUser) {
 			uploadReports.erase(i);
@@ -739,7 +753,7 @@ void Bundle::removeUploadReport(const UserPtr& aUser) {
 	}
 }
 
-void Bundle::sendUBN(const string& speed, double percent) {
+void Bundle::sendUBN(const string& speed, double percent) noexcept {
 	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
 		AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
 
@@ -754,7 +768,7 @@ void Bundle::sendUBN(const string& speed, double percent) {
 	}
 }
 
-bool Bundle::sendBundle(UserConnection* aSource, bool updateOnly) {
+bool Bundle::sendBundle(UserConnection* aSource, bool updateOnly) noexcept {
 	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 	cmd.addParam("HI", aSource->getHintedUser().hint);
@@ -763,7 +777,7 @@ bool Bundle::sendBundle(UserConnection* aSource, bool updateOnly) {
 	if (!updateOnly) {
 		cmd.addParam("SI", Util::toString(size));
 		cmd.addParam("NA", getName());
-		cmd.addParam("DL", Util::toString(bytesDownloaded));
+		cmd.addParam("DL", Util::toString(currentDownloaded+finishedSegments));
 		if (singleUser) {
 			cmd.addParam("SU1");
 		} else {
@@ -776,7 +790,7 @@ bool Bundle::sendBundle(UserConnection* aSource, bool updateOnly) {
 	return ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true);
 }
 
-void Bundle::sendBundleMode() {
+void Bundle::sendBundleMode() noexcept {
 	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
@@ -785,7 +799,7 @@ void Bundle::sendBundleMode() {
 		cmd.addParam("UD1");
 		if (singleUser) {
 			cmd.addParam("SU1");
-			cmd.addParam("DL", Util::toString(downloadedSegments));
+			cmd.addParam("DL", Util::toString(finishedSegments));
 		} else {
 			cmd.addParam("MU1");
 		}
@@ -794,13 +808,13 @@ void Bundle::sendBundleMode() {
 	}
 }
 
-void Bundle::sendBundleFinished() {
+void Bundle::sendBundleFinished() noexcept {
 	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
 		sendBundleFinished(*i);
 	}
 }
 
-void Bundle::sendBundleFinished(const HintedUser& aUser) {
+void Bundle::sendBundleFinished(const HintedUser& aUser) noexcept {
 	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 	cmd.addParam("HI", aUser.hint);
@@ -810,7 +824,7 @@ void Bundle::sendBundleFinished(const HintedUser& aUser) {
 	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), true);
 }
 
-void Bundle::sendSizeNameUpdate() {
+void Bundle::sendSizeNameUpdate() noexcept {
 	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
 	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);

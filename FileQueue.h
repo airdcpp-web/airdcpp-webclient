@@ -40,28 +40,27 @@ public:
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItem*> > PFSSourceList;
 
 	void add(QueueItem* qi, bool addFinished, bool addTTH = true);
-	QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root);
+	QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
-	QueueItem* find(const string& target);
-	void find(QueueItemList& sl, int64_t aSize, const string& ext);
-	uint8_t getMaxSegments(int64_t filesize) const;
-	void find(StringList& sl, int64_t aSize, const string& ext);
-	void find(const TTHValue& tth, QueueItemList& ql);
+	QueueItem* find(const string& target) noexcept;
+	void find(QueueItemList& sl, int64_t aSize, const string& ext) noexcept;
+	void find(StringList& sl, int64_t aSize, const string& ext) noexcept;
+	void find(const TTHValue& tth, QueueItemList& ql) noexcept;
 	void matchDir(const DirectoryListing::Directory* dir, QueueItemList& ql) noexcept;
 
 	// find some PFS sources to exchange parts info
 	void findPFSSources(PFSSourceList&);
 
-	size_t getSize() { return queue.size(); }
-	QueueItem::StringMap& getQueue() { return queue; }
-	QueueItem::TTHMap& getTTHIndex() { return tthIndex; }
-	void move(QueueItem* qi, const string& aTarget);
-	void remove(QueueItem* qi, bool removeTTH);
-	void removeTTH(QueueItem* qi);
-	int isFileQueued(const TTHValue& aTTH, const string& aFile);
-	QueueItem* getQueuedFile(const TTHValue& aTTH, const string& aFile);
+	size_t getSize() noexcept { return queue.size(); }
+	QueueItem::StringMap& getQueue() noexcept { return queue; }
+	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
+	void move(QueueItem* qi, const string& aTarget) noexcept;
+	void remove(QueueItem* qi, bool removeTTH) noexcept;
+	void removeTTH(QueueItem* qi) noexcept;
+	int isFileQueued(const TTHValue& aTTH, const string& aFile) noexcept;
+	QueueItem* getQueuedFile(const TTHValue& aTTH, const string& aFile) noexcept;
 
-	uint64_t getTotalQueueSize() { return queueSize; };
+	uint64_t getTotalQueueSize() noexcept { return queueSize; }
 private:
 	QueueItem::StringMap queue;
 	QueueItem::TTHMap tthIndex;

@@ -37,6 +37,9 @@ BundleQueue::BundleQueue() :
 BundleQueue::~BundleQueue() { }
 
 void BundleQueue::add(BundlePtr aBundle) {
+	aBundle->unsetFlag(Bundle::FLAG_NEW);
+	aBundle->setDownloadedBytes(0); //sets to downloaded segments
+
 	addSearchPrio(aBundle, aBundle->getPriority());
 	bundles[aBundle->getToken()] = aBundle;
 

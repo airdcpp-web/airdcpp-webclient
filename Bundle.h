@@ -97,7 +97,7 @@ public:
 	typedef multimap<double, QueueItem*> SourceSpeedMapQI;
 
 
-	Bundle(const string& target, time_t added) noexcept;
+	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0) noexcept;
 	Bundle(QueueItem* qi, const string& aToken = Util::toString(Util::rand())) noexcept;
 	~Bundle();
 
@@ -105,7 +105,6 @@ public:
 	GETSET(uint16_t, running, Running);
 	GETSET(uint64_t, start, Start);
 	GETSET(int64_t, size, Size);
-	GETSET(int64_t, downloadedSegments, DownloadedSegments);
 	GETSET(int64_t, speed, Speed);
 	GETSET(int64_t, actual, Actual);
 	GETSET(int64_t, lastSpeed, LastSpeed);
@@ -141,7 +140,7 @@ public:
 	/* Misc */
 	bool getFileBundle() { return fileBundle;}
 
-	uint64_t getDownloadedBytes() const { return bytesDownloaded; }
+	uint64_t getDownloadedBytes() const { return currentDownloaded+finishedSegments; }
 	uint64_t getSecondsLeft();
 
 	string getTarget() { return target; }
@@ -156,29 +155,29 @@ public:
 
 	/* QueueManager */
 	void save();
-	bool removeQueue(QueueItem* qi, bool finished);
-	bool addQueue(QueueItem* qi);
+	bool removeQueue(QueueItem* qi, bool finished) noexcept;
+	bool addQueue(QueueItem* qi) noexcept;
 
-	void getDirQIs(const string& aDir, QueueItemList& ql);
-	void getDownloadsQI(DownloadList& l);
+	void getDirQIs(const string& aDir, QueueItemList& ql) noexcept;
+	void getDownloadsQI(DownloadList& l) noexcept;
 
-	void addFinishedItem(QueueItem* qi, bool finished);
-	void removeFinishedItem(QueueItem* qi);
+	void addFinishedItem(QueueItem* qi, bool finished) noexcept;
+	void removeFinishedItem(QueueItem* qi) noexcept;
 
-	void sendRemovePBD(const UserPtr& aUser);
-	bool isFinishedNotified(const UserPtr& aUser);
-	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle);
-	void removeFinishedNotify(const UserPtr& aUser);
+	void sendRemovePBD(const UserPtr& aUser) noexcept;
+	bool isFinishedNotified(const UserPtr& aUser) noexcept;
+	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept;
+	void removeFinishedNotify(const UserPtr& aUser) noexcept;
 
-	string getDirPath(const string& aDir);
-	string getMatchPath(const string& aDir);
-	QueueItem* findQI(const string& aTarget) const;
-	size_t countOnlineUsers() const;
+	string getDirPath(const string& aDir) noexcept;
+	string getMatchPath(const string& aDir) noexcept;
+	QueueItem* findQI(const string& aTarget) const noexcept;
+	size_t countOnlineUsers() const noexcept;
 
 	Priority calculateProgressPriority() const;
-	void getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap);
-	void calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speeds, SourceSpeedMapQI& sources, bool verbose);
-	pair<int64_t, double> getPrioInfo();
+	void getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap) noexcept;
+	void calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speeds, SourceSpeedMapQI& sources, bool verbose) noexcept;
+	pair<int64_t, double> getPrioInfo() noexcept;
 
 	void increaseSize(int64_t aSize) { size += aSize; }
 	void decreaseSize(int64_t aSize) { size -= aSize; }
@@ -191,52 +190,54 @@ public:
 
 	int64_t getDiskUse(bool countAll);
 
-	/* DownloadManager */
-	void addUploadReport(const HintedUser& aUser);
-	void removeUploadReport(const UserPtr& aUser);
-
-	bool sendBundle(UserConnection* aSource, bool updateOnly);
-	void sendBundleMode();
-	void sendBundleFinished();
-	void sendBundleFinished(const HintedUser& aUser);
-	void sendSizeNameUpdate();
-	void sendUBN(const string& speed, double percent);
-
-	void addDownload(Download* d);
-	void removeDownload(Download* d);
-
-	void getTTHList(OutputStream& tthList);
-	void getSearchItems(StringPairList& searches, bool manual);
-
-	uint64_t countSpeed();
-	void setDownloadedBytes(int64_t aSize);
-	void addDownloadedSegment(int64_t aSize);
+	void addSegment(int64_t aSize, bool downloaded) noexcept;
 	void removeDownloadedSegment(int64_t aSize);
+
+	/* DownloadManager */
+	void addUploadReport(const HintedUser& aUser) noexcept;
+	void removeUploadReport(const UserPtr& aUser) noexcept;
+
+	bool sendBundle(UserConnection* aSource, bool updateOnly) noexcept;
+	void sendBundleMode() noexcept;
+	void sendBundleFinished() noexcept;
+	void sendBundleFinished(const HintedUser& aUser) noexcept;
+	void sendSizeNameUpdate() noexcept;
+	void sendUBN(const string& speed, double percent) noexcept;
+
+	void addDownload(Download* d) noexcept;
+	void removeDownload(Download* d) noexcept;
+
+	void getTTHList(OutputStream& tthList) noexcept;
+	void getSearchItems(StringPairList& searches, bool manual) noexcept;
+
+	uint64_t countSpeed() noexcept;
+	void setDownloadedBytes(int64_t aSize) noexcept;
 
 	void increaseRunning() { running++; }
 	void decreaseRunning() { running--; }
 
 	/* Sources*/
-	void getQISources(HintedUserList& l);
-	bool isSource(const UserPtr& aUser);
-	bool isBadSource(const UserPtr& aUser);
+	void getQISources(HintedUserList& l) noexcept;
+	bool isSource(const UserPtr& aUser) noexcept;
+	bool isBadSource(const UserPtr& aUser) noexcept;
 	bool isFinished() { return queueItems.empty(); }
-	void removeBadSource(const HintedUser& aUser);
+	void removeBadSource(const HintedUser& aUser) noexcept;
 
 	/** All queue items indexed by user */
-	void addUserQueue(QueueItem* qi);
-	bool addUserQueue(QueueItem* qi, const HintedUser& aUser);
-	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
-	QueueItemList getRunningQIs(const UserPtr& aUser);
+	void addUserQueue(QueueItem* qi) noexcept;
+	bool addUserQueue(QueueItem* qi, const HintedUser& aUser) noexcept;
+	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false) noexcept;
+	QueueItemList getRunningQIs(const UserPtr& aUser) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
-	void removeUserQueue(QueueItem* qi);
-	bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad);
+	void removeUserQueue(QueueItem* qi) noexcept;
+	bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) noexcept;
 
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }
 private:
-	uint64_t bytesDownloaded;
+	int64_t finishedSegments;
+	uint64_t currentDownloaded;
 	string target;
 	bool fileBundle;
 	bool dirty;

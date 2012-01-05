@@ -2095,7 +2095,7 @@ done:
 	}
 }
 
-bool ShareManager::addBundle(const string& path) noexcept {
+bool ShareManager::allowAddDir(const string& path) noexcept {
 	//LogManager::getInstance()->message("QueueManagerListener::BundleFilesMoved");
 	{
 		RLock l(cs);

@@ -26,6 +26,9 @@
 #include "File.h"
 #include "Util.h"
 
+#include "AirUtil.h"
+#include "Wildcards.h"
+
 namespace dcpp {
 
 namespace {
@@ -37,6 +40,89 @@ namespace {
 		tmp += TEMP_EXTENSION;
 		return tmp;
 	}
+}
+
+QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag,
+		time_t aAdded, const TTHValue& tth, const string& aTempTarget) :
+		Flags(aFlag), target(aTarget), maxSegments(1), fileBegin(0),
+		size(aSize), priority(aPriority), added(aAdded),
+		tthRoot(tth), autoPriority(false), nextPublishingTime(0), tempTarget(aTempTarget)
+	{
+
+	if(priority != HIGHEST && BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP) ? AirUtil::stringRegexMatch(SETTING(HIGH_PRIO_FILES), Util::getFileName(aTarget)) :
+		Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(aTarget)), Text::utf8ToAcp(SETTING(HIGH_PRIO_FILES)), '|')) {
+		priority = QueueItem::HIGH;
+	}
+
+	if(priority == QueueItem::DEFAULT) {
+		if(aSize <= SETTING(PRIO_HIGHEST_SIZE)*1024) {
+			priority = QueueItem::HIGHEST;
+		} else if(aSize <= SETTING(PRIO_HIGH_SIZE)*1024) {
+			priority = QueueItem::HIGH;
+		} else if(aSize <= SETTING(PRIO_NORMAL_SIZE)*1024) {
+			priority = QueueItem::NORMAL;
+		} else if(aSize <= SETTING(PRIO_LOW_SIZE)*1024) {
+			priority = QueueItem::LOW;
+		} else if(SETTING(PRIO_LOWEST)) {
+			priority = QueueItem::LOWEST;
+		}
+	}
+
+	setFlag(FLAG_AUTODROP);
+
+	if(isSet(FLAG_USER_LIST) || isSet(FLAG_CLIENT_VIEW)) {
+		priority = QueueItem::HIGHEST;
+	} else {
+		maxSegments = getMaxSegments(aSize);
+		if(aPriority == QueueItem::DEFAULT) {
+			if(BOOLSETTING(AUTO_PRIORITY_DEFAULT)) {
+				autoPriority = true;
+				priority = LOW;
+			} else {
+				priority = NORMAL;
+			}
+		}
+	}
+
+	if(!Util::fileExists(aTempTarget) && Util::fileExists(aTempTarget + ".antifrag")) {
+		// load old antifrag file
+		File::renameFile(aTempTarget + ".antifrag", tempTarget);
+	}
+}
+
+/* INTERNAL */
+uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
+	uint8_t MaxSegments = 1;
+
+	if(BOOLSETTING(SEGMENTS_MANUAL)) {
+		MaxSegments = min((uint8_t)SETTING(NUMBER_OF_SEGMENTS), (uint8_t)10);
+	} else {
+		if((filesize >= 2*1048576) && (filesize < 15*1048576)) {
+			MaxSegments = 2;
+		} else if((filesize >= (int64_t)15*1048576) && (filesize < (int64_t)30*1048576)) {
+			MaxSegments = 3;
+		} else if((filesize >= (int64_t)30*1048576) && (filesize < (int64_t)60*1048576)) {
+			MaxSegments = 4;
+		} else if((filesize >= (int64_t)60*1048576) && (filesize < (int64_t)120*1048576)) {
+			MaxSegments = 5;
+		} else if((filesize >= (int64_t)120*1048576) && (filesize < (int64_t)240*1048576)) {
+			MaxSegments = 6;
+		} else if((filesize >= (int64_t)240*1048576) && (filesize < (int64_t)480*1048576)) {
+			MaxSegments = 7;
+		} else if((filesize >= (int64_t)480*1048576) && (filesize < (int64_t)960*1048576)) {
+			MaxSegments = 8;
+		} else if((filesize >= (int64_t)960*1048576) && (filesize < (int64_t)1920*1048576)) {
+			MaxSegments = 9;
+		} else if(filesize >= (int64_t)1920*1048576) {
+			MaxSegments = 10;
+		}
+	}
+
+#ifdef _DEBUG
+	return 88;
+#else
+	return MaxSegments;
+#endif
 }
 
 size_t QueueItem::countOnlineUsers() const {
@@ -293,9 +379,13 @@ uint64_t QueueItem::getDownloadedBytes() const {
 	return total;
 }
 
-void QueueItem::addSegment(const Segment& segment) {
+void QueueItem::addSegment(const Segment& segment, bool downloaded) {
 	dcassert(segment.getOverlapped() == false);
 	done.insert(segment);
+	//cache for bundles
+	if (bundle) {
+		bundle->addSegment(segment.getSize(), downloaded);
+	}
 
 	// Consolidate segments
 	if(done.size() == 1)
