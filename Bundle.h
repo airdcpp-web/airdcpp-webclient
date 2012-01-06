@@ -237,7 +237,7 @@ public:
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }
 private:
 	int64_t finishedSegments;
-	uint64_t currentDownloaded;
+	int64_t currentDownloaded; //total downloaded for the running downloads
 	string target;
 	bool fileBundle;
 	bool dirty;

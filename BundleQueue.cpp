@@ -40,7 +40,7 @@ void BundleQueue::add(BundlePtr aBundle) {
 	aBundle->unsetFlag(Bundle::FLAG_NEW);
 	aBundle->setDownloadedBytes(0); //sets to downloaded segments
 
-	addSearchPrio(aBundle, aBundle->getPriority());
+	addSearchPrio(aBundle);
 	bundles[aBundle->getToken()] = aBundle;
 
 	//check if we need to insert the root bundle dir
@@ -54,8 +54,8 @@ void BundleQueue::add(BundlePtr aBundle) {
 	}
 }
 
-void BundleQueue::addSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
-	if (p < Bundle::LOW) {
+void BundleQueue::addSearchPrio(BundlePtr aBundle) {
+	if (aBundle->getPriority() < Bundle::LOW) {
 		return;
 	}
 
@@ -64,13 +64,13 @@ void BundleQueue::addSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
 		recentSearchQueue.push_back(aBundle);
 		return;
 	} else {
-		dcassert(std::find(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), aBundle) == prioSearchQueue[p].end());
-		prioSearchQueue[p].push_back(aBundle);
+		dcassert(std::find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle) == prioSearchQueue[aBundle->getPriority()].end());
+		prioSearchQueue[aBundle->getPriority()].push_back(aBundle);
 	}
 }
 
-void BundleQueue::removeSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
-	if (p < Bundle::LOW) {
+void BundleQueue::removeSearchPrio(BundlePtr aBundle) {
+	if (aBundle->getPriority() < Bundle::LOW) {
 		return;
 	}
 
@@ -81,17 +81,12 @@ void BundleQueue::removeSearchPrio(BundlePtr aBundle, Bundle::Priority p) {
 			recentSearchQueue.erase(i);
 		}
 	} else {
-		auto i = std::find(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), aBundle);
-		dcassert(i != prioSearchQueue[p].end());
-		if (i != prioSearchQueue[p].end()) {
-			prioSearchQueue[p].erase(i);
+		auto i = std::find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle);
+		dcassert(i != prioSearchQueue[aBundle->getPriority()].end());
+		if (i != prioSearchQueue[aBundle->getPriority()].end()) {
+			prioSearchQueue[aBundle->getPriority()].erase(i);
 		}
 	}
-}
-
-void BundleQueue::setSearchPriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio) {
-	removeSearchPrio(aBundle, oldPrio);
-	addSearchPrio(aBundle, newPrio);
 }
 
 BundlePtr BundleQueue::findRecent() {
@@ -107,7 +102,7 @@ BundlePtr BundleQueue::findRecent() {
 	} else {
 		//LogManager::getInstance()->message("REMOVE RECENT");
 		tmp->setRecent(false);
-		addSearchPrio(tmp, tmp->getPriority());
+		addSearchPrio(tmp);
 	}
 	return tmp;
 }
@@ -406,7 +401,7 @@ BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */)
 	return bundle;
 }
 
-int64_t BundleQueue::recalculateSearchTimes(BundlePtr aBundle) {
+int64_t BundleQueue::recalculateSearchTimes(BundlePtr aBundle, bool isPrioChange) {
 	if (!aBundle->getRecent()) {
 		int prioBundles = 0;
 		getPrioSum(prioBundles);
@@ -414,12 +409,19 @@ int64_t BundleQueue::recalculateSearchTimes(BundlePtr aBundle) {
 		if (prioBundles > 0) {
 			next = max(60 / prioBundles, next);
 		}
-		nextSearch = GET_TICK() + (next * 60 * 1000);
+		if (nextSearch > 0 && isPrioChange) {
+			nextSearch = min(nextSearch, GET_TICK() + (next * 60 * 1000));
+		} else {
+			nextSearch = GET_TICK() + (next * 60 * 1000);
+		}
 		return nextSearch;
 	}
-		
-	int recentBundles = getRecentSize();
-	nextRecentSearch = GET_TICK() + ((recentBundles > 1 ? 5 : 10) * 60 * 1000);
+	
+	if (nextRecentSearch > 0 && isPrioChange) {
+		nextRecentSearch = min(nextRecentSearch, GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000));
+	} else {
+		nextRecentSearch = GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000);
+	}
 	return nextRecentSearch;
 }
 

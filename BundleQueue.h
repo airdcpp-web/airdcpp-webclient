@@ -49,7 +49,7 @@ public:
 	BundlePtr findRecent();
 	BundlePtr findAutoSearch();
 	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
-	int64_t recalculateSearchTimes(BundlePtr aBundle);
+	int64_t recalculateSearchTimes(BundlePtr aBundle, bool prioChange);
 
 	Bundle::StringBundleMap& getBundles() { return bundles; }
 	void move(BundlePtr aBundle, const string& newTarget);
@@ -57,9 +57,8 @@ public:
 
 	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes);
 
-	void addSearchPrio(BundlePtr aBundle, Bundle::Priority p);
-	void removeSearchPrio(BundlePtr aBundle, Bundle::Priority p);
-	void setSearchPriority(BundlePtr aBundle, Bundle::Priority oldPrio, Bundle::Priority newPrio);
+	void addSearchPrio(BundlePtr aBundle);
+	void removeSearchPrio(BundlePtr aBundle);
 
 	void getAutoPrioMap(bool verbose, multimap<int, BundlePtr>& finalMap, int& uniqueValues);
 	void saveQueue(bool force) noexcept;

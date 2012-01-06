@@ -456,7 +456,6 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					}
 				} else {
 					aBundle = new Bundle(q);
-					bundleQueue.add(aBundle);
 				}
 			}
 			/* Bundles end */
@@ -483,11 +482,14 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	}
 
 	/* Don't continue futher in here with new directory bundles */
-	if (aBundle && aBundle->isSet(Bundle::FLAG_NEW) && !aBundle->getFileBundle())
-		return;
-
-	if (!bundleFinished)
+	if (aBundle && aBundle->isSet(Bundle::FLAG_NEW)) {
+		if (aBundle->getFileBundle())
+			addBundle(aBundle);
+		else	
+			return;
+	} else if (!aBundle || !bundleFinished) {
 		fire(QueueManagerListener::Added(), q);
+	}
 connect:
 	bool smallSlot = (q->isSet(QueueItem::FLAG_PARTIAL_LIST) || (q->getSize() <= 65792 && !q->isSet(QueueItem::FLAG_USER_LIST) && q->isSet(QueueItem::FLAG_CLIENT_VIEW)));
 	if(!aUser.user->isOnline())
@@ -1417,8 +1419,10 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 			//LogManager::getInstance()->message("Prio not changed: " + Util::toString(oldPrio));
 			return;
 		}
+		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
-		bundleQueue.setSearchPriority(aBundle, oldPrio, p);
+		bundleQueue.addSearchPrio(aBundle);
+		bundleQueue.recalculateSearchTimes(aBundle, true);
 		if (!isAuto) {
 			aBundle->setAutoPriority(false);
 		}
@@ -1434,10 +1438,6 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 	if(p == Bundle::PAUSED) {
 		DownloadManager::getInstance()->disconnectBundle(aBundle);
 	} else if (oldPrio == Bundle::PAUSED || oldPrio == Bundle::LOWEST) {
-		{
-			Lock l (cs);
-			bundleQueue.recalculateSearchTimes(aBundle);
-		}
 		connectBundleSources(aBundle);
 	}
 
@@ -2463,7 +2463,7 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 	{
 		Lock l(cs);
 		fire(QueueManagerListener::BundleAdded(), aBundle);
-		bundleQueue.addSearchPrio(aBundle, aBundle->getPriority());
+		bundleQueue.addSearchPrio(aBundle);
 	}
 
 
@@ -3253,7 +3253,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 		if (!finished) {
 			bundleQueue.remove(aBundle, true);
 		}
-		bundleQueue.removeSearchPrio(aBundle, aBundle->getPriority());
+		bundleQueue.removeSearchPrio(aBundle);
 	}
 
 	try {
@@ -3382,7 +3382,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 		Lock l (cs);
 		aBundle->getSearchItems(searches, manual);
 		if (!manual)
-			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle) - GET_TICK()) / (60*1000);
+			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle, false) - GET_TICK()) / (60*1000);
 	}
 
 	if (searches.size() <= 5) {
@@ -3406,10 +3406,11 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 		}
 	}
 
+	int searchCount = (int)searches.size() <= 4 ? (int)searches.size() : 4;
 	if (newBundle) {
 		string tmp, tmp2;
 		tmp.resize(tmp.size() + STRING(BUNDLE_CREATED_ALT).size() + 1024);
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED_ALT), aBundle->getName().c_str(), aBundle->getQueueItems().size(), Util::formatBytes(aBundle->getSize()).c_str(), searches.size()));
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_CREATED_ALT), aBundle->getName().c_str(), aBundle->getQueueItems().size(), Util::formatBytes(aBundle->getSize()).c_str(), searchCount));
 		if (!aBundle->getRecent()) {
 			tmp2.resize(tmp2.size() + STRING(NEXT_SEARCH_IN).size() + 1024);
 			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_SEARCH_IN), nextSearch));
@@ -3427,13 +3428,13 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 			string tmp, tmp2;
 			if (!aBundle->getRecent()) {
 				tmp.resize(tmp.size() + STRING(BUNDLE_ALT_SEARCH).size() + 1024);
-				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH), aBundle->getName().c_str(), searches.size()));
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH), aBundle->getName().c_str(), searchCount));
 				tmp2.resize(tmp2.size() + STRING(NEXT_SEARCH_IN).size() + 1024);
 				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_SEARCH_IN), nextSearch));
 				LogManager::getInstance()->message(tmp + " " + tmp2);
 			} else {
 				tmp.resize(tmp.size() + STRING(BUNDLE_ALT_SEARCH_RECENT).size() + 1024);
-				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH_RECENT), aBundle->getName().c_str(), searches.size()));
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH_RECENT), aBundle->getName().c_str(), searchCount));
 				tmp2.resize(tmp2.size() + STRING(NEXT_RECENT_SEARCH_IN).size() + 1024);
 				tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(NEXT_RECENT_SEARCH_IN), nextSearch));
 				LogManager::getInstance()->message(tmp + " " + tmp2);
@@ -3448,7 +3449,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 	} else if (manual) {
 		string tmp;
 		tmp.resize(tmp.size() + STRING(BUNDLE_ALT_SEARCH).size() + 1024);
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH), aBundle->getName().c_str(), searches.size()));
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ALT_SEARCH), aBundle->getName().c_str(), searchCount));
 		LogManager::getInstance()->message(tmp);
 	}
 }

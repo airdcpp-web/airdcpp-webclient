@@ -66,10 +66,10 @@ Bundle::~Bundle() {
 
 void Bundle::setDownloadedBytes(int64_t aSize) {
 	dcassert(aSize + finishedSegments <= size);
-	dcassert(((uint64_t)(aSize + finishedSegments)) >= currentDownloaded);
+	dcassert(((aSize + finishedSegments)) >= currentDownloaded);
 	dcassert(((aSize + finishedSegments)) >= 0);
 	currentDownloaded = aSize;
-	dcassert(currentDownloaded <= (uint64_t)size);
+	dcassert(currentDownloaded <= size);
 }
 
 void Bundle::addSegment(int64_t aSize, bool downloaded) {
@@ -79,7 +79,7 @@ void Bundle::addSegment(int64_t aSize, bool downloaded) {
 		currentDownloaded -= aSize;
 	} */
 	dcassert(currentDownloaded >= 0);
-	dcassert(currentDownloaded <= (uint64_t)size);
+	dcassert(currentDownloaded <= size);
 	dcassert(finishedSegments <= size);
 }
 
@@ -87,12 +87,11 @@ void Bundle::removeDownloadedSegment(int64_t aSize) {
 	dcassert(finishedSegments - aSize >= 0);
 	finishedSegments -= aSize;
 	dcassert(finishedSegments <= size);
-	dcassert(currentDownloaded <= (uint64_t)size);
+	dcassert(currentDownloaded <= size);
 }
 
 uint64_t Bundle::getSecondsLeft() {
-	double avg = getSpeed();
-	return (avg > 0) ? static_cast<uint64_t>((size - (currentDownloaded+finishedSegments)) / avg) : 0;
+	return (speed > 0) ? static_cast<int64_t>((size - (currentDownloaded+finishedSegments)) / speed) : 0;
 }
 
 string Bundle::getName() {
@@ -651,6 +650,11 @@ void Bundle::getTTHList(OutputStream& tthList) noexcept {
 }
 
 void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {
+	if (fileBundle) {
+		searches.push_back(make_pair(Util::emptyString, queueItems.front()->getTTH().toBase32()));
+		return;
+	}
+
 	string searchString;
 	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
 		string dir = Util::getDir(i->first, true, false);
