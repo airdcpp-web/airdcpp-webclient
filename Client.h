@@ -21,7 +21,7 @@
 
 #include "compiler.h"
 
-#include <atomic>
+#include "atomic.h"
 
 #include "forward.h"
 

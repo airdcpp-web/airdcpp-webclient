@@ -22,11 +22,11 @@
 #include "File.h"
 #include "Thread.h"
 #include "Singleton.h"
-#include <atomic>
 #include <string>
 #include "pme.h"
 
 #include "noexcept.h"
+#include "atomic.h"
 
 namespace dcpp {
 

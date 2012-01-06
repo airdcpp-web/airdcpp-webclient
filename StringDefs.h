@@ -172,7 +172,6 @@ enum Strings { // @DontAdd
 	FAILED_TO_SHUTDOWN, // "Failed to shutdown!"
 	FAILED_TO_LOAD_CERTIFICATE, // "Failed to load certificate file"
 	FAILED_TO_LOAD_PRIVATE_KEY, // "Failed to load private key"
-	FAST_HASH, // "Use fast hashing method (disable if you have problems with hashing)"
 	FAV_JOIN_SHOWING_OFF, // "Join/part of favorite users showing off"
 	FAV_JOIN_SHOWING_ON, // "Join/part of favorite users showing on"
 	FAVORITE_DIR_NAME, // "Favorite name"

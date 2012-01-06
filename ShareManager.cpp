@@ -59,7 +59,7 @@ namespace dcpp {
 ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	xmlDirty(true), forceXmlRefresh(false), listN(0), refreshing(false),
 	lastXmlUpdate(0), lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false), GeneratingXmlList(false),
-	c_size_dirty(true), c_shareSize(0), xml_saving(false), lastSave(GET_TICK()), aShutdown(false), allSearches(0), stoppedSearches(0)
+	updateSize(true), totalShareSize(0), xml_saving(false), lastSave(GET_TICK()), aShutdown(false), allSearches(0), stoppedSearches(0)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -275,7 +275,7 @@ AdcCommand ShareManager::getFileInfo(const string& aFile) {
 	return cmd;
 }
 
-ShareManager::DirMultiMap ShareManager::splitVirtual(const string& virtualPath) const throw(ShareException) {
+ShareManager::DirMultiMap ShareManager::splitVirtual(const string& virtualPath) const {
 	Dirs virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
 	DirMultiMap ret;
 	if(virtualPath.empty() || virtualPath[0] != '/') {
@@ -298,31 +298,31 @@ ShareManager::DirMultiMap ShareManager::splitVirtual(const string& virtualPath) 
 		string::size_type j = i + 1;
 		Directory::Ptr d = *k;
 
-	if(virtualPath.find('/', j) == string::npos) {	  // we only have root virtualpaths.
+		if(virtualPath.find('/', j) == string::npos) {	  // we only have root virtualpaths.
 			ret.insert(make_pair(virtualPath.substr(j), d));
 		
-	} else {
-	Directory::MapIter mi;
-	while((i = virtualPath.find('/', j)) != string::npos) {
-		if(d){
-			mi = d->directories.find(virtualPath.substr(j, i - j));
-			j = i + 1;
-			if(mi != d->directories.end()) {   //if we found something, look for more.
-				d = mi->second;
-			} else {
-				d = NULL;   //make the pointer null so we can check if found something or not.
-				break;
+		} else {
+			Directory::MapIter mi;
+			while((i = virtualPath.find('/', j)) != string::npos) {
+				if(d){
+					mi = d->directories.find(virtualPath.substr(j, i - j));
+					j = i + 1;
+					if(mi != d->directories.end()) {   //if we found something, look for more.
+						d = mi->second;
+					} else {
+						d = NULL;   //make the pointer null so we can check if found something or not.
+						break;
+					}
+				}
 			}
-		}
-	}
+
 			if(d != NULL) 
-			ret.insert(make_pair(virtualPath.substr(j), d));
-			
+				ret.insert(make_pair(virtualPath.substr(j), d));
 		}
 	}
 	if(ret.empty()) {
 	//if we are here it means we didnt find anything, throw.
-	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
+		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
 
 	return ret;
@@ -355,7 +355,7 @@ StringList ShareManager::getRealPaths(const std::string path) {
 		string dir;
 		DirMultiMap dirs = splitVirtual(path);
 
-		if(*(path.end() - 1) == '/') {
+	if(*(path.end() - 1) == '/') {
 		for(DirMultiMap::iterator i = dirs.begin(); i != dirs.end(); ++i) {
 			Directory::Ptr d = i->second;
 		if(d->getParent()) {
@@ -375,11 +375,12 @@ StringList ShareManager::getRealPaths(const std::string path) {
 
 			}
 		}
-		}else { //its a file
-			result.push_back(toReal(path, true));
-		}
-		return result;
+	} else { //its a file
+		result.push_back(toReal(path, true));
 	}
+
+	return result;
+}
 string ShareManager::validateVirtual(const string& aVirt) const noexcept {
 	string tmp = aVirt;
 	string::size_type idx = 0;
@@ -546,7 +547,7 @@ bool ShareManager::loadCache() {
 			for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 				updateIndices(*i->second);
 			}
-			c_size_dirty = true;
+			updateSize = true;
 		} //lock free
 
 		try { //not vital to our cache loading.
@@ -608,8 +609,12 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 	}
 
 #ifdef _WIN32
+	//need to throw here, so throw the error and dont use airutil
+	TCHAR path[MAX_PATH];
+	::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
+	string windows = Text::fromT((tstring)path) + PATH_SEPARATOR;
 	// don't share Windows directory
-	if(strnicmp(realPath, winDir, winDir.length()) == 0) {
+	if(strnicmp(realPath, windows, windows.length()) == 0) {
 		char buf[MAX_PATH];
 		snprintf(buf, sizeof(buf), CSTRING(CHECK_FORBIDDEN), realPath.c_str());
 		throw ShareException(buf);
@@ -665,21 +670,21 @@ void ShareManager::removeDirectory(const string& realPath) {
 
 	HashManager::getInstance()->stopHashing(realPath);
 	{
-	WLock l(cs);
+		WLock l(cs);
 
-	StringMapIter i = shares.find(realPath);
-	if(i == shares.end()) {
-		return;
-	}
-	shares.erase(i);
+		StringMapIter i = shares.find(realPath);
+		if(i == shares.end()) {
+			return;
+		}
+		shares.erase(i);
 
-	DirMap::iterator j = directories.find(realPath);
-	if(j == directories.end())
-		return;
+		DirMap::iterator j = directories.find(realPath);
+		if(j == directories.end())
+			return;
 	
-	j->second->findDirsRE(true);
-	directories.erase(j);
-	rebuildIndices();
+		j->second->findDirsRE(true);
+		directories.erase(j);
+		rebuildIndices();
 	}
 	sortReleaseList();
 	setDirty();
@@ -736,17 +741,17 @@ int64_t ShareManager::getShareSize(const string& realPath) const noexcept {
 int64_t ShareManager::getShareSize() const noexcept {
 	RLock l(cs);
 	/*store the updated sharesize so we dont need to count it on every myinfo update*/
-	if(c_size_dirty) {
+	if(updateSize) {
 		int64_t tmp = 0;
 		for(HashFileMap::const_iterator i = tthIndex.begin(); i != tthIndex.end(); ++i) {
 			tmp += i->second->getSize();
 		}
-		c_shareSize = tmp;
-		c_size_dirty = false;
+		totalShareSize = tmp;
+		updateSize = false;
 
 	}
 
-	return c_shareSize;
+	return totalShareSize;
 }
 
 size_t ShareManager::getSharedFiles() const noexcept {
@@ -1247,16 +1252,7 @@ int ShareManager::run() {
 		
 			for(StringPairIter i = dirs.begin(); i != dirs.end(); ++i) {
 				DirMap::const_iterator m = directories.find(i->second);
-				if(m == directories.end()) { 
-					//lookup for the root dirs under the Vname and erase only those.
-					for(DirMap::const_iterator j = directories.begin(); j != directories.end(); ++j) {	
-						if(stricmp(j->second->getName(), i->first) == 0) {
-							//directories.erase(j++);
-							j->second->findDirsRE(true);
-							directories.erase(j++);
-						}
-					}
-				} else {
+				if(m != directories.end()) { 
 					m->second->findDirsRE(true);
 					directories.erase(m);
 				}
@@ -2182,14 +2178,12 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 	}
 
 	if(SETTING(INCOMING_REFRESH_TIME) > 0 && !incoming.empty()){
-			if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
-			//setDirty();
+		if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
 			refreshIncoming();
 		}
 	}
 	if(SETTING(AUTO_REFRESH_TIME) > 0) {
 		if(lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= tick) {
-			//setDirty();
 			refresh(ShareManager::REFRESH_ALL | ShareManager::REFRESH_UPDATE);
 		}
 	}

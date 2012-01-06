@@ -128,7 +128,7 @@ const string SettingsManager::settingTags[] =
 	"BoldHub", "BoldPm", "BoldSearch", "TabsOnTop", "SocketInBuffer", "SocketOutBuffer", 
 	"ColorDownloaded", "ColorRunning", "ColorDone", "AutoRefreshTime", "UseTLS", "OpenWaitingUsers",
 	"BoldWaitingUsers", "AutoSearchLimit", "AutoKickNoFavs", "PromptPassword", "SpyFrameIgnoreTthSearches",
- 	"AllowUntrustedHubs", "AllowUntrustedClients", "TLSPort", "FastHash", "DownConnPerSec",
+ 	"AllowUntrustedHubs", "AllowUntrustedClients", "TLSPort", "DownConnPerSec",
 	"HighestPrioSize", "HighPrioSize", "NormalPrioSize", "LowPrioSize", "LowestPrio",
 	"FilterEnter", "SortFavUsersFirst", "ShowShellMenu", 
 	//AirDC
@@ -349,7 +349,6 @@ SettingsManager::SettingsManager()
 	setDefault(SPY_FRAME_IGNORE_TTH_SEARCHES, false);
 	setDefault(ALLOW_UNTRUSTED_HUBS, true);
 	setDefault(ALLOW_UNTRUSTED_CLIENTS, true);		
-	setDefault(FAST_HASH, true);
 	setDefault(SORT_FAVUSERS_FIRST, false);
 	setDefault(SHOW_SHELL_MENU, true);	
 	setDefault(CORAL, true);	

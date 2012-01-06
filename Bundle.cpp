@@ -92,7 +92,7 @@ void Bundle::removeDownloadedSegment(int64_t aSize) {
 
 uint64_t Bundle::getSecondsLeft() {
 	double avg = getSpeed();
-	return (avg > 0) ? static_cast<int64_t>((size - (currentDownloaded+finishedSegments)) / avg) : 0;
+	return (avg > 0) ? static_cast<uint64_t>((size - (currentDownloaded+finishedSegments)) / avg) : 0;
 }
 
 string Bundle::getName() {

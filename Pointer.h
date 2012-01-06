@@ -20,9 +20,9 @@
 #define DCPLUSPLUS_DCPP_POINTER_H
 
 #include <boost/intrusive_ptr.hpp>
-#include <boost/smart_ptr/detail/atomic_count.hpp>
 
 #include "noexcept.h"
+#include "atomic.h"
 
 namespace dcpp {
 
@@ -50,7 +50,7 @@ private:
 	friend void intrusive_ptr_add_ref(intrusive_ptr_base* p) { ++p->ref; }
 	friend void intrusive_ptr_release(intrusive_ptr_base* p) { if(--p->ref == 0) { delete static_cast<T*>(p); } }
 
-	boost::detail::atomic_count ref;
+	atomic<long> ref;
 };
 
 

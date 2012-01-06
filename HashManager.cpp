@@ -23,15 +23,11 @@
 #include "SimpleXML.h"
 #include "LogManager.h"
 #include "File.h"
+#include "FileReader.h"
 #include "ZUtils.h"
 #include "SFVReader.h"
 #include "ShareManager.h"
 
-#ifndef _WIN32
-#include <sys/mman.h> // mmap, munmap, madvise
-#include <signal.h>  // for handling read errors from previous trio
-#include <setjmp.h>
-#endif
 
 namespace dcpp {
 
@@ -388,7 +384,6 @@ static const string sHash = "Hash";
 static const string sType = "Type";
 static const string sTTH = "TTH";
 static const string sIndex = "Index";
-static const string sLeafSize = "LeafSize";		// Residue from v1 as well
 static const string sBlockSize = "BlockSize";
 static const string sTimeStamp = "TimeStamp";
 static const string sRoot = "Root";
@@ -525,243 +520,23 @@ void HashManager::Hasher::instantPause() {
 	}
 }
 
-#ifdef _WIN32
-#define BUF_SIZE (256*1024)
-
-bool HashManager::Hasher::fastHash(const string& fname, uint8_t* buf, TigerTree& tth, int64_t size, CRC32Filter* xcrc32) {
-	HANDLE h = INVALID_HANDLE_VALUE;
-	DWORD x, y;
-	if (!GetDiskFreeSpace(Text::toT(Util::getFilePath(fname)).c_str(), &y, &x, &y, &y)) {
-		return false;
-	} else {
-		if ((BUF_SIZE % x) != 0) {
-			return false;
-		} else {
-			h = ::CreateFile(Text::toT(fname).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-				FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED, NULL);
-			if (h == INVALID_HANDLE_VALUE)
-				return false;
-		}
-	}
-	DWORD hn = 0;
-	DWORD rn = 0;
-	uint8_t* hbuf = buf + BUF_SIZE;
-	uint8_t* rbuf = buf;
-
-	OVERLAPPED over = { 0 };
-	BOOL res = TRUE;
-	over.hEvent = CreateEvent(NULL, FALSE, TRUE, NULL);
-	
-	bool ok = false;
-
-	uint64_t lastRead = GET_TICK();
-	if (!::ReadFile(h, hbuf, BUF_SIZE, &hn, &over)) {
-		if (GetLastError() == ERROR_HANDLE_EOF) {
-			hn = 0;
-		} else if (GetLastError() == ERROR_IO_PENDING) {
-			if (!GetOverlappedResult(h, &over, &hn, TRUE)) {
-				if (GetLastError() == ERROR_HANDLE_EOF) {
-					hn = 0;
-				} else {
-					goto cleanup;
-				}
-			}
-		} else {
-			goto cleanup;
-		}
-	}
-
-	over.Offset = hn;
-	size -= hn;
-	while (!stop) {
-		if (size > 0) {
-			// Start a new overlapped read
-			ResetEvent(over.hEvent);
-			if (SETTING(MAX_HASH_SPEED) > 0) {
-				uint64_t now = GET_TICK();
-				uint64_t minTime = hn * 1000LL / (SETTING(MAX_HASH_SPEED) * 1024LL * 1024LL);
-				if (lastRead + minTime > now) {
-					uint64_t diff = now - lastRead;
-					Thread::sleep(minTime - diff);
-				} 
-				lastRead = lastRead + minTime;
-			} else {
-				lastRead = GET_TICK();
-			}
-			res = ReadFile(h, rbuf, BUF_SIZE, &rn, &over);
-		} else {
-			rn = 0;
-		}
-
-		tth.update(hbuf, hn);
-		if (xcrc32)
-			(*xcrc32)(hbuf, hn);
-	
-		{
-			Lock l(cs);
-			currentSize = max(currentSize - hn, _LL(0));
-		}
-		
-		//instantPause();
-		if (size == 0) {
-			ok = true;
-			break;
-		}
-
-		if (!res) { 
-			// deal with the error code 
-			switch (GetLastError()) { 
-			case ERROR_IO_PENDING: 
-				if (!GetOverlappedResult(h, &over, &rn, TRUE)) {
-					dcdebug("Error 0x%x: %s\n", GetLastError(), Util::translateError(GetLastError()).c_str());
-						goto cleanup;
-					}
-				break;
-			default:
-				dcdebug("Error 0x%x: %s\n", GetLastError(), Util::translateError(GetLastError()).c_str());
-				goto cleanup;
-			}
-		}
-
-
-		*((uint64_t*)&over.Offset) += rn;
-		size -= rn;
-		
-		swap(rbuf, hbuf);
-		swap(rn, hn);
-	}
-
-	cleanup:
-	::CloseHandle(over.hEvent);
-	::CloseHandle(h);
-	return ok;
-}
-
-#else // !_WIN32
-static const int64_t BUF_SIZE = 0x1000000 - (0x1000000 % getpagesize());
-static sigjmp_buf sb_env;
-
-static void sigbus_handler(int signum, siginfo_t* info, void* context) {
-	// Jump back to the fastHash which will return error. Apparently truncating
-	// a file in Solaris sets si_code to BUS_OBJERR
-	if (signum == SIGBUS && (info->si_code == BUS_ADRERR || info->si_code == BUS_OBJERR))
-		siglongjmp(sb_env, 1);
-}
-
-bool HashManager::Hasher::fastHash(const string& filename, uint8_t* , TigerTree& tth, int64_t size) {
-	int fd = open(Text::fromUtf8(filename).c_str(), O_RDONLY);
-	if(fd == -1) {
-		dcdebug("Error opening file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-		return false;
-	}
-
-	int64_t pos = 0;
-	int64_t size_read = 0;
-	void *buf = NULL;
-	bool ok = false;
-
-	// Prepare and setup a signal handler in case of SIGBUS during mmapped file reads.
-	// SIGBUS can be sent when the file is truncated or in case of read errors.	 
-	struct sigaction act, oldact;
-	sigset_t signalset;
-
-	sigemptyset(&signalset);
-
-	act.sa_handler = NULL;
-	act.sa_sigaction = sigbus_handler;
-	act.sa_mask = signalset;
-	act.sa_flags = SA_SIGINFO | SA_RESETHAND;
-
-	if (sigaction(SIGBUS, &act, &oldact) == -1) {
-		dcdebug("Failed to set signal handler for fastHash\n");
-		close(fd);
-		return false;	// Better luck with the slow hash.
-	}
-
-	uint64_t lastRead = GET_TICK();
-	while (pos < size && !stop) {
-		size_read = std::min(size - pos, BUF_SIZE);
-		buf = mmap(0, size_read, PROT_READ, MAP_SHARED, fd, pos);
-		if(buf == MAP_FAILED) {
-			dcdebug("Error calling mmap for file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-			break;
-		}
-
-		if (sigsetjmp(sb_env, 1)) {
-			dcdebug("Caught SIGBUS for file %s\n", filename.c_str());
-			break;
-		}
-
-		if (posix_madvise(buf, size_read, POSIX_MADV_SEQUENTIAL | POSIX_MADV_WILLNEED) == -1) {
-			dcdebug("Error calling madvise for file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-			break;
-		}
-
-		if (SETTING(MAX_HASH_SPEED) > 0) {
-			uint64_t now = GET_TICK();
-			uint64_t minTime = size_read * 1000LL / (SETTING(MAX_HASH_SPEED) * 1024LL * 1024LL);
-			if (lastRead + minTime > now) {
-				uint64_t diff = now - lastRead;
-				Thread::sleep(minTime - diff);
-			} 
-			lastRead = lastRead + minTime;
-		} else {
-			lastRead = GET_TICK();
-		}
-
-		tth.update(buf, size_read);
-
-		{
-			Lock l(cs);
-			currentSize = max(static_cast<uint64_t>(currentSize - size_read), static_cast<uint64_t>(0));		
-		}
-		
-		if (munmap(buf, size_read) == -1) {
-			dcdebug("Error calling munmap for file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-			break;
-		}
-
-		buf = NULL;
-		pos += size_read;
-
-		//instantPause();
-
-		if (pos == size) {
-			ok = true;
-		}
-	}
-
-	if (buf != NULL && buf != MAP_FAILED && munmap(buf, size_read) == -1) {
-			dcdebug("Error calling munmap for file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-		}
-
-	close(fd);
-
-	if (sigaction(SIGBUS, &oldact, NULL) == -1) {
-		dcdebug("Failed to reset old signal handler for SIGBUS\n");
-	}
-
-	return ok;
-}
-
-#endif // !_WIN32
 int HashManager::Hasher::run() {
 	setThreadPriority(Thread::IDLE);
-	uint8_t* buf = NULL;
-	bool virtualBuf = true;
 
 	string fname;
-	bool last = false;
 	for(;;) {
 		s.wait();
 		if(stop)
 			break;
+		
+		instantPause(); //must be really careful with suspending, but i think this is a safe place to pause.
+
 		if(saveData) {
 			HashManager::getInstance()->SaveData();
 			saveData = false;
 			continue;
 		}
-		instantPause(); //must be really careful with suspending, but i think this is a safe place to pause.
+
 		if(rebuild) {
 			HashManager::getInstance()->doRebuild();
 			rebuild = false;
@@ -775,34 +550,22 @@ int HashManager::Hasher::run() {
 				currentFile = fname = w.begin()->first;
 				currentSize = w.begin()->second;
 				w.erase(w.begin());
-				last = w.empty();
 			} else {
-				last = true;
 				fname.clear();
 			}
 		}
 		running = true;
 
 		if(!fname.empty()) {
-			int64_t size = File::getSize(fname);
-			int64_t sizeLeft = size;
-#ifdef _WIN32
-			if(buf == NULL) {
-				virtualBuf = true;
-				buf = (uint8_t*)VirtualAlloc(NULL, 2*BUF_SIZE, MEM_COMMIT, PAGE_READWRITE);
-			}
-#endif
-			if(buf == NULL) {
-				virtualBuf = false;
-				buf = new uint8_t[BUF_SIZE];
-			}
+
 			try {
-				File f(fname, File::READ, File::OPEN);
-				int64_t bs = max(TigerTree::calcBlockSize(f.getSize(), 10), MIN_BLOCK_SIZE);
 				uint64_t start = GET_TICK();
+				File f(fname, File::READ, File::OPEN);
+				int64_t size = f.getSize();
+				int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
 				uint64_t timestamp = f.getLastModified();
-				TigerTree slowTTH(bs);
-				TigerTree* tth = &slowTTH;
+				int64_t sizeLeft = size;
+				TigerTree tt(bs);
 
 				CRC32Filter crc32;
 				SFVReader sfv(fname);
@@ -811,59 +574,46 @@ int HashManager::Hasher::run() {
 				if (sfv.hasCRC())
 					xcrc32 = &crc32;
 
-				size_t n = 0;
-				TigerTree fastTTH(bs);
-				tth = &fastTTH;
-#ifdef _WIN32
-				if(!virtualBuf || !BOOLSETTING(FAST_HASH) || !fastHash(fname, buf, fastTTH, size, xcrc32)) {
-#else
-				if(!BOOLSETTING(FAST_HASH) || !fastHash(fname, 0, fastTTH, size, xcrc32)) {
-#endif
-					tth = &slowTTH;
-					crc32 = CRC32Filter();
-					uint64_t lastRead = GET_TICK();
-
-					do {
-						size_t bufSize = BUF_SIZE;
-						if(SETTING(MAX_HASH_SPEED) > 0) {
-							uint64_t now = GET_TICK();
-							uint64_t minTime = n * 1000LL / (SETTING(MAX_HASH_SPEED) * 1024LL * 1024LL);
-							if(lastRead + minTime > now) {
-								Thread::sleep(minTime - (now - lastRead));
-							}
-							lastRead = lastRead + minTime;
-						} else {
-							lastRead = GET_TICK();
+				uint64_t lastRead = GET_TICK();
+ 
+                FileReader fr;
+				fr.read(fname, [&](const void* buf, size_t n) -> bool {
+					if(SETTING(MAX_HASH_SPEED)> 0) {
+						uint64_t now = GET_TICK();
+						uint64_t minTime = n * 1000LL / (SETTING(MAX_HASH_SPEED) * 1024LL * 1024LL);
+ 
+						if(lastRead + minTime> now) {
+							Thread::sleep(minTime - (now - lastRead));
 						}
-						n = f.read(buf, bufSize);
-						tth->update(buf, n);
-						if(xcrc32)
-							(*xcrc32)(buf, n);
+					lastRead = lastRead + minTime;
+					} else {
+						lastRead = GET_TICK();
+					}
+					tt.update(buf, n);
+				
+				if(xcrc32)
+					(*xcrc32)(buf, n);
 
-						{
-							Lock l(cs);
-							currentSize = max(static_cast<uint64_t>(currentSize - n), static_cast<uint64_t>(0));
-						}
-						sizeLeft -= n;
-
-						//instantPause();
-					} while (n > 0 && !stop);
-				} else {
-					sizeLeft = 0;
+				{
+					Lock l(cs);
+					currentSize = max(static_cast<uint64_t>(currentSize - n), static_cast<uint64_t>(0));
 				}
+					sizeLeft -= n;
+					return !stop;
+				});
 
 				f.close();
-				tth->finalize();
+				tt.finalize();
 				uint64_t end = GET_TICK();
 				int64_t speed = 0;
 				if(end > start) {
-					speed = size * _LL(1000) / (end - start);
+					speed = size * 1000 / (end - start);
 				}
 				if(xcrc32 && xcrc32->getValue() != sfv.getCRC()) {
 					LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32));
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				} else {
-					HashManager::getInstance()->hashDone(fname, timestamp, *tth, speed, size);
+					HashManager::getInstance()->hashDone(fname, timestamp, tt, speed, size);
 				}
 			} catch(const FileException& e) {
 				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError());
@@ -874,19 +624,10 @@ int HashManager::Hasher::run() {
 			Lock l(cs);
 			currentFile.clear();
 			currentSize = 0;
-		}		
-		running = false;
-		if(buf != NULL && (last || stop)) {
-			if(virtualBuf) {
-#ifdef _WIN32
-				VirtualFree(buf, 0, MEM_RELEASE);
-#endif
-			} else {
-				delete [] buf;
-			}
-			buf = NULL;
 		}
-	}
+		running = false;
+	}		
+
 	return 0;
 }
 

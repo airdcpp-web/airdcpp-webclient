@@ -75,7 +75,7 @@ void Client::shutdown() {
 }
 
 void Client::reloadSettings(bool updateNick) {
-	const FavoriteHubEntry* hub = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
+	FavoriteHubEntry* hub = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
 	if(hub) {
 		if(updateNick) {
 			setCurrentNick(checkNick(hub->getNick(true)));

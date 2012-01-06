@@ -69,9 +69,9 @@ public:
 	int refreshDirs( StringList dirs);
 	int refreshIncoming();
 	void setDirty() {
-	xmlDirty = true;  
-	ShareCacheDirty = true; 
-	c_size_dirty = true; //everytime xml is dirty the share size needs an update too.
+		xmlDirty = true;  
+		ShareCacheDirty = true; 
+		updateSize = true; //everytime xml is dirty the share size needs an update too.
 	}
 
 	StringList getIncoming() { return incoming; };
@@ -342,8 +342,8 @@ private:
 	uint32_t findLastWrite(const string& aName) const; 
 	
 	//caching the share size so we dont need to loop tthindex everytime
-	mutable int64_t	 c_shareSize;
-	mutable bool	 c_size_dirty;
+	mutable int64_t	 totalShareSize;
+	mutable bool	 updateSize;
 	bool xml_saving;
 
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!

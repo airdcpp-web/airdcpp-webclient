@@ -84,14 +84,14 @@ void File::close() noexcept {
 }
 
 int64_t File::getSize() const noexcept {
-	DWORD x;
-	DWORD l = ::GetFileSize(h, &x);
+	LARGE_INTEGER x;
 
-	if( (l == INVALID_FILE_SIZE) && (GetLastError() != NO_ERROR))
+	if(!::GetFileSizeEx(h, &x)) 
 		return -1;
 
-	return (int64_t)l | ((int64_t)x)<<32;
+	return x.QuadPart;
 }
+
 int64_t File::getPos() const noexcept {
 	LONG x = 0;
 	DWORD l = ::SetFilePointer(h, 0, &x, FILE_CURRENT);

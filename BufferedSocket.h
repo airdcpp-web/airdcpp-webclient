@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_BUFFERED_SOCKET_H
 #define DCPLUSPLUS_DCPP_BUFFERED_SOCKET_H
 
-#include <atomic>
+#include "atomic.h"
 
 #include "typedefs.h"
 
