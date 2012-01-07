@@ -244,7 +244,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				if (checkdupe && partialList) {
 					if (ShareManager::getInstance()->isDirShared(d->getPath())) {
 						d->setDupe(2);
-					} else if (QueueManager::getInstance()->isDirQueued(d->getPath())) {{
+					} else if (QueueManager::getInstance()->isDirQueued(d->getPath())) {
 						d->setDupe(4);
 					}
 				}
