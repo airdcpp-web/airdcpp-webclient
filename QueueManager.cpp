@@ -702,9 +702,10 @@ void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& n
 				bundles.push_back(qi->getBundle());
 			}
 		}
-		//uint64_t end = GET_TICK();
-		//LogManager::getInstance()->message("List matched in " + Util::toString(end-start) + " ms WITHOUT buildMap");
 	}
+	//uint64_t end = GET_TICK();
+	//LogManager::getInstance()->message("List matched in " + Util::toString(end-start) + " ms WITHOUT buildMap");
+
 	matches = (int)ql.size();
 	if(wantConnection)
 		ConnectionManager::getInstance()->getDownloadConnection(dl.getHintedUser());
@@ -757,10 +758,11 @@ bool QueueManager::getAutoDrop(const string& aTarget) {
 }
 
 StringList QueueManager::getTargets(const TTHValue& tth) {
-	RLock l(cs);
 	QueueItemList ql;
-	fileQueue.find(tth, ql);
 	StringList sl;
+
+	RLock l(cs);
+	fileQueue.find(tth, ql);
 	for(auto i = ql.begin(); i != ql.end(); ++i) {
 		sl.push_back((*i)->getTarget());
 	}
@@ -805,28 +807,29 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 		return 0;
 	}
 
-	// Check that the file we will be downloading to exists
-	if(q->getDownloadedBytes() > 0) {
-		if(!Util::fileExists(q->getTempTarget())) {
-			// Temp target gone?
-			q->resetDownloaded();
-		}
-	}
-	
-	Download* d = new Download(aSource, *q);
-	if (q->getBundle()) {
-		dcassert(!q->isSet(QueueItem::FLAG_USER_LIST));
-		dcassert(!q->isSet(QueueItem::FLAG_TEXT));
-		d->setBundle(q->getBundle());
-	}
-
 	{
 		WLock l(cs);
+		// Check that the file we will be downloading to exists
+		if(q->getDownloadedBytes() > 0) {
+			if(!Util::fileExists(q->getTempTarget())) {
+				// Temp target gone?
+				q->resetDownloaded();
+			}
+		}
+	
+		Download* d = new Download(aSource, *q);
+		if (q->getBundle()) {
+			dcassert(!q->isSet(QueueItem::FLAG_USER_LIST));
+			dcassert(!q->isSet(QueueItem::FLAG_TEXT));
+			d->setBundle(q->getBundle());
+		}
+
 		userQueue.addDownload(q, d);
+
+		fire(QueueManagerListener::SourcesUpdated(), q);
+		dcdebug("found %s\n", q->getTarget().c_str());
+		return d;
 	}
-	fire(QueueManagerListener::SourcesUpdated(), q);
-	dcdebug("found %s\n", q->getTarget().c_str());
-	return d;
 }
 
 void QueueManager::moveFile(const string& source, const string& target, BundlePtr aBundle) {
@@ -1931,20 +1934,18 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		for(auto i = matches.begin(); i != matches.end(); ++i) {
 			QueueItem* qi = *i;
 			// Size compare to avoid popular spoof
-			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser())) {
-				if (qi->getBundle()) {
-					bundle = qi->getBundle();
-					if(qi->isFinished() && bundle->isSource(sr->getUser())) {
-						//no need to match this bundle
-						continue;
-					}
-
-					if((bundle->countOnlineUsers() < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
-						addSources = true;
-					} 
+			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser()) && qi->getBundle()) {
+				bundle = qi->getBundle();
+				if(qi->isFinished() && bundle->isSource(sr->getUser())) {
+					//no need to match this bundle
+					continue;
 				}
-				break;
+
+				if((bundle->countOnlineUsers() < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
+					addSources = true;
+				} 
 			}
+			break;
 		}
 	}
 
@@ -2299,10 +2300,10 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 				if(si != qi->getBadSources().end() && si->isSet(QueueItem::Source::FLAG_TTH_INCONSISTENCY))
 					return false;
 
-				if(!wantConnection){
+				if(!wantConnection) {
 					if(si == qi->getBadSources().end())
 						return false;
-				}else{
+				} else {
 					// add this user as partial file sharing source
 					qi->addSource(aUser);
 					si = qi->getSource(aUser);
@@ -2320,7 +2321,6 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 
 			// Update source's parts info
 			if(si->getPartialSource()) {
-				WLock l(cs);
 				si->getPartialSource()->setPartialInfo(partialSource.getPartialInfo());
 			}
 		}
@@ -2380,6 +2380,12 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 				}
 			} else {
 				//LogManager::getInstance()->message("QI: NO BUNDLE OR FINISHEDTOKEN EXISTS");
+			}
+
+			{
+				RLock l(cs);
+				if (qi->getDownloadedSegments() == 0)
+					return false;
 			}
 		}
 
@@ -2530,15 +2536,13 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 		fire(QueueManagerListener::BundleAdded(), aBundle);
 		bundleQueue.addSearchPrio(aBundle);
 	}
-
-
 }
 
 void QueueManager::mergeFileBundles(BundlePtr targetBundle) {
 	BundleList bl;
 	{
 		RLock l(cs);
-		bundleQueue.getMergeBundles(targetBundle->getTarget(), bl);
+		bundleQueue.getSubBundles(targetBundle->getTarget(), bl);
 	}
 	for_each(bl.begin(), bl.end(), [&](BundlePtr sourceBundle) { fire(QueueManagerListener::BundleMoved(), sourceBundle); mergeBundle(targetBundle, sourceBundle); });
 }
@@ -2654,17 +2658,11 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 	/* In this case we also need check if there are directory bundles inside the subdirectories */
 	BundleList mBundles;
 	{
-		RLock l(cs);
-		bundleQueue.getMergeBundles(newTarget, mBundles);
-
-		//add the new root release dir
-		bundleQueue.move(aBundle, newTarget);
+		WLock l(cs);
+		bundleQueue.move(aBundle, newTarget); //set the new target
+		bundleQueue.getSubBundles(newTarget, mBundles);
 	}
-	for_each(mBundles.begin(), mBundles.end(), [&] (BundlePtr b) {
-		if (b->getTarget() != newTarget) { //don't merge the targetbundle, the target has been changed
-			mergeBundle(aBundle, b, false);
-		}
-	});
+	for_each(mBundles.begin(), mBundles.end(), [&] (BundlePtr b) { mergeBundle(aBundle, b, false); });
 
 	aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	aBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
@@ -3148,10 +3146,8 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 void QueueManager::moveBundleItems(const QueueItemList& ql, BundlePtr targetBundle, bool fireAdded) {
 	/* NO FILEBUNDLES SHOULD COME HERE */
 	BundlePtr sourceBundle = NULL;
-	if (!ql.empty()) {
-		if (!ql.front()->getBundle()->getFileBundle()) {
-			sourceBundle = ql.front()->getBundle();
-		}
+	if (!ql.empty() && !ql.front()->getBundle()->getFileBundle()) {
+		sourceBundle = ql.front()->getBundle();
 	} else {
 		return;
 	}

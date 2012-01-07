@@ -243,7 +243,7 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 }
 
 BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
-	/* Returns directory bundles that are in sub or parent dirs (or in the same location) */
+	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
 	BundlePtr compareBundle;
 	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr compareBundle = (*j).second;
@@ -260,7 +260,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 	return NULL;
 }
 
-void BundleQueue::getMergeBundles(const string& aTarget, BundleList& retBundles) {
+void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) {
 	/* Returns bundles that are inside aTarget */
 	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr compareBundle = (*j).second;

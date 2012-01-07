@@ -43,7 +43,7 @@ public:
 	BundlePtr find(const string& bundleToken);
 	BundlePtr findDir(const string& aPath);
 	BundlePtr getMergeBundle(const string& aTarget);
-	void getMergeBundles(const string& aTarget, BundleList& retBundles);
+	void getSubBundles(const string& aTarget, BundleList& retBundles);
 
 	int getRecentSize() { return (int)recentSearchQueue.size(); }
 	int getPrioSum(int& prioBundles);
