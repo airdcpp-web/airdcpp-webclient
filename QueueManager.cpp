@@ -384,16 +384,18 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			target = getListPath(aUser);
 		}
 		tempTarget = aTarget;
-	} else if (!(aFlags & QueueItem::FLAG_CLIENT_VIEW)) {
-		if (BOOLSETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(root, Util::getFileName(aTarget))) {
-			// Check if we're not downloading something already in our share
-			LogManager::getInstance()->message(STRING(FILE_ALREADY_SHARED) + " " + aTarget );
-			throw QueueException(STRING(TTH_ALREADY_SHARED));
-		}
+	} else {
+		if (!(aFlags & QueueItem::FLAG_CLIENT_VIEW)) {
+			if (BOOLSETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(root, Util::getFileName(aTarget))) {
+				// Check if we're not downloading something already in our share
+				LogManager::getInstance()->message(STRING(FILE_ALREADY_SHARED) + " " + aTarget );
+				throw QueueException(STRING(TTH_ALREADY_SHARED));
+			}
 
-		if(BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP) ? AirUtil::stringRegexMatch(SETTING(SKIPLIST_DOWNLOAD), Util::getFileName(aTarget)) :
-			Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(aTarget)), Text::utf8ToAcp(SETTING(SKIPLIST_DOWNLOAD)), '|')) {
-			throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
+			if(BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP) ? AirUtil::stringRegexMatch(SETTING(SKIPLIST_DOWNLOAD), Util::getFileName(aTarget)) :
+				Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(aTarget)), Text::utf8ToAcp(SETTING(SKIPLIST_DOWNLOAD)), '|')) {
+				throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
+			}
 		}
 
 		if(BOOLSETTING(USE_FTP_LOGGER)) {
@@ -2822,21 +2824,21 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 				string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
 				string qiTarget = qi->getTarget();
 				qi->setTarget(targetPath);
-				if(Util::fileExists(targetPath)) {
+				if(!Util::fileExists(targetPath)) {
 					/* TODO: add for recheck */
-					continue;
-				}
-				moveFile(qiTarget, targetPath, newBundle);
-				if (hasMergeBundle) {
-					newBundle->addFinishedItem(qi, false);
+					moveFile(qiTarget, targetPath, newBundle);
+					if (hasMergeBundle) {
+						newBundle->addFinishedItem(qi, false);
+					} else {
+						//keep in the current bundle
+						i++;
+						continue;
+					}
 				} else {
-					//keep in the current bundle
-					i++;
-					continue;
+					/* TODO: add for recheck */
 				}
-			} else {
-				fileQueue.removeTTH(qi);
 			}
+			fileQueue.removeTTH(qi);
 			sourceBundle->removeFinishedItem(qi);
 		}
 	}
