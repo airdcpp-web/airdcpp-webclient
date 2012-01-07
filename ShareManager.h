@@ -402,6 +402,8 @@ private:
 
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);
 	StringList bundleDirs;
+	
+	void CleanDir(Directory::Ptr& dir);
 
 	StringList refreshPaths;
 	int refreshOptions;

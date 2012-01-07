@@ -529,7 +529,7 @@ int HashManager::Hasher::run() {
 		if(stop)
 			break;
 		
-		instantPause(); //must be really careful with suspending, but i think this is a safe place to pause.
+		instantPause(); //suspend the thread...
 
 		if(saveData) {
 			HashManager::getInstance()->SaveData();

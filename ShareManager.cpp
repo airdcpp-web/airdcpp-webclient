@@ -2028,34 +2028,24 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 		j->second->search(results, srch, maxResults);
 	}
 }
+void ShareManager::CleanDir(Directory::Ptr& dir) {
 
-void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) noexcept {
-	bool added = false;
-	{
-		WLock l(cs);
-
-		Directory::Ptr dir = findDirectory(path, true, true);
-		if (!dir) {
-			goto done;
-		}
-
-		added = true;
-		/* get rid of any existing crap we might have in the bundle directory and refresh it.
-			done at this point as the file and directory pointers should still be valid, if there are any */
 		bool needClean = false;
 		Directory::File::Set eraselist;
+		
+		if(!dir->directories.empty()) {
+			needClean = true;
+			for(auto i = dir->directories.begin(); i != dir->directories.end(); ++i) {
+					CleanDir(i->second);
+			}
+		}
+
 		if(!dir->files.empty()) {
 			needClean = true;
 			for(auto i = dir->files.begin(); i != dir->files.end(); ++i)
 				eraselist.insert(*i);
 		}
-		if(!dir->directories.empty()) {
-			needClean = true;
-			for(auto i = dir->directories.begin(); i != dir->directories.end(); ++i) {
-				for(auto mi = i->second->files.begin(); mi != i->second->files.end(); ++mi)
-					eraselist.insert(*mi);
-			}
-		}
+
 		if(needClean) {
 			for(auto i = eraselist.begin(); i != eraselist.end(); ++i) {
 				auto flst = tthIndex.equal_range(i->getTTH());
@@ -2069,6 +2059,23 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 			dir->files.clear();
 			dir->directories.clear();
 		}
+
+}
+
+void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) noexcept {
+	bool added = false;
+	{
+		WLock l(cs);
+
+		Directory::Ptr dir = findDirectory(path, true, true);
+		if (!dir) {
+			goto done;
+		}
+
+		added = true;
+		/* get rid of any existing crap we might have in the bundle directory and refresh it.
+		done at this point as the file and directory pointers should still be valid, if there are any */
+		CleanDir(dir);
 
 		buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
 		updateIndices(*dir);
