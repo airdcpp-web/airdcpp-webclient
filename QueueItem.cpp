@@ -194,7 +194,7 @@ uint64_t QueueItem::getAverageSpeed() const {
 	return totalSpeed;
 }
 
-Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource) const {
+Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
 	if(getSize() == -1 || blockSize == 0) {
 		return Segment(0, -1);
 	}
@@ -320,7 +320,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		return selected;
 	}
 	
-	if(partialSource == NULL && BOOLSETTING(OVERLAP_CHUNKS) && lastSpeed > 0) {
+	if(allowOverlap && bundle && partialSource == NULL && BOOLSETTING(OVERLAP_CHUNKS) && lastSpeed > 0) {
 		// overlap slow running chunk
 
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
@@ -463,7 +463,7 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 	return v;
 }
 
-bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
+bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	QueueItem::SourceConstIter source = getSource(aUser);
 	dcassert(isSource(aUser));
 	//dcassert(!isFinished());
@@ -490,7 +490,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t want
 		if(blockSize == 0)
 			blockSize = getSize();
 
-		Segment segment = getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
+		Segment segment = getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource(), allowOverlap);
 		if(segment.getSize() == 0) {
 			lastError = (segment.getStart() == -1 || getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
 			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());

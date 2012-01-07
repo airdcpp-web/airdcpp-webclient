@@ -85,13 +85,17 @@ public:
 	void setQIAutoPriority(const string& aTarget, bool ap, bool isBundleChange=false) noexcept;
 
 	StringList getTargets(const TTHValue& tth);
-	const QueueItem::StringMap& lockQueue() noexcept { cs.lock(); return fileQueue.getQueue(); } ;
-	void unlockQueue() noexcept { cs.unlock(); }
+	const QueueItem::StringMap& getQueue() noexcept { RLock l (cs); return fileQueue.getQueue(); } ;
+	//const QueueItem::StringMap& lockQueue() noexcept { cs.lock(); return fileQueue.getQueue(); } ;
+	//void unlockQueue() noexcept { cs.unlock(); }
+	void onSlowDisconnect(const string& aTarget);
+	string getTempTarget(const string& aTarget);
+	bool getAutoDrop(const string& aTarget);
 
-	QueueItem::SourceList getSources(const QueueItem* qi) const { Lock l(cs); return qi->getSources(); }
-	QueueItem::SourceList getBadSources(const QueueItem* qi) const { Lock l(cs); return qi->getBadSources(); }
-	size_t getSourcesCount(const QueueItem* qi) const { Lock l(cs); return qi->getSources().size(); }
-	vector<Segment> getChunksVisualisation(const QueueItem* qi, int type) const { Lock l(cs); return qi->getChunksVisualisation(type); }
+	QueueItem::SourceList getSources(const QueueItem* qi) const { RLock l(cs); return qi->getSources(); }
+	QueueItem::SourceList getBadSources(const QueueItem* qi) const { RLock l(cs); return qi->getBadSources(); }
+	size_t getSourcesCount(const QueueItem* qi) const { RLock l(cs); return qi->getSources().size(); }
+	vector<Segment> getChunksVisualisation(const QueueItem* qi, int type) const { RLock l(cs); return qi->getChunksVisualisation(type); }
 
 	bool getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
 	Download* getDownload(UserConnection& aSource, string& aMessage, bool smallSlot) noexcept;
@@ -127,11 +131,11 @@ public:
 	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished, bool moved = false);
 	bool isDirQueued(const string& aDir) { return bundleQueue.findDir(aDir); }
 	tstring getDirPath(const string& aDir);
-	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes) { Lock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
+	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes) { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundles, const StringPairList& paths);
 
-	BundlePtr getBundle(const string& bundleToken) { Lock l (cs); return bundleQueue.find(bundleToken); }
+	BundlePtr getBundle(const string& bundleToken) { RLock l (cs); return bundleQueue.find(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth);
 	bool checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add, const string& remoteBundle);
 	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle);
@@ -145,7 +149,7 @@ public:
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
 	void removeBundleSources(BundlePtr aBundle) noexcept;
 	void getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) { 
-		Lock l (cs); 
+		RLock l (cs); 
 		bundleQueue.getInfo(aSource, retBundles, finishedFiles, fileBundles); 
 	}
 	void handleBundleUpdate(const string& bundleToken);
@@ -164,7 +168,7 @@ public:
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
-	int isFileQueued(const TTHValue& aTTH, const string& aFile) { Lock l (cs); return fileQueue.isFileQueued(aTTH, aFile); }
+	int isFileQueued(const TTHValue& aTTH, const string& aFile) { RLock l (cs); return fileQueue.isFileQueued(aTTH, aFile); }
 	
 	bool dropSource(Download* d);
 
@@ -224,7 +228,7 @@ private:
 	QueueManager();
 	~QueueManager();
 	
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;
 
 	/** QueueItems by user */
 	UserQueue userQueue;

@@ -60,7 +60,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
 		if(HashManager::getInstance()->getTree(getTTH(), getTigerTree())) {
 			setTreeValid(true);
-			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), conn.getChunkSize(), conn.getSpeed(), source->getPartialSource()));
+			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), conn.getChunkSize(), conn.getSpeed(), source->getPartialSource(), true));
 		} else if(conn.isSet(UserConnection::FLAG_SUPPORTS_TTHL) && !qi.getSource(conn.getUser())->isSet(QueueItem::Source::FLAG_NO_TREE) && qi.getSize() > HashManager::MIN_BLOCK_SIZE) {
 			// Get the tree unless the file is small (for small files, we'd probably only get the root anyway)
 			setType(TYPE_TREE);
@@ -70,7 +70,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 			// Use the root as tree to get some sort of validation at least...
 			getTigerTree() = TigerTree(qi.getSize(), qi.getSize(), getTTH());
 			setTreeValid(true);
-			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), 0, 0, source->getPartialSource()));
+			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), 0, 0, source->getPartialSource(), true));
 		}
 		
 		if((getStartPos() + getSize()) != qi.getSize()) {
@@ -152,6 +152,32 @@ void Download::open(int64_t bytes, bool z) {
 	if(getType() == Transfer::TYPE_FILE) {
 		auto target = getDownloadTarget();
 		auto fullSize = tt.getFileSize();
+
+		if(getOverlapped() && bundle) {
+			setOverlapped(false);
+ 	 
+			bool found = false;
+			// ok, we got a fast slot, so it's possible to disconnect original user now
+			for(auto i = bundle->getDownloads().begin(); i != bundle->getDownloads().end(); ++i) {
+				if((*i) != this && compare((*i)->getPath(), getPath()) == 0 && (*i)->getSegment().contains(getSegment())) {
+ 	 
+					// overlapping has no sense if segment is going to finish
+					if((*i)->getSecondsLeft() < 10)
+						break;
+ 	 
+					found = true;
+ 	 
+					// disconnect slow chunk
+					(*i)->getUserConnection().disconnect();
+					break;
+				}
+			}
+
+			if(!found) {
+				// slow chunk already finished ???
+				throw Exception(STRING(DOWNLOAD_FINISHED_IDLE));
+			}
+		}
 
 		if(getSegment().getStart() > 0) {
 			if(File::getSize(target) != fullSize) {

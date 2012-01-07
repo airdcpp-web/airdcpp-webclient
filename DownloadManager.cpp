@@ -423,6 +423,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	}
 	
 	try {
+		Lock l (cs);
 		d->open(bytes, z);
 	} catch(const FileException& e) {
 		failDownload(aSource, STRING(COULD_NOT_OPEN_TARGET_FILE) + " " + e.getError());

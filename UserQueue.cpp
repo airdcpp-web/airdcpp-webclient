@@ -67,42 +67,46 @@ void UserQueue::add(QueueItem* qi, const HintedUser& aUser, bool newBundle /*fal
 	}
 }
 
-QueueItem* UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool allowRemove, bool smallSlot) {
-	QueueItem* qi = getNextPrioQI(aUser, 0, 0, smallSlot);
-	if(!qi) {
-		qi = getNextBundleQI(aUser, (Bundle::Priority)minPrio, 0, 0, smallSlot);
+void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
+	/* Returns all queued items from an user */
+	/* Highest prio */
+	auto i = userPrioQueue.find(aUser);
+	if(i != userPrioQueue.end()) {
+		ql = i->second;
 	}
 
-	//Check partial sources here
-	if (qi && allowRemove) {
-		auto source = qi->getSource(aUser);
-		if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
-			int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-			if(blockSize == 0)
-				blockSize = qi->getSize();
-					
-			Segment segment = qi->getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource());
-			if(segment.getStart() != -1 && segment.getSize() == 0) {
-				// no other partial chunk from this user, remove him from queue
-				removeQI(qi, aUser);
-				qi->removeSource(aUser, QueueItem::Source::FLAG_NO_NEED_PARTS);
-				lastError = STRING(NO_NEEDED_PART);
-				qi = NULL;
-			}
+	/* Bundles */
+	auto s = userBundleQueue.find(aUser);
+	if(s != userBundleQueue.end()) {
+		dcassert(!i->second.empty());
+		for (auto j = s->second.begin(); j != s->second.end(); ++j) {
+			(*j)->getItems(aUser, ql);
 		}
 	}
+}
 
+QueueItem* UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
+	/* Using the PAUSED priority will list all files */
+	QueueItem* qi = getNextPrioQI(aUser, 0, 0, smallSlot, allowOverlap);
+	if(!qi) {
+		qi = getNextBundleQI(aUser, (Bundle::Priority)minPrio, 0, 0, smallSlot, false);
+	}
+
+	if (!qi && !allowOverlap) {
+		//no free segments. let's do another round and now check if there are slow sources which can be overlapped
+		getNext(aUser, minPrio, wantedSize, lastSpeed, smallSlot, true);
+	}
 	return qi;
 }
 
-QueueItem* UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool listAll) {
+QueueItem* UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
 		for(auto j = i->second.begin(); j != i->second.end(); ++j) {
 			QueueItem* qi = *j;
-			if (qi->hasSegment(aUser, lastError, wantedSize, lastSpeed, smallSlot) || listAll) {
+			if (qi->hasSegment(aUser, lastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
 				return qi;
 			}
 		}
@@ -110,7 +114,7 @@ QueueItem* UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, in
 	return NULL;
 }
 
-QueueItem* UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
+QueueItem* UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 
 	auto i = userBundleQueue.find(aUser);
@@ -120,7 +124,7 @@ QueueItem* UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority min
 			if ((*j)->getPriority() < minPrio) {
 				break;
 			}
-			QueueItem* qi = (*j)->getNextQI(aUser, lastError, minPrio, wantedSize, lastSpeed, smallSlot);
+			QueueItem* qi = (*j)->getNextQI(aUser, lastError, minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
 			if (qi) {
 				return qi;
 			}

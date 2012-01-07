@@ -158,7 +158,7 @@ public:
 	void save(OutputStream &save, string tmp, string b32tmp);
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
-	bool hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
+	bool hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 
 	string getFolder() const { return Util::getDir(target, false, false); };
 	SourceList& getSources() { return sources; }
@@ -219,7 +219,7 @@ public:
 	void removeDownloads(const UserPtr& aUser);
 	
 	/** Next segment that is not done and not being downloaded, zero-sized segment returned if there is none is found */
-	Segment getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource) const;
+	Segment getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const;
 	
 	void addSegment(const Segment& segment, bool downloaded);
 	void resetDownloaded() { done.clear(); }

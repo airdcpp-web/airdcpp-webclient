@@ -90,7 +90,7 @@ void Bundle::removeDownloadedSegment(int64_t aSize) {
 	dcassert(currentDownloaded <= size);
 }
 
-uint64_t Bundle::getSecondsLeft() {
+int64_t Bundle::getSecondsLeft() {
 	return (speed > 0) ? static_cast<int64_t>((size - (currentDownloaded+finishedSegments)) / speed) : 0;
 }
 
@@ -257,17 +257,15 @@ bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
 	//LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, total items for the user " + aUser->getCID().toBase32() + ": " + Util::toString(l.size()));
 }
 
-QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot) {
+QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	int p = QueueItem::LAST - 1;
-	//lastError = Util::emptyString;
-
 	do {
 		auto i = userQueue[p].find(aUser);
 		if(i != userQueue[p].end()) {
 			dcassert(!i->second.empty());
 			for(auto j = i->second.begin(); j != i->second.end(); ++j) {
 				QueueItem* qi = *j;
-				if (qi->hasSegment(aUser, aLastError, wantedSize, lastSpeed, smallSlot) || minPrio == PAUSED) {
+				if (qi->hasSegment(aUser, aLastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
 					return qi;
 				}
 			}

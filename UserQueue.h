@@ -33,9 +33,10 @@ class UserQueue {
 public:
 	void add(QueueItem* qi, bool newBundle=false);
 	void add(QueueItem* qi, const HintedUser& aUser, bool newBundle=false);
-	QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool allowRemove = false, bool smallSlot=false);
-	QueueItem* getNextPrioQI(const UserPtr& aUser, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool listAll=false);
-	QueueItem* getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio = Bundle::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false);
+	void getUserQIs(const UserPtr& aUser, QueueItemList& ql);
+	QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
+	QueueItem* getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	QueueItem* getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	QueueItemList getRunning(const UserPtr& aUser);
 	void addDownload(QueueItem* qi, Download* d);
 	void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);

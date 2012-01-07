@@ -140,8 +140,8 @@ public:
 	/* Misc */
 	bool getFileBundle() { return fileBundle;}
 
-	uint64_t getDownloadedBytes() const { return currentDownloaded+finishedSegments; }
-	uint64_t getSecondsLeft();
+	int64_t getDownloadedBytes() const { return currentDownloaded+finishedSegments; }
+	int64_t getSecondsLeft();
 
 	string getTarget() { return target; }
 	string getName();
@@ -226,7 +226,7 @@ public:
 	/** All queue items indexed by user */
 	void addUserQueue(QueueItem* qi) noexcept;
 	bool addUserQueue(QueueItem* qi, const HintedUser& aUser) noexcept;
-	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio = LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false) noexcept;
+	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
 	QueueItemList getRunningQIs(const UserPtr& aUser) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
