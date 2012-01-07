@@ -725,6 +725,7 @@ bool QueueManager::getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& 
 }
 
 void QueueManager::onSlowDisconnect(const string& aTarget) {
+	RLock l(cs);
 	auto qi = fileQueue.find(aTarget);
 	if(qi) {
 		if(qi->isSet(QueueItem::FLAG_AUTODROP)) {
@@ -736,6 +737,7 @@ void QueueManager::onSlowDisconnect(const string& aTarget) {
 }
 
 string QueueManager::getTempTarget(const string& aTarget) {
+	RLock l(cs);
 	auto qi = fileQueue.find(aTarget);
 	if(qi) {
 		return qi->getTempTarget();
@@ -744,6 +746,7 @@ string QueueManager::getTempTarget(const string& aTarget) {
 }
 
 bool QueueManager::getAutoDrop(const string& aTarget) {
+	RLock l(cs);
 	auto qi = fileQueue.find(aTarget);
 	if(qi) {
 		return qi->isSet(QueueItem::FLAG_AUTODROP);
