@@ -241,13 +241,11 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if(d == NULL) {
 				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, dateRaw);
-				if (checkdupe) {
+				if (checkdupe && partialList) {
 					if (ShareManager::getInstance()->isDirShared(d->getPath())) {
 						d->setDupe(2);
-					} else if (partialList) {
-						if (QueueManager::getInstance()->isDirQueued(d->getPath())) {
-							d->setDupe(4);
-						}
+					} else if (QueueManager::getInstance()->isDirQueued(d->getPath())) {{
+						d->setDupe(4);
 					}
 				}
 				cur->directories.push_back(d);

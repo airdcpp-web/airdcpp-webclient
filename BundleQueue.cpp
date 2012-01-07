@@ -243,10 +243,11 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 }
 
 BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
+	/* Returns directory bundles that are in sub or parent dirs (or in the same location) */
 	BundlePtr compareBundle;
 	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr compareBundle = (*j).second;
-		if (compareBundle->getFileBundle() || compareBundle->isFinished()) {
+		if (compareBundle->getFileBundle()) {
 			continue;
 		}
 
@@ -257,6 +258,16 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 		}
 	}
 	return NULL;
+}
+
+void BundleQueue::getMergeBundles(const string& aTarget, BundleList& retBundles) {
+	/* Returns bundles that are inside aTarget */
+	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
+		BundlePtr compareBundle = (*j).second;
+		if (compareBundle->getTarget().length() > aTarget.length() && (stricmp(compareBundle->getTarget().substr(0, aTarget.length()), aTarget) == 0)) {
+			retBundles.push_back(compareBundle);
+		}
+	}
 }
 
 void BundleQueue::addBundleItem(QueueItem* qi, BundlePtr aBundle) {

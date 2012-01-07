@@ -2537,21 +2537,10 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 void QueueManager::mergeFileBundles(BundlePtr targetBundle) {
 	BundleList bl;
 	{
-		/* TODO: FIX CASE SENSITIVITY */
 		RLock l(cs);
-		for (auto j = bundleQueue.getBundles().begin(); j != bundleQueue.getBundles().end(); ++j) {
-			BundlePtr compareBundle = (*j).second;
-			if (!compareBundle->getFileBundle() || compareBundle->isFinished()) {
-				continue;
-			}
-			size_t pos = compareBundle->getTarget().find(targetBundle->getTarget());
-			if (pos != string::npos) {
-				bl.push_back(compareBundle);
-				fire(QueueManagerListener::BundleMoved(), compareBundle);
-			}
-		}
+		bundleQueue.getMergeBundles(targetBundle->getTarget(), bl);
 	}
-	for_each(bl.begin(), bl.end(), [&](BundlePtr sourceBundle) { mergeBundle(targetBundle, sourceBundle); });
+	for_each(bl.begin(), bl.end(), [&](BundlePtr sourceBundle) { fire(QueueManagerListener::BundleMoved(), sourceBundle); mergeBundle(targetBundle, sourceBundle); });
 }
 
 void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, bool first /*true*/) {
@@ -2562,16 +2551,19 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 			moveBundleItem(sourceBundle->getQueueItems().front(), targetBundle, false);
 		}
 
-		targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
-		addBundleUpdate(targetBundle->getToken());
-		targetBundle->setDirty(true);
-
 		removeBundle(sourceBundle, false, false, true);
 
-		string tmp;
-		tmp.resize(tmp.size() + STRING(FILEBUNDLE_MERGED).size() + 1024);
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(FILEBUNDLE_MERGED), sourceBundle->getName().c_str(), sourceBundle->getName().c_str()));
-		LogManager::getInstance()->message(tmp);
+		targetBundle->setDirty(true);
+
+		if (first) {
+			targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
+			addBundleUpdate(targetBundle->getToken());
+
+			string tmp;
+			tmp.resize(tmp.size() + STRING(FILEBUNDLE_MERGED).size() + 1024);
+			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(FILEBUNDLE_MERGED), sourceBundle->getName().c_str(), sourceBundle->getName().c_str()));
+			LogManager::getInstance()->message(tmp);
+		}
 		return;
 	}
 
@@ -2580,7 +2572,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 
 	HintedUserList x;
 	//new bundle? we need to connect to sources then
-	if (sourceBundle->isSet(Bundle::FLAG_NEW)) {
+	if (first && sourceBundle->isSet(Bundle::FLAG_NEW)) {
 		for_each(sourceBundle->getSources().begin(), sourceBundle->getSources().end(), [&](const Bundle::SourceTuple st) { x.push_back(get<Bundle::SOURCE_USER>(st)); });
 	}
 
@@ -2589,7 +2581,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 		QueueItemList ql;
 		{
 			RLock l(cs);
-			if (first && !finished) {
+			if (!finished) {
 				fire(QueueManagerListener::BundleMoved(), targetBundle);
 			}
 			ql = sourceBundle->getQueueItems();
@@ -2663,23 +2655,16 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 	BundleList mBundles;
 	{
 		RLock l(cs);
-		for (auto j = bundleQueue.getBundles().begin(); j != bundleQueue.getBundles().end(); ++j) {
-			BundlePtr compareBundle = (*j).second;
-			if (compareBundle->getFileBundle() || compareBundle->isFinished()) {
-				continue;
-			}
-
-			if (compareBundle->getTarget().length() > newTarget.length() && (stricmp(compareBundle->getTarget().substr(0, newTarget.length()), newTarget) == 0)) {
-				fire(QueueManagerListener::BundleMoved(), compareBundle);
-				mBundles.push_back(compareBundle);
-			}
-		}
+		bundleQueue.getMergeBundles(newTarget, mBundles);
 
 		//add the new root release dir
 		bundleQueue.move(aBundle, newTarget);
 	}
-	mergeFileBundles(aBundle);
-	for_each(mBundles.begin(), mBundles.end(), [&] (BundlePtr b) { mergeBundle(aBundle, b, false); });
+	for_each(mBundles.begin(), mBundles.end(), [&] (BundlePtr b) {
+		if (b->getTarget() != newTarget) { //don't merge the targetbundle, the target has been changed
+			mergeBundle(aBundle, b, false);
+		}
+	});
 
 	aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	aBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
@@ -2755,7 +2740,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 			bundle->getDirQIs(aSource, ql);
 			if (removeFinished) {
 				for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end();) {
-					if ((*i)->getTarget().find(aSource) != string::npos) {
+					if ((*i)->getTarget().length() > aSource.length() && stricmp((*i)->getTarget().substr(0, aSource.length()), aSource) == 0) {
 						fileQueue.removeTTH(*i);
 						finishedRemove.push_back(*i);
 						bundle->removeFinishedItem(*i);
@@ -2915,18 +2900,23 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 				if (moveFinished) {
 					UploadManager::getInstance()->abortUpload(qi->getTarget());
 					string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
-					if (newBundle == sourceBundle) {
-						moveFile(qi->getTarget(), targetPath, newBundle);
-						i++;
-						continue;
-					} else if (hasMergeBundle) {
-						newBundle->addFinishedItem(qi, false);
-						moveFile(qi->getTarget(), targetPath, newBundle);
+					if(!Util::fileExists(targetPath)) {
+						if (newBundle == sourceBundle) {
+							moveFile(qi->getTarget(), targetPath, newBundle);
+							i++;
+							continue;
+						} else if (hasMergeBundle) {
+							newBundle->addFinishedItem(qi, false);
+							moveFile(qi->getTarget(), targetPath, newBundle);
+						} else {
+							tempBundle->addFinishedItem(qi, false);
+							moveFile(qi->getTarget(), targetPath, tempBundle);
+						}
+						qi->setTarget(targetPath);
 					} else {
-						tempBundle->addFinishedItem(qi, false);
-						moveFile(qi->getTarget(), targetPath, tempBundle);
+						/* TODO: add for recheck */
+						fileQueue.removeTTH(qi);
 					}
-					qi->setTarget(targetPath);
 				} else {
 					fileQueue.removeTTH(qi);
 				}
@@ -3064,7 +3054,6 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 	bool movedFired = false;
 	for (auto k = sourceTargetList.begin(); k != sourceTargetList.end(); ++k) {
 		string source = k->first;
-		WLock l(cs);
 		QueueItem* qs = NULL;
 		{
 			RLock l(cs);
