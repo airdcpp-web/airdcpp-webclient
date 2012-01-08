@@ -1345,6 +1345,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "A failed bundle %s has been readded in queue", 
 "Target file is missing or wrong size", 
 "The file matches the download skiplist", 
+"Web Shortcuts", 
+"Web shortcuts are used to open web pages with specific contents. The key can be more than one character, but must not contain any space. The URL has to have exactly One \"%s\" which will be replaced with the string you'll enter. If no \"%s\" exists, nothing will be pasted to the url, and the page will just open up. An example is:\nhttp://domain.com/search=%s\n\nNote: The key is case sensitive!\n\nClean search string means that a title will be attempted to pick from the string. e.g \"Movie.Name.2003.DVDRip.XviD-ABC\" will become \"Movie Name\"", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2690,4 +2692,6 @@ std::string dcpp::ResourceManager::names[] = {
 "BundleReadded", 
 "TargetFileMissing", 
 "DownloadSkiplistMatch", 
+"SettingsSbWebShortcuts", 
+"SettingsWsDescr", 
 };

@@ -23,19 +23,16 @@
 #include "StringTokenizer.h"
 #include "SimpleXML.h"
 #include "WebShortcuts.h"
+namespace dcpp {
 
 WebShortcuts::WebShortcuts() {
 	SettingsManager::getInstance()->addListener(this);
 
-	tstring s = _T("As URL\x01u\x01%s\x02Google\x01g\x01http://www.google.com/search?q=%s\x02IMDB\x01i\x01http://www.imdb.com/Find?select=All&for=%s\x02TV.com\x01t\x01http://www.tv.com/search.php?type=11&stype=all&qs=%s");
-
-	StringTokenizer<tstring> st(s, _T('\x02'));
-	int j = 0;
-	for (TStringIter i = st.getTokens().begin(); i != st.getTokens().end(); ++i, ++j) {
-		StringTokenizer<tstring> st_i(*i, _T('\x01'));
-		dcassert(st_i.getTokens().size() == 3);
-		list.push_back(new WebShortcut(st_i.getTokens()[0], st_i.getTokens()[1], st_i.getTokens()[2], j > 1 ? true: false));
-	}
+		list.push_back(new WebShortcut(CTSTRING(SEARCH_GOOGLE_FULL), _T("google"), _T("http://www.google.com/search?q="), false));
+		list.push_back(new WebShortcut(CTSTRING(SEARCH_GOOGLE_TITLE), _T("googletitle"), _T("http://www.google.com/search?q="), true));
+		list.push_back(new WebShortcut(CTSTRING(SEARCH_IMDB), _T("imdb"), _T("http://www.imdb.com/find?q="), true));
+		list.push_back(new WebShortcut(CTSTRING(SEARCH_TVCOM), _T("tvcom"), _T("http://www.tv.com/search?q="), true));
+		list.push_back(new WebShortcut(CTSTRING(SEARCH_METACRITIC), _T("metacritic"), _T("http://www.metacritic.com/search/all/"), true));
 }
 
 WebShortcuts::~WebShortcuts() {
@@ -59,12 +56,6 @@ void WebShortcuts::load(SimpleXML& xml) {
 			tmp->url   = Text::toT(xml.getChildAttrib("URL"));
 
 			tmp->clean = xml.getBoolChildAttrib("Clean");
-
-			//upgrade old tvtome shortcuts to new www.tv.com
-			if(Util::stricmp(tmp->url, _T("http://www.tvtome.com/tvtome/servlet/Search?searchType=all&searchString=%s")) == 0 && tmp->key == _T("t")) {
-				tmp->url = _T("http://www.tv.com/search.php?type=11&stype=all&qs=%s");
-				tmp->name = _T("TV.com");
-			}
 
 			list.push_back(tmp);
 		}
@@ -137,4 +128,5 @@ void WebShortcuts::on(SettingsManagerListener::Save, SimpleXML& xml) {
 }
 void WebShortcuts::on(SettingsManagerListener::Load, SimpleXML& xml) {
 	load(xml);
+}
 }

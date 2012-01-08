@@ -35,6 +35,7 @@
 #include "ADLSearch.h"
 #include "MappingManager.h"
 #include "ConnectivityManager.h"
+#include "WebShortcuts.h"
 
 #include "StringTokenizer.h"
 
@@ -85,6 +86,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	DebugManager::newInstance();
 	PopupManager::newInstance();
 	IgnoreManager::newInstance();
+	WebShortcuts::newInstance();
 	AutoSearchManager::newInstance();
 	HighlightManager::newInstance();
 	ShareScannerManager::newInstance();
@@ -141,6 +143,7 @@ void shutdown() {
 	HighlightManager::deleteInstance();
 	AutoSearchManager::deleteInstance();
 	IgnoreManager::deleteInstance();
+	WebShortcuts::deleteInstance();
 	PopupManager::deleteInstance();
 	ADLSearchManager::deleteInstance();
 	FinishedManager::deleteInstance();

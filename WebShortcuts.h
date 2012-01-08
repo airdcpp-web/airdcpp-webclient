@@ -18,14 +18,18 @@
 
 #ifndef _WEBSHORTCUTS_H
 #define _WEBSHORTCUTS_H
-
+#include "stdinc.h"
+#include "DCPlusPlus.h"
 #include "Singleton.h"
 #include "SettingsManager.h"
+#include "ResourceManager.h"
+
+namespace dcpp {
 
 class WebShortcut {
 public:
 	typedef WebShortcut* Ptr;
-	typedef vector<Ptr> List;
+	typedef std::vector<Ptr> List;
 	typedef List::iterator Iter;
 
 	WebShortcut(const tstring& _name, const tstring& _key, const tstring& _url, bool _clean = false) :
@@ -61,5 +65,5 @@ private:
 	virtual void on(SettingsManagerListener::Save, SimpleXML& xml) throw();
 	virtual void on(SettingsManagerListener::Load, SimpleXML& xml) throw();
 };
-
+}
 #endif // _WEBSHORTCUTS_H
