@@ -232,21 +232,21 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 	if (i != downloads.end()) {
 		ConnectionQueueItem* cqi = *i;
 		dcassert(aSource->getState() == UserConnection::STATE_RUNNING);
-		if (cqi->getState() == ConnectionQueueItem::RUNNING)
+		if (cqi->getState() == ConnectionQueueItem::RUNNING || !cqi->isSet(ConnectionQueueItem::FLAG_MCN1))
 			return;
 
 		cqi->setState(ConnectionQueueItem::RUNNING);
 		runningDownloads[aSource->getUser()]++;
-		LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
+		//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
 
 		/* Are we allowed to create a new MCN connection? */
-		if (!cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || ((runningDownloads[aSource->getUser()] >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || 
+		if (((runningDownloads[aSource->getUser()] >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || 
 			(runningDownloads[aSource->getUser()] >= cqi->getMaxConns() && cqi->getMaxConns() != 0)))
 			return;
 
 		//do we already have a waiting connection?
 		if (find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
-			return c->getState() != ConnectionQueueItem::RUNNING; 
+			return c->getUser() == aSource->getUser() && c->getState() != ConnectionQueueItem::RUNNING && c->isSet(ConnectionQueueItem::FLAG_MCN1); 
 		}) == downloads.end()) {
 			string bundleToken;
 			QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false, bundleToken);
@@ -907,13 +907,13 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 
 			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 				runningDownloads[aSource->getUser()]--;
-				LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
+				//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
 				if (runningDownloads[aSource->getUser()] == 0)
 					runningDownloads.erase(aSource->getUser());
 			}
 
 			if ((cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
-				return c->getState() != ConnectionQueueItem::RUNNING; 
+				return c->getUser() == aSource->getUser() && c->isSet(ConnectionQueueItem::FLAG_MCN1) && c->getState() != ConnectionQueueItem::RUNNING; 
 			}) != downloads.end()) || aSource->getState() == UserConnection::STATE_IDLE) {
 				cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
 			} else {
