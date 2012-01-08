@@ -349,7 +349,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 				Lock l(cs);
  				idlers.push_back(aConn);
 			}
-			ConnectionManager::getInstance()->changeCQIState(aConn, true);
 		} else {
 			aConn->disconnect(true);
 		}
@@ -436,9 +435,11 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	d->setStart(GET_TICK());
 	d->tick();
 	aSource->setState(UserConnection::STATE_RUNNING);
+	if (aSource->isSet(UserConnection::FLAG_MCN1)) {
+		ConnectionManager::getInstance()->addRunningMCN(aSource);
+	}
 
 	fire(DownloadManagerListener::Starting(), d);
-	ConnectionManager::getInstance()->changeCQIState(aSource, false);
 	if (d->getBundle()) {
 		startBundle(aSource, d->getBundle());
 	} else if (!aSource->getLastBundle().empty()) {

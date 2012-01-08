@@ -41,8 +41,7 @@ public:
 		WAITING,					// Waiting to send request to connect
 		NO_DOWNLOAD_SLOTS,			// Not needed right now
 		ACTIVE,						// In one up/downmanager
-		IDLE,						// Idle
-		RUNNING						// Running
+		RUNNING						// Running/idle
 	};
 
 	enum Flags {
@@ -99,6 +98,8 @@ private:
 
 // Comparing with a user...
 inline bool operator==(ConnectionQueueItem::Ptr ptr, const UserPtr& aUser) { return ptr->getUser() == aUser; }
+// With a token
+inline bool operator==(ConnectionQueueItem::Ptr ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }
 
 class ConnectionManager : public Speaker<ConnectionManagerListener>, 
 	public UserConnectionListener, TimerManagerListener, 
@@ -133,7 +134,7 @@ public:
 	uint16_t getPort() const { return server ? static_cast<uint16_t>(server->getPort()) : 0; }
 	uint16_t getSecurePort() const { return secureServer ? static_cast<uint16_t>(secureServer->getPort()) : 0; }
 	static uint16_t iConnToMeCount;	
-	void changeCQIState(const UserConnection *aSource, bool stateIdle) noexcept;
+	void addRunningMCN(const UserConnection *aSource) noexcept;
 private:
 
 	class Server : public Thread {
@@ -159,6 +160,10 @@ private:
 	ConnectionQueueItem::List downloads;
 	ConnectionQueueItem::List uploads;
 
+	typedef boost::unordered_map<UserPtr, int16_t> RunningMap;
+	/* Running downloads for users with MCN support */
+	RunningMap runningDownloads;
+
 	/** All active connections */
 	UserConnectionList userConnections;
 
@@ -171,9 +176,6 @@ private:
 	delayMap delayedTokens;
 
 	uint64_t floodCounter;
-	uint64_t queueAddTick;
-	uint64_t cqiAddTick;
-	uint64_t checkWaitingTick;
 
 	Server* server;
 	Server* secureServer;

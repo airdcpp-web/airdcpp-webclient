@@ -807,8 +807,9 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 		return 0;
 	}
 
+	Download* d = NULL;
 	{
-		WLock l(cs);
+		RLock l(cs);
 		// Check that the file we will be downloading to exists
 		if(q->getDownloadedBytes() > 0) {
 			if(!Util::fileExists(q->getTempTarget())) {
@@ -817,19 +818,17 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 			}
 		}
 	
-		Download* d = new Download(aSource, *q);
-		if (q->getBundle()) {
-			dcassert(!q->isSet(QueueItem::FLAG_USER_LIST));
-			dcassert(!q->isSet(QueueItem::FLAG_TEXT));
-			d->setBundle(q->getBundle());
-		}
-
-		userQueue.addDownload(q, d);
-
-		fire(QueueManagerListener::SourcesUpdated(), q);
-		dcdebug("found %s\n", q->getTarget().c_str());
-		return d;
+		d = new Download(aSource, *q);
 	}
+
+	{
+		WLock l(cs);
+		userQueue.addDownload(q, d);
+	}
+
+	fire(QueueManagerListener::SourcesUpdated(), q);
+	dcdebug("found %s\n", q->getTarget().c_str());
+	return d;
 }
 
 void QueueManager::moveFile(const string& source, const string& target, BundlePtr aBundle) {
@@ -2344,66 +2343,59 @@ BundlePtr QueueManager::findBundle(const TTHValue& tth) {
 }
 
 bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add) {
+	//LogManager::getInstance()->message("QueueManager::handlePartialSearch");
+
+	// Locate target QueueItem in download queue
+	QueueItemList ql;
 	{
-		//LogManager::getInstance()->message("QueueManager::handlePartialSearch");
-
-		// Locate target QueueItem in download queue
-		QueueItemList ql;
-		{
-			RLock l(cs);
-			fileQueue.find(tth, ql);
-		}
-
-		if (ql.empty()) {
-			//LogManager::getInstance()->message("QL EMPTY, QUIIIIIIIT");
-			return false;
-		}
-
-		QueueItemPtr qi = ql.front();
-
-		if (aUser) {
-			BundlePtr b = qi->getBundle();
-			if (b) {
-				//LogManager::getInstance()->message("handlePartialSearch: QI AND BUNDLE FOUND");
-
-				//no reports for duplicate or bad sources
-				if (b->isFinishedNotified(aUser)) {
-					//LogManager::getInstance()->message("handlePartialSearch: ALREADY NOTIFIED");
-					return false;
-				}
-				_bundle = b->getToken();
-				if (!b->getQueueItems().empty()) {
-					_reply = true;
-				}
-				if (!b->getFinishedFiles().empty()) {
-					_add = true;
-				}
-			} else {
-				//LogManager::getInstance()->message("QI: NO BUNDLE OR FINISHEDTOKEN EXISTS");
-			}
-
-			{
-				RLock l(cs);
-				if (qi->getDownloadedSegments() == 0)
-					return false;
-			}
-		}
-
-		if(qi->getSize() < PARTIAL_SHARE_MIN_SIZE){
-			return false;  
-		}
-
-		// don't share when file does not exist
-		if(!Util::fileExists(qi->isFinished() ? qi->getTarget() : qi->getTempTarget()))
-			return false;
-
-		int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-		if(blockSize == 0)
-			blockSize = qi->getSize();
-
 		RLock l(cs);
-		qi->getPartialInfo(_outPartsInfo, blockSize);
+		fileQueue.find(tth, ql);
 	}
+
+	if (ql.empty()) {
+		//LogManager::getInstance()->message("QL EMPTY, QUIIIIIIIT");
+		return false;
+	}
+
+	QueueItemPtr qi = ql.front();
+
+	if (aUser) {
+		BundlePtr b = qi->getBundle();
+		if (b) {
+			//LogManager::getInstance()->message("handlePartialSearch: QI AND BUNDLE FOUND");
+
+			//no reports for duplicate or bad sources
+			if (b->isFinishedNotified(aUser)) {
+				//LogManager::getInstance()->message("handlePartialSearch: ALREADY NOTIFIED");
+				return false;
+			}
+			_bundle = b->getToken();
+			if (!b->getQueueItems().empty()) {
+				_reply = true;
+			}
+			if (!b->getFinishedFiles().empty()) {
+				_add = true;
+			}
+		} else {
+			//LogManager::getInstance()->message("QI: NO BUNDLE OR FINISHEDTOKEN EXISTS");
+		}
+	}
+
+	if(qi->getSize() < PARTIAL_SHARE_MIN_SIZE){
+		return false;  
+	}
+
+	// don't share when file does not exist
+	if(!Util::fileExists(qi->isFinished() ? qi->getTarget() : qi->getTempTarget()))
+		return false;
+
+
+	int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
+	if(blockSize == 0)
+		blockSize = qi->getSize();
+
+	RLock l(cs);
+	qi->getPartialInfo(_outPartsInfo, blockSize);
 
 	return !_outPartsInfo.empty();
 }

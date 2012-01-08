@@ -143,12 +143,12 @@ const string SettingsManager::settingTags[] =
 	"TbImageSize", "TbImageSizeHot", "UseHighlight", "DupeColor", "ShowQueueBars", "SendBloom", 
 	"LangSwitch", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp",
-	"OverlapChunks", "MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "OpenSystemLog",
+	"MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "OpenSystemLog",
 	"FirstRun", "LastSearchFiletype", "MaxResizeLines", 
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "RefreshVnameOnSharePage",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
-	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "DownloadsExpand", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
+	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
 	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRunNew", "FormatRelease", "LogLines",
 	"CheckMissing", "CheckSfv", "CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "SortDirs", "DecreaseRam", "MaxFileSizeShared",
 	"CheckEmptyDirs","CheckEmptyReleases", "FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
@@ -158,7 +158,7 @@ const string SettingsManager::settingTags[] =
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
-	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources",
+	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", 
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -631,7 +631,7 @@ SettingsManager::SettingsManager()
 	setDefault(SHARE_SKIPLIST_USE_REGEXP, true);
 	setDefault(DOWNLOAD_SKIPLIST_USE_REGEXP, false);
 	setDefault(HIGHEST_PRIORITY_USE_REGEXP, false);
-	setDefault(OVERLAP_CHUNKS, true);
+	setDefault(OVERLAP_SLOW_SOURCES, true);
 	setDefault(MIN_SEGMENT_SIZE, 1024);
 	setDefault(OPEN_LOGS_INTERNAL, true);
 	setDefault(OPEN_SYSTEM_LOG, true);
@@ -659,7 +659,6 @@ SettingsManager::SettingsManager()
 	setDefault(USE_ADLS, true);
 	setDefault(USE_ADLS_OWN_LIST, true);
 	setDefault(DONT_DL_ALREADY_QUEUED, false);
-	setDefault(DOWNLOADS_EXPAND, false);
 	setDefault(SYSTEM_SHOW_UPLOADS, false);
 	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
 	setDefault(SETTINGS_PROFILE, PROFILE_PUBLIC);
@@ -707,6 +706,7 @@ SettingsManager::SettingsManager()
 	setDefault(SHOW_SHARED_DIRS_FAV, true);
 	setDefault(ALLOW_MATCH_FULL_LIST, false);
 	setDefault(REPORT_ADDED_SOURCES, false);
+	setDefault(EXPAND_BUNDLES, false);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

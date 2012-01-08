@@ -198,9 +198,9 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		return Segment(0, -1);
 	}
 	
-	if(!BOOLSETTING(MULTI_CHUNK)) {
+	if(!BOOLSETTING(MULTI_CHUNK) || blockSize >= size) {
 		if(!downloads.empty()) {
-			return Segment(-1, 0);
+			return checkOverlaps(blockSize, lastSpeed, partialSource, allowOverlap);
 		}
 
 		int64_t start = 0;
@@ -318,10 +318,13 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		
 		return selected;
 	}
-	
-	if(allowOverlap && bundle && partialSource == NULL && BOOLSETTING(OVERLAP_CHUNKS) && lastSpeed > 0) {
-		// overlap slow running chunk
 
+	return checkOverlaps(blockSize, lastSpeed, partialSource, allowOverlap);
+}
+
+Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
+	if(allowOverlap && partialSource == NULL && bundle && BOOLSETTING(OVERLAP_SLOW_SOURCES) && lastSpeed > 0) {
+		// overlap slow running chunk
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			Download* d = *i;
 			
@@ -349,7 +352,6 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 			}
 		}
 	}
-
 	return Segment(0, 0);
 }
 

@@ -56,6 +56,11 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 	if(qi.isSet(QueueItem::FLAG_TTHLIST_BUNDLE))
 		setFlag(FLAG_TTHLIST_BUNDLE);
 
+	if (qi.getBundle()) {
+		dcassert(!qi.isSet(QueueItem::FLAG_USER_LIST));
+		dcassert(!qi.isSet(QueueItem::FLAG_TEXT));
+		setBundle(qi.getBundle());
+	}
 	
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
 		if(HashManager::getInstance()->getTree(getTTH(), getTigerTree())) {

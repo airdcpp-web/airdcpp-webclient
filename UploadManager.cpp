@@ -468,7 +468,7 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 void UploadManager::checkMultiConn() {
 	Lock l(cs);
-	if ((int)(getSlots() - running - mcnSlots + multiUploads.size()) > 0 || getAutoSlot() || multiUploads.empty()) {
+	if ((int)(getSlots() - running - mcnSlots + multiUploads.size()) >= 0 || getAutoSlot() || multiUploads.empty()) {
 		return; //no reason to remove anything
 	}
 

@@ -220,6 +220,7 @@ public:
 	
 	/** Next segment that is not done and not being downloaded, zero-sized segment returned if there is none is found */
 	Segment getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const;
+	Segment checkOverlaps(int64_t blockSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const;
 	
 	void addSegment(const Segment& segment, bool downloaded);
 	void resetDownloaded() { done.clear(); }
