@@ -2030,36 +2030,26 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 }
 void ShareManager::CleanDir(Directory::Ptr& dir) {
 
-		bool needClean = false;
-		Directory::File::Set eraselist;
-		
-		if(!dir->directories.empty()) {
-			needClean = true;
-			for(auto i = dir->directories.begin(); i != dir->directories.end(); ++i) {
-					CleanDir(i->second);
+	if(!dir->directories.empty()) {
+		for(auto i = dir->directories.begin(); i != dir->directories.end(); ++i) {
+				CleanDir(i->second);
 			}
 		}
 
-		if(!dir->files.empty()) {
-			needClean = true;
-			for(auto i = dir->files.begin(); i != dir->files.end(); ++i)
-				eraselist.insert(*i);
-		}
-
-		if(needClean) {
-			for(auto i = eraselist.begin(); i != eraselist.end(); ++i) {
-				auto flst = tthIndex.equal_range(i->getTTH());
-					for(auto f = flst.first; f != flst.second; ++f) {
-						if(stricmp(f->second->getRealPath(), i->getRealPath()) == 0) {
-							tthIndex.erase(f);
-							break;
-						}
+	if(!dir->files.empty()) {
+		for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
+			auto flst = tthIndex.equal_range(i->getTTH());
+				for(auto f = flst.first; f != flst.second; ++f) {
+					if(stricmp(f->second->getRealPath(), i->getRealPath()) == 0) {
+						tthIndex.erase(f);
+						break;
 					}
+				}
 			}
-			dir->files.clear();
-			dir->directories.clear();
 		}
 
+	dir->files.clear();
+	dir->directories.clear();
 }
 
 void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) noexcept {

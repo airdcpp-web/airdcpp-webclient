@@ -1346,7 +1346,13 @@ std::string dcpp::ResourceManager::strings[] = {
 "Automatically expand bundles in Transferview", 
 "Allow fast users to overlap slower ones if there is nothing else to download", 
 "Web Shortcuts", 
-"Web shortcuts are used to open web pages with specific contents. The key can be more than one character, but must not contain any space. The URL has to have exactly One \"%s\" which will be replaced with the string you'll enter. If no \"%s\" exists, nothing will be pasted to the url, and the page will just open up. An example is:\nhttp://domain.com/search=%s\n\nNote: The key is case sensitive!\n\nClean search string means that a title will be attempted to pick from the string. e.g \"Movie.Name.2003.DVDRip.XviD-ABC\" will become \"Movie Name\"", 
+"Web shortcuts are used to open web pages with specific contents.\nThe key is used in chat / commands Example: /google \"Movie Name\"\nKey can be more than one character, but can not a space.\n\nThe search string added to the end of URL will be picked with rightclick on mouse over from Chat/Search/Filelist windows,\nIf select empty space or no search string is found,\nnothing will be pasted to the url, and the page will just open up.\nAn example: http://domain.com/search=\n\nNote: The key is case sensitive!\n\nClean search term means a title will be attempted to pick from the string. e.g \"Movie.Name.2003.DVDRip.XviD-ABC\" will become \"Movie Name\"", 
+"Name Required", 
+"Name Already in use", 
+"Key Already in use", 
+"How To use", 
+"Clean search term", 
+"WebShortCuts", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2694,4 +2700,10 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsOverlapSlowSources", 
 "SettingsSbWebShortcuts", 
 "SettingsWsDescr", 
+"NameRequired", 
+"NameInUse", 
+"KeyInUse", 
+"SettingsWsHowto", 
+"SettingsWsClean", 
+"Webshortcuts", 
 };
