@@ -1223,7 +1223,8 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 
 end:
 	for(auto i = getConn.begin(); i != getConn.end(); ++i) {
-		ConnectionManager::getInstance()->getDownloadConnection(*i);
+		if ((*i).user != d->getUser())
+			ConnectionManager::getInstance()->getDownloadConnection(*i);
 	}
 
 	if(!fl_fname.empty()) {
@@ -1949,7 +1950,6 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		}
 	}
 
-	//moved outside lock range.
 	if (addSources && bundle->getFileBundle()) {
 		/* No reason to match anything with file bundles */
 		WLock l(cs);
@@ -1958,53 +1958,45 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		} catch(...) {
 			// Ignore...
 		}
-	} else if(addSources && !sr->getUser()->isSet(User::NMDC)) {
-		//ADC dir bundle, try to match partial list
-		string path = bundle->getMatchPath(sr->getFile(), qi->getTarget(), false);
+	} else if(addSources) {
+		string path = bundle->getMatchPath(sr->getFile(), qi->getTarget(), sr->getUser()->isSet(User::NMDC));
 		if (!path.empty()) {
-			try {
-				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
-			} catch(...) { }
-		} else if (BOOLSETTING(ALLOW_MATCH_FULL_LIST)) {
-			//failed, use full filelist
-			try {
-				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE);
-			} catch(const Exception&) {
-				// ...
-			}
-		}
-		return;
-	} else if (addSources) {
-		//NMDC dir bundle, add sources for the correct dir without matching
-		string path = bundle->getMatchPath(sr->getFile(), qi->getTarget(), false);
-		if (!path.empty()) {
-			QueueItemList ql;
-			int newFiles = 0;
-			{
-				RLock l(cs);
-				bundle->getDirQIs(path, ql);
-			}
+			if (sr->getUser()->isSet(User::NMDC)) {
+				//A NMDC directory bundle, just add the sources without matching
+				QueueItemList ql;
+				int newFiles = 0;
+				{
+					RLock l(cs);
+					bundle->getDirQIs(path, ql);
+				}
 
-			{
-				WLock l(cs);
-				for (auto i = ql.begin(); i != ql.end(); ++i) {
-					try {	 
-						if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
-							wantConnection = true;
+				{
+					WLock l(cs);
+					for (auto i = ql.begin(); i != ql.end(); ++i) {
+						try {	 
+							if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+								wantConnection = true;
+							}
+							newFiles++;
+						} catch(...) {
+							// Ignore...
 						}
-						newFiles++;
-					} catch(...) {
-						// Ignore...
 					}
 				}
-			}
-			if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
-				string tmp;
-				tmp.resize(STRING(MATCH_SOURCE_ADDED).size() + 16 + bundle->getName().size());
-				snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED), newFiles, bundle->getName().c_str());
-				LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(HintedUser(sr->getUser(), sr->getHubURL()))) + ": " + tmp);
+				if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
+					string tmp;
+					tmp.resize(STRING(MATCH_SOURCE_ADDED).size() + 16 + bundle->getName().size());
+					snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED), newFiles, bundle->getName().c_str());
+					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(HintedUser(sr->getUser(), sr->getHubURL()))) + ": " + tmp);
+				}
+			} else {
+				//An ADC directory bundle, match recursive partial list
+				try {
+					addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
+				} catch(...) { }
 			}
 		} else if (BOOLSETTING(ALLOW_MATCH_FULL_LIST)) {
+			//failed, use full filelist
 			try {
 				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE);
 			} catch(const Exception&) {
@@ -2442,7 +2434,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 		for (auto i = bundleQueue.getBundles().begin(); i != bundleQueue.getBundles().end(); ++i) {
 			BundlePtr b = i->second;
 			//check the path
-			if (find_if(paths.begin(), paths.end(), [&](StringPair sp) { return AirUtil::isParent(b->getTarget(), sp.second); }) == paths.end()) {
+			if (find_if(paths.begin(), paths.end(), [&](StringPair sp) { return AirUtil::isParent(sp.second, b->getTarget()); }) == paths.end()) {
 				continue;
 			}
 
@@ -2615,8 +2607,8 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 		return;
 	}
 
-	//the source bundle is a parent of the target bundle?
-	bool changeTarget = AirUtil::isSub(sourceBundle->getTarget(), targetBundle->getTarget());
+	//the target bundle is a sub directory of the source bundle?
+	bool changeTarget = AirUtil::isSub(targetBundle->getTarget(), sourceBundle->getTarget());
 	if (changeTarget) {
 		added = changeBundleTarget(targetBundle, sourceBundle->getTarget());
 		//LogManager::getInstance()->message("MERGE CHANGE TARGET");
@@ -2707,7 +2699,7 @@ void QueueManager::setBundlePriorities(const string& aSource, const BundleList& 
 
 	BundlePtr bundle;
 
-	if (sourceBundles.size() == 1 && AirUtil::isSub(sourceBundles.front()->getTarget(), aSource)) {
+	if (sourceBundles.size() == 1 && AirUtil::isSub(aSource, sourceBundles.front()->getTarget())) {
 		//we aren't removing the whole bundle
 		bundle = sourceBundles.front();
 		QueueItemList ql;
@@ -2739,7 +2731,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 		return;
 	}
 
-	if (sourceBundles.size() == 1 && AirUtil::isSub(sourceBundles.front()->getTarget(), aSource)) {
+	if (sourceBundles.size() == 1 && AirUtil::isSub(aSource, sourceBundles.front()->getTarget())) {
 		//we aren't removing the whole bundle
 		BundlePtr bundle = sourceBundles.front();
 		QueueItemList ql;
@@ -2749,7 +2741,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 			bundle->getDirQIs(aSource, ql);
 			if (removeFinished) {
 				for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end();) {
-					if (AirUtil::isSub(aSource, (*i)->getTarget())) {
+					if (AirUtil::isSub((*i)->getTarget(), aSource)) {
 						fileQueue.removeTTH(*i);
 						finishedRemove.push_back(*i);
 						bundle->removeFinishedItem(*i);
@@ -2779,7 +2771,7 @@ void QueueManager::moveDir(const string aSource, const string& aTarget, const Bu
 	for (auto r = sourceBundles.begin(); r != sourceBundles.end(); ++r) {
 		BundlePtr sourceBundle = *r;
 		if (!sourceBundle->getFileBundle()) {
-			if (AirUtil::isParent(sourceBundle->getTarget(), aSource)) {
+			if (AirUtil::isParent(aSource, sourceBundle->getTarget())) {
 				//we are moving the root bundle dir or some of it's parents
 				moveBundle(aSource, aTarget, sourceBundle, moveFinished);
 			} else {
@@ -2906,7 +2898,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 		//handle finished items
 		for (auto i = sourceBundle->getFinishedFiles().begin(); i != sourceBundle->getFinishedFiles().end();) {
 			QueueItem* qi = *i;
-			if (AirUtil::isSub(aSource, qi->getTarget())) {
+			if (AirUtil::isSub(qi->getTarget(), aSource)) {
 				if (moveFinished) {
 					UploadManager::getInstance()->abortUpload(qi->getTarget());
 					string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);

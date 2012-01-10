@@ -207,12 +207,12 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 			continue;
 		}
 
-		if (AirUtil::isParent(tmpBundle->getTarget(), aSource)) {
+		if (AirUtil::isParent(aSource, tmpBundle->getTarget())) {
 			//parent or the same dir
 			retBundles.push_back(tmpBundle);
 			if (tmpBundle->getFileBundle())
 				fileBundles++;
-		} else if (!tmpBundle->getFileBundle() && AirUtil::isSub(tmpBundle->getTarget(), aSource)) {
+		} else if (!tmpBundle->getFileBundle() && AirUtil::isSub(aSource, tmpBundle->getTarget())) {
 			//subfolder
 			retBundles.push_back(tmpBundle);
 			subFolder = true;
@@ -236,7 +236,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 	BundlePtr compareBundle;
 	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr compareBundle = j->second;
-		if (!compareBundle->getFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isSub(aTarget, compareBundle->getTarget()))) {
+		if (!compareBundle->getFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParent(aTarget, compareBundle->getTarget()))) {
 			return compareBundle;
 		}
 	}
@@ -247,7 +247,7 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) {
 	/* Returns bundles that are inside aTarget */
 	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr compareBundle = j->second;
-		if (AirUtil::isSub(aTarget, compareBundle->getTarget())) {
+		if (AirUtil::isSub(compareBundle->getTarget(), aTarget)) {
 			retBundles.push_back(compareBundle);
 		}
 	}

@@ -711,10 +711,8 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 					cqi->setFlag(ConnectionQueueItem::FLAG_SMALL_CONF);
 				} else if (uc->isSet(UserConnection::FLAG_MCN1)) {
 					cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
-				} else {
-					//sync the tokens for nmdc users (should match for ADC users already)
-					uc->setToken(cqi->getToken());
 				}
+				uc->setToken(cqi->getToken());
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 				fire(ConnectionManagerListener::Connected(), cqi);
 				dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");

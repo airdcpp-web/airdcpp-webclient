@@ -57,8 +57,8 @@ class AirUtil {
 		static string formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial);
 		static string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
 		static void fileEvent(const string& tgt, bool file=false);
-		static bool isSub(const string& aParent, const string& aDir);
-		static bool isParent(const string& aSub, const string& aDir);
+		static bool isSub(const string& aDir, const string& aParent);
+		static bool isParent(const string& aDir, const string& aSub);
 	private:
 
 	};

@@ -876,12 +876,12 @@ bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
 	return false;
 }
 
-bool AirUtil::isSub(const string& aParent, const string& aDir) {
+bool AirUtil::isSub(const string& aDir, const string& aParent) {
 	/* returns true if aDir is a subdir of aParent */
 	return (aDir.length() > aParent.length() && (stricmp(aDir.substr(0, aParent.length()), aParent) == 0));
 }
 
-bool AirUtil::isParent(const string& aSub, const string& aDir) {
+bool AirUtil::isParent(const string& aDir, const string& aSub) {
 	/* returns true if aSub is a subdir of aDir OR both are the same dir */
 	return (aSub.length() >= aDir.length() && (stricmp(aSub.substr(0, aDir.length()), aDir) == 0));
 }

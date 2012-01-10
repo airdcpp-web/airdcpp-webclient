@@ -317,7 +317,7 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
 
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
 		QueueItem* qi = *s;
-		if (AirUtil::isSub(aDir, qi->getTarget())) {
+		if (AirUtil::isSub(qi->getTarget(), aDir)) {
 			ql.push_back(qi);
 		}
 	}
@@ -326,7 +326,7 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
 string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) {
 	/* returns the local path for nmdc and the remote path for adc */
 	string remoteDir = Util::getFilePath(aRemoteFile);
-	string bundleDir = Util::getFilePath(aRemoteFile);
+	string bundleDir = Util::getFilePath(aLocalFile);
 	if (simpleMatching) {
 		if (nmdc) {
 			if (Text::toLower(remoteDir).find(getName()) != string::npos)
@@ -348,10 +348,12 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 				if(j == string::npos)
 					break;
 				/* stop before comparing the bundle name */
-				if (remoteDir.length() - j >= bundleDir.length() - target.length())
+				//size_t tmp1 = remoteDir.length() - j;
+				//size_t tmp2 = bundleDir.length() - target.length();
+				if ((remoteDir.length() - j)-1 > bundleDir.length() - target.length())
 					break;
-				//string bundleCompare = bundleDir.substr(bundleDir.length() - (aDir.length()-j));
-				//string srCompare = aDir.substr(j);
+				//string bundleCompare = bundleDir.substr(bundleDir.length() - (remoteDir.length()-j));
+				//string srCompare = remoteDir.substr(j);
 				if(stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
 					break;
 				i = j - 1;
