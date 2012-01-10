@@ -170,7 +170,7 @@ public:
 	void removeFinishedNotify(const UserPtr& aUser) noexcept;
 
 	string getDirPath(const string& aDir) noexcept;
-	string getMatchPath(const string& aDir) noexcept;
+	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) noexcept;
 	QueueItem* findQI(const string& aTarget) const noexcept;
 	size_t countOnlineUsers() const noexcept;
 
@@ -209,6 +209,7 @@ public:
 
 	void getTTHList(OutputStream& tthList) noexcept;
 	void getSearchItems(StringPairList& searches, bool manual) noexcept;
+	void updateSearchMode();
 
 	uint64_t countSpeed() noexcept;
 	void setDownloadedBytes(int64_t aSize) noexcept;
@@ -217,7 +218,7 @@ public:
 	void decreaseRunning() { running--; }
 
 	/* Sources*/
-	void getQISources(HintedUserList& l) noexcept;
+	void getSources(HintedUserList& l) noexcept;
 	bool isSource(const UserPtr& aUser) noexcept;
 	bool isBadSource(const UserPtr& aUser) noexcept;
 	bool isFinished() { return queueItems.empty(); }

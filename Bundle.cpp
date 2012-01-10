@@ -305,23 +305,8 @@ void Bundle::getDownloadsQI(DownloadList& l) {
 	}
 }
 
-void Bundle::getQISources(HintedUserList& l) {
-	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
-		QueueItem* qi = *s;
-		for (auto k = qi->getSources().begin(); k != qi->getSources().end(); ++k) {
-			bool add = true;
-			for (auto j = l.begin(); j != l.end(); ++j) {
-				if ((*j) == (*k).getUser()) {
-					add=false;
-					break;
-				}
-			}
-			if (add) {
-				l.push_back((*k).getUser());
-			}
-		}
-	}
-	//LogManager::getInstance()->message("getQISources, size: " + Util::toString(l.size()));
+void Bundle::getSources(HintedUserList& l) {
+	for_each(sources.begin(), sources.end(), [&](SourceTuple st) { l.push_back(get<Bundle::SOURCE_USER>(st)); });
 }
 
 void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
@@ -332,29 +317,49 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
 
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
 		QueueItem* qi = *s;
-		if (qi->getTarget().length() < aDir.length()) {
-			continue;
-		}
-
-		if (qi->getTarget().substr(0, aDir.length()) == aDir) {
+		if (AirUtil::isSub(aDir, qi->getTarget())) {
 			ql.push_back(qi);
 		}
 	}
 }
 
-string Bundle::getMatchPath(const string& aDir) {
-	string path;
+string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) {
+	/* returns the local path for nmdc and the remote path for adc */
+	string remoteDir = Util::getFilePath(aRemoteFile);
+	string bundleDir = Util::getFilePath(aRemoteFile);
 	if (simpleMatching) {
-		path = Util::getDir(aDir, true, false);
+		if (nmdc) {
+			if (Text::toLower(remoteDir).find(getName()) != string::npos)
+				return target;
+		} else {
+			return Util::getDir(remoteDir, true, false);
+		}
 	} else {
-		//try to find the corrent location from the path manually
-		size_t pos = aDir.find(getName() + "\\");
+		/* try to find the bundle name from the path */
+		size_t pos = Text::toLower(remoteDir).find(Text::toLower(getName()) + "\\");
 		if (pos != string::npos) {
-			path = Util::getFilePath(aDir.substr(0, pos+getName().length()+1));
-			//LogManager::getInstance()->message("ALT RELEASE MATCH, PATH: " + path);
+			return nmdc ? target : remoteDir.substr(0, pos+getName().length()+1);
+		} else if (remoteDir.length() > 3) {
+			/* failed, look up the common dirs from the end */
+			string::size_type i = remoteDir.length()-2;
+			string::size_type j;
+			for(;;) {
+				j = remoteDir.find_last_of("\\", i);
+				if(j == string::npos)
+					break;
+				/* stop before comparing the bundle name */
+				if (remoteDir.length() - j >= bundleDir.length() - target.length())
+					break;
+				//string bundleCompare = bundleDir.substr(bundleDir.length() - (aDir.length()-j));
+				//string srCompare = aDir.substr(j);
+				if(stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
+					break;
+				i = j - 1;
+			}
+			return nmdc ? bundleDir.substr(0, bundleDir.length() - (remoteDir.length()-i-2)) : remoteDir.substr(0, i+2);
 		}
 	}
-	return path;
+	return Util::emptyString;
 }
 
 string Bundle::getDirPath(const string& aDir) noexcept {
@@ -695,6 +700,17 @@ void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {
 			searches.push_back(make_pair(dir, searchString));
 		}
 	}
+}
+
+void Bundle::updateSearchMode() {
+	StringList searches;
+	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
+		string dir = Util::getDir(i->first, true, false);
+		if (find(searches.begin(), searches.end(), dir) == searches.end()) {
+			searches.push_back(dir);
+		}
+	}
+	simpleMatching = searches.size() <= 4 ? true : false;
 }
 
 /* ONLY CALLED FROM DOWNLOADMANAGER BEGIN */

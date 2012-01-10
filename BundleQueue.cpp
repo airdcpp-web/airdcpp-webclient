@@ -198,62 +198,45 @@ BundlePtr BundleQueue::findDir(const string& aPath) {
 void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) {
 	BundlePtr tmpBundle;
 	bool subFolder = false;
-	{
-		for (auto j = bundles.begin(); j != bundles.end(); ++j) {
-			tmpBundle = j->second;
-			if (tmpBundle->isFinished()) {
-				continue;
-			}
-			if (tmpBundle->getTarget().find(aSource) != string::npos) {
-				retBundles.push_back(tmpBundle);
-				if (tmpBundle->getFileBundle()) {
-					fileBundles++;
-				}
-			} else if (!tmpBundle->getFileBundle()) {
-				//check subfolders in case we are splitting the bundle
-				for (auto s = tmpBundle->getBundleDirs().begin(); s != tmpBundle->getBundleDirs().end(); ++s) {
-					if (s->second != 0 && s->first.find(aSource) != string::npos) {
-						retBundles.push_back(tmpBundle);
-						subFolder = true;
-						break;
-					}
-				}
-			}
-			if (subFolder) {
-				break;
-			}
-		}
-	}
 
-	for (auto j = retBundles.begin(); j != retBundles.end(); ++j) {
-		tmpBundle = *j;
-		if (tmpBundle->getFileBundle()) {
-			//filebundles can't have finished files...
+	//find the matching bundles
+	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
+		tmpBundle = j->second;
+		if (tmpBundle->isFinished()) {
+			//don't modify those
 			continue;
 		}
 
-		if (subFolder) {
-			for_each(tmpBundle->getFinishedFiles().begin(), tmpBundle->getFinishedFiles().end(), [&](QueueItem* qi) { if(qi->getTarget().find(aSource) != string::npos) finishedFiles++; } );
-			return;
+		if (AirUtil::isParent(tmpBundle->getTarget(), aSource)) {
+			//parent or the same dir
+			retBundles.push_back(tmpBundle);
+			if (tmpBundle->getFileBundle())
+				fileBundles++;
+		} else if (!tmpBundle->getFileBundle() && AirUtil::isSub(tmpBundle->getTarget(), aSource)) {
+			//subfolder
+			retBundles.push_back(tmpBundle);
+			subFolder = true;
+			break;
 		}
-
-		finishedFiles += tmpBundle->getFinishedFiles().size();
 	}
-	return;
+
+	//count the finished files
+	if (subFolder) {
+		for_each(tmpBundle->getFinishedFiles().begin(), tmpBundle->getFinishedFiles().end(), [&](QueueItem* qi) { 
+			if(AirUtil::isSub(qi->getTarget(), aSource)) 
+				finishedFiles++; 
+		});
+	} else {
+		for_each(retBundles.begin(), retBundles.end(), [&](BundlePtr b) { finishedFiles += tmpBundle->getFinishedFiles().size(); });
+	}
 }
 
 BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
 	BundlePtr compareBundle;
 	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
-		BundlePtr compareBundle = (*j).second;
-		if (compareBundle->getFileBundle()) {
-			continue;
-		}
-
-		if (compareBundle->getTarget().length() >= aTarget.length() && (stricmp(compareBundle->getTarget().substr(0, aTarget.length()), aTarget) == 0)) { //are we trying to merge a parent folder?
-			return compareBundle;
-		} else if (stricmp(aTarget.substr(0, compareBundle->getTarget().length()), compareBundle->getTarget()) == 0) { //subdir of the current bundle?
+		BundlePtr compareBundle = j->second;
+		if (!compareBundle->getFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isSub(aTarget, compareBundle->getTarget()))) {
 			return compareBundle;
 		}
 	}
@@ -263,8 +246,8 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) {
 	/* Returns bundles that are inside aTarget */
 	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
-		BundlePtr compareBundle = (*j).second;
-		if (compareBundle->getTarget().length() > aTarget.length() && (stricmp(compareBundle->getTarget().substr(0, aTarget.length()), aTarget) == 0)) {
+		BundlePtr compareBundle = j->second;
+		if (AirUtil::isSub(aTarget, compareBundle->getTarget())) {
 			retBundles.push_back(compareBundle);
 		}
 	}

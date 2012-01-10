@@ -242,7 +242,7 @@ void UserQueue::removeQI(QueueItem* qi, const UserPtr& aUser, bool removeRunning
 void UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Priority p) {
 	aBundle->setPriority(p);
 	HintedUserList sources;
-	aBundle->getQISources(sources);
+	aBundle->getSources(sources);
 	//LogManager::getInstance()->message("CHANGING THE PRIO FOR " + aBundle->getName() +  " SOURCES SIZE: " + Util::toString(sources.size()));
 
 	for(auto i = sources.begin(); i != sources.end(); ++i) {

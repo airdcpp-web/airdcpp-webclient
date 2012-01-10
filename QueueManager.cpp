@@ -1924,6 +1924,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 	bool wantConnection = false;
 	bool addSources = false;
 	BundlePtr bundle = NULL;
+	QueueItem* qi = NULL;
 
 	{
 		QueueItemList matches;
@@ -1931,7 +1932,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		RLock l(cs);
 		fileQueue.find(sr->getTTH(), matches);
 		for(auto i = matches.begin(); i != matches.end(); ++i) {
-			QueueItem* qi = *i;
+			qi = *i;
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser()) && qi->getBundle()) {
 				bundle = qi->getBundle();
@@ -1949,9 +1950,17 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 	}
 
 	//moved outside lock range.
-	if(addSources && !sr->getUser()->isSet(User::NMDC)) {
-		//ADC
-		string path = bundle->getMatchPath(sr->getFile());
+	if (addSources && bundle->getFileBundle()) {
+		/* No reason to match anything with file bundles */
+		WLock l(cs);
+		try {	 
+			wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
+		} catch(...) {
+			// Ignore...
+		}
+	} else if(addSources && !sr->getUser()->isSet(User::NMDC)) {
+		//ADC dir bundle, try to match partial list
+		string path = bundle->getMatchPath(sr->getFile(), qi->getTarget(), false);
 		if (!path.empty()) {
 			try {
 				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
@@ -1966,12 +1975,19 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		}
 		return;
 	} else if (addSources) {
-		//NMDC
-		if ((bundle->getSimpleMatching() && Util::getDir(sr->getFile(), true, true) == bundle->getName()) || (sr->getFile().find(bundle->getName() + "\\") != string::npos)) {
+		//NMDC dir bundle, add sources for the correct dir without matching
+		string path = bundle->getMatchPath(sr->getFile(), qi->getTarget(), false);
+		if (!path.empty()) {
+			QueueItemList ql;
 			int newFiles = 0;
 			{
+				RLock l(cs);
+				bundle->getDirQIs(path, ql);
+			}
+
+			{
 				WLock l(cs);
-				for (auto i = bundle->getQueueItems().begin(); i != bundle->getQueueItems().end(); ++i) {
+				for (auto i = ql.begin(); i != ql.end(); ++i) {
 					try {	 
 						if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
 							wantConnection = true;
@@ -2426,7 +2442,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 		for (auto i = bundleQueue.getBundles().begin(); i != bundleQueue.getBundles().end(); ++i) {
 			BundlePtr b = i->second;
 			//check the path
-			if (find_if(paths.begin(), paths.end(), [&](StringPair sp) { return b->getTarget().find(sp.second) != string::npos; }) == paths.end()) {
+			if (find_if(paths.begin(), paths.end(), [&](StringPair sp) { return AirUtil::isParent(b->getTarget(), sp.second); }) == paths.end()) {
 				continue;
 			}
 
@@ -2487,6 +2503,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		WLock l(cs);
 		bundleQueue.add(aBundle);
 		fire(QueueManagerListener::BundleAdded(), aBundle);
+		aBundle->updateSearchMode();
 	}
 
 	if (loading)
@@ -2506,17 +2523,19 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 }
 
 void QueueManager::connectBundleSources(BundlePtr aBundle) {
+	if (aBundle->getPriority() == Bundle::PAUSED)
+		return;
+
 	HintedUserList x;
 	{
 		RLock l(cs);
-		for (auto j = aBundle->getSources().begin(); j != aBundle->getSources().end(); ++j) {
-			const HintedUser u = get<Bundle::SOURCE_USER>(*j);
-			if(u.user && u.user->isOnline() && (aBundle->getPriority() != Bundle::PAUSED) && userQueue.getRunning(u.user).empty()) {
-				x.push_back(u);
-			}
-		}
+		aBundle->getSources(x);
 	}
-	for_each(x.begin(), x.end(), [&](const HintedUser u) { ConnectionManager::getInstance()->getDownloadConnection(u, false); });
+
+	for_each(x.begin(), x.end(), [&](const HintedUser u) { 
+		if(u.user && u.user->isOnline() && userQueue.getRunning(u.user).empty())
+			ConnectionManager::getInstance()->getDownloadConnection(u, false); 
+	});
 }
 
 void QueueManager::readdBundle(BundlePtr aBundle) {
@@ -2597,7 +2616,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 	}
 
 	//the source bundle is a parent of the target bundle?
-	bool changeTarget = (targetBundle->getTarget().find(sourceBundle->getTarget()) != string::npos) && (targetBundle->getTarget().length() > sourceBundle->getTarget().length());
+	bool changeTarget = AirUtil::isSub(sourceBundle->getTarget(), targetBundle->getTarget());
 	if (changeTarget) {
 		added = changeBundleTarget(targetBundle, sourceBundle->getTarget());
 		//LogManager::getInstance()->message("MERGE CHANGE TARGET");
@@ -2688,7 +2707,7 @@ void QueueManager::setBundlePriorities(const string& aSource, const BundleList& 
 
 	BundlePtr bundle;
 
-	if (sourceBundles.size() == 1 && sourceBundles.front()->getTarget().find(aSource) == string::npos) {
+	if (sourceBundles.size() == 1 && AirUtil::isSub(sourceBundles.front()->getTarget(), aSource)) {
 		//we aren't removing the whole bundle
 		bundle = sourceBundles.front();
 		QueueItemList ql;
@@ -2720,7 +2739,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 		return;
 	}
 
-	if (sourceBundles.size() == 1 && sourceBundles.front()->getTarget().find(aSource) == string::npos) {
+	if (sourceBundles.size() == 1 && AirUtil::isSub(sourceBundles.front()->getTarget(), aSource)) {
 		//we aren't removing the whole bundle
 		BundlePtr bundle = sourceBundles.front();
 		QueueItemList ql;
@@ -2730,7 +2749,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 			bundle->getDirQIs(aSource, ql);
 			if (removeFinished) {
 				for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end();) {
-					if ((*i)->getTarget().length() > aSource.length() && stricmp((*i)->getTarget().substr(0, aSource.length()), aSource) == 0) {
+					if (AirUtil::isSub(aSource, (*i)->getTarget())) {
 						fileQueue.removeTTH(*i);
 						finishedRemove.push_back(*i);
 						bundle->removeFinishedItem(*i);
@@ -2760,7 +2779,7 @@ void QueueManager::moveDir(const string aSource, const string& aTarget, const Bu
 	for (auto r = sourceBundles.begin(); r != sourceBundles.end(); ++r) {
 		BundlePtr sourceBundle = *r;
 		if (!sourceBundle->getFileBundle()) {
-			if (sourceBundle->getTarget().find(aSource) != string::npos) {
+			if (AirUtil::isParent(sourceBundle->getTarget(), aSource)) {
 				//we are moving the root bundle dir or some of it's parents
 				moveBundle(aSource, aTarget, sourceBundle, moveFinished);
 			} else {
@@ -2881,12 +2900,13 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	//can we merge the split folder?
 	bool hasMergeBundle = newBundle;
 
-	//handle finished items
 	{
 		WLock l(cs);
+
+		//handle finished items
 		for (auto i = sourceBundle->getFinishedFiles().begin(); i != sourceBundle->getFinishedFiles().end();) {
 			QueueItem* qi = *i;
-			if ((qi->getTarget()).find(aSource) != string::npos) {
+			if (AirUtil::isSub(aSource, qi->getTarget())) {
 				if (moveFinished) {
 					UploadManager::getInstance()->abortUpload(qi->getTarget());
 					string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
