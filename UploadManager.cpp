@@ -760,7 +760,7 @@ UploadBundlePtr UploadManager::findBundle(const string& bundleToken) {
 	if (s != bundles.end()) {
 		return s->second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 Upload* UploadManager::findUpload(const string& aToken) {
@@ -772,7 +772,7 @@ Upload* UploadManager::findUpload(const string& aToken) {
 	if (s != delayUploads.end()) {
 		return *s;
 	}
-	return NULL;
+	return nullptr;
 }
 
 

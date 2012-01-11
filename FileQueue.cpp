@@ -40,23 +40,21 @@ QueueItem* FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType 
 	return qi;
 }
 
-void FileQueue::add(QueueItem* qi, bool addFinished, bool addTTH) noexcept {
+void FileQueue::add(QueueItem* qi, bool addFinished) noexcept {
 	if (!addFinished) {
 		if (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
 			dcassert(qi->getSize() >= 0);
 			queueSize += qi->getSize();
 		}
 		dcassert(queueSize >= 0);
-		targetMapInsert = queue.insert(targetMapInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
 		//queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi)).first;
 	}
-
-	if (addTTH) {
-		tthIndex.insert(make_pair(qi->getTTH(), qi));
-	}
+	targetMapInsert = queue.insert(targetMapInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
+	tthIndex.insert(make_pair(qi->getTTH(), qi));
 }
 
-void FileQueue::remove(QueueItem* qi, bool aRemoveTTH) noexcept {
+void FileQueue::remove(QueueItem* qi) noexcept {
+	//TargetMap
 	prev(targetMapInsert);
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	if  (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
@@ -65,12 +63,7 @@ void FileQueue::remove(QueueItem* qi, bool aRemoveTTH) noexcept {
 	}
 	dcassert(queueSize >= 0);
 
-	if (aRemoveTTH) {
-		removeTTH(qi);
-	}
-}
-
-void FileQueue::removeTTH(QueueItem* qi) noexcept {
+	//TTHIndex
 	auto s = tthIndex.equal_range(qi->getTTH());
 	dcassert(s.first != s.second);
 	auto k = find_if(s.first, s.second, CompareSecond<TTHValue, QueueItem*>(qi));
@@ -142,7 +135,7 @@ QueueItem* FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName
 void FileQueue::move(QueueItem* qi, const string& aTarget) noexcept {
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
-	add(qi, false, false);
+	add(qi, false);
 }
 
 // compare nextQueryTime, get the oldest ones

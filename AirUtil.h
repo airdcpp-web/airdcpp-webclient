@@ -59,6 +59,8 @@ class AirUtil {
 		static void fileEvent(const string& tgt, bool file=false);
 		static bool isSub(const string& aDir, const string& aParent);
 		static bool isParent(const string& aDir, const string& aSub);
+		static const string getReleaseRegLong(bool chat);
+		static const string getReleaseRegBasic();
 	private:
 
 	};

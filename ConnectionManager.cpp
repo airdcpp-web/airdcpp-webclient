@@ -911,7 +911,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			}
 
 			if ((cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
-				return c->getUser() == aSource->getUser() && c->isSet(ConnectionQueueItem::FLAG_MCN1) && c->getState() != ConnectionQueueItem::RUNNING; 
+				return c->getUser() == aSource->getUser() && c->isSet(ConnectionQueueItem::FLAG_MCN1) && c->getState() != ConnectionQueueItem::RUNNING && c != cqi; 
 			}) != downloads.end()) || aSource->getState() == UserConnection::STATE_IDLE) {
 				cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
 			} else {

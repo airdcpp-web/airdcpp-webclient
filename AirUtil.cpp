@@ -29,7 +29,7 @@
 namespace dcpp {
 
 void AirUtil::init() {
-	releaseReg.Init("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+	releaseReg.Init(getReleaseRegBasic());
 	releaseReg.study();
 	subDirReg.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
 	subDirReg.study();
@@ -884,6 +884,17 @@ bool AirUtil::isSub(const string& aDir, const string& aParent) {
 bool AirUtil::isParent(const string& aDir, const string& aSub) {
 	/* returns true if aSub is a subdir of aDir OR both are the same dir */
 	return (aSub.length() >= aDir.length() && (stricmp(aSub.substr(0, aDir.length()), aDir) == 0));
+}
+
+const string AirUtil::getReleaseRegLong(bool chat) {
+	if (chat)
+		return "((?<=\\s)(?=\\S*[A-Z]\\S*)(([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S+)))(\\S+)-(\\w{2,})(?=(\\W)?\\s))";
+	else
+		return "(?=\\S*[A-Z]\\S*)(([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S+)))(\\S+)-(\\w{2,})";
+}
+
+const string AirUtil::getReleaseRegBasic() {
+	return "(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))";
 }
 
 }

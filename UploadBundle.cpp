@@ -70,6 +70,7 @@ bool UploadBundle::removeUpload(Upload* u) {
 	//dcassert(s != uploads.end());
 	if (s != uploads.end()) {
 		addUploadedSegment(u->getPos());
+		u->setBundle(nullptr);
 		uploads.erase(s);
 	}
 	return uploads.empty();

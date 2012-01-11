@@ -39,7 +39,7 @@ public:
 
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItem*> > PFSSourceList;
 
-	void add(QueueItem* qi, bool addFinished, bool addTTH = true);
+	void add(QueueItem* qi, bool addFinished);
 	QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
 	QueueItem* find(const string& target) noexcept;
@@ -55,8 +55,7 @@ public:
 	QueueItem::StringMap& getQueue() noexcept { return queue; }
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
 	void move(QueueItem* qi, const string& aTarget) noexcept;
-	void remove(QueueItem* qi, bool removeTTH) noexcept;
-	void removeTTH(QueueItem* qi) noexcept;
+	void remove(QueueItem* qi) noexcept;
 	int isFileQueued(const TTHValue& aTTH, const string& aFile) noexcept;
 	QueueItem* getQueuedFile(const TTHValue& aTTH, const string& aFile) noexcept;
 

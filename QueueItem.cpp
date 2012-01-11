@@ -380,11 +380,11 @@ uint64_t QueueItem::getDownloadedBytes() const {
 	return total;
 }
 
-void QueueItem::addSegment(const Segment& segment, bool downloaded) {
+void QueueItem::addSegment(const Segment& segment, bool downloaded, bool finishedQI /*false*/) {
 	dcassert(segment.getOverlapped() == false);
 	done.insert(segment);
 	//cache for bundles
-	if (bundle) {
+	if (bundle && !finishedQI) {
 		bundle->addSegment(segment.getSize(), downloaded);
 	}
 

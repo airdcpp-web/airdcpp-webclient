@@ -43,7 +43,7 @@
 namespace dcpp {
 
 ShareScannerManager::ShareScannerManager() : scanning(false) {
-	releaseReg.assign("(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+	releaseReg.assign(AirUtil::getReleaseRegBasic());
 	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
 	emptyDirReg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
 	crcReg.assign("(.{5,200}\\s(\\w{8})$)");
@@ -52,7 +52,7 @@ ShareScannerManager::ShareScannerManager() : scanning(false) {
 	audioBookReg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
 	flacReg.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
 	zipReg.assign("(.+\\.zip)");
-	longReleaseReg.assign("(?=\\S*[A-Z]\\S*)(([A-Z0-9]|\\w[A-Z0-9])[A-Za-z0-9-]*)(\\.|_|(-(?=\\S*\\d{4}\\S+)))(\\S+)-(\\w{2,})");
+	longReleaseReg.assign(AirUtil::getReleaseRegLong(false));
 	mvidReg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))");
 	proofImageReg.assign("(.*(jp(e)?g|png))", boost::regex_constants::icase);
 	subDirReg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);

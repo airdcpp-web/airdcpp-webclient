@@ -149,14 +149,12 @@ int64_t Bundle::getDiskUse(bool countAll) {
 }
 
 void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
-	if (find(finishedFiles.begin(), finishedFiles.end(), qi) == finishedFiles.end()) {
-		if (!finished) {
-			increaseSize(qi->getSize());
-			addSegment(qi->getSize(), false);
-			qi->setBundle(this);
-		}
-		finishedFiles.push_back(qi);
+	if (!finished) {
+		increaseSize(qi->getSize());
+		addSegment(qi->getSize(), false);
+		qi->setBundle(this);
 	}
+	finishedFiles.push_back(qi);
 }
 
 void Bundle::removeFinishedItem(QueueItem* qi) {
@@ -327,41 +325,43 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 	/* returns the local path for nmdc and the remote path for adc */
 	string remoteDir = Util::getFilePath(aRemoteFile);
 	string bundleDir = Util::getFilePath(aLocalFile);
+	string path;
 	if (simpleMatching) {
 		if (nmdc) {
 			if (Text::toLower(remoteDir).find(getName()) != string::npos)
-				return target;
+				path = target;
 		} else {
-			return Util::getDir(remoteDir, true, false);
+			path = Util::getDir(remoteDir, true, false);
 		}
 	} else {
 		/* try to find the bundle name from the path */
 		size_t pos = Text::toLower(remoteDir).find(Text::toLower(getName()) + "\\");
 		if (pos != string::npos) {
-			return nmdc ? target : remoteDir.substr(0, pos+getName().length()+1);
-		} else if (remoteDir.length() > 3) {
-			/* failed, look up the common dirs from the end */
-			string::size_type i = remoteDir.length()-2;
-			string::size_type j;
-			for(;;) {
-				j = remoteDir.find_last_of("\\", i);
-				if(j == string::npos)
-					break;
-				/* stop before comparing the bundle name */
-				//size_t tmp1 = remoteDir.length() - j;
-				//size_t tmp2 = bundleDir.length() - target.length();
-				if ((remoteDir.length() - j)-1 > bundleDir.length() - target.length())
-					break;
-				//string bundleCompare = bundleDir.substr(bundleDir.length() - (remoteDir.length()-j));
-				//string srCompare = remoteDir.substr(j);
-				if(stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
-					break;
-				i = j - 1;
-			}
-			return nmdc ? bundleDir.substr(0, bundleDir.length() - (remoteDir.length()-i-2)) : remoteDir.substr(0, i+2);
+			path = nmdc ? target : remoteDir.substr(0, pos+getName().length()+1);
 		}
 	}
-	return Util::emptyString;
+		
+	if (path.empty() && remoteDir.length() > 3) {
+		/* failed, look up the common dirs from the end */
+		string::size_type i = remoteDir.length()-2;
+		string::size_type j;
+		for(;;) {
+			j = remoteDir.find_last_of("\\", i);
+			if(j == string::npos)
+				break;
+			if(stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
+				break;
+			i = j - 1;
+		}
+		if ((remoteDir.length() - j)-1 > bundleDir.length() - target.length()) {
+			/* The next dir to compare would be the bundle dir but it doesn't really exist in the path (which is why we are here) */
+			/* There's a risk that the other user has different directory structure and all subdirs inside a big list directory */
+			/* In those cases the recursive partial list can be huge, or in NMDC there's a bigger risk of adding the sources for files that they don't really have */
+			/* TODO: do something with those */
+		}
+		path = nmdc ? bundleDir.substr(0, bundleDir.length() - (remoteDir.length()-i-2)) : remoteDir.substr(0, i+2);
+	}
+	return path;
 }
 
 string Bundle::getDirPath(const string& aDir) noexcept {
