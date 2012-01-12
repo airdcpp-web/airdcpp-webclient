@@ -16,38 +16,38 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "stdinc.h"
+#ifndef DCPLUSPLUS_DCPP_MAPPER_NATPMP_H
+#define DCPLUSPLUS_DCPP_MAPPER_NATPMP_H
+
 #include "Mapper.h"
 
 namespace dcpp {
 
-using std::make_pair;
+class Mapper_NATPMP : public Mapper
+{
+public:
+	Mapper_NATPMP() : Mapper(), lifetime(0) { }
 
-const char* Mapper::protocols[PROTOCOL_LAST] = {
-	"TCP",
-	"UDP"
+	static const string name;
+
+private:
+	bool init();
+	void uninit();
+
+	bool add(const string& port, const Protocol protocol, const string& description);
+	bool remove(const string& port, const Protocol protocol);
+
+	uint32_t renewal() const { return lifetime / 2; }
+
+	string getDeviceName();
+	string getExternalIP();
+
+	const string& getName() const { return name; }
+
+	string gateway;
+	uint32_t lifetime;
 };
 
-bool Mapper::open(const string& port, const Protocol protocol, const string& description) {
-	if(!add(port, protocol, description))
-		return false;
+} // dcpp namespace
 
-	rules.push_back(make_pair(port, protocol));
-	return true;
-}
-
-bool Mapper::close() {
-	bool ret = true;
-
-	for(auto i = rules.cbegin(), iend = rules.cend(); i != iend; ++i)
-		ret &= remove(i->first, i->second);
-	rules.clear();
-
-	return ret;
-}
-
-bool Mapper::hasRules() const {
-	return !rules.empty();
-}
-
-} // namespace dcpp
+#endif

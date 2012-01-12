@@ -19,17 +19,22 @@
 #ifndef DCPLUSPLUS_DCPP_MAPPING_MANAGER_H
 #define DCPLUSPLUS_DCPP_MAPPING_MANAGER_H
 
-#include "atomic.h"
+#include <memory>
+#include <functional>
+#include <vector>
 
 #include "forward.h"
 #include "typedefs.h"
 #include "Mapper.h"
-
-#include "Singleton.h"
-#include "Thread.h"
 #include "TimerManager.h"
+#include "atomic.h"
 
 namespace dcpp {
+
+using std::function;
+using std::make_pair;
+using std::unique_ptr;
+using std::vector;
 
 class MappingManager :
 	public Singleton<MappingManager>,
@@ -55,14 +60,15 @@ private:
 	unique_ptr<Mapper> working; /// currently working implementation.
 	uint64_t renewal; /// when the next renewal should happen, if requested by the mapper.
 
-	MappingManager() : busy(false), renewal(0) { }
-	virtual ~MappingManager() { join(); }
+	MappingManager();
+	virtual ~MappingManager() { }
 
 	int run();
 
 	void close(Mapper& mapper);
 	void log(const string& message);
 	string deviceString(Mapper& mapper) const;
+	void renewLater(Mapper& mapper);
 
 	void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
 };

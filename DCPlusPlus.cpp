@@ -81,8 +81,8 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	FavoriteManager::newInstance();
 	FinishedManager::newInstance();
 	ADLSearchManager::newInstance();
-	ConnectivityManager::newInstance();
 	MappingManager::newInstance();
+	ConnectivityManager::newInstance();
 	DebugManager::newInstance();
 	PopupManager::newInstance();
 	IgnoreManager::newInstance();

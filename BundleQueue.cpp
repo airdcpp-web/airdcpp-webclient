@@ -227,7 +227,7 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 				finishedFiles++; 
 		});
 	} else {
-		for_each(retBundles.begin(), retBundles.end(), [&](BundlePtr b) { finishedFiles += tmpBundle->getFinishedFiles().size(); });
+		for_each(retBundles.begin(), retBundles.end(), [&](BundlePtr b) { finishedFiles += b->getFinishedFiles().size(); });
 	}
 }
 

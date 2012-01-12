@@ -298,6 +298,14 @@ public:
 
 	void set(IntSetting key, bool value) { set(key, (int)value); }
 
+	const string& getDefault(StrSetting key) const {
+		return strDefaults[key - STR_FIRST];
+	}
+
+	int getDefault(IntSetting key) const {
+		return intDefaults[key - INT_FIRST];
+	}
+
 	void setDefault(StrSetting key, string const& value) {
 		strDefaults[key - STR_FIRST] = value;
 	}
@@ -309,7 +317,7 @@ public:
 		int64Defaults[key - INT64_FIRST] = value;
 	}
 
-	bool isDefault(int aSet) { return !isSet[aSet]; }
+	bool isDefault(size_t key) { return !isSet[key]; }
 
 	void unset(size_t key) { isSet[key] = false; }
 

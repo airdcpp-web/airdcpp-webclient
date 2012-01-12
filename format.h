@@ -16,38 +16,28 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "stdinc.h"
-#include "Mapper.h"
+#ifndef DCPLUSPLUS_DCPP_FORMAT_H_
+#define DCPLUSPLUS_DCPP_FORMAT_H_
+
+#include <boost/format.hpp>
 
 namespace dcpp {
 
-using std::make_pair;
-
-const char* Mapper::protocols[PROTOCOL_LAST] = {
-	"TCP",
-	"UDP"
-};
-
-bool Mapper::open(const string& port, const Protocol protocol, const string& description) {
-	if(!add(port, protocol, description))
-		return false;
-
-	rules.push_back(make_pair(port, protocol));
-	return true;
+template<typename T>
+boost::basic_format<T> dcpp_fmt(const std::basic_string<T>& t) {
+	boost::basic_format<T> fmt;
+	fmt.exceptions(boost::io::no_error_bits);
+	fmt.parse(t);
+	return fmt;
 }
 
-bool Mapper::close() {
-	bool ret = true;
-
-	for(auto i = rules.cbegin(), iend = rules.cend(); i != iend; ++i)
-		ret &= remove(i->first, i->second);
-	rules.clear();
-
-	return ret;
+template<typename T>
+boost::basic_format<T> dcpp_fmt(const T* t) {
+	return dcpp_fmt(std::basic_string<T>(t));
 }
 
-bool Mapper::hasRules() const {
-	return !rules.empty();
 }
 
-} // namespace dcpp
+using boost::str;
+
+#endif /* DCPLUSPLUS_DCPP_FORMAT_H_ */

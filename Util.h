@@ -491,8 +491,6 @@ static string getShortTimeString(time_t t = time(NULL) );
 
 	static string encodeURI(const string& /*aString*/, bool reverse = false);
 	
-	//static string getLocalIp(); in AirUtil now
-	
 	static bool isPrivateIp(string const& ip);
 	/**
 	 * Case insensitive substring search.

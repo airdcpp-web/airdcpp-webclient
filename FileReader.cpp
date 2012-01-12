@@ -229,6 +229,10 @@ size_t FileReader::readMapped(const string& file, const DataCallback& callback) 
 #include <sys/mman.h> // mmap, munmap, madvise
 #include <signal.h>  // for handling read errors from previous trio
 #include <setjmp.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 size_t FileReader::readDirect(const string& file, const DataCallback& callback) {
 	return READ_FAILED;
@@ -251,8 +255,15 @@ size_t FileReader::readMapped(const string& filename, const DataCallback& callba
 		return READ_FAILED;
 	}
 
+	struct stat statbuf;
+	if (fstat(fd, &statbuf) == -1) {
+		dcdebug("Error opening file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
+		close(fd);
+		return READ_FAILED;
+	}
+
 	int64_t pos = 0;
-	auto size =0;
+	auto size = statbuf.st_size;
 
 	// Prepare and setup a signal handler in case of SIGBUS during mmapped file reads.
 	// SIGBUS can be sent when the file is truncated or in case of read errors.
