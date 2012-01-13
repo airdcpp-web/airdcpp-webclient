@@ -1144,8 +1144,9 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 				logUpload(u);
 				if (u->getBundle())
 					u->getBundle()->removeUpload(u);
-				delayUploads.erase(i);
+				
 				delete u;
+				delayUploads.erase(i);
 				i = delayUploads.begin();
 			} else {
 				i++;

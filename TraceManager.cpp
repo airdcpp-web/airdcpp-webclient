@@ -19,8 +19,6 @@
 #include "stdinc.h"
 #include "DCPlusPlus.h"
 
-#include "DCPlusPlus.h"
-
 #include "TraceManager.h"
 
 namespace dcpp {
