@@ -21,6 +21,7 @@
 
 #include "ConnectionManager.h"
 #include "DownloadManager.h"
+#include "GeoManager.h"
 #include "UploadManager.h"
 #include "CryptoManager.h"
 #include "ShareManager.h"
@@ -90,7 +91,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	AutoSearchManager::newInstance();
 	HighlightManager::newInstance();
 	ShareScannerManager::newInstance();
-
+	GeoManager::newInstance();
 
 	SettingsManager::getInstance()->load();	
 	AutoSearchManager::getInstance()->AutoSearchLoad();
@@ -124,6 +125,11 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	if(f != NULL)
 		(*f)(p, TSTRING(DOWNLOAD_QUEUE));
 	QueueManager::getInstance()->loadQueue();
+
+	if(BOOLSETTING(GET_USER_COUNTRY)) {
+		//announce((string)("Country information"));
+		GeoManager::getInstance()->init();
+	}
 }
 
 void shutdown() {
@@ -132,11 +138,14 @@ void shutdown() {
 	ShareManager::getInstance()->shutdown();
 	ConnectionManager::getInstance()->shutdown();
 	MappingManager::getInstance()->close();
+	GeoManager::getInstance()->close();
 	BufferedSocket::waitShutdown();
 	
 	AutoSearchManager::getInstance()->AutoSearchSave();
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
+
+	GeoManager::deleteInstance();
 	MappingManager::deleteInstance();
 	ConnectivityManager::deleteInstance();
 	DebugManager::deleteInstance();

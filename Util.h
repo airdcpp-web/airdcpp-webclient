@@ -224,8 +224,7 @@ public:
 		replace(string_t(search), string_t(replacement), str);
 	}
 
-	static void decodeUrl(const string& aUrl, string& protocol, string& host, uint16_t& port, string& path, string& query, string& fragment) { bool isSecure; decodeUrl(aUrl, protocol, host, port, path, isSecure, query, fragment); }
-	static void decodeUrl(const string& aUrl, string& protocol, string& host, uint16_t& port, string& path, bool& isSecure, string& query, string& fragment);
+	static void decodeUrl(const string& aUrl, string& protocol, string& host, string& port, string& path, string& query, string& fragment);
 	static map<string, string> decodeQuery(const string& query);
 
 	static string validateFileName(string aFile);
@@ -256,7 +255,9 @@ static string getShortTimeString(time_t t = time(NULL) );
 		return buf;
 	}
 
-	static string formatParams(const string& msg, const StringMap& params, bool filter, const time_t t = time(NULL));
+	typedef string (*FilterF)(const string&);
+	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = 0);
+
 	static string formatTime(const string &msg, const time_t t);
 	static string formatRegExp(const string& msg, const StringMap& params);
 
@@ -498,15 +499,35 @@ static string getShortTimeString(time_t t = time(NULL) );
 	 */
 	static string::size_type findSubString(const string& aString, const string& aSubString, string::size_type start = 0) noexcept;
 	static wstring::size_type findSubString(const wstring& aString, const wstring& aSubString, wstring::size_type start = 0) noexcept;
+
+	/* Utf-8 versions of strnicmp and stricmp, unicode char code order (!) */
+	static int stricmp(const char* a, const char* b);
+	static int strnicmp(const char* a, const char* b, size_t n);
+
+	static int stricmp(const wchar_t* a, const wchar_t* b) {
+		while(*a && Text::toLower(*a) == Text::toLower(*b))
+			++a, ++b;
+		return ((int)Text::toLower(*a)) - ((int)Text::toLower(*b));
+	}
+	static int strnicmp(const wchar_t* a, const wchar_t* b, size_t n) {
+		while(n && *a && Text::toLower(*a) == Text::toLower(*b))
+			--n, ++a, ++b;
+
+		return n == 0 ? 0 : ((int)Text::toLower(*a)) - ((int)Text::toLower(*b));
+	}
+
+	static int stricmp(const string& a, const string& b) { return stricmp(a.c_str(), b.c_str()); }
+	static int strnicmp(const string& a, const string& b, size_t n) { return strnicmp(a.c_str(), b.c_str(), n); }
+	static int stricmp(const wstring& a, const wstring& b) { return stricmp(a.c_str(), b.c_str()); }
+	static int strnicmp(const wstring& a, const wstring& b, size_t n) { return strnicmp(a.c_str(), b.c_str(), n); }
 	
 	static void replace(string& aString, const string& findStr, const string& replaceStr);
 	static TCHAR* strstr(const TCHAR *str1, const TCHAR *str2, int *pnIdxFound);
 	static tstring replace(const tstring& aString, const tstring& fStr, const tstring& rStr);
-	static const string getIpCountry (const string& IP);
 
 	static bool getAway() { return away; }
 	static void setAway(bool aAway, bool byminimize = false);
-	static string getAwayMessage(StringMap& params);
+	static string getAwayMessage(ParamMap& params);
 	
 	static bool toBool(const int aNumber) {
 		return (aNumber > 0 ? true : false);

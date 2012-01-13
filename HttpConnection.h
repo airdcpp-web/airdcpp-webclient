@@ -28,7 +28,7 @@ class HttpConnection;
 class HttpConnectionListener {
 public:
 	virtual ~HttpConnectionListener() { }
-	template<int I>	struct X { enum { TYPE = I };  };
+	template<int I>	struct X { enum { TYPE = I }; };
 
 	typedef X<0> Data;
 	typedef X<1> Failed;
@@ -38,46 +38,35 @@ public:
 	typedef X<5> TypeBZ2;
 	typedef X<6> Retried;
 
-	virtual void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept =0;
-	virtual void on(Failed, HttpConnection*, const string&) noexcept { }
-	virtual void on(Complete, HttpConnection*, const string&, bool) noexcept { }
+	virtual void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept = 0;
+	virtual void on(Failed, HttpConnection*, const string&) noexcept = 0;
+	virtual void on(Complete, HttpConnection*, const string&, bool) noexcept = 0;
 	virtual void on(Redirected, HttpConnection*, const string&) noexcept { }
 	virtual void on(TypeNormal, HttpConnection*) noexcept { }
 	virtual void on(TypeBZ2, HttpConnection*) noexcept { }
-	virtual void on(Retried, HttpConnection*, const bool) noexcept { }
+	virtual void on(Retried, HttpConnection*, bool) noexcept { }
 };
 
 class HttpConnection : BufferedSocketListener, public Speaker<HttpConnectionListener>
 {
 public:
+	HttpConnection(bool coralize = true);
+	virtual ~HttpConnection();
+
 	void downloadFile(const string& aUrl);
-	HttpConnection() : ok(false), port(80), size(-1), moved302(false), coralizeState(CST_DEFAULT), socket(NULL) { }
-	~HttpConnection() {
-		if(socket) {
-			socket->removeListener(this); 
-			BufferedSocket::putSocket(socket);
-		}
-	}
-	
 	int64_t getSize() const { return size; }
-
-	enum CoralizeStates {CST_DEFAULT, CST_CONNECTED, CST_NOCORALIZE};
-	void setCoralizeState(CoralizeStates _cor) { coralizeState = _cor; }
-	
 private:
-
-	HttpConnection(const HttpConnection&);
-	HttpConnection& operator=(const HttpConnection&);
+	enum CoralizeState { CST_DEFAULT, CST_CONNECTED, CST_NOCORALIZE };
 
 	string currentUrl;
 	string file;
 	string server;
 	bool ok;
-	uint16_t port;
+	string port;
 	int64_t size;
 	bool moved302;
 
-	CoralizeStates coralizeState;
+	CoralizeState coralizeState;
 
 	BufferedSocket* socket;
 

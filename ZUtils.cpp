@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,21 +20,26 @@
 #include "ZUtils.h"
 
 #include "Exception.h"
-#include "ResourceManager.h"
-#include "SettingsManager.h"
+#include "File.h"
+#include "format.h"
+#include "ScopedFunctor.h"
 
 namespace dcpp {
 
-ZFilter::ZFilter() : totalIn(0), totalOut(0), compressing(true) {
-	memzero(&zs, sizeof(zs));
+using std::max;
 
-	if(deflateInit(&zs, SETTING(MAX_COMPRESSION)) != Z_OK) {
+const double ZFilter::MIN_COMPRESSION_LEVEL = 0.9;
+
+ZFilter::ZFilter() : totalIn(0), totalOut(0), compressing(true) {
+	memset(&zs, 0, sizeof(zs));
+
+	if(deflateInit(&zs, 3) != Z_OK) {
 		throw Exception(STRING(COMPRESSION_ERROR));
 	}
 }
 
 ZFilter::~ZFilter() {
-	dcdebug("ZFilter end, %ld/%ld = %.04f\n", zs.total_out, zs.total_in, (float)zs.total_out / max((float)zs.total_in, (float)1)); 
+	dcdebug("ZFilter end, %ld/%ld = %.04f\n", zs.total_out, zs.total_in, (float)zs.total_out / max((float)zs.total_in, (float)1));
 	deflateEnd(&zs);
 }
 
@@ -93,14 +98,14 @@ bool ZFilter::operator()(const void* in, size_t& insize, void* out, size_t& outs
 }
 
 UnZFilter::UnZFilter() {
-	memzero(&zs, sizeof(zs));
+	memset(&zs, 0, sizeof(zs));
 
-	if(inflateInit(&zs) != Z_OK) 
-		throw Exception(STRING(DECOMPRESSION_ERROR));
+	if(inflateInit(&zs) != Z_OK)
+		throw Exception(STRING(COMPRESSION_ERROR));
 }
 
 UnZFilter::~UnZFilter() {
-	dcdebug("UnZFilter end, %ld/%ld = %.04f\n", zs.total_out, zs.total_in, (float)zs.total_out / max((float)zs.total_in, (float)1)); 
+	dcdebug("UnZFilter end, %ld/%ld = %.04f\n", zs.total_out, zs.total_in, (float)zs.total_out / max((float)zs.total_in, (float)1));
 	inflateEnd(&zs);
 }
 
@@ -119,16 +124,34 @@ bool UnZFilter::operator()(const void* in, size_t& insize, void* out, size_t& ou
 	// with a dummy byte if at end of stream - since we don't do this it's not a real
 	// error
 	if(!(err == Z_OK || err == Z_STREAM_END || (err == Z_BUF_ERROR && in == NULL)))
-		throw Exception(STRING(DECOMPRESSION_ERROR));
+		throw Exception(STRING(COMPRESSION_ERROR));
 
 	outsize = outsize - zs.avail_out;
 	insize = insize - zs.avail_in;
 	return err == Z_OK;
 }
 
-} // namespace dcpp
+void GZ::decompress(const string& source, const string& target) {
+	auto gz = gzopen(source.c_str(), "rb");
+	if(!gz) {
+		throw Exception(STRING(COMPRESSION_ERROR));
+	}
+	ScopedFunctor([&gz] { gzclose(gz); });
 
-/**
- * @file
- * $Id: ZUtils.cpp 568 2011-07-24 18:28:43Z bigmuscle $
- */
+	File f(target, File::WRITE, File::CREATE | File::TRUNCATE);
+
+	const size_t BUF_SIZE = 64 * 1024;
+	ByteVector buf(BUF_SIZE);
+
+	while(true) {
+		auto read = gzread(gz, &buf[0], BUF_SIZE);
+		if(read > 0) {
+			f.write(&buf[0], read);
+		}
+		if(read < (int)BUF_SIZE) {
+			break;
+		}
+	}
+}
+
+} // namespace dcpp

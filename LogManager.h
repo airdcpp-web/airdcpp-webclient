@@ -44,12 +44,12 @@ public:
 
 	deque<pair<time_t, string> > getLastLogs() { Lock l(cs); return lastLogs; }
 
-	void log(Area area, StringMap& params) noexcept {
+	void log(Area area, ParamMap& params) noexcept {
 		string path = SETTING(LOG_DIRECTORY);
 		string msg;
 	
-		path += Util::formatParams(getSetting(area, FILE), params, false);
-		msg = Util::formatParams(getSetting(area, FORMAT), params, false);
+		path += Util::formatParams(getSetting(area, FILE), params);
+		msg = Util::formatParams(getSetting(area, FORMAT), params);
 
 		log(path, msg);
 	}
@@ -58,7 +58,7 @@ public:
 	
 	void message(const string& msg) {
 		if(BOOLSETTING(LOG_SYSTEM)) {
-			StringMap params;
+			ParamMap params;
 			params["message"] = msg;
 			log(LogManager::SYSTEM, params);
 		}

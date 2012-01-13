@@ -79,7 +79,7 @@ int64_t Transfer::getSecondsLeft(bool wholeFile) const {
 	return (avg > 0) ? static_cast<int64_t>(bytesLeft / avg) : 0;
 }
 
-void Transfer::getParams(const UserConnection& aSource, StringMap& params) const {
+void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const {
 	params["userCID"] = aSource.getUser()->getCID().toBase32();
 	params["userNI"] = Util::toString(ClientManager::getInstance()->getNicks(aSource.getUser()->getCID(), aSource.getHubUrl()));
 	params["userI4"] = aSource.getRemoteIp();
@@ -87,7 +87,7 @@ void Transfer::getParams(const UserConnection& aSource, StringMap& params) const
 	if(hubNames.empty())
 		hubNames.push_back(STRING(OFFLINE));
 	params["hub"] = Util::toString(hubNames);
-	StringList hubs = ClientManager::getInstance()->getHubs(aSource.getUser()->getCID(), aSource.getHubUrl());
+	StringList hubs = ClientManager::getInstance()->getHubUrls(aSource.getUser()->getCID(), aSource.getHubUrl());
 	if(hubs.empty())
 		hubs.push_back(STRING(OFFLINE));
 	params["hubURL"] = Util::toString(hubs);

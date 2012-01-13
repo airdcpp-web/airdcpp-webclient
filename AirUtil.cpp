@@ -789,9 +789,9 @@ void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
 			if(sp.first.length() > 0) {
 				STARTUPINFO si = { sizeof(si), 0 };
 				PROCESS_INFORMATION pi = { 0 };
-				StringMap params;
+				ParamMap params;
 				params["file"] = target;
-				wstring cmdLine = Text::toT(Util::formatParams(sp.second, params, false));
+				wstring cmdLine = Text::toT(Util::formatParams(sp.second, params));
 				wstring cmd = Text::toT(sp.first);
 
 				AutoArray<TCHAR> cmdLineBuf(cmdLine.length() + 1);
@@ -812,9 +812,9 @@ void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
 		if(sp.first.length() > 0) {
 			STARTUPINFO si = { sizeof(si), 0 };
 			PROCESS_INFORMATION pi = { 0 };
-			StringMap params;
+			ParamMap params;
 			params["dir"] = target;
-			wstring cmdLine = Text::toT(Util::formatParams(sp.second, params, true));
+			wstring cmdLine = Text::toT(Util::formatParams(sp.second, params));
 			wstring cmd = Text::toT(sp.first);
 
 			AutoArray<TCHAR> cmdLineBuf(cmdLine.length() + 1);

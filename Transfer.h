@@ -69,7 +69,7 @@ public:
 
 	int64_t getSecondsLeft(bool wholeFile = false) const;
 
-	void getParams(const UserConnection& aSource, StringMap& params) const;
+	void getParams(const UserConnection& aSource, ParamMap& params) const;
 
 	UserPtr getUser();
 	const UserPtr getUser() const;

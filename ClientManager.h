@@ -45,16 +45,26 @@ public:
 	Client* getClient(const string& aHubURL);
 	void putClient(Client* aClient);
 
-	StringList getHubs(const CID& cid, const string& hintUrl) const;
-	StringList getHubNames(const CID& cid, const string& hintUrl) const;
-	StringList getNicks(const CID& cid, const string& hintUrl) const;
+	size_t getUserCount() const;
+	int64_t getAvailable() const;
 
-	StringList getHubs(const CID& cid, const string& hintUrl, bool priv) const;
+	StringList getHubUrls(const CID& cid, const string& hintUrl = Util::emptyString);
+	StringList getHubNames(const CID& cid, const string& hintUrl = Util::emptyString);
+	StringList getNicks(const CID& cid, const string& hintUrl = Util::emptyString);
+	string getField(const CID& cid, const string& hintUrl, const char* field) const;
+
+	StringList getHubUrls(const CID& cid, const string& hintUrl, bool priv) const;
 	StringList getHubNames(const CID& cid, const string& hintUrl, bool priv) const;
 	StringList getNicks(const CID& cid, const string& hintUrl, bool priv) const;
-	string getField(const CID& cid, const string& hintUrl, const char* field) const;
-	StringList getNicks(const HintedUser& user) const { return getNicks(user.user->getCID(), user.hint); }
-	StringList getHubNames(const HintedUser& user) const { return getHubNames(user.user->getCID(), user.hint); }
+
+	StringList getNicks(const HintedUser& user) { return getNicks(user.user->getCID(), user.hint); }
+	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID(), user.hint); }
+	StringList getHubUrls(const HintedUser& user) { return getHubUrls(user.user->getCID(), user.hint); }
+
+	StringPairList getHubs(const CID& cid, const string& hintUrl, bool priv);
+
+	vector<Identity> getIdentities(const UserPtr &u) const;
+
 
 	string getConnection(const CID& cid) const;
 	string getDLSpeed(const CID& cid) const;
@@ -125,7 +135,7 @@ public:
 
 	void connect(const HintedUser& user, const string& token);
 	void privateMessage(const HintedUser& user, const string& msg, bool thirdPerson);
-	void userCommand(const HintedUser& user, const UserCommand& uc, StringMap& params, bool compatibility);
+	void userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility);
 
 	int getMode(const string& aHubUrl) const;
 	bool isActive(const string& aHubUrl = Util::emptyString) const { return getMode(aHubUrl) != SettingsManager::INCOMING_FIREWALL_PASSIVE; }

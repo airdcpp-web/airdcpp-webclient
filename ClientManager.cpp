@@ -74,19 +74,19 @@ void ClientManager::putClient(Client* aClient) {
 	delete aClient;
 }
 
-StringList ClientManager::getHubs(const CID& cid, const string& hintUrl) const {
-	return getHubs(cid, hintUrl, FavoriteManager::getInstance()->isPrivate(hintUrl));
+StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl) {
+	return getHubUrls(cid, hintUrl, FavoriteManager::getInstance()->isPrivate(hintUrl));
 }
 
-StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl) const {
+StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl) {
 	return getHubNames(cid, hintUrl, FavoriteManager::getInstance()->isPrivate(hintUrl));
 }
 
-StringList ClientManager::getNicks(const CID& cid, const string& hintUrl) const {
+StringList ClientManager::getNicks(const CID& cid, const string& hintUrl) {
 	return getNicks(cid, hintUrl, FavoriteManager::getInstance()->isPrivate(hintUrl));
 }
 
-StringList ClientManager::getHubs(const CID& cid, const string& hintUrl, bool priv) const {
+StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl, bool priv) const {
 	Lock l(cs);
 	StringList lst;
 	if(!priv) {
@@ -431,7 +431,7 @@ void ClientManager::privateMessage(const HintedUser& user, const string& msg, bo
 	}
 }
 
-void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, StringMap& params, bool compatibility) {
+void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility) {
 	Lock l(cs);
 	/** @todo we allow wrong hints for now ("false" param of findOnlineUser) because users
 	 * extracted from search results don't always have a correct hint; see
@@ -445,7 +445,6 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, S
 	ou->getIdentity().getParams(params, "user", compatibility);
 	ou->getClient().getHubIdentity().getParams(params, "hub", false);
 	ou->getClient().getMyIdentity().getParams(params, "my", compatibility);
-	ou->getClient().escapeParams(params);
 	ou->getClient().sendUserCmd(uc, params);
 }
 
@@ -514,17 +513,16 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		} else {
 			try {
 				Socket udp;
-				string ip, file, proto, query, fragment;
-				uint16_t port = 0;
+				string ip, file, proto, query, fragment, port;
 
 				Util::decodeUrl(aSeeker, proto, ip, port, file, query, fragment);
 				ip = Socket::resolve(ip);
 				
-				if(port == 0) 
-					port = 412;
+				if(port == "0") 
+					port = "412";
 				for(SearchResultList::const_iterator i = l.begin(); i != l.end(); ++i) {
 					const SearchResultPtr& sr = *i;
-					udp.writeTo(ip, port, sr->toSR(*aClient));
+					udp.writeTo(ip, Util::toInt(port), sr->toSR(*aClient));
 				}
 			} catch(...) {
 				dcdebug("Search caught error\n");
@@ -542,14 +540,13 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			return;
 		}
 		
-		string ip, file, proto, query, fragment;
-		uint16_t port = 0;
+		string ip, file, proto, query, fragment, port;
 		Util::decodeUrl(aSeeker, proto, ip, port, file, query, fragment);
 		
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, aClient->getMyNick(), aClient->getIpPort(), aTTH.toBase32(), partialInfo);
 			Socket s;
-			s.writeTo(Socket::resolve(ip), port, cmd.toString(ClientManager::getInstance()->getMe()->getCID()));
+			s.writeTo(Socket::resolve(ip), Util::toInt(port), cmd.toString(ClientManager::getInstance()->getMe()->getCID()));
 		} catch(...) {
 			dcdebug("Partial search caught error\n");		
 		}

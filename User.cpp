@@ -23,6 +23,7 @@
 #include "Client.h"
 #include "StringTokenizer.h"
 #include "FavoriteUser.h"
+#include "GeoManager.h"
 
 #include "ClientManager.h"
 #include "UserCommand.h"
@@ -52,7 +53,7 @@ bool Identity::isUdpActive() const {
 	return (!user->isSet(User::NMDC)) ? supports(AdcHub::UDP4_FEATURE) : !user->isSet(User::PASSIVE);
 }
 
-void Identity::getParams(StringMap& sm, const string& prefix, bool compatibility) const {
+void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
 	{
 		FastLock l(cs);
 		for(InfIter i = info.begin(); i != info.end(); ++i) {
@@ -118,7 +119,7 @@ string Identity::getApplication() const {
 }
 
 const string& Identity::getCountry() const {
-	return Util::getIpCountry(getIp());
+	return GeoManager::getInstance()->getCountry(getIp());
 }
 
 string Identity::get(const char* name) const {
@@ -195,7 +196,7 @@ tstring OnlineUser::getText(uint8_t col) const {
 		case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Text::toT(Util::formatBytes(identity.get("DS"))) + _T("/s"));
 		case COLUMN_IP: {
 			string ip = identity.getIp();
-			string country = ip.empty() ? Util::emptyString : Util::getIpCountry(ip);
+			string country = ip.empty() ? Util::emptyString : identity.getCountry();
 			if (!country.empty())
 				ip = country + " (" + ip + ")";
 			return Text::toT(ip);

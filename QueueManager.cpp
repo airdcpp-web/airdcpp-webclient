@@ -1202,7 +1202,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 			}
 
 			if(BOOLSETTING(LOG_DOWNLOADS)) {
-				StringMap params;
+				ParamMap params;
 				d->getParams(d->getUserConnection(), params);
 				LOG(LogManager::DOWNLOAD, params);
 			}

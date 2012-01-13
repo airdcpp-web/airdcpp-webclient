@@ -35,7 +35,7 @@ Client::Client(const string& hubURL, char separator_, bool secure_) :
 	myIdentity(ClientManager::getInstance()->getMe(), 0),
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	encoding(Text::systemCharset), state(STATE_DISCONNECTED), sock(0),
-	hubUrl(hubURL), port(0), separator(separator_),
+	hubUrl(hubURL), separator(separator_),
 	secure(secure_), countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0)
 {
 	string file, proto, query, fragment;
@@ -140,7 +140,7 @@ void Client::connect() {
 	try {
 		sock = BufferedSocket::getSocket(separator);
 		sock->addListener(this);
-		sock->connect(address, port, secure, BOOLSETTING(ALLOW_UNTRUSTED_HUBS), true);
+		sock->connect(address, Util::toInt(port), secure, BOOLSETTING(ALLOW_UNTRUSTED_HUBS), true);
 	} catch(const Exception& e) {
 		shutdown();
 		/// @todo at this point, this hub instance is completely useless
@@ -288,6 +288,12 @@ uint64_t Client::search(int aSizeMode, int64_t aSize, int aFileType, const strin
 	search(aSizeMode, aSize, aFileType , aString, aToken, aExtList);
 	return 0;
 
+}
+
+string Client::getCounts() {
+	char buf[128];
+	return string(buf, snprintf(buf, sizeof(buf), "%ld/%ld/%ld",
+		counts[COUNT_NORMAL].load(), counts[COUNT_REGISTERED].load(), counts[COUNT_OP].load()));
 }
  
 void Client::on(Line, const string& aLine) noexcept {

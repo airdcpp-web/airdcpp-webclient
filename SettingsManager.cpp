@@ -60,7 +60,7 @@ const string SettingsManager::settingTags[] =
 	"MainFrameVisible", "SearchFrameVisible", "QueueFrameVisible", "HubFrameVisible", "UploadQueueFrameVisible", 
 	"EmoticonsFile", "TLSPrivateKeyFile", "TLSCertificateFile", "TLSTrustedCertificatesPath",
 	"FinishedVisible", "FinishedULVisible", "DirectoryListingFrameVisible",
-	"RecentFrameOrder", "RecentFrameWidths", "Mapper",
+	"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat",
 
 	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat","WinampPath",
 	"AntivirPath",
@@ -707,6 +707,7 @@ SettingsManager::SettingsManager()
 	setDefault(ALLOW_MATCH_FULL_LIST, false);
 	setDefault(REPORT_ADDED_SOURCES, false);
 	setDefault(EXPAND_BUNDLES, false);
+	setDefault(COUNTRY_FORMAT, "%[2code] - %[name]");
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

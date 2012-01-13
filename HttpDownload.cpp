@@ -17,25 +17,40 @@
  */
 
 #include "stdinc.h"
-#include "Upload.h"
-
-#include "UserConnection.h"
-#include "Streams.h"
+#include "HttpDownload.h"
 
 namespace dcpp {
 
-Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth) : Transfer(conn, path, tth), stream(0), fileSize(-1), delayTime(0) { 
-	conn.setUpload(this);
+HttpDownload::HttpDownload(const string& address, CompletionF f, bool coralize) :
+c(coralize),
+f(f)
+{
+	c.addListener(this);
+	c.downloadFile(address);
 }
 
-Upload::~Upload() { 
-	getUserConnection().setUpload(0);
-	delete stream; 
+HttpDownload::~HttpDownload() {
+	c.removeListener(this);
 }
 
-void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {
-	Transfer::getParams(aSource, params);
-	params["source"] = getPath();
+void HttpDownload::on(HttpConnectionListener::Data, HttpConnection*, const uint8_t* buf_, size_t len) noexcept {
+	buf.append(reinterpret_cast<const char*>(buf_), len);
+}
+
+void HttpDownload::on(HttpConnectionListener::Failed, HttpConnection*, const string& status_) noexcept {
+	buf.clear();
+	status = status_;
+	f();
+}
+
+void HttpDownload::on(HttpConnectionListener::Complete, HttpConnection*, const string& status_, bool) noexcept {
+	status = status_;
+	f();
+}
+
+void HttpDownload::on(HttpConnectionListener::Retried, HttpConnection*, bool connected) noexcept {
+	if(connected)
+		buf.clear();
 }
 
 } // namespace dcpp

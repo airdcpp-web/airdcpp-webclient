@@ -19,13 +19,21 @@
 #ifndef DCPLUSPLUS_DCPP_Z_UTILS_H
 #define DCPLUSPLUS_DCPP_Z_UTILS_H
 
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+
 #include <zlib.h>
 
 namespace dcpp {
 
+using std::string;
+
 class ZFilter {
 public:
+	/** Compression will automatically be turned off if below this... */
+	static const double MIN_COMPRESSION_LEVEL;
+
 	ZFilter();
 	~ZFilter();
 	/**
@@ -61,6 +69,11 @@ private:
 	z_stream zs;
 };
 
+class GZ {
+public:
+	static void decompress(const string& source, const string& target);
+};
+
 class CRC32Filter {
 public:
 	CRC32Filter() : crc(crc32(0, NULL, 0)) { }
@@ -74,8 +87,3 @@ private:
 } // namespace dcpp
 
 #endif // !defined(_Z_UTILS_H)
-
-/**
- * @file
- * $Id: ZUtils.h 568 2011-07-24 18:28:43Z bigmuscle $
- */

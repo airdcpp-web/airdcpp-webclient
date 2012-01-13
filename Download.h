@@ -46,7 +46,7 @@ public:
 
 	Download(UserConnection& conn, QueueItem& qi) noexcept;
 
-	void getParams(const UserConnection& aSource, StringMap& params);
+	void getParams(const UserConnection& aSource, ParamMap& params);
 
 	~Download();
 

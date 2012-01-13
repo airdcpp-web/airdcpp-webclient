@@ -169,7 +169,7 @@ const string& QueueItem::getTempTarget() {
 	if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
 		if(!SETTING(TEMP_DOWNLOAD_DIRECTORY).empty() && (File::getSize(getTarget()) == -1)) {
 #ifdef _WIN32
-			dcpp::StringMap sm;
+			ParamMap sm;
 			if(target.length() >= 3 && target[1] == ':' && target[2] == '\\')
 				sm["targetdrive"] = target.substr(0, 3);
 			else

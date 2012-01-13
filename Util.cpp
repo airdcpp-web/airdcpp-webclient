@@ -277,7 +277,7 @@ void Util::loadBootConfig() {
 		boot.resetCurrentChild();
 		
 		if(boot.findChild("ConfigPath")) {
-			StringMap params;
+			ParamMap params;
 #ifdef _WIN32
 			// @todo load environment variables instead? would make it more useful on *nix
 			TCHAR path[MAX_PATH];
@@ -285,7 +285,7 @@ void Util::loadBootConfig() {
 			params["APPDATA"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, path), path));
 			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, path), path));
 #endif
-			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), params, false);
+			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), params);
 		}
 	} catch(const Exception& ) {
 		// Unable to load boot settings...
@@ -409,10 +409,9 @@ string Util::getShortTimeString(time_t t) {
  * Decodes a URL the best it can...
  * Default ports:
  * http:// -> port 80
- * https:// -> port 443
  * dchub:// -> port 411
  */
-void Util::decodeUrl(const string& url, string& protocol, string& host, uint16_t& port, string& path, bool& isSecure, string& query, string& fragment) {
+void Util::decodeUrl(const string& url, string& protocol, string& host, string& port, string& path, string& query, string& fragment) {
 	auto fragmentEnd = url.size();
 	auto fragmentStart = url.rfind('#');
 
@@ -486,23 +485,22 @@ void Util::decodeUrl(const string& url, string& protocol, string& host, uint16_t
 
 		if(portStart == string::npos) {
 			if(protocol == "http") {
-				port = 80;
+				port = "80";
 			} else if(protocol == "https") {
-				port = 443;
-				isSecure = true;
+				port = "443";
 			} else if(protocol == "dchub"  || protocol.empty()) {
-				port = 411;
+				port = "411";
 			}
 		} else {
 			dcdebug("p");
-			port = static_cast<uint16_t>(Util::toInt(url.substr(portStart, authorityEnd - portStart)));
+			port = url.substr(portStart, authorityEnd - portStart);
 		}
 	}
 
 	dcdebug("\n");
 	path = url.substr(fileStart, fileEnd - fileStart);
 	query = url.substr(queryStart, queryEnd - queryStart);
-	fragment = url.substr(fragmentStart, fragmentStart);
+	fragment = url.substr(fragmentStart, fragmentEnd - fragmentStart);
 }
 
 map<string, string> Util::decodeQuery(const string& query) {
@@ -541,9 +539,9 @@ void Util::setAway(bool aAway, bool byminimize /*false*/) {
 		awayTime = time(NULL);
 }
 
-string Util::getAwayMessage(StringMap& params) { 
+string Util::getAwayMessage(ParamMap& params) { 
 	params["idleTI"] = Text::fromT(formatSeconds(time(NULL) - awayTime));
-	return formatParams(awayMsg.empty() ? SETTING(DEFAULT_AWAY_MESSAGE) : awayMsg, params, false, awayTime);
+	return formatParams(awayMsg.empty() ? SETTING(DEFAULT_AWAY_MESSAGE) : awayMsg, params);
 }
 
 string Util::formatBytes(int64_t aBytes) {
@@ -769,6 +767,46 @@ wstring::size_type Util::findSubString(const wstring& aString, const wstring& aS
 	return static_cast<wstring::size_type>(wstring::npos);
 }
 
+int Util::stricmp(const char* a, const char* b) {
+	while(*a) {
+		wchar_t ca = 0, cb = 0;
+		int na = Text::utf8ToWc(a, ca);
+		int nb = Text::utf8ToWc(b, cb);
+		ca = Text::toLower(ca);
+		cb = Text::toLower(cb);
+		if(ca != cb) {
+			return (int)ca - (int)cb;
+		}
+		a += abs(na);
+		b += abs(nb);
+	}
+	wchar_t ca = 0, cb = 0;
+	Text::utf8ToWc(a, ca);
+	Text::utf8ToWc(b, cb);
+
+	return (int)Text::toLower(ca) - (int)Text::toLower(cb);
+}
+
+int Util::strnicmp(const char* a, const char* b, size_t n) {
+	const char* end = a + n;
+	while(*a && a < end) {
+		wchar_t ca = 0, cb = 0;
+		int na = Text::utf8ToWc(a, ca);
+		int nb = Text::utf8ToWc(b, cb);
+		ca = Text::toLower(ca);
+		cb = Text::toLower(cb);
+		if(ca != cb) {
+			return (int)ca - (int)cb;
+		}
+		a += abs(na);
+		b += abs(nb);
+	}
+	wchar_t ca = 0, cb = 0;
+	Text::utf8ToWc(a, ca);
+	Text::utf8ToWc(b, cb);
+	return (a >= end) ? 0 : ((int)Text::toLower(ca) - (int)Text::toLower(cb));
+}
+
 string Util::encodeURI(const string& aString, bool reverse) {
 	// reference: rfc2396
 	string tmp = aString;
@@ -802,6 +840,13 @@ string Util::encodeURI(const string& aString, bool reverse) {
 	return tmp;
 }
 
+
+// used to parse the boost::variant params of the formatParams function.
+struct GetString : boost::static_visitor<string> {
+	string operator()(const string& s) const { return s; }
+	string operator()(const std::function<string ()>& f) const { return f(); }
+};
+
 /**
  * This function takes a string and a set of parameters and transforms them according to
  * a simple formatting rule, similar to strftime. In the message, every parameter should be
@@ -810,7 +855,8 @@ string Util::encodeURI(const string& aString, bool reverse) {
  * date/time and then finally written to the log file. If the parameter is not present at all,
  * it is removed from the string completely...
  */
-string Util::formatParams(const string& msg, const StringMap& params, bool filter, const time_t t) {
+
+string Util::formatParams(const string& msg, const ParamMap& params, FilterF filter) {
 	string result = msg;
 
 	string::size_type i, j, k;
@@ -819,38 +865,30 @@ string Util::formatParams(const string& msg, const StringMap& params, bool filte
 		if( (result.size() < j + 2) || ((k = result.find(']', j + 2)) == string::npos) ) {
 			break;
 		}
-		string name = result.substr(j + 2, k - j - 2);
-		StringMap::const_iterator smi = params.find(name);
-		if(smi == params.end()) {
-			result.erase(j, k-j + 1);
+
+		auto param = params.find(result.substr(j + 2, k - j - 2));
+
+		if(param == params.end()) {
+			result.erase(j, k - j + 1);
 			i = j;
+
 		} else {
-			if(smi->second.find_first_of("%\\./") != string::npos) {
-				string tmp = smi->second;	// replace all % in params with %% for strftime
-				string::size_type m = 0;
-				while(( m = tmp.find('%', m)) != string::npos) {
-					tmp.replace(m, 1, "%%");
-					m+=2;
-				}
-				if(filter) {
-					// Filter chars that produce bad effects on file systems
-					m = 0;
-					while(( m = tmp.find_first_of("\\./", m)) != string::npos) {
-						tmp[m] = '_';
-					}
-				}
-				
-				result.replace(j, k-j + 1, tmp);
-				i = j + tmp.size();
-			} else {
-				result.replace(j, k-j + 1, smi->second);
-				i = j + smi->second.size();
+			auto replacement = boost::apply_visitor(GetString(), param->second);
+
+			// replace all % in params with %% for strftime
+			replace("%", "%%", replacement);
+
+			if(filter) {
+				replacement = filter(replacement);
 			}
+
+			result.replace(j, k - j + 1, replacement);
+			i = j + replacement.size();
 		}
 	}
 
-	result = formatTime(result, t);
-	
+	result = formatTime(result, time(NULL));
+
 	return result;
 }
 
@@ -1039,37 +1077,6 @@ uint32_t Util::rand() {
 	y ^= TEMPERING_SHIFT_L(y);
 
 	return y; 
-}
-
-/*	getIpCountry
-	This function returns the country(Abbreviation) of an ip
-	for exemple: it returns "PT", whitch standards for "Portugal"
-	more info: http://www.maxmind.com/app/csv
-*/
-const string Util::getIpCountry (const string& IP) {
-	if (BOOLSETTING(GET_USER_COUNTRY)) {
-		if(count(IP.begin(), IP.end(), '.') != 3)
-			return emptyString;
-
-		//e.g IP 23.24.25.26 : w=23, x=24, y=25, z=26
-		string::size_type a = IP.find('.');
-		string::size_type b = IP.find('.', a+1);
-		string::size_type c = IP.find('.', b+2);
-
-		/// @todo this is impl dependant and is working by chance because we are currently using atoi!
-		uint32_t ipnum = (toUInt32(IP.c_str()) << 24) |
-			(toUInt32(IP.c_str() + a + 1) << 16) |
-			(toUInt32(IP.c_str() + b + 1) << 8) |
-			(toUInt32(IP.c_str() + c + 1) );
-
-		auto i = countries.lower_bound(ipnum);
-		if(i != countries.end()) {
-			return string((char*)&(i->second), 2);
-			//return countryNames[i->second];
-		}
-	}
-
-	return emptyString;
 }
 
 string Util::getDateTime(time_t t) {

@@ -117,7 +117,7 @@ public:
 	static string getVersion(const string& aExp, string aTag);
 	static string splitVersion(const string& aExp, string aTag, size_t part);
 	
-	void getParams(StringMap& map, const string& prefix, bool compatibility) const;
+	void getParams(ParamMap& map, const string& prefix, bool compatibility) const;
 	UserPtr& getUser() { return user; }
 	GETSET(UserPtr, user, User);
 private:

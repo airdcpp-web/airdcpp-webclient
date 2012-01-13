@@ -82,6 +82,10 @@ struct HashValue;
 struct HintedUser;
 typedef std::vector<HintedUser> HintedUserList;
 
+class HttpConnection;
+
+struct HttpDownload;
+
 class HubEntry;
 typedef std::vector<HubEntry> HubEntryList;
 

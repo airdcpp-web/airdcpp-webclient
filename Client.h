@@ -67,7 +67,7 @@ public:
 	virtual void connect(const OnlineUser& user, const string& token) = 0;
 	virtual void hubMessage(const string& aMessage, bool thirdPerson = false) = 0;
 	virtual void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false) = 0;
-	virtual void sendUserCmd(const UserCommand& command, const StringMap& params) = 0;
+	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
 	uint64_t search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* owner);
 	void cancelSearch(void* aOwner) { searchQueue.cancelSearch(aOwner); }
@@ -79,8 +79,6 @@ public:
 	int64_t getAvailable() const { return availableBytes; };
 	
 	virtual void send(const AdcCommand& command) = 0;
-
-	virtual string escape(string const& str) const { return str; }
 
 	bool isConnected() const { return state != STATE_DISCONNECTED; }
 	bool isReady() const { return state != STATE_CONNECTING && state != STATE_DISCONNECTED; }
@@ -95,11 +93,11 @@ public:
 	virtual void getUserList(OnlineUserList& list) const = 0;
 	virtual OnlineUserPtr findUser(const string& aNick) const = 0;
 	
-	uint16_t getPort() const { return port; }
+	uint16_t getPort() const { return Util::toInt(port); }
 	const string& getAddress() const { return address; }
 
 	const string& getIp() const { return ip; }
-	string getIpPort() const { return getIp() + ':' + Util::toString(port); }
+	string getIpPort() const { return getIp() + ':' + port; }
 	string getLocalIp() const;
 
 	void updated(const OnlineUserPtr& aUser) { fire(ClientListener::UserUpdated(), this, aUser); }
@@ -108,18 +106,7 @@ public:
 		return counts[COUNT_NORMAL] + counts[COUNT_REGISTERED] + counts[COUNT_OP];
 	}
 
-	static string getCounts() {
-		char buf[128];
-		return string(buf, snprintf(buf, sizeof(buf), "%ld/%ld/%ld",
-				counts[COUNT_NORMAL].load(), counts[COUNT_REGISTERED].load(), counts[COUNT_OP].load()));
-	}
-	
-	StringMap& escapeParams(StringMap& sm) {
-		for(StringMapIter i = sm.begin(); i != sm.end(); ++i) {
-			i->second = escape(i->second);
-		}
-		return sm;
-	}
+	static string getCounts();
 	
 	void setSearchInterval(uint32_t aInterval) {
 		// min interval is 5 seconds
@@ -230,7 +217,7 @@ private:
 
 	int seticons;
 
-	uint16_t port;
+	string port;
 	char separator;
 	bool secure;
 	CountType countType;

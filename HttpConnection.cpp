@@ -24,7 +24,25 @@
 
 namespace dcpp {
 
+
 static const std::string CORAL_SUFFIX = ".nyud.net";
+
+HttpConnection::HttpConnection(bool coralize) :
+ok(false),
+port("80"),
+size(-1),
+moved302(false),
+coralizeState(coralize ? CST_DEFAULT : CST_NOCORALIZE),
+socket(0)
+{
+}
+
+HttpConnection::~HttpConnection() {
+	if(socket) {
+		socket->removeListener(this);
+		BufferedSocket::putSocket(socket);
+	}
+}
 
 /**
  * Downloads a file and returns it as a string
@@ -53,14 +71,13 @@ void HttpConnection::downloadFile(const string& aUrl) {
 		fire(HttpConnectionListener::TypeNormal(), this);
 	}
 
-	bool isSecure = false;
 	string proto, query, fragment;
 	if(SETTING(HTTP_PROXY).empty()) {
-		Util::decodeUrl(currentUrl, proto, server, port, file, isSecure, query, fragment);
+		Util::decodeUrl(currentUrl, proto, server, port, file, query, fragment);
 		if(file.empty())
 			file = "/";
 	} else {
-		Util::decodeUrl(SETTING(HTTP_PROXY), proto, server, port, file, isSecure, query, fragment);
+		Util::decodeUrl(SETTING(HTTP_PROXY), proto, server, port, file, query, fragment);
 		file = currentUrl;
 	}
 
@@ -76,15 +93,15 @@ void HttpConnection::downloadFile(const string& aUrl) {
 		
 	}
 
-	if(port == 0)
-		port = 80;
+	if(port == "0")
+		port = "80";
 	
 	if(!socket) {
 		socket = BufferedSocket::getSocket(0x0a);
 	}
 	socket->addListener(this);
 	try {
-		socket->connect(server, port, isSecure, true, false);
+		socket->connect(server, Util::toInt(port), false, true, false);
 	} catch(const Exception& e) {
 		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
 	} catch(...) { }
@@ -103,8 +120,7 @@ void HttpConnection::on(BufferedSocketListener::Connected) noexcept {
 	string sRemoteServer = server; 
 	if(!SETTING(HTTP_PROXY).empty()) 
 	{ 
-		string tfile, proto, query, fragment;
-		uint16_t tport; 
+		string tfile, proto, query, fragment, tport;
 		Util::decodeUrl(file, proto, sRemoteServer, tport, tfile, query, fragment);
 	} 
 	socket->write("Host: " + sRemoteServer + "\r\n"); 
@@ -151,8 +167,8 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 				string proto, query, fragment;
 				Util::decodeUrl(currentUrl, proto, server, port, file, query, fragment);
 				string tmp = "http://" + server;
-				if(port != 80)
-					tmp += ':' + Util::toString(port);
+				if(port != "80")
+					tmp += ':' + port;
 				location302 = tmp + location302;
 			} else {
 				string::size_type i = currentUrl.rfind('/');

@@ -1047,9 +1047,9 @@ void NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage,
 	}
 }
 
-void NmdcHub::sendUserCmd(const UserCommand& command, const StringMap& params) {
+void NmdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 	checkstate();
-	string cmd = Util::formatParams(command.getCommand(), params, false);
+	string cmd = Util::formatParams(command.getCommand(), params);
 	if(command.isChat()) {
 		if(command.getTo().empty()) {
 			hubMessage(cmd);

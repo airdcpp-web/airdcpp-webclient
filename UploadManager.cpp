@@ -951,7 +951,7 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 
 void UploadManager::logUpload(const Upload* u) {
 	if(BOOLSETTING(LOG_UPLOADS) && u->getType() != Transfer::TYPE_TREE && (BOOLSETTING(LOG_FILELIST_TRANSFERS) || u->getType() != Transfer::TYPE_FULL_LIST)) {
-		StringMap params;
+		ParamMap params;
 		u->getParams(u->getUserConnection(), params);
 		LOG(LogManager::UPLOAD, params);
 	}

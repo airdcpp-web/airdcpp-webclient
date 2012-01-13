@@ -27,7 +27,7 @@ public:
 	Upload(UserConnection& conn, const string& path, const TTHValue& tth);
 	~Upload();
 
-	void getParams(const UserConnection& aSource, StringMap& params) const;
+	void getParams(const UserConnection& aSource, ParamMap& params) const;
 
 	GETSET(int64_t, fileSize, FileSize);
 	GETSET(InputStream*, stream, Stream);

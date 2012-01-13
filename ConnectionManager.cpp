@@ -425,9 +425,6 @@ void ConnectionManager::nmdcConnect(const string& aServer, uint16_t aPort, uint1
 	uc->setEncoding(encoding);
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setFlag(UserConnection::FLAG_NMDC);
-	if(stealth) {
-		uc->setFlag(UserConnection::FLAG_STEALTH);
-	}
 	try {
 		uc->connect(aServer, aPort, localPort, natRole);
 	} catch(const Exception&) {
@@ -620,9 +617,6 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 		// We don't need this connection for downloading...make it an upload connection instead...
 		aSource->setFlag(UserConnection::FLAG_UPLOAD);
 	}
-
-	if(ClientManager::getInstance()->isStealth(aSource->getHubUrl()))
-		aSource->setFlag(UserConnection::FLAG_STEALTH);
 
 	ClientManager::getInstance()->setIPUser(aSource->getUser(), aSource->getRemoteIp());
 

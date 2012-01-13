@@ -16,26 +16,41 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "stdinc.h"
-#include "Upload.h"
+#ifndef DCPLUSPLUS_DCPP_GEOIP_H
+#define DCPLUSPLUS_DCPP_GEOIP_H
 
-#include "UserConnection.h"
-#include "Streams.h"
+#include <string>
+#include <vector>
+
+typedef struct GeoIPTag GeoIP;
 
 namespace dcpp {
 
-Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth) : Transfer(conn, path, tth), stream(0), fileSize(-1), delayTime(0) { 
-	conn.setUpload(this);
-}
+using std::string;
+using std::vector;
 
-Upload::~Upload() { 
-	getUserConnection().setUpload(0);
-	delete stream; 
-}
+class GeoIP : boost::noncopyable {
+public:
+	explicit GeoIP(string&& path);
+	~GeoIP();
 
-void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {
-	Transfer::getParams(aSource, params);
-	params["source"] = getPath();
-}
+	const string& getCountry(const string& ip) const;
+	void update();
+	void rebuild();
+
+private:
+	bool decompress() const;
+	void open();
+	void close();
+	bool v6() const;
+
+	//mutable CriticalSection cs;
+	::GeoIP* geo;
+
+	const string path;
+	vector<string> cache;
+};
 
 } // namespace dcpp
+
+#endif // !defined(DCPLUSPLUS_DCPP_GEOIP_H)

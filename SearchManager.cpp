@@ -386,9 +386,9 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	if(!file.empty() && freeSlots != -1 && size != -1) {
 		TTHValue th;
 		/// @todo get the hub this was sent from, to be passed as a hint? (eg by using the token?)
-		StringList names = ClientManager::getInstance()->getHubNames(from->getCID(), Util::emptyString);
+		StringList names = ClientManager::getInstance()->getHubNames(from->getCID());
 		string hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
-		StringList hubs = ClientManager::getInstance()->getHubs(from->getCID(), Util::emptyString);
+		StringList hubs = ClientManager::getInstance()->getHubUrls(from->getCID());
 		string hub = hubs.empty() ? STRING(OFFLINE) : Util::toString(hubs);
 
 		SearchResult::Types type = (file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);

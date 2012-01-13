@@ -22,6 +22,8 @@
 #include <stdint.h>
 #include "forward.h"
 
+#include "boost/variant.hpp"
+
 namespace dcpp {
 
 typedef vector<string> StringList;
@@ -86,6 +88,8 @@ typedef StringMap TStringMap;
 typedef StringMapIter TStringMapIter;
 
 #endif
+
+typedef unordered_map<string, boost::variant<string, std::function<string ()>>> ParamMap;
 
 }
 

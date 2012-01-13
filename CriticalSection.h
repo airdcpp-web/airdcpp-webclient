@@ -16,9 +16,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if !defined(CRITICAL_SECTION_H)
-#define CRITICAL_SECTION_H
-
 #include "Thread.h"
 
 namespace dcpp {
@@ -119,8 +116,6 @@ typedef LockBase<CriticalSection> Lock;
 typedef LockBase<FastCriticalSection> FastLock;
 
 } // namespace dcpp
-
-#endif // !defined(CRITICAL_SECTION_H)
 
 /**
  * @file
