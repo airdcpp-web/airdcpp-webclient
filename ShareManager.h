@@ -154,21 +154,14 @@ public:
 
 	bool isTTHShared(const TTHValue& tth) {
 		RLock l(cs);
-		return tthIndex.find(tth) != tthIndex.end();
+		return tthIndex.find(const_cast<TTHValue*>(&tth)) != tthIndex.end();
 	}
 
 	StringList getRealPaths(const std::string path);
 
 
-	string getRealPath(const TTHValue& root) {
-		RLock l(cs); //better the possible small freeze than a crash right?
-		string result = ""; 
-		HashFileIter i = tthIndex.find(root);
-		if(i != tthIndex.end()) {
-			result = i->second->getRealPath();
-		}
-		return result;
-	}
+	string getRealPath(const TTHValue& root);
+
 	enum { 
 		REFRESH_STARTED,
 		REFRESH_PATH_NOT_FOUND,
@@ -372,7 +365,7 @@ private:
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	StringMap shares;
 
-	typedef unordered_multimap<TTHValue, Directory::File::Set::const_iterator> HashFileMap;
+	typedef unordered_multimap<TTHValue*, Directory::File::Set::const_iterator> HashFileMap;
 	typedef HashFileMap::const_iterator HashFileIter;
 
 	HashFileMap tthIndex;
@@ -403,7 +396,7 @@ private:
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);
 	StringList bundleDirs;
 	
-	void CleanDir(Directory::Ptr& dir);
+	void cleanIndices(Directory::Ptr& dir);
 
 	StringList refreshPaths;
 	int refreshOptions;

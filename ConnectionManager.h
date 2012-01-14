@@ -194,7 +194,7 @@ private:
 	void addDownloadConnection(UserConnection* uc);
 
 	void checkWaitingMCN() noexcept;
-	typedef unordered_set<ConnectionQueueItem*> CQIList;
+	//typedef unordered_set<ConnectionQueueItem*> CQIList;
 
 	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token=Util::emptyString);
 	void putCQI(ConnectionQueueItem* cqi);

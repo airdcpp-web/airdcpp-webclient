@@ -128,6 +128,15 @@ void ShareManager::Directory::addType(uint32_t type) noexcept {
 			getParent()->addType(type);
 	}
 }
+string ShareManager::getRealPath(const TTHValue& root) {
+	RLock l(cs); //better the possible small freeze than a crash right?
+	string result = ""; 
+	HashFileIter i = tthIndex.find(const_cast<TTHValue*>(&root));
+	if(i != tthIndex.end()) {
+		result = i->second->getRealPath();
+	}
+	return result;
+}
 
 string ShareManager::Directory::getRealPath(const std::string& path, bool loading/*false*/) const {
 	if(getParent()) {
@@ -187,7 +196,7 @@ string ShareManager::toVirtual(const TTHValue& tth) const  {
 	}
 
 	RLock l(cs);
-	HashFileMap::const_iterator i = tthIndex.find(tth);
+	HashFileMap::const_iterator i = tthIndex.find(const_cast<TTHValue*>(&tth));
 	if(i != tthIndex.end()) {
 		return i->second->getADCPath();
 	} else {
@@ -262,7 +271,7 @@ AdcCommand ShareManager::getFileInfo(const string& aFile) {
 
 	TTHValue val(aFile.substr(4));
 	RLock l(cs);
-	HashFileIter i = tthIndex.find(val);
+	HashFileIter i = tthIndex.find(const_cast<TTHValue*>(&val));
 	if(i == tthIndex.end()) {
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
@@ -330,7 +339,8 @@ ShareManager::DirMultiMap ShareManager::splitVirtual(const string& virtualPath) 
 
 ShareManager::Directory::File::Set::const_iterator ShareManager::findFile(const string& virtualFile) const {
 	if(virtualFile.compare(0, 4, "TTH/") == 0) {
-		HashFileMap::const_iterator i = tthIndex.find(TTHValue(virtualFile.substr(4)));
+		TTHValue tth(virtualFile.substr(4));
+		HashFileMap::const_iterator i = tthIndex.find(const_cast<TTHValue*>(&tth));
 		if(i == tthIndex.end()) {
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
@@ -775,7 +785,7 @@ bool ShareManager::isDirShared(const string& directory) {
 
 bool ShareManager::isFileShared(const TTHValue aTTH, const string& fileName) {
 	RLock l (cs);
-	auto files = tthIndex.equal_range(aTTH);
+	auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
 	for(auto i = files.first; i != files.second; ++i) {
 		if(stricmp(fileName.c_str(), i->second->getName().c_str()) == 0) {
 			return true;
@@ -1010,7 +1020,7 @@ void ShareManager::rebuildIndices() {
 
 void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::iterator& i) {
 	
-	auto files = tthIndex.equal_range(i->getTTH());
+	auto files = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
 	for(auto k = files.first; k != files.second; ++k) {
 		if(stricmp((*i).getFullName(), k->second->getFullName()) == 0) {
 			return;
@@ -1024,7 +1034,7 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 
 	dir.addType(getType(f.getName()));
 
-	tthIndex.insert(make_pair(f.getTTH(), i));
+	tthIndex.insert(make_pair(const_cast<TTHValue*>(&f.getTTH()), i));
 	bloom.add(Text::toLower(f.getName()));
 }
 
@@ -1300,7 +1310,7 @@ void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
 	HashBloom bloom;
 	bloom.reset(k, m, h);
 	for(HashFileMap::const_iterator i = tthIndex.begin(); i != tthIndex.end(); ++i) {
-		bloom.add(i->first);
+		bloom.add(*i->first);
 	}
 	bloom.copy_to(v);
 }
@@ -1829,7 +1839,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 	if(aFileType == SearchManager::TYPE_TTH) {
 		if(aString.compare(0, 4, "TTH:") == 0) {
 			TTHValue tth(aString.substr(4));
-			HashFileMap::const_iterator i = tthIndex.find(tth);
+			HashFileMap::const_iterator i = tthIndex.find(const_cast<TTHValue*>(&tth));
 			if(i != tthIndex.end()) {
 				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second->getSize(), 
 					i->second->getParent()->getFullName() + i->second->getName(), i->second->getTTH()));
@@ -2005,7 +2015,7 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 	RLock l(cs);
 
 	if(srch.hasRoot) {
-		HashFileMap::const_iterator i = tthIndex.find(srch.root);
+		HashFileMap::const_iterator i = tthIndex.find(const_cast<TTHValue*>(&srch.root));
 		if(i != tthIndex.end()) {
 			SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
 				i->second->getSize(), i->second->getParent()->getFullName() + i->second->getName(), 
@@ -2028,17 +2038,17 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 		j->second->search(results, srch, maxResults);
 	}
 }
-void ShareManager::CleanDir(Directory::Ptr& dir) {
+void ShareManager::cleanIndices(Directory::Ptr& dir) {
 
 	if(!dir->directories.empty()) {
 		for(auto i = dir->directories.begin(); i != dir->directories.end(); ++i) {
-				CleanDir(i->second);
+				cleanIndices(i->second);
 			}
 		}
 
 	if(!dir->files.empty()) {
 		for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
-			auto flst = tthIndex.equal_range(i->getTTH());
+			auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
 				for(auto f = flst.first; f != flst.second; ++f) {
 					if(stricmp(f->second->getRealPath(), i->getRealPath()) == 0) {
 						tthIndex.erase(f);
@@ -2065,7 +2075,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 		added = true;
 		/* get rid of any existing crap we might have in the bundle directory and refresh it.
 		done at this point as the file and directory pointers should still be valid, if there are any */
-		CleanDir(dir);
+		cleanIndices(dir);
 
 		buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
 		updateIndices(*dir);
@@ -2146,7 +2156,7 @@ void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexc
 	auto i = d->findFile(Util::getFileName(fname));
 	if(i != d->files.end()) {
 		// Get rid of false constness...
-		auto files = tthIndex.equal_range(i->getTTH());
+		auto files = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
 		for(auto k = files.first; k != files.second; ++k) {
 			if(stricmp(fname.c_str(), k->second->getRealPath().c_str()) == 0) {
 				tthIndex.erase(k);
@@ -2156,7 +2166,7 @@ void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexc
 
 		Directory::File* f = const_cast<Directory::File*>(&(*i));
 		f->setTTH(root);
-		tthIndex.insert(make_pair(f->getTTH(), i));
+		tthIndex.insert(make_pair(const_cast<TTHValue*>(&f->getTTH()), i));
 	} else {
 		string name = Util::getFileName(fname);
 		int64_t size = File::getSize(fname);

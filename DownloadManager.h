@@ -90,7 +90,7 @@ private:
 	DownloadManager();
 	~DownloadManager();
 
-	typedef unordered_set<CID> CIDList;
+	//typedef unordered_set<CID> CIDList;
 	void checkDownloads(UserConnection* aConn);
 	void startData(UserConnection* aSource, int64_t start, int64_t newSize, bool z);
 	void startBundle(UserConnection* aSource, BundlePtr aBundle);
