@@ -258,7 +258,7 @@ void Util::migrate(const string& file) {
 
 	try {
 		File::renameFile(old, file);
-	} catch(const FileException& e) {
+	} catch(const FileException& /*e*/) {
 		//LogManager::getInstance()->message("Settings migration for failed: " + e.getError());
 	}
 }
