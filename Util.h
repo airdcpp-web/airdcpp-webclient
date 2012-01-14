@@ -228,7 +228,10 @@ public:
 	static map<string, string> decodeQuery(const string& query);
 
 	static string validateFileName(string aFile);
-	static string cleanPathChars(string aNick);
+	static bool checkExtension(const string& tmp);
+	static string cleanPathChars(const string& str);
+	static string addBrackets(const string& s);
+
 	static string formatStatus(int iStatus);
 	
 	static string formatBytes(const string& aString) { return formatBytes(toInt64(aString)); }

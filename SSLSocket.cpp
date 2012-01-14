@@ -19,8 +19,8 @@
 #include "stdinc.h"
 #include "SSLSocket.h"
 
-#include "LogManager.h"
 #include "SettingsManager.h"
+#include "ResourceManager.h"
 
 #ifdef HEADER_OPENSSLV_H
 # include <openssl/err.h>

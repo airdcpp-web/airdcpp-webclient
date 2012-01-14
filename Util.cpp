@@ -259,7 +259,7 @@ void Util::migrate(const string& file) {
 	try {
 		File::renameFile(old, file);
 	} catch(const FileException& e) {
-		LogManager::getInstance()->message("Settings migration for failed: " + e.getError());
+		//LogManager::getInstance()->message("Settings migration for failed: " + e.getError());
 	}
 }
 
@@ -385,13 +385,29 @@ string Util::validateFileName(string tmp) {
 	return tmp;
 }
 
-string Util::cleanPathChars(string aNick) {
-	string::size_type i = 0;
-
-	while( (i = aNick.find_first_of("/.\\", i)) != string::npos) {
-		aNick[i] = '_';
+bool Util::checkExtension(const string& tmp) {
+	for(size_t i = 0, n = tmp.size(); i < n; ++i) {
+		if (tmp[i] < 0 || tmp[i] == 32 || tmp[i] == ':') {
+			return false;
+		}
 	}
-	return aNick;
+	if(tmp.find_first_of(badChars, 0) != string::npos) {
+		return false;
+	}
+	return true;
+}
+
+string Util::cleanPathChars(const string& str) {
+	string ret(str);
+	string::size_type i = 0;
+	while((i = ret.find_first_of("/.\\", i)) != string::npos) {
+		ret[i] = '_';
+	}
+	return ret;
+}
+
+string Util::addBrackets(const string& s) {
+	return '<' + s + '>';
 }
 
 string Util::getShortTimeString(time_t t) {

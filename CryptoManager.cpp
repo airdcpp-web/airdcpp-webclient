@@ -24,6 +24,7 @@
 #include "ResourceManager.h"
 #include "LogManager.h"
 #include "ClientManager.h"
+#include "File.h"
 
 #ifdef HEADER_OPENSSLV_H
 # include <openssl/bn.h>

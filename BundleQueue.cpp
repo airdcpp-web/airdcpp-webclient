@@ -23,6 +23,7 @@
 #include "AirUtil.h"
 #include "QueueItem.h"
 #include "LogManager.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 

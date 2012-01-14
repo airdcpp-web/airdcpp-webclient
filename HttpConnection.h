@@ -20,32 +20,9 @@
 #define DCPLUSPLUS_DCPP_HTTP_CONNECTION_H
 
 #include "BufferedSocket.h"
+#include "HttpConnectionListener.h"
 
 namespace dcpp {
-
-class HttpConnection;
-
-class HttpConnectionListener {
-public:
-	virtual ~HttpConnectionListener() { }
-	template<int I>	struct X { enum { TYPE = I }; };
-
-	typedef X<0> Data;
-	typedef X<1> Failed;
-	typedef X<2> Complete;
-	typedef X<3> Redirected;
-	typedef X<4> TypeNormal;
-	typedef X<5> TypeBZ2;
-	typedef X<6> Retried;
-
-	virtual void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept = 0;
-	virtual void on(Failed, HttpConnection*, const string&) noexcept = 0;
-	virtual void on(Complete, HttpConnection*, const string&, bool) noexcept = 0;
-	virtual void on(Redirected, HttpConnection*, const string&) noexcept { }
-	virtual void on(TypeNormal, HttpConnection*) noexcept { }
-	virtual void on(TypeBZ2, HttpConnection*) noexcept { }
-	virtual void on(Retried, HttpConnection*, bool) noexcept { }
-};
 
 class HttpConnection : BufferedSocketListener, public Speaker<HttpConnectionListener>
 {
