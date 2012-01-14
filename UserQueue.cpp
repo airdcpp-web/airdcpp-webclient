@@ -89,12 +89,12 @@ QueueItem* UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio,
 	/* Using the PAUSED priority will list all files */
 	QueueItem* qi = getNextPrioQI(aUser, 0, 0, smallSlot, allowOverlap);
 	if(!qi) {
-		qi = getNextBundleQI(aUser, (Bundle::Priority)minPrio, 0, 0, smallSlot, false);
+		qi = getNextBundleQI(aUser, (Bundle::Priority)minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
 	}
 
 	if (!qi && !allowOverlap) {
 		//no free segments. let's do another round and now check if there are slow sources which can be overlapped
-		getNext(aUser, minPrio, wantedSize, lastSpeed, smallSlot, true);
+		qi = getNext(aUser, minPrio, wantedSize, lastSpeed, smallSlot, true);
 	}
 	return qi;
 }

@@ -431,9 +431,13 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			if(q->isFinished()) {
 				/* the target file doesn't exist, add it */
 				dcassert(q->getBundle());
-				q->getBundle()->removeFinishedItem(q);
-				fileQueue.remove(q);
-				q = nullptr;
+				if (q->getBundle()) {
+					q->getBundle()->removeFinishedItem(q);
+					fileQueue.remove(q);
+					q = nullptr;
+				} else {
+					throw QueueException(STRING(FILE_ALREADY_FINISHED));
+				}
 			} else {
 				q->setFlag(aFlags);
 			}
@@ -446,9 +450,11 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					if (q->isFinished()) {
 						/* the target file doesn't exist, add it */
 						dcassert(q->getBundle());
-						q->getBundle()->removeFinishedItem(q);
-						fileQueue.remove(q);
-						q = nullptr;
+						if (q->getBundle()) {
+							q->getBundle()->removeFinishedItem(q);
+							fileQueue.remove(q);
+							q = nullptr;
+						}
 					} else { 
 						if(!q->isSource(aUser)) {
 							try {
@@ -787,7 +793,7 @@ StringList QueueManager::getTargets(const TTHValue& tth) {
 
 Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, bool smallSlot) noexcept {
 	QueueItem* q = NULL;
-	bool removePartialSource=false;
+	Download* d = NULL;
 	const UserPtr& u = aSource.getUser();
 	{
 		RLock l(cs);
@@ -803,29 +809,16 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 					blockSize = q->getSize();
 					
 				Segment segment = q->getNextSegment(blockSize, aSource.getChunkSize(), aSource.getSpeed(), source->getPartialSource(), false);
-				removePartialSource = segment.getStart() != -1 && segment.getSize() == 0;
+				if(segment.getStart() != -1 && segment.getSize() == 0) {
+					goto removePartial;
+				}
 			}
+		} else {
+			aMessage = userQueue.getLastError();
+			dcdebug("none\n");
+			return nullptr;
 		}
-	}
 
-	if (removePartialSource) {
-		WLock l(cs);
-		// no other partial chunk from this user, remove him from queue
-		removeQI(q, u);
-		q->removeSource(u, QueueItem::Source::FLAG_NO_NEED_PARTS);
-		aMessage = STRING(NO_NEEDED_PART);
-		q = NULL;
-	}
-
-	if(!q) {
-		aMessage = userQueue.getLastError();
-		dcdebug("none\n");
-		return 0;
-	}
-
-	Download* d = NULL;
-	{
-		RLock l(cs);
 		// Check that the file we will be downloading to exists
 		if(q->getDownloadedBytes() > 0) {
 			if(!Util::fileExists(q->getTempTarget())) {
@@ -845,6 +838,14 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 	fire(QueueManagerListener::SourcesUpdated(), q);
 	dcdebug("found %s\n", q->getTarget().c_str());
 	return d;
+
+removePartial:
+	WLock l(cs);
+	// no other partial chunk from this user, remove him from queue
+	removeQI(q, u);
+	q->removeSource(u, QueueItem::Source::FLAG_NO_NEED_PARTS);
+	aMessage = STRING(NO_NEEDED_PART);
+	return nullptr;
 }
 
 void QueueManager::moveFile(const string& source, const string& target, BundlePtr aBundle) {
@@ -1083,6 +1084,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 				q->addSegment(Segment(0, q->getSize()), true);
 				userQueue.removeQI(q);
 			} else if (d->getType() == Transfer::TYPE_FILE) {
+				d->setOverlapped(false);
 				q->addSegment(d->getSegment(), true);
 				qiFinished = q->isFinished();
 				if (qiFinished) userQueue.removeQI(q);
@@ -1186,7 +1188,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 			fileQueue.remove(q);
 		}
 	} else if(d->getType() == Transfer::TYPE_FILE) {
-		d->setOverlapped(false);
 		if(qiFinished) {
 			// For partial-share, abort upload first to move file correctly
 			UploadManager::getInstance()->abortUpload(q->getTempTarget());
@@ -3050,9 +3051,9 @@ bool QueueManager::move(QueueItem* qs, const string& aTarget) noexcept {
 		{
 			WLock l(cs);
 			if (qt->isFinished()) {
-				if (!Util::fileExists(target)) {
+				dcassert(qt->getBundle());
+				if (!Util::fileExists(target) && qt->getBundle()) {
 					fileQueue.remove(qt);
-					dcassert(qt->getBundle());
 					qt->getBundle()->removeFinishedItem(qt);
 					fileQueue.move(qs, target);
 					return true;

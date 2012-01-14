@@ -328,7 +328,7 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 	string path;
 	if (simpleMatching) {
 		if (nmdc) {
-			if (Text::toLower(remoteDir).find(getName()) != string::npos)
+			if (Text::toLower(remoteDir).find(Text::toLower(getName())) != string::npos)
 				path = target;
 		} else {
 			path = Util::getDir(remoteDir, true, false);
