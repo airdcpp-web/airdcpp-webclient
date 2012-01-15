@@ -238,7 +238,6 @@ bool FavoriteManager::addFavoriteDir(const string& aName, const StringList& aTar
 	}
 
 	favoriteDirs.push_back(make_pair(aName, aTargets));
-	sort(favoriteDirs.begin(), favoriteDirs.end());
 	save();
 	return true;
 }

@@ -628,7 +628,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "General", 
 "Get User Country", 
 "Accept custom user commands from hub", 
-"&Change", 
+"Change", 
 "Ignore private messages from the hub", 
 "Ignore private messages from bots", 
 "Incoming connection settings (see Help/FAQ if unsure)", 
@@ -1353,6 +1353,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "How To use", 
 "Clean search term", 
 "WebShortCuts", 
+"a Favorite Download location accepts multiple paths for 1 name,\nThe path used will be the one wich has the most free diskspace.\n ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2706,4 +2707,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsWsHowto", 
 "SettingsWsClean", 
 "Webshortcuts", 
+"FavdirExplain", 
 };
