@@ -160,7 +160,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		BufferedSocket::putSocket(socket);
 		socket = NULL;
 
-		string location302 = aLine.substr(10, aLine.length() - 11);
+		string location302 = aLine.substr(10, aLine.length() - (isgraph(aLine[aLine.length()-1]) ? 10 : 11));
 		// make sure we can also handle redirects with relative paths
 		if(strnicmp(location302.c_str(), "http://", 7) != 0) {
 			if(location302[0] == '/') {
