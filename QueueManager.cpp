@@ -617,7 +617,7 @@ bool QueueManager::addSource(QueueItem* qi, const HintedUser& aUser, Flags::Mask
 	if(qi->isFinished()) //no need to add source to finished item.
 		throw QueueException("Already Finished: " + Util::getFileName(qi->getTarget()));
 	
-	bool wantConnection = (qi->getPriority() != QueueItem::PAUSED) && userQueue.getRunning(aUser).empty();
+	bool wantConnection = qi->getPriority() != QueueItem::PAUSED;
 	if (qi->getBundle()) {
 		if (qi->getPriority() != QueueItem::HIGHEST && qi->getBundle()->getPriority() == Bundle::PAUSED) {
 			wantConnection = false;
@@ -826,12 +826,11 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 				q->resetDownloaded();
 			}
 		}
-	
-		d = new Download(aSource, *q);
 	}
 
 	{
 		WLock l(cs);
+		d = new Download(aSource, *q);
 		userQueue.addDownload(q, d);
 	}
 
@@ -2539,7 +2538,7 @@ void QueueManager::connectBundleSources(BundlePtr aBundle) {
 	}
 
 	for_each(x.begin(), x.end(), [&](const HintedUser u) { 
-		if(u.user && u.user->isOnline() && userQueue.getRunning(u.user).empty())
+		if(u.user && u.user->isOnline())
 			ConnectionManager::getInstance()->getDownloadConnection(u, false); 
 	});
 }
@@ -2640,7 +2639,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 	}
 
 	for_each(x.begin(), x.end(), [&](const HintedUser u) {
-		if(u.user && u.user->isOnline() && (targetBundle->getPriority() != Bundle::PAUSED) && userQueue.getRunning(u.user).empty())
+		if(u.user && u.user->isOnline() && (targetBundle->getPriority() != Bundle::PAUSED))
 			ConnectionManager::getInstance()->getDownloadConnection(u, false); 
 	});
 

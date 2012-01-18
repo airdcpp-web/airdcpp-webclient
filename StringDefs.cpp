@@ -1354,6 +1354,13 @@ std::string dcpp::ResourceManager::strings[] = {
 "Clean search term", 
 "WebShortCuts", 
 "a Favorite Download location accepts multiple paths for 1 name,\nThe path used will be the one wich has the most free diskspace.\n ", 
+"Country information", 
+"Closing connections", 
+"Processing, please wait...", 
+"Saving hash data", 
+"Saving settings", 
+"Saving the share cache", 
+"Shutting down.", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2708,4 +2715,11 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsWsClean", 
 "Webshortcuts", 
 "FavdirExplain", 
+"CountryInformation", 
+"ClosingConnections", 
+"Processing", 
+"SavingHashData", 
+"SavingSettings", 
+"SavingShare", 
+"ShuttingDown", 
 };

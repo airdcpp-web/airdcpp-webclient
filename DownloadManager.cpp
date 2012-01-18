@@ -339,6 +339,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	Download* d = QueueManager::getInstance()->getDownload(*aConn, errorMessage, smallSlot);
 
 	if(!d) {
+		aConn->unsetFlag(UserConnection::FLAG_RUNNING);
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
 		}
@@ -434,10 +435,11 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 	d->setStart(GET_TICK());
 	d->tick();
-	aSource->setState(UserConnection::STATE_RUNNING);
-	if (aSource->isSet(UserConnection::FLAG_MCN1)) {
+	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isSet(UserConnection::FLAG_MCN1)) {
 		ConnectionManager::getInstance()->addRunningMCN(aSource);
+		aSource->setFlag(UserConnection::FLAG_RUNNING);
 	}
+	aSource->setState(UserConnection::STATE_RUNNING);
 
 	fire(DownloadManagerListener::Starting(), d);
 	if (d->getBundle()) {
@@ -673,9 +675,11 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 						dcassert(runningBundles.find(bundle->getToken()) != runningBundles.end());
 						runningBundles.erase(bundle->getToken());
 						fire(DownloadManagerListener::BundleWaiting(), bundle);
-						if (sendFinished) {
-							bundle->sendBundleFinished(aSource->getHintedUser());
-						}
+					}
+
+					//if the whole bundle hasn't finished but there are no more files available from this user
+					if (sendFinished) {
+						bundle->sendBundleFinished(aSource->getHintedUser());
 					}
 				} else {
 					//LogManager::getInstance()->message("STILL RUNNING: " + Util::toString(y->second));

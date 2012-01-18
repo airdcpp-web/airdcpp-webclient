@@ -117,34 +117,49 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	if(f != NULL)
 		(*f)(p, TSTRING(HASH_DATABASE));
 	HashManager::getInstance()->startup();
-	if(f != NULL)
-		(*f)(p, TSTRING(SHARED_FILES));
 
-	ShareManager::getInstance()->Startup(); 
 
 	if(f != NULL)
 		(*f)(p, TSTRING(DOWNLOAD_QUEUE));
 	QueueManager::getInstance()->loadQueue();
 
+	if(f != NULL)
+		(*f)(p, TSTRING(SHARED_FILES));
+	ShareManager::getInstance()->Startup(); 
+
 	if(BOOLSETTING(GET_USER_COUNTRY)) {
-		//announce((string)("Country information"));
+		if(f != NULL)
+			(*f)(p, TSTRING(COUNTRY_INFORMATION));
 		GeoManager::getInstance()->init();
 	}
 }
 
-void shutdown() {
+void shutdown(void (*f)(void*, const tstring&), void* p) {
 	TimerManager::getInstance()->shutdown();
+
+	if(f != NULL)
+		(*f)(p, TSTRING(SAVING_HASH_DATA));
 	HashManager::getInstance()->shutdown();
+
+	if(f != NULL)
+		(*f)(p, TSTRING(SAVING_SHARE));
 	ShareManager::getInstance()->shutdown();
+
+	if(f != NULL)
+		(*f)(p, TSTRING(CLOSING_CONNECTIONS));
 	ConnectionManager::getInstance()->shutdown();
 	MappingManager::getInstance()->close();
 	GeoManager::getInstance()->close();
 	BufferedSocket::waitShutdown();
 	
+	if(f != NULL)
+		(*f)(p, TSTRING(SAVING_SETTINGS));
 	AutoSearchManager::getInstance()->AutoSearchSave();
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
 
+	if(f != NULL)
+		(*f)(p, TSTRING(SHUTTING_DOWN));
 	GeoManager::deleteInstance();
 	MappingManager::deleteInstance();
 	ConnectivityManager::deleteInstance();

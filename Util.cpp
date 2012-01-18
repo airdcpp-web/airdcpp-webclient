@@ -65,8 +65,6 @@ bool Util::away = false;
 string Util::awayMsg;
 time_t Util::awayTime;
 
-Util::CountryList Util::countries;
-
 string Util::paths[Util::PATH_LAST];
 
 bool Util::localMode = true;
@@ -131,7 +129,7 @@ void Util::initialize() {
 
 	string exePath = Util::getFilePath(Text::fromT(buf));
 
-	// Global config path is StrongDC++ executable path...
+	// Global config path is the AirDC++ executable path...
 	paths[PATH_GLOBAL_CONFIG] = exePath;
 
 	paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + "Settings\\";
@@ -197,48 +195,6 @@ void Util::initialize() {
 	File::ensureDirectory(paths[PATH_USER_CONFIG]);
 	File::ensureDirectory(paths[PATH_USER_LOCAL]);
 	File::ensureDirectory(paths[PATH_THEMES]);
-	
-	try {
-		// This product includes GeoIP data created by MaxMind, available from http://maxmind.com/
-		// Updates at http://www.maxmind.com/app/geoip_country
-		string file = getPath(PATH_RESOURCES) + "GeoIpCountryWhois.csv";
-		string data = File(file, File::READ, File::OPEN).read();
-
-		const char* start = data.c_str();
-		string::size_type linestart = 0;
-		string::size_type comma1 = 0;
-		string::size_type comma2 = 0;
-		string::size_type comma3 = 0;
-		string::size_type comma4 = 0;
-		string::size_type lineend = 0;
-		CountryIter last = countries.end();
-		uint32_t startIP = 0;
-		uint32_t endIP = 0, endIPprev = 0;
-
-		for(;;) {
-			comma1 = data.find(',', linestart);
-			if(comma1 == string::npos) break;
-			comma2 = data.find(',', comma1 + 1);
-			if(comma2 == string::npos) break;
-			comma3 = data.find(',', comma2 + 1);
-			if(comma3 == string::npos) break;
-			comma4 = data.find(',', comma3 + 1);
-			if(comma4 == string::npos) break;
-			lineend = data.find('\n', comma4);
-			if(lineend == string::npos) break;
-
-			startIP = Util::toUInt32(start + comma2 + 2);
-			endIP = Util::toUInt32(start + comma3 + 2);
-			uint16_t* country = (uint16_t*)(start + comma4 + 2);
-			if((startIP-1) != endIPprev)
-				last = countries.insert(last, make_pair((startIP-1), (uint16_t)16191));
-			last = countries.insert(last, make_pair(endIP, *country));
-
-			endIPprev = endIP;
-			linestart = lineend + 1;
-		}
-	} catch(const FileException&) {
-	}
 }
 
 void Util::migrate(const string& file) {

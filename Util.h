@@ -564,10 +564,6 @@ private:
 	static time_t awayTime;
 	static time_t startTime;
 	
-	typedef map<uint32_t, uint16_t> CountryList;
-	typedef CountryList::iterator CountryIter;
-	static CountryList countries;
-
 	static void loadBootConfig();
 	
 	static long mUptimeSeconds;

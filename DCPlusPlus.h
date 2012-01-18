@@ -33,7 +33,7 @@
 namespace dcpp {
 
 extern void startup(void (*f)(void*, const tstring&), void* p);
-extern void shutdown();
+extern void shutdown(void (*f)(void*, const tstring&), void* p);
 
 } // namespace dcpp
 

@@ -70,34 +70,42 @@ void ConnectionManager::listen() {
  * @param aUser The user to connect to.
  */
 void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smallSlot) {
-	bool found=false,supportMcn=false;
 	dcassert((bool)aUser.user);
+	bool supportMcn = false;
 
 	if (!DownloadManager::getInstance()->checkIdle(aUser.user, smallSlot)) {
-		Lock l(cs); 
-		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
-			ConnectionQueueItem* cqi = *i;
+		Lock l(cs);
+		ConnectionQueueItem* cqi = nullptr;
+		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
+			cqi = *i;
 			if (cqi->getUser() == aUser) {
-				found=true;
 				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
-					supportMcn=true;
-				}
-				if ((!smallSlot && cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) || (smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))) {
-					continue;
-				}
-				if (!cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					dcdebug("Returning1!");
+					supportMcn = true;
+					//already has a connecting item?
+					if (cqi->getState() != ConnectionQueueItem::RUNNING) {
+						if ((!smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) || (smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))) {
+							return;
+						}
+					}
+					//no connecting item... no need to continue with small slot if a running item with the same type exists already
+					if (smallSlot && cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))
+						return;
+				} else if (!cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+					//no need to continue with non-MCN users
 					return;
 				}
 			}
 		}
-		if (smallSlot && !supportMcn && found) {
-			dcdebug("Returning2!");
-			return;
+
+		if (supportMcn && !smallSlot) {
+			//there's no waiting connection but check the limits
+			if (((runningDownloads[aUser.user] >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || 
+				(runningDownloads[aUser.user] >= cqi->getMaxConns() && cqi->getMaxConns() != 0)))
+				return;
 		}
 
 		dcdebug("Get cqi");
-		ConnectionQueueItem* cqi = getCQI(aUser, true);
+		cqi = getCQI(aUser, true);
 		if (smallSlot)
 			cqi->setFlag(ConnectionQueueItem::FLAG_SMALL);
 	}
@@ -231,12 +239,13 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 	auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
 	if (i != downloads.end()) {
 		ConnectionQueueItem* cqi = *i;
-		dcassert(aSource->getState() == UserConnection::STATE_RUNNING);
-		if (cqi->getState() == ConnectionQueueItem::RUNNING || !cqi->isSet(ConnectionQueueItem::FLAG_MCN1))
+		if (!cqi->isSet(ConnectionQueueItem::FLAG_MCN1))
 			return;
 
-		cqi->setState(ConnectionQueueItem::RUNNING);
-		runningDownloads[aSource->getUser()]++;
+		if (cqi->getState() != ConnectionQueueItem::RUNNING) {
+			runningDownloads[aSource->getUser()]++;
+			cqi->setState(ConnectionQueueItem::RUNNING);
+		}
 		//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
 
 		/* Are we allowed to create a new MCN connection? */
@@ -737,7 +746,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 			return;
 		}
 
-		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
+		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, string(uc->getToken())); //create a copy of the token because the original one usually seems to get lost.....
 		cqi->setState(ConnectionQueueItem::ACTIVE);
 
 		fire(ConnectionManagerListener::Connected(), cqi);

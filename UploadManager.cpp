@@ -304,10 +304,15 @@ ok:
 				if(sourceFile != up->getPath() && up->isSet(Upload::FLAG_CHUNKED)) {
 					logUpload(up);
 				} else {
+					if (up->getBundle()) {
+						logUpload(up);
+					}
 					resumed = true;
 				}
-				if (up->getBundle())
+
+				if (up->getBundle()) {
 					up->getBundle()->removeUpload(up);
+				}
 				delayUploads.erase(i);
 				delete up;
 				break;
@@ -398,26 +403,21 @@ ok:
 
 void UploadManager::changeMultiConnSlot(const UserPtr& aUser, bool remove) {
 	Lock l(cs);
-	if (!multiUploads.empty()) {
-		auto uis = multiUploads.find(aUser);
-		if (uis != multiUploads.end()) {
-			if (remove) {
-				uis->second--;
-				mcnSlots--;
-				if (uis->second == 0) {
-					multiUploads.erase(uis);
-					//no uploads to this user, remove the reserved slot
-					running--;
-				}
-			} else {
-				uis->second++;
-				mcnSlots++;
+	auto uis = multiUploads.find(aUser);
+	if (uis != multiUploads.end()) {
+		if (remove) {
+			uis->second--;
+			mcnSlots--;
+			if (uis->second == 0) {
+				multiUploads.erase(uis);
+				//no uploads to this user, remove the reserved slot
+				running--;
 			}
-			return;
+		} else {
+			uis->second++;
+			mcnSlots++;
 		}
-	}
-
-	if (!remove) {
+	} else if (!remove) {
 		//a new MCN upload
 		multiUploads[aUser] = 1;
 		running++;
@@ -478,9 +478,9 @@ void UploadManager::checkMultiConn() {
 	}
 
 	//find the correct upload to kill
-	Upload* u = *find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return up->getUser() == highest->first && up->getUserConnection().getSlotType() == UserConnection::MCNSLOT; } );
-	if (u) {
-		u->getUserConnection().disconnect(true);
+	auto u = find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return up->getUser() == highest->first && up->getUserConnection().getSlotType() == UserConnection::MCNSLOT; } );
+	if (u != uploads.end()) {
+		(*u)->getUserConnection().disconnect(true);
 	}
 }
 
@@ -633,14 +633,15 @@ void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
 			bundle->setSingleUser(false);
 		} else if (singleUser) {
 			bundle->setSingleUser(true, downloaded);
-		} else if (size > 0) {
-			bundle->setSize(size);
+		} else {
+			if (size > 0) {
+				bundle->setSize(size);
+			}
 			if (!name.empty()) {
 				bundle->findBundlePath(name);
 			}
 			fire(UploadManagerListener::BundleSizeName(), bundle->getToken(), bundle->getTarget(), bundle->getSize());
 		}
-		return;
 	}
 }
 
@@ -671,7 +672,8 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 		Lock l (cs);
 		Upload* u = findUpload(token);
 		if (u) {
-			b->removeUpload(u);
+			if (u->getBundle())
+				u->getBundle()->removeUpload(u);
 			b->addUpload(u);
 			u->getUserConnection().setLastBundle(bundleToken);
 		} else {
@@ -687,6 +689,7 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		if((*i).compare(0, 2, "BU") == 0) {
 			bundleToken = (*i).substr(2);
+			break;
 		}
 	}
 	
@@ -699,13 +702,10 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 	//dcassert(!bundle);
 
 	if (bundle) {
-		//ignore bundle updates that may arrive after this
 		{
 			Lock l (cs);
-			//for_each(bundle->getUploads().begin(), bundle->getUploads().end(), [&](Upload* up) { removeDelayUpload(aToken, true); });
 			bundles.erase(bundle->getToken());
 			dcassert(bundles.find(bundle->getToken()) == bundles.end());
-			//bundles.erase(bundle->getToken());
 		}
 		//bundle->setSingleUser(true);
 		fire(UploadManagerListener::BundleComplete(), bundle->getToken(), bundle->getName());
@@ -803,13 +803,13 @@ void UploadManager::removeUpload(Upload* aUpload, bool delay) {
 	dcassert(find(uploads.begin(), uploads.end(), aUpload) != uploads.end());
 	uploads.erase(remove(uploads.begin(), uploads.end(), aUpload), uploads.end());
 	dcassert(find(uploads.begin(), uploads.end(), aUpload) == uploads.end());
-	if (aUpload->getBundle()) {
-		aUpload->getBundle()->removeUpload(aUpload);
-	}
 
 	if(delay) {
 		delayUploads.push_back(aUpload);
 	} else {
+		if (aUpload->getBundle()) {
+			aUpload->getBundle()->removeUpload(aUpload);
+		}
 		delete aUpload;
 	}
 }
@@ -941,7 +941,7 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 
 	aSource->setState(UserConnection::STATE_GET);
 
-	if(!u->isSet(Upload::FLAG_CHUNKED)) {
+	if(!u->isSet(Upload::FLAG_CHUNKED) && !u->getBundle()) {
 		logUpload(u);
 		removeUpload(u);
 	} else {
@@ -1017,9 +1017,7 @@ void UploadManager::removeConnection(UserConnection* aSource) {
 		case UserConnection::EXTRASLOT: extra--; break;
 		case UserConnection::PARTIALSLOT: extraPartial--; break;
 		case UserConnection::SMALLSLOT: smallSlots--; break;
-		case UserConnection::MCNSLOT:
-			changeMultiConnSlot(aSource->getUser(), true); 
-			break;
+		case UserConnection::MCNSLOT: changeMultiConnSlot(aSource->getUser(), true); break;
 	}
 	aSource->setSlotType(UserConnection::NOSLOT);
 }
@@ -1049,7 +1047,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	UserList disconnects;
 	{
 		Lock l(cs);
-		for(SlotIter j = reservedSlots.begin(); j != reservedSlots.end();) {
+		for(auto j = reservedSlots.begin(); j != reservedSlots.end();) {
 			if(j->second < aTick) {
 				reservedSlots.erase(j++);
 			} else {
@@ -1057,7 +1055,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 			}
 		}
 	
-		for(SlotIter i = notifiedUsers.begin(); i != notifiedUsers.end();) {
+		for(auto i = notifiedUsers.begin(); i != notifiedUsers.end();) {
 			if((i->second + (90 * 1000)) < aTick) {
 				clearUserFiles(i->first);
 				notifiedUsers.erase(i++);
@@ -1095,9 +1093,6 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	int freeSlots = getFreeSlots();
 	if(freeSlots != lastFreeSlots) {
 		lastFreeSlots = freeSlots;
-		/* I don't like spamming every minute so disabled it for now
-			ClientManager::getInstance()->infoUpdated();
-		*/
 	}
 }
 
