@@ -314,6 +314,7 @@ ok:
 					up->getBundle()->removeUpload(up);
 				}
 				delayUploads.erase(i);
+				dcassert(find(delayUploads.begin(), delayUploads.end(), up) == delayUploads.end());
 				delete up;
 				break;
 			}
@@ -803,6 +804,7 @@ void UploadManager::removeUpload(Upload* aUpload, bool delay) {
 	dcassert(find(uploads.begin(), uploads.end(), aUpload) != uploads.end());
 	uploads.erase(remove(uploads.begin(), uploads.end(), aUpload), uploads.end());
 	dcassert(find(uploads.begin(), uploads.end(), aUpload) == uploads.end());
+	dcassert(find(delayUploads.begin(), delayUploads.end(), aUpload) == delayUploads.end());
 
 	if(delay) {
 		delayUploads.push_back(aUpload);
@@ -1142,6 +1144,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 				
 				delete u;
 				delayUploads.erase(i);
+				dcassert(find(delayUploads.begin(), delayUploads.end(), u) == delayUploads.end());
 				i = delayUploads.begin();
 			} else {
 				i++;
@@ -1193,6 +1196,7 @@ void UploadManager::removeDelayUpload(const string& aToken, bool removeBundle) {
 			if (up->getBundle())
 				up->getBundle()->removeUpload(up);
 			delayUploads.erase(i);
+			dcassert(find(delayUploads.begin(), delayUploads.end(), up) == delayUploads.end());
 			delete up;
 			break;
 		}

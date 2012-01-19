@@ -873,23 +873,21 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 	if(BOOLSETTING(USE_FTP_LOGGER))
 		AirUtil::fileEvent(target, true);
 
-	//dcassert(aBundle);
 	if (!aBundle) {
 		return;
 	}
 
-	if (aBundle->getQueueItems().empty()) {
+	aBundle->increaseMoved();
+	if (aBundle->getQueueItems().empty() && (aBundle->getMoved() == aBundle->getFinishedFiles().size())) {
 		if (!SETTING(SCAN_DL_BUNDLES) || aBundle->getFileBundle()) {
 			string tmp;
 			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 512);	 
 			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
 			LogManager::getInstance()->message(tmp);
-		} else if (SETTING(SCAN_DL_BUNDLES)) {
-			if (!ShareScannerManager::getInstance()->scanBundle(aBundle)) {
-				//failed, don't share
-				aBundle->setFlag(Bundle::FLAG_SCAN_FAILED);
-				return;
-			}
+		} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(aBundle)) {
+			//failed, don't share
+			aBundle->setFlag(Bundle::FLAG_SCAN_FAILED);
+			return;
 		} 
 
 		if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
@@ -903,30 +901,39 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 void QueueManager::hashBundle(BundlePtr aBundle) {
 	if(ShareManager::getInstance()->allowAddDir(aBundle->getTarget())) {
 		aBundle->setFlag(Bundle::FLAG_HASH);
-		//QueueItemList hash;
+		QueueItemList hash;
 		{
-			RLock l(cs);
+			WLock l(cs);
 			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
 				QueueItem* qi = *i;
 				if (AirUtil::checkSharedName(Text::toLower(qi->getTarget()), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
-					try {
-						// Schedule for hashing, it'll be added automatically later on...
-						if (!HashManager::getInstance()->checkTTH(qi->getTarget(), qi->getSize(), AirUtil::getLastWrite(qi->getTarget()))) {
-							//..
-						} else {
-							//fine, it's there already.. just share then
-							aBundle->increaseHashed();
-						}
-						i++;
-						continue;
-					} catch(const Exception&) {
-						//...
-					}
+					hash.push_back(qi);
+					++i;
+					continue;
 				}
 				//erase failed items
-				/*aBundle->removeFinishedItem(qi);
-				fileQueue.removeTTH(qi); */
+				aBundle->removeFinishedItem(qi);
+				fileQueue.remove(qi);
 			}
+		}
+
+		for_each(hash.begin(), hash.end(), [&](QueueItem* q) {
+			try {
+				// Schedule for hashing, it'll be added automatically later on...
+				if (!HashManager::getInstance()->checkTTH(q->getTarget(), q->getSize(), AirUtil::getLastWrite(q->getTarget()))) {
+					//..
+				} else {
+					//fine, it's there already..
+					aBundle->increaseHashed();
+				}
+			} catch(const Exception&) {
+				//...
+			}
+		});
+
+		//all files have been hashed already?
+		if(aBundle->getFinishedFiles().size() == aBundle->getHashed()) {
+			bundleHashed(aBundle);
 		}
 	} else if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 		string tmp;
@@ -982,6 +989,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 		fileQueue.remove(qi);
 		return;
 	}
+
 	b->increaseHashed();
 
 	if (failed) {
@@ -989,45 +997,45 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 	}
 
 	if (b->getHashed() == (int)b->getFinishedFiles().size()) {
-		{
-			RLock l(cs);
-			if (!b->getQueueItems().empty()) {
-				//new items have been added while it was being hashed
-				b->resetHashed();
-				b->unsetFlag(Bundle::FLAG_HASH);
-				return;
-			}
-		}
+		bundleHashed(b);
+	}
+}
 
-		if (b->isSet(Bundle::FLAG_HASH)) {
-			if (!b->isSet(Bundle::FLAG_HASH_FAILED)) {
-				if (!b->getFileBundle()) {
-					fire(QueueManagerListener::BundleHashed(), b->getTarget());
-				} else {
-					fire(QueueManagerListener::FileHashed(), fname, root);
-				}
+void QueueManager::bundleHashed(BundlePtr b) {
+	WLock l(cs);
+	if (!b->getQueueItems().empty()) {
+		//new items have been added while it was being hashed
+		b->resetHashed();
+		b->unsetFlag(Bundle::FLAG_HASH);
+		return;
+	}
 
-				WLock l(cs);
-				for_each(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [&] (QueueItem* qi) { fileQueue.remove(qi); } );
-				bundleQueue.remove(b, true);
+	if (b->isSet(Bundle::FLAG_HASH)) {
+		if (!b->isSet(Bundle::FLAG_HASH_FAILED)) {
+			if (!b->getFileBundle()) {
+				fire(QueueManagerListener::BundleHashed(), b->getTarget());
 			} else {
-				b->resetHashed(); //for the next attempts
-				string tmp;
-				tmp.resize(tmp.size() + STRING(BUNDLE_HASH_FAILED).size() + 1024);
-				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_HASH_FAILED), b->getName().c_str()));
-				LogManager::getInstance()->message(tmp);
+				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTargetFileName(), b->getFinishedFiles().front()->getTTH());
 			}
-		} else {
-			//instant sharing disabled/the folder wasn't shared when the bundle finished
-			string tmp;
-			tmp.resize(tmp.size() + STRING(BUNDLE_HASHED).size() + 1024);
-			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_HASHED), b->getName().c_str()));
-			LogManager::getInstance()->message(tmp);
 
-			WLock l(cs);
 			for_each(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [&] (QueueItem* qi) { fileQueue.remove(qi); } );
 			bundleQueue.remove(b, true);
+		} else {
+			b->resetHashed(); //for the next attempts
+			string tmp;
+			tmp.resize(tmp.size() + STRING(BUNDLE_HASH_FAILED).size() + 1024);
+			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_HASH_FAILED), b->getName().c_str()));
+			LogManager::getInstance()->message(tmp);
 		}
+	} else {
+		//instant sharing disabled/the folder wasn't shared when the bundle finished
+		string tmp;
+		tmp.resize(tmp.size() + STRING(BUNDLE_HASHED).size() + 1024);
+		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_HASHED), b->getName().c_str()));
+		LogManager::getInstance()->message(tmp);
+
+		for_each(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [&] (QueueItem* qi) { fileQueue.remove(qi); } );
+		bundleQueue.remove(b, true);
 	}
 }
 
@@ -1066,7 +1074,8 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	HintedUserList getConn;
  	string fl_fname;
 	int fl_flag = 0;
-	bool qiFinished = false;
+	QueueItem* q = nullptr;
+	bool removeFinished = false;
 
 	// Make sure the download gets killed
 	unique_ptr<Download> d(aDownload);
@@ -1074,23 +1083,10 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 
 	d->close();
 
-	QueueItem* q = NULL;
 	{
 		WLock l(cs);
 		q = fileQueue.find(d->getPath());
-		if(q && finished && (d->getType() == Transfer::TYPE_FILE || d->getType() == Transfer::TYPE_FULL_LIST || d->getType() == Transfer::TYPE_PARTIAL_LIST)) {
-			if (d->getType() == Transfer::TYPE_FULL_LIST) {
-				q->addSegment(Segment(0, q->getSize()), true);
-				userQueue.removeQI(q);
-			} else if (d->getType() == Transfer::TYPE_FILE) {
-				d->setOverlapped(false);
-				q->addSegment(d->getSegment(), true);
-				qiFinished = q->isFinished();
-				if (qiFinished) userQueue.removeQI(q);
-			} else {
-				userQueue.removeQI(q);
-			}
-		} else if(!q) {
+		if(!q) {
 			// Target has been removed, clean up the mess
 			auto hasTempTarget = !d->getTempTarget().empty();
 			auto isFullList = d->getType() == Transfer::TYPE_FULL_LIST;
@@ -1130,113 +1126,111 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 				q->getOnlineUsers(getConn);
 			}
 
-			userQueue.removeDownload(q, d->getUser(), d->getToken());
+			userQueue.removeDownload(q, d->getUser());
 			fire(QueueManagerListener::StatusUpdated(), q);
-			goto end;
+		} else { // Finished
+			if(d->getType() == Transfer::TYPE_PARTIAL_LIST) {
+				if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(d->getUser()) != directories.end()) ||
+					(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) ||
+					(q->isSet(QueueItem::FLAG_VIEW_NFO)))
+				{					
+					fl_fname = d->getPFS();
+					fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? (QueueItem::FLAG_DIRECTORY_DOWNLOAD) : 0)
+						| (q->isSet(QueueItem::FLAG_PARTIAL_LIST) ? (QueueItem::FLAG_PARTIAL_LIST) : 0)
+						| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT
+						| (q->isSet(QueueItem::FLAG_VIEW_NFO) ? QueueItem::FLAG_VIEW_NFO : 0);
+				} else {
+					fire(QueueManagerListener::PartialList(), d->getHintedUser(), d->getPFS());
+				}
+				userQueue.removeQI(q);
+				fire(QueueManagerListener::Removed(), q);
+				fileQueue.remove(q);
+			} else if(d->getType() == Transfer::TYPE_TREE) {
+				// Got a full tree, now add it to the HashManager
+				dcassert(d->getTreeValid());
+				HashManager::getInstance()->addTree(d->getTigerTree());
+
+				userQueue.removeDownload(q, d->getUser());
+				fire(QueueManagerListener::StatusUpdated(), q);
+			} else if(d->getType() == Transfer::TYPE_FULL_LIST) {
+				if(d->isSet(Download::FLAG_XML_BZ_LIST)) {
+					q->setFlag(QueueItem::FLAG_XML_BZLIST);
+				} else {
+					q->unsetFlag(QueueItem::FLAG_XML_BZLIST);
+				}
+
+				auto dir = q->getTempTarget(); // We cheated and stored the initial display directory here (when opening lists from search)
+				q->addSegment(Segment(0, q->getSize()), true);
+
+				// Now, let's see if this was a directory download filelist...
+				if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(d->getUser()) != directories.end()) ||
+					(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) )
+				{
+					fl_fname = q->getListName();
+					fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? QueueItem::FLAG_DIRECTORY_DOWNLOAD : 0)
+						| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0);
+				}
+
+				userQueue.removeQI(q);
+				fire(QueueManagerListener::Finished(), q, dir, d->getHintedUser(), d->getAverageSpeed());
+
+				fire(QueueManagerListener::Removed(), q);
+				fileQueue.remove(q);
+			} else if(d->getType() == Transfer::TYPE_FILE) {
+				d->setOverlapped(false);
+				q->addSegment(d->getSegment(), true);
+
+				if(q->isFinished()) {
+					// Disconnect all possible overlapped downloads
+					for(auto i = q->getDownloads().begin(); i != q->getDownloads().end(); ++i) {
+						if(compare((*i)->getToken(), d->getToken()) != 0)
+							(*i)->getUserConnection().disconnect();
+					}
+
+					removeFinished = true;
+					userQueue.removeQI(q);
+					fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
+
+					if(BOOLSETTING(KEEP_FINISHED_FILES)) {
+						fire(QueueManagerListener::StatusUpdated(), q);
+					} else {
+						fire(QueueManagerListener::Removed(), q);
+						if (!d->getBundle())
+							fileQueue.remove(q);
+					}
+				} else {
+					userQueue.removeDownload(q, d->getUser());
+					fire(QueueManagerListener::StatusUpdated(), q);
+				}
+			} else {
+				dcassert(0);
+			}
+
+			if (q->getBundle()) {
+				q->getBundle()->setDirty(true);
+			}
 		}
 	}
-	
-	// Finished
-	if(d->getType() == Transfer::TYPE_PARTIAL_LIST) {
-		WLock l(cs);
-		if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(d->getUser()) != directories.end()) ||
-			(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) ||
-			(q->isSet(QueueItem::FLAG_VIEW_NFO)))
-		{					
-			fl_fname = d->getPFS();
-			fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? (QueueItem::FLAG_DIRECTORY_DOWNLOAD) : 0)
-				| (q->isSet(QueueItem::FLAG_PARTIAL_LIST) ? (QueueItem::FLAG_PARTIAL_LIST) : 0)
-				| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT
-				| (q->isSet(QueueItem::FLAG_VIEW_NFO) ? QueueItem::FLAG_VIEW_NFO : 0);
-		} else {
-			fire(QueueManagerListener::PartialList(), d->getHintedUser(), d->getPFS());
-		}
-		fire(QueueManagerListener::Removed(), q);
-		fileQueue.remove(q);
-	} else if(d->getType() == Transfer::TYPE_TREE) {
-		// Got a full tree, now add it to the HashManager
-		dcassert(d->getTreeValid());
-		HashManager::getInstance()->addTree(d->getTigerTree());
 
-		WLock l(cs);
-		userQueue.removeDownload(q, d->getUser());
-		fire(QueueManagerListener::StatusUpdated(), q);
-	} else if(d->getType() == Transfer::TYPE_FULL_LIST) {
-		if(d->isSet(Download::FLAG_XML_BZ_LIST)) {
-			q->setFlag(QueueItem::FLAG_XML_BZLIST);
-		} else {
-			q->unsetFlag(QueueItem::FLAG_XML_BZLIST);
-		}
-
-		auto dir = q->getTempTarget(); // We cheated and stored the initial display directory here (when opening lists from search)
-
-		// Now, let's see if this was a directory download filelist...
-		if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(d->getUser()) != directories.end()) ||
-			(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) )
-		{
-			fl_fname = q->getListName();
-			fl_flag = (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) ? QueueItem::FLAG_DIRECTORY_DOWNLOAD : 0)
-				| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0);
-		}
-
-		fire(QueueManagerListener::Finished(), q, dir, d->getHintedUser(), d->getAverageSpeed());
-
-		fire(QueueManagerListener::Removed(), q);
-		{
-			WLock l(cs);
-			fileQueue.remove(q);
-		}
-	} else if(d->getType() == Transfer::TYPE_FILE) {
-		if(qiFinished) {
-			// For partial-share, abort upload first to move file correctly
-			UploadManager::getInstance()->abortUpload(q->getTempTarget());
-				
-			BundlePtr bundle = q->getBundle();
-			if (q->getBundle()) {
-				removeBundleItem(q, true);
-			}
-
-			// Check if we need to move the file
-			if(!d->getTempTarget().empty() && (stricmp(d->getPath().c_str(), d->getTempTarget().c_str()) != 0) ) {
-				moveFile(d->getTempTarget(), d->getPath(), d->getBundle());
-			}
-
-			if(BOOLSETTING(LOG_DOWNLOADS)) {
-				ParamMap params;
-				d->getParams(d->getUserConnection(), params);
-				LOG(LogManager::DOWNLOAD, params);
-			}
-
-			{
-				WLock l(cs);
-				// Disconnect all possible overlapped downloads
-				for(auto i = q->getDownloads().begin(); i != q->getDownloads().end(); ++i) {
-					if(compare((*i)->getToken(), d->getToken()) != 0)
-						(*i)->getUserConnection().disconnect();
-				}
-
-				fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
-
-				if(BOOLSETTING(KEEP_FINISHED_FILES)) {
-					fire(QueueManagerListener::StatusUpdated(), q);
-				} else {
-					fire(QueueManagerListener::Removed(), q);
-				}
-			}
-		} else {
-			WLock l(cs);
-			userQueue.removeDownload(q, d->getUser(), d->getToken());
-			fire(QueueManagerListener::StatusUpdated(), q);
-		}
+	if (removeFinished) {
+		UploadManager::getInstance()->abortUpload(q->getTempTarget());
 
 		if (q->getBundle()) {
-			q->getBundle()->setDirty(true);
+			removeBundleItem(q, true);
 		}
-	} else {
-		dcassert(0);
+
+		// Check if we need to move the file
+		if(!d->getTempTarget().empty() && (Util::stricmp(d->getPath().c_str(), d->getTempTarget().c_str()) != 0) ) {
+			moveFile(d->getTempTarget(), d->getPath(), d->getBundle());
+		}
+
+		if(BOOLSETTING(LOG_DOWNLOADS)) {
+			ParamMap params;
+			d->getParams(d->getUserConnection(), params);
+			LOG(LogManager::DOWNLOAD, params);
+		}
 	}
 
-end:
 	for(auto i = getConn.begin(); i != getConn.end(); ++i) {
 		if ((*i).user != d->getUser())
 			ConnectionManager::getInstance()->getDownloadConnection(*i);
@@ -1804,10 +1798,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				if(target.empty())
 					return;
 			} catch(const Exception&) {
-				if (curBundle) {
-					//just count it as done
-					curBundle->addSegment(size, false);
-				}
 				return;
 			}
 			QueueItem::Priority p = (QueueItem::Priority)Util::toInt(getAttrib(attribs, sPriority, 3));

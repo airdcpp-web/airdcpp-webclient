@@ -183,8 +183,10 @@ public:
 	void decreaseSize(int64_t aSize) { size -= aSize; }
 
 	int getHashed() { return hashed; }
+	int getMoved() { return moved; }
 	void resetHashed() { hashed = 0; }
 	void increaseHashed() { hashed++; }
+	void increaseMoved() { moved++; }
 
 	void setTarget(string targetNew) { target =  targetNew; }
 
@@ -243,6 +245,7 @@ private:
 	bool fileBundle;
 	bool dirty;
 	int hashed;
+	int moved;
 
 	/** QueueItems by priority and user (this is where the download order is determined) */
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[LAST];

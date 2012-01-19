@@ -35,7 +35,7 @@ namespace dcpp {
 Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
-	currentDownloaded(qi->getDownloadedBytes()), hashed(0) {
+	currentDownloaded(qi->getDownloadedBytes()), hashed(0), moved(0) {
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	setFlag(FLAG_NEW);
@@ -43,7 +43,7 @@ Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), f
 
 Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate /*0*/) : target(target), fileBundle(false), token(Util::toString(Util::rand())), size(0), 
 	finishedSegments(0), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), 
-	recent(false), currentDownloaded(0), hashed(0) {
+	recent(false), currentDownloaded(0), hashed(0), moved(0) {
 
 	if (dirDate > 0) {
 		recent = (dirDate + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > GET_TIME();
@@ -176,9 +176,6 @@ bool Bundle::addQueue(QueueItem* qi) {
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
-	if (qi->getDownloadedSegments() > 0) {
-		addSegment(qi->getDownloadedSegments(), false);
-	}
 
 	string dir = Util::getDir(qi->getTarget(), false, false);
 	bundleDirs[dir]++;

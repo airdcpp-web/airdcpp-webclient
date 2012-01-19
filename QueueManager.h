@@ -259,6 +259,7 @@ private:
 	void rechecked(QueueItem* qi);
 	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
 	void hashBundle(BundlePtr aBundle);
+	void bundleHashed(BundlePtr aBundle);
 
 	void removeSource(QueueItem* qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
