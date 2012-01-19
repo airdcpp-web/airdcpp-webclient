@@ -1360,7 +1360,7 @@ enum Strings { // @DontAdd
 	SETTINGS_WS_HOWTO, // "How To use"
 	SETTINGS_WS_CLEAN, // "Clean search term"
 	WEBSHORTCUTS, // "WebShortCuts"
-	FAVDIR_EXPLAIN, // "a Favorite Download location accepts multiple paths for 1 name,\nThe path used will be the one wich has the most free diskspace.\n "
+	FAVDIR_EXPLAIN, // "a Favorite Download location accepts multiple paths for 1 name,\nThe path used will be the one wich has the most free diskspace.\n"
 	COUNTRY_INFORMATION, // "Country information"
 	CLOSING_CONNECTIONS, // "Closing connections"
 	PROCESSING, // "Processing, please wait..."

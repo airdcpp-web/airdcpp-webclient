@@ -1353,7 +1353,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "How To use", 
 "Clean search term", 
 "WebShortCuts", 
-"a Favorite Download location accepts multiple paths for 1 name,\nThe path used will be the one wich has the most free diskspace.\n ", 
+"a Favorite Download location accepts multiple paths for 1 name,\nThe path used will be the one wich has the most free diskspace.\n", 
 "Country information", 
 "Closing connections", 
 "Processing, please wait...", 

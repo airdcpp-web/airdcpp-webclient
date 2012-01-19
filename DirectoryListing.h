@@ -116,6 +116,7 @@ public:
 		void filterList(DirectoryListing& dirList);
 		void filterList(TTHSet& l);
 		void getHashList(TTHSet& l);
+		void clearAdls();
 
 		bool findIncomplete();
 		

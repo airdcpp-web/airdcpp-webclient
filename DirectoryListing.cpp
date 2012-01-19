@@ -509,6 +509,18 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
 	return x;
 }
 
+void DirectoryListing::Directory::clearAdls() {
+
+	for(Iter i = directories.begin(); i != directories.end(); ++i) {
+			if((*i)->getAdls()) {
+				delete *i;
+				directories.erase(i);
+				--i;
+			}
+			//(*i)->clearAdls(); //no need to recurse, we should have the adls directories right under root.
+	}
+}
+
 uint8_t DirectoryListing::Directory::checkShareDupes() {
 	uint8_t result = Directory::NONE;
 	bool first = true;
