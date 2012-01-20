@@ -397,13 +397,13 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
 			}
 		}
+		
+		//we can check the existence and throw even with FTPlogger support, if the file exists already the directory must exist too.
+		target = checkTarget(aTarget, /*checkExistence*/ true);
 
 		if(BOOLSETTING(USE_FTP_LOGGER)) {
-			target = checkTarget(aTarget, /*checkExistence*/ false);
 			AirUtil::fileEvent(target);
-		} else {
-			target = checkTarget(aTarget, /*checkExistence*/ true);
-		}
+		} 
 	}
 
 	// Check if it's a zero-byte file, if so, create and return...
