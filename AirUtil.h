@@ -61,6 +61,7 @@ class AirUtil {
 		static bool isParent(const string& aDir, const string& aSub);
 		static const string getReleaseRegLong(bool chat);
 		static const string getReleaseRegBasic();
+		static void removeIfEmpty(const string& tgt);
 	private:
 
 	};

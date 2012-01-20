@@ -897,4 +897,8 @@ const string AirUtil::getReleaseRegBasic() {
 	return "(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))";
 }
 
+void AirUtil::removeIfEmpty(const string& tgt) {
+	//TODO
+}
+
 }

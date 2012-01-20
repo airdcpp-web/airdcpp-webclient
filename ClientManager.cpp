@@ -738,6 +738,19 @@ void ClientManager::on(HubUserCommand, const Client* client, int aType, int ctx,
 	}
 }
 
+void ClientManager::setIPUser(const UserPtr& user, const string& IP, uint16_t udpPort /*0*/) {
+	if(IP.empty())
+		return;
+			
+	Lock l(cs);
+	OnlinePairC p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
+	for (OnlineIterC i = p.first; i != p.second; i++) {
+		i->second->getIdentity().setIp4(IP);
+		if(udpPort > 0)
+			i->second->getIdentity().setUdp4Port(Util::toString(udpPort));
+	}
+}
+
 } // namespace dcpp
 
 /**

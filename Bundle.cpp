@@ -888,8 +888,6 @@ void Bundle::save() {
 		f.write(SimpleXML::escape(target, tmp, true));
 		f.write(LIT("\" Token=\""));
 		f.write(token);
-		f.write(LIT("\" Size=\""));
-		f.write(Util::toString(size));
 		f.write(LIT("\" Added=\""));
 		f.write(Util::toString(added));
 		f.write(LIT("\" Date=\""));

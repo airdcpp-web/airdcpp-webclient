@@ -99,18 +99,7 @@ public:
 	void updateNick(const UserPtr& user, const string& nick) noexcept;
 	string getMyNick(const string& hubUrl) const;
 	
-	void setIPUser(const UserPtr& user, const string& IP, uint16_t udpPort = 0) {
-		if(IP.empty())
-			return;
-			
-		Lock l(cs);
-		OnlinePairC p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
-		for (OnlineIterC i = p.first; i != p.second; i++) {
-			i->second->getIdentity().setIp(IP);
-			if(udpPort > 0)
-				i->second->getIdentity().setUdpPort(Util::toString(udpPort));
-		}
-	}
+	void setIPUser(const UserPtr& user, const string& IP, uint16_t udpPort = 0);
 	
 	bool isSharingHub(const HintedUser& p) {
 		Lock l(cs);

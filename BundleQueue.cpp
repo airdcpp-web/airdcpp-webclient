@@ -302,7 +302,7 @@ void BundleQueue::move(BundlePtr aBundle, const string& newTarget) {
 	}
 }
 
-void BundleQueue::getAutoPrioMap(bool verbose, multimap<int, BundlePtr>& finalMap, int& uniqueValues) {
+void BundleQueue::getAutoPrioMap(multimap<int, BundlePtr>& finalMap, int& uniqueValues) {
 	//get bundles with auto priority
 	boost::unordered_map<BundlePtr, double, Bundle::Hash> autoPrioMap;
 	multimap<double, BundlePtr> sizeMap;
@@ -323,9 +323,6 @@ void BundleQueue::getAutoPrioMap(bool verbose, multimap<int, BundlePtr>& finalMa
 	}
 
 	if (autoPrioMap.size() <= 1) {
-		if (verbose) {
-			LogManager::getInstance()->message("Not enough bundles with autoprio to calculate anything!");
-		}
 		return;
 	}
 
@@ -348,8 +345,7 @@ void BundleQueue::getAutoPrioMap(bool verbose, multimap<int, BundlePtr>& finalMa
 	}
 
 	{
-		//prepare to set the prios
-		multimap<int, BundlePtr> finalMap;
+		//prepare the finalmap
 		for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
 			if (finalMap.find(i->second) == finalMap.end()) {
 				uniqueValues++;

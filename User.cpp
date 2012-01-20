@@ -38,25 +38,59 @@ OnlineUser::OnlineUser(const UserPtr& ptr, ClientBase& client_, uint32_t sid_) :
 }
 
 bool Identity::isTcpActive(const Client* c) const {
+	return isTcp4Active(c) || isTcp6Active(c);
+}
+
+bool Identity::isTcp4Active(const Client* c) const {
 	if(c != NULL && user == ClientManager::getInstance()->getMe()) {
 		return c->isActive(); // userlist should display our real mode
 	} else {
 		return (!user->isSet(User::NMDC)) ?
-			!getIp().empty() && supports(AdcHub::TCP4_FEATURE) :
-			!user->isSet(User::PASSIVE);	
+			!getIp4().empty() && supports(AdcHub::TCP4_FEATURE) :
+			!user->isSet(User::PASSIVE);
+	}
+}
+
+bool Identity::isTcp6Active(const Client* c) const {
+	if(c != NULL && user == ClientManager::getInstance()->getMe()) {
+		return c->isActive(); // userlist should display our real mode
+	} else {
+		return !getIp6().empty() && supports(AdcHub::TCP6_FEATURE);
 	}
 }
 
 bool Identity::isUdpActive() const {
-	if(getIp().empty() || getUdpPort().empty())
+	return isUdp4Active() || isUdp6Active();
+}
+
+bool Identity::isUdp4Active() const {
+	if(getIp4().empty() || getUdp4Port().empty())
 		return false;
-	return (!user->isSet(User::NMDC)) ? supports(AdcHub::UDP4_FEATURE) : !user->isSet(User::PASSIVE);
+	return user->isSet(User::NMDC) ? !user->isSet(User::PASSIVE) : supports(AdcHub::UDP4_FEATURE);
+}
+
+bool Identity::isUdp6Active() const {
+	if(getIp6().empty() || getUdp6Port().empty())
+		return false;
+	return user->isSet(User::NMDC) ? false : supports(AdcHub::UDP6_FEATURE);
+}
+
+string Identity::getUdpPort() const {
+	if(getIp6().empty() || getUdp6Port().empty()) {
+		return getUdp4Port();
+	}
+
+	return getUdp6Port();
+}
+
+string Identity::getIp() const {
+	return getIp6().empty() ? getIp4() : getIp6();
 }
 
 void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
 	{
 		FastLock l(cs);
-		for(InfIter i = info.begin(); i != info.end(); ++i) {
+		for(auto i = info.begin(); i != info.end(); ++i) {
 			sm[prefix + string((char*)(&i->first), 2)] = i->second;
 		}
 	}
@@ -117,20 +151,20 @@ string Identity::getApplication() const {
 
 	return application + ' ' + version;
 }
-
 const string& Identity::getCountry() const {
-	return GeoManager::getInstance()->getCountry(getIp());
+	bool v6 = !getIp6().empty();
+	return GeoManager::getInstance()->getCountry(v6 ? getIp6() : getIp4(), v6 ? GeoManager::V6 : GeoManager::V4);
 }
 
 string Identity::get(const char* name) const {
 	FastLock l(cs);
-	InfIter i = info.find(*(short*)name);
+	auto i = info.find(*(short*)name);
 	return i == info.end() ? Util::emptyString : i->second;
 }
 
 bool Identity::isSet(const char* name) const {
 	FastLock l(cs);
-	InfIter i = info.find(*(short*)name);
+	auto i = info.find(*(short*)name);
 	return i != info.end();
 }
 
@@ -146,11 +180,22 @@ void Identity::set(const char* name, const string& val) {
 bool Identity::supports(const string& name) const {
 	string su = get("SU");
 	StringTokenizer<string> st(su, ',');
-	for(StringIter i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
+	for(auto i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
 		if(*i == name)
 			return true;
 	}
 	return false;
+}
+
+std::map<string, string> Identity::getInfo() const {
+	std::map<string, string> ret;
+
+	FastLock l(cs);
+	for(auto i = info.begin(); i != info.end(); ++i) {
+		ret[string((char*)(&i->first), 2)] = i->second;
+	}
+
+	return ret;
 }
 
 void FavoriteUser::update(const OnlineUser& info) { 

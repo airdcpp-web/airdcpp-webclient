@@ -37,7 +37,7 @@ class ClientBase;
 class NmdcHub;
 
 /** One of possibly many identities of a user, mainly for UI purposes */
-class Identity {
+class Identity : public Flags {
 public:
 	enum ClientType {
 		CT_BOT = 1,
@@ -56,26 +56,31 @@ public:
 		NAT			= 0x20,
 		AIRDC		= 0x40
 	};
-	
-	Identity() { }
-	Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr) { setSID(aSID); }
-	Identity(const Identity& rhs) { *this = rhs; } // Use operator= since we have to lock before reading...
-	Identity& operator=(const Identity& rhs) { FastLock l(cs); user = rhs.user; info = rhs.info; return *this; }
-	~Identity() { }
 
-// GS is already defined on some systems (e.g. OpenSolaris)
-#ifdef GS
-#undef GS
-#endif
+	Identity() : sid(0) { }
+	Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr), sid(aSID) { }
+	Identity(const Identity& rhs) : Flags(), sid(0) { *this = rhs; } // Use operator= since we have to lock before reading...
+	Identity& operator=(const Identity& rhs) {
+		FastLock l(cs);
+		*static_cast<Flags*>(this) = rhs;
+		user = rhs.user;
+		sid = rhs.sid;
+		info = rhs.info;
+		return *this;
+	}
 
-#define GS(n, x) string get##n() const { return get(x); } void set##n(const string& v) { set(x, v); }
-	GS(Nick, "NI")
-	GS(Description, "DE")
-	GS(Ip, "I4")
-	GS(UdpPort, "U4")
-	GS(Email, "EM")
-	GS(Connection, "CO")
-	GS(DLSpeed, "DS")
+
+#define GETSET_FIELD(n, x) string get##n() const { return get(x); } void set##n(const string& v) { set(x, v); }
+	GETSET_FIELD(Nick, "NI")
+	GETSET_FIELD(Description, "DE")
+	GETSET_FIELD(Ip4, "I4")
+	GETSET_FIELD(Ip6, "I6")
+	GETSET_FIELD(Udp4Port, "U4")
+	GETSET_FIELD(Udp6Port, "U6")
+	GETSET_FIELD(Email, "EM")
+	GETSET_FIELD(Connection, "CO")
+	GETSET_FIELD(DLSpeed, "DS")
+#undef GETSET_FIELD
 
 	void setBytesShared(const string& bs) { set("SS", bs); }
 	int64_t getBytesShared() const { return Util::toInt64(get("SS")); }
@@ -98,14 +103,19 @@ public:
 	bool isBot() const { return isClientType(CT_BOT) || isSet("BO"); }
 	bool isAway() const { return (getStatus() & AWAY) || isSet("AW"); }
 	bool isTcpActive(const Client* = NULL) const;
+	bool isTcp4Active(const Client* = NULL) const;
+	bool isTcp6Active(const Client* = NULL) const;
 	bool isUdpActive() const;
+	bool isUdp4Active() const;
+	bool isUdp6Active() const;
+	string getIp() const;
+	string getUdpPort() const;
+
+	std::map<string, string> getInfo() const;
 	string get(const char* name) const;
 	void set(const char* name, const string& val);
-	bool isSet(const char* name) const;	
-	string getSIDString() const { uint32_t sid = getSID(); return string((const char*)&sid, 4); }
-	
-	uint32_t getSID() const { return Util::toUInt32(get("SI")); }
-	void setSID(uint32_t sid) { if(sid != 0) set("SI", Util::toString(sid)); }
+	bool isSet(const char* name) const;
+	string getSIDString() const { return string((const char*)&sid, 4); }
 	
 	bool isClientType(ClientType ct) const;
 		
@@ -118,18 +128,18 @@ public:
 	static string splitVersion(const string& aExp, string aTag, size_t part);
 	
 	void getParams(ParamMap& map, const string& prefix, bool compatibility) const;
+	const UserPtr& getUser() const { return user; }
 	UserPtr& getUser() { return user; }
-	GETSET(UserPtr, user, User);
+	uint32_t getSID() const { return sid; }
 private:
-	typedef std::unordered_map<short, std::string> InfMap;
-	typedef InfMap::const_iterator InfIter;
+	UserPtr user;
+	uint32_t sid;
+
+	typedef std::unordered_map<short, string> InfMap;
+	typedef InfMap::iterator InfIter;
 	InfMap info;
 
 	static FastCriticalSection cs;
-
-	string getDetectionField(const string& aName) const;
-	void getDetectionParams(StringMap& p);
-	string getPkVersion() const;
 };
 
 class OnlineUser :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, public UserInfoBase, private boost::noncopyable {

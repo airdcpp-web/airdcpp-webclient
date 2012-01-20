@@ -1777,11 +1777,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			added = GET_TIME();
 		}
 
-		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, added, Bundle::LOW));
-		if (!prio.empty()) {
-			bundle->setAutoPriority(false);
-			bundle->setPriority((Bundle::Priority)Util::toInt(prio));
-		}
+		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT));
 		bundle->setDirDate(dirDate);
 		bundle->setToken(token);
 		curBundle = bundle;
@@ -1861,8 +1857,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			try {
 				const string& hubHint = getAttrib(attribs, sHubHint, 1);
 				HintedUser hintedUser(user, hubHint);
-				if(qm->addSource(cur, hintedUser, 0) && user->isOnline())
-					ConnectionManager::getInstance()->getDownloadConnection(hintedUser);
+				qm->addSource(cur, hintedUser, 0) && user->isOnline();
 			} catch(const Exception&) {
 				return;
 			}
@@ -2137,7 +2132,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 		int uniqueValues = 0;
 		{
 			RLock l(cs);
-			bundleQueue.getAutoPrioMap(verbose, finalMap, uniqueValues);
+			bundleQueue.getAutoPrioMap(finalMap, uniqueValues);
 		}
 		int prioGroup = 1;
 		if (uniqueValues <= 1) {
@@ -2539,6 +2534,16 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 
 	{
 		WLock l(cs);
+		//check that the finished files still exist
+		for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
+			QueueItem* q = *i;
+			if (!Util::fileExists(q->getTarget())) {
+				aBundle->removeFinishedItem(q);
+				fileQueue.remove(q);
+			} else {
+				++i;
+			}
+		}
 		fire(QueueManagerListener::BundleAdded(), aBundle);
 		bundleQueue.addSearchPrio(aBundle);
 	}
@@ -3314,6 +3319,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 				}
 			}
 		}
+		AirUtil::removeIfEmpty(aBundle->getTarget());
 	}
 
 	{

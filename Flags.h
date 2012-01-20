@@ -20,8 +20,8 @@ class Flags {
 		Flags& operator=(const Flags& rhs) { flags = rhs.flags; return *this; }
 protected:
 	~Flags() { }
-	private:
-		MaskType flags;
+private:
+	MaskType flags;
 };
 
 } // namespace dcpp

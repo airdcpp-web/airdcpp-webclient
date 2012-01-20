@@ -727,7 +727,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				if(!u)
 					continue;
 
-				u->getIdentity().setIp(it->substr(j+1));
+				u->getIdentity().setIp4(it->substr(j+1));
 				if(u->getUser() == getMyIdentity().getUser()) {
 					setMyIdentity(u->getIdentity());
 				}
