@@ -1038,45 +1038,6 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 	bloom.add(Text::toLower(f.getName()));
 }
 
-
-int ShareManager::refreshDirs( StringList dirs ){
-	
-	int result = REFRESH_PATH_NOT_FOUND;
-	
-	if(refreshing.test_and_set()) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
-		return REFRESH_IN_PROGRESS;
-	}
-		
-	{
-			RLock l(cs);
-			refreshPaths.clear();
-			
-			for(StringIter d = dirs.begin(); d != dirs.end(); ++d) {
-			
-				std::string virt = *d;
-			
-				for(StringMap::const_iterator j = shares.begin(); j != shares.end(); ++j) {
-					if( stricmp( j->second, virt ) == 0 ) {
-						refreshPaths.push_back( j->first );
-						result = REFRESH_STARTED;
-					}
-				}
-			}
-
-		}
-		
-		if(result == REFRESH_STARTED)
-			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
-
-		if(result == REFRESH_PATH_NOT_FOUND)
-			refreshing.clear();
-
-		return result;
-	}
-
-
-
 int ShareManager::refreshIncoming( ){
 	int result = REFRESH_PATH_NOT_FOUND;
 	

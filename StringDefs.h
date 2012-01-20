@@ -1110,7 +1110,6 @@ enum Strings { // @DontAdd
 	DIRECTORY_IS_HIDDEN, // "Directory is hidden"
 	DIRECTORY_NOT_FOUND, // "Directory not shared"
 	GROUP, // "Group"
-	REFRESH_VNAME_ON_SHAREPAGE, // "Refresh Changed on Exit Share Settings"
 	QUEUE_SIZE, // "Queue Size"
 	AUTO_ADD_SOURCE, // "Automatically add download sources from search"
 	UPDATE, // "Update"

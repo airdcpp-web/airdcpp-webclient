@@ -146,7 +146,7 @@ const string SettingsManager::settingTags[] =
 	"MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "OpenSystemLog",
 	"FirstRun", "LastSearchFiletype", "MaxResizeLines", 
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
-	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist", "RefreshVnameOnSharePage",
+	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
 	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRunNew", "FormatRelease", "LogLines",
@@ -341,7 +341,7 @@ SettingsManager::SettingsManager()
 	setDefault(BOLD_PM, true);
 	setDefault(BOLD_SEARCH, true);
 	setDefault(BOLD_WAITING_USERS, true);
-	setDefault(AUTO_REFRESH_TIME, 60);
+	setDefault(AUTO_REFRESH_TIME, 120);
 	setDefault(USE_TLS, true);
 	setDefault(AUTO_SEARCH_LIMIT, 15);
 	setDefault(AUTO_KICK_NO_FAVS, false);
@@ -649,7 +649,6 @@ SettingsManager::SettingsManager()
 	setDefault(SKIP_MSG_01, "*DISK2*|*cd2*");
 	setDefault(SKIP_MSG_02, "*sample*");
 	setDefault(SKIP_MSG_03, "*cover*");
-	setDefault(REFRESH_VNAME_ON_SHAREPAGE, false);
 	setDefault(AUTO_ADD_SOURCE, true);
 	setDefault(KEEP_FINISHED_FILES, false);
 	setDefault(ALLOW_NAT_TRAVERSAL, true);

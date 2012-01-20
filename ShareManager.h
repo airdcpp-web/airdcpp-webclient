@@ -66,7 +66,6 @@ public:
 	int refresh(int refreshOptions);
 	int startRefresh(int refreshOptions) noexcept;
 	int refresh(const string& aDir);
-	int refreshDirs( StringList dirs);
 	int refreshIncoming();
 	void setDirty() {
 		xmlDirty = true;  
