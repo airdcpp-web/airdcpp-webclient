@@ -322,7 +322,7 @@ ok:
 	}
 
 	Upload* u = new Upload(aSource, sourceFile, TTHValue());
-	//LogManager::getInstance()->message("Token2: " + aSource.getToken());
+	//LogManager::getInstance()->message("Token2 UC: " + aSource.getToken());
 	u->setStream(is);
 	u->setSegment(Segment(start, size));
 		
@@ -929,7 +929,7 @@ void UploadManager::on(UserConnectionListener::Failed, UserConnection* aSource, 
 	if(u) {
 		fire(UploadManagerListener::Failed(), u, aError);
 
-		dcdebug("UM::onFailed (%s): Removing upload\n", aError.c_str());
+		dcdebug("UM::onFailed (%s): Removing upload %s\n", aError.c_str(), u->getPath().c_str());
 		removeUpload(u);
 	}
 
@@ -940,7 +940,7 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 	dcassert(aSource->getState() == UserConnection::STATE_RUNNING);
 	Upload* u = aSource->getUpload();
 	dcassert(u != NULL);
-
+	dcdebug("UM::TransmitDone: Removing upload %s\n", u->getPath().c_str());
 	aSource->setState(UserConnection::STATE_GET);
 
 	if(!u->isSet(Upload::FLAG_CHUNKED) && !u->getBundle()) {

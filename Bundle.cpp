@@ -73,6 +73,17 @@ void Bundle::setDownloadedBytes(int64_t aSize) {
 }
 
 void Bundle::addSegment(int64_t aSize, bool downloaded) {
+#ifdef _DEBUG
+	int64_t tmp1 = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItem* qi) {
+		return old + qi->getDownloadedSegments(); 
+	});
+
+	tmp1 = accumulate(finishedFiles.begin(), finishedFiles.end(), tmp1, [&](int64_t old, QueueItem* qi) {
+		return old + qi->getDownloadedSegments(); 
+	});
+	dcassert(tmp1 == aSize + finishedSegments);
+#endif
+
 	dcassert(aSize + finishedSegments <= size);
 	finishedSegments += aSize;
 	/*if (downloaded) {
@@ -88,6 +99,11 @@ void Bundle::removeDownloadedSegment(int64_t aSize) {
 	finishedSegments -= aSize;
 	dcassert(finishedSegments <= size);
 	dcassert(currentDownloaded <= size);
+}
+
+void Bundle::finishBundle() noexcept {
+	speed = 0;
+	currentDownloaded = 0;
 }
 
 int64_t Bundle::getSecondsLeft() {
@@ -149,12 +165,12 @@ int64_t Bundle::getDiskUse(bool countAll) {
 }
 
 void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
+	finishedFiles.push_back(qi);
 	if (!finished) {
+		qi->setBundle(this);
 		increaseSize(qi->getSize());
 		addSegment(qi->getSize(), false);
-		qi->setBundle(this);
 	}
-	finishedFiles.push_back(qi);
 }
 
 void Bundle::removeFinishedItem(QueueItem* qi) {
@@ -618,8 +634,7 @@ size_t Bundle::countOnlineUsers() const noexcept {
 }
 
 tstring Bundle::getBundleText() noexcept {
-	double percent = (double)((currentDownloaded+finishedSegments)*100.0)/(double)size;
-	dcassert(percent <= 100.00);
+	double percent = (currentDownloaded+finishedSegments) > size ? 100.00 : (double)((currentDownloaded+finishedSegments)*100.0)/(double)size;
 	if (fileBundle) {
 		return Text::toT(getName());
 	} else {

@@ -163,6 +163,7 @@ public:
 
 	void addFinishedItem(QueueItem* qi, bool finished) noexcept;
 	void removeFinishedItem(QueueItem* qi) noexcept;
+	void finishBundle() noexcept;
 
 	void sendRemovePBD(const UserPtr& aUser) noexcept;
 	bool isFinishedNotified(const UserPtr& aUser) noexcept;
@@ -185,6 +186,7 @@ public:
 	int getHashed() { return hashed; }
 	int getMoved() { return moved; }
 	void resetHashed() { hashed = 0; }
+	void resetMoved() { moved = 0; }
 	void increaseHashed() { hashed++; }
 	void increaseMoved() { moved++; }
 

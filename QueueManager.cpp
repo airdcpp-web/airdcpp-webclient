@@ -879,6 +879,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 
 	aBundle->increaseMoved();
 	if (aBundle->getQueueItems().empty() && (aBundle->getMoved() == aBundle->getFinishedFiles().size())) {
+		aBundle->resetMoved();
 		if (!SETTING(SCAN_DL_BUNDLES) || aBundle->getFileBundle()) {
 			string tmp;
 			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 512);	 
@@ -2628,7 +2629,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 		targetBundle->setDirty(true);
 	}
 
-	{
+	if (!finished) {
 		RLock l(cs);
 		fire(QueueManagerListener::BundleAdded(), targetBundle);
 	}
@@ -3280,7 +3281,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 	}
 
 	if (finished) {
-		aBundle->setSpeed(0);
+		aBundle->finishBundle();
 		fire(QueueManagerListener::BundleFinished(), aBundle);
 		DownloadManager::getInstance()->sendBundleFinished(aBundle);
 	} else if (!moved) {

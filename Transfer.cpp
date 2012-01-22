@@ -115,7 +115,7 @@ HintedUser Transfer::getHintedUser() const {
 }
 
 const string& Transfer::getToken() const { 
-	return userConnection.getToken(); 
+	return getUserConnection().getToken(); 
 }
 
 

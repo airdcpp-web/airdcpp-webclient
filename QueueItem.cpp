@@ -51,18 +51,18 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 
 	if(priority != HIGHEST && BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP) ? AirUtil::stringRegexMatch(SETTING(HIGH_PRIO_FILES), Util::getFileName(aTarget)) :
 		Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(aTarget)), Text::utf8ToAcp(SETTING(HIGH_PRIO_FILES)), '|')) {
-		priority = QueueItem::HIGH;
-	} else if(priority == QueueItem::DEFAULT) {
+		priority = HIGHEST;
+	} else if(priority == DEFAULT) {
 		if(aSize <= SETTING(PRIO_HIGHEST_SIZE)*1024) {
-			priority = QueueItem::HIGHEST;
+			priority = HIGHEST;
 		} else if(aSize <= SETTING(PRIO_HIGH_SIZE)*1024) {
-			priority = QueueItem::HIGH;
+			priority = HIGH;
 		} else if(aSize <= SETTING(PRIO_NORMAL_SIZE)*1024) {
-			priority = QueueItem::NORMAL;
+			priority = NORMAL;
 		} else if(aSize <= SETTING(PRIO_LOW_SIZE)*1024) {
-			priority = QueueItem::LOW;
+			priority = LOW;
 		} else if(SETTING(PRIO_LOWEST)) {
-			priority = QueueItem::LOWEST;
+			priority = LOWEST;
 		}
 	}
 
@@ -73,7 +73,7 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 		priority = QueueItem::HIGHEST;
 	} else {
 		maxSegments = getMaxSegments(aSize);
-		if(priority == QueueItem::DEFAULT) {
+		if(priority == DEFAULT) {
 			if(BOOLSETTING(AUTO_PRIORITY_DEFAULT)) {
 				autoPriority = true;
 				priority = LOW;

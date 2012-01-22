@@ -748,11 +748,12 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 
 		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, string(uc->getToken())); //create a copy of the token because the original one usually seems to get lost.....
 		cqi->setState(ConnectionQueueItem::ACTIVE);
-
+		//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
 		fire(ConnectionManagerListener::Connected(), cqi);
 	}
 	uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 	dcdebug("ConnectionManager::addUploadConnection, leaving to uploadmanager\n");
+	//LogManager::getInstance()->message("Token1 UC: " + uc->getToken());
 
 	UploadManager::getInstance()->addConnection(uc);
 }
@@ -925,7 +926,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			cqi->setState(ConnectionQueueItem::WAITING);
 			fire(ConnectionManagerListener::Failed(), cqi, aError);
 		} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
-			auto i = find(uploads.begin(), uploads.end(), aSource->getUser());
+			auto i = find(uploads.begin(), uploads.end(), aSource->getToken());
 			dcassert(i != uploads.end());
 			ConnectionQueueItem* cqi = *i;
 			putCQI(cqi);

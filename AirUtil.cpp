@@ -156,43 +156,21 @@ string AirUtil::getLocalIp() {
 }
 
 int AirUtil::getSlotsPerUser(bool download, double value, int aSlots) {
-	int slots;
-	int totalSlots;
-	double speed;
-
-	if (download) {
-		if (aSlots ==0) {
-			totalSlots=getSlots(true);
-		} else {
-			totalSlots=aSlots;
-		} 
-		if (value != 0) {
-			speed=value;
-		} else {
-			speed = Util::toDouble(SETTING(DOWNLOAD_SPEED));
-		}
-	} else {
-		if (aSlots ==0) {
-			totalSlots=getSlots(false);
-		} else {
-			totalSlots=aSlots;
-		} 
-		if (value != 0) {
-			speed=value;
-		} else {
-			speed = Util::toDouble(SETTING(UPLOAD_SPEED));
-		}
-	}
-
 	if (!SETTING(MCN_AUTODETECT) && value == 0) {
-		if (download)
-			return SETTING(MAX_MCN_DOWNLOADS);
-		else
-			return SETTING(MAX_MCN_UPLOADS);
+		return download ? SETTING(MAX_MCN_DOWNLOADS) : SETTING(MAX_MCN_UPLOADS);
 	}
+
+	int totalSlots = aSlots;
+	if (aSlots ==0)
+		totalSlots = getSlots(download ? true : false);
+
+	double speed = value;
+	if (value == 0)
+		speed = download ? Util::toDouble(SETTING(DOWNLOAD_SPEED)) : Util::toDouble(SETTING(UPLOAD_SPEED));
 
 	//LogManager::getInstance()->message("Slots: " + Util::toString(slots));
 
+	int slots;
 	if (speed == 10) {
 		slots=2;
 	} else if (speed > 10 && speed <= 25) {
@@ -225,96 +203,52 @@ int AirUtil::getSlots(bool download, double value, bool rarLimits) {
 
 	double speed;
 	if (download) {
-		if (value != 0)
-			speed=value;
-		else
-			speed = Util::toDouble(SETTING(DOWNLOAD_SPEED));
+		(value != 0) ? speed=value : speed = Util::toDouble(SETTING(DOWNLOAD_SPEED));
 	} else {
-		if (value != 0)
-			speed=value;
-		else
-			speed = Util::toDouble(SETTING(UPLOAD_SPEED));
+		(value != 0) ? speed=value : speed = Util::toDouble(SETTING(UPLOAD_SPEED));
 	}
 
 	int slots=3;
 
-	bool rar = false;
-	if (((SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) && (value == 0)) || (rarLimits && value != 0)) {
-		rar=true;
-	}
-
+	bool rar = ((SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) && (value == 0)) || (rarLimits && value != 0);
 	if (speed <= 1) {
 		if (rar) {
 			slots=1;
 		} else {
-			if (download)
-				slots=6;
-			else
-				slots=2;
+			download ? slots=6 : slots=2;
 		}
 	} else if (speed > 1 && speed <= 2.5) {
 		if (rar) {
 			slots=2;
 		} else {
-			if (download)
-				slots=15;
-			else
-				slots=3;
+			download ? slots=15 : slots=3;
 		}
 	} else if (speed > 2.5 && speed <= 4) {
 		if (rar) {
-			if (!download) {
-				slots=2;
-			} else {
-				slots=3;
-			}
+			download ? slots=3 : slots=2;
 		} else {
-			if (download)
-				slots=15;
-			else
-				slots=4;
+			download ? slots=15 : slots=4;
 		}
 	} else if (speed > 4 && speed <= 6) {
 		if (rar) {
-			if (!download) {
-				slots=3;
-			} else {
-				slots=3;
-			}
+			download ? slots=3 : slots=3;
 		} else {
-			if (download)
-				slots=20;
-			else
-				slots=5;
+			download ? slots=20 : slots=5;
 		}
 	} else if (speed > 6 && speed < 10) {
 		if (rar) {
-			if (!download) {
-				slots=3;
-			} else {
-				slots=5;
-			}
+			download ? slots=5 : slots=3;
 		} else {
-			if (download)
-				slots=20;
-			else
-				slots=6;
+			download ? slots=20 : slots=6;
 		}
 	} else if (speed >= 10 && speed <= 50) {
 		if (rar) {
-			if (speed <= 20) {
-				slots=4;
-			} else {
-				slots=5;
-			}
+			speed <= 20 ?  slots=4 : slots=5;
 			if (download) {
 				slots=slots+3;
 			}
 		} else {
-			if (download)
-				slots=30;
-			else
-				slots=8;
+			download ? slots=30 : slots=8;
 		}
 	} else if(speed > 50 && speed < 100) {
 		if (rar) {
@@ -322,10 +256,7 @@ int AirUtil::getSlots(bool download, double value, bool rarLimits) {
 			if (download)
 				slots=slots+4;
 		} else {
-			if (download)
-				slots=40;
-			else
-				slots=12;
+			download ? slots=40 : slots=12;
 		}
 	} else if (speed >= 100) {
 		if (rar) {
@@ -334,7 +265,7 @@ int AirUtil::getSlots(bool download, double value, bool rarLimits) {
 			} else {
 				slots = speed / 12;
 				if (slots > 15)
-				slots=15;
+					slots=15;
 			}
 		} else {
 			if (download) {
@@ -361,29 +292,10 @@ int AirUtil::getSpeedLimit(bool download, double value) {
 		return SETTING(MIN_UPLOAD_SPEED);
 	}
 
+	if (value == 0)
+		value = download ? Util::toDouble(SETTING(DOWNLOAD_SPEED)) : Util::toDouble(SETTING(UPLOAD_SPEED));
 
-	string speed;
-	if (download) {
-		if (value != 0)
-			speed=Util::toString(value);
-		else
-			speed = SETTING(DOWNLOAD_SPEED);
-	} else {
-		if (value != 0)
-			speed=Util::toString(value);
-		else
-			speed = SETTING(UPLOAD_SPEED);
-	}
-
-	double lineSpeed = Util::toDouble(speed);
-
-	int ret;
-	if (download) {
-		ret = lineSpeed*105;
-	} else {
-		ret = lineSpeed*60;
-	}
-	return ret;
+	return download ? value*105 : value*60;
 }
 
 int AirUtil::getMaxAutoOpened(double value) {
@@ -391,25 +303,22 @@ int AirUtil::getMaxAutoOpened(double value) {
 		return SETTING(AUTO_SLOTS);
 	}
 
-	double speed;
-	if (value != 0)
-		speed=value;
-	else
-		speed = Util::toDouble(SETTING(UPLOAD_SPEED));
+	if (value == 0)
+		value = Util::toDouble(SETTING(UPLOAD_SPEED));
 
 	int slots=1;
 
-	if (speed < 1) {
+	if (value < 1) {
 		slots=1;
-	} else if (speed >= 1 && speed <= 5) {
+	} else if (value >= 1 && value <= 5) {
 		slots=2;
-	}  else if (speed > 5 && speed <= 20) {
+	}  else if (value > 5 && value <= 20) {
 		slots=3;
-	} else if (speed > 20 && speed < 100) {
+	} else if (value > 20 && value < 100) {
 		slots=4;
-	} else if (speed == 100) {
+	} else if (value == 100) {
 		slots=6;
-	} else if (speed >= 100) {
+	} else if (value >= 100) {
 		slots=10;
 	}
 
