@@ -62,7 +62,7 @@ public:
 	size_t read(const string& file, const DataCallback& callback);
 
 private:
-	static const size_t DEFAULT_BLOCK_SIZE = 64*1024;
+	static const size_t DEFAULT_BLOCK_SIZE = 256*1024;
 	static const size_t DEFAULT_MMAP_SIZE = 64*1024*1024;
 
 	string file;

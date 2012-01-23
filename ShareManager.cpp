@@ -1516,15 +1516,15 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 	} else {
 		dcdebug("wanted %s \n", dir);
 		try {
-		DirMultiMap result = splitVirtual(dir);
+			DirMultiMap result = splitVirtual(dir);
 
-		for(DirMultiMap::const_iterator it = result.begin(); it != result.end(); ++it) {
-			dcdebug("result name %s \n", it->second->getName());
-			Directory::Ptr root = it->second;
-			for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
-				it2->second->toXml(sXml, recurse);
-			}
-			root->filesToXml(sXml);
+			for(DirMultiMap::const_iterator it = result.begin(); it != result.end(); ++it) {
+				dcdebug("result name %s \n", it->second->getName());
+				Directory::Ptr root = it->second;
+				for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
+					it2->second->toXml(sXml, recurse);
+				}
+				root->filesToXml(sXml);
 			}
 		} catch(...) {
 			return NULL;

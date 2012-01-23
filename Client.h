@@ -151,6 +151,7 @@ public:
 	
 	GETSET(string, encoding, Encoding);	
 		
+	GETSET(bool, adchub, AdcHub);
 	GETSET(bool, registered, Registered);
 	GETSET(bool, autoReconnect, AutoReconnect);
 	GETSET(bool, stealth, Stealth);
