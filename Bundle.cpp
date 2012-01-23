@@ -172,6 +172,7 @@ void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
 		increaseSize(qi->getSize());
 		addSegment(qi->getSize(), false);
 	}
+	qi->setFlag(QueueItem::FLAG_FINISHED);
 }
 
 void Bundle::removeFinishedItem(QueueItem* qi) {

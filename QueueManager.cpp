@@ -478,6 +478,9 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), root);
 			/* Bundles */
 			if (aBundle) {
+				if (aBundle->getPriority() == Bundle::PAUSED && q->getPriority() == QueueItem::HIGHEST) {
+					q->setPriority(QueueItem::HIGH);
+				}
 				bundleQueue.addBundleItem(q, aBundle);
 			} else if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW) {
 				aBundle = bundleQueue.getMergeBundle(q->getTarget());
@@ -1212,7 +1215,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	}
 
 	if (removeFinished) {
-		q->setFlag(QueueItem::FLAG_FINISHED);
 		fileQueue.decreaseSize(q->getSize());
 		UploadManager::getInstance()->abortUpload(q->getTempTarget());
 
@@ -1545,6 +1547,7 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQICha
 	if (!qiTarget.empty()) {
 		setQIAutoPriority(qiTarget, autoPrio, true);
 	}
+	calculateBundlePriorities(false);
 }
 
 void QueueManager::getBundleSources(BundlePtr aBundle, Bundle::SourceInfoList& sources, Bundle::SourceInfoList& badSources) noexcept {
@@ -1812,13 +1815,11 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			QueueItem* qi = qm->fileQueue.find(target);
 
 			if(qi == NULL) {
-				qi = qm->fileQueue.add(target, size, 0, p, tempTarget, added, TTHValue(tthRoot));
-
-				bool ap = Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1;
-				qi->setAutoPriority(ap);
-				if (ap) {
-					qi->setPriority(QueueItem::LOW);
+				if (Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1) {
+					p = QueueItem::DEFAULT;
 				}
+
+				qi = qm->fileQueue.add(target, size, 0, p, tempTarget, added, TTHValue(tthRoot));
 				qi->setMaxSegments(max((uint8_t)1, maxSegments));
 
 				//bundles
@@ -1831,8 +1832,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				} else if (inFile && !curToken.empty()) {
 					curBundle = new Bundle(qi, curToken);
 				}
-				
-				//qm->fire(QueueManagerListener::Added(), qi);
 			}
 			if(!simple)
 				cur = qi;
