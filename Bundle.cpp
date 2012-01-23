@@ -167,6 +167,7 @@ int64_t Bundle::getDiskUse(bool countAll) {
 void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
 	finishedFiles.push_back(qi);
 	if (!finished) {
+		moved++;
 		qi->setBundle(this);
 		increaseSize(qi->getSize());
 		addSegment(qi->getSize(), false);
@@ -177,6 +178,8 @@ void Bundle::removeFinishedItem(QueueItem* qi) {
 	int pos = 0;
 	for (auto s = finishedFiles.begin(); s != finishedFiles.end(); ++s) {
 		if ((*s) == qi) {
+			dcassert(moved > 0);
+			moved--;
 			decreaseSize(qi->getSize());
 			removeDownloadedSegment(qi->getSize());
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);

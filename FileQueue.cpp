@@ -57,7 +57,7 @@ void FileQueue::remove(QueueItem* qi) noexcept {
 	//TargetMap
 	prev(targetMapInsert);
 	queue.erase(const_cast<string*>(&qi->getTarget()));
-	if (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
+	if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
 		dcassert(qi->getSize() >= 0);
 		queueSize -= qi->getSize();
 	}

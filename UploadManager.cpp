@@ -304,9 +304,6 @@ ok:
 				if(sourceFile != up->getPath() && up->isSet(Upload::FLAG_CHUNKED)) {
 					logUpload(up);
 				} else {
-					if (up->getBundle()) {
-						logUpload(up);
-					}
 					resumed = true;
 				}
 
@@ -943,12 +940,10 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 	dcdebug("UM::TransmitDone: Removing upload %s\n", u->getPath().c_str());
 	aSource->setState(UserConnection::STATE_GET);
 
-	if(!u->isSet(Upload::FLAG_CHUNKED) && !u->getBundle()) {
+	if(!u->isSet(Upload::FLAG_CHUNKED)) {
 		logUpload(u);
-		removeUpload(u);
-	} else {
-		removeUpload(u, true);
 	}
+	removeUpload(u, (u->isSet(Upload::FLAG_CHUNKED) || u->getBundle()) ? true : false);
 }
 
 void UploadManager::logUpload(const Upload* u) {
@@ -1138,7 +1133,8 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		for(auto i = delayUploads.begin(); i != delayUploads.end();) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
-				logUpload(u);
+				if (u->isSet(Upload::FLAG_CHUNKED))
+					logUpload(u);
 				if (u->getBundle())
 					u->getBundle()->removeUpload(u);
 				

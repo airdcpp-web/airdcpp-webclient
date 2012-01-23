@@ -49,32 +49,25 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 		tthRoot(tth), autoPriority(false), nextPublishingTime(0), tempTarget(aTempTarget)
 	{
 
-	if(priority != HIGHEST && BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP) ? AirUtil::stringRegexMatch(SETTING(HIGH_PRIO_FILES), Util::getFileName(aTarget)) :
-		Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(aTarget)), Text::utf8ToAcp(SETTING(HIGH_PRIO_FILES)), '|')) {
-		priority = HIGHEST;
-	} else if(priority == DEFAULT) {
-		if(aSize <= SETTING(PRIO_HIGHEST_SIZE)*1024) {
-			priority = HIGHEST;
-		} else if(aSize <= SETTING(PRIO_HIGH_SIZE)*1024) {
-			priority = HIGH;
-		} else if(aSize <= SETTING(PRIO_NORMAL_SIZE)*1024) {
-			priority = NORMAL;
-		} else if(aSize <= SETTING(PRIO_LOW_SIZE)*1024) {
-			priority = LOW;
-		} else if(SETTING(PRIO_LOWEST)) {
-			priority = LOWEST;
-		}
-	}
-
-	setFlag(FLAG_AUTODROP);
-
 	if(isSet(FLAG_USER_LIST) || isSet(FLAG_CLIENT_VIEW)) {
 		/* Always use highest for the items without bundle */
 		priority = QueueItem::HIGHEST;
-	} else {
-		maxSegments = getMaxSegments(aSize);
-		if(priority == DEFAULT) {
-			if(BOOLSETTING(AUTO_PRIORITY_DEFAULT)) {
+	} else if (priority == DEFAULT) {
+		if(BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP) ? AirUtil::stringRegexMatch(SETTING(HIGH_PRIO_FILES), Util::getFileName(aTarget)) :
+			Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(aTarget)), Text::utf8ToAcp(SETTING(HIGH_PRIO_FILES)), '|')) {
+			priority = HIGHEST;
+		} else {
+			if(aSize <= SETTING(PRIO_HIGHEST_SIZE)*1024) {
+				priority = HIGHEST;
+			} else if(aSize <= SETTING(PRIO_HIGH_SIZE)*1024) {
+				priority = HIGH;
+			} else if(aSize <= SETTING(PRIO_NORMAL_SIZE)*1024) {
+				priority = NORMAL;
+			} else if(aSize <= SETTING(PRIO_LOW_SIZE)*1024) {
+				priority = LOW;
+			} else if(SETTING(PRIO_LOWEST)) {
+				priority = LOWEST;
+			} else if(BOOLSETTING(AUTO_PRIORITY_DEFAULT)) {
 				autoPriority = true;
 				priority = LOW;
 			} else {
@@ -83,10 +76,7 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 		}
 	}
 
-	if(!Util::fileExists(aTempTarget) && Util::fileExists(aTempTarget + ".antifrag")) {
-		// load old antifrag file
-		File::renameFile(aTempTarget + ".antifrag", tempTarget);
-	}
+	setFlag(FLAG_AUTODROP);
 }
 
 /* INTERNAL */

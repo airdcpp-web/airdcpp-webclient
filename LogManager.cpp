@@ -25,7 +25,7 @@
 namespace dcpp {
 
 void LogManager::log(Area area, ParamMap& params) noexcept {
-	log(getPath(area, params), Util::formatParams(getSetting(area, FORMAT), params));
+	log(SETTING(LOG_DIRECTORY) + Util::formatParams(getSetting(area, FILE), params, Util::cleanPathChars), Util::formatParams(getSetting(area, FORMAT), params));
 }
 
 void LogManager::message(const string& msg) {
@@ -51,7 +51,7 @@ LogManager::List LogManager::getLastLogs() {
 }
 
 string LogManager::getPath(Area area, ParamMap& params) const {
-	return SETTING(LOG_DIRECTORY) + Util::formatParams(getSetting(area, FILE), params, Util::cleanPathChars);
+	return Util::validateFileName(SETTING(LOG_DIRECTORY) + Util::formatParams(getSetting(area, FILE), params, Util::cleanPathChars));
 }
 
 string LogManager::getPath(Area area) const {

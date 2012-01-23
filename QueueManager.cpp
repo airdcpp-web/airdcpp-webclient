@@ -879,14 +879,12 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 
 	aBundle->increaseMoved();
 	if (aBundle->getQueueItems().empty() && (aBundle->getMoved() == aBundle->getFinishedFiles().size())) {
-		aBundle->resetMoved();
 		if (!SETTING(SCAN_DL_BUNDLES) || aBundle->getFileBundle()) {
 			string tmp;
 			tmp.resize(STRING(DL_BUNDLE_FINISHED).size() + 512);	 
 			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(DL_BUNDLE_FINISHED), aBundle->getName().c_str()));	 
 			LogManager::getInstance()->message(tmp);
 		} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(aBundle)) {
-			//failed, don't share
 			aBundle->setFlag(Bundle::FLAG_SCAN_FAILED);
 			return;
 		} 
@@ -1214,6 +1212,8 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	}
 
 	if (removeFinished) {
+		q->setFlag(QueueItem::FLAG_FINISHED);
+		fileQueue.decreaseSize(q->getSize());
 		UploadManager::getInstance()->abortUpload(q->getTempTarget());
 
 		if (q->getBundle()) {

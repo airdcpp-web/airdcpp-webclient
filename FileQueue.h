@@ -37,6 +37,7 @@ public:
 	FileQueue() : targetMapInsert(queue.end()), queueSize(0) { }
 	~FileQueue();
 
+	void decreaseSize(uint64_t aSize) { queueSize -= aSize; }
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItem*> > PFSSourceList;
 
 	void add(QueueItem* qi, bool addFinished);

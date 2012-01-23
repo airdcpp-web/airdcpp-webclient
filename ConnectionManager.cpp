@@ -746,7 +746,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 			return;
 		}
 
-		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, string(uc->getToken())); //create a copy of the token because the original one usually seems to get lost.....
+		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
 		cqi->setState(ConnectionQueueItem::ACTIVE);
 		//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
 		fire(ConnectionManagerListener::Connected(), cqi);

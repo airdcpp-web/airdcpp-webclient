@@ -81,7 +81,9 @@ public:
 		/** Recursive partial list */
 		FLAG_RECURSIVE_LIST		= 0x200,
 		/** TTH list for partial bundle sharing */
-		FLAG_TTHLIST_BUNDLE		= 0x400
+		FLAG_TTHLIST_BUNDLE		= 0x400,
+		/** A finished bundle item */
+		FLAG_FINISHED			= 0x800
 	};
 
 	/**
