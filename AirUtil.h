@@ -62,6 +62,16 @@ class AirUtil {
 		static const string getReleaseRegLong(bool chat);
 		static const string getReleaseRegBasic();
 		static void removeIfEmpty(const string& tgt);
+
+		static bool isAdcHub(const string& hubUrl) {
+			if(strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
+				return true;
+			} else if(strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
+				return true;
+			}
+			return false;
+		}
+
 	private:
 
 	};

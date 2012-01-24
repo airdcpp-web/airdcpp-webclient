@@ -44,16 +44,12 @@ Client* ClientManager::getClient(const string& aHubURL) {
 	Client* c;
 	if(strnicmp("adc://", aHubURL.c_str(), 6) == 0) {
 		c = new AdcHub(aHubURL, false);
-		c->setAdcHub(true);
 	} else if(strnicmp("adcs://", aHubURL.c_str(), 7) == 0) {
 		c = new AdcHub(aHubURL, true);
-		c->setAdcHub(true);
 	} else if(strnicmp("nmdcs://", aHubURL.c_str(), 8) == 0) {
 		c = new NmdcHub(aHubURL, true);
-		c->setAdcHub(false);
 	} else {
 		c = new NmdcHub(aHubURL, false);
-		c->setAdcHub(false);
 	}
 
 	{
