@@ -16,6 +16,7 @@
 #include "LogManager.h"
 #include "Wildcards.h"
 #include <locale.h>
+#include <boost/date_time/format_date_parser.hpp>
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -808,6 +809,30 @@ const string AirUtil::getReleaseRegBasic() {
 
 void AirUtil::removeIfEmpty(const string& tgt) {
 	//TODO
+}
+
+uint32_t AirUtil::getLastWrite(const string& path) {
+	FileFindIter ff = FileFindIter(path);
+
+	if (ff != FileFindIter()) {
+		return ff->getLastWriteTime();
+	}
+
+	return 0;
+}
+
+bool AirUtil::isAdcHub(const string& hubUrl) {
+	if(strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
+		return true;
+	} else if(strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
+		return true;
+	}
+	return false;
+}
+
+
+void AirUtil::formatTimeParams(string& str, time_t time) {
+	//boost::date_time::format_date_parser<boost::gregorian::date, wchar_t>();
 }
 
 }

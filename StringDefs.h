@@ -683,7 +683,6 @@ enum Strings { // @DontAdd
 	SETTINGS_PRIO_NORMAL, // "Normal prio max size"
 	SETTINGS_PROMPT_PASSWORD, // "Popup box to input password for hubs"
 	SETTINGS_PUBLIC_HUB_LIST, // "Public Hubs list"
-	SETTINGS_PUBLIC_HUB_LIST_HTTP_PROXY, // "HTTP Proxy (for hublist only)"
 	SETTINGS_PUBLIC_HUB_LIST_URL, // "Public Hubs list URL"
 	SETTINGS_QUEUE, // "Queue"
 	SETTINGS_RENAME_FOLDER, // "Rename"
@@ -1367,5 +1366,7 @@ enum Strings { // @DontAdd
 	SAVING_SETTINGS, // "Saving settings"
 	SAVING_SHARE, // "Saving the share cache"
 	SHUTTING_DOWN, // "Shutting down."
+	SETTINGS_HTTP_PROXY, // "HTTP Proxy"
+	DOWNLOAD_LOCATIONS, // "Download Locations"
 	LAST // @DontAdd
 };

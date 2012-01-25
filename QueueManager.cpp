@@ -421,15 +421,8 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		WLock l(cs);
 		q = fileQueue.find(target);
 		if(q) {
-			if(q->getSize() != aSize) {
-				throw QueueException(STRING(FILE_WITH_DIFFERENT_SIZE));
-			}
-			if(!(root == q->getTTH())) {
-				throw QueueException(STRING(FILE_WITH_DIFFERENT_TTH));
-			}
-
 			if(q->isFinished()) {
-				/* the target file doesn't exist, add it */
+				/* the target file doesn't exist, add our item */
 				dcassert(q->getBundle());
 				if (q->getBundle()) {
 					q->getBundle()->removeFinishedItem(q);
@@ -439,6 +432,13 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					throw QueueException(STRING(FILE_ALREADY_FINISHED));
 				}
 			} else {
+				/* try to add the source for the existing item */
+				if(q->getSize() != aSize) {
+					throw QueueException(STRING(FILE_WITH_DIFFERENT_SIZE));
+				}
+				if(!(root == q->getTTH())) {
+					throw QueueException(STRING(FILE_WITH_DIFFERENT_TTH));
+				}
 				q->setFlag(aFlags);
 			}
 		}
@@ -476,6 +476,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			}
 
 			q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), root);
+
 			/* Bundles */
 			if (aBundle) {
 				if (aBundle->getPriority() == Bundle::PAUSED && q->getPriority() == QueueItem::HIGHEST) {
@@ -511,7 +512,9 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		} else {	
 			return;
 		}
-	} else if (!aBundle || !bundleFinished) {
+	}
+		
+	if (!bundleFinished) {
 		if (aBundle) {
 			string tmp;
 			tmp.resize(tmp.size() + STRING(BUNDLE_ITEM_ADDED).size() + 1024);
@@ -521,7 +524,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			addBundleUpdate(aBundle->getToken());
 		}
 		fire(QueueManagerListener::Added(), q);
-	} else if (bundleFinished) {
+	} else {
 		readdBundle(aBundle);
 	}
 connect:
@@ -1489,12 +1492,13 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 	QueueItem* fileBundleQI = NULL;
 	Bundle::Priority oldPrio = aBundle->getPriority();
 	//LogManager::getInstance()->message("Changing priority to: " + Util::toString(p));
+	if (oldPrio == p) {
+		//LogManager::getInstance()->message("Prio not changed: " + Util::toString(oldPrio));
+		return;
+	}
+
 	{
 		WLock l(cs);
-		if (oldPrio == p) {
-			//LogManager::getInstance()->message("Prio not changed: " + Util::toString(oldPrio));
-			return;
-		}
 		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
 		bundleQueue.addSearchPrio(aBundle);
@@ -1528,26 +1532,32 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQIChange /*false*/) noexcept {
 	string qiTarget;
 	bool autoPrio = false;
+	BundlePtr b = NULL;
 	{
 		RLock l(cs);
-		BundlePtr bundle = bundleQueue.find(bundleToken);
-		if (bundle) {
-			bundle->setAutoPriority(!bundle->getAutoPriority());
-			if (!isQIChange && bundle->getFileBundle()) {
-				QueueItem* qi = bundle->getQueueItems().front();
-				if (qi->getAutoPriority() != bundle->getAutoPriority()) {
+		b = bundleQueue.find(bundleToken);
+		if (b) {
+			b->setAutoPriority(!b->getAutoPriority());
+			if (!isQIChange && b->getFileBundle()) {
+				QueueItem* qi = b->getQueueItems().front();
+				if (qi->getAutoPriority() != b->getAutoPriority()) {
 					qiTarget = qi->getTarget();
-					autoPrio = bundle->getAutoPriority();
+					autoPrio = b->getAutoPriority();
 				}
 			}
-			bundle->setDirty(true);
+			b->setDirty(true);
 		}
 	}
 
 	if (!qiTarget.empty()) {
 		setQIAutoPriority(qiTarget, autoPrio, true);
 	}
-	calculateBundlePriorities(false);
+
+	if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_BALANCED) {
+		calculateBundlePriorities(false);
+	} else if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS && b) {
+		setBundlePriority(b, b->calculateProgressPriority(), true);
+	}
 }
 
 void QueueManager::getBundleSources(BundlePtr aBundle, Bundle::SourceInfoList& sources, Bundle::SourceInfoList& badSources) noexcept {

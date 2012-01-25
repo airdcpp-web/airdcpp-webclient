@@ -680,7 +680,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Normal prio max size", 
 "Popup box to input password for hubs", 
 "Public Hubs list", 
-"HTTP Proxy (for hublist only)", 
 "Public Hubs list URL", 
 "Queue", 
 "Rename", 
@@ -1360,6 +1359,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Saving settings", 
 "Saving the share cache", 
 "Shutting down.", 
+"HTTP Proxy", 
+"Download Locations", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2040,7 +2041,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsPrioNormal", 
 "SettingsPromptPassword", 
 "SettingsPublicHubList", 
-"SettingsPublicHubListHttpProxy", 
 "SettingsPublicHubListUrl", 
 "SettingsQueue", 
 "SettingsRenameFolder", 
@@ -2720,4 +2720,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SavingSettings", 
 "SavingShare", 
 "ShuttingDown", 
+"SettingsHttpProxy", 
+"DownloadLocations", 
 };

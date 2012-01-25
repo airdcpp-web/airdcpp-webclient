@@ -41,15 +41,7 @@ class AirUtil {
 		static void getVolumes(StringSet& volumes);
 		static bool getDiskInfo(const string& aPath, int64_t& freeSpace);
 
-		static uint32_t getLastWrite(const string& path) {
-							
-			FileFindIter ff = FileFindIter(path);
-
-			if (ff != FileFindIter()) {
-				return ff->getLastWriteTime();
-			}
-		return 0;
-		}
+		static uint32_t getLastWrite(const string& path);
 
 		static bool listRegexMatch(const StringList& l, const boost::regex& aReg);
 		static int listRegexCount(const StringList& l, const boost::regex& aReg);
@@ -63,15 +55,8 @@ class AirUtil {
 		static const string getReleaseRegBasic();
 		static void removeIfEmpty(const string& tgt);
 
-		static bool isAdcHub(const string& hubUrl) {
-			if(strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
-				return true;
-			} else if(strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
-				return true;
-			}
-			return false;
-		}
-
+		static bool isAdcHub(const string& hubUrl);
+		static void formatTimeParams(string& str, time_t time);
 	private:
 
 	};
