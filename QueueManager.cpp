@@ -367,6 +367,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					   Flags::MaskType aFlags /* = 0 */, bool addBad /* = true */, QueueItem::Priority aPrio, BundlePtr aBundle /*NULL*/) throw(QueueException, FileException)
 {
 	bool wantConnection = true;
+	bool QueueItemAdded = false;
 
 	// Check that we're not downloading from ourselves...
 	if(aUser == ClientManager::getInstance()->getMe()) {
@@ -476,7 +477,8 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			}
 
 			q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), root);
-
+			if(q)
+				QueueItemAdded = true;
 			/* Bundles */
 			if (aBundle) {
 				if (aBundle->getPriority() == Bundle::PAUSED && q->getPriority() == QueueItem::HIGHEST) {
@@ -504,17 +506,18 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			//...
 		}
 	}
-
+	bool filebundleAdded = false;
 	/* Don't continue futher in here with new directory bundles */
 	if (aBundle && aBundle->isSet(Bundle::FLAG_NEW)) {
 		if (aBundle->getFileBundle()) {
-			addBundle(aBundle);
+			addBundle(aBundle);    //fires bundleadded to queueframe!
+			filebundleAdded = true;
 		} else {	
 			return;
 		}
 	}
 		
-	if (!bundleFinished) {
+	if (QueueItemAdded && !filebundleAdded && !bundleFinished) { //not for filebundles?
 		if (aBundle) {
 			string tmp;
 			tmp.resize(tmp.size() + STRING(BUNDLE_ITEM_ADDED).size() + 1024);
@@ -524,7 +527,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			addBundleUpdate(aBundle->getToken());
 		}
 		fire(QueueManagerListener::Added(), q);
-	} else {
+	} else if(aBundle && !filebundleAdded) {   //fix a crash-> need to check for aBundle! , also not for filebundles or? if(bundleFinished &&?
 		readdBundle(aBundle);
 	}
 connect:

@@ -721,6 +721,9 @@ void ShareManager::renameDirectory(const string& realPath, const string& virtual
 }
 
 ShareManager::Dirs ShareManager::getByVirtual(const string& virtualName) const throw() {
+	if(virtualName.empty())
+		return Dirs();
+	
 	Dirs temp;
 
 	for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
