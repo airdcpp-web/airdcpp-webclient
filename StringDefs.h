@@ -580,7 +580,6 @@ enum Strings { // @DontAdd
 	SETTINGS_AUTO_OPEN, // "Auto-open at startup"
 	SETTINGS_AUTO_PRIORITY_DEFAULT, // "Use Auto Priority by default"
 	SETTINGS_AUTO_REFRESH_TIME, // "Auto refresh time"
-	SETTINGS_AUTO_SEARCH, // "Automatically search for alternative TTH source every"
 	SETTINGS_AUTO_SEARCH_LIMIT, // "Max sources for autosearch"
 	SETTINGS_AUTO_SLOTS, // "Maximum auto opened"
 	SETTINGS_AVIPREVIEW, // "File Preview"
@@ -1368,5 +1367,8 @@ enum Strings { // @DontAdd
 	SHUTTING_DOWN, // "Shutting down."
 	SETTINGS_HTTP_PROXY, // "HTTP Proxy"
 	DOWNLOAD_LOCATIONS, // "Download Locations"
+	SEGMENTED_DOWNLOADS, // "Segmented Downloads"
+	SETTINGS_AUTO_BUNDLE_SEARCH, // "Automatically search for alternative bundle sources"
+	SEARCHING_OPTIONS, // "Searching Options"
 	LAST // @DontAdd
 };

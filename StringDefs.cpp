@@ -577,7 +577,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Auto-open at startup", 
 "Use Auto Priority by default", 
 "Auto refresh time", 
-"Automatically search for alternative TTH source every", 
 "Max sources for autosearch", 
 "Maximum auto opened", 
 "File Preview", 
@@ -1361,6 +1360,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Shutting down.", 
 "HTTP Proxy", 
 "Download Locations", 
+"Segmented Downloads", 
+"Automatically search for alternative bundle sources", 
+"Searching Options", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -1938,7 +1940,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsAutoOpen", 
 "SettingsAutoPriorityDefault", 
 "SettingsAutoRefreshTime", 
-"SettingsAutoSearch", 
 "SettingsAutoSearchLimit", 
 "SettingsAutoSlots", 
 "SettingsAvipreview", 
@@ -2722,4 +2723,7 @@ std::string dcpp::ResourceManager::names[] = {
 "ShuttingDown", 
 "SettingsHttpProxy", 
 "DownloadLocations", 
+"SegmentedDownloads", 
+"SettingsAutoBundleSearch", 
+"SearchingOptions", 
 };
