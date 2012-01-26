@@ -20,8 +20,6 @@
 #include "stdinc.h"
 #include "DCPlusPlus.h"
 
-#include "DCPlusPlus.h"
-
 #include "SharedFileStream.h"
 
 #ifdef _WIN32
