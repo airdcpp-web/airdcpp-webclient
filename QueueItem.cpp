@@ -75,8 +75,6 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 			}
 		}
 	}
-
-	setFlag(FLAG_AUTODROP);
 }
 
 /* INTERNAL */

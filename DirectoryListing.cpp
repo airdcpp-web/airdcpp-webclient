@@ -94,7 +94,7 @@ void DirectoryListing::loadFile(const string& name, bool checkdupe) {
 class ListLoader : public SimpleXMLReader::CallBack {
 public:
 	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList) : 
-	  list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkdupe(aCheckDupe), partialList(aPartialList), useCache(true) { 
+	  list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList), useCache(true) { 
 	}
 
 	virtual ~ListLoader() { }
@@ -108,11 +108,10 @@ private:
 	DirectoryListing::Directory* cur;
 	UserPtr user;
 
-	StringMap params;
 	string base;
 	bool inListing;
 	bool updating;
-	bool checkdupe;
+	bool checkDupe;
 	bool partialList;
 	bool useCache;
 };
@@ -168,7 +167,6 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				// just update the current file if it is already there.
 				for(auto i = cur->files.cbegin(), iend = cur->files.cend(); i != iend; ++i) {
 					auto& file = **i;
-					/// @todo comparisons should be case-insensitive but it takes too long - add a cache
 					if(file.getTTH() == tth || file.getName() == n) {
 						file.setName(n);
 						file.setSize(size);
@@ -178,20 +176,8 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				}
 			}
 
-			DirectoryListing::File* f = new DirectoryListing::File(cur, n, size, tth);
+			DirectoryListing::File* f = new DirectoryListing::File(cur, n, size, tth, checkDupe);
 			cur->files.push_back(f);
-			if(f->getSize() > 0) {
-				if (checkdupe) {
-					if (ShareManager::getInstance()->isFileShared(f->getTTH(), f->getName())) {
-						f->setDupe(1);
-					} else {
-						int queued = QueueManager::getInstance()->isFileQueued(f->getTTH(), f->getName());
-						if (queued > 0) {
-							f->setDupe(queued+1);
-						}
-					}
-				}
-			}
 		} else if(name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
 			if(n.empty()) {
@@ -200,24 +186,6 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			bool incomp = getAttrib(attribs, sIncomplete, 1) == "1";
 			const string& size = getAttrib(attribs, sSize, 2);
 			const string& date = getAttrib(attribs, sDate, 3);
-			time_t dateRaw = 0;
-			if (!date.empty()) {
-				dateRaw = static_cast<time_t>(Util::toUInt32(date));
-				//workaround for versions 2.2x, remove later
-				if (dateRaw < 10000 && date.length() == 10) {
-					int yy=0, mm=0, dd=0;
-					struct tm when;
-					sscanf_s(date.c_str(), "%d-%d-%d", &yy, &mm, &dd );
-					when.tm_year = yy - 1900;
-					when.tm_mon = mm - 1;
-					when.tm_mday = dd;
-					when.tm_isdst = 0;
-					when.tm_hour=16;
-					when.tm_min=0;
-					when.tm_sec=0;
-					dateRaw = mktime(&when);
-				}
-			}
 
 			DirectoryListing::Directory* d = NULL;
 			if(updating) {
@@ -228,6 +196,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 						if(!d->getComplete()) {
 							d->setComplete(!incomp);
 						}
+						d->setDate(date);
 					}
 				} else {
 					auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == n; });
@@ -235,19 +204,13 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 						d = *s;
 						if(!d->getComplete())
 							d->setComplete(!incomp);
+						d->setDate(date);
 					}
 				}
 			}
 
 			if(d == NULL) {
-				d = new DirectoryListing::Directory(cur, n, false, !incomp, size, dateRaw);
-				if (checkdupe && partialList) {
-					if (ShareManager::getInstance()->isDirShared(d->getPath())) {
-						d->setDupe(2);
-					} else if (QueueManager::getInstance()->isDirQueued(d->getPath())) {
-						d->setDupe(4);
-					}
-				}
+				d = new DirectoryListing::Directory(cur, n, false, !incomp, (partialList && checkDupe), size, date);
 				cur->directories.push_back(d);
 			}
 			cur = d;
@@ -267,7 +230,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 		for(auto i = sl.begin(); i != sl.end(); ++i) {
 			auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == *i; });
 			if (s == cur->directories.end()) {
-				auto d = new DirectoryListing::Directory(cur, *i, false, false);
+				auto d = new DirectoryListing::Directory(cur, *i, false, false, true);
 				cur->directories.push_back(d);
 				cur->visitedDirs[*i] = d;
 				cur = d;
@@ -301,6 +264,60 @@ void ListLoader::endTag(const string& name, const string&) {
 			inListing = false;
 		}
 	}
+}
+
+DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe) noexcept : 
+	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(0) {
+	if (checkDupe && size > 0) {
+		if (ShareManager::getInstance()->isFileShared(aTTH, name)) {
+			setDupe(1);
+		} else {
+			int queued = QueueManager::getInstance()->isFileQueued(aTTH, name);
+			if (queued > 0) {
+				setDupe(queued+1);
+			}
+		}
+	}
+}
+
+DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
+			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), size(0) {
+
+	if (checkDupe) {
+		if (ShareManager::getInstance()->isDirShared(getPath())) {
+			setDupe(2);
+		} else if (QueueManager::getInstance()->isDirQueued(getPath())) {
+			setDupe(4);
+		}
+	}
+
+	setDate(aDate);
+
+	if (!aSize.empty()) {
+		size = Util::toInt64(aSize);
+	}
+}
+
+void DirectoryListing::Directory::setDate(const string& aDate) {
+	time_t dateRaw = 0;
+	if (!aDate.empty()) {
+		dateRaw = static_cast<time_t>(Util::toUInt32(aDate));
+		//workaround for versions 2.2x, remove later
+		if (dateRaw < 10000 && aDate.length() == 10) {
+			int yy=0, mm=0, dd=0;
+			struct tm when;
+			sscanf_s(aDate.c_str(), "%d-%d-%d", &yy, &mm, &dd );
+			when.tm_year = yy - 1900;
+			when.tm_mon = mm - 1;
+			when.tm_mday = dd;
+			when.tm_isdst = 0;
+			when.tm_hour=16;
+			when.tm_min=0;
+			when.tm_sec=0;
+			dateRaw = mktime(&when);
+		}
+	}
+	date = dateRaw;
 }
 
 string DirectoryListing::getPath(const Directory* d) const {
@@ -348,7 +365,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 	target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
 	//create bundles
 	if (first) {
-		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, aDir->getDirDate()));
+		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, aDir->getDate()));
 	}
 
 	// First, recurse over the directories
@@ -489,11 +506,11 @@ StringList DirectoryListing::getLocalPaths(const Directory* d) {
 }
 
 int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
-	if(!getComplete())
-		return Util::toInt64(getDirSize());
+	if(!complete)
+		return size;
 	
 	int64_t x = getSize();
-	for(Iter i = directories.begin(); i != directories.end(); ++i) {
+	for(auto i = directories.begin(); i != directories.end(); ++i) {
 		if(!(adl && (*i)->getAdls()))
 			x += (*i)->getTotalSize(adls);
 	}
@@ -502,7 +519,7 @@ int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
 
 size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
 	size_t x = getFileCount();
-	for(Iter i = directories.begin(); i != directories.end(); ++i) {
+	for(auto i = directories.begin(); i != directories.end(); ++i) {
 		if(!(adl && (*i)->getAdls()))
 			x += (*i)->getTotalFileCount(adls);
 	}

@@ -367,7 +367,6 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					   Flags::MaskType aFlags /* = 0 */, bool addBad /* = true */, QueueItem::Priority aPrio, BundlePtr aBundle /*NULL*/) throw(QueueException, FileException)
 {
 	bool wantConnection = true;
-	bool QueueItemAdded = false;
 
 	// Check that we're not downloading from ourselves...
 	if(aUser == ClientManager::getInstance()->getMe()) {
@@ -440,65 +439,65 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				if(!(root == q->getTTH())) {
 					throw QueueException(STRING(FILE_WITH_DIFFERENT_TTH));
 				}
+
 				q->setFlag(aFlags);
+				wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aBundle);
+				goto connect;
 			}
 		}
 
-		if(!q) {
-			if((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW && BOOLSETTING(DONT_DL_ALREADY_QUEUED)) {
-				q = fileQueue.getQueuedFile(root, Util::getFileName(aTarget));
-				if (q) {
-					if (q->isFinished()) {
-						/* the target file doesn't exist, add it */
-						dcassert(q->getBundle());
-						if (q->getBundle()) {
-							q->getBundle()->removeFinishedItem(q);
-							fileQueue.remove(q);
-							q = nullptr;
-						}
-					} else { 
-						if(!q->isSource(aUser)) {
-							try {
-								if (addSource(q, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0)) {
-									wantConnection = true;
-									goto connect;
-								}
-							} catch(const Exception&) {
-								//...
+		if((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW && BOOLSETTING(DONT_DL_ALREADY_QUEUED)) {
+			q = fileQueue.getQueuedFile(root, Util::getFileName(aTarget));
+			if (q) {
+				if (q->isFinished()) {
+					/* the target file doesn't exist, add it */
+					dcassert(q->getBundle());
+					if (q->getBundle()) {
+						q->getBundle()->removeFinishedItem(q);
+						fileQueue.remove(q);
+						q = nullptr;
+					}
+				} else { 
+					if(!q->isSource(aUser)) {
+						try {
+							if (addSource(q, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0)) {
+								wantConnection = true;
+								goto connect;
 							}
+						} catch(const Exception&) {
+							//...
 						}
 					}
+				}
 
-					if (q) {
-						LogManager::getInstance()->message(STRING(FILE_WITH_SAME_TTH) + " " + aTarget );
-						throw QueueException(STRING(FILE_WITH_SAME_TTH));
-					}
+				if (q) {
+					LogManager::getInstance()->message(STRING(FILE_WITH_SAME_TTH) + " " + aTarget );
+					throw QueueException(STRING(FILE_WITH_SAME_TTH));
 				}
 			}
-
-			q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), root);
-			if(q)
-				QueueItemAdded = true;
-			/* Bundles */
-			if (aBundle) {
-				if (aBundle->getPriority() == Bundle::PAUSED && q->getPriority() == QueueItem::HIGHEST) {
-					q->setPriority(QueueItem::HIGH);
-				}
-				bundleQueue.addBundleItem(q, aBundle);
-			} else if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW) {
-				aBundle = bundleQueue.getMergeBundle(q->getTarget());
-				if (aBundle) {
-					//finished bundle but failed hashing/scanning?
-					bundleFinished = aBundle->isFinished();
-
-					bundleQueue.addBundleItem(q, aBundle);
-					aBundle->setDirty(true);
-				} else {
-					aBundle = new Bundle(q);
-				}
-			}
-			/* Bundles end */
 		}
+
+		q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), root);
+
+		/* Bundles */
+		if (aBundle) {
+			if (aBundle->getPriority() == Bundle::PAUSED && q->getPriority() == QueueItem::HIGHEST) {
+				q->setPriority(QueueItem::HIGH);
+			}
+			bundleQueue.addBundleItem(q, aBundle);
+		} else if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW) {
+			aBundle = bundleQueue.getMergeBundle(q->getTarget());
+			if (aBundle) {
+				//finished bundle but failed hashing/scanning?
+				bundleFinished = aBundle->isFinished();
+
+				bundleQueue.addBundleItem(q, aBundle);
+				aBundle->setDirty(true);
+			} else {
+				aBundle = new Bundle(q);
+			}
+		}
+		/* Bundles end */
 
 		try {
 			wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aBundle);
@@ -506,29 +505,31 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			//...
 		}
 	}
-	bool filebundleAdded = false;
-	/* Don't continue futher in here with new directory bundles */
-	if (aBundle && aBundle->isSet(Bundle::FLAG_NEW)) {
-		if (aBundle->getFileBundle()) {
-			addBundle(aBundle);    //fires bundleadded to queueframe!
-			filebundleAdded = true;
-		} else {	
-			return;
-		}
-	}
-		
-	if (QueueItemAdded && !filebundleAdded && !bundleFinished) { //not for filebundles?
-		if (aBundle) {
-			string tmp;
-			tmp.resize(tmp.size() + STRING(BUNDLE_ITEM_ADDED).size() + 1024);
-			tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ITEM_ADDED), q->getTarget().c_str(), aBundle->getName().c_str()));
-			LogManager::getInstance()->message(tmp);
 
-			addBundleUpdate(aBundle->getToken());
+	if (aBundle) {
+		if (aBundle->isSet(Bundle::FLAG_NEW)) {
+			if (aBundle->getFileBundle()) {
+				addBundle(aBundle);
+			} else {
+				/* Don't continue futher in here with new directory bundles */
+				return;
+			}
+		} else {
+			if (!bundleFinished) {
+				/* Merged into existing dir bundle */
+				string tmp;
+				tmp.resize(tmp.size() + STRING(BUNDLE_ITEM_ADDED).size() + 1024);
+				tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_ITEM_ADDED), q->getTarget().c_str(), aBundle->getName().c_str()));
+				LogManager::getInstance()->message(tmp);
+
+				fire(QueueManagerListener::Added(), q);
+				addBundleUpdate(aBundle->getToken());
+			} else {
+				readdBundle(aBundle);
+			}
 		}
+	} else {
 		fire(QueueManagerListener::Added(), q);
-	} else if(aBundle && !filebundleAdded) {   //fix a crash-> need to check for aBundle! , also not for filebundles or? if(bundleFinished &&?
-		readdBundle(aBundle);
 	}
 connect:
 	bool smallSlot = (q->isSet(QueueItem::FLAG_PARTIAL_LIST) || (q->getSize() <= 65792 && !q->isSet(QueueItem::FLAG_USER_LIST) && q->isSet(QueueItem::FLAG_CLIENT_VIEW)));
@@ -758,16 +759,25 @@ bool QueueManager::getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& 
 	return true;
 }
 
-void QueueManager::onSlowDisconnect(const string& aTarget) {
+void QueueManager::onSlowDisconnect(const string& aToken) {
 	RLock l(cs);
-	auto qi = fileQueue.find(aTarget);
-	if(qi) {
-		if(qi->isSet(QueueItem::FLAG_AUTODROP)) {
-			qi->unsetFlag(QueueItem::FLAG_AUTODROP);
+	auto b = bundleQueue.find(aToken);
+	if(b) {
+		if(b->isSet(Bundle::FLAG_AUTODROP)) {
+			b->unsetFlag(Bundle::FLAG_AUTODROP);
 		} else {
-			qi->setFlag(QueueItem::FLAG_AUTODROP);
+			b->setFlag(Bundle::FLAG_AUTODROP);
 		}
 	}
+}
+
+bool QueueManager::getAutoDrop(const string& aToken) {
+	RLock l(cs);
+	auto b = bundleQueue.find(aToken);
+	if(b) {
+		return b->isSet(Bundle::FLAG_AUTODROP);
+	}
+	return false;
 }
 
 string QueueManager::getTempTarget(const string& aTarget) {
@@ -777,15 +787,6 @@ string QueueManager::getTempTarget(const string& aTarget) {
 		return qi->getTempTarget();
 	}
 	return Util::emptyString;
-}
-
-bool QueueManager::getAutoDrop(const string& aTarget) {
-	RLock l(cs);
-	auto qi = fileQueue.find(aTarget);
-	if(qi) {
-		return qi->isSet(QueueItem::FLAG_AUTODROP);
-	}
-	return false;
 }
 
 StringList QueueManager::getTargets(const TTHValue& tth) {
@@ -2214,46 +2215,17 @@ checkQIprios:
 }
 
 bool QueueManager::dropSource(Download* d) {
-	size_t activeSegments = 0, onlineUsers = 0;
-	uint64_t overallSpeed = 0;
-	bool found=false;
+	BundlePtr b = d->getBundle();
+	size_t onlineUsers = 0;
 
-	{
-		RLock l(cs);
-		QueueItemList runningItems = userQueue.getRunning(d->getUser());
-		for (auto s = runningItems.begin(); s != runningItems.end(); ++s) {
-			QueueItem* q = *s;
-			if (q->getTarget() == d->getPath()) {
-				found=true;
-   				dcassert(q->isSource(d->getUser()));
-
-				if(!q->isSet(QueueItem::FLAG_AUTODROP))
-					return false;
-
-				for(auto i = q->getDownloads().begin(); i != q->getDownloads().end(); i++) {
-					if((*i)->getStart() > 0) {
-						activeSegments++;
-					}
-
-					// more segments won't change anything
-					if(activeSegments > 2)
-						break;
-				}
-
-				onlineUsers = q->countOnlineUsers();
-				overallSpeed = q->getAverageSpeed();
-				break;
-			}
-		}
-	}
-
-	if (!found)
-		return false;
-
-	if(!SETTING(DROP_MULTISOURCE_ONLY) || (activeSegments >= 2)) {
+	if(!SETTING(DROP_MULTISOURCE_ONLY) || (b->getRunning() >= 2)) {
 		size_t iHighSpeed = SETTING(DISCONNECT_FILE_SPEED);
+		{
+			RLock l (cs);
+			onlineUsers = b->countOnlineUsers();
+		}
 
-		if((iHighSpeed == 0 || overallSpeed > iHighSpeed * 1024) && onlineUsers > 2) {
+		if((iHighSpeed == 0 || b->getSpeed() > iHighSpeed * 1024) && onlineUsers > 2) {
 			d->setFlag(Download::FLAG_SLOWUSER);
 
 			if(d->getAverageSpeed() < SETTING(REMOVE_SPEED)*1024) {

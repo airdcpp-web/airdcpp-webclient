@@ -56,10 +56,7 @@ public:
 		typedef List::const_iterator Iter;
 		
 		enum { NONE, SHARE_DUPE, QUEUED_DUPE, FINISHED_DUPE };
-		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH) noexcept : 
-			name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(0)
-		{
-		}
+		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe) noexcept;
 
 		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe)
 		{
@@ -106,9 +103,10 @@ public:
 		DirMap visitedDirs;
 
 		enum { NONE, PARTIAL_SHARE_DUPE, SHARE_DUPE, PARTIAL_QUEUE_DUPE, QUEUE_DUPE, SHARE_QUEUE_DUPE };
-		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, const string& Size = Util::emptyString, time_t date = 0) 
-			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), dirsize(Size), dirdate(date) { }
-		
+		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe = false, const string& aSize = Util::emptyString, const string& aDate = Util::emptyString);
+		void setDate(const string& aDate);
+		time_t getDate() { return date; }
+
 		virtual ~Directory();
 
 		size_t getTotalFileCount(bool adls = false);		
@@ -141,12 +139,13 @@ public:
 		uint8_t checkShareDupes();
 		
 		GETSET(string, name, Name);
-		GETSET(string, dirsize, DirSize);
-		GETSET(time_t, dirdate, DirDate);
+		GETSET(int64_t, size, Size);
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);
 		GETSET(uint8_t, dupe, Dupe)
+	private:
+		time_t date;
 	};
 
 	class AdlDirectory : public Directory {

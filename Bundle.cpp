@@ -39,11 +39,12 @@ Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), f
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	setFlag(FLAG_NEW);
+	setFlag(FLAG_AUTODROP);
 }
 
-Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate /*0*/) : target(target), fileBundle(false), token(Util::toString(Util::rand())), size(0), 
-	finishedSegments(0), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), 
-	recent(false), currentDownloaded(0), hashed(0), moved(0) {
+Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate /*0*/) : target(target), fileBundle(false), 
+	token(Util::toString(Util::rand()) + Util::toString(Util::rand())), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), 
+	lastPercent(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0), moved(0) {
 
 	if (dirDate > 0) {
 		recent = (dirDate + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > GET_TIME();
@@ -58,6 +59,7 @@ Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aD
 		autoPriority = true;
 	}
 	setFlag(FLAG_NEW);
+	setFlag(FLAG_AUTODROP);
 }
 
 Bundle::~Bundle() { 
@@ -741,12 +743,11 @@ void Bundle::removeDownload(Download* d) noexcept {
 	auto m = find(downloads.begin(), downloads.end(), d);
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
-		countSpeed();
 		downloads.erase(m);
 	}
 }
 
-uint64_t Bundle::countSpeed() noexcept {
+bool Bundle::onDownloadTick() noexcept {
 	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
 	int down = 0;
 	for (auto s = downloads.begin(); s != downloads.end(); ++s) {
@@ -760,6 +761,7 @@ uint64_t Bundle::countSpeed() noexcept {
 		}
 	}
 
+
 	if (bundleSpeed > 0) {
 		setDownloadedBytes(bundlePos);
 		speed = bundleSpeed;
@@ -767,8 +769,9 @@ uint64_t Bundle::countSpeed() noexcept {
 
 		bundleRatio = bundleRatio / down;
 		actual = ((int64_t)((double)(finishedSegments+bundlePos) * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+		return true;
 	}
-	return bundleSpeed;
+	return false;
 }
 
 void Bundle::addUploadReport(const HintedUser& aUser) noexcept {

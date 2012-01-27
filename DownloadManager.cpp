@@ -72,7 +72,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		Lock l(cs);
 		for (auto i = runningBundles.begin(); i != runningBundles.end(); ++i) {
 			BundlePtr bundle = i->second;
-			if (bundle->countSpeed() > 0) {
+			if (bundle->onDownloadTick()) {
 				bundleTicks.push_back(bundle);
 			}
 		}
@@ -88,8 +88,9 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 				tickList.push_back(d);
 				d->tick();
 			}
+			for_each(userSpeedMap.begin(), userSpeedMap.end(), [](pair<UserPtr, int64_t> us) { us.first->setSpeed(us.second); });
 
-			if (d->getType() == Transfer::TYPE_FILE && d->getStart() > 0)
+			if (d->getBundle() && d->getBundle()->isSet(Bundle::FLAG_AUTODROP) && d->getStart() > 0)
 			{
 				if (d->getTigerTree().getFileSize() > (SETTING(DISCONNECT_FILESIZE) * 1048576))
 				{
@@ -110,18 +111,12 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 			if(SETTING(FAV_DL_SPEED) > 0) {
 				UserPtr fstusr = d->getUser();
-				if(FavoriteManager::getInstance()->isFavoriteUser(fstusr) == false) {
-					if(speed > SETTING(FAV_DL_SPEED)*1024) {
-						if((aTick - d->getStart()) > 7000) {
-							FavoriteManager::getInstance()->addFavoriteUserB(fstusr);
-							FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1024) + "KB/s)"));
-						}
-					}
+				if((speed > SETTING(FAV_DL_SPEED)*1024) && ((aTick - d->getStart()) > 7000) && !FavoriteManager::getInstance()->isFavoriteUser(fstusr)) {
+					FavoriteManager::getInstance()->addFavoriteUserB(fstusr);
+					FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1024) + "KB/s)"));
 				}
 			}
 		}
-
-		for_each(userSpeedMap.begin(), userSpeedMap.end(), [](pair<UserPtr, int64_t> us) { us.first->setSpeed(us.second); });
 
 		if(tickList.size() > 0) {
 			fire(DownloadManagerListener::Tick(), tickList);

@@ -88,9 +88,10 @@ public:
 	const QueueItem::StringMap& getQueue() noexcept { RLock l (cs); return fileQueue.getQueue(); } ;
 	//const QueueItem::StringMap& lockQueue() noexcept { cs.lock(); return fileQueue.getQueue(); } ;
 	//void unlockQueue() noexcept { cs.unlock(); }
-	void onSlowDisconnect(const string& aTarget);
+	void onSlowDisconnect(const string& aToken);
+	bool getAutoDrop(const string& aToken);
+
 	string getTempTarget(const string& aTarget);
-	bool getAutoDrop(const string& aTarget);
 
 	QueueItem::SourceList getSources(const QueueItem* qi) const { RLock l(cs); return qi->getSources(); }
 	QueueItem::SourceList getBadSources(const QueueItem* qi) const { RLock l(cs); return qi->getBadSources(); }

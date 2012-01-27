@@ -50,12 +50,19 @@ public:
 	};
 
 	enum Flags {
+		/** Flags for delayed updates */
 		FLAG_UPDATE_SIZE			= 0x01,
 		FLAG_UPDATE_NAME			= 0x02,
+		/** The bundle is currently being hashed */
 		FLAG_HASH					= 0x04,
+		/** Failed to hash */
 		FLAG_HASH_FAILED			= 0x08,
+		/** Missing/extra files have been found */
 		FLAG_SCAN_FAILED			= 0x10,
-		FLAG_NEW					= 0x20
+		/** Not added into bundleQueue yet */
+		FLAG_NEW					= 0x20,
+		/** Autodrop slow sources is enabled for this bundle */
+		FLAG_AUTODROP				= 0x80
 	};
 
 	enum SourceInfo {
@@ -215,7 +222,7 @@ public:
 	void getSearchItems(StringPairList& searches, bool manual) noexcept;
 	void updateSearchMode();
 
-	uint64_t countSpeed() noexcept;
+	bool onDownloadTick() noexcept;
 	void setDownloadedBytes(int64_t aSize) noexcept;
 
 	void increaseRunning() { running++; }
