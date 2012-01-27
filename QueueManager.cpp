@@ -1512,12 +1512,11 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 		}
 
 		fire(QueueManagerListener::BundlePriority(), aBundle);
-		aBundle->setDirty(true);
+		if (aBundle->getFileBundle() && !isQIChange) {
+			fileBundleQI = aBundle->getQueueItems().front();
+		}
 	}
 
-	if (aBundle->getFileBundle() && !isQIChange) {
-		fileBundleQI = aBundle->getQueueItems().front();
-	}
 	aBundle->setDirty(true);
 
 	if(p == Bundle::PAUSED) {
@@ -1528,39 +1527,47 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 
 	if (fileBundleQI) {
 		setQIPriority(fileBundleQI, (QueueItem::Priority)p, isAuto, true);
+		if (aBundle->getAutoPriority() != fileBundleQI->getAutoPriority()) {
+			setQIAutoPriority(fileBundleQI->getTarget(), aBundle->getAutoPriority(), true);
+		}
 	}
 
 	//LogManager::getInstance()->message("Prio changed to: " + Util::toString(bundle->getPriority()));
 }
 
 void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQIChange /*false*/) noexcept {
-	string qiTarget;
-	bool autoPrio = false;
 	BundlePtr b = NULL;
 	{
 		RLock l(cs);
 		b = bundleQueue.find(bundleToken);
 		if (b) {
 			b->setAutoPriority(!b->getAutoPriority());
-			if (!isQIChange && b->getFileBundle()) {
-				QueueItem* qi = b->getQueueItems().front();
-				if (qi->getAutoPriority() != b->getAutoPriority()) {
-					qiTarget = qi->getTarget();
-					autoPrio = b->getAutoPriority();
-				}
-			}
 			b->setDirty(true);
 		}
 	}
 
-	if (!qiTarget.empty()) {
-		setQIAutoPriority(qiTarget, autoPrio, true);
-	}
+	if (b) {
+		if (!isQIChange && b->getFileBundle()) {
+			QueueItem* qi = nullptr;
+			{
+				RLock l (cs);
+				qi = b->getQueueItems().front();
+			}
 
-	if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_BALANCED) {
-		calculateBundlePriorities(false);
-	} else if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS && b) {
-		setBundlePriority(b, b->calculateProgressPriority(), true);
+			if (qi->getAutoPriority() != b->getAutoPriority()) {
+				setQIAutoPriority(qi->getTarget(), b->getAutoPriority(), true);
+			}
+		}
+
+		if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_BALANCED) {
+			calculateBundlePriorities(false);
+			if (b->getPriority() == Bundle::PAUSED) {
+				//failed to count, but we don't want it to stay paused
+				setBundlePriority(b, Bundle::LOW, true);
+			}
+		} else if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
+			setBundlePriority(b, b->calculateProgressPriority(), true);
+		}
 	}
 }
 
@@ -1675,8 +1682,12 @@ void QueueManager::setQIAutoPriority(const string& aTarget, bool ap, bool isBund
 					bundleToken = bundle->getToken();
 				}
 			}
-			if(ap) {
-				priorities.push_back(make_pair(q, q->calculateAutoPriority()));
+			if(ap && !isBundleChange) {
+				if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
+					priorities.push_back(make_pair(q, q->calculateAutoPriority()));
+				} else if (q->getPriority() == QueueItem::PAUSED) {
+					priorities.push_back(make_pair(q, QueueItem::LOW));
+				}
 			}
 			dcassert(q->getBundle());
 			q->getBundle()->setDirty(true);
