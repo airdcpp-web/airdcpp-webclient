@@ -385,7 +385,11 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		}
 		tempTarget = aTarget;
 	} else {
+		target = aTarget;
 		if (!(aFlags & QueueItem::FLAG_CLIENT_VIEW)) {
+			if (!aBundle)
+				target = Util::formatTime(aTarget, time(NULL));
+
 			if (BOOLSETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(root, Util::getFileName(aTarget))) {
 				// Check if we're not downloading something already in our share
 				LogManager::getInstance()->message(STRING(FILE_ALREADY_SHARED) + " " + aTarget );
@@ -399,7 +403,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		}
 		
 		//we can check the existence and throw even with FTPlogger support, if the file exists already the directory must exist too.
-		target = checkTarget(aTarget, /*checkExistence*/ true);
+		target = checkTarget(target, /*checkExistence*/ true);
 
 		if(BOOLSETTING(USE_FTP_LOGGER)) {
 			AirUtil::fileEvent(target);
@@ -2808,10 +2812,9 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 				UploadManager::getInstance()->abortUpload(qi->getTarget());
 				string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
 				if (!fileQueue.find(targetPath)) {
-					string qiTarget = qi->getTarget();
-					qi->setTarget(targetPath);
 					if(!Util::fileExists(targetPath)) {
-						moveFile(qiTarget, targetPath, newBundle);
+						moveFile(qi->getTarget(), targetPath, newBundle);
+						fileQueue.move(qi, targetPath);
 						if (hasMergeBundle) {
 							newBundle->addFinishedItem(qi, false);
 							sourceBundle->removeFinishedItem(qi);
@@ -2900,13 +2903,13 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 		for (auto i = sourceBundle->getFinishedFiles().begin(); i != sourceBundle->getFinishedFiles().end();) {
 			QueueItem* qi = *i;
 			if (AirUtil::isSub(qi->getTarget(), aSource)) {
-				bool added = false;
 				if (moveFinished) {
 					UploadManager::getInstance()->abortUpload(qi->getTarget());
 					string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
 					if (!fileQueue.find(targetPath)) {
 						if(!Util::fileExists(targetPath)) {
 							moveFile(qi->getTarget(), targetPath, newBundle);
+							fileQueue.move(qi, targetPath);
 							if (newBundle == sourceBundle) {
 								i++;
 								continue;
@@ -2915,15 +2918,14 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 							} else {
 								tempBundle->addFinishedItem(qi, false);
 							}
-							added = true;
-							qi->setTarget(targetPath);
+							sourceBundle->removeFinishedItem(qi);
+							continue;
 						} else {
 							/* TODO: add for recheck */
 						}
 					}
 				}
-				if (!added)
-					fileQueue.remove(qi);
+				fileQueue.remove(qi);
 				sourceBundle->removeFinishedItem(qi);
 			} else {
 				i++;

@@ -1326,54 +1326,47 @@ string Util::base64_decode(string const& encoded_string) {
 }
 
 string Util::getDir(string dir, bool validate, bool cut) {
-		if (dir == Util::emptyString)
-			return dir;
+	if (dir == Util::emptyString)
+		return dir;
 
-		//boost::smatch result;
-		size_t dpos;
-		if(dir[dir.size() -1] != '\\') {
-			dpos = dir.rfind("\\");
-			if(dpos != string::npos) {
-				dir = dir.substr(0,dpos+1);
-			} else {
-				return dir;
-			}
+	size_t dpos;
+	if(dir[dir.size() -1] != '\\') {
+		dpos = dir.rfind("\\");
+		if(dpos != string::npos) {
+			dir = dir.substr(0,dpos+1);
+		} else {
+			return dir;
 		}
-		//reg.assign(".*[^\\\\]+\\\\([^\\\\]+\\.[a-z0-9]{2,10})$");
-		//if (regex_match(dir, reg)) {
-		//	dpos = dir.rfind("\\");
-		//	if(dpos != tstring::npos) {
-		//		dir = dir.substr(0,dpos+1);
-		//	}
-		//}
-		if (validate) {
-			boost::regex reg;
-			for (;;) {
-				reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
-				if (regex_match(dir, reg)) {
-					if(dir[dir.size() -1] == '\\')
-						dir = dir.substr(0, dir.size()-1);
-					dpos = dir.rfind("\\");
-					if(dpos != string::npos) {
-						dir = dir.substr(0,dpos+1);
-					} else {
-						break;
-					}
+	}
+
+	if (validate) {
+		boost::regex reg;
+		reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
+		for (;;) {
+			if (regex_match(dir, reg)) {
+				if(dir[dir.size() -1] == '\\')
+					dir = dir.substr(0, dir.size()-1);
+				dpos = dir.rfind("\\");
+				if(dpos != string::npos) {
+					dir = dir.substr(0,dpos+1);
 				} else {
 					break;
 				}
+			} else {
+				break;
 			}
 		}
+	}
 
-		if (cut) {
-			if(dir[dir.size() -1] == '\\')
-				dir = dir.substr(0, dir.size()-1);
-			size_t dpos = dir.rfind("\\");
-			if(dpos != string::npos) {
-				dir = dir.substr(dpos+1,dir.size());
-			}
+	if (cut) {
+		if(dir[dir.size() -1] == '\\')
+			dir = dir.substr(0, dir.size()-1);
+		size_t dpos = dir.rfind("\\");
+		if(dpos != string::npos) {
+			dir = dir.substr(dpos+1,dir.size());
 		}
-		return dir;
+	}
+	return dir;
 }
 
 string Util::getOsVersion(bool http /* = false */) {

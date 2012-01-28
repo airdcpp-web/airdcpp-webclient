@@ -1216,7 +1216,6 @@ enum Strings { // @DontAdd
 	PROFILE_RAR, // "Rar Hubs"
 	PROFILE_PRIVATE, // "Private Hubs"
 	SETTINGS_MCN_NOTE, // "* Lowering the upload connections from the default value will result the download connections to be set to the same value"
-	SETTINGS_TARGETDRIVE_NOTE, // "* Using target drive means that unfinished files are always being saved to an own folder on the same drive where the final destination is"
 	SETTINGS_USE_TARGETDRIVE, // "Use Target Drive for unfinished files"
 	REMOVE_ON_HIT, // "Remove after found"
 	SEARCH_ADDED, // "Search Added to Autosearch List: "
@@ -1371,5 +1370,6 @@ enum Strings { // @DontAdd
 	SETTINGS_SKIPLIST_DOWNLOAD, // "Download Skiplist (separate files with '|', wildcards allowed)"
 	SETTINGS_HIGH_PRIO_FILES, // "Highest priority files (separate files with '|', wildcards allowed)"
 	SETTINGS_AUTO_DROP_SLOW_SOURCES, // "Actively monitor slow downloads (more than 2 active sources)"
+	SETTINGS_FORMAT_REMOTE_TIME, // "Use the date of the remote directory for time parameters"
 	LAST // @DontAdd
 };

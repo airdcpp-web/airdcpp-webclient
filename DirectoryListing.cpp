@@ -347,22 +347,26 @@ bool DirectoryListing::Directory::findIncomplete() {
 
 void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
 	string target = aTarget;
-
-	//check if there are incomplete dirs in a partial list
-	if (first && partialList && aDir->findIncomplete()) {
-		if (!recursiveList) {
-			QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio);
-		} else {
-			//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-			QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, target, prio, true);
+	if (first) {
+		//check if there are incomplete dirs in a partial list
+		if (partialList && aDir->findIncomplete()) {
+			if (!recursiveList) {
+				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, aTarget, prio);
+			} else {
+				//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
+				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, aTarget, prio, true);
+			}
+			return;
 		}
-		return;
+
+		//validate the target
+		target = Util::validateFileName(Util::formatTime(aTarget, (BOOLSETTING(FORMAT_DIR_REMOTE_TIME) && aDir->getDate() > 0) ? aDir->getDate() : time(NULL)));
 	}
 
 	auto& dirList = aDir->directories;
 	auto& fileList = aDir->files;
 
-	target = (aDir == getRoot()) ? aTarget : aTarget + aDir->getName() + PATH_SEPARATOR;
+	target = (aDir == getRoot()) ? target : target + aDir->getName() + PATH_SEPARATOR;
 	//create bundles
 	if (first) {
 		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, aDir->getDate()));

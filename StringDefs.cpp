@@ -1209,7 +1209,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Rar Hubs", 
 "Private Hubs", 
 "* Lowering the upload connections from the default value will result the download connections to be set to the same value", 
-"* Using target drive means that unfinished files are always being saved to an own folder on the same drive where the final destination is", 
 "Use Target Drive for unfinished files", 
 "Remove after found", 
 "Search Added to Autosearch List: ", 
@@ -1364,6 +1363,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Download Skiplist (separate files with '|', wildcards allowed)", 
 "Highest priority files (separate files with '|', wildcards allowed)", 
 "Actively monitor slow downloads (more than 2 active sources)", 
+"Use the date of the remote directory for time parameters", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2573,7 +2573,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ProfileRar", 
 "ProfilePrivate", 
 "SettingsMcnNote", 
-"SettingsTargetdriveNote", 
 "SettingsUseTargetdrive", 
 "RemoveOnHit", 
 "SearchAdded", 
@@ -2728,4 +2727,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsSkiplistDownload", 
 "SettingsHighPrioFiles", 
 "SettingsAutoDropSlowSources", 
+"SettingsFormatRemoteTime", 
 };
