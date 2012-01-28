@@ -301,11 +301,11 @@ ShareManager::DirMultiMap ShareManager::splitVirtual(const string& virtualPath) 
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
 
-	
+	Directory::Ptr d;
 	for(Dirs::const_iterator k = virtuals.begin(); k != virtuals.end(); k++) {
 		string::size_type i = start; // always start from the begin.
 		string::size_type j = i + 1;
-		Directory::Ptr d = *k;
+		d = *k;
 
 		if(virtualPath.find('/', j) == string::npos) {	  // we only have root virtualpaths.
 			ret.insert(make_pair(virtualPath.substr(j), d));
@@ -366,8 +366,9 @@ StringList ShareManager::getRealPaths(const std::string path) {
 		DirMultiMap dirs = splitVirtual(path);
 
 	if(*(path.end() - 1) == '/') {
+		Directory::Ptr d;
 		for(DirMultiMap::iterator i = dirs.begin(); i != dirs.end(); ++i) {
-			Directory::Ptr d = i->second;
+			d = i->second;
 		if(d->getParent()) {
 			dir = d->getParent()->getRealPath(d->getName());
 			if(dir[dir.size() -1] != '\\') 
@@ -1520,10 +1521,10 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		dcdebug("wanted %s \n", dir);
 		try {
 			DirMultiMap result = splitVirtual(dir);
-
+			Directory::Ptr root;
 			for(DirMultiMap::const_iterator it = result.begin(); it != result.end(); ++it) {
 				dcdebug("result name %s \n", it->second->getName());
-				Directory::Ptr root = it->second;
+				root = it->second;
 				for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
 					it2->second->toXml(sXml, recurse);
 				}

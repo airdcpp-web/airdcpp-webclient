@@ -144,11 +144,12 @@ public:
 
 	string generateOwnList() {
 	
-	if(xmlDirty) 
-		generateXmlList(true);
+		if(xmlDirty) 
+			generateXmlList(true);
 
-	return getBZXmlFile();
+		return getBZXmlFile();
 	}
+
 	void generateXmlList(bool forced = false);
 
 	bool isTTHShared(const TTHValue& tth) {
