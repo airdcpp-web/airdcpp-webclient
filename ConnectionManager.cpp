@@ -83,7 +83,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 					supportMcn = true;
 					//already has a connecting item?
 					if (cqi->getState() != ConnectionQueueItem::RUNNING) {
-						if ((!smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) || (smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))) {
+						if ((!smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) || (smallSlot && cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))) {
 							return;
 						}
 					}
