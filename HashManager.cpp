@@ -184,11 +184,12 @@ size_t HashManager::HashStore::getBlockSize(const TTHValue& root) const {
 }
 
 bool HashManager::HashStore::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp) {
-	string fname = Text::toLower(Util::getFileName(aFileName));
-	string fpath = Text::toLower(Util::getFilePath(aFileName));
-	DirIter i = fileIndex.find(fpath);
+	//optimize, only 1 temp string & 1 lower conversion.
+	string pathLower = Text::toLower(aFileName); //lower case representation of the full filepath.
+	
+	DirIter i = fileIndex.find(Util::getFilePath(pathLower));
 	if (i != fileIndex.end()) {
-		FileInfoIter j = find(i->second.begin(), i->second.end(), fname);
+		FileInfoIter j = find(i->second.begin(), i->second.end(), Util::getFileName(pathLower));
 		if (j != i->second.end()) {
 			FileInfo& fi = *j;
 			TreeIterC ti = treeIndex.find(fi.getRoot());
@@ -204,12 +205,12 @@ bool HashManager::HashStore::checkTTH(const string& aFileName, int64_t aSize, ui
 }
 
 const TTHValue* HashManager::HashStore::getTTH(const string& aFileName) {
-	string fname = Text::toLower(Util::getFileName(aFileName));
-	string fpath = Text::toLower(Util::getFilePath(aFileName));
+	//optimize, only 1 temp string & 1 lower conversion.
+	string pathLower = Text::toLower(aFileName);//lower case representation of the full filepath.
 
-	DirIter i = fileIndex.find(fpath);
+	DirIter i = fileIndex.find(Util::getFilePath(pathLower));
 	if (i != fileIndex.end()) {
-		FileInfoIter j = find(i->second.begin(), i->second.end(), fname);
+		FileInfoIter j = find(i->second.begin(), i->second.end(), Util::getFileName(pathLower));
 		if (j != i->second.end()) {
 			j->setUsed(true);
 			return &(j->getRoot());

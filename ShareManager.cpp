@@ -1618,7 +1618,7 @@ static const string type2Picture[] = { ".ai", ".ps", ".pict", ".jpeg", ".tiff" }
 static const string type2Video[] = { ".rm", ".divx", ".mpeg", ".mp1v", ".mp2v", ".mpv1", ".mpv2", ".qt", ".rv", ".vivo" };
 
 #define IS_TYPE(x) ( type == (*((uint32_t*)x)) )
-#define IS_TYPE2(x) (stricmp(aString.c_str() + aString.length() - x.length(), x.c_str()) == 0)
+#define IS_TYPE2(x) (stricmp(aString.c_str() + aString.length() - x.length(), x.c_str()) == 0) //hmm lower conversion...
 
 bool ShareManager::checkType(const string& aString, int aType) {
 
@@ -1712,13 +1712,13 @@ SearchManager::TypeModes ShareManager::getType(const string& aFileName) const no
 	if(aFileName[aFileName.length() - 1] == PATH_SEPARATOR) {
 		return SearchManager::TYPE_DIRECTORY;
 	}
-
-	if(checkType(aFileName, SearchManager::TYPE_VIDEO))
-		return SearchManager::TYPE_VIDEO;
+	 //optimize, check for compressed and audio first, the ones sharing the most are probobly sharing rars or mp3.
+	if(checkType(aFileName, SearchManager::TYPE_COMPRESSED))
+		return SearchManager::TYPE_COMPRESSED;
 	else if(checkType(aFileName, SearchManager::TYPE_AUDIO))
 		return SearchManager::TYPE_AUDIO;
-	else if(checkType(aFileName, SearchManager::TYPE_COMPRESSED))
-		return SearchManager::TYPE_COMPRESSED;
+	else if(checkType(aFileName, SearchManager::TYPE_VIDEO))
+		return SearchManager::TYPE_VIDEO;
 	else if(checkType(aFileName, SearchManager::TYPE_DOCUMENT))
 		return SearchManager::TYPE_DOCUMENT;
 	else if(checkType(aFileName, SearchManager::TYPE_EXECUTABLE))
