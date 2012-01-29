@@ -126,7 +126,7 @@ public:
 	
 	void getBloom(ByteVector& v, size_t k, size_t m, size_t h) const;
 
-	SearchManager::TypeModes getType(const string& fileName) const noexcept;
+	SearchManager::TypeModes getType(const string& fileName) noexcept;
 
 	StringList getVirtualNames();
 
@@ -318,7 +318,7 @@ private:
 	bool forceXmlRefresh; /// bypass the 15-minutes guard
 	bool aShutdown;
 
-	PME releaseReg, subDirReg;
+	PME RAR_regexp;
 	
 	int listN;
 	//for filelist caching
@@ -332,7 +332,7 @@ private:
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
 	uint64_t lastSave;
-	uint32_t findLastWrite(const string& aName) const; 
+	uint32_t findLastWrite(const string& aName) const;
 	
 	//caching the share size so we dont need to loop tthindex everytime
 	mutable int64_t	 totalShareSize;
@@ -390,7 +390,7 @@ private:
 	StringList incoming;
 
 	Dirs getByVirtual(const string& virtualName) const noexcept;
-	DirMultiMap splitVirtual(const string& virtualPath) const;
+	DirMultiMap findVirtuals(const string& virtualPath) const;
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);

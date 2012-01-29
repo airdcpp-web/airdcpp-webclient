@@ -64,6 +64,8 @@ ShareManager::ShareManager() : hits(0), xmlListLen(0), bzXmlListLen(0),
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
+
+	RAR_regexp.Init("[Rr0-9][Aa0-9][Rr0-9]");
 }
 
 ShareManager::~ShareManager() {
@@ -284,7 +286,7 @@ AdcCommand ShareManager::getFileInfo(const string& aFile) {
 	return cmd;
 }
 
-ShareManager::DirMultiMap ShareManager::splitVirtual(const string& virtualPath) const {
+ShareManager::DirMultiMap ShareManager::findVirtuals(const string& virtualPath) const {
 	Dirs virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
 	DirMultiMap ret;
 	if(virtualPath.empty() || virtualPath[0] != '/') {
@@ -347,7 +349,7 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::findFile(const 
 		return i->second;
 	}
 
-	DirMultiMap dirs = splitVirtual(virtualFile);
+	DirMultiMap dirs = findVirtuals(virtualFile);
 	for(DirMultiMap::iterator v = dirs.begin(); v != dirs.end(); ++v) {
 	Directory::File::Set::const_iterator it = find_if(v->second->files.begin(), v->second->files.end(),
 		Directory::File::StringComp(v->first));
@@ -363,7 +365,7 @@ StringList ShareManager::getRealPaths(const std::string path) {
 
 		StringList result;	
 		string dir;
-		DirMultiMap dirs = splitVirtual(path);
+		DirMultiMap dirs = findVirtuals(path);
 
 	if(*(path.end() - 1) == '/') {
 		Directory::Ptr d;
@@ -1020,6 +1022,7 @@ void ShareManager::rebuildIndices() {
 	for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 		updateIndices(*i->second);
 	}
+
 }
 
 void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::iterator& i) {
@@ -1291,7 +1294,6 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 		listN++;
 
 		try {
-			
 				string newXmlName = Util::getPath(Util::PATH_USER_CONFIG) + "files" + Util::toString(listN) + ".xml.bz2";
 				SimpleXML xml;
 				xml.addTag("FileListing");
@@ -1452,7 +1454,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 
 	RLock l(cs);
 	try{
-		DirMultiMap result = splitVirtual(dir);
+		DirMultiMap result = findVirtuals(dir);
 		for(DirMultiMap::const_iterator it = result.begin(); it != result.end(); ++it) {
 			dcdebug("result name %s \n", it->second->getName());
 			it->second->toTTHList(sos, tmp, recurse);
@@ -1520,7 +1522,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 	} else {
 		dcdebug("wanted %s \n", dir);
 		try {
-			DirMultiMap result = splitVirtual(dir);
+			DirMultiMap result = findVirtuals(dir);
 			Directory::Ptr root;
 			for(DirMultiMap::const_iterator it = result.begin(); it != result.end(); ++it) {
 				dcdebug("result name %s \n", it->second->getName());
@@ -1606,16 +1608,16 @@ void ShareManager::Directory::filesToXml(SimpleXML& xmlFile) const {
 // These ones we can look up as ints (4 bytes...)...
 
 static const char* typeAudio[] = { ".mp3", ".mp2", ".mid", ".wav", ".ogg", ".wma", ".669", ".aac", ".aif", ".amf", ".ams", ".ape", ".dbm", ".dmf", ".dsm", ".far", ".mdl", ".med", ".mod", ".mol", ".mp1", ".mp4", ".mpa", ".mpc", ".mpp", ".mtm", ".nst", ".okt", ".psm", ".ptm", ".rmi", ".s3m", ".stm", ".ult", ".umx", ".wow" };
-static const char* typeCompressed[] = { ".zip", ".ace", ".rar", ".arj", ".hqx", ".lha", ".sea", ".tar", ".tgz", ".uc2" };
-static const char* typeDocument[] = { ".htm", ".doc", ".txt", ".nfo", ".pdf", ".chm" };
+static const char* typeCompressed[] = { ".rar", ".zip", ".ace", ".arj", ".hqx", ".lha", ".sea", ".tar", ".tgz", ".uc2" };
+static const char* typeDocument[] = { ".nfo", ".htm", ".doc", ".txt", ".pdf", ".chm" };
 static const char* typeExecutable[] = { ".exe", ".com" };
 static const char* typePicture[] = { ".jpg", ".gif", ".png", ".eps", ".img", ".pct", ".psp", ".pic", ".tif", ".rle", ".bmp", ".pcx", ".jpe", ".dcx", ".emf", ".ico", ".psd", ".tga", ".wmf", ".xif" };
-static const char* typeVideo[] = { ".mpg", ".mov", ".asf", ".avi", ".pxp", ".wmv", ".ogm", ".mkv", ".m1v", ".m2v", ".mpe", ".mps", ".mpv", ".ram", ".vob" };
+static const char* typeVideo[] = { ".vob", ".mpg", ".mov", ".asf", ".avi", ".wmv", ".ogm", ".mkv", ".pxp", ".m1v", ".m2v", ".mpe", ".mps", ".mpv", ".ram" };
 
 static const string type2Audio[] = { ".au", ".it", ".ra", ".xm", ".aiff", ".flac", ".midi", };
 static const string type2Compressed[] = { ".gz" };
-static const string type2Picture[] = { ".ai", ".ps", ".pict", ".jpeg", ".tiff" };
-static const string type2Video[] = { ".rm", ".divx", ".mpeg", ".mp1v", ".mp2v", ".mpv1", ".mpv2", ".qt", ".rv", ".vivo" };
+static const string type2Picture[] = { ".jpeg", ".ai", ".ps", ".pict", ".tiff" };
+static const string type2Video[] = { ".mpeg", ".rm", ".divx", ".mp1v", ".mp2v", ".mpv1", ".mpv2", ".qt", ".rv", ".vivo" };
 
 #define IS_TYPE(x) ( type == (*((uint32_t*)x)) )
 #define IS_TYPE2(x) (stricmp(aString.c_str() + aString.length() - x.length(), x.c_str()) == 0) //hmm lower conversion...
@@ -1708,23 +1710,32 @@ bool ShareManager::checkType(const string& aString, int aType) {
 	return false;
 }
 
-SearchManager::TypeModes ShareManager::getType(const string& aFileName) const noexcept {
+SearchManager::TypeModes ShareManager::getType(const string& aFileName) noexcept {
 	if(aFileName[aFileName.length() - 1] == PATH_SEPARATOR) {
 		return SearchManager::TYPE_DIRECTORY;
 	}
-	 //optimize, check for compressed and audio first, the ones sharing the most are probobly sharing rars or mp3.
-	if(checkType(aFileName, SearchManager::TYPE_COMPRESSED))
-		return SearchManager::TYPE_COMPRESSED;
-	else if(checkType(aFileName, SearchManager::TYPE_AUDIO))
+	 /*
+	 optimize, check for compressed(rar) and audio first, the ones sharing the most are probobly sharing rars or mp3.
+	 a test to match with regexp for rars first, otherwise it will match everything and end up setting type any for  .r01 ->
+	 */
+	try{ 
+		if(RAR_regexp.match(aFileName, aFileName.length()-4) > 0)
+			return SearchManager::TYPE_COMPRESSED;
+	}catch(...) { } //not vital if it fails, just continue the type check.
+	
+
+	if(checkType(aFileName, SearchManager::TYPE_AUDIO))
 		return SearchManager::TYPE_AUDIO;
 	else if(checkType(aFileName, SearchManager::TYPE_VIDEO))
 		return SearchManager::TYPE_VIDEO;
 	else if(checkType(aFileName, SearchManager::TYPE_DOCUMENT))
 		return SearchManager::TYPE_DOCUMENT;
-	else if(checkType(aFileName, SearchManager::TYPE_EXECUTABLE))
-		return SearchManager::TYPE_EXECUTABLE;
+	else if(checkType(aFileName, SearchManager::TYPE_COMPRESSED))
+		return SearchManager::TYPE_COMPRESSED;
 	else if(checkType(aFileName, SearchManager::TYPE_PICTURE))
 		return SearchManager::TYPE_PICTURE;
+	else if(checkType(aFileName, SearchManager::TYPE_EXECUTABLE))
+		return SearchManager::TYPE_EXECUTABLE;
 
 	return SearchManager::TYPE_ANY;
 }
