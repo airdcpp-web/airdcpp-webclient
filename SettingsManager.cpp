@@ -110,8 +110,7 @@ const string SettingsManager::settingTags[] =
 	"FavShowJoins", "LogStatusMessages", "PMLogLines", "SearchAlternateColour", "SoundsDisabled",
 	"ReportFoundAlternates",
 	"SearchTime", "DontBeginSegment", "DontBeginSegmentSpeed", "PopunderPm", "PopunderFilelist",
-	"DropMultiSourceOnly", "MagnetAsk", "MagnetAction", "MagnetRegister",
-	"AddFinishedInstantly", "Away", "UseCTRLForLineHistory",
+	"MagnetAsk", "MagnetAction", "MagnetRegister", "AddFinishedInstantly", "Away", "UseCTRLForLineHistory",
 	"PopupHubConnected", "PopupHubDisconnected", "PopupFavoriteConnected", "PopupDownloadStart", 
 	"PopupDownloadFailed", "PopupDownloadFinished", "PopupUploadFinished", "PopupPm", "PopupNewPM", 
 	"PopupType", "ShutdownAction", "MinimumSearchInterval",
@@ -159,6 +158,7 @@ const string SettingsManager::settingTags[] =
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
 	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
+	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -551,7 +551,6 @@ SettingsManager::SettingsManager()
 	setDefault(FILTER_ENTER, false);
 	setDefault(UC_SUBMENU, true);
 
-	setDefault(DROP_MULTISOURCE_ONLY, true);
 	setDefault(DISCONNECT_SPEED, 5);
 	setDefault(DISCONNECT_FILE_SPEED, 15);
 	setDefault(DISCONNECT_TIME, 40);
@@ -708,6 +707,9 @@ SettingsManager::SettingsManager()
 	setDefault(EXPAND_BUNDLES, false);
 	setDefault(COUNTRY_FORMAT, "%[2code] - %[name]");
 	setDefault(FORMAT_DIR_REMOTE_TIME, false);
+	setDefault(SHOW_USELESS_SPAM, true);
+	setDefault(DISCONNECT_MIN_SOURCES, 2);
+	setDefault(USE_SLOW_DISCONNECTING_DEFAULT, true);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

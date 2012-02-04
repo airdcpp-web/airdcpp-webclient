@@ -29,6 +29,7 @@
 #include "Wildcards.h"
 #include "SFVReader.h"
 #include "QueueManager.h"
+#include "format.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -661,10 +662,7 @@ void ShareScannerManager::checkSFV(const string& path) throw(FileException) {
 	}
 
 	if (scanFolderSize <= 0) {
-		string tmp;	 
-		tmp.resize(STRING(CRC_FINISHED).size() + 64);	 
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(CRC_FINISHED), crcOk, crcInvalid, checkFailed));	 
-		LogManager::getInstance()->message(tmp);
+		LogManager::getInstance()->message(str(boost::format(STRING(CRC_FINISHED)) % crcOk % crcInvalid % checkFailed));
 	}
 
 }
@@ -708,15 +706,9 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 	} else if (scanType == 1) {
 		tmp = CSTRING(SCAN_FOLDER_FINISHED);
 	} else if (scanType == 2) {
-		tmp2.resize(STRING(SCAN_BUNDLE_FINISHED).size() + dir.size());
-		tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_BUNDLE_FINISHED), dir.c_str()));
-		tmp += tmp2;
-		tmp2.clear();
+		tmp = str(boost::format(STRING(SCAN_BUNDLE_FINISHED)) % dir.c_str());
 	} else {
-		tmp2.resize(STRING(SCAN_FAILED_BUNDLE_FINISHED).size() + dir.size());
-		tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(SCAN_FAILED_BUNDLE_FINISHED), dir.c_str()));
-		tmp += tmp2;
-		tmp2.clear();
+		tmp = str(boost::format(STRING(SCAN_FAILED_BUNDLE_FINISHED)) % dir.c_str());
 	}
 
 	if (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0) {
@@ -736,10 +728,7 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 		bool first = true;
 		if (SETTING(CHECK_MISSING) && missingFiles > 0) {
 			first = false;
-			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_RELEASE_FILES), missingFiles));
-			tmp += tmp2;
-			tmp2.clear();
+			tmp += str(boost::format(STRING(X_MISSING_RELEASE_FILES)) % missingFiles);
 		}
 
 		if (SETTING(CHECK_SFV) && missingSFV > 0) {
@@ -747,10 +736,7 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 				tmp += ", ";
 			}
 			first = false;
-			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_SFV_FILES), missingSFV));
-			tmp += tmp2;
-			tmp2.clear();
+			tmp += str(boost::format(STRING(X_MISSING_SFV_FILES)) % missingSFV);
 		}
 
 		if (SETTING(CHECK_NFO) && missingNFO > 0) {
@@ -758,10 +744,7 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 				tmp += ", ";
 			}
 			first = false;
-			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_MISSING_NFO_FILES), missingNFO));
-			tmp += tmp2;
-			tmp2.clear();
+			tmp += str(boost::format(STRING(X_MISSING_NFO_FILES)) % missingNFO);
 		}
 
 		if (SETTING(CHECK_EXTRA_FILES) && extrasFound > 0) {
@@ -769,10 +752,7 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 				tmp += ", ";
 			}
 			first = false;
-			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_FOLDERS_EXTRAS), extrasFound));
-			tmp += tmp2;
-			tmp2.clear();
+			tmp += str(boost::format(STRING(X_FOLDERS_EXTRAS)) % extrasFound);
 		}
 
 		if (SETTING(CHECK_EMPTY_DIRS) && emptyFolders > 0) {
@@ -780,20 +760,14 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 				tmp += ", ";
 			}
 			first = false;
-			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_EMPTY_FOLDERS), emptyFolders));
-			tmp += tmp2;
-			tmp2.clear();
+			tmp += str(boost::format(STRING(X_EMPTY_FOLDERS)) % emptyFolders);
 		}
 
 		if (SETTING(CHECK_DUPES) && dupesFound > 0) {
 			if (!first) {
 				tmp += ", ";
 			}
-			tmp2.resize(tmp.size() + STRING(X_MISSING_RELEASE_FILES).size() + 256);
-			tmp2.resize(snprintf(&tmp2[0], tmp2.size(), CSTRING(X_DUPE_FOLDERS), dupesFound));
-			tmp += tmp2;
-			tmp2.clear();
+			tmp += str(boost::format(STRING(X_DUPE_FOLDERS)) % dupesFound);
 		}
 	}
 	LogManager::getInstance()->message(tmp);

@@ -5,6 +5,7 @@
 #include <direct.h>
 #include "AirUtil.h"
 #include "Util.h"
+#include "format.h"
 
 #include "File.h"
 #include "QueueManager.h"
@@ -648,21 +649,27 @@ string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& 
 	if(partial) {
 		//partial lists
 		if (bundles.size() == 1) {
-			tmp.resize(STRING(MATCH_SOURCE_ADDED).size() + 32 + bundles.front()->getName().size());
-			snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED), newFiles, bundles.front()->getName().c_str());
+			tmp = str(boost::format(STRING(MATCH_SOURCE_ADDED)) % 
+				newFiles % 
+				bundles.front()->getName().c_str());
 		} else {
-			tmp.resize(STRING(MATCH_SOURCE_ADDED_X_BUNDLES).size() + 32);
-			snprintf(&tmp[0], tmp.size(), CSTRING(MATCH_SOURCE_ADDED_X_BUNDLES), newFiles, (int)bundles.size());
+			tmp = str(boost::format(STRING(MATCH_SOURCE_ADDED_X_BUNDLES)) % 
+				newFiles % 
+				(int)bundles.size());
 		}
 	} else {
 		//full lists
 		if (matches > 0) {
 			if (bundles.size() == 1) {
-				tmp.resize(STRING(MATCHED_FILES_BUNDLE).size() + 32 + bundles.front()->getName().size());
-				snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES_BUNDLE), matches, bundles.front()->getName().c_str(), newFiles);
+				tmp = str(boost::format(STRING(MATCHED_FILES_BUNDLE)) % 
+					matches % 
+					bundles.front()->getName().c_str() %
+					newFiles);
 			} else {
-				tmp.resize(STRING(MATCHED_FILES_X_BUNDLES).size() + 32);
-				snprintf(&tmp[0], tmp.size(), CSTRING(MATCHED_FILES_X_BUNDLES), matches, (int)bundles.size(), newFiles);
+				tmp = str(boost::format(STRING(MATCHED_FILES_X_BUNDLES)) % 
+					matches % 
+					(int)bundles.size() %
+					newFiles);
 			}
 		} else {
 			tmp = CSTRING(NO_MATCHED_FILES);

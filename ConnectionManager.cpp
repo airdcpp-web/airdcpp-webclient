@@ -133,12 +133,9 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 	fire(ConnectionManagerListener::Removed(), cqi);
 	if(cqi->getDownload()) {
 		dcassert(find(downloads.begin(), downloads.end(), cqi) != downloads.end());
-		{
-			downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
-			delayedTokens[cqi->getToken()] = GET_TICK();
-		}
+		downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
+		delayedTokens[cqi->getToken()] = GET_TICK();
 	} else {
-		UploadManager::getInstance()->removeDelayUpload(cqi->getToken(), false);
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
 		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
 	}
@@ -190,12 +187,8 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 				{
 					cqi->setLastAttempt(aTick);
 
-					bool smallSlot=false;
-					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL))
-						smallSlot=true;
-
 					string bundleToken;
-					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), smallSlot, bundleToken);
+					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), cqi->isSet(ConnectionQueueItem::FLAG_SMALL), bundleToken);
 					cqi->setLastBundle(bundleToken);
 
 					if(prio == QueueItem::PAUSED) {
@@ -600,7 +593,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 	// First, we try looking in the pending downloads...hopefully it's one of them...
 	{
 		Lock l(cs);
-		for(ConnectionQueueItem::Iter i = downloads.begin(); i != downloads.end(); ++i) {
+		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			cqi->setErrors(0);
 			if((cqi->getState() == ConnectionQueueItem::CONNECTING || cqi->getState() == ConnectionQueueItem::WAITING) && 
@@ -647,10 +640,6 @@ void ConnectionManager::on(UserConnectionListener::CLock, UserConnection* aSourc
 	}
 
 	if( CryptoManager::getInstance()->isExtended(aLock) ) {
-		// Alright, we have an extended protocol, set a user flag for this user and refresh his info...
-	//	if( (aPk.find("DCPLUSPLUS") != string::npos) && aSource->getUser() && !aSource->getUser()->isSet(User::DCPLUSPLUS)) {
-		//	aSource->getUser()->setFlag(User::DCPLUSPLUS);
-		//}
 		StringList defFeatures = features;
 		if(BOOLSETTING(COMPRESS_TRANSFERS)) {
 			defFeatures.push_back(UserConnection::FEATURE_ZLIB_GET);
@@ -737,7 +726,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 		Lock l(cs);
 		if (uc->isSet(UserConnection::FLAG_MCN1)) {
 			//check that the token is unique so nasty clients can't mess up our transfers
-			if (find(downloads.begin(), downloads.end(), uc->getToken()) != downloads.end()) {
+			if (find(downloads.begin(), downloads.end(), uc->getToken()) != downloads.end() || find(uploads.begin(), uploads.end(), uc->getToken()) != uploads.end()) {
 				putConnection(uc);
 				return;
 			}
@@ -815,7 +804,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	}
 
 	dcassert(!token.empty());
-	bool down = false;
 	{
 		Lock l(cs);
 		auto i = find(downloads.begin(), downloads.end(), token);
@@ -823,33 +811,24 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			ConnectionQueueItem* cqi = *i;
 			if(aSource->isSet(UserConnection::FLAG_MCN1)) {
 				string slots;
-				cmd.getParam("CO", 0, slots);
-				if (Util::toInt(slots) > 0) {
+				if (cmd.getParam("CO", 0, slots)) {
 					cqi->setMaxConns(Util::toInt(slots));
 				}
 			}
 			cqi->setErrors(0);
+			aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
 			aSource->setToken(token);
-			down = true;
+		} else if (delayedTokens.find(token) == delayedTokens.end()) {
+			aSource->setFlag(UserConnection::FLAG_UPLOAD);
 		}
-		/** @todo check tokens for upload connections */
 	}
 
-	if(down) {
-		aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
+	if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
-	} else {
-		if (delayedTokens.find(token) != delayedTokens.end()) {
-			//cqi removed while the connection was being negotiated
-			putConnection(aSource);
-			return;
-		}
-		if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
-			cmd.getParam("TO", 0, token);
-			aSource->setToken(token);
-		}
-		aSource->setFlag(UserConnection::FLAG_UPLOAD);
+	} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
 		addUploadConnection(aSource);
+	} else {
+		putConnection(aSource);
 	}
 }
 
@@ -930,6 +909,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			dcassert(i != uploads.end());
 			ConnectionQueueItem* cqi = *i;
 			putCQI(cqi);
+			UploadManager::getInstance()->removeDelayUpload(*aSource);
 		}
 	}
 	putConnection(aSource);

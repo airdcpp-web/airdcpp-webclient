@@ -39,7 +39,8 @@ Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), f
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	setFlag(FLAG_NEW);
-	setFlag(FLAG_AUTODROP);
+	if (BOOLSETTING(USE_SLOW_DISCONNECTING_DEFAULT))
+		setFlag(FLAG_AUTODROP);
 }
 
 Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate /*0*/) : target(target), fileBundle(false), 
@@ -59,7 +60,8 @@ Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aD
 		autoPriority = true;
 	}
 	setFlag(FLAG_NEW);
-	setFlag(FLAG_AUTODROP);
+	if (BOOLSETTING(USE_SLOW_DISCONNECTING_DEFAULT))
+		setFlag(FLAG_AUTODROP);
 }
 
 Bundle::~Bundle() { 

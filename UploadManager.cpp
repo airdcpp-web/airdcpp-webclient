@@ -447,21 +447,12 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 		auto uis = multiUploads.find(u);
 		if (uis != multiUploads.end()) {
-			if (((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= AirUtil::getSlotsPerUser(false) || AirUtil::getSlotsPerUser(false) == 0)) {
-				return true;
-			} else {
-				return false;
-			}
+			return ((highest > uis->second + 1) || hasFreeSlot) && (uis->second + 1 <= AirUtil::getSlotsPerUser(false) || AirUtil::getSlotsPerUser(false) == 0);
 		}
 	}
 
 	//he's not uploading from us yet, check if we can allow new ones
-	hasFreeSlot = (getFreeSlots() > 0) && ((uploadQueue.empty() && notifiedUsers.empty()) || isNotifiedUser(aSource.getUser()));
-	if (hasFreeSlot) {
-		return true;
-	} else {
-		return false;
-	}
+	return (getFreeSlots() > 0) && ((uploadQueue.empty() && notifiedUsers.empty()) || isNotifiedUser(aSource.getUser()));
 }
 
 void UploadManager::checkMultiConn() {
@@ -762,11 +753,11 @@ UploadBundlePtr UploadManager::findBundle(const string& bundleToken) {
 }
 
 Upload* UploadManager::findUpload(const string& aToken) {
-	auto u = find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return up->getToken() == aToken; });
+	auto u = find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return compare(up->getToken(), aToken) == 0; });
 	if (u != uploads.end()) {
 		return *u;
 	}
-	auto s = find_if(delayUploads.begin(), delayUploads.end(), [&](Upload* up) { return up->getToken() == aToken; });
+	auto s = find_if(delayUploads.begin(), delayUploads.end(), [&](Upload* up) { return compare(up->getToken(), aToken) == 0; });
 	if (s != delayUploads.end()) {
 		return *s;
 	}
@@ -1138,9 +1129,8 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 				if (u->getBundle())
 					u->getBundle()->removeUpload(u);
 				
-				delete u;
 				delayUploads.erase(i);
-				dcassert(find(delayUploads.begin(), delayUploads.end(), u) == delayUploads.end());
+				delete u;
 				i = delayUploads.begin();
 			} else {
 				i++;
@@ -1184,19 +1174,20 @@ void UploadManager::on(ClientManagerListener::UserDisconnected, const UserPtr& a
 	}
 }
 
-void UploadManager::removeDelayUpload(const string& aToken, bool removeBundle) {
+void UploadManager::removeDelayUpload(const UserConnection& aSource) {
 	Lock l(cs);
-	for(auto i = delayUploads.begin(); i != delayUploads.end(); ++i) {
+	auto i = find_if(delayUploads.begin(), delayUploads.end(), [&](Upload* up) { return &aSource == &up->getUserConnection(); });
+	if (i != delayUploads.end()) {
 		Upload* up = *i;
-		if(aToken == up->getToken()) {
-			if (up->getBundle())
-				up->getBundle()->removeUpload(up);
-			delayUploads.erase(i);
-			dcassert(find(delayUploads.begin(), delayUploads.end(), up) == delayUploads.end());
-			delete up;
-			break;
-		}
+		if (up->getBundle())
+			up->getBundle()->removeUpload(up);
+		delayUploads.erase(i);
+		dcassert(find(delayUploads.begin(), delayUploads.end(), up) == delayUploads.end());
+		dcassert(find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return &aSource == &up->getUserConnection(); }) == uploads.end());
+		delete up;
+		return;
 	}
+	//dcassert(find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return &aSource == &up->getUserConnection(); }) != uploads.end());
 }
 
 /**

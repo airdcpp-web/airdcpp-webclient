@@ -322,7 +322,7 @@ private:
 	
 	int listN;
 	//for filelist caching
-	void saveXmlList();
+	void saveXmlList(bool verbose = false);
 
 
 	atomic_flag refreshing;

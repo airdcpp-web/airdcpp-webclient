@@ -40,6 +40,7 @@
 #include "SearchResult.h"
 #include "Wildcards.h"
 #include "AirUtil.h"
+#include "format.h"
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -1366,7 +1367,7 @@ void ShareManager::generateXmlList(bool forced /*false*/) {
 
 #define LITERAL(n) n, sizeof(n)-1
 
-void ShareManager::saveXmlList() {
+void ShareManager::saveXmlList(bool verbose /* false */) {
 
 	if(xml_saving)
 		return;
@@ -1404,7 +1405,8 @@ void ShareManager::saveXmlList() {
 	xml_saving = false;
 	ShareCacheDirty = false;
 	lastSave = GET_TICK();
-	LogManager::getInstance()->message("shares.xml saved.");
+	if (verbose || BOOLSETTING(SHOW_USELESS_SPAM))
+		LogManager::getInstance()->message("shares.xml saved.");
 }
 
 void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& path, string& indent){
@@ -2039,39 +2041,30 @@ void ShareManager::cleanIndices(Directory::Ptr& dir) {
 }
 
 void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) noexcept {
-	bool added = false;
 	{
 		WLock l(cs);
 
 		Directory::Ptr dir = findDirectory(path, true, true);
 		if (!dir) {
-			goto done;
+			LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_SHARING_FAILED)) % 
+				Util::getLastDir(path).c_str()));
+			return;
 		}
 
-		added = true;
 		/* get rid of any existing crap we might have in the bundle directory and refresh it.
 		done at this point as the file and directory pointers should still be valid, if there are any */
 		cleanIndices(dir);
 
 		buildTree(path, dir, false, /*create*/false);  //we dont need to create with buildtree, we have already created in findDirectory.
 		updateIndices(*dir);
-		setDirty();
-		forceXmlRefresh = true;
 	}
 
-done:
-	if (!added) {
-		string tmp;
-		tmp.resize(tmp.size() + STRING(BUNDLE_SHARING_FAILED).size() + 1024);
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_SHARING_FAILED), Util::getLastDir(path).c_str()));
-		LogManager::getInstance()->message(tmp);
-	} else {
-		sortReleaseList();
-		string tmp;
-		tmp.resize(tmp.size() + STRING(BUNDLE_SHARED).size() + 1024);
-		tmp.resize(snprintf(&tmp[0], tmp.size(), CSTRING(BUNDLE_SHARED), Util::getLastDir(path).c_str()));
-		LogManager::getInstance()->message(tmp);
-	}
+	setDirty();
+	forceXmlRefresh = true;
+	sortReleaseList();
+
+	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_SHARED)) % 
+		Util::getLastDir(path).c_str()));
 }
 
 bool ShareManager::allowAddDir(const string& path) noexcept {
