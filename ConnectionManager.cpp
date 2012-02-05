@@ -113,9 +113,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 
 ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, const string& token) {
 	//allways called from inside a lock, safe.
-	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download);
-	if (!token.empty())
-		cqi->setToken(token);
+	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download, token);
 
 	if(download) {
 		downloads.push_back(cqi);
@@ -735,12 +733,15 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 			return;
 		}
 
+		uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+
 		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
+		uc->setToken(cqi->getToken()); //sync if the uc token was empty
 		cqi->setState(ConnectionQueueItem::ACTIVE);
 		//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
 		fire(ConnectionManagerListener::Connected(), cqi);
 	}
-	uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+
 	dcdebug("ConnectionManager::addUploadConnection, leaving to uploadmanager\n");
 	//LogManager::getInstance()->message("Token1 UC: " + uc->getToken());
 

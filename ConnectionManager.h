@@ -51,7 +51,7 @@ public:
 		FLAG_REMOVE				= 0x08
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, bool aDownload) : token(Util::toString(Util::rand())), 
+	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken ) : token(aToken), 
 		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), maxConns(0) { }
 	
 	GETSET(string, token, Token);
@@ -196,7 +196,7 @@ private:
 	void checkWaitingMCN() noexcept;
 	//typedef unordered_set<ConnectionQueueItem*> CQIList;
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token=Util::emptyString);
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token=Util::toString(Util::rand()));
 	void putCQI(ConnectionQueueItem* cqi);
 
 	void accept(const Socket& sock, bool secure) noexcept;

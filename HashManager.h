@@ -265,15 +265,12 @@ private:
 	}
 
 	uint64_t  lastSave;
+
 	void on(TimerManagerListener::Minute, uint64_t) noexcept {
-		
-		if(GET_TICK() - lastSave > 10*60*1000) { 
-		
-		if(store.isDirty()) {
+		if(GET_TICK() - lastSave > 10*60*1000 && store.isDirty()) { 
 			Lock l(cs);
 			hasher.save();
 			lastSave = GET_TICK();
-			}
 		}
 	}
 };
