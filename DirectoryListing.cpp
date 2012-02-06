@@ -135,6 +135,7 @@ string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkDupes
 
 static const string sFileListing = "FileListing";
 static const string sBase = "Base";
+static const string sBaseDate = "BaseDate";
 static const string sGenerator = "Generator";
 static const string sDirectory = "Directory";
 static const string sIncomplete = "Incomplete";
@@ -225,6 +226,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 		if(b.size() >= 1 && b[0] == '/' && b[b.size()-1] == '/') {
 			base = b;
 		}
+		const string& date = getAttrib(attribs, sBaseDate, 3);
 
 		StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
 		for(auto i = sl.begin(); i != sl.end(); ++i) {
@@ -245,6 +247,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 		}
 
 		cur->setComplete(true);
+		cur->setDate(date);
 
 		inListing = true;
 

@@ -818,12 +818,12 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			}
 			cqi->setErrors(0);
 			aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
-			aSource->setToken(token);
 		} else if (delayedTokens.find(token) == delayedTokens.end()) {
 			aSource->setFlag(UserConnection::FLAG_UPLOAD);
 		}
 	}
 
+	aSource->setToken(token);
 	if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
 	} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
