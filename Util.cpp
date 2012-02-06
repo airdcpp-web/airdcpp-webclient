@@ -1435,12 +1435,18 @@ string Util::getOsVersion(bool http /* = false */) {
 						else
 							os = "Windows Server 2008 R2";
 						break;
+					case 2:
+						if (ver.wProductType == VER_NT_WORKSTATION)
+							os = "Windows 8";
+						else
+							os = "Windows Server 8";
+						break;
 					default: os = "Unknown Windows 6-family";
-					}
 				}
 			}
+		}
 
-			if(ver.dwMajorVersion == 6) {
+		if(ver.dwMajorVersion == 6) {
 			pGPI = (PGPI) GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
 			pGPI(ver.dwMajorVersion, ver.dwMinorVersion, 0, 0, &dwType);
 			 switch(dwType)
