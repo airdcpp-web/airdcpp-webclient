@@ -31,13 +31,13 @@
 
 namespace dcpp {
 
-void UserQueue::add(QueueItem* qi, bool newBundle /*false*/) {
+void UserQueue::add(QueueItemPtr qi, bool newBundle /*false*/) {
 	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
 		add(qi, i->getUser(), newBundle);
 	}
 }
 
-void UserQueue::add(QueueItem* qi, const HintedUser& aUser, bool newBundle /*false*/) {
+void UserQueue::add(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /*false*/) {
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
@@ -85,9 +85,9 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	}
 }
 
-QueueItem* UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
+QueueItemPtr UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
 	/* Using the PAUSED priority will list all files */
-	QueueItem* qi = getNextPrioQI(aUser, 0, 0, smallSlot, allowOverlap);
+	QueueItemPtr qi = getNextPrioQI(aUser, 0, 0, smallSlot, allowOverlap);
 	if(!qi) {
 		qi = getNextBundleQI(aUser, (Bundle::Priority)minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
 	}
@@ -99,13 +99,13 @@ QueueItem* UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio,
 	return qi;
 }
 
-QueueItem* UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
 		for(auto j = i->second.begin(); j != i->second.end(); ++j) {
-			QueueItem* qi = *j;
+			QueueItemPtr qi = *j;
 			if (qi->hasSegment(aUser, lastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
 				return qi;
 			}
@@ -114,7 +114,7 @@ QueueItem* UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, in
 	return NULL;
 }
 
-QueueItem* UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 
 	auto i = userBundleQueue.find(aUser);
@@ -124,7 +124,7 @@ QueueItem* UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority min
 			if ((*j)->getPriority() < minPrio) {
 				break;
 			}
-			QueueItem* qi = (*j)->getNextQI(aUser, lastError, minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
+			QueueItemPtr qi = (*j)->getNextQI(aUser, lastError, minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
 			if (qi) {
 				return qi;
 			}
@@ -133,13 +133,13 @@ QueueItem* UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority min
 	return NULL;
 }
 
-void UserQueue::addDownload(QueueItem* qi, Download* d) {
+void UserQueue::addDownload(QueueItemPtr qi, Download* d) {
 	qi->getDownloads().push_back(d);
 	auto& j = running[d->getUser()];
 	j.push_back(qi);
 }
 
-void UserQueue::removeDownload(QueueItem* qi, const UserPtr& aUser, const string& aToken) {
+void UserQueue::removeDownload(QueueItemPtr qi, const UserPtr& aUser, const string& aToken) {
 	auto i = running.find(aUser);
 	if (i != running.end()) {
 		auto m = find(i->second.begin(), i->second.end(), qi);
@@ -161,7 +161,7 @@ void UserQueue::removeDownload(QueueItem* qi, const UserPtr& aUser, const string
 	return;
 }
 
-void UserQueue::setQIPriority(QueueItem* qi, QueueItem::Priority p) {
+void UserQueue::setQIPriority(QueueItemPtr qi, QueueItem::Priority p) {
 	removeQI(qi, false);
 	qi->setPriority(p);
 	add(qi);
@@ -176,13 +176,13 @@ QueueItemList UserQueue::getRunning(const UserPtr& aUser) {
 	return ret;
 }
 
-void UserQueue::removeQI(QueueItem* qi, bool removeRunning /*true*/, bool removeBundle /*false*/) {
+void UserQueue::removeQI(QueueItemPtr qi, bool removeRunning /*true*/, bool removeBundle /*false*/) {
 	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
 		removeQI(qi, i->getUser(), removeRunning, false, removeBundle);
 	}
 }
 
-void UserQueue::removeQI(QueueItem* qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool removeBundle /*false*/) {
+void UserQueue::removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool removeBundle /*false*/) {
 
 	if(removeRunning) {
 		QueueItemList runningItems = getRunning(aUser);

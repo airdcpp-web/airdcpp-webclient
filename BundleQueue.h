@@ -34,8 +34,8 @@ class BundleQueue {
 public:
 	BundleQueue();
 	~BundleQueue();
-	void addBundleItem(QueueItem* qi, BundlePtr aBundle);
-	void removeBundleItem(QueueItem* qi, bool finished);
+	void addBundleItem(QueueItemPtr qi, BundlePtr aBundle);
+	void removeBundleItem(QueueItemPtr qi, bool finished);
 
 	void add(BundlePtr aBundle);
 
@@ -54,7 +54,7 @@ public:
 
 	Bundle::StringBundleMap& getBundles() { return bundles; }
 	void move(BundlePtr aBundle, const string& newTarget);
-	void remove(BundlePtr aBundle, bool finished);
+	void remove(BundlePtr aBundle);
 
 	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes);
 

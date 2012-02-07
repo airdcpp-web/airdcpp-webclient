@@ -25,6 +25,7 @@
 #include "Download.h"
 #include "File.h"
 #include "Util.h"
+#include "LogManager.h"
 
 #include "AirUtil.h"
 #include "Wildcards.h"
@@ -122,6 +123,8 @@ size_t QueueItem::countOnlineUsers() const {
 }
 
 QueueItem::~QueueItem() {
+	//if (bundle)
+	//	LogManager::getInstance()->message("Refs " + bundle->getTarget() + ": " + Util::toString(bundle->getRefs()));
 	//bla
 }
 

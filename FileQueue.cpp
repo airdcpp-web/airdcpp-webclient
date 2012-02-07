@@ -24,6 +24,7 @@
 #include "Text.h"
 #include "QueueManager.h"
 #include "Util.h"
+#include "Pointer.h"
 
 #include "noexcept.h"
 
@@ -31,16 +32,16 @@ namespace dcpp {
 
 FileQueue::~FileQueue() { }
 
-QueueItem* FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
+QueueItemPtr FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
-	QueueItem* qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
+	QueueItemPtr qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
 	dcassert(find(aTarget) == NULL);
 	add(qi, false);
 	return qi;
 }
 
-void FileQueue::add(QueueItem* qi, bool addFinished) noexcept {
+void FileQueue::add(QueueItemPtr qi, bool addFinished) noexcept {
 	if (!addFinished) {
 		if (!qi->isSet(QueueItem::FLAG_USER_LIST)) {
 			dcassert(qi->getSize() >= 0);
@@ -53,7 +54,7 @@ void FileQueue::add(QueueItem* qi, bool addFinished) noexcept {
 	tthIndex.insert(make_pair(qi->getTTH(), qi));
 }
 
-void FileQueue::remove(QueueItem* qi) noexcept {
+void FileQueue::remove(QueueItemPtr qi) noexcept {
 	//TargetMap
 	prev(targetMapInsert);
 	queue.erase(const_cast<string*>(&qi->getTarget()));
@@ -66,13 +67,13 @@ void FileQueue::remove(QueueItem* qi) noexcept {
 	//TTHIndex
 	auto s = tthIndex.equal_range(qi->getTTH());
 	dcassert(s.first != s.second);
-	auto k = find_if(s.first, s.second, CompareSecond<TTHValue, QueueItem*>(qi));
+	auto k = find_if(s.first, s.second, CompareSecond<TTHValue, QueueItemPtr>(qi));
 	if (k != s.second) {
 		tthIndex.erase(k);
 	}
 }
 
-QueueItem* FileQueue::find(const string& target) noexcept {
+QueueItemPtr FileQueue::find(const string& target) noexcept {
 	auto i = queue.find(const_cast<string*>(&target));
 	return (i == queue.end()) ? NULL : i->second;
 }
@@ -91,7 +92,7 @@ void FileQueue::find(QueueItemList& sl, int64_t aSize, const string& suffix) noe
 void FileQueue::find(const TTHValue& tth, QueueItemList& ql) noexcept {
 	auto s = tthIndex.equal_range(tth);
 	if (s.first != s.second) {
-		for_each(s.first, s.second, [&](pair<TTHValue, QueueItem*> tqp) { ql.push_back(tqp.second); } );
+		for_each(s.first, s.second, [&](pair<TTHValue, QueueItemPtr> tqp) { ql.push_back(tqp.second); } );
 	}
 }
 
@@ -106,7 +107,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItemList& 
 		if (s.first != s.second) {
 			DirectoryListing::File* f = *i;
 			//LogManager::getInstance()->message("MATCH, PATH: " + f->getPath());
-			for_each(s.first, s.second, [&](pair<TTHValue, QueueItem*> tqp) {
+			for_each(s.first, s.second, [&](pair<TTHValue, QueueItemPtr> tqp) {
 				if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && std::find(ql.begin(), ql.end(), tqp.second) == ql.end()) 
 					ql.push_back(tqp.second); } );
 		}
@@ -114,17 +115,17 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItemList& 
 }
 
 int FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) noexcept {
-	QueueItem* qi = getQueuedFile(aTTH, fileName);
+	QueueItemPtr qi = getQueuedFile(aTTH, fileName);
 	if (qi) {
 		return (qi->isFinished() ? 2 : 1);
 	}
 	return 0;
 }
 
-QueueItem* FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) noexcept {
+QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) noexcept {
 	auto s = tthIndex.equal_range(aTTH);
 	if (s.first != s.second) {
-		auto k = find_if(s.first, s.second, [&](pair<TTHValue, QueueItem*> tqp) { return (stricmp(fileName.c_str(), tqp.second->getTargetFileName().c_str()) == 0); });
+		auto k = find_if(s.first, s.second, [&](pair<TTHValue, QueueItemPtr> tqp) { return (stricmp(fileName.c_str(), tqp.second->getTargetFileName().c_str()) == 0); });
 		if (k != s.second) {
 			return k->second;
 		}
@@ -132,7 +133,7 @@ QueueItem* FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName
 	return NULL;
 }
 
-void FileQueue::move(QueueItem* qi, const string& aTarget) noexcept {
+void FileQueue::move(QueueItemPtr qi, const string& aTarget) noexcept {
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
 	add(qi, false);
@@ -140,12 +141,12 @@ void FileQueue::move(QueueItem* qi, const string& aTarget) noexcept {
 
 // compare nextQueryTime, get the oldest ones
 void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
-	typedef multimap<time_t, pair<QueueItem::SourceConstIter, const QueueItem*> > Buffer;
+	typedef multimap<time_t, pair<QueueItem::SourceConstIter, const QueueItemPtr> > Buffer;
 	Buffer buffer;
 	uint64_t now = GET_TICK();
 
 	for(auto i = queue.begin(); i != queue.end(); ++i) {
-		QueueItem* q = i->second;
+		QueueItemPtr q = i->second;
 
 		if(q->getSize() < PARTIAL_SHARE_MIN_SIZE) continue;
 

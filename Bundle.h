@@ -99,13 +99,13 @@ public:
 	typedef boost::unordered_map<string, uint32_t> DirIntMap;
 
 
-	typedef vector<pair<QueueItem*, int8_t>> PrioList;
+	typedef vector<pair<QueueItemPtr, int8_t>> PrioList;
 	typedef multimap<double, BundlePtr> SourceSpeedMapB;
-	typedef multimap<double, QueueItem*> SourceSpeedMapQI;
+	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
 
 	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0) noexcept;
-	Bundle(QueueItem* qi, const string& aToken = Util::toString(Util::rand())) noexcept;
+	Bundle(QueueItemPtr qi, const string& aToken = Util::toString(Util::rand())) noexcept;
 	~Bundle();
 
 	GETSET(string, token, Token);
@@ -162,14 +162,14 @@ public:
 
 	/* QueueManager */
 	void save();
-	bool removeQueue(QueueItem* qi, bool finished) noexcept;
-	bool addQueue(QueueItem* qi) noexcept;
+	bool removeQueue(QueueItemPtr qi, bool finished) noexcept;
+	bool addQueue(QueueItemPtr qi) noexcept;
 
 	void getDirQIs(const string& aDir, QueueItemList& ql) noexcept;
 	void getDownloadsQI(DownloadList& l) noexcept;
 
-	void addFinishedItem(QueueItem* qi, bool finished) noexcept;
-	void removeFinishedItem(QueueItem* qi) noexcept;
+	void addFinishedItem(QueueItemPtr qi, bool finished) noexcept;
+	void removeFinishedItem(QueueItemPtr qi) noexcept;
 	void finishBundle() noexcept;
 
 	void sendRemovePBD(const UserPtr& aUser) noexcept;
@@ -179,7 +179,7 @@ public:
 
 	string getDirPath(const string& aDir) noexcept;
 	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) noexcept;
-	QueueItem* findQI(const string& aTarget) const noexcept;
+	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	size_t countOnlineUsers() const noexcept;
 
 	Priority calculateProgressPriority() const;
@@ -236,14 +236,14 @@ public:
 	void removeBadSource(const HintedUser& aUser) noexcept;
 
 	/** All queue items indexed by user */
-	void addUserQueue(QueueItem* qi) noexcept;
-	bool addUserQueue(QueueItem* qi, const HintedUser& aUser) noexcept;
+	void addUserQueue(QueueItemPtr qi) noexcept;
+	bool addUserQueue(QueueItemPtr qi, const HintedUser& aUser) noexcept;
 	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
 	QueueItemList getRunningQIs(const UserPtr& aUser) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
-	void removeUserQueue(QueueItem* qi) noexcept;
-	bool removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) noexcept;
+	void removeUserQueue(QueueItemPtr qi) noexcept;
+	bool removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad) noexcept;
 
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }

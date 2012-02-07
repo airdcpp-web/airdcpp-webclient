@@ -31,19 +31,19 @@ namespace dcpp {
 /** All queue items indexed by user (this is a cache for the FileQueue really...) */
 class UserQueue {
 public:
-	void add(QueueItem* qi, bool newBundle=false);
-	void add(QueueItem* qi, const HintedUser& aUser, bool newBundle=false);
+	void add(QueueItemPtr qi, bool newBundle=false);
+	void add(QueueItemPtr qi, const HintedUser& aUser, bool newBundle=false);
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql);
-	QueueItem* getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
-	QueueItem* getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
-	QueueItem* getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	QueueItemPtr getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
+	QueueItemPtr getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	QueueItemPtr getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	QueueItemList getRunning(const UserPtr& aUser);
-	void addDownload(QueueItem* qi, Download* d);
-	void removeDownload(QueueItem* qi, const UserPtr& d, const string& token = Util::emptyString);
+	void addDownload(QueueItemPtr qi, Download* d);
+	void removeDownload(QueueItemPtr qi, const UserPtr& d, const string& token = Util::emptyString);
 
-	void removeQI(QueueItem* qi, bool removeRunning = true, bool removeBundle=false);
-	void removeQI(QueueItem* qi, const UserPtr& aUser, bool removeRunning = true, bool addBad = false, bool removeBundle=false);
-	void setQIPriority(QueueItem* qi, QueueItem::Priority p);
+	void removeQI(QueueItemPtr qi, bool removeRunning = true, bool removeBundle=false);
+	void removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunning = true, bool addBad = false, bool removeBundle=false);
+	void setQIPriority(QueueItemPtr qi, QueueItem::Priority p);
 
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p);
 

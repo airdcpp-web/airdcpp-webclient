@@ -38,12 +38,12 @@ public:
 	~FileQueue();
 
 	void decreaseSize(uint64_t aSize) { queueSize -= aSize; }
-	typedef vector<pair<QueueItem::SourceConstIter, const QueueItem*> > PFSSourceList;
+	typedef vector<pair<QueueItem::SourceConstIter, const QueueItemPtr> > PFSSourceList;
 
-	void add(QueueItem* qi, bool addFinished);
-	QueueItem* add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
+	void add(QueueItemPtr qi, bool addFinished);
+	QueueItemPtr add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
-	QueueItem* find(const string& target) noexcept;
+	QueueItemPtr find(const string& target) noexcept;
 	void find(QueueItemList& sl, int64_t aSize, const string& ext) noexcept;
 	void find(StringList& sl, int64_t aSize, const string& ext) noexcept;
 	void find(const TTHValue& tth, QueueItemList& ql) noexcept;
@@ -55,10 +55,10 @@ public:
 	size_t getSize() noexcept { return queue.size(); }
 	QueueItem::StringMap& getQueue() noexcept { return queue; }
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
-	void move(QueueItem* qi, const string& aTarget) noexcept;
-	void remove(QueueItem* qi) noexcept;
+	void move(QueueItemPtr qi, const string& aTarget) noexcept;
+	void remove(QueueItemPtr qi) noexcept;
 	int isFileQueued(const TTHValue& aTTH, const string& aFile) noexcept;
-	QueueItem* getQueuedFile(const TTHValue& aTTH, const string& aFile) noexcept;
+	QueueItemPtr getQueuedFile(const TTHValue& aTTH, const string& aFile) noexcept;
 
 	uint64_t getTotalQueueSize() noexcept { return queueSize; }
 private:

@@ -18,6 +18,10 @@
 
 #include "stdinc.h"
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
+#include <boost/fusion/algorithm/iteration/accumulate.hpp>
+
 #include "BundleQueue.h"
 #include "SettingsManager.h"
 #include "AirUtil.h"
@@ -27,6 +31,8 @@
 
 namespace dcpp {
 
+using boost::range::for_each;
+using boost::fusion::accumulate;
 
 BundleQueue::BundleQueue() : 
 	nextSearch(0),
@@ -112,12 +118,11 @@ int BundleQueue::getPrioSum(int& prioBundles) {
 	int p = Bundle::LAST - 1;
 	int prioSum = 0;
 	do {
-		for (auto k = prioSearchQueue[p].begin(); k != prioSearchQueue[p].end(); ++k) {
-			if ((*k)->countOnlineUsers() > (size_t)SETTING(AUTO_SEARCH_LIMIT)) {
-				continue;
+		for_each(prioSearchQueue[p], [&](BundlePtr b) {
+			if (b->countOnlineUsers() <= (size_t)SETTING(AUTO_SEARCH_LIMIT)) {
+				prioBundles++;
 			}
-			prioBundles++;
-		}
+		});
 		prioSum += (int)(p-1)*prioSearchQueue[p].size();
 		p--;
 	} while(p >= Bundle::LOW);
@@ -153,7 +158,7 @@ BundlePtr BundleQueue::findAutoSearch() {
 					continue;
 				}
 				for (auto k = tmp->getQueueItems().begin(); k != tmp->getQueueItems().end(); ++k) {
-					QueueItem* q = *k;
+					QueueItemPtr q = *k;
 					if(q->getPriority() == QueueItem::PAUSED || q->countOnlineUsers() >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))
 						continue;
 					if(q->isRunning()) {
@@ -223,12 +228,12 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 
 	//count the finished files
 	if (subFolder) {
-		for_each(tmpBundle->getFinishedFiles().begin(), tmpBundle->getFinishedFiles().end(), [&](QueueItem* qi) { 
+		for_each(tmpBundle->getFinishedFiles(), [&](QueueItemPtr qi) { 
 			if(AirUtil::isSub(qi->getTarget(), aSource)) 
 				finishedFiles++; 
 		});
 	} else {
-		for_each(retBundles.begin(), retBundles.end(), [&](BundlePtr b) { finishedFiles += b->getFinishedFiles().size(); });
+		for_each(retBundles, [&](BundlePtr b) { finishedFiles += b->getFinishedFiles().size(); });
 	}
 }
 
@@ -254,7 +259,7 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) {
 	}
 }
 
-void BundleQueue::addBundleItem(QueueItem* qi, BundlePtr aBundle) {
+void BundleQueue::addBundleItem(QueueItemPtr qi, BundlePtr aBundle) {
 	if (aBundle->addQueue(qi) && !aBundle->getFileBundle()) {
 		string dir = Util::getDir(qi->getTarget(), false, false);
 		string releaseDir = AirUtil::getReleaseDir(dir);
@@ -264,7 +269,7 @@ void BundleQueue::addBundleItem(QueueItem* qi, BundlePtr aBundle) {
 	}
 }
 
-void BundleQueue::removeBundleItem(QueueItem* qi, bool finished) {
+void BundleQueue::removeBundleItem(QueueItemPtr qi, bool finished) {
 	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !qi->getBundle()->getFileBundle()) {
 		string releaseDir = AirUtil::getReleaseDir(Util::getDir(qi->getTarget(), false, false));
 		if (!releaseDir.empty()) {
@@ -273,16 +278,20 @@ void BundleQueue::removeBundleItem(QueueItem* qi, bool finished) {
 	}
 }
 
-void BundleQueue::remove(BundlePtr aBundle, bool finished) {
-	if (finished && !aBundle->getFileBundle()) {
-		for (auto i = aBundle->getBundleDirs().begin(); i != aBundle->getBundleDirs().end(); ++i) {
-			//dcassert(i->second == 0);
-			string releaseDir = AirUtil::getReleaseDir(i->first);
-			if (!releaseDir.empty()) {
-				bundleDirs.erase(releaseDir);
-			}
+void BundleQueue::remove(BundlePtr aBundle) {
+	for_each(aBundle->getBundleDirs(), [&](pair<string, uint32_t> dirs) {
+		string releaseDir = AirUtil::getReleaseDir(dirs.first);
+		if (!releaseDir.empty()) {
+			bundleDirs.erase(releaseDir);
 		}
-	}
+	});
+
+	//make sure that everything will be freed from the memory
+	for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); )
+		aBundle->getFinishedFiles().erase(i);
+	for(auto i = aBundle->getQueueItems().begin(); i != aBundle->getQueueItems().end(); )
+		aBundle->getQueueItems().erase(i);
+
 	bundles.erase(aBundle->getToken());
 }
 

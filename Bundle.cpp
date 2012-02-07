@@ -28,11 +28,14 @@
 #include "SimpleXML.h"
 
 #include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/numeric.hpp>
 
 namespace dcpp {
+
+using boost::range::for_each;
 	
-Bundle::Bundle(QueueItem* qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
+Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
 	currentDownloaded(qi->getDownloadedBytes()), hashed(0), moved(0) {
@@ -78,11 +81,11 @@ void Bundle::setDownloadedBytes(int64_t aSize) {
 
 void Bundle::addSegment(int64_t aSize, bool downloaded) {
 #ifdef _DEBUG
-	int64_t tmp1 = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItem* qi) {
+	int64_t tmp1 = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItemPtr qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
 
-	tmp1 = accumulate(finishedFiles.begin(), finishedFiles.end(), tmp1, [&](int64_t old, QueueItem* qi) {
+	tmp1 = accumulate(finishedFiles.begin(), finishedFiles.end(), tmp1, [&](int64_t old, QueueItemPtr qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
 	dcassert(tmp1 == aSize + finishedSegments);
@@ -132,9 +135,9 @@ void Bundle::setDirty(bool enable) {
 	}
 }
 
-QueueItem* Bundle::findQI(const string& aTarget) const {
+QueueItemPtr Bundle::findQI(const string& aTarget) const {
 	for(auto i = queueItems.begin(); i != queueItems.end(); ++i) {
-		QueueItem* qi = *i;
+		QueueItemPtr qi = *i;
 		if (qi->getTarget() == aTarget) {
 			return qi;
 		}
@@ -168,7 +171,7 @@ int64_t Bundle::getDiskUse(bool countAll) {
 	return size;
 }
 
-void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
+void Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 	finishedFiles.push_back(qi);
 	if (!finished) {
 		moved++;
@@ -179,7 +182,7 @@ void Bundle::addFinishedItem(QueueItem* qi, bool finished) {
 	qi->setFlag(QueueItem::FLAG_FINISHED);
 }
 
-void Bundle::removeFinishedItem(QueueItem* qi) {
+void Bundle::removeFinishedItem(QueueItemPtr qi) {
 	int pos = 0;
 	for (auto s = finishedFiles.begin(); s != finishedFiles.end(); ++s) {
 		if ((*s) == qi) {
@@ -195,7 +198,7 @@ void Bundle::removeFinishedItem(QueueItem* qi) {
 	}
 }
 
-bool Bundle::addQueue(QueueItem* qi) {
+bool Bundle::addQueue(QueueItemPtr qi) {
 	dcassert(find(queueItems.begin(), queueItems.end(), qi) == queueItems.end());
 	qi->setBundle(this);
 	queueItems.push_back(qi);
@@ -209,7 +212,7 @@ bool Bundle::addQueue(QueueItem* qi) {
 	return false;
 }
 
-bool Bundle::removeQueue(QueueItem* qi, bool finished) {
+bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 	int pos = 0;
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
 		if ((*s) == qi) {
@@ -246,17 +249,15 @@ bool Bundle::isBadSource(const UserPtr& aUser) {
 	return find_if(badSources.begin(), badSources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
 }
 
-void Bundle::addUserQueue(QueueItem* qi) {
-	for(QueueItem::SourceConstIter i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		addUserQueue(qi, i->getUser());
-	}
+void Bundle::addUserQueue(QueueItemPtr qi) {
+	for_each(qi->getSources(), [&](QueueItem::Source s) { addUserQueue(qi, s.getUser()); });
 }
 
-bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
+bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 	dcassert(find(l.begin(), l.end(), qi) == l.end());
 	l.push_back(qi);
-	if (l.size() > 1) {
+	if (l.size() > 1 && (dirDate + (15*24*60*60)) > GET_TIME()) {
 		auto i = l.begin();
 		auto start = (size_t)Util::rand((uint32_t)(l.size() < 200 ? l.size() : 200)); //limit the max value to lower the required moving distance
 		advance(i, start);
@@ -276,14 +277,14 @@ bool Bundle::addUserQueue(QueueItem* qi, const HintedUser& aUser) {
 	//LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, total items for the user " + aUser->getCID().toBase32() + ": " + Util::toString(l.size()));
 }
 
-QueueItem* Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	int p = QueueItem::LAST - 1;
 	do {
 		auto i = userQueue[p].find(aUser);
 		if(i != userQueue[p].end()) {
 			dcassert(!i->second.empty());
 			for(auto j = i->second.begin(); j != i->second.end(); ++j) {
-				QueueItem* qi = *j;
+				QueueItemPtr qi = *j;
 				if (qi->hasSegment(aUser, aLastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
 					return qi;
 				}
@@ -317,7 +318,7 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) {
 
 void Bundle::getDownloadsQI(DownloadList& l) {
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
-		QueueItem* qi = *s;
+		QueueItemPtr qi = *s;
 		for (auto k = qi->getDownloads().begin(); k != qi->getDownloads().end(); ++k) {
 			l.push_back(*k);
 		}
@@ -334,12 +335,11 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
 		return;
 	}
 
-	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
-		QueueItem* qi = *s;
+	for_each(queueItems, [&](QueueItemPtr qi) {
 		if (AirUtil::isSub(qi->getTarget(), aDir)) {
 			ql.push_back(qi);
 		}
-	}
+	});
 }
 
 string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) {
@@ -386,7 +386,6 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 }
 
 string Bundle::getDirPath(const string& aDir) noexcept {
-	string path;
 	string releaseDir = AirUtil::getReleaseDir(Util::getDir(aDir, false, false));
 	if (releaseDir.empty())
 		return Util::emptyString;
@@ -411,13 +410,11 @@ QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) noexcept {
 	return ret;
 }
 
-void Bundle::removeUserQueue(QueueItem* qi) noexcept {
-	for(QueueItem::SourceConstIter i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		removeUserQueue(qi, i->getUser(), false);
-	}
+void Bundle::removeUserQueue(QueueItemPtr qi) noexcept {
+	for_each(qi->getSources(), [&](QueueItem::Source s) { removeUserQueue(qi, s.getUser(), false); });
 }
 
-bool Bundle::removeUserQueue(QueueItem* qi, const UserPtr& aUser, bool addBad) noexcept {
+bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad) noexcept {
 
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];
@@ -509,7 +506,7 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	vector<int64_t> speedList, sizeList;
 	for (auto s = sources.begin(); s != sources.end(); ++s) {
 		UserPtr& u = get<SOURCE_USER>(*s).user;
-		int64_t filesSize = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItem* qi) {
+		int64_t filesSize = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItemPtr qi) {
 			return qi->isSource(u) ? old + (qi->getSize() - qi->getDownloadedSegments()) : old; 
 		});
 		int64_t timeLeft = static_cast<int64_t>(filesSize * u->getSpeed());
@@ -526,7 +523,7 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 
 void Bundle::getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap) noexcept {
 	for (auto j = queueItems.begin(); j != queueItems.end(); ++j) {
-		QueueItem* q = *j;
+		QueueItemPtr q = *j;
 		if(q->getAutoPriority()) {
 			if(q->getPriority() != QueueItem::PAUSED) {
 				int64_t qiSpeed = 0;
@@ -551,7 +548,7 @@ void Bundle::getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sour
 }
 
 void Bundle::calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap, bool verbose) noexcept {
-	map<QueueItem*, double> autoPrioMap;
+	map<QueueItemPtr, double> autoPrioMap;
 	//scale the priorization maps
 	double factor;
 	double max = max_element(speedMap.begin(), speedMap.end())->first;
@@ -572,7 +569,7 @@ void Bundle::calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI&
 
 
 	//prepare to set the prios
-	multimap<int, QueueItem*> finalMap;
+	multimap<int, QueueItemPtr> finalMap;
 	int uniqueValues = 0;
 	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
 		if (finalMap.find(i->second) == finalMap.end()) {
@@ -703,7 +700,7 @@ void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {
 			auto pos = ql.begin();
 			auto rand = Util::rand(ql.size());
 			advance(pos, rand);
-			QueueItem* q = *pos;
+			QueueItemPtr q = *pos;
 			if(q->getPriority() == QueueItem::PAUSED && !manual) {
 				s++;
 				continue;
@@ -923,7 +920,7 @@ void Bundle::save() {
 		f.write(LIT("\">\r\n"));
 
 		for (auto k = finishedFiles.begin(); k != finishedFiles.end(); ++k) {
-			QueueItem* qi = *k;
+			QueueItemPtr qi = *k;
 			f.write(LIT("\t<Finished TTH=\""));
 			f.write(qi->getTTH().toBase32());
 			f.write(LIT("\" Target=\""));

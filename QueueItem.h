@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 #define DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 
+#include "Pointer.h"
 #include "User.h"
 #include "FastAlloc.h"
 #include "MerkleTree.h"
@@ -27,7 +28,6 @@
 #include "Segment.h"
 #include "HintedUser.h"
 #include "Bundle.h"
-#include "Pointer.h"
 #include "GetSet.h"
 
 #include "boost/unordered_map.hpp"
@@ -126,7 +126,7 @@ public:
 				| FLAG_NO_TREE | FLAG_TTH_INCONSISTENCY | FLAG_UNTRUSTED
 		};
 
-		Source(const HintedUser& aUser) : user(aUser), partialSource(NULL) { }
+		Source(const HintedUser& aUser) : user(aUser), partialSource(nullptr) { }
 		Source(const Source& aSource) : Flags(aSource), user(aSource.user), partialSource(aSource.partialSource) { }
 
 		bool operator==(const UserPtr& aUser) const { return user == aUser; }

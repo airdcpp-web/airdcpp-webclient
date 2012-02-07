@@ -103,7 +103,7 @@ typedef std::vector<OnlineUserPtr> OnlineUserList;
 class OutputStream;
 
 class QueueItem;
-typedef QueueItem* QueueItemPtr;
+typedef boost::intrusive_ptr<QueueItem> QueueItemPtr;
 typedef std::vector<QueueItemPtr> QueueItemList;
 
 class RecentHubEntry;

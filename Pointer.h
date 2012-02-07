@@ -41,6 +41,10 @@ public:
 	bool unique(int val = 1) const noexcept {
 		return (ref <= val);
 	}
+
+	int getRefs() const noexcept {
+		return ref;
+	}
 	
 protected:
 	intrusive_ptr_base() noexcept : ref(0) { }

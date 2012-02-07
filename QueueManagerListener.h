@@ -59,12 +59,12 @@ public:
 
 	typedef X<26> FileHashed;
 
-	virtual void on(Added, QueueItem*) noexcept { }
-	virtual void on(Finished, const QueueItem*, const string&, const HintedUser&, int64_t) noexcept { }
-	virtual void on(Removed, const QueueItem*) noexcept { }
-	virtual void on(Moved, const QueueItem*, const string&) noexcept { }
-	virtual void on(SourcesUpdated, const QueueItem*) noexcept { }
-	virtual void on(StatusUpdated, const QueueItem*) noexcept { }
+	virtual void on(Added, QueueItemPtr) noexcept { }
+	virtual void on(Finished, const QueueItemPtr, const string&, const HintedUser&, int64_t) noexcept { }
+	virtual void on(Removed, const QueueItemPtr) noexcept { }
+	virtual void on(Moved, const QueueItemPtr, const string&) noexcept { }
+	virtual void on(SourcesUpdated, const QueueItemPtr) noexcept { }
+	virtual void on(StatusUpdated, const QueueItemPtr) noexcept { }
 	virtual void on(PartialList, const HintedUser&, const string&) noexcept { }
 
 	virtual void on(BundleSources, const BundlePtr) noexcept { }
