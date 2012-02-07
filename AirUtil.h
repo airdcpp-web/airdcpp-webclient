@@ -56,7 +56,6 @@ class AirUtil {
 		static void removeIfEmpty(const string& tgt);
 
 		static bool isAdcHub(const string& hubUrl);
-		static void formatTimeParams(string& str, time_t time);
 	private:
 
 	};

@@ -100,26 +100,6 @@ void AutoSearchManager::removeRegExpFromSearches() {
 	}
 }
 
-void AutoSearchManager::getAllowedHubs() {
-	allowedHubs.clear();
-	ClientManager* cm = ClientManager::getInstance();
-
-	const Client::List& clients = cm->getClients();
-	cm->lock();
-
-	Client::Iter it;
-	Client::Iter endIt = clients.end();
-	for(it = clients.begin(); it != endIt; ++it) {
-		Client* client = it->second;
-		if (!client->isConnected())
-			continue;
-	
-	//if(client->getUseAutoSearch())
-			allowedHubs.push_back(client->getHubUrl());
-	}
-	cm->unlock();
-}
-
 string AutoSearchManager::matchDirectory(const string& aFile, const string& aStrToMatch) {
 	string lastDir = Util::getLastDir(aFile);
 	string dir = Text::toLower(lastDir);
@@ -160,11 +140,12 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 		if(time < SETTING(AUTOSEARCH_EVERY))
 			return;
 
-		getAllowedHubs();
 		removeRegExpFromSearches();
 
+		StringList allowedHubs;
+		ClientManager::getInstance()->getOnlineClients(allowedHubs);
 		//no hubs? no fun...
-		if(!allowedHubs.size()) {
+		if(allowedHubs.empty()) {
 			return;
 		}
 		//empty valid autosearch list? too bad
@@ -195,7 +176,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	
-	if(!as.empty() && !allowedHubs.empty()) {
+	if(!as.empty()) {
 		Lock l(cs);
 		UserPtr user = static_cast<UserPtr>(sr->getUser());
 		if(users.find(user) == users.end()) {

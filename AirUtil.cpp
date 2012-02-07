@@ -837,9 +837,4 @@ bool AirUtil::isAdcHub(const string& hubUrl) {
 	return false;
 }
 
-
-void AirUtil::formatTimeParams(string& str, time_t time) {
-	//boost::date_time::format_date_parser<boost::gregorian::date, wchar_t>();
-}
-
 }

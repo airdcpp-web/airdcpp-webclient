@@ -1544,9 +1544,6 @@ string Util::getOsVersion(bool http /* = false */) {
 #endif // _WIN32
 }
 
-
-
-
 } // namespace dcpp
 
 /**

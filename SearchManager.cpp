@@ -19,6 +19,9 @@
 #include "stdinc.h"
 #include "SearchManager.h"
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
+
 #include "UploadManager.h"
 #include "ClientManager.h"
 #include "ShareManager.h"
@@ -30,6 +33,8 @@
 #include "FinishedManager.h"
 
 namespace dcpp {
+
+using boost::range::for_each;
 
 const char* SearchManager::types[TYPE_LAST] = {
 	CSTRING(ANY),
@@ -47,13 +52,15 @@ const char* SearchManager::getTypeStr(int type) {
 }
 
 SearchManager::SearchManager() :
+
 	port(0),
 	stop(false)
 {
-
+	TimerManager::getInstance()->addListener(this);
 }
 
 SearchManager::~SearchManager() {
+	TimerManager::getInstance()->removeListener(this); 
 	if(socket.get()) {
 		stop = true;
 		socket->disconnect();
@@ -74,12 +81,31 @@ string SearchManager::normalizeWhitespace(const string& aString){
 }
 
 void SearchManager::search(const string& aName, int64_t aSize, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, Search::searchType sType, void* aOwner /* = NULL */) {
-	AutoSearchManager::getInstance()->setTime(0);
-	ClientManager::getInstance()->search(aSizeMode, aSize, aTypeMode, normalizeWhitespace(aName), aToken, sType, aOwner);
+	StringList who;
+	ClientManager::getInstance()->getOnlineClients(who);
+	search(who, aName, aSize, aTypeMode, aSizeMode, aToken, StringList(), sType, aOwner);
 }
 
 uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize /* = 0 */, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, const StringList& aExtList, Search::searchType sType, void* aOwner /* = NULL */) {
-	return ClientManager::getInstance()->search(who, aSizeMode, aSize, aTypeMode, normalizeWhitespace(aName), aToken, aExtList, sType, aOwner);
+	StringPairList tokenHubList;
+	{
+		Lock l (cs);
+		for_each(who, [&](string& hub) {
+			string hubToken = Util::toString(Util::rand());
+			searches[hubToken] = (SearchItem)(make_tuple(GET_TICK(), aToken, hub));
+			tokenHubList.push_back(make_pair(hubToken, hub));
+		});
+	}
+
+	AutoSearchManager::getInstance()->setTime(0);
+	uint64_t estimateSearchSpan = 0;
+
+	for_each(tokenHubList, [&](StringPair& sp) {
+		uint64_t ret = ClientManager::getInstance()->search(sp.second, aSizeMode, aSize, aTypeMode, normalizeWhitespace(aName), sp.first, aExtList, sType, aOwner);
+		estimateSearchSpan = max(estimateSearchSpan, ret);			
+	});
+
+	return estimateSearchSpan;
 }
 
 void SearchManager::listen() {
@@ -385,11 +411,20 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 
 	if(!file.empty() && freeSlots != -1 && size != -1) {
 		TTHValue th;
+		string localToken;
 		/// @todo get the hub this was sent from, to be passed as a hint? (eg by using the token?)
 		StringList names = ClientManager::getInstance()->getHubNames(from->getCID());
 		string hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
-		StringList hubs = ClientManager::getInstance()->getHubUrls(from->getCID());
-		string hub = hubs.empty() ? STRING(OFFLINE) : Util::toString(hubs);
+		string hub;
+
+		{
+			Lock l (cs);
+			auto i = searches.find(token);
+			if (i != searches.end()) {
+				localToken = get<LOCALTOKEN>((*i).second);
+				hub = get<HUBURL>((*i).second);
+			}
+		}
 
 		SearchResult::Types type = (file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
 		if(type == SearchResult::TYPE_FILE && tth.empty())
@@ -407,11 +442,22 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		
 		uint8_t slots = ClientManager::getInstance()->getSlots(from->getCID());
 		SearchResultPtr sr(new SearchResult(from, type, slots, (uint8_t)freeSlots, size,
-			file, hubName, hub, remoteIp, th, token));
+			file, hubName, hub, remoteIp, th, localToken));
 		fire(SearchManagerListener::SR(), sr);
 	}
 }
 
+void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+	Lock l (cs);
+	for (auto i = searches.begin(); i != searches.end();) {
+		if (get<SEARCHTIME>((*i).second) + 1000*60 <  aTick) {
+			searches.erase(i);
+			i = searches.begin();
+		} else {
+			++i;
+		}
+	}
+}
 
 void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	string remoteBundle;

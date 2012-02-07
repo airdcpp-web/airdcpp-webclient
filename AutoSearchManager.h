@@ -121,14 +121,12 @@ private:
 
 	void loadAutoSearch(SimpleXML& aXml);
 
-	StringList allowedHubs;
 	int curPos;
 
 	friend class Singleton<AutoSearchManager>;
 	bool getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target);
 
 	void removeRegExpFromSearches();
-	void getAllowedHubs();
 	string matchDirectory(const string& aFile, const string& aStrToMatch);
 
 	GETSET(uint16_t, time, Time);

@@ -37,7 +37,7 @@ namespace dcpp {
 
 class SocketException;
 
-class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, public Thread
+class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, public Thread, private TimerManagerListener
 {
 public:
 	enum SizeModes {
@@ -122,6 +122,16 @@ private:
 		bool stop;
 	} queue;
 
+
+	enum ItemT {
+		SEARCHTIME		= 0,
+		LOCALTOKEN		= 1,
+		HUBURL			= 2,
+	};
+
+	typedef tuple<uint64_t, string, string> SearchItem;
+
+	boost::unordered_map<string, SearchItem> searches;
 	CriticalSection cs;
 	std::unique_ptr<Socket> socket;
 	uint16_t port;
@@ -137,6 +147,8 @@ private:
 	void onData(const uint8_t* buf, size_t aLen, const string& address);
 
 	string getPartsString(const PartsInfo& partsInfo) const;
+	
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 };
 
 } // namespace dcpp

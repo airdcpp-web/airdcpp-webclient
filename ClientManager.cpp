@@ -19,6 +19,9 @@
 #include "stdinc.h"
 #include "ClientManager.h"
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
+
 #include "ShareManager.h"
 #include "SearchManager.h"
 #include "ConnectionManager.h"
@@ -39,6 +42,8 @@
 
 
 namespace dcpp {
+
+using boost::range::for_each;
 
 Client* ClientManager::getClient(const string& aHubURL) {
 	Client* c;
@@ -553,6 +558,14 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 	}
 }
 
+void ClientManager::getOnlineClients(StringList& onlineClients) {
+	Lock l (cs);
+	for_each(clients, [&](pair<string*, Client*> cp) {
+		if (cp.second->isConnected())
+			onlineClients.push_back(cp.second->getHubUrl());
+	});
+}
+
 void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept {
 	bool isUdpActive = false;
 	{
@@ -582,22 +595,13 @@ void ClientManager::search(int aSizeMode, int64_t aSize, int aFileType, const st
 	}
 }
 
-uint64_t ClientManager::search(StringList& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner) {
+uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner) {
 	Lock l(cs);
-
-	uint64_t estimateSearchSpan = 0;
-	
-	for(StringIter it = who.begin(); it != who.end(); ++it) {
-		const string& client = *it;
-		
-		Client::Iter i = clients.find(const_cast<string*>(&client));
-		if(i != clients.end() && i->second->isConnected()) {
-			uint64_t ret = i->second->search(aSizeMode, aSize, aFileType, aString, aToken, aExtList, sType, aOwner);
-			estimateSearchSpan = max(estimateSearchSpan, ret);			
-		}
+	Client::Iter i = clients.find(const_cast<string*>(&who));
+	if(i != clients.end() && i->second->isConnected()) {
+		return i->second->search(aSizeMode, aSize, aFileType, aString, aToken, aExtList, sType, aOwner);		
 	}
-	
-	return estimateSearchSpan;
+	return 0;
 }
 
 void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
