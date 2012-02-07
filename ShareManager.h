@@ -219,7 +219,7 @@ private:
 		
 			string getADCPath() const { return parent->getADCPath() + name; }
 			string getFullName() const { return parent->getFullName() + name; }
-			string getRealPath() const { return parent->getRealPath(name); }
+			string getRealPath(bool validate = true) const { return parent->getRealPath(name, validate); }
 
 			GETSET(TTHValue, tth, TTH);
 			GETSET(string, name, Name);
@@ -241,7 +241,7 @@ private:
 
 		string getADCPath() const noexcept;
 		string getFullName() const noexcept; 
-		string getRealPath(const std::string& path, bool loading = false) const;
+		string getRealPath(const std::string& path, bool validate = true) const;
 
 		int64_t getSize() const noexcept;
 		int64_t getSize(const string& realpath) const noexcept;

@@ -141,13 +141,13 @@ string ShareManager::getRealPath(const TTHValue& root) {
 	return result;
 }
 
-string ShareManager::Directory::getRealPath(const std::string& path, bool loading/*false*/) const {
+string ShareManager::Directory::getRealPath(const std::string& path, bool validate/*true*/) const {
 	if(getParent()) {
-		return getParent()->getRealPath(getName() + PATH_SEPARATOR_STR + path, loading);
+		return getParent()->getRealPath(getName() + PATH_SEPARATOR_STR + path, validate);
 	}else if(!getRootPath().empty()) {
 		string root = getRootPath() + path;
 
-		if(loading) //no extra checks for finding the file while loading share cache.
+		if(!validate) //no extra checks for finding the file while loading share cache.
 			return root;
 
 		/*check for the existance here if we have moved the file/folder and only refreshed the new location.
@@ -515,7 +515,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			/*dont save TTHs, check them from hashmanager, just need path and size.
 			this will keep us sync to hashindex */
 			try {
-				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname, true), Util::toInt64(size))));
+				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname, false), Util::toInt64(size))));
 			}catch(Exception& e) { 
 				dcdebug("Error loading filelist %s \n", e.getError().c_str());
 			}
@@ -1030,7 +1030,7 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 	
 	auto files = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
 	for(auto k = files.first; k != files.second; ++k) {
-		if(stricmp((*i).getFullName(), k->second->getFullName()) == 0) {
+		if(stricmp((*i).getRealPath(false), k->second->getRealPath(false)) == 0) {
 			return;
 		}
 	}
@@ -1507,6 +1507,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 	RLock l(cs);
 	string xml;
 	xml = SimpleXML::utf8Header;
+	string basedate = Util::emptyString;
 
 	SimpleXML sXml;   //use simpleXML so we can easily add the end tags and check what virtuals have been created.
 	sXml.addTag("FileListing");
@@ -1529,6 +1530,10 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 			for(DirMultiMap::const_iterator it = result.begin(); it != result.end(); ++it) {
 				dcdebug("result name %s \n", it->second->getName());
 				root = it->second;
+
+				if(basedate.empty() || (Util::toUInt32(basedate) < root->getLastWrite())) //compare the dates and add the last modified
+					basedate = Util::toString(root->getLastWrite());
+			
 				for(Directory::Map::const_iterator it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
 					it2->second->toXml(sXml, recurse);
 				}
@@ -1539,6 +1544,9 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		}
 	}
 	sXml.stepOut();
+
+	sXml.addChildAttrib("BaseDate", basedate);
+
 	StringOutputStream sos(xml);
 	sXml.toXML(&sos);
 
@@ -2028,7 +2036,7 @@ void ShareManager::cleanIndices(Directory::Ptr& dir) {
 		for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
 			auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
 				for(auto f = flst.first; f != flst.second; ++f) {
-					if(stricmp(f->second->getRealPath(), i->getRealPath()) == 0) {
+					if(stricmp(f->second->getRealPath(false), i->getRealPath(false)) == 0) {
 						tthIndex.erase(f);
 						break;
 					}
@@ -2127,7 +2135,7 @@ void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexc
 		// Get rid of false constness...
 		auto files = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
 		for(auto k = files.first; k != files.second; ++k) {
-			if(stricmp(fname.c_str(), k->second->getRealPath().c_str()) == 0) {
+			if(stricmp(fname.c_str(), k->second->getRealPath(false).c_str()) == 0) {
 				tthIndex.erase(k);
 				break;
 			}
