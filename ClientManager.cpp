@@ -557,15 +557,6 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		}
 	}
 }
-
-void ClientManager::getOnlineClients(StringList& onlineClients) {
-	Lock l (cs);
-	for_each(clients, [&](pair<string*, Client*> cp) {
-		if (cp.second->isConnected())
-			onlineClients.push_back(cp.second->getHubUrl());
-	});
-}
-
 void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept {
 	bool isUdpActive = false;
 	{
@@ -584,24 +575,21 @@ void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const 
 	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort());
 }
 
-void ClientManager::search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, Search::searchType sType, void* aOwner) {
-	Lock l(cs);
-
-	for(auto i = clients.begin(); i != clients.end(); ++i) {
-		Client* c = i->second;
-		if(c->isConnected()) {
-			c->search(aSizeMode, aSize, aFileType, aString, aToken, StringList() /*ExtList*/, sType, aOwner);
-		}
-	}
-}
-
 uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner) {
 	Lock l(cs);
-	Client::Iter i = clients.find(const_cast<string*>(&who));
+	auto i = clients.find(const_cast<string*>(&who));
 	if(i != clients.end() && i->second->isConnected()) {
 		return i->second->search(aSizeMode, aSize, aFileType, aString, aToken, aExtList, sType, aOwner);		
 	}
 	return 0;
+}
+
+void ClientManager::getOnlineClients(StringList& onlineClients) {
+	Lock l (cs);
+	for_each(clients, [&](pair<string*, Client*> cp) {
+		if (cp.second->isConnected())
+			onlineClients.push_back(cp.second->getHubUrl());
+	});
 }
 
 void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {

@@ -97,7 +97,6 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 		});
 	}
 
-	AutoSearchManager::getInstance()->setTime(0);
 	uint64_t estimateSearchSpan = 0;
 
 	for_each(tokenHubList, [&](StringPair& sp) {
@@ -411,11 +410,10 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 
 	if(!file.empty() && freeSlots != -1 && size != -1) {
 		TTHValue th;
-		string localToken;
 		/// @todo get the hub this was sent from, to be passed as a hint? (eg by using the token?)
 		StringList names = ClientManager::getInstance()->getHubNames(from->getCID());
 		string hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
-		string hub;
+		string hub, localToken;
 
 		{
 			Lock l (cs);
@@ -653,22 +651,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		ClientManager::getInstance()->send(cmd, from);
 	}
 }
-/*
-string SearchManager::clean(const string& aSearchString) {
-	static const char* badChars = "$|.[]()-_+";
-	string::size_type i = aSearchString.find_first_of(badChars);
-	if(i == string::npos)
-		return aSearchString;
 
-	string tmp = aSearchString;
-	// Remove all strange characters from the search string
-	do {
-		tmp[i] = ' ';
-	} while ( (i = tmp.find_first_of(badChars, i)) != string::npos);
-
-	return tmp;
-}
-*/
 string SearchManager::getPartsString(const PartsInfo& partsInfo) const {
 	string ret;
 
