@@ -619,7 +619,11 @@ int HashManager::Hasher::run() {
 			} catch(const FileException& e) {
 				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError());
 				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
+			}catch(...) {
+				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname);
+				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 			}
+		
 		}
 		{
 			Lock l(cs);
