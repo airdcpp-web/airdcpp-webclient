@@ -807,6 +807,15 @@ void SettingsManager::load(string const& aFileName)
 			}
 			xml.stepOut();
 		}
+
+		xml.resetCurrentChild();
+		if(xml.findChild("DirectoryHistory")) {
+			xml.stepIn();
+			while(xml.findChild("Directory")) {
+				addDirToHistory(Text::toT(xml.getChildData()));
+			}
+			xml.stepOut();
+		}
 		
 		xml.resetCurrentChild();
 		if(xml.findChild("FileEvents")) {
@@ -951,20 +960,23 @@ void SettingsManager::save(string const& aFileName) {
 	xml.stepIn();
 	{
 		Lock l(cs);
-		for(TStringIter i = searchHistory.begin(); i != searchHistory.end(); ++i) {
-			string tmp = Text::fromT(*i);
-			xml.addTag("Search", tmp);
+		for(auto i = searchHistory.begin(); i != searchHistory.end(); ++i) {
+			xml.addTag("Search", Text::fromT(*i));
 		}
 	}
 	xml.stepOut();
-	
-	/*xml.addTag("SearchTypes");
+
+
+	xml.addTag("DirectoryHistory");
 	xml.stepIn();
-	for(SearchTypesIterC i = searchTypes.begin(); i != searchTypes.end(); ++i) {
-		xml.addTag("SearchType", Util::toString(";", i->second));
-		xml.addChildAttrib("Id", i->first);
+	{
+		Lock l(cs);
+		for(auto i = dirHistory.begin(); i != dirHistory.end(); ++i) {
+			xml.addTag("Directory", Text::fromT(*i));
+		}
 	}
-	xml.stepOut();*/
+	xml.stepOut();
+
 	xml.addTag("FileEvents");
 	xml.stepIn();
 	xml.addTag("OnFileComplete");
@@ -1055,6 +1067,39 @@ SettingsManager::SearchTypesIter SettingsManager::getSearchType(const string& na
 		throw SearchTypeException("No such search type"); // TODO: localize
 	}
 	return ret;
+}
+
+
+bool SettingsManager::addSearchToHistory(const tstring& aSearch) {
+	if(aSearch.empty())
+		return false;
+
+	Lock l(cs);
+	if(find(searchHistory.begin(), searchHistory.end(), aSearch) != searchHistory.end()) {
+		return false;
+	}
+	if(searchHistory.size() == 10) {
+		searchHistory.erase(searchHistory.begin());
+	}
+	searchHistory.push_back(aSearch);
+	return true;
+}
+
+
+bool SettingsManager::addDirToHistory(const tstring& aDir) {
+	if(aDir.empty())
+		return false;
+
+	Lock l(cs);
+
+	if(find(dirHistory.begin(), dirHistory.end(), aDir) != dirHistory.end()) {
+		return false;
+	}
+	if(dirHistory.size() == 10) {
+		dirHistory.erase(dirHistory.begin());
+	}
+	dirHistory.push_back(aDir);
+	return true;
 }
 
 } // namespace dcpp

@@ -351,18 +351,13 @@ public:
 		return searchHistory;
 	}
 
-	bool addSearchToHistory(const tstring& search) {
-		if(search.empty())
-			return false;
+	TStringList getDirHistory() const {
 		Lock l(cs);
-
-		if ((int)searchHistory.size() > (getInstance()->get(SEARCH_HISTORY)))
-				searchHistory.erase(searchHistory.begin());
-
-		searchHistory.push_back(search);
-
-		return true;
+		return dirHistory;
 	}
+
+	bool addSearchToHistory(const tstring& search);
+	bool addDirToHistory(const tstring& dir);
 
 	void clearSearchHistory() {
 		Lock l(cs);
@@ -389,6 +384,7 @@ private:
 	int64_t int64Defaults[INT64_LAST - INT64_FIRST];
 	bool isSet[SETTINGS_LAST];
 	TStringList searchHistory;
+	TStringList dirHistory;
 
 	StringPairList fileEvents;
 	mutable CriticalSection cs;
