@@ -23,7 +23,8 @@ size_t FileReader::read(const string& file, const DataCallback& callback) {
 	}
 
 	if(ret == READ_FAILED) {
-		ret = readMapped(file, callback);
+		if(!direct) //if direct read failed, can mapped read do any good?
+			ret = readMapped(file, callback);
 
 		if(ret == READ_FAILED) {
 			ret = readCached(file, callback);
@@ -120,12 +121,12 @@ size_t FileReader::readDirect(const string& file, const DataCallback& callback) 
 		}
 	}
 
-	// Finish the read and see how it went
+	// Finish the read and see how it went, 
 	if(!GetOverlappedResult(h, &over, &hn, TRUE)) {
 		err = ::GetLastError();
 		if(err != ERROR_HANDLE_EOF) {
 			dcdebug("First overlapped read failed: %s\n", Util::translateError(::GetLastError()).c_str());
-			return READ_FAILED;
+			return READ_FAILED;  //fails here even on data errors, mapped read cant handle it?
 		}
 	}
 	over.Offset = hn;
@@ -207,7 +208,7 @@ size_t FileReader::readMapped(const string& file, const DataCallback& callback) 
 	while(size.QuadPart > 0 && go) {
 		auto n = min(size.QuadPart, (int64_t)blockSize);
 		auto p = ::MapViewOfFile(hmap, FILE_MAP_READ, total.HighPart, total.LowPart, static_cast<DWORD>(n));
-		if(!p) {
+		if(!p || (::GetLastError() == EXCEPTION_IN_PAGE_ERROR)) { //we should throw on I/O errors anyway.
 			throw FileException(Util::translateError(::GetLastError()));
 		}
 
