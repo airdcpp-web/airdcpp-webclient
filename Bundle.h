@@ -96,7 +96,7 @@ public:
 	typedef vector<SourceTuple> SourceInfoList;
 	typedef pair<HintedUser, string> UserBundlePair;
 	typedef vector<UserBundlePair> FinishedNotifyList;
-	typedef boost::unordered_map<string, uint32_t> DirIntMap;
+	typedef boost::unordered_map<string, pair<uint32_t, uint32_t>> DirMap;
 
 
 	typedef vector<pair<QueueItemPtr, int8_t>> PrioList;
@@ -130,7 +130,7 @@ public:
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);
 	GETSET(DownloadList, downloads, Downloads);
-	GETSET(DirIntMap, bundleDirs, BundleDirs);
+	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceInfoList, badSources, BadSources);
 	GETSET(SourceInfoList, sources, Sources);
 
@@ -140,7 +140,7 @@ public:
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
 	DownloadList& getDownloads() { return downloads; }
-	DirIntMap& getBundleDirs() { return bundleDirs; }
+	DirMap& getBundleDirs() { return bundleDirs; }
 	SourceInfoList& getBundleSources() { return sources; }
 	SourceInfoList& getBadSources() { return badSources; }
 
@@ -168,8 +168,8 @@ public:
 	void getDirQIs(const string& aDir, QueueItemList& ql) noexcept;
 	void getDownloadsQI(DownloadList& l) noexcept;
 
-	void addFinishedItem(QueueItemPtr qi, bool finished) noexcept;
-	void removeFinishedItem(QueueItemPtr qi) noexcept;
+	bool addFinishedItem(QueueItemPtr qi, bool finished) noexcept;
+	bool removeFinishedItem(QueueItemPtr qi) noexcept;
 	void finishBundle() noexcept;
 
 	void sendRemovePBD(const UserPtr& aUser) noexcept;
@@ -177,7 +177,7 @@ public:
 	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept;
 	void removeFinishedNotify(const UserPtr& aUser) noexcept;
 
-	string getDirPath(const string& aDir) noexcept;
+	pair<string, pair<uint32_t, uint32_t>> getDirByRelease(const string& aDir) noexcept;
 	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) noexcept;
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	size_t countOnlineUsers() const noexcept;

@@ -814,8 +814,31 @@ const string AirUtil::getReleaseRegBasic() {
 	return "(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))";
 }
 
+bool AirUtil::isEmpty(const string& aPath) {
+	/* recursive check for empty dirs */
+	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
+		try {
+			if(i->isDirectory()) {
+				if (strcmpi(i->getFileName().c_str(), ".") == 0 || strcmpi(i->getFileName().c_str(), "..") == 0)
+					continue;
+
+				string dir = aPath + i->getFileName() + "\\";
+				if (!isEmpty(dir))
+					return false;
+			} else {
+				return false;
+			}
+		} catch(const FileException&) { } 
+	}
+	::RemoveDirectoryW(Text::toT(aPath).c_str());
+	return true;
+}
+
 void AirUtil::removeIfEmpty(const string& tgt) {
-	//TODO
+	if (isEmpty(tgt)) {
+		LogManager::getInstance()->message("EMPTY: " + tgt);
+		File::deleteFile(tgt);
+	}
 }
 
 uint32_t AirUtil::getLastWrite(const string& path) {

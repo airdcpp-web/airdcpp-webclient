@@ -102,7 +102,16 @@ public:
 		File::List files;
 		DirMap visitedDirs;
 
-		enum { NONE, PARTIAL_SHARE_DUPE, SHARE_DUPE, PARTIAL_QUEUE_DUPE, QUEUE_DUPE, SHARE_QUEUE_DUPE };
+		enum DupeType { 
+			NONE, 
+			PARTIAL_SHARE_DUPE, 
+			SHARE_DUPE, 
+			PARTIAL_QUEUE_DUPE, 
+			QUEUE_DUPE,
+			FINISHED_DUPE, 
+			SHARE_QUEUE_DUPE 
+		};
+
 		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe = false, const string& aSize = Util::emptyString, const string& aDate = Util::emptyString);
 		void setDate(const string& aDate);
 		time_t getDate() { return date; }
@@ -143,7 +152,7 @@ public:
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);
-		GETSET(uint8_t, dupe, Dupe)
+		GETSET(DupeType, dupe, Dupe)
 	private:
 		time_t date;
 	};

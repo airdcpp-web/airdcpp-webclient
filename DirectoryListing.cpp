@@ -284,13 +284,15 @@ DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
-			: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(0), size(0) {
+		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(Directory::NONE), size(0) {
 
 	if (checkDupe) {
 		if (ShareManager::getInstance()->isDirShared(getPath())) {
-			setDupe(2);
-		} else if (QueueManager::getInstance()->isDirQueued(getPath())) {
-			setDupe(4);
+			setDupe(Directory::SHARE_DUPE);
+		} else {
+			auto qd = QueueManager::getInstance()->isDirQueued(getPath());
+			if (qd > 0)
+				setDupe(qd == 1 ? Directory::QUEUE_DUPE : Directory::FINISHED_DUPE);
 		}
 	}
 
@@ -536,22 +538,22 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
 void DirectoryListing::Directory::clearAdls() {
 
 	for(Iter i = directories.begin(); i != directories.end(); ++i) {
-			if((*i)->getAdls()) {
-				delete *i;
-				directories.erase(i);
-				--i;
-			}
-			//(*i)->clearAdls(); //no need to recurse, we should have the adls directories right under root.
+		if((*i)->getAdls()) {
+			delete *i;
+			directories.erase(i);
+			--i;
+		}
+		//(*i)->clearAdls(); //no need to recurse, we should have the adls directories right under root.
 	}
 }
 
 uint8_t DirectoryListing::Directory::checkShareDupes() {
 	uint8_t result = Directory::NONE;
 	bool first = true;
-	for(Directory::Iter i = directories.begin(); i != directories.end(); ++i) {
+	for(auto i = directories.begin(); i != directories.end(); ++i) {
 		result = (*i)->checkShareDupes();
 		if(getDupe() == Directory::NONE && first)
-			setDupe(result);
+			setDupe((DupeType)result);
 
 		//full dupe with same type for non-dupe dir, change to partial (or pass partial dupes to upper level folder)
 		else if((result == Directory::SHARE_DUPE || result == Directory::PARTIAL_SHARE_DUPE) && getDupe() == Directory::NONE && !first)
@@ -572,7 +574,7 @@ uint8_t DirectoryListing::Directory::checkShareDupes() {
 	}
 
 	first = true;
-	for(File::Iter i = files.begin(); i != files.end(); ++i) {
+	for(auto i = files.begin(); i != files.end(); ++i) {
 		//don't count 0 byte files since it'll give lots of partial dupes
 		//of no interest
 		if((*i)->getSize() > 0) {			

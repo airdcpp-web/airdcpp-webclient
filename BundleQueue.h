@@ -37,6 +37,9 @@ public:
 	void addBundleItem(QueueItemPtr qi, BundlePtr aBundle);
 	void removeBundleItem(QueueItemPtr qi, bool finished);
 
+	void addFinishedItem(QueueItemPtr qi, BundlePtr aBundle);
+	void removeFinishedItem(QueueItemPtr qi);
+
 	void add(BundlePtr aBundle);
 
 	void getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles);

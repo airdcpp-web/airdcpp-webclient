@@ -54,6 +54,7 @@ class AirUtil {
 		static const string getReleaseRegLong(bool chat);
 		static const string getReleaseRegBasic();
 		static void removeIfEmpty(const string& tgt);
+		static bool isEmpty(const string& tgt);
 
 		static bool isAdcHub(const string& hubUrl);
 	private:

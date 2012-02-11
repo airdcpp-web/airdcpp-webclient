@@ -431,7 +431,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				/* the target file doesn't exist, add our item */
 				dcassert(q->getBundle());
 				if (q->getBundle()) {
-					q->getBundle()->removeFinishedItem(q);
+					bundleQueue.removeFinishedItem(q);
 					fileQueue.remove(q);
 					q = nullptr;
 				} else {
@@ -459,7 +459,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					/* the target file doesn't exist, add it */
 					dcassert(q->getBundle());
 					if (q->getBundle()) {
-						q->getBundle()->removeFinishedItem(q);
+						bundleQueue.removeFinishedItem(q);
 						fileQueue.remove(q);
 						q = nullptr;
 					}
@@ -922,7 +922,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 					continue;
 				}
 				//erase failed items
-				aBundle->removeFinishedItem(qi);
+				bundleQueue.removeFinishedItem(qi);
 				fileQueue.remove(qi);
 			}
 		}
@@ -1925,7 +1925,7 @@ void QueueManager::addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const 
 	qi->addSegment(Segment(0, aSize), false, true); //make it complete
 
 	fileQueue.add(qi, true);
-	aBundle->addFinishedItem(qi, false);
+	bundleQueue.addFinishedItem(qi, aBundle);
 	//LogManager::getInstance()->message("added finished tth, totalsize: " + Util::toString(aBundle->getFinishedFiles().size()));
 }
 
@@ -2397,7 +2397,7 @@ tstring QueueManager::getDirPath(const string& aDir) {
 	RLock l(cs);
 	BundlePtr b = bundleQueue.findDir(aDir);
 	if (b) {
-		return Text::toT(b->getDirPath(aDir));
+		return Text::toT(b->getDirByRelease(aDir).first);
 	}
 	return Util::emptyStringT;
 }
@@ -2524,7 +2524,7 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 		for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
 			QueueItemPtr q = *i;
 			if (!Util::fileExists(q->getTarget())) {
-				aBundle->removeFinishedItem(q);
+				bundleQueue.removeFinishedItem(q);
 				fileQueue.remove(q);
 			} else {
 				++i;
@@ -2594,8 +2594,8 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 		//we need to move the finished items when merging subdirs (in other cases they don't need to be handled here)
 		WLock l(cs);
 		for (auto j = sourceBundle->getFinishedFiles().begin(); j != sourceBundle->getFinishedFiles().end();) {
-			targetBundle->addFinishedItem(*j, false);
-			sourceBundle->removeFinishedItem(*j);
+			bundleQueue.addFinishedItem(*j, targetBundle);
+			bundleQueue.removeFinishedItem(*j);
 		}
 		return;
 	}
@@ -2672,6 +2672,21 @@ int QueueManager::getDirItemCount(const BundlePtr aBundle, const string& aDir) n
 	return (int)ql.size();
 }
 
+uint8_t QueueManager::isDirQueued(const string& aDir) {
+	RLock l(cs);
+	BundlePtr b = bundleQueue.findDir(aDir);
+	if (b) {
+		auto s = b->getDirByRelease(aDir);
+		if (s.second.first == 0) //no queued items
+			return 2;
+		else
+			return 1;
+	}
+	return 0;
+}
+
+
+
 int QueueManager::getBundleItemCount(const BundlePtr aBundle) noexcept {
 	RLock l(cs); 
 	return aBundle->getQueueItems().size(); 
@@ -2736,7 +2751,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 						File::deleteFile(qi->getTarget());
 					}
 					fileQueue.remove(qi);
-					bundle->removeFinishedItem(qi);
+					bundleQueue.removeFinishedItem(qi);
 				} else {
 					i++;
 				}
@@ -2797,8 +2812,8 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 						moveFile(qi->getTarget(), targetPath, newBundle);
 						fileQueue.move(qi, targetPath);
 						if (hasMergeBundle) {
-							newBundle->addFinishedItem(qi, false);
-							sourceBundle->removeFinishedItem(qi);
+							bundleQueue.removeFinishedItem(qi);
+							bundleQueue.addFinishedItem(qi, newBundle);
 						} else {
 							//keep in the current bundle
 							i++;
@@ -2810,7 +2825,7 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 				}
 			}
 			fileQueue.remove(qi);
-			sourceBundle->removeFinishedItem(qi);
+			bundleQueue.removeFinishedItem(qi);
 		}
 	}
 
@@ -2891,11 +2906,11 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 								i++;
 								continue;
 							} else if (hasMergeBundle) {
-								newBundle->addFinishedItem(qi, false);
+								bundleQueue.addFinishedItem(qi, newBundle);
 							} else {
-								tempBundle->addFinishedItem(qi, false);
+								bundleQueue.addFinishedItem(qi, tempBundle);
 							}
-							sourceBundle->removeFinishedItem(qi);
+							bundleQueue.removeFinishedItem(qi);
 							continue;
 						} else {
 							/* TODO: add for recheck */
@@ -2903,7 +2918,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 					}
 				}
 				fileQueue.remove(qi);
-				sourceBundle->removeFinishedItem(qi);
+				bundleQueue.removeFinishedItem(qi);
 			} else {
 				i++;
 			}
@@ -3020,7 +3035,7 @@ bool QueueManager::move(QueueItemPtr qs, const string& aTarget) noexcept {
 				dcassert(qt->getBundle());
 				if (!Util::fileExists(target) && qt->getBundle()) {
 					fileQueue.remove(qt);
-					qt->getBundle()->removeFinishedItem(qt);
+					bundleQueue.removeFinishedItem(qt);
 					fileQueue.move(qs, target);
 					return true;
 				}

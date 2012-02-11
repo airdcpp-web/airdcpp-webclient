@@ -171,7 +171,7 @@ int64_t Bundle::getDiskUse(bool countAll) {
 	return size;
 }
 
-void Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
+bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 	finishedFiles.push_back(qi);
 	if (!finished) {
 		moved++;
@@ -180,9 +180,17 @@ void Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 		addSegment(qi->getSize(), false);
 	}
 	qi->setFlag(QueueItem::FLAG_FINISHED);
+
+	string dir = Util::getDir(qi->getTarget(), false, false);
+	auto& bd = bundleDirs[dir];
+	bd.second++;
+	if (bd.first == 1 && bd.second == 0) {
+		return true;
+	}
+	return false;
 }
 
-void Bundle::removeFinishedItem(QueueItemPtr qi) {
+bool Bundle::removeFinishedItem(QueueItemPtr qi) {
 	int pos = 0;
 	for (auto s = finishedFiles.begin(); s != finishedFiles.end(); ++s) {
 		if ((*s) == qi) {
@@ -192,10 +200,18 @@ void Bundle::removeFinishedItem(QueueItemPtr qi) {
 			removeDownloadedSegment(qi->getSize());
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
 			finishedFiles.pop_back();
-			return;
+
+			auto& bd = bundleDirs[Util::getDir(qi->getTarget(), false, false)];
+			bd.second--;
+			if (bd.first == 0 && bd.second == 0) {
+				bundleDirs.erase(Util::getDir(qi->getTarget(), false, false));
+				return true;
+			}
+			return false;
 		}
 		pos++;
 	}
+	return false;
 }
 
 bool Bundle::addQueue(QueueItemPtr qi) {
@@ -205,8 +221,9 @@ bool Bundle::addQueue(QueueItemPtr qi) {
 	increaseSize(qi->getSize());
 
 	string dir = Util::getDir(qi->getTarget(), false, false);
-	bundleDirs[dir]++;
-	if (bundleDirs[dir] == 1) {
+	auto& bd = bundleDirs[dir];
+	bd.first++;
+	if (bd.first == 1 && bd.second == 0) {
 		return true;
 	}
 	return false;
@@ -233,8 +250,9 @@ bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 		addFinishedItem(qi, true);
 	}
 
-	bundleDirs[Util::getDir(qi->getTarget(), false, false)]--;
-	if (bundleDirs[Util::getDir(qi->getTarget(), false, false)] == 0) {
+	auto& bd = bundleDirs[Util::getDir(qi->getTarget(), false, false)];
+	bd.first--;
+	if (bd.first == 0 && bd.second == 0) {
 		bundleDirs.erase(Util::getDir(qi->getTarget(), false, false));
 		return true;
 	}
@@ -385,20 +403,19 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 	return path;
 }
 
-string Bundle::getDirPath(const string& aDir) noexcept {
+pair<string, pair<uint32_t, uint32_t>> Bundle::getDirByRelease(const string& aDir) noexcept {
 	string releaseDir = AirUtil::getReleaseDir(Util::getDir(aDir, false, false));
 	if (releaseDir.empty())
-		return Util::emptyString;
+		return make_pair(Util::emptyString, make_pair(0, 0));
 
-	//size_t pos = Text::toLower(aDir).find(Text::toLower(getName()) + "\\");
 	for (auto s = bundleDirs.begin(); s != bundleDirs.end(); ++s) {
 		if (s->first.length() > releaseDir.length()) {
 			//compare the end of the dir with the release dir
 			if (stricmp(s->first.substr(s->first.length()-releaseDir.length()-1, releaseDir.length()), releaseDir) == 0)
-				return s->first;
+				return *s;
 		}
 	}
-	return Util::emptyString;
+	return make_pair(Util::emptyString, make_pair(0, 0));
 }
 
 QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) noexcept {

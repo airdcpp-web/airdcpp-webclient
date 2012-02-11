@@ -185,20 +185,20 @@ BundlePtr BundleQueue::find(const string& bundleToken) {
 	if (i != bundles.end()) {
 		return i->second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 BundlePtr BundleQueue::findDir(const string& aPath) {
 	string dir = AirUtil::getReleaseDir(aPath);
 	if (dir.empty()) {
-		return NULL;
+		return nullptr;
 	}
 
 	auto i = bundleDirs.find(dir);
 	if (i != bundleDirs.end()) {
 		return i->second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) {
@@ -278,8 +278,27 @@ void BundleQueue::removeBundleItem(QueueItemPtr qi, bool finished) {
 	}
 }
 
+void BundleQueue::addFinishedItem(QueueItemPtr qi, BundlePtr aBundle) {
+	if (aBundle->addFinishedItem(qi, false) && !aBundle->getFileBundle()) {
+		string dir = Util::getDir(qi->getTarget(), false, false);
+		string releaseDir = AirUtil::getReleaseDir(dir);
+		if (!releaseDir.empty()) {
+			bundleDirs[releaseDir] = aBundle;
+		}
+	}
+}
+
+void BundleQueue::removeFinishedItem(QueueItemPtr qi) {
+	if (qi->getBundle()->removeFinishedItem(qi) && !qi->getBundle()->getFileBundle()) {
+		string releaseDir = AirUtil::getReleaseDir(Util::getDir(qi->getTarget(), false, false));
+		if (!releaseDir.empty()) {
+			bundleDirs.erase(releaseDir);
+		}
+	}
+}
+
 void BundleQueue::remove(BundlePtr aBundle) {
-	for_each(aBundle->getBundleDirs(), [&](pair<string, uint32_t> dirs) {
+	for_each(aBundle->getBundleDirs(), [&](pair<string, pair<uint32_t, uint32_t>> dirs) {
 		string releaseDir = AirUtil::getReleaseDir(dirs.first);
 		if (!releaseDir.empty()) {
 			bundleDirs.erase(releaseDir);
