@@ -304,7 +304,6 @@ bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
 			return false;
 		}
 		return prio == QueueItem::HIGHEST;
-
 	}
 
 	if(downloadCount > 0) {
@@ -317,15 +316,13 @@ bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
 void DownloadManager::checkDownloads(UserConnection* aConn) {
 	dcassert(aConn->getDownload() == NULL);
 
-	bool smallSlot=false;
-	if (aConn->isSet(UserConnection::FLAG_SMALL_SLOT)) {
-		smallSlot=true;
-	}
+	bool smallSlot = aConn->isSet(UserConnection::FLAG_SMALL_SLOT);
 
 	string bundleToken;
 	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot, bundleToken);
 	bool start = startDownload(prio);
 	if(!start && !smallSlot) {
+		removeRunningUser(aConn, false, true);
 		removeConnection(aConn);
 		return;
 	}
