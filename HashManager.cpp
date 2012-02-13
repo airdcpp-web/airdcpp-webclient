@@ -527,11 +527,10 @@ int HashManager::Hasher::run() {
 	string fname;
 	for(;;) {
 		s.wait();
+		instantPause(); //suspend the thread... 
 		if(stop)
 			break;
 		
-		instantPause(); //suspend the thread...
-
 		if(saveData) {
 			HashManager::getInstance()->SaveData();
 			saveData = false;
@@ -618,9 +617,6 @@ int HashManager::Hasher::run() {
 				}
 			} catch(const FileException& e) {
 				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError());
-				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
-			}catch(...) {
-				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname);
 				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 			}
 		

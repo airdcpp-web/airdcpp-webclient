@@ -260,12 +260,12 @@ void DownloadManager::sendBundleFinished(BundlePtr aBundle) {
 	aBundle->sendBundleFinished();
 }
 
-bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
+bool DownloadManager::checkIdle(const HintedUser& user, bool smallSlot, bool reportOnly) {
 
 	Lock l(cs);
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;
-		if(uc->getUser() == user) {
+		if(uc->getUser() == user.user) {
 			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
 			if (!reportOnly)
@@ -335,7 +335,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
 		}
-		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
+		if (!checkIdle(aConn->getHintedUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
 			aConn->setState(UserConnection::STATE_IDLE);
 			removeRunningUser(aConn, false, true);
 			{

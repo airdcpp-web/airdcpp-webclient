@@ -207,7 +207,7 @@ string ShareManager::toVirtual(const TTHValue& tth) const  {
 	}
 }
 
-string ShareManager::toReal(const string& virtualFile, bool isInSharingHub)  {
+string ShareManager::toReal(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser)  {
 	
 	if(virtualFile == "MyList.DcLst") {
 		throw ShareException("NMDC-style lists no longer supported, please upgrade your client");
@@ -219,7 +219,11 @@ string ShareManager::toReal(const string& virtualFile, bool isInSharingHub)  {
 		return getBZXmlFile();
 	}
 	RLock l(cs);
-	return findFile(virtualFile)->getRealPath();
+	try {
+		return findFile(virtualFile)->getRealPath();
+	}catch(ShareException&) {
+		return findTempShare(aUser.user->getCID(), virtualFile);
+	}
 }
 
 TTHValue ShareManager::getTTH(const string& virtualFile) const {
@@ -287,6 +291,38 @@ AdcCommand ShareManager::getFileInfo(const string& aFile) {
 	return cmd;
 }
 
+string ShareManager::findTempShare(const CID& cid, const string& virtualFile) {
+		
+	auto userFiles = tempShares.equal_range(cid);
+	if(userFiles.first == userFiles.second)
+		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
+
+	if(virtualFile.compare(0, 4, "TTH/") == 0) {
+		TTHValue tth(virtualFile.substr(4));
+		for(auto i = userFiles.first; i != userFiles.second; ++i) {
+			if(i->second.first == tth)
+				return i->second.second;
+		}
+	}	
+	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);		
+}
+bool ShareManager::addTempShare(const CID& cid, TTHValue& tth, const string& filePath) {
+	//first check if already exists in Share.
+	if(isFileShared(tth, Util::getFileName(filePath))) {
+		return true;
+	} else {
+		auto userFiles = tempShares.equal_range(cid);
+		for(auto i = userFiles.first; i != userFiles.second; ++i) {
+			if(i->second.first == tth)
+				return true;
+			}
+		//didnt exist.. fine, add it.
+		pair<TTHValue, string> FileInfopair = make_pair(tth, filePath);
+		tempShares.insert(make_pair(cid, FileInfopair));
+		return true;
+	}
+	return false;
+}
 ShareManager::DirMultiMap ShareManager::findVirtuals(const string& virtualPath) const {
 	Dirs virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
 	DirMultiMap ret;
@@ -390,7 +426,7 @@ StringList ShareManager::getRealPaths(const std::string path) {
 			}
 		}
 	} else { //its a file
-		result.push_back(toReal(path, true));
+		result.push_back(findFile(path)->getRealPath());
 	}
 
 	return result;

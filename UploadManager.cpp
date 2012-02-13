@@ -103,7 +103,8 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 	try {
 		if(aType == Transfer::names[Transfer::TYPE_FILE]) {
-			sourceFile = ShareManager::getInstance()->toReal(aFile, isInSharingHub);
+		
+			sourceFile = ShareManager::getInstance()->toReal(aFile, isInSharingHub, aSource.getHintedUser());
 
 			if(aFile == Transfer::USER_LIST_NAME) {
 				// Unpack before sending...

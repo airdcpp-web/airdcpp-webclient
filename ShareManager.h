@@ -60,7 +60,7 @@ public:
 
 
 	string toVirtual(const TTHValue& tth) const;
-	string toReal(const string& virtualFile, bool isInSharingHub);
+	string toReal(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser);
 	TTHValue getTTH(const string& virtualFile) const;
 	
 	int refresh(int refreshOptions);
@@ -77,7 +77,7 @@ public:
 	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
 	void DelIncoming() { incoming.clear(); };
 
-	
+	bool addTempShare(const CID& cid, TTHValue& tth, const string& filePath);
 	
    void save() { 
 		w.join();
@@ -350,6 +350,8 @@ private:
 	void deleteReleaseDir(const string& aName);
 	void sortReleaseList();
 
+	string findTempShare(const CID& cid, const string& virtualFile);
+
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
@@ -420,6 +422,9 @@ private:
 	void load(SimpleXML& aXml);
 	void save(SimpleXML& aXml);
 	
+	typedef unordered_multimap<CID, pair<TTHValue, string>> tempShareMap;
+	tempShareMap tempShares;
+
 
 /*This will only be used by the big sharing people probobly*/
 class Worker: public Thread

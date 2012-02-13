@@ -300,7 +300,7 @@ SettingsManager::SettingsManager()
 	setDefault(POPUNDER_FILELIST, false);
 	setDefault(MAGNET_REGISTER, true);
 	setDefault(MAGNET_ASK, true);
-	setDefault(MAGNET_ACTION, MAGNET_AUTO_SEARCH);
+	setDefault(MAGNET_ACTION, MAGNET_AUTO_DOWNLOAD);
 	setDefault(ADD_FINISHED_INSTANTLY, true);
 	setDefault(DONT_DL_ALREADY_SHARED, false);
 	setDefault(CONFIRM_HUB_REMOVAL, true);

@@ -73,7 +73,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 	dcassert((bool)aUser.user);
 	bool supportMcn = false;
 
-	if (!DownloadManager::getInstance()->checkIdle(aUser.user, smallSlot)) {
+	if (!DownloadManager::getInstance()->checkIdle(aUser, smallSlot)) { //transfer hintedUser
 		Lock l(cs);
 		ConnectionQueueItem* cqi = nullptr;
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
@@ -703,6 +703,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 					cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
 				}
 				uc->setToken(cqi->getToken());
+				uc->setHubUrl(cqi->getUser().hint); //set the correct hint for the uc, it might not even have a hint at first.
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 				fire(ConnectionManagerListener::Connected(), cqi);
 				dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");
