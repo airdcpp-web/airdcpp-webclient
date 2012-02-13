@@ -538,7 +538,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	}
 connect:
 	bool smallSlot = (q->isSet(QueueItem::FLAG_PARTIAL_LIST) || (q->getSize() <= 65792 && !q->isSet(QueueItem::FLAG_USER_LIST) && q->isSet(QueueItem::FLAG_CLIENT_VIEW)));
-	if(!aUser.user->isOnline())
+	if(!aUser.user || !aUser.user->isOnline())
 		return;
 
 	if(wantConnection || smallSlot) {
