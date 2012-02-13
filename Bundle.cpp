@@ -93,9 +93,6 @@ void Bundle::addSegment(int64_t aSize, bool downloaded) {
 
 	dcassert(aSize + finishedSegments <= size);
 	finishedSegments += aSize;
-	/*if (downloaded) {
-		currentDownloaded -= aSize;
-	} */
 	dcassert(currentDownloaded >= 0);
 	dcassert(currentDownloaded <= size);
 	dcassert(finishedSegments <= size);
@@ -184,7 +181,7 @@ bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 	string dir = Util::getDir(qi->getTarget(), false, false);
 	auto& bd = bundleDirs[dir];
 	bd.second++;
-	if (bd.first == 1 && bd.second == 0) {
+	if (bd.first == 0 && bd.second == 1) {
 		return true;
 	}
 	return false;
