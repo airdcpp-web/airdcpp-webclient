@@ -516,13 +516,12 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		if (aBundle->isSet(Bundle::FLAG_NEW)) {
 			if (aBundle->getFileBundle()) {
 				addBundle(aBundle);
-			} else {
-				/* Don't continue futher in here with new directory bundles */
-				return;
 			}
+			/* Connect in addBundle */
+			return;
 		} else {
 			if (!bundleFinished) {
-				/* Merged into existing dir bundle */
+				/* Merged into an existing dir bundle */
 				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ITEM_ADDED)) % 
 					q->getTarget().c_str() %
 					aBundle->getName().c_str()));
