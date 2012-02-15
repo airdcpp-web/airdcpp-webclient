@@ -51,7 +51,7 @@ Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aD
 	lastPercent(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0), moved(0) {
 
 	if (dirDate > 0) {
-		recent = (dirDate + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > GET_TIME();
+		checkRecent();
 	} else {
 		dirDate = GET_TIME();
 	}
@@ -69,6 +69,11 @@ Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aD
 
 Bundle::~Bundle() { 
 	//bla
+}
+
+bool Bundle::checkRecent() {
+	recent = (SETTING(RECENT_BUNDLE_HOURS) > 0 && (dirDate + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > GET_TIME());
+	return recent;
 }
 
 void Bundle::setDownloadedBytes(int64_t aSize) {
@@ -378,12 +383,12 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 	}
 		
 	if (path.empty() && remoteDir.length() > 3) {
-		/* failed, look up the common dirs from the end */
+		/* failed, cut the common dirs from the end of the remote path */
 		string::size_type i = remoteDir.length()-2;
 		string::size_type j;
 		for(;;) {
 			j = remoteDir.find_last_of("\\", i);
-			if(j == string::npos)
+			if(j == string::npos || (int)(bundleDir.length() - (remoteDir.length() - j)) < 0)
 				break;
 			if(stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
 				break;

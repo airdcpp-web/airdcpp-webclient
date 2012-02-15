@@ -1369,10 +1369,12 @@ enum Strings { // @DontAdd
 	SETTINGS_SEARCH_MATCHING, // "Search Matching"
 	SETTINGS_SKIPPING_OPTIONS, // "Skipping options"
 	SETTINGS_SKIPLIST_DOWNLOAD, // "Download Skiplist (separate files with '|', wildcards allowed)"
-	SETTINGS_HIGH_PRIO_FILES, // "Highest priority files (separate files with '|', wildcards allowed)"
+	SETTINGS_HIGH_PRIO_FILES, // "High priority files (separate files with '|', wildcards allowed)"
 	SETTINGS_FORMAT_REMOTE_TIME, // "Use the date of the remote directory for time parameters"
 	DISCONNECT_BUNDLE_SPEED, // "And the bundle speed exceeds"
 	DISCONNECT_RUNNING_DOWNLOADS, // "And the minimum number of bundle downloads is"
 	SETTINGS_AUTO_DROP_SLOW_SOURCES, // "Use slow speed disconnecting by default for new bundles"
+	SETTINGS_USE_HIGHEST_LIST, // "Set highest priority for files matching the high priority list"
+	SETTINGS_RECENT_HOURS, // "The maximum age for a bundle dir to consider it as recent"
 	LAST // @DontAdd
 };

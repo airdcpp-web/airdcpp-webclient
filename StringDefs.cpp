@@ -1362,11 +1362,13 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search Matching", 
 "Skipping options", 
 "Download Skiplist (separate files with '|', wildcards allowed)", 
-"Highest priority files (separate files with '|', wildcards allowed)", 
+"High priority files (separate files with '|', wildcards allowed)", 
 "Use the date of the remote directory for time parameters", 
 "And the bundle speed exceeds", 
 "And the minimum number of bundle downloads is", 
 "Use slow speed disconnecting by default for new bundles", 
+"Set highest priority for files matching the high priority list", 
+"The maximum age for a bundle dir to consider it as recent", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2734,4 +2736,6 @@ std::string dcpp::ResourceManager::names[] = {
 "DisconnectBundleSpeed", 
 "DisconnectRunningDownloads", 
 "SettingsAutoDropSlowSources", 
+"SettingsUseHighestList", 
+"SettingsRecentHours", 
 };

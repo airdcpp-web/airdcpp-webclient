@@ -122,7 +122,6 @@ public:
 	GETSET(time_t, dirDate, DirDate);
 	GETSET(bool, singleUser, SingleUser);
 	GETSET(bool, simpleMatching, SimpleMatching);
-	GETSET(bool, recent, Recent);
 
 	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);
 	GETSET(UserIntMap, runningUsers, RunningUsers);
@@ -157,6 +156,8 @@ public:
 
 	void setDirty(bool dirty);
 	bool getDirty() { return dirty; }
+	bool checkRecent();
+	bool isRecent() { return recent; }
 
 	tstring getBundleText();
 
@@ -253,6 +254,7 @@ private:
 	string target;
 	bool fileBundle;
 	bool dirty;
+	bool recent;
 	int hashed;
 	int moved;
 

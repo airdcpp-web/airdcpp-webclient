@@ -3453,7 +3453,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 
 	int searchCount = (int)searches.size() <= 4 ? (int)searches.size() : 4;
 	if (newBundle) {
-		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_CREATED_ALT)  + " " + (!aBundle->getRecent() ? STRING(NEXT_SEARCH_IN) : STRING(NEXT_RECENT_SEARCH_IN))) % 
+		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_CREATED_ALT)  + " " + (!aBundle->isRecent() ? STRING(NEXT_SEARCH_IN) : STRING(NEXT_RECENT_SEARCH_IN))) % 
 			aBundle->getName().c_str() % 
 			aBundle->getQueueItems().size() % 
 			Util::formatBytes(aBundle->getSize()).c_str() % 
@@ -3465,12 +3465,12 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 	if(BOOLSETTING(REPORT_ALTERNATES) && !manual) {
 		//LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + Util::getFileName(qi->getTargetFileName()));
 		if (aBundle->getSimpleMatching()) {
-			LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH_RECENT) + " " + (!aBundle->getRecent() ? STRING(NEXT_SEARCH_IN) : STRING(NEXT_RECENT_SEARCH_IN))) % 
+			LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH_RECENT) + " " + (!aBundle->isRecent() ? STRING(NEXT_SEARCH_IN) : STRING(NEXT_RECENT_SEARCH_IN))) % 
 					aBundle->getName().c_str() % 
 					searchCount % 
 					nextSearch));
 		} else {
-			if (!aBundle->getRecent()) {
+			if (!aBundle->isRecent()) {
 				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::toString(nextSearch) + " minutes");
 			} else {
 				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next recent search in " + Util::toString(nextSearch) + " minutes");

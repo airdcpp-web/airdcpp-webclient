@@ -66,7 +66,7 @@ void BundleQueue::addSearchPrio(BundlePtr aBundle) {
 		return;
 	}
 
-	if (aBundle->getRecent()) {
+	if (aBundle->isRecent()) {
 		dcassert(std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle) == recentSearchQueue.end());
 		recentSearchQueue.push_back(aBundle);
 		return;
@@ -81,7 +81,7 @@ void BundleQueue::removeSearchPrio(BundlePtr aBundle) {
 		return;
 	}
 
-	if (aBundle->getRecent()) {
+	if (aBundle->isRecent()) {
 		auto i = std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle);
 		dcassert(i != recentSearchQueue.end());
 		if (i != recentSearchQueue.end()) {
@@ -103,12 +103,11 @@ BundlePtr BundleQueue::findRecent() {
 	BundlePtr tmp = recentSearchQueue.front();
 	recentSearchQueue.pop_front();
 	//check if the bundle still belongs to here
-	if ((tmp->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > (GET_TIME())) {
+	if (tmp->checkRecent()) {
 		//LogManager::getInstance()->message("Time remaining as recent: " + Util::toString(((tmp->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) - GET_TIME()) / (60)) + " minutes");
 		recentSearchQueue.push_back(tmp);
 	} else {
 		//LogManager::getInstance()->message("REMOVE RECENT");
-		tmp->setRecent(false);
 		addSearchPrio(tmp);
 	}
 	return tmp;
@@ -396,7 +395,7 @@ BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */)
 	}
 
 	if(bundle != NULL) {
-		if (!bundle->getRecent()) {
+		if (!bundle->isRecent()) {
 			calculations++;
 			switch((int)bundle->getPriority()) {
 				case 2:
@@ -421,7 +420,7 @@ BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */)
 }
 
 int64_t BundleQueue::recalculateSearchTimes(BundlePtr aBundle, bool isPrioChange) {
-	if (!aBundle->getRecent()) {
+	if (!aBundle->isRecent()) {
 		int prioBundles = 0;
 		getPrioSum(prioBundles);
 		int next = SETTING(SEARCH_TIME);

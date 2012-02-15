@@ -56,7 +56,7 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 	} else if (priority == DEFAULT) {
 		if(BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP) ? AirUtil::stringRegexMatch(SETTING(HIGH_PRIO_FILES), Util::getFileName(aTarget)) :
 			Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(aTarget)), Text::utf8ToAcp(SETTING(HIGH_PRIO_FILES)), '|')) {
-			priority = HIGHEST;
+			priority = (BOOLSETTING(PRIO_LIST_HIGHEST) ? HIGHEST : HIGH);
 		} else {
 			if(aSize <= SETTING(PRIO_HIGHEST_SIZE)*1024) {
 				priority = HIGHEST;
