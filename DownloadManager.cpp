@@ -670,7 +670,7 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 					}
 
 					//if the whole bundle hasn't finished but there are no more files available from this user
-					if (sendFinished) {
+					if (sendFinished && aSource->isSet(UserConnection::FLAG_UBN1)) {
 						bundle->sendBundleFinished(aSource->getHintedUser());
 					}
 				} else {

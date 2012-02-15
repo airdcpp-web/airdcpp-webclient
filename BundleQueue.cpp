@@ -51,7 +51,7 @@ void BundleQueue::add(BundlePtr aBundle) {
 	bundles[aBundle->getToken()] = aBundle;
 
 	//check if we need to insert the root bundle dir
-	if (!aBundle->getFileBundle()) {
+	if (!aBundle->isFileBundle()) {
 		if (aBundle->getBundleDirs().find(aBundle->getTarget()) == aBundle->getBundleDirs().end()) {
 			string releaseDir = AirUtil::getReleaseDir(aBundle->getTarget());
 			if (!releaseDir.empty()) {
@@ -215,9 +215,9 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 		if (AirUtil::isParent(aSource, tmpBundle->getTarget())) {
 			//parent or the same dir
 			retBundles.push_back(tmpBundle);
-			if (tmpBundle->getFileBundle())
+			if (tmpBundle->isFileBundle())
 				fileBundles++;
-		} else if (!tmpBundle->getFileBundle() && AirUtil::isSub(aSource, tmpBundle->getTarget())) {
+		} else if (!tmpBundle->isFileBundle() && AirUtil::isSub(aSource, tmpBundle->getTarget())) {
 			//subfolder
 			retBundles.push_back(tmpBundle);
 			subFolder = true;
@@ -241,7 +241,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 	BundlePtr compareBundle;
 	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
 		BundlePtr compareBundle = j->second;
-		if (!compareBundle->getFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParent(aTarget, compareBundle->getTarget()))) {
+		if (!compareBundle->isFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParent(aTarget, compareBundle->getTarget()))) {
 			return compareBundle;
 		}
 	}
@@ -259,7 +259,7 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) {
 }
 
 void BundleQueue::addBundleItem(QueueItemPtr qi, BundlePtr aBundle) {
-	if (aBundle->addQueue(qi) && !aBundle->getFileBundle()) {
+	if (aBundle->addQueue(qi) && !aBundle->isFileBundle()) {
 		string dir = Util::getDir(qi->getTarget(), false, false);
 		string releaseDir = AirUtil::getReleaseDir(dir);
 		if (!releaseDir.empty()) {
@@ -269,7 +269,7 @@ void BundleQueue::addBundleItem(QueueItemPtr qi, BundlePtr aBundle) {
 }
 
 void BundleQueue::removeBundleItem(QueueItemPtr qi, bool finished) {
-	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !qi->getBundle()->getFileBundle()) {
+	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !qi->getBundle()->isFileBundle()) {
 		string releaseDir = AirUtil::getReleaseDir(Util::getDir(qi->getTarget(), false, false));
 		if (!releaseDir.empty()) {
 			bundleDirs.erase(releaseDir);
@@ -278,7 +278,7 @@ void BundleQueue::removeBundleItem(QueueItemPtr qi, bool finished) {
 }
 
 void BundleQueue::addFinishedItem(QueueItemPtr qi, BundlePtr aBundle) {
-	if (aBundle->addFinishedItem(qi, false) && !aBundle->getFileBundle()) {
+	if (aBundle->addFinishedItem(qi, false) && !aBundle->isFileBundle()) {
 		string dir = Util::getDir(qi->getTarget(), false, false);
 		string releaseDir = AirUtil::getReleaseDir(dir);
 		if (!releaseDir.empty()) {
@@ -288,7 +288,7 @@ void BundleQueue::addFinishedItem(QueueItemPtr qi, BundlePtr aBundle) {
 }
 
 void BundleQueue::removeFinishedItem(QueueItemPtr qi) {
-	if (qi->getBundle()->removeFinishedItem(qi) && !qi->getBundle()->getFileBundle()) {
+	if (qi->getBundle()->removeFinishedItem(qi) && !qi->getBundle()->isFileBundle()) {
 		string releaseDir = AirUtil::getReleaseDir(Util::getDir(qi->getTarget(), false, false));
 		if (!releaseDir.empty()) {
 			bundleDirs.erase(releaseDir);

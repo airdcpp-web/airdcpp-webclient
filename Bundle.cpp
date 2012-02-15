@@ -821,7 +821,7 @@ void Bundle::sendUBN(const string& speed, double percent) noexcept {
 		if (percent > 0)
 			cmd.addParam("PE", Util::toString(percent));
 
-		ClientManager::getInstance()->send(cmd, i->user->getCID(), true);
+		ClientManager::getInstance()->send(cmd, i->user->getCID(), true, true);
 	}
 }
 
@@ -861,7 +861,7 @@ void Bundle::sendBundleMode() noexcept {
 			cmd.addParam("MU1");
 		}
 
-		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
+		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true, true);
 	}
 }
 
@@ -878,7 +878,7 @@ void Bundle::sendBundleFinished(const HintedUser& aUser) noexcept {
 	cmd.addParam("BU", token);
 	cmd.addParam("FI1");
 
-	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), true);
+	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), true, true);
 }
 
 void Bundle::sendSizeNameUpdate() noexcept {
@@ -902,7 +902,7 @@ void Bundle::sendSizeNameUpdate() noexcept {
 
 		cmd.addParam("UD1");
 
-		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
+		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true, true);
 	}
 }
 
@@ -917,7 +917,7 @@ void Bundle::save() {
 	string tmp;
 	string b32tmp;
 
-	if (getFileBundle()) {
+	if (isFileBundle()) {
 		f.write(LIT("<File Version=\"1.0\" Token=\""));
 		f.write(token);
 		f.write(LIT("\">\r\n"));

@@ -144,7 +144,7 @@ public:
 	SourceInfoList& getBadSources() { return badSources; }
 
 	/* Misc */
-	bool getFileBundle() { return fileBundle;}
+	bool isFileBundle() { return fileBundle;}
 
 	int64_t getDownloadedBytes() const { return currentDownloaded+finishedSegments; }
 	int64_t getSecondsLeft();

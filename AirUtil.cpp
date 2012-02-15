@@ -835,9 +835,8 @@ bool AirUtil::isEmpty(const string& aPath) {
 }
 
 void AirUtil::removeIfEmpty(const string& tgt) {
-	if (isEmpty(tgt)) {
-		LogManager::getInstance()->message("EMPTY: " + tgt);
-		File::deleteFile(tgt);
+	if (!isEmpty(tgt)) {
+		LogManager::getInstance()->message("The folder " + tgt + " isn't empty, not removed");
 	}
 }
 

@@ -681,7 +681,7 @@ uint32_t ShareScannerManager::calcCrc32(const string& file) {
 }
 
 bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
-	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->getFileBundle()) {
+	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
 		string dir = aBundle->getTarget();
 		int missingFiles = 0;
 		int dupesFound = 0;
