@@ -903,8 +903,13 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 			AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 			cmd.addParam("HI", aSource->getHintedUser().hint);
-			cmd.addParam("TO", token);
-			cmd.addParam(finished ? "FI1" : "RM1");
+			if (finished) {
+				cmd.addParam("BU", token);
+				cmd.addParam("FI1");
+			} else {
+				cmd.addParam("TO", aSource->getToken());
+				cmd.addParam("RM1");
+			}
 
 			ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true);
 
