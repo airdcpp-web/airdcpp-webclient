@@ -186,78 +186,22 @@ string DownloadManager::formatDownloaded(int64_t aBytes) {
 
 void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != aBundle->getToken()) {
-		bool updateOnly = false;
-		UserPtr& u = aSource->getUser();
 		if (!aSource->getLastBundle().empty()) {
 			//LogManager::getInstance()->message("LASTBUNDLE NOT EMPTY, REMOVE");
 			removeRunningUser(aSource);
 		} 
 
 		{
-
-			if (aBundle->getRunningUsers().empty()) {
+			Lock l (cs);
+			if (aBundle->addRunningUser(aSource)) {
+				//this is the first running user for this bundle
 				fire(DownloadManagerListener::BundleUser(), aBundle->getToken(), aSource->getHintedUser());
 				aBundle->setStart(GET_TICK());
-			}
-
-			bool sendMode=false;
-			{
-				Lock l (cs);
-				auto y =  aBundle->getRunningUsers().find(u);
-				if (y == aBundle->getRunningUsers().end()) {
-					//LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
-					if (aBundle->getSingleUser() && !aBundle->getRunningUsers().empty()) {
-						//LogManager::getInstance()->message("SEND BUNDLE MODE");
-						sendMode=true;
-					} else if (aBundle->getRunningUsers().empty()) {
-						runningBundles[aBundle->getToken()] = aBundle;
-					}
-					aBundle->getRunningUsers()[u] = 1;
-				} else {
-					updateOnly = true;
-					y->second++;
-					//LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS: " + Util::toString(y->second));
-				}
-			}
-
-			if (sendMode) {
-				sendBundleMode(aBundle, false);
+				runningBundles[aBundle->getToken()] = aBundle;
 			}
 		}
-
-		if (aSource->isSet(UserConnection::FLAG_UBN1)) {
-			if (aBundle->sendBundle(aSource, updateOnly) && !updateOnly) {
-				Lock l (cs);
-				aBundle->addUploadReport(aSource->getHintedUser());
-				//LogManager::getInstance()->message("ADD UPLOAD REPORT: " + Util::toString(aBundle->getUploadReports().size()));
-			}
-		}
-
 		aSource->setLastBundle(aBundle->getToken());
 	}
-}
-
-void DownloadManager::sendBundleMode(BundlePtr aBundle, bool singleUser) {
-	Lock l (cs);
-	if (singleUser) {
-		if (aBundle->getRunningUsers().size() != 1) {
-			//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, FAAAAILED: " + Util::toString(aBundle->runningUsers.size()));
-			return;
-		}
-		aBundle->setLastSpeed(0);
-		aBundle->setLastPercent(0);
-		aBundle->setSingleUser(true);
-		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
-	} else {
-		aBundle->setSingleUser(false);
-		//LogManager::getInstance()->message("SET BUNDLE MULTIUSER, RUNNING: " + aBundle->runningUsers.size());
-	}
-	aBundle->sendBundleMode();
-}
-
-void DownloadManager::sendBundleFinished(BundlePtr aBundle) {
-	Lock l (cs);
-	aBundle->sendBundleFinished();
 }
 
 bool DownloadManager::checkIdle(const HintedUser& user, bool smallSlot, bool reportOnly) {
@@ -322,7 +266,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot, bundleToken);
 	bool start = startDownload(prio);
 	if(!start && !smallSlot) {
-		removeRunningUser(aConn, false, true);
+		removeRunningUser(aConn);
 		removeConnection(aConn);
 		return;
 	}
@@ -337,7 +281,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		}
 		if (!checkIdle(aConn->getHintedUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
 			aConn->setState(UserConnection::STATE_IDLE);
-			removeRunningUser(aConn, false, true);
+			removeRunningUser(aConn);
 			{
 				Lock l(cs);
  				idlers.push_back(aConn);
@@ -495,7 +439,6 @@ void DownloadManager::endData(UserConnection* aSource) {
 			fire(DownloadManagerListener::Failed(), d, STRING(INVALID_TREE));
 
 			QueueManager::getInstance()->removeSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_BAD_TREE, false);
-			//removeRunningUser(aSource, false);
 			QueueManager::getInstance()->putDownload(d, false);
 
 			checkDownloads(aSource);
@@ -643,61 +586,22 @@ BundlePtr DownloadManager::findRunningBundle(const string& bundleToken) {
 	return NULL;
 }
 
-void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove /*false*/, bool sendFinished /*false*/) {
+void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove /*false*/) {
 	if (aSource->getLastBundle().empty()) {
 		return;
 	}
 
 	{
-		bool sendMode=false;
+		Lock l (cs);
 		BundlePtr bundle = findRunningBundle(aSource->getLastBundle());
-		if (bundle) {
-			Lock l (cs);
-			auto y =  bundle->getRunningUsers().find(aSource->getUser());
-			dcassert(y != bundle->getRunningUsers().end());
-			if (y != bundle->getRunningUsers().end()) {
-				y->second--;
-				if (y->second == 0) {
-					bundle->getRunningUsers().erase(y);
-					bundle->removeUploadReport(aSource->getUser());
-					//LogManager::getInstance()->message("NO RUNNING, ERASE: uploadReports size " + Util::toString(bundle->getUploadReports().size()));
-					if (bundle->getRunningUsers().size() == 1) {
-						sendMode=true;
-					} else if (bundle->getRunningUsers().empty()) {
-						dcassert(runningBundles.find(bundle->getToken()) != runningBundles.end());
-						runningBundles.erase(bundle->getToken());
-						fire(DownloadManagerListener::BundleWaiting(), bundle);
-					}
-
-					//if the whole bundle hasn't finished but there are no more files available from this user
-					if (sendFinished && aSource->isSet(UserConnection::FLAG_UBN1)) {
-						bundle->sendBundleFinished(aSource->getHintedUser());
-					}
-				} else {
-					//LogManager::getInstance()->message("STILL RUNNING: " + Util::toString(y->second));
-				}
-			}
-
-			if (sendRemove) {
-				for(auto i = bundle->getUploadReports().begin(); i != bundle->getUploadReports().end(); ++i) {
-					AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-
-					cmd.addParam("HI", (*i).hint);
-					cmd.addParam("TO", bundle->getToken());
-					cmd.addParam("RM1");
-
-					ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true);
-				}
-			}
-
-			if (sendMode) {
-				sendBundleMode(bundle, true);
-			}
-		} else {
-			//..
+		if (bundle && bundle->removeRunningUser(aSource, sendRemove)) {
+			//no running users for this bundle
+			runningBundles.erase(bundle->getToken());
+			fire(DownloadManagerListener::BundleWaiting(), bundle);
 		}
-		aSource->setLastBundle(Util::emptyString);
 	}
+
+	aSource->setLastBundle(Util::emptyString);
 }
 
 void DownloadManager::disconnectBundle(BundlePtr aBundle, const UserPtr& aUser) {
@@ -803,7 +707,7 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource) {
 	dcdebug("File Not Available: %s\n", d->getPath().c_str());
 
 	removeDownload(d);
-	removeRunningUser(aSource, false, false);
+	removeRunningUser(aSource);
 
 	if (d->isSet(Download::FLAG_NFO)) {
 		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT));

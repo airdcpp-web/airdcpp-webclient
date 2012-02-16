@@ -44,10 +44,8 @@ public:
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
 	bool checkIdle(const HintedUser& user, bool smallSlot, bool reportOnly = false);
-	void sendBundleMode(BundlePtr aBundle, bool singleUser);
 	void setTarget(const string& oldTarget, const string& newTarget);
 	void changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path);
-	void sendBundleFinished(BundlePtr aBundle);
 	void sendSizeNameUpdate(BundlePtr aBundle);
 	BundlePtr findRunningBundle(const string& bundleToken);
 
@@ -75,7 +73,7 @@ private:
 	Bundle::StringBundleMap runningBundles;
 	UserConnectionList idlers;
 
-	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false, bool sendFinished=false);
+	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false);
 	void removeConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource);

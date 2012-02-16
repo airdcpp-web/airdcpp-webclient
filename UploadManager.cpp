@@ -662,8 +662,6 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 		Lock l (cs);
 		Upload* u = findUpload(token);
 		if (u) {
-			if (u->getBundle())
-				u->getBundle()->removeUpload(u);
 			b->addUpload(u);
 			u->getUserConnection().setLastBundle(bundleToken);
 		} else {

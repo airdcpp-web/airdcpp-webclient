@@ -3266,7 +3266,6 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 	if (finished) {
 		aBundle->finishBundle();
 		fire(QueueManagerListener::BundleFinished(), aBundle);
-		DownloadManager::getInstance()->sendBundleFinished(aBundle);
 	} else if (!moved) {
 		//LogManager::getInstance()->message("The Bundle " + aBundle->getName() + " has been removed");
 		DownloadManager::getInstance()->disconnectBundle(aBundle);

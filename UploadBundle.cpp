@@ -57,6 +57,9 @@ string UploadBundle::getName() {
 }
 
 void UploadBundle::addUpload(Upload* u) {
+	//can't have multiple bundles for it
+	if (u->getBundle())
+		u->getBundle()->removeUpload(u);
 	uploads.push_back(u);
 	u->setBundle(this);
 	if (uploads.size() == 1) {
@@ -67,12 +70,14 @@ void UploadBundle::addUpload(Upload* u) {
 
 bool UploadBundle::removeUpload(Upload* u) {
 	auto s = find(uploads.begin(), uploads.end(), u);
-	//dcassert(s != uploads.end());
+	dcassert(s != uploads.end());
 	if (s != uploads.end()) {
 		addUploadedSegment(u->getPos());
 		uploads.erase(s);
+		u->setBundle(nullptr);
+		return uploads.empty();
 	}
-	u->setBundle(nullptr);
+	dcassert(0);
 	return uploads.empty();
 }
 

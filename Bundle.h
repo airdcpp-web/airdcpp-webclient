@@ -206,13 +206,10 @@ public:
 	void removeDownloadedSegment(int64_t aSize);
 
 	/* DownloadManager */
-	void addUploadReport(const HintedUser& aUser) noexcept;
-	void removeUploadReport(const UserPtr& aUser) noexcept;
+	bool addRunningUser(const UserConnection* aSource) noexcept;
+	bool removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept;
+	void setBundleMode(bool setSingleUser) noexcept;
 
-	bool sendBundle(UserConnection* aSource, bool updateOnly) noexcept;
-	void sendBundleMode() noexcept;
-	void sendBundleFinished() noexcept;
-	void sendBundleFinished(const HintedUser& aUser) noexcept;
 	void sendSizeNameUpdate() noexcept;
 	void sendUBN(const string& speed, double percent) noexcept;
 

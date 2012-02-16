@@ -28,7 +28,8 @@ Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth) : 
 	conn.setUpload(this);
 }
 
-Upload::~Upload() { 
+Upload::~Upload() {
+	dcassert(!bundle);
 	getUserConnection().setUpload(0);
 	delete stream; 
 }

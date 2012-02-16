@@ -792,24 +792,6 @@ bool Bundle::onDownloadTick() noexcept {
 	return false;
 }
 
-void Bundle::addUploadReport(const HintedUser& aUser) noexcept {
-	if (uploadReports.empty()) {
-		lastSpeed = 0;
-		lastPercent = 0;
-	}
-	uploadReports.push_back(aUser);
-}
-
-void Bundle::removeUploadReport(const UserPtr& aUser) noexcept {
-	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
-		if (i->user == aUser) {
-			uploadReports.erase(i);
-			//LogManager::getInstance()->message("ERASE UPLOAD REPORT: " + Util::toString(bundle->getUploadReports().size()));
-			break;
-		}
-	}
-}
-
 void Bundle::sendUBN(const string& speed, double percent) noexcept {
 	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
 		AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
@@ -825,33 +807,70 @@ void Bundle::sendUBN(const string& speed, double percent) noexcept {
 	}
 }
 
-bool Bundle::sendBundle(UserConnection* aSource, bool updateOnly) noexcept {
-	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-
-	cmd.addParam("HI", aSource->getHintedUser().hint);
-	cmd.addParam("TO", aSource->getToken());
-	cmd.addParam("BU", token);
-	if (!updateOnly) {
-		cmd.addParam("SI", Util::toString(size));
-		cmd.addParam("NA", getName());
-		cmd.addParam("DL", Util::toString(currentDownloaded+finishedSegments));
-		if (singleUser) {
-			cmd.addParam("SU1");
-		} else {
-			cmd.addParam("MU1");
+bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
+	bool updateOnly = false;
+	auto y = runningUsers.find(aSource->getUser());
+	if (y == runningUsers.end()) {
+		//LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
+		if (runningUsers.size() == 1) {
+			//LogManager::getInstance()->message("SEND BUNDLE MODE");
+			setBundleMode(false);
 		}
-		cmd.addParam("AD1");
+		runningUsers[aSource->getUser()]++;
 	} else {
-		cmd.addParam("CH1");
+		y->second++;
+		updateOnly = true;
+		//LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS: " + Util::toString(y->second));
 	}
-	return ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true);
-}
 
-void Bundle::sendBundleMode() noexcept {
-	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
+	if (aSource->isSet(UserConnection::FLAG_UBN1)) {
+		//tell the uploader to connect this token to a correct bundle
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
-		cmd.addParam("HI", (*i).hint);
+		cmd.addParam("HI", aSource->getHintedUser().hint);
+		cmd.addParam("TO", aSource->getToken());
+		cmd.addParam("BU", token);
+		if (!updateOnly) {
+			cmd.addParam("SI", Util::toString(size));
+			cmd.addParam("NA", getName());
+			cmd.addParam("DL", Util::toString(currentDownloaded+finishedSegments));
+			cmd.addParam(singleUser ? "SU1" : "MU1");
+			cmd.addParam("AD1");
+		} else {
+			cmd.addParam("CH1");
+		}
+
+		if (ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true) && !updateOnly) {
+			//add a new upload report
+			if (!uploadReports.empty()) {
+				lastSpeed = 0;
+				lastPercent = 0;
+			}
+			uploadReports.push_back(aSource->getHintedUser());
+		}
+	}
+
+	return runningUsers.size() == 1;
+}
+
+void Bundle::setBundleMode(bool setSingleUser) noexcept {
+	if (setSingleUser) {
+		lastSpeed = 0;
+		lastPercent= 0;
+		singleUser= true;
+		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
+	} else {
+		singleUser = false;
+		//LogManager::getInstance()->message("SET BUNDLE MULTIUSER, RUNNING: " + aBundle->runningUsers.size());
+	}
+
+	if (!uploadReports.empty()) {
+		HintedUser& u = uploadReports.front();
+		dcassert(u.user);
+
+		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+
+		cmd.addParam("HI", u.hint);
 		cmd.addParam("BU", token);
 		cmd.addParam("UD1");
 		if (singleUser) {
@@ -861,24 +880,39 @@ void Bundle::sendBundleMode() noexcept {
 			cmd.addParam("MU1");
 		}
 
-		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true, true);
+		ClientManager::getInstance()->send(cmd, u.user->getCID(), true, true);
 	}
 }
 
-void Bundle::sendBundleFinished() noexcept {
-	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
-		sendBundleFinished(*i);
+bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept {
+	bool finished = false;
+	auto y =  runningUsers.find(aSource->getUser());
+	dcassert(y != runningUsers.end());
+	if (y != runningUsers.end()) {
+		y->second--;
+		if (y->second == 0) {
+			//LogManager::getInstance()->message("NO RUNNING, ERASE: uploadReports size " + Util::toString(bundle->getUploadReports().size()));
+			runningUsers.erase(aSource->getUser());
+			if (runningUsers.size() == 1) {
+				setBundleMode(true);
+			}
+			finished = true;
+		}
+
+		if (aSource->isSet(UserConnection::FLAG_UBN1) && (finished || sendRemove)) {
+			AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
+
+			cmd.addParam("HI", aSource->getHintedUser().hint);
+			cmd.addParam("TO", token);
+			cmd.addParam(finished ? "FI1" : "RM1");
+
+			ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true);
+
+			if (finished)
+				uploadReports.erase(remove(uploadReports.begin(), uploadReports.end(), aSource->getUser()), uploadReports.end());
+		}
 	}
-}
-
-void Bundle::sendBundleFinished(const HintedUser& aUser) noexcept {
-	AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-
-	cmd.addParam("HI", aUser.hint);
-	cmd.addParam("BU", token);
-	cmd.addParam("FI1");
-
-	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), true, true);
+	return runningUsers.empty();
 }
 
 void Bundle::sendSizeNameUpdate() noexcept {
