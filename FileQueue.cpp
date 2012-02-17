@@ -159,7 +159,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 
 		for(auto j = sources.begin(); j != sources.end(); ++j) {
 			if(	(*j).isSet(QueueItem::Source::FLAG_PARTIAL) && (*j).getPartialSource()->getNextQueryTime() <= now &&
-				(*j).getPartialSource()->getPendingQueryCount() < 10 && (*j).getPartialSource()->getUdpPort() > 0)
+				(*j).getPartialSource()->getPendingQueryCount() < 10 && !(*j).getPartialSource()->getUdpPort().empty())
 			{
 				buffer.insert(make_pair((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q)));
 			}
@@ -168,7 +168,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 		for(auto j = badSources.begin(); j != badSources.end(); ++j) {
 			if(	(*j).isSet(QueueItem::Source::FLAG_TTH_INCONSISTENCY) == false && (*j).isSet(QueueItem::Source::FLAG_PARTIAL) &&
 				(*j).getPartialSource()->getNextQueryTime() <= now && (*j).getPartialSource()->getPendingQueryCount() < 10 &&
-				(*j).getPartialSource()->getUdpPort() > 0)
+				!(*j).getPartialSource()->getUdpPort().empty())
 			{
 				buffer.insert(make_pair((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q)));
 			}

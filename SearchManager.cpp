@@ -504,7 +504,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 
 void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp) {
 
-	uint16_t udpPort = 0;
+	string udpPort;
 	uint32_t partialCount = 0;
 	string tth;
 	string hubIpPort;
@@ -563,7 +563,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 	QueueManager::getInstance()->handlePartialResult(HintedUser(from, url), TTHValue(tth), ps, outPartialInfo);
 	
-	if((udpPort > 0) && !outPartialInfo.empty()) {
+	if(!udpPort.empty() && !outPartialInfo.empty()) {
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(false, ps.getMyNick(), hubIpPort, tth, outPartialInfo);
 			ClientManager::getInstance()->send(cmd, from->getCID(), false, true);

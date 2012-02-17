@@ -98,7 +98,7 @@ public:
 	void updateNick(const UserPtr& user, const string& nick) noexcept;
 	string getMyNick(const string& hubUrl) const;
 	
-	void setIPUser(const UserPtr& user, const string& IP, uint16_t udpPort = 0);
+	void setIPUser(const UserPtr& user, const string& IP, const string& udpPort = Util::emptyString);
 	
 	bool isSharingHub(const HintedUser& p) {
 		Lock l(cs);
