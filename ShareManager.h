@@ -77,7 +77,7 @@ public:
 	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
 	void DelIncoming() { incoming.clear(); };
 
-	bool addTempShare(const CID& cid, TTHValue& tth, const string& filePath);
+	bool addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize);
 	
    void save() { 
 		w.join();
@@ -97,7 +97,7 @@ public:
 	int64_t addExcludeFolder(const string &path);
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
-	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults) noexcept;
+	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const CID& cid) noexcept;
 	bool isDirShared(const string& directory);
 	bool isFileShared(const TTHValue aTTH, const string& fileName);
 	bool allowAddDir(const string& dir);
@@ -350,7 +350,7 @@ private:
 	void deleteReleaseDir(const string& aName);
 	void sortReleaseList();
 
-	string findTempShare(const CID& cid, const string& virtualFile);
+	string findTempShare(const string& aKey, const string& virtualFile);
 
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
@@ -422,7 +422,16 @@ private:
 	void load(SimpleXML& aXml);
 	void save(SimpleXML& aXml);
 	
-	typedef unordered_multimap<CID, pair<TTHValue, string>> tempShareMap;
+
+	struct TempShareInfo {
+		
+		TempShareInfo(const string& aKey, const string& aPath, int64_t aSize) : key(aKey), path(aPath), size(aSize) { }
+		
+		string key; //CID or hubUrl
+		string path; //filepath
+		int64_t size; //filesize
+	};
+	typedef unordered_multimap<TTHValue, TempShareInfo> tempShareMap;
 	tempShareMap tempShares;
 
 

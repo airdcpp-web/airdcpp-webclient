@@ -222,7 +222,7 @@ string ShareManager::toReal(const string& virtualFile, bool isInSharingHub, cons
 	try {
 		return findFile(virtualFile)->getRealPath();
 	}catch(ShareException&) {
-		return findTempShare(aUser.user->getCID(), virtualFile);
+		return findTempShare(aUser.user->getCID().toBase32(), virtualFile);
 	}
 }
 
@@ -291,34 +291,30 @@ AdcCommand ShareManager::getFileInfo(const string& aFile) {
 	return cmd;
 }
 
-string ShareManager::findTempShare(const CID& cid, const string& virtualFile) {
+string ShareManager::findTempShare(const string& aKey, const string& virtualFile) {
 		
-	auto userFiles = tempShares.equal_range(cid);
-	if(userFiles.first == userFiles.second)
-		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
-
 	if(virtualFile.compare(0, 4, "TTH/") == 0) {
 		TTHValue tth(virtualFile.substr(4));
-		for(auto i = userFiles.first; i != userFiles.second; ++i) {
-			if(i->second.first == tth)
-				return i->second.second;
+		auto Files = tempShares.equal_range(tth);
+		for(auto i = Files.first; i != Files.second; ++i) {
+			if(i->second.key.empty() || (i->second.key == aKey)) // if no key is set, it means its a hub share.
+				return i->second.path;
 		}
 	}	
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);		
 }
-bool ShareManager::addTempShare(const CID& cid, TTHValue& tth, const string& filePath) {
+bool ShareManager::addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize) {
 	//first check if already exists in Share.
 	if(isFileShared(tth, Util::getFileName(filePath))) {
 		return true;
 	} else {
-		auto userFiles = tempShares.equal_range(cid);
-		for(auto i = userFiles.first; i != userFiles.second; ++i) {
-			if(i->second.first == tth)
+		auto Files = tempShares.equal_range(tth);
+		for(auto i = Files.first; i != Files.second; ++i) {
+			if(i->second.key == aKey)
 				return true;
 			}
 		//didnt exist.. fine, add it.
-		pair<TTHValue, string> FileInfopair = make_pair(tth, filePath);
-		tempShares.insert(make_pair(cid, FileInfopair));
+		tempShares.insert(make_pair(tth, TempShareInfo(aKey, filePath, aSize)));
 		return true;
 	}
 	return false;
@@ -1868,7 +1864,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 
 				results.push_back(sr);
 				ShareManager::getInstance()->addHits(1);
-			}
+			} //lookup in temp shares, nmdc too?
 		}
 		return;
 	}
@@ -2031,12 +2027,13 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	aStrings.include = old;
 }
 
-void ShareManager::search(SearchResultList& results, const StringList& params, StringList::size_type maxResults) noexcept {
+void ShareManager::search(SearchResultList& results, const StringList& params, StringList::size_type maxResults, const CID& cid) noexcept {
 	AdcSearch srch(params);	
 
 	RLock l(cs);
 
 	if(srch.hasRoot) {
+
 		HashFileMap::const_iterator i = tthIndex.find(const_cast<TTHValue*>(&srch.root));
 		if(i != tthIndex.end()) {
 			SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
@@ -2044,6 +2041,16 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 				i->second->getTTH()));
 			results.push_back(sr);
 			addHits(1);
+		} else {
+			//lookup in temp shares for the file.
+			auto Files = tempShares.equal_range(srch.root);
+			for(auto i = Files.first; i != Files.second; ++i) {
+				if(i->second.key.empty() || (i->second.key == cid.toBase32())) { // if no key is set, it means its a hub share.
+					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, i->second.path, i->first));
+					results.push_back(sr);
+					addHits(1);
+				}
+			}
 		}
 		return;
 	}

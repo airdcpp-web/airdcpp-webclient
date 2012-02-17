@@ -612,7 +612,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		return;
 
 	SearchResultList results;
-	ShareManager::getInstance()->search(results, adc.getParameters(), isUdpActive ? 10 : 5);
+	ShareManager::getInstance()->search(results, adc.getParameters(), isUdpActive ? 10 : 5, from);
 
 	string token;
 

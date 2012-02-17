@@ -118,15 +118,20 @@ size_t FileReader::readDirect(const string& file, const DataCallback& callback) 
 		if(err != ERROR_HANDLE_EOF) {
 			dcdebug("First overlapped read failed: %s\n", Util::translateError(::GetLastError()).c_str());
 			return READ_FAILED;
-		}
+		} //hn should still be 0.
 	}
 
+
+    /*if we failed to read it the first time for EOF, we cant start expecting to have something to read at all, 
+	it might be a 0 byte file. and overlapped read is set to wait until it gets something to read. */
+	if(res || err == ERROR_IO_PENDING) { 
 	// Finish the read and see how it went, 
-	if(!GetOverlappedResult(h, &over, &hn, TRUE)) {
-		err = ::GetLastError();
-		if(err != ERROR_HANDLE_EOF) {
-			dcdebug("First overlapped read failed: %s\n", Util::translateError(::GetLastError()).c_str());
-			return READ_FAILED;  //fails here even on data errors, mapped read cant handle it?
+		if(!GetOverlappedResult(h, &over, &hn, TRUE)) {
+			err = ::GetLastError();
+			if(err != ERROR_HANDLE_EOF) {
+				dcdebug("First overlapped read failed: %s\n", Util::translateError(::GetLastError()).c_str());
+				return READ_FAILED;
+			}
 		}
 	}
 	over.Offset = hn;
