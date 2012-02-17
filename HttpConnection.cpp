@@ -101,7 +101,7 @@ void HttpConnection::downloadFile(const string& aUrl) {
 	}
 	socket->addListener(this);
 	try {
-		socket->connect(server, Util::toInt(port), false, true, false);
+		socket->connect(server, port, false, false, false);
 	} catch(const Exception& e) {
 		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
 	} catch(...) { }

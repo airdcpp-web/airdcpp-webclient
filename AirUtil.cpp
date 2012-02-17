@@ -10,6 +10,7 @@
 #include "File.h"
 #include "QueueManager.h"
 #include "SettingsManager.h"
+#include "ConnectivityManager.h"
 #include "ResourceManager.h"
 #include "StringTokenizer.h"
 #include "SimpleXML.h"
@@ -127,12 +128,13 @@ string AirUtil::getReleaseDir(const string& aName) {
 
 }
 string AirUtil::getLocalIp() {
-	if(!SettingsManager::getInstance()->isDefault(SettingsManager::BIND_INTERFACE)) {
-		return Socket::getBindAddress();
+	const auto& bindAddr = CONNSETTING(BIND_ADDRESS);
+	if(!bindAddr.empty() && bindAddr != SettingsManager::getInstance()->getDefault(SettingsManager::BIND_ADDRESS)) {
+		return bindAddr;
 	}
 
 	string tmp;
-	
+
 	char buf[256];
 	gethostname(buf, 255);
 	hostent* he = gethostbyname(buf);
@@ -140,7 +142,7 @@ string AirUtil::getLocalIp() {
 		return Util::emptyString;
 	sockaddr_in dest;
 	int i = 0;
-	
+
 	// We take the first ip as default, but if we can find a better one, use it instead...
 	memcpy(&(dest.sin_addr), he->h_addr_list[i++], he->h_length);
 	tmp = inet_ntoa(dest.sin_addr);

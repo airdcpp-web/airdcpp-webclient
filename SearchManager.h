@@ -77,10 +77,7 @@ public:
 	
 	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort);
 
-	uint16_t getPort() const
-	{
-		return port;
-	}
+	const string& getPort() const { return port; }
 
 	void listen();
 	void disconnect() noexcept;
@@ -95,34 +92,6 @@ public:
 	AdcCommand toPBD(const string& hubIpPort, const string& bundle, const string& aTTH, bool reply, bool add, bool notify = false) const;
 
 private:
-	class UdpQueue: public Thread {
-	public:
-		UdpQueue() : stop(false) {}
-		~UdpQueue() { shutdown(); }
-
-		int run();
-		void shutdown() {
-			stop = true;
-			s.signal();
-		}
-		void addResult(const string& buf, const string& ip) {
-			{
-				Lock l(cs);
-				resultList.push_back(make_pair(buf, ip));
-			}
-			s.signal();
-		}
-
-	private:
-		CriticalSection cs;
-		Semaphore s;
-		
-		deque<pair<string, string>> resultList;
-		
-		bool stop;
-	} queue;
-
-
 	enum ItemT {
 		SEARCHTIME		= 0,
 		LOCALTOKEN		= 1,
@@ -133,9 +102,11 @@ private:
 
 	boost::unordered_map<string, SearchItem> searches;
 	CriticalSection cs;
+
 	std::unique_ptr<Socket> socket;
-	uint16_t port;
+	string port;
 	bool stop;
+	uint64_t lastSearch;
 	friend class Singleton<SearchManager>;
 
 	SearchManager();

@@ -279,7 +279,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 		// Filter own searches
 		if(meActive && isPassive == false) {
-			if(seeker == (getLocalIp() + ":" + Util::toString(SearchManager::getInstance()->getPort()))) {
+			if(seeker == (getLocalIp() + ":" + SearchManager::getInstance()->getPort())) {
 				return;
 			}
 		} else {
@@ -514,7 +514,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				port.erase(port.size() - 1);
 
 				// Trigger connection attempt sequence locally ...
-				ConnectionManager::getInstance()->nmdcConnect(server, static_cast<uint16_t>(Util::toInt(port)), sock->getLocalPort(), 
+				ConnectionManager::getInstance()->nmdcConnect(server, port, Util::toString(sock->getLocalPort()), 
 					BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure && !getStealth());
 
 				// ... and signal other client to do likewise.
@@ -524,7 +524,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				port.erase(port.size() - 1);
 				
 				// Trigger connection attempt sequence locally
-				ConnectionManager::getInstance()->nmdcConnect(server, static_cast<uint16_t>(Util::toInt(port)), sock->getLocalPort(), 
+				ConnectionManager::getInstance()->nmdcConnect(server, port, Util::toString(sock->getLocalPort()), 
 					BufferedSocket::NAT_SERVER, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure);
 				return;
 			}
@@ -534,7 +534,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			return;
 			
 		// For simplicity, we make the assumption that users on a hub have the same character encoding
-		ConnectionManager::getInstance()->nmdcConnect(server, static_cast<uint16_t>(Util::toInt(port)), getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure);
+		ConnectionManager::getInstance()->nmdcConnect(server, port, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure);
 	} else if(cmd == "RevConnectToMe") {
 		if(state != STATE_NORMAL) {
 			return;
@@ -884,11 +884,7 @@ void NmdcHub::connectToMe(const OnlineUser& aUser) {
 	dcdebug("NmdcHub::connectToMe %s\n", aUser.getIdentity().getNick().c_str());
 	string nick = fromUtf8(aUser.getIdentity().getNick());
 	ConnectionManager::getInstance()->nmdcExpect(nick, getMyNick(), getHubUrl());
-	ConnectionManager::iConnToMeCount++;
-	
-	bool secure = CryptoManager::getInstance()->TLSOk() && aUser.getUser()->isSet(User::TLS) && !getStealth();
-	uint16_t port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
-	send("$ConnectToMe " + nick + " " + getLocalIp() + ":" + Util::toString(port) + (secure ? "S" : "") + "|");
+	send("$ConnectToMe " + nick + " " + getLocalIp() + ":" + ConnectionManager::getInstance()->getPort() + "|");
 }
 
 void NmdcHub::revConnectToMe(const OnlineUser& aUser) {
@@ -976,7 +972,7 @@ void NmdcHub::search(int aSizeType, int64_t aSize, int aFileType, const string& 
 	}
 	string tmp2;
 	if(isActive() && !BOOLSETTING(SEARCH_PASSIVE)) {
-		tmp2 = getLocalIp() + ':' + Util::toString(SearchManager::getInstance()->getPort());
+		tmp2 = getLocalIp() + ':' + SearchManager::getInstance()->getPort();
 	} else {
 		tmp2 = "Hub:" + fromUtf8(getMyNick());
 	}

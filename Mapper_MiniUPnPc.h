@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ namespace dcpp {
 class Mapper_MiniUPnPc : public Mapper
 {
 public:
-	Mapper_MiniUPnPc() : Mapper() { }
+	Mapper_MiniUPnPc(string&& localIp);
 
 	static const string name;
 

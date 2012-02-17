@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,11 +29,19 @@ extern "C" {
 #include <../natpmp/natpmp.h>
 }
 
+///@todo should bind to the local IP
+
 namespace dcpp {
 
 const string Mapper_NATPMP::name = "NAT-PMP";
 
 static natpmp_t nat;
+
+Mapper_NATPMP::Mapper_NATPMP(string&& localIp) :
+Mapper(std::forward<string>(localIp)),
+lifetime(0)
+{
+}
 
 bool Mapper_NATPMP::init() {
 	// the lib normally handles this but we call it manually to store the result (IP of the router).

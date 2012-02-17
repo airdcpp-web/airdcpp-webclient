@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,10 +28,6 @@
 #define SSL_SUCCESS 1
 #endif
 
-#ifdef YASSL_VERSION
-using namespace yaSSL;
-#endif
-
 namespace dcpp {
 
 class SSLSocketException : public SocketException {
@@ -49,27 +45,27 @@ class CryptoManager;
 
 class SSLSocket : public Socket {
 public:
-	~SSLSocket() { }
+	virtual ~SSLSocket() { }
 
-	void accept(const Socket& listeningSocket);
-	void connect(const string& aIp, uint16_t aPort);
-	int read(void* aBuffer, int aBufLen);
-	int write(const void* aBuffer, int aLen);
-	int wait(uint64_t millis, int waitFor);
-	void shutdown() noexcept;
-	void close() noexcept;
+	virtual void accept(const Socket& listeningSocket);
+	virtual void connect(const string& aIp, const string& aPort);
+	virtual int read(void* aBuffer, int aBufLen);
+	virtual int write(const void* aBuffer, int aLen);
+	virtual std::pair<bool, bool> wait(uint32_t millis, bool checkRead, bool checkWrite);
+	virtual void shutdown() noexcept;
+	virtual void close() noexcept;
 
-	bool isSecure() const noexcept { return true; }
-	bool isTrusted() noexcept;
-	std::string getCipherName() noexcept;
-	vector<uint8_t> getKeyprint() const noexcept;
+	virtual bool isSecure() const noexcept { return true; }
+	virtual bool isTrusted() const noexcept;
+	virtual std::string getCipherName() const noexcept;
+	virtual vector<uint8_t> getKeyprint() const noexcept;
 
-	bool waitConnected(uint64_t millis);
-	bool waitAccepted(uint64_t millis);
+	virtual bool waitConnected(uint32_t millis);
+	virtual bool waitAccepted(uint32_t millis);
 
 private:
 	friend class CryptoManager;
-	
+
 	SSLSocket(SSL_CTX* context);
 	SSLSocket(const SSLSocket&);
 	SSLSocket& operator=(const SSLSocket&);
@@ -77,12 +73,8 @@ private:
 	SSL_CTX* ctx;
 	ssl::SSL ssl;
 
-#ifndef HEADER_OPENSSLV_H
-	bool finished;
-#endif
-	
 	int checkSSL(int ret);
-	bool waitWant(int ret, uint64_t millis);
+	bool waitWant(int ret, uint32_t millis);
 };
 
 } // namespace dcpp

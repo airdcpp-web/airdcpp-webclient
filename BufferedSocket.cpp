@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+/*
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,27 +19,33 @@
 #include "stdinc.h"
 #include "BufferedSocket.h"
 
-#include "ResourceManager.h"
-#include "TimerManager.h"
-#include "SettingsManager.h"
+#include <algorithm>
 
-#include "Streams.h"
-#include "SSLSocket.h"
+#include <boost/scoped_array.hpp>
+
+#include "ConnectivityManager.h"
 #include "CryptoManager.h"
+#include "SettingsManager.h"
+#include "SSLSocket.h"
+#include "Streams.h"
+//#include "ThrottleManager.h"
+#include "TimerManager.h"
 #include "ZUtils.h"
 
-
 namespace dcpp {
+
+using std::min;
+using std::max;
 
 // Polling is used for tasks...should be fixed...
 #define POLL_TIMEOUT 250
 
-BufferedSocket::BufferedSocket(char aSeparator) :
+BufferedSocket::BufferedSocket(char aSeparator, bool v4only) :
 separator(aSeparator), mode(MODE_LINE), dataBytes(0), rollback(0), state(STARTING),
-disconnecting(false)
+disconnecting(false), v4only(v4only)
 {
 	start();
-	
+
 	++sockets;
 }
 
@@ -68,7 +74,7 @@ void BufferedSocket::setMode (Modes aMode, size_t aRollback) {
 	mode = aMode;
 }
 
-void BufferedSocket::setSocket(std::unique_ptr<Socket> s) {
+void BufferedSocket::setSocket(unique_ptr<Socket>&& s) {
 	dcassert(!sock.get());
 	sock = move(s);
 }
@@ -82,11 +88,11 @@ void BufferedSocket::setOptions() {
 
 void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted) {
 	dcdebug("BufferedSocket::accept() %p\n", (void*)this);
-	
-	std::unique_ptr<Socket> s(secure ? CryptoManager::getInstance()->getServerSocket(allowUntrusted) : new Socket);
+
+	unique_ptr<Socket> s(secure ? CryptoManager::getInstance()->getServerSocket(allowUntrusted) : new Socket(Socket::TYPE_TCP));
 
 	s->accept(srv);
-	
+
 	setSocket(move(s));
 	setOptions();
 
@@ -94,55 +100,57 @@ void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted)
 	addTask(ACCEPTED, 0);
 }
 
-void BufferedSocket::connect(const string& aAddress, uint16_t aPort, bool secure, bool allowUntrusted, bool proxy) {
-	connect(aAddress, aPort, 0, NAT_NONE, secure, allowUntrusted, proxy);
+void BufferedSocket::connect(const string& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy) {
+	connect(aAddress, aPort, Util::emptyString, NAT_NONE, secure, allowUntrusted, proxy);
 }
 
-void BufferedSocket::connect(const string& aAddress, uint16_t aPort, uint16_t localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy) {
+void BufferedSocket::connect(const string& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy) {
 	dcdebug("BufferedSocket::connect() %p\n", (void*)this);
-	std::unique_ptr<Socket> s(secure ? (natRole == NAT_SERVER ? CryptoManager::getInstance()->getServerSocket(allowUntrusted) : CryptoManager::getInstance()->getClientSocket(allowUntrusted)) : new Socket);
+	unique_ptr<Socket> s(secure ? (natRole == NAT_SERVER ? CryptoManager::getInstance()->getServerSocket(allowUntrusted) : CryptoManager::getInstance()->getClientSocket(allowUntrusted)) : new Socket(Socket::TYPE_TCP));
 
-	s->create();
+	s->setLocalIp4(CONNSETTING(BIND_ADDRESS));
+	s->setLocalIp6(CONNSETTING(BIND_ADDRESS6));
+
 	setSocket(move(s));
-	sock->bind(localPort, Socket::getBindAddress());
-	
+
 	Lock l(cs);
-	addTask(CONNECT, new ConnectInfo(aAddress, aPort, localPort, natRole, proxy && (SETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5)));
+	addTask(CONNECT, new ConnectInfo(aAddress, aPort, localPort, natRole, proxy && (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5)));
 }
 
 #define LONG_TIMEOUT 30000
 #define SHORT_TIMEOUT 1000
-void BufferedSocket::threadConnect(const string& aAddr, uint16_t aPort, uint16_t localPort, NatRoles natRole, bool proxy) {
+void BufferedSocket::threadConnect(const string& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy) {
 	dcassert(state == STARTING);
 
-	dcdebug("threadConnect %s:%d/%d\n", aAddr.c_str(), (int)localPort, (int)aPort);
 	fire(BufferedSocketListener::Connecting());
 
 	const uint64_t endTime = GET_TICK() + LONG_TIMEOUT;
 	state = RUNNING;
 
 	while (GET_TICK() < endTime) {
-		dcdebug("threadConnect attempt to addr \"%s\"\n", aAddr.c_str());
+		dcdebug("threadConnect attempt %s %s:%s\n", localPort.c_str(), aAddr.c_str(), aPort.c_str());
 		try {
-			setOptions();
+
 			if(proxy) {
 				sock->socksConnect(aAddr, aPort, LONG_TIMEOUT);
 			} else {
-				sock->connect(aAddr, aPort);
+				sock->connect(aAddr, aPort, localPort);
 			}
-	
+
+			setOptions();
+
 			bool connSucceeded;
-			while((connSucceeded = sock->waitConnected(POLL_TIMEOUT)) == false && endTime >= GET_TICK()) {
+			while(!(connSucceeded = sock->waitConnected(POLL_TIMEOUT)) && endTime >= GET_TICK()) {
 				if(disconnecting) return;
 			}
-	
+
 			if (connSucceeded) {
 				inbuf.resize(sock->getSocketOptInt(SO_RCVBUF));
 
 				fire(BufferedSocketListener::Connected());
 				return;
 			}
-		} 
+		}
 		catch (const SSLSocketException&) {
 			throw;
 		} catch (const SocketException&) {
@@ -152,8 +160,8 @@ void BufferedSocket::threadConnect(const string& aAddr, uint16_t aPort, uint16_t
 		}
 	}
 
-	throw SocketException(STRING(CONNECTION_TIMEOUT));
-}	
+	throw SocketException("Connection timeout");
+}
 
 void BufferedSocket::threadAccept() {
 	dcassert(state == STARTING);
@@ -170,7 +178,7 @@ void BufferedSocket::threadAccept() {
 			return;
 
 		if((startTime + 30000) < GET_TICK()) {
-			throw SocketException(STRING(CONNECTION_TIMEOUT));
+			throw SocketException("Connection timeout");
 		}
 	}
 }
@@ -179,17 +187,18 @@ void BufferedSocket::threadRead() {
 	if(state != RUNNING)
 		return;
 
+	//int left = (mode == MODE_DATA) ? ThrottleManager::getInstance()->read(sock.get(), &inbuf[0], (int)inbuf.size()) : sock->read(&inbuf[0], (int)inbuf.size());
 	int left = sock->read(&inbuf[0], (int)inbuf.size());
 	if(left == -1) {
 		// EWOULDBLOCK, no data received...
 		return;
 	} else if(left == 0) {
 		// This socket has been closed...
-		throw SocketException(STRING(CONNECTION_CLOSED));
+		throw SocketException("Connection closed");
 	}
 
 	string::size_type pos = 0;
-    // always uncompressed data
+	// always uncompressed data
 	string l;
 	int bufpos = 0, total = left;
 
@@ -275,16 +284,16 @@ void BufferedSocket::threadRead() {
 				break;
 		}
 	}
-	
-	if(mode == MODE_LINE && line.size() > 16777216) {
-		throw SocketException(STRING(COMMAND_TOO_LONG));
-	}	
+
+	if(mode == MODE_LINE && line.size() > static_cast<size_t>(SETTING(MAX_COMMAND_LENGTH))) {
+		throw SocketException("Maximum command length exceeded");
+	}
 }
 
 void BufferedSocket::threadSendFile(InputStream* file) {
 	if(state != RUNNING)
 		return;
-	
+
 	if(disconnecting)
 		return;
 	dcassert(file != NULL);
@@ -298,7 +307,7 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 
 	bool readDone = false;
 	dcdebug("Starting threadSend\n");
-	while(!disconnecting && sock.get()) {
+	while(!disconnecting) {
 		if(!readDone && readBuf.size() > readPos) {
 			// Fill read buffer
 			size_t bytesRead = readBuf.size() - readPos;
@@ -337,6 +346,7 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 				written = sock->write(&writeBuf[writePos], writeSize);
 			} else {
 				writeSize = min(sockSize / 2, writeBuf.size() - writePos);	
+				//written = ThrottleManager::getInstance()->write(sock.get(), &writeBuf[writePos], writeSize);
 				written = sock->write(&writeBuf[writePos], writeSize);
 			}
 			
@@ -362,15 +372,15 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 					}
 				} else {
 					while(!disconnecting) {
-						int w = sock->wait(POLL_TIMEOUT, Socket::WAIT_WRITE | Socket::WAIT_READ);
-						if(w & Socket::WAIT_READ) {
+						auto w = sock->wait(POLL_TIMEOUT, true, true);
+						if(w.first) {
 							threadRead();
 						}
-						if(w & Socket::WAIT_WRITE) {
+						if(w.second) {
 							break;
 						}
 					}
-				}	
+				}
 			}
 		}
 	}
@@ -405,13 +415,13 @@ void BufferedSocket::threadSendData() {
 			return;
 		}
 
-		int w = sock->wait(POLL_TIMEOUT, Socket::WAIT_READ | Socket::WAIT_WRITE);
+		auto w = sock->wait(POLL_TIMEOUT, true, true);
 
-		if(w & Socket::WAIT_READ) {
+		if(w.first) {
 			threadRead();
 		}
 
-		if(w & Socket::WAIT_WRITE) {
+		if(w.second) {
 			int n = sock->write(&sendBuf[done], left);
 			if(n > 0) {
 				left -= n;
@@ -427,7 +437,7 @@ bool BufferedSocket::checkEvents() {
 		pair<Tasks, unique_ptr<TaskData> > p;
 		{
 			Lock l(cs);
-			dcassert(tasks.size() > 0);
+			dcassert(!tasks.empty());
 			p = move(tasks.front());
 			tasks.erase(tasks.begin());
 		}
@@ -435,7 +445,7 @@ bool BufferedSocket::checkEvents() {
 		if(p.first == SHUTDOWN) {
 			return false;
 		} else if(p.first == UPDATED) {
-			fire(BufferedSocketListener::Updated());			
+			fire(BufferedSocketListener::Updated());
 			continue;
 		}
 
@@ -454,7 +464,7 @@ bool BufferedSocket::checkEvents() {
 			} else if(p.first == SEND_FILE) {
 				threadSendFile(static_cast<SendFileInfo*>(p.second.get())->stream); break;
 			} else if(p.first == DISCONNECT) {
-				fail(STRING(DISCONNECTED));
+				fail("Disconnected");
 			} else {
 				dcdebug("%d unexpected in RUNNING state\n", p.first);
 			}
@@ -464,9 +474,9 @@ bool BufferedSocket::checkEvents() {
 }
 
 void BufferedSocket::checkSocket() {
-	int waitFor = sock->wait(POLL_TIMEOUT, Socket::WAIT_READ);
+	auto w = sock->wait(POLL_TIMEOUT, true, false);
 
-	if(waitFor & Socket::WAIT_READ) {
+	if(w.first) {
 		threadRead();
 	}
 }
@@ -498,27 +508,22 @@ void BufferedSocket::fail(const string& aError) {
 	if(sock.get()) {
 		sock->disconnect();
 	}
-	
+
 	if(state == RUNNING) {
 		state = FAILED;
 		fire(BufferedSocketListener::Failed(), aError);
 	}
 }
 
-void BufferedSocket::shutdown() { 
-	Lock l(cs); 
-	disconnecting = true; 
-	addTask(SHUTDOWN, 0); 
+void BufferedSocket::shutdown() {
+	Lock l(cs);
+	disconnecting = true;
+	addTask(SHUTDOWN, 0);
 }
 
-void BufferedSocket::addTask(Tasks task, TaskData* data) { 
+void BufferedSocket::addTask(Tasks task, TaskData* data) {
 	dcassert(task == DISCONNECT || task == SHUTDOWN || task == UPDATED || sock.get());
 	tasks.push_back(make_pair(task, unique_ptr<TaskData>(data))); taskSem.signal();
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: BufferedSocket.cpp 581 2011-11-02 18:59:46Z bigmuscle $
- */

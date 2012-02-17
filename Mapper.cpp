@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,11 @@ const char* Mapper::protocols[PROTOCOL_LAST] = {
 	"TCP",
 	"UDP"
 };
+
+Mapper::Mapper(string&& localIp) :
+localIp(std::forward<string>(localIp))
+{
+}
 
 bool Mapper::open(const string& port, const Protocol protocol, const string& description) {
 	if(!add(port, protocol, description))

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,11 @@
 #define DCPLUSPLUS_DCPP_BUFFEREDSOCKETLISTENER_H_
 
 #include "noexcept.h"
+#include <string>
 
 namespace dcpp {
+
+using std::string;
 
 class BufferedSocketListener {
 public:

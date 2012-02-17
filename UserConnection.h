@@ -70,7 +70,6 @@ public:
 		FLAG_SUPPORTS_TTHL			= 0x400,
 		FLAG_SUPPORTS_TTHF			= 0x800,
 		FLAG_RUNNING				= 0x1000,
-		FLAG_SECURE					= 0x2000,
 		FLAG_MCN1					= 0x4000,
 		FLAG_SMALL_SLOT				= 0x8000,
 		FLAG_UBN1					= 0x16000
@@ -150,7 +149,7 @@ public:
 	void setDataMode(int64_t aBytes = -1) { dcassert(socket); socket->setDataMode(aBytes); }
 	void setLineMode(size_t rollback) { dcassert(socket); socket->setLineMode(rollback); }
 
-	void connect(const string& aServer, uint16_t aPort, uint16_t localPort, const BufferedSocket::NatRoles natRole);
+	void connect(const string& aServer, const string& aPort, const string& localPort, const BufferedSocket::NatRoles natRole);
 	void accept(const Socket& aServer);
 
 	void updated() { if(socket) socket->updated(); }
@@ -174,7 +173,6 @@ public:
 
 	const string& getRemoteIp() const { if(socket) return socket->getIp(); else return Util::emptyString; }
 	Download* getDownload() { dcassert(isSet(FLAG_DOWNLOAD)); return download; }
-	uint16_t getPort() const { if(socket) return socket->getPort(); else return 0; }
 	void setDownload(Download* d) { dcassert(isSet(FLAG_DOWNLOAD)); download = d; }
 	Upload* getUpload() { dcassert(isSet(FLAG_UPLOAD)); return upload; }
 	void setUpload(Upload* u) { dcassert(isSet(FLAG_UPLOAD)); upload = u; }
@@ -216,6 +214,7 @@ public:
 private:
 	int64_t chunkSize;
 	BufferedSocket* socket;
+	bool secure;
 	UserPtr user;
 
 	static const string UPLOAD, DOWNLOAD;
@@ -227,10 +226,7 @@ private:
 
 	// We only want ConnectionManager to create this...
 	UserConnection(bool secure_) noexcept : encoding(Text::systemCharset), state(STATE_UNCONNECTED),
-		lastActivity(0), speed(0), chunkSize(0), socket(0), download(NULL), slotType(NOSLOT), lastBundle(Util::emptyString) {
-		if(secure_) {
-			setFlag(FLAG_SECURE);
-		}
+		lastActivity(0), speed(0), chunkSize(0), secure(secure_), socket(0), download(NULL), slotType(NOSLOT), lastBundle(Util::emptyString) {
 	}
 
 	~UserConnection() {

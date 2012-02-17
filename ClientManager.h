@@ -165,18 +165,16 @@ private:
 	NickMap nicks;
 
 	UserPtr me;
+
+	Socket udp;
 	
 	CID pid;	
 
 	friend class Singleton<ClientManager>;
 
-	ClientManager() {
-		TimerManager::getInstance()->addListener(this); 
-	}
+	ClientManager();
 
-	~ClientManager() {
-		TimerManager::getInstance()->removeListener(this); 
-	}
+	~ClientManager();
 
 	void updateNick(const OnlineUser& user) noexcept;
 		

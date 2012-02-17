@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_BUFFERED_SOCKET_H
 #define DCPLUSPLUS_DCPP_BUFFERED_SOCKET_H
 
-#include "atomic.h"
+#include <deque>
+#include <memory>
 
 #include "typedefs.h"
 
@@ -27,11 +28,14 @@
 #include "Semaphore.h"
 #include "Thread.h"
 #include "Speaker.h"
-#include "Util.h"
 #include "Socket.h"
-
+#include "atomic.h"
 
 namespace dcpp {
+
+using std::deque;
+using std::pair;
+using std::unique_ptr;
 
 class BufferedSocket : public Speaker<BufferedSocketListener>, private Thread {
 public:
@@ -52,13 +56,13 @@ public:
 	 * @param sep Line separator
 	 * @return An unconnected socket
 	 */
-	static BufferedSocket* getSocket(char sep) {
-		return new BufferedSocket(sep); 
+	static BufferedSocket* getSocket(char sep, bool v4only = false) {
+		return new BufferedSocket(sep, v4only);
 	}
 
-	static void putSocket(BufferedSocket* aSock) { 
+	static void putSocket(BufferedSocket* aSock) {
 		if(aSock) {
-			aSock->removeListeners(); 
+			aSock->removeListeners();
 			aSock->shutdown();
 		}
 	}
@@ -69,25 +73,24 @@ public:
 	}
 
 	void accept(const Socket& srv, bool secure, bool allowUntrusted);
-	void connect(const string& aAddress, uint16_t aPort, bool secure, bool allowUntrusted, bool proxy);
-	void connect(const string& aAddress, uint16_t aPort, uint16_t localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy);
+	void connect(const string& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy);
+	void connect(const string& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy);
 
 	/** Sets data mode for aBytes bytes. Must be called within onLine. */
 	void setDataMode(int64_t aBytes = -1) { mode = MODE_DATA; dataBytes = aBytes; }
-	/** 
+	/**
 	 * Rollback is an ugly hack to solve problems with compressed transfers where not all data received
 	 * should be treated as data.
-	 * Must be called from within onData. 
+	 * Must be called from within onData.
 	 */
 	void setLineMode(size_t aRollback) { setMode (MODE_LINE, aRollback);}
 	void setMode(Modes mode, size_t aRollback = 0);
 	Modes getMode() const { return mode; }
-	const string& getIp() const { return sock.get() ? sock->getIp() : Util::emptyString; }
-	const uint16_t getPort() { return sock.get() ? sock->getPort() : 0; }
-	
-	bool isSecure() const { return sock.get() && sock->isSecure(); }
-	bool isTrusted() const { return sock.get() && sock->isTrusted(); }
-	std::string getCipherName() const { return sock.get() ? sock->getCipherName() : Util::emptyString; }
+	const string& getIp() const { return sock->getIp(); }
+
+	bool isSecure() const { return sock->isSecure(); }
+	bool isTrusted() const { return sock->isTrusted(); }
+	std::string getCipherName() const { return sock->getCipherName(); }
 	vector<uint8_t> getKeyprint() const { return sock->getKeyprint(); }
 
 	void write(const string& aData) { write(aData.data(), aData.length()); }
@@ -100,9 +103,8 @@ public:
 
 	void disconnect(bool graceless = false) noexcept { Lock l(cs); if(graceless) disconnecting = true; addTask(DISCONNECT, 0); }
 
-	string getLocalIp() const { return sock.get() ?  sock->getLocalIp() : Util::emptyString; }
-	uint16_t getLocalPort() const { return sock.get() ? sock->getLocalPort() : 0; }
-	bool hasSocket() const { return sock.get() != NULL; }
+	string getLocalIp() const { return sock->getLocalIp(); }
+	uint16_t getLocalPort() const { return sock->getLocalPort(); }
 
 	GETSET(char, separator, Separator)
 private:
@@ -122,14 +124,14 @@ private:
 		FAILED
 	};
 
-	struct TaskData { 
-		~TaskData() { }
+	struct TaskData {
+		virtual ~TaskData() { }
 	};
 	struct ConnectInfo : public TaskData {
-		ConnectInfo(string addr_, uint16_t port_, uint16_t localPort_, NatRoles natRole_, bool proxy_) : addr(addr_), port(port_), localPort(localPort_), natRole(natRole_), proxy(proxy_) { }
+		ConnectInfo(string addr_, string port_, string localPort_, NatRoles natRole_, bool proxy_) : addr(addr_), port(port_), localPort(localPort_), natRole(natRole_), proxy(proxy_) { }
 		string addr;
-		uint16_t port;
-		uint16_t localPort;
+		string port;
+		string localPort;
 		NatRoles natRole;
 		bool proxy;
 	};
@@ -138,45 +140,44 @@ private:
 		InputStream* stream;
 	};
 
-	BufferedSocket(char aSeparator);
+	BufferedSocket(char aSeparator, bool v4only);
 
-	~BufferedSocket();
+	virtual ~BufferedSocket();
 
 	CriticalSection cs;
 
 	Semaphore taskSem;
 	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
+
+	Modes mode;
+	std::unique_ptr<UnZFilter> filterIn;
+	int64_t dataBytes;
+	size_t rollback;
+	string line;
 	ByteVector inbuf;
 	ByteVector writeBuf;
 	ByteVector sendBuf;
-	
-	string line;
-	int64_t dataBytes;
-	size_t rollback;
 
-	Modes mode;
-	State state;
-
-	std::unique_ptr<UnZFilter> filterIn;
 	std::unique_ptr<Socket> sock;
-
+	State state;
 	bool disconnecting;
-	
-	int run();
+	bool v4only;
 
-	void threadConnect(const string& aAddr, uint16_t aPort, uint16_t localPort, NatRoles natRole, bool proxy);
+	virtual int run();
+
+	void threadConnect(const string& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy);
 	void threadAccept();
 	void threadRead();
 	void threadSendFile(InputStream* is);
 	void threadSendData();
 
-	void fail(const string& aError);	
+	void fail(const string& aError);
 	static atomic<long> sockets;
 
 	bool checkEvents();
 	void checkSocket();
 
-	void setSocket(std::unique_ptr<Socket> s);
+	void setSocket(std::unique_ptr<Socket>&& s);
 	void setOptions();
 	void shutdown();
 	void addTask(Tasks task, TaskData* data);
@@ -185,8 +186,3 @@ private:
 } // namespace dcpp
 
 #endif // !defined(BUFFERED_SOCKET_H)
-
-/**
- * @file
- * $Id: BufferedSocket.h 575 2011-08-25 19:38:04Z bigmuscle $
- */

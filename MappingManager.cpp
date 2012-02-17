@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "MappingManager.h"
 
+#include "AirUtil.h"
 #include "ConnectionManager.h"
 #include "ConnectivityManager.h"
 #include "format.h"
@@ -35,9 +36,7 @@ namespace dcpp {
 MappingManager::MappingManager() : busy(false), renewal(0) {
 	addMapper<Mapper_NATPMP>();
 	addMapper<Mapper_MiniUPnPc>();
-#ifdef HAVE_NATUPNP_H
 	addMapper<Mapper_WinUPnP>();
-#endif
 }
 
 StringList MappingManager::getMappers() const {
@@ -89,9 +88,9 @@ int MappingManager::run() {
 
 	// cache ports
 	auto
-		conn_port = Util::toString(ConnectionManager::getInstance()->getPort()),
-		secure_port = Util::toString(ConnectionManager::getInstance()->getSecurePort()),
-		search_port = Util::toString(SearchManager::getInstance()->getPort());
+		conn_port = ConnectionManager::getInstance()->getPort(),
+		secure_port = ConnectionManager::getInstance()->getSecurePort(),
+		search_port = SearchManager::getInstance()->getPort();
 
 	if(renewal) {
 		Mapper& mapper = *working;
@@ -133,7 +132,7 @@ int MappingManager::run() {
 	}
 
 	for(auto i = mappers.begin(); i != mappers.end(); ++i) {
-		unique_ptr<Mapper> pMapper(i->second());
+		unique_ptr<Mapper> pMapper(i->second(AirUtil::getLocalIp()));
 		Mapper& mapper = *pMapper;
 
 		ScopedFunctor([&mapper] { mapper.uninit(); });

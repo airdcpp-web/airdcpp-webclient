@@ -29,6 +29,7 @@
 #include "Singleton.h"
 #include "DirectoryListing.h"
 #include "MerkleTree.h"
+#include "Socket.h"
 
 #include "QueueManagerListener.h"
 #include "SearchManagerListener.h"
@@ -230,6 +231,8 @@ private:
 	~QueueManager();
 	
 	mutable SharedMutex cs;
+
+	Socket udp;
 
 	/** QueueItems by user */
 	UserQueue userQueue;

@@ -54,7 +54,8 @@ const string AdcHub::BNDL_FEATURE("BNDL");
 
 const vector<StringList> AdcHub::searchExts;
 
-AdcHub::AdcHub(const string& aHubURL, bool secure) : Client(aHubURL, '\n', secure), oldPassword(false), sid(0) {
+AdcHub::AdcHub(const string& aHubURL, bool secure) :
+	Client(aHubURL, '\n', secure), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
 	TimerManager::getInstance()->addListener(this);
 }
 
@@ -362,7 +363,7 @@ void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 		return;
 	}
 
-	ConnectionManager::getInstance()->adcConnect(*u, static_cast<uint16_t>(Util::toInt(port)), token, secure);
+	ConnectionManager::getInstance()->adcConnect(*u, port, token, secure);
 }
 
 void AdcHub::handle(AdcCommand::ZON, AdcCommand& /*c */) noexcept {
@@ -448,10 +449,10 @@ void AdcHub::handle(AdcCommand::CMD, AdcCommand& c) noexcept {
 void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 	string command;
 	string ip;
-	uint16_t port;
+	string port;
 	{
 		Lock l(cs);
-		SIDMap::const_iterator i = users.find(cmd.getTo());
+		auto i = users.find(cmd.getTo());
 		if(i == users.end()) {
 			dcdebug("AdcHub::sendUDP: invalid user\n");
 			return;
@@ -461,7 +462,7 @@ void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 			return;
 		}
 		ip = ou.getIdentity().getIp();
-		port = static_cast<uint16_t>(Util::toInt(ou.getIdentity().getUdpPort()));
+		port = ou.getIdentity().getUdpPort();
 		command = cmd.toString(ou.getUser()->getCID());
 	}
 	try {
@@ -630,9 +631,6 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
-	if(!BOOLSETTING(ALLOW_NAT_TRAVERSAL))
-		return;
-
 	OnlineUser* u = findUser(c.getFrom());
 	if(!u || u->getUser() == ClientManager::getInstance()->getMe() || c.getParameters().size() < 3)
 		return;
@@ -653,21 +651,18 @@ void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
 	}
 
 	// Trigger connection attempt sequence locally ...
+	auto localPort = Util::toString(sock->getLocalPort());
 	dcdebug("triggering connecting attempt in NAT: remote port = %s, local IP = %s, local port = %d\n", port.c_str(), sock->getLocalIp().c_str(), sock->getLocalPort());
-	ConnectionManager::getInstance()->adcConnect(*u, static_cast<uint16_t>(Util::toInt(port)), sock->getLocalPort(), BufferedSocket::NAT_CLIENT, token, secure);
+	ConnectionManager::getInstance()->adcConnect(*u, port, localPort, BufferedSocket::NAT_CLIENT, token, secure);
 
 	// ... and signal other client to do likewise.
 	send(AdcCommand(AdcCommand::CMD_RNT, u->getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(protocol).
-		addParam(Util::toString(sock->getLocalPort())).addParam(token));
+		addParam(localPort).addParam(token));
 }
 
 void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 	// Sent request for NAT traversal cooperation, which
 	// was acknowledged (with requisite local port information).
-
-	if(!BOOLSETTING(ALLOW_NAT_TRAVERSAL))
-		return;
-
 	OnlineUser* u = findUser(c.getFrom());
 	if(!u || u->getUser() == ClientManager::getInstance()->getMe() || c.getParameters().size() < 3)
 		return;
@@ -688,7 +683,7 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 
 	// Trigger connection attempt sequence locally
 	dcdebug("triggering connecting attempt in RNT: remote port = %s, local IP = %s, local port = %d\n", port.c_str(), sock->getLocalIp().c_str(), sock->getLocalPort());
-	ConnectionManager::getInstance()->adcConnect(*u, static_cast<uint16_t>(Util::toInt(port)), sock->getLocalPort(), BufferedSocket::NAT_SERVER, token, secure);
+	ConnectionManager::getInstance()->adcConnect(*u, port, Util::toString(sock->getLocalPort()), BufferedSocket::NAT_SERVER, token, secure);
 }
 
 void AdcHub::connect(const OnlineUser& user, const string& token) {
@@ -714,15 +709,14 @@ void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
 		proto = &CLIENT_PROTOCOL;
 	}
 
-	if(isActive()) {
-		uint16_t port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
-		if(port == 0) {
+	if(ClientManager::getInstance()->isActive()) {
+		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
+		if(port.empty()) {
 			// Oops?
 			LogManager::getInstance()->message(STRING(NOT_LISTENING));
 			return;
 		}
-		send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(Util::toString(port)).addParam(token));
-		ConnectionManager::iConnToMeCount++;
+		send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(port).addParam(token));
 	} else {
 		send(AdcCommand(AdcCommand::CMD_RCM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(token));
 	}
@@ -1066,7 +1060,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	}
 
 	if(isActive()) {
-		addParam(lastInfoMap, c, "U4", Util::toString(SearchManager::getInstance()->getPort()));
+		addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
 		su += "," + TCP4_FEATURE;
 		su += "," + UDP4_FEATURE;
 	} else {

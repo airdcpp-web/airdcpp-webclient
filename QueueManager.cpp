@@ -237,7 +237,8 @@ int QueueManager::Rechecker::run() {
 QueueManager::QueueManager() : 
 	lastSave(0),
 	lastAutoPrio(0),
-	rechecker(this)
+	rechecker(this),
+	udp(Socket::TYPE_UDP)
 { 
 	TimerManager::getInstance()->addListener(this); 
 	SearchManager::getInstance()->addListener(this);
@@ -291,7 +292,7 @@ struct PartsInfoReqParam{
 	string		myNick;
 	string		hubIpPort;
 	string		ip;
-	uint16_t	udpPort;
+	string		udpPort;
 };
 
 void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
@@ -340,12 +341,11 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	// Request parts info from partial file sharing sources
 	for(auto i = params.begin(); i != params.end(); i++){
 		const PartsInfoReqParam* param = *i;
-		dcassert(param->udpPort > 0);
+		//dcassert(param->udpPort > 0);
 		
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, param->myNick, param->hubIpPort, param->tth, param->parts);
-			Socket s;
-			s.writeTo(param->ip, param->udpPort, cmd.toString(ClientManager::getInstance()->getMyCID()));
+			udp.writeTo(param->ip, param->udpPort, cmd.toString(ClientManager::getInstance()->getMyCID()));
 		} catch(...) {
 			dcdebug("Partial search caught error\n");		
 		}
@@ -890,7 +890,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 	}
 
 	aBundle->increaseMoved();
-	if (aBundle->getQueueItems().empty() && (aBundle->getMoved() == aBundle->getFinishedFiles().size())) {
+	if (aBundle->getQueueItems().empty() && (static_cast<size_t>(aBundle->getMoved()) == aBundle->getFinishedFiles().size())) {
 		if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
 			LogManager::getInstance()->message(str(boost::format(STRING(DL_BUNDLE_FINISHED)) % 
 				aBundle->getName().c_str()));
@@ -941,7 +941,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 		});
 
 		//all files have been hashed already?
-		if(aBundle->getFinishedFiles().size() == aBundle->getHashed()) {
+		if(aBundle->getFinishedFiles().size() == static_cast<size_t>(aBundle->getHashed())) {
 			bundleHashed(aBundle);
 		}
 	} else if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
@@ -1410,7 +1410,8 @@ void QueueManager::removeSource(const string& aTarget, const UserPtr& aUser, Fla
 		RLock l(cs);
 		qi = fileQueue.find(aTarget);
 	}
-	removeSource(qi, aUser, reason, removeConn);
+	if (qi)
+		removeSource(qi, aUser, reason, removeConn);
 }
 
 void QueueManager::removeSource(QueueItemPtr q, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {

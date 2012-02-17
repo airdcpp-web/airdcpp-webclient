@@ -110,10 +110,10 @@ public:
 		expectedConnections.add(aNick, aMyNick, aHubUrl);
 	}
 
-	void nmdcConnect(const string& aServer, uint16_t aPort, const string& aMyNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);
-	void nmdcConnect(const string& aServer, uint16_t aPort, uint16_t localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);
-	void adcConnect(const OnlineUser& aUser, uint16_t aPort, const string& aToken, bool secure);
-	void adcConnect(const OnlineUser& aUser, uint16_t aPort, uint16_t localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
+	void nmdcConnect(const string& aServer, const string& aPort, const string& aMyNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);
+	void nmdcConnect(const string& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);
+	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure);
+	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
 
 	void getDownloadConnection(const HintedUser& aUser, bool smallSlot=false);
 	void force(string token);
@@ -131,23 +131,24 @@ public:
 	void listen();
 	void disconnect() noexcept;
 
-	uint16_t getPort() const { return server ? static_cast<uint16_t>(server->getPort()) : 0; }
-	uint16_t getSecurePort() const { return secureServer ? static_cast<uint16_t>(secureServer->getPort()) : 0; }
-	static uint16_t iConnToMeCount;	
+	const string& getPort() const;
+	const string& getSecurePort() const;
+
 	void addRunningMCN(const UserConnection *aSource) noexcept;
 private:
 
 	class Server : public Thread {
 	public:
-		Server(bool secure_, uint16_t port, const string& ip = "0.0.0.0");
-		uint16_t getPort() const { return port; }
-		~Server() { die = true; join(); }
+		Server(bool secure, const string& port_, const string& ip);
+		virtual ~Server() { die = true; join(); }
+
+		const string& getPort() const { return port; }
+
 	private:
-		int run() noexcept;
+		virtual int run() noexcept;
 
 		Socket sock;
-		uint16_t port;
-		string ip;
+		string port;
 		bool secure;
 		bool die;
 	};
@@ -175,10 +176,10 @@ private:
 	typedef delayMap::iterator delayIter;
 	delayMap delayedTokens;
 
-	uint64_t floodCounter;
+	uint32_t floodCounter;
 
-	Server* server;
-	Server* secureServer;
+	unique_ptr<Server> server;
+	unique_ptr<Server> secureServer;
 
 	bool shuttingDown;
 
@@ -204,8 +205,6 @@ private:
 	bool checkKeyprint(UserConnection *aSource);
 
 	void failed(UserConnection* aSource, const string& aError, bool protocolError);
-
-	bool checkIpFlood(const string& aServer, uint16_t aPort, const string& userInfo);
 	
 	// UserConnectionListener
 	void on(Connected, UserConnection*) noexcept;

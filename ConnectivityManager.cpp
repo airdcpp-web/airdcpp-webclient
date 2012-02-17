@@ -81,7 +81,8 @@ void ConnectivityManager::detectConnection() {
 
 	// restore auto settings to their default value.
 	int settings[] = { SettingsManager::TCP_PORT, SettingsManager::TLS_PORT, SettingsManager::UDP_PORT,
-		SettingsManager::EXTERNAL_IP, SettingsManager::NO_IP_OVERRIDE, SettingsManager::BIND_INTERFACE,
+		SettingsManager::EXTERNAL_IP, SettingsManager::EXTERNAL_IP6, SettingsManager::NO_IP_OVERRIDE,
+		SettingsManager::BIND_ADDRESS, SettingsManager::BIND_ADDRESS6,
 		SettingsManager::INCOMING_CONNECTIONS, SettingsManager::OUTGOING_CONNECTIONS };
 	std::for_each(settings, settings + sizeof(settings) / sizeof(settings[0]), [this](int setting) {
 		if(setting >= SettingsManager::STR_FIRST && setting < SettingsManager::STR_LAST) {

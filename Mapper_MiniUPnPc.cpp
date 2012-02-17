@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,7 @@
 #include "stdinc.h"
 #include "Mapper_MiniUPnPc.h"
 
-#include "ConnectivityManager.h"
-#include "SettingsManager.h"
 #include "Util.h"
-#include "Socket.h"
-#include "AirUtil.h"
 
 extern "C" {
 #ifndef STATICLIB
@@ -37,18 +33,16 @@ namespace dcpp {
 
 const string Mapper_MiniUPnPc::name = "MiniUPnP";
 
+Mapper_MiniUPnPc::Mapper_MiniUPnPc(string&& localIp) :
+Mapper(std::forward<string>(localIp))
+{
+}
+
 bool Mapper_MiniUPnPc::init() {
 	if(!url.empty())
 		return true;
 
-#ifndef PORTMAPTOOL
-	const auto& bindAddr = Socket::getBindAddress();
-	UPNPDev* devices = upnpDiscover(2000,
-		(bindAddr.empty() || bindAddr == Socket::getBindAddress()) ? nullptr : bindAddr.c_str(),
-		0, 0, 0, 0);
-#else
-	UPNPDev* devices = upnpDiscover(2000, nullptr, 0, 0, 0, 0);
-#endif
+	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, 0, 0);
 	if(!devices)
 		return false;
 
@@ -75,13 +69,9 @@ bool Mapper_MiniUPnPc::init() {
 void Mapper_MiniUPnPc::uninit() {
 }
 
-#ifndef PORTMAPTOOL
-namespace { string getLocalIp() { return AirUtil::getLocalIp(); } }
-#endif
-
 bool Mapper_MiniUPnPc::add(const string& port, const Protocol protocol, const string& description) {
 	return UPNP_AddPortMapping(url.c_str(), service.c_str(), port.c_str(), port.c_str(),
-		getLocalIp().c_str(), description.c_str(), protocols[protocol], 0, 0) == UPNPCOMMAND_SUCCESS;
+		localIp.c_str(), description.c_str(), protocols[protocol], 0, 0) == UPNPCOMMAND_SUCCESS;
 }
 
 bool Mapper_MiniUPnPc::remove(const string& port, const Protocol protocol) {

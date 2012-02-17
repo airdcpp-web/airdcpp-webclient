@@ -45,6 +45,15 @@ namespace dcpp {
 
 using boost::range::for_each;
 
+
+ClientManager::ClientManager() : udp(Socket::TYPE_UDP) {
+	TimerManager::getInstance()->addListener(this);
+}
+
+ClientManager::~ClientManager() {
+	TimerManager::getInstance()->removeListener(this);
+}
+
 Client* ClientManager::getClient(const string& aHubURL) {
 	Client* c;
 	if(strnicmp("adc://", aHubURL.c_str(), 6) == 0) {
@@ -466,9 +475,8 @@ bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, 
 			u.getClient().send(cmd);
 		} else {
 			try {
-				Socket udp;
 				//LogManager::getInstance()->message(noCID ? cmd.toString() : cmd.toString(getMe()->getCID()));
-				udp.writeTo(u.getIdentity().getIp(), static_cast<uint16_t>(Util::toInt(u.getIdentity().getUdpPort())), noCID ? cmd.toString() : cmd.toString(getMe()->getCID()));
+				udp.writeTo(u.getIdentity().getIp(), u.getIdentity().getUdpPort(), noCID ? cmd.toString() : cmd.toString(getMe()->getCID()));
 			} catch(const SocketException&) {
 				dcdebug("Socket exception sending ADC UDP command\n");
 			}
@@ -513,17 +521,16 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			
 		} else {
 			try {
-				Socket udp;
 				string ip, file, proto, query, fragment, port;
 
 				Util::decodeUrl(aSeeker, proto, ip, port, file, query, fragment);
 				ip = Socket::resolve(ip);
 				
-				if(port == "0") 
+				if(port.empty()) 
 					port = "412";
 				for(SearchResultList::const_iterator i = l.begin(); i != l.end(); ++i) {
 					const SearchResultPtr& sr = *i;
-					udp.writeTo(ip, Util::toInt(port), sr->toSR(*aClient));
+					udp.writeTo(ip, port, sr->toSR(*aClient));
 				}
 			} catch(...) {
 				dcdebug("Search caught error\n");
@@ -546,8 +553,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, aClient->getMyNick(), aClient->getIpPort(), aTTH.toBase32(), partialInfo);
-			Socket s;
-			s.writeTo(Socket::resolve(ip), Util::toInt(port), cmd.toString(ClientManager::getInstance()->getMe()->getCID()));
+			udp.writeTo(Socket::resolve(ip), port, cmd.toString(ClientManager::getInstance()->getMe()->getCID()));
 		} catch(...) {
 			dcdebug("Partial search caught error\n");		
 		}

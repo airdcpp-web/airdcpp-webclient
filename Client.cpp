@@ -123,10 +123,10 @@ bool Client::isActive() const {
 }
 
 void Client::connect() {
-	if(sock)
+	if(sock) {
 		BufferedSocket::putSocket(sock);
-
-	availableBytes = 0;
+		sock = 0;
+	}
 
 	setAutoReconnect(true);
 	setReconnDelay(120 + Util::rand(0, 60));
@@ -138,12 +138,11 @@ void Client::connect() {
 	state = STATE_CONNECTING;
 
 	try {
-		sock = BufferedSocket::getSocket(separator);
+		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
-		sock->connect(address, Util::toInt(port), secure, BOOLSETTING(ALLOW_UNTRUSTED_HUBS), true);
+		sock->connect(address, port, secure, BOOLSETTING(ALLOW_UNTRUSTED_HUBS), true);
 	} catch(const Exception& e) {
-		shutdown();
-		/// @todo at this point, this hub instance is completely useless
+		state = STATE_DISCONNECTED;
 		fire(ClientListener::Failed(), this, e.getError());
 	}
 	updateActivity();

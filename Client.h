@@ -204,6 +204,7 @@ protected:
 	virtual void on(Line, const string& aLine) noexcept;
 	virtual void on(Failed, const string&) noexcept;
 
+	virtual bool v4only() const = 0;
 private:
 
 	Client(const Client&);

@@ -22,6 +22,8 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 
+#include "ConnectivityManager.h"
+#include "format.h"
 #include "UploadManager.h"
 #include "ClientManager.h"
 #include "ShareManager.h"
@@ -52,8 +54,6 @@ const char* SearchManager::getTypeStr(int type) {
 }
 
 SearchManager::SearchManager() :
-
-	port(0),
 	stop(false)
 {
 	TimerManager::getInstance()->addListener(this);
@@ -111,11 +111,10 @@ void SearchManager::listen() {
 	disconnect();
 
 	try {
-		socket.reset(new Socket);
-		socket->create(Socket::TYPE_UDP);
-		socket->setBlocking(true);
-		socket->setSocketOpt(SO_RCVBUF, SETTING(SOCKET_IN_BUFFER));
-		port = socket->bind(static_cast<uint16_t>(SETTING(UDP_PORT)), Socket::getBindAddress());
+		socket.reset(new Socket(Socket::TYPE_UDP));
+		socket->setLocalIp4(CONNSETTING(BIND_ADDRESS));
+		socket->setLocalIp6(CONNSETTING(BIND_ADDRESS6));
+		port = socket->listen(Util::toString(CONNSETTING(UDP_PORT)));
 		start();
 	} catch(...) {
 		socket.reset();
@@ -126,9 +125,8 @@ void SearchManager::listen() {
 void SearchManager::disconnect() noexcept {
 	if(socket.get()) {
 		stop = true;
-		queue.shutdown();
 		socket->disconnect();
-		port = 0;
+		port.clear();
 
 		join();
 
@@ -142,13 +140,17 @@ void SearchManager::disconnect() noexcept {
 int SearchManager::run() {
 	boost::scoped_array<uint8_t> buf(new uint8_t[BUFSIZE]);
 	int len;
-	Socket::addr remoteAddr = { 0 };
+	string remoteAddr;
 
-	queue.start();
 	while(!stop) {
 		try {
-			while( (len = socket->read(&buf[0], BUFSIZE, remoteAddr)) > 0) {
-				onData(&buf[0], len, Socket::resolveName(remoteAddr));
+			if(!socket->wait(400, true, false).first) {
+				continue;
+			}
+
+			if((len = socket->read(&buf[0], BUFSIZE, remoteAddr)) > 0) {
+				onData(&buf[0], len, remoteAddr);
+				continue;
 			}
 		} catch(const SocketException& e) {
 			dcdebug("SearchManager::run Error: %s\n", e.getError().c_str());
@@ -158,12 +160,9 @@ int SearchManager::run() {
 		while(!stop) {
 			try {
 				socket->disconnect();
-				socket->create(Socket::TYPE_UDP);
-				socket->setBlocking(true);
-				socket->setSocketOpt(SO_RCVBUF, SETTING(SOCKET_IN_BUFFER));
-				socket->bind(port, Socket::getBindAddress());
+				port = socket->listen(Util::toString(CONNSETTING(UDP_PORT)));
 				if(failed) {
-					LogManager::getInstance()->message("Search enabled again"); // TODO: translate
+					LogManager::getInstance()->message("Search enabled again");
 					failed = false;
 				}
 				break;
@@ -171,12 +170,12 @@ int SearchManager::run() {
 				dcdebug("SearchManager::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					LogManager::getInstance()->message("Search disabled: " + e.getError()); // TODO: translate
+					LogManager::getInstance()->message(str(boost::format("Search disabled: %1%") % e.getError()));
 					failed = true;
 				}
 
 				// Spin for 60 seconds
-				for(int i = 0; i < 60 && !stop; ++i) {
+				for(auto i = 0; i < 60 && !stop; ++i) {
 					Thread::sleep(1000);
 				}
 			}
@@ -185,205 +184,178 @@ int SearchManager::run() {
 	return 0;
 }
 
-int SearchManager::UdpQueue::run() {
-	string x = Util::emptyString;
-	string remoteIp = Util::emptyString;
-	stop = false;
-
-	while(true) {
-		s.wait();
-		if(stop)
-			break;
-
-		{
-			Lock l(cs);
-			if(resultList.empty()) continue;
-
-			x = resultList.front().first;
-			remoteIp = resultList.front().second;
-			resultList.pop_front();
-		}
-
-		if(x.compare(0, 4, "$SR ") == 0) {
-			string::size_type i, j;
-			// Directories: $SR <nick><0x20><directory><0x20><free slots>/<total slots><0x05><Hubname><0x20>(<Hubip:port>)
-			// Files:       $SR <nick><0x20><filename><0x05><filesize><0x20><free slots>/<total slots><0x05><Hubname><0x20>(<Hubip:port>)
-			i = 4;
-			if( (j = x.find(' ', i)) == string::npos) {
-				continue;
-			}
-			string nick = x.substr(i, j-i);
-			i = j + 1;
-
-			// A file has 2 0x05, a directory only one
-			size_t cnt = count(x.begin() + j, x.end(), 0x05);
-	
-			SearchResult::Types type = SearchResult::TYPE_FILE;
-			string file;
-			int64_t size = 0;
-
-			if(cnt == 1) {
-				// We have a directory...find the first space beyond the first 0x05 from the back 
-				// (dirs might contain spaces as well...clever protocol, eh?)
-				type = SearchResult::TYPE_DIRECTORY;
-				// Get past the hubname that might contain spaces
-				if((j = x.rfind(0x05)) == string::npos) {
-					continue;
-				}
-				// Find the end of the directory info
-				if((j = x.rfind(' ', j-1)) == string::npos) {
-					continue;
-				}
-				if(j < i + 1) {
-					continue;
-				}	
-				file = x.substr(i, j-i) + '\\';
-			} else if(cnt == 2) {
-				if( (j = x.find((char)5, i)) == string::npos) {
-					continue;
-				}
-				file = x.substr(i, j-i);
-				i = j + 1;
-				if( (j = x.find(' ', i)) == string::npos) {
-					continue;
-				}
-				size = Util::toInt64(x.substr(i, j-i));
-			}	
-			i = j + 1;
-		
-			if( (j = x.find('/', i)) == string::npos) {
-				continue;
-			}
-			uint8_t freeSlots = (uint8_t)Util::toInt(x.substr(i, j-i));
-			i = j + 1;
-			if( (j = x.find((char)5, i)) == string::npos) {
-				continue;
-			}
-			uint8_t slots = (uint8_t)Util::toInt(x.substr(i, j-i));
-			i = j + 1;
-			if( (j = x.rfind(" (")) == string::npos) {
-				continue;
-			}
-			string hubName = x.substr(i, j-i);
-			i = j + 2;
-			if( (j = x.rfind(')')) == string::npos) {
-				continue;
-			}
-
-			string hubIpPort = x.substr(i, j-i);
-			string url = ClientManager::getInstance()->findHub(hubIpPort);
-
-			string encoding = ClientManager::getInstance()->findHubEncoding(url);
-			nick = Text::toUtf8(nick, encoding);
-			file = Text::toUtf8(file, encoding);
-			hubName = Text::toUtf8(hubName, encoding);
-
-			UserPtr user = ClientManager::getInstance()->findUser(nick, url);
-			if(!user) {
-				// Could happen if hub has multiple URLs / IPs
-				user = ClientManager::getInstance()->findLegacyUser(nick);
-				if(!user)
-					continue;
-			}
-			ClientManager::getInstance()->setIPUser(user, remoteIp);
-
-			string tth;
-			if(hubName.compare(0, 4, "TTH:") == 0) {
-				tth = hubName.substr(4);
-				StringList names = ClientManager::getInstance()->getHubNames(user->getCID(), Util::emptyString);
-				hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
-			}
-
-			if(tth.empty() && type == SearchResult::TYPE_FILE) {
-				continue;
-			}
-
-
-			SearchResultPtr sr(new SearchResult(user, type, slots, freeSlots, size,
-				file, hubName, url, remoteIp, TTHValue(tth), Util::emptyString));
-			SearchManager::getInstance()->fire(SearchManagerListener::SR(), sr);
-			
-		} else if(x.compare(1, 4, "RES ") == 0 && x[x.length() - 1] == 0x0a) {
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
-			string cid = c.getParam(0);
-			if(cid.size() != 39)
-				continue;
-
-			UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-			if(!user)
-				continue;
-
-			// This should be handled by AdcCommand really...
-			c.getParameters().erase(c.getParameters().begin());
-
-			SearchManager::getInstance()->onRES(c, user, remoteIp);
-
-		} else if (x.compare(1, 4, "PSR ") == 0 && x[x.length() - 1] == 0x0a) {
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
-			string cid = c.getParam(0);
-			if(cid.size() != 39)
-				continue;
-
-			UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-			// when user == NULL then it is probably NMDC user, check it later
-			
-			c.getParameters().erase(c.getParameters().begin());			
-			
-			SearchManager::getInstance()->onPSR(c, user, remoteIp);
-		
-		} else if (x.compare(1, 4, "PBD ") == 0 && x[x.length() - 1] == 0x0a) {
-			if (!SETTING(USE_PARTIAL_SHARING)) {
-				continue;
-			}
-			//LogManager::getInstance()->message("GOT PBD UDP: " + x);
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
-			string cid = c.getParam(0);
-			if(cid.size() != 39)
-				continue;
-
-			UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-			
-			c.getParameters().erase(c.getParameters().begin());			
-			
-			SearchManager::getInstance()->onPBD(c, user);
-		
-		} else if ((x.compare(1, 4, "UBD ") == 0 || x.compare(1, 4, "UBN ") == 0) && x[x.length() - 1] == 0x0a) {
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
-			
-			c.getParameters().erase(c.getParameters().begin());			
-			
-			if (x.compare(1, 4, "UBN ") == 0) {
-				//LogManager::getInstance()->message("GOT UBN UDP: " + x);
-				UploadManager::getInstance()->onUBN(c);
-			} else {
-				//LogManager::getInstance()->message("GOT UBD UDP: " + x);
-				UploadManager::getInstance()->onUBD(c);
-			}
-		}
-		/*else if(x.compare(1, 4, "SCH ") == 0 && x[x.length() - 1] == 0x0a) {
-			try {
-				respond(AdcCommand(x.substr(0, x.length()-1)));
-			} catch(ParseException& ) {
-			}
-		}*/ // Needs further DoS investigation
-		
-		
-		Thread::sleep(10);
-	}
-	return 0;
-}
-
 void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remoteIp) {
 	string x((char*)buf, aLen);
-	queue.addResult(x, remoteIp);
+	if(x.compare(0, 4, "$SR ") == 0) {
+		string::size_type i, j;
+		// Directories: $SR <nick><0x20><directory><0x20><free slots>/<total slots><0x05><Hubname><0x20>(<Hubip:port>)
+		// Files:       $SR <nick><0x20><filename><0x05><filesize><0x20><free slots>/<total slots><0x05><Hubname><0x20>(<Hubip:port>)
+		i = 4;
+		if( (j = x.find(' ', i)) == string::npos) {
+			return;
+		}
+		string nick = x.substr(i, j-i);
+		i = j + 1;
+
+		// A file has 2 0x05, a directory only one
+		size_t cnt = count(x.begin() + j, x.end(), 0x05);
+	
+		SearchResult::Types type = SearchResult::TYPE_FILE;
+		string file;
+		int64_t size = 0;
+
+		if(cnt == 1) {
+			// We have a directory...find the first space beyond the first 0x05 from the back 
+			// (dirs might contain spaces as well...clever protocol, eh?)
+			type = SearchResult::TYPE_DIRECTORY;
+			// Get past the hubname that might contain spaces
+			if((j = x.rfind(0x05)) == string::npos) {
+				return;
+			}
+			// Find the end of the directory info
+			if((j = x.rfind(' ', j-1)) == string::npos) {
+				return;
+			}
+			if(j < i + 1) {
+				return;
+			}	
+			file = x.substr(i, j-i) + '\\';
+		} else if(cnt == 2) {
+			if( (j = x.find((char)5, i)) == string::npos) {
+				return;
+			}
+			file = x.substr(i, j-i);
+			i = j + 1;
+			if( (j = x.find(' ', i)) == string::npos) {
+				return;
+			}
+			size = Util::toInt64(x.substr(i, j-i));
+		}	
+		i = j + 1;
+		
+		if( (j = x.find('/', i)) == string::npos) {
+			return;
+		}
+		uint8_t freeSlots = (uint8_t)Util::toInt(x.substr(i, j-i));
+		i = j + 1;
+		if( (j = x.find((char)5, i)) == string::npos) {
+			return;
+		}
+		uint8_t slots = (uint8_t)Util::toInt(x.substr(i, j-i));
+		i = j + 1;
+		if( (j = x.rfind(" (")) == string::npos) {
+			return;
+		}
+		string hubName = x.substr(i, j-i);
+		i = j + 2;
+		if( (j = x.rfind(')')) == string::npos) {
+			return;
+		}
+
+		string hubIpPort = x.substr(i, j-i);
+		string url = ClientManager::getInstance()->findHub(hubIpPort);
+
+		string encoding = ClientManager::getInstance()->findHubEncoding(url);
+		nick = Text::toUtf8(nick, encoding);
+		file = Text::toUtf8(file, encoding);
+		hubName = Text::toUtf8(hubName, encoding);
+
+		UserPtr user = ClientManager::getInstance()->findUser(nick, url);
+		if(!user) {
+			// Could happen if hub has multiple URLs / IPs
+			user = ClientManager::getInstance()->findLegacyUser(nick);
+			if(!user)
+				return;
+		}
+		ClientManager::getInstance()->setIPUser(user, remoteIp);
+
+		string tth;
+		if(hubName.compare(0, 4, "TTH:") == 0) {
+			tth = hubName.substr(4);
+			StringList names = ClientManager::getInstance()->getHubNames(user->getCID(), Util::emptyString);
+			hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
+		}
+
+		if(tth.empty() && type == SearchResult::TYPE_FILE) {
+			return;
+		}
+
+
+		SearchResultPtr sr(new SearchResult(user, type, slots, freeSlots, size,
+			file, hubName, url, remoteIp, TTHValue(tth), Util::emptyString));
+		SearchManager::getInstance()->fire(SearchManagerListener::SR(), sr);
+			
+	} else if(x.compare(1, 4, "RES ") == 0 && x[x.length() - 1] == 0x0a) {
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
+		string cid = c.getParam(0);
+		if(cid.size() != 39)
+			return;
+
+		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+		if(!user)
+			return;
+
+		// This should be handled by AdcCommand really...
+		c.getParameters().erase(c.getParameters().begin());
+
+		SearchManager::getInstance()->onRES(c, user, remoteIp);
+
+	} else if (x.compare(1, 4, "PSR ") == 0 && x[x.length() - 1] == 0x0a) {
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
+		string cid = c.getParam(0);
+		if(cid.size() != 39)
+			return;
+
+		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+		// when user == NULL then it is probably NMDC user, check it later
+			
+		c.getParameters().erase(c.getParameters().begin());			
+			
+		SearchManager::getInstance()->onPSR(c, user, remoteIp);
+		
+	} else if (x.compare(1, 4, "PBD ") == 0 && x[x.length() - 1] == 0x0a) {
+		if (!SETTING(USE_PARTIAL_SHARING)) {
+			return;
+		}
+		//LogManager::getInstance()->message("GOT PBD UDP: " + x);
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
+		string cid = c.getParam(0);
+		if(cid.size() != 39)
+			return;
+
+		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+			
+		c.getParameters().erase(c.getParameters().begin());			
+			
+		SearchManager::getInstance()->onPBD(c, user);
+		
+	} else if ((x.compare(1, 4, "UBD ") == 0 || x.compare(1, 4, "UBN ") == 0) && x[x.length() - 1] == 0x0a) {
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
+			
+		c.getParameters().erase(c.getParameters().begin());			
+			
+		if (x.compare(1, 4, "UBN ") == 0) {
+			//LogManager::getInstance()->message("GOT UBN UDP: " + x);
+			UploadManager::getInstance()->onUBN(c);
+		} else {
+			//LogManager::getInstance()->message("GOT UBD UDP: " + x);
+			UploadManager::getInstance()->onUBD(c);
+		}
+	}
+	/*else if(x.compare(1, 4, "SCH ") == 0 && x[x.length() - 1] == 0x0a) {
+		try {
+			respond(AdcCommand(x.substr(0, x.length()-1)));
+		} catch(ParseException& ) {
+		}
+	}*/ // Needs further DoS investigation
 }
 
 void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const string& remoteIp) {
@@ -670,7 +642,7 @@ AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const s
 		cmd.addParam("NI", Text::utf8ToAcp(myNick));
 		
 	cmd.addParam("HI", hubIpPort);
-	cmd.addParam("U4", Util::toString(wantResponse && ClientManager::getInstance()->isActive(hubIpPort) ? getPort() : 0));
+	cmd.addParam("U4", wantResponse && ClientManager::getInstance()->isActive(hubIpPort) ? getPort() : 0);
 	cmd.addParam("TR", tth);
 	cmd.addParam("PC", Util::toString(partialInfo.size() / 2));
 	cmd.addParam("PI", getPartsString(partialInfo));

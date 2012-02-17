@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,18 @@ class MappingManager :
 public:
 	/** add an implementation derived from the base Mapper class, passed as template parameter.
 	the first added mapper will be tried first, unless the "MAPPER" setting is not empty. */
-	template<typename T> void addMapper() { mappers.push_back(make_pair(T::name, [] { return new T(); })); }
+	template<typename T> void addMapper() {
+#ifndef _MSC_VER
+		mappers.emplace_back(T::name, [](string&& localIp) {
+			return new T(std::forward<string>(localIp));
+		});
+#else
+		// the rvalue ref deal is too smart for MSVC; resort to a string copy...
+		mappers.push_back(make_pair(T::name, [](string localIp) {
+			return new T(std::move(localIp));
+		}));
+#endif
+	}
 	StringList getMappers() const;
 
 	bool open();
@@ -54,7 +65,11 @@ public:
 private:
 	friend class Singleton<MappingManager>;
 
-	vector<pair<string, function<Mapper* ()>>> mappers;
+#ifndef _MSC_VER
+	vector<pair<string, function<Mapper* (string&&)>>> mappers;
+#else
+	vector<pair<string, function<Mapper* (const string&)>>> mappers;
+#endif
 
 	atomic_flag busy;
 	unique_ptr<Mapper> working; /// currently working implementation.

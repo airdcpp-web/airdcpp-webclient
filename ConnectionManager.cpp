@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "ConnectionManager.h"
 
+#include "ConnectivityManager.h"
 #include "ResourceManager.h"
 #include "DownloadManager.h"
 #include "UploadManager.h"
@@ -31,9 +32,7 @@
 
 namespace dcpp {
 
-uint16_t ConnectionManager::iConnToMeCount = 0;
-
-ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServer(0), shuttingDown(false) {
+ConnectionManager::ConnectionManager() : floodCounter(0), shuttingDown(false) {
 	TimerManager::getInstance()->addListener(this);
 
 	features.push_back(UserConnection::FEATURE_MINISLOTS);
@@ -52,15 +51,13 @@ ConnectionManager::ConnectionManager() : floodCounter(0), server(0), secureServe
 }
 
 void ConnectionManager::listen() {
-	disconnect();
-
-	server = new Server(false, static_cast<uint16_t>(SETTING(TCP_PORT)), Socket::getBindAddress());
+	server.reset(new Server(false, Util::toString(CONNSETTING(TCP_PORT)), CONNSETTING(BIND_ADDRESS)));
 
 	if(!CryptoManager::getInstance()->TLSOk()) {
-		dcdebug("Skipping secure port: %d\n", SETTING(TLS_PORT));
+		dcdebug("Skipping secure port: %d\n", CONNSETTING(TLS_PORT));
 		return;
 	}
-	secureServer = new Server(true, static_cast<uint16_t>(SETTING(TLS_PORT)), Socket::getBindAddress());
+	secureServer.reset(new Server(true, Util::toString(CONNSETTING(TLS_PORT)), CONNSETTING(BIND_ADDRESS)));
 }
 
 /**
@@ -276,15 +273,22 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 	}
 }
 
+const string& ConnectionManager::getPort() const {
+	return server.get() ? server->getPort() : Util::emptyString;
+}
+
+const string& ConnectionManager::getSecurePort() const {
+	return secureServer.get() ? secureServer->getPort() : Util::emptyString;
+}
+
 static const uint32_t FLOOD_TRIGGER = 20000;
 static const uint32_t FLOOD_ADD = 2000;
 
-ConnectionManager::Server::Server(bool secure_, uint16_t aPort, const string& ip_ /* = "0.0.0.0" */) : port(0), secure(secure_), die(false) {
-	sock.create();
-	sock.setSocketOpt(SO_REUSEADDR, 1);
-	ip = ip_;
-	port = sock.bind(aPort, ip);
-	sock.listen();
+ConnectionManager::Server::Server(bool secure, const string& port_, const string& ip) :
+sock(Socket::TYPE_TCP), secure(secure), die(false)
+{
+	sock.setLocalIp4(ip);
+	port = sock.listen(port_);
 
 	start();
 }
@@ -293,26 +297,25 @@ static const uint32_t POLL_TIMEOUT = 250;
 
 int ConnectionManager::Server::run() noexcept {
 	while(!die) {
-	try {
+		try {
 			while(!die) {
-				auto ret = sock.wait(POLL_TIMEOUT, Socket::WAIT_READ);
-				if(ret == Socket::WAIT_READ) {
+				auto ret = sock.wait(POLL_TIMEOUT, true, false);
+				if(ret.first) {
 					ConnectionManager::getInstance()->accept(sock, secure);
 				}
 			}
 		} catch(const Exception& e) {
 			dcdebug("ConnectionManager::Server::run Error: %s\n", e.getError().c_str());
-		}			
+		}
 
 		bool failed = false;
 		while(!die) {
 			try {
 				sock.disconnect();
-				sock.create();
-				sock.bind(port, ip);
-				sock.listen();
+				port = sock.listen(port);
+
 				if(failed) {
-					LogManager::getInstance()->message("Connectivity restored"); // TODO: translate
+					LogManager::getInstance()->message("Connectivity restored");
 					failed = false;
 				}
 				break;
@@ -320,12 +323,12 @@ int ConnectionManager::Server::run() noexcept {
 				dcdebug("ConnectionManager::Server::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					LogManager::getInstance()->message("Connectivity error: " + e.getError());
+					//LogManager::getInstance()->message(str("Connectivity error: %1%") % e.getError()));
 					failed = true;
 				}
 
 				// Spin for 60 seconds
-				for(int i = 0; i < 60 && !die; ++i) {
+				for(auto i = 0; i < 60 && !die; ++i) {
 					Thread::sleep(1000);
 				}
 			}
@@ -341,14 +344,11 @@ int ConnectionManager::Server::run() noexcept {
 void ConnectionManager::accept(const Socket& sock, bool secure) noexcept {
 	uint64_t now = GET_TICK();
 
-	if(iConnToMeCount > 0)
-		iConnToMeCount--;
-
 	if(now > floodCounter) {
 		floodCounter = now + FLOOD_ADD;
 	} else {
-		if(now + FLOOD_TRIGGER < floodCounter) {
-			Socket s;
+		if(false && now + FLOOD_TRIGGER < floodCounter) {
+			Socket s(Socket::TYPE_TCP);
 			try {
 				s.accept(sock);
 			} catch(const SocketException&) {
@@ -357,66 +357,27 @@ void ConnectionManager::accept(const Socket& sock, bool secure) noexcept {
 			dcdebug("Connection flood detected!\n");
 			return;
 		} else {
-			if(iConnToMeCount <= 0)
-				floodCounter += FLOOD_ADD;
+			floodCounter += FLOOD_ADD;
 		}
 	}
 	UserConnection* uc = getConnection(false, secure);
 	uc->setFlag(UserConnection::FLAG_INCOMING);
 	uc->setState(UserConnection::STATE_SUPNICK);
 	uc->setLastActivity(GET_TICK());
-	try { 
+	try {
 		uc->accept(sock);
 	} catch(const Exception&) {
 		putConnection(uc);
 		delete uc;
 	}
 }
-
-bool ConnectionManager::checkIpFlood(const string& aServer, uint16_t aPort, const string& userInfo) {
-
-	// Temporary fix to avoid spamming
-	if(aPort == 80 || aPort == 2501) {
-		return true;
-	}	
 	
-	// We don't want to be used as a flooding instrument
-	uint8_t count = 0;
-
-	Lock l(cs);
-	for(UserConnectionList::const_iterator j = userConnections.begin(); j != userConnections.end(); ++j) {
-		
-		const UserConnection& uc = **j;
-		
-		if(uc.socket == NULL || !uc.socket->hasSocket())
-			continue;
-
-		if (uc.isSet(UserConnection::FLAG_MCN1)) {
-			//yes, these may have more than 5 connections..
-			continue;
-		}
-
-		if(uc.getRemoteIp() == aServer && uc.getPort() == aPort) {
-			count++;
-			if(count >= 5) {
-				// More than 5 outbound connections to the same addr/port? Can't trust that..
-				dcdebug("ConnectionManager::connect Tried to connect more than 5 times to %s:%hu, connect dropped\n", aServer.c_str(), aPort);
-				return true;
-			}
-		}
-	}
-	return false;
-} 
-	
-void ConnectionManager::nmdcConnect(const string& aServer, uint16_t aPort, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure) {
-	nmdcConnect(aServer, aPort, 0, BufferedSocket::NAT_NONE, aNick, hubUrl, encoding, stealth, secure);
+void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure) {
+	nmdcConnect(aServer, aPort, Util::emptyString, BufferedSocket::NAT_NONE, aNick, hubUrl, encoding, stealth, secure);
 }
 
-void ConnectionManager::nmdcConnect(const string& aServer, uint16_t aPort, uint16_t localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure) {
+void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure) {
 	if(shuttingDown)
-		return;
-		
-	if(checkIpFlood(aServer, aPort, "NMDC Hub: " + hubUrl))
 		return;
 
 	UserConnection* uc = getConnection(true, secure);
@@ -433,15 +394,12 @@ void ConnectionManager::nmdcConnect(const string& aServer, uint16_t aPort, uint1
 	}
 }
 
-void ConnectionManager::adcConnect(const OnlineUser& aUser, uint16_t aPort, const string& aToken, bool secure) {
-	adcConnect(aUser, aPort, 0, BufferedSocket::NAT_NONE, aToken, secure);
+void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure) {
+	adcConnect(aUser, aPort, Util::emptyString, BufferedSocket::NAT_NONE, aToken, secure);
 }
 
-void ConnectionManager::adcConnect(const OnlineUser& aUser, uint16_t aPort, uint16_t localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure) {
+void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure) {
 	if(shuttingDown)
-		return;
-
-	if(checkIpFlood(aUser.getIdentity().getIp(), aPort, "ADC Nick: " + aUser.getIdentity().getNick() + ", Hub: " + aUser.getClientBase().getHubName()))
 		return;
 
 	UserConnection* uc = getConnection(false, secure);
@@ -461,10 +419,8 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, uint16_t aPort, uint
 }
 
 void ConnectionManager::disconnect() noexcept {
-	delete server;
-	delete secureServer;
-
-	server = secureServer = 0;
+	server.reset();
+	secureServer.reset();
 }
 
 void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCommand& cmd) noexcept {
