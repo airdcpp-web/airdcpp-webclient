@@ -106,7 +106,6 @@ private:
 	std::unique_ptr<Socket> socket;
 	string port;
 	bool stop;
-	uint64_t lastSearch;
 	friend class Singleton<SearchManager>;
 
 	SearchManager();

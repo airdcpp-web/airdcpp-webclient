@@ -63,9 +63,6 @@ public:
 	}
 
 	bool startDownload(QueueItem::Priority prio, bool mcn=false);
-	
-	void updateBundles(BundleList& bundles);
-
 private:
 	
 	CriticalSection cs;
@@ -95,7 +92,6 @@ private:
 	typedef unordered_map<string, BundlePtr> tokenMap;
 	tokenMap tokens;
 
-	string formatDownloaded(int64_t aBytes);
 	void endData(UserConnection* aSource);
 
 	void onFailed(UserConnection* aSource, const string& aError);

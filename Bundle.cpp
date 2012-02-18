@@ -36,7 +36,7 @@ namespace dcpp {
 using boost::range::for_each;
 	
 Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
-	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastPercent(0), singleUser(true), 
+	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
 	currentDownloaded(qi->getDownloadedBytes()), hashed(0), moved(0) {
 	qi->setBundle(this);
@@ -48,7 +48,7 @@ Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()),
 
 Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate /*0*/) : target(target), fileBundle(false), 
 	token(Util::toString(Util::rand()) + Util::toString(Util::rand())), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), 
-	lastPercent(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0), moved(0) {
+	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0), moved(0) {
 
 	if (dirDate > 0) {
 		checkRecent();
@@ -522,22 +522,19 @@ Bundle::Priority Bundle::calculateProgressPriority() const noexcept {
 }
 
 pair<int64_t, double> Bundle::getPrioInfo() noexcept {
-	vector<int64_t> speedList, sizeList;
+	int64_t bundleSpeed = 0;
+	double bundleSources = 0;
 	for (auto s = sources.begin(); s != sources.end(); ++s) {
-		UserPtr& u = get<SOURCE_USER>(*s).user;
-		int64_t filesSize = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItemPtr qi) {
-			return qi->isSource(u) ? old + (qi->getSize() - qi->getDownloadedSegments()) : old; 
-		});
-		int64_t timeLeft = static_cast<int64_t>(filesSize * u->getSpeed());
-
-		//lower prio for offline users
-		sizeList.push_back(u->isOnline() ? filesSize : filesSize*2);
-		if (timeLeft > 0)
-			speedList.push_back(timeLeft);
+		UserPtr& user = get<SOURCE_USER>(*s).user;
+		if (user->isOnline()) {
+			bundleSpeed += user->getSpeed();
+			bundleSources += get<SOURCE_FILES>(*s);
+		} else {
+			bundleSources += get<SOURCE_FILES>(*s);
+		}
 	}
-	int64_t speedRatio = speedList.empty() ? 0 : dcpp::accumulate(speedList.begin(), speedList.end(), (int64_t)0) / speedList.size();
-	double sizeRatio = dcpp::accumulate(sizeList.begin(), sizeList.end(), (double)0) / static_cast<double>(size);
-	return make_pair(speedRatio, (sizeRatio > 0 ? sizeRatio : 1));
+	bundleSources = bundleSources / queueItems.size();
+	return make_pair(bundleSpeed, bundleSources);
 }
 
 void Bundle::getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap) noexcept {
@@ -765,7 +762,7 @@ void Bundle::removeDownload(Download* d) noexcept {
 	}
 }
 
-bool Bundle::onDownloadTick() noexcept {
+bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
 	int down = 0;
 	for (auto s = downloads.begin(); s != downloads.end(); ++s) {
@@ -787,24 +784,60 @@ bool Bundle::onDownloadTick() noexcept {
 
 		bundleRatio = bundleRatio / down;
 		actual = ((int64_t)((double)(finishedSegments+bundlePos) * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+
+		if (!singleUser && !uploadReports.empty()) {
+
+			string speedStr;
+			double percent = 0;
+
+			if (abs(speed-lastSpeed) > (lastSpeed / 10)) {
+				//LogManager::getInstance()->message("SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is more than " + Util::toString(lastSpeed / 10));
+				speedStr = formatDownloaded(speed);
+				lastSpeed = speed;
+			} else {
+				//LogManager::getInstance()->message("DON'T SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is less than " + Util::toString(lastSpeed / 10));
+			}
+
+			if (abs(lastDownloaded-getDownloadedBytes()) > (size / 200)) {
+				//LogManager::getInstance()->message("SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is more than " + Util::toString(size / 200));
+				percent = (static_cast<float>(getDownloadedBytes()) / static_cast<float>(size)) * 100.;
+				dcassert(percent <= 100.00);
+				lastDownloaded = getDownloadedBytes();
+			} else {
+				//LogManager::getInstance()->message("DON'T SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is less than " + Util::toString(size / 200));
+			}
+
+			//LogManager::getInstance()->message("Bundle notify info, percent: " + Util::toString(percent) + " speed: " + speedStr);
+			if (!speedStr.empty() || percent > 0) {
+				for(auto i = uploadReports.cbegin(), iend = uploadReports.cend(); i != iend; ++i) {
+					AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
+
+					cmd.addParam("HI", i->hint);
+					cmd.addParam("BU", token);
+					if (!speedStr.empty())
+						cmd.addParam("DS", speedStr);
+					if (percent > 0)
+						cmd.addParam("PE", Util::toString(percent));
+
+					UBNList.push_back(make_pair(i->user->getCID(), cmd));
+				}
+			}
+		}
 		return true;
 	}
 	return false;
 }
 
-void Bundle::sendUBN(const string& speed, double percent) noexcept {
-	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
-		AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
-
-		cmd.addParam("HI", i->hint);
-		cmd.addParam("BU", token);
-		if (!speed.empty())
-			cmd.addParam("DS", speed);
-		if (percent > 0)
-			cmd.addParam("PE", Util::toString(percent));
-
-		ClientManager::getInstance()->send(cmd, i->user->getCID(), true, true);
+string Bundle::formatDownloaded(int64_t aBytes) {
+	char buf[64];
+	if(aBytes < 1024) {
+		snprintf(buf, sizeof(buf), "%d%s", (int)(aBytes&0xffffffff), "b");
+	} else if(aBytes < 1048576) {
+		snprintf(buf, sizeof(buf), "%.02f%s", (double)aBytes/(1024.0), "k");
+	} else {
+		snprintf(buf, sizeof(buf), "%.02f%s", (double)aBytes/(1048576.0), "m");
 	}
+	return buf;
 }
 
 bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
@@ -844,7 +877,7 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 			//add a new upload report
 			if (!uploadReports.empty()) {
 				lastSpeed = 0;
-				lastPercent = 0;
+				lastDownloaded = 0;
 			}
 			uploadReports.push_back(aSource->getHintedUser());
 		}
@@ -856,7 +889,7 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 void Bundle::setBundleMode(bool setSingleUser) noexcept {
 	if (setSingleUser) {
 		lastSpeed = 0;
-		lastPercent= 0;
+		lastDownloaded= 0;
 		singleUser= true;
 		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
 	} else {

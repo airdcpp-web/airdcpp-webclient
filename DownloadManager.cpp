@@ -29,6 +29,10 @@
 #include "UserConnection.h"
 
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
+
+
 #include "UploadManager.h"
 #include "FavoriteManager.h"
 
@@ -42,6 +46,8 @@
 #endif
 
 namespace dcpp {
+
+using boost::range::for_each;
 
 static const string DOWNLOAD_AREA = "Downloads";
 
@@ -62,8 +68,8 @@ DownloadManager::~DownloadManager() {
 }
 
 void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	typedef vector<pair<string, UserPtr> > TargetList;
-	TargetList dropTargets;
+	vector<pair<string, UserPtr> > dropTargets;
+	vector<pair<CID, AdcCommand>> UBNList;
 	StringList targets;
 	BundleList bundleTicks;
 	boost::unordered_map<UserPtr, int64_t> userSpeedMap;
@@ -72,7 +78,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		Lock l(cs);
 		for (auto i = runningBundles.begin(); i != runningBundles.end(); ++i) {
 			BundlePtr bundle = i->second;
-			if (bundle->onDownloadTick()) {
+			if (bundle->onDownloadTick(UBNList)) {
 				bundleTicks.push_back(bundle);
 			}
 		}
@@ -88,7 +94,6 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 				tickList.push_back(d);
 				d->tick();
 			}
-			for_each(userSpeedMap.begin(), userSpeedMap.end(), [](pair<UserPtr, int64_t> us) { us.first->setSpeed(us.second); });
 
 			if (d->getBundle() && d->getBundle()->isSet(Bundle::FLAG_AUTODROP) && d->getStart() > 0)
 			{
@@ -123,65 +128,19 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		}
 	}
 
+	for_each(userSpeedMap.begin(), userSpeedMap.end(), [](pair<UserPtr, int64_t> us) { us.first->setSpeed(us.second); });
 	if (!bundleTicks.empty()) {
-		updateBundles(bundleTicks);
 		fire(DownloadManagerListener::BundleTick(), bundleTicks);
 	}
 
-	for_each(dropTargets.begin(), dropTargets.end(), [](pair<string, UserPtr>& dt) { QueueManager::getInstance()->removeSource(dt.first, dt.second, QueueItem::Source::FLAG_SLOW_SOURCE);});
-}
-
-void DownloadManager::updateBundles(BundleList& bundles) {
-	for(auto j = bundles.begin(); j != bundles.end(); ++j) {
-		BundlePtr bundle = *j;
-		if (bundle->getSingleUser() || bundle->getUploadReports().empty()) {
-			continue;
-		}
-		string speed;
-		double percent = 0;
-		float change = (((float)bundle->getSpeed() - (float)bundle->getLastSpeed()) / (((float)bundle->getSpeed() + (float)bundle->getLastSpeed()) / 2.00000));
-		//LogManager::getInstance()->message("SPEEDCHANGE: " + Util::toString(change) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
-
-		if (abs(change) > 0.05) {
-			//LogManager::getInstance()->message("SEND SPEEDCHANGE: " + Util::toString(abs(change)) + " old: " + Util::toString(bundle->getTotalSpeed()) + "current: " + Util::toString(bundle->getSpeed()));
-			speed = formatDownloaded(bundle->getSpeed());
-			bundle->setLastSpeed(bundle->getSpeed());
-		} else {
-			//LogManager::getInstance()->message("DONT SEND");
-		}
-		//LogManager::getInstance()->message("SpeedCompare: " + Util::toString(bundle->getSpeed() - bundle->getTotalSpeed()) + " should be bigger than " + Util::toString(bundle->getSpeed()*0.05));
-
-		if (floor(bundle->getLastPercent()) < floor(((float)bundle->getDownloadedBytes() / (float)bundle->getSize())* 10000)) {
-			percent = (((float)bundle->getDownloadedBytes() / (float)bundle->getSize())*100);
-			dcassert(percent <= 100.00);
-			bundle->setLastPercent(percent*100.000);
-		}
-		//LogManager::getInstance()->message("PercentCompare: " + Util::toString(bundle->getLastPercent()) + " should be smaller than " + Util::toString(floor(((float)bundle->getDownloaded() / (float)bundle->getSize())* 10000)));
-
-		//LogManager::getInstance()->message("Bundle notify info, percent: " + Util::toString(percent) + " speed: " + speed);
-		if (!speed.empty() || percent > 0) {
-			Lock l (cs);
-			bundle->sendUBN(speed, percent);
-		}
-	}
+	for_each(UBNList, [](pair<CID, AdcCommand>& cap) { ClientManager::getInstance()->send(cap.second, cap.first, true, true); } );
+	for_each(dropTargets, [](pair<string, UserPtr>& dt) { QueueManager::getInstance()->removeSource(dt.first, dt.second, QueueItem::Source::FLAG_SLOW_SOURCE);});
 }
 
 void DownloadManager::sendSizeNameUpdate(BundlePtr aBundle) {
 	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
 	Lock l (cs);
 	aBundle->sendSizeNameUpdate();
-}
-
-string DownloadManager::formatDownloaded(int64_t aBytes) {
-	char buf[64];
-	if(aBytes < 1024) {
-		snprintf(buf, sizeof(buf), "%d%s", (int)(aBytes&0xffffffff), "b");
-	} else if(aBytes < 1048576) {
-		snprintf(buf, sizeof(buf), "%.02f%s", (double)aBytes/(1024.0), "k");
-	} else {
-		snprintf(buf, sizeof(buf), "%.02f%s", (double)aBytes/(1048576.0), "m");
-	}
-	return buf;
 }
 
 void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {

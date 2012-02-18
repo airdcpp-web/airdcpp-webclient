@@ -115,7 +115,7 @@ public:
 	GETSET(int64_t, speed, Speed);
 	GETSET(int64_t, actual, Actual);
 	GETSET(int64_t, lastSpeed, LastSpeed);
-	GETSET(double, lastPercent, LastPercent);
+	GETSET(double, lastDownloaded, LastDownloaded);
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(time_t, added, Added);
@@ -211,7 +211,6 @@ public:
 	void setBundleMode(bool setSingleUser) noexcept;
 
 	void sendSizeNameUpdate() noexcept;
-	void sendUBN(const string& speed, double percent) noexcept;
 
 	void addDownload(Download* d) noexcept;
 	void removeDownload(Download* d) noexcept;
@@ -220,7 +219,9 @@ public:
 	void getSearchItems(StringPairList& searches, bool manual) noexcept;
 	void updateSearchMode();
 
-	bool onDownloadTick() noexcept;
+	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
+	string formatDownloaded(int64_t aBytes);
+
 	void setDownloadedBytes(int64_t aSize) noexcept;
 
 	void increaseRunning() { running++; }

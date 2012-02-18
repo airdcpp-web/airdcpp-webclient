@@ -333,13 +333,13 @@ void BundleQueue::getAutoPrioMap(multimap<int, BundlePtr>& finalMap, int& unique
 	//get bundles with auto priority
 	boost::unordered_map<BundlePtr, double, Bundle::Hash> autoPrioMap;
 	multimap<double, BundlePtr> sizeMap;
-	multimap<int64_t, BundlePtr> timeMap;
+	multimap<int64_t, BundlePtr> sourceMap;
 	{
 		for (auto i = bundles.begin(); i != bundles.end(); ++i) {
 			BundlePtr bundle = i->second;
 			if (bundle->getAutoPriority() && !bundle->isFinished()) {
 				auto p = bundle->getPrioInfo();
-				timeMap.insert(make_pair(p.first, bundle));
+				sourceMap.insert(make_pair(p.first, bundle));
 				sizeMap.insert(make_pair(p.second, bundle));
 				autoPrioMap[bundle] = 0;
 				/*if (verbose) {
@@ -355,10 +355,10 @@ void BundleQueue::getAutoPrioMap(multimap<int, BundlePtr>& finalMap, int& unique
 
 	//scale the priorization maps
 	double factor;
-	double max = max_element(timeMap.begin(), timeMap.end())->first;
+	double max = max_element(sourceMap.begin(), sourceMap.end())->first;
 	if (max) {
 		double factor = 100 / max;
-		for (auto i = timeMap.begin(); i != timeMap.end(); ++i) {
+		for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
 			autoPrioMap[i->second] = i->first * factor;
 		}
 	}
