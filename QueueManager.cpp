@@ -1811,7 +1811,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			try {
 				const string& tgt = getAttrib(attribs, sTarget, 0);
 				// @todo do something better about existing files
-				target = QueueManager::checkTarget(tgt, false, NULL);
+				target = QueueManager::checkTarget(tgt, true, curBundle);
 				if(target.empty())
 					return;
 			} catch(const Exception&) {
@@ -1888,7 +1888,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 			if(!Util::fileExists(target))
 				return;
-			qm->addFinishedTTH(TTHValue(tth), curBundle, target, size, added);
+			qm->addFinishedItem(TTHValue(tth), curBundle, target, size, added);
 		} else {
 			LogManager::getInstance()->message("QUEUE LOADING ERROR");
 		}
@@ -1916,7 +1916,7 @@ void QueueLoader::endTag(const string& name, const string&) {
 	}
 }
 
-void QueueManager::addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, int64_t aSize, time_t aFinished) {
+void QueueManager::addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, int64_t aSize, time_t aFinished) {
 	//LogManager::getInstance()->message("ADD FINISHED TTH: " + tth.toBase32());
 	if (fileQueue.find(aTarget)) {
 		return;

@@ -188,7 +188,7 @@ public:
 	static int compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col);
 	bool isHidden() const { return identity.isHidden(); }
 	
-	tstring getText(uint8_t col) const;
+	tstring getText(uint8_t col, bool copy = false) const;
 
 	bool isInList;
 	GETSET(Identity, identity, Identity);

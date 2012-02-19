@@ -251,7 +251,7 @@ private:
 	void addBundleUpdate(const string& bundleToken);
 	void sendPBD(HintedUser& aUser, const TTHValue& tth, const string& bundleToken);
 
-	void addFinishedTTH(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
+	void addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
 
 	typedef vector<pair<string, uint64_t>> bundleTickMap;
 	bundleTickMap bundleUpdates;

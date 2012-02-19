@@ -230,7 +230,7 @@ int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t c
 	return Util::DefaultSort(a->getText(col).c_str(), b->getText(col).c_str());
 }
 
-tstring OnlineUser::getText(uint8_t col) const {
+tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 	switch(col) {
 		case COLUMN_NICK: return Text::toT(identity.getNick());
 		case COLUMN_SHARED: return Util::formatBytesW(identity.getBytesShared());
@@ -241,9 +241,11 @@ tstring OnlineUser::getText(uint8_t col) const {
 		case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Text::toT(Util::formatBytes(identity.get("DS"))) + _T("/s"));
 		case COLUMN_IP: {
 			string ip = identity.getIp();
-			string country = ip.empty() ? Util::emptyString : identity.getCountry();
-			if (!country.empty())
-				ip = country + " (" + ip + ")";
+			if (!copy) {
+				string country = ip.empty() ? Util::emptyString : identity.getCountry();
+				if (!country.empty())
+					ip = country + " (" + ip + ")";
+			}
 			return Text::toT(ip);
 		}
 		case COLUMN_EMAIL: return Text::toT(identity.getEmail());

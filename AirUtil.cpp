@@ -824,7 +824,7 @@ bool AirUtil::isEmpty(const string& aPath) {
 				if (strcmpi(i->getFileName().c_str(), ".") == 0 || strcmpi(i->getFileName().c_str(), "..") == 0)
 					continue;
 
-				string dir = aPath + i->getFileName() + "\\";
+				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
 				if (!isEmpty(dir))
 					return false;
 			} else {

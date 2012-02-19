@@ -142,7 +142,7 @@ int ShareScannerManager::run() {
 		Paths.erase(Paths.begin());
 
 		if(isCheckSFV) {
-			if(dir[dir.size() -1] == '\\') {
+			if(dir[dir.size() -1] == PATH_SEPARATOR) {
 				string sfvFile;
 				StringList dirFiles = findFiles(dir, "*"); // find all files in dir
 
@@ -167,8 +167,8 @@ int ShareScannerManager::run() {
 				checkSFV(dir); 
 			}
 		} else {
-			if(dir[dir.size() -1] != '\\')
-				dir += "\\";
+			if(dir[dir.size() -1] != PATH_SEPARATOR)
+				dir += PATH_SEPARATOR;
 
 			DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
 			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
@@ -214,29 +214,28 @@ void ShareScannerManager::find(const string& path, int& missingFiles, int& missi
 	
 	for(FileFindIter i(path + "*"); i != FileFindIter(); ++i) {
 		try {
-			if(i->isDirectory()){
-				if (strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0) {
-					if (matchSkipList(i->getFileName())) {
-						continue;
-					}
-					dir = path + i->getFileName() + "\\";
-					if (!isBundleScan && std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {
-						continue;
-					}
-					DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
-					if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
-						scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
-						if(SETTING(CHECK_DUPES) && !isBundleScan)
-							findDupes(dir, dupesFound);
-						dirs.push_back(dir);
-					}
+			if(i->isDirectory() && strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0){
+				if (matchSkipList(i->getFileName())) {
+					continue;
+				}
+				dir = path + i->getFileName() + PATH_SEPARATOR;
+				
+				if (!isBundleScan && std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {
+					continue;
+				}
+				DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
+				if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
+					scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
+					if(SETTING(CHECK_DUPES) && !isBundleScan)
+						findDupes(dir, dupesFound);
+					dirs.push_back(dir);
 				}
 			}
 		} catch(const FileException&) { } 
-	 }
+	}
 
 	if(!dirs.empty()) {
-		for(StringIterC j = dirs.begin(); j != dirs.end(); j++) {
+		for(auto j = dirs.begin(); j != dirs.end(); j++) {
 			find(*j, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, isBundleScan);
 		}	
 	}
@@ -567,7 +566,7 @@ bool ShareScannerManager::getFileSFV(string& line, bool& invalidFile) {
 }
 
 void ShareScannerManager::getScanSize(const string& path) throw(FileException) {
-	if(path[path.size() -1] == '\\') {
+	if(path[path.size() -1] == PATH_SEPARATOR) {
 		StringList sfvFileList = findFiles(path, "*.sfv");
 		string line;
 		ifstream sfv;

@@ -330,10 +330,8 @@ void AutoSearchManager::addToQueue(const SearchResultPtr sr, const AutoSearchPtr
 			QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), path, as->getAction() == 1 ? QueueItem::PAUSED : QueueItem::DEFAULT);
 		} else {
 			path = path + Util::getFileName(sr->getFile());
-			QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0);
-			if(as->getAction() == 1) {
-				QueueManager::getInstance()->setQIPriority(path, QueueItem::PAUSED);
-			}
+			QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
+				(as->getAction() == 1 ? QueueItem::PAUSED : QueueItem::DEFAULT));
 		}
 	} catch(...) {
 		LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
@@ -349,7 +347,7 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 		auto dirList = (as->getTargetType() == AutoSearch::TARGET_FAVORITE) ? FavoriteManager::getInstance()->getFavoriteDirs() : ShareManager::getInstance()->getGroupedDirectories();
 		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));
 		if (s != dirList.end()) {
-			StringList targets = s->second;
+			StringList& targets = s->second;
 			AirUtil::getTarget(targets, target, freeSpace);
 			if (!target.empty()) {
 				return (freeSpace > sr->getSize());
