@@ -1214,7 +1214,8 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	}
 
 	if (removeFinished) {
-		fileQueue.decreaseSize(q->getSize());
+		if (q->getBundle())
+			fileQueue.decreaseSize(q->getSize());
 		UploadManager::getInstance()->abortUpload(q->getTempTarget());
 
 		if (q->getBundle()) {
@@ -1890,7 +1891,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 			qm->addFinishedItem(TTHValue(tth), curBundle, target, size, added);
 		} else {
-			LogManager::getInstance()->message("QUEUE LOADING ERROR");
+			//LogManager::getInstance()->message("QUEUE LOADING ERROR");
 		}
 	}
 }
@@ -2432,6 +2433,8 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 					//schedule for hashing and handle the results elsewhere
 					b->unsetFlag(Bundle::FLAG_HASH_FAILED);
 					hash.push_back(b);
+				} else if (b->isFinished() && !BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
+					continue;
 				}
 				retBundles.push_back(Text::toLower(b->getTarget()));
 			}

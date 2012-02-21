@@ -39,7 +39,7 @@ const string SettingsManager::settingTags[] =
 {
 	// Strings
 	"Nick", "UploadSpeed", "Description", "DownloadDirectory", "EMail", "ExternalIp", "ExternalIp6",
-	"Font", "MainFrameOrder", "MainFrameWidths", "HubFrameOrder", "HubFrameWidths", 
+	"Font", "TransferViewOrder", "TransferViewWidths", "HubFrameOrder", "HubFrameWidths", 
 	"LanguageFile", "SearchFrameOrder", "SearchFrameWidths", "FavoritesFrameOrder", "FavoritesFrameWidths", 
 	"HublistServers", "QueueFrameOrder", "QueueFrameWidths", "PublicHubsFrameOrder", "PublicHubsFrameWidths", 
 	"UsersFrameOrder", "UsersFrameWidths", "HttpProxy", "LogDirectory", "LogFormatPostDownload", 
@@ -1079,9 +1079,11 @@ bool SettingsManager::addSearchToHistory(const tstring& aSearch) {
 		return false;
 
 	Lock l(cs);
-	if(find(searchHistory.begin(), searchHistory.end(), aSearch) != searchHistory.end()) {
-		return false;
+	auto s = find(searchHistory.begin(), searchHistory.end(), aSearch);
+	if(s != searchHistory.end()) {
+		searchHistory.erase(s);
 	}
+
 	if(searchHistory.size() == 10) {
 		searchHistory.erase(searchHistory.begin());
 	}
@@ -1095,10 +1097,11 @@ bool SettingsManager::addDirToHistory(const tstring& aDir) {
 		return false;
 
 	Lock l(cs);
-
-	if(find(dirHistory.begin(), dirHistory.end(), aDir) != dirHistory.end()) {
-		return false;
+	auto s = find(dirHistory.begin(), dirHistory.end(), aDir);
+	if(s != dirHistory.end()) {
+		dirHistory.erase(s);
 	}
+
 	if(dirHistory.size() == 10) {
 		dirHistory.erase(dirHistory.begin());
 	}

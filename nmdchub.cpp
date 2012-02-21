@@ -884,7 +884,10 @@ void NmdcHub::connectToMe(const OnlineUser& aUser) {
 	dcdebug("NmdcHub::connectToMe %s\n", aUser.getIdentity().getNick().c_str());
 	string nick = fromUtf8(aUser.getIdentity().getNick());
 	ConnectionManager::getInstance()->nmdcExpect(nick, getMyNick(), getHubUrl());
-	send("$ConnectToMe " + nick + " " + getLocalIp() + ":" + ConnectionManager::getInstance()->getPort() + "|");
+	
+	bool secure = CryptoManager::getInstance()->TLSOk() && aUser.getUser()->isSet(User::TLS) && !getStealth();
+	string port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
+	send("$ConnectToMe " + nick + " " + getLocalIp() + ":" + port + (secure ? "S" : "") + "|");
 }
 
 void NmdcHub::revConnectToMe(const OnlineUser& aUser) {
