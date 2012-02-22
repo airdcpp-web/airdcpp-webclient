@@ -60,7 +60,11 @@ public:
 
 	bool open();
 	void close();
+	/** whether a working port mapping implementation is currently in use. */
 	bool getOpened() const;
+	/** get information about the currently working implementation, if there is one; or a status
+	string stating otherwise. */
+	string getStatus() const;
 
 private:
 	friend class Singleton<MappingManager>;

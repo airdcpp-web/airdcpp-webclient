@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -116,9 +116,7 @@ void ConnectivityManager::detectConnection() {
 	autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_FIREWALL_UPNP;
 	log((string)("Local network with possible NAT detected, trying to map the ports..."));
 
-	if(!MappingManager::getInstance()->open()) {
-		running = false;
-	}
+	startMapping();
 }
 
 void ConnectivityManager::setup(bool settingsChanged) {
@@ -135,9 +133,9 @@ void ConnectivityManager::setup(bool settingsChanged) {
 				MappingManager::getInstance()->close();
 			}
 			startSocket();
-		} else if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP && !MappingManager::getInstance()->getOpened()) {
+		} else if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP && !running) {
 			// previous mappings had failed; try again
-			MappingManager::getInstance()->open();
+			startMapping();
 		}
 	}
 }
@@ -159,6 +157,10 @@ void ConnectivityManager::editAutoSettings() {
 }
 
 string ConnectivityManager::getInformation() const {
+	if(running) {
+		return "Connectivity settings are being configured; try again later";
+	}
+
 	string autoStatus = ok() ? str(boost::format("enabled - %1%") % getStatus()) : "disabled";
 
 	string mode;
@@ -171,7 +173,8 @@ string ConnectivityManager::getInformation() const {
 		}
 	case SettingsManager::INCOMING_FIREWALL_UPNP:
 		{
-			mode = str(boost::format("Connection behind a router that %1% has configured with %2%") % APPNAME % SETTING(MAPPER));
+			mode = str(boost::format("Active mode behind a router that %1% can configure; port mapping status: %2%") %
+				APPNAME % MappingManager::getInstance()->getStatus());
 			break;
 		}
 	case SettingsManager::INCOMING_FIREWALL_NAT:
@@ -200,6 +203,13 @@ string ConnectivityManager::getInformation() const {
 		"\tEncrypted transfer port: %5%\n"
 		"\tSearch port: %6%") % autoStatus % mode % ip % ConnectionManager::getInstance()->getPort() %
 		ConnectionManager::getInstance()->getSecurePort() % SearchManager::getInstance()->getPort());
+}
+
+void ConnectivityManager::startMapping() {
+	running = true;
+	if(!MappingManager::getInstance()->open()) {
+		running = false;
+	}
 }
 
 void ConnectivityManager::mappingFinished(const string& mapper) {
@@ -236,8 +246,8 @@ void ConnectivityManager::startSocket() {
 		listen();
 
 		// must be done after listen calls; otherwise ports won't be set
-		if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP)
-			MappingManager::getInstance()->open();
+		if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP && !running)
+			startMapping();
 	}
 }
 

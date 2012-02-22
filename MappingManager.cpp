@@ -80,7 +80,16 @@ void MappingManager::close() {
 }
 
 bool MappingManager::getOpened() const {
-	return working.get() ? true : false;
+	return working.get();
+}
+
+string MappingManager::getStatus() const {
+	if(working.get()) {
+		auto& mapper = *working;
+		return str(boost::format("Successfully created port mappings on the %1% device with the %2% interface") %
+			deviceString(mapper) % mapper.getName());
+	}
+	return "Failed to create port mappings";
 }
 
 int MappingManager::run() {
