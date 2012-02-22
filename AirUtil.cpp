@@ -59,8 +59,8 @@ void AirUtil::updateCachedSettings() {
 
 bool AirUtil::matchSkiplist(const string& str) {
 	try {
-	if(boost::regex_search(str.begin(), str.end(), skiplistReg))
-		return true;
+		if(boost::regex_search(str.begin(), str.end(), skiplistReg))
+			return true;
 	}catch(...) { }
 
 	return false;
@@ -567,9 +567,9 @@ void AirUtil::getTarget(StringList& targets, string& target, int64_t& freeSpace)
 	if (targetMap.empty()) {
 		if (!targets.empty()) {
 			target = targets.front();
-			GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&freeSpace);
-			return;
+			GetDiskFreeSpaceEx(Text::toT(getExistingPath(target)).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&freeSpace);
 		}
+		return;
 	}
 
 	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
@@ -583,19 +583,21 @@ void AirUtil::getTarget(StringList& targets, string& target, int64_t& freeSpace)
 }
 
 bool AirUtil::getDiskInfo(const string& aPath, int64_t& freeSpace) {
-	int64_t totalSize = 0;
 	StringSet volumes;
 	AirUtil::getVolumes(volumes);
-
-	GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&totalSize, (PULARGE_INTEGER)&freeSpace);
 	string pathVol = AirUtil::getMountPath(aPath, volumes);
 	if (pathVol.empty()) {
 		return false;
 	}
+
+	int64_t totalSize = 0;
+	GetDiskFreeSpaceEx(Text::toT(pathVol).c_str(), NULL, (PULARGE_INTEGER)&totalSize, (PULARGE_INTEGER)&freeSpace);
+
 	map<string, pair<string, int64_t>> targetMap;
 	targetMap[pathVol] = make_pair(aPath, freeSpace);
 
 	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
+	freeSpace = targetMap[pathVol].second;
 	return true;
 }
 

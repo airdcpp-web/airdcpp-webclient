@@ -198,7 +198,7 @@ public:
 	void increaseHashed() { hashed++; }
 	void increaseMoved() { moved++; }
 
-	void setTarget(string targetNew) { target =  targetNew; }
+	void setTarget(const string& aTarget);
 
 	int64_t getDiskUse(bool countAll);
 

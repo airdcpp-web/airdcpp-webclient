@@ -2760,6 +2760,8 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 				}
 			}
 		}
+
+		AirUtil::removeIfEmpty(aSource);
 		for_each(ql, [&] (QueueItemPtr qi) { removeQI(qi, false); });
 	} else {
 		for_each(sourceBundles, [&] (BundlePtr bundle) { removeBundle(bundle, false, removeFinished); });
@@ -2771,18 +2773,19 @@ void QueueManager::moveDir(const string aSource, const string& aTarget, const Bu
 		return;
 	}
 
+	string target = Util::validateFileName(aTarget);
 	for_each(sourceBundles, [&](BundlePtr sourceBundle) {
 		if (!sourceBundle->isFileBundle()) {
 			if (AirUtil::isParent(aSource, sourceBundle->getTarget())) {
 				//we are moving the root bundle dir or some of it's parents
-				moveBundle(aSource, aTarget, sourceBundle, moveFinished);
+				moveBundle(aSource, target, sourceBundle, moveFinished);
 			} else {
 				//we are moving a subfolder, get the list of queueitems we need to move
-				splitBundle(aSource, aTarget, sourceBundle, moveFinished);
+				splitBundle(aSource, target, sourceBundle, moveFinished);
 			}
 		} else {
 			//move queue items
-			moveFileBundle(sourceBundle, aTarget, aSource);
+			moveFileBundle(sourceBundle, target, aSource);
 		}
 	});
 }
@@ -2830,6 +2833,8 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 			fileQueue.remove(qi);
 			bundleQueue.removeFinishedItem(qi);
 		}
+
+		AirUtil::removeIfEmpty(aSource);
 	}
 
 	//convert the QIs
@@ -2926,6 +2931,8 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 				i++;
 			}
 		}
+
+		AirUtil::removeIfEmpty(aSource);
 
 		fire(QueueManagerListener::BundleMoved(), sourceBundle);
 	}

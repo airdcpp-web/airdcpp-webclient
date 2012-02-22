@@ -39,6 +39,8 @@ Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()),
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
 	currentDownloaded(qi->getDownloadedBytes()), hashed(0), moved(0) {
+
+
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	setFlag(FLAG_NEW);
@@ -46,14 +48,16 @@ Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()),
 		setFlag(FLAG_AUTODROP);
 }
 
-Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate /*0*/) : target(target), fileBundle(false), 
+Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t aDirDate /*0*/) : fileBundle(false), 
 	token(Util::toString(Util::rand()) + Util::toString(Util::rand())), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), 
 	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0), moved(0) {
 
+	setTarget(aTarget);
 	if (dirDate > 0) {
 		checkRecent();
 	} else {
-		dirDate = GET_TIME();
+		//make sure that it won't be set as recent but that it will use the random order
+		dirDate = GET_TIME() - SETTING(RECENT_BUNDLE_HOURS)*60*60;
 	}
 
 	if (aPriority != DEFAULT) {
@@ -69,6 +73,10 @@ Bundle::Bundle(const string& target, time_t added, Priority aPriority, time_t aD
 
 Bundle::~Bundle() { 
 	//bla
+}
+
+void Bundle::setTarget(const string& aTarget) {
+	target = Util::validateFileName(aTarget);
 }
 
 bool Bundle::checkRecent() {
@@ -277,7 +285,7 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 	dcassert(find(l.begin(), l.end(), qi) == l.end());
 	l.push_back(qi);
-	if (l.size() > 1 && (dirDate + (15*24*60*60)) > GET_TIME()) {
+	if (l.size() > 1 && (dirDate + (15*24*60*60)) > GET_TIME()) { //no need to use random order for bundles older than 15 days
 		auto i = l.begin();
 		auto start = (size_t)Util::rand((uint32_t)(l.size() < 200 ? l.size() : 200)); //limit the max value to lower the required moving distance
 		advance(i, start);
