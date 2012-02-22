@@ -46,6 +46,7 @@ public:
 	void message(const string& msg);
 
 	List getLastLogs();
+	void clearLastLogs();
 	string getPath(Area area, ParamMap& params) const;
 	string getPath(Area area) const;
 

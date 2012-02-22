@@ -49,7 +49,10 @@ LogManager::List LogManager::getLastLogs() {
 	Lock l(cs);
 	return lastLogs;
 }
-
+void LogManager::clearLastLogs() {
+	Lock l(cs);
+	return lastLogs.clear();
+}
 string LogManager::getPath(Area area, ParamMap& params) const {
 	return Util::validateFileName(SETTING(LOG_DIRECTORY) + Util::formatParams(getSetting(area, FILE), params));
 }
