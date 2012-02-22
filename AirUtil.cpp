@@ -567,7 +567,7 @@ void AirUtil::getTarget(StringList& targets, string& target, int64_t& freeSpace)
 	if (targetMap.empty()) {
 		if (!targets.empty()) {
 			target = targets.front();
-			GetDiskFreeSpaceEx(Text::toT(getExistingPath(target)).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&freeSpace);
+			GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&freeSpace);
 		}
 		return;
 	}
