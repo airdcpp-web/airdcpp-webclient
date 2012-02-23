@@ -1343,7 +1343,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "How To use", 
 "Clean search term", 
 "WebShortCuts", 
-"a Favorite Download location accepts multiple paths for 1 name,\nThe path used will be the one wich has the most free diskspace.\n", 
 "Country information", 
 "Country format", 
 "Country Format Help", 
@@ -1369,6 +1368,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Use slow speed disconnecting by default for new bundles", 
 "Set highest priority for files matching the high priority list", 
 "The maximum age for a bundle dir to consider it as recent", 
+"Paths (the one with most disk space will be picked)", 
+"Paths", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2712,7 +2713,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsWsHowto", 
 "SettingsWsClean", 
 "Webshortcuts", 
-"FavdirExplain", 
 "CountryInformation", 
 "SettingsCountryFormat", 
 "SettingsCountryFormatHelpDesc", 
@@ -2738,4 +2738,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsAutoDropSlowSources", 
 "SettingsUseHighestList", 
 "SettingsRecentHours", 
+"PathsFavdirs", 
+"Paths", 
 };

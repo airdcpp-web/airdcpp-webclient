@@ -1350,7 +1350,6 @@ enum Strings { // @DontAdd
 	SETTINGS_WS_HOWTO, // "How To use"
 	SETTINGS_WS_CLEAN, // "Clean search term"
 	WEBSHORTCUTS, // "WebShortCuts"
-	FAVDIR_EXPLAIN, // "a Favorite Download location accepts multiple paths for 1 name,\nThe path used will be the one wich has the most free diskspace.\n"
 	COUNTRY_INFORMATION, // "Country information"
 	SETTINGS_COUNTRY_FORMAT, // "Country format"
 	SETTINGS_COUNTRY_FORMAT_HELP_DESC, // "Country Format Help"
@@ -1376,5 +1375,7 @@ enum Strings { // @DontAdd
 	SETTINGS_AUTO_DROP_SLOW_SOURCES, // "Use slow speed disconnecting by default for new bundles"
 	SETTINGS_USE_HIGHEST_LIST, // "Set highest priority for files matching the high priority list"
 	SETTINGS_RECENT_HOURS, // "The maximum age for a bundle dir to consider it as recent"
+	PATHS_FAVDIRS, // "Paths (the one with most disk space will be picked, allows time variables)"
+	PATHS, // "Paths"
 	LAST // @DontAdd
 };
