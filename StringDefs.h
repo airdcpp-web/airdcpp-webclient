@@ -1089,7 +1089,7 @@ enum Strings { // @DontAdd
 	PASSWD_PROTECT_TRAY_CHCKBOX, // "Protect Tray"
 	NOTE, // "Note; If you disable password protection your password will be reset!"
 	READD_ALL, // "Readd all Sources"
-	HUB_NOT_PROTECTED, // "No password was required/provided at login, disconnecting hub. (Setting @ Misc Page)"
+	HUB_NOT_PROTECTED, // "No password was required/provided at login, disconnecting hub. (Setting @ AirDCpage)"
 	DISALLOW_CONNECTION_TO_PASSED_HUBS, // "Automatically disconnect hubs if not registered"
 	DONT_SHARE_DOWNLOAD_DIRECTORY, // "The download directory cannot be shared"
 	BOLD_HUB_TABS_ON_KICK, // "Bold hub's tabs on kick messages"
@@ -1377,5 +1377,6 @@ enum Strings { // @DontAdd
 	SETTINGS_RECENT_HOURS, // "The maximum age for a bundle dir to consider it as recent"
 	PATHS_FAVDIRS, // "Paths (the one with most disk space will be picked, allows time variables)"
 	PATHS, // "Paths"
+	SEARCH_FILENAME, // "Search filename"
 	LAST // @DontAdd
 };

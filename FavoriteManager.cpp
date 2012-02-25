@@ -230,13 +230,14 @@ void FavoriteManager::removeFavorite(const FavoriteHubEntry* entry) {
 	save();
 }
 
-bool FavoriteManager::addFavoriteDir(const string& aName, const StringList& aTargets){
+bool FavoriteManager::addFavoriteDir(const string& aName, StringList& aTargets){
 	for(auto i = favoriteDirs.begin(); i != favoriteDirs.end(); ++i) {
 		if(stricmp(aName, i->first) == 0) {
 			return false;
 		}
 	}
 
+	std::sort(aTargets.begin(), aTargets.end());
 	favoriteDirs.push_back(make_pair(aName, aTargets));
 	save();
 	return true;

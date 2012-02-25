@@ -895,7 +895,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 			LogManager::getInstance()->message(str(boost::format(STRING(DL_BUNDLE_FINISHED)) % 
 				aBundle->getName().c_str()));
 		} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(aBundle)) {
-			aBundle->setFlag(Bundle::FLAG_SCAN_FAILED);
+			aBundle->setFlag(Bundle::FLAG_SHARING_FAILED);
 			return;
 		} 
 
@@ -1000,7 +1000,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 	b->increaseHashed();
 
 	if (failed) {
-		b->setFlag(Bundle::FLAG_HASH_FAILED);
+		b->setFlag(Bundle::FLAG_SHARING_FAILED);
 	}
 
 	if (b->getHashed() == (int)b->getFinishedFiles().size()) {
@@ -1009,35 +1009,47 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 }
 
 void QueueManager::bundleHashed(BundlePtr b) {
-	WLock l(cs);
-	if (!b->getQueueItems().empty()) {
-		//new items have been added while it was being hashed
-		b->resetHashed();
-		b->unsetFlag(Bundle::FLAG_HASH);
-		return;
-	}
-
-	if (b->isSet(Bundle::FLAG_HASH)) {
-		if (!b->isSet(Bundle::FLAG_HASH_FAILED)) {
-			if (!b->isFileBundle()) {
-				fire(QueueManagerListener::BundleHashed(), b->getTarget());
-			} else {
-				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTargetFileName(), b->getFinishedFiles().front()->getTTH());
-			}
-		} else {
-			b->resetHashed(); //for the next attempts
-			LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASH_FAILED)) % 
-				b->getName().c_str()));
+	bool fireHashed = false;
+	{
+		RLock l(cs);
+		if (!b->getQueueItems().empty()) {
+			//new items have been added while it was being hashed
+			b->resetHashed();
+			b->unsetFlag(Bundle::FLAG_HASH);
 			return;
 		}
-	} else {
-		//instant sharing disabled/the folder wasn't shared when the bundle finished
-		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASHED)) % 
-			b->getName().c_str()));
+
+		if (b->isSet(Bundle::FLAG_HASH)) {
+			if (!b->isSet(Bundle::FLAG_SHARING_FAILED)) {
+				fireHashed = true;
+			} else {
+				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASH_FAILED)) % 
+					b->getName().c_str()));
+				b->resetHashed(); //for the next attempts
+				return;
+			}
+		} else {
+			//instant sharing disabled/the folder wasn't shared when the bundle finished
+			LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASHED)) % 
+				b->getName().c_str()));
+		}
 	}
 
-	for_each(b->getFinishedFiles(), [&] (QueueItemPtr qi) { fileQueue.remove(qi); } );
-	bundleQueue.remove(b);
+
+	if (fireHashed) {
+		if (!b->isFileBundle()) {
+			fire(QueueManagerListener::BundleHashed(), b->getTarget());
+		} else {
+			fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTargetFileName(), b->getFinishedFiles().front()->getTTH());
+		}
+	}
+
+
+	{
+		WLock l(cs);
+		for_each(b->getFinishedFiles(), [&] (QueueItemPtr qi) { fileQueue.remove(qi); } );
+		bundleQueue.remove(b);
+	}
 }
 
 void QueueManager::moveStuckFile(QueueItemPtr qi) {
@@ -1214,8 +1226,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 	}
 
 	if (removeFinished) {
-		if (q->getBundle())
-			fileQueue.decreaseSize(q->getSize());
 		UploadManager::getInstance()->abortUpload(q->getTempTarget());
 
 		if (q->getBundle()) {
@@ -1799,8 +1809,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			added = GET_TIME();
 		}
 
-		BundlePtr bundle = BundlePtr(new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT));
-		bundle->setDirDate(dirDate);
+		BundlePtr bundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, dirDate);
 		bundle->setToken(token);
 		curBundle = bundle;
 		inBundle = true;		
@@ -1925,8 +1934,8 @@ void QueueManager::addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const
 	QueueItemPtr qi = new QueueItem(aTarget, aSize, QueueItem::DEFAULT, QueueItem::FLAG_NORMAL, aFinished, tth, Util::emptyString);
 	qi->addSegment(Segment(0, aSize), false, true); //make it complete
 
-	fileQueue.add(qi, true);
 	bundleQueue.addFinishedItem(qi, aBundle);
+	fileQueue.add(qi);
 	//LogManager::getInstance()->message("added finished tth, totalsize: " + Util::toString(aBundle->getFinishedFiles().size()));
 }
 
@@ -1944,8 +1953,8 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 
 	bool wantConnection = false;
 	bool addSources = false;
-	BundlePtr bundle = NULL;
-	QueueItemPtr qi = NULL;
+	BundlePtr b = nullptr;
+	QueueItemPtr qi = nullptr;
 
 	{
 		QueueItemList matches;
@@ -1956,13 +1965,16 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 			qi = *i;
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser()) && qi->getBundle()) {
-				bundle = qi->getBundle();
-				if(qi->isFinished() && bundle->isSource(sr->getUser())) {
-					//no need to match this bundle
+				b = qi->getBundle();
+				if (b->isFinished()) {
 					continue;
 				}
 
-				if((bundle->countOnlineUsers() < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
+				if(qi->isFinished() && b->isSource(sr->getUser())) {
+					continue;
+				}
+
+				if((b->countOnlineUsers() < (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))) {
 					addSources = true;
 				} 
 			}
@@ -1970,7 +1982,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		}
 	}
 
-	if (addSources && bundle->isFileBundle()) {
+	if (addSources && b->isFileBundle()) {
 		/* No reason to match anything with file bundles */
 		WLock l(cs);
 		try {	 
@@ -1979,7 +1991,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 			// Ignore...
 		}
 	} else if(addSources) {
-		string path = bundle->getMatchPath(sr->getFile(), qi->getTarget(), sr->getUser()->isSet(User::NMDC));
+		string path = b->getMatchPath(sr->getFile(), qi->getTarget(), sr->getUser()->isSet(User::NMDC));
 		if (!path.empty()) {
 			if (sr->getUser()->isSet(User::NMDC)) {
 				//A NMDC directory bundle, just add the sources without matching
@@ -1987,7 +1999,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 				int newFiles = 0;
 				{
 					WLock l(cs);
-					bundle->getDirQIs(path, ql);
+					b->getDirQIs(path, ql);
 					for (auto i = ql.begin(); i != ql.end(); ++i) {
 						try {	 
 							if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
@@ -2003,7 +2015,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(HintedUser(sr->getUser(), sr->getHubURL()))) + ": " + 
 						str(boost::format(STRING(MATCH_SOURCE_ADDED)) % 
 						newFiles % 
-						bundle->getName().c_str()));
+						b->getName().c_str()));
 				}
 			} else {
 				//An ADC directory bundle, match recursive partial list
@@ -2406,7 +2418,7 @@ tstring QueueManager::getDirPath(const string& aDir) {
 void QueueManager::getUnfinishedPaths(StringList& retBundles) {
 	RLock l(cs);
 	for_each(bundleQueue.getBundles(), [&](pair<string, BundlePtr> sp) {
-		if (sp.second->isFileBundle() && !sp.second->isFinished()) {
+		if (!sp.second->isFileBundle() && !sp.second->isFinished()) {
 			retBundles.push_back(sp.second->getTarget());
 		}
 	});
@@ -2418,29 +2430,36 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 		RLock l(cs);
 		for (auto i = bundleQueue.getBundles().begin(); i != bundleQueue.getBundles().end(); ++i) {
 			BundlePtr b = i->second;
-			//check the path
+			if (b->isFinished() && !BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
+				continue;
+			}
+
+			//check the path just to avoid hashing/scanning bundles from dirs that aren't being refreshed
 			if (find_if(paths.begin(), paths.end(), [&](StringPair sp) { return AirUtil::isParent(sp.second, b->getTarget()); }) == paths.end()) {
 				continue;
 			}
 
 			if (!b->isFileBundle()) {
-				if (b->isSet(Bundle::FLAG_SCAN_FAILED)) {
-					if (ShareScannerManager::getInstance()->scanBundle(b)) {
-						b->unsetFlag(Bundle::FLAG_SCAN_FAILED);
-						hash.push_back(b);
-					}
-				} else if (b->isSet(Bundle::FLAG_HASH_FAILED)) {
-					//schedule for hashing and handle the results elsewhere
-					b->unsetFlag(Bundle::FLAG_HASH_FAILED);
+				if (b->isSet(Bundle::FLAG_SHARING_FAILED)) {
 					hash.push_back(b);
-				} else if (b->isFinished() && !BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
-					continue;
 				}
 				retBundles.push_back(Text::toLower(b->getTarget()));
 			}
 		}
 	}
-	for_each(hash, [&](BundlePtr b) { hashBundle(b); });
+
+	for (auto i = hash.begin(); i != hash.end(); i++) {
+		BundlePtr b = *i;
+		if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(b)) {
+			b->setFlag(Bundle::FLAG_SHARING_FAILED);
+			continue;
+		}
+
+		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
+
+		hashBundle(b); 
+	}
+
 	sort(retBundles.begin(), retBundles.end());
 }
 
@@ -2518,8 +2537,7 @@ void QueueManager::connectBundleSources(BundlePtr aBundle) {
 }
 
 void QueueManager::readdBundle(BundlePtr aBundle) {
-	aBundle->unsetFlag(Bundle::FLAG_HASH_FAILED);
-	aBundle->unsetFlag(Bundle::FLAG_SCAN_FAILED);
+	aBundle->unsetFlag(Bundle::FLAG_SHARING_FAILED);
 
 	{
 		WLock l(cs);
@@ -3249,6 +3267,7 @@ void QueueManager::removeBundleItem(QueueItemPtr qi, bool finished, bool moved /
 		WLock l(cs);
 		bundleQueue.removeBundleItem(qi, finished);
 		if (finished) {
+			fileQueue.decreaseSize(qi->getSize());
 			for (auto s = qi->getBundle()->getFinishedNotifications().begin(); s != qi->getBundle()->getFinishedNotifications().end(); ++s) {
 				if (!qi->isSource(s->first.user)) {
 					notified.push_back(s->first);
@@ -3477,7 +3496,8 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 	if(BOOLSETTING(REPORT_ALTERNATES) && !manual) {
 		//LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + Util::getFileName(qi->getTargetFileName()));
 		if (aBundle->getSimpleMatching()) {
-			LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH_RECENT) + " " + (!aBundle->isRecent() ? STRING(NEXT_SEARCH_IN) : STRING(NEXT_RECENT_SEARCH_IN))) % 
+			LogManager::getInstance()->message(str(boost::format(aBundle->isRecent() ? STRING(BUNDLE_ALT_SEARCH_RECENT) : STRING(BUNDLE_ALT_SEARCH) + 
+				" " + (!aBundle->isRecent() ? STRING(NEXT_SEARCH_IN) : STRING(NEXT_RECENT_SEARCH_IN))) % 
 					aBundle->getName().c_str() % 
 					searchCount % 
 					nextSearch));

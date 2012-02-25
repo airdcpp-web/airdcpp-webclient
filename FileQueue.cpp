@@ -37,19 +37,16 @@ QueueItemPtr FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskTyp
 
 	QueueItemPtr qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
 	dcassert(find(aTarget) == NULL);
-	add(qi, false);
+	add(qi);
 	return qi;
 }
 
-void FileQueue::add(QueueItemPtr qi, bool addFinished) noexcept {
-	if (!addFinished) {
-		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-			dcassert(qi->getSize() >= 0);
-			queueSize += qi->getSize();
-		}
-		dcassert(queueSize >= 0);
-		//queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi)).first;
+void FileQueue::add(QueueItemPtr qi) noexcept {
+	if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
+		dcassert(qi->getSize() >= 0);
+		queueSize += qi->getSize();
 	}
+	dcassert(queueSize >= 0);
 	targetMapInsert = queue.insert(targetMapInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
 	tthIndex.insert(make_pair(qi->getTTH(), qi));
 }
@@ -136,7 +133,7 @@ QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileNa
 void FileQueue::move(QueueItemPtr qi, const string& aTarget) noexcept {
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
-	add(qi, false);
+	add(qi);
 }
 
 // compare nextQueryTime, get the oldest ones

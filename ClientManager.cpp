@@ -266,13 +266,10 @@ UserPtr ClientManager::findLegacyUser(const string& aNick) const noexcept {
 
 	Lock l(cs);
 
-	// this be slower now, but it's not called so often
-	for(NickMap::const_iterator i = nicks.begin(); i != nicks.end(); ++i) {
-		if(stricmp(i->second, aNick) == 0) {
-			UserMap::const_iterator u = users.find(i->first);
-			if(u != users.end() && u->second->getCID() == *i->first)
-				return u->second;
-		}
+	for(auto i = onlineUsers.begin(); i != onlineUsers.end(); ++i) {
+		const OnlineUser* ou = i->second;
+		if(ou->getUser()->isSet(User::NMDC) && Util::stricmp(ou->getIdentity().getNick(), aNick) == 0)
+			return ou->getUser();
 	}
 	return UserPtr();
 }

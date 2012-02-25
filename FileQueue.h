@@ -40,7 +40,7 @@ public:
 	void decreaseSize(uint64_t aSize) { queueSize -= aSize; }
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItemPtr> > PFSSourceList;
 
-	void add(QueueItemPtr qi, bool addFinished);
+	void add(QueueItemPtr qi);
 	QueueItemPtr add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
 	QueueItemPtr find(const string& target) noexcept;

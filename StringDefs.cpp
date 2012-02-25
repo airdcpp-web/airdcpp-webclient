@@ -1082,7 +1082,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Protect Tray", 
 "Note; If you disable password protection your password will be reset!", 
 "Readd all Sources", 
-"No password was required/provided at login, disconnecting hub. (Setting @ Misc Page)", 
+"No password was required/provided at login, disconnecting hub. (Setting @ AirDCpage)", 
 "Automatically disconnect hubs if not registered", 
 "The download directory cannot be shared", 
 "Bold hub's tabs on kick messages", 
@@ -1368,8 +1368,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Use slow speed disconnecting by default for new bundles", 
 "Set highest priority for files matching the high priority list", 
 "The maximum age for a bundle dir to consider it as recent", 
-"Paths (the one with most disk space will be picked)", 
+"Paths (the one with most disk space will be picked, allows time variables)", 
 "Paths", 
+"Search filename", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2740,4 +2741,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsRecentHours", 
 "PathsFavdirs", 
 "Paths", 
+"SearchFilename", 
 };

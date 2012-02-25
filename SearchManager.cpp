@@ -189,7 +189,7 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 	if(x.compare(0, 4, "$SR ") == 0) {
 		string::size_type i, j;
 		// Directories: $SR <nick><0x20><directory><0x20><free slots>/<total slots><0x05><Hubname><0x20>(<Hubip:port>)
-		// Files:       $SR <nick><0x20><filename><0x05><filesize><0x20><free slots>/<total slots><0x05><Hubname><0x20>(<Hubip:port>)
+		// Files:		$SR <nick><0x20><filename><0x05><filesize><0x20><free slots>/<total slots><0x05><Hubname><0x20>(<Hubip:port>)
 		i = 4;
 		if( (j = x.find(' ', i)) == string::npos) {
 			return;
@@ -199,13 +199,13 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 
 		// A file has 2 0x05, a directory only one
 		size_t cnt = count(x.begin() + j, x.end(), 0x05);
-	
+
 		SearchResult::Types type = SearchResult::TYPE_FILE;
 		string file;
 		int64_t size = 0;
 
 		if(cnt == 1) {
-			// We have a directory...find the first space beyond the first 0x05 from the back 
+			// We have a directory...find the first space beyond the first 0x05 from the back
 			// (dirs might contain spaces as well...clever protocol, eh?)
 			type = SearchResult::TYPE_DIRECTORY;
 			// Get past the hubname that might contain spaces
@@ -218,7 +218,7 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 			}
 			if(j < i + 1) {
 				return;
-			}	
+			}
 			file = x.substr(i, j-i) + '\\';
 		} else if(cnt == 2) {
 			if( (j = x.find((char)5, i)) == string::npos) {
@@ -230,9 +230,9 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 				return;
 			}
 			size = Util::toInt64(x.substr(i, j-i));
-		}	
+		}
 		i = j + 1;
-		
+
 		if( (j = x.find('/', i)) == string::npos) {
 			return;
 		}
@@ -283,8 +283,8 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 
 		SearchResultPtr sr(new SearchResult(user, type, slots, freeSlots, size,
 			file, hubName, url, remoteIp, TTHValue(tth), Util::emptyString));
-		SearchManager::getInstance()->fire(SearchManagerListener::SR(), sr);
-			
+		fire(SearchManagerListener::SR(), sr);
+
 	} else if(x.compare(1, 4, "RES ") == 0 && x[x.length() - 1] == 0x0a) {
 		AdcCommand c(x.substr(0, x.length()-1));
 		if(c.getParameters().empty())
@@ -300,7 +300,7 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 		// This should be handled by AdcCommand really...
 		c.getParameters().erase(c.getParameters().begin());
 
-		SearchManager::getInstance()->onRES(c, user, remoteIp);
+		onRES(c, user, remoteIp);
 
 	} else if (x.compare(1, 4, "PSR ") == 0 && x[x.length() - 1] == 0x0a) {
 		AdcCommand c(x.substr(0, x.length()-1));

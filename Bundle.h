@@ -55,14 +55,12 @@ public:
 		FLAG_UPDATE_NAME			= 0x02,
 		/** The bundle is currently being hashed */
 		FLAG_HASH					= 0x04,
-		/** Failed to hash */
-		FLAG_HASH_FAILED			= 0x08,
-		/** Missing/extra files have been found */
-		FLAG_SCAN_FAILED			= 0x10,
+		/** Missing/extra files have been found or it has failed to hash */
+		FLAG_SHARING_FAILED			= 0x08,
 		/** Not added into bundleQueue yet */
-		FLAG_NEW					= 0x20,
+		FLAG_NEW					= 0x10,
 		/** Autodrop slow sources is enabled for this bundle */
-		FLAG_AUTODROP				= 0x80
+		FLAG_AUTODROP				= 0x20
 	};
 
 	enum SourceInfo {

@@ -49,7 +49,7 @@ Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()),
 }
 
 Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t aDirDate /*0*/) : fileBundle(false), 
-	token(Util::toString(Util::rand()) + Util::toString(Util::rand())), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), 
+	token(Util::toString(Util::rand()) + Util::toString(Util::rand())), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate),
 	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0), moved(0) {
 
 	setTarget(aTarget);

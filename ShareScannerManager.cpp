@@ -692,7 +692,7 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 		scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 		find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, true);
 
-		reportResults(aBundle->getName(), !aBundle->isSet(Bundle::FLAG_SCAN_FAILED) ? 2 : 3, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
+		reportResults(aBundle->getName(), aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? 3 : 2, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 		return (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0); //allow choosing the level when it shouldn't be added?
 	}
 	return true;
