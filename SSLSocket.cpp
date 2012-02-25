@@ -21,6 +21,7 @@
 
 #include "LogManager.h"
 #include "SettingsManager.h"
+#include "ResourceManager.h"
 #include "format.h"
 
 #include <openssl/err.h>
@@ -156,8 +157,9 @@ int SSLSocket::checkSSL(int ret) {
 				{
 					ssl.reset();
 					// @todo replace 80 with MAX_ERROR_SZ or whatever's appropriate for yaSSL in some nice way...
-					char errbuf[80];
-					throw SSLSocketException(str(boost::format("SSL Error: %1% (%2%, %3%)") % ERR_error_string(err, errbuf) % ret % err));
+					int error = ERR_get_error();
+					throw SSLSocketException(str(boost::format("SSL Error %1%: %2%") % err % (error == 0 ? CSTRING(CONNECTION_CLOSED) : ERR_reason_error_string(error))));
+					 
 				}
 		}
 	}

@@ -1089,7 +1089,7 @@ enum Strings { // @DontAdd
 	PASSWD_PROTECT_TRAY_CHCKBOX, // "Protect Tray"
 	NOTE, // "Note; If you disable password protection your password will be reset!"
 	READD_ALL, // "Readd all Sources"
-	HUB_NOT_PROTECTED, // "No password was required/provided at login, disconnecting hub. (Setting @ AirDCpage)"
+	HUB_NOT_PROTECTED, // "No password was required/provided at login, disconnecting hub. (Setting @ Misc Page)"
 	DISALLOW_CONNECTION_TO_PASSED_HUBS, // "Automatically disconnect hubs if not registered"
 	DONT_SHARE_DOWNLOAD_DIRECTORY, // "The download directory cannot be shared"
 	BOLD_HUB_TABS_ON_KICK, // "Bold hub's tabs on kick messages"

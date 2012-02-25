@@ -1082,7 +1082,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Protect Tray", 
 "Note; If you disable password protection your password will be reset!", 
 "Readd all Sources", 
-"No password was required/provided at login, disconnecting hub. (Setting @ AirDCpage)", 
+"No password was required/provided at login, disconnecting hub. (Setting @ Misc Page)", 
 "Automatically disconnect hubs if not registered", 
 "The download directory cannot be shared", 
 "Bold hub's tabs on kick messages", 

@@ -2046,7 +2046,7 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 			auto Files = tempShares.equal_range(srch.root);
 			for(auto i = Files.first; i != Files.second; ++i) {
 				if(i->second.key.empty() || (i->second.key == cid.toBase32())) { // if no key is set, it means its a hub share.
-					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, i->second.path, i->first));
+					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, "tmp\\" + Util::getFileName(i->second.path), i->first));
 					results.push_back(sr);
 					addHits(1);
 				}
