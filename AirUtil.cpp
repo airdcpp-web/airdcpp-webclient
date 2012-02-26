@@ -682,25 +682,6 @@ string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& 
 	return tmp;
 }
 
-
-string AirUtil::convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget) noexcept {
-	//cut the filename
-	string oldDir = Util::getDir(aSourceCur, false, false);
-	string target = aTarget;
-
-	if (oldDir.length() > aSourceRoot.length()) {
-		target += oldDir.substr(aSourceRoot.length(), oldDir.length() - aSourceRoot.length());
-	}
-
-	if(aSourceCur[aSourceCur.size() -1] != '\\') {
-		target += Util::getFileName(aSourceCur);
-		//LogManager::getInstance()->message("NEW TARGET (FILE): " + target + " OLD FILE: " + aSource);
-	} else {
-		//LogManager::getInstance()->message("NEW TARGET (DIR): " + target + " OLD DIR: " + aSource);
-	}
-	return target;
-}
-
 //fuldc ftp logger support
 void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
 	string target = tgt;
@@ -834,7 +815,7 @@ bool AirUtil::isEmpty(const string& aPath) {
 			}
 		} catch(const FileException&) { } 
 	}
-	::RemoveDirectoryW(Text::toT(aPath).c_str());
+	::RemoveDirectoryW(Text::toT(Util::FormatPath(aPath)).c_str());
 	return true;
 }
 
@@ -861,6 +842,10 @@ bool AirUtil::isAdcHub(const string& hubUrl) {
 		return true;
 	}
 	return false;
+}
+
+string AirUtil::convertMovePath(const string& aPath, const string& aParent, const string& aTarget) {
+	return aTarget + aPath.substr(aParent.length(), aPath.length() - aParent.length());
 }
 
 }

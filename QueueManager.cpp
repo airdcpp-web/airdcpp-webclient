@@ -859,7 +859,7 @@ removePartial:
 	return nullptr;
 }
 
-void QueueManager::moveFile(const string& source, const string& target, BundlePtr aBundle) {
+void QueueManager::moveFile(const string& source, const string& target, BundlePtr aBundle /*nullptr, only add when download finishes!*/) {
 	File::ensureDirectory(target);
 	if(File::getSize(source) > MOVER_LIMIT) {
 		mover.moveFile(source, target, aBundle);
@@ -1054,7 +1054,7 @@ void QueueManager::bundleHashed(BundlePtr b) {
 
 void QueueManager::moveStuckFile(QueueItemPtr qi) {
 
-	moveFile(qi->getTempTarget(), qi->getTarget(), qi->getBundle());
+	moveFile(qi->getTempTarget(), qi->getTarget());
 
 	if(qi->isFinished()) {
 		WLock l(cs);
@@ -1827,6 +1827,12 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			} catch(const Exception&) {
 				return;
 			}
+
+			if (curBundle && inBundle && !AirUtil::isParent(curBundle->getTarget(), target)) {
+				//can't add this
+				return;
+			}
+
 			QueueItem::Priority p = (QueueItem::Priority)Util::toInt(getAttrib(attribs, sPriority, 3));
 			time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 4)));
 			const string& tthRoot = getAttrib(attribs, sTTH, 5);
@@ -2786,29 +2792,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 	}
 }
 
-void QueueManager::moveDir(const string aSource, const string& aTarget, const BundleList& sourceBundles, bool moveFinished) {
-	if (sourceBundles.empty()) {
-		return;
-	}
-
-	string target = Util::validateFileName(aTarget);
-	for_each(sourceBundles, [&](BundlePtr sourceBundle) {
-		if (!sourceBundle->isFileBundle()) {
-			if (AirUtil::isParent(aSource, sourceBundle->getTarget())) {
-				//we are moving the root bundle dir or some of it's parents
-				moveBundle(aSource, target, sourceBundle, moveFinished);
-			} else {
-				//we are moving a subfolder, get the list of queueitems we need to move
-				splitBundle(aSource, target, sourceBundle, moveFinished);
-			}
-		} else {
-			//move queue items
-			moveFileBundle(sourceBundle, target, aSource);
-		}
-	});
-}
-
-void QueueManager::moveBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) {
+void QueueManager::moveBundle(const string& aTarget, BundlePtr sourceBundle, bool moveFinished) {
 
 	string sourceBundleTarget = sourceBundle->getTarget();
 	bool hasMergeBundle = false;
@@ -2818,7 +2802,7 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 	{
 		WLock l(cs);
 		//can we merge this with an existing bundle?
-		newBundle = bundleQueue.getMergeBundle(AirUtil::convertMovePath(sourceBundleTarget,aSource, aTarget));	
+		newBundle = bundleQueue.getMergeBundle(aTarget);	
 		if (newBundle) {
 			hasMergeBundle = true;
 		} else {
@@ -2830,16 +2814,17 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 			QueueItemPtr qi = *i;
 			if (moveFinished) {
 				UploadManager::getInstance()->abortUpload(qi->getTarget());
-				string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
+				string targetPath = AirUtil::convertMovePath(qi->getTarget(), sourceBundle->getTarget(), aTarget);
 				if (!fileQueue.find(targetPath)) {
 					if(!Util::fileExists(targetPath)) {
-						moveFile(qi->getTarget(), targetPath, newBundle);
-						fileQueue.move(qi, targetPath);
+						moveFile(qi->getTarget(), targetPath);
 						if (hasMergeBundle) {
 							bundleQueue.removeFinishedItem(qi);
+							fileQueue.move(qi, targetPath);
 							bundleQueue.addFinishedItem(qi, newBundle);
 						} else {
 							//keep in the current bundle
+							fileQueue.move(qi, targetPath);
 							i++;
 						}
 						continue;
@@ -2852,7 +2837,7 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 			bundleQueue.removeFinishedItem(qi);
 		}
 
-		AirUtil::removeIfEmpty(aSource);
+		AirUtil::removeIfEmpty(sourceBundle->getTarget());
 	}
 
 	//convert the QIs
@@ -2865,7 +2850,7 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 
 	for (auto i = ql.begin(); i != ql.end();) {
 		QueueItemPtr qi = *i;
-		if (!move(qi, AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget))) {
+		if (!move(qi, AirUtil::convertMovePath(qi->getTarget(), sourceBundle->getTarget(), aTarget))) {
 			ql.erase(i);
 		} else {
 			++i;
@@ -2881,7 +2866,7 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 		mergeBundle(newBundle, sourceBundle);
 	} else {
 		//nothing to merge to, move the old bundle
-		int merged = changeBundleTarget(sourceBundle, AirUtil::convertMovePath(sourceBundleTarget, aSource, aTarget));
+		int merged = changeBundleTarget(sourceBundle, aTarget);
 
 		{
 			RLock l(cs);
@@ -2926,7 +2911,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 					string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
 					if (!fileQueue.find(targetPath)) {
 						if(!Util::fileExists(targetPath)) {
-							moveFile(qi->getTarget(), targetPath, newBundle);
+							moveFile(qi->getTarget(), targetPath);
 							fileQueue.move(qi, targetPath);
 							if (newBundle == sourceBundle) {
 								i++;
@@ -2988,7 +2973,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	}
 }
 
-void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget, const string& aSource) noexcept {
+void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget) noexcept {
 	QueueItemPtr qi = NULL;
 	BundlePtr targetBundle = NULL;
 	{
@@ -2998,7 +2983,7 @@ void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget, cons
 		targetBundle = bundleQueue.getMergeBundle(qi->getTarget());
 	}
 
-	if (!move(qi, aSource.empty() ? aTarget : (AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget)))) {
+	if (!move(qi, aTarget)) {
 		return;
 	}
 
@@ -3086,11 +3071,10 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 	QueueItemList ql;
 	bool movedFired = false;
 	for_each(sourceTargetList, [&](StringPair sp) {
-		string source = sp.first;
 		QueueItemPtr qs = NULL;
 		{
 			RLock l(cs);
-			qs = fileQueue.find(source);
+			qs = fileQueue.find(sp.first);
 		}
 		if(qs) {
 			BundlePtr b = qs->getBundle();
@@ -3098,7 +3082,7 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 			if (b) {
 				if (b->isFileBundle()) {
 					//the path has been converted already
-					moveFileBundle(qs->getBundle(), sp.second, Util::emptyString);
+					moveFileBundle(qs->getBundle(), sp.second);
 				} else {
 					if (!movedFired) {
 						RLock l(cs);
@@ -3490,17 +3474,23 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 			Util::formatBytes(aBundle->getSize()).c_str() % 
 			searchCount %
 			nextSearch));
-		return;
-	}
-
-	if(BOOLSETTING(REPORT_ALTERNATES) && !manual) {
-		//LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + Util::getFileName(qi->getTargetFileName()));
+	} else if (manual) {
+		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH)) % aBundle->getName().c_str() % searchCount));
+	} else if(BOOLSETTING(REPORT_ALTERNATES)) {
 		if (aBundle->getSimpleMatching()) {
-			LogManager::getInstance()->message(str(boost::format(aBundle->isRecent() ? STRING(BUNDLE_ALT_SEARCH_RECENT) : STRING(BUNDLE_ALT_SEARCH) + 
-				" " + (!aBundle->isRecent() ? STRING(NEXT_SEARCH_IN) : STRING(NEXT_RECENT_SEARCH_IN))) % 
+			if (aBundle->isRecent()) {
+				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH_RECENT) + 
+				" " + (STRING(NEXT_RECENT_SEARCH_IN))) % 
 					aBundle->getName().c_str() % 
 					searchCount % 
 					nextSearch));
+			} else {
+				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH) + 
+					" " + (STRING(NEXT_SEARCH_IN))) % 
+					aBundle->getName().c_str() % 
+					searchCount % 
+					nextSearch));
+			}
 		} else {
 			if (!aBundle->isRecent()) {
 				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::toString(nextSearch) + " minutes");
@@ -3508,8 +3498,6 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next recent search in " + Util::toString(nextSearch) + " minutes");
 			}
 		}
-	} else if (manual) {
-		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH)) % aBundle->getName().c_str() % searchCount));
 	}
 }
 

@@ -47,7 +47,6 @@ class AirUtil {
 		static int listRegexCount(const StringList& l, const boost::regex& aReg);
 		static bool stringRegexMatch(const string& aReg, const string& aString);
 		static string formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial);
-		static string convertMovePath(const string& aSourceCur, const string& aSourceRoot, const string& aTarget);
 		static void fileEvent(const string& tgt, bool file=false);
 		static bool isSub(const string& aDir, const string& aParent);
 		static bool isParent(const string& aDir, const string& aSub);
@@ -57,6 +56,7 @@ class AirUtil {
 		static bool isEmpty(const string& tgt);
 
 		static bool isAdcHub(const string& hubUrl);
+		static string convertMovePath(const string& aPath, const string& aParent, const string& aTarget);
 	private:
 
 	};

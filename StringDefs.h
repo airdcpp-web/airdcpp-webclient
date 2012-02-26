@@ -386,7 +386,6 @@ enum Strings { // @DontAdd
 	MINSLOTS, // "Min slots"
 	MINUTES, // "Minutes"
 	MODE, // "Mode"
-	MOVE, // "Move/Rename"
 	MOVE_DOWN, // "Move &Down"
 	MOVE_UP, // "Move &Up"
 	MYNICK_IN_CHAT, // "My nick in mainchat"
@@ -1378,5 +1377,8 @@ enum Strings { // @DontAdd
 	PATHS_FAVDIRS, // "Paths (the one with most disk space will be picked, allows time variables)"
 	PATHS, // "Paths"
 	SEARCH_FILENAME, // "Search filename"
+	RENAME_DIR, // "Rename Directory"
+	MOVE_DIR, // "Move Directory"
+	MOVE_RENAME_FILE, // "Move/Rename file(s)"
 	LAST // @DontAdd
 };

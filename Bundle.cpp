@@ -77,6 +77,8 @@ Bundle::~Bundle() {
 
 void Bundle::setTarget(const string& aTarget) {
 	target = Util::validateFileName(aTarget);
+	if (target[target.length()-1] != PATH_SEPARATOR)
+		target += PATH_SEPARATOR;
 }
 
 bool Bundle::checkRecent() {

@@ -383,7 +383,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Min slots", 
 "Minutes", 
 "Mode", 
-"Move/Rename", 
 "Move &Down", 
 "Move &Up", 
 "My nick in mainchat", 
@@ -1371,6 +1370,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Paths (the one with most disk space will be picked, allows time variables)", 
 "Paths", 
 "Search filename", 
+"Rename Directory", 
+"Move Directory", 
+"Move/Rename file(s)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -1754,7 +1756,6 @@ std::string dcpp::ResourceManager::names[] = {
 "Minslots", 
 "Minutes", 
 "Mode", 
-"Move", 
 "MoveDown", 
 "MoveUp", 
 "MynickInChat", 
@@ -2742,4 +2743,7 @@ std::string dcpp::ResourceManager::names[] = {
 "PathsFavdirs", 
 "Paths", 
 "SearchFilename", 
+"RenameDir", 
+"MoveDir", 
+"MoveRenameFile", 
 };

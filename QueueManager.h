@@ -123,10 +123,10 @@ public:
 	void connectBundleSources(BundlePtr aBundle);
 	void mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, bool first=true);
 	void mergeFileBundles(BundlePtr aBundle);
-	void moveBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
+	void moveBundle(const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	int changeBundleTarget(BundlePtr aBundle, const string& newTarget);
-	void moveFileBundle(BundlePtr aBundle, const string& aTarget, const string& aSource) noexcept;
+	void moveFileBundle(BundlePtr aBundle, const string& aTarget) noexcept;
 	void removeBundleItem(QueueItemPtr qi, bool finished, bool moved = false);
 	void moveBundleItem(QueueItemPtr qi, BundlePtr targetBundle, bool fireAdded);
 	void moveBundleItems(const QueueItemList& ql, BundlePtr targetBundle, bool fireAdded);
@@ -156,7 +156,6 @@ public:
 	}
 	void handleBundleUpdate(const string& bundleToken);
 
-	void moveDir(const string aSource, const string& aTarget, const BundleList& sourceBundles, bool moveFinished);
 	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished);
 	bool move(QueueItemPtr qs, const string& aTarget) noexcept;
 
@@ -257,7 +256,7 @@ private:
 	bundleTickMap bundleUpdates;
 
 	void load(const SimpleXML& aXml);
-	void moveFile(const string& source, const string& target, BundlePtr aBundle);
+	void moveFile(const string& source, const string& target, BundlePtr aBundle = nullptr);
 	static void moveFile_(const string& source, const string& target, BundlePtr aBundle);
 	void moveStuckFile(QueueItemPtr qi);
 	void rechecked(QueueItemPtr qi);
