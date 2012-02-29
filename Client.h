@@ -93,7 +93,7 @@ public:
 	virtual void getUserList(OnlineUserList& list) const = 0;
 	virtual OnlineUserPtr findUser(const string& aNick) const = 0;
 	
-	uint16_t getPort() const { return Util::toInt(port); }
+	const string& getPort() const { return port; }
 	const string& getAddress() const { return address; }
 
 	const string& getIp() const { return ip; }

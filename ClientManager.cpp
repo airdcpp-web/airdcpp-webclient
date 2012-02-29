@@ -149,7 +149,7 @@ StringList ClientManager::getNicks(const CID& cid, const string& hintUrl, bool p
 
 	if(ret.empty()) {
 		// offline
-		NickMap::const_iterator i = nicks.find(const_cast<CID*>(&cid));
+		auto i = nicks.find(const_cast<CID*>(&cid));
 		if(i != nicks.end()) {
 			ret.insert(i->second);
 		} else {
@@ -217,7 +217,7 @@ uint8_t ClientManager::getSlots(const CID& cid) const
 bool ClientManager::isConnected(const string& aUrl) const {
 	Lock l(cs);
 
-	Client::Iter i = clients.find(const_cast<string*>(&aUrl));
+	auto i = clients.find(const_cast<string*>(&aUrl));
 	return i != clients.end();
 }
 
@@ -225,17 +225,17 @@ string ClientManager::findHub(const string& ipPort) const {
 	Lock l(cs);
 
 	string ip;
-	uint16_t port = 411;
-	string::size_type i = ipPort.find(':');
+	string port = "411";
+	string::size_type i = ipPort.rfind(':');
 	if(i == string::npos) {
 		ip = ipPort;
 	} else {
 		ip = ipPort.substr(0, i);
-		port = static_cast<uint16_t>(Util::toInt(ipPort.substr(i+1)));
+		port = ipPort.substr(i+1);
 	}
 
 	string url;
-	for(Client::Iter i = clients.begin(); i != clients.end(); ++i) {
+	for(auto i = clients.begin(); i != clients.end(); ++i) {
 		const Client* c = i->second;
 		if(c->getIp() == ip) {
 			// If exact match is found, return it
@@ -253,7 +253,7 @@ string ClientManager::findHub(const string& ipPort) const {
 const string& ClientManager::findHubEncoding(const string& aUrl) const {
 	Lock l(cs);
 
-	Client::Iter i = clients.find(const_cast<string*>(&aUrl));
+	auto i = clients.find(const_cast<string*>(&aUrl));
 	if(i != clients.end()) {
 		return i->second->getEncoding();
 	}
@@ -278,7 +278,7 @@ UserPtr ClientManager::getUser(const string& aNick, const string& aHubUrl) noexc
 	CID cid = makeCid(aNick, aHubUrl);
 	Lock l(cs);
 
-	UserMap::const_iterator ui = users.find(const_cast<CID*>(&cid));
+	auto ui = users.find(const_cast<CID*>(&cid));
 	if(ui != users.end()) {
 		ui->second->setFlag(User::NMDC);
 		return ui->second;
@@ -293,7 +293,7 @@ UserPtr ClientManager::getUser(const string& aNick, const string& aHubUrl) noexc
 
 UserPtr ClientManager::getUser(const CID& cid) noexcept {
 	Lock l(cs);
-	UserMap::const_iterator ui = users.find(const_cast<CID*>(&cid));
+	auto ui = users.find(const_cast<CID*>(&cid));
 	if(ui != users.end()) {
 		return ui->second;
 	}
@@ -305,7 +305,7 @@ UserPtr ClientManager::getUser(const CID& cid) noexcept {
 
 UserPtr ClientManager::findUser(const CID& cid) const noexcept {
 	Lock l(cs);
-	UserMap::const_iterator ui = users.find(const_cast<CID*>(&cid));
+	auto ui = users.find(const_cast<CID*>(&cid));
 	if(ui != users.end()) {
 		return ui->second;
 	}
@@ -326,7 +326,7 @@ bool ClientManager::isOp(const UserPtr& user, const string& aHubUrl) const {
 
 bool ClientManager::isStealth(const string& aHubUrl) const {
 	Lock l(cs);
-	Client::Iter i = clients.find(const_cast<string*>(&aHubUrl));
+	auto i = clients.find(const_cast<string*>(&aHubUrl));
 	if(i != clients.end()) {
 		return i->second->getStealth();
 	}
@@ -356,28 +356,29 @@ void ClientManager::putOnline(OnlineUser* ou) noexcept {
 }
 
 void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
-	bool lastUser = false;
+	OnlineIter::difference_type diff = 0;
 	{
 		Lock l(cs);
-		OnlinePair op = onlineUsers.equal_range(const_cast<CID*>(&ou->getUser()->getCID()));
+		auto op = onlineUsers.equal_range(const_cast<CID*>(&ou->getUser()->getCID()));
 		dcassert(op.first != op.second);
-		for(OnlineIter i = op.first; i != op.second; ++i) {
-			OnlineUser* ou2 = i->second;
+		for(auto i = op.first; i != op.second; ++i) {
+			auto ou2 = i->second;
 			if(ou == ou2) {
-				lastUser = (distance(op.first, op.second) == 1);
+				diff = distance(op.first, op.second);
 				onlineUsers.erase(i);
 				break;
 			}
 		}
 	}
 
-	if(lastUser) {
+	if(diff == 1) { //last user
 		UserPtr& u = ou->getUser();
 		u->unsetFlag(User::ONLINE);
-		updateNick(*ou);
 		if(disconnect)
 			ConnectionManager::getInstance()->disconnect(u);
 		fire(ClientManagerListener::UserDisconnected(), u);
+	} else if(diff > 1) {
+		fire(ClientManagerListener::UserUpdated(), *ou);
 	}
 }
 
@@ -595,11 +596,12 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcep
 	Lock l(cs);
 
 	// Collect some garbage...
-	UserIter i = users.begin();
+	auto i = users.begin();
 	while(i != users.end()) {
 		if(i->second->unique()) {
 			NickMap::iterator n = nicks.find(const_cast<CID*>(&i->second->getCID()));
 			if(n != nicks.end()) nicks.erase(n);
+
 			users.erase(i++);
 		} else {
 			++i;
@@ -634,7 +636,7 @@ CID ClientManager::getMyCID() {
 	return CID(tiger.finalize());
 }
 
-void ClientManager::updateNick(const OnlineUser& user) noexcept {
+void ClientManager::updateUser(const OnlineUser& user) noexcept {
 	updateNick(user.getUser(), user.getIdentity().getNick());
 }
 
@@ -652,7 +654,7 @@ void ClientManager::updateNick(const UserPtr& user, const string& nick) noexcept
 
 string ClientManager::getMyNick(const string& hubUrl) const {
 	Lock l(cs);
-	Client::Iter i = clients.find(const_cast<string*>(&hubUrl));
+	auto i = clients.find(const_cast<string*>(&hubUrl));
 	if(i != clients.end()) {
 		return i->second->getMyIdentity().getNick();
 	}
@@ -686,7 +688,7 @@ int ClientManager::getMode(const string& aHubUrl) const {
 void ClientManager::cancelSearch(void* aOwner) {
 	Lock l(cs);
 
-	for(Client::Iter i = clients.begin(); i != clients.end(); ++i) {
+	for(auto i = clients.begin(); i != clients.end(); ++i) {
 		i->second->cancelSearch(aOwner);
 	}
 }
@@ -701,8 +703,8 @@ void ClientManager::on(UserUpdated, const Client*, const OnlineUserPtr& user) no
 }
 
 void ClientManager::on(UsersUpdated, const Client*, const OnlineUserList& l) noexcept {
-	for(OnlineUserList::const_iterator i = l.begin(), iend = l.end(); i != iend; ++i) {
-		updateNick(*(*i));
+	for(auto i = l.begin(), iend = l.end(); i != iend; ++i) {
+		updateUser(**i);
 		fire(ClientManagerListener::UserUpdated(), *(*i)); 
 	}
 }

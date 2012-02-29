@@ -30,6 +30,9 @@
 #include "UserConnection.h"
 #include "AirUtil.h"
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
+
 namespace dcpp {
 
 ConnectionManager::ConnectionManager() : floodCounter(0), shuttingDown(false) {
@@ -71,8 +74,10 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 	bool supportMcn = false;
 
 	if (!DownloadManager::getInstance()->checkIdle(aUser, smallSlot)) { //transfer hintedUser
-		Lock l(cs);
 		ConnectionQueueItem* cqi = nullptr;
+		int running = 0;
+
+		Lock l(cs);
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			cqi = *i;
 			if (cqi->getUser() == aUser) {
@@ -91,13 +96,13 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 					//no need to continue with non-MCN users
 					return;
 				}
+				running++;
 			}
 		}
 
 		if (supportMcn && !smallSlot) {
 			//there's no waiting connection but check the limits
-			if (((runningDownloads[aUser.user] >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || 
-				(runningDownloads[aUser.user] >= cqi->getMaxConns() && cqi->getMaxConns() != 0)))
+			if ((running >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || (running >= cqi->getMaxConns() && cqi->getMaxConns() != 0))
 				return;
 		}
 
@@ -230,28 +235,30 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 		if (!cqi->isSet(ConnectionQueueItem::FLAG_MCN1))
 			return;
 
-		if (cqi->getState() != ConnectionQueueItem::RUNNING) {
-			runningDownloads[aSource->getUser()]++;
-			cqi->setState(ConnectionQueueItem::RUNNING);
-		}
+		cqi->setState(ConnectionQueueItem::RUNNING);
 		//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
 
-		/* Are we allowed to create a new MCN connection? */
-		if (((runningDownloads[aSource->getUser()] >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || 
-			(runningDownloads[aSource->getUser()] >= cqi->getMaxConns() && cqi->getMaxConns() != 0)))
+		int running = 0;
+		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
+			auto cqi = *i;
+			if (cqi->getUser() == aSource->getUser()) {
+				if (cqi->getState() != ConnectionQueueItem::RUNNING) {
+					return;
+				} else {
+					running++;
+				}
+			}
+		}
+
+		if ((running >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || (running >= cqi->getMaxConns() && cqi->getMaxConns() != 0))
 			return;
 
-		//do we already have a waiting connection?
-		if (find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
-			return c->getUser() == aSource->getUser() && c->getState() != ConnectionQueueItem::RUNNING && c->isSet(ConnectionQueueItem::FLAG_MCN1); 
-		}) == downloads.end()) {
-			string bundleToken;
-			QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false, bundleToken);
-			bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
-			if(prio != QueueItem::PAUSED && startDown) {
-				ConnectionQueueItem* cqiNew = getCQI(cqi->getUser(),true);
-				cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
-			}
+		string bundleToken;
+		QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false, bundleToken);
+		bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
+		if(prio != QueueItem::PAUSED && startDown) {
+			ConnectionQueueItem* cqiNew = getCQI(cqi->getUser(),true);
+			cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
 		}
 	}
 }
@@ -845,20 +852,17 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			ConnectionQueueItem* cqi = *i;
 
 			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
-				runningDownloads[aSource->getUser()]--;
-				//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
-				if (runningDownloads[aSource->getUser()] == 0)
-					runningDownloads.erase(aSource->getUser());
+				//remove an existing waiting item, if exists
+				auto s = find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
+					return c->getUser() == aSource->getUser() && c->isSet(ConnectionQueueItem::FLAG_MCN1) && c->getState() != ConnectionQueueItem::RUNNING && c != cqi; 
+				});
+
+				if (s != downloads.end())
+					(*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
 			}
 
-			if ((cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
-				return c->getUser() == aSource->getUser() && c->isSet(ConnectionQueueItem::FLAG_MCN1) && c->getState() != ConnectionQueueItem::RUNNING && c != cqi; 
-			}) != downloads.end()) || aSource->getState() == UserConnection::STATE_IDLE) {
-				cqi->setFlag(ConnectionQueueItem::FLAG_REMOVE);
-			} else {
-				cqi->setLastAttempt(GET_TICK());
-				cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
-			}
+			cqi->setLastAttempt(GET_TICK());
+			cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
 
 			cqi->setState(ConnectionQueueItem::WAITING);
 			fire(ConnectionManagerListener::Failed(), cqi, aError);

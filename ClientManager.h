@@ -174,9 +174,9 @@ private:
 
 	ClientManager();
 
-	~ClientManager();
+	virtual ~ClientManager();
 
-	void updateNick(const OnlineUser& user) noexcept;
+	void updateUser(const OnlineUser& user) noexcept;
 		
 	/// @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl) const {

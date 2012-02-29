@@ -161,10 +161,6 @@ private:
 	ConnectionQueueItem::List downloads;
 	ConnectionQueueItem::List uploads;
 
-	typedef boost::unordered_map<UserPtr, int16_t> RunningMap;
-	/* Running downloads for users with MCN support */
-	RunningMap runningDownloads;
-
 	/** All active connections */
 	UserConnectionList userConnections;
 

@@ -334,7 +334,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		bundle = bundleQueue.findSearchBundle(aTick); //may modify the recent search queue
 	}
 
-	if(bundle != NULL) {
+	if(bundle) {
 		searchBundle(bundle, false, false);
 	}
 

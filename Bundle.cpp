@@ -186,7 +186,7 @@ int64_t Bundle::getDiskUse(bool countAll) {
 bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 	finishedFiles.push_back(qi);
 	if (!finished) {
-		moved++;
+		increaseMoved();
 		qi->setBundle(this);
 		increaseSize(qi->getSize());
 		addSegment(qi->getSize(), false);

@@ -21,6 +21,7 @@
 #include "ShareScannerManager.h"
 #include "HashManager.h"
 
+#include "FileReader.h"
 #include "LogManager.h"
 #include "ShareManager.h"
 #include "StringTokenizer.h"
@@ -667,16 +668,11 @@ void ShareScannerManager::checkSFV(const string& path) throw(FileException) {
 }
 
 uint32_t ShareScannerManager::calcCrc32(const string& file) {
-	File ff(file, File::READ, File::OPEN);
-	CalcInputStream<CRC32Filter, false> f(&ff);
-
-	const size_t BUF_SIZE = 1024*1024;
-	boost::scoped_array<uint8_t> b(new uint8_t[BUF_SIZE]);
-	size_t n = BUF_SIZE;
-	while(f.read(&b[0], n) > 0)
-		;		// Keep on looping...
-
-	return f.getFilter().getValue();
+	CRC32Filter crc32;
+	FileReader().read(file, [&](const void* x, size_t n) {
+		return crc32(x, n), true;
+	});
+	return crc32.getValue();
 }
 
 bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
