@@ -374,6 +374,7 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
 	if(diff == 1) { //last user
 		UserPtr& u = ou->getUser();
 		u->unsetFlag(User::ONLINE);
+		updateUser(*ou);
 		if(disconnect)
 			ConnectionManager::getInstance()->disconnect(u);
 		fire(ClientManagerListener::UserDisconnected(), u);
