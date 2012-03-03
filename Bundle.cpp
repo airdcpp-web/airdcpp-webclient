@@ -30,6 +30,7 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/numeric.hpp>
+#include <boost/mpl/find_if.hpp>
 
 namespace dcpp {
 
@@ -695,6 +696,12 @@ void Bundle::getTTHList(OutputStream& tthList) noexcept {
 		tmp2.clear();
 		tthList.write((*i)->getTTH().toBase32(tmp2) + " ");
 	}
+}
+
+bool Bundle::allowAutoSearch() {
+	return countOnlineUsers() <= (size_t)SETTING(AUTO_SEARCH_LIMIT) && find_if(queueItems.begin(), queueItems.end(), [&](QueueItemPtr q) { 
+		return q->getPriority() != QueueItem::PAUSED; }
+	) != queueItems.end();
 }
 
 void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {

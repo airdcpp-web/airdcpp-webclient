@@ -63,7 +63,7 @@ public:
 	GETSET(State, state, State);
 	GETSET(bool, download, Download);
 	const HintedUser& getUser() const { return user; }
-
+	bool allowNewConnections(int running);
 private:
 	HintedUser user;
 };

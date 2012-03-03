@@ -1314,7 +1314,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to hash the bundle %s, not shared", 
 "Failed to add the bundle %s in share", 
 "The bundle %s has finished hashing", 
-"The bundle %s has finished hashing and it has been added into shared", 
+"The bundle %s has finished hashing and it has been added into share", 
 "Seems that you are trying to move all files in the bundle %s. Do you want to move the whole bundle directory instead?", 
 "Only from users with nick Matching:  (Wildcards, | separate)", 
 "User Match", 

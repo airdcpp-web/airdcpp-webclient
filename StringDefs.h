@@ -1321,7 +1321,7 @@ enum Strings { // @DontAdd
 	BUNDLE_HASH_FAILED, // "Failed to hash the bundle %s, not shared"
 	BUNDLE_SHARING_FAILED, // "Failed to add the bundle %s in share"
 	BUNDLE_HASHED, // "The bundle %s has finished hashing"
-	BUNDLE_SHARED, // "The bundle %s has finished hashing and it has been added into shared"
+	BUNDLE_SHARED, // "The bundle %s has finished hashing and it has been added into share"
 	CONFIRM_MOVE_DIR_ALL_FILES, // "Seems that you are trying to move all files in the bundle %s. Do you want to move the whole bundle directory instead?"
 	AS_USER_MATCH, // "Only from users with nick Matching:  (Wildcards, | separate)"
 	USER_MATCH, // "User Match"

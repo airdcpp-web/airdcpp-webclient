@@ -63,6 +63,10 @@ void ConnectionManager::listen() {
 	secureServer.reset(new Server(true, Util::toString(CONNSETTING(TLS_PORT)), CONNSETTING(BIND_ADDRESS)));
 }
 
+bool ConnectionQueueItem::allowNewConnections(int running) {
+	return (running < AirUtil::getSlotsPerUser(true) || AirUtil::getSlotsPerUser(true) == 0) && (running < maxConns || maxConns == 0);
+}
+
 /**
  * Request a connection for downloading.
  * DownloadManager::addConnection will be called as soon as the connection is ready
@@ -81,29 +85,30 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			cqi = *i;
 			if (cqi->getUser() == aUser) {
-				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 					supportMcn = true;
-					//already has a connecting item?
 					if (cqi->getState() != ConnectionQueueItem::RUNNING) {
-						if ((!smallSlot && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) || (smallSlot && cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))) {
+						//already has a waiting item? small slot doesn't count
+						if (!smallSlot) {
 							return;
 						}
+					} else {
+						running++;
 					}
-					//no connecting item... no need to continue with small slot if a running item with the same type exists already
-					if (smallSlot && cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))
+				} else if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+					supportMcn = true;
+					//no need to continue with small slot if an item with the same type exists already (no mather whether it's running or not)
+					if (smallSlot)
 						return;
 				} else if (!cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					//no need to continue with non-MCN users
 					return;
 				}
-				running++;
 			}
 		}
 
-		if (supportMcn && !smallSlot) {
-			//there's no waiting connection but check the limits
-			if ((running >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || (running >= cqi->getMaxConns() && cqi->getMaxConns() != 0))
-				return;
+		if (supportMcn && !smallSlot && !cqi->allowNewConnections(running)) {
+			return;
 		}
 
 		dcdebug("Get cqi");
@@ -241,16 +246,15 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 		int running = 0;
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			auto cqi = *i;
-			if (cqi->getUser() == aSource->getUser()) {
+			if (cqi->getUser() == aSource->getUser() && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
 				if (cqi->getState() != ConnectionQueueItem::RUNNING) {
 					return;
-				} else {
-					running++;
 				}
+				running++;
 			}
 		}
 
-		if ((running >= AirUtil::getSlotsPerUser(true) && AirUtil::getSlotsPerUser(true) != 0) || (running >= cqi->getMaxConns() && cqi->getMaxConns() != 0))
+		if (!cqi->allowNewConnections(running))
 			return;
 
 		string bundleToken;
@@ -854,7 +858,8 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 				//remove an existing waiting item, if exists
 				auto s = find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
-					return c->getUser() == aSource->getUser() && c->isSet(ConnectionQueueItem::FLAG_MCN1) && c->getState() != ConnectionQueueItem::RUNNING && c != cqi; 
+					return c->getUser() == aSource->getUser() && !c->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && 
+						c->getState() != ConnectionQueueItem::RUNNING && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
 				});
 
 				if (s != downloads.end())

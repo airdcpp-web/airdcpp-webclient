@@ -49,7 +49,7 @@ public:
 	void getSubBundles(const string& aTarget, BundleList& retBundles);
 
 	int getRecentSize() { return (int)recentSearchQueue.size(); }
-	int getPrioSum(int& prioBundles);
+	int getPrioSum();
 	BundlePtr findRecent();
 	BundlePtr findAutoSearch();
 	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
@@ -68,7 +68,7 @@ public:
 	void saveQueue(bool force) noexcept;
 private:
 	/** Bundles by priority (low-highest, for auto search) */
-	deque<BundlePtr> prioSearchQueue[Bundle::LAST];
+	vector<BundlePtr> prioSearchQueue[Bundle::LAST];
 	deque<BundlePtr> recentSearchQueue;
 
 	/** Bundles by release directory */	

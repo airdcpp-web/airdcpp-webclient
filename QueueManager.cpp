@@ -2140,6 +2140,8 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		saveQueue(false);
 	}
 
+	//bundleQueue.findSearchBundle(aTick, true);
+
 	StringList updateTokens;
 	{
 		WLock l(cs);

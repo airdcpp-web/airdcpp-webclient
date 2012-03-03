@@ -216,6 +216,7 @@ public:
 	void getTTHList(OutputStream& tthList) noexcept;
 	void getSearchItems(StringPairList& searches, bool manual) noexcept;
 	void updateSearchMode();
+	bool allowAutoSearch();
 
 	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
 	string formatDownloaded(int64_t aBytes);

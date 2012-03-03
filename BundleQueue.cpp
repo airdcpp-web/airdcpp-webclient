@@ -21,6 +21,9 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/fusion/algorithm/iteration/accumulate.hpp>
+#include <boost/random/discrete_distribution.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/fusion/include/count_if.hpp>
 
 #include "BundleQueue.h"
 #include "SettingsManager.h"
@@ -113,70 +116,52 @@ BundlePtr BundleQueue::findRecent() {
 	return tmp;
 }
 
-int BundleQueue::getPrioSum(int& prioBundles) {
-	int p = Bundle::LAST - 1;
-	int prioSum = 0;
-	do {
-		for_each(prioSearchQueue[p], [&](BundlePtr b) {
-			if (b->countOnlineUsers() <= (size_t)SETTING(AUTO_SEARCH_LIMIT)) {
-				prioBundles++;
-			}
-		});
-		prioSum += (int)(p-1)*prioSearchQueue[p].size();
-		p--;
-	} while(p >= Bundle::LOW);
-	return prioSum;
-}
+boost::mt19937 gen;
+static vector<double> probabilities;
 
-BundlePtr BundleQueue::findAutoSearch() {
+int BundleQueue::getPrioSum() {
+	probabilities.clear();
+
 	int prioBundles = 0;
-	int prioSum = getPrioSum(prioBundles);
-
-	//do we have anything where to search from?
-	if (prioBundles == 0) {
-		return NULL;
-	}
-
-	//choose the bundle
-	BundlePtr cand = NULL;
-	int rand = Util::rand(prioSum); //no results for paused or lowest
-	//LogManager::getInstance()->message("prioSum: " + Util::toString(prioSum) + " random: " + Util::toString(rand));
-
-	int p = Bundle::LOW;
+	int p = Bundle::LOW ;
 	do {
-		int size = (int)prioSearchQueue[p].size();
-		if (rand < (int)(p-1)*size && size > 0) {
-			//we got the prio
-			int s = 0;
-			while (s <= size) {
-				BundlePtr tmp = prioSearchQueue[p].front();
-				prioSearchQueue[p].pop_front();
-				prioSearchQueue[p].push_back(tmp);
-				if (tmp->countOnlineUsers() > (size_t)SETTING(AUTO_SEARCH_LIMIT)) {
-					s++;
-					continue;
-				}
-				for (auto k = tmp->getQueueItems().begin(); k != tmp->getQueueItems().end(); ++k) {
-					QueueItemPtr q = *k;
-					if(q->getPriority() == QueueItem::PAUSED || q->countOnlineUsers() >= (size_t)SETTING(MAX_AUTO_MATCH_SOURCES))
-						continue;
-					if(q->isRunning()) {
-						//it's ok but see if we can find better
-						cand = tmp;
-					} else {
-						//LogManager::getInstance()->message("BUNDLE1 " + tmp->getName() + " CHOSEN FROM PRIO " + AirUtil::getPrioText(p) + ", rand " + Util::toString(rand));
-						return tmp;
-					}
-				}
-				s++;
-			}
-		}
-		rand -= (int)(p-1)*size;
+		int dequeBundles = count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [&](BundlePtr b) {
+			return b->allowAutoSearch();
+		});
+		probabilities.push_back((int)(p-1)*dequeBundles);
+		prioBundles += dequeBundles;
 		p++;
 	} while(p < Bundle::LAST);
 
-	//LogManager::getInstance()->message("BUNDLE2");
-	return cand;
+	probabilities.shrink_to_fit();
+	return prioBundles;
+}
+
+BundlePtr BundleQueue::findAutoSearch() {
+	int prioBundles = getPrioSum();
+
+	//do we have anything where to search from?
+	if (prioBundles == 0) {
+		return nullptr;
+	}
+
+	auto dist = boost::random::discrete_distribution<>(probabilities.begin(), probabilities.end());
+
+	//choose the search queue, can't be paused or lowest
+	auto& sbq = prioSearchQueue[dist(gen) + 2];
+	dcassert(!sbq.empty());
+
+	//find the first item that can be searched for
+	auto s = find_if(sbq.begin(), sbq.end(), [&](BundlePtr b) { return b->allowAutoSearch(); } );
+
+	if (s != sbq.end()) {
+		BundlePtr b = *s;
+		sbq.erase(s);
+		sbq.push_back(b);
+		return b;
+	}
+
+	return nullptr;
 }
 
 BundlePtr BundleQueue::find(const string& bundleToken) {
@@ -394,7 +379,7 @@ BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */)
 		//LogManager::getInstance()->message("Next recent search in " + Util::toString(recentBundles > 1 ? 5 : 10) + " minutes");
 	}
 
-	if(bundle != NULL) {
+	if(bundle) {
 		if (!bundle->isRecent()) {
 			calculations++;
 			switch((int)bundle->getPriority()) {
@@ -421,8 +406,7 @@ BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */)
 
 int64_t BundleQueue::recalculateSearchTimes(BundlePtr aBundle, bool isPrioChange) {
 	if (!aBundle->isRecent()) {
-		int prioBundles = 0;
-		getPrioSum(prioBundles);
+		int prioBundles = getPrioSum();
 		int next = SETTING(SEARCH_TIME);
 		if (prioBundles > 0) {
 			next = max(60 / prioBundles, next);
