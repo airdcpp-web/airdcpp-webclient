@@ -245,9 +245,8 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 
 		int running = 0;
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			auto cqi = *i;
-			if (cqi->getUser() == aSource->getUser() && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
-				if (cqi->getState() != ConnectionQueueItem::RUNNING) {
+			if ((*i)->getUser() == aSource->getUser() && !(*i)->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+				if ((*i)->getState() != ConnectionQueueItem::RUNNING) {
 					return;
 				}
 				running++;

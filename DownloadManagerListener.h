@@ -51,8 +51,7 @@ public:
 	typedef X<6> Target;
 	typedef X<7> TargetChanged;
 	typedef X<8> BundleWaiting;
-	typedef X<9> BundleUser;
-	typedef X<10> BundleTick;
+	typedef X<9> BundleTick;
 
 	/**
 	 * This is the first message sent before a download starts.
@@ -82,7 +81,6 @@ public:
 	virtual void on(TargetChanged, const string&, const string&, const string&) noexcept { }
 
 	virtual void on(BundleWaiting, const BundlePtr) noexcept { }
-	virtual void on(BundleUser, const string&, const HintedUser&) noexcept { }
 	virtual void on(BundleTick, const BundleList&) noexcept { }
 
 	/**

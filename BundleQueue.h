@@ -53,7 +53,7 @@ public:
 	BundlePtr findRecent();
 	BundlePtr findAutoSearch();
 	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
-	int64_t recalculateSearchTimes(BundlePtr aBundle, bool prioChange);
+	int64_t recalculateSearchTimes(bool aRecent, bool prioChange);
 
 	Bundle::StringBundleMap& getBundles() { return bundles; }
 	void move(BundlePtr aBundle, const string& newTarget);

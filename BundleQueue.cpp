@@ -99,21 +99,83 @@ void BundleQueue::removeSearchPrio(BundlePtr aBundle) {
 	}
 }
 
+BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */) {
+	BundlePtr bundle = NULL;
+	if(aTick >= nextSearch || force) {
+		bundle = findAutoSearch();
+		//LogManager::getInstance()->message("Next search in " + Util::toString(next) + " minutes");
+	}
+	
+	if(!bundle && (aTick >= nextRecentSearch || force)) {
+		bundle = findRecent();
+		//LogManager::getInstance()->message("Next recent search in " + Util::toString(recentBundles > 1 ? 5 : 10) + " minutes");
+	}
+
+	if(bundle) {
+		if (!bundle->isRecent()) {
+			calculations++;
+			switch((int)bundle->getPriority()) {
+				case 2:
+					lowSel++;
+					break;
+				case 3:
+					normalSel++;
+					break;
+				case 4:
+					highSel++;
+					break;
+				case 5:
+					highestSel++;
+					break;
+			}
+		} else {
+			//LogManager::getInstance()->message("Performing search for a RECENT bundle: " + bundle->getName());
+		}
+		//LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
+	}
+	return bundle;
+}
+
+int64_t BundleQueue::recalculateSearchTimes(bool aRecent, bool isPrioChange) {
+	if (!aRecent) {
+		int prioBundles = getPrioSum();
+		int minInterval = SETTING(SEARCH_TIME);
+
+		if (prioBundles > 0) {
+			minInterval = max(60 / prioBundles, SETTING(SEARCH_TIME));
+		}
+
+		if (nextSearch > 0 && isPrioChange) {
+			nextSearch = min(nextSearch, GET_TICK() + (minInterval * 60 * 1000));
+		} else {
+			nextSearch = GET_TICK() + (minInterval * 60 * 1000);
+		}
+		return nextSearch;
+	} else {
+		if (nextRecentSearch > 0 && isPrioChange) {
+			nextRecentSearch = min(nextRecentSearch, GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000));
+		} else {
+			nextRecentSearch = GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000);
+		}
+		return nextRecentSearch;
+	}
+}
+
 BundlePtr BundleQueue::findRecent() {
 	if ((int)recentSearchQueue.size() == 0) {
-		return NULL;
+		return nullptr;
 	}
-	BundlePtr tmp = recentSearchQueue.front();
+	BundlePtr b = recentSearchQueue.front();
 	recentSearchQueue.pop_front();
+
 	//check if the bundle still belongs to here
-	if (tmp->checkRecent()) {
-		//LogManager::getInstance()->message("Time remaining as recent: " + Util::toString(((tmp->getDirDate() + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) - GET_TIME()) / (60)) + " minutes");
-		recentSearchQueue.push_back(tmp);
+	if (b->checkRecent()) {
+		recentSearchQueue.push_back(b);
 	} else {
-		//LogManager::getInstance()->message("REMOVE RECENT");
-		addSearchPrio(tmp);
+		nextRecentSearch = GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000);
+		addSearchPrio(b);
 	}
-	return tmp;
+	return b;
 }
 
 boost::mt19937 gen;
@@ -125,10 +187,8 @@ int BundleQueue::getPrioSum() {
 	int prioBundles = 0;
 	int p = Bundle::LOW ;
 	do {
-		int dequeBundles = count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [&](BundlePtr b) {
-			return b->allowAutoSearch();
-		});
-		probabilities.push_back((int)(p-1)*dequeBundles);
+		int dequeBundles = count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [](BundlePtr b) { return b->allowAutoSearch(); });
+		probabilities.push_back((p-1)*dequeBundles);
 		prioBundles += dequeBundles;
 		p++;
 	} while(p < Bundle::LAST);
@@ -152,7 +212,7 @@ BundlePtr BundleQueue::findAutoSearch() {
 	dcassert(!sbq.empty());
 
 	//find the first item that can be searched for
-	auto s = find_if(sbq.begin(), sbq.end(), [&](BundlePtr b) { return b->allowAutoSearch(); } );
+	auto s = find_if(sbq.begin(), sbq.end(), [](BundlePtr b) { return b->allowAutoSearch(); } );
 
 	if (s != sbq.end()) {
 		BundlePtr b = *s;
@@ -365,66 +425,6 @@ void BundleQueue::getAutoPrioMap(multimap<int, BundlePtr>& finalMap, int& unique
 			finalMap.insert(make_pair(i->second, i->first));
 		}
 	}
-}
-
-BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */) {
-	BundlePtr bundle = NULL;
-	if((BOOLSETTING(AUTO_SEARCH) && (aTick >= nextSearch) && (bundles.size() > 0)) || force) {
-		bundle = findAutoSearch();
-		//LogManager::getInstance()->message("Next search in " + Util::toString(next) + " minutes");
-	} 
-	
-	if(!bundle && (BOOLSETTING(AUTO_SEARCH) && (aTick >= nextRecentSearch) || force)) {
-		bundle = findRecent();
-		//LogManager::getInstance()->message("Next recent search in " + Util::toString(recentBundles > 1 ? 5 : 10) + " minutes");
-	}
-
-	if(bundle) {
-		if (!bundle->isRecent()) {
-			calculations++;
-			switch((int)bundle->getPriority()) {
-				case 2:
-					lowSel++;
-					break;
-				case 3:
-					normalSel++;
-					break;
-				case 4:
-					highSel++;
-					break;
-				case 5:
-					highestSel++;
-					break;
-			}
-		} else {
-			//LogManager::getInstance()->message("Performing search for a RECENT bundle: " + bundle->getName());
-		}
-		//LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
-	}
-	return bundle;
-}
-
-int64_t BundleQueue::recalculateSearchTimes(BundlePtr aBundle, bool isPrioChange) {
-	if (!aBundle->isRecent()) {
-		int prioBundles = getPrioSum();
-		int next = SETTING(SEARCH_TIME);
-		if (prioBundles > 0) {
-			next = max(60 / prioBundles, next);
-		}
-		if (nextSearch > 0 && isPrioChange) {
-			nextSearch = min(nextSearch, GET_TICK() + (next * 60 * 1000));
-		} else {
-			nextSearch = GET_TICK() + (next * 60 * 1000);
-		}
-		return nextSearch;
-	}
-	
-	if (nextRecentSearch > 0 && isPrioChange) {
-		nextRecentSearch = min(nextRecentSearch, GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000));
-	} else {
-		nextRecentSearch = GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000);
-	}
-	return nextRecentSearch;
 }
 
 void BundleQueue::getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes) {

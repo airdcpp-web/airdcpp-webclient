@@ -154,7 +154,6 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 			Lock l (cs);
 			if (aBundle->addRunningUser(aSource)) {
 				//this is the first running user for this bundle
-				fire(DownloadManagerListener::BundleUser(), aBundle->getToken(), aSource->getHintedUser());
 				aBundle->setStart(GET_TICK());
 				runningBundles[aBundle->getToken()] = aBundle;
 			}
@@ -567,12 +566,10 @@ void DownloadManager::disconnectBundle(BundlePtr aBundle, const UserPtr& aUser) 
 	//UserConnectionList u;
 	{
 		Lock l(cs);
-		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
+		for(auto i = aBundle->getDownloads().begin(); i != aBundle->getDownloads().end(); ++i) {
 			Download* d = *i;
-			if (aUser) {
-				if (d->getUser() != aUser) {
-					continue;
-				}
+			if (aUser && d->getUser() != aUser) {
+				continue;
 			}
 			d->getUserConnection().disconnect(true);
 		}

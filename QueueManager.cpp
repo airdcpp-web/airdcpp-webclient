@@ -331,7 +331,8 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 
 		}
 
-		bundle = bundleQueue.findSearchBundle(aTick); //may modify the recent search queue
+		if (BOOLSETTING(AUTO_SEARCH))
+			bundle = bundleQueue.findSearchBundle(aTick); //may modify the recent search queue
 	}
 
 	if(bundle) {
@@ -1508,7 +1509,7 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
 		bundleQueue.addSearchPrio(aBundle);
-		bundleQueue.recalculateSearchTimes(aBundle, true);
+		bundleQueue.recalculateSearchTimes(aBundle->isRecent(), true);
 		if (!isAuto) {
 			aBundle->setAutoPriority(false);
 		}
@@ -3444,7 +3445,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 		RLock l(cs);
 		aBundle->getSearchItems(searches, manual);
 		if (!manual)
-			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle, false) - GET_TICK()) / (60*1000);
+			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle->isRecent(), false) - GET_TICK()) / (60*1000);
 	}
 
 	if (searches.size() <= 5) {

@@ -31,6 +31,7 @@
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/mpl/find_if.hpp>
+#include <boost/fusion/algorithm/iteration/accumulate.hpp>
 
 namespace dcpp {
 
@@ -139,13 +140,7 @@ string Bundle::getName() {
 }
 
 void Bundle::setDirty(bool enable) {
-	if (enable) {
-		if(!dirty) {
-			dirty = true;
-		}
-	} else {
-		dirty = false;
-	}
+	dirty = enable;
 }
 
 QueueItemPtr Bundle::findQI(const string& aTarget) const {
@@ -399,7 +394,7 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 		string::size_type j;
 		for(;;) {
 			j = remoteDir.find_last_of("\\", i);
-			if(j == string::npos || (int)(bundleDir.length() - (remoteDir.length() - j)) < 0)
+			if(j == string::npos || (int)(bundleDir.length() - (remoteDir.length() - j)) < 0) //also check if it goes out of scope for the local dir
 				break;
 			if(stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
 				break;
@@ -446,6 +441,7 @@ void Bundle::removeUserQueue(QueueItemPtr qi) noexcept {
 
 bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad) noexcept {
 
+	//remove from UserQueue
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];
 	auto j = ulm.find(aUser);
@@ -468,7 +464,7 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 		ulm.erase(j);
 	}
 
-	//check bundle sources
+	//remove from bundle sources
 	auto m = find_if(sources.begin(), sources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 	dcassert(m != sources.end());
 
@@ -484,9 +480,9 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 
 	get<SOURCE_FILES>(*m)--;
 	get<SOURCE_SIZE>(*m) -= qi->getSize();
-	//LogManager::getInstance()->message("REMOVE, SOURCE FOR " + Util::toString(m->second) + " ITEMS");
+	//LogManager::getInstance()->message("REMOVE, SOURCE FOR " + Util::toString(<SOURCE_FILES>(*m)) + " ITEMS");
 	if (get<SOURCE_FILES>(*m) == 0) {
-		sources.erase(m);   //crashed when nothing found to erase with only 1 source and removing multiple bundles.
+		sources.erase(m);
 		return true;
 	}
 	return false;
@@ -498,7 +494,6 @@ void Bundle::removeBadSource(const HintedUser& aUser) noexcept {
 	if (m != badSources.end()) {
 		badSources.erase(m);
 	}
-	dcassert(m == badSources.end());
 }
 	
 Bundle::Priority Bundle::calculateProgressPriority() const noexcept {
@@ -699,9 +694,8 @@ void Bundle::getTTHList(OutputStream& tthList) noexcept {
 }
 
 bool Bundle::allowAutoSearch() {
-	return countOnlineUsers() <= (size_t)SETTING(AUTO_SEARCH_LIMIT) && find_if(queueItems.begin(), queueItems.end(), [&](QueueItemPtr q) { 
-		return q->getPriority() != QueueItem::PAUSED; }
-	) != queueItems.end();
+	return countOnlineUsers() <= (size_t)SETTING(AUTO_SEARCH_LIMIT) && 
+		find_if(queueItems.begin(), queueItems.end(), [&](QueueItemPtr q) { return q->getPriority() != QueueItem::PAUSED; } ) != queueItems.end();
 }
 
 void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {
@@ -714,7 +708,7 @@ void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {
 	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
 		string dir = Util::getDir(i->first, true, false);
 		//don't add the same directory twice
-		if (find_if(searches.begin(), searches.end(), [&](const StringPair& sp) { return sp.first == dir; }) != searches.end()) {
+		if (find_if(searches.begin(), searches.end(), CompareFirst<string, string>(dir)) != searches.end()) {
 			continue;
 		}
 

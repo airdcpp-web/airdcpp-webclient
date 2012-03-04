@@ -73,7 +73,6 @@ public:
 	virtual void on(BundleMoved, const BundlePtr) noexcept { }
 	virtual void on(BundleSize, const BundlePtr) noexcept { }
 	virtual void on(BundleTarget, const BundlePtr) noexcept { }
-	virtual void on(BundleUser, const string&, const HintedUser&) noexcept { }
 	virtual void on(BundlePriority, const BundlePtr) noexcept { }
 	virtual void on(BundleAdded, const BundlePtr) noexcept { }
 	virtual void on(BundleHashed, const string&) noexcept { }
