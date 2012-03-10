@@ -47,7 +47,7 @@ void UploadBundle::setSingleUser(bool aSingleUser, int64_t aUploadedSegments) {
 }
 
 uint64_t UploadBundle::getSecondsLeft() {
-	double avg = getSpeed();
+	double avg = totalSpeed > 0 ? totalSpeed : speed;
 	int64_t bytesLeft =  getSize() - getUploaded();
 	return (avg > 0) ? static_cast<int64_t>(bytesLeft / avg) : 0;
 }

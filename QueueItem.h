@@ -159,6 +159,7 @@ public:
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
 	bool hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	bool startDown();
 
 	string getFolder() const { return Util::getDir(target, false, false); };
 	SourceList& getSources() { return sources; }

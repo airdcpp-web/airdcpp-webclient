@@ -496,6 +496,15 @@ bool QueueItem::hasSegment(const UserPtr& aUser, string& lastError, int64_t want
 	return true;
 }
 
+bool QueueItem::startDown() {
+	if(bundle && bundle->getPriority() != PAUSED && priority != PAUSED) {
+		return true;
+	} else if (priority == HIGHEST) {
+		return true;
+	}
+	return false;
+}
+
 void QueueItem::removeDownload(const string& aToken) {
 	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getToken(), aToken) == 0; });
 	dcassert(m != downloads.end());

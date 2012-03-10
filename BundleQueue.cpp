@@ -20,10 +20,10 @@
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
-#include <boost/fusion/algorithm/iteration/accumulate.hpp>
 #include <boost/random/discrete_distribution.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/fusion/include/count_if.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 #include "BundleQueue.h"
 #include "SettingsManager.h"
@@ -35,7 +35,7 @@
 namespace dcpp {
 
 using boost::range::for_each;
-using boost::fusion::accumulate;
+using boost::adaptors::map_values;
 
 BundleQueue::BundleQueue() : 
 	nextSearch(0),
@@ -100,7 +100,7 @@ void BundleQueue::removeSearchPrio(BundlePtr aBundle) {
 }
 
 BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */) {
-	BundlePtr bundle = NULL;
+	BundlePtr bundle = nullptr;
 	if(aTick >= nextSearch || force) {
 		bundle = findAutoSearch();
 		//LogManager::getInstance()->message("Next search in " + Util::toString(next) + " minutes");
@@ -185,10 +185,10 @@ int BundleQueue::getPrioSum() {
 	probabilities.clear();
 
 	int prioBundles = 0;
-	int p = Bundle::LOW ;
+	int p = Bundle::LOW;
 	do {
 		int dequeBundles = count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [](BundlePtr b) { return b->allowAutoSearch(); });
-		probabilities.push_back((p-1)*dequeBundles);
+		probabilities.push_back((p-1)*dequeBundles); //multiply with a priority factor to get bigger probability for higher prio bundles
 		prioBundles += dequeBundles;
 		p++;
 	} while(p < Bundle::LAST);
@@ -205,17 +205,18 @@ BundlePtr BundleQueue::findAutoSearch() {
 		return nullptr;
 	}
 
-	auto dist = boost::random::discrete_distribution<>(probabilities.begin(), probabilities.end());
+	auto dist = boost::random::discrete_distribution<>(probabilities);
 
 	//choose the search queue, can't be paused or lowest
 	auto& sbq = prioSearchQueue[dist(gen) + 2];
 	dcassert(!sbq.empty());
 
-	//find the first item that can be searched for
+	//find the first item from the search queue that can be searched for
 	auto s = find_if(sbq.begin(), sbq.end(), [](BundlePtr b) { return b->allowAutoSearch(); } );
 
 	if (s != sbq.end()) {
 		BundlePtr b = *s;
+		//move to the back
 		sbq.erase(s);
 		sbq.push_back(b);
 		return b;
@@ -250,7 +251,7 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 	bool subFolder = false;
 
 	//find the matching bundles
-	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
+	for(auto j = bundles.cbegin(), iend = bundles.cend(); j != iend; ++j) {
 		tmpBundle = j->second;
 		if (tmpBundle->isFinished()) {
 			//don't modify those
@@ -283,24 +284,22 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 
 BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
-	BundlePtr compareBundle;
-	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
-		BundlePtr compareBundle = j->second;
+	for(auto i = bundles.cbegin(), iend = bundles.cend(); i != iend; ++i) {
+		BundlePtr compareBundle = i->second;
 		if (!compareBundle->isFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParent(aTarget, compareBundle->getTarget()))) {
 			return compareBundle;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) {
 	/* Returns bundles that are inside aTarget */
-	for (auto j = bundles.begin(); j != bundles.end(); ++j) {
-		BundlePtr compareBundle = j->second;
+	for_each(bundles | map_values, [&](BundlePtr compareBundle) {
 		if (AirUtil::isSub(compareBundle->getTarget(), aTarget)) {
 			retBundles.push_back(compareBundle);
 		}
-	}
+	});
 }
 
 void BundleQueue::addBundleItem(QueueItemPtr qi, BundlePtr aBundle) {
@@ -379,20 +378,15 @@ void BundleQueue::getAutoPrioMap(multimap<int, BundlePtr>& finalMap, int& unique
 	boost::unordered_map<BundlePtr, double, Bundle::Hash> autoPrioMap;
 	multimap<double, BundlePtr> sizeMap;
 	multimap<int64_t, BundlePtr> sourceMap;
-	{
-		for (auto i = bundles.begin(); i != bundles.end(); ++i) {
-			BundlePtr bundle = i->second;
-			if (bundle->getAutoPriority() && !bundle->isFinished()) {
-				auto p = bundle->getPrioInfo();
-				sourceMap.insert(make_pair(p.first, bundle));
-				sizeMap.insert(make_pair(p.second, bundle));
-				autoPrioMap[bundle] = 0;
-				/*if (verbose) {
-					LogManager::getInstance()->message("Bundle " + bundle->getName() + ", time left " + Util::formatTime(p.first) + ", size factor " + Util::toString(p.second));
-				} */
-			}
+
+	for_each(bundles | map_values, [&](BundlePtr b) {
+		if (b->getAutoPriority() && !b->isFinished()) {
+			auto p = b->getPrioInfo();
+			sourceMap.insert(make_pair(p.first, b));
+			sizeMap.insert(make_pair(p.second, b));
+			autoPrioMap[b] = 0;
 		}
-	}
+	});
 
 	if (autoPrioMap.size() <= 1) {
 		return;
@@ -401,7 +395,7 @@ void BundleQueue::getAutoPrioMap(multimap<int, BundlePtr>& finalMap, int& unique
 	//scale the priorization maps
 	double factor;
 	double max = max_element(sourceMap.begin(), sourceMap.end())->first;
-	if (max) {
+	if (max > 0) {
 		double factor = 100 / max;
 		for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
 			autoPrioMap[i->second] = i->first * factor;
@@ -434,8 +428,7 @@ void BundleQueue::getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const 
 		tempVol = AirUtil::getMountPath(SETTING(TEMP_DOWNLOAD_DIRECTORY), volumes);
 	}
 
-	for (auto i = bundles.begin(); i != bundles.end(); ++i) {
-		BundlePtr b = (*i).second;
+	for_each(bundles | map_values, [&](BundlePtr b) {
 		string mountPath = AirUtil::getMountPath(b->getTarget(), volumes);
 		if (!mountPath.empty()) {
 			auto s = dirMap.find(mountPath);
@@ -444,17 +437,15 @@ void BundleQueue::getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const 
 				s->second.second -= b->getDiskUse(countAll);
 			}
 		}
-	}
+	});
 }
 
 void BundleQueue::saveQueue(bool force) noexcept {
 	try {
-		for (auto i = bundles.begin(); i != bundles.end(); ++i) {
-			BundlePtr b = i->second;
-			if (!b->isFinished() && (b->getDirty() || force)) {
+		for_each(bundles | map_values, [force](BundlePtr b) {
+			if (!b->isFinished() && (b->getDirty() || force)) 
 				b->save();
-			}
-		}
+		});
 	} catch(...) {
 		// ...
 	}

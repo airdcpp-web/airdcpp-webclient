@@ -36,6 +36,7 @@
 namespace dcpp {
 
 using boost::range::for_each;
+using boost::fusion::accumulate;
 	
 Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
@@ -268,11 +269,11 @@ bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 }
 
 bool Bundle::isSource(const UserPtr& aUser) {
-	return find_if(sources.begin(), sources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
+	return find_if(sources.begin(), sources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
 }
 
 bool Bundle::isBadSource(const UserPtr& aUser) {
-	return find_if(badSources.begin(), badSources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
+	return find_if(badSources.begin(), badSources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
 }
 
 void Bundle::addUserQueue(QueueItemPtr qi) {
@@ -290,7 +291,7 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 		swap(queueItems[start], queueItems[queueItems.size()-1]);
 	}
 
-	auto i = find_if(sources.begin(), sources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+	auto i = find_if(sources.begin(), sources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	if (i != sources.end()) {
 		get<SOURCE_FILES>(*i)++;
 		get<SOURCE_SIZE>(*i) += qi->getSize();
@@ -323,7 +324,7 @@ QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority
 }
 
 bool Bundle::isFinishedNotified(const UserPtr& aUser) {
-	return find_if(finishedNotifications.begin(), finishedNotifications.end(), [&](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();;
+	return find_if(finishedNotifications.begin(), finishedNotifications.end(), [aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
 }
 
 void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) {
@@ -465,11 +466,11 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 	}
 
 	//remove from bundle sources
-	auto m = find_if(sources.begin(), sources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
+	auto m = find_if(sources.begin(), sources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 	dcassert(m != sources.end());
 
 	if (addBad) {
-		auto bsi = find_if(badSources.begin(), badSources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
+		auto bsi = find_if(badSources.begin(), badSources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 		if (bsi == badSources.end()) {
 			badSources.push_back(make_tuple(get<SOURCE_USER>(*m), qi->getSize(), 1));
 		} else {
@@ -489,7 +490,7 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 }
 
 void Bundle::removeBadSource(const HintedUser& aUser) noexcept {
-	auto m = find_if(badSources.begin(), badSources.end(), [&](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+	auto m = find_if(badSources.begin(), badSources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	dcassert(m != badSources.end());
 	if (m != badSources.end()) {
 		badSources.erase(m);
@@ -695,7 +696,7 @@ void Bundle::getTTHList(OutputStream& tthList) noexcept {
 
 bool Bundle::allowAutoSearch() {
 	return countOnlineUsers() <= (size_t)SETTING(AUTO_SEARCH_LIMIT) && 
-		find_if(queueItems.begin(), queueItems.end(), [&](QueueItemPtr q) { return q->getPriority() != QueueItem::PAUSED; } ) != queueItems.end();
+		find_if(queueItems.begin(), queueItems.end(), [](QueueItemPtr q) { return q->getPriority() != QueueItem::PAUSED; } ) != queueItems.end();
 }
 
 void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {

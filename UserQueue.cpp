@@ -21,6 +21,9 @@
 #include <functional>
 #include <vector>
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
+
 #include "UserQueue.h"
 #include "SettingsManager.h"
 #include "HashManager.h"
@@ -30,6 +33,8 @@
 #include "noexcept.h"
 
 namespace dcpp {
+
+using boost::range::for_each;
 
 void UserQueue::add(QueueItemPtr qi, bool newBundle /*false*/) {
 	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
@@ -69,19 +74,22 @@ void UserQueue::add(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /*f
 
 void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	/* Returns all queued items from an user */
+
 	/* Highest prio */
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
-		ql = i->second;
+		dcassert(!i->second.empty());
+		for_each(i->second, [&](QueueItemPtr q) { 
+			if (!q->getBundle()) //bundle items will be added from the bundle queue
+				ql.push_back(q);
+		});
 	}
 
 	/* Bundles */
 	auto s = userBundleQueue.find(aUser);
 	if(s != userBundleQueue.end()) {
-		dcassert(!i->second.empty());
-		for (auto j = s->second.begin(); j != s->second.end(); ++j) {
-			(*j)->getItems(aUser, ql);
-		}
+		dcassert(!s->second.empty());
+		for_each(s->second, [&](BundlePtr b) { b->getItems(aUser, ql); });
 	}
 }
 

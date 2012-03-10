@@ -631,14 +631,8 @@ bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::Ma
 	if(qi->isFinished()) //no need to add source to finished item.
 		throw QueueException("Already Finished: " + Util::getFileName(qi->getTarget()));
 	
-	bool wantConnection = qi->getPriority() != QueueItem::PAUSED;
-	if (qi->getBundle()) {
-		if (qi->getPriority() != QueueItem::HIGHEST && qi->getBundle()->getPriority() == Bundle::PAUSED) {
-			wantConnection = false;
-		}
-	} else {
-		dcassert(qi->getPriority() == QueueItem::HIGHEST);
-	}
+	bool wantConnection = qi->startDown();
+	dcassert(qi->getBundle() || qi->getPriority() == QueueItem::HIGHEST);
 
 	if(qi->isSource(aUser)) {
 		if(qi->isSet(QueueItem::FLAG_USER_LIST)) {
@@ -927,7 +921,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 			}
 		}
 
-		for_each(hash, [&](QueueItemPtr q) {
+		for_each(hash, [aBundle](QueueItemPtr q) {
 			try {
 				// Schedule for hashing, it'll be added automatically later on...
 				if (!HashManager::getInstance()->checkTTH(q->getTarget(), q->getSize(), AirUtil::getLastWrite(q->getTarget()))) {
@@ -1317,18 +1311,18 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
 		if ((flags & QueueItem::FLAG_PARTIAL_LIST) && !path.empty()) {
 			//partial list
-			DirectoryItem* d = NULL;
+			DirectoryItem* d = nullptr;
 			{
 				WLock l(cs);
 				auto dp = directories.equal_range(user);
-				auto udp = find_if(dp.first, dp.second, [&](pair<UserPtr, DirectoryItemPtr> ud) { return stricmp(path.c_str(), ud.second->getName().c_str()) == 0; });
+				auto udp = find_if(dp.first, dp.second, [path](pair<UserPtr, DirectoryItemPtr> ud) { return stricmp(path.c_str(), ud.second->getName().c_str()) == 0; });
 				if (udp != dp.second) {
 					d = udp->second;
 					directories.erase(udp);
 				}
 			}
 
-			if(d != NULL){
+			if(d) {
 				dirList.download(d->getName(), d->getTarget(), false, d->getPriority(), true);
 				delete d;
 			}
@@ -1341,11 +1335,11 @@ void QueueManager::processList(const string& name, const HintedUser& user, const
 				dl.assign(boost::begin(dpf), boost::end(dpf));
 				directories.erase(user);
 			}
-			for(auto i = dl.begin(); i != dl.end(); ++i) {
-				DirectoryItem* di = *i;
+
+			for_each(dl, [&](DirectoryItem* di) {
 				dirList.download(di->getName(), di->getTarget(), false, di->getPriority());
 				delete di;
-			}
+			});
 		}
 	}
 
@@ -1397,7 +1391,7 @@ void QueueManager::removeQI(QueueItemPtr q, bool moved /*false*/) noexcept {
 		}
 
 		if(q->isRunning()) {
-			for_each(q->getDownloads(), [&] (Download* d) { x.push_back(&d->getUserConnection()); } );
+			for_each(q->getDownloads(), [&](Download* d) { x.push_back(&d->getUserConnection()); } );
 		} else if(!q->getTempTarget().empty() && q->getTempTarget() != q->getTarget()) {
 			File::deleteFile(q->getTempTarget());
 		}
@@ -1413,7 +1407,7 @@ void QueueManager::removeQI(QueueItemPtr q, bool moved /*false*/) noexcept {
 	}
 
 	removeBundleItem(q, false, moved);
-	for_each(x, [] (UserConnection* u) { u->disconnect(true); } );
+	for_each(x, [](UserConnection* u) { u->disconnect(true); });
 }
 
 void QueueManager::removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
@@ -1475,14 +1469,14 @@ endCheck:
 
 void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept {
 	// @todo remove from finished items
-	QueueItemList items;
+	QueueItemList ql;
 
 	{
 		RLock l(cs);
-		userQueue.getUserQIs(aUser, items);
+		userQueue.getUserQIs(aUser, ql);
 	}
 
-	for_each(items, [&](QueueItemPtr qi) { removeSource(qi, aUser, reason); });
+	for_each(ql, [&](QueueItemPtr qi) { removeSource(qi, aUser, reason); });
 }
 
 void QueueManager::setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept {
@@ -1565,7 +1559,7 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQICha
 		if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_BALANCED) {
 			calculateBundlePriorities(false);
 			if (b->getPriority() == Bundle::PAUSED) {
-				//failed to count, but we don't want it to stay paused
+				//failed to count auto priorities, but we don't want it to stay paused
 				setBundlePriority(b, Bundle::LOW, true);
 			}
 		} else if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
@@ -1624,7 +1618,7 @@ void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) n
 }
 
 void QueueManager::setQIPriority(const string& aTarget, QueueItem::Priority p) noexcept {
-	QueueItemPtr q = NULL;
+	QueueItemPtr q = nullptr;
 	{
 		RLock l(cs);
 		q = fileQueue.find(aTarget);
@@ -1664,7 +1658,7 @@ void QueueManager::setQIPriority(QueueItemPtr q, QueueItem::Priority p, bool isA
 	if(p == QueueItem::PAUSED && running) {
 		DownloadManager::getInstance()->abortDownload(q->getTarget());
 	} else {
-		for_each(getConn, [&](HintedUser& u) {
+		for_each(getConn, [](HintedUser& u) {
 			ConnectionManager::getInstance()->getDownloadConnection(u);
 		});
 	}
@@ -1810,9 +1804,8 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			added = GET_TIME();
 		}
 
-		BundlePtr bundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, dirDate);
-		bundle->setToken(token);
-		curBundle = bundle;
+		curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, dirDate);
+		curBundle->setToken(token);
 		inBundle = true;		
 	} else if(inDownloads || inBundle || inFile) {
 		if(cur == NULL && name == sDownload) {
@@ -1830,7 +1823,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			}
 
 			if (curBundle && inBundle && !AirUtil::isParent(curBundle->getTarget(), target)) {
-				//can't add this
+				//can't add this, invalid dir structure
 				return;
 			}
 
@@ -1919,7 +1912,7 @@ void QueueLoader::endTag(const string& name, const string&) {
 			inDownloads = false;
 		} else if(name == sBundle) {
 			QueueManager::getInstance()->addBundle(curBundle, true);
-			curBundle = NULL;
+			curBundle = nullptr;
 			inBundle = false;
 		} else if(name == sFile) {
 			curToken = Util::emptyString;
@@ -2049,24 +2042,20 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser) noexcept {
 	bool hasDown = false;
 	{
-		RLock l(cs);
-		auto j = userQueue.getBundleList().find(aUser);
-		if(j != userQueue.getBundleList().end()) {
-			for_each(j->second, [&](BundlePtr b) {
-				QueueItemList items;
-				b->getItems(aUser, items);
-				for(auto s = items.begin(); s != items.end(); ++s) {
-					QueueItemPtr qi = *s;
-					fire(QueueManagerListener::StatusUpdated(), qi);
-					if((b->getPriority() != QueueItem::PAUSED && qi->getPriority() != QueueItem::PAUSED) || qi->getPriority() == QueueItem::HIGHEST) {
-						hasDown = true;
-					}
-				}
-			});
+		QueueItemList ql;
+		{
+			RLock l(cs);
+			userQueue.getUserQIs(aUser, ql);
 		}
+
+		for_each(ql, [&](QueueItemPtr qi) {
+			fire(QueueManagerListener::StatusUpdated(), qi);
+			if(qi->startDown())
+				hasDown = true;
+		});
 	}
 
-	if(hasDown && aUser->isOnline()) { //even tho user just connected, check if he is still online and that we really have a user.
+	if(hasDown && aUser->isOnline()) { //even tho user just connected, check if he is still online
 		// the user just came on, so there's only 1 possible hub, no need for a hint
 		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(aUser, Util::emptyString));
 	}
@@ -2074,15 +2063,9 @@ void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser
 
 void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept {
 	RLock l(cs);
-	auto j = userQueue.getBundleList().find(aUser);
-	if(j != userQueue.getBundleList().end()) {
-		for(auto m = j->second.begin(); m != j->second.end(); ++m) {
-			BundlePtr bundle = *m;
-			QueueItemList items;
-			bundle->getItems(aUser, items);
-			for_each(items, [&](QueueItemPtr qi) { fire(QueueManagerListener::StatusUpdated(), qi); });
-		}
-	}
+	QueueItemList ql;
+	userQueue.getUserQIs(aUser, ql);
+	for_each(ql, [&](QueueItemPtr qi) { fire(QueueManagerListener::StatusUpdated(), qi); });
 }
 
 void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles) {
@@ -2426,10 +2409,9 @@ tstring QueueManager::getDirPath(const string& aDir) {
 
 void QueueManager::getUnfinishedPaths(StringList& retBundles) {
 	RLock l(cs);
-	for_each(bundleQueue.getBundles(), [&](pair<string, BundlePtr> sp) {
-		if (!sp.second->isFileBundle() && !sp.second->isFinished()) {
-			retBundles.push_back(sp.second->getTarget());
-		}
+	for_each(bundleQueue.getBundles() | map_values, [&](BundlePtr b) {
+		if (!b->isFileBundle() && !b->isFinished())
+			retBundles.push_back(b->getTarget());
 	});
 }
 
@@ -2444,7 +2426,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 			}
 
 			//check the path just to avoid hashing/scanning bundles from dirs that aren't being refreshed
-			if (find_if(paths.begin(), paths.end(), [&](StringPair sp) { return AirUtil::isParent(sp.second, b->getTarget()); }) == paths.end()) {
+			if (find_if(paths.begin(), paths.end(), [b](StringPair sp) { return AirUtil::isParent(sp.second, b->getTarget()); }) == paths.end()) {
 				continue;
 			}
 
@@ -2539,7 +2521,7 @@ void QueueManager::connectBundleSources(BundlePtr aBundle) {
 		aBundle->getSources(x);
 	}
 
-	for_each(x, [&](const HintedUser u) { 
+	for_each(x, [](const HintedUser u) { 
 		if(u.user && u.user->isOnline())
 			ConnectionManager::getInstance()->getDownloadConnection(u, false); 
 	});
@@ -2648,7 +2630,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, b
 		fire(QueueManagerListener::BundleAdded(), targetBundle);
 	}
 
-	for_each(x, [&](const HintedUser u) {
+	for_each(x, [targetBundle](const HintedUser u) {
 		if(u.user && u.user->isOnline() && (targetBundle->getPriority() != Bundle::PAUSED))
 			ConnectionManager::getInstance()->getDownloadConnection(u, false); 
 	});
@@ -3147,7 +3129,7 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 					newBundles.push_back(targetBundle);
 				});
 			}
-			for_each(newBundles, [&](BundlePtr b) { addBundle(b, false); });
+			for_each(newBundles, [this](BundlePtr b) { addBundle(b, false); });
 		}
 
 		bool emptyBundle = false;
@@ -3450,7 +3432,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 
 	if (searches.size() <= 5) {
 		aBundle->setSimpleMatching(true);
-		for_each(searches, [&](StringPair& sp) {
+		for_each(searches, [](StringPair& sp) {
 			//LogManager::getInstance()->message("QueueManager::searchBundle, searchString: " + i->second);
 			SearchManager::getInstance()->search(sp.second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
 		});
