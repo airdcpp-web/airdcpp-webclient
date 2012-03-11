@@ -168,6 +168,10 @@ bool DownloadManager::checkIdle(const HintedUser& user, bool smallSlot, bool rep
 	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;
 		if(uc->getUser() == user.user) {
+			//update the hubHint of the connection to the correct one.
+			if(stricmp(uc->getHubUrl(), user.hint) != 0) 
+				uc->setHubUrl(user.hint);
+
 			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
 			if (!reportOnly)
@@ -268,7 +272,16 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	dcdebug("Requesting " I64_FMT "/" I64_FMT "\n", d->getStartPos(), d->getSize());
 
-	aConn->send(d->getCommand(aConn->isSet(UserConnection::FLAG_SUPPORTS_ZLIB_GET)));
+	/*
+	find mySID, better ways to get the correct one transferred here?
+	the hinturl of the connection is updated to the hub where the connection reguest is coming from,
+	so we should be able to find our own SID by finding the hub where the user is at (if we have a hint).
+	*/
+	string mySID = Util::emptyString;
+	if(!aConn->getUser()->isNMDC() && (d->getType() == Transfer::TYPE_FULL_LIST || d->getType() == Transfer::TYPE_PARTIAL_LIST))
+		mySID = ClientManager::getInstance()->findMySID(aConn->getHintedUser());
+
+	aConn->send(d->getCommand(aConn->isSet(UserConnection::FLAG_SUPPORTS_ZLIB_GET), mySID));
 }
 
 void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcCommand& cmd) noexcept {

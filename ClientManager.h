@@ -107,6 +107,7 @@ public:
 			return (!u->getClient().getHideShare());
 		return true;
 	}
+	string findMySID(const HintedUser& p);
 
 	bool isOp(const UserPtr& aUser, const string& aHubUrl) const;
 	bool isStealth(const string& aHubUrl) const;

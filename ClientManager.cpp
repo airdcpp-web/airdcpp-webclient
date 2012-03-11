@@ -383,6 +383,17 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
 	}
 }
 
+string ClientManager::findMySID(const HintedUser& p) {
+	//this could also be done by just finding in the client list... better?
+	if(p.hint.empty()) // we cannot find the correct SID without a hubUrl
+		return Util::emptyString;
+
+	OnlineUser* u = findOnlineUserHint(p.user->getCID(), p.hint);
+	if(u)
+		return (&u->getClient())->getMyIdentity().getSIDString();
+
+	return Util::emptyString;
+}
 OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const {
 	Lock l(cs);
 	p = onlineUsers.equal_range(const_cast<CID*>(&cid));

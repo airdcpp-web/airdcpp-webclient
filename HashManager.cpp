@@ -527,10 +527,10 @@ int HashManager::Hasher::run() {
 	string fname;
 	for(;;) {
 		s.wait();
-		instantPause(); //suspend the thread... 
+		instantPause(); //suspend the thread...
 		if(stop)
 			break;
-		
+
 		if(saveData) {
 			HashManager::getInstance()->SaveData();
 			saveData = false;
@@ -543,7 +543,7 @@ int HashManager::Hasher::run() {
 			LogManager::getInstance()->message(STRING(HASH_REBUILT));
 			continue;
 		}
-
+		
 		{
 			Lock l(cs);
 			if(!w.empty()) {

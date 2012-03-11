@@ -64,7 +64,7 @@ public:
 	const string& getPFS() const { return pfs; }
 
 	/** @internal */
-	AdcCommand getCommand(bool zlib) const;
+	AdcCommand getCommand(bool zlib, const string& mySID) const;
 	const unique_ptr<OutputStream>& getOutput() const { return output; }
 
 	GETSET(string, tempTarget, TempTarget);
