@@ -69,6 +69,8 @@ public:
 	/** Readd a source that was removed */
 	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
 	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) throw(QueueException);
+	void onChangeDownloadOrder();
+
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
 		QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
@@ -284,7 +286,89 @@ private:
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
 
 	//DownloadManagerListener
-	void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles) noexcept;
+	void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) noexcept;
+
+
+	template<class T>
+	void calculateBalancedPriorities(vector<pair<T, uint8_t>>& priorities, multimap<int64_t, T>& speedMap, multimap<double, T>& sourceMap, bool verbose) {
+		map<T, double> autoPrioMap;
+
+		//scale the priorization maps
+		double factor;
+		double max = max_element(speedMap.begin(), speedMap.end())->first;
+		if (max) {
+			double factor = 100 / max;
+			for (auto i = speedMap.begin(); i != speedMap.end(); ++i) {
+				autoPrioMap[i->second] = i->first * factor;
+			}
+		}
+
+		max = max_element(sourceMap.begin(), sourceMap.end())->first;
+		if (max > 0) {
+			factor = 100 / max;
+			for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
+				autoPrioMap[i->second] += i->first * factor;
+			}
+		}
+
+
+		//prepare to set the prios
+		multimap<int, T> finalMap;
+		int uniqueValues = 0;
+		for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
+			if (finalMap.find(i->second) == finalMap.end()) {
+				uniqueValues++;
+			}
+			finalMap.insert(make_pair(i->second, i->first));
+		}
+
+
+		int prioGroup = 1;
+		if (uniqueValues <= 1) {
+			if (verbose) {
+				LogManager::getInstance()->message("Not enough items with unique points to perform the priotization!");
+			}
+			return;
+		} else if (uniqueValues > 2) {
+			prioGroup = uniqueValues / 3;
+		}
+
+		if (verbose) {
+			LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
+		}
+
+
+		//priority to set (4-2, high-low)
+		int8_t prio = 4;
+
+		//counters for analyzing identical points
+		int lastPoints = 999;
+		int prioSet=0;
+
+		for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
+			if (lastPoints==i->first) {
+				if (verbose) {
+					LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
+				}
+				priorities.push_back(make_pair(i->second, prio));
+				//don't increase the prio if two items have identical points
+				if (prioSet < prioGroup) {
+					prioSet++;
+				}
+			} else {
+				if (prioSet == prioGroup && prio != 2) {
+					prio--;
+					prioSet=0;
+				} 
+				if (verbose) {
+					LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
+				}
+				priorities.push_back(make_pair(i->second, (int8_t)prio));
+				prioSet++;
+				lastPoints=i->first;
+			}
+		}
+	}
 };
 
 } // namespace dcpp

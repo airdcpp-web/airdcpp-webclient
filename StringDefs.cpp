@@ -1274,7 +1274,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Matching Filelist with ADLSearch, this might take a while if the list is large...", 
 "Show Hashing Files in systemlog", 
 "The ADLSearch list can't be modified while matching is in progress!", 
-"Balanced (change priorities dynamically)", 
+"Balanced (based on sources and their speeds)", 
 "Set priorities automatically based on the progress", 
 "Download in the order of adding", 
 "Download in random order", 
@@ -1373,6 +1373,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Rename Directory", 
 "Move Directory", 
 "Move/Rename file(s)", 
+"Calculate bundle priorities automatically", 
+"Calculate priorities also for individual files", 
+"Calculate priorities every", 
+"Auto priority settings", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2746,4 +2750,8 @@ std::string dcpp::ResourceManager::names[] = {
 "RenameDir", 
 "MoveDir", 
 "MoveRenameFile", 
+"SettingsCalculatePrioAuto", 
+"SettingsAutoprioFiles", 
+"SettingsCalculateEvery", 
+"SettingsAutoprio", 
 };

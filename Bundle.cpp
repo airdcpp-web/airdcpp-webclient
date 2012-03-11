@@ -269,11 +269,11 @@ bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 }
 
 bool Bundle::isSource(const UserPtr& aUser) {
-	return find_if(sources.begin(), sources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
+	return find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
 }
 
 bool Bundle::isBadSource(const UserPtr& aUser) {
-	return find_if(badSources.begin(), badSources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
+	return find_if(badSources.begin(), badSources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
 }
 
 void Bundle::addUserQueue(QueueItemPtr qi) {
@@ -284,24 +284,22 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 	dcassert(find(l.begin(), l.end(), qi) == l.end());
 	l.push_back(qi);
-	if (l.size() > 1 && (dirDate + (15*24*60*60)) > GET_TIME()) { //no need to use random order for bundles older than 15 days
-		auto i = l.begin();
-		auto start = (size_t)Util::rand((uint32_t)(l.size() < 200 ? l.size() : 200)); //limit the max value to lower the required moving distance
-		advance(i, start);
+
+	/* Randomize the downloading order for each user if the bundle dir date is newer than 15 days to boost partial bundle sharing */
+	if (l.size() > 1 && (dirDate + (15*24*60*60)) > GET_TIME()) {
+		auto start = (size_t)Util::rand((uint32_t)l.size());
 		swap(queueItems[start], queueItems[queueItems.size()-1]);
 	}
 
-	auto i = find_if(sources.begin(), sources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+	auto i = find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	if (i != sources.end()) {
 		get<SOURCE_FILES>(*i)++;
 		get<SOURCE_SIZE>(*i) += qi->getSize();
-		//LogManager::getInstance()->message("ADD, SOURCE FOR " + Util::toString(i->second) + " ITEMS");
 		return false;
 	} else {
 		sources.push_back(make_tuple(aUser, qi->getSize() - qi->getDownloadedSegments(), 1));
 		return true;
 	}
-	//LogManager::getInstance()->message("ADD QI FOR BUNDLE USERQUEUE, total items for the user " + aUser->getCID().toBase32() + ": " + Util::toString(l.size()));
 }
 
 QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
@@ -324,7 +322,7 @@ QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority
 }
 
 bool Bundle::isFinishedNotified(const UserPtr& aUser) {
-	return find_if(finishedNotifications.begin(), finishedNotifications.end(), [aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
+	return find_if(finishedNotifications.begin(), finishedNotifications.end(), [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
 }
 
 void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) {
@@ -466,11 +464,11 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 	}
 
 	//remove from bundle sources
-	auto m = find_if(sources.begin(), sources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
+	auto m = find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 	dcassert(m != sources.end());
 
 	if (addBad) {
-		auto bsi = find_if(badSources.begin(), badSources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
+		auto bsi = find_if(badSources.begin(), badSources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 		if (bsi == badSources.end()) {
 			badSources.push_back(make_tuple(get<SOURCE_USER>(*m), qi->getSize(), 1));
 		} else {
@@ -490,7 +488,7 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 }
 
 void Bundle::removeBadSource(const HintedUser& aUser) noexcept {
-	auto m = find_if(badSources.begin(), badSources.end(), [aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+	auto m = find_if(badSources.begin(), badSources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	dcassert(m != badSources.end());
 	if (m != badSources.end()) {
 		badSources.erase(m);
@@ -544,109 +542,28 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	return make_pair(bundleSpeed, bundleSources);
 }
 
-void Bundle::getQIBalanceMaps(SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap) noexcept {
+pair<multimap<int64_t, QueueItemPtr>, multimap<double, QueueItemPtr>> Bundle::getQIBalanceMaps() noexcept {
+	multimap<int64_t, QueueItemPtr> qiSpeedMap;
+	multimap<double, QueueItemPtr> qiSourceMap;
+
 	for (auto j = queueItems.begin(); j != queueItems.end(); ++j) {
 		QueueItemPtr q = *j;
 		if(q->getAutoPriority()) {
-			if(q->getPriority() != QueueItem::PAUSED) {
-				int64_t qiSpeed = 0;
-				double qiSources = 0;
-				for (auto s = q->getSources().begin(); s != q->getSources().end(); ++s) {
-					if ((*s).getUser().user->isOnline()) {
-						qiSpeed += (*s).getUser().user->getSpeed();
-						qiSources++;
-					} else {
-						qiSources += 2;
-					}
+			int64_t qiSpeed = 0;
+			double qiSources = 0;
+			for (auto s = q->getSources().begin(); s != q->getSources().end(); ++s) {
+				if ((*s).getUser().user->isOnline()) {
+					qiSpeed += (*s).getUser().user->getSpeed();
+					qiSources++;
+				} else {
+					qiSources += 2;
 				}
-				//sources = sources / bundle->getQueueItems().size();
-				///if (verbose) {
-				//	LogManager::getInstance()->message("Sourcepoints for bundle " + bundle->getName() + " : " + Util::toString(sources));
-				//}
-				speedMap.insert(make_pair((double)qiSpeed, q));
-				sourceMap.insert(make_pair(qiSources, q));
 			}
+			qiSpeedMap.insert(make_pair(qiSpeed, q));
+			qiSourceMap.insert(make_pair(qiSources, q));
 		}
 	}
-}
-
-void Bundle::calculateBalancedPriorities(PrioList& priorities, SourceSpeedMapQI& speedMap, SourceSpeedMapQI& sourceMap, bool verbose) noexcept {
-	map<QueueItemPtr, double> autoPrioMap;
-	//scale the priorization maps
-	double factor;
-	double max = max_element(speedMap.begin(), speedMap.end())->first;
-	if (max) {
-		double factor = 100 / max;
-		for (auto i = speedMap.begin(); i != speedMap.end(); ++i) {
-			autoPrioMap[i->second] = i->first * factor;
-		}
-	}
-
-	max = max_element(sourceMap.begin(), sourceMap.end())->first;
-	if (max > 0) {
-		factor = 100 / max;
-		for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
-			autoPrioMap[i->second] += i->first * factor;
-		}
-	}
-
-
-	//prepare to set the prios
-	multimap<int, QueueItemPtr> finalMap;
-	int uniqueValues = 0;
-	for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
-		if (finalMap.find(i->second) == finalMap.end()) {
-			uniqueValues++;
-		}
-		finalMap.insert(make_pair(i->second, i->first));
-	}
-
-
-	int prioGroup = 1;
-	if (uniqueValues <= 1) {
-		if (verbose) {
-			LogManager::getInstance()->message("Not enough QueueItems for the bundle " + getName() + " with unique points to perform the priotization!");
-		}
-		return;
-	} else if (uniqueValues > 2) {
-		prioGroup = uniqueValues / 3;
-	}
-
-	if (verbose) {
-		LogManager::getInstance()->message("BUNDLE QIs: Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
-	}
-
-
-	//priority to set (4-2, high-low)
-	int8_t prio = 4;
-
-	//counters for analyzing identical points
-	int lastPoints = 999;
-	int prioSet=0;
-
-	for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
-		if (lastPoints==i->first) {
-			if (verbose) {
-				LogManager::getInstance()->message("QueueItem: " + i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
-			}
-			priorities.push_back(make_pair(i->second, prio));
-			//don't increase the prio if two bundles have identical points
-			if (prioSet < prioGroup) {
-				prioSet++;
-			}
-		} else {
-			if (prioSet == prioGroup && prio != 2) {
-				prio--;
-				prioSet=0;
-			} 
-			if (verbose) {
-				LogManager::getInstance()->message("QueueItem: " + i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
-			}
-			priorities.push_back(make_pair(i->second, (int8_t)prio));
-			prioSet++;
-			lastPoints=i->first;
-		}
-	}
+	return make_pair(qiSpeedMap, qiSourceMap);
 }
 
 size_t Bundle::countOnlineUsers() const noexcept {

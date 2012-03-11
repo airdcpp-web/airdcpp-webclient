@@ -57,6 +57,7 @@ class AirUtil {
 
 		static bool isAdcHub(const string& hubUrl);
 		static string convertMovePath(const string& aPath, const string& aParent, const string& aTarget);
+
 	private:
 
 	};

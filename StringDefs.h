@@ -1281,7 +1281,7 @@ enum Strings { // @DontAdd
 	MATCHING_ADL, // "Matching Filelist with ADLSearch, this might take a while if the list is large..."
 	LOG_HASHING, // "Show Hashing Files in systemlog"
 	ADLSEARCH_IN_PROGRESS, // "The ADLSearch list can't be modified while matching is in progress!"
-	PRIOPAGE_ORDER_BALANCED, // "Balanced (change priorities dynamically)"
+	PRIOPAGE_ORDER_BALANCED, // "Balanced (based on sources and their speeds)"
 	PRIOPAGE_ORDER_PROGRESS, // "Set priorities automatically based on the progress"
 	PRIOPAGE_ORDER_ADDED, // "Download in the order of adding"
 	PRIOPAGE_ORDER_RANDOM, // "Download in random order"
@@ -1380,5 +1380,9 @@ enum Strings { // @DontAdd
 	RENAME_DIR, // "Rename Directory"
 	MOVE_DIR, // "Move Directory"
 	MOVE_RENAME_FILE, // "Move/Rename file(s)"
+	SETTINGS_CALCULATE_PRIO_AUTO, // "Calculate bundle priorities automatically"
+	SETTINGS_AUTOPRIO_FILES, // "Calculate priorities also for individual files"
+	SETTINGS_CALCULATE_EVERY, // "Calculate priorities every"
+	SETTINGS_AUTOPRIO, // "Auto priority settings"
 	LAST // @DontAdd
 };

@@ -31,8 +31,8 @@ namespace dcpp {
 /** All queue items indexed by user (this is a cache for the FileQueue really...) */
 class UserQueue {
 public:
-	void add(QueueItemPtr qi, bool newBundle=false);
-	void add(QueueItemPtr qi, const HintedUser& aUser, bool newBundle=false);
+	void addQI(QueueItemPtr qi, bool newBundle=false);
+	void addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle=false);
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql);
 	QueueItemPtr getNext(const UserPtr& aUser, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
 	QueueItemPtr getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
@@ -41,10 +41,12 @@ public:
 	void addDownload(QueueItemPtr qi, Download* d);
 	void removeDownload(QueueItemPtr qi, const UserPtr& d, const string& token = Util::emptyString);
 
-	void removeQI(QueueItemPtr qi, bool removeRunning = true, bool removeBundle=false);
-	void removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunning = true, bool addBad = false, bool removeBundle=false);
+	void removeQI(QueueItemPtr qi, bool removeRunning = true, bool fireSources = false);
+	void removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunning=true, bool addBad=false, bool fireSources=false);
 	void setQIPriority(QueueItemPtr qi, QueueItem::Priority p);
 
+	void addBundle(BundlePtr aBundle, const UserPtr& aUser);
+	void removeBundle(BundlePtr aBundle, const UserPtr& aUser);
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p);
 
 	boost::unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }

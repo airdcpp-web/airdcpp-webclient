@@ -20,9 +20,9 @@
 #define VERSIONSTRING "2.30"
 #define VERSIONFLOAT "2.30"
 
-#define DCVERSIONSTRING "0.782"
+#define DCVERSIONSTRING "0.791"
 
-#define SVNVERSION "r786"
+#define SVNVERSION "r788"
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"

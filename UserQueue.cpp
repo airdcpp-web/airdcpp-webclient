@@ -36,13 +36,13 @@ namespace dcpp {
 
 using boost::range::for_each;
 
-void UserQueue::add(QueueItemPtr qi, bool newBundle /*false*/) {
+void UserQueue::addQI(QueueItemPtr qi, bool newBundle /*false*/) {
 	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		add(qi, i->getUser(), newBundle);
+		addQI(qi, i->getUser(), newBundle);
 	}
 }
 
-void UserQueue::add(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /*false*/) {
+void UserQueue::addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /*false*/) {
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
@@ -52,17 +52,7 @@ void UserQueue::add(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /*f
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
 		if (bundle->addUserQueue(qi, aUser)) {
-			auto& s = userBundleQueue[aUser.user];
-			if (SETTING(DOWNLOAD_ORDER) != SettingsManager::ORDER_RANDOM) {
-				s.insert(upper_bound(s.begin(), s.end(), bundle, Bundle::SortOrder()), bundle);
-			} else {
-				auto pp = equal_range(s.begin(), s.end(), bundle, [](const BundlePtr leftBundle, const BundlePtr rightBundle) { return leftBundle->getPriority() > rightBundle->getPriority(); });
-				int dist = distance(pp.first, pp.second);
-				if (dist > 0) {
-					std::advance(pp.first, Util::rand(dist));
-				}
-				s.insert(pp.first, bundle);
-			}
+			addBundle(qi->getBundle(), aUser);
 			if (!newBundle) {
 				QueueManager::getInstance()->fire(QueueManagerListener::BundleSources(), bundle);
 			}
@@ -172,7 +162,7 @@ void UserQueue::removeDownload(QueueItemPtr qi, const UserPtr& aUser, const stri
 void UserQueue::setQIPriority(QueueItemPtr qi, QueueItem::Priority p) {
 	removeQI(qi, false);
 	qi->setPriority(p);
-	add(qi);
+	addQI(qi);
 }
 
 QueueItemList UserQueue::getRunning(const UserPtr& aUser) {
@@ -184,13 +174,13 @@ QueueItemList UserQueue::getRunning(const UserPtr& aUser) {
 	return ret;
 }
 
-void UserQueue::removeQI(QueueItemPtr qi, bool removeRunning /*true*/, bool removeBundle /*false*/) {
+void UserQueue::removeQI(QueueItemPtr qi, bool removeRunning /*true*/, bool fireSources /*false*/) {
 	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		removeQI(qi, i->getUser(), removeRunning, false, removeBundle);
+		removeQI(qi, i->getUser(), removeRunning, false, fireSources);
 	}
 }
 
-void UserQueue::removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool removeBundle /*false*/) {
+void UserQueue::removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool fireSources /*false*/) {
 
 	if(removeRunning) {
 		QueueItemList runningItems = getRunning(aUser);
@@ -205,20 +195,11 @@ void UserQueue::removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunni
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
 		if (!bundle->isSource(aUser)) {
-		//	return;
+			return;
 		}
 		if (qi->getBundle()->removeUserQueue(qi, aUser, addBad)) {
-			auto j = userBundleQueue.find(aUser);
-			dcassert(j != userBundleQueue.end());
-			auto& l = j->second;
-			auto s = find(l.begin(), l.end(), bundle);
-			dcassert(s != l.end());
-			l.erase(s);
-
-			if(l.empty()) {
-				userBundleQueue.erase(j);
-			}
-			if (!removeBundle) {
+			removeBundle(qi->getBundle(), aUser);
+			if (!fireSources) {
 				QueueManager::getInstance()->fire(QueueManagerListener::BundleSources(), bundle);
 			}
 		} else {
@@ -246,39 +227,49 @@ void UserQueue::removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunni
 	}
 }
 
+void UserQueue::addBundle(BundlePtr aBundle, const UserPtr& aUser) {
+	auto& s = userBundleQueue[aUser];
+	if (SETTING(DOWNLOAD_ORDER) != SettingsManager::ORDER_RANDOM) {
+		s.insert(upper_bound(s.begin(), s.end(), aBundle, Bundle::SortOrder()), aBundle);
+	} else {
+		auto pp = equal_range(s.begin(), s.end(), aBundle, [](const BundlePtr leftBundle, const BundlePtr rightBundle) { return leftBundle->getPriority() > rightBundle->getPriority(); });
+		int dist = distance(pp.first, pp.second);
+		if (dist > 0) {
+			std::advance(pp.first, Util::rand(dist));
+		}
+		s.insert(pp.first, aBundle);
+	}
+}
+
+void UserQueue::removeBundle(BundlePtr aBundle, const UserPtr& aUser) {
+	auto j = userBundleQueue.find(aUser);
+	dcassert(j != userBundleQueue.end());
+	if (j == userBundleQueue.end()) {
+		return;
+	}
+
+	auto& l = j->second;
+	auto s = find(l.begin(), l.end(), aBundle);
+	dcassert(s != l.end());
+	if (s == l.end()) {
+		return;
+	}
+
+	l.erase(s);
+	if(l.empty()) {
+		userBundleQueue.erase(j);
+	}
+}
 
 void UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Priority p) {
-	aBundle->setPriority(p);
+	dcassert(!aBundle->isFinished());
+
 	HintedUserList sources;
 	aBundle->getSources(sources);
-	//LogManager::getInstance()->message("CHANGING THE PRIO FOR " + aBundle->getName() +  " SOURCES SIZE: " + Util::toString(sources.size()));
 
-	for(auto i = sources.begin(); i != sources.end(); ++i) {
-		UserPtr aUser = *i;
-
-		//erase old
-		auto j = userBundleQueue.find(aUser);
-		dcassert(j != userBundleQueue.end());
-		if (j == userBundleQueue.end()) {
-			return;
-		}
-
-		auto& l = j->second;
-		auto s = find(l.begin(), l.end(), aBundle);
-		if (s == l.end()) {
-			return;
-		}
-		dcassert(s != l.end());
-		l.erase(s);
-
-		if(l.empty()) {
-			userBundleQueue.erase(j);
-		}
-
-		//insert new
-		auto& ulm2 = userBundleQueue[aUser];
-		ulm2.insert(upper_bound(ulm2.begin(), ulm2.end(), aBundle, Bundle::SortOrder()), aBundle);
-	}
+	for_each(sources, [&](HintedUser u) { removeBundle(aBundle, u); });
+	aBundle->setPriority(p);
+	for_each(sources, [&](HintedUser u) { addBundle(aBundle, u); });
 }
 
 } //dcpp

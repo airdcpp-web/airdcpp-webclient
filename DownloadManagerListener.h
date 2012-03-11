@@ -81,7 +81,7 @@ public:
 	virtual void on(TargetChanged, const string&, const string&, const string&) noexcept { }
 
 	virtual void on(BundleWaiting, const BundlePtr) noexcept { }
-	virtual void on(BundleTick, const BundleList&) noexcept { }
+	virtual void on(BundleTick, const BundleList&, uint64_t) noexcept { }
 
 	/**
 	 * This indicates some sort of failure with a particular download.

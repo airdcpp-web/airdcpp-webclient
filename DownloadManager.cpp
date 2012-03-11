@@ -130,7 +130,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 	for_each(userSpeedMap.begin(), userSpeedMap.end(), [](pair<UserPtr, int64_t> us) { us.first->setSpeed(us.second); });
 	if (!bundleTicks.empty()) {
-		fire(DownloadManagerListener::BundleTick(), bundleTicks);
+		fire(DownloadManagerListener::BundleTick(), bundleTicks, aTick);
 	}
 
 	for_each(UBNList, [](pair<CID, AdcCommand>& cap) { ClientManager::getInstance()->send(cap.second, cap.first, true, true); } );

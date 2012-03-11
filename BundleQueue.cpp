@@ -373,54 +373,6 @@ void BundleQueue::move(BundlePtr aBundle, const string& newTarget) {
 	}
 }
 
-void BundleQueue::getAutoPrioMap(multimap<int, BundlePtr>& finalMap, int& uniqueValues) {
-	//get bundles with auto priority
-	boost::unordered_map<BundlePtr, double, Bundle::Hash> autoPrioMap;
-	multimap<double, BundlePtr> sizeMap;
-	multimap<int64_t, BundlePtr> sourceMap;
-
-	for_each(bundles | map_values, [&](BundlePtr b) {
-		if (b->getAutoPriority() && !b->isFinished()) {
-			auto p = b->getPrioInfo();
-			sourceMap.insert(make_pair(p.first, b));
-			sizeMap.insert(make_pair(p.second, b));
-			autoPrioMap[b] = 0;
-		}
-	});
-
-	if (autoPrioMap.size() <= 1) {
-		return;
-	}
-
-	//scale the priorization maps
-	double factor;
-	double max = max_element(sourceMap.begin(), sourceMap.end())->first;
-	if (max > 0) {
-		double factor = 100 / max;
-		for (auto i = sourceMap.begin(); i != sourceMap.end(); ++i) {
-			autoPrioMap[i->second] = i->first * factor;
-		}
-	}
-
-	max = max_element(sizeMap.begin(), sizeMap.end())->first;
-	if (max > 0) {
-		factor = 100 / max;
-		for (auto i = sizeMap.begin(); i != sizeMap.end(); ++i) {
-			autoPrioMap[i->second] += i->first * factor;
-		}
-	}
-
-	{
-		//prepare the finalmap
-		for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
-			if (finalMap.find(i->second) == finalMap.end()) {
-				uniqueValues++;
-			}
-			finalMap.insert(make_pair(i->second, i->first));
-		}
-	}
-}
-
 void BundleQueue::getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes) {
 	string tempVol;
 	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("%[targetdrive]") == string::npos);

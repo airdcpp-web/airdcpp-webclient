@@ -646,7 +646,7 @@ bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::Ma
 	}
 
 		qi->addSource(aUser);
-		userQueue.add(qi, aUser, newBundle);
+		userQueue.addQI(qi, aUser, newBundle);
 
 		if ((!SETTING(SOURCEFILE).empty()) && (!BOOLSETTING(SOUNDS_DISABLED)))
 			PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
@@ -1556,13 +1556,13 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQICha
 			}
 		}
 
-		if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_BALANCED) {
+		if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_BALANCED) {
 			calculateBundlePriorities(false);
 			if (b->getPriority() == Bundle::PAUSED) {
 				//failed to count auto priorities, but we don't want it to stay paused
 				setBundlePriority(b, Bundle::LOW, true);
 			}
-		} else if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
+		} else if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 			setBundlePriority(b, b->calculateProgressPriority(), true);
 		}
 	}
@@ -1680,7 +1680,7 @@ void QueueManager::setQIAutoPriority(const string& aTarget, bool ap, bool isBund
 				}
 			}
 			if(ap && !isBundleChange) {
-				if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
+				if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 					priorities.push_back(make_pair(q, q->calculateAutoPriority()));
 				} else if (q->getPriority() == QueueItem::PAUSED) {
 					priorities.push_back(make_pair(q, QueueItem::LOW));
@@ -1868,7 +1868,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			
 			if(size > 0 && start >= 0 && (start + size) <= cur->getSize()) {
 				cur->addSegment(Segment(start, size), false);
-				if (cur->getAutoPriority() && SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
+				if (cur->getAutoPriority() && SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 					cur->setPriority(cur->calculateAutoPriority());
 				}
 			}
@@ -2068,33 +2068,35 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 	for_each(ql, [&](QueueItemPtr qi) { fire(QueueManagerListener::StatusUpdated(), qi); });
 }
 
-void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles) {
+void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) {
 	Bundle::PrioList qiPriorities;
 	vector<pair<BundlePtr, Bundle::Priority>> bundlePriorities;
+	auto prioType = SETTING(AUTOPRIO_TYPE);
+	bool calculate = aTick >= getLastAutoPrio() + (SETTING(AUTOPRIO_INTERVAL)*1000);
 
 	{
 		RLock l(cs);
 		for (auto i = tickBundles.begin(); i != tickBundles.end(); ++i) {
 			BundlePtr bundle = *i;
+
 			if (bundle->isFinished()) {
 				continue;
 			}
-			if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS && bundle->getAutoPriority()) {
-				Bundle::Priority p1 = bundle->getPriority();
-				if(p1 != Bundle::PAUSED) {
-					Bundle::Priority p2 = bundle->calculateProgressPriority();
-					if(p1 != p2) {
-						bundlePriorities.push_back(make_pair(bundle, p2));
-					}
+
+			if (calculate && prioType == SettingsManager::PRIO_PROGRESS && bundle->getAutoPriority()) {
+				auto p2 = bundle->calculateProgressPriority();
+				if(bundle->getPriority() != p2) {
+					bundlePriorities.push_back(make_pair(bundle, p2));
 				}
 			}
+
 			for_each(bundle->getQueueItems(), [&](QueueItemPtr q) {
 				if(q->isRunning()) {
 					fire(QueueManagerListener::StatusUpdated(), q);
-					if (q->getAutoPriority() && SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_PROGRESS) {
-						QueueItem::Priority p1 = q->getPriority();
+					if (calculate && BOOLSETTING(QI_AUTOPRIO) && q->getAutoPriority() && prioType == SettingsManager::PRIO_PROGRESS) {
+						auto p1 = q->getPriority();
 						if(p1 != QueueItem::PAUSED) {
-							QueueItem::Priority p2 = q->calculateAutoPriority();
+							auto p2 = q->calculateAutoPriority();
 							if(p1 != p2)
 								qiPriorities.push_back(make_pair(q, (int8_t)p2));
 						}
@@ -2104,19 +2106,22 @@ void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tic
 		}
 	}
 
-	if (SETTING(DOWNLOAD_ORDER) == SettingsManager::ORDER_BALANCED && GET_TICK() > lastAutoPrio + 5000) {
-		//LogManager::getInstance()->message("Calculate autoprio");
-		calculateBundlePriorities(false);
-		setLastAutoPrio(GET_TICK());
+	if (calculate && prioType != SettingsManager::PRIO_DISABLED) {
+		if (prioType == SettingsManager::PRIO_BALANCED) {
+			//LogManager::getInstance()->message("Calculate autoprio (balanced)");
+			calculateBundlePriorities(false);
+			setLastAutoPrio(aTick);
+		} else {
+			//LogManager::getInstance()->message("Calculate autoprio (progress)");
+			for_each(bundlePriorities, [&](pair<BundlePtr, Bundle::Priority> bp) {
+				setBundlePriority(bp.first, bp.second, true);
+			});
+
+			for_each(qiPriorities, [&](pair<QueueItemPtr, int8_t> qp) {
+				setQIPriority(qp.first, (QueueItem::Priority)qp.second);
+			});
+		}
 	}
-
-	for_each(bundlePriorities, [&](pair<BundlePtr, Bundle::Priority> bp) {
-		setBundlePriority(bp.first, bp.second, true);
-	});
-
-	for_each(qiPriorities, [&](pair<QueueItemPtr, int8_t> qp) {
-		setQIPriority(qp.first, (QueueItem::Priority)qp.second);
-	});
 }
 
 void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
@@ -2146,76 +2151,43 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 }
 
 void QueueManager::calculateBundlePriorities(bool verbose) {
+	multimap<int64_t, BundlePtr> bundleSpeedMap;
+	multimap<double, BundlePtr> bundleSourceMap;
+
+	/* Speed and source maps for files in each bundle */
+	vector<pair<multimap<int64_t, QueueItemPtr>, multimap<double, QueueItemPtr>>> qiMaps;
+
 	{
-		//prepare to set the prios
-		multimap<int, BundlePtr> finalMap;
-		int uniqueValues = 0;
-		{
-			RLock l(cs);
-			bundleQueue.getAutoPrioMap(finalMap, uniqueValues);
-		}
-		int prioGroup = 1;
-		if (uniqueValues <= 1) {
-			if (verbose) {
-				LogManager::getInstance()->message("Not enough bundles with unique points to perform the priotization!");
+		RLock l (cs);
+		for_each(bundleQueue.getBundles() | map_values, [&](BundlePtr b) {
+			if (b->getAutoPriority() && !b->isFinished()) {
+				auto p = b->getPrioInfo();
+				bundleSpeedMap.insert(make_pair(p.first, b));
+				bundleSourceMap.insert(make_pair(p.second, b));
+				if (BOOLSETTING(QI_AUTOPRIO)) {
+					qiMaps.push_back(b->getQIBalanceMaps());
+				}
 			}
-			goto checkQIprios;
-		} else if (uniqueValues > 2) {
-			prioGroup = uniqueValues / 3;
-		}
-
-		if (verbose) {
-			LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
-		}
-
-		//priority to set (4-2, high-low)
-		int prio = 4;
-
-		//counters for analyzing identical points
-		int lastTime = 999;
-		int prioSet=0;
-
-		for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
-			if (lastTime==i->first) {
-				if (verbose) {
-					LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
-				}
-				setBundlePriority(i->second, (Bundle::Priority)prio, true);
-				//don't increase the prio if two bundles have identical points
-				if (prioSet < prioGroup) {
-					prioSet++;
-				}
-			} else {
-				if (prioSet == prioGroup && prio != 2) {
-					prio--;
-					prioSet=0;
-				} 
-				if (verbose) {
-					LogManager::getInstance()->message("Bundle: " + i->second->getName() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
-				}
-				setBundlePriority(i->second, (Bundle::Priority)prio, true);
-				prioSet++;
-				lastTime=i->first;
-			}
-		}
+		});
 	}
 
-checkQIprios:
+	vector<pair<BundlePtr, uint8_t>> bundlePriorities;
+	calculateBalancedPriorities<BundlePtr>(bundlePriorities, bundleSpeedMap, bundleSourceMap, verbose);
+
+	for(auto p = bundlePriorities.begin(); p != bundlePriorities.end(); p++) {
+		setBundlePriority((*p).first, (Bundle::Priority)(*p).second, true);
+	}
+
+
 	if (BOOLSETTING(QI_AUTOPRIO)) {
-		{
-			/*Bundle::PrioList qiPriorities;
-			for (auto i = autoPrioMap.begin(); i != autoPrioMap.end(); ++i) {
-				Bundle::SourceSpeedMapQI qiSpeedMap;
-				Bundle::SourceSpeedMapQI qiSourceMap;
-				{
-					WLock l(cs);
-					(*i).first->getQIBalanceMaps(qiSpeedMap, qiSourceMap);
-				}
-				(*i).first->calculateBalancedPriorities(qiPriorities, qiSpeedMap, qiSourceMap, verbose);
-			}
-			for(auto p = qiPriorities.begin(); p != qiPriorities.end(); p++) {
-				setQIPriority((*p).first, (QueueItem::Priority)(*p).second, true);
-			} */
+
+		vector<pair<QueueItemPtr, uint8_t>> qiPriorities;
+		for(auto s = qiMaps.begin(); s != qiMaps.end(); s++) {
+			calculateBalancedPriorities<QueueItemPtr>(qiPriorities, s->first, s->second, verbose);
+		}
+
+		for(auto p = qiPriorities.begin(); p != qiPriorities.end(); p++) {
+			setQIPriority((*p).first, (QueueItem::Priority)(*p).second, true);
 		}
 	}
 }
@@ -2309,7 +2281,7 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 						partialSource.getHubIpPort(), partialSource.getIp(), partialSource.getUdpPort());
 					si->setPartialSource(ps);
 
-					userQueue.add(qi, aUser);
+					userQueue.addQI(qi, aUser);
 					dcassert(si != qi->getSources().end());
 					fire(QueueManagerListener::SourcesUpdated(), qi);
 				}
@@ -3125,11 +3097,11 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 					/* ADDING */
 					qi->setPriority((QueueItem::Priority)sourceBundle->getPriority());
 					qi->setAutoPriority(sourceBundle->getAutoPriority());
-					userQueue.add(qi);
+					userQueue.addQI(qi);
 					newBundles.push_back(targetBundle);
 				});
 			}
-			for_each(newBundles, [this](BundlePtr b) { addBundle(b, false); });
+			for_each(newBundles, [&](BundlePtr b) { addBundle(b, false); });
 		}
 
 		bool emptyBundle = false;
@@ -3185,7 +3157,7 @@ void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr targetBundle, bool 
 
 	/* ADDING */
 	bundleQueue.addBundleItem(qi, targetBundle);
-	userQueue.add(qi);
+	userQueue.addQI(qi);
 	if (fireAdded) {
 		fire(QueueManagerListener::Added(), qi);
 	}
@@ -3484,6 +3456,14 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 			}
 		}
 	}
+}
+
+void QueueManager::onChangeDownloadOrder() {
+	WLock l (cs);
+	for_each(bundleQueue.getBundles() | map_values, [&](BundlePtr b) {
+		if (!b->isFinished() && b->getPriority() != Bundle::PAUSED)
+			userQueue.setBundlePriority(b, b->getPriority());
+	});
 }
 
 } // namespace dcpp

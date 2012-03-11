@@ -55,6 +55,15 @@ public:
 		LAST
 	};
 
+
+	struct Hash {
+		size_t operator()(const QueueItemPtr x) const { return hash<string>()(x->getTarget()); }
+	};
+
+	bool operator==(const QueueItemPtr q) const {
+		return compare(target, q->getTarget()) == 0;
+	}
+
 	typedef vector<pair<QueueItemPtr, Priority>> PrioList;
 
 	enum FileFlags {

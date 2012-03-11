@@ -64,7 +64,6 @@ public:
 	void addSearchPrio(BundlePtr aBundle);
 	void removeSearchPrio(BundlePtr aBundle);
 
-	void getAutoPrioMap(multimap<int, BundlePtr>& finalMap, int& uniqueValues);
 	void saveQueue(bool force) noexcept;
 private:
 	/** Bundles by priority (low-highest, for auto search) */
