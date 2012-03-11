@@ -81,45 +81,47 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 		ConnectionQueueItem* cqi = nullptr;
 		int running = 0;
 
-		Lock l(cs);
-		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			cqi = *i;
-			if (cqi->getUser() == aUser) {
-				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
-					supportMcn = true;
-					if (cqi->getState() != ConnectionQueueItem::RUNNING) {
-						//already has a waiting item? small slot doesn't count
-						if (!smallSlot) {
-							return;
+		{
+			WLock l(cs);
+			for(auto i = downloads.begin(); i != downloads.end(); ++i) {
+				cqi = *i;
+				if (cqi->getUser() == aUser) {
+					if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
+						supportMcn = true;
+						if (cqi->getState() != ConnectionQueueItem::RUNNING) {
+							//already has a waiting item? small slot doesn't count
+							if (!smallSlot) {
+								return;
+							}
+						} else {
+							running++;
 						}
-					} else {
-						running++;
-					}
-				} else if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
-					supportMcn = true;
-					//no need to continue with small slot if an item with the same type exists already (no mather whether it's running or not)
-					if (smallSlot)
+					} else if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+						supportMcn = true;
+						//no need to continue with small slot if an item with the same type exists already (no mather whether it's running or not)
+						if (smallSlot)
+							return;
+					} else if (!cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+						//no need to continue with non-MCN users
 						return;
-				} else if (!cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					//no need to continue with non-MCN users
-					return;
+					}
 				}
 			}
-		}
 
-		if (supportMcn && !smallSlot && !cqi->allowNewConnections(running)) {
-			return;
-		}
+			if (supportMcn && !smallSlot && !cqi->allowNewConnections(running)) {
+				return;
+			}
 
-		dcdebug("Get cqi");
-		cqi = getCQI(aUser, true);
-		if (smallSlot)
-			cqi->setFlag(ConnectionQueueItem::FLAG_SMALL);
+			//WLock l (cs);
+			dcdebug("Get cqi");
+			cqi = getCQI(aUser, true);
+			if (smallSlot)
+				cqi->setFlag(ConnectionQueueItem::FLAG_SMALL);
+		}
 	}
 }
 
 ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, const string& token) {
-	//allways called from inside a lock, safe.
 	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download, token);
 
 	if(download) {
@@ -151,7 +153,7 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool secure) noexce
 	UserConnection* uc = new UserConnection(secure);
 	uc->addListener(this);
 	{
-		Lock l(cs);
+		WLock l(cs);
 		userConnections.push_back(uc);
 	}
 	if(aNmdc)
@@ -163,22 +165,22 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 	aConn->removeListener(this);
 	aConn->disconnect(true);
 
-	Lock l(cs);
+	WLock l(cs);
 	userConnections.erase(remove(userConnections.begin(), userConnections.end(), aConn), userConnections.end());
 }
 
 void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	ConnectionQueueItem::List removed;
+	StringList removedTokens;
 
 	{
-		Lock l(cs);
+		RLock l(cs);
 		int attemptLimit = SETTING(DOWNCONN_PER_SEC);
 		uint16_t attempts = 0;
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING) {
 				if(!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					removed.push_back(cqi);
+					removedTokens.push_back(cqi->getToken());
 					continue;
 				}
 
@@ -197,7 +199,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					cqi->setLastBundle(bundleToken);
 
 					if(prio == QueueItem::PAUSED) {
-						removed.push_back(cqi);
+						removedTokens.push_back(cqi->getToken());
 						continue;
 					}
 
@@ -226,49 +228,59 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 				cqi->unsetFlag(ConnectionQueueItem::FLAG_REMOVE);
 			}
 		}
-		for(ConnectionQueueItem::Iter m = removed.begin(); m != removed.end(); ++m) {
-			putCQI(*m);
+	}
+
+	{
+		WLock l (cs);
+		for(auto m = removedTokens.begin(); m != removedTokens.end(); ++m) {
+			auto s = find(downloads.begin(), downloads.end(), *m);
+			if (s != downloads.end()) {
+				putCQI(*s);
+			}
 		}
 	}
 }
 
 void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
-	Lock l(cs);
-	auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
-	if (i != downloads.end()) {
-		ConnectionQueueItem* cqi = *i;
-		if (!cqi->isSet(ConnectionQueueItem::FLAG_MCN1))
-			return;
+	{
+		RLock l(cs);
+		auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
+		if (i != downloads.end()) {
+			ConnectionQueueItem* cqi = *i;
+			if (!cqi->isSet(ConnectionQueueItem::FLAG_MCN1))
+				return;
 
-		cqi->setState(ConnectionQueueItem::RUNNING);
-		//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
+			cqi->setState(ConnectionQueueItem::RUNNING);
+			//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
 
-		int running = 0;
-		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			if ((*i)->getUser() == aSource->getUser() && !(*i)->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
-				if ((*i)->getState() != ConnectionQueueItem::RUNNING) {
-					return;
+			int running = 0;
+			for(auto i = downloads.begin(); i != downloads.end(); ++i) {
+				if ((*i)->getUser() == aSource->getUser() && !(*i)->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+					if ((*i)->getState() != ConnectionQueueItem::RUNNING) {
+						return;
+					}
+					running++;
 				}
-				running++;
 			}
-		}
 
-		if (!cqi->allowNewConnections(running))
-			return;
-
-		string bundleToken;
-		QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), false, bundleToken);
-		bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
-		if(prio != QueueItem::PAUSED && startDown) {
-			ConnectionQueueItem* cqiNew = getCQI(cqi->getUser(),true);
-			cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
+			if (!cqi->allowNewConnections(running))
+				return;
 		}
+	}
+
+	string bundleToken;
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aSource->getUser(), false, bundleToken);
+	bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
+	if(prio != QueueItem::PAUSED && startDown) {
+		WLock l (cs);
+		ConnectionQueueItem* cqiNew = getCQI(aSource->getHintedUser(),true);
+		cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
 	}
 }
 
 
 void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-	Lock l(cs);
+	WLock l(cs);
 	for(auto i = delayedTokens.begin(); i != delayedTokens.end();) {
 		if((i->second + (90 * 1000)) < aTick) {
 			delayedTokens.erase(i++);
@@ -276,7 +288,7 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 			++i;
 	}
 
-	for(UserConnectionList::const_iterator j = userConnections.begin(); j != userConnections.end(); ++j) {
+	for(auto j = userConnections.begin(); j != userConnections.end(); ++j) {
 		if(((*j)->getLastActivity() + 180*1000) < aTick) {
 			(*j)->disconnect(true);
 		}
@@ -556,7 +568,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 
 	// First, we try looking in the pending downloads...hopefully it's one of them...
 	{
-		Lock l(cs);
+		RLock l(cs);
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			cqi->setErrors(0);
@@ -656,7 +668,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_DOWNLOAD));
 	bool addConn = false;
 	{
-		Lock l(cs);
+		RLock l(cs);
 		auto i = uc->isSet(UserConnection::FLAG_MCN1) ? std::find(downloads.begin(), downloads.end(), uc->getToken()) : std::find(downloads.begin(), downloads.end(), uc->getUser());
 		if(i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
@@ -687,26 +699,32 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 
 void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_UPLOAD));
+	bool remove = false;
+
 	{
-		Lock l(cs);
+		WLock l(cs);
 		if (uc->isSet(UserConnection::FLAG_MCN1)) {
 			//check that the token is unique so nasty clients can't mess up our transfers
 			if (find(downloads.begin(), downloads.end(), uc->getToken()) != downloads.end() || find(uploads.begin(), uploads.end(), uc->getToken()) != uploads.end()) {
-				putConnection(uc);
-				return;
+				remove=true;
 			}
 		} else if(find(uploads.begin(), uploads.end(), uc->getUser()) != uploads.end()) { //no multiple connections for these
-			putConnection(uc);
-			return;
+			remove=true;
 		}
 
-		uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+		if (!remove) {
+			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+			ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
+			uc->setToken(cqi->getToken()); //sync if the uc token was empty
+			cqi->setState(ConnectionQueueItem::ACTIVE);
+			//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
+			fire(ConnectionManagerListener::Connected(), cqi);
+		}
+	}
 
-		ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
-		uc->setToken(cqi->getToken()); //sync if the uc token was empty
-		cqi->setState(ConnectionQueueItem::ACTIVE);
-		//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
-		fire(ConnectionManagerListener::Connected(), cqi);
+	if (remove) {
+		putConnection(uc);
+		return;
 	}
 
 	dcdebug("ConnectionManager::addUploadConnection, leaving to uploadmanager\n");
@@ -773,7 +791,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 
 	dcassert(!token.empty());
 	{
-		Lock l(cs);
+		RLock l(cs);
 		auto i = find(downloads.begin(), downloads.end(), token);
 		if (i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
@@ -801,7 +819,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 }
 
 void ConnectionManager::force(const UserPtr& aUser) {
-	Lock l(cs);
+	RLock l(cs);
 	auto i = find(downloads.begin(), downloads.end(), aUser);
 	if(i != downloads.end()) {
 		(*i)->setLastAttempt(0);
@@ -809,7 +827,7 @@ void ConnectionManager::force(const UserPtr& aUser) {
 }
 
 void ConnectionManager::force(const string aToken) {
-	Lock l(cs);
+	RLock l(cs);
 	auto i = find(downloads.begin(), downloads.end(), aToken);
 	if (i != downloads.end())
 		(*i)->setLastAttempt(0);
@@ -848,8 +866,8 @@ bool ConnectionManager::checkKeyprint(UserConnection *aSource) {
 
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool protocolError) {
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
-		Lock l (cs);
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
+			RLock l (cs);
 			auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
 			dcassert(i != downloads.end());
 			ConnectionQueueItem* cqi = *i;
@@ -871,10 +889,13 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			cqi->setState(ConnectionQueueItem::WAITING);
 			fire(ConnectionManagerListener::Failed(), cqi, aError);
 		} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
-			auto i = find(uploads.begin(), uploads.end(), aSource->getToken());
-			dcassert(i != uploads.end());
-			ConnectionQueueItem* cqi = *i;
-			putCQI(cqi);
+			{
+				WLock l (cs);
+				auto i = find(uploads.begin(), uploads.end(), aSource->getToken());
+				dcassert(i != uploads.end());
+				ConnectionQueueItem* cqi = *i;
+				putCQI(cqi);
+			}
 			UploadManager::getInstance()->removeDelayUpload(*aSource);
 		}
 	}
@@ -890,8 +911,8 @@ void ConnectionManager::on(UserConnectionListener::ProtocolError, UserConnection
 }
 
 void ConnectionManager::disconnect(const UserPtr& aUser) {
-	Lock l(cs);
-	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
+	RLock l(cs);
+	for(auto i = userConnections.begin(); i != userConnections.end(); ++i) {
 		UserConnection* uc = *i;
 		if(uc->getUser() == aUser)
 			uc->disconnect(true);
@@ -899,15 +920,15 @@ void ConnectionManager::disconnect(const UserPtr& aUser) {
 }
 
 void ConnectionManager::disconnect(const string& token) {
-	Lock l(cs);
+	RLock l(cs);
 	auto s = find_if(userConnections.begin(), userConnections.end(), [&](UserConnection* uc) { return compare(uc->getToken(), token) == 0; });
 	if (s != userConnections.end())
 		(*s)->disconnect(true);
 }
 
 void ConnectionManager::disconnect(const UserPtr& aUser, int isDownload) {
-	Lock l(cs);
-	for(UserConnectionList::const_iterator i = userConnections.begin(); i != userConnections.end(); ++i) {
+	RLock l(cs);
+	for(auto i = userConnections.begin(); i != userConnections.end(); ++i) {
 		UserConnection* uc = *i;
 		if(uc->getUser() == aUser && uc->isSet((Flags::MaskType)(isDownload ? UserConnection::FLAG_DOWNLOAD : UserConnection::FLAG_UPLOAD))) {
 			uc->disconnect(true);
@@ -916,7 +937,7 @@ void ConnectionManager::disconnect(const UserPtr& aUser, int isDownload) {
 }
 
 bool ConnectionManager::setBundle(const string& token, const string& bundleToken) {
-	Lock l (cs);
+	RLock l (cs);
 	auto s = find_if(userConnections.begin(), userConnections.end(), [&](UserConnection* uc) { return compare(uc->getToken(), token) == 0; });
 	if (s != userConnections.end()) {
 		(*s)->setLastBundle(bundleToken);
@@ -930,15 +951,15 @@ void ConnectionManager::shutdown() {
 	shuttingDown = true;
 	disconnect();
 	{
-		Lock l(cs);
-		for(UserConnectionList::const_iterator j = userConnections.begin(); j != userConnections.end(); ++j) {
+		RLock l(cs);
+		for(auto j = userConnections.begin(); j != userConnections.end(); ++j) {
 			(*j)->disconnect(true);
 		}
 	}
 	// Wait until all connections have died out...
 	while(true) {
 		{
-			Lock l(cs);
+			RLock l(cs);
 			if(userConnections.empty()) {
 				break;
 			}
@@ -950,7 +971,7 @@ void ConnectionManager::shutdown() {
 // UserConnectionListener
 void ConnectionManager::on(UserConnectionListener::Supports, UserConnection* conn, const StringList& feat) noexcept {
 	string sup = Util::emptyString;
-	for(StringList::const_iterator i = feat.begin(); i != feat.end(); ++i) {
+	for(auto i = feat.begin(); i != feat.end(); ++i) {
 		sup += (string)*i + " ";
 		if(*i == UserConnection::FEATURE_MINISLOTS) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_MINISLOTS);
@@ -972,8 +993,3 @@ void ConnectionManager::on(UserConnectionListener::Supports, UserConnection* con
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: ConnectionManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
- */
