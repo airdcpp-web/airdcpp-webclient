@@ -182,7 +182,7 @@ public:
 	size_t countOnlineUsers() const noexcept;
 
 	Priority calculateProgressPriority() const;
-	pair<multimap<int64_t, QueueItemPtr>, multimap<double, QueueItemPtr>> getQIBalanceMaps() noexcept;
+	multimap<QueueItemPtr, pair<int64_t, double>> getQIBalanceMaps() noexcept;
 	pair<int64_t, double> getPrioInfo() noexcept;
 
 	void increaseSize(int64_t aSize) { size += aSize; }

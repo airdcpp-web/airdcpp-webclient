@@ -2151,19 +2151,19 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 }
 
 void QueueManager::calculateBundlePriorities(bool verbose) {
-	multimap<int64_t, BundlePtr> bundleSpeedMap;
-	multimap<double, BundlePtr> bundleSourceMap;
+	multimap<BundlePtr, pair<int64_t, double>> bundleSpeedSourceMap;
 
 	/* Speed and source maps for files in each bundle */
-	vector<pair<multimap<int64_t, QueueItemPtr>, multimap<double, QueueItemPtr>>> qiMaps;
+	vector<multimap<QueueItemPtr, pair<int64_t, double>>> qiMaps;
 
 	{
 		RLock l (cs);
 		for_each(bundleQueue.getBundles() | map_values, [&](BundlePtr b) {
-			if (b->getAutoPriority() && !b->isFinished()) {
-				auto p = b->getPrioInfo();
-				bundleSpeedMap.insert(make_pair(p.first, b));
-				bundleSourceMap.insert(make_pair(p.second, b));
+			if (!b->isFinished()) {
+				if (b->getAutoPriority()) {
+					bundleSpeedSourceMap.insert(make_pair(b, b->getPrioInfo()));
+				}
+
 				if (BOOLSETTING(QI_AUTOPRIO)) {
 					qiMaps.push_back(b->getQIBalanceMaps());
 				}
@@ -2172,7 +2172,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 	}
 
 	vector<pair<BundlePtr, uint8_t>> bundlePriorities;
-	calculateBalancedPriorities<BundlePtr>(bundlePriorities, bundleSpeedMap, bundleSourceMap, verbose);
+	calculateBalancedPriorities<BundlePtr>(bundlePriorities, bundleSpeedSourceMap, verbose);
 
 	for(auto p = bundlePriorities.begin(); p != bundlePriorities.end(); p++) {
 		setBundlePriority((*p).first, (Bundle::Priority)(*p).second, true);
@@ -2183,7 +2183,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 
 		vector<pair<QueueItemPtr, uint8_t>> qiPriorities;
 		for(auto s = qiMaps.begin(); s != qiMaps.end(); s++) {
-			calculateBalancedPriorities<QueueItemPtr>(qiPriorities, s->first, s->second, verbose);
+			calculateBalancedPriorities<QueueItemPtr>(qiPriorities, *s, verbose);
 		}
 
 		for(auto p = qiPriorities.begin(); p != qiPriorities.end(); p++) {

@@ -542,9 +542,8 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	return make_pair(bundleSpeed, bundleSources);
 }
 
-pair<multimap<int64_t, QueueItemPtr>, multimap<double, QueueItemPtr>> Bundle::getQIBalanceMaps() noexcept {
-	multimap<int64_t, QueueItemPtr> qiSpeedMap;
-	multimap<double, QueueItemPtr> qiSourceMap;
+multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcept {
+	multimap<QueueItemPtr, pair<int64_t, double>> speedSourceMap;
 
 	for (auto j = queueItems.begin(); j != queueItems.end(); ++j) {
 		QueueItemPtr q = *j;
@@ -559,11 +558,10 @@ pair<multimap<int64_t, QueueItemPtr>, multimap<double, QueueItemPtr>> Bundle::ge
 					qiSources += 2;
 				}
 			}
-			qiSpeedMap.insert(make_pair(qiSpeed, q));
-			qiSourceMap.insert(make_pair(qiSources, q));
+			speedSourceMap.insert(make_pair(q, make_pair(qiSpeed, qiSources)));
 		}
 	}
-	return make_pair(qiSpeedMap, qiSourceMap);
+	return speedSourceMap;
 }
 
 size_t Bundle::countOnlineUsers() const noexcept {
