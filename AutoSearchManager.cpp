@@ -100,22 +100,29 @@ void AutoSearchManager::removeRegExpFromSearches() {
 	}
 }
 
-string AutoSearchManager::matchDirectory(const string& aFile, const string& aStrToMatch) {
-	string lastDir = Util::getLastDir(aFile);
-	string dir = Text::toLower(lastDir);
+bool AutoSearchManager::matchDirectory(const string& aFile, const string& aStrToMatch) {
+	string dir = Text::toLower(Util::getLastDir(aFile));
 	string strToMatch = Text::toLower(aStrToMatch);
 
-	//path separator at string's end
-	if(strToMatch.rfind(PATH_SEPARATOR) == string::npos)
-		strToMatch = strToMatch + PATH_SEPARATOR;
-	if(dir.rfind(PATH_SEPARATOR) == string::npos)
-		dir = dir + PATH_SEPARATOR;
+	if (strToMatch[strToMatch.size()-1] == PATH_SEPARATOR)
+		strToMatch = strToMatch.substr(0, strToMatch.size()-1);
+	if (dir[dir.size()-1] == PATH_SEPARATOR)
+		dir = dir.substr(0, dir.size()-1);
 
-	if(dir == strToMatch) {
-		return aFile;
-	} else {
-		return Util::emptyString;
+	if(dir == strToMatch)
+		return true;
+	
+	StringTokenizer<string> tss(strToMatch, " ");
+	StringList& slSrch = tss.getTokens();
+	bool matched = true;
+	for(StringList::const_iterator j = slSrch.begin(); j != slSrch.end(); ++j) {
+		if(j->empty()) continue;
+		if(dir.find(*j) == string::npos) {
+			matched = false;
+			break;
+		}
 	}
+	return matched;
 }
 
 void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
@@ -200,16 +207,8 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								addToQueue(sr, *i);
 								
 							} else if((*i)->getAction() == 2) {
-								ClientManager* c = ClientManager::getInstance();
-								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
-								if(u) {
-								Client* client = &u->getClient();
-								if(!client || !client->isConnected())
+								if(!reportMainchat(sr))
 									break;
-
-								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
-								
-								 }
 								}
 							if((*i)->getRemove()) {
 								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
@@ -228,17 +227,9 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 							if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
 								addToQueue(sr, *i);
 							} else if((*i)->getAction() == 2) {
-								ClientManager* c = ClientManager::getInstance();
-								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
-								if(u) {
-								Client* client = &u->getClient();
-								if(!client || !client->isConnected())
-									break;
-
-								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
-								
-								 }
-								}
+								if(!reportMainchat(sr))
+										break;
+							}
 							if((*i)->getRemove()) {
 								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
@@ -249,22 +240,14 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 							break;
 						}
 					} else if((*i)->getFileType() == 7 && sr->getType() == SearchResult::TYPE_DIRECTORY) { //directory
-						string matchedDir = matchDirectory(sr->getFile(), (*i)->getSearchString());
-						if(!matchedDir.empty()) {
+						bool matchedDir = matchDirectory(sr->getFile(), (*i)->getSearchString());
+						if(matchedDir) {
 							if((*i)->getAction() == 1 || (*i)->getAction() == 0) {
 								addToQueue(sr, *i);
 							} else if((*i)->getAction() == 2) {
-								ClientManager* c = ClientManager::getInstance();
-								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
-								if(u) {
-								Client* client = &u->getClient();
-								if(!client || !client->isConnected())
+								if(!reportMainchat(sr))
 									break;
-
-								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
-								
-								 }
-								}
+							}
 							if((*i)->getRemove()) {
 								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
 								 i = as.erase(i);
@@ -291,16 +274,8 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 								if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
 									addToQueue(sr, *i);
 								} else if((*i)->getAction() == 2) {
-								ClientManager* c = ClientManager::getInstance();
-								OnlineUser* u =c->findOnlineUser(user->getCID(), sr->getHubURL(), false);
-								if(u) {
-								Client* client = &u->getClient();
-								if(!client || !client->isConnected())
-									break;
-
-								client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL())));
-								
-								 }
+									if(!reportMainchat(sr))
+										break;
 								}
 							}
 							if((*i)->getRemove()) {
@@ -318,7 +293,18 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 		}
 	}
 }
-
+bool AutoSearchManager::reportMainchat(const SearchResultPtr sr) {
+	ClientManager* c = ClientManager::getInstance();
+	OnlineUser* u = c->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL(), false);
+	if(u) {
+		Client* client = &u->getClient();
+		if(client && client->isConnected()) {
+			client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + u->getIdentity().getNick());
+			return true;
+		}
+	}
+	return false;
+}
 void AutoSearchManager::addToQueue(const SearchResultPtr sr, const AutoSearchPtr as) {
 	string path;
 	if (!getTarget(sr, as, path)) {

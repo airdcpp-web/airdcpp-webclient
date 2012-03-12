@@ -303,11 +303,11 @@ string ShareManager::findTempShare(const string& aKey, const string& virtualFile
 	}	
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);		
 }
-bool ShareManager::addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize) {
+bool ShareManager::addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub) {
 	//first check if already exists in Share.
 	if(isFileShared(tth, Util::getFileName(filePath))) {
 		return true;
-	} else {
+	} else if(adcHub) {
 		auto Files = tempShares.equal_range(tth);
 		for(auto i = Files.first; i != Files.second; ++i) {
 			if(i->second.key == aKey)

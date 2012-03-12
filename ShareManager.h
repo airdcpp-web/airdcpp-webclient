@@ -77,7 +77,7 @@ public:
 	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
 	void DelIncoming() { incoming.clear(); };
 
-	bool addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize);
+	bool addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub);
 	
    void save() { 
 		w.join();

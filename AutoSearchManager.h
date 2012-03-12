@@ -127,12 +127,14 @@ private:
 	bool getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target);
 
 	void removeRegExpFromSearches();
-	string matchDirectory(const string& aFile, const string& aStrToMatch);
+	bool matchDirectory(const string& aFile, const string& aStrToMatch);
 
 	GETSET(uint16_t, time, Time);
 
 	bool dirty;
 	void addToQueue(const SearchResultPtr sr, const AutoSearchPtr as);
+	bool reportMainchat(const SearchResultPtr sr);
+
 	SearchResultPtr sr;
 	bool endOfList;
 	uint16_t recheckTime;

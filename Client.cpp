@@ -228,7 +228,7 @@ bool Client::updateCounts(bool aRemove) {
 			countType = COUNT_NORMAL;
 		}
 		if(seticons < 2) { //set more than once due to some nmdc hubs
-			fire(ClientListener::SetIcons(), this);
+			fire(ClientListener::SetIcons(), this, countType);
 			seticons++;
 		}
 
