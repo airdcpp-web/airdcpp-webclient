@@ -114,7 +114,7 @@ public:
 
 	int temp;
 private:
-	CriticalSection cs, acs;
+	CriticalSection cs, acs;  //what?? todo check!
 
 	AutoSearchList vs; //valid searches
 	AutoSearchList as; //all searches
@@ -132,7 +132,7 @@ private:
 	GETSET(uint16_t, time, Time);
 
 	bool dirty;
-	void addToQueue(const SearchResultPtr sr, const AutoSearchPtr as);
+	bool addToQueue(const SearchResultPtr sr, const AutoSearchPtr as);
 	bool reportMainchat(const SearchResultPtr sr);
 
 	SearchResultPtr sr;

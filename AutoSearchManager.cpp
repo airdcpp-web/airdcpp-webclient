@@ -182,8 +182,10 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
-	
+	vector<AutoSearchPtr> removeList;
+
 	if(!as.empty()) {
+		bool queued = false;
 		Lock l(cs);
 		UserPtr user = static_cast<UserPtr>(sr->getUser());
 		if(users.find(user) == users.end()) {
@@ -204,18 +206,14 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 						boost::regex reg(str1);
 						if(boost::regex_search(str2.begin(), str2.end(), reg)){
 							if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
-								addToQueue(sr, *i);
+								queued = addToQueue(sr, *i);
 								
 							} else if((*i)->getAction() == 2) {
 								if(!reportMainchat(sr))
 									break;
-								}
-							if((*i)->getRemove()) {
-								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
-								 i = as.erase(i);
-								 i--;
-								 curPos--;
-								 dirty = true;
+							}
+							if(queued && (*i)->getRemove()) {
+								 removeList.push_back(*i);
 							}
 							break;
 						};
@@ -225,17 +223,13 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 					if((*i)->getFileType() == 8) { //TTH
 						if(sr->getTTH().toBase32() == (*i)->getSearchString()) {
 							if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
-								addToQueue(sr, *i);
+								queued = addToQueue(sr, *i);
 							} else if((*i)->getAction() == 2) {
 								if(!reportMainchat(sr))
 										break;
 							}
-							if((*i)->getRemove()) {
-								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
-								 i = as.erase(i);
-								 i--;
-								 curPos--;
-								 dirty = true;
+							if(queued && (*i)->getRemove()) {
+								removeList.push_back(*i);
 							}
 							break;
 						}
@@ -243,17 +237,13 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 						bool matchedDir = matchDirectory(sr->getFile(), (*i)->getSearchString());
 						if(matchedDir) {
 							if((*i)->getAction() == 1 || (*i)->getAction() == 0) {
-								addToQueue(sr, *i);
+								queued = addToQueue(sr, *i);
 							} else if((*i)->getAction() == 2) {
 								if(!reportMainchat(sr))
 									break;
 							}
-							if((*i)->getRemove()) {
-								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
-								 i = as.erase(i);
-								 i--;
-								 curPos--;
-								 dirty = true;
+							if(queued && (*i)->getRemove()) {
+								removeList.push_back(*i);
 							}
 							break;
 						}
@@ -272,18 +262,14 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 							}
 							if(matched) {
 								if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
-									addToQueue(sr, *i);
+									queued = addToQueue(sr, *i);
 								} else if((*i)->getAction() == 2) {
 									if(!reportMainchat(sr))
 										break;
 								}
 							}
-							if((*i)->getRemove()) {
-								 fire(AutoSearchManagerListener::RemoveItem(), (*i)->getSearchString());
-								 i = as.erase(i);
-								 i--;
-								 curPos--;
-								 dirty = true;
+							if(queued && (*i)->getRemove()) {
+								 removeList.push_back(*i);
 							}
 							break;
 						}
@@ -291,6 +277,9 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				}
 			}
 		}
+	}
+	for(auto j = removeList.begin(); j != removeList.end(); ++j) {
+		removeAutoSearch(*j);
 	}
 }
 bool AutoSearchManager::reportMainchat(const SearchResultPtr sr) {
@@ -305,10 +294,12 @@ bool AutoSearchManager::reportMainchat(const SearchResultPtr sr) {
 	}
 	return false;
 }
-void AutoSearchManager::addToQueue(const SearchResultPtr sr, const AutoSearchPtr as) {
+bool AutoSearchManager::addToQueue(const SearchResultPtr sr, const AutoSearchPtr as) {
 	string path;
 	if (!getTarget(sr, as, path)) {
 		//not enough space, do something fun
+		LogManager::getInstance()->message("AutoSearch: Not enough free space left on the target path for " + sr->getFile() + " Adding to queue with paused Priority");
+		as->setAction(1);
 	}
 
 	try {
@@ -321,7 +312,9 @@ void AutoSearchManager::addToQueue(const SearchResultPtr sr, const AutoSearchPtr
 		}
 	} catch(...) {
 		LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
+		return false;
 	}
+	return true;
 }
 
 bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target) {
@@ -340,6 +333,10 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 			}
 		}
 	}
+
+	//user has probobly changed the path after autosearch was added
+	if(target.empty() && Util::fileExists(aTarget))
+		target = aTarget;
 
 	if (target.empty()) {
 		//failed to get the target, use the default one
