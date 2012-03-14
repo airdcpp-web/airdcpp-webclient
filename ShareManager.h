@@ -159,6 +159,8 @@ public:
 
 	StringList getRealPaths(const std::string path);
 
+	void LockRead() noexcept { cs.lock_shared(); }
+	void unLockRead() noexcept { cs.unlock_shared(); }
 
 	string getRealPath(const TTHValue& root);
 

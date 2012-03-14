@@ -1207,7 +1207,7 @@ StringPairList ShareManager::getDirectories(int refreshOptions) const noexcept {
 
 vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noexcept {
 	vector<pair<string, StringList>> ret;
-	RLock l(cs);
+	//RLock l(cs); use getInstance()->LockRead() to lock this. and remember to unLockRead().
 	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
 		bool found = false;
 		for (auto k = ret.begin(); k != ret.end(); ++k) {
