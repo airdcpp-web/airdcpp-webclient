@@ -51,7 +51,7 @@ Client::~Client() {
 	// In case we were deleted before we Failed
 	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	TimerManager::getInstance()->removeListener(this);
-	updateCounts(true);
+	updateCounts(true, false);
 }
 
 void Client::reconnect() {
@@ -204,7 +204,7 @@ vector<uint8_t> Client::getKeyprint() const {
 	return isReady() ? sock->getKeyprint() : vector<uint8_t>();
 }
 
-bool Client::updateCounts(bool aRemove) {
+bool Client::updateCounts(bool aRemove, bool updateIcons) {
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
 		--counts[countType];
@@ -223,11 +223,11 @@ bool Client::updateCounts(bool aRemove) {
 				disconnect(true);
 				setAutoReconnect(false);
 				return false;
-				}
+			}
 
 			countType = COUNT_NORMAL;
 		}
-		if(seticons < 2) { //set more than once due to some nmdc hubs
+		if(updateIcons && seticons < 2) { //set more than once due to some nmdc hubs
 			fire(ClientListener::SetIcons(), this, countType);
 			seticons++;
 		}

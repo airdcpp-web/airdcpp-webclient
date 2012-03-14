@@ -201,7 +201,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		state = STATE_NORMAL;
 		setAutoReconnect(true);
 		setMyIdentity(u->getIdentity());
-		updateCounts(false);
+		updateCounts(false, true);
 	}
 
 	if(u->getIdentity().isHub()) {
@@ -1006,7 +1006,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	AdcCommand c(AdcCommand::CMD_INF, AdcCommand::TYPE_BROADCAST);
 
 	if (state == STATE_NORMAL) {
-		if(!updateCounts(false))
+		if(!updateCounts(false, false))
 			return;
 	}
 
