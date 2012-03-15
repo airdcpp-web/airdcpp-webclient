@@ -98,6 +98,12 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 	}
 
 	uint64_t estimateSearchSpan = 0;
+	/*uint64_t tmp = 0;
+
+	for(auto i = tokenHubList.begin(), iend = tokenHubList.end(); i != iend; ++i) {
+		tmp = ClientManager::getInstance()->search((*i).second, aSizeMode, aSize, aTypeMode, normalizeWhitespace(aName), (*i).first, aExtList, sType, aOwner);
+		estimateSearchSpan = max(estimateSearchSpan, tmp);	
+	} */
 
 	for_each(tokenHubList, [&](StringPair& sp) {
 		uint64_t ret = ClientManager::getInstance()->search(sp.second, aSizeMode, aSize, aTypeMode, normalizeWhitespace(aName), sp.first, aExtList, sType, aOwner);

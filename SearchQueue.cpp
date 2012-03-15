@@ -23,36 +23,63 @@
 #include "QueueManager.h"
 #include "SearchManager.h"
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
+
 namespace dcpp {
 
-bool SearchQueue::add(const Search& s)
+using boost::range::for_each;
+	
+SearchQueue::SearchQueue(uint32_t aInterval) 
+	: lastSearchTime(0), minInterval(aInterval)
+{
+	nextInterval = 10*1000;
+}
+
+uint64_t SearchQueue::add(Search& s)
 {
 	dcassert(s.owners.size() == 1);
-	dcassert(interval >= 4000); // min interval is 5 seconds
+	uint32_t x = 0;
 
 	Lock l(cs);
-	
-	if (s.type == Search::MANUAL) {
-		nextInterval = min(interval, nextInterval);
-	}
 
-	// check dupe
-	auto i = find(searchQueue.begin(), searchQueue.end(), s);
-	if (i != searchQueue.end()) {
-		void* aOwner = *s.owners.begin();
-		i->owners.insert(aOwner);
-			
-		// erase the old search if it has lower prio
-		if(s.type > i->type) {
-			searchQueue.erase(i);
-		} else {
-			return false;
+	auto i = searchQueue.begin();
+	for (;;) {
+		if (i == searchQueue.end())
+			break;
+		if(s.type < i->type) {
+			//we found our place :}
+			if((*i) == s) {
+				//replace the lower prio item with this one, move the owners from the old search
+				//boost::for_each(i->owners, [&s](Search& tmp) { s.owners.insert(tmp); });
+				searchQueue.erase(i);
+				prev(i);
+			}
+			break;
+		} else if(s == *i) {
+			//don't queue the same item twice
+			void* aOwner = *s.owners.begin();
+			i->owners.insert(aOwner);
+			return 0;
 		}
+
+		x += i->getInterval();
+		advance(i, 1);
 	}
 
-	//insert based on the type
-	searchQueue.insert(upper_bound(searchQueue.begin(), searchQueue.end(), s), s);
-	return true;
+	searchQueue.insert(i, s);
+	auto now = GET_TICK();
+	if (x > 0) {
+		//subtract ellapsed time for the first item from all items before this
+		return x - (getNextSearchTick() - now);
+	} else {
+		//empty queue
+		if (getNextSearchTick() <= now)
+			return 0;
+
+		//we still need to wait after the previous search, subract the waiting time from the interval of this item
+		return s.getInterval() - (getNextSearchTick() - now);
+	}
 }
 
 bool SearchQueue::pop(Search& s)
@@ -66,15 +93,10 @@ bool SearchQueue::pop(Search& s)
 		if(!searchQueue.empty()){
 			s = searchQueue.front();
 			searchQueue.pop_front();
-			lastSearchTime = now;
-			nextInterval = interval;
-			if(!searchQueue.empty()) { 
-				Search::searchType type = searchQueue.front().type;
-				if (type == Search::ALT_AUTO) {
-					nextInterval = max(interval, (uint32_t)15000);
-				} else if (type == Search::AUTO_SEARCH) {
-					nextInterval = max(interval, (uint32_t)15000);
-				}
+			lastSearchTime = GET_TICK();
+			nextInterval = minInterval;
+			if(!searchQueue.empty()) {
+				nextInterval = max(searchQueue.front().getInterval(), minInterval);
 			}
 			return true;
 		}
@@ -83,25 +105,34 @@ bool SearchQueue::pop(Search& s)
 	return false;
 }
 
-uint64_t SearchQueue::getSearchTime(void* aOwner){
+bool SearchQueue::hasWaitingTime(uint64_t aTick) {
+	return lastSearchTime + nextInterval > aTick;
+}
+/*
+uint64_t SearchQueue::getSearchTime(const Search& s){
 	Lock l(cs);
 
-	if(aOwner == 0) return 0xFFFFFFFF;
+	//if(aOwner == 0) return 0xFFFFFFFF;
 
-	uint64_t x = max(lastSearchTime, GET_TICK() - interval);
+	uint32_t x = 0; //max(lastSearchTime, GET_TICK() - interval);
 
 	for(auto i = searchQueue.begin(); i != searchQueue.end(); i++){
-		x += interval; //it's fine if the time is only being counted correctly for manual searches
-
-		if(i->owners.count(aOwner))
-			return x;
-		else if(i->owners.empty())
-			break;
+		if((*i) == s) {
+			auto now = GET_TICK();
+			if (x > 0) {
+				//all items before this - ellapsed time for the first item
+				return x - (getNextSearchTick() - now);
+			} else {
+				//empty queue but we still need to wait after the previous search
+				return i->getInterval() - (getNextSearchTick() - now);
+			}
+		}
+		x += i->getInterval();
 	}
 
 	return 0;
 }
-	
+*/
 bool SearchQueue::cancelSearch(void* aOwner){
 	dcassert(aOwner);
 

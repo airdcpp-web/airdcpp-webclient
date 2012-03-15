@@ -44,12 +44,21 @@ struct Search
 		 return this->sizeType == rhs.sizeType && 
 		 		this->size == rhs.size && 
 		 		this->fileType == rhs.fileType && 
-		 		this->query == rhs.query &&
-				this->token == rhs.token;
+		 		this->query == rhs.query;
 	}
 
 	bool operator<(const Search& rhs) const {
 		 return this->type < rhs.type;
+	}
+
+	uint32_t getInterval() { 
+		switch(type) {
+			case MANUAL: return 5000;
+			case ALT: return 10000;
+			case ALT_AUTO: return 15000;
+			case AUTO_SEARCH: return 15000;
+		}
+		return 5000;
 	}
 };
 
@@ -57,12 +66,9 @@ class SearchQueue
 {
 public:
 	
-	SearchQueue(uint32_t aInterval = 0) 
-		: lastSearchTime(0), interval(aInterval), nextInterval(aInterval)
-	{
-	}
+	SearchQueue(uint32_t aInterval = 0);
 
-	bool add(const Search& s);
+	uint64_t add(Search& s);
 	bool pop(Search& s);
 	
 	void clear()
@@ -73,18 +79,13 @@ public:
 
 	bool cancelSearch(void* aOwner);
 
-	/** return 0 means not in queue */
-	uint64_t getSearchTime(void* aOwner);
-
-	/** 
-		by milli-seconds
-		0 means no interval, no auto search and manual search is sent immediately 
-	*/
-	uint32_t interval;
-
+	/* Interval defined by the client (settings or fav hub interval) */
+	uint32_t minInterval;
+	uint64_t getNextSearchTick() { return lastSearchTime+nextInterval; }
+	bool hasWaitingTime(uint64_t aTick);
+	uint64_t lastSearchTime;
 private:
 	deque<Search>	searchQueue;
-	uint64_t		lastSearchTime;
 	uint32_t		nextInterval;
 	CriticalSection cs;
 };

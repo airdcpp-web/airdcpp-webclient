@@ -29,292 +29,222 @@
 #include "SimpleXML.h"
 #include "User.h"
 #include "Wildcards.h"
+#include "format.h"
+
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
 
 namespace dcpp {
-AutoSearchManager::AutoSearchManager() {
+
+using boost::range::for_each;
+
+
+AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetType aTargetType, 
+	StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval) noexcept : enabled(aEnabled), searchString(aSearchString), 
+	fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), userMatch(aUserMatch), searchInterval(aSearchInterval) {
+
+	string matchPattern = aMatcherString;
+	if (aMatcherString.empty())
+		matchPattern = aSearchString;
+
+	if (aMatcherType == StringMatcher::MATCHER_STRING)
+		matcher = new TokenMatcher(matchPattern);
+	else if (aMatcherType == StringMatcher::MATCHER_REGEX)
+		matcher = new RegExMatcher(matchPattern);
+	else if (aMatcherType == StringMatcher::MATCHER_WILDCARD)
+		matcher = new WildcardMatcher(matchPattern);
+};
+
+AutoSearch::~AutoSearch() { 
+	delete matcher;
+};
+
+AutoSearchManager::AutoSearchManager() : lastSave(0), dirty(false) {
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
-	removeRegExpFromSearches();
-
-	lastSave = GET_TICK();
-	curPos = 0;
-	endOfList = false;
-	recheckTime = 0;
-	curSearch = Util::emptyString;
-	dirty = false;
-	setTime((uint16_t)SETTING(AUTOSEARCH_EVERY) -1); //1 minute delay
 }
 
 AutoSearchManager::~AutoSearchManager() {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
-	//for_each(as.begin(), as.end(), DeleteFunction());
 }
 
 
-bool AutoSearchManager::addAutoSearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ, AutoSearch::targetType aTargetType, const string& aUserMatch) {
-	Lock l(acs);
-	for(AutoSearchList::iterator i = as.begin(); i != as.end(); ++i) {
-		if(stricmp((*i)->getSearchString(), ss) == 0)
-			return false; //already exists
+bool AutoSearchManager::addAutoSearch(bool en, const string& ss, SearchManager::TypeModes ft, AutoSearch::ActionType act, bool remove, const string& targ, AutoSearch::TargetType aTargetType, 
+	StringMatcher::Type aMatcherType, const string& aMatcherString, int aSearchInterval, const string& aUserMatch /* = Util::emptyString*/) {
+
+	AutoSearchPtr as = nullptr;
+	{
+		WLock l(cs);
+
+		if (find_if(searchItems.begin(), searchItems.end(), [&ss](AutoSearchPtr as) { return as->getSearchString() == ss; }) != searchItems.end())
+			return false;
+
+		as = AutoSearchPtr(new AutoSearch(en, ss, (SearchManager::TypeModes)ft, act, remove, targ, aTargetType, aMatcherType, aMatcherString, aUserMatch, aSearchInterval));
+		searchItems.push_back(as);
 	}
-	AutoSearchPtr ipw = AutoSearchPtr(new AutoSearch(en, ss, ft, act, remove, targ, aTargetType, aUserMatch));
-	as.push_back(ipw);
 	dirty = true;
-	fire(AutoSearchManagerListener::AddItem(), ipw);
+	fire(AutoSearchManagerListener::AddItem(), as);
 	return true;
 }
 
-void AutoSearchManager::getAutoSearch(unsigned int index, AutoSearchPtr &ipw) {
-	Lock l(acs);
-	if(as.size() > index)
-		ipw = as[index];
+AutoSearchPtr AutoSearchManager::getAutoSearch(unsigned int index) {
+	RLock l(cs);
+	if(searchItems.size() > index)
+		return searchItems[index];
+	return nullptr;
 }
 
-void AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr &ipw) {
-	Lock l(acs);
-	as[index] = ipw;
+bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr &ipw) {
+	WLock l(cs);
+	for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
+		if ((*i)->getSearchString() == ipw->getSearchString() && distance(searchItems.begin(), i) != index)
+			return false;
+	}
+
+	searchItems[index] = ipw;
 	dirty = true;
+	return true;
 }
 
-void AutoSearchManager::removeAutoSearch(AutoSearchPtr a) {
-	Lock l(acs);
-	AutoSearchList::const_iterator i = find_if(as.begin(), as.end(), [&](AutoSearchPtr& c) { return c == a; });
-
-	if(i != as.end()) {	
-		fire(AutoSearchManagerListener::RemoveItem(), a->getSearchString());
-		as.erase(i);
+void AutoSearchManager::removeAutoSearch(AutoSearchPtr aItem) {
+	WLock l(cs);
+	auto i = find(searchItems.begin(), searchItems.end(), aItem);
+	if(i != searchItems.end()) {	
+		fire(AutoSearchManagerListener::RemoveItem(), aItem->getSearchString());
+		searchItems.erase(i);
 		dirty = true;
 	}
 }
 
-void AutoSearchManager::removeRegExpFromSearches() {
-	//clear old data
-	vs.clear();
-	for(AutoSearchList::const_iterator j = as.begin(); j != as.end(); j++) {
-		if((*j)->getEnabled()) {
-			if(((*j)->getFileType() != 9)) {
-				vs.push_back((*j));			//valid searches - we can search for it
-			}
-		}
+void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+	if(dirty && (lastSave + (20*1000) > aTick)) { //20 second delay between saves.
+		lastSave = aTick;
+		dirty = false;
+		AutoSearchSave();
 	}
 }
 
-bool AutoSearchManager::matchDirectory(const string& aFile, const string& aStrToMatch) {
-	string dir = Text::toLower(Util::getLastDir(aFile));
-	string strToMatch = Text::toLower(aStrToMatch);
-
-	if (strToMatch[strToMatch.size()-1] == PATH_SEPARATOR)
-		strToMatch = strToMatch.substr(0, strToMatch.size()-1);
-	if (dir[dir.size()-1] == PATH_SEPARATOR)
-		dir = dir.substr(0, dir.size()-1);
-
-	if(dir == strToMatch)
-		return true;
-	
-	StringTokenizer<string> tss(strToMatch, " ");
-	StringList& slSrch = tss.getTokens();
-	bool matched = true;
-	for(StringList::const_iterator j = slSrch.begin(); j != slSrch.end(); ++j) {
-		if(j->empty()) continue;
-		if(dir.find(*j) == string::npos) {
-			matched = false;
-			break;
-		}
-	}
-	return matched;
+void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+	checkSearches(false, aTick);
 }
 
-void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
-	
-	//todo check the locking
-		Lock l(cs);
+void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK() */) {
+	StringList allowedHubs;
+	ClientManager::getInstance()->getOnlineClients(allowedHubs);
+	//no hubs? no fun...
+	if(allowedHubs.empty()) {
+		return;
+	}
 
-		//empty list...
-		if(!as.size())
-			return;
+	AutoSearchList searches;
+	{
+		RLock l (cs);
+		for_each(searchItems, [&](AutoSearchPtr as) {
+			if (as->getEnabled() && ((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*1000*60 < aTick) || force))
+				searches.push_back(as);
+		});
+	}
 
-		if(endOfList) {
-			recheckTime++;
-			if(recheckTime <= SETTING(AUTOSEARCH_RECHECK_TIME)) {
-				return;
-			} else {
-				endOfList = false; //time's up, search for items again ;]
-			}
-		}
+	uint64_t searchTime = 0;
+	StringList extList;
 
-		time++;
-		if(time < SETTING(AUTOSEARCH_EVERY))
-			return;
+	for_each(searches, [&](AutoSearchPtr as) { 
+		// TODO: Get ADC searchtype extensions if any is selected
+		searchTime = SearchManager::getInstance()->search(allowedHubs, as->getSearchString(), 0, as->getFileType(), SearchManager::SIZE_DONTCARE, "auto", extList, Search::AUTO_SEARCH);
+		as->setLastSearch(aTick);
+	});
 
-		removeRegExpFromSearches();
-
-		StringList allowedHubs;
-		ClientManager::getInstance()->getOnlineClients(allowedHubs);
-		//no hubs? no fun...
-		if(allowedHubs.empty()) {
-			return;
-		}
-		//empty valid autosearch list? too bad
-		if(!vs.size()) {
-			return;
-		}
-		AutoSearchList::const_iterator pos = vs.begin() + curPos;
-		users.clear();
-
-		if(pos < vs.end()) {
-			// NIGHT LOOK HERE
-				// TODO: Get ADC searchtype extensions if any is selected
-			StringList extList;
-			SearchManager::getInstance()->search(allowedHubs, (*pos)->getSearchString(), 0, (SearchManager::TypeModes)(*pos)->getFileType(), SearchManager::SIZE_DONTCARE, "auto", extList, Search::AUTO_SEARCH);
-			curSearch = (*pos)->getSearchString();
-			curPos++;
-			setTime(0);
-			LogManager::getInstance()->message("[A][S:" + Util::toString(curPos) + "]Searching for: " + (*pos)->getSearchString());
+	if (searches.size() == 1) {
+		if (searchTime == 0) {
+			LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
+				searches.front()->getSearchString()));
 		} else {
-			LogManager::getInstance()->message("[A]Recheck Items, Next search after " + Util::toString(SETTING(AUTOSEARCH_RECHECK_TIME))+ " minutes.");
-			setTime(0);
-			curPos = 0;
-			endOfList = true;
-			recheckTime = 0;
-			curSearch = Util::emptyString;
+			LogManager::getInstance()->message(str(boost::format("Autosearch: %s will be searched in %d seconds") %
+				searches.front()->getSearchString() %
+				(searchTime / 1000)));
 		}
+	} else if (searches.size() > 1) {
+		LogManager::getInstance()->message(str(boost::format("Autosearch: %s searches have been queued and will be completed in %d seconds") %
+			Util::toString(searches.size()) %
+			(searchTime / 1000)));
+	}
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
-	vector<AutoSearchPtr> removeList;
+	AutoSearchList matches;
 
-	if(!as.empty()) {
-		bool queued = false;
-		Lock l(cs);
-		UserPtr user = static_cast<UserPtr>(sr->getUser());
-		if(users.find(user) == users.end()) {
-			users.insert(user);
-			for(AutoSearchList::iterator i = as.begin(); i != as.end(); ++i) {
-				
-				if(!(*i)->getUserMatch().empty()) {
-					//user nicks should be kinda simple to match so only use wildcards.
-					if(!Wildcard::patternMatch( Text::utf8ToAcp(Util::toString(ClientManager::getInstance()->getNicks(user->getCID(), sr->getHubURL()))), Text::utf8ToAcp((*i)->getUserMatch()), '|' ))
+	{
+		RLock l (cs);
+		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
+			AutoSearchPtr as = *i;
+
+			//check the file type
+			if(as->getFileType() == SearchManager::TYPE_DIRECTORY && sr->getType() != SearchResult::TYPE_DIRECTORY) {
+				continue;
+			} else if(!ShareManager::getInstance()->checkType(sr->getFile(), (*i)->getFileType())) {
+				continue;
+			}
+
+			//match the text
+			if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
+				continue;
+
+			//check the nick
+			if(!as->getUserMatch().empty()) {
+				StringList nicks = ClientManager::getInstance()->getNicks(sr->getUser()->getCID(), sr->getHubURL());
+				for(auto s = nicks.begin(); s != nicks.end(); ++i) {
+					if(!Wildcard::patternMatch(Text::utf8ToAcp(*s), Text::utf8ToAcp((*i)->getUserMatch()), '|' ))
 						continue;
 				}
-
-				if((*i)->getFileType() == 9) { //regexp
-
-					string str1 = (*i)->getSearchString();
-					string str2 = sr->getFile();
-					try {
-						boost::regex reg(str1);
-						if(boost::regex_search(str2.begin(), str2.end(), reg)){
-							if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
-								queued = addToQueue(sr, *i);
-								
-							} else if((*i)->getAction() == 2) {
-								if(!reportMainchat(sr))
-									break;
-							}
-							if(queued && (*i)->getRemove()) {
-								 removeList.push_back(*i);
-							}
-							break;
-						};
-					} catch(...) {
-					}
-				} else if(curSearch.compare((*i)->getSearchString()) == 0) { //match only to current search
-					if((*i)->getFileType() == 8) { //TTH
-						if(sr->getTTH().toBase32() == (*i)->getSearchString()) {
-							if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
-								queued = addToQueue(sr, *i);
-							} else if((*i)->getAction() == 2) {
-								if(!reportMainchat(sr))
-										break;
-							}
-							if(queued && (*i)->getRemove()) {
-								removeList.push_back(*i);
-							}
-							break;
-						}
-					} else if((*i)->getFileType() == 7 && sr->getType() == SearchResult::TYPE_DIRECTORY) { //directory
-						bool matchedDir = matchDirectory(sr->getFile(), (*i)->getSearchString());
-						if(matchedDir) {
-							if((*i)->getAction() == 1 || (*i)->getAction() == 0) {
-								queued = addToQueue(sr, *i);
-							} else if((*i)->getAction() == 2) {
-								if(!reportMainchat(sr))
-									break;
-							}
-							if(queued && (*i)->getRemove()) {
-								removeList.push_back(*i);
-							}
-							break;
-						}
-					} else if(ShareManager::getInstance()->checkType(sr->getFile(), (*i)->getFileType())) {
-						if(!sr->getFile().empty()) {
-							string iFile = Text::toLower(sr->getFile());
-							StringTokenizer<string> tss(Text::toLower((*i)->getSearchString()), " ");
-							StringList& slSrch = tss.getTokens();
-							bool matched = true;
-							for(StringList::const_iterator j = slSrch.begin(); j != slSrch.end(); ++j) {
-								if(j->empty()) continue;
-								if(iFile.find(*j) == string::npos) {
-									matched = false;
-									break;
-								}
-							}
-							if(matched) {
-								if((*i)->getAction() == 0 || (*i)->getAction() == 1) { 
-									queued = addToQueue(sr, *i);
-								} else if((*i)->getAction() == 2) {
-									if(!reportMainchat(sr))
-										break;
-								}
-							}
-							if(queued && (*i)->getRemove()) {
-								 removeList.push_back(*i);
-							}
-							break;
-						}
-					}
-				}
 			}
+
+			//we have a valid result
+			matches.push_back(as);
 		}
-	}
-	for(auto j = removeList.begin(); j != removeList.end(); ++j) {
-		removeAutoSearch(*j);
-	}
-}
-bool AutoSearchManager::reportMainchat(const SearchResultPtr sr) {
-	ClientManager* c = ClientManager::getInstance();
-	OnlineUser* u = c->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL(), false);
-	if(u) {
-		Client* client = &u->getClient();
-		if(client && client->isConnected()) {
-			client->Message(Text::fromT(_T("AutoSearch Found File: ")) + sr->getFile() + Text::fromT(_T(" From User: ")) + u->getIdentity().getNick());
-			return true;
-		}
-	}
-	return false;
-}
-bool AutoSearchManager::addToQueue(const SearchResultPtr sr, const AutoSearchPtr as) {
-	string path;
-	if (!getTarget(sr, as, path)) {
-		//not enough space, do something fun
-		LogManager::getInstance()->message("AutoSearch: Not enough free space left on the target path for " + sr->getFile() + " Adding to queue with paused Priority");
-		as->setAction(1);
 	}
 
-	try {
-		if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-			QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), path, as->getAction() == 1 ? QueueItem::PAUSED : QueueItem::DEFAULT);
-		} else {
-			path = path + Util::getFileName(sr->getFile());
-			QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
-				(as->getAction() == 1 ? QueueItem::PAUSED : QueueItem::DEFAULT));
+	for_each(matches, [&](AutoSearchPtr as) { handleAction(sr, as); });
+}
+
+void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as) {
+	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
+		string path;
+		if (!getTarget(sr, as, path)) {
+			//not enough space, do something fun
+			LogManager::getInstance()->message("AutoSearch: Not enough free space left on the target path " + as->getTarget() + ". Adding to queue with paused Priority.");
+			as->setAction(AutoSearch::ACTION_QUEUE);
 		}
-	} catch(...) {
-		LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
-		return false;
+
+		try {
+			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
+				QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), path, 
+					as->getAction() == AutoSearch::ACTION_QUEUE ? QueueItem::PAUSED : QueueItem::DEFAULT);
+			} else {
+				path = path + Util::getFileName(sr->getFile());
+				QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
+					(as->getAction() == AutoSearch::ACTION_QUEUE ? QueueItem::PAUSED : QueueItem::DEFAULT));
+			}
+		} catch(...) {
+			LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
+			return;
+		}
+	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
+		ClientManager* c = ClientManager::getInstance();
+		OnlineUser* u = c->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL(), false);
+		if(u) {
+			Client* client = &u->getClient();
+			if(client && client->isConnected()) {
+				client->Message("AutoSearch found a file: " + sr->getFile() + " from an user " + u->getIdentity().getNick());
+			}
+		} else {
+			return;
+		}
 	}
-	return true;
+
+	if(as->getRemove()) {
+		removeAutoSearch(as);
+	}
 }
 
 bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target) {
@@ -323,7 +253,15 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 	if (as->getTargetType() == AutoSearch::TARGET_PATH) {
 		target = aTarget;
 	} else {
-		auto dirList = (as->getTargetType() == AutoSearch::TARGET_FAVORITE) ? FavoriteManager::getInstance()->getFavoriteDirs() : ShareManager::getInstance()->getGroupedDirectories();
+		vector<pair<string, StringList>> dirList;
+		if (as->getTargetType() == AutoSearch::TARGET_FAVORITE) {
+			dirList = FavoriteManager::getInstance()->getFavoriteDirs();
+		} else {
+			ShareManager::getInstance()->LockRead();
+			dirList = ShareManager::getInstance()->getGroupedDirectories();
+			ShareManager::getInstance()->unLockRead();
+		}
+
 		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));
 		if (s != dirList.end()) {
 			StringList& targets = s->second;
@@ -347,7 +285,6 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 }
 
 void AutoSearchManager::AutoSearchSave() {
-	Lock l(cs);
 	try {
 		dirty = false;
 		SimpleXML xml;
@@ -357,16 +294,23 @@ void AutoSearchManager::AutoSearchSave() {
 		xml.addTag("Autosearch");
 		xml.stepIn();
 
-		for(AutoSearchList::const_iterator i = as.begin(); i != as.end(); ++i) {
-			xml.addTag("Autosearch");
-			xml.addChildAttrib("Enabled", (*i)->getEnabled());
-			xml.addChildAttrib("SearchString", (*i)->getSearchString());
-			xml.addChildAttrib("FileType", (*i)->getFileType());
-			xml.addChildAttrib("Action", (*i)->getAction());
-			xml.addChildAttrib("Remove", (*i)->getRemove());
-			xml.addChildAttrib("Target", (*i)->getTarget());
-			xml.addChildAttrib("TargetType", (*i)->getTargetType());
-			xml.addChildAttrib("UserMatch", (*i)->getUserMatch());
+		{
+			RLock l(cs);
+			for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
+				AutoSearchPtr as = *i;
+				xml.addTag("Autosearch");
+				xml.addChildAttrib("Enabled", as->getEnabled());
+				xml.addChildAttrib("SearchString", as->getSearchString());
+				xml.addChildAttrib("FileType", as->getFileType());
+				xml.addChildAttrib("Action", as->getAction());
+				xml.addChildAttrib("Remove", as->getRemove());
+				xml.addChildAttrib("Target", as->getTarget());
+				xml.addChildAttrib("TargetType", as->getTargetType());
+				xml.addChildAttrib("MatcherType", as->getType()),
+				xml.addChildAttrib("MatcherString", as->getPattern()),
+				xml.addChildAttrib("SearchInterval", as->getSearchInterval()),
+				xml.addChildAttrib("UserMatch", (*i)->getUserMatch());
+			}
 		}
 
 		xml.stepOut();
@@ -387,18 +331,20 @@ void AutoSearchManager::AutoSearchSave() {
 }
 
 void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
-	as.clear();
 	aXml.resetCurrentChild();
 	if(aXml.findChild("Autosearch")) {
 		aXml.stepIn();
 		while(aXml.findChild("Autosearch")) {					
 			addAutoSearch(aXml.getBoolChildAttrib("Enabled"),
 				aXml.getChildAttrib("SearchString"), 
-				aXml.getIntChildAttrib("FileType"), 
-				aXml.getIntChildAttrib("Action"),
+				(SearchManager::TypeModes)aXml.getIntChildAttrib("FileType"), 
+				(AutoSearch::ActionType)aXml.getIntChildAttrib("Action"),
 				aXml.getBoolChildAttrib("Remove"),
 				aXml.getChildAttrib("Target"),
-				(AutoSearch::targetType)aXml.getIntChildAttrib("TargetType"),
+				(AutoSearch::TargetType)aXml.getIntChildAttrib("TargetType"),
+				(StringMatcher::Type)aXml.getIntChildAttrib("MatcherType"),
+				aXml.getChildAttrib("MatcherString"),
+				aXml.getIntChildAttrib("SearchInterval"),
 				aXml.getChildAttrib("UserMatch"));
 		}
 		aXml.stepOut();
@@ -415,7 +361,7 @@ void AutoSearchManager::AutoSearchLoad() {
 			xml.stepOut();
 		}
 	} catch(const Exception& e) {
-		dcdebug("FavoriteManager::recentload: %s\n", e.getError().c_str());
+		dcdebug("AutoSearchManager::load: %s\n", e.getError().c_str());
 	}	
 }
 }

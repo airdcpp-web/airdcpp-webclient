@@ -260,8 +260,9 @@ string Client::getLocalIp() const {
 
 uint64_t Client::search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* owner){
 	dcdebug("Queue search %s\n", aString.c_str());
+	//auto now = GET_TICK();
 
-	if(searchQueue.interval) {
+	//if(searchQueue.hasWaitingTime(now)) {
 		Search s;
 		s.fileType = aFileType;
 		s.size     = aSize;
@@ -272,13 +273,14 @@ uint64_t Client::search(int aSizeMode, int64_t aSize, int aFileType, const strin
 		s.owners.insert(owner);
 		s.type		= sType;
 
-		searchQueue.add(s);
+		return searchQueue.add(s);
 
-		return searchQueue.getSearchTime(owner) - GET_TICK();
-	}
+		//return searchQueue.getSearchTime(s);
+	//}
 
-	search(aSizeMode, aSize, aFileType , aString, aToken, aExtList);
-	return 0;
+	//searchQueue.lastSearchTime = now;
+	//search(aSizeMode, aSize, aFileType , aString, aToken, aExtList);
+	//return 0;
 
 }
 
@@ -299,7 +301,7 @@ void Client::on(Second, uint64_t aTick) noexcept {
 		connect();
 	}
 
-	if(!searchQueue.interval) return;
+	if(searchQueue.hasWaitingTime(aTick)) return;
 
 	if(isConnected()){
 		Search s;

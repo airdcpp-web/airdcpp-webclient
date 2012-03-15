@@ -26,32 +26,51 @@
 #include "AutoSearchManagerListener.h"
 #include "Util.h"
 #include "SearchResult.h"
+#include "StringMatcher.h"
 
 namespace dcpp {
 #define AUTOSEARCH_FILE "AutoSearch.xml"
 
 class AutoSearch  : public intrusive_ptr_base<AutoSearch> {
+
 public:
-
-	AutoSearch() { };
-
-	enum targetType {
+	enum TargetType {
 		TARGET_PATH,
 		TARGET_FAVORITE,
 		TARGET_SHARE,
 	};
 
-	AutoSearch(bool aEnabled, const string& aSearchString, int aFileType, int aAction, bool aRemove, const string& aTarget, targetType aTargetType, const string& aUserMatch)
-		noexcept : enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), userMatch(aUserMatch) { };
+	enum ActionType {
+		ACTION_DOWNLOAD,
+		ACTION_QUEUE,
+		ACTION_REPORT,
+	};
+
+	bool operator==(const AutoSearchPtr as) const {
+		return stricmp(searchString, as->getSearchString()) == 0;
+	}
+
+	AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetType aTargetType, 
+		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval) noexcept;
+
+	~AutoSearch();
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
-	GETSET(int, action, Action);
-	GETSET(int, fileType, FileType);
+	GETSET(ActionType, action, Action);
+	GETSET(SearchManager::TypeModes, fileType, FileType);
 	GETSET(bool, remove, Remove); //remove after 1 hit
 	GETSET(string, target, Target); //download to Target
-	GETSET(targetType, tType, TargetType);
+	GETSET(TargetType, tType, TargetType);
 	GETSET(string, userMatch, UserMatch); //only results from users matching...
+	GETSET(uint64_t, lastSearch, LastSearch);
+	GETSET(int, searchInterval, SearchInterval);
+
+	int8_t getType() { return matcher->getType(); }
+	bool match(const string& aStr) { return matcher->match(aStr); }
+	const string& getPattern() const { return matcher->getPattern(); }
+private:
+	StringMatcher* matcher;
 };
 
 class SimpleXML;
@@ -61,87 +80,67 @@ public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
-	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
-	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
-	
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-		if(dirty && ((lastSave + 20 *1000) > aTick)) { //20 second delay between saves.
-			lastSave = aTick;
-			dirty = false;
-			AutoSearchSave();
-		}
-	}
-
-	bool addAutoSearch(bool en, const string& ss, int ft, int act, bool remove, const string& targ, AutoSearch::targetType aTargetType, const string& aUserMatch = Util::emptyString);
-	void getAutoSearch(unsigned int index, AutoSearchPtr &ipw);
-	void updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
+	bool addAutoSearch(bool en, const string& ss, SearchManager::TypeModes ft, AutoSearch::ActionType aAction, bool remove, const string& targ, AutoSearch::TargetType aTargetType, 
+		StringMatcher::Type aMatcherType, const string& aMatcherString, int aSearchInterval, const string& aUserMatch = Util::emptyString);
+	AutoSearchPtr getAutoSearch(unsigned int index);
+	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
 	
-	AutoSearchList& getAutoSearch() { 
-		Lock l(acs);
-		return as; 
+	AutoSearchList& getSearchItems() { 
+		RLock l(cs);
+		return searchItems; 
 	};
 
 	void moveAutoSearchUp(unsigned int id) {
-		Lock l(acs);
+		WLock l(cs);
 		//hack =]
-		if(as.size() > id) {
-			swap(as[id], as[id-1]);
+		if(searchItems.size() > id) {
+			swap(searchItems[id], searchItems[id-1]);
 			dirty = true;
 		}
 	}
 
 	void moveAutoSearchDown(unsigned int id) {
-		Lock l(acs);
+		WLock l(cs);
 		//hack =]
-		if(as.size() > id) {
-			swap(as[id], as[id+1]);
+		if(searchItems.size() > id) {
+			swap(searchItems[id], searchItems[id+1]);
 			dirty = true;
 		}
 	}
 
 	void setActiveItem(unsigned int index, bool active) {
-		Lock l(acs);
-		AutoSearchList::iterator i = as.begin() + index;
-		if(i < as.end()) {
+		RLock l(cs);
+		auto i = searchItems.begin() + index;
+		if(i < searchItems.end()) {
 			(*i)->setEnabled(active);
 			dirty = true;
 		}
 	}
 
+	void checkSearches(bool force, uint64_t aTick = GET_TICK());
+
 	void AutoSearchLoad();
 	void AutoSearchSave();
 
-	int temp;
 private:
-	CriticalSection cs, acs;  //what?? todo check!
+	mutable SharedMutex cs;
 
-	AutoSearchList vs; //valid searches
-	AutoSearchList as; //all searches
+	AutoSearchList searchItems;
 
 	void loadAutoSearch(SimpleXML& aXml);
+	GETSET(uint64_t, lastSave, LastSave);
+	bool dirty;
 
-	int curPos;
+	void handleAction(const SearchResultPtr sr, AutoSearchPtr as);
 
-	friend class Singleton<AutoSearchManager>;
 	bool getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target);
 
-	void removeRegExpFromSearches();
-	bool matchDirectory(const string& aFile, const string& aStrToMatch);
+	/* Listeners */
+	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
 
-	GETSET(uint16_t, time, Time);
-
-	bool dirty;
-	bool addToQueue(const SearchResultPtr sr, const AutoSearchPtr as);
-	bool reportMainchat(const SearchResultPtr sr);
-
-	SearchResultPtr sr;
-	bool endOfList;
-	uint16_t recheckTime;
-	string curSearch;
-	set<UserPtr> users;
-	uint64_t lastSave;
-
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 };
 }
 #endif
