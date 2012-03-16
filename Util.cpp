@@ -517,8 +517,11 @@ string Util::getAwayMessage(ParamMap& params) {
 }
 
 string Util::formatBytes(int64_t aBytes) {
+	/*if (aBytes < 0) {
+		aBytes = abs(aBytes);
+	} */
 	char buf[64];
-	if(aBytes < 1024) {
+	if (aBytes < 1024) {
 		snprintf(buf, sizeof(buf), "%d %s", (int)(aBytes&0xffffffff), CSTRING(B));
 	} else if(aBytes < 1048576) {
 		snprintf(buf, sizeof(buf), "%.02f %s", (double)aBytes/(1024.0), CSTRING(KiB));

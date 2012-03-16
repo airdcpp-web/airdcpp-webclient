@@ -66,8 +66,9 @@ public:
 	GETSET(uint64_t, lastSearch, LastSearch);
 	GETSET(int, searchInterval, SearchInterval);
 
-	int8_t getType() { return matcher->getType(); }
+	int8_t getMatcherType() { return matcher->getType(); }
 	bool match(const string& aStr) { return matcher->match(aStr); }
+	bool match(const TTHValue& aTTH) { return matcher->match(aTTH); }
 	const string& getPattern() const { return matcher->getPattern(); }
 private:
 	StringMatcher* matcher;
@@ -134,7 +135,7 @@ private:
 
 	void handleAction(const SearchResultPtr sr, AutoSearchPtr as);
 
-	bool getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target);
+	int64_t getTarget(const string& aTarget, AutoSearch::TargetType targetType, string& newTarget);
 
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;

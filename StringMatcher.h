@@ -16,13 +16,18 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifndef STRINGMATCHER_H
+#define STRINGMATCHER_H
+
 #include "stdinc.h"
 
-#include "boost/regex.hpp"
+//#include "boost/regex.hpp"
+#include "pme.h"
 
 #include <string>
 
-#include "forward.h"
+#include "AirUtil.h"
+#include "LogManager.h"
 #include "StringTokenizer.h"
 #include "StringSearch.h"
 #include "Text.h"
@@ -36,10 +41,14 @@ public:
 		MATCHER_STRING,
 		MATCHER_REGEX,
 		MATCHER_WILDCARD,
+		MATCHER_TTH,
 	};
 
-	StringMatcher(const string& aStr) { }
+	StringMatcher(const string& aStr) : pattern(aStr) { }
 	virtual bool match(const string& aStr) = 0;
+	virtual bool match(const TTHValue& aTTH) = 0;
+	virtual bool isCaseSensitive() = 0;
+	virtual void setPattern(const string& aStr, bool isCaseSensitive=false) = 0;
 	//virtual const string& getPattern() const = 0;
 	const string& getPattern() const { return pattern; }
 	virtual Type getType() = 0;
@@ -49,35 +58,106 @@ private:
 	string pattern;
 };
 
+
 class RegExMatcher : public StringMatcher {
 public:
-	RegExMatcher(const string& aStr) : StringMatcher(aStr) {
-		reg.assign(aStr); 
+	RegExMatcher(const string& aStr, bool aCaseSensitive=false) : StringMatcher(aStr) {
+		//reg.assign(aStr);
+		setPattern(aStr, aCaseSensitive);
 	}
 	~RegExMatcher() { }
 
-	bool match(const string& aStr) { return regex_match(aStr, reg); }
-	Type getType() { return Type::MATCHER_REGEX; }
+	void setPattern(const string& aStr, bool aCaseSensitive) {
+		pattern = aStr;
+		caseSensitive = aCaseSensitive;
+		reg.Init(aStr, aCaseSensitive ? "" : "i");
+		if (reg.IsValid()) {
+			reg.study();
+		} else {
+			LogManager::getInstance()->message("Invalid regex: " + pattern);
+		}
+	}
+
+	//bool match(const string& aStr) { return regex_match(aStr, reg); }
+	bool match(const string& aStr) { return reg.match(aStr) > 0; }
+	bool match(const TTHValue& aTTH) { return false; }
+	bool isCaseSensitive() { return caseSensitive; }
+	Type getType() { return MATCHER_REGEX; }
+	const string& getPattern() const { return pattern; }
 private:
-	boost::regex reg;
+	string pattern;
+	//boost::regex reg;
+	bool caseSensitive;
+	PME reg;
 };
 
 
 class WildcardMatcher : public StringMatcher {
 public:
-	WildcardMatcher(const string& aStr) : StringMatcher(aStr) { pattern = Text::utf8ToAcp(aStr); }
+	WildcardMatcher(const string& aStr, bool aCaseSensitive=false) : StringMatcher(aStr) { 
+		setPattern(aStr, aCaseSensitive);
+	}
 	~WildcardMatcher() { }
 
-	bool match(const string& aStr) { return Wildcard::patternMatch(Text::utf8ToAcp(aStr), pattern, '|'); }
-	Type getType() { return Type::MATCHER_WILDCARD; }
+	void setPattern(const string& aStr, bool aCaseSensitive=false) {
+		pattern = aStr;
+		caseSensitive = aCaseSensitive;
+		string regex = AirUtil::regexEscape(aStr, true);
+		reg.Init(regex, aCaseSensitive ? "" : "i");
+		if (reg.IsValid()) {
+			reg.study();
+		} else {
+			LogManager::getInstance()->message("Invalid wildcard: " + pattern);
+		}
+	}
+
+	//bool match(const string& aStr) { return Wildcard::patternMatch(Text::utf8ToAcp(aStr), pattern, '|'); }
+	bool match(const string& aStr) { return reg.match(aStr) > 0; }
+	bool match(const TTHValue& aTTH) { return false; }
+	bool isCaseSensitive() { return caseSensitive; }
+	Type getType() { return MATCHER_WILDCARD; }
+	const string& getPattern() const { return pattern; }
 private:
+	PME reg;
+	string pattern;
+	bool caseSensitive;
+};
+
+
+class TTHMatcher : public StringMatcher {
+public:
+	TTHMatcher(const string& aStr) : StringMatcher(aStr) { 
+		setPattern(aStr);
+	}
+	~TTHMatcher() { }
+
+	void setPattern(const string& aStr, bool aCaseSensitive=false) {
+		pattern = aStr;
+		tth = TTHValue(aStr);
+	}
+
+	bool match(const string& aStr) { return pattern == aStr; }
+	//bool match(const string& aStr) { return tth.toBase32() == aStr; }
+	bool match(const TTHValue& aTTH) { return tth == aTTH; }
+	//const string& getPattern() const { return tth.toBase32(); }
+	const string& getPattern() const { return pattern; }
+	Type getType() { return MATCHER_TTH; }
+	bool isCaseSensitive() { return false; }
+private:
+	TTHValue tth;
 	string pattern;
 };
 
 
 class TokenMatcher : public StringMatcher {
 public:
-	TokenMatcher(const string& aStr) : StringMatcher(aStr) { 
+	TokenMatcher(const string& aStr) : StringMatcher(aStr) {
+		setPattern(aStr);
+	}
+	~TokenMatcher() { }
+
+	void setPattern(const string& aStr, bool aCaseSensitive=false) {
+		pattern = aStr;
 		StringTokenizer<string> st(aStr, ' ');
 		for(auto i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
 			if(i->size() > 0) {
@@ -86,7 +166,6 @@ public:
 			}
 		}
 	}
-	~TokenMatcher() { }
 
 	bool match(const string& aStr) {
 		for(auto i = stringSearchList.begin(); i != stringSearchList.end(); ++i) {
@@ -96,9 +175,15 @@ public:
 		}
 		return true;
 	}
-	Type getType() { return Type::MATCHER_STRING; }
+	bool match(const TTHValue& aTTH) { return false; }
+	Type getType() { return MATCHER_STRING; }
+	const string& getPattern() const { return pattern; }
+	bool isCaseSensitive() { return false; }
 private:
 	StringSearch::List stringSearchList;
+	string pattern;
 };
 
 }
+
+#endif /* STRINGMATCHER_H */

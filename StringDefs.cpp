@@ -1377,6 +1377,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Calculate priorities also for individual files", 
 "Calculate priorities every", 
 "Auto priority settings", 
+"Plain text", 
+"Wildcards", 
+"Use a custom matcher for the search results", 
+"Pattern", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2754,4 +2758,8 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsAutoprioFiles", 
 "SettingsCalculateEvery", 
 "SettingsAutoprio", 
+"PlainText", 
+"Wildcards", 
+"UseCustomMatcher", 
+"Pattern", 
 };

@@ -47,7 +47,9 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager
 	if (aMatcherString.empty())
 		matchPattern = aSearchString;
 
-	if (aMatcherType == StringMatcher::MATCHER_STRING)
+	if (aFileType == SearchManager::TYPE_TTH)
+		matcher = new TTHMatcher(matchPattern);
+	else if (aMatcherType == StringMatcher::MATCHER_STRING)
 		matcher = new TokenMatcher(matchPattern);
 	else if (aMatcherType == StringMatcher::MATCHER_REGEX)
 		matcher = new RegExMatcher(matchPattern);
@@ -140,7 +142,7 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 	AutoSearchList searches;
 	{
 		RLock l (cs);
-		for_each(searchItems, [&](AutoSearchPtr as) {
+		for_each(searchItems, [&searches, force, aTick](AutoSearchPtr as) {
 			if (as->getEnabled() && ((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*1000*60 < aTick) || force))
 				searches.push_back(as);
 		});
@@ -186,9 +188,14 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				continue;
 			}
 
-			//match the text
-			if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
-				continue;
+			//match
+			if (as->getMatcherType() == StringMatcher::MATCHER_TTH) {
+				if (!as->match(sr->getTTH()))
+					continue;
+			} else {
+				if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
+					continue;
+			}
 
 			//check the nick
 			if(!as->getUserMatch().empty()) {
@@ -210,9 +217,11 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		string path;
-		if (!getTarget(sr, as, path)) {
+		auto freeSpace = getTarget(as->getTarget(), as->getTargetType(), path);
+		if (freeSpace < sr->getSize()) {
 			//not enough space, do something fun
-			LogManager::getInstance()->message("AutoSearch: Not enough free space left on the target path " + as->getTarget() + ". Adding to queue with paused Priority.");
+			LogManager::getInstance()->message("AutoSearch: Not enough free space left on the target path " + as->getTarget() + ", free space: " + Util::formatBytes(freeSpace) + 
+				" while " + Util::formatBytes(sr->getSize()) + "is needed. Adding to queue with paused Priority.");
 			as->setAction(AutoSearch::ACTION_QUEUE);
 		}
 
@@ -247,14 +256,14 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 	}
 }
 
-bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr as, string& target) {
-	string aTarget = as->getTarget();
+int64_t AutoSearchManager::getTarget(const string& aTarget, AutoSearch::TargetType targetType, string& newTarget) {
+	string target = aTarget;
 	int64_t freeSpace = 0;
-	if (as->getTargetType() == AutoSearch::TARGET_PATH) {
+	if (targetType == AutoSearch::TARGET_PATH) {
 		target = aTarget;
 	} else {
 		vector<pair<string, StringList>> dirList;
-		if (as->getTargetType() == AutoSearch::TARGET_FAVORITE) {
+		if (targetType == AutoSearch::TARGET_FAVORITE) {
 			dirList = FavoriteManager::getInstance()->getFavoriteDirs();
 		} else {
 			ShareManager::getInstance()->LockRead();
@@ -267,21 +276,17 @@ bool AutoSearchManager::getTarget(const SearchResultPtr sr, const AutoSearchPtr 
 			StringList& targets = s->second;
 			AirUtil::getTarget(targets, target, freeSpace);
 			if (!target.empty()) {
-				return (freeSpace > sr->getSize());
+				return freeSpace;
 			}
 		}
 	}
-
-	//user has probobly changed the path after autosearch was added
-	if(target.empty() && Util::fileExists(aTarget))
-		target = aTarget;
 
 	if (target.empty()) {
 		//failed to get the target, use the default one
 		target = SETTING(DOWNLOAD_DIRECTORY);
 	}
 	AirUtil::getDiskInfo(target, freeSpace);
-	return (freeSpace > sr->getSize());
+	return freeSpace;
 }
 
 void AutoSearchManager::AutoSearchSave() {
@@ -306,7 +311,7 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("Remove", as->getRemove());
 				xml.addChildAttrib("Target", as->getTarget());
 				xml.addChildAttrib("TargetType", as->getTargetType());
-				xml.addChildAttrib("MatcherType", as->getType()),
+				xml.addChildAttrib("MatcherType", as->getMatcherType()),
 				xml.addChildAttrib("MatcherString", as->getPattern()),
 				xml.addChildAttrib("SearchInterval", as->getSearchInterval()),
 				xml.addChildAttrib("UserMatch", (*i)->getUserMatch());

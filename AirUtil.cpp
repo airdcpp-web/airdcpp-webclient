@@ -19,6 +19,7 @@
 #include "Wildcards.h"
 #include <locale.h>
 #include <boost/date_time/format_date_parser.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -847,5 +848,26 @@ bool AirUtil::isAdcHub(const string& hubUrl) {
 string AirUtil::convertMovePath(const string& aPath, const string& aParent, const string& aTarget) {
 	return aTarget + aPath.substr(aParent.length(), aPath.length() - aParent.length());
 }
+
+/*wstring AirUtil::regexEscape(const wstring& aStr) {
+    static const boost::wregex re_boostRegexEscape( _T("[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]") );
+    const std::wstring rep( _T("\\\\\\1&") );
+    std::wstring result = regex_replace(aStr, re_boostRegexEscape, rep, boost::match_default | boost::format_sed);
+    return result;
+}*/
+
+string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
+	//don't replace | and ? if it's wildcard
+    static const boost::regex re_boostRegexEscape(isWildcard ? "[\\^\\.\\$\\(\\)\\[\\]\\*\\+\\/\\\\]" : "[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]");
+    const string rep("\\\\\\1&");
+    string result = regex_replace(aStr, re_boostRegexEscape, rep, boost::match_default | boost::format_sed);
+	if (isWildcard) {
+		//convert * to .*
+		boost::replace_all(result, "\\*", ".*");
+	}
+    return result;
+}
+
+
 
 }

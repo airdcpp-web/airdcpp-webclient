@@ -293,10 +293,10 @@ bool Wildcard::patternMatch(const string& text, const string& patternlist, char 
 		StringTokenizer<string> st(patternlist, delimiter);
 		bool bMatched = false;
 		for(StringIter i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
-		bMatched = patternMatch(text, *i, useSet);
-		if (bMatched) {
-			return true;
-		}
+			bMatched = patternMatch(text, *i, useSet);
+			if (bMatched) {
+				return true;
+			}
 		}
 	} catch(...) { }
 	return bMatched;

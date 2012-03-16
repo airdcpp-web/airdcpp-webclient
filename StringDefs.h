@@ -1384,5 +1384,9 @@ enum Strings { // @DontAdd
 	SETTINGS_AUTOPRIO_FILES, // "Calculate priorities also for individual files"
 	SETTINGS_CALCULATE_EVERY, // "Calculate priorities every"
 	SETTINGS_AUTOPRIO, // "Auto priority settings"
+	PLAIN_TEXT, // "Plain text"
+	WILDCARDS, // "Wildcards"
+	USE_CUSTOM_MATCHER, // "Use a custom matcher for the search results"
+	PATTERN, // "Pattern"
 	LAST // @DontAdd
 };
