@@ -99,7 +99,7 @@ public:
 	GETSET(bool, remove, Remove); //remove after 1 hit
 	GETSET(string, target, Target); //download to Target
 	GETSET(TargetType, tType, TargetType);
-	GETSET(uint64_t, lastSearch, LastSearch);
+	GETSET(time_t, lastSearch, LastSearch);
 	GETSET(int, searchInterval, SearchInterval);
 	GETSET(time_t, expireTime, ExpireTime);
 	bitset<7> searchDays;

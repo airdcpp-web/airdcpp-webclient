@@ -1390,9 +1390,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Saturday", 
 "Sunday", 
 "Use an expiry day for this item", 
-"The default expiry days (0 = won't expire)", 
+"The default expiry days for items (0 = won't expire)", 
 "Start time", 
 "End time", 
+"Last Search", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2786,4 +2787,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsExpiryDays", 
 "StartTime", 
 "EndTime", 
+"LastSearch", 
 };

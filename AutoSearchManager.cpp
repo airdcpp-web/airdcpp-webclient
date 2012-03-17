@@ -78,6 +78,7 @@ AutoSearchManager::~AutoSearchManager() {
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, AutoSearch::TargetType aTargetType) {
 	auto as = new AutoSearch(true, aTarget, SearchManager::TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::emptyString, AutoSearch::TARGET_PATH, 
 		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0);
+
 	if (addAutoSearch(as))
 		return as;
 	else 
@@ -85,9 +86,6 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 }
 
 bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
-
-	//auto expireTime = GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60);
-
 	{
 		WLock l(cs);
 		if (find(searchItems.begin(), searchItems.end(), aAutoSearch) != searchItems.end())
@@ -173,12 +171,16 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 			if (!(as->startTime.hour < _tm.tm_hour && as->endTime.hour > _tm.tm_hour))
 				continue;
 			//check the minutes
-			if (!(as->startTime.minute < _tm.tm_min || as->endTime.minute > _tm.tm_min))
-				continue;
+			if ((as->endTime.hour || as->startTime.hour) == _tm.tm_hour) {
+				if (!(as->startTime.minute < _tm.tm_min) || (as->endTime.minute > _tm.tm_min))
+					continue;
+			}
 			//check the interval
-			if (((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*1000*60 > aTick) && !force))
+			if (((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*1000*60 > curTime) && !force))
 				continue;
 
+			as->setLastSearch(curTime);
+			fire(AutoSearchManagerListener::UpdateItem(), as, distance(searchItems.begin(), i));
 			searches.push_back(as);
 		}
 	}
@@ -189,7 +191,6 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 	for_each(searches, [&](AutoSearchPtr as) { 
 		// TODO: Get ADC searchtype extensions if any is selected
 		searchTime = SearchManager::getInstance()->search(allowedHubs, as->getSearchString(), 0, as->getFileType(), SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
-		as->setLastSearch(aTick);
 	});
 
 	for_each(expired, [&](AutoSearchPtr as) {
@@ -224,20 +225,24 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 		RLock l (cs);
 		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
 			AutoSearchPtr as = *i;
-
-			//check the file type
-			if(as->getFileType() == SearchManager::TYPE_DIRECTORY && sr->getType() != SearchResult::TYPE_DIRECTORY) {
+			if (!as->getEnabled())
 				continue;
-			} else if(!ShareManager::getInstance()->checkType(sr->getFile(), (*i)->getFileType())) {
-				continue;
-			}
 
 			//match
 			if (as->getMatcherType() == StringMatcher::MATCHER_TTH) {
 				if (!as->match(sr->getTTH()))
 					continue;
-			} else if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName())) {
-				continue;
+			} else {
+				/* Check the type */
+				if(as->getFileType() == SearchManager::TYPE_DIRECTORY ) {
+					if (sr->getType() != SearchResult::TYPE_DIRECTORY)
+						continue;
+				} else if(!ShareManager::getInstance()->checkType(sr->getFile(), (*i)->getFileType())) {
+					continue;
+				}
+
+				if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
+					continue;
 			}
 
 			//check the nick
@@ -275,8 +280,8 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 				QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
 					(as->getAction() == AutoSearch::ACTION_QUEUE ? QueueItem::PAUSED : QueueItem::DEFAULT));
 			}
-		} catch(...) {
-			LogManager::getInstance()->message("AutoSearch Failed to Queue: " + sr->getFile());
+		} catch(const QueueException& e) {
+			LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");
 			return;
 		}
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
@@ -298,10 +303,9 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 }
 
 int64_t AutoSearchManager::getTarget(const string& aTarget, AutoSearch::TargetType targetType, string& newTarget) {
-	string target = aTarget;
 	int64_t freeSpace = 0;
 	if (targetType == AutoSearch::TARGET_PATH) {
-		target = aTarget;
+		newTarget = aTarget;
 	} else {
 		vector<pair<string, StringList>> dirList;
 		if (targetType == AutoSearch::TARGET_FAVORITE) {
@@ -315,18 +319,18 @@ int64_t AutoSearchManager::getTarget(const string& aTarget, AutoSearch::TargetTy
 		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));
 		if (s != dirList.end()) {
 			StringList& targets = s->second;
-			AirUtil::getTarget(targets, target, freeSpace);
-			if (!target.empty()) {
+			AirUtil::getTarget(targets, newTarget, freeSpace);
+			if (!newTarget.empty()) {
 				return freeSpace;
 			}
 		}
 	}
 
-	if (target.empty()) {
+	if (newTarget.empty()) {
 		//failed to get the target, use the default one
-		target = SETTING(DOWNLOAD_DIRECTORY);
+		newTarget = SETTING(DOWNLOAD_DIRECTORY);
 	}
-	AirUtil::getDiskInfo(target, freeSpace);
+	AirUtil::getDiskInfo(newTarget, freeSpace);
 	return freeSpace;
 }
 

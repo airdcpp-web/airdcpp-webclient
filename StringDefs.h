@@ -1397,8 +1397,9 @@ enum Strings { // @DontAdd
 	SATURDAY, // "Saturday"
 	SUNDAY, // "Sunday"
 	USE_EXPIRY_DAY, // "Use an expiry day for this item"
-	SETTINGS_EXPIRY_DAYS, // "The default expiry days (0 = won't expire)"
+	SETTINGS_EXPIRY_DAYS, // "The default expiry days for items (0 = won't expire)"
 	START_TIME, // "Start time"
 	END_TIME, // "End time"
+	LAST_SEARCH, // "Last Search"
 	LAST // @DontAdd
 };

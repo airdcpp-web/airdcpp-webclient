@@ -28,10 +28,11 @@ public:
 
 	typedef X<0> RemoveItem;
 	typedef X<1> AddItem;
+	typedef X<2> UpdateItem;
 
 	virtual void on(RemoveItem, const string) noexcept { }
 	virtual void on(AddItem, const AutoSearchPtr&) noexcept { }
-
+	virtual void on(UpdateItem, const AutoSearchPtr&, int) noexcept { }
 };
 
 } // namespace dcpp
