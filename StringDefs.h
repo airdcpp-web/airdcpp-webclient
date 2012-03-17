@@ -1388,5 +1388,17 @@ enum Strings { // @DontAdd
 	WILDCARDS, // "Wildcards"
 	USE_CUSTOM_MATCHER, // "Use a custom matcher for the search results"
 	PATTERN, // "Pattern"
+	CUSTOM_SEARCH_TIMES, // "Search only on specific times"
+	MONDAY, // "Monday"
+	TUESDAY, // "Tuesday"
+	WEDNESDAY, // "Wednesday"
+	THURSDAY, // "Thursday"
+	FRIDAY, // "Friday"
+	SATURDAY, // "Saturday"
+	SUNDAY, // "Sunday"
+	USE_EXPIRY_DAY, // "Use an expiry day for this item"
+	SETTINGS_EXPIRY_DAYS, // "The default expiry days (0 = won't expire)"
+	START_TIME, // "Start time"
+	END_TIME, // "End time"
 	LAST // @DontAdd
 };

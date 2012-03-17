@@ -40,25 +40,29 @@ using boost::range::for_each;
 
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetType aTargetType, 
-	StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval) noexcept : enabled(aEnabled), searchString(aSearchString), 
-	fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), userMatch(aUserMatch), searchInterval(aSearchInterval) {
+	StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime) noexcept : 
+	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
+		searchInterval(aSearchInterval), expireTime(aExpireTime) {
 
 	string matchPattern = aMatcherString;
 	if (aMatcherString.empty())
 		matchPattern = aSearchString;
 
 	if (aFileType == SearchManager::TYPE_TTH)
-		matcher = new TTHMatcher(matchPattern);
+		resultMatcher = new TTHMatcher(matchPattern);
 	else if (aMatcherType == StringMatcher::MATCHER_STRING)
-		matcher = new TokenMatcher(matchPattern);
+		resultMatcher = new TokenMatcher(matchPattern);
 	else if (aMatcherType == StringMatcher::MATCHER_REGEX)
-		matcher = new RegExMatcher(matchPattern);
+		resultMatcher = new RegExMatcher(matchPattern);
 	else if (aMatcherType == StringMatcher::MATCHER_WILDCARD)
-		matcher = new WildcardMatcher(matchPattern);
+		resultMatcher = new WildcardMatcher(matchPattern);
+
+	userMatcher = new WildcardMatcher(aUserMatch);
 };
 
 AutoSearch::~AutoSearch() { 
-	delete matcher;
+	delete resultMatcher;
+	delete userMatcher;
 };
 
 AutoSearchManager::AutoSearchManager() : lastSave(0), dirty(false) {
@@ -71,22 +75,27 @@ AutoSearchManager::~AutoSearchManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
+AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, AutoSearch::TargetType aTargetType) {
+	auto as = new AutoSearch(true, aTarget, SearchManager::TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::emptyString, AutoSearch::TARGET_PATH, 
+		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0);
+	if (addAutoSearch(as))
+		return as;
+	else 
+		return nullptr;
+}
 
-bool AutoSearchManager::addAutoSearch(bool en, const string& ss, SearchManager::TypeModes ft, AutoSearch::ActionType act, bool remove, const string& targ, AutoSearch::TargetType aTargetType, 
-	StringMatcher::Type aMatcherType, const string& aMatcherString, int aSearchInterval, const string& aUserMatch /* = Util::emptyString*/) {
+bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
 
-	AutoSearchPtr as = nullptr;
+	//auto expireTime = GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60);
+
 	{
 		WLock l(cs);
-
-		if (find_if(searchItems.begin(), searchItems.end(), [&ss](AutoSearchPtr as) { return as->getSearchString() == ss; }) != searchItems.end())
+		if (find(searchItems.begin(), searchItems.end(), aAutoSearch) != searchItems.end())
 			return false;
-
-		as = AutoSearchPtr(new AutoSearch(en, ss, (SearchManager::TypeModes)ft, act, remove, targ, aTargetType, aMatcherType, aMatcherString, aUserMatch, aSearchInterval));
-		searchItems.push_back(as);
+		searchItems.push_back(aAutoSearch);
 	}
 	dirty = true;
-	fire(AutoSearchManagerListener::AddItem(), as);
+	fire(AutoSearchManagerListener::AddItem(), aAutoSearch);
 	return true;
 }
 
@@ -139,13 +148,39 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 		return;
 	}
 
+	auto curTime = GET_TIME();
+	tm _tm;
+	localtime_s(&_tm, &curTime);
+
 	AutoSearchList searches;
+	AutoSearchList expired;
 	{
 		RLock l (cs);
-		for_each(searchItems, [&searches, force, aTick](AutoSearchPtr as) {
-			if (as->getEnabled() && ((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*1000*60 < aTick) || force))
-				searches.push_back(as);
-		});
+		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
+			AutoSearchPtr as = *i;
+			//check expired
+			if (as->getExpireTime() > 0 && as->getExpireTime() < curTime) {
+				expired.push_back(as);
+				continue;
+			}
+
+			if (!as->getEnabled())
+				continue;
+			//check the weekday
+			if (!as->searchDays[_tm.tm_wday])
+				continue;
+			//check the hours
+			if (!(as->startTime.hour < _tm.tm_hour && as->endTime.hour > _tm.tm_hour))
+				continue;
+			//check the minutes
+			if (!(as->startTime.minute < _tm.tm_min || as->endTime.minute > _tm.tm_min))
+				continue;
+			//check the interval
+			if (((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*1000*60 > aTick) && !force))
+				continue;
+
+			searches.push_back(as);
+		}
 	}
 
 	uint64_t searchTime = 0;
@@ -153,8 +188,13 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 
 	for_each(searches, [&](AutoSearchPtr as) { 
 		// TODO: Get ADC searchtype extensions if any is selected
-		searchTime = SearchManager::getInstance()->search(allowedHubs, as->getSearchString(), 0, as->getFileType(), SearchManager::SIZE_DONTCARE, "auto", extList, Search::AUTO_SEARCH);
+		searchTime = SearchManager::getInstance()->search(allowedHubs, as->getSearchString(), 0, as->getFileType(), SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
 		as->setLastSearch(aTick);
+	});
+
+	for_each(expired, [&](AutoSearchPtr as) {
+		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getPattern());
+		removeAutoSearch(as);
 	});
 
 	if (searches.size() == 1) {
@@ -174,6 +214,10 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
+	//don't match bundle searches
+	if (stricmp(sr->getToken(), "qa") == 0)
+		return;
+
 	AutoSearchList matches;
 
 	{
@@ -192,18 +236,15 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			if (as->getMatcherType() == StringMatcher::MATCHER_TTH) {
 				if (!as->match(sr->getTTH()))
 					continue;
-			} else {
-				if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
-					continue;
+			} else if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName())) {
+				continue;
 			}
 
 			//check the nick
-			if(!as->getUserMatch().empty()) {
+			if(!as->getNickPattern().empty()) {
 				StringList nicks = ClientManager::getInstance()->getNicks(sr->getUser()->getCID(), sr->getHubURL());
-				for(auto s = nicks.begin(); s != nicks.end(); ++i) {
-					if(!Wildcard::patternMatch(Text::utf8ToAcp(*s), Text::utf8ToAcp((*i)->getUserMatch()), '|' ))
-						continue;
-				}
+				if (find_if(nicks.begin(), nicks.end(), [&](const string& aNick) { return as->matchNick(aNick); }) != nicks.end())
+					continue;
 			}
 
 			//we have a valid result
@@ -314,7 +355,11 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("MatcherType", as->getMatcherType()),
 				xml.addChildAttrib("MatcherString", as->getPattern()),
 				xml.addChildAttrib("SearchInterval", as->getSearchInterval()),
-				xml.addChildAttrib("UserMatch", (*i)->getUserMatch());
+				xml.addChildAttrib("UserMatch", (*i)->getNickPattern());
+				xml.addChildAttrib("ExpireTime", (*i)->getExpireTime());
+				xml.addChildAttrib("SearchDays", (*i)->searchDays.to_string());
+				xml.addChildAttrib("StartTime", (*i)->startTime.toString());
+				xml.addChildAttrib("EndTime", (*i)->endTime.toString());
 			}
 		}
 
@@ -339,8 +384,8 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 	aXml.resetCurrentChild();
 	if(aXml.findChild("Autosearch")) {
 		aXml.stepIn();
-		while(aXml.findChild("Autosearch")) {					
-			addAutoSearch(aXml.getBoolChildAttrib("Enabled"),
+		while(aXml.findChild("Autosearch")) {
+			auto as = new AutoSearch(aXml.getBoolChildAttrib("Enabled"),
 				aXml.getChildAttrib("SearchString"), 
 				(SearchManager::TypeModes)aXml.getIntChildAttrib("FileType"), 
 				(AutoSearch::ActionType)aXml.getIntChildAttrib("Action"),
@@ -349,8 +394,34 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				(AutoSearch::TargetType)aXml.getIntChildAttrib("TargetType"),
 				(StringMatcher::Type)aXml.getIntChildAttrib("MatcherType"),
 				aXml.getChildAttrib("MatcherString"),
+				aXml.getChildAttrib("UserMatch"),
 				aXml.getIntChildAttrib("SearchInterval"),
-				aXml.getChildAttrib("UserMatch"));
+				aXml.getIntChildAttrib("ExpireTime"));
+
+			as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
+
+			auto searchDays = aXml.getChildAttrib("SearchDays");
+			if(!searchDays.empty()) {
+				as->searchDays =  bitset<7>(searchDays);
+			} else {
+				as->searchDays = bitset<7>("1111111");
+			}
+
+			auto startTime = aXml.getChildAttrib("StartTime");
+			if(!startTime.empty()) {
+				as->startTime = SearchTime(startTime);
+			} else {
+				as->startTime = SearchTime();
+			}
+
+			auto endTime = aXml.getChildAttrib("EndTime");
+			if(!endTime.empty()) {
+				as->endTime = SearchTime(endTime);
+			} else {
+				as->endTime = SearchTime(true);
+			}
+
+			addAutoSearch(as);
 		}
 		aXml.stepOut();
 	}

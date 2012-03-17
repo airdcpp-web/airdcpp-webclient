@@ -3406,7 +3406,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 		aBundle->setSimpleMatching(true);
 		for_each(searches, [](StringPair& sp) {
 			//LogManager::getInstance()->message("QueueManager::searchBundle, searchString: " + i->second);
-			SearchManager::getInstance()->search(sp.second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
+			SearchManager::getInstance()->search(sp.second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "qa", Search::ALT_AUTO);
 		});
 	} else {
 		//use an alternative matching, choose random items to search for
@@ -3417,7 +3417,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 			auto rand = Util::rand(searches.size());
 			advance(pos, rand);
 			//LogManager::getInstance()->message("QueueManager::searchBundle, ALT searchString: " + pos->second);
-			SearchManager::getInstance()->search(pos->second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "auto", Search::ALT_AUTO);
+			SearchManager::getInstance()->search(pos->second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "qa", Search::ALT_AUTO);
 			searches.erase(pos);
 			k++;
 		}

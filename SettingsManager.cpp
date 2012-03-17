@@ -158,7 +158,7 @@ const string SettingsManager::settingTags[] =
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
 	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
-	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval",
+	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", 
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -716,7 +716,7 @@ SettingsManager::SettingsManager()
 	setDefault(PRIO_LIST_HIGHEST, false);
 	setDefault(AUTOPRIO_TYPE, PRIO_BALANCED);
 	setDefault(AUTOPRIO_INTERVAL, 10);
-
+	setDefault(AUTOSEARCH_EXPIRE_DAYS, 5);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

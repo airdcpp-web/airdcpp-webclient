@@ -17,6 +17,8 @@
 #ifndef AUTO_SEARCH_MANAGER_H
 #define AUTO_SEARCH_MANAGER_H
 
+#include <bitset>
+
 #include "forward.h"
 #include "TimerManager.h"
 #include "SearchManager.h"
@@ -30,6 +32,41 @@
 
 namespace dcpp {
 #define AUTOSEARCH_FILE "AutoSearch.xml"
+
+struct SearchTime {
+	uint16_t hour;
+	uint16_t minute;
+		
+	explicit SearchTime(bool end=false) { 
+		minute = end ? 59 : 0;
+		hour = end ? 23 : 0;
+	}
+	explicit SearchTime(uint16_t aHours, uint16_t aMinutes) : hour(aHours), minute(aMinutes) { }
+	explicit SearchTime(const string& aTime) {
+		/*auto s = aTime.find(",");
+		if (s != aTime.end()) {
+			hours = 
+		}*/
+		if (aTime.length() != 4) {
+			hour = 0;
+			minute = 0;
+			return;
+		}
+
+		hour = Util::toUInt(aTime.substr(0, 2));
+		minute = Util::toUInt(aTime.substr(2, 2));
+	}
+
+	string toString() {
+		string hourStr = Util::toString(hour);
+		if (hourStr.length() == 1)
+			hourStr = "0" + hourStr;
+		string minuteStr = Util::toString(minute);
+		if (minuteStr.length() == 1)
+			minuteStr = "0" + minuteStr;
+		return hourStr+minuteStr;
+	}
+};
 
 class AutoSearch  : public intrusive_ptr_base<AutoSearch> {
 
@@ -51,7 +88,7 @@ public:
 	}
 
 	AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetType aTargetType, 
-		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval) noexcept;
+		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime) noexcept;
 
 	~AutoSearch();
 
@@ -62,16 +99,23 @@ public:
 	GETSET(bool, remove, Remove); //remove after 1 hit
 	GETSET(string, target, Target); //download to Target
 	GETSET(TargetType, tType, TargetType);
-	GETSET(string, userMatch, UserMatch); //only results from users matching...
 	GETSET(uint64_t, lastSearch, LastSearch);
 	GETSET(int, searchInterval, SearchInterval);
+	GETSET(time_t, expireTime, ExpireTime);
+	bitset<7> searchDays;
 
-	int8_t getMatcherType() { return matcher->getType(); }
-	bool match(const string& aStr) { return matcher->match(aStr); }
-	bool match(const TTHValue& aTTH) { return matcher->match(aTTH); }
-	const string& getPattern() const { return matcher->getPattern(); }
+	SearchTime startTime;
+	SearchTime endTime;
+
+	int8_t getMatcherType() { return resultMatcher->getType(); }
+	bool matchNick(const string& aStr) { return userMatcher->match(aStr); }
+	bool match(const string& aStr) { return resultMatcher->match(aStr); }
+	bool match(const TTHValue& aTTH) { return resultMatcher->match(aTTH); }
+	const string& getPattern() const { return resultMatcher->getPattern(); }
+	const string& getNickPattern() const { return userMatcher->getPattern(); }
 private:
-	StringMatcher* matcher;
+	StringMatcher* resultMatcher;
+	StringMatcher* userMatcher;
 };
 
 class SimpleXML;
@@ -81,8 +125,8 @@ public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
-	bool addAutoSearch(bool en, const string& ss, SearchManager::TypeModes ft, AutoSearch::ActionType aAction, bool remove, const string& targ, AutoSearch::TargetType aTargetType, 
-		StringMatcher::Type aMatcherType, const string& aMatcherString, int aSearchInterval, const string& aUserMatch = Util::emptyString);
+	bool addAutoSearch(AutoSearchPtr aAutoSearch);
+	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, AutoSearch::TargetType aTargetType);
 	AutoSearchPtr getAutoSearch(unsigned int index);
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
