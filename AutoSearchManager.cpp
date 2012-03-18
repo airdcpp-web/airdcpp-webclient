@@ -42,7 +42,7 @@ using boost::range::for_each;
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetType aTargetType, 
 	StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
-		searchInterval(aSearchInterval), expireTime(aExpireTime) {
+		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0) {
 
 	string matchPattern = aMatcherString;
 	if (aMatcherString.empty())
@@ -76,8 +76,12 @@ AutoSearchManager::~AutoSearchManager() {
 }
 
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, AutoSearch::TargetType aTargetType) {
-	auto as = new AutoSearch(true, aTarget, SearchManager::TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::emptyString, AutoSearch::TARGET_PATH, 
+	auto as = new AutoSearch(true, ss, SearchManager::TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
 		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0);
+
+	as->startTime = SearchTime();
+	as->endTime = SearchTime(true);
+	as->searchDays = bitset<7>("1111111");
 
 	if (addAutoSearch(as))
 		return as;
@@ -127,7 +131,7 @@ void AutoSearchManager::removeAutoSearch(AutoSearchPtr aItem) {
 }
 
 void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	if(dirty && (lastSave + (20*1000) > aTick)) { //20 second delay between saves.
+	if(dirty && (lastSave + (20*1000) < aTick)) { //20 second delay between saves.
 		lastSave = aTick;
 		dirty = false;
 		AutoSearchSave();
@@ -176,7 +180,9 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 					continue;
 			}
 			//check the interval
-			if (((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*1000*60 > curTime) && !force))
+			//auto interval = SETTING(AUTOSEARCH_EVERY)*60;
+			//auto nextSearch = as->getLastSearch() + SETTING(AUTOSEARCH_EVERY)*60;
+			if (((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*60 > curTime) && !force))
 				continue;
 
 			as->setLastSearch(curTime);
@@ -266,7 +272,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 		auto freeSpace = getTarget(as->getTarget(), as->getTargetType(), path);
 		if (freeSpace < sr->getSize()) {
 			//not enough space, do something fun
-			LogManager::getInstance()->message("AutoSearch: Not enough free space left on the target path " + as->getTarget() + ", free space: " + Util::formatBytes(freeSpace) + 
+			LogManager::getInstance()->message("AutoSearch: Not enough free space left on the target path " + path + ", free space: " + Util::formatBytes(freeSpace) + 
 				" while " + Util::formatBytes(sr->getSize()) + "is needed. Adding to queue with paused Priority.");
 			as->setAction(AutoSearch::ACTION_QUEUE);
 		}

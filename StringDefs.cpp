@@ -1394,6 +1394,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Start time", 
 "End time", 
 "Last Search", 
+"Select directory", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2788,4 +2789,5 @@ std::string dcpp::ResourceManager::names[] = {
 "StartTime", 
 "EndTime", 
 "LastSearch", 
+"SelectDirectory", 
 };

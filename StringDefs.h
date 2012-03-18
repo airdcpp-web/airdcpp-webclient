@@ -1401,5 +1401,6 @@ enum Strings { // @DontAdd
 	START_TIME, // "Start time"
 	END_TIME, // "End time"
 	LAST_SEARCH, // "Last Search"
+	SELECT_DIRECTORY, // "Select directory"
 	LAST // @DontAdd
 };

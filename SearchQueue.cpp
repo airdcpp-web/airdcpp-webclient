@@ -40,6 +40,7 @@ uint64_t SearchQueue::add(Search& s)
 {
 	dcassert(s.owners.size() == 1);
 	uint32_t x = 0;
+	bool add = true;
 
 	Lock l(cs);
 
@@ -60,18 +61,36 @@ uint64_t SearchQueue::add(Search& s)
 			//don't queue the same item twice
 			void* aOwner = *s.owners.begin();
 			i->owners.insert(aOwner);
-			return 0;
+			add = false;
+			break;
 		}
 
 		x += i->getInterval();
 		advance(i, 1);
 	}
 
-	searchQueue.insert(i, s);
+	if (add)
+		searchQueue.insert(i, s);
+
 	auto now = GET_TICK();
 	if (x > 0) {
 		//subtract ellapsed time for the first item from all items before this
-		return x - (getNextSearchTick() - now);
+		//LogManager::getInstance()->message("Time remaining in this queue: " + Util::toString(x - (getNextSearchTick() - now)) + " (next search " + Util::toString(getNextSearchTick())
+		//	+ "ms, now " + Util::toString(now) + "ms, queueTime: " + Util::toString(x) + "ms)");
+
+		if (getNextSearchTick() <= now) {
+			//we have queue but the a search can be performed
+			if (now - getNextSearchTick() > x) {
+				//the last search was loong time ago, just return the queue time
+				return x;
+			} else {
+				//subtract the time ellapsed since last search from the queue time
+				return x - (now - getNextSearchTick());
+			}
+		} else {
+			//we have queue and even waiting time for the next search
+			return x - (getNextSearchTick() - now);
+		}
 	} else {
 		//empty queue
 		if (getNextSearchTick() <= now)
