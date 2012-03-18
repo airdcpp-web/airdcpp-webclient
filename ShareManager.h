@@ -47,6 +47,7 @@ class OutputStream;
 class MemoryInputStream;
 struct ShareLoader;
 class Worker;
+
 class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener, private QueueManagerListener
 {
 public:
@@ -77,8 +78,6 @@ public:
 	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
 	void DelIncoming() { incoming.clear(); };
 
-	bool addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub);
-	
    void save() { 
 		w.join();
 		//LogManager::getInstance()->message("Creating share cache...");
@@ -180,6 +179,25 @@ public:
 	GETSET(size_t, hits, Hits);
 	GETSET(string, bzXmlFile, BZXmlFile);
 	GETSET(int64_t, sharedSize, SharedSize);
+
+	//tempShares
+	struct TempShareInfo {
+		TempShareInfo(const string& aKey, const string& aPath, int64_t aSize) : key(aKey), path(aPath), size(aSize) { }
+		
+		string key; //CID or hubUrl
+		string path; //filepath
+		int64_t size; //filesize
+	};
+
+	typedef unordered_multimap<TTHValue, TempShareInfo> tempShareMap;
+	tempShareMap tempShares;
+	CriticalSection tScs;
+	bool addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub);
+	bool hasTempShares() { Lock l(tScs); return !tempShares.empty(); }
+	tempShareMap getTempShares() { Lock l(tScs); return tempShares; }
+	void removeTempShare(const string& aKey, TTHValue& tth);
+	string findTempShare(const string& aKey, const string& virtualFile);
+	//tempShares end
 
 private:
 	struct AdcSearch;
@@ -352,8 +370,6 @@ private:
 	void deleteReleaseDir(const string& aName);
 	void sortReleaseList();
 
-	string findTempShare(const string& aKey, const string& virtualFile);
-
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
@@ -424,18 +440,6 @@ private:
 	void load(SimpleXML& aXml);
 	void save(SimpleXML& aXml);
 	
-
-	struct TempShareInfo {
-		
-		TempShareInfo(const string& aKey, const string& aPath, int64_t aSize) : key(aKey), path(aPath), size(aSize) { }
-		
-		string key; //CID or hubUrl
-		string path; //filepath
-		int64_t size; //filesize
-	};
-	typedef unordered_multimap<TTHValue, TempShareInfo> tempShareMap;
-	tempShareMap tempShares;
-
 
 /*This will only be used by the big sharing people probobly*/
 class Worker: public Thread

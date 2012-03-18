@@ -294,6 +294,7 @@ AdcCommand ShareManager::getFileInfo(const string& aFile) {
 string ShareManager::findTempShare(const string& aKey, const string& virtualFile) {
 		
 	if(virtualFile.compare(0, 4, "TTH/") == 0) {
+		Lock l(tScs);
 		TTHValue tth(virtualFile.substr(4));
 		auto Files = tempShares.equal_range(tth);
 		for(auto i = Files.first; i != Files.second; ++i) {
@@ -308,6 +309,7 @@ bool ShareManager::addTempShare(const string& aKey, TTHValue& tth, const string&
 	if(isFileShared(tth, Util::getFileName(filePath))) {
 		return true;
 	} else if(adcHub) {
+		Lock l(tScs);
 		auto Files = tempShares.equal_range(tth);
 		for(auto i = Files.first; i != Files.second; ++i) {
 			if(i->second.key == aKey)
@@ -319,6 +321,17 @@ bool ShareManager::addTempShare(const string& aKey, TTHValue& tth, const string&
 	}
 	return false;
 }
+void ShareManager::removeTempShare(const string& aKey, TTHValue& tth) {
+	Lock l(tScs);
+	auto Files = tempShares.equal_range(tth);
+	for(auto i = Files.first; i != Files.second; ++i) {
+		if(i->second.key == aKey) {
+			tempShares.erase(i);
+			break;
+		}
+	}
+}
+
 ShareManager::DirMultiMap ShareManager::findVirtuals(const string& virtualPath) const {
 	Dirs virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
 	DirMultiMap ret;
@@ -2043,6 +2056,7 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 			addHits(1);
 		} else {
 			//lookup in temp shares for the file.
+			Lock l(tScs);
 			auto Files = tempShares.equal_range(srch.root);
 			for(auto i = Files.first; i != Files.second; ++i) {
 				if(i->second.key.empty() || (i->second.key == cid.toBase32())) { // if no key is set, it means its a hub share.
