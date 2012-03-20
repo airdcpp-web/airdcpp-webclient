@@ -171,6 +171,15 @@ public:
 private:
 	mutable SharedMutex cs;
 
+	//count minutes to be more accurate than comparing ticks every minute.
+	size_t lastSearch;
+	size_t recheckTime;
+
+	unsigned int curPos;
+
+	bool endOfListReached;
+
+	bool hasEnabledItems();
 	AutoSearchList searchItems;
 
 	void loadAutoSearch(SimpleXML& aXml);

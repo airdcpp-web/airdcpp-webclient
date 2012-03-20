@@ -65,7 +65,14 @@ AutoSearch::~AutoSearch() {
 	delete userMatcher;
 };
 
-AutoSearchManager::AutoSearchManager() : lastSave(0), dirty(false) {
+AutoSearchManager::AutoSearchManager() : 
+	lastSave(0), 
+	dirty(false), 
+	lastSearch(0),
+	curPos(0), 
+	endOfListReached(false), 
+	recheckTime(0) 
+{
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
 }
@@ -123,7 +130,11 @@ bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr &ipw)
 void AutoSearchManager::removeAutoSearch(AutoSearchPtr aItem) {
 	WLock l(cs);
 	auto i = find(searchItems.begin(), searchItems.end(), aItem);
-	if(i != searchItems.end()) {	
+	if(i != searchItems.end()) {
+
+		if(distance(searchItems.begin(), i) < curPos) //dont skip a search if we remove before the last search.
+			curPos--;
+
 		fire(AutoSearchManagerListener::RemoveItem(), aItem->getSearchString());
 		searchItems.erase(i);
 		dirty = true;
@@ -139,7 +150,55 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 }
 
 void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-	checkSearches(false, aTick);
+
+	lastSearch++;
+
+	if(endOfListReached) {
+		recheckTime++;
+		if(recheckTime >= SETTING(AUTOSEARCH_RECHECK_TIME)) {
+			curPos = 0;
+			endOfListReached = false;
+		} else {
+			return;
+		}
+	}
+	if(lastSearch >= (SETTING(AUTOSEARCH_EVERY))) {
+		if(hasEnabledItems())
+			checkSearches(false, aTick);
+	}
+}
+
+bool AutoSearchManager::hasEnabledItems() {
+	auto curTime = GET_TIME();
+	AutoSearchList expired;
+	bool result = false;
+	{
+		RLock l(cs);
+		
+		if(searchItems.empty())
+			return result;
+
+		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
+			AutoSearchPtr as = *i;
+			
+			//check expired, and remove them.
+			if (as->getExpireTime() > 0 && as->getExpireTime() < curTime) {
+				expired.push_back(as);
+				continue;
+			}
+			if (!as->getEnabled())
+				continue;
+
+			result = true;
+		}
+	}
+
+	for_each(expired, [&](AutoSearchPtr as) {
+		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getSearchString()); 
+		removeAutoSearch(as);
+	});
+
+	return result;
 }
 
 void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK() */) {
@@ -154,69 +213,60 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 	tm _tm;
 	localtime_s(&_tm, &curTime);
 
-	AutoSearchList searches;
-	AutoSearchList expired;
+	AutoSearchPtr as = nullptr;
 	{
 		RLock l (cs);
-		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
-			AutoSearchPtr as = *i;
-			//check expired
-			if (as->getExpireTime() > 0 && as->getExpireTime() < curTime) {
-				expired.push_back(as);
-				continue;
-			}
+		
+		//we have waited for search time, and we are at the end of list. wait for recheck time. so time between searches "autosearch every" + "recheck time" 
+		if(curPos >= searchItems.size()) { 
+			LogManager::getInstance()->message("Autosearch: End of list reached. Recheck Items, next search after " + Util::toString(SETTING(AUTOSEARCH_RECHECK_TIME)) + " minutes");
+			curPos = 0;
+			endOfListReached = true;
+			recheckTime = 0;
+			return;
+		}
 
-			if (!as->getEnabled())
+		for(auto i = searchItems.begin() + curPos; i != searchItems.end(); ++i) {
+			
+			curPos++; //move to next one, even if we skip something, dont check the same ones again until list has gone thru.
+
+			if (!(*i)->getEnabled())
 				continue;
 			//check the weekday
-			if (!as->searchDays[_tm.tm_wday])
+			if (!(*i)->searchDays[_tm.tm_wday])
 				continue;
 			//check the hours
-			if (!(as->startTime.hour < _tm.tm_hour && as->endTime.hour > _tm.tm_hour))
+			if (!((*i)->startTime.hour <= _tm.tm_hour && (*i)->endTime.hour >= _tm.tm_hour))
 				continue;
 			//check the minutes
-			if ((as->endTime.hour || as->startTime.hour) == _tm.tm_hour) {
-				if (!(as->startTime.minute < _tm.tm_min) || (as->endTime.minute > _tm.tm_min))
+			if (((*i)->endTime.hour || (*i)->startTime.hour) == _tm.tm_hour) {
+				if (!((*i)->startTime.minute < _tm.tm_min) || ((*i)->endTime.minute > _tm.tm_min))
 					continue;
 			}
-			//check the interval
-			//auto interval = SETTING(AUTOSEARCH_EVERY)*60;
-			//auto nextSearch = as->getLastSearch() + SETTING(AUTOSEARCH_EVERY)*60;
-			if (((as->getLastSearch() + (as->getSearchInterval() > 0 ? as->getSearchInterval() : SETTING(AUTOSEARCH_EVERY))*60 > curTime) && !force))
-				continue;
 
+			as = *i;
 			as->setLastSearch(curTime);
+			lastSearch = 0;
 			fire(AutoSearchManagerListener::UpdateItem(), as, distance(searchItems.begin(), i));
-			searches.push_back(as);
+			break;
 		}
 	}
 
 	uint64_t searchTime = 0;
-	StringList extList;
-
-	for_each(searches, [&](AutoSearchPtr as) { 
+	
+	if(as != nullptr) {
 		// TODO: Get ADC searchtype extensions if any is selected
+		StringList extList;
 		searchTime = SearchManager::getInstance()->search(allowedHubs, as->getSearchString(), 0, as->getFileType(), SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
-	});
 
-	for_each(expired, [&](AutoSearchPtr as) {
-		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getPattern());
-		removeAutoSearch(as);
-	});
-
-	if (searches.size() == 1) {
 		if (searchTime == 0) {
 			LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
-				searches.front()->getSearchString()));
+				as->getSearchString()));
 		} else {
 			LogManager::getInstance()->message(str(boost::format("Autosearch: %s will be searched in %d seconds") %
-				searches.front()->getSearchString() %
+				as->getSearchString() %
 				(searchTime / 1000)));
 		}
-	} else if (searches.size() > 1) {
-		LogManager::getInstance()->message(str(boost::format("Autosearch: %s searches have been queued and will be completed in %d seconds") %
-			Util::toString(searches.size()) %
-			(searchTime / 1000)));
 	}
 }
 
