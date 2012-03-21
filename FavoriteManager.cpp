@@ -243,12 +243,6 @@ bool FavoriteManager::addFavoriteDir(const string& aName, StringList& aTargets){
 	return true;
 }
 
-void FavoriteManager::getFavoriteTarget(int pos, string& target, int64_t& size) {
-	dcassert(pos < (int)favoriteDirs.size());
-	StringList targets = favoriteDirs[pos].second;
-	AirUtil::getTarget(targets, target, size);
-}
-
 bool FavoriteManager::isFavoriteHub(const std::string& url) {
 	FavoriteHubEntryList::const_iterator i = getFavoriteHub(url);
 	if(i != favoriteHubs.end()) {

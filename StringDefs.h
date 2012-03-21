@@ -1302,6 +1302,7 @@ enum Strings { // @DontAdd
 	MATCH_PARTIAL, // "Match partial list"
 	FAVDIRS_SHOW_SHARED, // "Show shared directories in the \"Download to\" menu"
 	CONFIRM_SIZE_WARNING, // "There is only %s remaining in the directory %s while %s is needed. Do you want to continue?"
+	CONFIRM_SIZE_WARNING_QUEUED, // "There is only %s remaining in the directory %s (and %s of queued files) while %s is needed. Do you want to continue?"
 	BUNDLE_ALT_SEARCH, // "Searching the bundle %s for alternatives, %d search(es) queued."
 	BUNDLE_ALT_SEARCH_RECENT, // "Searching alternates for a RECENT bundle %s, %d search(es) queued."
 	NEXT_SEARCH_IN, // "Next search in %d minutes"

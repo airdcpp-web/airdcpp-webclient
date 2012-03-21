@@ -39,8 +39,8 @@ namespace dcpp {
 using boost::range::for_each;
 
 
-AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetType aTargetType, 
-	StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime) noexcept : 
+AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
+	TargetUtil::TargetType aTargetType, StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
 		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0) {
 
@@ -82,7 +82,7 @@ AutoSearchManager::~AutoSearchManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
-AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, AutoSearch::TargetType aTargetType) {
+AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType) {
 	auto as = new AutoSearch(true, ss, SearchManager::TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
 		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0);
 
@@ -319,13 +319,29 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		string path;
-		auto freeSpace = getTarget(as->getTarget(), as->getTargetType(), path);
-		if (freeSpace < sr->getSize()) {
+		TargetUtil::TargetInfo ti;
+		TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti);
+		if (ti.getFreeSpace() < sr->getSize()) {
 			//not enough space, do something fun
-			LogManager::getInstance()->message("AutoSearch: Not enough free space left on the target path " + path + ", free space: " + Util::formatBytes(freeSpace) + 
-				" while " + Util::formatBytes(sr->getSize()) + "is needed. Adding to queue with paused Priority.");
+			string tmp;
+			if (ti.queued > 0) {
+				tmp = str(boost::format("AutoSearch: Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Adding to queue with paused Priority.") % 
+					ti.targetDir.c_str() %
+					Util::formatBytes(ti.diskSpace) % 
+					Util::formatBytes(ti.queued) %
+					Util::formatBytes(sr->getSize()));
+			} else {
+				tmp = str(boost::format("AutoSearch: Not enough free space left on the target path %s (free space: %s while %s is needed). Adding to queue with paused Priority.") % 
+					ti.targetDir.c_str() %
+					Util::formatBytes(ti.getFreeSpace()) % 
+					Util::formatBytes(sr->getSize()));
+			}
+
+			LogManager::getInstance()->message(tmp);
 			as->setAction(AutoSearch::ACTION_QUEUE);
 		}
+
+		path = ti.targetDir;
 
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
@@ -356,38 +372,6 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 	if(as->getRemove()) {
 		removeAutoSearch(as);
 	}
-}
-
-int64_t AutoSearchManager::getTarget(const string& aTarget, AutoSearch::TargetType targetType, string& newTarget) {
-	int64_t freeSpace = 0;
-	if (targetType == AutoSearch::TARGET_PATH) {
-		newTarget = aTarget;
-	} else {
-		vector<pair<string, StringList>> dirList;
-		if (targetType == AutoSearch::TARGET_FAVORITE) {
-			dirList = FavoriteManager::getInstance()->getFavoriteDirs();
-		} else {
-			ShareManager::getInstance()->LockRead();
-			dirList = ShareManager::getInstance()->getGroupedDirectories();
-			ShareManager::getInstance()->unLockRead();
-		}
-
-		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));
-		if (s != dirList.end()) {
-			StringList& targets = s->second;
-			AirUtil::getTarget(targets, newTarget, freeSpace);
-			if (!newTarget.empty()) {
-				return freeSpace;
-			}
-		}
-	}
-
-	if (newTarget.empty()) {
-		//failed to get the target, use the default one
-		newTarget = SETTING(DOWNLOAD_DIRECTORY);
-	}
-	AirUtil::getDiskInfo(newTarget, freeSpace);
-	return freeSpace;
 }
 
 void AutoSearchManager::AutoSearchSave() {
@@ -451,7 +435,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				(AutoSearch::ActionType)aXml.getIntChildAttrib("Action"),
 				aXml.getBoolChildAttrib("Remove"),
 				aXml.getChildAttrib("Target"),
-				(AutoSearch::TargetType)aXml.getIntChildAttrib("TargetType"),
+				(TargetUtil::TargetType)aXml.getIntChildAttrib("TargetType"),
 				(StringMatcher::Type)aXml.getIntChildAttrib("MatcherType"),
 				aXml.getChildAttrib("MatcherString"),
 				aXml.getChildAttrib("UserMatch"),

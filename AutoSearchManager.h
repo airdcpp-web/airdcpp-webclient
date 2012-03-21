@@ -29,6 +29,7 @@
 #include "Util.h"
 #include "SearchResult.h"
 #include "StringMatcher.h"
+#include "TargetUtil.h"
 
 namespace dcpp {
 #define AUTOSEARCH_FILE "AutoSearch.xml"
@@ -71,12 +72,6 @@ struct SearchTime {
 class AutoSearch  : public intrusive_ptr_base<AutoSearch> {
 
 public:
-	enum TargetType {
-		TARGET_PATH,
-		TARGET_FAVORITE,
-		TARGET_SHARE,
-	};
-
 	enum ActionType {
 		ACTION_DOWNLOAD,
 		ACTION_QUEUE,
@@ -87,7 +82,7 @@ public:
 		return stricmp(searchString, as->getSearchString()) == 0;
 	}
 
-	AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetType aTargetType, 
+	AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
 		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime) noexcept;
 
 	~AutoSearch();
@@ -98,7 +93,7 @@ public:
 	GETSET(SearchManager::TypeModes, fileType, FileType);
 	GETSET(bool, remove, Remove); //remove after 1 hit
 	GETSET(string, target, Target); //download to Target
-	GETSET(TargetType, tType, TargetType);
+	GETSET(TargetUtil::TargetType, tType, TargetType);
 	GETSET(time_t, lastSearch, LastSearch);
 	GETSET(int, searchInterval, SearchInterval);
 	GETSET(time_t, expireTime, ExpireTime);
@@ -126,7 +121,7 @@ public:
 	~AutoSearchManager();
 
 	bool addAutoSearch(AutoSearchPtr aAutoSearch);
-	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, AutoSearch::TargetType aTargetType);
+	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType);
 	AutoSearchPtr getAutoSearch(unsigned int index);
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
@@ -187,8 +182,6 @@ private:
 	bool dirty;
 
 	void handleAction(const SearchResultPtr sr, AutoSearchPtr as);
-
-	int64_t getTarget(const string& aTarget, AutoSearch::TargetType targetType, string& newTarget);
 
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;

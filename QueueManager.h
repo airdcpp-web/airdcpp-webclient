@@ -38,6 +38,7 @@
 #include "LogManager.h"
 #include "pme.h"
 #include "HashManager.h"
+#include "TargetUtil.h"
 
 #include "BundleQueue.h"
 #include "FileQueue.h"
@@ -135,7 +136,7 @@ public:
 	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished, bool moved = false);
 	uint8_t isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);
-	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes) { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
+	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundles, const StringPairList& paths);
 

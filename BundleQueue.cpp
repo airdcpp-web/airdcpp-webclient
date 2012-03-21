@@ -373,20 +373,20 @@ void BundleQueue::move(BundlePtr aBundle, const string& newTarget) {
 	}
 }
 
-void BundleQueue::getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes) {
+void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) {
 	string tempVol;
 	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("%[targetdrive]") == string::npos);
 	if (useSingleTempDir) {
-		tempVol = AirUtil::getMountPath(SETTING(TEMP_DOWNLOAD_DIRECTORY), volumes);
+		tempVol = TargetUtil::getMountPath(SETTING(TEMP_DOWNLOAD_DIRECTORY), volumes);
 	}
 
 	for_each(bundles | map_values, [&](BundlePtr b) {
-		string mountPath = AirUtil::getMountPath(b->getTarget(), volumes);
+		string mountPath = TargetUtil::getMountPath(b->getTarget(), volumes);
 		if (!mountPath.empty()) {
 			auto s = dirMap.find(mountPath);
 			if (s != dirMap.end()) {
 				bool countAll = (useSingleTempDir && (mountPath != tempVol));
-				s->second.second -= b->getDiskUse(countAll);
+				s->second.queued += b->getDiskUse(countAll);
 			}
 		}
 	});

@@ -23,6 +23,7 @@
 #include "typedefs.h"
 #include "HintedUser.h"
 #include "Bundle.h"
+#include "TargetUtil.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -59,7 +60,7 @@ public:
 	void move(BundlePtr aBundle, const string& newTarget);
 	void remove(BundlePtr aBundle);
 
-	void getDiskInfo(map<string, pair<string, int64_t>>& dirMap, const StringSet& volumes);
+	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes);
 
 	void addSearchPrio(BundlePtr aBundle);
 	void removeSearchPrio(BundlePtr aBundle);
