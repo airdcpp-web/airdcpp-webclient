@@ -175,8 +175,10 @@ bool AutoSearchManager::hasEnabledItems() {
 	{
 		RLock l(cs);
 		
-		if(searchItems.empty())
+		if(searchItems.empty()){
+			curPos = 0; //list got empty, start from 0 with new items.
 			return result;
+		}
 
 		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
 			AutoSearchPtr as = *i;
@@ -197,6 +199,9 @@ bool AutoSearchManager::hasEnabledItems() {
 		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getSearchString()); 
 		removeAutoSearch(as);
 	});
+
+	if(!result) //if no enabled items, start checking from the beginning with newly enabled ones.
+		curPos = 0;
 
 	return result;
 }

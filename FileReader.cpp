@@ -1,7 +1,26 @@
+/*
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
 #include "stdinc.h"
 
 #include "FileReader.h"
 
+#include "debug.h"
 #include "File.h"
 #include "Text.h"
 #include "Util.h"
@@ -118,20 +137,17 @@ size_t FileReader::readDirect(const string& file, const DataCallback& callback) 
 		if(err != ERROR_HANDLE_EOF) {
 			dcdebug("First overlapped read failed: %s\n", Util::translateError(::GetLastError()).c_str());
 			return READ_FAILED;
-		} //hn should still be 0.
+		}
+
+		return 0;
 	}
 
-
-    /*if we failed to read it the first time for EOF, we cant start expecting to have something to read at all, 
-	it might be a 0 byte file. and overlapped read is set to wait until it gets something to read. */
-	if(res || err == ERROR_IO_PENDING) { 
-	// Finish the read and see how it went, 
-		if(!GetOverlappedResult(h, &over, &hn, TRUE)) {
-			err = ::GetLastError();
-			if(err != ERROR_HANDLE_EOF) {
-				dcdebug("First overlapped read failed: %s\n", Util::translateError(::GetLastError()).c_str());
-				return READ_FAILED;
-			}
+	// Finish the read and see how it went
+	if(!GetOverlappedResult(h, &over, &hn, TRUE)) {
+		err = ::GetLastError();
+		if(err != ERROR_HANDLE_EOF) {
+			dcdebug("First overlapped read failed: %s\n", Util::translateError(::GetLastError()).c_str());
+			return READ_FAILED;
 		}
 	}
 	over.Offset = hn;
@@ -178,6 +194,18 @@ size_t FileReader::readDirect(const string& file, const DataCallback& callback) 
 }
 
 size_t FileReader::readMapped(const string& file, const DataCallback& callback) {
+	/** @todo mapped reads can fail on Windows by throwing an exception that may only be caught by
+	SEH. MinGW doesn't have that, thus making this method of reading prone to unrecoverable
+	failures. disabling this for now should be fine as DC++ always tries overlapped reads first
+	(at the moment this file reader is only used in places where overlapped reads make the most
+	sense).
+	more info:
+	<http://msdn.microsoft.com/en-us/library/aa366801(VS.85).aspx>
+	<http://stackoverflow.com/q/7244645> */
+#if 1
+	return READ_FAILED;
+#else
+
 	auto tfile = Text::toT(file);
 
 	auto tmp = ::CreateFile(tfile.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
@@ -228,6 +256,7 @@ size_t FileReader::readMapped(const string& file, const DataCallback& callback) 
 	}
 
 	return total.QuadPart;
+#endif
 }
 
 #else
