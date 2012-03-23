@@ -382,7 +382,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			StringList nicks = ClientManager::getInstance()->getNicks(aUser);
 			if (nicks.empty())
 				throw QueueException(STRING(INVALID_TARGET_FILE));
-			target = Util::getListPath() + nicks[0] + ".partial" + Util::toString(Util::rand());
+			target = Util::getListPath() + nicks[0] + ".partial[" + aTarget + "]";
 		} else {
 			target = getListPath(aUser);
 		}
@@ -663,10 +663,7 @@ bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::Ma
 }
 
 void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p /* = QueueItem::DEFAULT */, bool useFullList) noexcept {
-	bool adc=false;
-	if (!aUser.user->isSet(User::NMDC)) {
-		adc=true;
-	}
+
 	bool needList;
 	{
 		WLock l(cs);
@@ -680,11 +677,12 @@ void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, con
 		
 		// Unique directory, fine...
 		directories.insert(make_pair(aUser, new DirectoryItem(aUser, aDir, aTarget, p)));
-		needList = (dp.first == dp.second);
+		needList = aUser.user->isSet(User::NMDC) ? (dp.first == dp.second) : true;
 	}
-	if(needList || adc) {
+
+	if(needList) {
 		try {
-			if (adc && !useFullList) {
+			if (!aUser.user->isSet(User::NMDC) && !useFullList) {
 				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, aDir);
 			} else {
 				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD, aDir);
@@ -799,8 +797,7 @@ StringList QueueManager::getTargets(const TTHValue& tth) {
 }
 
 Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, bool smallSlot) noexcept {
-	QueueItemPtr q = NULL;
-	Download* d = NULL;
+	QueueItemPtr q = nullptr;
 	const UserPtr& u = aSource.getUser();
 	{
 		RLock l(cs);
@@ -835,6 +832,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 		}
 	}
 
+	Download* d = nullptr;
 	{
 		WLock l(cs);
 		d = new Download(aSource, *q);
@@ -1533,7 +1531,7 @@ void QueueManager::setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool
 }
 
 void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQIChange /*false*/) noexcept {
-	BundlePtr b = NULL;
+	BundlePtr b = nullptr;
 	{
 		RLock l(cs);
 		b = bundleQueue.find(bundleToken);
@@ -1587,7 +1585,7 @@ void QueueManager::removeBundleSources(BundlePtr aBundle) noexcept {
 }
 
 void QueueManager::removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept {
-	BundlePtr bundle = NULL;
+	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
 		bundle = bundleQueue.find(bundleToken);
@@ -1921,7 +1919,7 @@ void QueueLoader::endTag(const string& name, const string&) {
 			if (curBundle->isFileBundle() && !curBundle->getQueueItems().empty()) {
 				QueueManager::getInstance()->bundleQueue.add(curBundle);
 			}
-			cur = NULL;
+			cur = nullptr;
 		}
 	}
 }
@@ -2308,7 +2306,7 @@ BundlePtr QueueManager::findBundle(const TTHValue& tth) {
 	if (!ql.empty()) {
 		return ql.front()->getBundle();
 	}
-	return NULL;
+	return nullptr;
 }
 
 bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add) {
@@ -3467,8 +3465,3 @@ void QueueManager::onChangeDownloadOrder() {
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: QueueManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
- */

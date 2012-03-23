@@ -109,7 +109,7 @@ QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, 
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
@@ -128,7 +128,7 @@ QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority m
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void UserQueue::addDownload(QueueItemPtr qi, Download* d) {

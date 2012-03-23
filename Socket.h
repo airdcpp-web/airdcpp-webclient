@@ -89,7 +89,7 @@ public:
 		TYPE_UDP = IPPROTO_UDP
 	};
 
-	explicit Socket(SocketType type, bool v4only = false) : type(type), v4only(v4only) { }
+	explicit Socket(SocketType type) : type(type) { }
 
 	virtual ~Socket() { }
 
@@ -183,6 +183,8 @@ public:
 	GETSET(string, ip, Ip);
 	GETSET(string, localIp4, LocalIp4);
 	GETSET(string, localIp6, LocalIp6);
+	GETSET(bool, v4only, V4only);
+
 protected:
 	typedef union {
 		sockaddr sa;
@@ -197,8 +199,6 @@ protected:
 	mutable SocketHandle sock6;
 
 	SocketType type;
-
-	bool v4only;
 
 	class Stats {
 	public:

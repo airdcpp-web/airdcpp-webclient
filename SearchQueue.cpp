@@ -97,7 +97,7 @@ uint64_t SearchQueue::add(Search& s)
 			return 0;
 
 		//we still need to wait after the previous search, subract the waiting time from the interval of this item
-		return s.getInterval() - (getNextSearchTick() - now);
+		return getNextSearchTick() - now;
 	}
 }
 

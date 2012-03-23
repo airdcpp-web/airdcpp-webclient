@@ -189,20 +189,23 @@ string ConnectivityManager::getInformation() const {
 		}
 	}
 
-	string ip = CONNSETTING(EXTERNAL_IP);
-	if(ip.empty()) {
-		ip = "undefined";
-	}
+	auto field = [](const string& s) { return s.empty() ? "undefined" : s; };
 
 	return str(boost::format(
 		"Connectivity information:\n\n"
 		"Automatic connectivity setup is: %1%\n\n"
 		"\t%2%\n"
-		"\tExternal IP: %3%\n"
-		"\tTransfer port: %4%\n"
-		"\tEncrypted transfer port: %5%\n"
-		"\tSearch port: %6%") % autoStatus % mode % ip % ConnectionManager::getInstance()->getPort() %
-		ConnectionManager::getInstance()->getSecurePort() % SearchManager::getInstance()->getPort());
+		"\tExternal IP (v4): %3%\n"
+		"\tExternal IP (v6): %4%\n"
+		"\tBound interface (v4): %5%\n"
+		"\tBound interface (v6): %6%\n"
+		"\tTransfer port: %7%\n"
+		"\tEncrypted transfer port: %8%\n"
+		"\tSearch port: %9%") % autoStatus % mode %
+		field(CONNSETTING(EXTERNAL_IP)) % field(CONNSETTING(EXTERNAL_IP6)) %
+		field(CONNSETTING(BIND_ADDRESS)) % field(CONNSETTING(BIND_ADDRESS6)) %
+		field(ConnectionManager::getInstance()->getPort()) % field(ConnectionManager::getInstance()->getSecurePort()) %
+		field(SearchManager::getInstance()->getPort()));
 }
 
 void ConnectivityManager::startMapping() {
