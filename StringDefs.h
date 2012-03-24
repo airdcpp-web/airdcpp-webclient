@@ -1147,7 +1147,6 @@ enum Strings { // @DontAdd
 	MULTIPLE_SFV, // "Multiple SFV files found: "
 	SCAN_STARTED, // "Scan for missing/extra files started..."
 	DUPE_FOUND, // "Dupe found: "
-	DUPE_IS_SAME, // "is the same as"
 	CHECK_MISSING, // "Check missing release files"
 	CHECK_SFV, // "Check missing SFV files"
 	CHECK_NFO, // "Check missing NFO files"
@@ -1403,5 +1402,6 @@ enum Strings { // @DontAdd
 	END_TIME, // "End time"
 	LAST_SEARCH, // "Last Search"
 	SELECT_DIRECTORY, // "Select directory"
+	X_IS_SAME_THAN, // "The directory %s also exists in %s"
 	LAST // @DontAdd
 };

@@ -1140,7 +1140,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Multiple SFV files found: ", 
 "Scan for missing/extra files started...", 
 "Dupe found: ", 
-"is the same as", 
 "Check missing release files", 
 "Check missing SFV files", 
 "Check missing NFO files", 
@@ -1396,6 +1395,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "End time", 
 "Last Search", 
 "Select directory", 
+"The directory %s also exists in %s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2536,7 +2536,6 @@ std::string dcpp::ResourceManager::names[] = {
 "MultipleSfv", 
 "ScanStarted", 
 "DupeFound", 
-"DupeIsSame", 
 "CheckMissing", 
 "CheckSfv", 
 "CheckNfo", 
@@ -2792,4 +2791,5 @@ std::string dcpp::ResourceManager::names[] = {
 "EndTime", 
 "LastSearch", 
 "SelectDirectory", 
+"XIsSameThan", 
 };

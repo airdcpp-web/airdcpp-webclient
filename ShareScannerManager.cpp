@@ -238,18 +238,21 @@ void ShareScannerManager::findDupes(const string& path, int& dupesFound) throw(F
 	string dirName = Util::getDir(path, false, true);
 	string listfolder;
 
+	//only match release names here
 	if (!regex_match(dirName, releaseReg))
 		return;
 	
-	if (!dupeDirs.empty()) {
-		for(auto i = dupeDirs.begin(); i != dupeDirs.end();    i++) {
-			if (stricmp(dirName, i->first) == 0) {
-				dupesFound++;
-				LogManager::getInstance()->message(STRING(DUPE_FOUND) + path + " " + STRING(DUPE_IS_SAME) + " " + (i->second));
-			}
+	auto dupes = dupeDirs.equal_range(dirName);
+	if (dupes.first != dupes.second) {
+		dupesFound++;
+
+		//list all dupes here
+		for(auto k = dupes.first; k != dupes.second; ++k) {
+			LogManager::getInstance()->message(str(boost::format(STRING(X_IS_SAME_THAN)) % path % k->second));
 		}
 	}
-	dupeDirs.push_back(make_pair(dirName, path));
+
+	dupeDirs.insert(make_pair(dirName, path));
 }
 
 StringList ShareScannerManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/, bool aMatchSkipList) {
@@ -318,6 +321,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		}
 	}
 
+	/* No release files at all? */
 	if (!fileList.empty() && ((nfoFiles + sfvFiles) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
 		if (!regex_match(dirName, emptyDirReg)) {
 			StringList folderList = findFiles(path, "*", true, true);
@@ -378,33 +382,21 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				found = false;
 				if (fileList.size() > 1) {
 					//check that all files have the same extension.. otherwise there are extras
-					string extensionFirst, extensionLoop;
-					int extPos;
+					string extension;
 					for(auto i = fileList.begin(); i != fileList.end(); ++i) {
-						if (!regex_match(*i, proofImageReg)) {
-							extensionFirst = *i;
-							extPos = extensionFirst.find_last_of(".");
-							if (extPos != string::npos)
-								extensionFirst = Text::toLower(extensionFirst.substr(extPos, extensionFirst.length()));
+						//ignore image files
+						if (boost::regex_match(Util::getFileExt(*i), proofImageReg))
+							continue;
+						
+						string loopExt = Util::getFileExt(*i);
+						if (!extension.empty() && loopExt != extension) {
+							found = true;
 							break;
 						}
-					}
-					if (!extensionFirst.empty()) {
-						for(auto i = fileList.begin(); i != fileList.end(); ++i) {
-							extensionLoop = *i;
-							extPos = extensionLoop.find_last_of(".");
-							if (extPos != string::npos) {
-								extensionLoop = Text::toLower(extensionLoop.substr(extPos, extensionLoop.length()));
-								if (regex_match(extensionLoop, proofImageReg))
-									continue;
-							}
-							if (strcmp(extensionLoop.c_str(), extensionFirst.c_str())) {
-								found = true;
-								break;
-							}
-						}
+						extension = loopExt;
 					}
 				}
+
 				if (nfoFiles > 0 || sfvFiles > 0 || isRelease || found) {
 					LogManager::getInstance()->message(STRING(EXTRA_FILES_SAMPLEDIR) + path);
 					extrasFound++;
@@ -454,11 +446,12 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	if (sfvFiles == 0)
 		return;
 
+
+	/* Check for missing files */
 	string fileName;
 	bool hasValidSFV = false;
 
-	int releaseFiles=0;
-	int loopMissing=0;
+	int releaseFiles=0, loopMissing=0;
 
 	DirSFVReader sfv = DirSFVReader(path, sfvFileList);
 	while (sfv.read(fileName)) {
@@ -472,7 +465,10 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		}
 	}
 
+
 	missingFiles += loopMissing;
+
+	/* Extras in folder? */
 	releaseFiles = releaseFiles - loopMissing;
 
 	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles) && hasValidSFV) {
@@ -495,6 +491,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& dirs) throw(FileException) {
 	DirSFVReader sfv = DirSFVReader(aPath);
 
+	/* Get the size and see if all files in the sfv exists */
 	if (sfv.hasSFV()) {
 		string fileName;
 		while (sfv.read(fileName)) {
@@ -508,6 +505,7 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 		dirs.push_back(make_pair(aPath, sfv));
 	}
 
+	/* Recursively scan subfolders */
 	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
 		try {
 			if (!i->isHidden()) {
@@ -576,16 +574,10 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 
 bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
-		string dir = aBundle->getTarget();
-		int missingFiles = 0;
-		int dupesFound = 0;
-		int extrasFound = 0;
-		int missingNFO = 0;
-		int missingSFV = 0;
-		int emptyFolders = 0;
+		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0;
 
-		scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
-		find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, true);
+		scanDir(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
+		find(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, true);
 
 		reportResults(aBundle->getName(), aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? 3 : 2, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 		return (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0); //allow choosing the level when it shouldn't be added?

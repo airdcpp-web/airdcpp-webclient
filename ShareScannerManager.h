@@ -27,6 +27,7 @@
 
 #include "noexcept.h"
 #include "atomic.h"
+#include "boost/unordered_map.hpp"
 
 #include "SFVReader.h"
 
@@ -93,7 +94,7 @@ private:
 	int64_t scanFolderSize;
 	bool stop;
 	void findDupes(const string& path, int& dupesFound);
-	StringPairList dupeDirs;
+	boost::unordered_multimap<string, string, noCaseStringHash, noCaseStringEq> dupeDirs;
 	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList);
 	void prepareSFVScanDir(const string& path, SFVScanList& dirs);
 	void prepareSFVScanFile(const string& path, StringList& files);
