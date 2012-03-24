@@ -405,40 +405,36 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::findFile(const 
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-StringList ShareManager::getRealPaths(const std::string path) {
+void ShareManager::getRealPaths(const string& path, StringList& ret) {
 	if(path.empty())
 		throw ShareException("empty virtual path");
 
-		StringList result;	
-		string dir;
-		DirMultiMap dirs = findVirtuals(path);
+	string dir;
+	DirMultiMap dirs = findVirtuals(path);
 
 	if(*(path.end() - 1) == '/') {
 		Directory::Ptr d;
-		for(DirMultiMap::iterator i = dirs.begin(); i != dirs.end(); ++i) {
+		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
 			d = i->second;
-		if(d->getParent()) {
-			dir = d->getParent()->getRealPath(d->getName());
-			if(dir[dir.size() -1] != '\\') 
-				dir += "\\";
-			result.push_back( dir );
-		} else {
+			if(d->getParent()) {
+				dir = d->getParent()->getRealPath(d->getName());
+				if(dir[dir.size() -1] != '\\') 
+					dir += "\\";
+				ret.push_back( dir );
+			} else {
 				dir = d->getRootPath();
 				if(dir.empty())
-					return result;
+					return;
 
-					if(dir[dir.size() -1] != '\\') 
-						dir += "\\";
-						
-					result.push_back( dir );
-
+				if(dir[dir.size() -1] != '\\') 
+					dir += "\\";
+					
+				ret.push_back( dir );
 			}
 		}
 	} else { //its a file
-		result.push_back(findFile(path)->getRealPath());
+		ret.push_back(findFile(path)->getRealPath());
 	}
-
-	return result;
 }
 string ShareManager::validateVirtual(const string& aVirt) const noexcept {
 	string tmp = aVirt;
@@ -878,7 +874,7 @@ tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
  	
  	StringList ret;
  	try {
- 		ret = getRealPaths(Util::toAdcFile(found));
+ 		getRealPaths(Util::toAdcFile(found), ret);
  	} catch(const ShareException&) {
  		return Util::emptyStringT;
  	}

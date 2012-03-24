@@ -185,8 +185,8 @@ public:
 
 	const Directory* getRoot() const { return root; }
 	Directory* getRoot() { return root; }
-	StringList getLocalPaths(const Directory* d);
-	StringList getLocalPaths(const File* f);
+	void getLocalPaths(const Directory* d, StringList& ret);
+	void getLocalPaths(const File* f, StringList& ret);
 
 	static UserPtr getUserFromFilename(const string& fileName);
 	void checkShareDupes();

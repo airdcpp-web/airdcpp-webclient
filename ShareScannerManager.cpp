@@ -28,7 +28,6 @@
 #include "FilteredFile.h"
 #include "File.h"
 #include "Wildcards.h"
-#include "SFVReader.h"
 #include "QueueManager.h"
 #include "format.h"
 
@@ -48,7 +47,6 @@ ShareScannerManager::ShareScannerManager() : scanning(false) {
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
 	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
 	emptyDirReg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
-	crcReg.assign("(.{5,200}\\s(\\w{8})$)");
 	rarReg.assign("(.+\\.((r\\w{2})|(0\\d{2})))");
 	rarMp3Reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))");
 	audioBookReg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
@@ -82,14 +80,14 @@ int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 
 	if(sfv) {
 		isCheckSFV = true;
-		Paths = paths;
+		rootPaths = paths;
 	} else if(!paths.empty())  {
 		isDirScan = true;
-		Paths = paths;
+		rootPaths = paths;
 	} else {
 		StringPairList dirs = ShareManager::getInstance()->getDirectories(ShareManager::REFRESH_ALL);
-		for(StringPairIter i = dirs.begin(); i != dirs.end();   i++) {
-			Paths.push_back(i->second);
+		for(auto i = dirs.begin(); i != dirs.end();   i++) {
+			rootPaths.push_back(i->second);
 		}
 	}
 
@@ -108,69 +106,68 @@ int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 }
 
 void ShareScannerManager::Stop() {
-		Paths.clear();
-		stop = true;
+	rootPaths.clear();
+	stop = true;
 }
 
 int ShareScannerManager::run() {
-	string dir;
-
 	if (isCheckSFV) {
+
+		/* Get the total size and dirs */
 		scanFolderSize = 0;
-		for(StringIterC i = Paths.begin(); i != Paths.end();    i++) {
-			getScanSize(*i);
+		SFVScanList sfvDirPaths;
+		StringList sfvFilePaths;
+		for(auto i = rootPaths.begin(); i != rootPaths.end(); i++) {
+			string path = *i;
+			if(path[path.size() -1] == PATH_SEPARATOR) {
+				prepareSFVScanDir(path, sfvDirPaths);
+			} else {
+				prepareSFVScanFile(path, sfvFilePaths);
+			}
+		}
+
+		/* Scan root files */
+		if (!sfvFilePaths.empty()) {
+			DirSFVReader sfv = DirSFVReader(Util::getFilePath(rootPaths.front()));
+			for(auto i = sfvFilePaths.begin(); i != sfvFilePaths.end(); i++) {
+				if (stop)
+					break;
+
+				checkFileSFV(*i, sfv, false);
+			}
+		}
+
+		/* Scan all directories */
+		for(auto i = sfvDirPaths.begin(); i != sfvDirPaths.end(); i++) {
+			if (stop)
+				break;
+
+			auto files = findFiles(i->first, "*", false, false);
+			for(auto s = files.begin(); s != files.end(); ++s) {
+				if (stop)
+					break;
+
+				checkFileSFV(*s, i->second, true);
+			}
+		}
+
+
+		/* Report */
+		if (stop) {
+			LogManager::getInstance()->message(STRING(CRC_STOPPED));
+		} else {
+			LogManager::getInstance()->message(str(boost::format(STRING(CRC_FINISHED)) % crcOk % crcInvalid % checkFailed));
 		}
 	} else {
+		/* Scan for missing files */
 		QueueManager::getInstance()->getUnfinishedPaths(bundleDirs);
 		sort(bundleDirs.begin(), bundleDirs.end());
-	}
-	
-	string dirName;
-	int missingFiles = 0;
-	int dupesFound = 0;
-	int extrasFound = 0;
-	int missingNFO = 0;
-	int missingSFV = 0;
-	int emptyFolders = 0;
 
-	for(;;) { // endless loop
-		
-		if(Paths.empty() || stop)
-			break;
+		string dir;
+		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0;
 
-		StringIterC j = Paths.begin();
-		dir = *j;
-		Paths.erase(Paths.begin());
-
-		if(isCheckSFV) {
-			if(dir[dir.size() -1] == PATH_SEPARATOR) {
-				string sfvFile;
-				StringList dirFiles = findFiles(dir, "*"); // find all files in dir
-
-				if(dirFiles.size() == 0) {
-					LogManager::getInstance()->message(STRING(NO_FILES_IN_FOLDER));
-				} else {
-
-					for(;;) { // loop until no files Listed
-			
-						if(dirFiles.empty() || stop)
-							break;
-
-						StringIterC i = dirFiles.begin();
-						sfvFile = dir + *i; 
-						dirFiles.erase(dirFiles.begin());
-						if((sfvFile.find(".nfo") == string::npos) && sfvFile.find(".sfv") == string::npos) // just srip out the nfo and sfv file, others are ok or extra anyways?
-							checkSFV(sfvFile);
-					}
-					dirFiles.clear();
-				}
-			} else {
-				checkSFV(dir); 
-			}
-		} else {
-			if(dir[dir.size() -1] != PATH_SEPARATOR)
-				dir += PATH_SEPARATOR;
-
+		for(auto i = rootPaths.begin(); i != rootPaths.end(); ++i) {
+			dir = *i;
 			DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
 			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
 				if (matchSkipList(Util::getDir(dir, false, true))) {
@@ -182,20 +179,14 @@ int ShareScannerManager::run() {
 				scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 				find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, false);
 			}
-			//LogManager::getInstance()->message("Scanned " + dir);
 		}
-	} //end for
-	
-	if(!isCheckSFV){
 		reportResults(Util::emptyString, isDirScan ? 1 : 0, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, dupesFound);
-	} else if(stop) {
-		LogManager::getInstance()->message(STRING(CRC_STOPPED));
+		bundleDirs.clear();
+		dupeDirs.clear();
 	}
 	
-	bundleDirs.clear();
 	scanning.clear();
-	dupeDirs.clear();
-	Paths.clear();
+	rootPaths.clear();
 	return 0;
 }
 
@@ -224,8 +215,7 @@ void ShareScannerManager::find(const string& path, int& missingFiles, int& missi
 				if (!isBundleScan && std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {
 					continue;
 				}
-				DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
-				if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
+				if(!i->isHidden()) {
 					scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 					if(SETTING(CHECK_DUPES) && !isBundleScan)
 						findDupes(dir, dupesFound);
@@ -235,10 +225,8 @@ void ShareScannerManager::find(const string& path, int& missingFiles, int& missi
 		} catch(const FileException&) { } 
 	}
 
-	if(!dirs.empty()) {
-		for(auto j = dirs.begin(); j != dirs.end(); j++) {
-			find(*j, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, isBundleScan);
-		}	
+	for(auto j = dirs.begin(); j != dirs.end(); j++) {
+		find(*j, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, isBundleScan);
 	}
 }
 
@@ -264,7 +252,7 @@ void ShareScannerManager::findDupes(const string& path, int& dupesFound) throw(F
 	dupeDirs.push_back(make_pair(dirName, path));
 }
 
-StringList ShareScannerManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/) {
+StringList ShareScannerManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/, bool aMatchSkipList) {
 	StringList ret;
 
 	WIN32_FIND_DATA data;
@@ -274,7 +262,7 @@ StringList ShareScannerManager::findFiles(const string& path, const string& patt
 	if(hFind != INVALID_HANDLE_VALUE) {
 		do {
 			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM)) {
-				if (matchSkipList(Text::fromT(data.cFileName))) {
+				if (aMatchSkipList && matchSkipList(Text::fromT(data.cFileName))) {
 					continue;
 				}
 				if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
@@ -301,11 +289,11 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	if(path.empty())
 		return;
 
-	StringList sfvFileList, folderList, fileList = findFiles(path, "*");
+	StringList sfvFileList, fileList = findFiles(path, "*", false, false);
 
 	if (fileList.empty()) {
 		//check if there are folders
-		folderList = findFiles(path, "*", true);
+		StringList folderList = findFiles(path, "*", true, true);
 		if (folderList.empty()) {
 			if (SETTING(CHECK_EMPTY_DIRS)) {
 				LogManager::getInstance()->message(STRING(DIR_EMPTY) + " " + path);
@@ -332,7 +320,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 	if (!fileList.empty() && ((nfoFiles + sfvFiles) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
 		if (!regex_match(dirName, emptyDirReg)) {
-			folderList = findFiles(path, "*", true);
+			StringList folderList = findFiles(path, "*", true, true);
 			if (folderList.empty()) {
 				LogManager::getInstance()->message(STRING(RELEASE_FILES_MISSING) + " " + path);
 				return;
@@ -431,12 +419,12 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				found = false;
 				if (fileList.empty()) {
 					found = true;
-					folderList = findFiles(path, "*", true);
+					StringList folderList = findFiles(path, "*", true, true);
 					//check if there are multiple disks and nfo inside them
 					for(auto i = folderList.begin(); i != folderList.end(); ++i) {
 						if (regex_match(*i, subDirReg)) {
 							found = false;
-							StringList filesListSub = findFiles(path + *i + "\\", "*.nfo");
+							StringList filesListSub = findFiles(path + *i + "\\", "*.nfo", false, true);
 							if (!filesListSub.empty()) {
 								found = true;
 								break;
@@ -466,44 +454,22 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	if (sfvFiles == 0)
 		return;
 
-	ifstream sfv;
-	string line;
-	string sfvFile;
+	string fileName;
 	bool hasValidSFV = false;
 
 	int releaseFiles=0;
 	int loopMissing=0;
 
-	for(auto i = sfvFileList.begin(); i != sfvFileList.end(); ++i) {
-		sfvFile = *i;
-		try {
-			openSFV(sfvFile, sfv);
-		} catch(const FileException&) {
-			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-			continue;
-		}
+	DirSFVReader sfv = DirSFVReader(path, sfvFileList);
+	while (sfv.read(fileName)) {
+		hasValidSFV = true;
+		releaseFiles++;
 
-		while( getline( sfv, line ) ) {
-			//make sure that the line is valid
-			bool invalidFile=false;
-			if (!getFileSFV(line, invalidFile)) {
-				if (invalidFile) {
-					LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-					break;
-				}
-				continue;
-			}
-			hasValidSFV = true;
-			releaseFiles++;
-
-			auto k = std::find(fileList.begin(), fileList.end(), line);
-			if(k == fileList.end()) { 
-				loopMissing++;
-				if (SETTING(CHECK_MISSING))
-					LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
-			}
+		if(std::find(fileList.begin(), fileList.end(), fileName) == fileList.end()) { 
+			loopMissing++;
+			if (SETTING(CHECK_MISSING))
+				LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + fileName);
 		}
-		sfv.close();
 	}
 
 	missingFiles += loopMissing;
@@ -526,114 +492,60 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	}
 }
 
-void ShareScannerManager::openSFV(const string& path, ifstream& stream) {
-	if (File::getSize(Text::utf8ToAcp(path)) > 1000000) {
-		throw FileException();
+void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& dirs) throw(FileException) {
+	DirSFVReader sfv = DirSFVReader(aPath);
+
+	if (sfv.hasSFV()) {
+		string fileName;
+		while (sfv.read(fileName)) {
+			if (Util::fileExists(aPath + fileName)) {
+				scanFolderSize = scanFolderSize + File::getSize(aPath + fileName);
+			} else {
+				LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + aPath + fileName);
+				checkFailed++;
+			}
+		}
+		dirs.push_back(make_pair(aPath, sfv));
 	}
 
-	//incase we have some extended characters in the path
-	stream.open(Text::utf8ToAcp(Util::FormatPath(path)));
-
-	if(!stream.is_open()) {
-		throw FileException();
+	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
+		try {
+			if (!i->isHidden()) {
+				if (i->isDirectory()) {
+					prepareSFVScanDir(aPath + i->getFileName() + PATH_SEPARATOR, dirs);
+				}
+			}
+		} catch(const FileException&) { } 
 	}
 }
 
-bool ShareScannerManager::getFileSFV(string& line, bool& invalidFile) {
-	if(regex_search(line, crcReg) && (line.find("\\") == string::npos) && (line.find(";") == string::npos)) {
-		//only keep the filename
-		size_t pos = line.rfind(" ");
-		if (pos == string::npos) {
-			return false;
-		}
-		line = Text::toLower(line.substr(0,pos));
-
-		//extra checks to ignore invalid lines
-		if (line.length() < 5)
-			return false;
-		if (line.length() > 150) {
-			//can't most likely to detect the line breaks
-			invalidFile = true;
-			return false;
-		}
-
-		//quoted line?
-		if (line[0] == '\"' && line[line.length()-1] == '\"') {
-			line = line.substr(1,line.length()-2);
-		}
-		return true;
-	}
-	return false;
-}
-
-void ShareScannerManager::getScanSize(const string& path) throw(FileException) {
-	if(path[path.size() -1] == PATH_SEPARATOR) {
-		StringList sfvFileList = findFiles(path, "*.sfv");
-		string line;
-		ifstream sfv;
-		for(;;) {
-			if(sfvFileList.empty())
-				break;
-
-			StringIterC i = sfvFileList.begin();
-			string sfvFile = path + *i;
-			sfvFileList.erase(sfvFileList.begin());
-		
-			try {
-				openSFV(sfvFile, sfv);
-			} catch(const FileException&) {
-				LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + sfvFile);
-				continue;
-			}
-
-			while( getline( sfv, line ) ) {
-				bool invalidFile = false;
-				if (!getFileSFV(line, invalidFile)) {
-					if (invalidFile) {
-						LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + path);
-						break;
-					}
-					continue;
-				}
-
-				ifstream ifile(path + line);
-				if (ifile) {
-					scanFolderSize = scanFolderSize + File::getSize(path + line);
-				} else {
-					LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + line);
-					checkFailed++;
-				}
-			}
-		}
+void ShareScannerManager::prepareSFVScanFile(const string& aPath, StringList& files) {
+	if (Util::fileExists(aPath)) {
+		scanFolderSize += File::getSize(aPath);
+		files.push_back(Text::toLower(Util::getFileName(aPath)));
 	} else {
-		ifstream ifile(path);
-		if (ifile) {
-			scanFolderSize = scanFolderSize + File::getSize(path);
-		} else {
-			LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path);
-			checkFailed++;
-		}
+		LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + aPath);
+		checkFailed++;
 	}
 }
 
-void ShareScannerManager::checkSFV(const string& path) throw(FileException) {
+void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sfv, bool isDirScan) throw(FileException) {
  
-	SFVReader sfv(path);
 	uint64_t checkStart = 0;
 	uint64_t checkEnd = 0;
 
-	if(sfv.hasCRC()) {
+	if(sfv.hasFile(aFileName)) {
 		bool crcMatch = false;
 		try {
 			checkStart = GET_TICK();
-			crcMatch = (calcCrc32(path) == sfv.getCRC());
+			crcMatch = sfv.isCrcValid(aFileName);
 			checkEnd = GET_TICK();
 		} catch(const FileException& ) {
 			// Couldn't read the file to get the CRC(!!!)
-			LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + path);
+			LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + sfv.getPath() + aFileName);
 		}
 
-		int64_t size = File::getSize(path);
+		int64_t size = File::getSize(sfv.getPath() + aFileName);
 		int64_t speed = 0;
 		if(checkEnd > checkStart) {
 			speed = size * _LL(1000) / (checkEnd - checkStart);
@@ -649,30 +561,17 @@ void ShareScannerManager::checkSFV(const string& path) throw(FileException) {
 			crcInvalid++;
 		}
 
-		message += path + " (" + Util::formatBytes(speed) + "/s)";
+		message += sfv.getPath() + aFileName + " (" + Util::formatBytes(speed) + "/s)";
 
 		scanFolderSize = scanFolderSize - size;
 		message += ", " + STRING(CRC_REMAINING) + Util::formatBytes(scanFolderSize);
 		LogManager::getInstance()->message(message);
 
 
-	} else {
-		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + path);
+	} else if (!isDirScan || regex_match(aFileName, rarMp3Reg)) {
+		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + sfv.getPath() + aFileName);
 		checkFailed++;
 	}
-
-	if (scanFolderSize <= 0) {
-		LogManager::getInstance()->message(str(boost::format(STRING(CRC_FINISHED)) % crcOk % crcInvalid % checkFailed));
-	}
-
-}
-
-uint32_t ShareScannerManager::calcCrc32(const string& file) {
-	CRC32Filter crc32;
-	FileReader().read(file, [&](const void* x, size_t n) {
-		return crc32(x, n), true;
-	});
-	return crc32.getValue();
 }
 
 bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {

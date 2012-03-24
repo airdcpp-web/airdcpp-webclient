@@ -156,7 +156,7 @@ public:
 		return tthIndex.find(const_cast<TTHValue*>(&tth)) != tthIndex.end();
 	}
 
-	StringList getRealPaths(const std::string path);
+	void getRealPaths(const string& path, StringList& ret);
 
 	void LockRead() noexcept { cs.lock_shared(); }
 	void unLockRead() noexcept { cs.unlock_shared(); }

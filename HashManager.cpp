@@ -568,7 +568,7 @@ int HashManager::Hasher::run() {
 				TigerTree tt(bs);
 
 				CRC32Filter crc32;
-				SFVReader sfv(fname);
+				FileSFVReader sfv(fname);
 				CRC32Filter* xcrc32 = 0;
 
 				if (sfv.hasCRC())

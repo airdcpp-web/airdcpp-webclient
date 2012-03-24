@@ -22,16 +22,52 @@
 #include <stdint.h>
 #include <string>
 
+#include "typedefs.h"
 #include "noexcept.h"
+#include "GetSet.h"
 
 namespace dcpp {
 
 using std::string;
 
-class SFVReader {
+class DirSFVReader {
 public:
 	/** @see load */
-	SFVReader(const string& aFileName) : crc32(0), crcFound(false) { load(aFileName); }
+	DirSFVReader(const string& aPath);
+	DirSFVReader(const string& aPath, const StringList& aSfvFiles);
+
+	/**
+	 * Search for a CRC32 file in all .sfv files in the directory of fileName.
+	 * Each SFV file has a number of lines containing a filename and its CRC32 value
+	 * in the form:
+	 * filename.ext xxxxxxxx
+	 * where the x's represent the file's crc32 value. Lines starting with ';' are
+	 * considered comments, and we throw away lines with ' ' or '#' as well
+	 * (pdSFV 1.2 does this...).
+	 */
+	bool hasFile(const string& fileName);
+	bool hasSFV() { return !sfvFiles.empty(); }
+	bool isCrcValid(const string& file);
+	bool read(string& fileName);
+	GETSET(string, path, Path);
+private:
+
+	bool tryFile(const string& sfvFile, const string& fileName);
+
+	StringList sfvFiles;
+
+	/* File name + crc */
+	vector<pair<string, uint32_t>> content;
+	vector<pair<string, uint32_t>>::const_iterator readPos;
+
+	void load() noexcept;
+};
+
+
+class FileSFVReader {
+public:
+	/** @see load */
+	FileSFVReader(const string& aFileName) : crc32(0), crcFound(false) { load(aFileName); }
 
 	/**
 	 * Search for a CRC32 file in all .sfv files in the directory of fileName.

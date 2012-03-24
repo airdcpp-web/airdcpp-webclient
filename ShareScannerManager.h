@@ -28,6 +28,8 @@
 #include "noexcept.h"
 #include "atomic.h"
 
+#include "SFVReader.h"
+
 namespace dcpp {
 
 using std::string;
@@ -41,11 +43,12 @@ public:
 	void scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders);
 	int scan(StringList paths = StringList(), bool sfv = false);
 	bool scanBundle(BundlePtr aBundle);
-	void checkSFV(const string& path);
+	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan);
 	void Stop();
 
 private:
 	friend class Singleton<ShareScannerManager>;
+	typedef vector<pair<string, DirSFVReader>> SFVScanList;
 
 	ShareScannerManager();
 	~ShareScannerManager();
@@ -69,7 +72,6 @@ private:
 	boost::regex audioBookReg;
 	boost::regex flacReg;
 	boost::regex emptyDirReg;
-	boost::regex crcReg;
 	boost::regex mvidReg;
 	boost::regex zipReg;
 	boost::regex zipFolderReg;
@@ -78,7 +80,7 @@ private:
 	boost::regex subReg;
 	boost::regex extraRegs[3];
 
-	StringList Paths;
+	StringList rootPaths;
 	bool isCheckSFV;
 	bool isDirScan;
 
@@ -92,13 +94,10 @@ private:
 	bool stop;
 	void findDupes(const string& path, int& dupesFound);
 	StringPairList dupeDirs;
-	StringList findFiles(const string& path, const string& pattern, bool dirs = false);
-	void getScanSize(const string& path);
-	uint32_t calcCrc32(const string& file);
+	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList);
+	void prepareSFVScanDir(const string& path, SFVScanList& dirs);
+	void prepareSFVScanFile(const string& path, StringList& files);
 	StringList bundleDirs;
-
-	bool getFileSFV(string& line, bool& invalidFile);
-	void openSFV(const string& path, ifstream& stream);
 
 	void reportResults(const string& path, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound = 0);
 };
