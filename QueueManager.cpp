@@ -382,7 +382,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			StringList nicks = ClientManager::getInstance()->getNicks(aUser);
 			if (nicks.empty())
 				throw QueueException(STRING(INVALID_TARGET_FILE));
-			target = Util::getListPath() + nicks[0] + ".partial[" + aTarget + "]";
+			target = Util::getListPath() + nicks[0] + ".partial[" + Util::cleanPathChars(aTarget) + "]";
 		} else {
 			target = getListPath(aUser);
 		}
