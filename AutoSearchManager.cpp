@@ -68,10 +68,10 @@ AutoSearch::~AutoSearch() {
 AutoSearchManager::AutoSearchManager() : 
 	lastSave(0), 
 	dirty(false), 
-	lastSearch(0),
+	lastSearch(SETTING(AUTOSEARCH_RECHECK_TIME)-2), //start searching after 2 minutes.
 	curPos(0), 
 	endOfListReached(false), 
-	recheckTime(0) 
+	recheckTime(SETTING(AUTOSEARCH_RECHECK_TIME)) 
 {
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
@@ -213,7 +213,7 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 	if(allowedHubs.empty()) {
 		return;
 	}
-
+	
 	auto curTime = GET_TIME();
 	tm _tm;
 	localtime_s(&_tm, &curTime);
@@ -313,6 +313,14 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 					continue;
 			}
 
+			if(as->getFileType() == SearchManager::TYPE_DIRECTORY ) {
+				string dir = Util::getLastDir(sr->getFile());
+				if(dir[dir.size()-1] == PATH_SEPARATOR)
+					dir = dir.substr(0, dir.size()-1);
+				//check shared.
+				if(ShareManager::getInstance()->isDirShared(dir))
+					continue;
+			}
 			//we have a valid result
 			matches.push_back(as);
 		}
@@ -323,27 +331,28 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
+		bool noFreeSpace = false;
 		string path;
 		TargetUtil::TargetInfo ti;
 		TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti);
 		if (ti.getFreeSpace() < sr->getSize()) {
 			//not enough space, do something fun
+			noFreeSpace = true;
 			string tmp;
 			if (ti.queued > 0) {
-				tmp = str(boost::format("AutoSearch: Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Adding to queue with paused Priority.") % 
+				tmp = str(boost::format("AutoSearch: Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using Paused Priority") % 
 					ti.targetDir.c_str() %
 					Util::formatBytes(ti.diskSpace) % 
 					Util::formatBytes(ti.queued) %
 					Util::formatBytes(sr->getSize()));
 			} else {
-				tmp = str(boost::format("AutoSearch: Not enough free space left on the target path %s (free space: %s while %s is needed). Adding to queue with paused Priority.") % 
+				tmp = str(boost::format("AutoSearch: Not enough free space left on the target path %s (free space: %s while %s is needed). Using Paused Priority") % 
 					ti.targetDir.c_str() %
 					Util::formatBytes(ti.getFreeSpace()) % 
 					Util::formatBytes(sr->getSize()));
 			}
 
 			LogManager::getInstance()->message(tmp);
-			as->setAction(AutoSearch::ACTION_QUEUE);
 		}
 
 		path = ti.targetDir;
@@ -351,11 +360,11 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), path, 
-					as->getAction() == AutoSearch::ACTION_QUEUE ? QueueItem::PAUSED : QueueItem::DEFAULT);
+					(as->getAction() == AutoSearch::ACTION_QUEUE || noFreeSpace) ? QueueItem::PAUSED : QueueItem::DEFAULT);
 			} else {
 				path = path + Util::getFileName(sr->getFile());
 				QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
-					(as->getAction() == AutoSearch::ACTION_QUEUE ? QueueItem::PAUSED : QueueItem::DEFAULT));
+					((as->getAction() == AutoSearch::ACTION_QUEUE || noFreeSpace) ? QueueItem::PAUSED : QueueItem::DEFAULT));
 			}
 		} catch(const QueueException& e) {
 			LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");
