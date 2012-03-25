@@ -313,14 +313,6 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 					continue;
 			}
 
-			if(as->getFileType() == SearchManager::TYPE_DIRECTORY ) {
-				string dir = Util::getLastDir(sr->getFile());
-				if(dir[dir.size()-1] == PATH_SEPARATOR)
-					dir = dir.substr(0, dir.size()-1);
-				//check shared.
-				if(ShareManager::getInstance()->isDirShared(dir))
-					continue;
-			}
 			//we have a valid result
 			matches.push_back(as);
 		}
@@ -331,6 +323,19 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
+
+		if(as->getFileType() == SearchManager::TYPE_DIRECTORY ) {
+			string dir = Util::getLastDir(sr->getFile());
+			if(dir[dir.size()-1] == PATH_SEPARATOR)
+				dir = dir.substr(0, dir.size()-1);
+			//check shared.
+			if(ShareManager::getInstance()->isDirShared(dir))
+				return;
+			//check Queued
+			if(QueueManager::getInstance()->isDirQueued(dir))
+				return;
+		}
+
 		bool noFreeSpace = false;
 		string path;
 		TargetUtil::TargetInfo ti;
