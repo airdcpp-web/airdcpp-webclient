@@ -23,6 +23,31 @@
 
 namespace dcpp {
 
+struct ChatLink {
+	enum LinkType {
+		TYPE_URL,
+		TYPE_MAGNET,
+		TYPE_RELEASE,
+		TYPE_SPOTIFY,
+	};
+
+	enum LinkDupe {
+		DUPE_NONE,
+		DUPE_QUEUE,
+		DUPE_FINISHED,
+		DUPE_SHARE,
+	};
+
+	explicit ChatLink(const string& aLink, LinkType aLinkType);
+	explicit ChatLink() { }
+
+	string url;
+	string displayText;
+	LinkType type;
+	LinkDupe dupe;
+};
+
+
 struct ChatMessage {
 	string text;
 
