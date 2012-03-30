@@ -1970,27 +1970,26 @@ bool ShareManager::AdcSearch::hasExt(const string& name) {
 }
 
 void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept {
-	StringSearch::List* cur = aStrings.include;
 	StringSearch::List* old = aStrings.include;
 
 	unique_ptr<StringSearch::List> newStr;
 
 	// Find any matches in the directory name
-	for(StringSearch::List::const_iterator k = cur->begin(); k != cur->end(); ++k) {
+	for(StringSearch::List::const_iterator k = aStrings.include->begin(); k != aStrings.include->end(); ++k) {
 		if(k->match(name) && !aStrings.isExcluded(name)) {
 			if(!newStr.get()) {
-				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(*cur));
+				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(*aStrings.include));
 			}
 			newStr->erase(remove(newStr->begin(), newStr->end(), *k), newStr->end());
 		}
 	}
 
 	if(newStr.get() != 0) {
-		cur = newStr.get();
+		aStrings.include = newStr.get();
 	}
 
 	bool sizeOk = (aStrings.gt == 0);
-	if( cur->empty() && aStrings.ext.empty() && sizeOk ) {
+	if( aStrings.include->empty() && aStrings.ext.empty() && sizeOk ) {
 		// We satisfied all the search words! Add the directory...
 		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, getSize(), getFullName(), TTHValue()));
 		aResults.push_back(sr);
@@ -2009,11 +2008,11 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 			if(aStrings.isExcluded(i->getName()))
 				continue;
 
-			StringSearch::List::const_iterator j = cur->begin();
-			for(; j != cur->end() && j->match(i->getName()); ++j) 
+			StringSearch::List::const_iterator j = aStrings.include->begin();
+			for(; j != aStrings.include->end() && j->match(i->getName()); ++j) 
 				;	// Empty
 
-			if(j != cur->end())
+			if(j != aStrings.include->end())
 				continue;
 
 			// Check file type...
@@ -2033,7 +2032,10 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	for(Directory::Map::const_iterator l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
 		l->second->search(aResults, aStrings, maxResults);
 	}
-	aStrings.include = old;
+
+	//faster to check this?
+	if (aStrings.include->size() != old->size())
+		aStrings.include = old;
 }
 
 void ShareManager::search(SearchResultList& results, const StringList& params, StringList::size_type maxResults, const CID& cid) noexcept {
