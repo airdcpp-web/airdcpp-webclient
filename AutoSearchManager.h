@@ -167,8 +167,8 @@ private:
 	mutable SharedMutex cs;
 
 	//count minutes to be more accurate than comparing ticks every minute.
-	int lastSearch;
-	int recheckTime;
+	unsigned int lastSearch;
+	unsigned int recheckTime;
 
 	unsigned int curPos;
 
