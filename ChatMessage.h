@@ -42,7 +42,7 @@ struct ChatLink {
 	explicit ChatLink() { }
 
 	string url;
-	string displayText;
+	string getDisplayText();
 	LinkType type;
 	LinkDupe dupe;
 };

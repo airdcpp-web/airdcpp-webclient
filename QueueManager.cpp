@@ -1669,25 +1669,30 @@ void QueueManager::setQIAutoPriority(const string& aTarget, bool ap, bool isBund
 	{
 		RLock l(cs);
 		QueueItemPtr q = fileQueue.find(aTarget);
-		if ((q != NULL) && (q->getAutoPriority() != ap)) {
-			q->setAutoPriority(ap);
-			if (!isBundleChange && q->getBundle()->isFileBundle()) {
-				BundlePtr bundle = q->getBundle();
-				if (q->getAutoPriority() != bundle->getAutoPriority()) {
-					bundleToken = bundle->getToken();
-				}
+		if (!q)
+			return;
+		if (!q->getBundle())
+			return;
+		if (q->getAutoPriority() == ap)
+			return;
+
+		q->setAutoPriority(ap);
+		if (!isBundleChange && q->getBundle()->isFileBundle()) {
+			BundlePtr bundle = q->getBundle();
+			if (q->getAutoPriority() != bundle->getAutoPriority()) {
+				bundleToken = bundle->getToken();
 			}
-			if(ap && !isBundleChange) {
-				if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
-					priorities.push_back(make_pair(q, q->calculateAutoPriority()));
-				} else if (q->getPriority() == QueueItem::PAUSED) {
-					priorities.push_back(make_pair(q, QueueItem::LOW));
-				}
-			}
-			dcassert(q->getBundle());
-			q->getBundle()->setDirty(true);
-			fire(QueueManagerListener::StatusUpdated(), q);
 		}
+		if(ap && !isBundleChange) {
+			if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
+				priorities.push_back(make_pair(q, q->calculateAutoPriority()));
+			} else if (q->getPriority() == QueueItem::PAUSED) {
+				priorities.push_back(make_pair(q, QueueItem::LOW));
+			}
+		}
+		dcassert(q->getBundle());
+		q->getBundle()->setDirty(true);
+		fire(QueueManagerListener::StatusUpdated(), q);
 	}
 
 	for_each(priorities, [&](pair<QueueItemPtr, QueueItem::Priority> qp) {
