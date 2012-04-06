@@ -1403,5 +1403,6 @@ enum Strings { // @DontAdd
 	LAST_SEARCH, // "Last Search"
 	SELECT_DIRECTORY, // "Select directory"
 	X_IS_SAME_THAN, // "The directory %s also exists in %s"
+	HORIZONTAL_QUEUE, // "Use horizontal splitter in Download Queue window"
 	LAST // @DontAdd
 };

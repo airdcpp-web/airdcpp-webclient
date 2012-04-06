@@ -1396,6 +1396,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Last Search", 
 "Select directory", 
 "The directory %s also exists in %s", 
+"Use horizontal splitter in Download Queue window", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2792,4 +2793,5 @@ std::string dcpp::ResourceManager::names[] = {
 "LastSearch", 
 "SelectDirectory", 
 "XIsSameThan", 
+"HorizontalQueue", 
 };
