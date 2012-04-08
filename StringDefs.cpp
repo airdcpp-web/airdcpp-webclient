@@ -1397,6 +1397,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Select directory", 
 "The directory %s also exists in %s", 
 "Use horizontal splitter in Download Queue window", 
+"The option to automatically add sources from search results is disabled so the search won't be performed", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2794,4 +2795,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SelectDirectory", 
 "XIsSameThan", 
 "HorizontalQueue", 
+"AutoAddSourcesDisabled", 
 };

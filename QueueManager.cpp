@@ -331,7 +331,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 
 		}
 
-		if (BOOLSETTING(AUTO_SEARCH))
+		if (BOOLSETTING(AUTO_SEARCH) && BOOLSETTING(AUTO_ADD_SOURCE))
 			bundle = bundleQueue.findSearchBundle(aTick); //may modify the recent search queue
 	}
 
@@ -2473,7 +2473,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 	if (loading)
 		return true;
 
-	if (BOOLSETTING(AUTO_SEARCH) && aBundle->getPriority() != Bundle::PAUSED) {
+	if (BOOLSETTING(AUTO_SEARCH) && BOOLSETTING(AUTO_ADD_SOURCE) && aBundle->getPriority() != Bundle::PAUSED) {
 		searchBundle(aBundle, true, false);
 	} else {
 		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_CREATED)) % 
@@ -3396,6 +3396,11 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) {
 }
 
 void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) {
+	if (!BOOLSETTING(AUTO_ADD_SOURCE)) {
+		LogManager::getInstance()->message(STRING(AUTO_ADD_SOURCES_DISABLED));
+		return;
+	}
+
 	StringPairList searches;
 	int64_t nextSearch = 0;
 	{

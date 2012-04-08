@@ -1404,5 +1404,6 @@ enum Strings { // @DontAdd
 	SELECT_DIRECTORY, // "Select directory"
 	X_IS_SAME_THAN, // "The directory %s also exists in %s"
 	HORIZONTAL_QUEUE, // "Use horizontal splitter in Download Queue window"
+	AUTO_ADD_SOURCES_DISABLED, // "The option to automatically add sources from search results is disabled so the search won't be performed"
 	LAST // @DontAdd
 };
