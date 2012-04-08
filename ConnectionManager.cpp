@@ -230,7 +230,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		}
 	}
 
-	{
+	if (!removedTokens.empty()) {
 		WLock l (cs);
 		for(auto m = removedTokens.begin(); m != removedTokens.end(); ++m) {
 			auto s = find(downloads.begin(), downloads.end(), *m);
@@ -674,12 +674,15 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 			ConnectionQueueItem* cqi = *i;
 			if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 				cqi->setState(ConnectionQueueItem::ACTIVE);
-				if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL) || cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
-					uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
-					cqi->setFlag(ConnectionQueueItem::FLAG_SMALL_CONF);
-				} else if (uc->isSet(UserConnection::FLAG_MCN1)) {
-					cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
+				if (uc->isSet(UserConnection::FLAG_MCN1)) {
+					if (cqi->isSet(ConnectionQueueItem::FLAG_SMALL)) {
+						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
+						cqi->setFlag(ConnectionQueueItem::FLAG_SMALL_CONF);
+					} else {
+						cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
+					}
 				}
+
 				uc->setToken(cqi->getToken());
 				uc->setHubUrl(cqi->getUser().hint); //set the correct hint for the uc, it might not even have a hint at first.
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
