@@ -1232,7 +1232,7 @@ enum Strings { // @DontAdd
 	BUNDLE_FILENAME, // "Bundle / Filename"
 	BUNDLE, // "Bundle"
 	X_BUNDLES, // "%d bundles"
-	X_FILES, // "%d bundles"
+	X_FILES, // "%d files"
 	REMOVE_BUNDLE, // "Remove bundle from queue"
 	BUNDLE_REMOVED, // "Bundle removed"
 	PARTIAL_SHARING, // "Enable partial bundle/file sharing"
@@ -1397,5 +1397,9 @@ enum Strings { // @DontAdd
 	X_IS_SAME_THAN, // "The directory %s also exists in %s"
 	HORIZONTAL_QUEUE, // "Use horizontal splitter in Download Queue window"
 	AUTO_ADD_SOURCES_DISABLED, // "The option to automatically add sources from search results is disabled so the search won't be performed"
+	TYPE_TARGET_PATH, // "Direct path"
+	TYPE_TARGET_FAVORITE, // "Favorite directory (the real path will be picked when matches are found)"
+	TYPE_TARGET_SHARE, // "Shared directory (the real path will be picked when matches are found)"
+	LOCATION_TYPE, // "Location type"
 	LAST // @DontAdd
 };

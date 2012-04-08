@@ -1225,7 +1225,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Bundle / Filename", 
 "Bundle", 
 "%d bundles", 
-"%d bundles", 
+"%d files", 
 "Remove bundle from queue", 
 "Bundle removed", 
 "Enable partial bundle/file sharing", 
@@ -1390,6 +1390,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "The directory %s also exists in %s", 
 "Use horizontal splitter in Download Queue window", 
 "The option to automatically add sources from search results is disabled so the search won't be performed", 
+"Direct path", 
+"Favorite directory (the real path will be picked when matches are found)", 
+"Shared directory (the real path will be picked when matches are found)", 
+"Location type", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2780,4 +2784,8 @@ std::string dcpp::ResourceManager::names[] = {
 "XIsSameThan", 
 "HorizontalQueue", 
 "AutoAddSourcesDisabled", 
+"TypeTargetPath", 
+"TypeTargetFavorite", 
+"TypeTargetShare", 
+"LocationType", 
 };
