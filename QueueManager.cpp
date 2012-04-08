@@ -2520,6 +2520,7 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 		fire(QueueManagerListener::BundleAdded(), aBundle);
 		bundleQueue.addSearchPrio(aBundle);
 	}
+	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_READDED)) % aBundle->getName().c_str()));
 }
 
 void QueueManager::mergeFileBundles(BundlePtr targetBundle) {

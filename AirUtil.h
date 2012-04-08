@@ -59,6 +59,7 @@ class AirUtil {
 
 		static bool listRegexMatch(const StringList& l, const boost::regex& aReg);
 		static int listRegexCount(const StringList& l, const boost::regex& aReg);
+		static void listRegexSubtract(StringList& l, const boost::regex& aReg);
 		static bool stringRegexMatch(const string& aReg, const string& aString);
 
 		static string formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial);

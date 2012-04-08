@@ -530,6 +530,10 @@ int AirUtil::listRegexCount(const StringList& l, const boost::regex& aReg) {
 	return count_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); } );
 }
 
+void AirUtil::listRegexSubtract(StringList& l, const boost::regex& aReg) {
+	l.erase(remove_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); }), l.end());
+}
+
 string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial) {
 	string tmp;
 	if(partial) {

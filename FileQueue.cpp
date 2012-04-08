@@ -54,6 +54,7 @@ void FileQueue::add(QueueItemPtr qi) noexcept {
 void FileQueue::remove(QueueItemPtr qi) noexcept {
 	//TargetMap
 	prev(targetMapInsert);
+	dcassert(queue.find(const_cast<string*>(&qi->getTarget())) != queue.end());
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_FINISHED) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
 		dcassert(qi->getSize() >= 0);

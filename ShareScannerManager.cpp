@@ -312,12 +312,16 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	string dirName = Util::getDir(path, false, true);
 
 	// Find NFO and SFV files
-	for(auto i = fileList.begin(); i != fileList.end(); ++i) {
+	for(auto i = fileList.begin(); i != fileList.end();) {
 		if (Util::getFileExt(*i) == ".nfo") {
 			nfoFiles++;
+			fileList.erase(i);
 		} else if (Util::getFileExt(*i) == ".sfv") {
 			sfvFileList.push_back(path + *i);
+			fileList.erase(i);
 			sfvFiles++;
+		} else {
+			i++;
 		}
 	}
 
@@ -369,9 +373,9 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 				//Report extra files in a zip folder
 				if (isZipRls && SETTING(CHECK_EXTRA_FILES)) {
-					extrasInFolder = !AirUtil::listRegexMatch(fileList, zipFolderReg);
-					if (extrasInFolder) {
-						LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
+					AirUtil::listRegexSubtract(fileList, zipFolderReg);
+					if (!fileList.empty()) {
+						LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_RLSDIR_X)) % path % Util::toString(", ", fileList)));
 						extrasFound++;
 					}
 				}
@@ -398,7 +402,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				}
 
 				if (nfoFiles > 0 || sfvFiles > 0 || isRelease || found) {
-					LogManager::getInstance()->message(STRING(EXTRA_FILES_SAMPLEDIR) + path);
+					LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_SAMPLEDIR_X)) % path));
 					extrasFound++;
 				}
 			}
@@ -458,10 +462,13 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		hasValidSFV = true;
 		releaseFiles++;
 
-		if(std::find(fileList.begin(), fileList.end(), fileName) == fileList.end()) { 
+		auto s = std::find(fileList.begin(), fileList.end(), fileName);
+		if(s == fileList.end()) { 
 			loopMissing++;
 			if (SETTING(CHECK_MISSING))
 				LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + fileName);
+		} else {
+			fileList.erase(s);
 		}
 	}
 
@@ -471,7 +478,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	/* Extras in folder? */
 	releaseFiles = releaseFiles - loopMissing;
 
-	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() != releaseFiles + nfoFiles + sfvFiles) && hasValidSFV) {
+	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() > nfoFiles + sfvFiles) && hasValidSFV) {
 		//Find allowed extra files from the release folder
 		int8_t extrasType = NORMAL;
 		if (regex_match(dirName, audioBookReg)) {
@@ -480,8 +487,9 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 			extrasType = FLAC;
 		}
 
-		if ((int)fileList.size() > (releaseFiles + nfoFiles + sfvFiles + AirUtil::listRegexCount(fileList, extraRegs[extrasType]))) {
-			LogManager::getInstance()->message(STRING(EXTRA_FILES_RLSDIR) + path);
+		AirUtil::listRegexSubtract(fileList, extraRegs[extrasType]);
+		if (!fileList.empty()) {
+			LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_RLSDIR_X)) % path % Util::toString(", ", fileList)));
 			if (!extrasInFolder)
 				extrasFound++;
 		}
