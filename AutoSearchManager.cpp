@@ -68,7 +68,7 @@ AutoSearch::~AutoSearch() {
 AutoSearchManager::AutoSearchManager() : 
 	lastSave(0), 
 	dirty(false), 
-	lastSearch(SETTING(AUTOSEARCH_RECHECK_TIME)-2), //start searching after 2 minutes.
+	lastSearch(SETTING(AUTOSEARCH_EVERY)-2), //start searching after 2 minutes.
 	curPos(0), 
 	endOfListReached(false), 
 	recheckTime(SETTING(AUTOSEARCH_RECHECK_TIME)) 
