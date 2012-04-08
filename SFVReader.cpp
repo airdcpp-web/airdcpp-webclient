@@ -114,10 +114,11 @@ void DirSFVReader::load() noexcept {
 				}
 
 				uint32_t crc32;
-				auto tmp = line.substr(pos+1, 8);
 				sscanf(line.substr(pos+1, 8).c_str(), "%x", &crc32);
 
-				content.push_back(make_pair(fileName, crc32));
+				//don't list the same file multiple times...
+				if (!hasFile(fileName))
+					content.push_back(make_pair(fileName, crc32));
 			}
 
 		}

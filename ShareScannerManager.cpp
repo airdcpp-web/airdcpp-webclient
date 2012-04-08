@@ -56,9 +56,9 @@ ShareScannerManager::ShareScannerManager() : scanning(false) {
 	mvidReg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))");
 	proofImageReg.assign("(.*(jp(e)?g|png))", boost::regex_constants::icase);
 	subDirReg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);
-	extraRegs[AUDIOBOOK].assign("(.+\\.(jp(e)?g|png|m3u|cue|zip))");
-	extraRegs[FLAC].assign("(.+\\.(jp(e)?g|png|m3u|cue|log))");
-	extraRegs[NORMAL].assign("(.+\\.(jp(e)?g|png|m3u|cue|diz))");
+	extraRegs[AUDIOBOOK].assign("(.+\\.(jp(e)?g|png|m3u|cue|zip|sfv|nfo))");
+	extraRegs[FLAC].assign("(.+\\.(jp(e)?g|png|m3u|cue|log|sfv|nfo))");
+	extraRegs[NORMAL].assign("(.+\\.(jp(e)?g|png|m3u|cue|diz|sfv|nfo))");
 	zipFolderReg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
 	subReg.assign("(.{0,8}[Ss]ub(s|pack)?)");
 }
@@ -312,16 +312,12 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	string dirName = Util::getDir(path, false, true);
 
 	// Find NFO and SFV files
-	for(auto i = fileList.begin(); i != fileList.end();) {
+	for(auto i = fileList.begin(); i != fileList.end(); ++i) {
 		if (Util::getFileExt(*i) == ".nfo") {
 			nfoFiles++;
-			fileList.erase(i);
 		} else if (Util::getFileExt(*i) == ".sfv") {
 			sfvFileList.push_back(path + *i);
-			fileList.erase(i);
 			sfvFiles++;
-		} else {
-			i++;
 		}
 	}
 
