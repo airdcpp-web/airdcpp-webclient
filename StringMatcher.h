@@ -44,18 +44,19 @@ public:
 		MATCHER_TTH,
 	};
 
-	StringMatcher(const string& aStr) : pattern(aStr) { }
+	//StringMatcher(const string& aStr) : pattern(aStr) { }
+	StringMatcher(const string& aStr) { }
 	virtual bool match(const string& aStr) = 0;
 	virtual bool match(const TTHValue& aTTH) = 0;
 	virtual bool isCaseSensitive() = 0;
 	virtual void setPattern(const string& aStr, bool isCaseSensitive=false) = 0;
-	//virtual const string& getPattern() const = 0;
-	const string& getPattern() const { return pattern; }
+	virtual const string& getPattern() const = 0;
+	//const string& getPattern() const { return pattern; }
 	virtual Type getType() = 0;
 
 	virtual ~StringMatcher() { }
 private:
-	string pattern;
+	//string pattern;
 };
 
 
@@ -79,7 +80,14 @@ public:
 	}
 
 	//bool match(const string& aStr) { return regex_match(aStr, reg); }
-	bool match(const string& aStr) { return reg.match(aStr) > 0; }
+	bool match(const string& aStr) {
+		try {
+			return reg.match(aStr) > 0;
+		} catch(const std::runtime_error&) {
+			// most likely a stack overflow, ignore...
+			return false;
+		}
+	}
 	bool match(const TTHValue& aTTH) { return false; }
 	bool isCaseSensitive() { return caseSensitive; }
 	Type getType() { return MATCHER_REGEX; }
@@ -112,7 +120,14 @@ public:
 	}
 
 	//bool match(const string& aStr) { return Wildcard::patternMatch(Text::utf8ToAcp(aStr), pattern, '|'); }
-	bool match(const string& aStr) { return reg.match(aStr) > 0; }
+	bool match(const string& aStr) {
+		try {
+			return reg.match(aStr) > 0;
+		} catch(const std::runtime_error&) {
+			// most likely a stack overflow, ignore...
+			return false;
+		}
+	}
 	bool match(const TTHValue& aTTH) { return false; }
 	bool isCaseSensitive() { return caseSensitive; }
 	Type getType() { return MATCHER_WILDCARD; }

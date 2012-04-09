@@ -368,7 +368,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				}
 
 				//Report extra files in a zip folder
-				if (isZipRls && SETTING(CHECK_EXTRA_FILES)) {
+				if (isZipRls && SETTING(CHECK_EXTRA_FILES) && sfvFiles == 0) {
 					AirUtil::listRegexSubtract(fileList, zipFolderReg);
 					if (!fileList.empty()) {
 						LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_RLSDIR_X)) % path % Util::toString(", ", fileList)));

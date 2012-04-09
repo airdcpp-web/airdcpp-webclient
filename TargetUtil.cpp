@@ -70,7 +70,8 @@ string TargetUtil::getMountPath(const string& aPath, const StringSet& aVolumes) 
 			return aPath.substr(0, l+1);
 		}
 	}
-	//network path?
+
+	//not found from the volumes... network path? this won't work with mounted dirs
 	if (aPath.length() > 2 && aPath.substr(0,2) == "\\\\") {
 		l = aPath.find("\\", 2);
 		if (l != string::npos) {
@@ -111,7 +112,7 @@ void TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 		//failed to get the target, use the default one
 		ti_.targetDir = SETTING(DOWNLOAD_DIRECTORY);
 	}
-	TargetUtil::getDiskInfo(ti_);
+	getDiskInfo(ti_);
 }
 
 void TargetUtil::getVirtualName(int wID, string& vTarget, TargetType& targetType) {
@@ -133,12 +134,10 @@ void TargetUtil::getVirtualName(int wID, string& vTarget, TargetType& targetType
 void TargetUtil::getTarget(int aID, TargetInfo& ti_) {
 	StringList targets;
 	if (aID < countShareFavDirs()) {
-		//targets =  ShareManager::getInstance()->getGroupedDirectories()[aID].second;
 		getTarget(ShareManager::getInstance()->getGroupedDirectories()[aID].second, ti_);
 	} else {
 		auto slp = FavoriteManager::getInstance()->getFavoriteDirs();
 		if (aID < ((int)slp.size() + countShareFavDirs())) {
-			//targets = slp[aID - countShareFavDirs()].second;
 			getTarget(slp[aID - countShareFavDirs()].second, ti_);
 		} else {
 			ti_.targetDir = Text::fromT(SettingsManager::getInstance()->getDirHistory()[aID - slp.size() - countShareFavDirs()]);
@@ -165,20 +164,20 @@ void TargetUtil::getTarget(StringList& targets, TargetInfo& ti_) {
 	}
 
 	if (targetMap.empty()) {
+		//failed to get the volumes
 		if (!targets.empty()) {
 			ti_.targetDir = targets.front();
 		} else {
 			ti_.targetDir = SETTING(DOWNLOAD_DIRECTORY);
 		}
 
-		int64_t freeSpace = 0;
-		GetDiskFreeSpaceEx(Text::toT(ti_.targetDir).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&freeSpace);
+		GetDiskFreeSpaceEx(Text::toT(ti_.targetDir).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&ti_.diskSpace);
 		return;
 	}
 
 	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
 
-	for_each(targetMap | map_values, [&](TargetUtil::TargetInfo mapTi) {
+	for_each(targetMap | map_values, [&ti_](TargetUtil::TargetInfo& mapTi) {
 		if (mapTi.getFreeSpace() > ti_.getFreeSpace() || (ti_.diskSpace == 0 && ti_.queued == 0)) {
 			ti_ = mapTi;
 		}
@@ -200,7 +199,6 @@ bool TargetUtil::getDiskInfo(TargetInfo& targetInfo_) {
 	targetMap[pathVol] = targetInfo_;
 
 	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
-	//freeSpace = targetMap[pathVol].second;
 	targetInfo_ = targetMap[pathVol];
 	return true;
 }
@@ -215,7 +213,6 @@ void TargetUtil::getVolumes(StringSet& volumes) {
 	hVol = FindFirstVolume(buf, MAX_PATH);
 	if(hVol != INVALID_HANDLE_VALUE) {
 		found = true;
-		//GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL);
 		//while we find drive volumes.
 		while(found) {
 			if(GetDriveType(buf) != DRIVE_CDROM && GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL)) {
