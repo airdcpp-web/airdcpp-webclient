@@ -485,7 +485,7 @@ bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, 
 			u.getClient().send(cmd);
 		} else {
 			try {
-				//LogManager::getInstance()->message(noCID ? cmd.toString() : cmd.toString(getMe()->getCID()));
+				COMMAND_DEBUGUDP(cmd.toString(), DebugManager::CLIENT_OUT, u.getIdentity().getIp());
 				udp.writeTo(u.getIdentity().getIp(), u.getIdentity().getUdpPort(), noCID ? cmd.toString() : cmd.toString(getMe()->getCID()));
 			} catch(const SocketException&) {
 				dcdebug("Socket exception sending ADC UDP command\n");

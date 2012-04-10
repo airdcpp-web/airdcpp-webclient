@@ -108,7 +108,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
 	if(getType() == TYPE_PARTIAL_LIST) {
 		if (isSet(Download::FLAG_TTHLIST_BUNDLE)) {
 			//these must be converted to adc file when adding (if needed, no slash for bundle requests)
-			cmd.addParam(getPath());
+			cmd.addParam(getTempTarget());
 		} else {
 			cmd.addParam(Util::toAdcFile(getTempTarget()));
 		}
