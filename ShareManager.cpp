@@ -467,9 +467,6 @@ void ShareManager::load(SimpleXML& aXml) {
 				realPath += PATH_SEPARATOR;
 			}
 						
-		//	if(!Util::fileExists(realPath))
-		//		continue;
-
 			const string& virtualName = aXml.getChildAttrib("Virtual");
 			string vName = validateVirtual(virtualName.empty() ? Util::getLastDir(realPath) : virtualName);
 			shares.insert(std::make_pair(realPath, vName));
@@ -557,7 +554,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			this will keep us sync to hashindex */
 			try {
 				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(fname, false), Util::toInt64(size))));
-			}catch(Exception& e) { 
+			} catch(Exception& e) { 
 				dcdebug("Error loading filelist %s \n", e.getError().c_str());
 			}
 		}
@@ -585,39 +582,32 @@ bool ShareManager::loadCache() {
 	try {
 		{
 			WLock l(cs);
-				
 			ShareLoader loader(directories);
-		
 			//look for shares.xml
 			dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
-		
-			try {
-		
 			SimpleXMLReader(&loader).parse(ff);
-			}catch(SimpleXMLException& e) {
-				LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError());
-				return false;
-			}
-
 			for(DirMap::const_iterator i = directories.begin(); i != directories.end(); ++i) {
 				updateIndices(*i->second);
 			}
 			updateSize = true;
 		} //lock free
-
-		try { //not vital to our cache loading.
-		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
-		if(!Util::fileExists(getBZXmlFile())) //only generate if we dont find old filelist
-			generateXmlList(true);
-		}catch(...) { }
-
 		sortReleaseList();
-		return true;
+
+	} catch(SimpleXMLException& e) {
+		LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError());
+		return false;
 	} catch(const Exception& e) {
 		LogManager::getInstance()->message("Errors Loading share cache: " + e.getError());
 		dcdebug("%s\n", e.getError().c_str());
+		return false;
 	}
-	return false;
+	try { //not vital to our cache loading.
+		setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
+		if(!Util::fileExists(getBZXmlFile())) //only generate if we dont find old filelist
+			generateXmlList(true);
+	} catch(...) { }
+
+	return true;
 }
 
 void ShareManager::save(SimpleXML& aXml) {

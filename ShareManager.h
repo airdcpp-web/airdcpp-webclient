@@ -143,7 +143,7 @@ public:
 
 	string generateOwnList() {
 	
-		if(xmlDirty) 
+		if(xmlDirty || forceXmlRefresh) 
 			generateXmlList(true);
 
 		return getBZXmlFile();
