@@ -1002,41 +1002,44 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 }
 
 void QueueManager::bundleHashed(BundlePtr b) {
-	bool fireHashed = false;
-	{
-		RLock l(cs);
-		if (!b->getQueueItems().empty()) {
-			//new items have been added while it was being hashed
-			b->resetHashed();
-			b->unsetFlag(Bundle::FLAG_HASH);
-			return;
-		}
 
-		if (b->isSet(Bundle::FLAG_HASH)) {
-			if (!b->isSet(Bundle::FLAG_SHARING_FAILED)) {
-				fireHashed = true;
-			} else {
-				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASH_FAILED)) % 
-					b->getName().c_str()));
-				b->resetHashed(); //for the next attempts
+	//don't fire anything if nothing has been hashed (the folder has probably been removed...)
+	if (b->getHashed() > 0) {
+		bool fireHashed = false;
+		{
+			RLock l(cs);
+			if (!b->getQueueItems().empty()) {
+				//new items have been added while it was being hashed
+				b->resetHashed();
+				b->unsetFlag(Bundle::FLAG_HASH);
 				return;
 			}
-		} else {
-			//instant sharing disabled/the folder wasn't shared when the bundle finished
-			LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASHED)) % 
-				b->getName().c_str()));
+
+			if (b->isSet(Bundle::FLAG_HASH)) {
+				if (!b->isSet(Bundle::FLAG_SHARING_FAILED)) {
+					fireHashed = true;
+				} else {
+					LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASH_FAILED)) % 
+						b->getName().c_str()));
+					b->resetHashed(); //for the next attempts
+					return;
+				}
+			} else {
+				//instant sharing disabled/the folder wasn't shared when the bundle finished
+				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASHED)) % 
+					b->getName().c_str()));
+			}
+		}
+
+
+		if (fireHashed) {
+			if (!b->isFileBundle()) {
+				fire(QueueManagerListener::BundleHashed(), b->getTarget());
+			} else {
+				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTargetFileName(), b->getFinishedFiles().front()->getTTH());
+			}
 		}
 	}
-
-
-	if (fireHashed) {
-		if (!b->isFileBundle()) {
-			fire(QueueManagerListener::BundleHashed(), b->getTarget());
-		} else {
-			fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTargetFileName(), b->getFinishedFiles().front()->getTTH());
-		}
-	}
-
 
 	{
 		WLock l(cs);
@@ -2427,6 +2430,22 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 	}
 
 	sort(retBundles.begin(), retBundles.end());
+}
+
+void QueueManager::shareBundle(const string& aName) {
+	BundlePtr b = nullptr;
+	{
+		RLock l (cs);
+		b = bundleQueue.findDir(aName);
+	}
+
+	if (b) {
+		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
+		hashBundle(b); 
+		LogManager::getInstance()->message("The bundle " + aName + " has been added for hashing");
+	} else {
+		LogManager::getInstance()->message("The bundle " + aName + " wasn't found");
+	}
 }
 
 bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& target) {

@@ -180,7 +180,7 @@ int ShareScannerManager::run() {
 				find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, false);
 			}
 		}
-		reportResults(Util::emptyString, isDirScan ? 1 : 0, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, dupesFound);
+		reportResults(Util::emptyString, isDirScan ? TYPE_PARTIAL : TYPE_FULL, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, dupesFound);
 		bundleDirs.clear();
 		dupeDirs.clear();
 	}
@@ -583,21 +583,21 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 		scanDir(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 		find(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, true);
 
-		reportResults(aBundle->getName(), aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? 3 : 2, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
+		reportResults(aBundle->getName(), aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? TYPE_FAILED_FINISHED : TYPE_FINISHED, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 		return (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0); //allow choosing the level when it shouldn't be added?
 	}
 	return true;
 }
 
-void ShareScannerManager::reportResults(const string& dir, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound) {
+void ShareScannerManager::reportResults(const string& dir, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound) {
 	string tmp, tmp2;
-	if (scanType == 0) {
+	if (scanType == TYPE_FULL) {
 		tmp = CSTRING(SCAN_SHARE_FINISHED);
-	} else if (scanType == 1) {
+	} else if (scanType == TYPE_PARTIAL) {
 		tmp = CSTRING(SCAN_FOLDER_FINISHED);
-	} else if (scanType == 2) {
+	} else if (scanType == TYPE_FINISHED) {
 		tmp = str(boost::format(STRING(SCAN_BUNDLE_FINISHED)) % dir.c_str());
-	} else {
+	} else if (scanType == TYPE_FAILED_FINISHED) {
 		tmp = str(boost::format(STRING(SCAN_FAILED_BUNDLE_FINISHED)) % dir.c_str());
 	}
 
@@ -658,6 +658,10 @@ void ShareScannerManager::reportResults(const string& dir, int scanType, int mis
 				tmp += ", ";
 			}
 			tmp += str(boost::format(STRING(X_DUPE_FOLDERS)) % dupesFound);
+		}
+
+		if (scanType == TYPE_FINISHED || scanType == TYPE_FAILED_FINISHED) {
+			tmp += str(boost::format(". " + STRING(FORCE_HASH_NOTIFICATION)) % dir);
 		}
 	}
 	LogManager::getInstance()->message(tmp);

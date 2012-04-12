@@ -65,6 +65,13 @@ private:
 		NORMAL,
 	};
 
+	enum ScanType {
+		TYPE_FULL,
+		TYPE_PARTIAL,
+		TYPE_FINISHED,
+		TYPE_FAILED_FINISHED,
+	};
+
 	boost::regex rarReg;
 	boost::regex rarMp3Reg;
 	boost::regex longReleaseReg;
@@ -100,7 +107,7 @@ private:
 	void prepareSFVScanFile(const string& path, StringList& files);
 	StringList bundleDirs;
 
-	void reportResults(const string& path, int scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound = 0);
+	void reportResults(const string& path, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound = 0);
 };
 
 } // namespace dcpp

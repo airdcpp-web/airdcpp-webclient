@@ -1394,6 +1394,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Favorite directory (the real path will be picked when matches are found)", 
 "Shared directory (the real path will be picked when matches are found)", 
 "Location type", 
+"Type \"/allow %s\" to force it to be hashed in share", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2788,4 +2789,5 @@ std::string dcpp::ResourceManager::names[] = {
 "TypeTargetFavorite", 
 "TypeTargetShare", 
 "LocationType", 
+"ForceHashNotification", 
 };

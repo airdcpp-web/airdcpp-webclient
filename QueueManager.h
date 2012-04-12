@@ -225,6 +225,8 @@ public:
 
 	/** Bundles by target */
 	BundleQueue bundleQueue;
+
+	void shareBundle(const string& aName);
 private:
 	friend class QueueLoader;
 	friend class Singleton<QueueManager>;
