@@ -1401,6 +1401,6 @@ enum Strings { // @DontAdd
 	TYPE_TARGET_FAVORITE, // "Favorite directory (the real path will be picked when matches are found)"
 	TYPE_TARGET_SHARE, // "Shared directory (the real path will be picked when matches are found)"
 	LOCATION_TYPE, // "Location type"
-	FORCE_HASH_NOTIFICATION, // "Type \"/allow %s\" to force it to be hashed in share"
+	FORCE_HASH_NOTIFICATION, // "Refresh the directory after fixing the problem(s) to rescan the bundle (or type \"/allow %s\" to force it to be hashed in share if the problem(s) can't be fixed)"
 	LAST // @DontAdd
 };

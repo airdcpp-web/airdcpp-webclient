@@ -1394,7 +1394,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Favorite directory (the real path will be picked when matches are found)", 
 "Shared directory (the real path will be picked when matches are found)", 
 "Location type", 
-"Type \"/allow %s\" to force it to be hashed in share", 
+"Refresh the directory after fixing the problem(s) to rescan the bundle (or type \"/allow %s\" to force it to be hashed in share if the problem(s) can't be fixed)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 

@@ -30,34 +30,24 @@
 #include "SimpleXML.h"
 
 namespace dcpp {
-
-
-ADLSearch::ADLSearch(const string& searchString, SourceType aSourceType, bool aIsRegex, bool isCaseSensitive) : 
-	isActive(true), isAutoQueue(false), sourceType(OnlyFile), minFileSize(-1), maxFileSize(-1), typeFileSize(SizeBytes), destDir("ADLSearch"), ddIndex(0), 
-		isForbidden(false), adlsComment("none") {
-
-	if (aSourceType == TTHash) {
-		matcher = new TTHMatcher(searchString);
-	} else if (aIsRegex) {
-		matcher = new RegExMatcher(searchString, isCaseSensitive);
-	} else {
-		matcher = new TokenMatcher(searchString);
-	}
-}
-
+	
+	// Constructor
+ADLSearch::ADLSearch() : searchString("<Enter string>"), isActive(true), isAutoQueue(false), sourceType(OnlyFile), 
+		minFileSize(-1), maxFileSize(-1), typeFileSize(SizeBytes), destDir("ADLSearch"), ddIndex(0),
+		isForbidden(false), isRegexp(false), isCaseSensitive(true), adlsComment("none") {}
 ADLSearch::SourceType ADLSearch::StringToSourceType(const string& s) {
-	if(stricmp(s.c_str(), "Filename") == 0) {
-		return OnlyFile;
-	} else if(stricmp(s.c_str(), "Directory") == 0) {
-		return OnlyDirectory;
-	} else if(stricmp(s.c_str(), "Full Path") == 0) {
-		return FullPath;
-	} else if(stricmp(s.c_str(), "TTH") == 0) {
-		return TTHash;
-	} else {
-		return OnlyFile;
+		if(stricmp(s.c_str(), "Filename") == 0) {
+			return OnlyFile;
+		} else if(stricmp(s.c_str(), "Directory") == 0) {
+			return OnlyDirectory;
+		} else if(stricmp(s.c_str(), "Full Path") == 0) {
+			return FullPath;
+		} else if(stricmp(s.c_str(), "TTH") == 0) {
+			return TTHash;
+		} else {
+			return OnlyFile;
+		}
 	}
-}
 
 string ADLSearch::SourceTypeToString(SourceType t) {
 		switch(t) {
@@ -135,6 +125,20 @@ ADLSearchManager::~ADLSearchManager() {
 	Save(); 
 }
 
+ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
+	if(stricmp(s.c_str(), "Filename") == 0) {
+		return ADLSearch::OnlyFile;
+	} else if(stricmp(s.c_str(), "Directory") == 0) {
+		return ADLSearch::OnlyDirectory;
+	} else if(stricmp(s.c_str(), "Full Path") == 0) {
+		return ADLSearch::FullPath;
+	} else if(stricmp(s.c_str(), "TTH") == 0) {
+		return ADLSearch::TTHash;
+	} else {
+		return ADLSearch::OnlyFile;
+	}
+}
+
 void ADLSearchManager::Load()
 {
 	if (running > 0) {
@@ -144,8 +148,11 @@ void ADLSearchManager::Load()
 
 	// Clear current
 	collection.clear();
-	colFile.clear();
-	colDir.clear();
+	ssCol.clear();
+	ssColDir.clear();
+	regexCol.clear();
+	regexColDir.clear();
+	tthCol.clear();
 
 	// Load file as a string
 	try {
@@ -165,40 +172,21 @@ void ADLSearchManager::Load()
 				while(xml.findChild("Search")) {
 					xml.stepIn();
 
-					ADLSearch::SourceType st = ADLSearch::OnlyFile;
-					string searchString;
-					bool isRegex = false, isCaseSensitive=false;
-					if(xml.findChild("SearchString")) {
-						searchString = xml.getChildData();
-						xml.resetCurrentChild();
-					} else {
-						xml.stepOut();
-					}
-
-					if(xml.findChild("IsRegExp")) {
-						isRegex = (Util::toInt(xml.getChildData()) != 0);
-						xml.resetCurrentChild();
-					}
-					if(xml.findChild("IsCaseSensitive")) {
-						isCaseSensitive = (Util::toInt(xml.getChildData()) != 0);
-						xml.resetCurrentChild();
-					}
-
-					if(xml.findChild("SourceType")) {
-						st = (ADLSearch::SourceType)Util::toInt(xml.getChildData());
-						xml.resetCurrentChild();
-					} else {
-						xml.stepOut();
-					}
-
 					// Found another search, load it
-					ADLSearch* search = new ADLSearch(searchString, st, isRegex, isCaseSensitive);
+					ADLSearch* search = new ADLSearch();
 
+					if(xml.findChild("SearchString")) {
+						search->searchString = xml.getChildData();
+						xml.resetCurrentChild();
+					}
+					if(xml.findChild("SourceType")) {
+						search->sourceType = search->StringToSourceType(xml.getChildData());
+						xml.resetCurrentChild();
+					}
 					if(xml.findChild("DestDirectory")) {
 						search->destDir = xml.getChildData();
 						xml.resetCurrentChild();
 					}
-
 					if(xml.findChild("AdlsComment")) {
 						search->adlsComment = xml.getChildData();
 						xml.resetCurrentChild();
@@ -206,7 +194,6 @@ void ADLSearchManager::Load()
 						search->adlsComment = "none";
 						xml.resetCurrentChild();
 					}
-
 					if(xml.findChild("IsActive")) {
 						search->isActive = (Util::toInt(xml.getChildData()) != 0);
 						xml.resetCurrentChild();
@@ -219,7 +206,14 @@ void ADLSearchManager::Load()
 						search->isForbidden = 0;
 						xml.resetCurrentChild();
 					}
-
+					if(xml.findChild("IsRegExp")) {
+						search->isRegexp = (Util::toInt(xml.getChildData()) != 0);
+						xml.resetCurrentChild();
+					}
+					if(xml.findChild("IsCaseSensitive")) {
+						search->isCaseSensitive = (Util::toInt(xml.getChildData()) != 0);
+						xml.resetCurrentChild();
+					}
 					if(xml.findChild("MaxSize")) {
 						search->maxFileSize = Util::toInt64(xml.getChildData());
 						xml.resetCurrentChild();
@@ -256,13 +250,14 @@ bool ADLSearchManager::addCollection(ADLSearch* search, bool addMain, bool addSu
 		return false;
 	}
 
-	if (search->getPattern().size() == 0) {
+	if (search->searchString.size() == 0) {
 		return false;
 	}
 	
 	if (addMain) {
 		if (!useIndex) {
 			collection.push_back(search);
+		//} else if (index <= collection.size()) {
 		} else {
 			collection.insert(collection.begin() + index, search);
 		}
@@ -275,11 +270,50 @@ bool ADLSearchManager::addCollection(ADLSearch* search, bool addMain, bool addSu
 	}
 
 	bool dirOnly = search->sourceType == 1;
-	if (dirOnly)
-		colDir.push_back(search);
-	else
-		colFile.push_back(search);
 
+	//add into correct collection
+	if (search->isRegexp) {
+		try {
+			PME reg(search->searchString, search->isCaseSensitive ? "" : "i");
+			if(reg.IsValid()) {
+				reg.study();
+				if (dirOnly) {
+					regexColDir.push_back(make_pair(reg, search));
+				} else {
+					regexCol.push_back(make_pair(reg, search));
+				}
+			}
+		} catch(...) {
+			//ignore
+		}
+	} else if (search->sourceType == 3) {
+		if (search->searchString.length() == 39) {
+			//tthCol[TTHValue(search.searchString)] = *search;
+		}
+	} else {
+		StringSearch::List stringSearchList;
+		// Split into substrings
+		StringTokenizer<string> st(search->searchString, ' ');
+		for(StringList::iterator i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
+			if(i->size() > 0) {
+				// Add substring search
+				stringSearchList.push_back(StringSearch(*i));
+			}
+		}
+
+		if (stringSearchList.size() > 0) {
+			if (dirOnly) {
+				ssColDir.push_back(make_pair(stringSearchList, search));
+			} else {
+				ssCol.push_back(make_pair(stringSearchList, search));
+			}
+		}
+	}
+
+	//cache these
+	setCompareRE(!regexCol.empty() || !regexColDir.empty());
+	setCompareTTH(!tthCol.empty());
+	setCompareSS(!ssCol.empty() || !ssColDir.empty());
 	return true;
 }
 
@@ -293,8 +327,11 @@ bool ADLSearchManager::removeCollection(int index, bool move) {
 
 	if (!move) {
 		//rebuild subcollections
-		colFile.clear();
-		colDir.clear();
+		ssCol.clear();
+		ssColDir.clear();
+		regexCol.clear();
+		regexColDir.clear();
+		tthCol.clear();
 		for (auto i = collection.begin(); i != collection.end(); ++i) {
 			addCollection(*i, false, true);
 		}
@@ -318,14 +355,14 @@ void ADLSearchManager::Save() {
 		// Save all	searches
 		for(SearchCollection::iterator i = collection.begin(); i != collection.end(); ++i) {
 			ADLSearch* search = *i;
-			if(search->getPattern().size() == 0) {
+			if(search->searchString.size() == 0) {
 				continue;
 			}
 			string type = "type";
 			xml.addTag("Search");
 			xml.stepIn();
 
-			xml.addTag("SearchString", search->getPattern());
+			xml.addTag("SearchString", search->searchString);
 			xml.addChildAttrib(type, string("string"));
 
 			xml.addTag("SourceType", search->SourceTypeToString(search->sourceType));
@@ -343,10 +380,10 @@ void ADLSearchManager::Save() {
 			xml.addTag("IsForbidden", search->isForbidden);
 			xml.addChildAttrib(type, string("int"));
 
-			xml.addTag("IsRegExp", search->isRegexp());
+			xml.addTag("IsRegExp", search->isRegexp);
 			xml.addChildAttrib(type, string("int"));
 
-			xml.addTag("IsCaseSensitive", search->isCaseSensitive());
+			xml.addTag("IsCaseSensitive", search->isCaseSensitive);
 			xml.addChildAttrib(type, string("int"));
 
 			xml.addTag("MaxSize", search->maxFileSize);
@@ -396,7 +433,7 @@ bool ADLSearch::checkSize(int64_t size) {
 
 void ADLSearchManager::MatchesFile(DestDirList& destDirVector, DirectoryListing::File *currentFile, string& fullPath) {
 	// Add to any substructure being stored
-	for(auto id = destDirVector.begin(); id != destDirVector.end(); ++id) {
+	for(DestDirList::iterator id = destDirVector.begin(); id != destDirVector.end(); ++id) {
 		if(id->subdir != NULL) {
 			DirectoryListing::File *copyFile = new DirectoryListing::File(*currentFile, true);
 			dcassert(id->subdir->getAdls());
@@ -412,20 +449,53 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, DirectoryListing:
 	}
 
 	string filePath = fullPath + "\\" + currentFile->getName();
+	ADLSearch* match = NULL;
+	bool hasMatch = false;
 
-	for (auto i = colFile.begin(); i != colFile.end(); ++i) {
-		if(destDirVector[(*i)->ddIndex].subdir != NULL || !((*i)->checkSize(currentFile->getSize())))
-			continue;
+	//Match tth
+	if (compareTTH) {
+		auto i = tthCol.find(currentFile->getTTH());
+		if (i != tthCol.end()) {
+			if(destDirVector[i->second->ddIndex].subdir == NULL) {
+				match = i->second;
+				hasMatch = true;
+			}
+		}
+	}
 
-		if ((*i)->sourceType == ADLSearch::TTHash) {
-			if (!(*i)->match(currentFile->getTTH()))
+	//Match regexes
+	if (compareRE && (!hasMatch || !breakOnFirst)) {
+		for (auto i = regexCol.begin(); i != regexCol.end(); ++i) {
+			if(destDirVector[i->second->ddIndex].subdir != NULL || !(i->second->checkSize(currentFile->getSize()))) {
 				continue;
-		} else if (!(*i)->match( (*i)->sourceType == 0 ? currentFile->getName() : filePath))
-			continue;
+			}
+			if (i->first.match(i->second->sourceType == 0 ? currentFile->getName() : filePath) > 0) {
+				match = i->second;
+				hasMatch = true;
+				if(breakOnFirst) {
+					break;
+				}
+			}
+		}
+	}
 
+	//Match StringSearch
+	if (compareSS && (!hasMatch || !breakOnFirst)) {
+		for (auto i = ssCol.begin(); i != ssCol.end(); ++i) {
+			if(destDirVector[i->second->ddIndex].subdir != NULL || !(i->second->checkSize(currentFile->getSize()))) {
+				continue;
+			}
+			if (matchSS(i->second->sourceType == 0 ? currentFile->getName() : filePath, i->first)) {
+				match = i->second;
+				hasMatch = true;
+				if(breakOnFirst) {
+					break;
+				}
+			}
+		}
+	}
 
-		//we have a match
-		ADLSearch* match = *i;
+	if (hasMatch) {
 		DirectoryListing::File *copyFile = new DirectoryListing::File(*currentFile, true);
 		if(match->isForbidden) {
 
@@ -437,7 +507,6 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, DirectoryListing:
 			params["AC"] = comment;
 			params["AI"] = name;
 		}
-
 		//LogManager::getInstance()->message("Add item " + currentFile->getName() +  " to adldir " + Util::toString(match->ddIndex) + " (item: " + match->getSearchString() + ")"); 
 		destDirVector[match->ddIndex].dir->files.push_back(copyFile);
 		destDirVector[match->ddIndex].fileAdded = true;
@@ -448,11 +517,17 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, DirectoryListing:
 					currentFile->getSize(), currentFile->getTTH(), getUser());
 			} catch(const Exception&) {	}
 		}
+	}
+}
 
-		if(breakOnFirst) {
-			break;
+bool ADLSearchManager::matchSS(const string& s, const StringSearch::List stringSearchList) {
+	// Match all substrings
+	for(StringSearch::List::const_iterator i = stringSearchList.begin(); i != stringSearchList.end(); ++i) {
+		if(!i->match(s)) {
+			return false;
 		}
 	}
+	return true;
 }
 
 void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, DirectoryListing::Directory* currentDir, string& fullPath) {
@@ -470,20 +545,46 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, DirectoryLis
 		return;
 	}
 
-	for (auto i = colDir.begin(); i != colDir.end(); ++i) {
-		if(destDirVector[(*i)->ddIndex].subdir != NULL) {
-			continue;
+	ADLSearch* match = NULL;
+	bool hasMatch = false;
+
+	//Match regexes
+	if (compareRE) {
+		for (auto i = regexColDir.begin(); i != regexColDir.end(); ++i) {
+			if(destDirVector[i->second->ddIndex].subdir != NULL) {
+				continue;
+			}
+			if (i->first.match(currentDir->getName()) > 0) {
+				match = i->second;
+				hasMatch = true;
+				if(breakOnFirst) {
+					break;
+				}
+			}
 		}
+	}
 
-		if (!(*i)->match(currentDir->getName()))
-			continue;
+	//Match StringSearch
+	if (compareSS && (!hasMatch || !breakOnFirst)) {
+		for (auto i = ssColDir.begin(); i != ssColDir.end(); ++i) {
+			if(destDirVector[i->second->ddIndex].subdir != NULL) {
+				continue;
+			}
+			if (matchSS(currentDir->getName(), i->first)) {
+				match = i->second;
+				hasMatch = true;
+				if(breakOnFirst) {
+					break;
+				}
+			}
+		}
+	}
 
-		ADLSearch* match = *i;
+	
+	if (hasMatch) {
+		//LogManager::getInstance()->message("Add dir " + currentDir->getName() +  " to adldir " + Util::toString(match->ddIndex) + " (item: " + match->getSearchString() + ")"); 
 		destDirVector[match->ddIndex].subdir = new DirectoryListing::AdlDirectory(fullPath, destDirVector[match->ddIndex].dir, currentDir->getName());
 		destDirVector[match->ddIndex].dir->directories.push_back(destDirVector[match->ddIndex].subdir);
-		if(breakOnFirst) {
-			break;
-		}
 	}
 }
 
@@ -506,7 +607,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirVector,
 	id->dir  = new DirectoryListing::Directory(root, "<<<" + id->name + ">>>", true, true);
 
 	// Scan all loaded searches
-	for(auto is = collection.begin(); is != collection.end(); ++is) {
+	for(SearchCollection::iterator is = collection.begin(); is != collection.end(); ++is) {
 		// Check empty destination directory
 		if((*is)->destDir.size() == 0) {
 			// Set to default
