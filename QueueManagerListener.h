@@ -48,6 +48,7 @@ public:
 	typedef X<15> BundleSources;
 
 	typedef X<16> BundleFinished;
+	typedef X<17> BundleMerged;
 	typedef X<18> BundleRemoved;
 	typedef X<19> BundleMoved;
 	typedef X<20> BundleSize;
@@ -71,6 +72,7 @@ public:
 	virtual void on(BundleFinished, const BundlePtr) noexcept { }
 	virtual void on(BundleRemoved, const BundlePtr) noexcept { }
 	virtual void on(BundleMoved, const BundlePtr) noexcept { }
+	virtual void on(BundleMerged, const BundlePtr, const string&) noexcept { }
 	virtual void on(BundleSize, const BundlePtr) noexcept { }
 	virtual void on(BundleTarget, const BundlePtr) noexcept { }
 	virtual void on(BundlePriority, const BundlePtr) noexcept { }

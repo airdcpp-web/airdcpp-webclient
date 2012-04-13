@@ -341,6 +341,10 @@ void BundleQueue::removeFinishedItem(QueueItemPtr qi) {
 }
 
 void BundleQueue::remove(BundlePtr aBundle) {
+	if (aBundle->isSet(Bundle::FLAG_NEW)) {
+		return;
+	}
+
 	for_each(aBundle->getBundleDirs(), [&](pair<string, pair<uint32_t, uint32_t>> dirs) {
 		string releaseDir = AirUtil::getReleaseDir(dirs.first);
 		if (!releaseDir.empty()) {
@@ -349,12 +353,23 @@ void BundleQueue::remove(BundlePtr aBundle) {
 	});
 
 	//make sure that everything will be freed from the memory
-	for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); )
+	dcassert(aBundle->getFinishedFiles().empty());
+	dcassert(aBundle->getQueueItems().empty());
+
+	/*for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); )
 		aBundle->getFinishedFiles().erase(i);
 	for(auto i = aBundle->getQueueItems().begin(); i != aBundle->getQueueItems().end(); )
-		aBundle->getQueueItems().erase(i);
+		aBundle->getQueueItems().erase(i);*/
 
+	removeSearchPrio(aBundle);
 	bundles.erase(aBundle->getToken());
+
+	try {
+		File::deleteFile(aBundle->getBundleFile() + ".bak");
+		File::deleteFile(aBundle->getBundleFile());
+	} catch(const FileException& /*e1*/) {
+		//..
+	}
 }
 
 void BundleQueue::move(BundlePtr aBundle, const string& newTarget) {

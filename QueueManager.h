@@ -124,7 +124,7 @@ public:
 	bool addBundle(BundlePtr aBundle, bool loading = false);
 	void readdBundle(BundlePtr aBundle);
 	void connectBundleSources(BundlePtr aBundle);
-	void mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle, bool first=true);
+	void mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle);
 	void mergeFileBundles(BundlePtr aBundle);
 	void moveBundle(const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
@@ -133,6 +133,7 @@ public:
 	void removeBundleItem(QueueItemPtr qi, bool finished, bool moved = false);
 	void moveBundleItem(QueueItemPtr qi, BundlePtr targetBundle, bool fireAdded);
 	void moveBundleItems(const QueueItemList& ql, BundlePtr targetBundle, bool fireAdded);
+	void moveBundleItems(BundlePtr sourceBundle, BundlePtr targetBundle, bool fireAdded);
 	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished, bool moved = false);
 	uint8_t isDirQueued(const string& aDir);
 	tstring getDirPath(const string& aDir);

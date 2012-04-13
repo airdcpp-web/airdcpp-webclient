@@ -88,6 +88,7 @@ public:
 	};
 
 	typedef boost::unordered_map<string, BundlePtr> StringBundleMap;
+	typedef vector<pair<string, BundlePtr>> StringBundleList;
 
 	typedef boost::unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
 	typedef tuple<HintedUser, uint64_t, uint32_t> SourceTuple;

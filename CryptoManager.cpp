@@ -19,8 +19,6 @@
 #include "stdinc.h"
 #include "CryptoManager.h"
 
-#include "BitInputStream.h"
-#include "BitOutputStream.h"
 #include "ResourceManager.h"
 #include "LogManager.h"
 #include "ClientManager.h"
