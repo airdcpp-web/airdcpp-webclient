@@ -116,7 +116,7 @@ public:
 	CID makeCid(const string& nick, const string& hubUrl) const noexcept;
 
 	void putOnline(OnlineUser* ou) noexcept;
-	void putOffline(OnlineUser* ou, bool disconnect = false) noexcept;
+	void putOffline(OnlineUser* ou, bool disconnect = false, bool priv = false) noexcept;
 
 	UserPtr& getMe();
 	

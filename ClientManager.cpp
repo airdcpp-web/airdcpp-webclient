@@ -355,7 +355,7 @@ void ClientManager::putOnline(OnlineUser* ou) noexcept {
 	}
 }
 
-void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
+void ClientManager::putOffline(OnlineUser* ou, bool disconnect, bool priv/*false*/) noexcept {
 	OnlineIter::difference_type diff = 0;
 	{
 		Lock l(cs);
@@ -379,6 +379,8 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
 			ConnectionManager::getInstance()->disconnect(u);
 		fire(ClientManagerListener::UserDisconnected(), u);
 	} else if(diff > 1) {
+		if(priv)
+			updateUser(*ou);
 		fire(ClientManagerListener::UserUpdated(), *ou);
 	}
 }

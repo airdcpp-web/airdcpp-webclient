@@ -124,7 +124,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
 
 	cmd.addParam(Util::toString(getStartPos()));
 	cmd.addParam(Util::toString(getSize()));
-	if(!mySID.empty()) //add the Reguesters SID (mySID) to the file reguest, so he can find the hub we are calling from.
+	if(!mySID.empty()) //add the Reguesters SID (mySID) to the filelist reguest, so he can find the hub we are calling from.
 		cmd.addParam("ID", mySID); 
 
 	if(zlib && BOOLSETTING(COMPRESS_TRANSFERS)) {

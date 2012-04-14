@@ -113,7 +113,7 @@ void AdcHub::putUser(const uint32_t aSID, bool disconnect) {
 	}
 
 	if(aSID != AdcCommand::HUB_SID)
-		ClientManager::getInstance()->putOffline(ou, disconnect);
+		ClientManager::getInstance()->putOffline(ou, disconnect, getPrivGroup());
 
 	fire(ClientListener::UserRemoved(), this, ou);
 	ou->dec();
@@ -129,7 +129,7 @@ void AdcHub::clearUsers() {
 
 	for(SIDIter i = tmp.begin(); i != tmp.end(); ++i) {
 		if(i->first != AdcCommand::HUB_SID)
-			ClientManager::getInstance()->putOffline(i->second);
+			ClientManager::getInstance()->putOffline(i->second, false, getPrivGroup());
 		i->second->dec();
 	}
 }

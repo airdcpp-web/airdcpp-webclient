@@ -150,7 +150,8 @@ public:
 	GETSET(uint32_t, reconnDelay, ReconnDelay);
 	
 	GETSET(string, encoding, Encoding);	
-		
+	
+	GETSET(bool, privgroup, PrivGroup);
 	GETSET(bool, registered, Registered);
 	GETSET(bool, autoReconnect, AutoReconnect);
 	GETSET(bool, stealth, Stealth);
