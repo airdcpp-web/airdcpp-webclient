@@ -159,6 +159,7 @@ public:
 	void matchListing(DirectoryListing& /*aDirList*/) noexcept;
 	bool addCollection(ADLSearch* search, bool addMain, bool addSub, bool useIndex=false, int index = 0);
 	bool removeCollection(int index, bool move);
+	bool changeState(int index, bool enabled);
 	int8_t getRunning() { return running; }
 private:
 	ADLSearch::SourceType StringToSourceType(const string& s);
@@ -191,6 +192,7 @@ private:
 
 	int8_t running;
 	static string getConfigFile();
+	void rebuildCollections();
 
 };
 

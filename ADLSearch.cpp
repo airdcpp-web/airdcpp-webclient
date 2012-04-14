@@ -34,7 +34,7 @@ namespace dcpp {
 	// Constructor
 ADLSearch::ADLSearch() : searchString("<Enter string>"), isActive(true), isAutoQueue(false), sourceType(OnlyFile), 
 		minFileSize(-1), maxFileSize(-1), typeFileSize(SizeBytes), destDir("ADLSearch"), ddIndex(0),
-		isForbidden(false), isRegexp(false), isCaseSensitive(true), adlsComment("none") {}
+		isForbidden(false), isRegexp(false), isCaseSensitive(false), adlsComment("none") {}
 ADLSearch::SourceType ADLSearch::StringToSourceType(const string& s) {
 		if(stricmp(s.c_str(), "Filename") == 0) {
 			return OnlyFile;
@@ -328,16 +328,36 @@ bool ADLSearchManager::removeCollection(int index, bool move) {
 
 	if (!move) {
 		//rebuild subcollections
-		ssCol.clear();
-		ssColDir.clear();
-		regexCol.clear();
-		regexColDir.clear();
-		tthCol.clear();
-		for (auto i = collection.begin(); i != collection.end(); ++i) {
-			addCollection(*i, false, true);
-		}
+		rebuildCollections();
 	}
 	return true;
+}
+
+bool ADLSearchManager::changeState(int index, bool aIsActive) {
+	if (running > 0) {
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS));
+		return false;
+	}
+
+	auto s = collection.begin();
+	advance(s, index);
+
+	(*s)->isActive = aIsActive;
+	rebuildCollections();
+
+	return true;
+}
+
+void ADLSearchManager::rebuildCollections() {
+	//rebuild subcollections
+	ssCol.clear();
+	ssColDir.clear();
+	regexCol.clear();
+	regexColDir.clear();
+	tthCol.clear();
+	for (auto i = collection.begin(); i != collection.end(); ++i) {
+		addCollection(*i, false, true);
+	}
 }
 
 void ADLSearchManager::Save() {
