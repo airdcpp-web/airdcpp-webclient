@@ -23,6 +23,8 @@
 #include "StringTokenizer.h"
 #include "SimpleXML.h"
 #include "WebShortcuts.h"
+#include "Pointer.h"
+
 namespace dcpp {
 
 WebShortcuts::WebShortcuts() {
@@ -37,6 +39,7 @@ WebShortcuts::WebShortcuts() {
 
 WebShortcuts::~WebShortcuts() {
 	SettingsManager::getInstance()->removeListener(this);
+	for_each(list.begin(),list.end(), DeleteFunction());
 }
 
 void WebShortcuts::load(SimpleXML& xml) {

@@ -392,6 +392,26 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 		removeAutoSearch(as);
 	}
 }
+void AutoSearchManager::SearchNow(AutoSearchPtr as) {
+	StringList allowedHubs;
+	ClientManager::getInstance()->getOnlineClients(allowedHubs);
+	//no hubs? no fun...
+	if(allowedHubs.empty()) {
+		return;
+	}
+	StringList extList;
+	uint64_t searchTime = 0;
+	searchTime = SearchManager::getInstance()->search(allowedHubs, as->getSearchString(), 0, as->getFileType(), SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
+
+	if (searchTime == 0) {
+		LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
+			as->getSearchString()));
+	} else {
+		LogManager::getInstance()->message(str(boost::format("Autosearch: %s will be searched in %d seconds") %
+			as->getSearchString() %
+			(searchTime / 1000)));
+	}
+}
 
 void AutoSearchManager::AutoSearchSave() {
 	try {

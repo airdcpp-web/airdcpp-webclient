@@ -622,7 +622,7 @@ SettingsManager::SettingsManager()
 	setDefault(FLASH_WINDOW_ON_NEW_PM, false);
 	setDefault(FLASH_WINDOW_ON_MYNICK, false);
 	setDefault(AUTOSEARCH_EVERY, 15);
-	setDefault(AUTOSEARCH_RECHECK_TIME, 30);
+	setDefault(AUTOSEARCH_RECHECK_TIME, 360);
 	setDefault(TB_IMAGE_SIZE, 22);
 	setDefault(TB_IMAGE_SIZE_HOT, 22);
 	setDefault(USE_HIGHLIGHT, false);

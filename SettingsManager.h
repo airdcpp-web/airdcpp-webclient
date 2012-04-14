@@ -248,8 +248,8 @@ public:
 		if((key == AUTOSEARCH_EVERY) && (value < 1)) {
 			value = 1;
 		}
-		if((key == AUTOSEARCH_RECHECK_TIME) && (value < 15)) {
-			value = 15;
+		if((key == AUTOSEARCH_RECHECK_TIME) && (value < 30)) {
+			value = 30;
 		}
 
 		if((key == SET_MINISLOT_SIZE) && (value < 64)) {

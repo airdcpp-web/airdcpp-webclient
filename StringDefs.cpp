@@ -1395,6 +1395,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Shared directory (the real path will be picked when matches are found)", 
 "Location type", 
 "Refresh the directory after fixing the problem(s) to rescan the bundle (or type \"/allow %s\" to force it to be hashed in share if the problem(s) can't be fixed)", 
+"Search String empty or too Short! (min. 5 chars allowed)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2790,4 +2791,5 @@ std::string dcpp::ResourceManager::names[] = {
 "TypeTargetShare", 
 "LocationType", 
 "ForceHashNotification", 
+"LineEmptyOrTooShort", 
 };

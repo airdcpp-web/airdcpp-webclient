@@ -123,6 +123,7 @@ ADLSearchManager::ADLSearchManager() : user(UserPtr(), Util::emptyString), runni
 
 ADLSearchManager::~ADLSearchManager() {
 	Save(); 
+	for_each(collection.begin(),collection.end(), DeleteFunction());
 }
 
 ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {

@@ -125,6 +125,7 @@ public:
 	AutoSearchPtr getAutoSearch(unsigned int index);
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
+	void SearchNow(AutoSearchPtr as);
 	
 	AutoSearchList& getSearchItems() { 
 		RLock l(cs);
