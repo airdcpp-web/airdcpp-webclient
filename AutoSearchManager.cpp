@@ -65,6 +65,22 @@ AutoSearch::~AutoSearch() {
 	delete userMatcher;
 };
 
+void AutoSearch::search(StringList& aHubs) {
+	// TODO: Get ADC searchtype extensions if any is selected
+	StringList extList;
+	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchString, 0, fileType, SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
+
+	if (searchTime == 0) {
+		LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
+			searchString));
+	} else {
+		LogManager::getInstance()->message(str(boost::format("Autosearch: %s will be searched in %d seconds") %
+			searchString %
+			(searchTime / 1000)));
+	}
+}
+
+
 AutoSearchManager::AutoSearchManager() : 
 	lastSave(0), 
 	dirty(false), 
@@ -82,6 +98,7 @@ AutoSearchManager::~AutoSearchManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
+/* For external use */
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType) {
 	auto as = new AutoSearch(true, ss, SearchManager::TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
 		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0);
@@ -90,10 +107,12 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	as->endTime = SearchTime(true);
 	as->searchDays = bitset<7>("1111111");
 
-	if (addAutoSearch(as))
+	if (addAutoSearch(as)) {
+		SearchNow(as);
 		return as;
-	else 
+	} else {
 		return nullptr;
+	}
 }
 
 bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
@@ -256,23 +275,21 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 			break;
 		}
 	}
-
-	uint64_t searchTime = 0;
 	
 	if(as != nullptr) {
-		// TODO: Get ADC searchtype extensions if any is selected
-		StringList extList;
-		searchTime = SearchManager::getInstance()->search(allowedHubs, as->getSearchString(), 0, as->getFileType(), SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
-
-		if (searchTime == 0) {
-			LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
-				as->getSearchString()));
-		} else {
-			LogManager::getInstance()->message(str(boost::format("Autosearch: %s will be searched in %d seconds") %
-				as->getSearchString() %
-				(searchTime / 1000)));
-		}
+		as->search(allowedHubs);
 	}
+}
+
+void AutoSearchManager::SearchNow(AutoSearchPtr as) {
+	StringList allowedHubs;
+	ClientManager::getInstance()->getOnlineClients(allowedHubs);
+	//no hubs? no fun...
+	if(allowedHubs.empty()) {
+		return;
+	}
+
+	as->search(allowedHubs);
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
@@ -326,8 +343,6 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 
 		if(as->getFileType() == SearchManager::TYPE_DIRECTORY ) {
 			string dir = Util::getLastDir(sr->getFile());
-			if(dir[dir.size()-1] == PATH_SEPARATOR)
-				dir = dir.substr(0, dir.size()-1);
 			//check shared.
 			if(ShareManager::getInstance()->isDirShared(dir))
 				return;
@@ -390,26 +405,6 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 
 	if(as->getRemove()) {
 		removeAutoSearch(as);
-	}
-}
-void AutoSearchManager::SearchNow(AutoSearchPtr as) {
-	StringList allowedHubs;
-	ClientManager::getInstance()->getOnlineClients(allowedHubs);
-	//no hubs? no fun...
-	if(allowedHubs.empty()) {
-		return;
-	}
-	StringList extList;
-	uint64_t searchTime = 0;
-	searchTime = SearchManager::getInstance()->search(allowedHubs, as->getSearchString(), 0, as->getFileType(), SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
-
-	if (searchTime == 0) {
-		LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
-			as->getSearchString()));
-	} else {
-		LogManager::getInstance()->message(str(boost::format("Autosearch: %s will be searched in %d seconds") %
-			as->getSearchString() %
-			(searchTime / 1000)));
 	}
 }
 

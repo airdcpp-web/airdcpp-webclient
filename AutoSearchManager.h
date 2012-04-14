@@ -108,6 +108,7 @@ public:
 	bool match(const TTHValue& aTTH) { return resultMatcher->match(aTTH); }
 	const string& getPattern() const { return resultMatcher->getPattern(); }
 	const string& getNickPattern() const { return userMatcher->getPattern(); }
+	void search(StringList& aHubs);
 private:
 	StringMatcher* resultMatcher;
 	StringMatcher* userMatcher;

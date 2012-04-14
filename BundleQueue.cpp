@@ -153,29 +153,53 @@ int64_t BundleQueue::recalculateSearchTimes(bool aRecent, bool isPrioChange) {
 		return nextSearch;
 	} else {
 		if (nextRecentSearch > 0 && isPrioChange) {
-			nextRecentSearch = min(nextRecentSearch, GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000));
+			nextRecentSearch = min(nextRecentSearch, GET_TICK() + getRecentIntervalMs());
 		} else {
-			nextRecentSearch = GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000);
+			nextRecentSearch = GET_TICK() + getRecentIntervalMs();
 		}
 		return nextRecentSearch;
 	}
 }
 
+int BundleQueue::getRecentIntervalMs() {
+	int recentBundles = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](BundlePtr b) { return b->allowAutoSearch(); });
+	if (recentBundles == 1) {
+		return 15 * 60 * 1000;
+	} else if (recentBundles == 2) {
+		return 8 * 60 * 1000;
+	} else {
+		return 5 * 60 * 1000;
+	}
+}
+
 BundlePtr BundleQueue::findRecent() {
-	if ((int)recentSearchQueue.size() == 0) {
+	if (recentSearchQueue.size() == 0) {
 		return nullptr;
 	}
-	BundlePtr b = recentSearchQueue.front();
-	recentSearchQueue.pop_front();
 
-	//check if the bundle still belongs to here
-	if (b->checkRecent()) {
-		recentSearchQueue.push_back(b);
-	} else {
-		nextRecentSearch = GET_TICK() + ((getRecentSize() > 1 ? 5 : 10) * 60 * 1000);
-		addSearchPrio(b);
+	uint32_t count = 0;
+	for (;;) {
+		BundlePtr b = recentSearchQueue.front();
+		recentSearchQueue.pop_front();
+
+		//check if the bundle still belongs to here
+		if (b->checkRecent()) {
+			recentSearchQueue.push_back(b);
+		} else {
+			//nextRecentSearch = GET_TICK() + getRecentIntervalMs();
+			addSearchPrio(b);
+		}
+
+		if (b->allowAutoSearch()) {
+			return b;
+		} else if (count >= recentSearchQueue.size()) {
+			break;
+		}
+
+		count++;
 	}
-	return b;
+
+	return nullptr;
 }
 
 boost::mt19937 gen;

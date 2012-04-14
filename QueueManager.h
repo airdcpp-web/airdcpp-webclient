@@ -228,6 +228,7 @@ public:
 	BundleQueue bundleQueue;
 
 	void shareBundle(const string& aName);
+	void runAltSearch();
 private:
 	friend class QueueLoader;
 	friend class Singleton<QueueManager>;

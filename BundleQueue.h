@@ -49,7 +49,7 @@ public:
 	BundlePtr getMergeBundle(const string& aTarget);
 	void getSubBundles(const string& aTarget, BundleList& retBundles);
 
-	int getRecentSize() { return (int)recentSearchQueue.size(); }
+	int getRecentIntervalMs();
 	int getPrioSum();
 	BundlePtr findRecent();
 	BundlePtr findAutoSearch();

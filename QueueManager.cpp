@@ -2136,6 +2136,15 @@ void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tic
 	}
 }
 
+void QueueManager::runAltSearch() {
+	auto b = bundleQueue.findSearchBundle(GET_TICK(), true);
+	if (b) {
+		searchBundle(b, false, false);
+	} else {
+		LogManager::getInstance()->message("No bundles to search for!");
+	}
+}
+
 void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	if((lastSave + 10000) < aTick) {
 		saveQueue(false);
