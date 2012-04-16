@@ -149,7 +149,7 @@ void Client::send(const char* aMessage, size_t aLen) {
 	}
 	updateActivity();
 	sock->write(aMessage, aLen);
-	COMMAND_DEBUG(aMessage, DebugManager::HUB_OUT, getIpPort());
+	COMMAND_DEBUG(aMessage, DebugManager::TYPE_HUB, DebugManager::OUTGOING, getIpPort());
 }
 
 void Client::on(Connected) noexcept {
@@ -293,7 +293,7 @@ string Client::getCounts() {
  
 void Client::on(Line, const string& aLine) noexcept {
 	updateActivity();
-	COMMAND_DEBUG(aLine, DebugManager::HUB_IN, getIpPort());
+	COMMAND_DEBUG(aLine, DebugManager::TYPE_HUB, DebugManager::INCOMING, getIpPort());
 }
 
 void Client::on(Second, uint64_t aTick) noexcept {

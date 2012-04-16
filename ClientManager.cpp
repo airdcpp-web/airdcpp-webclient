@@ -487,7 +487,7 @@ bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, 
 			u.getClient().send(cmd);
 		} else {
 			try {
-				COMMAND_DEBUGUDP(cmd.toString(), DebugManager::CLIENT_OUT, u.getIdentity().getIp());
+				COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u.getIdentity().getIp());
 				udp.writeTo(u.getIdentity().getIp(), u.getIdentity().getUdpPort(), noCID ? cmd.toString() : cmd.toString(getMe()->getCID()));
 			} catch(const SocketException&) {
 				dcdebug("Socket exception sending ADC UDP command\n");
@@ -573,6 +573,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 }
 void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept {
 	bool isUdpActive = false;
+	fire(ClientManagerListener::IncomingADCSearch(), adc);
 	{
 		Lock l(cs);
 		

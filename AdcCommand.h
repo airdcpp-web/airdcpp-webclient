@@ -156,6 +156,7 @@ public:
 	const string& getParam(size_t n) const;
 	/** Return a named parameter where the name is a two-letter code */
 	bool getParam(const char* name, size_t start, string& ret) const;
+	bool getParam(const char* name, size_t start, StringList& ret) const;
 	bool hasFlag(const char* name, size_t start) const;
 	static uint16_t toCode(const char* x) { return *((uint16_t*)x); }
 

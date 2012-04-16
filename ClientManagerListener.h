@@ -36,6 +36,7 @@ public:
 	typedef X<4> ClientConnected;
 	typedef X<5> ClientUpdated;
 	typedef X<6> ClientDisconnected;
+	typedef X<7> IncomingADCSearch;
 
 	/** User online in at least one hub */
 	virtual void on(UserConnected, const UserPtr&) noexcept { }
@@ -46,6 +47,7 @@ public:
 	virtual void on(ClientConnected, const Client*) noexcept { }
 	virtual void on(ClientUpdated, const Client*) noexcept { }
 	virtual void on(ClientDisconnected, const Client*) noexcept { }
+	virtual void on(IncomingADCSearch, const AdcCommand&) noexcept { }
 };
 
 } // namespace dcpp

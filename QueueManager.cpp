@@ -527,11 +527,12 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					q->getTarget().c_str() %
 					aBundle->getName().c_str()));
 
-				fire(QueueManagerListener::Added(), q);
 				addBundleUpdate(aBundle->getToken());
 			} else {
 				readdBundle(aBundle);
 			}
+
+			fire(QueueManagerListener::Added(), q);
 		}
 	} else {
 		fire(QueueManagerListener::Added(), q);
@@ -2551,7 +2552,6 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 				++i;
 			}
 		}
-		fire(QueueManagerListener::BundleAdded(), aBundle);
 		bundleQueue.addSearchPrio(aBundle);
 	}
 	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_READDED)) % aBundle->getName().c_str()));
@@ -3104,6 +3104,7 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 			moveBundleItems(ql, targetBundle, !finished);
 			if (finished) {
 				readdBundle(targetBundle);
+				fire(QueueManagerListener::BundleAdded(), targetBundle);
 			}
 		} else {
 			//split into file bundles

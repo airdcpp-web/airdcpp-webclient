@@ -51,7 +51,7 @@ const string UserConnection::FEATURE_AIRDC = "AIRDC";
 
 void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw () {
 
-	COMMAND_DEBUG(aLine, DebugManager::CLIENT_IN, getRemoteIp());
+	COMMAND_DEBUG(aLine, DebugManager::TYPE_CLIENT, DebugManager::INCOMING, getRemoteIp());
 	
 	if(aLine.length() < 2) {
 		fire(UserConnectionListener::ProtocolError(), this, "Invalid data"); // TODO: translate
@@ -277,7 +277,7 @@ void UserConnection::updateChunkSize(int64_t leafSize, int64_t lastChunk, uint64
 
 void UserConnection::send(const string& aString) {
 	lastActivity = GET_TICK();
-	COMMAND_DEBUG(aString, DebugManager::CLIENT_OUT, getRemoteIp());
+	COMMAND_DEBUG(aString, DebugManager::TYPE_CLIENT, DebugManager::OUTGOING, getRemoteIp());
 	socket->write(aString);
 }
 

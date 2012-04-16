@@ -186,7 +186,6 @@ BundlePtr BundleQueue::findRecent() {
 		if (b->checkRecent()) {
 			recentSearchQueue.push_back(b);
 		} else {
-			//nextRecentSearch = GET_TICK() + getRecentIntervalMs();
 			addSearchPrio(b);
 		}
 

@@ -264,6 +264,15 @@ bool AdcCommand::getParam(const char* name, size_t start, string& ret) const {
 	return false;
 }
 
+bool AdcCommand::getParam(const char* name, size_t start, StringList& ret) const {
+	for(string::size_type i = start; i < getParameters().size(); ++i) {
+		if(toCode(name) == toCode(getParameters()[i].c_str())) {
+			ret.push_back(getParameters()[i].substr(2));
+		}
+	}
+	return !ret.empty();
+}
+
 bool AdcCommand::hasFlag(const char* name, size_t start) const {
 	for(string::size_type i = start; i < getParameters().size(); ++i) {
 		if(toCode(name) == toCode(getParameters()[i].c_str()) && 

@@ -285,10 +285,9 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 	dcassert(find(l.begin(), l.end(), qi) == l.end());
 	l.push_back(qi);
 
-	/* Randomize the downloading order for each user if the bundle dir date is newer than 15 days to boost partial bundle sharing */
-	if (l.size() > 1 && (dirDate + (15*24*60*60)) > GET_TIME()) {
-		auto start = (size_t)Util::rand((uint32_t)l.size());
-		swap(queueItems[start], queueItems[queueItems.size()-1]);
+	/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
+	if (l.size() > 1 && (dirDate + (7*24*60*60)) > GET_TIME()) {
+		swap(queueItems[Util::rand((uint32_t)l.size())], queueItems[queueItems.size()-1]);
 	}
 
 	auto i = find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
@@ -318,7 +317,7 @@ QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority
 		p--;
 	} while(p >= minPrio);
 
-	return NULL;
+	return nullptr;
 }
 
 bool Bundle::isFinishedNotified(const UserPtr& aUser) {
