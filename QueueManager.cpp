@@ -1051,7 +1051,7 @@ void QueueManager::bundleHashed(BundlePtr b) {
 		}
 
 		//for_each(b->getFinishedFiles(), [&] (QueueItemPtr qi) { fileQueue.remove(qi); } );
-		bundleQueue.remove(b);
+		bundleQueue.removeBundle(b);
 	}
 }
 
@@ -1931,8 +1931,8 @@ void QueueLoader::endTag(const string& name, const string&) {
 			curToken = Util::emptyString;
 			inFile = false;
 		} else if(name == sDownload) {
-			if (curBundle->isFileBundle() && !curBundle->getQueueItems().empty()) {
-				QueueManager::getInstance()->bundleQueue.add(curBundle);
+			if (curBundle && curBundle->isFileBundle() && !curBundle->getQueueItems().empty()) {
+				QueueManager::getInstance()->bundleQueue.addBundle(curBundle);
 			}
 			cur = nullptr;
 		}
@@ -2500,7 +2500,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 
 	{
 		WLock l(cs);
-		bundleQueue.add(aBundle);
+		bundleQueue.addBundle(aBundle);
 		fire(QueueManagerListener::BundleAdded(), aBundle);
 		aBundle->updateSearchMode();
 	}
@@ -2643,7 +2643,7 @@ void QueueManager::moveBundleItems(BundlePtr sourceBundle, BundlePtr targetBundl
 		j = sourceBundle->getQueueItems().begin();
 	}
 
-	bundleQueue.remove(sourceBundle);
+	bundleQueue.removeBundle(sourceBundle);
 }
 
 int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget) {
@@ -2651,7 +2651,7 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 	BundleList mBundles;
 	{
 		WLock l(cs);
-		bundleQueue.move(aBundle, newTarget); //set the new target
+		bundleQueue.moveBundle(aBundle, newTarget); //set the new target
 		bundleQueue.getSubBundles(newTarget, mBundles);
 	}
 
@@ -3311,8 +3311,9 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 	{
 		WLock l(cs);
 		if (!finished) {
-			bundleQueue.remove(aBundle);
+			bundleQueue.removeBundle(aBundle);
 		} else {
+			aBundle->deleteBundleFile();
 			bundleQueue.removeSearchPrio(aBundle);
 		}
 	}

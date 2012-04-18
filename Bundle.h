@@ -152,6 +152,7 @@ public:
 	string getName();
 
 	string getBundleFile();
+	void deleteBundleFile();
 
 	void setDirty(bool dirty);
 	bool getDirty() { return dirty; }

@@ -46,7 +46,7 @@ BundleQueue::BundleQueue() :
 
 BundleQueue::~BundleQueue() { }
 
-void BundleQueue::add(BundlePtr aBundle) {
+void BundleQueue::addBundle(BundlePtr aBundle) {
 	aBundle->unsetFlag(Bundle::FLAG_NEW);
 	aBundle->setDownloadedBytes(0); //sets to downloaded segments
 
@@ -363,7 +363,7 @@ void BundleQueue::removeFinishedItem(QueueItemPtr qi) {
 	}
 }
 
-void BundleQueue::remove(BundlePtr aBundle) {
+void BundleQueue::removeBundle(BundlePtr aBundle) {
 	if (aBundle->isSet(Bundle::FLAG_NEW)) {
 		return;
 	}
@@ -387,15 +387,10 @@ void BundleQueue::remove(BundlePtr aBundle) {
 	removeSearchPrio(aBundle);
 	bundles.erase(aBundle->getToken());
 
-	try {
-		File::deleteFile(aBundle->getBundleFile() + ".bak");
-		File::deleteFile(aBundle->getBundleFile());
-	} catch(const FileException& /*e1*/) {
-		//..
-	}
+	aBundle->deleteBundleFile();
 }
 
-void BundleQueue::move(BundlePtr aBundle, const string& newTarget) {
+void BundleQueue::moveBundle(BundlePtr aBundle, const string& newTarget) {
 	//remove the old release dir
 	string releaseDir = AirUtil::getReleaseDir(aBundle->getTarget());
 	if (!releaseDir.empty()) {

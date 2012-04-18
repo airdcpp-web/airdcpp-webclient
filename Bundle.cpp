@@ -158,6 +158,14 @@ string Bundle::getBundleFile() {
 	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + token + ".xml";
 }
 
+void Bundle::deleteBundleFile() {
+	try {
+		File::deleteFile(getBundleFile() + ".bak");
+		File::deleteFile(getBundleFile());
+	} catch(const FileException& /*e1*/) {
+		//..
+	}
+}
 
 void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) noexcept {
 	for(int i = 0; i < QueueItem::LAST; ++i) {

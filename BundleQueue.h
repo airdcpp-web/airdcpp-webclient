@@ -41,7 +41,7 @@ public:
 	void addFinishedItem(QueueItemPtr qi, BundlePtr aBundle);
 	void removeFinishedItem(QueueItemPtr qi);
 
-	void add(BundlePtr aBundle);
+	void addBundle(BundlePtr aBundle);
 
 	void getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles);
 	BundlePtr find(const string& bundleToken);
@@ -57,8 +57,8 @@ public:
 	int64_t recalculateSearchTimes(bool aRecent, bool prioChange);
 
 	Bundle::StringBundleMap& getBundles() { return bundles; }
-	void move(BundlePtr aBundle, const string& newTarget);
-	void remove(BundlePtr aBundle);
+	void moveBundle(BundlePtr aBundle, const string& newTarget);
+	void removeBundle(BundlePtr aBundle);
 
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes);
 
