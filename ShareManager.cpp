@@ -703,6 +703,7 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 
 		setDirty();
 	}
+		forceXmlRefresh = true;
 		//after the wlock on purpose, these have own locking
 		dp->findDirsRE(false);
 		sortReleaseList();
@@ -733,6 +734,7 @@ void ShareManager::removeDirectory(const string& realPath) {
 	}
 	sortReleaseList();
 	setDirty();
+	forceXmlRefresh = true;
 }
 
 void ShareManager::renameDirectory(const string& realPath, const string& virtualName)  {
@@ -753,6 +755,7 @@ void ShareManager::renameDirectory(const string& realPath, const string& virtual
 
 	j->second->setName(vName);
 	setDirty();
+	forceXmlRefresh = true;
 }
 
 ShareManager::Dirs ShareManager::getByVirtual(const string& virtualName) const throw() {
@@ -1283,14 +1286,13 @@ int ShareManager::run() {
 		setDirty(); 
 		sortReleaseList();
 	}
+	forceXmlRefresh = true;
 
 	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED));
 	
 	if(refreshOptions & REFRESH_UPDATE) {
 		ClientManager::getInstance()->infoUpdated();
 	}
-
-	forceXmlRefresh = true;
 
 	if(refreshOptions & REFRESH_BLOCKING) {
 		generateXmlList(true);
@@ -1318,9 +1320,10 @@ void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
 void ShareManager::generateXmlList(bool forced /*false*/) {
 
 	if(forced || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK() || lastXmlUpdate < lastFullUpdate))) {
-		
-		if(GeneratingXmlList.test_and_set()) //dont pile up generate calls to the lock, if its already generating return.
-			return;
+		if(!forced) {
+			if(GeneratingXmlList.test_and_set()) //dont pile up generate calls to the lock, if its already generating return.
+				return;
+		}
 		{
 		RLock l(cs);
 		listN++;
