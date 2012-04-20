@@ -40,9 +40,10 @@ using boost::range::for_each;
 
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
-	TargetUtil::TargetType aTargetType, StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime) noexcept : 
+	TargetUtil::TargetType aTargetType, StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime,
+	bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
-		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0) {
+		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared)  {
 
 	string matchPattern = aMatcherString;
 	if (aMatcherString.empty())
@@ -101,7 +102,7 @@ AutoSearchManager::~AutoSearchManager() {
 /* For external use */
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType) {
 	auto as = new AutoSearch(true, ss, SearchManager::TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
-		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0);
+		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, true, true);
 
 	as->startTime = SearchTime();
 	as->endTime = SearchTime(true);
@@ -344,11 +345,15 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 		if(as->getFileType() == SearchManager::TYPE_DIRECTORY ) {
 			string dir = Util::getLastDir(sr->getFile());
 			//check shared.
-			if(ShareManager::getInstance()->isDirShared(dir))
-				return;
+			if(as->getCheckAlreadyShared()) {
+				if(ShareManager::getInstance()->isDirShared(dir))
+					return;
+			}
 			//check Queued
-			if(QueueManager::getInstance()->isDirQueued(dir))
-				return;
+			if(as->getCheckAlreadyQueued()) {
+				if(QueueManager::getInstance()->isDirQueued(dir))
+					return;
+			}
 		}
 
 		bool noFreeSpace = false;
@@ -435,6 +440,8 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("SearchInterval", as->getSearchInterval()),
 				xml.addChildAttrib("UserMatch", (*i)->getNickPattern());
 				xml.addChildAttrib("ExpireTime", (*i)->getExpireTime());
+				xml.addChildAttrib("CheckAlreadyQueued", as->getCheckAlreadyQueued());
+				xml.addChildAttrib("CheckAlreadyShared", as->getCheckAlreadyShared());
 				xml.addChildAttrib("SearchDays", (*i)->searchDays.to_string());
 				xml.addChildAttrib("StartTime", (*i)->startTime.toString());
 				xml.addChildAttrib("EndTime", (*i)->endTime.toString());
@@ -474,7 +481,9 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.getChildAttrib("MatcherString"),
 				aXml.getChildAttrib("UserMatch"),
 				aXml.getIntChildAttrib("SearchInterval"),
-				aXml.getIntChildAttrib("ExpireTime"));
+				aXml.getIntChildAttrib("ExpireTime"),
+				aXml.getBoolChildAttrib("CheckAlreadyQueued"),
+				aXml.getBoolChildAttrib("CheckAlreadyShared"));
 
 			as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
 

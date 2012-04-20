@@ -1403,5 +1403,7 @@ enum Strings { // @DontAdd
 	LOCATION_TYPE, // "Location type"
 	FORCE_HASH_NOTIFICATION, // "Refresh the directory after fixing the problem(s) to rescan the bundle (or type \"/allow %s\" to force it to be hashed in share if the problem(s) can't be fixed)"
 	LINE_EMPTY_OR_TOO_SHORT, // "Search String empty or too Short! (min. 5 chars allowed)"
+	AUTOSEARCH_CHECK_QUEUED, // "Don't download already Queued release directories"
+	AUTOSEARCH_CHECK_SHARED, // "Don't download already Shared release directories"
 	LAST // @DontAdd
 };

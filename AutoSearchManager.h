@@ -83,7 +83,7 @@ public:
 	}
 
 	AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
-		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime) noexcept;
+		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept;
 
 	~AutoSearch();
 
@@ -98,6 +98,8 @@ public:
 	GETSET(int, searchInterval, SearchInterval);
 	GETSET(time_t, expireTime, ExpireTime);
 	bitset<7> searchDays;
+	GETSET(bool, checkAlreadyQueued, CheckAlreadyQueued);
+	GETSET(bool, checkAlreadyShared, CheckAlreadyShared);
 
 	SearchTime startTime;
 	SearchTime endTime;
