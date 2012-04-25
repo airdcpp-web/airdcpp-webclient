@@ -956,7 +956,6 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 
 	FileFindIter end;
 
-
 #ifdef _WIN32
 	for(FileFindIter i(aName + "*"); i != end && !aShutdown; ++i) {
 #else
@@ -1080,14 +1079,57 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 	bloom.add(Text::toLower(f.getName()));
 }
 
-int ShareManager::refreshIncoming( ){
+int ShareManager::refresh( const string& aDir ){
 	int result = REFRESH_PATH_NOT_FOUND;
-	
-		if(refreshing.test_and_set()) {
-			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
-			return REFRESH_IN_PROGRESS;
-			}
 
+	if(refreshing.test_and_set()) {
+		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
+		return REFRESH_IN_PROGRESS;
+	}
+	string path = aDir;
+
+	if(path[ path.length() -1 ] != PATH_SEPARATOR)
+		path += PATH_SEPARATOR;
+
+	{
+		RLock l(cs);
+		refreshPaths.clear();
+			
+		DirMap::iterator i = directories.find(path); //case insensitive
+		if(i == directories.end()) {
+			//loopup the Virtualname selected from share and add it to refreshPaths List
+			for(StringMap::const_iterator j = shares.begin(); j != shares.end(); ++j) {
+				if( stricmp( j->second, aDir ) == 0 ) {
+					refreshPaths.push_back( j->first );
+					result = REFRESH_STARTED;
+				}
+			}
+		} else {
+			refreshPaths.push_back(i->first);
+			result = REFRESH_STARTED;
+		}
+	}
+
+	if(result == REFRESH_STARTED)
+		result = initRefreshThread(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
+		
+	if(result == REFRESH_PATH_NOT_FOUND)
+		refreshing.clear();
+
+	return result;
+}
+
+
+int ShareManager::refresh(int aRefreshOptions){
+
+	if(refreshing.test_and_set()) {
+		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
+		return REFRESH_IN_PROGRESS;
+	}
+	int result = REFRESH_STARTED;
+
+	if(aRefreshOptions & REFRESH_INCOMING) {
+		result = REFRESH_PATH_NOT_FOUND;
 		{
 			RLock l(cs);  
 			refreshPaths.clear();
@@ -1100,76 +1142,20 @@ int ShareManager::refreshIncoming( ){
 				if(i != directories.end()) {
 						refreshPaths.push_back( i->first ); //add all matching realpaths to refreshpaths
 						result = REFRESH_STARTED;
-					}
 				}
+			}
 	
-			}
-
-		
-		if(result == REFRESH_STARTED)
-			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
-
-		if(result == REFRESH_PATH_NOT_FOUND)
-			refreshing.clear();
-
-		return result;
-	}
-
-
-
-int ShareManager::refresh( const string& aDir ){
-	int result = REFRESH_PATH_NOT_FOUND;
-
-	if(refreshing.test_and_set()) {
-			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
-			return REFRESH_IN_PROGRESS;
-	}
-		string path = aDir;
-
-		if(path[ path.length() -1 ] != PATH_SEPARATOR)
-			path += PATH_SEPARATOR;
-
-		{
-			RLock l(cs);
-			refreshPaths.clear();
-			
-			DirMap::iterator i = directories.find(path); //case insensitive
-			if(i == directories.end()) {
-				//loopup the Virtualname selected from share and add it to refreshPaths List
-				for(StringMap::const_iterator j = shares.begin(); j != shares.end(); ++j) {
-					if( stricmp( j->second, aDir ) == 0 ) {
-						refreshPaths.push_back( j->first );
-						result = REFRESH_STARTED;
-					}
-				}
-			} else {
-				refreshPaths.push_back(i->first);
-				result = REFRESH_STARTED;
-			}
 		}
-
-		if(result == REFRESH_STARTED)
-			result = startRefresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE);
-		
 		if(result == REFRESH_PATH_NOT_FOUND)
 			refreshing.clear();
-
-		return result;
 	}
-
-
-int ShareManager::refresh(int aRefreshOptions){
 	
-	if(refreshing.test_and_set()) {
-	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
-	return REFRESH_IN_PROGRESS;
-	}
-		
-	startRefresh(aRefreshOptions);
-	return REFRESH_STARTED;
-
+	if(result == REFRESH_STARTED)
+		initRefreshThread(aRefreshOptions);
+	
+	return result;
 }
-int ShareManager::startRefresh(int aRefreshOptions)  {
+int ShareManager::initRefreshThread(int aRefreshOptions)  {
 	
 	refreshOptions = aRefreshOptions;
 	join();
@@ -1281,14 +1267,11 @@ int ShareManager::run() {
 				
 		for(DirMap::iterator i = newDirs.begin(); i != newDirs.end(); ++i)
 			i->second->findDirsRE(false);
-			
-		rebuildIndices();
+		
 		setDirty(); 
+		rebuildIndices();
 		sortReleaseList();
 	}
-	forceXmlRefresh = true;
-
-	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED));
 	
 	if(refreshOptions & REFRESH_UPDATE) {
 		ClientManager::getInstance()->infoUpdated();
@@ -1299,7 +1282,9 @@ int ShareManager::run() {
 		saveXmlList();
 	}
 
+	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED));
 end:
+	forceXmlRefresh = true;
 	bundleDirs.clear();
 	refreshing.clear();
 	return 0;
@@ -2211,7 +2196,7 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 
 	if(SETTING(INCOMING_REFRESH_TIME) > 0 && !incoming.empty()){
 		if(lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
-			refreshIncoming();
+			refresh(ShareManager::REFRESH_DIRECTORY | ShareManager::REFRESH_UPDATE | ShareManager::REFRESH_INCOMING);
 		}
 	}
 	if(SETTING(AUTO_REFRESH_TIME) > 0) {

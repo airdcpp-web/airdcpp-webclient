@@ -103,6 +103,7 @@ public:
 	}
 
 	void shutdown() {
+		hasher.clear();
 		hasher.shutdown();
 		{	
 		Lock l(cs); //lock only here, prevent deadlock on shutdown (while hashing, hashdone has a lock too if we join inside a lock....)

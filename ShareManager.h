@@ -65,9 +65,8 @@ public:
 	TTHValue getTTH(const string& virtualFile) const;
 	
 	int refresh(int refreshOptions);
-	int startRefresh(int refreshOptions) noexcept;
+	int initRefreshThread(int refreshOptions) noexcept;
 	int refresh(const string& aDir);
-	int refreshIncoming();
 	void setDirty() {
 		xmlDirty = true;  
 		ShareCacheDirty = true; 
@@ -169,10 +168,11 @@ public:
 		REFRESH_IN_PROGRESS
 	};
 	enum {
-		REFRESH_ALL = 0x1,
-		REFRESH_DIRECTORY = 0x2,
-		REFRESH_BLOCKING = 0x4,
-		REFRESH_UPDATE = 0x8
+		REFRESH_ALL = 0x01,
+		REFRESH_DIRECTORY = 0x02,
+		REFRESH_BLOCKING = 0x04,
+		REFRESH_UPDATE = 0x08,
+		REFRESH_INCOMING = 0x10
 	};
 
 
