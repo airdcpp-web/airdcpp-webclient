@@ -369,14 +369,10 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, const uint8_t* aData, size_t aLen) noexcept {
 	Download* d = aSource->getDownload();
-	//BundlePtr bundle = d->getBundle();
 	dcassert(d != NULL);
 
 	try {
 		d->addPos(d->getOutput()->write(aData, aLen), aLen);
-		//LogManager::getInstance()->message("pos: " + Util::toString(pos) + "   aLen: " + Util::toString(aLen));
-		//if (bundle)
-		//	bundle->increaseDownloaded(aLen);
 		d->tick();
 
 		if(d->getOutput()->eof()) {

@@ -847,7 +847,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 removePartial:
 	WLock l(cs);
 	// no other partial chunk from this user, remove him from queue
-	removeQI(q, u);
+	userQueue.removeQI(q, u);
 	q->removeSource(u, QueueItem::Source::FLAG_NO_NEED_PARTS);
 	aMessage = STRING(NO_NEEDED_PART);
 	return nullptr;
@@ -1637,20 +1637,20 @@ void QueueManager::setQIPriority(const string& aTarget, QueueItem::Priority p) n
 void QueueManager::setQIPriority(QueueItemPtr q, QueueItem::Priority p, bool isAP /*false*/, bool isBundleChange /*false*/) noexcept {
 	HintedUserList getConn;
 	bool running = false;
-	BundlePtr b = q->getBundle();
+	if (!q || !q->getBundle()) {
+		//items without a bundle should always use the highest prio
+		return;
+	}
 
+	BundlePtr b = q->getBundle();
 	{
 		WLock l(cs);
 		if((q != NULL) && (q->getPriority() != p) && !q->isFinished() ) {
-			if (!b) {
-				//those should always use the highest prio
-				return;
-			}
-
 			if((q->getPriority() == QueueItem::PAUSED && b->getPriority() != Bundle::PAUSED) || p == QueueItem::HIGHEST) {
 				// Problem, we have to request connections to all these users...
 				q->getOnlineUsers(getConn);
 			}
+
 			running = q->isRunning();
 			userQueue.setQIPriority(q, p);
 			fire(QueueManagerListener::StatusUpdated(), q);
