@@ -975,20 +975,19 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 
 		if(i->isDirectory()) {
 			string newName = aName + name + PATH_SEPARATOR;
-			string pathLower = Text::toLower(newName);
 
-			if (!AirUtil::checkSharedName(pathLower, true)) {
+			if (!AirUtil::checkSharedName(newName, true)) {
 				continue;
 			}
 
 			//check queue so we dont add incomplete stuff to share.
 			if(checkQueued) {
-				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), pathLower)) {
+				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), Text::toLower(newName))) {
 					continue;
 				}
 			}
 
-			if(shareFolder(pathLower)) {
+			if(shareFolder(newName)) {
 				Directory::Ptr tmpDir = buildTree(newName, dir, checkQueued);
 				tmpDir->setLastWrite(i->getLastWriteTime()); //add the date starting from the first found directory.
 				dir->directories[name] = tmpDir;
@@ -998,7 +997,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 			string path = aName + name;
 			int64_t size = i->getSize();
 
-			if (!AirUtil::checkSharedName(Text::toLower(path), false, true, size)) {
+			if (!AirUtil::checkSharedName(path, false, true, size)) {
 				continue;
 			}
 
@@ -2116,10 +2115,10 @@ bool ShareManager::allowAddDir(const string& path) noexcept {
 			if(strnicmp(i->first, path, i->first.size()) == 0) { //check if we have a share folder.
 				//check the skiplist
 				StringList sl = StringTokenizer<string>(path.substr(i->first.length()), PATH_SEPARATOR).getTokens();
-				string fullPathLower = Text::toLower(i->first);
+				string fullPath = i->first;
 				for(auto i = sl.begin(); i != sl.end(); ++i) {
-					fullPathLower += Text::toLower(*i) + PATH_SEPARATOR;
-					if (!AirUtil::checkSharedName(fullPathLower, true, true) || !shareFolder(fullPathLower)) {
+					fullPath += Text::toLower(*i) + PATH_SEPARATOR;
+					if (!AirUtil::checkSharedName(fullPath, true, true) || !shareFolder(fullPath)) {
 						return false;
 					}
 				}
@@ -2213,7 +2212,7 @@ bool ShareManager::shareFolder(const string& path, bool thoroughCheck /* = false
 		for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i)
 		{
 			// is it a perfect match
-			if((path.size() == i->first.size()) && (compare(path, Text::toLower(i->first)) == 0))
+			if((path.size() == i->first.size()) && (stricmp(path, Text::toLower(i->first)) == 0))
 				return true;
 			else if (path.size() > i->first.size()) // this might be a subfolder of a shared folder
 			{

@@ -909,7 +909,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 			WLock l(cs);
 			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
 				QueueItemPtr qi = *i;
-				if (AirUtil::checkSharedName(Text::toLower(qi->getTarget()), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
+				if (AirUtil::checkSharedName(qi->getTarget(), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
 					hash.push_back(qi);
 					++i;
 					continue;

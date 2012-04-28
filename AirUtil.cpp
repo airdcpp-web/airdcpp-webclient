@@ -434,13 +434,9 @@ string AirUtil::getPrioText(int prio) {
 }
 
 
-bool AirUtil::checkSharedName(const string& fullPath, bool dir, bool report /*true*/, const int64_t& size /*0*/) {
-	/* THE PATH SHOULD BE CONVERTED TO LOWERCASE BEFORE SENDING IT HERE */
+bool AirUtil::checkSharedName(const string& aPath, bool isDir, bool report /*true*/, const int64_t& size /*0*/) {
 	string aName;
-	if (dir)
-		aName = Util::getLastDir(fullPath);
-	else
-		aName = Util::getFileName(fullPath);
+	aName = isDir ? Util::getLastDir(aPath) : Util::getFileName(aPath);
 
 	if(aName == "." || aName == "..")
 		return false;
@@ -448,20 +444,21 @@ bool AirUtil::checkSharedName(const string& fullPath, bool dir, bool report /*tr
 	if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
 		if(AirUtil::matchSkiplist(Text::utf8ToAcp(aName))) {
 			if(BOOLSETTING(REPORT_SKIPLIST) && report)
-				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + fullPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
+				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
 			return false;
 		}
 	} else {
 		try {
 			if (Wildcard::patternMatch(Text::utf8ToAcp(aName), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' )) {   // or validate filename for bad chars?
 				if(BOOLSETTING(REPORT_SKIPLIST) && report)
-					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + fullPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
+					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
 				return false;
 			}
 		} catch(...) { }
 	}
 
-	if (!dir) {
+	aName = Text::toLower(aName); //we only need this now
+	if (!isDir) {
 		string fileExt = Util::getFileExt(aName);
 		if( (strcmp(aName.c_str(), "dcplusplus.xml") == 0) || 
 			(strcmp(aName.c_str(), "favorites.xml") == 0) ||
@@ -490,13 +487,13 @@ bool AirUtil::checkSharedName(const string& fullPath, bool dir, bool report /*tr
 				(aName.find("__incomplete__") == 0)		//winmx
 				) {
 					if (report) {
-						LogManager::getInstance()->message("Forbidden file will not be shared: " + fullPath/* + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
+						LogManager::getInstance()->message("Forbidden file will not be shared: " + aPath/* + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
 					}
 					return false;
 			}
 		}
 
-		if(compare(fullPath, privKeyFile) == 0) {
+		if(Util::stricmp(aPath, privKeyFile) == 0) {
 			return false;
 		}
 
@@ -505,17 +502,17 @@ bool AirUtil::checkSharedName(const string& fullPath, bool dir, bool report /*tr
 
 		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
 			if (report) {
-				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + fullPath);
+				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath);
 			}
 			return false;
 		}
 	} else {
 #ifdef _WIN32
 		// don't share Windows directory
-		if(fullPath.length() >= winDir.length() && compare(fullPath.substr(0, winDir.length()), winDir) == 0)
+		if(aPath.length() >= winDir.length() && stricmp(aPath.substr(0, winDir.length()), winDir) == 0)
 			return false;
 #endif
-		if((compare(fullPath, tempDLDir) == 0)) {
+		if((stricmp(aPath, tempDLDir) == 0)) {
 			return false;
 		}
 	}
