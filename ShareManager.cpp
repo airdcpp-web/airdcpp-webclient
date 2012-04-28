@@ -2158,7 +2158,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 
 void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexcept {
 	WLock l(cs);
-	Directory::Ptr d = findDirectory(Util::getDir(fname, false, false), true, false);
+	Directory::Ptr d = findDirectory(Util::getFilePath(fname), true, false);
 	if (!d) {
 		return;
 	}

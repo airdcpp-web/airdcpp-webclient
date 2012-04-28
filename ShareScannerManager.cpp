@@ -235,7 +235,7 @@ void ShareScannerManager::findDupes(const string& path, int& dupesFound) throw(F
 	if(path.empty())
 		return;
 	
-	string dirName = Util::getDir(path, false, true);
+	string dirName = Util::getLastDir(path);
 	string listfolder;
 
 	//only match release names here
@@ -309,7 +309,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	int nfoFiles=0, sfvFiles=0;
 	bool isSample=false, isRelease=false, isZipRls=false, found=false, extrasInFolder = false;
 
-	string dirName = Util::getDir(path, false, true);
+	string dirName = Util::getLastDir(path);
 
 	// Find NFO and SFV files
 	for(auto i = fileList.begin(); i != fileList.end(); ++i) {

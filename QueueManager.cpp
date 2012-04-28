@@ -981,13 +981,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 
 	BundlePtr b = qi->getBundle();
 	if (!b) {
-		LogManager::getInstance()->message("No bundle for a hashed QI " + qi->getTarget());
-		if (!failed) {
-			fire(QueueManagerListener::FileHashed(), fname, root);
-		}
-
-		WLock l(cs);
-		fileQueue.remove(qi);
+		dcassert(0);
 		return;
 	}
 
@@ -995,6 +989,9 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 
 	if (failed) {
 		b->setFlag(Bundle::FLAG_SHARING_FAILED);
+	} else if (!b->isSet(Bundle::FLAG_HASH)) {
+		//instant sharing disabled/the folder wasn't shared when the bundle finished
+		fire(QueueManagerListener::FileHashed(), fname, root);
 	}
 
 	if (b->getHashed() == (int)b->getFinishedFiles().size()) {
@@ -3399,8 +3396,7 @@ void QueueManager::sendPBD(HintedUser& aUser, const TTHValue& tth, const string&
 	cmd.addParam("UP1");
 	cmd.addParam("HI", aUser.hint);
 	cmd.addParam("TH", tth.toBase32());
-	//LogManager::getInstance()->message("SENDPBD UPDATE: " + cmd.toString());
-	ClientManager::getInstance()->send(cmd, aUser.user->getCID());
+	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), false, true);
 }
 
 void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) {

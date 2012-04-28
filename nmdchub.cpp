@@ -65,7 +65,7 @@ void NmdcHub::refreshUserList(bool refreshOnly) {
 
 		OnlineUserList v;
 		for(NickIter i = users.begin(); i != users.end(); ++i) {
-				v.push_back(i->second);
+			v.push_back(i->second);
 		}
 		fire(ClientListener::UsersUpdated(), this, v);
 	} else {
