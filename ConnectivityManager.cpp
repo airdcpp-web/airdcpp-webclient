@@ -258,13 +258,13 @@ void ConnectivityManager::listen() {
 	try {
 		ConnectionManager::getInstance()->listen();
 	} catch(const Exception&) {
-		throw Exception("Transfer (TCP)");
+		throw Exception(STRING(TRANSFER_PORT));
 	}
 
 	try {
 		SearchManager::getInstance()->listen();
 	} catch(const Exception&) {
-		throw Exception("Search (UDP)");
+		throw Exception(STRING(SEARCH_PORT));
 	}
 }
 

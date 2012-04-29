@@ -785,7 +785,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Target filename too long", 
 "Target removed", 
 "TiB", 
-"Unable to open TCP/TLS port. File transfers will not work correctly until you change settings or turn off any application that might be using the TCP/TLS port", 
 "Manual settings of number of segments", 
 "Time", 
 "Time left", 
@@ -1398,6 +1397,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search String empty or too Short! (min. 5 chars allowed)", 
 "Don't download already Queued release directories", 
 "Don't download already Shared release directories", 
+"Unable to open %s port. Searching or file transfers will not work correctly until you change settings or turn off any application that might be using that port.", 
+"Transfer (TCP)", 
+"Search (UDP)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2183,7 +2185,6 @@ std::string dcpp::ResourceManager::names[] = {
 "TargetFilenameTooLong", 
 "TargetRemoved", 
 "Tib", 
-"TcpPortBusy", 
 "TextManual", 
 "Time", 
 "TimeLeft", 
@@ -2796,4 +2797,7 @@ std::string dcpp::ResourceManager::names[] = {
 "LineEmptyOrTooShort", 
 "AutosearchCheckQueued", 
 "AutosearchCheckShared", 
+"PortBysy", 
+"TransferPort", 
+"SearchPort", 
 };

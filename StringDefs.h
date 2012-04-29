@@ -788,7 +788,6 @@ enum Strings { // @DontAdd
 	TARGET_FILENAME_TOO_LONG, // "Target filename too long"
 	TARGET_REMOVED, // "Target removed"
 	TiB, // "TiB"
-	TCP_PORT_BUSY, // "Unable to open TCP/TLS port. File transfers will not work correctly until you change settings or turn off any application that might be using the TCP/TLS port"
 	TEXT_MANUAL, // "Manual settings of number of segments"
 	TIME, // "Time"
 	TIME_LEFT, // "Time left"
@@ -1405,5 +1404,8 @@ enum Strings { // @DontAdd
 	LINE_EMPTY_OR_TOO_SHORT, // "Search String empty or too Short! (min. 5 chars allowed)"
 	AUTOSEARCH_CHECK_QUEUED, // "Don't download already Queued release directories"
 	AUTOSEARCH_CHECK_SHARED, // "Don't download already Shared release directories"
+	PORT_BYSY, // "Unable to open %s port. Searching or file transfers will not work correctly until you change settings or turn off any application that might be using that port."
+	TRANSFER_PORT, // "Transfer (TCP)"
+	SEARCH_PORT, // "Search (UDP)"
 	LAST // @DontAdd
 };
