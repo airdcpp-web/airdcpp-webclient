@@ -391,7 +391,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 				QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE || noFreeSpace) ? QueueItem::PAUSED : QueueItem::DEFAULT));
 			}
-		} catch(const QueueException& e) {
+		} catch(const Exception& e) {
 			LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");
 			return;
 		}
