@@ -64,7 +64,6 @@ enum Strings { // @DontAdd
 	CERTIFICATE_GENERATION_FAILED, // "TLS disabled, failed to generate certificate:"
 	CID, // "CID"
 	CIPHER, // "Cipher"
-	CLEAR, // "Clear chat"
 	CLIENTID, // "Client"
 	CLOSE, // "Close"
 	CLOSE_CONNECTION, // "Close connection"
@@ -1407,5 +1406,7 @@ enum Strings { // @DontAdd
 	PORT_BYSY, // "Unable to open %s port. Searching or file transfers will not work correctly until you change settings or turn off any application that might be using that port."
 	TRANSFER_PORT, // "Transfer (TCP)"
 	SEARCH_PORT, // "Search (UDP)"
+	CLEAR_CHAT, // "Clear chat"
+	CLEAR_MESSAGES, // "Clear messages"
 	LAST // @DontAdd
 };

@@ -61,7 +61,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "TLS disabled, failed to generate certificate:", 
 "CID", 
 "Cipher", 
-"Clear chat", 
 "Client", 
 "Close", 
 "Close connection", 
@@ -1400,6 +1399,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Unable to open %s port. Searching or file transfers will not work correctly until you change settings or turn off any application that might be using that port.", 
 "Transfer (TCP)", 
 "Search (UDP)", 
+"Clear chat", 
+"Clear messages", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -1461,7 +1462,6 @@ std::string dcpp::ResourceManager::names[] = {
 "CertificateGenerationFailed", 
 "Cid", 
 "Cipher", 
-"Clear", 
 "Clientid", 
 "Close", 
 "CloseConnection", 
@@ -2800,4 +2800,6 @@ std::string dcpp::ResourceManager::names[] = {
 "PortBysy", 
 "TransferPort", 
 "SearchPort", 
+"ClearChat", 
+"ClearMessages", 
 };
