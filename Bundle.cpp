@@ -295,20 +295,18 @@ void Bundle::addUserQueue(QueueItemPtr qi) {
 bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 	dcassert(find(l.begin(), l.end(), qi) == l.end());
-	l.push_back(qi);
 
 	if (l.size() > 1) {
 		if (!seqOrder) {
 			/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
+			l.push_back(qi);
 			swap(l[Util::rand((uint32_t)l.size())], l[l.size()-1]);
 		} else {
 			/* Sequential order */
-			//l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::SortOrder()), qi);
-			auto pos = distance(l.begin(), upper_bound(l.begin(), l.end(), qi, QueueItem::SortOrder()));
-			if (pos != l.size()) {
-				swap(l[pos], l[l.size()-1]);
-			}
+			l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::SortOrder()), qi);
 		}
+	} else {
+		l.push_back(qi);
 	}
 
 	auto i = find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
@@ -469,14 +467,14 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 		return false;
 	}
 	auto& l = j->second;
-	int pos = 0;
-	for (auto s = l.begin(); s != l.end(); ++s) {
-		if ((*s) == qi) {
-			swap(l[pos], l[l.size()-1]);
+	auto s = find(l, qi);
+	if (s != l.end()) {
+		if (!seqOrder) {
+			swap(l[distance(l.begin(), s)], l[l.size()-1]);
 			l.pop_back();
-			break;
+		} else {
+			l.erase(s);
 		}
-		pos++;
 	}
 
 	if(l.empty()) {

@@ -584,12 +584,7 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 		find(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, true);
 
 		reportResults(aBundle->getName(), aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? TYPE_FAILED_FINISHED : TYPE_FINISHED, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
-		if (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0) { //allow choosing the level when it shouldn't be added?
-
-			return false;
-		} else {
-			return true;
-		}
+		return (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0); //allow choosing the level when it shouldn't be added?
 	}
 	return true;
 }
