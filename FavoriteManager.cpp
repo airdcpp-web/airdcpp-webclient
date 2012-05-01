@@ -458,11 +458,11 @@ void FavoriteManager::save() {
 		f.write(SimpleXML::utf8Header);
 		f.write(xml.toXML());
 		f.close();
-		File::deleteFile(fname);
-		File::renameFile(fname + ".tmp", fname);
-		File::deleteFile(fname + ".bak");
-		CopyFile(Text::toT(fname).c_str(), Text::toT(fname + ".bak").c_str(), FALSE);
-
+		//dont overWrite with empty file.
+		if(File::getSize(fname + ".tmp") > 0) {
+			File::deleteFile(fname);
+			File::renameFile(fname + ".tmp", fname);
+		}
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::save: %s\n", e.getError().c_str());
 	}
@@ -522,15 +522,21 @@ void FavoriteManager::load() {
 	try {
 		SimpleXML xml;
 		Util::migrate(getConfigFile());
-		xml.fromXML(File(getConfigFile(), File::READ, File::OPEN).read());
+		if(Util::fileExists(getConfigFile())) {
+			xml.fromXML(File(getConfigFile(), File::READ, File::OPEN).read());
 		
-		if(xml.findChild("Favorites")) {
-			xml.stepIn();
-			load(xml);
-			xml.stepOut();
+			if(xml.findChild("Favorites")) {
+				xml.stepIn();
+				load(xml);
+				xml.stepOut();
+			}
+			//we have load it fine now, so make a backup of a working favorites.xml
+			File::deleteFile(getConfigFile() + ".bak");
+			CopyFile(Text::toT(getConfigFile()).c_str(), Text::toT(getConfigFile() + ".bak").c_str(), FALSE);
 		}
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::load: %s\n", e.getError().c_str());
+		LogManager::getInstance()->message("Error Loading Favorites.xml : " + e.getError(), LogManager::LOG_ERROR);
 	}
 
 	try {

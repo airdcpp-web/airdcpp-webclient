@@ -228,8 +228,8 @@ private:
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
-		load(xml);
-		recentload(xml);
+		//load(xml);
+		//recentload(xml);
 		previewload(xml);
 	}
 
