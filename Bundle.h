@@ -50,17 +50,18 @@ public:
 	};
 
 	enum Flags {
-		/** Flags for delayed updates */
+		/** Flags for scheduled actions */
 		FLAG_UPDATE_SIZE			= 0x01,
 		FLAG_UPDATE_NAME			= 0x02,
+		FLAG_SCHEDULE_SEARCH		= 0x04,
 		/** The bundle is currently being hashed */
-		FLAG_HASH					= 0x04,
+		FLAG_HASH					= 0x40,
 		/** Missing/extra files have been found or it has failed to hash */
-		FLAG_SHARING_FAILED			= 0x08,
+		FLAG_SHARING_FAILED			= 0x100,
 		/** Not added into bundleQueue yet */
-		FLAG_NEW					= 0x10,
+		FLAG_NEW					= 0x200,
 		/** Autodrop slow sources is enabled for this bundle */
-		FLAG_AUTODROP				= 0x20
+		FLAG_AUTODROP				= 0x400
 	};
 
 	enum SourceInfo {
@@ -121,6 +122,7 @@ public:
 	GETSET(time_t, dirDate, DirDate);
 	GETSET(bool, singleUser, SingleUser);
 	GETSET(bool, simpleMatching, SimpleMatching);
+	GETSET(bool, seqOrder, SeqOrder);
 
 	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);
 	GETSET(UserIntMap, runningUsers, RunningUsers);

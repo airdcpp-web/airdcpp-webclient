@@ -64,6 +64,31 @@ public:
 		return compare(target, q->getTarget()) == 0;
 	}
 
+	struct SortOrder {
+		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const {
+			auto extLeft = left->getTarget().rfind('.');
+			auto extRight = right->getTarget().rfind('.');
+			if (extLeft != string::npos && extRight != string::npos && 
+				compare(left->getTarget().substr(0, extLeft), right->getTarget().substr(0, extRight)) == 0) {
+
+				//only the extensions differs, .rar comes before .rXX
+				auto isRxx = [](const string& aPath, size_t extPos) {
+					return aPath.length() - extPos == 4 && aPath[extPos+1] == 'r' && isdigit(aPath[extPos+2]);
+				};
+
+				if (stricmp(left->getTarget().substr(extLeft), ".rar") == 0 && isRxx(right->getTarget(), extRight)) {
+					return true;
+				}
+
+				if (stricmp(right->getTarget().substr(extRight), ".rar") == 0 && isRxx(left->getTarget(), extLeft)) {
+					return false;
+				}
+			}
+
+			return compare(left->getTarget(), right->getTarget()) < 0;
+		}
+	};
+
 	typedef vector<pair<QueueItemPtr, Priority>> PrioList;
 
 	enum FileFlags {

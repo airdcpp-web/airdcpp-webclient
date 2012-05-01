@@ -1292,7 +1292,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Next search in %d minutes", 
 "Next recent search in %d minutes", 
 "The bundle %s has been created with %d items", 
-"The bundle %s has been created with %d items (total size: %s) and it has been searched for alternates, %d search(es) queued.", 
 "%d existing bundles have been merged into it", 
 "The file bundle %s has been merged into bundle %s", 
 "The file bundle %s has been moved to %s", 
@@ -1401,6 +1400,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search (UDP)", 
 "Clear chat", 
 "Clear messages", 
+"Use sequential order", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2693,7 +2693,6 @@ std::string dcpp::ResourceManager::names[] = {
 "NextSearchIn", 
 "NextRecentSearchIn", 
 "BundleCreated", 
-"BundleCreatedAlt", 
 "ExistingBundlesMerged", 
 "FilebundleMerged", 
 "FilebundleMoved", 
@@ -2802,4 +2801,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchPort", 
 "ClearChat", 
 "ClearMessages", 
+"UseSeqOrder", 
 };

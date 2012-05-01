@@ -71,6 +71,7 @@ public:
 	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
 	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) throw(QueueException);
 	void onChangeDownloadOrder();
+	void onUseSeqOrder(BundlePtr aBundle);
 
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
@@ -165,7 +166,7 @@ public:
 
 	void setBundlePriorities(const string& aSource, const BundleList& sourceBundles, Bundle::Priority p, bool autoPrio=false);
 	void calculateBundlePriorities(bool verbose);
-	void searchBundle(BundlePtr aBundle, bool newBundle, bool manual);
+	void searchBundle(BundlePtr aBundle, bool manual);
 
 	int getBundleItemCount(const BundlePtr aBundle) noexcept;
 	int getFinishedItemCount(const BundlePtr aBundle) noexcept;
@@ -254,7 +255,7 @@ private:
 	void processList(const string& name, const HintedUser& user, const string& path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
-	void addBundleUpdate(const string& bundleToken);
+	void addBundleUpdate(const BundlePtr aBundle);
 	void sendPBD(HintedUser& aUser, const TTHValue& tth, const string& bundleToken);
 
 	void addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);

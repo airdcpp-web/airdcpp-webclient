@@ -1484,7 +1484,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 	}
 
 
-	if (tths.empty()) {
+	if (tths.size() == 0) {
 		dcdebug("Partial NULL");
 		return NULL;
 	} else {

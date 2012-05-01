@@ -1299,7 +1299,6 @@ enum Strings { // @DontAdd
 	NEXT_SEARCH_IN, // "Next search in %d minutes"
 	NEXT_RECENT_SEARCH_IN, // "Next recent search in %d minutes"
 	BUNDLE_CREATED, // "The bundle %s has been created with %d items"
-	BUNDLE_CREATED_ALT, // "The bundle %s has been created with %d items (total size: %s) and it has been searched for alternates, %d search(es) queued."
 	EXISTING_BUNDLES_MERGED, // "%d existing bundles have been merged into it"
 	FILEBUNDLE_MERGED, // "The file bundle %s has been merged into bundle %s"
 	FILEBUNDLE_MOVED, // "The file bundle %s has been moved to %s"
@@ -1408,5 +1407,6 @@ enum Strings { // @DontAdd
 	SEARCH_PORT, // "Search (UDP)"
 	CLEAR_CHAT, // "Clear chat"
 	CLEAR_MESSAGES, // "Clear messages"
+	USE_SEQ_ORDER, // "Use sequential order"
 	LAST // @DontAdd
 };

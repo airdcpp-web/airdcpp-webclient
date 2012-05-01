@@ -41,7 +41,7 @@ using boost::fusion::accumulate;
 Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
-	currentDownloaded(qi->getDownloadedBytes()), hashed(0), moved(0) {
+	currentDownloaded(qi->getDownloadedBytes()), hashed(0), moved(0), seqOrder(true) {
 
 
 	qi->setBundle(this);
@@ -56,12 +56,16 @@ Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t a
 	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0), moved(0) {
 
 	setTarget(aTarget);
+	auto time = GET_TIME();
 	if (dirDate > 0) {
 		checkRecent();
 	} else {
 		//make sure that it won't be set as recent but that it will use the random order
-		dirDate = GET_TIME() - SETTING(RECENT_BUNDLE_HOURS)*60*60;
+		dirDate = time - SETTING(RECENT_BUNDLE_HOURS)*60*60;
 	}
+
+	/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
+	seqOrder = (dirDate + (7*24*60*60)) < time;
 
 	if (aPriority != DEFAULT) {
 		autoPriority = false;
@@ -293,9 +297,18 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 	dcassert(find(l.begin(), l.end(), qi) == l.end());
 	l.push_back(qi);
 
-	/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
-	if (l.size() > 1 && (dirDate + (7*24*60*60)) > GET_TIME()) {
-		swap(queueItems[Util::rand((uint32_t)l.size())], queueItems[queueItems.size()-1]);
+	if (l.size() > 1) {
+		if (!seqOrder) {
+			/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
+			swap(l[Util::rand((uint32_t)l.size())], l[l.size()-1]);
+		} else {
+			/* Sequential order */
+			//l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::SortOrder()), qi);
+			auto pos = distance(l.begin(), upper_bound(l.begin(), l.end(), qi, QueueItem::SortOrder()));
+			if (pos != l.size()) {
+				swap(l[pos], l[l.size()-1]);
+			}
+		}
 	}
 
 	auto i = find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
@@ -617,8 +630,19 @@ void Bundle::getTTHList(OutputStream& tthList) noexcept {
 }
 
 bool Bundle::allowAutoSearch() {
-	return countOnlineUsers() <= (size_t)SETTING(AUTO_SEARCH_LIMIT) && 
-		find_if(queueItems.begin(), queueItems.end(), [](QueueItemPtr q) { return q->getPriority() != QueueItem::PAUSED; } ) != queueItems.end();
+	if (isSet(FLAG_SCHEDULE_SEARCH))
+		return false; // handle this via bundle updates
+
+	if (countOnlineUsers() >= (size_t)SETTING(AUTO_SEARCH_LIMIT))
+		return false; // can't exceed the user limit
+
+	if (find_if(queueItems.begin(), queueItems.end(), [](QueueItemPtr q) { return q->getPriority() != QueueItem::PAUSED; } ) == queueItems.end())
+		return false; // must have valid queue items
+
+	if (getSecondsLeft() < 20 && getSecondsLeft() != 0)
+		return false; // items running and it will be finished soon already
+
+	return true;
 }
 
 void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {
@@ -884,7 +908,12 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 				uploadReports.erase(remove(uploadReports.begin(), uploadReports.end(), aSource->getUser()), uploadReports.end());
 		}
 	}
-	return runningUsers.empty();
+
+	if (runningUsers.empty()) {
+		speed = 0;
+		return true;
+	}
+	return false;
 }
 
 void Bundle::sendSizeNameUpdate() noexcept {

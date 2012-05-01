@@ -336,7 +336,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 
 	if(bundle) {
-		searchBundle(bundle, false, false);
+		searchBundle(bundle, false);
 	}
 
 	// Request parts info from partial file sharing sources
@@ -527,7 +527,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					q->getTarget().c_str() %
 					aBundle->getName().c_str()), LogManager::LOG_INFO);
 
-				addBundleUpdate(aBundle->getToken());
+				addBundleUpdate(aBundle);
 			} else {
 				readdBundle(aBundle);
 			}
@@ -566,7 +566,8 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 		return;
 	{
 		WLock l(cs);
-		for_each(aBundle->getQueueItems(), [&](QueueItemPtr q) {
+		auto ql = aBundle->getQueueItems();
+		for_each(ql, [&](QueueItemPtr q) {
 			dcassert(!q->isSource(aUser));
 			//LogManager::getInstance()->message("READD, BAD SOURCES: " + Util::toString(q->getBadSources().size()));
 			if(q && q->isBadSource(aUser.user)) {
@@ -2138,7 +2139,7 @@ void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tic
 void QueueManager::runAltSearch() {
 	auto b = bundleQueue.findSearchBundle(GET_TICK(), true);
 	if (b) {
-		searchBundle(b, false, false);
+		searchBundle(b, false);
 	} else {
 		LogManager::getInstance()->message("No bundles to search for!", LogManager::LOG_INFO);
 	}
@@ -2151,18 +2152,22 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 
 	//bundleQueue.findSearchBundle(aTick, true);
 
+	{
+		RLock l(cs);
+		if (bundleUpdates.empty())
+			return;
+	}
+
 	StringList updateTokens;
 	{
 		WLock l(cs);
-		if (!bundleUpdates.empty()) {
-			for (auto i = bundleUpdates.begin(); i != bundleUpdates.end();) {
-				if (aTick > i->second + 1000) {
-					updateTokens.push_back(i->first);
-					bundleUpdates.erase(i);
-					i = bundleUpdates.begin();
-				} else {
-					i++;
-				}
+		for (auto i = bundleUpdates.begin(); i != bundleUpdates.end();) {
+			if (aTick > i->second) {
+				updateTokens.push_back(i->first);
+				bundleUpdates.erase(i);
+				i = bundleUpdates.begin();
+			} else {
+				i++;
 			}
 		}
 	}
@@ -2507,13 +2512,14 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		return true;
 
 	if (BOOLSETTING(AUTO_SEARCH) && BOOLSETTING(AUTO_ADD_SOURCE) && aBundle->getPriority() != Bundle::PAUSED) {
-		searchBundle(aBundle, true, false);
-	} else {
-		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_CREATED)) % 
-			aBundle->getName().c_str() % 
-			aBundle->getQueueItems().size()) + 
-			" (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(aBundle->getSize()).c_str() + ")", LogManager::LOG_INFO);
+		aBundle->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
+		addBundleUpdate(aBundle);
 	}
+
+	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_CREATED)) % 
+		aBundle->getName().c_str() % 
+		aBundle->getQueueItems().size()) + 
+		" (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(aBundle->getSize()).c_str() + ")", LogManager::LOG_INFO);
 
 	connectBundleSources(aBundle);
 	return true;
@@ -2596,7 +2602,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 		readdBundle(targetBundle);
 	} else if (!changeTarget) {
 		targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
-		addBundleUpdate(targetBundle->getToken());
+		addBundleUpdate(targetBundle);
 		targetBundle->setDirty(true);
 	}
 
@@ -2669,7 +2675,7 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 
 	aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	aBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
-	addBundleUpdate(aBundle->getToken());
+	addBundleUpdate(aBundle);
 	aBundle->setDirty(true);
 
 	return (int)mBundles.size();
@@ -3162,11 +3168,11 @@ void QueueManager::moveBundleItems(const QueueItemList& ql, BundlePtr targetBund
 		removeBundle(sourceBundle, false, false, true);
 	} else {
 		targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
-		addBundleUpdate(targetBundle->getToken());
+		addBundleUpdate(targetBundle);
 		targetBundle->setDirty(true);
 		if (fireAdded) {
 			sourceBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
-			addBundleUpdate(sourceBundle->getToken());
+			addBundleUpdate(sourceBundle);
 			sourceBundle->setDirty(true);
 		}
 	}
@@ -3190,35 +3196,39 @@ void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr targetBundle, bool 
 	}
 }
 
-void QueueManager::addBundleUpdate(const string& bundleToken) {
+void QueueManager::addBundleUpdate(const BundlePtr aBundle) {
 	//LogManager::getInstance()->message("QueueManager::addBundleUpdate");
 	WLock l(cs);
-	auto i = find_if(bundleUpdates.begin(), bundleUpdates.end(), CompareFirst<string, uint64_t>(bundleToken));
+	auto i = find_if(bundleUpdates.begin(), bundleUpdates.end(), CompareFirst<string, uint64_t>(aBundle->getToken()));
 	if (i != bundleUpdates.end()) {
-		i->second = GET_TICK();
+		i->second = GET_TICK() + 1000;
 		return;
 	}
 
-	bundleUpdates.push_back(make_pair(bundleToken, GET_TICK()));
+	bundleUpdates.push_back(make_pair(aBundle->getToken(), aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH) ? GET_TICK()+10000 : GET_TICK() + 1000));
 }
 
 void QueueManager::handleBundleUpdate(const string& bundleToken) {
 	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
-	BundlePtr bundle = NULL;
+	BundlePtr b = nullptr;
 	{
 		RLock l(cs);
-		bundle = bundleQueue.find(bundleToken);
+		b = bundleQueue.find(bundleToken);
 	}
 
-	if (bundle) {
-		if (bundle->isSet(Bundle::FLAG_UPDATE_SIZE) || bundle->isSet(Bundle::FLAG_UPDATE_NAME)) {
-			if (bundle->isSet(Bundle::FLAG_UPDATE_SIZE)) {
-				fire(QueueManagerListener::BundleSize(), bundle);
+	if (b) {
+		if (b->isSet(Bundle::FLAG_UPDATE_SIZE) || b->isSet(Bundle::FLAG_UPDATE_NAME)) {
+			if (b->isSet(Bundle::FLAG_UPDATE_SIZE)) {
+				fire(QueueManagerListener::BundleSize(), b);
 			} 
-			if (bundle->isSet(Bundle::FLAG_UPDATE_NAME)) {
-				fire(QueueManagerListener::BundleTarget(), bundle);
+			if (b->isSet(Bundle::FLAG_UPDATE_NAME)) {
+				fire(QueueManagerListener::BundleTarget(), b);
 			}
-			DownloadManager::getInstance()->sendSizeNameUpdate(bundle);
+			DownloadManager::getInstance()->sendSizeNameUpdate(b);
+		}
+		
+		if (b->isSet(Bundle::FLAG_SCHEDULE_SEARCH)) {
+			searchBundle(b, false);
 		}
 	}
 }
@@ -3319,7 +3329,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 
 MemoryInputStream* QueueManager::generateTTHList(const string& bundleToken, bool isInSharingHub) {
 	if(!isInSharingHub)
-		return NULL;
+		throw QueueException(UserConnection::FILE_NOT_AVAILABLE);
 
 	string tths;
 	StringOutputStream tthList(tths);
@@ -3332,8 +3342,8 @@ MemoryInputStream* QueueManager::generateTTHList(const string& bundleToken, bool
 		}
 	}
 
-	if (tths.empty()) {
-		return NULL;
+	if (tths.size() == 0) {
+		throw QueueException(UserConnection::FILE_NOT_AVAILABLE);
 	} else {
 		return new MemoryInputStream(tths);
 	}
@@ -3422,7 +3432,7 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) {
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
 
-void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) {
+void QueueManager::searchBundle(BundlePtr aBundle, bool manual) {
 	if (!BOOLSETTING(AUTO_ADD_SOURCE)) {
 		LogManager::getInstance()->message(STRING(AUTO_ADD_SOURCES_DISABLED), LogManager::LOG_WARNING);
 		return;
@@ -3432,9 +3442,16 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 	int64_t nextSearch = 0;
 	{
 		RLock l(cs);
-		aBundle->getSearchItems(searches, manual);
+		bool isScheduled = aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH);
+
+		aBundle->unsetFlag(Bundle::FLAG_SCHEDULE_SEARCH);
 		if (!manual)
 			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle->isRecent(), false) - GET_TICK()) / (60*1000);
+
+		if (isScheduled && !aBundle->allowAutoSearch())
+			return;
+
+		aBundle->getSearchItems(searches, manual);
 	}
 
 	if (searches.size() <= 5) {
@@ -3459,14 +3476,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool newBundle, bool manual) 
 	}
 
 	int searchCount = (int)searches.size() <= 4 ? (int)searches.size() : 4;
-	if (newBundle) {
-		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_CREATED_ALT)  + " " + (!aBundle->isRecent() ? STRING(NEXT_SEARCH_IN) : STRING(NEXT_RECENT_SEARCH_IN))) % 
-			aBundle->getName().c_str() % 
-			aBundle->getQueueItems().size() % 
-			Util::formatBytes(aBundle->getSize()).c_str() % 
-			searchCount %
-			nextSearch), LogManager::LOG_INFO);
-	} else if (manual) {
+	if (manual) {
 		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH)) % aBundle->getName().c_str() % searchCount), LogManager::LOG_INFO);
 	} else if(BOOLSETTING(REPORT_ALTERNATES)) {
 		if (aBundle->getSimpleMatching()) {
@@ -3499,6 +3509,28 @@ void QueueManager::onChangeDownloadOrder() {
 		if (!b->isFinished() && b->getPriority() != Bundle::PAUSED)
 			userQueue.setBundlePriority(b, b->getPriority());
 	});
+}
+
+void QueueManager::onUseSeqOrder(BundlePtr b) {
+	WLock l (cs);
+
+	if (b) {
+		b->setSeqOrder(true);
+		auto ql = b->getQueueItems();
+		for (auto j = ql.begin(); j != ql.end(); ++j) {
+			QueueItemPtr q = *j;
+			q->setAutoPriority(false);
+			if (q->getPriority() != QueueItem::PAUSED) {
+				//userQueue.setQIPriority(q, QueueItem::LOW);
+				userQueue.removeQI(q, false, false);
+				q->setPriority(QueueItem::LOW);
+				userQueue.addQI(q, true);
+				fire(QueueManagerListener::SourcesUpdated(), q);
+			}
+		}
+
+		//dcassert(find_if(b->getQueueItems().begin(), b->getQueueItems().end(), [](QueueItemPtr q) { return q->getAutoPriority(); } ) == b->getQueueItems().end());
+	}
 }
 
 } // namespace dcpp
