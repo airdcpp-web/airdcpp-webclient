@@ -1139,8 +1139,8 @@ int ShareManager::refresh(int aRefreshOptions){
 				std::string realpath = *d;
 				DirMap::const_iterator i = directories.find(realpath);
 				if(i != directories.end()) {
-						refreshPaths.push_back( i->first ); //add all matching realpaths to refreshpaths
-						result = REFRESH_STARTED;
+					refreshPaths.push_back( i->first ); //add all matching realpaths to refreshpaths
+					result = REFRESH_STARTED;
 				}
 			}
 	
