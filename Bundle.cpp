@@ -969,8 +969,8 @@ void Bundle::save() {
 	try {
 		File::deleteFile(getBundleFile());
 		File::renameFile(getBundleFile() + ".tmp", getBundleFile());
-	}catch(...) {
-		LogManager::getInstance()->message("ERROR WHEN MOVING BUNDLEXML: " + getName());
+	} catch(...) {
+		//LogManager::getInstance()->message("ERROR WHEN MOVING BUNDLEXML: " + getName());
 	}
 	setDirty(false);
 }

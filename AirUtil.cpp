@@ -66,7 +66,7 @@ void AirUtil::updateCachedSettings() {
 			skiplistReg.assign(SETTING(SKIPLIST_SHARE));
 		}catch(...) {
 			skiplistReg.assign("(.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log)");
-			LogManager::getInstance()->message("Error setting Share skiplist! using default: (.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log) ");
+			LogManager::getInstance()->message("Error setting Share skiplist! using default: (.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log) ", LogManager::LOG_ERROR);
 		}
 	}
 	privKeyFile = Text::toLower(SETTING(TLS_PRIVATE_KEY_FILE));
@@ -444,14 +444,14 @@ bool AirUtil::checkSharedName(const string& aPath, bool isDir, bool report /*tru
 	if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
 		if(AirUtil::matchSkiplist(Text::utf8ToAcp(aName))) {
 			if(BOOLSETTING(REPORT_SKIPLIST) && report)
-				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
+				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
 			return false;
 		}
 	} else {
 		try {
 			if (Wildcard::patternMatch(Text::utf8ToAcp(aName), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' )) {   // or validate filename for bad chars?
 				if(BOOLSETTING(REPORT_SKIPLIST) && report)
-					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
+					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
 				return false;
 			}
 		} catch(...) { }
@@ -487,7 +487,7 @@ bool AirUtil::checkSharedName(const string& aPath, bool isDir, bool report /*tru
 				(aName.find("__incomplete__") == 0)		//winmx
 				) {
 					if (report) {
-						LogManager::getInstance()->message("Forbidden file will not be shared: " + aPath/* + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/);
+						LogManager::getInstance()->message("Forbidden file will not be shared: " + aPath/* + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
 					}
 					return false;
 			}
@@ -502,7 +502,7 @@ bool AirUtil::checkSharedName(const string& aPath, bool isDir, bool report /*tru
 
 		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
 			if (report) {
-				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath);
+				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath, LogManager::LOG_INFO);
 			}
 			return false;
 		}
@@ -704,7 +704,7 @@ bool AirUtil::isEmpty(const string& aPath) {
 
 void AirUtil::removeIfEmpty(const string& tgt) {
 	if (!isEmpty(tgt)) {
-		LogManager::getInstance()->message("The folder " + tgt + " isn't empty, not removed");
+		LogManager::getInstance()->message("The folder " + tgt + " isn't empty, not removed", LogManager::LOG_INFO);
 	}
 }
 

@@ -713,7 +713,7 @@ void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
 		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(port.empty()) {
 			// Oops?
-			LogManager::getInstance()->message(STRING(NOT_LISTENING));
+			LogManager::getInstance()->message(STRING(NOT_LISTENING), LogManager::LOG_ERROR);
 			return;
 		}
 		send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(port).addParam(token));

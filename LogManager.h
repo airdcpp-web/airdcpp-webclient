@@ -36,14 +36,21 @@ using std::pair;
 class LogManager : public Singleton<LogManager>, public Speaker<LogManagerListener>
 {
 public:
-	typedef pair<time_t, string> Pair;
-	typedef deque<Pair> List;
-
+	enum Severity { LOG_INFO, LOG_WARNING, LOG_ERROR };
 	enum Area { CHAT, PM, DOWNLOAD, UPLOAD, SYSTEM, STATUS, LAST };
 	enum { FILE, FORMAT };
 
+	struct MessageData {
+		MessageData(time_t t, Severity sev) : time(t), severity(sev) { }
+
+		time_t time;
+		Severity severity;
+	};
+
+	typedef deque<pair<string, MessageData> > List;
+
 	void log(Area area, ParamMap& params) noexcept;
-	void message(const string& msg);
+	void message(const string& msg, Severity severity);
 
 	List getLastLogs();
 	void clearLastLogs();

@@ -594,10 +594,10 @@ bool ShareManager::loadCache() {
 		sortReleaseList();
 
 	} catch(SimpleXMLException& e) {
-		LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError());
+		LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError(), LogManager::LOG_ERROR);
 		return false;
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message("Errors Loading share cache: " + e.getError());
+		LogManager::getInstance()->message("Errors Loading share cache: " + e.getError(), LogManager::LOG_ERROR);
 		dcdebug("%s\n", e.getError().c_str());
 		return false;
 	}
@@ -966,7 +966,7 @@ ShareManager::Directory::Ptr ShareManager::buildTree(const string& aName, const 
 #endif
 		string name = i->getFileName();
 		if(name.empty()) {
-			LogManager::getInstance()->message("Invalid file name found while hashing folder "+ aName + ".");
+			LogManager::getInstance()->message("Invalid file name found while hashing folder "+ aName + ".", LogManager::LOG_WARNING);
 			return false;
 		}
 
@@ -1082,7 +1082,7 @@ int ShareManager::refresh( const string& aDir ){
 	int result = REFRESH_PATH_NOT_FOUND;
 
 	if(refreshing.test_and_set()) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
+		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS), LogManager::LOG_INFO);
 		return REFRESH_IN_PROGRESS;
 	}
 	string path = aDir;
@@ -1122,7 +1122,7 @@ int ShareManager::refresh( const string& aDir ){
 int ShareManager::refresh(int aRefreshOptions){
 
 	if(refreshing.test_and_set()) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS));
+		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS), LogManager::LOG_INFO);
 		return REFRESH_IN_PROGRESS;
 	}
 	int result = REFRESH_STARTED;
@@ -1168,7 +1168,7 @@ int ShareManager::initRefreshThread(int aRefreshOptions)  {
 		}
 
 	} catch(const ThreadException& e) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError());
+		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogManager::LOG_WARNING);
 		refreshing.clear();
 	}
 
@@ -1225,7 +1225,7 @@ int ShareManager::run() {
 
 	HashManager::HashPauser pauser;
 				
-	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_INITIATED));
+	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_INITIATED), LogManager::LOG_INFO);
 
 	bundleDirs.clear();
 	QueueManager::getInstance()->getForbiddenPaths(bundleDirs, dirs);
@@ -1281,7 +1281,7 @@ int ShareManager::run() {
 		saveXmlList();
 	}
 
-	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED));
+	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED), LogManager::LOG_INFO);
 end:
 	forceXmlRefresh = true;
 	bundleDirs.clear();
@@ -1416,7 +1416,7 @@ void ShareManager::saveXmlList(bool verbose /* false */) {
 		File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml");
 		File::renameFile(newCache,  (Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"));
 	}catch(Exception& e){
-		LogManager::getInstance()->message("Error Saving Shares.xml: " + e.getError());
+		LogManager::getInstance()->message("Error Saving Shares.xml: " + e.getError(), LogManager::LOG_WARNING);
 	}
 
 	//delete xmlFile;
@@ -1424,7 +1424,7 @@ void ShareManager::saveXmlList(bool verbose /* false */) {
 	ShareCacheDirty = false;
 	lastSave = GET_TICK();
 	if (verbose || BOOLSETTING(SHOW_USELESS_SPAM))
-		LogManager::getInstance()->message("shares.xml saved.");
+		LogManager::getInstance()->message("shares.xml saved.", LogManager::LOG_INFO);
 }
 
 void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& path, string& indent){
@@ -2087,7 +2087,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 		Directory::Ptr dir = findDirectory(path, true, true);
 		if (!dir) {
 			LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_SHARING_FAILED)) % 
-				Util::getLastDir(path).c_str()));
+				Util::getLastDir(path).c_str()), LogManager::LOG_WARNING);
 			return;
 		}
 
@@ -2104,7 +2104,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 	sortReleaseList();
 
 	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_SHARED)) % 
-		Util::getLastDir(path).c_str()));
+		Util::getLastDir(path).c_str()), LogManager::LOG_INFO);
 }
 
 bool ShareManager::allowAddDir(const string& path) noexcept {

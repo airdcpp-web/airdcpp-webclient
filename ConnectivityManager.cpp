@@ -22,7 +22,6 @@
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "format.h"
-#include "LogManager.h"
 #include "MappingManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
@@ -92,12 +91,12 @@ void ConnectivityManager::detectConnection() {
 		}
 	});
 
-	log((string)("Determining the best connectivity settings..."));
+	log((string)("Determining the best connectivity settings..."), LogManager::LOG_INFO);
 	try {
 		listen();
 	} catch(const Exception& e) {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_FIREWALL_PASSIVE;
-		log(str(boost::format("Unable to open %1% port(s); connectivity settings must be configured manually") % e.getError()));
+		log(str(boost::format("Unable to open %1% port(s); connectivity settings must be configured manually") % e.getError()), LogManager::LOG_ERROR);
 		fire(ConnectivityManagerListener::Finished());
 		running = false;
 		return;
@@ -107,14 +106,14 @@ void ConnectivityManager::detectConnection() {
 
 	if(!Util::isPrivateIp(AirUtil::getLocalIp())) {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_DIRECT;
-		log((string)("Public IP address detected, selecting active mode with direct connection"));
+		log((string)("Public IP address detected, selecting active mode with direct connection"), LogManager::LOG_INFO);
 		fire(ConnectivityManagerListener::Finished());
 		running = false;
 		return;
 	}
 
 	autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_FIREWALL_UPNP;
-	log((string)("Local network with possible NAT detected, trying to map the ports..."));
+	log((string)("Local network with possible NAT detected, trying to map the ports..."), LogManager::LOG_INFO);
 
 	startMapping();
 }
@@ -220,7 +219,7 @@ void ConnectivityManager::mappingFinished(const string& mapper) {
 		if(mapper.empty()) {
 			disconnect();
 			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_FIREWALL_PASSIVE;
-			log((string)("Active mode could not be achieved; a manual configuration is recommended for better connectivity"));
+			log((string)("Active mode could not be achieved; a manual configuration is recommended for better connectivity"), LogManager::LOG_WARNING);
 		} else {
 			SettingsManager::getInstance()->set(SettingsManager::MAPPER, mapper);
 		}
@@ -230,13 +229,13 @@ void ConnectivityManager::mappingFinished(const string& mapper) {
 	running = false;
 }
 
-void ConnectivityManager::log(string&& message) {
+void ConnectivityManager::log(string&& message, LogManager::Severity sev) {
 	if(BOOLSETTING(AUTO_DETECT_CONNECTION)) {
 		status = forward<string>(message);
-		LogManager::getInstance()->message("Connectivity: " + status);
+		LogManager::getInstance()->message("Connectivity: " + status, LogManager::LOG_INFO);
 		fire(ConnectivityManagerListener::Message(), status);
 	} else {
-		LogManager::getInstance()->message(message);
+		LogManager::getInstance()->message(message, LogManager::LOG_INFO);
 	}
 }
 

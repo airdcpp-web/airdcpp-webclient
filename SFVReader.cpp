@@ -84,7 +84,7 @@ void DirSFVReader::load() noexcept {
 				throw FileException();
 			}
 		} catch(const FileException&) {
-			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + *i);
+			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + *i, LogManager::LOG_ERROR);
 			continue;
 		}
 
@@ -102,7 +102,7 @@ void DirSFVReader::load() noexcept {
 				if (line.length() < 5)
 					continue;
 				if (line.length() > 150) {
-					LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + *i);
+					LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + *i, LogManager::LOG_ERROR);
 					//can't most likely to detect the line breaks
 					break;
 				}

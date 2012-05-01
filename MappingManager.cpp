@@ -51,12 +51,12 @@ bool MappingManager::open() {
 		return false;
 
 	if(mappers.empty()) {
-		log("No port mapping interface available");
+		log("No port mapping interface available", LogManager::LOG_ERROR);
 		return false;
 	}
 
 	if(busy.test_and_set()) {
-		log("Another port mapping attempt is in progress...");
+		log("Another port mapping attempt is in progress...", LogManager::LOG_INFO);
 		return false;
 	}
 
@@ -146,7 +146,7 @@ int MappingManager::run() {
 
 		ScopedFunctor([&mapper] { mapper.uninit(); });
 		if(!mapper.init()) {
-			log(str(boost::format("Failed to initalize the %1% interface") % mapper.getName()));
+			log(str(boost::format("Failed to initalize the %1% interface") % mapper.getName()), LogManager::LOG_WARNING);
 			continue;
 		}
 
@@ -155,7 +155,7 @@ int MappingManager::run() {
 				APPNAME % description % port % Mapper::protocols[protocol])))
 			{
 				this->log(str(boost::format("Failed to map the %1% port (%2% %3%) with the %4% interface") %
-					description % port % Mapper::protocols[protocol] % mapper.getName()));
+					description % port % Mapper::protocols[protocol] % mapper.getName()), LogManager::LOG_WARNING);
 				mapper.close();
 				return false;
 			}
@@ -168,7 +168,7 @@ int MappingManager::run() {
 			continue;
 
 		log(str(boost::format("Successfully created port mappings (Transfers: %1%, Encrypted transfers: %2%, Search: %3%) on the %4% device with the %5% interface") %
-			conn_port % secure_port % search_port % deviceString(mapper) % mapper.getName()));
+			conn_port % secure_port % search_port % deviceString(mapper) % mapper.getName()), LogManager::LOG_INFO);
 
 		working = move(pMapper);
 
@@ -178,7 +178,7 @@ int MappingManager::run() {
 				ConnectivityManager::getInstance()->set(SettingsManager::EXTERNAL_IP, externalIP);
 			} else {
 				// no cleanup because the mappings work and hubs will likely provide the correct IP.
-				log("Failed to get external IP");
+				log("Failed to get external IP", LogManager::LOG_WARNING);
 			}
 		}
 
@@ -189,7 +189,7 @@ int MappingManager::run() {
 	}
 
 	if(!getOpened()) {
-		log(str(boost::format("Failed to create port mappings")));
+		log(str(boost::format("Failed to create port mappings")), LogManager::LOG_ERROR);
 		ConnectivityManager::getInstance()->mappingFinished(Util::emptyString);
 	}
 
@@ -200,14 +200,15 @@ void MappingManager::close(Mapper& mapper) {
 	if(mapper.hasRules()) {
 		bool ret = mapper.init() && mapper.close();
 		mapper.uninit();
-		log(ret ?
-			str(boost::format("Successfully removed port mappings from the %1% device with the %2% interface") % deviceString(mapper) % mapper.getName()) :
-			str(boost::format("Failed to remove port mappings from the %1% device with the %2% interface") % deviceString(mapper) % mapper.getName()));
+		if (ret)
+			log(str(boost::format("Successfully removed port mappings from the %1% device with the %2% interface") % deviceString(mapper) % mapper.getName()), LogManager::LOG_INFO);
+		else
+			log(str(boost::format("Failed to remove port mappings from the %1% device with the %2% interface") % deviceString(mapper) % mapper.getName()), LogManager::LOG_WARNING);
 	}
 }
 
-void MappingManager::log(const string& message) {
-	ConnectivityManager::getInstance()->log(str(boost::format("Port mapping: %1%") % message));
+void MappingManager::log(const string& message, LogManager::Severity sev) {
+	ConnectivityManager::getInstance()->log(str(boost::format("Port mapping: %1%") % message), sev);
 }
 
 string MappingManager::deviceString(Mapper& mapper) const {

@@ -29,6 +29,7 @@
 #include "LogManager.h"
 #include "UserConnection.h"
 #include "AirUtil.h"
+#include "format.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
@@ -337,7 +338,7 @@ int ConnectionManager::Server::run() noexcept {
 				port = sock.listen(port);
 
 				if(failed) {
-					LogManager::getInstance()->message("Connectivity restored");
+					LogManager::getInstance()->message("Connectivity restored", LogManager::LOG_INFO);
 					failed = false;
 				}
 				break;
@@ -345,7 +346,7 @@ int ConnectionManager::Server::run() noexcept {
 				dcdebug("ConnectionManager::Server::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					//LogManager::getInstance()->message(str("Connectivity error: %1%") % e.getError()));
+					LogManager::getInstance()->message(str(boost::format("Connectivity error: %1%") % e.getError()), LogManager::LOG_ERROR);
 					failed = true;
 				}
 

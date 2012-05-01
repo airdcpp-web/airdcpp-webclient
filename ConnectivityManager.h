@@ -23,6 +23,7 @@
 #include "SettingsManager.h"
 #include "Singleton.h"
 #include "Speaker.h"
+#include "LogManager.h"
 
 #include <string>
 #include <unordered_map>
@@ -73,7 +74,7 @@ private:
 
 	void startMapping();
 	void mappingFinished(const string& mapper);
-	void log(string&& message);
+	void log(string&& message, LogManager::Severity sev);
 
 	void startSocket();
 	void listen();

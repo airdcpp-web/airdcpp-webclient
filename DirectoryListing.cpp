@@ -127,7 +127,8 @@ string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkDupes
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
 		//Better to abort and show the error, than just leave it hanging.
-	LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " + Util::toString(ClientManager::getInstance()->getNicks(HintedUser(getUser(), Util::emptyString))) + " ]");
+	LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " + 
+		Util::toString(ClientManager::getInstance()->getNicks(HintedUser(getUser(), Util::emptyString))) + " ]", LogManager::LOG_ERROR);
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
 	}
 	return ll.getBase();
@@ -440,7 +441,7 @@ void DirectoryListing::findNfo(const string& aPath) {
 			}
 		}
 	}
-	LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) + ": " + STRING(NO_NFO_FOUND));
+	LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) + ": " + STRING(NO_NFO_FOUND), LogManager::LOG_INFO);
 }
 
 struct HashContained {

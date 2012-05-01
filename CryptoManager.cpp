@@ -286,7 +286,7 @@ void CryptoManager::loadCertificates() noexcept {
 	const string& key = SETTING(TLS_PRIVATE_KEY_FILE);
 
 	if(cert.empty() || key.empty()) {
-		LogManager::getInstance()->message(STRING(NO_CERTIFICATE_FILE_SET));
+		LogManager::getInstance()->message(STRING(NO_CERTIFICATE_FILE_SET), LogManager::LOG_WARNING);
 		return;
 	}
 
@@ -294,45 +294,45 @@ void CryptoManager::loadCertificates() noexcept {
 		// Try to generate them...
 		try {
 			generateCertificate();
-			LogManager::getInstance()->message(STRING(CERTIFICATE_GENERATED));
+			LogManager::getInstance()->message(STRING(CERTIFICATE_GENERATED), LogManager::LOG_INFO);
 		} catch(const CryptoException& e) {
-			LogManager::getInstance()->message(STRING(CERTIFICATE_GENERATION_FAILED) + " " + e.getError());
+			LogManager::getInstance()->message(STRING(CERTIFICATE_GENERATION_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
 		}
 	}
 
 	if(SSL_CTX_use_certificate_file(serverContext, SETTING(TLS_CERTIFICATE_FILE).c_str(), SSL_FILETYPE_PEM) != SSL_SUCCESS) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE));
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
 		return;
 	}
 	if(SSL_CTX_use_certificate_file(clientContext, SETTING(TLS_CERTIFICATE_FILE).c_str(), SSL_FILETYPE_PEM) != SSL_SUCCESS) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE));
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
 		return;
 	}
 
 	if(SSL_CTX_use_certificate_file(serverVerContext, SETTING(TLS_CERTIFICATE_FILE).c_str(), SSL_FILETYPE_PEM) != SSL_SUCCESS) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE));
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
 		return;
 	}
 	if(SSL_CTX_use_certificate_file(clientVerContext, SETTING(TLS_CERTIFICATE_FILE).c_str(), SSL_FILETYPE_PEM) != SSL_SUCCESS) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE));
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
 		return;
 	}
 
 	if(SSL_CTX_use_PrivateKey_file(serverContext, SETTING(TLS_PRIVATE_KEY_FILE).c_str(), SSL_FILETYPE_PEM) != SSL_SUCCESS) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY));
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
 		return;
 	}
 	if(SSL_CTX_use_PrivateKey_file(clientContext, SETTING(TLS_PRIVATE_KEY_FILE).c_str(), SSL_FILETYPE_PEM) != SSL_SUCCESS) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY));
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
 		return;
 	}
 
 	if(SSL_CTX_use_PrivateKey_file(serverVerContext, SETTING(TLS_PRIVATE_KEY_FILE).c_str(), SSL_FILETYPE_PEM) != SSL_SUCCESS) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY));
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
 		return;
 	}
 	if(SSL_CTX_use_PrivateKey_file(clientVerContext, SETTING(TLS_PRIVATE_KEY_FILE).c_str(), SSL_FILETYPE_PEM) != SSL_SUCCESS) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY));
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
 		return;
 	}
 
@@ -348,7 +348,7 @@ void CryptoManager::loadCertificates() noexcept {
 			SSL_CTX_load_verify_locations(serverContext, i->c_str(), NULL) != SSL_SUCCESS ||
 			SSL_CTX_load_verify_locations(serverVerContext, i->c_str(), NULL) != SSL_SUCCESS
 		) {
-			LogManager::getInstance()->message("Failed to load trusted certificate from " + *i);
+			LogManager::getInstance()->message("Failed to load trusted certificate from " + *i, LogManager::LOG_WARNING);
 		}
 	}
 #endif

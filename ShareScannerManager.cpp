@@ -72,7 +72,7 @@ int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 	stop = false;
 	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
-		LogManager::getInstance()->message(STRING(SCAN_RUNNING));
+		LogManager::getInstance()->message(STRING(SCAN_RUNNING), LogManager::LOG_INFO);
 		return 1;
 	}
 	isCheckSFV = false;
@@ -95,12 +95,12 @@ int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 	
 
 	if(sfv) {
-		LogManager::getInstance()->message(STRING(CRC_STARTED));
+		LogManager::getInstance()->message(STRING(CRC_STARTED), LogManager::LOG_INFO);
 		crcOk = 0;
 		crcInvalid = 0;
 		checkFailed = 0;
 	} else {
-		LogManager::getInstance()->message(STRING(SCAN_STARTED));
+		LogManager::getInstance()->message(STRING(SCAN_STARTED), LogManager::LOG_INFO);
 	}
 	return 0;
 }
@@ -154,9 +154,9 @@ int ShareScannerManager::run() {
 
 		/* Report */
 		if (stop) {
-			LogManager::getInstance()->message(STRING(CRC_STOPPED));
+			LogManager::getInstance()->message(STRING(CRC_STOPPED), LogManager::LOG_INFO);
 		} else {
-			LogManager::getInstance()->message(str(boost::format(STRING(CRC_FINISHED)) % crcOk % crcInvalid % checkFailed));
+			LogManager::getInstance()->message(str(boost::format(STRING(CRC_FINISHED)) % crcOk % crcInvalid % checkFailed), LogManager::LOG_INFO);
 		}
 	} else {
 		/* Scan for missing files */
@@ -248,7 +248,7 @@ void ShareScannerManager::findDupes(const string& path, int& dupesFound) throw(F
 
 		//list all dupes here
 		for(auto k = dupes.first; k != dupes.second; ++k) {
-			LogManager::getInstance()->message(str(boost::format(STRING(X_IS_SAME_THAN)) % path % k->second));
+			LogManager::getInstance()->message(str(boost::format(STRING(X_IS_SAME_THAN)) % path % k->second), LogManager::LOG_INFO);
 		}
 	}
 
@@ -299,7 +299,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		StringList folderList = findFiles(path, "*", true, true);
 		if (folderList.empty()) {
 			if (SETTING(CHECK_EMPTY_DIRS)) {
-				LogManager::getInstance()->message(STRING(DIR_EMPTY) + " " + path);
+				LogManager::getInstance()->message(STRING(DIR_EMPTY) + " " + path, LogManager::LOG_INFO);
 				emptyFolders++;
 			}
 			return;
@@ -326,7 +326,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		if (!regex_match(dirName, emptyDirReg)) {
 			StringList folderList = findFiles(path, "*", true, true);
 			if (folderList.empty()) {
-				LogManager::getInstance()->message(STRING(RELEASE_FILES_MISSING) + " " + path);
+				LogManager::getInstance()->message(STRING(RELEASE_FILES_MISSING) + " " + path, LogManager::LOG_WARNING);
 				return;
 			}
 		}
@@ -336,12 +336,12 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		//Check for multiple NFO or SFV files
 		if (SETTING(CHECK_EXTRA_SFV_NFO)) {
 			if (nfoFiles > 1) {
-				LogManager::getInstance()->message(STRING(MULTIPLE_NFO) + path);
+				LogManager::getInstance()->message(STRING(MULTIPLE_NFO) + path, LogManager::LOG_INFO);
 				extrasFound++;
 				extrasInFolder = true;
 			}
 			if (sfvFiles > 1) {
-				LogManager::getInstance()->message(STRING(MULTIPLE_SFV) + path);
+				LogManager::getInstance()->message(STRING(MULTIPLE_SFV) + path, LogManager::LOG_INFO);
 				if (!extrasInFolder) {
 					extrasInFolder = true;
 					extrasFound++;
@@ -371,7 +371,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				if (isZipRls && SETTING(CHECK_EXTRA_FILES) && sfvFiles == 0) {
 					AirUtil::listRegexSubtract(fileList, zipFolderReg);
 					if (!fileList.empty()) {
-						LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_RLSDIR_X)) % path % Util::toString(", ", fileList)));
+						LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_RLSDIR_X)) % path % Util::toString(", ", fileList)), LogManager::LOG_INFO);
 						extrasFound++;
 					}
 				}
@@ -398,7 +398,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				}
 
 				if (nfoFiles > 0 || sfvFiles > 0 || isRelease || found) {
-					LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_SAMPLEDIR_X)) % path));
+					LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_SAMPLEDIR_X)) % path), LogManager::LOG_INFO);
 					extrasFound++;
 				}
 			}
@@ -426,7 +426,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				}
 
 				if (!found) {
-					LogManager::getInstance()->message(STRING(NFO_MISSING) + path);
+					LogManager::getInstance()->message(STRING(NFO_MISSING) + path, LogManager::LOG_INFO);
 					missingNFO++;
 				}
 			}
@@ -435,7 +435,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 			if (sfvFiles == 0 && isRelease) {
 				//avoid extra matches
 				if (!regex_match(dirName,subReg) && SETTING(CHECK_SFV)) {
-					LogManager::getInstance()->message(STRING(SFV_MISSING) + path);
+					LogManager::getInstance()->message(STRING(SFV_MISSING) + path, LogManager::LOG_INFO);
 					missingSFV++;
 				}
 				return;
@@ -462,7 +462,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		if(s == fileList.end()) { 
 			loopMissing++;
 			if (SETTING(CHECK_MISSING))
-				LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + fileName);
+				LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + path + fileName, LogManager::LOG_WARNING);
 		} else {
 			fileList.erase(s);
 		}
@@ -485,7 +485,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 		AirUtil::listRegexSubtract(fileList, extraRegs[extrasType]);
 		if (!fileList.empty()) {
-			LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_RLSDIR_X)) % path % Util::toString(", ", fileList)));
+			LogManager::getInstance()->message(str(boost::format(CSTRING(EXTRA_FILES_RLSDIR_X)) % path % Util::toString(", ", fileList)), LogManager::LOG_INFO);
 			if (!extrasInFolder)
 				extrasFound++;
 		}
@@ -502,7 +502,7 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 			if (Util::fileExists(aPath + fileName)) {
 				scanFolderSize = scanFolderSize + File::getSize(aPath + fileName);
 			} else {
-				LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + aPath + fileName);
+				LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + aPath + fileName, LogManager::LOG_WARNING);
 				checkFailed++;
 			}
 		}
@@ -526,7 +526,7 @@ void ShareScannerManager::prepareSFVScanFile(const string& aPath, StringList& fi
 		scanFolderSize += File::getSize(aPath);
 		files.push_back(Text::toLower(Util::getFileName(aPath)));
 	} else {
-		LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + aPath);
+		LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + aPath, LogManager::LOG_WARNING);
 		checkFailed++;
 	}
 }
@@ -544,7 +544,7 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 			checkEnd = GET_TICK();
 		} catch(const FileException& ) {
 			// Couldn't read the file to get the CRC(!!!)
-			LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + sfv.getPath() + aFileName);
+			LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + sfv.getPath() + aFileName, LogManager::LOG_ERROR);
 		}
 
 		int64_t size = File::getSize(sfv.getPath() + aFileName);
@@ -567,11 +567,11 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 
 		scanFolderSize = scanFolderSize - size;
 		message += ", " + STRING(CRC_REMAINING) + Util::formatBytes(scanFolderSize);
-		LogManager::getInstance()->message(message);
+		LogManager::getInstance()->message(message, (crcMatch ? LogManager::LOG_INFO : LogManager::LOG_ERROR));
 
 
 	} else if (!isDirScan || regex_match(aFileName, rarMp3Reg)) {
-		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + sfv.getPath() + aFileName);
+		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + sfv.getPath() + aFileName, LogManager::LOG_WARNING);
 		checkFailed++;
 	}
 }
@@ -584,13 +584,19 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 		find(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, true);
 
 		reportResults(aBundle->getName(), aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? TYPE_FAILED_FINISHED : TYPE_FINISHED, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
-		return (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0); //allow choosing the level when it shouldn't be added?
+		if (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0) { //allow choosing the level when it shouldn't be added?
+
+			return false;
+		} else {
+			return true;
+		}
 	}
 	return true;
 }
 
 void ShareScannerManager::reportResults(const string& dir, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound) {
-	string tmp, tmp2;
+	string tmp;
+	bool clean = (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0);
 	if (scanType == TYPE_FULL) {
 		tmp = CSTRING(SCAN_SHARE_FINISHED);
 	} else if (scanType == TYPE_PARTIAL) {
@@ -598,18 +604,16 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 	} else if (scanType == TYPE_FINISHED) {
 		tmp = str(boost::format(STRING(SCAN_BUNDLE_FINISHED)) % dir.c_str());
 	} else if (scanType == TYPE_FAILED_FINISHED) {
+		if (clean)
+			return; //no report for clean bundles
 		tmp = str(boost::format(STRING(SCAN_FAILED_BUNDLE_FINISHED)) % dir.c_str());
 	}
 
-	if (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0) {
-		if (scanType == 3) {
-			//no report for clean bundles
-			return;
-		}
+	if (clean) {
 		tmp += ", ";
 		tmp += CSTRING(SCAN_NO_PROBLEMS);
 	} else {
-		if (scanType != 3) {
+		if (scanType != TYPE_FAILED_FINISHED) {
 			tmp += " ";
 			tmp += CSTRING(SCAN_PROBLEMS_FOUND);
 			tmp += ":  ";
@@ -660,11 +664,12 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 			tmp += str(boost::format(STRING(X_DUPE_FOLDERS)) % dupesFound);
 		}
 
-		if (scanType == TYPE_FINISHED || scanType == TYPE_FAILED_FINISHED) {
+		if ((scanType == TYPE_FINISHED || scanType == TYPE_FAILED_FINISHED) && BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 			tmp += str(boost::format(". " + STRING(FORCE_HASH_NOTIFICATION)) % dir);
 		}
 	}
-	LogManager::getInstance()->message(tmp);
+
+	LogManager::getInstance()->message(tmp, (!clean && (scanType == TYPE_FAILED_FINISHED || scanType == TYPE_FINISHED)) ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
 } // namespace dcpp

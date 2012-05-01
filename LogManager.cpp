@@ -28,7 +28,7 @@ void LogManager::log(Area area, ParamMap& params) noexcept {
 	log(SETTING(LOG_DIRECTORY) + Util::formatParams(getSetting(area, FILE), params), Util::formatParams(getSetting(area, FORMAT), params));
 }
 
-void LogManager::message(const string& msg) {
+void LogManager::message(const string& msg, Severity severity) {
 	if(BOOLSETTING(LOG_SYSTEM)) {
 		ParamMap params;
 		params["message"] = msg;
@@ -40,9 +40,9 @@ void LogManager::message(const string& msg) {
 		// Keep the last 100 messages (completely arbitrary number...)
 		while(lastLogs.size() > 100)
 			lastLogs.pop_front();
-		lastLogs.push_back(make_pair(t, msg));
+		lastLogs.push_back(make_pair(msg, MessageData(t, severity)));
 	}
-	fire(LogManagerListener::Message(), t, msg);
+	fire(LogManagerListener::Message(), t, msg, severity);
 }
 
 LogManager::List LogManager::getLastLogs() {

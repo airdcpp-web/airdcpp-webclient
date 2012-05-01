@@ -69,7 +69,7 @@ void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const T
 		Lock l(cs);
 		store.addFile(aFileName, aTimeStamp, tth, true);
 	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError());
+		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
 		return;
 	}
 	
@@ -83,9 +83,9 @@ void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const T
 		}
 	
 		if (speed > 0) {
-			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)");
+			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)", LogManager::LOG_INFO);
 		} else {
-			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn);
+			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn, LogManager::LOG_INFO);
 		}
 	}
 
@@ -117,7 +117,7 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 			treeIndex.insert(make_pair(tt.getRoot(), TreeInfo(tt.getFileSize(), index, tt.getBlockSize())));
 			dirty = true;
 		} catch (const FileException& e) {
-			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError());
+			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError(), LogManager::LOG_ERROR);
 		}
 	}
 }
@@ -276,7 +276,7 @@ void HashManager::HashStore::rebuild() {
 		dirty = true;
 		save();
 	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError());
+		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
 	}
 }
 
@@ -332,7 +332,7 @@ void HashManager::HashStore::save() {
 
 			dirty = false;
 		} catch (const FileException& e) {
-			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError());
+			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError(), LogManager::LOG_ERROR);
 		}
 	}
 }
@@ -466,7 +466,7 @@ void HashManager::HashStore::createDataFile(const string& name) {
 		dat.write(&start, sizeof(start));
 
 	} catch (const FileException& e) {
-		LogManager::getInstance()->message(STRING(ERROR_CREATING_HASH_DATA_FILE) + " " + e.getError());
+		LogManager::getInstance()->message(STRING(ERROR_CREATING_HASH_DATA_FILE) + " " + e.getError(), LogManager::LOG_ERROR);
 	}
 }
 
@@ -540,7 +540,7 @@ int HashManager::Hasher::run() {
 		if(rebuild) {
 			HashManager::getInstance()->doRebuild();
 			rebuild = false;
-			LogManager::getInstance()->message(STRING(HASH_REBUILT));
+			LogManager::getInstance()->message(STRING(HASH_REBUILT), LogManager::LOG_INFO);
 			continue;
 		}
 		
@@ -610,13 +610,13 @@ int HashManager::Hasher::run() {
 					speed = size * 1000 / (end - start);
 				}
 				if(xcrc32 && xcrc32->getValue() != sfv.getCRC()) {
-					LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32));
+					LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), LogManager::LOG_ERROR);
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				} else {
 					HashManager::getInstance()->hashDone(fname, timestamp, tt, speed, size);
 				}
 			} catch(const FileException& e) {
-				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError());
+				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), LogManager::LOG_ERROR);
 				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 			}
 		

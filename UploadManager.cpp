@@ -226,7 +226,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 		aSource.fileNotAvail(e.getError());
 		return false;
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError());
+		LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError(), LogManager::LOG_ERROR);
 		aSource.fileNotAvail();
 		return false;
 	}
@@ -559,7 +559,7 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 	}
 	
 	if (bundleToken.empty() || name.empty() || size <= 0 || token.empty()) {
-		LogManager::getInstance()->message("INVALID UBD1");
+		//LogManager::getInstance()->message("INVALID UBD1", LogManager::LOG_ERROR);
 		return;
 	}
 
@@ -651,7 +651,7 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 	}
 	
 	if (bundleToken.empty() || token.empty()) {
-		LogManager::getInstance()->message("INVALID UBD1: CHANGE");
+		//LogManager::getInstance()->message("INVALID UBD1: CHANGE", LogManager::LOG_ERROR);
 		return;
 	}
 
@@ -682,7 +682,7 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 	}
 	
 	if (bundleToken.empty()) {
-		LogManager::getInstance()->message("INVALID UBD1: FINISH");
+		//LogManager::getInstance()->message("INVALID UBD1: FINISH", LogManager::LOG_ERROR);
 		return;
 	}
 
@@ -1073,7 +1073,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 		
 	for(UserList::const_iterator i = disconnects.begin(); i != disconnects.end(); ++i) {
-		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks((*i)->getCID(), Util::emptyString)));
+		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks((*i)->getCID(), Util::emptyString)), LogManager::LOG_INFO);
 		ConnectionManager::getInstance()->disconnect(*i, false);
 	}
 

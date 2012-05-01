@@ -28,6 +28,7 @@
 #include "Mapper.h"
 #include "TimerManager.h"
 #include "atomic.h"
+#include "LogManager.h"
 
 namespace dcpp {
 
@@ -85,7 +86,7 @@ private:
 	int run();
 
 	void close(Mapper& mapper);
-	void log(const string& message);
+	void log(const string& message, LogManager::Severity sev);
 	string deviceString(Mapper& mapper) const;
 	void renewLater(Mapper& mapper);
 

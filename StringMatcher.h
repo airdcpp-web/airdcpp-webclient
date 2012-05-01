@@ -75,7 +75,7 @@ public:
 		if (reg.IsValid()) {
 			reg.study();
 		} else {
-			LogManager::getInstance()->message("Invalid regex: " + pattern);
+			LogManager::getInstance()->message("Invalid regex: " + pattern, LogManager::LOG_ERROR);
 		}
 	}
 
@@ -115,7 +115,7 @@ public:
 		if (reg.IsValid()) {
 			reg.study();
 		} else {
-			LogManager::getInstance()->message("Invalid wildcard: " + pattern);
+			LogManager::getInstance()->message("Invalid wildcard: " + pattern, LogManager::LOG_ERROR);
 		}
 	}
 

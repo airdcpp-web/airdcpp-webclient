@@ -324,7 +324,7 @@ private:
 		int prioGroup = 1;
 		if (uniqueValues <= 1) {
 			if (verbose) {
-				LogManager::getInstance()->message("Not enough items with unique points to perform the priotization!");
+				LogManager::getInstance()->message("Not enough items with unique points to perform the priotization!", LogManager::LOG_INFO);
 			}
 			return;
 		} else if (uniqueValues > 2) {
@@ -332,7 +332,7 @@ private:
 		}
 
 		if (verbose) {
-			LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup));
+			LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup), LogManager::LOG_INFO);
 		}
 
 
@@ -346,7 +346,7 @@ private:
 		for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
 			if (lastPoints==i->first) {
 				if (verbose) {
-					LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
+					LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio), LogManager::LOG_INFO);
 				}
 
 				if(i->second->getPriority() != prio)
@@ -363,7 +363,7 @@ private:
 				} 
 
 				if (verbose) {
-					LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio));
+					LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio), LogManager::LOG_INFO);
 				}
 
 				if(i->second->getPriority() != prio)

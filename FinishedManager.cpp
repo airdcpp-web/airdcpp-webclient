@@ -90,7 +90,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, 
 			snprintf(buf, BUF_SIZE, CSTRING(FINISHED_DOWNLOAD), Util::getFileName(qi->getTarget()).c_str(), 
 			Util::toString(ClientManager::getInstance()->getNicks(aUser)).c_str());
 
-			LogManager::getInstance()->message(buf);
+			LogManager::getInstance()->message(buf, LogManager::LOG_INFO);
 			delete[] buf;
 		}
 	}
@@ -115,7 +115,7 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexc
 		snprintf(buf, BUF_SIZE, CSTRING(FINISHED_UPLOAD), (Util::getFileName(u->getPath())).c_str(), 
 			Util::toString(ClientManager::getInstance()->getNicks(u->getHintedUser())).c_str());
 
-		LogManager::getInstance()->message(buf);
+		LogManager::getInstance()->message(buf, LogManager::LOG_INFO);
 		delete[] buf;		
 			}
 		}

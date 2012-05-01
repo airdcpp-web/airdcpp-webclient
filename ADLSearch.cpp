@@ -143,7 +143,7 @@ ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
 void ADLSearchManager::Load()
 {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS));
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return;
 	}
 
@@ -247,7 +247,7 @@ void ADLSearchManager::Load()
 
 bool ADLSearchManager::addCollection(ADLSearch* search, bool addMain, bool addSub, bool useIndex, int index) {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS));
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return false;
 	}
 
@@ -320,7 +320,7 @@ bool ADLSearchManager::addCollection(ADLSearch* search, bool addMain, bool addSu
 
 bool ADLSearchManager::removeCollection(int index, bool move) {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS));
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return false;
 	}
 
@@ -335,7 +335,7 @@ bool ADLSearchManager::removeCollection(int index, bool move) {
 
 bool ADLSearchManager::changeState(int index, bool aIsActive) {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS));
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return false;
 	}
 

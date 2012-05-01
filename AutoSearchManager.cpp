@@ -73,11 +73,11 @@ void AutoSearch::search(StringList& aHubs) {
 
 	if (searchTime == 0) {
 		LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
-			searchString));
+			searchString), LogManager::LOG_INFO);
 	} else {
 		LogManager::getInstance()->message(str(boost::format("Autosearch: %s will be searched in %d seconds") %
 			searchString %
-			(searchTime / 1000)));
+			(searchTime / 1000)), LogManager::LOG_INFO);
 	}
 }
 
@@ -216,7 +216,7 @@ bool AutoSearchManager::hasEnabledItems() {
 	}
 
 	for_each(expired, [&](AutoSearchPtr as) {
-		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getSearchString()); 
+		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getSearchString(), LogManager::LOG_INFO); 
 		removeAutoSearch(as);
 	});
 
@@ -244,7 +244,7 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 		
 		//we have waited for search time, and we are at the end of list. wait for recheck time. so time between searches "autosearch every" + "recheck time" 
 		if(curPos >= searchItems.size()) { 
-			LogManager::getInstance()->message("Autosearch: End of list reached. Recheck Items, next search after " + Util::toString(SETTING(AUTOSEARCH_RECHECK_TIME)) + " minutes");
+			LogManager::getInstance()->message("Autosearch: End of list reached. Recheck Items, next search after " + Util::toString(SETTING(AUTOSEARCH_RECHECK_TIME)) + " minutes", LogManager::LOG_INFO);
 			curPos = 0;
 			endOfListReached = true;
 			recheckTime = 0;
@@ -377,7 +377,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 					Util::formatBytes(sr->getSize()));
 			}
 
-			LogManager::getInstance()->message(tmp);
+			LogManager::getInstance()->message(tmp, LogManager::LOG_WARNING);
 		}
 
 		path = ti.targetDir;
@@ -391,8 +391,8 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 				QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE || noFreeSpace) ? QueueItem::PAUSED : QueueItem::DEFAULT));
 			}
-		} catch(const Exception& e) {
-			LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");
+		} catch(const Exception& /*e*/) {
+			//LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");
 			return;
 		}
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
