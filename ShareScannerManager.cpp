@@ -468,8 +468,8 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		}
 	}
 
-
-	missingFiles += loopMissing;
+	if (SETTING(CHECK_MISSING))
+		missingFiles += loopMissing;
 
 	/* Extras in folder? */
 	releaseFiles = releaseFiles - loopMissing;
@@ -615,12 +615,12 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 		}
 
 		bool first = true;
-		if (SETTING(CHECK_MISSING) && missingFiles > 0) {
+		if (missingFiles > 0) {
 			first = false;
 			tmp += str(boost::format(STRING(X_MISSING_RELEASE_FILES)) % missingFiles);
 		}
 
-		if (SETTING(CHECK_SFV) && missingSFV > 0) {
+		if (missingSFV > 0) {
 			if (!first) {
 				tmp += ", ";
 			}
@@ -628,7 +628,7 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 			tmp += str(boost::format(STRING(X_MISSING_SFV_FILES)) % missingSFV);
 		}
 
-		if (SETTING(CHECK_NFO) && missingNFO > 0) {
+		if (missingNFO > 0) {
 			if (!first) {
 				tmp += ", ";
 			}
@@ -636,7 +636,7 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 			tmp += str(boost::format(STRING(X_MISSING_NFO_FILES)) % missingNFO);
 		}
 
-		if (SETTING(CHECK_EXTRA_FILES) && extrasFound > 0) {
+		if (extrasFound > 0) {
 			if (!first) {
 				tmp += ", ";
 			}
@@ -644,7 +644,7 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 			tmp += str(boost::format(STRING(X_FOLDERS_EXTRAS)) % extrasFound);
 		}
 
-		if (SETTING(CHECK_EMPTY_DIRS) && emptyFolders > 0) {
+		if (emptyFolders > 0) {
 			if (!first) {
 				tmp += ", ";
 			}
@@ -652,7 +652,7 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 			tmp += str(boost::format(STRING(X_EMPTY_FOLDERS)) % emptyFolders);
 		}
 
-		if (SETTING(CHECK_DUPES) && dupesFound > 0) {
+		if (dupesFound > 0) {
 			if (!first) {
 				tmp += ", ";
 			}

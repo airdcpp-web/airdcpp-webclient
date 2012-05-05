@@ -909,6 +909,7 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 
 	if (runningUsers.empty()) {
 		speed = 0;
+		currentDownloaded = 0;
 		return true;
 	}
 	return false;

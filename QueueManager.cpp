@@ -802,7 +802,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 	QueueItemPtr q = nullptr;
 	const UserPtr& u = aSource.getUser();
 	{
-		RLock l(cs);
+		WLock l(cs);
 		dcdebug("Getting download for %s...", u->getCID().toBase32().c_str());
 
 		q = userQueue.getNext(u, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), smallSlot);
@@ -832,18 +832,14 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 				q->resetDownloaded();
 			}
 		}
-	}
 
-	Download* d = nullptr;
-	{
-		WLock l(cs);
-		d = new Download(aSource, *q);
+		Download* d = new Download(aSource, *q);
 		userQueue.addDownload(q, d);
-	}
 
-	fire(QueueManagerListener::SourcesUpdated(), q);
-	dcdebug("found %s\n", q->getTarget().c_str());
-	return d;
+		fire(QueueManagerListener::SourcesUpdated(), q);
+		dcdebug("found %s\n", q->getTarget().c_str());
+		return d;
+	}
 
 removePartial:
 	WLock l(cs);
@@ -3519,17 +3515,12 @@ void QueueManager::onUseSeqOrder(BundlePtr b) {
 		auto ql = b->getQueueItems();
 		for (auto j = ql.begin(); j != ql.end(); ++j) {
 			QueueItemPtr q = *j;
-			q->setAutoPriority(false);
+			//q->setAutoPriority(false);
 			if (q->getPriority() != QueueItem::PAUSED) {
-				//userQueue.setQIPriority(q, QueueItem::LOW);
 				userQueue.removeQI(q, false, false);
-				q->setPriority(QueueItem::LOW);
 				userQueue.addQI(q, true);
-				fire(QueueManagerListener::SourcesUpdated(), q);
 			}
 		}
-
-		//dcassert(find_if(b->getQueueItems().begin(), b->getQueueItems().end(), [](QueueItemPtr q) { return q->getAutoPriority(); } ) == b->getQueueItems().end());
 	}
 }
 
