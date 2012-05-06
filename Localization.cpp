@@ -110,9 +110,9 @@ namespace dcpp {
 				curLanguage = distance(languageList.begin(), s);
 			} else {
 				/* Not one of the predefined language files, add a custom list item */
-				TCHAR buf[512];
-				GetUserDefaultLocaleName(buf, 512); // get the system locale name
-				languageList.push_back(Language("(Custom: " + langFile + ")", "", Text::fromT(buf), langFile));
+				/*TCHAR buf[512];
+				GetUserDefaultLocaleName(buf, 512); // get the system locale name, breaks things on XP */
+				languageList.push_back(Language("(Custom: " + langFile + ")", "", "en-US" , langFile));
 				curLanguage = languageList.size()-1;
 			}
 		}
