@@ -2103,8 +2103,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 	forceXmlRefresh = true;
 	sortReleaseList();
 
-	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_SHARED)) % 
-		Util::getLastDir(path).c_str()), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_SHARED)) % path.c_str()), LogManager::LOG_INFO);
 }
 
 bool ShareManager::allowAddDir(const string& path) noexcept {

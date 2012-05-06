@@ -78,31 +78,31 @@ static const char* countryCodes[] = {
 
 namespace dcpp {
 	vector<Localization::Language> Localization::languageList;
-	int Localization::curLanguage;
+	int Localization::curLanguage; //position of the current language in the list
 
 	void Localization::init() {
 
 		languageList.push_back(Language("English", "GB", "en-US", Util::emptyString));
-		languageList.push_back(Language("Swedish", "SE", "sv-SE", "Swedish_for_AirDc.xml"));
-		languageList.push_back(Language("Finnish", "FI", "fi-FI", "Finnish_for_AirDc.xml"));
-		languageList.push_back(Language("Italian", "IT", "it-IT", "Italian_for_AirDc.xml"));
-		languageList.push_back(Language("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDc.xml"));
-		languageList.push_back(Language("Romanian", "RO", "ro-RO", "Romanian_for_AirDc.xml"));
 		languageList.push_back(Language("Danish", "DK", "da-DK", "Danish_for_AirDc.xml"));
-		languageList.push_back(Language("Norwegian", "NO", "no-NO", "Norwegian_for_AirDc.xml"));
-		languageList.push_back(Language("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDc.xml"));
-		languageList.push_back(Language("Polish", "PL", "pl-PL", "Polish_for_AirDc.xml"));
-		languageList.push_back(Language("French", "FR", "fr-FR", "French_for_AirDc.xml"));
 		languageList.push_back(Language("Dutch", "NL", "nl-NL", "Dutch_for_AirDc.xml"));
-		languageList.push_back(Language("Russian", "RU", "ru-RU", "Russian_for_AirDc.xml"));
+		languageList.push_back(Language("Finnish", "FI", "fi-FI", "Finnish_for_AirDc.xml"));
+		languageList.push_back(Language("French", "FR", "fr-FR", "French_for_AirDc.xml"));
 		languageList.push_back(Language("German", "DE", "de-DE", "German_for_AirDc.xml"));
+		languageList.push_back(Language("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDc.xml"));
+		languageList.push_back(Language("Italian", "IT", "it-IT", "Italian_for_AirDc.xml"));
+		languageList.push_back(Language("Norwegian", "NO", "no-NO", "Norwegian_for_AirDc.xml"));
+		languageList.push_back(Language("Polish", "PL", "pl-PL", "Polish_for_AirDc.xml"));
+		languageList.push_back(Language("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDc.xml"));
+		languageList.push_back(Language("Romanian", "RO", "ro-RO", "Romanian_for_AirDc.xml"));
+		languageList.push_back(Language("Russian", "RU", "ru-RU", "Russian_for_AirDc.xml"));
+		languageList.push_back(Language("Swedish", "SE", "sv-SE", "Swedish_for_AirDc.xml"));
 
-		sort(languageList.begin()+1, languageList.end(), [](const Language& l1, const Language& l2) { return stricmp(l1.languageName, l2.languageName) < 0; });
+		//sort(languageList.begin()+1, languageList.end(), [](const Language& l1, const Language& l2) { return stricmp(l1.languageName, l2.languageName) < 0; });
 
 		curLanguage = 0;
 		string langFile = SETTING(LANGUAGE_FILE);
 		if (!langFile.empty()) {
-			boost::replace_all(langFile, "//", "\\"); //eh, the previous versions have saved the language path in a wrong format, remove this workaround in some point
+			boost::replace_all(langFile, "/", "\\"); //eh, the previous versions have saved the language path in a wrong format, remove this workaround in some point
 			langFile = Util::getFileName(langFile);
 
 			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language aLang) { return aLang.languageFile == langFile; });
@@ -121,7 +121,7 @@ namespace dcpp {
 	void Localization::setLanguage(int languageIndex) {
 		if (languageIndex >= 0 && languageIndex < languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
 			curLanguage = languageIndex;
-			languageList[curLanguage].setLanguageFile();
+			languageList[curLanguage].setLanguageFile(); //update the language file in the settings
 		}
 	}
 

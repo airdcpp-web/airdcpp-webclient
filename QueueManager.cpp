@@ -937,7 +937,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 		}
 	} else if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 		LogManager::getInstance()->message(str(boost::format(STRING(NOT_IN_SHARED_DIR)) % 
-			aBundle->getName().c_str()), LogManager::LOG_INFO);
+			aBundle->getTarget().c_str()), LogManager::LOG_INFO);
 	} else {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	}
@@ -1015,14 +1015,14 @@ void QueueManager::bundleHashed(BundlePtr b) {
 					fireHashed = true;
 				} else {
 					LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASH_FAILED)) % 
-						b->getName().c_str()), LogManager::LOG_ERROR);
+						b->getTarget().c_str()), LogManager::LOG_ERROR);
 					b->resetHashed(); //for the next attempts
 					return;
 				}
 			} else {
 				//instant sharing disabled/the folder wasn't shared when the bundle finished
 				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASHED)) % 
-					b->getName().c_str()), LogManager::LOG_INFO);
+					b->getTarget().c_str()), LogManager::LOG_INFO);
 			}
 		}
 

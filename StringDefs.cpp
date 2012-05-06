@@ -1401,6 +1401,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Clear chat", 
 "Clear messages", 
 "Use sequential order", 
+"Note: you need to restart the client for the new language to take effect", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2802,4 +2803,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ClearChat", 
 "ClearMessages", 
 "UseSeqOrder", 
+"LanguageNote", 
 };

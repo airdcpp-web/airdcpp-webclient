@@ -1408,5 +1408,6 @@ enum Strings { // @DontAdd
 	CLEAR_CHAT, // "Clear chat"
 	CLEAR_MESSAGES, // "Clear messages"
 	USE_SEQ_ORDER, // "Use sequential order"
+	LANGUAGE_NOTE, // "Note: you need to restart the client for the new language to take effect"
 	LAST // @DontAdd
 };

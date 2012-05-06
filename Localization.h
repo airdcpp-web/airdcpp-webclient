@@ -38,10 +38,8 @@ class Localization {
 			string languageName, locale, languageFile;
 
 			void setLanguageFile() {
-				if (languageName != "English")
-					SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, (Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Language\\" + languageFile));
-				else
-					SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, Util::emptyString);
+				SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, 
+					languageName.empty() ? Util::emptyString : Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Language\\" + languageFile);
 			}
 		};
 
