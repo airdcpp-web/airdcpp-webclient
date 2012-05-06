@@ -138,8 +138,7 @@ const string SettingsManager::settingTags[] =
 	"PreviewPm", "PopupTime", "MaxMsgLength", "PopupBackColor", "PopupTextColor", "PopupTitleTextColor",
 	"FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick",
 	"AutoSearchEvery", "AutoSearchRecheckTime",
-	"TbImageSize", "TbImageSizeHot", "UseHighlight", "DupeColor", "ShowQueueBars", "SendBloom", 
-	"LangSwitch", "ExpandDefault",
+	"TbImageSize", "TbImageSizeHot", "UseHighlight", "DupeColor", "ShowQueueBars", "SendBloom", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp",
 	"MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "OpenSystemLog",
 	"FirstRun", "LastSearchFiletype", "MaxResizeLines", 
@@ -147,7 +146,7 @@ const string SettingsManager::settingTags[] =
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
-	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "LanguageSwitch", "WizardRunNew", "FormatRelease", "LogLines",
+	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "WizardRunNew", "FormatRelease", "LogLines",
 	"CheckMissing", "CheckSfv", "CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "SortDirs", "DecreaseRam", "MaxFileSizeShared",
 	"CheckEmptyDirs","CheckEmptyReleases", "FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
@@ -612,7 +611,6 @@ SettingsManager::SettingsManager()
 	setDefault(USE_HIGHLIGHT, false);
 	setDefault(SHOW_QUEUE_BARS, true);
 	setDefault(SEND_BLOOM, true);
-	setDefault(LANG_SWITCH, 0);
 	setDefault(EXPAND_DEFAULT, false);
 	setDefault(SHARE_SKIPLIST_USE_REGEXP, true);
 	setDefault(DOWNLOAD_SKIPLIST_USE_REGEXP, false);
@@ -648,7 +646,6 @@ SettingsManager::SettingsManager()
 	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
 	setDefault(SETTINGS_PROFILE, PROFILE_PUBLIC);
 	setDefault(DOWNLOAD_SPEED, connectionSpeeds[0]);
-	setDefault(LANGUAGE_SWITCH, 0);
 	setDefault(WIZARD_RUN_NEW, true); // run wizard on startup
 	setDefault(FORMAT_RELEASE, true);
 	setDefault(LOG_LINES, 500);
@@ -850,17 +847,6 @@ void SettingsManager::load(string const& aFileName)
 			set(LOG_FILE_UPLOAD, Util::emptyString);
 			set(LOG_FILE_DOWNLOAD, Util::emptyString);
 			set(LOG_FILE_SYSTEM, Util::emptyString);
-		}
-
-		//Convert the old lang_switch to new one with correct counts... Oh Zinden why why..
-		//Zinden had 0,1,2 switch for english
-		if(v <= 2.08) {
-			if(SETTING(LANG_SWITCH) == 0 || SETTING(LANG_SWITCH) == 1 || SETTING(LANG_SWITCH) == 2) {
-			      set(LANGUAGE_SWITCH, 0); 
-			} else {
-				set(LANGUAGE_SWITCH, (LANG_SWITCH - 2));
-				 
-			}
 		}
 
 		if(v <= 2.07 && SETTING(INCOMING_CONNECTIONS) != INCOMING_FIREWALL_PASSIVE) {
