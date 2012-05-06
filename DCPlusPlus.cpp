@@ -37,6 +37,7 @@
 #include "MappingManager.h"
 #include "ConnectivityManager.h"
 #include "WebShortcuts.h"
+#include "Localization.h"
 
 #include "StringTokenizer.h"
 
@@ -96,6 +97,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	SettingsManager::getInstance()->load();	
 	AutoSearchManager::getInstance()->AutoSearchLoad();
 
+	Localization::init();
 	if(BOOLSETTING(WIZARD_RUN_NEW)) {
 		WizardDlg dlg;
 		dlg.DoModal(/*m_hWnd*/);

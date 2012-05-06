@@ -345,39 +345,6 @@ int AirUtil::getMaxAutoOpened(double value) {
 	return slots;
 }
 
-string AirUtil::getLocale() {
-	string locale="en-US";
-
-	if (SETTING(LANGUAGE_SWITCH) == 1) {
-		locale = "sv-SE";
-	} else if (SETTING(LANGUAGE_SWITCH) == 2) {
-		locale = "fi-FI";
-	} else if (SETTING(LANGUAGE_SWITCH) == 3) {
-		locale = "it-IT";
-	} else if (SETTING(LANGUAGE_SWITCH) == 4) {
-		locale = "hu-HU";
-	} else if (SETTING(LANGUAGE_SWITCH) == 5) {
-		locale = "ro-RO";
-	} else if (SETTING(LANGUAGE_SWITCH) == 6) {
-		locale = "da-DK";
-	} else if (SETTING(LANGUAGE_SWITCH) == 7) {
-		locale = "no-NO";
-	} else if (SETTING(LANGUAGE_SWITCH) == 8) {
-		locale = "pt-PT";
-	} else if (SETTING(LANGUAGE_SWITCH) == 9) {
-		locale = "pl-PL";
-	} else if (SETTING(LANGUAGE_SWITCH) == 10) {
-		locale = "fr-FR";
-	} else if (SETTING(LANGUAGE_SWITCH) == 11) {
-		locale = "nl-NL";
-	} else if (SETTING(LANGUAGE_SWITCH) == 12) {
-		locale = "ru-RU";
-	} else if (SETTING(LANGUAGE_SWITCH) == 13) {
-		locale = "de-DE";
-	}
-	return locale;
-}
-
 void AirUtil::setProfile(int profile, bool setSkiplist) {
 	/*Make settings depending selected client settings profile
 	Note that if add a setting to one profile will need to add it to other profiles too*/

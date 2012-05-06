@@ -43,7 +43,6 @@ class AirUtil {
 		static void updateCachedSettings();
 		static bool matchSkiplist(const string& str);
 		static string getLocalIp();
-		static string getLocale();
 
 		static void setProfile(int profile, bool setSkiplist=false);
 		static int getSlotsPerUser(bool download, double value=0, int aSlots=0);

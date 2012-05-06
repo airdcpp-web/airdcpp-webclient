@@ -33,7 +33,6 @@
 namespace dcpp {
 
 StringList SettingsManager::connectionSpeeds;
-StringList SettingsManager::Languages;
 
 const string SettingsManager::settingTags[] =
 {
@@ -187,21 +186,6 @@ SettingsManager::SettingsManager()
 	connectionSpeeds.push_back("100");
 	connectionSpeeds.push_back("200");
 	connectionSpeeds.push_back("1000");
-
-	Languages.push_back("English");   //0
-	Languages.push_back("Swedish");   //1
-	Languages.push_back("Finnish");   //2
-	Languages.push_back("Italian");   //3
-	Languages.push_back("Hungarian"); //4
-	Languages.push_back("Romanian");  //5
-	Languages.push_back("Danish");    //6
-	Languages.push_back("Norwegian"); //7 
-	Languages.push_back("Portuguese");//8
-	Languages.push_back("Polish");    //9
-	Languages.push_back("French");    //10
-	Languages.push_back("Dutch");     //11
-	Languages.push_back("Russian");   //12
-	Languages.push_back("German");    //13
 
 	for(int i=0; i<SETTINGS_LAST; i++)
 		isSet[i] = false;

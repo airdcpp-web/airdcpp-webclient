@@ -1,0 +1,161 @@
+/*
+ * Copyright (C) 2011 AirDC++ Project
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
+#include "stdinc.h"
+#include <direct.h>
+#include "AirUtil.h"
+#include "Localization.h"
+#include "Util.h"
+
+#include <boost/algorithm/string/replace.hpp>
+
+#include "File.h"
+#include "ResourceManager.h"
+
+static const char* countryNames[] = { "ANDORRA", "UNITED ARAB EMIRATES", "AFGHANISTAN", "ANTIGUA AND BARBUDA", 
+"ANGUILLA", "ALBANIA", "ARMENIA", "NETHERLANDS ANTILLES", "ANGOLA", "ANTARCTICA", "ARGENTINA", "AMERICAN SAMOA", 
+"AUSTRIA", "AUSTRALIA", "ARUBA", "ALAND", "AZERBAIJAN", "BOSNIA AND HERZEGOVINA", "BARBADOS", "BANGLADESH", 
+"BELGIUM", "BURKINA FASO", "BULGARIA", "BAHRAIN", "BURUNDI", "BENIN", "BERMUDA", "BRUNEI DARUSSALAM", "BOLIVIA", 
+"BRAZIL", "BAHAMAS", "BHUTAN", "BOUVET ISLAND", "BOTSWANA", "BELARUS", "BELIZE", "CANADA", "COCOS ISLANDS", 
+"THE DEMOCRATIC REPUBLIC OF THE CONGO", "CENTRAL AFRICAN REPUBLIC", "CONGO", "SWITZERLAND", "COTE D'IVOIRE", "COOK ISLANDS", 
+"CHILE", "CAMEROON", "CHINA", "COLOMBIA", "COSTA RICA", "SERBIA AND MONTENEGRO", "CUBA", "CAPE VERDE", 
+"CHRISTMAS ISLAND", "CYPRUS", "CZECH REPUBLIC", "GERMANY", "DJIBOUTI", "DENMARK", "DOMINICA", "DOMINICAN REPUBLIC", 
+"ALGERIA", "ECUADOR", "ESTONIA", "EGYPT", "WESTERN SAHARA", "ERITREA", "SPAIN", "ETHIOPIA", "EUROPEAN UNION", "FINLAND", "FIJI", 
+"FALKLAND ISLANDS", "MICRONESIA", "FAROE ISLANDS", "FRANCE", "GABON", "UNITED KINGDOM", "GRENADA", "GEORGIA", 
+"FRENCH GUIANA", "GUERNSEY", "GHANA", "GIBRALTAR", "GREENLAND", "GAMBIA", "GUINEA", "GUADELOUPE", "EQUATORIAL GUINEA", 
+"GREECE", "SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS", "GUATEMALA", "GUAM", "GUINEA-BISSAU", "GUYANA", 
+"HONG KONG", "HEARD ISLAND AND MCDONALD ISLANDS", "HONDURAS", "CROATIA", "HAITI", "HUNGARY", 
+"INDONESIA", "IRELAND", "ISRAEL",  "ISLE OF MAN", "INDIA", "BRITISH INDIAN OCEAN TERRITORY", "IRAQ", "IRAN", "ICELAND", 
+"ITALY","JERSEY", "JAMAICA", "JORDAN", "JAPAN", "KENYA", "KYRGYZSTAN", "CAMBODIA", "KIRIBATI", "COMOROS", 
+"SAINT KITTS AND NEVIS", "DEMOCRATIC PEOPLE'S REPUBLIC OF KOREA", "SOUTH KOREA", "KUWAIT", "CAYMAN ISLANDS", 
+"KAZAKHSTAN", "LAO PEOPLE'S DEMOCRATIC REPUBLIC", "LEBANON", "SAINT LUCIA", "LIECHTENSTEIN", "SRI LANKA", 
+"LIBERIA", "LESOTHO", "LITHUANIA", "LUXEMBOURG", "LATVIA", "LIBYAN ARAB JAMAHIRIYA", "MOROCCO", "MONACO", 
+"MOLDOVA", "MONTENEGRO", "MADAGASCAR", "MARSHALL ISLANDS", "MACEDONIA", "MALI", "MYANMAR", "MONGOLIA", "MACAO", 
+"NORTHERN MARIANA ISLANDS", "MARTINIQUE", "MAURITANIA", "MONTSERRAT", "MALTA", "MAURITIUS", "MALDIVES", 
+"MALAWI", "MEXICO", "MALAYSIA", "MOZAMBIQUE", "NAMIBIA", "NEW CALEDONIA", "NIGER", "NORFOLK ISLAND", 
+"NIGERIA", "NICARAGUA", "NETHERLANDS", "NORWAY", "NEPAL", "NAURU", "NIUE", "NEW ZEALAND", "OMAN", "PANAMA", 
+"PERU", "FRENCH POLYNESIA", "PAPUA NEW GUINEA", "PHILIPPINES", "PAKISTAN", "POLAND", "SAINT PIERRE AND MIQUELON", 
+"PITCAIRN", "PUERTO RICO", "PALESTINIAN TERRITORY", "PORTUGAL", "PALAU", "PARAGUAY", "QATAR", "REUNION", 
+"ROMANIA", "SERBIA", "RUSSIAN FEDERATION", "RWANDA", "SAUDI ARABIA", "SOLOMON ISLANDS", "SEYCHELLES", "SUDAN", 
+"SWEDEN", "SINGAPORE", "SAINT HELENA", "SLOVENIA", "SVALBARD AND JAN MAYEN", "SLOVAKIA", "SIERRA LEONE", 
+"SAN MARINO", "SENEGAL", "SOMALIA", "SURINAME", "SAO TOME AND PRINCIPE", "EL SALVADOR", "SYRIAN ARAB REPUBLIC", 
+"SWAZILAND", "TURKS AND CAICOS ISLANDS", "CHAD", "FRENCH SOUTHERN TERRITORIES", "TOGO", "THAILAND", "TAJIKISTAN", 
+"TOKELAU", "TIMOR-LESTE", "TURKMENISTAN", "TUNISIA", "TONGA", "TURKEY", "TRINIDAD AND TOBAGO", "TUVALU", "TAIWAN", 
+"TANZANIA", "UKRAINE", "UGANDA", "UNITED STATES MINOR OUTLYING ISLANDS", "UNITED STATES", "URUGUAY", "UZBEKISTAN", 
+"VATICAN", "SAINT VINCENT AND THE GRENADINES", "VENEZUELA", "BRITISH VIRGIN ISLANDS", "U.S. VIRGIN ISLANDS", 
+"VIET NAM", "VANUATU", "WALLIS AND FUTUNA", "SAMOA", "YEMEN", "MAYOTTE", "YUGOSLAVIA", "SOUTH AFRICA", "ZAMBIA", 
+"ZIMBABWE" };
+
+static const char* countryCodes[] = { 
+ "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AN", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ", "BA", "BB", 
+ "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BM", "BN", "BO", "BR", "BS", "BT", "BV", "BW", "BY", "BZ", "CA", "CC", 
+ "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CS", "CU", "CV", "CX", "CY", "CZ", "DE", "DJ", 
+ "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "EH", "ER", "ES", "ET", "EU", "FI", "FJ", "FK", "FM", "FO", "FR", "GA", 
+ "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY", "HK", 
+ "HM", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT", "JE", "JM", "JO", "JP", 
+ "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", 
+ "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", 
+ "MU", "MV", "MW", "MX", "MY", "MZ", "NA", "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", 
+ "PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", 
+ "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "ST", "SV", "SY", 
+ "SZ", "TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ", "UA", "UG", 
+ "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU", "WF", "WS", "YE", "YT", "YU", "ZA", "ZM", "ZW" };
+
+namespace dcpp {
+	vector<Localization::Language> Localization::languageList;
+	int Localization::curLanguage;
+
+	void Localization::init() {
+
+		languageList.push_back(Language("English", "GB", "en-US", Util::emptyString));
+		languageList.push_back(Language("Swedish", "SE", "sv-SE", "Swedish_for_AirDc.xml"));
+		languageList.push_back(Language("Finnish", "FI", "fi-FI", "Finnish_for_AirDc.xml"));
+		languageList.push_back(Language("Italian", "IT", "it-IT", "Italian_for_AirDc.xml"));
+		languageList.push_back(Language("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDc.xml"));
+		languageList.push_back(Language("Romanian", "RO", "ro-RO", "Romanian_for_AirDc.xml"));
+		languageList.push_back(Language("Danish", "DK", "da-DK", "Danish_for_AirDc.xml"));
+		languageList.push_back(Language("Norwegian", "NO", "no-NO", "Norwegian_for_AirDc.xml"));
+		languageList.push_back(Language("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDc.xml"));
+		languageList.push_back(Language("Polish", "PL", "pl-PL", "Polish_for_AirDc.xml"));
+		languageList.push_back(Language("French", "FR", "fr-FR", "French_for_AirDc.xml"));
+		languageList.push_back(Language("Dutch", "NL", "nl-NL", "Dutch_for_AirDc.xml"));
+		languageList.push_back(Language("Russian", "RU", "ru-RU", "Russian_for_AirDc.xml"));
+		languageList.push_back(Language("German", "DE", "de-DE", "German_for_AirDc.xml"));
+
+		sort(languageList.begin()+1, languageList.end(), [](const Language& l1, const Language& l2) { return stricmp(l1.languageName, l2.languageName) < 0; });
+
+		curLanguage = 0;
+		string langFile = SETTING(LANGUAGE_FILE);
+		if (!langFile.empty()) {
+			boost::replace_all(langFile, "//", "\\"); //eh, the previous versions have saved the language path in a wrong format, remove this workaround in some point
+			langFile = Util::getFileName(langFile);
+
+			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language aLang) { return aLang.languageFile == langFile; });
+			if (s != languageList.end()) {
+				curLanguage = distance(languageList.begin(), s);
+			} else {
+				/* Not one of the predefined language files, add a custom list item */
+				TCHAR buf[512];
+				GetUserDefaultLocaleName(buf, 512); // get the system locale name
+				languageList.push_back(Language("(Custom: " + langFile + ")", "", Text::fromT(buf), langFile));
+				curLanguage = languageList.size()-1;
+			}
+		}
+	}
+
+	void Localization::setLanguage(int languageIndex) {
+		if (languageIndex >= 0 && languageIndex < languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
+			curLanguage = languageIndex;
+			languageList[curLanguage].setLanguageFile();
+		}
+	}
+
+	string Localization::getLocale() {
+		return languageList[curLanguage].locale;
+	}
+
+	uint8_t Localization::getFlagIndexByName(const char* countryName) {
+		// country codes are not sorted, use linear searching (it is not used so often)
+		const char** first = countryNames;
+		const char** last = countryNames + (sizeof(countryNames) / sizeof(countryNames[0]));
+		const char** i = find_if(first, last, [&](const char* cn) { return stricmp(countryName, cn) == 0; });
+		if(i != last)
+			return i - countryNames + 1;
+
+		return 0;
+	}
+
+	uint8_t Localization::getFlagIndexByCode(const char* countryCode) {
+		// country codes are sorted, use binary search for better performance
+		int begin = 0;
+		int end = (sizeof(countryCodes) / sizeof(countryCodes[0])) - 1;
+		
+		while(begin <= end) {
+			int mid = (begin + end) / 2;
+			int cmp = memcmp(countryCode, countryCodes[mid], 2);
+
+			if(cmp > 0)
+				begin = mid + 1;
+			else if(cmp < 0)
+				end = mid - 1;
+			else
+				return mid + 1;
+		}
+		return 0;
+	}
+}

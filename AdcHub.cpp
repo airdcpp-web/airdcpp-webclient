@@ -32,6 +32,7 @@
 #include "ResourceManager.h"
 #include "LogManager.h"
 #include "UploadManager.h"
+#include "Localization.h"
 
 namespace dcpp {
 
@@ -1035,7 +1036,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 
 	addParam(lastInfoMap, c, "VE", "AirDC++ " VER);
 	addParam(lastInfoMap, c, "AW", Util::getAway() ? "1" : Util::emptyString);
-	addParam(lastInfoMap, c, "LC", AirUtil::getLocale());
+	addParam(lastInfoMap, c, "LC", Localization::getLocale());
 	
 	
 		//addParam(lastInfoMap, c, "DS", Util::emptyString);

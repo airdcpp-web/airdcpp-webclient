@@ -52,7 +52,6 @@ public:
 	typedef SearchTypes::const_iterator SearchTypesIterC;
 
 	static StringList connectionSpeeds;
-	static StringList Languages;
 
 	enum StrSetting { STR_FIRST,
 		NICK = STR_FIRST, UPLOAD_SPEED, DESCRIPTION, DOWNLOAD_DIRECTORY, EMAIL, EXTERNAL_IP, EXTERNAL_IP6,
