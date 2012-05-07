@@ -21,7 +21,6 @@
 #define VERSIONFLOAT "2.30"
 
 #define DCVERSIONSTRING "0.791"
-
 #define SVNVERSION "r865"
 
 #ifdef _WIN64

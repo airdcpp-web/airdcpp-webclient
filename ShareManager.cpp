@@ -596,9 +596,7 @@ bool ShareManager::loadCache() {
 	} catch(SimpleXMLException& e) {
 		LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError(), LogManager::LOG_ERROR);
 		return false;
-	} catch(const Exception& e) {
-		LogManager::getInstance()->message("Errors Loading share cache: " + e.getError(), LogManager::LOG_ERROR);
-		dcdebug("%s\n", e.getError().c_str());
+	} catch(...) {
 		return false;
 	}
 	try { //not vital to our cache loading.
