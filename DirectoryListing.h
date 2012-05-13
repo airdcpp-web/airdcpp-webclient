@@ -193,6 +193,7 @@ public:
 	void findNfo(const string& aPath);
 	
 	const UserPtr& getUser() const { return hintedUser.user; }	
+	const string& getHubUrl() const { return hintedUser.hint; }	
 		
 	GETSET(HintedUser, hintedUser, HintedUser);
 	GETSET(bool, partialList, PartialList);

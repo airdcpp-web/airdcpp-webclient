@@ -71,6 +71,7 @@ public:
 	const string& getFile() const { return file; }
 	const UserPtr& getUser() const { return user.user; }
 	const HintedUser& getHintedUser() const { return user; }
+	const string& getHubUrl() const { return user.hint; }
 
 	GETSET(int64_t, pos, Pos);
 	

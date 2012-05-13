@@ -107,18 +107,19 @@ void DirSFVReader::load() noexcept {
 					break;
 				}
 
-				string fileName = Text::toLower(line.substr(0,pos));
-				//quoted filename?
-				if (fileName[0] == '\"' && fileName[fileName.length()-1] == '\"') {
-					fileName = fileName.substr(1,fileName.length()-2);
-				}
-
 				uint32_t crc32;
 				sscanf(line.substr(pos+1, 8).c_str(), "%x", &crc32);
 
+				line = Text::toLower(line.substr(0,pos));
+				//quoted filename?
+				if (line[0] == '\"' && line[line.length()-1] == '\"') {
+					line = line.substr(1,line.length()-2);
+				}
+
 				//don't list the same file multiple times...
-				if (!hasFile(fileName))
-					content.push_back(make_pair(fileName, crc32));
+				if (!hasFile(line)) {
+					content.push_back(make_pair(line, crc32));
+				}
 			}
 
 		}

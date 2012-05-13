@@ -276,6 +276,11 @@ bool OnlineUser::update(int sortCol, const tstring& oldText) {
 	return needsSort;
 }
 
+const string& OnlineUser::getHubUrl() const { 
+	//return HintedUser(getIdentity().getUser(), (&getClient())->getHubUrl());
+	return getClient().getHubUrl();
+}
+
 uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 	uint8_t image = identity.isOp() ? IMAGE_OP : IMAGE_USER;
 

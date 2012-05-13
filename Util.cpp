@@ -34,7 +34,6 @@
 #include "StringTokenizer.h"
 #include "SimpleXML.h"
 #include "version.h"
-#include "OnlineUser.h"
 #include "Socket.h"
 #include "LogManager.h"
 

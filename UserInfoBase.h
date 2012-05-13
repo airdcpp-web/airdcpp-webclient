@@ -34,20 +34,21 @@ class UserInfoBase {
 public:
 	UserInfoBase() { }
 	
-	void getList(const string& hubHint);
-	void browseList(const string& hubHint);
-	void matchQueue(const string& hubHint);
-	void pm(const string& hubHint);
-	void grant(const string& hubHint);
-	void grantHour(const string& hubHint);
-	void grantDay(const string& hubHint);
-	void grantWeek(const string& hubHint);
+	void getList();
+	void browseList();
+	void matchQueue();
+	void pm();
+	void grant();
+	void grantHour();
+	void grantDay();
+	void grantWeek();
 	void ungrant();
 	void addFav();
 	void removeAll();
 	void connectFav();
 	
 	virtual const UserPtr& getUser() const = 0;
+	virtual const string& getHubUrl() const = 0;
 
 	static uint8_t getImage(const Identity& identity, const Client* c);
 	enum {

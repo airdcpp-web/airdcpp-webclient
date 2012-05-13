@@ -30,6 +30,7 @@
 #include "Util.h"
 #include "User.h"
 #include "UserInfoBase.h"
+#include "HintedUser.h"
 
 namespace dcpp {
 
@@ -175,6 +176,8 @@ public:
 
 	UserPtr& getUser() { return getIdentity().getUser(); }
 	const UserPtr& getUser() const { return getIdentity().getUser(); }
+	const string& getHubUrl() const;
+	//const HintedUser& getHintedUser() const { return HintedUser(getIdentity().getUser(), Util::emptyString); }
 	Identity& getIdentity() { return identity; }
 	Client& getClient() { return (Client&)client; }
 	const Client& getClient() const { return (const Client&)client; }

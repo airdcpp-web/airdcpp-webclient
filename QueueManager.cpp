@@ -1031,7 +1031,7 @@ void QueueManager::bundleHashed(BundlePtr b) {
 			if (!b->isFileBundle()) {
 				fire(QueueManagerListener::BundleHashed(), b->getTarget());
 			} else {
-				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTargetFileName(), b->getFinishedFiles().front()->getTTH());
+				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), b->getFinishedFiles().front()->getTTH());
 			}
 		}
 	}
