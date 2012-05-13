@@ -261,11 +261,15 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 			if (!(*i)->searchDays[_tm.tm_wday])
 				continue;
 			//check the hours
-			if (!((*i)->startTime.hour <= _tm.tm_hour && (*i)->endTime.hour >= _tm.tm_hour))
+			if ((*i)->startTime.hour > _tm.tm_hour || (*i)->endTime.hour < _tm.tm_hour)
 				continue;
 			//check the minutes
-			if (((*i)->endTime.hour || (*i)->startTime.hour) == _tm.tm_hour) {
-				if (!((*i)->startTime.minute < _tm.tm_min) || ((*i)->endTime.minute > _tm.tm_min))
+			if ((*i)->startTime.hour == _tm.tm_hour) {
+				if ((*i)->startTime.minute > _tm.tm_min)
+					continue;
+			}
+			if ((*i)->endTime.hour == _tm.tm_hour) {
+				if ((*i)->endTime.minute < _tm.tm_min)
 					continue;
 			}
 

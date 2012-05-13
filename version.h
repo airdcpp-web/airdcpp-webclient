@@ -21,7 +21,8 @@
 #define VERSIONFLOAT "2.30"
 
 #define DCVERSIONSTRING "0.791"
-#define SVNVERSION "r865"
+
+#define SVNVERSION "r867"
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"
