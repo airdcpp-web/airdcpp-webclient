@@ -1199,7 +1199,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 
 					removeFinished = true;
 					userQueue.removeQI(q);
-					fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
 
 					if(BOOLSETTING(KEEP_FINISHED_FILES)) {
 						fire(QueueManagerListener::StatusUpdated(), q);
@@ -1234,6 +1233,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 			moveFile(d->getTempTarget(), d->getPath(), d->getBundle());
 		}
 
+		fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
 		if(BOOLSETTING(LOG_DOWNLOADS)) {
 			ParamMap params;
 			d->getParams(d->getUserConnection(), params);
