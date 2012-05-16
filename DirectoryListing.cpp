@@ -352,7 +352,7 @@ bool DirectoryListing::Directory::findIncomplete() {
 }
 
 void DirectoryListing::download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
-	string target = aTarget;
+	string target;
 	if (first) {
 		//check if there are incomplete dirs in a partial list
 		if (partialList && aDir->findIncomplete()) {
@@ -366,16 +366,30 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		}
 
 		//validate the target
-		target = Util::validateFileName(Util::formatTime(aTarget, (BOOLSETTING(FORMAT_DIR_REMOTE_TIME) && aDir->getDate() > 0) ? aDir->getDate() : time(NULL)));
+		target = Util::validateFileName(Util::formatTime(aTarget + (aDir == getRoot() ? Util::emptyString : aDir->getName() + PATH_SEPARATOR), 
+			(BOOLSETTING(FORMAT_DIR_REMOTE_TIME) && aDir->getDate() > 0) ? aDir->getDate() : GET_TIME()));
+
+		/* Check if this is a root dir containing release dirs */
+		boost::regex reg;
+		reg.assign(AirUtil::getReleaseRegBasic());
+
+		if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && count_if(aDir->directories.begin(), aDir->directories.end(), 
+			[&reg](Directory* d) { return boost::regex_match(d->getName(), reg); }) == (int)aDir->directories.size()) {
+			
+			/* Create bundles from each subfolder */
+			for_each(aDir->directories.begin(), aDir->directories.end(), [&](Directory* dir) { download(dir, target, highPrio, prio, false, false, nullptr); });
+			return;
+		}
+	} else {
+		target = aTarget + aDir->getName() + PATH_SEPARATOR;
 	}
 
 	auto& dirList = aDir->directories;
 	auto& fileList = aDir->files;
 
-	target = (aDir == getRoot()) ? target : target + aDir->getName() + PATH_SEPARATOR;
-	//create bundles
-	if (first) {
+	if (!aBundle) {
 		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, aDir->getDate()));
+		first = true;
 	}
 
 	// First, recurse over the directories
