@@ -41,7 +41,7 @@ using boost::fusion::accumulate;
 Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
-	currentDownloaded(qi->getDownloadedBytes()), hashed(0), moved(0), seqOrder(true) {
+	currentDownloaded(qi->getDownloadedBytes()), hashed(0), seqOrder(true) {
 
 
 	qi->setBundle(this);
@@ -53,7 +53,7 @@ Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()),
 
 Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t aDirDate /*0*/) : fileBundle(false), 
 	token(Util::toString(Util::rand()) + Util::toString(Util::rand())), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate),
-	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0), moved(0) {
+	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0) {
 
 	setTarget(aTarget);
 	auto time = GET_TIME();
@@ -195,7 +195,7 @@ int64_t Bundle::getDiskUse(bool countAll) {
 bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 	finishedFiles.push_back(qi);
 	if (!finished) {
-		increaseMoved();
+		qi->setFlag(QueueItem::FLAG_MOVED);
 		qi->setBundle(this);
 		increaseSize(qi->getSize());
 		addSegment(qi->getSize(), false);
@@ -215,8 +215,6 @@ bool Bundle::removeFinishedItem(QueueItemPtr qi) {
 	int pos = 0;
 	for (auto s = finishedFiles.begin(); s != finishedFiles.end(); ++s) {
 		if ((*s) == qi) {
-			dcassert(moved > 0);
-			moved--;
 			decreaseSize(qi->getSize());
 			removeDownloadedSegment(qi->getSize());
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);

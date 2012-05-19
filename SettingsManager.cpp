@@ -1058,7 +1058,7 @@ bool SettingsManager::addSearchToHistory(const tstring& aSearch) {
 		searchHistory.erase(s);
 	}
 
-	if(searchHistory.size() == 10) {
+	if(searchHistory.size() == SETTING(SEARCH_HISTORY)) {
 		searchHistory.erase(searchHistory.begin());
 	}
 	searchHistory.push_back(aSearch);

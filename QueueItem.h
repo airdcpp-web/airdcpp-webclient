@@ -115,7 +115,9 @@ public:
 		/** TTH list for partial bundle sharing */
 		FLAG_TTHLIST_BUNDLE		= 0x400,
 		/** A finished bundle item */
-		FLAG_FINISHED			= 0x800
+		FLAG_FINISHED			= 0x800,
+		/** A finished bundle item that has also been moved */
+		FLAG_MOVED				= 0x1000
 	};
 
 	/**

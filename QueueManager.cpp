@@ -35,6 +35,7 @@
 #include "HashManager.h"
 #include "LogManager.h"
 #include "ResourceManager.h"
+#include "ScopedFunctor.h"
 #include "SearchManager.h"
 #include "ShareScannerManager.h"
 #include "ShareManager.h"
@@ -880,21 +881,31 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 		return;
 	}
 
-	aBundle->increaseMoved();
-	if (aBundle->getQueueItems().empty() && (static_cast<size_t>(aBundle->getMoved()) == aBundle->getFinishedFiles().size())) {
-		if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
-			LogManager::getInstance()->message(str(boost::format(STRING(DL_BUNDLE_FINISHED)) % 
-				aBundle->getName().c_str()), LogManager::LOG_INFO);
-		} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(aBundle)) {
-			aBundle->setFlag(Bundle::FLAG_SHARING_FAILED);
-			return;
-		} 
+	{
+		QueueManager::getInstance()->lockRead();
+		ScopedFunctor([] { QueueManager::getInstance()->unlockRead(); });
 
-		if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
-			getInstance()->hashBundle(aBundle);
-		} else {
-			LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
-		}
+		auto s = find_if(aBundle->getFinishedFiles().begin(), aBundle->getFinishedFiles().end(), [target](QueueItemPtr q) { return q->getTarget() == target; });
+		if (s != aBundle->getFinishedFiles().end())
+			(*s)->setFlag(QueueItem::FLAG_MOVED);
+
+		if (!aBundle->getQueueItems().empty() || find_if(aBundle->getFinishedFiles().begin(), aBundle->getFinishedFiles().end(), [](QueueItemPtr q) { 
+			return !q->isSet(QueueItem::FLAG_MOVED); }) != aBundle->getFinishedFiles().end()) return;
+	}
+
+
+	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
+		LogManager::getInstance()->message(str(boost::format(STRING(DL_BUNDLE_FINISHED)) % 
+			aBundle->getName().c_str()), LogManager::LOG_INFO);
+	} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(aBundle)) {
+		aBundle->setFlag(Bundle::FLAG_SHARING_FAILED);
+		return;
+	} 
+
+	if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
+		getInstance()->hashBundle(aBundle);
+	} else {
+		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	}
 }
 

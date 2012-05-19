@@ -230,6 +230,10 @@ public:
 
 	void shareBundle(const string& aName);
 	void runAltSearch();
+
+
+	void lockRead() noexcept { cs.lock_shared(); }
+	void unlockRead() noexcept { cs.unlock_shared(); }
 private:
 	friend class QueueLoader;
 	friend class Singleton<QueueManager>;
