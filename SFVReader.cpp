@@ -67,11 +67,14 @@ void DirSFVReader::load() noexcept {
 	string line;
 	boost::regex crcReg;
 	crcReg.assign("(.{5,200}\\s(\\w{8})$)");
+	std::locale lc(""); //set the read to users locale
 
 	for(auto i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
 
 		/* Try to open the sfv */
 		ifstream sfv;
+		sfv.imbue(lc);
+		
 		try {
 			if (File::getSize(Text::utf8ToAcp(path)) > 1000000) {
 				throw FileException();
@@ -90,6 +93,7 @@ void DirSFVReader::load() noexcept {
 
 		/* Get the filename and crc */
 		while( getline( sfv, line ) ) {
+			line = Text::toUtf8(line);
 			//make sure that the line is valid
 			if(regex_search(line, crcReg) && (line.find("\\") == string::npos) && (line.find(";") == string::npos)) {
 				//only keep the filename
