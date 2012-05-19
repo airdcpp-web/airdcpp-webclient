@@ -276,6 +276,8 @@ private:
 	void hashBundle(BundlePtr aBundle);
 	void bundleHashed(BundlePtr aBundle);
 
+	bool replaceFinishedItem(QueueItemPtr qi);
+
 	void removeSource(QueueItemPtr qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
 	string getListPath(const HintedUser& user);

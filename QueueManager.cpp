@@ -366,6 +366,15 @@ string QueueManager::getListPath(const HintedUser& user) {
 	return checkTarget(Util::getListPath() + nick + user.user->getCID().toBase32(), /*checkExistence*/ false);
 }
 
+bool QueueManager::replaceFinishedItem(QueueItemPtr qi) {
+	if (!Util::fileExists(qf->getTarget()) && qf->getBundle() && qf->isSet(QueueItem::FLAG_MOVED)) {
+		bundleQueue.removeFinishedItem(q);
+		fileQueue.remove(q);
+		return true;
+	}
+	return false;
+}
+
 void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,
 					   Flags::MaskType aFlags /* = 0 */, bool addBad /* = true */, QueueItem::Priority aPrio, BundlePtr aBundle /*NULL*/) throw(QueueException, FileException)
 {
@@ -430,11 +439,9 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		q = fileQueue.find(target);
 		if(q) {
 			if(q->isFinished()) {
-				/* the target file doesn't exist, add our item */
+				/* The target file doesn't exist, add our item. Also recheck the existance in case of finished files being moved on the same time. */
 				dcassert(q->getBundle());
-				if (q->getBundle()) {
-					bundleQueue.removeFinishedItem(q);
-					fileQueue.remove(q);
+				if (replaceFinishedItem(q)) {
 					q = nullptr;
 				} else {
 					throw QueueException(STRING(FILE_ALREADY_FINISHED));
@@ -458,11 +465,9 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			q = fileQueue.getQueuedFile(root, Util::getFileName(aTarget));
 			if (q) {
 				if (q->isFinished()) {
-					/* the target file doesn't exist, add it */
+					/* The target file doesn't exist, add it. Also recheck the existance in case of finished files being moved on the same time. */
 					dcassert(q->getBundle());
-					if (q->getBundle()) {
-						bundleQueue.removeFinishedItem(q);
-						fileQueue.remove(q);
+					if (replaceFinishedItem(q)) {
 						q = nullptr;
 					}
 				} else { 
@@ -3042,9 +3047,7 @@ bool QueueManager::move(QueueItemPtr qs, const string& aTarget) noexcept {
 			WLock l(cs);
 			if (qt->isFinished()) {
 				dcassert(qt->getBundle());
-				if (!Util::fileExists(target) && qt->getBundle()) {
-					fileQueue.remove(qt);
-					bundleQueue.removeFinishedItem(qt);
+				if (replaceFinishedItem(qt)) {
 					fileQueue.move(qs, target);
 					return true;
 				}
