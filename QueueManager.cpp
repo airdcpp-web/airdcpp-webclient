@@ -366,8 +366,8 @@ string QueueManager::getListPath(const HintedUser& user) {
 	return checkTarget(Util::getListPath() + nick + user.user->getCID().toBase32(), /*checkExistence*/ false);
 }
 
-bool QueueManager::replaceFinishedItem(QueueItemPtr qi) {
-	if (!Util::fileExists(qf->getTarget()) && qf->getBundle() && qf->isSet(QueueItem::FLAG_MOVED)) {
+bool QueueManager::replaceFinishedItem(QueueItemPtr q) {
+	if (!Util::fileExists(q->getTarget()) && q->getBundle() && q->isSet(QueueItem::FLAG_MOVED)) {
 		bundleQueue.removeFinishedItem(q);
 		fileQueue.remove(q);
 		return true;
