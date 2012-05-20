@@ -104,7 +104,6 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItemList& 
 		auto s = tthIndex.equal_range((*i)->getTTH());
 		if (s.first != s.second) {
 			DirectoryListing::File* f = *i;
-			//LogManager::getInstance()->message("MATCH, PATH: " + f->getPath());
 			for_each(s.first, s.second, [&](pair<TTHValue, QueueItemPtr> tqp) {
 				if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && std::find(ql.begin(), ql.end(), tqp.second) == ql.end()) 
 					ql.push_back(tqp.second); } );
@@ -134,7 +133,7 @@ QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileNa
 void FileQueue::move(QueueItemPtr qi, const string& aTarget) noexcept {
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
-	add(qi);
+	targetMapInsert = queue.insert(targetMapInsert, make_pair(const_cast<string*>(&qi->getTarget()), qi));
 }
 
 // compare nextQueryTime, get the oldest ones

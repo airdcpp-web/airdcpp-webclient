@@ -162,7 +162,7 @@ void BufferedSocket::threadConnect(const string& aAddr, const string& aPort, con
 		}
 	}
 
-	throw SocketException("Connection timeout");
+	throw SocketException(STRING(CONNECTION_TIMEOUT));
 }
 
 void BufferedSocket::threadAccept() {
@@ -180,7 +180,7 @@ void BufferedSocket::threadAccept() {
 			return;
 
 		if((startTime + 30000) < GET_TICK()) {
-			throw SocketException("Connection timeout");
+			throw SocketException(STRING(CONNECTION_TIMEOUT));
 		}
 	}
 }
@@ -196,7 +196,7 @@ void BufferedSocket::threadRead() {
 		return;
 	} else if(left == 0) {
 		// This socket has been closed...
-		throw SocketException("Connection closed");
+		throw SocketException(STRING(CONNECTION_CLOSED));
 	}
 
 	string::size_type pos = 0;
@@ -288,7 +288,7 @@ void BufferedSocket::threadRead() {
 	}
 
 	if(mode == MODE_LINE && line.size() > static_cast<size_t>(SETTING(MAX_COMMAND_LENGTH))) {
-		throw SocketException("Maximum command length exceeded");
+		throw SocketException(STRING(COMMAND_TOO_LONG));
 	}
 }
 

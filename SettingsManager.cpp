@@ -46,7 +46,7 @@ const string SettingsManager::settingTags[] =
 	"TempDownloadDirectory", "BindAddress", "BindAddress6", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", 
 	"DefaultAwayMessage", "TimeStampsFormat", "ADLSearchFrameOrder", "ADLSearchFrameWidths", 
 	"FinishedULWidths", "FinishedULOrder", "CID", "SpyFrameWidths", "SpyFrameOrder", 
-	"BeepFile", "BeginFile", "FinishedFile", "SourceFile", "UploadFile", "FakerFile", "ChatNameFile", "WinampFormat",
+	"BeepFile", "BeginFile", "FinishedFile", "SourceFile", "UploadFile", "ChatNameFile", "WinampFormat",
 	"KickMsgRecent01", "KickMsgRecent02", "KickMsgRecent03", "KickMsgRecent04", "KickMsgRecent05", 
 	"KickMsgRecent06", "KickMsgRecent07", "KickMsgRecent08", "KickMsgRecent09", "KickMsgRecent10", 
 	"KickMsgRecent11", "KickMsgRecent12", "KickMsgRecent13", "KickMsgRecent14", "KickMsgRecent15", 
@@ -485,7 +485,6 @@ SettingsManager::SettingsManager()
 	setDefault(FINISHFILE, Util::emptyString);
 	setDefault(SOURCEFILE, Util::emptyString);
 	setDefault(UPLOADFILE, Util::emptyString);
-	setDefault(FAKERFILE, Util::emptyString);
 	setDefault(CHATNAMEFILE, Util::emptyString);
 	setDefault(SOUND_TTH, Util::emptyString);
 	setDefault(SOUND_EXC, Util::emptyString);

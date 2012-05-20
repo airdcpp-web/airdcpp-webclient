@@ -23,6 +23,7 @@
 #include "format.h"
 #include "SettingsManager.h"
 #include "TimerManager.h"
+#include "ResourceManager.h"
 
 /// @todo remove when MinGW has this
 #ifdef __MINGW32__
@@ -359,14 +360,14 @@ namespace {
 		}
 		uint64_t now = GET_TICK();
 		if(start + timeout < now)
-			throw SocketException("Connection timeout");
+			throw SocketException(STRING(CONNECTION_TIMEOUT));
 		return start + timeout - now;
 	}
 }
 
 void Socket::socksConnect(const string& aAddr, const string& aPort, uint32_t timeout) {
 	if(SETTING(SOCKS_SERVER).empty() || SETTING(SOCKS_PORT) == 0) {
-		throw SocketException("The socks server failed establish a connection");
+		throw SocketException(STRING(SOCKS_FAILED));
 	}
 
 	uint64_t start = GET_TICK();
@@ -374,7 +375,7 @@ void Socket::socksConnect(const string& aAddr, const string& aPort, uint32_t tim
 	connect(SETTING(SOCKS_SERVER), Util::toString(SETTING(SOCKS_PORT)));
 
 	if(!waitConnected(timeLeft(start, timeout))) {
-		throw SocketException("The socks server failed establish a connection");
+		throw SocketException(STRING(SOCKS_FAILED));
 	}
 
 	socksAuth(timeLeft(start, timeout));
@@ -407,11 +408,11 @@ void Socket::socksConnect(const string& aAddr, const string& aPort, uint32_t tim
 	// We assume we'll get a ipv4 address back...therefore, 10 bytes...
 	/// @todo add support for ipv6
 	if(readAll(&connStr[0], 10, timeLeft(start, timeout)) != 10) {
-		throw SocketException("The socks server failed establish a connection");
+		throw SocketException(STRING(SOCKS_FAILED));
 	}
 
 	if(connStr[0] != 5 || connStr[1] != 0) {
-		throw SocketException("The socks server failed establish a connection");
+		throw SocketException(STRING(SOCKS_FAILED));
 	}
 
 	in_addr sock_addr;
@@ -435,11 +436,11 @@ void Socket::socksAuth(uint32_t timeout) {
 		writeAll(&connStr[0], 3, timeLeft(start, timeout));
 
 		if(readAll(&connStr[0], 2, timeLeft(start, timeout)) != 2) {
-			throw SocketException("The socks server failed establish a connection");
+			throw SocketException(STRING(SOCKS_FAILED));
 		}
 
 		if(connStr[1] != 0) {
-			throw SocketException("The socks server requires authentication");
+			throw SocketException(STRING(SOCKS_NEEDS_AUTH));
 		}
 	} else {
 		// We try the username and password auth type (no, we don't support gssapi)
@@ -450,10 +451,10 @@ void Socket::socksAuth(uint32_t timeout) {
 		writeAll(&connStr[0], 3, timeLeft(start, timeout));
 
 		if(readAll(&connStr[0], 2, timeLeft(start, timeout)) != 2) {
-			throw SocketException("The socks server failed establish a connection");
+			throw SocketException(STRING(SOCKS_FAILED));
 		}
 		if(connStr[1] != 2) {
-			throw SocketException("The socks server doesn't support login / password authentication");
+			throw SocketException(STRING(SOCKS_AUTH_UNSUPPORTED));
 		}
 
 		connStr.clear();
@@ -467,11 +468,11 @@ void Socket::socksAuth(uint32_t timeout) {
 		writeAll(&connStr[0], connStr.size(), timeLeft(start, timeout));
 
 		if(readAll(&connStr[0], 2, timeLeft(start, timeout)) != 2) {
-			throw SocketException("Socks server authentication failed (bad login / password?)");
+			throw SocketException(STRING(SOCKS_AUTH_FAILED));
 		}
 
 		if(connStr[1] != 0) {
-			throw SocketException("Socks server authentication failed (bad login / password?)");
+			throw SocketException(STRING(SOCKS_AUTH_FAILED));
 		}
 	}
 }
@@ -591,7 +592,7 @@ void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuff
 	int sent;
 	if(proxy && CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5) {
 		if(udpAddr.sa.sa_family == 0) {
-			throw SocketException("Failed to set up the socks server for UDP relay (check socks address and port)");
+			throw SocketException(STRING(SOCKS_SETUP_ERROR));
 		}
 
 		vector<uint8_t> connStr;

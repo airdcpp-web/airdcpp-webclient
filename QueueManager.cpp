@@ -484,8 +484,11 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				}
 
 				if (q) {
-					LogManager::getInstance()->message(STRING(FILE_WITH_SAME_TTH) + " " + aTarget, LogManager::LOG_INFO);
-					throw QueueException(STRING(FILE_WITH_SAME_TTH));
+					string tmp = str(boost::format(STRING(FILE_ALREADY_QUEUED)) % 
+						Util::getFileName(target).c_str() %
+						q->getTarget().c_str());
+					LogManager::getInstance()->message(tmp, LogManager::LOG_ERROR);
+					throw QueueException(tmp);
 				}
 			}
 		}
