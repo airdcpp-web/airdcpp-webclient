@@ -25,6 +25,7 @@
 #include "FilteredFile.h"
 #include "FileReader.h"
 #include "ZUtils.h"
+#include "Text.h"
 
 #include <iostream>
 #include <fstream>
@@ -67,13 +68,11 @@ void DirSFVReader::load() noexcept {
 	string line;
 	boost::regex crcReg;
 	crcReg.assign("(.{5,200}\\s(\\w{8})$)");
-	std::locale lc(""); //set the read to users locale
 
 	for(auto i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
 
 		/* Try to open the sfv */
 		ifstream sfv;
-		sfv.imbue(lc);
 		
 		try {
 			if (File::getSize(Text::utf8ToAcp(path)) > 1000000) {
@@ -145,7 +144,7 @@ bool DirSFVReader::read(string& fileName) {
 
 
 bool FileSFVReader::tryFile(const string& sfvFile, const string& fileName) {
-	string sfv = File(sfvFile, File::READ, File::OPEN).read();
+	string sfv = Text::toUtf8(File(sfvFile, File::READ, File::OPEN).read());
 
 	string::size_type i = 0;
 	while( (i = Util::findSubString(sfv, fileName, i)) != string::npos) {
