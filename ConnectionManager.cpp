@@ -86,7 +86,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 			WLock l(cs);
 			for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 				cqi = *i;
-				if (cqi->getUser() == aUser) {
+				if (cqi->getUser() == aUser && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 						supportMcn = true;
 						if (cqi->getState() != ConnectionQueueItem::RUNNING) {
@@ -102,7 +102,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 						//no need to continue with small slot if an item with the same type exists already (no mather whether it's running or not)
 						if (smallSlot)
 							return;
-					} else if (!cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+					} else {
 						//no need to continue with non-MCN users
 						return;
 					}
@@ -256,7 +256,7 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 
 			int running = 0;
 			for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-				if ((*i)->getUser() == aSource->getUser() && !(*i)->isSet(ConnectionQueueItem::FLAG_SMALL_CONF)) {
+				if ((*i)->getUser() == aSource->getUser() && !(*i)->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && !(*i)->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					if ((*i)->getState() != ConnectionQueueItem::RUNNING) {
 						return;
 					}
@@ -264,7 +264,7 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 				}
 			}
 
-			if (!cqi->allowNewConnections(running))
+			if (!cqi->allowNewConnections(running) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE))
 				return;
 		}
 	}
@@ -876,7 +876,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			dcassert(i != downloads.end());
 			ConnectionQueueItem* cqi = *i;
 
-			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
+			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 				//remove an existing waiting item, if exists
 				auto s = find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
 					return c->getUser() == aSource->getUser() && !c->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && 

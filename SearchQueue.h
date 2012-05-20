@@ -55,8 +55,8 @@ struct Search
 		switch(type) {
 			case MANUAL: return 5000;
 			case ALT: return 10000;
-			case ALT_AUTO: return 15000;
-			case AUTO_SEARCH: return 15000;
+			case ALT_AUTO: return 20000;
+			case AUTO_SEARCH: return 20000;
 		}
 		return 5000;
 	}
