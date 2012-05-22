@@ -126,8 +126,6 @@ public:
 
 	SearchManager::TypeModes getType(const string& fileName) noexcept;
 
-	StringList getVirtualNames();
-
 	string validateVirtual(const string& /*aVirt*/) const noexcept;
 	bool hasVirtual(const string& name) const noexcept;
 

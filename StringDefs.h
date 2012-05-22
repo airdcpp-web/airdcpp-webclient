@@ -1377,5 +1377,9 @@ enum Strings { // @DontAdd
 	USE_SEQ_ORDER, // "Use sequential order"
 	LANGUAGE_NOTE, // "Note: you need to restart the client for the new language to take effect"
 	FILE_ALREADY_QUEUED, // "The file %s already exists in the queue as %s"
+	FILE_LIST_REFRESH_INITIATED_RPATH, // "File list refresh initiated for the path %s"
+	FILE_LIST_REFRESH_INITIATED_VPATH, // "File list refresh initiated for the virtual directory \"%s\""
+	FILE_LIST_REFRESH_INITIATED_X_VPATH, // "File list refresh initiated for %d virtual directories"
+	FILE_LIST_REFRESH_INITIATED_INCOMING, // "File list refresh initiated for the incoming directories"
 	LAST // @DontAdd
 };

@@ -1190,40 +1190,32 @@ StringPairList ShareManager::getDirectories(int refreshOptions) const noexcept {
 	return ret;
 }
 
-vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noexcept {
-	vector<pair<string, StringList>> ret;
-	//RLock l(cs); use getInstance()->LockRead() to lock this. and remember to unLockRead().
-	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
-		bool found = false;
-		for (auto k = ret.begin(); k != ret.end(); ++k) {
-			if (k->first == i->second) {
-				k->second.push_back(i->first);
-				found = true;
-				break;
-			}
-		}
-
-		if (!found) {
-			StringList tmp;
-			tmp.push_back(i->first);
-			ret.push_back(make_pair(i->second, tmp));
-		}
-	}
-	sort(ret.begin(), ret.end());
-	return ret;
-}
-
 int ShareManager::run() {
 	
 	StringPairList dirs = getDirectories(refreshOptions);
 
+	string msg;
 	if(refreshOptions & REFRESH_ALL) {
 		lastFullUpdate = GET_TICK();
+		msg = STRING(FILE_LIST_REFRESH_INITIATED);
+	} else if (refreshOptions & REFRESH_INCOMING) {
+		msg = STRING(FILE_LIST_REFRESH_INITIATED_INCOMING);
+	} else if (refreshOptions & REFRESH_DIRECTORY) {
+		if (dirs.size() == 1) {
+			msg = str(boost::format(STRING(FILE_LIST_REFRESH_INITIATED_RPATH)) % dirs.front().second);
+		} else {
+			if(find_if(dirs.begin(), dirs.end(), [dirs](pair<string,string>& dp) { return dp.first != dirs.front().first; }) == dirs.end()) {
+				msg = str(boost::format(STRING(FILE_LIST_REFRESH_INITIATED_VPATH)) % dirs.front().first);
+			} else {
+				msg = str(boost::format(STRING(FILE_LIST_REFRESH_INITIATED_X_VPATH)) % dirs.size());
+			}
+		}
 	}
 
 	HashManager::HashPauser pauser;
-				
-	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_INITIATED), LogManager::LOG_INFO);
+	
+	if (!msg.empty())
+		LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
 
 	bundleDirs.clear();
 	QueueManager::getInstance()->getForbiddenPaths(bundleDirs, dirs);
@@ -2323,28 +2315,22 @@ int64_t ShareManager::removeExcludeFolder(const string &path, bool returnSize /*
 	return bytesAdded;
 }
 
-StringList ShareManager::getVirtualNames() {
-	StringList result;
-
-	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i){
-		bool exists = false;
-
-		for(StringIter j = result.begin(); j != result.end(); ++j) {
-			if( stricmp( *j, i->second ) == 0 ){
-				exists = true;
-				break;
-			}
+vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noexcept {
+	vector<pair<string, StringList>> ret;
+	//use getInstance()->LockRead() to lock this. and remember to unLockRead().
+	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
+		auto retVirtual = find_if(ret.begin(), ret.end(), CompareFirst<string, StringList>(i->second));
+		if (retVirtual != ret.end()) {
+			retVirtual->second.push_back(i->first);
+		} else {
+			StringList tmp;
+			tmp.push_back(i->first);
+			ret.push_back(make_pair(i->second, tmp));
 		}
-
-		if( !exists )
-			result.push_back( i->second );
 	}
-
-	sort( result.begin(), result.end() );
-
-	return result;
+	sort(ret.begin(), ret.end());
+	return ret;
 }
-
 
 } // namespace dcpp
 

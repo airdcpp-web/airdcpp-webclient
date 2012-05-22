@@ -1370,6 +1370,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Use sequential order", 
 "Note: you need to restart the client for the new language to take effect", 
 "The file %s already exists in the queue as %s", 
+"File list refresh initiated for the path %s", 
+"File list refresh initiated for the virtual directory \"%s\"", 
+"File list refresh initiated for %d virtual directories", 
+"File list refresh initiated for the incoming directories", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2740,4 +2744,8 @@ std::string dcpp::ResourceManager::names[] = {
 "UseSeqOrder", 
 "LanguageNote", 
 "FileAlreadyQueued", 
+"FileListRefreshInitiatedRpath", 
+"FileListRefreshInitiatedVpath", 
+"FileListRefreshInitiatedXVpath", 
+"FileListRefreshInitiatedIncoming", 
 };
