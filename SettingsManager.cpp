@@ -1048,7 +1048,7 @@ SettingsManager::SearchTypesIter SettingsManager::getSearchType(const string& na
 
 
 bool SettingsManager::addSearchToHistory(const tstring& aSearch) {
-	if(aSearch.empty())
+	if(aSearch.empty() || SETTING(SEARCH_HISTORY) == 0)
 		return false;
 
 	Lock l(cs);
