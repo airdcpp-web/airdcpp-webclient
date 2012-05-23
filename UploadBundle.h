@@ -43,6 +43,7 @@ public:
 	int delayTime;
 
 	GETSET(UploadList, uploads, Uploads);
+	UploadList& getUploads() { return uploads; }
 	
 	int getRunning() { return (int)uploads.size(); }
 

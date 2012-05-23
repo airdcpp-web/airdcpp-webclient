@@ -100,8 +100,8 @@ AutoSearchManager::~AutoSearchManager() {
 }
 
 /* For external use */
-AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType) {
-	auto as = new AutoSearch(true, ss, SearchManager::TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
+AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory) {
+	auto as = new AutoSearch(true, ss, isDirectory ? SearchManager::TYPE_DIRECTORY : SearchManager::TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
 		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, true, true);
 
 	as->startTime = SearchTime();
@@ -109,9 +109,11 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	as->searchDays = bitset<7>("1111111");
 
 	if (addAutoSearch(as)) {
+		LogManager::getInstance()->message(CSTRING(SEARCH_ADDED) + ss, LogManager::LOG_INFO);
 		SearchNow(as);
 		return as;
 	} else {
+		LogManager::getInstance()->message(str(boost::format(STRING(AUTO_SEARCH_ADD_FAILED)) % ss), LogManager::LOG_ERROR);
 		return nullptr;
 	}
 }
@@ -119,8 +121,8 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
 	{
 		WLock l(cs);
-		if (find(searchItems.begin(), searchItems.end(), aAutoSearch) != searchItems.end())
-			return false;
+		if (find_if(searchItems.begin(), searchItems.end(),
+			[aAutoSearch](AutoSearchPtr as)  { return as->getSearchString() == aAutoSearch->getSearchString(); }) != searchItems.end()) return false;
 		searchItems.push_back(aAutoSearch);
 	}
 	dirty = true;

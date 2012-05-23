@@ -1087,7 +1087,7 @@ enum Strings { // @DontAdd
 	FORMAT_RELEASE, // "Format Release Names as Links in chat"
 	COPY_DIRECTORY, // "Copy Directory"
 	ERROR_HASHING_CRC32, // "calculated CRC32 does not match the one found in SFV file."
-	SEARCH_DIRECTORY, // "Search Directory"
+	SEARCH_DIRECTORY, // "Search directory"
 	SEARCH_GOOGLE_TITLE, // "Search Google (title only)"
 	SEARCH_GOOGLE_FULL, // "Search Google (full release name)"
 	SEARCH_TVCOM, // "Search TV.com"
@@ -1381,5 +1381,10 @@ enum Strings { // @DontAdd
 	FILE_LIST_REFRESH_INITIATED_VPATH, // "File list refresh initiated for the virtual directory \"%s\""
 	FILE_LIST_REFRESH_INITIATED_X_VPATH, // "File list refresh initiated for %d virtual directories"
 	FILE_LIST_REFRESH_INITIATED_INCOMING, // "File list refresh initiated for the incoming directories"
+	DELETE_FILE, // "Delete file"
+	DELETE_FILE_CONFIRM, // "Are you sure want to delete the file %s?"
+	ADD_AUTO_SEARCH_FILE, // "Add file to auto search"
+	ADD_AUTO_SEARCH_DIR, // "Add directory to auto search"
+	AUTO_SEARCH_ADD_FAILED, // "Failed to add the auto search %s"
 	LAST // @DontAdd
 };

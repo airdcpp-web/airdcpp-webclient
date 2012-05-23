@@ -191,6 +191,14 @@ public:
 		return (j != string::npos) ? path.substr(j+1, i-j-1) : path;
 	}
 
+	static string getParentDir(const string& path) {
+		string::size_type i = path.rfind(PATH_SEPARATOR);
+		if(i == string::npos)
+			return Util::emptyString;
+		string::size_type j = path.rfind(PATH_SEPARATOR, i-1);
+		return (j != string::npos) ? path.substr(0, j+1) : path;
+	}
+
 	static wstring getFilePath(const wstring& path) {
 		wstring::size_type i = path.rfind(PATH_SEPARATOR);
 		return (i != wstring::npos) ? path.substr(0, i + 1) : path;

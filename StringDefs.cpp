@@ -1080,7 +1080,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Format Release Names as Links in chat", 
 "Copy Directory", 
 "calculated CRC32 does not match the one found in SFV file.", 
-"Search Directory", 
+"Search directory", 
 "Search Google (title only)", 
 "Search Google (full release name)", 
 "Search TV.com", 
@@ -1374,6 +1374,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "File list refresh initiated for the virtual directory \"%s\"", 
 "File list refresh initiated for %d virtual directories", 
 "File list refresh initiated for the incoming directories", 
+"Delete file", 
+"Are you sure want to delete the file %s?", 
+"Add file to auto search", 
+"Add directory to auto search", 
+"Failed to add the auto search %s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2748,4 +2753,9 @@ std::string dcpp::ResourceManager::names[] = {
 "FileListRefreshInitiatedVpath", 
 "FileListRefreshInitiatedXVpath", 
 "FileListRefreshInitiatedIncoming", 
+"DeleteFile", 
+"DeleteFileConfirm", 
+"AddAutoSearchFile", 
+"AddAutoSearchDir", 
+"AutoSearchAddFailed", 
 };

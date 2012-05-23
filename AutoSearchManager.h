@@ -78,10 +78,6 @@ public:
 		ACTION_REPORT,
 	};
 
-	bool operator==(const AutoSearchPtr as) const {
-		return stricmp(searchString, as->getSearchString()) == 0;
-	}
-
 	AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
 		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept;
 
@@ -124,7 +120,7 @@ public:
 	~AutoSearchManager();
 
 	bool addAutoSearch(AutoSearchPtr aAutoSearch);
-	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType);
+	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory);
 	AutoSearchPtr getAutoSearch(unsigned int index);
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);

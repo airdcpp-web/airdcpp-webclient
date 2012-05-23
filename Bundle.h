@@ -74,10 +74,6 @@ public:
 		size_t operator()(const BundlePtr x) const { return hash<string>()(x->getToken()); }
 	};
 
-	bool operator==(const BundlePtr aBundle) const {
-		return compare(token, aBundle->getToken()) == 0;
-	}
-
 	struct SortOrder {
 		bool operator()(const BundlePtr left, const BundlePtr right) const {
 			if (left->getPriority() == right->getPriority()) {

@@ -60,10 +60,6 @@ public:
 		size_t operator()(const QueueItemPtr x) const { return hash<string>()(x->getTarget()); }
 	};
 
-	bool operator==(const QueueItemPtr q) const {
-		return compare(target, q->getTarget()) == 0;
-	}
-
 	struct SortOrder {
 		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const {
 			auto extLeft = left->getTarget().rfind('.');
