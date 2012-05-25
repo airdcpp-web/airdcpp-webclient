@@ -17,6 +17,8 @@
  */
 
 #include "stdinc.h"
+
+#include "Bundle.h"
 #include "TimerManager.h"
 #include "Download.h"
 #include "UserConnection.h"
@@ -41,7 +43,7 @@ using boost::fusion::accumulate;
 Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(true), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
-	currentDownloaded(qi->getDownloadedBytes()), hashed(0), seqOrder(true) {
+	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true) {
 
 
 	qi->setBundle(this);
@@ -53,7 +55,7 @@ Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()),
 
 Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t aDirDate /*0*/) : fileBundle(false), 
 	token(Util::toString(Util::rand()) + Util::toString(Util::rand())), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate),
-	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), hashed(0) {
+	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0) {
 
 	setTarget(aTarget);
 	auto time = GET_TIME();
