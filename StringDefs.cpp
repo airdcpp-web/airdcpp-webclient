@@ -1378,7 +1378,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Are you sure want to delete the file %s?", 
 "Add file to auto search", 
 "Add directory to auto search", 
-"Failed to add the auto search %s", 
+"Failed to add the auto search %s:", 
+"An item with the same name exists already", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2758,4 +2759,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AddAutoSearchFile", 
 "AddAutoSearchDir", 
 "AutoSearchAddFailed", 
+"AutoSearchExists", 
 };

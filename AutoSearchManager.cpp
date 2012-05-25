@@ -101,6 +101,11 @@ AutoSearchManager::~AutoSearchManager() {
 
 /* For external use */
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory) {
+	if (ss.length() <= 5) {
+		LogManager::getInstance()->message(str(boost::format(STRING(AUTO_SEARCH_ADD_FAILED)) % ss) + " " + STRING(LINE_EMPTY_OR_TOO_SHORT), LogManager::LOG_ERROR);
+		return nullptr;
+	}
+
 	auto as = new AutoSearch(true, ss, isDirectory ? SearchManager::TYPE_DIRECTORY : SearchManager::TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
 		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, true, true);
 
@@ -113,7 +118,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 		SearchNow(as);
 		return as;
 	} else {
-		LogManager::getInstance()->message(str(boost::format(STRING(AUTO_SEARCH_ADD_FAILED)) % ss), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(str(boost::format(STRING(AUTO_SEARCH_ADD_FAILED)) % ss) + " " + STRING(AUTO_SEARCH_EXISTS), LogManager::LOG_ERROR);
 		return nullptr;
 	}
 }

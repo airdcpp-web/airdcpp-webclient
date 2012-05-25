@@ -1385,6 +1385,7 @@ enum Strings { // @DontAdd
 	DELETE_FILE_CONFIRM, // "Are you sure want to delete the file %s?"
 	ADD_AUTO_SEARCH_FILE, // "Add file to auto search"
 	ADD_AUTO_SEARCH_DIR, // "Add directory to auto search"
-	AUTO_SEARCH_ADD_FAILED, // "Failed to add the auto search %s"
+	AUTO_SEARCH_ADD_FAILED, // "Failed to add the auto search %s:"
+	AUTO_SEARCH_EXISTS, // "An item with the same name exists already"
 	LAST // @DontAdd
 };
