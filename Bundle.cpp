@@ -617,6 +617,11 @@ void Bundle::sendRemovePBD(const UserPtr& aUser) noexcept {
 	}
 }
 
+bool Bundle::allFilesHashed() {
+	return queueItems.empty() && 
+		find_if(finishedFiles.begin(), finishedFiles.end(), [](QueueItemPtr q) { return !q->isSet(QueueItem::FLAG_HASHED); }) == finishedFiles.end();
+}
+
 void Bundle::getTTHList(OutputStream& tthList) noexcept {
 	string tmp2;
 	for(auto i = finishedFiles.begin(); i != finishedFiles.end(); ++i) {

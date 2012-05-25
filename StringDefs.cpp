@@ -1380,6 +1380,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Add directory to auto search", 
 "Failed to add the auto search %s:", 
 "An item with the same name exists already", 
+"No files were loaded for %s", 
+"No files were loaded from this file", 
+"Failed to load the bundle %s: %s. The bundle file has be deleted.", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2760,4 +2763,7 @@ std::string dcpp::ResourceManager::names[] = {
 "AddAutoSearchDir", 
 "AutoSearchAddFailed", 
 "AutoSearchExists", 
+"NoFilesWereLoaded", 
+"NoFilesFromFile", 
+"BundleLoadFailed", 
 };

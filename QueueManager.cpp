@@ -943,7 +943,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 					//..
 				} else {
 					//fine, it's there already..
-					aBundle->increaseHashed();
+					q->setFlag(QueueItem::FLAG_HASHED);
 				}
 			} catch(const Exception&) {
 				//...
@@ -951,9 +951,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 		});
 
 		//all files have been hashed already?
-		if(aBundle->getFinishedFiles().size() == static_cast<size_t>(aBundle->getHashed())) {
-			bundleHashed(aBundle);
-		}
+		checkBundleHashed(aBundle);
 	} else if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 		LogManager::getInstance()->message(str(boost::format(STRING(NOT_IN_SHARED_DIR)) % 
 			aBundle->getTarget().c_str()), LogManager::LOG_INFO);
@@ -1001,7 +999,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 		return;
 	}
 
-	b->increaseHashed();
+	qi->setFlag(QueueItem::FLAG_HASHED);
 
 	if (failed) {
 		b->setFlag(Bundle::FLAG_SHARING_FAILED);
@@ -1010,21 +1008,30 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 		fire(QueueManagerListener::FileHashed(), fname, root);
 	}
 
-	if (b->getHashed() == (int)b->getFinishedFiles().size()) {
-		bundleHashed(b);
+	checkBundleHashed(b);
+}
+
+void QueueManager::checkBundleHashed(BundlePtr aBundle) {
+	bool filesHashed = false;
+	{
+		RLock l;
+		filesHashed = aBundle->allFilesHashed();
+	}
+
+	if (filesHashed) {
+		bundleHashed(aBundle);
 	}
 }
 
 void QueueManager::bundleHashed(BundlePtr b) {
 
 	//don't fire anything if nothing has been hashed (the folder has probably been removed...)
-	if (b->getHashed() > 0) {
+	if (!b->getFinishedFiles().empty()) {
 		bool fireHashed = false;
 		{
 			RLock l(cs);
 			if (!b->getQueueItems().empty()) {
 				//new items have been added while it was being hashed
-				b->resetHashed();
 				b->unsetFlag(Bundle::FLAG_HASH);
 				return;
 			}
@@ -1035,7 +1042,6 @@ void QueueManager::bundleHashed(BundlePtr b) {
 				} else {
 					LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASH_FAILED)) % 
 						b->getTarget().c_str()), LogManager::LOG_ERROR);
-					b->resetHashed(); //for the next attempts
 					return;
 				}
 			} else {
@@ -1755,18 +1761,17 @@ private:
 
 void QueueManager::loadQueue() noexcept {
 	QueueLoader l;
-	//Util::migrate(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml");
 
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
 	for (auto i = fileList.begin(); i != fileList.end(); ++i) {
-		//LogManager::getInstance()->message("LOADING BUNDLE1: " + *i);
-		if ((*i).substr((*i).length()-4, 4) == ".xml") {
-			//LogManager::getInstance()->message("LOADING BUNDLE2: " + *i);
+		if (Util::getFileExt(*i) == ".xml") {
 			try {
 				File f(*i, File::READ, File::OPEN);
 				SimpleXMLReader(&l).parse(f);
-			} catch(const Exception&) {
-				LogManager::getInstance()->message("Failed to load the bundle: " + *i, LogManager::LOG_ERROR);
+			} catch(const Exception& e) {
+				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_LOAD_FAILED)) % *i % e.getError().c_str()), 
+					LogManager::LOG_ERROR);
+				File::deleteFile(*i);
 			}
 		}
 	}
@@ -1850,7 +1855,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			}
 
 			if (curBundle && inBundle && !AirUtil::isParent(curBundle->getTarget(), target)) {
-				//can't add this, invalid dir structure
+				//the file isn't inside the main bundle dir, can't add this
 				return;
 			}
 
@@ -1938,15 +1943,21 @@ void QueueLoader::endTag(const string& name, const string&) {
 		if(name == "Downloads") {
 			inDownloads = false;
 		} else if(name == sBundle) {
-			QueueManager::getInstance()->addBundle(curBundle, true);
+			if (curBundle->getQueueItems().empty())
+				throw Exception(str(boost::format(STRING(NO_FILES_WERE_LOADED)) % curBundle->getTarget()));
+			else
+				QueueManager::getInstance()->addBundle(curBundle, true);
 			curBundle = nullptr;
 			inBundle = false;
 		} else if(name == sFile) {
+			if (!curBundle || curBundle->getQueueItems().empty())
+				throw Exception(STRING(NO_FILES_FROM_FILE));
 			curToken = Util::emptyString;
 			inFile = false;
 		} else if(name == sDownload) {
-			if (curBundle && curBundle->isFileBundle() && !curBundle->getQueueItems().empty()) {
-				QueueManager::getInstance()->bundleQueue.addBundle(curBundle);
+			if (curBundle && curBundle->isFileBundle()) {
+				/* Only for file bundles and when migrating an old queue */
+				QueueManager::getInstance()->addBundle(curBundle, true);
 			}
 			cur = nullptr;
 		}

@@ -1387,5 +1387,8 @@ enum Strings { // @DontAdd
 	ADD_AUTO_SEARCH_DIR, // "Add directory to auto search"
 	AUTO_SEARCH_ADD_FAILED, // "Failed to add the auto search %s:"
 	AUTO_SEARCH_EXISTS, // "An item with the same name exists already"
+	NO_FILES_WERE_LOADED, // "No files were loaded for %s"
+	NO_FILES_FROM_FILE, // "No files were loaded from this file"
+	BUNDLE_LOAD_FAILED, // "Failed to load the bundle %s: %s. The bundle file has be deleted."
 	LAST // @DontAdd
 };

@@ -113,7 +113,9 @@ public:
 		/** A finished bundle item */
 		FLAG_FINISHED			= 0x800,
 		/** A finished bundle item that has also been moved */
-		FLAG_MOVED				= 0x1000
+		FLAG_MOVED				= 0x1000,
+		/** A hashed bundle item */
+		FLAG_HASHED				= 0x4000
 	};
 
 	/**
