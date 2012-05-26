@@ -1389,6 +1389,6 @@ enum Strings { // @DontAdd
 	AUTO_SEARCH_EXISTS, // "An item with the same name exists already"
 	NO_FILES_WERE_LOADED, // "No files were loaded for %s"
 	NO_FILES_FROM_FILE, // "No files were loaded from this file"
-	BUNDLE_LOAD_FAILED, // "Failed to load the bundle %s: %s. The bundle file has be deleted."
+	BUNDLE_LOAD_FAILED, // "Failed to load the bundle %s: %s. The bundle file has been deleted."
 	LAST // @DontAdd
 };

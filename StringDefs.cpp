@@ -1382,7 +1382,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "An item with the same name exists already", 
 "No files were loaded for %s", 
 "No files were loaded from this file", 
-"Failed to load the bundle %s: %s. The bundle file has be deleted.", 
+"Failed to load the bundle %s: %s. The bundle file has been deleted.", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
