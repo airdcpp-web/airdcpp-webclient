@@ -402,6 +402,14 @@ void FavoriteManager::save() {
 			xml.addChildAttrib("Top",				Util::toString((*i)->getTop()));
 			xml.addChildAttrib("Right",				Util::toString((*i)->getRight()));
 			xml.addChildAttrib("Left",				Util::toString((*i)->getLeft()));
+			xml.stepIn();
+			if(AirUtil::isAdcHub((*i)->getServer())) {
+				for(auto path = (*i)->getUnShared().begin(); path != (*i)->getUnShared().end(); ++path) {
+					if(ShareManager::getInstance()->shareFolder(*path, false, true))
+						xml.addTag("unShared", *path);
+				}
+			}
+			xml.stepOut();
 		}
 
 		xml.stepOut();
@@ -600,7 +608,18 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setHubLogMainchat(aXml.getBoolChildAttrib("HubLogMainchat")); 
 			e->setSearchInterval(Util::toUInt32(aXml.getChildAttrib("SearchInterval")));
 			e->setGroup(aXml.getChildAttrib("Group"));
-			e->setChatNotify(aXml.getBoolChildAttrib("ChatNotify")); 
+			e->setChatNotify(aXml.getBoolChildAttrib("ChatNotify"));
+			aXml.stepIn();
+				StringList tmp;
+				while(aXml.findChild("unShared")) {
+					string path = aXml.getChildData();
+					if(ShareManager::getInstance()->shareFolder(path, false, true)) //validate that we are sharing the unshared folder.
+						tmp.push_back(path);
+				}
+				sort(tmp.begin(), tmp.end());
+				e->setUnShared(tmp);
+			aXml.stepOut();
+
 			favoriteHubs.push_back(e);
 		}
 
@@ -978,8 +997,9 @@ void FavoriteManager::on(UserDisconnected, const UserPtr& user) noexcept {
 		fire(FavoriteManagerListener::StatusChanged(), user);
 }
 
-void FavoriteManager::on(UserConnected, const UserPtr& user) noexcept {
+void FavoriteManager::on(UserConnected, const OnlineUser& aUser) noexcept {
 	bool isFav = false;
+	UserPtr user = aUser.getUser();
 	{
 		Lock l(cs);
 		FavoriteMap::const_iterator i = users.find(user->getCID());

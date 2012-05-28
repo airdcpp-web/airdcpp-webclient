@@ -183,7 +183,7 @@ bool DownloadManager::checkIdle(const HintedUser& user, bool smallSlot, bool rep
 	return false;
 }
 
-void DownloadManager::addConnection(UserConnectionPtr conn) {
+void DownloadManager::addConnection(UserConnection* conn) {
 	if(!conn->isSet(UserConnection::FLAG_SUPPORTS_TTHF) || !conn->isSet(UserConnection::FLAG_SUPPORTS_ADCGET)) {
 		// Can't download from these...
 		conn->getUser()->setFlag(User::OLD_CLIENT);

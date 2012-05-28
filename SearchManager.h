@@ -75,7 +75,7 @@ public:
  	}
 	//static string clean(const string& aSearchString);
 	
-	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort);
+	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, const Client* c = NULL);
 
 	const string& getPort() const { return port; }
 

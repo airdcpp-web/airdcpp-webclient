@@ -68,16 +68,17 @@ private:
 	HintedUser user;
 };
 
+// We are using this for adc connections too now, with <CID, hubUrl>
 class ExpectedMap {
 public:
-	void add(const string& aNick, const string& aMyNick, const string& aHubUrl) {
+	void add(const string& aKey, const string& aMyNick, const string& aHubUrl) {
 		Lock l(cs);
-		expectedConnections.insert(make_pair(aNick, make_pair(aMyNick, aHubUrl)));
+		expectedConnections.insert(make_pair(aKey, make_pair(aMyNick, aHubUrl)));
 	}
 
-	StringPair remove(const string& aNick) {
+	StringPair remove(const string& aKey) {
 		Lock l(cs);
-		ExpectMap::iterator i = expectedConnections.find(aNick);
+		ExpectMap::iterator i = expectedConnections.find(aKey);
 		
 		if(i == expectedConnections.end()) 
 			return make_pair(Util::emptyString, Util::emptyString);
@@ -90,7 +91,8 @@ public:
 
 private:
 	/** Nick -> myNick, hubUrl for expected NMDC incoming connections */
-	typedef map<string, StringPair> ExpectMap;
+	/** CID -> emptyString, hubUrl for expected ADC incoming connections */
+	typedef map<string, StringPair> ExpectMap; //need to use multimap??
 	ExpectMap expectedConnections;
 
 	CriticalSection cs;
@@ -108,6 +110,10 @@ class ConnectionManager : public Speaker<ConnectionManagerListener>,
 public:
 	void nmdcExpect(const string& aNick, const string& aMyNick, const string& aHubUrl) {
 		expectedConnections.add(aNick, aMyNick, aHubUrl);
+	}
+	//expecting to get connection from a passive user
+	void adcExpect(const string& userCID, const string& aHubUrl) {
+		expectedConnections.add(userCID, Util::emptyString, aHubUrl);
 	}
 
 	void nmdcConnect(const string& aServer, const string& aPort, const string& aMyNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);

@@ -290,7 +290,7 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 	}
 
 	for(auto j = userConnections.begin(); j != userConnections.end(); ++j) {
-		if(((*j)->getLastActivity() + 180*1000) < aTick) {
+		if(((*j)->getLastActivity() + 180*1000) < aTick) { //hmm 3 minutes?
 			(*j)->disconnect(true);
 		}
 	}
@@ -325,6 +325,7 @@ int ConnectionManager::Server::run() noexcept {
 				auto ret = sock.wait(POLL_TIMEOUT, true, false);
 				if(ret.first) {
 					ConnectionManager::getInstance()->accept(sock, secure);
+					
 				}
 			}
 		} catch(const Exception& e) {
@@ -767,8 +768,8 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		aSource->disconnect();
 		return;
 	}
-
-	aSource->setUser(ClientManager::getInstance()->findUser(CID(cid)));
+	UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+	aSource->setUser(user);
 
 	if(!aSource->getUser()) {
 		dcdebug("CM::onINF: User not found");
@@ -788,6 +789,16 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "TO missing"));
 			putConnection(aSource);
 			return;
+		}
+		// Try to find out where this came from...
+		// For downloads we do know it from cqi (we made the connection after all :P ), so basicly this would be needed only for passive uploads.
+		StringPair i = expectedConnections.remove(user->getCID().toBase32());
+		if(i.second.empty()) {
+			//Todo disconnect?, ignore? we dont want connections without hubhint laying around..
+			string tmp = "User: " + Util::toString(ClientManager::getInstance()->getNicks(user->getCID())) + (aSource->isSet(UserConnection::FLAG_MCN1) ? "MCN connection: , " : "connection: ") + (aSource->isSet(UserConnection::FLAG_DOWNLOAD) ? "Download " : "Upload ");
+			LogManager::getInstance()->message("Debug info: " + tmp +  "No expected adc connection found! Report", LogManager::LOG_WARNING);	
+		} else {
+			aSource->setHubUrl(i.second);
 		}
 	} else {
 		token = aSource->getToken();

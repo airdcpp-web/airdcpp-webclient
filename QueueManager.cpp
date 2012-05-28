@@ -2077,13 +2077,13 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 }
 
 // ClientManagerListener
-void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser) noexcept {
+void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept {
 	bool hasDown = false;
 	{
 		QueueItemList ql;
 		{
 			RLock l(cs);
-			userQueue.getUserQIs(aUser, ql);
+			userQueue.getUserQIs(aUser.getUser(), ql);
 		}
 
 		for_each(ql, [&](QueueItemPtr qi) {
@@ -2093,9 +2093,8 @@ void QueueManager::on(ClientManagerListener::UserConnected, const UserPtr& aUser
 		});
 	}
 
-	if(hasDown && aUser->isOnline()) { //even tho user just connected, check if he is still online
-		// the user just came on, so there's only 1 possible hub, no need for a hint
-		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(aUser, Util::emptyString));
+	if(hasDown && aUser.getUser()->isOnline()) { 
+		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(aUser.getUser(), aUser.getClient().getHubUrl()));
 	}
 }
 

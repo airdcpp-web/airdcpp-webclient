@@ -694,6 +694,18 @@ bool AirUtil::isAdcHub(const string& hubUrl) {
 	return false;
 }
 
+
+string AirUtil::stripHubUrl(const string& url) {
+	
+	if(strnicmp("adc://", url.c_str(), 6) == 0) {
+		return "_" + Util::validateFileName(url.substr(6, url.length()));
+	} else if(strnicmp("adcs://", url.c_str(), 7) == 0) {
+		return "_" + Util::validateFileName(url.substr(7, url.length()));
+
+	}
+	return Util::emptyString;
+}
+
 string AirUtil::convertMovePath(const string& aPath, const string& aParent, const string& aTarget) {
 	return aTarget + aPath.substr(aParent.length(), aPath.length() - aParent.length());
 }

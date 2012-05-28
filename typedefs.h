@@ -58,6 +58,7 @@ typedef unordered_map<wstring, wstring> WStringMap;
 typedef WStringMap::iterator WStringMapIter;
 
 typedef vector<uint8_t> ByteVector;
+typedef vector<Client*> ClientList;
 
 #ifdef UNICODE
 

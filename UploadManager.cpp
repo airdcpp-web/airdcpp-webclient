@@ -38,6 +38,7 @@
 #include "QueueManager.h"
 #include "FinishedManager.h"
 #include "SharedFileStream.h"
+#include "BZUtils.h"
 
 #include "Wildcards.h"
 
@@ -73,7 +74,7 @@ UploadManager::~UploadManager() {
 	}
 }
 
-bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aStartPos, int64_t& aBytes, bool listRecursive, bool tthList) {
+bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aStartPos, int64_t& aBytes, const string& userSID, bool listRecursive, bool tthList) {
 	dcdebug("Preparing %s %s " I64_FMT " " I64_FMT " %d\n", aType.c_str(), aFile.c_str(), aStartPos, aBytes, listRecursive);
 
 	if(aFile.empty() || aStartPos < 0 || aBytes < -1 || aBytes == 0) {
@@ -90,21 +91,19 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	bool free = userlist;
 	bool partial = false;
 
-	// Hide Share Mod
 	bool isInSharingHub = true;
 
 	if(aSource.getUser()) {
 		isInSharingHub = ClientManager::getInstance()->isSharingHub(aSource.getHintedUser());
 	}
-	//Hide Share Mod
-
+	
 	string sourceFile;
 	Transfer::Type type;
 
 	try {
 		if(aType == Transfer::names[Transfer::TYPE_FILE]) {
 		
-			sourceFile = ShareManager::getInstance()->toReal(aFile, isInSharingHub, aSource.getHintedUser());
+			sourceFile = ShareManager::getInstance()->toReal(aFile, isInSharingHub, aSource.getHintedUser(), userSID);
 
 			if(aFile == Transfer::USER_LIST_NAME) {
 				// Unpack before sending...
@@ -129,7 +128,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 					delete f;
 					return false;
 				}
-
+			
 				free = free || (sz <= (int64_t)(SETTING(SET_MINISLOT_SIZE) * 1024) );
 
 
@@ -146,11 +145,11 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 					is = new LimitedInputStream<true>(is, size);
 				}
 			}
-			type = userlist ? Transfer::TYPE_FULL_LIST : Transfer::TYPE_FILE;			
+			type = userlist ? Transfer::TYPE_FULL_LIST : Transfer::TYPE_FILE;	
 		} else if(aType == Transfer::names[Transfer::TYPE_TREE]) {
 			//sourceFile = ShareManager::getInstance()->toReal(aFile);
 			sourceFile = aFile;
-			MemoryInputStream* mis = ShareManager::getInstance()->getTree(aFile);
+			MemoryInputStream* mis = ShareManager::getInstance()->getTree(aFile, aSource.getHintedUser(), userSID);
 			if(!mis) {
 				aSource.fileNotAvail();
 				return false;
@@ -168,10 +167,10 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 				if (aFile[0] != '/') {
 					mis = QueueManager::getInstance()->generateTTHList(aFile, isInSharingHub);
 				} else {
-					mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, isInSharingHub);
+					mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, isInSharingHub, aSource.getHintedUser());
 				}
 			} else {
-				mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, isInSharingHub);
+				mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, isInSharingHub, aSource.getHintedUser(), userSID);
 			}
 
 			if(mis == NULL) {
@@ -232,7 +231,6 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	}
 
 ok:
-
 
 
 	uint8_t slotType = aSource.getSlotType();
@@ -297,7 +295,6 @@ ok:
 		if(cu != notifiedUsers.end()) {
 			notifiedUsers.erase(cu);
 		}
-	
 
 		for(auto i = delayUploads.begin(); i != delayUploads.end(); ++i) {
 			Upload* up = *i;
@@ -320,8 +317,10 @@ ok:
 	}
 
 	Upload* u = new Upload(aSource, sourceFile, TTHValue());
-	//LogManager::getInstance()->message("Token2 UC: " + aSource.getToken());
+	//LogManager::getInstance()->message("Token2: " + aSource.getToken());
+
 	u->setStream(is);
+
 	u->setSegment(Segment(start, size));
 		
 	if(u->getSize() != fileSize)
@@ -838,7 +837,7 @@ void UploadManager::on(UserConnectionListener::Get, UserConnection* aSource, con
 	}
 	
 	int64_t bytes = -1;
-	if(prepareFile(*aSource, Transfer::names[Transfer::TYPE_FILE], Util::toAdcFile(aFile), aResume, bytes)) {
+	if(prepareFile(*aSource, Transfer::names[Transfer::TYPE_FILE], Util::toAdcFile(aFile), aResume, bytes, Util::emptyString)) {
 		aSource->setState(UserConnection::STATE_SEND);
 		aSource->fileLength(Util::toString(aSource->getUpload()->getSize()));
 	}
@@ -870,8 +869,10 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 	const string& fname = c.getParam(1);
 	int64_t aStartPos = Util::toInt64(c.getParam(2));
 	int64_t aBytes = Util::toInt64(c.getParam(3));
+	string userSID = Util::emptyString;
+	c.getParam("ID", 0, userSID);
 	//LogManager::getInstance()->message("Token1: " + aSource->getToken());
-	if(prepareFile(*aSource, type, fname, aStartPos, aBytes, c.hasFlag("RE", 4), c.hasFlag("TL", 4))) {
+	if(prepareFile(*aSource, type, fname, aStartPos, aBytes, userSID, c.hasFlag("RE", 4), c.hasFlag("TL", 4))) {
 		Upload* u = aSource->getUpload();
 		dcassert(u != NULL);
 		//dcassert(!u->getToken().empty());
@@ -916,7 +917,7 @@ void UploadManager::on(UserConnectionListener::Failed, UserConnection* aSource, 
 	if(u) {
 		fire(UploadManagerListener::Failed(), u, aError);
 
-		dcdebug("UM::onFailed (%s): Removing upload %s\n", aError.c_str(), u->getPath().c_str());
+		dcdebug("UM::onFailed (%s): Removing upload\n", aError.c_str());
 		removeUpload(u);
 	}
 
@@ -927,7 +928,7 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 	dcassert(aSource->getState() == UserConnection::STATE_RUNNING);
 	Upload* u = aSource->getUpload();
 	dcassert(u != NULL);
-	dcdebug("UM::TransmitDone: Removing upload %s\n", u->getPath().c_str());
+
 	aSource->setState(UserConnection::STATE_GET);
 
 	if(!u->isSet(Upload::FLAG_CHUNKED)) {
@@ -1087,7 +1088,7 @@ void UploadManager::on(GetListLength, UserConnection* conn) noexcept {
 	conn->error("GetListLength not supported");
 	conn->disconnect(false);
 }
-
+//todo check all users hubs when sending.
 void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcCommand& c) noexcept {
 	if(aSource->getState() != UserConnection::STATE_GET) {
 		dcdebug("UM::onSend Bad state, ignoring\n");
@@ -1098,13 +1099,17 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 		aSource->send(AdcCommand(AdcCommand::SEV_RECOVERABLE, AdcCommand::ERROR_PROTOCOL_GENERIC, "Missing parameters"));
 		return;
 	}
+	Client* client = NULL;
+	if(aSource->getUser() && !aSource->getUser()->isNMDC()) {
+		client = ClientManager::getInstance()->findClient(aSource->getHintedUser(), Util::emptyString);
+	}
 
 	const string& type = c.getParam(0);
 	const string& ident = c.getParam(1);
 
 	if(type == Transfer::names[Transfer::TYPE_FILE]) {
 		try {
-			aSource->send(ShareManager::getInstance()->getFileInfo(ident));
+			aSource->send(ShareManager::getInstance()->getFileInfo(ident, client));
 		} catch(const ShareException&) {
 			aSource->fileNotAvail();
 		}

@@ -96,6 +96,9 @@ void Client::reloadSettings(bool updateNick) {
 			setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
 		else
 			setSearchInterval(hub->getSearchInterval() * 1000);
+
+		setUnShared(hub->getUnShared());
+		
 	} else {
 		if(updateNick) {
 			setCurrentNick(checkNick(SETTING(NICK)));
@@ -109,6 +112,7 @@ void Client::reloadSettings(bool updateNick) {
 		setChatNotify(false);
 		setHubLogMainchat(true);
 		setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
+		setUnShared(StringList());
 	}
 }
 

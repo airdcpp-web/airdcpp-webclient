@@ -295,7 +295,7 @@ private:
 	void on(HashManagerListener::HashFailed, const string& fname) noexcept { onFileHashed(fname, TTHValue(Util::emptyString), true); }
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const UserPtr& aUser) noexcept;
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept;
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
 
 	//DownloadManagerListener

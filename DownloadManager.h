@@ -42,7 +42,7 @@ class DownloadManager : public Speaker<DownloadManagerListener>,
 public:
 
 	/** @internal */
-	void addConnection(UserConnectionPtr conn);
+	void addConnection(UserConnection* conn);
 	bool checkIdle(const HintedUser& user, bool smallSlot, bool reportOnly = false);
 	void setTarget(const string& oldTarget, const string& newTarget);
 	void changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path);

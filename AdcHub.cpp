@@ -406,6 +406,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 	}
 
 	if(isActive()) {
+		//we are active the other guy is not, this leaves hubhint empty. 
     	connect(*u, token, secure);
 		return;
 	}
@@ -718,6 +719,8 @@ void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
 			return;
 		}
 		send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(port).addParam(token));
+		//we are expecting an incoming connection from these, map so we know where its coming from.
+		ConnectionManager::getInstance()->adcExpect(user.getUser()->getCID().toBase32(), getHubUrl());
 	} else {
 		send(AdcCommand(AdcCommand::CMD_RCM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(token));
 	}
@@ -1017,7 +1020,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "DE", getCurrentDescription());
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
-	addParam(lastInfoMap, c, "SS", getHideShare() ? "0" : ShareManager::getInstance()->getShareSizeString());
+	addParam(lastInfoMap, c, "SS", getHideShare() ? "0" : ShareManager::getInstance()->getShareSizeString(this));
 	addParam(lastInfoMap, c, "SF", getHideShare() ? "0" : Util::toString(ShareManager::getInstance()->getSharedFiles()));
 	addParam(lastInfoMap, c, "EM", SETTING(EMAIL));
 	addParam(lastInfoMap, c, "HN", Util::toString(counts[COUNT_NORMAL]));

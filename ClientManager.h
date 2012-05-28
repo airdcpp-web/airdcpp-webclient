@@ -107,6 +107,10 @@ public:
 			return (!u->getClient().getHideShare());
 		return true;
 	}
+	
+	Client* findClient(const HintedUser& p, const string& userSID);
+	void ListClients(const UserPtr& aUser, ClientList &clients);
+
 	string findMySID(const HintedUser& p);
 
 	bool isOp(const UserPtr& aUser, const string& aHubUrl) const;

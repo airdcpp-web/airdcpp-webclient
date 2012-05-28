@@ -39,6 +39,7 @@
 namespace dcpp {
 
 STANDARD_EXCEPTION(ShareException);
+static string FileListALL = "All";
 
 class SimpleXML;
 class Client;
@@ -59,18 +60,30 @@ public:
 	void removeDirectory(const string& realPath);
 	void renameDirectory(const string& realPath, const string& virtualName);
 
-
-	string toVirtual(const TTHValue& tth) const;
-	string toReal(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser);
-	TTHValue getTTH(const string& virtualFile) const;
+	string toVirtual(const TTHValue& tth, Client* client) const;
+	string toReal(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser, const string& userSID);
+	TTHValue getTTH(const string& virtualFile, const HintedUser& aUser, const string& userSID) const;
 	
 	int refresh(int refreshOptions);
 	int initRefreshThread(int refreshOptions) noexcept;
 	int refresh(const string& aDir);
-	void setDirty() {
-		xmlDirty = true;  
+	
+	//need to be called from inside a lock.
+	void setDirty(bool force = false) {
+		for(auto i = fileLists.begin(); i != fileLists.end(); ++i) {
+			i->second->xmlDirty = true;
+			if(force)
+				i->second->forceXmlRefresh = true;
+		}
 		ShareCacheDirty = true; 
 		updateSize = true; //everytime xml is dirty the share size needs an update too.
+	}
+	
+	void setHubFileListDirty(const string& HubUrl) {
+		RLock l(cs);
+		auto i = fileLists.find(AirUtil::stripHubUrl(HubUrl));
+		if(i != fileLists.end())
+			i->second->forceXmlRefresh = true;
 	}
 
 	StringList getIncoming() { return incoming; };
@@ -90,12 +103,12 @@ public:
 	}
 
 	void shutdown();
-	bool shareFolder(const string& path, bool thoroughCheck = false) const;
+	bool shareFolder(const string& path, bool thoroughCheck = false, bool QuickCheck = false) const;
 	int64_t removeExcludeFolder(const string &path, bool returnSize = true);
 	int64_t addExcludeFolder(const string &path);
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
-	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const CID& cid) noexcept;
+	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const Client* client, const CID& cid) noexcept;
 	bool isDirShared(const string& directory);
 	bool isFileShared(const TTHValue aTTH, const string& fileName);
 	bool allowAddDir(const string& dir);
@@ -108,18 +121,18 @@ public:
 	StringPairList getDirectories(int refreshOptions) const noexcept;
 	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
 	static bool checkType(const string& aString, int aType);
-	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub);
-	MemoryInputStream* generateTTHList(const string& dir, bool recurse, bool isInSharingHub);
-	MemoryInputStream* getTree(const string& virtualFile) const;
+	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub, const HintedUser& aUser, const string& userSID);
+	MemoryInputStream* generateTTHList(const string& dir, bool recurse, bool isInSharingHub, const HintedUser& aUser);
+	MemoryInputStream* getTree(const string& virtualFile, const HintedUser& aUser, const string& userSID) const;
 
-	AdcCommand getFileInfo(const string& aFile);
+	AdcCommand getFileInfo(const string& aFile, Client* client);
 
-	int64_t getShareSize() const noexcept;
+	int64_t getShareSize(Client* client = NULL) const noexcept;
 	int64_t getShareSize(const string& realPath) const noexcept;
 
 	size_t getSharedFiles() const noexcept;
 
-	string getShareSizeString() { return Util::toString(getShareSize()); }
+	string getShareSizeString(Client* client = NULL) { return Util::toString(getShareSize(client)); }
 	string getShareSizeString(const string& aDir) const { return Util::toString(getShareSize(aDir)); }
 	
 	void getBloom(ByteVector& v, size_t k, size_t m, size_t h) const;
@@ -133,24 +146,22 @@ public:
 		hits += aHits;
 	}
 
-	string getOwnListFile() {
+	string getOwnListFile(/*TODO open HUB filelist */) {
 		//Directorylisting load thread will generate own list, so dont generate here.
-		return getBZXmlFile();
+		return fileLists.find(FileListALL)->second->getBZXmlFile();
 	}
 
-	string generateOwnList() {
-	
-		if(xmlDirty || forceXmlRefresh) 
-			generateXmlList(true);
-
-		return getBZXmlFile();
+	string generateOwnList(/*TODO generate HUB filelist */) {
+		FileList* fl = generateXmlList(NULL, true);
+		return fl->getBZXmlFile();
 	}
-
-	void generateXmlList(bool forced = false);
 
 	bool isTTHShared(const TTHValue& tth) {
 		RLock l(cs);
-		return tthIndex.find(const_cast<TTHValue*>(&tth)) != tthIndex.end();
+		for(auto i = directories.begin(); i != directories.end(); ++i) {
+			if(i->second->getRoot()->tthIndex.find(const_cast<TTHValue*>(&tth)) != i->second->getRoot()->tthIndex.end())
+				return true;
+		}
 	}
 
 	void getRealPaths(const string& path, StringList& ret);
@@ -161,9 +172,9 @@ public:
 	string getRealPath(const TTHValue& root);
 
 	enum { 
-		REFRESH_STARTED,
-		REFRESH_PATH_NOT_FOUND,
-		REFRESH_IN_PROGRESS
+		REFRESH_STARTED = 0,
+		REFRESH_PATH_NOT_FOUND = 1,
+		REFRESH_IN_PROGRESS = 2
 	};
 	enum {
 		REFRESH_ALL = 0x01,
@@ -173,9 +184,7 @@ public:
 		REFRESH_INCOMING = 0x10
 	};
 
-
 	GETSET(size_t, hits, Hits);
-	GETSET(string, bzXmlFile, BZXmlFile);
 	GETSET(int64_t, sharedSize, SharedSize);
 
 	//tempShares
@@ -187,12 +196,12 @@ public:
 		int64_t size; //filesize
 	};
 
-	typedef unordered_multimap<TTHValue, TempShareInfo> tempShareMap;
-	tempShareMap tempShares;
+	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
+	TempShareMap tempShares;
 	CriticalSection tScs;
 	bool addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub);
 	bool hasTempShares() { Lock l(tScs); return !tempShares.empty(); }
-	tempShareMap getTempShares() { Lock l(tScs); return tempShares; }
+	TempShareMap getTempShares() { Lock l(tScs); return tempShares; }
 	void removeTempShare(const string& aKey, TTHValue& tth);
 	string findTempShare(const string& aKey, const string& virtualFile);
 	//tempShares end
@@ -246,11 +255,24 @@ private:
 
 		};
 
+		class RootDirectory  {
+			public:
+				RootDirectory(const string& aRootPath) : path(aRootPath), size(0) { }
+				typedef unordered_multimap<TTHValue*, Directory::File::Set::const_iterator> HashFileMap;
+				typedef HashFileMap::const_iterator HashFileIter;
+
+				HashFileMap tthIndex;
+				GETSET(string, path, Path); 
+				GETSET(int64_t, size, Size); 
+		
+				~RootDirectory() { }
+		};
+
 		Map directories;
 		File::Set files;
 		int64_t size;
 
-		static Ptr create(const string& aName, const Ptr& aParent = Ptr()) { return Ptr(new Directory(aName, aParent)); }
+		static Ptr create(const string& aName, const Ptr& aParent = Ptr(), RootDirectory* aRoot = nullptr) { return Ptr(new Directory(aName, aParent, aRoot)); }
 
 		bool hasType(uint32_t type) const noexcept {
 			return ( (type == SearchManager::TYPE_ANY) || (fileTypes & (1 << type)) );
@@ -260,6 +282,13 @@ private:
 		string getADCPath() const noexcept;
 		string getFullName() const noexcept; 
 		string getRealPath(const std::string& path, bool validate = true) const;
+		
+		RootDirectory* findRoot() { 
+			if(getParent()) 
+				return getParent()->findRoot();
+			else
+				return root;
+		}
 
 		int64_t getSize() const noexcept;
 		int64_t getSize(const string& realpath) const noexcept;
@@ -279,29 +308,30 @@ private:
 
 		string find(const string& dir, bool validateDir);
 
-
 		GETSET(uint32_t, lastwrite, LastWrite);
 		GETSET(string, name, Name);
-		GETSET(string, rootpath, RootPath); //saved only for root items.
 		GETSET(Directory*, parent, Parent);
+		GETSET(RootDirectory*, root, Root);
+
+		Directory(const string& aName, const Ptr& aParent, RootDirectory* root = nullptr);
+		~Directory() { 
+			if(root)
+				delete root;
+		}
+		
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
-
-		Directory(const string& aName, const Ptr& aParent);
-		~Directory() { }
-
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;
-
 	};
-
+	
 	friend class Directory;
 	friend struct ShareLoader;
+	friend class FileList;
 
 	friend class Singleton<ShareManager>;
 	
 	ShareManager();
-	
 	~ShareManager();
 	
 	struct AdcSearch {
@@ -325,32 +355,57 @@ private:
 		bool isDirectory;
 	};
 
-	int64_t xmlListLen;
-	TTHValue xmlRoot;
-	int64_t bzXmlListLen;
-	TTHValue bzXmlRoot;
-	unique_ptr<File> bzXmlRef;
+	/*
+	A Class that holds info on Hub spesific Filelist,
+	a Full FileList that contains all like it did before is constructed with sharemanager instance, and then updated like before,
+	this means that we should allways have FileListALL, other lists are just extra.
+	Now this would be really simple if just used recursive Locks in sharemanager, to protect everything at once.
+	BUT i dont want freezes and lockups so lets make it a bit more complex :) 
+	..*/
+	class FileList {
+		public:
+			FileList(const string& name) : Name(name), xmlDirty(true), forceXmlRefresh(true), lastxmlUpdate(0), listN(0) { }
+			string Name;
+		private:
+			GETSET(int64_t, xmllistlen, xmlListLen);
+			GETSET(TTHValue, xmlroot, xmlRoot);
+			GETSET(int64_t, bzxmllistlen, bzXmlListLen);
+			GETSET(TTHValue, bzxmlroot, bzXmlRoot);
+			GETSET(uint64_t, lastxmlUpdate, lastXmlUpdate);
+			GETSET(string, bzXmlFile, BZXmlFile);
+			unique_ptr<File> bzXmlRef;
+			int listN;
+			bool xmlDirty;
+			bool forceXmlRefresh; /// bypass the 15-minutes guard
 
-	bool xmlDirty;
+	};
+	//or just save the filelist in Client? might be there for nothing in most cases tho.
+	typedef unordered_map<string, FileList*> FileListMap;
+	FileListMap fileLists;
+
+	FileList* generateXmlList(Client* client, bool forced = false);
+	void makeFileList(Client* client, FileList* fl, const string& flname, bool forced);
+	FileList* getFileList(Client* client) const;
+
+	bool isHubExcluded(const string& sharepath, const Client* client) const;
+	bool isExcluded(const string& sharepath, const ClientList& clients) const;
+
+	void saveXmlList(bool verbose = false);	//for filelist caching
+
 	bool ShareCacheDirty;
-	bool forceXmlRefresh; /// bypass the 15-minutes guard
 	bool aShutdown;
 
 	PME RAR_regexp;
 	
-	int listN;
-	//for filelist caching
-	void saveXmlList(bool verbose = false);
-
-
 	atomic_flag refreshing;
-	atomic_flag GeneratingXmlList;
+	atomic_flag GeneratingFULLXmlList;
 
-	uint64_t lastXmlUpdate;
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
 	uint64_t lastSave;
 	uint32_t findLastWrite(const string& aName) const;
+
+	int64_t updateSizes() const;
 	
 	//caching the share size so we dont need to loop tthindex everytime
 	mutable int64_t	 totalShareSize;
@@ -361,6 +416,7 @@ private:
 	mutable CriticalSection dirnamelist;
 
 	int allSearches, stoppedSearches;
+	int refreshOptions;
 	
 	/* Releases */
 	StringList dirNameList;
@@ -383,41 +439,30 @@ private:
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	StringMap shares;
 
-	typedef unordered_multimap<TTHValue*, Directory::File::Set::const_iterator> HashFileMap;
-	typedef HashFileMap::const_iterator HashFileIter;
-
-	HashFileMap tthIndex;
-
 	BloomFilter<5> bloom;
 	
-	Directory::File::Set::const_iterator findFile(const string& virtualFile) const;
+	Directory::File::Set::const_iterator findFile(const string& virtualFile, const ClientList& clients) const;
 
 	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued = false, bool create = true);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
+	void updateIndices(Directory& aDirectory, Directory::RootDirectory& root);
+	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i, Directory::RootDirectory& root);
+	void cleanIndices(Directory::Ptr& dir);
 
-	void updateIndices(Directory& aDirectory);
-	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
-	
 	void onFileHashed(const string& fname, const TTHValue& root);
-
-	//Directory::Ptr merge(const Directory::Ptr& directory);
 	
 	StringList notShared;
 	StringList incoming;
+	StringList bundleDirs;
+	StringList refreshPaths;
 
-	Dirs getByVirtual(const string& virtualName) const noexcept;
-	DirMultiMap findVirtuals(const string& virtualPath) const;
+	Dirs getByVirtual(const string& virtualName, const ClientList& clients) const noexcept;
+	DirMultiMap findVirtuals(const string& virtualPath, const ClientList& clients) const;
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);
-	StringList bundleDirs;
-	
-	void cleanIndices(Directory::Ptr& dir);
-
-	StringList refreshPaths;
-	int refreshOptions;
 
 	int run();
 
@@ -449,7 +494,6 @@ public:
 private:
 		int run() {
 			ShareManager::getInstance()->saveXmlList();
-			//LogManager::getInstance()->message("Share cache Created.");
 			return 0;
 		}
 	};//worker end
@@ -462,8 +506,3 @@ Worker w;
 } // namespace dcpp
 
 #endif // !defined(SHARE_MANAGER_H)
-
-/**
- * @file
- * $Id: ShareManager.h 548 2010-09-06 08:54:37Z bigmuscle $
- */

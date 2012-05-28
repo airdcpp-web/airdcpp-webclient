@@ -131,6 +131,7 @@ public:
 	void Message(const string& msg) {
 		fire(ClientListener::AddLine(), this, msg);
 	}
+	mutable CriticalSection cs;
 
 	Identity& getHubIdentity() { return hubIdentity; }
 
@@ -159,6 +160,7 @@ public:
 	GETSET(bool, hubShowJoins, HubShowJoins); // Show joins
 	GETSET(bool, hubLogMainchat, HubLogMainchat);
 	GETSET(bool, chatNotify, ChatNotify);
+	GETSET(StringList, unshared, UnShared);
 
 protected:
 	friend class ClientManager;

@@ -289,7 +289,9 @@ static string getShortTimeString(time_t t = time(NULL) );
 	}
 
 	inline static string FormatPath(const string& path) {
-		if(path.size() < 250) //dont format unless its needed, xp works slower with these so.
+		//dont format unless its needed, xp works slower with these so.
+		//also we want to limit the unc path lower, no point on endless paths.
+		if(path.size() < 250 || path.size() > UNC_MAX_PATH) 
 			return path;
 
 		string temp;
@@ -301,7 +303,9 @@ static string getShortTimeString(time_t t = time(NULL) );
 	}
 		
 	inline static tstring FormatPath(const tstring& path) {
-		if(path.size() < 250) //dont format unless its needed, xp works slower with these so.
+		//dont format unless its needed, xp works slower with these so.
+		//also we want to limit the unc path lower, no point on endless paths. 
+		if(path.size() < 250 || path.size() > UNC_MAX_PATH) 
 			return path;
 
 		tstring temp;

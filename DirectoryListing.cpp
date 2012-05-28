@@ -1,3 +1,4 @@
+
 /* 
  * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
  *

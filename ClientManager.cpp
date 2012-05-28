@@ -351,7 +351,7 @@ void ClientManager::putOnline(OnlineUser* ou) noexcept {
 	
 	if(!ou->getUser()->isOnline()) {
 		ou->getUser()->setFlag(User::ONLINE);
-		fire(ClientManagerListener::UserConnected(), ou->getUser());
+		fire(ClientManagerListener::UserConnected(), *ou);
 	}
 }
 
@@ -385,6 +385,38 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect, bool priv/*false
 	}
 }
 
+void ClientManager::ListClients(const UserPtr& aUser, ClientList &clients) {
+	Lock l(cs);
+	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
+	for(OnlineIterC i = op.first; i != op.second; ++i) {
+		clients.push_back(&i->second->getClient());
+	}
+}
+
+Client* ClientManager::findClient(const HintedUser& p, const string& userSID) {
+
+	OnlineUser* u;
+	if(!userSID.empty()) {
+		Lock l(cs);
+		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&p.user->getCID()));
+		for(OnlineIterC i = op.first; i != op.second; ++i) {
+			u = i->second;
+			if(u->getIdentity().getSIDString() == userSID)
+				return &u->getClient();
+		}
+	}
+	//no SID spesified, find with hint.
+	OnlinePairC op;
+	u = findOnlineUserHint(p.user->getCID(), p.hint, op);
+	if(u) {
+		return &u->getClient();
+	} else if(op.first != op.second) {
+		if(distance(op.first, op.second) == 1)
+			return &op.first->second->getClient();
+	}
+
+	return NULL;
+}
 string ClientManager::findMySID(const HintedUser& p) {
 	//this could also be done by just finding in the client list... better?
 	if(p.hint.empty()) // we cannot find the correct SID without a hubUrl
@@ -396,6 +428,7 @@ string ClientManager::findMySID(const HintedUser& p) {
 
 	return Util::emptyString;
 }
+
 OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const {
 	Lock l(cs);
 	p = onlineUsers.equal_range(const_cast<CID*>(&cid));
@@ -436,6 +469,13 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl,
 }
 
 void ClientManager::connect(const HintedUser& user, const string& token) {
+	/* 
+	ok, we allways prefer to connect with the reguested hub.
+	Buf if dont find a user matching to hint and hub is not marked as private,
+	the connection can start from any hub, with custom shares this might be bad,
+	alltho we just can get the wrong list, or possibly a file not available.
+	should we just set it allways as private?
+	*/
 	bool priv = FavoriteManager::getInstance()->isPrivate(user.hint);
 
 	Lock l(cs);
@@ -587,7 +627,7 @@ void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const 
 			}
 		}			
 	}
-	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort());
+	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c);
 }
 
 uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner) {

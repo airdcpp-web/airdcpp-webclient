@@ -42,7 +42,6 @@ size_t FileReader::read(const string& file, const DataCallback& callback) {
 	}
 
 	if(ret == READ_FAILED) {
-		if(!direct) //if direct read failed, can mapped read do any good?
 			ret = readMapped(file, callback);
 
 		if(ret == READ_FAILED) {

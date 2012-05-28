@@ -74,6 +74,9 @@ class AirUtil {
 		static bool isEmpty(const string& tgt);
 
 		static bool isAdcHub(const string& hubUrl);
+
+		static string stripHubUrl(const string& url);
+
 		static string convertMovePath(const string& aPath, const string& aParent, const string& aTarget);
 		static string AirUtil::regexEscape(const string& aStr, bool isWildcard);
 	private:

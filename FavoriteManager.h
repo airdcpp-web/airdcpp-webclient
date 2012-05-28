@@ -212,7 +212,7 @@ private:
 
 	// ClientManagerListener
 	void on(UserUpdated, const OnlineUser& user) noexcept;
-	void on(UserConnected, const UserPtr& user) noexcept;
+	void on(UserConnected, const OnlineUser& user) noexcept;
 	void on(UserDisconnected, const UserPtr& user) noexcept;
 
 	// HttpConnectionListener

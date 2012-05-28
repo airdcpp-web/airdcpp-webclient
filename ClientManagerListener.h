@@ -39,7 +39,7 @@ public:
 	typedef X<7> IncomingADCSearch;
 
 	/** User online in at least one hub */
-	virtual void on(UserConnected, const UserPtr&) noexcept { }
+	virtual void on(UserConnected, const OnlineUser&) noexcept { }
 	virtual void on(UserUpdated, const OnlineUser&) noexcept { }
 	/** User offline in all hubs */
 	virtual void on(UserDisconnected, const UserPtr&) noexcept { }
