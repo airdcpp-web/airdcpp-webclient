@@ -46,7 +46,8 @@ void UserQueue::addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
-		l.push_back(qi);
+		l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::SizeSortOrder()), qi);
+		//for_each(l, [](QueueItemPtr q) { LogManager::getInstance()->message(q->getTarget(), LogManager::LOG_INFO); } );
 	}
 
 	BundlePtr bundle = qi->getBundle();

@@ -303,7 +303,7 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 			swap(l[Util::rand((uint32_t)l.size())], l[l.size()-1]);
 		} else {
 			/* Sequential order */
-			l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::SortOrder()), qi);
+			l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::AlphaSortOrder()), qi);
 		}
 	} else {
 		l.push_back(qi);

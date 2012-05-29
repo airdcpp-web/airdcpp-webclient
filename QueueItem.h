@@ -29,6 +29,7 @@
 #include "HintedUser.h"
 #include "Bundle.h"
 #include "GetSet.h"
+#include "SettingsManager.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -60,7 +61,7 @@ public:
 		size_t operator()(const QueueItemPtr x) const { return hash<string>()(x->getTarget()); }
 	};
 
-	struct SortOrder {
+	struct AlphaSortOrder {
 		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const {
 			auto extLeft = left->getTarget().rfind('.');
 			auto extRight = right->getTarget().rfind('.');
@@ -82,6 +83,21 @@ public:
 			}
 
 			return compare(left->getTarget(), right->getTarget()) < 0;
+		}
+	};
+
+	struct SizeSortOrder {
+		/* This has a few extra checks because the size is unknown for filelists */
+		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const {
+			//partial lists always go first
+			if (left->isSet(QueueItem::FLAG_PARTIAL_LIST)) return true;
+			if (right->isSet(QueueItem::FLAG_PARTIAL_LIST)) return false;
+
+			//small files go before full lists
+			if (right->isSet(QueueItem::FLAG_USER_LIST) && left->getSize() < SETTING(PRIO_HIGHEST_SIZE)*1024) return true;
+			if (left->isSet(QueueItem::FLAG_USER_LIST) && right->getSize() < SETTING(PRIO_HIGHEST_SIZE)*1024) return false;
+
+			return left->getSize() < right->getSize();
 		}
 	};
 
