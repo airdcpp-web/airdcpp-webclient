@@ -25,6 +25,7 @@
 #include "Singleton.h"
 #include "ConnectionManagerListener.h"
 #include "HintedUser.h"
+#include "LogManager.h"
 
 namespace dcpp {
 
@@ -71,6 +72,11 @@ private:
 // We are using this for adc connections too now, with <CID, hubUrl>
 class ExpectedMap {
 public:
+	//debug info
+	size_t size() {
+		return expectedConnections.size();
+	}
+
 	void add(const string& aKey, const string& aMyNick, const string& aHubUrl) {
 		Lock l(cs);
 		expectedConnections.insert(make_pair(aKey, make_pair(aMyNick, aHubUrl)));
@@ -114,6 +120,10 @@ public:
 	//expecting to get connection from a passive user
 	void adcExpect(const string& userCID, const string& aHubUrl) {
 		expectedConnections.add(userCID, Util::emptyString, aHubUrl);
+	}
+	//debug info
+	void getExpectedMapSize() {
+		LogManager::getInstance()->message("Expected Map size is: " + Util::toString(expectedConnections.size()), LogManager::LOG_INFO);
 	}
 
 	void nmdcConnect(const string& aServer, const string& aPort, const string& aMyNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);

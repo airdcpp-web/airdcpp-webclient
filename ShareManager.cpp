@@ -706,6 +706,7 @@ bool ShareManager::loadCache() {
 	} catch(...) {
 		return false;
 	}
+
 	try { //not vital to our cache loading.
 			FileList* fl; 
 			{

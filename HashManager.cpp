@@ -557,7 +557,6 @@ int HashManager::Hasher::run() {
 		running = true;
 
 		if(!fname.empty()) {
-
 			try {
 				uint64_t start = GET_TICK();
 				File f(fname, File::READ, File::OPEN);

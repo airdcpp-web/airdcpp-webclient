@@ -116,7 +116,7 @@ private:
 	OnlineUser* findUser(const CID& cid) const;
 	
 	// just a workaround
-	OnlineUserPtr AdcHub::findUser(const string& aNick) const { 
+	OnlineUserPtr findUser(const string& aNick) const { 
 	   Lock l(cs); 
 	   for(SIDMap::const_iterator i = users.begin(); i != users.end(); ++i) { 
 		  if(i->second->getIdentity().getNick() == aNick) { 
