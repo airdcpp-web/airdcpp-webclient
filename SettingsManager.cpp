@@ -79,7 +79,7 @@ const string SettingsManager::settingTags[] =
 	"MainWindowSizeX", "MainWindowSizeY", "MainWindowPosX", "MainWindowPosY", "AutoAway",
 	"SocksPort", "SocksResolve", "KeepLists", "AutoKick", "QueueFrameShowTree", 
 	"CompressTransfers", "ShowProgressBars", "MaxTabRows",
-	"MaxCompression", "AntiFragMethod", "MDIMaxmimized", "NoAwayMsgToBots",
+	"MaxCompression", "MDIMaxmimized", "NoAwayMsgToBots",
 	"SkipZeroByte", "AdlsBreakOnFirst",
 	"HubUserCommands", "AllowMatchFullList", "DownloadBarColor", "UploadBarColor", "LogSystem",
 	"LogFilelistTransfers", "ShowStatusbar", "BandwidthSettingMode", "ShowToolbar", "ShowTransferview", 
@@ -267,7 +267,6 @@ SettingsManager::SettingsManager()
 	setDefault(TIME_STAMPS_FORMAT, "%H:%M:%S");
 	setDefault(MAX_TAB_ROWS, 4);
 	setDefault(MAX_COMPRESSION, 6);
-	setDefault(ANTI_FRAG, true);
 	setDefault(NO_AWAYMSG_TO_BOTS, true);
 	setDefault(SKIP_ZERO_BYTE, false);
 	setDefault(ADLS_BREAK_ON_FIRST, false);

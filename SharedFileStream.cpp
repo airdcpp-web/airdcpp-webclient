@@ -33,16 +33,7 @@ SharedFileStream::SharedFileHandleMap SharedFileStream::file_handle_pool;
 
 SharedFileHandle::SharedFileHandle(const string& aFileName, int access, int mode) : 
 	File(aFileName, access, mode)
-{
-#ifdef _WIN32
-	if(!SETTING(ANTI_FRAG))
-	{
-		// avoid allocation of large ranges of zeroes for unused segments
-		DWORD bytesReturned;
-		DeviceIoControl(h, FSCTL_SET_SPARSE, NULL, 0, NULL, 0, &bytesReturned, NULL);
-	}
-#endif
-}
+{ }
 
 SharedFileStream::SharedFileStream(const string& aFileName, int access, int mode)
 {

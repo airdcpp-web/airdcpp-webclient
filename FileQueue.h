@@ -34,7 +34,7 @@ namespace dcpp {
 /** All queue items indexed by user (this is a cache for the FileQueue really...) **/
 class FileQueue {
 public:
-	FileQueue() : targetMapInsert(queue.end()), queueSize(0) { }
+	FileQueue() : queueSize(0) { }
 	~FileQueue();
 
 	void decreaseSize(uint64_t aSize) { queueSize -= aSize; }
@@ -66,7 +66,6 @@ private:
 	QueueItem::TTHMap tthIndex;
 
 	uint64_t queueSize;
-	QueueItem::StringMap::iterator targetMapInsert;
 };
 
 } // namespace dcpp

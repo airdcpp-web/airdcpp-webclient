@@ -541,7 +541,6 @@ enum Strings { // @DontAdd
 	SETTINGS_ADVANCED3, // "Experts only"
 	SETTINGS_ALLOW_UNTRUSTED_CLIENTS, // "Allow TLS connections to clients without trusted certificate"
 	SETTINGS_ALLOW_UNTRUSTED_HUBS, // "Allow TLS connections to hubs without trusted certificate"
-	SETTINGS_ANTI_FRAG, // "Use antifragmentation method for downloads"
 	SETTINGS_APPEARANCE, // "Appearance"
 	SETTINGS_ARGUMENT, // "Arguments"
 	SETTINGS_AUTO_AWAY, // "Auto-away on minimize (and back on restore)"
