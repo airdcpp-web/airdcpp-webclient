@@ -370,8 +370,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 		bool noFreeSpace = false;
 		string path;
 		TargetUtil::TargetInfo ti;
-		TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti);
-		if (ti.getFreeSpace() < sr->getSize()) {
+		if (!TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize())) {
 			//not enough space, do something fun
 			noFreeSpace = true;
 			string tmp;

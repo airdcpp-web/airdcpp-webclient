@@ -27,6 +27,7 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/adaptor/map.hpp>
+//#include <boost/range/algorithm/sort.hpp>
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -85,7 +86,7 @@ string TargetUtil::getMountPath(const string& aPath, const StringSet& aVolumes) 
 	return Util::emptyString;
 }
 
-void TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType targetType, TargetInfo& ti_) {
+bool TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType targetType, TargetInfo& ti_, const int64_t& aSize) {
 	if (targetType == TARGET_PATH) {
 		ti_.targetDir = aTarget;
 	} else {
@@ -101,9 +102,9 @@ void TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));
 		if (s != dirList.end()) {
 			StringList& targets = s->second;
-			getTarget(targets, ti_);
+			bool tmp = getTarget(targets, ti_, aSize);
 			if (!ti_.targetDir.empty()) {
-				return;
+				return tmp;
 			}
 		}
 	}
@@ -112,7 +113,7 @@ void TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 		//failed to get the target, use the default one
 		ti_.targetDir = SETTING(DOWNLOAD_DIRECTORY);
 	}
-	getDiskInfo(ti_);
+	return getDiskInfo(ti_);
 }
 
 void TargetUtil::getVirtualName(int wID, string& vTarget, TargetType& targetType) {
@@ -131,23 +132,23 @@ void TargetUtil::getVirtualName(int wID, string& vTarget, TargetType& targetType
 	}
 }
 
-void TargetUtil::getTarget(int aID, TargetInfo& ti_) {
+bool TargetUtil::getTarget(int aID, TargetInfo& ti_, const int64_t& aSize) {
 	StringList targets;
 	if (aID < countShareFavDirs()) {
-		getTarget(ShareManager::getInstance()->getGroupedDirectories()[aID].second, ti_);
+		return getTarget(ShareManager::getInstance()->getGroupedDirectories()[aID].second, ti_, aSize);
 	} else {
 		auto slp = FavoriteManager::getInstance()->getFavoriteDirs();
 		if (aID < ((int)slp.size() + countShareFavDirs())) {
-			getTarget(slp[aID - countShareFavDirs()].second, ti_);
+			return getTarget(slp[aID - countShareFavDirs()].second, ti_, aSize);
 		} else {
 			ti_.targetDir = Text::fromT(SettingsManager::getInstance()->getDirHistory()[aID - slp.size() - countShareFavDirs()]);
-			getDiskInfo(ti_);
+			return getDiskInfo(ti_);
 		}
 	}
 }
 
 
-void TargetUtil::getTarget(StringList& targets, TargetInfo& ti_) {
+bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_t& aSize) {
 	StringSet volumes;
 	getVolumes(volumes);
 	TargetInfoMap targetMap;
@@ -166,22 +167,46 @@ void TargetUtil::getTarget(StringList& targets, TargetInfo& ti_) {
 	if (targetMap.empty()) {
 		//failed to get the volumes
 		if (!targets.empty()) {
-			ti_.targetDir = targets.front();
+			retTi_.targetDir = targets.front();
 		} else {
-			ti_.targetDir = SETTING(DOWNLOAD_DIRECTORY);
+			retTi_.targetDir = SETTING(DOWNLOAD_DIRECTORY);
 		}
 
-		GetDiskFreeSpaceEx(Text::toT(ti_.targetDir).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&ti_.diskSpace);
-		return;
+		GetDiskFreeSpaceEx(Text::toT(retTi_.targetDir).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&retTi_.diskSpace);
+		return retTi_.getFreeSpace() >= aSize;
 	}
 
 	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
+	/*sort(targetMap.begin(), targetMap.end(), CompareSecond<string, TargetInfo>());
+	sort(targetMap.begin(), targetMap.end(),
+		boost::bind(&std::pair<string, TargetInfo>::second, _1) <
+		boost::bind(&std::pair<string, TargetInfo>::second, _2));
+	boost::range::sort(targetMap | boost::adaptors::map_values);*/
 
-	for_each(targetMap | map_values, [&ti_](TargetUtil::TargetInfo& mapTi) {
-		if (mapTi.getFreeSpace() > ti_.getFreeSpace() || (ti_.diskSpace == 0 && ti_.queued == 0)) {
-			ti_ = mapTi;
-		}
+	compareMap(targetMap, retTi_, aSize, SETTING(DL_AUTOSELECT_METHOD));
+	if (retTi_.targetDir.empty()) //no dir with enough space, choose the one with most space available
+		compareMap(targetMap, retTi_, aSize, (int8_t)SettingsManager::SELECT_MOST_SPACE);
+
+	return retTi_.getFreeSpace() >= aSize;
+}
+
+void TargetUtil::compareMap(const TargetInfoMap& aTargetMap, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod) {
+	/*auto pos = min_element(aTargetMap.begin(), aTargetMap.end(), [&](pair<string, TargetInfo> tp1, pair<string, TargetInfo> tp2) {
+		return (tp1.second.getDiff(aSize) > 0 && (tp1.second.getDiff(aSize) < tp2.second.getDiff(aSize)));
 	});
+
+	retTi_ = pos->second;*/
+
+	for (auto i = aTargetMap.begin(); i != aTargetMap.end(); ++i) {
+		auto mapTi = i->second;
+		if (aMethod == (int8_t)SettingsManager::SELECT_LEAST_SPACE) {
+			int64_t diff = mapTi.getFreeSpace() - aSize;
+			if (diff > 0 && (diff < (retTi_.getFreeSpace() - aSize) || !retTi_.isInitialized()))
+				retTi_ = mapTi;
+		} else if (mapTi.getFreeSpace() > retTi_.getFreeSpace() || !retTi_.isInitialized()) {
+			retTi_ = mapTi;
+		}
+	}
 }
 
 bool TargetUtil::getDiskInfo(TargetInfo& targetInfo_) {

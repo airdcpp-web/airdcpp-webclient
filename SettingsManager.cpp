@@ -157,6 +157,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
 	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
+	"DLAutoSelectMethod",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -697,7 +698,7 @@ SettingsManager::SettingsManager()
 	setDefault(AUTOPRIO_INTERVAL, 10);
 	setDefault(AUTOSEARCH_EXPIRE_DAYS, 5);
 	setDefault(HORIZONTAL_QUEUE, false);
-
+	setDefault(DL_AUTOSELECT_METHOD, 0);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

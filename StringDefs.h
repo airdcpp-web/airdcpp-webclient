@@ -1389,5 +1389,9 @@ enum Strings { // @DontAdd
 	NO_FILES_WERE_LOADED, // "No files were loaded for %s"
 	NO_FILES_FROM_FILE, // "No files were loaded from this file"
 	BUNDLE_LOAD_FAILED, // "Failed to load the bundle %s: %s. The bundle file has been deleted."
+	AUTOSELECT_MOST_SPACE, // "most free space available"
+	AUTOPATH_CAPTION, // "When using auto selection, choose the path with..."
+	AUTOSELECT_LEAST_SPACE, // "least possible free space available"
+	AUTO_SELECT, // "Auto select"
 	LAST // @DontAdd
 };

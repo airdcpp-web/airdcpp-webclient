@@ -1382,6 +1382,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "No files were loaded for %s", 
 "No files were loaded from this file", 
 "Failed to load the bundle %s: %s. The bundle file has been deleted.", 
+"most free space available", 
+"When using auto selection, choose the path with...", 
+"least possible free space available", 
+"Auto select", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2764,4 +2768,8 @@ std::string dcpp::ResourceManager::names[] = {
 "NoFilesWereLoaded", 
 "NoFilesFromFile", 
 "BundleLoadFailed", 
+"AutoselectMostSpace", 
+"AutopathCaption", 
+"AutoselectLeastSpace", 
+"AutoSelect", 
 };

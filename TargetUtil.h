@@ -37,6 +37,12 @@ public:
 		int64_t queued, diskSpace;
 		string targetDir;
 		int64_t getFreeSpace() { return diskSpace-queued; }
+		int64_t getDiff(int64_t aSize) { return getFreeSpace() - aSize; }
+		bool isInitialized() { return diskSpace != 0 || queued != 0 || !targetDir.empty(); }
+
+		bool operator<(const TargetInfo& ti) const {
+			return (diskSpace-queued) < (ti.diskSpace-ti.queued);
+		}
 	};
 
 	enum TargetType {
@@ -50,14 +56,16 @@ public:
 	static string getMountPath(const string& aPath);
 	static string getMountPath(const string& aPath, const StringSet& aVolumes);
 
-	static void getTarget(int aID, TargetInfo& ti_);
-	static void getTarget(StringList& targets, TargetInfo& ti_);
+	static bool getTarget(int aID, TargetInfo& ti_, const int64_t& aSize);
+	static bool getTarget(StringList& targets, TargetInfo& ti_, const int64_t& size);
 
-	static void getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_);
+	static bool getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_, const int64_t& size);
 	static void getVirtualName(int ID, string& vTarget, TargetType& targetType);
 
 	static void getVolumes(StringSet& volumes);
 	static bool getDiskInfo(TargetInfo& ti_);
+
+	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod);
 
 	static int countDownloadDirItems();
 	static int countShareFavDirs();
