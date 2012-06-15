@@ -17,12 +17,12 @@
  */
 
 #define APPNAME "AirDC++"
-#define VERSIONSTRING "2.30"
-#define VERSIONFLOAT "2.30"
+#define VERSIONSTRING "2.40"
+#define VERSIONFLOAT "2.40"
 
 #define DCVERSIONSTRING "0.799"
 
-//#define SVNVERSION "r903"
+#define SVNVERSION "r904"
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"

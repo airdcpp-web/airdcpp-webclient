@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 AirDC++ Project
+ * Copyright (C) 2011-2012 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ public:
 		TARGET_PATH,
 		TARGET_FAVORITE,
 		TARGET_SHARE,
+		NO_APPEND, /* Flag for direct paths */
 	};
 
 	typedef map<string, TargetInfo> TargetInfoMap;
@@ -56,19 +57,14 @@ public:
 	static string getMountPath(const string& aPath);
 	static string getMountPath(const string& aPath, const StringSet& aVolumes);
 
-	static bool getTarget(int aID, TargetInfo& ti_, const int64_t& aSize);
 	static bool getTarget(StringList& targets, TargetInfo& ti_, const int64_t& size);
 
 	static bool getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_, const int64_t& size);
-	static void getVirtualName(int ID, string& vTarget, TargetType& targetType);
 
 	static void getVolumes(StringSet& volumes);
 	static bool getDiskInfo(TargetInfo& ti_);
 
 	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod);
-
-	static int countDownloadDirItems();
-	static int countShareFavDirs();
 };
 
 }

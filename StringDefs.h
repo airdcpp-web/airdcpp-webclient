@@ -1392,6 +1392,7 @@ enum Strings { // @DontAdd
 	AUTOSELECT_MOST_SPACE, // "most free space available"
 	AUTOPATH_CAPTION, // "When using auto selection, choose the path with..."
 	AUTOSELECT_LEAST_SPACE, // "least possible free space available"
-	AUTO_SELECT, // "Auto select"
+	AUTO_SELECT, // "Auto select based on free space"
+	GET_BROWSE_LIST, // "Get/browse file list"
 	LAST // @DontAdd
 };

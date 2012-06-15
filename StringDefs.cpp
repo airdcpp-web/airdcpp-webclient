@@ -1385,7 +1385,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "most free space available", 
 "When using auto selection, choose the path with...", 
 "least possible free space available", 
-"Auto select", 
+"Auto select based on free space", 
+"Get/browse file list", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2772,4 +2773,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AutopathCaption", 
 "AutoselectLeastSpace", 
 "AutoSelect", 
+"GetBrowseList", 
 };

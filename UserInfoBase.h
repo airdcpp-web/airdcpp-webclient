@@ -36,6 +36,7 @@ public:
 	
 	void getList();
 	void browseList();
+	void getBrowseList();
 	void matchQueue();
 	void pm();
 	void grant();

@@ -116,38 +116,6 @@ bool TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 	return getDiskInfo(ti_);
 }
 
-void TargetUtil::getVirtualName(int wID, string& vTarget, TargetType& targetType) {
-	if (wID < countShareFavDirs()) {
-		targetType = TargetUtil::TARGET_SHARE;
-		vTarget = ShareManager::getInstance()->getGroupedDirectories()[wID].first;
-	} else {
-		auto spl = FavoriteManager::getInstance()->getFavoriteDirs();
-		if (wID < countShareFavDirs() + (int)spl.size()) {
-			targetType = TargetUtil::TARGET_FAVORITE;
-			vTarget = spl[wID - countShareFavDirs()].first;
-		} else {
-			targetType = TargetUtil::TARGET_PATH;
-			vTarget = Text::fromT(SettingsManager::getInstance()->getDirHistory()[wID - spl.size() - countShareFavDirs()]);
-		}
-	}
-}
-
-bool TargetUtil::getTarget(int aID, TargetInfo& ti_, const int64_t& aSize) {
-	StringList targets;
-	if (aID < countShareFavDirs()) {
-		return getTarget(ShareManager::getInstance()->getGroupedDirectories()[aID].second, ti_, aSize);
-	} else {
-		auto slp = FavoriteManager::getInstance()->getFavoriteDirs();
-		if (aID < ((int)slp.size() + countShareFavDirs())) {
-			return getTarget(slp[aID - countShareFavDirs()].second, ti_, aSize);
-		} else {
-			ti_.targetDir = Text::fromT(SettingsManager::getInstance()->getDirHistory()[aID - slp.size() - countShareFavDirs()]);
-			return getDiskInfo(ti_);
-		}
-	}
-}
-
-
 bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_t& aSize) {
 	StringSet volumes;
 	getVolumes(volumes);
@@ -177,11 +145,6 @@ bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_
 	}
 
 	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
-	/*sort(targetMap.begin(), targetMap.end(), CompareSecond<string, TargetInfo>());
-	sort(targetMap.begin(), targetMap.end(),
-		boost::bind(&std::pair<string, TargetInfo>::second, _1) <
-		boost::bind(&std::pair<string, TargetInfo>::second, _2));
-	boost::range::sort(targetMap | boost::adaptors::map_values);*/
 
 	compareMap(targetMap, retTi_, aSize, SETTING(DL_AUTOSELECT_METHOD));
 	if (retTi_.targetDir.empty()) //no dir with enough space, choose the one with most space available
@@ -191,11 +154,6 @@ bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_
 }
 
 void TargetUtil::compareMap(const TargetInfoMap& aTargetMap, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod) {
-	/*auto pos = min_element(aTargetMap.begin(), aTargetMap.end(), [&](pair<string, TargetInfo> tp1, pair<string, TargetInfo> tp2) {
-		return (tp1.second.getDiff(aSize) > 0 && (tp1.second.getDiff(aSize) < tp2.second.getDiff(aSize)));
-	});
-
-	retTi_ = pos->second;*/
 
 	for (auto i = aTargetMap.begin(); i != aTargetMap.end(); ++i) {
 		auto mapTi = i->second;
@@ -264,14 +222,6 @@ void TargetUtil::getVolumes(StringSet& volumes) {
 		++drive[0];
 		drives = (drives >> 1);
 	}
-}
-
-int TargetUtil::countDownloadDirItems() {
-	return FavoriteManager::getInstance()->getFavoriteDirs().size() + countShareFavDirs() + SettingsManager::getInstance()->getDirHistory().size();
-}
-
-int TargetUtil::countShareFavDirs() {
-	return SETTING(SHOW_SHARED_DIRS_FAV) ? ShareManager::getInstance()->getGroupedDirectories().size() : 0;
 }
 
 } //dcpp
