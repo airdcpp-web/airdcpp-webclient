@@ -2541,7 +2541,7 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 	for(StringMap::const_iterator i = shares.begin(); i != shares.end(); ++i) {
 		auto retVirtual = find_if(ret.begin(), ret.end(), CompareFirst<string, StringList>(i->second));
 		if (retVirtual != ret.end()) {
-			retVirtual->second.push_back(i->first);
+			retVirtual->second.insert(upper_bound(retVirtual->second.begin(), retVirtual->second.end(), i->first), i->first);
 		} else {
 			StringList tmp;
 			tmp.push_back(i->first);
