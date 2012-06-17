@@ -45,7 +45,7 @@ public:
 	void info(bool alwaysSend);
 	void refreshUserList(bool);	
 
-	size_t getUserCount() const { Lock l(cs); return users.size(); }
+	size_t getUserCount() const { RLock l(cs); return users.size(); }
 
 	static string escape(const string& str) { return AdcCommand::escape(str, false); }
 	void send(const AdcCommand& cmd);
@@ -88,8 +88,8 @@ private:
 	typedef SIDMap::const_iterator SIDIter;
 
 	void getUserList(OnlineUserList& list) const {
-		Lock l(cs);
-		for(SIDIter i = users.begin(); i != users.end(); i++) {
+		RLock l(cs);
+		for(auto i = users.begin(); i != users.end(); i++) {
 			if(i->first != AdcCommand::HUB_SID) {
 				list.push_back(i->second);
 			}
@@ -100,7 +100,7 @@ private:
 	Socket udp;
 	SIDMap users;
 	StringMap lastInfoMap;
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;
 
 	string salt;
 	uint32_t sid;
@@ -117,13 +117,13 @@ private:
 	
 	// just a workaround
 	OnlineUserPtr findUser(const string& aNick) const { 
-	   Lock l(cs); 
-	   for(SIDMap::const_iterator i = users.begin(); i != users.end(); ++i) { 
+	   RLock l(cs); 
+	   for(auto i = users.begin(); i != users.end(); ++i) { 
 		  if(i->second->getIdentity().getNick() == aNick) { 
 			 return i->second; 
 		  } 
 	   } 
-	   return NULL; 
+	   return nullptr; 
 	}
 
 	void putUser(const uint32_t sid, bool disconnect);

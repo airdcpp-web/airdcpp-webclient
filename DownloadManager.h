@@ -58,14 +58,14 @@ public:
 
 	/** @return Number of downloads. */ 
 	size_t getDownloadCount() {
-		Lock l(cs);
+		RLock l(cs);
 		return downloads.size();
 	}
 
 	bool startDownload(QueueItem::Priority prio, bool mcn=false);
 private:
 	
-	CriticalSection cs;
+	SharedMutex cs;
 	DownloadList downloads;
 	Bundle::StringBundleMap runningBundles;
 	UserConnectionList idlers;

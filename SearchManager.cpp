@@ -89,7 +89,7 @@ void SearchManager::search(const string& aName, int64_t aSize, TypeModes aTypeMo
 uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize /* = 0 */, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, const StringList& aExtList, Search::searchType sType, void* aOwner /* = NULL */) {
 	StringPairList tokenHubList;
 	{
-		Lock l (cs);
+		WLock l (cs);
 		for_each(who, [&](string& hub) {
 			string hubToken = Util::toString(Util::rand());
 			searches[hubToken] = (SearchItem)(make_tuple(GET_TICK(), aToken, hub));
@@ -395,7 +395,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		string hub, localToken;
 
 		{
-			Lock l (cs);
+			RLock l (cs);
 			auto i = searches.find(token);
 			if (i != searches.end()) {
 				localToken = get<LOCALTOKEN>((*i).second);
@@ -425,7 +425,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 }
 
 void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-	Lock l (cs);
+	WLock l (cs);
 	for (auto i = searches.begin(); i != searches.end();) {
 		if (get<SEARCHTIME>((*i).second) + 1000*60 <  aTick) {
 			searches.erase(i);

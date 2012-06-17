@@ -74,7 +74,7 @@ OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
 	UserPtr p = ClientManager::getInstance()->getUser(aCID);
 
 	{
-		Lock l(cs);
+		WLock l(cs);
 		ou = users.insert(make_pair(aSID, new OnlineUser(p, *this, aSID))).first->second;
 		ou->inc();
 	}
@@ -85,14 +85,14 @@ OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
 }
 
 OnlineUser* AdcHub::findUser(const uint32_t aSID) const {
-	Lock l(cs);
+	RLock l(cs);
 	SIDMap::const_iterator i = users.find(aSID);
 	return i == users.end() ? NULL : i->second;
 }
 
 OnlineUser* AdcHub::findUser(const CID& aCID) const {
-	Lock l(cs);
-	for(SIDMap::const_iterator i = users.begin(); i != users.end(); ++i) {
+	RLock l(cs);
+	for(auto i = users.begin(); i != users.end(); ++i) {
 		if(i->second->getUser()->getCID() == aCID) {
 			return i->second;
 		}
@@ -103,7 +103,7 @@ OnlineUser* AdcHub::findUser(const CID& aCID) const {
 void AdcHub::putUser(const uint32_t aSID, bool disconnect) {
 	OnlineUser* ou = 0;
 	{
-		Lock l(cs);
+		WLock l(cs);
 		SIDMap::iterator i = users.find(aSID);
 		if(i == users.end())
 			return;
@@ -123,12 +123,12 @@ void AdcHub::putUser(const uint32_t aSID, bool disconnect) {
 void AdcHub::clearUsers() {
 	SIDMap tmp;
 	{
-		Lock l(cs);
+		RLock l(cs);
 		users.swap(tmp);
 		availableBytes = 0;
 	}
 
-	for(SIDIter i = tmp.begin(); i != tmp.end(); ++i) {
+	for(auto i = tmp.begin(); i != tmp.end(); ++i) {
 		if(i->first != AdcCommand::HUB_SID)
 			ClientManager::getInstance()->putOffline(i->second, false, getPrivGroup());
 		i->second->dec();
@@ -453,7 +453,7 @@ void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 	string ip;
 	string port;
 	{
-		Lock l(cs);
+		RLock l(cs);
 		auto i = users.find(cmd.getTo());
 		if(i == users.end()) {
 			dcdebug("AdcHub::sendUDP: invalid user\n");
@@ -467,6 +467,7 @@ void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 		port = ou.getIdentity().getUdpPort();
 		command = cmd.toString(ou.getUser()->getCID());
 	}
+
 	try {
 		udp.writeTo(ip, port, command);
 	} catch(const SocketException& e) {
@@ -756,8 +757,8 @@ void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 			hubMessage(cmd);
 		} else {
 			const string& to = command.getTo();
-			Lock l(cs);
-			for(SIDMap::const_iterator i = users.begin(); i != users.end(); ++i) {
+			RLock l(cs);
+			for(auto i = users.begin(); i != users.end(); ++i) {
 				if(i->second->getIdentity().getNick() == to) {
 					privateMessage(i->second, cmd);
 					return;
@@ -1084,10 +1085,10 @@ void AdcHub::info(bool /*alwaysSend*/) {
 }
 
 void AdcHub::refreshUserList(bool) {
-	Lock l(cs);
-
 	OnlineUserList v;
-	for(SIDIter i = users.begin(); i != users.end(); ++i) {
+
+	RLock l(cs);
+	for(auto i = users.begin(); i != users.end(); ++i) {
 		if(i->first != AdcCommand::HUB_SID) {
 			v.push_back(i->second);
 		}

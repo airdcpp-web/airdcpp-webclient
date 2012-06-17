@@ -101,7 +101,7 @@ private:
 	typedef tuple<uint64_t, string, string> SearchItem;
 
 	boost::unordered_map<string, SearchItem> searches;
-	CriticalSection cs;
+	SharedMutex cs;
 
 	std::unique_ptr<Socket> socket;
 	string port;

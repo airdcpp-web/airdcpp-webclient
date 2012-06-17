@@ -127,31 +127,7 @@ bool SearchQueue::pop(Search& s)
 bool SearchQueue::hasWaitingTime(uint64_t aTick) {
 	return lastSearchTime + nextInterval > aTick;
 }
-/*
-uint64_t SearchQueue::getSearchTime(const Search& s){
-	Lock l(cs);
 
-	//if(aOwner == 0) return 0xFFFFFFFF;
-
-	uint32_t x = 0; //max(lastSearchTime, GET_TICK() - interval);
-
-	for(auto i = searchQueue.begin(); i != searchQueue.end(); i++){
-		if((*i) == s) {
-			auto now = GET_TICK();
-			if (x > 0) {
-				//all items before this - ellapsed time for the first item
-				return x - (getNextSearchTick() - now);
-			} else {
-				//empty queue but we still need to wait after the previous search
-				return i->getInterval() - (getNextSearchTick() - now);
-			}
-		}
-		x += i->getInterval();
-	}
-
-	return 0;
-}
-*/
 bool SearchQueue::cancelSearch(void* aOwner){
 	dcassert(aOwner);
 

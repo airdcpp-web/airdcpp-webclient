@@ -30,6 +30,7 @@
 #include "User.h"
 #include "Wildcards.h"
 #include "format.h"
+#include "ScopedFunctor.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
@@ -407,7 +408,10 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 		}
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
 		ClientManager* c = ClientManager::getInstance();
+		c->lockRead();
+		ScopedFunctor([c] { c->unlockRead(); });
 		OnlineUser* u = c->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL(), false);
+
 		if(u) {
 			Client* client = &u->getClient();
 			if(client && client->isConnected()) {

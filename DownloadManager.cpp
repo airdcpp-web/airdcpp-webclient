@@ -59,7 +59,7 @@ DownloadManager::~DownloadManager() {
 	TimerManager::getInstance()->removeListener(this);
 	while(true) {
 		{
-			Lock l(cs);
+			WLock l(cs);
 			if(downloads.empty())
 				break;
 		}
@@ -75,7 +75,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 	boost::unordered_map<UserPtr, int64_t> userSpeedMap;
 
 	{
-		Lock l(cs);
+		RLock l(cs);
 		for (auto i = runningBundles.begin(); i != runningBundles.end(); ++i) {
 			BundlePtr bundle = i->second;
 			if (bundle->onDownloadTick(UBNList)) {
@@ -139,7 +139,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 void DownloadManager::sendSizeNameUpdate(BundlePtr aBundle) {
 	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
-	Lock l (cs);
+	RLock l (cs);
 	aBundle->sendSizeNameUpdate();
 }
 
@@ -151,7 +151,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 		} 
 
 		{
-			Lock l (cs);
+			WLock l (cs);
 			if (aBundle->addRunningUser(aSource)) {
 				//this is the first running user for this bundle
 				aBundle->setStart(GET_TICK());
@@ -164,8 +164,8 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 
 bool DownloadManager::checkIdle(const HintedUser& user, bool smallSlot, bool reportOnly) {
 
-	Lock l(cs);
-	for(UserConnectionList::const_iterator i = idlers.begin(); i != idlers.end(); ++i) {	
+	RLock l(cs);
+	for(auto i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;
 		if(uc->getUser() == user.user) {
 			//update the hubHint of the connection to the correct one.
@@ -245,7 +245,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 			aConn->setState(UserConnection::STATE_IDLE);
 			removeRunningUser(aConn);
 			{
-				Lock l(cs);
+				WLock l(cs);
  				idlers.push_back(aConn);
 			}
 		} else {
@@ -261,7 +261,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	}
 	
 	{
-		Lock l(cs);
+		WLock l(cs);
 		downloads.push_back(d);
 		BundlePtr b = d->getBundle();
 		if (b) {
@@ -330,7 +330,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	}
 	
 	try {
-		Lock l (cs);
+		WLock l (cs);
 		d->open(bytes, z);
 	} catch(const FileException& e) {
 		failDownload(aSource, STRING(COULD_NOT_OPEN_TARGET_FILE) + " " + e.getError());
@@ -436,9 +436,9 @@ void DownloadManager::endData(UserConnection* aSource) {
 }
 
 int64_t DownloadManager::getRunningAverage() {
-	Lock l(cs);
+	RLock l(cs);
 	int64_t avg = 0;
-	for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
+	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 		Download* d = *i;
 		avg += static_cast<int64_t>(d->getAverageSpeed());
 	}
@@ -461,7 +461,7 @@ void DownloadManager::noSlots(UserConnection* aSource, string param) {
 
 void DownloadManager::onFailed(UserConnection* aSource, const string& aError) {
 	{
-		Lock l(cs);
+		WLock l(cs);
  		idlers.erase(remove(idlers.begin(), idlers.end(), aSource), idlers.end());
 	}
 	failDownload(aSource, aError);
@@ -496,7 +496,7 @@ void DownloadManager::removeDownload(Download* d) {
 	}
 
 	{
-		Lock l(cs);
+		WLock l(cs);
 
 		BundlePtr bundle = d->getBundle();
 		if (bundle) {
@@ -509,7 +509,7 @@ void DownloadManager::removeDownload(Download* d) {
 }
 
 void DownloadManager::setTarget(const string& oldTarget, const string& newTarget) {
-	Lock l (cs);
+	RLock l (cs);
 	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 		Download* d = *i;
 		if (d->getPath() == oldTarget) {
@@ -524,7 +524,7 @@ void DownloadManager::setTarget(const string& oldTarget, const string& newTarget
 void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path) {
 	UserConnectionList ucl;
 	{
-		Lock l (cs);
+		WLock l (cs);
 		for(auto i = sourceBundle->getDownloads().begin(); i != sourceBundle->getDownloads().end();) {
 			Download* d = *i;
 			if (d->getPath() == path) {
@@ -550,7 +550,7 @@ BundlePtr DownloadManager::findRunningBundle(const string& bundleToken) {
 	if (s != runningBundles.end()) {
 		return s->second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove /*false*/) {
@@ -559,7 +559,7 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 	}
 
 	{
-		Lock l (cs);
+		WLock l (cs);
 		BundlePtr bundle = findRunningBundle(aSource->getLastBundle());
 		if (bundle && bundle->removeRunningUser(aSource, sendRemove)) {
 			//no running users for this bundle
@@ -574,7 +574,7 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 void DownloadManager::disconnectBundle(BundlePtr aBundle, const UserPtr& aUser) {
 	//UserConnectionList u;
 	{
-		Lock l(cs);
+		RLock l(cs);
 		for(auto i = aBundle->getDownloads().begin(); i != aBundle->getDownloads().end(); ++i) {
 			Download* d = *i;
 			if (aUser && d->getUser() != aUser) {
@@ -589,9 +589,9 @@ void DownloadManager::disconnectBundle(BundlePtr aBundle, const UserPtr& aUser) 
 }
 
 void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser) {
-	Lock l(cs);
+	RLock l(cs);
 	
-	for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
+	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 		Download* d = *i;
 		if(d->getPath() == aTarget) {
 			if (aUser) {
@@ -650,8 +650,8 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 
 void DownloadManager::on(UserConnectionListener::Updated, UserConnection* aSource) noexcept {
 	{
-		Lock l(cs);
-		UserConnectionList::iterator i = find(idlers.begin(), idlers.end(), aSource);
+		WLock l(cs);
+		auto i = find(idlers.begin(), idlers.end(), aSource);
 		if(i == idlers.end())
 			return;
 		idlers.erase(i);

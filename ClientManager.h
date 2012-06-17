@@ -101,7 +101,7 @@ public:
 	void setIPUser(const UserPtr& user, const string& IP, const string& udpPort = Util::emptyString);
 	
 	bool isSharingHub(const HintedUser& p) {
-		Lock l(cs);
+		RLock l(cs);
 		OnlineUser* u = findOnlineUserHint(p.user->getCID(), p.hint);
 		if(u)
 			return (!u->getClient().getHideShare());
@@ -133,21 +133,14 @@ public:
 	int getMode(const string& aHubUrl) const;
 	bool isActive(const string& aHubUrl = Util::emptyString) const { return getMode(aHubUrl) != SettingsManager::INCOMING_FIREWALL_PASSIVE; }
 
-	void lock() noexcept { cs.lock(); }
-	void unlock() noexcept { cs.unlock(); }
+	void lockRead() noexcept { cs.lock_shared(); }
+	void unlockRead() noexcept { cs.unlock_shared(); }
 
 	const Client::List& getClients() const { return clients; }
 	void getOnlineClients(StringList& onlineClients);
 
 	CID getMyCID();
 	const CID& getMyPID();
-
-	// NMDC functions only!!!
-//	void setPkLock(const UserPtr& p, const string& aPk, const string& aLock);
-//	void setSupports(const UserPtr& p, const string& aSupports);
-	
-//	void setGenerator(const UserPtr& p, const string& aGenerator);
-//	void setUnknownCommand(const UserPtr& p, const string& aUnknownCommand);
 
 private:
 
@@ -163,7 +156,7 @@ private:
 	typedef pair<OnlineIterC, OnlineIterC> OnlinePairC;
 	
 	Client::List clients;
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;
 	
 	UserMap users;
 	OnlineMap onlineUsers;	
