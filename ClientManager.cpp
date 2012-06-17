@@ -139,7 +139,6 @@ StringList ClientManager::getNicks(const CID& cid, const string& hintUrl, bool p
 
 	RLock l(cs);
 	if(!priv) {
-		RLock l(cs);
 		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
 		for(OnlineIterC i = op.first; i != op.second; ++i) {
 			ret.insert(i->second->getIdentity().getNick());
@@ -288,9 +287,10 @@ UserPtr ClientManager::getUser(const string& aNick, const string& aHubUrl) noexc
 		}
 	}
 
-	WLock l(cs);
 	UserPtr p(new User(cid));
 	p->setFlag(User::NMDC);
+
+	WLock l(cs);
 	users.insert(make_pair(const_cast<CID*>(&p->getCID()), p));
 
 	return p;
@@ -305,8 +305,9 @@ UserPtr ClientManager::getUser(const CID& cid) noexcept {
 		}
 	}
 
-	WLock l(cs);
 	UserPtr p(new User(cid));
+
+	WLock l(cs);
 	users.insert(make_pair(const_cast<CID*>(&p->getCID()), p));
 	return p;
 }
@@ -407,7 +408,7 @@ Client* ClientManager::findClient(const HintedUser& p, const string& userSID) {
 	if(!userSID.empty()) {
 		RLock l(cs);
 		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&p.user->getCID()));
-		for(OnlineIterC i = op.first; i != op.second; ++i) {
+		for(auto i = op.first; i != op.second; ++i) {
 			u = i->second;
 			if(u->getIdentity().getSIDString() == userSID)
 				return &u->getClient();
