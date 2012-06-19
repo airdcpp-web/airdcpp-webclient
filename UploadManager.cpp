@@ -81,15 +81,12 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 		aSource.fileNotAvail("Invalid request");
 		return false;
 	}
-	
-	InputStream* is = 0;
-	int64_t start = 0;
-	int64_t size = 0;
-	int64_t fileSize = 0;
+
+	/*check if the user deserves a slot before any filesystem access*/
 
 	bool userlist = (aFile == Transfer::USER_LIST_NAME_BZ || aFile == Transfer::USER_LIST_NAME);
-	bool free = userlist;
-	bool partial = false;
+	bool miniSlot = userlist;
+	bool partialFileSharing = false;
 
 	bool isInSharingHub = true;
 
@@ -99,139 +96,54 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	
 	string sourceFile;
 	Transfer::Type type;
+	int64_t fileSize = 0;
 
 	try {
 		if(aType == Transfer::names[Transfer::TYPE_FILE]) {
-		
-			sourceFile = ShareManager::getInstance()->toReal(aFile, isInSharingHub, aSource.getHintedUser(), userSID);
+			auto info = ShareManager::getInstance()->toRealWithSize(aFile, isInSharingHub, aSource.getHintedUser(), userSID);
+			sourceFile = move(info.first);
+			fileSize = move(info.second);
+			miniSlot = miniSlot || (fileSize <= (int64_t)(SETTING(SET_MINISLOT_SIZE) * 1024) );
 
-			if(aFile == Transfer::USER_LIST_NAME) {
-				// Unpack before sending...
-				string bz2 = File(sourceFile, File::READ, File::OPEN).read();
-				string xml;
-				CryptoManager::getInstance()->decodeBZ2(reinterpret_cast<const uint8_t*>(bz2.data()), bz2.size(), xml);
-				// Clear to save some memory...
-				string().swap(bz2);
-				is = new MemoryInputStream(xml);
-				start = 0;
-				fileSize = size = xml.size();
-			} else {
-				File* f = new File(sourceFile, File::READ, File::OPEN);
-
-				start = aStartPos;
-				int64_t sz = f->getSize();
-				size = (aBytes == -1) ? sz - start : aBytes;
-				fileSize = sz;
-
-				if((start + size) > sz) {
-					aSource.fileNotAvail();
-					delete f;
-					return false;
-				}
-			
-				free = free || (sz <= (int64_t)(SETTING(SET_MINISLOT_SIZE) * 1024) );
-
-
-				if(!SETTING(FREE_SLOTS_EXTENSIONS).empty()){
-					if(Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(sourceFile)), Text::utf8ToAcp(SETTING(FREE_SLOTS_EXTENSIONS)), '|')) {
-						free = true;
-					}
-				}
-
-				f->setPos(start);
-
-				is = f;
-				if((start + size) < sz) {
-					is = new LimitedInputStream<true>(is, size);
+			if(!SETTING(FREE_SLOTS_EXTENSIONS).empty()){
+				if(Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(sourceFile)), Text::utf8ToAcp(SETTING(FREE_SLOTS_EXTENSIONS)), '|')) {
+					miniSlot = true;
 				}
 			}
-			type = userlist ? Transfer::TYPE_FULL_LIST : Transfer::TYPE_FILE;	
+			type = userlist ? Transfer::TYPE_FULL_LIST : Transfer::TYPE_FILE;
+
 		} else if(aType == Transfer::names[Transfer::TYPE_TREE]) {
-			//sourceFile = ShareManager::getInstance()->toReal(aFile);
-			sourceFile = aFile;
-			MemoryInputStream* mis = ShareManager::getInstance()->getTree(aFile, aSource.getHintedUser(), userSID);
-			if(!mis) {
-				aSource.fileNotAvail();
-				return false;
-			}
+			auto info = ShareManager::getInstance()->toRealWithSize(aFile, isInSharingHub, aSource.getHintedUser(), userSID);
+			sourceFile = move(info.first);
+			fileSize = move(info.second);
+			type = Transfer::TYPE_TREE;
+			miniSlot = true;
 
-			start = 0;
-			fileSize = size = mis->getSize();
-			is = mis;
-			free = true;
-			type = Transfer::TYPE_TREE;			
 		} else if(aType == Transfer::names[Transfer::TYPE_PARTIAL_LIST]) {
-			MemoryInputStream* mis;
-			// Partial file list
-			if (tthList) {
-				if (aFile[0] != '/') {
-					mis = QueueManager::getInstance()->generateTTHList(aFile, isInSharingHub);
-				} else {
-					mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, isInSharingHub, aSource.getHintedUser());
-				}
-			} else {
-				mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, isInSharingHub, aSource.getHintedUser(), userSID);
-			}
-
-			if(mis == NULL) {
-				aSource.fileNotAvail();
-				return false;
-			}
-			
-			start = 0;
-			fileSize = size = mis->getSize();
-			is = mis;
-			free = true;
 			type = Transfer::TYPE_PARTIAL_LIST;
+			miniSlot = true;
+
 		} else {
 			aSource.fileNotAvail("Unknown file type");
 			return false;
 		}
 	} catch(const ShareException& e) {
-		// Partial file sharing upload
 		if(aType == Transfer::names[Transfer::TYPE_FILE] && aFile.compare(0, 4, "TTH/") == 0) {
 
 			TTHValue fileHash(aFile.substr(4));
 
-	    if (BOOLSETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile)) {				
-				try {
-					SharedFileStream* ss = new SharedFileStream(sourceFile, File::READ, File::OPEN | File::SHARED | File::NO_CACHE_HINT);
-					
-					start = aStartPos;
-					fileSize = ss->getSize();
-					size = (aBytes == -1) ? fileSize - start : aBytes;
-					
-					if((start + size) > fileSize) {
-						aSource.fileNotAvail();
-						delete ss;
-						return false;
-					}
-
-					ss->setPos(start);
-					is = ss;
-
-					if((start + size) < fileSize) {
-						is = new LimitedInputStream<true>(is, size);
-					}
-
-					partial = true;
-					type = Transfer::TYPE_FILE;
-					goto ok;
-				} catch(const Exception&) {
-					delete is;
-				}
+			if(BOOLSETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile)){
+				//Todo: Do we need to set fileSize here?
+				partialFileSharing = true;
+				type = Transfer::TYPE_FILE;
+				goto checkslots;
 			}
 		}
 		aSource.fileNotAvail(e.getError());
 		return false;
-	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError(), LogManager::LOG_ERROR);
-		aSource.fileNotAvail();
-		return false;
 	}
 
-ok:
-
+checkslots:
 
 	uint8_t slotType = aSource.getSlotType();
 	
@@ -243,7 +155,7 @@ ok:
 			bool hasReserved = reservedSlots.find(aSource.getUser()) != reservedSlots.end();
 			bool hasFreeSlot = (getFreeSlots() > 0) && ((uploadQueue.empty() && notifiedUsers.empty()) || isNotifiedUser(aSource.getUser()));
 		
-			if ((type==Transfer::TYPE_PARTIAL_LIST || fileSize <= 65792) && smallSlots <= 8) {
+			if ((type==Transfer::TYPE_PARTIAL_LIST || ( fileSize > 0 && fileSize <= 65792)) && smallSlots <= 8) {
 				slotType = UserConnection::SMALLSLOT;
 			} else if (aSource.isSet(UserConnection::FLAG_MCN1)) {
 				if (getMultiConn(aSource) || ((hasReserved || isFavorite|| getAutoSlot()) && !isUploading(aSource.getUser()))) {
@@ -261,14 +173,13 @@ ok:
 		if (noSlots) {
 			bool supportsFree = aSource.isSet(UserConnection::FLAG_SUPPORTS_MINISLOTS);
 			bool allowedFree = (slotType == UserConnection::EXTRASLOT) || aSource.isSet(UserConnection::FLAG_OP) || getFreeExtraSlots() > 0;
-			bool partialFree = partial && ((slotType == UserConnection::PARTIALSLOT) || (extraPartial < SETTING(EXTRA_PARTIAL_SLOTS)));
+			bool partialFree = partialFileSharing && ((slotType == UserConnection::PARTIALSLOT) || (extraPartial < SETTING(EXTRA_PARTIAL_SLOTS)));
 
-			if(free && supportsFree && allowedFree) {
+			if(miniSlot && supportsFree && allowedFree) {
 				slotType = UserConnection::EXTRASLOT;
 			} else if(partialFree) {
 				slotType = UserConnection::PARTIALSLOT;
 			} else {
-				delete is;
 				if (aSource.isSet(UserConnection::FLAG_MCN1) && isUploading(aSource.getUser())) {
 					//don't queue MCN requests for existing uploaders
 					aSource.maxedOut();
@@ -282,10 +193,121 @@ ok:
 
 		setLastGrant(GET_TICK());
 	}
+	
+	InputStream* is = 0;
+	int64_t start = 0;
+	int64_t size = 0;
+
+	try {
+
+		switch(type) {
+		case Transfer::TYPE_FILE:
+			{
+				if(partialFileSharing) {
+						SharedFileStream* ss = new SharedFileStream(sourceFile, File::READ, File::OPEN | File::SHARED | File::NO_CACHE_HINT);
+						start = aStartPos;
+						fileSize = ss->getSize();
+						size = (aBytes == -1) ? fileSize - start : aBytes;
+					
+						if((start + size) > fileSize) {
+							aSource.fileNotAvail();
+							delete ss;
+							return false;
+						}
+
+						ss->setPos(start);
+						is = ss;
+						if((start + size) < fileSize) {
+							is = new LimitedInputStream<true>(is, size);
+						}
+
+					break;
+				}
+			}
+		case Transfer::TYPE_FULL_LIST:
+			{
+				if(aFile == Transfer::USER_LIST_NAME) {
+					// Unpack before sending...
+					string bz2 = File(sourceFile, File::READ, File::OPEN).read();
+					string xml;
+					CryptoManager::getInstance()->decodeBZ2(reinterpret_cast<const uint8_t*>(bz2.data()), bz2.size(), xml);
+					// Clear to save some memory...
+					string().swap(bz2);
+					is = new MemoryInputStream(xml);
+					start = 0;
+					fileSize = size = xml.size();
+				} else {
+					File* f = new File(sourceFile, File::READ, File::OPEN);
+					start = aStartPos;
+					int64_t sz = f->getSize();
+					size = (aBytes == -1) ? sz - start : aBytes;
+					fileSize = sz;
+
+					if((start + size) > sz) {
+						aSource.fileNotAvail();
+						delete f;
+						return false;
+					}
+			
+					f->setPos(start);
+					is = f;
+					if((start + size) < sz) {
+						is = new LimitedInputStream<true>(is, size);
+					}
+				}
+				break;
+			}
+		case Transfer::TYPE_TREE:
+			{
+				sourceFile = aFile;
+				MemoryInputStream* mis = ShareManager::getInstance()->getTree(aFile, aSource.getHintedUser(), userSID);
+				if(!mis) {
+					aSource.fileNotAvail();
+					return false;
+				}
+
+				start = 0;
+				fileSize = size = mis->getSize();
+				is = mis;
+				break;
+			}
+		case Transfer::TYPE_PARTIAL_LIST:
+			{
+				MemoryInputStream* mis;
+				// Partial file list
+				if (tthList) {
+					if (aFile[0] != '/') {
+						mis = QueueManager::getInstance()->generateTTHList(aFile, isInSharingHub);
+					} else {
+						mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, isInSharingHub, aSource.getHintedUser());
+					}
+				} else {
+					mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, isInSharingHub, aSource.getHintedUser(), userSID);
+				}
+
+				if(mis == NULL) {
+					aSource.fileNotAvail();
+					return false;
+				}
+				start = 0;
+				fileSize = size = mis->getSize();
+				is = mis;
+				break;
+			}
+		}
+	} catch(const ShareException& e) {
+		aSource.fileNotAvail(e.getError());
+		return false;
+	} catch(const Exception& e) {
+		if(is)
+			delete is;
+		LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError(), LogManager::LOG_ERROR);
+		aSource.fileNotAvail();
+		return false;
+	}
 
 	// remove file from upload queue
 	clearUserFiles(aSource.getUser());
-	
 	bool resumed = false;
 
 	{
@@ -317,21 +339,14 @@ ok:
 	}
 
 	Upload* u = new Upload(aSource, sourceFile, TTHValue());
-	//LogManager::getInstance()->message("Token2: " + aSource.getToken());
-
 	u->setStream(is);
-
 	u->setSegment(Segment(start, size));
-		
 	if(u->getSize() != fileSize)
 		u->setFlag(Upload::FLAG_CHUNKED);
-
 	if(resumed)
 		u->setFlag(Upload::FLAG_RESUMED);
-
-	if(partial)
+	if(partialFileSharing)
 		u->setFlag(Upload::FLAG_PARTIAL);
-
 	u->setFileSize(fileSize);
 	u->setType(type);
 
@@ -348,6 +363,11 @@ ok:
 		}
 	}
 
+	UpdateSlotCounts(aSource, slotType);
+	return true;
+}
+
+void UploadManager::UpdateSlotCounts(const UserConnection& aSource, uint8_t slotType){
 	if(aSource.getSlotType() != slotType) {
 		// remove old count
 		switch(aSource.getSlotType()) {
@@ -394,10 +414,7 @@ ok:
 				break;
 		}
 	}
-
-	return true;
 }
-
 
 void UploadManager::changeMultiConnSlot(const UserPtr& aUser, bool remove) {
 	Lock l(cs);

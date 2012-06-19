@@ -62,6 +62,7 @@ public:
 
 	string toVirtual(const TTHValue& tth, Client* client) const;
 	string toReal(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser, const string& userSID);
+	pair<string, int64_t> toRealWithSize(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser, const string& userSID);
 	TTHValue getTTH(const string& virtualFile, const HintedUser& aUser, const string& userSID) const;
 	
 	int refresh(int refreshOptions);
@@ -203,7 +204,7 @@ public:
 	bool hasTempShares() { Lock l(tScs); return !tempShares.empty(); }
 	TempShareMap getTempShares() { Lock l(tScs); return tempShares; }
 	void removeTempShare(const string& aKey, TTHValue& tth);
-	string findTempShare(const string& aKey, const string& virtualFile);
+	TempShareInfo findTempShare(const string& aKey, const string& virtualFile);
 	//tempShares end
 
 private:
@@ -384,7 +385,7 @@ private:
 	FileListMap fileLists;
 
 	FileList* generateXmlList(Client* client, bool forced = false);
-	void makeFileList(Client* client, FileList* fl, const string& flname, bool forced);
+	void createFileList(Client* client, FileList* fl, const string& flname, bool forced);
 	FileList* getFileList(Client* client) const;
 
 	bool isHubExcluded(const string& sharepath, const Client* client) const;

@@ -272,10 +272,15 @@ ShareManager::FileList* ShareManager::getFileList(Client* client) const{
 }
 
 string ShareManager::toReal(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser, const string& userSID)  {
+	return toRealWithSize(virtualFile, isInSharingHub, aUser, userSID).first;
+}
+
+pair<string, int64_t> ShareManager::toRealWithSize(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser, const string& userSID) {
 	
-	if(virtualFile == "MyList.DcLst") {
+	if(virtualFile == "MyList.DcLst") 
 		throw ShareException("NMDC-style lists no longer supported, please upgrade your client");
-	} else if(virtualFile == Transfer::USER_LIST_NAME_BZ || virtualFile == Transfer::USER_LIST_NAME) {
+
+	if(virtualFile == Transfer::USER_LIST_NAME_BZ || virtualFile == Transfer::USER_LIST_NAME) {
 		Client* client = NULL;
 
 		if(!aUser.user->isNMDC()) {
@@ -286,9 +291,9 @@ string ShareManager::toReal(const string& virtualFile, bool isInSharingHub, cons
 
 		FileList* fl = generateXmlList(client);
 		if (!isInSharingHub) { //Hide Share Mod
-			return (Util::getPath(Util::PATH_USER_CONFIG) + "Emptyfiles.xml.bz2");
+			return make_pair((Util::getPath(Util::PATH_USER_CONFIG) + "Emptyfiles.xml.bz2"), 0);
 		}
-		return fl->getBZXmlFile();
+		return make_pair(fl->getBZXmlFile(), 0);
 	}
 	ClientList clients;
 	if(!aUser.user->isNMDC()) {
@@ -296,9 +301,11 @@ string ShareManager::toReal(const string& virtualFile, bool isInSharingHub, cons
 	}
 	RLock l(cs);
 	try {
-		return findFile(virtualFile, clients)->getRealPath();
+		auto i = findFile(virtualFile, clients);
+		return make_pair(i->getRealPath(), i->getSize());
 	}catch(ShareException&) {
-		return findTempShare(aUser.user->getCID().toBase32(), virtualFile);
+		TempShareInfo i = findTempShare(aUser.user->getCID().toBase32(), virtualFile);
+		return make_pair(i.path, i.size);
 	}
 }
 
@@ -383,7 +390,7 @@ AdcCommand ShareManager::getFileInfo(const string& aFile, Client* client) {
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-string ShareManager::findTempShare(const string& aKey, const string& virtualFile) {
+ShareManager::TempShareInfo ShareManager::findTempShare(const string& aKey, const string& virtualFile) {
 		
 	if(virtualFile.compare(0, 4, "TTH/") == 0) {
 		Lock l(tScs);
@@ -391,7 +398,7 @@ string ShareManager::findTempShare(const string& aKey, const string& virtualFile
 		auto Files = tempShares.equal_range(tth);
 		for(auto i = Files.first; i != Files.second; ++i) {
 			if(i->second.key.empty() || (i->second.key == aKey)) // if no key is set, it means its a hub share.
-				return i->second.path;
+				return i->second;
 		}
 	}	
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);		
@@ -1444,7 +1451,7 @@ void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
 	bloom.copy_to(v);
 }
 
-//forwards the calls to makeFilelist for creating the filelist that was reguested.
+//forwards the calls to createFileList for creating the filelist that was reguested.
 ShareManager::FileList* ShareManager::generateXmlList(Client* client, bool forced /*false*/) {
 	string flname = "";
 	FileList* fl = NULL;
@@ -1463,7 +1470,7 @@ ShareManager::FileList* ShareManager::generateXmlList(Client* client, bool force
 		}//lock freed!
 
 		Lock c(client->cs);  //lock we cannot create the same filelist 2 times, but we want to be able to generate other lists simultaniously, a bit overkill? eh :)
-		makeFileList(client, fl, flname, forced);
+		createFileList(client, fl, flname, forced);
 		return fl;
 	} else { // no hub or no excludefolders, use full list
 		{
@@ -1474,13 +1481,13 @@ ShareManager::FileList* ShareManager::generateXmlList(Client* client, bool force
 			if(GeneratingFULLXmlList.test_and_set())
 				return fl;
 		}
-		makeFileList(NULL, fl, flname, forced);
+		createFileList(NULL, fl, flname, forced);
 		GeneratingFULLXmlList.clear();
 		return fl;
 	}
 }
 
-void ShareManager::makeFileList(Client* client, FileList* fl, const string& flname, bool forced) {
+void ShareManager::createFileList(Client* client, FileList* fl, const string& flname, bool forced) {
 	
 	if(forced && fl->xmlDirty || fl->forceXmlRefresh || (fl->xmlDirty && (fl->getlastXmlUpdate() + 15 * 60 * 1000 < GET_TICK() || fl->getlastXmlUpdate() < lastFullUpdate))) {
 
