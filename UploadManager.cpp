@@ -367,7 +367,7 @@ checkslots:
 	return true;
 }
 
-void UploadManager::UpdateSlotCounts(const UserConnection& aSource, uint8_t slotType){
+void UploadManager::UpdateSlotCounts(UserConnection& aSource, uint8_t slotType){
 	if(aSource.getSlotType() != slotType) {
 		// remove old count
 		switch(aSource.getSlotType()) {

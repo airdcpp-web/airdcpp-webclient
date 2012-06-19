@@ -165,7 +165,7 @@ private:
 	bool getMultiConn(const UserConnection& aSource);
 	void changeMultiConnSlot(const UserPtr& aUser, bool remove);
 	void checkMultiConn();
-	void UpdateSlotCounts(const UserConnection& aSource, uint8_t slotType);
+	void UpdateSlotCounts(UserConnection& aSource, uint8_t slotType);
 
 	/* bundles */
 	typedef unordered_map<string, UploadBundlePtr> tokenMap;
