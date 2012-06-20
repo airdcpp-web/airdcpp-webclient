@@ -1319,7 +1319,7 @@ int ShareManager::initRefreshThread(int aRefreshOptions)  {
 		if(refreshOptions & REFRESH_BLOCKING) { 
 			join();
 		} else {
-			setThreadPriority(Thread::LOW);
+			setThreadPriority(Thread::NORMAL);
 		}
 
 	} catch(const ThreadException& e) {

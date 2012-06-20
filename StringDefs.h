@@ -1394,5 +1394,6 @@ enum Strings { // @DontAdd
 	AUTOSELECT_LEAST_SPACE, // "least possible free space available"
 	AUTO_SELECT, // "Auto select based on free space"
 	GET_BROWSE_LIST, // "Get/browse file list"
+	SETTINGS_TOOLBAR_SIZE, // "Default Toolbar Icon size"
 	LAST // @DontAdd
 };

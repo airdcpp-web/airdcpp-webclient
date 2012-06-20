@@ -1387,6 +1387,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "least possible free space available", 
 "Auto select based on free space", 
 "Get/browse file list", 
+"Default Toolbar Icon size", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2774,4 +2775,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AutoselectLeastSpace", 
 "AutoSelect", 
 "GetBrowseList", 
+"SettingsToolbarSize", 
 };

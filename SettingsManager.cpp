@@ -605,8 +605,8 @@ SettingsManager::SettingsManager()
 	setDefault(FLASH_WINDOW_ON_MYNICK, false);
 	setDefault(AUTOSEARCH_EVERY, 15);
 	setDefault(AUTOSEARCH_RECHECK_TIME, 360);
-	setDefault(TB_IMAGE_SIZE, 22);
-	setDefault(TB_IMAGE_SIZE_HOT, 22);
+	setDefault(TB_IMAGE_SIZE, 32);
+	setDefault(TB_IMAGE_SIZE_HOT, 32);
 	setDefault(USE_HIGHLIGHT, false);
 	setDefault(SHOW_QUEUE_BARS, true);
 	setDefault(SEND_BLOOM, true);
