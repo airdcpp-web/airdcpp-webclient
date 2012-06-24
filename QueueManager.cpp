@@ -470,6 +470,8 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 					if (replaceFinishedItem(q)) {
 						q = nullptr;
 					}
+				} else if (q->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
+					q = nullptr;
 				} else { 
 					if(!q->isSource(aUser)) {
 						try {

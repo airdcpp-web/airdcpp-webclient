@@ -329,7 +329,7 @@ void DirectoryListing::Directory::setDate(const string& aDate) {
 
 string DirectoryListing::getPath(const Directory* d) const {
 	if(d == root)
-		return "";
+		return Util::emptyString;
 
 	string dir;
 	dir.reserve(128);
@@ -418,7 +418,7 @@ void DirectoryListing::download(const string& aDir, const string& aTarget, bool 
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = find(aDir, getRoot());
-	if(d != NULL)
+	if(d)
 		download(d, aTarget, highPrio, prio, recursiveList);
 }
 
@@ -440,7 +440,7 @@ DirectoryListing::Directory* DirectoryListing::find(const string& aName, Directo
 		else
 			return find(aName.substr(end + 1), *i);
 	}
-	return NULL;
+	return nullptr;
 }
 
 void DirectoryListing::findNfo(const string& aPath) {
@@ -483,11 +483,11 @@ DirectoryListing::Directory::~Directory() {
 }
 
 void DirectoryListing::Directory::filterList(DirectoryListing& dirList) {
-		DirectoryListing::Directory* d = dirList.getRoot();
+	DirectoryListing::Directory* d = dirList.getRoot();
 
-		TTHSet l;
-		d->getHashList(l);
-		filterList(l);
+	TTHSet l;
+	d->getHashList(l);
+	filterList(l);
 }
 
 void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet& l) {
@@ -497,9 +497,9 @@ void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet
 
 	files.erase(std::remove_if(files.begin(),files.end(),HashContained(l)),files.end());
 	if((SETTING(SKIP_SUBTRACT) > 0) && (files.size() < 2)) {   //setting for only skip if folder filecount under x ?
-	for(File::Iter f = files.begin(); f != files.end(); ) {
-		if((*f)->getSize() < (SETTING(SKIP_SUBTRACT) *1024) ) {
-			files.erase(f);
+		for(auto f = files.begin(); f != files.end(); ) {
+			if((*f)->getSize() < (SETTING(SKIP_SUBTRACT) *1024) ) {
+				files.erase(f);
 			} else ++f;
 		}
 	}
@@ -511,7 +511,6 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
-	
 	try {
 		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret);
 	} catch(const ShareException&) {
@@ -549,14 +548,12 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
 }
 
 void DirectoryListing::Directory::clearAdls() {
-
-	for(Iter i = directories.begin(); i != directories.end(); ++i) {
+	for(auto i = directories.begin(); i != directories.end(); ++i) {
 		if((*i)->getAdls()) {
 			delete *i;
 			directories.erase(i);
 			--i;
 		}
-		//(*i)->clearAdls(); //no need to recurse, we should have the adls directories right under root.
 	}
 }
 

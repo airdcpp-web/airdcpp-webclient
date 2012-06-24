@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 AirDC++ Project
+ * Copyright (C) 2011-2012 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,7 +55,6 @@ private:
 	~ShareScannerManager();
 	
 	int run();
-	PME skipListReg;
 	bool matchSkipList(const string& dir);
 
 

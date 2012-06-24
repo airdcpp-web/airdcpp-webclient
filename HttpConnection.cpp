@@ -22,6 +22,8 @@
 #include "SettingsManager.h"
 #include "version.h"
 
+#include <boost/algorithm/string/trim.hpp>
+
 namespace dcpp {
 
 
@@ -54,12 +56,9 @@ HttpConnection::~HttpConnection() {
 void HttpConnection::downloadFile(const string& aUrl) {
 	dcassert(Util::findSubString(aUrl, "http://") == 0 || Util::findSubString(aUrl, "https://") == 0);
 	currentUrl = aUrl;
-	// Trim spaces
-	while(currentUrl[0] == ' ')
-		currentUrl.erase(0, 1);
-	while(currentUrl[currentUrl.length() - 1] == ' ') {
-		currentUrl.erase(currentUrl.length()-1);
-	}
+	// Trim whitespaces
+	boost::algorithm::trim(currentUrl);
+
 	// reset all settings (as in constructor), moved here from onLine(302) because ok was not reset properly
 	moved302 = false; 
 	ok = false;
@@ -160,7 +159,10 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		BufferedSocket::putSocket(socket);
 		socket = NULL;
 
-		string location302 = aLine.substr(10, aLine.length() - (isgraph(aLine[aLine.length()-1]) ? 10 : 11));
+		string location302 = aLine.substr(10, aLine.length() - 10);
+		// shave off any sort of line endings - some servers reportedly even omit it
+		boost::algorithm::trim(location302);
+
 		// make sure we can also handle redirects with relative paths
 		if(strnicmp(location302.c_str(), "http://", 7) != 0) {
 			if(location302[0] == '/') {
