@@ -119,6 +119,7 @@ public:
 	GETSET(bool, singleUser, SingleUser);
 	GETSET(bool, simpleMatching, SimpleMatching);
 	GETSET(bool, seqOrder, SeqOrder);
+	GETSET(uint64_t, bundleBegin, BundleBegin);
 
 	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);
 	GETSET(UserIntMap, runningUsers, RunningUsers);

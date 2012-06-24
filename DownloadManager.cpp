@@ -123,15 +123,16 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			}
 		}
 
-		if(tickList.size() > 0) {
+		if(!tickList.empty()) {
 			fire(DownloadManagerListener::Tick(), tickList);
+		}
+
+		if (!bundleTicks.empty()) {
+			fire(DownloadManagerListener::BundleTick(), bundleTicks, aTick);
 		}
 	}
 
 	for_each(userSpeedMap.begin(), userSpeedMap.end(), [](pair<UserPtr, int64_t> us) { us.first->setSpeed(us.second); });
-	if (!bundleTicks.empty()) {
-		fire(DownloadManagerListener::BundleTick(), bundleTicks, aTick);
-	}
 
 	for_each(UBNList, [](pair<CID, AdcCommand>& cap) { ClientManager::getInstance()->send(cap.second, cap.first, true, true); } );
 	for_each(dropTargets, [](pair<string, UserPtr>& dt) { QueueManager::getInstance()->removeSource(dt.first, dt.second, QueueItem::Source::FLAG_SLOW_SOURCE);});

@@ -40,6 +40,7 @@ public:
 	GETSET(int64_t, totalSpeed, TotalSpeed);
 	GETSET(int64_t, actual, Actual);
 	GETSET(int64_t, uploadedSegments, UploadedSegments);
+	GETSET(uint64_t, bundleBegin, BundleBegin);
 	int delayTime;
 
 	GETSET(UploadList, uploads, Uploads);

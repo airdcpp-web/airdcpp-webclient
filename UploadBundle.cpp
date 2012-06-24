@@ -23,7 +23,7 @@
 namespace dcpp {
 
 UploadBundle::UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded) : target(aTarget), token(aToken), size(aSize),
-	speed(0), totalSpeed(0), singleUser(aSingleUser), start(GET_TICK()), delayTime(0), uploadedSegments(aUploaded), uploaded(0) { }
+	speed(0), totalSpeed(0), singleUser(aSingleUser), start(GET_TICK()), delayTime(0), uploadedSegments(aUploaded), uploaded(0), bundleBegin(0) { }
 
 void UploadBundle::addUploadedSegment(int64_t aSize) {
 	if (singleUser) {
@@ -114,9 +114,12 @@ void UploadBundle::findBundlePath(const string& aName) {
 
 	Upload* u = uploads.front();
 	string upath = u->getPath();
-	size_t pos = u->getPath().find(aName + "\\");
+	size_t pos = u->getPath().rfind(aName);
 	if (pos != string::npos) {
-		target = upath.substr(0, pos + aName.length() + 1);
+		if (pos + aName.length() == u->getPath().length()) //file bundle
+			target = u->getPath();
+		else //dir bundle
+			target = upath.substr(0, pos + aName.length() + 1);
 	}
 }
 

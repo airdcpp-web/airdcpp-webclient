@@ -245,7 +245,6 @@ QueueManager::QueueManager() :
 	SearchManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
-	DownloadManager::getInstance()->addListener(this);
 
 	File::ensureDirectory(Util::getListPath());
 	File::ensureDirectory(Util::getBundlePath());
@@ -256,7 +255,6 @@ QueueManager::~QueueManager() noexcept {
 	TimerManager::getInstance()->removeListener(this); 
 	ClientManager::getInstance()->removeListener(this);
 	HashManager::getInstance()->removeListener(this);
-	DownloadManager::getInstance()->removeListener(this);
 
 	saveQueue(true);
 
@@ -2107,7 +2105,44 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 	for_each(ql, [&](QueueItemPtr qi) { fire(QueueManagerListener::StatusUpdated(), qi); });
 }
 
-void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) {
+void QueueManager::runAltSearch() {
+	auto b = bundleQueue.findSearchBundle(GET_TICK(), true);
+	if (b) {
+		searchBundle(b, false);
+	} else {
+		LogManager::getInstance()->message("No bundles to search for!", LogManager::LOG_INFO);
+	}
+}
+
+void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+	if((lastSave + 10000) < aTick) {
+		saveQueue(false);
+	}
+
+	//bundleQueue.findSearchBundle(aTick, true);
+
+	{
+		RLock l(cs);
+		if (bundleUpdates.empty())
+			return;
+	}
+
+	StringList updateTokens;
+	{
+		WLock l(cs);
+		for (auto i = bundleUpdates.begin(); i != bundleUpdates.end();) {
+			if (aTick > i->second) {
+				updateTokens.push_back(i->first);
+				bundleUpdates.erase(i);
+				i = bundleUpdates.begin();
+			} else {
+				i++;
+			}
+		}
+	}
+
+	for_each(updateTokens, [&](const string& t) { handleBundleUpdate(t); });
+
 	Bundle::PrioList qiPriorities;
 	vector<pair<BundlePtr, Bundle::Priority>> bundlePriorities;
 	auto prioType = SETTING(AUTOPRIO_TYPE);
@@ -2115,8 +2150,8 @@ void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tic
 
 	{
 		RLock l(cs);
-		for (auto i = tickBundles.begin(); i != tickBundles.end(); ++i) {
-			BundlePtr bundle = *i;
+		for (auto i = bundleQueue.getBundles().begin(); i != bundleQueue.getBundles().end(); ++i) {
+			BundlePtr bundle = i->second;
 
 			if (bundle->isFinished()) {
 				continue;
@@ -2161,45 +2196,6 @@ void QueueManager::on(DownloadManagerListener::BundleTick, const BundleList& tic
 			});
 		}
 	}
-}
-
-void QueueManager::runAltSearch() {
-	auto b = bundleQueue.findSearchBundle(GET_TICK(), true);
-	if (b) {
-		searchBundle(b, false);
-	} else {
-		LogManager::getInstance()->message("No bundles to search for!", LogManager::LOG_INFO);
-	}
-}
-
-void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	if((lastSave + 10000) < aTick) {
-		saveQueue(false);
-	}
-
-	//bundleQueue.findSearchBundle(aTick, true);
-
-	{
-		RLock l(cs);
-		if (bundleUpdates.empty())
-			return;
-	}
-
-	StringList updateTokens;
-	{
-		WLock l(cs);
-		for (auto i = bundleUpdates.begin(); i != bundleUpdates.end();) {
-			if (aTick > i->second) {
-				updateTokens.push_back(i->first);
-				bundleUpdates.erase(i);
-				i = bundleUpdates.begin();
-			} else {
-				i++;
-			}
-		}
-	}
-
-	for_each(updateTokens, [&](const string& t) { handleBundleUpdate(t); });
 }
 
 void QueueManager::calculateBundlePriorities(bool verbose) {

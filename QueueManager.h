@@ -56,7 +56,7 @@ class ConnectionQueueItem;
 class QueueLoader;
 
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 
-	private SearchManagerListener, private ClientManagerListener, private HashManagerListener, private DownloadManagerListener
+	private SearchManagerListener, private ClientManagerListener, private HashManagerListener
 {
 public:
 	bool allowAdd(const string& aTarget, const TTHValue& root) throw(QueueException, FileException);
@@ -297,10 +297,6 @@ private:
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept;
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
-
-	//DownloadManagerListener
-	void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) noexcept;
-
 
 	template<class T>
 	void calculateBalancedPriorities(vector<pair<T, uint8_t>>& priorities, multimap<T, pair<int64_t, double>>& speedSourceMap, bool verbose) {
