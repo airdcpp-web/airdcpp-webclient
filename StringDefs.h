@@ -1395,5 +1395,7 @@ enum Strings { // @DontAdd
 	AUTO_SELECT, // "Auto select based on free space"
 	GET_BROWSE_LIST, // "Get/browse file list"
 	SETTINGS_TOOLBAR_SIZE, // "Default Toolbar Icon size"
+	SETTINGS_TOOLBAR_NOTE, // "Note! Changing Toolbar Images or icon size require a client restart to take effect."
+	SETTINGS_WTOOLBAR_SIZE, // "Media Toolbar Icon size"
 	LAST // @DontAdd
 };

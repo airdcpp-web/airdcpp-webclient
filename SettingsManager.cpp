@@ -157,7 +157,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
 	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
-	"DLAutoSelectMethod",
+	"DLAutoSelectMethod", "WinampBarIconSize",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -699,6 +699,7 @@ SettingsManager::SettingsManager()
 	setDefault(AUTOSEARCH_EXPIRE_DAYS, 5);
 	setDefault(HORIZONTAL_QUEUE, false);
 	setDefault(DL_AUTOSELECT_METHOD, 0);
+	setDefault(WTB_IMAGE_SIZE, 22);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else
