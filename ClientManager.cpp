@@ -106,7 +106,7 @@ StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl, bool
 	RLock l(cs);
 	if(!priv) {
 		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
-		for(OnlineIterC i = op.first; i != op.second; ++i) {
+		for(auto i = op.first; i != op.second; ++i) {
 			lst.push_back(i->second->getClientBase().getHubUrl());
 		}
 	} else {
@@ -123,7 +123,7 @@ StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl, boo
 	RLock l(cs);
 	if(!priv) {
 		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
-		for(OnlineIterC i = op.first; i != op.second; ++i) {
+		for(auto i = op.first; i != op.second; ++i) {
 			lst.push_back(i->second->getClientBase().getHubName());		
 		}
 	} else {
@@ -137,25 +137,27 @@ StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl, boo
 StringList ClientManager::getNicks(const CID& cid, const string& hintUrl, bool priv) const {
 	StringSet ret;
 
-	RLock l(cs);
-	if(!priv) {
-		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
-		for(OnlineIterC i = op.first; i != op.second; ++i) {
-			ret.insert(i->second->getIdentity().getNick());
-		}
-	} else {
-		OnlineUser* u = findOnlineUserHint(cid, hintUrl);
-		if(u)
-			ret.insert(u->getIdentity().getNick());
-	}
-
-	if(ret.empty()) {
-		// offline
-		auto i = nicks.find(const_cast<CID*>(&cid));
-		if(i != nicks.end()) {
-			ret.insert(i->second);
+	{
+		RLock l(cs);
+		if(!priv) {
+			OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
+			for(auto i = op.first; i != op.second; ++i) {
+				ret.insert(i->second->getIdentity().getNick());
+			}
 		} else {
-			ret.insert('{' + cid.toBase32() + '}');
+			OnlineUser* u = findOnlineUserHint(cid, hintUrl);
+			if(u)
+				ret.insert(u->getIdentity().getNick());
+		}
+
+		if(ret.empty()) {
+			// offline
+			auto i = nicks.find(const_cast<CID*>(&cid));
+			if(i != nicks.end()) {
+				ret.insert(i->second);
+			} else {
+				ret.insert('{' + cid.toBase32() + '}');
+			}
 		}
 	}
 
@@ -267,7 +269,6 @@ UserPtr ClientManager::findLegacyUser(const string& aNick) const noexcept {
 		return UserPtr();
 
 	RLock l(cs);
-
 	for(auto i = onlineUsers.begin(); i != onlineUsers.end(); ++i) {
 		const OnlineUser* ou = i->second;
 		if(ou->getUser()->isSet(User::NMDC) && Util::stricmp(ou->getIdentity().getNick(), aNick) == 0)
@@ -367,7 +368,7 @@ void ClientManager::putOnline(OnlineUser* ou) noexcept {
 void ClientManager::putOffline(OnlineUser* ou, bool disconnect, bool priv/*false*/) noexcept {
 	OnlineIter::difference_type diff = 0;
 	{
-		RLock l(cs);
+		WLock l(cs);
 		auto op = onlineUsers.equal_range(const_cast<CID*>(&ou->getUser()->getCID()));
 		dcassert(op.first != op.second);
 		for(auto i = op.first; i != op.second; ++i) {
@@ -656,7 +657,7 @@ uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aF
 
 void ClientManager::getOnlineClients(StringList& onlineClients) {
 	RLock l (cs);
-	for_each(clients, [&](pair<string*, Client*> cp) {
+	for_each(clients, [&onlineClients](pair<string*, Client*> cp) {
 		if (cp.second->isConnected())
 			onlineClients.push_back(cp.second->getHubUrl());
 	});
