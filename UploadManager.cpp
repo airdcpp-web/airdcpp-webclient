@@ -888,12 +888,9 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 	int64_t aBytes = Util::toInt64(c.getParam(3));
 	string userSID = Util::emptyString;
 	c.getParam("ID", 0, userSID);
-	//LogManager::getInstance()->message("Token1: " + aSource->getToken());
 	if(prepareFile(*aSource, type, fname, aStartPos, aBytes, userSID, c.hasFlag("RE", 4), c.hasFlag("TL", 4))) {
 		Upload* u = aSource->getUpload();
-		dcassert(u != NULL);
-		//dcassert(!u->getToken().empty());
-		//LogManager::getInstance()->message(u->);
+		dcassert(u);
 
 		AdcCommand cmd(AdcCommand::CMD_SND);
 		cmd.addParam(type).addParam(fname)

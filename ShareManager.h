@@ -77,7 +77,6 @@ public:
 				i->second->forceXmlRefresh = true;
 		}
 		ShareCacheDirty = true; 
-		updateSize = true; //everytime xml is dirty the share size needs an update too.
 	}
 	
 	void setHubFileListDirty(const string& HubUrl) {
@@ -258,22 +257,25 @@ private:
 
 		class RootDirectory  {
 			public:
-				RootDirectory(const string& aRootPath) : path(aRootPath), size(0) { }
+				RootDirectory(const string& aRootPath) : path(aRootPath) { }
 				typedef unordered_multimap<TTHValue*, Directory::File::Set::const_iterator> HashFileMap;
 				typedef HashFileMap::const_iterator HashFileIter;
 
 				HashFileMap tthIndex;
-				GETSET(string, path, Path); 
-				GETSET(int64_t, size, Size); 
+				GETSET(string, path, Path);
 		
 				~RootDirectory() { }
 		};
 
 		Map directories;
 		File::Set files;
-		int64_t size;
 
-		static Ptr create(const string& aName, const Ptr& aParent = Ptr(), RootDirectory* aRoot = nullptr) { return Ptr(new Directory(aName, aParent, aRoot)); }
+		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, RootDirectory* aRoot = nullptr) {
+			auto Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
+			if (aParent)
+				aParent->directories[aName] = Ptr;
+			return Ptr;
+		}
 
 		bool hasType(uint32_t type) const noexcept {
 			return ( (type == SearchManager::TYPE_ANY) || (fileTypes & (1 << type)) );
@@ -291,8 +293,10 @@ private:
 				return root;
 		}
 
-		int64_t getSize() const noexcept;
-		int64_t getSize(const string& realpath) const noexcept;
+		void increaseSize(uint64_t aSize);
+		void decreaseSize(uint64_t aSize);
+		void resetSize() { size = 0; }
+		int64_t getSize() { return size; };
 		size_t countFiles() const noexcept; //ApexDC
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) const noexcept;
@@ -309,12 +313,12 @@ private:
 
 		string find(const string& dir, bool validateDir);
 
-		GETSET(uint32_t, lastwrite, LastWrite);
+		GETSET(uint32_t, lastWrite, LastWrite);
 		GETSET(string, name, Name);
 		GETSET(Directory*, parent, Parent);
 		GETSET(RootDirectory*, root, Root);
 
-		Directory(const string& aName, const Ptr& aParent, RootDirectory* root = nullptr);
+		Directory(const string& aName, const Ptr& aParent, uint32_t aLastWrite, RootDirectory* root = nullptr);
 		~Directory() { 
 			if(root)
 				delete root;
@@ -324,6 +328,8 @@ private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;
+		
+		int64_t size;
 	};
 	
 	friend class Directory;
@@ -405,12 +411,8 @@ private:
 	uint64_t lastIncomingUpdate;
 	uint64_t lastSave;
 	uint32_t findLastWrite(const string& aName) const;
-
-	int64_t updateSizes() const;
 	
 	//caching the share size so we dont need to loop tthindex everytime
-	mutable int64_t	 totalShareSize;
-	mutable bool	 updateSize;
 	bool xml_saving;
 
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
@@ -444,11 +446,11 @@ private:
 	
 	Directory::File::Set::const_iterator findFile(const string& virtualFile, const ClientList& clients) const;
 
-	Directory::Ptr buildTree(const string& aName, const Directory::Ptr& aParent, bool checkQueued = false, bool create = true);
+	void buildTree(const string& aName, const Directory::Ptr& aDir, bool checkQueued = false);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
-	void updateIndices(Directory& aDirectory, Directory::RootDirectory& root);
+	void updateIndices(Directory& aDirectory, Directory::RootDirectory& root, bool first=true);
 	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i, Directory::RootDirectory& root);
 	void cleanIndices(Directory::Ptr& dir);
 
