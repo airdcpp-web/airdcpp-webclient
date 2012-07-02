@@ -798,7 +798,7 @@ void ShareManager::addDirectory(const string& realPath, const string& virtualNam
 	
 	string vName = validateVirtual(virtualName);
 	Directory::Ptr dp = Directory::create(vName, nullptr, findLastWrite(realPath));
-	buildTree(realPath, Directory::Ptr(), false);
+	buildTree(realPath, dp, false);
 
 	ShareManager::Directory::RootDirectory* root = new ShareManager::Directory::RootDirectory(realPath);
 	dp->setRoot(root);
