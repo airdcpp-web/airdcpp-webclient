@@ -505,7 +505,9 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	}
 
 	if (add) {
-		QueueManager::getInstance()->addBundleTTHList(u, remoteBundle, TTHValue(tth));
+		try {
+			QueueManager::getInstance()->addBundleTTHList(u, remoteBundle, TTHValue(tth));
+		}catch(const Exception&) { }
 	}
 }
 
