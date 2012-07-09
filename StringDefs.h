@@ -340,7 +340,7 @@ enum Strings { // @DontAdd
 	MENU_OPEN_DOWNLOADS_DIR, // "Open downloads directory"
 	MENU_OPEN_FILE_LIST, // "Open file list...\tCtrl+L"
 	MENU_OPEN_MATCH_ALL, // "Match downloaded lists"
-	MENU_OPEN_OWN_LIST, // "Open own list"
+	MENU_OPEN_OWN_LIST, // "Open Full own list"
 	MENU_PUBLIC_HUBS, // "&Public Hubs\tCtrl+P"
 	MENU_QUICK_CONNECT, // "&Quick Connect ...\tCtrl+Q"
 	MENU_RECONNECT, // "&Reconnect\tCtrl+R"
@@ -1397,5 +1397,6 @@ enum Strings { // @DontAdd
 	SETTINGS_TOOLBAR_SIZE, // "Default Toolbar Icon size"
 	SETTINGS_TOOLBAR_NOTE, // "Note! Changing Toolbar Images or icon size require a client restart to take effect."
 	SETTINGS_WTOOLBAR_SIZE, // "Media Toolbar Icon size"
+	MENU_OPEN_HUB_OWN_LIST, // "Open Hub own list"
 	LAST // @DontAdd
 };

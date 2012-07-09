@@ -795,8 +795,8 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		StringPair i = expectedConnections.remove(user->getCID().toBase32());
 		if(i.second.empty()) {
 			//Todo disconnect?, ignore? we dont want connections without hubhint laying around..
-			string tmp = "User: " + Util::toString(ClientManager::getInstance()->getNicks(user->getCID())) + (aSource->isSet(UserConnection::FLAG_MCN1) ? "MCN connection: , " : "connection: ") + (aSource->isSet(UserConnection::FLAG_DOWNLOAD) ? "Download " : "Upload ");
-			LogManager::getInstance()->message("Debug info: " + tmp +  "No expected adc connection found! Report", LogManager::LOG_WARNING);	
+			//string tmp = "User: " + Util::toString(ClientManager::getInstance()->getNicks(user->getCID())) + (aSource->isSet(UserConnection::FLAG_MCN1) ? " MCN connection: " : " connection: ") + (aSource->isSet(UserConnection::FLAG_DOWNLOAD) ? "Download " : "Upload ");
+			//LogManager::getInstance()->message("Debug info: " + tmp +  "No expected adc connection found! Report", LogManager::LOG_WARNING);	
 		} else {
 			aSource->setHubUrl(i.second);
 		}

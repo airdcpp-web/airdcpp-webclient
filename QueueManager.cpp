@@ -1760,14 +1760,14 @@ private:
 };
 
 void QueueManager::loadQueue() noexcept {
-	QueueLoader l;
-
+	QueueLoader loader;
+	WLock l(cs);
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
 	for (auto i = fileList.begin(); i != fileList.end(); ++i) {
 		if (Util::getFileExt(*i) == ".xml") {
 			try {
-				File f(*i, File::READ, File::OPEN);
-				SimpleXMLReader(&l).parse(f);
+				File f(*i, File::READ, File::OPEN, false);
+				SimpleXMLReader(&loader).parse(f);
 			} catch(const Exception& e) {
 				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_LOAD_FAILED)) % *i % e.getError().c_str()), 
 					LogManager::LOG_ERROR);
@@ -1779,7 +1779,7 @@ void QueueManager::loadQueue() noexcept {
 	try {
 		//load the old queue file and delete it
 		File f(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml", File::READ, File::OPEN);
-		SimpleXMLReader(&l).parse(f);
+		SimpleXMLReader(&loader).parse(f);
 		f.close();
 		File::copyFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml", Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml.bak");
 		File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml");

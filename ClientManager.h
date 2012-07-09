@@ -65,7 +65,6 @@ public:
 
 	vector<Identity> getIdentities(const UserPtr &u) const;
 
-
 	string getConnection(const CID& cid) const;
 	string getDLSpeed(const CID& cid) const;
 	uint8_t getSlots(const CID& cid) const;
@@ -109,6 +108,14 @@ public:
 	}
 	
 	Client* findClient(const HintedUser& p, const string& userSID);
+	Client* findClient(const string& hubUrl) {
+		auto i = clients.find(const_cast<string*>(&hubUrl));
+		if(i != clients.end())
+			return i->second;
+
+		return nullptr;
+	}
+
 	void ListClients(const UserPtr& aUser, ClientList &clients);
 
 	string findMySID(const HintedUser& p);

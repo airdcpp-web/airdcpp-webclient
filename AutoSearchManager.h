@@ -171,11 +171,9 @@ private:
 	//count minutes to be more accurate than comparing ticks every minute.
 	unsigned int lastSearch;
 	unsigned int recheckTime;
-
 	unsigned int curPos;
 
 	bool endOfListReached;
-
 	bool hasEnabledItems();
 	AutoSearchList searchItems;
 

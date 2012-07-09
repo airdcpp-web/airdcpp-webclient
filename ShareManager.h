@@ -146,13 +146,12 @@ public:
 		hits += aHits;
 	}
 
-	string getOwnListFile(/*TODO open HUB filelist */) {
-		//Directorylisting load thread will generate own list, so dont generate here.
-		return fileLists.find(FileListALL)->second->getBZXmlFile();
-	}
+	string generateOwnList(const string& hubUrl = Util::emptyString) {
+		Client* c = NULL;
+		if(!hubUrl.empty())
+			c = ClientManager::getInstance()->findClient(hubUrl);
 
-	string generateOwnList(/*TODO generate HUB filelist */) {
-		FileList* fl = generateXmlList(NULL, true);
+		FileList* fl = generateXmlList(c, true);
 		return fl->getBZXmlFile();
 	}
 

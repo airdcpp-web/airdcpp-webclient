@@ -337,7 +337,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Open downloads directory", 
 "Open file list...\tCtrl+L", 
 "Match downloaded lists", 
-"Open own list", 
+"Open Full own list", 
 "&Public Hubs\tCtrl+P", 
 "&Quick Connect ...\tCtrl+Q", 
 "&Reconnect\tCtrl+R", 
@@ -1390,6 +1390,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Default Toolbar Icon size", 
 "Note! Changing Toolbar Images or icon size require a client restart to take effect.", 
 "Media Toolbar Icon size", 
+"Open Hub own list", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2780,4 +2781,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsToolbarSize", 
 "SettingsToolbarNote", 
 "SettingsWtoolbarSize", 
+"MenuOpenHubOwnList", 
 };
