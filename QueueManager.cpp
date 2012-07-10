@@ -1761,7 +1761,7 @@ private:
 
 void QueueManager::loadQueue() noexcept {
 	QueueLoader loader;
-	WLock l(cs);
+	//WLock l(cs);
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
 	for (auto i = fileList.begin(); i != fileList.end(); ++i) {
 		if (Util::getFileExt(*i) == ".xml") {
