@@ -87,8 +87,8 @@ public:
 	}
 	void addTree(const TigerTree& tree) { Lock l(cs); store.addTree(tree); }
 
-	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft) {
-		hasher.getStats(curFile, bytesLeft, filesLeft);
+	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) {
+		hasher.getStats(curFile, bytesLeft, filesLeft, speed);
 	}
 
 	/**
@@ -128,7 +128,7 @@ public:
 private:
 	class Hasher : public Thread {
 	public:
-		Hasher() : stop(false), running(false), paused(false), rebuild(false), currentSize(0), saveData(false) { }
+		Hasher() : stop(false), running(false), paused(false), rebuild(false), currentSize(0), saveData(false), totalBytesLeft(0), lastSpeed(0) { }
 
 		void hashFile(const string& fileName, int64_t size);
 
@@ -140,11 +140,12 @@ private:
 		void clear() {
 			Lock l(cs);
 			w.clear();
+			totalBytesLeft = 0;
 		}
 
 		void stopHashing(const string& baseDir);
 		int run();
-		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft);
+		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed);
 		void shutdown() { stop = true; if(paused) resume(); s.signal(); }
 		void scheduleRebuild() { rebuild = true; s.signal(); if(paused) t_resume(); }
 		void save() { saveData = true; s.signal(); if(paused) t_resume(); }
@@ -166,6 +167,8 @@ private:
 		bool saveData;
 		string currentFile;
 		int64_t currentSize;
+		int64_t totalBytesLeft;
+		int64_t lastSpeed;
 
 		void instantPause();
 	};

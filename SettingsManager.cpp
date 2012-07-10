@@ -66,7 +66,7 @@ const string SettingsManager::settingTags[] =
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",
-	"AutoSearchFrameOrder", "AutoSearchFrameWidths",
+	"AutoSearchFrameOrder", "AutoSearchFrameWidths", "ToolbarPos",
 
 	"SENTRY", 
 	// Ints
@@ -157,7 +157,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
 	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
-	"DLAutoSelectMethod", "WinampBarIconSize",
+	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -700,6 +700,7 @@ SettingsManager::SettingsManager()
 	setDefault(HORIZONTAL_QUEUE, false);
 	setDefault(DL_AUTOSELECT_METHOD, 0);
 	setDefault(WTB_IMAGE_SIZE, 22);
+	setDefault(SHOW_TBSTATUS, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

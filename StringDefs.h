@@ -1398,5 +1398,6 @@ enum Strings { // @DontAdd
 	SETTINGS_TOOLBAR_NOTE, // "Note! Changing Toolbar Images or icon size require a client restart to take effect."
 	SETTINGS_WTOOLBAR_SIZE, // "Media Toolbar Icon size"
 	MENU_OPEN_HUB_OWN_LIST, // "Open Hub own list"
+	TOGGLE_TBSTATUS, // "Toolbar StatusBar"
 	LAST // @DontAdd
 };

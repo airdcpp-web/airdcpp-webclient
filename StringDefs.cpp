@@ -1391,6 +1391,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Note! Changing Toolbar Images or icon size require a client restart to take effect.", 
 "Media Toolbar Icon size", 
 "Open Hub own list", 
+"Toolbar StatusBar", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2782,4 +2783,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsToolbarNote", 
 "SettingsWtoolbarSize", 
 "MenuOpenHubOwnList", 
+"ToggleTbstatus", 
 };
