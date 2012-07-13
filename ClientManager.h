@@ -109,6 +109,7 @@ public:
 	
 	Client* findClient(const HintedUser& p, const string& userSID);
 	Client* findClient(const string& hubUrl) {
+		RLock l(cs);
 		auto i = clients.find(const_cast<string*>(&hubUrl));
 		if(i != clients.end())
 			return i->second;

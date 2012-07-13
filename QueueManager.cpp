@@ -877,7 +877,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
 		try {
 			File::renameFile(source, newTarget);
-			LogManager::getInstance()->message(source + " " + STRING(RENAMED_TO) + " " + newTarget, LogManager::LOG_INFO);
+			LogManager::getInstance()->message(source + " " + STRING(RENAMED_TO) + " " + newTarget, LogManager::LOG_WARNING);
 		} catch(const FileException& e2) {
 			LogManager::getInstance()->message(STRING(UNABLE_TO_RENAME) + " " + source + ": " + e2.getError(), LogManager::LOG_ERROR);
 		}

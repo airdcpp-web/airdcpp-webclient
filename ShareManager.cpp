@@ -62,7 +62,7 @@ namespace dcpp {
 
 ShareManager::ShareManager() : hits(0), refreshing(false),
 	lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false), GeneratingFULLXmlList(false),
-	xml_saving(false), lastSave(GET_TICK()), aShutdown(false), allSearches(0), stoppedSearches(0)
+	xml_saving(false), lastSave(GET_TICK()), aShutdown(false), allSearches(0), stoppedSearches(0), refreshRunning(false)
 { 
 	//We MUST have atleast the full filelist at all times!
 	FileList* fl = new FileList(FileListALL);
@@ -1142,9 +1142,6 @@ void ShareManager::updateIndices(Directory& dir, Directory::RootDirectory& root,
 	for(auto i = dir.files.begin(); i != dir.files.end(); ) {
 		updateIndices(dir, i++, root);
 	}
-
-	if (first)
-		sharedSize += dir.getSize();
 }
 
 void ShareManager::rebuildIndices() {
@@ -1162,6 +1159,7 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 	const Directory::File& f = *i;
 
 	dir.increaseSize(f.getSize());
+	sharedSize += f.getSize();
 
 	dir.addType(getType(f.getName()));
 
@@ -1305,6 +1303,7 @@ int ShareManager::run() {
 		}
 	}
 
+	refreshRunning = true;
 	HashManager::HashPauser pauser;
 	
 	if (!msg.empty())
@@ -1365,6 +1364,7 @@ int ShareManager::run() {
 	LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED), LogManager::LOG_INFO);
 
 end:
+	refreshRunning = false;
 	bundleDirs.clear();
 	refreshing.clear();
 	return 0;

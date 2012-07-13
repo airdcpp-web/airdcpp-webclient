@@ -68,6 +68,8 @@ public:
 	int refresh(int refreshOptions);
 	int initRefreshThread(int refreshOptions) noexcept;
 	int refresh(const string& aDir);
+
+	bool isRefreshing() {	return refreshRunning; }
 	
 	//need to be called from inside a lock.
 	void setDirty(bool force = false) {
@@ -405,6 +407,7 @@ private:
 	
 	atomic_flag refreshing;
 	atomic_flag GeneratingFULLXmlList;
+	bool refreshRunning;
 
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
