@@ -531,9 +531,19 @@ void ShareManager::getRealPaths(const string& path, StringList& ret) {
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
 			d = i->second;
 			if(d->getParent()) {
-				ret.push_back(d->getParent()->getRealPath(d->getName()));
+				dir = d->getParent()->getRealPath(d->getName());
+	            if(dir[dir.size() -1] != '\\') 	 
+					dir += "\\"; 	 
+	                ret.push_back( dir );
 			} else {
-				ret.push_back(d->getRoot()->getPath());
+				dir = d->getRoot()->getPath();
+				if(dir.empty()) 	 
+	                 return; 	 
+	  	 
+	            if(dir[dir.size() -1] != '\\') 	 
+	                dir += "\\"; 	 
+	  	 
+	            ret.push_back( dir );
 			}
 		}
 	} else { //its a file
