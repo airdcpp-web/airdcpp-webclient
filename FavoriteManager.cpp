@@ -353,6 +353,30 @@ bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
 	return success;
 }
 
+int FavoriteManager::resetProfiles(const StringList& aProfiles, ShareProfilePtr defaultProfile) {
+	int counter = 0;
+	{
+		Lock l(cs);
+		for(auto k = aProfiles.begin(), iend = aProfiles.end(); k != iend; ++k) {
+			for(auto i = favoriteHubs.begin(), iend = favoriteHubs.end(); i != iend; ++i) {
+				if ((*i)->getShareProfile() == *k) {
+					(*i)->setShareProfile(defaultProfile);
+					counter++;
+				}
+			}
+		}
+	}
+
+	if (counter > 0)
+		fire(FavoriteManagerListener::FavoritesUpdated());
+
+	return counter;
+}
+
+void FavoriteManager::onProfilesRenamed() {
+	fire(FavoriteManagerListener::FavoritesUpdated());
+}
+
 void FavoriteManager::save() {
 	if(dontSave)
 		return;
@@ -391,7 +415,6 @@ void FavoriteManager::save() {
 			xml.addChildAttrib("HubFrameVisible", (*i)->getHeaderVisible());
 			xml.addChildAttrib("Mode", Util::toString((*i)->getMode()));
 			xml.addChildAttrib("IP", (*i)->getIP());
-			xml.addChildAttrib("HideShare", (*i)->getHideShare()); //Hide Share Mod
 			xml.addChildAttrib("FavNoPM", (*i)->getFavNoPM());	
 			xml.addChildAttrib("HubShowJoins", (*i)->getHubShowJoins());	//show joins
 			xml.addChildAttrib("HubLogMainchat", (*i)->getHubLogMainchat());
@@ -402,14 +425,7 @@ void FavoriteManager::save() {
 			xml.addChildAttrib("Top",				Util::toString((*i)->getTop()));
 			xml.addChildAttrib("Right",				Util::toString((*i)->getRight()));
 			xml.addChildAttrib("Left",				Util::toString((*i)->getLeft()));
-			xml.stepIn();
-			if(AirUtil::isAdcHub((*i)->getServer())) {
-				for(auto path = (*i)->getUnShared().begin(); path != (*i)->getUnShared().end(); ++path) {
-					if(ShareManager::getInstance()->shareFolder(*path, false, true))
-						xml.addTag("unShared", *path);
-				}
-			}
-			xml.stepOut();
+			xml.addChildAttrib("ShareProfile",		(*i)->getShareProfile()->getToken());
 		}
 
 		xml.stepOut();
@@ -602,23 +618,18 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setLeft((uint16_t)	aXml.getIntChildAttrib("Left"));
 			e->setMode(Util::toInt(aXml.getChildAttrib("Mode")));
 			e->setIP(aXml.getChildAttrib("IP"));
-			e->setHideShare(aXml.getBoolChildAttrib("HideShare")); //Hide Share Mod
 			e->setFavNoPM(aXml.getBoolChildAttrib("FavNoPM"));
 			e->setHubShowJoins(aXml.getBoolChildAttrib("HubShowJoins")); //show joins
 			e->setHubLogMainchat(aXml.getBoolChildAttrib("HubLogMainchat")); 
 			e->setSearchInterval(Util::toUInt32(aXml.getChildAttrib("SearchInterval")));
 			e->setGroup(aXml.getChildAttrib("Group"));
 			e->setChatNotify(aXml.getBoolChildAttrib("ChatNotify"));
-			aXml.stepIn();
-				StringList tmp;
-				while(aXml.findChild("unShared")) {
-					string path = aXml.getChildData();
-					if(ShareManager::getInstance()->shareFolder(path, false, true)) //validate that we are sharing the unshared folder.
-						tmp.push_back(path);
-				}
-				sort(tmp.begin(), tmp.end());
-				e->setUnShared(tmp);
-			aXml.stepOut();
+			if (aXml.getBoolChildAttrib("HideShare")) {
+				e->setShareProfile(ShareManager::getInstance()->getShareProfile(SP_HIDDEN));
+			} else {
+				auto profile = aXml.getChildAttrib("ShareProfile");
+				e->setShareProfile(ShareManager::getInstance()->getShareProfile(profile, true));
+			}
 
 			favoriteHubs.push_back(e);
 		}

@@ -20,7 +20,6 @@
 #include <direct.h>
 #include "AirUtil.h"
 #include "Util.h"
-#include "format.h"
 
 #include "File.h"
 #include "QueueManager.h"
@@ -503,27 +502,17 @@ string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& 
 	if(partial) {
 		//partial lists
 		if (bundles.size() == 1) {
-			tmp = str(boost::format(STRING(MATCH_SOURCE_ADDED)) % 
-				newFiles % 
-				bundles.front()->getName().c_str());
+			tmp = STRING_F(MATCH_SOURCE_ADDED, newFiles % bundles.front()->getName().c_str());
 		} else {
-			tmp = str(boost::format(STRING(MATCH_SOURCE_ADDED_X_BUNDLES)) % 
-				newFiles % 
-				(int)bundles.size());
+			tmp = STRING_F(MATCH_SOURCE_ADDED_X_BUNDLES, newFiles % (int)bundles.size());
 		}
 	} else {
 		//full lists
 		if (matches > 0) {
 			if (bundles.size() == 1) {
-				tmp = str(boost::format(STRING(MATCHED_FILES_BUNDLE)) % 
-					matches % 
-					bundles.front()->getName().c_str() %
-					newFiles);
+				tmp = STRING_F(MATCHED_FILES_BUNDLE, matches % bundles.front()->getName().c_str() % newFiles);
 			} else {
-				tmp = str(boost::format(STRING(MATCHED_FILES_X_BUNDLES)) % 
-					matches % 
-					(int)bundles.size() %
-					newFiles);
+				tmp = STRING_F(MATCHED_FILES_X_BUNDLES, matches % (int)bundles.size() % newFiles);
 			}
 		} else {
 			tmp = CSTRING(NO_MATCHED_FILES);
@@ -633,7 +622,7 @@ bool AirUtil::isSub(const string& aDir, const string& aParent) {
 	return (aDir.length() > aParent.length() && (stricmp(aDir.substr(0, aParent.length()), aParent) == 0));
 }
 
-bool AirUtil::isParent(const string& aDir, const string& aSub) {
+bool AirUtil::isParentOrExact(const string& aDir, const string& aSub) {
 	/* returns true if aSub is a subdir of aDir OR both are the same dir */
 	return (aSub.length() >= aDir.length() && (stricmp(aSub.substr(0, aDir.length()), aDir) == 0));
 }
@@ -709,13 +698,6 @@ string AirUtil::stripHubUrl(const string& url) {
 string AirUtil::convertMovePath(const string& aPath, const string& aParent, const string& aTarget) {
 	return aTarget + aPath.substr(aParent.length(), aPath.length() - aParent.length());
 }
-
-/*wstring AirUtil::regexEscape(const wstring& aStr) {
-    static const boost::wregex re_boostRegexEscape( _T("[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]") );
-    const std::wstring rep( _T("\\\\\\1&") );
-    std::wstring result = regex_replace(aStr, re_boostRegexEscape, rep, boost::match_default | boost::format_sed);
-    return result;
-}*/
 
 string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
 	//don't replace | and ? if it's wildcard

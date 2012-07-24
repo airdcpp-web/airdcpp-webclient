@@ -484,9 +484,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				}
 
 				if (q) {
-					string tmp = str(boost::format(STRING(FILE_ALREADY_QUEUED)) % 
-						Util::getFileName(target).c_str() %
-						q->getTarget().c_str());
+					string tmp = STRING_F(FILE_ALREADY_QUEUED, Util::getFileName(target).c_str() % q->getTarget().c_str());
 					LogManager::getInstance()->message(tmp, LogManager::LOG_ERROR);
 					throw QueueException(tmp);
 				}
@@ -532,9 +530,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		} else {
 			if (!bundleFinished) {
 				/* Merged into an existing dir bundle */
-				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ITEM_ADDED)) % 
-					q->getTarget().c_str() %
-					aBundle->getName().c_str()), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(BUNDLE_ITEM_ADDED, q->getTarget().c_str() % aBundle->getName().c_str()), LogManager::LOG_INFO);
 
 				addBundleUpdate(aBundle);
 			} else {
@@ -903,8 +899,7 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 
 
 	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
-		LogManager::getInstance()->message(str(boost::format(STRING(DL_BUNDLE_FINISHED)) % 
-			aBundle->getName().c_str()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 	} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(aBundle)) {
 		aBundle->setFlag(Bundle::FLAG_SHARING_FAILED);
 		return;
@@ -953,62 +948,59 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 		//all files have been hashed already?
 		checkBundleHashed(aBundle);
 	} else if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
-		LogManager::getInstance()->message(str(boost::format(STRING(NOT_IN_SHARED_DIR)) % 
-			aBundle->getTarget().c_str()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
 	} else {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	}
 }
 
 void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool failed) {
-	QueueItemPtr qi = NULL;
+	QueueItemList ql;
 	{
 		RLock l(cs);
 		if (failed) {
 			string file = Util::getFileName(fname);
+			int64_t size = File::getSize(fname);
+			QueueItemPtr qi = nullptr;
 			for (auto s = fileQueue.getTTHIndex().begin(); s != fileQueue.getTTHIndex().end(); ++s) {
-				if (s->second->getTargetFileName() == Util::getFileName(file)) {
+				if (s->second->getTargetFileName() == Util::getFileName(file) && size == s->second->getSize() && s->second->isFinished()) {
 					qi = s->second;
 					if (qi->getTarget() == fname) { //prefer exact matches
 						break;
 					}
 				}
 			}
+
+			if (qi)
+				ql.push_back(qi);
 		} else {
-			QueueItemList ql;
 			fileQueue.find(root, ql);
-			for (auto s = ql.begin(); s != ql.end(); ++s) {
-				if ((*s)->getTargetFileName() == Util::getFileName(fname)) {
-					qi = (*s);
-					break;
-				}
-			}
 		}
 	}
 
-	if (!qi) {
+	if (ql.empty()) {
 		if (!failed) {
 			fire(QueueManagerListener::FileHashed(), fname, root);
 		}
 		return;
 	}
 
-	BundlePtr b = qi->getBundle();
-	if (!b) {
-		dcassert(0);
-		return;
+	BundlePtr b = nullptr;
+	for (auto s = ql.begin(); s != ql.end(); ++s) {
+		QueueItemPtr qi = *s;
+		if (qi->isFinished()) {
+			qi->setFlag(QueueItem::FLAG_HASHED);
+			b = qi->getBundle();
+			if (failed) {
+				b->setFlag(Bundle::FLAG_SHARING_FAILED);
+			} else if (!b->isSet(Bundle::FLAG_HASH)) {
+				//instant sharing disabled/the folder wasn't shared when the bundle finished
+				fire(QueueManagerListener::FileHashed(), fname, root);
+			}
+
+			checkBundleHashed(b);
+		}
 	}
-
-	qi->setFlag(QueueItem::FLAG_HASHED);
-
-	if (failed) {
-		b->setFlag(Bundle::FLAG_SHARING_FAILED);
-	} else if (!b->isSet(Bundle::FLAG_HASH)) {
-		//instant sharing disabled/the folder wasn't shared when the bundle finished
-		fire(QueueManagerListener::FileHashed(), fname, root);
-	}
-
-	checkBundleHashed(b);
 }
 
 void QueueManager::checkBundleHashed(BundlePtr aBundle) {
@@ -1040,14 +1032,12 @@ void QueueManager::bundleHashed(BundlePtr b) {
 				if (!b->isSet(Bundle::FLAG_SHARING_FAILED)) {
 					fireHashed = true;
 				} else {
-					LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASH_FAILED)) % 
-						b->getTarget().c_str()), LogManager::LOG_ERROR);
+					LogManager::getInstance()->message(STRING_F(BUNDLE_HASH_FAILED, b->getTarget().c_str()), LogManager::LOG_ERROR);
 					return;
 				}
 			} else {
 				//instant sharing disabled/the folder wasn't shared when the bundle finished
-				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_HASHED)) % 
-					b->getTarget().c_str()), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(BUNDLE_HASHED, b->getTarget().c_str()), LogManager::LOG_INFO);
 			}
 		}
 
@@ -1769,8 +1759,7 @@ void QueueManager::loadQueue() noexcept {
 				File f(*i, File::READ, File::OPEN, false);
 				SimpleXMLReader(&loader).parse(f);
 			} catch(const Exception& e) {
-				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_LOAD_FAILED)) % *i % e.getError().c_str()), 
-					LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(BUNDLE_LOAD_FAILED, *i % e.getError().c_str()), LogManager::LOG_ERROR);
 				File::deleteFile(*i);
 			}
 		}
@@ -1854,7 +1843,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 			}
 
-			if (curBundle && inBundle && !AirUtil::isParent(curBundle->getTarget(), target)) {
+			if (curBundle && inBundle && !AirUtil::isParentOrExact(curBundle->getTarget(), target)) {
 				//the file isn't inside the main bundle dir, can't add this
 				return;
 			}
@@ -1944,7 +1933,7 @@ void QueueLoader::endTag(const string& name, const string&) {
 			inDownloads = false;
 		} else if(name == sBundle) {
 			if (curBundle->getQueueItems().empty())
-				throw Exception(str(boost::format(STRING(NO_FILES_WERE_LOADED)) % curBundle->getTarget()));
+				throw Exception(STRING_F(NO_FILES_WERE_LOADED, curBundle->getTarget()));
 			else
 				QueueManager::getInstance()->addBundle(curBundle, true);
 			curBundle = nullptr;
@@ -2051,9 +2040,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 				}
 				if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
 					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(HintedUser(sr->getUser(), sr->getHubURL()))) + ": " + 
-						str(boost::format(STRING(MATCH_SOURCE_ADDED)) % 
-						newFiles % 
-						b->getName().c_str()), LogManager::LOG_INFO);
+						STRING_F(MATCH_SOURCE_ADDED, newFiles % b->getName().c_str()), LogManager::LOG_INFO);
 				}
 			} else {
 				//An ADC directory bundle, match recursive partial list
@@ -2118,8 +2105,6 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	if((lastSave + 10000) < aTick) {
 		saveQueue(false);
 	}
-
-	//bundleQueue.findSearchBundle(aTick, true);
 
 	{
 		RLock l(cs);
@@ -2429,13 +2414,13 @@ tstring QueueManager::getDirPath(const string& aDir) {
 
 void QueueManager::getUnfinishedPaths(StringList& retBundles) {
 	RLock l(cs);
-	for_each(bundleQueue.getBundles() | map_values, [&](BundlePtr b) {
+	for_each(bundleQueue.getBundles() | map_values, [&retBundles](BundlePtr b) {
 		if (!b->isFileBundle() && !b->isFinished())
 			retBundles.push_back(b->getTarget());
 	});
 }
 
-void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairList& paths) {
+void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& sharePaths) {
 	BundleList hash;
 	{
 		RLock l(cs);
@@ -2446,7 +2431,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringPairLis
 			}
 
 			//check the path just to avoid hashing/scanning bundles from dirs that aren't being refreshed
-			if (find_if(paths.begin(), paths.end(), [b](StringPair sp) { return AirUtil::isParent(sp.second, b->getTarget()); }) == paths.end()) {
+			if (find_if(sharePaths.begin(), sharePaths.end(), [b](const string& p) { return AirUtil::isParentOrExact(p, b->getTarget()); }) == sharePaths.end()) {
 				continue;
 			}
 
@@ -2539,9 +2524,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		addBundleUpdate(aBundle);
 	}
 
-	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_CREATED)) % 
-		aBundle->getName().c_str() % 
-		aBundle->getQueueItems().size()) + 
+	LogManager::getInstance()->message(STRING_F(BUNDLE_CREATED, aBundle->getName().c_str() % aBundle->getQueueItems().size()) + 
 		" (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(aBundle->getSize()).c_str() + ")", LogManager::LOG_INFO);
 
 	connectBundleSources(aBundle);
@@ -2581,7 +2564,7 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 		}
 		bundleQueue.addSearchPrio(aBundle);
 	}
-	LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_READDED)) % aBundle->getName().c_str()), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(BUNDLE_READDED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 }
 
 void QueueManager::mergeFileBundles(BundlePtr targetBundle) {
@@ -2601,7 +2584,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 	HintedUserList x;
 	//new bundle? we need to connect to sources then
 	if (sourceBundle->isSet(Bundle::FLAG_NEW)) {
-		for_each(sourceBundle->getSources(), [&](const Bundle::SourceTuple st) { x.push_back(get<Bundle::SOURCE_USER>(st)); });
+		for_each(sourceBundle->getSources(), [&x](const Bundle::SourceTuple st) { x.push_back(get<Bundle::SOURCE_USER>(st)); });
 	}
 
 	int added = 0;
@@ -2638,13 +2621,9 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 
 	/* Report */
 	if (sourceBundle->isFileBundle()) {
-		LogManager::getInstance()->message(str(boost::format(STRING(FILEBUNDLE_MERGED)) % 
-			sourceBundle->getName().c_str() % 
-			targetBundle->getName().c_str()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(FILEBUNDLE_MERGED, sourceBundle->getName().c_str() % targetBundle->getName().c_str()), LogManager::LOG_INFO);
 	} else if (changeTarget) {
-		string tmp = str(boost::format(STRING(BUNDLE_CREATED)) % 
-			targetBundle->getName().c_str() % 
-			targetBundle->getQueueItems().size()) + 
+		string tmp = STRING_F(BUNDLE_CREATED, targetBundle->getName().c_str() % targetBundle->getQueueItems().size()) + 
 			" (" + STRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()).c_str() + ")";
 
 		if (added > 0)
@@ -2652,14 +2631,9 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 
 		LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
 	} else if (targetBundle->getTarget() == sourceBundle->getTarget()) {
-		LogManager::getInstance()->message(str(boost::format(STRING(X_BUNDLE_ITEMS_ADDED)) % 
-			added % 
-			targetBundle->getName().c_str()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(X_BUNDLE_ITEMS_ADDED, added % targetBundle->getName().c_str()), LogManager::LOG_INFO);
 	} else {
-		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_MERGED)) % 
-			sourceBundle->getName().c_str() % 
-			targetBundle->getName().c_str() % 
-			added), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(BUNDLE_MERGED, sourceBundle->getName().c_str() % targetBundle->getName().c_str() % added), LogManager::LOG_INFO);
 	}
 }
 
@@ -2800,7 +2774,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 		AirUtil::removeIfEmpty(aSource);
 		for_each(ql, [&] (QueueItemPtr qi) { removeQI(qi, false); });
 	} else {
-		for_each(sourceBundles, [&] (BundlePtr bundle) { removeBundle(bundle, false, removeFinished); });
+		for_each(sourceBundles, [this, removeFinished] (BundlePtr b) { removeBundle(b, false, removeFinished); });
 	}
 }
 
@@ -2885,9 +2859,7 @@ void QueueManager::moveBundle(const string& aTarget, BundlePtr sourceBundle, boo
 			fire(QueueManagerListener::BundleAdded(), sourceBundle);
 		}
 
-		string tmp = str(boost::format(STRING(BUNDLE_MOVED)) % 
-			sourceBundle->getName().c_str() % 
-			sourceBundle->getTarget().c_str());
+		string tmp = STRING_F(BUNDLE_MOVED, sourceBundle->getName().c_str() % sourceBundle->getTarget().c_str());
 		if (merged > 0)
 			tmp += str(boost::format(" (" + STRING(EXISTING_BUNDLES_MERGED) + ")") % merged);
 
@@ -3003,7 +2975,7 @@ void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget) noex
 		mergeBundle(targetBundle, aBundle);
 		fire(QueueManagerListener::Added(), qi);
 	} else {
-		LogManager::getInstance()->message(str(boost::format(STRING(FILEBUNDLE_MOVED)) % aBundle->getName().c_str() % aBundle->getTarget().c_str()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(FILEBUNDLE_MOVED, aBundle->getName().c_str() % aBundle->getTarget().c_str()), LogManager::LOG_INFO);
 
 		{
 			RLock l(cs);
@@ -3498,7 +3470,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool manual) {
 
 	int searchCount = (int)searches.size() <= 4 ? (int)searches.size() : 4;
 	if (manual) {
-		LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH)) % aBundle->getName().c_str() % searchCount), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchCount), LogManager::LOG_INFO);
 	} else if(BOOLSETTING(REPORT_ALTERNATES)) {
 		if (aBundle->getSimpleMatching()) {
 			if (aBundle->isRecent()) {

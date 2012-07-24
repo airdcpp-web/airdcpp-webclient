@@ -115,16 +115,7 @@ private:
 	OnlineUser* findUser(const uint32_t sid) const;
 	OnlineUser* findUser(const CID& cid) const;
 	
-	// just a workaround
-	OnlineUserPtr findUser(const string& aNick) const { 
-	   RLock l(cs); 
-	   for(auto i = users.begin(); i != users.end(); ++i) { 
-		  if(i->second->getIdentity().getNick() == aNick) { 
-			 return i->second; 
-		  } 
-	   } 
-	   return nullptr; 
-	}
+	OnlineUserPtr findUser(const string& aNick) const;
 
 	void putUser(const uint32_t sid, bool disconnect);
 

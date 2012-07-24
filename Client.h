@@ -33,6 +33,7 @@
 #include "DebugManager.h"
 #include "SearchQueue.h"
 #include "OnlineUser.h"
+#include "ShareProfile.h"
 
 namespace dcpp {
 
@@ -40,12 +41,7 @@ class ClientBase
 {
 public:
 	
-	ClientBase() : type(DIRECT_CONNECT) { }
-
-	enum P2PType { DIRECT_CONNECT };
-	P2PType type;
-	
-	P2PType getType() const { return type; }
+	ClientBase() { }
 	
 	virtual const string& getHubUrl() const = 0;
 	virtual string getHubName() const = 0;
@@ -156,11 +152,10 @@ public:
 	GETSET(bool, registered, Registered);
 	GETSET(bool, autoReconnect, AutoReconnect);
 	GETSET(bool, stealth, Stealth);
-	GETSET(bool, hideShare, HideShare); // Hide Share Mod
 	GETSET(bool, hubShowJoins, HubShowJoins); // Show joins
 	GETSET(bool, hubLogMainchat, HubLogMainchat);
 	GETSET(bool, chatNotify, ChatNotify);
-	GETSET(StringList, unshared, UnShared);
+	GETSET(string, shareProfile, ShareProfile);
 
 protected:
 	friend class ClientManager;

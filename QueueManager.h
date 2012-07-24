@@ -140,7 +140,7 @@ public:
 	tstring getDirPath(const string& aDir);
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles);
-	void getForbiddenPaths(StringList& bundles, const StringPairList& paths);
+	void getForbiddenPaths(StringList& bundlePaths, const StringList& sharePaths);
 
 	BundlePtr getBundle(const string& bundleToken) { RLock l (cs); return bundleQueue.find(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth);

@@ -114,6 +114,10 @@ typedef std::vector<SearchResultPtr> SearchResultList;
 
 class ServerSocket;
 
+class ShareProfile;
+typedef boost::intrusive_ptr<ShareProfile> ShareProfilePtr;
+//typedef std::vector<ShareProfilePtr> ShareProfileSet;
+
 class Socket;
 class SocketException;
 

@@ -21,6 +21,9 @@
 
 #include "compiler.h"
 
+# define SP_DEFAULT "default"
+# define SP_HIDDEN "hidden"
+
 #ifdef _WIN32
 
 # define PATH_SEPARATOR '\\'

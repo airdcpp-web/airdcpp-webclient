@@ -65,6 +65,7 @@ public:
 
 	vector<Identity> getIdentities(const UserPtr &u) const;
 
+
 	string getConnection(const CID& cid) const;
 	string getDLSpeed(const CID& cid) const;
 	uint8_t getSlots(const CID& cid) const;
@@ -93,31 +94,16 @@ public:
 	UserPtr findUser(const string& aNick, const string& aHubUrl) const noexcept { return findUser(makeCid(aNick, aHubUrl)); }
 	UserPtr findUser(const CID& cid) const noexcept;
 	UserPtr findLegacyUser(const string& aNick) const noexcept;
+
+	UserPtr findUserByNick(const string& aNick, const string& aHubUrl) const noexcept;
 	
 	void updateNick(const UserPtr& user, const string& nick) noexcept;
 	string getMyNick(const string& hubUrl) const;
 	
 	void setIPUser(const UserPtr& user, const string& IP, const string& udpPort = Util::emptyString);
 	
-	bool isSharingHub(const HintedUser& p) {
-		RLock l(cs);
-		OnlineUser* u = findOnlineUserHint(p.user->getCID(), p.hint);
-		if(u)
-			return (!u->getClient().getHideShare());
-		return true;
-	}
-	
-	Client* findClient(const HintedUser& p, const string& userSID);
-	Client* findClient(const string& hubUrl) {
-		RLock l(cs);
-		auto i = clients.find(const_cast<string*>(&hubUrl));
-		if(i != clients.end())
-			return i->second;
-
-		return nullptr;
-	}
-
-	void ListClients(const UserPtr& aUser, ClientList &clients);
+	const string& findProfile(const HintedUser& p, const string& userSID);
+	void listProfiles(const UserPtr& aUser, StringSet& profiles);
 
 	string findMySID(const HintedUser& p);
 
@@ -150,6 +136,7 @@ public:
 	CID getMyCID();
 	const CID& getMyPID();
 
+	void resetProfiles(const StringList& aProfiles, ShareProfilePtr aDefaultProfile);
 private:
 
 	typedef unordered_map<CID*, UserPtr> UserMap;

@@ -527,14 +527,14 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
+	if(getShareProfile() == SP_HIDDEN)
+		return;
+
 	OnlineUser* ou = findUser(c.getFrom());
 	if(!ou) {
 		dcdebug("Invalid user in AdcHub::onSCH\n");
 		return;
 	}
-	if(getHideShare())
-		return;
-
 
 	fire(ClientListener::AdcSearch(), this, c, ou->getUser()->getCID());
 }
@@ -591,7 +591,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 
 	const string& type = c.getParam(0);
 	string sk, sh;
-	if(type == "blom" && c.getParam("BK", 4, sk) && c.getParam("BH", 4, sh))  {
+	/*if(type == "blom" && c.getParam("BK", 4, sk) && c.getParam("BH", 4, sh))  {
 		ByteVector v;
 		size_t m = Util::toUInt32(c.getParam(3)) * 8;
 		size_t k = Util::toUInt32(sk);
@@ -630,7 +630,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		if (m > 0) {
 			send((char*)&v[0], v.size());
 		}
-	}
+	}*/
 }
 
 void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
@@ -1021,8 +1021,12 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "DE", getCurrentDescription());
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
-	addParam(lastInfoMap, c, "SS", getHideShare() ? "0" : ShareManager::getInstance()->getShareSizeString(this));
-	addParam(lastInfoMap, c, "SF", getHideShare() ? "0" : Util::toString(ShareManager::getInstance()->getSharedFiles()));
+	size_t fileCount = 0;
+	int64_t size = 0;
+	if (getShareProfile() != SP_HIDDEN)
+		ShareManager::getInstance()->getProfileInfo(getShareProfile(), size, fileCount);
+	addParam(lastInfoMap, c, "SS", Util::toString(size));
+	addParam(lastInfoMap, c, "SF", Util::toString(fileCount));
 	addParam(lastInfoMap, c, "EM", SETTING(EMAIL));
 	addParam(lastInfoMap, c, "HN", Util::toString(counts[COUNT_NORMAL]));
 	addParam(lastInfoMap, c, "HR", Util::toString(counts[COUNT_REGISTERED]));
@@ -1171,6 +1175,16 @@ void AdcHub::on(Second s, uint64_t aTick) noexcept {
 	if(state == STATE_NORMAL && (aTick > (getLastActivity() + 120*1000)) ) {
 		send("\n", 1);
 	}
+}
+
+OnlineUserPtr AdcHub::findUser(const string& aNick) const { 
+	RLock l(cs); 
+	for(auto i = users.begin(); i != users.end(); ++i) { 
+		if(i->second->getIdentity().getNick() == aNick) { 
+			return i->second; 
+		} 
+	} 
+	return nullptr; 
 }
 
 } // namespace dcpp

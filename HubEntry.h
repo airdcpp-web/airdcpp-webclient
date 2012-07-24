@@ -23,6 +23,7 @@
 
 #include "SettingsManager.h"
 #include "GetSet.h"
+#include "ShareProfile.h"
 
 namespace dcpp {
 
@@ -66,19 +67,20 @@ public:
 	GETSET(int, maxUsers, MaxUsers);
 };
 
+class ShareProfile;
 class FavoriteHubEntry {
 public:
 	typedef FavoriteHubEntry* Ptr;
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
 
-	FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), chatNotify(false), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL)), unshared(StringList())  { }
+	FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), chatNotify(false), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL))  { }
 	FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), server(rhs.getServer()), encoding(Text::systemCharset), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL)),
-		description(rhs.getDescription()), connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), hideShare(false), chatNotify(false), unshared(StringList()) { }
+		description(rhs.getDescription()), connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), chatNotify(false) { }
 	FavoriteHubEntry(const FavoriteHubEntry& rhs) noexcept : userdescription(rhs.userdescription), name(rhs.getName()), 
 		server(rhs.getServer()), description(rhs.getDescription()), password(rhs.getPassword()), connect(rhs.getConnect()), bottom(0), top(0), left(0), right(0),
 		nick(rhs.nick), chatusersplit(rhs.chatusersplit), favnoPM(rhs.favnoPM), hubShowJoins(rhs.hubShowJoins), hubLogMainchat(rhs.hubLogMainchat), stealth(rhs.stealth), searchInterval(rhs.searchInterval),
-		userliststate(rhs.userliststate), mode(rhs.mode), ip(rhs.ip), hideShare(rhs.hideShare), chatNotify(rhs.chatNotify), encoding(rhs.getEncoding()), unshared(rhs.getUnShared())  { }
+		userliststate(rhs.userliststate), mode(rhs.mode), ip(rhs.ip), chatNotify(rhs.chatNotify), encoding(rhs.getEncoding()), shareProfile(rhs.getShareProfile())  { }
 	~FavoriteHubEntry() noexcept { }
 	
 	const string& getNick(bool useDefault = true) const { 
@@ -106,14 +108,13 @@ public:
 	GETSET(bool, userliststate, UserListState);	
 	GETSET(int, mode, Mode); // 0 = default, 1 = active, 2 = passive
 	GETSET(string, ip, IP);
-	GETSET(bool, hideShare, HideShare); //Hide Share Mod
 	GETSET(bool, favnoPM, FavNoPM); 
 	GETSET(bool, hubShowJoins, HubShowJoins); //show joins
 	GETSET(bool, hubLogMainchat, HubLogMainchat);
 	GETSET(uint32_t, searchInterval, SearchInterval);
 	GETSET(string, group, Group);	
 	GETSET(bool, chatNotify, ChatNotify);
-	GETSET(StringList, unshared, UnShared);
+	GETSET(ShareProfilePtr, shareProfile, ShareProfile);
 
 private:
 	string nick;

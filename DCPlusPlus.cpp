@@ -112,7 +112,6 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 		ResourceManager::getInstance()->loadLanguage(languageFile);
 	}
 
-	FavoriteManager::getInstance()->load();
 	CryptoManager::getInstance()->loadCertificates();
 
 
@@ -127,7 +126,9 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 
 	if(f != NULL)
 		(*f)(p, TSTRING(SHARED_FILES));
-	ShareManager::getInstance()->Startup(); 
+	ShareManager::getInstance()->startup(); 
+
+	FavoriteManager::getInstance()->load();
 
 	if(BOOLSETTING(GET_USER_COUNTRY)) {
 		if(f != NULL)

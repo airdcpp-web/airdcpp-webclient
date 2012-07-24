@@ -33,6 +33,8 @@
 #include "ClientManager.h"
 #include "ResourceManager.h"
 
+#include "boost/unordered_map.hpp"
+
 namespace dcpp {
 
 class SocketException;
@@ -75,7 +77,7 @@ public:
  	}
 	//static string clean(const string& aSearchString);
 	
-	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, const Client* c = NULL);
+	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, const string& shareProfile);
 
 	const string& getPort() const { return port; }
 

@@ -340,7 +340,7 @@ enum Strings { // @DontAdd
 	MENU_OPEN_DOWNLOADS_DIR, // "Open downloads directory"
 	MENU_OPEN_FILE_LIST, // "Open file list...\tCtrl+L"
 	MENU_OPEN_MATCH_ALL, // "Match downloaded lists"
-	MENU_OPEN_OWN_LIST, // "Open Full own list"
+	MENU_OPEN_OWN_LIST, // "Open own list"
 	MENU_PUBLIC_HUBS, // "&Public Hubs\tCtrl+P"
 	MENU_QUICK_CONNECT, // "&Quick Connect ...\tCtrl+Q"
 	MENU_RECONNECT, // "&Reconnect\tCtrl+R"
@@ -1399,5 +1399,11 @@ enum Strings { // @DontAdd
 	SETTINGS_WTOOLBAR_SIZE, // "Media Toolbar Icon size"
 	MENU_OPEN_HUB_OWN_LIST, // "Open Hub own list"
 	TOGGLE_TBSTATUS, // "Toolbar StatusBar"
+	X_FAV_PROFILES_RESET, // "%d favorite hubs have been reset to use the default share profile"
+	SHARE_PROFILE, // "Share Profile"
+	SHARE_PROFILES, // "Share Profiles"
+	PROFILE_EXISTS, // "A profile with the same name exists already"
+	X_PROFILE_DIRS_EXISTS, // "This directory also exists in %d other profiles. Do you want to remove it from all of them?"
+	ADD_FROM_THIS, // "Add from this"
 	LAST // @DontAdd
 };

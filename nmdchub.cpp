@@ -264,7 +264,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 	}
 
 	if(cmd == "Search") {
-		if((state != STATE_NORMAL) || getHideShare()) {
+		if((state != STATE_NORMAL) || getShareProfile() == SP_HIDDEN) {
 			return;
 		}
 		string::size_type i = 0;
@@ -953,7 +953,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 		fromUtf8(escape(getCurrentDescription())).c_str(), dc.c_str(), version.c_str(), modeChar, getCounts().c_str(), 
 		UploadManager::getInstance()->getSlots(), fromUtf8(escape(SETTING(UPLOAD_SPEED))).c_str(), status, fromUtf8(escape(SETTING(EMAIL))).c_str());
 
-	int64_t newBytesShared = getHideShare() ? 0 : ShareManager::getInstance()->getShareSize(); //Hide Share Mod
+	int64_t newBytesShared = getShareProfile() == SP_HIDDEN ? 0 : ShareManager::getInstance()->getTotalShareSize(SP_DEFAULT);
 	if (strcmp(myInfo, lastMyInfo.c_str()) != 0 || alwaysSend || (newBytesShared != lastBytesShared && lastUpdate + 15*60*1000 < GET_TICK())) {
 		dcdebug("MyInfo %s...\n", getMyNick().c_str());		
 		send(string(myInfo) + Util::toString(newBytesShared) + "$|");

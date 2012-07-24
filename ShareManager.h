@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SHARE_MANAGER_H
 #define DCPLUSPLUS_DCPP_SHARE_MANAGER_H
 
+#include <string>
 #include "TimerManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
@@ -35,6 +36,10 @@
 #include "LogManager.h"
 #include "pme.h"
 #include "AirUtil.h"
+#include "ShareProfile.h"
+#include "Flags.h"
+
+#include "boost/unordered_map.hpp"
 
 namespace dcpp {
 
@@ -49,6 +54,29 @@ class MemoryInputStream;
 struct ShareLoader;
 class Worker;
 
+struct ShareDirInfo {
+	ShareDirInfo(const string& aVname, const string& aProfile, const string& aPath, bool aIncoming=false) : vname(aVname), profile(aProfile), path(aPath), incoming(aIncoming), found(false) { }
+	string vname;
+	string profile;
+	string path;
+	bool incoming;
+	bool found; //used when detecting removed dirs with using dir tree
+
+	bool operator==(const ShareDirInfo& rhs) const {
+		return rhs.path == path && compare(rhs.profile, profile) == 0;
+	}
+
+	struct Hash {
+		size_t operator()(const ShareDirInfo& x) const { return hash<string>()(x.path + x.profile); }
+	};
+	typedef unordered_set<ShareDirInfo, Hash> set;
+	typedef vector<ShareDirInfo> list;
+	typedef unordered_map<string, list> map;
+};
+
+class ShareProfile;
+class FileList;
+
 class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener, private QueueManagerListener
 {
 public:
@@ -56,63 +84,40 @@ public:
 	 * @param aDirectory Physical directory location
 	 * @param aName Virtual name
 	 */
-	void addDirectory(const string& realPath, const string &virtualName);
-	void removeDirectory(const string& realPath);
-	void renameDirectory(const string& realPath, const string& virtualName);
 
-	string toVirtual(const TTHValue& tth, Client* client) const;
-	string toReal(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser, const string& userSID);
-	pair<string, int64_t> toRealWithSize(const string& virtualFile, bool isInSharingHub, const HintedUser& aUser, const string& userSID);
-	TTHValue getTTH(const string& virtualFile, const HintedUser& aUser, const string& userSID) const;
+	void validatePath(const string& realPath, const string& virtualName);
+
+	string toVirtual(const TTHValue& tth, const string& shareProfile) const;
+	pair<string, int64_t> toRealWithSize(const string& virtualFile, const string& aProfile);
+	pair<string, int64_t> toRealWithSize(const string& virtualFile, const StringSet& aProfiles, const HintedUser& aUser);
+	TTHValue getListTTH(const string& virtualFile, const string& aProfile) const;
 	
-	int refresh(int refreshOptions);
-	int initRefreshThread(int refreshOptions) noexcept;
+	int refresh(bool incoming=false);
+	int initTaskThread() noexcept;
 	int refresh(const string& aDir);
 
 	bool isRefreshing() {	return refreshRunning; }
 	
 	//need to be called from inside a lock.
-	void setDirty(bool force = false) {
-		for(auto i = fileLists.begin(); i != fileLists.end(); ++i) {
-			i->second->xmlDirty = true;
-			if(force)
-				i->second->forceXmlRefresh = true;
-		}
-		ShareCacheDirty = true; 
-	}
+	void setDirty(bool force = false);
 	
-	void setHubFileListDirty(const string& HubUrl) {
-		RLock l(cs);
-		auto i = fileLists.find(AirUtil::stripHubUrl(HubUrl));
-		if(i != fileLists.end())
-			i->second->forceXmlRefresh = true;
-	}
-
-	StringList getIncoming() { return incoming; };
-	void setIncoming(const string& realPath) { incoming.push_back(realPath); };
-	void DelIncoming() { incoming.clear(); };
-
-   void save() { 
+	void setDirty(const string& aProfile);
+	void save() { 
 		w.join();
 		//LogManager::getInstance()->message("Creating share cache...");
 		w.start();
 	}
 
-	void Startup() {
-		AirUtil::updateCachedSettings();
-		if(!loadCache())
-			refresh(REFRESH_ALL | REFRESH_BLOCKING);
-	}
-
+	void startup();
 	void shutdown();
-	bool shareFolder(const string& path, bool thoroughCheck = false, bool QuickCheck = false) const;
-	int64_t removeExcludeFolder(const string &path, bool returnSize = true);
-	int64_t addExcludeFolder(const string &path);
 
-	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) noexcept;
-	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const Client* client, const CID& cid) noexcept;
-	bool isDirShared(const string& directory);
-	bool isFileShared(const TTHValue aTTH, const string& fileName);
+	void changeExcludedDirs(const StringSetMap& aAdd, const StringSetMap& aRemove);
+	void rebuildExcludeTypes();
+
+	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept;
+	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const string& aProfile, const CID& cid) noexcept;
+	bool isDirShared(const string& directory) const;
+	bool isFileShared(const TTHValue aTTH, const string& fileName) const;
 	bool allowAddDir(const string& dir);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory, bool validate = true);
@@ -120,55 +125,35 @@ public:
 
 	bool loadCache();
 
-	StringPairList getDirectories(int refreshOptions) const noexcept;
 	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
 	static bool checkType(const string& aString, int aType);
-	MemoryInputStream* generatePartialList(const string& dir, bool recurse, bool isInSharingHub, const HintedUser& aUser, const string& userSID);
-	MemoryInputStream* generateTTHList(const string& dir, bool recurse, bool isInSharingHub, const HintedUser& aUser);
-	MemoryInputStream* getTree(const string& virtualFile, const HintedUser& aUser, const string& userSID) const;
+	MemoryInputStream* generatePartialList(const string& dir, bool recurse, const string& aProfile);
+	MemoryInputStream* generateTTHList(const string& dir, bool recurse, const string& aProfile);
+	MemoryInputStream* getTree(const string& virtualFile, const string& aProfile) const;
 
-	AdcCommand getFileInfo(const string& aFile, Client* client);
+	AdcCommand getFileInfo(const string& aFile, const string& aProfile);
 
-	int64_t getShareSize(Client* client = NULL) const noexcept;
-	int64_t getShareSize(const string& realPath) const noexcept;
-
-	size_t getSharedFiles() const noexcept;
-
-	string getShareSizeString(Client* client = NULL) { return Util::toString(getShareSize(client)); }
-	string getShareSizeString(const string& aDir) const { return Util::toString(getShareSize(aDir)); }
+	int64_t getTotalShareSize(const string& aProfile) const noexcept;
+	int64_t getShareSize(const string& realPath, const string& aProfile) const noexcept;
+	void getProfileInfo(const string& aProfile, int64_t& size, size_t& files) const;
 	
 	void getBloom(ByteVector& v, size_t k, size_t m, size_t h) const;
 
 	SearchManager::TypeModes getType(const string& fileName) noexcept;
 
 	string validateVirtual(const string& /*aVirt*/) const noexcept;
-	bool hasVirtual(const string& name) const noexcept;
-
 	void addHits(uint32_t aHits) {
 		hits += aHits;
 	}
 
-	string generateOwnList(const string& hubUrl = Util::emptyString) {
-		Client* c = NULL;
-		if(!hubUrl.empty())
-			c = ClientManager::getInstance()->findClient(hubUrl);
+	string generateOwnList(const string& aProfile);
 
-		FileList* fl = generateXmlList(c, true);
-		return fl->getBZXmlFile();
-	}
-
-	bool isTTHShared(const TTHValue& tth) {
-		RLock l(cs);
-		for(auto i = directories.begin(); i != directories.end(); ++i) {
-			if(i->second->getRoot()->tthIndex.find(const_cast<TTHValue*>(&tth)) != i->second->getRoot()->tthIndex.end())
-				return true;
-		}
-	}
+	bool isTTHShared(const TTHValue& tth);
 
 	void getRealPaths(const string& path, StringList& ret);
 
-	void LockRead() noexcept { cs.lock_shared(); }
-	void unLockRead() noexcept { cs.unlock_shared(); }
+	//void LockRead() noexcept { cs.lock_shared(); }
+	//void unLockRead() noexcept { cs.unlock_shared(); }
 
 	string getRealPath(const TTHValue& root);
 
@@ -176,13 +161,6 @@ public:
 		REFRESH_STARTED = 0,
 		REFRESH_PATH_NOT_FOUND = 1,
 		REFRESH_IN_PROGRESS = 2
-	};
-	enum {
-		REFRESH_ALL = 0x01,
-		REFRESH_DIRECTORY = 0x02,
-		REFRESH_BLOCKING = 0x04,
-		REFRESH_UPDATE = 0x08,
-		REFRESH_INCOMING = 0x10
 	};
 
 	GETSET(size_t, hits, Hits);
@@ -207,7 +185,66 @@ public:
 	TempShareInfo findTempShare(const string& aKey, const string& virtualFile);
 	//tempShares end
 
+	//typedef boost::unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> RootDirMap;
+
+	typedef vector<ShareProfilePtr> ShareProfileList;
+
+	void getShares(ShareDirInfo::map& aDirs);
+
+	enum Tasks {
+		ADD_DIR,
+		REMOVE_DIR,
+		REFRESH_ALL,
+		REFRESH_DIR,
+		REFRESH_STARTUP,
+		REFRESH_INCOMING
+	};
+
+	ShareProfilePtr getShareProfile(const string& aProfile, bool allowFallback=false);
+	void getParentPaths(StringList& aDirs) const;
+
+	void addDirectories(const ShareDirInfo::list& aNewDirs);
+	void removeDirectories(const ShareDirInfo::list& removeDirs);
+	void renameDirectories(const ShareDirInfo::list& renameDirs);
+
+	void addProfiles(const ShareProfile::set& aProfiles);
+	void removeProfiles(const StringList& aProfiles);
+	ShareProfileList& getProfiles() { return shareProfiles; }
+
+	void getExcludes(const string& aProfile, StringList& excludes);
 private:
+	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
+		public:
+			typedef boost::intrusive_ptr<ProfileDirectory> Ptr;
+
+			ProfileDirectory(const string& aRootPath, const string& aVname, const string& aShareProfile);
+			ProfileDirectory(const string& aRootPath, const string& aShareProfile);
+
+			GETSET(string, path, Path);
+			GETSET(StringMap, shareProfiles, ShareProfiles);
+			GETSET(StringSet, excludedProfiles, excludedProfiles);
+
+			~ProfileDirectory() { }
+
+			enum InfoFlags {
+				FLAG_ROOT,
+				FLAG_EXCLUDE_TOTAL,
+				FLAG_EXCLUDE_PROFILE,
+				FLAG_INCOMING
+			};
+
+			bool hasExcludes() { return !excludedProfiles.empty(); }
+			bool hasRoots() { return !shareProfiles.empty(); }
+
+			bool hasProfile(const string& aProfile);
+			bool isExcluded(const string& aProfile);
+			bool hasProfile(const StringSet& aProfiles);
+			void addRootProfile(const string& aName, const string& aProfile);
+			void addExclude(const string& aProfile);
+			bool removeRootProfile(const string& aProfile);
+			string getName(const string& aProfile);
+	};
+
 	struct AdcSearch;
 	class Directory : public intrusive_ptr_base<Directory>, boost::noncopyable {
 	public:
@@ -245,33 +282,20 @@ private:
 				return getParent() == rhs.getParent() && (stricmp(getName(), rhs.getName()) == 0);
 			}
 		
-			string getADCPath() const { return parent->getADCPath() + name; }
-			string getFullName() const { return parent->getFullName() + name; }
+			string getADCPath(const string& aProfile) const { return parent->getADCPath(aProfile) + name; }
+			string getFullName(const string& aProfile) const { return parent->getFullName(aProfile) + name; }
 			string getRealPath(bool validate = true) const { return parent->getRealPath(name, validate); }
 
 			GETSET(TTHValue, tth, TTH);
 			GETSET(string, name, Name);
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
-
-		};
-
-		class RootDirectory  {
-			public:
-				RootDirectory(const string& aRootPath) : path(aRootPath) { }
-				typedef unordered_multimap<TTHValue*, Directory::File::Set::const_iterator> HashFileMap;
-				typedef HashFileMap::const_iterator HashFileIter;
-
-				HashFileMap tthIndex;
-				GETSET(string, path, Path);
-		
-				~RootDirectory() { }
 		};
 
 		Map directories;
 		File::Set files;
 
-		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, RootDirectory* aRoot = nullptr) {
+		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot = nullptr) {
 			auto Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
 			if (aParent)
 				aParent->directories[aName] = Ptr;
@@ -283,65 +307,50 @@ private:
 		}
 		void addType(uint32_t type) noexcept;
 
-		string getADCPath() const noexcept;
-		string getFullName() const noexcept; 
-		string getRealPath(const std::string& path, bool validate = true) const;
-		
-		RootDirectory* findRoot() { 
-			if(getParent()) 
-				return getParent()->findRoot();
-			else
-				return root;
-		}
+		string getADCPath(const string& aProfile) const noexcept;
+		string getName(const string& aProfile) const noexcept;
+		string getRealName() { return name; }
+		string getFullName(const string& aProfile) const noexcept; 
+		string getRealPath(bool checkExistance = true) const { return getRealPath(Util::emptyString, checkExistance); };
 
-		void increaseSize(uint64_t aSize);
-		void decreaseSize(uint64_t aSize);
-		void resetSize() { size = 0; }
-		int64_t getSize() { return size; };
-		size_t countFiles() const noexcept; //ApexDC
+		bool hasProfile(const StringSet& aProfiles);
+		bool hasProfile(const string& aProfiles);
 
-		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, Client* aClient, StringList::size_type maxResults) const noexcept;
-		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept;
+		int64_t getSize(const string& aProfile) const noexcept;
+		void getProfileInfo(const string& aProfile, int64_t& totalSize, size_t& filesCount) const;
+
+		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) const noexcept;
+		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) const noexcept;
 		void findDirsRE(bool remove);
 
-		void toXml(SimpleXML& aXml, bool fullList);
+		void toXml(SimpleXML& aXml, bool fullList, const string& aProfile);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
 		void filesToXml(SimpleXML& aXml) const;
 		//for filelist caching
-		void toXmlList(OutputStream& xmlFile, const string& path, string& indent);
+		void toXmlList(OutputStream& xmlFile, const string& path, string& indent, const string& aProfile);
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 
 		string find(const string& dir, bool validateDir);
 
 		GETSET(uint32_t, lastWrite, LastWrite);
-		GETSET(string, name, Name);
 		GETSET(Directory*, parent, Parent);
-		GETSET(RootDirectory*, root, Root);
+		GETSET(ProfileDirectory::Ptr, profileDir, ProfileDir);
 
-		Directory(const string& aName, const Ptr& aParent, uint32_t aLastWrite, RootDirectory* root = nullptr);
-		~Directory() { 
-			if(root)
-				delete root;
-		}
-		
+		Directory(const string& aName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
+		~Directory() { }
+
+		bool isRootLevel(const string& aProfile);
+		bool isLevelExcluded(const string& aProfile);
+		int64_t size;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;
-		
-		int64_t size;
+		string getRealPath(const string& path, bool checkExistance) const;
+		string name;
 	};
-	
-	friend class Directory;
-	friend struct ShareLoader;
-	friend class FileList;
 
-	friend class Singleton<ShareManager>;
-	
-	ShareManager();
-	~ShareManager();
-	
 	struct AdcSearch {
 		AdcSearch(const StringList& params);
 
@@ -363,40 +372,54 @@ private:
 		bool isDirectory;
 	};
 
-	/*
-	A Class that holds info on Hub spesific Filelist,
-	a Full FileList that contains all like it did before is constructed with sharemanager instance, and then updated like before,
-	this means that we should allways have FileListALL, other lists are just extra.
-	Now this would be really simple if just used recursive Locks in sharemanager, to protect everything at once.
-	BUT i dont want freezes and lockups so lets make it a bit more complex :) 
-	..*/
-	class FileList {
-		public:
-			FileList(const string& name) : Name(name), xmlDirty(true), forceXmlRefresh(true), lastxmlUpdate(0), listN(0) { }
-			string Name;
-		private:
-			GETSET(int64_t, xmllistlen, xmlListLen);
-			GETSET(TTHValue, xmlroot, xmlRoot);
-			GETSET(int64_t, bzxmllistlen, bzXmlListLen);
-			GETSET(TTHValue, bzxmlroot, bzXmlRoot);
-			GETSET(uint64_t, lastxmlUpdate, lastXmlUpdate);
-			GETSET(string, bzXmlFile, BZXmlFile);
-			unique_ptr<File> bzXmlRef;
-			int listN;
-			bool xmlDirty;
-			bool forceXmlRefresh; /// bypass the 15-minutes guard
+	/* Directory items mapped to realpath*/
+	typedef boost::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap;
 
+	void getParents(DirMap& aDirs) const;
+	void addShares(const string& aPath, Directory::Ptr aDir) { shares[aPath] = aDir; }
+
+	friend struct ShareLoader;
+
+	friend class Singleton<ShareManager>;
+
+	typedef unordered_multimap<TTHValue*, Directory::File::Set::const_iterator> HashFileMap;
+	typedef HashFileMap::const_iterator HashFileIter;
+
+	HashFileMap tthIndex;
+	
+	ShareManager();
+	~ShareManager();
+
+	struct TaskData {
+		virtual ~TaskData() { }
 	};
-	//or just save the filelist in Client? might be there for nothing in most cases tho.
-	typedef unordered_map<string, FileList*> FileListMap;
-	FileListMap fileLists;
 
-	FileList* generateXmlList(Client* client, bool forced = false);
-	void createFileList(Client* client, FileList* fl, const string& flname, bool forced);
-	FileList* getFileList(Client* client) const;
+	struct RefreshTask : public TaskData {
+		RefreshTask(int refreshOptions_) : refreshOptions(refreshOptions_) { }
+		int refreshOptions;
+	};
 
-	bool isHubExcluded(const string& sharepath, const Client* client) const;
-	bool isExcluded(const string& sharepath, const ClientList& clients) const;
+	typedef boost::unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
+	ProfileDirMap profileDirs;
+
+	ProfileDirMap getSubProfileDirs(const string& aPath);
+
+	/*struct StringTask : public TaskData {
+		StringTask(const string& s_) : st(s_) { }
+		string st;
+	};*/
+
+	struct StringListTask : public TaskData {
+		StringListTask(const StringList& spl_) : spl(spl_) { }
+		StringList spl;
+	};
+
+	//deque<TaskData> tasks;
+	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
+
+	FileList* generateXmlList(const string& shareProfile, bool forced = false);
+	void createFileList(const string& shareProfile, FileList* fl, bool forced);
+	FileList* getFileList(const string& shareProfile) const;
 
 	void saveXmlList(bool verbose = false);	//for filelist caching
 
@@ -418,7 +441,7 @@ private:
 	bool xml_saving;
 
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
-	mutable CriticalSection dirnamelist;
+	mutable SharedMutex dirNames; // Bundledirs, releasedirs and excluded dirs
 
 	int allSearches, stoppedSearches;
 	int refreshOptions;
@@ -429,6 +452,8 @@ private:
 	void deleteReleaseDir(const string& aName);
 	void sortReleaseList();
 
+	BloomFilter<5> bloom;
+
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
@@ -437,41 +462,32 @@ private:
 	//list to return multiple directory item pointers
 	typedef std::vector<Directory::Ptr> Dirs;
 
-	/*Map of root directory items mapped to realpath*/
-	typedef std::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap; 
-	DirMap directories;
-
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
-	StringMap shares;
+	DirMap shares;
 
-	BloomFilter<5> bloom;
-	
-	Directory::File::Set::const_iterator findFile(const string& virtualFile, const ClientList& clients) const;
-
-	void buildTree(const string& aName, const Directory::Ptr& aDir, bool checkQueued = false);
+	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, StringList& aReleases, DirMap& newShares);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
-	void updateIndices(Directory& aDirectory, Directory::RootDirectory& root, bool first=true);
-	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i, Directory::RootDirectory& root);
+	void updateIndices(Directory& aDirectory, bool first=true);
+	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
 	void cleanIndices(Directory::Ptr& dir);
 
 	void onFileHashed(const string& fname, const TTHValue& root);
 	
-	StringList notShared;
-	StringList incoming;
+	//StringList notShared;
 	StringList bundleDirs;
-	StringList refreshPaths;
 
-	Dirs getByVirtual(const string& virtualName, const ClientList& clients) const noexcept;
-	DirMultiMap findVirtuals(const string& virtualPath, const ClientList& clients) const;
+	Dirs getByVirtual(const string& virtualName, const string& aProfiles) const noexcept;
+	DirMultiMap findVirtuals(const string& virtualPath, const string& aProfiles) const;
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);
 
-	int run();
+	virtual int run();
 
 	// QueueManagerListener
+	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr aBundle) noexcept;
 	virtual void on(QueueManagerListener::BundleHashed, const string& path) noexcept;
 	virtual void on(QueueManagerListener::FileHashed, const string& fname, const TTHValue& root) noexcept { onFileHashed(fname, root); }
 
@@ -485,10 +501,12 @@ private:
 	
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
+
 	void load(SimpleXML& aXml);
+	void loadProfile(SimpleXML& aXml, const string& aName, const string& aToken);
 	void save(SimpleXML& aXml);
 	
-
+	ShareProfileList shareProfiles;
 /*This will only be used by the big sharing people probobly*/
 class Worker: public Thread
 {

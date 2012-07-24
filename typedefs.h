@@ -39,9 +39,11 @@ typedef vector<IntStringPair> IntStringList;
 
 typedef std::unordered_map<string, string> StringMap;
 typedef StringMap::iterator StringMapIter;
+typedef std::unordered_map<string, StringList> StringListMap;
 
 typedef std::unordered_set<string> StringSet;
 typedef StringSet::iterator StringSetIter;
+typedef std::unordered_map<string, StringSet> StringSetMap;
 
 typedef std::unordered_map <string, int64_t> StringIntMap;
 typedef StringIntMap::iterator StringIntIter;

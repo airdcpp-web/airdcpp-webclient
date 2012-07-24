@@ -322,6 +322,17 @@ UserPtr ClientManager::findUser(const CID& cid) const noexcept {
 	return 0;
 }
 
+UserPtr ClientManager::findUserByNick(const string& aNick, const string& aHubUrl) const noexcept {
+	RLock l(cs);
+	for(auto i = clients.begin(); i != clients.end(); ++i) {
+		Client* c = i->second;
+		if(c->getHubUrl() == aHubUrl) {
+			return c->findUser(aNick)->getUser();
+		}
+	}
+	return UserPtr();
+}
+
 // deprecated
 bool ClientManager::isOp(const UserPtr& user, const string& aHubUrl) const {
 	RLock l(cs);
@@ -395,24 +406,23 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect, bool priv/*false
 	}
 }
 
-void ClientManager::ListClients(const UserPtr& aUser, ClientList &clients) {
+void ClientManager::listProfiles(const UserPtr& aUser, StringSet& profiles) {
 	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 	for(auto i = op.first; i != op.second; ++i) {
-		clients.push_back(&i->second->getClient());
+		profiles.insert(i->second->getClient().getShareProfile());
 	}
 }
 
-Client* ClientManager::findClient(const HintedUser& p, const string& userSID) {
-
+const string& ClientManager::findProfile(const HintedUser& p, const string& userSID) {
 	OnlineUser* u;
 	if(!userSID.empty()) {
 		RLock l(cs);
-		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&p.user->getCID()));
+		auto op = onlineUsers.equal_range(const_cast<CID*>(&p.user->getCID()));
 		for(auto i = op.first; i != op.second; ++i) {
 			u = i->second;
 			if(u->getIdentity().getSIDString() == userSID)
-				return &u->getClient();
+				return u->getClient().getShareProfile();
 		}
 	}
 
@@ -422,13 +432,13 @@ Client* ClientManager::findClient(const HintedUser& p, const string& userSID) {
 	RLock l(cs);
 	u = findOnlineUserHint(p.user->getCID(), p.hint, op);
 	if(u) {
-		return &u->getClient();
+		return u->getClient().getShareProfile();
 	} else if(op.first != op.second) {
 		if(distance(op.first, op.second) == 1)
-			return &op.first->second->getClient();
+			return op.first->second->getClient().getShareProfile();
 	}
 
-	return nullptr;
+	return Util::emptyString;
 }
 
 string ClientManager::findMySID(const HintedUser& p) {
@@ -564,13 +574,29 @@ void ClientManager::infoUpdated() {
 	}
 }
 
+void ClientManager::resetProfiles(const StringList& aProfiles, ShareProfilePtr aDefaultProfile) {
+	RLock l(cs);
+	for(auto k = aProfiles.begin(); k != aProfiles.end(); ++k) {
+		for(auto i = clients.begin(); i != clients.end(); ++i) {
+			Client* c = i->second;
+			if (c->getShareProfile() == *k) {
+				c->setShareProfile(SP_DEFAULT);
+				c->info(false);
+			}
+		}
+	}
+}
+
 void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize, 
 									int aFileType, const string& aString, bool isPassive) noexcept
 {
 	Speaker<ClientManagerListener>::fire(ClientManagerListener::IncomingSearch(), aString);
 
+	if (aClient->getShareProfile() == SP_HIDDEN)
+		return;
+
 	SearchResultList l;
-	ShareManager::getInstance()->search(l, aString, aSearchType, aSize, aFileType, aClient, isPassive ? 5 : 10);
+	ShareManager::getInstance()->search(l, aString, aSearchType, aSize, aFileType, isPassive ? 5 : 10);
 	if(l.size() > 0) {
 		if(isPassive) {
 			string name = aSeeker.substr(4);
@@ -643,7 +669,7 @@ void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const 
 			}
 		}			
 	}
-	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c);
+	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
 }
 
 uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner) {

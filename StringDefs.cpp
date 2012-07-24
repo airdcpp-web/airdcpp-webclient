@@ -337,7 +337,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Open downloads directory", 
 "Open file list...\tCtrl+L", 
 "Match downloaded lists", 
-"Open Full own list", 
+"Open own list", 
 "&Public Hubs\tCtrl+P", 
 "&Quick Connect ...\tCtrl+Q", 
 "&Reconnect\tCtrl+R", 
@@ -1392,6 +1392,12 @@ std::string dcpp::ResourceManager::strings[] = {
 "Media Toolbar Icon size", 
 "Open Hub own list", 
 "Toolbar StatusBar", 
+"%d favorite hubs have been reset to use the default share profile", 
+"Share Profile", 
+"Share Profiles", 
+"A profile with the same name exists already", 
+"This directory also exists in %d other profiles. Do you want to remove it from all of them?", 
+"Add from this", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2784,4 +2790,10 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsWtoolbarSize", 
 "MenuOpenHubOwnList", 
 "ToggleTbstatus", 
+"XFavProfilesReset", 
+"ShareProfile", 
+"ShareProfiles", 
+"ProfileExists", 
+"XProfileDirsExists", 
+"AddFromThis", 
 };

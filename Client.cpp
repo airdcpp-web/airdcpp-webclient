@@ -83,7 +83,6 @@ void Client::reloadSettings(bool updateNick) {
 			setPassword(hub->getPassword());
 		setStealth(hub->getStealth());
 		setFavIp(hub->getIP());
-		setHideShare(hub->getHideShare()); // Hide Share Mod
 		setFavNoPM(hub->getFavNoPM());
 		setHubShowJoins(hub->getHubShowJoins()); //show joins
 		setHubLogMainchat(hub->getHubLogMainchat());
@@ -97,7 +96,7 @@ void Client::reloadSettings(bool updateNick) {
 		else
 			setSearchInterval(hub->getSearchInterval() * 1000);
 
-		setUnShared(hub->getUnShared());
+		setShareProfile(hub->getShareProfile()->getToken());
 		
 	} else {
 		if(updateNick) {
@@ -106,13 +105,11 @@ void Client::reloadSettings(bool updateNick) {
 		setCurrentDescription(SETTING(DESCRIPTION));
 		setStealth(false);
 		setFavIp(Util::emptyString);
-		setHideShare(false); // Hide Share Mod
 		setFavNoPM(false);
 		setHubShowJoins(false);
 		setChatNotify(false);
 		setHubLogMainchat(true);
 		setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
-		setUnShared(StringList());
 	}
 }
 

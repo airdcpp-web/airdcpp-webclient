@@ -281,7 +281,7 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 			continue;
 		}
 
-		if (AirUtil::isParent(aSource, tmpBundle->getTarget())) {
+		if (AirUtil::isParentOrExact(aSource, tmpBundle->getTarget())) {
 			//parent or the same dir
 			retBundles.push_back(tmpBundle);
 			if (tmpBundle->isFileBundle())
@@ -309,7 +309,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
 	for(auto i = bundles.cbegin(), iend = bundles.cend(); i != iend; ++i) {
 		BundlePtr compareBundle = i->second;
-		if (!compareBundle->isFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParent(aTarget, compareBundle->getTarget()))) {
+		if (!compareBundle->isFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParentOrExact(aTarget, compareBundle->getTarget()))) {
 			return compareBundle;
 		}
 	}

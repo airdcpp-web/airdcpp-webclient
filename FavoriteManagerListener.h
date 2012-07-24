@@ -42,12 +42,14 @@ public:
 	typedef X<10> RecentAdded;
 	typedef X<11> RecentRemoved;
 	typedef X<12> RecentUpdated;
+	typedef X<13> FavoritesUpdated;
 
 	virtual void on(DownloadStarting, const string&) noexcept { }
 	virtual void on(DownloadFailed, const string&) noexcept { }
 	virtual void on(DownloadFinished, const string&, bool) noexcept { }
 	virtual void on(FavoriteAdded, const FavoriteHubEntry*) noexcept { }
 	virtual void on(FavoriteRemoved, const FavoriteHubEntry*) noexcept { }
+	virtual void on(FavoritesUpdated) noexcept { }
 	virtual void on(UserAdded, const FavoriteUser&) noexcept { }
 	virtual void on(UserRemoved, const FavoriteUser&) noexcept { }
 	virtual void on(StatusChanged, const UserPtr&) noexcept { }
