@@ -1397,7 +1397,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Share Profiles", 
 "A profile with the same name exists already", 
 "This directory also exists in %d other profiles. Do you want to remove it from all of them?", 
-"Add from this", 
+"Add profile", 
+"Add copy from this", 
+"Remove profile", 
+"Apply changes", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2795,5 +2798,8 @@ std::string dcpp::ResourceManager::names[] = {
 "ShareProfiles", 
 "ProfileExists", 
 "XProfileDirsExists", 
-"AddFromThis", 
+"AddProfile", 
+"AddProfileCopy", 
+"RemoveProfile", 
+"ApplyChanges", 
 };

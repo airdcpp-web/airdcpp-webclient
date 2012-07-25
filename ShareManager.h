@@ -205,7 +205,7 @@ public:
 
 	void addDirectories(const ShareDirInfo::list& aNewDirs);
 	void removeDirectories(const ShareDirInfo::list& removeDirs);
-	void renameDirectories(const ShareDirInfo::list& renameDirs);
+	void changeDirectories(const ShareDirInfo::list& renameDirs);
 
 	void addProfiles(const ShareProfile::set& aProfiles);
 	void removeProfiles(const StringList& aProfiles);
@@ -227,10 +227,10 @@ private:
 			~ProfileDirectory() { }
 
 			enum InfoFlags {
-				FLAG_ROOT,
-				FLAG_EXCLUDE_TOTAL,
-				FLAG_EXCLUDE_PROFILE,
-				FLAG_INCOMING
+				FLAG_ROOT				= 0x01,
+				FLAG_EXCLUDE_TOTAL		= 0x02,
+				FLAG_EXCLUDE_PROFILE	= 0x04,
+				FLAG_INCOMING			= 0x08
 			};
 
 			bool hasExcludes() { return !excludedProfiles.empty(); }
@@ -450,7 +450,6 @@ private:
 	StringList dirNameList;
 	void addReleaseDir(const string& aName);
 	void deleteReleaseDir(const string& aName);
-	void sortReleaseList();
 
 	BloomFilter<5> bloom;
 

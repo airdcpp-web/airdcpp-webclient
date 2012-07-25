@@ -1404,6 +1404,9 @@ enum Strings { // @DontAdd
 	SHARE_PROFILES, // "Share Profiles"
 	PROFILE_EXISTS, // "A profile with the same name exists already"
 	X_PROFILE_DIRS_EXISTS, // "This directory also exists in %d other profiles. Do you want to remove it from all of them?"
-	ADD_FROM_THIS, // "Add from this"
+	ADD_PROFILE, // "Add profile"
+	ADD_PROFILE_COPY, // "Add copy from this"
+	REMOVE_PROFILE, // "Remove profile"
+	APPLY_CHANGES, // "Apply changes"
 	LAST // @DontAdd
 };
