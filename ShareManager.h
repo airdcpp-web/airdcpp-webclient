@@ -92,8 +92,8 @@ public:
 	pair<string, int64_t> toRealWithSize(const string& virtualFile, const StringSet& aProfiles, const HintedUser& aUser);
 	TTHValue getListTTH(const string& virtualFile, const string& aProfile) const;
 	
-	int refresh(bool incoming=false);
-	int initTaskThread() noexcept;
+	int refresh(bool incoming=false, bool isStartup=false);
+	int initTaskThread(bool isStartup=false) noexcept;
 	int refresh(const string& aDir);
 
 	bool isRefreshing() {	return refreshRunning; }

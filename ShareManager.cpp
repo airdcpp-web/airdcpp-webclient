@@ -1224,7 +1224,7 @@ int ShareManager::refresh(const string& aDir){
 }
 
 
-int ShareManager::refresh(bool incoming){
+int ShareManager::refresh(bool incoming /*false*/, bool isStartup /*false*/){
 	if(refreshing.test_and_set()) {
 		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS), LogManager::LOG_INFO);
 		return REFRESH_IN_PROGRESS;
@@ -1256,19 +1256,19 @@ int ShareManager::refresh(bool incoming){
 		tasks.push_back(make_pair(incoming ? REFRESH_INCOMING : REFRESH_ALL, new StringListTask(dirs)));
 	}
 
-	initTaskThread();
+	initTaskThread(isStartup);
 	return REFRESH_STARTED;
 }
 
-int ShareManager::initTaskThread()  {
+int ShareManager::initTaskThread(bool isStartup)  {
 	join();
 	try {
 		start();
-		/*if(refreshOptions & REFRESH_STARTUP) { 
+		if(isStartup) { 
 			join();
-		} else {*/
+		} else {
 			setThreadPriority(Thread::NORMAL);
-		//}
+		}
 
 	} catch(const ThreadException& e) {
 		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogManager::LOG_WARNING);
@@ -1565,9 +1565,7 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 
 void ShareManager::getShares(ShareDirInfo::map& aDirs) {
 	RLock l (cs);
-	vector<ProfileDirectory::Ptr> pdl;
 	for(auto i = shares.begin(); i != shares.end(); ++i) {
-		pdl.push_back(i->second->getProfileDir());
 		auto profiles = i->second->getProfileDir()->getShareProfiles();
 		for(auto p = profiles.begin(); p != profiles.end(); ++p) {
 			aDirs[p->first].push_back(ShareDirInfo(p->second, p->first, i->first, i->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING)));
@@ -1831,7 +1829,7 @@ void ShareManager::Directory::toXml(SimpleXML& xmlFile, bool fullList, const str
 	xmlFile.resetCurrentChild();
 	
 	while( xmlFile.findChild("Directory") ){
-		if( stricmp(xmlFile.getChildAttrib("Name"), name) == 0 ){
+		if( stricmp(xmlFile.getChildAttrib("Name"), getName(aProfile)) == 0 ){
 			string curdate = xmlFile.getChildAttrib("Date");
 			if(!curdate.empty() && Util::toUInt32(curdate) < lastWrite) //compare the dates and add the last modified
 				xmlFile.replaceChildAttrib("Date", Util::toString(lastWrite));
@@ -2526,7 +2524,8 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 			for(auto p = spl.begin(); p != spl.end(); ++p) {
 				auto retVirtual = find_if(ret.begin(), ret.end(), CompareFirst<string, StringList>(p->second));
 				if (retVirtual != ret.end()) {
-					retVirtual->second.insert(upper_bound(retVirtual->second.begin(), retVirtual->second.end(), i->first), i->first);
+					if (find(retVirtual->second.begin(), retVirtual->second.end(), i->first) == retVirtual->second.end())
+						retVirtual->second.insert(upper_bound(retVirtual->second.begin(), retVirtual->second.end(), i->first), i->first);
 				} else {
 					StringList tmp;
 					tmp.push_back(i->first);

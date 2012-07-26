@@ -1408,5 +1408,9 @@ enum Strings { // @DontAdd
 	ADD_PROFILE_COPY, // "Add copy from this"
 	REMOVE_PROFILE, // "Remove profile"
 	APPLY_CHANGES, // "Apply changes"
+	ADD_IN_ALL_PROFILES, // "Add this directory in all profiles"
+	PROFILE_NAME_DESC, // "Enter a display name for the profile"
+	EDIT_PROFILES, // "Edit profiles..."
+	PROFILES_NOTE, // "Custom share profiles can only be set for ADC hubs"
 	LAST // @DontAdd
 };
