@@ -573,7 +573,7 @@ void AdcHub::handle(AdcCommand::UBD, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
-	if(c.getParameters().size() < 5) {
+	/*if(c.getParameters().size() < 5) {
 		if(c.getParameters().size() > 0) {
 			if(c.getParam(0) == "blom") {
 				send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC,
@@ -591,7 +591,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 
 	const string& type = c.getParam(0);
 	string sk, sh;
-	/*if(type == "blom" && c.getParam("BK", 4, sk) && c.getParam("BH", 4, sh))  {
+	if(type == "blom" && c.getParam("BK", 4, sk) && c.getParam("BH", 4, sh))  {
 		ByteVector v;
 		size_t m = Util::toUInt32(c.getParam(3)) * 8;
 		size_t k = Util::toUInt32(sk);

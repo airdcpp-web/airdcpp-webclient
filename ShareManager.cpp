@@ -2386,14 +2386,14 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 				curDir = j->second;
 			} else if (!allowAdd || !AirUtil::checkSharedName(fullPath, true, report)) {
 				return nullptr;
-			}
+			} else {
+				auto m = profileDirs.find(fullPath);
+				if (m != profileDirs.end() && m->second->isSet(ProfileDirectory::FLAG_EXCLUDE_TOTAL)) {
+					return nullptr;
+				}
 
-			auto m = profileDirs.find(fullPath);
-			if (m != profileDirs.end() && m->second->isSet(ProfileDirectory::FLAG_EXCLUDE_TOTAL)) {
-				return nullptr;
+				curDir = Directory::create(*i, curDir, GET_TIME(), m != profileDirs.end() ? m->second : nullptr);
 			}
-
-			curDir = Directory::create(*i, curDir, GET_TIME(), m != profileDirs.end() ? m->second : nullptr);
 			//addReleaseDir(curDir->getFullName());
 		}
 		return curDir;
@@ -2504,10 +2504,10 @@ void ShareManager::rebuildExcludeTypes() {
 		}
 
 		if (shared.empty()) {
-			LogManager::getInstance()->message(i->first + " is a total exclude", LogManager::LOG_INFO);
+			//LogManager::getInstance()->message(i->first + " is a total exclude", LogManager::LOG_INFO);
 			i->second->setFlag(ProfileDirectory::FLAG_EXCLUDE_TOTAL);
 		} else {
-			LogManager::getInstance()->message(i->first + " is NOT a total exclude", LogManager::LOG_INFO);
+			//LogManager::getInstance()->message(i->first + " is NOT a total exclude", LogManager::LOG_INFO);
 		}
 	}
 }
