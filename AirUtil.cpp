@@ -683,6 +683,16 @@ bool AirUtil::isAdcHub(const string& hubUrl) {
 	return false;
 }
 
+bool AirUtil::isHubLink(const string& hubUrl) {
+	if(strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
+		return true;
+	} else if(strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
+		return true;
+	} else if(strnicmp("dchub://", hubUrl.c_str(), 8) == 0) {
+		return true;
+	}
+	return false;
+}
 
 string AirUtil::stripHubUrl(const string& url) {
 	

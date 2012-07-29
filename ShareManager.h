@@ -308,8 +308,8 @@ private:
 		void addType(uint32_t type) noexcept;
 
 		string getADCPath(const string& aProfile) const noexcept;
-		string getName(const string& aProfile) const noexcept;
-		string getRealName() { return name; }
+		string getVirtualName(const string& aProfile) const noexcept;
+		string getRealName() { return realName; }
 		string getFullName(const string& aProfile) const noexcept; 
 		string getRealPath(bool checkExistance = true) const { return getRealPath(Util::emptyString, checkExistance); };
 
@@ -327,7 +327,7 @@ private:
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
 		void filesToXml(SimpleXML& aXml) const;
 		//for filelist caching
-		void toXmlList(OutputStream& xmlFile, const string& path, string& indent, const string& aProfile);
+		void toXmlList(OutputStream& xmlFile, const string& path, string& indent);
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 
@@ -337,7 +337,7 @@ private:
 		GETSET(Directory*, parent, Parent);
 		GETSET(ProfileDirectory::Ptr, profileDir, ProfileDir);
 
-		Directory(const string& aName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
+		Directory(const string& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
 		~Directory() { }
 
 		bool isRootLevel(const string& aProfile);
@@ -348,7 +348,7 @@ private:
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;
 		string getRealPath(const string& path, bool checkExistance) const;
-		string name;
+		string realName;
 	};
 
 	struct AdcSearch {
@@ -506,22 +506,22 @@ private:
 	void save(SimpleXML& aXml);
 	
 	ShareProfileList shareProfiles;
-/*This will only be used by the big sharing people probobly*/
-class Worker: public Thread
-{
-public:
-	Worker() { }
-	 ~Worker() {}
 
-private:
+	/*This will only be used by the big sharing people probobly*/
+	class Worker: public Thread {
+	public:
+		Worker() { }
+		~Worker() {}
+
+	private:
 		int run() {
-			ShareManager::getInstance()->saveXmlList();
+			ShareManager::getInstance()->saveXmlList(true);
 			return 0;
 		}
 	};//worker end
 
-friend class Worker;
-Worker w;
+	friend class Worker;
+	Worker w;
 
 }; //sharemanager end
 

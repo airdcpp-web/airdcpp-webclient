@@ -74,6 +74,7 @@ class AirUtil {
 		static bool isEmpty(const string& tgt);
 
 		static bool isAdcHub(const string& hubUrl);
+		static bool isHubLink(const string& hubUrl);
 
 		static string stripHubUrl(const string& url);
 

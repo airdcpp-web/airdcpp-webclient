@@ -150,9 +150,9 @@ void ShareManager::setDirty(const string& aProfile) {
 		(*i)->getProfileList()->setForceXmlRefresh(true);
 }
 
-ShareManager::Directory::Directory(const string& aName, const ShareManager::Directory::Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aProfileDir) :
+ShareManager::Directory::Directory(const string& aRealName, const ShareManager::Directory::Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aProfileDir) :
 	size(0),
-	name(aName),
+	realName(aRealName),
 	parent(aParent.get()),
 	fileTypes(1 << SearchManager::TYPE_DIRECTORY),
 	profileDir(aProfileDir),
@@ -172,19 +172,19 @@ int64_t ShareManager::Directory::getSize(const string& aProfile) const noexcept 
 string ShareManager::Directory::getADCPath(const string& aProfile) const noexcept {
 	if(profileDir && profileDir->hasProfile(aProfile))
 		return '/' + profileDir->getName(aProfile) + '/';
-	return getParent()->getADCPath(aProfile) + name + '/';
+	return getParent()->getADCPath(aProfile) + realName + '/';
 }
 
-string ShareManager::Directory::getName(const string& aProfile) const noexcept {
+string ShareManager::Directory::getVirtualName(const string& aProfile) const noexcept {
 	if(profileDir && profileDir->hasProfile(aProfile))
 		return profileDir->getName(aProfile);
-	return name;
+	return realName;
 }
 
 string ShareManager::Directory::getFullName(const string& aProfile) const noexcept {
 	if(profileDir && profileDir->hasProfile(aProfile))
 		return profileDir->getName(aProfile) + '\\';
-	return getParent()->getFullName(aProfile) + name + '\\';
+	return getParent()->getFullName(aProfile) + realName + '\\';
 }
 
 void ShareManager::Directory::addType(uint32_t type) noexcept {
@@ -212,7 +212,7 @@ bool ShareManager::isTTHShared(const TTHValue& tth) {
 
 string ShareManager::Directory::getRealPath(const string& path, bool checkExistance /*true*/) const {
 	if(getParent()) {
-		return getParent()->getRealPath(name + PATH_SEPARATOR_STR + path, checkExistance);
+		return getParent()->getRealPath(realName + PATH_SEPARATOR_STR + path, checkExistance);
 	}
 
 	string rootDir = getProfileDir()->getPath() + path;
@@ -225,7 +225,7 @@ string ShareManager::Directory::getRealPath(const string& path, bool checkExista
 	if(Util::fileExists(rootDir))
 		return rootDir;
 	else
-		return ShareManager::getInstance()->findRealRoot(name, path);
+		return ShareManager::getInstance()->findRealRoot(realName, path); // all display names should be compared really..
 }
 
 string ShareManager::findRealRoot(const string& virtualRoot, const string& virtualPath) const {
@@ -667,7 +667,8 @@ void ShareManager::load(SimpleXML& aXml) {
 	aXml.resetCurrentChild();
 
 	if(aXml.findChild("Share")) {
-		loadProfile(aXml, STRING(DEFAULT), SP_DEFAULT);
+		string name = aXml.getChildAttrib("Name");
+		loadProfile(aXml, !name.empty() ? name : STRING(DEFAULT), SP_DEFAULT);
 	}
 
 	aXml.resetCurrentChild();
@@ -804,7 +805,7 @@ void ShareManager::save(SimpleXML& aXml) {
 
 		aXml.addTag((*i)->getToken() == SP_DEFAULT ? "Share" : "ShareProfile");
 		aXml.addChildAttrib("Token", (*i)->getToken());
-		aXml.addChildAttrib("Name", (*i)->getName());
+		aXml.addChildAttrib("Name", (*i)->getPlainName());
 		aXml.stepIn();
 
 		for(auto p = shares.begin(); p != shares.end(); ++p) {
@@ -1666,7 +1667,7 @@ void ShareManager::saveXmlList(bool verbose /* false */) {
 		{
 			RLock l(cs);
 			for(auto i = shares.begin(); i != shares.end(); ++i) {
-				i->second->toXmlList(xmlFile, i->first, indent, Util::emptyString);
+				i->second->toXmlList(xmlFile, i->first, indent);
 			}
 		}
 
@@ -1687,12 +1688,12 @@ void ShareManager::saveXmlList(bool verbose /* false */) {
 		LogManager::getInstance()->message("shares.xml saved.", LogManager::LOG_INFO);
 }
 
-void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& path, string& indent, const string& aProfile){
+void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& path, string& indent){
 	string tmp, tmp2;
 	
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));
-	xmlFile.write(SimpleXML::escape(name, tmp, true));
+	xmlFile.write(SimpleXML::escape(realName, tmp, true));
 	xmlFile.write(LITERAL("\" Path=\""));
 	xmlFile.write(SimpleXML::escape(path, tmp, true));
 	xmlFile.write(LITERAL("\" Date=\""));
@@ -1701,9 +1702,7 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 
 	indent += '\t';
 	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		if (!aProfile.empty() && i->second->isLevelExcluded(aProfile))
-			continue;
-		i->second->toXmlList(xmlFile, path + i->first, indent, aProfile);
+		i->second->toXmlList(xmlFile, path + i->first, indent);
 	}
 
 	for(auto i = files.begin(); i != files.end(); ++i) {
@@ -1831,8 +1830,9 @@ void ShareManager::Directory::toXml(SimpleXML& xmlFile, bool fullList, const str
 
 	xmlFile.resetCurrentChild();
 	
+	string vName = getVirtualName(aProfile);
 	while( xmlFile.findChild("Directory") ){
-		if( stricmp(xmlFile.getChildAttrib("Name"), getName(aProfile)) == 0 ){
+		if( stricmp(xmlFile.getChildAttrib("Name"), vName) == 0 ){
 			string curdate = xmlFile.getChildAttrib("Date");
 			if(!curdate.empty() && Util::toUInt32(curdate) < lastWrite) //compare the dates and add the last modified
 				xmlFile.replaceChildAttrib("Date", Util::toString(lastWrite));
@@ -1845,7 +1845,7 @@ void ShareManager::Directory::toXml(SimpleXML& xmlFile, bool fullList, const str
 	if(create) {
 		xmlFile.addTag("Directory");
 		xmlFile.forceEndTag();
-		xmlFile.addChildAttrib("Name", getName(aProfile));
+		xmlFile.addChildAttrib("Name", vName);
 		xmlFile.addChildAttrib("Date", Util::toString(lastWrite));
 	}
 
@@ -2032,7 +2032,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 
 	// Find any matches in the directory name
 	for(auto k = aStrings.begin(); k != aStrings.end(); ++k) {
-		if(k->match(name)) {
+		if(k->match(profileDir ? profileDir->getName(SP_DEFAULT) : realName)) {
 			if(!newStr.get()) {
 				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(aStrings));
 			}
@@ -2199,7 +2199,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 	// Find any matches in the directory name
 	for(auto k = aStrings.include->begin(); k != aStrings.include->end(); ++k) {
-		if(k->match(name) && !aStrings.isExcluded(name)) {
+		if(k->match(profileDir ? profileDir->getName(aProfile) : realName) && !aStrings.isExcluded(profileDir ? profileDir->getName(aProfile) : realName)) {
 			if(!newStr.get()) {
 				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(*aStrings.include));
 			}

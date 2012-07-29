@@ -1405,6 +1405,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "Enter a display name for the profile", 
 "Edit profiles...", 
 "Custom share profiles can only be set for ADC hubs", 
+"Connect with profile...", 
+"Release", 
+"Text", 
+"Link", 
+"Hide share", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2810,4 +2815,9 @@ std::string dcpp::ResourceManager::names[] = {
 "ProfileNameDesc", 
 "EditProfiles", 
 "ProfilesNote", 
+"ConnectWithProfile", 
+"Release", 
+"Text", 
+"Link", 
+"HideShareShort", 
 };

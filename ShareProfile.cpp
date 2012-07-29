@@ -110,10 +110,18 @@ void FileList::saveList(SimpleXML& aXml) {
 	boost::for_each(lists, File::deleteFile);
 }
 
-ShareProfile::ShareProfile(const string& aName, const string& aToken /*Util::emptyString*/) : token(aToken), name(aName), profileList(new FileList(aToken)) { }
+ShareProfile::ShareProfile(const string& aName, const string& aToken /*Util::emptyString*/) : token(aToken), plainName(aName), profileList(new FileList(aToken)) { }
 
 ShareProfile::~ShareProfile() {
 	delete profileList;
+}
+
+string ShareProfile::getDisplayName() {
+	string ret = plainName;
+	if (token == SP_DEFAULT) {
+		ret += " (" + STRING(DEFAULT) + ")";
+	}
+	return ret;
 }
 
 FileList* ShareProfile::generateProfileList() {

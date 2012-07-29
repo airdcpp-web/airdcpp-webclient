@@ -80,7 +80,8 @@ public:
 
 	//GETSET(ShareManager::DirMap, shares, Shares);
 	GETSET(string, token, Token);
-	GETSET(string, name, Name);
+	GETSET(string, plainName, PlainName);
+	string getDisplayName();
 	GETSET(FileList*, profileList, ProfileList);
 	ShareProfile(const string& aName, const string& aToken = Util::toString(Util::rand()));
 	~ShareProfile();

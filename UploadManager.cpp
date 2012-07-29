@@ -1197,6 +1197,9 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		
 		if(ticks.size() > 0)
 			fire(UploadManagerListener::Tick(), ticks);
+
+		if (!tickBundles.empty())
+			fire(UploadManagerListener::BundleTick(), tickBundles);
 	}
 
 	//this shouldn't need lock

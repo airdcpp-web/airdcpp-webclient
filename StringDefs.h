@@ -1412,5 +1412,10 @@ enum Strings { // @DontAdd
 	PROFILE_NAME_DESC, // "Enter a display name for the profile"
 	EDIT_PROFILES, // "Edit profiles..."
 	PROFILES_NOTE, // "Custom share profiles can only be set for ADC hubs"
+	CONNECT_WITH_PROFILE, // "Connect with profile..."
+	RELEASE, // "Release"
+	TEXT, // "Text"
+	LINK, // "Link"
+	HIDE_SHARE_SHORT, // "Hide share"
 	LAST // @DontAdd
 };
