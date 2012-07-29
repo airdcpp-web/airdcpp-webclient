@@ -1461,6 +1461,7 @@ int ShareManager::run() {
 		switch (t.first) {
 			case(REFRESH_ALL):
 				msg = STRING(FILE_LIST_REFRESH_INITIATED);
+				refreshRunning = true;
 				lastFullUpdate = GET_TICK();
 				break;
 			case(REFRESH_DIR):
@@ -1472,6 +1473,7 @@ int ShareManager::run() {
 					} else {
 						msg = STRING_F(FILE_LIST_REFRESH_INITIATED_X_VPATH, directories.size());
 					}
+					refreshRunning = true;
 				}
 				break;
 			case(ADD_DIR):
@@ -1544,6 +1546,7 @@ end:
 		WLock l (dirNames);
 		bundleDirs.clear();
 	}
+	refreshRunning = false;
 	refreshing.clear();
 	return 0;
 }
