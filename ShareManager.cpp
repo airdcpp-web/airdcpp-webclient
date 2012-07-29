@@ -1249,8 +1249,10 @@ int ShareManager::refresh(bool incoming /*false*/, bool isStartup /*false*/){
 		//}
 	}
 
-	if (dirs.empty())
+	if (dirs.empty()){
+		refreshing.clear();
 		return REFRESH_PATH_NOT_FOUND;
+	}
 
 	{
 		WLock l (dirNames);
