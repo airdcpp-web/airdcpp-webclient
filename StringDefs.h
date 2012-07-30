@@ -1417,5 +1417,6 @@ enum Strings { // @DontAdd
 	TEXT, // "Text"
 	LINK, // "Link"
 	HIDE_SHARE_SHORT, // "Hide share"
+	PROFILE_NAME, // "Profile name"
 	LAST // @DontAdd
 };

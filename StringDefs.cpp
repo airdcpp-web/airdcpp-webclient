@@ -1410,6 +1410,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Text", 
 "Link", 
 "Hide share", 
+"Profile name", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2820,4 +2821,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Text", 
 "Link", 
 "HideShareShort", 
+"ProfileName", 
 };

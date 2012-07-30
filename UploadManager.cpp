@@ -1202,10 +1202,6 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			fire(UploadManagerListener::BundleTick(), tickBundles);
 	}
 
-	//this shouldn't need lock
-	if (!tickBundles.empty())
-		fire(UploadManagerListener::BundleTick(), tickBundles);
-
 	notifyQueuedUsers();
 	fire(UploadManagerListener::QueueUpdate());
 }
