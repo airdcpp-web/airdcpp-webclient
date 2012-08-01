@@ -1398,7 +1398,7 @@ enum Strings { // @DontAdd
 	SETTINGS_TOOLBAR_NOTE, // "Note! Changing Toolbar Images or icon size require a client restart to take effect."
 	SETTINGS_WTOOLBAR_SIZE, // "Media Toolbar Icon size"
 	MENU_OPEN_HUB_OWN_LIST, // "Open Hub own list"
-	TOGGLE_TBSTATUS, // "Toolbar StatusBar"
+	TOGGLE_TBSTATUS, // "Toolbar Progressbar"
 	X_FAV_PROFILES_RESET, // "%d favorite hubs have been reset to use the default share profile"
 	SHARE_PROFILE, // "Share Profile"
 	SHARE_PROFILES, // "Share Profiles"

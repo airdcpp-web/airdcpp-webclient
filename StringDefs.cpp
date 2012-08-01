@@ -1391,7 +1391,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Note! Changing Toolbar Images or icon size require a client restart to take effect.", 
 "Media Toolbar Icon size", 
 "Open Hub own list", 
-"Toolbar StatusBar", 
+"Toolbar Progressbar", 
 "%d favorite hubs have been reset to use the default share profile", 
 "Share Profile", 
 "Share Profiles", 
