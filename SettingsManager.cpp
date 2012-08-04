@@ -157,7 +157,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
 	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
-	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor",
+	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -605,8 +605,8 @@ SettingsManager::SettingsManager()
 	setDefault(FLASH_WINDOW_ON_MYNICK, false);
 	setDefault(AUTOSEARCH_EVERY, 15);
 	setDefault(AUTOSEARCH_RECHECK_TIME, 360);
-	setDefault(TB_IMAGE_SIZE, 32);
-	setDefault(TB_IMAGE_SIZE_HOT, 32);
+	setDefault(TB_IMAGE_SIZE, 24);
+	setDefault(TB_IMAGE_SIZE_HOT, 24);
 	setDefault(USE_HIGHLIGHT, false);
 	setDefault(SHOW_QUEUE_BARS, true);
 	setDefault(SEND_BLOOM, true);
@@ -673,6 +673,7 @@ SettingsManager::SettingsManager()
 	setDefault(HIGHLIGHT_LIST, "");
 	setDefault(REPORT_SKIPLIST, true);
 
+
 	setDefault(SCAN_DL_BUNDLES, true);
 	setDefault(USE_PARTIAL_SHARING, true);
 	setDefault(POPUP_BUNDLE_DLS, true);
@@ -704,6 +705,7 @@ SettingsManager::SettingsManager()
 
 	setDefault(TB_PROGRESS_TEXT_COLOR, RGB(255, 0, 0));
 	setDefault(TB_PROGRESS_FONT, "Arial,-11,400,0");
+	setDefault(LOCK_TB, false);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
