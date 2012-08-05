@@ -319,7 +319,7 @@ bool ShareManager::ProfileDirectory::removeRootProfile(const string& aProfile) {
 }
 
 string ShareManager::ProfileDirectory::getName(const string& aProfile) {
-	auto p = shareProfiles.find(aProfile);
+	auto p = shareProfiles.find(aProfile.empty() ? SP_DEFAULT : aProfile);
 	return p == shareProfiles.end() ? Util::emptyString : p->second; 
 }
 

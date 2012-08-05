@@ -321,6 +321,9 @@ checkslots:
 	} catch(const ShareException& e) {
 		aSource.fileNotAvail(e.getError());
 		return false;
+	} catch(const QueueException& e) {
+		aSource.fileNotAvail(e.getError());
+		return false;
 	} catch(const Exception& e) {
 		if(is)
 			delete is;
