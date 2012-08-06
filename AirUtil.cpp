@@ -49,8 +49,8 @@ namespace dcpp {
 void AirUtil::init() {
 	releaseReg.Init(getReleaseRegBasic());
 	releaseReg.study();
-	subDirReg.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
-	subDirReg.study();
+	subDirRegPath.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
+	subDirRegPath.study();
 #ifdef _WIN32
 	// don't share Windows directory
 	TCHAR path[MAX_PATH];
@@ -108,7 +108,7 @@ string AirUtil::getReleaseDir(const string& aName) {
 	dirMatch=dir;
 	bool match=false;
 	for (;;) {
-		if (subDirReg.match(dirMatch) > 0) {
+		if (subDirRegPath.match(dirMatch) > 0) {
 			dpos = dirMatch.rfind("\\");
 			if(dpos != string::npos) {
 				match=true;

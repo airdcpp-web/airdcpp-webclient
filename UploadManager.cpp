@@ -227,22 +227,22 @@ checkslots:
 		case Transfer::TYPE_FILE:
 			{
 				if(partialFileSharing) {
-						SharedFileStream* ss = new SharedFileStream(sourceFile, File::READ, File::OPEN | File::SHARED | File::NO_CACHE_HINT);
-						start = aStartPos;
-						fileSize = ss->getSize();
-						size = (aBytes == -1) ? fileSize - start : aBytes;
+					SharedFileStream* ss = new SharedFileStream(sourceFile, File::READ, File::OPEN | File::SHARED | File::NO_CACHE_HINT);
+					start = aStartPos;
+					fileSize = ss->getSize();
+					size = (aBytes == -1) ? fileSize - start : aBytes;
 					
-						if((start + size) > fileSize) {
-							aSource.fileNotAvail();
-							delete ss;
-							return false;
-						}
+					if((start + size) > fileSize) {
+						aSource.fileNotAvail();
+						delete ss;
+						return false;
+					}
 
-						ss->setPos(start);
-						is = ss;
-						if((start + size) < fileSize) {
-							is = new LimitedInputStream<true>(is, size);
-						}
+					ss->setPos(start);
+					is = ss;
+					if((start + size) < fileSize) {
+						is = new LimitedInputStream<true>(is, size);
+					}
 
 					break;
 				}

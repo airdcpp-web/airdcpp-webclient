@@ -76,6 +76,8 @@ ShareManager::ShareManager() : refreshing(false),
 	QueueManager::getInstance()->addListener(this);
 
 	RAR_regexp.Init("[Rr0-9][Aa0-9][Rr0-9]");
+	//subDirRegPlain.Init("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", PCRE_CASELESS);
+	subDirRegPlain.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
 }
 
 ShareManager::~ShareManager() {
@@ -319,7 +321,7 @@ bool ShareManager::ProfileDirectory::removeRootProfile(const string& aProfile) {
 }
 
 string ShareManager::ProfileDirectory::getName(const string& aProfile) {
-	auto p = shareProfiles.find(aProfile.empty() ? SP_DEFAULT : aProfile);
+	auto p = shareProfiles.find(aProfile);
 	return p == shareProfiles.end() ? Util::emptyString : p->second; 
 }
 
@@ -499,10 +501,9 @@ void ShareManager::removeTempShare(const string& aKey, TTHValue& tth) {
 	}
 }
 
-ShareManager::DirMultiMap ShareManager::findVirtuals(const string& virtualPath, const string& aProfile) const {
+void ShareManager::findVirtuals(const string& virtualPath, const string& aProfile, DirectoryList& dirs) const {
 
-	Dirs virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
-	DirMultiMap ret;
+	DirectoryList virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
 	if(virtualPath.empty() || virtualPath[0] != '/') {
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
@@ -512,7 +513,7 @@ ShareManager::DirMultiMap ShareManager::findVirtuals(const string& virtualPath, 
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
 
-	virtuals = getByVirtual( virtualPath.substr(1, start-1), aProfile);
+	getByVirtual( virtualPath.substr(1, start-1), aProfile, virtuals);
 	if(virtuals.empty()) {
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
@@ -524,7 +525,7 @@ ShareManager::DirMultiMap ShareManager::findVirtuals(const string& virtualPath, 
 		d = *k;
 
 		if(virtualPath.find('/', j) == string::npos) {	  // we only have root virtualpaths.
-			ret.insert(make_pair(virtualPath.substr(j), d));
+			dirs.push_back(d);
 		} else {
 			while((i = virtualPath.find('/', j)) != string::npos) {
 				if(d) {
@@ -540,33 +541,33 @@ ShareManager::DirMultiMap ShareManager::findVirtuals(const string& virtualPath, 
 			}
 
 			if(d) 
-				ret.insert(make_pair(virtualPath.substr(j), d));
+				dirs.push_back(d);
 		}
 	}
-	if(ret.empty()) {
-	//if we are here it means we didnt find anything, throw.
+
+	if(dirs.empty()) {
+		//if we are here it means we didnt find anything, throw.
 		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 	}
-
-	return ret;
 }
 
-void ShareManager::getRealPaths(const string& path, StringList& ret) {
+void ShareManager::getRealPaths(const string& path, StringList& ret, const string& aProfile) {
 	if(path.empty())
 		throw ShareException("empty virtual path");
 
 
 	string dir;
-	DirMultiMap dirs = findVirtuals(path, Util::emptyString);
+	DirectoryList dirs;
+	findVirtuals(path, aProfile, dirs);
 
 	if(*(path.end() - 1) == '/') {
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
-			ret.push_back(i->second->getRealPath());
+			ret.push_back((*i)->getRealPath());
 		}
 	} else { //its a file
 		for(auto v = dirs.begin(); v != dirs.end(); ++v) {
-			auto it = find_if(v->second->files.begin(), v->second->files.end(), Directory::File::StringComp(v->first));
-			if(it != v->second->files.end()) {
+			auto it = find_if((*v)->files.begin(), (*v)->files.end(), Directory::File::StringComp((*v)->getRealPath()));
+			if(it != (*v)->files.end()) {
 				ret.push_back(it->getRealPath());
 				return;
 			}
@@ -636,6 +637,8 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, const strin
 		} else {
 			dir = j->second;
 		}
+
+		shareDirs.insert(make_pair(Text::toLower(virtualName), dir));
 
 		if (aXml.getBoolChildAttrib("Incoming"))
 			dir->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING);
@@ -709,7 +712,7 @@ static const string PATH = "Path";
 static const string DATE = "Date";
 
 struct ShareLoader : public SimpleXMLReader::CallBack {
-	ShareLoader(ShareManager::ProfileDirMap& aDirs) : dirs(aDirs), cur(nullptr) { }
+	ShareLoader(ShareManager::ProfileDirMap& aDirs) : profileDirs(aDirs), cur(nullptr) { }
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
 
 		if(name == SDIRECTORY) {
@@ -722,12 +725,14 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 
 			if(!name.empty()) {
 				cur = ShareManager::Directory::create(name, cur, Util::toUInt32(date));
-				auto i = dirs.find(path);
-				if(i != dirs.end()) {
+				auto i = profileDirs.find(path);
+				if(i != profileDirs.end()) {
 					cur->setProfileDir(i->second);
 					if (i->second->hasRoots())
 						ShareManager::getInstance()->addShares(path, cur);
 				}
+				//ShareManager::getInstance()->addDir(name, cur);
+				dirs.insert(make_pair(name, cur));
 				lastFileIter = cur->files.begin();
 				//ShareManager::getInstance()->addReleaseDir(cur->getFullName());
 			}
@@ -765,8 +770,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 		}
 	}
 
+	ShareManager::DirMultiMap dirs;
 private:
-	ShareManager::ProfileDirMap& dirs;
+	ShareManager::ProfileDirMap& profileDirs;
 
 	ShareManager::Directory::File::Set::iterator lastFileIter;
 	ShareManager::Directory::Ptr cur;
@@ -778,8 +784,10 @@ bool ShareManager::loadCache() {
 		//look for shares.xml
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
 		SimpleXMLReader(&loader).parse(ff);
+		shareDirs = loader.dirs;
 
 		rebuildIndices();
+		LogManager::getInstance()->message("Dirs: " + Util::toString(shareDirs.size()), LogManager::LOG_INFO);
 	}catch(SimpleXMLException& e) {
 		LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError(), LogManager::LOG_ERROR);
 		return false;
@@ -859,17 +867,12 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 #endif
 }
 
-ShareManager::Dirs ShareManager::getByVirtual(const string& virtualName, const string& aProfile) const throw() {
-	if(virtualName.empty())
-		return Dirs();
-	
-	Dirs temp;
+void ShareManager::getByVirtual(const string& virtualName, const string& aProfile, DirectoryList& dirs) const throw() {
 	for(auto i = shares.begin(); i != shares.end(); ++i) {
 		if((aProfile.empty() || i->second->getProfileDir()->hasProfile(aProfile)) && stricmp(i->second->getProfileDir()->getName(aProfile), virtualName) == 0) {
-			temp.push_back(i->second);
+			dirs.push_back(i->second);
 		}
 	}
-	return temp;
 }
 
 int64_t ShareManager::getShareSize(const string& realPath, const string& aProfile) const noexcept {
@@ -914,18 +917,87 @@ int64_t ShareManager::getTotalShareSize(const string& aProfile) const noexcept {
 	return ret;
 }
 
-bool ShareManager::isDirShared(const string& directory) const {
+bool ShareManager::isDirShared(const string& aDir) const {
+	RLock l (cs);
+	return getDirByName(aDir) ? true : false;
+}
 
-	string dir = AirUtil::getReleaseDir(directory);
-	if (dir.empty())
+uint8_t ShareManager::isDirShared(const string& aDir, uint64_t aSize) const {
+	RLock l (cs);
+	auto dir = getDirByName(aDir);
+	if (!dir)
+		return 0;
+	return dir->getSize(SP_DEFAULT) == aSize ? 2 : 1;
+}
+
+tstring ShareManager::getDirPath(const string& aDir) {
+	RLock l (cs);
+	auto dir = getDirByName(aDir);
+	if (!dir)
+		return Util::emptyStringT;
+
+	return Text::toT(dir->getRealPath());
+}
+
+ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) const {
+	if (aDir.size() < 3)
+		return nullptr;
+
+	string dir = aDir;
+	if (dir[dir.length()-1] == PATH_SEPARATOR)
+		dir.erase(aDir.size()-1, aDir.size());
+	auto pos = dir.rfind(PATH_SEPARATOR);
+	if (pos != string::npos)
+		dir = dir.substr(pos+1);
+
+	auto directories = shareDirs.equal_range(dir);
+	if (directories.first == directories.second)
 		return false;
-	/*we need to protect this, but same mutex used here is too much, it will freeze during refreshing even with chat releasenames*/
-	RLock l(dirNames);
-	if (std::binary_search(dirNameList.begin(), dirNameList.end(), dir)) {
-		return true;
+
+	//boost::regex reg;
+	//reg.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)");
+	if (boost::regex_match(dir, subDirRegPlain) && pos != string::npos) {
+	//if (subDirRegPlain.match(dir) > 0 && pos != string::npos) {
+		string::size_type i;
+		string::size_type j;
+		bool found = false;
+		dir = PATH_SEPARATOR + aDir;
+
+		for(auto s = directories.first; s != directories.second; ++s) {
+			i = pos;
+			Directory::Ptr cur = s->second->getParent();
+			for(;;) {
+				if (!cur)
+					break;
+
+				j = dir.find_last_of(PATH_SEPARATOR, i);
+				if(j == string::npos)
+					break;
+				//auto len = i-j;
+				//auto startpos = aDir.length() - (aDir.length()-j)+1;
+				auto remoteDir = dir.substr(j+1, i-j);
+				if(stricmp(cur->getRealName(), remoteDir) == 0) {
+					if (!boost::regex_match(remoteDir, subDirRegPlain)) { //another subdir? don't break in that case
+					//if (subDirRegPlain.match(dir) == 0) {
+						found = true;
+						break;
+					}
+				} else {
+					//this is something different....
+					break;
+				}
+				cur = cur->getParent();
+				i = j - 1;
+			}
+
+			if (found)
+				return s->second;
+		}
+	} else {
+		return directories.first->second;
 	}
-		
-	return false;
+
+	return nullptr;
 }
 
 bool ShareManager::isFileShared(const TTHValue aTTH, const string& fileName) const {
@@ -942,7 +1014,7 @@ bool ShareManager::isFileShared(const TTHValue aTTH, const string& fileName) con
 	return false;
 }
 
-tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
+/*tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
 	string dir = directory;
 	if (validateDir) {
 		dir = AirUtil::getReleaseDir(directory);
@@ -984,10 +1056,10 @@ tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
  	}
  	
 	return Util::emptyStringT;
- }
+ }*/
 
 
-string ShareManager::Directory::find(const string& dir, bool validateDir) {
+/*string ShareManager::Directory::find(const string& dir, bool validateDir) {
 	string ret = Util::emptyString;
 	string dirNew = dir;
 	//if (validateDir)
@@ -1005,45 +1077,27 @@ string ShareManager::Directory::find(const string& dir, bool validateDir) {
 			break;
 	}
 	return ret;
-}
+}*/
 
-void ShareManager::Directory::findDirsRE(bool remove) {
+/*void ShareManager::Directory::findDirsRE(bool remove) {
 	for(auto l = directories.begin(); l != directories.end(); ++l) {
 		 l->second->findDirsRE(remove);
 	}
 
-	/*if (remove) {
+	if (remove) {
 		ShareManager::getInstance()->deleteReleaseDir(this->getFullName());
 	} else {
 		ShareManager::getInstance()->addReleaseDir(this->getFullName());
-	}*/
-}
-
-void ShareManager::addReleaseDir(const string& aName) {
-	string dir = AirUtil::getReleaseDir(aName);
-	if (dir.empty())
-		return;
-
-	WLock l(dirNames);
-	dirNameList.push_back(dir);
-}
-
-void ShareManager::deleteReleaseDir(const string& aName) {
-
-	string dir = AirUtil::getReleaseDir(aName);
-	if (dir.empty())
-		return;
-
-	for(auto i = dirNameList.begin(); i != dirNameList.end(); ++i) {
-		if ((*i) == dir) {
-			WLock l(dirNames);
-			dirNameList.erase(i);
-			return;
-		}
 	}
+}*/
+
+void ShareManager::removeDir(ShareManager::Directory::Ptr aDir) {
+	auto p = find_if(shareDirs.begin(), shareDirs.end(), [aDir](pair<string, Directory::Ptr> sdp) { return sdp.second == aDir; });
+	dcassert(p != shareDirs.end());
+	shareDirs.erase(p);
 }
 
-void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued , const ProfileDirMap& aSubRoots, StringList& aReleases, DirMap& newShares) {
+void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares) {
 	auto lastFileIter = aDir->files.begin();
 	FileFindIter end;
 
@@ -1090,15 +1144,12 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 				}
 			}
 
-			auto rlsDir = AirUtil::getReleaseDir(curPath);
-			if (!rlsDir.empty())
-				aReleases.push_back(rlsDir);
-
 			auto dir = Directory::create(name, aDir, i->getLastWriteTime(), profileDir);
+			aDirs.insert(make_pair(name, dir));
 			if (profileDir && profileDir->isSet(ProfileDirectory::FLAG_ROOT))
 				newShares[curPath] = dir;
 
-			buildTree(curPath, dir, checkQueued, aSubRoots, aReleases, newShares);
+			buildTree(curPath, dir, checkQueued, aSubRoots, aDirs, newShares);
 		} else {
 			// Not a directory, assume it's a file...
 			string path = aPath + name;
@@ -1498,12 +1549,18 @@ int ShareManager::run() {
 		bundleDirs.clear();
 		QueueManager::getInstance()->getForbiddenPaths(bundleDirs, directories);
 
-		StringList newReleases;
+		DirMultiMap newShareDirs;
 		DirMap newShares;
 
 		if(t.first == REFRESH_DIR || t.first == REFRESH_INCOMING || t.first == ADD_DIR) {
-			newReleases = dirNameList;
-			newShares = shares;
+			{
+				WLock l (cs);
+				newShares = shares;
+				for(auto i = dirs.begin(); i != dirs.end(); ++i) {
+					removeDir(i->second.first);
+				}
+			}
+
 			for(auto i = dirs.begin(); i != dirs.end(); ++i) {
 				auto m = find_if(newShares.begin(), newShares.end(), [i](pair<string, Directory::Ptr> dir) { return AirUtil::isSub(dir.first, i->first); });
 				if(m != newShares.end()) {
@@ -1511,21 +1568,22 @@ int ShareManager::run() {
 				}
 			}
 
-			for(auto i = dirs.begin(); i != dirs.end(); ++i) {
+			/*for(auto i = dirs.begin(); i != dirs.end(); ++i) {
 				for(auto p = newShares.begin(); p != newShares.end();) {
 					if (AirUtil::isSub(p->first, i->first))
 						newShares.erase(p);
 					else
 						p++;
 				}
-			}
+			}*/
 		}
 
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
 			if (checkHidden(i->first)) {
 				Directory::Ptr dp = Directory::create(Util::getLastDir(i->first), nullptr, findLastWrite(i->first), i->second.first->getProfileDir());
+				newShareDirs.insert(make_pair(Util::getLastDir(i->first), dp));
 				newShares[i->first] = dp;
-				buildTree(i->first, dp, true, i->second.second, newReleases, newShares);
+				buildTree(i->first, dp, true, i->second.second, newShareDirs, newShares);
 				if(aShutdown) goto end;  //abort refresh
 			}
 		}
@@ -1533,6 +1591,11 @@ int ShareManager::run() {
 		{		
 			WLock l(cs);
 			shares = newShares;
+			if(t.first == REFRESH_DIR || t.first == REFRESH_INCOMING || t.first == ADD_DIR) {
+				shareDirs.insert(newShareDirs.begin(), newShareDirs.end());
+			} else {
+				shareDirs = newShareDirs;
+			}
 				
 			rebuildIndices();
 			setDirty(true);  //forceXmlRefresh
@@ -1738,10 +1801,11 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 
 	try{
 		RLock l(cs);
-		DirMultiMap result = findVirtuals(dir, aProfile); 
+		DirectoryList result;
+		findVirtuals(dir, aProfile, result); 
 		for(auto it = result.begin(); it != result.end(); ++it) {
-			dcdebug("result name %s \n", it->second->getProfileDir()->getName(aProfile));
-			it->second->toTTHList(sos, tmp, recurse);
+			dcdebug("result name %s \n", (*it)->getProfileDir()->getName(aProfile));
+			(*it)->toTTHList(sos, tmp, recurse);
 		}
 	} catch(...) {
 		return NULL;
@@ -1797,11 +1861,12 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		dcdebug("wanted %s \n", dir);
 		try {
 			RLock l(cs);
-			DirMultiMap result = findVirtuals(dir, aProfile); 
+			DirectoryList result;
+			findVirtuals(dir, aProfile, result); 
 			Directory::Ptr root;
 			for(auto it = result.begin(); it != result.end(); ++it) {
-				dcdebug("result name %s \n", it->second->getProfileDir()->getName(aProfile));
-				root = it->second;
+				root = *it;
+				dcdebug("result name %s \n", root->getProfileDir()->getName(aProfile));
 
 				if(basedate.empty() || (Util::toUInt32(basedate) < root->getLastWrite())) //compare the dates and add the last modified
 					basedate = Util::toString(root->getLastWrite());
@@ -2323,6 +2388,8 @@ void ShareManager::cleanIndices(Directory::Ptr& dir) {
 		}
 	}
 
+	removeDir(dir);
+
 	dir->files.clear();
 	dir->directories.clear();
 }
@@ -2347,8 +2414,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 
 		ProfileDirMap profileDirs;
 		DirMap newShares;
-		buildTree(path, dir, false, profileDirs, dirNameList, newShares);
-		sort(dirNameList.begin(), dirNameList.end());
+		buildTree(path, dir, false, profileDirs, shareDirs, newShares);
 		updateIndices(*dir);
 		setDirty(true); //forceXmlRefresh
 	}
@@ -2402,6 +2468,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 				}
 
 				curDir = Directory::create(*i, curDir, GET_TIME(), m != profileDirs.end() ? m->second : nullptr);
+				shareDirs.insert(make_pair(*i, curDir));
 			}
 			//addReleaseDir(curDir->getFullName());
 		}

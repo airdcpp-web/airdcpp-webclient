@@ -288,7 +288,16 @@ DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
 		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(Directory::NONE), size(0) {
 
+	if (!aSize.empty()) {
+		size = Util::toInt64(aSize);
+	}
+
 	if (checkDupe) {
+		/*auto sd = ShareManager::getInstance()->isDirShared(getPath(), size);
+		if (sd > 0) {
+			setDupe(sd == 2 ? Directory::SHARE_DUPE : Directory::PARTIAL_SHARE_DUPE);
+		} */
+
 		if (ShareManager::getInstance()->isDirShared(getPath())) {
 			setDupe(Directory::SHARE_DUPE);
 		} else {
@@ -299,10 +308,6 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	}
 
 	setDate(aDate);
-
-	if (!aSize.empty()) {
-		size = Util::toInt64(aSize);
-	}
 }
 
 void DirectoryListing::Directory::setDate(const string& aDate) {
@@ -512,7 +517,7 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
 	try {
-		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret);
+		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret, SP_DEFAULT);
 	} catch(const ShareException&) {
 		//..
 	}
@@ -520,7 +525,7 @@ void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
 
 void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
 	try {
-		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret);
+		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, SP_DEFAULT);
 	} catch(const ShareException&) {
 		//..
 	}

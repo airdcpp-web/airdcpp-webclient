@@ -527,9 +527,6 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
-	if(getShareProfile() == SP_HIDDEN)
-		return;
-
 	OnlineUser* ou = findUser(c.getFrom());
 	if(!ou) {
 		dcdebug("Invalid user in AdcHub::onSCH\n");

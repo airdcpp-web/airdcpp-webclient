@@ -28,7 +28,7 @@
 namespace dcpp {
 
 static PME releaseReg;
-static PME subDirReg;
+static PME subDirRegPath;
 static boost::regex skiplistReg; //boost is faster on this??
 
 /* Cache some things to lower case */

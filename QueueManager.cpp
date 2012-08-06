@@ -2106,28 +2106,6 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		saveQueue(false);
 	}
 
-	{
-		RLock l(cs);
-		if (bundleUpdates.empty())
-			return;
-	}
-
-	StringList updateTokens;
-	{
-		WLock l(cs);
-		for (auto i = bundleUpdates.begin(); i != bundleUpdates.end();) {
-			if (aTick > i->second) {
-				updateTokens.push_back(i->first);
-				bundleUpdates.erase(i);
-				i = bundleUpdates.begin();
-			} else {
-				i++;
-			}
-		}
-	}
-
-	for_each(updateTokens, [&](const string& t) { handleBundleUpdate(t); });
-
 	Bundle::PrioList qiPriorities;
 	vector<pair<BundlePtr, Bundle::Priority>> bundlePriorities;
 	auto prioType = SETTING(AUTOPRIO_TYPE);
@@ -2181,6 +2159,29 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 			});
 		}
 	}
+
+
+	{
+		RLock l(cs);
+		if (bundleUpdates.empty())
+			return;
+	}
+
+	StringList updateTokens;
+	{
+		WLock l(cs);
+		for (auto i = bundleUpdates.begin(); i != bundleUpdates.end();) {
+			if (aTick > i->second) {
+				updateTokens.push_back(i->first);
+				bundleUpdates.erase(i);
+				i = bundleUpdates.begin();
+			} else {
+				i++;
+			}
+		}
+	}
+
+	for_each(updateTokens, [&](const string& t) { handleBundleUpdate(t); });
 }
 
 void QueueManager::calculateBundlePriorities(bool verbose) {

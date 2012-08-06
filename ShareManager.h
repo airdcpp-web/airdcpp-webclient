@@ -116,11 +116,12 @@ public:
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const string& aProfile, const CID& cid) noexcept;
-	bool isDirShared(const string& directory) const;
+	bool isDirShared(const string& aDir) const;
+	uint8_t isDirShared(const string& aPath, uint64_t aSize) const;
 	bool isFileShared(const TTHValue aTTH, const string& fileName) const;
 	bool allowAddDir(const string& dir);
 	string getReleaseDir(const string& aName);
-	tstring getDirPath(const string& directory, bool validate = true);
+	tstring getDirPath(const string& directory);
 	string getBloomStats();
 
 	bool loadCache();
@@ -150,7 +151,7 @@ public:
 
 	bool isTTHShared(const TTHValue& tth);
 
-	void getRealPaths(const string& path, StringList& ret);
+	void getRealPaths(const string& path, StringList& ret, const string& aProfile);
 
 	//void LockRead() noexcept { cs.lock_shared(); }
 	//void unLockRead() noexcept { cs.unlock_shared(); }
@@ -321,7 +322,7 @@ private:
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) const noexcept;
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) const noexcept;
-		void findDirsRE(bool remove);
+		//void findDirsRE(bool remove);
 
 		void toXml(SimpleXML& aXml, bool fullList, const string& aProfile);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
@@ -331,7 +332,7 @@ private:
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
 
-		string find(const string& dir, bool validateDir);
+		//string find(const string& dir, bool validateDir);
 
 		GETSET(uint32_t, lastWrite, LastWrite);
 		GETSET(Directory*, parent, Parent);
@@ -371,6 +372,9 @@ private:
 
 		bool isDirectory;
 	};
+
+	void removeDir(Directory::Ptr aDir);
+	Directory::Ptr getDirByName(const string& directory) const;
 
 	/* Directory items mapped to realpath*/
 	typedef boost::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap;
@@ -426,6 +430,8 @@ private:
 	bool ShareCacheDirty;
 	bool aShutdown;
 
+	//PME subDirRegPlain;
+	boost::regex subDirRegPlain;
 	PME RAR_regexp;
 	
 	atomic_flag refreshing;
@@ -447,24 +453,25 @@ private:
 	int refreshOptions;
 	
 	/* Releases */
-	StringList dirNameList;
+	/*StringList dirNameList;
 	void addReleaseDir(const string& aName);
-	void deleteReleaseDir(const string& aName);
+	void deleteReleaseDir(const string& aName);*/
 
 	BloomFilter<5> bloom;
 
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
-	typedef std::multimap<string, Directory::Ptr> DirMultiMap; 
+	typedef boost::unordered_multimap<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMultiMap; 
 
 	//list to return multiple directory item pointers
-	typedef std::vector<Directory::Ptr> Dirs;
+	typedef std::vector<Directory::Ptr> DirectoryList;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	DirMap shares;
+	DirMultiMap shareDirs;
 
-	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, StringList& aReleases, DirMap& newShares);
+	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
@@ -477,8 +484,8 @@ private:
 	//StringList notShared;
 	StringList bundleDirs;
 
-	Dirs getByVirtual(const string& virtualName, const string& aProfiles) const noexcept;
-	DirMultiMap findVirtuals(const string& virtualPath, const string& aProfiles) const;
+	void getByVirtual(const string& virtualName, const string& aProfiles, DirectoryList& dirs) const noexcept;
+	void findVirtuals(const string& virtualPath, const string& aProfiles, DirectoryList& dirs) const;
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);
