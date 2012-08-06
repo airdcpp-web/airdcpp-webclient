@@ -669,6 +669,10 @@ void ShareManager::load(SimpleXML& aXml) {
 	if(aXml.findChild("Share")) {
 		string name = aXml.getChildAttrib("Name");
 		loadProfile(aXml, !name.empty() ? name : STRING(DEFAULT), SP_DEFAULT);
+	} else {
+		//create the default profile
+		ShareProfilePtr sp = ShareProfilePtr(new ShareProfile(STRING(DEFAULT), SP_DEFAULT));
+		shareProfiles.push_back(sp);
 	}
 
 	aXml.resetCurrentChild();

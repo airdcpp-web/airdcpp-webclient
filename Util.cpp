@@ -1441,7 +1441,7 @@ string Util::getOsVersion(bool http /* = false */) {
 						if (ver.wProductType == VER_NT_WORKSTATION)
 							os = "Windows 8";
 						else
-							os = "Windows Server 8";
+							os = "Windows Server 2012";
 						break;
 					default: os = "Unknown Windows 6-family";
 				}
