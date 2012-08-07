@@ -562,11 +562,11 @@ void ShareManager::getRealPaths(const string& path, StringList& ret, const strin
 
 	if(*(path.end() - 1) == '/') {
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
-			ret.push_back((*i)->getRealPath());
+			ret.push_back((*i)->getRealPath(true));
 		}
 	} else { //its a file
 		for(auto v = dirs.begin(); v != dirs.end(); ++v) {
-			auto it = find_if((*v)->files.begin(), (*v)->files.end(), Directory::File::StringComp((*v)->getRealPath()));
+			auto it = find_if((*v)->files.begin(), (*v)->files.end(), Directory::File::StringComp(Util::getFileName(path)));
 			if(it != (*v)->files.end()) {
 				ret.push_back(it->getRealPath());
 				return;
@@ -638,7 +638,7 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, const strin
 			dir = j->second;
 		}
 
-		shareDirs.insert(make_pair(Text::toLower(virtualName), dir));
+		//shareDirs.insert(make_pair(virtualName, dir));
 
 		if (aXml.getBoolChildAttrib("Incoming"))
 			dir->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING);
@@ -712,30 +712,38 @@ static const string PATH = "Path";
 static const string DATE = "Date";
 
 struct ShareLoader : public SimpleXMLReader::CallBack {
-	ShareLoader(ShareManager::ProfileDirMap& aDirs) : profileDirs(aDirs), cur(nullptr) { }
+	ShareLoader(ShareManager::ProfileDirMap& aDirs) : profileDirs(aDirs), cur(nullptr)/*, depth(0), blockNode(false)*/ { }
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
 
 		if(name == SDIRECTORY) {
-			const string& name = getAttrib(attribs, SNAME, 0);
-			string path = getAttrib(attribs, PATH, 1);
-			const string& date = getAttrib(attribs, DATE, 2);
+			/*if (!blockNode || depth == 0) {
+				blockNode = false;*/
+				const string& name = getAttrib(attribs, SNAME, 0);
+				curDirPath = getAttrib(attribs, PATH, 1);
+				const string& date = getAttrib(attribs, DATE, 2);
 
-			if(path[path.length() - 1] != PATH_SEPARATOR)
-				path += PATH_SEPARATOR;
+				if(curDirPath[curDirPath.length() - 1] != PATH_SEPARATOR)
+					curDirPath += PATH_SEPARATOR;
 
-			if(!name.empty()) {
-				cur = ShareManager::Directory::create(name, cur, Util::toUInt32(date));
-				auto i = profileDirs.find(path);
-				if(i != profileDirs.end()) {
-					cur->setProfileDir(i->second);
-					if (i->second->hasRoots())
-						ShareManager::getInstance()->addShares(path, cur);
+				if(!name.empty()) {
+					cur = ShareManager::Directory::create(name, cur, Util::toUInt32(date));
+					auto i = profileDirs.find(curDirPath);
+					if(i != profileDirs.end()) {
+						cur->setProfileDir(i->second);
+						if (i->second->hasRoots())
+							ShareManager::getInstance()->addShares(curDirPath, cur);
+					} /*else if (depth == 0) {
+						//something wrong...
+						cur = nullptr;
+						blockNode = true;
+						depth++;
+						return;
+					}*/
+
+					dirs.insert(make_pair(name, cur));
+					lastFileIter = cur->files.begin();
 				}
-				//ShareManager::getInstance()->addDir(name, cur);
-				dirs.insert(make_pair(name, cur));
-				lastFileIter = cur->files.begin();
-				//ShareManager::getInstance()->addReleaseDir(cur->getFullName());
-			}
+			//}
 
 			if(simple) {
 				if(cur) {
@@ -743,7 +751,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 					if(cur)
 						lastFileIter = cur->files.begin();
 				}
-			}
+			} /*else {
+				depth++;
+			}*/
 		} else if(cur && name == SFILE) {
 			const string& fname = getAttrib(attribs, SNAME, 0);
 			const string& size = getAttrib(attribs, SSIZE, 1);   
@@ -754,7 +764,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			/*dont save TTHs, check them from hashmanager, just need path and size.
 			this will keep us sync to hashindex */
 			try {
-				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(cur->getRealPath(false) + fname, Util::toInt64(size))));
+				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(curDirPath + fname, Util::toInt64(size))));
 			}catch(Exception& e) { 
 				dcdebug("Error loading filelist %s \n", e.getError().c_str());
 			}
@@ -762,7 +772,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 	}
 	void endTag(const string& name, const string&) {
 		if(name == SDIRECTORY) {
+			//depth--;
 			if(cur) {
+				curDirPath = Util::getParentDir(curDirPath);
 				cur = cur->getParent();
 				if(cur)
 					lastFileIter = cur->files.begin();
@@ -776,6 +788,10 @@ private:
 
 	ShareManager::Directory::File::Set::iterator lastFileIter;
 	ShareManager::Directory::Ptr cur;
+
+	//bool blockNode;
+	//size_t depth;
+	string curDirPath;
 };
 
 bool ShareManager::loadCache() {
@@ -787,7 +803,6 @@ bool ShareManager::loadCache() {
 		shareDirs = loader.dirs;
 
 		rebuildIndices();
-		LogManager::getInstance()->message("Dirs: " + Util::toString(shareDirs.size()), LogManager::LOG_INFO);
 	}catch(SimpleXMLException& e) {
 		LogManager::getInstance()->message("Error Loading shares.xml: "+ e.getError(), LogManager::LOG_ERROR);
 		return false;
@@ -936,7 +951,7 @@ tstring ShareManager::getDirPath(const string& aDir) {
 	if (!dir)
 		return Util::emptyStringT;
 
-	return Text::toT(dir->getRealPath());
+	return Text::toT(dir->getRealPath(true));
 }
 
 ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) const {
@@ -1092,9 +1107,13 @@ bool ShareManager::isFileShared(const TTHValue aTTH, const string& fileName) con
 }*/
 
 void ShareManager::removeDir(ShareManager::Directory::Ptr aDir) {
-	auto p = find_if(shareDirs.begin(), shareDirs.end(), [aDir](pair<string, Directory::Ptr> sdp) { return sdp.second == aDir; });
+	boost::for_each(aDir->directories | map_values, [this](Directory::Ptr d) { removeDir(d); });
+
+	//auto p = find_if(shareDirs.begin(), shareDirs.end(), [aDir](pair<string, Directory::Ptr> sdp) { return sdp.second == aDir; });
+	auto p = find_if(shareDirs.begin(), shareDirs.end(), [aDir](pair<string, Directory::Ptr> sdp) { return sdp.second->getRealPath(false) == aDir->getRealPath(false); });
 	dcassert(p != shareDirs.end());
-	shareDirs.erase(p);
+	if (p != shareDirs.end())
+		shareDirs.erase(p);
 }
 
 void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares) {
@@ -1438,18 +1457,24 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 				dirtyProfiles.insert(i->profile);
 
 				if (k->second->getProfileDir()->removeRootProfile(i->profile)) {
+					//dcassert(shareDirs.find(Util::getLastDir(i->path)) != shareDirs.end());
 					//no other roots in here
+					bool hasParent = k->second->getParent() != nullptr;
+					if (!hasParent)
+						removeDir(k->second);
+
 					if (!k->second->getProfileDir()->hasExcludes()) {
 						//delete k->second->getProfileDir();
 						k->second->setProfileDir(nullptr);
 						profileDirs.erase(i->path);
 					}
-					bool hasParent = k->second->getParent() != nullptr;
+
 					shares.erase(i->path);
 					if (hasParent) {
 						continue;
 					}
 
+					dcassert(shareDirs.find(Util::getLastDir(i->path)) == shareDirs.end());
 					//no profiles in the parent, check if we have any child roots for other profiles inside this tree and get the most top one
 					Directory::Ptr dir = nullptr;
 					for(auto p = shares.begin(); p != shares.end(); ++p) {
@@ -1771,7 +1796,7 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 
 	indent += '\t';
 	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		i->second->toXmlList(xmlFile, path + i->first, indent);
+		i->second->toXmlList(xmlFile, path + i->first + PATH_SEPARATOR, indent);
 	}
 
 	for(auto i = files.begin(); i != files.end(); ++i) {

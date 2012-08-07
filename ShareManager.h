@@ -312,7 +312,7 @@ private:
 		string getVirtualName(const string& aProfile) const noexcept;
 		string getRealName() { return realName; }
 		string getFullName(const string& aProfile) const noexcept; 
-		string getRealPath(bool checkExistance = true) const { return getRealPath(Util::emptyString, checkExistance); };
+		string getRealPath(bool checkExistance) const { return getRealPath(Util::emptyString, checkExistance); };
 
 		bool hasProfile(const StringSet& aProfiles);
 		bool hasProfile(const string& aProfiles);
