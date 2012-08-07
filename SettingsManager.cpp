@@ -157,7 +157,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
 	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
-	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB",
+	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -706,6 +706,7 @@ SettingsManager::SettingsManager()
 	setDefault(TB_PROGRESS_TEXT_COLOR, RGB(255, 0, 0));
 	setDefault(TB_PROGRESS_FONT, "Arial,-11,400,0");
 	setDefault(LOCK_TB, false);
+	setDefault(CLEAR_DIR_HISTORY, false);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
@@ -951,16 +952,17 @@ void SettingsManager::save(string const& aFileName) {
 	}
 	xml.stepOut();
 
-
-	xml.addTag("DirectoryHistory");
-	xml.stepIn();
-	{
-		Lock l(cs);
-		for(auto i = dirHistory.begin(); i != dirHistory.end(); ++i) {
-			xml.addTag("Directory", Text::fromT(*i));
+	if (!BOOLSETTING(CLEAR_DIR_HISTORY)) {
+		xml.addTag("DirectoryHistory");
+		xml.stepIn();
+		{
+			Lock l(cs);
+			for(auto i = dirHistory.begin(); i != dirHistory.end(); ++i) {
+				xml.addTag("Directory", Text::fromT(*i));
+			}
 		}
+		xml.stepOut();
 	}
-	xml.stepOut();
 
 	xml.addTag("FileEvents");
 	xml.stepIn();

@@ -76,7 +76,6 @@ ShareManager::ShareManager() : refreshing(false),
 	QueueManager::getInstance()->addListener(this);
 
 	RAR_regexp.Init("[Rr0-9][Aa0-9][Rr0-9]");
-	//subDirRegPlain.Init("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", PCRE_CASELESS);
 	subDirRegPlain.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
 }
 
@@ -555,9 +554,9 @@ void ShareManager::getRealPaths(const string& path, StringList& ret, const strin
 	if(path.empty())
 		throw ShareException("empty virtual path");
 
-
-	string dir;
 	DirectoryList dirs;
+
+	RLock l (cs);
 	findVirtuals(path, aProfile, dirs);
 
 	if(*(path.end() - 1) == '/') {
@@ -571,23 +570,6 @@ void ShareManager::getRealPaths(const string& path, StringList& ret, const strin
 				ret.push_back(it->getRealPath());
 				return;
 			}
-
-			/*auto d = i->second;
-			if(d->getParent()) {
-				dir = d->getParent()->getRealPath(d->getName());
-	            if(dir[dir.size() -1] != '\\') 	 
-					dir += "\\"; 	 
-	                ret.push_back( dir );
-			} else {
-				dir = d->getRoot()->getPath();
-				if(dir.empty()) 	 
-	                 return; 	 
-	  	 
-	            if(dir[dir.size() -1] != '\\') 	 
-	                dir += "\\"; 	 
-	  	 
-	            ret.push_back( dir );
-			}*/
 		}
 	}
 }
@@ -954,10 +936,13 @@ tstring ShareManager::getDirPath(const string& aDir) {
 	return Text::toT(dir->getRealPath(true));
 }
 
+/* This isn't optimized for matching subdirs but there shouldn't be need to match many of those 
+   at once (especially not in filelists, but there might be some when searching though) */
 ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) const {
 	if (aDir.size() < 3)
 		return nullptr;
 
+	//get the last directory, we might need the position later with subdirs
 	string dir = aDir;
 	if (dir[dir.length()-1] == PATH_SEPARATOR)
 		dir.erase(aDir.size()-1, aDir.size());
@@ -967,20 +952,17 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 
 	auto directories = shareDirs.equal_range(dir);
 	if (directories.first == directories.second)
-		return false;
+		return nullptr;
 
-	//boost::regex reg;
-	//reg.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)");
 	if (boost::regex_match(dir, subDirRegPlain) && pos != string::npos) {
-	//if (subDirRegPlain.match(dir) > 0 && pos != string::npos) {
-		string::size_type i;
-		string::size_type j;
-		bool found = false;
+		string::size_type i, j;
 		dir = PATH_SEPARATOR + aDir;
 
 		for(auto s = directories.first; s != directories.second; ++s) {
+			//start matching from the parent dir, as we know the last one already
 			i = pos;
 			Directory::Ptr cur = s->second->getParent();
+
 			for(;;) {
 				if (!cur)
 					break;
@@ -988,25 +970,19 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 				j = dir.find_last_of(PATH_SEPARATOR, i);
 				if(j == string::npos)
 					break;
-				//auto len = i-j;
-				//auto startpos = aDir.length() - (aDir.length()-j)+1;
+
 				auto remoteDir = dir.substr(j+1, i-j);
 				if(stricmp(cur->getRealName(), remoteDir) == 0) {
 					if (!boost::regex_match(remoteDir, subDirRegPlain)) { //another subdir? don't break in that case
-					//if (subDirRegPlain.match(dir) == 0) {
-						found = true;
-						break;
+						return s->second;
 					}
 				} else {
-					//this is something different....
+					//this is something different... continue to next match
 					break;
 				}
 				cur = cur->getParent();
 				i = j - 1;
 			}
-
-			if (found)
-				return s->second;
 		}
 	} else {
 		return directories.first->second;
@@ -1029,88 +1005,16 @@ bool ShareManager::isFileShared(const TTHValue aTTH, const string& fileName) con
 	return false;
 }
 
-/*tstring ShareManager::getDirPath(const string& directory, bool validateDir) {
-	string dir = directory;
-	if (validateDir) {
-		dir = AirUtil::getReleaseDir(directory);
-	if (dir.empty())
- 		return Util::emptyStringT;
- 	}
- 	
- 	string found = Util::emptyString;
- 	string dirNew;
- 	for(auto j = shares.begin(); j != shares.end(); ++j) {
-		//dirNew = j->second->getFullName();
- 		if (validateDir) {
- 			dirNew = AirUtil::getReleaseDir(dirNew);
- 		}
- 	
- 		if (!dirNew.empty()) {
- 			if (dir == dirNew) {
- 				found=dirNew;
- 				break;
- 				}
- 			}
- 		found = j->second->find(dir, validateDir);
- 		if(!found.empty())
- 			break;
- 	}
- 	
- 	if (found.empty())
- 		return Util::emptyStringT;
- 	
- 	StringList ret;
- 	try {
- 		getRealPaths(Util::toAdcFile(found), ret);
- 	} catch(const ShareException&) {
- 		return Util::emptyStringT;
- 	}
- 	
- 	if (!ret.empty()) {
- 		return Text::toT(ret[0]);
- 	}
- 	
-	return Util::emptyStringT;
- }*/
-
-
-/*string ShareManager::Directory::find(const string& dir, bool validateDir) {
-	string ret = Util::emptyString;
-	string dirNew = dir;
-	//if (validateDir)
-	//	dirNew = AirUtil::getReleaseDir(getFullName());
-
-	if (!dirNew.empty()) {
-		if (dir == dirNew) {
-			//return getFullName();
-		}
-	}
-
-	for(auto l = directories.begin(); l != directories.end(); ++l) {
-		ret = l->second->find(dir, validateDir);
-		if(!ret.empty())
-			break;
-	}
-	return ret;
-}*/
-
-/*void ShareManager::Directory::findDirsRE(bool remove) {
-	for(auto l = directories.begin(); l != directories.end(); ++l) {
-		 l->second->findDirsRE(remove);
-	}
-
-	if (remove) {
-		ShareManager::getInstance()->deleteReleaseDir(this->getFullName());
-	} else {
-		ShareManager::getInstance()->addReleaseDir(this->getFullName());
-	}
-}*/
-
 void ShareManager::removeDir(ShareManager::Directory::Ptr aDir) {
 	boost::for_each(aDir->directories | map_values, [this](Directory::Ptr d) { removeDir(d); });
 
 	//auto p = find_if(shareDirs.begin(), shareDirs.end(), [aDir](pair<string, Directory::Ptr> sdp) { return sdp.second == aDir; });
-	auto p = find_if(shareDirs.begin(), shareDirs.end(), [aDir](pair<string, Directory::Ptr> sdp) { return sdp.second->getRealPath(false) == aDir->getRealPath(false); });
+
+	//speed this up a bit
+	auto directories = shareDirs.equal_range(aDir->getRealName());
+	string realPath = aDir->getRealPath(false);
+
+	auto p = find_if(directories.first, directories.second, [realPath](pair<string, Directory::Ptr> sdp) { return sdp.second->getRealPath(false) == realPath; });
 	dcassert(p != shareDirs.end());
 	if (p != shareDirs.end())
 		shareDirs.erase(p);
@@ -2495,7 +2399,6 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 				curDir = Directory::create(*i, curDir, GET_TIME(), m != profileDirs.end() ? m->second : nullptr);
 				shareDirs.insert(make_pair(*i, curDir));
 			}
-			//addReleaseDir(curDir->getFullName());
 		}
 		return curDir;
 	}

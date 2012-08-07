@@ -1419,5 +1419,6 @@ enum Strings { // @DontAdd
 	HIDE_SHARE_SHORT, // "Hide share"
 	PROFILE_NAME, // "Profile name"
 	LOCK_TB, // "Lock Toolbars"
+	CLEAR_DIR_HISTORY, // "Clear directory history on exit"
 	LAST // @DontAdd
 };

@@ -186,8 +186,6 @@ public:
 	TempShareInfo findTempShare(const string& aKey, const string& virtualFile);
 	//tempShares end
 
-	//typedef boost::unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> RootDirMap;
-
 	typedef vector<ShareProfilePtr> ShareProfileList;
 
 	void getShares(ShareDirInfo::map& aDirs);
@@ -322,7 +320,6 @@ private:
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) const noexcept;
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) const noexcept;
-		//void findDirsRE(bool remove);
 
 		void toXml(SimpleXML& aXml, bool fullList, const string& aProfile);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
@@ -331,8 +328,6 @@ private:
 		void toXmlList(OutputStream& xmlFile, const string& path, string& indent);
 
 		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
-
-		//string find(const string& dir, bool validateDir);
 
 		GETSET(uint32_t, lastWrite, LastWrite);
 		GETSET(Directory*, parent, Parent);
@@ -418,7 +413,6 @@ private:
 		StringList spl;
 	};
 
-	//deque<TaskData> tasks;
 	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
 
 	FileList* generateXmlList(const string& shareProfile, bool forced = false);
@@ -430,7 +424,6 @@ private:
 	bool ShareCacheDirty;
 	bool aShutdown;
 
-	//PME subDirRegPlain;
 	boost::regex subDirRegPlain;
 	PME RAR_regexp;
 	
@@ -451,11 +444,6 @@ private:
 
 	int allSearches, stoppedSearches;
 	int refreshOptions;
-	
-	/* Releases */
-	/*StringList dirNameList;
-	void addReleaseDir(const string& aName);
-	void deleteReleaseDir(const string& aName);*/
 
 	BloomFilter<5> bloom;
 
@@ -481,7 +469,6 @@ private:
 
 	void onFileHashed(const string& fname, const TTHValue& root);
 	
-	//StringList notShared;
 	StringList bundleDirs;
 
 	void getByVirtual(const string& virtualName, const string& aProfiles, DirectoryList& dirs) const noexcept;

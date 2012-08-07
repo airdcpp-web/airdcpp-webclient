@@ -1412,6 +1412,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Hide share", 
 "Profile name", 
 "Lock Toolbars", 
+"Clear directory history on exit", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2824,4 +2825,5 @@ std::string dcpp::ResourceManager::names[] = {
 "HideShareShort", 
 "ProfileName", 
 "LockTb", 
+"ClearDirHistory", 
 };
