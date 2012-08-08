@@ -36,14 +36,14 @@ namespace dcpp {
 	}
 
 	void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept {
-		if (!qi->isSet(QueueItem::FLAG_CLIENT_VIEW))
+		if (!qi->isSet(QueueItem::FLAG_CLIENT_VIEW) || !qi->isSet(QueueItem::FLAG_USER_LIST))
 			return;
 
 		if (hasList(aUser.user))
 			return;
 
 		if (qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-			createList(aUser, qi->getTarget(), dir);
+			createList(aUser, qi->getListName(), dir);
 		} else {
 			///
 		}
@@ -103,7 +103,6 @@ namespace dcpp {
 		WLock l (cs);
 		auto p = fileLists.find(aUser);
 		if (p != fileLists.end()) {
-			delete p->second;
 			fileLists.erase(p);
 		}
 	}
