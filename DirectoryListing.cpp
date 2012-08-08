@@ -33,13 +33,13 @@
 #include "ResourceManager.h"
 #include "SimpleXMLReader.h"
 #include "User.h"
-
+#include "ADLSearch.h"
 
 
 namespace dcpp {
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial) : 
-	hintedUser(aUser), abort(false), root(new Directory(NULL, Util::emptyString, false, false)), partialList(aPartial) 
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) : 
+	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName), running(false)
 {
 }
 
@@ -128,8 +128,8 @@ string DirectoryListing::loadXML(InputStream& is, bool updating, bool checkDupes
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
 		//Better to abort and show the error, than just leave it hanging.
-	LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " + 
-		Util::toString(ClientManager::getInstance()->getNicks(HintedUser(getUser(), Util::emptyString))) + " ]", LogManager::LOG_ERROR);
+		LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " +  
+			Util::toString(ClientManager::getInstance()->getNicks(HintedUser(getUser(), Util::emptyString))) + " ]", LogManager::LOG_ERROR);
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
 	}
 	return ll.getBase();
@@ -293,17 +293,13 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	}
 
 	if (checkDupe) {
-		/*auto sd = ShareManager::getInstance()->isDirShared(getPath(), size);
+		auto sd = ShareManager::getInstance()->isDirShared(getPath(), size);
 		if (sd > 0) {
-			setDupe(sd == 2 ? Directory::SHARE_DUPE : Directory::PARTIAL_SHARE_DUPE);
-		} */
-
-		if (ShareManager::getInstance()->isDirShared(getPath())) {
-			setDupe(Directory::SHARE_DUPE);
+			setDupe(sd == 2 ? SHARE_DUPE : PARTIAL_SHARE_DUPE);
 		} else {
 			auto qd = QueueManager::getInstance()->isDirQueued(getPath());
 			if (qd > 0)
-				setDupe(qd == 1 ? Directory::QUEUE_DUPE : Directory::FINISHED_DUPE);
+				setDupe(qd == 1 ? QUEUE_DUPE : FINISHED_DUPE);
 		}
 	}
 
@@ -516,11 +512,11 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
-	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret, SP_DEFAULT);
+	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret, fileName);
 }
 
 void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
-	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, SP_DEFAULT);
+	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, fileName);
 }
 
 int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
@@ -623,7 +619,121 @@ uint8_t DirectoryListing::Directory::checkShareDupes() {
 
 void DirectoryListing::checkShareDupes() {
 	root->checkShareDupes();
-	root->setDupe(Directory::NONE); //newer show the root as a dupe or partial dupe.
+	root->setDupe(Directory::NONE); //never show the root as a dupe or partial dupe.
+}
+
+void DirectoryListing::matchADL() {
+	{
+		Lock l(taskCS);
+		tasks.push_back(make_pair(MATCH_ADL, nullptr));
+	}
+	runTasks();
+}
+
+void DirectoryListing::listDiff(const string& aFile) {
+	{
+		Lock l(taskCS);
+		tasks.push_back(make_pair(MATCH_ADL, new StringTask(aFile)));
+	}
+	runTasks();
+}
+
+void DirectoryListing::refreshDir(const string& aXml) {
+	{
+		Lock l(taskCS);
+		tasks.push_back(make_pair(REFRESH_DIR, new StringTask(aXml)));
+	}
+	runTasks();
+}
+
+void DirectoryListing::loadFullList(const string& aDir) {
+	{
+		Lock l(taskCS);
+		tasks.push_back(make_pair(LOAD_FILE, new StringTask(aDir)));
+	}
+	runTasks();
+}
+
+void DirectoryListing::loadPartial() {
+	{
+		Lock l(taskCS);
+		tasks.push_back(make_pair(REFRESH_DIR, new StringTask(fileName)));
+	}
+	runTasks();
+}
+
+void DirectoryListing::runTasks() {
+	if (running.test_and_set())
+		return;
+
+	join();
+	try {
+		start();
+		setThreadPriority(Thread::NORMAL);
+	} catch(const ThreadException& e) {
+		LogManager::getInstance()->message("DirListThread error", LogManager::LOG_WARNING);
+		running.clear();
+	}
+}
+
+int DirectoryListing::run() {
+	for (;;) {
+		pair<Tasks, unique_ptr<TaskData> > t;
+		{
+			Lock l(taskCS);
+			if (tasks.empty())
+				break;
+			dcassert(!tasks.empty());
+			t = move(tasks.front());
+			tasks.erase(tasks.begin());
+		}
+
+		try {
+			int64_t start = GET_TICK();
+			
+			if (t.first == LISTDIFF) {
+				auto file = static_cast<StringTask*>(t.second.get())->st;
+				DirectoryListing dirList(hintedUser, partialList, false);
+				dirList.loadFile(file, true);
+
+				root->filterList(dirList);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString);
+			} else if(t.first == MATCH_ADL) {
+				root->clearAdls(); //not much to check even if its the first time loaded without adls...
+				ADLSearchManager::getInstance()->matchListing(*this);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString);
+			} else if(t.first == LOAD_FILE) {
+				string file = fileName;
+				if(isOwnList) {
+					// if its own list regenerate it before opening, but only if its dirty
+					file = ShareManager::getInstance()->generateOwnList(file);
+				}
+
+				bool checkShareDupe = SETTING(DUPES_IN_FILELIST) && !isOwnList;
+				loadFile(file, checkShareDupe);
+				
+				if((BOOLSETTING(USE_ADLS) && !isOwnList) || (BOOLSETTING(USE_ADLS_OWN_LIST) && isOwnList)) {
+					ADLSearchManager::getInstance()->matchListing(*this);
+				}
+
+				if(checkShareDupe) {
+					checkShareDupes();
+				}
+
+				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->st);
+			} else if (t.first == REFRESH_DIR) {
+				auto xml = static_cast<StringTask*>(t.second.get())->st;
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(updateXML(xml, BOOLSETTING(DUPES_IN_FILELIST))));
+			}
+		} catch(const AbortException) {
+			fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
+		} catch(const Exception& e) {
+			fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNicks(getUser()->getCID(), hintedUser.hint)[0] + ": " + e.getError());
+		}
+	}
+
+	running.clear();
+	return 0;
 }
 
 } // namespace dcpp

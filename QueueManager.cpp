@@ -1312,7 +1312,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
  }
 
 void QueueManager::processList(const string& name, const HintedUser& user, const string& path, int flags) {
-	DirectoryListing dirList(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0);
+	DirectoryListing dirList(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name);
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(name);

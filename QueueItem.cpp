@@ -37,6 +37,7 @@ namespace {
 
 	string getTempName(const string& aFileName, const TTHValue& aRoot) {
 		string tmp(aFileName);
+		tmp += "_" + Util::toString(Util::rand());
 		tmp += "." + aRoot.toBase32();
 		tmp += TEMP_EXTENSION;
 		return tmp;

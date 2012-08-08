@@ -38,6 +38,7 @@
 #include "ConnectivityManager.h"
 #include "WebShortcuts.h"
 #include "Localization.h"
+#include "DirectoryListingManager.h"
 
 #include "StringTokenizer.h"
 
@@ -93,6 +94,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	HighlightManager::newInstance();
 	ShareScannerManager::newInstance();
 	GeoManager::newInstance();
+	DirectoryListingManager::newInstance();
 
 	SettingsManager::getInstance()->load();	
 	AutoSearchManager::getInstance()->AutoSearchLoad();
@@ -176,6 +178,7 @@ void shutdown(void (*f)(void*, const tstring&), void* p) {
 	FinishedManager::deleteInstance();
 	ShareManager::deleteInstance();
 	CryptoManager::deleteInstance();
+	DirectoryListingManager::deleteInstance();
 	QueueManager::deleteInstance();
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();
@@ -189,7 +192,6 @@ void shutdown(void (*f)(void*, const tstring&), void* p) {
 	SettingsManager::deleteInstance();
 	TimerManager::deleteInstance();
 	ResourceManager::deleteInstance();
-	
 
 #ifdef _WIN32	
 	::WSACleanup();

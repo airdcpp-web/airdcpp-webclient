@@ -316,6 +316,7 @@ private:
 		bool hasProfile(const string& aProfiles);
 
 		int64_t getSize(const string& aProfile) const noexcept;
+		int64_t getTotalSize() const noexcept;
 		void getProfileInfo(const string& aProfile, int64_t& totalSize, size_t& filesCount) const;
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) const noexcept;

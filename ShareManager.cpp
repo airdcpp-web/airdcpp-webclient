@@ -170,6 +170,14 @@ int64_t ShareManager::Directory::getSize(const string& aProfile) const noexcept 
 	return tmp;
 }
 
+int64_t ShareManager::Directory::getTotalSize() const noexcept {
+	int64_t tmp = size;
+	for(auto i = directories.begin(); i != directories.end(); ++i) {
+		tmp += i->second->getTotalSize();
+	}
+	return tmp;
+}
+
 string ShareManager::Directory::getADCPath(const string& aProfile) const noexcept {
 	if(profileDir && profileDir->hasProfile(aProfile))
 		return '/' + profileDir->getName(aProfile) + '/';
@@ -924,7 +932,7 @@ uint8_t ShareManager::isDirShared(const string& aDir, uint64_t aSize) const {
 	auto dir = getDirByName(aDir);
 	if (!dir)
 		return 0;
-	return dir->getSize(SP_DEFAULT) == aSize ? 2 : 1;
+	return dir->getTotalSize() == aSize ? 2 : 1;
 }
 
 tstring ShareManager::getDirPath(const string& aDir) {

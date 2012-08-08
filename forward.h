@@ -54,6 +54,8 @@ class ConnectionQueueItem;
 class DirectoryItem;
 typedef DirectoryItem* DirectoryItemPtr;
 
+class DirectoryListing;
+
 class Download;
 typedef Download* DownloadPtr;
 typedef std::vector<DownloadPtr> DownloadList;

@@ -21,6 +21,7 @@
 
 #include "forward.h"
 #include "noexcept.h"
+#include "Thread.h"
 
 #include "HintedUser.h"
 #include "FastAlloc.h"
@@ -29,6 +30,7 @@
 #include "QueueItem.h"
 #include "UserInfoBase.h"
 #include "GetSet.h"
+#include "DirectoryListingListener.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -37,18 +39,16 @@ namespace dcpp {
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
-class DirectoryListing : boost::noncopyable, public UserInfoBase
+class DirectoryListing : public UserInfoBase, private Thread, public Speaker<DirectoryListingListener>
 {
 public:
 	class Directory;
-	class File
-{
+	class File {
+
 	public:
 		typedef File* Ptr;
-		struct FileSort 
-{
-			bool operator()(const Ptr& a, const Ptr& b) const 
-{
+		struct FileSort {
+			bool operator()(const Ptr& a, const Ptr& b) const {
 				return stricmp(a->getName().c_str(), b->getName().c_str()) < 0;
 			}
 		};
@@ -164,7 +164,7 @@ public:
 		GETSET(string, fullPath, FullPath);
 	};
 
-	DirectoryListing(const HintedUser& aUser, bool aPartial);
+	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList=false);
 	~DirectoryListing();
 	
 	void loadFile(const string& name, bool checkdupe);
@@ -198,13 +198,49 @@ public:
 	GETSET(HintedUser, hintedUser, HintedUser);
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, abort, Abort);
-	
+	GETSET(bool, isOwnList, IsOwnList);
+	GETSET(string, fileName, FileName);
+
+	void matchADL();
+	void listDiff(const string& aFile);
+	void refreshDir(const string& aXml);
+	void loadFullList(const string& aDir);
+	void loadPartial();
 private:
 	friend class ListLoader;
 
 	Directory* root;
 		
 	Directory* find(const string& aName, Directory* current);
+
+	int run();
+
+	struct TaskData {
+		virtual ~TaskData() { }
+	};
+
+	struct ListLoadTask : public TaskData {
+		ListLoadTask(const string& dir_, const string& file_) : dir(dir_), file(file_) { }
+		string dir;
+		string file;
+	};
+
+	struct StringTask : public TaskData {
+		StringTask(const string& s_) : st(s_) { }
+		string st;
+	};
+
+	enum Tasks {
+		REFRESH_DIR,
+		LOAD_FILE,
+		MATCH_ADL,
+		LISTDIFF
+	};
+
+	void runTasks();
+	atomic_flag running;
+	CriticalSection taskCS;
+	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }
