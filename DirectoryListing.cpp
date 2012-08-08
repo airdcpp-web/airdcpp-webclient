@@ -516,19 +516,11 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
-	try {
-		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret, SP_DEFAULT);
-	} catch(const ShareException&) {
-		//..
-	}
+	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret, SP_DEFAULT);
 }
 
 void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
-	try {
-		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, SP_DEFAULT);
-	} catch(const ShareException&) {
-		//..
-	}
+	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, SP_DEFAULT);
 }
 
 int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
