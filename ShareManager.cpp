@@ -1312,34 +1312,35 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 	{
 		WLock l (cs);
 		for(auto p = aNewDirs.begin(); p != aNewDirs.end(); ++p) {
-			auto i = shares.find(p->path);
+			ShareDirInfo* d = *p;
+			auto i = shares.find(d->path);
 			if (i != shares.end()) {
 				// Trying to share an already shared root
-				i->second->getProfileDir()->addRootProfile(p->vname, p->profile);
-				profiles.insert(p->profile);
-			} else if (find_if(shares.begin(), shares.end(), [p](pair<string, Directory::Ptr> sdp) { return AirUtil::isSub(p->path, sdp.first); }) != shares.end()) {
+				i->second->getProfileDir()->addRootProfile(d->vname, d->profile);
+				profiles.insert(d->profile);
+			} else if (find_if(shares.begin(), shares.end(), [d](pair<string, Directory::Ptr> sdp) { return AirUtil::isSub(d->path, sdp.first); }) != shares.end()) {
 				// It's a subdir
-				auto dir = findDirectory(p->path, false, false);
+				auto dir = findDirectory(d->path, false, false);
 				if (dir) {
 					if (dir->getProfileDir()) {
-						dir->getProfileDir()->addRootProfile(p->vname, p->profile);
+						dir->getProfileDir()->addRootProfile(d->vname, d->profile);
 					} else {
-						auto root = ProfileDirectory::Ptr(new ProfileDirectory(p->path, p->vname, p->profile));
+						auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile));
 						dir->setProfileDir(root);
-						profileDirs[p->path] = root;
+						profileDirs[d->path] = root;
 					}
-					shares[p->path] = dir;
-					profiles.insert(p->profile);
+					shares[d->path] = dir;
+					profiles.insert(d->profile);
 				} else {
 					//TODO, check excludes
 				}
 			} else {
 				// It's a new parent
-				auto root = ProfileDirectory::Ptr(new ProfileDirectory(p->path, p->vname, p->profile));
+				auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile));
 				//root->setFlag(ProfileDirectory::FLAG_ADD);
-				Directory::Ptr dp = Directory::create(Util::getLastDir(p->path), nullptr, findLastWrite(p->path), root);
-				shares[p->path] = dp;
-				add.push_back(p->path);
+				Directory::Ptr dp = Directory::create(Util::getLastDir(d->path), nullptr, findLastWrite(d->path), root);
+				shares[d->path] = dp;
+				add.push_back(d->path);
 			}
 		}
 	}
@@ -1364,11 +1365,11 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 	{
 		WLock l (cs);
 		for(auto i = aRemoveDirs.begin(); i != aRemoveDirs.end(); ++i) {
-			auto k = shares.find(i->path);
+			auto k = shares.find((*i)->path);
 			if (k != shares.end()) {
-				dirtyProfiles.insert(i->profile);
+				dirtyProfiles.insert((*i)->profile);
 
-				if (k->second->getProfileDir()->removeRootProfile(i->profile)) {
+				if (k->second->getProfileDir()->removeRootProfile((*i)->profile)) {
 					//dcassert(shareDirs.find(Util::getLastDir(i->path)) != shareDirs.end());
 					//no other roots in here
 					bool hasParent = k->second->getParent() != nullptr;
@@ -1378,19 +1379,19 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 					if (!k->second->getProfileDir()->hasExcludes()) {
 						//delete k->second->getProfileDir();
 						k->second->setProfileDir(nullptr);
-						profileDirs.erase(i->path);
+						profileDirs.erase((*i)->path);
 					}
 
-					shares.erase(i->path);
+					shares.erase((*i)->path);
 					if (hasParent) {
 						continue;
 					}
 
-					dcassert(shareDirs.find(Util::getLastDir(i->path)) == shareDirs.end());
+					dcassert(shareDirs.find(Util::getLastDir((*i)->path)) == shareDirs.end());
 					//no profiles in the parent, check if we have any child roots for other profiles inside this tree and get the most top one
 					Directory::Ptr dir = nullptr;
 					for(auto p = shares.begin(); p != shares.end(); ++p) {
-						if(strnicmp(i->path, p->first, i->path.length()) == 0 && (!dir || p->first.length() < dir->getProfileDir()->getPath().length())) {
+						if(strnicmp((*i)->path, p->first, (*i)->path.length()) == 0 && (!dir || p->first.length() < dir->getProfileDir()->getPath().length())) {
 							dir = p->second;
 						}
 					}
@@ -1412,15 +1413,15 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 void ShareManager::changeDirectories(const ShareDirInfo::list& renameDirs)  {
 	StringSet dirtyProfiles;
 	for(auto i = renameDirs.begin(); i != renameDirs.end(); ++i) {
-		string vName = validateVirtual(i->vname);
-		dirtyProfiles.insert(i->profile);
+		string vName = validateVirtual((*i)->vname);
+		dirtyProfiles.insert((*i)->profile);
 
 		WLock l(cs);
-		auto p = shares.find(i->path);
+		auto p = shares.find((*i)->path);
 		if (p != shares.end()) {
-			p->second->getProfileDir()->addRootProfile(vName, i->profile); //renames it really
+			p->second->getProfileDir()->addRootProfile(vName, (*i)->profile); //renames it really
 			auto pd = p->second->getProfileDir();
-			i->incoming ? p->second->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING) : p->second->getProfileDir()->unsetFlag(ProfileDirectory::FLAG_INCOMING);
+			(*i)->incoming ? p->second->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING) : p->second->getProfileDir()->unsetFlag(ProfileDirectory::FLAG_INCOMING);
 		}
 	}
 
@@ -1578,7 +1579,9 @@ void ShareManager::getShares(ShareDirInfo::map& aDirs) {
 	for(auto i = shares.begin(); i != shares.end(); ++i) {
 		auto profiles = i->second->getProfileDir()->getShareProfiles();
 		for(auto p = profiles.begin(); p != profiles.end(); ++p) {
-			aDirs[p->first].push_back(ShareDirInfo(p->second, p->first, i->first, i->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING)));
+			auto sdi = new ShareDirInfo(p->second, p->first, i->first, i->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING));
+			sdi->size = i->second->getSize(p->first);
+			aDirs[p->first].push_back(sdi);
 		}
 	}
 

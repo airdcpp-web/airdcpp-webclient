@@ -54,23 +54,47 @@ class MemoryInputStream;
 struct ShareLoader;
 class Worker;
 
-struct ShareDirInfo {
-	ShareDirInfo(const string& aVname, const string& aProfile, const string& aPath, bool aIncoming=false) : vname(aVname), profile(aProfile), path(aPath), incoming(aIncoming), found(false) { }
+class ShareDirInfo : public FastAlloc<ShareDirInfo> {
+public:
+	enum State { 
+		NORMAL,
+		ADDED,
+		REMOVED
+	};
+
+	ShareDirInfo(const string& aVname, const string& aProfile, const string& aPath, bool aIncoming=false) : vname(aVname), profile(aProfile), path(aPath), incoming(aIncoming), 
+		found(false), state(NORMAL), size(0) {}
+
+	~ShareDirInfo() {}
+
 	string vname;
 	string profile;
 	string path;
 	bool incoming;
 	bool found; //used when detecting removed dirs with using dir tree
+	int64_t size;
 
-	bool operator==(const ShareDirInfo& rhs) const {
-		return rhs.path == path && compare(rhs.profile, profile) == 0;
+	State state;
+
+	bool operator==(const ShareDirInfo* rhs) const {
+		return rhs->path == path && compare(rhs->profile, profile) == 0;
 	}
 
 	struct Hash {
-		size_t operator()(const ShareDirInfo& x) const { return hash<string>()(x.path + x.profile); }
+		size_t operator()(const ShareDirInfo* x) const { return hash<string>()(x->path + x->profile); }
 	};
-	typedef unordered_set<ShareDirInfo, Hash> set;
-	typedef vector<ShareDirInfo> list;
+
+	struct Sort {
+		bool operator()(const ShareDirInfo* left, const ShareDirInfo* right) const {
+			if (left->state == REMOVED && right->state != REMOVED) return false;
+			if (left->state != REMOVED && right->state == REMOVED) return true;
+
+			return compare(left->vname, right->vname) < 0;
+		}
+	};
+
+	typedef unordered_set<ShareDirInfo*, Hash> set;
+	typedef vector<ShareDirInfo*> list;
 	typedef unordered_map<string, list> map;
 };
 
