@@ -181,7 +181,7 @@ int64_t ShareManager::Directory::getTotalSize() const noexcept {
 string ShareManager::Directory::getADCPath(const string& aProfile) const noexcept {
 	if(profileDir && profileDir->hasProfile(aProfile))
 		return '/' + profileDir->getName(aProfile) + '/';
-	return getParent()->getADCPath(aProfile) + realName + '/';
+	return parent->getADCPath(aProfile) + realName + '/';
 }
 
 string ShareManager::Directory::getVirtualName(const string& aProfile) const noexcept {
@@ -193,14 +193,15 @@ string ShareManager::Directory::getVirtualName(const string& aProfile) const noe
 string ShareManager::Directory::getFullName(const string& aProfile) const noexcept {
 	if(profileDir && profileDir->hasProfile(aProfile))
 		return profileDir->getName(aProfile) + '\\';
-	return getParent()->getFullName(aProfile) + realName + '\\';
+	dcassert(parent);
+	return parent->getFullName(aProfile) + realName + '\\';
 }
 
 void ShareManager::Directory::addType(uint32_t type) noexcept {
 	if(!hasType(type)) {
 		fileTypes |= (1 << type);
-		if(getParent())
-			getParent()->addType(type);
+		if(parent)
+			parent->addType(type);
 	}
 }
 
@@ -927,8 +928,6 @@ uint8_t ShareManager::isDirShared(const string& aDir, int64_t aSize) const {
 	auto dir = getDirByName(aDir);
 	if (!dir)
 		return 0;
-
-	auto total = dir->getTotalSize();
 	return dir->getTotalSize() == aSize ? 2 : 1;
 }
 
@@ -2097,7 +2096,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 		if(aString.compare(0, 4, "TTH:") == 0) {
 			TTHValue tth(aString.substr(4));
 			auto i = tthIndex.find(const_cast<TTHValue*>(&tth));
-			if(i != tthIndex.end()) {
+			if(i != tthIndex.end() && i->second->getParent()->hasProfile(SP_DEFAULT)) {
 				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second->getSize(), 
 					i->second->getParent()->getFullName(SP_DEFAULT) + i->second->getName(), i->second->getTTH()));
 
