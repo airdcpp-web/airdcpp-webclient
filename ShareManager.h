@@ -453,7 +453,6 @@ private:
 	PME RAR_regexp;
 	
 	atomic_flag refreshing;
-	atomic_flag GeneratingFULLXmlList;
 	bool refreshRunning;
 
 	uint64_t lastFullUpdate;

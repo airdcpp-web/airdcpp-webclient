@@ -68,7 +68,7 @@ using boost::adaptors::map_values;
 
 
 ShareManager::ShareManager() : refreshing(false),
-	lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false), GeneratingFULLXmlList(false),
+	lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false),
 	xml_saving(false), lastSave(GET_TICK()), aShutdown(false), allSearches(0), stoppedSearches(0), refreshRunning(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
