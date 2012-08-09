@@ -272,35 +272,21 @@ void ListLoader::endTag(const string& name, const string&) {
 }
 
 DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe) noexcept : 
-	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(0) {
+	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE) {
 	if (checkDupe && size > 0) {
-		if (ShareManager::getInstance()->isFileShared(aTTH, name)) {
-			setDupe(1);
-		} else {
-			int queued = QueueManager::getInstance()->isFileQueued(aTTH, name);
-			if (queued > 0) {
-				setDupe(queued+1);
-			}
-		}
+		dupe = AirUtil::checkDupe(tthRoot, name);
 	}
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
-		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(Directory::NONE), size(0) {
+		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(DUPE_NONE), size(0) {
 
 	if (!aSize.empty()) {
 		size = Util::toInt64(aSize);
 	}
 
 	if (checkDupe) {
-		auto sd = ShareManager::getInstance()->isDirShared(getPath(), size);
-		if (sd > 0) {
-			setDupe(sd == 2 ? SHARE_DUPE : PARTIAL_SHARE_DUPE);
-		} else {
-			auto qd = QueueManager::getInstance()->isDirQueued(getPath());
-			if (qd > 0)
-				setDupe(qd == 1 ? QUEUE_DUPE : FINISHED_DUPE);
-		}
+		dupe = AirUtil::checkDupe(getPath(), size);
 	}
 
 	setDate(aDate);
@@ -551,27 +537,27 @@ void DirectoryListing::Directory::clearAdls() {
 }
 
 uint8_t DirectoryListing::Directory::checkShareDupes() {
-	uint8_t result = Directory::NONE;
+	uint8_t result = DUPE_NONE;
 	bool first = true;
 	for(auto i = directories.begin(); i != directories.end(); ++i) {
 		result = (*i)->checkShareDupes();
-		if(getDupe() == Directory::NONE && first)
+		if(getDupe() == DUPE_NONE && first)
 			setDupe((DupeType)result);
 
 		//full dupe with same type for non-dupe dir, change to partial (or pass partial dupes to upper level folder)
-		else if((result == Directory::SHARE_DUPE || result == Directory::PARTIAL_SHARE_DUPE) && getDupe() == Directory::NONE && !first)
-			setDupe(Directory::PARTIAL_SHARE_DUPE);
-		else if((result == Directory::QUEUE_DUPE || result == Directory::PARTIAL_QUEUE_DUPE) && getDupe() == Directory::NONE && !first)
-			setDupe(Directory::PARTIAL_QUEUE_DUPE);
+		else if((result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE) && getDupe() == DUPE_NONE && !first)
+			setDupe(PARTIAL_SHARE_DUPE);
+		else if((result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE) && getDupe() == DUPE_NONE && !first)
+			setDupe(PARTIAL_QUEUE_DUPE);
 
 		//change to mixed dupe type
-		else if((getDupe() == Directory::SHARE_DUPE || getDupe() == Directory::PARTIAL_SHARE_DUPE) && (result == Directory::QUEUE_DUPE || result == Directory::PARTIAL_QUEUE_DUPE))
-			setDupe(Directory::SHARE_QUEUE_DUPE);
-		else if((getDupe() == Directory::QUEUE_DUPE || getDupe() == Directory::PARTIAL_QUEUE_DUPE) && (result == Directory::SHARE_DUPE || result == Directory::PARTIAL_SHARE_DUPE))
-			setDupe(Directory::SHARE_QUEUE_DUPE);
+		else if((getDupe() == SHARE_DUPE || getDupe() == PARTIAL_SHARE_DUPE) && (result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE))
+			setDupe(SHARE_QUEUE_DUPE);
+		else if((getDupe() == QUEUE_DUPE || getDupe() == PARTIAL_QUEUE_DUPE) && (result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE))
+			setDupe(SHARE_QUEUE_DUPE);
 
 		else if (result == SHARE_QUEUE_DUPE)
-			setDupe(Directory::SHARE_QUEUE_DUPE);
+			setDupe(SHARE_QUEUE_DUPE);
 
 		first = false;
 	}
@@ -582,34 +568,34 @@ uint8_t DirectoryListing::Directory::checkShareDupes() {
 		//of no interest
 		if((*i)->getSize() > 0) {			
 			//if it's the first file in the dir and no sub-folders exist mark it as a dupe.
-			if(getDupe() == Directory::NONE && (*i)->getDupe() == File::SHARE_DUPE && directories.empty() && first)
-				setDupe(Directory::SHARE_DUPE);
-			else if(getDupe() == Directory::NONE && (*i)->isQueued() && directories.empty() && first)
-				setDupe(Directory::QUEUE_DUPE);
+			if(getDupe() == DUPE_NONE && (*i)->getDupe() == SHARE_DUPE && directories.empty() && first)
+				setDupe(SHARE_DUPE);
+			else if(getDupe() == DUPE_NONE && (*i)->isQueued() && directories.empty() && first)
+				setDupe(QUEUE_DUPE);
 
 			//if it's the first file in the dir and we do have sub-folders but no dupes, mark as partial.
-			else if(getDupe() == Directory::NONE && (*i)->getDupe() == File::SHARE_DUPE && !directories.empty() && first)
-				setDupe(Directory::PARTIAL_SHARE_DUPE);
-			else if(getDupe() == Directory::NONE && (*i)->isQueued() && !directories.empty() && first)
-				setDupe(Directory::PARTIAL_QUEUE_DUPE);
+			else if(getDupe() == DUPE_NONE && (*i)->getDupe() == SHARE_DUPE && !directories.empty() && first)
+				setDupe(PARTIAL_SHARE_DUPE);
+			else if(getDupe() == DUPE_NONE && (*i)->isQueued() && !directories.empty() && first)
+				setDupe(PARTIAL_QUEUE_DUPE);
 			
 			//if it's not the first file in the dir and we still don't have a dupe, mark it as partial.
-			else if(getDupe() == Directory::NONE && (*i)->getDupe() == File::SHARE_DUPE && !first)
-				setDupe(Directory::PARTIAL_SHARE_DUPE);
-			else if(getDupe() == Directory::NONE && (*i)->isQueued() && !first)
-				setDupe(Directory::PARTIAL_QUEUE_DUPE);
+			else if(getDupe() == DUPE_NONE && (*i)->getDupe() == SHARE_DUPE && !first)
+				setDupe(PARTIAL_SHARE_DUPE);
+			else if(getDupe() == DUPE_NONE && (*i)->isQueued() && !first)
+				setDupe(PARTIAL_QUEUE_DUPE);
 			
 			//if it's a dupe and we find a non-dupe, mark as partial.
-			else if(getDupe() == Directory::SHARE_DUPE && (*i)->getDupe() != File::SHARE_DUPE)
-				setDupe(Directory::PARTIAL_SHARE_DUPE);
-			else if(getDupe() == Directory::QUEUE_DUPE && !(*i)->isQueued())
-				setDupe(Directory::PARTIAL_QUEUE_DUPE);
+			else if(getDupe() == SHARE_DUPE && (*i)->getDupe() != SHARE_DUPE)
+				setDupe(PARTIAL_SHARE_DUPE);
+			else if(getDupe() == QUEUE_DUPE && !(*i)->isQueued())
+				setDupe(PARTIAL_QUEUE_DUPE);
 
 			//if we find different type of dupe, change to mixed
-			else if((getDupe() == Directory::SHARE_DUPE || getDupe() == Directory::PARTIAL_SHARE_DUPE) && (*i)->isQueued())
-				setDupe(Directory::SHARE_QUEUE_DUPE);
-			else if((getDupe() == Directory::QUEUE_DUPE || getDupe() == Directory::PARTIAL_QUEUE_DUPE) && (*i)->getDupe() == File::SHARE_DUPE)
-				setDupe(Directory::SHARE_QUEUE_DUPE);
+			else if((getDupe() == SHARE_DUPE || getDupe() == PARTIAL_SHARE_DUPE) && (*i)->isQueued())
+				setDupe(SHARE_QUEUE_DUPE);
+			else if((getDupe() == QUEUE_DUPE || getDupe() == PARTIAL_QUEUE_DUPE) && (*i)->getDupe() == SHARE_DUPE)
+				setDupe(SHARE_QUEUE_DUPE);
 
 			first = false;
 		}
@@ -619,7 +605,7 @@ uint8_t DirectoryListing::Directory::checkShareDupes() {
 
 void DirectoryListing::checkShareDupes() {
 	root->checkShareDupes();
-	root->setDupe(Directory::NONE); //never show the root as a dupe or partial dupe.
+	root->setDupe(DUPE_NONE); //never show the root as a dupe or partial dupe.
 }
 
 void DirectoryListing::matchADL() {

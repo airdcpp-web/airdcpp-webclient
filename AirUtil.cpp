@@ -31,6 +31,7 @@
 #include "Socket.h"
 #include "LogManager.h"
 #include "Wildcards.h"
+#include "ShareManager.h"
 #include <locale.h>
 #include <boost/date_time/format_date_parser.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -45,6 +46,30 @@
 #endif
 
 namespace dcpp {
+
+DupeType AirUtil::checkDupe(const string& aDir, int64_t aSize) {
+	auto sd = ShareManager::getInstance()->isDirShared(aDir, aSize);
+	if (sd > 0) {
+		return sd == 2 ? SHARE_DUPE : PARTIAL_SHARE_DUPE;
+	} else {
+		auto qd = QueueManager::getInstance()->isDirQueued(aDir);
+		if (qd > 0)
+			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE;
+	}
+	return DUPE_NONE;
+}
+
+DupeType AirUtil::checkDupe(const TTHValue& aTTH, const string& aFileName) {
+	if (ShareManager::getInstance()->isFileShared(aTTH, aFileName)) {
+		return SHARE_DUPE;
+	} else {
+		int qd = QueueManager::getInstance()->isFileQueued(aTTH, aFileName);
+		if (qd > 0) {
+			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
+		}
+	}
+	return DUPE_NONE;
+}
 
 void AirUtil::init() {
 	releaseReg.Init(getReleaseRegBasic());

@@ -33,22 +33,22 @@ namespace dcpp {
 ChatLink::ChatLink(const string& aUrl, LinkType aLinkType) : url(aUrl), type(aLinkType), dupe(DUPE_NONE) {
 	if (aLinkType == TYPE_RELEASE) {
 		if (ShareManager::getInstance()->isDirShared(aUrl)) {
-			dupe = DUPE_SHARE;
+			dupe = SHARE_DUPE;
 		} else {
 			auto qd = QueueManager::getInstance()->isDirQueued(aUrl);
 			if (qd == 1) {
-				dupe = DUPE_QUEUE;
+				dupe = QUEUE_DUPE;
 			} else if (qd == 2) {
-				dupe = DUPE_FINISHED;
+				dupe = FINISHED_DUPE;
 			}
 		}
 	} else if (aLinkType == TYPE_MAGNET) {
 		Magnet m = Magnet(aUrl);
 		if (!m.hash.empty()) {
 			if (m.isShareDupe()) {
-				dupe = DUPE_SHARE;
+				dupe = SHARE_DUPE;
 			} else if (m.isQueueDupe() > 0) {
-				dupe = DUPE_QUEUE;
+				dupe = QUEUE_DUPE;
 			}
 		}
 	}

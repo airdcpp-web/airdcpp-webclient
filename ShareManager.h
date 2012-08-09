@@ -141,7 +141,7 @@ public:
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const string& aProfile, const CID& cid) noexcept;
 	bool isDirShared(const string& aDir) const;
-	uint8_t isDirShared(const string& aPath, uint64_t aSize) const;
+	uint8_t isDirShared(const string& aPath, int64_t aSize) const;
 	bool isFileShared(const TTHValue aTTH, const string& fileName) const;
 	bool allowAddDir(const string& dir);
 	string getReleaseDir(const string& aName);
@@ -482,7 +482,7 @@ private:
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	DirMap shares;
-	DirMultiMap shareDirs;
+	DirMultiMap dirNameMap;
 
 	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares);
 	bool checkHidden(const string& aName) const;

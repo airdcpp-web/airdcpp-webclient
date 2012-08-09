@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_CHAT_MESSAGE_H
 
 #include "forward.h"
+#include "AirUtil.h"
 
 namespace dcpp {
 
@@ -31,20 +32,13 @@ struct ChatLink {
 		TYPE_SPOTIFY,
 	};
 
-	enum LinkDupe {
-		DUPE_NONE,
-		DUPE_QUEUE,
-		DUPE_FINISHED,
-		DUPE_SHARE,
-	};
-
 	explicit ChatLink(const string& aLink, LinkType aLinkType);
 	explicit ChatLink() { }
 
 	string url;
 	string getDisplayText();
 	LinkType type;
-	LinkDupe dupe;
+	DupeType dupe;
 };
 
 

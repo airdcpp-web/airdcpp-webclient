@@ -31,6 +31,7 @@
 #include "UserInfoBase.h"
 #include "GetSet.h"
 #include "DirectoryListingListener.h"
+#include "AirUtil.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -55,7 +56,6 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
-		enum { NONE, SHARE_DUPE, QUEUED_DUPE, FINISHED_DUPE };
 		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe) noexcept;
 
 		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe)
@@ -79,9 +79,9 @@ public:
 		GETSET(int64_t, size, Size);
 		GETSET(Directory*, parent, Parent);
 		GETSET(bool, adls, Adls);
-		GETSET(uint8_t, dupe, Dupe)
+		GETSET(DupeType, dupe, Dupe)
 		bool isQueued() {
-			return (dupe > 1);
+			return (dupe == QUEUE_DUPE || dupe == FINISHED_DUPE);
 		}
 	};
 
@@ -102,16 +102,6 @@ public:
 		File::List files;
 		DirMap visitedDirs;
 
-		enum DupeType { 
-			NONE, 
-			PARTIAL_SHARE_DUPE, 
-			SHARE_DUPE, 
-			PARTIAL_QUEUE_DUPE, 
-			QUEUE_DUPE,
-			FINISHED_DUPE, 
-			SHARE_QUEUE_DUPE 
-		};
-
 		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe = false, const string& aSize = Util::emptyString, const string& aDate = Util::emptyString);
 		void setDate(const string& aDate);
 		time_t getDate() { return date; }
@@ -131,7 +121,7 @@ public:
 		
 		int64_t getSize() {
 			int64_t x = 0;
-			for(File::Iter i = files.begin(); i != files.end(); ++i) {
+			for(auto i = files.begin(); i != files.end(); ++i) {
 				x+=(*i)->getSize();
 			}
 			return x;
@@ -140,7 +130,7 @@ public:
 		string getPath() {
 			string tmp;
 			//make sure to not try and get the name of the root dir
-			if(getParent() != NULL && getParent()->getParent() != NULL){
+			if(getParent() && getParent()->getParent()){
 				return getParent()->getPath() +  getName() + '\\';
 		}
 			return getName() + '\\';

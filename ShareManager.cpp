@@ -619,19 +619,14 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, const strin
 			profileDirs[realPath] = pd;
 		}
 
-		Directory::Ptr dir;
 		auto j = shares.find(realPath);
 		if (j == shares.end()) {
-			dir = Directory::create(virtualName, nullptr, 0, pd);
+			auto dir = Directory::create(virtualName, nullptr, 0, pd);
 			shares[realPath] = dir;
-		} else {
-			dir = j->second;
 		}
 
-		//shareDirs.insert(make_pair(virtualName, dir));
-
 		if (aXml.getBoolChildAttrib("Incoming"))
-			dir->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING);
+			pd->setFlag(ProfileDirectory::FLAG_INCOMING);
 	}
 
 	aXml.resetCurrentChild();
@@ -790,7 +785,7 @@ bool ShareManager::loadCache() {
 		//look for shares.xml
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
 		SimpleXMLReader(&loader).parse(ff);
-		shareDirs = loader.dirs;
+		dirNameMap = loader.dirs;
 
 		rebuildIndices();
 	}catch(SimpleXMLException& e) {
@@ -927,11 +922,13 @@ bool ShareManager::isDirShared(const string& aDir) const {
 	return getDirByName(aDir) ? true : false;
 }
 
-uint8_t ShareManager::isDirShared(const string& aDir, uint64_t aSize) const {
+uint8_t ShareManager::isDirShared(const string& aDir, int64_t aSize) const {
 	RLock l (cs);
 	auto dir = getDirByName(aDir);
 	if (!dir)
 		return 0;
+
+	auto total = dir->getTotalSize();
 	return dir->getTotalSize() == aSize ? 2 : 1;
 }
 
@@ -958,7 +955,7 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 	if (pos != string::npos)
 		dir = dir.substr(pos+1);
 
-	auto directories = shareDirs.equal_range(dir);
+	auto directories = dirNameMap.equal_range(dir);
 	if (directories.first == directories.second)
 		return nullptr;
 
@@ -1016,16 +1013,14 @@ bool ShareManager::isFileShared(const TTHValue aTTH, const string& fileName) con
 void ShareManager::removeDir(ShareManager::Directory::Ptr aDir) {
 	boost::for_each(aDir->directories | map_values, [this](Directory::Ptr d) { removeDir(d); });
 
-	//auto p = find_if(shareDirs.begin(), shareDirs.end(), [aDir](pair<string, Directory::Ptr> sdp) { return sdp.second == aDir; });
-
 	//speed this up a bit
-	auto directories = shareDirs.equal_range(aDir->getRealName());
+	auto directories = dirNameMap.equal_range(aDir->getRealName());
 	string realPath = aDir->getRealPath(false);
 
 	auto p = find_if(directories.first, directories.second, [realPath](pair<string, Directory::Ptr> sdp) { return sdp.second->getRealPath(false) == realPath; });
-	dcassert(p != shareDirs.end());
-	if (p != shareDirs.end())
-		shareDirs.erase(p);
+	dcassert(p != dirNameMap.end());
+	if (p != dirNameMap.end())
+		dirNameMap.erase(p);
 }
 
 void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares) {
@@ -1387,7 +1382,7 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 						continue;
 					}
 
-					dcassert(shareDirs.find(Util::getLastDir((*i)->path)) == shareDirs.end());
+					dcassert(dirNameMap.find(Util::getLastDir((*i)->path)) == dirNameMap.end());
 					//no profiles in the parent, check if we have any child roots for other profiles inside this tree and get the most top one
 					Directory::Ptr dir = nullptr;
 					for(auto p = shares.begin(); p != shares.end(); ++p) {
@@ -1530,9 +1525,9 @@ int ShareManager::run() {
 			WLock l(cs);
 			shares = newShares;
 			if(t.first == REFRESH_DIR || t.first == REFRESH_INCOMING || t.first == ADD_DIR) {
-				shareDirs.insert(newShareDirs.begin(), newShareDirs.end());
+				dirNameMap.insert(newShareDirs.begin(), newShareDirs.end());
 			} else {
-				shareDirs = newShareDirs;
+				dirNameMap = newShareDirs;
 			}
 				
 			rebuildIndices();
@@ -2354,7 +2349,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 
 		ProfileDirMap profileDirs;
 		DirMap newShares;
-		buildTree(path, dir, false, profileDirs, shareDirs, newShares);
+		buildTree(path, dir, false, profileDirs, dirNameMap, newShares);
 		updateIndices(*dir);
 		setDirty(true); //forceXmlRefresh
 	}
@@ -2408,7 +2403,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 				}
 
 				curDir = Directory::create(*i, curDir, GET_TIME(), m != profileDirs.end() ? m->second : nullptr);
-				shareDirs.insert(make_pair(*i, curDir));
+				dirNameMap.insert(make_pair(*i, curDir));
 			}
 		}
 		return curDir;

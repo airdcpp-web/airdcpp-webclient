@@ -27,6 +27,16 @@
 
 namespace dcpp {
 
+enum DupeType { 
+	DUPE_NONE, 
+	PARTIAL_SHARE_DUPE, 
+	SHARE_DUPE, 
+	PARTIAL_QUEUE_DUPE, 
+	QUEUE_DUPE,
+	FINISHED_DUPE, 
+	SHARE_QUEUE_DUPE 
+};
+
 static PME releaseReg;
 static PME subDirRegPath;
 static boost::regex skiplistReg; //boost is faster on this??
@@ -39,6 +49,9 @@ static string winDir;
 class AirUtil {
 	
 	public:
+		static DupeType checkDupe(const string& aDir, int64_t aSize);
+		static DupeType checkDupe(const TTHValue& aDir, const string& aFileName);
+
 		static void init();
 		static void updateCachedSettings();
 		static bool matchSkiplist(const string& str);
