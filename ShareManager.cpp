@@ -91,6 +91,14 @@ ShareManager::~ShareManager() {
 
 void ShareManager::startup() {
 	AirUtil::updateCachedSettings();
+	if (!getShareProfile(SP_DEFAULT)) {
+		ShareProfilePtr sp = ShareProfilePtr(new ShareProfile(STRING(DEFAULT), SP_DEFAULT));
+		shareProfiles.push_back(sp);
+	}
+
+	ShareProfilePtr hidden = ShareProfilePtr(new ShareProfile("Hidden", SP_HIDDEN));
+	shareProfiles.push_back(hidden);
+
 	if(!loadCache()) {
 		refresh(false);
 	}
@@ -652,16 +660,12 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, const strin
 }
 
 void ShareManager::load(SimpleXML& aXml) {
-	WLock l(cs);
+	//WLock l(cs);
 	aXml.resetCurrentChild();
 
 	if(aXml.findChild("Share")) {
 		string name = aXml.getChildAttrib("Name");
 		loadProfile(aXml, !name.empty() ? name : STRING(DEFAULT), SP_DEFAULT);
-	} else {
-		//create the default profile
-		ShareProfilePtr sp = ShareProfilePtr(new ShareProfile(STRING(DEFAULT), SP_DEFAULT));
-		shareProfiles.push_back(sp);
 	}
 
 	aXml.resetCurrentChild();
@@ -671,10 +675,6 @@ void ShareManager::load(SimpleXML& aXml) {
 		if (!token.empty() && !name.empty())
 			loadProfile(aXml, name, token);
 	}
-
-	/* Add the hide share profile */
-	ShareProfilePtr hidden = ShareProfilePtr(new ShareProfile("Hidden", SP_HIDDEN));
-	shareProfiles.push_back(hidden);
 }
 
 ShareProfilePtr ShareManager::getShareProfile(const string& aProfile, bool allowFallback /*false*/) {
