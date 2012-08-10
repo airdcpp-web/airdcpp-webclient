@@ -32,11 +32,16 @@ struct StringTask : public Task {
 	string str;
 };
 
+struct StringListTask : public Task {
+	StringListTask(const StringList& spl_) : spl(spl_) { }
+	StringList spl;
+};
+
+
 class TaskQueue {
 public:
-	typedef pair<uint8_t, unique_ptr<Task>> Pair;
-	typedef vector<Pair> List;
-	typedef List::const_iterator Iter;
+	typedef pair<uint8_t, unique_ptr<Task>> TaskPair;
+	typedef deque<TaskPair> List;
 
 	TaskQueue() {
 	}
@@ -47,6 +52,15 @@ public:
 
 	void add(uint8_t type, std::unique_ptr<Task> && data) { Lock l(cs); tasks.push_back(make_pair(type, move(data))); }
 	void get(List& list) { Lock l(cs); swap(tasks, list); }
+	bool getFront(TaskPair& t) { 
+		Lock l(cs); 
+		if (tasks.empty())
+			return false;
+		t = move(tasks.front());
+		tasks.pop_front();
+		return true;
+	}
+
 	void clear() {
 		List tmp;
 		get(tmp);

@@ -609,42 +609,27 @@ void DirectoryListing::checkShareDupes() {
 }
 
 void DirectoryListing::matchADL() {
-	{
-		Lock l(taskCS);
-		tasks.push_back(make_pair(MATCH_ADL, nullptr));
-	}
+	tasks.add(MATCH_ADL, nullptr);
 	runTasks();
 }
 
 void DirectoryListing::listDiff(const string& aFile) {
-	{
-		Lock l(taskCS);
-		tasks.push_back(make_pair(MATCH_ADL, new StringTask(aFile)));
-	}
+	tasks.add(MATCH_ADL, unique_ptr<Task>(new StringTask(aFile)));
 	runTasks();
 }
 
 void DirectoryListing::refreshDir(const string& aXml) {
-	{
-		Lock l(taskCS);
-		tasks.push_back(make_pair(REFRESH_DIR, new StringTask(aXml)));
-	}
+	tasks.add(REFRESH_DIR, unique_ptr<Task>(new StringTask(aXml)));
 	runTasks();
 }
 
 void DirectoryListing::loadFullList(const string& aDir) {
-	{
-		Lock l(taskCS);
-		tasks.push_back(make_pair(LOAD_FILE, new StringTask(aDir)));
-	}
+	tasks.add(LOAD_FILE, unique_ptr<Task>(new StringTask(aDir)));
 	runTasks();
 }
 
 void DirectoryListing::loadPartial() {
-	{
-		Lock l(taskCS);
-		tasks.push_back(make_pair(REFRESH_DIR, new StringTask(fileName)));
-	}
+	tasks.add(REFRESH_DIR, unique_ptr<Task>(new StringTask(fileName)));
 	runTasks();
 }
 
@@ -664,21 +649,15 @@ void DirectoryListing::runTasks() {
 
 int DirectoryListing::run() {
 	for (;;) {
-		pair<Tasks, unique_ptr<TaskData> > t;
-		{
-			Lock l(taskCS);
-			if (tasks.empty())
-				break;
-			dcassert(!tasks.empty());
-			t = move(tasks.front());
-			tasks.erase(tasks.begin());
-		}
+		TaskQueue::TaskPair t;
+		if (!tasks.getFront(t))
+			break;
 
 		try {
 			int64_t start = GET_TICK();
 			
 			if (t.first == LISTDIFF) {
-				auto file = static_cast<StringTask*>(t.second.get())->st;
+				auto file = static_cast<StringTask*>(t.second.get())->str;
 				DirectoryListing dirList(hintedUser, partialList, false);
 				dirList.loadFile(file, true);
 
@@ -706,9 +685,9 @@ int DirectoryListing::run() {
 					checkShareDupes();
 				}
 
-				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->st);
+				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str);
 			} else if (t.first == REFRESH_DIR) {
-				auto xml = static_cast<StringTask*>(t.second.get())->st;
+				auto xml = static_cast<StringTask*>(t.second.get())->str;
 				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(updateXML(xml, BOOLSETTING(DUPES_IN_FILELIST))));
 			}
 		} catch(const AbortException) {

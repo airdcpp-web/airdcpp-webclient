@@ -26,6 +26,7 @@
 #include "HashManager.h"
 #include "QueueManagerListener.h"
 
+#include "TaskQueue.h"
 #include "Exception.h"
 #include "Thread.h"
 #include "StringSearch.h"
@@ -53,6 +54,7 @@ class OutputStream;
 class MemoryInputStream;
 struct ShareLoader;
 class Worker;
+class TaskQueue;
 
 class ShareDirInfo : public FastAlloc<ShareDirInfo> {
 public:
@@ -428,17 +430,7 @@ private:
 
 	ProfileDirMap getSubProfileDirs(const string& aPath);
 
-	/*struct StringTask : public TaskData {
-		StringTask(const string& s_) : st(s_) { }
-		string st;
-	};*/
-
-	struct StringListTask : public TaskData {
-		StringListTask(const StringList& spl_) : spl(spl_) { }
-		StringList spl;
-	};
-
-	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
+	TaskQueue tasks;
 
 	FileList* generateXmlList(const string& shareProfile, bool forced = false);
 	void createFileList(const string& shareProfile, FileList* fl, bool forced);

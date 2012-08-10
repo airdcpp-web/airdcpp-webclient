@@ -1190,7 +1190,7 @@ int ShareManager::refresh(const string& aDir){
 
 	{
 		WLock l (dirNames);
-		tasks.push_back(make_pair(REFRESH_DIR, new StringListTask(refreshPaths)));
+		tasks.add(REFRESH_DIR, unique_ptr<Task>(new StringListTask(refreshPaths)));
 	}
 
 	if(refreshing.test_and_set()) {
@@ -1236,7 +1236,7 @@ int ShareManager::refresh(bool incoming /*false*/, bool isStartup /*false*/){
 
 	{
 		WLock l (dirNames);
-		tasks.push_back(make_pair(incoming ? REFRESH_INCOMING : REFRESH_ALL, new StringListTask(dirs)));
+		tasks.add(incoming ? REFRESH_INCOMING : REFRESH_ALL, unique_ptr<Task>(new StringListTask(dirs)));
 	}
 
 	initTaskThread(isStartup);
@@ -1346,7 +1346,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 
 	{
 		WLock l (dirNames);
-		tasks.push_back(make_pair(ADD_DIR, new StringListTask(add)));
+		tasks.add(ADD_DIR, unique_ptr<Task>(new StringListTask(add)));
 	}
 
 	initTaskThread();
@@ -1426,15 +1426,9 @@ int ShareManager::run() {
 	HashManager::HashPauser pauser;
 
 	for (;;) {
-		pair<Tasks, unique_ptr<TaskData> > t;
-		{
-			WLock l(dirNames);
-			if (tasks.empty())
-				break;
-			dcassert(!tasks.empty());
-			t = move(tasks.front());
-			tasks.erase(tasks.begin());
-		}
+		TaskQueue::TaskPair t;
+		if (!tasks.getFront(t))
+			break;
 
 		vector<pair<string, pair<Directory::Ptr, ProfileDirMap>>> dirs;
 		auto directories = static_cast<StringListTask*>(t.second.get())->spl;

@@ -32,6 +32,7 @@
 #include "GetSet.h"
 #include "DirectoryListingListener.h"
 #include "AirUtil.h"
+#include "TaskQueue.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -205,21 +206,6 @@ private:
 
 	int run();
 
-	struct TaskData {
-		virtual ~TaskData() { }
-	};
-
-	struct ListLoadTask : public TaskData {
-		ListLoadTask(const string& dir_, const string& file_) : dir(dir_), file(file_) { }
-		string dir;
-		string file;
-	};
-
-	struct StringTask : public TaskData {
-		StringTask(const string& s_) : st(s_) { }
-		string st;
-	};
-
 	enum Tasks {
 		REFRESH_DIR,
 		LOAD_FILE,
@@ -229,8 +215,8 @@ private:
 
 	void runTasks();
 	atomic_flag running;
-	CriticalSection taskCS;
-	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
+
+	TaskQueue tasks;
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }
