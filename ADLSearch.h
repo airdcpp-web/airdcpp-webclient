@@ -174,11 +174,11 @@ private:
 	StringSearchCollection ssColDir;
 
 	// @internal
-	void matchRecurse(DestDirList& /*aDestList*/, DirectoryListing::Directory* /*aDir*/, string& /*aPath*/);
+	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory* /*aDir*/, string& /*aPath*/);
 	// Search for file match
-	void MatchesFile(DestDirList& destDirVector, DirectoryListing::File *currentFile, string& fullPath);
+	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath);
 	// Search for directory match
-	void MatchesDirectory(DestDirList& destDirVector, DirectoryListing::Directory* currentDir, string& fullPath);
+	void MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory* currentDir, string& fullPath);
 	// Step up directory
 	void stepUpDirectory(DestDirList& destDirVector);
 

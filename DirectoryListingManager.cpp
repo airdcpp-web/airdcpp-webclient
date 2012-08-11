@@ -182,11 +182,7 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 		}
 	}
 
-	DirectoryListing* dl = new DirectoryListing(aUser, true, Util::emptyString, false);
-	fire(DirectoryListingManagerListener::OpenListing(), dl, text);
-
-	WLock l(cs);
-	fileLists[aUser.user] = dl;
+	createPartialList(aUser, text);
 }
 
 void DirectoryListingManager::openOwnList(const string& aProfile) {
@@ -194,12 +190,7 @@ void DirectoryListingManager::openOwnList(const string& aProfile) {
 	if (hasList(me.user))
 		return;
 
-	DirectoryListing* dl = new DirectoryListing(me, true, aProfile, true, 0, true);
-	fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString);
-
-	WLock l(cs);
-	fileLists[me] = dl;
-	//createList(me, aProfile, 0, Util::emptyString, true);
+	createPartialList(me, Util::emptyString, aProfile, true);
 }
 
 void DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile) {
@@ -215,6 +206,14 @@ void DirectoryListingManager::createList(const HintedUser& aUser, const string& 
 
 	WLock l(cs);
 	fileLists[aUser.user] = dl;
+}
+
+void DirectoryListingManager::createPartialList(const HintedUser& aUser, const string& aXml, const string& aProfile/*Util::emptyString*/, bool isOwnList /*false*/) {
+	DirectoryListing* dl = new DirectoryListing(aUser, true, aProfile, true, 0, isOwnList);
+	fire(DirectoryListingManagerListener::OpenListing(), dl, aXml);
+
+	WLock l(cs);
+	fileLists[aUser] = dl;
 }
 
 bool DirectoryListingManager::hasList(const UserPtr& aUser) {

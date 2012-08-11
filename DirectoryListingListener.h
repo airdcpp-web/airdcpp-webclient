@@ -30,9 +30,15 @@ public:
 
 	typedef X<0> LoadingFinished;
 	typedef X<1> LoadingFailed;
+	typedef X<2> LoadingStarted;
+	typedef X<3> QueueMatched;
+	typedef X<4> Close;
 
 	virtual void on(LoadingFinished, int64_t, const string&, bool) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
+	virtual void on(LoadingStarted) noexcept { }
+	virtual void on(QueueMatched, const string&) noexcept { }
+	virtual void on(Close) noexcept { }
 };
 
 } // namespace dcpp

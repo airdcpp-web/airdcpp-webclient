@@ -46,7 +46,7 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 }
 
 DirectoryListing::~DirectoryListing() {
-	delete root;
+	//delete root;
 }
 
 UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
@@ -125,7 +125,7 @@ string DirectoryListing::updateXML(const string& xml) {
 }
 
 string DirectoryListing::loadXML(InputStream& is, bool updating) {
-	ListLoader ll(this, getRoot(), updating, getUser(), !isOwnList && BOOLSETTING(DUPES_IN_FILELIST), partialList);
+	ListLoader ll(this, getRoot(), updating, getUser(), !isOwnList && isClientView && BOOLSETTING(DUPES_IN_FILELIST), partialList);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
@@ -630,6 +630,18 @@ void DirectoryListing::addFullListTask(const string& aDir) {
 	runTasks();
 }
 
+void DirectoryListing::addQueueMatchTask() {
+	tasks.add(MATCH_QUEUE, nullptr);
+	runTasks();
+}
+
+void DirectoryListing::close() {
+	tasks.add(CLOSE, nullptr);
+	runTasks();
+	//this->t_suspend();
+	//delete this;
+}
+
 void DirectoryListing::runTasks() {
 	if (running.test_and_set())
 		return;
@@ -665,6 +677,7 @@ int DirectoryListing::run() {
 				ADLSearchManager::getInstance()->matchListing(*this);
 				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false);
 			} else if(t.first == LOAD_FILE) {
+				fire(DirectoryListingListener::LoadingStarted());
 				if (isOwnList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, fileName); 
 					loadXML(*mis, true);
@@ -676,9 +689,12 @@ int DirectoryListing::run() {
 					ADLSearchManager::getInstance()->matchListing(*this);
 				}
 
-				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str, partialList);
+				bool convertPartial = partialList;
+				partialList = false;
+				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str, convertPartial);
 				partialList = false;
 			} else if (t.first == REFRESH_DIR) {
+				fire(DirectoryListingListener::LoadingStarted());
 				auto xml = static_cast<StringTask*>(t.second.get())->str;
 				
 				string path;
@@ -689,6 +705,15 @@ int DirectoryListing::run() {
 					path = updateXML(xml);
 				}
 				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(path), false);
+			} else if (t.first == CLOSE) {
+				//delete this;
+				fire(DirectoryListingListener::Close());
+				return 0;
+			} else if (t.first == MATCH_QUEUE) {
+				int matches=0, newFiles=0;
+				BundleList bundles;
+				QueueManager::getInstance()->matchListing(*this, matches, newFiles, bundles);
+				fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
 			}
 		} catch(const AbortException) {
 			fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);

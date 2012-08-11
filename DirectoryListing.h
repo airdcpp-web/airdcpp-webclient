@@ -198,6 +198,8 @@ public:
 	void addListDiffTask(const string& aFile);
 	void addPartialListTask(const string& aXmlDir);
 	void addFullListTask(const string& aDir);
+	void addQueueMatchTask();
+	void close();
 private:
 	friend class ListLoader;
 
@@ -208,6 +210,8 @@ private:
 	int run();
 
 	enum Tasks {
+		MATCH_QUEUE,
+		CLOSE,
 		REFRESH_DIR,
 		LOAD_FILE,
 		MATCH_ADL,
