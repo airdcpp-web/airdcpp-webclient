@@ -97,13 +97,13 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 }
 
 void DirectoryListingManager::processList(const string& name, const HintedUser& user, const string& path, int flags) {
-	DirectoryListing dirList(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name);
+	DirectoryListing dirList(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name, false);
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(name);
-			dirList.loadXML(mis, true, false);
+			dirList.loadXML(mis, true);
 		} else {
-			dirList.loadFile(name, false);
+			dirList.loadFile(name);
 		}
 	} catch(const Exception&) {
 		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + name, LogManager::LOG_ERROR);
@@ -160,7 +160,7 @@ void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItem
 		if (p != fileLists.end() && p->second->getPartialList()) {
 			p->second->setFileName(qi->getListName());
 			p->second->setspeed(aSpeed);
-			p->second->loadFullList(dir);
+			p->second->addFullListTask(dir);
 			return;
 		}
 	}
@@ -177,13 +177,13 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 		RLock l(cs);
 		auto p = fileLists.find(aUser.user);
 		if (p != fileLists.end()) {
-			p->second->refreshDir(text);
+			p->second->addPartialListTask(text);
 			return;
 		}
 	}
 
-	DirectoryListing* dl = new DirectoryListing(aUser, true, text, false);
-	fire(DirectoryListingManagerListener::OpenPartialListing(), dl);
+	DirectoryListing* dl = new DirectoryListing(aUser, true, Util::emptyString, false);
+	fire(DirectoryListingManagerListener::OpenListing(), dl, text);
 
 	WLock l(cs);
 	fileLists[aUser.user] = dl;
@@ -194,7 +194,12 @@ void DirectoryListingManager::openOwnList(const string& aProfile) {
 	if (hasList(me.user))
 		return;
 
-	createList(me, aProfile, 0, Util::emptyString, true);
+	DirectoryListing* dl = new DirectoryListing(me, true, aProfile, true, 0, true);
+	fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString);
+
+	WLock l(cs);
+	fileLists[me] = dl;
+	//createList(me, aProfile, 0, Util::emptyString, true);
 }
 
 void DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile) {
@@ -205,7 +210,7 @@ void DirectoryListingManager::openFileList(const HintedUser& aUser, const string
 }
 
 void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, int64_t aSpeed, const string& aInitialDir /*Util::emptyString*/, bool isOwnList /*false*/) {
-	DirectoryListing* dl = new DirectoryListing(aUser, false, aFile, aSpeed, isOwnList);
+	DirectoryListing* dl = new DirectoryListing(aUser, false, aFile, true, aSpeed, isOwnList);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aInitialDir);
 
 	WLock l(cs);

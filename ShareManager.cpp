@@ -1794,7 +1794,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 			Directory::Ptr root;
 			for(auto it = result.begin(); it != result.end(); ++it) {
 				root = *it;
-				dcdebug("result name %s \n", root->getProfileDir()->getName(aProfile));
+				dcdebug("result name %s \n", (*it)->getFullName(aProfile));
 
 				if(basedate.empty() || (Util::toUInt32(basedate) < root->getLastWrite())) //compare the dates and add the last modified
 					basedate = Util::toString(root->getLastWrite());

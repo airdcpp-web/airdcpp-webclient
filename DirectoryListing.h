@@ -155,14 +155,14 @@ public:
 		GETSET(string, fullPath, FullPath);
 	};
 
-	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, int64_t aSpeed=0, bool aIsOwnList=false);
+	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, int64_t aSpeed=0, bool aIsOwnList=false);
 	~DirectoryListing();
 	
-	void loadFile(const string& name, bool checkdupe);
+	void loadFile(const string& name);
 
 
-	string updateXML(const std::string&, bool checkdupe);
-	string loadXML(InputStream& xml, bool updating, bool checkDupes);
+	string updateXML(const std::string&);
+	string loadXML(InputStream& xml, bool updating);
 
 	void download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
 	void download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
@@ -190,14 +190,14 @@ public:
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, abort, Abort);
 	GETSET(bool, isOwnList, IsOwnList);
+	GETSET(bool, isClientView, isClientView);
 	GETSET(string, fileName, FileName);
 	GETSET(int64_t, speed, speed); /**< Speed at which this file list was downloaded */
 
-	void matchADL();
-	void listDiff(const string& aFile);
-	void refreshDir(const string& aXml);
-	void loadFullList(const string& aDir);
-	void loadPartial();
+	void addMatchADLTask();
+	void addListDiffTask(const string& aFile);
+	void addPartialListTask(const string& aXmlDir);
+	void addFullListTask(const string& aDir);
 private:
 	friend class ListLoader;
 

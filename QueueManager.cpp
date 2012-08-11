@@ -1282,16 +1282,15 @@ void QueueManager::remove(const string aTarget) noexcept {
 void QueueManager::removeQI(QueueItemPtr q, bool moved /*false*/) noexcept {
 	UserConnectionList x;
 	dcassert(q);
+
+	// For partial-share
+	UploadManager::getInstance()->abortUpload(q->getTempTarget());
+	UserPtr u = nullptr;
+
 	{
-
-		// For partial-share
-		UploadManager::getInstance()->abortUpload(q->getTempTarget());
-
 		WLock l(cs);
-
 		if(q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) {
-			dcassert(q->getSources().size() == 1);
-			DirectoryListingManager::getInstance()->removeDirectoryDownload(q->getSources()[0].getUser());
+			u = q->getSources()[0].getUser();
 		}
 
 		if(q->isRunning()) {
@@ -1309,6 +1308,9 @@ void QueueManager::removeQI(QueueItemPtr q, bool moved /*false*/) noexcept {
 		}
 		fileQueue.remove(q);
 	}
+
+	if (u)
+		DirectoryListingManager::getInstance()->removeDirectoryDownload(u);
 
 	removeBundleItem(q, false, moved);
 	for_each(x, [](UserConnection* u) { u->disconnect(true); });
