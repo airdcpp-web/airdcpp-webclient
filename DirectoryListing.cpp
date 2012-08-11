@@ -43,17 +43,6 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 {
 }
 
-void DirectoryListing::setComplete(bool complete) {
-	root->setAllComplete(complete);
-}
-
-void DirectoryListing::Directory::setAllComplete(bool complete) {
-	for(auto d: directories) {
-		d->setAllComplete(complete);
-	}
-	setComplete(complete);
-}
-
 DirectoryListing::~DirectoryListing() {
 	delete root;
 }

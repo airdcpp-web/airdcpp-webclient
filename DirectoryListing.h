@@ -117,7 +117,6 @@ public:
 		void clearAdls();
 
 		bool findIncomplete();
-		void setAllComplete(bool complete);
 		
 		size_t getFileCount() { return files.size(); }
 		
@@ -164,9 +163,6 @@ public:
 
 	string updateXML(const std::string&, bool checkdupe);
 	string loadXML(InputStream& xml, bool updating, bool checkDupes);
-
-	/** recursively mark directories and sub-directories as complete or incomplete. */
-	void setComplete(bool complete);
 
 	void download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
 	void download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
