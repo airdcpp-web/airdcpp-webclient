@@ -31,7 +31,7 @@ public:
 	typedef X<0> LoadingFinished;
 	typedef X<1> LoadingFailed;
 
-	virtual void on(LoadingFinished, int64_t, const string&) noexcept { }
+	virtual void on(LoadingFinished, int64_t, const string&, bool) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
 };
 

@@ -38,9 +38,20 @@
 
 namespace dcpp {
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) : 
-	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName), running(false)
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, int64_t aSpeed, bool aIsOwnList) : 
+	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName), running(false), speed(aSpeed)
 {
+}
+
+void DirectoryListing::setComplete(bool complete) {
+	root->setAllComplete(complete);
+}
+
+void DirectoryListing::Directory::setAllComplete(bool complete) {
+	for(auto d: directories) {
+		d->setAllComplete(complete);
+	}
+	setComplete(complete);
 }
 
 DirectoryListing::~DirectoryListing() {
@@ -86,9 +97,9 @@ void DirectoryListing::loadFile(const string& name, bool checkdupe) {
 	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
 	if(stricmp(ext, ".bz2") == 0) {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
-		loadXML(f, false, checkdupe);
+		loadXML(f, partialList, checkdupe);
 	} else if(stricmp(ext, ".xml") == 0) {
-		loadXML(ff, false, checkdupe);
+		loadXML(ff, partialList, checkdupe);
 	}
 }
 
@@ -190,7 +201,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& size = getAttrib(attribs, sSize, 2);
 			const string& date = getAttrib(attribs, sDate, 3);
 
-			DirectoryListing::Directory* d = NULL;
+			DirectoryListing::Directory* d = nullptr;
 			if(updating) {
 				if (useCache) {
 					auto s =  cur->visitedDirs.find(n);
@@ -212,7 +223,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				}
 			}
 
-			if(d == NULL) {
+			if(!d) {
 				d = new DirectoryListing::Directory(cur, n, false, !incomp, (partialList && checkDupe), size, date);
 				cur->directories.push_back(d);
 			}
@@ -662,11 +673,11 @@ int DirectoryListing::run() {
 				dirList.loadFile(file, true);
 
 				root->filterList(dirList);
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false);
 			} else if(t.first == MATCH_ADL) {
 				root->clearAdls(); //not much to check even if its the first time loaded without adls...
 				ADLSearchManager::getInstance()->matchListing(*this);
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false);
 			} else if(t.first == LOAD_FILE) {
 				string file = fileName;
 				if(isOwnList) {
@@ -681,14 +692,12 @@ int DirectoryListing::run() {
 					ADLSearchManager::getInstance()->matchListing(*this);
 				}
 
-				if(checkShareDupe) {
-					checkShareDupes();
-				}
-
-				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str);
+				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str, partialList);
+				partialList = false;
 			} else if (t.first == REFRESH_DIR) {
 				auto xml = static_cast<StringTask*>(t.second.get())->str;
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(updateXML(xml, BOOLSETTING(DUPES_IN_FILELIST))));
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(updateXML(xml, BOOLSETTING(DUPES_IN_FILELIST))), false);
+				fileName.clear();
 			}
 		} catch(const AbortException) {
 			fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);

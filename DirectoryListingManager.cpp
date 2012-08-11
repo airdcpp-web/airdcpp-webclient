@@ -39,11 +39,22 @@ namespace dcpp {
 		if (!qi->isSet(QueueItem::FLAG_CLIENT_VIEW) || !qi->isSet(QueueItem::FLAG_USER_LIST))
 			return;
 
-		if (hasList(aUser.user))
-			return;
+		//if (hasList(aUser.user))
+		//	return;
+
+		{
+			RLock l(cs);
+			auto p = fileLists.find(aUser.user);
+			if (p != fileLists.end() && p->second->getPartialList()) {
+				p->second->setFileName(qi->getListName());
+				p->second->setspeed(aSpeed);
+				p->second->loadFullList(dir);
+				return;
+			}
+		}
 
 		if (qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-			createList(aUser, qi->getListName(), dir);
+			createList(aUser, qi->getListName(), aSpeed, dir);
 		} else {
 			///
 		}
@@ -71,18 +82,18 @@ namespace dcpp {
 		if (hasList(me.user))
 			return;
 
-		createList(me, aProfile, Util::emptyString, true);
+		createList(me, aProfile, 0, Util::emptyString, true);
 	}
 
 	void DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile) {
 		if (hasList(aUser.user))
 			return;
 
-		createList(aUser, aFile);
+		createList(aUser, aFile, 0);
 	}
 
-	void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir /*Util::emptyString*/, bool isOwnList /*false*/) {
-		DirectoryListing* dl = new DirectoryListing(aUser, false, aFile, isOwnList);
+	void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, int64_t aSpeed, const string& aInitialDir /*Util::emptyString*/, bool isOwnList /*false*/) {
+		DirectoryListing* dl = new DirectoryListing(aUser, false, aFile, aSpeed, isOwnList);
 		fire(DirectoryListingManagerListener::OpenListing(), dl, aInitialDir);
 
 		WLock l(cs);

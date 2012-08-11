@@ -117,6 +117,7 @@ public:
 		void clearAdls();
 
 		bool findIncomplete();
+		void setAllComplete(bool complete);
 		
 		size_t getFileCount() { return files.size(); }
 		
@@ -155,7 +156,7 @@ public:
 		GETSET(string, fullPath, FullPath);
 	};
 
-	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList=false);
+	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, int64_t aSpeed=0, bool aIsOwnList=false);
 	~DirectoryListing();
 	
 	void loadFile(const string& name, bool checkdupe);
@@ -163,6 +164,9 @@ public:
 
 	string updateXML(const std::string&, bool checkdupe);
 	string loadXML(InputStream& xml, bool updating, bool checkDupes);
+
+	/** recursively mark directories and sub-directories as complete or incomplete. */
+	void setComplete(bool complete);
 
 	void download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
 	void download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
@@ -191,6 +195,7 @@ public:
 	GETSET(bool, abort, Abort);
 	GETSET(bool, isOwnList, IsOwnList);
 	GETSET(string, fileName, FileName);
+	GETSET(int64_t, speed, speed); /**< Speed at which this file list was downloaded */
 
 	void matchADL();
 	void listDiff(const string& aFile);

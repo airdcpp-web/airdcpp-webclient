@@ -1413,6 +1413,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Profile name", 
 "Lock Toolbars", 
 "Clear directory history on exit", 
+"Get full filelist", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2826,4 +2827,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ProfileName", 
 "LockTb", 
 "ClearDirHistory", 
+"GetFullList", 
 };

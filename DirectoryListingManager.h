@@ -48,7 +48,7 @@ namespace dcpp {
 		unordered_map<UserPtr, DirectoryListing*, User::Hash> fileLists;
 
 		bool hasList(const UserPtr& aUser);
-		void createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir = Util::emptyString, bool isOwnList=false);
+		void createList(const HintedUser& aUser, const string& aFile, int64_t aSpeed, const string& aInitialDir = Util::emptyString, bool isOwnList=false);
 		void on(QueueManagerListener::Finished, const QueueItemPtr qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
 		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& text) noexcept;
 	};
