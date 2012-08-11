@@ -34,6 +34,7 @@
 #include "SimpleXMLReader.h"
 #include "User.h"
 #include "ADLSearch.h"
+#include "DirectoryListingManager.h"
 
 
 namespace dcpp {
@@ -345,10 +346,10 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 		//check if there are incomplete dirs in a partial list
 		if (partialList && aDir->findIncomplete()) {
 			if (!recursiveList) {
-				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, aTarget, prio);
+				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, TargetUtil::TARGET_PATH, prio);
 			} else {
 				//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-				QueueManager::getInstance()->addDirectory(aDir->getPath(), hintedUser, aTarget, prio, true);
+				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, TargetUtil::TARGET_PATH, prio, true);
 			}
 			return;
 		}

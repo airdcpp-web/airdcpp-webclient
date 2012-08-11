@@ -74,8 +74,6 @@ public:
 	void onUseSeqOrder(BundlePtr aBundle);
 
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
-	void addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, 
-		QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
 	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept;
 
 	void removeQI(QueueItemPtr qi, bool moved = false) noexcept;
@@ -247,8 +245,6 @@ private:
 
 	/** QueueItems by user */
 	UserQueue userQueue;
-	/** Directories queued for downloading */
-	unordered_multimap<UserPtr, DirectoryItemPtr, User::Hash> directories;
 	/** File lists not to delete */
 	StringList protectedFileLists;
 	/** Sanity check for the target filename */
@@ -256,7 +252,6 @@ private:
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle=false) throw(QueueException, FileException);
 	 
-	void processList(const string& name, const HintedUser& user, const string& path, int flags);
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
 	void addBundleUpdate(const BundlePtr aBundle);

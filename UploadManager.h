@@ -47,7 +47,6 @@ public:
 			case COLUMN_WAITING: return compare(a->time, b->time);
 			default: return lstrcmpi(a->getText(col).c_str(), b->getText(col).c_str());
 		}
-		return 0;
 	}
 
 	enum {

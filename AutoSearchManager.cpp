@@ -33,6 +33,7 @@
 #include "Wildcards.h"
 #include "format.h"
 #include "ScopedFunctor.h"
+#include "DirectoryListingManager.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
@@ -397,7 +398,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-				QueueManager::getInstance()->addDirectory(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), path, 
+				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), path, TargetUtil::TARGET_PATH, 
 					(as->getAction() == AutoSearch::ACTION_QUEUE || noFreeSpace) ? QueueItem::PAUSED : QueueItem::DEFAULT);
 			} else {
 				path = path + Util::getFileName(sr->getFile());

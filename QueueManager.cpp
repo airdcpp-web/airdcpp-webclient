@@ -47,6 +47,7 @@
 #include "version.h"
 #include "Wildcards.h"
 #include "SearchResult.h"
+#include "DirectoryListingManager.h"
 
 #include <limits>
 
@@ -62,23 +63,6 @@ namespace dcpp {
 
 using boost::adaptors::map_values;
 using boost::range::for_each;
-
-class DirectoryItem {
-public:
-	DirectoryItem() : priority(QueueItem::DEFAULT) { }
-	DirectoryItem(const UserPtr& aUser, const string& aName, const string& aTarget, 
-		QueueItem::Priority p) : name(aName), target(aTarget), priority(p), user(aUser) { }
-	~DirectoryItem() { }
-	
-	UserPtr& getUser() { return user; }
-	void setUser(const UserPtr& aUser) { user = aUser; }
-	
-	GETSET(string, name, Name);
-	GETSET(string, target, Target);
-	GETSET(QueueItem::Priority, priority, Priority);
-private:
-	UserPtr user;
-};
 
 void QueueManager::FileMover::moveFile(const string& source, const string& target, BundlePtr aBundle) {
 	Lock l(cs);
@@ -669,37 +653,6 @@ bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::Ma
 	
 }
 
-void QueueManager::addDirectory(const string& aDir, const HintedUser& aUser, const string& aTarget, QueueItem::Priority p /* = QueueItem::DEFAULT */, bool useFullList) noexcept {
-
-	bool needList;
-	{
-		WLock l(cs);
-		
-		auto dp = directories.equal_range(aUser);
-		
-		for(auto i = dp.first; i != dp.second; ++i) {
-			if(stricmp(aTarget.c_str(), i->second->getName().c_str()) == 0)
-				return;
-		}
-		
-		// Unique directory, fine...
-		directories.insert(make_pair(aUser, new DirectoryItem(aUser, aDir, aTarget, p)));
-		needList = aUser.user->isSet(User::NMDC) ? (dp.first == dp.second) : true;
-	}
-
-	if(needList) {
-		try {
-			if (!aUser.user->isSet(User::NMDC) && !useFullList) {
-				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, aDir);
-			} else {
-				addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD, aDir);
-			}
-		} catch(const Exception&) {
-			// Ignore, we don't really care...
-		}
-	}
-}
-
 QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSlot, string& bundleToken) noexcept {
 	RLock l(cs);
 	QueueItemPtr qi = userQueue.getNext(aUser, QueueItem::LOWEST, 0, 0, smallSlot);
@@ -1155,7 +1108,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 			fire(QueueManagerListener::StatusUpdated(), q);
 		} else { // Finished
 			if(d->getType() == Transfer::TYPE_PARTIAL_LIST) {
-				if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(d->getUser()) != directories.end()) ||
+				if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) ||
 					(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) ||
 					(q->isSet(QueueItem::FLAG_VIEW_NFO)))
 				{					
@@ -1188,7 +1141,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 				q->addSegment(Segment(0, q->getSize()), true);
 
 				// Now, let's see if this was a directory download filelist...
-				if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && directories.find(d->getUser()) != directories.end()) ||
+				if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) ||
 					(q->isSet(QueueItem::FLAG_MATCH_QUEUE)) )
 				{
 					fl_fname = q->getListName();
@@ -1265,7 +1218,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 		if (d->isSet(Download::FLAG_TTHLIST)) {	 
 			matchTTHList(fl_fname, d->getHintedUser(), fl_flag);	 
 		} else {	 
-			processList(fl_fname, d->getHintedUser(), d->getTempTarget(), fl_flag); 
+			DirectoryListingManager::getInstance()->processList(fl_fname, d->getHintedUser(), d->getTempTarget(), fl_flag); 
 		}
 	}
 }
@@ -1309,69 +1262,6 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 		if((matches > 0) && wantConnection)
 			ConnectionManager::getInstance()->getDownloadConnection(user); 
 	}
- }
-
-void QueueManager::processList(const string& name, const HintedUser& user, const string& path, int flags) {
-	DirectoryListing dirList(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name);
-	try {
-		if(flags & QueueItem::FLAG_TEXT) {
-			MemoryInputStream mis(name);
-			dirList.loadXML(mis, true, false);
-		} else {
-			dirList.loadFile(name, false);
-		}
-	} catch(const Exception&) {
-		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + name, LogManager::LOG_ERROR);
-		return;
-	}
-
-	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
-		if ((flags & QueueItem::FLAG_PARTIAL_LIST) && !path.empty()) {
-			//partial list
-			DirectoryItem* d = nullptr;
-			{
-				WLock l(cs);
-				auto dp = directories.equal_range(user);
-				auto udp = find_if(dp.first, dp.second, [path](pair<UserPtr, DirectoryItemPtr> ud) { return stricmp(path.c_str(), ud.second->getName().c_str()) == 0; });
-				if (udp != dp.second) {
-					d = udp->second;
-					directories.erase(udp);
-				}
-			}
-
-			if(d) {
-				dirList.download(d->getName(), d->getTarget(), false, d->getPriority(), true);
-				delete d;
-			}
-		} else {
-			//full filelist
-			vector<DirectoryItemPtr> dl;
-			{
-				WLock l(cs);
-				auto dpf = directories.equal_range(user) | map_values;
-				dl.assign(boost::begin(dpf), boost::end(dpf));
-				directories.erase(user);
-			}
-
-			for_each(dl, [&](DirectoryItem* di) {
-				dirList.download(di->getName(), di->getTarget(), false, di->getPriority());
-				delete di;
-			});
-		}
-	}
-
-	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
-		int matches=0, newFiles=0;
-		BundleList bundles;
-		matchListing(dirList, matches, newFiles, bundles);
-		if ((flags & QueueItem::FLAG_PARTIAL_LIST) && (!SETTING(REPORT_ADDED_SOURCES) || newFiles == 0 || bundles.empty())) {
-			return;
-		}
-		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(user)) + ": " + 
-			AirUtil::formatMatchResults(matches, newFiles, bundles, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0), LogManager::LOG_INFO);
-	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
-		dirList.findNfo(path);
-	}
 }
 
 void QueueManager::recheck(const string& aTarget) {
@@ -1401,11 +1291,7 @@ void QueueManager::removeQI(QueueItemPtr q, bool moved /*false*/) noexcept {
 
 		if(q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) {
 			dcassert(q->getSources().size() == 1);
-			auto dp = directories.equal_range(q->getSources()[0].getUser());
-			for(auto i = dp.first; i != dp.second; ++i) {
-				delete i->second;
-			}
-			directories.erase(q->getSources()[0].getUser());
+			DirectoryListingManager::getInstance()->removeDirectoryDownload(q->getSources()[0].getUser());
 		}
 
 		if(q->isRunning()) {
@@ -2233,7 +2119,7 @@ bool QueueManager::dropSource(Download* d) {
 	size_t onlineUsers = 0;
 
 	if(b->getRunning() >= SETTING(DISCONNECT_MIN_SOURCES)) {
-		size_t iHighSpeed = SETTING(DISCONNECT_FILE_SPEED);
+		int iHighSpeed = SETTING(DISCONNECT_FILE_SPEED);
 		{
 			RLock l (cs);
 			onlineUsers = b->countOnlineUsers();

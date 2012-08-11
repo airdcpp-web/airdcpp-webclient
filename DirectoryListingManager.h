@@ -26,6 +26,7 @@
 #include "QueueManagerListener.h"
 #include "DirectoryListingManagerListener.h"
 #include "Singleton.h"
+#include "TargetUtil.h"
 
 #include "Singleton.h"
 
@@ -33,7 +34,6 @@ namespace dcpp {
 
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener {
 	public:
-		void listWindowOpened(const DirectoryListing* aList);
 		void openOwnList(const string& aProfile);
 		void openFileList(const HintedUser& aUser, const string& aFile);
 		
@@ -41,6 +41,12 @@ namespace dcpp {
 
 		DirectoryListingManager();
 		~DirectoryListingManager();
+
+		void processList(const string& name, const HintedUser& user, const string& path, int flags);
+		void addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType,
+			QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
+
+		void removeDirectoryDownload(const UserPtr aUser);
 	private:
 		friend class Singleton<DirectoryListingManager>;
 
@@ -51,6 +57,9 @@ namespace dcpp {
 		void createList(const HintedUser& aUser, const string& aFile, int64_t aSpeed, const string& aInitialDir = Util::emptyString, bool isOwnList=false);
 		void on(QueueManagerListener::Finished, const QueueItemPtr qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
 		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& text) noexcept;
+
+		/** Directories queued for downloading */
+		unordered_multimap<UserPtr, DirectoryItemPtr, User::Hash> directories;
 	};
 
 }
