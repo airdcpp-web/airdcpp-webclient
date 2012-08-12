@@ -114,6 +114,7 @@ private:
 	bool checkSize(int64_t size);
 };
 
+
 class ADLSearchManager : public Singleton<ADLSearchManager>
 {
 public:
@@ -174,7 +175,7 @@ private:
 	StringSearchCollection ssColDir;
 
 	// @internal
-	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory* /*aDir*/, string& /*aPath*/);
+	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory* /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/);
 	// Search for file match
 	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath);
 	// Search for directory match

@@ -47,7 +47,7 @@ public:
 	void find(QueueItemList& sl, int64_t aSize, const string& ext) noexcept;
 	void find(StringList& sl, int64_t aSize, const string& ext) noexcept;
 	void find(const TTHValue& tth, QueueItemList& ql) noexcept;
-	void matchDir(const DirectoryListing::Directory* dir, QueueItemList& ql) noexcept;
+	void matchDir(const DirectoryListing::Directory* dir, QueueItemList& ql, const DirectoryListing& dl);
 
 	// find some PFS sources to exchange parts info
 	void findPFSSources(PFSSourceList&);

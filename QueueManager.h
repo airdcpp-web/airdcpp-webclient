@@ -74,7 +74,7 @@ public:
 	void onUseSeqOrder(BundlePtr aBundle);
 
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
-	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept;
+	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles);
 
 	void removeQI(QueueItemPtr qi, bool moved = false) noexcept;
 	void remove(const string aTarget) noexcept;

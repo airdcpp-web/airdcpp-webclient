@@ -41,7 +41,7 @@ namespace dcpp {
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
-class DirectoryListing : public UserInfoBase, private Thread, public Speaker<DirectoryListingListener>
+class DirectoryListing : public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>
 {
 public:
 	class Directory;

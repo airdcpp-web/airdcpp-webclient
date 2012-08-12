@@ -46,7 +46,7 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 }
 
 DirectoryListing::~DirectoryListing() {
-	//delete root;
+	delete root;
 }
 
 UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
@@ -717,6 +717,7 @@ int DirectoryListing::run() {
 			}
 		} catch(const AbortException) {
 			fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
+			break;
 		} catch(const ShareException& e) {
 			fire(DirectoryListingListener::LoadingFailed(), e.getError());
 		}catch(const Exception& e) {

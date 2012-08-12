@@ -95,10 +95,13 @@ void FileQueue::find(const TTHValue& tth, QueueItemList& ql) noexcept {
 	}
 }
 
-void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItemList& ql) noexcept {
+void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItemList& ql, const DirectoryListing& dl) {
+	if(dl.getAbort())
+		throw AbortException();
+
 	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
 		if(!(*j)->getAdls())
-			matchDir(*j, ql);
+			matchDir(*j, ql, dl);
 	}
 
 	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {

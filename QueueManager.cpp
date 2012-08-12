@@ -665,13 +665,13 @@ QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSl
 	return QueueItem::PAUSED;
 }
 
-void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept {
+void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) {
 	bool wantConnection = false;
 	QueueItemList ql;
 	//uint64_t start = GET_TICK();
 	{
 		RLock l(cs);
-		fileQueue.matchDir(dl.getRoot(), ql);
+		fileQueue.matchDir(dl.getRoot(), ql, dl);
 	}
 
 	{
