@@ -1414,6 +1414,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Lock Toolbars", 
 "Clear directory history on exit", 
 "Get full filelist", 
+"No results were found", 
+"Search timed out", 
+"Searching...", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2828,4 +2831,7 @@ std::string dcpp::ResourceManager::names[] = {
 "LockTb", 
 "ClearDirHistory", 
 "GetFullList", 
+"NoResultsFound", 
+"SearchTimedOut", 
+"Searching", 
 };

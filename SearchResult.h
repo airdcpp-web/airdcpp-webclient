@@ -25,10 +25,20 @@
 #include "AdcCommand.h"
 #include "Pointer.h"
 #include "Util.h"
+#include "GetSet.h"
 
 namespace dcpp {
 
-class SearchManager;
+class DirectSearchResult : public FastAlloc<DirectSearchResult>, public intrusive_ptr_base<DirectSearchResult> {
+public:	
+	DirectSearchResult(const string& aPath);
+
+	GETSET(string, token, Token);
+	GETSET(string, path, Path);
+
+	AdcCommand toDSR(char type) const;
+private:
+};
 
 class SearchResult : public FastAlloc<SearchResult>, public intrusive_ptr_base<SearchResult> {
 public:	

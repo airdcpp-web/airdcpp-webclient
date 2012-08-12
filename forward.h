@@ -30,6 +30,8 @@ namespace dcpp {
 
 class AdcCommand;
 
+class AdcSearch;
+
 class ADLSearch;
 
 class BufferedSocket;
@@ -98,7 +100,6 @@ class InputStream;
 class LogManager;
 
 class OnlineUser;
-//typedef OnlineUser* OnlineUserPtr;
 typedef boost::intrusive_ptr<OnlineUser> OnlineUserPtr;
 typedef std::vector<OnlineUserPtr> OnlineUserList;
 
@@ -110,6 +111,11 @@ typedef std::vector<QueueItemPtr> QueueItemList;
 
 class RecentHubEntry;
 
+class DirectSearchResult;
+typedef boost::intrusive_ptr<DirectSearchResult> DirectSearchResultPtr;
+typedef std::vector<DirectSearchResultPtr> DirectSearchResultList;
+//typedef std::map<string, DirectSRPtr> DirectSearchResultMap;
+
 class SearchResult;
 typedef boost::intrusive_ptr<SearchResult> SearchResultPtr;
 typedef std::vector<SearchResultPtr> SearchResultList;
@@ -118,7 +124,6 @@ class ServerSocket;
 
 class ShareProfile;
 typedef boost::intrusive_ptr<ShareProfile> ShareProfilePtr;
-//typedef std::vector<ShareProfilePtr> ShareProfileSet;
 
 class Socket;
 class SocketException;

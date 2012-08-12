@@ -39,6 +39,7 @@
 #include "AirUtil.h"
 #include "ShareProfile.h"
 #include "Flags.h"
+#include "AdcSearch.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -53,6 +54,7 @@ class File;
 class OutputStream;
 class MemoryInputStream;
 struct ShareLoader;
+class AdcSearch;
 class Worker;
 class TaskQueue;
 
@@ -142,6 +144,8 @@ public:
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const string& aProfile, const CID& cid) noexcept;
+	void directSearch(DirectSearchResultList& l, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) noexcept;
+
 	bool isDirShared(const string& aDir) const;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const;
 	bool isFileShared(const TTHValue aTTH, const string& fileName) const;
@@ -270,7 +274,6 @@ private:
 			string getName(const string& aProfile);
 	};
 
-	struct AdcSearch;
 	class Directory : public intrusive_ptr_base<Directory>, boost::noncopyable {
 	public:
 		typedef boost::intrusive_ptr<Directory> Ptr;
@@ -348,6 +351,8 @@ private:
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) const noexcept;
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) const noexcept;
 
+		void directSearch(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) const noexcept;
+
 		void toXml(SimpleXML& aXml, bool fullList, const string& aProfile);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
 		void filesToXml(SimpleXML& aXml) const;
@@ -372,27 +377,6 @@ private:
 		uint32_t fileTypes;
 		string getRealPath(const string& path, bool checkExistance) const;
 		string realName;
-	};
-
-	struct AdcSearch {
-		AdcSearch(const StringList& params);
-
-		bool isExcluded(const string& str);
-		bool hasExt(const string& name);
-
-		StringSearch::List* include;
-		StringSearch::List includeX;
-		StringSearch::List exclude;
-		StringList ext;
-		StringList noExt;
-
-		int64_t gt;
-		int64_t lt;
-
-		TTHValue root;
-		bool hasRoot;
-
-		bool isDirectory;
 	};
 
 	void removeDir(Directory::Ptr aDir);

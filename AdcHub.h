@@ -41,9 +41,12 @@ public:
 	void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false);
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
 	void search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList);
+	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList);
 	void password(const string& pwd);
 	void info(bool alwaysSend);
 	void refreshUserList(bool);	
+
+	void constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList);
 
 	size_t getUserCount() const { RLock l(cs); return users.size(); }
 
@@ -71,6 +74,7 @@ public:
 	static const string BLO0_SUPPORT;
 	static const string ZLIF_SUPPORT;
 	static const string BNDL_FEATURE;
+	static const string DSCH_FEATURE;
 
 private:
 	friend class ClientManager;
@@ -141,6 +145,7 @@ private:
 	void handle(AdcCommand::UBD, AdcCommand& c) noexcept;
 	void handle(AdcCommand::ZON, AdcCommand& c) noexcept;
 	void handle(AdcCommand::ZOF, AdcCommand& c) noexcept;
+	void handle(AdcCommand::DSC, AdcCommand& c) noexcept;
 
 	template<typename T> void handle(T, AdcCommand&) { }
 

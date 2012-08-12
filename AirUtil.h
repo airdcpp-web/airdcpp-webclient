@@ -23,7 +23,6 @@
 
 #include "Text.h"
 #include "pme.h"
-#include "File.h"
 
 namespace dcpp {
 

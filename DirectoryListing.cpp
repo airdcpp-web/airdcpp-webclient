@@ -22,7 +22,6 @@
 #include "DirectoryListing.h"
 
 #include "QueueManager.h"
-#include "SearchManager.h"
 #include "ShareManager.h"
 
 #include "StringTokenizer.h"
@@ -36,12 +35,16 @@
 #include "ADLSearch.h"
 #include "DirectoryListingManager.h"
 
+#include <boost/range/algorithm/for_each.hpp>
+
 
 namespace dcpp {
 
+using boost::range::for_each;
+
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, int64_t aSpeed, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName), running(false), 
-	speed(aSpeed), isClientView(aIsClientView)
+	speed(aSpeed), isClientView(aIsClientView), curSearch(nullptr)
 {
 }
 
@@ -367,7 +370,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 			[&reg](Directory* d) { return boost::regex_match(d->getName(), reg); }) == (int)aDir->directories.size()) {
 			
 			/* Create bundles from each subfolder */
-			for_each(aDir->directories.begin(), aDir->directories.end(), [&](Directory* dir) { download(dir, target, highPrio, prio, false, false, nullptr); });
+			for_each(aDir->directories, [&](Directory* dir) { download(dir, target, highPrio, prio, false, false, nullptr); });
 			return;
 		}
 	} else {
@@ -384,7 +387,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 
 	// First, recurse over the directories
 	sort(dirList.begin(), dirList.end(), Directory::DirSort());
-	for_each(dirList.begin(), dirList.end(), [&](Directory* dir) { download(dir, target, highPrio, prio, false, false, aBundle); });
+	for_each(dirList, [&](Directory* dir) { download(dir, target, highPrio, prio, false, false, aBundle); });
 
 	// Then add the files
 	sort(fileList.begin(), fileList.end(), File::FileSort());
@@ -406,7 +409,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, bool hig
 void DirectoryListing::download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio, bool recursiveList) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
-	Directory* d = find(aDir, getRoot());
+	Directory* d = findDirectory(aDir, getRoot());
 	if(d)
 		download(d, aTarget, highPrio, prio, recursiveList);
 }
@@ -417,23 +420,23 @@ void DirectoryListing::download(File* aFile, const string& aTarget, bool view, b
 	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), flags, true, prio, aBundle);
 }
 
-DirectoryListing::Directory* DirectoryListing::find(const string& aName, Directory* current) {
+DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName, Directory* current) {
 	string::size_type end = aName.find('\\');
 	dcassert(end != string::npos);
 	string name = aName.substr(0, end);
 
-	Directory::Iter i = std::find(current->directories.begin(), current->directories.end(), name);
+	auto i = find(current->directories.begin(), current->directories.end(), name);
 	if(i != current->directories.end()) {
 		if(end == (aName.size() - 1))
 			return *i;
 		else
-			return find(aName.substr(end + 1), *i);
+			return findDirectory(aName.substr(end + 1), *i);
 	}
 	return nullptr;
 }
 
 void DirectoryListing::findNfo(const string& aPath) {
-	auto dir = find(aPath, root);
+	auto dir = findDirectory(aPath, root);
 	if (dir) {
 		boost::wregex reg;
 		reg.assign(_T("(.+\\.nfo)"), boost::regex_constants::icase);
@@ -467,8 +470,8 @@ struct DirectoryEmpty {
 };
 
 DirectoryListing::Directory::~Directory() {
-	for_each(directories.begin(), directories.end(), DeleteFunction());
-	for_each(files.begin(), files.end(), DeleteFunction());
+	for_each(directories, DeleteFunction());
+	for_each(files, DeleteFunction());
 }
 
 void DirectoryListing::Directory::filterList(DirectoryListing& dirList) {
@@ -480,7 +483,7 @@ void DirectoryListing::Directory::filterList(DirectoryListing& dirList) {
 }
 
 void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet& l) {
-	for(Iter i = directories.begin(); i != directories.end(); ++i) (*i)->filterList(l);
+	for(auto i = directories.begin(); i != directories.end(); ++i) (*i)->filterList(l);
 
 	directories.erase(std::remove_if(directories.begin(),directories.end(),DirectoryEmpty()),directories.end());
 
@@ -495,7 +498,7 @@ void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet
 }
 
 void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSet& l) {
-	for(Iter i = directories.begin(); i != directories.end(); ++i) (*i)->getHashList(l);
+	for(auto i = directories.begin(); i != directories.end(); ++i) (*i)->getHashList(l);
 		for(DirectoryListing::File::Iter i = files.begin(); i != files.end(); ++i) l.insert((*i)->getTTH());
 }
 	
@@ -642,6 +645,22 @@ void DirectoryListing::close() {
 	//delete this;
 }
 
+struct SearchTask : public Task {
+	SearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList) : searchString(aSearchString), size(aSize), typeMode(aTypeMode), 
+		sizeMode(aSizeMode), extList(aExtList) { }
+
+	string searchString;
+	int64_t size;
+	int typeMode;
+	int sizeMode;
+	StringList extList;
+};
+
+void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList) {
+	tasks.add(SEARCH, unique_ptr<Task>(new SearchTask(aSearchString, aSize, aTypeMode, aSizeMode, aExtList)));
+	runTasks();
+}
+
 void DirectoryListing::runTasks() {
 	if (running.test_and_set())
 		return;
@@ -694,7 +713,7 @@ int DirectoryListing::run() {
 				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str, convertPartial);
 				partialList = false;
 			} else if (t.first == REFRESH_DIR) {
-				fire(DirectoryListingListener::LoadingStarted());
+				//fire(DirectoryListingListener::LoadingStarted());
 				auto xml = static_cast<StringTask*>(t.second.get())->str;
 				
 				string path;
@@ -714,19 +733,124 @@ int DirectoryListing::run() {
 				BundleList bundles;
 				QueueManager::getInstance()->matchListing(*this, matches, newFiles, bundles);
 				fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
+			} else if (t.first == SEARCH) {
+				auto s = static_cast<SearchTask*>(t.second.get());
+				fire(DirectoryListingListener::SearchStarted());
+
+				if(s->typeMode == SearchManager::TYPE_TTH) {
+					curSearch = new AdcSearch(TTHValue(s->searchString));
+				} else {
+					curSearch = new AdcSearch(s->searchString);
+					if(s->sizeMode == SearchManager::SIZE_ATLEAST) {
+						curSearch->gt = s->size;
+					} else if(s->sizeMode == SearchManager::SIZE_ATMOST) {
+						curSearch->lt = s->size;
+					}
+
+					curSearch->isDirectory = (s->typeMode == SearchManager::TYPE_DIRECTORY);
+				}
+
+				if (isOwnList && partialList) {
+					ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, fileName);
+					if (searchResults.empty()) {
+						fire(DirectoryListingListener::SearchFailed(), false);
+						continue;
+					}
+
+					handleResults();
+				} else if (partialList) {
+					SearchManager::getInstance()->addListener(this);
+					TimerManager::getInstance()->addListener(this);
+
+					string token = Util::toString(Util::rand());
+					ClientManager::getInstance()->directSearch(hintedUser, s->sizeMode, s->size, s->typeMode, s->searchString, token, s->extList);
+					//...
+				} else {
+					//...
+				}
 			}
 		} catch(const AbortException) {
 			fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
 			break;
 		} catch(const ShareException& e) {
 			fire(DirectoryListingListener::LoadingFailed(), e.getError());
-		}catch(const Exception& e) {
+		} catch(const Exception& e) {
 			fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNicks(getUser()->getCID(), hintedUser.hint)[0] + ": " + e.getError());
 		}
 	}
 
 	running.clear();
 	return 0;
+}
+
+void DirectoryListing::on(SearchManagerListener::DSR, const DirectSearchResultPtr& aDSR) noexcept {
+	searchResults.push_back(aDSR);
+}
+
+void DirectoryListing::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+	secondsEllapsed++;
+	if (secondsEllapsed == 5) {
+		failSearch(true);
+	}
+}
+
+void DirectoryListing::on(SearchManagerListener::DirectSearchEnd, const string& aToken) noexcept {
+	if (searchResults.empty()) {
+		failSearch(false);
+		return;
+	}
+
+	SearchManager::getInstance()->removeListener(this);
+	TimerManager::getInstance()->removeListener(this);
+	handleResults();
+}
+
+void DirectoryListing::failSearch(bool timedOut) {
+	SearchManager::getInstance()->removeListener(this);
+	TimerManager::getInstance()->removeListener(this);
+
+	if (searchResults.empty()) {
+		fire(DirectoryListingListener::SearchFailed(), timedOut);
+	} else {
+		handleResults();
+	}
+}
+
+void DirectoryListing::handleResults() {
+	dcassert(!searchResults.empty());
+	curResult = searchResults.begin();
+
+	if (isOwnList) {
+		auto mis = ShareManager::getInstance()->generatePartialList(searchResults.front()->getPath(), false, fileName);
+		loadXML(*mis, true);
+		fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(searchResults.front()->getPath()), false);
+	} else {
+		QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_CLIENT_VIEW, searchResults.front()->getPath());
+	}
+}
+
+bool DirectoryListing::nextResult() {
+	if (curResult == searchResults.end()-1) {
+		return false;
+	}
+
+	advance(curResult, 1);
+	if (isOwnList) {
+		auto path = (*curResult)->getPath();
+		auto mis = ShareManager::getInstance()->generatePartialList(path, false, fileName);
+		loadXML(*mis, true);
+		fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(path), false);
+	} else {
+		QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_CLIENT_VIEW, (*curResult)->getPath());
+	}
+	return true;
+}
+
+bool DirectoryListing::isCurrentSearchPath(const string& path) {
+	if (searchResults.empty())
+		return false;
+
+	return (*curResult)->getPath() == Util::toAdcFile(path);
 }
 
 } // namespace dcpp

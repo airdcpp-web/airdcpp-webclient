@@ -27,6 +27,16 @@
 
 namespace dcpp {
 
+DirectSearchResult::DirectSearchResult(const string& aPath) : path(aPath) { }
+
+AdcCommand DirectSearchResult::toDSR(char type) const {
+	AdcCommand cmd(AdcCommand::CMD_DSR, type);
+	cmd.addParam("FN", path);
+	if(!token.empty())
+		cmd.addParam("TO", token);
+	return cmd;
+}
+
 SearchResult::SearchResult(const UserPtr& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
 	int64_t aSize, const string& aFile, const string& aHubName, 
 	const string& aHubURL, const string& ip, TTHValue aTTH, const string& aToken) :

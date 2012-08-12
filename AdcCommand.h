@@ -116,6 +116,8 @@ public:
 	C(PBD, 'P','B','D');
 	C(UBD, 'U','B','D');
 	C(UBN, 'U','B','N');
+	C(DSC, 'D','S','C');
+	C(DSR, 'D','S','R');
 #undef C
 
 	static const uint32_t HUB_SID = 0xffffffff;		// No client will have this sid

@@ -653,7 +653,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		}
 	}
 }
-void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept {
+void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const CID& from, bool directSearch) noexcept {
 	bool isUdpActive = false;
 	fire(ClientManagerListener::IncomingADCSearch(), adc);
 	{
@@ -669,7 +669,11 @@ void ClientManager::on(AdcSearch, const Client* c, const AdcCommand& adc, const 
 			}
 		}			
 	}
-	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
+
+	if (directSearch)
+		SearchManager::getInstance()->respondDirect(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
+	else
+		SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
 }
 
 uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner) {
@@ -679,6 +683,14 @@ uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aF
 		return i->second->search(aSizeMode, aSize, aFileType, aString, aToken, aExtList, sType, aOwner);		
 	}
 	return 0;
+}
+
+void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
+	RLock l (cs);
+	auto ou = findOnlineUser(user, false);
+	if (ou) {
+		ou->getClientBase().directSearch(*ou, aSizeMode, aSize, aFileType, aString, aToken, aExtList);
+	}
 }
 
 void ClientManager::getOnlineClients(StringList& onlineClients) {

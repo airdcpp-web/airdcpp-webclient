@@ -52,6 +52,7 @@ const string AdcHub::UCM0_SUPPORT("ADUCM0");
 const string AdcHub::BLO0_SUPPORT("ADBLO0");
 const string AdcHub::ZLIF_SUPPORT("ADZLIF");
 const string AdcHub::BNDL_FEATURE("BNDL");
+const string AdcHub::DSCH_FEATURE("DSCH");
 
 const vector<StringList> AdcHub::searchExts;
 
@@ -536,6 +537,10 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 	fire(ClientListener::AdcSearch(), this, c, ou->getUser()->getCID());
 }
 
+void AdcHub::handle(AdcCommand::DSC, AdcCommand& c) noexcept {
+	SearchManager::getInstance()->onDSR(c);
+}
+
 void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
 	OnlineUser* ou = findUser(c.getFrom());
 	if(!ou) {
@@ -841,12 +846,19 @@ StringList AdcHub::parseSearchExts(int flag) {
 	return ret;
 }
 
-void AdcHub::search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
+void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
 	if(state != STATE_NORMAL)
 		return;
 
-	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
+	//auto sid = user.getIdentity().getSID();
+	//AdcCommand p = new AdcCommand(AdcCommand::DSC, sid, AdcCommand::TYPE_DIRECT);
+	AdcCommand c(AdcCommand::CMD_DSC, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
+	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList);
 
+	sendSearch(c);
+}
+
+void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
 	if(!aToken.empty())
 		c.addParam("TO", aToken);
 
@@ -941,6 +953,15 @@ void AdcHub::search(int aSizeMode, int64_t aSize, int aFileType, const string& a
 		for(auto i = aExtList.cbegin(), iend = aExtList.cend(); i != iend; ++i)
 			c.addParam("EX", *i);
 	}
+}
+
+void AdcHub::search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
+	if(state != STATE_NORMAL)
+		return;
+
+	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
+
+	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList);
 
 	sendSearch(c);
 }
@@ -982,8 +1003,7 @@ void AdcHub::password(const string& pwd) {
 }
 
 static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, const string& value) {
-	StringMapIter i = lastInfoMap.find(var);
-	
+	auto i = lastInfoMap.find(var);
 	if(i != lastInfoMap.end()) {
 		if(i->second != value) {
 			if(value.empty()) {

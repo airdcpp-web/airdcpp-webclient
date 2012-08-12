@@ -1421,5 +1421,8 @@ enum Strings { // @DontAdd
 	LOCK_TB, // "Lock Toolbars"
 	CLEAR_DIR_HISTORY, // "Clear directory history on exit"
 	GET_FULL_LIST, // "Get full filelist"
+	NO_RESULTS_FOUND, // "No results were found"
+	SEARCH_TIMED_OUT, // "Search timed out"
+	SEARCHING, // "Searching..."
 	LAST // @DontAdd
 };

@@ -73,6 +73,8 @@ public:
 	bool isConnected(const string& aUrl) const;
 	
 	uint64_t search(string& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner = 0);
+
+	void directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList);
 	
 	void cancelSearch(void* aOwner);
 		
@@ -182,6 +184,8 @@ private:
 	*/
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const;
 
+	void onSearch(const Client* c, const AdcCommand& adc, const CID& from, bool directSearch);
+
 	// ClientListener
 	void on(Connected, const Client* c) noexcept;
 	void on(UserUpdated, const Client*, const OnlineUserPtr& user) noexcept;
@@ -191,7 +195,8 @@ private:
 	void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
 	void on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
 		int aFileType, const string& aString, bool) noexcept;
-	void on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept;
+	void on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept { onSearch(c, adc, from, false); }
+	void on(DirectSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept { onSearch(c, adc, from, true); }
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 };

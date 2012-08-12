@@ -31,7 +31,12 @@ public:
 	template<int I>	struct X { enum { TYPE = I };  };
 
 	typedef X<0> SR;
-	virtual void on(SR, const SearchResultPtr&) noexcept = 0;
+	typedef X<1> DSR;
+	typedef X<2> DirectSearchEnd;
+
+	virtual void on(SR, const SearchResultPtr&) noexcept { }
+	virtual void on(DSR, const DirectSearchResultPtr&) noexcept { }
+	virtual void on(DirectSearchEnd, const string&) noexcept { }
 };
 
 } // namespace dcpp

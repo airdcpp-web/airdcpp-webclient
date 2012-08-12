@@ -33,6 +33,12 @@
 #include "DirectoryListingListener.h"
 #include "AirUtil.h"
 #include "TaskQueue.h"
+//#include "SearchManager.h"
+//#include "AdcSearch.h"
+#include "SearchResult.h"
+
+#include "SearchManagerListener.h"
+#include "TimerManager.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -41,7 +47,7 @@ namespace dcpp {
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
-class DirectoryListing : public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>
+class DirectoryListing : public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, private SearchManagerListener, private TimerManagerListener
 {
 public:
 	class Directory;
@@ -200,16 +206,23 @@ public:
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
 	void close();
+
+	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList);
+	bool nextResult();
+	AdcSearch *curSearch;
+
+	bool isCurrentSearchPath(const string& path);
 private:
 	friend class ListLoader;
 
 	Directory* root;
 		
-	Directory* find(const string& aName, Directory* current);
+	Directory* findDirectory(const string& aName, Directory* current);
 
 	int run();
 
 	enum Tasks {
+		SEARCH,
 		MATCH_QUEUE,
 		CLOSE,
 		REFRESH_DIR,
@@ -222,6 +235,18 @@ private:
 	atomic_flag running;
 
 	TaskQueue tasks;
+
+	DirectSearchResultList searchResults;
+	DirectSearchResultList::iterator curResult;
+
+	void on(SearchManagerListener::DSR, const DirectSearchResultPtr& aDSR) noexcept;
+	void on(SearchManagerListener::DirectSearchEnd, const string& aToken) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+
+	int secondsEllapsed;
+
+	void failSearch(bool timedOut);
+	void handleResults();
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }

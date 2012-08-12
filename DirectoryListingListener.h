@@ -33,12 +33,16 @@ public:
 	typedef X<2> LoadingStarted;
 	typedef X<3> QueueMatched;
 	typedef X<4> Close;
+	typedef X<5> SearchStarted;
+	typedef X<6> SearchFailed;
 
 	virtual void on(LoadingFinished, int64_t, const string&, bool) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
 	virtual void on(LoadingStarted) noexcept { }
 	virtual void on(QueueMatched, const string&) noexcept { }
 	virtual void on(Close) noexcept { }
+	virtual void on(SearchStarted) noexcept { }
+	virtual void on(SearchFailed, bool) noexcept { }
 };
 
 } // namespace dcpp

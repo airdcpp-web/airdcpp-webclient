@@ -98,13 +98,6 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 	}
 
 	uint64_t estimateSearchSpan = 0;
-	/*uint64_t tmp = 0;
-
-	for(auto i = tokenHubList.begin(), iend = tokenHubList.end(); i != iend; ++i) {
-		tmp = ClientManager::getInstance()->search((*i).second, aSizeMode, aSize, aTypeMode, normalizeWhitespace(aName), (*i).first, aExtList, sType, aOwner);
-		estimateSearchSpan = max(estimateSearchSpan, tmp);	
-	} */
-
 	for_each(tokenHubList, [&](StringPair& sp) {
 		uint64_t ret = ClientManager::getInstance()->search(sp.second, aSizeMode, aSize, aTypeMode, normalizeWhitespace(aName), sp.first, aExtList, sType, aOwner);
 		estimateSearchSpan = max(estimateSearchSpan, ret);			
@@ -308,7 +301,16 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 		c.getParameters().erase(c.getParameters().begin());
 
 		onRES(c, user, remoteIp);
+	} else if(x.compare(1, 4, "DSR ") == 0 && x[x.length() - 1] == 0x0a) {
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
+		string cid = c.getParam(0);
+		if(cid.size() != 39)
+			return;
 
+		c.getParameters().erase(c.getParameters().begin());
+		onDSR(c);
 	} else if (x.compare(1, 4, "PSR ") == 0 && x[x.length() - 1] == 0x0a) {
 		AdcCommand c(x.substr(0, x.length()-1));
 		if(c.getParameters().empty())
@@ -365,6 +367,31 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 	}*/ // Needs further DoS investigation
 }
 
+void SearchManager::onDSR(const AdcCommand& cmd) {
+	string token;
+	if (cmd.hasFlag("ED1", 1)) {
+		cmd.getParam("TO", 2, token);
+		fire(SearchManagerListener::DirectSearchEnd(), token);
+		return;
+	}
+
+	string folderName;
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+		const string& str = *i;
+		if(str.compare(0, 2, "FN") == 0) {
+			folderName = Util::toNmdcFile(str.substr(2));
+		} else if(str.compare(0, 2, "TO") == 0) {
+			token = str.substr(2);
+		}
+	}
+
+	if (!folderName.empty() && !token.empty()) {
+		DirectSearchResultPtr dsr(new DirectSearchResult(folderName));
+		dsr->setToken(token);
+		fire(SearchManagerListener::DSR(), dsr);
+	}
+}
+
 void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const string& remoteIp) {
 	int freeSlots = -1;
 	int64_t size = -1;
@@ -372,7 +399,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	string tth;
 	string token;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
 		if(str.compare(0, 2, "FN") == 0) {
 			file = Util::toNmdcFile(str.substr(2));
@@ -403,7 +430,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 			}
 		}
 
-		SearchResult::Types type = (file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
+		auto type = (file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
 		if(type == SearchResult::TYPE_FILE && tth.empty())
 			return;
 
@@ -442,7 +469,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	string tth;
 	bool add=false, update=false, reply=false, notify = false, remove = false;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
 		if(str.compare(0, 2, "HI") == 0) {
 			hubIpPort = str.substr(2);
@@ -520,7 +547,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 	string nick;
 	PartsInfo partialInfo;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
+	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
 		if(str.compare(0, 2, "U4") == 0) {
 			udpPort = static_cast<uint16_t>(Util::toInt(str.substr(2)));
@@ -534,7 +561,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 			partialCount = Util::toUInt32(str.substr(2))*2;
 		} else if(str.compare(0, 2, "PI") == 0) {
 			StringTokenizer<string> tok(str.substr(2), ',');
-			for(StringIter i = tok.getTokens().begin(); i != tok.getTokens().end(); ++i) {
+			for(auto i = tok.getTokens().begin(); i != tok.getTokens().end(); ++i) {
 				partialInfo.push_back((uint16_t)Util::toInt(*i));
 			}
 		}
@@ -583,6 +610,29 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 }
 
+void SearchManager::respondDirect(const AdcCommand& cmd, const CID& from, bool isUdpActive, const string& hubIpPort, const string& shareProfile) {
+	AdcSearch sch(cmd.getParameters());
+
+	DirectSearchResultList results;
+	ShareManager::getInstance()->directSearch(results, sch, 30, shareProfile);
+
+	string token;
+	cmd.getParam("TO", 0, token);
+
+
+	if (results.empty()) {
+		AdcCommand cmd(AdcCommand::CMD_DSC, AdcCommand::TYPE_UDP);
+		cmd.addParam("ED1");
+		cmd.addParam("TO", token);
+	} else {
+		for(auto i = results.begin(); i != results.end(); ++i) {
+			(*i)->setToken(token);
+			AdcCommand cmd = (*i)->toDSR(AdcCommand::TYPE_UDP);
+			ClientManager::getInstance()->send(cmd, from);
+		}
+	}
+}
+
 void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpActive, const string& hubIpPort, const string& shareProfile) {
 	// Filter own searches
 	if(from == ClientManager::getInstance()->getMe()->getCID())
@@ -625,7 +675,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		return;
 	}
 
-	for(SearchResultList::const_iterator i = results.begin(); i != results.end(); ++i) {
+	for(auto i = results.begin(); i != results.end(); ++i) {
 		AdcCommand cmd = (*i)->toRES(AdcCommand::TYPE_UDP);
 		if(!token.empty())
 			cmd.addParam("TO", token);
@@ -636,7 +686,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 string SearchManager::getPartsString(const PartsInfo& partsInfo) const {
 	string ret;
 
-	for(PartsInfo::const_iterator i = partsInfo.begin(); i < partsInfo.end(); i+=2){
+	for(auto i = partsInfo.begin(); i < partsInfo.end(); i+=2){
 		ret += Util::toString(*i) + "," + Util::toString(*(i+1)) + ",";
 	}
 

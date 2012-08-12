@@ -28,7 +28,6 @@
 #include "HashManager.h"
 #include "QueueManager.h"
 
-#include "AdcHub.h"
 #include "SimpleXML.h"
 #include "StringTokenizer.h"
 #include "File.h"
@@ -47,6 +46,7 @@
 #include <boost/algorithm/cxx11/copy_if.hpp>
 #include <boost/range/algorithm/search.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -2129,66 +2129,65 @@ string ShareManager::getBloomStats() {
 	return ret;
 }
 
-namespace {
-	inline uint16_t toCode(char a, char b) { return (uint16_t)a | ((uint16_t)b)<<8; }
-}
-
-ShareManager::AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false)
-{
-	for(auto i = params.begin(); i != params.end(); ++i) {
-		const string& p = *i;
-		if(p.length() <= 2)
-			continue;
-
-		uint16_t cmd = toCode(p[0], p[1]);
-		if(toCode('T', 'R') == cmd) {
-			hasRoot = true;
-			root = TTHValue(p.substr(2));
-			return;
-		} else if(toCode('A', 'N') == cmd) {
-			includeX.push_back(StringSearch(p.substr(2)));		
-		} else if(toCode('N', 'O') == cmd) {
-			exclude.push_back(StringSearch(p.substr(2)));
-		} else if(toCode('E', 'X') == cmd) {
-			ext.push_back(p.substr(2));
-		} else if(toCode('G', 'R') == cmd) {
-			auto exts = AdcHub::parseSearchExts(Util::toInt(p.substr(2)));
-			ext.insert(ext.begin(), exts.begin(), exts.end());
-		} else if(toCode('R', 'X') == cmd) {
-			noExt.push_back(p.substr(2));
-		} else if(toCode('G', 'E') == cmd) {
-			gt = Util::toInt64(p.substr(2));
-		} else if(toCode('L', 'E') == cmd) {
-			lt = Util::toInt64(p.substr(2));
-		} else if(toCode('E', 'Q') == cmd) {
-			lt = gt = Util::toInt64(p.substr(2));
-		} else if(toCode('T', 'Y') == cmd) {
-			isDirectory = (p[2] == '2');
+/* Each matching directory is only being added once in the results. For directory results we return the path of the parent directory and for files the current directory */
+void ShareManager::Directory::directSearch(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) const noexcept {
+	bool hasMatch = aStrings.matchesDirectDirectory(profileDir ? profileDir->getName(aProfile) : realName, getSize(aProfile));
+	if (hasMatch) {
+		auto path = parent ? parent->getADCPath(aProfile) : "/";
+		auto res = boost::find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
+		if (res == aResults.end()) {
+			auto totalSize = getSize(aProfile);
+			if(totalSize >= aStrings.gt && totalSize <= aStrings.lt) {
+				DirectSearchResultPtr sr(new DirectSearchResult(path));
+				aResults.push_back(sr);
+			}
 		}
 	}
+
+	if(!aStrings.isDirectory) {
+		for(auto i = files.begin(); i != files.end(); ++i) {
+			if(aStrings.matchesDirectFile((*i).getName(), (*i).getSize())) {
+				DirectSearchResultPtr sr(new DirectSearchResult(getADCPath(aProfile)));
+				aResults.push_back(sr);
+				break;
+			}
+		}
+	}
+
+
+	for(auto l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
+		if (l->second->isLevelExcluded(aProfile))
+			continue;
+		l->second->directSearch(aResults, aStrings, maxResults, aProfile);
+	}
 }
 
-bool ShareManager::AdcSearch::isExcluded(const string& str) {
-	for(auto i = exclude.begin(); i != exclude.end(); ++i) {
-		if(i->match(str))
-			return true;
+void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, const string& aProfile) noexcept {
+	RLock l(cs);
+	if(srch.hasRoot) {
+		auto i = tthIndex.find(const_cast<TTHValue*>(&srch.root));
+		if(i != tthIndex.end() && i->second->getParent()->hasProfile(aProfile)) {
+			DirectSearchResultPtr sr(new DirectSearchResult(i->second->getParent()->getFullName(aProfile)));
+			results.push_back(sr);
+		}
+		return;
 	}
-	return false;
-}
 
-bool ShareManager::AdcSearch::hasExt(const string& name) {
-	if(ext.empty())
-		return true;
-	if(!noExt.empty()) {
-		ext = StringList(ext.begin(), set_difference(ext.begin(), ext.end(), noExt.begin(), noExt.end(), ext.begin()));
-		noExt.clear();
+	for(auto i = srch.includeX.begin(); i != srch.includeX.end(); ++i) {
+		if(!bloom.match(i->getPattern())) {
+			return;
+		}
 	}
-	for(auto i = ext.cbegin(), iend = ext.cend(); i != iend; ++i) {
-		if(name.length() >= i->length() && stricmp(name.c_str() + name.length() - i->length(), i->c_str()) == 0)
-			return true;
+
+	/*for(auto j = dirNameMap.begin(); (j != dirNameMap.end()) && (results.size() < maxResults); ++j) {
+		if(j->second->getProfileDir()->hasProfile(aProfile))
+			j->second->directSearch(results, srch, maxResults, aProfile);
+	}*/
+
+	for(auto j = shares.begin(); (j != shares.end()) && (results.size() < maxResults); ++j) {
+		if(j->second->getProfileDir()->hasProfile(aProfile))
+			j->second->directSearch(results, srch, maxResults, aProfile);
 	}
-	return false;
 }
 
 void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) const noexcept {

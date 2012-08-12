@@ -19,9 +19,6 @@
 #ifndef STRINGMATCHER_H
 #define STRINGMATCHER_H
 
-#include "stdinc.h"
-
-//#include "boost/regex.hpp"
 #include "pme.h"
 
 #include <string>

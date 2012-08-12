@@ -31,6 +31,7 @@ public:
 	typedef X<17> HubTopic;
 	typedef X<18> AddLine;
 	typedef X<19> SetIcons;
+	typedef X<20> DirectSearch;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -57,6 +58,7 @@ public:
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
 	virtual void on(SetIcons, const Client*, int status) noexcept { }
+	virtual void on(DirectSearch, const Client*, const AdcCommand&, const CID&) noexcept { }
 };
 
 } // namespace dcpp

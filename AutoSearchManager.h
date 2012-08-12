@@ -29,7 +29,6 @@
 #include "Singleton.h"
 #include "AutoSearchManagerListener.h"
 #include "Util.h"
-#include "SearchResult.h"
 #include "StringMatcher.h"
 #include "TargetUtil.h"
 
