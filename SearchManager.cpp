@@ -379,7 +379,7 @@ void SearchManager::onDSR(const AdcCommand& cmd) {
 	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
 		const string& str = *i;
 		if(str.compare(0, 2, "FN") == 0) {
-			folderName = Util::toNmdcFile(str.substr(2));
+			folderName = str.substr(2);
 		} else if(str.compare(0, 2, "TO") == 0) {
 			token = str.substr(2);
 		}
@@ -610,27 +610,26 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 }
 
-void SearchManager::respondDirect(const AdcCommand& cmd, const CID& from, bool isUdpActive, const string& hubIpPort, const string& shareProfile) {
-	AdcSearch sch(cmd.getParameters());
+void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool isUdpActive, const string& hubIpPort, const string& shareProfile) {
+	AdcSearch sch(aCmd.getParameters());
 
 	DirectSearchResultList results;
 	ShareManager::getInstance()->directSearch(results, sch, 30, shareProfile);
 
 	string token;
-	cmd.getParam("TO", 0, token);
+	aCmd.getParam("TO", 0, token);
 
-
-	if (results.empty()) {
-		AdcCommand cmd(AdcCommand::CMD_DSC, AdcCommand::TYPE_UDP);
-		cmd.addParam("ED1");
-		cmd.addParam("TO", token);
-	} else {
-		for(auto i = results.begin(); i != results.end(); ++i) {
-			(*i)->setToken(token);
-			AdcCommand cmd = (*i)->toDSR(AdcCommand::TYPE_UDP);
-			ClientManager::getInstance()->send(cmd, from);
-		}
+	for(auto i = results.begin(); i != results.end(); ++i) {
+		(*i)->setToken(token);
+		AdcCommand cmd = (*i)->toDSR(AdcCommand::TYPE_UDP);
+		ClientManager::getInstance()->send(cmd, from);
 	}
+
+
+	AdcCommand cmd(AdcCommand::CMD_DSC, AdcCommand::TYPE_UDP);
+	cmd.addParam("ED1");
+	cmd.addParam("TO", token);
+	ClientManager::getInstance()->send(cmd, from);
 }
 
 void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpActive, const string& hubIpPort, const string& shareProfile) {

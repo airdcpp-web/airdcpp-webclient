@@ -44,7 +44,7 @@ using boost::range::for_each;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, int64_t aSpeed, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName), running(false), 
-	speed(aSpeed), isClientView(aIsClientView), curSearch(nullptr)
+	speed(aSpeed), isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0)
 {
 }
 
@@ -734,6 +734,7 @@ int DirectoryListing::run() {
 				QueueManager::getInstance()->matchListing(*this, matches, newFiles, bundles);
 				fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
 			} else if (t.first == SEARCH) {
+				secondsEllapsed = 0;
 				auto s = static_cast<SearchTask*>(t.second.get());
 				fire(DirectoryListingListener::SearchStarted());
 
@@ -825,7 +826,7 @@ void DirectoryListing::handleResults() {
 		loadXML(*mis, true);
 		fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(searchResults.front()->getPath()), false);
 	} else {
-		QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_CLIENT_VIEW, searchResults.front()->getPath());
+		QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, Util::toNmdcFile(searchResults.front()->getPath()));
 	}
 }
 
@@ -841,7 +842,7 @@ bool DirectoryListing::nextResult() {
 		loadXML(*mis, true);
 		fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(path), false);
 	} else {
-		QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_CLIENT_VIEW, (*curResult)->getPath());
+		QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, Util::toNmdcFile((*curResult)->getPath()));
 	}
 	return true;
 }

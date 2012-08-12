@@ -145,6 +145,7 @@ private:
 	void handle(AdcCommand::UBD, AdcCommand& c) noexcept;
 	void handle(AdcCommand::ZON, AdcCommand& c) noexcept;
 	void handle(AdcCommand::ZOF, AdcCommand& c) noexcept;
+	void handle(AdcCommand::DSR, AdcCommand& c) noexcept;
 	void handle(AdcCommand::DSC, AdcCommand& c) noexcept;
 
 	template<typename T> void handle(T, AdcCommand&) { }

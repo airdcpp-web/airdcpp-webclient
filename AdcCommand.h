@@ -222,6 +222,8 @@ public:
 				C(UBD);
 				C(ZON);
 				C(ZOF);
+				C(DSC);
+				C(DSR);
 			default: 
 				dcdebug("Unknown ADC command: %.50s\n", aLine.c_str());
 				break;

@@ -537,7 +537,18 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 	fire(ClientListener::AdcSearch(), this, c, ou->getUser()->getCID());
 }
 
+
 void AdcHub::handle(AdcCommand::DSC, AdcCommand& c) noexcept {
+	OnlineUser* ou = findUser(c.getFrom());
+	if(!ou) {
+		dcdebug("Invalid user in AdcHub::onSCH\n");
+		return;
+	}
+
+	fire(ClientListener::DirectSearch(), this, c, ou->getUser()->getCID());
+}
+
+void AdcHub::handle(AdcCommand::DSR, AdcCommand& c) noexcept {
 	SearchManager::getInstance()->onDSR(c);
 }
 
