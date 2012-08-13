@@ -121,6 +121,7 @@ public:
 		void clearAdls();
 
 		bool findIncomplete();
+		void search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
 		
 		size_t getFileCount() { return files.size(); }
 		
@@ -210,6 +211,7 @@ public:
 	AdcSearch *curSearch;
 
 	bool isCurrentSearchPath(const string& path);
+	size_t getResultCount() { return searchResults.size(); }
 private:
 	friend class ListLoader;
 

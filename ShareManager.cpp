@@ -1441,7 +1441,40 @@ int ShareManager::run() {
 			}
 		}
 
-		string msg;
+		auto sendStatus = [&] (bool finished) -> void {
+			string msg;
+			switch (t.first) {
+				case(REFRESH_ALL):
+					LogManager::getInstance()->message(finished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED), LogManager::LOG_INFO);
+					break;
+				case(REFRESH_DIR):
+					if (directories.size() == 1) {
+						msg = finished ? STRING_F(DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
+					} else {
+						if(find_if(directories.begin(), directories.end(), [directories](const string& d) { return d != *directories.begin(); }) == directories.end()) {
+							msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
+						} else {
+							msg = finished ? STRING_F(X_DIRECTORIES_REFRESHED, directories.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_RPATH, directories.size());
+						}
+					}
+					break;
+				case(ADD_DIR):
+					if (directories.size() == 1) {
+						msg = finished ? STRING_F(DIRECTORY_ADDED, *directories.begin()) : STRING_F(ADDING_SHARED_DIR, *directories.begin());
+					} else {
+						msg = finished ? STRING_F(ADDING_X_SHARED_DIRS, directories.size()) : STRING_F(DIRECTORIES_ADDED, directories.size());
+					}
+					break;
+				case(REFRESH_INCOMING):
+					msg = finished ? STRING(FILE_LIST_REFRESH_INITIATED_INCOMING) : STRING(INCOMING_REFRESHED);
+					break;
+			};
+
+			if (!msg.empty())
+				LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+		};
+
+		/*string msg;
 		switch (t.first) {
 			case(REFRESH_ALL):
 				msg = STRING(FILE_LIST_REFRESH_INITIATED);
@@ -1461,7 +1494,11 @@ int ShareManager::run() {
 				}
 				break;
 			case(ADD_DIR):
-				msg = "moi";
+				if (directories.size() == 1) {
+					msg = STRING_F(ADDING_SHARED_DIR, *directories.begin());
+				} else {
+					msg = STRING_F(ADDING_X_SHARED_DIRS, directories.size());
+				}
 				break;
 			case(REFRESH_INCOMING):
 				lastIncomingUpdate = GET_TICK();
@@ -1470,7 +1507,17 @@ int ShareManager::run() {
 		};
 
 		if (!msg.empty())
-			LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+			LogManager::getInstance()->message(msg, LogManager::LOG_INFO);*/
+
+		sendStatus(false);
+		if (t.first == REFRESH_INCOMING) {
+			refreshRunning = true;
+			lastIncomingUpdate = GET_TICK();
+		} else if (t.first == REFRESH_ALL) {
+			refreshRunning = true;
+			lastFullUpdate = GET_TICK();
+			lastIncomingUpdate = GET_TICK();
+		}
 
 		bundleDirs.clear();
 		QueueManager::getInstance()->getForbiddenPaths(bundleDirs, directories);
@@ -1534,8 +1581,35 @@ int ShareManager::run() {
 			ClientManager::getInstance()->infoUpdated();
 		}
 
+		/*switch (t.first) {
+			case(REFRESH_ALL):
+				LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED), LogManager::LOG_INFO);
+				break;
+			case(REFRESH_DIR):
+				if (directories.size() == 1) {
+					msg = STRING_F(DIRECTORY_REFRESHED, *directories.begin());
+				} else {
+					if(find_if(directories.begin(), directories.end(), [directories](const string& d) { return d != *directories.begin(); }) == directories.end()) {
+						msg = STRING_F(VIRTUAL_DIRECTORY_REFRESHED, *directories.begin());
+					} else {
+						msg = STRING_F(X_DIRECTORIES_REFRESHED, directories.size());
+					}
+				}
+				break;
+			case(ADD_DIR):
+				if (directories.size() == 1) {
+					msg = STRING_F(DIRECTORY_ADDED, *directories.begin());
+				} else {
+					msg = STRING_F(DIRECTORIES_ADDED, directories.size());
+				}
+				break;
+			case(REFRESH_INCOMING):
+				msg = STRING(INCOMING_REFRESHED);
+				break;
+		};*/
 
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED), LogManager::LOG_INFO);
+		sendStatus(true);
+		//LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED), LogManager::LOG_INFO);
 	}
 end:
 	{
@@ -1553,12 +1627,13 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 		saveXmlList();
 	}
 
-	if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
-		refresh(true);
-	}
-
 	if(SETTING(AUTO_REFRESH_TIME) > 0 && lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= tick) {
+		lastIncomingUpdate = tick;
+		lastFullUpdate = tick;
 		refresh(false);
+	} else if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
+		lastIncomingUpdate = tick;
+		refresh(true);
 	}
 }
 

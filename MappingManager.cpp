@@ -80,7 +80,7 @@ void MappingManager::close() {
 }
 
 bool MappingManager::getOpened() const {
-	return working.get();
+	return working.get() ? true : false;
 }
 
 string MappingManager::getStatus() const {

@@ -36,6 +36,7 @@
 #include "DirectoryListingManager.h"
 
 #include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 
 
 namespace dcpp {
@@ -49,6 +50,8 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 }
 
 DirectoryListing::~DirectoryListing() {
+	if (curSearch)
+		delete curSearch;
 	delete root;
 }
 
@@ -317,6 +320,31 @@ void DirectoryListing::Directory::setDate(const string& aDate) {
 		}
 	}
 	date = dateRaw;
+}
+
+void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
+	if(aStrings.matchesDirectDirectoryName(name)) {
+		auto path = parent ? Util::toAdcFile(parent->getPath()) : "/";
+		auto res = boost::find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
+		if (res == aResults.end() && aStrings.matchesSize(getSize())) {
+			DirectSearchResultPtr sr(new DirectSearchResult(path));
+			aResults.push_back(sr);
+		}
+	}
+
+	if(!aStrings.isDirectory) {
+		for(auto i = files.begin(); i != files.end(); ++i) {
+			if(aStrings.matchesDirectFile((*i)->getName(), (*i)->getSize())) {
+				DirectSearchResultPtr sr(new DirectSearchResult(Util::toAdcFile(getPath())));
+				aResults.push_back(sr);
+				break;
+			}
+		}
+	}
+
+	for(auto l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
+		(*l)->search(aResults, aStrings, maxResults);
+	}
 }
 
 string DirectoryListing::getPath(const Directory* d) const {
@@ -736,6 +764,8 @@ int DirectoryListing::run() {
 			} else if (t.first == SEARCH) {
 				secondsEllapsed = 0;
 				searchResults.clear();
+				if (curSearch)
+					delete curSearch;
 
 				auto s = static_cast<SearchTask*>(t.second.get());
 				fire(DirectoryListingListener::SearchStarted());
@@ -764,7 +794,8 @@ int DirectoryListing::run() {
 					ClientManager::getInstance()->directSearch(hintedUser, s->sizeMode, s->size, s->typeMode, s->searchString, searchToken, s->extList);
 					//...
 				} else {
-					//TODO
+					root->search(searchResults, *curSearch, 100);
+					endSearch(false);
 				}
 			}
 		} catch(const AbortException) {

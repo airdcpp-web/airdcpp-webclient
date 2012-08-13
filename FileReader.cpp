@@ -192,7 +192,7 @@ size_t FileReader::readDirect(const string& file, const DataCallback& callback) 
 	return *((uint64_t*)&over.Offset);
 }
 
-size_t FileReader::readMapped(const string& file, const DataCallback& callback) {
+size_t FileReader::readMapped(const string& /*file*/, const DataCallback& /*callback*/) {
 	/** @todo mapped reads can fail on Windows by throwing an exception that may only be caught by
 	SEH. MinGW doesn't have that, thus making this method of reading prone to unrecoverable
 	failures. disabling this for now should be fine as DC++ always tries overlapped reads first
