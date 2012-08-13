@@ -774,26 +774,23 @@ void SettingsManager::load(string const& aFileName)
 			xml.stepOut();
 		}
 
+
 		xml.resetCurrentChild();
 		if(xml.findChild("SearchTypes")) {
-			try {
-				searchTypes.clear();
-				xml.stepIn();
-				while(xml.findChild("SearchType")) {
-					const string& extensions = xml.getChildData();
-					if(extensions.empty()) {
-						continue;
-					}
-					const string& name = xml.getChildAttrib("Id");
-					if(name.empty()) {
-						continue;
-					}
-					searchTypes[name] = StringTokenizer<string>(extensions, ';').getTokens();
+			searchTypes.clear();
+			xml.stepIn();
+			while(xml.findChild("SearchType")) {
+				const string& extensions = xml.getChildData();
+				if(extensions.empty()) {
+					continue;
 				}
-				xml.stepOut();
-			} catch(const SimpleXMLException&) {
-				setSearchTypeDefaults();
+				const string& name = xml.getChildAttrib("Id");
+				if(name.empty()) {
+					continue;
+				}
+				searchTypes[name] = StringTokenizer<string>(extensions, ';').getTokens();
 			}
+			xml.stepOut();
 		}
 
 		xml.resetCurrentChild();
