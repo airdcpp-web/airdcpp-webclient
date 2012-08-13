@@ -123,7 +123,7 @@ bool AdcSearch::matchesDirectFile(const string& aName, int64_t aSize) {
 	return hasExt(aName);
 }
 
-bool AdcSearch::matchesDirectDirectory(const string& aName, int64_t aSize) {
+bool AdcSearch::matchesDirectDirectoryName(const string& aName) {
 	bool hasMatch = false;
 	for(auto k = include->begin(); k != include->end(); ++k) {
 		if(k->match(aName) && !isExcluded(aName))
@@ -136,10 +136,14 @@ bool AdcSearch::matchesDirectDirectory(const string& aName, int64_t aSize) {
 
 	//bool sizeOk = (aStrings.gt == 0);
 	if(hasMatch && ext.empty()) {
-		return aSize >= gt && aSize <= lt;
+		return true;
 	}
 
 	return false;
+}
+
+bool AdcSearch::matchesSize(int64_t aSize) {
+	return aSize >= gt && aSize <= lt;
 }
 
 } //dcpp

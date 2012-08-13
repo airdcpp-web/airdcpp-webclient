@@ -369,8 +369,8 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 
 void SearchManager::onDSR(const AdcCommand& cmd) {
 	string token;
-	if (cmd.hasFlag("ED1", 1)) {
-		cmd.getParam("TO", 2, token);
+	if (cmd.hasFlag("ED1", 0)) {
+		cmd.getParam("TO", 1, token);
 		fire(SearchManagerListener::DirectSearchEnd(), token);
 		return;
 	}
@@ -626,7 +626,7 @@ void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool 
 	}
 
 
-	AdcCommand cmd(AdcCommand::CMD_DSC, AdcCommand::TYPE_UDP);
+	AdcCommand cmd(AdcCommand::CMD_DSR, AdcCommand::TYPE_UDP);
 	cmd.addParam("ED1");
 	cmd.addParam("TO", token);
 	ClientManager::getInstance()->send(cmd, from);

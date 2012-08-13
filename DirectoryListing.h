@@ -23,6 +23,10 @@
 #include "noexcept.h"
 #include "Thread.h"
 
+#include "DirectoryListingListener.h"
+#include "SearchManagerListener.h"
+#include "TimerManager.h"
+
 #include "HintedUser.h"
 #include "FastAlloc.h"
 #include "MerkleTree.h"
@@ -30,15 +34,9 @@
 #include "QueueItem.h"
 #include "UserInfoBase.h"
 #include "GetSet.h"
-#include "DirectoryListingListener.h"
 #include "AirUtil.h"
 #include "TaskQueue.h"
-//#include "SearchManager.h"
-//#include "AdcSearch.h"
 #include "SearchResult.h"
-
-#include "SearchManagerListener.h"
-#include "TimerManager.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -245,8 +243,10 @@ private:
 
 	int secondsEllapsed;
 
-	void failSearch(bool timedOut);
-	void handleResults();
+	void endSearch(bool timedOut=false);
+
+	void changeDir();
+	string searchToken;
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }

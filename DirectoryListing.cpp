@@ -735,6 +735,8 @@ int DirectoryListing::run() {
 				fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
 			} else if (t.first == SEARCH) {
 				secondsEllapsed = 0;
+				searchResults.clear();
+
 				auto s = static_cast<SearchTask*>(t.second.get());
 				fire(DirectoryListingListener::SearchStarted());
 
@@ -753,21 +755,16 @@ int DirectoryListing::run() {
 
 				if (isOwnList && partialList) {
 					ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, fileName);
-					if (searchResults.empty()) {
-						fire(DirectoryListingListener::SearchFailed(), false);
-						continue;
-					}
-
-					handleResults();
+					endSearch(false);
 				} else if (partialList) {
 					SearchManager::getInstance()->addListener(this);
 					TimerManager::getInstance()->addListener(this);
 
-					string token = Util::toString(Util::rand());
-					ClientManager::getInstance()->directSearch(hintedUser, s->sizeMode, s->size, s->typeMode, s->searchString, token, s->extList);
+					searchToken = Util::toString(Util::rand());
+					ClientManager::getInstance()->directSearch(hintedUser, s->sizeMode, s->size, s->typeMode, s->searchString, searchToken, s->extList);
 					//...
 				} else {
-					//...
+					//TODO
 				}
 			}
 		} catch(const AbortException) {
@@ -785,48 +782,49 @@ int DirectoryListing::run() {
 }
 
 void DirectoryListing::on(SearchManagerListener::DSR, const DirectSearchResultPtr& aDSR) noexcept {
-	searchResults.push_back(aDSR);
+	if (compare(aDSR->getToken(), searchToken) == 0)
+		searchResults.push_back(aDSR);
 }
 
 void DirectoryListing::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	secondsEllapsed++;
 	if (secondsEllapsed == 5) {
-		failSearch(true);
+		endSearch(true);
 	}
 }
 
 void DirectoryListing::on(SearchManagerListener::DirectSearchEnd, const string& aToken) noexcept {
-	if (searchResults.empty()) {
-		failSearch(false);
-		return;
-	}
-
-	SearchManager::getInstance()->removeListener(this);
-	TimerManager::getInstance()->removeListener(this);
-	handleResults();
+	if (compare(aToken, searchToken) == 0)
+		endSearch(false);
 }
 
-void DirectoryListing::failSearch(bool timedOut) {
+void DirectoryListing::endSearch(bool timedOut /*false*/) {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
 
 	if (searchResults.empty()) {
 		fire(DirectoryListingListener::SearchFailed(), timedOut);
 	} else {
-		handleResults();
+		curResult = searchResults.begin();
+		changeDir();
 	}
 }
 
-void DirectoryListing::handleResults() {
-	dcassert(!searchResults.empty());
-	curResult = searchResults.begin();
-
-	if (isOwnList) {
-		auto mis = ShareManager::getInstance()->generatePartialList(searchResults.front()->getPath(), false, fileName);
-		loadXML(*mis, true);
-		fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(searchResults.front()->getPath()), false);
+void DirectoryListing::changeDir() {
+	auto path = Util::toNmdcFile((*curResult)->getPath());
+	if (!partialList) {
+		fire(DirectoryListingListener::ChangeDirectory(), path, true);
 	} else {
-		QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, Util::toNmdcFile(searchResults.front()->getPath()));
+		const auto dir = (path == Util::emptyString) ? root : findDirectory(path, root);
+		if (dir && dir->getComplete()) {
+			fire(DirectoryListingListener::ChangeDirectory(), path, true);
+		} else if (isOwnList) {
+			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, fileName);
+			loadXML(*mis, true);
+			fire(DirectoryListingListener::LoadingFinished(), 0, path, false);
+		} else {
+			QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, path);
+		}
 	}
 }
 
@@ -836,14 +834,7 @@ bool DirectoryListing::nextResult() {
 	}
 
 	advance(curResult, 1);
-	if (isOwnList) {
-		auto path = (*curResult)->getPath();
-		auto mis = ShareManager::getInstance()->generatePartialList(path, false, fileName);
-		loadXML(*mis, true);
-		fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(path), false);
-	} else {
-		QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, Util::toNmdcFile((*curResult)->getPath()));
-	}
+	changeDir();
 	return true;
 }
 

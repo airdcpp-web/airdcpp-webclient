@@ -2123,7 +2123,6 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 }
 
 string ShareManager::getBloomStats() {
-	vector<string> s;
 	string ret = "Total StringSearches: " + Util::toString(allSearches) + ", stopped " + Util::toString((stoppedSearches > 0) ? (((double)stoppedSearches / (double)allSearches)*100) : 0) + " % (" + Util::toString(stoppedSearches) + " searches)";
 	//ret += "Bloom size: " + Util::toString(bloom.getSize()) + ", length " + Util::toString(bloom.getLength());
 	return ret;
@@ -2131,16 +2130,12 @@ string ShareManager::getBloomStats() {
 
 /* Each matching directory is only being added once in the results. For directory results we return the path of the parent directory and for files the current directory */
 void ShareManager::Directory::directSearch(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) const noexcept {
-	bool hasMatch = aStrings.matchesDirectDirectory(profileDir ? profileDir->getName(aProfile) : realName, getSize(aProfile));
-	if (hasMatch) {
+	if(aStrings.matchesDirectDirectoryName(profileDir ? profileDir->getName(aProfile) : realName)) {
 		auto path = parent ? parent->getADCPath(aProfile) : "/";
 		auto res = boost::find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
-		if (res == aResults.end()) {
-			auto totalSize = getSize(aProfile);
-			if(totalSize >= aStrings.gt && totalSize <= aStrings.lt) {
-				DirectSearchResultPtr sr(new DirectSearchResult(path));
-				aResults.push_back(sr);
-			}
+		if (res == aResults.end() && aStrings.matchesSize(getSize(aProfile))) {
+			DirectSearchResultPtr sr(new DirectSearchResult(path));
+			aResults.push_back(sr);
 		}
 	}
 

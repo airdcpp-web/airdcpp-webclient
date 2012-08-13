@@ -54,7 +54,8 @@ namespace dcpp {
 		bool isDirectory;
 
 		bool matchesDirectFile(const string& aName, int64_t aSize);
-		bool matchesDirectDirectory(const string& aName, int64_t aSize);
+		bool matchesDirectDirectoryName(const string& aName);
+		bool matchesSize(int64_t aSize);
 	};
 }
 
