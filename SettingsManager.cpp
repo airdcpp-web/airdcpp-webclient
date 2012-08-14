@@ -1061,13 +1061,16 @@ SettingsManager::SearchTypesIter SettingsManager::getSearchType(const string& na
 void SettingsManager::getSearchType(int pos, int& type, StringList& extList, string& name) {
 	// Any, directory or TTH
 	if (pos < 3) {
-		if (pos == 0)
+		if (pos == 0) {
 			name = SEARCH_TYPE_ANY;
-		else if (pos == 1)
+			type = SearchManager::TYPE_ANY;
+		} else if (pos == 1) {
 			name = SEARCH_TYPE_DIRECTORY;
-		else if (pos == 2)
+			type = SearchManager::TYPE_DIRECTORY;
+		} else if (pos == 2) {
 			name = SEARCH_TYPE_TTH;
-		type = pos;
+			type = SearchManager::TYPE_TTH;
+		}
 		return;
 	}
 	pos = pos-3;

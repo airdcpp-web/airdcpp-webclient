@@ -2235,10 +2235,12 @@ void ShareManager::Directory::directSearch(DirectSearchResultList& aResults, Adc
 void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, const string& aProfile) noexcept {
 	RLock l(cs);
 	if(srch.hasRoot) {
-		auto i = tthIndex.find(const_cast<TTHValue*>(&srch.root));
-		if(i != tthIndex.end() && i->second->getParent()->hasProfile(aProfile)) {
-			DirectSearchResultPtr sr(new DirectSearchResult(i->second->getParent()->getFullName(aProfile)));
-			results.push_back(sr);
+		auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&srch.root));
+		for(auto f = flst.first; f != flst.second; ++f) {
+			if (f->second->getParent()->hasProfile(aProfile)) {
+				DirectSearchResultPtr sr(new DirectSearchResult(f->second->getParent()->getADCPath(aProfile)));
+				results.push_back(sr);
+			}
 		}
 		return;
 	}

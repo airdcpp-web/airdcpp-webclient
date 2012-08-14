@@ -323,21 +323,29 @@ void DirectoryListing::Directory::setDate(const string& aDate) {
 }
 
 void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
-	if(aStrings.matchesDirectDirectoryName(name)) {
-		auto path = parent ? Util::toAdcFile(parent->getPath()) : "/";
-		auto res = boost::find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
-		if (res == aResults.end() && aStrings.matchesSize(getSize())) {
-			DirectSearchResultPtr sr(new DirectSearchResult(path));
+	if (aStrings.hasRoot) {
+		auto pos = boost::find_if(files, [aStrings](File* aFile) { return aFile->getTTH() == aStrings.root; });
+		if (pos != files.end()) {
+			DirectSearchResultPtr sr(new DirectSearchResult(Util::toAdcFile(getPath())));
 			aResults.push_back(sr);
 		}
-	}
-
-	if(!aStrings.isDirectory) {
-		for(auto i = files.begin(); i != files.end(); ++i) {
-			if(aStrings.matchesDirectFile((*i)->getName(), (*i)->getSize())) {
-				DirectSearchResultPtr sr(new DirectSearchResult(Util::toAdcFile(getPath())));
+	} else {
+		if(aStrings.matchesDirectDirectoryName(name)) {
+			auto path = parent ? Util::toAdcFile(parent->getPath()) : "/";
+			auto res = boost::find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
+			if (res == aResults.end() && aStrings.matchesSize(getSize())) {
+				DirectSearchResultPtr sr(new DirectSearchResult(path));
 				aResults.push_back(sr);
-				break;
+			}
+		}
+
+		if(!aStrings.isDirectory) {
+			for(auto i = files.begin(); i != files.end(); ++i) {
+				if(aStrings.matchesDirectFile((*i)->getName(), (*i)->getSize())) {
+					DirectSearchResultPtr sr(new DirectSearchResult(Util::toAdcFile(getPath())));
+					aResults.push_back(sr);
+					break;
+				}
 			}
 		}
 	}
@@ -852,6 +860,12 @@ void DirectoryListing::changeDir() {
 			fire(DirectoryListingListener::ChangeDirectory(), path, true);
 		} else if (isOwnList) {
 			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, fileName);
+			if (!mis) {
+				dcassert(0);
+				curSearch = nullptr;
+				fire(DirectoryListingListener::SearchFailed(), false);
+				return;
+			}
 			loadXML(*mis, true);
 			fire(DirectoryListingListener::LoadingFinished(), 0, path, false);
 		} else {
