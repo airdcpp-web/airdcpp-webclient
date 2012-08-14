@@ -43,7 +43,7 @@ namespace dcpp {
 using boost::range::for_each;
 
 
-AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
+AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
 	TargetUtil::TargetType aTargetType, StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime,
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
@@ -53,7 +53,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, SearchManager
 	if (aMatcherString.empty())
 		matchPattern = aSearchString;
 
-	if (aFileType == SearchManager::TYPE_TTH)
+	if (aFileType == SEARCH_TYPE_TTH)
 		resultMatcher = new TTHMatcher(matchPattern);
 	else if (aMatcherType == StringMatcher::MATCHER_STRING)
 		resultMatcher = new TokenMatcher(matchPattern);
@@ -71,9 +71,17 @@ AutoSearch::~AutoSearch() {
 };
 
 void AutoSearch::search(StringList& aHubs) {
-	// TODO: Get ADC searchtype extensions if any is selected
 	StringList extList;
-	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchString, 0, fileType, SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
+	int ftype = 0;
+	try {
+		SettingsManager::getInstance()->getSearchType(fileType, ftype, extList);
+	} catch(const SearchTypeException&) {
+		//reset to default
+		fileType = SEARCH_TYPE_ANY;
+		ftype = SearchManager::TYPE_ANY;
+	}
+
+	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchString, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
 
 	if (searchTime == 0) {
 		LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
@@ -110,7 +118,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 		return nullptr;
 	}
 
-	auto as = new AutoSearch(true, ss, isDirectory ? SearchManager::TYPE_DIRECTORY : SearchManager::TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
+	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
 		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, true, true);
 
 	as->startTime = SearchTime();
@@ -328,12 +336,12 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 					continue;
 			} else {
 				/* Check the type */
-				if(as->getFileType() == SearchManager::TYPE_DIRECTORY ) {
+				if(as->getFileType() == SEARCH_TYPE_DIRECTORY) {
 					if (sr->getType() != SearchResult::TYPE_DIRECTORY)
 						continue;
-				} else if(!ShareManager::getInstance()->checkType(sr->getFile(), (*i)->getFileType())) {
+				} /*else if(!ShareManager::getInstance()->checkType(sr->getFile(), (*i)->getFileType())) {
 					continue;
-				}
+				}*/
 
 				if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
 					continue;
@@ -357,7 +365,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 
-		if(as->getFileType() == SearchManager::TYPE_DIRECTORY ) {
+		if(as->getFileType() == SEARCH_TYPE_DIRECTORY) {
 			string dir = Util::getLastDir(sr->getFile());
 			//check shared.
 			if(as->getCheckAlreadyShared()) {
@@ -489,7 +497,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 		while(aXml.findChild("Autosearch")) {
 			auto as = new AutoSearch(aXml.getBoolChildAttrib("Enabled"),
 				aXml.getChildAttrib("SearchString"), 
-				(SearchManager::TypeModes)aXml.getIntChildAttrib("FileType"), 
+				aXml.getChildAttrib("FileType"), 
 				(AutoSearch::ActionType)aXml.getIntChildAttrib("Action"),
 				aXml.getBoolChildAttrib("Remove"),
 				aXml.getChildAttrib("Target"),

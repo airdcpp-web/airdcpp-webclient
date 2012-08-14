@@ -53,6 +53,10 @@ const char* SearchManager::getTypeStr(int type) {
 	return types[type];
 }
 
+bool SearchManager::isDefaultTypeStr(const string& type) {
+	 return type.size() == 1 && type[0] >= '0' && type[0] <= '8';
+}
+
 SearchManager::SearchManager() :
 	stop(false)
 {

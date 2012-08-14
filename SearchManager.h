@@ -36,11 +36,16 @@
 
 namespace dcpp {
 
+#define SEARCH_TYPE_ANY "0"
+#define SEARCH_TYPE_DIRECTORY "7"
+#define SEARCH_TYPE_TTH "8"
+
 class SocketException;
 
 class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, public Thread, private TimerManagerListener
 {
 public:
+
 	enum SizeModes {
 		SIZE_DONTCARE = 0x00,
 		SIZE_ATLEAST = 0x01,
@@ -64,6 +69,7 @@ private:
 	static const char* types[TYPE_LAST];
 public:
 	static const char* getTypeStr(int type);
+	static bool isDefaultTypeStr(const string& type);
 	
 	void search(const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, Search::searchType sType, void* aOwner = NULL);
 	void search(const string& aName, const string& aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, Search::searchType sType, void* aOwner = NULL) {

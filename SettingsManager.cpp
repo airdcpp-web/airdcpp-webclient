@@ -66,7 +66,7 @@ const string SettingsManager::settingTags[] =
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",
-	"AutoSearchFrameOrder", "AutoSearchFrameWidths", "ToolbarPos", "TBProgressFont",
+	"AutoSearchFrameOrder", "AutoSearchFrameWidths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", 
 
 	"SENTRY", 
 	// Ints
@@ -141,7 +141,7 @@ const string SettingsManager::settingTags[] =
 	"TbImageSize", "TbImageSizeHot", "UseHighlight", "DupeColor", "ShowQueueBars", "SendBloom", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp",
 	"MinSegmentSize", "OpenLogsInternal", "UcSubMenu", "AutoSlots", "Coral", "OpenSystemLog",
-	"FirstRun", "LastSearchFiletype", "MaxResizeLines", 
+	"FirstRun", "MaxResizeLines", 
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist",
 	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
@@ -620,7 +620,7 @@ SettingsManager::SettingsManager()
 	setDefault(OPEN_SYSTEM_LOG, true);
 	setDefault(FIRST_RUN, true);
 	setDefault(USE_OLD_SHARING_UI, true);
-	setDefault(LAST_SEARCH_FILETYPE, 0);
+	setDefault(LAST_SEARCH_FILETYPE, "0");
 	setDefault(MAX_RESIZE_LINES, 2);
 	setDefault(DUPE_SEARCH, true);
 	setDefault(PASSWD_PROTECT, false);
@@ -939,24 +939,29 @@ void SettingsManager::save(string const& aFileName) {
 	}
 	xml.stepOut();
 
-	xml.addTag("SearchHistory");
+	
+	xml.addTag("SearchTypes");
 	xml.stepIn();
 	{
-		Lock l(cs);
-		for(auto i = searchHistory.begin(); i != searchHistory.end(); ++i) {
-			xml.addTag("Search", Text::fromT(*i));
+		for(auto i = searchTypes.begin(); i != searchTypes.end(); ++i) {
+			xml.addTag("SearchType", Util::toString(";", i->second));
+			xml.addChildAttrib("Id", i->first);
 		}
+	}
+	xml.stepOut();
+
+	xml.addTag("SearchHistory");
+	xml.stepIn();
+	for(auto i = searchHistory.begin(); i != searchHistory.end(); ++i) {
+		xml.addTag("Search", Text::fromT(*i));
 	}
 	xml.stepOut();
 
 	if (!BOOLSETTING(CLEAR_DIR_HISTORY)) {
 		xml.addTag("DirectoryHistory");
 		xml.stepIn();
-		{
-			Lock l(cs);
-			for(auto i = dirHistory.begin(); i != dirHistory.end(); ++i) {
-				xml.addTag("Directory", Text::fromT(*i));
-			}
+		for(auto i = dirHistory.begin(); i != dirHistory.end(); ++i) {
+			xml.addTag("Directory", Text::fromT(*i));
 		}
 		xml.stepOut();
 	}
@@ -989,7 +994,7 @@ void SettingsManager::save(string const& aFileName) {
 }
 
 void SettingsManager::validateSearchTypeName(const string& name) const {
-	if(name.empty() || (name.size() == 1 && name[0] >= '1' && name[0] <= '6')) {
+	if(name.empty() || (name.size() == 1 && name[0] >= '0' && name[0] <= '8')) {
 		throw SearchTypeException("Invalid search type name"); // TODO: localize
 	}
 	for(int type = SearchManager::TYPE_ANY; type != SearchManager::TYPE_LAST; ++type) {
@@ -1053,12 +1058,67 @@ SettingsManager::SearchTypesIter SettingsManager::getSearchType(const string& na
 	return ret;
 }
 
+void SettingsManager::getSearchType(int pos, int& type, StringList& extList, string& name) {
+	// Any, directory or TTH
+	if (pos < 3) {
+		if (pos == 0)
+			name = SEARCH_TYPE_ANY;
+		else if (pos == 1)
+			name = SEARCH_TYPE_DIRECTORY;
+		else if (pos == 2)
+			name = SEARCH_TYPE_TTH;
+		type = pos;
+		return;
+	}
+	pos = pos-3;
+
+	int counter = 0;
+	for(auto i = searchTypes.begin(); i != searchTypes.end(); ++i) {
+		if (counter++ == pos) {
+			if(i->first.size() > 1 || i->first[0] < '1' || i->first[0] > '6') {
+				// custom search type
+				type = SearchManager::TYPE_ANY;
+			} else {
+				type = i->first[0] - '0';
+			}
+			name = i->first;
+			extList = i->second;
+			return;
+		}
+	}
+
+	throw SearchTypeException("No such search type"); 
+}
+
+void SettingsManager::getSearchType(const string& aName, int& type, StringList& extList) {
+	if (aName.empty())
+		throw SearchTypeException("No such search type"); 
+
+	// Any, directory or TTH
+	if (aName[0] == SEARCH_TYPE_ANY[0] || aName[0] == SEARCH_TYPE_DIRECTORY[0] || aName[0] == SEARCH_TYPE_TTH[0]) {
+		type = aName[0] - '0';
+		return;
+	}
+
+	auto p = searchTypes.find(aName);
+	if (p != searchTypes.end()) {
+		extList = p->second;
+		if(aName[0] < '1' || aName[0] > '6') {
+			// custom search type
+			type = SearchManager::TYPE_ANY;
+		} else {
+			type = aName[0] - '0';
+		}
+		return;
+	}
+
+	throw SearchTypeException("No such search type"); 
+}
 
 bool SettingsManager::addSearchToHistory(const tstring& aSearch) {
 	if(aSearch.empty() || SETTING(SEARCH_HISTORY) == 0)
 		return false;
 
-	Lock l(cs);
 	auto s = find(searchHistory.begin(), searchHistory.end(), aSearch);
 	if(s != searchHistory.end()) {
 		searchHistory.erase(s);
@@ -1076,7 +1136,6 @@ bool SettingsManager::addDirToHistory(const tstring& aDir) {
 	if(aDir.empty())
 		return false;
 
-	Lock l(cs);
 	auto s = find(dirHistory.begin(), dirHistory.end(), aDir);
 	if(s != dirHistory.end()) {
 		dirHistory.erase(s);

@@ -834,6 +834,7 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) {
 	TimerManager::getInstance()->removeListener(this);
 
 	if (searchResults.empty()) {
+		curSearch = nullptr;
 		fire(DirectoryListingListener::SearchFailed(), timedOut);
 	} else {
 		curResult = searchResults.begin();

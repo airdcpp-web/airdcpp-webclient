@@ -79,7 +79,7 @@ public:
 		ACTION_REPORT,
 	};
 
-	AutoSearch(bool aEnabled, const string& aSearchString, SearchManager::TypeModes aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
+	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
 		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept;
 
 	~AutoSearch();
@@ -87,7 +87,7 @@ public:
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
 	GETSET(ActionType, action, Action);
-	GETSET(SearchManager::TypeModes, fileType, FileType);
+	GETSET(string, fileType, FileType);
 	GETSET(bool, remove, Remove); //remove after 1 hit
 	GETSET(string, target, Target); //download to Target
 	GETSET(TargetUtil::TargetType, tType, TargetType);
