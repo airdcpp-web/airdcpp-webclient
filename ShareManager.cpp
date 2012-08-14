@@ -1422,6 +1422,39 @@ void ShareManager::changeDirectories(const ShareDirInfo::list& renameDirs)  {
 	boost::for_each(dirtyProfiles, [this](const string& aProfile) { setDirty(aProfile); });
 }
 
+void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories, bool finished) {
+	string msg;
+	switch (aTask) {
+		case(REFRESH_ALL):
+			LogManager::getInstance()->message(finished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED), LogManager::LOG_INFO);
+			break;
+		case(REFRESH_DIR):
+			if (directories.size() == 1) {
+				msg = finished ? STRING_F(DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
+			} else {
+				if(boost::find_if(directories, [directories](const string& d) { return d != *directories.begin(); }) == directories.end()) {
+					msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
+				} else {
+					msg = finished ? STRING_F(X_DIRECTORIES_REFRESHED, directories.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_RPATH, directories.size());
+				}
+			}
+			break;
+		case(ADD_DIR):
+			if (directories.size() == 1) {
+				msg = finished ? STRING_F(DIRECTORY_ADDED, *directories.begin()) : STRING_F(ADDING_SHARED_DIR, *directories.begin());
+			} else {
+				msg = finished ? STRING_F(ADDING_X_SHARED_DIRS, directories.size()) : STRING_F(DIRECTORIES_ADDED, directories.size());
+			}
+			break;
+		case(REFRESH_INCOMING):
+			msg = finished ? STRING(FILE_LIST_REFRESH_INITIATED_INCOMING) : STRING(INCOMING_REFRESHED);
+			break;
+	};
+
+	if (!msg.empty())
+		LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+}
+
 int ShareManager::run() {
 	HashManager::HashPauser pauser;
 
@@ -1441,75 +1474,7 @@ int ShareManager::run() {
 			}
 		}
 
-		auto sendStatus = [&] (bool finished) -> void {
-			string msg;
-			switch (t.first) {
-				case(REFRESH_ALL):
-					LogManager::getInstance()->message(finished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED), LogManager::LOG_INFO);
-					break;
-				case(REFRESH_DIR):
-					if (directories.size() == 1) {
-						msg = finished ? STRING_F(DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
-					} else {
-						if(find_if(directories.begin(), directories.end(), [directories](const string& d) { return d != *directories.begin(); }) == directories.end()) {
-							msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
-						} else {
-							msg = finished ? STRING_F(X_DIRECTORIES_REFRESHED, directories.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_RPATH, directories.size());
-						}
-					}
-					break;
-				case(ADD_DIR):
-					if (directories.size() == 1) {
-						msg = finished ? STRING_F(DIRECTORY_ADDED, *directories.begin()) : STRING_F(ADDING_SHARED_DIR, *directories.begin());
-					} else {
-						msg = finished ? STRING_F(ADDING_X_SHARED_DIRS, directories.size()) : STRING_F(DIRECTORIES_ADDED, directories.size());
-					}
-					break;
-				case(REFRESH_INCOMING):
-					msg = finished ? STRING(FILE_LIST_REFRESH_INITIATED_INCOMING) : STRING(INCOMING_REFRESHED);
-					break;
-			};
-
-			if (!msg.empty())
-				LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
-		};
-
-		/*string msg;
-		switch (t.first) {
-			case(REFRESH_ALL):
-				msg = STRING(FILE_LIST_REFRESH_INITIATED);
-				refreshRunning = true;
-				lastFullUpdate = GET_TICK();
-				break;
-			case(REFRESH_DIR):
-				if (directories.size() == 1) {
-					msg = STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
-				} else {
-					if(find_if(directories.begin(), directories.end(), [directories](const string& d) { return d != *directories.begin(); }) == directories.end()) {
-						msg = STRING_F(FILE_LIST_REFRESH_INITIATED_VPATH, *directories.begin());
-					} else {
-						msg = STRING_F(FILE_LIST_REFRESH_INITIATED_X_VPATH, directories.size());
-					}
-					refreshRunning = true;
-				}
-				break;
-			case(ADD_DIR):
-				if (directories.size() == 1) {
-					msg = STRING_F(ADDING_SHARED_DIR, *directories.begin());
-				} else {
-					msg = STRING_F(ADDING_X_SHARED_DIRS, directories.size());
-				}
-				break;
-			case(REFRESH_INCOMING):
-				lastIncomingUpdate = GET_TICK();
-				msg = STRING(FILE_LIST_REFRESH_INITIATED_INCOMING);
-				break;
-		};
-
-		if (!msg.empty())
-			LogManager::getInstance()->message(msg, LogManager::LOG_INFO);*/
-
-		sendStatus(false);
+		reportTaskStatus(t.first, directories, false);
 		if (t.first == REFRESH_INCOMING) {
 			refreshRunning = true;
 			lastIncomingUpdate = GET_TICK();
@@ -1581,35 +1546,7 @@ int ShareManager::run() {
 			ClientManager::getInstance()->infoUpdated();
 		}
 
-		/*switch (t.first) {
-			case(REFRESH_ALL):
-				LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED), LogManager::LOG_INFO);
-				break;
-			case(REFRESH_DIR):
-				if (directories.size() == 1) {
-					msg = STRING_F(DIRECTORY_REFRESHED, *directories.begin());
-				} else {
-					if(find_if(directories.begin(), directories.end(), [directories](const string& d) { return d != *directories.begin(); }) == directories.end()) {
-						msg = STRING_F(VIRTUAL_DIRECTORY_REFRESHED, *directories.begin());
-					} else {
-						msg = STRING_F(X_DIRECTORIES_REFRESHED, directories.size());
-					}
-				}
-				break;
-			case(ADD_DIR):
-				if (directories.size() == 1) {
-					msg = STRING_F(DIRECTORY_ADDED, *directories.begin());
-				} else {
-					msg = STRING_F(DIRECTORIES_ADDED, directories.size());
-				}
-				break;
-			case(REFRESH_INCOMING):
-				msg = STRING(INCOMING_REFRESHED);
-				break;
-		};*/
-
-		sendStatus(true);
-		//LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FINISHED), LogManager::LOG_INFO);
+		reportTaskStatus(t.first, directories, true);
 	}
 end:
 	{

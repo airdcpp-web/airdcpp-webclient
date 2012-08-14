@@ -498,6 +498,8 @@ private:
 	void load(SimpleXML& aXml);
 	void loadProfile(SimpleXML& aXml, const string& aName, const string& aToken);
 	void save(SimpleXML& aXml);
+
+	void reportTaskStatus(uint8_t aTask, const StringList& aDirectories, bool finished);
 	
 	ShareProfileList shareProfiles;
 
