@@ -108,6 +108,8 @@ public:
 	const string& getPattern() const { return resultMatcher->getPattern(); }
 	const string& getNickPattern() const { return userMatcher->getPattern(); }
 	void search(StringList& aHubs);
+
+	string getDisplayType();
 private:
 	StringMatcher* resultMatcher;
 	StringMatcher* userMatcher;
@@ -115,7 +117,8 @@ private:
 
 class SimpleXML;
 
-class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener {
+class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener, 
+	private SettingsManagerListener {
 public:
 	AutoSearchManager();
 	~AutoSearchManager();
@@ -187,6 +190,8 @@ private:
 
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+
+	void on(SettingsManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 };
 }
 #endif

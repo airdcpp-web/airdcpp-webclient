@@ -37,10 +37,12 @@ public:
 	typedef X<0> Load;
 	typedef X<1> Save;
 	typedef X<2> SearchTypesChanged;
+	typedef X<3> SearchTypeRenamed;
 
 	virtual void on(Load, SimpleXML&) noexcept { }
 	virtual void on(Save, SimpleXML&) noexcept { }
 	virtual void on(SearchTypesChanged) noexcept { }
+	virtual void on(SearchTypeRenamed, const string&, const string&) noexcept { }
 };
 
 class SettingsManager : public Singleton<SettingsManager>, public Speaker<SettingsManagerListener>

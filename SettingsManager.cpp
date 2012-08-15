@@ -1039,6 +1039,7 @@ void SettingsManager::renameSearchType(const string& oldName, const string& newN
 	StringList exts = getSearchType(oldName)->second;
 	addSearchType(newName, exts, true);
 	searchTypes.erase(oldName);
+	fire(SettingsManagerListener::SearchTypeRenamed(), oldName, newName);
 }
 
 void SettingsManager::modSearchType(const string& name, const StringList& extensions) {

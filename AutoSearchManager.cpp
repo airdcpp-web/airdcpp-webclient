@@ -93,6 +93,10 @@ void AutoSearch::search(StringList& aHubs) {
 	}
 }
 
+string AutoSearch::getDisplayType() {
+	return SearchManager::isDefaultTypeStr(fileType) ? SearchManager::getTypeStr(fileType[0]-'0') : fileType;
+}
+
 
 AutoSearchManager::AutoSearchManager() : 
 	lastSave(0), 
@@ -104,11 +108,13 @@ AutoSearchManager::AutoSearchManager() :
 {
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
+	SettingsManager::getInstance()->addListener(this);
 }
 
 AutoSearchManager::~AutoSearchManager() {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
+	SettingsManager::getInstance()->removeListener(this);
 }
 
 /* For external use */
@@ -132,6 +138,16 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	} else {
 		LogManager::getInstance()->message(str(boost::format(STRING(AUTO_SEARCH_ADD_FAILED)) % ss) + " " + STRING(AUTO_SEARCH_EXISTS), LogManager::LOG_ERROR);
 		return nullptr;
+	}
+}
+
+void AutoSearchManager::on(SettingsManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept {
+	RLock l(cs);
+	for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
+		if ((*i)->getFileType() == oldName) {
+			(*i)->setFileType(newName);
+			fire(AutoSearchManagerListener::UpdateItem(), *i, distance(searchItems.begin(), i));
+		}
 	}
 }
 
