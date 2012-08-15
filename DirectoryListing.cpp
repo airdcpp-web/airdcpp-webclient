@@ -781,7 +781,7 @@ int DirectoryListing::run() {
 				if(s->typeMode == SearchManager::TYPE_TTH) {
 					curSearch = new AdcSearch(TTHValue(s->searchString));
 				} else {
-					curSearch = new AdcSearch(s->searchString);
+					curSearch = new AdcSearch(s->searchString, s->extList);
 					if(s->sizeMode == SearchManager::SIZE_ATLEAST) {
 						curSearch->gt = s->size;
 					} else if(s->sizeMode == SearchManager::SIZE_ATMOST) {
@@ -860,12 +860,6 @@ void DirectoryListing::changeDir() {
 			fire(DirectoryListingListener::ChangeDirectory(), path, true);
 		} else if (isOwnList) {
 			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, fileName);
-			if (!mis) {
-				dcassert(0);
-				curSearch = nullptr;
-				fire(DirectoryListingListener::SearchFailed(), false);
-				return;
-			}
 			loadXML(*mis, true);
 			fire(DirectoryListingListener::LoadingFinished(), 0, path, false);
 		} else {

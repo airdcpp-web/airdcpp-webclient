@@ -33,7 +33,7 @@ namespace dcpp {
 	public:
 		AdcSearch(const StringList& params);
 
-		AdcSearch(const string& aString);
+		AdcSearch(const string& aString, const StringList& aExt);
 		AdcSearch(const TTHValue& aRoot);
 
 		bool isExcluded(const string& str);

@@ -1433,5 +1433,10 @@ enum Strings { // @DontAdd
 	INCOMING_REFRESHED, // "Incoming directories have been refreshed"
 	NO_ADDITIONAL_MATCHES, // "There are no additional matches available"
 	FILE_LIST_REFRESH_INITIATED_X_RPATH, // "File list refresh initiated for %d directories"
+	SEARCH_TYPES, // "Search Types"
+	RESET_TO_DEFAULTS, // "Reset to defaults"
+	PREDEFINED, // "Predefined"
+	INVALID_EXTENSION, // "Invalid extension: %s"
+	EXTENSIONS_EMPTY, // "No extensions have been defined"
 	LAST // @DontAdd
 };

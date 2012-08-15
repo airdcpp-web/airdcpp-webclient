@@ -1426,6 +1426,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "Incoming directories have been refreshed", 
 "There are no additional matches available", 
 "File list refresh initiated for %d directories", 
+"Search Types", 
+"Reset to defaults", 
+"Predefined", 
+"Invalid extension: %s", 
+"No extensions have been defined", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2852,4 +2857,9 @@ std::string dcpp::ResourceManager::names[] = {
 "IncomingRefreshed", 
 "NoAdditionalMatches", 
 "FileListRefreshInitiatedXRpath", 
+"SearchTypes", 
+"ResetToDefaults", 
+"Predefined", 
+"InvalidExtension", 
+"ExtensionsEmpty", 
 };

@@ -32,7 +32,7 @@ AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), g
 	lt(numeric_limits<int64_t>::max()), hasRoot(true), isDirectory(false) {
 }
 
-AdcSearch::AdcSearch(const string& aSearch) : include(&includeX), gt(0), 
+AdcSearch::AdcSearch(const string& aSearch, const StringList& aExt) : ext(aExt), include(&includeX), gt(0), 
 	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false) {
 
 	//add included
