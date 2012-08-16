@@ -48,7 +48,7 @@ public:
 	virtual bool isOp() const = 0;
 	virtual void connect(const OnlineUser& user, const string& token) = 0;
 	virtual void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false) = 0;
-	virtual void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) = 0;
+	virtual void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir) = 0;
 };
 
 /** Yes, this should probably be called a Hub */

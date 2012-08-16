@@ -857,7 +857,7 @@ StringList AdcHub::parseSearchExts(int flag) {
 	return ret;
 }
 
-void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
+void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir) {
 	if(state != STATE_NORMAL)
 		return;
 
@@ -865,6 +865,9 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 	//AdcCommand p = new AdcCommand(AdcCommand::DSC, sid, AdcCommand::TYPE_DIRECT);
 	AdcCommand c(AdcCommand::CMD_DSC, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
 	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList);
+	if (!aDir.empty()) {
+		c.addParam("PA", aDir);
+	}
 
 	//sendSearch(c);
 	send(c);

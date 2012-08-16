@@ -1431,6 +1431,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Predefined", 
 "Invalid extension: %s", 
 "No extensions have been defined", 
+"Search within the currect directory", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2862,4 +2863,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Predefined", 
 "InvalidExtension", 
 "ExtensionsEmpty", 
+"SearchCurDir", 
 };

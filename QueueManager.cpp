@@ -1714,7 +1714,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		}
 
 		curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, dirDate);
-		curBundle->setAutoPriority(Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1);
+		//curBundle->setAutoPriority(Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1);
 
 		curBundle->setToken(token);
 		inBundle = true;		

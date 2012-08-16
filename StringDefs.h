@@ -1438,5 +1438,6 @@ enum Strings { // @DontAdd
 	PREDEFINED, // "Predefined"
 	INVALID_EXTENSION, // "Invalid extension: %s"
 	EXTENSIONS_EMPTY, // "No extensions have been defined"
+	SEARCH_CUR_DIR, // "Search within the currect directory"
 	LAST // @DontAdd
 };

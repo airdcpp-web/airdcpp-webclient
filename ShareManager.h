@@ -144,7 +144,7 @@ public:
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, const string& aProfile, const CID& cid) noexcept;
-	void directSearch(DirectSearchResultList& l, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile) noexcept;
+	void directSearch(DirectSearchResultList& l, AdcSearch& aStrings, StringList::size_type maxResults, const string& aProfile, const string& aDirectory) noexcept;
 
 	bool isDirShared(const string& aDir) const;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const;

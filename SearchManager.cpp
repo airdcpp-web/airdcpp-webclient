@@ -617,8 +617,16 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool isUdpActive, const string& hubIpPort, const string& shareProfile) {
 	AdcSearch sch(aCmd.getParameters());
 
+	string directory;
+	aCmd.getParam("PA", 0, directory);
+
 	DirectSearchResultList results;
-	ShareManager::getInstance()->directSearch(results, sch, 30, shareProfile);
+
+	try {
+		ShareManager::getInstance()->directSearch(results, sch, 30, shareProfile, directory);
+	} catch(...) {
+		//ignore
+	}
 
 	string token;
 	aCmd.getParam("TO", 0, token);

@@ -2169,7 +2169,7 @@ void ShareManager::Directory::directSearch(DirectSearchResultList& aResults, Adc
 	}
 }
 
-void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, const string& aProfile) noexcept {
+void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, const string& aProfile, const string& aDirectory) noexcept {
 	RLock l(cs);
 	if(srch.hasRoot) {
 		auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&srch.root));
@@ -2193,9 +2193,19 @@ void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch
 			j->second->directSearch(results, srch, maxResults, aProfile);
 	}*/
 
-	for(auto j = shares.begin(); (j != shares.end()) && (results.size() < maxResults); ++j) {
-		if(j->second->getProfileDir()->hasProfile(aProfile))
-			j->second->directSearch(results, srch, maxResults, aProfile);
+	if (aDirectory.empty() || aDirectory == "/") {
+		for(auto j = shares.begin(); (j != shares.end()) && (results.size() < maxResults); ++j) {
+			if(j->second->getProfileDir()->hasProfile(aProfile))
+				j->second->directSearch(results, srch, maxResults, aProfile);
+		}
+	} else {
+		DirectoryList result;
+		findVirtuals(aDirectory, aProfile, result); 
+		Directory::Ptr root;
+		for(auto it = result.begin(); it != result.end(); ++it) {
+			if (!(*it)->isLevelExcluded(aProfile))
+				(*it)->directSearch(results, srch, maxResults, aProfile);
+		}
 	}
 }
 

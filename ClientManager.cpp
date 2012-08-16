@@ -685,11 +685,11 @@ uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aF
 	return 0;
 }
 
-void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
+void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir) {
 	RLock l (cs);
 	auto ou = findOnlineUser(user, false);
 	if (ou) {
-		ou->getClientBase().directSearch(*ou, aSizeMode, aSize, aFileType, aString, aToken, aExtList);
+		ou->getClientBase().directSearch(*ou, aSizeMode, aSize, aFileType, aString, aToken, aExtList, aDir);
 	}
 }
 

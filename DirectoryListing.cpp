@@ -287,14 +287,14 @@ DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
-		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(DUPE_NONE), size(0) {
+		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(DUPE_NONE), partialSize(0) {
 
 	if (!aSize.empty()) {
-		size = Util::toInt64(aSize);
+		partialSize = Util::toInt64(aSize);
 	}
 
 	if (checkDupe) {
-		dupe = AirUtil::checkDupe(getPath(), size);
+		dupe = AirUtil::checkDupe(getPath(), partialSize);
 	}
 
 	setDate(aDate);
@@ -333,7 +333,7 @@ void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSe
 		if(aStrings.matchesDirectDirectoryName(name)) {
 			auto path = parent ? Util::toAdcFile(parent->getPath()) : "/";
 			auto res = boost::find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
-			if (res == aResults.end() && aStrings.matchesSize(getSize())) {
+			if (res == aResults.end() && aStrings.matchesSize(getTotalSize())) {
 				DirectSearchResultPtr sr(new DirectSearchResult(path));
 				aResults.push_back(sr);
 			}
@@ -548,9 +548,9 @@ void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
 
 int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
 	if(!complete)
-		return size;
+		return partialSize;
 	
-	int64_t x = getSize();
+	int64_t x = getFilesSize();
 	for(auto i = directories.begin(); i != directories.end(); ++i) {
 		if(!(adl && (*i)->getAdls()))
 			x += (*i)->getTotalSize(adls);
@@ -575,6 +575,23 @@ void DirectoryListing::Directory::clearAdls() {
 			--i;
 		}
 	}
+}
+
+string DirectoryListing::Directory::getPath() const {
+	string tmp;
+	//make sure to not try and get the name of the root dir
+	if(getParent() && getParent()->getParent()){
+		return getParent()->getPath() +  getName() + '\\';
+	}
+	return getName() + '\\';
+}
+
+int64_t DirectoryListing::Directory::getFilesSize() const {
+	int64_t x = 0;
+	for(auto i = files.begin(); i != files.end(); ++i) {
+		x+=(*i)->getSize();
+	}
+	return x;
 }
 
 uint8_t DirectoryListing::Directory::checkShareDupes() {
@@ -682,18 +699,19 @@ void DirectoryListing::close() {
 }
 
 struct SearchTask : public Task {
-	SearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList) : searchString(aSearchString), size(aSize), typeMode(aTypeMode), 
-		sizeMode(aSizeMode), extList(aExtList) { }
+	SearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) : searchString(aSearchString), 
+		size(aSize), typeMode(aTypeMode), sizeMode(aSizeMode), extList(aExtList), directory(aDir) { }
 
 	string searchString;
 	int64_t size;
 	int typeMode;
 	int sizeMode;
 	StringList extList;
+	string directory;
 };
 
-void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList) {
-	tasks.add(SEARCH, unique_ptr<Task>(new SearchTask(aSearchString, aSize, aTypeMode, aSizeMode, aExtList)));
+void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) {
+	tasks.add(SEARCH, unique_ptr<Task>(new SearchTask(aSearchString, aSize, aTypeMode, aSizeMode, aExtList, aDir)));
 	runTasks();
 }
 
@@ -792,17 +810,19 @@ int DirectoryListing::run() {
 				}
 
 				if (isOwnList && partialList) {
-					ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, fileName);
+					ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, fileName, s->directory);
 					endSearch(false);
 				} else if (partialList) {
 					SearchManager::getInstance()->addListener(this);
 					TimerManager::getInstance()->addListener(this);
 
 					searchToken = Util::toString(Util::rand());
-					ClientManager::getInstance()->directSearch(hintedUser, s->sizeMode, s->size, s->typeMode, s->searchString, searchToken, s->extList);
+					ClientManager::getInstance()->directSearch(hintedUser, s->sizeMode, s->size, s->typeMode, s->searchString, searchToken, s->extList, s->directory);
 					//...
 				} else {
-					root->search(searchResults, *curSearch, 100);
+					const auto dir = (s->directory.empty()) ? root : findDirectory(s->directory, root);
+					if (dir)
+						root->search(searchResults, *curSearch, 100);
 					endSearch(false);
 				}
 			}

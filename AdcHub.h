@@ -41,7 +41,7 @@ public:
 	void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false);
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
 	void search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList);
-	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList);
+	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir);
 	void password(const string& pwd);
 	void info(bool alwaysSend);
 	void refreshUserList(bool);	

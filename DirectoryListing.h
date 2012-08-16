@@ -125,26 +125,13 @@ public:
 		
 		size_t getFileCount() { return files.size(); }
 		
-		int64_t getSize() {
-			int64_t x = 0;
-			for(auto i = files.begin(); i != files.end(); ++i) {
-				x+=(*i)->getSize();
-			}
-			return x;
-		}
+		int64_t getFilesSize() const;
 
-		string getPath() {
-			string tmp;
-			//make sure to not try and get the name of the root dir
-			if(getParent() && getParent()->getParent()){
-				return getParent()->getPath() +  getName() + '\\';
-		}
-			return getName() + '\\';
-		}
+		string getPath() const;
 		uint8_t checkShareDupes();
 		
 		GETSET(string, name, Name);
-		GETSET(int64_t, size, Size);
+		GETSET(int64_t, partialSize, PartialSize);
 		GETSET(Directory*, parent, Parent);		
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);
@@ -206,7 +193,7 @@ public:
 	void addQueueMatchTask();
 	void close();
 
-	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList);
+	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
 	bool nextResult();
 	AdcSearch *curSearch;
 
