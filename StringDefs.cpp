@@ -1432,6 +1432,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Invalid extension: %s", 
 "No extensions have been defined", 
 "Search within the currect directory", 
+"Updating the view...", 
+"Do you want to switch to full filelist before matching the ADL search?", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2864,4 +2866,6 @@ std::string dcpp::ResourceManager::names[] = {
 "InvalidExtension", 
 "ExtensionsEmpty", 
 "SearchCurDir", 
+"UpdatingView", 
+"AdlDlFullList", 
 };

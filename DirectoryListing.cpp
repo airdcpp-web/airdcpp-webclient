@@ -45,7 +45,7 @@ using boost::range::for_each;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, int64_t aSpeed, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName), running(false), 
-	speed(aSpeed), isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0)
+	speed(aSpeed), isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(BOOLSETTING(USE_ADLS) && !aPartial)
 {
 }
 
@@ -94,9 +94,9 @@ void DirectoryListing::loadFile(const string& name) {
 	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
 	if(stricmp(ext, ".bz2") == 0) {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
-		loadXML(f, partialList);
+		loadXML(f, false);
 	} else if(stricmp(ext, ".xml") == 0) {
-		loadXML(ff, partialList);
+		loadXML(ff, false);
 	}
 }
 
@@ -174,7 +174,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				return;		
 			TTHValue tth(h); /// @todo verify validity?
 
-			if(updating) {
+			if(updating && !useCache) {
 				// just update the current file if it is already there.
 				for(auto i = cur->files.cbegin(), iend = cur->files.cend(); i != iend; ++i) {
 					auto& file = **i;
@@ -201,21 +201,15 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			DirectoryListing::Directory* d = nullptr;
 			if(updating) {
 				if (useCache) {
-					auto s =  cur->visitedDirs.find(n);
-					if (s != cur->visitedDirs.end()) {
+					auto s =  list->visitedDirs.find(n);
+					if (s != list->visitedDirs.end()) {
 						d = s->second;
-						if(!d->getComplete()) {
-							d->setComplete(!incomp);
-						}
-						d->setDate(date);
 					}
 				} else {
+					//slow but shouldn't be needed often...
 					auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == n; });
 					if (s != cur->directories.end()) {
 						d = *s;
-						if(!d->getComplete())
-							d->setComplete(!incomp);
-						d->setDate(date);
 					}
 				}
 			}
@@ -223,6 +217,11 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			if(!d) {
 				d = new DirectoryListing::Directory(cur, n, false, !incomp, (partialList && checkDupe), size, date);
 				cur->directories.push_back(d);
+			} else {
+				if(!d->getComplete()) {
+					d->setComplete(!incomp);
+				}
+				d->setDate(date);
 			}
 			cur = d;
 
@@ -232,33 +231,35 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 		}
 	} else if(name == sFileListing) {
-		const string& b = getAttrib(attribs, sBase, 2);
-		if(b.size() >= 1 && b[0] == '/' && b[b.size()-1] == '/') {
-			base = b;
-		}
-		const string& date = getAttrib(attribs, sBaseDate, 3);
-
-		StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
-		for(auto i = sl.begin(); i != sl.end(); ++i) {
-			auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == *i; });
-			if (s == cur->directories.end()) {
-				auto d = new DirectoryListing::Directory(cur, *i, false, false, true);
-				cur->directories.push_back(d);
-				cur->visitedDirs[*i] = d;
-				cur = d;
-			} else {
-				cur = *s;
+		if (updating) {
+			const string& b = getAttrib(attribs, sBase, 2);
+			if(b.size() >= 1 && b[0] == '/' && b[b.size()-1] == '/') {
+				base = b;
 			}
-		}
+			const string& date = getAttrib(attribs, sBaseDate, 3);
 
-		if (!cur->directories.empty()) {
-			//we have loaded this already, need to go through all dirs
-			useCache=false;
+			StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
+			for(auto i = sl.begin(); i != sl.end(); ++i) {
+				auto s = find_if(cur->directories.begin(), cur->directories.end(), [&](DirectoryListing::Directory* dir) { return dir->getName() == *i; });
+				if (s == cur->directories.end()) {
+					auto d = new DirectoryListing::Directory(cur, *i, false, false, true);
+					cur->directories.push_back(d);
+					list->visitedDirs[*i] = d;
+					cur = d;
+				} else {
+					cur = *s;
+				}
+			}
+
+			if (!cur->directories.empty() || !cur->files.empty()) {
+				//we have loaded this already, need to go through all dirs and files
+				useCache=false;
+			}
+
+			cur->setDate(date);
 		}
 
 		cur->setComplete(true);
-		cur->setDate(date);
-
 		inListing = true;
 
 		if(simple) {
@@ -723,7 +724,7 @@ void DirectoryListing::runTasks() {
 	try {
 		start();
 		setThreadPriority(Thread::NORMAL);
-	} catch(const ThreadException& e) {
+	} catch(const ThreadException& /*e*/) {
 		LogManager::getInstance()->message("DirListThread error", LogManager::LOG_WARNING);
 		running.clear();
 	}
@@ -750,7 +751,16 @@ int DirectoryListing::run() {
 				ADLSearchManager::getInstance()->matchListing(*this);
 				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false);
 			} else if(t.first == LOAD_FILE) {
+				bool convertPartial = partialList;
 				fire(DirectoryListingListener::LoadingStarted());
+				if (convertPartial) {
+					/* Clearing the old tree should be much faster, as we don't usually have that many directories loaded in the partial */
+					/* Otherwise we should compare the file/directory name for each item... */
+					boost::for_each(root->directories, DeleteFunction());
+					root->directories.clear();
+					visitedDirs.clear();
+				}
+
 				if (isOwnList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, fileName); 
 					loadXML(*mis, true);
@@ -758,22 +768,28 @@ int DirectoryListing::run() {
 					loadFile(fileName);
 				}
 				
-				if((BOOLSETTING(USE_ADLS) && !isOwnList) || (BOOLSETTING(USE_ADLS_OWN_LIST) && isOwnList)) {
+				if(matchADL) {
+					fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(MATCHING_ADL));
 					ADLSearchManager::getInstance()->matchListing(*this);
 				}
 
-				bool convertPartial = partialList;
 				partialList = false;
 				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str, convertPartial);
 				partialList = false;
 			} else if (t.first == REFRESH_DIR) {
-				//fire(DirectoryListingListener::LoadingStarted());
+				if (!partialList)
+					return 0;
+
 				auto xml = static_cast<StringTask*>(t.second.get())->str;
 				
 				string path;
 				if (isOwnList) {
 					auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(xml), false, fileName);
-					path = loadXML(*mis, true);
+					if (mis) {
+						path = loadXML(*mis, true);
+					} else {
+						throw CSTRING(FILE_NOT_AVAILABLE);
+					}
 				} else {
 					path = updateXML(xml);
 				}
@@ -810,7 +826,9 @@ int DirectoryListing::run() {
 				}
 
 				if (isOwnList && partialList) {
-					ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, fileName, s->directory);
+					try {
+						ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, fileName, s->directory);
+					} catch (...) { }
 					endSearch(false);
 				} else if (partialList) {
 					SearchManager::getInstance()->addListener(this);
@@ -880,8 +898,13 @@ void DirectoryListing::changeDir() {
 			fire(DirectoryListingListener::ChangeDirectory(), path, true);
 		} else if (isOwnList) {
 			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, fileName);
-			loadXML(*mis, true);
-			fire(DirectoryListingListener::LoadingFinished(), 0, path, false);
+			if (mis) {
+				loadXML(*mis, true);
+				fire(DirectoryListingListener::LoadingFinished(), 0, path, false);
+			} else {
+				//might happen if have refreshed the share meanwhile
+				fire(DirectoryListingListener::LoadingFailed(), CSTRING(FILE_NOT_AVAILABLE));
+			}
 		} else {
 			QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, path);
 		}

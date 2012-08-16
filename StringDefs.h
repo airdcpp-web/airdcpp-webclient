@@ -1439,5 +1439,7 @@ enum Strings { // @DontAdd
 	INVALID_EXTENSION, // "Invalid extension: %s"
 	EXTENSIONS_EMPTY, // "No extensions have been defined"
 	SEARCH_CUR_DIR, // "Search within the currect directory"
+	UPDATING_VIEW, // "Updating the view..."
+	ADL_DL_FULL_LIST, // "Do you want to switch to full filelist before matching the ADL search?"
 	LAST // @DontAdd
 };

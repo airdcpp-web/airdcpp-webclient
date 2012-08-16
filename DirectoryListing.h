@@ -101,11 +101,9 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		typedef unordered_set<TTHValue> TTHSet;
-		typedef boost::unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> DirMap;
 		
 		List directories;
 		File::List files;
-		DirMap visitedDirs;
 
 		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe = false, const string& aSize = Util::emptyString, const string& aDate = Util::emptyString);
 		void setDate(const string& aDate);
@@ -185,6 +183,7 @@ public:
 	GETSET(bool, isClientView, isClientView);
 	GETSET(string, fileName, FileName);
 	GETSET(int64_t, speed, speed); /**< Speed at which this file list was downloaded */
+	GETSET(bool, matchADL, MatchADL);	
 
 	void addMatchADLTask();
 	void addListDiffTask(const string& aFile);
@@ -205,6 +204,9 @@ private:
 	Directory* root;
 		
 	Directory* findDirectory(const string& aName, Directory* current);
+
+	typedef boost::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap;
+	DirMap visitedDirs;
 
 	int run();
 
