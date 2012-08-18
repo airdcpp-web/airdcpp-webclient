@@ -406,7 +406,7 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect, bool priv/*false
 	}
 }
 
-void ClientManager::listProfiles(const UserPtr& aUser, StringSet& profiles) {
+void ClientManager::listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles) {
 	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 	for(auto i = op.first; i != op.second; ++i) {
@@ -414,7 +414,7 @@ void ClientManager::listProfiles(const UserPtr& aUser, StringSet& profiles) {
 	}
 }
 
-const string& ClientManager::findProfile(const HintedUser& p, const string& userSID) {
+ProfileToken ClientManager::findProfile(const HintedUser& p, const string& userSID) {
 	OnlineUser* u;
 	if(!userSID.empty()) {
 		RLock l(cs);
@@ -438,7 +438,7 @@ const string& ClientManager::findProfile(const HintedUser& p, const string& user
 			return op.first->second->getClient().getShareProfile();
 	}
 
-	return Util::emptyString;
+	return -1;
 }
 
 string ClientManager::findMySID(const HintedUser& p) {
@@ -574,7 +574,7 @@ void ClientManager::infoUpdated() {
 	}
 }
 
-void ClientManager::resetProfiles(const StringList& aProfiles, ShareProfilePtr aDefaultProfile) {
+void ClientManager::resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr aDefaultProfile) {
 	RLock l(cs);
 	for(auto k = aProfiles.begin(); k != aProfiles.end(); ++k) {
 		for(auto i = clients.begin(); i != clients.end(); ++i) {

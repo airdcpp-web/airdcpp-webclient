@@ -185,7 +185,7 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 	createPartialList(aUser, text);
 }
 
-void DirectoryListingManager::openOwnList(const string& aProfile) {
+void DirectoryListingManager::openOwnList(ProfileToken aProfile) {
 	auto me = HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString);
 	if (hasList(me.user))
 		return;
@@ -208,8 +208,8 @@ void DirectoryListingManager::createList(const HintedUser& aUser, const string& 
 	fileLists[aUser.user] = dl;
 }
 
-void DirectoryListingManager::createPartialList(const HintedUser& aUser, const string& aXml, const string& aProfile/*Util::emptyString*/, bool isOwnList /*false*/) {
-	DirectoryListing* dl = new DirectoryListing(aUser, true, aProfile, true, 0, isOwnList);
+void DirectoryListingManager::createPartialList(const HintedUser& aUser, const string& aXml, ProfileToken aProfile, bool isOwnList /*false*/) {
+	DirectoryListing* dl = new DirectoryListing(aUser, true, Util::toString(aProfile), true, 0, isOwnList);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aXml);
 
 	WLock l(cs);

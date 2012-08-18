@@ -176,7 +176,7 @@ public:
 	void save();
 	void recentsave();
 
-	int resetProfiles(const StringList& aProfiles, ShareProfilePtr defaultProfile);
+	int resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr defaultProfile);
 	void onProfilesRenamed();
 private:
 	FavoriteHubEntryList favoriteHubs;

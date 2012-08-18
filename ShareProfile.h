@@ -43,14 +43,14 @@ BUT i dont want freezes and lockups so lets make it a bit more complex :)
 ..*/
 class FileList {
 	public:
-		FileList(const string& aProfile);
+		FileList(ProfileToken aProfile);
 
 		GETSET(int64_t, xmlListLen, XmlListLen);
 		GETSET(TTHValue, xmlRoot, XmlRoot);
 		GETSET(int64_t, bzXmlListLen, BzXmlListLen);
 		GETSET(TTHValue, bzXmlRoot, BzXmlRoot);
 		GETSET(uint64_t, lastXmlUpdate, LastXmlUpdate);
-		GETSET(string, profile, Profile);
+		GETSET(ProfileToken, profile, Profile);
 		GETSET(bool, xmlDirty, XmlDirty);
 		GETSET(bool, forceXmlRefresh, ForceXmlRefresh); /// bypass the 15-minutes guard
 
@@ -75,22 +75,22 @@ public:
 	}
 
 	struct Hash {
-		size_t operator()(const ShareProfilePtr x) const { return hash<string>()(x->getToken()); }
+		size_t operator()(const ShareProfilePtr x) const { return x->getToken(); }
 	};
 
 	//GETSET(ShareManager::DirMap, shares, Shares);
-	GETSET(string, token, Token);
+	GETSET(ProfileToken, token, Token);
 	GETSET(string, plainName, PlainName);
 	string getDisplayName();
 	GETSET(FileList*, profileList, ProfileList);
-	ShareProfile(const string& aName, const string& aToken = Util::toString(Util::rand()));
+	ShareProfile(const string& aName, ProfileToken aToken = Util::rand());
 	~ShareProfile();
 
 	FileList* generateProfileList();
 	typedef unordered_set<ShareProfilePtr, Hash> set;
 };
 
-inline bool operator==(ShareProfilePtr ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }
+inline bool operator==(ShareProfilePtr ptr, ProfileToken aToken) { return ptr->getToken() == aToken; }
 
 }
 

@@ -614,7 +614,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 }
 
-void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool isUdpActive, const string& hubIpPort, const string& shareProfile) {
+void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
 	AdcSearch sch(aCmd.getParameters());
 
 	string directory;
@@ -623,7 +623,7 @@ void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool 
 	DirectSearchResultList results;
 
 	try {
-		ShareManager::getInstance()->directSearch(results, sch, 30, shareProfile, directory);
+		ShareManager::getInstance()->directSearch(results, sch, 30, aProfile, directory);
 	} catch(...) {
 		//ignore
 	}
@@ -644,7 +644,7 @@ void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool 
 	ClientManager::getInstance()->send(cmd, from);
 }
 
-void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpActive, const string& hubIpPort, const string& shareProfile) {
+void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
 	// Filter own searches
 	if(from == ClientManager::getInstance()->getMe()->getCID())
 		return;
@@ -654,7 +654,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		return;
 
 	SearchResultList results;
-	ShareManager::getInstance()->search(results, adc.getParameters(), isUdpActive ? 10 : 5, shareProfile, from);
+	ShareManager::getInstance()->search(results, adc.getParameters(), isUdpActive ? 10 : 5, aProfile, from);
 
 	string token;
 

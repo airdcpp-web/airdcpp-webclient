@@ -31,7 +31,7 @@
 
 namespace dcpp {
 
-FileList::FileList(const string& aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { 
+FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { 
 	if (profile == SP_HIDDEN && !Util::fileExists(getFileName()))  {
 		FilteredOutputStream<BZFilter, true> emptyXmlFile(new File(getFileName(), File::WRITE, File::TRUNCATE | File::CREATE));
 		emptyXmlFile.write(SimpleXML::utf8Header);
@@ -46,11 +46,11 @@ string FileList::getFileName() {
 }
 
 string FileList::getDefaultFileName() {
-	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + profile + ".xml.bz2";
+	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + ".xml.bz2";
 }
 
 string FileList::getNFileName() {
-	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + profile + "_" + Util::toString(listN) + ".xml.bz2";
+	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + "_" + Util::toString(listN) + ".xml.bz2";
 }
 
 bool FileList::isDirty(bool forced) {
@@ -106,11 +106,11 @@ void FileList::saveList(SimpleXML& aXml) {
 	bzXmlListLen = File::getSize(getFileName());
 
 	//cleanup old filelists we failed to delete before due to uploading them.
-	StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files_" + profile + "?*.xml.bz2");
+	StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files_" + Util::toString(profile) + "?*.xml.bz2");
 	boost::for_each(lists, File::deleteFile);
 }
 
-ShareProfile::ShareProfile(const string& aName, const string& aToken /*Util::emptyString*/) : token(aToken), plainName(aName), profileList(new FileList(aToken)) { }
+ShareProfile::ShareProfile(const string& aName, ProfileToken aToken) : token(aToken), plainName(aName), profileList(new FileList(aToken)) { }
 
 ShareProfile::~ShareProfile() {
 	delete profileList;

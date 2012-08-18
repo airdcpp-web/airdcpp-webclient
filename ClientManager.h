@@ -104,8 +104,8 @@ public:
 	
 	void setIPUser(const UserPtr& user, const string& IP, const string& udpPort = Util::emptyString);
 	
-	const string& findProfile(const HintedUser& p, const string& userSID);
-	void listProfiles(const UserPtr& aUser, StringSet& profiles);
+	ProfileToken findProfile(const HintedUser& p, const string& userSID);
+	void listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles);
 
 	string findMySID(const HintedUser& p);
 
@@ -138,7 +138,7 @@ public:
 	CID getMyCID();
 	const CID& getMyPID();
 
-	void resetProfiles(const StringList& aProfiles, ShareProfilePtr aDefaultProfile);
+	void resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr aDefaultProfile);
 private:
 
 	typedef unordered_map<CID*, UserPtr> UserMap;

@@ -155,7 +155,7 @@ public:
 	GETSET(bool, hubShowJoins, HubShowJoins); // Show joins
 	GETSET(bool, hubLogMainchat, HubLogMainchat);
 	GETSET(bool, chatNotify, ChatNotify);
-	GETSET(string, shareProfile, ShareProfile);
+	GETSET(ProfileToken, shareProfile, ShareProfile);
 
 protected:
 	friend class ClientManager;

@@ -540,11 +540,11 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
-	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret, fileName);
+	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret, Util::toInt(fileName));
 }
 
 void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
-	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, fileName);
+	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, Util::toInt(fileName));
 }
 
 int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
@@ -762,7 +762,7 @@ int DirectoryListing::run() {
 				}
 
 				if (isOwnList) {
-					auto mis = ShareManager::getInstance()->generatePartialList("/", true, fileName); 
+					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName)); 
 					loadXML(*mis, true);
 				} else {
 					loadFile(fileName);
@@ -784,7 +784,7 @@ int DirectoryListing::run() {
 				
 				string path;
 				if (isOwnList) {
-					auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(xml), false, fileName);
+					auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(xml), false, Util::toInt(fileName));
 					if (mis) {
 						path = loadXML(*mis, true);
 					} else {
@@ -827,7 +827,7 @@ int DirectoryListing::run() {
 
 				if (isOwnList && partialList) {
 					try {
-						ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, fileName, s->directory);
+						ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, Util::toInt(fileName), s->directory);
 					} catch (...) { }
 					endSearch(false);
 				} else if (partialList) {
@@ -897,7 +897,7 @@ void DirectoryListing::changeDir() {
 		if (dir && dir->getComplete()) {
 			fire(DirectoryListingListener::ChangeDirectory(), path, true);
 		} else if (isOwnList) {
-			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, fileName);
+			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, Util::toInt(fileName));
 			if (mis) {
 				loadXML(*mis, true);
 				fire(DirectoryListingListener::LoadingFinished(), 0, path, false);

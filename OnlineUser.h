@@ -123,7 +123,7 @@ public:
 	string setCheat(const ClientBase& c, const string& aCheatDescription, bool aBadClient);
 	map<string, string> getReport() const;
 	string updateClientType(const OnlineUser& ou);
-	bool matchProfile(const string& aString, const string& aProfile) const;
+	bool matchProfile(const string& aString, ProfileToken aProfile) const;
 
 	static string getVersion(const string& aExp, string aTag);
 	static string splitVersion(const string& aExp, string aTag, size_t part);

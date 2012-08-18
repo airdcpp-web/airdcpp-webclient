@@ -34,7 +34,7 @@ namespace dcpp {
 
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener {
 	public:
-		void openOwnList(const string& aProfile);
+		void openOwnList(ProfileToken aProfile);
 		void openFileList(const HintedUser& aUser, const string& aFile);
 		
 		void removeList(const UserPtr& aUser);
@@ -55,7 +55,7 @@ namespace dcpp {
 
 		bool hasList(const UserPtr& aUser);
 		void createList(const HintedUser& aUser, const string& aFile, int64_t aSpeed, const string& aInitialDir = Util::emptyString, bool isOwnList=false);
-		void createPartialList(const HintedUser& aUser, const string& aXml, const string& aProfile=Util::emptyString, bool isOwnList=false);
+		void createPartialList(const HintedUser& aUser, const string& aXml, ProfileToken aProfile=SP_DEFAULT, bool isOwnList=false);
 		void on(QueueManagerListener::Finished, const QueueItemPtr qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
 		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& text) noexcept;
 

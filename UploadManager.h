@@ -126,7 +126,7 @@ public:
 	void unreserveSlot(const UserPtr& aUser, bool add);
 	void onUBD(const AdcCommand& cmd);
 	void onUBN(const AdcCommand& cmd);
-	UploadBundlePtr findBundle(const string& bundleToken);
+	UploadBundlePtr findBundle(const string& aBundleToken);
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
@@ -167,8 +167,8 @@ private:
 	void UpdateSlotCounts(UserConnection& aSource, uint8_t slotType);
 
 	/* bundles */
-	typedef unordered_map<string, UploadBundlePtr> tokenMap;
-	tokenMap bundles;
+	typedef unordered_map<string, UploadBundlePtr> RemoteBundleTokenMap;
+	RemoteBundleTokenMap bundles;
 
 	void createBundle(const AdcCommand& cmd);
 	void changeBundle(const AdcCommand& cmd);

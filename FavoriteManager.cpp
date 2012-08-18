@@ -353,7 +353,7 @@ bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
 	return success;
 }
 
-int FavoriteManager::resetProfiles(const StringList& aProfiles, ShareProfilePtr defaultProfile) {
+int FavoriteManager::resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr defaultProfile) {
 	int counter = 0;
 	{
 		Lock l(cs);
@@ -627,7 +627,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			if (aXml.getBoolChildAttrib("HideShare")) {
 				e->setShareProfile(ShareManager::getInstance()->getShareProfile(SP_HIDDEN));
 			} else {
-				auto profile = aXml.getChildAttrib("ShareProfile");
+				auto profile = aXml.getIntChildAttrib("ShareProfile");
 				e->setShareProfile(ShareManager::getInstance()->getShareProfile(profile, true));
 			}
 

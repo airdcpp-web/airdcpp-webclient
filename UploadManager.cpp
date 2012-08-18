@@ -91,7 +91,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	string sourceFile;
 	Transfer::Type type;
 	int64_t fileSize = 0;
-	string profile;
+	ProfileToken profile = -1;
 
 	try {
 		if(aType == Transfer::names[Transfer::TYPE_FILE]) {
@@ -99,13 +99,13 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			pair<string, uint64_t> info;
 			if (userlist) {
 				profile = ClientManager::getInstance()->findProfile(aSource.getHintedUser(), userSID);
-				if (profile.empty()) {
+				if (profile < 0) {
 					aSource.fileNotAvail("Unknown user");
 					return false;
 				}
 				info = ShareManager::getInstance()->toRealWithSize(aFile, profile);
 			} else {
-				StringSet profiles;
+				ProfileTokenSet profiles;
 				ClientManager::getInstance()->listProfiles(aSource.getHintedUser().user, profiles);
 				if (profiles.empty()) {
 					aSource.fileNotAvail("Unknown user");
@@ -125,7 +125,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			fileSize = move(info.second);
 			miniSlot = miniSlot || (fileSize <= (int64_t)(SETTING(SET_MINISLOT_SIZE) * 1024) );
 		} else if(aType == Transfer::names[Transfer::TYPE_TREE]) {
-			StringSet profiles;
+			ProfileTokenSet profiles;
 			ClientManager::getInstance()->listProfiles(aSource.getHintedUser().user, profiles);
 			if (profiles.empty()) {
 				aSource.fileNotAvail("Unknown user");
@@ -142,7 +142,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			type = Transfer::TYPE_PARTIAL_LIST;
 			miniSlot = true;
 			profile = ClientManager::getInstance()->findProfile(aSource.getHintedUser(), userSID);
-			if (profile.empty()) {
+			if (profile < 0) {
 				aSource.fileNotAvail("Unknown user");
 				return false;
 			}
@@ -784,9 +784,9 @@ void UploadManager::onUBD(const AdcCommand& cmd) {
 	}
 }
 
-UploadBundlePtr UploadManager::findBundle(const string& bundleToken) {
+UploadBundlePtr UploadManager::findBundle(const string& aBundleToken) {
 	Lock l(cs);
-	auto s = bundles.find(bundleToken);
+	auto s = bundles.find(aBundleToken);
 	if (s != bundles.end()) {
 		return s->second;
 	}

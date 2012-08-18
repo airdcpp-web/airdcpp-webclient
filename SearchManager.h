@@ -82,9 +82,9 @@ public:
  	}
 	//static string clean(const string& aSearchString);
 	
-	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, const string& shareProfile);
+	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 
-	void respondDirect(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, const string& shareProfile);
+	void respondDirect(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 
 	const string& getPort() const { return port; }
 
