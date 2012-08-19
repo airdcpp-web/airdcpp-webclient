@@ -2637,7 +2637,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 }
 
 void ShareManager::setSkipList() {
-	skipList.pattern = BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP) ? SETTING(SKIPLIST_SHARE) : AirUtil::regexEscape(SETTING(SKIPLIST_SHARE), true);
+	skipList.pattern = SETTING(SKIPLIST_SHARE);
 	skipList.setMethod(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
 	skipList.prepare();
 }

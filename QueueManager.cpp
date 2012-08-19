@@ -359,14 +359,12 @@ bool QueueManager::replaceFinishedItem(QueueItemPtr q) {
 }
 
 void QueueManager::setMatchers() {
-	bool regexp = BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP);
-	highPrioFiles.pattern = regexp ? SETTING(SKIPLIST_DOWNLOAD) : AirUtil::regexEscape(SETTING(SKIPLIST_DOWNLOAD), true);
-	highPrioFiles.setMethod(regexp ? StringMatch::REGEX : StringMatch::WILDCARD);
+	highPrioFiles.pattern = SETTING(SKIPLIST_DOWNLOAD);
+	highPrioFiles.setMethod(BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
 	highPrioFiles.prepare();
 
-	regexp = BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP);
-	skipList.pattern = regexp ? SETTING(HIGH_PRIO_FILES) : AirUtil::regexEscape(SETTING(HIGH_PRIO_FILES), true);
-	skipList.setMethod(regexp ? StringMatch::REGEX : StringMatch::WILDCARD);
+	skipList.pattern = SETTING(HIGH_PRIO_FILES);
+	skipList.setMethod(BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
 	skipList.prepare();
 }
 
