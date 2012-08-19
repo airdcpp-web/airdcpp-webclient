@@ -32,11 +32,12 @@ StringMatch::Method StringMatch::getMethod() const {
 }
 
 void StringMatch::setMethod(Method method) {
+	isWildCard = false;
 	switch(method) {
 		case PARTIAL: search = StringSearch::List(); break;
 		case EXACT: search = string(); break;
 		case REGEX: search = boost::regex(); break;
-		case WILDCARD: search = boost::regex(); break;
+		case WILDCARD: search = boost::regex(); isWildCard=true; break;
 		//case TTH: search = TTHValue(); break;
 		//case TTH: search = string(); break;
 		case METHOD_LAST: break;

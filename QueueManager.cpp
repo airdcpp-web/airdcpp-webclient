@@ -359,13 +359,13 @@ bool QueueManager::replaceFinishedItem(QueueItemPtr q) {
 }
 
 void QueueManager::setMatchers() {
-	highPrioFiles.pattern = SETTING(SKIPLIST_DOWNLOAD);
-	highPrioFiles.setMethod(BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
-	highPrioFiles.prepare();
-
-	skipList.pattern = SETTING(HIGH_PRIO_FILES);
-	skipList.setMethod(BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
+	skipList.pattern = SETTING(SKIPLIST_DOWNLOAD);
+	skipList.setMethod(BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
 	skipList.prepare();
+
+	highPrioFiles.pattern = SETTING(HIGH_PRIO_FILES);
+	highPrioFiles.setMethod(BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
+	highPrioFiles.prepare();
 }
 
 void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,

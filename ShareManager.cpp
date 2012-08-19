@@ -77,7 +77,13 @@ ShareManager::ShareManager() : refreshing(false),
 
 	RAR_regexp.Init("[Rr0-9][Aa0-9][Rr0-9]");
 	subDirRegPlain.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
-	setSkipList();
+
+#ifdef _WIN32
+	// don't share Windows directory
+	TCHAR path[MAX_PATH];
+	::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
+	winDir = Text::toLower(Text::fromT(path)) + PATH_SEPARATOR;
+#endif
 }
 
 ShareManager::~ShareManager() {
@@ -104,6 +110,7 @@ void ShareManager::startup() {
 		refresh(false);
 	}
 	rebuildExcludeTypes();
+	setSkipList();
 }
 
 void ShareManager::shutdown() {

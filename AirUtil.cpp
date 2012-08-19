@@ -76,12 +76,6 @@ void AirUtil::init() {
 	releaseReg.study();
 	subDirRegPath.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
 	subDirRegPath.study();
-#ifdef _WIN32
-	// don't share Windows directory
-	TCHAR path[MAX_PATH];
-	::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
-	winDir = Text::fromT((tstring)path) + PATH_SEPARATOR;
-#endif
 }
 
 void AirUtil::updateCachedSettings() {

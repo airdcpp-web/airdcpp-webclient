@@ -42,7 +42,6 @@ static PME subDirRegPath;
 /* Cache some things to lower case */
 static string privKeyFile;
 static string tempDLDir;
-static string winDir;
 
 class AirUtil {
 	

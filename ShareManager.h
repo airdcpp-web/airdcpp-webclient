@@ -499,6 +499,7 @@ private:
 	ShareProfileList shareProfiles;
 
 	StringMatch skipList;
+	string winDir;
 
 	/*This will only be used by the big sharing people probobly*/
 	class Worker: public Thread {
