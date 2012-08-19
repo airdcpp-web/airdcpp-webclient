@@ -1183,8 +1183,6 @@ enum Strings { // @DontAdd
 	SETTINGS_DUPE_CHAT, // "Use dupe color in chat"
 	CLIENT_VERSION, // "Client version"
 	LANGUAGE_VERSION, // "Language version"
-	PROPPAGE_LIST_HL, // "FileList Highlight"
-	PROPPAGE_LIST_HL_MSG, // "Highlight-AIRDC"
 	LIST_HL_TEXT, // "HighLight matches in Filelists (wildcards, | separate)"
 	LIST_HL_EXAMPLE, // "Example, *NORDIC* (this may slow down filelist loading...)"
 	SETTINGS_DUPES, // "Dupes Settings"

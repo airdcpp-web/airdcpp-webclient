@@ -74,7 +74,9 @@ void HighlightManager::load(SimpleXML& aXml){
 		ColorSettings cs;
 		cs.setContext(CONTEXT_FILELIST);
 		cs.setMatch(Text::toT(SETTING(HIGHLIGHT_LIST)));
+		cs.setHasFgColor(true);
 		cs.setFgColor( SETTING(LIST_HL_COLOR) );
+		cs.setHasBgColor(true);
 		cs.setBgColor( SETTING(LIST_HL_BG_COLOR) );
 		SettingsManager::getInstance()->set(SettingsManager::HIGHLIGHT_LIST, "");
 		SettingsManager::getInstance()->set(SettingsManager::USE_HIGHLIGHT, true);
