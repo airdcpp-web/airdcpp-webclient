@@ -189,7 +189,7 @@ int ShareScannerManager::run() {
 
 bool ShareScannerManager::matchSkipList(const string& dir) {
 	if (SETTING(CHECK_USE_SKIPLIST)) {
-		return BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP) ? AirUtil::matchSkiplist(dir) : Wildcard::patternMatch(Text::utf8ToAcp(dir), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|');
+		return ShareManager::getInstance()->matchSkipList(dir);
 	}
 	return false;
 }

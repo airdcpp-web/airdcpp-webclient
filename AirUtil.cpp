@@ -85,25 +85,8 @@ void AirUtil::init() {
 }
 
 void AirUtil::updateCachedSettings() {
-	if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
-		try{
-			skiplistReg.assign(SETTING(SKIPLIST_SHARE));
-		}catch(...) {
-			skiplistReg.assign("(.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log)");
-			LogManager::getInstance()->message("Error setting Share skiplist! using default: (.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log) ", LogManager::LOG_ERROR);
-		}
-	}
 	privKeyFile = Text::toLower(SETTING(TLS_PRIVATE_KEY_FILE));
 	tempDLDir = Text::toLower(SETTING(TEMP_DOWNLOAD_DIRECTORY));
-}
-
-bool AirUtil::matchSkiplist(const string& str) {
-	try {
-		if(boost::regex_search(str.begin(), str.end(), skiplistReg))
-			return true;
-	}catch(...) { }
-
-	return false;
 }
 
 string AirUtil::getReleaseDir(const string& aName) {
@@ -422,92 +405,6 @@ string AirUtil::getPrioText(int prio) {
 		case 5: return STRING(HIGHEST);
 		default: return STRING(PAUSED);
 	}
-}
-
-
-bool AirUtil::checkSharedName(const string& aPath, bool isDir, bool report /*true*/, const int64_t& size /*0*/) {
-	string aName;
-	aName = isDir ? Util::getLastDir(aPath) : Util::getFileName(aPath);
-
-	if(aName == "." || aName == "..")
-		return false;
-
-	if(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP)){
-		if(AirUtil::matchSkiplist(Text::utf8ToAcp(aName))) {
-			if(BOOLSETTING(REPORT_SKIPLIST) && report)
-				LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
-			return false;
-		}
-	} else {
-		try {
-			if (Wildcard::patternMatch(Text::utf8ToAcp(aName), Text::utf8ToAcp(SETTING(SKIPLIST_SHARE)), '|' )) {   // or validate filename for bad chars?
-				if(BOOLSETTING(REPORT_SKIPLIST) && report)
-					LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
-				return false;
-			}
-		} catch(...) { }
-	}
-
-	aName = Text::toLower(aName); //we only need this now
-	if (!isDir) {
-		string fileExt = Util::getFileExt(aName);
-		if( (strcmp(aName.c_str(), "dcplusplus.xml") == 0) || 
-			(strcmp(aName.c_str(), "favorites.xml") == 0) ||
-			(strcmp(fileExt.c_str(), ".dctmp") == 0) ||
-			(strcmp(fileExt.c_str(), ".antifrag") == 0) ) 
-		{
-			return false;
-		}
-
-		//check for forbidden file patterns
-		if(BOOLSETTING(REMOVE_FORBIDDEN)) {
-			string::size_type nameLen = aName.size();
-			if ((strcmp(fileExt.c_str(), ".tdc") == 0) ||
-				(strcmp(fileExt.c_str(), ".getright") == 0) ||
-				(strcmp(fileExt.c_str(), ".temp") == 0) ||
-				(strcmp(fileExt.c_str(), ".tmp") == 0) ||
-				(strcmp(fileExt.c_str(), ".jc!") == 0) ||	//FlashGet
-				(strcmp(fileExt.c_str(), ".dmf") == 0) ||	//Download Master
-				(strcmp(fileExt.c_str(), ".!ut") == 0) ||	//uTorrent
-				(strcmp(fileExt.c_str(), ".bc!") == 0) ||	//BitComet
-				(strcmp(fileExt.c_str(), ".missing") == 0) ||
-				(strcmp(fileExt.c_str(), ".bak") == 0) ||
-				(strcmp(fileExt.c_str(), ".bad") == 0) ||
-				(nameLen > 9 && aName.rfind("part.met") == nameLen - 8) ||				
-				(aName.find("__padding_") == 0) ||			//BitComet padding
-				(aName.find("__incomplete__") == 0)		//winmx
-				) {
-					if (report) {
-						LogManager::getInstance()->message("Forbidden file will not be shared: " + aPath/* + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
-					}
-					return false;
-			}
-		}
-
-		if(Util::stricmp(aPath, privKeyFile) == 0) {
-			return false;
-		}
-
-		if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
-			return false;
-
-		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
-			if (report) {
-				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath, LogManager::LOG_INFO);
-			}
-			return false;
-		}
-	} else {
-#ifdef _WIN32
-		// don't share Windows directory
-		if(aPath.length() >= winDir.length() && stricmp(aPath.substr(0, winDir.length()), winDir) == 0)
-			return false;
-#endif
-		if((stricmp(aPath, tempDLDir) == 0)) {
-			return false;
-		}
-	}
-	return true;
 }
 
 bool AirUtil::listRegexMatch(const StringList& l, const boost::regex& aReg) {

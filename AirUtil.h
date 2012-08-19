@@ -38,7 +38,6 @@ enum DupeType {
 
 static PME releaseReg;
 static PME subDirRegPath;
-static boost::regex skiplistReg; //boost is faster on this??
 
 /* Cache some things to lower case */
 static string privKeyFile;
@@ -53,7 +52,6 @@ class AirUtil {
 
 		static void init();
 		static void updateCachedSettings();
-		static bool matchSkiplist(const string& str);
 		static string getLocalIp();
 
 		static void setProfile(int profile, bool setSkiplist=false);
@@ -64,7 +62,6 @@ class AirUtil {
 
 		static string getPrioText(int prio);
 		static string getReleaseDir(const string& aName);
-		static bool checkSharedName(const string& fullPath, bool dir, bool report = true, const int64_t& size = 0);
 
 		static uint32_t getLastWrite(const string& path);
 

@@ -39,6 +39,7 @@
 #include "pme.h"
 #include "HashManager.h"
 #include "TargetUtil.h"
+#include "StringMatch.h"
 
 #include "BundleQueue.h"
 #include "FileQueue.h"
@@ -232,6 +233,8 @@ public:
 
 	void lockRead() noexcept { cs.lock_shared(); }
 	void unlockRead() noexcept { cs.unlock_shared(); }
+
+	void setMatchers();
 private:
 	friend class QueueLoader;
 	friend class Singleton<QueueManager>;
@@ -277,6 +280,9 @@ private:
 	void removeSource(QueueItemPtr qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
 	string getListPath(const HintedUser& user);
+
+	StringMatch highPrioFiles;
+	StringMatch skipList;
 
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;

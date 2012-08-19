@@ -36,10 +36,10 @@
 #include "Pointer.h"
 #include "LogManager.h"
 #include "pme.h"
-#include "AirUtil.h"
 #include "ShareProfile.h"
 #include "Flags.h"
 #include "AdcSearch.h"
+#include "StringMatch.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -104,6 +104,10 @@ public:
 	 * @param aName Virtual name
 	 */
 
+	void setSkipList();
+
+	bool matchSkipList(const string& aStr) { return skipList.match(aStr); }
+	bool checkSharedName(const string& fullPath, bool dir, bool report = true, int64_t size = 0);
 	void validatePath(const string& realPath, const string& virtualName);
 
 	string toVirtual(const TTHValue& tth, ProfileToken aProfile) const;
@@ -493,6 +497,8 @@ private:
 	void reportTaskStatus(uint8_t aTask, const StringList& aDirectories, bool finished);
 	
 	ShareProfileList shareProfiles;
+
+	StringMatch skipList;
 
 	/*This will only be used by the big sharing people probobly*/
 	class Worker: public Thread {

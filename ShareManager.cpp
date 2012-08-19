@@ -77,6 +77,7 @@ ShareManager::ShareManager() : refreshing(false),
 
 	RAR_regexp.Init("[Rr0-9][Aa0-9][Rr0-9]");
 	subDirRegPlain.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
+	setSkipList();
 }
 
 ShareManager::~ShareManager() {
@@ -1046,7 +1047,7 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 		if(i->isDirectory()) {
 			string curPath = aPath + name + PATH_SEPARATOR;
 
-			if (!AirUtil::checkSharedName(curPath, true)) {
+			if (!checkSharedName(curPath, true)) {
 				continue;
 			}
 
@@ -1080,7 +1081,7 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			string path = aPath + name;
 			int64_t size = i->getSize();
 
-			if (!AirUtil::checkSharedName(path, false, true, size)) {
+			if (!checkSharedName(path, false, true, size)) {
 				continue;
 			}
 
@@ -2379,7 +2380,7 @@ bool ShareManager::allowAddDir(const string& path) noexcept {
 			string fullPath = mi->first;
 			for(auto i = sl.begin(); i != sl.end(); ++i) {
 				fullPath += Text::toLower(*i) + PATH_SEPARATOR;
-				if (!AirUtil::checkSharedName(fullPath, true, true)) {
+				if (!checkSharedName(fullPath, true, true)) {
 					return false;
 				}
 
@@ -2405,7 +2406,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 			auto j = curDir->directories.find(*i);
 			if (j != curDir->directories.end()) {
 				curDir = j->second;
-			} else if (!allowAdd || !AirUtil::checkSharedName(fullPath, true, report)) {
+			} else if (!allowAdd || !checkSharedName(fullPath, true, report)) {
 				return nullptr;
 			} else {
 				auto m = profileDirs.find(fullPath);
@@ -2558,6 +2559,87 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 
 	sort(ret.begin(), ret.end());
 	return ret;
+}
+
+bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report /*true*/, int64_t size /*0*/) {
+	string aName;
+	aName = isDir ? Util::getLastDir(aPath) : Util::getFileName(aPath);
+
+	if(aName == "." || aName == "..")
+		return false;
+
+	if (skipList.match(aName)) {
+		if(BOOLSETTING(REPORT_SKIPLIST) && report)
+			LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
+		return false;
+	}
+
+	aName = Text::toLower(aName); //we only need this now
+	if (!isDir) {
+		string fileExt = Util::getFileExt(aName);
+		if( (strcmp(aName.c_str(), "dcplusplus.xml") == 0) || 
+			(strcmp(aName.c_str(), "favorites.xml") == 0) ||
+			(strcmp(fileExt.c_str(), ".dctmp") == 0) ||
+			(strcmp(fileExt.c_str(), ".antifrag") == 0) ) 
+		{
+			return false;
+		}
+
+		//check for forbidden file patterns
+		if(BOOLSETTING(REMOVE_FORBIDDEN)) {
+			string::size_type nameLen = aName.size();
+			if ((strcmp(fileExt.c_str(), ".tdc") == 0) ||
+				(strcmp(fileExt.c_str(), ".getright") == 0) ||
+				(strcmp(fileExt.c_str(), ".temp") == 0) ||
+				(strcmp(fileExt.c_str(), ".tmp") == 0) ||
+				(strcmp(fileExt.c_str(), ".jc!") == 0) ||	//FlashGet
+				(strcmp(fileExt.c_str(), ".dmf") == 0) ||	//Download Master
+				(strcmp(fileExt.c_str(), ".!ut") == 0) ||	//uTorrent
+				(strcmp(fileExt.c_str(), ".bc!") == 0) ||	//BitComet
+				(strcmp(fileExt.c_str(), ".missing") == 0) ||
+				(strcmp(fileExt.c_str(), ".bak") == 0) ||
+				(strcmp(fileExt.c_str(), ".bad") == 0) ||
+				(nameLen > 9 && aName.rfind("part.met") == nameLen - 8) ||				
+				(aName.find("__padding_") == 0) ||			//BitComet padding
+				(aName.find("__incomplete__") == 0)		//winmx
+				) {
+					if (report) {
+						LogManager::getInstance()->message("Forbidden file will not be shared: " + aPath/* + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
+					}
+					return false;
+			}
+		}
+
+		if(Util::stricmp(aPath, privKeyFile) == 0) {
+			return false;
+		}
+
+		if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
+			return false;
+
+		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
+			if (report) {
+				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath, LogManager::LOG_INFO);
+			}
+			return false;
+		}
+	} else {
+#ifdef _WIN32
+		// don't share Windows directory
+		if(aPath.length() >= winDir.length() && stricmp(aPath.substr(0, winDir.length()), winDir) == 0)
+			return false;
+#endif
+		if((stricmp(aPath, tempDLDir) == 0)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+void ShareManager::setSkipList() {
+	skipList.pattern = BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP) ? SETTING(SKIPLIST_SHARE) : AirUtil::regexEscape(SETTING(SKIPLIST_SHARE), true);
+	skipList.setMethod(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
+	skipList.prepare();
 }
 
 } // namespace dcpp

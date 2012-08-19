@@ -232,6 +232,7 @@ QueueManager::QueueManager() :
 
 	File::ensureDirectory(Util::getListPath());
 	File::ensureDirectory(Util::getBundlePath());
+	setMatchers();
 }
 
 QueueManager::~QueueManager() noexcept { 
@@ -357,6 +358,18 @@ bool QueueManager::replaceFinishedItem(QueueItemPtr q) {
 	return false;
 }
 
+void QueueManager::setMatchers() {
+	bool regexp = BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP);
+	highPrioFiles.pattern = regexp ? SETTING(SKIPLIST_DOWNLOAD) : AirUtil::regexEscape(SETTING(SKIPLIST_DOWNLOAD), true);
+	highPrioFiles.setMethod(regexp ? StringMatch::REGEX : StringMatch::WILDCARD);
+	highPrioFiles.prepare();
+
+	regexp = BOOLSETTING(HIGHEST_PRIORITY_USE_REGEXP);
+	skipList.pattern = regexp ? SETTING(HIGH_PRIO_FILES) : AirUtil::regexEscape(SETTING(HIGH_PRIO_FILES), true);
+	skipList.setMethod(regexp ? StringMatch::REGEX : StringMatch::WILDCARD);
+	skipList.prepare();
+}
+
 void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,
 					   Flags::MaskType aFlags /* = 0 */, bool addBad /* = true */, QueueItem::Priority aPrio, BundlePtr aBundle /*NULL*/) throw(QueueException, FileException)
 {
@@ -391,9 +404,12 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				throw QueueException(STRING(TTH_ALREADY_SHARED));
 			}
 
-			if(BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP) ? AirUtil::stringRegexMatch(SETTING(SKIPLIST_DOWNLOAD), Util::getFileName(aTarget)) :
-				Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(aTarget)), Text::utf8ToAcp(SETTING(SKIPLIST_DOWNLOAD)), '|')) {
+			if(skipList.match(Util::getFileName(aTarget))) {
 				throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
+			}
+
+			if (highPrioFiles.match(Util::getFileName(aTarget))) {
+				aPrio = BOOLSETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
 			}
 		}
 		
@@ -873,7 +889,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 			WLock l(cs);
 			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
 				QueueItemPtr qi = *i;
-				if (AirUtil::checkSharedName(qi->getTarget(), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
+				if (ShareManager::getInstance()->checkSharedName(qi->getTarget(), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
 					hash.push_back(qi);
 					++i;
 					continue;
