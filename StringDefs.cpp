@@ -1437,6 +1437,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "This will delete all defined search types and restore the default ones. Do you want to continue?", 
 "Not enough free space left on the target path %s (free space: %s while %s is needed). Using paused priority.", 
 "Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using paused priority.", 
+"Invalid pattern: %s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2874,4 +2875,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ResetExtensionsConfirm", 
 "NotEnoughSpacePaused", 
 "NotEnoughSpaceQueuedPaused", 
+"InvalidPattern", 
 };

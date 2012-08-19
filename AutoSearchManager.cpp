@@ -44,30 +44,30 @@ using boost::range::for_each;
 
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
-	TargetUtil::TargetType aTargetType, StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime,
+	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime,
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
 		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared)  {
 
-	string matchPattern = aMatcherString;
-	if (aMatcherString.empty())
-		matchPattern = aSearchString;
+	setMethod(aMethod);
+	pattern = aMatcherString.empty() ? aSearchString : aMatcherString;
+	prepare();
 
-	if (aFileType == SEARCH_TYPE_TTH)
+	/*if (aFileType == SEARCH_TYPE_TTH)
 		resultMatcher = new TTHMatcher(matchPattern);
 	else if (aMatcherType == StringMatcher::MATCHER_STRING)
 		resultMatcher = new TokenMatcher(matchPattern);
 	else if (aMatcherType == StringMatcher::MATCHER_REGEX)
 		resultMatcher = new RegExMatcher(matchPattern);
 	else if (aMatcherType == StringMatcher::MATCHER_WILDCARD)
-		resultMatcher = new WildcardMatcher(matchPattern);
+		resultMatcher = new WildcardMatcher(matchPattern);*/
 
-	userMatcher = new WildcardMatcher(aUserMatch);
+	userMatcher.setMethod(StringMatch::WILDCARD);
+	userMatcher.pattern = aUserMatch;
+	userMatcher.prepare();
 };
 
 AutoSearch::~AutoSearch() { 
-	delete resultMatcher;
-	delete userMatcher;
 };
 
 void AutoSearch::search(StringList& aHubs) {
@@ -125,7 +125,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
-		StringMatcher::MATCHER_STRING, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, true, true);
+		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, true, true);
 
 	as->startTime = SearchTime();
 	as->endTime = SearchTime(true);
@@ -347,8 +347,8 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				continue;
 
 			//match
-			if (as->getMatcherType() == StringMatcher::MATCHER_TTH) {
-				if (!as->match(sr->getTTH()))
+			if (as->getFileType() == SEARCH_TYPE_TTH) {
+				if (!as->match(sr->getTTH().toBase32()))
 					continue;
 			} else {
 				/* Check the type */
@@ -455,8 +455,8 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("Remove", as->getRemove());
 				xml.addChildAttrib("Target", as->getTarget());
 				xml.addChildAttrib("TargetType", as->getTargetType());
-				xml.addChildAttrib("MatcherType", as->getMatcherType()),
-				xml.addChildAttrib("MatcherString", as->getPattern()),
+				xml.addChildAttrib("MatcherType", as->getMethod()),
+				xml.addChildAttrib("MatcherString", as->pattern),
 				xml.addChildAttrib("SearchInterval", as->getSearchInterval()),
 				xml.addChildAttrib("UserMatch", (*i)->getNickPattern());
 				xml.addChildAttrib("ExpireTime", (*i)->getExpireTime());
@@ -497,7 +497,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.getBoolChildAttrib("Remove"),
 				aXml.getChildAttrib("Target"),
 				(TargetUtil::TargetType)aXml.getIntChildAttrib("TargetType"),
-				(StringMatcher::Type)aXml.getIntChildAttrib("MatcherType"),
+				(StringMatch::Method)aXml.getIntChildAttrib("MatcherType"),
 				aXml.getChildAttrib("MatcherString"),
 				aXml.getChildAttrib("UserMatch"),
 				aXml.getIntChildAttrib("SearchInterval"),

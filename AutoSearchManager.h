@@ -29,7 +29,7 @@
 #include "Singleton.h"
 #include "AutoSearchManagerListener.h"
 #include "Util.h"
-#include "StringMatcher.h"
+#include "StringMatch.h"
 #include "TargetUtil.h"
 
 namespace dcpp {
@@ -70,7 +70,7 @@ struct SearchTime {
 	}
 };
 
-class AutoSearch  : public intrusive_ptr_base<AutoSearch> {
+class AutoSearch  : public intrusive_ptr_base<AutoSearch>, public StringMatch {
 
 public:
 	enum ActionType {
@@ -80,7 +80,7 @@ public:
 	};
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
-		StringMatcher::Type aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept;
+		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept;
 
 	~AutoSearch();
 
@@ -101,18 +101,17 @@ public:
 	SearchTime startTime;
 	SearchTime endTime;
 
-	int8_t getMatcherType() { return resultMatcher->getType(); }
-	bool matchNick(const string& aStr) { return userMatcher->match(aStr); }
-	bool match(const string& aStr) { return resultMatcher->match(aStr); }
-	bool match(const TTHValue& aTTH) { return resultMatcher->match(aTTH); }
-	const string& getPattern() const { return resultMatcher->getPattern(); }
-	const string& getNickPattern() const { return userMatcher->getPattern(); }
+	//int8_t getMatcherType() { return resultMatcher->getMethod(); }
+	bool matchNick(const string& aStr) { return userMatcher.match(aStr); }
+	//bool match(const string& aStr) { return resultMatcher->match(aStr); }
+	//bool match(const TTHValue& aTTH) { return resultMatcher->match(aTTH); }
+	//const string& getPattern() const { return resultMatcher->getPattern(); }
+	const string& getNickPattern() const { return userMatcher.pattern; }
 	void search(StringList& aHubs);
 
 	string getDisplayType();
 private:
-	StringMatcher* resultMatcher;
-	StringMatcher* userMatcher;
+	StringMatch userMatcher;
 };
 
 class SimpleXML;

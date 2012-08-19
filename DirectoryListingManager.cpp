@@ -302,6 +302,9 @@ void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItem
 }
 
 void DirectoryListingManager::on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& text) noexcept {
+	if (text.empty())
+		return;
+
 	{
 		RLock l(cs);
 		auto p = fileLists.find(aUser.user);
