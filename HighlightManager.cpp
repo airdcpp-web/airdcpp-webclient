@@ -39,12 +39,15 @@ void HighlightManager::load(SimpleXML& aXml){
 		aXml.stepIn();
 		while(aXml.findChild("Highlight")) {
 			ColorSettings cs;
+			cs.setContext(aXml.getIntChildAttrib("Context"));
 			cs.setMatch( Text::utf8ToWide( aXml.getChildAttrib("Match") ) );
 			cs.setBold(	aXml.getBoolChildAttrib("Bold") );
 			cs.setItalic( aXml.getBoolChildAttrib("Italic") );
 			cs.setUnderline( aXml.getBoolChildAttrib("Underline") );
 			cs.setStrikeout( aXml.getBoolChildAttrib("Strikeout") );
-			cs.setIncludeNickList( aXml.getBoolChildAttrib("IncludeNickList") );
+			//Convert old setting to correct context
+			if(aXml.getBoolChildAttrib("IncludeNickList") == true)
+				cs.setContext(CONTEXT_NICKLIST);
 			cs.setCaseSensitive( aXml.getBoolChildAttrib("CaseSensitive") );
 			cs.setWholeLine( aXml.getBoolChildAttrib("WholeLine") );
 			cs.setWholeWord( aXml.getBoolChildAttrib("WholeWord") );
@@ -66,6 +69,18 @@ void HighlightManager::load(SimpleXML& aXml){
 	} else {
 		aXml.resetCurrentChild();
 	}
+	//convert the old setting to highlights
+	if(!SETTING(HIGHLIGHT_LIST).empty()) {
+		ColorSettings cs;
+		cs.setContext(CONTEXT_FILELIST);
+		cs.setMatch(Text::toT(SETTING(HIGHLIGHT_LIST)));
+		cs.setFgColor( SETTING(LIST_HL_COLOR) );
+		cs.setBgColor( SETTING(LIST_HL_BG_COLOR) );
+		SettingsManager::getInstance()->set(SettingsManager::HIGHLIGHT_LIST, "");
+		SettingsManager::getInstance()->set(SettingsManager::USE_HIGHLIGHT, true);
+		colorSettings.push_back(cs);
+	}
+
 }
 
 void HighlightManager::save(SimpleXML& aXml){
@@ -75,13 +90,12 @@ void HighlightManager::save(SimpleXML& aXml){
 	ColorIter iter = colorSettings.begin();
 	for(;iter != colorSettings.end(); ++iter) {
 		aXml.addTag("Highlight");
-
+		aXml.addChildAttrib("Context", (*iter).getContext());
 		aXml.addChildAttrib("Match", Text::wideToUtf8((*iter).getMatch()));
 		aXml.addChildAttrib("Bold", (*iter).getBold());
 		aXml.addChildAttrib("Italic", (*iter).getItalic());
 		aXml.addChildAttrib("Underline", (*iter).getUnderline());
 		aXml.addChildAttrib("Strikeout", (*iter).getStrikeout());
-		aXml.addChildAttrib("IncludeNickList", (*iter).getIncludeNickList());
 		aXml.addChildAttrib("CaseSensitive", (*iter).getCaseSensitive());
 		aXml.addChildAttrib("WholeLine", (*iter).getWholeLine());
 		aXml.addChildAttrib("WholeWord", (*iter).getWholeWord());

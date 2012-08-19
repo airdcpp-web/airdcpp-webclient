@@ -44,7 +44,11 @@ public:
 		return &colorSettings;
 	}
 
-
+	enum {
+		CONTEXT_CHAT,
+		CONTEXT_NICKLIST,
+		CONTEXT_FILELIST
+	};
 
 
 	void replaceList(ColorList& settings) {

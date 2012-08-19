@@ -938,7 +938,7 @@ enum Strings { // @DontAdd
 	SETTINGS_POPUP, // "Display Popup"
 	SETTINGS_PLAY_SOUND, // "Play Sound"
 	SETTINGS_FLASH_WINDOW, // "Flash Window"
-	SETTINGS_INCLUDE_NICKLIST, // "Use Highlight for Nicklist (Wildcards or $Re: for Regex)"
+	SETTINGS_INCLUDE_NICKLIST, // "Highlight for Nicklist (Wildcards or $Re: for Regex)"
 	SETTINGS_WHOLE_LINE, // "Whole Line"
 	SETTINGS_ENTIRE_WORD, // "Entire Word"
 	SETTINGS_TAB_COLOR, // "Change Tabcolor"
@@ -1425,7 +1425,7 @@ enum Strings { // @DontAdd
 	X_RESULTS_FOUND, // "Results were found from %d directories"
 	ADDING_SHARED_DIR, // "Adding the directory %s in share..."
 	ADDING_X_SHARED_DIRS, // "Adding %d directories in share..."
-	DIRECTORY_ADDED, // "The directory %s has been added in share (it won't visible in the filelist until it has finished hashing)"
+	DIRECTORY_ADDED, // "The directory %s has been added in share (it won't be visible in the filelist until it has finished hashing)"
 	DIRECTORIES_ADDED, // "%d directories has been added in share (they won't be visible in the filelist until they have finished hashing)"
 	DIRECTORY_REFRESHED, // "The directory %s has been refreshed"
 	VIRTUAL_DIRECTORY_REFRESHED, // "The virtual directory %s has been refreshed"
@@ -1441,5 +1441,7 @@ enum Strings { // @DontAdd
 	SEARCH_CUR_DIR, // "Search within the currect directory"
 	UPDATING_VIEW, // "Updating the view..."
 	ADL_DL_FULL_LIST, // "Do you want to switch to full filelist before matching the ADL search?"
+	HIGHLIGHT_CONTEXT, // "Highlight Context"
+	SETTINGS_CONTEXT_FILELIST, // "Highlight for Directories in Filelist (Wildcards or $Re: for Regex)"
 	LAST // @DontAdd
 };

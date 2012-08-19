@@ -32,7 +32,7 @@ public:
 		bWholeLine(false), bIncludeNickList(false), bCaseSensitive(false), bPopup(false), /*bTab(false),*/
 		bPlaySound(false), bBold(false), bUnderline(false), bItalic(false), bStrikeout(false), 
 		/*bLastLog(false),*/ bFlashWindow(false), iMatchType(1), iBgColor(0), iFgColor(0), bHasBgColor(false),
-		bHasFgColor(false) {	}
+		bHasFgColor(false), bContext(0) {	}
 	~ColorSettings(){};
 
 	GETSET(bool, bWholeWord, WholeWord);
@@ -54,6 +54,7 @@ public:
 	GETSET(bool, bHasBgColor, HasBgColor);
 	GETSET(bool, bHasFgColor, HasFgColor);
 	GETSET(tstring, strSoundFile, SoundFile);
+	GETSET(int, bContext, Context);
     	
 	void setMatch(tstring match){
 		if( match.compare(_T("$ts$")) == 0){

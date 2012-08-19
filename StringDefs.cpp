@@ -934,7 +934,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Display Popup", 
 "Play Sound", 
 "Flash Window", 
-"Use Highlight for Nicklist (Wildcards or $Re: for Regex)", 
+"Highlight for Nicklist (Wildcards or $Re: for Regex)", 
 "Whole Line", 
 "Entire Word", 
 "Change Tabcolor", 
@@ -1418,7 +1418,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Results were found from %d directories", 
 "Adding the directory %s in share...", 
 "Adding %d directories in share...", 
-"The directory %s has been added in share (it won't visible in the filelist until it has finished hashing)", 
+"The directory %s has been added in share (it won't be visible in the filelist until it has finished hashing)", 
 "%d directories has been added in share (they won't be visible in the filelist until they have finished hashing)", 
 "The directory %s has been refreshed", 
 "The virtual directory %s has been refreshed", 
@@ -1434,6 +1434,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search within the currect directory", 
 "Updating the view...", 
 "Do you want to switch to full filelist before matching the ADL search?", 
+"Highlight Context", 
+"Highlight for Directories in Filelist (Wildcards or $Re: for Regex)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2868,4 +2870,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchCurDir", 
 "UpdatingView", 
 "AdlDlFullList", 
+"HighlightContext", 
+"SettingsContextFilelist", 
 };
