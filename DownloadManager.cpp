@@ -176,12 +176,24 @@ bool DownloadManager::checkIdle(const HintedUser& user, bool smallSlot, bool rep
 			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
 			if (!reportOnly)
-				uc->updated();
+				uc->callAsync([this, uc] { revive(uc); });
 			dcdebug("uc updated");
 			return true;
 		}	
 	}
 	return false;
+}
+
+void DownloadManager::revive(UserConnection* uc) {
+	{
+		WLock l(cs);
+		auto i = find(idlers.begin(), idlers.end(), uc);
+		if(i == idlers.end())
+			return;
+		idlers.erase(i);
+	}
+
+	checkDownloads(uc);
 }
 
 void DownloadManager::addConnection(UserConnection* conn) {
@@ -647,18 +659,6 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 		return;
 	}
 	aSource->disconnect();
-}
-
-void DownloadManager::on(UserConnectionListener::Updated, UserConnection* aSource) noexcept {
-	{
-		WLock l(cs);
-		auto i = find(idlers.begin(), idlers.end(), aSource);
-		if(i == idlers.end())
-			return;
-		idlers.erase(i);
-	}
-	
-	checkDownloads(aSource);
 }
 
 void DownloadManager::fileNotAvailable(UserConnection* aSource) {

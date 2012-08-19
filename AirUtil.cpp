@@ -746,6 +746,4 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
     return result;
 }
 
-
-
 }

@@ -36,8 +36,8 @@ public:
 
 		int64_t queued, diskSpace;
 		string targetDir;
-		int64_t getFreeSpace() { return diskSpace-queued; }
-		int64_t getDiff(int64_t aSize) { return getFreeSpace() - aSize; }
+		int64_t getFreeSpace() const { return diskSpace-queued; }
+		int64_t getDiff(int64_t aSize) const { return getFreeSpace() - aSize; }
 		bool isInitialized() { return diskSpace != 0 || queued != 0 || !targetDir.empty(); }
 
 		bool operator<(const TargetInfo& ti) const {
@@ -48,8 +48,7 @@ public:
 	enum TargetType {
 		TARGET_PATH,
 		TARGET_FAVORITE,
-		TARGET_SHARE,
-		NO_APPEND, /* Flag for direct paths */
+		TARGET_SHARE
 	};
 
 	typedef map<string, TargetInfo> TargetInfoMap;
@@ -65,6 +64,8 @@ public:
 	static bool getDiskInfo(TargetInfo& ti_);
 
 	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod);
+	static void reportInsufficientSize(const TargetInfo& ti, int64_t aSize);
+	static string getInsufficientSizeMessage(const TargetInfo& ti, int64_t aSize);
 };
 
 }

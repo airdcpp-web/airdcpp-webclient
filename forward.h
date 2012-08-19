@@ -53,9 +53,6 @@ class ClientManager;
 
 class ConnectionQueueItem;
 
-class DirectoryItem;
-typedef DirectoryItem* DirectoryItemPtr;
-
 class DirectoryListing;
 
 class Download;

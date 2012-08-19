@@ -38,7 +38,6 @@ public:
 	typedef X<5> Key;
 	typedef X<6> Direction;
 	typedef X<7> Get;
-	typedef X<8> Updated;
 	typedef X<12> Send;
 	typedef X<13> GetListLength;
 	typedef X<14> MaxedOut;
@@ -67,7 +66,6 @@ public:
 	virtual void on(TransmitDone, UserConnection*) noexcept { }
 	virtual void on(Supports, UserConnection*, const StringList&) noexcept { }
 	virtual void on(FileNotAvailable, UserConnection*) noexcept { }
-	virtual void on(Updated, UserConnection*) noexcept { }
 	virtual void on(ListLength, UserConnection*, const string&) noexcept { }
 
 	virtual void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept { }

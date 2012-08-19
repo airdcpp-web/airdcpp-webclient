@@ -395,39 +395,18 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 			}
 		}
 
-		bool noFreeSpace = false;
-		string path;
-		TargetUtil::TargetInfo ti;
-		if (!TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize())) {
-			//not enough space, do something fun
-			noFreeSpace = true;
-			string tmp;
-			if (ti.queued > 0) {
-				tmp = str(boost::format("AutoSearch: Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using Paused Priority") % 
-					ti.targetDir.c_str() %
-					Util::formatBytes(ti.diskSpace) % 
-					Util::formatBytes(ti.queued) %
-					Util::formatBytes(sr->getSize()));
-			} else {
-				tmp = str(boost::format("AutoSearch: Not enough free space left on the target path %s (free space: %s while %s is needed). Using Paused Priority") % 
-					ti.targetDir.c_str() %
-					Util::formatBytes(ti.getFreeSpace()) % 
-					Util::formatBytes(sr->getSize()));
-			}
-
-			LogManager::getInstance()->message(tmp, LogManager::LOG_WARNING);
-		}
-
-		path = ti.targetDir;
-
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), path, TargetUtil::TARGET_PATH, 
-					(as->getAction() == AutoSearch::ACTION_QUEUE || noFreeSpace) ? QueueItem::PAUSED : QueueItem::DEFAULT);
+				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
+					(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT);
 			} else {
-				path = path + Util::getFileName(sr->getFile());
-				QueueManager::getInstance()->add(path, sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
-					((as->getAction() == AutoSearch::ACTION_QUEUE || noFreeSpace) ? QueueItem::PAUSED : QueueItem::DEFAULT));
+				TargetUtil::TargetInfo ti;
+				bool hasSpace = TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize());
+				if (!hasSpace)
+					TargetUtil::reportInsufficientSize(ti, sr->getSize());
+
+				QueueManager::getInstance()->add(as->getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
+					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT));
 			}
 		} catch(const Exception& /*e*/) {
 			//LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");

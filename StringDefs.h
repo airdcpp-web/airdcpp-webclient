@@ -1441,5 +1441,8 @@ enum Strings { // @DontAdd
 	ADL_DL_FULL_LIST, // "Do you want to switch to full filelist before matching the ADL search?"
 	HIGHLIGHT_CONTEXT, // "Highlight Context"
 	SETTINGS_CONTEXT_FILELIST, // "Highlight for Directories in Filelist (Wildcards or $Re: for Regex)"
+	RESET_EXTENSIONS_CONFIRM, // "This will delete all defined search types and restore the default ones. Do you want to continue?"
+	NOT_ENOUGH_SPACE_PAUSED, // "Not enough free space left on the target path %s (free space: %s while %s is needed). Using paused priority."
+	NOT_ENOUGH_SPACE_QUEUED_PAUSED, // "Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using paused priority."
 	LAST // @DontAdd
 };

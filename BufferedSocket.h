@@ -34,6 +34,7 @@
 namespace dcpp {
 
 using std::deque;
+using std::function;
 using std::pair;
 using std::unique_ptr;
 
@@ -98,8 +99,8 @@ public:
 	/** Send the file f over this socket. */
 	void transmitFile(InputStream* f) { Lock l(cs); addTask(SEND_FILE, new SendFileInfo(f)); }
 
-	/** Send an updated signal to all listeners */
-	void updated() { Lock l(cs); addTask(UPDATED, 0); }
+	/** Call a function from the socket's thread. */
+	void callAsync(function<void ()> f) { Lock l(cs); addTask(ASYNC_CALL, new CallData(f)); }
 
 	void disconnect(bool graceless = false) noexcept { Lock l(cs); if(graceless) disconnecting = true; addTask(DISCONNECT, 0); }
 
@@ -115,7 +116,7 @@ private:
 		SEND_FILE,
 		SHUTDOWN,
 		ACCEPTED,
-		UPDATED
+		ASYNC_CALL
 	};
 
 	enum State {
@@ -138,6 +139,10 @@ private:
 	struct SendFileInfo : public TaskData {
 		SendFileInfo(InputStream* stream_) : stream(stream_) { }
 		InputStream* stream;
+	};
+	struct CallData : public TaskData {
+		CallData(function<void ()> f) : f(f) { }
+		function<void ()> f;
 	};
 
 	BufferedSocket(char aSeparator, bool v4only);

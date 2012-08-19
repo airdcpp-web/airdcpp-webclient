@@ -30,8 +30,18 @@
 
 #include "Singleton.h"
 
+#include "boost/unordered_map.hpp"
+
 namespace dcpp {
 
+	enum SizeCheckMode {
+		NO_CHECK,
+		REPORT_SYSLOG,
+		ASK_USER
+	};
+
+	class DirectoryDownloadInfo;
+	class FinishedDirectoryItem;
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener {
 	public:
 		void openOwnList(ProfileToken aProfile);
@@ -43,10 +53,12 @@ namespace dcpp {
 		~DirectoryListingManager();
 
 		void processList(const string& name, const HintedUser& user, const string& path, int flags);
-		void addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType,
+		void addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,
 			QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
 
 		void removeDirectoryDownload(const UserPtr aUser);
+
+		void handleSizeConfirmation(const string& aName, bool accept);
 	private:
 		friend class Singleton<DirectoryListingManager>;
 
@@ -60,7 +72,8 @@ namespace dcpp {
 		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& text) noexcept;
 
 		/** Directories queued for downloading */
-		unordered_multimap<UserPtr, DirectoryItemPtr, User::Hash> directories;
+		boost::unordered_multimap<UserPtr, DirectoryDownloadInfo*, User::Hash> directories;
+		unordered_map<string, FinishedDirectoryItem*> finishedListings;
 	};
 
 }

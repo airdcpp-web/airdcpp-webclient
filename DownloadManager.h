@@ -92,6 +92,7 @@ private:
 	typedef unordered_map<string, BundlePtr> tokenMap;
 	tokenMap tokens;
 
+	void revive(UserConnection* uc);
 	void endData(UserConnection* aSource);
 
 	void onFailed(UserConnection* aSource, const string& aError);
@@ -102,7 +103,6 @@ private:
 	void on(ProtocolError, UserConnection* aSource, const string& aError) noexcept { onFailed(aSource, aError); }
 	void on(MaxedOut, UserConnection*, string param = Util::emptyString) noexcept;
 	void on(FileNotAvailable, UserConnection*) noexcept;
-	void on(Updated, UserConnection*) noexcept;
 		
 	void on(AdcCommand::SND, UserConnection*, const AdcCommand&) noexcept;
 	void on(AdcCommand::STA, UserConnection*, const AdcCommand&) noexcept;

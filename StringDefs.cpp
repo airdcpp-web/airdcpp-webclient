@@ -1434,6 +1434,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Do you want to switch to full filelist before matching the ADL search?", 
 "Highlight Context", 
 "Highlight for Directories in Filelist (Wildcards or $Re: for Regex)", 
+"This will delete all defined search types and restore the default ones. Do you want to continue?", 
+"Not enough free space left on the target path %s (free space: %s while %s is needed). Using paused priority.", 
+"Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using paused priority.", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2868,4 +2871,7 @@ std::string dcpp::ResourceManager::names[] = {
 "AdlDlFullList", 
 "HighlightContext", 
 "SettingsContextFilelist", 
+"ResetExtensionsConfirm", 
+"NotEnoughSpacePaused", 
+"NotEnoughSpaceQueuedPaused", 
 };

@@ -55,6 +55,11 @@ public:
 
 	static const string FILE_NOT_AVAILABLE;
 	static const string FEATURE_AIRDC;
+
+	enum Modes {
+		MODE_COMMAND = BufferedSocket::MODE_LINE,
+		MODE_DATA = BufferedSocket::MODE_DATA
+	};
 	
 	enum Flags {
 		FLAG_NMDC					= 0x01,
@@ -152,7 +157,8 @@ public:
 	void connect(const string& aServer, const string& aPort, const string& localPort, const BufferedSocket::NatRoles natRole);
 	void accept(const Socket& aServer);
 
-	void updated() { if(socket) socket->updated(); }
+	template<typename F>
+	void callAsync(F f) { if(socket) socket->callAsync(f); }
 
 	void disconnect(bool graceless = false) { if(socket) socket->disconnect(graceless); }
 	void transmitFile(InputStream* f) { socket->transmitFile(f); }
@@ -229,7 +235,7 @@ private:
 		lastActivity(0), speed(0), chunkSize(0), secure(secure_), socket(0), download(NULL), slotType(NOSLOT), lastBundle(Util::emptyString) {
 	}
 
-	~UserConnection() {
+	virtual ~UserConnection() {
 		BufferedSocket::putSocket(socket);
 	}
 
@@ -250,7 +256,6 @@ private:
 	void on(ModeChange) noexcept;
 	void on(TransmitDone) noexcept;
 	void on(Failed, const string&) noexcept;
-	void on(Updated) noexcept;
 };
 
 } // namespace dcpp

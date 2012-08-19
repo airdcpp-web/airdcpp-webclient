@@ -34,8 +34,10 @@ public:
 	typedef X<3> ScanFailed;*/
 
 	typedef X<0> OpenListing;
+	typedef X<1> PromptAction;
 
 	virtual void on(OpenListing, DirectoryListing*, const string&) noexcept { }
+	virtual void on(PromptAction, const string&, const string&) noexcept { }
 	/*virtual void on(Loading, const string) noexcept { }
 	virtual void on(LoadingFinished, const AutoSearchPtr&) noexcept { }
 	virtual void on(LoadingError, const AutoSearchPtr&, int) noexcept { }

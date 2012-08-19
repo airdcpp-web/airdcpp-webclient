@@ -37,6 +37,7 @@
 #include "AirUtil.h"
 #include "TaskQueue.h"
 #include "SearchResult.h"
+#include "TargetUtil.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -154,14 +155,15 @@ public:
 	string updateXML(const std::string&);
 	string loadXML(InputStream& xml, bool updating);
 
-	void download(const string& aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
-	void download(Directory* aDir, const string& aTarget, bool highPrio, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
+	void download(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
+	void download(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
 	void download(File* aFile, const string& aTarget, bool view, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, BundlePtr aBundle=NULL);
 
 	string getPath(const Directory* d) const;
 	string getPath(const File* f) const { return getPath(f->getParent()); }
 
-	int64_t getTotalSize(bool adls = false) { return root->getTotalSize(adls); }
+	int64_t getTotalListSize(bool adls = false) { return root->getTotalSize(adls); }
+	int64_t getDirSize(const string& aDir);
 	size_t getTotalFileCount(bool adls = false) { return root->getTotalFileCount(adls); }
 
 	const Directory* getRoot() const { return root; }
