@@ -38,32 +38,35 @@ void HighlightManager::load(SimpleXML& aXml){
 	if(aXml.findChild("Highlights")) {
 		aXml.stepIn();
 		while(aXml.findChild("Highlight")) {
-			ColorSettings cs;
-			cs.setContext(aXml.getIntChildAttrib("Context"));
-			cs.setMatch( Text::utf8ToWide( aXml.getChildAttrib("Match") ) );
-			cs.setBold(	aXml.getBoolChildAttrib("Bold") );
-			cs.setItalic( aXml.getBoolChildAttrib("Italic") );
-			cs.setUnderline( aXml.getBoolChildAttrib("Underline") );
-			cs.setStrikeout( aXml.getBoolChildAttrib("Strikeout") );
-			//Convert old setting to correct context
-			if(aXml.getBoolChildAttrib("IncludeNickList") == true)
-				cs.setContext(CONTEXT_NICKLIST);
-			cs.setCaseSensitive( aXml.getBoolChildAttrib("CaseSensitive") );
-			cs.setWholeLine( aXml.getBoolChildAttrib("WholeLine") );
-			cs.setWholeWord( aXml.getBoolChildAttrib("WholeWord") );
-			cs.setPopup( aXml.getBoolChildAttrib("Popup") );
-			//cs.setTab( aXml.getBoolChildAttrib("Tab") );
-			cs.setPlaySound( aXml.getBoolChildAttrib("PlaySound") );
-			//cs.setLog( aXml.getBoolChildAttrib("LastLog") );
-			cs.setFlashWindow( aXml.getBoolChildAttrib("FlashWindow") );
-			cs.setMatchType( aXml.getIntChildAttrib("MatchType") );
-			cs.setHasFgColor( aXml.getBoolChildAttrib("HasFgColor") );
-			cs.setHasBgColor( aXml.getBoolChildAttrib("HasBgColor") );
-			cs.setBgColor( (int)aXml.getLongLongChildAttrib("BgColor") );
-			cs.setFgColor( (int)aXml.getLongLongChildAttrib("FgColor") );
-			cs.setSoundFile( Text::utf8ToWide( aXml.getChildAttrib("SoundFile") ) );
+			try{
+				ColorSettings cs;
+				cs.setContext(aXml.getIntChildAttrib("Context"));
+				cs.setMatch( Text::utf8ToWide( aXml.getChildAttrib("Match") ) );
+				cs.setBold(	aXml.getBoolChildAttrib("Bold") );
+				cs.setItalic( aXml.getBoolChildAttrib("Italic") );
+				cs.setUnderline( aXml.getBoolChildAttrib("Underline") );
+				cs.setStrikeout( aXml.getBoolChildAttrib("Strikeout") );
+				//Convert old setting to correct context
+				if(aXml.getBoolChildAttrib("IncludeNickList") == true)
+					cs.setContext(CONTEXT_NICKLIST);
+				cs.setCaseSensitive( aXml.getBoolChildAttrib("CaseSensitive") );
+				cs.setWholeLine( aXml.getBoolChildAttrib("WholeLine") );
+				cs.setWholeWord( aXml.getBoolChildAttrib("WholeWord") );
+				cs.setPopup( aXml.getBoolChildAttrib("Popup") );
+				//cs.setTab( aXml.getBoolChildAttrib("Tab") );
+				cs.setPlaySound( aXml.getBoolChildAttrib("PlaySound") );
+				//cs.setLog( aXml.getBoolChildAttrib("LastLog") );
+				cs.setFlashWindow( aXml.getBoolChildAttrib("FlashWindow") );
+				cs.setMatchType( aXml.getIntChildAttrib("MatchType") );
+				cs.setHasFgColor( aXml.getBoolChildAttrib("HasFgColor") );
+				cs.setHasBgColor( aXml.getBoolChildAttrib("HasBgColor") );
+				cs.setBgColor( (int)aXml.getLongLongChildAttrib("BgColor") );
+				cs.setFgColor( (int)aXml.getLongLongChildAttrib("FgColor") );
+				cs.setSoundFile( Text::utf8ToWide( aXml.getChildAttrib("SoundFile") ) );
 
-			colorSettings.push_back(cs);
+				cs.setRegexp();
+				colorSettings.push_back(cs);
+			}catch(...) { }
 		}
 		aXml.stepOut();
 	} else {

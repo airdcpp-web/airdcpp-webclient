@@ -68,13 +68,18 @@ public:
 		}
 		strMatch = match;
 	}
+	void setRegexp() {
+		if(bUsingRegexp)
+			regexp.assign(strMatch.substr(4), getCaseSensitive() ? boost::match_default : boost::regex_constants::icase);
+	}
 
+	boost::wregex regexp;
 	bool getUsers() { return bUsers; }
 	bool getTimestamps() { return bTimestamps; }
 	bool getMyNick() { return bMyNick; }
 	bool usingRegexp() { return bUsingRegexp; }
 
-	const tstring & getMatch() { return strMatch; }
+	const tstring& getMatch() { return strMatch; }
 	
 private:
 	//string to match against
