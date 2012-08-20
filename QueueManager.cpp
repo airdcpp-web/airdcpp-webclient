@@ -403,6 +403,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			}
 
 			if(skipList.match(Util::getFileName(aTarget))) {
+				LogManager::getInstance()->message(STRING(DOWNLOAD_SKIPLIST_MATCH) + ": " + aTarget, LogManager::LOG_INFO);
 				throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
 			}
 
