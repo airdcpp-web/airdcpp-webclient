@@ -91,7 +91,7 @@ private:
 	bool isCheckSFV;
 	bool isDirScan;
 
-	atomic_flag scanning;
+	static atomic_flag scanning;
 
 	int crcOk;
 	int crcInvalid;

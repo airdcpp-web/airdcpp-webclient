@@ -21,7 +21,7 @@
 
 // GCC 4.6 and below has issues with atomic - see https://bugs.launchpad.net/dcplusplus/+bug/735512
 // MSVC 10 doesn't have atomic at all
-#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)) || defined(_MSC_VER)
+#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)) || defined(_MSC_VER) && _MSC_VER < 1700
 
 #include <boost/atomic.hpp>
 
@@ -30,6 +30,10 @@ namespace dcpp
 
 using boost::atomic;
 using boost::atomic_flag;
+
+#ifndef ATOMIC_FLAG_INIT
+#define ATOMIC_FLAG_INIT 0
+#endif
 
 }
 

@@ -33,7 +33,9 @@
 
 namespace dcpp {
 
-MappingManager::MappingManager() : busy(false), renewal(0) {
+atomic_flag MappingManager::busy = ATOMIC_FLAG_INIT;
+
+MappingManager::MappingManager() : renewal(0) {
 	addMapper<Mapper_NATPMP>();
 	addMapper<Mapper_MiniUPnPc>();
 	addMapper<Mapper_WinUPnP>();

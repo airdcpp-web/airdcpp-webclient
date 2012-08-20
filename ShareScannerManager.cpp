@@ -43,7 +43,9 @@
 
 namespace dcpp {
 
-ShareScannerManager::ShareScannerManager() : scanning(false) {
+atomic_flag ShareScannerManager::scanning = ATOMIC_FLAG_INIT;
+
+ShareScannerManager::ShareScannerManager() {
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
 	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
 	emptyDirReg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);

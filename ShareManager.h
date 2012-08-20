@@ -423,7 +423,7 @@ private:
 	boost::regex subDirRegPlain;
 	PME RAR_regexp;
 	
-	atomic_flag refreshing;
+	static atomic_flag refreshing;
 	bool refreshRunning;
 
 	uint64_t lastFullUpdate;

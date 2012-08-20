@@ -224,7 +224,7 @@ private:
 	};
 
 	void runTasks();
-	atomic_flag running;
+	static atomic_flag running;
 
 	TaskQueue tasks;
 

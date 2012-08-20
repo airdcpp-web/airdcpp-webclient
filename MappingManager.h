@@ -76,7 +76,7 @@ private:
 	vector<pair<string, function<Mapper* (const string&)>>> mappers;
 #endif
 
-	atomic_flag busy;
+	static atomic_flag busy;
 	unique_ptr<Mapper> working; /// currently working implementation.
 	uint64_t renewal; /// when the next renewal should happen, if requested by the mapper.
 

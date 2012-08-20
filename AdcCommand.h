@@ -110,7 +110,6 @@ public:
 	C(NAT, 'N','A','T');
 	C(RNT, 'R','N','T');
 	C(PSR, 'P','S','R');
-	C(PUB, 'P','U','B');
 	C(ZON, 'Z','O','N');
 	C(ZOF, 'Z','O','F');
 	C(PBD, 'P','B','D');
