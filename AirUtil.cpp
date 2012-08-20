@@ -634,7 +634,7 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
 		//convert * to .*
 		boost::replace_all(result, "\\*", ".*");
 	}
-    return result;
+    return "^(" + result + ")$";
 }
 
 }

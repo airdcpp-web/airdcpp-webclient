@@ -232,7 +232,6 @@ QueueManager::QueueManager() :
 
 	File::ensureDirectory(Util::getListPath());
 	File::ensureDirectory(Util::getBundlePath());
-	setMatchers();
 }
 
 QueueManager::~QueueManager() noexcept { 
@@ -359,6 +358,7 @@ bool QueueManager::replaceFinishedItem(QueueItemPtr q) {
 }
 
 void QueueManager::setMatchers() {
+	auto sl = SETTING(SKIPLIST_DOWNLOAD);
 	skipList.pattern = SETTING(SKIPLIST_DOWNLOAD);
 	skipList.setMethod(BOOLSETTING(DOWNLOAD_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
 	skipList.prepare();
@@ -1652,6 +1652,8 @@ private:
 };
 
 void QueueManager::loadQueue() noexcept {
+	setMatchers();
+
 	QueueLoader loader;
 	//WLock l(cs);
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");

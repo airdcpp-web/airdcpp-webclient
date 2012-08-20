@@ -54,14 +54,12 @@ class ClientManager;
 class ConnectionQueueItem;
 
 class DirectoryListing;
+typedef boost::intrusive_ptr<DirectoryListing> DirectoryListingPtr;
+typedef std::vector<DirectoryListingPtr> DirectoryListingList;
 
 class Download;
 typedef Download* DownloadPtr;
 typedef std::vector<DownloadPtr> DownloadList;
-
-class DownloadBundle;
-typedef boost::intrusive_ptr<DownloadBundle> DownloadBundlePtr;
-typedef std::vector<DownloadBundlePtr> DownloadBundleList;
 
 class FavoriteHubEntry;
 typedef FavoriteHubEntry* FavoriteHubEntryPtr;

@@ -38,6 +38,7 @@
 #include "TaskQueue.h"
 #include "SearchResult.h"
 #include "TargetUtil.h"
+#include "Pointer.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -46,7 +47,7 @@ namespace dcpp {
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
-class DirectoryListing : public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, private SearchManagerListener, private TimerManagerListener
+class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, private SearchManagerListener, private TimerManagerListener
 {
 public:
 	class Directory;

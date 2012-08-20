@@ -39,11 +39,11 @@ public:
 		REJECTED
 	};
 
-	FinishedDirectoryItem(DirectoryDownloadInfo* aDDI) : state(WAITING_ACTION), usePausedPrio(false) {  
+	FinishedDirectoryItem(DirectoryDownloadInfo* aDDI, const string& aTargetPath) : state(WAITING_ACTION), usePausedPrio(false), targetPath(aTargetPath) {  
 		downloadInfos.push_back(aDDI); 
 	}
 
-	FinishedDirectoryItem(bool aUsePausedPrio) : state(ACCEPTED), usePausedPrio(aUsePausedPrio) { }
+	FinishedDirectoryItem(bool aUsePausedPrio, const string& aTargetPath) : state(ACCEPTED), usePausedPrio(aUsePausedPrio), targetPath(aTargetPath) { }
 
 	~FinishedDirectoryItem() { 
 		deleteListings();
@@ -76,10 +76,7 @@ public:
 	DirectoryDownloadInfo() : priority(QueueItem::DEFAULT) { }
 	DirectoryDownloadInfo(const UserPtr& aUser, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItem::Priority p, SizeCheckMode aPromptSizeConfirm) : 
 		listPath(aListPath), target(aTarget), priority(p), user(aUser), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr) { }
-	~DirectoryDownloadInfo() { 
-		if (listing)
-			delete listing;
-	}
+	~DirectoryDownloadInfo() { }
 	
 	UserPtr& getUser() { return user; }
 	void setUser(const UserPtr& aUser) { user = aUser; }
@@ -89,7 +86,7 @@ public:
 	GETSET(string, target, Target);
 	GETSET(QueueItem::Priority, priority, Priority);
 	GETSET(TargetUtil::TargetType, targetType, TargetType);
-	GETSET(DirectoryListing*, listing, Listing);
+	GETSET(DirectoryListingPtr, listing, Listing);
 
 	//string getLocalPath() { return target + Util::getLastDir(listPath); }
 	string getDirName() { return Util::getLastDir(listPath); }
@@ -147,7 +144,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 }
 
 void DirectoryListingManager::processList(const string& name, const HintedUser& user, const string& path, int flags) {
-	DirectoryListing* dirList =  new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name, false);
+	auto dirList =  DirectoryListingPtr(new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name, false));
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(name);
@@ -157,7 +154,6 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 		}
 	} catch(const Exception&) {
 		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + name, LogManager::LOG_ERROR);
-		delete dirList;
 		return;
 	}
 
@@ -202,7 +198,7 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 						di->setTarget(p->second->getTargetPath());
 						p->second->addInfo(di);
 					}
-					return;
+					continue;
 				}
 			}
 
@@ -212,7 +208,8 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 
 
 			//we have a new directory
-			bool hasFreeSpace =  TargetUtil::getVirtualTarget(di->getTarget(), di->getTargetType(), ti, dirSize);
+			TargetUtil::getVirtualTarget(di->getTarget(), di->getTargetType(), ti, dirSize);
+			bool hasFreeSpace = ti.getFreeSpace() >= dirSize;
 			di->setTarget(ti.targetDir);
 
 			if (di->getSizeConfirm() == REPORT_SYSLOG) {
@@ -222,18 +219,24 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 				dirList->download(di->getListPath(), di->getTarget(), di->getTargetType(), false, !hasFreeSpace ? QueueItem::PAUSED : di->getPriority());
 				{
 					WLock l (cs);
-					finishedListings[di->getDirName()] = new FinishedDirectoryItem(!hasFreeSpace);
+					finishedListings[di->getDirName()] = new FinishedDirectoryItem(!hasFreeSpace, ti.targetDir);
 				}
 				delete di;
 			} else if (di->getSizeConfirm() == ASK_USER) {
-				di->setListing(dirList);
-				{
-					WLock l (cs);
-					finishedListings[di->getDirName()] = new FinishedDirectoryItem(di);
-				}
+				if (!hasFreeSpace) {
+					di->setListing(dirList);
+					{
+						WLock l (cs);
+						finishedListings[di->getDirName()] = new FinishedDirectoryItem(di, ti.targetDir);
+					}
 
-				string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
-				fire(DirectoryListingManagerListener::PromptAction(), di->getDirName(), msg);
+					string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
+					fire(DirectoryListingManagerListener::PromptAction(), di->getDirName(), msg);
+				} else {
+					WLock l (cs);
+					finishedListings[di->getDirName()] = new FinishedDirectoryItem(false, ti.targetDir);
+					delete di;
+				}
 			}
 		}
 	}
@@ -243,7 +246,6 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 		BundleList bundles;
 		QueueManager::getInstance()->matchListing(*dirList, matches, newFiles, bundles);
 		if ((flags & QueueItem::FLAG_PARTIAL_LIST) && (!SETTING(REPORT_ADDED_SOURCES) || newFiles == 0 || bundles.empty())) {
-			delete dirList;
 			return;
 		}
 
@@ -252,8 +254,6 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
 		dirList->findNfo(path);
 	}
-
-	delete dirList;
 }
 
 void DirectoryListingManager::handleSizeConfirmation(const string& aName, bool accepted) {
@@ -263,7 +263,7 @@ void DirectoryListingManager::handleSizeConfirmation(const string& aName, bool a
 		auto p = finishedListings.find(aName);
 		if (p != finishedListings.end()) {
 			p->second->handleAction(accepted);
-			finishedListings.erase(p);
+			//finishedListings.erase(p);
 			wdi = p->second;
 		} else {
 			dcassert(0);
