@@ -31,7 +31,7 @@
 
 namespace dcpp {
 
-atomic_flag FileList::generating = ATOMIC_FLAG_INIT;
+//atomic_flag FileList::generating = ATOMIC_FLAG_INIT;
 
 FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { 
 	if (profile == SP_HIDDEN && !Util::fileExists(getFileName()))  {
@@ -59,18 +59,27 @@ bool FileList::isDirty(bool forced) {
 	if (profile == SP_HIDDEN)
 		return false;
 
-	if(!forced && generating.test_and_set()) {
+	cs.mutex.lock();
+
+	/*if(!forced && generating.test_and_set()) {
+		return false;
+	}*/
+
+	bool dirty = (forced && xmlDirty) || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK()));
+	if (!dirty) {
+		cs.mutex.unlock();
 		return false;
 	}
 
-	return (forced && xmlDirty) || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK()));
+	return true;
 }
 
 void FileList::unsetDirty() {
 	xmlDirty = false;
 	forceXmlRefresh = false;
 	lastXmlUpdate = GET_TICK();
-	generating.clear();
+	cs.mutex.unlock();
+	//generating.clear();
 }
 
 void FileList::saveList(SimpleXML& aXml) {

@@ -54,7 +54,7 @@ class FileList {
 		GETSET(bool, xmlDirty, XmlDirty);
 		GETSET(bool, forceXmlRefresh, ForceXmlRefresh); /// bypass the 15-minutes guard
 
-		static atomic_flag generating;
+		//static atomic_flag generating;
 
 		unique_ptr<File> bzXmlRef;
 		void increaseN() { listN++; };
@@ -66,6 +66,7 @@ class FileList {
 		void unsetDirty();
 		void saveList(SimpleXML& aXml);
 	private:
+		CriticalSection cs;
 		int listN;
 		bool isSavedSuccessfully;
 };

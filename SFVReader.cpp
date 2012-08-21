@@ -104,7 +104,7 @@ void DirSFVReader::load() noexcept {
 				//extra checks to ignore invalid lines
 				if (line.length() < 5)
 					continue;
-				if (line.length() > 150) {
+				if (line.length() > 200) {
 					//can't most likely to detect the line breaks
 					LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + *i, LogManager::LOG_ERROR);
 					break;

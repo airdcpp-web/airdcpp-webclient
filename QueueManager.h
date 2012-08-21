@@ -188,11 +188,11 @@ public:
 		FileMover() : active(false) { }
 		virtual ~FileMover() { join(); }
 
-		void moveFile(const string& source, const string& target, BundlePtr aBundle);
+		void moveFile(const string& source, const string& target, QueueItemPtr aBundle);
 		virtual int run();
 	private:
-		typedef pair<BundlePtr, StringPair> FileBundlePair;
-		typedef vector<FileBundlePair> FileList;
+		typedef pair<QueueItemPtr, StringPair> FileQIPair;
+		typedef vector<FileQIPair> FileList;
 
 		bool active;
 
@@ -266,8 +266,11 @@ private:
 	bundleTickMap bundleUpdates;
 
 	void load(const SimpleXML& aXml);
-	void moveFile(const string& source, const string& target, BundlePtr aBundle = nullptr);
-	static void moveFile_(const string& source, const string& target, BundlePtr aBundle);
+	void moveFile(const string& source, const string& target, QueueItemPtr q = nullptr);
+	static void moveFile_(const string& source, const string& target, QueueItemPtr q);
+
+	void handleMovedBundleItem(QueueItemPtr q);
+
 	void moveStuckFile(QueueItemPtr qi);
 	void rechecked(QueueItemPtr qi);
 	void onFileHashed(const string& fname, const TTHValue& root, bool failed);

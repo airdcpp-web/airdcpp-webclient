@@ -125,7 +125,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
-		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, true, true);
+		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false);
 
 	as->startTime = SearchTime();
 	as->endTime = SearchTime(true);

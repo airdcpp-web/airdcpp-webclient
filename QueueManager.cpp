@@ -64,9 +64,9 @@ namespace dcpp {
 using boost::adaptors::map_values;
 using boost::range::for_each;
 
-void QueueManager::FileMover::moveFile(const string& source, const string& target, BundlePtr aBundle) {
+void QueueManager::FileMover::moveFile(const string& source, const string& target, QueueItemPtr q) {
 	Lock l(cs);
-	files.push_back(make_pair(aBundle, make_pair(source, target)));
+	files.push_back(make_pair(q, make_pair(source, target)));
 	if(!active) {
 		active = true;
 		start();
@@ -75,7 +75,7 @@ void QueueManager::FileMover::moveFile(const string& source, const string& targe
 
 int QueueManager::FileMover::run() {
 	for(;;) {
-		FileBundlePair next;
+		FileQIPair next;
 		{
 			Lock l(cs);
 			if(files.empty()) {
@@ -823,16 +823,16 @@ removePartial:
 	return nullptr;
 }
 
-void QueueManager::moveFile(const string& source, const string& target, BundlePtr aBundle /*nullptr, only add when download finishes!*/) {
+void QueueManager::moveFile(const string& source, const string& target, QueueItemPtr q /*nullptr, only add when download finishes!*/) {
 	File::ensureDirectory(target);
 	if(File::getSize(source) > MOVER_LIMIT) {
-		mover.moveFile(source, target, aBundle);
+		mover.moveFile(source, target, q);
 	} else {
-		moveFile_(source, target, aBundle);
+		moveFile_(source, target, q);
 	}
 }
 
-void QueueManager::moveFile_(const string& source, const string& target, BundlePtr aBundle) {
+void QueueManager::moveFile_(const string& source, const string& target, QueueItemPtr qi) {
 	try {
 		File::renameFile(source, target);
 		//getInstance()->fire(QueueManagerListener::FileMoved(), target);
@@ -849,32 +849,49 @@ void QueueManager::moveFile_(const string& source, const string& target, BundleP
 	if(BOOLSETTING(USE_FTP_LOGGER))
 		AirUtil::fileEvent(target, true);
 
-	if (!aBundle) {
-		return;
+	if (qi && qi->getBundle()) {
+		getInstance()->handleMovedBundleItem(qi);
 	}
+}
+
+void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
+	BundlePtr b = qi->getBundle();
+
+	HintedUserList notified;
 
 	{
-		QueueManager::getInstance()->lockRead();
-		ScopedFunctor([] { QueueManager::getInstance()->unlockRead(); });
-
-		auto s = find_if(aBundle->getFinishedFiles().begin(), aBundle->getFinishedFiles().end(), [target](QueueItemPtr q) { return q->getTarget() == target; });
-		if (s != aBundle->getFinishedFiles().end())
-			(*s)->setFlag(QueueItem::FLAG_MOVED);
-
-		if (!aBundle->getQueueItems().empty() || find_if(aBundle->getFinishedFiles().begin(), aBundle->getFinishedFiles().end(), [](QueueItemPtr q) { 
-			return !q->isSet(QueueItem::FLAG_MOVED); }) != aBundle->getFinishedFiles().end()) return;
+		RLock l (cs);
+		for (auto s = qi->getBundle()->getFinishedNotifications().begin(); s != qi->getBundle()->getFinishedNotifications().end(); ++s) {
+			if (!qi->isSource(s->first.user)) {
+				notified.push_back(s->first);
+			}
+		}
 	}
 
+	//notify the users
+	for_each(notified, [&](HintedUser u) { sendPBD(u, qi->getTTH(), b->getToken()); });
 
-	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
-		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
-	} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(aBundle)) {
-		aBundle->setFlag(Bundle::FLAG_SHARING_FAILED);
+	{
+		RLock l (cs);
+		//flag this file as moved
+		auto s = find_if(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [qi](QueueItemPtr aQI) { return aQI->getTarget() == qi->getTarget(); });
+		if (s != b->getFinishedFiles().end())
+			(*s)->setFlag(QueueItem::FLAG_MOVED);
+
+		//check if there are queued or non-moved files remaining
+		if (!b->getQueueItems().empty() || find_if(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [](QueueItemPtr q) { 
+			return !q->isSet(QueueItem::FLAG_MOVED); }) != b->getFinishedFiles().end()) return;
+	}
+
+	if (!SETTING(SCAN_DL_BUNDLES) || b->isFileBundle()) {
+		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, b->getName().c_str()), LogManager::LOG_INFO);
+	} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(b)) {
+		b->setFlag(Bundle::FLAG_SHARING_FAILED);
 		return;
 	} 
 
 	if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
-		getInstance()->hashBundle(aBundle);
+		hashBundle(b);
 	} else {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	}
@@ -1206,7 +1223,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 
 		// Check if we need to move the file
 		if(!d->getTempTarget().empty() && (Util::stricmp(d->getPath().c_str(), d->getTempTarget().c_str()) != 0) ) {
-			moveFile(d->getTempTarget(), d->getPath(), d->getBundle());
+			moveFile(d->getTempTarget(), d->getPath(), q);
 		}
 
 		fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
@@ -3133,25 +3150,16 @@ void QueueManager::removeBundleItem(QueueItemPtr qi, bool finished, bool moved /
 		return;
 	}
 	bool emptyBundle = false;
-	HintedUserList notified;
 
 	{
 		WLock l(cs);
 		bundleQueue.removeBundleItem(qi, finished);
 		if (finished) {
 			fileQueue.decreaseSize(qi->getSize());
-			for (auto s = qi->getBundle()->getFinishedNotifications().begin(); s != qi->getBundle()->getFinishedNotifications().end(); ++s) {
-				if (!qi->isSource(s->first.user)) {
-					notified.push_back(s->first);
-				}
-			}
 		}
 
 		emptyBundle = bundle->getQueueItems().empty();
 	}
-
-	//notify users if finished
-	for_each(notified, [&](HintedUser u) { sendPBD(u, qi->getTTH(), bundle->getToken()); });
 
 	if (emptyBundle) {
 		removeBundle(bundle, finished, false, moved);

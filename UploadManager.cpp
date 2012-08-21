@@ -300,7 +300,7 @@ checkslots:
 				// Partial file list
 				if (tthList) {
 					if (aFile[0] != '/') {
-						mis = QueueManager::getInstance()->generateTTHList(aFile, profile == SP_HIDDEN);
+						mis = QueueManager::getInstance()->generateTTHList(aFile, profile != SP_HIDDEN);
 					} else {
 						mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, profile);
 					}
