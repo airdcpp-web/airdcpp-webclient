@@ -103,7 +103,7 @@ void Bundle::setDownloadedBytes(int64_t aSize) {
 	dcassert(currentDownloaded <= size);
 }
 
-void Bundle::addSegment(int64_t aSize, bool downloaded) {
+void Bundle::addFinishedSegment(int64_t aSize) {
 #ifdef _DEBUG
 	int64_t tmp1 = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItemPtr qi) {
 		return old + qi->getDownloadedSegments(); 
@@ -112,6 +112,7 @@ void Bundle::addSegment(int64_t aSize, bool downloaded) {
 	tmp1 = accumulate(finishedFiles.begin(), finishedFiles.end(), tmp1, [&](int64_t old, QueueItemPtr qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
+	LogManager::getInstance()->message("Adding segment with size " + Util::formatBytes(aSize) + ", total finished size " + Util::formatBytes(tmp1) + " (qi), " + Util::formatBytes(aSize + finishedSegments) + " (bundle)", LogManager::LOG_INFO);
 	dcassert(tmp1 == aSize + finishedSegments);
 #endif
 
@@ -120,6 +121,7 @@ void Bundle::addSegment(int64_t aSize, bool downloaded) {
 	dcassert(currentDownloaded >= 0);
 	dcassert(currentDownloaded <= size);
 	dcassert(finishedSegments <= size);
+	setDirty(true);
 }
 
 void Bundle::removeDownloadedSegment(int64_t aSize) {
@@ -200,7 +202,7 @@ bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 		qi->setFlag(QueueItem::FLAG_MOVED);
 		qi->setBundle(this);
 		increaseSize(qi->getSize());
-		addSegment(qi->getSize(), false);
+		addFinishedSegment(qi->getSize());
 	}
 	qi->setFlag(QueueItem::FLAG_FINISHED);
 

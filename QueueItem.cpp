@@ -371,26 +371,29 @@ uint64_t QueueItem::getDownloadedBytes() const {
 	return total;
 }
 
-void QueueItem::addSegment(const Segment& segment, bool downloaded, bool finishedQI /*false*/) {
+void QueueItem::addFinishedSegment(const Segment& segment) {
 	dcassert(segment.getOverlapped() == false);
+	//LogManager::getInstance()->message("Adding segment with size " + Util::formatBytes(segment.getSize()) + ", total finished size " + Util::formatBytes(getDownloadedSegments()) + ", QI size " + Util::formatBytes(size), LogManager::LOG_INFO);
 	done.insert(segment);
-	//cache for bundles
-	if (bundle && !finishedQI) {
-		bundle->addSegment(segment.getSize(), downloaded);
-	}
 
 	// Consolidate segments
-	if(done.size() == 1)
+	if(done.size() == 1) {
+		if (bundle)
+			bundle->addFinishedSegment(segment.getSize());
 		return;
+	}
 	
-	for(SegmentSet::iterator i = ++done.begin() ; i != done.end(); ) {
-		SegmentSet::iterator prev = i;
+	for(auto i = ++done.begin() ; i != done.end(); ) {
+		auto prev = i;
 		prev--;
 		if(prev->getEnd() >= i->getStart()) {
 			Segment big(prev->getStart(), i->getEnd() - prev->getStart());
+			auto newBytes = big.getSize() - prev->getSize(); //minus the part that has been counted before...
 			done.erase(prev);
 			done.erase(i++);
 			done.insert(big);
+			if (bundle)
+				bundle->addFinishedSegment(newBytes);
 		} else {
 			++i;
 		}

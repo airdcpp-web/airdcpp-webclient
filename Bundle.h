@@ -105,27 +105,32 @@ public:
 	~Bundle();
 
 	GETSET(string, token, Token);
-	GETSET(uint16_t, running, Running);
 	GETSET(uint64_t, start, Start);
 	GETSET(int64_t, size, Size);
-	GETSET(int64_t, speed, Speed);
-	GETSET(int64_t, actual, Actual);
-	GETSET(int64_t, lastSpeed, LastSpeed);
-	GETSET(double, lastDownloaded, LastDownloaded);
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(time_t, added, Added);
-	GETSET(time_t, dirDate, DirDate);
-	GETSET(bool, singleUser, SingleUser);
-	GETSET(bool, simpleMatching, SimpleMatching);
-	GETSET(bool, seqOrder, SeqOrder);
-	GETSET(uint64_t, bundleBegin, BundleBegin);
+	GETSET(time_t, dirDate, DirDate);				// the directory modify date picked from the remote filelist when the bundle has been queued
+	GETSET(bool, simpleMatching, SimpleMatching);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
+	GETSET(bool, seqOrder, SeqOrder);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
 
-	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);
-	GETSET(UserIntMap, runningUsers, RunningUsers);
+	GETSET(uint16_t, running, Running);				// number of running users
+	GETSET(uint64_t, bundleBegin, BundleBegin);		// time that is being reset every time when a waiting the bundle gets running downloads (GUI purposes really)
+	GETSET(bool, singleUser, SingleUser);			// the bundle is downloaded from a single user (may have multiple connections)
+
+	GETSET(int64_t, actual, Actual); 
+	GETSET(int64_t, speed, Speed);					// the speed calculated on every second in downloadmanager
+	//GETSET(int, transferFlags, TransferFlags);		// combined transfer flags checked from running downloads
+
+	GETSET(int64_t, lastSpeed, LastSpeed); // the speed sent on last time to UBN sources
+	GETSET(double, lastDownloaded, LastDownloaded); // the progress percent sent on last time to UBN sources
+
+
+	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);	// partial bundle sharing sources (mapped to their local tokens)
+	GETSET(UserIntMap, runningUsers, RunningUsers);			// running users and their connections cached
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
-	GETSET(HintedUserList, uploadReports, UploadReports);
+	GETSET(HintedUserList, uploadReports, UploadReports);	 // sources receiving UBN notifications (running only)
 	GETSET(DownloadList, downloads, Downloads);
 	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceInfoList, badSources, BadSources);
@@ -195,7 +200,7 @@ public:
 
 	int64_t getDiskUse(bool countAll);
 
-	void addSegment(int64_t aSize, bool downloaded) noexcept;
+	void addFinishedSegment(int64_t aSize) noexcept;
 	void removeDownloadedSegment(int64_t aSize);
 
 	/* DownloadManager */

@@ -207,7 +207,7 @@ int QueueManager::Rechecker::run() {
 			WLock l(qm->cs);
 			boost::for_each(tt.getLeaves(), ttFile.getLeaves(), [&](const TTHValue& our, const TTHValue& file) {
 				if(our == file) {
-					q->addSegment(Segment(pos, tt.getBlockSize()), false);
+					q->addFinishedSegment(Segment(pos, tt.getBlockSize()));
 				}
 
 				pos += tt.getBlockSize();
@@ -621,7 +621,7 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence, Bun
 		if (aBundle) {
 			/* TODO: add for recheck */
 			aBundle->increaseSize(size);
-			aBundle->addSegment(size, false);
+			aBundle->addFinishedSegment(size);
 		}
 		throw FileException(target + ": " + STRING(TARGET_FILE_EXISTS));
 	}
@@ -1048,7 +1048,7 @@ void QueueManager::moveStuckFile(QueueItemPtr qi) {
 		fileQueue.remove(qi);
 		removeBundleItem(qi, true);
 	 } else {
-		qi->addSegment(Segment(0, qi->getSize()), false);
+		qi->addFinishedSegment(Segment(0, qi->getSize()));
 		fire(QueueManagerListener::StatusUpdated(), qi);
 	}
 
@@ -1108,10 +1108,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 				downloaded -= downloaded % d->getTigerTree().getBlockSize();
 
 				if(downloaded > 0) {
-					q->addSegment(Segment(d->getStartPos(), downloaded), true);
-					if (q->getBundle()) {
-						q->getBundle()->setDirty(true);
-					}
+					q->addFinishedSegment(Segment(d->getStartPos(), downloaded));
 				}
 			}
 
@@ -1153,7 +1150,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 				}
 
 				auto dir = q->getTempTarget(); // We cheated and stored the initial display directory here (when opening lists from search)
-				q->addSegment(Segment(0, q->getSize()), true);
+				q->addFinishedSegment(Segment(0, q->getSize()));
 
 				// Now, let's see if this was a directory download filelist...
 				if( (q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) ||
@@ -1171,7 +1168,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 				fileQueue.remove(q);
 			} else if(d->getType() == Transfer::TYPE_FILE) {
 				d->setOverlapped(false);
-				q->addSegment(d->getSegment(), true);
+				q->addFinishedSegment(d->getSegment());
 
 				if(q->isFinished()) {
 					// Disconnect all possible overlapped downloads
@@ -1196,10 +1193,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 				}
 			} else {
 				dcassert(0);
-			}
-
-			if (q->getBundle()) {
-				q->getBundle()->setDirty(true);
 			}
 		}
 	}
@@ -1795,7 +1788,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			int64_t size = Util::toInt64(getAttrib(attribs, sSize, 1));
 			
 			if(size > 0 && start >= 0 && (start + size) <= cur->getSize()) {
-				cur->addSegment(Segment(start, size), false);
+				cur->addFinishedSegment(Segment(start, size));
 				if (cur->getAutoPriority() && SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 					cur->setPriority(cur->calculateAutoPriority());
 				}
@@ -1866,7 +1859,7 @@ void QueueManager::addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const
 		return;
 	}
 	QueueItemPtr qi = new QueueItem(aTarget, aSize, QueueItem::DEFAULT, QueueItem::FLAG_NORMAL, aFinished, tth, Util::emptyString);
-	qi->addSegment(Segment(0, aSize), false, true); //make it complete
+	qi->addFinishedSegment(Segment(0, aSize)); //make it complete
 
 	bundleQueue.addFinishedItem(qi, aBundle);
 	fileQueue.add(qi);

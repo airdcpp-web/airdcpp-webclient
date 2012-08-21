@@ -77,9 +77,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 	{
 		RLock l(cs);
 		for (auto i = runningBundles.begin(); i != runningBundles.end(); ++i) {
-			BundlePtr bundle = i->second;
-			if (bundle->onDownloadTick(UBNList)) {
-				bundleTicks.push_back(bundle);
+			if (i->second->onDownloadTick(UBNList)) {
+				bundleTicks.push_back(i->second);
 			}
 		}
 

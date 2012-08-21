@@ -706,12 +706,12 @@ static const string PATH = "Path";
 static const string DATE = "Date";
 
 struct ShareLoader : public SimpleXMLReader::CallBack {
-	ShareLoader(ShareManager::ProfileDirMap& aDirs) : profileDirs(aDirs), cur(nullptr)/*, depth(0), blockNode(false)*/ { }
+	ShareLoader(ShareManager::ProfileDirMap& aDirs) : profileDirs(aDirs), cur(nullptr), depth(0), blockNode(false) { }
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
 
 		if(name == SDIRECTORY) {
-			/*if (!blockNode || depth == 0) {
-				blockNode = false;*/
+			if (!blockNode || depth == 0) {
+				blockNode = false;
 				const string& name = getAttrib(attribs, SNAME, 0);
 				curDirPath = getAttrib(attribs, PATH, 1);
 				const string& date = getAttrib(attribs, DATE, 2);
@@ -726,18 +726,18 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 						cur->setProfileDir(i->second);
 						if (i->second->hasRoots())
 							ShareManager::getInstance()->addShares(curDirPath, cur);
-					} /*else if (depth == 0) {
+					} else if (depth == 0) {
 						//something wrong...
 						cur = nullptr;
 						blockNode = true;
 						depth++;
 						return;
-					}*/
+					}
 
 					dirs.insert(make_pair(name, cur));
 					lastFileIter = cur->files.begin();
 				}
-			//}
+			}
 
 			if(simple) {
 				if(cur) {
@@ -745,9 +745,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 					if(cur)
 						lastFileIter = cur->files.begin();
 				}
-			} /*else {
+			} else {
 				depth++;
-			}*/
+			}
 		} else if(cur && name == SFILE) {
 			const string& fname = getAttrib(attribs, SNAME, 0);
 			const string& size = getAttrib(attribs, SSIZE, 1);   
@@ -766,7 +766,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 	}
 	void endTag(const string& name, const string&) {
 		if(name == SDIRECTORY) {
-			//depth--;
+			depth--;
 			if(cur) {
 				curDirPath = Util::getParentDir(curDirPath);
 				cur = cur->getParent();
@@ -783,8 +783,8 @@ private:
 	ShareManager::Directory::File::Set::iterator lastFileIter;
 	ShareManager::Directory::Ptr cur;
 
-	//bool blockNode;
-	//size_t depth;
+	bool blockNode;
+	size_t depth;
 	string curDirPath;
 };
 
@@ -1023,9 +1023,9 @@ void ShareManager::removeDir(ShareManager::Directory::Ptr aDir) {
 	//speed this up a bit
 	auto directories = dirNameMap.equal_range(aDir->getRealName());
 	string realPath = aDir->getRealPath(false);
-
+	
 	auto p = find_if(directories.first, directories.second, [realPath](pair<string, Directory::Ptr> sdp) { return sdp.second->getRealPath(false) == realPath; });
-	dcassert(p != dirNameMap.end());
+	dcassert(p != directories.second);
 	if (p != dirNameMap.end())
 		dirNameMap.erase(p);
 }

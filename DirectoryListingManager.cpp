@@ -223,7 +223,7 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 				}
 				delete di;
 			} else if (di->getSizeConfirm() == ASK_USER) {
-				if (!hasFreeSpace) {
+				if (!hasFreeSpace && di->getTargetType() != TargetUtil::TARGET_PATH) {
 					di->setListing(dirList);
 					{
 						WLock l (cs);
@@ -233,6 +233,8 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 					string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
 					fire(DirectoryListingManagerListener::PromptAction(), di->getDirName(), msg);
 				} else {
+					dirList->download(di->getListPath(), di->getTarget(), di->getTargetType(), false, di->getPriority());
+
 					WLock l (cs);
 					finishedListings[di->getDirName()] = new FinishedDirectoryItem(false, ti.targetDir);
 					delete di;

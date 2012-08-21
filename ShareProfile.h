@@ -54,6 +54,8 @@ class FileList {
 		GETSET(bool, xmlDirty, XmlDirty);
 		GETSET(bool, forceXmlRefresh, ForceXmlRefresh); /// bypass the 15-minutes guard
 
+		static atomic_flag generating;
+
 		unique_ptr<File> bzXmlRef;
 		void increaseN() { listN++; };
 		string getFileName();

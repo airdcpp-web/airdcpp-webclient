@@ -31,6 +31,8 @@
 
 namespace dcpp {
 
+atomic_flag FileList::generating = ATOMIC_FLAG_INIT;
+
 FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { 
 	if (profile == SP_HIDDEN && !Util::fileExists(getFileName()))  {
 		FilteredOutputStream<BZFilter, true> emptyXmlFile(new File(getFileName(), File::WRITE, File::TRUNCATE | File::CREATE));
@@ -57,6 +59,10 @@ bool FileList::isDirty(bool forced) {
 	if (profile == SP_HIDDEN)
 		return false;
 
+	if(!forced && generating.test_and_set()) {
+		return false;
+	}
+
 	return (forced && xmlDirty) || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK()));
 }
 
@@ -64,6 +70,7 @@ void FileList::unsetDirty() {
 	xmlDirty = false;
 	forceXmlRefresh = false;
 	lastXmlUpdate = GET_TICK();
+	generating.clear();
 }
 
 void FileList::saveList(SimpleXML& aXml) {
