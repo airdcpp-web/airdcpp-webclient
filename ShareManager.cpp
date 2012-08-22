@@ -19,6 +19,7 @@
 #include <string>
 #include "stdinc.h"
 #include "ShareManager.h"
+#include "ScopedFunctor.h"
 
 #include "ResourceManager.h"
 
@@ -1513,15 +1514,6 @@ int ShareManager::run() {
 					newShares.erase(m);
 				}
 			}
-
-			/*for(auto i = dirs.begin(); i != dirs.end(); ++i) {
-				for(auto p = newShares.begin(); p != newShares.end();) {
-					if (AirUtil::isSub(p->first, i->first))
-						newShares.erase(p);
-					else
-						p++;
-				}
-			}*/
 		}
 
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
@@ -1627,38 +1619,221 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 		fl = (*i)->getProfileList() ? (*i)->getProfileList() : (*i)->generateProfileList();
 	}
 
-	createFileList(aProfile, fl, forced);
-	return fl;
-}
 
-void ShareManager::createFileList(ProfileToken aProfile, FileList* fl, bool forced) {
-	
 	if(fl->isDirty(forced)) {
 		fl->increaseN();
 
 		try {
-			SimpleXML xml;
-			xml.addTag("FileListing");
-			xml.addChildAttrib("Version", 1);
-			xml.addChildAttrib("CID", ClientManager::getInstance()->getMe()->getCID().toBase32());
-			xml.addChildAttrib("Base", string("/"));
-			xml.addChildAttrib("Generator", string(APPNAME " " VERSIONSTRING));
-			xml.stepIn();
+			//auto start = GET_TICK();
 			{
-				RLock l(cs);
-				for(auto i = shares.begin(); i != shares.end(); ++i) {
-					if(i->second->getProfileDir()->hasProfile(aProfile))
-						i->second->toXml(xml, true, aProfile);
-				}
-			}
-			xml.stepOut();
+				File f(fl->getNFileName(), File::WRITE, File::TRUNCATE | File::CREATE);
+				// We don't care about the leaves...
+				CalcOutputStream<TTFilter<1024*1024*1024>, false> bzTree(&f);
+				FilteredOutputStream<BZFilter, false> bzipper(&bzTree);
+				CountOutputStream<false> count(&bzipper);
+				CalcOutputStream<TTFilter<1024*1024*1024>, false> newXmlFile(&count);
 
-			fl->saveList(xml);
+				newXmlFile.write(SimpleXML::utf8Header);
+				newXmlFile.write("<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"/\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n");
+
+				string tmp;
+				string indent = "\t";
+
+				auto root = new FileListDir(Util::emptyString, 0, 0);
+
+				{
+					RLock l(cs);
+					//auto start2 = GET_TICK();
+					for(auto i = shares.begin(); i != shares.end(); ++i) {
+						if(i->second->getProfileDir()->hasProfile(aProfile)) {
+							i->second->toFileList(root, aProfile, true);
+						}
+					}
+
+					//auto end2 = GET_TICK();
+					//LogManager::getInstance()->message("Full list directories combined in " + Util::toString(end2-start2) + " ms (" + Util::toString((end2-start2)/1000) + " seconds)", LogManager::LOG_INFO);
+
+					for(auto it2 = root->listDirs.begin(); it2 != root->listDirs.end(); ++it2) {
+						it2->second->toXml(newXmlFile, indent, tmp, true);
+					}
+				}
+
+				delete root;
+
+				newXmlFile.write("</FileListing>");
+				newXmlFile.flush();
+
+				fl->setXmlListLen(count.getCount());
+
+				newXmlFile.getFilter().getTree().finalize();
+				bzTree.getFilter().getTree().finalize();
+
+				fl->setXmlRoot(newXmlFile.getFilter().getTree().getRoot());
+				fl->setBzXmlRoot(bzTree.getFilter().getTree().getRoot());
+			}
+
+			//auto end = GET_TICK();
+			//LogManager::getInstance()->message("Full list generated in " + Util::toString(end-start) + " ms (" + Util::toString((end-start)/1000) + " seconds)", LogManager::LOG_INFO);
+
+			fl->saveList();
 		} catch(const Exception&) {
 			// No new file lists...
 		}
 		fl->unsetDirty();
 	}
+
+	return fl;
+}
+
+MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) {
+	if(dir[0] != '/' || dir[dir.size()-1] != '/')
+		return 0;
+
+	string xml = SimpleXML::utf8Header;
+
+	{
+		auto root = unique_ptr<FileListDir>(new FileListDir(Util::emptyString, 0, 0));
+		string tmp;
+
+		RLock l(cs);
+
+		//auto start = GET_TICK();
+		if(dir == "/") {
+			for(auto i = shares.begin(); i != shares.end(); ++i) {
+				if(i->second->getProfileDir()->hasProfile(aProfile)) {
+					i->second->toFileList(root.get(), aProfile, recurse);
+				}
+			}
+		} else {
+			dcdebug("wanted %s \n", dir);
+			try {
+				DirectoryList result;
+				findVirtuals(dir, aProfile, result); 
+				if (!result.empty()) {
+					//int64_t size = accumulate(result.begin(), result.end(), (int64_t)0, [aProfile](int64_t old, Directory::Ptr d) { return old + d->getSize(aProfile); });
+					//root->date = (*max_element(result.begin(), result.end(), Directory::DateCompare()))->getLastWrite();
+
+					root.get()->shareDirs = result;
+
+					//add the subdirs
+					for(auto it = result.begin(); it != result.end(); ++it) {
+						for_each((*it)->directories | map_values, [&](Directory::Ptr d) { if (!d->isLevelExcluded(aProfile)) d->toFileList(root.get(), aProfile, recurse); });
+						root.get()->date = max(root->date, (*it)->getLastWrite());
+					}
+				}
+			} catch(...) {
+				return NULL;
+			}
+		}
+
+		xml += "<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + 
+			"\" Base=\"" + SimpleXML::escape(dir, tmp, false) + 
+			"\" BaseDate=\"" + Util::toString(root->date) +
+			"\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n";
+
+		StringOutputStream sos(xml);
+		string indent = "\t";
+
+		for(auto it2 = root.get()->listDirs.begin(); it2 != root.get()->listDirs.end(); ++it2) {
+			it2->second->toXml(sos, indent, tmp, recurse);
+		}
+
+		for(auto i = root.get()->shareDirs.begin(); i != root.get()->shareDirs.end(); ++i) {
+			(*i)->filesToXml(sos, indent, tmp);
+		}
+
+		//auto end = GET_TICK();
+		//LogManager::getInstance()->message("Partial list from path " + dir +  " generated in " + Util::toString(end-start) + " ms (" + Util::toString((end-start)/1000) + " seconds)", LogManager::LOG_INFO);
+
+		sos.write("</FileListing>");
+		//LogManager::getInstance()->message(xml, LogManager::LOG_WARNING);
+	}
+
+	if (xml.empty()) {
+		dcdebug("Partial NULL");
+		return NULL;
+	} else {
+		return new MemoryInputStream(xml);
+	}
+}
+
+void ShareManager::Directory::toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList) {
+	auto n = getVirtualName(aProfile);
+
+	FileListDir* newListDir = nullptr;
+	auto pos = aListDir->listDirs.find(n);
+	if (pos != aListDir->listDirs.end()) {
+		newListDir = pos->second;
+		if (isFullList)
+			newListDir->size += getSize(aProfile);
+		newListDir->date = max(newListDir->date, lastWrite);
+	} else {
+		newListDir = new FileListDir(n, isFullList ? 0 : getSize(aProfile), lastWrite);
+		aListDir->listDirs.insert(make_pair(n, newListDir));
+	}
+
+	newListDir->shareDirs.push_back(this);
+
+	if (isFullList)
+		for_each(directories | map_values, [&](Ptr d) { if (!d->isLevelExcluded(aProfile)) d->toFileList(newListDir, aProfile, isFullList); });
+}
+
+ShareManager::FileListDir::FileListDir(const string& aName, int64_t aSize, int aDate) : name(aName), size(aSize), date(aDate) { }
+
+#define LITERAL(n) n, sizeof(n)-1
+void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) {
+	xmlFile.write(indent);
+	xmlFile.write(LITERAL("<Directory Name=\""));
+	xmlFile.write(SimpleXML::escape(name, tmp2, true));
+	if (!fullList) {
+		xmlFile.write(LITERAL("\" Size=\""));
+		xmlFile.write(Util::toString(size));
+	}
+	xmlFile.write(LITERAL("\" Date=\""));
+	xmlFile.write(Util::toString(date));
+
+	if(fullList) {
+		xmlFile.write(LITERAL("\">\r\n"));
+
+		indent += '\t';
+		for(auto i = listDirs.begin(); i != listDirs.end(); ++i) {
+			i->second->toXml(xmlFile, indent, tmp2, fullList);
+		}
+
+		for(auto i = shareDirs.begin(); i != shareDirs.end(); ++i) {
+			(*i)->filesToXml(xmlFile, indent, tmp2);
+		}
+
+		indent.erase(indent.length()-1);
+		xmlFile.write(indent);
+		xmlFile.write(LITERAL("</Directory>\r\n"));
+	} else {
+		if(boost::find_if(shareDirs, [](Directory::Ptr d) { return !d->files.empty() || !d->directories.empty(); } ) == shareDirs.end()) {
+			xmlFile.write(LITERAL("\" />\r\n"));
+		} else {
+			xmlFile.write(LITERAL("\" Incomplete=\"1\" />\r\n"));
+		}
+	}
+}
+
+void ShareManager::Directory::filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const {
+	for(auto i = files.begin(); i != files.end(); ++i) {
+		const Directory::File& f = *i;
+
+		xmlFile.write(indent);
+		xmlFile.write(LITERAL("<File Name=\""));
+		xmlFile.write(SimpleXML::escape(f.getName(), tmp2, true));
+		xmlFile.write(LITERAL("\" Size=\""));
+		xmlFile.write(Util::toString(f.getSize()));
+		xmlFile.write(LITERAL("\" TTH=\""));
+		tmp2.clear();
+		xmlFile.write(f.getTTH().toBase32(tmp2));
+		xmlFile.write(LITERAL("\"/>\r\n"));
+	}
+}
+
+ShareManager::FileListDir::~FileListDir() {
+	for_each(listDirs | map_values, DeleteFunction());
 }
 
 #define LITERAL(n) n, sizeof(n)-1
@@ -1780,123 +1955,6 @@ void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, boo
 		tmp2.clear();
 		tthList.write(f.getTTH().toBase32(tmp2));
 		tthList.write(LITERAL(" "));
-	}
-}
-
-MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) {
-	if(dir[0] != '/' || dir[dir.size()-1] != '/')
-		return 0;
-
-	string xml;
-	xml = SimpleXML::utf8Header;
-	string basedate = Util::emptyString;
-
-	SimpleXML sXml;   //use simpleXML so we can easily add the end tags and check what virtuals have been created.
-	sXml.addTag("FileListing");
-	sXml.addChildAttrib("Version", 1);
-	sXml.addChildAttrib("CID", ClientManager::getInstance()->getMe()->getCID().toBase32());
-	sXml.addChildAttrib("Base", dir);
-	sXml.addChildAttrib("Generator", string(APPNAME " " VERSIONSTRING));
-	sXml.stepIn();
-
-	if(dir == "/") {
-		RLock l(cs);
-		for(auto i = shares.begin(); i != shares.end(); ++i) {
-			if(i->first, i->second->getProfileDir()->hasProfile(aProfile))
-				i->second->toXml(sXml, recurse, aProfile);
-		}
-	} else {
-		dcdebug("wanted %s \n", dir);
-		try {
-			RLock l(cs);
-			DirectoryList result;
-			findVirtuals(dir, aProfile, result); 
-			Directory::Ptr root;
-			for(auto it = result.begin(); it != result.end(); ++it) {
-				root = *it;
-				dcdebug("result name %s \n", (*it)->getFullName(aProfile));
-
-				if(basedate.empty() || (Util::toUInt32(basedate) < root->getLastWrite())) //compare the dates and add the last modified
-					basedate = Util::toString(root->getLastWrite());
-			
-				for(auto it2 = root->directories.begin(); it2 != root->directories.end(); ++it2) {
-					if (it2->second->isLevelExcluded(aProfile))
-						continue;
-					it2->second->toXml(sXml, recurse, aProfile);
-				}
-				root->filesToXml(sXml);
-			}
-		} catch(...) {
-			return NULL;
-		}
-	}
-	sXml.stepOut();
-	sXml.addChildAttrib("BaseDate", basedate);
-
-	StringOutputStream sos(xml);
-	sXml.toXML(&sos);
-
-	if (xml.empty()) {
-		dcdebug("Partial NULL");
-		return NULL;
-	} else {
-		return new MemoryInputStream(xml);
-	}
-}
-
-void ShareManager::Directory::toXml(SimpleXML& xmlFile, bool fullList, ProfileToken aProfile) {
-	bool create = true;
-
-	xmlFile.resetCurrentChild();
-	
-	string vName = getVirtualName(aProfile);
-	while( xmlFile.findChild("Directory") ){
-		if( stricmp(xmlFile.getChildAttrib("Name"), vName) == 0 ){
-			string curdate = xmlFile.getChildAttrib("Date");
-			if(!curdate.empty() && Util::toUInt32(curdate) < lastWrite) //compare the dates and add the last modified
-				xmlFile.replaceChildAttrib("Date", Util::toString(lastWrite));
-			
-			create = false;
-			break;	
-		}
-	}
-
-	if(create) {
-		xmlFile.addTag("Directory");
-		xmlFile.forceEndTag();
-		xmlFile.addChildAttrib("Name", vName);
-		xmlFile.addChildAttrib("Date", Util::toString(lastWrite));
-	}
-
-	if(fullList) {
-		xmlFile.stepIn();
-		for(auto i = directories.begin(); i != directories.end(); ++i) {
-			if (i->second->isLevelExcluded(aProfile))
-				continue;
-			i->second->toXml(xmlFile, true, aProfile);
-		}
-
-		filesToXml(xmlFile);
-		xmlFile.stepOut();
-	} else {
-		if((!directories.empty() || !files.empty())) {
-			if(xmlFile.getChildAttrib("Incomplete").empty()) {
-				xmlFile.addChildAttrib("Incomplete", 1);
-			}
-			int64_t size = Util::toInt64(xmlFile.getChildAttrib("Size"));
-			xmlFile.replaceChildAttrib("Size", Util::toString(getSize(aProfile) + size));   //make the size accurate with virtuals, added a replace or add function to simpleXML
-		}
-	}
-}
-
-void ShareManager::Directory::filesToXml(SimpleXML& xmlFile) const {
-	for(auto i = files.begin(); i != files.end(); ++i) {
-		const Directory::File& f = *i;
-
-		xmlFile.addTag("File");;
-		xmlFile.addChildAttrib("Name", f.getName());
-		xmlFile.addChildAttrib("Size", Util::toString(f.getSize()));
-		xmlFile.addChildAttrib("TTH", f.getTTH().toBase32());
 	}
 }
 

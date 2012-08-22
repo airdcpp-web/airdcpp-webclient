@@ -43,14 +43,14 @@ public:
 
 	void addBundle(BundlePtr aBundle);
 
-	void getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles);
-	BundlePtr find(const string& bundleToken);
-	BundlePtr findDir(const string& aPath);
-	BundlePtr getMergeBundle(const string& aTarget);
-	void getSubBundles(const string& aTarget, BundleList& retBundles);
+	void getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) const;
+	BundlePtr find(const string& bundleToken) const;
+	BundlePtr findDir(const string& aPath) const;
+	BundlePtr getMergeBundle(const string& aTarget) const;
+	void getSubBundles(const string& aTarget, BundleList& retBundles) const;
 
-	int getRecentIntervalMs();
-	int getPrioSum();
+	int getRecentIntervalMs() const;
+	int getPrioSum() const;
 	BundlePtr findRecent();
 	BundlePtr findAutoSearch();
 	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
@@ -60,7 +60,7 @@ public:
 	void moveBundle(BundlePtr aBundle, const string& newTarget);
 	void removeBundle(BundlePtr aBundle);
 
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes);
+	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) const;
 
 	void addSearchPrio(BundlePtr aBundle);
 	void removeSearchPrio(BundlePtr aBundle);

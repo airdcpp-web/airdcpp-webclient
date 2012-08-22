@@ -64,7 +64,7 @@ class FileList {
 
 		bool isDirty(bool force=false);
 		void unsetDirty();
-		void saveList(SimpleXML& aXml);
+		void saveList();
 	private:
 		CriticalSection cs;
 		int listN;

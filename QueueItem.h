@@ -235,21 +235,7 @@ public:
 	
 	vector<Segment> getChunksVisualisation(int type) const;
 
-	bool isChunkDownloaded(int64_t startPos, int64_t& len) const {
-		if(len <= 0) return false;
-
-		for(SegmentSet::const_iterator i = done.begin(); i != done.end(); ++i) {
-			int64_t first  = (*i).getStart();
-			int64_t second = (*i).getEnd();
-
-			if(first <= startPos && startPos < second){
-				len = min(len, second - startPos);
-				return true;
-			}
-		}
-
-		return false;
-	}
+	bool isChunkDownloaded(int64_t startPos, int64_t& len) const;
 
 	/**
 	 * Is specified parts needed by this download?
@@ -287,14 +273,7 @@ public:
 		return downloads.empty();
 	}
 
-	string getListName() const {
-		dcassert(isSet(QueueItem::FLAG_USER_LIST));
-		if(isSet(QueueItem::FLAG_XML_BZLIST)) {
-			return getTarget() + ".xml.bz2";
-		} else {
-			return getTarget() + ".xml";
-		}
-	}
+	string getListName() const;
 
 	const string& getTempTarget();
 	void setTempTarget(const string& aTempTarget) { tempTarget = aTempTarget; }
@@ -312,36 +291,7 @@ public:
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(BundlePtr, bundle, Bundle);
 	
-	QueueItem::Priority calculateAutoPriority() const {
-		if(autoPriority) {
-			QueueItem::Priority p;
-			int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
-			switch(percent){
-					case 0:
-					case 1:
-					case 2:
-						p = QueueItem::LOW;
-						break;
-					case 3:
-					case 4:
-					case 5:						
-					default:
-						p = QueueItem::NORMAL;
-						break;
-					case 6:
-					case 7:
-					case 8:
-						p = QueueItem::HIGH;
-						break;
-					case 9:
-					case 10:
-						p = QueueItem::HIGHEST;			
-						break;
-			}
-			return p;			
-		}
-		return priority;
-	}
+	QueueItem::Priority calculateAutoPriority() const;
 
 	uint64_t getAverageSpeed() const;
 

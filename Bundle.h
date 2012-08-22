@@ -147,21 +147,21 @@ public:
 	SourceInfoList& getBadSources() { return badSources; }
 
 	/* Misc */
-	bool isFileBundle() { return fileBundle;}
+	bool isFileBundle() const { return fileBundle;}
 
 	int64_t getDownloadedBytes() const { return currentDownloaded+finishedSegments; }
-	int64_t getSecondsLeft();
+	int64_t getSecondsLeft() const;
 
 	string getTarget() { return target; }
-	string getName();
+	string getName() const;
 
-	string getBundleFile();
+	string getBundleFile() const;
 	void deleteBundleFile();
 
 	void setDirty(bool dirty);
-	bool getDirty() { return dirty; }
+	bool getDirty() const { return dirty; }
 	bool checkRecent();
-	bool isRecent() { return recent; }
+	bool isRecent() const { return recent; }
 
 	tstring getBundleText();
 
@@ -170,20 +170,20 @@ public:
 	bool removeQueue(QueueItemPtr qi, bool finished) noexcept;
 	bool addQueue(QueueItemPtr qi) noexcept;
 
-	void getDirQIs(const string& aDir, QueueItemList& ql) noexcept;
-	void getDownloadsQI(DownloadList& l) noexcept;
+	void getDirQIs(const string& aDir, QueueItemList& ql) const noexcept;
+	void getDownloadsQI(DownloadList& l) const noexcept;
 
 	bool addFinishedItem(QueueItemPtr qi, bool finished) noexcept;
 	bool removeFinishedItem(QueueItemPtr qi) noexcept;
 	void finishBundle() noexcept;
 
 	void sendRemovePBD(const UserPtr& aUser) noexcept;
-	bool isFinishedNotified(const UserPtr& aUser) noexcept;
+	bool isFinishedNotified(const UserPtr& aUser) const noexcept;
 	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept;
 	void removeFinishedNotify(const UserPtr& aUser) noexcept;
 
-	pair<string, pair<uint32_t, uint32_t>> getDirByRelease(const string& aDir) noexcept;
-	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) noexcept;
+	pair<string, pair<uint32_t, uint32_t>> getDirByRelease(const string& aDir) const noexcept;
+	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept;
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	size_t countOnlineUsers() const noexcept;
 
@@ -194,11 +194,11 @@ public:
 	void increaseSize(int64_t aSize) { size += aSize; }
 	void decreaseSize(int64_t aSize) { size -= aSize; }
 
-	bool allFilesHashed();
+	bool allFilesHashed() const;
 
 	void setTarget(const string& aTarget);
 
-	int64_t getDiskUse(bool countAll);
+	int64_t getDiskUse(bool countAll) const;
 
 	void addFinishedSegment(int64_t aSize) noexcept;
 	void removeDownloadedSegment(int64_t aSize);
@@ -213,13 +213,13 @@ public:
 	void addDownload(Download* d) noexcept;
 	void removeDownload(Download* d) noexcept;
 
-	void getTTHList(OutputStream& tthList) noexcept;
-	void getSearchItems(StringPairList& searches, bool manual) noexcept;
+	void getTTHList(OutputStream& tthList) const noexcept;
+	void getSearchItems(StringPairList& searches, bool manual) const noexcept;
 	void updateSearchMode();
-	bool allowAutoSearch();
+	bool allowAutoSearch() const;
 
 	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
-	string formatDownloaded(int64_t aBytes);
+	string formatDownloaded(int64_t aBytes) const;
 
 	void setDownloadedBytes(int64_t aSize) noexcept;
 
@@ -227,18 +227,18 @@ public:
 	void decreaseRunning() { running--; }
 
 	/* Sources*/
-	void getSources(HintedUserList& l) noexcept;
-	bool isSource(const UserPtr& aUser) noexcept;
-	bool isBadSource(const UserPtr& aUser) noexcept;
-	bool isFinished() { return queueItems.empty(); }
+	void getSources(HintedUserList& l) const noexcept;
+	bool isSource(const UserPtr& aUser) const noexcept;
+	bool isBadSource(const UserPtr& aUser) const noexcept;
+	bool isFinished() const { return queueItems.empty(); }
 	void removeBadSource(const HintedUser& aUser) noexcept;
 
 	/** All queue items indexed by user */
 	void addUserQueue(QueueItemPtr qi) noexcept;
 	bool addUserQueue(QueueItemPtr qi, const HintedUser& aUser) noexcept;
 	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
-	QueueItemList getRunningQIs(const UserPtr& aUser) noexcept;
-	void getItems(const UserPtr& aUser, QueueItemList& ql) noexcept;
+	QueueItemList getRunningQIs(const UserPtr& aUser) const noexcept;
+	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 
 	void removeUserQueue(QueueItemPtr qi) noexcept;
 	bool removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad) noexcept;

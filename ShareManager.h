@@ -269,6 +269,7 @@ private:
 			string getName(ProfileToken aProfile);
 	};
 
+	struct FileListDir;
 	class Directory : public intrusive_ptr_base<Directory>, boost::noncopyable {
 	public:
 		typedef boost::intrusive_ptr<Directory> Ptr;
@@ -325,6 +326,12 @@ private:
 			return Ptr;
 		}
 
+		struct DateCompare {
+			bool operator()(const Ptr left, const Ptr right) const {
+				return left->getLastWrite() < right->getLastWrite();
+			}
+		};
+
 		bool hasType(uint32_t type) const noexcept {
 			return ( (type == SearchManager::TYPE_ANY) || (fileTypes & (1 << type)) );
 		}
@@ -348,9 +355,10 @@ private:
 
 		void directSearch(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
 
+		void toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList);
 		void toXml(SimpleXML& aXml, bool fullList, ProfileToken aProfile);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
-		void filesToXml(SimpleXML& aXml) const;
+		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
 		//for filelist caching
 		void toXmlList(OutputStream& xmlFile, const string& path, string& indent);
 
@@ -372,6 +380,21 @@ private:
 		uint32_t fileTypes;
 		string getRealPath(const string& path, bool checkExistance) const;
 		string realName;
+	};
+
+	struct FileListDir {
+		typedef unordered_map<string, FileListDir*, noCaseStringHash, noCaseStringEq> List;
+		vector<Directory::Ptr> shareDirs;
+
+		FileListDir(const string& aName, int64_t aSize, int aDate);
+		~FileListDir();
+
+		string name;
+		int64_t size;
+		uint32_t date;
+		List listDirs;
+
+		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList);
 	};
 
 	void removeDir(Directory::Ptr aDir);
@@ -412,7 +435,6 @@ private:
 	TaskQueue tasks;
 
 	FileList* generateXmlList(ProfileToken aProfile, bool forced = false);
-	void createFileList(ProfileToken aProfile, FileList* fl, bool forced);
 	FileList* getFileList(ProfileToken aProfile) const;
 
 	void saveXmlList(bool verbose = false);	//for filelist caching

@@ -112,7 +112,7 @@ void Bundle::addFinishedSegment(int64_t aSize) {
 	tmp1 = accumulate(finishedFiles.begin(), finishedFiles.end(), tmp1, [&](int64_t old, QueueItemPtr qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
-	LogManager::getInstance()->message("Adding segment with size " + Util::formatBytes(aSize) + ", total finished size " + Util::formatBytes(tmp1) + " (qi), " + Util::formatBytes(aSize + finishedSegments) + " (bundle)", LogManager::LOG_INFO);
+	//LogManager::getInstance()->message("Adding segment with size " + Util::formatBytes(aSize) + ", total finished size " + Util::formatBytes(tmp1) + " (qi), " + Util::formatBytes(aSize + finishedSegments) + " (bundle)", LogManager::LOG_INFO);
 	dcassert(tmp1 == aSize + finishedSegments);
 #endif
 
@@ -136,11 +136,11 @@ void Bundle::finishBundle() noexcept {
 	currentDownloaded = 0;
 }
 
-int64_t Bundle::getSecondsLeft() {
+int64_t Bundle::getSecondsLeft() const {
 	return (speed > 0) ? static_cast<int64_t>((size - (currentDownloaded+finishedSegments)) / speed) : 0;
 }
 
-string Bundle::getName() {
+string Bundle::getName() const {
 	if (!fileBundle) {
 		return Util::getDir(target, false, true);
 	} else {
@@ -159,10 +159,10 @@ QueueItemPtr Bundle::findQI(const string& aTarget) const {
 			return qi;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-string Bundle::getBundleFile() {
+string Bundle::getBundleFile() const {
 	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + token + ".xml";
 }
 
@@ -175,7 +175,7 @@ void Bundle::deleteBundleFile() {
 	}
 }
 
-void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) noexcept {
+void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 	for(int i = 0; i < QueueItem::LAST; ++i) {
 		auto j = userQueue[i].find(aUser);
 		if(j != userQueue[i].end()) {
@@ -186,7 +186,7 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) noexcept {
 	}
 }
 
-int64_t Bundle::getDiskUse(bool countAll) {
+int64_t Bundle::getDiskUse(bool countAll) const {
 	int64_t size = 0; 
 	for (auto p = queueItems.begin(); p != queueItems.end(); ++p) {
 		if (countAll || (*p)->getDownloadedBytes() == 0) {
@@ -282,11 +282,11 @@ bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 	return false;
 }
 
-bool Bundle::isSource(const UserPtr& aUser) {
+bool Bundle::isSource(const UserPtr& aUser) const {
 	return find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
 }
 
-bool Bundle::isBadSource(const UserPtr& aUser) {
+bool Bundle::isBadSource(const UserPtr& aUser) const {
 	return find_if(badSources.begin(), badSources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
 }
 
@@ -341,7 +341,7 @@ QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, string aLastError, Priority
 	return nullptr;
 }
 
-bool Bundle::isFinishedNotified(const UserPtr& aUser) {
+bool Bundle::isFinishedNotified(const UserPtr& aUser) const {
 	return find_if(finishedNotifications.begin(), finishedNotifications.end(), [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
 }
 
@@ -361,7 +361,7 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) {
 	}
 }
 
-void Bundle::getDownloadsQI(DownloadList& l) {
+void Bundle::getDownloadsQI(DownloadList& l) const {
 	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
 		QueueItemPtr qi = *s;
 		for (auto k = qi->getDownloads().begin(); k != qi->getDownloads().end(); ++k) {
@@ -370,11 +370,11 @@ void Bundle::getDownloadsQI(DownloadList& l) {
 	}
 }
 
-void Bundle::getSources(HintedUserList& l) {
+void Bundle::getSources(HintedUserList& l) const {
 	for_each(sources.begin(), sources.end(), [&](SourceTuple st) { l.push_back(get<Bundle::SOURCE_USER>(st)); });
 }
 
-void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
+void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
 	if (aDir == target) {
 		ql = queueItems;
 		return;
@@ -387,7 +387,7 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) {
 	});
 }
 
-string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) {
+string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const {
 	/* returns the local path for nmdc and the remote path for adc */
 	string remoteDir = Util::getFilePath(aRemoteFile);
 	string bundleDir = Util::getFilePath(aLocalFile);
@@ -430,7 +430,7 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 	return path;
 }
 
-pair<string, pair<uint32_t, uint32_t>> Bundle::getDirByRelease(const string& aDir) noexcept {
+pair<string, pair<uint32_t, uint32_t>> Bundle::getDirByRelease(const string& aDir) const noexcept {
 	string releaseDir = AirUtil::getReleaseDir(Util::getDir(aDir, false, false));
 	if (releaseDir.empty())
 		return make_pair(Util::emptyString, make_pair(0, 0));
@@ -445,7 +445,7 @@ pair<string, pair<uint32_t, uint32_t>> Bundle::getDirByRelease(const string& aDi
 	return make_pair(Util::emptyString, make_pair(0, 0));
 }
 
-QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) noexcept {
+QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) const noexcept {
 	QueueItemList ret;
 	auto i = runningItems.find(aUser);
 	if (i != runningItems.end()) {
@@ -520,26 +520,21 @@ Bundle::Priority Bundle::calculateProgressPriority() const noexcept {
 		Bundle::Priority p;
 		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
 		switch(percent){
-				case 0:
-				case 1:
-				case 2:
-					p = Bundle::LOW;
-					break;
-				case 3:
-				case 4:
-				case 5:						
-				default:
-					p = Bundle::NORMAL;
-					break;
-				case 6:
-				case 7:
-				case 8:
-					p = Bundle::HIGH;
-					break;
-					case 9:
-					case 10:
-					p = Bundle::HIGHEST;			
-					break;
+			case 0:
+			case 1:
+			case 2:
+				p = Bundle::LOW;
+				break;
+			case 3:
+			case 4:
+			case 5:	
+				p = Bundle::NORMAL;
+				break;
+			case 6:
+			case 7:
+			default:
+				p = Bundle::HIGH;
+				break;
 		}
 		return p;			
 	}
@@ -621,12 +616,12 @@ void Bundle::sendRemovePBD(const UserPtr& aUser) noexcept {
 	}
 }
 
-bool Bundle::allFilesHashed() {
+bool Bundle::allFilesHashed() const {
 	return queueItems.empty() && 
 		find_if(finishedFiles.begin(), finishedFiles.end(), [](QueueItemPtr q) { return !q->isSet(QueueItem::FLAG_HASHED); }) == finishedFiles.end();
 }
 
-void Bundle::getTTHList(OutputStream& tthList) noexcept {
+void Bundle::getTTHList(OutputStream& tthList) const noexcept {
 	string tmp2;
 	for(auto i = finishedFiles.begin(); i != finishedFiles.end(); ++i) {
 		tmp2.clear();
@@ -634,7 +629,7 @@ void Bundle::getTTHList(OutputStream& tthList) noexcept {
 	}
 }
 
-bool Bundle::allowAutoSearch() {
+bool Bundle::allowAutoSearch() const {
 	if (isSet(FLAG_SCHEDULE_SEARCH))
 		return false; // handle this via bundle updates
 
@@ -650,7 +645,7 @@ bool Bundle::allowAutoSearch() {
 	return true;
 }
 
-void Bundle::getSearchItems(StringPairList& searches, bool manual) noexcept {
+void Bundle::getSearchItems(StringPairList& searches, bool manual) const noexcept {
 	if (fileBundle) {
 		searches.push_back(make_pair(Util::emptyString, queueItems.front()->getTTH().toBase32()));
 		return;
@@ -791,7 +786,7 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 	return false;
 }
 
-string Bundle::formatDownloaded(int64_t aBytes) {
+string Bundle::formatDownloaded(int64_t aBytes) const {
 	char buf[64];
 	if(aBytes < 1024) {
 		snprintf(buf, sizeof(buf), "%d%s", (int)(aBytes&0xffffffff), "b");

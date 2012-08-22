@@ -78,6 +78,57 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 	}
 }
 
+QueueItem::Priority QueueItem::calculateAutoPriority() const {
+	if(autoPriority) {
+		QueueItem::Priority p;
+		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
+		switch(percent){
+				case 0:
+				case 1:
+				case 2:
+					p = QueueItem::LOW;
+					break;
+				case 3:
+				case 4:
+				case 5:			
+					p = QueueItem::NORMAL;
+					break;
+				case 6:
+				case 7:
+				default:
+					p = QueueItem::HIGH;
+					break;
+		}
+		return p;			
+	}
+	return priority;
+}
+
+bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const {
+	if(len <= 0) return false;
+
+	for(SegmentSet::const_iterator i = done.begin(); i != done.end(); ++i) {
+		int64_t first  = (*i).getStart();
+		int64_t second = (*i).getEnd();
+
+		if(first <= startPos && startPos < second){
+			len = min(len, second - startPos);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+string QueueItem::getListName() const {
+	dcassert(isSet(QueueItem::FLAG_USER_LIST));
+	if(isSet(QueueItem::FLAG_XML_BZLIST)) {
+		return getTarget() + ".xml.bz2";
+	} else {
+		return getTarget() + ".xml";
+	}
+}
+
 /* INTERNAL */
 uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
 	uint8_t MaxSegments = 1;

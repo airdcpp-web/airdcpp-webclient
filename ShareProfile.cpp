@@ -82,27 +82,7 @@ void FileList::unsetDirty() {
 	//generating.clear();
 }
 
-void FileList::saveList(SimpleXML& aXml) {
-	File f(getNFileName(), File::WRITE, File::TRUNCATE | File::CREATE);
-	// We don't care about the leaves...
-	CalcOutputStream<TTFilter<1024*1024*1024>, false> bzTree(&f);
-	FilteredOutputStream<BZFilter, false> bzipper(&bzTree);
-	CountOutputStream<false> count(&bzipper);
-	CalcOutputStream<TTFilter<1024*1024*1024>, false> newXmlFile(&count);
-			
-	newXmlFile.write(SimpleXML::utf8Header);
-
-	aXml.toXML(&newXmlFile);
-	newXmlFile.flush();
-
-	xmlListLen = count.getCount();
-
-	newXmlFile.getFilter().getTree().finalize();
-	bzTree.getFilter().getTree().finalize();
-	
-	xmlRoot = newXmlFile.getFilter().getTree().getRoot();
-	bzXmlRoot = bzTree.getFilter().getTree().getRoot();
-
+void FileList::saveList() {
 	if(bzXmlRef.get()) {
 		bzXmlRef.reset();
 		File::deleteFile(getFileName());

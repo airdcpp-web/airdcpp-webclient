@@ -161,7 +161,7 @@ int64_t BundleQueue::recalculateSearchTimes(bool aRecent, bool isPrioChange) {
 	}
 }
 
-int BundleQueue::getRecentIntervalMs() {
+int BundleQueue::getRecentIntervalMs() const {
 	int recentBundles = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](BundlePtr b) { return b->allowAutoSearch(); });
 	if (recentBundles == 1) {
 		return 15 * 60 * 1000;
@@ -204,7 +204,7 @@ BundlePtr BundleQueue::findRecent() {
 boost::mt19937 gen;
 static vector<double> probabilities;
 
-int BundleQueue::getPrioSum() {
+int BundleQueue::getPrioSum() const {
 	probabilities.clear();
 
 	int prioBundles = 0;
@@ -248,7 +248,7 @@ BundlePtr BundleQueue::findAutoSearch() {
 	return nullptr;
 }
 
-BundlePtr BundleQueue::find(const string& bundleToken) {
+BundlePtr BundleQueue::find(const string& bundleToken) const {
 	auto i = bundles.find(bundleToken);
 	if (i != bundles.end()) {
 		return i->second;
@@ -256,7 +256,7 @@ BundlePtr BundleQueue::find(const string& bundleToken) {
 	return nullptr;
 }
 
-BundlePtr BundleQueue::findDir(const string& aPath) {
+BundlePtr BundleQueue::findDir(const string& aPath) const {
 	string dir = AirUtil::getReleaseDir(aPath);
 	if (dir.empty()) {
 		return nullptr;
@@ -269,7 +269,7 @@ BundlePtr BundleQueue::findDir(const string& aPath) {
 	return nullptr;
 }
 
-void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) {
+void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) const {
 	BundlePtr tmpBundle;
 	bool subFolder = false;
 
@@ -305,7 +305,7 @@ void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& fi
 	}
 }
 
-BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
+BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
 	for(auto i = bundles.cbegin(), iend = bundles.cend(); i != iend; ++i) {
 		BundlePtr compareBundle = i->second;
@@ -316,7 +316,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) {
 	return nullptr;
 }
 
-void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) {
+void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) const {
 	/* Returns bundles that are inside aTarget */
 	for_each(bundles | map_values, [&](BundlePtr compareBundle) {
 		if (AirUtil::isSub(compareBundle->getTarget(), aTarget)) {
@@ -406,7 +406,7 @@ void BundleQueue::moveBundle(BundlePtr aBundle, const string& newTarget) {
 	}
 }
 
-void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) {
+void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) const {
 	string tempVol;
 	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("%[targetdrive]") == string::npos);
 	if (useSingleTempDir) {

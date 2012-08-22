@@ -2273,31 +2273,29 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 	}
 
 	if (ql.empty()) {
-		//LogManager::getInstance()->message("QL EMPTY, QUIIIIIIIT");
 		return false;
 	}
 
 	QueueItemPtr qi = ql.front();
 
-	if (aUser) {
-		BundlePtr b = qi->getBundle();
-		if (b) {
-			//LogManager::getInstance()->message("handlePartialSearch: QI AND BUNDLE FOUND");
+	BundlePtr b = qi->getBundle();
+	if (b) {
+		//LogManager::getInstance()->message("handlePartialSearch: QI AND BUNDLE FOUND");
 
-			//no reports for duplicate or bad sources
-			if (b->isFinishedNotified(aUser)) {
-				//LogManager::getInstance()->message("handlePartialSearch: ALREADY NOTIFIED");
-				return false;
-			}
-			_bundle = b->getToken();
-			if (!b->getQueueItems().empty()) {
+		//no reports for duplicate or bad sources
+		//if (b->isFinishedNotified(aUser)) {
+			//LogManager::getInstance()->message("handlePartialSearch: ALREADY NOTIFIED");
+			//return false;
+		//}
+		_bundle = b->getToken();
+		{
+			RLock l(cs);
+			if (!b->getQueueItems().empty() && !b->isFinishedNotified(aUser)) {
 				_reply = true;
 			}
 			if (!b->getFinishedFiles().empty()) {
 				_add = true;
 			}
-		} else {
-			//LogManager::getInstance()->message("QI: NO BUNDLE OR FINISHEDTOKEN EXISTS");
 		}
 	}
 
@@ -2320,7 +2318,7 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 	return !_outPartsInfo.empty();
 }
 
-tstring QueueManager::getDirPath(const string& aDir) {
+tstring QueueManager::getDirPath(const string& aDir) const {
 	string dir;
 	RLock l(cs);
 	BundlePtr b = bundleQueue.findDir(aDir);
@@ -2596,14 +2594,14 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 	return (int)mBundles.size();
 }
 
-int QueueManager::getDirItemCount(const BundlePtr aBundle, const string& aDir) noexcept { 
+int QueueManager::getDirItemCount(const BundlePtr aBundle, const string& aDir) const noexcept { 
 	RLock l(cs);
 	QueueItemList ql;
 	aBundle->getDirQIs(aDir, ql);
 	return (int)ql.size();
 }
 
-uint8_t QueueManager::isDirQueued(const string& aDir) {
+uint8_t QueueManager::isDirQueued(const string& aDir) const {
 	RLock l(cs);
 	BundlePtr b = bundleQueue.findDir(aDir);
 	if (b) {
@@ -2618,12 +2616,12 @@ uint8_t QueueManager::isDirQueued(const string& aDir) {
 
 
 
-int QueueManager::getBundleItemCount(const BundlePtr aBundle) noexcept {
+int QueueManager::getBundleItemCount(const BundlePtr aBundle) const noexcept {
 	RLock l(cs); 
 	return aBundle->getQueueItems().size(); 
 }
 
-int QueueManager::getFinishedItemCount(const BundlePtr aBundle) noexcept { 
+int QueueManager::getFinishedItemCount(const BundlePtr aBundle) const noexcept { 
 	RLock l(cs); 
 	return (int)aBundle->getFinishedFiles().size(); 
 }

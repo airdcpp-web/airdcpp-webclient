@@ -135,9 +135,9 @@ public:
 	void moveBundleItems(const QueueItemList& ql, BundlePtr targetBundle, bool fireAdded);
 	void moveBundleItems(BundlePtr sourceBundle, BundlePtr targetBundle, bool fireAdded);
 	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished, bool moved = false);
-	uint8_t isDirQueued(const string& aDir);
-	tstring getDirPath(const string& aDir);
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
+	uint8_t isDirQueued(const string& aDir) const;
+	tstring getDirPath(const string& aDir) const;
+	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) const { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundlePaths, const StringList& sharePaths);
 
@@ -167,9 +167,9 @@ public:
 	void calculateBundlePriorities(bool verbose);
 	void searchBundle(BundlePtr aBundle, bool manual);
 
-	int getBundleItemCount(const BundlePtr aBundle) noexcept;
-	int getFinishedItemCount(const BundlePtr aBundle) noexcept;
-	int getDirItemCount(const BundlePtr aBundle, const string& aDir) noexcept;
+	int getBundleItemCount(const BundlePtr aBundle) const noexcept;
+	int getFinishedItemCount(const BundlePtr aBundle) const noexcept;
+	int getDirItemCount(const BundlePtr aBundle, const string& aDir) const noexcept;
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
