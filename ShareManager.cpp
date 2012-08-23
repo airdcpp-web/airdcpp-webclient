@@ -1626,7 +1626,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 		try {
 			//auto start = GET_TICK();
 			{
-				File f(fl->getNFileName(), File::WRITE, File::TRUNCATE | File::CREATE);
+				File f(fl->getNFileName(), File::WRITE, File::TRUNCATE | File::CREATE, false);
 				// We don't care about the leaves...
 				CalcOutputStream<TTFilter<1024*1024*1024>, false> bzTree(&f);
 				FilteredOutputStream<BZFilter, false> bzipper(&bzTree);

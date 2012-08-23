@@ -98,7 +98,7 @@ void FileList::saveList() {
 		// Ignore, this is for caching only...
 	}
 
-	bzXmlRef = unique_ptr<File>(new File(getFileName(), File::READ, File::OPEN));
+	bzXmlRef = unique_ptr<File>(new File(getFileName(), File::READ, File::OPEN, false));
 	bzXmlListLen = File::getSize(getFileName());
 
 	//cleanup old filelists we failed to delete before due to uploading them.
