@@ -55,11 +55,8 @@ public:
 
 	public:
 		typedef File* Ptr;
-		struct FileSort {
-			bool operator()(const Ptr& a, const Ptr& b) const {
-				return stricmp(a->getName().c_str(), b->getName().c_str()) < 0;
-			}
-		};
+		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
+
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
@@ -95,11 +92,9 @@ public:
 	class Directory :  boost::noncopyable {
 	public:
 		typedef Directory* Ptr;
-		struct DirSort {
-			bool operator()(const Ptr& a, const Ptr& b) const {
-				return stricmp(a->getName().c_str(), b->getName().c_str()) < 0;
-			}
-		};
+
+		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
+
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		typedef unordered_set<TTHValue> TTHSet;
@@ -119,6 +114,7 @@ public:
 		void filterList(TTHSet& l);
 		void getHashList(TTHSet& l);
 		void clearAdls();
+		void sortDirs();
 
 		bool findIncomplete();
 		void search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
@@ -166,6 +162,9 @@ public:
 	int64_t getTotalListSize(bool adls = false) { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir);
 	size_t getTotalFileCount(bool adls = false) { return root->getTotalFileCount(adls); }
+
+	/** sort directories and sub-directories recursively (case-insensitive). */
+	void sortDirs();
 
 	const Directory* getRoot() const { return root; }
 	Directory* getRoot() { return root; }

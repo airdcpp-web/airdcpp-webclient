@@ -57,6 +57,25 @@ DirectoryListing::~DirectoryListing() {
 	delete root;
 }
 
+void DirectoryListing::sortDirs() {
+	root->sortDirs();
+}
+
+void DirectoryListing::Directory::sortDirs() {
+	for(auto i = directories.begin(); i != directories.end(); ++i) {
+		(*i)->sortDirs();
+	}
+	sort(directories.begin(), directories.end(), Directory::Sort());
+}
+
+bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) const {
+	return compare(a->getName(), b->getName()) < 0;
+}
+
+bool DirectoryListing::File::Sort::operator()(const Ptr& a, const Ptr& b) const {
+	return compare(a->getName(), b->getName()) < 0;
+}
+
 UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 	// General file list name format: [username].[CID].[xml|xml.bz2]
 
@@ -425,11 +444,11 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUt
 	}
 
 	// First, recurse over the directories
-	sort(dirList.begin(), dirList.end(), Directory::DirSort());
+	sort(dirList.begin(), dirList.end(), Directory::Sort());
 	for_each(dirList, [&](Directory* dir) { download(dir, target, aTargetType, highPrio, prio, false, false, aBundle); });
 
 	// Then add the files
-	sort(fileList.begin(), fileList.end(), File::FileSort());
+	sort(fileList.begin(), fileList.end(), File::Sort());
 	for(auto i = fileList.begin(); i != fileList.end(); ++i) {
 		try {
 			download(*i, target + (*i)->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
