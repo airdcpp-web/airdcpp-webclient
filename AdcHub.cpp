@@ -864,7 +864,7 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 	//auto sid = user.getIdentity().getSID();
 	//AdcCommand p = new AdcCommand(AdcCommand::DSC, sid, AdcCommand::TYPE_DIRECT);
 	AdcCommand c(AdcCommand::CMD_DSC, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
-	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList);
+	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, true);
 	if (!aDir.empty()) {
 		c.addParam("PA", aDir);
 	}
@@ -873,7 +873,7 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 	send(c);
 }
 
-void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
+void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, bool isDirect) {
 	if(!aToken.empty())
 		c.addParam("TO", aToken);
 
@@ -943,25 +943,34 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 			}
 
 			if(gr) {
-				// some extensions can be grouped; let's send a command with grouped exts.
-				AdcCommand c_gr(AdcCommand::CMD_SCH, AdcCommand::TYPE_FEATURE);
-				c_gr.setFeatures('+' + SEGA_FEATURE);
+				auto appendGroupInfo = [rx, exts, gr] (AdcCommand& aCmd) -> void {
+					for(auto i = exts.cbegin(), iend = exts.cend(); i != iend; ++i)
+						aCmd.addParam("EX", *i);
+					aCmd.addParam("GR", Util::toString(gr));
+					for(auto i = rx.cbegin(), iend = rx.cend(); i != iend; ++i)
+						aCmd.addParam("RX", *i);
+				};
 
-				const auto& params = c.getParameters();
-				for(auto i = params.cbegin(), iend = params.cend(); i != iend; ++i)
-					c_gr.addParam(*i);
+				if (isDirect) {
+					// direct search always uses SEGA, just append the group information in the current command
+					appendGroupInfo(c);
+					return;
+				} else {
+					// some extensions can be grouped; let's send a command with grouped exts.
+					AdcCommand c_gr(AdcCommand::CMD_SCH, AdcCommand::TYPE_FEATURE);
+					c_gr.setFeatures('+' + SEGA_FEATURE);
 
-				for(auto i = exts.cbegin(), iend = exts.cend(); i != iend; ++i)
-					c_gr.addParam("EX", *i);
-				c_gr.addParam("GR", Util::toString(gr));
-				for(auto i = rx.cbegin(), iend = rx.cend(); i != iend; ++i)
-					c_gr.addParam("RX", *i);
+					const auto& params = c.getParameters();
+					for(auto i = params.cbegin(), iend = params.cend(); i != iend; ++i)
+						c_gr.addParam(*i);
 
-				sendSearch(c_gr);
+					appendGroupInfo(c_gr);
+					sendSearch(c_gr);
 
-				// make sure users with the feature don't receive the search twice.
-				c.setType(AdcCommand::TYPE_FEATURE);
-				c.setFeatures('-' + SEGA_FEATURE);
+					// make sure users with the feature don't receive the search twice.
+					c.setType(AdcCommand::TYPE_FEATURE);
+					c.setFeatures('-' + SEGA_FEATURE);
+				}
 			}
 		}
 
@@ -976,7 +985,7 @@ void AdcHub::search(int aSizeMode, int64_t aSize, int aFileType, const string& a
 
 	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
 
-	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList);
+	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, false);
 
 	sendSearch(c);
 }

@@ -1438,6 +1438,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Not enough free space left on the target path %s (free space: %s while %s is needed). Using paused priority.", 
 "Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using paused priority.", 
 "Invalid pattern: %s", 
+"Prev", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2876,4 +2877,5 @@ std::string dcpp::ResourceManager::names[] = {
 "NotEnoughSpacePaused", 
 "NotEnoughSpaceQueuedPaused", 
 "InvalidPattern", 
+"PreviousShort", 
 };

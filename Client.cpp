@@ -26,6 +26,7 @@
 #include "ResourceManager.h"
 #include "ClientManager.h"
 #include "AirUtil.h"
+#include "LogManager.h"
 
 namespace dcpp {
 
@@ -209,6 +210,16 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
 		--counts[countType];
+		/*if (countType == COUNT_OP) {
+			LogManager::getInstance()->message("Removing an operator hub " + hubUrl + " from the counts, current counts: " + Util::toString(counts[COUNT_NORMAL]) + 
+				"/" + Util::toString(counts[COUNT_REGISTERED]) + "/" + Util::toString(counts[COUNT_OP]), LogManager::LOG_INFO);
+		} else if (countType == COUNT_REGISTERED) {
+			LogManager::getInstance()->message("Removing a registered hub " + hubUrl + " from the counts, current counts: " + Util::toString(counts[COUNT_NORMAL]) + 
+				"/" + Util::toString(counts[COUNT_REGISTERED]) + "/" + Util::toString(counts[COUNT_OP]), LogManager::LOG_INFO);
+		} else if (countType == COUNT_NORMAL) {
+			LogManager::getInstance()->message("Removing a normal hub " + hubUrl + " from the counts, current counts: " + Util::toString(counts[COUNT_NORMAL]) + 
+				"/" + Util::toString(counts[COUNT_REGISTERED]) + "/" + Util::toString(counts[COUNT_OP]), LogManager::LOG_INFO);
+		}*/
 		countType = COUNT_UNCOUNTED;
 	}
 
@@ -228,12 +239,24 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 
 			countType = COUNT_NORMAL;
 		}
+
 		if(updateIcons && seticons < 2) { //set more than once due to some nmdc hubs
 			fire(ClientListener::SetIcons(), this, countType);
 			seticons++;
 		}
 
 		++counts[countType];
+
+		/*if (countType == COUNT_OP) {
+			LogManager::getInstance()->message("Adding an operator hub " + hubUrl + ", current counts: " + Util::toString(counts[COUNT_NORMAL]) + 
+				"/" + Util::toString(counts[COUNT_REGISTERED]) + "/" + Util::toString(counts[COUNT_OP]), LogManager::LOG_INFO);
+		} else if (countType == COUNT_REGISTERED) {
+			LogManager::getInstance()->message("Adding a registered hub " + hubUrl + ", current counts: " + Util::toString(counts[COUNT_NORMAL]) + 
+				"/" + Util::toString(counts[COUNT_REGISTERED]) + "/" + Util::toString(counts[COUNT_OP]), LogManager::LOG_INFO);
+		} else if (countType == COUNT_NORMAL) {
+			LogManager::getInstance()->message("Adding a normal hub " + hubUrl + ", current counts: " + Util::toString(counts[COUNT_NORMAL]) + 
+				"/" + Util::toString(counts[COUNT_REGISTERED]) + "/" + Util::toString(counts[COUNT_OP]), LogManager::LOG_INFO);
+		}*/
 	}
 	return true;
 }

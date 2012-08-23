@@ -1445,5 +1445,6 @@ enum Strings { // @DontAdd
 	NOT_ENOUGH_SPACE_PAUSED, // "Not enough free space left on the target path %s (free space: %s while %s is needed). Using paused priority."
 	NOT_ENOUGH_SPACE_QUEUED_PAUSED, // "Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using paused priority."
 	INVALID_PATTERN, // "Invalid pattern: %s"
+	PREVIOUS_SHORT, // "Prev"
 	LAST // @DontAdd
 };

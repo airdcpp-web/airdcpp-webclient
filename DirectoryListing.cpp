@@ -924,12 +924,19 @@ void DirectoryListing::changeDir() {
 	}
 }
 
-bool DirectoryListing::nextResult() {
-	if (curResult == searchResults.end()-1) {
-		return false;
+bool DirectoryListing::nextResult(bool prev) {
+	if (prev) {
+		if (curResult == searchResults.begin()) {
+			return false;
+		}
+		advance(curResult, -1);
+	} else {
+		if (curResult == searchResults.end()-1) {
+			return false;
+		}
+		advance(curResult, 1);
 	}
 
-	advance(curResult, 1);
 	changeDir();
 	return true;
 }
