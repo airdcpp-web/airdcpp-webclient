@@ -157,7 +157,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
 	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
-	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory",
+	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -707,6 +707,7 @@ SettingsManager::SettingsManager()
 	setDefault(TB_PROGRESS_FONT, "Arial,-11,400,0");
 	setDefault(LOCK_TB, false);
 	setDefault(CLEAR_DIR_HISTORY, false);
+	setDefault(POPUNDER_PARTIAL_LIST, false);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

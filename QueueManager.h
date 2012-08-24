@@ -40,6 +40,7 @@
 #include "HashManager.h"
 #include "TargetUtil.h"
 #include "StringMatch.h"
+#include "TaskQueue.h"
 
 #include "BundleQueue.h"
 #include "FileQueue.h"
@@ -185,19 +186,19 @@ public:
 	enum { MOVER_LIMIT = 10*1024*1024 };
 	class FileMover : public Thread {
 	public:
-		FileMover() : active(false) { }
+		enum Tasks {
+			MOVE_FILE
+		};
+
+		FileMover() { }
 		virtual ~FileMover() { join(); }
 
 		void moveFile(const string& source, const string& target, QueueItemPtr aBundle);
 		virtual int run();
 	private:
-		typedef pair<QueueItemPtr, StringPair> FileQIPair;
-		typedef vector<FileQIPair> FileList;
 
-		bool active;
-
-		FileList files;
-		CriticalSection cs;
+		static atomic_flag active;
+		TaskQueue tasks;
 	} mover;
 
 	class Rechecker : public Thread {

@@ -590,8 +590,9 @@ void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToke
 			ret.push_back((*i)->getRealPath(true));
 		}
 	} else { //its a file
+		auto fileName = Util::getFileName(Util::toNmdcFile(path));
 		for(auto v = dirs.begin(); v != dirs.end(); ++v) {
-			auto it = find_if((*v)->files.begin(), (*v)->files.end(), Directory::File::StringComp(Util::getFileName(path)));
+			auto it = find_if((*v)->files.begin(), (*v)->files.end(), Directory::File::StringComp(fileName));
 			if(it != (*v)->files.end()) {
 				ret.push_back(it->getRealPath());
 				return;
@@ -1372,42 +1373,44 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 			if (k != shares.end()) {
 				dirtyProfiles.insert((*i)->profile);
 
-				if (k->second->getProfileDir()->removeRootProfile((*i)->profile)) {
-					//dcassert(shareDirs.find(Util::getLastDir(i->path)) != shareDirs.end());
-					//no other roots in here
-					bool hasParent = k->second->getParent() != nullptr;
-					if (!hasParent)
-						removeDir(k->second);
+				auto d = k->second;
+				if (d->getProfileDir()->removeRootProfile((*i)->profile)) {
 
-					if (!k->second->getProfileDir()->hasExcludes()) {
-						//delete k->second->getProfileDir();
-						k->second->setProfileDir(nullptr);
+					if (!d->getProfileDir()->hasExcludes()) {
+						dcassert(profileDirs.find((*i)->path) != profileDirs.end());
 						profileDirs.erase((*i)->path);
 					}
 
-					shares.erase((*i)->path);
-					if (hasParent) {
+					shares.erase(k);
+					if (d->getParent()) {
+						//the content still stays shared.. just null the profile
+						d->setProfileDir(nullptr);
 						continue;
 					}
 
+					dcassert(dirNameMap.find(Util::getLastDir((*i)->path)) != dirNameMap.end());
+					removeDir(d);
 					dcassert(dirNameMap.find(Util::getLastDir((*i)->path)) == dirNameMap.end());
-					//no profiles in the parent, check if we have any child roots for other profiles inside this tree and get the most top one
-					Directory::Ptr dir = nullptr;
+
+					//no parent directories, check if we have any child roots for other profiles inside this tree and get the most top one
+					Directory::Ptr subDir = nullptr;
 					for(auto p = shares.begin(); p != shares.end(); ++p) {
-						if(strnicmp((*i)->path, p->first, (*i)->path.length()) == 0 && (!dir || p->first.length() < dir->getProfileDir()->getPath().length())) {
-							dir = p->second;
+						if(strnicmp((*i)->path, p->first, (*i)->path.length()) == 0 && (!subDir || p->first.length() < subDir->getProfileDir()->getPath().length())) {
+							subDir = p->second;
 						}
 					}
 
-					if (dir) {
-						dir->setParent(nullptr);
+					if (subDir) {
+						subDir->setParent(nullptr);
 					}
 
 					rebuildIncides = true;
 				}
 			}
 		}
-		rebuildIndices();
+
+		if (rebuildIncides)
+			rebuildIndices();
 	}
 
 	boost::for_each(dirtyProfiles, [this](ProfileToken aProfile) { setDirty(aProfile); });
@@ -1764,7 +1767,7 @@ void ShareManager::Directory::toFileList(FileListDir* aListDir, ProfileToken aPr
 	auto pos = aListDir->listDirs.find(n);
 	if (pos != aListDir->listDirs.end()) {
 		newListDir = pos->second;
-		if (isFullList)
+		if (!isFullList)
 			newListDir->size += getSize(aProfile);
 		newListDir->date = max(newListDir->date, lastWrite);
 	} else {
@@ -2387,6 +2390,7 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 }
 void ShareManager::cleanIndices(Directory::Ptr& dir) {
 	for(auto i = dir->directories.begin(); i != dir->directories.end(); ++i) {
+		removeDir(dir);
 		cleanIndices(i->second);
 	}
 
@@ -2399,8 +2403,6 @@ void ShareManager::cleanIndices(Directory::Ptr& dir) {
 			}
 		}
 	}
-
-	removeDir(dir);
 
 	dir->files.clear();
 	dir->directories.clear();

@@ -89,7 +89,7 @@ public:
 	GETSET(DirectoryListingPtr, listing, Listing);
 
 	//string getLocalPath() { return target + Util::getLastDir(listPath); }
-	string getDirName() { return Util::getLastDir(listPath); }
+	string getFinishedDirName() { return target + Util::getLastDir(listPath) + Util::toString(targetType); }
 private:
 	UserPtr user;
 };
@@ -183,14 +183,14 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 
 			{
 				RLock l (cs);
-				auto p = finishedListings.find(di->getDirName());
+				auto p = finishedListings.find(di->getFinishedDirName());
 				if (p != finishedListings.end()) {
 					//we have downloaded with this dirname before...
 					if (p->second->getState() == FinishedDirectoryItem::REJECTED) {
 						delete di;
 					} else if (p->second->getState() == FinishedDirectoryItem::ACCEPTED) {
 						//download directly
-						dirList->download(di->getListPath(), p->second->getTargetPath(), di->getTargetType(), false, p->second->getUsePausedPrio() ? QueueItem::PAUSED : di->getPriority());
+						dirList->download(di->getListPath(), p->second->getTargetPath(), TargetUtil::TARGET_PATH, false, p->second->getUsePausedPrio() ? QueueItem::PAUSED : di->getPriority());
 						delete di;
 					} else if (p->second->getState() == FinishedDirectoryItem::WAITING_ACTION) {
 						//add in the list to wait for action
@@ -202,43 +202,37 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 				}
 			}
 
-			string path;
+			//we have a new directory
 			TargetUtil::TargetInfo ti;
 			int64_t dirSize = dirList->getDirSize(di->getListPath());
-
-
-			//we have a new directory
 			TargetUtil::getVirtualTarget(di->getTarget(), di->getTargetType(), ti, dirSize);
 			bool hasFreeSpace = ti.getFreeSpace() >= dirSize;
-			di->setTarget(ti.targetDir);
 
 			if (di->getSizeConfirm() == REPORT_SYSLOG) {
 				if (!hasFreeSpace)
 					TargetUtil::reportInsufficientSize(ti, dirSize);
 
-				dirList->download(di->getListPath(), di->getTarget(), di->getTargetType(), false, !hasFreeSpace ? QueueItem::PAUSED : di->getPriority());
+				dirList->download(di->getListPath(), ti.targetDir, TargetUtil::TARGET_PATH, false, !hasFreeSpace ? QueueItem::PAUSED : di->getPriority());
 				{
 					WLock l (cs);
-					finishedListings[di->getDirName()] = new FinishedDirectoryItem(!hasFreeSpace, ti.targetDir);
+					finishedListings[di->getFinishedDirName()] = new FinishedDirectoryItem(!hasFreeSpace, ti.targetDir);
 				}
 				delete di;
-			} else if (di->getSizeConfirm() == ASK_USER) {
-				if (!hasFreeSpace && di->getTargetType() != TargetUtil::TARGET_PATH) {
-					di->setListing(dirList);
-					{
-						WLock l (cs);
-						finishedListings[di->getDirName()] = new FinishedDirectoryItem(di, ti.targetDir);
-					}
-
-					string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
-					fire(DirectoryListingManagerListener::PromptAction(), di->getDirName(), msg);
-				} else {
-					dirList->download(di->getListPath(), di->getTarget(), di->getTargetType(), false, di->getPriority());
-
+			} else if (di->getSizeConfirm() == ASK_USER && !hasFreeSpace) {
+				di->setListing(dirList);
+				{
 					WLock l (cs);
-					finishedListings[di->getDirName()] = new FinishedDirectoryItem(false, ti.targetDir);
-					delete di;
+					finishedListings[di->getFinishedDirName()] = new FinishedDirectoryItem(di, ti.targetDir);
 				}
+
+				string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
+				fire(DirectoryListingManagerListener::PromptAction(), di->getFinishedDirName(), msg);
+			} else {
+				dirList->download(di->getListPath(), ti.targetDir, TargetUtil::TARGET_PATH, false, di->getPriority());
+
+				WLock l (cs);
+				finishedListings[di->getFinishedDirName()] = new FinishedDirectoryItem(false, ti.targetDir);
+				delete di;
 			}
 		}
 	}
@@ -258,11 +252,11 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 	}
 }
 
-void DirectoryListingManager::handleSizeConfirmation(const string& aName, bool accepted) {
+void DirectoryListingManager::handleSizeConfirmation(const string& aTarget, bool accepted) {
 	FinishedDirectoryItem* wdi = nullptr;
 	{
 		WLock l(cs);
-		auto p = finishedListings.find(aName);
+		auto p = finishedListings.find(aTarget);
 		if (p != finishedListings.end()) {
 			p->second->handleAction(accepted);
 			//finishedListings.erase(p);

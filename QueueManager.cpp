@@ -64,28 +64,33 @@ namespace dcpp {
 using boost::adaptors::map_values;
 using boost::range::for_each;
 
+atomic_flag QueueManager::FileMover::active = ATOMIC_FLAG_INIT;
+
+struct MoverTask : public Task {
+	MoverTask(const string& aSource, const string& aTarget, QueueItemPtr aQI) : target(aTarget), source(aSource), qi(aQI) { }
+
+	string target, source;
+	QueueItemPtr qi;
+};
+
 void QueueManager::FileMover::moveFile(const string& source, const string& target, QueueItemPtr q) {
-	Lock l(cs);
-	files.push_back(make_pair(q, make_pair(source, target)));
-	if(!active) {
-		active = true;
+	tasks.add(MOVE_FILE, unique_ptr<Task>(new MoverTask(source, target, q)));
+	if(!active.test_and_set()) {
 		start();
+		setThreadPriority(Thread::LOW);
 	}
 }
 
 int QueueManager::FileMover::run() {
 	for(;;) {
-		FileQIPair next;
-		{
-			Lock l(cs);
-			if(files.empty()) {
-				active = false;
-				return 0;
-			}
-			next = files.back();
-			files.pop_back();
+		TaskQueue::TaskPair t;
+		if (!tasks.getFront(t)) {
+			active.clear();
+			return 0;
 		}
-		moveFile_(next.second.first, next.second.second, next.first);
+
+		auto mv = static_cast<MoverTask*>(t.second.get());
+		moveFile_(mv->source, mv->target, mv->qi);
 	}
 }
 
@@ -875,8 +880,12 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 		RLock l (cs);
 		//flag this file as moved
 		auto s = find_if(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [qi](QueueItemPtr aQI) { return aQI->getTarget() == qi->getTarget(); });
-		if (s != b->getFinishedFiles().end())
+		if (s != b->getFinishedFiles().end()) {
 			(*s)->setFlag(QueueItem::FLAG_MOVED);
+		} else if (b->getFinishedFiles().empty() && b->getQueueItems().empty()) {
+			//the bundle was removed while the file was being moved?
+			return;
+		}
 
 		//check if there are queued or non-moved files remaining
 		if (!b->getQueueItems().empty() || find_if(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [](QueueItemPtr q) { 

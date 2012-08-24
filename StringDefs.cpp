@@ -634,7 +634,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Make an annoying sound every time a private message is received", 
 "Make an annoying sound when a private message window is opened", 
 "PM history", 
-"Open new file list windows in the background", 
 "Open new private message windows in the background", 
 "Open private messages from the hub in their own window", 
 "Open private messages from bots in their own window", 
@@ -1439,6 +1438,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using paused priority.", 
 "Invalid pattern: %s", 
 "Prev", 
+"Open new full file lists in the background", 
+"Open new partial file lists in the background", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2073,7 +2074,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsPmBeep", 
 "SettingsPmBeepOpen", 
 "SettingsPmHistory", 
-"SettingsPopunderFilelist", 
 "SettingsPopunderPm", 
 "SettingsPopupBotPms", 
 "SettingsPopupHubPms", 
@@ -2878,4 +2878,6 @@ std::string dcpp::ResourceManager::names[] = {
 "NotEnoughSpaceQueuedPaused", 
 "InvalidPattern", 
 "PreviousShort", 
+"SettingsPopunderFullList", 
+"SettingsPopunderPartialList", 
 };

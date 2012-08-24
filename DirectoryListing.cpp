@@ -43,12 +43,13 @@ namespace dcpp {
 
 using boost::range::for_each;
 
-atomic_flag DirectoryListing::running = ATOMIC_FLAG_INIT;
+//atomic_flag DirectoryListing::running = ATOMIC_FLAG_INIT;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, int64_t aSpeed, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	speed(aSpeed), isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(BOOLSETTING(USE_ADLS) && !aPartial)
 {
+	running.clear();
 }
 
 DirectoryListing::~DirectoryListing() {
@@ -65,11 +66,15 @@ void DirectoryListing::Directory::sortDirs() {
 	for(auto i = directories.begin(); i != directories.end(); ++i) {
 		(*i)->sortDirs();
 	}
-	sort(directories.begin(), directories.end(), Directory::Sort());
+	sort(directories.begin(), directories.end(), Directory::DefaultSort());
 }
 
 bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) const {
 	return compare(a->getName(), b->getName()) < 0;
+}
+
+bool DirectoryListing::Directory::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
+	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
 }
 
 bool DirectoryListing::File::Sort::operator()(const Ptr& a, const Ptr& b) const {
@@ -402,16 +407,16 @@ bool DirectoryListing::Directory::findIncomplete() {
 	return find_if(directories.begin(), directories.end(), [&](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
 }
 
-void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
+void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
 	string target;
 	if (first) {
 		//check if there are incomplete dirs in a partial list
 		if (partialList && aDir->findIncomplete()) {
 			if (!recursiveList) {
-				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, ASK_USER, prio);
+				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio);
 			} else {
 				//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, ASK_USER, prio, true);
+				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, true);
 			}
 			return;
 		}
@@ -428,7 +433,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUt
 			[&reg](Directory* d) { return boost::regex_match(d->getName(), reg); }) == (int)aDir->directories.size()) {
 			
 			/* Create bundles from each subfolder */
-			for_each(aDir->directories, [&](Directory* dir) { download(dir, target, aTargetType, highPrio, prio, false, false, nullptr); });
+			for_each(aDir->directories, [&](Directory* dir) { download(dir, target, aTargetType, isSizeUnknown, prio, false, false, nullptr); });
 			return;
 		}
 	} else {
@@ -445,13 +450,13 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUt
 
 	// First, recurse over the directories
 	sort(dirList.begin(), dirList.end(), Directory::Sort());
-	for_each(dirList, [&](Directory* dir) { download(dir, target, aTargetType, highPrio, prio, false, false, aBundle); });
+	for_each(dirList, [&](Directory* dir) { download(dir, target, aTargetType, isSizeUnknown, prio, false, false, aBundle); });
 
 	// Then add the files
 	sort(fileList.begin(), fileList.end(), File::Sort());
 	for(auto i = fileList.begin(); i != fileList.end(); ++i) {
 		try {
-			download(*i, target + (*i)->getName(), false, highPrio, QueueItem::DEFAULT, aBundle);
+			download(*i, target + (*i)->getName(), false, QueueItem::DEFAULT, aBundle);
 		} catch(const QueueException&) {
 			// Catch it here to allow parts of directories to be added...
 		} catch(const FileException&) {
@@ -481,7 +486,7 @@ int64_t DirectoryListing::getDirSize(const string& aDir) {
 	return 0;
 }
 
-void DirectoryListing::download(File* aFile, const string& aTarget, bool view, bool highPrio, QueueItem::Priority prio, BundlePtr aBundle) {
+void DirectoryListing::download(File* aFile, const string& aTarget, bool view, QueueItem::Priority prio, BundlePtr aBundle) {
 	Flags::MaskType flags = (Flags::MaskType)(view ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : 0);
 
 	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), flags, true, prio, aBundle);
@@ -747,16 +752,15 @@ void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize,
 }
 
 void DirectoryListing::runTasks() {
-	if (running.test_and_set())
-		return;
-
-	join();
-	try {
-		start();
-		setThreadPriority(Thread::NORMAL);
-	} catch(const ThreadException& /*e*/) {
-		LogManager::getInstance()->message("DirListThread error", LogManager::LOG_WARNING);
-		running.clear();
+	if (!running.test_and_set()) {
+		join();
+		try {
+			start();
+			setThreadPriority(Thread::NORMAL);
+		} catch(const ThreadException& /*e*/) {
+			LogManager::getInstance()->message("DirListThread error", LogManager::LOG_WARNING);
+			running.clear();
+		}
 	}
 }
 

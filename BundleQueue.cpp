@@ -86,13 +86,13 @@ void BundleQueue::removeSearchPrio(BundlePtr aBundle) {
 
 	if (aBundle->isRecent()) {
 		auto i = std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle);
-		dcassert(i != recentSearchQueue.end());
+		//dcassert(i != recentSearchQueue.end());
 		if (i != recentSearchQueue.end()) {
 			recentSearchQueue.erase(i);
 		}
 	} else {
 		auto i = std::find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle);
-		dcassert(i != prioSearchQueue[aBundle->getPriority()].end());
+		//dcassert(i != prioSearchQueue[aBundle->getPriority()].end());
 		if (i != prioSearchQueue[aBundle->getPriority()].end()) {
 			prioSearchQueue[aBundle->getPriority()].erase(i);
 		}

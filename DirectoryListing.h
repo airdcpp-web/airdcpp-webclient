@@ -94,6 +94,7 @@ public:
 		typedef Directory* Ptr;
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
+		struct DefaultSort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
@@ -153,8 +154,8 @@ public:
 	string loadXML(InputStream& xml, bool updating);
 
 	void download(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
-	void download(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
-	void download(File* aFile, const string& aTarget, bool view, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, BundlePtr aBundle=NULL);
+	void download(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
+	void download(File* aFile, const string& aTarget, bool view, QueueItem::Priority prio = QueueItem::DEFAULT, BundlePtr aBundle=NULL);
 
 	string getPath(const Directory* d) const;
 	string getPath(const File* f) const { return getPath(f->getParent()); }
@@ -223,7 +224,7 @@ private:
 	};
 
 	void runTasks();
-	static atomic_flag running;
+	atomic_flag running;
 
 	TaskQueue tasks;
 

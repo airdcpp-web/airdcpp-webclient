@@ -637,7 +637,6 @@ enum Strings { // @DontAdd
 	SETTINGS_PM_BEEP, // "Make an annoying sound every time a private message is received"
 	SETTINGS_PM_BEEP_OPEN, // "Make an annoying sound when a private message window is opened"
 	SETTINGS_PM_HISTORY, // "PM history"
-	SETTINGS_POPUNDER_FILELIST, // "Open new file list windows in the background"
 	SETTINGS_POPUNDER_PM, // "Open new private message windows in the background"
 	SETTINGS_POPUP_BOT_PMS, // "Open private messages from the hub in their own window"
 	SETTINGS_POPUP_HUB_PMS, // "Open private messages from bots in their own window"
@@ -1446,5 +1445,7 @@ enum Strings { // @DontAdd
 	NOT_ENOUGH_SPACE_QUEUED_PAUSED, // "Not enough free space left on the target path %s (free space: %s, queued files: %s while %s is needed). Using paused priority."
 	INVALID_PATTERN, // "Invalid pattern: %s"
 	PREVIOUS_SHORT, // "Prev"
+	SETTINGS_POPUNDER_FULL_LIST, // "Open new full file lists in the background"
+	SETTINGS_POPUNDER_PARTIAL_LIST, // "Open new partial file lists in the background"
 	LAST // @DontAdd
 };

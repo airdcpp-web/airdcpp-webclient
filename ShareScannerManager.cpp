@@ -176,6 +176,9 @@ int ShareScannerManager::run() {
 					continue;
 				}
 				scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
+				if(SETTING(CHECK_DUPES))
+					findDupes(dir, dupesFound);
+
 				find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, false);
 			}
 		}
