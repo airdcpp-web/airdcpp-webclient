@@ -70,7 +70,7 @@ using boost::adaptors::map_values;
 atomic_flag ShareManager::refreshing = ATOMIC_FLAG_INIT;
 
 ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false),
-	xml_saving(false), lastSave(GET_TICK()), aShutdown(false), allSearches(0), stoppedSearches(0), refreshRunning(false)
+	xml_saving(false), lastSave(GET_TICK()), aShutdown(false), refreshRunning(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
@@ -94,7 +94,6 @@ ShareManager::~ShareManager() {
 	QueueManager::getInstance()->removeListener(this);
 
 	join();
-	w.join();
 }
 
 void ShareManager::startup() {
@@ -166,6 +165,7 @@ void ShareManager::setDirty(ProfileToken aProfile) {
 	auto i = find(shareProfiles.begin(), shareProfiles.end(), aProfile);
 	if(i != shareProfiles.end())
 		(*i)->getProfileList()->setForceXmlRefresh(true);
+	ShareCacheDirty = true; 
 }
 
 ShareManager::Directory::Directory(const string& aRealName, const ShareManager::Directory::Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aProfileDir) :
@@ -1563,7 +1563,7 @@ end:
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 
-	if(SETTING(SHARE_SAVE_TIME) > 0 && ShareCacheDirty && lastSave + SETTING(SHARE_SAVE_TIME) *60 *1000 <= tick) {
+	if(ShareCacheDirty && lastSave + 15*60*1000 <= tick) {
 		saveXmlList();
 	}
 
@@ -2182,9 +2182,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 	}
 	StringTokenizer<string> t(Text::toLower(aString), '$');
 	StringList& sl = t.getTokens();
-	allSearches++;
 	if(!bloom.match(sl)) {
-		stoppedSearches++;
 		return;
 	}
 
@@ -2201,12 +2199,6 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 		if(j->second->getProfileDir()->hasProfile(SP_DEFAULT))
 			j->second->search(results, ssl, aSearchType, aSize, aFileType, maxResults);
 	}
-}
-
-string ShareManager::getBloomStats() {
-	string ret = "Total StringSearches: " + Util::toString(allSearches) + ", stopped " + Util::toString((stoppedSearches > 0) ? (((double)stoppedSearches / (double)allSearches)*100) : 0) + " % (" + Util::toString(stoppedSearches) + " searches)";
-	//ret += "Bloom size: " + Util::toString(bloom.getSize()) + ", length " + Util::toString(bloom.getLength());
-	return ret;
 }
 
 /* Each matching directory is only being added once in the results. For directory results we return the path of the parent directory and for files the current directory */
@@ -2375,10 +2367,8 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 		return;
 	}
 
-	allSearches++;
 	for(auto i = srch.includeX.begin(); i != srch.includeX.end(); ++i) {
 		if(!bloom.match(i->getPattern())) {
-			stoppedSearches++;
 			return;
 		}
 	}

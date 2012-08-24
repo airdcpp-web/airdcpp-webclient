@@ -125,11 +125,6 @@ public:
 	void setDirty(bool force = false);
 	
 	void setDirty(ProfileToken aProfile);
-	void save() { 
-		w.join();
-		//LogManager::getInstance()->message("Creating share cache...");
-		w.start();
-	}
 
 	void startup();
 	void shutdown();
@@ -147,7 +142,6 @@ public:
 	bool allowAddDir(const string& dir);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory);
-	string getBloomStats();
 
 	bool loadCache();
 
@@ -236,6 +230,7 @@ public:
 	ShareProfileList& getProfiles() { return shareProfiles; }
 
 	void getExcludes(ProfileToken aProfile, StringList& excludes);
+	void saveXmlList(bool verbose = false);	//for filelist caching
 private:
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
 		public:
@@ -437,8 +432,6 @@ private:
 	FileList* generateXmlList(ProfileToken aProfile, bool forced = false);
 	FileList* getFileList(ProfileToken aProfile) const;
 
-	void saveXmlList(bool verbose = false);	//for filelist caching
-
 	bool ShareCacheDirty;
 	bool aShutdown;
 
@@ -459,7 +452,6 @@ private:
 	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
 	mutable SharedMutex dirNames; // Bundledirs, releasedirs and excluded dirs
 
-	int allSearches, stoppedSearches;
 	int refreshOptions;
 
 	BloomFilter<5> bloom;
@@ -522,23 +514,6 @@ private:
 
 	StringMatch skipList;
 	string winDir;
-
-	/*This will only be used by the big sharing people probobly*/
-	class Worker: public Thread {
-	public:
-		Worker() { }
-		~Worker() {}
-
-	private:
-		int run() {
-			ShareManager::getInstance()->saveXmlList(true);
-			return 0;
-		}
-	};//worker end
-
-	friend class Worker;
-	Worker w;
-
 }; //sharemanager end
 
 } // namespace dcpp

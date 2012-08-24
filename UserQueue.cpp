@@ -230,16 +230,7 @@ void UserQueue::removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunni
 
 void UserQueue::addBundle(BundlePtr aBundle, const UserPtr& aUser) {
 	auto& s = userBundleQueue[aUser];
-	if (SETTING(DOWNLOAD_ORDER) != SettingsManager::ORDER_RANDOM) {
-		s.insert(upper_bound(s.begin(), s.end(), aBundle, Bundle::SortOrder()), aBundle);
-	} else {
-		auto pp = equal_range(s.begin(), s.end(), aBundle, [](const BundlePtr leftBundle, const BundlePtr rightBundle) { return leftBundle->getPriority() > rightBundle->getPriority(); });
-		int dist = distance(pp.first, pp.second);
-		if (dist > 0) {
-			std::advance(pp.first, Util::rand(dist));
-		}
-		s.insert(pp.first, aBundle);
-	}
+	s.insert(upper_bound(s.begin(), s.end(), aBundle, Bundle::SortOrder()), aBundle);
 }
 
 void UserQueue::removeBundle(BundlePtr aBundle, const UserPtr& aUser) {

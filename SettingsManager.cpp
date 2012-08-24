@@ -154,8 +154,8 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
-	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing", "DownloadOrder",
-	"ShareSaveTime", "RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
+	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing",
+	"RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
 	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList",
 	"SENTRY",
@@ -679,8 +679,6 @@ SettingsManager::SettingsManager()
 	setDefault(POPUP_BUNDLE_DLS, true);
 	setDefault(POPUP_BUNDLE_ULS, false);
 	setDefault(LOG_HASHING, true);
-	setDefault(DOWNLOAD_ORDER, 0);
-	setDefault(SHARE_SAVE_TIME, 30);
 	setDefault(RECENT_BUNDLE_HOURS, 24);
 	setDefault(USE_FTP_LOGGER, false);
 	setDefault(ICON_PATH, "icons");

@@ -3412,14 +3412,6 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool manual) {
 	}
 }
 
-void QueueManager::onChangeDownloadOrder() {
-	WLock l (cs);
-	for_each(bundleQueue.getBundles() | map_values, [&](BundlePtr b) {
-		if (!b->isFinished() && b->getPriority() != Bundle::PAUSED)
-			userQueue.setBundlePriority(b, b->getPriority());
-	});
-}
-
 void QueueManager::onUseSeqOrder(BundlePtr b) {
 	WLock l (cs);
 

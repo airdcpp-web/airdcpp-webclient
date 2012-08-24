@@ -74,7 +74,7 @@ bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) c
 }
 
 bool DirectoryListing::Directory::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
-	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
+	return Util::DefaultSort(a->getName().c_str(), b->getName().c_str()) < 0;
 }
 
 bool DirectoryListing::File::Sort::operator()(const Ptr& a, const Ptr& b) const {

@@ -72,7 +72,6 @@ public:
 	/** Readd a source that was removed */
 	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
 	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) throw(QueueException);
-	void onChangeDownloadOrder();
 	void onUseSeqOrder(BundlePtr aBundle);
 
 	/** Add a directory to the queue (downloads filelist and matches the directory). */

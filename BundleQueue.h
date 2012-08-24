@@ -80,9 +80,6 @@ private:
 	uint64_t nextSearch;
 	/** Next recent bundle search */
 	uint64_t nextRecentSearch;
-
-	//temp stats
-	int highestSel, highSel, normalSel, lowSel, calculations;
 };
 
 } // namespace dcpp

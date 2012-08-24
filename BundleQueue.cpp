@@ -40,9 +40,7 @@ using boost::adaptors::map_values;
 BundleQueue::BundleQueue() : 
 	nextSearch(0),
 	nextRecentSearch(0)
-{ 
-	highestSel=0, highSel=0, normalSel=0, lowSel=0, calculations=0;
-}
+{ }
 
 BundleQueue::~BundleQueue() { }
 
@@ -109,29 +107,6 @@ BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */)
 	if(!bundle && (aTick >= nextRecentSearch || force)) {
 		bundle = findRecent();
 		//LogManager::getInstance()->message("Next recent search in " + Util::toString(recentBundles > 1 ? 5 : 10) + " minutes");
-	}
-
-	if(bundle) {
-		if (!bundle->isRecent()) {
-			calculations++;
-			switch((int)bundle->getPriority()) {
-				case 2:
-					lowSel++;
-					break;
-				case 3:
-					normalSel++;
-					break;
-				case 4:
-					highSel++;
-					break;
-				case 5:
-					highestSel++;
-					break;
-			}
-		} else {
-			//LogManager::getInstance()->message("Performing search for a RECENT bundle: " + bundle->getName());
-		}
-		//LogManager::getInstance()->message("Calculations performed: " + Util::toString(calculations) + ", highest: " + Util::toString(((double)highestSel/calculations)*100) + "%, high: " + Util::toString(((double)highSel/calculations)*100) + "%, normal: " + Util::toString(((double)normalSel/calculations)*100) + "%, low: " + Util::toString(((double)lowSel/calculations)*100) + "%");
 	}
 	return bundle;
 }
