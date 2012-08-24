@@ -85,7 +85,7 @@ public:
 	void addTree(const string& aFileName, uint32_t aTimeStamp, const TigerTree& tt) {
 		hashDone(aFileName, aTimeStamp, tt, -1, -1);
 	}
-	void addTree(const TigerTree& tree) { Lock l(cs); store.addTree(tree); }
+	void addTree(const TigerTree& tree) { WLock l(cs); store.addTree(tree); }
 
 	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) {
 		hasher.getStats(curFile, bytesLeft, filesLeft, speed);
@@ -106,7 +106,7 @@ public:
 		hasher.clear();
 		hasher.shutdown();
 		{	
-		Lock l(cs); //lock only here, prevent deadlock on shutdown (while hashing, hashdone has a lock too if we join inside a lock....)
+		WLock l(cs); //lock only here, prevent deadlock on shutdown (while hashing, hashdone has a lock too if we join inside a lock....)
 		store.save(); 
 		}
 		hasher.join();
@@ -138,7 +138,7 @@ private:
 		bool isPaused() const;
 		
 		void clear() {
-			Lock l(cs);
+			Lock l(hcs);
 			w.clear();
 			totalBytesLeft = 0;
 		}
@@ -157,7 +157,7 @@ private:
 		typedef WorkMap::iterator WorkIter;
 
 		WorkMap w;
-		mutable CriticalSection cs;
+		mutable CriticalSection hcs;
 		Semaphore s;
 
 		bool stop;
@@ -252,7 +252,7 @@ private:
 	Hasher hasher;
 	HashStore store;
 	
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;
 
 	/** Single node tree where node = root, no storage in HashData.dat */
 	static const int64_t SMALL_TREE = -1;
@@ -260,11 +260,11 @@ private:
 	void hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size);
 
 	void doRebuild() {
-		Lock l(cs);
+		WLock l(cs);
 		store.rebuild();
 	}
 	void SaveData() {
-		Lock l(cs);
+		WLock l(cs);
 		store.save();
 	}
 
@@ -272,9 +272,8 @@ private:
 
 	void on(TimerManagerListener::Minute, uint64_t) noexcept {
 		if(GET_TICK() - lastSave > 10*60*1000 && store.isDirty()) { 
-			Lock l(cs);
-			hasher.save();
 			lastSave = GET_TICK();
+			hasher.save();
 		}
 	}
 };

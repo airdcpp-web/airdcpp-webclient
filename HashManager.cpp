@@ -36,7 +36,7 @@ static const uint32_t HASH_FILE_VERSION = 2;
 const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
 
 bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp) {
-	Lock l(cs);
+	RLock l(cs);
 	if (!store.checkTTH(aFileName, aSize, aTimeStamp)) {
 		hasher.hashFile(aFileName, aSize);
 		return false;
@@ -45,7 +45,7 @@ bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTim
 }
 
 TTHValue HashManager::getTTH(const string& aFileName, int64_t aSize) {
-	Lock l(cs);
+	RLock l(cs);
 	const TTHValue* tth = store.getTTH(aFileName);
 	if (tth == NULL) {
 		hasher.hashFile(aFileName, aSize);
@@ -55,18 +55,18 @@ TTHValue HashManager::getTTH(const string& aFileName, int64_t aSize) {
 }
 
 bool HashManager::getTree(const TTHValue& root, TigerTree& tt) {
-	Lock l(cs);
+	RLock l(cs);
 	return store.getTree(root, tt);
 }
 
 size_t HashManager::getBlockSize(const TTHValue& root) {
-	Lock l(cs);
+	RLock l(cs);
 	return store.getBlockSize(root);
 }
 
 void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t /*size*/) {
 	try {
-		Lock l(cs);
+		WLock l(cs);
 		store.addFile(aFileName, aTimeStamp, tth, true);
 	} catch (const Exception& e) {
 		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
@@ -471,7 +471,7 @@ void HashManager::HashStore::createDataFile(const string& name) {
 }
 
 void HashManager::Hasher::hashFile(const string& fileName, int64_t size) {
-	Lock l(cs);
+	Lock l(hcs);
 	if (w.insert(make_pair(fileName, size)).second) {
 			totalBytesLeft += size;
 			s.signal();
@@ -493,7 +493,7 @@ bool HashManager::Hasher::isPaused() const {
 }
 
 void HashManager::Hasher::stopHashing(const string& baseDir) {
-	Lock l(cs);
+	Lock l(hcs);
 	for (WorkIter i = w.begin(); i != w.end();) {
 		if (strnicmp(baseDir, i->first, baseDir.length()) == 0) {
 			totalBytesLeft -= i->second;
@@ -505,17 +505,13 @@ void HashManager::Hasher::stopHashing(const string& baseDir) {
 }
 
 void HashManager::Hasher::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) {
-	Lock l(cs);
+	Lock l(hcs);
 	curFile = currentFile;
 	filesLeft = w.size();
 	if (running)
 		filesLeft++;
 	bytesLeft = totalBytesLeft;
 	speed = lastSpeed;
-	//for (WorkMap::const_iterator i = w.begin(); i != w.end(); ++i) {
-		//bytesLeft += i->second;
-	//}
-	//bytesLeft += currentSize;
 }
 
 void HashManager::Hasher::instantPause() {
@@ -548,7 +544,7 @@ int HashManager::Hasher::run() {
 		}
 		
 		{
-			Lock l(cs);
+			Lock l(hcs);
 			if(!w.empty()) {
 				currentFile = fname = w.begin()->first;
 				currentSize = w.begin()->second;
@@ -580,8 +576,8 @@ int HashManager::Hasher::run() {
  
                 FileReader fr(true);
 				fr.read(fname, [&](const void* buf, size_t n) -> bool {
+					uint64_t now = GET_TICK();
 					if(SETTING(MAX_HASH_SPEED)> 0) {
-						uint64_t now = GET_TICK();
 						uint64_t minTime = n * 1000LL / (SETTING(MAX_HASH_SPEED) * 1024LL * 1024LL);
  
 						if(lastRead + minTime> now) {
@@ -596,30 +592,34 @@ int HashManager::Hasher::run() {
 				if(xcrc32)
 					(*xcrc32)(buf, n);
 
-				{
-					Lock l(cs);
-					currentSize = max(static_cast<uint64_t>(currentSize - n), static_cast<uint64_t>(0));
-				}
 					sizeLeft -= n;
+				{
+					Lock l(hcs);
+					currentSize = max(static_cast<uint64_t>(currentSize - n), static_cast<uint64_t>(0));
+										
+					if(totalBytesLeft > 0)
+						totalBytesLeft -= n;
+					if(now > start)
+						lastSpeed = (size - sizeLeft)*1000 / (now -start);
+
+				}
+
 					return !stop;
 				});
 
 				f.close();
 				tt.finalize();
 				uint64_t end = GET_TICK();
-				lastSpeed = 0;
+				int64_t averageSpeed = 0;
 				if(end > start) {
-					lastSpeed = size * 1000 / (end - start);
+					averageSpeed = size * 1000 / (end - start);
 				}
-
-				if(totalBytesLeft > 0)
-					totalBytesLeft -= size;
 
 				if(xcrc32 && xcrc32->getValue() != sfv.getCRC()) {
 					LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), LogManager::LOG_ERROR);
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				} else {
-					HashManager::getInstance()->hashDone(fname, timestamp, tt, lastSpeed, size);
+					HashManager::getInstance()->hashDone(fname, timestamp, tt, averageSpeed, size);
 				}
 			} catch(const FileException& e) {
 				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), LogManager::LOG_ERROR);
@@ -628,7 +628,7 @@ int HashManager::Hasher::run() {
 		
 		}
 		{
-			Lock l(cs);
+			Lock l(hcs);
 			currentFile.clear();
 			currentSize = 0;
 		}
