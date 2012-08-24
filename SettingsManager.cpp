@@ -25,10 +25,7 @@
 #include "AirUtil.h"
 #include "File.h"
 #include "version.h"
-#include "AdcHub.h"
 #include "CID.h"
-#include "SearchManager.h"
-#include "StringTokenizer.h"
 
 namespace dcpp {
 
@@ -722,7 +719,6 @@ SettingsManager::SettingsManager()
 	setDefault(USE_OLD_SHARING_UI, (ver.dwPlatformId == VER_PLATFORM_WIN32_NT) ? false : true);
 #endif
 	*/
-	setSearchTypeDefaults();
 }
 
 void SettingsManager::load(string const& aFileName)
@@ -770,25 +766,6 @@ void SettingsManager::load(string const& aFileName)
 				xml.resetCurrentChild();
 			}
 			
-			xml.stepOut();
-		}
-
-
-		xml.resetCurrentChild();
-		if(xml.findChild("SearchTypes")) {
-			searchTypes.clear();
-			xml.stepIn();
-			while(xml.findChild("SearchType")) {
-				const string& extensions = xml.getChildData();
-				if(extensions.empty()) {
-					continue;
-				}
-				const string& name = xml.getChildAttrib("Id");
-				if(name.empty()) {
-					continue;
-				}
-				searchTypes[name] = StringTokenizer<string>(extensions, ';').getTokens();
-			}
 			xml.stepOut();
 		}
 
@@ -938,17 +915,6 @@ void SettingsManager::save(string const& aFileName) {
 	}
 	xml.stepOut();
 
-	
-	xml.addTag("SearchTypes");
-	xml.stepIn();
-	{
-		for(auto i = searchTypes.begin(); i != searchTypes.end(); ++i) {
-			xml.addTag("SearchType", Util::toString(";", i->second));
-			xml.addChildAttrib("Id", i->first);
-		}
-	}
-	xml.stepOut();
-
 	xml.addTag("SearchHistory");
 	xml.stepIn();
 	for(auto i = searchHistory.begin(); i != searchHistory.end(); ++i) {
@@ -990,132 +956,6 @@ void SettingsManager::save(string const& aFileName) {
 	} catch(...) {
 		// ...
 	}
-}
-
-void SettingsManager::validateSearchTypeName(const string& name) const {
-	if(name.empty() || (name.size() == 1 && name[0] >= '0' && name[0] <= '8')) {
-		throw SearchTypeException("Invalid search type name"); // TODO: localize
-	}
-	for(int type = SearchManager::TYPE_ANY; type != SearchManager::TYPE_LAST; ++type) {
-		if(SearchManager::getTypeStr(type) == name) {
-			throw SearchTypeException("This search type already exists"); // TODO: localize
-		}
-	}
-}
-
-void SettingsManager::setSearchTypeDefaults() {
-	searchTypes.clear();
-
-	// for conveniency, the default search exts will be the same as the ones defined by SEGA.
-	const auto& searchExts = AdcHub::getSearchExts();
-	for(size_t i = 0, n = searchExts.size(); i < n; ++i)
-		searchTypes[string(1, '1' + i)] = searchExts[i];
-
-	fire(SettingsManagerListener::SearchTypesChanged());
-}
-
-void SettingsManager::addSearchType(const string& name, const StringList& extensions, bool validated) {
-	if(!validated) {
-		validateSearchTypeName(name);
-	}
-
-	if(searchTypes.find(name) != searchTypes.end()) {
-		throw SearchTypeException("This search type already exists"); // TODO: localize
-	}
-
-	searchTypes[name] = extensions;
-	fire(SettingsManagerListener::SearchTypesChanged());
-}
-
-void SettingsManager::delSearchType(const string& name) {
-	validateSearchTypeName(name);
-	searchTypes.erase(name);
-	fire(SettingsManagerListener::SearchTypesChanged());
-}
-
-void SettingsManager::renameSearchType(const string& oldName, const string& newName) {
-	validateSearchTypeName(newName);
-	StringList exts = getSearchType(oldName)->second;
-	addSearchType(newName, exts, true);
-	searchTypes.erase(oldName);
-	fire(SettingsManagerListener::SearchTypeRenamed(), oldName, newName);
-}
-
-void SettingsManager::modSearchType(const string& name, const StringList& extensions) {
-	getSearchType(name)->second = extensions;
-	fire(SettingsManagerListener::SearchTypesChanged());
-}
-
-const StringList& SettingsManager::getExtensions(const string& name) {
-	return getSearchType(name)->second;
-}
-
-SettingsManager::SearchTypesIter SettingsManager::getSearchType(const string& name) {
-	SearchTypesIter ret = searchTypes.find(name);
-	if(ret == searchTypes.end()) {
-		throw SearchTypeException("No such search type"); // TODO: localize
-	}
-	return ret;
-}
-
-void SettingsManager::getSearchType(int pos, int& type, StringList& extList, string& name) {
-	// Any, directory or TTH
-	if (pos < 3) {
-		if (pos == 0) {
-			name = SEARCH_TYPE_ANY;
-			type = SearchManager::TYPE_ANY;
-		} else if (pos == 1) {
-			name = SEARCH_TYPE_DIRECTORY;
-			type = SearchManager::TYPE_DIRECTORY;
-		} else if (pos == 2) {
-			name = SEARCH_TYPE_TTH;
-			type = SearchManager::TYPE_TTH;
-		}
-		return;
-	}
-	pos = pos-3;
-
-	int counter = 0;
-	for(auto i = searchTypes.begin(); i != searchTypes.end(); ++i) {
-		if (counter++ == pos) {
-			if(i->first.size() > 1 || i->first[0] < '1' || i->first[0] > '6') {
-				// custom search type
-				type = SearchManager::TYPE_ANY;
-			} else {
-				type = i->first[0] - '0';
-			}
-			name = i->first;
-			extList = i->second;
-			return;
-		}
-	}
-
-	throw SearchTypeException("No such search type"); 
-}
-
-void SettingsManager::getSearchType(const string& aName, int& type, StringList& extList) {
-	if (aName.empty())
-		throw SearchTypeException("No such search type"); 
-
-	// Any, directory or TTH
-	if (aName[0] == SEARCH_TYPE_ANY[0] || aName[0] == SEARCH_TYPE_DIRECTORY[0] || aName[0] == SEARCH_TYPE_TTH[0]) {
-		type = aName[0] - '0';
-		return;
-	}
-
-	auto p = searchTypes.find(aName);
-	if (p != searchTypes.end()) {
-		extList = p->second;
-		if(aName[0] < '1' || aName[0] > '6') {
-			// custom search type
-			type = SearchManager::TYPE_ANY;
-		} else {
-			type = aName[0] - '0';
-		}
-		return;
-	}
-
-	throw SearchTypeException("No such search type"); 
 }
 
 bool SettingsManager::addSearchToHistory(const tstring& aSearch) {

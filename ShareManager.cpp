@@ -160,12 +160,14 @@ void ShareManager::setDirty(bool force /*false*/) {
 	ShareCacheDirty = true; 
 }
 
-void ShareManager::setDirty(ProfileToken aProfile) {
+void ShareManager::setDirty(ProfileToken aProfile, bool setCacheDirty) {
 	RLock l(cs);
 	auto i = find(shareProfiles.begin(), shareProfiles.end(), aProfile);
 	if(i != shareProfiles.end())
 		(*i)->getProfileList()->setForceXmlRefresh(true);
-	ShareCacheDirty = true; 
+
+	if (setCacheDirty)
+		ShareCacheDirty = true; 
 }
 
 ShareManager::Directory::Directory(const string& aRealName, const ShareManager::Directory::Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aProfileDir) :
@@ -1056,12 +1058,12 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 		if(i->isDirectory()) {
 			string curPath = aPath + name + PATH_SEPARATOR;
 
-			if (!checkSharedName(curPath, true)) {
-				continue;
-			}
-
 			{
 				RLock l (dirNames);
+				if (!checkSharedName(curPath, true)) {
+					continue;
+				}
+
 				//check queue so we dont add incomplete stuff to share.
 				if(checkQueued && std::binary_search(bundleDirs.begin(), bundleDirs.end(), Text::toLower(curPath))) {
 					continue;
@@ -1350,7 +1352,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 	}
 
 	if (add.empty()) {
-		boost::for_each(profiles, [this](ProfileToken aProfile) { setDirty(aProfile); });
+		boost::for_each(profiles, [this](ProfileToken aProfile) { setDirty(aProfile, false); });
 		return;
 	}
 
@@ -1413,7 +1415,7 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 			rebuildIndices();
 	}
 
-	boost::for_each(dirtyProfiles, [this](ProfileToken aProfile) { setDirty(aProfile); });
+	boost::for_each(dirtyProfiles, [this, rebuildIncides](ProfileToken aProfile) { setDirty(aProfile, rebuildIncides); });
 }
 
 void ShareManager::changeDirectories(const ShareDirInfo::list& renameDirs)  {
@@ -1431,7 +1433,7 @@ void ShareManager::changeDirectories(const ShareDirInfo::list& renameDirs)  {
 		}
 	}
 
-	boost::for_each(dirtyProfiles, [this](ProfileToken aProfile) { setDirty(aProfile); });
+	boost::for_each(dirtyProfiles, [this](ProfileToken aProfile) { setDirty(aProfile, false); });
 }
 
 void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories, bool finished) {
@@ -2551,7 +2553,7 @@ void ShareManager::changeExcludedDirs(const ProfileTokenStringSetMap& aAdd, cons
 		}
 	}
 
-	boost::for_each(dirtyProfiles, [this](ProfileToken aProfile) { setDirty(aProfile); });
+	boost::for_each(dirtyProfiles, [this](ProfileToken aProfile) { setDirty(aProfile, false); });
 	rebuildExcludeTypes();
 }
 
@@ -2694,6 +2696,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 }
 
 void ShareManager::setSkipList() {
+	WLock l (dirNames);
 	skipList.pattern = SETTING(SKIPLIST_SHARE);
 	skipList.setMethod(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
 	skipList.prepare();

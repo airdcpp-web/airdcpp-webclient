@@ -116,8 +116,7 @@ private:
 
 class SimpleXML;
 
-class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener, 
-	private SettingsManagerListener {
+class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener {
 public:
 	AutoSearchManager();
 	~AutoSearchManager();
@@ -190,7 +189,7 @@ private:
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
-	void on(SettingsManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
+	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 };
 }
 #endif

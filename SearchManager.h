@@ -42,9 +42,13 @@ namespace dcpp {
 
 class SocketException;
 
-class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, public Thread, private TimerManagerListener
+class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, public Thread, private TimerManagerListener, private SettingsManagerListener
 {
 public:
+
+	typedef map<string, StringList> SearchTypes;
+	typedef SearchTypes::iterator SearchTypesIter;
+	typedef SearchTypes::const_iterator SearchTypesIterC;
 
 	enum SizeModes {
 		SIZE_DONTCARE = 0x00,
@@ -101,6 +105,26 @@ public:
 	AdcCommand toPSR(bool wantResponse, const string& myNick, const string& hubIpPort, const string& tth, const vector<uint16_t>& partialInfo) const;
 	AdcCommand toPBD(const string& hubIpPort, const string& bundle, const string& aTTH, bool reply, bool add, bool notify = false) const;
 
+
+	// Search types
+	void validateSearchTypeName(const string& name) const;
+	void setSearchTypeDefaults();
+	void addSearchType(const string& name, const StringList& extensions, bool validated = false);
+	void delSearchType(const string& name);
+	void renameSearchType(const string& oldName, const string& newName);
+	void modSearchType(const string& name, const StringList& extensions);
+
+	const StringList& getExtensions(const string& name);
+
+	const SearchTypes& getSearchTypes() const {
+		return searchTypes;
+	}
+
+	void getSearchType(int pos, int& type, StringList& extList, string& name);
+	void getSearchType(const string& aName, int& type, StringList& extList, bool lock=false);
+
+	void lockRead() noexcept { cs.lock_shared(); }
+	void unlockRead() noexcept { cs.unlock_shared(); }
 private:
 	enum ItemT {
 		SEARCHTIME		= 0,
@@ -129,6 +153,14 @@ private:
 	string getPartsString(const PartsInfo& partsInfo) const;
 	
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+
+	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;
+	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept;
+
+	// Search types
+	SearchTypes searchTypes; // name, extlist
+
+	SearchTypesIter getSearchType(const string& name);
 };
 
 } // namespace dcpp

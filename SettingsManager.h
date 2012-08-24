@@ -36,23 +36,14 @@ public:
 
 	typedef X<0> Load;
 	typedef X<1> Save;
-	typedef X<2> SearchTypesChanged;
-	typedef X<3> SearchTypeRenamed;
 
 	virtual void on(Load, SimpleXML&) noexcept { }
 	virtual void on(Save, SimpleXML&) noexcept { }
-	virtual void on(SearchTypesChanged) noexcept { }
-	virtual void on(SearchTypeRenamed, const string&, const string&) noexcept { }
 };
 
 class SettingsManager : public Singleton<SettingsManager>, public Speaker<SettingsManagerListener>
 {
 public:
-
-	typedef map<string, StringList> SearchTypes;
-	typedef SearchTypes::iterator SearchTypesIter;
-	typedef SearchTypes::const_iterator SearchTypesIterC;
-
 	static StringList connectionSpeeds;
 
 	enum StrSetting { STR_FIRST,
@@ -341,20 +332,6 @@ public:
 	void load(const string& aFileName);
 	void save(const string& aFileName);
 
-	// Search types
-	void validateSearchTypeName(const string& name) const;
-	void setSearchTypeDefaults();
-	void addSearchType(const string& name, const StringList& extensions, bool validated = false);
-	void delSearchType(const string& name);
-	void renameSearchType(const string& oldName, const string& newName);
-	void modSearchType(const string& name, const StringList& extensions);
-
-	const SearchTypes& getSearchTypes() const {
-		return searchTypes;
-	}
-	
-	const StringList& getExtensions(const string& name);
-
 	TStringList getSearchHistory() const {
 		return searchHistory;
 	}
@@ -373,9 +350,6 @@ public:
 	StringPair getFileEvent(SettingsManager::FileEvents fe) {
 		return fileEvents[fe];
 	}
-
-	void getSearchType(int pos, int& type, StringList& extList, string& name);
-	void getSearchType(const string& aName, int& type, StringList& extList);
 private:
 	friend class Singleton<SettingsManager>;
 	SettingsManager();
@@ -395,12 +369,6 @@ private:
 
 	StringPairList fileEvents;
 	string getConfigFile() { return Util::getPath(Util::PATH_USER_CONFIG) + "DCPlusPlus.xml"; }
-
-	// Search types
-	SearchTypes searchTypes; // name, extlist
-
-	SearchTypesIter getSearchType(const string& name);
-
 };
 
 // Shorthand accessor macros

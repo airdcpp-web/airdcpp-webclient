@@ -74,7 +74,7 @@ void AutoSearch::search(StringList& aHubs) {
 	StringList extList;
 	int ftype = 0;
 	try {
-		SettingsManager::getInstance()->getSearchType(fileType, ftype, extList);
+		SearchManager::getInstance()->getSearchType(fileType, ftype, extList, true);
 	} catch(const SearchTypeException&) {
 		//reset to default
 		fileType = SEARCH_TYPE_ANY;
@@ -108,13 +108,11 @@ AutoSearchManager::AutoSearchManager() :
 {
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
-	SettingsManager::getInstance()->addListener(this);
 }
 
 AutoSearchManager::~AutoSearchManager() {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
-	SettingsManager::getInstance()->removeListener(this);
 }
 
 /* For external use */
@@ -141,7 +139,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 }
 
-void AutoSearchManager::on(SettingsManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept {
+void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept {
 	RLock l(cs);
 	for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
 		if ((*i)->getFileType() == oldName) {

@@ -124,7 +124,7 @@ public:
 	//need to be called from inside a lock.
 	void setDirty(bool force = false);
 	
-	void setDirty(ProfileToken aProfile);
+	void setDirty(ProfileToken aProfile, bool setCacheDirty);
 
 	void startup();
 	void shutdown();
