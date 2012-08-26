@@ -324,7 +324,7 @@ void DirectoryListingManager::openFileList(const HintedUser& aUser, const string
 	if (hasList(aUser.user))
 		return;
 
-	createList(aUser, aFile, 0);
+	createList(aUser, aFile);
 }
 
 void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir /*Util::emptyString*/, bool isOwnList /*false*/) {
