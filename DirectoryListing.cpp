@@ -45,9 +45,9 @@ using boost::range::for_each;
 
 //atomic_flag DirectoryListing::running = ATOMIC_FLAG_INIT;
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, int64_t aSpeed, bool aIsOwnList) : 
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	speed(aSpeed), isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(BOOLSETTING(USE_ADLS) && !aPartial)
+	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(BOOLSETTING(USE_ADLS) && !aPartial)
 {
 	running.clear();
 }
@@ -775,7 +775,7 @@ int DirectoryListing::run() {
 			
 			if (t.first == LISTDIFF) {
 				auto file = static_cast<StringTask*>(t.second.get())->str;
-				DirectoryListing dirList(hintedUser, partialList, false, true);
+				DirectoryListing dirList(hintedUser, partialList, file, false, true);
 				dirList.loadFile(file);
 
 				root->filterList(dirList);

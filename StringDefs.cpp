@@ -320,7 +320,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "&Download Queue\tCtrl+D", 
 "E&xit", 
 "Frequently asked questions", 
-"&Favorite Hubs\tCtrl+F", 
+"&Favorite Hubs\tCtrl+H", 
 "Favorite &Users\tCtrl+U", 
 "&File", 
 "&Recent Hubs", 
@@ -1438,6 +1438,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Note; Added share profiles can only be used in ADC hubs. NMDC hubs are forced to use the default profile.", 
 "Sharing Options", 
 "Miscellaneous", 
+"Filter...", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2876,4 +2877,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsShareProfileNote", 
 "SettingsSharingOptions", 
 "SettingsMisc", 
+"FilterDots", 
 };

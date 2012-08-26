@@ -144,7 +144,7 @@ public:
 		GETSET(string, fullPath, FullPath);
 	};
 
-	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, int64_t aSpeed=0, bool aIsOwnList=false);
+	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, bool aIsOwnList=false);
 	~DirectoryListing();
 	
 	void loadFile(const string& name);
@@ -185,7 +185,6 @@ public:
 	GETSET(bool, isOwnList, IsOwnList);
 	GETSET(bool, isClientView, isClientView);
 	GETSET(string, fileName, FileName);
-	GETSET(int64_t, speed, speed); /**< Speed at which this file list was downloaded */
 	GETSET(bool, matchADL, MatchADL);	
 
 	void addMatchADLTask();

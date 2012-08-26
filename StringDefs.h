@@ -323,7 +323,7 @@ enum Strings { // @DontAdd
 	MENU_DOWNLOAD_QUEUE, // "&Download Queue\tCtrl+D"
 	MENU_EXIT, // "E&xit"
 	MENU_FAQ, // "Frequently asked questions"
-	MENU_FAVORITE_HUBS, // "&Favorite Hubs\tCtrl+F"
+	MENU_FAVORITE_HUBS, // "&Favorite Hubs\tCtrl+H"
 	MENU_FAVORITE_USERS, // "Favorite &Users\tCtrl+U"
 	MENU_FILE, // "&File"
 	MENU_FILE_RECENT_HUBS, // "&Recent Hubs"
@@ -1445,5 +1445,6 @@ enum Strings { // @DontAdd
 	SETTINGS_SHARE_PROFILE_NOTE, // "Note; Added share profiles can only be used in ADC hubs. NMDC hubs are forced to use the default profile."
 	SETTINGS_SHARING_OPTIONS, // "Sharing Options"
 	SETTINGS_MISC, // "Miscellaneous"
+	FILTER_DOTS, // "Filter..."
 	LAST // @DontAdd
 };
