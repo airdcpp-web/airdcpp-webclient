@@ -44,7 +44,8 @@ public:
 		CREATE = 0x02,
 		TRUNCATE = 0x04,
 		SHARED = 0x08,
-		NO_CACHE_HINT = 0x10
+		NO_CACHE_HINT = 0x10,
+		RANDOM_ACCESS = 0x20
 	};
 
 #ifdef _WIN32

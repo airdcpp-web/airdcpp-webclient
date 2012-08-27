@@ -138,7 +138,7 @@ public:
 
 	bool isDirShared(const string& aDir) const;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const;
-	bool isFileShared(const TTHValue aTTH, const string& fileName) const;
+	bool isFileShared(const TTHValue& aTTH, const string& fileName) const;
 	bool allowAddDir(const string& dir);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory);

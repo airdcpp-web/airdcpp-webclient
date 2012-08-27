@@ -1007,7 +1007,7 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 	return nullptr;
 }
 
-bool ShareManager::isFileShared(const TTHValue aTTH, const string& fileName) const {
+bool ShareManager::isFileShared(const TTHValue& aTTH, const string& fileName) const {
 	RLock l (cs);
 
 	for(auto m = shares.begin(); m != shares.end(); ++m) {
@@ -1520,7 +1520,7 @@ int ShareManager::run() {
 				}
 			}
 		}
-
+		
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
 			if (checkHidden(i->first)) {
 				Directory::Ptr dp = Directory::create(Util::getLastDir(i->first), nullptr, findLastWrite(i->first), i->second.first->getProfileDir());
@@ -2169,6 +2169,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 }
 //NMDC Search
 void ShareManager::search(SearchResultList& results, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept {
+	RLock l(cs);
 	if(aFileType == SearchManager::TYPE_TTH) {
 		if(aString.compare(0, 4, "TTH:") == 0) {
 			TTHValue tth(aString.substr(4));

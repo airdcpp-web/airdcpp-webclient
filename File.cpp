@@ -40,12 +40,12 @@ File::File(const string& aFileName, int access, int mode, bool isAbsolute) {
 		}
 	}
 	DWORD shared = FILE_SHARE_READ | (mode & SHARED ? (FILE_SHARE_WRITE | FILE_SHARE_DELETE) : 0);
-	
+	DWORD dwFlags = mode & RANDOM_ACCESS ? FILE_FLAG_RANDOM_ACCESS : mode & NO_CACHE_HINT ? 0 : FILE_FLAG_SEQUENTIAL_SCAN;
 	string path = aFileName;
 	if(isAbsolute)
 		path = Util::FormatPath(aFileName);
 
-	h = ::CreateFile(Text::toT(path).c_str(), access, shared, NULL, m, mode & NO_CACHE_HINT ? 0 : FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	h = ::CreateFile(Text::toT(path).c_str(), access, shared, NULL, m, dwFlags, NULL);
 
 	if(h == INVALID_HANDLE_VALUE) {
 		throw FileException(Util::translateError(GetLastError()));
