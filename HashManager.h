@@ -175,17 +175,17 @@ private:
 	class HashStore {
 	public:
 		HashStore();
-		void addFile(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
+		void addFile(const string&& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
 
 		void load();
 		void save();
 
 		void rebuild();
 
-		bool checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp);
+		bool checkTTH(const string&& aFileName, int64_t aSize, uint32_t aTimeStamp);
 
 		void addTree(const TigerTree& tt) noexcept;
-		const TTHValue* getTTH(const string& aFileName);
+		const TTHValue* getTTH(const string&& aFileName);
 		bool getTree(const TTHValue& root, TigerTree& tth);
 		size_t getBlockSize(const TTHValue& root) const;
 		bool isDirty() { return dirty; }

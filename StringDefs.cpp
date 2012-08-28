@@ -1439,6 +1439,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Sharing Options", 
 "Miscellaneous", 
 "Filter...", 
+"Add also in the following profiles", 
+"Rename also in the following profiles", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2878,4 +2880,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsSharingOptions", 
 "SettingsMisc", 
 "FilterDots", 
+"AddDlgDesc", 
+"RenameDlgDesc", 
 };

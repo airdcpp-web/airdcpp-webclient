@@ -140,7 +140,7 @@ public:
 	}
 	
 	
-	void fileNotAvail(const std::string& msg = FILE_NOT_AVAILABLE) { isSet(FLAG_NMDC) ? send("$Error " + msg + "|") : send(AdcCommand(AdcCommand::SEV_RECOVERABLE, AdcCommand::ERROR_FILE_NOT_AVAILABLE, msg)); }
+	void fileNotAvail(const std::string& msg = FILE_NOT_AVAILABLE, bool hasFile = false);
 	void supports(const StringList& feat);
 	void getListLen() { send("$GetListLen|"); }
 

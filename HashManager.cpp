@@ -36,7 +36,7 @@ static const uint32_t HASH_FILE_VERSION = 2;
 const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
 
 bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp) {
-	if (!store.checkTTH(aFileName, aSize, aTimeStamp)) {
+	if (!store.checkTTH(Text::toLower(aFileName), aSize, aTimeStamp)) {
 		hasher.hashFile(aFileName, aSize);
 		return false;
 	}
@@ -44,8 +44,8 @@ bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTim
 }
 
 TTHValue HashManager::getTTH(const string& aFileName, int64_t aSize) {
-	const TTHValue* tth = store.getTTH(aFileName);
-	if (tth == NULL) {
+	const TTHValue* tth = store.getTTH(Text::toLower(aFileName));
+	if (!tth) {
 		hasher.hashFile(aFileName, aSize);
 		throw HashException();
 	}
@@ -62,7 +62,7 @@ size_t HashManager::getBlockSize(const TTHValue& root) {
 
 void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t /*size*/) {
 	try {
-		store.addFile(aFileName, aTimeStamp, tth, true);
+		store.addFile(Text::toLower(aFileName), aTimeStamp, tth, true);
 	} catch (const Exception& e) {
 		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
 		return;
@@ -87,19 +87,17 @@ void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const T
 	fire(HashManagerListener::TTHDone(), aFileName, tth.getRoot());
 }
 
-void HashManager::HashStore::addFile(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed) {
+void HashManager::HashStore::addFile(const string&& aFileLower, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed) {
 	addTree(tth);
 
-	string fileNameLower = Text::toLower(aFileName);
-
 	WLock l(cs);
-	FileInfoList& fileList = fileIndex[Util::getFilePath(fileNameLower)];
-	FileInfoIter j = find(fileList.begin(), fileList.end(), Util::getFileName(fileNameLower));
+	FileInfoList& fileList = fileIndex[Util::getFilePath(aFileLower)];
+	FileInfoIter j = find(fileList.begin(), fileList.end(), Util::getFileName(aFileLower));
 	if (j != fileList.end()) {
 		fileList.erase(j);
 	}
 
-	fileList.push_back(FileInfo(Util::getFileName(fileNameLower), tth.getRoot(), aTimeStamp, aUsed));
+	fileList.push_back(FileInfo(Util::getFileName(aFileLower), tth.getRoot(), aTimeStamp, aUsed));
 	dirty = true;
 }
 
@@ -180,13 +178,11 @@ size_t HashManager::HashStore::getBlockSize(const TTHValue& root) const {
 	return i == treeIndex.end() ? 0 : static_cast<size_t>(i->second.getBlockSize());
 }
 
-bool HashManager::HashStore::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp) {
-	//optimize, only 1 temp string & 1 lower conversion.
-	string pathLower = Text::toLower(aFileName); //lower case representation of the full filepath.
+bool HashManager::HashStore::checkTTH(const string&& aFileLower, int64_t aSize, uint32_t aTimeStamp) {
 	RLock l(cs);
-	DirIter i = fileIndex.find(Util::getFilePath(pathLower));
+	DirIter i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		FileInfoIter j = find(i->second.begin(), i->second.end(), Util::getFileName(pathLower));
+		FileInfoIter j = find(i->second.begin(), i->second.end(), Util::getFileName(aFileLower));
 		if (j != i->second.end()) {
 			FileInfo& fi = *j;
 			TreeIterC ti = treeIndex.find(fi.getRoot());
@@ -201,39 +197,38 @@ bool HashManager::HashStore::checkTTH(const string& aFileName, int64_t aSize, ui
 	return false;
 }
 
-const TTHValue* HashManager::HashStore::getTTH(const string& aFileName) {
-	string pathLower = Text::toLower(aFileName);
-
+const TTHValue* HashManager::HashStore::getTTH(const string&& aFileLower) {
 	RLock l(cs);
-	DirIter i = fileIndex.find(Util::getFilePath(pathLower));
+	DirIter i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		FileInfoIter j = find(i->second.begin(), i->second.end(), Util::getFileName(pathLower));
+		FileInfoIter j = find(i->second.begin(), i->second.end(), Util::getFileName(aFileLower));
 		if (j != i->second.end()) {
 			j->setUsed(true);
 			return &(j->getRoot());
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void HashManager::HashStore::rebuild() {
 	try {
 		DirMap newFileIndex;
 		TreeMap newTreeIndex;
-	{
-		RLock l(cs);
-		for (DirIterC i = fileIndex.begin(); i != fileIndex.end(); ++i) {
-			for (FileInfoIterC j = i->second.begin(); j != i->second.end(); ++j) {
-				if (!j->getUsed())
-					continue;
 
-				TreeIterC k = treeIndex.find(j->getRoot());
-				if (k != treeIndex.end()) {
-					newTreeIndex[j->getRoot()] = k->second;
+		{
+			RLock l(cs);
+			for (DirIterC i = fileIndex.begin(); i != fileIndex.end(); ++i) {
+				for (FileInfoIterC j = i->second.begin(); j != i->second.end(); ++j) {
+					if (!j->getUsed())
+						continue;
+
+					TreeIterC k = treeIndex.find(j->getRoot());
+					if (k != treeIndex.end()) {
+						newTreeIndex[j->getRoot()] = k->second;
+					}
 				}
 			}
-		}
-	} //unlock
+		} //unlock
 
 		string tmpName = getDataFile() + ".tmp";
 		string origName = getDataFile();
@@ -274,13 +269,14 @@ void HashManager::HashStore::rebuild() {
 		}
 	}//unlock
 	
-	{
-		WLock l(cs); //need to lock, we wont be able to rename if the file is in use...
-		File::deleteFile(origName);
-		File::renameFile(tmpName, origName);
-		treeIndex = newTreeIndex;
-		fileIndex = newFileIndex;
-	}
+		{
+			WLock l(cs); //need to lock, we wont be able to rename if the file is in use...
+			File::deleteFile(origName);
+			File::renameFile(tmpName, origName);
+			treeIndex = newTreeIndex;
+			fileIndex = newFileIndex;
+		}
+
 		dirty = true;
 		save();
 	} catch (const Exception& e) {
@@ -301,39 +297,39 @@ void HashManager::HashStore::save() {
 			f.write(LIT("<HashStore Version=\"" HASH_FILE_VERSION_STRING "\">\r\n"));
 
 			f.write(LIT("\t<Trees>\r\n"));
-		{
-			RLock l(cs);
-			for (TreeIterC i = treeIndex.begin(); i != treeIndex.end(); ++i) {
-				const TreeInfo& ti = i->second;
-				f.write(LIT("\t\t<Hash Type=\"TTH\" Index=\""));
-				f.write(Util::toString(ti.getIndex()));
-				f.write(LIT("\" BlockSize=\""));
-				f.write(Util::toString(ti.getBlockSize()));
-				f.write(LIT("\" Size=\""));
-				f.write(Util::toString(ti.getSize()));
-				f.write(LIT("\" Root=\""));
-				b32tmp.clear();
-				f.write(i->first.toBase32(b32tmp));
-				f.write(LIT("\"/>\r\n"));
-			}
-		
-			f.write(LIT("\t</Trees>\r\n\t<Files>\r\n"));
-
-			for (DirIterC i = fileIndex.begin(); i != fileIndex.end(); ++i) {
-				const string& dir = i->first;
-				for (FileInfoIterC j = i->second.begin(); j != i->second.end(); ++j) {
-					const FileInfo& fi = *j;
-					f.write(LIT("\t\t<File Name=\""));
-					f.write(SimpleXML::escape(dir + fi.getFileName(), tmp, true));
-					f.write(LIT("\" TimeStamp=\""));
-					f.write(Util::toString(fi.getTimeStamp()));
+			{
+				RLock l(cs);
+				for (TreeIterC i = treeIndex.begin(); i != treeIndex.end(); ++i) {
+					const TreeInfo& ti = i->second;
+					f.write(LIT("\t\t<Hash Type=\"TTH\" Index=\""));
+					f.write(Util::toString(ti.getIndex()));
+					f.write(LIT("\" BlockSize=\""));
+					f.write(Util::toString(ti.getBlockSize()));
+					f.write(LIT("\" Size=\""));
+					f.write(Util::toString(ti.getSize()));
 					f.write(LIT("\" Root=\""));
 					b32tmp.clear();
-					f.write(fi.getRoot().toBase32(b32tmp));
+					f.write(i->first.toBase32(b32tmp));
 					f.write(LIT("\"/>\r\n"));
 				}
-			}
-		} //unlock
+		
+				f.write(LIT("\t</Trees>\r\n\t<Files>\r\n"));
+
+				for (DirIterC i = fileIndex.begin(); i != fileIndex.end(); ++i) {
+					const string& dir = i->first;
+					for (FileInfoIterC j = i->second.begin(); j != i->second.end(); ++j) {
+						const FileInfo& fi = *j;
+						f.write(LIT("\t\t<File Name=\""));
+						f.write(SimpleXML::escape(dir + fi.getFileName(), tmp, true));
+						f.write(LIT("\" TimeStamp=\""));
+						f.write(Util::toString(fi.getTimeStamp()));
+						f.write(LIT("\" Root=\""));
+						b32tmp.clear();
+						f.write(fi.getRoot().toBase32(b32tmp));
+						f.write(LIT("\"/>\r\n"));
+					}
+				}
+			} //unlock
 			f.write(LIT("\t</Files>\r\n</HashStore>"));
 			f.flush();
 			ff.close();

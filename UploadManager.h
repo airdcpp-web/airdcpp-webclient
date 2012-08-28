@@ -28,7 +28,7 @@
 #include "ClientManagerListener.h"
 #include "MerkleTree.h"
 #include "FastAlloc.h"
-#include "AirUtil.h"
+#include "StringMatch.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -95,6 +95,8 @@ struct WaitingUser {
 class UploadManager : private ClientManagerListener, private UserConnectionListener, public Speaker<UploadManagerListener>, private TimerManagerListener, public Singleton<UploadManager>
 {
 public:
+	void setFreeSlotMatcher();
+
 	/** @return Number of uploads. */ 
 	size_t getUploadCount() { Lock l(cs); return uploads.size(); }
 
@@ -106,13 +108,13 @@ public:
 	 */
 	int64_t getRunningAverage();
 	
-	uint8_t getSlots() const { return (uint8_t)(max(AirUtil::getSlots(false), max(SETTING(HUB_SLOTS),0) * Client::getTotalCounts())); }
+	uint8_t getSlots() const;
 
 	/** @return Number of free slots. */
-	uint8_t getFreeSlots() const { return (uint8_t)max((getSlots() - running), 0); }
+	uint8_t getFreeSlots() const;
 	
 	/** @internal */
-	int getFreeExtraSlots() const { return max(SETTING(EXTRA_SLOTS) - getExtra(), 0); }
+	int getFreeExtraSlots() const;
 	
 	/** @param aUser Reserve an upload slot for this user and connect. */
 	void reserveSlot(const HintedUser& aUser, uint64_t aTime);
@@ -138,6 +140,8 @@ public:
 	GETSET(uint64_t, lastGrant, LastGrant);
 
 private:
+	StringMatch freeSlotMatcher;
+
 	uint8_t running;
 	uint8_t mcnSlots;
 	uint8_t smallSlots;

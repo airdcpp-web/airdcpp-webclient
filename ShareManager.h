@@ -111,8 +111,8 @@ public:
 	void validatePath(const string& realPath, const string& virtualName);
 
 	string toVirtual(const TTHValue& tth, ProfileToken aProfile) const;
-	pair<string, int64_t> toRealWithSize(const string& virtualFile, ProfileToken aProfile);
-	pair<string, int64_t> toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser);
+	string getFileListName(const string& virtualFile, ProfileToken aProfile);
+	void toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& found_);
 	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const;
 	
 	int refresh(bool incoming=false, bool isStartup=false);
@@ -150,6 +150,8 @@ public:
 	MemoryInputStream* generatePartialList(const string& dir, bool recurse, ProfileToken aProfile);
 	MemoryInputStream* generateTTHList(const string& dir, bool recurse, ProfileToken aProfile);
 	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const;
+
+	void saveXmlList(bool verbose = false);	//for filelist caching
 
 	AdcCommand getFileInfo(const string& aFile, ProfileToken aProfile);
 
@@ -227,10 +229,10 @@ public:
 
 	void addProfiles(const ShareProfile::set& aProfiles);
 	void removeProfiles(ProfileTokenList aProfiles);
-	ShareProfileList& getProfiles() { return shareProfiles; }
 
+	/* Only for gui use purposes, no locking */
+	const ShareProfileList& getProfiles() { return shareProfiles; }
 	void getExcludes(ProfileToken aProfile, StringList& excludes);
-	void saveXmlList(bool verbose = false);	//for filelist caching
 private:
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
 		public:

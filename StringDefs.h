@@ -1446,5 +1446,7 @@ enum Strings { // @DontAdd
 	SETTINGS_SHARING_OPTIONS, // "Sharing Options"
 	SETTINGS_MISC, // "Miscellaneous"
 	FILTER_DOTS, // "Filter..."
+	ADD_DLG_DESC, // "Add also in the following profiles"
+	RENAME_DLG_DESC, // "Rename also in the following profiles"
 	LAST // @DontAdd
 };

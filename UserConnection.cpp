@@ -181,6 +181,14 @@ void UserConnection::sup(const StringList& features) {
 	send(c);
 }
 
+void UserConnection::fileNotAvail(const std::string& msg /*FILE_NOT_AVAILABLE*/, bool /*hasFile false*/) {
+	if (isSet(FLAG_NMDC)) {
+		send("$Error " + msg + "|");
+	} else {
+		send(AdcCommand(AdcCommand::SEV_RECOVERABLE, AdcCommand::ERROR_FILE_NOT_AVAILABLE, msg));
+	}
+}
+
 void UserConnection::supports(const StringList& feat) {
 	string x;
 	for(StringList::const_iterator i = feat.begin(); i != feat.end(); ++i) {

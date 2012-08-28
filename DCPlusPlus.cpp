@@ -98,6 +98,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 
 	SettingsManager::getInstance()->load();	
 	AutoSearchManager::getInstance()->AutoSearchLoad();
+	UploadManager::getInstance()->setFreeSlotMatcher();
 
 	Localization::init();
 	if(BOOLSETTING(WIZARD_RUN_NEW)) {

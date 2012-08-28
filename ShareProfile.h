@@ -91,6 +91,7 @@ public:
 
 	FileList* generateProfileList();
 	typedef unordered_set<ShareProfilePtr, Hash> set;
+	typedef vector<ShareProfilePtr> list;
 };
 
 inline bool operator==(ShareProfilePtr ptr, ProfileToken aToken) { return ptr->getToken() == aToken; }

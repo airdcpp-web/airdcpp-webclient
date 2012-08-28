@@ -74,6 +74,24 @@ UploadManager::~UploadManager() {
 	}
 }
 
+void UploadManager::setFreeSlotMatcher() {
+	freeSlotMatcher.pattern = SETTING(FREE_SLOTS_EXTENSIONS);
+	freeSlotMatcher.setMethod(StringMatch::WILDCARD);
+	freeSlotMatcher.prepare();
+}
+
+uint8_t UploadManager::getSlots() const { 
+	return (uint8_t)(max(AirUtil::getSlots(false), max(SETTING(HUB_SLOTS),0) * Client::getTotalCounts())); 
+}
+
+uint8_t UploadManager::getFreeSlots() const { 
+	return (uint8_t)max((getSlots() - running), 0); 
+}
+
+int UploadManager::getFreeExtraSlots() const { 
+	return max(SETTING(EXTRA_SLOTS) - getExtra(), 0); 
+}
+
 bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aStartPos, int64_t& aBytes, const string& userSID, bool listRecursive, bool tthList) {
 	dcdebug("Preparing %s %s " I64_FMT " " I64_FMT " %d\n", aType.c_str(), aFile.c_str(), aStartPos, aBytes, listRecursive);
 
@@ -92,18 +110,19 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	Transfer::Type type;
 	int64_t fileSize = 0;
 	ProfileToken profile = -1;
+	bool found = false;
 
 	try {
 		if(aType == Transfer::names[Transfer::TYPE_FILE]) {
 			type = userlist ? Transfer::TYPE_FULL_LIST : Transfer::TYPE_FILE;
-			pair<string, uint64_t> info;
+			pair<string, int64_t> info;
 			if (userlist) {
 				profile = ClientManager::getInstance()->findProfile(aSource.getHintedUser(), userSID);
 				if (profile < 0) {
 					aSource.fileNotAvail("Unknown user");
 					return false;
 				}
-				info = ShareManager::getInstance()->toRealWithSize(aFile, profile);
+				sourceFile = move(ShareManager::getInstance()->getFileListName(aFile, profile));
 			} else {
 				ProfileTokenSet profiles;
 				ClientManager::getInstance()->listProfiles(aSource.getHintedUser().user, profiles);
@@ -112,17 +131,11 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 					return false;
 				}
 
-				info = ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser());
+				ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, found);
 
-				if(!SETTING(FREE_SLOTS_EXTENSIONS).empty()){
-					if(Wildcard::patternMatch(Text::utf8ToAcp(Util::getFileName(sourceFile)), Text::utf8ToAcp(SETTING(FREE_SLOTS_EXTENSIONS)), '|')) {
-						miniSlot = true;
-					}
-				}
+				miniSlot = freeSlotMatcher.match(Util::getFileName(sourceFile));
 			}
 
-			sourceFile = move(info.first);
-			fileSize = move(info.second);
 			miniSlot = miniSlot || (fileSize <= (int64_t)(SETTING(SET_MINISLOT_SIZE) * 1024) );
 		} else if(aType == Transfer::names[Transfer::TYPE_TREE]) {
 			ProfileTokenSet profiles;
@@ -132,9 +145,8 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 				return false;
 			}
 
-			auto info = ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser());
-			sourceFile = move(info.first);
-			fileSize = move(info.second);
+			pair<string, int64_t> info;
+			ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, found);
 			type = Transfer::TYPE_TREE;
 			miniSlot = true;
 
@@ -162,7 +174,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 				goto checkslots;
 			}
 		}
-		aSource.fileNotAvail(e.getError());
+		aSource.fileNotAvail(e.getError(), found);
 		return false;
 	}
 
