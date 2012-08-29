@@ -75,10 +75,12 @@ bool ConnectionQueueItem::allowNewConnections(int running) {
  * @param aUser The user to connect to.
  */
 void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smallSlot) {
-	dcassert((bool)aUser.user);
+	dcassert(aUser.user);
 	bool supportMcn = false;
 
-	if (!DownloadManager::getInstance()->checkIdle(aUser, smallSlot)) { //transfer hintedUser
+	HintedUser u = move(ClientManager::getInstance()->checkUserHint(aUser));
+
+	if (!DownloadManager::getInstance()->checkIdle(u, smallSlot)) { //transfer hintedUser
 		ConnectionQueueItem* cqi = nullptr;
 		int running = 0;
 
@@ -86,7 +88,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 			WLock l(cs);
 			for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 				cqi = *i;
-				if (cqi->getUser() == aUser && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+				if (cqi->getUser() == u && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 						supportMcn = true;
 						if (cqi->getState() != ConnectionQueueItem::RUNNING) {
@@ -115,7 +117,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 
 			//WLock l (cs);
 			dcdebug("Get cqi");
-			cqi = getCQI(aUser, true);
+			cqi = getCQI(u, true);
 			if (smallSlot)
 				cqi->setFlag(ConnectionQueueItem::FLAG_SMALL);
 		}

@@ -1103,7 +1103,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 	d->close();
 
 	{
-		WLock l(cs);
+		RLock l(cs);
 		q = fileQueue.find(d->getPath());
 		if(!q) {
 			// Target has been removed, clean up the mess
@@ -1166,10 +1166,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				fire(QueueManagerListener::Removed(), q);
 				fileQueue.remove(q);
 			} else if(d->getType() == Transfer::TYPE_TREE) {
-				// Got a full tree, now add it to the HashManager
-				dcassert(d->getTreeValid());
-				HashManager::getInstance()->addTree(d->getTigerTree());
-
+				//add it in hashmanager outside the lock
 				userQueue.removeDownload(q, d->getUser());
 				fire(QueueManagerListener::StatusUpdated(), q);
 			} else if(d->getType() == Transfer::TYPE_FULL_LIST) {
@@ -1225,6 +1222,12 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				dcassert(0);
 			}
 		}
+	}
+	
+	if (d->getType() == Transfer::TYPE_TREE && finished) {
+		// Got a full tree, now add it to the HashManager
+		dcassert(d->getTreeValid());
+		HashManager::getInstance()->addTree(d->getTigerTree());
 	}
 
 	if (removeFinished) {
@@ -2542,11 +2545,12 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 		targetBundle->setDirty(true);
 	}
 
-
-	for_each(x, [targetBundle](const HintedUser u) {
-		if(u.user && u.user->isOnline() && (targetBundle->getPriority() != Bundle::PAUSED))
-			ConnectionManager::getInstance()->getDownloadConnection(u, false); 
-	});
+	if (targetBundle->getPriority() != Bundle::PAUSED) {
+		for_each(x, [](const HintedUser u) {
+			if(u.user && u.user->isOnline())
+				ConnectionManager::getInstance()->getDownloadConnection(u, false); 
+		});
+	}
 
 
 	/* Report */

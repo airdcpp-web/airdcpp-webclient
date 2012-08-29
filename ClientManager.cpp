@@ -473,6 +473,30 @@ OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hint
 	return 0;
 }
 
+HintedUser ClientManager::checkUserHint(const HintedUser& user) {
+	RLock l (cs);
+	auto p = onlineUsers.equal_range(const_cast<CID*>(&user.user->getCID()));
+	//if(p.first == p.second) // no user found with the given CID, try with the current one
+	//	return user;
+
+	dcassert(!user.hint.empty());
+	if(!user.hint.empty()) {
+		OnlineUser* u = nullptr;
+		for(auto i = p.first; i != p.second; ++i) {
+			u = i->second;
+			if(u->getClientBase().getHubUrl() == user.hint) {
+				return user;
+			}
+		}
+
+		//not found with the given hint, return the last match
+		if (u)
+			return HintedUser(user.user, u->getHubUrl());
+	}
+
+	return HintedUser(user);
+}
+
 OnlineUser* ClientManager::findOnlineUser(const HintedUser& user, bool priv) const {
 	return findOnlineUser(user.user->getCID(), user.hint, priv);
 }

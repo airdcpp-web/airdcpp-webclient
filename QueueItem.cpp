@@ -204,7 +204,7 @@ void QueueItem::blockSourceHub(const HintedUser& aUser) {
 
 bool QueueItem::isHubBlocked(const HintedUser& aUser) {
 	auto s = getSource(aUser.user);
-	return !s->blockedHubs.empty() && s->blockedHubs.find(Text::toLower(aUser.hint)) == s->blockedHubs.end();
+	return !s->blockedHubs.empty() && s->blockedHubs.find(Text::toLower(aUser.hint)) != s->blockedHubs.end();
 }
 
 void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) {
@@ -522,7 +522,7 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 
 bool QueueItem::hasSegment(const HintedUser& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	QueueItem::SourceConstIter source = getSource(aUser.user);
-	if (!source->blockedHubs.empty() && source->blockedHubs.find(Text::toLower(aUser.hint)) == source->blockedHubs.end()) {
+	if (!source->blockedHubs.empty() && source->blockedHubs.find(Text::toLower(aUser.hint)) != source->blockedHubs.end()) {
 		return false;
 	}
 

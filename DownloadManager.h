@@ -75,7 +75,6 @@ private:
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool noAccess);
 	void noSlots(UserConnection* aSource, string param = Util::emptyString);
-	void accessDenied(UserConnection* aSource);
 	
 	int64_t getResumePos(const string& file, const TigerTree& tt, int64_t startPos);
 

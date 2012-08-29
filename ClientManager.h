@@ -139,6 +139,8 @@ public:
 	const CID& getMyPID();
 
 	void resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr aDefaultProfile);
+
+	HintedUser checkUserHint(const HintedUser& user);
 private:
 
 	typedef unordered_map<CID*, UserPtr> UserMap;

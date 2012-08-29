@@ -69,7 +69,6 @@ private:
 	HintedUser user;
 };
 
-// We are using this for adc connections too now, with <CID, hubUrl>
 class ExpectedMap {
 public:
 	//debug info
@@ -97,7 +96,7 @@ public:
 
 private:
 	/** Nick -> myNick, hubUrl for expected NMDC incoming connections */
-	/** CID -> emptyString, hubUrl for expected ADC incoming connections */
+	/** Token, hubUrl for expected ADC incoming connections */
 	typedef map<string, StringPair> ExpectMap; //need to use multimap??
 	ExpectMap expectedConnections;
 
