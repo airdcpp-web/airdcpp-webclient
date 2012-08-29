@@ -1448,5 +1448,7 @@ enum Strings { // @DontAdd
 	FILTER_DOTS, // "Filter..."
 	ADD_DLG_DESC, // "Add also in the following profiles"
 	RENAME_DLG_DESC, // "Rename also in the following profiles"
+	NO_FILE_ACCESS, // "You don't have access to this file"
+	CONFIRM_PROFILE_REMOVAL, // "Are you sure that you want to remove the profile %s?"
 	LAST // @DontAdd
 };

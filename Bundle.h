@@ -236,7 +236,7 @@ public:
 	/** All queue items indexed by user */
 	void addUserQueue(QueueItemPtr qi) noexcept;
 	bool addUserQueue(QueueItemPtr qi, const HintedUser& aUser) noexcept;
-	QueueItemPtr getNextQI(const UserPtr& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
+	QueueItemPtr getNextQI(const HintedUser& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
 	QueueItemList getRunningQIs(const UserPtr& aUser) const noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 

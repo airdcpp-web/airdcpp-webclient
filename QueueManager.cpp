@@ -673,7 +673,7 @@ bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::Ma
 	
 }
 
-QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, bool smallSlot, string& bundleToken) noexcept {
+QueueItem::Priority QueueManager::hasDownload(const HintedUser& aUser, bool smallSlot, string& bundleToken) noexcept {
 	RLock l(cs);
 	QueueItemPtr qi = userQueue.getNext(aUser, QueueItem::LOWEST, 0, 0, smallSlot);
 	if(qi) {
@@ -718,10 +718,10 @@ void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& n
 		ConnectionManager::getInstance()->getDownloadConnection(dl.getHintedUser());
 }
 
-bool QueueManager::getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept {
+bool QueueManager::getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept {
 	RLock l(cs);
 	QueueItemPtr qi = userQueue.getNext(aUser);
-	if(qi == NULL)
+	if(!qi)
 		return false;
 
 	aTarget = qi->getTarget();
@@ -783,10 +783,10 @@ Download* QueueManager::getDownload(UserConnection& aSource, string& aMessage, b
 		WLock l(cs);
 		dcdebug("Getting download for %s...", u->getCID().toBase32().c_str());
 
-		q = userQueue.getNext(u, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), smallSlot);
+		q = userQueue.getNext(aSource.getHintedUser(), QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), smallSlot);
 		if (q) {
 			//check partial sources
-			auto source = q->getSource(u);
+			auto source = q->getSource(aSource.getUser());
 			if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
 				int64_t blockSize = HashManager::getInstance()->getBlockSize(q->getTTH());
 				if(blockSize == 0)
@@ -1089,7 +1089,7 @@ void QueueManager::rechecked(QueueItemPtr qi) {
 	}
 }
 
-void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFinish) noexcept {
+void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess /*false*/) noexcept {
 	HintedUserList getConn;
  	string fl_fname;
 	int fl_flag = 0;
@@ -1135,6 +1135,10 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool reportFi
 
 				if(downloaded > 0) {
 					q->addFinishedSegment(Segment(d->getStartPos(), downloaded));
+				}
+
+				if (noAccess) {
+					q->blockSourceHub(d->getHintedUser());
 				}
 			}
 
@@ -1992,6 +1996,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 // ClientManagerListener
 void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept {
 	bool hasDown = false;
+
 	{
 		QueueItemList ql;
 		{
@@ -2001,13 +2006,13 @@ void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aU
 
 		for_each(ql, [&](QueueItemPtr qi) {
 			fire(QueueManagerListener::StatusUpdated(), qi);
-			if(qi->startDown())
+			if(qi->startDown() && !qi->isHubBlocked(HintedUser(aUser.getUser(), aUser.getHubUrl())))
 				hasDown = true;
 		});
 	}
 
 	if(hasDown && aUser.getUser()->isOnline()) { 
-		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(aUser.getUser(), aUser.getClient().getHubUrl()));
+		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(aUser.getUser(), aUser.getHubUrl()));
 	}
 }
 

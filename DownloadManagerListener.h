@@ -48,7 +48,6 @@ public:
 	typedef X<3> Tick;
 	typedef X<4> Requesting;
 	typedef X<5> Status;
-	typedef X<6> Target;
 	typedef X<7> TargetChanged;
 	typedef X<8> BundleWaiting;
 	typedef X<9> BundleTick;
@@ -75,8 +74,6 @@ public:
 	 */
 	virtual void on(Complete, const Download*, bool) noexcept { }
 
-	/* format: user, token */
-	virtual void on(Target, const UserPtr&, const string&) noexcept { }
 	/* format: target, token, bundleToken */
 	virtual void on(TargetChanged, const string&, const string&, const string&) noexcept { }
 

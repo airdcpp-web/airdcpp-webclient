@@ -84,7 +84,7 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	}
 }
 
-QueueItemPtr UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
+QueueItemPtr UserQueue::getNext(const HintedUser& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
 	/* Using the PAUSED priority will list all files */
 	QueueItemPtr qi = getNextPrioQI(aUser, 0, 0, smallSlot, allowOverlap);
 	if(!qi) {
@@ -98,7 +98,7 @@ QueueItemPtr UserQueue::getNext(const UserPtr& aUser, QueueItem::Priority minPri
 	return qi;
 }
 
-QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextPrioQI(const HintedUser& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
@@ -113,7 +113,7 @@ QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, int64_t wantedSize, 
 	return nullptr;
 }
 
-QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextBundleQI(const HintedUser& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 
 	auto i = userBundleQueue.find(aUser);

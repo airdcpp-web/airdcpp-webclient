@@ -1441,6 +1441,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Filter...", 
 "Add also in the following profiles", 
 "Rename also in the following profiles", 
+"You don't have access to this file", 
+"Are you sure that you want to remove the profile %s?", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2882,4 +2884,6 @@ std::string dcpp::ResourceManager::names[] = {
 "FilterDots", 
 "AddDlgDesc", 
 "RenameDlgDesc", 
+"NoFileAccess", 
+"ConfirmProfileRemoval", 
 };

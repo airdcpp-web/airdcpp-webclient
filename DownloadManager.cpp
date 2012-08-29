@@ -237,7 +237,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	bool smallSlot = aConn->isSet(UserConnection::FLAG_SMALL_SLOT);
 
 	string bundleToken;
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getUser(), smallSlot, bundleToken);
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getHintedUser(), smallSlot, bundleToken);
 	bool start = startDownload(prio);
 	if(!start && !smallSlot) {
 		removeRunningUser(aConn);
@@ -443,7 +443,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 	removeDownload(d);
 
 	fire(DownloadManagerListener::Complete(), d, d->getType() == Transfer::TYPE_TREE);
-	QueueManager::getInstance()->putDownload(d, true, false);	
+	QueueManager::getInstance()->putDownload(d, true);	
 	checkDownloads(aSource);
 }
 
@@ -622,7 +622,7 @@ void DownloadManager::on(UserConnectionListener::FileNotAvailable, UserConnectio
 		aSource->disconnect(true);
 		return;
 	}
-	fileNotAvailable(aSource);
+	fileNotAvailable(aSource, false);
 }
 
 /** @todo Handle errors better */
@@ -645,11 +645,16 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 	case AdcCommand::SEV_RECOVERABLE:
 		switch(Util::toInt(err.substr(1))) {
 		case AdcCommand::ERROR_FILE_NOT_AVAILABLE:
-			fileNotAvailable(aSource);
+			fileNotAvailable(aSource, false);
 			return;
 		case AdcCommand::ERROR_SLOTS_FULL:
-			string param;
-			noSlots(aSource, cmd.getParam("QP", 0, param) ? param : Util::emptyString);
+			{
+				string param;
+				noSlots(aSource, cmd.getParam("QP", 0, param) ? param : Util::emptyString);
+				return;
+			}
+		case AdcCommand::ERROR_FILE_ACCESS_DENIED:
+			fileNotAvailable(aSource, true);
 			return;
 		}
 	case AdcCommand::SEV_SUCCESS:
@@ -660,7 +665,11 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 	aSource->disconnect();
 }
 
-void DownloadManager::fileNotAvailable(UserConnection* aSource) {
+void DownloadManager::accessDenied(UserConnection* aSource) {
+
+}
+
+void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
 	if(aSource->getState() != UserConnection::STATE_SND) {
 		dcdebug("DM::fileNotAvailable Invalid state, disconnecting");
 		aSource->disconnect();
@@ -668,61 +677,28 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource) {
 	}
 	
 	Download* d = aSource->getDownload();
-	dcassert(d != NULL);
+	dcassert(d);
 	dcdebug("File Not Available: %s\n", d->getPath().c_str());
 
 	removeDownload(d);
 	removeRunningUser(aSource);
 
-	if (d->isSet(Download::FLAG_NFO)) {
-		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT));
-		dcdebug("Partial list & View NFO. File not available\n");
-		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
-		removeConnection(aSource);
-		return;
-	} else if (d->getType() == Transfer::TYPE_PARTIAL_LIST && !aSource->isSet(UserConnection::FLAG_SMALL_SLOT)) {
+	bool isNmdc = aSource->isSet(UserConnection::FLAG_NMDC);
+	if (d->getType() == Transfer::TYPE_PARTIAL_LIST && isNmdc) {
+		//partial lists should be only used for client viewing in NMDC
+		dcassert(d->isSet(Download::FLAG_VIEW));
 		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT_RETRY));
-	} else {
-		fire(DownloadManagerListener::Failed(), d, STRING(FILE_NOT_AVAILABLE));
-	}
-
-	if (d->getType() == Transfer::TYPE_FULL_LIST) {
-	
-		QueueManager::getInstance()->putDownload(d, true);
-		removeConnection(aSource);
-		return;
-
-	// Need to check if it's booth partial and view
-	} else if ((d->getType() == Transfer::TYPE_PARTIAL_LIST) && (d->isSet(Download::FLAG_VIEW))) {
-		dcdebug("Partial list & View. File not available\n");
 		string dir = d->getPath().c_str();
-		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
+		QueueManager::getInstance()->putDownload(d, false);
 		removeConnection(aSource);
 		QueueManager::getInstance()->addList(aSource->getHintedUser(), QueueItem::FLAG_CLIENT_VIEW, dir);
 		return;
-
-// Todo if partial fail from search frame
-// Something like this, need to think some more
-/*	} else if ((d->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) && (d->getType() == Transfer::TYPE_PARTIAL_LIST)){
-		dcdebug("Partial list & Directory Download. File not available\n");
-		string file = d->getPath().c_str();
-		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
-		removeConnection(aSource);
-		QueueManager::getInstance()->addDirectory(file, HintedUser(aSource->getUser()), file);
-		return;*/
-
-	// Need to check if it's booth partial and match queue
-	} else if ((d->getType() == Transfer::TYPE_PARTIAL_LIST) && (d->isSet(Download::FLAG_QUEUE))){
-		dcdebug("Partial list & Match Queue. File not available\n");
-		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
-		removeConnection(aSource);
-		QueueManager::getInstance()->addList(aSource->getHintedUser(), QueueItem::FLAG_MATCH_QUEUE);
-		return;
 	}
 
+	fire(DownloadManagerListener::Failed(), d, (d->isSet(Download::FLAG_NFO) && isNmdc) ? STRING(NO_PARTIAL_SUPPORT) : noAccess ? STRING(NO_FILE_ACCESS) : STRING(FILE_NOT_AVAILABLE));
 	QueueManager::getInstance()->removeSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
 
-	QueueManager::getInstance()->putDownload(d, false);
+	QueueManager::getInstance()->putDownload(d, false, noAccess);
 	checkDownloads(aSource);
 }
 

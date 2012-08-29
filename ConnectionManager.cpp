@@ -270,7 +270,7 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 	}
 
 	string bundleToken;
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aSource->getUser(), false, bundleToken);
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aSource->getHintedUser(), false, bundleToken);
 	bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
 	if(prio != QueueItem::PAUSED && startDown) {
 		WLock l (cs);
@@ -790,13 +790,15 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			putConnection(aSource);
 			return;
 		}
+
 		// Try to find out where this came from...
 		// For downloads we do know it from cqi (we made the connection after all :P ), so basicly this would be needed only for passive uploads.
-		StringPair i = expectedConnections.remove(user->getCID().toBase32());
+		auto i = expectedConnections.remove(token);
 		if(i.second.empty()) {
-			//Todo disconnect?, ignore? we dont want connections without hubhint laying around..
-			//string tmp = "User: " + Util::toString(ClientManager::getInstance()->getNicks(user->getCID())) + (aSource->isSet(UserConnection::FLAG_MCN1) ? " MCN connection: " : " connection: ") + (aSource->isSet(UserConnection::FLAG_DOWNLOAD) ? "Download " : "Upload ");
-			//LogManager::getInstance()->message("Debug info: " + tmp +  "No expected adc connection found! Report", LogManager::LOG_WARNING);	
+			//we dont want connections without hubhint laying around..
+			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not excepted"));
+			putConnection(aSource);
+			return;
 		} else {
 			aSource->setHubUrl(i.second);
 		}

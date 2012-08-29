@@ -184,6 +184,8 @@ public:
 
 		GETSET(HintedUser, user, User);
 		GETSET(PartialSource::Ptr, partialSource, PartialSource);
+		//GETSET(set<string>, blockedHubs, BlockedHubs);
+		set<string> blockedHubs;
 	};
 
 	typedef vector<Source> SourceList;
@@ -208,7 +210,7 @@ public:
 	void save(OutputStream &save, string tmp, string b32tmp);
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
-	bool hasSegment(const UserPtr& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	bool hasSegment(const HintedUser& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	bool startDown();
 
 	string getFolder() const { return Util::getDir(target, false, false); };
@@ -305,6 +307,8 @@ private:
 	string tempTarget;
 
 	void addSource(const HintedUser& aUser);
+	void blockSourceHub(const HintedUser& aUser);
+	bool isHubBlocked(const HintedUser& aUser);
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason);
 	uint8_t getMaxSegments(int64_t filesize) const noexcept;
 };

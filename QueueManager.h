@@ -102,12 +102,12 @@ public:
 	size_t getSourcesCount(const QueueItemPtr qi) const { RLock l(cs); return qi->getSources().size(); }
 	vector<Segment> getChunksVisualisation(const QueueItemPtr qi, int type) const { RLock l(cs); return qi->getChunksVisualisation(type); }
 
-	bool getQueueInfo(const UserPtr& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
+	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
 	Download* getDownload(UserConnection& aSource, string& aMessage, bool smallSlot) noexcept;
-	void putDownload(Download* aDownload, bool finished, bool reportFinish = true) noexcept;
+	void putDownload(Download* aDownload, bool finished, bool noAccess=false) noexcept;
 	
 	/** @return The highest priority download the user has, PAUSED may also mean no downloads */
-	QueueItem::Priority hasDownload(const UserPtr& aUser, bool smallSlot, string& bundleToken) noexcept;
+	QueueItem::Priority hasDownload(const HintedUser& aUser, bool smallSlot, string& bundleToken) noexcept;
 	
 	void loadQueue() noexcept;
 	void saveQueue(bool force) noexcept;
