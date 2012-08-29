@@ -1103,7 +1103,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 	d->close();
 
 	{
-		RLock l(cs);
+		WLock l(cs);
 		q = fileQueue.find(d->getPath());
 		if(!q) {
 			// Target has been removed, clean up the mess
