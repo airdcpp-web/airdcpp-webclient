@@ -97,6 +97,7 @@ public:
 	bitset<7> searchDays;
 	GETSET(bool, checkAlreadyQueued, CheckAlreadyQueued);
 	GETSET(bool, checkAlreadyShared, CheckAlreadyShared);
+	GETSET(bool, manualSearch, ManualSearch);
 
 	SearchTime startTime;
 	SearchTime endTime;

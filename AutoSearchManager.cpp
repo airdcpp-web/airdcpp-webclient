@@ -47,7 +47,8 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime,
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
-		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared)  {
+		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
+		manualSearch(false) {
 
 	setMethod(aMethod);
 	pattern = aMatcherString.empty() ? aSearchString : aMatcherString;
@@ -81,7 +82,7 @@ void AutoSearch::search(StringList& aHubs) {
 		ftype = SearchManager::TYPE_ANY;
 	}
 
-	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchString, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, "as", extList, Search::AUTO_SEARCH);
+	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchString, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, "as", extList, manualSearch? Search::MANUAL : Search::AUTO_SEARCH);
 
 	if (searchTime == 0) {
 		LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
@@ -326,7 +327,7 @@ void AutoSearchManager::SearchNow(AutoSearchPtr as) {
 	if(allowedHubs.empty()) {
 		return;
 	}
-
+	as->setManualSearch(true);
 	as->search(allowedHubs);
 }
 
@@ -341,8 +342,10 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 		RLock l (cs);
 		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
 			AutoSearchPtr as = *i;
-			if (!as->getEnabled())
+			if (!as->getEnabled() && !as->getManualSearch())
 				continue;
+			
+			as->setManualSearch(false);
 
 			//match
 			if (as->getFileType() == SEARCH_TYPE_TTH) {
@@ -437,6 +440,7 @@ void AutoSearchManager::AutoSearchSave() {
 		SimpleXML xml;
 
 		xml.addTag("Autosearch");
+		xml.addChildAttrib("LastPosition", curPos);
 		xml.stepIn();
 		xml.addTag("Autosearch");
 		xml.stepIn();
@@ -463,6 +467,7 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("SearchDays", (*i)->searchDays.to_string());
 				xml.addChildAttrib("StartTime", (*i)->startTime.toString());
 				xml.addChildAttrib("EndTime", (*i)->endTime.toString());
+				xml.addChildAttrib("LastSearchTime", Util::toString(as->getLastSearch()));
 			}
 		}
 
@@ -526,6 +531,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				as->endTime = SearchTime(true);
 			}
 
+			as->setLastSearch(aXml.getIntChildAttrib("LastSearchTime"));
 			addAutoSearch(as);
 		}
 		aXml.stepOut();
@@ -537,10 +543,13 @@ void AutoSearchManager::AutoSearchLoad() {
 		SimpleXML xml;
 		xml.fromXML(File(Util::getPath(Util::PATH_USER_CONFIG) + AUTOSEARCH_FILE, File::READ, File::OPEN).read());
 		if(xml.findChild("Autosearch")) {
+			curPos = xml.getIntChildAttrib("LastPosition");
 			xml.stepIn();
 			loadAutoSearch(xml);
 			xml.stepOut();
 		}
+		if(curPos >= searchItems.size())
+			curPos = 0;
 	} catch(const Exception& e) {
 		dcdebug("AutoSearchManager::load: %s\n", e.getError().c_str());
 	}	
