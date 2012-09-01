@@ -76,7 +76,7 @@ ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GE
 	TimerManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
 
-	RAR_regexp.Init("[Rr0-9][Aa0-9][Rr0-9]");
+	rxxReg.assign("[Rr0-9][Aa0-9][Rr0-9]");
 	subDirRegPlain.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
 
 #ifdef _WIN32
@@ -2102,9 +2102,9 @@ SearchManager::TypeModes ShareManager::getType(const string& aFileName) noexcept
 	 a test to match with regexp for rars first, otherwise it will match everything and end up setting type any for  .r01 ->
 	 */
 	try{ 
-		if(RAR_regexp.match(aFileName, aFileName.length()-4) > 0)
+		if(boost::regex_search(aFileName.substr(aFileName.length()-4), rxxReg))
 			return SearchManager::TYPE_COMPRESSED;
-	}catch(...) { } //not vital if it fails, just continue the type check.
+	} catch(...) { } //not vital if it fails, just continue the type check.
 	
 	if(checkType(aFileName, SearchManager::TYPE_AUDIO))
 		return SearchManager::TYPE_AUDIO;

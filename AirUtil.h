@@ -22,7 +22,6 @@
 #include "compiler.h"
 
 #include "Text.h"
-#include "pme.h"
 
 namespace dcpp {
 
@@ -36,8 +35,8 @@ enum DupeType {
 	SHARE_QUEUE_DUPE 
 };
 
-static PME releaseReg;
-static PME subDirRegPath;
+static boost::regex releaseReg;
+static boost::regex subDirRegPath;
 
 /* Cache some things to lower case */
 static string privKeyFile;

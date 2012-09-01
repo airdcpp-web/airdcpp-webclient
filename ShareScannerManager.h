@@ -23,7 +23,6 @@
 #include "Thread.h"
 #include "Singleton.h"
 #include <string>
-#include "pme.h"
 
 #include "noexcept.h"
 #include "atomic.h"

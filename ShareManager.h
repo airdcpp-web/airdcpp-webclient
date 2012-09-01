@@ -35,7 +35,6 @@
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "LogManager.h"
-#include "pme.h"
 #include "ShareProfile.h"
 #include "Flags.h"
 #include "AdcSearch.h"
@@ -141,7 +140,6 @@ public:
 	bool isFileShared(const TTHValue& aTTH, const string& fileName) const;
 	bool isFileShared(const string& aFileName, int64_t aSize) const;
 	bool allowAddDir(const string& dir);
-	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory);
 
 	bool loadCache();
@@ -442,7 +440,7 @@ private:
 	bool aShutdown;
 
 	boost::regex subDirRegPlain;
-	PME RAR_regexp;
+	boost::regex rxxReg;
 	
 	static atomic_flag refreshing;
 	bool refreshRunning;

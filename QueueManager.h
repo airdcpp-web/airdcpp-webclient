@@ -36,7 +36,6 @@
 #include "ClientManagerListener.h"
 #include "DownloadManagerListener.h"
 #include "LogManager.h"
-#include "pme.h"
 #include "HashManager.h"
 #include "TargetUtil.h"
 #include "StringMatch.h"

@@ -84,10 +84,8 @@ DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
 }
 
 void AirUtil::init() {
-	releaseReg.Init(getReleaseRegBasic());
-	releaseReg.study();
-	subDirRegPath.Init("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", PCRE_CASELESS);
-	subDirRegPath.study();
+	releaseReg.assign(getReleaseRegBasic());
+	subDirRegPath.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", boost::regex::icase);
 }
 
 void AirUtil::updateCachedSettings() {
@@ -111,7 +109,7 @@ string AirUtil::getReleaseDir(const string& aName) {
 		dpos=0;
 	}
 
-	if (releaseReg.match(dirMatch) > 0) {
+	if (regex_search(dirMatch, releaseReg)) {
 		dir = Text::toLower(dir.substr(dpos, dir.size()));
 		return dir;
 	}
@@ -122,7 +120,7 @@ string AirUtil::getReleaseDir(const string& aName) {
 	dirMatch=dir;
 	bool match=false;
 	for (;;) {
-		if (subDirRegPath.match(dirMatch) > 0) {
+		if (regex_search(dirMatch, subDirRegPath)) {
 			dpos = dirMatch.rfind("\\");
 			if(dpos != string::npos) {
 				match=true;
@@ -147,7 +145,7 @@ string AirUtil::getReleaseDir(const string& aName) {
 		dpos=0;
 	}
 
-	if (releaseReg.match(dirMatch) > 0) {
+	if (regex_search(dirMatch, releaseReg)) {
 		dir = Text::toLower(dir.substr(dpos, dir.size()));
 		return dir;
 	} else {

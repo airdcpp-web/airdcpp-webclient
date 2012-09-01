@@ -32,8 +32,8 @@
 #include "StringTokenizer.h"
 #include "Singleton.h"
 #include "DirectoryListing.h"
-#include "pme.h"
 #include "LogManager.h"
+#include "StringMatch.h"
 
 namespace dcpp {
 
@@ -44,21 +44,11 @@ class ADLSearch
 {
 public:
 
-	ADLSearch();
-
-
-	// The search string
-	string searchString;									 
+	ADLSearch();								 
 
 	// Active search
 	bool isActive;
-	
-	// Forbidden file
-	bool isForbidden;
-	// Regexp
-	bool isRegexp;
-	// Casesensitive
-	bool isCaseSensitive;
+
 	// Some Comment
 	string adlsComment;
 
@@ -71,7 +61,6 @@ public:
 		OnlyFile = TypeFirst,
 		OnlyDirectory,
 		FullPath,
-		TTHash,
 		TypeLast
 	} sourceType;
 
@@ -96,22 +85,32 @@ public:
 	SizeType typeFileSize;
 
 	SizeType StringToSizeType(const string& s);
-
 	string SizeTypeToString(SizeType t);
-	
 	tstring SizeTypeToDisplayString(SizeType t);
-
 	int64_t GetSizeBase();
 
 	// Name of the destination directory (empty = 'ADLSearch') and its index
 	string destDir;
 	unsigned long ddIndex;
 
+	bool isRegEx() const;
+	void setRegEx(bool b);
+	string getPattern();
+	void setPattern(const string& aPattern);
 private:
 	friend class ADLSearchManager;
 
-	// Search for file match 
-	bool checkSize(int64_t size);
+	StringMatch match;
+
+	/// Prepare search
+	void prepare();
+
+	/// Search for file match
+	bool matchesFile(const string& f, const string& fp, int64_t size);
+	/// Search for directory match
+	bool matchesDirectory(const string& d);
+
+	bool searchAll(const string& s);
 };
 
 
@@ -124,7 +123,6 @@ public:
 		DirectoryListing::Directory* dir;
 		DirectoryListing::Directory* subdir;
 		bool fileAdded;
-		DestDir() : name(""), dir(NULL), subdir(NULL) {}
 	};
 	typedef vector<DestDir> DestDirList;
 
@@ -132,16 +130,8 @@ public:
 	~ADLSearchManager();
 
 	// Search collections
-	typedef vector<ADLSearch*> SearchCollection;
-
-	typedef pair<PME, ADLSearch*> regexPair;
-	typedef vector<regexPair> RegexSearchCollection;
-
-	typedef pair<StringSearch::List, ADLSearch*> ssPair;
-	typedef vector<ssPair> StringSearchCollection;
-
-	typedef unordered_map<TTHValue, ADLSearch*> TTHSearchCollection;
-
+	//typedef vector<ADLSearch*> SearchCollection;
+	typedef vector<ADLSearch> SearchCollection;
 	SearchCollection collection;
 
 
@@ -151,28 +141,15 @@ public:
 
 	// Settings
 	GETSET(bool, breakOnFirst, BreakOnFirst)
-	GETSET(HintedUser, user, User)
-	GETSET(bool, compareTTH, CompareTTH)
-	GETSET(bool, compareSS, CompareSS)
-	GETSET(bool, compareRE, CompareRE)
 
 	// @remarks Used to add ADLSearch directories to an existing DirectoryListing
 	void matchListing(DirectoryListing& /*aDirList*/) noexcept;
-	bool addCollection(ADLSearch* search, bool addMain, bool addSub, bool useIndex=false, int index = 0);
+	bool addCollection(ADLSearch& search, int index);
 	bool removeCollection(int index, bool move);
 	bool changeState(int index, bool enabled);
 	int8_t getRunning() { return running; }
 private:
 	ADLSearch::SourceType StringToSourceType(const string& s);
-
-	//for files
-	RegexSearchCollection regexCol;
-	TTHSearchCollection tthCol;
-	StringSearchCollection ssCol;
-
-	//for dirs
-	RegexSearchCollection regexColDir;
-	StringSearchCollection ssColDir;
 
 	// @internal
 	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory* /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/);
@@ -183,9 +160,6 @@ private:
 	// Step up directory
 	void stepUpDirectory(DestDirList& destDirVector);
 
-	bool matchSS(const string& s, const StringSearch::List stringSearchList);
-	bool matchTTH(const TTHValue fileTTH) { return tthCol.find(fileTTH) != tthCol.end(); }
-
 	// Prepare destination directory indexing
 	void PrepareDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory* root);
 	// Finalize destination directories
@@ -193,8 +167,6 @@ private:
 
 	int8_t running;
 	static string getConfigFile();
-	void rebuildCollections();
-
 };
 
 } // namespace dcpp
