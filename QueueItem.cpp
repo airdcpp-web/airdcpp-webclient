@@ -26,6 +26,7 @@
 #include "File.h"
 #include "Util.h"
 #include "LogManager.h"
+#include "SearchManager.h"
 
 #include "AirUtil.h"
 #include "Wildcards.h"
@@ -185,14 +186,14 @@ void QueueItem::getOnlineUsers(HintedUserList& l) const {
 			l.push_back(i->getUser());
 }
 
-void QueueItem::addSource(const HintedUser& aUser) {
+void QueueItem::addSource(const HintedUser& aUser, const string& aRemotePath) {
 	dcassert(!isSource(aUser.user));
-	SourceIter i = getBadSource(aUser);
+	auto i = getBadSource(aUser);
 	if(i != badSources.end()) {
 		sources.push_back(*i);
 		badSources.erase(i);
 	} else {
-		sources.push_back(Source(aUser));
+		sources.push_back(Source(aUser, aRemotePath));
 	}
 }
 
@@ -574,6 +575,13 @@ bool QueueItem::startDown() {
 	return false;
 }
 
+void QueueItem::searchAlternates() {
+	if (SettingsManager::lanMode)
+		SearchManager::getInstance()->search(getTargetFileName(), size, SearchManager::TYPE_TTH, SearchManager::SIZE_EXACT, "qa", Search::ALT_AUTO);
+	else
+		SearchManager::getInstance()->search(tthRoot.toBase32(), 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "qa", Search::ALT_AUTO);
+}
+
 void QueueItem::removeDownload(const string& aToken) {
 	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getToken(), aToken) == 0; });
 	dcassert(m != downloads.end());
@@ -610,9 +618,11 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(Util::toString((int)priority));
 	f.write(LIT("\" Added=\""));
 	f.write(Util::toString(added));
-	b32tmp.clear();
-	f.write(LIT("\" TTH=\""));
-	f.write(tthRoot.toBase32(b32tmp));
+	if (!SettingsManager::lanMode) {
+		b32tmp.clear();
+		f.write(LIT("\" TTH=\""));
+		f.write(tthRoot.toBase32(b32tmp));
+	}
 	if(!done.empty()) {
 		f.write(LIT("\" TempTarget=\""));
 		f.write(SimpleXML::escape(tempTarget, tmp, true));
@@ -647,6 +657,11 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 		if(!hint.empty()) {
 			f.write(LIT("\" HubHint=\""));
 			f.write(hint);
+		}
+
+		if (SettingsManager::lanMode) {
+			f.write(LIT("\" RemotePath=\""));
+			f.write(j->getRemotePath());
 		}
 		f.write(LIT("\"/>\r\n"));
 	}

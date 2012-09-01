@@ -28,6 +28,8 @@
 
 #include "noexcept.h"
 
+#include <boost/range/algorithm/find_if.hpp>
+
 namespace dcpp {
 
 FileQueue::~FileQueue() { }
@@ -77,17 +79,6 @@ QueueItemPtr FileQueue::find(const string& target) noexcept {
 	return (i == queue.end()) ? NULL : i->second;
 }
 
-void FileQueue::find(QueueItemList& sl, int64_t aSize, const string& suffix) noexcept {
-	for(auto i = queue.begin(); i != queue.end(); ++i) {
-		if(i->second->getSize() == aSize) {
-			const string& t = i->second->getTarget();
-			if(suffix.empty() || (suffix.length() < t.length() &&
-				stricmp(suffix.c_str(), t.c_str() + (t.length() - suffix.length())) == 0) )
-				sl.push_back(i->second);
-		}
-	}
-}
-
 void FileQueue::find(const TTHValue& tth, QueueItemList& ql) noexcept {
 	auto s = tthIndex.equal_range(tth);
 	if (s.first != s.second) {
@@ -95,22 +86,56 @@ void FileQueue::find(const TTHValue& tth, QueueItemList& ql) noexcept {
 	}
 }
 
-void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItemList& ql, const DirectoryListing& dl) {
-	if(dl.getAbort())
-		throw AbortException();
+void FileQueue::find(const string& aFileName, int64_t aSize, QueueItemList& ql) noexcept {
+	for(auto j = tthIndex.begin(); j != tthIndex.end(); ++j) {
+		if (j->second->getSize() == aSize && j->second->getTargetFileName() == aFileName) {
+			ql.push_back(j->second);
+		}
+	}
+}
 
+void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringList& ql) {
+	if (SettingsManager::lanMode) {
+		QueueItem::StringMultiMap qsm;
+		for(auto j = tthIndex.begin(); j != tthIndex.end(); ++j) {
+			qsm.insert(make_pair(j->second->getTargetFileName(), j->second));
+		}
+		matchDir(dl.getRoot(), ql, qsm);
+	} else {
+		matchDir(dl.getRoot(), ql);
+	}
+}
+
+void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringList& ql) {
 	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
 		if(!(*j)->getAdls())
-			matchDir(*j, ql, dl);
+			matchDir(*j, ql);
 	}
 
 	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
 		auto s = tthIndex.equal_range((*i)->getTTH());
 		if (s.first != s.second) {
 			DirectoryListing::File* f = *i;
-			for_each(s.first, s.second, [&](pair<TTHValue, QueueItemPtr> tqp) {
-				if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && std::find(ql.begin(), ql.end(), tqp.second) == ql.end()) 
-					ql.push_back(tqp.second); } );
+			for_each(s.first, s.second, [f, &ql](const pair<TTHValue, QueueItemPtr> tqp) {
+				if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && boost::find_if(ql, CompareSecond<string, QueueItemPtr>(tqp.second)) == ql.end()) 
+					ql.push_back(make_pair(Util::emptyString, tqp.second)); } );
+		}
+	}
+}
+
+void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringList& ql, const QueueItem::StringMultiMap& qsm) {
+	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
+		if(!(*j)->getAdls())
+			matchDir(*j, ql, qsm);
+	}
+
+	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
+		auto s = qsm.equal_range((*i)->getName());
+		if (s.first != s.second) {
+			DirectoryListing::File* f = *i;
+			for_each(s.first, s.second, [f, &ql](const pair<string, QueueItemPtr> tqp) {
+				if (tqp.second->getSize() == f->getSize() && !tqp.second->isFinished() && boost::find_if(ql, CompareSecond<string, QueueItemPtr>(tqp.second)) == ql.end()) 
+					ql.push_back(make_pair(f->getPath(), tqp.second)); } );
 		}
 	}
 }
@@ -123,15 +148,31 @@ int FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) noexce
 	return 0;
 }
 
+int FileQueue::isFileQueued(const string& aFileName, int64_t aSize) noexcept {
+	QueueItemPtr qi = getQueuedFile(aFileName, aSize);
+	if (qi) {
+		return (qi->isFinished() ? 2 : 1);
+	}
+	return 0;
+}
+
+QueueItemPtr FileQueue::getQueuedFile(const string& aFileName, int64_t aSize) noexcept {
+	auto k = boost::find_if(tthIndex, [&aFileName, aSize](pair<TTHValue, QueueItemPtr> tqp) { return stricmp(aFileName.c_str(), tqp.second->getTargetFileName().c_str()) == 0 && tqp.second->getSize() == aSize; });
+	if (k != tthIndex.end()) {
+		return k->second;
+	}
+	return nullptr;
+}
+
 QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) noexcept {
 	auto s = tthIndex.equal_range(aTTH);
 	if (s.first != s.second) {
-		auto k = find_if(s.first, s.second, [&](pair<TTHValue, QueueItemPtr> tqp) { return (stricmp(fileName.c_str(), tqp.second->getTargetFileName().c_str()) == 0); });
+		auto k = find_if(s.first, s.second, [&fileName](pair<TTHValue, QueueItemPtr> tqp) { return (stricmp(fileName.c_str(), tqp.second->getTargetFileName().c_str()) == 0); });
 		if (k != s.second) {
 			return k->second;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void FileQueue::move(QueueItemPtr qi, const string& aTarget) noexcept {

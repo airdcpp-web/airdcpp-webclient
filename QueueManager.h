@@ -63,7 +63,7 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 public:
 	bool allowAdd(const string& aTarget, const TTHValue& root) throw(QueueException, FileException);
 	/** Add a file to the queue. */
-	void add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,
+	void add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath,
 		Flags::MaskType aFlags = 0, bool addBad = true, QueueItem::Priority aPrio = QueueItem::DEFAULT, BundlePtr aBundle=NULL) throw(QueueException, FileException);
 		/** Add a user's filelist to the queue. */
 	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
@@ -114,7 +114,7 @@ public:
 
 	void noDeleteFileList(const string& path);
 	
-	bool getTTH(const string& name, TTHValue& tth) noexcept;
+	bool getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t size_) noexcept;
 	bool handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add);
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
 	void addBundleTTHList(const HintedUser& aUser, const string& bundle, const TTHValue& tth);
@@ -174,6 +174,7 @@ public:
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
 	int isFileQueued(const TTHValue& aTTH, const string& aFile) { RLock l (cs); return fileQueue.isFileQueued(aTTH, aFile); }
+	int isFileQueued(const string& aFileName, int64_t aSize) { RLock l (cs); return fileQueue.isFileQueued(aFileName, aSize); }
 	
 	bool dropSource(Download* d);
 
@@ -253,7 +254,7 @@ private:
 	/** Sanity check for the target filename */
 	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
 	/** Add a source to an existing queue item */
-	bool addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle=false) throw(QueueException, FileException);
+	bool addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, const string& aRemotePath, bool newBundle=false) throw(QueueException, FileException);
 	 
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 

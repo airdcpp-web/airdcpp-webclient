@@ -54,15 +54,6 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	pattern = aMatcherString.empty() ? aSearchString : aMatcherString;
 	prepare();
 
-	/*if (aFileType == SEARCH_TYPE_TTH)
-		resultMatcher = new TTHMatcher(matchPattern);
-	else if (aMatcherType == StringMatcher::MATCHER_STRING)
-		resultMatcher = new TokenMatcher(matchPattern);
-	else if (aMatcherType == StringMatcher::MATCHER_REGEX)
-		resultMatcher = new RegExMatcher(matchPattern);
-	else if (aMatcherType == StringMatcher::MATCHER_WILDCARD)
-		resultMatcher = new WildcardMatcher(matchPattern);*/
-
 	userMatcher.setMethod(StringMatch::WILDCARD);
 	userMatcher.pattern = aUserMatch;
 	userMatcher.prepare();
@@ -406,7 +397,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 				if (!hasSpace)
 					TargetUtil::reportInsufficientSize(ti, sr->getSize());
 
-				QueueManager::getInstance()->add(as->getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), 0, true, 
+				QueueManager::getInstance()->add(as->getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), sr->getFile(), 0, true, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT));
 			}
 		} catch(const Exception& /*e*/) {

@@ -196,7 +196,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			auto size = Util::toInt64(s);
 
 			const string& h = getAttrib(attribs, sTTH, 2);
-			if(h.empty())
+			if(h.empty() && !SettingsManager::lanMode)
 				return;		
 			TTHValue tth(h); /// @todo verify validity?
 
@@ -205,9 +205,9 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				for(auto i = cur->files.cbegin(), iend = cur->files.cend(); i != iend; ++i) {
 					auto& file = **i;
 					if(file.getTTH() == tth || file.getName() == n) {
-						file.setName(n);
-						file.setSize(size);
-						file.setTTH(tth);
+						//file.setName(n);
+						//file.setSize(size);
+						//file.setTTH(tth);
 						return;
 					}
 				}
@@ -309,7 +309,7 @@ void ListLoader::endTag(const string& name, const string&) {
 DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe) noexcept : 
 	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE) {
 	if (checkDupe && size > 0) {
-		dupe = AirUtil::checkDupe(tthRoot, name);
+		dupe = SettingsManager::lanMode ? AirUtil::checkFileDupe(name, size) : AirUtil::checkFileDupe(tthRoot, name);
 	}
 }
 
@@ -321,7 +321,7 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	}
 
 	if (checkDupe) {
-		dupe = AirUtil::checkDupe(getPath(), partialSize);
+		dupe = AirUtil::checkDirDupe(getPath(), partialSize);
 	}
 
 	setDate(aDate);
@@ -489,7 +489,7 @@ int64_t DirectoryListing::getDirSize(const string& aDir) {
 void DirectoryListing::download(File* aFile, const string& aTarget, bool view, QueueItem::Priority prio, BundlePtr aBundle) {
 	Flags::MaskType flags = (Flags::MaskType)(view ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : 0);
 
-	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), flags, true, prio, aBundle);
+	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), aFile->getPath() + aFile->getName(), flags, true, prio, aBundle);
 }
 
 DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName, Directory* current) {
@@ -515,7 +515,7 @@ void DirectoryListing::findNfo(const string& aPath) {
 		for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
 			auto df = *i;
 			if (regex_match(Text::toT(df->getName()), reg)) {
-				QueueManager::getInstance()->add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), hintedUser, QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
+				QueueManager::getInstance()->add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), hintedUser, df->getPath() + df->getName(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
 				return;
 			}
 		}

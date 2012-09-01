@@ -224,6 +224,16 @@ void ShareManager::Directory::addType(uint32_t type) noexcept {
 	}
 }
 
+string ShareManager::getRealPath(const string& aFileName, int64_t aSize) {
+	RLock l(cs);
+	for(auto i = tthIndex.begin(); i != tthIndex.end(); ++i) {
+		if(stricmp(aFileName.c_str(), i->second->getName().c_str()) == 0 && i->second->getSize() == aSize) {
+			return i->second->getRealPath();
+		}
+	}
+	return Util::emptyString;
+}
+
 string ShareManager::getRealPath(const TTHValue& root) {
 	RLock l(cs);
 	auto i = tthIndex.find(const_cast<TTHValue*>(&root)); 
@@ -312,8 +322,18 @@ bool ShareManager::ProfileDirectory::hasProfile(ProfileToken aProfile) {
 	return shareProfiles.find(aProfile) != shareProfiles.end();
 }
 
+bool ShareManager::ProfileDirectory::isExcluded(const ProfileTokenSet& aProfiles) {
+	return std::search(excludedProfiles.begin(), excludedProfiles.end(), aProfiles.begin(), aProfiles.end()) != aProfiles.end();
+}
+
 bool ShareManager::Directory::isLevelExcluded(ProfileToken aProfile) {
 	if (profileDir && profileDir->isExcluded(aProfile))
+		return true;
+	return false;
+}
+
+bool ShareManager::Directory::isLevelExcluded(const ProfileTokenSet& aProfiles) {
+	if (profileDir && profileDir->isExcluded(aProfiles))
 		return true;
 	return false;
 }
@@ -419,6 +439,21 @@ void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenS
 			if(i->second.key.empty() || (i->second.key == aUser.user->getCID().toBase32())) { // if no key is set, it means its a hub share.
 				path_ = i->second.path;
 				size_ = i->second.size;
+				return;
+			}
+		}
+	} else {
+		DirectoryList dirs;
+
+		RLock l (cs);
+		findVirtuals<ProfileTokenSet>(virtualFile, aProfiles, dirs);
+
+		auto fileName = Util::getFileName(Util::toNmdcFile(virtualFile));
+		for(auto v = dirs.begin(); v != dirs.end(); ++v) {
+			auto it = find_if((*v)->files.begin(), (*v)->files.end(), Directory::File::StringComp(fileName));
+			if(it != (*v)->files.end()) {
+				path_ = it->getRealPath();
+				size_ = it->getSize();
 				return;
 			}
 		}
@@ -534,56 +569,6 @@ void ShareManager::removeTempShare(const string& aKey, TTHValue& tth) {
 	}
 }
 
-void ShareManager::findVirtuals(const string& virtualPath, ProfileToken aProfile, DirectoryList& dirs) const {
-
-	DirectoryList virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
-	if(virtualPath.empty() || virtualPath[0] != '/') {
-		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
-	}
-
-	string::size_type start = virtualPath.find('/', 1);
-	if(start == string::npos || start == 1) {
-		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
-	}
-
-	getByVirtual( virtualPath.substr(1, start-1), aProfile, virtuals);
-	if(virtuals.empty()) {
-		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
-	}
-
-	Directory::Ptr d;
-	for(auto k = virtuals.begin(); k != virtuals.end(); k++) {
-		string::size_type i = start; // always start from the begin.
-		string::size_type j = i + 1;
-		d = *k;
-
-		if(virtualPath.find('/', j) == string::npos) {	  // we only have root virtualpaths.
-			dirs.push_back(d);
-		} else {
-			while((i = virtualPath.find('/', j)) != string::npos) {
-				if(d) {
-					auto mi = d->directories.find(virtualPath.substr(j, i - j));
-					j = i + 1;
-					if(mi != d->directories.end() && !mi->second->isLevelExcluded(aProfile)) {   //if we found something, look for more.
-						d = mi->second;
-					} else {
-						d = nullptr;   //make the pointer null so we can check if found something or not.
-						break;
-					}
-				}
-			}
-
-			if(d) 
-				dirs.push_back(d);
-		}
-	}
-
-	if(dirs.empty()) {
-		//if we are here it means we didnt find anything, throw.
-		throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
-	}
-}
-
 void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) {
 	if(path.empty())
 		throw ShareException("empty virtual path");
@@ -591,7 +576,7 @@ void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToke
 	DirectoryList dirs;
 
 	RLock l (cs);
-	findVirtuals(path, aProfile, dirs);
+	findVirtuals<ProfileToken>(path, aProfile, dirs);
 
 	if(*(path.end() - 1) == '/') {
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
@@ -769,7 +754,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			/*dont save TTHs, check them from hashmanager, just need path and size.
 			this will keep us sync to hashindex */
 			try {
-				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, HashManager::getInstance()->getTTH(curDirPath + fname, Util::toInt64(size))));
+				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, SettingsManager::lanMode ? TTHValue() : HashManager::getInstance()->getTTH(curDirPath + fname, Util::toInt64(size))));
 			}catch(Exception& e) { 
 				dcdebug("Error loading filelist %s \n", e.getError().c_str());
 			}
@@ -887,10 +872,21 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 #endif
 }
 
-void ShareManager::getByVirtual(const string& virtualName, ProfileToken aProfile, DirectoryList& dirs) const throw() {
+void ShareManager::getByVirtual(const string& virtualName, ProfileToken aProfile, DirectoryList& dirs) const noexcept {
 	for(auto i = shares.begin(); i != shares.end(); ++i) {
-		if((aProfile < 0 || i->second->getProfileDir()->hasProfile(aProfile)) && stricmp(i->second->getProfileDir()->getName(aProfile), virtualName) == 0) {
+		if(i->second->getProfileDir()->hasProfile(aProfile) && stricmp(i->second->getProfileDir()->getName(aProfile), virtualName) == 0) {
 			dirs.push_back(i->second);
+		}
+	}
+}
+
+void ShareManager::getByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, DirectoryList& dirs) const noexcept {
+	for(auto i = shares.begin(); i != shares.end(); ++i) {
+		auto& spList = i->second->getProfileDir()->getShareProfiles();
+		for(auto k = spList.begin(); k != spList.end(); ++k) {
+			if(aProfiles.find(k->first) != aProfiles.end() && stricmp(k->second, virtualName) == 0) {
+				dirs.push_back(i->second);
+			}
 		}
 	}
 }
@@ -1017,15 +1013,23 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 
 bool ShareManager::isFileShared(const TTHValue& aTTH, const string& fileName) const {
 	RLock l (cs);
-
-	for(auto m = shares.begin(); m != shares.end(); ++m) {
-		auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
-		for(auto i = files.first; i != files.second; ++i) {
-			if(stricmp(fileName.c_str(), i->second->getName().c_str()) == 0) {
-				return true;
-			}
+	auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
+	for(auto i = files.first; i != files.second; ++i) {
+		if(stricmp(fileName.c_str(), i->second->getName().c_str()) == 0) {
+			return true;
 		}
 	}
+	return false;
+}
+
+bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
+	RLock l (cs);
+	for(auto i = tthIndex.begin(); i != tthIndex.end(); ++i) {
+		if(stricmp(aFileName.c_str(), i->second->getName().c_str()) == 0 && i->second->getSize() == aSize) {
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -1037,7 +1041,7 @@ void ShareManager::removeDir(ShareManager::Directory::Ptr aDir) {
 	string realPath = aDir->getRealPath(false);
 	
 	auto p = find_if(directories.first, directories.second, [realPath](pair<string, Directory::Ptr> sdp) { return sdp.second->getRealPath(false) == realPath; });
-	dcassert(p != directories.second);
+	//dcassert(p != directories.second);
 	if (p != dirNameMap.end())
 		dirNameMap.erase(p);
 }
@@ -1106,7 +1110,9 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			}
 
 			try {
-				if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) 
+				if (SettingsManager::lanMode)
+					lastFileIter = aDir->files.insert(lastFileIter, Directory::File(name, size, aDir, TTHValue()));
+				else if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) 
 					lastFileIter = aDir->files.insert(lastFileIter, Directory::File(name, size, aDir, HashManager::getInstance()->getTTH(path, size)));
 			} catch(const HashException&) {
 			}
@@ -1731,7 +1737,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 			dcdebug("wanted %s \n", dir);
 			try {
 				DirectoryList result;
-				findVirtuals(dir, aProfile, result); 
+				findVirtuals<ProfileToken>(dir, aProfile, result); 
 				if (!result.empty()) {
 					root->shareDirs = result;
 
@@ -1949,7 +1955,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 	try{
 		RLock l(cs);
 		DirectoryList result;
-		findVirtuals(dir, aProfile, result); 
+		findVirtuals<ProfileToken>(dir, aProfile, result); 
 		for(auto it = result.begin(); it != result.end(); ++it) {
 			dcdebug("result name %s \n", (*it)->getProfileDir()->getName(aProfile));
 			(*it)->toTTHList(sos, tmp, recurse);
@@ -2287,7 +2293,7 @@ void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch
 		}
 	} else {
 		DirectoryList result;
-		findVirtuals(aDirectory, aProfile, result); 
+		findVirtuals<ProfileToken>(aDirectory, aProfile, result); 
 		Directory::Ptr root;
 		for(auto it = result.begin(); it != result.end(); ++it) {
 			if (!(*it)->isLevelExcluded(aProfile))

@@ -139,6 +139,7 @@ public:
 	bool isDirShared(const string& aDir) const;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const;
 	bool isFileShared(const TTHValue& aTTH, const string& fileName) const;
+	bool isFileShared(const string& aFileName, int64_t aSize) const;
 	bool allowAddDir(const string& dir);
 	string getReleaseDir(const string& aName);
 	tstring getDirPath(const string& directory);
@@ -178,6 +179,7 @@ public:
 	//void unLockRead() noexcept { cs.unlock_shared(); }
 
 	string getRealPath(const TTHValue& root);
+	string getRealPath(const string& aFileName, int64_t aSize);
 
 	enum { 
 		REFRESH_STARTED = 0,
@@ -258,8 +260,9 @@ private:
 			bool hasRoots() { return !shareProfiles.empty(); }
 
 			bool hasProfile(ProfileToken aProfile);
-			bool isExcluded(ProfileToken aProfile);
 			bool hasProfile(const ProfileTokenSet& aProfiles);
+			bool isExcluded(ProfileToken aProfile);
+			bool isExcluded(const ProfileTokenSet& aProfiles);
 			void addRootProfile(const string& aName, ProfileToken aProfile);
 			void addExclude(ProfileToken aProfile);
 			bool removeRootProfile(ProfileToken aProfile);
@@ -370,6 +373,7 @@ private:
 
 		bool isRootLevel(ProfileToken aProfile);
 		bool isLevelExcluded(ProfileToken aProfile);
+		bool isLevelExcluded(const ProfileTokenSet& aProfiles);
 		int64_t size;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
@@ -483,7 +487,60 @@ private:
 	StringList bundleDirs;
 
 	void getByVirtual(const string& virtualName, ProfileToken aProfiles, DirectoryList& dirs) const noexcept;
-	void findVirtuals(const string& virtualPath, ProfileToken aProfiles, DirectoryList& dirs) const;
+	void getByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, DirectoryList& dirs) const noexcept;
+	//void findVirtuals(const string& virtualPath, ProfileToken aProfiles, DirectoryList& dirs) const;
+
+	template<class T>
+	void findVirtuals(const string& virtualPath, const T& aProfile, DirectoryList& dirs) const {
+
+		DirectoryList virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
+		if(virtualPath.empty() || virtualPath[0] != '/') {
+			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
+		}
+
+		string::size_type start = virtualPath.find('/', 1);
+		if(start == string::npos || start == 1) {
+			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
+		}
+
+		getByVirtual( virtualPath.substr(1, start-1), aProfile, virtuals);
+		if(virtuals.empty()) {
+			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
+		}
+
+		Directory::Ptr d;
+		for(auto k = virtuals.begin(); k != virtuals.end(); k++) {
+			string::size_type i = start; // always start from the begin.
+			string::size_type j = i + 1;
+			d = *k;
+
+			if(virtualPath.find('/', j) == string::npos) {	  // we only have root virtualpaths.
+				dirs.push_back(d);
+			} else {
+				while((i = virtualPath.find('/', j)) != string::npos) {
+					if(d) {
+						auto mi = d->directories.find(virtualPath.substr(j, i - j));
+						j = i + 1;
+						if(mi != d->directories.end() && !mi->second->isLevelExcluded(aProfile)) {   //if we found something, look for more.
+							d = mi->second;
+						} else {
+							d = nullptr;   //make the pointer null so we can check if found something or not.
+							break;
+						}
+					}
+				}
+
+				if(d) 
+					dirs.push_back(d);
+			}
+		}
+
+		if(dirs.empty()) {
+			//if we are here it means we didnt find anything, throw.
+			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
+		}
+	}
+
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);

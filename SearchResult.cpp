@@ -82,7 +82,8 @@ AdcCommand SearchResult::toRES(char type) const {
 	cmd.addParam("SI", Util::toString(size));
 	cmd.addParam("SL", Util::toString(freeSlots));
 	cmd.addParam("FN", Util::toAdcFile(file));
-	cmd.addParam("TR", getTTH().toBase32());
+	if (!SettingsManager::lanMode)
+		cmd.addParam("TR", getTTH().toBase32());
 	return cmd;
 }
 

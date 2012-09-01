@@ -74,7 +74,7 @@ public:
 		~File() { }
 
 
-		string getPath() {
+		string getPath() const {
 			return getParent()->getPath();
 		}
 

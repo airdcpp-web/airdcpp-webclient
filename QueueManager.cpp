@@ -264,11 +264,12 @@ QueueManager::~QueueManager() noexcept {
 	}
 }
 
-bool QueueManager::getTTH(const string& name, TTHValue& tth) noexcept {
+bool QueueManager::getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t size_) noexcept {
 	RLock l(cs);
-	QueueItemPtr qi = fileQueue.find(name);
+	QueueItemPtr qi = fileQueue.find(aTarget);
 	if(qi) {
-		tth = qi->getTTH();
+		tth_ = qi->getTTH();
+		size_ = qi->getSize();
 		return true;
 	}
 	return false;
@@ -344,7 +345,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 }
 
 void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */) throw(QueueException, FileException) {
-	add(aInitialDir, -1, TTHValue(), aUser, (Flags::MaskType)(QueueItem::FLAG_USER_LIST | aFlags));
+	add(aInitialDir, -1, TTHValue(), aUser, Util::emptyString, (Flags::MaskType)(QueueItem::FLAG_USER_LIST | aFlags));
 }
 
 string QueueManager::getListPath(const HintedUser& user) {
@@ -373,7 +374,7 @@ void QueueManager::setMatchers() {
 	highPrioFiles.prepare();
 }
 
-void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser,
+void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath, 
 					   Flags::MaskType aFlags /* = 0 */, bool addBad /* = true */, QueueItem::Priority aPrio, BundlePtr aBundle /*NULL*/) throw(QueueException, FileException)
 {
 	bool wantConnection = true;
@@ -458,7 +459,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				}
 
 				q->setFlag(aFlags);
-				wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aBundle);
+				wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aRemotePath, aBundle);
 				goto connect;
 			}
 		}
@@ -477,7 +478,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				} else { 
 					if(!q->isSource(aUser)) {
 						try {
-							if (addSource(q, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0)) {
+							if (addSource(q, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0, aRemotePath)) {
 								wantConnection = true;
 								goto connect;
 							}
@@ -518,7 +519,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		/* Bundles end */
 
 		try {
-			wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aBundle);
+			wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aRemotePath, aBundle);
 		} catch(const Exception&) {
 			//...
 		}
@@ -562,7 +563,7 @@ void QueueManager::readdQISource(const string& target, const HintedUser& aUser) 
 		WLock l(cs);
 		QueueItemPtr q = fileQueue.find(target);
 		if(q && q->isBadSource(aUser)) {
-			wantConnection = addSource(q, aUser, QueueItem::Source::FLAG_MASK);
+			wantConnection = addSource(q, aUser, QueueItem::Source::FLAG_MASK, Util::emptyString); //FIX
 		}
 	}
 	if(wantConnection && aUser.user->isOnline())
@@ -581,7 +582,7 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 			//LogManager::getInstance()->message("READD, BAD SOURCES: " + Util::toString(q->getBadSources().size()));
 			if(q && q->isBadSource(aUser.user)) {
 				try {
-					if (addSource(q, aUser, QueueItem::Source::FLAG_MASK)) {
+					if (addSource(q, aUser, QueueItem::Source::FLAG_MASK, Util::emptyString)) { //FIX
 						wantConnection = true;
 					}
 				} catch(...) {
@@ -634,7 +635,7 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence, Bun
 }
 
 /** Add a source to an existing queue item */
-bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle) throw(QueueException, FileException) {
+bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, const string& aRemotePath, bool newBundle) throw(QueueException, FileException) {
 	
 	if (!aUser.user) //atleast magnet links can cause this to happen.
 		throw QueueException("Can't find Source user to add For Target: " + qi->getTargetFileName());
@@ -656,7 +657,7 @@ bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::Ma
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
 
-		qi->addSource(aUser);
+		qi->addSource(aUser, SettingsManager::lanMode ? aRemotePath : Util::emptyString);
 		userQueue.addQI(qi, aUser, newBundle);
 
 		if ((!SETTING(SOURCEFILE).empty()) && (!BOOLSETTING(SOUNDS_DISABLED)))
@@ -687,26 +688,26 @@ QueueItem::Priority QueueManager::hasDownload(const HintedUser& aUser, bool smal
 
 void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) {
 	bool wantConnection = false;
-	QueueItemList ql;
+	QueueItem::StringList ql;
 	//uint64_t start = GET_TICK();
 	{
 		RLock l(cs);
-		fileQueue.matchDir(dl.getRoot(), ql, dl);
+		fileQueue.matchListing(dl, ql);
 	}
 
 	{
 		WLock l(cs);
-		for_each(ql, [&](QueueItemPtr qi) {
+		for_each(ql, [&](pair<string, QueueItemPtr> sqp) {
 			try {
-				if (addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+				if (addSource(sqp.second, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, sqp.first)) {
 					wantConnection = true;
 				}
 				newFiles++;
 			} catch(const Exception&) {
 				//...
 			}
-			if (qi->getBundle() && find(bundles.begin(), bundles.end(), qi->getBundle()) == bundles.end()) {
-				bundles.push_back(qi->getBundle());
+			if (sqp.second->getBundle() && find(bundles.begin(), bundles.end(), sqp.second->getBundle()) == bundles.end()) {
+				bundles.push_back(sqp.second->getBundle());
 			}
 		});
 	}
@@ -1289,7 +1290,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 				fileQueue.find(*s, ql);
 				for_each(ql, [&](QueueItemPtr qi) {
 					try {
-						if (addSource(qi, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+						if (addSource(qi, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) {
 							wantConnection = true;
 						}
 					} catch(...) {
@@ -1726,6 +1727,7 @@ static const string sDate = "Date";
 static const string sTTH = "TTH";
 static const string sCID = "CID";
 static const string sHubHint = "HubHint";
+static const string sRemotePath = "RemotePath";
 static const string sSegment = "Segment";
 static const string sStart = "Start";
 static const string sAutoPriority = "AutoPriority";
@@ -1838,7 +1840,15 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			try {
 				const string& hubHint = getAttrib(attribs, sHubHint, 1);
 				HintedUser hintedUser(user, hubHint);
-				qm->addSource(cur, hintedUser, 0) && user->isOnline();
+				if (SettingsManager::lanMode) {
+					const string& remotePath = getAttrib(attribs, sRemotePath, 2);
+					if (remotePath.empty())
+						return;
+
+					qm->addSource(cur, hintedUser, 0, remotePath) && user->isOnline();
+				} else {
+					qm->addSource(cur, hintedUser, 0, Util::emptyString) && user->isOnline();
+				}
 			} catch(const Exception&) {
 				return;
 			}
@@ -1920,7 +1930,11 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		QueueItemList matches;
 
 		RLock l(cs);
-		fileQueue.find(sr->getTTH(), matches);
+		if (SettingsManager::lanMode)
+			fileQueue.find(sr->getFileName(), sr->getSize(), matches);
+		else
+			fileQueue.find(sr->getTTH(), matches);
+
 		for(auto i = matches.begin(); i != matches.end(); ++i) {
 			qi = *i;
 			// Size compare to avoid popular spoof
@@ -1946,7 +1960,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		/* No reason to match anything with file bundles */
 		WLock l(cs);
 		try {	 
-			wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
+			wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, sr->getFile());
 		} catch(...) {
 			// Ignore...
 		}
@@ -1962,7 +1976,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					b->getDirQIs(path, ql);
 					for (auto i = ql.begin(); i != ql.end(); ++i) {
 						try {	 
-							if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+							if (addSource(*i, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) { // no SettingsManager::lanMode in NMDC...
 								wantConnection = true;
 							}
 							newFiles++;
@@ -2971,7 +2985,7 @@ bool QueueManager::move(QueueItemPtr qs, const string& aTarget) noexcept {
 			} else {
 				for_each(qs->getSources(), [&](QueueItem::Source& s) {
 					try {
-						addSource(qt, s.getUser(), QueueItem::Source::FLAG_MASK);
+						addSource(qt, s.getUser(), QueueItem::Source::FLAG_MASK, s.getRemotePath());
 					} catch(const Exception&) {
 						//..
 					}
@@ -3338,7 +3352,7 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) {
 		for_each(qiList, [&](QueueItemPtr q) {
 			try {
 				//LogManager::getInstance()->message("ADDSOURCE");
-				if (addSource(q, aUser, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+				if (addSource(q, aUser, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) {
 					wantConnection = true;
 				}
 			} catch(...) {
@@ -3346,6 +3360,7 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) {
 			}
 		});
 	}
+
 	if(wantConnection && aUser.user->isOnline())
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
@@ -3356,7 +3371,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool manual) {
 		return;
 	}
 
-	StringPairList searches;
+	map<string, QueueItemPtr> searches;
 	int64_t nextSearch = 0;
 	{
 		RLock l(cs);
@@ -3374,9 +3389,9 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool manual) {
 
 	if (searches.size() <= 5) {
 		aBundle->setSimpleMatching(true);
-		for_each(searches, [](StringPair& sp) {
+		for_each(searches, [](pair<string, QueueItemPtr> sqp) {
 			//LogManager::getInstance()->message("QueueManager::searchBundle, searchString: " + i->second);
-			SearchManager::getInstance()->search(sp.second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "qa", Search::ALT_AUTO);
+			sqp.second->searchAlternates();
 		});
 	} else {
 		//use an alternative matching, choose random items to search for
@@ -3387,7 +3402,7 @@ void QueueManager::searchBundle(BundlePtr aBundle, bool manual) {
 			auto rand = Util::rand(searches.size());
 			advance(pos, rand);
 			//LogManager::getInstance()->message("QueueManager::searchBundle, ALT searchString: " + pos->second);
-			SearchManager::getInstance()->search(pos->second, 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "qa", Search::ALT_AUTO);
+			pos->second->searchAlternates();
 			searches.erase(pos);
 			k++;
 		}

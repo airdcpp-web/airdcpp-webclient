@@ -42,15 +42,19 @@ ConnectionManager::ConnectionManager() : floodCounter(0), shuttingDown(false) {
 	features.push_back(UserConnection::FEATURE_MINISLOTS);
 	features.push_back(UserConnection::FEATURE_XML_BZLIST);
 	features.push_back(UserConnection::FEATURE_ADCGET);
-	features.push_back(UserConnection::FEATURE_TTHL);
-	features.push_back(UserConnection::FEATURE_TTHF);
+	if (!SettingsManager::lanMode) {
+		features.push_back(UserConnection::FEATURE_TTHL);
+		features.push_back(UserConnection::FEATURE_TTHF);
+	}
 	features.push_back(UserConnection::FEATURE_AIRDC);
 
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BAS0);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BASE);
-	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_TIGR);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BZIP);
-	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_MCN1);
+	if (!SettingsManager::lanMode) {
+		adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_TIGR);
+		adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_MCN1);
+	}
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_UBN1);
 }
 

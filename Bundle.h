@@ -214,7 +214,7 @@ public:
 	void removeDownload(Download* d) noexcept;
 
 	void getTTHList(OutputStream& tthList) const noexcept;
-	void getSearchItems(StringPairList& searches, bool manual) const noexcept;
+	void getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept;
 	void updateSearchMode();
 	bool allowAutoSearch() const;
 

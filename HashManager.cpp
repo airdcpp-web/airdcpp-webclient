@@ -285,7 +285,7 @@ void HashManager::HashStore::rebuild() {
 }
 
 void HashManager::HashStore::save() {
-	if (dirty) {
+	if (dirty && !SettingsManager::lanMode) {
 		try {
 			File ff(getIndexFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE, false);
 			BufferedOutputStream<false> f(&ff);
@@ -367,6 +367,8 @@ private:
 };
 
 void HashManager::HashStore::load() {
+	if (SettingsManager::lanMode)
+		return;
 	try {
 		Util::migrate(getIndexFile());
 

@@ -36,6 +36,8 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 	conn.setDownload(this);
 	
 	QueueItem::SourceConstIter source = qi.getSource(getUser());
+	if (SettingsManager::lanMode)
+		remotePath = source->getRemotePath();
 
 	if(qi.isSet(QueueItem::FLAG_PARTIAL_LIST)) {
 		setType(TYPE_PARTIAL_LIST);
@@ -118,8 +120,10 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
 		} else {
 			cmd.addParam(USER_LIST_NAME);
 		}
-	} else {
+	} else if (!SettingsManager::lanMode) {
 		cmd.addParam("TTH/" + getTTH().toBase32());
+	} else {
+		cmd.addParam(Util::toAdcFile(remotePath));
 	}
 
 	cmd.addParam(Util::toString(getStartPos()));
@@ -226,7 +230,7 @@ void Download::open(int64_t bytes, bool z) {
 		output.reset(new BufferedOutputStream<true>(output.release()));
 	}
 
-	if(getType() == Transfer::TYPE_FILE) {
+	if(getType() == Transfer::TYPE_FILE && !SettingsManager::lanMode) {
 		typedef MerkleCheckOutputStream<TigerTree, true> MerkleStream;
 
 		output.reset(new MerkleStream(tt, output.release(), getStartPos()));

@@ -29,6 +29,8 @@
 
 namespace dcpp {
 
+bool SettingsManager::lanMode;
+
 StringList SettingsManager::connectionSpeeds;
 
 const string SettingsManager::settingTags[] =
@@ -857,6 +859,7 @@ void SettingsManager::load(string const& aFileName)
 			set(PRIVATE_ID, CID::generate().toBase32());
 	}
 
+	lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT || INCOMING_FIREWALL_UPNP || INCOMING_FIREWALL_NAT) {
 	if(SETTING(TLS_PORT) == 0) {
 		set(TLS_PORT, (int)Util::rand(10000, 32000));

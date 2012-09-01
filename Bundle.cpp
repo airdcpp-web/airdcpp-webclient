@@ -645,17 +645,17 @@ bool Bundle::allowAutoSearch() const {
 	return true;
 }
 
-void Bundle::getSearchItems(StringPairList& searches, bool manual) const noexcept {
+void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept {
 	if (fileBundle) {
-		searches.push_back(make_pair(Util::emptyString, queueItems.front()->getTTH().toBase32()));
+		searches.insert(make_pair(Util::emptyString, queueItems.front()));
 		return;
 	}
 
-	string searchString;
+	QueueItemPtr searchItem = nullptr;
 	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
 		string dir = Util::getDir(i->first, true, false);
 		//don't add the same directory twice
-		if (find_if(searches.begin(), searches.end(), CompareFirst<string, string>(dir)) != searches.end()) {
+		if (searches.find(dir) != searches.end()) {
 			continue;
 		}
 
@@ -667,7 +667,7 @@ void Bundle::getSearchItems(StringPairList& searches, bool manual) const noexcep
 		}
 
 		size_t s = 0;
-		searchString = Util::emptyString;
+		searchItem = nullptr;
 
 		//do a few guesses to get a random item
 		while (s <= ql.size()) {
@@ -681,16 +681,16 @@ void Bundle::getSearchItems(StringPairList& searches, bool manual) const noexcep
 			}
 			if(q->isRunning() || (q->getPriority() == QueueItem::PAUSED)) {
 				//it's ok but see if we can find better one
-				searchString = q->getTTH().toBase32();
+				searchItem = q;
 			} else {
-				searchString = q->getTTH().toBase32();
+				searchItem = q;
 				break;
 			}
 			s++;
 		}
 
-		if (!searchString.empty()) {
-			searches.push_back(make_pair(dir, searchString));
+		if (searchItem) {
+			searches.insert(make_pair(dir, searchItem));
 		}
 	}
 }

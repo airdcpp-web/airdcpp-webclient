@@ -47,7 +47,7 @@
 
 namespace dcpp {
 
-DupeType AirUtil::checkDupe(const string& aDir, int64_t aSize) {
+DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
 	auto sd = ShareManager::getInstance()->isDirShared(aDir, aSize);
 	if (sd > 0) {
 		return sd == 2 ? SHARE_DUPE : PARTIAL_SHARE_DUPE;
@@ -59,11 +59,23 @@ DupeType AirUtil::checkDupe(const string& aDir, int64_t aSize) {
 	return DUPE_NONE;
 }
 
-DupeType AirUtil::checkDupe(const TTHValue& aTTH, const string& aFileName) {
+DupeType AirUtil::checkFileDupe(const TTHValue& aTTH, const string& aFileName) {
 	if (ShareManager::getInstance()->isFileShared(aTTH, aFileName)) {
 		return SHARE_DUPE;
 	} else {
 		int qd = QueueManager::getInstance()->isFileQueued(aTTH, aFileName);
+		if (qd > 0) {
+			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
+		}
+	}
+	return DUPE_NONE;
+}
+
+DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
+	if (ShareManager::getInstance()->isFileShared(aFileName, aSize)) {
+		return SHARE_DUPE;
+	} else {
+		int qd = QueueManager::getInstance()->isFileQueued(aFileName, aSize);
 		if (qd > 0) {
 			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
 		}

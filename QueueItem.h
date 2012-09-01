@@ -44,6 +44,8 @@ class QueueItem : public Flags, public intrusive_ptr_base<QueueItem> {
 public:
 	typedef boost::unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 	typedef unordered_multimap<TTHValue, QueueItemPtr> TTHMap;
+	typedef boost::unordered_multimap<string, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMultiMap;
+	typedef vector<pair<string, QueueItemPtr>> StringList;
 
 	enum Priority {
 		DEFAULT = -1,
@@ -60,6 +62,26 @@ public:
 	struct Hash {
 		size_t operator()(const QueueItemPtr x) const { return hash<string>()(x->getTarget()); }
 	};
+
+	bool operator==(const QueueItemPtr rhs) const {
+		return rhs->getTarget() == target;
+	}
+
+	/*struct TargetComp {
+		TargetComp(const string& s) : a(s) { }
+		bool operator()(const QueueItemPtr q) const { return stricmp(a, q->getTarget()) == 0; }
+		const string& a;
+	private:
+		TargetComp& operator=(const TargetComp&);
+	};
+
+	struct HashComp {
+		HashComp(const TTHValue& s) : a(s) { }
+		bool operator()(const QueueItemPtr q) const { return a == q->getTTH(); }
+		const TTHValue& a;
+	private:
+		HashComp& operator=(const HashComp&);
+	};*/
 
 	struct AlphaSortOrder {
 		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const {
@@ -176,14 +198,15 @@ public:
 				| FLAG_NO_TREE | FLAG_TTH_INCONSISTENCY | FLAG_UNTRUSTED
 		};
 
-		Source(const HintedUser& aUser) : user(aUser), partialSource(nullptr) { }
-		Source(const Source& aSource) : Flags(aSource), user(aSource.user), partialSource(aSource.partialSource) { }
+		Source(const HintedUser& aUser, const string& aRemoteFile) : user(aUser), partialSource(nullptr), remotePath(aRemoteFile) { }
+		Source(const Source& aSource) : Flags(aSource), user(aSource.user), partialSource(aSource.partialSource), remotePath(aSource.remotePath) { }
 
 		bool operator==(const UserPtr& aUser) const { return user == aUser; }
 		PartialSource::Ptr& getPartialSource() { return partialSource; }
 
 		GETSET(HintedUser, user, User);
 		GETSET(PartialSource::Ptr, partialSource, PartialSource);
+		GETSET(string, remotePath, RemotePath);
 		//GETSET(set<string>, blockedHubs, BlockedHubs);
 		set<string> blockedHubs;
 	};
@@ -206,6 +229,8 @@ public:
 	{ }
 
 	~QueueItem();
+
+	void searchAlternates();
 
 	void save(OutputStream &save, string tmp, string b32tmp);
 	size_t countOnlineUsers() const;
@@ -306,7 +331,7 @@ private:
 	SourceList badSources;
 	string tempTarget;
 
-	void addSource(const HintedUser& aUser);
+	void addSource(const HintedUser& aUser, const string& aRemotePath=Util::emptyString);
 	void blockSourceHub(const HintedUser& aUser);
 	bool isHubBlocked(const HintedUser& aUser);
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason);

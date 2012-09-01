@@ -286,13 +286,13 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 			hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
 		}
 
-		if(tth.empty() && type == SearchResult::TYPE_FILE) {
+		if(tth.empty() && type == SearchResult::TYPE_FILE && !SettingsManager::lanMode) {
 			return;
 		}
 
 
 		SearchResultPtr sr(new SearchResult(user, type, slots, freeSlots, size,
-			file, hubName, url, remoteIp, TTHValue(tth), Util::emptyString));
+			file, hubName, url, remoteIp, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString));
 		fire(SearchManagerListener::SR(), sr);
 
 	} else if(x.compare(1, 4, "RES ") == 0 && x[x.length() - 1] == 0x0a) {
@@ -444,10 +444,10 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		if(type == SearchResult::TYPE_FILE && tth.empty())
 			return;
 
-		if (type == SearchResult::TYPE_DIRECTORY) {
+		if (type == SearchResult::TYPE_DIRECTORY || SettingsManager::lanMode) {
 			//calculate a TTH from the directory name and size
 			TigerHash tmp;
-			string tmp2 = Util::getLastDir(file) + Util::toString(size);
+			string tmp2 = (type == SearchResult::TYPE_FILE ? Util::getFileName(file) : Util::getLastDir(file)) + Util::toString(size);
 			tmp.update(Text::toLower(tmp2).c_str(), tmp2.length());
 			th = TTHValue(tmp.finalize());
 		} else {

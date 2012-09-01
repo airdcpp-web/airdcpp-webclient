@@ -46,8 +46,9 @@ static string tempDLDir;
 class AirUtil {
 	
 	public:
-		static DupeType checkDupe(const string& aDir, int64_t aSize);
-		static DupeType checkDupe(const TTHValue& aDir, const string& aFileName);
+		static DupeType checkDirDupe(const string& aDir, int64_t aSize);
+		static DupeType checkFileDupe(const TTHValue& aDir, const string& aFileName);
+		static DupeType checkFileDupe(const string& aFileName, int64_t aSize);
 
 		static void init();
 		static void updateCachedSettings();

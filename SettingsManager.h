@@ -25,8 +25,6 @@
 
 namespace dcpp {
 
-STANDARD_EXCEPTION(SearchTypeException);
-
 class SimpleXML;
 
 class SettingsManagerListener {
@@ -44,6 +42,7 @@ public:
 class SettingsManager : public Singleton<SettingsManager>, public Speaker<SettingsManagerListener>
 {
 public:
+	static bool lanMode;
 	static StringList connectionSpeeds;
 
 	enum StrSetting { STR_FIRST,
@@ -182,7 +181,7 @@ public:
 
 	enum {  MAGNET_AUTO_SEARCH, MAGNET_AUTO_DOWNLOAD };
 	
-	enum {  PROFILE_PUBLIC, PROFILE_RAR, PROFILE_PRIVATE };
+	enum {  PROFILE_PUBLIC, PROFILE_RAR, PROFILE_PRIVATE, PROFILE_LAN };
 
 	enum {  ORDER_ADDED, ORDER_RANDOM };
 

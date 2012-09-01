@@ -765,7 +765,7 @@ void AdcHub::privateMessage(const OnlineUserPtr& user, const string& aMessage, b
 void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 	if(state != STATE_NORMAL)
 		return;
-	string cmd = Util::formatParams(command.getCommand(), params, false);
+	string cmd = Util::formatParams(command.getCommand(), params, escape);
 	if(command.isChat()) {
 		if(command.getTo().empty()) {
 			hubMessage(cmd);
@@ -885,6 +885,9 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 		if(aSizeMode == SearchManager::SIZE_ATLEAST) {
 			c.addParam("GE", Util::toString(aSize));
 		} else if(aSizeMode == SearchManager::SIZE_ATMOST) {
+			c.addParam("LE", Util::toString(aSize));
+		} else if (aSizeMode == SearchManager::SIZE_EXACT) {
+			c.addParam("GE", Util::toString(aSize));
 			c.addParam("LE", Util::toString(aSize));
 		}
 

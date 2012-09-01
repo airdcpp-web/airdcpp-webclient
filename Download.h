@@ -71,6 +71,7 @@ public:
 	GETSET(uint64_t, lastTick, LastTick);
 	GETSET(bool, treeValid, TreeValid);
 	GETSET(BundlePtr, bundle, Bundle);
+	GETSET(string, remotePath, RemotePath);
 private:
 	Download(const Download&);
 	Download& operator=(const Download&);

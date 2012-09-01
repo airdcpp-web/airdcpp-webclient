@@ -520,7 +520,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 		if(match->isAutoQueue && !match->isForbidden) {
 			try {
 				QueueManager::getInstance()->add(SETTING(DOWNLOAD_DIRECTORY) + currentFile->getName(),
-					currentFile->getSize(), currentFile->getTTH(), getUser());
+					currentFile->getSize(), currentFile->getTTH(), getUser(), currentFile->getPath());
 			} catch(const Exception&) {	}
 		}
 	}
