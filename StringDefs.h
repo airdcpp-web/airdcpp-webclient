@@ -1241,7 +1241,7 @@ enum Strings { // @DontAdd
 	ICONS_RESTORE, // "Restore Default icons?\r\n You will need to restart airdc++ for the icons to load."
 	ICONS_DEFAULT, // "Default Icons"
 	THEME_TEXT, // "Themes: "
-	AUTOSEARCH, // "AutoSearch"
+	AUTOSEARCH, // "Auto Search"
 	ENABLE_AUTOSEARCH, // "Enable Item(s)"
 	DISABLE_AUTOSEARCH, // "Disable Item(s)"
 	SEARCH_BUNDLE_ALT, // "Search bundle for alternatives"

@@ -65,7 +65,7 @@ const string SettingsManager::settingTags[] =
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",
-	"AutoSearchFrameOrder", "AutoSearchFrameWidths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", 
+	"AutoSearchFrameOrder", "AutoSearchFrameWidths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs",
 
 	"SENTRY", 
 	// Ints
@@ -705,6 +705,7 @@ SettingsManager::SettingsManager()
 	setDefault(LOCK_TB, false);
 	setDefault(CLEAR_DIR_HISTORY, false);
 	setDefault(POPUNDER_PARTIAL_LIST, false);
+	setDefault(LAST_SEARCH_DISABLED_HUBS, "");
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
