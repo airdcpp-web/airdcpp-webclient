@@ -43,8 +43,7 @@ minFileSize(-1),
 maxFileSize(-1), 
 typeFileSize(SizeBytes), 
 destDir("ADLSearch"), 
-ddIndex(0),
-adlsComment("none") {
+ddIndex(0) {
 	match.pattern = "<Enter string>";
 	setRegEx(false);
 }
@@ -256,12 +255,6 @@ void ADLSearchManager::Load()
 						search.destDir = xml.getChildData();
 					}
 
-					if(xml.findChild("AdlsComment")) {
-						search.adlsComment = xml.getChildData();
-					} else {
-						search.adlsComment = "none";
-					}
-
 					if(xml.findChild("IsActive")) {
 						search.isActive = (Util::toInt(xml.getChildData()) != 0);
 					}
@@ -367,7 +360,6 @@ void ADLSearchManager::Save() {
 			xml.addChildAttrib("RegEx", search.isRegEx());
 			xml.addTag("SourceType", search.SourceTypeToString(search.sourceType));
 			xml.addTag("DestDirectory", search.destDir);
-			xml.addTag("AdlsComment", search.adlsComment);
 			xml.addTag("IsActive", search.isActive);
 			xml.addTag("MaxSize", search.maxFileSize);
 			xml.addTag("MinSize", search.minFileSize);
