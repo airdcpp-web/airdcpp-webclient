@@ -697,7 +697,6 @@ enum Strings { // @DontAdd
 	SETTINGS_USE_CTRL_FOR_LINE_HISTORY, // "Use CTRL for line history"
 	SETTINGS_USE_OLD_SHARING_UI, // "Use old sharing user interface"
 	SETTINGS_USE_SYSTEM_ICONS, // "Use system icons when browsing files (slows browsing down a bit)"
-	SETTINGS_USE_TLS, // "Use TLS when remote client supports it (affects both clients and hubs)"
 	SETTINGS_USE_VERTICAL_VIEW, // "Use vertical view by default"
 	SETTINGS_USER_COLORS, // "User List Colors"
 	SETTINGS_USER_COMMANDS, // "User Commands"
@@ -1071,7 +1070,6 @@ enum Strings { // @DontAdd
 	TEST_WRITE, // "Test Write to AirDC++ folders on startup"
 	SETTINGS_INCOMING_REFRESH_TIME, // "Incoming Refresh Time"
 	SETTINGS_USE_ADLS, // "Use ADLSearch on Filelists"
-	SETTINGS_USE_ADLS_OWN_LIST, // "Use ADLSearch on Own FileList"
 	SETTING_DONT_DL_ALREADY_QUEUED, // "Don't download files already in queue"
 	FAV_SHOW_JOIN, // "Show User Joins / Parts"
 	UPNP_REMOVED_MAPPINGS, // "Successfully removed port mappings"
@@ -1450,5 +1448,8 @@ enum Strings { // @DontAdd
 	RENAME_DLG_DESC, // "Rename also in the following profiles"
 	NO_FILE_ACCESS, // "You don't have access to this file"
 	CONFIRM_PROFILE_REMOVAL, // "Are you sure that you want to remove the profile %s?"
+	SOURCE_NO_ENCRYPTION, // "Remote ADC client does not use TLS encryption"
+	ENCRYPTION_FORCED, // "Enabled (forced in ADC hubs)"
+	TRANSFER_ENCRYPTION, // "Transfer encryption"
 	LAST // @DontAdd
 };

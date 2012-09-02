@@ -117,8 +117,8 @@ public:
 		expectedConnections.add(aNick, aMyNick, aHubUrl);
 	}
 	//expecting to get connection from a passive user
-	void adcExpect(const string& userCID, const string& aHubUrl) {
-		expectedConnections.add(userCID, Util::emptyString, aHubUrl);
+	void adcExpect(const string& aToken, const CID& aCID, const string& aHubUrl) {
+		expectedConnections.add(aToken, aCID.toBase32(), aHubUrl);
 	}
 	//debug info
 	void getExpectedMapSize() {

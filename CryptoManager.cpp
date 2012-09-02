@@ -198,8 +198,8 @@ CryptoManager::~CryptoManager() {
 	CRYPTO_cleanup_all_ex_data();
 }
 
-bool CryptoManager::TLSOk() const noexcept { 
-	return BOOLSETTING(USE_TLS) && certsLoaded && !keyprint.empty();
+bool CryptoManager::TLSOk() const noexcept {
+	return SETTING(TLS_MODE) > 0 && certsLoaded && !keyprint.empty();
 }
 
 void CryptoManager::generateCertificate() {
@@ -276,7 +276,7 @@ void CryptoManager::generateCertificate() {
 }
 
 void CryptoManager::loadCertificates() noexcept {
-	if(!BOOLSETTING(USE_TLS) || !clientContext || !clientVerContext || !serverContext || !serverVerContext)
+	if(!clientContext || !clientVerContext || !serverContext || !serverVerContext)
 		return;
 
 	keyprint.clear();

@@ -360,6 +360,11 @@ void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 		return;
 	}
 
+	if (!secure && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
+		send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "TLS encryption required", AdcCommand::TYPE_DIRECT).setTo(c.getFrom()));
+		return;
+	}
+
 	if(!u->getIdentity().isTcpActive()) {
 		send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "IP unknown", AdcCommand::TYPE_DIRECT).setTo(c.getFrom()));
 		return;
@@ -710,6 +715,11 @@ void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
 	if(state != STATE_NORMAL)
 		return;
 
+	if (!secure && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
+		send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "TLS encryption required", AdcCommand::TYPE_DIRECT).setTo(user.getIdentity().getSID()));
+		return;
+	}
+
 	const string* proto;
 	if(secure) {
 		if(user.getUser()->isSet(User::NO_ADCS_0_10_PROTOCOL)) {
@@ -735,7 +745,7 @@ void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
 		send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(port).addParam(token));
 
 		//we are expecting an incoming connection from these, map so we know where its coming from.
-		ConnectionManager::getInstance()->adcExpect(token, getHubUrl());
+		ConnectionManager::getInstance()->adcExpect(token, user.getUser()->getCID(), getHubUrl());
 	} else {
 		send(AdcCommand(AdcCommand::CMD_RCM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(token));
 	}

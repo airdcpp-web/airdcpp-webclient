@@ -103,7 +103,7 @@ const string SettingsManager::settingTags[] =
 	"MenubarTwoColors", "MenubarLeftColor", "MenubarRightColor", "MenubarBumped", 
 	"DisconnectFileSize", "UploadQueueFrameShowTree",
 	"SegmentsManual", "NumberOfSegments",
-	"AutoUpdateIP", "MaxHashSpeed", "GetUserCountry", "DisableCZDiacritic",
+	"AutoUpdateIP", "MaxHashSpeed", "GetUserCountry",
 	"UseAutoPriorityByDefault", "UseOldSharingUI",
 	"FavShowJoins", "LogStatusMessages", "PMLogLines", "SearchAlternateColour", "SoundsDisabled",
 	"ReportFoundAlternates",
@@ -123,7 +123,7 @@ const string SettingsManager::settingTags[] =
 	"OpenFinishedUploads", "OpenSearchSpy", "OpenNetworkStatistics", "OpenNotepad", "OutgoingConnections",
 	"NoIPOverride", "GroupSearchResults", "BoldFinishedDownloads", "BoldFinishedUploads", "BoldQueue", 
 	"BoldHub", "BoldPm", "BoldSearch", "TabsOnTop", "SocketInBuffer", "SocketOutBuffer", 
-	"ColorDownloaded", "ColorRunning", "ColorDone", "AutoRefreshTime", "UseTLS", "OpenWaitingUsers",
+	"ColorDownloaded", "ColorRunning", "ColorDone", "AutoRefreshTime", "OpenWaitingUsers",
 	"BoldWaitingUsers", "AutoSearchLimit", "AutoKickNoFavs", "PromptPassword", "SpyFrameIgnoreTthSearches",
  	"MaxCommandLength", "AllowUntrustedHubs", "AllowUntrustedClients", "TLSPort", "DownConnPerSec",
 	"HighestPrioSize", "HighPrioSize", "NormalPrioSize", "LowPrioSize", "LowestPrio",
@@ -143,7 +143,7 @@ const string SettingsManager::settingTags[] =
 	"FirstRun", "MaxResizeLines", 
 	"DupeSearch", "passwd_protect", "passwd_protect_tray",
 	"DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist",
-	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls", "UseAdlsOwnList",
+	"AutoAddSource", "KeepFinishedFiles", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "IncomingRefreshTime", "UseAdls",
 	"DontDlAlreadyQueued", "AutoDetectIncomingConnection", "TextNormBackColor", "TextNormForeColor", "TextNormBold", "TextNormItalic",
 	"SystemShowUploads", "SystemShowDownloads", "SettingsProfile", "WizardRunNew", "FormatRelease", "LogLines",
 	"CheckMissing", "CheckSfv", "CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "SortDirs", "DecreaseRam", "MaxFileSizeShared",
@@ -156,7 +156,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing",
 	"RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
-	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList",
+	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -327,7 +327,6 @@ SettingsManager::SettingsManager()
 	setDefault(BOLD_SEARCH, true);
 	setDefault(BOLD_WAITING_USERS, true);
 	setDefault(AUTO_REFRESH_TIME, 120);
-	setDefault(USE_TLS, true);
 	setDefault(AUTO_SEARCH_LIMIT, 15);
 	setDefault(AUTO_KICK_NO_FAVS, false);
 	setDefault(PROMPT_PASSWORD, true);
@@ -465,7 +464,6 @@ SettingsManager::SettingsManager()
 	setDefault(MENUBAR_RIGHT_COLOR, RGB(0, 34, 102));
 	setDefault(MENUBAR_BUMPED, true);
 
-	setDefault(CZCHARS_DISABLE, false);
 	setDefault(REPORT_ALTERNATES, true);	
 
 	setDefault(SOUNDS_DISABLED, false);
@@ -638,7 +636,6 @@ SettingsManager::SettingsManager()
 	setDefault(TESTWRITE, true);
 	setDefault(INCOMING_REFRESH_TIME, 0);
 	setDefault(USE_ADLS, true);
-	setDefault(USE_ADLS_OWN_LIST, true);
 	setDefault(DONT_DL_ALREADY_QUEUED, false);
 	setDefault(SYSTEM_SHOW_UPLOADS, false);
 	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
@@ -705,6 +702,7 @@ SettingsManager::SettingsManager()
 	setDefault(LOCK_TB, false);
 	setDefault(CLEAR_DIR_HISTORY, false);
 	setDefault(POPUNDER_PARTIAL_LIST, false);
+	setDefault(TLS_MODE, 1);
 	setDefault(LAST_SEARCH_DISABLED_HUBS, "");
 
 #ifdef _WIN64
