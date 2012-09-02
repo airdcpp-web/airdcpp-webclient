@@ -141,6 +141,7 @@ public:
 
 	// Settings
 	GETSET(bool, breakOnFirst, BreakOnFirst)
+	GETSET(HintedUser, user, User)
 
 	// @remarks Used to add ADLSearch directories to an existing DirectoryListing
 	void matchListing(DirectoryListing& /*aDirList*/) noexcept;

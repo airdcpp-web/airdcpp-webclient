@@ -71,7 +71,7 @@ string ADLSearch::SourceTypeToString(SourceType t) {
 	}
 
 tstring ADLSearch::SourceTypeToDisplayString(SourceType t) {
-		switch(t) {
+	switch(t) {
 		default:
 		case OnlyFile:		return TSTRING(FILENAME);
 		case OnlyDirectory:	return TSTRING(DIRECTORY);
@@ -191,7 +191,7 @@ bool ADLSearch::matchesDirectory(const string& d) {
 }
 
 // Constructor/destructor
-ADLSearchManager::ADLSearchManager() : running(0) {
+ADLSearchManager::ADLSearchManager() : running(0), user(HintedUser(UserPtr(), Util::emptyString)) {
 	Load(); 
 }
 
@@ -271,6 +271,8 @@ void ADLSearchManager::Load()
 						if (Util::toInt(xml.getChildData()) > 0) {
 							search.setRegEx(true);
 						}
+					} else {
+						xml.resetCurrentChild();
 					}
 
 					if(xml.findChild("MaxSize")) {
@@ -297,10 +299,6 @@ void ADLSearchManager::Load()
 			}
 		}
 	}
-
-	/*for(auto i = lastSearches.begin(); i != lastSearches.end(); ++i) {
-		ctrlSearchBox.InsertString(0, i->c_str());
-	}*/
 
 	catch(const SimpleXMLException&) { }
 	catch(const FileException&) { }
@@ -369,11 +367,13 @@ void ADLSearchManager::Save() {
 			xml.addChildAttrib("RegEx", search.isRegEx());
 			xml.addTag("SourceType", search.SourceTypeToString(search.sourceType));
 			xml.addTag("DestDirectory", search.destDir);
+			xml.addTag("AdlsComment", search.adlsComment);
 			xml.addTag("IsActive", search.isActive);
 			xml.addTag("MaxSize", search.maxFileSize);
 			xml.addTag("MinSize", search.minFileSize);
 			xml.addTag("SizeType", search.SizeTypeToString(search.typeFileSize));
 			xml.addTag("IsAutoQueue", search.isAutoQueue);
+
 			xml.stepOut();
 		});
 
@@ -411,7 +411,9 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 
 	string filePath = fullPath + "\\" + currentFile->getName();
 	// Match searches
-	for(auto& is: collection) {
+	for(auto i = collection.begin(); i != collection.end(); ++i) {
+	//for(auto& is: collection) {
+		auto& is = *i;
 		if(destDirVector[is.ddIndex].fileAdded) {
 			continue;
 		}
@@ -420,12 +422,12 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 			destDirVector[is.ddIndex].dir->files.push_back(copyFile);
 			destDirVector[is.ddIndex].fileAdded = true;
 
-			/*if(is.isAutoQueue){
+			if(is.isAutoQueue){
 				try {
 					QueueManager::getInstance()->add(SETTING(DOWNLOAD_DIRECTORY) + currentFile->getName(),
-						currentFile->getSize(), currentFile->getTTH(), getUser());
+						currentFile->getSize(), currentFile->getTTH(), getUser(), currentFile->getPath() + currentFile->getName());
 				} catch(const Exception&) { }
-			}*/
+			}
 
 			if(breakOnFirst) {
 				// Found a match, search no more
@@ -452,8 +454,9 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 		return;
 	}
 
-	// Match searches
-	for(auto& is: collection) {
+	for(auto i = collection.begin(); i != collection.end(); ++i) {
+	//for(auto& is: collection) {
+		auto& is = *i;
 		if(destDirVector[is.ddIndex].subdir != NULL) {
 			continue;
 		}
@@ -487,7 +490,9 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 	destDirs.push_back(std::move(dir));
 
 	// Scan all loaded searches
-	for(auto& is: collection) {
+	for(auto i = collection.begin(); i != collection.end(); ++i) {
+	//for(auto& is: collection) {
+		auto& is = *i;
 		// Check empty destination directory
 		if(is.destDir.size() == 0) {
 			// Set to default
@@ -547,7 +552,7 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 
 void ADLSearchManager::matchListing(DirectoryListing& aDirList) noexcept {
 	running++;
-	//setUser(aDirList.getHintedUser());
+	setUser(aDirList.getHintedUser());
 
 	DestDirList destDirs;
 	PrepareDestinationDirectories(destDirs, aDirList.getRoot());
