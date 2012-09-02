@@ -70,7 +70,11 @@ struct Prepare : boost::static_visitor<bool> {
 
 	bool operator()(boost::regex& r) const {
 		try {
-			r.assign(wildCard ? AirUtil::regexEscape(pattern, true) : pattern);
+			if (wildCard) {
+				r.assign(AirUtil::regexEscape(pattern, true), boost::regex::icase);
+			} else {
+				r.assign(pattern);
+			}
 			return true;
 		} catch(const std::runtime_error&) {
 			LogManager::getInstance()->message(STRING_F(INVALID_PATTERN, pattern), LogManager::LOG_ERROR);

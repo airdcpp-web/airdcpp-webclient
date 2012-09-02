@@ -119,6 +119,7 @@ public:
 	void putOffline(OnlineUser* ou, bool disconnect = false, bool priv = false) noexcept;
 
 	UserPtr& getMe();
+	string getClientStats();
 	
 	bool send(AdcCommand& c, const CID& to, bool noCID=false, bool noPassive=false);
 

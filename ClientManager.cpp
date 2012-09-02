@@ -39,6 +39,10 @@
 #include "QueueManager.h"
 #include "FinishedManager.h"
 
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 
 namespace dcpp {
@@ -747,6 +751,76 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcep
 	for(auto j = clients.begin(); j != clients.end(); ++j) {
 		j->second->info(false);
 	}
+}
+
+string ClientManager::getClientStats() {
+	RLock l(cs);
+	int allUsers = onlineUsers.size();
+	int uniqueUsers = users.size();
+	string lb = "\n";
+	string ret;
+	ret += lb;
+	ret += lb;
+	ret += "All users: " + Util::toString(allUsers) + lb;
+	ret += "Unique users: " + Util::toString(uniqueUsers) + " (" + Util::toString(((double)uniqueUsers/(double)allUsers)*100.00) + "%)" + lb;
+	ret += lb;
+	ret += lb;
+	ret += "Clients";
+	ret += lb;
+
+	//typedef boost::bimaps::bimap<string, int> results_bimap;
+    //typedef results_bimap::value_type position;
+	//boost::bimaps::bimap<string, double> clientNames;
+
+	//results_bimap clientNames;
+	map<string, double> clientNames;
+	for(auto i = onlineUsers.begin(); i != onlineUsers.end(); ++i) {
+		if (!(*i).second->getIdentity().isBot()) {
+			auto app = (*i).second->getIdentity().getApplication();
+			auto pos = app.find(" ");
+
+			if (pos != string::npos) {
+				clientNames[app.substr(0, pos)]++;
+				//clientNames.value_comp();
+				//clientNames.insert(position(app, 0));
+			} else {
+				clientNames["Unknown"]++;
+			}
+		}
+	}
+
+	/*auto countCompare = [] (int i,int j) -> bool {
+		return (i<j);
+	};*/
+
+	auto countCompare = [] (pair<string, int> i, pair<string, int> j) -> bool {
+		return (i.second>j.second);
+	};
+	//bool myfunction (int i,int j) { return (i<j); }
+
+	//sort(clientNames.begin(), clientNames.end(), countCompare);
+	vector<double> dv;
+	//boost::copy(countCompare | boost::adaptors::map_values, dv.begin());
+
+	vector<pair<string, int> > print(clientNames.begin(), clientNames.end());
+	sort(print.begin(), print.end(), countCompare);
+	//boost::sort(clientNames | boost::adaptors::map_values, countCompare);
+	for(auto i = print.begin(); i != print.end(); ++i) {
+		//std::stringstream a_stream;
+		//std::string the_string = Util::toString(i->second) + " (" + Util::toString((i->second/allUsers)*100.00) + "%)" + lb;
+		//a_stream << std::setiosflags ( std::ios_base::left ) << std::setw ( 20 ) << i->first << the_string.c_str() << std::endl;
+		//std::cout << the_string.c_str();
+		//ret += a_stream.get();
+		//ret += a_stream.str();
+		ret += i->first + ":\t\t" + Util::toString(i->second) + " (" + Util::toString(((double)i->second/(double)allUsers)*100.00) + "%)" + lb;
+		//printf("%-20s", ret);
+	}
+
+	/*for(auto i = clientNames.begin(); i != clientNames.end(); ++i) {
+		ret += i->first + ": " + Util::toString(i->second) + " (" + Util::toString((i->second/allUsers)*100.00) + "%)" + lb;
+	}*/
+
+	return ret;
 }
 
 UserPtr& ClientManager::getMe() {
