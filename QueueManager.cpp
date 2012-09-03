@@ -2114,29 +2114,6 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 			});
 		}
 	}
-
-
-	{
-		RLock l(cs);
-		if (bundleUpdates.empty())
-			return;
-	}
-
-	StringList updateTokens;
-	{
-		WLock l(cs);
-		for (auto i = bundleUpdates.begin(); i != bundleUpdates.end();) {
-			if (aTick > i->second) {
-				updateTokens.push_back(i->first);
-				bundleUpdates.erase(i);
-				i = bundleUpdates.begin();
-			} else {
-				i++;
-			}
-		}
-	}
-
-	for_each(updateTokens, [&](const string& t) { handleBundleUpdate(t); });
 }
 
 void QueueManager::calculateBundlePriorities(bool verbose) {
@@ -3144,15 +3121,7 @@ void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr targetBundle, bool 
 }
 
 void QueueManager::addBundleUpdate(const BundlePtr aBundle) {
-	//LogManager::getInstance()->message("QueueManager::addBundleUpdate");
-	WLock l(cs);
-	auto i = find_if(bundleUpdates.begin(), bundleUpdates.end(), CompareFirst<string, uint64_t>(aBundle->getToken()));
-	if (i != bundleUpdates.end()) {
-		i->second = GET_TICK() + 1000;
-		return;
-	}
-
-	bundleUpdates.push_back(make_pair(aBundle->getToken(), aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH) ? GET_TICK()+10000 : GET_TICK() + 1000));
+	delayEvents.addEvent(aBundle->getToken(), [this, aBundle] { handleBundleUpdate(aBundle->getToken()); }, aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH) ? 10000 : 1000);
 }
 
 void QueueManager::handleBundleUpdate(const string& bundleToken) {

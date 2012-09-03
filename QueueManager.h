@@ -44,6 +44,7 @@
 #include "BundleQueue.h"
 #include "FileQueue.h"
 #include "UserQueue.h"
+#include "DelayedEvents.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -262,9 +263,6 @@ private:
 
 	void addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
 
-	typedef vector<pair<string, uint64_t>> bundleTickMap;
-	bundleTickMap bundleUpdates;
-
 	void load(const SimpleXML& aXml);
 	void moveFile(const string& source, const string& target, QueueItemPtr q = nullptr);
 	static void moveFile_(const string& source, const string& target, QueueItemPtr q);
@@ -301,6 +299,8 @@ private:
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept;
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
+
+	DelayedEvents<string> delayEvents;
 
 	template<class T>
 	void calculateBalancedPriorities(vector<pair<T, uint8_t>>& priorities, multimap<T, pair<int64_t, double>>& speedSourceMap, bool verbose) {

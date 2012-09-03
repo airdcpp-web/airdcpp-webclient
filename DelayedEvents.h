@@ -1,0 +1,93 @@
+/*
+ * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
+/* This allows scheduling events that will most likely happen sequently in a short time period and only executes the latest one. */
+
+#ifndef DCPLUSPLUS_DCPP_DELAYEDEVENTS_H
+#define DCPLUSPLUS_DCPP_DELAYEDEVENTS_H
+
+#include "TimerManager.h"
+
+#include <boost/range/algorithm/find_if.hpp>
+
+namespace dcpp {
+
+typedef std::function<void ()> DelayedF;
+struct DelayTask {
+	DelayTask(DelayedF aF, uint64_t aRunTick) : runTick(aRunTick), f(aF) { }
+	uint64_t runTick;
+	DelayedF f;
+};
+
+template<class T>
+class DelayedEvents : private TimerManagerListener {
+public:
+
+	//typedef pair<T, unique_ptr<DelayTask>> DelayPair;
+	//typedef deque<DelayPair> List;
+	typedef unordered_map<T, unique_ptr<DelayTask>> List;
+
+	DelayedEvents() { 
+		TimerManager::getInstance()->addListener(this);
+	}
+
+	~DelayedEvents() {
+		TimerManager::getInstance()->removeListener(this);
+		clear();
+	}
+
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+		Lock l(cs);
+		for (auto i = eventList.begin(); i != eventList.end();) {
+			if (aTick > i->second.get()->runTick) {
+				i->second.get()->f();
+				eventList.erase(i);
+				i = eventList.begin();
+			} else {
+				i++;
+			}
+		}
+	}
+
+	void addEvent(const T& aKey, DelayedF f, uint64_t aDelayTicks) {
+		Lock l(cs);
+		//auto i = boost::find_if(eventList, CompareFirst<T, uint64_t>(aKey));
+
+		auto i = eventList.find(aKey);
+		if (i != eventList.end()) {
+			i->second.get()->runTick = GET_TICK() + aDelayTicks;
+			return;
+		}
+
+		//eventList.push_back(make_pair(aKey, unique_ptr<DelayTask>(new DelayTask(f, aDelayTicks))));
+		eventList.insert(make_pair(aKey, unique_ptr<DelayTask>(new DelayTask(f, GET_TICK() + aDelayTicks))));
+	}
+
+	void clear() {
+		List tmp;
+		tmp = move(eventList);
+	}
+private:
+
+	CriticalSection cs;
+	List eventList;
+};
+
+} // namespace dcpp
+
+#endif
