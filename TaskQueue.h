@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_TASK_H
 #define DCPLUSPLUS_DCPP_TASK_H
 
+#include <boost/range/algorithm/find_if.hpp>
+
 namespace dcpp {
 
 struct Task {
@@ -48,15 +50,35 @@ public:
 		clear();
 	}
 
-	void add(uint8_t type, std::unique_ptr<Task> && data) { Lock l(cs); tasks.push_back(make_pair(type, move(data))); }
+	void add(uint8_t type, std::unique_ptr<Task> && data) { 
+		Lock l(cs); 
+		tasks.push_back(make_pair(type, move(data))); 
+	}
+
+	bool addUnique(uint8_t type, std::unique_ptr<Task> && data) { 
+		Lock l(cs);
+		auto p = boost::find_if(tasks, [type, this](const TaskPair& tp) { return tp.first == type; });
+		if (p == tasks.end()) {
+			tasks.push_back(make_pair(type, move(data)));
+			return true;
+		}
+		return false;
+	}
+
+
 	void get(List& list) { Lock l(cs); swap(tasks, list); }
 	bool getFront(TaskPair& t) { 
 		Lock l(cs); 
 		if (tasks.empty())
 			return false;
-		t = move(tasks.front());
-		tasks.pop_front();
+		t = make_pair(tasks.front().first, move(tasks.front().second));
 		return true;
+	}
+
+	void pop_front() {
+		Lock l(cs);
+		dcassert(!tasks.empty());
+		tasks.pop_front();
 	}
 
 	void clear() {

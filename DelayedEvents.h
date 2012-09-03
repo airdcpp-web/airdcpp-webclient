@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2011-2012 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +23,6 @@
 
 #include "TimerManager.h"
 
-#include <boost/range/algorithm/find_if.hpp>
-
 namespace dcpp {
 
 typedef std::function<void ()> DelayedF;
@@ -37,9 +35,6 @@ struct DelayTask {
 template<class T>
 class DelayedEvents : private TimerManagerListener {
 public:
-
-	//typedef pair<T, unique_ptr<DelayTask>> DelayPair;
-	//typedef deque<DelayPair> List;
 	typedef unordered_map<T, unique_ptr<DelayTask>> List;
 
 	DelayedEvents() { 
@@ -66,7 +61,6 @@ public:
 
 	void addEvent(const T& aKey, DelayedF f, uint64_t aDelayTicks) {
 		Lock l(cs);
-		//auto i = boost::find_if(eventList, CompareFirst<T, uint64_t>(aKey));
 
 		auto i = eventList.find(aKey);
 		if (i != eventList.end()) {
@@ -74,7 +68,6 @@ public:
 			return;
 		}
 
-		//eventList.push_back(make_pair(aKey, unique_ptr<DelayTask>(new DelayTask(f, aDelayTicks))));
 		eventList.insert(make_pair(aKey, unique_ptr<DelayTask>(new DelayTask(f, GET_TICK() + aDelayTicks))));
 	}
 

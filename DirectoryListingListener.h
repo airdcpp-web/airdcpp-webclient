@@ -37,6 +37,7 @@ public:
 	typedef X<6> SearchFailed;
 	typedef X<7> ChangeDirectory;
 	typedef X<8> UpdateStatusMessage;
+	typedef X<9> Filter;
 
 	virtual void on(LoadingFinished, int64_t, const string&, bool) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
@@ -47,6 +48,7 @@ public:
 	virtual void on(SearchFailed, bool) noexcept { }
 	virtual void on(ChangeDirectory, const string&, bool) noexcept { }
 	virtual void on(UpdateStatusMessage, const string&) noexcept { }
+	virtual void on(Filter) noexcept { }
 };
 
 } // namespace dcpp

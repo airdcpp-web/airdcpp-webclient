@@ -1495,6 +1495,7 @@ int ShareManager::run() {
 		TaskQueue::TaskPair t;
 		if (!tasks.getFront(t))
 			break;
+		ScopedFunctor([this] { tasks.pop_front(); });
 
 		vector<pair<string, pair<Directory::Ptr, ProfileDirMap>>> dirs;
 		auto directories = static_cast<StringListTask*>(t.second.get())->spl;

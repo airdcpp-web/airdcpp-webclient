@@ -192,6 +192,7 @@ public:
 	void addPartialListTask(const string& aXmlDir);
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
+	void addFilterTask();
 	void close();
 
 	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
@@ -219,7 +220,8 @@ private:
 		REFRESH_DIR,
 		LOAD_FILE,
 		MATCH_ADL,
-		LISTDIFF
+		LISTDIFF,
+		FILTER
 	};
 
 	void runTasks();
@@ -240,6 +242,7 @@ private:
 
 	void changeDir();
 	string searchToken;
+	bool typingFilter;
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }

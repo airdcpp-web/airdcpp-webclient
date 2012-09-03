@@ -34,6 +34,7 @@
 #include "User.h"
 #include "ADLSearch.h"
 #include "DirectoryListingManager.h"
+#include "ScopedFunctor.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm/find_if.hpp>
@@ -47,7 +48,7 @@ using boost::range::for_each;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(BOOLSETTING(USE_ADLS) && !aPartial)
+	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(BOOLSETTING(USE_ADLS) && !aPartial), typingFilter(false)
 {
 	running.clear();
 }
@@ -751,6 +752,13 @@ void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize,
 	runTasks();
 }
 
+void DirectoryListing::addFilterTask() {
+	if (tasks.addUnique(FILTER, nullptr))
+		runTasks();
+	else
+		typingFilter = true;
+}
+
 void DirectoryListing::runTasks() {
 	if (!running.test_and_set()) {
 		join();
@@ -770,6 +778,8 @@ int DirectoryListing::run() {
 		if (!tasks.getFront(t))
 			break;
 
+		ScopedFunctor([this] { tasks.pop_front(); });
+
 		try {
 			int64_t start = GET_TICK();
 			
@@ -784,7 +794,16 @@ int DirectoryListing::run() {
 				root->clearAdls(); //not much to check even if its the first time loaded without adls...
 				ADLSearchManager::getInstance()->matchListing(*this);
 				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false);
-			} else if(t.first == LOAD_FILE) {
+			} else if(t.first == FILTER) {
+				for(;;) {
+					typingFilter = false;
+					sleep(500);
+					if (!typingFilter)
+						break;
+				}
+
+				fire(DirectoryListingListener::Filter());
+			}else if(t.first == LOAD_FILE) {
 				bool convertPartial = partialList;
 				fire(DirectoryListingListener::LoadingStarted());
 				if (convertPartial) {
