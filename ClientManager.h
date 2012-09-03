@@ -42,26 +42,24 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	private TimerManagerListener
 {
 public:
+	Client* createClient(const string& aHubURL);
 	Client* getClient(const string& aHubURL);
 	void putClient(Client* aClient);
 
 	size_t getUserCount() const;
 	int64_t getAvailable() const;
 
-	StringList getHubUrls(const CID& cid, const string& hintUrl = Util::emptyString);
-	StringList getHubNames(const CID& cid, const string& hintUrl = Util::emptyString);
-	StringList getNicks(const CID& cid, const string& hintUrl = Util::emptyString);
 	string getField(const CID& cid, const string& hintUrl, const char* field) const;
 
-	StringList getHubUrls(const CID& cid, const string& hintUrl, bool priv) const;
-	StringList getHubNames(const CID& cid, const string& hintUrl, bool priv) const;
-	StringList getNicks(const CID& cid, const string& hintUrl, bool priv) const;
+	StringList getHubUrls(const CID& cid, const string& hintUrl = Util::emptyString) const;
+	StringList getHubNames(const CID& cid, const string& hintUrl = Util::emptyString) const;
+	StringList getNicks(const CID& cid, const string& hintUrl = Util::emptyString) const;
 
 	StringList getNicks(const HintedUser& user) { return getNicks(user.user->getCID(), user.hint); }
 	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID(), user.hint); }
 	StringList getHubUrls(const HintedUser& user) { return getHubUrls(user.user->getCID(), user.hint); }
 
-	StringPairList getHubs(const CID& cid, const string& hintUrl, bool priv);
+	StringPairList getHubs(const CID& cid, const string& hintUrl);
 
 	vector<Identity> getIdentities(const UserPtr &u) const;
 
@@ -90,8 +88,8 @@ public:
 	* @param priv discard any user that doesn't match the hint.
 	* @return OnlineUser* found by CID and hint; might be only by CID if priv is false.
 	*/
-	OnlineUser* findOnlineUser(const HintedUser& user, bool priv) const;
-	OnlineUser* findOnlineUser(const CID& cid, const string& hintUrl, bool priv) const;
+	OnlineUser* findOnlineUser(const HintedUser& user) const;
+	OnlineUser* findOnlineUser(const CID& cid, const string& hintUrl) const;
 
 	UserPtr findUser(const string& aNick, const string& aHubUrl) const noexcept { return findUser(makeCid(aNick, aHubUrl)); }
 	UserPtr findUser(const CID& cid) const noexcept;
@@ -116,7 +114,7 @@ public:
 	CID makeCid(const string& nick, const string& hubUrl) const noexcept;
 
 	void putOnline(OnlineUser* ou) noexcept;
-	void putOffline(OnlineUser* ou, bool disconnect = false, bool priv = false) noexcept;
+	void putOffline(OnlineUser* ou, bool disconnect = false) noexcept;
 
 	UserPtr& getMe();
 	string getClientStats();

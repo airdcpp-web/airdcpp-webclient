@@ -1451,5 +1451,9 @@ enum Strings { // @DontAdd
 	SOURCE_NO_ENCRYPTION, // "Remote ADC client does not use TLS encryption"
 	ENCRYPTION_FORCED, // "Enabled (forced in ADC hubs)"
 	TRANSFER_ENCRYPTION, // "Transfer encryption"
+	USER_OFFLINE_PM_CHANGE, // "User went offline in %s, messages are now sent through the hub %s"
+	MESSAGES_SENT_THROUGH, // "Messages are now sent through the hub %s"
+	SEND_PM_VIA, // "Messages are sent via"
+	MESSAGES_SENT_THROUGH_REMOTE, // "Messages are now sent through the hub %s (changed by the remote users)"
 	LAST // @DontAdd
 };

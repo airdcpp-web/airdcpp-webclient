@@ -88,7 +88,6 @@ void Client::reloadSettings(bool updateNick) {
 		setHubShowJoins(hub->getHubShowJoins()); //show joins
 		setHubLogMainchat(hub->getHubLogMainchat());
 		setChatNotify(hub->getChatNotify());
-		setPrivGroup(FavoriteManager::getInstance()->isPrivate(getHubUrl()));
 		if(!hub->getEncoding().empty())
 			setEncoding(hub->getEncoding());
 		

@@ -1444,6 +1444,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Remote ADC client does not use TLS encryption", 
 "Enabled (forced in ADC hubs)", 
 "Transfer encryption", 
+"User went offline in %s, messages are now sent through the hub %s", 
+"Messages are now sent through the hub %s", 
+"Messages are sent via", 
+"Messages are now sent through the hub %s (changed by the remote users)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2888,4 +2892,8 @@ std::string dcpp::ResourceManager::names[] = {
 "SourceNoEncryption", 
 "EncryptionForced", 
 "TransferEncryption", 
+"UserOfflinePmChange", 
+"MessagesSentThrough", 
+"SendPmVia", 
+"MessagesSentThroughRemote", 
 };

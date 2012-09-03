@@ -408,7 +408,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 		ClientManager* c = ClientManager::getInstance();
 		c->lockRead();
 		ScopedFunctor([c] { c->unlockRead(); });
-		OnlineUser* u = c->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL(), false);
+		OnlineUser* u = c->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL());
 
 		if(u) {
 			Client* client = &u->getClient();

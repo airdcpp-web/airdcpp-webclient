@@ -49,6 +49,9 @@ public:
 	// Active search
 	bool isActive;
 
+	// Some Comment
+	string adlsComment;
+
 	// Auto Queue Results
 	bool isAutoQueue;
 

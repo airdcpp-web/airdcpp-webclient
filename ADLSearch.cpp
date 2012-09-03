@@ -43,7 +43,8 @@ minFileSize(-1),
 maxFileSize(-1), 
 typeFileSize(SizeBytes), 
 destDir("ADLSearch"), 
-ddIndex(0) {
+ddIndex(0),
+adlsComment("none") {
 	match.pattern = "<Enter string>";
 	setRegEx(false);
 }
@@ -247,16 +248,33 @@ void ADLSearchManager::Load()
 						if(xml.getBoolChildAttrib("RegEx")) {
 							search.setRegEx(true);
 						}
+					} else {
+						xml.resetCurrentChild();
 					}
+
 					if(xml.findChild("SourceType")) {
 						search.sourceType = search.StringToSourceType(xml.getChildData());
+					} else {
+						xml.resetCurrentChild();
 					}
+
 					if(xml.findChild("DestDirectory")) {
 						search.destDir = xml.getChildData();
+					} else {
+						xml.resetCurrentChild();
+					}
+
+					if(xml.findChild("AdlsComment")) {
+						search.adlsComment = xml.getChildData();
+					} else {
+						search.adlsComment = "none";
+						xml.resetCurrentChild();
 					}
 
 					if(xml.findChild("IsActive")) {
 						search.isActive = (Util::toInt(xml.getChildData()) != 0);
+					} else {
+						xml.resetCurrentChild();
 					}
 
 					/* For compatibility, remove in some point */
@@ -270,15 +288,26 @@ void ADLSearchManager::Load()
 
 					if(xml.findChild("MaxSize")) {
 						search.maxFileSize = Util::toInt64(xml.getChildData());
+					} else {
+						xml.resetCurrentChild();
 					}
+
 					if(xml.findChild("MinSize")) {
 						search.minFileSize = Util::toInt64(xml.getChildData());
+					} else {
+						xml.resetCurrentChild();
 					}
+
 					if(xml.findChild("SizeType")) {
 						search.typeFileSize = search.StringToSizeType(xml.getChildData());
+					} else {
+						xml.resetCurrentChild();
 					}
+
 					if(xml.findChild("IsAutoQueue")) {
 						search.isAutoQueue = (Util::toInt(xml.getChildData()) != 0);
+					} else {
+						xml.resetCurrentChild();
 					}
 
 					// Add search to collection
@@ -360,6 +389,7 @@ void ADLSearchManager::Save() {
 			xml.addChildAttrib("RegEx", search.isRegEx());
 			xml.addTag("SourceType", search.SourceTypeToString(search.sourceType));
 			xml.addTag("DestDirectory", search.destDir);
+			xml.addTag("AdlsComment", search.adlsComment);
 			xml.addTag("IsActive", search.isActive);
 			xml.addTag("MaxSize", search.maxFileSize);
 			xml.addTag("MinSize", search.minFileSize);

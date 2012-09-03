@@ -58,7 +58,7 @@ ClientManager::~ClientManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
-Client* ClientManager::getClient(const string& aHubURL) {
+Client* ClientManager::createClient(const string& aHubURL) {
 	Client* c;
 	if(strnicmp("adc://", aHubURL.c_str(), 6) == 0) {
 		c = new AdcHub(aHubURL, false);
@@ -80,6 +80,11 @@ Client* ClientManager::getClient(const string& aHubURL) {
 	return c;
 }
 
+Client* ClientManager::getClient(const string& aHubURL) {
+	auto p = clients.find(const_cast<string*>(&aHubURL));
+	return p != clients.end() ? p->second : nullptr;
+}
+
 void ClientManager::putClient(Client* aClient) {
 	fire(ClientManagerListener::ClientDisconnected(), aClient);
 	aClient->removeListeners();
@@ -92,66 +97,46 @@ void ClientManager::putClient(Client* aClient) {
 	delete aClient;
 }
 
-StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl) {
-	return getHubUrls(cid, hintUrl, FavoriteManager::getInstance()->isPrivate(hintUrl));
-}
-
-StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl) {
-	return getHubNames(cid, hintUrl, FavoriteManager::getInstance()->isPrivate(hintUrl));
-}
-
-StringList ClientManager::getNicks(const CID& cid, const string& hintUrl) {
-	return getNicks(cid, hintUrl, FavoriteManager::getInstance()->isPrivate(hintUrl));
-}
-
-StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl, bool priv) const {
+StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl) const {
 	StringList lst;
 
 	RLock l(cs);
-	if(!priv) {
-		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
-		for(auto i = op.first; i != op.second; ++i) {
-			lst.push_back(i->second->getClientBase().getHubUrl());
-		}
-	} else {
-		OnlineUser* u = findOnlineUserHint(cid, hintUrl);
-		if(u)
-			lst.push_back(u->getClientBase().getHubUrl());
+	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
+	for(auto i = op.first; i != op.second; ++i) {
+		lst.push_back(i->second->getClientBase().getHubUrl());
 	}
 	return lst;
 }
 
-StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl, bool priv) const {
+StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl) const {
 	StringList lst;
 
 	RLock l(cs);
-	if(!priv) {
-		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
-		for(auto i = op.first; i != op.second; ++i) {
-			lst.push_back(i->second->getClientBase().getHubName());		
-		}
-	} else {
-		OnlineUser* u = findOnlineUserHint(cid, hintUrl);
-		if(u)
-			lst.push_back(u->getClientBase().getHubName());
+	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
+	for(auto i = op.first; i != op.second; ++i) {
+		lst.push_back(i->second->getClientBase().getHubName());		
 	}
 	return lst;
 }
 
-StringList ClientManager::getNicks(const CID& cid, const string& hintUrl, bool priv) const {
+StringPairList ClientManager::getHubs(const CID& cid, const string& hintUrl) {
+	RLock l(cs);
+	StringPairList lst;
+	auto op = onlineUsers.equal_range(const_cast<CID*>(&cid));
+	for(auto i = op.first; i != op.second; ++i) {
+		lst.push_back(make_pair(i->second->getClient().getHubUrl(), i->second->getClient().getHubName()));
+	}
+	return lst;
+}
+
+StringList ClientManager::getNicks(const CID& cid, const string& hintUrl) const {
 	StringSet ret;
 
 	{
 		RLock l(cs);
-		if(!priv) {
-			OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
-			for(auto i = op.first; i != op.second; ++i) {
-				ret.insert(i->second->getIdentity().getNick());
-			}
-		} else {
-			OnlineUser* u = findOnlineUserHint(cid, hintUrl);
-			if(u)
-				ret.insert(u->getIdentity().getNick());
+		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
+		for(auto i = op.first; i != op.second; ++i) {
+			ret.insert(i->second->getIdentity().getNick());
 		}
 
 		if(ret.empty()) {
@@ -380,7 +365,7 @@ void ClientManager::putOnline(OnlineUser* ou) noexcept {
 	}
 }
 
-void ClientManager::putOffline(OnlineUser* ou, bool disconnect, bool priv/*false*/) noexcept {
+void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
 	OnlineIter::difference_type diff = 0;
 	{
 		WLock l(cs);
@@ -404,8 +389,8 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect, bool priv/*false
 			ConnectionManager::getInstance()->disconnect(u);
 		fire(ClientManagerListener::UserDisconnected(), u);
 	} else if(diff > 1) {
-		if(priv)
-			updateUser(*ou);
+		//if(priv)
+		//	updateUser(*ou);
 		fire(ClientManagerListener::UserUpdated(), *ou);
 	}
 }
@@ -501,21 +486,17 @@ HintedUser ClientManager::checkUserHint(const HintedUser& user) {
 	return HintedUser(user);
 }
 
-OnlineUser* ClientManager::findOnlineUser(const HintedUser& user, bool priv) const {
-	return findOnlineUser(user.user->getCID(), user.hint, priv);
+OnlineUser* ClientManager::findOnlineUser(const HintedUser& user) const {
+	return findOnlineUser(user.user->getCID(), user.hint);
 }
 
-OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl, bool priv) const {
+OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl) const {
 	OnlinePairC p;
 	OnlineUser* u = findOnlineUserHint(cid, hintUrl, p);
 	if(u) // found an exact match (CID + hint).
 		return u;
 
 	if(p.first == p.second) // no user found with the given CID.
-		return 0;
-
-	// if the hint hub is private, don't allow connecting to the same user from another hub.
-	if(priv)
 		return 0;
 
 	// ok, hub not private, return a random user that matches the given CID but not the hint.
@@ -530,10 +511,9 @@ void ClientManager::connect(const HintedUser& user, const string& token) {
 	alltho we just can get the wrong list, or possibly a file not available.
 	should we just set it allways as private?
 	*/
-	bool priv = FavoriteManager::getInstance()->isPrivate(user.hint);
 
 	RLock l(cs);
-	OnlineUser* u = findOnlineUser(user, priv);
+	OnlineUser* u = findOnlineUser(user);
 
 	if(u) {
 		u->getClientBase().connect(*u, token);
@@ -541,10 +521,8 @@ void ClientManager::connect(const HintedUser& user, const string& token) {
 }
 
 void ClientManager::privateMessage(const HintedUser& user, const string& msg, bool thirdPerson) {
-	bool priv = FavoriteManager::getInstance()->isPrivate(user.hint);
-
 	RLock l(cs);
-	OnlineUser* u = findOnlineUser(user, priv);
+	OnlineUser* u = findOnlineUser(user);
 	
 	if(u) {
 		u->getClientBase().privateMessage(u, msg, thirdPerson);
@@ -558,7 +536,7 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, P
 	 * SearchManager::onRES(const AdcCommand& cmd, ...). when that is done, and SearchResults are
 	 * switched to storing only reliable HintedUsers (found with the token of the ADC command),
 	 * change this call to findOnlineUserHint. */
-	OnlineUser* ou = findOnlineUser(user.user->getCID(), user.hint.empty() ? uc.getHub() : user.hint, false);
+	OnlineUser* ou = findOnlineUser(user.user->getCID(), user.hint.empty() ? uc.getHub() : user.hint);
 	if(!ou)
 		return;
 
@@ -715,7 +693,7 @@ uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aF
 
 void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir) {
 	RLock l (cs);
-	auto ou = findOnlineUser(user, false);
+	auto ou = findOnlineUser(user);
 	if (ou) {
 		ou->getClientBase().directSearch(*ou, aSizeMode, aSize, aFileType, aString, aToken, aExtList, aDir);
 	}
