@@ -91,6 +91,8 @@ int QueueManager::FileMover::run() {
 
 		auto mv = static_cast<MoverTask*>(t.second.get());
 		moveFile_(mv->source, mv->target, mv->qi);
+
+		tasks.pop_front();
 	}
 }
 
