@@ -123,7 +123,7 @@ public:
 	~AutoSearchManager();
 
 	bool addAutoSearch(AutoSearchPtr aAutoSearch);
-	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory);
+	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
 	AutoSearchPtr getAutoSearch(unsigned int index);
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);

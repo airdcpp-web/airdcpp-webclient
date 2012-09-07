@@ -108,13 +108,13 @@ AutoSearchManager::~AutoSearchManager() {
 }
 
 /* For external use */
-AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory) {
+AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove/*true*/) {
 	if (ss.length() <= 5) {
 		LogManager::getInstance()->message(str(boost::format(STRING(AUTO_SEARCH_ADD_FAILED)) % ss) + " " + STRING(LINE_EMPTY_OR_TOO_SHORT), LogManager::LOG_ERROR);
 		return nullptr;
 	}
 
-	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, true, aTarget, aTargetType, 
+	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
 		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false);
 
 	as->startTime = SearchTime();
@@ -122,6 +122,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	as->searchDays = bitset<7>("1111111");
 
 	if (addAutoSearch(as)) {
+		as->setLastSearch(GET_TIME());
 		LogManager::getInstance()->message(CSTRING(SEARCH_ADDED) + ss, LogManager::LOG_INFO);
 		SearchNow(as);
 		return as;

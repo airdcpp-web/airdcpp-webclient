@@ -59,6 +59,28 @@ bool HashManager::getTree(const TTHValue& root, TigerTree& tt) {
 size_t HashManager::getBlockSize(const TTHValue& root) {
 	return store.getBlockSize(root);
 }
+			
+int64_t HashManager::HashFile(const string& aFile, TTHValue& tth) {
+	File f(aFile, File::READ, File::OPEN);
+	int64_t size = f.getSize();
+	int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
+	uint64_t timestamp = f.getLastModified();
+	TigerTree tt(bs);
+
+    FileReader fr(true);
+	fr.read(aFile, [&](const void* buf, size_t n) -> bool {
+		tt.update(buf, n);
+		return true;
+	});
+
+	f.close();
+	tt.finalize();
+	tth = tt.getRoot();
+
+	store.addFile(Text::toLower(aFile), timestamp, tt, true);
+
+	return size;
+}
 
 void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t /*size*/) {
 	try {
@@ -553,7 +575,6 @@ int HashManager::Hasher::run() {
 			Lock l(hcs);
 			if(!w.empty()) {
 				currentFile = fname = w.begin()->first;
-				currentSize = w.begin()->second;
 				w.erase(w.begin());
 			} else {
 				fname.clear();
@@ -601,7 +622,6 @@ int HashManager::Hasher::run() {
 					sizeLeft -= n;
 				{
 					Lock l(hcs);
-					currentSize = max(static_cast<uint64_t>(currentSize - n), static_cast<uint64_t>(0));
 										
 					if(totalBytesLeft > 0)
 						totalBytesLeft -= n;
@@ -636,7 +656,6 @@ int HashManager::Hasher::run() {
 		{
 			Lock l(hcs);
 			currentFile.clear();
-			currentSize = 0;
 		}
 		running = false;
 	}		

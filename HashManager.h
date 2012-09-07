@@ -90,6 +90,7 @@ public:
 	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) {
 		hasher.getStats(curFile, bytesLeft, filesLeft, speed);
 	}
+	int64_t HashFile(const string& aFile, TTHValue& tth);
 
 	/**
 	 * Rebuild hash data file
@@ -125,7 +126,7 @@ public:
 private:
 	class Hasher : public Thread {
 	public:
-		Hasher() : stop(false), running(false), paused(false), rebuild(false), currentSize(0), saveData(false), totalBytesLeft(0), lastSpeed(0) { }
+		Hasher() : stop(false), running(false), paused(false), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0) { }
 
 		void hashFile(const string& fileName, int64_t size);
 
@@ -163,7 +164,6 @@ private:
 		bool rebuild;
 		bool saveData;
 		string currentFile;
-		int64_t currentSize;
 		int64_t totalBytesLeft;
 		int64_t lastSpeed;
 
