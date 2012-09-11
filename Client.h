@@ -166,7 +166,7 @@ protected:
 		COUNT_NORMAL,
 		COUNT_REGISTERED,
 		COUNT_OP,
-		COUNT_UNCOUNTED,
+		COUNT_UNCOUNTED
 	};
 
 	static atomic<long> counts[COUNT_UNCOUNTED];

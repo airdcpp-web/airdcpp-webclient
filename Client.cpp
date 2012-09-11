@@ -235,7 +235,7 @@ vector<uint8_t> Client::getKeyprint() const {
 bool Client::updateCounts(bool aRemove, bool updateIcons) {
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
-		--counts[countType];
+		counts[countType]--;
 		/*if (countType == COUNT_OP) {
 			LogManager::getInstance()->message("Removing an operator hub " + hubUrl + " from the counts, current counts: " + Util::toString(counts[COUNT_NORMAL]) + 
 				"/" + Util::toString(counts[COUNT_REGISTERED]) + "/" + Util::toString(counts[COUNT_OP]), LogManager::LOG_INFO);
@@ -271,7 +271,7 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 			seticons++;
 		}
 
-		++counts[countType];
+		counts[countType]++;
 
 		/*if (countType == COUNT_OP) {
 			LogManager::getInstance()->message("Adding an operator hub " + hubUrl + ", current counts: " + Util::toString(counts[COUNT_NORMAL]) + 
