@@ -80,7 +80,6 @@ public:
 	PreviewApplication::List& getPreviewApps() { return previewApplications; }
 
 	void addFavoriteUser(const UserPtr& aUser);
-	void addFavoriteUserB(UserPtr& aUser);
 	bool isFavoriteUser(const UserPtr& aUser) const { Lock l(cs); return users.find(aUser->getCID()) != users.end(); }
 	void removeFavoriteUser(const UserPtr& aUser);
 
@@ -104,7 +103,6 @@ public:
 	void setFavHubGroups(const FavHubGroups& favHubGroups_) { favHubGroups = favHubGroups_; }
 
 	FavoriteHubEntryList getFavoriteHubs(const string& group) const;
-	bool isPrivate(const string& url) const;
 
 // Favorite Directories
 	typedef pair<string, StringList> FavDirPair;
@@ -120,6 +118,10 @@ public:
 	void addRecent(const RecentHubEntry& aEntry);
 	void removeRecent(const RecentHubEntry* entry);
 	void updateRecent(const RecentHubEntry* entry);
+
+	// remove user commands and possibly change the address for the next attempt
+	bool getFailOverUrl(ProfileToken aToken, string& hubAddress_);
+	void setFailOvers(const string& hubUrl, ProfileToken aToken, StringList&& fo_);
 
 	RecentHubEntry* getRecentHubEntry(const string& aServer) {
 		for(RecentHubEntry::Iter i = recentHubs.begin(); i != recentHubs.end(); ++i) {

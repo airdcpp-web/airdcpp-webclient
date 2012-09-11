@@ -155,6 +155,7 @@ public:
 	GETSET(bool, hubLogMainchat, HubLogMainchat);
 	GETSET(bool, chatNotify, ChatNotify);
 	GETSET(ProfileToken, shareProfile, ShareProfile);
+	GETSET(ProfileToken, favToken, FavToken);
 
 protected:
 	friend class ClientManager;

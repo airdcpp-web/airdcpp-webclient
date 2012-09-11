@@ -37,7 +37,7 @@ Client::Client(const string& hubURL, char separator_, bool secure_) :
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	encoding(Text::systemCharset), state(STATE_DISCONNECTED), sock(0),
 	hubUrl(hubURL), separator(separator_),
-	secure(secure_), countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0)
+	secure(secure_), countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0), favToken(0)
 {
 	string file, proto, query, fragment;
 	Util::decodeUrl(hubURL, proto, address, port, file, query, fragment);
@@ -70,6 +70,8 @@ void Client::shutdown() {
 
 void Client::reloadSettings(bool updateNick) {
 	FavoriteHubEntry* hub = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
+	bool isAdcHub = AirUtil::isAdcHub(hubUrl);
+
 	if(hub) {
 		if(updateNick) {
 			setCurrentNick(checkNick(hub->getNick(true)));
@@ -80,14 +82,20 @@ void Client::reloadSettings(bool updateNick) {
 		} else {
 			setCurrentDescription(SETTING(DESCRIPTION));
 		}
+
 		if(!hub->getPassword().empty())
 			setPassword(hub->getPassword());
-		setStealth(hub->getStealth());
+		setStealth(isAdcHub ? hub->getStealth() : false);
 		setFavIp(hub->getIP());
 		setFavNoPM(hub->getFavNoPM());
 		setHubShowJoins(hub->getHubShowJoins()); //show joins
 		setHubLogMainchat(hub->getHubLogMainchat());
 		setChatNotify(hub->getChatNotify());
+
+		//only set the token on the initial attempt. we may have other hubs in favs with the failover addresses but keep on using the initial list for now.
+		if (favToken == 0)
+			favToken = hub->getToken();
+
 		if(!hub->getEncoding().empty())
 			setEncoding(hub->getEncoding());
 		
@@ -96,7 +104,11 @@ void Client::reloadSettings(bool updateNick) {
 		else
 			setSearchInterval(hub->getSearchInterval() * 1000);
 
-		setShareProfile(hub->getShareProfile()->getToken());
+		if (isAdcHub) {
+			setShareProfile(hub->getShareProfile()->getToken());
+		} else {
+			setShareProfile(hub->getShareProfile()->getToken() == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
+		}
 		
 	} else {
 		if(updateNick) {
@@ -110,6 +122,10 @@ void Client::reloadSettings(bool updateNick) {
 		setChatNotify(false);
 		setHubLogMainchat(true);
 		setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
+		//favToken = 0;
+
+		if (!isAdcHub)
+			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
 	}
 }
 
@@ -178,10 +194,21 @@ void Client::on(Connected) noexcept {
 }
 
 void Client::on(Failed, const string& aLine) noexcept {
+	string msg = aLine;
+	if (state == STATE_NORMAL) {
+		//don't try failover addresses right after getting disconnected...
+		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
+	} else if (FavoriteManager::getInstance()->getFailOverUrl(favToken, hubUrl)) {
+		if (msg[msg.length()-1] != '.')
+			msg += ".";
+		msg += " Switching to an address " + hubUrl;
+	}
+
 	state = STATE_DISCONNECTED;
-	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
+
+	//FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	sock->removeListener(this);
-	fire(ClientListener::Failed(), this, aLine);
+	fire(ClientListener::Failed(), this, msg);
 }
 
 void Client::disconnect(bool graceLess) {

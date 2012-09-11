@@ -24,6 +24,7 @@
 #include "SettingsManager.h"
 #include "GetSet.h"
 #include "ShareProfile.h"
+#include "Util.h"
 
 namespace dcpp {
 
@@ -74,24 +75,20 @@ public:
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
 
-	FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), chatNotify(false), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL))  { }
-	FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), server(rhs.getServer()), encoding(Text::systemCharset), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL)),
-		description(rhs.getDescription()), connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), stealth(false), userliststate(true), mode(0), chatNotify(false) { }
-	FavoriteHubEntry(const FavoriteHubEntry& rhs) noexcept : userdescription(rhs.userdescription), name(rhs.getName()), 
-		server(rhs.getServer()), description(rhs.getDescription()), password(rhs.getPassword()), connect(rhs.getConnect()), bottom(0), top(0), left(0), right(0),
-		nick(rhs.nick), chatusersplit(rhs.chatusersplit), favnoPM(rhs.favnoPM), hubShowJoins(rhs.hubShowJoins), hubLogMainchat(rhs.hubLogMainchat), stealth(rhs.stealth), searchInterval(rhs.searchInterval),
-		userliststate(rhs.userliststate), mode(rhs.mode), ip(rhs.ip), chatNotify(rhs.chatNotify), encoding(rhs.getEncoding()), shareProfile(rhs.getShareProfile())  { }
+	FavoriteHubEntry() noexcept;
+	FavoriteHubEntry(const HubEntry& rhs) noexcept;
+
+	FavoriteHubEntry(const FavoriteHubEntry& rhs) noexcept;
+
 	~FavoriteHubEntry() noexcept { }
 	
-	const string& getNick(bool useDefault = true) const { 
-		return (!nick.empty() || !useDefault) ? nick : SETTING(NICK);
-	}
+	const string& getNick(bool useDefault = true) const;
 
 	void setNick(const string& aNick) { nick = aNick; }
 
 	GETSET(string, userdescription, UserDescription);
 	GETSET(string, name, Name);
-	GETSET(string, server, Server);
+	GETSET(StringList, servers, Servers);
 	GETSET(string, description, Description);
 	GETSET(string, password, Password);
 	GETSET(string, headerOrder, HeaderOrder);
@@ -115,7 +112,11 @@ public:
 	GETSET(string, group, Group);	
 	GETSET(bool, chatNotify, ChatNotify);
 	GETSET(ShareProfilePtr, shareProfile, ShareProfile);
+	GETSET(ProfileToken, token, Token);
 
+	void setServerStr(const string& aServers);
+	bool isAdcHub() const;
+	void addFailOvers(StringList&& addresses);
 private:
 	string nick;
 };

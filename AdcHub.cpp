@@ -33,6 +33,7 @@
 #include "LogManager.h"
 #include "UploadManager.h"
 #include "Localization.h"
+#include "StringTokenizer.h"
 
 namespace dcpp {
 
@@ -161,6 +162,11 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		}
 	} else if(c.getFrom() == AdcCommand::HUB_SID) {
 		u = &getUser(c.getFrom(), CID());
+		string fo;
+		if(c.getParam("FO", 0, fo)) {
+			StringTokenizer<string> addresses(fo, ',');
+			FavoriteManager::getInstance()->setFailOvers(getHubUrl(), getFavToken(), move(addresses.getTokens()));
+		}
 	} else {
 		u = findUser(c.getFrom());
 	}

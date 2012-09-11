@@ -116,7 +116,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			if(SETTING(FAV_DL_SPEED) > 0) {
 				UserPtr fstusr = d->getUser();
 				if((speed > SETTING(FAV_DL_SPEED)*1024) && ((aTick - d->getStart()) > 7000) && !FavoriteManager::getInstance()->isFavoriteUser(fstusr)) {
-					FavoriteManager::getInstance()->addFavoriteUserB(fstusr);
+					FavoriteManager::getInstance()->addFavoriteUser(fstusr);
 					FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1024) + "KB/s)"));
 				}
 			}
