@@ -20,7 +20,9 @@
 #define DCPLUSPLUS_DCPP_MAPPER_H
 
 #include <string>
-#include <vector>
+#include <set>
+#include <utility>
+
 #include <boost/noncopyable.hpp>
 
 namespace dcpp {
@@ -72,7 +74,7 @@ private:
 	/** remove a port mapping rule. */
 	virtual bool remove(const string& port, const Protocol protocol) = 0;
 
-	std::vector<std::pair<string, Protocol>> rules;
+	std::set<std::pair<string, Protocol>> rules;
 };
 
 } // namespace dcpp

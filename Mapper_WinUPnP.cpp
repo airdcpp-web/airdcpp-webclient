@@ -37,7 +37,7 @@ namespace dcpp {
 const string Mapper_WinUPnP::name = "Windows UPnP";
 
 Mapper_WinUPnP::Mapper_WinUPnP(string&& localIp) :
-Mapper(std::forward<string>(localIp)),
+Mapper(move(localIp)),
 pUN(0),
 lastPort(0)
 {

@@ -27,7 +27,7 @@ namespace dcpp {
 class HttpConnection : BufferedSocketListener, public Speaker<HttpConnectionListener>
 {
 public:
-	HttpConnection(bool coralize = true);
+	HttpConnection(bool coralize = true, bool aIsUnique=false);
 	virtual ~HttpConnection();
 
 	void downloadFile(const string& aUrl);
@@ -56,7 +56,8 @@ private:
 
 	void onConnected(); 
 	void onLine(const string& aLine);
-	
+	bool isUnique;
+	void failed(const string& aMsg);
 };
 
 } // namespace dcpp

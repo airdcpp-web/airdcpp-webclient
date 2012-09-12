@@ -29,12 +29,13 @@ namespace dcpp {
 
 static const std::string CORAL_SUFFIX = ".nyud.net";
 
-HttpConnection::HttpConnection(bool coralize) :
+HttpConnection::HttpConnection(bool coralize, bool aIsUnique) :
 ok(false),
 port("80"),
 size(-1),
 moved302(false),
 coralizeState(coralize ? CST_DEFAULT : CST_NOCORALIZE),
+isUnique(aIsUnique),
 socket(0)
 {
 }
@@ -102,7 +103,7 @@ void HttpConnection::downloadFile(const string& aUrl) {
 	try {
 		socket->connect(server, port, false, false, false);
 	} catch(const Exception& e) {
-		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
+		failed(e.getError());
 	} catch(...) { }
 }
 
@@ -146,7 +147,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 					downloadFile(currentUrl);
 					return;
 				}
-				fire(HttpConnectionListener::Failed(), this, aLine + " (" + currentUrl + ")");
+				failed(aLine);
 				coralizeState = CST_DEFAULT;			
 				return;
 			}
@@ -180,7 +181,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		}
 
 		if(location302 == currentUrl) {
-			fire(HttpConnectionListener::Failed(), this, "Endless redirection loop: " + currentUrl);
+			failed("Endless redirection loop");
 			return;
 		}
 
@@ -210,8 +211,8 @@ void HttpConnection::on(BufferedSocketListener::Failed, const string& aLine) noe
 		downloadFile(currentUrl); 
 		return;
 	}
-	coralizeState = CST_DEFAULT;			
-	fire(HttpConnectionListener::Failed(), this, aLine + " (" + currentUrl + ")");
+	coralizeState = CST_DEFAULT;
+	failed(aLine);
 }
 
 void HttpConnection::on(BufferedSocketListener::ModeChange) noexcept {
@@ -219,11 +220,19 @@ void HttpConnection::on(BufferedSocketListener::ModeChange) noexcept {
 	socket->disconnect();
 	BufferedSocket::putSocket(socket);
 	socket = NULL;
-	fire(HttpConnectionListener::Complete(), this, currentUrl, BOOLSETTING(CORAL) && coralizeState != CST_NOCORALIZE); 
-	coralizeState = CST_DEFAULT;			
+	fire(HttpConnectionListener::Complete(), this, currentUrl, BOOLSETTING(CORAL) && coralizeState != CST_NOCORALIZE);
+	coralizeState = CST_DEFAULT;
+	if (isUnique)
+		delete this;
 }
 void HttpConnection::on(BufferedSocketListener::Data, uint8_t* aBuf, size_t aLen) noexcept {
 	fire(HttpConnectionListener::Data(), this, aBuf, aLen);
+}
+
+void HttpConnection::failed(const string& aMsg) {
+	fire(HttpConnectionListener::Failed(), this, aMsg + " (" + currentUrl + ")");
+	if (isUnique)
+		delete this;
 }
 
 } // namespace dcpp

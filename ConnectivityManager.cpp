@@ -231,7 +231,7 @@ void ConnectivityManager::mappingFinished(const string& mapper) {
 
 void ConnectivityManager::log(string&& message, LogManager::Severity sev) {
 	if(BOOLSETTING(AUTO_DETECT_CONNECTION)) {
-		status = forward<string>(message);
+		status = move(message);
 		LogManager::getInstance()->message("Connectivity: " + status, LogManager::LOG_INFO);
 		fire(ConnectivityManagerListener::Message(), status);
 	} else {

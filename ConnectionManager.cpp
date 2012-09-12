@@ -855,7 +855,7 @@ void ConnectionManager::force(const UserPtr& aUser) {
 	}
 }
 
-void ConnectionManager::force(const string aToken) {
+void ConnectionManager::force(const string& aToken) {
 	RLock l(cs);
 	auto i = find(downloads.begin(), downloads.end(), aToken);
 	if (i != downloads.end())

@@ -46,15 +46,15 @@ public:
 	/** add an implementation derived from the base Mapper class, passed as template parameter.
 	the first added mapper will be tried first, unless the "MAPPER" setting is not empty. */
 	template<typename T> void addMapper() {
-#ifndef _MSC_VER
-		mappers.emplace_back(T::name, [](string&& localIp) {
-			return new T(std::forward<string>(localIp));
-		});
-#else
+#if defined(_MSC_VER) && _MSC_VER < 1700
 		// the rvalue ref deal is too smart for MSVC; resort to a string copy...
 		mappers.push_back(make_pair(T::name, [](string localIp) {
 			return new T(std::move(localIp));
 		}));
+#else
+		mappers.emplace_back(T::name, [](string&& localIp) {
+			return new T(move(localIp));
+		});
 #endif
 	}
 	StringList getMappers() const;
@@ -70,10 +70,10 @@ public:
 private:
 	friend class Singleton<MappingManager>;
 
-#ifndef _MSC_VER
-	vector<pair<string, function<Mapper* (string&&)>>> mappers;
-#else
+#if defined(_MSC_VER) && _MSC_VER < 1700
 	vector<pair<string, function<Mapper* (const string&)>>> mappers;
+#else
+	vector<pair<string, function<Mapper* (string&&)>>> mappers;
 #endif
 
 	static atomic_flag busy;

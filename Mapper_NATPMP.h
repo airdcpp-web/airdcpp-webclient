@@ -45,7 +45,7 @@ private:
 	const string& getName() const { return name; }
 
 	string gateway;
-	uint32_t lifetime;
+	uint32_t lifetime; // in minutes
 };
 
 } // dcpp namespace

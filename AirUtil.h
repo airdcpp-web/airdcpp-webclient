@@ -87,7 +87,7 @@ class AirUtil {
 		static string stripHubUrl(const string& url);
 
 		static string convertMovePath(const string& aPath, const string& aParent, const string& aTarget);
-		static string AirUtil::regexEscape(const string& aStr, bool isWildcard);
+		static string regexEscape(const string& aStr, bool isWildcard);
 	private:
 
 	};

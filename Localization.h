@@ -37,19 +37,29 @@ class Localization {
 			const char* countryFlagCode;
 			string languageName, locale, languageFile;
 
-			void setLanguageFile() {
-				SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, 
-					languageName.empty() ? Util::emptyString : Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Language\\" + languageFile);
-			}
+			void setLanguageFile();
+			string getLanguageFilePath();
+			double getLanguageVersion();
+
+			struct NameSort { 
+				bool operator()(const Language& l1, const Language& l2) const {
+					return stricmp(l1.languageName, l2.languageName) < 0;
+				}
+			};
 		};
 
 		static int curLanguage;
+		static string getCurLanguageFilePath();
+		static string getCurLanguageFileName();
+		static double getCurLanguageVersion();
+
 		static vector<Language> languageList;
 
 		static void setLanguage(int languageIndex);
 		static int getLangIndex();
 
 		static string getLocale();
+		static string getLanguageStr();
 		static void init();
 
 		static uint8_t getFlagIndexByCode(const char* countryCode);

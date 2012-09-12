@@ -39,6 +39,7 @@
 #include "WebShortcuts.h"
 #include "Localization.h"
 #include "DirectoryListingManager.h"
+#include "UpdateManager.h"
 
 #include "StringTokenizer.h"
 
@@ -95,6 +96,7 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 	ShareScannerManager::newInstance();
 	GeoManager::newInstance();
 	DirectoryListingManager::newInstance();
+	UpdateManager::newInstance();
 
 	SettingsManager::getInstance()->load();	
 	AutoSearchManager::getInstance()->AutoSearchLoad();
@@ -166,6 +168,8 @@ void shutdown(void (*f)(void*, const tstring&), void* p) {
 
 	if(f != NULL)
 		(*f)(p, TSTRING(SHUTTING_DOWN));
+
+	UpdateManager::deleteInstance();
 	GeoManager::deleteInstance();
 	MappingManager::deleteInstance();
 	ConnectivityManager::deleteInstance();

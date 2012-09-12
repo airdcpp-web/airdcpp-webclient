@@ -71,11 +71,6 @@ private:
 
 class ExpectedMap {
 public:
-	//debug info
-	size_t size() {
-		return expectedConnections.size();
-	}
-
 	void add(const string& aKey, const string& aMyNick, const string& aHubUrl) {
 		Lock l(cs);
 		expectedConnections.insert(make_pair(aKey, make_pair(aMyNick, aHubUrl)));
@@ -83,12 +78,11 @@ public:
 
 	StringPair remove(const string& aKey) {
 		Lock l(cs);
-		ExpectMap::iterator i = expectedConnections.find(aKey);
-		
+		auto i = expectedConnections.find(aKey);
 		if(i == expectedConnections.end()) 
 			return make_pair(Util::emptyString, Util::emptyString);
 
-		StringPair tmp = i->second;
+		StringPair tmp = move(i->second);
 		expectedConnections.erase(i);
 		
 		return tmp;
@@ -97,7 +91,7 @@ public:
 private:
 	/** Nick -> myNick, hubUrl for expected NMDC incoming connections */
 	/** Token, hubUrl for expected ADC incoming connections */
-	typedef map<string, StringPair> ExpectMap; //need to use multimap??
+	typedef map<string, StringPair> ExpectMap;
 	ExpectMap expectedConnections;
 
 	CriticalSection cs;
@@ -120,10 +114,6 @@ public:
 	void adcExpect(const string& aToken, const CID& aCID, const string& aHubUrl) {
 		expectedConnections.add(aToken, aCID.toBase32(), aHubUrl);
 	}
-	//debug info
-	void getExpectedMapSize() {
-		LogManager::getInstance()->message("Expected Map size is: " + Util::toString(expectedConnections.size()), LogManager::LOG_INFO);
-	}
 
 	void nmdcConnect(const string& aServer, const string& aPort, const string& aMyNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);
 	void nmdcConnect(const string& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);
@@ -131,7 +121,7 @@ public:
 	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
 
 	void getDownloadConnection(const HintedUser& aUser, bool smallSlot=false);
-	void force(string token);
+	void force(const string& token);
 	void force(const UserPtr& aUser);
 	
 	void disconnect(const UserPtr& aUser); // disconnect downloads and uploads
@@ -206,7 +196,6 @@ private:
 	void addDownloadConnection(UserConnection* uc);
 
 	void checkWaitingMCN() noexcept;
-	//typedef unordered_set<ConnectionQueueItem*> CQIList;
 
 	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token=Util::toString(Util::rand()));
 	void putCQI(ConnectionQueueItem* cqi);

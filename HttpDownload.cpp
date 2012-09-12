@@ -22,15 +22,15 @@
 namespace dcpp {
 
 HttpDownload::HttpDownload(const string& address, CompletionF f, bool coralize) :
-c(coralize),
+	c(new HttpConnection(coralize, true)),
 f(f)
 {
-	c.addListener(this);
-	c.downloadFile(address);
+	c->addListener(this);
+	c->downloadFile(address);
 }
 
 HttpDownload::~HttpDownload() {
-	c.removeListener(this);
+	c->removeListener(this);
 }
 
 void HttpDownload::on(HttpConnectionListener::Data, HttpConnection*, const uint8_t* buf_, size_t len) noexcept {

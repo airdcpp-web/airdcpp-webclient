@@ -21,6 +21,7 @@
 #include "AirUtil.h"
 #include "Localization.h"
 #include "Util.h"
+#include "SimpleXML.h"
 
 #include <boost/algorithm/string/replace.hpp>
 
@@ -77,27 +78,57 @@ static const char* countryCodes[] = {
  "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU", "WF", "WS", "YE", "YT", "YU", "ZA", "ZM", "ZW" };
 
 namespace dcpp {
+
+	void Localization::Language::setLanguageFile() {
+		auto langPath = move(getLanguageFilePath());
+		SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, getLanguageFilePath());
+	}
+
+	string Localization::Language::getLanguageFilePath() {
+		return languageFile.empty() ? Util::emptyString : Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Language\\" + languageFile;
+	}
+
+	double Localization::Language::getLanguageVersion() {
+		try {
+			SimpleXML xml;
+			xml.fromXML(File(getLanguageFilePath(), File::READ, File::OPEN).read());
+			if(xml.findChild("Language")) {
+				xml.stepIn();
+				if(xml.findChild("Strings")) {
+					xml.stepIn();
+					while(xml.findChild("String")) {
+						if(xml.getChildAttrib("Name") == "AairdcppLanguageVersion") {
+							return Util::toDouble(xml.getChildData());
+						}
+					}
+				}
+			}
+		} catch(...) { }
+
+		return 999;
+	}
+
 	vector<Localization::Language> Localization::languageList;
 	int Localization::curLanguage; //position of the current language in the list
 
 	void Localization::init() {
 
 		languageList.push_back(Language("English", "GB", "en-US", Util::emptyString));
-		languageList.push_back(Language("Danish", "DK", "da-DK", "Danish_for_AirDc.xml"));
-		languageList.push_back(Language("Dutch", "NL", "nl-NL", "Dutch_for_AirDc.xml"));
-		languageList.push_back(Language("Finnish", "FI", "fi-FI", "Finnish_for_AirDc.xml"));
-		languageList.push_back(Language("French", "FR", "fr-FR", "French_for_AirDc.xml"));
-		languageList.push_back(Language("German", "DE", "de-DE", "German_for_AirDc.xml"));
-		languageList.push_back(Language("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDc.xml"));
-		languageList.push_back(Language("Italian", "IT", "it-IT", "Italian_for_AirDc.xml"));
-		languageList.push_back(Language("Norwegian", "NO", "no-NO", "Norwegian_for_AirDc.xml"));
-		languageList.push_back(Language("Polish", "PL", "pl-PL", "Polish_for_AirDc.xml"));
-		languageList.push_back(Language("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDc.xml"));
-		languageList.push_back(Language("Romanian", "RO", "ro-RO", "Romanian_for_AirDc.xml"));
-		languageList.push_back(Language("Russian", "RU", "ru-RU", "Russian_for_AirDc.xml"));
-		languageList.push_back(Language("Swedish", "SE", "sv-SE", "Swedish_for_AirDc.xml"));
+		languageList.push_back(Language("Danish", "DK", "da-DK", "Danish_for_AirDC.xml"));
+		languageList.push_back(Language("Dutch", "NL", "nl-NL", "Dutch_for_AirDC.xml"));
+		languageList.push_back(Language("Finnish", "FI", "fi-FI", "Finnish_for_AirDC.xml"));
+		languageList.push_back(Language("French", "FR", "fr-FR", "French_for_AirDC.xml"));
+		languageList.push_back(Language("German", "DE", "de-DE", "German_for_AirDC.xml"));
+		languageList.push_back(Language("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDC.xml"));
+		languageList.push_back(Language("Italian", "IT", "it-IT", "Italian_for_AirDC.xml"));
+		languageList.push_back(Language("Norwegian", "NO", "no-NO", "Norwegian_for_AirDC.xml"));
+		languageList.push_back(Language("Polish", "PL", "pl-PL", "Polish_for_AirDC.xml"));
+		languageList.push_back(Language("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDC.xml"));
+		languageList.push_back(Language("Romanian", "RO", "ro-RO", "Romanian_for_AirDC.xml"));
+		languageList.push_back(Language("Russian", "RU", "ru-RU", "Russian_for_AirDC.xml"));
+		languageList.push_back(Language("Swedish", "SE", "sv-SE", "Swedish_for_AirDC.xml"));
 
-		//sort(languageList.begin()+1, languageList.end(), [](const Language& l1, const Language& l2) { return stricmp(l1.languageName, l2.languageName) < 0; });
+		//sort(languageList.begin()+1, languageList.end(), Language::NameSort());
 
 		curLanguage = 0;
 		string langFile = SETTING(LANGUAGE_FILE);
@@ -118,6 +149,18 @@ namespace dcpp {
 		}
 	}
 
+	double Localization::getCurLanguageVersion() {
+		return languageList[curLanguage].getLanguageVersion();
+	}
+
+	string Localization::getCurLanguageFilePath() {
+		return languageList[curLanguage].getLanguageFilePath();
+	}
+
+	string Localization::getCurLanguageFileName() {
+		return languageList[curLanguage].languageFile;
+	}
+
 	void Localization::setLanguage(int languageIndex) {
 		if (languageIndex >= 0 && languageIndex < languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
 			curLanguage = languageIndex;
@@ -127,6 +170,10 @@ namespace dcpp {
 
 	string Localization::getLocale() {
 		return languageList[curLanguage].locale;
+	}
+
+	string Localization::getLanguageStr() {
+		return languageList[curLanguage].languageName;
 	}
 
 	uint8_t Localization::getFlagIndexByName(const char* countryName) {

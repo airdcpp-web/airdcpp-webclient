@@ -236,8 +236,9 @@ void MappingManager::renewLater(Mapper& mapper) {
 }
 
 void MappingManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
-	if(tick >= renewal && !busy.test_and_set())
-		start();
+	if(tick >= renewal && !busy.test_and_set()) {
+		try { start(); } catch(const ThreadException&) { busy.clear(); }
+	}
 }
 
 } // namespace dcpp

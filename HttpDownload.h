@@ -27,7 +27,7 @@ using std::string;
 
 /** Helper struct to manage a single HTTP download. Calls a completion function when finished. */
 struct HttpDownload : private HttpConnectionListener, private boost::noncopyable {
-	HttpConnection c;
+	HttpConnection* c;
 	string buf;
 	string status;
 	typedef std::function<void ()> CompletionF;

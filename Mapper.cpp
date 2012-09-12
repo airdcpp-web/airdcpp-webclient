@@ -29,7 +29,7 @@ const char* Mapper::protocols[PROTOCOL_LAST] = {
 };
 
 Mapper::Mapper(string&& localIp) :
-localIp(std::forward<string>(localIp))
+localIp(move(localIp))
 {
 }
 
@@ -37,7 +37,7 @@ bool Mapper::open(const string& port, const Protocol protocol, const string& des
 	if(!add(port, protocol, description))
 		return false;
 
-	rules.push_back(make_pair(port, protocol));
+	rules.insert(make_pair(port, protocol));
 	return true;
 }
 

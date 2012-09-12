@@ -34,7 +34,7 @@ namespace dcpp {
 const string Mapper_MiniUPnPc::name = "MiniUPnP";
 
 Mapper_MiniUPnPc::Mapper_MiniUPnPc(string&& localIp) :
-Mapper(std::forward<string>(localIp))
+Mapper(move(localIp))
 {
 }
 
