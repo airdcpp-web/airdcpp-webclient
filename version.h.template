@@ -33,7 +33,7 @@
 #endif
 
 #ifdef SVNVERSION
-#define VERSION_URL "http://version.airdcpp.net/beta_airdcversion.php"
+#define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
 #else
 #define VERSION_URL "http://version.airdcpp.net/airdcversion.php"
 #endif

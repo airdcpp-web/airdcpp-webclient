@@ -57,6 +57,7 @@ HttpConnection::~HttpConnection() {
 void HttpConnection::downloadFile(const string& aUrl) {
 	dcassert(Util::findSubString(aUrl, "http://") == 0 || Util::findSubString(aUrl, "https://") == 0);
 	currentUrl = aUrl;
+
 	// Trim whitespaces
 	boost::algorithm::trim(currentUrl);
 
@@ -71,7 +72,7 @@ void HttpConnection::downloadFile(const string& aUrl) {
 		fire(HttpConnectionListener::TypeNormal(), this);
 	}
 
-	string proto, query, fragment;
+	string proto, fragment;
 	if(SETTING(HTTP_PROXY).empty()) {
 		Util::decodeUrl(currentUrl, proto, server, port, file, query, fragment);
 		if(file.empty())
@@ -167,8 +168,9 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		// make sure we can also handle redirects with relative paths
 		if(strnicmp(location302.c_str(), "http://", 7) != 0) {
 			if(location302[0] == '/') {
-				string proto, query, fragment;
-				Util::decodeUrl(currentUrl, proto, server, port, file, query, fragment);
+				//302 doesn't contain the query, use temp one
+				string proto, queryTmp, fragment;
+				Util::decodeUrl(currentUrl, proto, server, port, file, queryTmp, fragment);
 				string tmp = "http://" + server;
 				if(port != "80")
 					tmp += ':' + port;
@@ -185,6 +187,8 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 			return;
 		}
 
+		if (!query.empty())
+			location302 += "?" + query;
 		fire(HttpConnectionListener::Redirected(), this, location302);
 
 		//coralizeState = CST_DEFAULT;			

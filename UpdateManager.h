@@ -46,6 +46,8 @@ public:
 		string guides;
 		string customize;
 		string discuss;
+		string language;
+		string ipcheck;
 	} links;
 
 	//void checkUpdates(const string& aUrl, bool bManual = false);
@@ -63,28 +65,33 @@ public:
 		CONN_VERSION,
 		CONN_GEO_V6,
 		CONN_GEO_V4,
-		CONN_LANGUAGE,
+		CONN_LANGUAGE_FILE,
+		CONN_LANGUAGE_CHECK,
 		CONN_CLIENT,
-		CONN_CLIENT_SIGN,
+		CONN_SIGNATURE,
+		CONN_IP,
 
 		CONN_LAST
 	};
 
 	unique_ptr<HttpDownload> conns[CONN_LAST];
 
-	void checkVersion();
-	void updateLanguage(const string& aUrl);
+	void checkVersion(bool aManual);
+	void checkLanguage();
+
+	void checkIP(bool manual);
 
 	void checkGeoUpdate();
 	void checkGeoUpdate(bool v6);
-	void updateGeo();
+	//void updateGeo();
 	void updateGeo(bool v6);
 
-	void completeGeoUpdate(bool v6);
-	void completeVersionUpdate();
-	void completeLanguageUpdate();
-
+	void completeLanguageCheck();
+	void completeGeoDownload(bool v6);
+	void completeVersionDownload();
+	void completeLanguageDownload();
 	void completeUpdateDownload();
+	void completeIPCheck(bool manual);
 
 	void init();
 private:

@@ -22,7 +22,7 @@
 
 #define DCVERSIONSTRING "0.799"
 
-#define SVNVERSION "r1041"
+#define SVNVERSION "r1042"
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"
@@ -33,7 +33,7 @@
 #endif
 
 #ifdef SVNVERSION
-#define VERSION_URL "http://version.airdcpp.net/beta_airdcversion.php"
+#define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
 #else
 #define VERSION_URL "http://version.airdcpp.net/airdcversion.php"
 #endif

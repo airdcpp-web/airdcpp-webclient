@@ -224,19 +224,6 @@ void UpdateManager::cleanTempFiles(const string& tmpPath) {
 	//File::removeDirectory(tmpPath);
 }
 
-/*void UpdateManager::checkUpdates(const string& aUrl, bool bManual) {
-	if(bManual && manualCheck)
-		return;
-
-	time_t curTime = GET_TIME();
-	if(bManual || ((curTime - SETTING(LAST_UPDATE_NOTICE)) > 60*60*24 || SETTING(LAST_UPDATE_NOTICE) > curTime)) {
-		manualCheck = bManual;
-		versionUrl = aUrl;
-
-		HttpManager::getInstance()->addFileDownload(aUrl + ".sign", UPDATE_TEMP_DIR "version.sign", boost::bind(&UpdateManager::versionSignature, this, _1, _2, _3), false);
-	}
-}*/
-
 void UpdateManager::downloadUpdate(const string& aUrl, const string& aExeName) {
 	if(updating)
 		return;
@@ -303,7 +290,7 @@ void UpdateManager::completeUpdateDownload() {
 	}
 }
 void UpdateManager::completeSignatureDownload() {
-	auto& conn = conns[CONN_CLIENT_SIGN];
+	auto& conn = conns[CONN_SIGNATURE];
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if(conn->buf.empty()) {
@@ -312,26 +299,12 @@ void UpdateManager::completeSignatureDownload() {
 		return;
 	}
 
-	try {
-		File sigFile(UPDATE_TEMP_DIR "version.sign", File::READ, File::OPEN);
-		size_t sig_size = static_cast<size_t>(sigFile.getSize());
-		versionSig.resize(sig_size);
+	size_t sig_size = static_cast<size_t>(conn->buf.size());
+	versionSig.resize(sig_size);
+	memcpy(&versionSig[0], conn->buf.c_str(), sig_size);
 
-		sigFile.read(&versionSig[0], sig_size);
-		versionSig.resize(sig_size);
-
-		sigFile.close();
-	} catch(const FileException& e) {
-		LogManager::getInstance()->message("Could not download digital signature for update check (" + e.getError() + ")", LogManager::LOG_WARNING);
-		File::deleteFile(UPDATE_TEMP_DIR "version.sign");
-		//manualCheck = false;
-		return;
-	}
-
-	conns[CONN_CLIENT].reset(new HttpDownload(versionUrl,
-		[this] { completeUpdateDownload(); }, false));
-
-	File::deleteFile(UPDATE_TEMP_DIR "version.sign");
+	conns[CONN_VERSION].reset(new HttpDownload(VERSION_URL,
+		[this] { completeVersionDownload(); }, false));
 }
 
 /*void UpdateManager::versionCheck(const HttpConnection*, const string& versionInfo, uint8_t stFlags) {
@@ -420,30 +393,38 @@ void UpdateManager::completeSignatureDownload() {
 	}
 
 	manualCheck = false;
+}*/
+
+void UpdateManager::checkIP(bool manual) {
+	conns[CONN_IP].reset(new HttpDownload(links.ipcheck,
+		[this, manual] { completeIPCheck(manual); }, false));
 }
 
-void UpdateManager::updateIP(const HttpConnection*, const string& ipData, uint8_t stFlags) {
-	// Not interested in failures really
-	//if((stFlags & HttpManager::HTTP_FAILED) == HttpManager::HTTP_FAILED)
-	//	return;
+void UpdateManager::completeIPCheck(bool manual) {
+	auto& conn = conns[CONN_IP];
+	if(!conn) { return; }
+	ScopedFunctor([&conn] { conn.reset(); });
 
-	try {
-		const string pattern = "\\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b";
-		const boost::regex reg(pattern, boost::regex_constants::icase);
-		boost::match_results<string::const_iterator> results;
-		// RSX++ workaround for msvc std lib problems
-		string::const_iterator start = ipData.begin();
-		string::const_iterator end = ipData.end();
+	if (!conn->buf.empty()) {
+		try {
+			const string pattern = "\\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b";
+			const boost::regex reg(pattern, boost::regex_constants::icase);
+			boost::match_results<string::const_iterator> results;
+			// RSX++ workaround for msvc std lib problems
+			string::const_iterator start = conn->buf.begin();
+			string::const_iterator end = conn->buf.end();
 
-		if(boost::regex_search(start, end, results, reg, boost::match_default)) {
-			if(!results.empty()) {
-				const string& ip = results.str(0);
-				SettingsManager::getInstance()->set(SettingsManager::EXTERNAL_IP, ip);
-				fire(UpdateManagerListener::SettingUpdated(), SettingsManager::EXTERNAL_IP, ip);
+			if(boost::regex_search(start, end, results, reg, boost::match_default)) {
+				if(!results.empty()) {
+					const string& ip = results.str(0);
+					if (!manual)
+						SettingsManager::getInstance()->set(SettingsManager::EXTERNAL_IP, ip);
+					fire(UpdateManagerListener::SettingUpdated(), SettingsManager::EXTERNAL_IP, ip);
+				}
 			}
-		}
-	} catch(...) { }
-}*/
+		} catch(...) { }
+	}
+}
 
 
 void UpdateManager::checkGeoUpdate() {
@@ -462,7 +443,7 @@ void UpdateManager::checkGeoUpdate(bool v6) {
 	updateGeo(v6);
 }
 
-void UpdateManager::updateGeo() {
+/*void UpdateManager::updateGeo() {
 	if(BOOLSETTING(GET_USER_COUNTRY)) {
 		updateGeo(true);
 		updateGeo(false);
@@ -470,7 +451,7 @@ void UpdateManager::updateGeo() {
 		//dwt::MessageBox(this).show(T_("IP -> country mappings are disabled. Turn them back on via Settings > Appearance."),
 			//_T(APPNAME) _T(" ") _T(VERSIONSTRING), dwt::MessageBox::BOX_OK, dwt::MessageBox::BOX_ICONEXCLAMATION);
 	}
-}
+}*/
 
 void UpdateManager::updateGeo(bool v6) {
 	auto& conn = conns[v6 ? CONN_GEO_V6 : CONN_GEO_V4];
@@ -479,10 +460,10 @@ void UpdateManager::updateGeo(bool v6) {
 
 	LogManager::getInstance()->message(str(boost::format("Updating the %1% GeoIP database...") % (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
 	conn.reset(new HttpDownload(v6 ? links.geoip6 : links.geoip4,
-		[this, v6] { completeGeoUpdate(v6); }, false));
+		[this, v6] { completeGeoDownload(v6); }, false));
 }
 
-void UpdateManager::completeGeoUpdate(bool v6) {
+void UpdateManager::completeGeoDownload(bool v6) {
 	auto& conn = conns[v6 ? CONN_GEO_V6 : CONN_GEO_V4];
 	if(!conn) { return; }
 	ScopedFunctor([&conn] { conn.reset(); });
@@ -498,8 +479,8 @@ void UpdateManager::completeGeoUpdate(bool v6) {
 	LogManager::getInstance()->message(str(boost::format("The %1% GeoIP database could not be updated") % (v6 ? "IPv6" : "IPv4")), LogManager::LOG_WARNING);
 }
 
-void UpdateManager::completeLanguageUpdate() {
-	auto& conn = conns[CONN_LANGUAGE];
+void UpdateManager::completeLanguageDownload() {
+	auto& conn = conns[CONN_LANGUAGE_FILE];
 	if(!conn) { return; }
 	ScopedFunctor([&conn] { conn.reset(); });
 
@@ -518,12 +499,22 @@ void UpdateManager::completeLanguageUpdate() {
 }
 
 
-void UpdateManager::completeVersionUpdate() {
+void UpdateManager::completeVersionDownload() {
+	auto& conn = conns[CONN_VERSION];
+	if(!conn) { return; }
+	ScopedFunctor([&conn] { conn.reset(); });
 
-	if(!conns[CONN_VERSION]) { return; }
+	if (conn->buf.empty()) { return; }
+
+	if(!UpdateManager::verifyVersionData(conn->buf, versionSig)) {
+		LogManager::getInstance()->message("Could not verify version data", LogManager::LOG_WARNING);
+		//manualCheck = false;
+		return;
+	}
+
 	try {
 		SimpleXML xml;
-		xml.fromXML(conns[CONN_VERSION]->buf);
+		xml.fromXML(conn->buf);
 		xml.stepIn();
 
 		string url;
@@ -536,18 +527,51 @@ void UpdateManager::completeVersionUpdate() {
 			url = xml.getChildData();
 		}
 #		endif
-
-		//ApexDC
 		xml.resetCurrentChild();
-		if(!BOOLSETTING(AUTO_DETECT_CONNECTION)) {
-			if(BOOLSETTING(IP_UPDATE) && xml.findChild("IP")) {
-				string ip = xml.getChildData();
-				SettingsManager::getInstance()->set(SettingsManager::EXTERNAL_IP, (!ip.empty() ? ip : AirUtil::getLocalIp()));
-			} else if(BOOLSETTING(IP_UPDATE)) {
-				SettingsManager::getInstance()->set(SettingsManager::EXTERNAL_IP, AirUtil::getLocalIp());
+
+
+		//check for updated links
+		if(xml.findChild("Links")) {
+			xml.stepIn();
+			if(xml.findChild("Homepage")) {
+				links.homepage = xml.getChildData();
 			}
 			xml.resetCurrentChild();
+			if(xml.findChild("Downloads")) {
+				links.downloads = xml.getChildData();
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("GeoIPv6")) {
+				links.geoip6 = xml.getChildData();
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("GeoIPv4")) {
+				links.geoip4 = xml.getChildData();
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("Customize")) {
+				links.customize = xml.getChildData();
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("Forum")) {
+				links.discuss = xml.getChildData();
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("Languages")) {
+				links.language = xml.getChildData();
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("Guides")) {
+				links.guides = xml.getChildData();
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("IPCheck")) {
+				links.ipcheck = xml.getChildData();
+			}
+			xml.stepOut();
 		}
+		xml.resetCurrentChild();
+
 
 		if(xml.findChild("Version")) {
 			double remoteVer = Util::toDouble(xml.getChildData());
@@ -557,14 +581,14 @@ void UpdateManager::completeVersionUpdate() {
 #ifdef SVNVERSION
 			if (xml.findChild("SVNrev")) {
 				remoteVer = Util::toDouble(xml.getChildData());
-				xml.resetCurrentChild();
 			}
+			xml.resetCurrentChild();
+
 			string tmp = SVNVERSION;
 			ownVersion = Util::toDouble(tmp.substr(1, tmp.length()-1));
 #endif
 
 			if(remoteVer > ownVersion) {
-				xml.resetCurrentChild();
 				if(xml.findChild("Title")) {
 					const string& title = xml.getChildData();
 					xml.resetCurrentChild();
@@ -584,11 +608,6 @@ void UpdateManager::completeVersionUpdate() {
 					if(Util::toDouble(xml.getChildData()) >= Util::toDouble(VERSIONFLOAT)) {
 						string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
 						fire(UpdateManagerListener::BadVersion(), msg, url, Util::emptyString);
-
-						/*string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
-						MessageBox(Text::toT(msg + "\r\nPlease get a new one at " + url).c_str());
-						oldshutdown = true;
-						PostMessage(WM_CLOSE);*/
 					}
 				}
 				xml.resetCurrentChild();
@@ -600,27 +619,7 @@ void UpdateManager::completeVersionUpdate() {
 						if(v == Util::toDouble(VERSIONFLOAT)) {
 							string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
 							fire(UpdateManagerListener::BadVersion(), msg, url, Util::emptyString);
-
-							/*string msg = xml.getChildAttrib("Message", "Your version of DC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
-							MessageBox(Text::toT(msg + "\r\nPlease get a new one at " + url).c_str(), _T("Bad DC++ version"), MB_OK | MB_ICONEXCLAMATION);
-							oldshutdown = true;
-							PostMessage(WM_CLOSE);*/
 						}
-					}
-				}
-			} 
-			
-			if(!SETTING(LANGUAGE_FILE).empty()) {
-				if (xml.findChild(Localization::getCurLanguageFileName())) {
-					string langVersion = xml.getChildData();
-					//double LangVersion = Util::toDouble(version);
-					xml.resetCurrentChild();
-					if (xml.findChild("LANGURL")) {
-						const auto& langUrl = xml.getChildData();
-						if (Util::toDouble(langVersion) > Localization::getCurLanguageVersion()){
-							updateLanguage(langUrl + Localization::getCurLanguageFileName());
-						}
-						xml.resetCurrentChild();
 					}
 				}
 			}
@@ -629,22 +628,55 @@ void UpdateManager::completeVersionUpdate() {
 		// ...
 	}
 
-	conns[CONN_VERSION].reset();
 
-	// check after the version.xml download in case it contains updated GeoIP links.
-	/*if(BOOLSETTING(GET_USER_COUNTRY)) {
+	if(!BOOLSETTING(AUTO_DETECT_CONNECTION)) {
+		checkIP(false);
+	}
+
+	checkLanguage();
+
+	if(BOOLSETTING(GET_USER_COUNTRY)) {
 		checkGeoUpdate();
-	} */
+	}
+
+	/*conns[CONN_CLIENT].reset(new HttpDownload(versionUrl,
+		[this] { completeUpdateDownload(); }, false));*/
 }
 
-void UpdateManager::checkVersion() {
-	conns[CONN_VERSION].reset(new HttpDownload(VERSION_URL,
-		[this] { completeVersionUpdate(); }, false));
+void UpdateManager::checkLanguage() {
+	if(SETTING(LANGUAGE_FILE).empty() || links.language.empty()) {
+		return;
+	}
+
+	conns[CONN_LANGUAGE_CHECK].reset(new HttpDownload(links.language + "checkLangVersion.php?file=" + Localization::getCurLanguageFileName(),
+		[this] { completeLanguageCheck(); }, false));
 }
 
-void UpdateManager::updateLanguage(const string& aUrl) {
-	conns[CONN_LANGUAGE].reset(new HttpDownload(aUrl,
-		[this] { completeLanguageUpdate(); }, false));
+void UpdateManager::completeLanguageCheck() {
+	auto& conn = conns[CONN_LANGUAGE_CHECK];
+	if(!conn) { return; }
+	ScopedFunctor([&conn] { conn.reset(); });
+
+	if(!conn->buf.empty()) {
+		if (Util::toDouble(conn->buf) > Localization::getCurLanguageVersion()) {
+			conns[CONN_LANGUAGE_FILE].reset(new HttpDownload(links.language + Localization::getCurLanguageFileName(),
+				[this] { completeLanguageDownload(); }, false));
+		}
+	}
+}
+
+void UpdateManager::checkVersion(bool aManual) {
+	//if(aManual && manualCheck)
+	//	return;
+
+	//time_t curTime = GET_TIME();
+	//if(aManual || ((curTime - SETTING(LAST_UPDATE_NOTICE)) > 60*60*24 || SETTING(LAST_UPDATE_NOTICE) > curTime)) {
+		//manualCheck = bManual;
+		versionUrl = VERSION_URL;
+
+		conns[CONN_SIGNATURE].reset(new HttpDownload(versionUrl + ".sign",
+			[this] { completeSignatureDownload(); }, false));
+	//}
 }
 
 void UpdateManager::init() {
@@ -655,25 +687,17 @@ void UpdateManager::init() {
 	links.guides = links.homepage + "guides/";
 	links.customize = links.homepage + "c/customizations/";
 	links.discuss = links.homepage + "forum/";
+	links.ipcheck = "http://checkip.dyndns.org/";
+	links.language = "http://languages.airdcpp.net/";
 
-	checkVersion();
+	checkVersion(false);
 
-	auto prevGeo = BOOLSETTING(GET_USER_COUNTRY);
-	auto prevGeoFormat = SETTING(COUNTRY_FORMAT);
-
-	bool rebuildGeo = prevGeo && SETTING(COUNTRY_FORMAT) != prevGeoFormat;
-	//if(BOOLSETTING(GET_USER_COUNTRY) != prevGeo) {
-		if(BOOLSETTING(GET_USER_COUNTRY)) {
-			GeoManager::getInstance()->init();
-			checkGeoUpdate();
-		} else {
-			GeoManager::getInstance()->close();
-			rebuildGeo = false;
-		}
-	//}
-	if(rebuildGeo) {
-		GeoManager::getInstance()->rebuild();
-	}
+	/*if(BOOLSETTING(GET_USER_COUNTRY)) {
+		GeoManager::getInstance()->init();
+		checkGeoUpdate();
+	} else {
+		GeoManager::getInstance()->close();
+	}*/
 }
 
 } // namespace dcpp

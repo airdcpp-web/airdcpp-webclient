@@ -38,6 +38,7 @@ private:
 	string currentUrl;
 	string file;
 	string server;
+	string query;
 	bool ok;
 	string port;
 	int64_t size;
