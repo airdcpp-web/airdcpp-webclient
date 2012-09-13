@@ -49,21 +49,23 @@ public:
 	} links;
 
 	//void checkUpdates(const string& aUrl, bool bManual = false);
-	//void downloadUpdate(const string& aUrl, const string& aExeName);
+	void downloadUpdate(const string& aUrl, const string& aExeName);
 
 	bool isUpdating() const { return updating; }
 
-	//static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
-	//static bool verifyVersionData(const string& data, const ByteVector& singature);
+	static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
+	static bool verifyVersionData(const string& data, const ByteVector& singature);
 
-	//static bool applyUpdate(const string& sourcePath, const string& installPath);
-	//static void cleanTempFiles(const string& tmpPath = UPDATE_TEMP_DIR);
+	static bool applyUpdate(const string& sourcePath, const string& installPath);
+	static void cleanTempFiles(const string& tmpPath = UPDATE_TEMP_DIR);
 
 	enum {
 		CONN_VERSION,
 		CONN_GEO_V6,
 		CONN_GEO_V4,
 		CONN_LANGUAGE,
+		CONN_CLIENT,
+		CONN_CLIENT_SIGN,
 
 		CONN_LAST
 	};
@@ -82,19 +84,21 @@ public:
 	void completeVersionUpdate();
 	void completeLanguageUpdate();
 
+	void completeUpdateDownload();
+
 	void init();
 private:
-	//static uint8_t publicKey[];
+	static uint8_t publicKey[];
 
-	//string exename;
+	string exename;
 	string versionUrl;
-	//string updateTTH;
+	string updateTTH;
 
 	bool updating;
 
-	//ByteVector versionSig;
+	ByteVector versionSig;
 
-	//void versionSignature(const HttpConnection*, const string& aLine, uint8_t stFlags);
+	void completeSignatureDownload();
 	//void versionCheck(const HttpConnection*, const string& versionInfo, uint8_t stFlags);
 
 	//void updateIP(const HttpConnection*, const string& ipData, uint8_t stFlags);

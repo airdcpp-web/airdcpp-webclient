@@ -36,11 +36,12 @@
 #include "ScopedFunctor.h"
 #include "Localization.h"
 
-//#include "ZipFile.h"
+#include "ZipFile.h"
 #include "SimpleXML.h"
-//#include "HashCalc.h"
+#include "HashCalc.h"
+#include "Text.h"
 
-//#include "pubkey.h"
+#include "pubkey.h"
 
 #ifdef _WIN64
 # define UPGRADE_TAG "UpdateURLx64"
@@ -52,7 +53,7 @@
 
 namespace dcpp {
 
-/*void UpdateManager::signVersionFile(const string& file, const string& key, bool makeHeader) {
+void UpdateManager::signVersionFile(const string& file, const string& key, bool makeHeader) {
 	string versionData;
 	unsigned int sig_len = 0;
 
@@ -166,9 +167,9 @@ bool UpdateManager::verifyVersionData(const string& data, const ByteVector& sign
 	return (res == 1); 
 }
 
-void UpdateManager::updateIP(const string& aServer) {
+/*void UpdateManager::updateIP(const string& aServer) {
 	HttpManager::getInstance()->addDownload(aServer, boost::bind(&UpdateManager::updateIP, this, _1, _2, _3), false);
-}
+}*/
 
 bool UpdateManager::applyUpdate(const string& sourcePath, const string& installPath) {
 	bool ret = true;
@@ -223,7 +224,7 @@ void UpdateManager::cleanTempFiles(const string& tmpPath) {
 	//File::removeDirectory(tmpPath);
 }
 
-void UpdateManager::checkUpdates(const string& aUrl, bool bManual) {
+/*void UpdateManager::checkUpdates(const string& aUrl, bool bManual) {
 	if(bManual && manualCheck)
 		return;
 
@@ -234,7 +235,7 @@ void UpdateManager::checkUpdates(const string& aUrl, bool bManual) {
 
 		HttpManager::getInstance()->addFileDownload(aUrl + ".sign", UPDATE_TEMP_DIR "version.sign", boost::bind(&UpdateManager::versionSignature, this, _1, _2, _3), false);
 	}
-}
+}*/
 
 void UpdateManager::downloadUpdate(const string& aUrl, const string& aExeName) {
 	if(updating)
@@ -243,24 +244,26 @@ void UpdateManager::downloadUpdate(const string& aUrl, const string& aExeName) {
 	updating = true;
 	exename = aExeName;
 
-	HttpManager::getInstance()->addFileDownload(aUrl, UPDATE_TEMP_DIR "Apex_Update.zip", boost::bind(&UpdateManager::updateDownload, this, _1, _2, _3), false);
+	//HttpManager::getInstance()->addFileDownload(aUrl, UPDATE_TEMP_DIR "Apex_Update.zip", boost::bind(&UpdateManager::updateDownload, this, _1, _2, _3), false);
 }
 
-void UpdateManager::updateDownload(const HttpConnection*, const string& aLine, uint8_t stFlags) {
-	bool success = ((stFlags & HttpManager::HTTP_COMPLETE) == HttpManager::HTTP_COMPLETE);
-	if(success && Util::fileExists(UPDATE_TEMP_DIR "Apex_Update.zip")) {
+void UpdateManager::completeUpdateDownload() {
+	auto& conn = conns[CONN_CLIENT];
+	ScopedFunctor([&conn] { conn.reset(); });
+
+	if(!conn->buf.empty()) {
 		// Check integrity
-		if(TTH(UPDATE_TEMP_DIR "Apex_Update.zip") != updateTTH) {
+		if(TTH(UPDATE_TEMP_DIR "AirDC_Update.zip") != updateTTH) {
 			updating = false;
-			File::deleteFile(UPDATE_TEMP_DIR "Apex_Update.zip");
-			fire(UpdateListener::UpdateFailed(), "File integrity check failed");
+			File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
+			fire(UpdateManagerListener::UpdateFailed(), "File integrity check failed");
 			return;
 		}
 
 		// Unzip the update
 		try {
 			ZipFile zip;
-			zip.Open(UPDATE_TEMP_DIR "Apex_Update.zip");
+			zip.Open(UPDATE_TEMP_DIR "AirDC_Update.zip");
 
 			string srcPath = UPDATE_TEMP_DIR + updateTTH + PATH_SEPARATOR;
 			string dstPath = Util::getFilePath(exename);
@@ -286,23 +289,26 @@ void UpdateManager::updateDownload(const HttpConnection*, const string& aLine, u
 
 			zip.Close();
 
-			File::deleteFile(UPDATE_TEMP_DIR "Apex_Update.zip");
-			fire(UpdateListener::UpdateComplete(), exeFile, "/update \"" + srcPath + "\" \"" + dstPath + "\"");
+			File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
+			fire(UpdateManagerListener::UpdateComplete(), exeFile, "/update \"" + srcPath + "\" \"" + dstPath + "\"");
 		} catch(ZipFileException& e) {
 			updating = false;
-			File::deleteFile(UPDATE_TEMP_DIR "Apex_Update.zip");
-			fire(UpdateListener::UpdateFailed(), e.getError());
+			File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
+			fire(UpdateManagerListener::UpdateFailed(), e.getError());
 		}
 	} else {
 		updating = false;
-		File::deleteFile(UPDATE_TEMP_DIR "Apex_Update.zip");
-		fire(UpdateListener::UpdateFailed(), aLine);
+		File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
+		fire(UpdateManagerListener::UpdateFailed(), conn->status);
 	}
 }
-void UpdateManager::versionSignature(const HttpConnection*, const string& aLine, uint8_t stFlags) {
-	if((stFlags & HttpManager::HTTP_FAILED) == HttpManager::HTTP_FAILED) {
-		LogManager::getInstance()->message("Could not download digital signature for update check (" + aLine + ")", LogManager::LOG_WARNING);
-		manualCheck = false;
+void UpdateManager::completeSignatureDownload() {
+	auto& conn = conns[CONN_CLIENT_SIGN];
+	ScopedFunctor([&conn] { conn.reset(); });
+
+	if(conn->buf.empty()) {
+		LogManager::getInstance()->message("Could not download digital signature for update check (" + conn->status + ")", LogManager::LOG_WARNING);
+		//manualCheck = false;
 		return;
 	}
 
@@ -318,13 +324,15 @@ void UpdateManager::versionSignature(const HttpConnection*, const string& aLine,
 	} catch(const FileException& e) {
 		LogManager::getInstance()->message("Could not download digital signature for update check (" + e.getError() + ")", LogManager::LOG_WARNING);
 		File::deleteFile(UPDATE_TEMP_DIR "version.sign");
-		manualCheck = false;
+		//manualCheck = false;
 		return;
 	}
 
-	HttpManager::getInstance()->addDownload(versionUrl, boost::bind(&UpdateManager::versionCheck, this, _1, _2, _3), false);
+	conns[CONN_CLIENT].reset(new HttpDownload(versionUrl,
+		[this] { completeUpdateDownload(); }, false));
+
 	File::deleteFile(UPDATE_TEMP_DIR "version.sign");
-}*/
+}
 
 /*void UpdateManager::versionCheck(const HttpConnection*, const string& versionInfo, uint8_t stFlags) {
 	if((stFlags & HttpManager::HTTP_FAILED) == HttpManager::HTTP_FAILED) {

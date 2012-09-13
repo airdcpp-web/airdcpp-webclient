@@ -44,6 +44,12 @@
 # define COMPLETEVERSIONSTRING	_T(APPNAME) _T(" ") _T(VERSIONSTRING) _T(" ") _T(CONFIGURATION_TYPE)
 #endif
 
+#ifdef NDEBUG
+# define INST_NAME "{AIRDC-AEE8350A-B49A-4753-AB4B-E55479A48351}"
+#else
+# define INST_NAME "{AIRDC-AEE8350A-B49A-4753-AB4B-E55479A48350}"
+#endif
+
 /* Update the .rc file as well... */
 
 /**

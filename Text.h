@@ -172,6 +172,12 @@ namespace Text {
 	}
 }
 
+#ifdef _WIN32
+# define NATIVE_NL "\r\n"
+#else
+# define NATIVE_NL "\n"
+#endif
+
 } // namespace dcpp
 
 #endif

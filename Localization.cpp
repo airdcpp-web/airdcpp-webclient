@@ -80,7 +80,6 @@ static const char* countryCodes[] = {
 namespace dcpp {
 
 	void Localization::Language::setLanguageFile() {
-		auto langPath = move(getLanguageFilePath());
 		SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, getLanguageFilePath());
 	}
 

@@ -193,6 +193,8 @@ public:
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
 	void addFilterTask();
+	void addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio=QueueItem::DEFAULT);
+
 	void close();
 
 	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
@@ -221,7 +223,8 @@ private:
 		LOAD_FILE,
 		MATCH_ADL,
 		LISTDIFF,
-		FILTER
+		FILTER,
+		DIR_DOWNLOAD
 	};
 
 	void runTasks();

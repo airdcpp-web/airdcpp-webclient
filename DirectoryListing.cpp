@@ -752,6 +752,22 @@ void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize,
 	runTasks();
 }
 
+struct DirDownloadTask : public Task {
+	DirDownloadTask(DirectoryListing::Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool aIsSizeUnknown, QueueItem::Priority aPrio) : dir(aDir), 
+		target(aTarget), targetType(aTargetType), isSizeUnknown(aIsSizeUnknown), prio(aPrio) { }
+
+	DirectoryListing::Directory* dir;
+	QueueItem::Priority prio;
+	bool isSizeUnknown;
+	TargetUtil::TargetType targetType;
+	string target;
+};
+
+void DirectoryListing::addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio) {
+	tasks.add(DIR_DOWNLOAD, unique_ptr<Task>(new DirDownloadTask(aDir, aTarget, aTargetType, isSizeUnknown, prio)));
+	runTasks();
+}
+
 void DirectoryListing::addFilterTask() {
 	if (tasks.addUnique(FILTER, nullptr))
 		runTasks();
@@ -856,6 +872,9 @@ int DirectoryListing::run() {
 				BundleList bundles;
 				QueueManager::getInstance()->matchListing(*this, matches, newFiles, bundles);
 				fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
+			} else if (t.first == DIR_DOWNLOAD) {
+				auto dli = static_cast<DirDownloadTask*>(t.second.get());
+				download(dli->dir, dli->target, dli->targetType, dli->isSizeUnknown , dli->prio);
 			} else if (t.first == SEARCH) {
 				secondsEllapsed = 0;
 				searchResults.clear();
