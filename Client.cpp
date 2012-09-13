@@ -195,7 +195,7 @@ void Client::on(Connected) noexcept {
 
 void Client::on(Failed, const string& aLine) noexcept {
 	string msg = aLine;
-	if (state == STATE_NORMAL) {
+	if (state != STATE_CONNECTING) {
 		//don't try failover addresses right after getting disconnected...
 		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
 	} else if (FavoriteManager::getInstance()->getFailOverUrl(favToken, hubUrl)) {

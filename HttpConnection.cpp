@@ -148,8 +148,8 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 					downloadFile(currentUrl);
 					return;
 				}
-				failed(aLine);
-				coralizeState = CST_DEFAULT;			
+				coralizeState = CST_DEFAULT;
+				failed(aLine);			
 				return;
 			}
 		}

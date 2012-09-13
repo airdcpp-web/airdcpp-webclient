@@ -132,7 +132,7 @@ bool UnZFilter::operator()(const void* in, size_t& insize, void* out, size_t& ou
 }
 
 void GZ::decompress(const string& source, const string& target) {
-	auto gz = gzopen(source.c_str(), "rb");
+	auto gz = gzopen_w(Text::toT(source).c_str(), "rb");
 	if(!gz) {
 		throw Exception(STRING(COMPRESSION_ERROR));
 	}

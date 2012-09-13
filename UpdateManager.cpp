@@ -53,6 +53,9 @@
 
 namespace dcpp {
 
+UpdateManager::UpdateManager() : updating(false) { }
+UpdateManager::~UpdateManager() { }
+
 void UpdateManager::signVersionFile(const string& file, const string& key, bool makeHeader) {
 	string versionData;
 	unsigned int sig_len = 0;
@@ -403,6 +406,8 @@ void UpdateManager::checkIP(bool manual) {
 void UpdateManager::completeIPCheck(bool manual) {
 	auto& conn = conns[CONN_IP];
 	if(!conn) { return; }
+
+	string ip;
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if (!conn->buf.empty()) {
@@ -416,14 +421,16 @@ void UpdateManager::completeIPCheck(bool manual) {
 
 			if(boost::regex_search(start, end, results, reg, boost::match_default)) {
 				if(!results.empty()) {
-					const string& ip = results.str(0);
+					ip = results.str(0);
+					//const string& ip = results.str(0);
 					if (!manual)
 						SettingsManager::getInstance()->set(SettingsManager::EXTERNAL_IP, ip);
-					fire(UpdateManagerListener::SettingUpdated(), SettingsManager::EXTERNAL_IP, ip);
 				}
 			}
 		} catch(...) { }
 	}
+
+	fire(UpdateManagerListener::SettingUpdated(), SettingsManager::EXTERNAL_IP, ip);
 }
 
 
@@ -629,7 +636,7 @@ void UpdateManager::completeVersionDownload() {
 	}
 
 
-	if(!BOOLSETTING(AUTO_DETECT_CONNECTION)) {
+	if(BOOLSETTING(IP_UPDATE) && !BOOLSETTING(AUTO_DETECT_CONNECTION)) {
 		checkIP(false);
 	}
 

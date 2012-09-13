@@ -1036,7 +1036,7 @@ enum Strings { // @DontAdd
 	PROPPAGE_OPERATOR, // "Operator"
 	PROPPAGE_NORM, // "Other users"
 	MAX_RESIZE_LINES, // "Max resize lines"
-	SETTINGS_DUPE_SEARCH, // "Use Dupe Color in Search"
+	SETTINGS_DUPE_SEARCH, // "Use dupe color in search"
 	SETTINGS_LRUS, // "Russian"
 	FILE_ALREADY_SHARED, // "Trying to Download File already shared! File: "
 	PASSWD_PROTECT_STATIC, // "Client protection"
@@ -1455,5 +1455,6 @@ enum Strings { // @DontAdd
 	MESSAGES_SENT_THROUGH, // "Messages are now sent through the hub %s"
 	SEND_PM_VIA, // "Messages are sent via"
 	MESSAGES_SENT_THROUGH_REMOTE, // "Messages are now sent through the hub %s (changed by the remote users)"
+	IP_UPDATE_FAILED, // "Failed to update the IP address"
 	LAST // @DontAdd
 };

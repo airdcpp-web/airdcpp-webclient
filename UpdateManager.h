@@ -35,8 +35,8 @@ class UpdateManager : public Singleton<UpdateManager>, public Speaker<UpdateMana
 {
 
 public:
-	UpdateManager() : updating(false) { }
-	~UpdateManager() { }
+	UpdateManager();
+	~UpdateManager();
 
 	struct {
 		string homepage;
@@ -50,7 +50,6 @@ public:
 		string ipcheck;
 	} links;
 
-	//void checkUpdates(const string& aUrl, bool bManual = false);
 	void downloadUpdate(const string& aUrl, const string& aExeName);
 
 	bool isUpdating() const { return updating; }
@@ -82,16 +81,7 @@ public:
 	void checkIP(bool manual);
 
 	void checkGeoUpdate();
-	void checkGeoUpdate(bool v6);
 	//void updateGeo();
-	void updateGeo(bool v6);
-
-	void completeLanguageCheck();
-	void completeGeoDownload(bool v6);
-	void completeVersionDownload();
-	void completeLanguageDownload();
-	void completeUpdateDownload();
-	void completeIPCheck(bool manual);
 
 	void init();
 private:
@@ -105,10 +95,16 @@ private:
 
 	ByteVector versionSig;
 
-	void completeSignatureDownload();
-	//void versionCheck(const HttpConnection*, const string& versionInfo, uint8_t stFlags);
+	void updateGeo(bool v6);
+	void checkGeoUpdate(bool v6);
 
-	//void updateIP(const HttpConnection*, const string& ipData, uint8_t stFlags);
+	void completeSignatureDownload();
+	void completeLanguageCheck();
+	void completeGeoDownload(bool v6);
+	void completeVersionDownload();
+	void completeLanguageDownload();
+	void completeUpdateDownload();
+	void completeIPCheck(bool manual);
 };
 
 } // namespace dcpp

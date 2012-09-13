@@ -1029,7 +1029,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Operator", 
 "Other users", 
 "Max resize lines", 
-"Use Dupe Color in Search", 
+"Use dupe color in search", 
 "Russian", 
 "Trying to Download File already shared! File: ", 
 "Client protection", 
@@ -1448,6 +1448,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Messages are now sent through the hub %s", 
 "Messages are sent via", 
 "Messages are now sent through the hub %s (changed by the remote users)", 
+"Failed to update the IP address", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2896,4 +2897,5 @@ std::string dcpp::ResourceManager::names[] = {
 "MessagesSentThrough", 
 "SendPmVia", 
 "MessagesSentThroughRemote", 
+"IpUpdateFailed", 
 };

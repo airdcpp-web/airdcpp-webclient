@@ -103,7 +103,7 @@ const string SettingsManager::settingTags[] =
 	"MenubarTwoColors", "MenubarLeftColor", "MenubarRightColor", "MenubarBumped", 
 	"DisconnectFileSize", "UploadQueueFrameShowTree",
 	"SegmentsManual", "NumberOfSegments",
-	"AutoUpdateIP", "MaxHashSpeed", "GetUserCountry",
+	"MaxHashSpeed", "GetUserCountry",
 	"UseAutoPriorityByDefault", "UseOldSharingUI",
 	"FavShowJoins", "LogStatusMessages", "PMLogLines", "SearchAlternateColour", "SoundsDisabled",
 	"ReportFoundAlternates",
