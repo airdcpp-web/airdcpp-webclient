@@ -46,6 +46,7 @@ const string& FavoriteHubEntry::getNick(bool useDefault /*true*/) const {
 void FavoriteHubEntry::setServerStr(const string& aServers) {
 	StringTokenizer<string> tmp(aServers, ';');
 	servers = move(tmp.getTokens());
+	validateFailOvers();
 }
 
 bool FavoriteHubEntry::isAdcHub() const {
@@ -57,6 +58,13 @@ bool FavoriteHubEntry::isAdcHub() const {
 void FavoriteHubEntry::addFailOvers(StringList&& addresses) {
 	servers.resize(addresses.size()+1);
 	move(addresses.begin(), addresses.end(), servers.begin()+1);
+	validateFailOvers();
+}
+
+void FavoriteHubEntry::validateFailOvers() {
+	//don't allow mixing NMDC and ADC hubs
+	bool adc = isAdcHub();
+	servers.erase(remove_if(servers.begin(), servers.end(), [adc](const string& aUrl) { return AirUtil::isAdcHub(aUrl) != adc; }), servers.end());
 }
 
 }

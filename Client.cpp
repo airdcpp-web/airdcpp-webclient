@@ -32,18 +32,24 @@ namespace dcpp {
 
 atomic<long> Client::counts[COUNT_UNCOUNTED];
 
-Client::Client(const string& hubURL, char separator_, bool secure_) : 
+Client::Client(const string& hubURL, char separator_) : 
 	myIdentity(ClientManager::getInstance()->getMe(), 0),
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	encoding(Text::systemCharset), state(STATE_DISCONNECTED), sock(0),
-	hubUrl(hubURL), separator(separator_),
-	secure(secure_), countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0), favToken(0)
+	separator(separator_),
+	countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0), favToken(0)
 {
-	string file, proto, query, fragment;
-	Util::decodeUrl(hubURL, proto, address, port, file, query, fragment);
-	keyprint = Util::decodeQuery(query)["kp"];
-
+	setHubUrl(hubURL);
 	TimerManager::getInstance()->addListener(this);
+}
+
+void Client::setHubUrl(const string& aUrl) {
+	hubUrl = move(aUrl);
+	secure = strnicmp("adcs://", aUrl.c_str(), 7) == 0 || strnicmp("nmdcs://", aUrl.c_str(), 8) == 0;
+
+	string file, proto, query, fragment;
+	Util::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
+	keyprint = Util::decodeQuery(query)["kp"];
 }
 
 Client::~Client() {
@@ -198,10 +204,15 @@ void Client::on(Failed, const string& aLine) noexcept {
 	if (state != STATE_CONNECTING) {
 		//don't try failover addresses right after getting disconnected...
 		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
-	} else if (FavoriteManager::getInstance()->getFailOverUrl(favToken, hubUrl)) {
-		if (msg[msg.length()-1] != '.')
-			msg += ".";
-		msg += " Switching to an address " + hubUrl;
+	} else {
+		string newUrl = hubUrl;
+		if (FavoriteManager::getInstance()->getFailOverUrl(favToken, newUrl) && !ClientManager::getInstance()->isConnected(newUrl)) {
+			ClientManager::getInstance()->setClientUrl(hubUrl, newUrl);
+
+			if (msg[msg.length()-1] != '.')
+				msg += ".";
+			msg += " Switching to an address " + hubUrl;
+		}
 	}
 
 	state = STATE_DISCONNECTED;

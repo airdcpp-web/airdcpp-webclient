@@ -60,14 +60,10 @@ ClientManager::~ClientManager() {
 
 Client* ClientManager::createClient(const string& aHubURL) {
 	Client* c;
-	if(strnicmp("adc://", aHubURL.c_str(), 6) == 0) {
-		c = new AdcHub(aHubURL, false);
-	} else if(strnicmp("adcs://", aHubURL.c_str(), 7) == 0) {
-		c = new AdcHub(aHubURL, true);
-	} else if(strnicmp("nmdcs://", aHubURL.c_str(), 8) == 0) {
-		c = new NmdcHub(aHubURL, true);
+	if(strnicmp("adc://", aHubURL.c_str(), 6) == 0 || strnicmp("adcs://", aHubURL.c_str(), 7) == 0) {
+		c = new AdcHub(aHubURL);
 	} else {
-		c = new NmdcHub(aHubURL, false);
+		c = new NmdcHub(aHubURL);
 	}
 
 	{
@@ -95,6 +91,17 @@ void ClientManager::putClient(Client* aClient) {
 	}
 	aClient->shutdown();
 	delete aClient;
+}
+
+void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) {
+	WLock l (cs);
+	auto p = clients.find(const_cast<string*>(&aOldUrl));
+	if (p != clients.end()) {
+		auto c = p->second;
+		clients.erase(p);
+		c->setHubUrl(aNewUrl);
+		clients.insert(make_pair(const_cast<string*>(&c->getHubUrl()), c));
+	}
 }
 
 StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl) const {

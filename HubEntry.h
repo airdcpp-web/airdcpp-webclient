@@ -117,6 +117,7 @@ public:
 	void setServerStr(const string& aServers);
 	bool isAdcHub() const;
 	void addFailOvers(StringList&& addresses);
+	void validateFailOvers();
 private:
 	string nick;
 };

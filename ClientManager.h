@@ -45,6 +45,7 @@ public:
 	Client* createClient(const string& aHubURL);
 	Client* getClient(const string& aHubURL);
 	void putClient(Client* aClient);
+	void setClientUrl(const string& aOldUrl, const string& aNewUrl);
 
 	size_t getUserCount() const;
 	int64_t getAvailable() const;

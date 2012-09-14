@@ -159,7 +159,7 @@ public:
 
 protected:
 	friend class ClientManager;
-	Client(const string& hubURL, char separator, bool secure_);
+	Client(const string& hubURL, char separator);
 	virtual ~Client();
 
 	enum CountType {
@@ -203,6 +203,7 @@ protected:
 	virtual void on(Failed, const string&) noexcept;
 
 	virtual bool v4only() const = 0;
+	void setHubUrl(const string& url);
 private:
 
 	Client(const Client&);

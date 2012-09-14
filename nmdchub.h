@@ -92,7 +92,7 @@ private:
 	FloodMap seekers;
 	FloodMap flooders;
 
-	NmdcHub(const string& aHubURL, bool secure);
+	NmdcHub(const string& aHubURL);
 	~NmdcHub();
 
 	// Dummy

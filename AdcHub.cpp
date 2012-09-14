@@ -57,8 +57,8 @@ const string AdcHub::DSCH_FEATURE("DSCH");
 
 const vector<StringList> AdcHub::searchExts;
 
-AdcHub::AdcHub(const string& aHubURL, bool secure) :
-	Client(aHubURL, '\n', secure), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
+AdcHub::AdcHub(const string& aHubURL) :
+	Client(aHubURL, '\n'), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
 	TimerManager::getInstance()->addListener(this);
 }
 
