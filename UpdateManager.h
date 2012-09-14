@@ -50,7 +50,7 @@ public:
 		string ipcheck;
 	} links;
 
-	void downloadUpdate(const string& aUrl, const string& aExeName);
+	void downloadUpdate(const string& aUrl);
 
 	bool isUpdating() const { return updating; }
 
@@ -73,6 +73,12 @@ public:
 		CONN_LAST
 	};
 
+	enum {
+		UPDATE_UNDEFINED,
+		UPDATE_AUTO,
+		UPDATE_PROMPT
+	};
+
 	unique_ptr<HttpDownload> conns[CONN_LAST];
 
 	void checkVersion(bool aManual);
@@ -83,7 +89,7 @@ public:
 	void checkGeoUpdate();
 	//void updateGeo();
 
-	void init();
+	void init(const string& aExeName);
 private:
 	static uint8_t publicKey[];
 

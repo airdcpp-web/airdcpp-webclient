@@ -224,17 +224,7 @@ void UpdateManager::cleanTempFiles(const string& tmpPath) {
 	}
 
 	// Remove the empty dir
-	//File::removeDirectory(tmpPath);
-}
-
-void UpdateManager::downloadUpdate(const string& aUrl, const string& aExeName) {
-	if(updating)
-		return;
-
-	updating = true;
-	exename = aExeName;
-
-	//HttpManager::getInstance()->addFileDownload(aUrl, UPDATE_TEMP_DIR "Apex_Update.zip", boost::bind(&UpdateManager::updateDownload, this, _1, _2, _3), false);
+	File::removeDirectory(tmpPath);
 }
 
 void UpdateManager::completeUpdateDownload() {
@@ -242,6 +232,13 @@ void UpdateManager::completeUpdateDownload() {
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if(!conn->buf.empty()) {
+		try {
+			File::ensureDirectory(UPDATE_TEMP_DIR);
+			File(UPDATE_TEMP_DIR "AirDC_Update.zip", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
+		} catch(const FileException&) { 
+			return;
+		}
+
 		// Check integrity
 		if(TTH(UPDATE_TEMP_DIR "AirDC_Update.zip") != updateTTH) {
 			updating = false;
@@ -281,6 +278,7 @@ void UpdateManager::completeUpdateDownload() {
 
 			File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
 			fire(UpdateManagerListener::UpdateComplete(), exeFile, "/update \"" + srcPath + "\" \"" + dstPath + "\"");
+			LogManager::getInstance()->message("The update has been downloaded successfully. It will be installed when you restart the client", LogManager::LOG_INFO);
 		} catch(ZipFileException& e) {
 			updating = false;
 			File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
@@ -524,20 +522,8 @@ void UpdateManager::completeVersionDownload() {
 		xml.fromXML(conn->buf);
 		xml.stepIn();
 
-		string url;
-#		ifdef _WIN64
-			if(xml.findChild("URL64")) {
-			url = xml.getChildData();
-		}
-#		else
-		if(xml.findChild("URL")) {
-			url = xml.getChildData();
-		}
-#		endif
-		xml.resetCurrentChild();
 
-
-		//check for updated links
+		//Check for updated HTTP links
 		if(xml.findChild("Links")) {
 			xml.stepIn();
 			if(xml.findChild("Homepage")) {
@@ -580,59 +566,86 @@ void UpdateManager::completeVersionDownload() {
 		xml.resetCurrentChild();
 
 
-		if(xml.findChild("Version")) {
-			double remoteVer = Util::toDouble(xml.getChildData());
-			xml.resetCurrentChild();
-			double ownVersion = Util::toDouble(VERSIONFLOAT);
+		string tmp = SVNVERSION;
+		int ownBuild = Util::toInt(tmp.substr(1, tmp.length()-1));
 
-#ifdef SVNVERSION
-			if (xml.findChild("SVNrev")) {
-				remoteVer = Util::toDouble(xml.getChildData());
+
+		//Get the update information from the XML
+		string updateUrl;
+		bool autoUpdateEnabled = false;
+		if(xml.findChild(UPGRADE_TAG)) {
+			updateUrl = xml.getChildData();
+			updateTTH = xml.getChildAttrib("TTH");
+			autoUpdateEnabled = xml.getChildAttrib("Enabled", "1") == "1";
+		}
+		xml.resetCurrentChild();
+
+		string url;
+		if(xml.findChild("URL"))
+			url = xml.getChildData();
+		xml.resetCurrentChild();
+
+
+		//Check for bad version
+		auto reportBadVersion = [this, &xml, &url] () -> void {
+			string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
+			fire(UpdateManagerListener::BadVersion(), msg, url, Util::emptyString);
+		};
+
+		if(xml.findChild("VeryOldVersion")) {
+			if(Util::toInt(xml.getChildData()) >= ownBuild) {
+				reportBadVersion();
 			}
-			xml.resetCurrentChild();
+		}
+		xml.resetCurrentChild();
 
-			string tmp = SVNVERSION;
-			ownVersion = Util::toDouble(tmp.substr(1, tmp.length()-1));
-#endif
-
-			if(remoteVer > ownVersion) {
-				if(xml.findChild("Title")) {
-					const string& title = xml.getChildData();
-					xml.resetCurrentChild();
-					if(xml.findChild("Message")) {
-						if(url.empty()) {
-							//const string& msg = xml.getChildData();
-							//MessageBox(Text::toT(msg).c_str(), Text::toT(title).c_str(), MB_OK);
-						} else {
-							//string msg = xml.getChildData() + "\r\n" + STRING(OPEN_DOWNLOAD_PAGE);
-							fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
-						}
-					}
-				}
-				xml.resetCurrentChild();
-
-				if(xml.findChild("VeryOldVersion")) {
-					if(Util::toDouble(xml.getChildData()) >= Util::toDouble(VERSIONFLOAT)) {
-						string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
-						fire(UpdateManagerListener::BadVersion(), msg, url, Util::emptyString);
-					}
-				}
-				xml.resetCurrentChild();
-
-				if(xml.findChild("BadVersion")) {
-					xml.stepIn();
-					while(xml.findChild("BadVersion")) {
-						double v = Util::toDouble(xml.getChildAttrib("Version"));
-						if(v == Util::toDouble(VERSIONFLOAT)) {
-							string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
-							fire(UpdateManagerListener::BadVersion(), msg, url, Util::emptyString);
-						}
-					}
+		if(xml.findChild("BadVersion")) {
+			xml.stepIn();
+			while(xml.findChild("BadVersion")) {
+				double v = Util::toDouble(xml.getChildAttrib("Version"));
+				if(v == ownBuild) {
+					reportBadVersion();
 				}
 			}
 		}
-	} catch (const Exception&) {
-		// ...
+		xml.resetCurrentChild();
+
+
+		//Check for updated version
+		if(xml.findChild("Version")) {
+			double remoteVer = Util::toDouble(xml.getChildData());
+			int remoteBuild = 0;
+			if (xml.findChild("SVNrev")) {
+				remoteBuild = Util::toInt(xml.getChildData());
+			}
+			xml.resetCurrentChild();
+
+			if(remoteBuild > ownBuild) {
+				auto updateMethod = SETTING(UPDATE_METHOD);
+				if (!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) {
+					if(xml.findChild("Title")) {
+						const string& title = xml.getChildData();
+						xml.resetCurrentChild();
+						if(xml.findChild("Message")) {
+							if(url.empty()) {
+								//const string& msg = xml.getChildData();
+								//MessageBox(Text::toT(msg).c_str(), Text::toT(title).c_str(), MB_OK);
+							} else {
+								//string msg = xml.getChildData() + "\r\n" + STRING(OPEN_DOWNLOAD_PAGE);
+								fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, autoUpdateEnabled);
+							}
+						}
+					}
+					//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
+				} else if (updateMethod == UPDATE_AUTO) {
+					LogManager::getInstance()->message("Downloading an update (version " + Util::toString(remoteVer) + ")", LogManager::LOG_INFO);
+					downloadUpdate(updateUrl);
+				}
+				xml.resetCurrentChild();
+			}
+		}
+	} catch (const Exception& e) {
+		LogManager::getInstance()->message("Error when parsing the version file: " + e.getError(), LogManager::LOG_WARNING);
 	}
 
 
@@ -648,6 +661,16 @@ void UpdateManager::completeVersionDownload() {
 
 	/*conns[CONN_CLIENT].reset(new HttpDownload(versionUrl,
 		[this] { completeUpdateDownload(); }, false));*/
+}
+
+void UpdateManager::downloadUpdate(const string& aUrl) {
+	if(updating)
+		return;
+
+	updating = true;
+
+	conns[CONN_CLIENT].reset(new HttpDownload(aUrl,
+		[this] { completeUpdateDownload(); }, false));
 }
 
 void UpdateManager::checkLanguage() {
@@ -686,7 +709,7 @@ void UpdateManager::checkVersion(bool aManual) {
 	//}
 }
 
-void UpdateManager::init() {
+void UpdateManager::init(const string& aExeName) {
 	links.homepage = "http://www.airdcpp.net/";
 	links.downloads = links.homepage + "download/";
 	links.geoip6 = "http://geoip6.airdcpp.net";
@@ -696,6 +719,8 @@ void UpdateManager::init() {
 	links.discuss = links.homepage + "forum/";
 	links.ipcheck = "http://checkip.dyndns.org/";
 	links.language = "http://languages.airdcpp.net/";
+
+	exename = aExeName;
 
 	checkVersion(false);
 

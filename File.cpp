@@ -168,6 +168,11 @@ void File::deleteFile(const string& aFileName) noexcept
 	::DeleteFile(Text::toT(Util::FormatPath(aFileName)).c_str());
 }
 
+void File::removeDirectory(const string& aPath) noexcept
+{
+	::RemoveDirectory(Text::toT(Util::FormatPath(aPath)).c_str());
+}
+
 int64_t File::getSize(const string& aFileName) noexcept {
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;

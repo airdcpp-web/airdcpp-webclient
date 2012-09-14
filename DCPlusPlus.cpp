@@ -140,6 +140,8 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 			(*f)(p, TSTRING(COUNTRY_INFORMATION));
 		GeoManager::getInstance()->init();
 	}
+
+	UpdateManager::cleanTempFiles();
 }
 
 void shutdown(void (*f)(void*, const tstring&), void* p) {

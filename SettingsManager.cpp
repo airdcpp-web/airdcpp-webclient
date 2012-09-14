@@ -58,7 +58,7 @@ const string SettingsManager::settingTags[] =
 	"MainFrameVisible", "SearchFrameVisible", "QueueFrameVisible", "HubFrameVisible", "UploadQueueFrameVisible", 
 	"EmoticonsFile", "TLSPrivateKeyFile", "TLSCertificateFile", "TLSTrustedCertificatesPath",
 	"FinishedVisible", "FinishedULVisible", "DirectoryListingFrameVisible",
-	"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat",
+	"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat", "BackupPath",
 
 	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat","WinampPath",
 	"AntivirPath",
@@ -156,7 +156,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing",
 	"RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
-	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode",
+	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode", "UpdateMethod", "UpdateAutoBackup",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -703,7 +703,9 @@ SettingsManager::SettingsManager()
 	setDefault(CLEAR_DIR_HISTORY, false);
 	setDefault(POPUNDER_PARTIAL_LIST, false);
 	setDefault(TLS_MODE, 1);
-	setDefault(LAST_SEARCH_DISABLED_HUBS, "");
+	setDefault(LAST_SEARCH_DISABLED_HUBS, Util::emptyString);
+	setDefault(UPDATE_METHOD, 0);
+	setDefault(UPGRADE_AUTOBACKUP, 0);
 
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

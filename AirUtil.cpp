@@ -564,7 +564,7 @@ const string AirUtil::getReleaseRegBasic() {
 	return "(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))";
 }
 
-bool AirUtil::isEmpty(const string& aPath) {
+bool AirUtil::removeDirectoryIfEmpty(const string& aPath) {
 	/* recursive check for empty dirs */
 	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
 		try {
@@ -573,19 +573,19 @@ bool AirUtil::isEmpty(const string& aPath) {
 					continue;
 
 				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
-				if (!isEmpty(dir))
+				if (!removeDirectoryIfEmpty(dir))
 					return false;
 			} else {
 				return false;
 			}
 		} catch(const FileException&) { } 
 	}
-	::RemoveDirectoryW(Text::toT(Util::FormatPath(aPath)).c_str());
+	File::removeDirectory(aPath);
 	return true;
 }
 
 void AirUtil::removeIfEmpty(const string& tgt) {
-	if (!isEmpty(tgt)) {
+	if (!removeDirectoryIfEmpty(tgt)) {
 		LogManager::getInstance()->message("The folder " + tgt + " isn't empty, not removed", LogManager::LOG_INFO);
 	}
 }

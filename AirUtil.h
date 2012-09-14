@@ -79,7 +79,7 @@ class AirUtil {
 		static const string getReleaseRegBasic();
 
 		static void removeIfEmpty(const string& tgt);
-		static bool isEmpty(const string& tgt);
+		static bool removeDirectoryIfEmpty(const string& tgt);
 
 		static bool isAdcHub(const string& hubUrl);
 		static bool isHubLink(const string& hubUrl);

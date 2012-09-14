@@ -98,6 +98,8 @@ public:
 
 	static void ensureDirectory(const string& aFile) noexcept;
 	static bool createDirectory(const string& aFile);
+	static void removeDirectory(const string& aPath) noexcept;
+
 	static bool isAbsolute(const string& path) noexcept;
 
 	virtual ~File() { File::close(); }
