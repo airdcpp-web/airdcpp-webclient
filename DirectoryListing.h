@@ -153,8 +153,8 @@ public:
 	string updateXML(const std::string&);
 	string loadXML(InputStream& xml, bool updating);
 
-	void download(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, bool recursiveList = false);
-	void download(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio=QueueItem::DEFAULT, bool recursiveList=false, bool first=true, BundlePtr aBundle=NULL);
+	void downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT);
+	void downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio=QueueItem::DEFAULT, bool first=true, BundlePtr aBundle=NULL);
 	void download(File* aFile, const string& aTarget, bool view, QueueItem::Priority prio = QueueItem::DEFAULT, BundlePtr aBundle=NULL);
 
 	string getPath(const Directory* d) const;

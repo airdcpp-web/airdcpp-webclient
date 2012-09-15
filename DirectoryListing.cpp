@@ -408,12 +408,12 @@ bool DirectoryListing::Directory::findIncomplete() {
 	return find_if(directories.begin(), directories.end(), [&](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
 }
 
-void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio, bool recursiveList, bool first, BundlePtr aBundle) {
+void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio, bool first, BundlePtr aBundle) {
 	string target;
 	if (first) {
 		//check if there are incomplete dirs in a partial list
 		if (partialList && aDir->findIncomplete()) {
-			if (!recursiveList) {
+			if (isClientView) {
 				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio);
 			} else {
 				//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
@@ -434,7 +434,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUt
 			[&reg](Directory* d) { return boost::regex_match(d->getName(), reg); }) == (int)aDir->directories.size()) {
 			
 			/* Create bundles from each subfolder */
-			for_each(aDir->directories, [&](Directory* dir) { download(dir, target, aTargetType, isSizeUnknown, prio, false, false, nullptr); });
+			for_each(aDir->directories, [&](Directory* dir) { downloadDir(dir, target, aTargetType, isSizeUnknown, prio, false, nullptr); });
 			return;
 		}
 	} else {
@@ -451,7 +451,7 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUt
 
 	// First, recurse over the directories
 	sort(dirList.begin(), dirList.end(), Directory::Sort());
-	for_each(dirList, [&](Directory* dir) { download(dir, target, aTargetType, isSizeUnknown, prio, false, false, aBundle); });
+	for_each(dirList, [&](Directory* dir) { downloadDir(dir, target, aTargetType, isSizeUnknown, prio, false, aBundle); });
 
 	// Then add the files
 	sort(fileList.begin(), fileList.end(), File::Sort());
@@ -470,12 +470,12 @@ void DirectoryListing::download(Directory* aDir, const string& aTarget, TargetUt
 	}
 }
 
-void DirectoryListing::download(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio, bool recursiveList) {
+void DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = findDirectory(aDir, getRoot());
 	if(d)
-		download(d, aTarget, aTargetType, highPrio, prio, recursiveList);
+		downloadDir(d, aTarget, aTargetType, highPrio, prio);
 }
 
 int64_t DirectoryListing::getDirSize(const string& aDir) {
@@ -874,7 +874,7 @@ int DirectoryListing::run() {
 				fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
 			} else if (t.first == DIR_DOWNLOAD) {
 				auto dli = static_cast<DirDownloadTask*>(t.second.get());
-				download(dli->dir, dli->target, dli->targetType, dli->isSizeUnknown , dli->prio);
+				downloadDir(dli->dir, dli->target, dli->targetType, dli->isSizeUnknown , dli->prio);
 			} else if (t.first == SEARCH) {
 				secondsEllapsed = 0;
 				searchResults.clear();
