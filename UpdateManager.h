@@ -50,15 +50,15 @@ public:
 		string ipcheck;
 	} links;
 
-	void downloadUpdate(const string& aUrl);
-
-	bool isUpdating() const { return updating; }
+	void downloadUpdate(const string& aUrl, int newBuildID);
 
 	static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
 	static bool verifyVersionData(const string& data, const ByteVector& singature);
 
+	static bool checkPendingUpdates(const string& aDstDir, string& updater_, bool updated);
+
 	static bool applyUpdate(const string& sourcePath, const string& installPath);
-	static void cleanTempFiles(const string& tmpPath = UPDATE_TEMP_DIR);
+	static void cleanTempFiles(const string& tmpPath);
 
 	enum {
 		CONN_VERSION,
@@ -97,8 +97,6 @@ private:
 	string versionUrl;
 	string updateTTH;
 
-	bool updating;
-
 	ByteVector versionSig;
 
 	void updateGeo(bool v6);
@@ -109,7 +107,7 @@ private:
 	void completeGeoDownload(bool v6);
 	void completeVersionDownload();
 	void completeLanguageDownload();
-	void completeUpdateDownload();
+	void completeUpdateDownload(int buildID);
 	void completeIPCheck(bool manual);
 };
 

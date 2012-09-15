@@ -567,11 +567,17 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static uint32_t rand(uint32_t high) { return rand() % high; }
 	static uint32_t rand(uint32_t low, uint32_t high) { return rand(high-low) + low; }
 	static double randd() { return ((double)rand()) / ((double)0xffffffff); }
+
+	static bool hasParam(const string& aParam);
+	static tstring getParams(bool isFirst);
+	static void addParam(const string& aParam);
 private:
 	/** In local mode, all config and temp files are kept in the same dir as the executable */
 	static bool localMode;
 
 	static string paths[PATH_LAST];
+
+	static StringList params;
 
 	static bool away;
 	static string awayMsg;

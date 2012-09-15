@@ -18,11 +18,11 @@
 
 #define APPNAME "AirDC++"
 #define VERSIONSTRING "2.40"
-#define VERSIONFLOAT "2.40"
-
 #define DCVERSIONSTRING "0.799"
+#define SVNVERSION "$WCREV$"
 
-#define SVNVERSION "r$WCREV$"
+#define BETAVER
+
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"
@@ -32,13 +32,21 @@
 #define INSTALLER "AirDC_Installer.exe"
 #endif
 
-#ifdef SVNVERSION
+#ifdef BETAVER
 #define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
 #else
 #define VERSION_URL "http://version.airdcpp.net/airdcversion.php"
 #endif
 
-#ifdef SVNVERSION
+# define REVSEPARATOR " r"
+
+#ifdef BETAVER
+# define SHORTVERSIONSTRING	VERSIONSTRING REVSEPARATOR SVNVERSION
+#else
+# define SHORTVERSIONSTRING	VERSIONSTRING
+#endif
+
+#ifdef BETAVER
 # define COMPLETEVERSIONSTRING	_T(APPNAME) _T(" ") _T(VERSIONSTRING) _T(" ") _T(CONFIGURATION_TYPE) _T(" ") _T(SVNVERSION) _T(" / ") _T(DCVERSIONSTRING)
 #else
 # define COMPLETEVERSIONSTRING	_T(APPNAME) _T(" ") _T(VERSIONSTRING) _T(" ") _T(CONFIGURATION_TYPE)

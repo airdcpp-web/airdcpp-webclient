@@ -65,6 +65,7 @@ string Util::awayMsg;
 time_t Util::awayTime;
 
 string Util::paths[Util::PATH_LAST];
+StringList Util::params;
 
 bool Util::localMode = true;
 
@@ -112,6 +113,23 @@ static string getDownloadsPath(const string& def) {
 }
 
 #endif
+
+void Util::addParam(const string& aParam) {
+	if (find(params.begin(), params.end(), aParam) == params.end())
+		params.push_back(aParam);
+}
+
+bool Util::hasParam(const string& aParam) {
+	return find(params.begin(), params.end(), aParam) != params.end();
+}
+
+tstring Util::getParams(bool isFirst) {
+	if (params.empty()) {
+		return Util::emptyStringT;
+	}
+
+	return Text::toT((isFirst ? Util::emptyString : " ") + Util::toString(" ", params)).c_str();
+}
 
 void Util::initialize() {
 	Text::initialize();

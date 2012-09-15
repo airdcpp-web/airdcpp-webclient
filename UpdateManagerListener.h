@@ -44,7 +44,7 @@ public:
 	virtual void on(UpdateAvailable, const string& /*title*/, const string& /*message*/, const string& /*version*/, const string& /*url*/, bool /*autoUpdate*/) noexcept { }
 	virtual void on(BadVersion, const string& /*message*/, const string& /*url*/, const string& /*update*/) noexcept { }
 	virtual void on(UpdateFailed, const string& /*line*/) noexcept { }
-	virtual void on(UpdateComplete, const string& /*updater*/, const string& /*args*/) noexcept { }
+	virtual void on(UpdateComplete, const string& /*updater*/) noexcept { }
 
 	virtual void on(AuthSuccess, const string& /*title*/, const string& /*message*/) noexcept { }
 	virtual void on(AuthFailure, const string& /*message*/) noexcept { }

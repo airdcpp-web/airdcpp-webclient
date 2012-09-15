@@ -931,11 +931,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 		status |= Identity::AIRDC;
 
 
-#ifdef SVNVERSION
-		version = VERSIONSTRING SVNVERSION;
-#else
-		version = VERSIONSTRING;
-#endif
+		version = SHORTVERSIONSTRING;
 		if(Util::getAway()) {
 			status |= Identity::AWAY;
 		}

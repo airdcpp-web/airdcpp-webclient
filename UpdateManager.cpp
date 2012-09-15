@@ -53,7 +53,7 @@
 
 namespace dcpp {
 
-UpdateManager::UpdateManager() : updating(false) { }
+UpdateManager::UpdateManager() { }
 UpdateManager::~UpdateManager() { }
 
 void UpdateManager::signVersionFile(const string& file, const string& key, bool makeHeader) {
@@ -227,22 +227,24 @@ void UpdateManager::cleanTempFiles(const string& tmpPath) {
 	File::removeDirectory(tmpPath);
 }
 
-void UpdateManager::completeUpdateDownload() {
+void UpdateManager::completeUpdateDownload(int buildID) {
 	auto& conn = conns[CONN_CLIENT];
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if(!conn->buf.empty()) {
+		auto token = Util::toString(Util::rand());
+		string updaterFile = UPDATE_TEMP_DIR + token + PATH_SEPARATOR + "AirDC_Update.zip";
+		ScopedFunctor([&updaterFile] { File::deleteFile(updaterFile); });
+
 		try {
-			File::ensureDirectory(UPDATE_TEMP_DIR);
-			File(UPDATE_TEMP_DIR "AirDC_Update.zip", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
+			File::ensureDirectory(UPDATE_TEMP_DIR + token + PATH_SEPARATOR);
+			File(updaterFile, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
 		} catch(const FileException&) { 
 			return;
 		}
 
 		// Check integrity
-		if(TTH(UPDATE_TEMP_DIR "AirDC_Update.zip") != updateTTH) {
-			updating = false;
-			File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
+		if(TTH(updaterFile) != updateTTH) {
 			fire(UpdateManagerListener::UpdateFailed(), "File integrity check failed");
 			return;
 		}
@@ -250,25 +252,17 @@ void UpdateManager::completeUpdateDownload() {
 		// Unzip the update
 		try {
 			ZipFile zip;
-			zip.Open(UPDATE_TEMP_DIR "AirDC_Update.zip");
+			zip.Open(updaterFile);
 
-			string srcPath = UPDATE_TEMP_DIR + updateTTH + PATH_SEPARATOR;
+			string srcPath = UPDATE_TEMP_DIR + token + PATH_SEPARATOR;
 			string dstPath = Util::getFilePath(exename);
-			string exeFile = srcPath + Util::getFileName(exename);
-
-#ifdef _WIN32
-			if(srcPath[srcPath.size() - 1] == PATH_SEPARATOR)
-				srcPath.insert(srcPath.size() - 1, "\\");
-
-			if(dstPath[dstPath.size() - 1] == PATH_SEPARATOR)
-				dstPath.insert(dstPath.size() - 1, "\\");
-#endif
+			string updaterFile = srcPath + Util::getFileName(exename);
 
 			if(zip.GoToFirstFile()) {
 				do {
 					zip.OpenCurrentFile();
 					if(zip.GetCurrentFileName().find(Util::getFileExt(exename)) != string::npos) {
-						zip.ReadCurrentFile(exeFile);
+						zip.ReadCurrentFile(updaterFile);
 					} else zip.ReadCurrentFile(srcPath);
 					zip.CloseCurrentFile();
 				} while(zip.GoToNextFile());
@@ -276,20 +270,76 @@ void UpdateManager::completeUpdateDownload() {
 
 			zip.Close();
 
-			File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
-			fire(UpdateManagerListener::UpdateComplete(), exeFile, "/update \"" + srcPath + "\" \"" + dstPath + "\"");
+			//Write the XML file
+			SimpleXML xml;
+			xml.addTag("UpdateInfo");
+			xml.stepIn();
+			xml.addTag("DestinationPath", dstPath);
+			xml.addTag("SourcePath", srcPath);
+			xml.addTag("UpdaterFile", updaterFile);
+			xml.addTag("BuildID", buildID);
+			xml.stepOut();
+
+			File f(UPDATE_TEMP_DIR + "UpdateInfo_" + token + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
+			f.write(SimpleXML::utf8Header);
+			f.write(xml.toXML());
+			f.close();
+
+			fire(UpdateManagerListener::UpdateComplete(), updaterFile);
 			LogManager::getInstance()->message("The update has been downloaded successfully. It will be installed when you restart the client", LogManager::LOG_INFO);
 		} catch(ZipFileException& e) {
-			updating = false;
-			File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
 			fire(UpdateManagerListener::UpdateFailed(), e.getError());
 		}
 	} else {
-		updating = false;
-		File::deleteFile(UPDATE_TEMP_DIR "AirDC_Update.zip");
 		fire(UpdateManagerListener::UpdateFailed(), conn->status);
 	}
 }
+
+bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_, bool updated) {
+	StringList fileList = File::findFiles(UPDATE_TEMP_DIR, "UpdateInfo_*");
+	for (auto i = fileList.begin(); i != fileList.end(); ++i) {
+		if (Util::getFileExt(*i) == ".xml") {
+			try {
+				SimpleXML xml;
+				xml.fromXML(File(*i, File::READ, File::OPEN).read());
+				if(xml.findChild("UpdateInfo")) {
+					xml.stepIn();
+					if(xml.findChild("DestinationPath")) {
+						xml.stepIn();
+						string dstDir = xml.getData();
+						xml.stepOut();
+
+						if (dstDir != aDstDir)
+							continue;
+
+						if(xml.findChild("UpdaterFile")) {
+							xml.stepIn();
+							updater_ = xml.getData();
+							xml.stepOut();
+
+							if(xml.findChild("BuildID")) {
+								xml.stepIn();
+								if (xml.getData() <= SVNVERSION || updated) {
+									//we have an old update for this instance, delete the files
+									cleanTempFiles(Util::getFilePath(updater_));
+									File::deleteFile(*i);
+									continue;
+								}
+								return true;
+							}
+						}
+					}
+
+				}
+			} catch(const Exception& e) {
+				LogManager::getInstance()->message("Failed to read " + *i + " : " + e.getError().c_str(), LogManager::LOG_WARNING);
+			}
+		}
+	}
+
+	return false;
+}
+
 void UpdateManager::completeSignatureDownload() {
 	auto& conn = conns[CONN_SIGNATURE];
 	ScopedFunctor([&conn] { conn.reset(); });
@@ -513,7 +563,6 @@ void UpdateManager::completeVersionDownload() {
 
 	if(!UpdateManager::verifyVersionData(conn->buf, versionSig)) {
 		LogManager::getInstance()->message("Could not verify version data", LogManager::LOG_WARNING);
-		//manualCheck = false;
 		return;
 	}
 
@@ -566,8 +615,7 @@ void UpdateManager::completeVersionDownload() {
 		xml.resetCurrentChild();
 
 
-		string tmp = SVNVERSION;
-		int ownBuild = Util::toInt(tmp.substr(1, tmp.length()-1));
+		int ownBuild = Util::toInt(SVNVERSION);
 
 
 		//Get the update information from the XML
@@ -639,7 +687,7 @@ void UpdateManager::completeVersionDownload() {
 					//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
 				} else if (updateMethod == UPDATE_AUTO) {
 					LogManager::getInstance()->message("Downloading an update (version " + Util::toString(remoteVer) + ")", LogManager::LOG_INFO);
-					downloadUpdate(updateUrl);
+					downloadUpdate(updateUrl, remoteBuild);
 				}
 				xml.resetCurrentChild();
 			}
@@ -658,19 +706,14 @@ void UpdateManager::completeVersionDownload() {
 	if(BOOLSETTING(GET_USER_COUNTRY)) {
 		checkGeoUpdate();
 	}
-
-	/*conns[CONN_CLIENT].reset(new HttpDownload(versionUrl,
-		[this] { completeUpdateDownload(); }, false));*/
 }
 
-void UpdateManager::downloadUpdate(const string& aUrl) {
-	if(updating)
+void UpdateManager::downloadUpdate(const string& aUrl, int newBuildID) {
+	if(conns[CONN_CLIENT])
 		return;
 
-	updating = true;
-
 	conns[CONN_CLIENT].reset(new HttpDownload(aUrl,
-		[this] { completeUpdateDownload(); }, false));
+		[this, newBuildID] { completeUpdateDownload(newBuildID); }, false));
 }
 
 void UpdateManager::checkLanguage() {
