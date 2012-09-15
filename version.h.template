@@ -38,7 +38,7 @@
 #define VERSION_URL "http://version.airdcpp.net/airdcversion.php"
 #endif
 
-# define REVSEPARATOR " r"
+# define REVSEPARATOR "r"
 
 #ifdef BETAVER
 # define SHORTVERSIONSTRING	VERSIONSTRING REVSEPARATOR SVNVERSION

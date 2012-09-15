@@ -19,7 +19,7 @@
 #define APPNAME "AirDC++"
 #define VERSIONSTRING "2.40"
 #define DCVERSIONSTRING "0.799"
-#define SVNVERSION "1046"
+#define SVNVERSION "1047"
 
 #define BETAVER
 
@@ -38,7 +38,7 @@
 #define VERSION_URL "http://version.airdcpp.net/airdcversion.php"
 #endif
 
-# define REVSEPARATOR " r"
+# define REVSEPARATOR "r"
 
 #ifdef BETAVER
 # define SHORTVERSIONSTRING	VERSIONSTRING REVSEPARATOR SVNVERSION
