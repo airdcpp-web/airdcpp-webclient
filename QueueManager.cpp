@@ -1010,7 +1010,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 void QueueManager::checkBundleHashed(BundlePtr aBundle) {
 	bool filesHashed = false;
 	{
-		RLock l;
+		RLock l(cs);
 		filesHashed = aBundle->allFilesHashed();
 	}
 
