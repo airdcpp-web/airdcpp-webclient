@@ -85,6 +85,7 @@ public:
 	};
 
 	typedef boost::unordered_map<string, BundlePtr> StringBundleMap;
+	typedef boost::unordered_multimap<string, pair<string, BundlePtr>, noCaseStringHash, noCaseStringEq> BundleDirMap;
 	typedef vector<pair<string, BundlePtr>> StringBundleList;
 
 	typedef boost::unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
@@ -182,7 +183,7 @@ public:
 	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept;
 	void removeFinishedNotify(const UserPtr& aUser) noexcept;
 
-	pair<string, pair<uint32_t, uint32_t>> getDirByRelease(const string& aDir) const noexcept;
+	pair<uint32_t, uint32_t> getPathInfo(const string& aDir) const noexcept;
 	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept;
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	size_t countOnlineUsers() const noexcept;
@@ -193,8 +194,6 @@ public:
 
 	void increaseSize(int64_t aSize) { size += aSize; }
 	void decreaseSize(int64_t aSize) { size -= aSize; }
-
-	bool allFilesHashed() const;
 
 	void setTarget(const string& aTarget);
 
@@ -213,7 +212,6 @@ public:
 	void addDownload(Download* d) noexcept;
 	void removeDownload(Download* d) noexcept;
 
-	void getTTHList(OutputStream& tthList) const noexcept;
 	void getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept;
 	void updateSearchMode();
 	bool allowAutoSearch() const;
@@ -237,7 +235,6 @@ public:
 	void addUserQueue(QueueItemPtr qi) noexcept;
 	bool addUserQueue(QueueItemPtr qi, const HintedUser& aUser) noexcept;
 	QueueItemPtr getNextQI(const HintedUser& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
-	QueueItemList getRunningQIs(const UserPtr& aUser) const noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 
 	void removeUserQueue(QueueItemPtr qi) noexcept;

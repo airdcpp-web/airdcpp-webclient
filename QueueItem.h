@@ -84,43 +84,11 @@ public:
 	};*/
 
 	struct AlphaSortOrder {
-		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const {
-			auto extLeft = left->getTarget().rfind('.');
-			auto extRight = right->getTarget().rfind('.');
-			if (extLeft != string::npos && extRight != string::npos && 
-				compare(left->getTarget().substr(0, extLeft), right->getTarget().substr(0, extRight)) == 0) {
-
-				//only the extensions differs, .rar comes before .rXX
-				auto isRxx = [](const string& aPath, size_t extPos) {
-					return aPath.length() - extPos == 4 && aPath[extPos+1] == 'r' && isdigit(aPath[extPos+2]);
-				};
-
-				if (stricmp(left->getTarget().substr(extLeft), ".rar") == 0 && isRxx(right->getTarget(), extRight)) {
-					return true;
-				}
-
-				if (stricmp(right->getTarget().substr(extRight), ".rar") == 0 && isRxx(left->getTarget(), extLeft)) {
-					return false;
-				}
-			}
-
-			return compare(left->getTarget(), right->getTarget()) < 0;
-		}
+		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const;
 	};
 
 	struct SizeSortOrder {
-		/* This has a few extra checks because the size is unknown for filelists */
-		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const {
-			//partial lists always go first
-			if (left->isSet(QueueItem::FLAG_PARTIAL_LIST)) return true;
-			if (right->isSet(QueueItem::FLAG_PARTIAL_LIST)) return false;
-
-			//small files go before full lists
-			if (right->isSet(QueueItem::FLAG_USER_LIST) && left->getSize() < SETTING(PRIO_HIGHEST_SIZE)*1024) return true;
-			if (left->isSet(QueueItem::FLAG_USER_LIST) && right->getSize() < SETTING(PRIO_HIGHEST_SIZE)*1024) return false;
-
-			return left->getSize() < right->getSize();
-		}
+		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const;
 	};
 
 	typedef vector<pair<QueueItemPtr, Priority>> PrioList;
@@ -237,13 +205,13 @@ public:
 	bool hasSegment(const HintedUser& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	bool startDown();
 
-	string getFolder() const { return Util::getDir(target, false, false); };
 	SourceList& getSources() { return sources; }
 	const SourceList& getSources() const { return sources; }
 	SourceList& getBadSources() { return badSources; }
 	const SourceList& getBadSources() const { return badSources; }
 
-	string getTargetFileName() const { return Util::getFileName(getTarget()); }
+	string getTargetFileName() const { return Util::getFileName(target); }
+	string getFilePath() const { return Util::getFilePath(target); }
 
 	SourceIter getSource(const UserPtr& aUser) { return find(sources.begin(), sources.end(), aUser); }
 	SourceIter getBadSource(const UserPtr& aUser) { return find(badSources.begin(), badSources.end(), aUser); }

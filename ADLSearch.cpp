@@ -277,15 +277,6 @@ void ADLSearchManager::Load()
 						xml.resetCurrentChild();
 					}
 
-					/* For compatibility, remove in some point */
-					if(xml.findChild("IsRegExp")) {
-						if (Util::toInt(xml.getChildData()) > 0) {
-							search.setRegEx(true);
-						}
-					} else {
-						xml.resetCurrentChild();
-					}
-
 					if(xml.findChild("MaxSize")) {
 						search.maxFileSize = Util::toInt64(xml.getChildData());
 					} else {
@@ -309,6 +300,23 @@ void ADLSearchManager::Load()
 					} else {
 						xml.resetCurrentChild();
 					}
+
+					xml.resetCurrentChild();
+					/* For compatibility, remove in some point */
+					if(xml.findChild("IsRegExp")) {
+						if (Util::toInt(xml.getChildData()) > 0) {
+							search.setRegEx(true);
+						}
+					}
+					xml.resetCurrentChild();
+
+					if(xml.findChild("IsCaseSensitive")) {
+						if (Util::toInt(xml.getChildData()) == 0) {
+							search.match.pattern.insert(0, "(?i:");
+							search.match.pattern.insert(search.match.pattern.size(), ")");
+						}
+					}
+
 
 					// Add search to collection
 					if(!search.getPattern().empty()) {

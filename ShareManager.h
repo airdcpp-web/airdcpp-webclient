@@ -439,7 +439,6 @@ private:
 	bool ShareCacheDirty;
 	bool aShutdown;
 
-	boost::regex subDirRegPlain;
 	boost::regex rxxReg;
 	
 	static atomic_flag refreshing;
@@ -472,7 +471,7 @@ private:
 	DirMap shares;
 	DirMultiMap dirNameMap;
 
-	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares);
+	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
@@ -565,7 +564,7 @@ private:
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);
 	void save(SimpleXML& aXml);
 
-	void reportTaskStatus(uint8_t aTask, const StringList& aDirectories, bool finished);
+	void reportTaskStatus(uint8_t aTask, const StringList& aDirectories, bool finished, int64_t aHashSize, const string& displayName);
 	
 	ShareProfileList shareProfiles;
 

@@ -260,14 +260,8 @@ static string getShortTimeString(time_t t = time(NULL) );
 
 	static wstring formatExactSize(int64_t aBytes);
 
-	static wstring formatSeconds(int64_t aSec, bool supressHours = false) {
-		wchar_t buf[64];
-		if (!supressHours)
-			snwprintf(buf, sizeof(buf), L"%01lu:%02d:%02d", (unsigned long)(aSec / (60*60)), (int)((aSec / 60) % 60), (int)(aSec % 60));
-		else
-			snwprintf(buf, sizeof(buf), L"%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));	
-		return buf;
-	}
+	static wstring formatSecondsW(int64_t aSec, bool supressHours = false);
+	static string formatSeconds(int64_t aSec, bool supressHours = false);
 
 	typedef string (*FilterF)(const string&);
 	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = 0);
@@ -319,26 +313,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 		return temp;
 	}
 
-	static wstring formatSecondsW(int64_t aSec) {
-		wchar_t buf[64];
-		swprintf(buf, L"%01I64d:%02d:%02d", aSec / (60*60), (int)((aSec / 60) % 60), (int)(aSec % 60));
-		return buf;
-	}
-
-	static string formatPlaytime(int64_t aSec) {
-		char buf[64];
-		sprintf(buf, "%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));
-		return buf;
-	}
-
-	static string formatTime(int64_t aSec, bool shortString = true) {
-		char buf[128];
-		if(shortString)
-			sprintf(buf, "%01d:%02d:%02d:%02d", (int)(aSec /(60*60*24)), (int)((aSec / (60*60)) % 24), (int)((aSec / 60) % 60), (int)(aSec % 60));
-		else
-			sprintf(buf, "%01d days %01d hours %01d minutes %01d seconds", (int)(aSec /(60*60*24)), (int)((aSec / (60*60)) % 24), (int)((aSec / 60) % 60), (int)(aSec % 60));
-		return buf;
-	}
+	static string formatTime(int64_t aSec, bool translate);
 
 	static int DefaultSort(const wchar_t* a, const wchar_t* b, bool noCase = true);
 	static int DefaultSort(const char* a, const char* b, bool noCase = true);
@@ -561,7 +536,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static uint64_t getDirSize(const string &sFullPath);
 	static bool validatePath(const string &sPath);
 	static bool fileExists(const string &aFile);
-	static string getDir(string dir, bool validate, bool cut);
+	static string getReleaseDir(const string& dir, bool cut);
 
 	static uint32_t rand();
 	static uint32_t rand(uint32_t high) { return rand() % high; }

@@ -53,7 +53,10 @@ uint64_t UploadBundle::getSecondsLeft() {
 }
 
 string UploadBundle::getName() {
-	return Util::getDir(target, false, true);
+	if(target[target.size() -1] == '\\')
+		return Util::getLastDir(target);
+	else
+		return Util::getFilePath(target);
 }
 
 void UploadBundle::addUpload(Upload* u) {

@@ -96,6 +96,7 @@ public:
 	bool getAutoDrop(const string& aToken);
 
 	string getTempTarget(const string& aTarget);
+	void setSegments(const string& aTarget, uint8_t aSegments);
 
 	QueueItem::SourceList getSources(const QueueItemPtr qi) const { RLock l(cs); return qi->getSources(); }
 	QueueItem::SourceList getBadSources(const QueueItemPtr qi) const { RLock l(cs); return qi->getBadSources(); }
@@ -141,7 +142,7 @@ public:
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundlePaths, const StringList& sharePaths);
 
-	BundlePtr getBundle(const string& bundleToken) { RLock l (cs); return bundleQueue.find(bundleToken); }
+	BundlePtr getBundle(const string& bundleToken) { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth);
 	bool checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add, const string& remoteBundle);
 	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle);

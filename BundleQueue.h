@@ -44,8 +44,7 @@ public:
 	void addBundle(BundlePtr aBundle);
 
 	void getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) const;
-	BundlePtr find(const string& bundleToken) const;
-	BundlePtr findDir(const string& aPath) const;
+	BundlePtr findBundle(const string& bundleToken) const;
 	BundlePtr getMergeBundle(const string& aTarget) const;
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const;
 
@@ -66,13 +65,19 @@ public:
 	void removeSearchPrio(BundlePtr aBundle);
 
 	void saveQueue(bool force) noexcept;
+
+
+	void addDirectory(const string& aPath, BundlePtr aBundle);
+	void removeDirectory(const string& aPath);
+	Bundle::BundleDirMap::iterator findLocalDir(const string& aPath);
+	pair<string, BundlePtr> findRemoteDir(const string& aPath) const;
 private:
 	/** Bundles by priority (low-highest, for auto search) */
 	vector<BundlePtr> prioSearchQueue[Bundle::LAST];
 	deque<BundlePtr> recentSearchQueue;
 
 	/** Bundles by release directory */	
-	Bundle::StringBundleMap bundleDirs;
+	Bundle::BundleDirMap bundleDirs;
 	/** Bundles by token */
 	Bundle::StringBundleMap bundles;
 

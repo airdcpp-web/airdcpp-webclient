@@ -53,11 +53,8 @@ void BundleQueue::addBundle(BundlePtr aBundle) {
 
 	//check if we need to insert the root bundle dir
 	if (!aBundle->isFileBundle()) {
-		if (aBundle->getBundleDirs().find(aBundle->getTarget()) == aBundle->getBundleDirs().end()) {
-			string releaseDir = AirUtil::getReleaseDir(aBundle->getTarget());
-			if (!releaseDir.empty()) {
-				bundleDirs[releaseDir] = aBundle;
-			}
+		if (findLocalDir(aBundle->getTarget()) == bundleDirs.end()) {
+			addDirectory(aBundle->getTarget(), aBundle);
 		}
 	}
 }
@@ -223,7 +220,7 @@ BundlePtr BundleQueue::findAutoSearch() {
 	return nullptr;
 }
 
-BundlePtr BundleQueue::find(const string& bundleToken) const {
+BundlePtr BundleQueue::findBundle(const string& bundleToken) const {
 	auto i = bundles.find(bundleToken);
 	if (i != bundles.end()) {
 		return i->second;
@@ -231,17 +228,55 @@ BundlePtr BundleQueue::find(const string& bundleToken) const {
 	return nullptr;
 }
 
-BundlePtr BundleQueue::findDir(const string& aPath) const {
-	string dir = AirUtil::getReleaseDir(aPath);
-	if (dir.empty()) {
-		return nullptr;
-	}
+pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
+	if (aDir.size() < 3)
+		return make_pair(Util::emptyString, nullptr);
 
-	auto i = bundleDirs.find(dir);
-	if (i != bundleDirs.end()) {
-		return i->second;
+	//get the last directory, we might need the position later with subdirs
+	string remoteDir = aDir;
+	if (remoteDir[remoteDir.length()-1] == PATH_SEPARATOR)
+		remoteDir.erase(aDir.size()-1, aDir.size());
+	auto pos = remoteDir.rfind(PATH_SEPARATOR);
+	if (pos != string::npos)
+		remoteDir = remoteDir.substr(pos+1);
+
+	auto directories = bundleDirs.equal_range(remoteDir);
+	if (directories.first == directories.second)
+		return make_pair(Util::emptyString, nullptr);
+
+	//check the parents for dirs like CD1 to prevent false matches
+	if (boost::regex_match(remoteDir, AirUtil::subDirRegPlain) && pos != string::npos) {
+		string::size_type i, j;
+		remoteDir = PATH_SEPARATOR + aDir;
+
+		for(auto s = directories.first; s != directories.second; ++s) {
+			//start matching from the parent dir, as we know the last one already
+			i = pos;
+			string curDir = s->second.first;
+			bool found = false;
+
+			for(;;) {
+				j = remoteDir.find_last_of("\\", i);
+				if(j == string::npos || (int)(curDir.length() - (remoteDir.length() - j)) < 0) //also check if it goes out of scope for the local dir
+					break;
+				if(stricmp(remoteDir.substr(j+1, i-j), curDir.substr(curDir.length() - (remoteDir.length()-j)+1, i-j)) == 0) {
+					if (!boost::regex_match(remoteDir.substr(j+1, i-j), AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
+						found = true;
+						break;
+					}
+				} else {
+					//this is something different... continue to next match
+					break;
+				}
+				i = j - 1;
+			}
+
+			if (found) {
+				return s->second;
+			}
+		}
 	}
-	return nullptr;
+	return make_pair(Util::emptyString, nullptr);
 }
 
 void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) const {
@@ -302,39 +337,46 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 
 void BundleQueue::addBundleItem(QueueItemPtr qi, BundlePtr aBundle) {
 	if (aBundle->addQueue(qi) && !aBundle->isFileBundle()) {
-		string dir = Util::getDir(qi->getTarget(), false, false);
-		string releaseDir = AirUtil::getReleaseDir(dir);
-		if (!releaseDir.empty()) {
-			bundleDirs[releaseDir] = aBundle;
-		}
+		addDirectory(qi->getFilePath(), aBundle);
 	}
 }
 
 void BundleQueue::removeBundleItem(QueueItemPtr qi, bool finished) {
 	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !qi->getBundle()->isFileBundle()) {
-		string releaseDir = AirUtil::getReleaseDir(Util::getDir(qi->getTarget(), false, false));
-		if (!releaseDir.empty()) {
-			bundleDirs.erase(releaseDir);
+		removeDirectory(qi->getFilePath());
+	}
+}
+
+void BundleQueue::addDirectory(const string& aPath, BundlePtr aBundle) {
+	bundleDirs.insert(make_pair(Util::getLastDir(aPath), make_pair(aPath, aBundle)));
+}
+
+void BundleQueue::removeDirectory(const string& aPath) {
+	auto p = findLocalDir(aPath);
+	if (p != bundleDirs.end()) {
+		bundleDirs.erase(p);
+	}
+}
+
+Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) {
+	auto bdr = bundleDirs.equal_range(Util::getLastDir(aPath));
+	for(auto dp = bdr.first; dp != bdr.second; ++dp) {
+		if (dp->second.first == aPath) {
+			return dp;
 		}
 	}
+	return bundleDirs.end();
 }
 
 void BundleQueue::addFinishedItem(QueueItemPtr qi, BundlePtr aBundle) {
 	if (aBundle->addFinishedItem(qi, false) && !aBundle->isFileBundle()) {
-		string dir = Util::getDir(qi->getTarget(), false, false);
-		string releaseDir = AirUtil::getReleaseDir(dir);
-		if (!releaseDir.empty()) {
-			bundleDirs[releaseDir] = aBundle;
-		}
+		addDirectory(qi->getFilePath(), aBundle);
 	}
 }
 
 void BundleQueue::removeFinishedItem(QueueItemPtr qi) {
 	if (qi->getBundle()->removeFinishedItem(qi) && !qi->getBundle()->isFileBundle()) {
-		string releaseDir = AirUtil::getReleaseDir(Util::getDir(qi->getTarget(), false, false));
-		if (!releaseDir.empty()) {
-			bundleDirs.erase(releaseDir);
-		}
+		removeDirectory(qi->getFilePath());
 	}
 }
 
@@ -343,11 +385,8 @@ void BundleQueue::removeBundle(BundlePtr aBundle) {
 		return;
 	}
 
-	for_each(aBundle->getBundleDirs(), [&](pair<string, pair<uint32_t, uint32_t>> dirs) {
-		string releaseDir = AirUtil::getReleaseDir(dirs.first);
-		if (!releaseDir.empty()) {
-			bundleDirs.erase(releaseDir);
-		}
+	for_each(aBundle->getBundleDirs(), [&](pair<string, pair<uint32_t, uint32_t>> d) {
+		removeDirectory(d.first);
 	});
 
 	//make sure that everything will be freed from the memory
@@ -367,18 +406,12 @@ void BundleQueue::removeBundle(BundlePtr aBundle) {
 
 void BundleQueue::moveBundle(BundlePtr aBundle, const string& newTarget) {
 	//remove the old release dir
-	string releaseDir = AirUtil::getReleaseDir(aBundle->getTarget());
-	if (!releaseDir.empty()) {
-		bundleDirs.erase(releaseDir);
-	}
+	removeDirectory(aBundle->getTarget());
 
 	aBundle->setTarget(newTarget);
 
 	//add new
-	releaseDir = AirUtil::getReleaseDir(aBundle->getTarget());
-	if (!releaseDir.empty()) {
-		bundleDirs[releaseDir] = aBundle;
-	}
+	addDirectory(newTarget, aBundle);
 }
 
 void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) const {

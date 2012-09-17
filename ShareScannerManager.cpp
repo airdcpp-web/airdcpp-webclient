@@ -169,7 +169,7 @@ int ShareScannerManager::run() {
 			dir = *i;
 			DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
 			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
-				if (matchSkipList(Util::getDir(dir, false, true))) {
+				if (matchSkipList(Util::getLastDir(dir))) {
 					continue;
 				}
 				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {

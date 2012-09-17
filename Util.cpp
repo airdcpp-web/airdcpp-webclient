@@ -529,8 +529,75 @@ void Util::setAway(bool aAway, bool byminimize /*false*/) {
 }
 
 string Util::getAwayMessage(ParamMap& params) { 
-	params["idleTI"] = Text::fromT(formatSeconds(time(NULL) - awayTime));
+	params["idleTI"] = formatSeconds(time(NULL) - awayTime);
 	return formatParams(awayMsg.empty() ? SETTING(DEFAULT_AWAY_MESSAGE) : awayMsg, params);
+}
+
+wstring Util::formatSecondsW(int64_t aSec, bool supressHours /*false*/) {
+	wchar_t buf[64];
+	if (!supressHours)
+		snwprintf(buf, sizeof(buf), L"%01lu:%02d:%02d", (unsigned long)(aSec / (60*60)), (int)((aSec / 60) % 60), (int)(aSec % 60));
+	else
+		snwprintf(buf, sizeof(buf), L"%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));	
+	return buf;
+}
+
+string Util::formatSeconds(int64_t aSec, bool supressHours /*false*/) {
+	char buf[64];
+	if (!supressHours)
+		snprintf(buf, sizeof(buf), "%01lu:%02d:%02d", (unsigned long)(aSec / (60*60)), (int)((aSec / 60) % 60), (int)(aSec % 60));
+	else
+		snprintf(buf, sizeof(buf), "%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));	
+	return buf;
+}
+
+string Util::formatTime(int64_t aSec, bool translate) {
+	string formatedTime;
+
+	uint64_t n, i;
+	i = 0;
+
+	auto appendTime = [&] (const string& aTranslatedS, const string& aEnglishS, const string& aTranslatedP, const string& aEnglishP) -> void {
+		char buf[128];
+		if(n >= 2) {
+			snprintf(buf, sizeof(buf), ("%d " + ((translate ? Text::toLower(aTranslatedP) : aEnglishP) + " ")).c_str(), n);
+		} else {
+			snprintf(buf, sizeof(buf), ("%d " + ((translate ? Text::toLower(aTranslatedS) : aEnglishS) + " ")).c_str(), n);
+		}
+		formatedTime += (string)buf;
+		i++;
+	};
+
+	n = aSec / (24*3600*7);
+	aSec %= (24*3600*7);
+	if(n) {
+		appendTime(STRING(WEEK), "week", STRING(WEEKS), "weeks");
+	}
+
+	n = aSec / (24*3600);
+	aSec %= (24*3600);
+	if(n) {
+		appendTime(STRING(DAY), "day", STRING(DAYS), "days");
+	}
+
+	n = aSec / (3600);
+	aSec %= (3600);
+	if(n) {
+		appendTime(STRING(HOUR), "hour", STRING(HOURS), "hours");
+	}
+
+	n = aSec / (60);
+	aSec %= (60);
+	if(n) {
+		appendTime(STRING(MINUTES), "min", STRING(MINUTE), "min");
+	}
+
+	n = aSec;
+	if(++i <= 3) {
+		appendTime(STRING(SECOND), "sec", STRING(SECONDS), "sec");
+	}
+
+	return (!formatedTime.empty() ? formatedTime.erase(formatedTime.size()-1) : formatedTime);
 }
 
 string Util::formatBytes(int64_t aBytes) {
@@ -1387,48 +1454,30 @@ string Util::base64_decode(string const& encoded_string) {
 	return ret;
 }
 
-string Util::getDir(string dir, bool validate, bool cut) {
-	if (dir == Util::emptyString)
-		return dir;
+string Util::getReleaseDir(const string& aDir, bool cut) {
+	if (aDir.empty())
+		return aDir;
 
-	size_t dpos;
-	if(dir[dir.size() -1] != '\\') {
-		dpos = dir.rfind("\\");
-		if(dpos != string::npos) {
-			dir = dir.substr(0,dpos+1);
-		} else {
-			return dir;
-		}
-	}
+	string dir = aDir[aDir.size() -1] != '\\' ? getFilePath(aDir) : aDir;
 
-	if (validate) {
-		boost::regex reg;
-		reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
-		for (;;) {
-			if (regex_match(dir, reg)) {
-				if(dir[dir.size() -1] == '\\')
-					dir = dir.substr(0, dir.size()-1);
-				dpos = dir.rfind("\\");
-				if(dpos != string::npos) {
-					dir = dir.substr(0,dpos+1);
-				} else {
-					break;
-				}
+	boost::regex reg;
+	reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
+	for (;;) {
+		if (regex_match(dir, reg)) {
+			if(dir[dir.size() -1] == '\\')
+				dir = dir.substr(0, dir.size()-1);
+			size_t dpos = dir.rfind("\\");
+			if(dpos != string::npos) {
+				dir = dir.substr(0,dpos+1);
 			} else {
 				break;
 			}
+		} else {
+			break;
 		}
 	}
 
-	if (cut) {
-		if(dir[dir.size() -1] == '\\')
-			dir = dir.substr(0, dir.size()-1);
-		size_t dpos = dir.rfind("\\");
-		if(dpos != string::npos) {
-			dir = dir.substr(dpos+1,dir.size());
-		}
-	}
-	return dir;
+	return cut ? Util::getLastDir(dir) : dir;
 }
 
 string Util::getOsVersion(bool http /* = false */) {

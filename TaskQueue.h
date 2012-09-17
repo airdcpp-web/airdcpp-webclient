@@ -32,11 +32,6 @@ struct StringTask : public Task {
 	string str;
 };
 
-struct StringListTask : public Task {
-	StringListTask(const StringList& spl_) : spl(spl_) { }
-	StringList spl;
-};
-
 
 class TaskQueue {
 public:

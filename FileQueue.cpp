@@ -38,7 +38,7 @@ QueueItemPtr FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskTyp
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
 	QueueItemPtr qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
-	dcassert(find(aTarget) == NULL);
+	dcassert(findFile(aTarget) == NULL);
 	add(qi);
 	return qi;
 }
@@ -74,19 +74,19 @@ void FileQueue::remove(QueueItemPtr qi) noexcept {
 	}
 }
 
-QueueItemPtr FileQueue::find(const string& target) noexcept {
+QueueItemPtr FileQueue::findFile(const string& target) noexcept {
 	auto i = queue.find(const_cast<string*>(&target));
 	return (i == queue.end()) ? NULL : i->second;
 }
 
-void FileQueue::find(const TTHValue& tth, QueueItemList& ql) noexcept {
+void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) noexcept {
 	auto s = tthIndex.equal_range(tth);
 	if (s.first != s.second) {
 		for_each(s.first, s.second, [&](pair<TTHValue, QueueItemPtr> tqp) { ql.push_back(tqp.second); } );
 	}
 }
 
-void FileQueue::find(const string& aFileName, int64_t aSize, QueueItemList& ql) noexcept {
+void FileQueue::findFiles(const string& aFileName, int64_t aSize, QueueItemList& ql) noexcept {
 	for(auto j = tthIndex.begin(); j != tthIndex.end(); ++j) {
 		if (j->second->getSize() == aSize && j->second->getTargetFileName() == aFileName) {
 			ql.push_back(j->second);

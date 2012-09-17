@@ -77,6 +77,7 @@ Client* ClientManager::createClient(const string& aHubURL) {
 }
 
 Client* ClientManager::getClient(const string& aHubURL) {
+	RLock l (cs);
 	auto p = clients.find(const_cast<string*>(&aHubURL));
 	return p != clients.end() ? p->second : nullptr;
 }

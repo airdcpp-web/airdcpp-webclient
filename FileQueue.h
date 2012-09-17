@@ -43,9 +43,9 @@ public:
 	void add(QueueItemPtr qi);
 	QueueItemPtr add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
-	QueueItemPtr find(const string& target) noexcept;
-	void find(const TTHValue& tth, QueueItemList& ql) noexcept;
-	void find(const string& aFileName, int64_t aSize, QueueItemList& ql) noexcept;
+	QueueItemPtr findFile(const string& target) noexcept;
+	void findFiles(const TTHValue& tth, QueueItemList& ql) noexcept;
+	void findFiles(const string& aFileName, int64_t aSize, QueueItemList& ql) noexcept;
 	void matchListing(const DirectoryListing& dl, QueueItem::StringList& ql);
 	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringList& ql);
 	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringList& ql, const QueueItem::StringMultiMap& qsm);

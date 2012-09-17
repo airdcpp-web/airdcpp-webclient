@@ -79,6 +79,42 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 	}
 }
 
+bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr left, const QueueItemPtr right) const {
+	auto extLeft = left->getTarget().rfind('.');
+	auto extRight = right->getTarget().rfind('.');
+	if (extLeft != string::npos && extRight != string::npos && 
+		compare(left->getTarget().substr(0, extLeft), right->getTarget().substr(0, extRight)) == 0) {
+
+		//only the extensions differs, .rar comes before .rXX
+		auto isRxx = [](const string& aPath, size_t extPos) {
+			return aPath.length() - extPos == 4 && aPath[extPos+1] == 'r' && isdigit(aPath[extPos+2]);
+		};
+
+		if (stricmp(left->getTarget().substr(extLeft), ".rar") == 0 && isRxx(right->getTarget(), extRight)) {
+			return true;
+		}
+
+		if (stricmp(right->getTarget().substr(extRight), ".rar") == 0 && isRxx(left->getTarget(), extLeft)) {
+			return false;
+		}
+	}
+
+	return compare(left->getTarget(), right->getTarget()) < 0;
+}
+
+/* This has a few extra checks because the size is unknown for filelists */
+bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr left, const QueueItemPtr right) const {
+	//partial lists always go first
+	if (left->isSet(QueueItem::FLAG_PARTIAL_LIST)) return true;
+	if (right->isSet(QueueItem::FLAG_PARTIAL_LIST)) return false;
+
+	//small files go before full lists
+	if (right->isSet(QueueItem::FLAG_USER_LIST) && left->getSize() < SETTING(PRIO_HIGHEST_SIZE)*1024) return true;
+	if (left->isSet(QueueItem::FLAG_USER_LIST) && right->getSize() < SETTING(PRIO_HIGHEST_SIZE)*1024) return false;
+
+	return left->getSize() < right->getSize();
+}
+
 QueueItem::Priority QueueItem::calculateAutoPriority() const {
 	if(autoPriority) {
 		QueueItem::Priority p;

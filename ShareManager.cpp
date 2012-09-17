@@ -77,8 +77,6 @@ ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GE
 	QueueManager::getInstance()->addListener(this);
 
 	rxxReg.assign("[Rr0-9][Aa0-9][Rr0-9]");
-	subDirRegPlain.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
-
 #ifdef _WIN32
 	// don't share Windows directory
 	TCHAR path[MAX_PATH];
@@ -974,7 +972,7 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 		return nullptr;
 
 	//check the parents for dirs like CD1 to prevent false matches
-	if (boost::regex_match(dir, subDirRegPlain) && pos != string::npos) {
+	if (boost::regex_match(dir, AirUtil::subDirRegPlain) && pos != string::npos) {
 		string::size_type i, j;
 		dir = PATH_SEPARATOR + aDir;
 
@@ -993,7 +991,7 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 
 				auto remoteDir = dir.substr(j+1, i-j);
 				if(stricmp(cur->getRealName(), remoteDir) == 0) {
-					if (!boost::regex_match(remoteDir, subDirRegPlain)) { //another subdir? don't break in that case
+					if (!boost::regex_match(remoteDir, AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
 						return s->second;
 					}
 				} else {
@@ -1046,7 +1044,7 @@ void ShareManager::removeDir(ShareManager::Directory::Ptr aDir) {
 		dirNameMap.erase(p);
 }
 
-void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares) {
+void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize) {
 	auto lastFileIter = aDir->files.begin();
 	FileFindIter end;
 
@@ -1099,7 +1097,7 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			if (profileDir && profileDir->isSet(ProfileDirectory::FLAG_ROOT))
 				newShares[curPath] = dir;
 
-			buildTree(curPath, dir, checkQueued, aSubRoots, aDirs, newShares);
+			buildTree(curPath, dir, checkQueued, aSubRoots, aDirs, newShares, hashSize);
 		} else {
 			// Not a directory, assume it's a file...
 			string path = aPath + name;
@@ -1110,10 +1108,13 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			}
 
 			try {
-				if (SettingsManager::lanMode)
+				if (SettingsManager::lanMode) {
 					lastFileIter = aDir->files.insert(lastFileIter, Directory::File(name, size, aDir, TTHValue()));
-				else if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) 
+				} else if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) {
 					lastFileIter = aDir->files.insert(lastFileIter, Directory::File(name, size, aDir, HashManager::getInstance()->getTTH(path, size)));
+				} else {
+					hashSize += size;
+				}
 			} catch(const HashException&) {
 			}
 		}
@@ -1183,6 +1184,12 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 	bloom.add(Text::toLower(f.getName()));
 }
 
+struct ShareTask : public Task {
+	ShareTask(const StringList& aDirs, const string& aDisplayName = Util::emptyString) : dirs(aDirs), displayName(aDisplayName) { }
+	StringList dirs;
+	string displayName;
+};
+
 int ShareManager::refresh(const string& aDir){
 	int result = REFRESH_PATH_NOT_FOUND;
 	string path = aDir;
@@ -1191,6 +1198,7 @@ int ShareManager::refresh(const string& aDir){
 		path += PATH_SEPARATOR;
 
 	StringList refreshPaths;
+	string displayName;
 
 	{
 		RLock l(cs);
@@ -1202,6 +1210,10 @@ int ShareManager::refresh(const string& aDir){
 				for(auto k = profiles.begin(); k != profiles.end(); ++k) {
 					if(stricmp(k->second, aDir ) == 0 ) {
 						refreshPaths.push_back(j->first);
+						StringList tmp;
+						boost::for_each(j->second->getProfileDir()->getShareProfiles(), 
+							[&tmp](pair <ProfileToken, string> tp) { if (find(tmp.begin(), tmp.end(), tp.second) == tmp.end()) tmp.push_back(tp.second); });
+						displayName = Util::toString(tmp);
 						result = REFRESH_STARTED;
 					}
 				}
@@ -1217,7 +1229,7 @@ int ShareManager::refresh(const string& aDir){
 
 	{
 		WLock l (dirNames);
-		tasks.add(REFRESH_DIR, unique_ptr<Task>(new StringListTask(refreshPaths)));
+		tasks.add(REFRESH_DIR, unique_ptr<Task>(new ShareTask(refreshPaths, displayName)));
 	}
 
 	if(refreshing.test_and_set()) {
@@ -1263,7 +1275,7 @@ int ShareManager::refresh(bool incoming /*false*/, bool isStartup /*false*/){
 
 	{
 		WLock l (dirNames);
-		tasks.add(incoming ? REFRESH_INCOMING : REFRESH_ALL, unique_ptr<Task>(new StringListTask(dirs)));
+		tasks.add(incoming ? REFRESH_INCOMING : REFRESH_ALL, unique_ptr<Task>(new ShareTask(dirs)));
 	}
 
 	initTaskThread(isStartup);
@@ -1376,7 +1388,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 
 	{
 		WLock l (dirNames);
-		tasks.add(ADD_DIR, unique_ptr<Task>(new StringListTask(add)));
+		tasks.add(ADD_DIR, unique_ptr<Task>(new ShareTask(add)));
 	}
 
 	initTaskThread();
@@ -1455,21 +1467,19 @@ void ShareManager::changeDirectories(const ShareDirInfo::list& changedDirs)  {
 	boost::for_each(dirtyProfiles, [this](ProfileToken aProfile) { setDirty(aProfile, false); });
 }
 
-void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories, bool finished) {
+void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories, bool finished, int64_t aHashSize, const string& displayName) {
 	string msg;
 	switch (aTask) {
 		case(REFRESH_ALL):
-			LogManager::getInstance()->message(finished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED), LogManager::LOG_INFO);
+			msg = finished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED);
 			break;
 		case(REFRESH_DIR):
-			if (directories.size() == 1) {
+			if (!displayName.empty()) {
+				msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, displayName) : STRING_F(FILE_LIST_REFRESH_INITIATED_VPATH, displayName);
+			} else if (directories.size() == 1) {
 				msg = finished ? STRING_F(DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
 			} else {
-				if(boost::find_if(directories, [directories](const string& d) { return d != *directories.begin(); }) == directories.end()) {
-					msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
-				} else {
-					msg = finished ? STRING_F(X_DIRECTORIES_REFRESHED, directories.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_RPATH, directories.size());
-				}
+				msg = finished ? STRING_F(X_DIRECTORIES_REFRESHED, directories.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_RPATH, directories.size());
 			}
 			break;
 		case(ADD_DIR):
@@ -1484,8 +1494,12 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 			break;
 	};
 
-	if (!msg.empty())
+	if (!msg.empty()) {
+		if (aHashSize > 0) {
+			msg += " " + STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(aHashSize));
+		}
 		LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+	}
 }
 
 int ShareManager::run() {
@@ -1497,11 +1511,12 @@ int ShareManager::run() {
 			break;
 		ScopedFunctor([this] { tasks.pop_front(); });
 
+		int64_t hashSize = 0;
 		vector<pair<string, pair<Directory::Ptr, ProfileDirMap>>> dirs;
-		auto directories = static_cast<StringListTask*>(t.second.get())->spl;
+		auto task = static_cast<ShareTask*>(t.second.get());
 
 		//find excluded dirs and sub-roots for each directory being refreshed (they will be passed on to buildTree for matching)
-		for(auto i = directories.begin(); i != directories.end(); ++i) {
+		for(auto i = task->dirs.begin(); i != task->dirs.end(); ++i) {
 			RLock l (cs);
 			auto d = shares.find(*i);
 			if (d != shares.end()) {
@@ -1509,7 +1524,7 @@ int ShareManager::run() {
 			}
 		}
 
-		reportTaskStatus(t.first, directories, false);
+		reportTaskStatus(t.first, task->dirs, false, hashSize, task->displayName);
 		if (t.first == REFRESH_INCOMING) {
 			refreshRunning = true;
 			lastIncomingUpdate = GET_TICK();
@@ -1521,7 +1536,7 @@ int ShareManager::run() {
 
 		//get unfinished directories
 		bundleDirs.clear();
-		QueueManager::getInstance()->getForbiddenPaths(bundleDirs, directories);
+		QueueManager::getInstance()->getForbiddenPaths(bundleDirs, task->dirs);
 
 		DirMultiMap newShareDirs;
 		DirMap newShares;
@@ -1551,7 +1566,7 @@ int ShareManager::run() {
 				Directory::Ptr dp = Directory::create(Util::getLastDir(i->first), nullptr, findLastWrite(i->first), i->second.first->getProfileDir());
 				newShareDirs.insert(make_pair(Util::getLastDir(i->first), dp));
 				newShares[i->first] = dp;
-				buildTree(i->first, dp, true, i->second.second, newShareDirs, newShares);
+				buildTree(i->first, dp, true, i->second.second, newShareDirs, newShares, hashSize);
 				if(aShutdown) goto end;  //abort refresh
 			}
 		}
@@ -1576,7 +1591,7 @@ int ShareManager::run() {
 			ClientManager::getInstance()->infoUpdated();
 		}
 
-		reportTaskStatus(t.first, directories, true);
+		reportTaskStatus(t.first, task->dirs, true, hashSize, task->displayName);
 	}
 end:
 	{
@@ -2441,7 +2456,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 		WLock l(cs);
 		Directory::Ptr dir = findDirectory(path, true, true);
 		if (!dir) {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_SHARING_FAILED, Util::getLastDir(path).c_str()), LogManager::LOG_WARNING);
+			LogManager::getInstance()->message(STRING_F(BUNDLE_SHARING_FAILED, Util::getLastDir(path)), LogManager::LOG_WARNING);
 			return;
 		}
 
@@ -2451,12 +2466,13 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 
 		ProfileDirMap profileDirs;
 		DirMap newShares;
-		buildTree(path, dir, false, profileDirs, dirNameMap, newShares);
+		int64_t hashSize;
+		buildTree(path, dir, false, profileDirs, dirNameMap, newShares, hashSize);
 		updateIndices(*dir);
 		setDirty(true); //forceXmlRefresh
 	}
 
-	LogManager::getInstance()->message(STRING_F(BUNDLE_SHARED, path.c_str()), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(BUNDLE_X_SHARED, path), LogManager::LOG_INFO);
 }
 
 bool ShareManager::allowAddDir(const string& path) noexcept {
@@ -2700,7 +2716,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 			}
 		}
 
-		if(Util::stricmp(aPath, privKeyFile) == 0) {
+		if(Util::stricmp(aPath, AirUtil::privKeyFile) == 0) {
 			return false;
 		}
 
@@ -2719,7 +2735,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 		if(aPath.length() >= winDir.length() && stricmp(aPath.substr(0, winDir.length()), winDir) == 0)
 			return false;
 #endif
-		if((stricmp(aPath, tempDLDir) == 0)) {
+		if((stricmp(aPath, AirUtil::tempDLDir) == 0)) {
 			return false;
 		}
 	}

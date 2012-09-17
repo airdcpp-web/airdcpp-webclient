@@ -153,7 +153,7 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "NoZeroByte", "MaxMCNUploads", "MCNAutoDetect",
 	"DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", "SubtractlistSkip", "TextDupeBackColor", "TextDupeBold", "TextDupeItalic", "UnderlineLinks",
 	"UnderlineDupes", "DupesInFilelists", "DupesInChat", "ListHighlightBackColor", "ListHighlightColor", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist",
-	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "logHashing",
+	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "LogHashedFiles",
 	"RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
 	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode", "UpdateMethod", "UpdateAutoBackup",
@@ -675,7 +675,7 @@ SettingsManager::SettingsManager()
 	setDefault(USE_PARTIAL_SHARING, true);
 	setDefault(POPUP_BUNDLE_DLS, true);
 	setDefault(POPUP_BUNDLE_ULS, false);
-	setDefault(LOG_HASHING, true);
+	setDefault(LOG_HASHING, false);
 	setDefault(RECENT_BUNDLE_HOURS, 24);
 	setDefault(USE_FTP_LOGGER, false);
 	setDefault(ICON_PATH, "icons");

@@ -500,10 +500,16 @@ void HashManager::HashStore::createDataFile(const string& name) {
 
 void HashManager::Hasher::hashFile(const string& fileName, int64_t size) {
 	Lock l(hcs);
-	if (w.insert(make_pair(fileName, size)).second) {
-			totalBytesLeft += size;
-			s.signal();
+	auto p = move(make_pair(fileName, size));
+	if (w.insert(lower_bound(w.begin(), w.end(), p, HashSortOrder()), p)->second > 0) {
+		totalBytesLeft += size;
+		s.signal();
 	}
+
+	/*if (w.insert(make_pair(fileName, size)).second) {
+		totalBytesLeft += size;
+		s.signal();
+	}*/
 }
 
 bool HashManager::Hasher::pause() {
@@ -522,7 +528,7 @@ bool HashManager::Hasher::isPaused() const {
 
 void HashManager::Hasher::stopHashing(const string& baseDir) {
 	Lock l(hcs);
-	for (WorkIter i = w.begin(); i != w.end();) {
+	for (auto i = w.begin(); i != w.end();) {
 		if (strnicmp(baseDir, i->first, baseDir.length()) == 0) {
 			totalBytesLeft -= i->second;
 			w.erase(i++);
@@ -547,6 +553,8 @@ void HashManager::Hasher::instantPause() {
 		t_suspend();
 	}
 }
+
+HashManager::Hasher::Hasher() : stop(false), running(false), paused(false), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0) { }
 
 int HashManager::Hasher::run() {
 	setThreadPriority(Thread::IDLE);
@@ -574,8 +582,11 @@ int HashManager::Hasher::run() {
 		{
 			Lock l(hcs);
 			if(!w.empty()) {
-				currentFile = fname = w.begin()->first;
-				w.erase(w.begin());
+				currentFile = fname = move(w.front().first);
+				w.pop_front();
+
+				if (initialDir.empty())
+					initialDir = Util::getFilePath(fname);
 			} else {
 				fname.clear();
 			}
@@ -635,9 +646,12 @@ int HashManager::Hasher::run() {
 
 				f.close();
 				tt.finalize();
+
 				uint64_t end = GET_TICK();
 				int64_t averageSpeed = 0;
+				sizeHashed += size;
 				if(end > start) {
+					hashTime += (end - start);
 					averageSpeed = size * 1000 / (end - start);
 				}
 
@@ -655,12 +669,46 @@ int HashManager::Hasher::run() {
 		}
 		{
 			Lock l(hcs);
+			if (w.empty()) {
+				if (sizeHashed > 0) {
+					if (dirsHashed == 0) {
+						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_TOTAL_DIR, Util::getFilePath(initialDir) % 
+							Util::formatBytes(sizeHashed) % 
+							Util::formatTime(hashTime / 1000, true) % 
+							(Util::formatBytes(sizeHashed * 1000 / (hashTime)) + "/s" )), LogManager::LOG_INFO);
+					} else {
+						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir)), LogManager::LOG_INFO);
+						dirsHashed++;
+						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_TOTAL, dirsHashed % 
+							Util::formatBytes(sizeHashed) % 
+							Util::formatTime(hashTime / 1000, true) % 
+							(Util::formatBytes(sizeHashed * 1000 / (hashTime)) + "/s" )), LogManager::LOG_INFO);
+					}
+				}
+				initialDir.clear();
+				hashTime = 0;
+				sizeHashed = 0;
+				dirsHashed = 0;
+			} else if (!AirUtil::isParentOrExact(initialDir, w.front().first)) {
+				LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir)), LogManager::LOG_INFO);
+				initialDir.clear();
+				dirsHashed++;
+			}
+
 			currentFile.clear();
 		}
 		running = false;
 	}		
 
 	return 0;
+}
+
+bool HashManager::Hasher::HashSortOrder::operator()(const WorkPair& left, const WorkPair& right) const {
+	auto comp = compare(Util::getFilePath(left.first), Util::getFilePath(right.first));
+	if (comp == 0) {
+		return compare(left.first, right.first) < 0;
+	}
+	return comp < 0;
 }
 
 HashManager::HashPauser::HashPauser() {

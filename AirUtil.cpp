@@ -47,6 +47,12 @@
 
 namespace dcpp {
 
+boost::regex AirUtil::releaseReg;
+boost::regex AirUtil::subDirRegPlain;
+
+string AirUtil::privKeyFile;
+string AirUtil::tempDLDir;
+
 DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
 	auto sd = ShareManager::getInstance()->isDirShared(aDir, aSize);
 	if (sd > 0) {
@@ -85,7 +91,8 @@ DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
 
 void AirUtil::init() {
 	releaseReg.assign(getReleaseRegBasic());
-	subDirRegPath.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", boost::regex::icase);
+	subDirRegPlain.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
+	//subDirRegPath.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", boost::regex::icase);
 }
 
 void AirUtil::updateCachedSettings() {
@@ -93,67 +100,6 @@ void AirUtil::updateCachedSettings() {
 	tempDLDir = Text::toLower(SETTING(TEMP_DOWNLOAD_DIRECTORY));
 }
 
-string AirUtil::getReleaseDir(const string& aName) {
-	//LogManager::getInstance()->message("aName: " + aName);
-	string dir=aName;
-	if(dir[dir.size() -1] == '\\') 
-		dir = dir.substr(0, (dir.size() -1));
-	string dirMatch=dir;
-
-	//check if the release name is the last one before checking subdirs
-	int dpos = dirMatch.rfind("\\");
-	if(dpos != string::npos) {
-		dpos++;
-		dirMatch = dirMatch.substr(dpos, dirMatch.size()-dpos);
-	} else {
-		dpos=0;
-	}
-
-	if (regex_search(dirMatch, releaseReg)) {
-		dir = Text::toLower(dir.substr(dpos, dir.size()));
-		return dir;
-	}
-
-
-	//check the subdirs then
-	dpos=dir.size();
-	dirMatch=dir;
-	bool match=false;
-	for (;;) {
-		if (regex_search(dirMatch, subDirRegPath)) {
-			dpos = dirMatch.rfind("\\");
-			if(dpos != string::npos) {
-				match=true;
-				dirMatch = dirMatch.substr(0,dpos);
-			} else {
-				break;
-			}
-		} else {
-			break;
-		}
-	}
-
-	if (!match)
-		return Util::emptyString;
-	
-	//check the release name again without subdirs
-	dpos = dirMatch.rfind("\\");
-	if(dpos != string::npos) {
-		dpos++;
-		dirMatch = dirMatch.substr(dpos, dirMatch.size()-dpos);
-	} else {
-		dpos=0;
-	}
-
-	if (regex_search(dirMatch, releaseReg)) {
-		dir = Text::toLower(dir.substr(dpos, dir.size()));
-		return dir;
-	} else {
-		return Util::emptyString;
-	}
-
-
-}
 string AirUtil::getLocalIp() {
 	const auto& bindAddr = CONNSETTING(BIND_ADDRESS);
 	if(!bindAddr.empty() && bindAddr != SettingsManager::getInstance()->getDefault(SettingsManager::BIND_ADDRESS)) {

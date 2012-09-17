@@ -126,7 +126,7 @@ public:
 private:
 	class Hasher : public Thread {
 	public:
-		Hasher() : stop(false), running(false), paused(false), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0) { }
+		Hasher();
 
 		void hashFile(const string& fileName, int64_t size);
 
@@ -150,11 +150,12 @@ private:
 
 	private:
 		// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.
-		// map because it's sorted (to avoid random hash order that would create quite strange shares while hashing)
-		typedef map<string, int64_t> WorkMap;	
-		typedef WorkMap::iterator WorkIter;
+		typedef pair<string, int64_t> WorkPair;
+		deque<WorkPair> w;
+		struct HashSortOrder {
+			bool operator()(const WorkPair& left, const WorkPair& right) const;
+		};
 
-		WorkMap w;
 		mutable CriticalSection hcs;
 		Semaphore s;
 
@@ -168,6 +169,11 @@ private:
 		int64_t lastSpeed;
 
 		void instantPause();
+
+		int64_t sizeHashed;
+		int64_t hashTime;
+		int dirsHashed;
+		string initialDir;
 	};
 
 	friend class Hasher;

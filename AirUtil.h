@@ -35,16 +35,16 @@ enum DupeType {
 	SHARE_QUEUE_DUPE 
 };
 
-static boost::regex releaseReg;
-static boost::regex subDirRegPath;
-
-/* Cache some things to lower case */
-static string privKeyFile;
-static string tempDLDir;
-
 class AirUtil {
 	
 	public:
+		static boost::regex releaseReg;
+		static boost::regex subDirRegPlain;
+
+		/* Cache some things to lower case */
+		static string privKeyFile;
+		static string tempDLDir;
+
 		static DupeType checkDirDupe(const string& aDir, int64_t aSize);
 		static DupeType checkFileDupe(const TTHValue& aDir, const string& aFileName);
 		static DupeType checkFileDupe(const string& aFileName, int64_t aSize);
@@ -60,7 +60,6 @@ class AirUtil {
 		static int getMaxAutoOpened(double value = 0);
 
 		static string getPrioText(int prio);
-		static string getReleaseDir(const string& aName);
 
 		static uint32_t getLastWrite(const string& path);
 

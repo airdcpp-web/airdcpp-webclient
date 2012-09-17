@@ -142,7 +142,7 @@ int64_t Bundle::getSecondsLeft() const {
 
 string Bundle::getName() const {
 	if (!fileBundle) {
-		return Util::getDir(target, false, true);
+		return Util::getLastDir(target);
 	} else {
 		return Util::getFileName(target);
 	}
@@ -206,8 +206,7 @@ bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 	}
 	qi->setFlag(QueueItem::FLAG_FINISHED);
 
-	string dir = Util::getDir(qi->getTarget(), false, false);
-	auto& bd = bundleDirs[dir];
+	auto& bd = bundleDirs[qi->getFilePath()];
 	bd.second++;
 	if (bd.first == 0 && bd.second == 1) {
 		return true;
@@ -224,10 +223,10 @@ bool Bundle::removeFinishedItem(QueueItemPtr qi) {
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
 			finishedFiles.pop_back();
 
-			auto& bd = bundleDirs[Util::getDir(qi->getTarget(), false, false)];
+			auto& bd = bundleDirs[qi->getFilePath()];
 			bd.second--;
 			if (bd.first == 0 && bd.second == 0) {
-				bundleDirs.erase(Util::getDir(qi->getTarget(), false, false));
+				bundleDirs.erase(Util::getFilePath(qi->getTarget()));
 				return true;
 			}
 			return false;
@@ -243,8 +242,7 @@ bool Bundle::addQueue(QueueItemPtr qi) {
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
 
-	string dir = Util::getDir(qi->getTarget(), false, false);
-	auto& bd = bundleDirs[dir];
+	auto& bd = bundleDirs[qi->getFilePath()];
 	bd.first++;
 	if (bd.first == 1 && bd.second == 0) {
 		return true;
@@ -273,10 +271,10 @@ bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 		addFinishedItem(qi, true);
 	}
 
-	auto& bd = bundleDirs[Util::getDir(qi->getTarget(), false, false)];
+	auto& bd = bundleDirs[qi->getFilePath()];
 	bd.first--;
 	if (bd.first == 0 && bd.second == 0) {
-		bundleDirs.erase(Util::getDir(qi->getTarget(), false, false));
+		bundleDirs.erase(qi->getFilePath());
 		return true;
 	}
 	return false;
@@ -389,15 +387,15 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
 
 string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const {
 	/* returns the local path for nmdc and the remote path for adc */
-	string remoteDir = Util::getFilePath(aRemoteFile);
-	string bundleDir = Util::getFilePath(aLocalFile);
+	string remoteDir = move(Util::getFilePath(aRemoteFile));
+	string bundleDir = move(Util::getFilePath(aLocalFile));
 	string path;
 	if (simpleMatching) {
 		if (nmdc) {
 			if (Text::toLower(remoteDir).find(Text::toLower(getName())) != string::npos)
 				path = target;
 		} else {
-			path = Util::getDir(remoteDir, true, false);
+			path = Util::getReleaseDir(remoteDir, false);
 		}
 	} else {
 		/* try to find the bundle name from the path */
@@ -430,28 +428,12 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 	return path;
 }
 
-pair<string, pair<uint32_t, uint32_t>> Bundle::getDirByRelease(const string& aDir) const noexcept {
-	string releaseDir = AirUtil::getReleaseDir(Util::getDir(aDir, false, false));
-	if (releaseDir.empty())
-		return make_pair(Util::emptyString, make_pair(0, 0));
-
-	for (auto s = bundleDirs.begin(); s != bundleDirs.end(); ++s) {
-		if (s->first.length() > releaseDir.length()) {
-			//compare the end of the dir with the release dir
-			if (stricmp(s->first.substr(s->first.length()-releaseDir.length()-1, releaseDir.length()), releaseDir) == 0)
-				return *s;
-		}
+pair<uint32_t, uint32_t> Bundle::getPathInfo(const string& aDir) const noexcept {
+	auto p = bundleDirs.find(aDir);
+	if (p != bundleDirs.end()) {
+		return p->second;
 	}
-	return make_pair(Util::emptyString, make_pair(0, 0));
-}
-
-QueueItemList Bundle::getRunningQIs(const UserPtr& aUser) const noexcept {
-	QueueItemList ret;
-	auto i = runningItems.find(aUser);
-	if (i != runningItems.end()) {
-		return i->second;
-	}
-	return ret;
+	return make_pair(0, 0);
 }
 
 void Bundle::removeUserQueue(QueueItemPtr qi) noexcept {
@@ -616,19 +598,6 @@ void Bundle::sendRemovePBD(const UserPtr& aUser) noexcept {
 	}
 }
 
-bool Bundle::allFilesHashed() const {
-	return queueItems.empty() && 
-		find_if(finishedFiles.begin(), finishedFiles.end(), [](QueueItemPtr q) { return !q->isSet(QueueItem::FLAG_HASHED); }) == finishedFiles.end();
-}
-
-void Bundle::getTTHList(OutputStream& tthList) const noexcept {
-	string tmp2;
-	for(auto i = finishedFiles.begin(); i != finishedFiles.end(); ++i) {
-		tmp2.clear();
-		tthList.write((*i)->getTTH().toBase32(tmp2) + " ");
-	}
-}
-
 bool Bundle::allowAutoSearch() const {
 	if (isSet(FLAG_SCHEDULE_SEARCH))
 		return false; // handle this via bundle updates
@@ -653,7 +622,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 
 	QueueItemPtr searchItem = nullptr;
 	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
-		string dir = Util::getDir(i->first, true, false);
+		string dir = Util::getReleaseDir(i->first, false);
 		//don't add the same directory twice
 		if (searches.find(dir) != searches.end()) {
 			continue;
@@ -698,7 +667,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 void Bundle::updateSearchMode() {
 	StringList searches;
 	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
-		string dir = Util::getDir(i->first, true, false);
+		string dir = Util::getReleaseDir(i->first, false);
 		if (find(searches.begin(), searches.end(), dir) == searches.end()) {
 			searches.push_back(dir);
 		}
