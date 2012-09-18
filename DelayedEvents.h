@@ -46,6 +46,17 @@ public:
 		clear();
 	}
 
+	bool runTask(const T& aKey) {
+		Lock l(cs);
+		auto i = eventList.find(aKey);
+		if (i != eventList.end()) {
+			i->second.get()->f();
+			eventList.erase(i);
+			return true;
+		}
+		return false;
+	}
+
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		Lock l(cs);
 		for (auto i = eventList.begin(); i != eventList.end();) {

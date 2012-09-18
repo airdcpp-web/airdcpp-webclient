@@ -149,7 +149,6 @@ private:
 		void save() { saveData = true; s.signal(); if(paused) t_resume(); }
 
 	private:
-		// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.
 		typedef pair<string, int64_t> WorkPair;
 		deque<WorkPair> w;
 		struct HashSortOrder {

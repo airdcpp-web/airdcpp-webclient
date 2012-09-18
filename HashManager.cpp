@@ -618,28 +618,28 @@ int HashManager::Hasher::run() {
 					if(SETTING(MAX_HASH_SPEED)> 0) {
 						uint64_t minTime = n * 1000LL / (SETTING(MAX_HASH_SPEED) * 1024LL * 1024LL);
  
-						if(lastRead + minTime> now) {
+						if(lastRead + minTime > now) {
 							Thread::sleep(minTime - (now - lastRead));
 						}
-					lastRead = lastRead + minTime;
+						lastRead = lastRead + minTime;
 					} else {
 						lastRead = GET_TICK();
 					}
 					tt.update(buf, n);
 				
-				if(xcrc32)
-					(*xcrc32)(buf, n);
+					if(xcrc32)
+						(*xcrc32)(buf, n);
 
 					sizeLeft -= n;
-				{
-					Lock l(hcs);
-										
-					if(totalBytesLeft > 0)
-						totalBytesLeft -= n;
-					if(now > start)
-						lastSpeed = (size - sizeLeft)*1000 / (now -start);
 
-				}
+					{
+						Lock l(hcs);
+						if(totalBytesLeft > 0)
+							totalBytesLeft -= n;
+						if(now > start)
+							lastSpeed = (size - sizeLeft)*1000 / (now -start);
+
+					}
 
 					return !stop;
 				});
@@ -704,6 +704,7 @@ int HashManager::Hasher::run() {
 }
 
 bool HashManager::Hasher::HashSortOrder::operator()(const WorkPair& left, const WorkPair& right) const {
+	// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.
 	auto comp = compare(Util::getFilePath(left.first), Util::getFilePath(right.first));
 	if (comp == 0) {
 		return compare(left.first, right.first) < 0;
