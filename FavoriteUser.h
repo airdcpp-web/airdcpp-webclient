@@ -27,7 +27,7 @@ namespace dcpp {
 
 class FavoriteUser : public Flags {
 public:
-	FavoriteUser(const UserPtr& user_, const string& nick_, const string& hubUrl_) : user(user_), nick(nick_), url(hubUrl_), lastSeen(0) { }
+	FavoriteUser(const UserPtr& user_, const string& nick_, const string& hubUrl_, const string& aCid_) : user(user_), nick(nick_), url(hubUrl_), cid(aCid_), lastSeen(0) { }
 
 	enum Flags {
 		FLAG_GRANTSLOT = 1 << 0
@@ -38,6 +38,7 @@ public:
 	void update(const OnlineUser& info);
 
 	GETSET(UserPtr, user, User);
+	GETSET(string, cid, Cid);
 	GETSET(string, nick, Nick);
 	GETSET(string, url, Url);
 	GETSET(time_t, lastSeen, LastSeen);

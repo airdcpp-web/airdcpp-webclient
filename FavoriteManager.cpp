@@ -182,7 +182,7 @@ void FavoriteManager::addFavoriteUser(const UserPtr& aUser) {
 	if(nicks.empty())
 		nicks.push_back(Util::emptyString);
 
-	FavoriteUser fu = FavoriteUser(aUser, nicks[0], urls[0]);
+	FavoriteUser fu = FavoriteUser(aUser, Util::toString(nicks), urls[0], aUser->getCID().toBase32());
 	{
 		Lock l (cs);
 		users.insert(make_pair(aUser->getCID(), fu)).first;
@@ -653,7 +653,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			} else {
 				u = ClientManager::getInstance()->getUser(CID(cid));
 			}
-			auto i = users.insert(make_pair(u->getCID(), FavoriteUser(u, nick, hubUrl))).first;
+			auto i = users.insert(make_pair(u->getCID(), FavoriteUser(u, nick, hubUrl, cid))).first;
 
 			if(aXml.getBoolChildAttrib("GrantSlot"))
 				i->second.setFlag(FavoriteUser::FLAG_GRANTSLOT);

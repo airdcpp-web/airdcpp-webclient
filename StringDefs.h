@@ -262,7 +262,7 @@ enum Strings { // @DontAdd
 	KEEP_FINISHED_FILES, // "Keep finished files in the queue"
 	KICK_USER, // "Kick user(s)"
 	KICK_USER_FILE, // "Kick user(s) with filename"
-	LAST_HUB, // "Hub (last seen on if offline)"
+	LAST_HUB, // "Hub(s) (last seen on if offline)"
 	LAST_CHANGE, // "Last change: "
 	LAST_SEEN, // "Time last seen"
 	LATEST_VERSION, // "Latest version"

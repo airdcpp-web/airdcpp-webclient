@@ -259,7 +259,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Keep finished files in the queue", 
 "Kick user(s)", 
 "Kick user(s) with filename", 
-"Hub (last seen on if offline)", 
+"Hub(s) (last seen on if offline)", 
 "Last change: ", 
 "Time last seen", 
 "Latest version", 

@@ -52,7 +52,7 @@ public:
 };
 
 /** Yes, this should probably be called a Hub */
-class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, private boost::noncopyable {
+class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener {
 public:
 	typedef unordered_map<string*, Client*, noCaseStringHash, noCaseStringEq> List;
 	typedef List::const_iterator Iter;
@@ -127,7 +127,6 @@ public:
 	void Message(const string& msg) {
 		fire(ClientListener::AddLine(), this, msg);
 	}
-	mutable CriticalSection cs;
 
 	Identity& getHubIdentity() { return hubIdentity; }
 
@@ -177,7 +176,7 @@ protected:
 		STATE_IDENTIFY,		///< Nick setup
 		STATE_VERIFY,		///< Checking password
 		STATE_NORMAL,		///< Running
-		STATE_DISCONNECTED,	///< Nothing in particular
+		STATE_DISCONNECTED	///< Nothing in particular
 	} state;
 
 	SearchQueue searchQueue;

@@ -196,7 +196,6 @@ public:
 	bool isInList;
 	GETSET(Identity, identity, Identity);
 private:
-	friend class NmdcHub;
 
 	ClientBase& client;
 };
