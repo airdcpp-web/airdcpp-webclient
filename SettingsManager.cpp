@@ -708,7 +708,6 @@ SettingsManager::SettingsManager()
 	setDefault(UPDATE_METHOD, 0);
 	setDefault(UPGRADE_AUTOBACKUP, 0);
 	setDefault(QUEUE_SPLITTER_POS, 2500);
-
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

@@ -891,8 +891,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Clear", 
 "Use regexp or wildcards", 
 "Ignored users", 
-"incoming", 
-"outgoing", 
+"Incoming", 
 "Begin", 
 "End", 
 "Use natural sorting", 
@@ -1480,6 +1479,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "This version has already been downloaded. Please restart the client to apply the changes.", 
 "AirDC++ Updater", 
 "Updating in progress, please wait a while for it to complete and try again.", 
+"You don't have any incoming directories configured!", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2372,7 +2372,6 @@ std::string dcpp::ResourceManager::names[] = {
 "UseRegexpOrWc", 
 "IgnoredUsers", 
 "Incoming", 
-"Outgoing", 
 "Begin", 
 "End", 
 "NatSort", 
@@ -2960,4 +2959,5 @@ std::string dcpp::ResourceManager::names[] = {
 "UpdateAlreadyDownloaded", 
 "Updater", 
 "UpdaterInProgress", 
+"NoIncomingConfigured", 
 };

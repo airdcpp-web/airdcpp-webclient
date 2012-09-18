@@ -894,8 +894,7 @@ enum Strings { // @DontAdd
 	IGNORE_CLEAR, // "Clear"
 	USE_REGEXP_OR_WC, // "Use regexp or wildcards"
 	IGNORED_USERS, // "Ignored users"
-	INCOMING, // "incoming"
-	OUTGOING, // "outgoing"
+	INCOMING, // "Incoming"
 	BEGIN, // "Begin"
 	END, // "End"
 	NAT_SORT, // "Use natural sorting"
@@ -1487,5 +1486,6 @@ enum Strings { // @DontAdd
 	UPDATE_ALREADY_DOWNLOADED, // "This version has already been downloaded. Please restart the client to apply the changes."
 	UPDATER, // "AirDC++ Updater"
 	UPDATER_IN_PROGRESS, // "Updating in progress, please wait a while for it to complete and try again."
+	NO_INCOMING_CONFIGURED, // "You don't have any incoming directories configured!"
 	LAST // @DontAdd
 };
