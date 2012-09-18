@@ -19,7 +19,6 @@
 #include "stdinc.h"
 #include "UpdateManager.h"
 
-#include <boost/shared_array.hpp>
 #include <boost/regex.hpp>
 
 #include <openssl/rsa.h>
@@ -53,92 +52,11 @@
 
 namespace dcpp {
 
-UpdateManager::UpdateManager() { }
-UpdateManager::~UpdateManager() { }
-
-void UpdateManager::signVersionFile(const string& file, const string& key, bool makeHeader) {
-	string versionData;
-	unsigned int sig_len = 0;
-
-	RSA* rsa = RSA_new();
-
-	try {
-		// Read All Data from files
-		File versionFile(file, File::READ,  File::OPEN);
-		versionData = versionFile.read();
-		versionFile.close();
-
-		FILE* f = fopen(key.c_str(), "r");
-		PEM_read_RSAPrivateKey(f, &rsa, NULL, NULL);
-		fclose(f);
-	} catch(const FileException&) { return; }
-
-	// Make SHA hash
-	int res = -1;
-	SHA_CTX sha_ctx = { 0 };
-	uint8_t digest[SHA_DIGEST_LENGTH];
-
-	res = SHA1_Init(&sha_ctx);
-	if(res != 1)
-		return;
-	res = SHA1_Update(&sha_ctx, versionData.c_str(), versionData.size());
-	if(res != 1)
-		return;
-	res = SHA1_Final(digest, &sha_ctx);
-	if(res != 1)
-		return;
-
-	// sign hash
-	boost::shared_array<uint8_t> sig = boost::shared_array<uint8_t>(new uint8_t[RSA_size(rsa)]);
-	RSA_sign(NID_sha1, digest, sizeof(digest), sig.get(), &sig_len, rsa);
-
-	if(sig_len > 0) {
-		string c_key = Util::emptyString;
-
-		if(makeHeader) {
-			int buf_size = i2d_RSAPublicKey(rsa, 0);
-			boost::shared_array<uint8_t> buf = boost::shared_array<uint8_t>(new uint8_t[buf_size]);
-
-			{
-				uint8_t* buf_ptr = buf.get();
-				i2d_RSAPublicKey(rsa, &buf_ptr);
-			}
-
-			c_key = "// Automatically generated file, DO NOT EDIT!" NATIVE_NL NATIVE_NL;
-			c_key += "#ifndef PUBKEY_H" NATIVE_NL "#define PUBKEY_H" NATIVE_NL NATIVE_NL;
-
-			c_key += "uint8_t dcpp::UpdateManager::publicKey[] = { " NATIVE_NL "\t";
-			for(int i = 0; i < buf_size; ++i) {
-				c_key += (dcpp_fmt("0x%02X") % (unsigned int)buf[i]).str();
-				if(i < buf_size - 1) {
-					c_key += ", ";
-					if((i+1) % 15 == 0) c_key += NATIVE_NL "\t";
-				} else c_key += " " NATIVE_NL "};" NATIVE_NL NATIVE_NL;	
-			}
-
-			c_key += "#endif // PUBKEY_H" NATIVE_NL;
-		}
-
-		try {
-			// Write signature file
-			File outSig(file + ".sign", File::WRITE, File::TRUNCATE | File::CREATE);
-			outSig.write(sig.get(), sig_len);
-			outSig.close();
-
-			if(!c_key.empty()) {
-				// Write the public key header (openssl probably has something to generate similar file, but couldn't locate it)
-				File pubKey(Util::getFilePath(file) + "pubkey.h", File::WRITE, File::TRUNCATE | File::CREATE);
-				pubKey.write(c_key);
-				pubKey.close();
-			}
-		} catch(const FileException&) { }
-	}
-
-	if(rsa) {
-		RSA_free(rsa);
-		rsa = NULL;
-	}
+UpdateManager::UpdateManager() : installedUpdate(0) { 
+	sessionToken = Util::toString(Util::rand());
 }
+
+UpdateManager::~UpdateManager() { }
 
 bool UpdateManager::verifyVersionData(const string& data, const ByteVector& signature) {
 	int res = -1;
@@ -170,40 +88,6 @@ bool UpdateManager::verifyVersionData(const string& data, const ByteVector& sign
 	return (res == 1); 
 }
 
-/*void UpdateManager::updateIP(const string& aServer) {
-	HttpManager::getInstance()->addDownload(aServer, boost::bind(&UpdateManager::updateIP, this, _1, _2, _3), false);
-}*/
-
-bool UpdateManager::applyUpdate(const string& sourcePath, const string& installPath) {
-	bool ret = true;
-	FileFindIter end;
-#ifdef _WIN32
-	for(FileFindIter i(sourcePath + "*"); i != end; ++i) {
-#else
-	for(FileFindIter i(sourcePath); i != end; ++i) {
-#endif
-		string name = i->getFileName();
-		if(name == "." || name == "..")
-			continue;
-
-		if(i->isLink() || name.empty())
-			continue;
-
-		if(!i->isDirectory()) {
-			try {
-				if(Util::fileExists(installPath + name))
-					File::deleteFile(installPath + name);
-				File::copyFile(sourcePath + name, installPath + name);
-			} catch(Exception&) { return false; }
-		} else {
-			ret = UpdateManager::applyUpdate(sourcePath + name + PATH_SEPARATOR, installPath + name + PATH_SEPARATOR);
-			if(!ret) break;
-		}
-	}
-
-	return ret;
-}
-
 void UpdateManager::cleanTempFiles(const string& tmpPath) {
 	FileFindIter end;
 #ifdef _WIN32
@@ -227,25 +111,26 @@ void UpdateManager::cleanTempFiles(const string& tmpPath) {
 	File::removeDirectory(tmpPath);
 }
 
-void UpdateManager::completeUpdateDownload(int buildID) {
+void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
 	auto& conn = conns[CONN_CLIENT];
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if(!conn->buf.empty()) {
-		auto token = Util::toString(Util::rand());
-		string updaterFile = UPDATE_TEMP_DIR + token + PATH_SEPARATOR + "AirDC_Update.zip";
+		string updaterFile = UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR + "AirDC_Update.zip";
 		ScopedFunctor([&updaterFile] { File::deleteFile(updaterFile); });
 
 		try {
-			File::ensureDirectory(UPDATE_TEMP_DIR + token + PATH_SEPARATOR);
+			File::removeDirectory(UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR);
+			File::ensureDirectory(UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR);
 			File(updaterFile, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
 		} catch(const FileException&) { 
+			failUpdateDownload(STRING(UPDATER_WRITE_FAILED), manualCheck);
 			return;
 		}
 
 		// Check integrity
 		if(TTH(updaterFile) != updateTTH) {
-			fire(UpdateManagerListener::UpdateFailed(), "File integrity check failed");
+			failUpdateDownload(STRING(INTEGRITY_CHECK_FAILED), manualCheck);
 			return;
 		}
 
@@ -254,7 +139,7 @@ void UpdateManager::completeUpdateDownload(int buildID) {
 			ZipFile zip;
 			zip.Open(updaterFile);
 
-			string srcPath = UPDATE_TEMP_DIR + token + PATH_SEPARATOR;
+			string srcPath = UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR;
 			string dstPath = Util::getFilePath(exename);
 			string updaterFile = srcPath + Util::getFileName(exename);
 
@@ -280,18 +165,21 @@ void UpdateManager::completeUpdateDownload(int buildID) {
 			xml.addTag("BuildID", buildID);
 			xml.stepOut();
 
-			File f(UPDATE_TEMP_DIR + "UpdateInfo_" + token + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
+			File f(UPDATE_TEMP_DIR + "UpdateInfo_" + sessionToken + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
 			f.write(SimpleXML::utf8Header);
 			f.write(xml.toXML());
 			f.close();
 
+			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogManager::LOG_INFO);
+			installedUpdate = buildID;
+
+			conn.reset(); //prevent problems when closing
 			fire(UpdateManagerListener::UpdateComplete(), updaterFile);
-			LogManager::getInstance()->message("The update has been downloaded successfully. It will be installed when you restart the client", LogManager::LOG_INFO);
 		} catch(ZipFileException& e) {
-			fire(UpdateManagerListener::UpdateFailed(), e.getError());
+			failUpdateDownload(e.getError(), manualCheck);
 		}
 	} else {
-		fire(UpdateManagerListener::UpdateFailed(), conn->status);
+		failUpdateDownload(conn->status, manualCheck);
 	}
 }
 
@@ -332,7 +220,7 @@ bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_,
 
 				}
 			} catch(const Exception& e) {
-				LogManager::getInstance()->message("Failed to read " + *i + " : " + e.getError().c_str(), LogManager::LOG_WARNING);
+				LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, *i % e.getError()), LogManager::LOG_WARNING);
 			}
 		}
 	}
@@ -340,13 +228,12 @@ bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_,
 	return false;
 }
 
-void UpdateManager::completeSignatureDownload() {
+void UpdateManager::completeSignatureDownload(bool manualCheck) {
 	auto& conn = conns[CONN_SIGNATURE];
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if(conn->buf.empty()) {
-		LogManager::getInstance()->message("Could not download digital signature for update check (" + conn->status + ")", LogManager::LOG_WARNING);
-		//manualCheck = false;
+		failUpdateDownload(STRING_F(DOWNLOAD_SIGN_FAILED, conn->status), manualCheck);
 		return;
 	}
 
@@ -355,7 +242,22 @@ void UpdateManager::completeSignatureDownload() {
 	memcpy(&versionSig[0], conn->buf.c_str(), sig_size);
 
 	conns[CONN_VERSION].reset(new HttpDownload(VERSION_URL,
-		[this] { completeVersionDownload(); }, false));
+		[this, manualCheck] { completeVersionDownload(manualCheck); }, false));
+}
+
+void UpdateManager::failUpdateDownload(const string& aError, bool manualCheck) {
+	string msg;
+	if (conns[CONN_CLIENT]) {
+		msg = STRING_F(UPDATING_FAILED, aError);
+	} else {
+		msg = STRING_F(VERSION_CHECK_FAILED, aError);
+	}
+
+	if (manualCheck) {
+		fire(UpdateManagerListener::UpdateFailed(), msg);
+	} else {
+		LogManager::getInstance()->message(msg, LogManager::LOG_WARNING);
+	}
 }
 
 /*void UpdateManager::versionCheck(const HttpConnection*, const string& versionInfo, uint8_t stFlags) {
@@ -544,25 +446,29 @@ void UpdateManager::completeLanguageDownload() {
 			auto path = Localization::getCurLanguageFilePath();
 			File::ensureDirectory(Util::getFilePath(path));
 			File(path, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
-			LogManager::getInstance()->message(str(boost::format("The language %1% has been successfully updated. The new language will take effect after restarting the client.") 
-				% Localization::getLanguageStr()), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getLanguageStr()), LogManager::LOG_INFO);
 
 			return;
-		} catch(const FileException&) { }
+		} catch(const FileException& e) { 
+			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % e.getError()), LogManager::LOG_WARNING);
+		}
 	}
-	LogManager::getInstance()->message(str(boost::format("The language %1% could not be updated") % Localization::getLanguageStr()), LogManager::LOG_WARNING);
+	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % conn->status), LogManager::LOG_WARNING);
 }
 
 
-void UpdateManager::completeVersionDownload() {
+void UpdateManager::completeVersionDownload(bool manualCheck) {
 	auto& conn = conns[CONN_VERSION];
 	if(!conn) { return; }
 	ScopedFunctor([&conn] { conn.reset(); });
 
-	if (conn->buf.empty()) { return; }
+	if (conn->buf.empty()) {
+		failUpdateDownload(STRING_F(DOWNLOAD_VERSION_FAILED, conn->status), manualCheck);
+		return; 
+	}
 
 	if(!UpdateManager::verifyVersionData(conn->buf, versionSig)) {
-		LogManager::getInstance()->message("Could not verify version data", LogManager::LOG_WARNING);
+		failUpdateDownload(STRING(VERSION_VERIFY_FAILED), manualCheck);
 		return;
 	}
 
@@ -661,16 +567,16 @@ void UpdateManager::completeVersionDownload() {
 
 		//Check for updated version
 		if(xml.findChild("Version")) {
-			double remoteVer = Util::toDouble(xml.getChildData());
+			string remoteVer = xml.getChildData();
 			int remoteBuild = 0;
 			if (xml.findChild("SVNrev")) {
 				remoteBuild = Util::toInt(xml.getChildData());
 			}
 			xml.resetCurrentChild();
 
-			if(remoteBuild > ownBuild) {
+			if((remoteBuild > ownBuild && remoteBuild > installedUpdate) || manualCheck) {
 				auto updateMethod = SETTING(UPDATE_METHOD);
-				if (!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) {
+				if ((!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) || manualCheck) {
 					if(xml.findChild("Title")) {
 						const string& title = xml.getChildData();
 						xml.resetCurrentChild();
@@ -680,20 +586,24 @@ void UpdateManager::completeVersionDownload() {
 								//MessageBox(Text::toT(msg).c_str(), Text::toT(title).c_str(), MB_OK);
 							} else {
 								//string msg = xml.getChildData() + "\r\n" + STRING(OPEN_DOWNLOAD_PAGE);
-								fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, autoUpdateEnabled);
+								fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), remoteVer, url, autoUpdateEnabled, remoteBuild, updateUrl);
 							}
 						}
 					}
 					//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
 				} else if (updateMethod == UPDATE_AUTO) {
-					LogManager::getInstance()->message("Downloading an update (version " + Util::toString(remoteVer) + ")", LogManager::LOG_INFO);
-					downloadUpdate(updateUrl, remoteBuild);
+#ifdef BETAVER
+					LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, (remoteVer + " r" + Util::toString(remoteBuild))), LogManager::LOG_INFO);
+#else
+					LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, remoteVer), LogManager::LOG_INFO);
+#endif
+					downloadUpdate(updateUrl, remoteBuild, manualCheck);
 				}
 				xml.resetCurrentChild();
 			}
 		}
 	} catch (const Exception& e) {
-		LogManager::getInstance()->message("Error when parsing the version file: " + e.getError(), LogManager::LOG_WARNING);
+		failUpdateDownload(STRING_F(VERSION_PARSING_FAILED, e.getError()), manualCheck);
 	}
 
 
@@ -708,12 +618,16 @@ void UpdateManager::completeVersionDownload() {
 	}
 }
 
-void UpdateManager::downloadUpdate(const string& aUrl, int newBuildID) {
+bool UpdateManager::isUpdating() {
+	return conns[CONN_CLIENT];
+}
+
+void UpdateManager::downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck) {
 	if(conns[CONN_CLIENT])
 		return;
 
 	conns[CONN_CLIENT].reset(new HttpDownload(aUrl,
-		[this, newBuildID] { completeUpdateDownload(newBuildID); }, false));
+		[this, newBuildID, manualCheck] { completeUpdateDownload(newBuildID, manualCheck); }, false));
 }
 
 void UpdateManager::checkLanguage() {
@@ -739,16 +653,21 @@ void UpdateManager::completeLanguageCheck() {
 }
 
 void UpdateManager::checkVersion(bool aManual) {
-	//if(aManual && manualCheck)
-	//	return;
+	if (conns[CONN_SIGNATURE] || conns[CONN_VERSION]) {
+		return;
+	}
+
+	if (conns[CONN_CLIENT]) {
+		if (aManual)
+			failUpdateDownload(STRING(ALREADY_UPDATING), aManual);
+	}
 
 	//time_t curTime = GET_TIME();
 	//if(aManual || ((curTime - SETTING(LAST_UPDATE_NOTICE)) > 60*60*24 || SETTING(LAST_UPDATE_NOTICE) > curTime)) {
-		//manualCheck = bManual;
-		versionUrl = VERSION_URL;
+		string versionUrl = VERSION_URL;
 
 		conns[CONN_SIGNATURE].reset(new HttpDownload(versionUrl + ".sign",
-			[this] { completeSignatureDownload(); }, false));
+			[this, aManual] { completeSignatureDownload(aManual); }, false));
 	//}
 }
 

@@ -161,7 +161,7 @@ namespace dcpp {
 	}
 
 	void Localization::setLanguage(int languageIndex) {
-		if (languageIndex >= 0 && languageIndex < languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
+		if (languageIndex >= 0 && languageIndex < (int)languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
 			curLanguage = languageIndex;
 			languageList[curLanguage].setLanguageFile(); //update the language file in the settings
 		}

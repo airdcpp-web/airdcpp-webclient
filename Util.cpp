@@ -131,6 +131,14 @@ tstring Util::getParams(bool isFirst) {
 	return Text::toT((isFirst ? Util::emptyString : " ") + Util::toString(" ", params)).c_str();
 }
 
+string Util::getAppName() {
+#ifdef _WIN32
+	TCHAR buf[MAX_PATH+1];
+	DWORD x = GetModuleFileName(NULL, buf, MAX_PATH);
+	return Text::fromT(tstring(buf, x));
+#endif
+}
+
 void Util::initialize() {
 	Text::initialize();
 
@@ -141,10 +149,7 @@ void Util::initialize() {
 #endif
 
 #ifdef _WIN32
-	TCHAR buf[MAX_PATH+1] = { 0 };
-	::GetModuleFileName(NULL, buf, MAX_PATH);
-
-	string exePath = Util::getFilePath(Text::fromT(buf));
+	string exePath = Util::getFilePath(getAppName());
 
 	// Global config path is the AirDC++ executable path...
 	paths[PATH_GLOBAL_CONFIG] = exePath;
@@ -165,6 +170,7 @@ void Util::initialize() {
 	if(localMode) {
 		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
 	} else {
+		TCHAR buf[MAX_PATH+1] = { 0 };
 		if(::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK) {
 			paths[PATH_USER_CONFIG] = Text::fromT(buf) + "\\AirDC++\\";
 		}

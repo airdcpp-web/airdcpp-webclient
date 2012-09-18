@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2011 Crise, crise<at>mail.berlios.de
+ * Copyright (C) 2012 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,9 +50,8 @@ public:
 		string ipcheck;
 	} links;
 
-	void downloadUpdate(const string& aUrl, int newBuildID);
+	void downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck);
 
-	static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
 	static bool verifyVersionData(const string& data, const ByteVector& singature);
 
 	static bool checkPendingUpdates(const string& aDstDir, string& updater_, bool updated);
@@ -90,25 +89,31 @@ public:
 	//void updateGeo();
 
 	void init(const string& aExeName);
+	int getInstalledUpdate() { return installedUpdate; }
+	bool isUpdating();
 private:
 	static uint8_t publicKey[];
 
 	string exename;
-	string versionUrl;
 	string updateTTH;
+	string sessionToken;
+
+	int installedUpdate;
 
 	ByteVector versionSig;
 
 	void updateGeo(bool v6);
 	void checkGeoUpdate(bool v6);
 
-	void completeSignatureDownload();
+	void completeSignatureDownload(bool manual);
 	void completeLanguageCheck();
 	void completeGeoDownload(bool v6);
-	void completeVersionDownload();
+	void completeVersionDownload(bool manualCheck);
 	void completeLanguageDownload();
-	void completeUpdateDownload(int buildID);
-	void completeIPCheck(bool manual);
+	void completeUpdateDownload(int buildID, bool manualCheck);
+	void completeIPCheck(bool manualCheck);
+
+	void failUpdateDownload(const string& aError, bool manualCheck);
 };
 
 } // namespace dcpp

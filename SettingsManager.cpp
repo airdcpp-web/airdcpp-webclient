@@ -500,7 +500,7 @@ SettingsManager::SettingsManager()
 	setDefault(POPUP_UPLOAD_FINISHED, false);
 	setDefault(POPUP_PM, false);
 	setDefault(POPUP_NEW_PM, true);
-	setDefault(POPUP_TYPE, 1);
+	setDefault(POPUP_TYPE, 0);
 	setDefault(POPUP_AWAY, false);
 	setDefault(POPUP_MINIMIZED, true);
 

@@ -141,6 +141,7 @@ public:
 	};
 
 	static void initialize();
+	static string getAppName();
 
 	/** Path of temporary storage */
 	static string getTempPath() {
