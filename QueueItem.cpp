@@ -256,7 +256,9 @@ void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) {
 }
 
 const string& QueueItem::getTempTarget() {
-	if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
+	if (isSet(FLAG_OPEN)) {
+		setTempTarget(target);
+	} else if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
 		if(!SETTING(TEMP_DOWNLOAD_DIRECTORY).empty() && (File::getSize(getTarget()) == -1)) {
 #ifdef _WIN32
 			ParamMap sm;

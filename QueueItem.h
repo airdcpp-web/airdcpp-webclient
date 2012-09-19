@@ -120,6 +120,8 @@ public:
 		FLAG_FINISHED			= 0x800,
 		/** A finished bundle item that has also been moved */
 		FLAG_MOVED				= 0x1000,
+		/** Open directly with an external program after the file has been downloaded */
+		FLAG_OPEN				= 0x2000,
 		/** A hashed bundle item */
 		FLAG_HASHED				= 0x4000
 	};

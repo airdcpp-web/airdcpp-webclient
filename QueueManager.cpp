@@ -392,7 +392,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	
 	string target;
 	string tempTarget;
-	if((aFlags & QueueItem::FLAG_USER_LIST) == QueueItem::FLAG_USER_LIST) {
+	if((aFlags & QueueItem::FLAG_USER_LIST)) {
 		if((aFlags & QueueItem::FLAG_PARTIAL_LIST) && !aTarget.empty()) {
 			StringList nicks = ClientManager::getInstance()->getNicks(aUser);
 			if (nicks.empty())
@@ -1247,6 +1247,10 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 		// Got a full tree, now add it to the HashManager
 		dcassert(d->getTreeValid());
 		HashManager::getInstance()->addTree(d->getTigerTree());
+	}
+
+	if (q->isSet(QueueItem::FLAG_OPEN)) {
+		Util::openFile(q->getTarget());
 	}
 
 	if (removeFinished) {

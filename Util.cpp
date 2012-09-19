@@ -23,6 +23,7 @@
 
 #include "w.h"
 #include "shlobj.h"
+#include <shellapi.h>
 
 #endif
 
@@ -113,6 +114,21 @@ static string getDownloadsPath(const string& def) {
 }
 
 #endif
+
+string Util::getInstanceTempPath() {
+	return getTempPath() + INST_NAME + PATH_SEPARATOR_STR;
+}
+
+string Util::getOpenPath(const string& aFileName) {
+	return getInstanceTempPath() + "Opened Items" + PATH_SEPARATOR_STR + Util::toString(Util::rand()) + "_" + aFileName;
+}
+
+void Util::openFile(const string& aPath) {
+#ifdef _WIN32
+	if (fileExists(aPath))
+		ShellExecute(NULL, NULL, Text::toT(aPath).c_str(), NULL, NULL, SW_SHOWNORMAL);
+#endif
+}
 
 void Util::addParam(const string& aParam) {
 	if (find(params.begin(), params.end(), aParam) == params.end())

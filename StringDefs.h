@@ -1064,10 +1064,8 @@ enum Strings { // @DontAdd
 	UPDATE, // "Update"
     UPNP_NO_IMPLEMENTATION, // "No UPnP implementation available"
 	UPNP_SUCCESSFULLY_CREATED_MAPPINGS, // "Successfully created port mappings"
-	UPDATE_CLIENT, // "Update file has finished downloading. Do you Wish to update? (AirDC++ will exit)"
-	UPDATE_FILE_DETECTED, // "Updater File detected. Do you Wish to update? (AirDC++ will exit)"
 	TEST_WRITE, // "Test Write to AirDC++ folders on startup"
-	SETTINGS_INCOMING_REFRESH_TIME, // "Incoming Refresh Time"
+	SETTINGS_INCOMING_REFRESH_TIME, // "Incoming refresh rime"
 	SETTINGS_USE_ADLS, // "Use ADLSearch on Filelists"
 	SETTING_DONT_DL_ALREADY_QUEUED, // "Don't download files already in queue"
 	FAV_SHOW_JOIN, // "Show User Joins / Parts"
@@ -1488,7 +1486,7 @@ enum Strings { // @DontAdd
 	UPDATER_IN_PROGRESS, // "Updating in progress, please wait a while for it to complete and try again."
 	NO_INCOMING_CONFIGURED, // "You don't have any incoming directories configured!"
 	VIEWED_FILE_TOO_BIG, // "The file %s is too big to be viewed in the client (the file size is %s while the limit is 1 MiB)"
-	ADD_MAGNET, // "Add magnet link"
-	ADD_EMOTICON, // "Add emoticon"
+	SEND_FILE_PM, // "Send a file (it will be available only to this user)"
+	INSERT_EMOTICON, // "Insert emoticon"
 	LAST // @DontAdd
 };
