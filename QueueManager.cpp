@@ -422,6 +422,10 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			if (highPrioFiles.match(Util::getFileName(aTarget))) {
 				aPrio = BOOLSETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
 			}
+		} else if (aSize > 1*1024*1024) { // 1MB
+			auto msg = STRING_F(VIEWED_FILE_TOO_BIG, aTarget % Util::formatBytes(aSize));
+			LogManager::getInstance()->message(msg, LogManager::LOG_ERROR);
+			throw QueueException(msg);
 		}
 		
 		//we can check the existence and throw even with FTPlogger support, if the file exists already the directory must exist too.

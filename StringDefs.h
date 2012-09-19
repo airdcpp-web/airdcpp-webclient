@@ -1487,5 +1487,6 @@ enum Strings { // @DontAdd
 	UPDATER, // "AirDC++ Updater"
 	UPDATER_IN_PROGRESS, // "Updating in progress, please wait a while for it to complete and try again."
 	NO_INCOMING_CONFIGURED, // "You don't have any incoming directories configured!"
+	VIEWED_FILE_TOO_BIG, // "The file %s is too big to be viewed in the client (the file size is %s while the limit is 1 MiB)"
 	LAST // @DontAdd
 };

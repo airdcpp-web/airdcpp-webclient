@@ -1480,6 +1480,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "AirDC++ Updater", 
 "Updating in progress, please wait a while for it to complete and try again.", 
 "You don't have any incoming directories configured!", 
+"The file %s is too big to be viewed in the client (the file size is %s while the limit is 1 MiB)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2960,4 +2961,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Updater", 
 "UpdaterInProgress", 
 "NoIncomingConfigured", 
+"ViewedFileTooBig", 
 };
