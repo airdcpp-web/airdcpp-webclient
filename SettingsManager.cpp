@@ -707,7 +707,7 @@ SettingsManager::SettingsManager()
 	setDefault(LAST_SEARCH_DISABLED_HUBS, Util::emptyString);
 	setDefault(UPDATE_METHOD, 0);
 	setDefault(UPGRADE_AUTOBACKUP, 0);
-	setDefault(QUEUE_SPLITTER_POS, 2500);
+	setDefault(QUEUE_SPLITTER_POS, 3000);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else
