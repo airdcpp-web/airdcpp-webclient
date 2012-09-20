@@ -1065,7 +1065,7 @@ enum Strings { // @DontAdd
     UPNP_NO_IMPLEMENTATION, // "No UPnP implementation available"
 	UPNP_SUCCESSFULLY_CREATED_MAPPINGS, // "Successfully created port mappings"
 	TEST_WRITE, // "Test Write to AirDC++ folders on startup"
-	SETTINGS_INCOMING_REFRESH_TIME, // "Incoming refresh rime"
+	SETTINGS_INCOMING_REFRESH_TIME, // "Incoming refresh time"
 	SETTINGS_USE_ADLS, // "Use ADLSearch on Filelists"
 	SETTING_DONT_DL_ALREADY_QUEUED, // "Don't download files already in queue"
 	FAV_SHOW_JOIN, // "Show User Joins / Parts"
