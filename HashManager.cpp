@@ -61,24 +61,30 @@ size_t HashManager::getBlockSize(const TTHValue& root) {
 }
 			
 int64_t HashManager::HashFile(const string& aFile, TTHValue& tth) {
-	File f(aFile, File::READ, File::OPEN);
-	int64_t size = f.getSize();
-	int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
-	uint64_t timestamp = f.getLastModified();
-	TigerTree tt(bs);
+	const TTHValue* aTTH = store.getTTH(Text::toLower(aFile));
+	int64_t size = 0;
+	if(!aTTH) {
+		File f(aFile, File::READ, File::OPEN);
+		size = f.getSize();
+		int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
+		uint64_t timestamp = f.getLastModified();
+		TigerTree tt(bs);
 
-    FileReader fr(true);
-	fr.read(aFile, [&](const void* buf, size_t n) -> bool {
-		tt.update(buf, n);
-		return true;
-	});
+	 FileReader fr(true);
+		fr.read(aFile, [&](const void* buf, size_t n) -> bool {
+			tt.update(buf, n);
+			return true;
+		});
 
-	f.close();
-	tt.finalize();
-	tth = tt.getRoot();
+		f.close();
+		tt.finalize();
+		tth = tt.getRoot();
 
-	store.addFile(Text::toLower(aFile), timestamp, tt, true);
-
+		store.addFile(Text::toLower(aFile), timestamp, tt, true);
+	} else {
+		tth = *aTTH;
+		size = File::getSize(aFile);
+	}
 	return size;
 }
 

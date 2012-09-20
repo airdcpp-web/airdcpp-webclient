@@ -1487,6 +1487,7 @@ enum Strings { // @DontAdd
 	NO_INCOMING_CONFIGURED, // "You don't have any incoming directories configured!"
 	VIEWED_FILE_TOO_BIG, // "The file %s is too big to be viewed in the client (the file size is %s while the limit is 1 MiB)"
 	SEND_FILE_PM, // "Send a file (it will be available only to this user)"
+	SEND_FILE_HUB, // "Send a file (it will be available to all users)"
 	INSERT_EMOTICON, // "Insert emoticon"
 	STOP_SHARING, // "Stop sharing"
 	MAGNET_INFOTEXT, // "A magnet link was detected for a file \"%s\" (%s). Please choose the action to perform."
