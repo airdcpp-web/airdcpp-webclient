@@ -386,7 +386,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		throw QueueException(STRING(NO_DOWNLOADS_FROM_SELF));
 	}
 
-	if (!aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
+	if (aUser.user && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		throw QueueException(STRING(SOURCE_NO_ENCRYPTION));
 	}
 	

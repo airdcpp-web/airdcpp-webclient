@@ -1488,5 +1488,9 @@ enum Strings { // @DontAdd
 	VIEWED_FILE_TOO_BIG, // "The file %s is too big to be viewed in the client (the file size is %s while the limit is 1 MiB)"
 	SEND_FILE_PM, // "Send a file (it will be available only to this user)"
 	INSERT_EMOTICON, // "Insert emoticon"
+	STOP_SHARING, // "Stop sharing"
+	MAGNET_INFOTEXT, // "A magnet link was detected for a file \"%s\" (%s). Please choose the action to perform."
+	DOWNLOAD_OPEN, // "Download and open"
+	SAVE_DEFAULT, // "Save in the default download directory"
 	LAST // @DontAdd
 };

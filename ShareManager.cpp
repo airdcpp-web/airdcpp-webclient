@@ -526,20 +526,17 @@ AdcCommand ShareManager::getFileInfo(const string& aFile, ProfileToken aProfile)
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-ShareManager::TempShareInfo ShareManager::findTempShare(const string& aKey, const string& virtualFile) {
-	if(virtualFile.compare(0, 4, "TTH/") == 0) {
-		Lock l(tScs);
-		TTHValue tth(virtualFile.substr(4));
-		auto Files = tempShares.equal_range(tth);
-		for(auto i = Files.first; i != Files.second; ++i) {
-			if(i->second.key.empty() || (i->second.key == aKey)) // if no key is set, it means its a hub share.
-				return i->second;
-		}
-	}	
-	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);		
+bool ShareManager::isTempShared(const string& aKey, const TTHValue& tth) {
+	Lock l(tScs);
+	auto fp = tempShares.equal_range(tth);
+	for(auto i = fp.first; i != fp.second; ++i) {
+		if(i->second.key.empty() || (i->second.key == aKey)) // if no key is set, it means its a hub share.
+			return true;
+	}
+	return false;
 }
 
-bool ShareManager::addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub) {
+bool ShareManager::addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub) {
 	//first check if already exists in Share.
 	if(isFileShared(tth, Util::getFileName(filePath))) {
 		return true;
@@ -556,7 +553,7 @@ bool ShareManager::addTempShare(const string& aKey, TTHValue& tth, const string&
 	}
 	return false;
 }
-void ShareManager::removeTempShare(const string& aKey, TTHValue& tth) {
+void ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) {
 	Lock l(tScs);
 	auto Files = tempShares.equal_range(tth);
 	for(auto i = Files.first; i != Files.second; ++i) {

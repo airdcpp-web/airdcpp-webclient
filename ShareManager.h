@@ -200,11 +200,11 @@ public:
 	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
 	TempShareMap tempShares;
 	CriticalSection tScs;
-	bool addTempShare(const string& aKey, TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub);
+	bool addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub);
 	bool hasTempShares() { Lock l(tScs); return !tempShares.empty(); }
 	TempShareMap getTempShares() { Lock l(tScs); return tempShares; }
-	void removeTempShare(const string& aKey, TTHValue& tth);
-	TempShareInfo findTempShare(const string& aKey, const string& virtualFile);
+	void removeTempShare(const string& aKey, const TTHValue& tth);
+	bool isTempShared(const string& aKey, const TTHValue& tth);
 	//tempShares end
 
 	typedef vector<ShareProfilePtr> ShareProfileList;

@@ -23,7 +23,7 @@
 #define UNC_MAX_PATH 1024  // we can go much, much longer but limit it here.
 
 #ifndef _WIN32_WINNT
-# define _WIN32_WINNT 0x502
+# define _WIN32_WINNT 0x600
 #endif
 
 #ifndef _WIN32_IE

@@ -170,7 +170,7 @@ void File::deleteFile(const string& aFileName) noexcept
 
 void File::removeDirectory(const string& aPath) noexcept
 {
-	auto ret = ::RemoveDirectory(Text::toT(Util::FormatPath(aPath)).c_str());
+	::RemoveDirectory(Text::toT(Util::FormatPath(aPath)).c_str());
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {

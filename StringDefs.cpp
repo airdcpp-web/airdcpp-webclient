@@ -1481,6 +1481,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "The file %s is too big to be viewed in the client (the file size is %s while the limit is 1 MiB)", 
 "Send a file (it will be available only to this user)", 
 "Insert emoticon", 
+"Stop sharing", 
+"A magnet link was detected for a file \"%s\" (%s). Please choose the action to perform.", 
+"Download and open", 
+"Save in the default download directory", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2962,4 +2966,8 @@ std::string dcpp::ResourceManager::names[] = {
 "ViewedFileTooBig", 
 "SendFilePm", 
 "InsertEmoticon", 
+"StopSharing", 
+"MagnetInfotext", 
+"DownloadOpen", 
+"SaveDefault", 
 };
