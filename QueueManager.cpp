@@ -404,7 +404,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		tempTarget = aTarget;
 	} else {
 		target = aTarget;
-		if (!(aFlags & QueueItem::FLAG_CLIENT_VIEW)) {
+		if (!(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_OPEN)) {
 			if (!aBundle)
 				target = Util::formatTime(aTarget, time(NULL));
 
@@ -422,7 +422,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			if (highPrioFiles.match(Util::getFileName(aTarget))) {
 				aPrio = BOOLSETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
 			}
-		} else if (aSize > 1*1024*1024) { // 1MB
+		} else if (aFlags & QueueItem::FLAG_TEXT && aSize > 1*1024*1024) { // 1MB
 			auto msg = STRING_F(VIEWED_FILE_TOO_BIG, aTarget % Util::formatBytes(aSize));
 			LogManager::getInstance()->message(msg, LogManager::LOG_ERROR);
 			throw QueueException(msg);
@@ -474,7 +474,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			}
 		}
 
-		if((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW && BOOLSETTING(DONT_DL_ALREADY_QUEUED)) {
+		if(!(aFlags & QueueItem::FLAG_USER_LIST) && !(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_OPEN) && BOOLSETTING(DONT_DL_ALREADY_QUEUED)) {
 			q = fileQueue.getQueuedFile(root, Util::getFileName(aTarget));
 			if (q) {
 				if (q->isFinished()) {
@@ -514,7 +514,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 				q->setPriority(QueueItem::HIGH);
 			}
 			bundleQueue.addBundleItem(q, aBundle);
-		} else if ((aFlags & QueueItem::FLAG_USER_LIST) != QueueItem::FLAG_USER_LIST && (aFlags & QueueItem::FLAG_CLIENT_VIEW) != QueueItem::FLAG_CLIENT_VIEW) {
+		} else if (!(aFlags & QueueItem::FLAG_USER_LIST) && !(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_OPEN)) {
 			aBundle = bundleQueue.getMergeBundle(q->getTarget());
 			if (aBundle) {
 				//finished bundle but failed hashing/scanning?

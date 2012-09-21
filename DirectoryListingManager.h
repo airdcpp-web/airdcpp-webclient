@@ -53,6 +53,8 @@ namespace dcpp {
 		~DirectoryListingManager();
 
 		void processList(const string& name, const HintedUser& user, const string& path, int flags);
+		void processListAction(DirectoryListingPtr aList, const string& path, int flags);
+
 		void addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,
 			QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false) noexcept;
 
@@ -63,7 +65,7 @@ namespace dcpp {
 		friend class Singleton<DirectoryListingManager>;
 
 		mutable SharedMutex cs;
-		unordered_map<UserPtr, DirectoryListing*, User::Hash> fileLists;
+		unordered_map<UserPtr, DirectoryListingPtr, User::Hash> fileLists;
 
 		bool hasList(const UserPtr& aUser);
 		void createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir = Util::emptyString, bool isOwnList=false);

@@ -119,6 +119,7 @@ public:
 
 		bool findIncomplete();
 		void search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
+		void findFiles(const boost::regex& aReg, File::List& aResults) const;
 		
 		size_t getFileCount() { return files.size(); }
 		
@@ -174,7 +175,7 @@ public:
 
 	static UserPtr getUserFromFilename(const string& fileName);
 	void checkShareDupes();
-	void findNfo(const string& aPath);
+	bool findNfo(const string& aPath);
 	
 	const UserPtr& getUser() const { return hintedUser.user; }	
 	const string& getHubUrl() const { return hintedUser.hint; }	
@@ -189,7 +190,7 @@ public:
 
 	void addMatchADLTask();
 	void addListDiffTask(const string& aFile);
-	void addPartialListTask(const string& aXmlDir);
+	void addPartialListTask(const string& aXmlDir, std::function<void ()> f = nullptr);
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
 	void addFilterTask();

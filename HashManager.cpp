@@ -697,7 +697,7 @@ int HashManager::Hasher::run() {
 						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_TOTAL, dirsHashed % 
 							Util::formatBytes(sizeHashed) % 
 							Util::formatTime(hashTime / 1000, true) % 
-							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0))), LogManager::LOG_INFO);
+							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), LogManager::LOG_INFO);
 					}
 				}
 				initialDir.clear();

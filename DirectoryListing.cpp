@@ -410,7 +410,7 @@ bool DirectoryListing::Directory::findIncomplete() {
 	if(!complete) {
 		return true;
 	}
-	return find_if(directories.begin(), directories.end(), [&](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
+	return find_if(directories.begin(), directories.end(), [](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
 }
 
 void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio, bool first, BundlePtr aBundle) {
@@ -513,20 +513,39 @@ DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName
 	return nullptr;
 }
 
-void DirectoryListing::findNfo(const string& aPath) {
-	auto dir = findDirectory(aPath, root);
-	if (dir) {
-		boost::wregex reg;
-		reg.assign(_T("(.+\\.nfo)"), boost::regex_constants::icase);
-		for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
-			auto df = *i;
-			if (regex_match(Text::toT(df->getName()), reg)) {
-				QueueManager::getInstance()->add(Util::getTempPath() + df->getName(), df->getSize(), df->getTTH(), hintedUser, df->getPath() + df->getName(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
-				return;
-			}
+void DirectoryListing::Directory::findFiles(const boost::regex& aReg, File::List& aResults) const {
+	for(auto i = files.begin(); i != files.end(); ++i) {
+		auto df = *i;
+		if (boost::regex_match(df->getName(), aReg)) {
+			aResults.push_back(df);
 		}
 	}
-	LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) + ": " + STRING(NO_NFO_FOUND), LogManager::LOG_INFO);
+
+	for_each(directories, [&aReg, &aResults](Directory* dir) { dir->findFiles(aReg, aResults); });
+}
+
+bool DirectoryListing::findNfo(const string& aPath) {
+	auto dir = findDirectory(aPath, root);
+	if (dir) {
+		boost::regex reg;
+		reg.assign("(.+\\.nfo)", boost::regex_constants::icase);
+		File::List results;
+		dir->findFiles(reg, results);
+
+		if (!results.empty()) {
+			try {
+				QueueManager::getInstance()->add(Util::getTempPath() + results.front()->getName(), results.front()->getSize(), results.front()->getTTH(), 
+					hintedUser, results.front()->getPath() + results.front()->getName(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
+			} catch(const Exception&) { }
+			return true;
+		}
+	}
+
+	if (isClientView)
+		fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(NO_NFO_FOUND));
+	else
+		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) + ": " + STRING(NO_NFO_FOUND), LogManager::LOG_INFO);
+	return false;
 }
 
 struct HashContained {
@@ -725,8 +744,15 @@ void DirectoryListing::addListDiffTask(const string& aFile) {
 	runTasks();
 }
 
-void DirectoryListing::addPartialListTask(const string& aXmlDir) {
-	tasks.add(REFRESH_DIR, unique_ptr<Task>(new StringTask(aXmlDir)));
+struct PartialLoadingTask : public Task {
+	PartialLoadingTask(const string& aXml, std::function<void ()> aF) : f(aF), xml(aXml) { }
+
+	string xml;
+	std::function<void ()> f;
+};
+
+void DirectoryListing::addPartialListTask(const string& aXmlDir, std::function<void ()> f) {
+	tasks.add(REFRESH_DIR, unique_ptr<Task>(new PartialLoadingTask(aXmlDir, f)));
 	runTasks();
 }
 
@@ -817,11 +843,11 @@ int DirectoryListing::run() {
 				dirList.loadFile(file);
 
 				root->filterList(dirList);
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
 			} else if(t.first == MATCH_ADL) {
 				root->clearAdls(); //not much to check even if its the first time loaded without adls...
 				ADLSearchManager::getInstance()->matchListing(*this);
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
 			} else if(t.first == FILTER) {
 				for(;;) {
 					typingFilter = false;
@@ -837,7 +863,7 @@ int DirectoryListing::run() {
 				if (convertPartial) {
 					/* Clearing the old tree should be much faster, as we don't usually have that many directories loaded in the partial */
 					/* Otherwise we should compare the file/directory name for each item... */
-					boost::for_each(root->directories, DeleteFunction());
+					for_each(root->directories, DeleteFunction());
 					root->directories.clear();
 					visitedDirs.clear();
 				}
@@ -855,26 +881,30 @@ int DirectoryListing::run() {
 				}
 
 				partialList = false;
-				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str, convertPartial);
+				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str, convertPartial, true);
 				partialList = false;
 			} else if (t.first == REFRESH_DIR) {
 				if (!partialList)
 					return 0;
 
-				auto xml = static_cast<StringTask*>(t.second.get())->str;
+				auto lt = static_cast<PartialLoadingTask*>(t.second.get());
 				
 				string path;
 				if (isOwnList) {
-					auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(xml), false, Util::toInt(fileName));
+					auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(lt->xml), false, Util::toInt(fileName));
 					if (mis) {
 						path = loadXML(*mis, true);
 					} else {
 						throw CSTRING(FILE_NOT_AVAILABLE);
 					}
 				} else {
-					path = updateXML(xml);
+					path = updateXML(lt->xml);
 				}
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(path), false);
+
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(path), false, lt->f == nullptr);
+				if (lt->f) {
+					lt->f();
+				}
 			} else if (t.first == CLOSE) {
 				//delete this;
 				fire(DirectoryListingListener::Close());
@@ -984,7 +1014,7 @@ void DirectoryListing::changeDir() {
 			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, Util::toInt(fileName));
 			if (mis) {
 				loadXML(*mis, true);
-				fire(DirectoryListingListener::LoadingFinished(), 0, path, false);
+				fire(DirectoryListingListener::LoadingFinished(), 0, path, false, true);
 			} else {
 				//might happen if have refreshed the share meanwhile
 				fire(DirectoryListingListener::LoadingFailed(), CSTRING(FILE_NOT_AVAILABLE));
