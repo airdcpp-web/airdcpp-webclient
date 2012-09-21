@@ -75,6 +75,8 @@ bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) c
 }
 
 bool DirectoryListing::Directory::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
+	if (a->getAdls() && !b->getAdls())
+		return true;
 	return Util::DefaultSort(a->getName().c_str(), b->getName().c_str()) < 0;
 }
 
@@ -351,6 +353,9 @@ void DirectoryListing::Directory::setDate(const string& aDate) {
 }
 
 void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
+	if (adls)
+		return;
+
 	if (aStrings.hasRoot) {
 		auto pos = boost::find_if(files, [aStrings](File* aFile) { return aFile->getTTH() == aStrings.root; });
 		if (pos != files.end()) {
@@ -361,7 +366,7 @@ void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSe
 		if(aStrings.matchesDirectDirectoryName(name)) {
 			auto path = parent ? Util::toAdcFile(parent->getPath()) : "/";
 			auto res = boost::find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
-			if (res == aResults.end() && aStrings.matchesSize(getTotalSize())) {
+			if (res == aResults.end() && aStrings.matchesSize(getTotalSize(false))) {
 				DirectSearchResultPtr sr(new DirectSearchResult(path));
 				aResults.push_back(sr);
 			}
@@ -483,7 +488,7 @@ int64_t DirectoryListing::getDirSize(const string& aDir) {
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = findDirectory(aDir, getRoot());
 	if(d)
-		return d->getTotalSize();
+		return d->getTotalSize(false);
 	return 0;
 }
 
@@ -583,23 +588,30 @@ void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
 	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, Util::toInt(fileName));
 }
 
-int64_t DirectoryListing::Directory::getTotalSize(bool adl) {
+int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) {
 	if(!complete)
 		return partialSize;
+	if(!countAdls && adls)
+		return 0;
 	
 	int64_t x = getFilesSize();
 	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		if(!(adl && (*i)->getAdls()))
-			x += (*i)->getTotalSize(adls);
+		if(!countAdls && (*i)->getAdls())
+			continue;
+		x += (*i)->getTotalSize(adls);
 	}
 	return x;
 }
 
-size_t DirectoryListing::Directory::getTotalFileCount(bool adl) {
+size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) {
+	if(!countAdls && adls)
+		return 0;
+
 	size_t x = getFileCount();
 	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		if(!(adl && (*i)->getAdls()))
-			x += (*i)->getTotalFileCount(adls);
+		if(!countAdls && (*i)->getAdls())
+			continue;
+		x += (*i)->getTotalFileCount(adls);
 	}
 	return x;
 }

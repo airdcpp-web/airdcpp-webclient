@@ -35,6 +35,15 @@ namespace dcpp {
 static const uint32_t HASH_FILE_VERSION = 2;
 const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
 
+HashManager::HashManager(): lastSave(0), pausers(0) {
+	TimerManager::getInstance()->addListener(this);
+}
+
+HashManager::~HashManager() {
+	TimerManager::getInstance()->removeListener(this);
+	hasher.join();
+}
+
 bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp) {
 	if (!store.checkTTH(Text::toLower(aFileName), aSize, aTimeStamp)) {
 		hasher.hashFile(aFileName, aSize);
@@ -719,23 +728,30 @@ bool HashManager::Hasher::HashSortOrder::operator()(const WorkPair& left, const 
 }
 
 HashManager::HashPauser::HashPauser() {
-	resume = !HashManager::getInstance()->isHashingPaused();
 	HashManager::getInstance()->pauseHashing();
 }
 
 HashManager::HashPauser::~HashPauser() {
-	if(resume)
-		HashManager::getInstance()->resumeHashing();
+	HashManager::getInstance()->resumeHashing();
 }
 
 bool HashManager::pauseHashing() {
 	//Lock l(cs);
-	return hasher.pause();
+	pausers++;
+	if (pausers == 1)
+		return hasher.pause();
+	return true;
 }
 
-void HashManager::resumeHashing() {
+void HashManager::resumeHashing(bool forced) {
 	//Lock l(cs);
-	hasher.resume();
+	if (forced )
+		pausers = 0;
+	else if (pausers > 0)
+		pausers--;
+
+	if (pausers == 0)
+		hasher.resume();
 }
 
 bool HashManager::isHashingPaused() const {

@@ -940,27 +940,31 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 		}
 
 		int64_t hashSize = aBundle->getSize();
-		for_each(hash, [aBundle, &hashSize](QueueItemPtr q) {
-			try {
-				// Schedule for hashing, it'll be added automatically later on...
-				if (!HashManager::getInstance()->checkTTH(q->getTarget(), q->getSize(), AirUtil::getLastWrite(q->getTarget()))) {
-					//..
-				} else {
-					//fine, it's there already..
-					q->setFlag(QueueItem::FLAG_HASHED);
-					hashSize -= q->getSize();
-				}
-			} catch(const Exception&) {
-				//...
-			}
-		});
 
-		if (hashSize > 0) {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_ADDED_FOR_HASH, Util::formatBytes(hashSize)), LogManager::LOG_INFO);
+		{
+			HashManager::HashPauser pauser;
+			for_each(hash, [aBundle, &hashSize](QueueItemPtr q) {
+				try {
+					// Schedule for hashing, it'll be added automatically later on...
+					if (!HashManager::getInstance()->checkTTH(q->getTarget(), q->getSize(), AirUtil::getLastWrite(q->getTarget()))) {
+						//..
+					} else {
+						//fine, it's there already..
+						q->setFlag(QueueItem::FLAG_HASHED);
+						hashSize -= q->getSize();
+					}
+				} catch(const Exception&) {
+					//...
+				}
+			});
 		}
 
-		//all files have been hashed already?
-		checkBundleHashed(aBundle);
+		if (hashSize > 0) {
+			LogManager::getInstance()->message(STRING_F(BUNDLE_ADDED_FOR_HASH, aBundle->getName() % Util::formatBytes(hashSize)), LogManager::LOG_INFO);
+		} else {
+			//all files have been hashed already?
+			checkBundleHashed(aBundle);
+		}
 	} else if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 		LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
 	} else {

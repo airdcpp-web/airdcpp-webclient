@@ -58,13 +58,8 @@ public:
 	/** We don't keep leaves for blocks smaller than this... */
 	static const int64_t MIN_BLOCK_SIZE;
 
-	HashManager(): lastSave(0) {
-		TimerManager::getInstance()->addListener(this);
-	}
-	~HashManager() {
-		TimerManager::getInstance()->removeListener(this);
-		hasher.join();
-	}
+	HashManager();
+	~HashManager();
 
 	/**
 	 * Check if the TTH tree associated with the filename is current.
@@ -113,17 +108,15 @@ public:
 	struct HashPauser {
 		HashPauser();
 		~HashPauser();
-
-	private:
-		bool resume;
 	};
 	
 	/// @return whether hashing was already paused
 	bool pauseHashing();
-	void resumeHashing();	
+	void resumeHashing(bool forced = false);	
 	bool isHashingPaused() const;
 
 private:
+	int pausers;
 	class Hasher : public Thread {
 	public:
 		Hasher();

@@ -1058,7 +1058,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "No UPnP implementation available", 
 "Successfully created port mappings", 
 "Test Write to AirDC++ folders on startup", 
-"Incoming refresh rime", 
+"Incoming refresh time", 
 "Use ADLSearch on Filelists", 
 "Don't download files already in queue", 
 "Show User Joins / Parts", 

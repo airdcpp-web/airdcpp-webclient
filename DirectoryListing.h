@@ -109,8 +109,8 @@ public:
 
 		virtual ~Directory();
 
-		size_t getTotalFileCount(bool adls = false);		
-		int64_t getTotalSize(bool adls = false);
+		size_t getTotalFileCount(bool countAdls);		
+		int64_t getTotalSize(bool countAdls);
 		void filterList(DirectoryListing& dirList);
 		void filterList(TTHSet& l);
 		void getHashList(TTHSet& l);
