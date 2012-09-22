@@ -25,7 +25,7 @@
 #include "UpdateManagerListener.h"
 #include "HttpDownload.h"
 
-#define UPDATE_TEMP_DIR Util::getTempPath() + INST_NAME PATH_SEPARATOR_STR
+#define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
 
 namespace dcpp {
 

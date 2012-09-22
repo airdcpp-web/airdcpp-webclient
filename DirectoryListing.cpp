@@ -534,7 +534,7 @@ bool DirectoryListing::findNfo(const string& aPath) {
 
 		if (!results.empty()) {
 			try {
-				QueueManager::getInstance()->add(Util::getTempPath() + results.front()->getName(), results.front()->getSize(), results.front()->getTTH(), 
+				QueueManager::getInstance()->add(Util::getOpenPath(results.front()->getName()), results.front()->getSize(), results.front()->getTTH(), 
 					hintedUser, results.front()->getPath() + results.front()->getName(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
 			} catch(const Exception&) { }
 			return true;

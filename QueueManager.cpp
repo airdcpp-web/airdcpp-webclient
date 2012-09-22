@@ -474,36 +474,40 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			}
 		}
 
-		if(!(aFlags & QueueItem::FLAG_USER_LIST) && !(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_OPEN) && BOOLSETTING(DONT_DL_ALREADY_QUEUED)) {
-			q = fileQueue.getQueuedFile(root, Util::getFileName(aTarget));
-			if (q) {
-				if (q->isFinished()) {
-					/* The target file doesn't exist, add it. Also recheck the existance in case of finished files being moved on the same time. */
-					dcassert(q->getBundle());
-					if (replaceFinishedItem(q)) {
+		if(!(aFlags & QueueItem::FLAG_USER_LIST) && !(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_OPEN)) {
+			if (BOOLSETTING(DONT_DL_ALREADY_QUEUED)) {
+				q = fileQueue.getQueuedFile(root, Util::getFileName(aTarget));
+				if (q) {
+					if (q->isFinished()) {
+						/* The target file doesn't exist, add it. Also recheck the existance in case of finished files being moved on the same time. */
+						dcassert(q->getBundle());
+						if (replaceFinishedItem(q)) {
+							q = nullptr;
+						}
+					} else if (q->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
 						q = nullptr;
-					}
-				} else if (q->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-					q = nullptr;
-				} else { 
-					if(!q->isSource(aUser)) {
-						try {
-							if (addSource(q, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0, aRemotePath)) {
-								wantConnection = true;
-								goto connect;
+					} else { 
+						if(!q->isSource(aUser)) {
+							try {
+								if (addSource(q, aUser, addBad ? QueueItem::Source::FLAG_MASK : 0, aRemotePath)) {
+									wantConnection = true;
+									goto connect;
+								}
+							} catch(const Exception&) {
+								//...
 							}
-						} catch(const Exception&) {
-							//...
 						}
 					}
-				}
 
-				if (q) {
-					string tmp = STRING_F(FILE_ALREADY_QUEUED, Util::getFileName(target).c_str() % q->getTarget().c_str());
-					LogManager::getInstance()->message(tmp, LogManager::LOG_ERROR);
-					throw QueueException(tmp);
+					if (q) {
+						string tmp = STRING_F(FILE_ALREADY_QUEUED, Util::getFileName(target).c_str() % q->getTarget().c_str());
+						LogManager::getInstance()->message(tmp, LogManager::LOG_ERROR);
+						throw QueueException(tmp);
+					}
 				}
 			}
+		} else {
+			aPrio = QueueItem::HIGHEST;
 		}
 
 		q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), root);

@@ -144,17 +144,9 @@ public:
 	static string getAppName();
 
 	/** Path of temporary storage */
-	static string getTempPath() {
-#ifdef _WIN32
-		TCHAR buf[MAX_PATH + 1];
-		DWORD x = GetTempPath(MAX_PATH, buf);
-		return Text::fromT(tstring(buf, x));
-#else
-		return "/tmp/";
-#endif
-	}
+	static string getTempPath();
 
-	static string getInstanceTempPath();
+	static string getOpenPath();
 	static string getOpenPath(const string& aFileName);
 	static void openFile(const string& aPath);
 

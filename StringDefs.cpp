@@ -1486,6 +1486,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "A magnet link was detected for a file \"%s\" (%s). Please choose the action to perform.", 
 "Download and open", 
 "Save in the default download directory", 
+"More information...", 
+"You are already using the latest version", 
+"A new version is available", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2972,4 +2975,7 @@ std::string dcpp::ResourceManager::names[] = {
 "MagnetInfotext", 
 "DownloadOpen", 
 "SaveDefault", 
+"MoreInformation", 
+"UsingLatest", 
+"NewVersionAvailable", 
 };

@@ -1493,5 +1493,8 @@ enum Strings { // @DontAdd
 	MAGNET_INFOTEXT, // "A magnet link was detected for a file \"%s\" (%s). Please choose the action to perform."
 	DOWNLOAD_OPEN, // "Download and open"
 	SAVE_DEFAULT, // "Save in the default download directory"
+	MORE_INFORMATION, // "More information..."
+	USING_LATEST, // "You are already using the latest version"
+	NEW_VERSION_AVAILABLE, // "A new version is available"
 	LAST // @DontAdd
 };

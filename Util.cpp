@@ -115,12 +115,22 @@ static string getDownloadsPath(const string& def) {
 
 #endif
 
-string Util::getInstanceTempPath() {
-	return getTempPath() + INST_NAME + PATH_SEPARATOR_STR;
+string Util::getTempPath() {
+#ifdef _WIN32
+	TCHAR buf[MAX_PATH + 1];
+	DWORD x = GetTempPath(MAX_PATH, buf);
+	return Text::fromT(tstring(buf, x)) + INST_NAME + PATH_SEPARATOR_STR;
+#else
+	return "/tmp/";
+#endif
+}
+
+string Util::getOpenPath() {
+	return getTempPath() + "Opened Items" + PATH_SEPARATOR_STR;
 }
 
 string Util::getOpenPath(const string& aFileName) {
-	return getInstanceTempPath() + "Opened Items" + PATH_SEPARATOR_STR + Util::toString(Util::rand()) + "_" + aFileName;
+	return getOpenPath() + Util::toString(Util::rand()) + "_" + aFileName;
 }
 
 void Util::openFile(const string& aPath) {
