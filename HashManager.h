@@ -85,7 +85,8 @@ public:
 	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) {
 		hasher.getStats(curFile, bytesLeft, filesLeft, speed);
 	}
-	int64_t HashFile(const string& aFile, TTHValue& tth);
+
+	void getFileTTH(const string& aFile, bool addStore, TTHValue& tth_, int64_t& size_);
 
 	/**
 	 * Rebuild hash data file

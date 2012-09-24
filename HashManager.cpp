@@ -68,18 +68,17 @@ bool HashManager::getTree(const TTHValue& root, TigerTree& tt) {
 size_t HashManager::getBlockSize(const TTHValue& root) {
 	return store.getBlockSize(root);
 }
-			
-int64_t HashManager::HashFile(const string& aFile, TTHValue& tth) {
+
+void HashManager::getFileTTH(const string& aFile, bool addStore, TTHValue& tth_, int64_t& size_) {
 	const TTHValue* aTTH = store.getTTH(Text::toLower(aFile));
-	int64_t size = 0;
 	if(!aTTH) {
 		File f(aFile, File::READ, File::OPEN);
-		size = f.getSize();
-		int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
+		size_ = f.getSize();
+		int64_t bs = max(TigerTree::calcBlockSize(size_, 10), MIN_BLOCK_SIZE);
 		uint64_t timestamp = f.getLastModified();
 		TigerTree tt(bs);
 
-	 FileReader fr(true);
+		FileReader fr(true);
 		fr.read(aFile, [&](const void* buf, size_t n) -> bool {
 			tt.update(buf, n);
 			return true;
@@ -87,14 +86,14 @@ int64_t HashManager::HashFile(const string& aFile, TTHValue& tth) {
 
 		f.close();
 		tt.finalize();
-		tth = tt.getRoot();
+		tth_ = tt.getRoot();
 
-		store.addFile(Text::toLower(aFile), timestamp, tt, true);
+		if (addStore)
+			store.addFile(Text::toLower(aFile), timestamp, tt, true);
 	} else {
-		tth = *aTTH;
-		size = File::getSize(aFile);
+		tth_ = *aTTH;
+		size_ = File::getSize(aFile);
 	}
-	return size;
 }
 
 void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t /*size*/) {
@@ -516,15 +515,15 @@ void HashManager::HashStore::createDataFile(const string& name) {
 void HashManager::Hasher::hashFile(const string& fileName, int64_t size) {
 	Lock l(hcs);
 	auto p = move(make_pair(fileName, size));
-	if (w.insert(lower_bound(w.begin(), w.end(), p, HashSortOrder()), p)->second > 0) {
-		totalBytesLeft += size;
+	auto hqr = equal_range(w.begin(), w.end(), p, HashSortOrder());
+	if (hqr.first == hqr.second) {
+		//it doesn't exist yet
+		w.insert(hqr.first, p);
 		s.signal();
+	} else {
+		//in case the size has changed...
+		p.second = size;
 	}
-
-	/*if (w.insert(make_pair(fileName, size)).second) {
-		totalBytesLeft += size;
-		s.signal();
-	}*/
 }
 
 bool HashManager::Hasher::pause() {
