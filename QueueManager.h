@@ -255,7 +255,7 @@ private:
 	/** Sanity check for the target filename */
 	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
 	/** Add a source to an existing queue item */
-	bool addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, const string& aRemotePath, bool newBundle=false) throw(QueueException, FileException);
+	bool addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, const string& aRemotePath, bool newBundle=false, bool checkTLS=true) throw(QueueException, FileException);
 	 
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
@@ -265,7 +265,9 @@ private:
 	void addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
 
 	void load(const SimpleXML& aXml);
-	void moveFile(const string& source, const string& target, QueueItemPtr q = nullptr);
+
+	//always use forceThreading if this is called from within a lock and it's being used for bundle items
+	void moveFile(const string& source, const string& target, QueueItemPtr q = nullptr, bool forceThreading = false);
 	static void moveFile_(const string& source, const string& target, QueueItemPtr q);
 
 	void handleMovedBundleItem(QueueItemPtr q);

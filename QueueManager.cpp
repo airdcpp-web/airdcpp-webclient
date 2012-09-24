@@ -649,8 +649,8 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence, Bun
 }
 
 /** Add a source to an existing queue item */
-bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, const string& aRemotePath, bool newBundle) throw(QueueException, FileException) {
-	if (!aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
+bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, const string& aRemotePath, bool newBundle /*false*/, bool checkTLS /*true*/) throw(QueueException, FileException) {
+	if (checkTLS && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		throw QueueException(STRING(SOURCE_NO_ENCRYPTION));
 	}
 
@@ -846,9 +846,9 @@ removePartial:
 	return nullptr;
 }
 
-void QueueManager::moveFile(const string& source, const string& target, QueueItemPtr q /*nullptr, only add when download finishes!*/) {
+void QueueManager::moveFile(const string& source, const string& target, QueueItemPtr q /*nullptr, only add when download finishes!*/, bool forceThreading /*false*/) {
 	File::ensureDirectory(target);
-	if(File::getSize(source) > MOVER_LIMIT) {
+	if(forceThreading || File::getSize(source) > MOVER_LIMIT) {
 		mover.moveFile(source, target, q);
 	} else {
 		moveFile_(source, target, q);
@@ -1884,7 +1884,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 
 					qm->addSource(cur, hintedUser, 0, remotePath) && user->isOnline();
 				} else {
-					qm->addSource(cur, hintedUser, 0, Util::emptyString) && user->isOnline();
+					qm->addSource(cur, hintedUser, 0, Util::emptyString, true, false) && user->isOnline();
 				}
 			} catch(const Exception&) {
 				return;
@@ -1912,17 +1912,18 @@ void QueueLoader::endTag(const string& name, const string&) {
 		if(name == "Downloads") {
 			inDownloads = false;
 		} else if(name == sBundle) {
-			if (curBundle->getQueueItems().empty())
-				throw Exception(STRING_F(NO_FILES_WERE_LOADED, curBundle->getTarget()));
-			else
-				QueueManager::getInstance()->addBundle(curBundle, true);
-			curBundle = nullptr;
+			ScopedFunctor([this] { curBundle = nullptr; });
 			inBundle = false;
+			if (curBundle->getQueueItems().empty()) {
+				throw Exception(STRING_F(NO_FILES_WERE_LOADED, curBundle->getTarget()));
+			} else {
+				QueueManager::getInstance()->addBundle(curBundle, true);
+			}
 		} else if(name == sFile) {
-			if (!curBundle || curBundle->getQueueItems().empty())
-				throw Exception(STRING(NO_FILES_FROM_FILE));
 			curToken = Util::emptyString;
 			inFile = false;
+			if (!curBundle || curBundle->getQueueItems().empty())
+				throw Exception(STRING(NO_FILES_FROM_FILE));
 		} else if(name == sDownload) {
 			if (curBundle && curBundle->isFileBundle()) {
 				/* Only for file bundles and when migrating an old queue */
@@ -2762,7 +2763,7 @@ void QueueManager::moveBundle(const string& aTarget, BundlePtr sourceBundle, boo
 				if (!fileQueue.findFile(targetPath)) {
 					if(!Util::fileExists(targetPath)) {
 						qi->unsetFlag(QueueItem::FLAG_MOVED);
-						moveFile(qi->getTarget(), targetPath, qi);
+						moveFile(qi->getTarget(), targetPath, qi, true);
 						if (hasMergeBundle) {
 							bundleQueue.removeFinishedItem(qi);
 							fileQueue.move(qi, targetPath);
@@ -2855,7 +2856,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 					if (!fileQueue.findFile(targetPath)) {
 						if(!Util::fileExists(targetPath)) {
 							qi->unsetFlag(QueueItem::FLAG_MOVED);
-							moveFile(qi->getTarget(), targetPath, qi);
+							moveFile(qi->getTarget(), targetPath, qi, true);
 							fileQueue.move(qi, targetPath);
 							if (newBundle == sourceBundle) {
 								i++;
