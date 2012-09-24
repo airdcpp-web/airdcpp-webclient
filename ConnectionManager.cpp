@@ -808,7 +808,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		auto i = expectedConnections.remove(token);
 		if(i.second.empty()) {
 			//we dont want connections without hubhint laying around..
-			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not excepted"));
+			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not expected"));
 			putConnection(aSource);
 			return;
 		} else {
