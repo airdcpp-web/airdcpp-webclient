@@ -678,7 +678,7 @@ SettingsManager::SettingsManager()
 	setDefault(LOG_HASHING, false);
 	setDefault(RECENT_BUNDLE_HOURS, 24);
 	setDefault(USE_FTP_LOGGER, false);
-	setDefault(ICON_PATH, "icons");
+	setDefault(ICON_PATH, "Themes\\Example_IconPack");
 	setDefault(QI_AUTOPRIO, true);
 	setDefault(SHOW_SHARED_DIRS_FAV, true);
 	setDefault(ALLOW_MATCH_FULL_LIST, false);
