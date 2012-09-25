@@ -1377,7 +1377,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Share Profile", 
 "Share Profiles", 
 "A profile with the same name exists already", 
-"This directory also exists in %d other profiles. Do you want to remove it from all of them?", 
+"This directory also exists in %d other profile(s)", 
 "Add profile", 
 "Add copy from this", 
 "Remove profile", 
@@ -1489,6 +1489,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "More information...", 
 "You are already using the latest version", 
 "A new version is available", 
+"Perform this action for %d remaining items", 
+"Remove this path from all profiles", 
+"Remove only from the current profile", 
+"Show other profiles", 
+"Other profiles", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2978,4 +2983,9 @@ std::string dcpp::ResourceManager::names[] = {
 "MoreInformation", 
 "UsingLatest", 
 "NewVersionAvailable", 
+"PerformXRemaining", 
+"RemoveOtherProfiles", 
+"LeaveOtherProfiles", 
+"ShowOtherProfiles", 
+"OtherProfiles", 
 };

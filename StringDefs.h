@@ -1384,7 +1384,7 @@ enum Strings { // @DontAdd
 	SHARE_PROFILE, // "Share Profile"
 	SHARE_PROFILES, // "Share Profiles"
 	PROFILE_EXISTS, // "A profile with the same name exists already"
-	X_PROFILE_DIRS_EXISTS, // "This directory also exists in %d other profiles. Do you want to remove it from all of them?"
+	X_PROFILE_DIRS_EXISTS, // "This directory also exists in %d other profile(s)"
 	ADD_PROFILE, // "Add profile"
 	ADD_PROFILE_COPY, // "Add copy from this"
 	REMOVE_PROFILE, // "Remove profile"
@@ -1496,5 +1496,10 @@ enum Strings { // @DontAdd
 	MORE_INFORMATION, // "More information..."
 	USING_LATEST, // "You are already using the latest version"
 	NEW_VERSION_AVAILABLE, // "A new version is available"
+	PERFORM_X_REMAINING, // "Perform this action for %d remaining items"
+	REMOVE_OTHER_PROFILES, // "Remove this path from all profiles"
+	LEAVE_OTHER_PROFILES, // "Remove only from the current profile"
+	SHOW_OTHER_PROFILES, // "Show other profiles"
+	OTHER_PROFILES, // "Other profiles"
 	LAST // @DontAdd
 };
