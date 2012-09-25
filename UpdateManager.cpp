@@ -52,11 +52,21 @@
 
 namespace dcpp {
 
-UpdateManager::UpdateManager() : installedUpdate(0) { 
+UpdateManager::UpdateManager() : installedUpdate(0), lastIPUpdate(GET_TICK()) {
+	TimerManager::getInstance()->addListener(this);
 	sessionToken = Util::toString(Util::rand());
 }
 
-UpdateManager::~UpdateManager() { }
+UpdateManager::~UpdateManager() { 
+	TimerManager::getInstance()->removeListener(this);
+}
+
+void UpdateManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+	if (BOOLSETTING(UPDATE_IP_HOURLY) && lastIPUpdate + 60*60*1000 < aTick) {
+		checkIP(false);
+		lastIPUpdate = aTick;
+	}
+}
 
 bool UpdateManager::verifyVersionData(const string& data, const ByteVector& signature) {
 	int res = -1;
@@ -580,14 +590,8 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 					if(xml.findChild("Title")) {
 						const string& title = xml.getChildData();
 						xml.resetCurrentChild();
-						if(xml.findChild("Message")) {
-							if(url.empty()) {
-								//const string& msg = xml.getChildData();
-								//MessageBox(Text::toT(msg).c_str(), Text::toT(title).c_str(), MB_OK);
-							} else {
-								//string msg = xml.getChildData() + "\r\n" + STRING(OPEN_DOWNLOAD_PAGE);
-								fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), remoteVer, url, autoUpdateEnabled, remoteBuild, updateUrl);
-							}
+						if(xml.findChild("Message") && (!BOOLSETTING(DONT_ANNOUNCE_NEW_VERSIONS) || manualCheck)) {
+							fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), remoteVer, url, autoUpdateEnabled, remoteBuild, updateUrl);
 						}
 					}
 					//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);

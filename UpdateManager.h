@@ -24,6 +24,7 @@
 #include "version.h"
 #include "UpdateManagerListener.h"
 #include "HttpDownload.h"
+#include "TimerManager.h"
 
 #define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
 
@@ -31,7 +32,7 @@ namespace dcpp {
 
 using std::unique_ptr;
 
-class UpdateManager : public Singleton<UpdateManager>, public Speaker<UpdateManagerListener>
+class UpdateManager : public Singleton<UpdateManager>, public Speaker<UpdateManagerListener>, private TimerManagerListener
 {
 
 public:
@@ -92,6 +93,7 @@ public:
 	int getInstalledUpdate() { return installedUpdate; }
 	bool isUpdating();
 private:
+	uint64_t lastIPUpdate;
 	static uint8_t publicKey[];
 
 	string exename;
@@ -114,6 +116,8 @@ private:
 	void completeIPCheck(bool manualCheck);
 
 	void failUpdateDownload(const string& aError, bool manualCheck);
+
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 };
 
 } // namespace dcpp

@@ -1494,6 +1494,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Remove only from the current profile", 
 "Show other profiles", 
 "Other profiles", 
+"Update the IP address once per hour (only enable if you need this)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2988,4 +2989,5 @@ std::string dcpp::ResourceManager::names[] = {
 "LeaveOtherProfiles", 
 "ShowOtherProfiles", 
 "OtherProfiles", 
+"UpdateIpEvery", 
 };
