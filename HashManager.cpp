@@ -593,9 +593,11 @@ int HashManager::Hasher::run() {
 			continue;
 		}
 		
+		bool dirChanged = false;
 		{
 			Lock l(hcs);
 			if(!w.empty()) {
+				dirChanged = compare(Util::getFilePath(w.front().first), Util::getFilePath(fname)) != 0;
 				currentFile = fname = move(w.front().first);
 				w.pop_front();
 			} else {
@@ -608,8 +610,10 @@ int HashManager::Hasher::run() {
 			try {
 				if (initialDir.empty()) {
 					initialDir = Util::getFilePath(fname);
-					sfv.loadPath(initialDir);
 				}
+
+				if (dirChanged)
+					sfv.loadPath(Util::getFilePath(fname));
 				uint64_t start = GET_TICK();
 				File f(fname, File::READ, File::OPEN);
 				int64_t size = f.getSize();
