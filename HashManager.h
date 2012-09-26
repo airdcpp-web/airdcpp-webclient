@@ -29,6 +29,7 @@
 #include "Streams.h"
 #include "ZUtils.h"
 #include "GetSet.h"
+#include "SFVReader.h"
 
 namespace dcpp {
 
@@ -167,6 +168,7 @@ private:
 		int64_t hashTime;
 		int dirsHashed;
 		string initialDir;
+		DirSFVReader sfv;
 	};
 
 	friend class Hasher;

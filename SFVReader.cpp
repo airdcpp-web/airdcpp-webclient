@@ -37,21 +37,40 @@
 
 namespace dcpp {
 
-DirSFVReader::DirSFVReader(const string& aPath) : path(aPath) {
-	sfvFiles = File::findFiles(path, "*.sfv");
-	load();
+DirSFVReader::DirSFVReader() : loaded(false) { }
+
+DirSFVReader::DirSFVReader(const string& aPath) : loaded(false) {
+	loadPath(aPath);
 }
 
-DirSFVReader::DirSFVReader(const string& aPath, const StringList& aSfvFiles) {
+DirSFVReader::DirSFVReader(const string& aPath, const StringList& aSfvFiles) : loaded(false) {
 	sfvFiles = aSfvFiles;
 	load();
 }
 
-bool DirSFVReader::hasFile(const string& fileName) {
-	return find_if(content.begin(), content.end(), CompareFirst<string, uint32_t>(fileName)) != content.end();
+void DirSFVReader::loadPath(const string& aPath) {
+	content.clear();
+	path = aPath;
+	sfvFiles = File::findFiles(path, "*.sfv");
+	load();
 }
 
-bool DirSFVReader::isCrcValid(const string& fileName) {
+bool DirSFVReader::hasFile(const string& fileName, uint32_t& crc32_) const {
+	if (loaded) {
+		auto p = find_if(content.begin(), content.end(), CompareFirst<string, uint32_t>(fileName));
+		if (p != content.end()) {
+			crc32_ = p->second;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool DirSFVReader::hasFile(const string& fileName) const {
+	return loaded && find_if(content.begin(), content.end(), CompareFirst<string, uint32_t>(fileName)) != content.end();
+}
+
+bool DirSFVReader::isCrcValid(const string& fileName) const {
 	auto p = find_if(content.begin(), content.end(), CompareFirst<string, uint32_t>(fileName));
 	if (p != content.end()) {
 		CRC32Filter crc32;
@@ -129,6 +148,7 @@ void DirSFVReader::load() noexcept {
 		sfv.close();
 	}
 
+	loaded = true;
 	readPos = content.begin();
 }
 
@@ -140,43 +160,6 @@ bool DirSFVReader::read(string& fileName) {
 	fileName = readPos->first;
 	advance(readPos, 1);
 	return true;
-}
-
-
-bool FileSFVReader::tryFile(const string& sfvFile, const string& fileName) {
-	string sfv = Text::toUtf8(File(sfvFile, File::READ, File::OPEN).read());
-
-	string::size_type i = 0;
-	while( (i = Util::findSubString(sfv, fileName, i)) != string::npos) {
-		// Either we're at the beginning of the file or the line...otherwise skip...
-		if( (i == 0) || (sfv[i-1] == '\n') ) {
-			string::size_type j = i + fileName.length() + 1;
-			if(j < sfv.length() - 8) {
-				sscanf(sfv.c_str() + j, "%x", &crc32);
-				crcFound = true;
-				return true;
-			}
-		}
-		i += fileName.length();
-	}
-
-	return false;
-}
-
-void FileSFVReader::load(const string& fileName) noexcept {
-	string path = Util::getFilePath(fileName);
-	string fname = Util::getFileName(fileName);
-	StringList files = File::findFiles(path, "*.sfv");
-
-	for(StringIter i = files.begin(); i != files.end(); ++i) {
-		try {
-			if (tryFile(*i, fname)) {
-				return;
-			}
-		} catch(const FileException&) {
-			// Ignore...
-		}
-	}
 }
 
 } // namespace dcpp

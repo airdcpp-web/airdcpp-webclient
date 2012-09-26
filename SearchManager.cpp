@@ -352,7 +352,8 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 			
 		c.getParameters().erase(c.getParameters().begin());			
 			
-		SearchManager::getInstance()->onPBD(c, user);
+		if (user)
+			SearchManager::getInstance()->onPBD(c, user);
 		
 	} else if ((x.compare(1, 4, "UBD ") == 0 || x.compare(1, 4, "UBN ") == 0) && x[x.length() - 1] == 0x0a) {
 		AdcCommand c(x.substr(0, x.length()-1));

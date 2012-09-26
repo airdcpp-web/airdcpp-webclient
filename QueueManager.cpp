@@ -650,12 +650,12 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence, Bun
 
 /** Add a source to an existing queue item */
 bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::MaskType addBad, const string& aRemotePath, bool newBundle /*false*/, bool checkTLS /*true*/) throw(QueueException, FileException) {
+	if (!aUser.user) //atleast magnet links can cause this to happen.
+		throw QueueException("Can't find Source user to add For Target: " + qi->getTargetFileName());
+
 	if (checkTLS && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		throw QueueException(STRING(SOURCE_NO_ENCRYPTION));
 	}
-
-	if (!aUser.user) //atleast magnet links can cause this to happen.
-		throw QueueException("Can't find Source user to add For Target: " + qi->getTargetFileName());
 
 	if(qi->isFinished()) //no need to add source to finished item.
 		throw QueueException("Already Finished: " + Util::getFileName(qi->getTarget()));

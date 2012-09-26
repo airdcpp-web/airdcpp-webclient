@@ -32,7 +32,7 @@ using std::string;
 
 class DirSFVReader {
 public:
-	/** @see load */
+	DirSFVReader();
 	DirSFVReader(const string& aPath);
 	DirSFVReader(const string& aPath, const StringList& aSfvFiles);
 
@@ -45,51 +45,28 @@ public:
 	 * considered comments, and we throw away lines with ' ' or '#' as well
 	 * (pdSFV 1.2 does this...).
 	 */
-	bool hasFile(const string& fileName);
-	bool hasSFV() { return !sfvFiles.empty(); }
-	bool isCrcValid(const string& file);
-	bool read(string& fileName);
-	GETSET(string, path, Path);
-private:
+	bool hasFile(const string& fileName) const;
+	bool hasFile(const string& fileName, uint32_t& crc32_) const;
 
-	bool tryFile(const string& sfvFile, const string& fileName);
+	bool hasSFV() const { return !sfvFiles.empty(); }
+	bool isCrcValid(const string& file) const;
+
+	/* Loops through the file names */
+	bool read(string& fileName);
+
+	void loadPath(const string& aPath);
+	string getPath() const { return path; }
+private:
+	bool loaded;
 
 	StringList sfvFiles;
+	string path;
 
 	/* File name + crc */
 	vector<pair<string, uint32_t>> content;
 	vector<pair<string, uint32_t>>::const_iterator readPos;
 
 	void load() noexcept;
-};
-
-
-class FileSFVReader {
-public:
-	/** @see load */
-	FileSFVReader(const string& aFileName) : crc32(0), crcFound(false) { load(aFileName); }
-
-	/**
-	 * Search for a CRC32 file in all .sfv files in the directory of fileName.
-	 * Each SFV file has a number of lines containing a filename and its CRC32 value
-	 * in the form:
-	 * filename.ext xxxxxxxx
-	 * where the x's represent the file's crc32 value. Lines starting with ';' are
-	 * considered comments, and we throw away lines with ' ' or '#' as well
-	 * (pdSFV 1.2 does this...).
-	 */
-	void load(const string& fileName) noexcept;
-
-	bool hasCRC() const noexcept { return crcFound; }
-	uint32_t getCRC() const noexcept { return crc32; }
-
-private:
-
-	uint32_t crc32;
-	bool crcFound;
-
-	bool tryFile(const string& sfvFile, const string& fileName);
-
 };
 
 } // namespace dcpp

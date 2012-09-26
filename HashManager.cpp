@@ -25,7 +25,6 @@
 #include "File.h"
 #include "FileReader.h"
 #include "ZUtils.h"
-#include "SFVReader.h"
 #include "ShareManager.h"
 
 
@@ -519,6 +518,7 @@ void HashManager::Hasher::hashFile(const string& fileName, int64_t size) {
 	if (hqr.first == hqr.second) {
 		//it doesn't exist yet
 		w.insert(hqr.first, p);
+		totalBytesLeft += size;
 		s.signal();
 	} else {
 		//in case the size has changed...
@@ -598,9 +598,6 @@ int HashManager::Hasher::run() {
 			if(!w.empty()) {
 				currentFile = fname = move(w.front().first);
 				w.pop_front();
-
-				if (initialDir.empty())
-					initialDir = Util::getFilePath(fname);
 			} else {
 				fname.clear();
 			}
@@ -609,6 +606,10 @@ int HashManager::Hasher::run() {
 
 		if(!fname.empty()) {
 			try {
+				if (initialDir.empty()) {
+					initialDir = Util::getFilePath(fname);
+					sfv.loadPath(initialDir);
+				}
 				uint64_t start = GET_TICK();
 				File f(fname, File::READ, File::OPEN);
 				int64_t size = f.getSize();
@@ -617,11 +618,11 @@ int HashManager::Hasher::run() {
 				int64_t sizeLeft = size;
 				TigerTree tt(bs);
 
+				uint32_t fileCRC = 0;
 				CRC32Filter crc32;
-				FileSFVReader sfv(fname);
 				CRC32Filter* xcrc32 = 0;
 
-				if (sfv.hasCRC())
+				if (sfv.hasFile(Text::toLower(Util::getFileName(fname)), fileCRC))
 					xcrc32 = &crc32;
 
 				uint64_t lastRead = GET_TICK();
@@ -669,7 +670,7 @@ int HashManager::Hasher::run() {
 					averageSpeed = size * 1000 / (end - start);
 				}
 
-				if(xcrc32 && xcrc32->getValue() != sfv.getCRC()) {
+				if(xcrc32 && xcrc32->getValue() != fileCRC) {
 					LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), LogManager::LOG_ERROR);
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				} else {

@@ -127,7 +127,7 @@ int ShareScannerManager::run() {
 
 		/* Scan root files */
 		if (!sfvFilePaths.empty()) {
-			DirSFVReader sfv = DirSFVReader(Util::getFilePath(rootPaths.front()));
+			DirSFVReader sfv(Util::getFilePath(rootPaths.front()));
 			for(auto i = sfvFilePaths.begin(); i != sfvFilePaths.end(); i++) {
 				if (stop)
 					break;
@@ -455,7 +455,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 	int releaseFiles=0, loopMissing=0;
 
-	DirSFVReader sfv = DirSFVReader(path, sfvFileList);
+	DirSFVReader sfv(path, sfvFileList);
 	while (sfv.read(fileName)) {
 		hasValidSFV = true;
 		releaseFiles++;
@@ -495,7 +495,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 }
 
 void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& dirs) throw(FileException) {
-	DirSFVReader sfv = DirSFVReader(aPath);
+	DirSFVReader sfv(aPath);
 
 	/* Get the size and see if all files in the sfv exists */
 	if (sfv.hasSFV()) {
