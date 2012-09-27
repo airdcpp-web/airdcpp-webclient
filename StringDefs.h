@@ -1502,5 +1502,6 @@ enum Strings { // @DontAdd
 	SHOW_OTHER_PROFILES, // "Show other profiles"
 	OTHER_PROFILES, // "Other profiles"
 	UPDATE_IP_EVERY, // "Update the IP address once per hour (only enable if you need this)"
+	ADD_THIS_PROFILE, // "Add in this profile"
 	LAST // @DontAdd
 };
