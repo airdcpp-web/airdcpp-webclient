@@ -27,6 +27,7 @@
 #include "DirectoryListingManagerListener.h"
 #include "Singleton.h"
 #include "TargetUtil.h"
+#include "TimerManager.h"
 
 #include "Singleton.h"
 
@@ -42,7 +43,8 @@ namespace dcpp {
 
 	class DirectoryDownloadInfo;
 	class FinishedDirectoryItem;
-	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener {
+	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, 
+		public TimerManagerListener {
 	public:
 		void openOwnList(ProfileToken aProfile);
 		void openFileList(const HintedUser& aUser, const string& aFile);
@@ -65,17 +67,22 @@ namespace dcpp {
 		friend class Singleton<DirectoryListingManager>;
 
 		mutable SharedMutex cs;
-		unordered_map<UserPtr, DirectoryListingPtr, User::Hash> fileLists;
 
 		bool hasList(const UserPtr& aUser);
 		void createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir = Util::emptyString, bool isOwnList=false);
 		void createPartialList(const HintedUser& aUser, const string& aXml, ProfileToken aProfile=SP_DEFAULT, bool isOwnList=false);
+
+		/** Directories queued for downloading */
+		boost::unordered_multimap<UserPtr, DirectoryDownloadInfo*, User::Hash> dlDirectories;
+		/** Directories asking for size confirmation (later also directories added for scanning etc. ) **/
+		unordered_map<string, FinishedDirectoryItem*> finishedListings;
+		/** Lists open in the client **/
+		unordered_map<UserPtr, DirectoryListingPtr, User::Hash> viewedLists;
+
 		void on(QueueManagerListener::Finished, const QueueItemPtr qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
 		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& text) noexcept;
 
-		/** Directories queued for downloading */
-		boost::unordered_multimap<UserPtr, DirectoryDownloadInfo*, User::Hash> directories;
-		unordered_map<string, FinishedDirectoryItem*> finishedListings;
+		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	};
 
 }
