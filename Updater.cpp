@@ -20,12 +20,23 @@
 #include "Updater.h"
 #include "File.h"
 #include "Util.h"
+#include "ZipFile.h"
+#include "SimpleXML.h"
+#include "HashCalc.h"
+#include "Version.h"
+
 
 #include <boost/shared_array.hpp>
 
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/pem.h>
+
+#ifdef _WIN64
+# define ARCH_STR "x64"
+#else
+# define ARCH_STR "x86"
+#endif
 
 namespace dcpp {
 
@@ -57,6 +68,45 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath) {
 	}
 
 	return ret;
+}
+
+void Updater::createUpdate() {
+	auto updaterFilePath = Util::getParentDir(Util::getAppName());
+	string updaterFile = "updater_" ARCH_STR "_" SVNVERSION ".zip";
+
+	StringPairList files;
+	ZipFile::CreateZipFileList(files, Util::getFilePath(Util::getAppName()), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
+	ZipFile::CreateZipFile(updaterFilePath + updaterFile, files);
+
+	try {
+		SimpleXML xml;
+		xml.fromXML(File(updaterFilePath + "version.xml", File::READ, File::OPEN).read());
+		if(xml.findChild("DCUpdate")) {
+			xml.stepIn();
+			xml.getData();
+#ifdef _WIN64
+			if(xml.findChild("UpdateURLx64")) {
+#else
+			if(xml.findChild("UpdateURL")) {
+#endif
+				xml.replaceChildAttrib("TTH", TTH(updaterFilePath + updaterFile));
+				xml.replaceChildAttrib("Build", SVNVERSION);
+				xml.stepIn();
+				xml.setData("http://builds.airdcpp.net/version/" + updaterFile);
+				xml.stepOut();
+				if(xml.findChild("SVNrev")) {
+					xml.stepIn();
+
+					File f(updaterFilePath + "version.xml", File::WRITE, File::CREATE | File::TRUNCATE);
+					f.write(SimpleXML::utf8Header);
+					f.write(xml.toXML());
+					f.close();
+				}
+			}
+		}
+	} catch(const Exception& /*e*/) { }
+
+	signVersionFile(updaterFilePath + "version.xml", updaterFilePath + "air_rsa", false);
 }
 
 void Updater::signVersionFile(const string& file, const string& key, bool makeHeader) {

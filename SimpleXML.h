@@ -79,6 +79,11 @@ public:
 		dcassert(current != NULL);
 		return current->data;
 	}
+
+	void setData(const string& aData) {
+		dcassert(current != NULL);
+		current->data = aData;
+	}
 	
 	void stepIn() {
 		checkChildSelected();

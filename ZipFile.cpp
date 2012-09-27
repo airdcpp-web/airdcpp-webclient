@@ -278,7 +278,7 @@ void ZipFile::CreateZipFileList(StringPairList& files, const string& srcPath, co
 			continue;
 
 		if(i->isDirectory()) {
-			string newSrcPath = srcPath + name + PATH_SEPARATOR;
+			/*string newSrcPath = srcPath + name + PATH_SEPARATOR;
 			string newDstPath = dstPath + name + '/';
 
 			StringPairList subFiles;
@@ -287,7 +287,7 @@ void ZipFile::CreateZipFileList(StringPairList& files, const string& srcPath, co
 			if(keepEmpty || !subFiles.empty()) {
 				files.push_back(make_pair(newSrcPath, newDstPath));
 				files.insert(files.end(), subFiles.begin(), subFiles.end());
-			}
+			}*/
 		} else {
 			if(!aPattern.empty()) {
 				try {

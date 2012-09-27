@@ -48,8 +48,6 @@
 # define UPGRADE_TAG "UpdateURL"
 #endif
 
-#define APP_AUTH_KEY TTH(SHA1(SETTING(BETAUSR) + " - " + MD5(BOOST_STRINGIZE(BUILDID))))
-
 namespace dcpp {
 
 UpdateManager::UpdateManager() : installedUpdate(0), lastIPUpdate(GET_TICK()) {
@@ -579,9 +577,16 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		if(xml.findChild("Version")) {
 			string remoteVer = xml.getChildData();
 			int remoteBuild = 0;
+			xml.resetCurrentChild();
+#ifdef BETAVER
+			if(xml.findChild(UPGRADE_TAG)) {
+				remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
+			}
+#else
 			if (xml.findChild("SVNrev")) {
 				remoteBuild = Util::toInt(xml.getChildData());
 			}
+#endif
 			xml.resetCurrentChild();
 
 			if((remoteBuild > ownBuild && remoteBuild > installedUpdate) || manualCheck) {

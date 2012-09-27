@@ -705,7 +705,7 @@ SettingsManager::SettingsManager()
 	setDefault(POPUNDER_PARTIAL_LIST, false);
 	setDefault(TLS_MODE, 1);
 	setDefault(LAST_SEARCH_DISABLED_HUBS, Util::emptyString);
-	setDefault(UPDATE_METHOD, 0);
+	setDefault(UPDATE_METHOD, 2);
 	setDefault(UPGRADE_AUTOBACKUP, 0);
 	setDefault(QUEUE_SPLITTER_POS, 3000);
 	setDefault(UPDATE_IP_HOURLY, false);

@@ -27,6 +27,7 @@ class Updater {
 public:
 	static bool applyUpdate(const string& sourcePath, const string& installPath);
 	static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
+	static void createUpdate();
 };
 
 }
