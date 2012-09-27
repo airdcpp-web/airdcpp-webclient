@@ -92,16 +92,12 @@ void Updater::createUpdate() {
 				xml.replaceChildAttrib("TTH", TTH(updaterFilePath + updaterFile));
 				xml.replaceChildAttrib("Build", SVNVERSION);
 				xml.stepIn();
-				xml.setData("http://builds.airdcpp.net/version/" + updaterFile);
-				xml.stepOut();
-				if(xml.findChild("SVNrev")) {
-					xml.stepIn();
+				xml.setData("http://builds.airdcpp.net/updater/" + updaterFile);
 
-					File f(updaterFilePath + "version.xml", File::WRITE, File::CREATE | File::TRUNCATE);
-					f.write(SimpleXML::utf8Header);
-					f.write(xml.toXML());
-					f.close();
-				}
+				File f(updaterFilePath + "version.xml", File::WRITE, File::CREATE | File::TRUNCATE);
+				f.write(SimpleXML::utf8Header);
+				f.write(xml.toXML());
+				f.close();
 			}
 		}
 	} catch(const Exception& /*e*/) { }
