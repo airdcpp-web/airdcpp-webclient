@@ -106,7 +106,7 @@ DirectoryListingManager::~DirectoryListingManager() {
 
 void DirectoryListingManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	WLock l(cs);
-	for(auto i = finishedListings.begin(); i != finishedListings.end(); ++i) {
+	for(auto i = finishedListings.begin(); i != finishedListings.end();) {
 		if(i->second->getState() != FinishedDirectoryItem::WAITING_ACTION && i->second->getTimeDownloaded() + 5*60*1000 < aTick) {
 			delete i->second;
 			finishedListings.erase(i);
@@ -159,38 +159,34 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 }
 
 void DirectoryListingManager::processList(const string& name, const HintedUser& user, const string& path, int flags) {
-	DirectoryListingPtr dirList = nullptr;
 	{
 		RLock l(cs);
 		auto p = viewedLists.find(user.user);
 		if (p != viewedLists.end()) {
-			dirList = p->second;
-			if (dirList->getPartialList()) {
+			if (p->second->getPartialList()) {
 				if(flags & QueueItem::FLAG_TEXT) {
 					//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
-					dirList->addPartialListTask(name, [dirList, this, path, flags] { processListAction(dirList, path, flags); });
+					p->second->addPartialListTask(name, [p, this, path, flags] { processListAction(p->second, path, flags); });
 					return;
 				}
 			}
 		}
 	}
 
-	if (!dirList) {
-		dirList = DirectoryListingPtr(new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name, false, false));
-		try {
-			if(flags & QueueItem::FLAG_TEXT) {
-				MemoryInputStream mis(name);
-				dirList->loadXML(mis, true);
-			} else {
-				dirList->loadFile(name);
-			}
-		} catch(const Exception&) {
-			LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + name, LogManager::LOG_ERROR);
-			return;
+	DirectoryListing* dirList = new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name, false, false);
+	try {
+		if(flags & QueueItem::FLAG_TEXT) {
+			MemoryInputStream mis(name);
+			dirList->loadXML(mis, true);
+		} else {
+			dirList->loadFile(name);
 		}
+	} catch(const Exception&) {
+		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + name, LogManager::LOG_ERROR);
+		return;
 	}
 
-	processListAction(dirList, path, flags);
+	processListAction(DirectoryListingPtr(dirList), path, flags);
 }
 
 void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const string& path, int flags) {
