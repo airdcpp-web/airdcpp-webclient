@@ -1504,5 +1504,6 @@ enum Strings { // @DontAdd
 	UPDATE_IP_EVERY, // "Update the IP address once per hour (only enable if you need this)"
 	ADD_THIS_PROFILE, // "Add in this profile"
 	HIGHLIGHTS_IN_THEME, // "The selected theme has highlight color settings, \r\nloading them will override your old highlights, \r\nwould you still like to load them?"
+	SEARCH_TIMES, // "Search times"
 	LAST // @DontAdd
 };

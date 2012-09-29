@@ -196,8 +196,7 @@ ADLSearchManager::ADLSearchManager() : running(0), user(HintedUser(UserPtr(), Ut
 }
 
 ADLSearchManager::~ADLSearchManager() {
-	save(true); 
-	//for_each(collection.begin(),collection.end(), DeleteFunction());
+	save(true);
 }
 
 ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
@@ -390,10 +389,10 @@ bool ADLSearchManager::updateCollection(ADLSearch& search, int index) {
 }
 
 void ADLSearchManager::save(bool force /*false*/) {
-	// Prepare xml string for saving
 	if (!dirty && !force)
 		return;
 
+	dirty = false;
 	try {
 		SimpleXML xml;
 

@@ -1497,6 +1497,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Update the IP address once per hour (only enable if you need this)", 
 "Add in this profile", 
 "The selected theme has highlight color settings, \r\nloading them will override your old highlights, \r\nwould you still like to load them?", 
+"Search times", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2994,4 +2995,5 @@ std::string dcpp::ResourceManager::names[] = {
 "UpdateIpEvery", 
 "AddThisProfile", 
 "HighlightsInTheme", 
+"SearchTimes", 
 };
