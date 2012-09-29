@@ -57,7 +57,7 @@ public:
 	virtual void on(AdcSearch, const Client*, const AdcCommand&, const CID&) noexcept { }
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
-	virtual void on(SetIcons, const Client*, int status) noexcept { }
+	virtual void on(SetIcons, const Client*, int) noexcept { }
 	virtual void on(DirectSearch, const Client*, const AdcCommand&, const CID&) noexcept { }
 };
 

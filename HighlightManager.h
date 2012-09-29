@@ -55,14 +55,16 @@ public:
 		colorSettings.clear();
 		colorSettings = settings;
 	}
-
+	void clearList() {
+		colorSettings.clear();
+	}
+	
+	void load(SimpleXML& aXml);
+	void save(SimpleXML& aXml);
 
 private:
 	//store all highlights
 	ColorList colorSettings;
-
-	void load(SimpleXML& aXml);
-	void save(SimpleXML& aXml);
 
 	virtual void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;
 	virtual void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept;

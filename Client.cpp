@@ -244,6 +244,7 @@ vector<uint8_t> Client::getKeyprint() const {
 }
 
 bool Client::updateCounts(bool aRemove, bool updateIcons) {
+	Lock l(cs); //prevent data race
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
 		counts[countType]--;

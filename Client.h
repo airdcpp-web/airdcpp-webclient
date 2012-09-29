@@ -156,17 +156,17 @@ public:
 	GETSET(ProfileToken, shareProfile, ShareProfile);
 	GETSET(ProfileToken, favToken, FavToken);
 
+	enum CountType {
+		COUNT_NORMAL = 0x00,
+		COUNT_REGISTERED = 0x01,
+		COUNT_OP = 0x04,
+		COUNT_UNCOUNTED = 0x08
+	};
+
 protected:
 	friend class ClientManager;
 	Client(const string& hubURL, char separator);
 	virtual ~Client();
-
-	enum CountType {
-		COUNT_NORMAL,
-		COUNT_REGISTERED,
-		COUNT_OP,
-		COUNT_UNCOUNTED
-	};
 
 	static atomic<long> counts[COUNT_UNCOUNTED];
 
@@ -183,6 +183,7 @@ protected:
 	BufferedSocket* sock;
 
 	int64_t availableBytes;
+	mutable CriticalSection cs;
 
 	bool updateCounts(bool aRemove, bool updateIcons);
 	void updateActivity() { lastActivity = GET_TICK(); }
