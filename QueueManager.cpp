@@ -387,7 +387,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 	}
 
 	if (aUser.user && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
-		throw QueueException(STRING(SOURCE_NO_ENCRYPTION));
+		throw QueueException(Util::toString(ClientManager::getInstance()->getNicks(aUser)) + ": " + STRING(SOURCE_NO_ENCRYPTION));
 	}
 	
 	string target;
@@ -1116,7 +1116,7 @@ void QueueManager::rechecked(QueueItemPtr qi) {
 	}
 }
 
-void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess /*false*/) noexcept {
+void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess /*false*/, bool rotateQueue /*false*/) noexcept {
 	HintedUserList getConn;
  	string fl_fname;
 	int fl_flag = 0;
@@ -1166,6 +1166,10 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 
 				if (noAccess) {
 					q->blockSourceHub(d->getHintedUser());
+				}
+
+				if (rotateQueue) {
+					q->getBundle()->rotateUserQueue(q, d->getUser());
 				}
 			}
 
@@ -1257,7 +1261,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 		HashManager::getInstance()->addTree(d->getTigerTree());
 	}
 
-	if (q->isSet(QueueItem::FLAG_OPEN)) {
+	if (finished && q->isSet(QueueItem::FLAG_OPEN)) {
 		Util::openFile(q->getTarget());
 	}
 

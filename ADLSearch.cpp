@@ -191,12 +191,12 @@ bool ADLSearch::matchesDirectory(const string& d) {
 }
 
 // Constructor/destructor
-ADLSearchManager::ADLSearchManager() : running(0), user(HintedUser(UserPtr(), Util::emptyString)) {
-	Load(); 
+ADLSearchManager::ADLSearchManager() : running(0), user(HintedUser(UserPtr(), Util::emptyString)), dirty(false) {
+	load();
 }
 
 ADLSearchManager::~ADLSearchManager() {
-	Save(); 
+	save(true); 
 	//for_each(collection.begin(),collection.end(), DeleteFunction());
 }
 
@@ -212,7 +212,7 @@ ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
 	}
 }
 
-void ADLSearchManager::Load()
+void ADLSearchManager::load()
 {
 	if (running > 0) {
 		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
@@ -351,6 +351,7 @@ bool ADLSearchManager::addCollection(ADLSearch& search, int index) {
 	
 	search.prepare();
 	collection.insert(collection.begin() + index, search);
+	dirty = true;
 	return true;
 }
 
@@ -361,6 +362,7 @@ bool ADLSearchManager::removeCollection(int index, bool move) {
 	}
 
 	collection.erase(collection.begin() + index);
+	dirty = true;
 	return true;
 }
 
@@ -371,11 +373,27 @@ bool ADLSearchManager::changeState(int index, bool aIsActive) {
 	}
 
 	collection[index].isActive = aIsActive;
+	dirty = true;
 	return true;
 }
 
-void ADLSearchManager::Save() {
+bool ADLSearchManager::updateCollection(ADLSearch& search, int index) {
+	if (running > 0) {
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
+		return false;
+	}
+
+	collection[index] = search;
+	search.prepare();
+	dirty = true;
+	return true;
+}
+
+void ADLSearchManager::save(bool force /*false*/) {
 	// Prepare xml string for saving
+	if (!dirty && !force)
+		return;
+
 	try {
 		SimpleXML xml;
 

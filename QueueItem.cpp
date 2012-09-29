@@ -115,6 +115,10 @@ bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr left, const QueueIt
 	return left->getSize() < right->getSize();
 }
 
+bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr left, const QueueItemPtr right) const {
+	return left->getPriority() > right->getPriority();
+}
+
 QueueItem::Priority QueueItem::calculateAutoPriority() const {
 	if(autoPriority) {
 		QueueItem::Priority p;
@@ -203,7 +207,7 @@ uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
 
 size_t QueueItem::countOnlineUsers() const {
 	size_t n = 0;
-	for(SourceConstIter i = sources.begin(), iend = sources.end(); i != iend; ++i) {
+	for(auto i = sources.begin(), iend = sources.end(); i != iend; ++i) {
 		if(i->getUser().user->isOnline())
 			n++;
 	}
@@ -217,7 +221,7 @@ QueueItem::~QueueItem() {
 }
 
 void QueueItem::getOnlineUsers(HintedUserList& l) const {
-	for(SourceConstIter i = sources.begin(), iend = sources.end(); i != iend; ++i)
+	for(auto i = sources.begin(), iend = sources.end(); i != iend; ++i)
 		if(i->getUser().user->isOnline())
 			l.push_back(i->getUser());
 }

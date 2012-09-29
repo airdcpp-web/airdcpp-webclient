@@ -240,8 +240,8 @@ public:
 	void removeUserQueue(QueueItemPtr qi) noexcept;
 	bool removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad) noexcept;
 
-	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getList(size_t i)  { return userQueue[i]; }
-	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunningMap()  { return runningItems; }
+	//moves the file back in userqueue for the given user (only within the same priority)
+	void rotateUserQueue(QueueItemPtr qi, const UserPtr& aUser) noexcept;
 private:
 	int64_t finishedSegments;
 	int64_t currentDownloaded; //total downloaded for the running downloads
@@ -251,7 +251,7 @@ private:
 	bool recent;
 
 	/** QueueItems by priority and user (this is where the download order is determined) */
-	boost::unordered_map<UserPtr, QueueItemList, User::Hash> userQueue[LAST];
+	boost::unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[LAST];
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
 };

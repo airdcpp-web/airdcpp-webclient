@@ -436,6 +436,22 @@ pair<uint32_t, uint32_t> Bundle::getPathInfo(const string& aDir) const noexcept 
 	return make_pair(0, 0);
 }
 
+void Bundle::rotateUserQueue(QueueItemPtr qi, const UserPtr& aUser) noexcept {
+	dcassert(qi->isSource(aUser));
+	auto& ulm = userQueue[qi->getPriority()];
+	auto j = ulm.find(aUser);
+	dcassert(j != ulm.end());
+	if (j == ulm.end()) {
+		return;
+	}
+	auto& l = j->second;
+	auto s = find(l, qi);
+	if (s != l.end()) {
+		l.erase(s);
+		l.push_back(qi);
+	}
+}
+
 void Bundle::removeUserQueue(QueueItemPtr qi) noexcept {
 	for_each(qi->getSources(), [&](QueueItem::Source s) { removeUserQueue(qi, s.getUser(), false); });
 }
@@ -453,12 +469,7 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 	auto& l = j->second;
 	auto s = find(l, qi);
 	if (s != l.end()) {
-		if (!seqOrder) {
-			swap(l[distance(l.begin(), s)], l[l.size()-1]);
-			l.pop_back();
-		} else {
-			l.erase(s);
-		}
+		l.erase(s);
 	}
 
 	if(l.empty()) {

@@ -105,7 +105,7 @@ public:
 
 	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
 	Download* getDownload(UserConnection& aSource, string& aMessage, bool smallSlot) noexcept;
-	void putDownload(Download* aDownload, bool finished, bool noAccess=false) noexcept;
+	void putDownload(Download* aDownload, bool finished, bool noAccess=false, bool rotateQueue=false) noexcept;
 	
 	/** @return The highest priority download the user has, PAUSED may also mean no downloads */
 	QueueItem::Priority hasDownload(const HintedUser& aUser, bool smallSlot, string& bundleToken) noexcept;

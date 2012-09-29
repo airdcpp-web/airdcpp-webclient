@@ -332,12 +332,12 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 		if(bytes >= 0) {
 			d->setSize(bytes);
 		} else {
-			failDownload(aSource, STRING(INVALID_SIZE));
+			failDownload(aSource, STRING(INVALID_SIZE), true);
 			return;
 		}
 	} else if(d->getSize() != bytes || d->getStartPos() != start) {
 		// This is not what we requested...
-		failDownload(aSource, STRING(INVALID_SIZE));
+		failDownload(aSource, STRING(INVALID_SIZE), true);
 		return;
 	}
 	
@@ -345,18 +345,19 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 		WLock l (cs);
 		d->open(bytes, z);
 	} catch(const FileException& e) {
-		failDownload(aSource, STRING(COULD_NOT_OPEN_TARGET_FILE) + " " + e.getError());
+		failDownload(aSource, STRING(COULD_NOT_OPEN_TARGET_FILE) + " " + e.getError(), true);
 		return;
 	} catch(const Exception& e) {
-		failDownload(aSource, e.getError());
+		failDownload(aSource, e.getError(), true);
 		return;
 	}
 
 	d->setStart(GET_TICK());
 	d->tick();
-	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isSet(UserConnection::FLAG_MCN1)) {
-		ConnectionManager::getInstance()->addRunningMCN(aSource);
-		aSource->setFlag(UserConnection::FLAG_RUNNING);
+	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isSet(UserConnection::FLAG_MCN1) && 
+		d->getType() == Download::TYPE_FILE && !aSource->isSet(UserConnection::FLAG_SMALL_SLOT)) {
+			ConnectionManager::getInstance()->addRunningMCN(aSource);
+			aSource->setFlag(UserConnection::FLAG_RUNNING);
 	}
 	aSource->setState(UserConnection::STATE_RUNNING);
 
@@ -372,7 +373,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 			// Already finished? A zero-byte file list could cause this...
 			endData(aSource);
 		} catch(const Exception& e) {
-			failDownload(aSource, e.getError());
+			failDownload(aSource, e.getError(), true);
 		}
 	} else {
 		aSource->setDataMode();
@@ -393,7 +394,7 @@ void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, 
 		}
 	} catch(const Exception& e) {
 		//d->resetPos(); // is there a better way than resetting the position?
-		failDownload(aSource, e.getError());
+		failDownload(aSource, e.getError(), true);
 	}
 }
 
@@ -430,7 +431,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 			d->getOutput()->flush();
 		} catch(const Exception& e) {
 			d->resetPos();
-			failDownload(aSource, e.getError());
+			failDownload(aSource, e.getError(), true);
 			return;
 		}
 
@@ -468,7 +469,7 @@ void DownloadManager::noSlots(UserConnection* aSource, string param) {
 	}
 
 	string extra = param.empty() ? Util::emptyString : " - " + STRING(QUEUED) + " " + param;
-	failDownload(aSource, STRING(NO_SLOTS_AVAILABLE) + extra);
+	failDownload(aSource, STRING(NO_SLOTS_AVAILABLE) + extra, false);
 }
 
 void DownloadManager::onFailed(UserConnection* aSource, const string& aError) {
@@ -476,15 +477,15 @@ void DownloadManager::onFailed(UserConnection* aSource, const string& aError) {
 		WLock l(cs);
  		idlers.erase(remove(idlers.begin(), idlers.end(), aSource), idlers.end());
 	}
-	failDownload(aSource, aError);
+	failDownload(aSource, aError, false);
 }
 
-void DownloadManager::failDownload(UserConnection* aSource, const string& reason) {
+void DownloadManager::failDownload(UserConnection* aSource, const string& reason, bool rotateQueue) {
 	Download* d = aSource->getDownload();
 	if(d) {
 		removeDownload(d);
 		fire(DownloadManagerListener::Failed(), d, reason);
-		QueueManager::getInstance()->putDownload(d, false);
+		QueueManager::getInstance()->putDownload(d, false, false, rotateQueue);
 	}
 
 	removeRunningUser(aSource);

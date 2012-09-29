@@ -91,6 +91,10 @@ public:
 		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const;
 	};
 
+	struct PrioSortOrder {
+		bool operator()(const QueueItemPtr left, const QueueItemPtr right) const;
+	};
+
 	typedef vector<pair<QueueItemPtr, Priority>> PrioList;
 
 	enum FileFlags {

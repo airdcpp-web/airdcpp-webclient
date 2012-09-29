@@ -78,7 +78,7 @@ private:
 	
 	int64_t getResumePos(const string& file, const TigerTree& tt, int64_t startPos);
 
-	void failDownload(UserConnection* aSource, const string& reason);
+	void failDownload(UserConnection* aSource, const string& reason, bool rotateQueue);
 
 	friend class Singleton<DownloadManager>;
 

@@ -136,8 +136,8 @@ public:
 
 
 	// Load/save search collection to XML file
-	void Load();
-	void Save();
+	void load();
+	void save(bool forced = false);
 
 	// Settings
 	GETSET(bool, breakOnFirst, BreakOnFirst)
@@ -148,9 +148,11 @@ public:
 	bool addCollection(ADLSearch& search, int index);
 	bool removeCollection(int index, bool move);
 	bool changeState(int index, bool enabled);
+	bool updateCollection(ADLSearch& search, int index);
 	int8_t getRunning() { return running; }
 private:
 	ADLSearch::SourceType StringToSourceType(const string& s);
+	bool dirty;
 
 	// @internal
 	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory* /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/);
