@@ -77,7 +77,7 @@ bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) c
 bool DirectoryListing::Directory::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
 	if (a->getAdls() && !b->getAdls())
 		return true;
-	return Util::DefaultSort(a->getName().c_str(), b->getName().c_str()) < 0;
+	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
 }
 
 bool DirectoryListing::File::Sort::operator()(const Ptr& a, const Ptr& b) const {
@@ -838,7 +838,7 @@ int DirectoryListing::run() {
 			int64_t start = GET_TICK();
 			
 			if (t.first == LISTDIFF) {
-				auto file = static_cast<StringTask*>(t.second.get())->str;
+				auto file = static_cast<StringTask*>(t.second)->str;
 				DirectoryListing dirList(hintedUser, partialList, file, false, true);
 				dirList.loadFile(file);
 
@@ -881,13 +881,13 @@ int DirectoryListing::run() {
 				}
 
 				partialList = false;
-				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second.get())->str, convertPartial, true);
+				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second)->str, convertPartial, true);
 				partialList = false;
 			} else if (t.first == REFRESH_DIR) {
 				if (!partialList)
 					return 0;
 
-				auto lt = static_cast<PartialLoadingTask*>(t.second.get());
+				auto lt = static_cast<PartialLoadingTask*>(t.second);
 				
 				string path;
 				if (isOwnList) {
@@ -915,7 +915,7 @@ int DirectoryListing::run() {
 				QueueManager::getInstance()->matchListing(*this, matches, newFiles, bundles);
 				fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
 			} else if (t.first == DIR_DOWNLOAD) {
-				auto dli = static_cast<DirDownloadTask*>(t.second.get());
+				auto dli = static_cast<DirDownloadTask*>(t.second);
 				downloadDir(dli->dir, dli->target, dli->targetType, dli->isSizeUnknown , dli->prio);
 			} else if (t.first == SEARCH) {
 				secondsEllapsed = 0;
@@ -923,7 +923,7 @@ int DirectoryListing::run() {
 				if (curSearch)
 					delete curSearch;
 
-				auto s = static_cast<SearchTask*>(t.second.get());
+				auto s = static_cast<SearchTask*>(t.second);
 				fire(DirectoryListingListener::SearchStarted());
 
 				if(s->typeMode == SearchManager::TYPE_TTH) {

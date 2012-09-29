@@ -35,14 +35,20 @@ struct StringTask : public Task {
 
 class TaskQueue {
 public:
-	typedef pair<uint8_t, unique_ptr<Task>> TaskPair;
-	typedef deque<TaskPair> List;
+	typedef pair<uint8_t, unique_ptr<Task>> UniqueTaskPair;
+	typedef pair<uint8_t, Task*> TaskPair;
+	typedef deque<UniqueTaskPair> List;
 
 	TaskQueue() {
 	}
 
 	~TaskQueue() {
 		clear();
+	}
+
+	void add(UniqueTaskPair& t) { 
+		Lock l(cs); 
+		tasks.push_back(move(t)); 
 	}
 
 	void add(uint8_t type, std::unique_ptr<Task> && data) { 
@@ -52,7 +58,7 @@ public:
 
 	bool addUnique(uint8_t type, std::unique_ptr<Task> && data) { 
 		Lock l(cs);
-		auto p = boost::find_if(tasks, [type, this](const TaskPair& tp) { return tp.first == type; });
+		auto p = boost::find_if(tasks, [type, this](const UniqueTaskPair& tp) { return tp.first == type; });
 		if (p == tasks.end()) {
 			tasks.push_back(make_pair(type, move(data)));
 			return true;
@@ -66,7 +72,7 @@ public:
 		Lock l(cs); 
 		if (tasks.empty())
 			return false;
-		t = make_pair(tasks.front().first, move(tasks.front().second));
+		t = make_pair(tasks.front().first, tasks.front().second.get());
 		return true;
 	}
 
@@ -80,12 +86,13 @@ public:
 		List tmp;
 		get(tmp);
 	}
-private:
 
+	List& getTasks() { return tasks; }
+	CriticalSection cs;
+private:
 	TaskQueue(const TaskQueue&);
 	TaskQueue& operator=(const TaskQueue&);
 
-	CriticalSection cs;
 	List tasks;
 };
 

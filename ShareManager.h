@@ -115,7 +115,6 @@ public:
 	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const;
 	
 	int refresh(bool incoming=false, bool isStartup=false);
-	int initTaskThread(bool isStartup=false) noexcept;
 	int refresh(const string& aDir);
 
 	bool isRefreshing() {	return refreshRunning; }
@@ -182,7 +181,8 @@ public:
 	enum { 
 		REFRESH_STARTED = 0,
 		REFRESH_PATH_NOT_FOUND = 1,
-		REFRESH_IN_PROGRESS = 2
+		REFRESH_IN_PROGRESS = 2,
+		REFRESH_ALREADY_QUEUED = 3
 	};
 
 	GETSET(size_t, hits, Hits);
@@ -301,12 +301,14 @@ private:
 			}
 
 			bool operator==(const File& rhs) const {
-				return getParent() == rhs.getParent() && (stricmp(getName(), rhs.getName()) == 0);
+				return stricmp(name, rhs.getName()) == 0;
 			}
 		
 			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + name; }
 			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + name; }
 			string getRealPath(bool validate = true) const { return parent->getRealPath(name, validate); }
+
+			void toXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
 
 			GETSET(TTHValue, tth, TTH);
 			GETSET(string, name, Name);
@@ -335,6 +337,8 @@ private:
 		}
 		void addType(uint32_t type) noexcept;
 
+		bool hasFile(const File& aFile) const noexcept;
+
 		string getADCPath(ProfileToken aProfile) const noexcept;
 		string getVirtualName(ProfileToken aProfile) const noexcept;
 		string getRealName() { return realName; }
@@ -356,7 +360,6 @@ private:
 		void toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList);
 		void toXml(SimpleXML& aXml, bool fullList, ProfileToken aProfile);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive);
-		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
 		//for filelist caching
 		void toXmlList(OutputStream& xmlFile, const string& path, string& indent);
 
@@ -394,8 +397,10 @@ private:
 		List listDirs;
 
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList);
+		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2);
 	};
 
+	int addTask(uint8_t aType, StringList& dirs, const string& displayName=Util::emptyString, bool isStartup=false) noexcept;
 	void removeDir(Directory::Ptr aDir);
 	Directory::Ptr getDirByName(const string& directory) const;
 

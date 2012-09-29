@@ -313,7 +313,6 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static string formatTime(int64_t aSec, bool translate);
 
 	static int DefaultSort(const wchar_t* a, const wchar_t* b, bool noCase = true);
-	static int DefaultSort(const char* a, const char* b, bool noCase = true);
 
 
 	static int64_t toInt64(const string& aString) {

@@ -1181,14 +1181,7 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 	bloom.add(Text::toLower(f.getName()));
 }
 
-struct ShareTask : public Task {
-	ShareTask(const StringList& aDirs, const string& aDisplayName = Util::emptyString) : dirs(aDirs), displayName(aDisplayName) { }
-	StringList dirs;
-	string displayName;
-};
-
 int ShareManager::refresh(const string& aDir){
-	int result = REFRESH_PATH_NOT_FOUND;
 	string path = aDir;
 
 	if(path[ path.length() -1 ] != PATH_SEPARATOR)
@@ -1211,75 +1204,94 @@ int ShareManager::refresh(const string& aDir){
 						boost::for_each(j->second->getProfileDir()->getShareProfiles(), 
 							[&tmp](pair <ProfileToken, string> tp) { if (find(tmp.begin(), tmp.end(), tp.second) == tmp.end()) tmp.push_back(tp.second); });
 						displayName = Util::toString(tmp);
-						result = REFRESH_STARTED;
 					}
 				}
 			}
 		} else {
 			refreshPaths.push_back(path);
-			result = REFRESH_STARTED;
 		}
 	}
 
-	if(result == REFRESH_PATH_NOT_FOUND)
-		refreshing.clear();
-
-	{
-		WLock l (dirNames);
-		tasks.add(REFRESH_DIR, unique_ptr<Task>(new ShareTask(refreshPaths, displayName)));
-	}
-
-	if(refreshing.test_and_set()) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS), LogManager::LOG_INFO);
-		return REFRESH_IN_PROGRESS;
-	}
-
-	if(result == REFRESH_STARTED)
-		result = initTaskThread();
-
-	return result;
+	return addTask(REFRESH_DIR, refreshPaths, displayName);
 }
 
 
 int ShareManager::refresh(bool incoming /*false*/, bool isStartup /*false*/){
-	if(refreshing.test_and_set()) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_IN_PROGRESS), LogManager::LOG_INFO);
-		return REFRESH_IN_PROGRESS;
-	}
-
 	StringList dirs;
 
+	DirMap parents;
 	{
-		DirMap parents;
-		{
-			RLock l (cs);
-			getParents(parents);
-		}
-
-		//if (incoming) {
-			for(auto i = parents.begin(); i != parents.end(); ++i) {
-				if (incoming && !i->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
-					continue;
-				dirs.push_back(i->first);
-			}
-		//}
+		RLock l (cs);
+		getParents(parents);
 	}
 
-	if (dirs.empty()){
-		refreshing.clear();
+	for(auto i = parents.begin(); i != parents.end(); ++i) {
+		if (incoming && !i->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
+			continue;
+		dirs.push_back(i->first);
+	}
+
+	return addTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, Util::emptyString, isStartup);
+}
+
+struct ShareTask : public Task {
+	ShareTask(const StringList& aDirs, const string& aDisplayName) : dirs(aDirs), displayName(aDisplayName) { }
+	StringList dirs;
+	string displayName;
+};
+
+int ShareManager::addTask(uint8_t aType, StringList& dirs, const string& displayName /*Util::emptyString*/, bool isStartup /*false*/) noexcept {
+	if (dirs.empty()) {
 		return REFRESH_PATH_NOT_FOUND;
 	}
 
 	{
-		WLock l (dirNames);
-		tasks.add(incoming ? REFRESH_INCOMING : REFRESH_ALL, unique_ptr<Task>(new ShareTask(dirs)));
+		//remove directories that have already been queued for refreshing
+		Lock l(tasks.cs);
+		auto& tq = tasks.getTasks();
+		for(auto i = tq.begin(); i != tq.end(); ++i) {
+			auto t = static_cast<ShareTask*>(i->second.get());
+			dirs.erase(boost::remove_if(dirs, [t](const string& s) { return boost::find(t->dirs, s) != t->dirs.end(); }), dirs.end());
+		}
 	}
 
-	initTaskThread(isStartup);
-	return REFRESH_STARTED;
-}
+	if (dirs.empty()) {
+		return REFRESH_ALREADY_QUEUED;
+	}
 
-int ShareManager::initTaskThread(bool isStartup)  {
+	tasks.add(aType, unique_ptr<Task>(new ShareTask(dirs, displayName)));
+
+	if(refreshing.test_and_set()) {
+		string msg;
+		switch (aType) {
+			case(REFRESH_ALL):
+				msg = STRING(REFRESH_QUEUED);
+				break;
+			case(REFRESH_DIR):
+				if (!displayName.empty()) {
+					msg = STRING_F(VIRTUAL_REFRESH_QUEUED, displayName);
+				} else if (dirs.size() == 1) {
+					msg = STRING_F(DIRECTORY_REFRESH_QUEUED, *dirs.begin());
+				}
+				break;
+			case(ADD_DIR):
+				if (dirs.size() == 1) {
+					msg = STRING_F(ADD_DIRECTORY_QUEUED, *dirs.begin());
+				} else {
+					msg = STRING_F(ADD_DIRECTORIES_QUEUED, dirs.size());
+				}
+				break;
+			case(REFRESH_INCOMING):
+				msg = STRING(INCOMING_REFRESH_QUEUED);
+				break;
+		};
+
+		if (!msg.empty()) {
+			LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+		}
+		return REFRESH_IN_PROGRESS;
+	}
+
 	join();
 	try {
 		start();
@@ -1383,12 +1395,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 		return;
 	}
 
-	{
-		WLock l (dirNames);
-		tasks.add(ADD_DIR, unique_ptr<Task>(new ShareTask(add)));
-	}
-
-	initTaskThread();
+	addTask(ADD_DIR, add);
 }
 
 void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
@@ -1475,8 +1482,6 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 				msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, displayName) : STRING_F(FILE_LIST_REFRESH_INITIATED_VPATH, displayName);
 			} else if (directories.size() == 1) {
 				msg = finished ? STRING_F(DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
-			} else {
-				msg = finished ? STRING_F(X_DIRECTORIES_REFRESHED, directories.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_RPATH, directories.size());
 			}
 			break;
 		case(ADD_DIR):
@@ -1510,7 +1515,7 @@ int ShareManager::run() {
 
 		int64_t hashSize = 0;
 		vector<pair<string, pair<Directory::Ptr, ProfileDirMap>>> dirs;
-		auto task = static_cast<ShareTask*>(t.second.get());
+		auto task = static_cast<ShareTask*>(t.second);
 
 		//find excluded dirs and sub-roots for each directory being refreshed (they will be passed on to buildTree for matching)
 		for(auto i = task->dirs.begin(); i != task->dirs.end(); ++i) {
@@ -1776,10 +1781,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		for(auto it2 = root->listDirs.begin(); it2 != root->listDirs.end(); ++it2) {
 			it2->second->toXml(sos, indent, tmp, recurse);
 		}
-
-		for(auto i = root->shareDirs.begin(); i != root->shareDirs.end(); ++i) {
-			(*i)->filesToXml(sos, indent, tmp);
-		}
+		root->filesToXml(sos, indent, tmp);
 
 		//auto end = GET_TICK();
 		//LogManager::getInstance()->message("Partial list from path " + dir +  " generated in " + Util::toString(end-start) + " ms (" + Util::toString((end-start)/1000) + " seconds)", LogManager::LOG_INFO);
@@ -1839,13 +1841,7 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 			i->second->toXml(xmlFile, indent, tmp2, fullList);
 		}
 
-		//if (adjacent_find(shareDirs.begin(), shareDirs.end(), [](Directory::Ptr d) { return !d->files.empty(); }) != shareDirs.end()) {
-			//we have dupes
-		//}
-
-		for(auto i = shareDirs.begin(); i != shareDirs.end(); ++i) {
-			(*i)->filesToXml(xmlFile, indent, tmp2);
-		}
+		filesToXml(xmlFile, indent, tmp2);
 
 		indent.erase(indent.length()-1);
 		xmlFile.write(indent);
@@ -1859,20 +1855,37 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 	}
 }
 
-void ShareManager::Directory::filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const {
-	for(auto i = files.begin(); i != files.end(); ++i) {
-		const Directory::File& f = *i;
-
-		xmlFile.write(indent);
-		xmlFile.write(LITERAL("<File Name=\""));
-		xmlFile.write(SimpleXML::escape(f.getName(), tmp2, true));
-		xmlFile.write(LITERAL("\" Size=\""));
-		xmlFile.write(Util::toString(f.getSize()));
-		xmlFile.write(LITERAL("\" TTH=\""));
-		tmp2.clear();
-		xmlFile.write(f.getTTH().toBase32(tmp2));
-		xmlFile.write(LITERAL("\"/>\r\n"));
+void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) {
+	bool filesAdded = false;
+	for(auto di = shareDirs.begin(); di != shareDirs.end(); ++di) {
+		if (filesAdded) {
+			for(auto fi = (*di)->files.begin(); fi != (*di)->files.end(); ++fi) {
+				//go through the dirs that we have added already
+				if (find_if(shareDirs.begin(), di-1, [fi](Directory::Ptr d) { return d->hasFile(*fi); }) ==  shareDirs.end()) {
+					fi->toXml(xmlFile, indent, tmp2);
+				}
+			}
+		} else if (!(*di)->files.empty()) {
+			filesAdded = true;
+			boost::for_each((*di)->files, [&](const Directory::File& f) { f.toXml(xmlFile, indent, tmp2); });
+		}
 	}
+}
+
+bool ShareManager::Directory::hasFile(const File& aFile) const noexcept {
+	return files.find(aFile) != files.end();
+}
+
+void ShareManager::Directory::File::toXml(OutputStream& xmlFile, string& indent, string& tmp2) const {
+	xmlFile.write(indent);
+	xmlFile.write(LITERAL("<File Name=\""));
+	xmlFile.write(SimpleXML::escape(name, tmp2, true));
+	xmlFile.write(LITERAL("\" Size=\""));
+	xmlFile.write(Util::toString(size));
+	xmlFile.write(LITERAL("\" TTH=\""));
+	tmp2.clear();
+	xmlFile.write(tth.toBase32(tmp2));
+	xmlFile.write(LITERAL("\"/>\r\n"));
 }
 
 ShareManager::FileListDir::~FileListDir() {
