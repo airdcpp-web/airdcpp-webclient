@@ -30,6 +30,7 @@ struct ChatLink {
 		TYPE_MAGNET,
 		TYPE_RELEASE,
 		TYPE_SPOTIFY,
+		TYPE_PATH,
 	};
 
 	explicit ChatLink(const string& aLink, LinkType aLinkType);

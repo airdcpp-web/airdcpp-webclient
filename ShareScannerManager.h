@@ -35,12 +35,29 @@ namespace dcpp {
 using std::string;
 
 
-class ShareScannerManager: public Singleton<ShareScannerManager>, public Thread {
+class ScannerManagerListener {
+public:
+	virtual ~ScannerManagerListener() { }
+	template<int I>	struct X { enum { TYPE = I }; };
+
+	typedef X<0> ScanFinished;
+
+	virtual void on(ScanFinished, const string&, const string&) noexcept { }
+};
+
+
+class ShareScannerManager: public Singleton<ShareScannerManager>, public Thread, public Speaker<ScannerManagerListener> {
  
 public:
+	enum ScanType {
+		TYPE_FULL,
+		TYPE_PARTIAL,
+		TYPE_FINISHED,
+		TYPE_FAILED_FINISHED,
+	};
 
-	void find (const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, bool isBundleScan);
-	void scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders);
+	void find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, ScanType scanType);
+	void scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders, ScanType scanType);
 	int scan(StringList paths = StringList(), bool sfv = false);
 	bool scanBundle(BundlePtr aBundle);
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan);
@@ -61,13 +78,6 @@ private:
 		AUDIOBOOK,
 		FLAC,
 		NORMAL,
-	};
-
-	enum ScanType {
-		TYPE_FULL,
-		TYPE_PARTIAL,
-		TYPE_FINISHED,
-		TYPE_FAILED_FINISHED,
 	};
 
 	boost::regex rarReg;
@@ -98,7 +108,7 @@ private:
 
 	int64_t scanFolderSize;
 	bool stop;
-	void findDupes(const string& path, int& dupesFound);
+	void findDupes(const string& path, int& dupesFound, ScanType scanType);
 	boost::unordered_multimap<string, string, noCaseStringHash, noCaseStringEq> dupeDirs;
 	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList);
 	void prepareSFVScanDir(const string& path, SFVScanList& dirs);
@@ -106,6 +116,9 @@ private:
 	StringList bundleDirs;
 
 	void reportResults(const string& path, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound = 0);
+	void reportMessage(const string& aMessage, ScanType scanType, bool warning = true);
+
+	string scanReport;
 };
 
 } // namespace dcpp
