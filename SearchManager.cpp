@@ -37,6 +37,9 @@
 #include "SimpleXML.h"
 #include "ScopedFunctor.h"
 
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+
 namespace dcpp {
 
 using boost::range::for_each;
@@ -107,9 +110,36 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 		});
 	}
 
+
+	//generate a random key and store it so we can check the results
+	uint8_t key[16];
+	RAND_bytes(key, 16);
+
+	ByteVector v;
+	v.resize(16);
+	for (int i = 0; i < 16; ++i)
+		v[i] = key[i];
+
+	searchKeys.push_back(v);
+	string keyStr = Encoder::toBase32(key, 16);
+
 	uint64_t estimateSearchSpan = 0;
 	for_each(tokenHubList, [&](StringPair& sp) {
-		uint64_t ret = ClientManager::getInstance()->search(sp.second, aSizeMode, aSize, aTypeMode, normalizeWhitespace(aName), sp.first, aExtList, sType, aOwner);
+		auto s = new Search;
+		s->fileType = sType;
+		s->size     = aSize;
+		s->query    = aName;
+		s->sizeType = aSizeMode;
+		s->token    = sp.first;
+		s->exts	   = aExtList;
+		if (strnicmp("adcs://", sp.second.c_str(), 7) == 0)
+			s->key		= keyStr;
+
+		if (aOwner)
+			s->owners.insert(aOwner);
+		s->type		= sType;
+
+		uint64_t ret = ClientManager::getInstance()->search(sp.second, s);
 		estimateSearchSpan = max(estimateSearchSpan, ret);			
 	});
 
@@ -195,6 +225,48 @@ int SearchManager::run() {
 
 void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remoteIp) {
 	string x((char*)buf, aLen);
+
+	//check if this packet has been encrypted
+	if (aLen >= 32 && ((aLen & 15) == 0)) {
+		for(auto i = searchKeys.begin(); i < searchKeys.end(); ++i) {
+			uint8_t out[BUFSIZE];
+			uint8_t tmp[16];
+			for (int k = 0; k < 16; ++k)
+				tmp[k] = (*i)[k];
+
+			uint8_t ivd[16] = { };
+
+			/*AES_KEY key;
+			AES_set_encrypt_key(tmp, 128, &key);
+			AES_cbc_encrypt(buf, out, aLen, &key, ivd, AES_DECRYPT);*/
+
+			EVP_CIPHER_CTX ctx;
+			EVP_CIPHER_CTX_init(&ctx);
+
+			int len = 0, tmpLen=0;
+			EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, tmp, ivd);
+			EVP_DecryptUpdate(&ctx, out, &len, buf, aLen);
+			EVP_DecryptFinal_ex(&ctx, out + aLen, &tmpLen);
+			EVP_CIPHER_CTX_cleanup(&ctx);
+
+			// Validate padding and replace with 0-bytes.
+			int padlen = out[aLen-1];
+			if(padlen < 1 || padlen > 16) {
+				continue;
+			}
+
+			for(auto r=0; r<padlen; r++) {
+				if(out[aLen-padlen+r] != padlen)
+					break;
+				else
+					out[aLen-padlen+r] = 0;
+			}
+
+			x = (char*)out+16;
+			break;
+		}
+	}
+
 	COMMAND_DEBUG(x, DebugManager::TYPE_CLIENT_UDP, DebugManager::INCOMING, remoteIp);
 	if(x.compare(0, 4, "$SR ") == 0) {
 		string::size_type i, j;
@@ -693,11 +765,14 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		return;
 	}
 
+	string key;
+	adc.getParam("KY", 0, key);
+
 	for(auto i = results.begin(); i != results.end(); ++i) {
 		AdcCommand cmd = (*i)->toRES(AdcCommand::TYPE_UDP);
 		if(!token.empty())
 			cmd.addParam("TO", token);
-		ClientManager::getInstance()->send(cmd, from);
+		ClientManager::getInstance()->send(cmd, from, false, false, key);
 	}
 }
 

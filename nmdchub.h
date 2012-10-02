@@ -29,6 +29,7 @@
 #include "UploadManager.h"
 #include "StringTokenizer.h"
 #include "ZUtils.h"
+#include "Search.h"
 
 namespace dcpp {
 
@@ -46,7 +47,7 @@ public:
 	void privateMessage(const OnlineUserPtr& aUser, const string& aMessage, bool /*thirdPerson*/ = false);
 	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir) { dcassert(0); }
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
-	void search(int aSizeType, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList);
+	void search(Search* aSearch);
 	void password(const string& aPass) { send("$MyPass " + fromUtf8(aPass) + "|"); }
 	void info(bool force) { myInfo(force); }
 

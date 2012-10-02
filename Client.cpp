@@ -298,30 +298,9 @@ string Client::getLocalIp() const {
 	return localIp;
 }
 
-uint64_t Client::search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* owner){
-	dcdebug("Queue search %s\n", aString.c_str());
-	//auto now = GET_TICK();
-
-	//if(searchQueue.hasWaitingTime(now)) {
-		Search s;
-		s.fileType = aFileType;
-		s.size     = aSize;
-		s.query    = aString;
-		s.sizeType = aSizeMode;
-		s.token    = aToken;
-		s.exts	   = aExtList;
-		s.owners.insert(owner);
-		s.type		= sType;
-
-		return searchQueue.add(s);
-
-		//return searchQueue.getSearchTime(s);
-	//}
-
-	//searchQueue.lastSearchTime = now;
-	//search(aSizeMode, aSize, aFileType , aString, aToken, aExtList);
-	//return 0;
-
+uint64_t Client::queueSearch(Search* aSearch){
+	dcdebug("Queue search %s\n", aSearch->query.c_str());
+	return searchQueue.add(aSearch);
 }
 
 string Client::getCounts() {
@@ -344,10 +323,10 @@ void Client::on(Second, uint64_t aTick) noexcept {
 	if(searchQueue.hasWaitingTime(aTick)) return;
 
 	if(isConnected()){
-		Search s;
+		Search* s = searchQueue.pop();
 		
-		if(searchQueue.pop(s)){
-			search(s.sizeType, s.size, s.fileType , s.query, s.token, s.exts);
+		if(s){
+			search(s);
 		}
 	}
 

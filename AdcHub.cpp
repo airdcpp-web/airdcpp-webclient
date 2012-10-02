@@ -54,6 +54,7 @@ const string AdcHub::BLO0_SUPPORT("ADBLO0");
 const string AdcHub::ZLIF_SUPPORT("ADZLIF");
 const string AdcHub::BNDL_FEATURE("BNDL");
 const string AdcHub::DSCH_FEATURE("DSCH");
+const string AdcHub::SUD1_FEATURE("SUD1");
 
 const vector<StringList> AdcHub::searchExts;
 
@@ -999,14 +1000,19 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 	}
 }
 
-void AdcHub::search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) {
+void AdcHub::search(Search* s) {
 	if(state != STATE_NORMAL)
 		return;
 
 	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
 
-	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, false);
+	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, s->token, s->exts, false);
 
+	if (!s->key.empty()) {
+		c.addParam("KY", s->key);
+	}
+
+	delete s;
 	sendSearch(c);
 }
 
@@ -1126,6 +1132,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
 		su += "," + TCP4_FEATURE;
 		su += "," + UDP4_FEATURE;
+		//su += "," + SUD1_FEATURE;
 	} else {
 		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL)) {
 			su += "," + NAT0_FEATURE;

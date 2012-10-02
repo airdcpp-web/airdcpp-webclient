@@ -44,6 +44,10 @@
 #include <sstream>
 #include <string>
 
+//#include <openssl/evp.h>
+#include <openssl/aes.h>
+#include <openssl/rand.h>
+
 
 namespace dcpp {
 
@@ -554,7 +558,7 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, P
 	ou->getClient().sendUserCmd(uc, params);
 }
 
-bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, bool noPassive /*false*/) {
+bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, bool noPassive /*false*/, const string& aKey) {
 	RLock l(cs);
 	OnlineIterC i = onlineUsers.find(const_cast<CID*>(&cid));
 	if(i != onlineUsers.end()) {
@@ -568,7 +572,46 @@ bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, 
 		} else {
 			try {
 				COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u.getIdentity().getIp());
-				udp.writeTo(u.getIdentity().getIp(), u.getIdentity().getUdpPort(), noCID ? cmd.toString() : cmd.toString(getMe()->getCID()));
+				auto cmdStr = noCID ? cmd.toString() : cmd.toString(getMe()->getCID());
+				if (!aKey.empty() && Encoder::isBase32(aKey.c_str())) {
+					uint8_t keyChar[16];
+					Encoder::fromBase32(aKey.c_str(), keyChar, 16);
+
+					uint8_t ivd[16] = { };
+
+					// prepend 16 random bytes to message
+					RAND_bytes(ivd, 16);
+					cmdStr.insert(0, (char*)ivd, 16);
+					
+					// use PKCS#5 padding to align the message length to the cypher block size (16)
+					uint8_t pad = 16 - (cmdStr.length() & 15);
+					cmdStr.append(pad, (char)pad);
+
+
+					uint8_t* out = new uint8_t[cmdStr.length()];
+
+					memset(ivd, 0, 16);
+					int aLen = cmdStr.length();
+
+					/*EVP_CIPHER_CTX ctx;
+					int aLen = cmdStr.length(), tmpLen=0;
+					EVP_CIPHER_CTX_init(&ctx);
+					EVP_EncryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, keyChar, ivd);
+					EVP_EncryptUpdate(&ctx, out, &aLen, (unsigned char*)cmdStr.c_str(), aLen);
+					EVP_EncryptFinal_ex(&ctx, out + aLen, &tmpLen);
+					EVP_CIPHER_CTX_cleanup(&ctx);*/
+
+					AES_KEY key;
+					AES_set_encrypt_key(keyChar, 128, &key);
+					AES_cbc_encrypt((unsigned char*)cmdStr.c_str(), out, cmdStr.length(), &key, ivd, AES_ENCRYPT);
+
+					dcassert((aLen & 15) == 0);
+
+					cmdStr.clear();
+					cmdStr.insert(0, (char*)out, aLen);
+					delete[] out;
+				}
+				udp.writeTo(u.getIdentity().getIp(), u.getIdentity().getUdpPort(), cmdStr);
 			} catch(const SocketException&) {
 				dcdebug("Socket exception sending ADC UDP command\n");
 			}
@@ -690,12 +733,14 @@ void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const CID& 
 		SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
 }
 
-uint64_t ClientManager::search(string& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner) {
+uint64_t ClientManager::search(string& who, Search* aSearch) {
 	RLock l(cs);
 	auto i = clients.find(const_cast<string*>(&who));
 	if(i != clients.end() && i->second->isConnected()) {
-		return i->second->search(aSizeMode, aSize, aFileType, aString, aToken, aExtList, sType, aOwner);		
+		return i->second->queueSearch(aSearch);		
 	}
+
+	delete aSearch;
 	return 0;
 }
 

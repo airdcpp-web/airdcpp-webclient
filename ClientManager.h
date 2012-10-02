@@ -21,6 +21,7 @@
 
 #include "TimerManager.h"
 
+#include "Search.h"
 #include "Client.h"
 #include "Singleton.h"
 #include "SettingsManager.h"
@@ -71,7 +72,7 @@ public:
 
 	bool isConnected(const string& aUrl) const;
 	
-	uint64_t search(string& who, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner = 0);
+	uint64_t search(string& who, Search* aSearch);
 
 	void directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir);
 	
@@ -120,7 +121,7 @@ public:
 	UserPtr& getMe();
 	string getClientStats();
 	
-	bool send(AdcCommand& c, const CID& to, bool noCID=false, bool noPassive=false);
+	bool send(AdcCommand& c, const CID& to, bool noCID=false, bool noPassive=false, const string& key=Util::emptyString);
 
 	void connect(const HintedUser& user, const string& token);
 	void privateMessage(const HintedUser& user, const string& msg, bool thirdPerson);

@@ -960,11 +960,11 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	}
 }
 
-void NmdcHub::search(int aSizeType, int64_t aSize, int aFileType, const string& aString, const string&, const StringList&){
-	checkstate(); 
-	char c1 = (aSizeType == SearchManager::SIZE_DONTCARE || aSizeType == SearchManager::SIZE_EXACT) ? 'F' : 'T';
-	char c2 = (aSizeType == SearchManager::SIZE_ATLEAST) ? 'F' : 'T';
-	string tmp = ((aFileType == SearchManager::TYPE_TTH) ? "TTH:" + aString : fromUtf8(escape(aString)));
+void NmdcHub::search(Search* s){
+	checkstate();
+	char c1 = (s->sizeType == SearchManager::SIZE_DONTCARE || s->sizeType == SearchManager::SIZE_EXACT) ? 'F' : 'T';
+	char c2 = (s->sizeType == SearchManager::SIZE_ATLEAST) ? 'F' : 'T';
+	string tmp = ((s->fileType == SearchManager::TYPE_TTH) ? "TTH:" + s->query : fromUtf8(escape(s->query)));
 	string::size_type i;
 	while((i = tmp.find(' ')) != string::npos) {
 		tmp[i] = '$';
@@ -975,7 +975,8 @@ void NmdcHub::search(int aSizeType, int64_t aSize, int aFileType, const string& 
 	} else {
 		tmp2 = "Hub:" + fromUtf8(getMyNick());
 	}
-	send("$Search " + tmp2 + ' ' + c1 + '?' + c2 + '?' + Util::toString(aSize) + '?' + Util::toString(aFileType+1) + '?' + tmp + '|');
+	send("$Search " + tmp2 + ' ' + c1 + '?' + c2 + '?' + Util::toString(s->size) + '?' + Util::toString(s->fileType+1) + '?' + tmp + '|');
+	delete s;
 }
 
 string NmdcHub::validateMessage(string tmp, bool reverse) {

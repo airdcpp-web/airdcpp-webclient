@@ -34,6 +34,7 @@
 #include "SearchQueue.h"
 #include "OnlineUser.h"
 #include "ShareProfile.h"
+#include "Search.h"
 
 namespace dcpp {
 
@@ -65,7 +66,7 @@ public:
 	virtual void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false) = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
-	uint64_t search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, Search::searchType sType, void* owner);
+	uint64_t queueSearch(Search* aSearch);
 	void cancelSearch(void* aOwner) { searchQueue.cancelSearch(aOwner); }
 	
 	virtual void password(const string& pwd) = 0;
@@ -192,7 +193,7 @@ protected:
 	void reloadSettings(bool updateNick);
 
 	virtual string checkNick(const string& nick) = 0;
-	virtual void search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList) = 0;
+	virtual void search(Search* aSearch) = 0;
 
 	// TimerManagerListener
 	virtual void on(Second, uint64_t aTick) noexcept;

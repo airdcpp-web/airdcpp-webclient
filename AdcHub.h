@@ -40,7 +40,7 @@ public:
 	void hubMessage(const string& aMessage, bool thirdPerson = false);
 	void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false);
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
-	void search(int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList);
+	void search(Search* aSearch);
 	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir);
 	void password(const string& pwd);
 	void info(bool alwaysSend);
@@ -75,7 +75,7 @@ public:
 	static const string ZLIF_SUPPORT;
 	static const string BNDL_FEATURE;
 	static const string DSCH_FEATURE;
-
+	static const string SUD1_FEATURE;
 private:
 	friend class ClientManager;
 	friend class CommandHandler<AdcHub>;

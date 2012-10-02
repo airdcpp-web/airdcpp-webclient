@@ -134,6 +134,7 @@ private:
 		HUBURL			= 2,
 	};
 
+	vector<ByteVector> searchKeys;
 	typedef tuple<uint64_t, string, string> SearchItem;
 
 	boost::unordered_map<string, SearchItem> searches;

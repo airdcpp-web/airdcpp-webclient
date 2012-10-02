@@ -36,9 +36,9 @@ SearchQueue::SearchQueue(uint32_t aInterval)
 	nextInterval = 10*1000;
 }
 
-uint64_t SearchQueue::add(Search& s)
+uint64_t SearchQueue::add(Search* s)
 {
-	dcassert(s.owners.size() == 1);
+	dcassert(s->owners.size() == 1);
 	uint32_t x = 0;
 	bool add = true;
 
@@ -48,7 +48,7 @@ uint64_t SearchQueue::add(Search& s)
 	for (;;) {
 		if (i == searchQueue.end())
 			break;
-		if(s.type < i->type) {
+		if(s->type < (*i)->type) {
 			//we found our place :}
 			if((*i) == s) {
 				//replace the lower prio item with this one, move the owners from the old search
@@ -59,18 +59,20 @@ uint64_t SearchQueue::add(Search& s)
 			break;
 		} else if(s == *i) {
 			//don't queue the same item twice
-			void* aOwner = *s.owners.begin();
-			i->owners.insert(aOwner);
+			void* aOwner = *(s->owners.begin());
+			(*i)->owners.insert(aOwner);
 			add = false;
 			break;
 		}
 
-		x += i->getInterval();
+		x += (*i)->getInterval();
 		advance(i, 1);
 	}
 
 	if (add)
 		searchQueue.insert(i, s);
+	else
+		delete s;
 
 	auto now = GET_TICK();
 	if (x > 0) {
@@ -101,8 +103,7 @@ uint64_t SearchQueue::add(Search& s)
 	}
 }
 
-bool SearchQueue::pop(Search& s)
-{
+Search* SearchQueue::pop() {
 	uint64_t now = GET_TICK();
 	if(now <= lastSearchTime + nextInterval) 
 		return false;
@@ -110,18 +111,18 @@ bool SearchQueue::pop(Search& s)
 	{
 		Lock l(cs);
 		if(!searchQueue.empty()){
-			s = searchQueue.front();
+			Search* s = searchQueue.front();
 			searchQueue.pop_front();
 			lastSearchTime = GET_TICK();
 			nextInterval = minInterval;
 			if(!searchQueue.empty()) {
-				nextInterval = max(searchQueue.front().getInterval(), minInterval);
+				nextInterval = max(searchQueue.front()->getInterval(), minInterval);
 			}
-			return true;
+			return s;
 		}
 	}
 
-	return false;
+	return nullptr;
 }
 
 bool SearchQueue::hasWaitingTime(uint64_t aTick) {
@@ -133,9 +134,9 @@ bool SearchQueue::cancelSearch(void* aOwner){
 
 	Lock l(cs);
 	for(auto i = searchQueue.begin(); i != searchQueue.end(); i++){
-		if(i->owners.count(aOwner)){
-			i->owners.erase(aOwner);
-			if(i->owners.empty())
+		if((*i)->owners.count(aOwner)){
+			(*i)->owners.erase(aOwner);
+			if((*i)->owners.empty())
 				searchQueue.erase(i);
 			return true;
 		}
