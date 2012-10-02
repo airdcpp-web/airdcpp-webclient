@@ -61,8 +61,3 @@ private:
 } // namespace dcpp
 
 #endif // !defined(AFX_TraceManager_H__73C7E0F5_5C7D_4A2A_827B_53267D0EF4C5__INCLUDED_)
-
-/**
- * @file
- * $Id: TraceManager.h 568 2011-07-24 18:28:43Z bigmuscle $
- */

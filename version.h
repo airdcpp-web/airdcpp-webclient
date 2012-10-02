@@ -19,7 +19,7 @@
 #define APPNAME "AirDC++"
 #define VERSIONSTRING "2.40"
 #define DCVERSIONSTRING "0.799"
-#define SVNVERSION "1092"
+#define SVNVERSION "1093"
 
 #define BETAVER
 
@@ -59,8 +59,3 @@
 #endif
 
 /* Update the .rc file as well... */
-
-/**
- * @file
- * $Id: version.h 487 2010-02-27 17:50:12Z bigmuscle $
- */

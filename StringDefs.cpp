@@ -1501,6 +1501,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Add in this profile", 
 "The selected theme has highlight color settings, \r\nloading them will override your old highlights, \r\nwould you still like to load them?", 
 "Search times", 
+"This hub requires authentication via a failover address; aborting connection and switching to the default address", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3002,4 +3003,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AddThisProfile", 
 "HighlightsInTheme", 
 "SearchTimes", 
+"FailoverAuth", 
 };

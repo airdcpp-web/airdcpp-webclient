@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,9 +86,13 @@ public:
 
 	void setNick(const string& aNick) { nick = aNick; }
 
+	// url, is blocked
+	typedef pair<string, bool> ServerBoolPair;
+	typedef vector<ServerBoolPair> ServerList;
+
 	GETSET(string, userdescription, UserDescription);
 	GETSET(string, name, Name);
-	GETSET(StringList, servers, Servers);
+	GETSET(ServerList, servers, Servers);
 	GETSET(string, description, Description);
 	GETSET(string, password, Password);
 	GETSET(string, headerOrder, HeaderOrder);
@@ -118,6 +122,8 @@ public:
 	bool isAdcHub() const;
 	void addFailOvers(StringList&& addresses);
 	void validateFailOvers();
+	void blockFailOver(const string& aServer);
+	string getServerStr();
 private:
 	string nick;
 };

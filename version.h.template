@@ -59,8 +59,3 @@
 #endif
 
 /* Update the .rc file as well... */
-
-/**
- * @file
- * $Id: version.h 487 2010-02-27 17:50:12Z bigmuscle $
- */

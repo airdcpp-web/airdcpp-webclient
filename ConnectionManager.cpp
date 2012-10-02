@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -896,27 +896,30 @@ bool ConnectionManager::checkKeyprint(UserConnection *aSource) {
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool protocolError) {
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
-			RLock l (cs);
+			//this may flag other user connections as removed which would possibly cause threading issues
+			WLock l (cs);
 			auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
 			dcassert(i != downloads.end());
-			ConnectionQueueItem* cqi = *i;
+			if (i != downloads.end()) {
+				ConnectionQueueItem* cqi = *i;
 
-			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-				//remove an existing waiting item, if exists
-				auto s = find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
-					return c->getUser() == aSource->getUser() && !c->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && 
-						c->getState() != ConnectionQueueItem::RUNNING && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
-				});
+				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+					//remove an existing waiting item, if exists
+					auto s = find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
+						return c->getUser() == aSource->getUser() && !c->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && 
+							c->getState() != ConnectionQueueItem::RUNNING && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
+					});
 
-				if (s != downloads.end())
-					(*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
+					if (s != downloads.end())
+						(*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
+				}
+
+				cqi->setLastAttempt(GET_TICK());
+				cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
+
+				cqi->setState(ConnectionQueueItem::WAITING);
+				fire(ConnectionManagerListener::Failed(), cqi, aError);
 			}
-
-			cqi->setLastAttempt(GET_TICK());
-			cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
-
-			cqi->setState(ConnectionQueueItem::WAITING);
-			fire(ConnectionManagerListener::Failed(), cqi, aError);
 		} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
 			{
 				WLock l (cs);

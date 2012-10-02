@@ -764,8 +764,3 @@ bool HashManager::isHashingPaused() const {
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: HashManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
- */

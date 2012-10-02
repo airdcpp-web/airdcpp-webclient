@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -297,7 +297,7 @@ void AdcHub::handle(AdcCommand::GPA, AdcCommand& c) noexcept {
 	salt = c.getParam(0);
 	state = STATE_VERIFY;
 
-	fire(ClientListener::GetPassword(), this);
+	onPassword();
 }
 
 void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
@@ -1249,8 +1249,3 @@ OnlineUserPtr AdcHub::findUser(const string& aNick) const {
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: AdcHub.cpp 573 2011-08-04 22:33:45Z bigmuscle $
- */

@@ -21,6 +21,8 @@
 #include "AirUtil.h"
 #include "StringTokenizer.h"
 
+#include <boost/range/algorithm/for_each.hpp>
+
 namespace dcpp {
 
 FavoriteHubEntry::FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), 
@@ -30,8 +32,7 @@ FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getN
 	description(rhs.getDescription()), connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), 
 	stealth(false), userliststate(true), mode(0), chatNotify(false), token(Util::rand()) {
 
-		servers.push_back(rhs.getServer());
-		//servers.insert(rhs.getServer());
+		servers.push_back(make_pair(rhs.getServer(), false));
 }
 
 FavoriteHubEntry::FavoriteHubEntry(const FavoriteHubEntry& rhs) noexcept : userdescription(rhs.userdescription), name(rhs.getName()), 
@@ -45,26 +46,46 @@ const string& FavoriteHubEntry::getNick(bool useDefault /*true*/) const {
 
 void FavoriteHubEntry::setServerStr(const string& aServers) {
 	StringTokenizer<string> tmp(aServers, ';');
-	servers = move(tmp.getTokens());
+	servers.clear();
+	boost::for_each(tmp.getTokens(), [this](const string& aUrl) { servers.push_back(make_pair(move(aUrl), false)); });
 	validateFailOvers();
 }
 
 bool FavoriteHubEntry::isAdcHub() const {
 	if (servers.empty())
 		return false;
-	return AirUtil::isAdcHub(servers[0]);
+	return AirUtil::isAdcHub(servers[0].first);
 }
 
 void FavoriteHubEntry::addFailOvers(StringList&& addresses) {
-	servers.resize(addresses.size()+1);
-	move(addresses.begin(), addresses.end(), servers.begin()+1);
+	ServerList tmp;
+	boost::for_each(addresses, [this](const string& aUrl) { servers.push_back(make_pair(move(aUrl), false)); });
+
+	servers.resize(tmp.size()+1);
+	move(tmp.begin(), tmp.end(), servers.begin()+1);
 	validateFailOvers();
+}
+
+void FavoriteHubEntry::blockFailOver(const string& aServer) {
+	auto s = find_if(servers.begin(), servers.end(), CompareFirst<string, bool>(aServer));
+	if (s != servers.end()) {
+		s->second = true;
+	}
+}
+
+string FavoriteHubEntry::getServerStr() {
+	string ret;
+	if (!servers.empty()) {
+		boost::for_each(servers, [&ret](const ServerBoolPair& sbp) { ret += sbp.first + ";"; });
+		ret.pop_back();
+	}
+	return ret;
 }
 
 void FavoriteHubEntry::validateFailOvers() {
 	//don't allow mixing NMDC and ADC hubs
 	bool adc = isAdcHub();
-	servers.erase(remove_if(servers.begin(), servers.end(), [adc](const string& aUrl) { return AirUtil::isAdcHub(aUrl) != adc; }), servers.end());
+	servers.erase(remove_if(servers.begin(), servers.end(), [adc](const ServerBoolPair& sbp) { return AirUtil::isAdcHub(sbp.first) != adc; }), servers.end());
 }
 
 }

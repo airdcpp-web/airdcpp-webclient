@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -122,6 +122,8 @@ public:
 	// remove user commands and possibly change the address for the next attempt
 	bool getFailOverUrl(ProfileToken aToken, string& hubAddress_);
 	void setFailOvers(const string& hubUrl, ProfileToken aToken, StringList&& fo_);
+	bool blockFailOverUrl(ProfileToken aToken, string& hubAddress_);
+	bool isFailOverUrl(ProfileToken aToken, const string& hubAddress_);
 
 	RecentHubEntry* getRecentHubEntry(const string& aServer) {
 		for(RecentHubEntry::Iter i = recentHubs.begin(); i != recentHubs.end(); ++i) {
@@ -212,6 +214,7 @@ private:
 	~FavoriteManager();
 	
 	FavoriteHubEntryList::const_iterator getFavoriteHub(const string& aServer) const;
+	FavoriteHubEntryList::const_iterator getFavoriteHub(ProfileToken aToken) const;
 	RecentHubEntry::Iter getRecentHub(const string& aServer) const;
 
 	// ClientManagerListener
@@ -252,8 +255,3 @@ private:
 } // namespace dcpp
 
 #endif // !defined(FAVORITE_MANAGER_H)
-
-/**
- * @file
- * $Id: FavoriteManager.h 568 2011-07-24 18:28:43Z bigmuscle $
- */

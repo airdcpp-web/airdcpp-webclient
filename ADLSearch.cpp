@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -632,8 +632,3 @@ string ADLSearchManager::getConfigFile() {
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: ADLSearch.cpp 466 2009-11-13 18:47:25Z BigMuscle $
- */

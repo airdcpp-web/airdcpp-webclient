@@ -45,8 +45,3 @@ private:
 } // namespace dcpp
 
 #endif // !defined(ENCODER_H)
-
-/**
- * @file
- * $Id: Encoder.h 568 2011-07-24 18:28:43Z bigmuscle $
- */

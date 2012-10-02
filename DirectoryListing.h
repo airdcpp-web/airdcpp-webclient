@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -255,8 +255,3 @@ inline bool operator==(DirectoryListing::File::Ptr a, const string& b) { return 
 } // namespace dcpp
 
 #endif // !defined(DIRECTORY_LISTING_H)
-
-/**
- * @file
- * $Id: DirectoryListing.h 491 2010-03-20 11:32:35Z bigmuscle $
- */

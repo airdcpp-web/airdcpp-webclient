@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,6 +81,8 @@ SearchManager::~SearchManager() {
 		join();
 #endif
 	}
+
+	for_each(searchKeys, DeleteFunction());
 }
 
 string SearchManager::normalizeWhitespace(const string& aString){
@@ -101,26 +103,19 @@ void SearchManager::search(const string& aName, int64_t aSize, TypeModes aTypeMo
 
 uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize /* = 0 */, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, const StringList& aExtList, Search::searchType sType, void* aOwner /* = NULL */) {
 	StringPairList tokenHubList;
+	//generate a random key and store it so we can check the results
+	uint8_t* key = new uint8_t[16];
+	RAND_bytes(key, 16);
+
 	{
 		WLock l (cs);
+		searchKeys.push_back(key);
 		for_each(who, [&](string& hub) {
 			string hubToken = Util::toString(Util::rand());
 			searches[hubToken] = (SearchItem)(make_tuple(GET_TICK(), aToken, hub));
 			tokenHubList.push_back(make_pair(hubToken, hub));
 		});
 	}
-
-
-	//generate a random key and store it so we can check the results
-	uint8_t key[16];
-	RAND_bytes(key, 16);
-
-	ByteVector v;
-	v.resize(16);
-	for (int i = 0; i < 16; ++i)
-		v[i] = key[i];
-
-	searchKeys.push_back(v);
 	string keyStr = Encoder::toBase32(key, 16);
 
 	uint64_t estimateSearchSpan = 0;
@@ -228,11 +223,9 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 
 	//check if this packet has been encrypted
 	if (aLen >= 32 && ((aLen & 15) == 0)) {
-		for(auto i = searchKeys.begin(); i < searchKeys.end(); ++i) {
+		RLock l (cs);
+		for(auto i = searchKeys.cbegin(); i != searchKeys.cend(); ++i) {
 			uint8_t out[BUFSIZE];
-			uint8_t tmp[16];
-			for (int k = 0; k < 16; ++k)
-				tmp[k] = (*i)[k];
 
 			uint8_t ivd[16] = { };
 
@@ -244,7 +237,7 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 			EVP_CIPHER_CTX_init(&ctx);
 
 			int len = 0, tmpLen=0;
-			EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, tmp, ivd);
+			EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, *i, ivd);
 			EVP_DecryptUpdate(&ctx, out, &len, buf, aLen);
 			EVP_DecryptFinal_ex(&ctx, out + aLen, &tmpLen);
 			EVP_CIPHER_CTX_cleanup(&ctx);
@@ -1000,8 +993,3 @@ void SearchManager::on(SettingsManagerListener::Load, SimpleXML& xml) {
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: SearchManager.cpp 575 2011-08-25 19:38:04Z bigmuscle $
- */

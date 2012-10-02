@@ -91,8 +91,3 @@ void CDECL TraceManager::trace_end(const char* format, ...) noexcept
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: TraceManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
- */

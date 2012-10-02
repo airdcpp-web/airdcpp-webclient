@@ -38,8 +38,3 @@ extern void shutdown(void (*f)(void*, const tstring&), void* p);
 } // namespace dcpp
 
 #endif // !defined(DC_PLUS_PLUS_H)
-
-/**
- * @file
- * $Id: DCPlusPlus.h 568 2011-07-24 18:28:43Z bigmuscle $
- */

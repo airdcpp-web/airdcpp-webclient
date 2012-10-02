@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -128,6 +128,7 @@ void Client::reloadSettings(bool updateNick) {
 		setChatNotify(false);
 		setHubLogMainchat(true);
 		setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
+		setPassword(Util::emptyString);
 		//favToken = 0;
 
 		if (!isAdcHub)
@@ -199,12 +200,21 @@ void Client::on(Connected) noexcept {
 	seticons = 0;
 }
 
+void Client::onPassword() {
+	string newUrl = hubUrl;
+	if (getPassword().empty() && FavoriteManager::getInstance()->blockFailOverUrl(favToken, newUrl)) {
+		ClientManager::getInstance()->setClientUrl(hubUrl, newUrl);
+		state = STATE_DISCONNECTED;
+		sock->removeListener(this);
+		fire(ClientListener::Failed(), this, STRING(FAILOVER_AUTH));
+		return;
+	}
+	fire(ClientListener::GetPassword(), this);
+}
+
 void Client::on(Failed, const string& aLine) noexcept {
 	string msg = aLine;
-	if (state != STATE_CONNECTING) {
-		//don't try failover addresses right after getting disconnected...
-		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
-	} else {
+	if (state == STATE_CONNECTING || (state != STATE_NORMAL && FavoriteManager::getInstance()->isFailOverUrl(favToken, hubUrl))) {
 		string newUrl = hubUrl;
 		if (FavoriteManager::getInstance()->getFailOverUrl(favToken, newUrl) && !ClientManager::getInstance()->isConnected(newUrl)) {
 			ClientManager::getInstance()->setClientUrl(hubUrl, newUrl);
@@ -213,6 +223,9 @@ void Client::on(Failed, const string& aLine) noexcept {
 				msg += ".";
 			msg += " Switching to an address " + hubUrl;
 		}
+	} else {
+		//don't try failover addresses right after getting disconnected...
+		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
 	}
 
 	state = STATE_DISCONNECTED;
@@ -333,8 +346,3 @@ void Client::on(Second, uint64_t aTick) noexcept {
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: Client.cpp 568 2011-07-24 18:28:43Z bigmuscle $
- */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,6 @@
 #include <sstream>
 #include <string>
 
-//#include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 
@@ -587,19 +586,10 @@ bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, 
 					uint8_t pad = 16 - (cmdStr.length() & 15);
 					cmdStr.append(pad, (char)pad);
 
-
+					// encrypt it
 					uint8_t* out = new uint8_t[cmdStr.length()];
-
 					memset(ivd, 0, 16);
 					int aLen = cmdStr.length();
-
-					/*EVP_CIPHER_CTX ctx;
-					int aLen = cmdStr.length(), tmpLen=0;
-					EVP_CIPHER_CTX_init(&ctx);
-					EVP_EncryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, keyChar, ivd);
-					EVP_EncryptUpdate(&ctx, out, &aLen, (unsigned char*)cmdStr.c_str(), aLen);
-					EVP_EncryptFinal_ex(&ctx, out + aLen, &tmpLen);
-					EVP_CIPHER_CTX_cleanup(&ctx);*/
 
 					AES_KEY key;
 					AES_set_encrypt_key(keyChar, 128, &key);
@@ -990,8 +980,3 @@ void ClientManager::setIPUser(const UserPtr& user, const string& IP, const strin
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: ClientManager.cpp 568 2011-07-24 18:28:43Z bigmuscle $
- */

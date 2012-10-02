@@ -1508,5 +1508,6 @@ enum Strings { // @DontAdd
 	ADD_THIS_PROFILE, // "Add in this profile"
 	HIGHLIGHTS_IN_THEME, // "The selected theme has highlight color settings, \r\nloading them will override your old highlights, \r\nwould you still like to load them?"
 	SEARCH_TIMES, // "Search times"
+	FAILOVER_AUTH, // "This hub requires authentication via a failover address; aborting connection and switching to the default address"
 	LAST // @DontAdd
 };

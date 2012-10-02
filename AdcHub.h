@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -168,8 +168,3 @@ private:
 } // namespace dcpp
 
 #endif // !defined(ADC_HUB_H)
-
-/**
- * @file
- * $Id: AdcHub.h 573 2011-08-04 22:33:45Z bigmuscle $
- */

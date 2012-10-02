@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -134,7 +134,7 @@ private:
 		HUBURL			= 2,
 	};
 
-	vector<ByteVector> searchKeys;
+	vector<uint8_t*> searchKeys;
 	typedef tuple<uint64_t, string, string> SearchItem;
 
 	boost::unordered_map<string, SearchItem> searches;
@@ -169,8 +169,3 @@ private:
 } // namespace dcpp
 
 #endif // !defined(SEARCH_MANAGER_H)
-
-/**
- * @file
- * $Id: SearchManager.h 568 2011-07-24 18:28:43Z bigmuscle $
- */

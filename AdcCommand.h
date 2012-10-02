@@ -240,8 +240,3 @@ public:
 } // namespace dcpp
 
 #endif // !defined(ADC_COMMAND_H)
-
-/**
-* @file
-* $Id: AdcCommand.h 568 2011-07-24 18:28:43Z bigmuscle $
-*/

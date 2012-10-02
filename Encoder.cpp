@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -140,8 +140,3 @@ void Encoder::fromBase16(const char* src, uint8_t* dst, size_t len) {
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: Encoder.cpp 568 2011-07-24 18:28:43Z bigmuscle $
- */

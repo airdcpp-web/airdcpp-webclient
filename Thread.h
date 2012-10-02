@@ -150,8 +150,3 @@ protected:
 } // namespace dcpp
 
 #endif // !defined(THREAD_H)
-
-/**
- * @file
- * $Id: Thread.h 568 2011-07-24 18:28:43Z bigmuscle $
- */

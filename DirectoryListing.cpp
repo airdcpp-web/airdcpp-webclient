@@ -1,6 +1,6 @@
 
 /* 
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1052,7 +1052,3 @@ bool DirectoryListing::isCurrentSearchPath(const string& path) {
 }
 
 } // namespace dcpp
-/**
- * @file
- * $Id: DirectoryListing.cpp 500 2010-06-25 22:08:18Z bigmuscle $
- */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -852,7 +852,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		OnlineUser& ou = getUser(getMyNick());
 		ou.getIdentity().set("RG", "1");
 		setMyIdentity(ou.getIdentity());
-		fire(ClientListener::GetPassword(), this);
+		onPassword();
 	} else if(cmd == "BadPass") {
 		setPassword(Util::emptyString);
 	} else if(cmd == "ZOn") {
@@ -1100,8 +1100,3 @@ void NmdcHub::on(Second, uint64_t aTick) noexcept {
 }
 
 } // namespace dcpp
-
-/**
- * @file
- * $Id: nmdchub.cpp 494 2010-04-01 20:55:12Z bigmuscle $
- */

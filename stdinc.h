@@ -91,8 +91,3 @@ namespace dcpp {
 }
 
 #endif // !defined(STDINC_H)
-
-/**
- * @file
- * $Id: stdinc.h 568 2011-07-24 18:28:43Z bigmuscle $
- */

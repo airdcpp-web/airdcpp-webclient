@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2011 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -205,6 +205,7 @@ protected:
 
 	virtual bool v4only() const = 0;
 	void setHubUrl(const string& url);
+	void onPassword();
 private:
 
 	Client(const Client&);
@@ -227,8 +228,3 @@ private:
 } // namespace dcpp
 
 #endif // !defined(CLIENT_H)
-
-/**
- * @file
- * $Id: Client.h 551 2010-12-18 12:14:16Z bigmuscle $
- */
