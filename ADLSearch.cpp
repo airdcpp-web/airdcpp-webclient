@@ -305,14 +305,14 @@ void ADLSearchManager::load()
 					if(xml.findChild("IsRegExp")) {
 						if (Util::toInt(xml.getChildData()) > 0) {
 							search.setRegEx(true);
-						}
-					}
-					xml.resetCurrentChild();
+							xml.resetCurrentChild();
 
-					if(xml.findChild("IsCaseSensitive")) {
-						if (Util::toInt(xml.getChildData()) == 0) {
-							search.match.pattern.insert(0, "(?i:");
-							search.match.pattern.insert(search.match.pattern.size(), ")");
+							if(xml.findChild("IsCaseSensitive")) {
+								if (Util::toInt(xml.getChildData()) == 0) {
+									search.match.pattern.insert(0, "(?i:");
+									search.match.pattern.insert(search.match.pattern.size(), ")");
+								}
+							}
 						}
 					}
 

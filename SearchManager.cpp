@@ -82,7 +82,7 @@ SearchManager::~SearchManager() {
 #endif
 	}
 
-	for_each(searchKeys, DeleteFunction());
+	//for_each(searchKeys, DeleteFunction());
 }
 
 string SearchManager::normalizeWhitespace(const string& aString){
@@ -104,19 +104,19 @@ void SearchManager::search(const string& aName, int64_t aSize, TypeModes aTypeMo
 uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize /* = 0 */, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, const StringList& aExtList, Search::searchType sType, void* aOwner /* = NULL */) {
 	StringPairList tokenHubList;
 	//generate a random key and store it so we can check the results
-	uint8_t* key = new uint8_t[16];
-	RAND_bytes(key, 16);
+	//uint8_t* key = new uint8_t[16];
+	//RAND_bytes(key, 16);
 
 	{
 		WLock l (cs);
-		searchKeys.push_back(key);
+		//searchKeys.push_back(key);
 		for_each(who, [&](string& hub) {
 			string hubToken = Util::toString(Util::rand());
 			searches[hubToken] = (SearchItem)(make_tuple(GET_TICK(), aToken, hub));
 			tokenHubList.push_back(make_pair(hubToken, hub));
 		});
 	}
-	string keyStr = Encoder::toBase32(key, 16);
+	//string keyStr = Encoder::toBase32(key, 16);
 
 	uint64_t estimateSearchSpan = 0;
 	for_each(tokenHubList, [&](StringPair& sp) {
@@ -127,8 +127,8 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 		s->sizeType = aSizeMode;
 		s->token    = sp.first;
 		s->exts	   = aExtList;
-		if (strnicmp("adcs://", sp.second.c_str(), 7) == 0)
-			s->key		= keyStr;
+		//if (strnicmp("adcs://", sp.second.c_str(), 7) == 0)
+		//	s->key		= keyStr;
 
 		if (aOwner)
 			s->owners.insert(aOwner);
@@ -222,16 +222,12 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 	string x((char*)buf, aLen);
 
 	//check if this packet has been encrypted
-	if (aLen >= 32 && ((aLen & 15) == 0)) {
+	/*if (aLen >= 32 && ((aLen & 15) == 0)) {
 		RLock l (cs);
 		for(auto i = searchKeys.cbegin(); i != searchKeys.cend(); ++i) {
 			uint8_t out[BUFSIZE];
 
 			uint8_t ivd[16] = { };
-
-			/*AES_KEY key;
-			AES_set_encrypt_key(tmp, 128, &key);
-			AES_cbc_encrypt(buf, out, aLen, &key, ivd, AES_DECRYPT);*/
 
 			EVP_CIPHER_CTX ctx;
 			EVP_CIPHER_CTX_init(&ctx);
@@ -258,7 +254,7 @@ void SearchManager::onData(const uint8_t* buf, size_t aLen, const string& remote
 			x = (char*)out+16;
 			break;
 		}
-	}
+	}*/
 
 	COMMAND_DEBUG(x, DebugManager::TYPE_CLIENT_UDP, DebugManager::INCOMING, remoteIp);
 	if(x.compare(0, 4, "$SR ") == 0) {
