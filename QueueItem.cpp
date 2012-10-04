@@ -619,7 +619,7 @@ bool QueueItem::startDown() {
 
 void QueueItem::searchAlternates() {
 	if (SettingsManager::lanMode)
-		SearchManager::getInstance()->search(getTargetFileName(), size, SearchManager::TYPE_TTH, SearchManager::SIZE_EXACT, "qa", Search::ALT_AUTO);
+		SearchManager::getInstance()->search(getTargetFileName(), size, SearchManager::TYPE_ANY, SearchManager::SIZE_EXACT, "qa", Search::ALT_AUTO);
 	else
 		SearchManager::getInstance()->search(tthRoot.toBase32(), 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "qa", Search::ALT_AUTO);
 }

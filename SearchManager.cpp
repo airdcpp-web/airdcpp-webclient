@@ -101,7 +101,9 @@ void SearchManager::search(const string& aName, int64_t aSize, TypeModes aTypeMo
 	search(who, aName, aSize, aTypeMode, aSizeMode, aToken, StringList(), sType, aOwner);
 }
 
-uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize /* = 0 */, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, const StringList& aExtList, Search::searchType sType, void* aOwner /* = NULL */) {
+uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize, TypeModes aFileType, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, 
+	Search::searchType sType, void* aOwner /* NULL */) {
+
 	StringPairList tokenHubList;
 	//generate a random key and store it so we can check the results
 	//uint8_t* key = new uint8_t[16];
@@ -121,18 +123,18 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 	uint64_t estimateSearchSpan = 0;
 	for_each(tokenHubList, [&](StringPair& sp) {
 		auto s = new Search;
-		s->fileType = sType;
+		s->fileType = aFileType;
 		s->size     = aSize;
 		s->query    = aName;
 		s->sizeType = aSizeMode;
 		s->token    = sp.first;
-		s->exts	   = aExtList;
+		s->exts	    = aExtList;
+		s->type		= sType;
+
+		s->owners.insert(aOwner);
+
 		//if (strnicmp("adcs://", sp.second.c_str(), 7) == 0)
 		//	s->key		= keyStr;
-
-		if (aOwner)
-			s->owners.insert(aOwner);
-		s->type		= sType;
 
 		uint64_t ret = ClientManager::getInstance()->search(sp.second, s);
 		estimateSearchSpan = max(estimateSearchSpan, ret);			

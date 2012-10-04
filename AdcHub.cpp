@@ -1008,9 +1008,9 @@ void AdcHub::search(Search* s) {
 
 	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, s->token, s->exts, false);
 
-	if (!s->key.empty()) {
+	/*if (!s->key.empty()) {
 		c.addParam("KY", s->key);
-	}
+	}*/
 
 	delete s;
 	sendSearch(c);
