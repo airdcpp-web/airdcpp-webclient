@@ -140,7 +140,7 @@ public:
 	}
 	
 	
-	void fileNotAvail(const std::string& msg = FILE_NOT_AVAILABLE, bool hasFile = false);
+	void fileNotAvail(const std::string& msg = FILE_NOT_AVAILABLE, bool noAccess = false);
 	void supports(const StringList& feat);
 	void getListLen() { send("$GetListLen|"); }
 

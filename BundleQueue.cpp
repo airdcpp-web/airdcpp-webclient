@@ -275,6 +275,8 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 				return s->second;
 			}
 		}
+
+		return make_pair(Util::emptyString, nullptr);
 	}
 
 	return directories.first->second;

@@ -28,6 +28,7 @@
 #include "AirUtil.h"
 #include "SearchResult.h"
 #include "SimpleXML.h"
+#include "ConnectionManager.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
@@ -40,12 +41,15 @@ namespace dcpp {
 using boost::range::for_each;
 using boost::fusion::accumulate;
 	
-Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), token(aToken), size(qi->getSize()), 
+Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(qi->getAutoPriority()), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
 	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0) {
 
-
+	if (aToken.empty())
+		token = ConnectionManager::getInstance()->tokens.getToken();
+	else
+		token = aToken;
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	setFlag(FLAG_NEW);
@@ -53,9 +57,15 @@ Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()),
 		setFlag(FLAG_AUTODROP);
 }
 
-Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t aDirDate /*0*/) : fileBundle(false), 
-	token(Util::toString(Util::rand()) + Util::toString(Util::rand())), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate),
-	lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0) {
+Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/) : fileBundle(false), size(0), 
+	finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), 
+	simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0) {
+
+	if (aToken.empty()) {
+		token = ConnectionManager::getInstance()->tokens.getToken();
+	} else {
+		token = aToken;
+	}
 
 	setTarget(aTarget);
 	auto time = GET_TIME();
@@ -80,7 +90,8 @@ Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t a
 		setFlag(FLAG_AUTODROP);
 }
 
-Bundle::~Bundle() { 
+Bundle::~Bundle() {
+	ConnectionManager::getInstance()->tokens.removeToken(token);
 	//bla
 }
 
@@ -93,6 +104,11 @@ void Bundle::setTarget(const string& aTarget) {
 bool Bundle::checkRecent() {
 	recent = (SETTING(RECENT_BUNDLE_HOURS) > 0 && (dirDate + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > GET_TIME());
 	return recent;
+}
+
+bool Bundle::allowHash() {
+	return !isSet(FLAG_HASH) && queueItems.empty() && boost::find_if(finishedFiles, [](QueueItemPtr q) { 
+		return !q->isSet(QueueItem::FLAG_MOVED); }) == finishedFiles.end();
 }
 
 void Bundle::setDownloadedBytes(int64_t aSize) {

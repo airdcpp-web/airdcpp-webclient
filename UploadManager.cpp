@@ -110,7 +110,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	Transfer::Type type;
 	int64_t fileSize = 0;
 	ProfileToken profile = -1;
-	bool found = false;
+	bool noAccess = false;
 
 	try {
 		if(aType == Transfer::names[Transfer::TYPE_FILE]) {
@@ -131,7 +131,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 					return false;
 				}
 
-				ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, found);
+				ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, noAccess);
 
 				miniSlot = freeSlotMatcher.match(Util::getFileName(sourceFile));
 			}
@@ -146,7 +146,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			}
 
 			pair<string, int64_t> info;
-			ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, found);
+			ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, noAccess);
 			type = Transfer::TYPE_TREE;
 			miniSlot = true;
 
@@ -174,7 +174,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 				goto checkslots;
 			}
 		}
-		aSource.fileNotAvail(e.getError(), found);
+		aSource.fileNotAvail(e.getError(), noAccess);
 		return false;
 	}
 
@@ -615,6 +615,8 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 	if (bundleToken.empty() || name.empty() || size <= 0 || token.empty()) {
 		//LogManager::getInstance()->message("INVALID UBD1", LogManager::LOG_ERROR);
 		return;
+	} else if (!ConnectionManager::getInstance()->tokens.addToken(bundleToken)) {
+		return;
 	}
 
 	//dcassert(!findBundle(bundleToken));
@@ -747,9 +749,9 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 		{
 			Lock l (cs);
 			bundles.erase(bundle->getToken());
-			dcassert(bundles.find(bundle->getToken()) == bundles.end());
 		}
-		//bundle->setSingleUser(true);
+
+		ConnectionManager::getInstance()->tokens.removeToken(bundle->getToken());
 		fire(UploadManagerListener::BundleComplete(), bundle->getToken(), bundle->getName());
 	}
 }
@@ -1195,6 +1197,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			UploadBundlePtr ub = i->second;
 			if (ub->getUploads().empty() && ++ub->delayTime > 10) {
 				bundles.erase(i);
+				ConnectionManager::getInstance()->tokens.removeToken((*i).second->getToken());
 				i = bundles.begin();
 			} else {
 				if (ub->countSpeed() > 0)

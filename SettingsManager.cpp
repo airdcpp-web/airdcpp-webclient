@@ -58,7 +58,7 @@ const string SettingsManager::settingTags[] =
 	"MainFrameVisible", "SearchFrameVisible", "QueueFrameVisible", "HubFrameVisible", "UploadQueueFrameVisible", 
 	"EmoticonsFile", "TLSPrivateKeyFile", "TLSCertificateFile", "TLSTrustedCertificatesPath",
 	"FinishedVisible", "FinishedULVisible", "DirectoryListingFrameVisible",
-	"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat", "BackupPath",
+	"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat",
 
 	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat","WinampPath",
 	"AntivirPath",
@@ -156,7 +156,7 @@ const string SettingsManager::settingTags[] =
 	"ScanDLBundles", "UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "QueueColor", "TextQueueBackColor", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "LogHashedFiles",
 	"RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
-	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode", "UpdateMethod", "UpdateAutoBackup",
+	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode", "UpdateMethod",
 	"QueueSplitterPos", "UpdateIPHourly",
 	"SENTRY",
 	// Int64
@@ -284,7 +284,7 @@ SettingsManager::SettingsManager()
 	setDefault(SHOW_TOOLBAR, true);
 	setDefault(POPUNDER_PM, false);
 	setDefault(POPUNDER_FILELIST, false);
-	setDefault(MAGNET_REGISTER, true);
+	setDefault(MAGNET_REGISTER, false);
 	setDefault(MAGNET_ASK, true);
 	setDefault(MAGNET_ACTION, MAGNET_DOWNLOAD);
 	setDefault(ADD_FINISHED_INSTANTLY, true);
@@ -706,7 +706,6 @@ SettingsManager::SettingsManager()
 	setDefault(TLS_MODE, 1);
 	setDefault(LAST_SEARCH_DISABLED_HUBS, Util::emptyString);
 	setDefault(UPDATE_METHOD, 2);
-	setDefault(UPGRADE_AUTOBACKUP, 0);
 	setDefault(QUEUE_SPLITTER_POS, 3000);
 	setDefault(UPDATE_IP_HOURLY, false);
 #ifdef _WIN64
@@ -816,30 +815,16 @@ void SettingsManager::load(string const& aFileName)
 		}
 
 		double v = Util::toDouble(SETTING(CONFIG_VERSION));
-		// if(v < 0.x) { // Fix old settings here }
 
-		if(v <= 0.674) {
+		if(v <= 2.30 && SETTING(POPUP_TYPE) == 1)
+			set(AUTO_DETECT_CONNECTION, 0);
 
-			// Formats changed, might as well remove these...
-			set(LOG_FORMAT_POST_DOWNLOAD, Util::emptyString);
-			set(LOG_FORMAT_POST_UPLOAD, Util::emptyString);
-			set(LOG_FORMAT_MAIN_CHAT, Util::emptyString);
-			set(LOG_FORMAT_PRIVATE_CHAT, Util::emptyString);
-			set(LOG_FORMAT_STATUS, Util::emptyString);
-			set(LOG_FORMAT_SYSTEM, Util::emptyString);
-			set(LOG_FILE_MAIN_CHAT, Util::emptyString);
-			set(LOG_FILE_STATUS, Util::emptyString);
-			set(LOG_FILE_PRIVATE_CHAT, Util::emptyString);
-			set(LOG_FILE_UPLOAD, Util::emptyString);
-			set(LOG_FILE_DOWNLOAD, Util::emptyString);
-			set(LOG_FILE_SYSTEM, Util::emptyString);
-		}
 
 		if(v <= 2.07 && SETTING(INCOMING_CONNECTIONS) != INCOMING_FIREWALL_PASSIVE) {
 			set(AUTO_DETECT_CONNECTION, false); //Don't touch if it works
 		}
 
-		if(v <= 2.30) {
+		/*if(v <= 2.30) {
 		try {
 			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2"))			
 				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2");
@@ -847,7 +832,7 @@ void SettingsManager::load(string const& aFileName)
 			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml"))			
 				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml");
 		}catch(...) { }
-		}
+		}*/
 
 		setDefault(UDP_PORT, SETTING(TCP_PORT));
 

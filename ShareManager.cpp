@@ -413,7 +413,7 @@ string ShareManager::getFileListName(const string& virtualFile, ProfileToken aPr
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& found_) {
+void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& noAccess_) {
 	if(virtualFile.compare(0, 4, "TTH/") == 0) {
 		TTHValue tth(virtualFile.substr(4));
 
@@ -421,11 +421,13 @@ void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenS
 			RLock l(cs);
 			auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&tth));
 			for(auto f = flst.first; f != flst.second; ++f) {
-				found_ = true;
+				noAccess_ = false; //we may throw if the file doesn't exist on the disk so always reset this to prevent invalid access denied messages
 				if(f->second->getParent()->hasProfile(aProfiles)) {
 					path_ = f->second->getRealPath();
 					size_ = f->second->getSize();
 					return;
+				} else {
+					noAccess_ = true;
 				}
 			}
 		}
@@ -433,11 +435,13 @@ void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenS
 		Lock l(tScs);
 		auto files = tempShares.equal_range(tth);
 		for(auto i = files.first; i != files.second; ++i) {
-			found_ = true;
+			noAccess_ = false;
 			if(i->second.key.empty() || (i->second.key == aUser.user->getCID().toBase32())) { // if no key is set, it means its a hub share.
 				path_ = i->second.path;
 				size_ = i->second.size;
 				return;
+			} else {
+				noAccess_ = true;
 			}
 		}
 	} else {
@@ -457,7 +461,7 @@ void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenS
 		}
 	}
 
-	throw ShareException(found_ ? "You don't have access to this file" : UserConnection::FILE_NOT_AVAILABLE);
+	throw ShareException(noAccess_ ? "You don't have access to this file" : UserConnection::FILE_NOT_AVAILABLE);
 }
 
 TTHValue ShareManager::getListTTH(const string& virtualFile, ProfileToken aProfile) const {
@@ -1413,7 +1417,7 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 				if (d->getProfileDir()->removeRootProfile((*i)->profile)) {
 					//can we remove the profile dir?
 					if (!d->getProfileDir()->hasExcludes()) {
-						dcassert(profileDirs.find((*i)->path) != profileDirs.end());
+						//dcassert(profileDirs.find((*i)->path) != profileDirs.end());
 						profileDirs.erase((*i)->path);
 					}
 

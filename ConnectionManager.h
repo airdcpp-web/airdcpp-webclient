@@ -31,6 +31,16 @@ namespace dcpp {
 
 class SocketException;
 
+class TokenManager {
+public:
+	string getToken();
+	bool addToken(const string& aToken);
+	void removeToken(const string& aToken);
+private:
+	StringSet tokens;
+	CriticalSection cs;
+};
+
 class ConnectionQueueItem : boost::noncopyable, public Flags {
 public:
 	typedef ConnectionQueueItem* Ptr;
@@ -107,6 +117,7 @@ class ConnectionManager : public Speaker<ConnectionManagerListener>,
 	public Singleton<ConnectionManager>
 {
 public:
+	TokenManager tokens;
 	void nmdcExpect(const string& aNick, const string& aMyNick, const string& aHubUrl) {
 		expectedConnections.add(aNick, aMyNick, aHubUrl);
 	}
@@ -197,7 +208,7 @@ private:
 
 	void checkWaitingMCN() noexcept;
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool download, const string& token=Util::toString(Util::rand()));
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, bool aDownload, const string& aToken=Util::emptyString);
 	void putCQI(ConnectionQueueItem* cqi);
 
 	void accept(const Socket& sock, bool secure) noexcept;

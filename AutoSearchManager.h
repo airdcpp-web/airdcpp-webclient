@@ -108,7 +108,6 @@ public:
 	//bool match(const TTHValue& aTTH) { return resultMatcher->match(aTTH); }
 	//const string& getPattern() const { return resultMatcher->getPattern(); }
 	const string& getNickPattern() const { return userMatcher.pattern; }
-	void search(StringList& aHubs);
 
 	string getDisplayType();
 private:
@@ -127,7 +126,7 @@ public:
 	AutoSearchPtr getAutoSearch(unsigned int index);
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
-	void SearchNow(AutoSearchPtr as);
+	void manualSearch(AutoSearchPtr as);
 	
 	AutoSearchList& getSearchItems() { 
 		RLock l(cs);
@@ -166,9 +165,11 @@ public:
 	void AutoSearchLoad();
 	void AutoSearchSave();
 
+	void logMessage(const string& aMsg, bool error);
 private:
 	mutable SharedMutex cs;
 
+	uint64_t searchItem(AutoSearchPtr as, StringList& aHubs, bool report, bool manual);
 	//count minutes to be more accurate than comparing ticks every minute.
 	unsigned int lastSearch;
 	unsigned int recheckTime;

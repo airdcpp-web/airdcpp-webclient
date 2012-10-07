@@ -62,27 +62,29 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 AutoSearch::~AutoSearch() { 
 };
 
-void AutoSearch::search(StringList& aHubs) {
+uint64_t AutoSearchManager::searchItem(AutoSearchPtr as, StringList& aHubs, bool report, bool manual) {
 	StringList extList;
 	int ftype = 0;
 	try {
-		SearchManager::getInstance()->getSearchType(fileType, ftype, extList, true);
+		SearchManager::getInstance()->getSearchType(as->getFileType(), ftype, extList, true);
 	} catch(const SearchTypeException&) {
 		//reset to default
-		fileType = SEARCH_TYPE_ANY;
+		as->setFileType(SEARCH_TYPE_ANY);
 		ftype = SearchManager::TYPE_ANY;
 	}
 
-	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchString, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, "as", extList, manualSearch? Search::MANUAL : Search::AUTO_SEARCH);
+	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, as->getSearchString(), 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, 
+		"as", extList, manual ? Search::MANUAL : Search::AUTO_SEARCH);
 
-	if (searchTime == 0) {
-		LogManager::getInstance()->message(str(boost::format("Autosearch: %s has been searched for") %
-			searchString), LogManager::LOG_INFO);
-	} else {
-		LogManager::getInstance()->message(str(boost::format("Autosearch: %s will be searched in %d seconds") %
-			searchString %
-			(searchTime / 1000)), LogManager::LOG_INFO);
+	if (report) {
+		if (searchTime == 0) {
+			logMessage(STRING_F(ITEM_SEARCHED, as->getSearchString()), false);
+		} else {
+			logMessage(STRING_F(ITEM_SEARCHED_IN, as->getSearchString() % (searchTime / 1000)), false);
+		}
 	}
+
+	return searchTime;
 }
 
 string AutoSearch::getDisplayType() {
@@ -110,7 +112,7 @@ AutoSearchManager::~AutoSearchManager() {
 /* For external use */
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove/*true*/) {
 	if (ss.length() <= 5) {
-		LogManager::getInstance()->message(str(boost::format(STRING(AUTO_SEARCH_ADD_FAILED)) % ss) + " " + STRING(LINE_EMPTY_OR_TOO_SHORT), LogManager::LOG_ERROR);
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(LINE_EMPTY_OR_TOO_SHORT)), true);
 		return nullptr;
 	}
 
@@ -123,13 +125,32 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 
 	if (addAutoSearch(as)) {
 		as->setLastSearch(GET_TIME());
-		LogManager::getInstance()->message(CSTRING(SEARCH_ADDED) + ss, LogManager::LOG_INFO);
-		SearchNow(as);
+		string msg;
+
+		StringList allowedHubs;
+		ClientManager::getInstance()->getOnlineClients(allowedHubs);
+		//no hubs? no fun...
+		if(!allowedHubs.empty()) {
+			auto searchTime = searchItem(as, allowedHubs, false, false);
+			if (searchTime == 0) {
+				msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED, ss);
+			} else {
+				msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED_IN, ss % (searchTime / 1000));
+			}
+		} else {
+			msg = CSTRING_F(AUTOSEARCH_ADDED, ss);
+		}
+
+		logMessage(msg, false);
 		return as;
 	} else {
-		LogManager::getInstance()->message(str(boost::format(STRING(AUTO_SEARCH_ADD_FAILED)) % ss) + " " + STRING(AUTO_SEARCH_EXISTS), LogManager::LOG_ERROR);
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(ITEM_NAME_EXISTS)), true);
 		return nullptr;
 	}
+}
+
+void AutoSearchManager::logMessage(const string& aMsg, bool error) {
+	LogManager::getInstance()->message(STRING(AUTO_SEARCH_SMALL) + ": " +  aMsg, error ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
 void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept {
@@ -307,12 +328,12 @@ void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK()
 		}
 	}
 	
-	if(as != nullptr) {
-		as->search(allowedHubs);
+	if(as) {
+		searchItem(as, allowedHubs, true, false);
 	}
 }
 
-void AutoSearchManager::SearchNow(AutoSearchPtr as) {
+void AutoSearchManager::manualSearch(AutoSearchPtr as) {
 	StringList allowedHubs;
 	ClientManager::getInstance()->getOnlineClients(allowedHubs);
 	//no hubs? no fun...
@@ -320,7 +341,7 @@ void AutoSearchManager::SearchNow(AutoSearchPtr as) {
 		return;
 	}
 	as->setManualSearch(true);
-	as->search(allowedHubs);
+	searchItem(as, allowedHubs, true, true);
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {

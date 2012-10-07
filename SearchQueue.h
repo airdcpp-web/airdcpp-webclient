@@ -27,7 +27,7 @@ class SearchQueue
 {
 public:
 	
-	SearchQueue(uint32_t aInterval = 0);
+	SearchQueue(int32_t aInterval = 0);
 
 	uint64_t add(Search* s);
 	Search* pop();
@@ -41,13 +41,15 @@ public:
 	bool cancelSearch(void* aOwner);
 
 	/* Interval defined by the client (settings or fav hub interval) */
-	uint32_t minInterval;
+	int32_t minInterval;
 	uint64_t getNextSearchTick() { return lastSearchTime+nextInterval; }
 	bool hasWaitingTime(uint64_t aTick);
 	uint64_t lastSearchTime;
 private:
+	int32_t getInterval(const Search* aSearch) const;
+
 	deque<Search*>	searchQueue;
-	uint32_t		nextInterval;
+	int32_t		nextInterval;
 	CriticalSection cs;
 };
 

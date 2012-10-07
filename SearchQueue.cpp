@@ -30,10 +30,21 @@ namespace dcpp {
 
 using boost::range::for_each;
 	
-SearchQueue::SearchQueue(uint32_t aInterval) 
+SearchQueue::SearchQueue(int32_t aInterval) 
 	: lastSearchTime(0), minInterval(aInterval)
 {
 	nextInterval = 10*1000;
+}
+
+int32_t SearchQueue::getInterval(const Search* aSearch) const {
+	int32_t ret = 0;
+	switch(aSearch->type) {
+		case Search::MANUAL: ret = 5000; break;
+		case Search::ALT: ret = 10000; break;
+		case Search::ALT_AUTO: ret = 20000; break;
+		case Search::AUTO_SEARCH: ret = 20000; break;
+	}
+	return max(ret, minInterval);
 }
 
 uint64_t SearchQueue::add(Search* s)
@@ -65,8 +76,8 @@ uint64_t SearchQueue::add(Search* s)
 			break;
 		}
 
-		x += (*i)->getInterval();
-		advance(i, 1);
+		x += getInterval((*i));
+		i++;
 	}
 
 	if (add)
@@ -76,27 +87,23 @@ uint64_t SearchQueue::add(Search* s)
 
 	auto now = GET_TICK();
 	if (x > 0) {
-		//subtract ellapsed time for the first item from all items before this
+		dcassert(nextInterval > 0);
 		//LogManager::getInstance()->message("Time remaining in this queue: " + Util::toString(x - (getNextSearchTick() - now)) + " (next search " + Util::toString(getNextSearchTick())
 		//	+ "ms, now " + Util::toString(now) + "ms, queueTime: " + Util::toString(x) + "ms)");
 
 		if (getNextSearchTick() <= now) {
 			//we have queue but the a search can be performed
-			if (now - getNextSearchTick() > x) {
-				//the last search was loong time ago, just return the queue time
-				return x;
-			} else {
-				//subtract the time ellapsed since last search from the queue time
-				return x - (now - getNextSearchTick());
-			}
+			return x;
 		} else {
 			//we have queue and even waiting time for the next search
-			return x - (getNextSearchTick() - now);
+			return x + (getNextSearchTick() - now);
 		}
 	} else {
-		//empty queue
-		if (getNextSearchTick() <= now)
+		//we have the first item, recount the tick allowed for the search
+		nextInterval = getInterval(s);
+		if (getNextSearchTick() <= now) {
 			return 0;
+		}
 
 		//we still need to wait after the previous search, subract the waiting time from the interval of this item
 		return getNextSearchTick() - now;
@@ -116,9 +123,11 @@ Search* SearchQueue::pop() {
 			lastSearchTime = GET_TICK();
 			nextInterval = minInterval;
 			if(!searchQueue.empty()) {
-				nextInterval = max(searchQueue.front()->getInterval(), minInterval);
+				nextInterval = getInterval(searchQueue.front());
 			}
 			return s;
+		} else {
+			nextInterval = -1;
 		}
 	}
 
@@ -126,7 +135,7 @@ Search* SearchQueue::pop() {
 }
 
 bool SearchQueue::hasWaitingTime(uint64_t aTick) {
-	return lastSearchTime + nextInterval > aTick;
+	return nextInterval < 0 || lastSearchTime + nextInterval > aTick;
 }
 
 bool SearchQueue::cancelSearch(void* aOwner){

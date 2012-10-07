@@ -111,7 +111,7 @@ public:
 
 	string toVirtual(const TTHValue& tth, ProfileToken aProfile) const;
 	string getFileListName(const string& virtualFile, ProfileToken aProfile);
-	void toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& found_);
+	void toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& noAccess_);
 	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const;
 	
 	int refresh(bool incoming=false, bool isStartup=false);

@@ -36,6 +36,31 @@
 
 namespace dcpp {
 
+string TokenManager::getToken() {
+	Lock l(cs);
+	string token = Util::toString(Util::rand());
+	tokens.insert(token);
+	return token;
+}
+
+bool TokenManager::addToken(const string& aToken) {
+	Lock l(cs);
+	if (tokens.find(aToken) == tokens.end()) {
+		tokens.insert(aToken);
+		return true;
+	}
+	return false;
+}
+
+void TokenManager::removeToken(const string& aToken) {
+	Lock l(cs);
+	auto p = tokens.find(aToken);
+	if (p != tokens.end())
+		tokens.erase(p);
+	else
+		dcassert(0);
+}
+
 ConnectionManager::ConnectionManager() : floodCounter(0), shuttingDown(false) {
 	TimerManager::getInstance()->addListener(this);
 
@@ -128,10 +153,10 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 	}
 }
 
-ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool download, const string& token) {
-	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, download, token);
+ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool aDownload, const string& aToken) {
+	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, aDownload, !aToken.empty() ? aToken : tokens.getToken());
 
-	if(download) {
+	if(aDownload) {
 		downloads.push_back(cqi);
 	} else {
 		uploads.push_back(cqi);
@@ -153,6 +178,8 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
 		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
 	}
+
+	tokens.removeToken(cqi->getToken());
 	delete cqi;
 }
 
@@ -716,20 +743,12 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 
 void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_UPLOAD));
-	bool remove = false;
+	bool added = false;
 
 	{
 		WLock l(cs);
-		if (uc->isSet(UserConnection::FLAG_MCN1)) {
-			//check that the token is unique so nasty clients can't mess up our transfers
-			if (find(downloads.begin(), downloads.end(), uc->getToken()) != downloads.end() || find(uploads.begin(), uploads.end(), uc->getToken()) != uploads.end()) {
-				remove=true;
-			}
-		} else if(find(uploads.begin(), uploads.end(), uc->getUser()) != uploads.end()) { //no multiple connections for these
-			remove=true;
-		}
-
-		if (!remove) {
+		added = tokens.addToken(uc->getToken());
+		if (added) {
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 			ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
 			uc->setToken(cqi->getToken()); //sync if the uc token was empty
@@ -739,7 +758,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 		}
 	}
 
-	if (remove) {
+	if (!added) {
 		putConnection(uc);
 		return;
 	}

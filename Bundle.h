@@ -101,8 +101,8 @@ public:
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
 
-	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0) noexcept;
-	Bundle(QueueItemPtr qi, const string& aToken = Util::toString(Util::rand())) noexcept;
+	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, const string& aToken = Util::emptyString) noexcept;
+	Bundle(QueueItemPtr qi, const string& aToken = Util::emptyString) noexcept;
 	~Bundle();
 
 	GETSET(string, token, Token);
@@ -177,6 +177,7 @@ public:
 	bool addFinishedItem(QueueItemPtr qi, bool finished) noexcept;
 	bool removeFinishedItem(QueueItemPtr qi) noexcept;
 	void finishBundle() noexcept;
+	bool allowHash();
 
 	void sendRemovePBD(const UserPtr& aUser) noexcept;
 	bool isFinishedNotified(const UserPtr& aUser) const noexcept;

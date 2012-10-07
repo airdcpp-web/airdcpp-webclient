@@ -57,16 +57,6 @@ struct Search {
 	bool operator<(const Search& rhs) const {
 		 return this->type < rhs.type;
 	}
-
-	uint32_t getInterval() { 
-		switch(type) {
-			case MANUAL: return 5000;
-			case ALT: return 10000;
-			case ALT_AUTO: return 20000;
-			case AUTO_SEARCH: return 20000;
-		}
-		return 5000;
-	}
 };
 
 }
