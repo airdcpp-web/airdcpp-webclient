@@ -235,8 +235,7 @@ private:
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
-		//load(xml);
-		//recentload(xml);
+		loadCID();
 		previewload(xml);
 	}
 
@@ -248,7 +247,8 @@ private:
 	void recentload(SimpleXML& aXml);
 	void previewload(SimpleXML& aXml);
 	void previewsave(SimpleXML& aXml);
-	
+	void loadCID();
+
 	string getConfigFile() { return Util::getPath(Util::PATH_USER_CONFIG) + "Favorites.xml"; }
 };
 

@@ -69,8 +69,6 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 		setFlag(FLAG_NMDC);
 	} else {
 		// We shouldn't be here?
-
-
 		fire(UserConnectionListener::ProtocolError(), this, "Invalid data");  // TODO: translate
 		return;
 	}
@@ -176,7 +174,7 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 
 void UserConnection::sup(const StringList& features) {
 	AdcCommand c(AdcCommand::CMD_SUP);
-	for(StringIterC i = features.begin(); i != features.end(); ++i)
+	for(auto i = features.begin(); i != features.end(); ++i)
 		c.addParam(*i);
 	send(c);
 }
@@ -191,8 +189,8 @@ void UserConnection::fileNotAvail(const std::string& msg /*FILE_NOT_AVAILABLE*/,
 
 void UserConnection::supports(const StringList& feat) {
 	string x;
-	for(StringList::const_iterator i = feat.begin(); i != feat.end(); ++i) {
-		x+= *i + ' ';
+	for(auto i = feat.begin(); i != feat.end(); ++i) {
+		x += *i + ' ';
 	}
 	send("$Supports " + x + '|');
 }

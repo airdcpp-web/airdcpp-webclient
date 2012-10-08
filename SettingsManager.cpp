@@ -25,7 +25,6 @@
 #include "AirUtil.h"
 #include "File.h"
 #include "version.h"
-#include "CID.h"
 
 namespace dcpp {
 
@@ -157,7 +156,7 @@ const string SettingsManager::settingTags[] =
 	"RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
 	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode", "UpdateMethod",
-	"QueueSplitterPos", "UpdateIPHourly",
+	"QueueSplitterPos", "UpdateIPHourly", "OpenTextOnBackground",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -708,6 +707,7 @@ SettingsManager::SettingsManager()
 	setDefault(UPDATE_METHOD, 2);
 	setDefault(QUEUE_SPLITTER_POS, 3000);
 	setDefault(UPDATE_IP_HOURLY, false);
+	setDefault(POPUNDER_TEXT, false);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else
@@ -810,10 +810,6 @@ void SettingsManager::load(string const& aFileName)
 			xml.stepOut();
 		}
 
-		if(SETTING(PRIVATE_ID).length() != 39 || CID(SETTING(PRIVATE_ID)).isZero()) {
-			set(PRIVATE_ID, CID::generate().toBase32());
-		}
-
 		double v = Util::toDouble(SETTING(CONFIG_VERSION));
 
 		if(v <= 2.30 && SETTING(POPUP_TYPE) == 1)
@@ -842,10 +838,7 @@ void SettingsManager::load(string const& aFileName)
 
 		xml.stepOut();
 
-	} catch(const Exception&) {
-		if(CID(SETTING(PRIVATE_ID)).isZero())
-			set(PRIVATE_ID, CID::generate().toBase32());
-	}
+	} catch(const Exception&) { }
 
 	lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT || INCOMING_FIREWALL_UPNP || INCOMING_FIREWALL_NAT) {

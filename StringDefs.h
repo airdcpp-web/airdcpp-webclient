@@ -1513,5 +1513,9 @@ enum Strings { // @DontAdd
 	ITEM_SEARCHED_IN, // "%s will be searched in %d seconds"
 	AUTO_SEARCH_SMALL, // "Auto search"
 	AUTO_SEARCH, // "Auto Search"
+	SETTINGS_POPUNDER_TEXT, // "Open new text files in the background"
+	SCANNING_RESULTS_ON, // "Scanning results on %s"
+	MANDATORY_UPDATE, // "Mandatory Update"
+	ATTEMPT_AUTO_UPDATE, // "AirDC++ will now attempt to update your installation automatically (if supported) or you will be forwarded to a download page"
 	LAST // @DontAdd
 };

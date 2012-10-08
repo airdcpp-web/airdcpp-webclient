@@ -127,7 +127,15 @@ string Util::getOpenPath() {
 }
 
 string Util::getOpenPath(const string& aFileName) {
-	return getOpenPath() + Util::toString(Util::rand()) + "_" + aFileName;
+	auto fileName = Util::getFileName(aFileName);
+	auto pos = fileName.rfind('.');
+	if (pos != string::npos) {
+		fileName.insert(pos,  "_" + Util::toString(Util::rand()));
+	} else {
+		fileName += "_" + Util::toString(Util::rand());
+	}
+
+	return getOpenPath() + Util::getFilePath(aFileName) + fileName;
 }
 
 void Util::openFile(const string& aPath) {

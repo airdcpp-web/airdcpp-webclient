@@ -547,33 +547,6 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			url = xml.getChildData();
 		xml.resetCurrentChild();
 
-
-		//Check for bad version
-		auto reportBadVersion = [this, &xml, &url] () -> void {
-			string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
-			fire(UpdateManagerListener::BadVersion(), msg, url, Util::emptyString);
-		};
-
-		if(xml.findChild("VeryOldVersion")) {
-			if(Util::toInt(xml.getChildData()) >= ownBuild) {
-				reportBadVersion();
-			}
-		}
-		xml.resetCurrentChild();
-
-		if(xml.findChild("BadVersion")) {
-			xml.stepIn();
-			while(xml.findChild("BadVersion")) {
-				double v = Util::toDouble(xml.getChildAttrib("Version"));
-				if(v == ownBuild) {
-					reportBadVersion();
-				}
-			}
-		}
-		xml.resetCurrentChild();
-
-
-		//Check for updated version
 		if(xml.findChild("Version")) {
 			string remoteVer = xml.getChildData();
 			int remoteBuild = 0;
@@ -588,6 +561,35 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			}
 #endif
 			xml.resetCurrentChild();
+
+			//Check for bad version
+			auto reportBadVersion = [&] () -> void {
+				string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
+				fire(UpdateManagerListener::BadVersion(), msg, url, updateUrl, remoteBuild, autoUpdateEnabled);
+			};
+
+			if(xml.findChild("VeryOldVersion")) {
+				if(Util::toInt(xml.getChildData()) >= ownBuild) {
+					reportBadVersion();
+					return;
+				}
+			}
+			xml.resetCurrentChild();
+
+			if(xml.findChild("BadVersion")) {
+				xml.stepIn();
+				while(xml.findChild("BadVersion")) {
+					double v = Util::toDouble(xml.getChildAttrib("Version"));
+					if(v == ownBuild) {
+						reportBadVersion();
+						return;
+					}
+				}
+			}
+			xml.resetCurrentChild();
+
+
+			//Check for updated version
 
 			if((remoteBuild > ownBuild && remoteBuild > installedUpdate) || manualCheck) {
 				auto updateMethod = SETTING(UPDATE_METHOD);

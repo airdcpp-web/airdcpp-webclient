@@ -32,6 +32,7 @@
 #include "UserCommand.h"
 #include "BZUtils.h"
 #include "FilteredFile.h"
+#include "CID.h"
 
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/algorithm/for_each.hpp>
@@ -389,6 +390,8 @@ void FavoriteManager::save() {
 		xml.addTag("Favorites");
 		xml.stepIn();
 
+		xml.addTag("CID", SETTING(PRIVATE_ID));
+
 		xml.addTag("Hubs");
 		xml.stepIn();
 
@@ -493,6 +496,31 @@ void FavoriteManager::save() {
 	}
 }
 
+void FavoriteManager::previewload(SimpleXML& aXml){
+	aXml.resetCurrentChild();
+	if(aXml.findChild("PreviewApps")) {
+		aXml.stepIn();
+		while(aXml.findChild("Application")) {					
+			addPreviewApp(aXml.getChildAttrib("Name"), aXml.getChildAttrib("Application"), 
+				aXml.getChildAttrib("Arguments"), aXml.getChildAttrib("Extension"));			
+		}
+		aXml.stepOut();
+	}	
+}
+
+void FavoriteManager::previewsave(SimpleXML& aXml){
+	aXml.addTag("PreviewApps");
+	aXml.stepIn();
+	for(auto i = previewApplications.begin(); i != previewApplications.end(); ++i) {
+		aXml.addTag("Application");
+		aXml.addChildAttrib("Name", (*i)->getName());
+		aXml.addChildAttrib("Application", (*i)->getApplication());
+		aXml.addChildAttrib("Arguments", (*i)->getArguments());
+		aXml.addChildAttrib("Extension", (*i)->getExtension());
+	}
+	aXml.stepOut();
+}
+
 void FavoriteManager::recentsave() {
 	try {
 		SimpleXML xml;
@@ -525,6 +553,32 @@ void FavoriteManager::recentsave() {
 		File::renameFile(fname + ".tmp", fname);
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::recentsave: %s\n", e.getError().c_str());
+	}
+}
+
+void FavoriteManager::loadCID() {
+	try {
+		SimpleXML xml;
+		if(Util::fileExists(getConfigFile())) {
+			xml.fromXML(File(getConfigFile(), File::READ, File::OPEN).read());
+		
+			if(xml.findChild("Favorites")) {
+				xml.stepIn();
+				if(xml.findChild("CID")) {
+					xml.stepIn();
+					SettingsManager::getInstance()->set(SettingsManager::PRIVATE_ID, xml.getData());
+					xml.stepOut();
+				}
+
+				xml.stepOut();
+			}
+		}
+	} catch(const Exception& e) {
+		LogManager::getInstance()->message("Error Loading CID : " + e.getError(), LogManager::LOG_ERROR);
+	}
+
+	if(SETTING(PRIVATE_ID).length() != 39 || CID(SETTING(PRIVATE_ID)).isZero()) {
+		SettingsManager::getInstance()->set(SettingsManager::PRIVATE_ID, CID::generate().toBase32());
 	}
 }
 
@@ -1061,31 +1115,6 @@ void FavoriteManager::on(UserConnected, const OnlineUser& aUser) noexcept {
 
 	if(isFav)
 		fire(FavoriteManagerListener::StatusChanged(), user);
-}
-
-void FavoriteManager::previewload(SimpleXML& aXml){
-	aXml.resetCurrentChild();
-	if(aXml.findChild("PreviewApps")) {
-		aXml.stepIn();
-		while(aXml.findChild("Application")) {					
-			addPreviewApp(aXml.getChildAttrib("Name"), aXml.getChildAttrib("Application"), 
-				aXml.getChildAttrib("Arguments"), aXml.getChildAttrib("Extension"));			
-		}
-		aXml.stepOut();
-	}	
-}
-
-void FavoriteManager::previewsave(SimpleXML& aXml){
-	aXml.addTag("PreviewApps");
-	aXml.stepIn();
-	for(auto i = previewApplications.begin(); i != previewApplications.end(); ++i) {
-		aXml.addTag("Application");
-		aXml.addChildAttrib("Name", (*i)->getName());
-		aXml.addChildAttrib("Application", (*i)->getApplication());
-		aXml.addChildAttrib("Arguments", (*i)->getArguments());
-		aXml.addChildAttrib("Extension", (*i)->getExtension());
-	}
-	aXml.stepOut();
 }
 
 } // namespace dcpp

@@ -105,7 +105,7 @@ void ShareManager::startup() {
 	shareProfiles.push_back(hidden);
 
 	if(!loadCache()) {
-		refresh(false);
+		refresh(false, true);
 	}
 	rebuildExcludeTypes();
 	setSkipList();
@@ -1198,19 +1198,27 @@ int ShareManager::refresh(const string& aDir){
 		RLock l(cs);
 		auto i = shares.find(path); //case insensitive
 		if(i == shares.end()) {
-			//loopup the Virtualname selected from share and add it to refreshPaths List
+			//check if it's a virtual path
+
+			StringList vNames;
 			for(auto j = shares.begin(); j != shares.end(); ++j) {
 				auto& profiles = j->second->getProfileDir()->getShareProfiles();
 				for(auto k = profiles.begin(); k != profiles.end(); ++k) {
 					if(stricmp(k->second, aDir ) == 0 ) {
 						refreshPaths.push_back(j->first);
-						StringList tmp;
-						boost::for_each(j->second->getProfileDir()->getShareProfiles(), 
-							[&tmp](pair <ProfileToken, string> tp) { if (find(tmp.begin(), tmp.end(), tp.second) == tmp.end()) tmp.push_back(tp.second); });
-						displayName = Util::toString(tmp);
+						boost::for_each(profiles, [&vNames](pair <ProfileToken, string> tp) { 
+							if (find(vNames.begin(), vNames.end(), tp.second) == vNames.end()) 
+								vNames.push_back(tp.second); 
+						});
 					}
 				}
 			}
+
+			sort(refreshPaths.begin(), refreshPaths.end());
+			refreshPaths.erase(unique(refreshPaths.begin(), refreshPaths.end()), refreshPaths.end());
+
+			if (!vNames.empty())
+				displayName = Util::toString(vNames);
 		} else {
 			refreshPaths.push_back(path);
 		}

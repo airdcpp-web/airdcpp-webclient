@@ -20,6 +20,7 @@
 
 #include "ShareScannerManager.h"
 #include "HashManager.h"
+#include "TimerManager.h"
 
 #include "FileReader.h"
 #include "LogManager.h"
@@ -183,8 +184,14 @@ int ShareScannerManager::run() {
 			}
 		}
 		reportResults(Util::emptyString, isDirScan ? TYPE_PARTIAL : TYPE_FULL, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, dupesFound);
-		if (!scanReport.empty())
-			fire(ScannerManagerListener::ScanFinished(), scanReport, "Share Scan");
+		if (!scanReport.empty()) {
+			char buf[255];
+			time_t time = GET_TIME();
+			tm* _tm = localtime(&time);
+			strftime(buf, 254, "%c", _tm);
+
+			fire(ScannerManagerListener::ScanFinished(), scanReport, STRING_F(SCANNING_RESULTS_ON, string(buf)));
+		}
 		bundleDirs.clear();
 		dupeDirs.clear();
 		scanReport.clear();

@@ -1506,6 +1506,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "%s will be searched in %d seconds", 
 "Auto search", 
 "Auto Search", 
+"Open new text files in the background", 
+"Scanning results on %s", 
+"Mandatory Update", 
+"AirDC++ will now attempt to update your installation automatically (if supported) or you will be forwarded to a download page", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3012,4 +3016,8 @@ std::string dcpp::ResourceManager::names[] = {
 "ItemSearchedIn", 
 "AutoSearchSmall", 
 "AutoSearch", 
+"SettingsPopunderText", 
+"ScanningResultsOn", 
+"MandatoryUpdate", 
+"AttemptAutoUpdate", 
 };
