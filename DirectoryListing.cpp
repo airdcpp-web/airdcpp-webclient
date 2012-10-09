@@ -859,6 +859,8 @@ int DirectoryListing::run() {
 				fire(DirectoryListingListener::Filter());
 			}else if(t.first == LOAD_FILE) {
 				bool convertPartial = partialList;
+				partialList = false;
+
 				fire(DirectoryListingListener::LoadingStarted());
 				if (convertPartial) {
 					/* Clearing the old tree should be much faster, as we don't usually have that many directories loaded in the partial */
@@ -880,9 +882,7 @@ int DirectoryListing::run() {
 					ADLSearchManager::getInstance()->matchListing(*this);
 				}
 
-				partialList = false;
 				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second)->str, convertPartial, true);
-				partialList = false;
 			} else if (t.first == REFRESH_DIR) {
 				if (!partialList)
 					return 0;

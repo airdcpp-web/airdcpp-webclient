@@ -32,8 +32,8 @@
 
 namespace dcpp {
 
-extern void startup(void (*f)(void*, const tstring&), void* p);
-extern void shutdown(void (*f)(void*, const tstring&), void* p);
+extern void startup(function<void (const string&)> f);
+extern void shutdown(function<void (const string&)> f);
 
 } // namespace dcpp
 

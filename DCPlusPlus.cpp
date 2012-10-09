@@ -54,7 +54,7 @@
 #include "ShareScannerManager.h"
 namespace dcpp {
 
-void startup(void (*f)(void*, const tstring&), void* p) {
+void startup(function<void (const string&)> f) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
 	while(1) break;
@@ -119,55 +119,57 @@ void startup(void (*f)(void*, const tstring&), void* p) {
 
 	CryptoManager::getInstance()->loadCertificates();
 
+	auto announce = [&f](const string& str) {
+		if(f) {
+			f(str);
+		}
+	};
 
-	if(f != NULL)
-		(*f)(p, TSTRING(HASH_DATABASE));
+	announce(STRING(HASH_DATABASE));
 	HashManager::getInstance()->startup();
 
-
-	if(f != NULL)
-		(*f)(p, TSTRING(DOWNLOAD_QUEUE));
+	announce(STRING(DOWNLOAD_QUEUE));
 	QueueManager::getInstance()->loadQueue();
 
-	if(f != NULL)
-		(*f)(p, TSTRING(SHARED_FILES));
+	announce(STRING(SHARED_FILES));
 	ShareManager::getInstance()->startup(); 
 
 	FavoriteManager::getInstance()->load();
 
 	if(BOOLSETTING(GET_USER_COUNTRY)) {
-		if(f != NULL)
-			(*f)(p, TSTRING(COUNTRY_INFORMATION));
+		announce(STRING(COUNTRY_INFORMATION));
 		GeoManager::getInstance()->init();
 	}
+
+	announce(STRING(LOADING_GUI));
 }
 
-void shutdown(void (*f)(void*, const tstring&), void* p) {
+void shutdown(function<void (const string&)> f) {
 	TimerManager::getInstance()->shutdown();
+	auto announce = [&f](const string& str) {
+		if(f) {
+			f(str);
+		}
+	};
 
-	if(f != NULL)
-		(*f)(p, TSTRING(SAVING_HASH_DATA));
+	announce(STRING(SAVING_HASH_DATA));
 	HashManager::getInstance()->shutdown();
 
-	if(f != NULL)
-		(*f)(p, TSTRING(SAVING_SHARE));
+	announce(STRING(SAVING_SHARE));
 	ShareManager::getInstance()->shutdown();
 
-	if(f != NULL)
-		(*f)(p, TSTRING(CLOSING_CONNECTIONS));
+	announce(STRING(CLOSING_CONNECTIONS));
 	ConnectionManager::getInstance()->shutdown();
 	MappingManager::getInstance()->close();
 	GeoManager::getInstance()->close();
 	BufferedSocket::waitShutdown();
 	
-	if(f != NULL)
-		(*f)(p, TSTRING(SAVING_SETTINGS));
+	announce(STRING(SAVING_SETTINGS));
 	AutoSearchManager::getInstance()->AutoSearchSave();
 	QueueManager::getInstance()->saveQueue(true);
 	SettingsManager::getInstance()->save();
 
-	if(f != NULL)
-		(*f)(p, TSTRING(SHUTTING_DOWN));
+	announce(STRING(SHUTTING_DOWN));
 
 	UpdateManager::deleteInstance();
 	GeoManager::deleteInstance();

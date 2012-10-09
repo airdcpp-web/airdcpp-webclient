@@ -1510,6 +1510,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Scanning results on %s", 
 "Mandatory Update", 
 "AirDC++ will now attempt to update your installation automatically (if supported) or you will be forwarded to a download page", 
+"Loading the user interface", 
+"Unloading the user interface", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3020,4 +3022,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ScanningResultsOn", 
 "MandatoryUpdate", 
 "AttemptAutoUpdate", 
+"LoadingGui", 
+"UnloadingGui", 
 };

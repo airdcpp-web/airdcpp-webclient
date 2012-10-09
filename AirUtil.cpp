@@ -91,8 +91,7 @@ DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
 
 void AirUtil::init() {
 	releaseReg.assign(getReleaseRegBasic());
-	subDirRegPlain.assign("(((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
-	//subDirRegPath.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?)))", boost::regex::icase);
+	subDirRegPlain.assign("((((S(eason)?))|(DVD)|(CD)|(D|(DIS(K|C)))).?([0-9](0-9)?))|(Sample.?)|(Proof.?)|(Cover.?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
 }
 
 void AirUtil::updateCachedSettings() {
