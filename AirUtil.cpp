@@ -81,12 +81,18 @@ DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
 	if (ShareManager::getInstance()->isFileShared(aFileName, aSize)) {
 		return SHARE_DUPE;
 	} else {
-		int qd = QueueManager::getInstance()->isFileQueued(aFileName, aSize);
+		int qd = QueueManager::getInstance()->isFileQueued(AirUtil::getTTH(aFileName, aSize), aFileName);
 		if (qd > 0) {
 			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
 		}
 	}
 	return DUPE_NONE;
+}
+
+TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) {
+	TigerHash tmp;
+	tmp.update((Text::toLower(aFileName) + Util::toString(aSize)).c_str(), aFileName.length());
+	return TTHValue(tmp.finalize());
 }
 
 void AirUtil::init() {
@@ -331,7 +337,7 @@ void AirUtil::setProfile(int profile, bool setSkiplist) {
 		if (setSkiplist) {
 			SettingsManager::getInstance()->set(SettingsManager::SHARE_SKIPLIST_USE_REGEXP, true);
 			SettingsManager::getInstance()->set(SettingsManager::SKIPLIST_SHARE, "(.*(\\.(scn|asd|lnk|cmd|conf|dll|url|log|crc|dat|sfk|mxm|txt|message|iso|inf|sub|exe|img|bin|aac|mrg|tmp|xml|sup|ini|db|debug|pls|ac3|ape|par2|htm(l)?|bat|idx|srt|doc(x)?|ion|b4s|bgl|cab|cat|bat)$))|((All-Files-CRC-OK|xCOMPLETEx|imdb.nfo|- Copy|(.*\\s\\(\\d\\).*)).*$)");
-			updateCachedSettings();
+			ShareManager::getInstance()->setSkipList();
 		}
 
 	} else if (profile == 2 && SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_PRIVATE) {
@@ -581,6 +587,9 @@ string AirUtil::convertMovePath(const string& aPath, const string& aParent, cons
 }
 
 string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
+	if (aStr.empty())
+		return Util::emptyString;
+
 	//don't replace | and ? if it's wildcard
     static const boost::regex re_boostRegexEscape(isWildcard ? "[\\^\\.\\$\\(\\)\\[\\]\\*\\+\\/\\\\]" : "[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]");
     const string rep("\\\\\\1&");
@@ -588,8 +597,9 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
 	if (isWildcard) {
 		//convert * to .*
 		boost::replace_all(result, "\\*", ".*");
+		result = "^(" + result + ")$";
 	}
-    return "^(" + result + ")$";
+    return result;
 }
 
 }

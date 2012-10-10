@@ -79,7 +79,7 @@ Magnet::Magnet(const string& aLink) {
 }
 
 int8_t Magnet::isQueueDupe() { 
-	return QueueManager::getInstance()->isFileQueued(TTHValue(hash), fname); 
+	return QueueManager::getInstance()->isFileQueued(SettingsManager::lanMode ? AirUtil::getTTH(fname, fsize) : TTHValue(hash), fname); 
 }
 
 bool Magnet::isShareDupe() { 

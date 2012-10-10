@@ -510,10 +510,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 
 		if (type == SearchResult::TYPE_DIRECTORY || SettingsManager::lanMode) {
 			//calculate a TTH from the directory name and size
-			TigerHash tmp;
-			string tmp2 = (type == SearchResult::TYPE_FILE ? Util::getFileName(file) : Util::getLastDir(file)) + Util::toString(size);
-			tmp.update(Text::toLower(tmp2).c_str(), tmp2.length());
-			th = TTHValue(tmp.finalize());
+			th = AirUtil::getTTH(type == SearchResult::TYPE_FILE ? Util::getFileName(file) : Util::getLastDir(file), size);
 		} else {
 			th = TTHValue(tth);
 		}

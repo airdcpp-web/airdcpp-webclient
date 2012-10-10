@@ -43,7 +43,7 @@ public:
 
 	void addBundle(BundlePtr aBundle);
 
-	void getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) const;
+	void getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const;
 	BundlePtr findBundle(const string& bundleToken) const;
 	BundlePtr getMergeBundle(const string& aTarget) const;
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const;

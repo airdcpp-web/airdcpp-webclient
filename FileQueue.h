@@ -45,7 +45,6 @@ public:
 
 	QueueItemPtr findFile(const string& target) noexcept;
 	void findFiles(const TTHValue& tth, QueueItemList& ql) noexcept;
-	void findFiles(const string& aFileName, int64_t aSize, QueueItemList& ql) noexcept;
 	void matchListing(const DirectoryListing& dl, QueueItem::StringList& ql);
 	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringList& ql);
 	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringList& ql, const QueueItem::StringMultiMap& qsm);
@@ -59,9 +58,7 @@ public:
 	void move(QueueItemPtr qi, const string& aTarget) noexcept;
 	void remove(QueueItemPtr qi) noexcept;
 	int isFileQueued(const TTHValue& aTTH, const string& aFile) noexcept;
-	int isFileQueued(const string& aFileName, int64_t aSize) noexcept;
 	QueueItemPtr getQueuedFile(const TTHValue& aTTH, const string& aFile) noexcept;
-	QueueItemPtr getQueuedFile(const string& aFileName, int64_t aSize) noexcept;
 
 	uint64_t getTotalQueueSize() noexcept { return queueSize; }
 private:

@@ -175,7 +175,6 @@ public:
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void move(const StringPairList& sourceTargetList) noexcept;
 	int isFileQueued(const TTHValue& aTTH, const string& aFile) { RLock l (cs); return fileQueue.isFileQueued(aTTH, aFile); }
-	int isFileQueued(const string& aFileName, int64_t aSize) { RLock l (cs); return fileQueue.isFileQueued(aFileName, aSize); }
 	
 	bool dropSource(Download* d);
 
@@ -304,87 +303,6 @@ private:
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
 
 	DelayedEvents<string> delayEvents;
-
-	template<class T>
-	void calculateBalancedPriorities(vector<pair<T, uint8_t>>& priorities, multimap<T, pair<int64_t, double>>& speedSourceMap, bool verbose) {
-		if (speedSourceMap.empty())
-			return;
-
-		//scale the priorization maps
-		double factorSpeed=0, factorSource=0;
-		double max = max_element(speedSourceMap.begin(), speedSourceMap.end())->second.first;
-		if (max > 0) {
-			factorSpeed = 100 / max;
-		}
-
-		max = max_element(speedSourceMap.begin(), speedSourceMap.end())->second.second;
-		if (max > 0) {
-			factorSource = 100 / max;
-		}
-
-		multimap<int, T> finalMap;
-		int uniqueValues = 0;
-		for (auto i = speedSourceMap.begin(); i != speedSourceMap.end(); ++i) {
-			auto points = (i->second.first * factorSpeed) + (i->second.second * factorSource);
-			if (finalMap.find(points) == finalMap.end()) {
-				uniqueValues++;
-			}
-			finalMap.insert(make_pair(points, i->first));
-		}
-
-		int prioGroup = 1;
-		if (uniqueValues <= 1) {
-			if (verbose) {
-				LogManager::getInstance()->message("Not enough items with unique points to perform the priotization!", LogManager::LOG_INFO);
-			}
-			return;
-		} else if (uniqueValues > 2) {
-			prioGroup = uniqueValues / 3;
-		}
-
-		if (verbose) {
-			LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup), LogManager::LOG_INFO);
-		}
-
-
-		//priority to set (4-2, high-low)
-		int8_t prio = 4;
-
-		//counters for analyzing identical points
-		int lastPoints = 999;
-		int prioSet=0;
-
-		for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
-			if (lastPoints==i->first) {
-				if (verbose) {
-					LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio), LogManager::LOG_INFO);
-				}
-
-				if(i->second->getPriority() != prio)
-					priorities.push_back(make_pair(i->second, prio));
-
-				//don't increase the prio if two items have identical points
-				if (prioSet < prioGroup) {
-					prioSet++;
-				}
-			} else {
-				if (prioSet == prioGroup && prio != 2) {
-					prio--;
-					prioSet=0;
-				} 
-
-				if (verbose) {
-					LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio), LogManager::LOG_INFO);
-				}
-
-				if(i->second->getPriority() != prio)
-					priorities.push_back(make_pair(i->second, prio));
-
-				prioSet++;
-				lastPoints=i->first;
-			}
-		}
-	}
 };
 
 } // namespace dcpp

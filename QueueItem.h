@@ -273,6 +273,8 @@ public:
 		return downloads.empty();
 	}
 
+	bool hasPartialSharingTarget();
+
 	string getListName() const;
 
 	const string& getTempTarget();

@@ -320,10 +320,10 @@ private:
 		File::Set files;
 
 		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot = nullptr) {
-			auto Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
+			auto dir = Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
 			if (aParent)
-				aParent->directories[aName] = Ptr;
-			return Ptr;
+				aParent->directories[aName] = dir;
+			return dir;
 		}
 
 		struct DateCompare {
@@ -336,8 +336,6 @@ private:
 			return ( (type == SearchManager::TYPE_ANY) || (fileTypes & (1 << type)) );
 		}
 		void addType(uint32_t type) noexcept;
-
-		bool hasFile(const File& aFile) const noexcept;
 
 		string getADCPath(ProfileToken aProfile) const noexcept;
 		string getVirtualName(ProfileToken aProfile) const noexcept;

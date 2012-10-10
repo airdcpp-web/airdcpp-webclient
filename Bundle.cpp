@@ -33,11 +33,12 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/numeric.hpp>
-#include <boost/mpl/find_if.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 #include <boost/fusion/algorithm/iteration/accumulate.hpp>
 
 namespace dcpp {
 
+using boost::range::find_if;
 using boost::range::for_each;
 using boost::fusion::accumulate;
 	
@@ -92,7 +93,6 @@ Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t a
 
 Bundle::~Bundle() {
 	ConnectionManager::getInstance()->tokens.removeToken(token);
-	//bla
 }
 
 void Bundle::setTarget(const string& aTarget) {
@@ -107,7 +107,7 @@ bool Bundle::checkRecent() {
 }
 
 bool Bundle::allowHash() {
-	return !isSet(FLAG_HASH) && queueItems.empty() && boost::find_if(finishedFiles, [](QueueItemPtr q) { 
+	return !isSet(FLAG_HASH) && queueItems.empty() && find_if(finishedFiles, [](QueueItemPtr q) { 
 		return !q->isSet(QueueItem::FLAG_MOVED); }) == finishedFiles.end();
 }
 
@@ -169,13 +169,8 @@ void Bundle::setDirty(bool enable) {
 }
 
 QueueItemPtr Bundle::findQI(const string& aTarget) const {
-	for(auto i = queueItems.begin(); i != queueItems.end(); ++i) {
-		QueueItemPtr qi = *i;
-		if (qi->getTarget() == aTarget) {
-			return qi;
-		}
-	}
-	return nullptr;
+	auto p = find_if(queueItems, [&aTarget](QueueItemPtr q) { return q->getTarget() == aTarget; });
+	return p != queueItems.end() ? *p : nullptr;
 }
 
 string Bundle::getBundleFile() const {
@@ -200,16 +195,6 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 			}
 		}
 	}
-}
-
-int64_t Bundle::getDiskUse(bool countAll) const {
-	int64_t size = 0; 
-	for (auto p = queueItems.begin(); p != queueItems.end(); ++p) {
-		if (countAll || (*p)->getDownloadedBytes() == 0) {
-			size += (*p)->getSize();
-		}
-	}
-	return size;
 }
 
 bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
@@ -297,11 +282,11 @@ bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 }
 
 bool Bundle::isSource(const UserPtr& aUser) const {
-	return find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
+	return find_if(sources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
 }
 
 bool Bundle::isBadSource(const UserPtr& aUser) const {
-	return find_if(badSources.begin(), badSources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
+	return find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
 }
 
 void Bundle::addUserQueue(QueueItemPtr qi) {
@@ -325,7 +310,7 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 		l.push_back(qi);
 	}
 
-	auto i = find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+	auto i = find_if(sources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	if (i != sources.end()) {
 		get<SOURCE_FILES>(*i)++;
 		get<SOURCE_SIZE>(*i) += qi->getSize();
@@ -356,7 +341,7 @@ QueueItemPtr Bundle::getNextQI(const HintedUser& aUser, string aLastError, Prior
 }
 
 bool Bundle::isFinishedNotified(const UserPtr& aUser) const {
-	return find_if(finishedNotifications.begin(), finishedNotifications.end(), [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
+	return find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
 }
 
 void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) {
@@ -405,6 +390,7 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 	/* returns the local path for nmdc and the remote path for adc */
 	string remoteDir = move(Util::getFilePath(aRemoteFile));
 	string bundleDir = move(Util::getFilePath(aLocalFile));
+
 	string path;
 	if (simpleMatching) {
 		if (nmdc) {
@@ -493,11 +479,11 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 	}
 
 	//remove from bundle sources
-	auto m = find_if(sources.begin(), sources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
+	auto m = find_if(sources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 	dcassert(m != sources.end());
 
 	if (addBad) {
-		auto bsi = find_if(badSources.begin(), badSources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
+		auto bsi = find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 		if (bsi == badSources.end()) {
 			badSources.push_back(make_tuple(get<SOURCE_USER>(*m), qi->getSize(), 1));
 		} else {
@@ -517,7 +503,7 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 }
 
 void Bundle::removeBadSource(const HintedUser& aUser) noexcept {
-	auto m = find_if(badSources.begin(), badSources.end(), [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+	auto m = find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
 	dcassert(m != badSources.end());
 	if (m != badSources.end()) {
 		badSources.erase(m);
@@ -632,7 +618,7 @@ bool Bundle::allowAutoSearch() const {
 	if (countOnlineUsers() >= (size_t)SETTING(AUTO_SEARCH_LIMIT))
 		return false; // can't exceed the user limit
 
-	if (find_if(queueItems.begin(), queueItems.end(), [](QueueItemPtr q) { return q->getPriority() != QueueItem::PAUSED; } ) == queueItems.end())
+	if (find_if(queueItems, [](QueueItemPtr q) { return q->getPriority() != QueueItem::PAUSED; } ) == queueItems.end())
 		return false; // must have valid queue items
 
 	if (getSecondsLeft() < 20 && getSecondsLeft() != 0)
@@ -642,7 +628,7 @@ bool Bundle::allowAutoSearch() const {
 }
 
 void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept {
-	if (fileBundle) {
+	if (fileBundle || queueItems.size() == 1) {
 		searches.insert(make_pair(Util::emptyString, queueItems.front()));
 		return;
 	}
@@ -667,10 +653,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 
 		//do a few guesses to get a random item
 		while (s <= ql.size()) {
-			auto pos = ql.begin();
-			auto rand = Util::rand(ql.size());
-			advance(pos, rand);
-			QueueItemPtr q = *pos;
+			QueueItemPtr q = ql[ql.size() == 1 ? 0 : Util::rand(ql.size()-1)];
 			if(q->getPriority() == QueueItem::PAUSED && !manual) {
 				s++;
 				continue;
@@ -746,7 +729,19 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 
 			if (abs(speed-lastSpeed) > (lastSpeed / 10)) {
 				//LogManager::getInstance()->message("SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is more than " + Util::toString(lastSpeed / 10));
-				speedStr = formatDownloaded(speed);
+				auto formatSpeed = [this] () -> string {
+					char buf[64];
+					if(speed < 1024) {
+						snprintf(buf, sizeof(buf), "%d%s", (int)(speed&0xffffffff), "b");
+					} else if(speed < 1048576) {
+						snprintf(buf, sizeof(buf), "%.02f%s", (double)speed/(1024.0), "k");
+					} else {
+						snprintf(buf, sizeof(buf), "%.02f%s", (double)speed/(1048576.0), "m");
+					}
+					return buf;
+				};
+
+				speedStr = formatSpeed();
 				lastSpeed = speed;
 			} else {
 				//LogManager::getInstance()->message("DON'T SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is less than " + Util::toString(lastSpeed / 10));
@@ -780,18 +775,6 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 		return true;
 	}
 	return false;
-}
-
-string Bundle::formatDownloaded(int64_t aBytes) const {
-	char buf[64];
-	if(aBytes < 1024) {
-		snprintf(buf, sizeof(buf), "%d%s", (int)(aBytes&0xffffffff), "b");
-	} else if(aBytes < 1048576) {
-		snprintf(buf, sizeof(buf), "%.02f%s", (double)aBytes/(1024.0), "k");
-	} else {
-		snprintf(buf, sizeof(buf), "%.02f%s", (double)aBytes/(1048576.0), "m");
-	}
-	return buf;
 }
 
 bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {

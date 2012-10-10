@@ -198,8 +198,6 @@ public:
 
 	void setTarget(const string& aTarget);
 
-	int64_t getDiskUse(bool countAll) const;
-
 	void addFinishedSegment(int64_t aSize) noexcept;
 	void removeDownloadedSegment(int64_t aSize);
 
@@ -218,7 +216,6 @@ public:
 	bool allowAutoSearch() const;
 
 	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
-	string formatDownloaded(int64_t aBytes) const;
 
 	void setDownloadedBytes(int64_t aSize) noexcept;
 

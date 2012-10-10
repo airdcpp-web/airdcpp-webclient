@@ -475,7 +475,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 		}
 
 		if(!(aFlags & QueueItem::FLAG_USER_LIST) && !(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_OPEN)) {
-			if (BOOLSETTING(DONT_DL_ALREADY_QUEUED)) {
+			if (BOOLSETTING(DONT_DL_ALREADY_QUEUED) && !SettingsManager::lanMode) {
 				q = fileQueue.getQueuedFile(root, Util::getFileName(aTarget));
 				if (q) {
 					if (q->isFinished()) {
@@ -510,7 +510,7 @@ void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& roo
 			aPrio = QueueItem::HIGHEST;
 		}
 
-		q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), root);
+		q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), SettingsManager::lanMode ? AirUtil::getTTH(Util::getFileName(target), aSize) : root);
 
 		/* Bundles */
 		if (aBundle) {
@@ -1593,16 +1593,8 @@ void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) n
 		}
 
 		for_each(ql, [&](QueueItemPtr qi) {
-			//LogManager::getInstance()->message("Remove bundle source: " + aUser->getCID().toBase32());
 			removeSource(qi, aUser, QueueItem::Source::FLAG_REMOVED);
-			dcassert(qi->isBadSource(aUser));
-			dcassert(!qi->isSource(aUser));
-			//LogManager::getInstance()->message("SOURCE REMOVED FROM: " + (*i)->getTarget());
-			//LogManager::getInstance()->message("REMOVE, BAD SOURCES: " + Util::toString((*i)->getBadSources().size()));
 		});
-
-		//LogManager::getInstance()->message("Source removed: " + aUser->getCID().toBase32());
-		dcassert(!aBundle->isSource(aUser));
 	}
 }
 
@@ -1988,7 +1980,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 
 		RLock l(cs);
 		if (SettingsManager::lanMode)
-			fileQueue.findFiles(sr->getFileName(), sr->getSize(), matches);
+			fileQueue.findFiles(AirUtil::getTTH(sr->getFileName(), sr->getSize()), matches);
 		else
 			fileQueue.findFiles(sr->getTTH(), matches);
 
@@ -2166,6 +2158,87 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	}
 }
 
+template<class T>
+static void calculateBalancedPriorities(vector<pair<T, uint8_t>>& priorities, multimap<T, pair<int64_t, double>>& speedSourceMap, bool verbose) {
+	if (speedSourceMap.empty())
+		return;
+
+	//scale the priorization maps
+	double factorSpeed=0, factorSource=0;
+	double max = max_element(speedSourceMap.begin(), speedSourceMap.end())->second.first;
+	if (max > 0) {
+		factorSpeed = 100 / max;
+	}
+
+	max = max_element(speedSourceMap.begin(), speedSourceMap.end())->second.second;
+	if (max > 0) {
+		factorSource = 100 / max;
+	}
+
+	multimap<int, T> finalMap;
+	int uniqueValues = 0;
+	for (auto i = speedSourceMap.begin(); i != speedSourceMap.end(); ++i) {
+		auto points = (i->second.first * factorSpeed) + (i->second.second * factorSource);
+		if (finalMap.find(points) == finalMap.end()) {
+			uniqueValues++;
+		}
+		finalMap.insert(make_pair(points, i->first));
+	}
+
+	int prioGroup = 1;
+	if (uniqueValues <= 1) {
+		if (verbose) {
+			LogManager::getInstance()->message("Not enough items with unique points to perform the priotization!", LogManager::LOG_INFO);
+		}
+		return;
+	} else if (uniqueValues > 2) {
+		prioGroup = uniqueValues / 3;
+	}
+
+	if (verbose) {
+		LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup), LogManager::LOG_INFO);
+	}
+
+
+	//priority to set (4-2, high-low)
+	int8_t prio = 4;
+
+	//counters for analyzing identical points
+	int lastPoints = 999;
+	int prioSet=0;
+
+	for (auto i = finalMap.begin(); i != finalMap.end(); ++i) {
+		if (lastPoints==i->first) {
+			if (verbose) {
+				LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio), LogManager::LOG_INFO);
+			}
+
+			if(i->second->getPriority() != prio)
+				priorities.push_back(make_pair(i->second, prio));
+
+			//don't increase the prio if two items have identical points
+			if (prioSet < prioGroup) {
+				prioSet++;
+			}
+		} else {
+			if (prioSet == prioGroup && prio != 2) {
+				prio--;
+				prioSet=0;
+			} 
+
+			if (verbose) {
+				LogManager::getInstance()->message(i->second->getTarget() + " points: " + Util::toString(i->first) + " setting prio " + AirUtil::getPrioText(prio), LogManager::LOG_INFO);
+			}
+
+			if(i->second->getPriority() != prio)
+				priorities.push_back(make_pair(i->second, prio));
+
+			prioSet++;
+			lastPoints=i->first;
+		}
+	}
+}
+
 void QueueManager::calculateBundlePriorities(bool verbose) {
 	multimap<BundlePtr, pair<int64_t, double>> bundleSpeedSourceMap;
 
@@ -2328,42 +2401,32 @@ BundlePtr QueueManager::findBundle(const TTHValue& tth) {
 }
 
 bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add) {
-	//LogManager::getInstance()->message("QueueManager::handlePartialSearch");
-
-	// Locate target QueueItem in download queue
-	QueueItemList ql;
+	QueueItemPtr qi = nullptr;
 	{
+		QueueItemList ql;
+
 		RLock l(cs);
+		// Locate target QueueItem in download queue
 		fileQueue.findFiles(tth, ql);
-	}
+		if (ql.empty()) {
+			return false;
+		}
 
-	if (ql.empty()) {
-		return false;
-	}
+		qi = ql.front();
 
-	QueueItemPtr qi = ql.front();
-	// don't share when file does not exist
-	if(!Util::fileExists(qi->isFinished() ? qi->getTarget() : qi->getTempTarget()))
-		return false;
+		// do we have a file to send?
+		if (!qi->hasPartialSharingTarget())
+			return false;
 
-	BundlePtr b = qi->getBundle();
-	if (b) {
-		//LogManager::getInstance()->message("handlePartialSearch: QI AND BUNDLE FOUND");
+		BundlePtr b = qi->getBundle();
+		if (b) {
+			_bundle = b->getToken();
 
-		//no reports for duplicate or bad sources
-		//if (b->isFinishedNotified(aUser)) {
-			//LogManager::getInstance()->message("handlePartialSearch: ALREADY NOTIFIED");
-			//return false;
-		//}
-		_bundle = b->getToken();
-		{
-			RLock l(cs);
-			if (!b->getQueueItems().empty() && !b->isFinishedNotified(aUser)) {
-				_reply = true;
-			}
-			if (!b->getFinishedFiles().empty()) {
-				_add = true;
-			}
+			//should we notify the other user about finished item?
+			_reply = !b->getQueueItems().empty() && !b->isFinishedNotified(aUser);
+
+			//do we have finished files that the other guy could download?
+			_add = !b->getFinishedFiles().empty();
 		}
 	}
 
@@ -2461,7 +2524,10 @@ bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int6
 
 	if(ql.empty()) return false;
 
+
 	QueueItemPtr qi = ql.front();
+	if (!qi->hasPartialSharingTarget())
+		return false;
 
 	target = qi->isFinished() ? qi->getTarget() : qi->getTempTarget();
 
@@ -3325,10 +3391,7 @@ bool QueueManager::checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string
 		WLock l(cs);
 		//LogManager::getInstance()->message("checkPBDReply: BUNDLE FOUND");
 		_bundleToken = bundle->getToken();
-
-		if (!bundle->getFinishedFiles().empty()) {
-			_add=true;
-		}
+		_add = !bundle->getFinishedFiles().empty();
 
 		if (!bundle->getQueueItems().empty()) {
 			bundle->addFinishedNotify(aUser, remoteBundle);

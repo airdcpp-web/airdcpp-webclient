@@ -49,6 +49,8 @@ class AirUtil {
 		static DupeType checkFileDupe(const TTHValue& aDir, const string& aFileName);
 		static DupeType checkFileDupe(const string& aFileName, int64_t aSize);
 
+		static TTHValue getTTH(const string& aFileName, int64_t aSize);
+
 		static void init();
 		static void updateCachedSettings();
 		static string getLocalIp();

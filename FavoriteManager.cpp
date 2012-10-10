@@ -242,7 +242,7 @@ bool FavoriteManager::addFavoriteDir(const string& aName, StringList& aTargets){
 	if (p != favoriteDirs.end())
 		return false;
 
-	std::sort(aTargets.begin(), aTargets.end());
+	sort(aTargets.begin(), aTargets.end());
 	favoriteDirs.push_back(make_pair(aName, aTargets));
 	save();
 	return true;
@@ -891,7 +891,6 @@ bool FavoriteManager::getFailOverUrl(ProfileToken aToken, string& hubAddress_) {
 						return true;
 					}
 				}
-				return false;
 			}
 		}
 	}

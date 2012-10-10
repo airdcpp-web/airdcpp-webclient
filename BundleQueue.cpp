@@ -24,6 +24,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/fusion/include/count_if.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 
 #include "BundleQueue.h"
 #include "SettingsManager.h"
@@ -34,6 +35,7 @@
 
 namespace dcpp {
 
+using boost::range::find_if;
 using boost::range::for_each;
 using boost::adaptors::map_values;
 
@@ -65,11 +67,11 @@ void BundleQueue::addSearchPrio(BundlePtr aBundle) {
 	}
 
 	if (aBundle->isRecent()) {
-		dcassert(std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle) == recentSearchQueue.end());
+		dcassert(find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle) == recentSearchQueue.end());
 		recentSearchQueue.push_back(aBundle);
 		return;
 	} else {
-		dcassert(std::find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle) == prioSearchQueue[aBundle->getPriority()].end());
+		dcassert(find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle) == prioSearchQueue[aBundle->getPriority()].end());
 		prioSearchQueue[aBundle->getPriority()].push_back(aBundle);
 	}
 }
@@ -80,13 +82,13 @@ void BundleQueue::removeSearchPrio(BundlePtr aBundle) {
 	}
 
 	if (aBundle->isRecent()) {
-		auto i = std::find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle);
+		auto i = find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle);
 		//dcassert(i != recentSearchQueue.end());
 		if (i != recentSearchQueue.end()) {
 			recentSearchQueue.erase(i);
 		}
 	} else {
-		auto i = std::find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle);
+		auto i = find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle);
 		//dcassert(i != prioSearchQueue[aBundle->getPriority()].end());
 		if (i != prioSearchQueue[aBundle->getPriority()].end()) {
 			prioSearchQueue[aBundle->getPriority()].erase(i);
@@ -207,8 +209,7 @@ BundlePtr BundleQueue::findAutoSearch() {
 	dcassert(!sbq.empty());
 
 	//find the first item from the search queue that can be searched for
-	auto s = find_if(sbq.begin(), sbq.end(), [](BundlePtr b) { return b->allowAutoSearch(); } );
-
+	auto s = find_if(sbq, [](BundlePtr b) { return b->allowAutoSearch(); } );
 	if (s != sbq.end()) {
 		BundlePtr b = *s;
 		//move to the back
@@ -282,39 +283,27 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 	return directories.first->second;
 }
 
-void BundleQueue::getInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) const {
-	BundlePtr tmpBundle;
-	bool subFolder = false;
-
+void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const {
 	//find the matching bundles
 	for(auto j = bundles.cbegin(), iend = bundles.cend(); j != iend; ++j) {
-		tmpBundle = j->second;
-		if (tmpBundle->isFinished()) {
+		BundlePtr b = j->second;
+		if (b->isFinished()) {
 			//don't modify those
 			continue;
 		}
 
-		if (AirUtil::isParentOrExact(aSource, tmpBundle->getTarget())) {
+		if (AirUtil::isParentOrExact(aPath, b->getTarget())) {
 			//parent or the same dir
-			retBundles.push_back(tmpBundle);
-			if (tmpBundle->isFileBundle())
+			retBundles.push_back(b);
+			finishedFiles += b->getFinishedFiles().size();
+			if (b->isFileBundle())
 				fileBundles++;
-		} else if (!tmpBundle->isFileBundle() && AirUtil::isSub(aSource, tmpBundle->getTarget())) {
+		} else if (!b->isFileBundle() && AirUtil::isSub(aPath, b->getTarget())) {
 			//subfolder
-			retBundles.push_back(tmpBundle);
-			subFolder = true;
-			break;
+			retBundles.push_back(b);
+			finishedFiles = count_if(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [&aPath](QueueItemPtr qi) { return AirUtil::isSub(qi->getTarget(), aPath); });
+			return;
 		}
-	}
-
-	//count the finished files
-	if (subFolder) {
-		for_each(tmpBundle->getFinishedFiles(), [&](QueueItemPtr qi) { 
-			if(AirUtil::isSub(qi->getTarget(), aSource)) 
-				finishedFiles++; 
-		});
-	} else {
-		for_each(retBundles, [&](BundlePtr b) { finishedFiles += b->getFinishedFiles().size(); });
 	}
 }
 
@@ -363,12 +352,8 @@ void BundleQueue::removeDirectory(const string& aPath) {
 
 Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) {
 	auto bdr = bundleDirs.equal_range(Util::getLastDir(aPath));
-	for(auto dp = bdr.first; dp != bdr.second; ++dp) {
-		if (dp->second.first == aPath) {
-			return dp;
-		}
-	}
-	return bundleDirs.end();
+	auto s = boost::find_if(bdr | map_values, CompareFirst<string, BundlePtr>(aPath));
+	return s.base() != bdr.second ? s.base() : bundleDirs.end();
 }
 
 void BundleQueue::addFinishedItem(QueueItemPtr qi, BundlePtr aBundle) {
@@ -388,7 +373,7 @@ void BundleQueue::removeBundle(BundlePtr aBundle) {
 		return;
 	}
 
-	for_each(aBundle->getBundleDirs(), [&](pair<string, pair<uint32_t, uint32_t>> d) {
+	for_each(aBundle->getBundleDirs(), [this](pair<string, pair<uint32_t, uint32_t>> d) {
 		removeDirectory(d.first);
 	});
 
@@ -430,7 +415,15 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet
 			auto s = dirMap.find(mountPath);
 			if (s != dirMap.end()) {
 				bool countAll = (useSingleTempDir && (mountPath != tempVol));
-				s->second.queued += b->getDiskUse(countAll);
+				for_each(b->getQueueItems(), [countAll, &s](const QueueItemPtr q) {
+					if (countAll || q->getDownloadedBytes() == 0) {
+						s->second.queued += q->getSize();
+					}
+				});
+
+				/*s->second.queued = boost::fusion::accumulate(b->getQueueItems(), s->second.queued, [countAll](const QueueItemPtr q) {
+					return (countAll || q->getDownloadedBytes() == 0) ? q->getSize() : 0;
+				});*/
 			}
 		}
 	});

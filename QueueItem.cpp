@@ -145,6 +145,18 @@ QueueItem::Priority QueueItem::calculateAutoPriority() const {
 	return priority;
 }
 
+bool QueueItem::hasPartialSharingTarget() {
+	// don't share items that are being moved
+	if (isFinished() && !isSet(QueueItem::FLAG_MOVED))
+		return false;
+
+	// don't share when the file does not exist
+	if(!Util::fileExists(isFinished() ? target : getTempTarget()))
+		return false;
+
+	return true;
+}
+
 bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const {
 	if(len <= 0) return false;
 
@@ -206,19 +218,10 @@ uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
 }
 
 size_t QueueItem::countOnlineUsers() const {
-	size_t n = 0;
-	for(auto i = sources.begin(), iend = sources.end(); i != iend; ++i) {
-		if(i->getUser().user->isOnline())
-			n++;
-	}
-	return n;
+	return count_if(sources.begin(), sources.end(), [](const Source& s) { return s.getUser().user->isOnline(); } );
 }
 
-QueueItem::~QueueItem() {
-	//if (bundle)
-	//	LogManager::getInstance()->message("Refs " + bundle->getTarget() + ": " + Util::toString(bundle->getRefs()));
-	//bla
-}
+QueueItem::~QueueItem() { }
 
 void QueueItem::getOnlineUsers(HintedUserList& l) const {
 	for(auto i = sources.begin(), iend = sources.end(); i != iend; ++i)
@@ -380,7 +383,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		if(!overlaps) {
 			if(partialSource) {
 				// store all chunks we could need
-				for(vector<int64_t>::const_iterator j = posArray.begin(); j < posArray.end(); j += 2){
+				for(auto j = posArray.begin(); j < posArray.end(); j += 2){
 					if( (*j <= start && start < *(j+1)) || (start <= *j && *j < end) ) {
 						int64_t b = max(start, *j);
 						int64_t e = min(end, *(j+1));
@@ -510,7 +513,7 @@ bool QueueItem::isNeededPart(const PartsInfo& partsInfo, int64_t blockSize)
 	dcassert(partsInfo.size() % 2 == 0);
 	
 	SegmentConstIter i  = done.begin();
-	for(PartsInfo::const_iterator j = partsInfo.begin(); j != partsInfo.end(); j+=2){
+	for(auto j = partsInfo.begin(); j != partsInfo.end(); j+=2){
 		while(i != done.end() && (*i).getEnd() <= (*j) * blockSize)
 			i++;
 
@@ -543,19 +546,19 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 	switch(type) {
 	case 0:
 		v.reserve(downloads.size());
-		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
+		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			v.push_back((*i)->getSegment());
 		}
 		break;
 	case 1:
 		v.reserve(downloads.size());
-		for(DownloadList::const_iterator i = downloads.begin(); i != downloads.end(); ++i) {
+		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			v.push_back(Segment((*i)->getStartPos(), (*i)->getPos()));
 		}
 		break;
 	case 2:
 		v.reserve(done.size());
-		for(SegmentSet::const_iterator i = done.begin(); i != done.end(); ++i) {
+		for(auto i = done.begin(); i != done.end(); ++i) {
 			v.push_back(*i);
 		}
 		break;
@@ -564,13 +567,12 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 }
 
 bool QueueItem::hasSegment(const HintedUser& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
-	QueueItem::SourceConstIter source = getSource(aUser.user);
+	auto source = getSource(aUser.user);
 	if (!source->blockedHubs.empty() && source->blockedHubs.find(Text::toLower(aUser.hint)) != source->blockedHubs.end()) {
 		return false;
 	}
 
 	dcassert(isSource(aUser));
-	//dcassert(!isFinished());
 	if (isFinished()) {
 		return false;
 	}
