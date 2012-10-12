@@ -146,6 +146,7 @@ private:
 	DirectoryListing::Directory* cur;
 	UserPtr user;
 
+	string baseLower;
 	string base;
 	bool inListing;
 	bool updating;
@@ -230,7 +231,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			DirectoryListing::Directory* d = nullptr;
 			if(updating) {
 				if (useCache) {
-					auto s =  list->visitedDirs.find(n);
+					auto s =  list->visitedDirs.find(baseLower + Text::toLower(n));
 					if (s != list->visitedDirs.end()) {
 						d = s->second;
 					}
@@ -273,16 +274,18 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				if (s == cur->directories.end()) {
 					auto d = new DirectoryListing::Directory(cur, *i, false, false, true);
 					cur->directories.push_back(d);
-					list->visitedDirs[*i] = d;
+					list->visitedDirs[Text::toLower(base + *i)] = d;
 					cur = d;
 				} else {
 					cur = *s;
 				}
 			}
 
-			if (!cur->directories.empty() || !cur->files.empty()) {
+			if (!cur->directories.empty() || !cur->files.empty() || base.empty()) {
 				//we have loaded this already, need to go through all dirs and files
 				useCache=false;
+			} else {
+				baseLower = Text::toLower(base);
 			}
 
 			cur->setDate(date);

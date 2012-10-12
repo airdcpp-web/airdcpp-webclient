@@ -479,7 +479,7 @@ HintedUser ClientManager::checkUserHint(const HintedUser& user) {
 	//if(p.first == p.second) // no user found with the given CID, try with the current one
 	//	return user;
 
-	dcassert(!user.hint.empty());
+	dcassert(!user.hint.empty() || user.user->isNMDC());
 	if(!user.hint.empty()) {
 		OnlineUser* u = nullptr;
 		for(auto i = p.first; i != p.second; ++i) {

@@ -211,7 +211,7 @@ private:
 		
 	Directory* findDirectory(const string& aName, Directory* current);
 
-	typedef boost::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap;
+	typedef boost::unordered_map<string, Directory::Ptr> DirMap;
 	DirMap visitedDirs;
 
 	int run();
