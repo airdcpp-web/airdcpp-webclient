@@ -2414,10 +2414,6 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 
 		qi = ql.front();
 
-		// do we have a file to send?
-		if (!qi->hasPartialSharingTarget())
-			return false;
-
 		BundlePtr b = qi->getBundle();
 		if (b) {
 			_bundle = b->getToken();
@@ -2428,6 +2424,10 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 			//do we have finished files that the other guy could download?
 			_add = !b->getFinishedFiles().empty();
 		}
+
+		// do we have a file to send?
+		if (!qi->hasPartialSharingTarget())
+			return false;
 	}
 
 	if(qi->getSize() < PARTIAL_SHARE_MIN_SIZE){

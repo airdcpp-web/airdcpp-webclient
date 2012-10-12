@@ -53,6 +53,26 @@ boost::regex AirUtil::subDirRegPlain;
 string AirUtil::privKeyFile;
 string AirUtil::tempDLDir;
 
+tstring AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
+	if (aType == SHARE_DUPE || aType == PARTIAL_SHARE_DUPE) {
+		return ShareManager::getInstance()->getDirPath(aPath);
+	} else {
+		return QueueManager::getInstance()->getDirPath(aPath);
+	}
+}
+
+tstring AirUtil::getDupePath(DupeType aType, const TTHValue& aTTH) {
+	if (aType == SHARE_DUPE) {
+		return Text::toT(ShareManager::getInstance()->getRealPath(aTTH));
+	} else {
+		StringList localPaths = QueueManager::getInstance()->getTargets(aTTH);
+		if (!localPaths.empty()) {
+			return Text::toT(localPaths.front());
+		}
+	}
+	return Util::emptyStringT;
+}
+
 DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
 	auto sd = ShareManager::getInstance()->isDirShared(aDir, aSize);
 	if (sd > 0) {

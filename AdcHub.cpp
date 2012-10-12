@@ -34,6 +34,7 @@
 #include "UploadManager.h"
 #include "Localization.h"
 #include "StringTokenizer.h"
+#include "ThrottleManager.h"
 
 namespace dcpp {
 
@@ -1098,13 +1099,24 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "HN", Util::toString(counts[COUNT_NORMAL]));
 	addParam(lastInfoMap, c, "HR", Util::toString(counts[COUNT_REGISTERED]));
 	addParam(lastInfoMap, c, "HO", Util::toString(counts[COUNT_OP]));	
-	
-	addParam(lastInfoMap, c, "US", Util::toString((long)(Util::toDouble(SETTING(UPLOAD_SPEED))*1024*1024)));
-	addParam(lastInfoMap, c, "DS", Util::toString((long)(Util::toDouble(SETTING(DOWNLOAD_SPEED))*1024*1024)));
 
 	addParam(lastInfoMap, c, "VE", "AirDC++ " SHORTVERSIONSTRING);
 	addParam(lastInfoMap, c, "AW", Util::getAway() ? "1" : Util::emptyString);
 	addParam(lastInfoMap, c, "LC", Localization::getLocale());
+
+	int limit = ThrottleManager::getInstance()->getDownLimit();
+	if (limit > 0) {
+		addParam(lastInfoMap, c, "DS", Util::toString(limit * 1024));
+	} else {
+		addParam(lastInfoMap, c, "DS", Util::toString((long)(Util::toDouble(SETTING(DOWNLOAD_SPEED))*1024*1024)));
+	}
+
+	limit = ThrottleManager::getInstance()->getUpLimit();
+	if (limit > 0) {
+		addParam(lastInfoMap, c, "US", Util::toString(limit * 1024));
+	} else {
+		addParam(lastInfoMap, c, "US", Util::toString((long)(Util::toDouble(SETTING(UPLOAD_SPEED))*1024*1024/8)));
+	}
 	
 	
 		//addParam(lastInfoMap, c, "DS", Util::emptyString);

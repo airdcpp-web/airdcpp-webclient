@@ -1519,5 +1519,14 @@ enum Strings { // @DontAdd
 	ATTEMPT_AUTO_UPDATE, // "AirDC++ will now attempt to update your installation automatically (if supported) or you will be forwarded to a download page"
 	LOADING_GUI, // "Loading the user interface"
 	UNLOADING_GUI, // "Unloading the user interface"
+	PARTIAL_FILELIST, // "Partial filelist"
+	DOWNLOAD_LIMIT, // "Download limit"
+	UPLOAD_LIMIT, // "Upload limit"
+	DOWNLOAD_LIMIT_SET_TO, // "Download limit set to %d KiB/s"
+	UPLOAD_LIMIT_SET_TO, // "Upload limit set to %d KiB/s"
+	DOWNLOAD_LIMIT_DISABLED, // "Download limit disabled"
+	UPLOAD_LIMIT_DISABLED, // "Upload limit disabled"
+	CUSTOM, // "Custom..."
+	NEW_LIMIT, // "New limit (KiB/s) (0 = infinite)"
 	LAST // @DontAdd
 };

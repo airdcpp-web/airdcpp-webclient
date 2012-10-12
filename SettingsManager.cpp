@@ -127,6 +127,11 @@ const string SettingsManager::settingTags[] =
  	"MaxCommandLength", "AllowUntrustedHubs", "AllowUntrustedClients", "TLSPort", "DownConnPerSec",
 	"HighestPrioSize", "HighPrioSize", "NormalPrioSize", "LowPrioSize", "LowestPrio",
 	"FilterEnter", "SortFavUsersFirst", "ShowShellMenu", 
+
+	"BandwidthLimitStart", "BandwidthLimitEnd", "MaxDownloadSpeedRealTime",
+	"MaxUploadSpeedTime", "MaxDownloadSpeedPrimary", "MaxUploadSpeedPrimary",
+	"SlotsAlternateLimiting", "SlotsPrimaryLimiting", "TimeDependentThrottle",
+
 	//AirDC
 	"tabactivebg", "TabActiveText", "TabActiveBorder", "TabInactiveBg", "TabInactiveBgDisconnected", 
 	"TabInactiveText", "TabInactiveBorder", "TabInactiveBgNotify", "TabDirtyBlend", "BlendTabs",
@@ -197,6 +202,15 @@ SettingsManager::SettingsManager()
 		int64Defaults[i] = 0;
 		int64Settings[i] = 0;
 	}
+
+	setDefault(MAX_UPLOAD_SPEED_MAIN, 0);
+	setDefault(MAX_DOWNLOAD_SPEED_MAIN, 0);
+	setDefault(TIME_DEPENDENT_THROTTLE, false);
+	setDefault(MAX_DOWNLOAD_SPEED_ALTERNATE, 0);
+	setDefault(MAX_UPLOAD_SPEED_ALTERNATE, 0);
+	setDefault(BANDWIDTH_LIMIT_START, 1);
+	setDefault(BANDWIDTH_LIMIT_END, 1);
+	setDefault(SLOTS_ALTERNATE_LIMITING, 1);
 	
 	setDefault(DOWNLOAD_DIRECTORY, Util::getPath(Util::PATH_DOWNLOADS));
 	setDefault(TEMP_DOWNLOAD_DIRECTORY, Util::getPath(Util::PATH_USER_LOCAL) + "Incomplete" PATH_SEPARATOR_STR);

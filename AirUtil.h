@@ -49,6 +49,9 @@ class AirUtil {
 		static DupeType checkFileDupe(const TTHValue& aDir, const string& aFileName);
 		static DupeType checkFileDupe(const string& aFileName, int64_t aSize);
 
+		static tstring getDirDupePath(DupeType aType, const string& aPath);
+		static tstring getDupePath(DupeType aType, const TTHValue& aTTH);
+
 		static TTHValue getTTH(const string& aFileName, int64_t aSize);
 
 		static void init();

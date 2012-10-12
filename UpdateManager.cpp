@@ -597,7 +597,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 					if(xml.findChild("Title")) {
 						const string& title = xml.getChildData();
 						xml.resetCurrentChild();
-						if(xml.findChild("Message") && (!BOOLSETTING(DONT_ANNOUNCE_NEW_VERSIONS) || manualCheck)) {
+						if(xml.findChild("Message")) {
 							fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), remoteVer, url, autoUpdateEnabled, remoteBuild, updateUrl);
 						}
 					}

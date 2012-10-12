@@ -40,6 +40,7 @@
 #include "Localization.h"
 #include "DirectoryListingManager.h"
 #include "UpdateManager.h"
+#include "ThrottleManager.h"
 
 #include "StringTokenizer.h"
 
@@ -80,6 +81,7 @@ void startup(function<void (const string&)> f) {
 	ConnectionManager::newInstance();
 	DownloadManager::newInstance();
 	UploadManager::newInstance();
+	ThrottleManager::newInstance();
 	QueueManager::newInstance();
 	ShareManager::newInstance();
 	FavoriteManager::newInstance();
@@ -155,6 +157,8 @@ void shutdown(function<void (const string&)> f) {
 	announce(STRING(SAVING_HASH_DATA));
 	HashManager::getInstance()->shutdown();
 
+	ThrottleManager::getInstance()->shutdown();
+
 	announce(STRING(SAVING_SHARE));
 	ShareManager::getInstance()->shutdown();
 
@@ -185,6 +189,7 @@ void shutdown(function<void (const string&)> f) {
 	FinishedManager::deleteInstance();
 	ShareManager::deleteInstance();
 	CryptoManager::deleteInstance();
+	ThrottleManager::deleteInstance();
 	DirectoryListingManager::deleteInstance();
 	QueueManager::deleteInstance();
 	DownloadManager::deleteInstance();

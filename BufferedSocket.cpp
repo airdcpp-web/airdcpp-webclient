@@ -28,7 +28,7 @@
 #include "SettingsManager.h"
 #include "SSLSocket.h"
 #include "Streams.h"
-//#include "ThrottleManager.h"
+#include "ThrottleManager.h"
 #include "TimerManager.h"
 #include "ZUtils.h"
 
@@ -189,8 +189,8 @@ void BufferedSocket::threadRead() {
 	if(state != RUNNING)
 		return;
 
-	//int left = (mode == MODE_DATA) ? ThrottleManager::getInstance()->read(sock.get(), &inbuf[0], (int)inbuf.size()) : sock->read(&inbuf[0], (int)inbuf.size());
-	int left = sock->read(&inbuf[0], (int)inbuf.size());
+	int left = (mode == MODE_DATA) ? ThrottleManager::getInstance()->read(sock.get(), &inbuf[0], (int)inbuf.size()) : sock->read(&inbuf[0], (int)inbuf.size());
+	//int left = sock->read(&inbuf[0], (int)inbuf.size());
 	if(left == -1) {
 		// EWOULDBLOCK, no data received...
 		return;
@@ -348,8 +348,8 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 				written = sock->write(&writeBuf[writePos], writeSize);
 			} else {
 				writeSize = min(sockSize / 2, writeBuf.size() - writePos);	
-				//written = ThrottleManager::getInstance()->write(sock.get(), &writeBuf[writePos], writeSize);
-				written = sock->write(&writeBuf[writePos], writeSize);
+				written = ThrottleManager::getInstance()->write(sock.get(), &writeBuf[writePos], writeSize);
+				//written = sock->write(&writeBuf[writePos], writeSize);
 			}
 			
 			if(written > 0) {
