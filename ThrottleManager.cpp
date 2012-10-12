@@ -111,7 +111,7 @@ int ThrottleManager::write(Socket* sock, void* buffer, size_t& len)
 SettingsManager::IntSetting ThrottleManager::getCurSetting(SettingsManager::IntSetting setting) {
 	SettingsManager::IntSetting upLimit   = SettingsManager::MAX_UPLOAD_SPEED_MAIN;
 	SettingsManager::IntSetting downLimit = SettingsManager::MAX_DOWNLOAD_SPEED_MAIN;
-	SettingsManager::IntSetting slots     = SettingsManager::SLOTS_PRIMARY;
+	//SettingsManager::IntSetting slots     = SettingsManager::SLOTS_PRIMARY;
 
 	if(SETTING(TIME_DEPENDENT_THROTTLE)) {
 		time_t currentTime;
@@ -124,7 +124,7 @@ SettingsManager::IntSetting ThrottleManager::getCurSetting(SettingsManager::IntS
 		{
 			upLimit   = SettingsManager::MAX_UPLOAD_SPEED_ALTERNATE;
 			downLimit = SettingsManager::MAX_DOWNLOAD_SPEED_ALTERNATE;
-			slots     = SettingsManager::SLOTS_ALTERNATE_LIMITING;
+			//slots     = SettingsManager::SLOTS_ALTERNATE_LIMITING;
 		}
 	}
 
@@ -133,8 +133,8 @@ SettingsManager::IntSetting ThrottleManager::getCurSetting(SettingsManager::IntS
 			return upLimit;
 		case SettingsManager::MAX_DOWNLOAD_SPEED_MAIN:
 			return downLimit;
-		case SettingsManager::SLOTS:
-			return slots;
+		//case SettingsManager::SLOTS:
+		//	return slots;
 		default:
 			return setting;
 	}
@@ -191,10 +191,10 @@ void ThrottleManager::shutdown() {
 // TimerManagerListener
 void ThrottleManager::on(TimerManagerListener::Second, uint64_t /* aTick */) noexcept
 {
-	int newSlots = SettingsManager::getInstance()->get(getCurSetting(SettingsManager::SLOTS));
-	if(newSlots != SETTING(SLOTS)) {
-		setSetting(SettingsManager::SLOTS, newSlots);
-	}
+	//int newSlots = SettingsManager::getInstance()->get(getCurSetting(SettingsManager::SLOTS));
+	//if(newSlots != SETTING(SLOTS)) {
+	//	setSetting(SettingsManager::SLOTS, newSlots);
+	//}
 
 	{
 		Lock l(stateCS);
