@@ -421,8 +421,8 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet
 					}
 				});
 
-				/*s->second.queued = boost::fusion::accumulate(b->getQueueItems(), s->second.queued, [countAll](const QueueItemPtr q) {
-					return (countAll || q->getDownloadedBytes() == 0) ? q->getSize() : 0;
+				/*s->second.queued = boost::accumulate(b->getQueueItems(), s->second.queued, [countAll](int64_t old, const QueueItemPtr q) {
+					return old + (countAll || q->getDownloadedBytes() == 0) ? q->getSize() : 0;
 				});*/
 			}
 		}

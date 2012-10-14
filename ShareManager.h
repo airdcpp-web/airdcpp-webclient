@@ -39,6 +39,7 @@
 #include "Flags.h"
 #include "AdcSearch.h"
 #include "StringMatch.h"
+#include "HashBloom.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -157,7 +158,8 @@ public:
 	int64_t getShareSize(const string& realPath, ProfileToken aProfile) const noexcept;
 	void getProfileInfo(ProfileToken aProfile, int64_t& size, size_t& files) const;
 	
-	void getBloom(ByteVector& v, size_t k, size_t m, size_t h) const;
+	//size_t getSharedFiles(ProfileToken aProfile) const noexcept;
+	void getBloom(HashBloom& bloom) const;
 
 	SearchManager::TypeModes getType(const string& fileName) noexcept;
 

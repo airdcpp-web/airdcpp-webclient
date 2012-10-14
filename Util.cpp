@@ -266,6 +266,7 @@ void Util::migrate(const string& file) {
 		return;
 	}
 
+	CopyFile(Text::toT(old).c_str(), Text::toT(old + ".bak").c_str(), FALSE);
 	try {
 		File::renameFile(old, file);
 	} catch(const FileException& /*e*/) {

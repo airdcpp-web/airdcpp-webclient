@@ -39,6 +39,13 @@ public:
 	void getBrowseList();
 	void matchQueue();
 	void pm();
+
+	void getList(const string& aUrl);
+	void browseList(const string& aUrl);
+	void getBrowseList(const string& aUrl);
+	void matchQueue(const string& aUrl);
+	void pm(const string& aUrl);
+
 	void grant();
 	void grantHour();
 	void grantDay();

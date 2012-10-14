@@ -56,6 +56,8 @@ public:
 	StringList getHubUrls(const CID& cid, const string& hintUrl = Util::emptyString) const;
 	StringList getHubNames(const CID& cid, const string& hintUrl = Util::emptyString) const;
 	StringList getNicks(const CID& cid, const string& hintUrl = Util::emptyString) const;
+	pair<int64_t, int> getShareInfo(const HintedUser& user) const;
+	void getUserInfoList(const UserPtr user, User::UserInfoList& aList_) const;
 
 	StringList getNicks(const HintedUser& user) { return getNicks(user.user->getCID(), user.hint); }
 	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID(), user.hint); }

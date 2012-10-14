@@ -35,6 +35,8 @@
 #include "Localization.h"
 #include "StringTokenizer.h"
 #include "ThrottleManager.h"
+#include "QueueManager.h"
+#include "HashBloom.h"
 
 namespace dcpp {
 
@@ -599,7 +601,7 @@ void AdcHub::handle(AdcCommand::UBD, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
-	/*if(c.getParameters().size() < 5) {
+	if(c.getParameters().size() < 5) {
 		if(c.getParameters().size() > 0) {
 			if(c.getParam(0) == "blom") {
 				send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC,
@@ -634,17 +636,33 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 			return;
 		}
 
-		size_t n = ShareManager::getInstance()->getSharedFiles();
+		size_t n = 0;
+		
+		if (getShareProfile() != SP_HIDDEN) {
+			if (BOOLSETTING(USE_PARTIAL_SHARING))
+				n = QueueManager::getInstance()->getQueuedFiles();
+
+			int64_t tmp = 0;
+			ShareManager::getInstance()->getProfileInfo(getShareProfile(), tmp, n);
+		}
 		
 		// Ideal size for m is n * k / ln(2), but we allow some slack
-		if(m > (static_cast<size_t>(5 * Util::roundUp((int64_t)(n * k / log(2.)), (int64_t)64))) || m > static_cast<size_t>(1 << h)) {
+		// When h >= 32, m can't go above 2^h anyway since it's stored in a size_t.
+		if(m > (5 * Util::roundUp((int64_t)(n * k / log(2.)), (int64_t)64)) || (h < 32 && m > static_cast<size_t>(1U << h))) {
 			send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
 				"Unsupported m", AdcCommand::TYPE_HUB));
 			return;
 		}
 		
 		if (m > 0) {
-			ShareManager::getInstance()->getBloom(v, k, m, h);
+			dcdebug("Creating bloom filter, k=%u, m=%u, h=%u\n", k, m, h);
+
+			HashBloom bloom;
+			bloom.reset(k, m, h);
+			ShareManager::getInstance()->getBloom(bloom);
+			if (BOOLSETTING(USE_PARTIAL_SHARING))
+				QueueManager::getInstance()->getBloom(bloom);
+			bloom.copy_to(v);
 		}
 		AdcCommand cmd(AdcCommand::CMD_SND, AdcCommand::TYPE_HUB);
 		cmd.addParam(c.getParam(0));
@@ -656,7 +674,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		if (m > 0) {
 			send((char*)&v[0], v.size());
 		}
-	}*/
+	}
 }
 
 void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
@@ -1089,7 +1107,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "DE", getCurrentDescription());
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
-	size_t fileCount = 0;
+	size_t fileCount = BOOLSETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedFiles() : 0;
 	int64_t size = 0;
 	if (getShareProfile() != SP_HIDDEN)
 		ShareManager::getInstance()->getProfileInfo(getShareProfile(), size, fileCount);
@@ -1217,9 +1235,10 @@ void AdcHub::on(Connected c) noexcept {
 	if(BOOLSETTING(HUB_USER_COMMANDS)) {
 		cmd.addParam(UCM0_SUPPORT);
 	}
-	//if(BOOLSETTING(SEND_BLOOM)) {
-	//	cmd.addParam(BLO0_SUPPORT);
-	//}
+
+	if(BOOLSETTING(SEND_BLOOM)) {
+		cmd.addParam(BLO0_SUPPORT);
+	}
 	cmd.addParam(ZLIF_SUPPORT);
 	send(cmd);
 }

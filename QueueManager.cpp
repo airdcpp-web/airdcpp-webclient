@@ -266,6 +266,16 @@ QueueManager::~QueueManager() noexcept {
 	}
 }
 
+void QueueManager::getBloom(HashBloom& bloom) const {
+	RLock l(cs);
+	fileQueue.getBloom(bloom);
+}
+
+size_t QueueManager::getQueuedFiles() const noexcept {
+	RLock l(cs);
+	return fileQueue.getQueuedFiles();
+}
+
 bool QueueManager::getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t size_) noexcept {
 	RLock l(cs);
 	QueueItemPtr qi = fileQueue.findFile(aTarget);

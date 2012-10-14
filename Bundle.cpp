@@ -34,13 +34,13 @@
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/range/algorithm/find_if.hpp>
-#include <boost/fusion/algorithm/iteration/accumulate.hpp>
+#include <boost/range/numeric.hpp>
 
 namespace dcpp {
 
 using boost::range::find_if;
 using boost::range::for_each;
-using boost::fusion::accumulate;
+using boost::accumulate;
 	
 Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
@@ -121,11 +121,11 @@ void Bundle::setDownloadedBytes(int64_t aSize) {
 
 void Bundle::addFinishedSegment(int64_t aSize) {
 #ifdef _DEBUG
-	int64_t tmp1 = accumulate(queueItems.begin(), queueItems.end(), (int64_t)0, [&](int64_t old, QueueItemPtr qi) {
+	int64_t tmp1 = accumulate(queueItems, (int64_t)0, [&](int64_t old, QueueItemPtr qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
 
-	tmp1 = accumulate(finishedFiles.begin(), finishedFiles.end(), tmp1, [&](int64_t old, QueueItemPtr qi) {
+	tmp1 = accumulate(finishedFiles, tmp1, [&](int64_t old, QueueItemPtr qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
 	//LogManager::getInstance()->message("Adding segment with size " + Util::formatBytes(aSize) + ", total finished size " + Util::formatBytes(tmp1) + " (qi), " + Util::formatBytes(aSize + finishedSegments) + " (bundle)", LogManager::LOG_INFO);

@@ -42,6 +42,12 @@ using boost::range::copy;
 
 FileQueue::~FileQueue() { }
 
+void FileQueue::getBloom(HashBloom& bloom) const {
+	for(auto i = tthIndex.begin(); i != tthIndex.end(); ++i) {
+		bloom.add(*i->first);
+	}
+}
+
 QueueItemPtr FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItem::Priority p, 
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
@@ -58,7 +64,7 @@ void FileQueue::add(QueueItemPtr qi) noexcept {
 	}
 	dcassert(queueSize >= 0);
 	queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi));
-	tthIndex.insert(make_pair(qi->getTTH(), qi));
+	tthIndex.insert(make_pair(const_cast<TTHValue*>(&qi->getTTH()), qi));
 }
 
 void FileQueue::remove(QueueItemPtr qi) noexcept {
@@ -74,7 +80,7 @@ void FileQueue::remove(QueueItemPtr qi) noexcept {
 	dcassert(queueSize >= 0);
 
 	//TTHIndex
-	auto s = tthIndex.equal_range(qi->getTTH());
+	auto s = tthIndex.equal_range(const_cast<TTHValue*>(&qi->getTTH()));
 	dcassert(s.first != s.second);
 
 	auto k = find(s | map_values, qi);
@@ -89,7 +95,7 @@ QueueItemPtr FileQueue::findFile(const string& target) noexcept {
 }
 
 void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) noexcept {
-	copy(tthIndex.equal_range(tth) | map_values, back_inserter(ql));
+	copy(tthIndex.equal_range(const_cast<TTHValue*>(&tth)) | map_values, back_inserter(ql));
 }
 
 void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringList& ql) {
@@ -111,7 +117,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::Stri
 	}
 
 	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
-		auto s = tthIndex.equal_range((*i)->getTTH());
+		auto s = tthIndex.equal_range(const_cast<TTHValue*>(&(*i)->getTTH()));
 		if (s.first != s.second) {
 			DirectoryListing::File* f = *i;
 			for_each(s | map_values, [f, &ql](const QueueItemPtr q) {
@@ -149,7 +155,7 @@ int FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) noexce
 }
 
 QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) noexcept {
-	auto s = tthIndex.equal_range(aTTH);
+	auto s = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
 	if (s.first != s.second) {
 		auto k = find_if(s | map_values, [&fileName](const QueueItemPtr q) { return (stricmp(fileName, q->getTargetFileName()) == 0); });
 		if (k.base() != s.second) {

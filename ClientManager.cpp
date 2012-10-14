@@ -497,6 +497,26 @@ HintedUser ClientManager::checkUserHint(const HintedUser& user) {
 	return HintedUser(user);
 }
 
+pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const {
+	RLock l (cs);
+	auto ou = findOnlineUser(user);
+	if (ou) {
+		return make_pair(Util::toInt64(ou->getIdentity().getShareSize()), Util::toInt(ou->getIdentity().getSharedFiles()));
+	}
+
+	return make_pair(0, 0);
+}
+
+void ClientManager::getUserInfoList(const UserPtr user, User::UserInfoList& aList_) const {
+	RLock l(cs);
+	auto p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
+
+	for(auto i = p.first; i != p.second; ++i) {
+		auto ou = i->second;
+		aList_.push_back(User::UserHubInfo(ou->getHubUrl(), ou->getClient().getHubName(), Util::toInt64(ou->getIdentity().getShareSize())));
+	}
+}
+
 OnlineUser* ClientManager::findOnlineUser(const HintedUser& user) const {
 	return findOnlineUser(user.user->getCID(), user.hint);
 }

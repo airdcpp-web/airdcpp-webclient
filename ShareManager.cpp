@@ -37,7 +37,6 @@
 #include "Transfer.h"
 #include "UserConnection.h"
 #include "Download.h"
-#include "HashBloom.h"
 #include "SearchResult.h"
 #include "Wildcards.h"
 #include "AirUtil.h"
@@ -48,6 +47,7 @@
 #include <boost/range/algorithm/search.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/find_if.hpp>
+#include <boost/range/algorithm/count_if.hpp>
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -1647,17 +1647,16 @@ void ShareManager::getShares(ShareDirInfo::map& aDirs) {
 	}
 
 }
+
+/*size_t ShareManager::getSharedFiles(ProfileToken aProfile) const noexcept {
+	return boost::count_if(tthIndex | map_values, [aProfile](Directory::File::Set::const_iterator f) { return f->getParent()->hasProfile(aProfile); });
+}*/
 		
-void ShareManager::getBloom(ByteVector& v, size_t k, size_t m, size_t h) const {
-	dcdebug("Creating bloom filter, k=%u, m=%u, h=%u\n", k, m, h);
-	WLock l(cs);
-	
-	HashBloom bloom;
-	bloom.reset(k, m, h);
+void ShareManager::getBloom(HashBloom& bloom) const {
+	RLock l(cs);
 	for(auto i = tthIndex.begin(); i != tthIndex.end(); ++i) {
 		bloom.add(*i->first);
 	}
-	bloom.copy_to(v);
 }
 
 string ShareManager::generateOwnList(ProfileToken aProfile) {

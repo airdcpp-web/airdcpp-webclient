@@ -620,7 +620,7 @@ SettingsManager::SettingsManager()
 	setDefault(TB_IMAGE_SIZE_HOT, 24);
 	setDefault(USE_HIGHLIGHT, false);
 	setDefault(SHOW_QUEUE_BARS, true);
-	setDefault(SEND_BLOOM, true);
+	setDefault(SEND_BLOOM, false);
 	setDefault(EXPAND_DEFAULT, false);
 	setDefault(SHARE_SKIPLIST_USE_REGEXP, true);
 	setDefault(DOWNLOAD_SKIPLIST_USE_REGEXP, false);

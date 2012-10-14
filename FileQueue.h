@@ -26,6 +26,7 @@
 #include "HintedUser.h"
 #include "QueueItem.h"
 #include "DirectoryListing.h"
+#include "HashBloom.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -37,6 +38,7 @@ public:
 	FileQueue() : queueSize(0) { }
 	~FileQueue();
 
+	void getBloom(HashBloom& bloom) const;
 	void decreaseSize(uint64_t aSize) { queueSize -= aSize; }
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItemPtr> > PFSSourceList;
 
@@ -55,6 +57,7 @@ public:
 	size_t getSize() noexcept { return queue.size(); }
 	QueueItem::StringMap& getQueue() noexcept { return queue; }
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
+	size_t getQueuedFiles() const { return tthIndex.size(); }
 	void move(QueueItemPtr qi, const string& aTarget) noexcept;
 	void remove(QueueItemPtr qi) noexcept;
 	int isFileQueued(const TTHValue& aTTH, const string& aFile) noexcept;

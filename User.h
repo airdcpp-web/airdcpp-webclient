@@ -61,6 +61,14 @@ public:
 	bool isNMDC() const { return isSet(NMDC); }
 	GETSET(int64_t, speed, Speed);
 
+	struct UserHubInfo {
+		UserHubInfo(const string& aHubUrl, const string& aHubName, int64_t aShared) : hubName(aHubName), hubUrl(aHubUrl), shared(aShared) { }
+
+		string hubName;
+		string hubUrl;
+		int64_t shared;
+	};
+	typedef vector<UserHubInfo> UserInfoList;
 private:
 	CID cid;
 };

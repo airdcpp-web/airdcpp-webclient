@@ -81,6 +81,8 @@ public:
 	GETSET_FIELD(Email, "EM")
 	GETSET_FIELD(Connection, "CO")
 	GETSET_FIELD(DLSpeed, "DS")
+	GETSET_FIELD(SharedFiles, "SF")
+	GETSET_FIELD(ShareSize, "SS")
 #undef GETSET_FIELD
 
 	void setBytesShared(const string& bs) { set("SS", bs); }
@@ -177,7 +179,6 @@ public:
 	UserPtr& getUser() { return getIdentity().getUser(); }
 	const UserPtr& getUser() const { return getIdentity().getUser(); }
 	const string& getHubUrl() const;
-	//const HintedUser& getHintedUser() const { return HintedUser(getIdentity().getUser(), Util::emptyString); }
 	Identity& getIdentity() { return identity; }
 	Client& getClient() { return (Client&)client; }
 	const Client& getClient() const { return (const Client&)client; }
