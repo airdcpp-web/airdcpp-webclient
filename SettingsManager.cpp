@@ -161,7 +161,7 @@ const string SettingsManager::settingTags[] =
 	"RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
 	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode", "UpdateMethod",
-	"QueueSplitterPos", "UpdateIPHourly", "OpenTextOnBackground",
+	"QueueSplitterPos", "UpdateIPHourly", "OpenTextOnBackground", "FullListDLLimit",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -722,6 +722,7 @@ SettingsManager::SettingsManager()
 	setDefault(QUEUE_SPLITTER_POS, 3000);
 	setDefault(UPDATE_IP_HOURLY, false);
 	setDefault(POPUNDER_TEXT, false);
+	setDefault(FULL_LIST_DL_LIMIT, 30000);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

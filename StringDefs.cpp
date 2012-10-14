@@ -656,7 +656,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "&Window color", 
 "Send unknown /commands to the hub", 
 "Share hidden files", 
-"Total size:", 
 "Shared directories", 
 "Show InfoTips in lists", 
 "Show joins / parts in chat by default", 
@@ -1521,6 +1520,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Upload limit disabled", 
 "Custom...", 
 "New limit (KiB/s) (0 = infinite)", 
+"Total files: %d", 
+"Total size: %s", 
+"Maximun number of files for getting full filelist with \"Get/Browse filelist\"", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2177,7 +2179,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsSelectWindowColor", 
 "SettingsSendUnknownCommands", 
 "SettingsShareHidden", 
-"SettingsShareSize", 
 "SettingsSharedDirectories", 
 "SettingsShowInfoTips", 
 "SettingsShowJoins", 
@@ -3042,4 +3043,7 @@ std::string dcpp::ResourceManager::names[] = {
 "UploadLimitDisabled", 
 "Custom", 
 "NewLimit", 
+"TotalFiles", 
+"TotalSize", 
+"FullListDlLimit", 
 };

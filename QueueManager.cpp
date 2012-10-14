@@ -2579,7 +2579,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 	}
 
 	LogManager::getInstance()->message(STRING_F(BUNDLE_CREATED, aBundle->getName().c_str() % aBundle->getQueueItems().size()) + 
-		" (" + CSTRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(aBundle->getSize()).c_str() + ")", LogManager::LOG_INFO);
+		" (" + CSTRING_F(TOTAL_SIZE, Util::formatBytes(aBundle->getSize()).c_str()) + ")", LogManager::LOG_INFO);
 
 	connectBundleSources(aBundle);
 	return true;
@@ -2679,7 +2679,7 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 		LogManager::getInstance()->message(STRING_F(FILEBUNDLE_MERGED, sourceBundle->getName().c_str() % targetBundle->getName().c_str()), LogManager::LOG_INFO);
 	} else if (changeTarget) {
 		string tmp = STRING_F(BUNDLE_CREATED, targetBundle->getName().c_str() % targetBundle->getQueueItems().size()) + 
-			" (" + STRING(SETTINGS_SHARE_SIZE) + " " + Util::formatBytes(targetBundle->getSize()).c_str() + ")";
+			" (" + CSTRING_F(TOTAL_SIZE, Util::formatBytes(targetBundle->getSize()).c_str()) + ")";
 
 		if (added > 0)
 			tmp += str(boost::format(", " + STRING(EXISTING_BUNDLES_MERGED)) % (added+1));

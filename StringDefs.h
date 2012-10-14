@@ -659,7 +659,6 @@ enum Strings { // @DontAdd
 	SETTINGS_SELECT_WINDOW_COLOR, // "&Window color"
 	SETTINGS_SEND_UNKNOWN_COMMANDS, // "Send unknown /commands to the hub"
 	SETTINGS_SHARE_HIDDEN, // "Share hidden files"
-	SETTINGS_SHARE_SIZE, // "Total size:"
 	SETTINGS_SHARED_DIRECTORIES, // "Shared directories"
 	SETTINGS_SHOW_INFO_TIPS, // "Show InfoTips in lists"
 	SETTINGS_SHOW_JOINS, // "Show joins / parts in chat by default"
@@ -1528,5 +1527,8 @@ enum Strings { // @DontAdd
 	UPLOAD_LIMIT_DISABLED, // "Upload limit disabled"
 	CUSTOM, // "Custom..."
 	NEW_LIMIT, // "New limit (KiB/s) (0 = infinite)"
+	TOTAL_FILES, // "Total files: %d"
+	TOTAL_SIZE, // "Total size: %s"
+	FULL_LIST_DL_LIMIT, // "Maximun number of files for getting full filelist with \"Get/Browse filelist\""
 	LAST // @DontAdd
 };
