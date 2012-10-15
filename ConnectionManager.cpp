@@ -281,7 +281,9 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 		auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
 		if (i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
-			if (!cqi->isSet(ConnectionQueueItem::FLAG_MCN1))
+
+			//we need to check if we have queued something also while the small file connection was being established
+			if (!cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))
 				return;
 
 			cqi->setState(ConnectionQueueItem::RUNNING);
@@ -296,6 +298,9 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 					running++;
 				}
 			}
+
+			if (running > 0 && cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF))
+				return;
 
 			if (!cqi->allowNewConnections(running) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE))
 				return;

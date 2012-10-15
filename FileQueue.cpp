@@ -182,10 +182,6 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 
 		if(q->getSize() < PARTIAL_SHARE_MIN_SIZE) continue;
 
-		// don't share when file does not exist
-		if(!Util::fileExists(q->isFinished() ? q->getTarget() : q->getTempTarget()))
-			continue;
-
 		const QueueItem::SourceList& sources = q->getSources();
 		const QueueItem::SourceList& badSources = q->getBadSources();
 

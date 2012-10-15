@@ -111,7 +111,8 @@ DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
 
 TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) {
 	TigerHash tmp;
-	tmp.update((Text::toLower(aFileName) + Util::toString(aSize)).c_str(), aFileName.length());
+	string str = Text::toLower(aFileName) + Util::toString(aSize);
+	tmp.update(str.c_str(), str.length());
 	return TTHValue(tmp.finalize());
 }
 

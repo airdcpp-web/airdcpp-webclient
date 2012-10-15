@@ -279,7 +279,6 @@ private:
 	void rechecked(QueueItemPtr qi);
 	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
 	void hashBundle(BundlePtr aBundle);
-	void bundleHashed(BundlePtr aBundle);
 	void checkBundleHashed(BundlePtr aBundle);
 
 	bool replaceFinishedItem(QueueItemPtr qi);

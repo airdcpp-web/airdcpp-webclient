@@ -354,10 +354,9 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 	d->setStart(GET_TICK());
 	d->tick();
-	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isSet(UserConnection::FLAG_MCN1) && 
-		d->getType() == Download::TYPE_FILE && !aSource->isSet(UserConnection::FLAG_SMALL_SLOT)) {
-			ConnectionManager::getInstance()->addRunningMCN(aSource);
-			aSource->setFlag(UserConnection::FLAG_RUNNING);
+	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isSet(UserConnection::FLAG_MCN1) && (d->getType() == Download::TYPE_FILE) || d->getType() == Download::TYPE_PARTIAL_LIST) {
+		ConnectionManager::getInstance()->addRunningMCN(aSource);
+		aSource->setFlag(UserConnection::FLAG_RUNNING);
 	}
 	aSource->setState(UserConnection::STATE_RUNNING);
 
@@ -685,8 +684,8 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
 		//partial lists should be only used for client viewing in NMDC
 		dcassert(d->isSet(Download::FLAG_VIEW));
 		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT_RETRY));
-		string dir = d->getPath().c_str();
-		QueueManager::getInstance()->putDownload(d, false);
+		string dir = d->getTempTarget();
+		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
 		removeConnection(aSource);
 		QueueManager::getInstance()->addList(aSource->getHintedUser(), QueueItem::FLAG_CLIENT_VIEW, dir);
 		return;
