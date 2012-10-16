@@ -138,7 +138,7 @@ public:
 	virtual ~ListLoader() { }
 
 	void startTag(const string& name, StringPairList& attribs, bool simple);
-	void endTag(const string& name, const string& data);
+	void endTag(const string& name);
 
 	const string& getBase() const { return base; }
 private:
@@ -257,7 +257,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if(simple) {
 				// To handle <Directory Name="..." />
-				endTag(name, Util::emptyString);
+				endTag(name);
 			}
 		}
 	} else if(name == sFileListing) {
@@ -296,12 +296,12 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 		if(simple) {
 			// To handle <Directory Name="..." />
-			endTag(name, Util::emptyString);
+			endTag(name);
 		}
 	}
 }
 
-void ListLoader::endTag(const string& name, const string&) {
+void ListLoader::endTag(const string& name) {
 	if(inListing) {
 		if(name == sDirectory) {
 			cur = cur->getParent();

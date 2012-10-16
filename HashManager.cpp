@@ -386,7 +386,7 @@ public:
 		store(s), size(0), timeStamp(0), version(HASH_FILE_VERSION), inTrees(false), inFiles(false), inHashStore(false) {
 	}
 	void startTag(const string& name, StringPairList& attribs, bool simple);
-	void endTag(const string& name, const string& data);
+	void endTag(const string& name);
 	
 private:
 	HashManager::HashStore& store;
@@ -467,7 +467,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 	}
 }
 
-void HashLoader::endTag(const string& name, const string&) {
+void HashLoader::endTag(const string& name) {
 	if (name == sFile) {
 		file.clear();
 	}
@@ -568,7 +568,8 @@ void HashManager::Hasher::instantPause() {
 	}
 }
 
-HashManager::Hasher::Hasher() : stop(false), running(false), paused(false), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0) { }
+HashManager::Hasher::Hasher() : stop(false), running(false), paused(false), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
+	filesHashed(0), dirFilesHashed(0), dirSizeHashed(0), dirHashTime(0) { }
 
 int HashManager::Hasher::run() {
 	setThreadPriority(Thread::IDLE);
@@ -669,8 +670,13 @@ int HashManager::Hasher::run() {
 				uint64_t end = GET_TICK();
 				int64_t averageSpeed = 0;
 				sizeHashed += size;
+				dirSizeHashed += size;
+
+				dirFilesHashed++;
+				filesHashed++;
 				if(end > start) {
 					hashTime += (end - start);
+					dirHashTime += (end - start);
 					averageSpeed = size * 1000 / (end - start);
 				}
 
@@ -686,32 +692,48 @@ int HashManager::Hasher::run() {
 			}
 		
 		}
+
+		auto onDirHashed = [&] () -> void {
+			if (dirFilesHashed == 1) {
+				LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_FILE, currentFile % 
+					Util::formatBytes(dirSizeHashed) % 
+					Util::formatTime(dirHashTime / 1000, true) % 
+					(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), LogManager::LOG_INFO);
+			} else {
+				LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
+					dirFilesHashed %
+					Util::formatBytes(dirSizeHashed) % 
+					Util::formatTime(dirHashTime / 1000, true) % 
+					(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), LogManager::LOG_INFO);
+			}
+
+			dirsHashed++;
+			dirHashTime = 0;
+			dirSizeHashed = 0;
+			dirFilesHashed = 0;
+			initialDir.clear();
+		};
+
 		{
 			Lock l(hcs);
 			if (w.empty()) {
 				if (sizeHashed > 0) {
 					if (dirsHashed == 0) {
-						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_TOTAL_DIR, Util::getFilePath(initialDir) % 
-							Util::formatBytes(sizeHashed) % 
-							Util::formatTime(hashTime / 1000, true) % 
-							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0) + "/s" )), LogManager::LOG_INFO);
+						onDirHashed();
+						//LogManager::getInstance()->message(STRING(HASHING_FINISHED_TOTAL_PLAIN), LogManager::LOG_INFO);
 					} else {
-						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir)), LogManager::LOG_INFO);
-						dirsHashed++;
-						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_TOTAL, dirsHashed % 
-							Util::formatBytes(sizeHashed) % 
+						onDirHashed();
+						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_TOTAL, filesHashed % Util::formatBytes(sizeHashed) % dirsHashed % 
 							Util::formatTime(hashTime / 1000, true) % 
 							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), LogManager::LOG_INFO);
 					}
 				}
-				initialDir.clear();
 				hashTime = 0;
 				sizeHashed = 0;
 				dirsHashed = 0;
+				filesHashed = 0;
 			} else if (!AirUtil::isParentOrExact(initialDir, w.front().first)) {
-				LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir)), LogManager::LOG_INFO);
-				initialDir.clear();
-				dirsHashed++;
+				onDirHashed();
 			}
 
 			currentFile.clear();

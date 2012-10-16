@@ -138,8 +138,9 @@ public:
 	}
 	
 	void fromXML(const string& aXML);
-	string toXML() { string tmp; StringOutputStream os(tmp); toXML(&os); return tmp; }
-	void toXML(OutputStream* f) throw(FileException) { if(!root.children.empty()) root.children[0]->toXML(0, f); }
+	string toXML();
+	string childToXML();
+	void toXML(OutputStream* f) throw(FileException);
 	
 	static const string& escape(const string& str, string& tmp, bool aAttrib, bool aLoading = false, const string &encoding = Text::utf8) {
 		if(needsEscape(str, aAttrib, aLoading, encoding)) {
@@ -163,7 +164,7 @@ private:
 	public:
 		typedef Tag* Ptr;
 		typedef vector<Ptr> List;
-		typedef List::const_iterator Iter;
+		typedef List::iterator Iter;
 
 		/**
 		 * A simple list of children. To find a tag, one must search the entire list.
@@ -197,7 +198,7 @@ private:
 			StringPairList::const_iterator i = find_if(attribs.begin(), attribs.end(), CompareFirst<string,string>(aName));
 			return (i == attribs.end()) ? aDefault : i->second; 
 		}
-		void toXML(int indent, OutputStream* f);
+		void toXML(int indent, OutputStream* f, bool noIndent=false);
 		
 		void appendAttribString(string& tmp);
 		/** Delete all children! */
@@ -215,14 +216,15 @@ private:
 	class TagReader : public SimpleXMLReader::CallBack {
 	public:
 		TagReader(Tag* root) : cur(root) { }
-		bool getData(string&) const { return false; }
 		void startTag(const string& name, StringPairList& attribs, bool simple) {
 			cur->children.push_back(new Tag(name, attribs, cur));
 			if(!simple)
 				cur = cur->children.back();
 		}
-		void endTag(const string&, const string& d) {
-			cur->data = d;
+		void data(const string& data) {
+			cur->data += data;
+		}
+		void endTag(const string&) {
 			if(cur->parent == NULL)
 				throw SimpleXMLException("Invalid end tag");
 			cur = cur->parent;

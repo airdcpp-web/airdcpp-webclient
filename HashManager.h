@@ -158,6 +158,7 @@ private:
 		bool paused;
 		bool rebuild;
 		bool saveData;
+
 		string currentFile;
 		int64_t totalBytesLeft;
 		int64_t lastSpeed;
@@ -167,7 +168,13 @@ private:
 		int64_t sizeHashed;
 		int64_t hashTime;
 		int dirsHashed;
+		int filesHashed;
+
+		int64_t dirSizeHashed;
+		int64_t dirHashTime;
+		int dirFilesHashed;
 		string initialDir;
+
 		DirSFVReader sfv;
 	};
 

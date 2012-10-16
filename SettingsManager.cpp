@@ -835,7 +835,7 @@ void SettingsManager::load(string const& aFileName)
 			set(AUTO_DETECT_CONNECTION, false); //Don't touch if it works
 		}
 
-		/*if(v <= 2.30) {
+		if(v <= 2.21) {
 		try {
 			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2"))			
 				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2");
@@ -843,7 +843,7 @@ void SettingsManager::load(string const& aFileName)
 			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml"))			
 				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml");
 		}catch(...) { }
-		}*/
+		}
 
 		setDefault(UDP_PORT, SETTING(TCP_PORT));
 
@@ -857,14 +857,10 @@ void SettingsManager::load(string const& aFileName)
 
 	lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT || INCOMING_FIREWALL_UPNP || INCOMING_FIREWALL_NAT) {
-	if(SETTING(TLS_PORT) == 0) {
-		set(TLS_PORT, (int)Util::rand(10000, 32000));
+		if(SETTING(TLS_PORT) == 0) {
+			set(TLS_PORT, (int)Util::rand(10000, 32000));
 		}
 	}
-	
-	if(SETTING(DOWNCONN_PER_SEC) > 5) {
-			set(DOWNCONN_PER_SEC, 5);
-		}
 
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT) {
 		set(TCP_PORT, (int)Util::rand(10000, 32000));

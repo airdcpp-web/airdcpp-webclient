@@ -510,7 +510,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 						const string& title = xml.getChildData();
 						xml.resetCurrentChild();
 						if(xml.findChild("Message")) {
-							fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), remoteVer, url, autoUpdateEnabled, remoteBuild, updateUrl);
+							fire(UpdateManagerListener::UpdateAvailable(), title, xml.childToXML(), remoteVer, url, autoUpdateEnabled, remoteBuild, updateUrl);
 						}
 					}
 					//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);

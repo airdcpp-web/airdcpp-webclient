@@ -1712,7 +1712,7 @@ public:
 	QueueLoader() : curFile(NULL), inDownloads(false), inBundle(false), inFile(false) { }
 	~QueueLoader() { }
 	void startTag(const string& name, StringPairList& attribs, bool simple);
-	void endTag(const string& name, const string& data);
+	void endTag(const string& name);
 	void resetBundle() {
 		curFile = nullptr;
 		curBundle = nullptr;
@@ -1933,7 +1933,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 	}
 }
 
-void QueueLoader::endTag(const string& name, const string&) {
+void QueueLoader::endTag(const string& name) {
 	
 	if(inDownloads || inBundle || inFile) {
 		if(name == "Downloads") {

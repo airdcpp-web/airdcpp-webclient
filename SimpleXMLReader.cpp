@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
 #include "stdinc.h"
 #include "SimpleXMLReader.h"
 
@@ -83,7 +101,7 @@ bool SimpleXMLReader::error(const char* e) {
 const string& SimpleXMLReader::CallBack::getAttrib(StringPairList& attribs, const string& name, size_t hint) {
 	hint = min(hint, attribs.size());
 
-	StringPairIter i = find_if(attribs.begin() + hint, attribs.end(), CompareFirst<string, string>(name));
+	auto i = find_if(attribs.begin() + hint, attribs.end(), CompareFirst<string, string>(name));
 	if(i == attribs.end()) {
 		i = find_if(attribs.begin(), attribs.begin() + hint, CompareFirst<string, string>(name));
 		return ((i == (attribs.begin() + hint)) ? Util::emptyString : i->second);
@@ -447,18 +465,12 @@ bool SimpleXMLReader::content() {
 	}
 
 	int c = charAt(0);
-	if(c == '<') {
-		if(!value.empty()) {
-			error("Mixed content not supported");
-		}
-		return false;
-	}
 
 	if(c == '&') {
 		return entref(value);
 	}
 
-		append(value, MAX_VALUE_SIZE, c);
+	append(value, MAX_VALUE_SIZE, c);
 
 	advancePos(1);
 
@@ -490,11 +502,7 @@ bool SimpleXMLReader::elementEndEnd() {
 	}
 
 	if(charAt(0) == '>') {
-		if(!encoding.empty() && encoding != Text::utf8) {
-			value = Text::toUtf8(encoding);
-		}
-		cb->endTag(elements.back(), value);
-		value.clear();
+		cb->endTag(elements.back());
 		elements.pop_back();
 
 		state = STATE_CONTENT;
@@ -542,7 +550,7 @@ void SimpleXMLReader::parse(InputStream& stream, size_t maxSize) {
 			error("Greater than maximum allowed size");
 
 		if(len == 0) {
-			if(elements.size() == 0) {
+			if(elements.empty()) {
 				// Fine...
 				return;
 			}
@@ -553,10 +561,15 @@ void SimpleXMLReader::parse(InputStream& stream, size_t maxSize) {
 	} while(process());
 }
 
-bool SimpleXMLReader::parse(const char* data, size_t len, bool /*more*/) {
+bool SimpleXMLReader::parse(const char* data, size_t len) {
 	buf.append(data, len);
 	return process();
 }
+
+bool SimpleXMLReader::parse(const string& str) {
+	return parse(str.c_str(), str.size());
+}
+
 bool SimpleXMLReader::spaceOrError(const char* message) {
 	if(!skipSpace()) {
 		error(message);
@@ -695,8 +708,11 @@ bool SimpleXMLReader::process() {
 			return true;
 		}
 
-		if(state == STATE_CONTENT && state != oldState) {
-			// might contain whitespace from previous unfruitful contents (that turned out to be elements / comments)
+		if(oldState == STATE_CONTENT && state != oldState && !value.empty()) {
+			if(!encoding.empty() && encoding != Text::utf8) {
+				value = Text::toUtf8(value, encoding);
+			}
+			cb->data(value);
 			value.clear();
 		}
 

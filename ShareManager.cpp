@@ -761,7 +761,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			}
 		}
 	}
-	void endTag(const string& name, const string&) {
+	void endTag(const string& name) {
 		if(name == SDIRECTORY) {
 			depth--;
 			if(cur) {
@@ -2629,7 +2629,7 @@ void ShareManager::rebuildExcludeTypes() {
 		//List all profiles where this dir is shared in
 		for(auto j = shares.begin(); j != shares.end(); ++j) {
 			if (AirUtil::isParentOrExact(j->first, i->first)) {
-				LogManager::getInstance()->message(j->first + " is the parent of " + i->first, LogManager::LOG_INFO);
+				//LogManager::getInstance()->message(j->first + " is the parent of " + i->first, LogManager::LOG_INFO);
 				for_each(j->second->getProfileDir()->getShareProfiles(), [&shared](pair<ProfileToken, string> ap) { shared.insert(ap.first); });
 			}
 		}
@@ -2638,7 +2638,7 @@ void ShareManager::rebuildExcludeTypes() {
 			//Check excludes for the listed dirs
 			for(auto j = profileDirs.begin(); j != profileDirs.end(); ++j) {
 				if (i->second->isSet(ProfileDirectory::FLAG_EXCLUDE_PROFILE) && AirUtil::isParentOrExact(i->first, j->first)) {
-					LogManager::getInstance()->message(i->first + " is the parent of " + j->first, LogManager::LOG_INFO);
+					//LogManager::getInstance()->message(i->first + " is the parent of " + j->first, LogManager::LOG_INFO);
 					for_each(j->second->getexcludedProfiles(), [&shared](ProfileToken ap) { shared.erase(ap); });
 				}
 			}

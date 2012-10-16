@@ -313,9 +313,6 @@ public:
 			publicHubs.push_back(HubEntry(name, server, description, users, country, shared, minShare, minSlots, maxHubs, maxUsers, reliability, rating));
 		}
 	}
-	void endTag(const string&, const string&) {
-
-	}
 private:
 	HubEntryList& publicHubs;
 };

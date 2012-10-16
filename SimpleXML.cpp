@@ -96,7 +96,7 @@ void SimpleXML::Tag::appendAttribString(string& tmp) {
  * with streams and only one code set but streams are slow...the file f should be a buffered
  * file, otherwise things will be very slow (I assume write is not expensive and call it a lot
  */
-void SimpleXML::Tag::toXML(int indent, OutputStream* f) {
+void SimpleXML::Tag::toXML(int indent, OutputStream* f, bool noIndent /*false*/) {
 	if(children.empty() && data.empty() && !forceEndTag) {
 		string tmp;
 		tmp.reserve(indent + name.length() + 30);
@@ -124,13 +124,13 @@ void SimpleXML::Tag::toXML(int indent, OutputStream* f) {
 				tmp.append(data);
 			}
 		} else {
-		tmp.append(">\r\n", 3);
+			tmp.append(">\r\n", 3);
 			f->write(tmp);
 			tmp.clear();
-		for(Iter i = children.begin(); i!=children.end(); ++i) {
-				(*i)->toXML(indent + 1, f);
-		}
-		tmp.append(indent, '\t');
+			for(auto i = children.begin(); i!=children.end(); ++i) {
+				(*i)->toXML(noIndent ? 0 : indent + 1, f);
+			}
+			tmp.append(indent, '\t');
 		}
 		tmp.append("</", 2);
 		tmp.append(name);
@@ -195,6 +195,25 @@ void SimpleXML::replaceChildAttrib(const string& aName, const string& aData) {
 
 }
 
+string SimpleXML::toXML() { 
+	string tmp; 
+	StringOutputStream os(tmp); 
+	toXML(&os); 
+	return tmp; 
+}
+
+void SimpleXML::toXML(OutputStream* f) throw(FileException) { 
+	if(!root.children.empty()) 
+		root.children[0]->toXML(0, f); 
+}
+
+string SimpleXML::childToXML() {
+	string tmp; 
+	StringOutputStream os(tmp); 
+	(*currentChild)->toXML(0, &os, true); 
+	return tmp; 
+}
+
 void SimpleXML::fromXML(const string& aXML) {
 	if(!root.children.empty()) {
 		delete root.children[0];
@@ -202,7 +221,7 @@ void SimpleXML::fromXML(const string& aXML) {
 	}
 
 	TagReader t(&root);
-	SimpleXMLReader(&t).parse(aXML.c_str(), aXML.size(), false);
+	SimpleXMLReader(&t).parse(aXML);
 	
 	if(root.children.size() != 1) {
 		throw SimpleXMLException("Invalid XML file, missing or multiple root tags");
