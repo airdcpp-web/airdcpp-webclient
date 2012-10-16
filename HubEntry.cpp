@@ -59,7 +59,7 @@ bool FavoriteHubEntry::isAdcHub() const {
 
 void FavoriteHubEntry::addFailOvers(StringList&& addresses) {
 	ServerList tmp;
-	boost::for_each(addresses, [this](const string& aUrl) { servers.push_back(make_pair(move(aUrl), false)); });
+	boost::for_each(addresses, [this, &tmp](const string& aUrl) { tmp.push_back(make_pair(move(aUrl), false)); });
 
 	servers.resize(tmp.size()+1);
 	move(tmp.begin(), tmp.end(), servers.begin()+1);
