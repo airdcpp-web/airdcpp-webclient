@@ -1541,5 +1541,6 @@ enum Strings { // @DontAdd
 	PM, // " PM"
 	SETTINGS_LIMITS_ADVANCED, // "Limits & Advanced"
 	ALTERNATE_LIMITING, // "Alternate Limiting"
+	SAVE_HUBS_STATE, // "Remember previously enabled hubs in search window"
 	LAST // @DontAdd
 };

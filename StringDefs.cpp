@@ -1534,6 +1534,7 @@ std::string dcpp::ResourceManager::strings[] = {
 " PM", 
 "Limits & Advanced", 
 "Alternate Limiting", 
+"Remember previously enabled hubs in search window", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3068,4 +3069,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Pm", 
 "SettingsLimitsAdvanced", 
 "AlternateLimiting", 
+"SaveHubsState", 
 };
