@@ -2582,32 +2582,35 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 }
 
 void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexcept {
-	WLock l(cs);
-	Directory::Ptr d = findDirectory(Util::getFilePath(fname), true, false);
-	if (!d) {
-		return;
-	}
-
-	auto i = d->findFile(Util::getFileName(fname));
-	if(i != d->files.end()) {
-		// Get rid of false constness...
-		auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
-		auto p = find(flst | map_values, i);
-		if (p.base() != flst.second)
-			tthIndex.erase(p.base());
-
-		Directory::File* f = const_cast<Directory::File*>(&(*i));
-		f->setTTH(root);
-		tthIndex.insert(make_pair(const_cast<TTHValue*>(&f->getTTH()), i));
-	} else {
-		string name = Util::getFileName(fname);
-		int64_t size = File::getSize(fname);
-		auto it = d->files.insert(Directory::File(name, size, d, root)).first;
-		updateIndices(*d, it);
-	}
-		
 	ProfileTokenSet dirtyProfiles;
-	d->copyRootProfiles(dirtyProfiles);
+	{
+		WLock l(cs);
+		Directory::Ptr d = findDirectory(Util::getFilePath(fname), true, false);
+		if (!d) {
+			return;
+		}
+
+		auto i = d->findFile(Util::getFileName(fname));
+		if(i != d->files.end()) {
+			// Get rid of false constness...
+			auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
+			auto p = find(flst | map_values, i);
+			if (p.base() != flst.second)
+				tthIndex.erase(p.base());
+
+			Directory::File* f = const_cast<Directory::File*>(&(*i));
+			f->setTTH(root);
+			tthIndex.insert(make_pair(const_cast<TTHValue*>(&f->getTTH()), i));
+		} else {
+			string name = Util::getFileName(fname);
+			int64_t size = File::getSize(fname);
+			auto it = d->files.insert(Directory::File(name, size, d, root)).first;
+			updateIndices(*d, it);
+		}
+
+		d->copyRootProfiles(dirtyProfiles);
+	}
+
 	setDirty(dirtyProfiles, true);
 }
 

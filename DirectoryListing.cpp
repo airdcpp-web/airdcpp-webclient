@@ -603,6 +603,9 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
+	if(f->getParent()->getAdls() && (f->getParent()->getParent() == root || !isOwnList))
+		return;
+
 	string path;
 	if (f->getParent()->getAdls())
 		path = ((AdlDirectory*)f->getParent())->getFullPath();
