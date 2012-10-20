@@ -303,7 +303,7 @@ void ShareManager::Directory::copyRootProfiles(ProfileTokenSet& aProfiles) {
 	}
 
 	if (parent)
-		copyRootProfiles(aProfiles);
+		parent->copyRootProfiles(aProfiles);
 }
 
 bool ShareManager::ProfileDirectory::hasRootProfile(const ProfileTokenSet& aProfiles) {
@@ -1563,6 +1563,8 @@ int ShareManager::run() {
 		vector<pair<string, pair<Directory::Ptr, ProfileDirMap>>> dirs;
 		auto task = static_cast<ShareTask*>(t.second);
 
+		ProfileTokenSet dirtyProfiles;
+
 		//find excluded dirs and sub-roots for each directory being refreshed (they will be passed on to buildTree for matching)
 		for(auto i = task->dirs.begin(); i != task->dirs.end(); ++i) {
 			RLock l (cs);
@@ -1570,6 +1572,8 @@ int ShareManager::run() {
 			if (d != shares.end()) {
 				dirs.push_back(make_pair(*i, make_pair(d->second, std::move(getSubProfileDirs(*i)))));
 			}
+
+			d->second->copyRootProfiles(dirtyProfiles);
 		}
 
 		reportTaskStatus(t.first, task->dirs, false, hashSize, task->displayName);
@@ -1609,11 +1613,9 @@ int ShareManager::run() {
 			}
 		}
 		
-		ProfileTokenSet dirtyProfiles;
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
 			if (checkHidden(i->first)) {
 				Directory::Ptr dp = Directory::create(Util::getLastDir(i->first), nullptr, findLastWrite(i->first), i->second.first->getProfileDir());
-				dp->copyRootProfiles(dirtyProfiles);
 				newShareDirs.insert(make_pair(Util::getLastDir(i->first), dp));
 				newShares[i->first] = dp;
 				buildTree(i->first, dp, true, i->second.second, newShareDirs, newShares, hashSize);

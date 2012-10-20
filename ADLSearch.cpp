@@ -490,7 +490,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 	for_each(destDirVector, [currentDir, &fullPath](DestDir& id) {
 		if(id.subdir != NULL) {
 			DirectoryListing::Directory* newDir =
-				new DirectoryListing::AdlDirectory(fullPath, id.subdir, currentDir->getName());
+				new DirectoryListing::AdlDirectory(fullPath.substr(1) + "\\", id.subdir, currentDir->getName());
 			id.subdir->directories.push_back(newDir);
 			id.subdir = newDir;
 		}
@@ -509,7 +509,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 		}
 		if(is.matchesDirectory(currentDir->getName())) {
 			destDirVector[is.ddIndex].subdir =
-				new DirectoryListing::AdlDirectory(fullPath, destDirVector[is.ddIndex].dir, currentDir->getName());
+				new DirectoryListing::AdlDirectory(fullPath.substr(1) + "\\", destDirVector[is.ddIndex].dir, currentDir->getName());
 			destDirVector[is.ddIndex].dir->directories.push_back(destDirVector[is.ddIndex].subdir);
 			if(breakOnFirst) {
 				// Found a match, search no more

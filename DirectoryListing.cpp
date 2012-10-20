@@ -603,11 +603,25 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
-	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(f) + f->getName()), ret, Util::toInt(fileName));
+	string path;
+	if (f->getParent()->getAdls())
+		path = ((AdlDirectory*)f->getParent())->getFullPath();
+	else
+		path = getPath(f->getParent());
+
+	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path + f->getName()), ret, Util::toInt(fileName));
 }
 
 void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
-	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(getPath(d)), ret, Util::toInt(fileName));
+	if(d->getAdls() && (d->getParent() == root || !isOwnList))
+		return;
+
+	string path;
+	if (d->getAdls())
+		path = ((AdlDirectory*)d)->getFullPath();
+	else
+		path = getPath(d);
+	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path), ret, Util::toInt(fileName));
 }
 
 int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) {
