@@ -354,7 +354,7 @@ bool ADLSearchManager::addCollection(ADLSearch& search, int index) {
 	return true;
 }
 
-bool ADLSearchManager::removeCollection(int index, bool move) {
+bool ADLSearchManager::removeCollection(int index) {
 	if (running > 0) {
 		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return false;

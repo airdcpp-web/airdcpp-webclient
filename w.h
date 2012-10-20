@@ -34,23 +34,10 @@
 # define WINVER 0x502
 #endif
 
-#ifndef STRICT
-#define STRICT 1
-#endif
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#define NOMINMAX 1
-#endif
-
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
 #include <windows.h>
-#include <mmsystem.h>
 #include <tchar.h>
 
 #endif

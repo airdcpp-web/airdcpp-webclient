@@ -69,6 +69,28 @@
 #define U64_FMT "%lld"
 #endif
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#ifndef STRICT
+#define STRICT
+#endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#ifndef BOOST_ALL_NO_LIB
+#define BOOST_ALL_NO_LIB
+#endif
+
+#ifndef BOOST_USE_WINDOWS_H
+#define BOOST_USE_WINDOWS_H
+#endif
+
+#define _VARIADIC_MAX 10
+
 #ifndef _REENTRANT
 # define _REENTRANT 1
 #endif

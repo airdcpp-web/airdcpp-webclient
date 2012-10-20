@@ -108,7 +108,7 @@ void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) {
 	}
 }
 
-StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl) const {
+StringList ClientManager::getHubUrls(const CID& cid, const string& /*hintUrl*/) const {
 	StringList lst;
 
 	RLock l(cs);
@@ -119,7 +119,7 @@ StringList ClientManager::getHubUrls(const CID& cid, const string& hintUrl) cons
 	return lst;
 }
 
-StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl) const {
+StringList ClientManager::getHubNames(const CID& cid, const string& /*hintUrl*/) const {
 	StringList lst;
 
 	RLock l(cs);
@@ -130,7 +130,7 @@ StringList ClientManager::getHubNames(const CID& cid, const string& hintUrl) con
 	return lst;
 }
 
-StringPairList ClientManager::getHubs(const CID& cid, const string& hintUrl) {
+StringPairList ClientManager::getHubs(const CID& cid, const string& /*hintUrl*/) {
 	RLock l(cs);
 	StringPairList lst;
 	auto op = onlineUsers.equal_range(const_cast<CID*>(&cid));
@@ -140,7 +140,7 @@ StringPairList ClientManager::getHubs(const CID& cid, const string& hintUrl) {
 	return lst;
 }
 
-StringList ClientManager::getNicks(const CID& cid, const string& hintUrl) const {
+StringList ClientManager::getNicks(const CID& cid, const string& /*hintUrl*/) const {
 	StringSet ret;
 
 	{
@@ -738,7 +738,7 @@ void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const CID& 
 	}
 
 	if (directSearch)
-		SearchManager::getInstance()->respondDirect(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
+		SearchManager::getInstance()->respondDirect(adc, from, isUdpActive, c->getShareProfile());
 	else
 		SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
 }

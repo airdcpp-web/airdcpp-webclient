@@ -41,8 +41,17 @@ public:
 	Speaker() noexcept { }
 	virtual ~Speaker() { }
 
-	/// @todo simplify when we have variadic templates
+#if defined(__INTEL_C)
+	template<typename... ArgT>
+	void fire(ArgT&&... args) noexcept {
+		Lock l(listenerCS);
+		tmp = listeners;
+		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
+			(*i)->on(forward<ArgT>(args)...);
+		}
+	}
 
+#else
 	template<typename T0>
 	void fire(T0&& type) noexcept {
 		Lock l(listenerCS);
@@ -114,6 +123,7 @@ public:
 			(*i)->on(forward<T0>(type), forward<T1>(p1), forward<T2>(p2), forward<T3>(p3), forward<T4>(p4), forward<T5>(p5), forward<T6>(p6), forward<T7>(p7));
 		}
 	}
+#endif
 
 	void addListener(Listener* aListener) {
 		Lock l(listenerCS);

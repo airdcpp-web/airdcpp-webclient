@@ -160,7 +160,7 @@ public:
 		}
 	}
 
-	void checkSearches(bool force, uint64_t aTick = GET_TICK());
+	void checkSearches();
 
 	void AutoSearchLoad();
 	void AutoSearchSave();

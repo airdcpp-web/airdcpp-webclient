@@ -90,7 +90,7 @@ public:
 	
 	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 
-	void respondDirect(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
+	void respondDirect(const AdcCommand& cmd, const CID& cid, bool isUdpActive, ProfileToken aProfile);
 
 	const string& getPort() const { return port; }
 

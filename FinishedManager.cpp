@@ -67,15 +67,9 @@ void FinishedManager::removeAll(bool upload /* = false */) {
 	}
 }
 
-void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept
-{
-	bool isFile = !qi->isSet(QueueItem::FLAG_USER_LIST);
-
-	if(isFile && !SETTING(FINISHFILE).empty() && !BOOLSETTING(SOUNDS_DISABLED)) {
-		PlaySound(Text::toT(SETTING(FINISHFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
-	}
+void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept {
 		
-	if(isFile || (qi->isSet(QueueItem::FLAG_USER_LIST) && BOOLSETTING(LOG_FILELIST_TRANSFERS))) {
+	if(!qi->isSet(QueueItem::FLAG_USER_LIST) || BOOLSETTING(LOG_FILELIST_TRANSFERS)) {
 		
 		FinishedItemPtr item = new FinishedItem(qi->getTarget(), aUser, qi->getSize(), static_cast<int64_t>(aSpeed), GET_TIME(), qi->getTTH().toBase32());
 		{
@@ -99,9 +93,6 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, 
 void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexcept
 {
 	if(u->getType() == Transfer::TYPE_FILE || (u->getType() == Transfer::TYPE_FULL_LIST && BOOLSETTING(LOG_FILELIST_TRANSFERS))) {
-		if ((!SETTING(UPLOADFILE).empty() && (!BOOLSETTING(SOUNDS_DISABLED))))
-			PlaySound(Text::toT(SETTING(UPLOADFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
-
 		FinishedItemPtr item = new FinishedItem(u->getPath(), u->getHintedUser(),	u->getFileSize(), static_cast<int64_t>(u->getAverageSpeed()), GET_TIME());
 		{
 			Lock l(cs);

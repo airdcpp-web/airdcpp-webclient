@@ -27,6 +27,8 @@ extern "C" {
 #endif
 #include <../natpmp/getgateway.h>
 #include <../natpmp/natpmp.h>
+
+#include <xutility>
 }
 
 ///@todo should bind to the local IP

@@ -43,7 +43,7 @@ DirSFVReader::DirSFVReader(const string& aPath) : loaded(false) {
 	loadPath(aPath);
 }
 
-DirSFVReader::DirSFVReader(const string& aPath, const StringList& aSfvFiles) : loaded(false) {
+DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles) : loaded(false) {
 	sfvFiles = aSfvFiles;
 	load();
 }

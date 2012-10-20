@@ -65,7 +65,7 @@ typedef vector<Client*> ClientList;
 
 typedef int ProfileToken;
 typedef vector<ProfileToken> ProfileTokenList;
-typedef std::unordered_map<ProfileToken, StringSet> ProfileTokenStringSetMap;
+typedef vector<pair<ProfileToken, string>> ProfileTokenStringList;
 typedef std::unordered_map <ProfileToken, string> ProfileTokenStringMap;
 
 typedef int TransferToken;

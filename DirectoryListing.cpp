@@ -980,7 +980,7 @@ void DirectoryListing::on(SearchManagerListener::DSR, const DirectSearchResultPt
 		searchResults.push_back(aDSR);
 }
 
-void DirectoryListing::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+void DirectoryListing::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
 	secondsEllapsed++;
 	if (secondsEllapsed == 5) {
 		endSearch(true);

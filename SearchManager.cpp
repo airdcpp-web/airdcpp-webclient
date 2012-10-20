@@ -681,7 +681,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 }
 
-void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
+void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool /*isUdpActive*/, ProfileToken aProfile) {
 	AdcSearch sch(aCmd.getParameters());
 
 	string directory;

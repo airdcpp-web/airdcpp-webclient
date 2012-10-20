@@ -146,7 +146,7 @@ public:
 	// @remarks Used to add ADLSearch directories to an existing DirectoryListing
 	void matchListing(DirectoryListing& /*aDirList*/) noexcept;
 	bool addCollection(ADLSearch& search, int index);
-	bool removeCollection(int index, bool move);
+	bool removeCollection(int index);
 	bool changeState(int index, bool enabled);
 	bool updateCollection(ADLSearch& search, int index);
 	int8_t getRunning() { return running; }

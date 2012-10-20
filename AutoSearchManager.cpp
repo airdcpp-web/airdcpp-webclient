@@ -216,7 +216,7 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 	}
 }
 
-void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
 
 	lastSearch++;
 
@@ -231,7 +231,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 	}
 	if(lastSearch >= (SETTING(AUTOSEARCH_EVERY))) {
 		if(hasEnabledItems())
-			checkSearches(false, aTick);
+			checkSearches();
 	}
 }
 
@@ -273,7 +273,7 @@ bool AutoSearchManager::hasEnabledItems() {
 	return result;
 }
 
-void AutoSearchManager::checkSearches(bool force, uint64_t aTick /* = GET_TICK() */) {
+void AutoSearchManager::checkSearches() {
 	StringList allowedHubs;
 	ClientManager::getInstance()->getOnlineClients(allowedHubs);
 	//no hubs? no fun...

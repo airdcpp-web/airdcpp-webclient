@@ -232,10 +232,10 @@ void ConnectivityManager::mappingFinished(const string& mapper) {
 void ConnectivityManager::log(string&& message, LogManager::Severity sev) {
 	if(BOOLSETTING(AUTO_DETECT_CONNECTION)) {
 		status = move(message);
-		LogManager::getInstance()->message("Connectivity: " + status, LogManager::LOG_INFO);
+		LogManager::getInstance()->message("Connectivity: " + status, sev);
 		fire(ConnectivityManagerListener::Message(), status);
 	} else {
-		LogManager::getInstance()->message(message, LogManager::LOG_INFO);
+		LogManager::getInstance()->message(message, sev);
 	}
 }
 

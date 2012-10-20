@@ -49,6 +49,7 @@
 #include "SearchResult.h"
 #include "DirectoryListingManager.h"
 
+#include <mmsystem.h>
 #include <limits>
 
 #if !defined(_WIN32) && !defined(PATH_MAX) // Extra PATH_MAX check for Mac OS X
@@ -3451,7 +3452,7 @@ void QueueManager::removeBundleNotify(const UserPtr& aUser, const string& bundle
 	}
 }
 
-void QueueManager::sendPBD(HintedUser& aUser, const TTHValue& tth, const string& bundleToken) {
+void QueueManager::sendPBD(HintedUser& aUser, const TTHValue& tth, const string& /*bundleToken*/) {
 	
 	AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
 

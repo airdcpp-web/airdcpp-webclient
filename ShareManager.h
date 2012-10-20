@@ -121,15 +121,15 @@ public:
 	bool isRefreshing() {	return refreshRunning; }
 	
 	//need to be called from inside a lock.
-	void setDirty(bool force = false);
-	
-	void setDirty(ProfileToken aProfile, bool setCacheDirty);
+	//void setDirty(bool force = false);
+
+	void setDirty(ProfileTokenSet aProfiles, bool setCacheDirty, bool forceXmlRefresh=false);
 
 	void startup();
 	void shutdown();
 
-	void changeExcludedDirs(const ProfileTokenStringSetMap& aAdd, const ProfileTokenStringSetMap& aRemove);
-	void rebuildExcludeTypes();
+	void changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove);
+	void rebuildTotalExcludes();
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid) noexcept;
@@ -234,7 +234,7 @@ public:
 
 	/* Only for gui use purposes, no locking */
 	const ShareProfileList& getProfiles() { return shareProfiles; }
-	void getExcludes(ProfileToken aProfile, StringList& excludes);
+	void getExcludes(ProfileToken aProfile, StringSet& excludes);
 private:
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
 		public:
@@ -244,8 +244,10 @@ private:
 			ProfileDirectory(const string& aRootPath, ProfileToken aProfile);
 
 			GETSET(string, path, Path);
-			GETSET(ProfileTokenStringMap, shareProfiles, ShareProfiles);
-			GETSET(ProfileTokenSet, excludedProfiles, excludedProfiles);
+
+			//lists the profiles where this directory is set as root and virtual names
+			GETSET(ProfileTokenStringMap, rootProfiles, RootProfiles);
+			GETSET(ProfileTokenSet, excludedProfiles, ExcludedProfiles);
 
 			~ProfileDirectory() { }
 
@@ -257,15 +259,16 @@ private:
 			};
 
 			bool hasExcludes() { return !excludedProfiles.empty(); }
-			bool hasRoots() { return !shareProfiles.empty(); }
+			bool hasRoots() { return !rootProfiles.empty(); }
 
-			bool hasProfile(ProfileToken aProfile);
-			bool hasProfile(const ProfileTokenSet& aProfiles);
+			bool hasRootProfile(ProfileToken aProfile);
+			bool hasRootProfile(const ProfileTokenSet& aProfiles);
 			bool isExcluded(ProfileToken aProfile);
 			bool isExcluded(const ProfileTokenSet& aProfiles);
 			void addRootProfile(const string& aName, ProfileToken aProfile);
 			void addExclude(ProfileToken aProfile);
 			bool removeRootProfile(ProfileToken aProfile);
+			bool removeExcludedProfile(ProfileToken aProfile);
 			string getName(ProfileToken aProfile);
 	};
 
@@ -334,6 +337,16 @@ private:
 			}
 		};
 
+		struct HasRootProfile {
+			HasRootProfile(ProfileToken aT) : t(aT) { }
+			bool operator()(const Ptr d) const {
+				return d->getProfileDir()->hasRootProfile(t);
+			}
+			ProfileToken t;
+		private:
+			HasRootProfile& operator=(const HasRootProfile&);
+		};
+
 		bool hasType(uint32_t type) const noexcept {
 			return ( (type == SearchManager::TYPE_ANY) || (fileTypes & (1 << type)) );
 		}
@@ -372,6 +385,7 @@ private:
 		Directory(const string& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
 		~Directory() { }
 
+		void copyRootProfiles(ProfileTokenSet& aProfiles);
 		bool isRootLevel(ProfileToken aProfile);
 		bool isLevelExcluded(ProfileToken aProfile);
 		bool isLevelExcluded(const ProfileTokenSet& aProfiles);
@@ -480,7 +494,7 @@ private:
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
-	void updateIndices(Directory& aDirectory, bool first=true);
+	void updateIndices(Directory& aDirectory);
 	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
 	void cleanIndices(Directory::Ptr& dir);
 
@@ -545,7 +559,7 @@ private:
 
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
-	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report);
+	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report, bool checkExcludes=true);
 
 	virtual int run();
 

@@ -234,13 +234,9 @@ public:
 		isSet[key] = !value.empty();
 	}
 
-	int slots;
 	void set(IntSetting key, int value) {
 		if((key == SLOTS) && (value <= 0)) {
 			value = 1;
-		}
-		if((key == SLOTS) ) {
-			slots = value;
 		}
 		if((key == EXTRA_SLOTS) && (value < 1)) {
 			value = 1;
