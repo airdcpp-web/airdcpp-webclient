@@ -797,7 +797,8 @@ string Socket::getLocalIp() noexcept {
 	addr sock_addr;
 	socklen_t len = sizeof(sock_addr);
 	if(::getsockname(getSock(), &sock_addr.sa, &len) == 0) {
-		return resolveName(&sock_addr.sa, len);
+		try { return resolveName(&sock_addr.sa, len); }
+		catch(const SocketException&) { }
 	}
 
 	return Util::emptyString;

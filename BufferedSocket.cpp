@@ -189,7 +189,7 @@ void BufferedSocket::threadRead() {
 	if(state != RUNNING)
 		return;
 
-	int left = (mode == MODE_DATA) ? ThrottleManager::getInstance()->read(sock.get(), &inbuf[0], (int)inbuf.size()) : sock->read(&inbuf[0], (int)inbuf.size());
+	int left = (mode == MODE_DATA) ? ThrottleManager::getInstance()->read(sock.get(), &inbuf[0], inbuf.size()) : sock->read(&inbuf[0], inbuf.size());
 	//int left = sock->read(&inbuf[0], (int)inbuf.size());
 	if(left == -1) {
 		// EWOULDBLOCK, no data received...
