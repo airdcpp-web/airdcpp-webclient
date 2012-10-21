@@ -227,8 +227,6 @@ private:
 	void on(Failed, HttpConnection*, const string&) noexcept;
 	void on(Complete, HttpConnection*, const string&, bool) noexcept;
 	void on(Redirected, HttpConnection*, const string&) noexcept;
-	void on(TypeNormal, HttpConnection*) noexcept;
-	void on(TypeBZ2, HttpConnection*) noexcept;
 	void on(Retried, HttpConnection*, bool) noexcept; 
 
 	bool onHttpFinished(bool fromHttp) noexcept;

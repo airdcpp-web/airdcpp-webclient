@@ -1126,7 +1126,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	if (limit > 0) {
 		addParam(lastInfoMap, c, "DS", Util::toString(limit * 1024));
 	} else {
-		addParam(lastInfoMap, c, "DS", Util::toString((long)(Util::toDouble(SETTING(DOWNLOAD_SPEED))*1024*1024)));
+		addParam(lastInfoMap, c, "DS", Util::toString((long)(Util::toDouble(SETTING(DOWNLOAD_SPEED))*1024*1024/8)));
 	}
 
 	limit = ThrottleManager::getInstance()->getUpLimit();

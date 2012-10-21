@@ -108,7 +108,7 @@ public:
 	static tstring emptyStringT;
 	static string emptyString;
 	static wstring emptyStringW;
-	static string getOsVersion(bool http = false);
+	static string getOsVersion(bool http = false, bool doubleStr = false);
 
 	enum Paths {
 		/** Global configuration */
@@ -232,6 +232,7 @@ public:
 		replace(string_t(search), string_t(replacement), str);
 	}
 
+	static void sanitizeUrl(string& url);
 	static void decodeUrl(const string& aUrl, string& protocol, string& host, string& port, string& path, string& query, string& fragment);
 	static map<string, string> decodeQuery(const string& query);
 

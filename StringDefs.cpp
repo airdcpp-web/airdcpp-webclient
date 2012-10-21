@@ -1507,7 +1507,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Open new text files in the background", 
 "Scanning results on %s", 
 "Mandatory Update", 
-"AirDC++ will now attempt to update your installation automatically (if supported) or you will be forwarded to a download page", 
+"AirDC++ will now attempt to update your installation automatically", 
 "Loading the user interface", 
 "Unloading the user interface", 
 "Partial filelist", 
@@ -1535,6 +1535,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Limits & Advanced", 
 "Alternate Limiting", 
 "Remember previously enabled hubs in search window", 
+"Endless redirection loop (%1%)", 
+"You will be forwarded to the downloading page as automatic updating can't be performed", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3070,4 +3072,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsLimitsAdvanced", 
 "AlternateLimiting", 
 "SaveHubsState", 
+"EndlessRedirectionLoop", 
+"ManualUpdateMsg", 
 };

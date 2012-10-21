@@ -280,6 +280,7 @@ void BufferedSocket::threadRead() {
 						if(dataBytes == 0) {
 							mode = MODE_LINE;
 							fire(BufferedSocketListener::ModeChange());
+							break; // break loop, in case setDataMode is called with less than read buffer size
 						}
 					}
 				}

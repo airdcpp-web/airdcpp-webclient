@@ -19,6 +19,8 @@
 #include "stdinc.h"
 #include "Util.h"
 
+#include <boost/algorithm/string/trim.hpp>
+
 #ifdef _WIN32
 
 #include "w.h"
@@ -430,6 +432,10 @@ string Util::getShortTimeString(time_t t) {
 		strftime(buf, 254, SETTING(TIME_STAMPS_FORMAT).c_str(), _tm);
 	}
 	return Text::toUtf8(buf);
+}
+
+void Util::sanitizeUrl(string& url) {
+	boost::algorithm::trim_if(url, boost::is_space() || boost::is_any_of("<>\""));
 }
 
 /**
@@ -1477,7 +1483,7 @@ string Util::getReleaseDir(const string& aDir, bool cut) {
 	return cut ? Util::getLastDir(dir) : dir;
 }
 
-string Util::getOsVersion(bool http /* = false */) {
+string Util::getOsVersion(bool http /*false*/, bool doubleStr /*false*/) {
 #ifdef _WIN32
 	typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
 	typedef BOOL (WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
@@ -1503,7 +1509,23 @@ string Util::getOsVersion(bool http /* = false */) {
 			os = "Windows (version unknown)";
 		}
 	}
-	if (!http) {
+
+	if (http) {
+		TCHAR buf[255];
+		_stprintf(buf, _T("%d.%d"),
+			(DWORD)ver.dwMajorVersion, (DWORD)ver.dwMinorVersion);
+
+		os = "(Windows " + Text::fromT(buf);
+		if ( si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64 )
+			os += "; WOW64)";
+		else 
+			os += ")";
+	} else if (doubleStr) {
+		TCHAR buf[255];
+		_stprintf(buf, _T("%d.%d"),
+			(DWORD)ver.dwMajorVersion, (DWORD)ver.dwMinorVersion);
+		return Text::fromT(buf);
+	} else {
 		if(os.empty()) {
 			if(ver.dwPlatformId != VER_PLATFORM_WIN32_NT) {
 				os = "Win9x/ME/Junk";
@@ -1627,16 +1649,6 @@ string Util::getOsVersion(bool http /* = false */) {
 				os += " " + Text::fromT(spver);
 			}
 		}
-	} else {
-		TCHAR buf[255];
-		_stprintf(buf, _T("%d.%d"),
-			(DWORD)ver.dwMajorVersion, (DWORD)ver.dwMinorVersion);
-
-		os = "(Windows " + Text::fromT(buf);
-		if ( si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64 )
-			os += "; WOW64)";
-		else 
-			os += ")";
 	}
 	return os;
 

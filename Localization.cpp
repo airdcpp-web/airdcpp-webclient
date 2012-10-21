@@ -88,6 +88,9 @@ namespace dcpp {
 	}
 
 	double Localization::Language::getLanguageVersion() {
+		if (!Util::fileExists(getLanguageFilePath()))
+			return 0;
+
 		try {
 			SimpleXML xml;
 			xml.fromXML(File(getLanguageFilePath(), File::READ, File::OPEN).read());
@@ -125,6 +128,7 @@ namespace dcpp {
 		languageList.push_back(Language("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDC.xml"));
 		languageList.push_back(Language("Romanian", "RO", "ro-RO", "Romanian_for_AirDC.xml"));
 		languageList.push_back(Language("Russian", "RU", "ru-RU", "Russian_for_AirDC.xml"));
+		//languageList.push_back(Language("Spanish", "ES", "es-ES", "Spanish_for_AirDC.xml"));
 		languageList.push_back(Language("Swedish", "SE", "sv-SE", "Swedish_for_AirDC.xml"));
 
 		//sort(languageList.begin()+1, languageList.end(), Language::NameSort());

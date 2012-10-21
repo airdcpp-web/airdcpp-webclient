@@ -1514,7 +1514,7 @@ enum Strings { // @DontAdd
 	SETTINGS_POPUNDER_TEXT, // "Open new text files in the background"
 	SCANNING_RESULTS_ON, // "Scanning results on %s"
 	MANDATORY_UPDATE, // "Mandatory Update"
-	ATTEMPT_AUTO_UPDATE, // "AirDC++ will now attempt to update your installation automatically (if supported) or you will be forwarded to a download page"
+	ATTEMPT_AUTO_UPDATE, // "AirDC++ will now attempt to update your installation automatically"
 	LOADING_GUI, // "Loading the user interface"
 	UNLOADING_GUI, // "Unloading the user interface"
 	PARTIAL_FILELIST, // "Partial filelist"
@@ -1542,5 +1542,7 @@ enum Strings { // @DontAdd
 	SETTINGS_LIMITS_ADVANCED, // "Limits & Advanced"
 	ALTERNATE_LIMITING, // "Alternate Limiting"
 	SAVE_HUBS_STATE, // "Remember previously enabled hubs in search window"
+	ENDLESS_REDIRECTION_LOOP, // "Endless redirection loop (%1%)"
+	MANUAL_UPDATE_MSG, // "You will be forwarded to the downloading page as automatic updating can't be performed"
 	LAST // @DontAdd
 };
