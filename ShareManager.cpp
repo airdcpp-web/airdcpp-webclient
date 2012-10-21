@@ -1552,6 +1552,7 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 
 int ShareManager::run() {
 	HashManager::HashPauser pauser;
+	refreshRunning = true;
 
 	for (;;) {
 		TaskQueue::TaskPair t;
@@ -1578,10 +1579,8 @@ int ShareManager::run() {
 
 		reportTaskStatus(t.first, task->dirs, false, hashSize, task->displayName);
 		if (t.first == REFRESH_INCOMING) {
-			refreshRunning = true;
 			lastIncomingUpdate = GET_TICK();
 		} else if (t.first == REFRESH_ALL) {
-			refreshRunning = true;
 			lastFullUpdate = GET_TICK();
 			lastIncomingUpdate = GET_TICK();
 		}
