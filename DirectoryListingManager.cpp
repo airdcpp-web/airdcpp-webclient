@@ -210,7 +210,6 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 			}
 		}
 
-		// TODO: check that the targettype matches for existing directories
 		for(auto i = dl.begin(); i != dl.end(); ++i) {
 			auto di = *i;
 
@@ -301,7 +300,6 @@ void DirectoryListingManager::handleSizeConfirmation(const string& aTarget, bool
 		auto p = finishedListings.find(aTarget);
 		if (p != finishedListings.end()) {
 			p->second->handleAction(accepted);
-			//finishedListings.erase(p);
 			wdi = p->second;
 		} else {
 			dcassert(0);
@@ -310,7 +308,7 @@ void DirectoryListingManager::handleSizeConfirmation(const string& aTarget, bool
 	}
 
 	if (accepted) {
-		boost::for_each(wdi->getDownloadInfos(), [](DirectoryDownloadInfo* di) {
+		for_each(wdi->getDownloadInfos(), [](DirectoryDownloadInfo* di) {
 			di->getListing()->downloadDir(di->getListPath(), di->getTarget(), di->getTargetType(), false, di->getPriority());
 		});
 	}
@@ -324,18 +322,16 @@ void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItem
 	{
 		RLock l(cs);
 		auto p = viewedLists.find(aUser.user);
-		if (p != viewedLists.end() && p->second->getPartialList()) {
-			p->second->setFileName(qi->getListName());
-			p->second->addFullListTask(dir);
+		if (p != viewedLists.end()) {
+			if (p->second->getPartialList()) {
+				p->second->setFileName(qi->getListName());
+				p->second->addFullListTask(dir);
+			}
 			return;
 		}
 	}
 
-	if (qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-		createList(aUser, qi->getListName(), dir);
-	} else {
-		///
-	}
+	createList(aUser, qi->getListName(), dir);
 }
 
 void DirectoryListingManager::on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& text) noexcept {
@@ -346,7 +342,9 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 		RLock l(cs);
 		auto p = viewedLists.find(aUser.user);
 		if (p != viewedLists.end()) {
-			p->second->addPartialListTask(text);
+			if (p->second->getPartialList()) {
+				p->second->addPartialListTask(text);
+			}
 			return;
 		}
 	}

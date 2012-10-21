@@ -1228,7 +1228,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Match partial list", 
 "Show shared directories in the \"Download to\" menu", 
 "There is only %s remaining in the directory %s while %s is needed. Do you want to continue?", 
-"There is only %s remaining in the directory %s (and %s of queued files) while %s is needed. Do you want to continue?", 
 "Searching the bundle %s for alternatives, %d search(es) queued.", 
 "Searching alternates for a RECENT bundle %s, %d search(es) queued.", 
 "Next search in %d minutes", 
@@ -1537,6 +1536,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Remember previously enabled hubs in search window", 
 "Endless redirection loop (%1%)", 
 "You will be forwarded to the downloading page as automatic updating can't be performed", 
+"There are already %s of queued files for the directory %s and only %s space available. Do you really want to queue %s more?", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2765,7 +2765,6 @@ std::string dcpp::ResourceManager::names[] = {
 "MatchPartial", 
 "FavdirsShowShared", 
 "ConfirmSizeWarning", 
-"ConfirmSizeWarningQueued", 
 "BundleAltSearch", 
 "BundleAltSearchRecent", 
 "NextSearchIn", 
@@ -3074,4 +3073,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SaveHubsState", 
 "EndlessRedirectionLoop", 
 "ManualUpdateMsg", 
+"ConfirmSizeWarningQueue", 
 };

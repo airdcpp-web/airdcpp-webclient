@@ -1235,7 +1235,6 @@ enum Strings { // @DontAdd
 	MATCH_PARTIAL, // "Match partial list"
 	FAVDIRS_SHOW_SHARED, // "Show shared directories in the \"Download to\" menu"
 	CONFIRM_SIZE_WARNING, // "There is only %s remaining in the directory %s while %s is needed. Do you want to continue?"
-	CONFIRM_SIZE_WARNING_QUEUED, // "There is only %s remaining in the directory %s (and %s of queued files) while %s is needed. Do you want to continue?"
 	BUNDLE_ALT_SEARCH, // "Searching the bundle %s for alternatives, %d search(es) queued."
 	BUNDLE_ALT_SEARCH_RECENT, // "Searching alternates for a RECENT bundle %s, %d search(es) queued."
 	NEXT_SEARCH_IN, // "Next search in %d minutes"
@@ -1544,5 +1543,6 @@ enum Strings { // @DontAdd
 	SAVE_HUBS_STATE, // "Remember previously enabled hubs in search window"
 	ENDLESS_REDIRECTION_LOOP, // "Endless redirection loop (%1%)"
 	MANUAL_UPDATE_MSG, // "You will be forwarded to the downloading page as automatic updating can't be performed"
+	CONFIRM_SIZE_WARNING_QUEUE, // "There are already %s of queued files for the directory %s and only %s space available. Do you really want to queue %s more?"
 	LAST // @DontAdd
 };

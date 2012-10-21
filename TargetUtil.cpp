@@ -244,10 +244,10 @@ void TargetUtil::reportInsufficientSize(const TargetInfo& ti, int64_t aSize) {
 string TargetUtil::getInsufficientSizeMessage(const TargetInfo& ti, int64_t aSize) {
 	string tmp;
 	if (ti.queued > 0) {
-		tmp = STRING_F(CONFIRM_SIZE_WARNING_QUEUED, 
-			Util::formatBytes(ti.diskSpace).c_str() % 
-			ti.targetDir.c_str() %
+		tmp = STRING_F(CONFIRM_SIZE_WARNING_QUEUE, 
 			Util::formatBytes(ti.queued).c_str() %
+			ti.targetDir.c_str() %
+			Util::formatBytes(ti.diskSpace).c_str() % 
 			Util::formatBytes(aSize).c_str());
 	} else {
 		tmp = STRING_F(CONFIRM_SIZE_WARNING, 
