@@ -19,7 +19,6 @@ enum Strings { // @DontAdd
 	ADLS_DESTINATION, // "Destination Directory"
 	ADLS_DISCARD, // "Discard"
 	ADLS_DOWNLOAD, // "Download Matches"
-	ADLS_ENABLED, // "Enabled"
 	ADLS_FULL_PATH, // "Full Path"
 	ADLS_PROPERTIES, // "ADLSearch Properties"
 	ADLS_SEARCH_STRING, // "Search String"
@@ -630,7 +629,6 @@ enum Strings { // @DontAdd
 	SETTINGS_PERSONAL_INFORMATION, // "Personal Information"
 	SETTINGS_PM_BEEP, // "Make an annoying sound every time a private message is received"
 	SETTINGS_PM_BEEP_OPEN, // "Make an annoying sound when a private message window is opened"
-	SETTINGS_PM_HISTORY, // "PM history"
 	SETTINGS_POPUNDER_PM, // "Open new private message windows in the background"
 	SETTINGS_POPUP_BOT_PMS, // "Open private messages from the hub in their own window"
 	SETTINGS_POPUP_HUB_PMS, // "Open private messages from bots in their own window"
@@ -1028,7 +1026,6 @@ enum Strings { // @DontAdd
 	PROPPAGE_FAV_USER, // "Favorite user"
 	PROPPAGE_OPERATOR, // "Operator"
 	PROPPAGE_NORM, // "Other users"
-	MAX_RESIZE_LINES, // "Max resize lines"
 	SETTINGS_DUPE_SEARCH, // "Use dupe color in search"
 	SETTINGS_LRUS, // "Russian"
 	FILE_ALREADY_SHARED, // "Trying to Download File already shared! File: "
@@ -1543,5 +1540,9 @@ enum Strings { // @DontAdd
 	CONFIRM_SIZE_WARNING_QUEUE, // "There are already %s of queued files for the directory %s and only %s space available. Do you really want to queue %s more?"
 	OPEN_HUB_FILELIST, // "Open hub filelist (%s)"
 	SMALL_UP_SLOTS, // "Small upload slots (slots for filelists and small files)"
+	MAX_CHAT_RESIZE_LINES, // "Max lines to resize the message box on multiline messages"
+	MAX_PM_HISTORY_LINES, // "Max lines to show in PM history"
+	ENABLED, // "Enabled"
+	BLOOM_MODE, // "Bloom filter mode"
 	LAST // @DontAdd
 };

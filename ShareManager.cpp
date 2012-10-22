@@ -2523,7 +2523,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 	}
 
 	setDirty(dirtyProfiles, true);
-	LogManager::getInstance()->message(STRING_F(BUNDLE_X_SHARED, path), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(BUNDLE_X_SHARED, Util::getLastDir(path)), LogManager::LOG_INFO);
 }
 
 bool ShareManager::allowAddDir(const string& path) noexcept {

@@ -612,7 +612,7 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
 		return Util::emptyString;
 
 	//don't replace | and ? if it's wildcard
-    static const boost::regex re_boostRegexEscape("[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]");
+    static const boost::regex re_boostRegexEscape(isWildcard ? "[\\^\\.\\$\\(\\)\\[\\]\\*\\+\\?\\/\\\\]" : "[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]");
     const string rep("\\\\\\1&");
     string result = regex_replace(aStr, re_boostRegexEscape, rep, boost::match_default | boost::format_sed);
 	if (isWildcard) {

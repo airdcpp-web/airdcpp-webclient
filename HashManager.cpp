@@ -594,6 +594,7 @@ int HashManager::Hasher::run() {
 			continue;
 		}
 		
+		bool failed = true;
 		bool dirChanged = false;
 		{
 			Lock l(hcs);
@@ -667,20 +668,26 @@ int HashManager::Hasher::run() {
 				f.close();
 				tt.finalize();
 
+				failed = xcrc32 && xcrc32->getValue() != fileCRC;
+
 				uint64_t end = GET_TICK();
 				int64_t averageSpeed = 0;
-				sizeHashed += size;
-				dirSizeHashed += size;
 
-				dirFilesHashed++;
-				filesHashed++;
+				if (!failed) {
+					sizeHashed += size;
+					dirSizeHashed += size;
+
+					dirFilesHashed++;
+					filesHashed++;
+				}
+
 				if(end > start) {
 					hashTime += (end - start);
 					dirHashTime += (end - start);
 					averageSpeed = size * 1000 / (end - start);
 				}
 
-				if(xcrc32 && xcrc32->getValue() != fileCRC) {
+				if(failed) {
 					LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), LogManager::LOG_ERROR);
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				} else {
@@ -694,17 +701,19 @@ int HashManager::Hasher::run() {
 		}
 
 		auto onDirHashed = [&] () -> void {
-			if (dirFilesHashed == 1) {
-				LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_FILE, currentFile % 
-					Util::formatBytes(dirSizeHashed) % 
-					Util::formatTime(dirHashTime / 1000, true) % 
-					(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), LogManager::LOG_INFO);
-			} else {
-				LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
-					dirFilesHashed %
-					Util::formatBytes(dirSizeHashed) % 
-					Util::formatTime(dirHashTime / 1000, true) % 
-					(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), LogManager::LOG_INFO);
+			if (dirFilesHashed > 1 || !failed) {
+				if (dirFilesHashed == 1) {
+					LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_FILE, currentFile % 
+						Util::formatBytes(dirSizeHashed) % 
+						Util::formatTime(dirHashTime / 1000, true) % 
+						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), LogManager::LOG_INFO);
+				} else {
+					LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
+						dirFilesHashed %
+						Util::formatBytes(dirSizeHashed) % 
+						Util::formatTime(dirHashTime / 1000, true) % 
+						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), LogManager::LOG_INFO);
+				}
 			}
 
 			dirsHashed++;
