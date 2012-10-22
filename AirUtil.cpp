@@ -620,7 +620,6 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
 		boost::replace_all(result, "\\*", ".*");
 		boost::replace_all(result, "\\?", ".");
 		result = "^(" + result + ")$";
-		LogManager::getInstance()->message(result, LogManager::LOG_INFO);
 	}
     return result;
 }
