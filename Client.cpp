@@ -91,7 +91,7 @@ void Client::reloadSettings(bool updateNick) {
 
 		if(!hub->getPassword().empty())
 			setPassword(hub->getPassword());
-		setStealth(isAdcHub ? hub->getStealth() : false);
+		setStealth(!isAdcHub ? hub->getStealth() : false);
 		setFavIp(hub->getIP());
 		setFavNoPM(hub->getFavNoPM());
 		setHubShowJoins(hub->getHubShowJoins()); //show joins

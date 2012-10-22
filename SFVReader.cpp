@@ -27,6 +27,8 @@
 #include "ZUtils.h"
 #include "Text.h"
 
+#include <boost/range/algorithm/find_if.hpp>
+
 #include <iostream>
 #include <fstream>
 
@@ -36,6 +38,8 @@
 #endif
 
 namespace dcpp {
+
+using boost::range::find_if;
 
 DirSFVReader::DirSFVReader() : loaded(false) { }
 
@@ -57,7 +61,7 @@ void DirSFVReader::loadPath(const string& aPath) {
 
 bool DirSFVReader::hasFile(const string& fileName, uint32_t& crc32_) const {
 	if (loaded) {
-		auto p = find_if(content.begin(), content.end(), CompareFirst<string, uint32_t>(fileName));
+		auto p = find_if(content, CompareFirst<string, uint32_t>(fileName));
 		if (p != content.end()) {
 			crc32_ = p->second;
 			return true;
@@ -67,11 +71,11 @@ bool DirSFVReader::hasFile(const string& fileName, uint32_t& crc32_) const {
 }
 
 bool DirSFVReader::hasFile(const string& fileName) const {
-	return loaded && find_if(content.begin(), content.end(), CompareFirst<string, uint32_t>(fileName)) != content.end();
+	return find_if(content, CompareFirst<string, uint32_t>(fileName)) != content.end();
 }
 
 bool DirSFVReader::isCrcValid(const string& fileName) const {
-	auto p = find_if(content.begin(), content.end(), CompareFirst<string, uint32_t>(fileName));
+	auto p = find_if(content, CompareFirst<string, uint32_t>(fileName));
 	if (p != content.end()) {
 		CRC32Filter crc32;
 		FileReader(true).read(path + fileName, [&](const void* x, size_t n) {

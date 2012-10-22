@@ -509,7 +509,6 @@ enum Strings { // @DontAdd
 	SETCZDC_I_DOWN_SPEED, // "Disconnect download if speed is below"
 	SETCZDC_MAGNET_URI_HANDLER, // "Install Magnet URI handler on startup"
 	SETCZDC_MIN_FILE_SIZE, // "And file size is more than"
-	SETCZDC_NOTE_SMALL_UP, // "* Small Uploads Slots => Slots for filelist and Small Files."
 	SETCZDC_PASSIVE_SEARCH, // "Always use passive mode for Search (Use only if you know what this doing !!!)"
 	SETCZDC_PM_LINES, // "Lines from log on new PM"
 	SETCZDC_PREVIEW, // "Preview"
@@ -519,7 +518,6 @@ enum Strings { // @DontAdd
 	SETCZDC_REMOVE_FORBIDDEN, // "Remove Forbidden (Unfinished Kazaa, Win MX, GetRight, eMule, AirDC++)"
 	SETCZDC_SLOW_DISCONNECT, // "Disconnecting slow downloads"
 	SETCZDC_SMALL_FILES, // "Small file size"
-	SETCZDC_SMALL_UP_SLOTS, // "Small Upload Slots"
 	SETCZDC_STYLES, // "Available styles"
 	SETCZDC_TEXT_COLOR, // "Text color"
 	SETCZDC_TEXT_STYLE, // "Text style"
@@ -1367,7 +1365,6 @@ enum Strings { // @DontAdd
 	SETTINGS_TOOLBAR_SIZE, // "Default Toolbar Icon size"
 	SETTINGS_TOOLBAR_NOTE, // "Note! Changing Toolbar Images or icon size require a client restart to take effect."
 	SETTINGS_WTOOLBAR_SIZE, // "Media Toolbar Icon size"
-	MENU_OPEN_HUB_OWN_LIST, // "Open Hub own list"
 	TOGGLE_TBSTATUS, // "Toolbar Progressbar\tCtrl+5"
 	X_FAV_PROFILES_RESET, // "%d favorite hubs have been reset to use the default share profile"
 	SHARE_PROFILE, // "Share Profile"
@@ -1544,5 +1541,7 @@ enum Strings { // @DontAdd
 	ENDLESS_REDIRECTION_LOOP, // "Endless redirection loop (%1%)"
 	MANUAL_UPDATE_MSG, // "You will be forwarded to the downloading page as automatic updating can't be performed"
 	CONFIRM_SIZE_WARNING_QUEUE, // "There are already %s of queued files for the directory %s and only %s space available. Do you really want to queue %s more?"
+	OPEN_HUB_FILELIST, // "Open hub filelist (%s)"
+	SMALL_UP_SLOTS, // "Small upload slots (slots for filelists and small files)"
 	LAST // @DontAdd
 };
