@@ -457,6 +457,7 @@ enum Strings { // @DontAdd
 	RATIO, // "Ratio"
 	READD_SOURCE, // "Readd source"
 	REALLY_EXIT, // "Really exit?"
+	REALLY_CLOSE, // "Really Close?"
 	REALLY_REMOVE, // "Really remove?"
 	REASON, // "Reason"
 	REBOOT, // "Reboot"
@@ -1544,5 +1545,7 @@ enum Strings { // @DontAdd
 	MAX_PM_HISTORY_LINES, // "Max lines to show in PM history"
 	ENABLED, // "Enabled"
 	BLOOM_MODE, // "Bloom filter mode"
+	SETTINGS_CONFIRM_HUB_CLOSE, // "Confirm hub closing"
+	SETTINGS_CONFIRM_AS_REMOVE, // "Confirm item removal in auto search"
 	LAST // @DontAdd
 };

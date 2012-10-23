@@ -1572,9 +1572,8 @@ int ShareManager::run() {
 			auto d = shares.find(*i);
 			if (d != shares.end()) {
 				dirs.push_back(make_pair(*i, make_pair(d->second, std::move(getSubProfileDirs(*i)))));
+				d->second->copyRootProfiles(dirtyProfiles);
 			}
-
-			d->second->copyRootProfiles(dirtyProfiles);
 		}
 
 		reportTaskStatus(t.first, task->dirs, false, hashSize, task->displayName);

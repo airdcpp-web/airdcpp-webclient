@@ -454,6 +454,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Ratio", 
 "Readd source", 
 "Really exit?", 
+"Really Close?", 
 "Really remove?", 
 "Reason", 
 "Reboot", 
@@ -1537,6 +1538,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Max lines to show in PM history", 
 "Enabled", 
 "Bloom filter mode", 
+"Confirm hub closing", 
+"Confirm item removal in auto search", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -1991,6 +1994,7 @@ std::string dcpp::ResourceManager::names[] = {
 "Ratio", 
 "ReaddSource", 
 "ReallyExit", 
+"ReallyClose", 
 "ReallyRemove", 
 "Reason", 
 "Reboot", 
@@ -3074,4 +3078,6 @@ std::string dcpp::ResourceManager::names[] = {
 "MaxPmHistoryLines", 
 "Enabled", 
 "BloomMode", 
+"SettingsConfirmHubClose", 
+"SettingsConfirmAsRemove", 
 };
