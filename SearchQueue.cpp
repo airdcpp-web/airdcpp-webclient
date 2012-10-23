@@ -36,6 +36,10 @@ SearchQueue::SearchQueue(int32_t aInterval)
 	nextInterval = 10*1000;
 }
 
+SearchQueue::~SearchQueue() {
+	for_each(searchQueue, DeleteFunction());
+}
+
 int32_t SearchQueue::getInterval(const Search* aSearch) const {
 	int32_t ret = 0;
 	switch(aSearch->type) {

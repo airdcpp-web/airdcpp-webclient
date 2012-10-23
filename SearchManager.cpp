@@ -610,6 +610,9 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 }
 
 void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp) {
+	if (!SETTING(USE_PARTIAL_SHARING)) {
+		return;
+	}
 
 	string udpPort;
 	uint32_t partialCount = 0;
@@ -728,7 +731,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 	adc.getParam("TO", 0, token);
 
 	// TODO: don't send replies to passive users
-	if(results.empty() && SETTING(USE_PARTIAL_SHARING)) {
+	if(results.empty() && BOOLSETTING(USE_PARTIAL_SHARING)) {
 		string tth;
 		if(!adc.getParam("TR", 0, tth))
 			return;

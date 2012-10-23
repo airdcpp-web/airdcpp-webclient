@@ -77,6 +77,9 @@ public:
 	
 	virtual void send(const AdcCommand& command) = 0;
 
+	template<typename F>
+	void callAsync(F f) { if(sock) sock->callAsync(f); }
+
 	bool isConnected() const { return state != STATE_DISCONNECTED; }
 	bool isReady() const { return state != STATE_CONNECTING && state != STATE_DISCONNECTED; }
 	bool isSecure() const;
@@ -184,7 +187,6 @@ protected:
 	BufferedSocket* sock;
 
 	int64_t availableBytes;
-	mutable CriticalSection cs;
 
 	bool updateCounts(bool aRemove, bool updateIcons);
 	void updateActivity() { lastActivity = GET_TICK(); }

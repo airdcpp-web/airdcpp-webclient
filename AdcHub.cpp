@@ -92,8 +92,8 @@ OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
 
 OnlineUser* AdcHub::findUser(const uint32_t aSID) const {
 	RLock l(cs);
-	SIDMap::const_iterator i = users.find(aSID);
-	return i == users.end() ? NULL : i->second;
+	auto i = users.find(aSID);
+	return i == users.end() ? nullptr : i->second;
 }
 
 OnlineUser* AdcHub::findUser(const CID& aCID) const {
@@ -107,12 +107,13 @@ OnlineUser* AdcHub::findUser(const CID& aCID) const {
 }
 
 void AdcHub::putUser(const uint32_t aSID, bool disconnect) {
-	OnlineUser* ou = 0;
+	OnlineUser* ou = nullptr;
 	{
 		WLock l(cs);
-		SIDMap::iterator i = users.find(aSID);
+		auto i = users.find(aSID);
 		if(i == users.end())
 			return;
+
 		ou = i->second;
 		users.erase(i);
 
@@ -129,7 +130,7 @@ void AdcHub::putUser(const uint32_t aSID, bool disconnect) {
 void AdcHub::clearUsers() {
 	SIDMap tmp;
 	{
-		RLock l(cs);
+		WLock l(cs);
 		users.swap(tmp);
 		availableBytes = 0;
 	}
@@ -180,7 +181,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		return;
 	}
 
-	for(StringIterC i = c.getParameters().begin(); i != c.getParameters().end(); ++i) {
+	for(auto i = c.getParameters().begin(); i != c.getParameters().end(); ++i) {
 		if(i->length() < 2)
 			continue;
 
@@ -898,8 +899,6 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 	if(state != STATE_NORMAL)
 		return;
 
-	//auto sid = user.getIdentity().getSID();
-	//AdcCommand p = new AdcCommand(AdcCommand::DSC, sid, AdcCommand::TYPE_DIRECT);
 	AdcCommand c(AdcCommand::CMD_DSC, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
 	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, true);
 	if (!aDir.empty()) {
@@ -1107,12 +1106,15 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "DE", getCurrentDescription());
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
+
 	size_t fileCount = BOOLSETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedFiles() : 0;
 	int64_t size = 0;
 	if (getShareProfile() != SP_HIDDEN)
 		ShareManager::getInstance()->getProfileInfo(getShareProfile(), size, fileCount);
+
 	addParam(lastInfoMap, c, "SS", Util::toString(size));
 	addParam(lastInfoMap, c, "SF", Util::toString(fileCount));
+
 	addParam(lastInfoMap, c, "EM", SETTING(EMAIL));
 	addParam(lastInfoMap, c, "HN", Util::toString(counts[COUNT_NORMAL]));
 	addParam(lastInfoMap, c, "HR", Util::toString(counts[COUNT_REGISTERED]));
@@ -1135,9 +1137,6 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	} else {
 		addParam(lastInfoMap, c, "US", Util::toString((long)(Util::toDouble(SETTING(UPLOAD_SPEED))*1024*1024/8)));
 	}
-	
-	
-		//addParam(lastInfoMap, c, "DS", Util::emptyString);
 	
 	string su(SEGA_FEATURE);
 

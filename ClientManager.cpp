@@ -94,7 +94,6 @@ void ClientManager::putClient(Client* aClient) {
 		clients.erase(const_cast<string*>(&aClient->getHubUrl()));
 	}
 	aClient->shutdown();
-	delete aClient;
 }
 
 void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) {
@@ -636,7 +635,7 @@ void ClientManager::infoUpdated() {
 	for(auto i = clients.begin(); i != clients.end(); ++i) {
 		Client* c = i->second;
 		if(c->isConnected()) {
-			c->info(false);
+			c->callAsync([c] { c->info(false); });
 		}
 	}
 }
@@ -648,7 +647,7 @@ void ClientManager::resetProfiles(const ProfileTokenList& aProfiles, ShareProfil
 			Client* c = i->second;
 			if (c->getShareProfile() == *k) {
 				c->setShareProfile(SP_DEFAULT);
-				c->info(false);
+				c->callAsync([c] { c->info(false); });
 			}
 		}
 	}
@@ -790,7 +789,8 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcep
 
 	RLock l (cs);
 	for(auto j = clients.begin(); j != clients.end(); ++j) {
-		j->second->info(false);
+		auto c = j->second;
+		j->second->callAsync([c] { c->info(false); });
 	}
 }
 

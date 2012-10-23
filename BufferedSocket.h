@@ -61,10 +61,10 @@ public:
 		return new BufferedSocket(sep, v4only);
 	}
 
-	static void putSocket(BufferedSocket* aSock) {
+	static void putSocket(BufferedSocket* aSock, function<void ()> f = nullptr) {
 		if(aSock) {
 			aSock->removeListeners();
-			aSock->shutdown();
+			aSock->shutdown(f);
 		}
 	}
 
@@ -184,7 +184,7 @@ private:
 
 	void setSocket(std::unique_ptr<Socket>&& s);
 	void setOptions();
-	void shutdown();
+	void shutdown(function<void ()> f);
 	void addTask(Tasks task, TaskData* data);
 };
 

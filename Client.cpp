@@ -54,10 +54,6 @@ void Client::setHubUrl(const string& aUrl) {
 
 Client::~Client() {
 	dcassert(!sock);
-	
-	// In case we were deleted before we Failed
-	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
-	TimerManager::getInstance()->removeListener(this);
 	updateCounts(true, false);
 }
 
@@ -68,9 +64,17 @@ void Client::reconnect() {
 }
 
 void Client::shutdown() {
+	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
+	TimerManager::getInstance()->removeListener(this);
+
 	if(sock) {
-		BufferedSocket::putSocket(sock);
-		sock = 0;
+		auto s = sock;
+		auto c = this;
+
+		sock = nullptr;
+		BufferedSocket::putSocket(s, [c] { delete c; });
+	} else {
+		delete this;
 	}
 }
 
@@ -230,7 +234,6 @@ void Client::on(Failed, const string& aLine) noexcept {
 
 	state = STATE_DISCONNECTED;
 
-	//FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	sock->removeListener(this);
 	fire(ClientListener::Failed(), this, msg);
 }
@@ -257,7 +260,7 @@ vector<uint8_t> Client::getKeyprint() const {
 }
 
 bool Client::updateCounts(bool aRemove, bool updateIcons) {
-	Lock l(cs); //prevent data race
+	//Lock l(cs); //prevent data race
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
 		counts[countType]--;

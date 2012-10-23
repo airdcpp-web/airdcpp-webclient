@@ -28,6 +28,7 @@ class SearchQueue
 public:
 	
 	SearchQueue(int32_t aInterval = 0);
+	~SearchQueue();
 
 	uint64_t add(Search* s);
 	Search* pop();

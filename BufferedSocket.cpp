@@ -190,7 +190,6 @@ void BufferedSocket::threadRead() {
 		return;
 
 	int left = (mode == MODE_DATA) ? ThrottleManager::getInstance()->read(sock.get(), &inbuf[0], inbuf.size()) : sock->read(&inbuf[0], inbuf.size());
-	//int left = sock->read(&inbuf[0], (int)inbuf.size());
 	if(left == -1) {
 		// EWOULDBLOCK, no data received...
 		return;
@@ -350,7 +349,6 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 			} else {
 				writeSize = min(sockSize / 2, writeBuf.size() - writePos);	
 				written = ThrottleManager::getInstance()->write(sock.get(), &writeBuf[writePos], writeSize);
-				//written = sock->write(&writeBuf[writePos], writeSize);
 			}
 			
 			if(written > 0) {
@@ -446,6 +444,8 @@ bool BufferedSocket::checkEvents() {
 		}
 
 		if(p.first == SHUTDOWN) {
+			if (p.second)
+				static_cast<CallData*>(p.second.get())->f();
 			return false;
 		} else if(p.first == ASYNC_CALL) {
 			static_cast<CallData*>(p.second.get())->f();
@@ -518,10 +518,10 @@ void BufferedSocket::fail(const string& aError) {
 	}
 }
 
-void BufferedSocket::shutdown() {
+void BufferedSocket::shutdown(function<void ()> f) {
 	Lock l(cs);
 	disconnecting = true;
-	addTask(SHUTDOWN, 0);
+	addTask(SHUTDOWN, f ? new CallData(f) : nullptr);
 }
 
 void BufferedSocket::addTask(Tasks task, TaskData* data) {
