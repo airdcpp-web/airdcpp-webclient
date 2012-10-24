@@ -86,7 +86,7 @@ public:
 	GETSET(string, plainName, PlainName);
 	string getDisplayName();
 	GETSET(FileList*, profileList, ProfileList);
-	ShareProfile(const string& aName, ProfileToken aToken = Util::rand());
+	ShareProfile(const string& aName, ProfileToken aToken = Util::randInt(100));
 	~ShareProfile();
 
 	FileList* generateProfileList();

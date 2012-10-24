@@ -39,6 +39,8 @@
 
 #include "User.h"
 
+#include <random>
+
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -1180,6 +1182,13 @@ uint32_t Util::rand() {
 	y ^= TEMPERING_SHIFT_L(y);
 
 	return y; 
+}
+
+int Util::randInt(int min, int max) {
+	std::random_device rd;
+	mt19937 gen(rd());
+	uniform_int_distribution<> dist(min, max);
+    return dist(gen);
 }
 
 string Util::getDateTime(time_t t) {

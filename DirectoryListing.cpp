@@ -760,7 +760,7 @@ void DirectoryListing::addMatchADLTask() {
 }
 
 void DirectoryListing::addListDiffTask(const string& aFile) {
-	tasks.add(MATCH_ADL, unique_ptr<Task>(new StringTask(aFile)));
+	tasks.add(LISTDIFF, unique_ptr<Task>(new StringTask(aFile)));
 	runTasks();
 }
 

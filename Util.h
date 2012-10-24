@@ -535,6 +535,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static bool fileExists(const string &aFile);
 	static string getReleaseDir(const string& dir, bool cut);
 
+	static int randInt(int min=0, int max=std::numeric_limits<int>::max());
 	static uint32_t rand();
 	static uint32_t rand(uint32_t high) { return rand() % high; }
 	static uint32_t rand(uint32_t low, uint32_t high) { return rand(high-low) + low; }
