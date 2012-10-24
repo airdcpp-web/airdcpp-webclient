@@ -53,7 +53,6 @@ void Client::setHubUrl(const string& aUrl) {
 }
 
 Client::~Client() {
-	dcassert(!sock);
 	updateCounts(true, false);
 }
 
@@ -68,11 +67,8 @@ void Client::shutdown() {
 	TimerManager::getInstance()->removeListener(this);
 
 	if(sock) {
-		auto s = sock;
-		auto c = this;
-
-		sock = nullptr;
-		BufferedSocket::putSocket(s, [c] { delete c; });
+		auto c = this; //can't use "this" inside lambda with VS10...
+		BufferedSocket::putSocket(sock, [c] { delete c; }); //delete in its own thread to allow safely using async calls
 	} else {
 		delete this;
 	}
