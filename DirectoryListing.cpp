@@ -789,8 +789,6 @@ void DirectoryListing::addQueueMatchTask() {
 void DirectoryListing::close() {
 	tasks.add(CLOSE, nullptr);
 	runTasks();
-	//this->t_suspend();
-	//delete this;
 }
 
 struct SearchTask : public Task {

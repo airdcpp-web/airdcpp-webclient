@@ -1386,7 +1386,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Adding the directory %s in share...", 
 "Adding %d directories in share...", 
 "The directory %s has been added in share", 
-"%d directories has been added in share", 
+"%d directories have been added in share", 
 "The directory %s has been queued to be added in share", 
 "%d directories have queued to be added in share", 
 "The directory %s has been refreshed", 
@@ -1515,7 +1515,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "New limit (KiB/s) (0 = infinite)", 
 "Total files: %d", 
 "Total size: %s", 
-"Maximun number of files for getting full filelist with \"Get/Browse filelist\"", 
+"Maximum number of files for getting full filelist with \"Get/Browse filelist\"", 
 "Limit transfer speeds", 
 "Use Alternate Limiting from", 
 "Maximum upload rate (0 = infinite)", 
@@ -1540,6 +1540,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Bloom filter mode", 
 "Confirm hub closing", 
 "Confirm item removal in auto search", 
+"Match own list with ADL search", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3080,4 +3081,5 @@ std::string dcpp::ResourceManager::names[] = {
 "BloomMode", 
 "SettingsConfirmHubClose", 
 "SettingsConfirmAsRemove", 
+"OwnListAdl", 
 };

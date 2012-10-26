@@ -89,6 +89,7 @@
 #define BOOST_USE_WINDOWS_H
 #endif
 
+#define BOOST_MOVE_USE_STANDARD_LIBRARY_MOVE
 #define _VARIADIC_MAX 10
 
 #ifndef _REENTRANT

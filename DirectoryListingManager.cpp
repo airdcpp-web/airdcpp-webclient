@@ -352,12 +352,21 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 	createPartialList(aUser, text);
 }
 
-void DirectoryListingManager::openOwnList(ProfileToken aProfile) {
+void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/) {
 	auto me = HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString);
 	if (hasList(me.user))
 		return;
 
-	createPartialList(me, Util::emptyString, aProfile, true);
+	if (!useADL) {
+		createPartialList(me, Util::emptyString, aProfile, true);
+	} else {
+		DirectoryListing* dl = new DirectoryListing(me, false, Util::toString(aProfile), true, true);
+		dl->setMatchADL(true);
+		fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString);
+
+		WLock l(cs);
+		viewedLists[me.user] = DirectoryListingPtr(dl);
+	}
 }
 
 void DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile) {
@@ -367,7 +376,7 @@ void DirectoryListingManager::openFileList(const HintedUser& aUser, const string
 	createList(aUser, aFile);
 }
 
-void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir /*Util::emptyString*/, bool isOwnList /*false*/) {
+void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir /*empty*/, bool isOwnList /*false*/) {
 	DirectoryListing* dl = new DirectoryListing(aUser, false, aFile, true, isOwnList);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aInitialDir);
 

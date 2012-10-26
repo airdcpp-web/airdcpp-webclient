@@ -1393,7 +1393,7 @@ enum Strings { // @DontAdd
 	ADDING_SHARED_DIR, // "Adding the directory %s in share..."
 	ADDING_X_SHARED_DIRS, // "Adding %d directories in share..."
 	DIRECTORY_ADDED, // "The directory %s has been added in share"
-	DIRECTORIES_ADDED, // "%d directories has been added in share"
+	DIRECTORIES_ADDED, // "%d directories have been added in share"
 	ADD_DIRECTORY_QUEUED, // "The directory %s has been queued to be added in share"
 	ADD_DIRECTORIES_QUEUED, // "%d directories have queued to be added in share"
 	DIRECTORY_REFRESHED, // "The directory %s has been refreshed"
@@ -1522,7 +1522,7 @@ enum Strings { // @DontAdd
 	NEW_LIMIT, // "New limit (KiB/s) (0 = infinite)"
 	TOTAL_FILES, // "Total files: %d"
 	TOTAL_SIZE, // "Total size: %s"
-	FULL_LIST_DL_LIMIT, // "Maximun number of files for getting full filelist with \"Get/Browse filelist\""
+	FULL_LIST_DL_LIMIT, // "Maximum number of files for getting full filelist with \"Get/Browse filelist\""
 	SET_TRANSFER_LIMITING, // "Limit transfer speeds"
 	SET_ALTERNATE_LIMITING, // "Use Alternate Limiting from"
 	MAX_UPLOAD_RATE, // "Maximum upload rate (0 = infinite)"
@@ -1547,5 +1547,6 @@ enum Strings { // @DontAdd
 	BLOOM_MODE, // "Bloom filter mode"
 	SETTINGS_CONFIRM_HUB_CLOSE, // "Confirm hub closing"
 	SETTINGS_CONFIRM_AS_REMOVE, // "Confirm item removal in auto search"
+	OWN_LIST_ADL, // "Match own list with ADL search"
 	LAST // @DontAdd
 };

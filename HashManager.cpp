@@ -118,8 +118,6 @@ void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const T
 			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn, LogManager::LOG_INFO);
 		}
 	}
-
-	fire(HashManagerListener::TTHDone(), aFileName, tth.getRoot());
 }
 
 void HashManager::HashStore::addFile(const string&& aFileLower, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed) {
@@ -608,6 +606,7 @@ int HashManager::Hasher::run() {
 		}
 		running = true;
 
+		TTHValue tth;
 		if(!fname.empty()) {
 			try {
 				if (initialDir.empty()) {
@@ -692,6 +691,7 @@ int HashManager::Hasher::run() {
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				} else {
 					HashManager::getInstance()->hashDone(fname, timestamp, tt, averageSpeed, size);
+					tth = tt.getRoot();
 				}
 			} catch(const FileException& e) {
 				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), LogManager::LOG_ERROR);
@@ -747,6 +747,10 @@ int HashManager::Hasher::run() {
 
 			currentFile.clear();
 		}
+
+		if (!failed)
+			getInstance()->fire(HashManagerListener::TTHDone(), fname, tth);
+
 		running = false;
 	}		
 

@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 #include "ResourceManager.h"
+#include "LogManager.h"
 
 #include "SimpleXML.h"
 #include "File.h"
@@ -56,8 +57,8 @@ void ResourceManager::loadLanguage(const string& aFile) {
 				createWide();
 			}
 		}
-	} catch(const Exception&) {
-		// ...
+	} catch(const Exception& e) {
+		LogManager::getInstance()->message("Error when loading the language file: " + e.getError(), LogManager::LOG_ERROR);
 	}
 }
 

@@ -46,7 +46,7 @@ namespace dcpp {
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, 
 		public TimerManagerListener {
 	public:
-		void openOwnList(ProfileToken aProfile);
+		void openOwnList(ProfileToken aProfile, bool useADL=false);
 		void openFileList(const HintedUser& aUser, const string& aFile);
 		
 		void removeList(const UserPtr& aUser);
