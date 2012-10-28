@@ -21,18 +21,19 @@
 
 #include "SettingsManager.h"
 
-#include "Socket.h"
 #include "User.h"
-#include "Thread.h"
 #include "Singleton.h"
 
 #include "SearchManagerListener.h"
 #include "TimerManager.h"
 #include "AdcCommand.h"
+#include "UDPServer.h"
+#include "Search.h"
 #include "ClientManager.h"
 #include "ResourceManager.h"
 
-#include "boost/unordered_map.hpp"
+
+#include <boost/unordered_map.hpp>
 
 namespace dcpp {
 
@@ -44,7 +45,7 @@ STANDARD_EXCEPTION(SearchTypeException);
 
 class SocketException;
 
-class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, public Thread, private TimerManagerListener, private SettingsManagerListener
+class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, private TimerManagerListener, private SettingsManagerListener
 {
 public:
 
@@ -92,13 +93,11 @@ public:
 
 	void respondDirect(const AdcCommand& cmd, const CID& cid, bool isUdpActive, ProfileToken aProfile);
 
-	const string& getPort() const { return port; }
+	const string& getPort() const;
 
 	void listen();
 	void disconnect() noexcept;
-	void onSearchResult(const string& aLine) {
-		onData((const uint8_t*)aLine.data(), aLine.length(), Util::emptyString);
-	}
+	void onSR(const string& aLine, const string& aRemoteIP=Util::emptyString);
 
 	void onRES(const AdcCommand& cmd, const UserPtr& from, const string& remoteIp = Util::emptyString);
 	void onDSR(const AdcCommand& cmd);
@@ -127,6 +126,8 @@ public:
 
 	void lockRead() noexcept { cs.lock_shared(); }
 	void unlockRead() noexcept { cs.unlock_shared(); }
+
+	bool decryptPacket(string& x, size_t aLen, uint8_t* aBuf, size_t bufLen);
 private:
 	enum ItemT {
 		SEARCHTIME		= 0,
@@ -140,15 +141,11 @@ private:
 	boost::unordered_map<string, SearchItem> searches;
 	SharedMutex cs;
 
-	std::unique_ptr<Socket> socket;
-	string port;
-	bool stop;
 	friend class Singleton<SearchManager>;
 
 	SearchManager();
 
 	static std::string normalizeWhitespace(const std::string& aString);
-	int run();
 
 	~SearchManager();
 	void onData(const uint8_t* buf, size_t aLen, const string& address);
@@ -164,6 +161,8 @@ private:
 	SearchTypes searchTypes; // name, extlist
 
 	SearchTypesIter getSearchType(const string& name);
+
+	UDPServer udpServer;
 };
 
 } // namespace dcpp

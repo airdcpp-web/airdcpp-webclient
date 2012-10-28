@@ -26,7 +26,7 @@
 #include "FileReader.h"
 #include "ZUtils.h"
 #include "ShareManager.h"
-
+#include "AirUtil.h"
 
 namespace dcpp {
 
@@ -749,7 +749,7 @@ int HashManager::Hasher::run() {
 		}
 
 		if (!failed)
-			getInstance()->fire(HashManagerListener::TTHDone(), fname, tth);
+			HashManager::getInstance()->fire(HashManagerListener::TTHDone(), fname, tth);
 
 		running = false;
 	}		

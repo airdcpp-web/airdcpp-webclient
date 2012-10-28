@@ -568,7 +568,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 		}
 	} else if(cmd == "SR") {
-		SearchManager::getInstance()->onSearchResult(aLine);
+		SearchManager::getInstance()->onSR(aLine);
 	} else if(cmd == "HubName") {
 
 
