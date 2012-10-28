@@ -2490,7 +2490,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 		RLock l(cs);
 		for (auto i = bundleQueue.getBundles().begin(); i != bundleQueue.getBundles().end(); ++i) {
 			BundlePtr b = i->second;
-			if (!b->isFinished()) {
+			if (b->isFinished()) {
 				continue;
 			}
 
