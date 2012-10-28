@@ -44,7 +44,11 @@
 
 namespace dcpp {
 
-atomic_flag ShareScannerManager::scanning = ATOMIC_FLAG_INIT;
+#ifdef ATOMIC_FLAG_INIT
+atomic_flag ShareManager::refreshing = ATOMIC_FLAG_INIT;
+#else
+atomic_flag ShareManager::refreshing;
+#endif
 
 ShareScannerManager::ShareScannerManager() {
 	releaseReg.assign(AirUtil::getReleaseRegBasic());

@@ -31,10 +31,6 @@ namespace dcpp
 using boost::atomic;
 using boost::atomic_flag;
 
-#ifndef ATOMIC_FLAG_INIT
-#define ATOMIC_FLAG_INIT 0
-#endif
-
 }
 
 #else

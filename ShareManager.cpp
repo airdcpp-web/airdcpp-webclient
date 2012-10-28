@@ -74,7 +74,11 @@ using boost::range::copy;
 
 #define SHARE_CACHE_VERSION "1"
 
+#ifdef ATOMIC_FLAG_INIT
 atomic_flag ShareManager::refreshing = ATOMIC_FLAG_INIT;
+#else
+atomic_flag ShareManager::refreshing;
+#endif
 
 ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), bloom(1<<20), sharedSize(0), ShareCacheDirty(false),
 	xml_saving(false), lastSave(GET_TICK()), aShutdown(false), refreshRunning(false)

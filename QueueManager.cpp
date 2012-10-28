@@ -65,7 +65,11 @@ namespace dcpp {
 using boost::adaptors::map_values;
 using boost::range::for_each;
 
-atomic_flag QueueManager::FileMover::active = ATOMIC_FLAG_INIT;
+#ifdef ATOMIC_FLAG_INIT
+atomic_flag ShareManager::refreshing = ATOMIC_FLAG_INIT;
+#else
+atomic_flag ShareManager::refreshing;
+#endif
 
 struct MoverTask : public Task {
 	MoverTask(const string& aSource, const string& aTarget, QueueItemPtr aQI) : target(aTarget), source(aSource), qi(aQI) { }

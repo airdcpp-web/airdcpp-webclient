@@ -33,7 +33,11 @@
 
 namespace dcpp {
 
+#ifdef ATOMIC_FLAG_INIT
 atomic_flag MappingManager::busy = ATOMIC_FLAG_INIT;
+#else
+atomic_flag MappingManager::busy;
+#endif
 
 MappingManager::MappingManager() : renewal(0) {
 	addMapper<Mapper_NATPMP>();
