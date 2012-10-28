@@ -651,7 +651,7 @@ enum Strings { // @DontAdd
 	SETTINGS_SB_MAX_SOURCES, // "Max sources for match queue"
 	SETTINGS_SEARCH_HISTORY, // "Search history"
 	SETTINGS_SELECT_COLOR, // "Select color"
-	SETTINGS_SELECT_TEXT_FACE, // "&Text style"
+	SETTINGS_SELECT_TEXT_FACE, // "General Text style"
 	SETTINGS_SELECT_WINDOW_COLOR, // "&Window color"
 	SETTINGS_SEND_UNKNOWN_COMMANDS, // "Send unknown /commands to the hub"
 	SETTINGS_SHARE_HIDDEN, // "Share hidden files"
@@ -938,7 +938,7 @@ enum Strings { // @DontAdd
 	PRESET_ADD_ALL, // "Add all"
 	PRESET_MY_NICK, // "My nick"
 	PRESET_MY_MESSAGES, // "My messages"
-	PRESET_USERS, // "Users"
+	PRESET_USER_LIMITER, // "Users Limiting Upload"
 	PRESET_TIMESTAMP, // "Timestamps"
 	PRESET_URLS, // "Urls"
 	PRESET_ME, // "/me"
@@ -1548,5 +1548,6 @@ enum Strings { // @DontAdd
 	SETTINGS_CONFIRM_HUB_CLOSE, // "Confirm hub closing"
 	SETTINGS_CONFIRM_AS_REMOVE, // "Confirm item removal in auto search"
 	OWN_LIST_ADL, // "Match own list with ADL search"
+	MATCH_COLUMN, // "Match Column"
 	LAST // @DontAdd
 };

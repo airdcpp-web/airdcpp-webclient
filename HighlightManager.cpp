@@ -63,6 +63,7 @@ void HighlightManager::load(SimpleXML& aXml){
 				cs.setBgColor( (int)aXml.getLongLongChildAttrib("BgColor") );
 				cs.setFgColor( (int)aXml.getLongLongChildAttrib("FgColor") );
 				cs.setSoundFile( Text::utf8ToWide( aXml.getChildAttrib("SoundFile") ) );
+				cs.setMatchColumn(aXml.getIntChildAttrib("MatchColumn"));
 
 				cs.setRegexp();
 				colorSettings.push_back(cs);
@@ -115,6 +116,7 @@ void HighlightManager::save(SimpleXML& aXml){
 		aXml.addChildAttrib("FgColor", Util::toString((*iter).getFgColor()));
 		aXml.addChildAttrib("BgColor", Util::toString((*iter).getBgColor()));
 		aXml.addChildAttrib("SoundFile", Text::wideToUtf8((*iter).getSoundFile()));
+		aXml.addChildAttrib("MatchColumn", (*iter).getMatchColumn());
 	}//end for
 
 	aXml.stepOut();

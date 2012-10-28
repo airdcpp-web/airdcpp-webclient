@@ -25,6 +25,7 @@
 #include "TimerManager.h"
 #include "ResourceManager.h"
 #include "ClientManager.h"
+#include "ThrottleManager.h"
 #include "AirUtil.h"
 #include "LogManager.h"
 
@@ -78,15 +79,20 @@ void Client::reloadSettings(bool updateNick) {
 	FavoriteHubEntry* hub = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
 	bool isAdcHub = AirUtil::isAdcHub(hubUrl);
 
+	string limitDesc = Util::emptyString;
+	int upLimit = ThrottleManager::getInstance()->getUpLimit();
+	if(upLimit > 0)
+		limitDesc += "[L:" + Util::toString(upLimit) + "KB]";
+
 	if(hub) {
 		if(updateNick) {
 			setCurrentNick(checkNick(hub->getNick(true)));
 		}		
 
 		if(!hub->getUserDescription().empty()) {
-			setCurrentDescription(hub->getUserDescription());
+			setCurrentDescription(limitDesc + hub->getUserDescription());
 		} else {
-			setCurrentDescription(SETTING(DESCRIPTION));
+			setCurrentDescription(limitDesc + SETTING(DESCRIPTION));
 		}
 
 		if(!hub->getPassword().empty())
@@ -120,7 +126,7 @@ void Client::reloadSettings(bool updateNick) {
 		if(updateNick) {
 			setCurrentNick(checkNick(SETTING(NICK)));
 		}
-		setCurrentDescription(SETTING(DESCRIPTION));
+		setCurrentDescription(limitDesc + SETTING(DESCRIPTION));
 		setStealth(false);
 		setFavIp(Util::emptyString);
 		setFavNoPM(false);

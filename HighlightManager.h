@@ -58,6 +58,10 @@ public:
 	void clearList() {
 		colorSettings.clear();
 	}
+
+	bool emptyList() {
+		return colorSettings.empty();
+	}
 	
 	void load(SimpleXML& aXml);
 	void save(SimpleXML& aXml);

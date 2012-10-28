@@ -149,6 +149,8 @@ int ThrottleManager::getDownLimit() {
 }
 
 void ThrottleManager::setSetting(SettingsManager::IntSetting setting, int value) {
+	if(value < 0 || value > MAX_LIMIT)
+		value = 0;
 	SettingsManager::getInstance()->set(setting, value);
 	ClientManager::getInstance()->infoUpdated();
 }

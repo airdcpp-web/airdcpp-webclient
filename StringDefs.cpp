@@ -648,7 +648,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Max sources for match queue", 
 "Search history", 
 "Select color", 
-"&Text style", 
+"General Text style", 
 "&Window color", 
 "Send unknown /commands to the hub", 
 "Share hidden files", 
@@ -934,7 +934,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Add all", 
 "My nick", 
 "My messages", 
-"Users", 
+"Users Limiting Upload", 
 "Timestamps", 
 "Urls", 
 "/me", 
@@ -1541,6 +1541,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Confirm hub closing", 
 "Confirm item removal in auto search", 
 "Match own list with ADL search", 
+"Match Column", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2475,7 +2476,7 @@ std::string dcpp::ResourceManager::names[] = {
 "PresetAddAll", 
 "PresetMyNick", 
 "PresetMyMessages", 
-"PresetUsers", 
+"PresetUserLimiter", 
 "PresetTimestamp", 
 "PresetUrls", 
 "PresetMe", 
@@ -3082,4 +3083,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsConfirmHubClose", 
 "SettingsConfirmAsRemove", 
 "OwnListAdl", 
+"MatchColumn", 
 };
