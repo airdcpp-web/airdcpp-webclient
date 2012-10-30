@@ -2490,32 +2490,27 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 		RLock l(cs);
 		for (auto i = bundleQueue.getBundles().begin(); i != bundleQueue.getBundles().end(); ++i) {
 			BundlePtr b = i->second;
-			if (b->isFinished()) {
+			if (b->isFileBundle()) 
 				continue;
-			}
 
 			//check the path just to avoid hashing/scanning bundles from dirs that aren't being refreshed
 			if (boost::find_if(sharePaths, [b](const string& p) { return AirUtil::isParentOrExact(p, b->getTarget()); }) == sharePaths.end()) {
 				continue;
 			}
 
-			if (!b->isFileBundle()) {
-				if (b->isSet(Bundle::FLAG_SHARING_FAILED)) {
-					hash.push_back(b);
-				} else if (!b->allowHash()) { //the bundle wasn't shared when it finished
-					retBundles.push_back(Text::toLower(b->getTarget()));
-				}
+			if(b->isFinished() && (b->isSet(Bundle::FLAG_SHARING_FAILED) || b->allowHash())) {
+				hash.push_back(b);
 			}
+
+			retBundles.push_back(Text::toLower(b->getTarget()));
 		}
 	}
 
 	for (auto i = hash.begin(); i != hash.end(); i++) {
 		BundlePtr b = *i;
-		if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(b)) {
-			b->setFlag(Bundle::FLAG_SHARING_FAILED);
+		if(b->isSet(Bundle::FLAG_SHARING_FAILED) && SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(b)) {
 			continue;
 		}
-
 		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
 
 		hashBundle(b); 

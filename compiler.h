@@ -96,6 +96,8 @@
 # define _REENTRANT 1
 #endif
 
+# pragma warning(disable: 4307) //temp disable this annoying warning, boost::lockfree integral constant overflow
+
 # pragma warning(disable: 4996)
 # pragma warning(disable: 4711) // function 'xxx' selected for automatic inline expansion
 # pragma warning(disable: 4786) // identifier was truncated to '255' characters in the debug information
