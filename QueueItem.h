@@ -181,7 +181,7 @@ public:
 		GETSET(PartialSource::Ptr, partialSource, PartialSource);
 		GETSET(string, remotePath, RemotePath);
 		//GETSET(set<string>, blockedHubs, BlockedHubs);
-		set<string> blockedHubs;
+		HubSet blockedHubs;
 	};
 
 	typedef vector<Source> SourceList;
@@ -208,7 +208,7 @@ public:
 	void save(OutputStream &save, string tmp, string b32tmp);
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
-	bool hasSegment(const HintedUser& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	bool hasSegment(const UserPtr& aUser, const HubSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	bool startDown();
 
 	SourceList& getSources() { return sources; }

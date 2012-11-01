@@ -43,7 +43,7 @@ public:
 
 	/** @internal */
 	void addConnection(UserConnection* conn);
-	bool checkIdle(const HintedUser& user, bool smallSlot, bool reportOnly = false);
+	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
 	void setTarget(const string& oldTarget, const string& newTarget);
 	void changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path);
 	void sendSizeNameUpdate(BundlePtr aBundle);

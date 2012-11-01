@@ -140,7 +140,7 @@ public:
 	}
 	
 	
-	void fileNotAvail(const std::string& msg = FILE_NOT_AVAILABLE, bool noAccess = false);
+	void sendError(const std::string& msg = FILE_NOT_AVAILABLE, AdcCommand::Error aError=AdcCommand::ERROR_FILE_NOT_AVAILABLE);
 	void supports(const StringList& feat);
 	void getListLen() { send("$GetListLen|"); }
 

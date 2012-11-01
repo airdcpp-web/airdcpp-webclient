@@ -96,7 +96,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	dcdebug("Preparing %s %s " I64_FMT " " I64_FMT " %d\n", aType.c_str(), aFile.c_str(), aStartPos, aBytes, listRecursive);
 
 	if(aFile.empty() || aStartPos < 0 || aBytes < -1 || aBytes == 0) {
-		aSource.fileNotAvail("Invalid request");
+		aSource.sendError("Invalid request");
 		return false;
 	}
 
@@ -109,26 +109,29 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	string sourceFile;
 	Transfer::Type type;
 	int64_t fileSize = 0;
-	ProfileToken profile = -1;
 	bool noAccess = false;
+
+	//make sure that we have an user
+	ProfileToken profile = ClientManager::getInstance()->findProfile(aSource, userSID);
+	if (profile < 0) {
+		aSource.sendError("Unknown user", AdcCommand::ERROR_UNKNOWN_USER);
+		return false;
+	}
 
 	try {
 		if(aType == Transfer::names[Transfer::TYPE_FILE]) {
 			type = userlist ? Transfer::TYPE_FULL_LIST : Transfer::TYPE_FILE;
-			pair<string, int64_t> info;
+
+			//check that we have a file
 			if (userlist) {
-				profile = ClientManager::getInstance()->findProfile(aSource.getHintedUser(), userSID);
-				if (profile < 0) {
-					aSource.fileNotAvail("Unknown user");
-					return false;
-				}
 				sourceFile = move(ShareManager::getInstance()->getFileListName(aFile, profile));
 			} else {
+				//get all hubs with file transfers
 				ProfileTokenSet profiles;
 				ClientManager::getInstance()->listProfiles(aSource.getHintedUser().user, profiles);
 				if (profiles.empty()) {
-					aSource.fileNotAvail("Unknown user");
-					return false;
+					//the user managed to go offline already?
+					profiles.insert(profile);
 				}
 
 				ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, noAccess);
@@ -141,11 +144,10 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			ProfileTokenSet profiles;
 			ClientManager::getInstance()->listProfiles(aSource.getHintedUser().user, profiles);
 			if (profiles.empty()) {
-				aSource.fileNotAvail("Unknown user");
-				return false;
+				//the user managed to go offline already?
+				profiles.insert(profile);
 			}
 
-			pair<string, int64_t> info;
 			ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, noAccess);
 			type = Transfer::TYPE_TREE;
 			miniSlot = true;
@@ -153,13 +155,8 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 		} else if(aType == Transfer::names[Transfer::TYPE_PARTIAL_LIST]) {
 			type = Transfer::TYPE_PARTIAL_LIST;
 			miniSlot = true;
-			profile = ClientManager::getInstance()->findProfile(aSource.getHintedUser(), userSID);
-			if (profile < 0) {
-				aSource.fileNotAvail("Unknown user");
-				return false;
-			}
 		} else {
-			aSource.fileNotAvail("Unknown file type");
+			aSource.sendError("Unknown file type");
 			return false;
 		}
 	} catch(const ShareException& e) {
@@ -174,7 +171,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 				goto checkslots;
 			}
 		}
-		aSource.fileNotAvail(e.getError(), noAccess);
+		aSource.sendError(e.getError(), AdcCommand::ERROR_FILE_ACCESS_DENIED);
 		return false;
 	}
 
@@ -245,7 +242,7 @@ checkslots:
 					size = (aBytes == -1) ? fileSize - start : aBytes;
 					
 					if((start + size) > fileSize) {
-						aSource.fileNotAvail();
+						aSource.sendError();
 						delete ss;
 						return false;
 					}
@@ -279,7 +276,7 @@ checkslots:
 					fileSize = sz;
 
 					if((start + size) > sz) {
-						aSource.fileNotAvail();
+						aSource.sendError();
 						delete f;
 						return false;
 					}
@@ -297,7 +294,7 @@ checkslots:
 				sourceFile = aFile;
 				MemoryInputStream* mis = ShareManager::getInstance()->getTree(aFile, profile);
 				if(!mis) {
-					aSource.fileNotAvail();
+					aSource.sendError();
 					return false;
 				}
 
@@ -321,7 +318,7 @@ checkslots:
 				}
 
 				if(mis == NULL) {
-					aSource.fileNotAvail();
+					aSource.sendError();
 					return false;
 				}
 				start = 0;
@@ -331,16 +328,16 @@ checkslots:
 			}
 		}
 	} catch(const ShareException& e) {
-		aSource.fileNotAvail(e.getError());
+		aSource.sendError(e.getError());
 		return false;
 	} catch(const QueueException& e) {
-		aSource.fileNotAvail(e.getError());
+		aSource.sendError(e.getError());
 		return false;
 	} catch(const Exception& e) {
 		if(is)
 			delete is;
 		LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError(), LogManager::LOG_ERROR);
-		aSource.fileNotAvail();
+		aSource.sendError();
 		return false;
 	}
 
@@ -1154,7 +1151,7 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 		return;
 	}
 
-	auto shareProfile = ClientManager::getInstance()->findProfile(aSource->getHintedUser(), Util::emptyString);
+	auto shareProfile = ClientManager::getInstance()->findProfile(*aSource, Util::emptyString);
 
 	const string& type = c.getParam(0);
 	const string& ident = c.getParam(1);
@@ -1162,12 +1159,11 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 	if(type == Transfer::names[Transfer::TYPE_FILE]) {
 		try {
 			aSource->send(ShareManager::getInstance()->getFileInfo(ident, shareProfile));
-		} catch(const ShareException&) {
-			aSource->fileNotAvail();
-		}
-	} else {
-		aSource->fileNotAvail();
+			return;
+		} catch(const ShareException&) { }
 	}
+
+	aSource->sendError();
 }
 
 // TimerManagerListener

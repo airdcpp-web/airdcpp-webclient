@@ -50,6 +50,8 @@ public:
 
 	~Download();
 
+	bool isFileList();
+
 	/** @return Target filename without path. */
 	string getTargetFileName() const;
 

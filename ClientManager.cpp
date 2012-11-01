@@ -118,6 +118,17 @@ StringList ClientManager::getHubUrls(const CID& cid, const string& /*hintUrl*/) 
 	return lst;
 }
 
+HubSet ClientManager::getHubSet(const CID& cid) const {
+	HubSet lst;
+
+	RLock l(cs);
+	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
+	for(auto i = op.first; i != op.second; ++i) {
+		lst.insert(i->second->getClientBase().getHubUrl());
+	}
+	return lst;
+}
+
 StringList ClientManager::getHubNames(const CID& cid, const string& /*hintUrl*/) const {
 	StringList lst;
 
@@ -413,43 +424,50 @@ void ClientManager::listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles
 	}
 }
 
-ProfileToken ClientManager::findProfile(const HintedUser& p, const string& userSID) {
+ProfileToken ClientManager::findProfile(UserConnection& p, const string& userSID) {
 	OnlineUser* u;
 	if(!userSID.empty()) {
 		RLock l(cs);
-		auto op = onlineUsers.equal_range(const_cast<CID*>(&p.user->getCID()));
+		auto op = onlineUsers.equal_range(const_cast<CID*>(&p.getUser()->getCID()));
 		for(auto i = op.first; i != op.second; ++i) {
 			u = i->second;
-			if(u->getIdentity().getSIDString() == userSID)
+			if(compare(u->getIdentity().getSIDString(), userSID) == 0) {
+				p.setHubUrl(u->getClient().getAddress());
 				return u->getClient().getShareProfile();
+			}
 		}
+
+		//don't accept invalid SIDs
+		return -1;
 	}
 
-	//no SID spesified, find with hint.
+	//no SID specified, find with hint.
 	OnlinePairC op;
 
 	RLock l(cs);
-	u = findOnlineUserHint(p.user->getCID(), p.hint, op);
+	u = findOnlineUserHint(p.getUser()->getCID(), p.getHubUrl(), op);
 	if(u) {
 		return u->getClient().getShareProfile();
 	} else if(op.first != op.second) {
-		if(distance(op.first, op.second) == 1)
-			return op.first->second->getClient().getShareProfile();
+		//pick a random profile
+		return op.first->second->getClient().getShareProfile();
 	}
 
 	return -1;
 }
 
-string ClientManager::findMySID(const HintedUser& p) {
-	//this could also be done by just finding in the client list... better?
-	if(p.hint.empty()) // we cannot find the correct SID without a hubUrl
-		return Util::emptyString;
+string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) {
+	if(!aHubUrl.empty()) { // we cannot find the correct SID without a hubUrl
+		OnlinePairC op;
 
-	{
 		RLock l(cs);
-		OnlineUser* u = findOnlineUserHint(p.user->getCID(), p.hint);
-		if(u)
+		OnlineUser* u = findOnlineUserHint(aUser->getCID(), aHubUrl, op);
+		if(u) {
 			return (&u->getClient())->getMyIdentity().getSIDString();
+		} else if (allowFallback) {
+			aHubUrl = op.first->second->getClient().getHubUrl();
+			return op.first->second->getClient().getMyIdentity().getSIDString();
+		}
 	}
 
 	return Util::emptyString;
@@ -470,30 +488,6 @@ OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hint
 	}
 
 	return 0;
-}
-
-HintedUser ClientManager::checkUserHint(const HintedUser& user) {
-	RLock l (cs);
-	auto p = onlineUsers.equal_range(const_cast<CID*>(&user.user->getCID()));
-	//if(p.first == p.second) // no user found with the given CID, try with the current one
-	//	return user;
-
-	dcassert(!user.hint.empty() || user.user->isNMDC());
-	if(!user.hint.empty()) {
-		OnlineUser* u = nullptr;
-		for(auto i = p.first; i != p.second; ++i) {
-			u = i->second;
-			if(u->getClientBase().getHubUrl() == user.hint) {
-				return user;
-			}
-		}
-
-		//not found with the given hint, return the last match
-		if (u)
-			return HintedUser(user.user, u->getHubUrl());
-	}
-
-	return HintedUser(user);
 }
 
 pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const {

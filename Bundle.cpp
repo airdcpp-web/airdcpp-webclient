@@ -321,7 +321,7 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 	}
 }
 
-QueueItemPtr Bundle::getNextQI(const HintedUser& aUser, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const HubSet& onlineHubs, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	int p = QueueItem::LAST - 1;
 	do {
 		auto i = userQueue[p].find(aUser);
@@ -329,7 +329,7 @@ QueueItemPtr Bundle::getNextQI(const HintedUser& aUser, string aLastError, Prior
 			dcassert(!i->second.empty());
 			for(auto j = i->second.begin(); j != i->second.end(); ++j) {
 				QueueItemPtr qi = *j;
-				if (qi->hasSegment(aUser, aLastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
+				if (qi->hasSegment(aUser, onlineHubs, aLastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
 					return qi;
 				}
 			}
@@ -447,10 +447,12 @@ void Bundle::rotateUserQueue(QueueItemPtr qi, const UserPtr& aUser) noexcept {
 		return;
 	}
 	auto& l = j->second;
-	auto s = find(l, qi);
-	if (s != l.end()) {
-		l.erase(s);
-		l.push_back(qi);
+	if (l.size() > 1) {
+		auto s = find(l, qi);
+		if (s != l.end()) {
+			l.erase(s);
+			l.push_back(qi);
+		}
 	}
 }
 

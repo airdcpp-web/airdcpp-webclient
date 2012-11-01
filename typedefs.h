@@ -68,10 +68,7 @@ typedef vector<ProfileToken> ProfileTokenList;
 typedef vector<pair<ProfileToken, string>> ProfileTokenStringList;
 typedef std::unordered_map <ProfileToken, string> ProfileTokenStringMap;
 
-typedef int TransferToken;
-typedef vector<TransferToken> TransferTokenList;
-typedef std::unordered_map<TransferToken, StringSet> TransferTokenStringSetMap;
-typedef std::unordered_map <TransferToken, string> TransferTokenStringMap;
+typedef std::set<string> HubSet;
 
 #ifdef UNICODE
 

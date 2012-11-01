@@ -254,7 +254,6 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 			//start matching from the parent dir, as we know the last one already
 			i = pos;
 			string curDir = s->second.first;
-			bool found = false;
 
 			for(;;) {
 				j = remoteDir.find_last_of("\\", i);
@@ -262,18 +261,13 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 					break;
 				if(stricmp(remoteDir.substr(j+1, i-j), curDir.substr(curDir.length() - (remoteDir.length()-j)+1, i-j)) == 0) {
 					if (!boost::regex_match(remoteDir.substr(j+1, i-j), AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
-						found = true;
-						break;
+						return s->second;
 					}
 				} else {
 					//this is something different... continue to next match
 					break;
 				}
 				i = j - 1;
-			}
-
-			if (found) {
-				return s->second;
 			}
 		}
 

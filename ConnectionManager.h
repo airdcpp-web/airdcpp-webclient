@@ -63,20 +63,23 @@ public:
 	};
 
 	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken ) : token(aToken), 
-		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser), maxConns(0) { }
+		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser.user), hubUrl(aUser.hint), maxConns(0) { }
 	
 	GETSET(string, token, Token);
 
+	GETSET(string, hubUrl, HubUrl);
 	GETSET(string, lastBundle, LastBundle);
 	GETSET(uint8_t, maxConns, MaxConns);
 	GETSET(uint64_t, lastAttempt, LastAttempt);
 	GETSET(int, errors, Errors); // Number of connection errors, or -1 after a protocol error
 	GETSET(State, state, State);
 	GETSET(bool, download, Download);
-	const HintedUser& getUser() const { return user; }
+	const UserPtr& getUser() const { return user; }
+	//UserPtr& getUser() { return user; }
+	const HintedUser getHintedUser() const { return HintedUser(user, hubUrl); }
 	bool allowNewConnections(int running);
 private:
-	HintedUser user;
+	UserPtr user;
 };
 
 class ExpectedMap {

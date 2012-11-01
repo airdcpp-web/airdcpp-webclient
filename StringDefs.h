@@ -1549,5 +1549,7 @@ enum Strings { // @DontAdd
 	SETTINGS_CONFIRM_AS_REMOVE, // "Confirm item removal in auto search"
 	OWN_LIST_ADL, // "Match own list with ADL search"
 	MATCH_COLUMN, // "Match Column"
+	UNKNOWN_USER, // "Unknown user"
+	NO_ACCESS_ONLINE_HUBS, // "No access to this file via any online hub"
 	LAST // @DontAdd
 };

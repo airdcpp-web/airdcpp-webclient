@@ -84,28 +84,28 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	}
 }
 
-QueueItemPtr UserQueue::getNext(const HintedUser& aUser, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
+QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const HubSet& onlineHubs, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
 	/* Using the PAUSED priority will list all files */
-	QueueItemPtr qi = getNextPrioQI(aUser, 0, 0, smallSlot, allowOverlap);
+	QueueItemPtr qi = getNextPrioQI(aUser, onlineHubs, 0, 0, smallSlot, allowOverlap);
 	if(!qi) {
-		qi = getNextBundleQI(aUser, (Bundle::Priority)minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
+		qi = getNextBundleQI(aUser, onlineHubs, (Bundle::Priority)minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
 	}
 
 	if (!qi && !allowOverlap) {
 		//no free segments. let's do another round and now check if there are slow sources which can be overlapped
-		qi = getNext(aUser, minPrio, wantedSize, lastSpeed, smallSlot, true);
+		qi = getNext(aUser, onlineHubs, minPrio, wantedSize, lastSpeed, smallSlot, true);
 	}
 	return qi;
 }
 
-QueueItemPtr UserQueue::getNextPrioQI(const HintedUser& aUser, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const HubSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
 		for(auto j = i->second.begin(); j != i->second.end(); ++j) {
 			QueueItemPtr qi = *j;
-			if (qi->hasSegment(aUser, lastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
+			if (qi->hasSegment(aUser, onlineHubs, lastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
 				return qi;
 			}
 		}
@@ -113,7 +113,7 @@ QueueItemPtr UserQueue::getNextPrioQI(const HintedUser& aUser, int64_t wantedSiz
 	return nullptr;
 }
 
-QueueItemPtr UserQueue::getNextBundleQI(const HintedUser& aUser, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const HubSet& onlineHubs, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 
 	auto i = userBundleQueue.find(aUser);
@@ -123,7 +123,7 @@ QueueItemPtr UserQueue::getNextBundleQI(const HintedUser& aUser, Bundle::Priorit
 			if ((*j)->getPriority() < minPrio) {
 				break;
 			}
-			QueueItemPtr qi = (*j)->getNextQI(aUser, lastError, minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
+			QueueItemPtr qi = (*j)->getNextQI(aUser, onlineHubs, lastError, minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
 			if (qi) {
 				return qi;
 			}

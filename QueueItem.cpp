@@ -243,12 +243,12 @@ void QueueItem::addSource(const HintedUser& aUser, const string& aRemotePath) {
 void QueueItem::blockSourceHub(const HintedUser& aUser) {
 	dcassert(isSource(aUser.user));
 	auto s = getSource(aUser.user);
-	s->blockedHubs.insert(Text::toLower(aUser.hint));
+	s->blockedHubs.insert(aUser.hint);
 }
 
 bool QueueItem::isHubBlocked(const HintedUser& aUser) {
 	auto s = getSource(aUser.user);
-	return !s->blockedHubs.empty() && s->blockedHubs.find(Text::toLower(aUser.hint)) != s->blockedHubs.end();
+	return !s->blockedHubs.empty() && s->blockedHubs.find(aUser.hint) != s->blockedHubs.end();
 }
 
 void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) {
@@ -566,9 +566,16 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 	return v;
 }
 
-bool QueueItem::hasSegment(const HintedUser& aUser, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
-	auto source = getSource(aUser.user);
-	if (!source->blockedHubs.empty() && source->blockedHubs.find(Text::toLower(aUser.hint)) != source->blockedHubs.end()) {
+bool QueueItem::hasSegment(const UserPtr& aUser, const HubSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+	auto source = getSource(aUser);
+	if (!source->blockedHubs.empty() && includes(onlineHubs.begin(), onlineHubs.end(), source->blockedHubs.begin(), source->blockedHubs.end())) {
+		lastError = STRING(NO_ACCESS_ONLINE_HUBS);
+		return false;
+	}
+
+	//can't download a filelist if the hub is offline
+	if (isSet(FLAG_USER_LIST) && onlineHubs.find(source->getUser().hint) == onlineHubs.end()) {
+		lastError = STRING(USER_OFFLINE);
 		return false;
 	}
 
@@ -600,7 +607,7 @@ bool QueueItem::hasSegment(const HintedUser& aUser, string& lastError, int64_t w
 		if(segment.getSize() == 0) {
 			lastError = (segment.getStart() == -1 || getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
 			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
-			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser.user->getCID().toBase32().c_str(), aUser.hint.c_str(), getTarget().c_str(), blockSize);
+			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::toString(onlineHubs).c_str(), getTarget().c_str(), blockSize);
 			return false;
 		}
 	} else if (!isWaiting()) {

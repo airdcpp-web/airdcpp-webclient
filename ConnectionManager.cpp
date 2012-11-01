@@ -107,9 +107,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 	dcassert(aUser.user);
 	bool supportMcn = false;
 
-	HintedUser u = move(ClientManager::getInstance()->checkUserHint(aUser));
-
-	if (!DownloadManager::getInstance()->checkIdle(u, smallSlot)) { //transfer hintedUser
+	if (!DownloadManager::getInstance()->checkIdle(aUser.user, smallSlot)) {
 		ConnectionQueueItem* cqi = nullptr;
 		int running = 0;
 
@@ -117,7 +115,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 			WLock l(cs);
 			for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 				cqi = *i;
-				if (cqi->getUser() == u && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+				if (cqi->getUser() == aUser.user && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 						supportMcn = true;
 						if (cqi->getState() != ConnectionQueueItem::RUNNING) {
@@ -146,7 +144,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 
 			//WLock l (cs);
 			dcdebug("Get cqi");
-			cqi = getCQI(u, true);
+			cqi = getCQI(aUser, true);
 			if (smallSlot)
 				cqi->setFlag(ConnectionQueueItem::FLAG_SMALL);
 		}
@@ -213,7 +211,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
 			ConnectionQueueItem* cqi = *i;
 			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING) {
-				if(!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+				if(!cqi->getUser()->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					removedTokens.push_back(cqi->getToken());
 					continue;
 				}
@@ -228,9 +226,13 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 				{
 					cqi->setLastAttempt(aTick);
 
-					string bundleToken;
-					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), cqi->isSet(ConnectionQueueItem::FLAG_SMALL), bundleToken);
+					string bundleToken, hubHint = cqi->getHubUrl();
+
+					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
+					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, cqi->isSet(ConnectionQueueItem::FLAG_SMALL), bundleToken);
+					cqi->setHubUrl(hubHint);
 					cqi->setLastBundle(bundleToken);
+					
 
 					if(prio == QueueItem::PAUSED) {
 						removedTokens.push_back(cqi->getToken());
@@ -242,7 +244,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown) {
 							cqi->setState(ConnectionQueueItem::CONNECTING);							
-							ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken());
+							ClientManager::getInstance()->connect(cqi->getHintedUser(), cqi->getToken());
 							fire(ConnectionManagerListener::StatusChanged(), cqi);
 							attempts++;
 						} else {
@@ -307,9 +309,9 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 		}
 	}
 
-	string bundleToken;
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aSource->getHintedUser(), false, bundleToken);
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aSource->getHintedUser(), ClientManager::getInstance()->getHubSet(aSource->getUser()->getCID()), false);
 	bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
+
 	if(prio != QueueItem::PAUSED && startDown) {
 		WLock l (cs);
 		ConnectionQueueItem* cqiNew = getCQI(aSource->getHintedUser(),true);
@@ -619,7 +621,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 			ConnectionQueueItem* cqi = *i;
 			cqi->setErrors(0);
 			if((cqi->getState() == ConnectionQueueItem::CONNECTING || cqi->getState() == ConnectionQueueItem::WAITING) && 
-				cqi->getUser().user->getCID() == cid)
+				cqi->getUser()->getCID() == cid)
 			{
 				aSource->setUser(cqi->getUser());
 				// Indicate that we're interested in this file...
@@ -730,7 +732,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 				}
 
 				uc->setToken(cqi->getToken());
-				uc->setHubUrl(cqi->getUser().hint); //set the correct hint for the uc, it might not even have a hint at first.
+				uc->setHubUrl(cqi->getHubUrl()); //set the correct hint for the uc, it might not even have a hint at first.
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 				fire(ConnectionManagerListener::Connected(), cqi);
 				dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");

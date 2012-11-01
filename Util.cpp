@@ -790,20 +790,6 @@ string Util::toString(const string& sep, const StringList& lst) {
 	return ret;
 }
 
-string Util::toString(const StringList& lst) {
-	if(lst.size() == 1)
-		return lst[0];
-	string tmp("[");
-	for(StringList::const_iterator i = lst.begin(), iend = lst.end(); i != iend; ++i) {
-		tmp += *i + ',';
-	}
-	if(tmp.length() == 1)
-		tmp.push_back(']');
-	else
-		tmp[tmp.length()-1] = ']';
-	return tmp;
-}
-
 string::size_type Util::findSubString(const string& aString, const string& aSubString, string::size_type start) noexcept {
 	if(aString.length() < start)
 		return (string::size_type)string::npos;

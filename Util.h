@@ -417,7 +417,25 @@ static string getShortTimeString(time_t t = time(NULL) );
 	}
 
 	static string toString(const string& sep, const StringList& lst);
-	static string toString(const StringList& lst);
+
+	template<typename T>
+	static string listToString(const T& lst) {
+		if(lst.size() == 1)
+			return *lst.begin();
+		string tmp("[");
+		for(auto i = lst.begin(), iend = lst.end(); i != iend; ++i) {
+			tmp += *i + ',';
+		}
+		if(tmp.length() == 1)
+			tmp.push_back(']');
+		else
+			tmp[tmp.length()-1] = ']';
+		return tmp;
+	}
+
+	static string toString(const StringSet& lst) { return listToString<StringSet>(lst); }
+	static string toString(const StringList& lst) { return listToString<StringList>(lst); }
+	static string toString(const HubSet& lst) { return listToString<HubSet>(lst); }
 
 	static wstring toStringW( int32_t val ) {
 		wchar_t buf[32];

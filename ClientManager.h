@@ -53,6 +53,7 @@ public:
 
 	string getField(const CID& cid, const string& hintUrl, const char* field) const;
 
+	HubSet getHubSet(const CID& cid) const;
 	StringList getHubUrls(const CID& cid, const string& hintUrl = Util::emptyString) const;
 	StringList getHubNames(const CID& cid, const string& hintUrl = Util::emptyString) const;
 	StringList getNicks(const CID& cid, const string& hintUrl = Util::emptyString) const;
@@ -106,10 +107,10 @@ public:
 	
 	void setIPUser(const UserPtr& user, const string& IP, const string& udpPort = Util::emptyString);
 	
-	ProfileToken findProfile(const HintedUser& p, const string& userSID);
+	ProfileToken findProfile(UserConnection& p, const string& userSID);
 	void listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles);
 
-	string findMySID(const HintedUser& p);
+	string findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback);
 
 	bool isOp(const UserPtr& aUser, const string& aHubUrl) const;
 	bool isStealth(const string& aHubUrl) const;
@@ -142,8 +143,6 @@ public:
 	const CID& getMyPID();
 
 	void resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr aDefaultProfile);
-
-	HintedUser checkUserHint(const HintedUser& user);
 private:
 
 	typedef unordered_map<CID*, UserPtr> UserMap;

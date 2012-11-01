@@ -179,11 +179,11 @@ void UserConnection::sup(const StringList& features) {
 	send(c);
 }
 
-void UserConnection::fileNotAvail(const std::string& msg /*FILE_NOT_AVAILABLE*/, bool noAccess /*false*/) {
+void UserConnection::sendError(const std::string& msg /*FILE_NOT_AVAILABLE*/, AdcCommand::Error aError /*AdcCommand::ERROR_FILE_NOT_AVAILABLE*/) {
 	if (isSet(FLAG_NMDC)) {
 		send("$Error " + msg + "|");
 	} else {
-		send(AdcCommand(AdcCommand::SEV_RECOVERABLE, noAccess ? AdcCommand::ERROR_FILE_ACCESS_DENIED : AdcCommand::ERROR_FILE_NOT_AVAILABLE, msg));
+		send(AdcCommand(AdcCommand::SEV_RECOVERABLE, aError, msg));
 	}
 }
 

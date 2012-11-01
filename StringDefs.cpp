@@ -1542,6 +1542,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Confirm item removal in auto search", 
 "Match own list with ADL search", 
 "Match Column", 
+"Unknown user", 
+"No access to this file via any online hub", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3084,4 +3086,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsConfirmAsRemove", 
 "OwnListAdl", 
 "MatchColumn", 
+"UnknownUser", 
+"NoAccessOnlineHubs", 
 };

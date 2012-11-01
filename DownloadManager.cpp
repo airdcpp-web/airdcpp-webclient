@@ -162,16 +162,12 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 	}
 }
 
-bool DownloadManager::checkIdle(const HintedUser& user, bool smallSlot, bool reportOnly) {
+bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
 
 	RLock l(cs);
 	for(auto i = idlers.begin(); i != idlers.end(); ++i) {	
 		UserConnection* uc = *i;
-		if(uc->getUser() == user.user) {
-			//update the hubHint of the connection to the correct one.
-			if(stricmp(uc->getHubUrl(), user.hint) != 0) 
-				uc->setHubUrl(user.hint);
-
+		if(uc->getUser() == user) {
 			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
 			if (!reportOnly)
@@ -236,24 +232,29 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	bool smallSlot = aConn->isSet(UserConnection::FLAG_SMALL_SLOT);
 
-	string bundleToken;
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getHintedUser(), smallSlot, bundleToken);
+	HubSet hubs = ClientManager::getInstance()->getHubSet(aConn->getUser()->getCID());
+
+	//always make sure that the current hub is also compared even if it is offline
+	hubs.insert(aConn->getHubUrl());
+
+	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getHintedUser(), hubs, smallSlot);
 	bool start = startDownload(prio);
-	if(!start && !smallSlot) {
+
+	if(!start && !smallSlot) { //add small slot connections to idlers instead of disconnecting
 		removeRunningUser(aConn);
 		removeConnection(aConn);
 		return;
 	}
 
-	string errorMessage = Util::emptyString;
-	Download* d = QueueManager::getInstance()->getDownload(*aConn, errorMessage, smallSlot);
 
+	string errorMessage, newUrl;
+	Download* d = QueueManager::getInstance()->getDownload(*aConn, hubs, errorMessage, newUrl, smallSlot);
 	if(!d) {
 		aConn->unsetFlag(UserConnection::FLAG_RUNNING);
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
 		}
-		if (!checkIdle(aConn->getHintedUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
+		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
 			aConn->setState(UserConnection::STATE_IDLE);
 			removeRunningUser(aConn);
 			{
@@ -264,6 +265,17 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 			aConn->disconnect(true);
 		}
 		return;
+	}
+
+	/*
+	find mySID, better ways to get the correct one transferred here?
+	the hinturl of the connection is updated to the hub where the connection reguest is coming from,
+	so we should be able to find our own SID by finding the hub where the user is at (if we have a hint).
+	*/
+
+	string mySID;
+	if(!aConn->getUser()->isNMDC()) {
+		mySID = ClientManager::getInstance()->findMySID(aConn->getUser(), newUrl, false); //no fallback, keep the old hint even if the hub is offline
 	}
 
 	aConn->setState(UserConnection::STATE_SND);
@@ -284,14 +296,12 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	dcdebug("Requesting " I64_FMT "/" I64_FMT "\n", d->getStartPos(), d->getSize());
 
-	/*
-	find mySID, better ways to get the correct one transferred here?
-	the hinturl of the connection is updated to the hub where the connection reguest is coming from,
-	so we should be able to find our own SID by finding the hub where the user is at (if we have a hint).
-	*/
-	string mySID = Util::emptyString;
-	if(!aConn->getUser()->isNMDC() && (d->getType() == Transfer::TYPE_FULL_LIST || d->getType() == Transfer::TYPE_PARTIAL_LIST))
-		mySID = ClientManager::getInstance()->findMySID(aConn->getHintedUser());
+	//only update the hub if it has been changed
+	if (compare(newUrl, aConn->getHubUrl()) == 0) {
+		mySID.clear();
+	} else if (!newUrl.empty()) {
+		aConn->setHubUrl(newUrl);
+	}
 
 	aConn->send(d->getCommand(aConn->isSet(UserConnection::FLAG_SUPPORTS_ZLIB_GET), mySID));
 }
@@ -639,28 +649,31 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 	}
 
 	switch(Util::toInt(err.substr(0, 1))) {
-	case AdcCommand::SEV_FATAL:
-		aSource->disconnect();
-		return;
-	case AdcCommand::SEV_RECOVERABLE:
-		switch(Util::toInt(err.substr(1))) {
-		case AdcCommand::ERROR_FILE_NOT_AVAILABLE:
-			fileNotAvailable(aSource, false);
+		case AdcCommand::SEV_FATAL:
+			aSource->disconnect();
 			return;
-		case AdcCommand::ERROR_SLOTS_FULL:
-			{
-				string param;
-				noSlots(aSource, cmd.getParam("QP", 0, param) ? param : Util::emptyString);
-				return;
+		case AdcCommand::SEV_RECOVERABLE:
+			switch(Util::toInt(err.substr(1))) {
+				case AdcCommand::ERROR_FILE_NOT_AVAILABLE:
+					fileNotAvailable(aSource, false);
+					return;
+				case AdcCommand::ERROR_SLOTS_FULL:
+					{
+						string param;
+						noSlots(aSource, cmd.getParam("QP", 0, param) ? param : Util::emptyString);
+						return;
+					}
+				case AdcCommand::ERROR_FILE_ACCESS_DENIED:
+					fileNotAvailable(aSource, true);
+					return;
+				case AdcCommand::ERROR_UNKNOWN_USER:
+					failDownload(aSource, STRING(UNKNOWN_USER), !aSource->getDownload()->isFileList());
+					return;
 			}
-		case AdcCommand::ERROR_FILE_ACCESS_DENIED:
-			fileNotAvailable(aSource, true);
+		case AdcCommand::SEV_SUCCESS:
+			// We don't know any messages that would give us these...
+			dcdebug("Unknown success message %s %s", err.c_str(), cmd.getParam(1).c_str());
 			return;
-		}
-	case AdcCommand::SEV_SUCCESS:
-		// We don't know any messages that would give us these...
-		dcdebug("Unknown success message %s %s", err.c_str(), cmd.getParam(1).c_str());
-		return;
 	}
 	aSource->disconnect();
 }
