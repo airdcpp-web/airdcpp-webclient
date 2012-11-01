@@ -712,7 +712,4 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
 	checkDownloads(aSource);
 }
 
-
-
-
 } // namespace dcpp

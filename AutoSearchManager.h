@@ -22,15 +22,17 @@
 #include <bitset>
 
 #include "forward.h"
-#include "TimerManager.h"
-#include "SearchManager.h"
-#include "SearchManagerListener.h"
-#include "Speaker.h"
-#include "Singleton.h"
+
 #include "AutoSearchManagerListener.h"
-#include "Util.h"
+#include "GetSet.h"
+#include "Pointer.h"
+#include "SearchManagerListener.h"
+#include "Singleton.h"
+#include "Speaker.h"
 #include "StringMatch.h"
 #include "TargetUtil.h"
+#include "TimerManager.h"
+#include "Util.h"
 
 namespace dcpp {
 #define AUTOSEARCH_FILE "AutoSearch.xml"

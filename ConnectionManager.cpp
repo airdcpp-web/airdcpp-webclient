@@ -63,6 +63,7 @@ void TokenManager::removeToken(const string& aToken) {
 
 ConnectionManager::ConnectionManager() : floodCounter(0), shuttingDown(false) {
 	TimerManager::getInstance()->addListener(this);
+	ClientManager::getInstance()->addListener(this);
 
 	features.push_back(UserConnection::FEATURE_MINISLOTS);
 	features.push_back(UserConnection::FEATURE_XML_BZLIST);
@@ -199,6 +200,21 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 
 	WLock l(cs);
 	userConnections.erase(remove(userConnections.begin(), userConnections.end(), aConn), userConnections.end());
+}
+
+void ConnectionManager::onUserUpdated(const UserPtr& aUser) {
+	RLock l(cs);
+	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
+		if((*i)->getUser() == aUser) {
+			fire(ConnectionManagerListener::UserUpdated(), *i);
+		}
+	}
+
+	for(auto i = uploads.begin(); i != uploads.end(); ++i) {
+		if((*i)->getUser() == aUser) {
+			fire(ConnectionManagerListener::UserUpdated(), *i);
+		}
+	}
 }
 
 void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
@@ -1006,6 +1022,7 @@ bool ConnectionManager::setBundle(const string& token, const string& bundleToken
 
 void ConnectionManager::shutdown() {
 	TimerManager::getInstance()->removeListener(this);
+	ClientManager::getInstance()->removeListener(this);
 	shuttingDown = true;
 	disconnect();
 	{

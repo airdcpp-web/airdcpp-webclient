@@ -20,7 +20,7 @@
 #include "Client.h"
 
 #include "BufferedSocket.h"
-
+#include "DebugManager.h"
 #include "FavoriteManager.h"
 #include "TimerManager.h"
 #include "ResourceManager.h"

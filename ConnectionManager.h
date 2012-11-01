@@ -20,12 +20,12 @@
 #define DCPLUSPLUS_DCPP_CONNECTION_MANAGER_H
 
 #include "TimerManager.h"
-
-#include "UserConnection.h"
-#include "Singleton.h"
+#include "ClientManagerListener.h"
 #include "ConnectionManagerListener.h"
+
 #include "HintedUser.h"
-#include "LogManager.h"
+#include "Singleton.h"
+#include "UserConnection.h"
 
 namespace dcpp {
 
@@ -115,7 +115,7 @@ inline bool operator==(ConnectionQueueItem::Ptr ptr, const UserPtr& aUser) { ret
 // With a token
 inline bool operator==(ConnectionQueueItem::Ptr ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }
 
-class ConnectionManager : public Speaker<ConnectionManagerListener>, 
+class ConnectionManager : public Speaker<ConnectionManagerListener>, public ClientManagerListener,
 	public UserConnectionListener, TimerManagerListener, 
 	public Singleton<ConnectionManager>
 {
@@ -238,6 +238,12 @@ private:
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 
+	// ClientManagerListener
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept { onUserUpdated(aUser.getUser()); }
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept { onUserUpdated(aUser); }
+	void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept { onUserUpdated(aUser.getUser()); }
+
+	void onUserUpdated(const UserPtr& aUser);
 };
 
 } // namespace dcpp

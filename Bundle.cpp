@@ -18,17 +18,18 @@
 
 #include "stdinc.h"
 
-#include "Bundle.h"
-#include "TimerManager.h"
-#include "Download.h"
-#include "UserConnection.h"
-#include "HashManager.h"
-#include "QueueItem.h"
-#include "LogManager.h"
 #include "AirUtil.h"
+#include "Bundle.h"
+#include "ClientManager.h"
+#include "ConnectionManager.h"
+#include "Download.h"
+#include "HashManager.h"
+#include "LogManager.h"
+#include "QueueItem.h"
 #include "SearchResult.h"
 #include "SimpleXML.h"
-#include "ConnectionManager.h"
+#include "TimerManager.h"
+#include "UserConnection.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>

@@ -20,15 +20,18 @@
 #define DCPLUSPLUS_DCPP_UPLOAD_MANAGER_H
 
 #include "forward.h"
-#include "UserConnectionListener.h"
-#include "Singleton.h"
-#include "UploadManagerListener.h"
-#include "Client.h"
-#include "ClientManager.h"
+
 #include "ClientManagerListener.h"
-#include "MerkleTree.h"
 #include "FastAlloc.h"
+#include "HintedUser.h"
+#include "MerkleTree.h"
+#include "Pointer.h"
+#include "Singleton.h"
 #include "StringMatch.h"
+#include "TimerManager.h"
+#include "UploadManagerListener.h"
+#include "UserConnectionListener.h"
+#include "UserInfoBase.h"
 
 #include "boost/unordered_map.hpp"
 

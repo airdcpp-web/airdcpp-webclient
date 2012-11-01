@@ -19,17 +19,16 @@
 #ifndef DCPLUSPLUS_DCPP_FAVORITE_MANAGER_H
 #define DCPLUSPLUS_DCPP_FAVORITE_MANAGER_H
 
-#include "SettingsManager.h"
-
-#include "HttpConnection.h"
-#include "UserCommand.h"
-#include "FavoriteUser.h"
-#include "Singleton.h"
 #include "ClientManagerListener.h"
-#include "FavoriteManagerListener.h"
-#include "HubEntry.h"
 #include "FavHubGroup.h"
+#include "FavoriteManagerListener.h"
+#include "FavoriteUser.h"
+#include "HttpConnection.h"
+#include "HubEntry.h"
+#include "SettingsManager.h"
+#include "Singleton.h"
 #include "User.h"
+#include "UserCommand.h"
 
 namespace dcpp {
 	

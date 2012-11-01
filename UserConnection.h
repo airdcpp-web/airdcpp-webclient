@@ -19,17 +19,15 @@
 #ifndef DCPLUSPLUS_DCPP_USER_CONNECTION_H
 #define DCPLUSPLUS_DCPP_USER_CONNECTION_H
 
+#include "AdcCommand.h"
 #include "forward.h"
-#include "TimerManager.h"
-#include "UserConnectionListener.h"
 #include "BufferedSocketListener.h"
 #include "BufferedSocket.h"
-#include "File.h"
-#include "User.h"
-#include "AdcCommand.h"
+#include "HintedUser.h"
 #include "MerkleTree.h"
-#include "DebugManager.h"
-#include "ClientManager.h"
+#include "User.h"
+#include "UserConnectionListener.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 

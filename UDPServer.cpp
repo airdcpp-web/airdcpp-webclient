@@ -18,12 +18,16 @@
 
 
 #include "stdinc.h"
-#include "UDPServer.h"
-#include "SearchManager.h"
-#include "UploadManager.h"
-#include "SettingsManager.h"
+
 #include "ConnectivityManager.h"
+#include "ClientManager.h"
+#include "DebugManager.h"
 #include "LogManager.h"
+#include "ResourceManager.h"
+#include "SearchManager.h"
+#include "SettingsManager.h"
+#include "UDPServer.h"
+#include "UploadManager.h"
 
 
 namespace dcpp {
@@ -106,7 +110,7 @@ int UDPServer::run() {
 				dcdebug("SearchManager::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					LogManager::getInstance()->message(str(boost::format("Search disabled: %1%") % e.getError()), LogManager::LOG_ERROR);
+					LogManager::getInstance()->message(STRING_F(SEARCH_DISABLED_X, e.getError()), LogManager::LOG_ERROR);
 					failed = true;
 				}
 

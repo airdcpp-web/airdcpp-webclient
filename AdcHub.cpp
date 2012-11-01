@@ -17,14 +17,16 @@
  */
 
 #include "stdinc.h"
-#include "AdcHub.h"
 
+#include "AdcCommand.h"
+#include "AdcHub.h"
 #include "ChatMessage.h"
 #include "ClientManager.h"
+#include "ConnectionManager.h"
+#include "FavoriteManager.h"
+#include "Localization.h"
 #include "ShareManager.h"
 #include "StringTokenizer.h"
-#include "AdcCommand.h"
-#include "ConnectionManager.h"
 #include "version.h"
 #include "Util.h"
 #include "UserCommand.h"
@@ -32,7 +34,6 @@
 #include "ResourceManager.h"
 #include "LogManager.h"
 #include "UploadManager.h"
-#include "Localization.h"
 #include "StringTokenizer.h"
 #include "ThrottleManager.h"
 #include "QueueManager.h"

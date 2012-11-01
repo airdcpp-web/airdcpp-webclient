@@ -19,22 +19,19 @@
 #ifndef DCPLUSPLUS_DCPP_CLIENT_H
 #define DCPLUSPLUS_DCPP_CLIENT_H
 
-#include "compiler.h"
-
 #include "atomic.h"
-
+#include "compiler.h"
 #include "forward.h"
 
-#include "User.h"
-#include "Speaker.h"
 #include "BufferedSocketListener.h"
-#include "TimerManager.h"
 #include "ClientListener.h"
-#include "DebugManager.h"
-#include "SearchQueue.h"
 #include "OnlineUser.h"
-#include "ShareProfile.h"
 #include "Search.h"
+#include "SearchQueue.h"
+#include "ShareProfile.h"
+#include "Speaker.h"
+#include "TimerManager.h"
+#include "User.h"
 
 namespace dcpp {
 

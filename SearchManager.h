@@ -19,19 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 #define DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 
-#include "SettingsManager.h"
-
-#include "User.h"
-#include "Singleton.h"
-
-#include "SearchManagerListener.h"
-#include "TimerManager.h"
 #include "AdcCommand.h"
-#include "UDPServer.h"
 #include "Search.h"
-#include "ClientManager.h"
-#include "ResourceManager.h"
-
+#include "SearchManagerListener.h"
+#include "SettingsManager.h"
+#include "Singleton.h"
+#include "TimerManager.h"
+#include "UDPServer.h"
+#include "User.h"
 
 #include <boost/unordered_map.hpp>
 

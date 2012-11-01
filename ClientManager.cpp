@@ -22,22 +22,21 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 
-#include "ShareManager.h"
-#include "SearchManager.h"
 #include "ConnectionManager.h"
 #include "CryptoManager.h"
+#include "DebugManager.h"
 #include "FavoriteManager.h"
+#include "LogManager.h"
+#include "QueueManager.h"
+#include "ResourceManager.h"
+#include "SearchManager.h"
+#include "SearchResult.h"
+#include "ShareManager.h"
 #include "SimpleXML.h"
 #include "UserCommand.h"
-#include "ResourceManager.h"
-#include "LogManager.h"
-#include "SearchResult.h"
 
 #include "AdcHub.h"
 #include "NmdcHub.h"
-
-#include "QueueManager.h"
-#include "FinishedManager.h"
 
 #include <iomanip>
 #include <iostream>

@@ -18,11 +18,11 @@
 
 #include "stdinc.h"
 #include <direct.h>
-#include "TargetUtil.h"
-#include "ShareManager.h"
 
+#include "FavoriteManager.h"
 #include "QueueManager.h"
-
+#include "ShareManager.h"
+#include "TargetUtil.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>

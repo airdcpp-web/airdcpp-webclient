@@ -19,26 +19,21 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 #define DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 
-#include "Pointer.h"
-#include "User.h"
-#include "FastAlloc.h"
-#include "MerkleTree.h"
-#include "Flags.h"
-#include "forward.h"
-#include "Segment.h"
-#include "HintedUser.h"
 #include "Bundle.h"
 #include "GetSet.h"
+#include "FastAlloc.h"
+#include "Flags.h"
+#include "forward.h"
+#include "HintedUser.h"
+#include "MerkleTree.h"
+#include "Pointer.h"
+#include "Segment.h"
 #include "SettingsManager.h"
+#include "User.h"
 
 #include "boost/unordered_map.hpp"
 
 namespace dcpp {
-
-class QueueManager;
-class UserQueue;
-class FileQueue;
-class Download;
 
 class QueueItem : public Flags, public intrusive_ptr_base<QueueItem> {
 public:

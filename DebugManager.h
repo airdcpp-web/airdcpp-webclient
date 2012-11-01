@@ -5,7 +5,6 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "DCPlusPlus.h"
 #include "Singleton.h"
 #include "TimerManager.h"
 

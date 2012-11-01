@@ -1551,5 +1551,6 @@ enum Strings { // @DontAdd
 	MATCH_COLUMN, // "Match Column"
 	UNKNOWN_USER, // "Unknown user"
 	NO_ACCESS_ONLINE_HUBS, // "No access to this file via any online hub"
+	SEARCH_DISABLED_X, // "Search disabled: %s"
 	LAST // @DontAdd
 };

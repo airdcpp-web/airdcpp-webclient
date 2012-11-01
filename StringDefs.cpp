@@ -1544,6 +1544,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Match Column", 
 "Unknown user", 
 "No access to this file via any online hub", 
+"Search disabled: %s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3088,4 +3089,5 @@ std::string dcpp::ResourceManager::names[] = {
 "MatchColumn", 
 "UnknownUser", 
 "NoAccessOnlineHubs", 
+"SearchDisabledX", 
 };

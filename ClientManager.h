@@ -20,19 +20,16 @@
 #define DCPLUSPLUS_DCPP_CLIENT_MANAGER_H
 
 #include "TimerManager.h"
-
-#include "Search.h"
-#include "Client.h"
-#include "Singleton.h"
-#include "SettingsManager.h"
-#include "OnlineUser.h"
-#include "Socket.h"
-#include "DirectoryListing.h"
-#include "FavoriteManager.h"
+#include "ClientManagerListener.h"
 
 #include "CID.h"
-#include "ClientManagerListener.h"
+#include "Client.h"
 #include "HintedUser.h"
+#include "OnlineUser.h"
+#include "Search.h"
+#include "SettingsManager.h"
+#include "Singleton.h"
+#include "Socket.h"
 
 namespace dcpp {
 
