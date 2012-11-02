@@ -102,6 +102,9 @@ public:
 	string getTempTarget(const string& aTarget);
 	void setSegments(const string& aTarget, uint8_t aSegments);
 
+	bool isFinished(const QueueItemPtr qi) const { RLock l(cs); return qi->isFinished(); }
+	bool isWaiting(const QueueItemPtr qi) const { RLock l(cs); return qi->isWaiting(); }
+	uint64_t getDownloadedBytes(const QueueItemPtr qi) const { RLock l(cs); return qi->getDownloadedBytes(); }
 	QueueItem::SourceList getSources(const QueueItemPtr qi) const { RLock l(cs); return qi->getSources(); }
 	QueueItem::SourceList getBadSources(const QueueItemPtr qi) const { RLock l(cs); return qi->getBadSources(); }
 	size_t getSourcesCount(const QueueItemPtr qi) const { RLock l(cs); return qi->getSources().size(); }
