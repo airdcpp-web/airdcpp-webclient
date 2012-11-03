@@ -2724,7 +2724,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 
 	if (skipList.match(aName)) {
 		if(BOOLSETTING(REPORT_SKIPLIST) && report)
-			LogManager::getInstance()->message("Share Skiplist blocked file, not shared: " + aPath /*+ " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING(SKIPLIST_HIT) + aPath, LogManager::LOG_INFO);
 		return false;
 	}
 
@@ -2758,7 +2758,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 				(aName.find("__incomplete__") == 0)		//winmx
 				) {
 					if (report) {
-						LogManager::getInstance()->message("Forbidden file will not be shared: " + aPath/* + " (" + STRING(DIRECTORY) + ": \"" + aName + "\")"*/, LogManager::LOG_INFO);
+						LogManager::getInstance()->message(STRING(FORBIDDEN_FILE) + aPath, LogManager::LOG_INFO);
 					}
 					return false;
 			}

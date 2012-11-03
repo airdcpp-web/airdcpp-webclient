@@ -34,9 +34,11 @@ public:
 
 	typedef X<0> Load;
 	typedef X<1> Save;
-
+	typedef X<2> ReloadPages; // if a settingspage modifies properties in another page, fire this to update the pages.
+ 
 	virtual void on(Load, SimpleXML&) noexcept { }
 	virtual void on(Save, SimpleXML&) noexcept { }
+	virtual void on(ReloadPages, int) { }
 };
 
 class SettingsManager : public Singleton<SettingsManager>, public Speaker<SettingsManagerListener>
@@ -333,6 +335,9 @@ public:
 
 	void load(const string& aFileName);
 	void save(const string& aFileName);
+	void reloadPages(int group = 0) {
+		fire(SettingsManagerListener::ReloadPages(), group);
+	}
 
 	TStringList getSearchHistory() const {
 		return searchHistory;

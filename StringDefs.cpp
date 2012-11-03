@@ -1545,6 +1545,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Unknown user", 
 "No access to this file via any online hub", 
 "Search disabled: %s", 
+"Share skiplist blocked file, not shared: ", 
+"Forbidden file will not be shared: ", 
+"Show/Hide userlist", 
 "Own filelist", 
 "Filelist on disk", 
 };
@@ -3092,6 +3095,9 @@ std::string dcpp::ResourceManager::names[] = {
 "UnknownUser", 
 "NoAccessOnlineHubs", 
 "SearchDisabledX", 
+"SkiplistHit", 
+"ForbiddenFile", 
+"ShowUserlist", 
 "OwnFilelist", 
 "FilelistOnDisk", 
 };

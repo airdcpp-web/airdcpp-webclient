@@ -1552,6 +1552,9 @@ enum Strings { // @DontAdd
 	UNKNOWN_USER, // "Unknown user"
 	NO_ACCESS_ONLINE_HUBS, // "No access to this file via any online hub"
 	SEARCH_DISABLED_X, // "Search disabled: %s"
+	SKIPLIST_HIT, // "Share skiplist blocked file, not shared: "
+	FORBIDDEN_FILE, // "Forbidden file will not be shared: "
+	SHOW_USERLIST, // "Show/Hide userlist"
 	OWN_FILELIST, // "Own filelist"
 	FILELIST_ON_DISK, // "Filelist on disk"
 	LAST // @DontAdd
