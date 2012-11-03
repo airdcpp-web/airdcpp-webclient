@@ -57,13 +57,10 @@ class FileList {
 		//static atomic_flag generating;
 
 		unique_ptr<File> bzXmlRef;
-		void increaseN() { listN++; };
 		string getFileName();
-		string getDefaultFileName();
-		string getNFileName();
 
-		bool isDirty(bool force=false);
-		void unsetDirty();
+		bool generateNew(bool force=false);
+		void unsetDirty(bool failed);
 		void saveList();
 	private:
 		CriticalSection cs;

@@ -71,7 +71,7 @@ SearchManager::~SearchManager() {
 	TimerManager::getInstance()->removeListener(this);
 	SettingsManager::getInstance()->removeListener(this);
 
-	//for_each(searchKeys, DeleteFunction());
+	for_each(searchKeys, DeleteFunction());
 }
 
 string SearchManager::normalizeWhitespace(const string& aString){
@@ -94,20 +94,24 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 	Search::searchType sType, void* aOwner /* NULL */) {
 
 	StringPairList tokenHubList;
-	//generate a random key and store it so we can check the results
-	//uint8_t* key = new uint8_t[16];
-	//RAND_bytes(key, 16);
+	string keyStr;
 
 	{
 		WLock l (cs);
-		//searchKeys.push_back(key);
+		if (BOOLSETTING(ENABLE_SUDP)) {
+			//generate a random key and store it so we can check the results
+			uint8_t* key = new uint8_t[16];
+			RAND_bytes(key, 16);
+			searchKeys.push_back(key);
+			keyStr = Encoder::toBase32(key, 16);
+		}
+
 		for_each(who, [&](string& hub) {
 			string hubToken = Util::toString(Util::rand());
 			searches[hubToken] = (SearchItem)(make_tuple(GET_TICK(), aToken, hub));
 			tokenHubList.push_back(make_pair(hubToken, hub));
 		});
 	}
-	//string keyStr = Encoder::toBase32(key, 16);
 
 	uint64_t estimateSearchSpan = 0;
 	for_each(tokenHubList, [&](StringPair& sp) {
@@ -122,8 +126,8 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 
 		s->owners.insert(aOwner);
 
-		//if (strnicmp("adcs://", sp.second.c_str(), 7) == 0)
-		//	s->key		= keyStr;
+		if (strnicmp("adcs://", sp.second.c_str(), 7) == 0)
+			s->key		= keyStr;
 
 		uint64_t ret = ClientManager::getInstance()->search(sp.second, s);
 		estimateSearchSpan = max(estimateSearchSpan, ret);			
@@ -133,9 +137,9 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 }
 
 bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t bufLen) {
-	/*RLock l (cs);
+	RLock l (cs);
 	for(auto i = searchKeys.cbegin(); i != searchKeys.cend(); ++i) {
-		uint8_t* out = new uint8_t[bufLen];
+		boost::scoped_array<uint8_t> out(new uint8_t[bufLen]);
 
 		uint8_t ivd[16] = { };
 
@@ -144,8 +148,8 @@ bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t b
 
 		int len = 0, tmpLen=0;
 		EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, *i, ivd);
-		EVP_DecryptUpdate(&ctx, out, &len, buf, aLen);
-		EVP_DecryptFinal_ex(&ctx, out + aLen, &tmpLen);
+		EVP_DecryptUpdate(&ctx, &out[0], &len, buf, aLen);
+		EVP_DecryptFinal_ex(&ctx, &out[0] + aLen, &tmpLen);
 		EVP_CIPHER_CTX_cleanup(&ctx);
 
 		// Validate padding and replace with 0-bytes.
@@ -164,10 +168,10 @@ bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t b
 		}
 
 		if (valid) {
-			x = (char*)out+16;
+			x = (char*)&out[0]+16;
 			break;
 		}
-	}*/
+	}
 	return true;
 }
 

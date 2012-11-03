@@ -44,7 +44,7 @@ struct Search {
 	StringList	exts;
 	set<void*>	owners;
 	searchType	type;
-	//string		key;
+	string		key;
 
 	
 	bool operator==(const Search& rhs) const {

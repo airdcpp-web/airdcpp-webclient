@@ -115,6 +115,7 @@ public:
 		void filterList(TTHSet& l);
 		void getHashList(TTHSet& l);
 		void clearAdls();
+		void clearAll();
 		void sortDirs();
 
 		bool findIncomplete();
@@ -181,6 +182,7 @@ public:
 	const string& getHubUrl() const { return hintedUser.hint; }	
 		
 	GETSET(HintedUser, hintedUser, HintedUser);
+	GETSET(bool, reloading, Reloading);
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, abort, Abort);
 	GETSET(bool, isOwnList, IsOwnList);
@@ -189,7 +191,7 @@ public:
 	GETSET(bool, matchADL, MatchADL);	
 
 	void addMatchADLTask();
-	void addListDiffTask(const string& aFile);
+	void addListDiffTask(const string& aFile, bool aOwnList);
 	void addPartialListTask(const string& aXmlDir, std::function<void ()> f = nullptr);
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
@@ -244,7 +246,7 @@ private:
 
 	void endSearch(bool timedOut=false);
 
-	void changeDir();
+	void changeDir(bool reload=false);
 	string searchToken;
 	bool typingFilter;
 };

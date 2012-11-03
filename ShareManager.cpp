@@ -131,32 +131,17 @@ void ShareManager::shutdown() {
 		saveXmlList();
 
 	try {
+		RLock l (cs);
 		StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
+
 		//clear refs so we can delete filelists.
-		RLock l(cs);
 		for(auto f = shareProfiles.begin(); f != shareProfiles.end(); ++f) {
 			if((*f)->getProfileList() && (*f)->getProfileList()->bzXmlRef.get()) 
 				(*f)->getProfileList()->bzXmlRef.reset(); 
 		}
 
-		for(auto i = lists.begin(); i != lists.end(); ++i) {
-			File::deleteFile(*i); // cannot delete the current filelist due to the bzxmlref.
-		}
-		lists.clear();
-		
-		//leave the latest filelist undeleted, and rename it to files.xml.bz2
-		/*FileList* fl =  fileLists.find(FileListALL)->second;
-		
-		if(fl->bzXmlRef.get()) 
-			fl->bzXmlRef.reset(); 
-
-			if(!Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2"))				
-				File::renameFile(fl->getBZXmlFile(), ( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2") ); */
-				
-	} catch(...) {
-		//ignore, we just failed to delete
-	}
-		
+		for_each(lists, File::deleteFile);
+	} catch(...) { }
 }
 
 void ShareManager::setDirty(ProfileTokenSet aProfiles, bool setCacheDirty, bool forceXmlRefresh /*false*/) {
@@ -1719,13 +1704,11 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 	}
 
 
-	if(fl->isDirty(forced)) {
-		fl->increaseN();
-
+	if(fl->generateNew(forced)) {
 		try {
 			//auto start = GET_TICK();
 			{
-				File f(fl->getNFileName(), File::WRITE, File::TRUNCATE | File::CREATE, false);
+				File f(fl->getFileName(), File::WRITE, File::TRUNCATE | File::CREATE, false);
 				// We don't care about the leaves...
 				CalcOutputStream<TTFilter<1024*1024*1024>, false> bzTree(&f);
 				FilteredOutputStream<BZFilter, false> bzipper(&bzTree);
@@ -1772,10 +1755,11 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 			//LogManager::getInstance()->message("Full list generated in " + Util::toString(end-start) + " ms (" + Util::toString((end-start)/1000) + " seconds)", LogManager::LOG_INFO);
 
 			fl->saveList();
+			fl->unsetDirty(false);
 		} catch(const Exception&) {
 			// No new file lists...
+			fl->unsetDirty(true);
 		}
-		fl->unsetDirty();
 	}
 
 	return fl;

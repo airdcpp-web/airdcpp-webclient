@@ -1552,5 +1552,7 @@ enum Strings { // @DontAdd
 	UNKNOWN_USER, // "Unknown user"
 	NO_ACCESS_ONLINE_HUBS, // "No access to this file via any online hub"
 	SEARCH_DISABLED_X, // "Search disabled: %s"
+	OWN_FILELIST, // "Own filelist"
+	FILELIST_ON_DISK, // "Filelist on disk"
 	LAST // @DontAdd
 };

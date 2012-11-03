@@ -148,15 +148,15 @@ int UDPServer::PacketProcessor::run() {
 
 		string x((char*)t.buf, t.len);
 		string remoteIp = move(t.remoteIp);
-		delete t.buf;
 
 		//check if this packet has been encrypted
-		//if (t.len >= 32 && ((t.len & 15) == 0)) {
-		//	SearchManager::getInstance()->decryptPacket(x, t.len, t.buf, BUFSIZE);
-		//}
+		if (BOOLSETTING(ENABLE_SUDP) && t.len >= 32 && ((t.len & 15) == 0)) {
+			SearchManager::getInstance()->decryptPacket(x, t.len, t.buf, BUFSIZE);
+		}
 			
-
+		delete t.buf;
 		COMMAND_DEBUG(x, DebugManager::TYPE_CLIENT_UDP, DebugManager::INCOMING, remoteIp);
+
 		if(x.compare(0, 4, "$SR ") == 0) {
 			SearchManager::getInstance()->onSR(x, remoteIp);
 		} else if(x.compare(1, 4, "RES ") == 0 && x[x.length() - 1] == 0x0a) {

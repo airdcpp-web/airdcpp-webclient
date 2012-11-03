@@ -31,8 +31,6 @@
 
 namespace dcpp {
 
-//atomic_flag FileList::generating = ATOMIC_FLAG_INIT;
-
 FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { 
 	if (profile == SP_HIDDEN && !Util::fileExists(getFileName()))  {
 		FilteredOutputStream<BZFilter, true> emptyXmlFile(new File(getFileName(), File::WRITE, File::TRUNCATE | File::CREATE));
@@ -44,26 +42,14 @@ FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), f
 }
 
 string FileList::getFileName() {
-	return isSavedSuccessfully ? getDefaultFileName() : getNFileName();
-}
-
-string FileList::getDefaultFileName() {
-	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + ".xml.bz2";
-}
-
-string FileList::getNFileName() {
 	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + "_" + Util::toString(listN) + ".xml.bz2";
 }
 
-bool FileList::isDirty(bool forced) {
+bool FileList::generateNew(bool forced) {
 	if (profile == SP_HIDDEN)
 		return false;
 
 	cs.mutex.lock();
-
-	/*if(!forced && generating.test_and_set()) {
-		return false;
-	}*/
 
 	bool dirty = (forced && xmlDirty) || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK()));
 	if (!dirty) {
@@ -71,31 +57,23 @@ bool FileList::isDirty(bool forced) {
 		return false;
 	}
 
+	listN++;
 	return true;
 }
 
-void FileList::unsetDirty() {
+void FileList::unsetDirty(bool failed) {
 	xmlDirty = false;
 	forceXmlRefresh = false;
 	lastXmlUpdate = GET_TICK();
+	if (failed)
+		listN--;
+
 	cs.mutex.unlock();
-	//generating.clear();
 }
 
 void FileList::saveList() {
 	if(bzXmlRef.get()) {
 		bzXmlRef.reset();
-		File::deleteFile(getFileName());
-	}
-
-	try {
-		File::renameFile(getNFileName(), getDefaultFileName());
-		isSavedSuccessfully = true;
-		//newXmlName = Util::getPath(Util::PATH_USER_CONFIG) + "files" + aProfile + ".xml.bz2";
-	} catch(const FileException& e) {
-		dcdebug("error renaming filelist: ", e.getError());
-		isSavedSuccessfully = false;
-		// Ignore, this is for caching only...
 	}
 
 	bzXmlRef = unique_ptr<File>(new File(getFileName(), File::READ, File::OPEN, false));
