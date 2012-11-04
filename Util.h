@@ -171,53 +171,17 @@ public:
 	static long getUptime() { return mUptimeSeconds; }
 	static void increaseUptime() { mUptimeSeconds++; }
 
-	static string getFilePath(const string& path) {
-		string::size_type i = path.rfind(PATH_SEPARATOR);
-		return (i != string::npos) ? path.substr(0, i + 1) : path;
-	}
-	static string getFileName(const string& path) {
-		string::size_type i = path.rfind(PATH_SEPARATOR);
-		return (i != string::npos) ? path.substr(i + 1) : path;
-	}
-	static string getFileExt(const string& path) {
-		string::size_type i = path.rfind('.');
-		return (i != string::npos) ? path.substr(i) : Util::emptyString;
-	}
-	static string getLastDir(const string& path) {
-		string::size_type i = path.rfind(PATH_SEPARATOR);
-		if(i == string::npos)
-			return path;
-		string::size_type j = path.rfind(PATH_SEPARATOR, i-1);
-		return (j != string::npos) ? path.substr(j+1, i-j-1) : path;
-	}
+	static string getFilePath(const string& path);
+	static string getFileName(const string& path);
+	static string getFileExt(const string& path);
+	static string getLastDir(const string& path);
 
-	static string getParentDir(const string& path) {
-		string::size_type i = path.rfind(PATH_SEPARATOR);
-		if(i == string::npos)
-			return path;
-		string::size_type j = path.rfind(PATH_SEPARATOR, i-1);
-		return (j != string::npos) ? path.substr(0, j+1) : path;
-	}
+	static string getParentDir(const string& path);
 
-	static wstring getFilePath(const wstring& path) {
-		wstring::size_type i = path.rfind(PATH_SEPARATOR);
-		return (i != wstring::npos) ? path.substr(0, i + 1) : path;
-	}
-	static wstring getFileName(const wstring& path) {
-		wstring::size_type i = path.rfind(PATH_SEPARATOR);
-		return (i != wstring::npos) ? path.substr(i + 1) : path;
-	}
-	static wstring getFileExt(const wstring& path) {
-		wstring::size_type i = path.rfind('.');
-		return (i != wstring::npos) ? path.substr(i) : Util::emptyStringW;
-	}
-	static wstring getLastDir(const wstring& path) {
-		wstring::size_type i = path.rfind(PATH_SEPARATOR);
-		if(i == wstring::npos)
-			return Util::emptyStringW;
-		wstring::size_type j = path.rfind(PATH_SEPARATOR, i-1);
-		return (j != wstring::npos) ? path.substr(j+1, i-j-1) : path;
-	}
+	static wstring getFilePath(const wstring& path);
+	static wstring getFileName(const wstring& path);
+	static wstring getFileExt(const wstring& path);
+	static wstring getLastDir(const wstring& path);
 
 	template<typename string_t>
 	static void replace(const string_t& search, const string_t& replacement, string_t& str) {

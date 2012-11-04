@@ -213,8 +213,9 @@ private:
 		
 	Directory* findDirectory(const string& aName, Directory* current);
 
-	typedef boost::unordered_map<string, Directory::Ptr> DirMap;
-	DirMap visitedDirs;
+	//maps loaded base dirs with their full lowercase paths and whether they've been visited or not
+	typedef boost::unordered_map<string, pair<Directory::Ptr, bool>> DirMap;
+	DirMap baseDirs;
 
 	int run();
 

@@ -204,19 +204,6 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				return;		
 			TTHValue tth(h); /// @todo verify validity?
 
-			if(updating) {
-				// just update the current file if it is already there.
-				for(auto i = cur->files.cbegin(), iend = cur->files.cend(); i != iend; ++i) {
-					auto& file = **i;
-					if(file.getTTH() == tth || file.getName() == n) {
-						//file.setName(n);
-						//file.setSize(size);
-						//file.setTTH(tth);
-						return;
-					}
-				}
-			}
-
 			DirectoryListing::File* f = new DirectoryListing::File(cur, n, size, tth, checkDupe);
 			cur->files.push_back(f);
 		} else if(name == sDirectory) {
@@ -230,9 +217,9 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			DirectoryListing::Directory* d = nullptr;
 			if(updating) {
-				auto s =  list->visitedDirs.find(baseLower + Text::toLower(n));
-				if (s != list->visitedDirs.end()) {
-					d = s->second;
+				auto s =  list->baseDirs.find(baseLower + Text::toLower(n) + '/');
+				if (s != list->baseDirs.end()) {
+					d = s->second.first;
 				}
 			}
 
@@ -266,19 +253,33 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				if (s == cur->directories.end()) {
 					auto d = new DirectoryListing::Directory(cur, *i, false, false, true);
 					cur->directories.push_back(d);
-					list->visitedDirs[Text::toLower(base + *i)] = d;
+					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = make_pair(d, false);
 					cur = d;
 				} else {
 					cur = *s;
 				}
 			}
 
-			if (!cur->directories.empty() || !cur->files.empty() || base.empty()) {
-				//we have loaded this already, just reload all items
+			baseLower = Text::toLower(base);
+			auto& p = list->baseDirs[baseLower];
+
+			if ((!cur->directories.empty() || !cur->files.empty() || base.empty()) && p.second) {
+				//we have been here already, just reload all items
 				cur->clearAll();
-			} else {
-				baseLower = Text::toLower(base);
+
+				//also clean the visited dirs
+				for(auto i = list->baseDirs.begin(); i != list->baseDirs.end(); ) {
+					auto tmp = i->first;
+					if (AirUtil::isSub(i->first, base)) {
+						list->baseDirs.erase(i++);
+					} else {
+						i++;
+					}
+				}
 			}
+
+			//set the dir as visited
+			p.second = true;
 
 			cur->setDate(date);
 		}
@@ -895,6 +896,10 @@ int DirectoryListing::run() {
 				partialList = false;
 
 				fire(DirectoryListingListener::LoadingStarted());
+				if (reloading) {
+					root->clearAll();
+					baseDirs.clear();
+				}
 
 				if (isOwnList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
@@ -918,7 +923,7 @@ int DirectoryListing::run() {
 					return 0;
 
 				if (reloading) {
-					visitedDirs.clear();
+					baseDirs.clear();
 					root->clearAll();
 					root->setComplete(false);
 				}

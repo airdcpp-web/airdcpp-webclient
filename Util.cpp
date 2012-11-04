@@ -1240,6 +1240,62 @@ string Util::toNmdcFile(const string& file) {
 	return ret;
 }
 
+string Util::getFilePath(const string& path) {
+	string::size_type i = path.rfind(PATH_SEPARATOR);
+	return (i != string::npos) ? path.substr(0, i + 1) : path;
+}
+string Util::getFileName(const string& path) {
+	string::size_type i = path.rfind(PATH_SEPARATOR);
+	return (i != string::npos) ? path.substr(i + 1) : path;
+}
+string Util::getFileExt(const string& path) {
+	string::size_type i = path.rfind('.');
+	return (i != string::npos) ? path.substr(i) : Util::emptyString;
+}
+string Util::getLastDir(const string& path) {
+	string::size_type i = path.rfind(PATH_SEPARATOR);
+	if(i == string::npos)
+		return path;
+
+	string::size_type j = path.rfind(PATH_SEPARATOR, i-1);
+	if (j == string::npos)
+		return i == path.length()-1 ? path.substr(0, i) : path;
+
+	return path.substr(j+1, i-j-1);
+}
+
+string Util::getParentDir(const string& path) {
+	string::size_type i = path.rfind(PATH_SEPARATOR);
+	if(i == string::npos)
+		return path;
+	string::size_type j = path.rfind(PATH_SEPARATOR, i-1);
+	return (j != string::npos) ? path.substr(0, j+1) : path;
+}
+
+wstring Util::getFilePath(const wstring& path) {
+	wstring::size_type i = path.rfind(PATH_SEPARATOR);
+	return (i != wstring::npos) ? path.substr(0, i + 1) : path;
+}
+wstring Util::getFileName(const wstring& path) {
+	wstring::size_type i = path.rfind(PATH_SEPARATOR);
+	return (i != wstring::npos) ? path.substr(i + 1) : path;
+}
+wstring Util::getFileExt(const wstring& path) {
+	wstring::size_type i = path.rfind('.');
+	return (i != wstring::npos) ? path.substr(i) : Util::emptyStringW;
+}
+wstring Util::getLastDir(const wstring& path) {
+	wstring::size_type i = path.rfind(PATH_SEPARATOR);
+	if(i == wstring::npos)
+		return Util::emptyStringW;
+
+	wstring::size_type j = path.rfind(PATH_SEPARATOR, i-1);
+	if (j == wstring::npos)
+		return i == path.length()-1 ? path.substr(0, i) : path;
+
+	return path.substr(j+1, i-j-1);
+}
+
 string Util::translateError(int aError) {
 #ifdef _WIN32
 	LPTSTR lpMsgBuf;
