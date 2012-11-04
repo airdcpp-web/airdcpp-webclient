@@ -171,7 +171,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 				goto checkslots;
 			}
 		}
-		aSource.sendError(e.getError(), AdcCommand::ERROR_FILE_ACCESS_DENIED);
+		aSource.sendError(e.getError(), noAccess ? AdcCommand::ERROR_FILE_ACCESS_DENIED : AdcCommand::ERROR_FILE_NOT_AVAILABLE);
 		return false;
 	}
 

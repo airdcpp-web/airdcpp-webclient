@@ -139,7 +139,7 @@ string Util::getOpenPath(const string& aFileName) {
 		fileName += "_" + Util::toString(Util::rand());
 	}
 
-	return getOpenPath() + Util::getFilePath(aFileName) + fileName;
+	return getOpenPath() + fileName;
 }
 
 void Util::openFile(const string& aPath) {

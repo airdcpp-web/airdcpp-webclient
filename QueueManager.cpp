@@ -1207,7 +1207,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 					q->addFinishedSegment(Segment(d->getStartPos(), downloaded));
 				}
 
-				if (rotateQueue) {
+				if (rotateQueue && q->getBundle()) {
 					q->getBundle()->rotateUserQueue(q, d->getUser());
 				}
 			}
