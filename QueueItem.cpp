@@ -573,8 +573,8 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const HubSet& onlineHubs, strin
 		return false;
 	}
 
-	//can't download a filelist if the hub is offline
-	if (isSet(FLAG_USER_LIST) && onlineHubs.find(source->getUser().hint) == onlineHubs.end()) {
+	//can't download a filelist if the hub is offline... don't be too strict with NMDC hubs
+	if (!aUser->isSet(User::NMDC) && isSet(FLAG_USER_LIST) && onlineHubs.find(source->getUser().hint) == onlineHubs.end()) {
 		lastError = STRING(USER_OFFLINE);
 		return false;
 	}

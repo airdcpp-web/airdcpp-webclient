@@ -347,6 +347,9 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 			if (i != searches.end()) {
 				localToken = get<LOCALTOKEN>((*i).second);
 				hub = get<HUBURL>((*i).second);
+			} else {
+				LogManager::getInstance()->message("A search result from " + Util::toString(ClientManager::getInstance()->getNicks(from->getCID())) + " could not be connected to any hub: " + cmd.toString(), LogManager::LOG_INFO);
+				return;
 			}
 		}
 
@@ -371,7 +374,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	WLock l (cs);
 	for (auto i = searches.begin(); i != searches.end();) {
-		if (get<SEARCHTIME>((*i).second) + 1000*60 <  aTick) {
+		if (get<SEARCHTIME>((*i).second) + 1000*300 <  aTick) {
 			searches.erase(i);
 			i = searches.begin();
 		} else {
