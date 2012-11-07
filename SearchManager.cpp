@@ -374,7 +374,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	WLock l (cs);
 	for (auto i = searches.begin(); i != searches.end();) {
-		if (get<SEARCHTIME>((*i).second) + 1000*300 <  aTick) {
+		if (get<SEARCHTIME>((*i).second) + 1000*60*15 <  aTick) {
 			searches.erase(i);
 			i = searches.begin();
 		} else {

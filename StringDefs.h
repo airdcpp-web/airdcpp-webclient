@@ -1557,5 +1557,6 @@ enum Strings { // @DontAdd
 	FILELIST_LOADED_IN, // "File list has been loaded in %s"
 	PARTIAL_LIST_LOADED, // "Partial list has been loaded"
 	DIRECTORY_LOADED, // "The directory %s has been loaded"
+	REDIRECT_FAILOVER, // "A redirection request was received via a failover address; press the follow redirect button to connect to %s"
 	LAST // @DontAdd
 };

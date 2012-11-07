@@ -323,10 +323,9 @@ void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItem
 		RLock l(cs);
 		auto p = viewedLists.find(aUser.user);
 		if (p != viewedLists.end()) {
-			if (p->second->getReloading()) {
-				p->second->setFileName(qi->getListName());
-				p->second->addFullListTask(dir);
-			}
+			p->second->setReloading(true);
+			p->second->setFileName(qi->getListName());
+			p->second->addFullListTask(dir);
 			return;
 		}
 	}

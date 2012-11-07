@@ -1192,8 +1192,8 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		for(auto i = bundles.begin(); i != bundles.end();) {
 			UploadBundlePtr ub = i->second;
 			if (ub->getUploads().empty() && ++ub->delayTime > 10) {
-				bundles.erase(i);
 				ConnectionManager::getInstance()->tokens.removeToken((*i).second->getToken());
+				bundles.erase(i);
 				i = bundles.begin();
 			} else {
 				if (ub->countSpeed() > 0)

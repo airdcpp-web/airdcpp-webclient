@@ -97,6 +97,7 @@
 #endif
 
 # pragma warning(disable: 4307) //temp disable this annoying warning, boost::lockfree integral constant overflow
+# pragma warning(disable: 4913) //boost thread warnings (boost 1.52, remove later)
 
 # pragma warning(disable: 4996)
 # pragma warning(disable: 4711) // function 'xxx' selected for automatic inline expansion

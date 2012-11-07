@@ -1550,6 +1550,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "File list has been loaded in %s", 
 "Partial list has been loaded", 
 "The directory %s has been loaded", 
+"A redirection request was received via a failover address; press the follow redirect button to connect to %s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3100,4 +3101,5 @@ std::string dcpp::ResourceManager::names[] = {
 "FilelistLoadedIn", 
 "PartialListLoaded", 
 "DirectoryLoaded", 
+"RedirectFailover", 
 };
