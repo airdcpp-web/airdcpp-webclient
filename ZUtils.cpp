@@ -105,7 +105,7 @@ UnZFilter::UnZFilter() {
 }
 
 UnZFilter::~UnZFilter() {
-	dcdebug("UnZFilter end, %ld/%ld = %.04f\n", zs.total_out, zs.total_in, (float)zs.total_out / max((float)zs.total_in, (float)1));
+	//dcdebug("UnZFilter end, %ld/%ld = %.04f\n", zs.total_out, zs.total_in, (float)zs.total_out / max((float)zs.total_in, (float)1));
 	inflateEnd(&zs);
 }
 

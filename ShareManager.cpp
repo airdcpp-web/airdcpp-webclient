@@ -1779,6 +1779,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 
 		//auto start = GET_TICK();
 		if(dir == "/") {
+			dcdebug("Generating partial from root folders");
 			for(auto i = shares.begin(); i != shares.end(); ++i) {
 				if(i->second->getProfileDir()->hasRootProfile(aProfile)) {
 					i->second->toFileList(root.get(), aProfile, recurse);
@@ -1827,6 +1828,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		dcdebug("Partial NULL");
 		return NULL;
 	} else {
+		dcdebug("Partial list Generated.");
 		return new MemoryInputStream(xml);
 	}
 }
@@ -2012,7 +2014,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 		DirectoryList result;
 		findVirtuals<ProfileToken>(dir, aProfile, result); 
 		for(auto it = result.begin(); it != result.end(); ++it) {
-			dcdebug("result name %s \n", (*it)->getProfileDir()->getName(aProfile));
+			//dcdebug("result name %s \n", (*it)->getProfileDir()->getName(aProfile));
 			(*it)->toTTHList(sos, tmp, recurse);
 		}
 	} catch(...) {
@@ -2029,7 +2031,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 }
 
 void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, bool recursive) {
-	dcdebug("toTTHList2");
+	//dcdebug("toTTHList2");
 	if (recursive) {
 		for(auto i = directories.begin(); i != directories.end(); ++i) {
 			i->second->toTTHList(tthList, tmp2, recursive);

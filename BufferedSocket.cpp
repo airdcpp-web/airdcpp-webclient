@@ -88,7 +88,7 @@ void BufferedSocket::setOptions() {
 }
 
 void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted) {
-	dcdebug("BufferedSocket::accept() %p\n", (void*)this);
+	//dcdebug("BufferedSocket::accept() %p\n", (void*)this);
 
 	unique_ptr<Socket> s(secure ? CryptoManager::getInstance()->getServerSocket(allowUntrusted) : new Socket(Socket::TYPE_TCP));
 
@@ -106,7 +106,7 @@ void BufferedSocket::connect(const string& aAddress, const string& aPort, bool s
 }
 
 void BufferedSocket::connect(const string& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy) {
-	dcdebug("BufferedSocket::connect() %p\n", (void*)this);
+	//dcdebug("BufferedSocket::connect() %p\n", (void*)this);
 	unique_ptr<Socket> s(secure ? (natRole == NAT_SERVER ? CryptoManager::getInstance()->getServerSocket(allowUntrusted) :
 		CryptoManager::getInstance()->getClientSocket(allowUntrusted)) : new Socket(Socket::TYPE_TCP));
 
@@ -130,7 +130,7 @@ void BufferedSocket::threadConnect(const string& aAddr, const string& aPort, con
 	state = RUNNING;
 
 	while (GET_TICK() < endTime) {
-		dcdebug("threadConnect attempt %s %s:%s\n", localPort.c_str(), aAddr.c_str(), aPort.c_str());
+		//dcdebug("threadConnect attempt %s %s:%s\n", localPort.c_str(), aAddr.c_str(), aPort.c_str());
 		try {
 
 			if(proxy) {
@@ -168,7 +168,7 @@ void BufferedSocket::threadConnect(const string& aAddr, const string& aPort, con
 void BufferedSocket::threadAccept() {
 	dcassert(state == STARTING);
 
-	dcdebug("threadAccept\n");
+	//dcdebug("threadAccept\n");
 
 	state = RUNNING;
 
@@ -308,7 +308,7 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 	size_t readPos = 0;
 
 	bool readDone = false;
-	dcdebug("Starting threadSend\n");
+	//dcdebug("Starting threadSend\n");
 	while(!disconnecting) {
 		if(!readDone && readBuf.size() > readPos) {
 			// Fill read buffer
@@ -489,7 +489,7 @@ void BufferedSocket::checkSocket() {
  * @todo Fix the polling...
  */
 int BufferedSocket::run() {
-	dcdebug("BufferedSocket::run() start %p\n", (void*)this);
+	//dcdebug("BufferedSocket::run() start %p\n", (void*)this);
 	while(true) {
 		try {
 			if(!checkEvents()) {
@@ -502,7 +502,7 @@ int BufferedSocket::run() {
 			fail(e.getError());
 		}
 	}
-	dcdebug("BufferedSocket::run() end %p\n", (void*)this);
+	//dcdebug("BufferedSocket::run() end %p\n", (void*)this);
 	delete this;
 	return 0;
 }

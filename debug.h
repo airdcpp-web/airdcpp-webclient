@@ -24,7 +24,7 @@
 #ifdef _DEBUG
 #define NO_FAST_ALLOC
 #include <cassert>
-#define ATLASSERT //disables atlassertions.
+//#define ATLASSERT //disables atlassertions.
 inline void CDECL debugTrace(const char* format, ...)
 {
 	/*va_list args;
@@ -32,15 +32,15 @@ inline void CDECL debugTrace(const char* format, ...)
 	vprintf(format, args);
 	va_end(args);*/
 
-	         //show the debug info in output window. 	 
-	         va_list args; 	 
-	         va_start(args, format); 	 
-	         char str[512]; 	 
-	         vsprintf(str, format, args); 	 
-	         wchar_t str2[512]; 	 
-	         ::MultiByteToWideChar(  CP_ACP, NULL,str, -1, str2, sizeof(str2)-1); 	 
-	         OutputDebugString(str2); 	 
-	         va_end(args); 	 
+	//show the debug info in output window. 	 
+	va_list args; 	 
+	va_start(args, format); 	 
+	char str[512]; 	 
+	vsprintf(str, format, args); 	 
+	wchar_t str2[512]; 	 
+	::MultiByteToWideChar(CP_UTF8, NULL,str, -1, str2, sizeof(str2)-1); 	 
+	OutputDebugString(str2); 	 
+	va_end(args); 	 
 	 
 }
 

@@ -93,7 +93,8 @@ int UploadManager::getFreeExtraSlots() const {
 }
 
 bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aStartPos, int64_t& aBytes, const string& userSID, bool listRecursive, bool tthList) {
-	dcdebug("Preparing %s %s " I64_FMT " " I64_FMT " %d\n", aType.c_str(), aFile.c_str(), aStartPos, aBytes, listRecursive);
+	dcdebug("Preparing %s %s " I64_FMT " " I64_FMT " %d" " " "%s %s\n", aType.c_str(), aFile.c_str(), aStartPos, aBytes, listRecursive, 
+		aSource.getHubUrl().c_str(), Util::toString(ClientManager::getInstance()->getNicks(aSource.getHintedUser())).c_str());
 
 	if(aFile.empty() || aStartPos < 0 || aBytes < -1 || aBytes == 0) {
 		aSource.sendError("Invalid request");

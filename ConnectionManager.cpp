@@ -923,12 +923,12 @@ bool ConnectionManager::checkKeyprint(UserConnection *aSource) {
 		return true;
 	}
 
-	dcdebug("Keyprint: %s vs %s\n", Encoder::toBase32(&kp[0], kp.size()).c_str(), kp2.c_str() + 7);
+	//dcdebug("Keyprint: %s vs %s\n", Encoder::toBase32(&kp[0], kp.size()).c_str(), kp2.c_str() + 7);
 
 	vector<uint8_t> kp2v(kp.size());
 	Encoder::fromBase32(&kp2[7], &kp2v[0], kp2v.size());
 	if(!std::equal(kp.begin(), kp.end(), kp2v.begin())) {
-		dcdebug("Not equal...\n");
+		dcdebug("Keyprint Not equal...\n");
 		return false;
 	}
 

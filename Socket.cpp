@@ -773,8 +773,8 @@ Socket::addrinfo_p Socket::resolveAddr(const string& name, const string& port, i
 		throw SocketException(err);
 	}
 
-	dcdebug("Resolved %s:%s to %s, next is %p\n", name.c_str(), port.c_str(),
-		resolveName(result->ai_addr, result->ai_addrlen).c_str(), result->ai_next);
+	//dcdebug("Resolved %s:%s to %s, next is %p\n", name.c_str(), port.c_str(),
+		//resolveName(result->ai_addr, result->ai_addrlen).c_str(), result->ai_next);
 
 	return addrinfo_p(result, &freeaddrinfo);
 }
