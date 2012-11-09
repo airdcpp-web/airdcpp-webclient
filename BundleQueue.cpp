@@ -236,10 +236,11 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 	//get the last directory, we might need the position later with subdirs
 	string remoteDir = aDir;
 	if (remoteDir[remoteDir.length()-1] == PATH_SEPARATOR)
-		remoteDir.erase(aDir.size()-1, aDir.size());
+		remoteDir.pop_back();
+
 	auto pos = remoteDir.rfind(PATH_SEPARATOR);
 	if (pos != string::npos)
-		remoteDir = remoteDir.substr(pos+1);
+		remoteDir = move(remoteDir.substr(pos+1));
 
 	auto directories = bundleDirs.equal_range(remoteDir);
 	if (directories.first == directories.second)
