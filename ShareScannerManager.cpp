@@ -110,7 +110,6 @@ int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
 }
 
 void ShareScannerManager::Stop() {
-	rootPaths.clear();
 	stop = true;
 }
 
@@ -171,6 +170,8 @@ int ShareScannerManager::run() {
 		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0;
 
 		for(auto i = rootPaths.begin(); i != rootPaths.end(); ++i) {
+			if (stop)
+				break;
 			dir = *i;
 			DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
 			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
@@ -187,14 +188,16 @@ int ShareScannerManager::run() {
 				find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, isDirScan ? TYPE_PARTIAL : TYPE_FULL);
 			}
 		}
-		reportResults(Util::emptyString, isDirScan ? TYPE_PARTIAL : TYPE_FULL, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, dupesFound);
-		if (!scanReport.empty()) {
-			char buf[255];
-			time_t time = GET_TIME();
-			tm* _tm = localtime(&time);
-			strftime(buf, 254, "%c", _tm);
+		if(!stop) {
+			reportResults(Util::emptyString, isDirScan ? TYPE_PARTIAL : TYPE_FULL, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, dupesFound);
+			if (!scanReport.empty()) {
+				char buf[255];
+				time_t time = GET_TIME();
+				tm* _tm = localtime(&time);
+				strftime(buf, 254, "%c", _tm);
 
-			fire(ScannerManagerListener::ScanFinished(), scanReport, STRING_F(SCANNING_RESULTS_ON, string(buf)));
+				fire(ScannerManagerListener::ScanFinished(), scanReport, STRING_F(SCANNING_RESULTS_ON, string(buf)));
+			}
 		}
 		bundleDirs.clear();
 		dupeDirs.clear();

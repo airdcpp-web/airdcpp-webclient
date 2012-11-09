@@ -107,7 +107,7 @@ private:
 	int checkFailed;
 
 	int64_t scanFolderSize;
-	bool stop;
+	volatile bool stop;
 	void findDupes(const string& path, int& dupesFound, ScanType scanType);
 	boost::unordered_multimap<string, string, noCaseStringHash, noCaseStringEq> dupeDirs;
 	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList);
