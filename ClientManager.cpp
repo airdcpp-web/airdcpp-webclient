@@ -85,7 +85,7 @@ Client* ClientManager::getClient(const string& aHubURL) {
 }
 
 void ClientManager::putClient(Client* aClient) {
-	fire(ClientManagerListener::ClientDisconnected(), aClient);
+	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
 	aClient->removeListeners();
 
 	{
@@ -961,8 +961,8 @@ void ClientManager::on(HubUpdated, const Client* c) noexcept {
 	fire(ClientManagerListener::ClientUpdated(), c);
 }
 
-void ClientManager::on(Failed, const Client* client, const string&) noexcept {
-	fire(ClientManagerListener::ClientDisconnected(), client);
+void ClientManager::on(Failed, const string& aHubUrl, const string& aLine) noexcept {
+	fire(ClientManagerListener::ClientDisconnected(), aHubUrl);
 }
 
 void ClientManager::on(HubUserCommand, const Client* client, int aType, int ctx, const string& name, const string& command) noexcept {

@@ -1030,52 +1030,56 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 }
 
 void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool failed) {
-	QueueItemList ql;
+	QueueItemPtr q;
 	{
 		RLock l(cs);
-		if (failed) {
-			string file = Util::getFileName(fname);
-			int64_t size = File::getSize(fname);
-			QueueItemPtr qi = nullptr;
-			for (auto s = fileQueue.getTTHIndex().begin(); s != fileQueue.getTTHIndex().end(); ++s) {
-				if (s->second->getTargetFileName() == Util::getFileName(file) && size == s->second->getSize() && s->second->isFinished()) {
-					qi = s->second;
-					if (qi->getTarget() == fname) { //prefer exact matches
-						break;
-					}
-				}
+
+		//prefer the exact path match
+		q = fileQueue.findFile(fname);
+		if (!q) {
+			//also remove bundles that haven't been removed in a shared directories... remove this when the bundles are shown correctly in GUI
+
+			auto tpi = make_pair(fileQueue.getTTHIndex().begin(), fileQueue.getTTHIndex().end());
+			if (!failed) {
+				//we have the tth so we can limit the range
+				tpi = fileQueue.getTTHIndex().equal_range(const_cast<TTHValue*>(&root));
 			}
 
-			if (qi)
-				ql.push_back(qi);
-		} else {
-			fileQueue.findFiles(root, ql);
+			if (tpi.first != tpi.second) {
+				int64_t size = 0;
+				if (failed) {
+					size = File::getSize(fname);
+				}
+
+				auto file = Util::getFileName(fname);
+				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getTargetFileName() == file && aQI->isFinished(); });
+				if (p.base() != tpi.second) {
+					q = *p;
+				}
+			}
 		}
 	}
 
-	if (ql.empty()) {
+	if (!q) {
 		if (!failed) {
 			fire(QueueManagerListener::FileHashed(), fname, root);
 		}
 		return;
 	}
 
-	BundlePtr b = nullptr;
-	for (auto s = ql.begin(); s != ql.end(); ++s) {
-		QueueItemPtr qi = *s;
-		if (qi->isFinished()) {
-			qi->setFlag(QueueItem::FLAG_HASHED);
-			b = qi->getBundle();
-			if (failed) {
-				b->setFlag(Bundle::FLAG_SHARING_FAILED);
-			} else if (!b->isSet(Bundle::FLAG_HASH)) {
-				//instant sharing disabled/the folder wasn't shared when the bundle finished
-				fire(QueueManagerListener::FileHashed(), fname, root);
-			}
+	if (!q->getBundle())
+		return;
 
-			checkBundleHashed(b);
-		}
+
+	q->setFlag(QueueItem::FLAG_HASHED);
+	if (failed) {
+		q->getBundle()->setFlag(Bundle::FLAG_SHARING_FAILED);
+	} else if (!q->getBundle()->isSet(Bundle::FLAG_HASH)) {
+		//instant sharing disabled/the folder wasn't shared when the bundle finished
+		fire(QueueManagerListener::FileHashed(), fname, root);
 	}
+
+	checkBundleHashed(q->getBundle());
 }
 
 void QueueManager::checkBundleHashed(BundlePtr b) {

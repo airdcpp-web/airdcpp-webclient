@@ -94,7 +94,7 @@ public:
 
 	void addFavorite(const FavoriteHubEntry& aEntry);
 	void removeFavorite(const FavoriteHubEntry* entry);
-	bool isFavoriteHub(const std::string& aUrl);
+	bool isUnique(const string& aUrl, ProfileToken aToken);
 	FavoriteHubEntry* getFavoriteHubEntry(const string& aServer) const;
 
 // Favorite hub groups

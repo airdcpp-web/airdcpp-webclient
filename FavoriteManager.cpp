@@ -248,8 +248,12 @@ bool FavoriteManager::addFavoriteDir(const string& aName, StringList& aTargets){
 	return true;
 }
 
-bool FavoriteManager::isFavoriteHub(const std::string& url) {
-	return getFavoriteHub(url) != favoriteHubs.end();
+bool FavoriteManager::isUnique(const std::string& url, ProfileToken aToken) {
+	auto i = getFavoriteHub(url);
+	if (i == favoriteHubs.end())
+		return true;
+
+	return aToken == (*i)->getToken();
 }
 
 void FavoriteManager::saveFavoriteDirs(FavDirList dirs) {

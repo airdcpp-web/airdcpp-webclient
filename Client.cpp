@@ -45,7 +45,7 @@ Client::Client(const string& hubURL, char separator_) :
 }
 
 void Client::setHubUrl(const string& aUrl) {
-	hubUrl = move(aUrl);
+	hubUrl = aUrl;
 	secure = strnicmp("adcs://", aUrl.c_str(), 7) == 0 || strnicmp("nmdcs://", aUrl.c_str(), 8) == 0;
 
 	string file, proto, query, fragment;
@@ -167,7 +167,7 @@ void Client::connect() {
 		sock->connect(address, port, secure, BOOLSETTING(ALLOW_UNTRUSTED_HUBS), true);
 	} catch(const Exception& e) {
 		state = STATE_DISCONNECTED;
-		fire(ClientListener::Failed(), this, e.getError());
+		fire(ClientListener::Failed(), hubUrl, e.getError());
 	}
 	updateActivity();
 }
@@ -195,7 +195,7 @@ void Client::on(Connected) noexcept {
 			if(!std::equal(kp.begin(), kp.end(), kp2v.begin())) {
 				state = STATE_DISCONNECTED;
 				sock->removeListener(this);
-				fire(ClientListener::Failed(), this, "Keyprint mismatch");
+				fire(ClientListener::Failed(), hubUrl, "Keyprint mismatch");
 				return;
 			}
 		}
@@ -212,7 +212,7 @@ void Client::onPassword() {
 		ClientManager::getInstance()->setClientUrl(hubUrl, newUrl);
 		state = STATE_DISCONNECTED;
 		sock->removeListener(this);
-		fire(ClientListener::Failed(), this, STRING(FAILOVER_AUTH));
+		fire(ClientListener::Failed(), hubUrl, STRING(FAILOVER_AUTH));
 		return;
 	}
 	fire(ClientListener::GetPassword(), this);
@@ -220,6 +220,7 @@ void Client::onPassword() {
 
 void Client::on(Failed, const string& aLine) noexcept {
 	string msg = aLine;
+	string url = hubUrl;
 	if (state == STATE_CONNECTING || (state != STATE_NORMAL && FavoriteManager::getInstance()->isFailOverUrl(favToken, hubUrl))) {
 		string newUrl = hubUrl;
 		if (FavoriteManager::getInstance()->getFailOverUrl(favToken, newUrl) && !ClientManager::getInstance()->isConnected(newUrl)) {
@@ -237,7 +238,7 @@ void Client::on(Failed, const string& aLine) noexcept {
 	state = STATE_DISCONNECTED;
 
 	sock->removeListener(this);
-	fire(ClientListener::Failed(), this, msg);
+	fire(ClientListener::Failed(), hubUrl, msg);
 }
 
 void Client::disconnect(bool graceLess) {

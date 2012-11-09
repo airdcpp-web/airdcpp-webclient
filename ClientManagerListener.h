@@ -47,7 +47,7 @@ public:
 	virtual void on(IncomingSearch, const string&) noexcept { }
 	virtual void on(ClientConnected, const Client*) noexcept { }
 	virtual void on(ClientUpdated, const Client*) noexcept { }
-	virtual void on(ClientDisconnected, const Client*) noexcept { }
+	virtual void on(ClientDisconnected, const string&) noexcept { }
 	virtual void on(IncomingADCSearch, const AdcCommand&) noexcept { }
 };
 

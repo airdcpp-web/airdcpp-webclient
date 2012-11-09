@@ -191,7 +191,7 @@ private:
 	void on(Connected, const Client* c) noexcept;
 	void on(UserUpdated, const Client*, const OnlineUserPtr& user) noexcept;
 	void on(UsersUpdated, const Client* c, const OnlineUserList&) noexcept;
-	void on(Failed, const Client*, const string&) noexcept;
+	void on(Failed, const string&, const string&) noexcept;
 	void on(HubUpdated, const Client* c) noexcept;
 	void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
 	void on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,

@@ -44,7 +44,7 @@ public:
 	virtual void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept { }
 	virtual void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept { }
 	virtual void on(Redirect, const Client*, const string&) noexcept { }
-	virtual void on(Failed, const Client*, const string&) noexcept { }
+	virtual void on(Failed, const string&/*hubUrl*/, const string& /*aLine*/) noexcept { }
 	virtual void on(GetPassword, const Client*) noexcept { }
 	virtual void on(HubUpdated, const Client*) noexcept { }
 	virtual void on(Message, const Client*, const ChatMessage&) noexcept { }

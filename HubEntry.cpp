@@ -30,7 +30,7 @@ FavoriteHubEntry::FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0)
 
 FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), encoding(Text::systemCharset), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL)),
 	description(rhs.getDescription()), connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), 
-	stealth(false), userliststate(true), mode(0), chatNotify(false), token(Util::rand()) {
+	stealth(false), userliststate(true), mode(0), chatNotify(false), token(Util::randInt()) {
 
 		servers.push_back(make_pair(rhs.getServer(), false));
 }
