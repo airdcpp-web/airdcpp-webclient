@@ -1104,7 +1104,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		}
 
 		if( BOOLSETTING(AUTO_KICK) ) {
-			for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); ++i) {
+			for(auto i = uploads.begin(); i != uploads.end(); ++i) {
 				Upload* u = *i;
 				if(u->getUser()->isOnline()) {
 					u->unsetFlag(Upload::FLAG_PENDING_KICK);
@@ -1125,8 +1125,8 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		}
 	}
 		
-	for(UserList::const_iterator i = disconnects.begin(); i != disconnects.end(); ++i) {
-		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks((*i)->getCID(), Util::emptyString)), LogManager::LOG_INFO);
+	for(auto i = disconnects.begin(); i != disconnects.end(); ++i) {
+		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks((*i)->getCID())), LogManager::LOG_INFO);
 		ConnectionManager::getInstance()->disconnect(*i, false);
 	}
 
@@ -1252,7 +1252,7 @@ void UploadManager::abortUpload(const string& aFile, bool waiting){
 	{
 		Lock l(cs);
 
-		for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); i++){
+		for(auto i = uploads.begin(); i != uploads.end(); i++){
 			Upload* u = (*i);
 
 			if(u->getPath() == aFile){
@@ -1271,7 +1271,7 @@ void UploadManager::abortUpload(const string& aFile, bool waiting){
 			Lock l(cs);
 
 			nowait = true;
-			for(UploadList::const_iterator i = uploads.begin(); i != uploads.end(); i++){
+			for(auto i = uploads.begin(); i != uploads.end(); i++){
 				Upload* u = (*i);
 
 				if(u->getPath() == aFile){

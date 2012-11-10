@@ -30,7 +30,7 @@
 namespace dcpp {
 
 
-ChatLink::ChatLink(const string& aUrl, LinkType aLinkType) : url(aUrl), type(aLinkType), dupe(DUPE_NONE) {
+	ChatLink::ChatLink(const string& aUrl, LinkType aLinkType) : url(Text::toUtf8(aUrl)), type(aLinkType), dupe(DUPE_NONE) {
 	if (aLinkType == TYPE_RELEASE) {
 		if (ShareManager::getInstance()->isDirShared(aUrl)) {
 			dupe = SHARE_DUPE;
