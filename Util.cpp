@@ -1264,12 +1264,16 @@ string Util::getLastDir(const string& path) {
 	return path.substr(j+1, i-j-1);
 }
 
-string Util::getParentDir(const string& path) {
+string Util::getParentDir(const string& path, bool allowEmpty /*false*/) {
 	string::size_type i = path.rfind(PATH_SEPARATOR);
 	if(i == string::npos)
-		return path;
+		return allowEmpty ? Util::emptyString : path;
+
 	string::size_type j = path.rfind(PATH_SEPARATOR, i-1);
-	return (j != string::npos) ? path.substr(0, j+1) : path;
+	if (j != string::npos) 
+		return path.substr(0, j+1);
+	
+	return allowEmpty ? Util::emptyString : path;
 }
 
 wstring Util::getFilePath(const wstring& path) {

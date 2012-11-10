@@ -176,7 +176,7 @@ public:
 	static string getFileExt(const string& path);
 	static string getLastDir(const string& path);
 
-	static string getParentDir(const string& path);
+	static string getParentDir(const string& path, bool allowEmpty = false);
 
 	static wstring getFilePath(const wstring& path);
 	static wstring getFileName(const wstring& path);
