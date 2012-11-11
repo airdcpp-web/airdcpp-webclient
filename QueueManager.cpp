@@ -2997,16 +2997,14 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 						if(!Util::fileExists(targetPath)) {
 							qi->unsetFlag(QueueItem::FLAG_MOVED);
 							moveFile(qi->getTarget(), targetPath, qi, true);
-							fileQueue.move(qi, targetPath);
 							if (newBundle == sourceBundle) {
+								fileQueue.move(qi, targetPath);
 								i++;
-								continue;
-							} else if (hasMergeBundle) {
-								bundleQueue.addFinishedItem(qi, newBundle);
 							} else {
-								bundleQueue.addFinishedItem(qi, tempBundle);
+								bundleQueue.removeFinishedItem(qi);
+								fileQueue.move(qi, targetPath);
+								bundleQueue.addFinishedItem(qi, hasMergeBundle ? newBundle : tempBundle);
 							}
-							bundleQueue.removeFinishedItem(qi);
 							continue;
 						} else {
 							/* TODO: add for recheck */

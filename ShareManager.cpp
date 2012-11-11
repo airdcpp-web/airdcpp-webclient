@@ -652,7 +652,6 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, ProfileToke
 		while(aXml.findChild("Directory")) {
 			auto path = aXml.getChildData();
 
-			//ProfileDirectory::Ptr pd = nullptr;
 			auto p = profileDirs.find(path);
 			if (p != profileDirs.end()) {
 				auto pd = p->second;
@@ -804,16 +803,6 @@ bool ShareManager::loadCache() {
 	} catch(...) {
 		return false;
 	}
-
-	/*try { //not vital to our cache loading.
-		auto fl = getFileList(SP_DEFAULT);
-		fl->setBZXmlFile( Util::getPath(Util::PATH_USER_CONFIG) + "files.xml.bz2");
-		if(!Util::fileExists(fl->getBZXmlFile())) {  //only generate if we dont find old filelist
-			generateXmlList(SP_DEFAULT, true);
-		} else {
-			fl->bzXmlRef = unique_ptr<File>(new File(fl->getBZXmlFile(), File::READ, File::OPEN));
-		}
-	} catch(...) { }*/
 
 	return true;
 }
@@ -1045,10 +1034,10 @@ void ShareManager::removeDir(ShareManager::Directory::Ptr aDir) {
 	auto directories = dirNameMap.equal_range(aDir->getRealName());
 	string realPath = aDir->getRealPath(false);
 	
-	auto p = find_if(directories, [realPath](pair<string, Directory::Ptr> sdp) { return sdp.second->getRealPath(false) == realPath; });
+	auto p = find_if(directories | map_values, [&realPath](const Directory::Ptr d) { return d->getRealPath(false) == realPath; });
 	//dcassert(p != directories.second);
-	if (p != dirNameMap.end())
-		dirNameMap.erase(p);
+	if (p.base() != dirNameMap.end())
+		dirNameMap.erase(p.base());
 }
 
 void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize) {
@@ -1329,7 +1318,7 @@ int ShareManager::addTask(uint8_t aType, StringList& dirs, const string& display
 
 void ShareManager::getParents(DirMap& aDirs) const {
 	for(auto i = shares.begin(); i != shares.end(); ++i) {
-		if (find_if(shares, [i](pair<string, Directory::Ptr> dir) { return AirUtil::isSub(i->first, dir.first); } ) == shares.end())
+		if (find_if(shares | map_keys, [i](const string& path) { return AirUtil::isSub(i->first, path); } ).base() == shares.end())
 			aDirs.insert(*i);
 	}
 }
@@ -1338,7 +1327,7 @@ void ShareManager::getParentPaths(StringList& aDirs) const {
 	//removes subroots from shared dirs
 	RLock l (cs);
 	for(auto i = shares.begin(); i != shares.end(); ++i) {
-		if (find_if(shares, [i](pair<string, Directory::Ptr> dir) { return AirUtil::isSub(i->first, dir.first); } ) == shares.end())
+		if (find_if(shares | map_keys, [i](const string& path) { return AirUtil::isSub(i->first, path); } ).base() == shares.end())
 			aDirs.push_back(i->first);
 	}
 }
@@ -1380,8 +1369,8 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 				i->second->getProfileDir()->addRootProfile(d->vname, d->profile);
 				dirtyProfiles.insert(d->profile);
 			} else {
-				auto p = find_if(shares, [d](pair<string, Directory::Ptr> sdp) { return AirUtil::isSub(d->path, sdp.first); });
-				if (p != shares.end()) {
+				auto p = find_if(shares | map_keys, [d](const string& path) { return AirUtil::isSub(d->path, path); });
+				if (p.base() != shares.end()) {
 					// It's a subdir
 					auto dir = findDirectory(d->path, false, false);
 					if (dir) {
@@ -1403,7 +1392,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 							auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile));
 							profileDirs[d->path] = root;
 							shares[d->path] = dir;
-							refresh.push_back(p->first); //refresh the top directory.....
+							refresh.push_back(*p); //refresh the top directory.....
 						}
 					}
 				} else {
@@ -1593,9 +1582,9 @@ int ShareManager::run() {
 
 			//erase all sub roots from the new list (they will be readded in buildTree)
 			for(auto i = dirs.begin(); i != dirs.end(); ++i) {
-				auto m = find_if(newShares, [i](pair<string, Directory::Ptr> dir) { return AirUtil::isSub(dir.first, i->first); });
-				if(m != newShares.end()) {
-					newShares.erase(m);
+				auto m = find_if(newShares | map_keys, [i](const string& path) { return AirUtil::isSub(path, i->first); });
+				if(m.base() != newShares.end()) {
+					newShares.erase(m.base());
 				}
 			}
 		}
@@ -1882,7 +1871,7 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("</Directory>\r\n"));
 	} else {
-		if(boost::find_if(shareDirs, [](Directory::Ptr d) { return !d->files.empty() || !d->directories.empty(); } ) == shareDirs.end()) {
+		if(find_if(shareDirs, [](Directory::Ptr d) { return !d->files.empty() || !d->directories.empty(); } ) == shareDirs.end()) {
 			xmlFile.write(LITERAL("\" />\r\n"));
 		} else {
 			xmlFile.write(LITERAL("\" Incomplete=\"1\" />\r\n"));
@@ -2515,15 +2504,15 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 	LogManager::getInstance()->message(STRING_F(BUNDLE_X_SHARED, Util::getLastDir(path)), LogManager::LOG_INFO);
 }
 
-bool ShareManager::allowAddDir(const string& path) noexcept {
+bool ShareManager::allowAddDir(const string& aPath) noexcept {
 	//LogManager::getInstance()->message("QueueManagerListener::BundleFilesMoved");
 	{
 		RLock l(cs);
-		auto mi = find_if(shares, [path](pair<string, Directory::Ptr> dp) { return AirUtil::isParentOrExact(dp.first, path); });
-		if (mi != shares.end()) {
+		auto mi = find_if(shares | map_keys, [&aPath](const string& p) { return AirUtil::isParentOrExact(p, aPath); });
+		if (mi.base() != shares.end()) {
 			//check the skiplist
-			StringList sl = StringTokenizer<string>(path.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
-			string fullPath = mi->first;
+			string fullPath = *mi;
+			StringList sl = StringTokenizer<string>(aPath.substr(fullPath.length()), PATH_SEPARATOR).getTokens();
 			for(auto i = sl.begin(); i != sl.end(); ++i) {
 				fullPath += Text::toLower(*i) + PATH_SEPARATOR;
 				if (!checkSharedName(fullPath, true, true)) {
@@ -2702,8 +2691,10 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 			for(auto p = spl.begin(); p != spl.end(); ++p) {
 				auto retVirtual = find_if(ret, CompareFirst<string, StringList>(p->second));
 				if (retVirtual != ret.end()) {
-					if (find(retVirtual->second.begin(), retVirtual->second.end(), i->first) == retVirtual->second.end())
-						retVirtual->second.insert(upper_bound(retVirtual->second.begin(), retVirtual->second.end(), i->first), i->first);
+					//insert under an old virtual node if the real path doesn't exist there already
+					if (find(retVirtual->second, i->first) == retVirtual->second.end()) {
+						retVirtual->second.insert(upper_bound(retVirtual->second.begin(), retVirtual->second.end(), i->first), i->first); //insert sorted
+					}
 				} else {
 					StringList tmp;
 					tmp.push_back(i->first);
