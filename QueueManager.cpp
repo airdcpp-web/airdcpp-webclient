@@ -1144,7 +1144,7 @@ void QueueManager::moveStuckFile(QueueItemPtr qi) {
 	string target = qi->getTarget();
 
 	if(!BOOLSETTING(KEEP_FINISHED_FILES)) {
-		fire(QueueManagerListener::Removed(), qi);
+		fire(QueueManagerListener::Removed(), qi, true);
 		fileQueue.remove(qi);
 		removeBundleItem(qi, true);
 	 } else {
@@ -1191,6 +1191,9 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 
 			return;
 		}
+
+		if (q->isSet(QueueItem::FLAG_FINISHED))
+			return;
 
 		if(!finished) {
 			if(d->getType() == Transfer::TYPE_FULL_LIST && !d->getTempTarget().empty()) {
@@ -1241,7 +1244,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 					fire(QueueManagerListener::PartialList(), d->getHintedUser(), d->getPFS());
 				}
 				userQueue.removeQI(q);
-				fire(QueueManagerListener::Removed(), q);
+				fire(QueueManagerListener::Removed(), q, true);
 				fileQueue.remove(q);
 			} else if(d->getType() == Transfer::TYPE_TREE) {
 				//add it in hashmanager outside the lock
@@ -1269,7 +1272,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				fire(QueueManagerListener::Finished(), q, dir, d->getHintedUser(), d->getAverageSpeed());
 				userQueue.removeQI(q);
 
-				fire(QueueManagerListener::Removed(), q);
+				fire(QueueManagerListener::Removed(), q, true);
 				fileQueue.remove(q);
 			} else if(d->getType() == Transfer::TYPE_FILE) {
 				d->setOverlapped(false);
@@ -1283,12 +1286,13 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 					}
 
 					removeFinished = true;
+					q->setFlag(QueueItem::FLAG_FINISHED);
 					userQueue.removeQI(q);
 
 					if(BOOLSETTING(KEEP_FINISHED_FILES)) {
 						fire(QueueManagerListener::StatusUpdated(), q);
 					} else {
-						fire(QueueManagerListener::Removed(), q);
+						fire(QueueManagerListener::Removed(), q, true);
 						if (!d->getBundle())
 							fileQueue.remove(q);
 					}
@@ -1439,7 +1443,7 @@ void QueueManager::removeQI(QueueItemPtr q, bool moved /*false*/) noexcept {
 		}
 
 		if (!moved) {
-			fire(QueueManagerListener::Removed(), q);
+			fire(QueueManagerListener::Removed(), q, true);
 		}
 		fileQueue.remove(q);
 	}
@@ -3382,7 +3386,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 
 				if(!qi->isFinished()) {
 					userQueue.removeQI(qi, true, true);
-					fire(QueueManagerListener::Removed(), qi);
+					fire(QueueManagerListener::Removed(), qi, false);
 				}
 
 				fileQueue.remove(qi);

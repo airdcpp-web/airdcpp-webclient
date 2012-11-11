@@ -63,7 +63,7 @@ public:
 
 	virtual void on(Added, QueueItemPtr) noexcept { }
 	virtual void on(Finished, const QueueItemPtr, const string&, const HintedUser&, int64_t) noexcept { }
-	virtual void on(Removed, const QueueItemPtr) noexcept { }
+	virtual void on(Removed, const QueueItemPtr, bool) noexcept { }
 	virtual void on(Moved, const QueueItemPtr, const string&) noexcept { }
 	virtual void on(SourcesUpdated, const QueueItemPtr) noexcept { }
 	virtual void on(StatusUpdated, const QueueItemPtr) noexcept { }
