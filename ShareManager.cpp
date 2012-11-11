@@ -546,22 +546,21 @@ bool ShareManager::isTempShared(const string& aKey, const TTHValue& tth) {
 	return false;
 }
 
-bool ShareManager::addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub) {
+void ShareManager::addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, ProfileToken aProfile) {
+	
 	//first check if already exists in Share.
-	if(isFileShared(tth, Util::getFileName(filePath))) {
-		return true;
-	} else if(adcHub) {
+	if(isFileShared(tth, Util::getFileName(filePath), aProfile)) {
+		return;
+	} else {
 		Lock l(tScs);
 		auto Files = tempShares.equal_range(tth);
 		for(auto i = Files.first; i != Files.second; ++i) {
 			if(i->second.key == aKey)
-				return true;
+				return;
 		}
 		//didnt exist.. fine, add it.
 		tempShares.insert(make_pair(tth, TempShareInfo(aKey, filePath, aSize)));
-		return true;
 	}
-	return false;
 }
 void ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) {
 	Lock l(tScs);
@@ -1010,6 +1009,17 @@ bool ShareManager::isFileShared(const TTHValue& aTTH, const string& fileName) co
 	auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
 	for(auto i = files.first; i != files.second; ++i) {
 		if(stricmp(fileName.c_str(), i->second->getName().c_str()) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ShareManager::isFileShared(const TTHValue& aTTH, const string& fileName, ProfileToken aProfile) const {
+	RLock l (cs);
+	auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
+	for(auto i = files.first; i != files.second; ++i) {
+		if((stricmp(fileName.c_str(), i->second->getName().c_str()) == 0) && i->second->getParent()->hasProfile(aProfile)) {
 			return true;
 		}
 	}
@@ -2239,22 +2249,37 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 	}
 }
 //NMDC Search
-void ShareManager::search(SearchResultList& results, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept {
+void ShareManager::search(SearchResultList& results, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept {
 	if(aFileType == SearchManager::TYPE_TTH) {
 		if(aString.compare(0, 4, "TTH:") == 0) {
 			TTHValue tth(aString.substr(4));
+			
+			if(!aHideShare) {
+				RLock l (cs);
+				auto i = tthIndex.find(const_cast<TTHValue*>(&tth));
+				if(i != tthIndex.end() && i->second->getParent()->hasProfile(SP_DEFAULT)) {
+					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second->getSize(), 
+						i->second->getParent()->getFullName(SP_DEFAULT) + i->second->getName(), i->second->getTTH()));
 
-			RLock l (cs);
-			auto i = tthIndex.find(const_cast<TTHValue*>(&tth));
-			if(i != tthIndex.end() && i->second->getParent()->hasProfile(SP_DEFAULT)) {
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second->getSize(), 
-					i->second->getParent()->getFullName(SP_DEFAULT) + i->second->getName(), i->second->getTTH()));
+					results.push_back(sr);
+				} 
+			}
 
-				results.push_back(sr);
-			} //lookup in temp shares, nmdc too?
+			Lock l(tScs);
+			auto Files = tempShares.equal_range(tth);
+			for(auto i = Files.first; i != Files.second; ++i) {
+				if(i->second.key.empty()) { // nmdc shares are shared to everyone.
+					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, "tmp\\" + Util::getFileName(i->second.path), i->first));
+					results.push_back(sr);
+				}
+			}
 		}
 		return;
-	}
+	} 
+	
+	if(aHideShare)
+		return;
+
 	StringTokenizer<string> t(Text::toLower(aString), '$');
 	StringList& sl = t.getTokens();
 

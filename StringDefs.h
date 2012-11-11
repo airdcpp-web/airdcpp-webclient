@@ -1558,5 +1558,9 @@ enum Strings { // @DontAdd
 	PARTIAL_LIST_LOADED, // "Partial list has been loaded"
 	DIRECTORY_LOADED, // "The directory %s has been loaded"
 	REDIRECT_FAILOVER, // "A redirection request was received via a failover address; press the follow redirect button to connect to %s"
+	NMDC_MAGNET_WARNING, // "In NMDC hubs the file will be shared so everyone can access it, continue?"
+	NMDC_HUB_PRIVATE, // "NMDC hub Private chat!"
+	DONT_ASK_AGAIN, // "Don't ask me again"
+	DONT_SHOW_AGAIN, // "Don't show this again"
 	LAST // @DontAdd
 };

@@ -265,7 +265,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 	}
 
 	if(cmd == "Search") {
-		if((state != STATE_NORMAL) || getShareProfile() == SP_HIDDEN) {
+		if((state != STATE_NORMAL) /*|| getShareProfile() == SP_HIDDEN*/) {
 			return;
 		}
 		string::size_type i = 0;

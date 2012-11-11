@@ -1551,6 +1551,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Partial list has been loaded", 
 "The directory %s has been loaded", 
 "A redirection request was received via a failover address; press the follow redirect button to connect to %s", 
+"In NMDC hubs the file will be shared so everyone can access it, continue?", 
+"NMDC hub Private chat!", 
+"Don't ask me again", 
+"Don't show this again", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3102,4 +3106,8 @@ std::string dcpp::ResourceManager::names[] = {
 "PartialListLoaded", 
 "DirectoryLoaded", 
 "RedirectFailover", 
+"NmdcMagnetWarning", 
+"NmdcHubPrivate", 
+"DontAskAgain", 
+"DontShowAgain", 
 };

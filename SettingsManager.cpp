@@ -161,7 +161,7 @@ const string SettingsManager::settingTags[] =
 	"RecentBundleHours", "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime",
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
 	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode", "UpdateMethod",
-	"QueueSplitterPos", "UpdateIPHourly", "OpenTextOnBackground", "FullListDLLimit", "SearchSaveHubsState", "ConfirmHubExit", "ConfirmASRemove", "EnableSUDP",
+	"QueueSplitterPos", "UpdateIPHourly", "OpenTextOnBackground", "FullListDLLimit", "SearchSaveHubsState", "ConfirmHubExit", "ConfirmASRemove", "EnableSUDP", "NmdcMagnetWarn",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -727,6 +727,7 @@ SettingsManager::SettingsManager()
 	setDefault(CONFIRM_HUB_EXIT, false);
 	setDefault(CONFIRM_AS_REMOVE, false);
 	setDefault(ENABLE_SUDP, false);
+	setDefault(NMDC_MAGNET_WARN, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

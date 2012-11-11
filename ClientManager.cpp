@@ -651,11 +651,10 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 {
 	Speaker<ClientManagerListener>::fire(ClientManagerListener::IncomingSearch(), aString);
 
-	if (aClient->getShareProfile() == SP_HIDDEN)
-		return;
+	bool hideShare = aClient->getShareProfile() == SP_HIDDEN;
 
 	SearchResultList l;
-	ShareManager::getInstance()->search(l, aString, aSearchType, aSize, aFileType, isPassive ? 5 : 10);
+	ShareManager::getInstance()->search(l, aString, aSearchType, aSize, aFileType, isPassive ? 5 : 10, hideShare);
 	if(l.size() > 0) {
 		if(isPassive) {
 			string name = aSeeker.substr(4);

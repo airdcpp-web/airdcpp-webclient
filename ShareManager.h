@@ -130,7 +130,7 @@ public:
 	void changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove);
 	void rebuildTotalExcludes();
 
-	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) noexcept;
+	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
 	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid) noexcept;
 	void directSearch(DirectSearchResultList& l, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile, const string& aDirectory) noexcept;
 
@@ -138,6 +138,8 @@ public:
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const;
 	bool isFileShared(const TTHValue& aTTH, const string& fileName) const;
 	bool isFileShared(const string& aFileName, int64_t aSize) const;
+	bool isFileShared(const TTHValue& aTTH, const string& fileName, ProfileToken aProfile) const;
+
 	bool allowAddDir(const string& dir);
 	tstring getDirPath(const string& directory);
 
@@ -201,7 +203,7 @@ public:
 	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
 	TempShareMap tempShares;
 	CriticalSection tScs;
-	bool addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, bool adcHub);
+	void addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, ProfileToken aProfile);
 	bool hasTempShares() { Lock l(tScs); return !tempShares.empty(); }
 	TempShareMap getTempShares() { Lock l(tScs); return tempShares; }
 	void removeTempShare(const string& aKey, const TTHValue& tth);
