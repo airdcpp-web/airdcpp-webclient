@@ -348,7 +348,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 				localToken = get<LOCALTOKEN>((*i).second);
 				hub = get<HUBURL>((*i).second);
 			} else {
-				LogManager::getInstance()->message("A search result from " + Util::toString(ClientManager::getInstance()->getNicks(from->getCID())) + " could not be connected to any hub: " + cmd.toString(), LogManager::LOG_INFO);
+				//LogManager::getInstance()->message("A search result from " + Util::toString(ClientManager::getInstance()->getNicks(from->getCID())) + " could not be connected to any hub: " + cmd.toString(), LogManager::LOG_INFO);
 				return;
 			}
 		}
