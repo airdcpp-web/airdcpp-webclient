@@ -1011,6 +1011,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); i++) {
 				QueueItemPtr qi = *i;
 				if (ShareManager::getInstance()->checkSharedName(qi->getTarget(), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
+					qi->unsetFlag(QueueItem::FLAG_HASHED);
 					hash.push_back(qi);
 				} else {
 					removed.push_back(qi);
@@ -1083,7 +1084,9 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 				}
 
 				auto file = Util::getFileName(fname);
-				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getTargetFileName() == file && aQI->isFinished(); });
+				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getTargetFileName() == file && aQI->isFinished() &&
+					!aQI->isSet(QueueItem::FLAG_HASHED); });
+
 				if (p.base() != tpi.second) {
 					q = *p;
 				}
@@ -3434,10 +3437,13 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 			}
 
 			fire(QueueManagerListener::BundleRemoved(), aBundle);
+
+			LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);
 		}
 
-		if (!aBundle->isFileBundle())
+		if (!aBundle->isFileBundle()) {
 			AirUtil::removeIfEmpty(aBundle->getTarget());
+		}
 	}
 
 	{

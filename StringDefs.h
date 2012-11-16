@@ -1563,5 +1563,8 @@ enum Strings { // @DontAdd
 	DONT_ASK_AGAIN, // "Don't ask me again"
 	DONT_SHOW_AGAIN, // "Don't show this again"
 	DATA_PARSING_FAILED, // "Failed to parse the data"
+	FILES_ADDED_FOR_HASH_STARTUP, // "%s of shared files have been added for hashing as no previous hash information was found for them"
+	BUNDLE_X_REMOVED,  // "The bundle %s has been removed from the queue"
+	DIRECTORY_NOT_REMOVED,  // "The directory %s isn't empty, not removed"
 	LAST // @DontAdd
 };

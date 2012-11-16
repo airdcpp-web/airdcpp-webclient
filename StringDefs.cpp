@@ -1556,6 +1556,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Don't ask me again", 
 "Don't show this again", 
 "Failed to parse the data", 
+"%s of shared files have been added for hashing as no previous hash information was found for them", 
+"The bundle %s has been removed from the queue", 
+"The directory %s isn't empty, not removed", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3112,4 +3115,7 @@ std::string dcpp::ResourceManager::names[] = {
 "DontAskAgain", 
 "DontShowAgain", 
 "DataParsingFailed", 
+"FilesAddedForHashStartup", 
+"BundleXRemoved", 
+"DirectoryNotRemoved", 
 };

@@ -558,7 +558,7 @@ bool AirUtil::removeDirectoryIfEmpty(const string& aPath) {
 
 void AirUtil::removeIfEmpty(const string& tgt) {
 	if (!removeDirectoryIfEmpty(tgt)) {
-		LogManager::getInstance()->message("The folder " + tgt + " isn't empty, not removed", LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(DIRECTORY_NOT_REMOVED, tgt), LogManager::LOG_INFO);
 	}
 }
 

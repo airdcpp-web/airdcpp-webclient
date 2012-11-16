@@ -704,7 +704,7 @@ static const string PATH = "Path";
 static const string DATE = "Date";
 
 struct ShareLoader : public SimpleXMLReader::CallBack {
-	ShareLoader(ShareManager::ProfileDirMap& aDirs) : profileDirs(aDirs), cur(nullptr), depth(0), blockNode(false) { }
+	ShareLoader(ShareManager::ProfileDirMap& aDirs) : profileDirs(aDirs), cur(nullptr), depth(0), blockNode(false), hashSize(0) { }
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
 
 		if(name == SDIRECTORY) {
@@ -758,7 +758,8 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			this will keep us sync to hashindex */
 			try {
 				lastFileIter = cur->files.insert(lastFileIter, ShareManager::Directory::File(fname, Util::toInt64(size), cur, SettingsManager::lanMode ? TTHValue() : HashManager::getInstance()->getTTH(curDirPath + fname, Util::toInt64(size))));
-			}catch(Exception& e) { 
+			}catch(Exception& e) {
+				hashSize += Util::toInt64(size);
 				dcdebug("Error loading filelist %s \n", e.getError().c_str());
 			}
 		}
@@ -775,6 +776,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 		}
 	}
 
+	int64_t hashSize;
 	ShareManager::DirMultiMap dirs;
 private:
 	ShareManager::ProfileDirMap& profileDirs;
@@ -789,11 +791,15 @@ private:
 
 bool ShareManager::loadCache() {
 	try {
+		HashManager::HashPauser pauser;
 		ShareLoader loader(profileDirs);
 		//look for shares.xml
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
 		SimpleXMLReader(&loader).parse(ff);
 		dirNameMap = loader.dirs;
+		if (loader.hashSize > 0) {
+			LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(loader.hashSize)), LogManager::LOG_INFO);
+		}
 
 		rebuildIndices();
 	}catch(SimpleXMLException& e) {
