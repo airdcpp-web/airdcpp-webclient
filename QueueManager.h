@@ -164,6 +164,7 @@ public:
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
 	void removeBundleSources(BundlePtr aBundle) noexcept;
+	void sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken);
 	void getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) { 
 		RLock l (cs); 
 		bundleQueue.getInfo(aSource, retBundles, finishedFiles, fileBundles); 
@@ -268,7 +269,6 @@ private:
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
 	void addBundleUpdate(const BundlePtr aBundle);
-	void sendPBD(HintedUser& aUser, const TTHValue& tth, const string& bundleToken);
 
 	void addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
 

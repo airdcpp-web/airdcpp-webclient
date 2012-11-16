@@ -376,6 +376,35 @@ void UpdateManager::completeLanguageDownload() {
 	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % conn->status), LogManager::LOG_WARNING);
 }
 
+bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {
+	while (xml.findChild("VersionInfo")) {
+		//the latest OS must come first
+		if (Util::toDouble(xml.getChildAttrib("MinOsVersion")) > Util::toDouble(Util::getOsVersion(false, true)))
+			continue;
+
+		xml.stepIn();
+
+		if(xml.findChild("Version")) {
+			versionString = xml.getChildData();
+			xml.resetCurrentChild();
+#ifdef BETAVER
+			if(xml.findChild(UPGRADE_TAG)) {
+				remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
+				versionString += "r" + Util::toString(remoteBuild);
+			}
+#else
+			if (xml.findChild("Build")) {
+				remoteBuild = Util::toInt(xml.getChildData());
+			}
+#endif
+			xml.resetCurrentChild();
+			return true;
+		}
+		break;
+	}
+
+	return false;
+}
 
 void UpdateManager::completeVersionDownload(bool manualCheck) {
 	auto& conn = conns[CONN_VERSION];
@@ -442,14 +471,10 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 
 
 		int ownBuild = Util::toInt(SVNVERSION);
+		string versionString;
+		int remoteBuild = 0;
 
-
-		while (xml.findChild("VersionInfo")) {
-			//the latest OS must come first
-			if (Util::toDouble(xml.getChildAttrib("MinOsVersion")) > Util::toDouble(Util::getOsVersion(false, true)))
-				continue;
-
-			xml.stepIn();
+		if (getVersionInfo(xml, versionString, remoteBuild)) {
 
 			//Get the update information from the XML
 			string updateUrl;
@@ -466,73 +491,52 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 				url = xml.getChildData();
 			xml.resetCurrentChild();
 
-			if(xml.findChild("Version")) {
-				string remoteVer = xml.getChildData();
-				int remoteBuild = 0;
-				xml.resetCurrentChild();
-	#ifdef BETAVER
-				if(xml.findChild(UPGRADE_TAG)) {
-					remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
-				}
-	#else
-				if (xml.findChild("Build")) {
-					remoteBuild = Util::toInt(xml.getChildData());
-				}
-	#endif
-				xml.resetCurrentChild();
+			//Check for bad version
+			auto reportBadVersion = [&] () -> void {
+				string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
+				fire(UpdateManagerListener::BadVersion(), msg, url, updateUrl, remoteBuild, autoUpdateEnabled);
+			};
 
-				//Check for bad version
-				auto reportBadVersion = [&] () -> void {
-					string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
-					fire(UpdateManagerListener::BadVersion(), msg, url, updateUrl, remoteBuild, autoUpdateEnabled);
-				};
+			if(xml.findChild("VeryOldVersion")) {
+				if(Util::toInt(xml.getChildData()) >= ownBuild) {
+					reportBadVersion();
+					return;
+				}
+			}
+			xml.resetCurrentChild();
 
-				if(xml.findChild("VeryOldVersion")) {
-					if(Util::toInt(xml.getChildData()) >= ownBuild) {
+			if(xml.findChild("BadVersion")) {
+				xml.stepIn();
+				while(xml.findChild("BadVersion")) {
+					double v = Util::toDouble(xml.getChildAttrib("Version"));
+					if(v == ownBuild) {
 						reportBadVersion();
 						return;
 					}
 				}
-				xml.resetCurrentChild();
-
-				if(xml.findChild("BadVersion")) {
-					xml.stepIn();
-					while(xml.findChild("BadVersion")) {
-						double v = Util::toDouble(xml.getChildAttrib("Version"));
-						if(v == ownBuild) {
-							reportBadVersion();
-							return;
-						}
-					}
-				}
-				xml.resetCurrentChild();
-
-
-				//Check for updated version
-
-				if((remoteBuild > ownBuild && remoteBuild > installedUpdate) || manualCheck) {
-					auto updateMethod = SETTING(UPDATE_METHOD);
-					if ((!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) || manualCheck) {
-						if(xml.findChild("Title")) {
-							const string& title = xml.getChildData();
-							xml.resetCurrentChild();
-							if(xml.findChild("Message")) {
-								fire(UpdateManagerListener::UpdateAvailable(), title, xml.childToXML(), remoteVer, url, autoUpdateEnabled, remoteBuild, updateUrl);
-							}
-						}
-						//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
-					} else if (updateMethod == UPDATE_AUTO) {
-	#ifdef BETAVER
-						LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, (remoteVer + " r" + Util::toString(remoteBuild))), LogManager::LOG_INFO);
-	#else
-						LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, remoteVer), LogManager::LOG_INFO);
-	#endif
-						downloadUpdate(updateUrl, remoteBuild, manualCheck);
-					}
-					xml.resetCurrentChild();
-				}
 			}
-			break;
+			xml.resetCurrentChild();
+
+
+			//Check for updated version
+
+			if((remoteBuild > ownBuild && remoteBuild > installedUpdate) || manualCheck) {
+				auto updateMethod = SETTING(UPDATE_METHOD);
+				if ((!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) || manualCheck) {
+					if(xml.findChild("Title")) {
+						const string& title = xml.getChildData();
+						xml.resetCurrentChild();
+						if(xml.findChild("Message")) {
+							fire(UpdateManagerListener::UpdateAvailable(), title, xml.childToXML(), versionString, url, autoUpdateEnabled, remoteBuild, updateUrl);
+						}
+					}
+					//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
+				} else if (updateMethod == UPDATE_AUTO) {
+					LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, versionString), LogManager::LOG_INFO);
+					downloadUpdate(updateUrl, remoteBuild, manualCheck);
+				}
+				xml.resetCurrentChild();
+			}
 		}
 	} catch (const Exception& e) {
 		failUpdateDownload(STRING_F(VERSION_PARSING_FAILED, e.getError()), manualCheck);

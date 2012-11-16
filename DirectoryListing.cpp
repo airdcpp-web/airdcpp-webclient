@@ -161,7 +161,7 @@ string DirectoryListing::updateXML(const string& xml) {
 }
 
 string DirectoryListing::loadXML(InputStream& is, bool updating) {
-	ListLoader ll(this, getRoot(), updating, getUser(), !isOwnList && isClientView && BOOLSETTING(DUPES_IN_FILELIST), partialList);
+	ListLoader ll(this, root, updating, getUser(), !isOwnList && isClientView && BOOLSETTING(DUPES_IN_FILELIST), partialList);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
@@ -424,7 +424,7 @@ void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 		}
 
 		//validate the target
-		target = Util::validateFileName(Util::formatTime(aTarget + (aDir == getRoot() ? Util::emptyString : aDir->getName() + PATH_SEPARATOR), 
+		target = Util::validateFileName(Util::formatTime(aTarget + (aDir == root ? Util::emptyString : aDir->getName() + PATH_SEPARATOR), 
 			(BOOLSETTING(FORMAT_DIR_REMOTE_TIME) && aDir->getDate() > 0) ? aDir->getDate() : GET_TIME()));
 
 		/* Check if this is a root dir containing release dirs */
@@ -474,7 +474,7 @@ void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 void DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
-	Directory* d = findDirectory(aDir, getRoot());
+	Directory* d = findDirectory(aDir, root);
 	if(d)
 		downloadDir(d, aTarget, aTargetType, highPrio, prio);
 }
@@ -482,7 +482,7 @@ void DirectoryListing::downloadDir(const string& aDir, const string& aTarget, Ta
 int64_t DirectoryListing::getDirSize(const string& aDir) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
-	Directory* d = findDirectory(aDir, getRoot());
+	Directory* d = findDirectory(aDir, root);
 	if(d)
 		return d->getTotalSize(false);
 	return 0;
@@ -494,7 +494,10 @@ void DirectoryListing::download(File* aFile, const string& aTarget, bool view, Q
 	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), aFile->getPath() + aFile->getName(), flags, true, prio, aBundle);
 }
 
-DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName, Directory* current) {
+DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName, const Directory* current) const {
+	if (aName.empty())
+		return root;
+
 	string::size_type end = aName.find('\\');
 	dcassert(end != string::npos);
 	string name = aName.substr(0, end);
@@ -920,7 +923,7 @@ int DirectoryListing::run() {
 				reloading = false;
 			} else if (t.first == REFRESH_DIR) {
 				if (!partialList)
-					return 0;
+					continue;
 
 				if (reloading) {
 					baseDirs.clear();

@@ -179,7 +179,7 @@ public:
 	void finishBundle() noexcept;
 	bool allowHash();
 
-	void sendRemovePBD(const UserPtr& aUser) noexcept;
+	void clearFinishedNotifications(FinishedNotifyList& fnl) noexcept;
 	bool isFinishedNotified(const UserPtr& aUser) const noexcept;
 	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept;
 	void removeFinishedNotify(const UserPtr& aUser) noexcept;

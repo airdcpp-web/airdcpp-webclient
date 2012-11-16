@@ -25,6 +25,7 @@
 #include "UpdateManagerListener.h"
 #include "HttpDownload.h"
 #include "TimerManager.h"
+#include "SimpleXML.h"
 
 #define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
 
@@ -92,6 +93,8 @@ public:
 	void init(const string& aExeName);
 	int getInstalledUpdate() { return installedUpdate; }
 	bool isUpdating();
+
+	static bool getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
 private:
 	uint64_t lastIPUpdate;
 	static uint8_t publicKey[];

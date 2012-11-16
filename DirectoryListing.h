@@ -151,7 +151,6 @@ public:
 	
 	void loadFile(const string& name);
 
-
 	string updateXML(const std::string&);
 	string loadXML(InputStream& xml, bool updating);
 
@@ -206,12 +205,13 @@ public:
 
 	bool isCurrentSearchPath(const string& path);
 	size_t getResultCount() { return searchResults.size(); }
+
+	Directory* findDirectory(const string& aName) const { return findDirectory(aName, root); }
+	Directory* findDirectory(const string& aName, const Directory* current) const;
 private:
 	friend class ListLoader;
 
 	Directory* root;
-		
-	Directory* findDirectory(const string& aName, Directory* current);
 
 	//maps loaded base dirs with their full lowercase paths and whether they've been visited or not
 	typedef boost::unordered_map<string, pair<Directory::Ptr, bool>> DirMap;

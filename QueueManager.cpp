@@ -902,8 +902,15 @@ void QueueManager::moveFile(const string& source, const string& target, QueueIte
 
 void QueueManager::moveFile_(const string& source, const string& target, QueueItemPtr qi) {
 	try {
+		UploadManager::getInstance()->abortUpload(source);
 		File::renameFile(source, target);
-		//getInstance()->fire(QueueManagerListener::FileMoved(), target);
+		if (Util::fileExists(source)) {
+			//UploadManager::getInstance()->abortUpload(source);
+			//File::deleteFile(source);
+			//if (Util::fileExists(source)) {
+				LogManager::getInstance()->message("Failed to delete the file: " + source, LogManager::LOG_INFO);
+			//}
+		}
 	} catch(const FileException& /*e1*/) {
 		// Try to just rename it to the correct name at least
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
@@ -929,6 +936,8 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 
 	{
 		RLock l (cs);
+
+		//collect the users that don't have this file yet
 		for (auto s = qi->getBundle()->getFinishedNotifications().begin(); s != qi->getBundle()->getFinishedNotifications().end(); ++s) {
 			if (!qi->isSource(s->first.user)) {
 				notified.push_back(s->first);
@@ -936,13 +945,21 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 		}
 	}
 
-	//notify the users
-	for_each(notified, [&](HintedUser u) { sendPBD(u, qi->getTTH(), b->getToken()); });
+	//send the notifications
+	for_each(notified, [&](HintedUser u) {
+		AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
 
+		cmd.addParam("UP1");
+		cmd.addParam("HI", u.hint);
+		cmd.addParam("TH", qi->getTTH().toBase32());
+		ClientManager::getInstance()->send(cmd, u.user->getCID(), false, true);
+	});
+
+	bool hasNotifications = false;
 	{
 		RLock l (cs);
 		//flag this file as moved
-		auto s = boost::find_if(b->getFinishedFiles(), [qi](QueueItemPtr aQI) { return aQI->getTarget() == qi->getTarget(); });
+		auto s = find_if(b->getFinishedFiles(), [qi](QueueItemPtr aQI) { return aQI->getTarget() == qi->getTarget(); });
 		if (s != b->getFinishedFiles().end()) {
 			qi->setFlag(QueueItem::FLAG_MOVED);
 		} else if (b->getFinishedFiles().empty() && b->getQueueItems().empty()) {
@@ -953,6 +970,20 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 		//check if there are queued or non-moved files remaining
 		if (!b->allowHash()) 
 			return;
+
+		hasNotifications = !b->getFinishedNotifications().empty();
+	}
+
+	if (hasNotifications) {
+		//the bundle has finished downloading so we don't need any partial bundle sharing notifications
+
+		Bundle::FinishedNotifyList fnl;
+		{
+			WLock l(cs);
+			b->clearFinishedNotifications(fnl);
+		}
+
+		for_each(fnl, [this](const Bundle::UserBundlePair& ubp) { sendRemovePBD(ubp.first, ubp.second); });
 	}
 
 	if (!SETTING(SCAN_DL_BUNDLES) || b->isFileBundle()) {
@@ -1317,8 +1348,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 	}
 
 	if (removeFinished) {
-		UploadManager::getInstance()->abortUpload(q->getTempTarget());
-
 		if (q->getBundle()) {
 			removeBundleItem(q, true);
 		}
@@ -1496,9 +1525,6 @@ void QueueManager::removeSource(QueueItemPtr q, const UserPtr& aUser, Flags::Mas
 
 		BundlePtr b = q->getBundle();
 		if (b) {
-			if (!b->isSource(aUser)) {
-				b->sendRemovePBD(aUser);
-			}
 			b->setDirty(true);
 		}
 	}
@@ -1646,12 +1672,27 @@ void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) n
 		{
 			RLock l(cs);
 			aBundle->getItems(aUser, ql);
+
+			//we don't want notifications from this user anymore
+			auto p = boost::find_if(aBundle->getFinishedNotifications(), [&aUser](const Bundle::UserBundlePair& ubp) { return ubp.first.user == aUser; });
+			if (p != aBundle->getFinishedNotifications().end()) {
+				sendRemovePBD(p->first, p->second);
+			}
 		}
 
 		for_each(ql, [&](QueueItemPtr qi) {
 			removeSource(qi, aUser, QueueItem::Source::FLAG_REMOVED);
 		});
 	}
+}
+
+void QueueManager::sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken) {
+	AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
+
+	cmd.addParam("HI", aUser.hint);
+	cmd.addParam("BU", aRemoteToken);
+	cmd.addParam("RM1");
+	ClientManager::getInstance()->send(cmd, aUser.user->getCID());
 }
 
 void QueueManager::setQIPriority(const string& aTarget, QueueItem::Priority p) noexcept {
@@ -2902,7 +2943,6 @@ void QueueManager::moveBundle(const string& aTarget, BundlePtr sourceBundle, boo
 		for (auto i = sourceBundle->getFinishedFiles().begin(); i != sourceBundle->getFinishedFiles().end();) {
 			QueueItemPtr qi = *i;
 			if (moveFinished) {
-				UploadManager::getInstance()->abortUpload(qi->getTarget());
 				string targetPath = AirUtil::convertMovePath(qi->getTarget(), sourceBundle->getTarget(), aTarget);
 				if (!fileQueue.findFile(targetPath)) {
 					if(!Util::fileExists(targetPath)) {
@@ -2995,7 +3035,6 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 			QueueItemPtr qi = *i;
 			if (AirUtil::isSub(qi->getTarget(), aSource)) {
 				if (moveFinished) {
-					UploadManager::getInstance()->abortUpload(qi->getTarget());
 					string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
 					if (!fileQueue.findFile(targetPath)) {
 						if(!Util::fileExists(targetPath)) {
@@ -3478,24 +3517,11 @@ void QueueManager::addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, co
 }
 
 void QueueManager::removeBundleNotify(const UserPtr& aUser, const string& bundleToken) {
+	WLock l(cs);
 	BundlePtr bundle = bundleQueue.findBundle(bundleToken);
 	if (bundle) {
-		WLock l(cs);
-		//LogManager::getInstance()->message("QueueManager::removeBundleNotify: bundle found");
 		bundle->removeFinishedNotify(aUser);
-	} else {
-		//LogManager::getInstance()->message("QueueManager::removeBundleNotify: bundle NOT found");
 	}
-}
-
-void QueueManager::sendPBD(HintedUser& aUser, const TTHValue& tth, const string& /*bundleToken*/) {
-	
-	AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
-
-	cmd.addParam("UP1");
-	cmd.addParam("HI", aUser.hint);
-	cmd.addParam("TH", tth.toBase32());
-	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), false, true);
 }
 
 void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) {

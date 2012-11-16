@@ -1562,5 +1562,6 @@ enum Strings { // @DontAdd
 	NMDC_HUB_PRIVATE, // "NMDC hub Private chat!"
 	DONT_ASK_AGAIN, // "Don't ask me again"
 	DONT_SHOW_AGAIN, // "Don't show this again"
+	DATA_PARSING_FAILED, // "Failed to parse the data"
 	LAST // @DontAdd
 };

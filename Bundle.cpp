@@ -352,12 +352,9 @@ void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) {
 }
 
 void Bundle::removeFinishedNotify(const UserPtr& aUser) {
-	for (auto s = finishedNotifications.begin(); s != finishedNotifications.end(); ++s) {
-		if (s->first.user == aUser) {
-			//LogManager::getInstance()->message("QueueManager::removeBundleNotify: CID found");
-			finishedNotifications.erase(s);
-			return;
-		}
+	auto p = find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; });
+	if (p != finishedNotifications.end()) {
+		finishedNotifications.erase(p);
 	}
 }
 
@@ -598,20 +595,8 @@ tstring Bundle::getBundleText() noexcept {
 	}
 }
 
-void Bundle::sendRemovePBD(const UserPtr& aUser) noexcept {
-	//LogManager::getInstance()->message("QueueManager::sendRemovePBD");
-	for (auto s = finishedNotifications.begin(); s != finishedNotifications.end(); ++s) {
-		if (s->first.user == aUser) {
-			AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
-
-			cmd.addParam("HI", s->first.hint);
-			cmd.addParam("BU", s->second);
-			cmd.addParam("RM1");
-			ClientManager::getInstance()->send(cmd, s->first.user->getCID());
-			return;
-			//LogManager::getInstance()->message("QueueManager::sendRemovePBD: user found");
-		}
-	}
+void Bundle::clearFinishedNotifications(FinishedNotifyList& fnl) noexcept {
+	finishedNotifications.swap(fnl);
 }
 
 bool Bundle::allowAutoSearch() const {

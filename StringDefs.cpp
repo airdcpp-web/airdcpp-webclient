@@ -1555,6 +1555,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "NMDC hub Private chat!", 
 "Don't ask me again", 
 "Don't show this again", 
+"Failed to parse the data", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3110,4 +3111,5 @@ std::string dcpp::ResourceManager::names[] = {
 "NmdcHubPrivate", 
 "DontAskAgain", 
 "DontShowAgain", 
+"DataParsingFailed", 
 };
