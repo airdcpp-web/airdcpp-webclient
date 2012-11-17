@@ -40,6 +40,7 @@ class AirUtil {
 	public:
 		static boost::regex releaseReg;
 		static boost::regex subDirRegPlain;
+		static boost::regex crcReg;
 
 		/* Cache some things to lower case */
 		static string privKeyFile;

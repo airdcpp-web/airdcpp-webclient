@@ -49,6 +49,7 @@ namespace dcpp {
 
 boost::regex AirUtil::releaseReg;
 boost::regex AirUtil::subDirRegPlain;
+boost::regex AirUtil::crcReg;
 
 string AirUtil::privKeyFile;
 string AirUtil::tempDLDir;
@@ -119,6 +120,7 @@ TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) {
 void AirUtil::init() {
 	releaseReg.assign(getReleaseRegBasic());
 	subDirRegPlain.assign("((((S(eason)?))|(DVD)|(CD)|(D|(DIS(K|C)))).?([0-9](0-9)?))|(Sample.?)|(Proof.?)|(Cover.?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
+	crcReg.assign("(.{5,200}\\s(\\w{8})$)");
 }
 
 void AirUtil::updateCachedSettings() {

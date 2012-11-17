@@ -26,6 +26,7 @@
 #include "FileReader.h"
 #include "ZUtils.h"
 #include "Text.h"
+#include "AirUtil.h"
 
 #include <boost/range/algorithm/find_if.hpp>
 
@@ -87,18 +88,26 @@ bool DirSFVReader::isCrcValid(const string& fileName) const {
 	return true;
 }
 
+std::istream& getline(std::istream &is, std::string &s) { 
+    char ch;
+
+    s.clear();
+
+	while (is.get(ch) && ch != '\n' && ch != '\r')
+        s += ch;
+    return is;
+}
+
 void DirSFVReader::load() noexcept {
 	string line;
-	boost::regex crcReg;
-	crcReg.assign("(.{5,200}\\s(\\w{8})$)");
 
 	for(auto i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
-
-		/* Try to open the sfv */
 		ifstream sfv;
 		
+		/* Try to open the sfv */
 		try {
-			if (File::getSize(Text::utf8ToAcp(path)) > 1000000) {
+			if (File::getSize(Text::utf8ToAcp(*i)) > 1000000) {
+				//this isn't a proper sfv file
 				throw FileException();
 			}
 
@@ -114,23 +123,14 @@ void DirSFVReader::load() noexcept {
 		}
 
 		/* Get the filename and crc */
-		while( getline( sfv, line ) ) {
+		while(getline(sfv, line) || !line.empty()) {
 			line = Text::toUtf8(line);
 			//make sure that the line is valid
-			if(regex_search(line, crcReg) && (line.find("\\") == string::npos) && (line.find(";") == string::npos)) {
+			if(regex_search(line, AirUtil::crcReg) && (line.find("\\") == string::npos) && (line.find(";") == string::npos)) {
 				//only keep the filename
 				size_t pos = line.rfind(" ");
 				if (pos == string::npos) {
 					continue;
-				}
-
-				//extra checks to ignore invalid lines
-				if (line.length() < 5)
-					continue;
-				if (line.length() > 200) {
-					//can't most likely to detect the line breaks
-					LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + *i, LogManager::LOG_ERROR);
-					break;
 				}
 
 				uint32_t crc32;
