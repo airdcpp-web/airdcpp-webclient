@@ -35,13 +35,14 @@
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/range/algorithm/find_if.hpp>
-#include <boost/range/numeric.hpp>
+#include <boost/range/algorithm/copy.hpp>
 
 namespace dcpp {
 
 using boost::range::find_if;
 using boost::range::for_each;
 using boost::accumulate;
+using boost::range::copy;
 	
 Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
@@ -191,9 +192,7 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 	for(int i = 0; i < QueueItem::LAST; ++i) {
 		auto j = userQueue[i].find(aUser);
 		if(j != userQueue[i].end()) {
-			for(auto m = j->second.begin(); m != j->second.end(); ++m) {
-				ql.push_back(*m);
-			}
+			copy(j->second, back_inserter(ql));
 		}
 	}
 }
@@ -239,7 +238,7 @@ bool Bundle::removeFinishedItem(QueueItemPtr qi) {
 }
 
 bool Bundle::addQueue(QueueItemPtr qi) {
-	dcassert(find(queueItems.begin(), queueItems.end(), qi) == queueItems.end());
+	dcassert(find(queueItems, qi) == queueItems.end());
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
@@ -296,7 +295,7 @@ void Bundle::addUserQueue(QueueItemPtr qi) {
 
 bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
-	dcassert(find(l.begin(), l.end(), qi) == l.end());
+	dcassert(find(l, qi) == l.end());
 
 	if (l.size() > 1) {
 		if (!seqOrder) {
@@ -358,17 +357,8 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) {
 	}
 }
 
-void Bundle::getDownloadsQI(DownloadList& l) const {
-	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
-		QueueItemPtr qi = *s;
-		for (auto k = qi->getDownloads().begin(); k != qi->getDownloads().end(); ++k) {
-			l.push_back(*k);
-		}
-	}
-}
-
 void Bundle::getSources(HintedUserList& l) const {
-	for_each(sources.begin(), sources.end(), [&](SourceTuple st) { l.push_back(get<Bundle::SOURCE_USER>(st)); });
+	for_each(sources, [&](SourceTuple st) { l.push_back(get<Bundle::SOURCE_USER>(st)); });
 }
 
 void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
@@ -666,7 +656,7 @@ void Bundle::updateSearchMode() {
 	StringList searches;
 	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
 		string dir = Util::getReleaseDir(i->first, false);
-		if (find(searches.begin(), searches.end(), dir) == searches.end()) {
+		if (find(searches, dir) == searches.end()) {
 			searches.push_back(dir);
 		}
 	}
@@ -680,7 +670,7 @@ void Bundle::addDownload(Download* d) noexcept {
 }
 
 void Bundle::removeDownload(Download* d) noexcept {
-	auto m = find(downloads.begin(), downloads.end(), d);
+	auto m = find(downloads, d);
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
 		downloads.erase(m);

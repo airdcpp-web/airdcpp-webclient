@@ -44,7 +44,9 @@ FileQueue::~FileQueue() { }
 
 void FileQueue::getBloom(HashBloom& bloom) const {
 	for(auto i = tthIndex.begin(); i != tthIndex.end(); ++i) {
-		bloom.add(*i->first);
+		if (i->second->getBundle()) {
+			bloom.add(*i->first);
+		}
 	}
 }
 
@@ -121,7 +123,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::Stri
 		if (s.first != s.second) {
 			DirectoryListing::File* f = *i;
 			for_each(s | map_values, [f, &ql](const QueueItemPtr q) {
-				if (!q->isFinished() && q->getSize() == f->getSize() && boost::find_if(ql, CompareSecond<string, QueueItemPtr>(q)) == ql.end()) 
+				if (!q->isFinished() && q->getSize() == f->getSize() && find_if(ql, CompareSecond<string, QueueItemPtr>(q)) == ql.end()) 
 					ql.push_back(make_pair(Util::emptyString, q)); 
 			});
 		}

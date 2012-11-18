@@ -1134,10 +1134,12 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 }
 
 bool ShareManager::checkHidden(const string& aName) const {
-	FileFindIter ff = FileFindIter(aName.substr(0, aName.size() - 1));
+	if (BOOLSETTING(SHARE_HIDDEN))
+		return true;
 
+	FileFindIter ff = FileFindIter(aName.substr(0, aName.size() - 1));
 	if (ff != FileFindIter()) {
-		return (BOOLSETTING(SHARE_HIDDEN) || !ff->isHidden());
+		return !ff->isHidden();
 	}
 
 	return true;
@@ -1606,13 +1608,14 @@ int ShareManager::run() {
 		}
 		
 		for(auto i = dirs.begin(); i != dirs.end(); ++i) {
+			Directory::Ptr dp = Directory::create(Util::getLastDir(i->first), nullptr, findLastWrite(i->first), i->second.first->getProfileDir());
+			newShareDirs.insert(make_pair(Util::getLastDir(i->first), dp));
+			newShares[i->first] = dp;
 			if (checkHidden(i->first)) {
-				Directory::Ptr dp = Directory::create(Util::getLastDir(i->first), nullptr, findLastWrite(i->first), i->second.first->getProfileDir());
-				newShareDirs.insert(make_pair(Util::getLastDir(i->first), dp));
-				newShares[i->first] = dp;
 				buildTree(i->first, dp, true, i->second.second, newShareDirs, newShares, hashSize);
-				if(aShutdown) goto end;  //abort refresh
 			}
+
+			if(aShutdown) goto end;  //abort refresh
 		}
 
 		{		

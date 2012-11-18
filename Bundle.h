@@ -172,7 +172,6 @@ public:
 	bool addQueue(QueueItemPtr qi) noexcept;
 
 	void getDirQIs(const string& aDir, QueueItemList& ql) const noexcept;
-	void getDownloadsQI(DownloadList& l) const noexcept;
 
 	bool addFinishedItem(QueueItemPtr qi, bool finished) noexcept;
 	bool removeFinishedItem(QueueItemPtr qi) noexcept;

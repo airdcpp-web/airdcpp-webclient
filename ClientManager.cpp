@@ -136,6 +136,8 @@ StringList ClientManager::getHubNames(const CID& cid, const string& /*hintUrl*/)
 	for(auto i = op.first; i != op.second; ++i) {
 		lst.push_back(i->second->getClientBase().getHubName());		
 	}
+
+	sort(lst.begin(), lst.end());
 	return lst;
 }
 
@@ -150,7 +152,7 @@ StringPairList ClientManager::getHubs(const CID& cid, const string& /*hintUrl*/)
 }
 
 StringList ClientManager::getNicks(const CID& cid, const string& /*hintUrl*/) const {
-	StringSet ret;
+	set<string> ret;
 
 	{
 		RLock l(cs);

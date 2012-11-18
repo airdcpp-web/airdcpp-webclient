@@ -274,7 +274,7 @@ void QueueManager::getBloom(HashBloom& bloom) const {
 
 size_t QueueManager::getQueuedFiles() const noexcept {
 	RLock l(cs);
-	return fileQueue.getQueuedFiles();
+	return bundleQueue.getTotalFiles();
 }
 
 bool QueueManager::getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t size_) noexcept {

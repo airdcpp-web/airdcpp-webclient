@@ -25,6 +25,7 @@
 #include <boost/fusion/include/count_if.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/find_if.hpp>
+#include <boost/range/numeric.hpp>
 
 #include "BundleQueue.h"
 #include "SettingsManager.h"
@@ -45,6 +46,10 @@ BundleQueue::BundleQueue() :
 { }
 
 BundleQueue::~BundleQueue() { }
+
+size_t BundleQueue::getTotalFiles() const {
+	return boost::accumulate(bundles | map_values, (size_t)0, [](int64_t old, const BundlePtr b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
+}
 
 void BundleQueue::addBundle(BundlePtr aBundle) {
 	aBundle->unsetFlag(Bundle::FLAG_NEW);
@@ -67,11 +72,11 @@ void BundleQueue::addSearchPrio(BundlePtr aBundle) {
 	}
 
 	if (aBundle->isRecent()) {
-		dcassert(find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle) == recentSearchQueue.end());
+		dcassert(find(recentSearchQueue, aBundle) == recentSearchQueue.end());
 		recentSearchQueue.push_back(aBundle);
 		return;
 	} else {
-		dcassert(find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle) == prioSearchQueue[aBundle->getPriority()].end());
+		dcassert(find(prioSearchQueue[aBundle->getPriority()], aBundle) == prioSearchQueue[aBundle->getPriority()].end());
 		prioSearchQueue[aBundle->getPriority()].push_back(aBundle);
 	}
 }
@@ -82,14 +87,12 @@ void BundleQueue::removeSearchPrio(BundlePtr aBundle) {
 	}
 
 	if (aBundle->isRecent()) {
-		auto i = find(recentSearchQueue.begin(), recentSearchQueue.end(), aBundle);
-		//dcassert(i != recentSearchQueue.end());
+		auto i = find(recentSearchQueue, aBundle);
 		if (i != recentSearchQueue.end()) {
 			recentSearchQueue.erase(i);
 		}
 	} else {
-		auto i = find(prioSearchQueue[aBundle->getPriority()].begin(), prioSearchQueue[aBundle->getPriority()].end(), aBundle);
-		//dcassert(i != prioSearchQueue[aBundle->getPriority()].end());
+		auto i = find(prioSearchQueue[aBundle->getPriority()], aBundle);
 		if (i != prioSearchQueue[aBundle->getPriority()].end()) {
 			prioSearchQueue[aBundle->getPriority()].erase(i);
 		}
@@ -100,12 +103,10 @@ BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */)
 	BundlePtr bundle = nullptr;
 	if(aTick >= nextSearch || force) {
 		bundle = findAutoSearch();
-		//LogManager::getInstance()->message("Next search in " + Util::toString(next) + " minutes");
 	}
 	
 	if(!bundle && (aTick >= nextRecentSearch || force)) {
 		bundle = findRecent();
-		//LogManager::getInstance()->message("Next recent search in " + Util::toString(recentBundles > 1 ? 5 : 10) + " minutes");
 	}
 	return bundle;
 }
@@ -347,7 +348,7 @@ void BundleQueue::removeDirectory(const string& aPath) {
 
 Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) {
 	auto bdr = bundleDirs.equal_range(Util::getLastDir(aPath));
-	auto s = boost::find_if(bdr | map_values, CompareFirst<string, BundlePtr>(aPath));
+	auto s = find_if(bdr | map_values, [&aPath](pair <string, BundlePtr> sbp) { return aPath == sbp.first; });
 	return s.base() != bdr.second ? s.base() : bundleDirs.end();
 }
 
@@ -415,24 +416,21 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet
 						s->second.queued += q->getSize();
 					}
 				});
-
-				/*s->second.queued = boost::accumulate(b->getQueueItems(), s->second.queued, [countAll](int64_t old, const QueueItemPtr q) {
-					return old + (countAll || q->getDownloadedBytes() == 0) ? q->getSize() : 0;
-				});*/
 			}
 		}
 	});
 }
 
 void BundleQueue::saveQueue(bool force) noexcept {
-	try {
-		for_each(bundles | map_values, [force](BundlePtr b) {
-			if (!b->isFinished() && (b->getDirty() || force)) 
+	for_each(bundles | map_values, [force](BundlePtr b) {
+		if (!b->isFinished() && (b->getDirty() || force)) {
+			try {
 				b->save();
-		});
-	} catch(...) {
-		// ...
-	}
+			} catch(...) {
+				LogManager::getInstance()->message("Failed to save the bundle " + b->getName(), LogManager::LOG_ERROR);
+			}
+		}
+	});
 }
 
 } //dcpp

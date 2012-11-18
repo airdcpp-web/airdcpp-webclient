@@ -38,6 +38,8 @@ public:
 	void addBundleItem(QueueItemPtr qi, BundlePtr aBundle);
 	void removeBundleItem(QueueItemPtr qi, bool finished);
 
+	size_t getTotalFiles() const;
+
 	void addFinishedItem(QueueItemPtr qi, BundlePtr aBundle);
 	void removeFinishedItem(QueueItemPtr qi);
 
