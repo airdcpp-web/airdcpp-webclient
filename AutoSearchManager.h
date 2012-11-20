@@ -82,7 +82,8 @@ public:
 	};
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
-		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, bool aCheckAlreadyShared ) noexcept;
+		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, 
+		bool aCheckAlreadyShared, ProfileToken aToken = 0) noexcept;
 
 	~AutoSearch();
 
@@ -100,18 +101,19 @@ public:
 	GETSET(bool, checkAlreadyQueued, CheckAlreadyQueued);
 	GETSET(bool, checkAlreadyShared, CheckAlreadyShared);
 	GETSET(bool, manualSearch, ManualSearch);
+	GETSET(ProfileToken, token, Token);
+	GETSET(StringSet, bundleTokens, BundleTokens);
 
 	SearchTime startTime;
 	SearchTime endTime;
 
-	//int8_t getMatcherType() { return resultMatcher->getMethod(); }
 	bool matchNick(const string& aStr) { return userMatcher.match(aStr); }
-	//bool match(const string& aStr) { return resultMatcher->match(aStr); }
-	//bool match(const TTHValue& aTTH) { return resultMatcher->match(aTTH); }
-	//const string& getPattern() const { return resultMatcher->getPattern(); }
 	const string& getNickPattern() const { return userMatcher.pattern; }
 
 	string getDisplayType();
+
+	void addBundle(const string& aToken) { bundleTokens.insert(aToken); }
+	void removeBundle(const string& aToken) { bundleTokens.erase(aToken); }
 private:
 	StringMatch userMatcher;
 };
@@ -125,7 +127,10 @@ public:
 
 	bool addAutoSearch(AutoSearchPtr aAutoSearch);
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
-	AutoSearchPtr getAutoSearch(unsigned int index);
+	AutoSearchPtr getSearchByIndex(unsigned int index) const;
+	AutoSearchPtr getSearchByToken(ProfileToken aToken) const;
+
+	void getBundleInfo(AutoSearchPtr as, StringPairList& bundleInfo) const;
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
 	void manualSearch(AutoSearchPtr as);
@@ -194,6 +199,9 @@ private:
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
+
+	void onAddBundle(const BundlePtr aBundle);
+	void onRemoveBundle(const BundlePtr aBundle);
 };
 }
 #endif

@@ -60,6 +60,7 @@ public:
 	typedef X<25> BundleHashed;
 
 	typedef X<26> FileHashed;
+	typedef X<27> BundleFilesMoved;
 
 	virtual void on(Added, QueueItemPtr) noexcept { }
 	virtual void on(Finished, const QueueItemPtr, const string&, const HintedUser&, int64_t) noexcept { }
@@ -80,6 +81,7 @@ public:
 	virtual void on(BundleAdded, const BundlePtr) noexcept { }
 	virtual void on(BundleHashed, const string&) noexcept { }
 	virtual void on(FileHashed, const string& /* fileName */, const TTHValue& /* root */) noexcept { }
+	virtual void on(BundleFilesMoved, const BundlePtr) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }
 	virtual void on(RecheckNoFile, const string&) noexcept { }

@@ -75,8 +75,9 @@ private:
 class DirectoryDownloadInfo {
 public:
 	DirectoryDownloadInfo() : priority(QueueItem::DEFAULT) { }
-	DirectoryDownloadInfo(const UserPtr& aUser, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItem::Priority p, SizeCheckMode aPromptSizeConfirm) : 
-		listPath(aListPath), target(aTarget), priority(p), user(aUser), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr) { }
+	DirectoryDownloadInfo(const UserPtr& aUser, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItem::Priority p, 
+		SizeCheckMode aPromptSizeConfirm, ProfileToken aAutoSearch) : 
+		listPath(aListPath), target(aTarget), priority(p), user(aUser), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr), autoSearch(aAutoSearch) { }
 	~DirectoryDownloadInfo() { }
 	
 	UserPtr& getUser() { return user; }
@@ -88,6 +89,7 @@ public:
 	GETSET(QueueItem::Priority, priority, Priority);
 	GETSET(TargetUtil::TargetType, targetType, TargetType);
 	GETSET(DirectoryListingPtr, listing, Listing);
+	GETSET(ProfileToken, autoSearch, AutoSearch);
 
 	string getFinishedDirName() { return target + Util::getLastDir(listPath) + Util::toString(targetType); }
 private:
@@ -127,7 +129,7 @@ void DirectoryListingManager::removeDirectoryDownload(const UserPtr aUser) {
 }
 
 void DirectoryListingManager::addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,  
-	QueueItem::Priority p /* = QueueItem::DEFAULT */, bool useFullList) noexcept {
+	QueueItem::Priority p /* = QueueItem::DEFAULT */, bool useFullList /*false*/, ProfileToken aAutoSearch) noexcept {
 
 	bool needList;
 	{
@@ -141,7 +143,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 		}
 		
 		// Unique directory, fine...
-		dlDirectories.insert(make_pair(aUser, new DirectoryDownloadInfo(aUser, aDir, aTarget, aTargetType, p, aSizeCheckMode)));
+		dlDirectories.insert(make_pair(aUser, new DirectoryDownloadInfo(aUser, aDir, aTarget, aTargetType, p, aSizeCheckMode, aAutoSearch)));
 		needList = aUser.user->isSet(User::NMDC) ? (dp.first == dp.second) : true;
 	}
 
@@ -238,7 +240,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 			}
 
 			if (download) {
-				aList->downloadDir(di->getListPath(), di->getTarget(), TargetUtil::TARGET_PATH, false, di->getPriority());
+				aList->downloadDir(di->getListPath(), di->getTarget(), TargetUtil::TARGET_PATH, false, di->getPriority(), di->getAutoSearch());
 				delete di;
 				continue;
 			}
@@ -253,7 +255,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 				if (!hasFreeSpace)
 					TargetUtil::reportInsufficientSize(ti, dirSize);
 
-				aList->downloadDir(di->getListPath(), ti.targetDir, TargetUtil::TARGET_PATH, false, !hasFreeSpace ? QueueItem::PAUSED : di->getPriority());
+				aList->downloadDir(di->getListPath(), ti.targetDir, TargetUtil::TARGET_PATH, false, !hasFreeSpace ? QueueItem::PAUSED : di->getPriority(), di->getAutoSearch());
 				{
 					WLock l (cs);
 					finishedListings[di->getFinishedDirName()] = new FinishedDirectoryItem(!hasFreeSpace, ti.targetDir);
@@ -269,7 +271,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 				string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
 				fire(DirectoryListingManagerListener::PromptAction(), di->getFinishedDirName(), msg);
 			} else {
-				aList->downloadDir(di->getListPath(), ti.targetDir, TargetUtil::TARGET_PATH, false, di->getPriority());
+				aList->downloadDir(di->getListPath(), ti.targetDir, TargetUtil::TARGET_PATH, false, di->getPriority(), di->getAutoSearch());
 
 				WLock l (cs);
 				finishedListings[di->getFinishedDirName()] = new FinishedDirectoryItem(false, ti.targetDir);
@@ -309,7 +311,7 @@ void DirectoryListingManager::handleSizeConfirmation(const string& aTarget, bool
 
 	if (accepted) {
 		for_each(wdi->getDownloadInfos(), [](DirectoryDownloadInfo* di) {
-			di->getListing()->downloadDir(di->getListPath(), di->getTarget(), di->getTargetType(), false, di->getPriority());
+			di->getListing()->downloadDir(di->getListPath(), di->getTarget(), di->getTargetType(), false, di->getPriority(), di->getAutoSearch());
 		});
 	}
 	wdi->deleteListings();

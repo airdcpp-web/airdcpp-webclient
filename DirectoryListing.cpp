@@ -409,7 +409,9 @@ bool DirectoryListing::Directory::findIncomplete() {
 	return find_if(directories, [](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
 }
 
-void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio, bool first, BundlePtr aBundle) {
+void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, 
+	QueueItem::Priority prio, bool first, BundlePtr aBundle, ProfileToken aAutoSearch) {
+
 	string target;
 	if (first) {
 		//check if there are incomplete dirs in a partial list
@@ -446,7 +448,7 @@ void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 	auto& fileList = aDir->files;
 
 	if (!aBundle) {
-		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, aDir->getDate()));
+		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, aAutoSearch, aDir->getDate()));
 		first = true;
 	}
 
@@ -471,12 +473,12 @@ void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 	}
 }
 
-void DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio) {
+void DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio, ProfileToken aAutoSearch) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = findDirectory(aDir, root);
 	if(d)
-		downloadDir(d, aTarget, aTargetType, highPrio, prio);
+		downloadDir(d, aTarget, aTargetType, highPrio, prio, true, nullptr, aAutoSearch);
 }
 
 int64_t DirectoryListing::getDirSize(const string& aDir) {
@@ -491,7 +493,7 @@ int64_t DirectoryListing::getDirSize(const string& aDir) {
 void DirectoryListing::download(File* aFile, const string& aTarget, bool view, QueueItem::Priority prio, BundlePtr aBundle) {
 	Flags::MaskType flags = (Flags::MaskType)(view ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : 0);
 
-	QueueManager::getInstance()->add(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), aFile->getPath() + aFile->getName(), flags, true, prio, aBundle);
+	QueueManager::getInstance()->addFile(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), aFile->getPath() + aFile->getName(), flags, true, prio, aBundle);
 }
 
 DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName, const Directory* current) const {
@@ -533,7 +535,7 @@ bool DirectoryListing::findNfo(const string& aPath) {
 
 		if (!results.empty()) {
 			try {
-				QueueManager::getInstance()->add(Util::getOpenPath(results.front()->getName()), results.front()->getSize(), results.front()->getTTH(), 
+				QueueManager::getInstance()->addFile(Util::getOpenPath(results.front()->getName()), results.front()->getSize(), results.front()->getTTH(), 
 					hintedUser, results.front()->getPath() + results.front()->getName(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
 			} catch(const Exception&) { }
 			return true;

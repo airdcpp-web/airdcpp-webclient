@@ -101,8 +101,8 @@ public:
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
 
-	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, const string& aToken = Util::emptyString) noexcept;
-	Bundle(QueueItemPtr qi, const string& aToken = Util::emptyString) noexcept;
+	Bundle(const string& target, time_t added, Priority aPriority, ProfileToken aAutoSearch, time_t aDirDate=0, const string& aToken = Util::emptyString) noexcept;
+	Bundle(QueueItemPtr qi, const string& aToken = Util::emptyString, ProfileToken aAutoSearch = 0) noexcept;
 	~Bundle();
 
 	GETSET(string, token, Token);
@@ -136,6 +136,7 @@ public:
 	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceInfoList, badSources, BadSources);
 	GETSET(SourceInfoList, sources, Sources);
+	GETSET(ProfileToken, autoSearch, AutoSearch);
 
 	UserIntMap& getRunningUsers() { return runningUsers; }
 	FinishedNotifyList& getNotifiedUsers() { return finishedNotifications; }

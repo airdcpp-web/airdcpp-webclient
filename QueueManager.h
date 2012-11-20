@@ -67,8 +67,8 @@ public:
 
 	bool allowAdd(const string& aTarget, const TTHValue& root) throw(QueueException, FileException);
 	/** Add a file to the queue. */
-	void add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath,
-		Flags::MaskType aFlags = 0, bool addBad = true, QueueItem::Priority aPrio = QueueItem::DEFAULT, BundlePtr aBundle=NULL) throw(QueueException, FileException);
+	void addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath,
+		Flags::MaskType aFlags = 0, bool addBad = true, QueueItem::Priority aPrio = QueueItem::DEFAULT, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch = 0) throw(QueueException, FileException);
 		/** Add a user's filelist to the queue. */
 	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
 	void addListDir(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
@@ -189,6 +189,7 @@ public:
 	bool dropSource(Download* d);
 
 	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& tempTarget);
+	string getBundleName(const string& aBundleToken) const;
 	
 	GETSET(uint64_t, lastSave, LastSave);
 	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);

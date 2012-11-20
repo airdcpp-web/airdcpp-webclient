@@ -44,10 +44,10 @@ using boost::range::for_each;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
+Bundle::Bundle(QueueItemPtr qi, const string& aToken /*empty*/, ProfileToken aAutoSearch /*0*/) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(qi->getAutoPriority()), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
-	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0) {
+	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0), autoSearch(aAutoSearch) {
 
 	if (aToken.empty())
 		token = ConnectionManager::getInstance()->tokens.getToken();
@@ -60,9 +60,9 @@ Bundle::Bundle(QueueItemPtr qi, const string& aToken) : target(qi->getTarget()),
 		setFlag(FLAG_AUTODROP);
 }
 
-Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/) : fileBundle(false), size(0), 
-	finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true), priority(aPriority), dirty(true), added(added), 
-	simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0) {
+Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, ProfileToken aAutoSearch, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/) : 
+	fileBundle(false), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true), priority(aPriority), 
+	dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearch(aAutoSearch) {
 
 	if (aToken.empty()) {
 		token = ConnectionManager::getInstance()->tokens.getToken();
@@ -913,6 +913,10 @@ void Bundle::save() {
 	if (isFileBundle()) {
 		f.write(LIT("<File Version=\"1.0\" Token=\""));
 		f.write(token);
+		if (autoSearch > 0) {
+			f.write(LIT("\" AutoSearch=\""));
+			f.write(Util::toString(autoSearch));
+		}
 		f.write(LIT("\">\r\n"));
 		queueItems.front()->save(f, tmp, b32tmp);
 		f.write(LIT("</File>\r\n"));
@@ -928,6 +932,10 @@ void Bundle::save() {
 		if (!autoPriority) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)priority));
+		}
+		if (autoSearch > 0) {
+			f.write(LIT("\" AutoSearch=\""));
+			f.write(Util::toString(autoSearch));
 		}
 		f.write(LIT("\">\r\n"));
 

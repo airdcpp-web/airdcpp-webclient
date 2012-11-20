@@ -23,6 +23,7 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 
+#include "AutoSearchManager.h"
 #include "AirUtil.h"
 #include "Bundle.h"
 #include "ClientManager.h"
@@ -358,7 +359,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 }
 
 void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */) throw(QueueException, FileException) {
-	add(aInitialDir, -1, TTHValue(), aUser, Util::emptyString, (Flags::MaskType)(QueueItem::FLAG_USER_LIST | aFlags));
+	addFile(aInitialDir, -1, TTHValue(), aUser, Util::emptyString, (Flags::MaskType)(QueueItem::FLAG_USER_LIST | aFlags));
 }
 
 string QueueManager::getListPath(const HintedUser& user) {
@@ -387,8 +388,8 @@ void QueueManager::setMatchers() {
 	highPrioFiles.prepare();
 }
 
-void QueueManager::add(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath, 
-					   Flags::MaskType aFlags /* = 0 */, bool addBad /* = true */, QueueItem::Priority aPrio, BundlePtr aBundle /*NULL*/) throw(QueueException, FileException)
+void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath, 
+	Flags::MaskType aFlags /* = 0 */, bool addBad /* = true */, QueueItem::Priority aPrio, BundlePtr aBundle /*NULL*/, ProfileToken aAutoSearch /*0*/) throw(QueueException, FileException)
 {
 	bool wantConnection = true;
 
@@ -998,6 +999,8 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 	} else {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	}
+
+	AutoSearchManager::getInstance()->onRemoveBundle(b);
 }
 
 void QueueManager::hashBundle(BundlePtr aBundle) {
@@ -1355,17 +1358,18 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 			removeBundleItem(q, true);
 		}
 
+		if(BOOLSETTING(LOG_DOWNLOADS)) {
+			ParamMap params;
+			d->getParams(d->getUserConnection(), params);
+			LOG(LogManager::DOWNLOAD, params);
+		}
+
 		// Check if we need to move the file
 		if(!d->getTempTarget().empty() && (Util::stricmp(d->getPath().c_str(), d->getTempTarget().c_str()) != 0) ) {
 			moveFile(d->getTempTarget(), d->getPath(), q);
 		}
 
 		fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
-		if(BOOLSETTING(LOG_DOWNLOADS)) {
-			ParamMap params;
-			d->getParams(d->getUserConnection(), params);
-			LOG(LogManager::DOWNLOAD, params);
-		}
 	}
 
 	for(auto i = getConn.begin(); i != getConn.end(); ++i) {
@@ -1797,7 +1801,7 @@ void QueueManager::saveQueue(bool force) noexcept {
 
 class QueueLoader : public SimpleXMLReader::CallBack {
 public:
-	QueueLoader() : curFile(NULL), inDownloads(false), inBundle(false), inFile(false) { }
+	QueueLoader() : curFile(NULL), inDownloads(false), inBundle(false), inFile(false), curAutoSearch(0) { }
 	~QueueLoader() { }
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name);
@@ -1819,6 +1823,7 @@ private:
 	bool inBundle;
 	bool inFile;
 	string curToken;
+	ProfileToken curAutoSearch;
 };
 
 void QueueManager::loadQueue() noexcept {
@@ -1881,6 +1886,7 @@ static const string sAutoPriority = "AutoPriority";
 static const string sMaxSegments = "MaxSegments";
 static const string sBundleToken = "BundleToken";
 static const string sFinished = "Finished";
+static const string sAutoSearch = "AutoSearch";
 
 
 
@@ -1890,6 +1896,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		inDownloads = true;
 	} else if (!inFile && name == sFile) {
 		curToken = getAttrib(attribs, sToken, 1);
+		curAutoSearch = Util::toInt(getAttrib(attribs, sAutoSearch, 1));
 		inFile = true;		
 	} else if (!inBundle && name == sBundle) {
 		const string& bundleTarget = getAttrib(attribs, sTarget, 0);
@@ -1897,15 +1904,16 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		if(token.empty())
 			return;
 
-		const string& prio = getAttrib(attribs, sPriority, 3);
-		time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 4)));
-		time_t dirDate = static_cast<time_t>(Util::toInt(getAttrib(attribs, sDate, 5)));
+		time_t dirDate = static_cast<time_t>(Util::toInt(getAttrib(attribs, sDate, 2)));
+		time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 3)));
+		const string& prio = getAttrib(attribs, sPriority, 4);
+		ProfileToken autoSearch = Util::toInt(getAttrib(attribs, sAutoSearch, 4));
 		if(added == 0) {
 			added = GET_TIME();
 		}
 
 		if (ConnectionManager::getInstance()->tokens.addToken(token))
-			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, dirDate, token);
+			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, autoSearch, dirDate, token);
 		else
 			throw Exception("Duplicate token");
 
@@ -1961,7 +1969,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 					curBundle = new Bundle(qi);
 				} else if (inFile && !curToken.empty()) {
 					if (ConnectionManager::getInstance()->tokens.addToken(curToken)) {
-						curBundle = new Bundle(qi, curToken);
+						curBundle = new Bundle(qi, curToken, curAutoSearch);
 					} else {
 						qm->fileQueue.remove(qi);
 						throw Exception("Duplicate token");
@@ -2037,6 +2045,7 @@ void QueueLoader::endTag(const string& name) {
 		} else if(name == sFile) {
 			curToken = Util::emptyString;
 			inFile = false;
+			curAutoSearch = 0;
 			if (!curBundle || curBundle->getQueueItems().empty())
 				throw Exception(STRING(NO_FILES_FROM_FILE));
 		} else if(name == sDownload) {
@@ -2047,6 +2056,11 @@ void QueueLoader::endTag(const string& name) {
 			curFile = nullptr;
 		}
 	}
+}
+
+string QueueManager::getBundleName(const string& aBundleToken) const {
+	auto b = bundleQueue.findBundle(aBundleToken);
+	return b ? b->getName() : "Unknown";
 }
 
 void QueueManager::addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, int64_t aSize, time_t aFinished) {
@@ -2662,6 +2676,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		aBundle->updateSearchMode();
 	}
 
+	AutoSearchManager::getInstance()->onAddBundle(aBundle);
 	if (loading)
 		return true;
 
@@ -3025,7 +3040,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	}
 
 	//create a temp bundle for split items
-	BundlePtr tempBundle = BundlePtr(new Bundle(aTarget, GET_TIME(), sourceBundle->getPriority(), sourceBundle->getDirDate()));
+	BundlePtr tempBundle = BundlePtr(new Bundle(aTarget, GET_TIME(), sourceBundle->getPriority(), sourceBundle->getAutoSearch(), sourceBundle->getDirDate()));
 
 	//can we merge the split folder?
 	bool hasMergeBundle = newBundle;
@@ -3437,6 +3452,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 			}
 
 			fire(QueueManagerListener::BundleRemoved(), aBundle);
+			AutoSearchManager::getInstance()->onRemoveBundle(aBundle);
 
 			LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);
 		}

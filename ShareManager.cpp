@@ -1534,7 +1534,7 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 			}
 			break;
 		case(REFRESH_INCOMING):
-			msg = finished ? STRING(FILE_LIST_REFRESH_INITIATED_INCOMING) : STRING(INCOMING_REFRESHED);
+			msg = finished ? STRING(INCOMING_REFRESHED) : STRING(FILE_LIST_REFRESH_INITIATED_INCOMING);
 			break;
 	};
 
