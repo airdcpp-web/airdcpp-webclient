@@ -44,7 +44,7 @@ using boost::range::for_each;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr qi, const string& aToken /*empty*/, ProfileToken aAutoSearch /*0*/) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
+Bundle::Bundle(QueueItemPtr qi, ProfileToken aAutoSearch /*0*/, const string& aToken /*empty*/) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	priority((Priority)qi->getPriority()), autoPriority(qi->getAutoPriority()), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
 	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0), autoSearch(aAutoSearch) {

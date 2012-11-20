@@ -49,7 +49,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, ProfileToken aToken /*rand*/) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
 		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
-		manualSearch(false), token(aToken) {
+		manualSearch(false), token(aToken), status(STATUS_SEARCHING) {
 
 	if (token == 0)
 		token = Util::randInt(10);
@@ -62,6 +62,16 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	userMatcher.pattern = aUserMatch;
 	userMatcher.prepare();
 };
+
+bool AutoSearch::allowNewItems() {
+	if (!enabled)
+		return false;
+
+	if (status == STATUS_SEARCHING || status == STATUS_FAILED_MISSING)
+		return true;
+
+	return !remove;
+}
 
 AutoSearch::~AutoSearch() { 
 };
@@ -162,7 +172,8 @@ void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const strin
 	for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
 		if ((*i)->getFileType() == oldName) {
 			(*i)->setFileType(newName);
-			fire(AutoSearchManagerListener::UpdateItem(), *i, distance(searchItems.begin(), i));
+			//fire(AutoSearchManagerListener::UpdateItem(), *i, distance(searchItems.begin(), i));
+			fire(AutoSearchManagerListener::UpdateItem(), *i);
 		}
 	}
 }
@@ -209,20 +220,81 @@ void AutoSearchManager::onAddBundle(const BundlePtr aBundle) {
 
 	auto as = getSearchByToken(aBundle->getAutoSearch());
 	if (as) {
-		WLock l (cs);
-		as->addBundle(aBundle->getToken());
+		{
+			WLock l (cs);
+			as->addBundle(aBundle->getToken());
+		}
+		setItemStatus(as, AutoSearch::STATUS_QUEUED_OK);
 	}
 }
 
-void AutoSearchManager::onRemoveBundle(const BundlePtr aBundle) {
+void AutoSearchManager::onRemoveBundle(const BundlePtr aBundle, bool finished) {
 	if (aBundle->getAutoSearch() == 0)
 		return;
 
 	auto as = getSearchByToken(aBundle->getAutoSearch());
 	if (as) {
-		WLock l (cs);
-		as->removeBundle(aBundle->getToken());
+		{
+			WLock l (cs);
+			as->removeBundle(aBundle->getToken());
+		}
+
+		//if (!as->getBundleTokens().empty())
+		fire(AutoSearchManagerListener::UpdateItem(), as);
+
+		if (as->getRemove() && finished) {
+			removeAutoSearch(as);
+		}
 	}
+}
+
+void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissing) {
+	if (aBundle->getAutoSearch() == 0)
+		return;
+
+	auto as = getSearchByToken(aBundle->getAutoSearch());
+	if (as) {
+		setItemStatus(as, noMissing ? AutoSearch::STATUS_FAILED_EXTRAS : AutoSearch::STATUS_FAILED_MISSING);
+	}
+}
+
+string AutoSearchManager::getStatus(AutoSearchPtr as) {
+	if (!as->getEnabled()) {
+		return "Disabled";
+	}
+
+	string statusString;
+	bool searching = !as->getRemove();
+	if (as->getStatus() == AutoSearch::STATUS_SEARCHING) {
+		statusString = "Active";
+		searching = true;
+	} else if (as->getStatus() == AutoSearch::STATUS_LIST) {
+		statusString = "Downloading list";
+	} else {
+		int bundleCount = 0;
+		{
+			RLock l (cs);
+			bundleCount = as->getBundleTokens().size();
+		}
+
+		if (bundleCount == 1) {
+			if (as->getStatus() == AutoSearch::STATUS_QUEUED_OK) {
+				statusString = "Queued";
+			} else if (as->getStatus() == AutoSearch::STATUS_FAILED_MISSING) {
+				statusString = "Failed (files missing)";
+				searching = true;
+			} else if (as->getStatus() == AutoSearch::STATUS_FAILED_EXTRAS) {
+				statusString = "Failed (extra files)";
+			}
+		} else {
+			statusString = Util::toString(bundleCount) + " bundles queued";
+			searching = true;
+		}
+	}
+
+	statusString += ", ";
+	statusString += searching ? "searching" : "not searching";
+	return statusString;
 }
 
 bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr &ipw) {
@@ -345,7 +417,7 @@ void AutoSearchManager::checkSearches() {
 			
 			curPos++; //move to next one, even if we skip something, dont check the same ones again until list has gone thru.
 
-			if (!(*i)->getEnabled())
+			if (!(*i)->allowNewItems())
 				continue;
 			//check the weekday
 			if (!(*i)->searchDays[_tm.tm_wday])
@@ -366,7 +438,8 @@ void AutoSearchManager::checkSearches() {
 			as = *i;
 			as->setLastSearch(curTime);
 			lastSearch = 0;
-			fire(AutoSearchManagerListener::UpdateItem(), as, distance(searchItems.begin(), i));
+			fire(AutoSearchManagerListener::UpdateItem(), as);
+			//fire(AutoSearchManagerListener::UpdateItem(), as, distance(searchItems.begin(), i));
 			break;
 		}
 	}
@@ -398,7 +471,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 		RLock l (cs);
 		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
 			AutoSearchPtr as = *i;
-			if (!as->getEnabled() && !as->getManualSearch())
+			if (!as->allowNewItems() && !as->getManualSearch())
 				continue;
 			
 			as->setManualSearch(false);
@@ -456,14 +529,18 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
 					(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken());
+
+				if (as->getStatus() < AutoSearch::STATUS_LIST)
+					setItemStatus(as, AutoSearch::STATUS_LIST);
 			} else {
 				TargetUtil::TargetInfo ti;
 				bool hasSpace = TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize());
 				if (!hasSpace)
 					TargetUtil::reportInsufficientSize(ti, sr->getSize());
 
-				QueueManager::getInstance()->addFile(as->getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), sr->getFile(), 0, true, 
+				QueueManager::getInstance()->addFile(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), sr->getFile(), 0, true, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT), nullptr, as->getToken());
+				setItemStatus(as, AutoSearch::STATUS_QUEUED_OK);
 			}
 		} catch(const Exception& /*e*/) {
 			//LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");
@@ -480,14 +557,22 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 			if(client && client->isConnected()) {
 				client->Message("AutoSearch found a file: " + sr->getFile() + " from an user " + u->getIdentity().getNick());
 			}
+
+			if(as->getRemove()) {
+				removeAutoSearch(as);
+			}
 		} else {
 			return;
 		}
 	}
+}
 
-	if(as->getRemove()) {
-		removeAutoSearch(as);
-	}
+void AutoSearchManager::setItemStatus(AutoSearchPtr as, AutoSearch::StatusType aStatus) {
+	as->setStatus(aStatus);
+	//auto p = getSearchByToken(as->getToken());
+	//if (p != searchItems.end())
+	//fire(AutoSearchManagerListener::UpdateItem(), as, distance(searchItems.cbegin(), p));
+	fire(AutoSearchManagerListener::UpdateItem(), as);
 }
 
 void AutoSearchManager::AutoSearchSave() {

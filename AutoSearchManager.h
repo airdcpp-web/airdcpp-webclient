@@ -78,7 +78,15 @@ public:
 	enum ActionType {
 		ACTION_DOWNLOAD,
 		ACTION_QUEUE,
-		ACTION_REPORT,
+		ACTION_REPORT
+	};
+
+	enum StatusType {
+		STATUS_SEARCHING,
+		STATUS_LIST,
+		STATUS_QUEUED_OK,
+		STATUS_FAILED_MISSING,
+		STATUS_FAILED_EXTRAS
 	};
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
@@ -103,6 +111,7 @@ public:
 	GETSET(bool, manualSearch, ManualSearch);
 	GETSET(ProfileToken, token, Token);
 	GETSET(StringSet, bundleTokens, BundleTokens);
+	GETSET(StatusType, status, Status);
 
 	SearchTime startTime;
 	SearchTime endTime;
@@ -111,6 +120,7 @@ public:
 	const string& getNickPattern() const { return userMatcher.pattern; }
 
 	string getDisplayType();
+	bool allowNewItems();
 
 	void addBundle(const string& aToken) { bundleTokens.insert(aToken); }
 	void removeBundle(const string& aToken) { bundleTokens.erase(aToken); }
@@ -129,6 +139,9 @@ public:
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
 	AutoSearchPtr getSearchByIndex(unsigned int index) const;
 	AutoSearchPtr getSearchByToken(ProfileToken aToken) const;
+
+	void setItemStatus(AutoSearchPtr as, AutoSearch::StatusType aStatus);
+	string getStatus(AutoSearchPtr as);
 
 	void getBundleInfo(AutoSearchPtr as, StringPairList& bundleInfo) const;
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
@@ -201,7 +214,8 @@ private:
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
 	void onAddBundle(const BundlePtr aBundle);
-	void onRemoveBundle(const BundlePtr aBundle);
+	void onRemoveBundle(const BundlePtr aBundle, bool finished);
+	void onBundleScanFailed(const BundlePtr aBundle, bool noMissing);
 };
 }
 #endif

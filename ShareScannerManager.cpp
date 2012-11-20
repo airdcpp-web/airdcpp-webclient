@@ -22,6 +22,7 @@
 #include "HashManager.h"
 #include "TimerManager.h"
 
+#include "AutoSearchManager.h"
 #include "FileReader.h"
 #include "LogManager.h"
 #include "ShareManager.h"
@@ -604,7 +605,15 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 		find(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, st);
 
 		reportResults(aBundle->getName(), st, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
-		return (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0); //allow choosing the level when it shouldn't be added?
+
+		auto clean = (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0);
+		if (clean && aBundle->isSet(Bundle::FLAG_SHARING_FAILED)) {
+			AutoSearchManager::getInstance()->onRemoveBundle(aBundle, true);
+		} else {
+			AutoSearchManager::getInstance()->onBundleScanFailed(aBundle, missingFiles == 0 && missingNFO == 0 && missingSFV == 0);
+		}
+
+		return clean; //allow choosing the level when it shouldn't be added?
 	}
 	return true;
 }

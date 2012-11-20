@@ -102,7 +102,7 @@ public:
 
 
 	Bundle(const string& target, time_t added, Priority aPriority, ProfileToken aAutoSearch, time_t aDirDate=0, const string& aToken = Util::emptyString) noexcept;
-	Bundle(QueueItemPtr qi, const string& aToken = Util::emptyString, ProfileToken aAutoSearch = 0) noexcept;
+	Bundle(QueueItemPtr qi, ProfileToken aAutoSearch = 0, const string& aToken = Util::emptyString) noexcept;
 	~Bundle();
 
 	GETSET(string, token, Token);

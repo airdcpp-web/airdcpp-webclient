@@ -539,7 +539,7 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 				bundleQueue.addBundleItem(q, aBundle);
 				aBundle->setDirty(true);
 			} else {
-				aBundle = new Bundle(q);
+				aBundle = new Bundle(q, aAutoSearch);
 			}
 		}
 		/* Bundles end */
@@ -1000,7 +1000,7 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	}
 
-	AutoSearchManager::getInstance()->onRemoveBundle(b);
+	AutoSearchManager::getInstance()->onRemoveBundle(b, true);
 }
 
 void QueueManager::hashBundle(BundlePtr aBundle) {
@@ -1969,7 +1969,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 					curBundle = new Bundle(qi);
 				} else if (inFile && !curToken.empty()) {
 					if (ConnectionManager::getInstance()->tokens.addToken(curToken)) {
-						curBundle = new Bundle(qi, curToken, curAutoSearch);
+						curBundle = new Bundle(qi, curAutoSearch, curToken);
 					} else {
 						qm->fileQueue.remove(qi);
 						throw Exception("Duplicate token");
@@ -2757,7 +2757,12 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 		added = changeBundleTarget(targetBundle, sourceBundle->getTarget());
 		RLock l (cs);
 		fire(QueueManagerListener::BundleMerged(), targetBundle, oldTarget);
-	} 
+	}
+
+	if (targetBundle->getAutoSearch() == 0 && sourceBundle->getAutoSearch() != 0) {
+		targetBundle->setAutoSearch(sourceBundle->getAutoSearch());
+		AutoSearchManager::getInstance()->onAddBundle(targetBundle);
+	}
 
 	{
 		WLock l (cs);
@@ -3278,7 +3283,7 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 				for_each(ql, [&](QueueItemPtr qi) {
 					bundleQueue.removeBundleItem(qi, false);
 					userQueue.removeQI(qi, false); //we definately don't want to remove downloads because the QI will stay the same
-					targetBundle = BundlePtr(new Bundle(qi));
+					targetBundle = BundlePtr(new Bundle(qi, sourceBundle->getAutoSearch()));
 					targetBundle->setPriority(sourceBundle->getPriority());
 					targetBundle->setAutoPriority(sourceBundle->getAutoPriority());
 
@@ -3452,11 +3457,11 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 			}
 
 			fire(QueueManagerListener::BundleRemoved(), aBundle);
-			AutoSearchManager::getInstance()->onRemoveBundle(aBundle);
 
 			LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);
 		}
 
+		AutoSearchManager::getInstance()->onRemoveBundle(aBundle, false);
 		if (!aBundle->isFileBundle()) {
 			AirUtil::removeIfEmpty(aBundle->getTarget());
 		}
