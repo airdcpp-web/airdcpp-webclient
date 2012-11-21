@@ -115,6 +115,11 @@ public:
 	GETSET(OrderedStringSet, finishedPaths, FinishedPaths);
 	GETSET(StatusType, status, Status);
 
+	GETSET(int, curNumber, CurNumber);
+	GETSET(int, maxNumber, MaxNumber);
+	GETSET(int, numberLen, NumberLen);
+	GETSET(bool, useParams, UseParams);
+
 	SearchTime startTime;
 	SearchTime endTime;
 
@@ -123,6 +128,8 @@ public:
 
 	string getDisplayType();
 	bool allowNewItems();
+	void updatePattern();
+	void increaseNumber();
 
 	void addBundle(const string& aToken);
 	void removeBundle(const string& aToken);

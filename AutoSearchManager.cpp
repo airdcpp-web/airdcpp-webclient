@@ -49,14 +49,12 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, ProfileToken aToken /*rand*/) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
 		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
-		manualSearch(false), token(aToken), status(STATUS_SEARCHING), matchFullPath(aMatchFullPath) {
+		manualSearch(false), token(aToken), status(STATUS_SEARCHING), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2) {
 
 	if (token == 0)
 		token = Util::randInt(10);
 
 	setMethod(aMethod);
-	pattern = aMatcherString.empty() ? aSearchString : aMatcherString;
-	prepare();
 
 	userMatcher.setMethod(StringMatch::WILDCARD);
 	userMatcher.pattern = aUserMatch;
@@ -87,14 +85,20 @@ uint64_t AutoSearchManager::searchItem(AutoSearchPtr as, StringList& aHubs, bool
 		ftype = SearchManager::TYPE_ANY;
 	}
 
-	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, as->getSearchString(), 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, 
+	{
+		WLock l(cs);
+		as->updatePattern();
+	}
+
+	string searchWord = as->getUseParams() ? as->pattern : as->getSearchString();
+	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchWord, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, 
 		"as", extList, manual ? Search::MANUAL : Search::AUTO_SEARCH);
 
 	if (report) {
 		if (searchTime == 0) {
-			logMessage(STRING_F(ITEM_SEARCHED, as->getSearchString()), false);
+			logMessage(STRING_F(ITEM_SEARCHED, searchWord), false);
 		} else {
-			logMessage(STRING_F(ITEM_SEARCHED_IN, as->getSearchString() % (searchTime / 1000)), false);
+			logMessage(STRING_F(ITEM_SEARCHED_IN, searchWord % (searchTime / 1000)), false);
 		}
 	}
 
@@ -183,6 +187,7 @@ bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
 		WLock l(cs);
 		if (find_if(searchItems,
 			[aAutoSearch](AutoSearchPtr as)  { return as->getSearchString() == aAutoSearch->getSearchString(); }) != searchItems.end()) return false;
+		aAutoSearch->updatePattern();
 		searchItems.push_back(aAutoSearch);
 	}
 	dirty = true;
@@ -248,6 +253,7 @@ void AutoSearch::addPath(const string& aPath) {
 void AutoSearchManager::clearPaths(AutoSearchPtr as) {
 	WLock l (cs);
 	as->clearPaths();
+	dirty = true;
 }
 
 void AutoSearchManager::onRemoveBundle(const BundlePtr aBundle, bool finished) {
@@ -260,16 +266,45 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr aBundle, bool finished) {
 			WLock l (cs);
 			as->removeBundle(aBundle->getToken());
 			if (finished && !as->getRemove()) {
+				dirty = true;
 				as->addPath(aBundle->getTarget());
+				if (as->getUseParams()) {
+					as->increaseNumber();
+					as->updatePattern();
+				}
 			}
 		}
 
-		if (as->getRemove() && finished) {
+		if ((as->getRemove() || (as->getUseParams() && as->getCurNumber() > as->getMaxNumber() && as->getCurNumber() > 0)) && finished) {
 			removeAutoSearch(as);
 		} else {
 			fire(AutoSearchManagerListener::UpdateItem(), as);
 		}
 	}
+}
+
+void AutoSearch::increaseNumber() {
+	if (searchString.find("%[number]") != string::npos) {
+		curNumber++;
+	}
+}
+
+void AutoSearch::updatePattern() {
+	if (useParams) {
+		ParamMap params;
+		if (searchString.find("%[number]") != string::npos) {
+			auto num = Util::toString(curNumber);
+			if (num.length() < numberLen) {
+				num.insert(num.begin(), numberLen - num.length(), '0');
+			}
+			params["number"] = num;
+		}
+
+		pattern = Util::formatParams(searchString, params);
+	} else {
+		pattern = !pattern.empty() ? pattern : searchString;
+	}
+	prepare();
 }
 
 void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissing, bool noExtras) {
@@ -330,6 +365,7 @@ bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr &ipw)
 			return false;
 	}
 
+	ipw->updatePattern();
 	searchItems[index] = ipw;
 	dirty = true;
 	return true;
@@ -656,6 +692,15 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("LastSearchTime", Util::toString(as->getLastSearch()));
 				xml.addChildAttrib("MatchFullPath", as->getMatchFullPath());
 				xml.addChildAttrib("Token", Util::toString(as->getToken()));
+
+				xml.stepIn();
+				if (as->getUseParams()) {
+					xml.addTag("ParamFormat");
+					xml.addChildAttrib("CurNumber", as->getCurNumber());
+					xml.addChildAttrib("MaxNumber", as->getMaxNumber());
+					xml.addChildAttrib("MinNumberLen", as->getNumberLen());
+				}
+
 				if (!as->getFinishedPaths().empty()) {
 					xml.addTag("FinishedPaths");
 					xml.stepIn();
@@ -664,6 +709,7 @@ void AutoSearchManager::AutoSearchSave() {
 					}
 					xml.stepOut();
 				}
+				xml.stepOut();
 			}
 		}
 
@@ -728,8 +774,18 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 			} else {
 				as->endTime = SearchTime(true);
 			}
-
 			as->setLastSearch(aXml.getIntChildAttrib("LastSearchTime"));
+
+			aXml.stepIn();
+
+			if (aXml.findChild("ParamFormat")) {
+				as->setUseParams(true);
+				as->setCurNumber(aXml.getIntChildAttrib("CurNumber"));
+				as->setMaxNumber(aXml.getIntChildAttrib("MaxNumber"));
+				as->setNumberLen(aXml.getIntChildAttrib("MinNumberLen"));
+			}
+			aXml.resetCurrentChild();
+
 			if (aXml.findChild("FinishedPaths")) {
 				aXml.stepIn();
 				while(aXml.findChild("Path")) {
@@ -741,6 +797,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 			}
 
 			addAutoSearch(as);
+			aXml.stepOut();
 		}
 		aXml.stepOut();
 	}
