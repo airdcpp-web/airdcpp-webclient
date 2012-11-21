@@ -1332,8 +1332,8 @@ enum Strings { // @DontAdd
 	LOCATION_TYPE, // "Location type"
 	FORCE_HASH_NOTIFICATION, // "Refresh the directory after fixing the problem(s) to rescan the bundle (or type \"/allow %s\" to force it to be hashed in share if the problem(s) can't be fixed)"
 	LINE_EMPTY_OR_TOO_SHORT, // "Search String empty or too Short! (min. 5 chars allowed)"
-	AUTOSEARCH_CHECK_QUEUED, // "Don't download already Queued release directories"
-	AUTOSEARCH_CHECK_SHARED, // "Don't download already Shared release directories"
+	AUTOSEARCH_CHECK_QUEUED, // "Don't download directories already in queue"
+	AUTOSEARCH_CHECK_SHARED, // "Don't download directories already in share"
 	PORT_BYSY, // "Unable to open %s port. Searching or file transfers will not work correctly until you change settings or turn off any application that might be using that port."
 	TRANSFER_PORT, // "Transfer (TCP)"
 	SEARCH_PORT, // "Search (UDP)"
@@ -1566,5 +1566,9 @@ enum Strings { // @DontAdd
 	FILES_ADDED_FOR_HASH_STARTUP, // "%s of shared files have been added for hashing as no previous hash information was found for them"
 	BUNDLE_X_REMOVED,  // "The bundle %s has been removed from the queue"
 	DIRECTORY_NOT_REMOVED,  // "The directory %s isn't empty, not removed"
+	MATCH_FULL_PATH, // "Find matches from the full path instead of the file/directory name"
+	QUEUED_BUNDLES, // "Queued bundles"
+	FINISHED_BUNDLES, // "Finished bundles"
+	CLEAR_FINISHED_PATHS, // "Clear finished paths"
 	LAST // @DontAdd
 };

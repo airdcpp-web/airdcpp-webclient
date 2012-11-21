@@ -43,6 +43,7 @@ typedef std::unordered_map<string, StringList> StringListMap;
 
 typedef std::unordered_set<int> ProfileTokenSet;
 
+typedef std::set<string> OrderedStringSet;
 typedef std::unordered_set<string> StringSet;
 typedef StringSet::iterator StringSetIter;
 

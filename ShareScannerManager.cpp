@@ -606,14 +606,16 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 
 		reportResults(aBundle->getName(), st, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 
-		auto clean = (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0);
-		if (clean && aBundle->isSet(Bundle::FLAG_SHARING_FAILED)) {
+		bool noMissing = (missingFiles == 0 && missingNFO == 0 && missingSFV == 0);
+		bool noExtras = extrasFound == 0;
+
+		if (noMissing && noExtras && aBundle->isSet(Bundle::FLAG_SHARING_FAILED)) {
 			AutoSearchManager::getInstance()->onRemoveBundle(aBundle, true);
 		} else {
-			AutoSearchManager::getInstance()->onBundleScanFailed(aBundle, missingFiles == 0 && missingNFO == 0 && missingSFV == 0);
+			AutoSearchManager::getInstance()->onBundleScanFailed(aBundle, noMissing, noExtras);
 		}
 
-		return clean; //allow choosing the level when it shouldn't be added?
+		return noExtras && noMissing; //allow choosing the level when it shouldn't be added?
 	}
 	return true;
 }

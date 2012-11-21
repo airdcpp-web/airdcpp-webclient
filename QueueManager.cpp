@@ -2058,9 +2058,9 @@ void QueueLoader::endTag(const string& name) {
 	}
 }
 
-string QueueManager::getBundleName(const string& aBundleToken) const {
+string QueueManager::getBundlePath(const string& aBundleToken) const {
 	auto b = bundleQueue.findBundle(aBundleToken);
-	return b ? b->getName() : "Unknown";
+	return b ? b->getTarget() : "Unknown";
 }
 
 void QueueManager::addFinishedItem(const TTHValue& tth, BundlePtr aBundle, const string& aTarget, int64_t aSize, time_t aFinished) {
@@ -2625,6 +2625,7 @@ void QueueManager::shareBundle(const string& aName) {
 
 	if (b) {
 		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
+		AutoSearchManager::getInstance()->onRemoveBundle(b, true);
 		hashBundle(b); 
 		LogManager::getInstance()->message("The bundle " + aName + " has been added for hashing", LogManager::LOG_INFO);
 	} else {

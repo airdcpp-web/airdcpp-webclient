@@ -1325,8 +1325,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Location type", 
 "Refresh the directory after fixing the problem(s) to rescan the bundle (or type \"/allow %s\" to force it to be hashed in share if the problem(s) can't be fixed)", 
 "Search String empty or too Short! (min. 5 chars allowed)", 
-"Don't download already Queued release directories", 
-"Don't download already Shared release directories", 
+"Don't download directories already in queue", 
+"Don't download directories already in share", 
 "Unable to open %s port. Searching or file transfers will not work correctly until you change settings or turn off any application that might be using that port.", 
 "Transfer (TCP)", 
 "Search (UDP)", 
@@ -1559,6 +1559,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "%s of shared files have been added for hashing as no previous hash information was found for them", 
 "The bundle %s has been removed from the queue", 
 "The directory %s isn't empty, not removed", 
+"Find matches from the full path instead of the file/directory name", 
+"Queued bundles", 
+"Finished bundles", 
+"Clear finished paths", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3118,4 +3122,8 @@ std::string dcpp::ResourceManager::names[] = {
 "FilesAddedForHashStartup", 
 "BundleXRemoved", 
 "DirectoryNotRemoved", 
+"MatchFullPath", 
+"QueuedBundles", 
+"FinishedBundles", 
+"ClearFinishedPaths", 
 };

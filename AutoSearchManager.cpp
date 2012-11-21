@@ -46,10 +46,10 @@ using boost::range::find_if;
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
 	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime,
-	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, ProfileToken aToken /*rand*/) noexcept : 
+	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, ProfileToken aToken /*rand*/) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
 		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
-		manualSearch(false), token(aToken), status(STATUS_SEARCHING) {
+		manualSearch(false), token(aToken), status(STATUS_SEARCHING), matchFullPath(aMatchFullPath) {
 
 	if (token == 0)
 		token = Util::randInt(10);
@@ -131,7 +131,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
-		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false);
+		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false);
 
 	as->startTime = SearchTime();
 	as->endTime = SearchTime(true);
@@ -197,15 +197,20 @@ AutoSearchPtr AutoSearchManager::getSearchByIndex(unsigned int index) const {
 	return nullptr;
 }
 
-void AutoSearchManager::getBundleInfo(AutoSearchPtr as, StringPairList& bundleInfo) const {
-	StringSet bundleTokens;
+void AutoSearchManager::getMenuInfo(AutoSearchPtr as, BundleList& bundleInfo, OrderedStringSet& finishedPaths) const {
+	OrderedStringSet bundleTokens;
 
 	{
 		RLock l(cs);
 		bundleTokens = as->getBundleTokens();
+		finishedPaths = as->getFinishedPaths();
 	}
 
-	for_each(bundleTokens, [&bundleInfo](const string& aToken) { bundleInfo.push_back(make_pair(aToken, QueueManager::getInstance()->getBundleName(aToken))); });
+	for_each(bundleTokens, [&bundleInfo](const string& aToken) {
+		auto b = QueueManager::getInstance()->getBundle(aToken);
+		if (b)
+			bundleInfo.push_back(b); 
+	});
 }
 
 AutoSearchPtr AutoSearchManager::getSearchByToken(ProfileToken aToken) const {
@@ -228,6 +233,23 @@ void AutoSearchManager::onAddBundle(const BundlePtr aBundle) {
 	}
 }
 
+void AutoSearch::addBundle(const string& aToken) { 
+	bundleTokens.insert(aToken); 
+}
+
+void AutoSearch::removeBundle(const string& aToken) { 
+	bundleTokens.erase(aToken);
+}
+
+void AutoSearch::addPath(const string& aPath) { 
+	finishedPaths.insert(aPath);
+}
+
+void AutoSearchManager::clearPaths(AutoSearchPtr as) {
+	WLock l (cs);
+	as->clearPaths();
+}
+
 void AutoSearchManager::onRemoveBundle(const BundlePtr aBundle, bool finished) {
 	if (aBundle->getAutoSearch() == 0)
 		return;
@@ -237,24 +259,28 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr aBundle, bool finished) {
 		{
 			WLock l (cs);
 			as->removeBundle(aBundle->getToken());
+			if (finished && !as->getRemove()) {
+				as->addPath(aBundle->getTarget());
+			}
 		}
-
-		//if (!as->getBundleTokens().empty())
-		fire(AutoSearchManagerListener::UpdateItem(), as);
 
 		if (as->getRemove() && finished) {
 			removeAutoSearch(as);
+		} else {
+			fire(AutoSearchManagerListener::UpdateItem(), as);
 		}
 	}
 }
 
-void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissing) {
+void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissing, bool noExtras) {
 	if (aBundle->getAutoSearch() == 0)
 		return;
 
 	auto as = getSearchByToken(aBundle->getAutoSearch());
 	if (as) {
-		setItemStatus(as, noMissing ? AutoSearch::STATUS_FAILED_EXTRAS : AutoSearch::STATUS_FAILED_MISSING);
+		setItemStatus(as, !noMissing && noExtras ? AutoSearch::STATUS_FAILED_MISSING : AutoSearch::STATUS_FAILED_EXTRAS);
+		if (!noMissing && noExtras)
+			searchItem(as);
 	}
 }
 
@@ -449,15 +475,17 @@ void AutoSearchManager::checkSearches() {
 	}
 }
 
-void AutoSearchManager::manualSearch(AutoSearchPtr as) {
+void AutoSearchManager::searchItem(AutoSearchPtr as, bool manual) {
 	StringList allowedHubs;
 	ClientManager::getInstance()->getOnlineClients(allowedHubs);
 	//no hubs? no fun...
 	if(allowedHubs.empty()) {
 		return;
 	}
-	as->setManualSearch(true);
-	searchItem(as, allowedHubs, true, true);
+
+	if (manual)
+		as->setManualSearch(true);
+	searchItem(as, allowedHubs, true, manual);
 }
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
@@ -481,15 +509,15 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				if (!as->match(sr->getTTH().toBase32()))
 					continue;
 			} else {
-				/* Check the type */
-				if(as->getFileType() == SEARCH_TYPE_DIRECTORY) {
-					if (sr->getType() != SearchResult::TYPE_DIRECTORY)
-						continue;
-				} /*else if(!ShareManager::getInstance()->checkType(sr->getFile(), (*i)->getFileType())) {
+				/* Check the type (folder) */
+				if(as->getFileType() == SEARCH_TYPE_DIRECTORY && sr->getType() != SearchResult::TYPE_DIRECTORY) {
 					continue;
-				}*/
+				}
 
-				if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
+				if (as->getMatchFullPath()) {
+					if (!as->match(sr->getFile()))
+						continue;
+				} else if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
 					continue;
 			}
 
@@ -505,26 +533,46 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 		}
 	}
 
-	for_each(matches, [&](AutoSearchPtr as) { handleAction(sr, as); });
+	//extra checks outside the lock
+	for (auto i = matches.begin(); i != matches.end(); ++i) {
+		auto as = *i;
+
+		if (as->getFileType() == SEARCH_TYPE_DIRECTORY) {
+			string dir = Util::getLastDir(sr->getFile());
+
+			//check shared
+			if(as->getCheckAlreadyShared() && ShareManager::getInstance()->isDirShared(dir)) {
+				continue;
+			}
+
+			//check queued
+			if(as->getCheckAlreadyQueued() && QueueManager::getInstance()->isDirQueued(dir)) {
+				continue;
+			}
+		} else if (as->getFileType() != SEARCH_TYPE_ANY && as->getFileType() != SEARCH_TYPE_TTH) {
+			if (sr->getType() == SearchResult::TYPE_DIRECTORY)
+				continue;
+
+			//check the extension
+			try {
+				int tmp = 0;
+				StringList exts;
+				SearchManager::getInstance()->getSearchType(as->getFileType(), tmp, exts, true);
+				auto name = sr->getFileName();
+
+				//match
+				auto p = find_if(exts, [&name](const string& i) { return name.length() >= i.length() && stricmp(name.c_str() + name.length() - i.length(), i.c_str()) == 0; });
+				if (p == exts.end()) continue;
+			} catch(...) {
+				//lets agree that it's match...
+			}
+		}
+		handleAction(sr, as); 
+	}
 }
 
 void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
-
-		if(as->getFileType() == SEARCH_TYPE_DIRECTORY) {
-			string dir = Util::getLastDir(sr->getFile());
-			//check shared.
-			if(as->getCheckAlreadyShared()) {
-				if(ShareManager::getInstance()->isDirShared(dir))
-					return;
-			}
-			//check Queued
-			if(as->getCheckAlreadyQueued()) {
-				if(QueueManager::getInstance()->isDirQueued(dir))
-					return;
-			}
-		}
-
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
@@ -569,9 +617,6 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 
 void AutoSearchManager::setItemStatus(AutoSearchPtr as, AutoSearch::StatusType aStatus) {
 	as->setStatus(aStatus);
-	//auto p = getSearchByToken(as->getToken());
-	//if (p != searchItems.end())
-	//fire(AutoSearchManagerListener::UpdateItem(), as, distance(searchItems.cbegin(), p));
 	fire(AutoSearchManagerListener::UpdateItem(), as);
 }
 
@@ -609,7 +654,16 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("StartTime", (*i)->startTime.toString());
 				xml.addChildAttrib("EndTime", (*i)->endTime.toString());
 				xml.addChildAttrib("LastSearchTime", Util::toString(as->getLastSearch()));
+				xml.addChildAttrib("MatchFullPath", as->getMatchFullPath());
 				xml.addChildAttrib("Token", Util::toString(as->getToken()));
+				if (!as->getFinishedPaths().empty()) {
+					xml.addTag("FinishedPaths");
+					xml.stepIn();
+					for(auto i = as->getFinishedPaths().begin(); i != as->getFinishedPaths().end(); ++i) {
+						xml.addTag("Path", *i);
+					}
+					xml.stepOut();
+				}
 			}
 		}
 
@@ -649,6 +703,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.getIntChildAttrib("ExpireTime"),
 				aXml.getBoolChildAttrib("CheckAlreadyQueued"),
 				aXml.getBoolChildAttrib("CheckAlreadyShared"),
+				aXml.getBoolChildAttrib("MatchFullPath"),
 				aXml.getIntChildAttrib("Token"));
 
 			as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
@@ -675,6 +730,16 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 			}
 
 			as->setLastSearch(aXml.getIntChildAttrib("LastSearchTime"));
+			if (aXml.findChild("FinishedPaths")) {
+				aXml.stepIn();
+				while(aXml.findChild("Path")) {
+					aXml.stepIn();
+					as->addPath(aXml.getData());
+					aXml.stepOut();
+				}
+				aXml.stepOut();
+			}
+
 			addAutoSearch(as);
 		}
 		aXml.stepOut();

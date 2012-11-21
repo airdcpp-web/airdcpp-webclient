@@ -91,7 +91,7 @@ public:
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
 		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, 
-		bool aCheckAlreadyShared, ProfileToken aToken = 0) noexcept;
+		bool aCheckAlreadyShared, bool matchFullPath, ProfileToken aToken = 0) noexcept;
 
 	~AutoSearch();
 
@@ -109,8 +109,10 @@ public:
 	GETSET(bool, checkAlreadyQueued, CheckAlreadyQueued);
 	GETSET(bool, checkAlreadyShared, CheckAlreadyShared);
 	GETSET(bool, manualSearch, ManualSearch);
+	GETSET(bool, matchFullPath, MatchFullPath);
 	GETSET(ProfileToken, token, Token);
-	GETSET(StringSet, bundleTokens, BundleTokens);
+	GETSET(OrderedStringSet, bundleTokens, BundleTokens);
+	GETSET(OrderedStringSet, finishedPaths, FinishedPaths);
 	GETSET(StatusType, status, Status);
 
 	SearchTime startTime;
@@ -122,8 +124,10 @@ public:
 	string getDisplayType();
 	bool allowNewItems();
 
-	void addBundle(const string& aToken) { bundleTokens.insert(aToken); }
-	void removeBundle(const string& aToken) { bundleTokens.erase(aToken); }
+	void addBundle(const string& aToken);
+	void removeBundle(const string& aToken);
+	void addPath(const string& aPath);
+	void clearPaths() { finishedPaths.clear(); }
 private:
 	StringMatch userMatcher;
 };
@@ -142,11 +146,12 @@ public:
 
 	void setItemStatus(AutoSearchPtr as, AutoSearch::StatusType aStatus);
 	string getStatus(AutoSearchPtr as);
+	void clearPaths(AutoSearchPtr as);
 
-	void getBundleInfo(AutoSearchPtr as, StringPairList& bundleInfo) const;
+	void getMenuInfo(AutoSearchPtr as, BundleList& bundleInfo, OrderedStringSet& finishedPaths) const;
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
-	void manualSearch(AutoSearchPtr as);
+	void searchItem(AutoSearchPtr as, bool manual = false);
 	
 	AutoSearchList& getSearchItems() { 
 		RLock l(cs);
@@ -215,7 +220,7 @@ private:
 
 	void onAddBundle(const BundlePtr aBundle);
 	void onRemoveBundle(const BundlePtr aBundle, bool finished);
-	void onBundleScanFailed(const BundlePtr aBundle, bool noMissing);
+	void onBundleScanFailed(const BundlePtr aBundle, bool noMissing, bool noExtras);
 };
 }
 #endif

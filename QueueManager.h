@@ -189,7 +189,7 @@ public:
 	bool dropSource(Download* d);
 
 	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& tempTarget);
-	string getBundleName(const string& aBundleToken) const;
+	string getBundlePath(const string& aBundleToken) const;
 	
 	GETSET(uint64_t, lastSave, LastSave);
 	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);
