@@ -611,7 +611,7 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 
 		if (noMissing && noExtras && aBundle->isSet(Bundle::FLAG_SHARING_FAILED)) {
 			AutoSearchManager::getInstance()->onRemoveBundle(aBundle, true);
-		} else {
+		} else if (!noMissing || !noExtras) {
 			AutoSearchManager::getInstance()->onBundleScanFailed(aBundle, noMissing, noExtras);
 		}
 

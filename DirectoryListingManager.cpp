@@ -25,11 +25,47 @@
 
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 
 namespace dcpp {
 
 using boost::adaptors::map_values;
 using boost::range::for_each;
+using boost::range::find_if;
+
+
+class DirectoryDownloadInfo {
+public:
+	DirectoryDownloadInfo() : priority(QueueItem::DEFAULT) { }
+	DirectoryDownloadInfo(const UserPtr& aUser, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItem::Priority p, 
+		SizeCheckMode aPromptSizeConfirm, ProfileToken aAutoSearch) : 
+		listPath(aListPath), target(aTarget), priority(p), user(aUser), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr), autoSearch(aAutoSearch) { }
+	~DirectoryDownloadInfo() { }
+	
+	UserPtr& getUser() { return user; }
+	void setUser(const UserPtr& aUser) { user = aUser; }
+	
+	GETSET(SizeCheckMode, sizeConfirm, SizeConfirm);
+	GETSET(string, listPath, ListPath);
+	GETSET(string, target, Target);
+	GETSET(QueueItem::Priority, priority, Priority);
+	GETSET(TargetUtil::TargetType, targetType, TargetType);
+	GETSET(DirectoryListingPtr, listing, Listing);
+	GETSET(ProfileToken, autoSearch, AutoSearch);
+
+	string getFinishedDirName() { return target + Util::getLastDir(listPath) + Util::toString(targetType); }
+
+	struct HasASItem {
+		HasASItem(ProfileToken aToken, const string& s) : a(s), t(aToken) { }
+		bool operator()(const DirectoryDownloadInfo* ddi) const { return t == ddi->getAutoSearch() && stricmp(a, Util::getLastDir(ddi->getListPath())) != 0; }
+		const string& a;
+		ProfileToken t;
+	private:
+		HasASItem& operator=(const HasASItem&);
+	};
+private:
+	UserPtr user;
+};
 
 class FinishedDirectoryItem {
 public:
@@ -68,32 +104,12 @@ public:
 	GETSET(string, targetPath, TargetPath);
 	GETSET(bool, usePausedPrio, UsePausedPrio);
 	GETSET(uint64_t, timeDownloaded, TimeDownloaded);
+
+	bool hasASItems(ProfileToken as, const string& aName) const {
+		return find_if(downloadInfos, DirectoryDownloadInfo::HasASItem(as, aName)) != downloadInfos.end();
+	}
 private:
 	
-};
-
-class DirectoryDownloadInfo {
-public:
-	DirectoryDownloadInfo() : priority(QueueItem::DEFAULT) { }
-	DirectoryDownloadInfo(const UserPtr& aUser, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItem::Priority p, 
-		SizeCheckMode aPromptSizeConfirm, ProfileToken aAutoSearch) : 
-		listPath(aListPath), target(aTarget), priority(p), user(aUser), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr), autoSearch(aAutoSearch) { }
-	~DirectoryDownloadInfo() { }
-	
-	UserPtr& getUser() { return user; }
-	void setUser(const UserPtr& aUser) { user = aUser; }
-	
-	GETSET(SizeCheckMode, sizeConfirm, SizeConfirm);
-	GETSET(string, listPath, ListPath);
-	GETSET(string, target, Target);
-	GETSET(QueueItem::Priority, priority, Priority);
-	GETSET(TargetUtil::TargetType, targetType, TargetType);
-	GETSET(DirectoryListingPtr, listing, Listing);
-	GETSET(ProfileToken, autoSearch, AutoSearch);
-
-	string getFinishedDirName() { return target + Util::getLastDir(listPath) + Util::toString(targetType); }
-private:
-	UserPtr user;
 };
 
 DirectoryListingManager::DirectoryListingManager() {
@@ -134,6 +150,14 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 	bool needList;
 	{
 		WLock l(cs);
+
+		if (aAutoSearch > 0) {
+			//check for dupes
+			auto d = move(Util::getLastDir(aDir));
+			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, d)).base() != dlDirectories.end() ||
+				find_if(finishedListings | map_values, [aAutoSearch, &d](const FinishedDirectoryItem* fdi) { return fdi->hasASItems(aAutoSearch, d); }).base() != finishedListings.end())
+				return;
+		}
 		
 		auto dp = dlDirectories.equal_range(aUser);
 		
@@ -199,7 +223,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 			if ((flags & QueueItem::FLAG_PARTIAL_LIST) && !path.empty()) {
 				//partial list
 				auto dp = dlDirectories.equal_range(aList->getHintedUser().user);
-				auto udp = find_if(dp.first, dp.second, [path](pair<UserPtr, DirectoryDownloadInfo*> ud) { return stricmp(path.c_str(), ud.second->getListPath().c_str()) == 0; });
+				auto udp = find_if(dp, [path](pair<UserPtr, DirectoryDownloadInfo*> ud) { return stricmp(path.c_str(), ud.second->getListPath().c_str()) == 0; });
 				if (udp != dp.second) {
 					dl.push_back(udp->second);
 					dlDirectories.erase(udp);

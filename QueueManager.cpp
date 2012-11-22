@@ -1087,8 +1087,8 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 				}
 
 				auto file = Util::getFileName(fname);
-				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getTargetFileName() == file && aQI->isFinished() &&
-					!aQI->isSet(QueueItem::FLAG_HASHED); });
+				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getBundle() && aQI->getBundle()->isSet(Bundle::FLAG_HASH) && 
+					aQI->getTargetFileName() == file && aQI->isFinished() && !aQI->isSet(QueueItem::FLAG_HASHED); });
 
 				if (p.base() != tpi.second) {
 					q = *p;

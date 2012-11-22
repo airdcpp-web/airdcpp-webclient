@@ -81,9 +81,7 @@ public:
 		ACTION_REPORT
 	};
 
-	enum StatusType {
-		STATUS_SEARCHING,
-		STATUS_LIST,
+	enum BundleStatus {
 		STATUS_QUEUED_OK,
 		STATUS_FAILED_MISSING,
 		STATUS_FAILED_EXTRAS
@@ -94,9 +92,12 @@ public:
 		bool aCheckAlreadyShared, bool matchFullPath, ProfileToken aToken = 0) noexcept;
 
 	~AutoSearch();
+	typedef map<string, BundleStatus> BundleStatusMap;
+	typedef vector<pair<BundlePtr, BundleStatus>> BundleStatusList;
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
+	GETSET(string, matcherString, MatcherString);
 	GETSET(ActionType, action, Action);
 	GETSET(string, fileType, FileType);
 	GETSET(bool, remove, Remove); //remove after 1 hit
@@ -111,9 +112,8 @@ public:
 	GETSET(bool, manualSearch, ManualSearch);
 	GETSET(bool, matchFullPath, MatchFullPath);
 	GETSET(ProfileToken, token, Token);
-	GETSET(OrderedStringSet, bundleTokens, BundleTokens);
+	GETSET(BundleStatusMap, bundles, Bundles);
 	GETSET(OrderedStringSet, finishedPaths, FinishedPaths);
-	GETSET(StatusType, status, Status);
 
 	GETSET(int, curNumber, CurNumber);
 	GETSET(int, maxNumber, MaxNumber);
@@ -125,16 +125,20 @@ public:
 
 	bool matchNick(const string& aStr) { return userMatcher.match(aStr); }
 	const string& getNickPattern() const { return userMatcher.pattern; }
+	string getDisplayName();
 
-	string getDisplayType();
-	bool allowNewItems();
+	string getDisplayType() const;
+	bool allowNewItems() const;
 	void updatePattern();
 	void increaseNumber();
 
 	void addBundle(const string& aToken);
 	void removeBundle(const string& aToken);
+	void setBundleStatus(const string& aToken, BundleStatus aStatus);
 	void addPath(const string& aPath);
 	void clearPaths() { finishedPaths.clear(); }
+	bool usingIncrementation() const;
+	static string formatParams(const AutoSearchPtr as, const string& aString);
 private:
 	StringMatch userMatcher;
 };
@@ -143,6 +147,12 @@ class SimpleXML;
 
 class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener {
 public:
+	enum SearchType {
+		TYPE_MANUAL,
+		TYPE_NEW,
+		TYPE_NORMAL
+	};
+
 	AutoSearchManager();
 	~AutoSearchManager();
 
@@ -151,14 +161,13 @@ public:
 	AutoSearchPtr getSearchByIndex(unsigned int index) const;
 	AutoSearchPtr getSearchByToken(ProfileToken aToken) const;
 
-	void setItemStatus(AutoSearchPtr as, AutoSearch::StatusType aStatus);
-	string getStatus(AutoSearchPtr as);
+	string getStatus(const AutoSearchPtr as) const;
 	void clearPaths(AutoSearchPtr as);
 
-	void getMenuInfo(AutoSearchPtr as, BundleList& bundleInfo, OrderedStringSet& finishedPaths) const;
+	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusList& bundleInfo, OrderedStringSet& finishedPaths) const;
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
 	void removeAutoSearch(AutoSearchPtr a);
-	void searchItem(AutoSearchPtr as, bool manual = false);
+	bool searchItem(AutoSearchPtr as, SearchType aType);
 	
 	AutoSearchList& getSearchItems() { 
 		RLock l(cs);
@@ -183,14 +192,7 @@ public:
 		}
 	}
 
-	void setActiveItem(unsigned int index, bool active) {
-		RLock l(cs);
-		auto i = searchItems.begin() + index;
-		if(i < searchItems.end()) {
-			(*i)->setEnabled(active);
-			dirty = true;
-		}
-	}
+	void setActiveItem(unsigned int index, bool active);
 
 	void checkSearches();
 
@@ -201,7 +203,7 @@ public:
 private:
 	mutable SharedMutex cs;
 
-	uint64_t searchItem(AutoSearchPtr as, StringList& aHubs, bool report, bool manual);
+	void performSearch(AutoSearchPtr as, StringList& aHubs, SearchType aType);
 	//count minutes to be more accurate than comparing ticks every minute.
 	unsigned int lastSearch;
 	unsigned int recheckTime;

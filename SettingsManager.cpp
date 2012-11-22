@@ -64,7 +64,7 @@ const string SettingsManager::settingTags[] =
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",
-	"AutoSearchFrameOrder", "AutoSearchFrameWidths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs",
+	"ASFrameOrder", "ASFrameWidths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs",
 
 	"SENTRY", 
 	// Ints
