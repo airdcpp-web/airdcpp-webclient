@@ -60,7 +60,18 @@ public:
 
 	static uint8_t getImage(const Identity& identity, const Client* c);
 	enum {
-		IMAGE_USER = 0, IMAGE_OP
+		// base icons
+		USER_ICON,
+		USER_ICON_AWAY,
+		USER_ICON_BOT,
+
+		// modifiers
+		USER_ICON_MOD_START,
+		USER_ICON_PASSIVE = USER_ICON_MOD_START,
+		//USER_ICON_AIRDC,
+		USER_ICON_OP,
+
+		USER_ICON_LAST
 	};
 };
 
