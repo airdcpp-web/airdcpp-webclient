@@ -67,7 +67,6 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	userMatcher.setMethod(StringMatch::WILDCARD);
 	userMatcher.pattern = aUserMatch;
 	userMatcher.prepare();
-	updateSearchTime();
 };
 
 AutoSearch::~AutoSearch() { };
@@ -187,16 +186,6 @@ string AutoSearch::getExpiration() const {
 }
 
 bool AutoSearch::updateSearchTime() {
-	auto toEpoch = [&] (const ptime& aTime) -> time_t {
-		using namespace boost::posix_time;
-		ptime epoch(boost::gregorian::date(1970,1,1));
-		time_duration::sec_type x = (aTime - epoch).total_seconds();
-
-		// ... check overflow here ...
-
-		return time_t(x);
-	};
-
 	if (!searchDays.all() || startTime.hour != 0 || endTime.minute != 59 || endTime.hour != 23 || startTime.minute != 0) {
 		//get the current time from the clock -- one second resolution
 		ptime now = second_clock::local_time();
@@ -226,20 +215,14 @@ bool AutoSearch::updateSearchTime() {
 
 		//add the start hours and minutes (if needed)
 		if (startTime.hour > nextSearch.time_of_day().hours()) {
-			nextSearch += hours(startTime.hour);
+			nextSearch += (hours(startTime.hour)+minutes(startTime.minute)) - (hours(nextSearch.time_of_day().hours()) + minutes(nextSearch.time_of_day().minutes()));
 		} else if ((startTime.hour == nextSearch.time_of_day().hours() && startTime.minute > nextSearch.time_of_day().minutes())) {
-			nextSearch += minutes(startTime.minute);
+			nextSearch += minutes(startTime.minute - nextSearch.time_of_day().minutes());
 		}
 
-		string tmp;
-		char buf[20];
-		auto tm_ = to_tm(nextSearch);
-		if (strftime(buf, 20, "%x %X", &tm_)) {
-			tmp = string(buf);
-		}
-
-		auto next = toEpoch(nextSearch);
-		if (next != getNextAllowedSearch()) {
+		tm td_tm = to_tm(nextSearch);
+		time_t next = mktime(&td_tm);
+		if (next != nextAllowedSearch) {
 			setNextAllowedSearch(next);
 			return true;
 		}
