@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "HashManager.h"
 
+#include "Util.h"
 #include "ResourceManager.h"
 #include "SimpleXML.h"
 #include "LogManager.h"

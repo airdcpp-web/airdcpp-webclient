@@ -597,13 +597,16 @@ string Util::formatSeconds(int64_t aSec, bool supressHours /*false*/) {
 	return buf;
 }
 
-string Util::formatTime(int64_t aSec, bool translate) {
+string Util::formatTime(int64_t aSec, bool translate, bool perMinute) {
 	string formatedTime;
 
 	uint64_t n, i;
 	i = 0;
 
 	auto appendTime = [&] (const string& aTranslatedS, const string& aEnglishS, const string& aTranslatedP, const string& aEnglishP) -> void {
+		if (perMinute && i == 2) //add max 2 values
+			return;
+
 		char buf[128];
 		if(n >= 2) {
 			snprintf(buf, sizeof(buf), ("%d " + ((translate ? Text::toLower(aTranslatedP) : aEnglishP) + " ")).c_str(), n);
@@ -635,11 +638,11 @@ string Util::formatTime(int64_t aSec, bool translate) {
 	n = aSec / (60);
 	aSec %= (60);
 	if(n) {
-		appendTime(STRING(MINUTES), "min", STRING(MINUTE), "min");
+		appendTime(STRING(MINUTE), "min", STRING(MINUTES), "min");
 	}
 
 	n = aSec;
-	if(++i <= 3) {
+	if(++i <= 3 && !perMinute) {
 		appendTime(STRING(SECOND), "sec", STRING(SECONDS), "sec");
 	}
 

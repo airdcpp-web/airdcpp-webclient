@@ -1570,5 +1570,10 @@ enum Strings { // @DontAdd
 	QUEUED_BUNDLES, // "Queued bundles"
 	FINISHED_BUNDLES, // "Finished bundles"
 	CLEAR_FINISHED_PATHS, // "Clear finished paths"
+	SEARCHING_STATUS, // "Searching status"
+	EXPIRATION, // "Expiration"
+	EXPIRED, // "Expired"
+	NEVER, // "Never"
+	BUNDLES, // "Bundles"
 	LAST // @DontAdd
 };

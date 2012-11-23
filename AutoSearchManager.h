@@ -120,6 +120,7 @@ public:
 	GETSET(int, numberLen, NumberLen);
 	GETSET(bool, useParams, UseParams);
 
+	GETSET(time_t, nextAllowedSearch, NextAllowedSearch);
 	SearchTime startTime;
 	SearchTime endTime;
 
@@ -128,9 +129,13 @@ public:
 	string getDisplayName();
 
 	string getDisplayType() const;
+	string getSearchingStatus() const;
+	string getExpiration() const;
+
 	bool allowNewItems() const;
 	void updatePattern();
 	void increaseNumber();
+	bool updateSearchTime();
 
 	void addBundle(const string& aToken);
 	void removeBundle(const string& aToken);
@@ -161,7 +166,7 @@ public:
 	AutoSearchPtr getSearchByIndex(unsigned int index) const;
 	AutoSearchPtr getSearchByToken(ProfileToken aToken) const;
 
-	string getStatus(const AutoSearchPtr as) const;
+	string getBundleStatuses(const AutoSearchPtr as) const;
 	void clearPaths(AutoSearchPtr as);
 
 	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusList& bundleInfo, OrderedStringSet& finishedPaths) const;
@@ -194,7 +199,7 @@ public:
 
 	void setActiveItem(unsigned int index, bool active);
 
-	void checkSearches();
+	void runSearches();
 
 	void AutoSearchLoad();
 	void AutoSearchSave();
@@ -210,7 +215,7 @@ private:
 	unsigned int curPos;
 
 	bool endOfListReached;
-	bool hasEnabledItems();
+	bool checkItems();
 	AutoSearchList searchItems;
 
 	void loadAutoSearch(SimpleXML& aXml);

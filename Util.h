@@ -275,7 +275,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 		return temp;
 	}
 
-	static string formatTime(int64_t aSec, bool translate);
+	static string formatTime(int64_t aSec, bool translate, bool perMinute = false);
 
 	static int DefaultSort(const wchar_t* a, const wchar_t* b, bool noCase = true);
 

@@ -1563,6 +1563,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "Queued bundles", 
 "Finished bundles", 
 "Clear finished paths", 
+"Searching status", 
+"Expiration", 
+"Expired", 
+"Never", 
+"Bundles", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3126,4 +3131,9 @@ std::string dcpp::ResourceManager::names[] = {
 "QueuedBundles", 
 "FinishedBundles", 
 "ClearFinishedPaths", 
+"SearchingStatus", 
+"Expiration", 
+"Expired", 
+"Never", 
+"Bundles", 
 };

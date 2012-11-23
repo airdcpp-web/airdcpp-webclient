@@ -64,7 +64,7 @@ const string SettingsManager::settingTags[] =
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",
-	"ASFrameOrder", "ASFrameWidths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs",
+	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype",
 
 	"SENTRY", 
 	// Ints
@@ -632,6 +632,7 @@ SettingsManager::SettingsManager()
 	setDefault(FIRST_RUN, true);
 	setDefault(USE_OLD_SHARING_UI, true);
 	setDefault(LAST_SEARCH_FILETYPE, "0");
+	setDefault(LAST_AS_FILETYPE, "0");
 	setDefault(MAX_RESIZE_LINES, 2);
 	setDefault(DUPE_SEARCH, true);
 	setDefault(PASSWD_PROTECT, false);

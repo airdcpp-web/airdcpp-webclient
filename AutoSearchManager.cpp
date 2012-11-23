@@ -38,10 +38,14 @@
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 
+#include "boost/date_time/posix_time/posix_time.hpp"
+
 namespace dcpp {
 
 using boost::range::for_each;
 using boost::range::find_if;
+using namespace boost::posix_time;
+using namespace boost::gregorian;
 
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
@@ -49,7 +53,8 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, ProfileToken aToken /*rand*/) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
 		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
-		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString) {
+		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString),
+		nextAllowedSearch(0) {
 
 	if (token == 0)
 		token = Util::randInt(10);
@@ -62,6 +67,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	userMatcher.setMethod(StringMatch::WILDCARD);
 	userMatcher.pattern = aUserMatch;
 	userMatcher.prepare();
+	updateSearchTime();
 };
 
 AutoSearch::~AutoSearch() { };
@@ -151,6 +157,96 @@ bool AutoSearch::usingIncrementation() const {
 	return useParams && searchString.find("%[inc]") != string::npos;
 }
 
+string AutoSearch::getSearchingStatus() const {
+	if (!enabled) {
+		return manualSearch ? "Matching only (manual)" : "Disabled";
+	}
+
+	if (!allowNewItems()) {
+		return "Not active (queued)";
+	} 
+	
+	auto time = GET_TIME();
+	if (nextAllowedSearch > time) {
+		return "Waiting (" + Util::formatTime(nextAllowedSearch - time, true, true) + " left)";
+	} else {
+		return "Active";
+	}
+}
+
+string AutoSearch::getExpiration() const {
+	if (expireTime == 0)
+		return STRING(NEVER);
+
+	auto curTime = GET_TIME();
+	if (expireTime <= curTime) {
+		return STRING(EXPIRED);
+	} else {
+		return Util::formatTime(expireTime - curTime, true, true);
+	}
+}
+
+bool AutoSearch::updateSearchTime() {
+	auto toEpoch = [&] (const ptime& aTime) -> time_t {
+		using namespace boost::posix_time;
+		ptime epoch(boost::gregorian::date(1970,1,1));
+		time_duration::sec_type x = (aTime - epoch).total_seconds();
+
+		// ... check overflow here ...
+
+		return time_t(x);
+	};
+
+	if (!searchDays.all() || startTime.hour != 0 || endTime.minute != 59 || endTime.hour != 23 || startTime.minute != 0) {
+		//get the current time from the clock -- one second resolution
+		ptime now = second_clock::local_time();
+		ptime nextSearch(now);
+
+		//can we search for it today?
+		if (endTime.hour < nextSearch.time_of_day().hours() || (endTime.hour == nextSearch.time_of_day().hours() && endTime.minute < nextSearch.time_of_day().minutes())) {
+			nextSearch = ptime(nextSearch.date() + days(1));
+		}
+
+		//check the weekday
+		if (!searchDays[nextSearch.date().day_of_week()]) {
+			//get the next day when we can search for it
+			int p = nextSearch.date().day_of_week();
+			int d = 0;
+
+			for (d = 0; d < 6; d++) {
+				if(p == 7)
+					p = 0;
+
+				if (searchDays[p++])
+					break;
+			}
+
+			nextSearch = ptime(nextSearch.date() + days(d)); // start from the midnight
+		}
+
+		//add the start hours and minutes (if needed)
+		if (startTime.hour > nextSearch.time_of_day().hours()) {
+			nextSearch += hours(startTime.hour);
+		} else if ((startTime.hour == nextSearch.time_of_day().hours() && startTime.minute > nextSearch.time_of_day().minutes())) {
+			nextSearch += minutes(startTime.minute);
+		}
+
+		string tmp;
+		char buf[20];
+		auto tm_ = to_tm(nextSearch);
+		if (strftime(buf, 20, "%x %X", &tm_)) {
+			tmp = string(buf);
+		}
+
+		auto next = toEpoch(nextSearch);
+		if (next != getNextAllowedSearch()) {
+			setNextAllowedSearch(next);
+			return true;
+		}
+	}
+
+	return false;
+}
 
 
 
@@ -207,6 +303,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 /* List changes */
 bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
 	aAutoSearch->updatePattern();
+	aAutoSearch->updateSearchTime();
 
 	{
 		WLock l(cs);
@@ -231,6 +328,7 @@ void AutoSearchManager::setActiveItem(unsigned int index, bool active) {
 
 bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr &ipw) {
 	ipw->updatePattern();
+	ipw->updateSearchTime();
 
 	WLock l(cs);
 	if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
@@ -298,45 +396,42 @@ void AutoSearchManager::clearPaths(AutoSearchPtr as) {
 	dirty = true;
 }
 
-string AutoSearchManager::getStatus(const AutoSearchPtr as) const {
+string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 	string statusString;
 	{
 		RLock l (cs);
-
-		statusString = as->getEnabled() ? "" : "Disabled";
-
 		int bundleCount = as->getBundles().size();
-		if (bundleCount == 0) {
-			if (as->getEnabled())
-				statusString += "Searching active";
-		} else {
-			bool searching = !as->getRemove();
+		int finishedCount = as->getFinishedPaths().size();
+
+		if (bundleCount == 0 && finishedCount == 0) {
+			return "No bundles";
+		} 
+
+		if (bundleCount > 0) {
 			if (bundleCount == 1) {
 				auto bsp = *as->getBundles().begin();
-				if (bsp.second == AutoSearch::STATUS_QUEUED_OK) {
-					statusString += as->getEnabled() ? "One bundle queued" : ", one bundle queued";
-				} else if (bsp.second == AutoSearch::STATUS_FAILED_MISSING) {
-					statusString += as->getEnabled() ? "Finished bundle with missing files" : ", finished bundle with missing files";
-					searching = true;
-				} else if (bsp.second == AutoSearch::STATUS_FAILED_EXTRAS) {
-					statusString += as->getEnabled() ? "Finished bundle with extra files" : ", finished bundle with extra files";
+				auto b = QueueManager::getInstance()->getBundle(bsp.first);
+				if (b) {
+					if (bsp.second == AutoSearch::STATUS_QUEUED_OK) {
+						statusString += b->getName() + " (queued)";
+					} else if (bsp.second == AutoSearch::STATUS_FAILED_MISSING) {
+						statusString += b->getName() + " (missing files)";
+					} else if (bsp.second == AutoSearch::STATUS_FAILED_EXTRAS) {
+						statusString += b->getName() + " (extra files)";
+					}
+				} else {
+					dcassert(0);
+					bundleCount = 0;
 				}
 			} else {
-				if (!as->getEnabled())
-					statusString += ", ";
 				statusString += Util::toString(bundleCount) + " bundles queued";
-				searching = true;
-			}
-
-			if (as->getEnabled()) {
-				statusString += ", ";
-				statusString += searching ? "searching active" : "searching not active";
 			}
 		}
 
-		auto finishedCount = as->getFinishedPaths().size();
 		if (finishedCount > 0) {
-			statusString += " (" + Util::toString(finishedCount) + " finished path(s))";
+			if (bundleCount > 0)
+				statusString += ", ";
+			statusString += Util::toString(finishedCount) + " finished bundle(s)";
 		}
 	}
 	return statusString;
@@ -397,35 +492,6 @@ void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissi
 }
 
 
-/* Timermanager */
-void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	if(dirty && (lastSave + (20*1000) < aTick)) { //20 second delay between saves.
-		lastSave = aTick;
-		dirty = false;
-		AutoSearchSave();
-	}
-}
-
-void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
-
-	lastSearch++;
-
-	if(endOfListReached) {
-		recheckTime++;
-		if(recheckTime >= SETTING(AUTOSEARCH_RECHECK_TIME)) {
-			curPos = 0;
-			endOfListReached = false;
-		} else {
-			return;
-		}
-	}
-	if(lastSearch >= (SETTING(AUTOSEARCH_EVERY))) {
-		if(hasEnabledItems())
-			checkSearches();
-	}
-}
-
-
 /* Item searching */
 void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, SearchType aType) {
 
@@ -481,31 +547,64 @@ bool AutoSearchManager::searchItem(AutoSearchPtr as, SearchType aType) {
 }
 
 
+/* Timermanager */
+void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+	if(dirty && (lastSave + (20*1000) < aTick)) { //20 second delay between saves.
+		lastSave = aTick;
+		dirty = false;
+		AutoSearchSave();
+	}
+}
+
+void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
+
+	lastSearch++;
+
+	if(endOfListReached) {
+		recheckTime++;
+		if(recheckTime >= SETTING(AUTOSEARCH_RECHECK_TIME)) {
+			curPos = 0;
+			endOfListReached = false;
+		} else {
+			return;
+		}
+	}
+	if(lastSearch >= (SETTING(AUTOSEARCH_EVERY))) {
+		runSearches();
+	}
+}
+
 /* Scheduled searching */
-bool AutoSearchManager::hasEnabledItems() {
-	auto curTime = GET_TIME();
+bool AutoSearchManager::checkItems() {
 	AutoSearchList expired;
 	bool result = false;
+	auto curTime = GET_TIME();
+
 	{
 		RLock l(cs);
 		
 		if(searchItems.empty()){
 			curPos = 0; //list got empty, start from 0 with new items.
-			return result;
+			return false;
 		}
 
 		for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
-			AutoSearchPtr as = *i;
+			bool search = true;
+			if (!(*i)->allowNewItems())
+				search = false;
 			
 			//check expired, and remove them.
-			if (as->getExpireTime() > 0 && as->getExpireTime() < curTime) {
-				expired.push_back(as);
-				continue;
+			if ((*i)->getExpireTime() > 0 && (*i)->getExpireTime() <= curTime) {
+				expired.push_back(*i);
+				search = false;
 			}
-			if (!as->getEnabled())
-				continue;
 
-			result = true;
+			if ((*i)->updateSearchTime())
+				fire(AutoSearchManagerListener::UpdateItem(), *i);
+
+
+			if (search && (*i)->getNextAllowedSearch() <= curTime)
+				result = true;
 		}
 	}
 
@@ -520,17 +619,16 @@ bool AutoSearchManager::hasEnabledItems() {
 	return result;
 }
 
-void AutoSearchManager::checkSearches() {
+void AutoSearchManager::runSearches() {
+	if(!checkItems())
+		return;
+
 	StringList allowedHubs;
 	ClientManager::getInstance()->getOnlineClients(allowedHubs);
 	//no hubs? no fun...
 	if(allowedHubs.empty()) {
 		return;
 	}
-	
-	auto curTime = GET_TIME();
-	tm _tm;
-	localtime_s(&_tm, &curTime);
 
 	AutoSearchPtr as = nullptr;
 	{
@@ -551,21 +649,9 @@ void AutoSearchManager::checkSearches() {
 
 			if (!(*i)->allowNewItems())
 				continue;
-			//check the weekday
-			if (!(*i)->searchDays[_tm.tm_wday])
+			if ((*i)->getNextAllowedSearch() > GET_TIME())
 				continue;
-			//check the hours
-			if ((*i)->startTime.hour > _tm.tm_hour || (*i)->endTime.hour < _tm.tm_hour)
-				continue;
-			//check the minutes
-			if ((*i)->startTime.hour == _tm.tm_hour) {
-				if ((*i)->startTime.minute > _tm.tm_min)
-					continue;
-			}
-			if ((*i)->endTime.hour == _tm.tm_hour) {
-				if ((*i)->endTime.minute < _tm.tm_min)
-					continue;
-			}
+
 
 			as = *i;
 			lastSearch = 0;
@@ -877,6 +963,6 @@ void AutoSearchManager::AutoSearchLoad() {
 			curPos = 0;
 	} catch(const Exception& e) {
 		dcdebug("AutoSearchManager::load: %s\n", e.getError().c_str());
-	}	
+	}
 }
 }
