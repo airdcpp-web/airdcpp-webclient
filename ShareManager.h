@@ -216,7 +216,6 @@ public:
 
 	enum Tasks {
 		ADD_DIR,
-		REMOVE_DIR,
 		REFRESH_ALL,
 		REFRESH_DIR,
 		REFRESH_STARTUP,

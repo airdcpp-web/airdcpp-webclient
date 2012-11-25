@@ -1271,12 +1271,19 @@ int ShareManager::addTask(uint8_t aType, StringList& dirs, const string& display
 	}
 
 	{
-		//remove directories that have already been queued for refreshing
 		Lock l(tasks.cs);
 		auto& tq = tasks.getTasks();
-		for(auto i = tq.begin(); i != tq.end(); ++i) {
-			auto t = static_cast<ShareTask*>(i->second.get());
-			dirs.erase(boost::remove_if(dirs, [t](const string& s) { return boost::find(t->dirs, s) != t->dirs.end(); }), dirs.end());
+		if (aType == REFRESH_ALL) {
+			//don't queue multiple full refreshes
+			auto p = find_if(tq, [](const TaskQueue::UniqueTaskPair& tp) { return tp.first == REFRESH_ALL; });
+			if (p != tq.end())
+				return REFRESH_ALREADY_QUEUED;
+		} else {
+			//remove directories that have already been queued for refreshing
+			for(auto i = tq.begin(); i != tq.end(); ++i) {
+				auto t = static_cast<ShareTask*>(i->second.get());
+				dirs.erase(boost::remove_if(dirs, [t](const string& s) { return boost::find(t->dirs, s) != t->dirs.end(); }), dirs.end());
+			}
 		}
 	}
 
