@@ -268,8 +268,9 @@ bool AutoSearch::updateSearchTime() {
 		time_t next = mktime(&td_tm);
 		if (next != nextSearchChange) {
 			nextSearchChange = next;
-			return true;
 		}
+
+		return true;
 	}
 
 	nextSearchChange = 0;
@@ -627,7 +628,7 @@ bool AutoSearchManager::checkItems() {
 				search = false;
 			}
 
-			if ((*i)->updateSearchTime())
+			if ((*i)->updateSearchTime() || (*i)->getExpireTime() > 0)
 				fire(AutoSearchManagerListener::UpdateItem(), *i);
 
 

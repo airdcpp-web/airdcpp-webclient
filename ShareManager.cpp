@@ -1275,7 +1275,7 @@ int ShareManager::addTask(uint8_t aType, StringList& dirs, const string& display
 		auto& tq = tasks.getTasks();
 		if (aType == REFRESH_ALL) {
 			//don't queue multiple full refreshes
-			auto p = find_if(tq, [](const TaskQueue::UniqueTaskPair& tp) { return tp.first == REFRESH_ALL; });
+			auto p = find_if(tq, [](const TaskQueue::UniqueTaskPair& tp) { return tp.first == 1; });
 			if (p != tq.end())
 				return REFRESH_ALREADY_QUEUED;
 		} else {
