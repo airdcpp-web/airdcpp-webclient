@@ -350,7 +350,7 @@ void AutoSearchManager::setActiveItem(unsigned int index, bool active) {
 	auto i = searchItems.begin() + index;
 	if(i < searchItems.end()) {
 		(*i)->setEnabled(active);
-		fire(AutoSearchManagerListener::UpdateItem(), *i);
+		fire(AutoSearchManagerListener::UpdateItem(), *i, true);
 		dirty = true;
 	}
 }
@@ -421,7 +421,7 @@ void AutoSearchManager::clearPaths(AutoSearchPtr as) {
 		as->clearPaths();
 	}
 
-	fire(AutoSearchManagerListener::UpdateItem(), as);
+	fire(AutoSearchManagerListener::UpdateItem(), as, true);
 	dirty = true;
 }
 
@@ -479,7 +479,7 @@ void AutoSearchManager::onAddBundle(const BundlePtr aBundle) {
 			as->addBundle(aBundle->getToken());
 		}
 
-		fire(AutoSearchManagerListener::UpdateItem(), as);
+		fire(AutoSearchManagerListener::UpdateItem(), as, true);
 	}
 }
 
@@ -502,7 +502,7 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr aBundle, bool finished) {
 		if ((as->getRemove() || (as->getUseParams() && as->getCurNumber() > as->getMaxNumber() && as->getMaxNumber() > 0)) && finished) {
 			removeAutoSearch(as);
 		} else {
-			fire(AutoSearchManagerListener::UpdateItem(), as);
+			fire(AutoSearchManagerListener::UpdateItem(), as, true);
 		}
 	}
 }
@@ -514,7 +514,7 @@ void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissi
 	auto as = getSearchByToken(aBundle->getAutoSearch());
 	if (as) {
 		as->setBundleStatus(aBundle->getToken(), !noMissing && noExtras ? AutoSearch::STATUS_FAILED_MISSING : AutoSearch::STATUS_FAILED_EXTRAS);
-		fire(AutoSearchManagerListener::UpdateItem(), as);
+		fire(AutoSearchManagerListener::UpdateItem(), as, true);
 		if (!noMissing && noExtras)
 			searchItem(as, TYPE_NORMAL);
 	}
@@ -544,7 +544,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, Searc
 	as->setLastSearch(GET_TIME());
 	if (aType == TYPE_MANUAL)
 		as->setManualSearch(true);
-	fire(AutoSearchManagerListener::UpdateItem(), as);
+	fire(AutoSearchManagerListener::UpdateItem(), as, false);
 
 
 	//Run the search
@@ -629,7 +629,7 @@ bool AutoSearchManager::checkItems() {
 			}
 
 			if ((*i)->updateSearchTime() || (*i)->getExpireTime() > 0)
-				fire(AutoSearchManagerListener::UpdateItem(), *i);
+				fire(AutoSearchManagerListener::UpdateItem(), *i, false);
 
 
 			if (search && (*i)->nextAllowedSearch() <= curTime)
@@ -700,7 +700,7 @@ void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const strin
 	for(auto i = searchItems.begin(); i != searchItems.end(); ++i) {
 		if ((*i)->getFileType() == oldName) {
 			(*i)->setFileType(newName);
-			fire(AutoSearchManagerListener::UpdateItem(), *i);
+			fire(AutoSearchManagerListener::UpdateItem(), *i, false);
 		}
 	}
 }

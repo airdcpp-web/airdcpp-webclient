@@ -637,7 +637,7 @@ string Util::formatTime(int64_t aSec, bool translate, bool perMinute) {
 
 	n = aSec / (60);
 	aSec %= (60);
-	if(n) {
+	if(n || perMinute) {
 		appendTime(STRING(MINUTE), "min", STRING(MINUTES), "min");
 	}
 

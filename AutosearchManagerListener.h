@@ -33,7 +33,7 @@ public:
 
 	virtual void on(RemoveItem, const AutoSearchPtr&) noexcept { }
 	virtual void on(AddItem, const AutoSearchPtr&) noexcept { }
-	virtual void on(UpdateItem, const AutoSearchPtr&) noexcept { }
+	virtual void on(UpdateItem, const AutoSearchPtr&, bool) noexcept { }
 };
 
 } // namespace dcpp
