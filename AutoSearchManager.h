@@ -81,7 +81,11 @@ public:
 		ACTION_REPORT
 	};
 
-	enum BundleStatus {
+	enum Status {
+		STATUS_DISABLED,
+		STATUS_MANUAL,
+		STATUS_SEARCHING,
+		STATUS_WAITING,
 		STATUS_QUEUED_OK,
 		STATUS_FAILED_MISSING,
 		STATUS_FAILED_EXTRAS
@@ -92,8 +96,8 @@ public:
 		bool aCheckAlreadyShared, bool matchFullPath, ProfileToken aToken = 0) noexcept;
 
 	~AutoSearch();
-	typedef map<string, BundleStatus> BundleStatusMap;
-	typedef vector<pair<BundlePtr, BundleStatus>> BundleStatusList;
+	typedef map<string, Status> BundleStatusMap;
+	typedef vector<pair<BundlePtr, Status>> BundleStatusList;
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
@@ -120,7 +124,7 @@ public:
 	GETSET(int, numberLen, NumberLen);
 	GETSET(bool, useParams, UseParams);
 
-	GETSET(time_t, nextAllowedSearch, NextAllowedSearch);
+	time_t nextAllowedSearch();
 	SearchTime startTime;
 	SearchTime endTime;
 
@@ -139,13 +143,15 @@ public:
 
 	void addBundle(const string& aToken);
 	void removeBundle(const string& aToken);
-	void setBundleStatus(const string& aToken, BundleStatus aStatus);
+	void setBundleStatus(const string& aToken, Status aStatus);
 	void addPath(const string& aPath);
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;
 	static string formatParams(const AutoSearchPtr as, const string& aString);
 private:
 	StringMatch userMatcher;
+	time_t nextSearchChange;
+	bool nextIsDisable;
 };
 
 class SimpleXML;
@@ -161,6 +167,8 @@ public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
+	AutoSearch::Status getStatus(const AutoSearchPtr as) const;
+
 	bool addAutoSearch(AutoSearchPtr aAutoSearch);
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
 	AutoSearchPtr getSearchByIndex(unsigned int index) const;
@@ -170,7 +178,7 @@ public:
 	void clearPaths(AutoSearchPtr as);
 
 	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusList& bundleInfo, OrderedStringSet& finishedPaths) const;
-	bool updateAutoSearch(unsigned int index, AutoSearchPtr &ipw);
+	bool updateAutoSearch(unsigned int index, AutoSearchPtr ipw);
 	void removeAutoSearch(AutoSearchPtr a);
 	bool searchItem(AutoSearchPtr as, SearchType aType);
 	

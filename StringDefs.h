@@ -1575,5 +1575,6 @@ enum Strings { // @DontAdd
 	EXPIRED, // "Expired"
 	NEVER, // "Never"
 	BUNDLES, // "Bundles"
+	AUTO_REMOVE, // "Auto remove"
 	LAST // @DontAdd
 };

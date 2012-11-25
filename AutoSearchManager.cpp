@@ -39,9 +39,12 @@
 #include <boost/range/algorithm/find_if.hpp>
 
 #include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/range/algorithm/max_element.hpp"
+#include <boost/range/adaptor/map.hpp>
 
 namespace dcpp {
 
+using boost::adaptors::map_values;
 using boost::range::for_each;
 using boost::range::find_if;
 using namespace boost::posix_time;
@@ -54,7 +57,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
 		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
 		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString),
-		nextAllowedSearch(0) {
+		nextSearchChange(0), nextIsDisable(false) {
 
 	if (token == 0)
 		token = Util::randInt(10);
@@ -137,7 +140,7 @@ void AutoSearch::addBundle(const string& aToken) {
 	bundles[aToken] = STATUS_QUEUED_OK; 
 }
 
-void AutoSearch::setBundleStatus(const string& aToken, BundleStatus aStatus) {
+void AutoSearch::setBundleStatus(const string& aToken, Status aStatus) {
 	auto p = bundles.find(aToken);
 	dcassert(p != bundles.end());
 	if (p != bundles.end())
@@ -166,8 +169,9 @@ string AutoSearch::getSearchingStatus() const {
 	} 
 	
 	auto time = GET_TIME();
-	if (nextAllowedSearch > time) {
-		return "Waiting (" + Util::formatTime(nextAllowedSearch - time, true, true) + " left)";
+	if (nextSearchChange > time) {
+		auto timeStr = Util::formatTime(nextSearchChange - time, true, true);
+		return nextIsDisable ? "Active for " + timeStr : "Waiting (" + timeStr + " left)";
 	} else {
 		return "Active";
 	}
@@ -185,49 +189,90 @@ string AutoSearch::getExpiration() const {
 	}
 }
 
+AutoSearch::Status AutoSearchManager::getStatus(const AutoSearchPtr as) const {
+	if (!as->getEnabled())
+		return as->getManualSearch() ? AutoSearch::STATUS_MANUAL : AutoSearch::STATUS_DISABLED;
+
+	if (as->nextAllowedSearch() > GET_TIME())
+		return AutoSearch::STATUS_WAITING;
+
+
+	RLock l (cs);
+	if (as->getBundles().empty())
+		return AutoSearch::STATUS_SEARCHING;
+
+	return *boost::max_element(as->getBundles() | map_values);
+}
+
+time_t AutoSearch::nextAllowedSearch() {
+	if (nextSearchChange == 0 || nextIsDisable)
+		return 0;
+
+	return nextSearchChange;
+}
+
 bool AutoSearch::updateSearchTime() {
 	if (!searchDays.all() || startTime.hour != 0 || endTime.minute != 59 || endTime.hour != 23 || startTime.minute != 0) {
 		//get the current time from the clock -- one second resolution
 		ptime now = second_clock::local_time();
 		ptime nextSearch(now);
 
-		//can we search for it today?
-		if (endTime.hour < nextSearch.time_of_day().hours() || (endTime.hour == nextSearch.time_of_day().hours() && endTime.minute < nextSearch.time_of_day().minutes())) {
+		//have we already passed the end time from this day?
+		if (endTime.hour < nextSearch.time_of_day().hours() || 
+			(endTime.hour == nextSearch.time_of_day().hours() && endTime.minute < nextSearch.time_of_day().minutes())) {
+
 			nextSearch = ptime(nextSearch.date() + days(1));
 		}
 
-		//check the weekday
-		if (!searchDays[nextSearch.date().day_of_week()]) {
-			//get the next day when we can search for it
-			int p = nextSearch.date().day_of_week();
-			int d = 0;
+		auto addTime = [this, &nextSearch] (bool toEnabled) -> void {
+			//check the next weekday when the searching can be done (or when it's being disabled)
+			if (searchDays[nextSearch.date().day_of_week()] != toEnabled) {
+				//get the next day when we can search for it
+				int p = nextSearch.date().day_of_week();
+				if (!toEnabled)
+					p++; //start from the next day as we know already that we are able to search today
 
-			for (d = 0; d < 6; d++) {
-				if(p == 7)
-					p = 0;
+				int d = 0;
 
-				if (searchDays[p++])
-					break;
+				for (d = 0; d < 6; d++) {
+					if(p == 7)
+						p = 0;
+
+					if (searchDays[p++] == toEnabled)
+						break;
+				}
+
+				nextSearch = ptime(nextSearch.date() + days(d)); // start from the midnight
 			}
 
-			nextSearch = ptime(nextSearch.date() + days(d)); // start from the midnight
-		}
+			//add the start (or end) hours and minutes (if needed)
+			auto timeStruct = toEnabled ? startTime : endTime;
+			if (timeStruct.hour > nextSearch.time_of_day().hours()) {
+				nextSearch += (hours(timeStruct.hour) + minutes(timeStruct.minute)) - (hours(nextSearch.time_of_day().hours()) + minutes(nextSearch.time_of_day().minutes()));
+			} else if ((timeStruct.hour == nextSearch.time_of_day().hours() && timeStruct.minute > nextSearch.time_of_day().minutes())) {
+				nextSearch += minutes(timeStruct.minute - nextSearch.time_of_day().minutes());
+			}
+		};
 
-		//add the start hours and minutes (if needed)
-		if (startTime.hour > nextSearch.time_of_day().hours()) {
-			nextSearch += (hours(startTime.hour)+minutes(startTime.minute)) - (hours(nextSearch.time_of_day().hours()) + minutes(nextSearch.time_of_day().minutes()));
-		} else if ((startTime.hour == nextSearch.time_of_day().hours() && startTime.minute > nextSearch.time_of_day().minutes())) {
-			nextSearch += minutes(startTime.minute - nextSearch.time_of_day().minutes());
+		addTime(true);
+
+		if (nextSearch == now) {
+			//we are allowed to search already, check when it's going to be disabled
+			addTime(false);
+			nextIsDisable = true;
+		} else {
+			nextIsDisable = false;
 		}
 
 		tm td_tm = to_tm(nextSearch);
 		time_t next = mktime(&td_tm);
-		if (next != nextAllowedSearch) {
-			setNextAllowedSearch(next);
+		if (next != nextSearchChange) {
+			nextSearchChange = next;
 			return true;
 		}
 	}
 
+	nextSearchChange = 0;
 	return false;
 }
 
@@ -309,7 +354,7 @@ void AutoSearchManager::setActiveItem(unsigned int index, bool active) {
 	}
 }
 
-bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr &ipw) {
+bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr ipw) {
 	ipw->updatePattern();
 	ipw->updateSearchTime();
 
@@ -362,7 +407,7 @@ void AutoSearchManager::getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleSt
 		bundles = as->getBundles();
 	}
 
-	for_each(as->getBundles(), [&bundleInfo](const pair<string, AutoSearch::BundleStatus> bsp) {
+	for_each(as->getBundles(), [&bundleInfo](const pair<string, AutoSearch::Status> bsp) {
 		auto b = QueueManager::getInstance()->getBundle(bsp.first);
 		if (b)
 			bundleInfo.push_back(make_pair(b, bsp.second)); 
@@ -577,7 +622,7 @@ bool AutoSearchManager::checkItems() {
 				search = false;
 			
 			//check expired, and remove them.
-			if ((*i)->getExpireTime() > 0 && (*i)->getExpireTime() <= curTime) {
+			if ((*i)->getExpireTime() > 0 && (*i)->getExpireTime() <= curTime && (*i)->getBundles().empty()) {
 				expired.push_back(*i);
 				search = false;
 			}
@@ -586,7 +631,7 @@ bool AutoSearchManager::checkItems() {
 				fire(AutoSearchManagerListener::UpdateItem(), *i);
 
 
-			if (search && (*i)->getNextAllowedSearch() <= curTime)
+			if (search && (*i)->nextAllowedSearch() <= curTime)
 				result = true;
 		}
 	}
@@ -632,7 +677,7 @@ void AutoSearchManager::runSearches() {
 
 			if (!(*i)->allowNewItems())
 				continue;
-			if ((*i)->getNextAllowedSearch() > GET_TIME())
+			if ((*i)->nextAllowedSearch() > GET_TIME())
 				continue;
 
 

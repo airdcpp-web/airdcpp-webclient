@@ -1568,6 +1568,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Expired", 
 "Never", 
 "Bundles", 
+"Auto remove", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3136,4 +3137,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Expired", 
 "Never", 
 "Bundles", 
+"AutoRemove", 
 };
