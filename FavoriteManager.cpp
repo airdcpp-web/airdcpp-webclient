@@ -166,27 +166,29 @@ void FavoriteManager::removeHubUserCommands(int ctx, const string& hub) {
 	}
 }
 
-void FavoriteManager::addFavoriteUser(const UserPtr& aUser) {
+void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
 	{
 		Lock l(cs);
-		if(users.find(aUser->getCID()) != users.end()) {
+		if(users.find(aUser.user->getCID()) != users.end()) {
 			return;
 		}
 	}
+	string nick = Util::emptyString;
 
-	StringList urls = move(ClientManager::getInstance()->getHubUrls(aUser->getCID()));
-	StringList nicks = move(ClientManager::getInstance()->getNicks(aUser->getCID()));
-        
-	/// @todo make this an error probably...
-	if(urls.empty())
-		urls.push_back(Util::emptyString);
-	if(nicks.empty())
-		nicks.push_back(Util::emptyString);
+	//prefer to use the add nick
+	OnlineUser* ou = ClientManager::getInstance()->findOnlineUser(aUser.user->getCID(), aUser.hint);
+	if(!ou) {
+		StringList nicks = move(ClientManager::getInstance()->getNicks(aUser.user->getCID()));  
+		if(!nicks.empty())
+			nick = nicks[0];
+	} else {
+		nick = ou->getIdentity().getNick();
+	}
 
-	FavoriteUser fu = FavoriteUser(aUser, Util::toString(nicks), urls[0], aUser->getCID().toBase32());
+	FavoriteUser fu = FavoriteUser(aUser, nick, aUser.hint, aUser.user->getCID().toBase32());
 	{
 		Lock l (cs);
-		users.insert(make_pair(aUser->getCID(), fu)).first;
+		users.insert(make_pair(aUser.user->getCID(), fu)).first;
 	}
 
 	fire(FavoriteManagerListener::UserAdded(), fu);

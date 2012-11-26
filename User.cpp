@@ -199,7 +199,7 @@ std::map<string, string> Identity::getInfo() const {
 }
 
 void FavoriteUser::update(const OnlineUser& info) { 
-	setNick(info.getIdentity().getNick()); 
+	//setNick(info.getIdentity().getNick()); 
 	setUrl(info.getClient().getHubUrl()); 
 }
 int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col)  {
@@ -286,7 +286,7 @@ uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 	uint8_t image = identity.isBot() ? USER_ICON_BOT : identity.isAway() ? USER_ICON_AWAY : USER_ICON;
 	image *= (USER_ICON_LAST - USER_ICON_MOD_START) * (USER_ICON_LAST - USER_ICON_MOD_START);
 
-	if(!identity.isBot() && !identity.isTcpActive())
+	if(!identity.isBot() && !identity.isTcpActive(c))
 	{
 		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
 	}

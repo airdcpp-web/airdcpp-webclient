@@ -78,7 +78,7 @@ public:
 	FavoriteMap getFavoriteUsers() { Lock l(cs); return users; }
 	PreviewApplication::List& getPreviewApps() { return previewApplications; }
 
-	void addFavoriteUser(const UserPtr& aUser);
+	void addFavoriteUser(const HintedUser& aUser);
 	bool isFavoriteUser(const UserPtr& aUser) const { Lock l(cs); return users.find(aUser->getCID()) != users.end(); }
 	void removeFavoriteUser(const UserPtr& aUser);
 
