@@ -1579,5 +1579,15 @@ enum Strings { // @DontAdd
 	DL_STATUS_POPUP, // "Download speed - Click to adjust limiter value"
 	UL_STATUS_POPUP, // "Upload speed - Click to adjust limiter value"
 	UPLOADED, // "Uploaded"
+	SWITCHING_TO_ADDRESS, // "Switching to an address %s"
+	X_BUNDLES_QUEUED, // "%d bundles queued"
+	X_FINISHED_BUNDLES, // "%d finished bundles"
+	ACTIVE_FOR, // "Active for %s"
+	WAITING_LEFT, // "Waiting (%s left)"
+	INACTIVE_QUEUED, // "Inactive (files queued)"
+	MATCHING_MANUAL, // "Matching only (manual search)"
+	BUNDLE_X_QUEUED, // "%s (queued)"
+	BUNDLE_X_FILES_MISSING, // "%s (missing files)"
+	BUNDLE_X_EXTRA_FILES, // "%s (extra files)"
 	LAST // @DontAdd
 };

@@ -122,7 +122,7 @@ void AutoSearch::updatePattern() {
 				//prepend the zeroes
 				num.insert(num.begin(), numberLen - num.length(), '0');
 			}
-			params["number"] = num;
+			params["inc"] = num;
 		}
 
 		pattern = formatParams(this, matcherString);
@@ -161,19 +161,19 @@ bool AutoSearch::usingIncrementation() const {
 
 string AutoSearch::getSearchingStatus() const {
 	if (!enabled) {
-		return manualSearch ? "Matching only (manual)" : "Disabled";
+		return manualSearch ? STRING(MATCHING_MANUAL) : STRING(DISABLED);
 	}
 
 	if (!allowNewItems()) {
-		return "Not active (queued)";
+		return STRING(INACTIVE_QUEUED);
 	} 
 	
 	auto time = GET_TIME();
 	if (nextSearchChange > time) {
 		auto timeStr = Util::formatTime(nextSearchChange - time, true, true);
-		return nextIsDisable ? "Active for " + timeStr : "Waiting (" + timeStr + " left)";
+		return nextIsDisable ? STRING_F(ACTIVE_FOR, timeStr) : STRING_F(WAITING_LEFT, timeStr);
 	} else {
-		return "Active";
+		return STRING(ACTIVE);
 	}
 }
 
@@ -433,7 +433,7 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 		int finishedCount = as->getFinishedPaths().size();
 
 		if (bundleCount == 0 && finishedCount == 0) {
-			return "No bundles";
+			return STRING(NONE);
 		} 
 
 		if (bundleCount > 0) {
@@ -442,25 +442,25 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 				auto b = QueueManager::getInstance()->getBundle(bsp.first);
 				if (b) {
 					if (bsp.second == AutoSearch::STATUS_QUEUED_OK) {
-						statusString += b->getName() + " (queued)";
+						statusString += STRING_F(BUNDLE_X_QUEUED, b->getName());
 					} else if (bsp.second == AutoSearch::STATUS_FAILED_MISSING) {
-						statusString += b->getName() + " (missing files)";
+						statusString += STRING_F(BUNDLE_X_FILES_MISSING, b->getName());
 					} else if (bsp.second == AutoSearch::STATUS_FAILED_EXTRAS) {
-						statusString += b->getName() + " (extra files)";
+						statusString += STRING_F(BUNDLE_X_EXTRA_FILES, b->getName());
 					}
 				} else {
 					dcassert(0);
 					bundleCount = 0;
 				}
 			} else {
-				statusString += Util::toString(bundleCount) + " bundles queued";
+				statusString += STRING_F(X_BUNDLES_QUEUED, bundleCount);
 			}
 		}
 
 		if (finishedCount > 0) {
 			if (bundleCount > 0)
 				statusString += ", ";
-			statusString += Util::toString(finishedCount) + " finished bundle(s)";
+			statusString += statusString += STRING_F(X_FINISHED_BUNDLES, finishedCount);
 		}
 	}
 	return statusString;

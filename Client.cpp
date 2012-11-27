@@ -209,10 +209,10 @@ void Client::on(Connected) noexcept {
 void Client::onPassword() {
 	string newUrl = hubUrl;
 	if (getPassword().empty() && FavoriteManager::getInstance()->blockFailOverUrl(favToken, newUrl)) {
-		ClientManager::getInstance()->setClientUrl(hubUrl, newUrl);
 		state = STATE_DISCONNECTED;
 		sock->removeListener(this);
 		fire(ClientListener::Failed(), hubUrl, STRING(FAILOVER_AUTH));
+		ClientManager::getInstance()->setClientUrl(hubUrl, newUrl);
 		return;
 	}
 	fire(ClientListener::GetPassword(), this);
@@ -228,7 +228,7 @@ void Client::on(Failed, const string& aLine) noexcept {
 
 			if (msg[msg.length()-1] != '.')
 				msg += ".";
-			msg += " Switching to an address " + hubUrl;
+			msg += " " + STRING_F(SWITCHING_TO_ADDRESS, hubUrl);
 		}
 	} else {
 		//don't try failover addresses right after getting disconnected...
@@ -238,7 +238,7 @@ void Client::on(Failed, const string& aLine) noexcept {
 	state = STATE_DISCONNECTED;
 
 	sock->removeListener(this);
-	fire(ClientListener::Failed(), hubUrl, msg);
+	fire(ClientListener::Failed(), url, msg);
 }
 
 void Client::disconnect(bool graceLess) {

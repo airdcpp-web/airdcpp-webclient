@@ -632,7 +632,7 @@ SettingsManager::SettingsManager()
 	setDefault(FIRST_RUN, true);
 	setDefault(USE_OLD_SHARING_UI, true);
 	setDefault(LAST_SEARCH_FILETYPE, "0");
-	setDefault(LAST_AS_FILETYPE, "0");
+	setDefault(LAST_AS_FILETYPE, "7");
 	setDefault(MAX_RESIZE_LINES, 2);
 	setDefault(DUPE_SEARCH, true);
 	setDefault(PASSWD_PROTECT, false);
