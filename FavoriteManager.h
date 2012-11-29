@@ -85,7 +85,6 @@ public:
 	bool hasSlot(const UserPtr& aUser) const;
 	void setUserDescription(const UserPtr& aUser, const string& description);
 	void setAutoGrant(const UserPtr& aUser, bool grant);
-	void userUpdated(const OnlineUser& info);
 	time_t getLastSeen(const UserPtr& aUser) const;
 	std::string getUserURL(const UserPtr& aUser) const;
 	
@@ -217,9 +216,8 @@ private:
 	RecentHubEntry::Iter getRecentHub(const string& aServer) const;
 
 	// ClientManagerListener
-	void on(UserUpdated, const OnlineUser& user) noexcept;
-	void on(UserConnected, const OnlineUser& user) noexcept;
-	void on(UserDisconnected, const UserPtr& user) noexcept;
+	void on(UserConnected, const OnlineUser& user, bool wasOffline) noexcept;
+	void on(UserDisconnected, const UserPtr& user, bool wentOffline) noexcept;
 
 	// HttpConnectionListener
 	void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept;

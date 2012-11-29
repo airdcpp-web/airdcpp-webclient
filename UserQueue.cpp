@@ -23,6 +23,7 @@
 
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 #include "UserQueue.h"
 #include "SettingsManager.h"
@@ -35,6 +36,8 @@
 namespace dcpp {
 
 using boost::range::for_each;
+using boost::adaptors::map_values;
+
 
 void UserQueue::addQI(QueueItemPtr qi, bool newBundle /*false*/) {
 	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
@@ -47,7 +50,6 @@ void UserQueue::addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
 		l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::SizeSortOrder()), qi);
-		//for_each(l, [](QueueItemPtr q) { LogManager::getInstance()->message(q->getTarget(), LogManager::LOG_INFO); } );
 	}
 
 	BundlePtr bundle = qi->getBundle();
@@ -70,10 +72,7 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
-		for_each(i->second, [&](QueueItemPtr q) { 
-			if (!q->getBundle()) //bundle items will be added from the bundle queue
-				ql.push_back(q);
-		});
+		copy_if(i->second.begin(), i->second.end(), back_inserter(ql), [](QueueItemPtr q) { return !q->getBundle(); }); //bundle items will be added from the bundle queue
 	}
 
 	/* Bundles */

@@ -100,7 +100,7 @@ void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) noexcept {
 	copy(tthIndex.equal_range(const_cast<TTHValue*>(&tth)) | map_values, back_inserter(ql));
 }
 
-void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringList& ql) {
+void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) {
 	if (SettingsManager::lanMode) {
 		QueueItem::StringMultiMap qsm;
 		for(auto j = tthIndex.begin(); j != tthIndex.end(); ++j) {
@@ -112,7 +112,7 @@ void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringList& 
 	}
 }
 
-void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringList& ql) {
+void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql) {
 	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
 		if(!(*j)->getAdls())
 			matchDir(*j, ql);
@@ -130,7 +130,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::Stri
 	}
 }
 
-void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringList& ql, const QueueItem::StringMultiMap& qsm) {
+void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql, const QueueItem::StringMultiMap& qsm) {
 	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
 		if(!(*j)->getAdls())
 			matchDir(*j, ql, qsm);

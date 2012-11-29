@@ -537,9 +537,14 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 				bundleFinished = aBundle->isFinished();
 
 				bundleQueue.addBundleItem(q, aBundle);
+				if (aAutoSearch > 0)
+					aBundle->addAutoSearch(aAutoSearch);
 				aBundle->setDirty(true);
 			} else {
-				aBundle = new Bundle(q, aAutoSearch);
+				ProfileTokenSet as;
+				if (aAutoSearch > 0)
+					as.insert(aAutoSearch);
+				aBundle = new Bundle(q, as);
 			}
 		}
 		/* Bundles end */
@@ -726,13 +731,14 @@ QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, string& hubH
 	if(qi) {
 		if (qi->getBundle()) {
 			bundleToken = qi->getBundle()->getToken();
-		} else if (qi->isSet(QueueItem::FLAG_USER_LIST)) {
-			//always update the hint with filelists
-			hubHint = qi->getSource(aUser)->getUser().hint;
-		} else if (hubs.find(hubHint) == hubs.end()) {
+		} 
+
+		if (hubs.find(hubHint) == hubs.end()) {
 			//we can't connect via a hub that is offline...
 			hubHint = *hubs.begin();
 		}
+		
+		qi->getSource(aUser)->updateHubUrl(hubs, hubHint, qi->isSet(QueueItem::FLAG_USER_LIST));
 
 		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : (QueueItem::Priority)qi->getBundle()->getPriority();
 	}
@@ -741,7 +747,7 @@ QueueItem::Priority QueueManager::hasDownload(const UserPtr& aUser, string& hubH
 
 void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) {
 	bool wantConnection = false;
-	QueueItem::StringList ql;
+	QueueItem::StringItemList ql;
 	//uint64_t start = GET_TICK();
 	{
 		RLock l(cs);
@@ -848,11 +854,8 @@ Download* QueueManager::getDownload(UserConnection& aSource, const HubSet& onlin
 			auto source = q->getSource(aSource.getUser());
 
 			//update the hub hint
-			if (q->isSet(QueueItem::FLAG_USER_LIST)) {
-				newUrl = source->getUser().hint;
-			} else {
-				newUrl = aSource.getHubUrl();
-			}
+			newUrl = aSource.getHubUrl();
+			source->updateHubUrl(onlineHubs, newUrl, q->isSet(QueueItem::FLAG_USER_LIST));
 			
 			//check partial sources
 			if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
@@ -989,18 +992,22 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 
 	if (!SETTING(SCAN_DL_BUNDLES) || b->isFileBundle()) {
 		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, b->getName().c_str()), LogManager::LOG_INFO);
-	} else if (SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(b)) {
-		b->setFlag(Bundle::FLAG_SHARING_FAILED);
-		return;
+	} else if (SETTING(SCAN_DL_BUNDLES)) {
+		bool hasMissing=false, hasExtras=false;
+		ShareScannerManager::getInstance()->scanBundle(b, hasMissing, hasExtras);
+		if (hasMissing || hasExtras) {
+			b->setFlag(Bundle::FLAG_SHARING_FAILED);
+			onBundleStatusChanged(b, hasExtras ? AutoSearch::STATUS_FAILED_EXTRAS : AutoSearch::STATUS_FAILED_MISSING);
+			return;
+		}
 	} 
 
+	onBundleRemoved(b, true);
 	if (BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
 		hashBundle(b);
 	} else {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	}
-
-	AutoSearchManager::getInstance()->onRemoveBundle(b, true);
 }
 
 void QueueManager::hashBundle(BundlePtr aBundle) {
@@ -1801,7 +1808,7 @@ void QueueManager::saveQueue(bool force) noexcept {
 
 class QueueLoader : public SimpleXMLReader::CallBack {
 public:
-	QueueLoader() : curFile(NULL), inDownloads(false), inBundle(false), inFile(false), curAutoSearch(0) { }
+	QueueLoader() : curFile(NULL), inDownloads(false), inBundle(false), inFile(false) { }
 	~QueueLoader() { }
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name);
@@ -1823,7 +1830,6 @@ private:
 	bool inBundle;
 	bool inFile;
 	string curToken;
-	ProfileToken curAutoSearch;
 };
 
 void QueueManager::loadQueue() noexcept {
@@ -1896,7 +1902,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		inDownloads = true;
 	} else if (!inFile && name == sFile) {
 		curToken = getAttrib(attribs, sToken, 1);
-		curAutoSearch = Util::toInt(getAttrib(attribs, sAutoSearch, 1));
 		inFile = true;		
 	} else if (!inBundle && name == sBundle) {
 		const string& bundleTarget = getAttrib(attribs, sTarget, 0);
@@ -1907,13 +1912,12 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		time_t dirDate = static_cast<time_t>(Util::toInt(getAttrib(attribs, sDate, 2)));
 		time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 3)));
 		const string& prio = getAttrib(attribs, sPriority, 4);
-		ProfileToken autoSearch = Util::toInt(getAttrib(attribs, sAutoSearch, 4));
 		if(added == 0) {
 			added = GET_TIME();
 		}
 
 		if (ConnectionManager::getInstance()->tokens.addToken(token))
-			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, autoSearch, dirDate, token);
+			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, ProfileTokenSet(), dirDate, token);
 		else
 			throw Exception("Duplicate token");
 
@@ -1969,7 +1973,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 					curBundle = new Bundle(qi);
 				} else if (inFile && !curToken.empty()) {
 					if (ConnectionManager::getInstance()->tokens.addToken(curToken)) {
-						curBundle = new Bundle(qi, curAutoSearch, curToken);
+						curBundle = new Bundle(qi, ProfileTokenSet(), curToken);
 					} else {
 						qm->fileQueue.remove(qi);
 						throw Exception("Duplicate token");
@@ -2023,6 +2027,9 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			if(!Util::fileExists(target))
 				return;
 			qm->addFinishedItem(TTHValue(tth), curBundle, target, size, added);
+		} else if(inBundle || inFile && name == sAutoSearch) {
+			const string& autoSearch = getAttrib(attribs, sToken, 0);
+			curBundle->addAutoSearch(Util::toInt(autoSearch));
 		} else {
 			//LogManager::getInstance()->message("QUEUE LOADING ERROR");
 		}
@@ -2045,7 +2052,6 @@ void QueueLoader::endTag(const string& name) {
 		} else if(name == sFile) {
 			curToken = Util::emptyString;
 			inFile = false;
-			curAutoSearch = 0;
 			if (!curBundle || curBundle->getQueueItems().empty())
 				throw Exception(STRING(NO_FILES_FROM_FILE));
 		} else if(name == sDownload) {
@@ -2178,7 +2184,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 }
 
 // ClientManagerListener
-void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept {
+void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept {
 	bool hasDown = false;
 
 	{
@@ -2190,17 +2196,20 @@ void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aU
 
 		for_each(ql, [&](QueueItemPtr qi) {
 			fire(QueueManagerListener::StatusUpdated(), qi);
-			if(qi->startDown() && !qi->isHubBlocked(HintedUser(aUser.getUser(), aUser.getHubUrl())))
+			if(!hasDown && qi->startDown() && !qi->isHubBlocked(aUser.getUser(), aUser.getHubUrl()))
 				hasDown = true;
 		});
 	}
 
-	if(hasDown && aUser.getUser()->isOnline()) { 
+	if(hasDown) { 
 		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(aUser.getUser(), aUser.getHubUrl()));
 	}
 }
 
-void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept {
+void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept {
+	if (!wentOffline)
+		return;
+
 	QueueItemList ql;
 	{
 		RLock l(cs);
@@ -2605,15 +2614,46 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 
 	for (auto i = hash.begin(); i != hash.end(); i++) {
 		BundlePtr b = *i;
-		if(b->isSet(Bundle::FLAG_SHARING_FAILED) && SETTING(SCAN_DL_BUNDLES) && !ShareScannerManager::getInstance()->scanBundle(b)) {
-			continue;
+		if(b->isSet(Bundle::FLAG_SHARING_FAILED) && SETTING(SCAN_DL_BUNDLES)) {
+			bool hasExtras=false, hasMissing=false;
+			ShareScannerManager::getInstance()->scanBundle(b, hasMissing, hasExtras);
+			if (hasExtras || hasMissing)
+				continue;
 		}
-		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
 
+		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
 		hashBundle(b); 
 	}
 
 	sort(retBundles.begin(), retBundles.end());
+}
+
+void QueueManager::onBundleStatusChanged(BundlePtr aBundle, AutoSearch::Status aStatus) {
+	ProfileTokenSet searches;
+
+	{
+		RLock l(cs);
+		if (aBundle->getAutoSearches().empty())
+			return;
+
+		searches = aBundle->getAutoSearches();
+	}
+
+	AutoSearchManager::getInstance()->onBundleStatus(aBundle, searches, aStatus);
+}
+
+void QueueManager::onBundleRemoved(BundlePtr aBundle, bool finished) {
+	ProfileTokenSet searches;
+
+	{
+		RLock l(cs);
+		if (aBundle->getAutoSearches().empty())
+			return;
+
+		searches = aBundle->getAutoSearches();
+	}
+
+	AutoSearchManager::getInstance()->onRemoveBundle(aBundle, searches, finished);
 }
 
 void QueueManager::shareBundle(const string& aName) {
@@ -2625,7 +2665,7 @@ void QueueManager::shareBundle(const string& aName) {
 
 	if (b) {
 		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
-		AutoSearchManager::getInstance()->onRemoveBundle(b, true);
+		onBundleRemoved(b, true);
 		hashBundle(b); 
 		LogManager::getInstance()->message("The bundle " + aName + " has been added for hashing", LogManager::LOG_INFO);
 	} else {
@@ -2677,7 +2717,7 @@ bool QueueManager::addBundle(BundlePtr aBundle, bool loading) {
 		aBundle->updateSearchMode();
 	}
 
-	AutoSearchManager::getInstance()->onAddBundle(aBundle);
+	onBundleStatusChanged(aBundle, AutoSearch::STATUS_QUEUED_OK);
 	if (loading)
 		return true;
 
@@ -2726,6 +2766,8 @@ void QueueManager::readdBundle(BundlePtr aBundle) {
 		}
 		bundleQueue.addSearchPrio(aBundle);
 	}
+
+	onBundleStatusChanged(aBundle, AutoSearch::STATUS_QUEUED_OK);
 	LogManager::getInstance()->message(STRING_F(BUNDLE_READDED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 }
 
@@ -2758,12 +2800,13 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 		added = changeBundleTarget(targetBundle, sourceBundle->getTarget());
 		RLock l (cs);
 		fire(QueueManagerListener::BundleMerged(), targetBundle, oldTarget);
+
+		auto as = targetBundle->getAutoSearches();
+		as.insert(sourceBundle->getAutoSearches().begin(), sourceBundle->getAutoSearches().end());
+		targetBundle->setAutoSearches(as);
 	}
 
-	if (targetBundle->getAutoSearch() == 0 && sourceBundle->getAutoSearch() != 0) {
-		targetBundle->setAutoSearch(sourceBundle->getAutoSearch());
-		AutoSearchManager::getInstance()->onAddBundle(targetBundle);
-	}
+	onBundleStatusChanged(targetBundle, AutoSearch::STATUS_QUEUED_OK);
 
 	{
 		WLock l (cs);
@@ -3046,7 +3089,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	}
 
 	//create a temp bundle for split items
-	BundlePtr tempBundle = BundlePtr(new Bundle(aTarget, GET_TIME(), sourceBundle->getPriority(), sourceBundle->getAutoSearch(), sourceBundle->getDirDate()));
+	BundlePtr tempBundle = BundlePtr(new Bundle(aTarget, GET_TIME(), sourceBundle->getPriority(), sourceBundle->getAutoSearches(), sourceBundle->getDirDate()));
 
 	//can we merge the split folder?
 	bool hasMergeBundle = newBundle;
@@ -3284,7 +3327,7 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 				for_each(ql, [&](QueueItemPtr qi) {
 					bundleQueue.removeBundleItem(qi, false);
 					userQueue.removeQI(qi, false); //we definately don't want to remove downloads because the QI will stay the same
-					targetBundle = BundlePtr(new Bundle(qi, sourceBundle->getAutoSearch()));
+					targetBundle = BundlePtr(new Bundle(qi, sourceBundle->getAutoSearches()));
 					targetBundle->setPriority(sourceBundle->getPriority());
 					targetBundle->setAutoPriority(sourceBundle->getAutoPriority());
 
@@ -3462,7 +3505,7 @@ void QueueManager::removeBundle(BundlePtr aBundle, bool finished, bool removeFin
 			LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);
 		}
 
-		AutoSearchManager::getInstance()->onRemoveBundle(aBundle, false);
+		onBundleRemoved(aBundle, false);
 		if (!aBundle->isFileBundle()) {
 			AirUtil::removeIfEmpty(aBundle->getTarget());
 		}

@@ -195,7 +195,7 @@ private:
 	void logUpload(const Upload* u);
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 	
 	// TimerManagerListener
 	void on(Second, uint64_t aTick) noexcept;

@@ -101,8 +101,8 @@ public:
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
 
-	Bundle(const string& target, time_t added, Priority aPriority, ProfileToken aAutoSearch, time_t aDirDate=0, const string& aToken = Util::emptyString) noexcept;
-	Bundle(QueueItemPtr qi, ProfileToken aAutoSearch = 0, const string& aToken = Util::emptyString) noexcept;
+	Bundle(const string& target, time_t added, Priority aPriority, const ProfileTokenSet& aAutoSearch = ProfileTokenSet(), time_t aDirDate=0, const string& aToken = Util::emptyString) noexcept;
+	Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches = ProfileTokenSet(), const string& aToken = Util::emptyString) noexcept;
 	~Bundle();
 
 	GETSET(string, token, Token);
@@ -136,7 +136,7 @@ public:
 	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceInfoList, badSources, BadSources);
 	GETSET(SourceInfoList, sources, Sources);
-	GETSET(ProfileToken, autoSearch, AutoSearch);
+	GETSET(ProfileTokenSet, autoSearches, AutoSearches);
 
 	UserIntMap& getRunningUsers() { return runningUsers; }
 	FinishedNotifyList& getNotifiedUsers() { return finishedNotifications; }
@@ -147,8 +147,10 @@ public:
 	DirMap& getBundleDirs() { return bundleDirs; }
 	SourceInfoList& getBundleSources() { return sources; }
 	SourceInfoList& getBadSources() { return badSources; }
+	ProfileTokenSet& getAutoSearchess() { return autoSearches; }
 
 	/* Misc */
+	void addAutoSearch(ProfileToken aAutoSearch) { autoSearches.insert(aAutoSearch); }
 	bool isFileBundle() const { return fileBundle;}
 
 	int64_t getDownloadedBytes() const { return currentDownloaded+finishedSegments; }

@@ -31,6 +31,7 @@
 #include "MerkleTree.h"
 #include "Socket.h"
 
+#include "AutoSearchManager.h"
 #include "QueueManagerListener.h"
 #include "SearchManagerListener.h"
 #include "ClientManagerListener.h"
@@ -286,6 +287,8 @@ private:
 	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
 	void hashBundle(BundlePtr aBundle);
 	void checkBundleHashed(BundlePtr aBundle);
+	void onBundleStatusChanged(BundlePtr aBundle, AutoSearch::Status aStatus);
+	void onBundleRemoved(BundlePtr aBundle, bool finished);
 
 	bool replaceFinishedItem(QueueItemPtr qi);
 
@@ -308,8 +311,8 @@ private:
 	void on(HashManagerListener::HashFailed, const string& fname) noexcept { onFileHashed(fname, TTHValue(Util::emptyString), true); }
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept;
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept;
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 
 	DelayedEvents<string> delayEvents;
 };

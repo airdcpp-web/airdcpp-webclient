@@ -59,7 +59,7 @@ public:
 	void find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, ScanType scanType);
 	void scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders, ScanType scanType);
 	int scan(StringList paths = StringList(), bool sfv = false);
-	bool scanBundle(BundlePtr aBundle);
+	void scanBundle(BundlePtr aBundle, bool& hasMissing, bool& hasExtras);
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan);
 	void Stop();
 

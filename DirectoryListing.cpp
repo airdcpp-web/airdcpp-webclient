@@ -448,7 +448,11 @@ void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 	auto& fileList = aDir->files;
 
 	if (!aBundle) {
-		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, aAutoSearch, aDir->getDate()));
+		ProfileTokenSet as;
+		if (aAutoSearch > 0)
+			as.insert(aAutoSearch);
+
+		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, as, aDir->getDate()));
 		first = true;
 	}
 

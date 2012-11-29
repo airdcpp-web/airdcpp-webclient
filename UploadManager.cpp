@@ -1221,8 +1221,8 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 	fire(UploadManagerListener::QueueUpdate());
 }
 
-void UploadManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept {
-	if(!aUser->isOnline()) {
+void UploadManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept {
+	if(wentOffline && !aUser->isOnline()) {
 		clearUserFiles(aUser);
 	}
 }

@@ -383,7 +383,9 @@ void ClientManager::putOnline(OnlineUser* ou) noexcept {
 	
 	if(!ou->getUser()->isOnline()) {
 		ou->getUser()->setFlag(User::ONLINE);
-		fire(ClientManagerListener::UserConnected(), *ou);
+		fire(ClientManagerListener::UserConnected(), *ou, true);
+	} else {
+		fire(ClientManagerListener::UserConnected(), *ou, false);
 	}
 }
 
@@ -409,11 +411,9 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
 		updateUser(*ou);
 		if(disconnect)
 			ConnectionManager::getInstance()->disconnect(u);
-		fire(ClientManagerListener::UserDisconnected(), u);
+		fire(ClientManagerListener::UserDisconnected(), u, true);
 	} else if(diff > 1) {
-		//if(priv)
-		//	updateUser(*ou);
-		fire(ClientManagerListener::UserUpdated(), *ou);
+		fire(ClientManagerListener::UserDisconnected(), *ou, false);
 	}
 }
 

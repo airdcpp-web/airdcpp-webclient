@@ -246,9 +246,9 @@ void QueueItem::blockSourceHub(const HintedUser& aUser) {
 	s->blockedHubs.insert(aUser.hint);
 }
 
-bool QueueItem::isHubBlocked(const HintedUser& aUser) {
-	auto s = getSource(aUser.user);
-	return !s->blockedHubs.empty() && s->blockedHubs.find(aUser.hint) != s->blockedHubs.end();
+bool QueueItem::isHubBlocked(const UserPtr& aUser, const string& aUrl) {
+	auto s = getSource(aUser);
+	return !s->blockedHubs.empty() && s->blockedHubs.find(aUrl) != s->blockedHubs.end();
 }
 
 void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) {
@@ -719,6 +719,24 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 
 	f.write(indent);
 	f.write(LIT("</Download>\r\n"));
+}
+
+bool QueueItem::Source::updateHubUrl(const HubSet& onlineHubs, string& hubUrl, bool isFileList) {
+	if (isFileList) {
+		//we already know that the hub is online
+		dcassert(onlineHubs.find(user.hint) != onlineHubs.end());
+		hubUrl = user.hint;
+		return true;
+	} else if (blockedHubs.find(hubUrl) != blockedHubs.end()) {
+		//we can't connect via a blocked hub
+		StringList availableHubs;
+		set_difference(onlineHubs.begin(), onlineHubs.end(), blockedHubs.begin(), blockedHubs.end(), availableHubs.begin());
+		dcassert(!availableHubs.empty());
+		hubUrl = availableHubs[0];
+		return true;
+	}
+
+	return false;
 }
 
 }

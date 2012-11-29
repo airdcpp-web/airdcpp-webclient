@@ -73,16 +73,8 @@ public:
 	static const char* getTypeStr(int type);
 	static bool isDefaultTypeStr(const string& type);
 	
-	void search(const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, Search::searchType sType, void* aOwner = NULL);
-	void search(const string& aName, const string& aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, Search::searchType sType, void* aOwner = NULL) {
-		search(aName, Util::toInt64(aSize), aTypeMode, aSizeMode, aToken, sType, aOwner);
-	}
-
+	uint64_t search(const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, Search::searchType sType);
 	uint64_t search(StringList& who, const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner = NULL);
-	uint64_t search(StringList& who, const string& aName, const string& aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, Search::searchType sType, void* aOwner = NULL) {
-		return search(who, aName, Util::toInt64(aSize), aTypeMode, aSizeMode, aToken, aExtList, sType, aOwner);
- 	}
-	//static string clean(const string& aSearchString);
 	
 	void respond(const AdcCommand& cmd, const CID& cid, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 

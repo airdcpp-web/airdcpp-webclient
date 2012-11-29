@@ -57,7 +57,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
 		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
 		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString),
-		nextSearchChange(0), nextIsDisable(false) {
+		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING) {
 
 	if (token == 0)
 		token = Util::randInt(10);
@@ -78,7 +78,10 @@ bool AutoSearch::allowNewItems() const {
 	if (!enabled)
 		return false;
 
-	if (bundles.empty())
+	if (status < STATUS_QUEUED_OK)
+		return true;
+
+	if (status == STATUS_FAILED_MISSING)
 		return true;
 
 	return !remove;
@@ -136,15 +139,9 @@ string AutoSearch::getDisplayType() const {
 	return SearchManager::isDefaultTypeStr(fileType) ? SearchManager::getTypeStr(fileType[0]-'0') : fileType;
 }
 
-void AutoSearch::addBundle(const string& aToken) { 
-	bundles[aToken] = STATUS_QUEUED_OK; 
-}
-
 void AutoSearch::setBundleStatus(const string& aToken, Status aStatus) {
-	auto p = bundles.find(aToken);
-	dcassert(p != bundles.end());
-	if (p != bundles.end())
-		p->second = aStatus;
+	bundles[aToken] = aStatus;
+	updateStatus();
 }
 
 void AutoSearch::removeBundle(const string& aToken) { 
@@ -160,21 +157,23 @@ bool AutoSearch::usingIncrementation() const {
 }
 
 string AutoSearch::getSearchingStatus() const {
-	if (!enabled) {
-		return manualSearch ? STRING(MATCHING_MANUAL) : STRING(DISABLED);
+	if (status == STATUS_DISABLED) {
+		return STRING(DISABLED);
+	} else if (status == STATUS_MANUAL) {
+		return STRING(MATCHING_MANUAL);
+	} else if (status == STATUS_QUEUED_OK) {
+		return STRING(INACTIVE_QUEUED);
+	} else if (status == STATUS_FAILED_MISSING) {
+		return STRING_F(BUNDLE_X_FILES_MISSING, STRING(ACTIVE));
+	} else if (status == STATUS_WAITING) {
+		auto time = GET_TIME();
+		if (nextSearchChange > time) {
+			auto timeStr = Util::formatTime(nextSearchChange - time, true, true);
+			return nextIsDisable ? STRING_F(ACTIVE_FOR, timeStr) : STRING_F(WAITING_LEFT, timeStr);
+		}
 	}
 
-	if (!allowNewItems()) {
-		return STRING(INACTIVE_QUEUED);
-	} 
-	
-	auto time = GET_TIME();
-	if (nextSearchChange > time) {
-		auto timeStr = Util::formatTime(nextSearchChange - time, true, true);
-		return nextIsDisable ? STRING_F(ACTIVE_FOR, timeStr) : STRING_F(WAITING_LEFT, timeStr);
-	} else {
-		return STRING(ACTIVE);
-	}
+	return STRING(ACTIVE);
 }
 
 string AutoSearch::getExpiration() const {
@@ -189,19 +188,23 @@ string AutoSearch::getExpiration() const {
 	}
 }
 
-AutoSearch::Status AutoSearchManager::getStatus(const AutoSearchPtr as) const {
-	if (!as->getEnabled())
-		return as->getManualSearch() ? AutoSearch::STATUS_MANUAL : AutoSearch::STATUS_DISABLED;
+void AutoSearch::updateStatus() {
+	if (!enabled) {
+		status = manualSearch ? AutoSearch::STATUS_MANUAL : AutoSearch::STATUS_DISABLED;
+		return;
+	}
 
-	if (as->nextAllowedSearch() > GET_TIME())
-		return AutoSearch::STATUS_WAITING;
+	if (nextAllowedSearch() > GET_TIME()) {
+		status = AutoSearch::STATUS_WAITING;
+		return;
+	}
 
+	if (bundles.empty()) {
+		status = AutoSearch::STATUS_SEARCHING;
+		return;
+	}
 
-	RLock l (cs);
-	if (as->getBundles().empty())
-		return AutoSearch::STATUS_SEARCHING;
-
-	return *boost::max_element(as->getBundles() | map_values);
+	status = *boost::max_element(bundles | map_values);
 }
 
 time_t AutoSearch::nextAllowedSearch() {
@@ -267,6 +270,7 @@ bool AutoSearch::updateSearchTime() {
 		tm td_tm = to_tm(nextSearch);
 		time_t next = mktime(&td_tm);
 		if (next != nextSearchChange) {
+			updateStatus();
 			nextSearchChange = next;
 		}
 
@@ -333,6 +337,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
 	aAutoSearch->updatePattern();
 	aAutoSearch->updateSearchTime();
+	aAutoSearch->updateStatus();
 
 	{
 		WLock l(cs);
@@ -358,6 +363,7 @@ void AutoSearchManager::setActiveItem(unsigned int index, bool active) {
 bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr ipw) {
 	ipw->updatePattern();
 	ipw->updateSearchTime();
+	ipw->updateStatus();
 
 	WLock l(cs);
 	if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
@@ -460,7 +466,7 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 		if (finishedCount > 0) {
 			if (bundleCount > 0)
 				statusString += ", ";
-			statusString += statusString += STRING_F(X_FINISHED_BUNDLES, finishedCount);
+			statusString += STRING_F(X_FINISHED_BUNDLES, finishedCount);
 		}
 	}
 	return statusString;
@@ -468,46 +474,58 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 
 
 /* Bundle updates */
-void AutoSearchManager::onAddBundle(const BundlePtr aBundle) {
-	if (aBundle->getAutoSearch() == 0)
-		return;
-
-	auto as = getSearchByToken(aBundle->getAutoSearch());
-	if (as) {
-		{
-			WLock l (cs);
-			as->addBundle(aBundle->getToken());
-		}
-
-		fire(AutoSearchManagerListener::UpdateItem(), as, true);
-	}
-}
-
-void AutoSearchManager::onRemoveBundle(const BundlePtr aBundle, bool finished) {
-	if (aBundle->getAutoSearch() == 0)
-		return;
-
-	auto as = getSearchByToken(aBundle->getAutoSearch());
-	if (as) {
-		{
-			WLock l (cs);
-			as->removeBundle(aBundle->getToken());
-			if (finished && !as->getRemove()) {
-				dirty = true;
-				as->addPath(aBundle->getTarget());
-				as->increaseNumber();
+void AutoSearchManager::onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus) {
+	for(auto i = aSearches.begin(); i != aSearches.end(); ++i) {
+		auto as = getSearchByToken(*i);
+		if (as) {
+			{
+				WLock l (cs);
+				as->setBundleStatus(aBundle->getToken(), aStatus);
 			}
-		}
 
-		if ((as->getRemove() || (as->getUseParams() && as->getCurNumber() > as->getMaxNumber() && as->getMaxNumber() > 0)) && finished) {
-			removeAutoSearch(as);
-		} else {
 			fire(AutoSearchManagerListener::UpdateItem(), as, true);
 		}
 	}
+
+	if (aStatus == AutoSearch::STATUS_FAILED_MISSING) {
+		uint64_t time = SearchManager::getInstance()->search(aBundle->getName(), 0, SearchManager::TYPE_DIRECTORY, SearchManager::SIZE_DONTCARE, "asfail", Search::AUTO_SEARCH);
+		if (time == 0) {
+			logMessage(STRING_F(FAILED_BUNDLE_SEARCHED, aBundle->getName()), false);
+		} else {
+			logMessage(STRING_F(FAILED_BUNDLE_SEARCHED_IN, aBundle->getName() % (time / 1000)), false);
+		}
+	}
 }
 
-void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissing, bool noExtras) {
+void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet& aSearches, bool finished) {
+	for(auto i = aSearches.begin(); i != aSearches.end(); ++i) {
+		auto as = getSearchByToken(*i);
+		if (as) {
+			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() > as->getMaxNumber() && as->getMaxNumber() > 0)) && finished;
+			{
+				WLock l (cs);
+				as->removeBundle(aBundle->getToken());
+				if (!as->getBundles().empty())
+					removeAs = false;
+
+				if (!removeAs) {
+					dirty = true;
+					as->addPath(aBundle->getTarget());
+					as->increaseNumber();
+					as->updateStatus();
+				}
+			}
+
+			if (removeAs) {
+				removeAutoSearch(as);
+			} else {
+				fire(AutoSearchManagerListener::UpdateItem(), as, true);
+			}
+		}
+	}
+}
+
+/*void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissing, bool noExtras) {
 	if (aBundle->getAutoSearch() == 0)
 		return;
 
@@ -518,7 +536,7 @@ void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissi
 		if (!noMissing && noExtras)
 			searchItem(as, TYPE_NORMAL);
 	}
-}
+}*/
 
 
 /* Item searching */
@@ -542,8 +560,10 @@ void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, Searc
 		as->updatePattern();
 	}
 	as->setLastSearch(GET_TIME());
-	if (aType == TYPE_MANUAL)
+	if (aType == TYPE_MANUAL && !as->getEnabled()) {
 		as->setManualSearch(true);
+		as->setStatus(AutoSearch::STATUS_MANUAL);
+	}
 	fire(AutoSearchManagerListener::UpdateItem(), as, false);
 
 
@@ -720,6 +740,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				continue;
 			
 			as->setManualSearch(false);
+			as->updateStatus();
 
 			//match
 			if (as->getFileType() == SEARCH_TYPE_TTH) {

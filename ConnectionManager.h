@@ -239,9 +239,8 @@ private:
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser) noexcept { onUserUpdated(aUser.getUser()); }
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser) noexcept { onUserUpdated(aUser); }
-	void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept { onUserUpdated(aUser.getUser()); }
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept { onUserUpdated(aUser.getUser()); }
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept { onUserUpdated(aUser); }
 
 	void onUserUpdated(const UserPtr& aUser);
 };

@@ -343,7 +343,9 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 	/* No release files at all? */
 	if (!fileList.empty() && ((nfoFiles + sfvFiles) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
-		if (!regex_match(dirName, emptyDirReg)) {
+		if (sfvFiles > 0) {
+			// continue so we can report the missing files...
+		} else if (!regex_match(dirName, emptyDirReg)) {
 			StringList folderList = findFiles(path, "*", true, true);
 			if (folderList.empty()) {
 				reportMessage(STRING(RELEASE_FILES_MISSING) + " " + path, st);
@@ -596,7 +598,7 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 	}
 }
 
-bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
+void ShareScannerManager::scanBundle(BundlePtr aBundle, bool& hasMissing, bool& hasExtras) noexcept {
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
 		ScanType st = aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? TYPE_FAILED_FINISHED : TYPE_FINISHED;
 		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0;
@@ -606,18 +608,9 @@ bool ShareScannerManager::scanBundle(BundlePtr aBundle) noexcept {
 
 		reportResults(aBundle->getName(), st, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
 
-		bool noMissing = (missingFiles == 0 && missingNFO == 0 && missingSFV == 0);
-		bool noExtras = extrasFound == 0;
-
-		if (noMissing && noExtras && aBundle->isSet(Bundle::FLAG_SHARING_FAILED)) {
-			AutoSearchManager::getInstance()->onRemoveBundle(aBundle, true);
-		} else if (!noMissing || !noExtras) {
-			AutoSearchManager::getInstance()->onBundleScanFailed(aBundle, noMissing, noExtras);
-		}
-
-		return noExtras && noMissing; //allow choosing the level when it shouldn't be added?
+		hasMissing = (missingFiles > 0 || missingNFO > 0 || missingSFV > 0);
+		hasExtras = extrasFound > 0;
 	}
-	return true;
 }
 
 void ShareScannerManager::reportMessage(const string& aMessage, ScanType scanType, bool warning /*true*/) {

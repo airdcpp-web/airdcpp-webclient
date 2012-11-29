@@ -118,6 +118,7 @@ public:
 	GETSET(ProfileToken, token, Token);
 	GETSET(BundleStatusMap, bundles, Bundles);
 	GETSET(OrderedStringSet, finishedPaths, FinishedPaths);
+	GETSET(Status, status, Status);
 
 	GETSET(int, curNumber, CurNumber);
 	GETSET(int, maxNumber, MaxNumber);
@@ -140,8 +141,8 @@ public:
 	void updatePattern();
 	void increaseNumber();
 	bool updateSearchTime();
+	void updateStatus();
 
-	void addBundle(const string& aToken);
 	void removeBundle(const string& aToken);
 	void setBundleStatus(const string& aToken, Status aStatus);
 	void addPath(const string& aPath);
@@ -166,8 +167,6 @@ public:
 
 	AutoSearchManager();
 	~AutoSearchManager();
-
-	AutoSearch::Status getStatus(const AutoSearchPtr as) const;
 
 	bool addAutoSearch(AutoSearchPtr aAutoSearch);
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
@@ -240,9 +239,8 @@ private:
 
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
-	void onAddBundle(const BundlePtr aBundle);
-	void onRemoveBundle(const BundlePtr aBundle, bool finished);
-	void onBundleScanFailed(const BundlePtr aBundle, bool noMissing, bool noExtras);
+	void onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus);
+	void onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet& aSearches, bool finished);
 };
 }
 #endif

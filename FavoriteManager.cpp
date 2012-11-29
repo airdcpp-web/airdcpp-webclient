@@ -778,16 +778,6 @@ void FavoriteManager::load(SimpleXML& aXml) {
 	if(needSave)
 		save();
 }
-
-void FavoriteManager::userUpdated(const OnlineUser& info) {
-	Lock l(cs);
-	auto i = users.find(info.getUser()->getCID());
-	if(i != users.end()) {
-		FavoriteUser& fu = i->second;
-		fu.update(info);
-		save();
-	}
-}
 	
 FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const {
 	FavoriteHubEntryList ret;
@@ -1079,25 +1069,24 @@ void FavoriteManager::on(Retried, HttpConnection*, const bool Connected) noexcep
 		downloadBuf = Util::emptyString;
 }
 
-void FavoriteManager::on(UserUpdated, const OnlineUser& user) noexcept {
-	userUpdated(user);
-}
-void FavoriteManager::on(UserDisconnected, const UserPtr& user) noexcept {
+void FavoriteManager::on(UserDisconnected, const UserPtr& user, bool wentOffline) noexcept {
 	bool isFav = false;
 	{
 		Lock l(cs);
 		auto i = users.find(user->getCID());
 		if(i != users.end()) {
 			isFav = true;
-			i->second.setLastSeen(GET_TIME());
-			save();
+			if (wentOffline) {
+				i->second.setLastSeen(GET_TIME());
+			}
 		}
 	}
+
 	if(isFav)
 		fire(FavoriteManagerListener::StatusChanged(), user);
 }
 
-void FavoriteManager::on(UserConnected, const OnlineUser& aUser) noexcept {
+void FavoriteManager::on(UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept {
 	bool isFav = false;
 	UserPtr user = aUser.getUser();
 	{

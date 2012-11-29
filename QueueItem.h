@@ -40,7 +40,7 @@ public:
 	typedef boost::unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 	typedef unordered_multimap<TTHValue*, QueueItemPtr> TTHMap;
 	typedef boost::unordered_multimap<string, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMultiMap;
-	typedef vector<pair<string, QueueItemPtr>> StringList;
+	typedef vector<pair<string, QueueItemPtr>> StringItemList;
 
 	enum Priority {
 		DEFAULT = -1,
@@ -177,6 +177,7 @@ public:
 		GETSET(string, remotePath, RemotePath);
 		//GETSET(set<string>, blockedHubs, BlockedHubs);
 		HubSet blockedHubs;
+		bool updateHubUrl(const HubSet& onlineHubs, string& hubUrl, bool isFileList);
 	};
 
 	typedef vector<Source> SourceList;
@@ -303,7 +304,7 @@ private:
 
 	void addSource(const HintedUser& aUser, const string& aRemotePath=Util::emptyString);
 	void blockSourceHub(const HintedUser& aUser);
-	bool isHubBlocked(const HintedUser& aUser);
+	bool isHubBlocked(const UserPtr& aUser, const string& aUrl);
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason);
 	uint8_t getMaxSegments(int64_t filesize) const noexcept;
 };

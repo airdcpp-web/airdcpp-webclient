@@ -1589,5 +1589,7 @@ enum Strings { // @DontAdd
 	BUNDLE_X_QUEUED, // "%s (queued)"
 	BUNDLE_X_FILES_MISSING, // "%s (missing files)"
 	BUNDLE_X_EXTRA_FILES, // "%s (extra files)"
+	FAILED_BUNDLE_SEARCHED, // "A failed bundle %s has been searched for"
+	FAILED_BUNDLE_SEARCHED_IN, // "A failed bundle %s will be searched for in %d seconds"
 	LAST // @DontAdd
 };
