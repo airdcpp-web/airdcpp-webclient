@@ -725,8 +725,8 @@ SettingsManager::SettingsManager()
 	setDefault(POPUNDER_TEXT, false);
 	setDefault(FULL_LIST_DL_LIMIT, 30000);
 	setDefault(SEARCH_SAVE_HUBS_STATE, false);
-	setDefault(CONFIRM_HUB_EXIT, false);
-	setDefault(CONFIRM_AS_REMOVE, false);
+	setDefault(CONFIRM_HUB_EXIT, true);
+	setDefault(CONFIRM_AS_REMOVE, true);
 	setDefault(ENABLE_SUDP, false);
 	setDefault(NMDC_MAGNET_WARN, true);
 #ifdef _WIN64

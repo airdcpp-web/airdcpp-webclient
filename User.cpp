@@ -290,10 +290,6 @@ uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 	{
 		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
 	}
-	/*
-	if(identity.getUser()->isSet(User::AIRDCPLUSPLUS)) {
-		image += 1 << (USER_ICON_AIRDC - USER_ICON_MOD_START);
-	}*/
 
 	if(identity.isOp()) {
 		image += 1 << (USER_ICON_OP - USER_ICON_MOD_START);
