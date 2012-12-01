@@ -70,6 +70,10 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	userMatcher.setMethod(StringMatch::WILDCARD);
 	userMatcher.pattern = aUserMatch;
 	userMatcher.prepare();
+
+	startTime = SearchTime();
+	endTime = SearchTime(true);
+	searchDays = bitset<7>("1111111");
 };
 
 AutoSearch::~AutoSearch() { };
@@ -139,13 +143,13 @@ string AutoSearch::getDisplayType() const {
 	return SearchManager::isDefaultTypeStr(fileType) ? SearchManager::getTypeStr(fileType[0]-'0') : fileType;
 }
 
-void AutoSearch::setBundleStatus(const string& aToken, Status aStatus) {
-	bundles[aToken] = aStatus;
+void AutoSearch::setBundleStatus(BundlePtr aBundle, Status aStatus) {
+	bundles[aBundle] = aStatus;
 	updateStatus();
 }
 
-void AutoSearch::removeBundle(const string& aToken) { 
-	bundles.erase(aToken);
+void AutoSearch::removeBundle(BundlePtr aBundle) { 
+	bundles.erase(aBundle);
 }
 
 void AutoSearch::addPath(const string& aPath) { 
@@ -304,7 +308,6 @@ void AutoSearchManager::logMessage(const string& aMsg, bool error) {
 	LogManager::getInstance()->message(STRING(AUTO_SEARCH_SMALL) + ": " +  aMsg, error ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
-
 /* Adding new items for external use */
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove/*true*/) {
 	if (ss.length() <= 5) {
@@ -315,26 +318,12 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
 		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false);
 
-	as->startTime = SearchTime();
-	as->endTime = SearchTime(true);
-	as->searchDays = bitset<7>("1111111");
-
-	if (addAutoSearch(as)) {
-		if (!searchItem(as, TYPE_NEW)) {
-			//no hubs
-			logMessage(CSTRING_F(AUTOSEARCH_ADDED, ss), false);
-		}
-
-		return as;
-	} else {
-		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(ITEM_NAME_EXISTS)), true);
-		return nullptr;
-	}
+	return addAutoSearch(as, true) ? as : nullptr;
 }
 
 
 /* List changes */
-bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
+bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 	aAutoSearch->updatePattern();
 	aAutoSearch->updateSearchTime();
 	aAutoSearch->updateStatus();
@@ -342,11 +331,19 @@ bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch) {
 	{
 		WLock l(cs);
 		if (find_if(searchItems,
-			[aAutoSearch](AutoSearchPtr as)  { return as->getSearchString() == aAutoSearch->getSearchString(); }) != searchItems.end()) return false;
+			[aAutoSearch](AutoSearchPtr as)  { return as->getSearchString() == aAutoSearch->getSearchString(); }) != searchItems.end()) { 
+				logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aAutoSearch->getSearchString() % STRING(ITEM_NAME_EXISTS)), true);
+		};
 		searchItems.push_back(aAutoSearch);
 	}
+
 	dirty = true;
 	fire(AutoSearchManagerListener::AddItem(), aAutoSearch);
+	if (search && !searchItem(aAutoSearch, TYPE_NEW)) {
+		//no hubs
+		logMessage(CSTRING_F(AUTOSEARCH_ADDED, aAutoSearch->getSearchString()), false);
+	}
+
 	return true;
 }
 
@@ -405,20 +402,12 @@ AutoSearchPtr AutoSearchManager::getSearchByToken(ProfileToken aToken) const {
 
 
 /* GUI things */
-void AutoSearchManager::getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusList& bundleInfo, OrderedStringSet& finishedPaths) const {
-	AutoSearch::BundleStatusMap bundles;
-
+void AutoSearchManager::getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, OrderedStringSet& finishedPaths) const {
 	{
 		RLock l(cs);
 		finishedPaths = as->getFinishedPaths();
-		bundles = as->getBundles();
+		bundleInfo = as->getBundles();
 	}
-
-	for_each(as->getBundles(), [&bundleInfo](const pair<string, AutoSearch::Status> bsp) {
-		auto b = QueueManager::getInstance()->getBundle(bsp.first);
-		if (b)
-			bundleInfo.push_back(make_pair(b, bsp.second)); 
-	});
 }
 
 void AutoSearchManager::clearPaths(AutoSearchPtr as) {
@@ -445,18 +434,12 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 		if (bundleCount > 0) {
 			if (bundleCount == 1) {
 				auto bsp = *as->getBundles().begin();
-				auto b = QueueManager::getInstance()->getBundle(bsp.first);
-				if (b) {
-					if (bsp.second == AutoSearch::STATUS_QUEUED_OK) {
-						statusString += STRING_F(BUNDLE_X_QUEUED, b->getName());
-					} else if (bsp.second == AutoSearch::STATUS_FAILED_MISSING) {
-						statusString += STRING_F(BUNDLE_X_FILES_MISSING, b->getName());
-					} else if (bsp.second == AutoSearch::STATUS_FAILED_EXTRAS) {
-						statusString += STRING_F(BUNDLE_X_EXTRA_FILES, b->getName());
-					}
-				} else {
-					dcassert(0);
-					bundleCount = 0;
+				if (bsp.second == AutoSearch::STATUS_QUEUED_OK) {
+					statusString += STRING_F(BUNDLE_X_QUEUED, bsp.first->getName());
+				} else if (bsp.second == AutoSearch::STATUS_FAILED_MISSING) {
+					statusString += STRING_F(BUNDLE_X_FILES_MISSING, bsp.first->getName());
+				} else if (bsp.second == AutoSearch::STATUS_FAILED_EXTRAS) {
+					statusString += STRING_F(BUNDLE_X_EXTRA_FILES, bsp.first->getName());
 				}
 			} else {
 				statusString += STRING_F(X_BUNDLES_QUEUED, bundleCount);
@@ -474,27 +457,22 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 
 
 /* Bundle updates */
-void AutoSearchManager::onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus) {
+bool AutoSearchManager::onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus) {
+	bool found = false;
 	for(auto i = aSearches.begin(); i != aSearches.end(); ++i) {
 		auto as = getSearchByToken(*i);
 		if (as) {
+			found = true;
 			{
 				WLock l (cs);
-				as->setBundleStatus(aBundle->getToken(), aStatus);
+				as->setBundleStatus(aBundle, aStatus);
 			}
 
 			fire(AutoSearchManagerListener::UpdateItem(), as, true);
 		}
 	}
 
-	if (aStatus == AutoSearch::STATUS_FAILED_MISSING) {
-		uint64_t time = SearchManager::getInstance()->search(aBundle->getName(), 0, SearchManager::TYPE_DIRECTORY, SearchManager::SIZE_DONTCARE, "asfail", Search::AUTO_SEARCH);
-		if (time == 0) {
-			logMessage(STRING_F(FAILED_BUNDLE_SEARCHED, aBundle->getName()), false);
-		} else {
-			logMessage(STRING_F(FAILED_BUNDLE_SEARCHED_IN, aBundle->getName() % (time / 1000)), false);
-		}
-	}
+	return found;
 }
 
 void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet& aSearches, bool finished) {
@@ -504,7 +482,7 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() > as->getMaxNumber() && as->getMaxNumber() > 0)) && finished;
 			{
 				WLock l (cs);
-				as->removeBundle(aBundle->getToken());
+				as->removeBundle(aBundle);
 				if (!as->getBundles().empty())
 					removeAs = false;
 
@@ -525,19 +503,12 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 	}
 }
 
-/*void AutoSearchManager::onBundleScanFailed(const BundlePtr aBundle, bool noMissing, bool noExtras) {
-	if (aBundle->getAutoSearch() == 0)
-		return;
-
-	auto as = getSearchByToken(aBundle->getAutoSearch());
-	if (as) {
-		as->setBundleStatus(aBundle->getToken(), !noMissing && noExtras ? AutoSearch::STATUS_FAILED_MISSING : AutoSearch::STATUS_FAILED_EXTRAS);
-		fire(AutoSearchManagerListener::UpdateItem(), as, true);
-		if (!noMissing && noExtras)
-			searchItem(as, TYPE_NORMAL);
-	}
-}*/
-
+bool AutoSearchManager::addFailedBundle(BundlePtr aBundle, ProfileToken aToken) {
+	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, aToken);
+	as->setBundleStatus(aBundle, AutoSearch::STATUS_FAILED_MISSING);
+	return addAutoSearch(as, true);
+}
 
 /* Item searching */
 void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, SearchType aType) {
@@ -992,7 +963,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.stepOut();
 			}
 
-			addAutoSearch(as);
+			addAutoSearch(as, false);
 			aXml.stepOut();
 		}
 		aXml.stepOut();

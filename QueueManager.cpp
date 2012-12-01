@@ -2633,13 +2633,30 @@ void QueueManager::onBundleStatusChanged(BundlePtr aBundle, AutoSearch::Status a
 
 	{
 		RLock l(cs);
-		if (aBundle->getAutoSearches().empty())
-			return;
-
 		searches = aBundle->getAutoSearches();
 	}
 
-	AutoSearchManager::getInstance()->onBundleStatus(aBundle, searches, aStatus);
+	auto found = AutoSearchManager::getInstance()->onBundleStatus(aBundle, searches, aStatus);
+
+	if (aStatus == AutoSearch::STATUS_FAILED_MISSING) {
+		if (!found && BOOLSETTING(AUTO_COMPLETE_BUNDLES)) {
+			auto token = Util::randInt(10);
+
+			{
+				WLock l(cs);
+				aBundle->addAutoSearch(token);
+			}
+
+			AutoSearchManager::getInstance()->addFailedBundle(aBundle, token); 
+		} else if (found) {
+			uint64_t time = SearchManager::getInstance()->search(aBundle->getName(), 0, SearchManager::TYPE_DIRECTORY, SearchManager::SIZE_DONTCARE, "asfail", Search::AUTO_SEARCH);
+			if (time == 0) {
+				LogManager::getInstance()->message(STRING_F(FAILED_BUNDLE_SEARCHED, aBundle->getName()), LogManager::LOG_INFO);
+			} else {
+				LogManager::getInstance()->message(STRING_F(FAILED_BUNDLE_SEARCHED_IN, aBundle->getName() % (time / 1000)), LogManager::LOG_INFO);
+			}
+		}
+	}
 }
 
 void QueueManager::onBundleRemoved(BundlePtr aBundle, bool finished) {
@@ -2877,8 +2894,8 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 				bundleQueue.addFinishedItem(q, aBundle);
 				j = b->getFinishedFiles().begin();
 			}
+			moveBundleItems(b, aBundle, false);
 		}
-		moveBundleItems(b, aBundle, false);
 	});
 
 	aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
@@ -3144,6 +3161,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	}
 
 	if (newBundle != sourceBundle) {
+		WLock l(cs);
 		moveBundleItems(ql, tempBundle, false);
 	}
 
@@ -3300,19 +3318,20 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 
 		if (targetBundle) {
 			bool finished = false;
-			{
+			//are we moving items inside the same bundle?
+			if (targetBundle == sourceBundle) {
 				RLock l(cs);
-				//are we moving items inside the same bundle?
-				if (targetBundle == sourceBundle) {
-					if (!sourceBundle->getQueueItems().empty())
-						fire(QueueManagerListener::BundleAdded(), sourceBundle);
-					return;
-				}
-
-				finished = targetBundle->isFinished();
+				if (!sourceBundle->getQueueItems().empty())
+					fire(QueueManagerListener::BundleAdded(), sourceBundle);
+				return;
 			}
 
-			moveBundleItems(ql, targetBundle, !finished);
+			{
+				WLock l(cs);
+				finished = targetBundle->isFinished();
+				moveBundleItems(ql, targetBundle, !finished);
+			}
+
 			if (finished) {
 				readdBundle(targetBundle);
 

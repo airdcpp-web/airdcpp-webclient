@@ -96,8 +96,7 @@ public:
 		bool aCheckAlreadyShared, bool matchFullPath, ProfileToken aToken = 0) noexcept;
 
 	~AutoSearch();
-	typedef map<string, Status> BundleStatusMap;
-	typedef vector<pair<BundlePtr, Status>> BundleStatusList;
+	typedef map<BundlePtr, Status> BundleStatusMap;
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
@@ -143,8 +142,8 @@ public:
 	bool updateSearchTime();
 	void updateStatus();
 
-	void removeBundle(const string& aToken);
-	void setBundleStatus(const string& aToken, Status aStatus);
+	void removeBundle(BundlePtr aBundle);
+	void setBundleStatus(BundlePtr aBundle, Status aStatus);
 	void addPath(const string& aPath);
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;
@@ -168,7 +167,8 @@ public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
-	bool addAutoSearch(AutoSearchPtr aAutoSearch);
+	bool addFailedBundle(BundlePtr aBundle, ProfileToken aToken);
+	bool addAutoSearch(AutoSearchPtr aAutoSearch, bool search);
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
 	AutoSearchPtr getSearchByIndex(unsigned int index) const;
 	AutoSearchPtr getSearchByToken(ProfileToken aToken) const;
@@ -176,7 +176,7 @@ public:
 	string getBundleStatuses(const AutoSearchPtr as) const;
 	void clearPaths(AutoSearchPtr as);
 
-	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusList& bundleInfo, OrderedStringSet& finishedPaths) const;
+	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, OrderedStringSet& finishedPaths) const;
 	bool updateAutoSearch(unsigned int index, AutoSearchPtr ipw);
 	void removeAutoSearch(AutoSearchPtr a);
 	bool searchItem(AutoSearchPtr as, SearchType aType);
@@ -239,7 +239,7 @@ private:
 
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
-	void onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus);
+	bool onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus);
 	void onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet& aSearches, bool finished);
 };
 }

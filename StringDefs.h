@@ -1593,5 +1593,6 @@ enum Strings { // @DontAdd
 	FAILED_BUNDLE_SEARCHED_IN, // "A failed bundle %s will be searched for in %d seconds"
 	AWAY_ON, // "Away mode ON - Click to adjust"
 	AWAY_OFF, // "Away mode OFF - Click to adjust"
+	SETTINGS_AUTO_COMPLETE_BUNDLES, // "Try to to complete bundles with missing files automatically"
 	LAST // @DontAdd
 };

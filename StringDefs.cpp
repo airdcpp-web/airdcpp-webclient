@@ -1586,6 +1586,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "A failed bundle %s will be searched for in %d seconds", 
 "Away mode ON - Click to adjust", 
 "Away mode OFF - Click to adjust", 
+"Try to to complete bundles with missing files automatically", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3172,4 +3173,5 @@ std::string dcpp::ResourceManager::names[] = {
 "FailedBundleSearchedIn", 
 "AwayOn", 
 "AwayOff", 
+"SettingsAutoCompleteBundles", 
 };
