@@ -283,10 +283,11 @@ const string& OnlineUser::getHubUrl() const {
 
 uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 
-	uint8_t image = identity.isBot() ? USER_ICON_BOT : identity.isAway() ? USER_ICON_AWAY : USER_ICON;
+	bool bot = identity.isBot() && !identity.getUser()->isSet(User::NMDC);
+	uint8_t image = bot ? USER_ICON_BOT : identity.isAway() ? USER_ICON_AWAY : USER_ICON;
 	image *= (USER_ICON_LAST - USER_ICON_MOD_START) * (USER_ICON_LAST - USER_ICON_MOD_START);
 
-	if(!identity.isBot() && !identity.isTcpActive(c))
+	if(!bot && !identity.isTcpActive(c))
 	{
 		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
 	}

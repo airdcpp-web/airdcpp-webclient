@@ -1584,6 +1584,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "%s (extra files)", 
 "A failed bundle %s has been searched for", 
 "A failed bundle %s will be searched for in %d seconds", 
+"Away mode ON - Click to adjust", 
+"Away mode OFF - Click to adjust", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3168,4 +3170,6 @@ std::string dcpp::ResourceManager::names[] = {
 "BundleXExtraFiles", 
 "FailedBundleSearched", 
 "FailedBundleSearchedIn", 
+"AwayOn", 
+"AwayOff", 
 };
