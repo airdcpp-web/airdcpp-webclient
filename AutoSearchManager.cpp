@@ -333,6 +333,7 @@ bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 		if (find_if(searchItems,
 			[aAutoSearch](AutoSearchPtr as)  { return as->getSearchString() == aAutoSearch->getSearchString(); }) != searchItems.end()) { 
 				logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aAutoSearch->getSearchString() % STRING(ITEM_NAME_EXISTS)), true);
+				return false;
 		};
 		searchItems.push_back(aAutoSearch);
 	}
