@@ -542,7 +542,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, Searc
 	//Run the search
 	string searchWord = as->getUseParams() ? AutoSearch::formatParams(as, as->getSearchString()) : as->getSearchString();
 	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchWord, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, 
-		"as", extList, aType == TYPE_MANUAL ? Search::MANUAL : Search::AUTO_SEARCH);
+		"as", extList, StringList(), aType == TYPE_MANUAL ? Search::MANUAL : Search::AUTO_SEARCH);
 
 
 	//Report

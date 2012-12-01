@@ -901,7 +901,7 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 		return;
 
 	AdcCommand c(AdcCommand::CMD_DSC, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
-	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, true);
+	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, StringList(), true);
 	if (!aDir.empty()) {
 		c.addParam("PA", aDir);
 	}
@@ -910,7 +910,7 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 	send(c);
 }
 
-void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, bool isDirect) {
+void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, bool isDirect) {
 	if(!aToken.empty())
 		c.addParam("TO", aToken);
 
@@ -928,8 +928,12 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 		}
 
 		StringTokenizer<string> st(aString, ' ');
-		for(StringIter i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
+		for(auto i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
 			c.addParam("AN", *i);
+		}
+
+		for(auto i = excluded.begin(); i != excluded.end(); ++i) {
+			c.addParam("EX", *i);
 		}
 
 		if(aFileType == SearchManager::TYPE_DIRECTORY) {
@@ -1025,7 +1029,7 @@ void AdcHub::search(Search* s) {
 
 	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
 
-	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, s->token, s->exts, false);
+	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, s->token, s->exts, s->excluded, false);
 
 	if (!s->key.empty()) {
 		c.addParam("KY", s->key);

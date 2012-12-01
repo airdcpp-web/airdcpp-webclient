@@ -1587,6 +1587,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Away mode ON - Click to adjust", 
 "Away mode OFF - Click to adjust", 
 "Try to to complete bundles with missing files automatically", 
+"Require an exact match", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3174,4 +3175,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AwayOn", 
 "AwayOff", 
 "SettingsAutoCompleteBundles", 
+"RequireExactMatch", 
 };

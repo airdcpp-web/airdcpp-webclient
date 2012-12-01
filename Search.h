@@ -42,6 +42,7 @@ struct Search {
 	string		query;
 	string		token;
 	StringList	exts;
+	StringList	excluded;
 	set<void*>	owners;
 	searchType	type;
 	string		key;

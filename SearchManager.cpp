@@ -87,10 +87,10 @@ string SearchManager::normalizeWhitespace(const string& aString){
 uint64_t SearchManager::search(const string& aName, int64_t aSize, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, Search::searchType sType) {
 	StringList who;
 	ClientManager::getInstance()->getOnlineClients(who);
-	return search(who, aName, aSize, aTypeMode, aSizeMode, aToken, StringList(), sType);
+	return search(who, aName, aSize, aTypeMode, aSizeMode, aToken, StringList(), StringList(), sType);
 }
 
-uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize, TypeModes aFileType, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, 
+uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize, TypeModes aFileType, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, const StringList& aExcluded,
 	Search::searchType sType, void* aOwner /* NULL */) {
 
 	StringPairList tokenHubList;
@@ -123,6 +123,7 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 		s->token    = sp.first;
 		s->exts	    = aExtList;
 		s->type		= sType;
+		s->excluded = aExcluded;
 
 		s->owners.insert(aOwner);
 

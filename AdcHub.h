@@ -46,7 +46,7 @@ public:
 	void info(bool alwaysSend);
 	void refreshUserList(bool);	
 
-	void constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, bool isDirect);
+	void constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, bool isDirect);
 
 	size_t getUserCount() const { RLock l(cs); return users.size(); }
 

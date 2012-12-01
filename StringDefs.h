@@ -1594,5 +1594,6 @@ enum Strings { // @DontAdd
 	AWAY_ON, // "Away mode ON - Click to adjust"
 	AWAY_OFF, // "Away mode OFF - Click to adjust"
 	SETTINGS_AUTO_COMPLETE_BUNDLES, // "Try to to complete bundles with missing files automatically"
+	REQUIRE_EXACT_MATCH, // "Require an exact match"
 	LAST // @DontAdd
 };
