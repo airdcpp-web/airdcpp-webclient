@@ -165,15 +165,19 @@ string AutoSearch::getSearchingStatus() const {
 		return STRING(DISABLED);
 	} else if (status == STATUS_MANUAL) {
 		return STRING(MATCHING_MANUAL);
-	} else if (status == STATUS_QUEUED_OK) {
-		return STRING(INACTIVE_QUEUED);
-	} else if (status == STATUS_FAILED_MISSING) {
-		return STRING_F(BUNDLE_X_FILES_MISSING, STRING(ACTIVE));
 	} else if (status == STATUS_WAITING) {
 		auto time = GET_TIME();
 		if (nextSearchChange > time) {
 			auto timeStr = Util::formatTime(nextSearchChange - time, true, true);
 			return nextIsDisable ? STRING_F(ACTIVE_FOR, timeStr) : STRING_F(WAITING_LEFT, timeStr);
+		}
+	} else if (remove) {
+		if (status == STATUS_QUEUED_OK) {
+			return STRING(INACTIVE_QUEUED);
+		} else if (status == STATUS_FAILED_MISSING) {
+			return STRING_F(BUNDLE_X_FILES_MISSING, STRING(ACTIVE));
+		} else if (status == STATUS_FAILED_MISSING) {
+			return STRING(INACTIVE_QUEUED);
 		}
 	}
 
@@ -316,7 +320,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
-		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false);
 
 	return addAutoSearch(as, true) ? as : nullptr;
 }
@@ -353,6 +357,7 @@ void AutoSearchManager::setActiveItem(unsigned int index, bool active) {
 	auto i = searchItems.begin() + index;
 	if(i < searchItems.end()) {
 		(*i)->setEnabled(active);
+		(*i)->updateStatus();
 		fire(AutoSearchManagerListener::UpdateItem(), *i, true);
 		dirty = true;
 	}

@@ -43,22 +43,22 @@ namespace Text {
 
 	void initialize();
 
-	const string& acpToUtf8(const string& str, string& tmp, const string& fromCharset = "") noexcept;
-	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept {
+	const string& acpToUtf8(const string& str, string& tmp) noexcept;
+	inline string acpToUtf8(const string& str) noexcept {
 		string tmp;
-		return acpToUtf8(str, tmp, fromCharset);
+		return acpToUtf8(str, tmp);
 	}
 
-	const wstring& acpToWide(const string& str, wstring& tmp, const string& fromCharset = "") noexcept;
-	inline wstring acpToWide(const string& str, const string& fromCharset = "") noexcept {
+	const wstring& acpToWide(const string& str, wstring& tmp) noexcept;
+	inline wstring acpToWide(const string& str) noexcept {
 		wstring tmp;
-		return acpToWide(str, tmp, fromCharset);
+		return acpToWide(str, tmp);
 	}
 
-	const string& utf8ToAcp(const string& str, string& tmp, const string& toCharset = "") noexcept;
-	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept {
+	const string& utf8ToAcp(const string& str, string& tmp) noexcept;
+	inline string utf8ToAcp(const string& str) noexcept {
 		string tmp;
-		return utf8ToAcp(str, tmp, toCharset);
+		return utf8ToAcp(str, tmp);
 	}
 
 	const wstring& utf8ToWide(const string& str, wstring& tmp) noexcept;
@@ -67,12 +67,12 @@ namespace Text {
 		return utf8ToWide(str, tmp);
 	}
 
-	const string& wideToAcp(const wstring& str, string& tmp, const string& toCharset = "") noexcept;
-	inline string wideToAcp(const wstring& str, const string& toCharset = "") noexcept {
+	const string& wideToAcp(const wstring& str, string& tmp) noexcept;
+	inline string wideToAcp(const wstring& str) noexcept {
 		string tmp;
-		return wideToAcp(str, tmp, toCharset);
+		return wideToAcp(str, tmp);
 	}
-	
+
 	const string& wideToUtf8(const wstring& str, string& tmp) noexcept;
 	inline string wideToUtf8(const wstring& str) noexcept {
 		string tmp;
@@ -96,27 +96,37 @@ namespace Text {
 	inline string fromT(const tstring& str) noexcept { return acpToUtf8(str); }
 #endif
 
+	inline const TStringList& toT(const StringList& lst, TStringList& tmp) noexcept {
+		//for(auto& i: lst)
+		//	tmp.push_back(toT(i));
+		for (auto i = lst.begin(); i != lst.end(); ++i)
+			tmp.push_back(toT(*i));
+		return tmp;
+	}
+
+	inline const StringList& fromT(const TStringList& lst, StringList& tmp) noexcept {
+		//for(auto& i: lst)
+		//	tmp.push_back(fromT(i));
+		for (auto i = lst.begin(); i != lst.end(); ++i)
+			tmp.push_back(fromT(*i));
+		return tmp;
+	}
+
 	inline bool isAscii(const string& str) noexcept { return isAscii(str.c_str()); }
 	bool isAscii(const char* str) noexcept;
-	
+
 	bool validateUtf8(const string& str) noexcept;
 
 	inline char asciiToLower(char c) { dcassert((((uint8_t)c) & 0x80) == 0); return (char)tolower(c); }
 
-	inline wchar_t toLower(wchar_t c) noexcept {
-#ifdef _WIN32
-		return static_cast<wchar_t>(reinterpret_cast<ptrdiff_t>(CharLowerW((LPWSTR)c)));
-#else
-		return (wchar_t)towlower(c);
-#endif
-	}
+	wchar_t toLower(wchar_t c) noexcept;
 
 	const wstring& toLower(const wstring& str, wstring& tmp) noexcept;
 	inline wstring toLower(const wstring& str) noexcept {
 		wstring tmp;
 		return toLower(str, tmp);
 	}
-	
+
 	const string& toLower(const string& str, string& tmp) noexcept;
 	inline string toLower(const string& str) noexcept {
 		string tmp;
@@ -134,41 +144,27 @@ namespace Text {
 		string tmp;
 		return toUtf8(str, fromCharset, tmp);
 	}
-	
+
 	const string& fromUtf8(const string& str, const string& toCharset, string& tmp) noexcept;
 	inline string fromUtf8(const string& str, const string& toCharset = systemCharset) noexcept {
 		string tmp;
 		return fromUtf8(str, toCharset, tmp);
 	}
 
-	inline bool checkUtf8(const string& charset, string& lowerCharset) {
-		//compare size first will hopefully avoid a few lower conversions
-		if(utf8.size() == charset.size() && (charset == utf8 || toLower(charset, lowerCharset) == utf8)) 
-			return true;
-		else
-			return false;
-	}
-
 	string toDOS(string tmp);
 	wstring toDOS(wstring tmp);
-	
-	template<typename T>
-	tstring tformat(const tstring& src, T t) {
-		tstring ret(src.size() + 64, _T('\0'));
-		int n = _sntprintf(&ret[0], ret.size(), src.c_str(), t);
-		if(n != -1 && n < static_cast<int>(ret.size())) {
-			ret.resize(n);
+
+	template<typename T, typename F>
+	inline void tokenize(const std::basic_string<T>& str, T token, F f) {
+		string::size_type i = 0;
+		string::size_type j = 0;
+		while( (i=str.find(token, j)) != string::npos ) {
+			f(str.substr(j, i-j));
+			j = i + 1;
 		}
-		return ret;
-	}
-	template<typename T, typename T2, typename T3>
-	tstring tformat(const tstring& src, T t, T2 t2, T3 t3) {
-		tstring ret(src.size() + 128, _T('\0'));
-		int n = _sntprintf(&ret[0], ret.size(), src.c_str(), t, t2, t3);
-		if(n != -1 && n < static_cast<int>(ret.size())) {
-			ret.resize(n);
-		}
-		return ret;
+		if(j < str.size())
+			f(str.substr(j));
+
 	}
 }
 

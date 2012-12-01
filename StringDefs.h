@@ -1581,7 +1581,7 @@ enum Strings { // @DontAdd
 	UPLOADED, // "Uploaded"
 	SWITCHING_TO_ADDRESS, // "Switching to an address %s"
 	X_BUNDLES_QUEUED, // "%d bundles queued"
-	X_FINISHED_BUNDLES, // "%d finished bundles"
+	X_FINISHED_BUNDLES, // "%d finished bundle(s)"
 	ACTIVE_FOR, // "Active for %s"
 	WAITING_LEFT, // "Waiting (%s left)"
 	INACTIVE_QUEUED, // "Inactive (files queued)"

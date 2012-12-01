@@ -1574,7 +1574,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Uploaded", 
 "Switching to an address %s", 
 "%d bundles queued", 
-"%d finished bundles", 
+"%d finished bundle(s)", 
 "Active for %s", 
 "Waiting (%s left)", 
 "Inactive (files queued)", 
