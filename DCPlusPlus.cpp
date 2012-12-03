@@ -103,7 +103,6 @@ void startup(function<void (const string&)> f) {
 	SettingsManager::getInstance()->load();	
 	AutoSearchManager::getInstance()->AutoSearchLoad();
 	UploadManager::getInstance()->setFreeSlotMatcher();
-
 	Localization::init();
 	if(BOOLSETTING(WIZARD_RUN_NEW)) {
 		WizardDlg dlg;
@@ -142,7 +141,6 @@ void startup(function<void (const string&)> f) {
 		announce(STRING(COUNTRY_INFORMATION));
 		GeoManager::getInstance()->init();
 	}
-
 	announce(STRING(LOADING_GUI));
 }
 
