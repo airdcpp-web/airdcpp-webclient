@@ -99,7 +99,7 @@ Bundle::~Bundle() {
 
 void Bundle::setTarget(const string& aTarget) {
 	target = Util::validateFileName(aTarget);
-	if (target[target.length()-1] != PATH_SEPARATOR)
+	if (!fileBundle && target[target.length()-1] != PATH_SEPARATOR)
 		target += PATH_SEPARATOR;
 }
 

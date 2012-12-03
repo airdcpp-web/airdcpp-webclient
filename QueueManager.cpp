@@ -2826,10 +2826,11 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 	onBundleStatusChanged(targetBundle, AutoSearch::STATUS_QUEUED_OK);
 
 	{
-		WLock l (cs);
+		RLock l (cs);
 		added = (int)sourceBundle->getQueueItems().size();
-		moveBundleItems(sourceBundle, targetBundle, true);
 	}
+
+	moveBundleItems(sourceBundle, targetBundle, true);
 	
 	if (finished) {
 		readdBundle(targetBundle);
@@ -2894,8 +2895,9 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 				bundleQueue.addFinishedItem(q, aBundle);
 				j = b->getFinishedFiles().begin();
 			}
-			moveBundleItems(b, aBundle, false);
 		}
+
+		moveBundleItems(b, aBundle, false);
 	});
 
 	aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
@@ -3006,18 +3008,19 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 	}
 }
 
-void QueueManager::moveBundle(const string& aTarget, BundlePtr sourceBundle, bool moveFinished) {
+void QueueManager::moveBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) {
 
 	string sourceBundleTarget = sourceBundle->getTarget();
 	bool hasMergeBundle = false;
 	BundlePtr newBundle = NULL;
+	auto newBundleTarget = AirUtil::convertMovePath(sourceBundle->getTarget(), aSource, aTarget);
 
 	//handle finished items
 	{
 		WLock l(cs);
 		//can we merge this with an existing bundle?
-		newBundle = bundleQueue.getMergeBundle(aTarget);	
-		if (newBundle) {
+		newBundle = bundleQueue.getMergeBundle(newBundleTarget);
+		if (newBundle && newBundle != sourceBundle) {
 			hasMergeBundle = true;
 		} else {
 			newBundle = sourceBundle;
@@ -3027,7 +3030,7 @@ void QueueManager::moveBundle(const string& aTarget, BundlePtr sourceBundle, boo
 		for (auto i = sourceBundle->getFinishedFiles().begin(); i != sourceBundle->getFinishedFiles().end();) {
 			QueueItemPtr qi = *i;
 			if (moveFinished) {
-				string targetPath = AirUtil::convertMovePath(qi->getTarget(), sourceBundle->getTarget(), aTarget);
+				string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
 				if (!fileQueue.findFile(targetPath)) {
 					if(!Util::fileExists(targetPath)) {
 						qi->unsetFlag(QueueItem::FLAG_MOVED);
@@ -3064,7 +3067,7 @@ void QueueManager::moveBundle(const string& aTarget, BundlePtr sourceBundle, boo
 
 	for (auto i = ql.begin(); i != ql.end();) {
 		QueueItemPtr qi = *i;
-		if (!move(qi, AirUtil::convertMovePath(qi->getTarget(), sourceBundle->getTarget(), aTarget))) {
+		if (!moveBundleFile(qi, AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget), false)) {
 			ql.erase(i);
 		} else {
 			++i;
@@ -3080,7 +3083,7 @@ void QueueManager::moveBundle(const string& aTarget, BundlePtr sourceBundle, boo
 		mergeBundle(newBundle, sourceBundle);
 	} else {
 		//nothing to merge to, move the old bundle
-		int merged = changeBundleTarget(sourceBundle, aTarget);
+		int merged = changeBundleTarget(sourceBundle, newBundleTarget);
 
 		{
 			RLock l(cs);
@@ -3153,7 +3156,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	//convert the QIs
 	for (auto i = ql.begin(); i != ql.end();) {
 		QueueItemPtr qi = *i;
-		if (!move(qi, AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget))) {
+		if (!moveBundleFile(qi, AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget), false)) {
 			ql.erase(i);
 		} else {
 			i++;
@@ -3161,7 +3164,6 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	}
 
 	if (newBundle != sourceBundle) {
-		WLock l(cs);
 		moveBundleItems(ql, tempBundle, false);
 	}
 
@@ -3191,10 +3193,10 @@ void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget) noex
 		RLock l(cs);
 		qi = aBundle->getQueueItems().front();
 		fire(QueueManagerListener::BundleMoved(), aBundle);
-		targetBundle = bundleQueue.getMergeBundle(qi->getTarget());
+		targetBundle = bundleQueue.getMergeBundle(aTarget);
 	}
 
-	if (!move(qi, aTarget)) {
+	if (!moveBundleFile(qi, aTarget, false)) {
 		return;
 	}
 
@@ -3217,7 +3219,7 @@ void QueueManager::moveFileBundle(BundlePtr aBundle, const string& aTarget) noex
 	}
 }
 
-bool QueueManager::move(QueueItemPtr qs, const string& aTarget) noexcept {
+bool QueueManager::moveBundleFile(QueueItemPtr qs, const string& aTarget, bool movingSingleItems) noexcept {
 	string target = Util::validateFileName(aTarget);
 
 	if(qs->getTarget() == target) {
@@ -3233,10 +3235,10 @@ bool QueueManager::move(QueueItemPtr qs, const string& aTarget) noexcept {
 		qt = fileQueue.findFile(target);
 	}
 
-	if(qt == NULL) {
+	if(!qt) {
 		//Does the file exist already on the disk?
 		if(Util::fileExists(target)) {
-			removeQI(qs, true);
+			removeQI(qs, !movingSingleItems);
 			return false;
 		}
 		// Good, update the target and move in the queue...
@@ -3245,40 +3247,43 @@ bool QueueManager::move(QueueItemPtr qs, const string& aTarget) noexcept {
 			if(qs->isRunning()) {
 				DownloadManager::getInstance()->setTarget(qs->getTarget(), aTarget);
 			}
+
+			string oldTarget = qs->getTarget();
 			fileQueue.move(qs, target);
+			if (movingSingleItems)
+				fire(QueueManagerListener::Moved(), qs, oldTarget);
 		}
 		return true;
-	} else {
-		// Don't move to target of different size
-		if(qs->getSize() != qt->getSize() || qs->getTTH() != qt->getTTH())
-			return false;
-
-		{
-			WLock l(cs);
-			if (qt->isFinished()) {
-				dcassert(qt->getBundle());
-				if (replaceFinishedItem(qt)) {
-					fileQueue.move(qs, target);
-					return true;
-				}
-			} else {
-				for_each(qs->getSources(), [&](QueueItem::Source& s) {
-					try {
-						addSource(qt, s.getUser(), QueueItem::Source::FLAG_MASK, s.getRemotePath());
-					} catch(const Exception&) {
-						//..
-					}
-				});
-			}
-		}
-		removeQI(qs, true);
 	}
+
+	// Don't move to target of different size
+	if(qs->getSize() != qt->getSize() || qs->getTTH() != qt->getTTH())
+		return false;
+
+	{
+		WLock l(cs);
+		if (qt->isFinished()) {
+			dcassert(qt->getBundle());
+			if (replaceFinishedItem(qt)) {
+				fileQueue.move(qs, target);
+				return true;
+			}
+		} else {
+			for_each(qs->getSources(), [&](QueueItem::Source& s) {
+				try {
+					addSource(qt, s.getUser(), QueueItem::Source::FLAG_MASK, s.getRemotePath());
+				} catch(const Exception&) {
+					//..
+				}
+			});
+		}
+	}
+	removeQI(qs, !movingSingleItems);
 	return false;
 }
 
-void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
+void QueueManager::moveFiles(const StringPairList& sourceTargetList) noexcept {
 	QueueItemList ql;
-	bool movedFired = false;
 	for_each(sourceTargetList, [&](StringPair sp) {
 		QueueItemPtr qs = nullptr;
 		{
@@ -3292,15 +3297,8 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 				if (b->isFileBundle()) {
 					//the path has been converted already
 					moveFileBundle(qs->getBundle(), sp.second);
-				} else {
-					if (!movedFired) {
-						RLock l(cs);
-						fire(QueueManagerListener::BundleMoved(), qs->getBundle());
-						movedFired = true;
-					}
-					if (this->move(qs, sp.second)) {
-						ql.push_back(qs);
-					}
+				} else if (moveBundleFile(qs, sp.second, true)) {
+					ql.push_back(qs);
 				}
 			}
 		}
@@ -3311,6 +3309,7 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 		QueueItemPtr qi = ql.front();
 		BundlePtr sourceBundle = qi->getBundle();
 		BundlePtr targetBundle = nullptr;
+
 		{
 			RLock l(cs);
 			targetBundle = bundleQueue.getMergeBundle(qi->getTarget());
@@ -3320,18 +3319,16 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 			bool finished = false;
 			//are we moving items inside the same bundle?
 			if (targetBundle == sourceBundle) {
-				RLock l(cs);
-				if (!sourceBundle->getQueueItems().empty())
-					fire(QueueManagerListener::BundleAdded(), sourceBundle);
+				for_each(ql, [&](QueueItemPtr qi) { fire(QueueManagerListener::Added(), qi); });
 				return;
 			}
 
 			{
-				WLock l(cs);
+				RLock l(cs);
 				finished = targetBundle->isFinished();
-				moveBundleItems(ql, targetBundle, !finished);
 			}
 
+			moveBundleItems(ql, targetBundle, !finished);
 			if (finished) {
 				readdBundle(targetBundle);
 
@@ -3368,7 +3365,6 @@ void QueueManager::move(const StringPairList& sourceTargetList) noexcept {
 		{
 			RLock l(cs);
 			if (!sourceBundle->getQueueItems().empty()) {
-				fire(QueueManagerListener::BundleAdded(), sourceBundle);
 				return;
 			}
 		}

@@ -355,6 +355,10 @@ public:
 		searchHistory.clear();
 	}
 
+	void clearDirHistory() {
+		dirHistory.clear();
+	}
+
 	StringPair getFileEvent(SettingsManager::FileEvents fe) {
 		return fileEvents[fe];
 	}

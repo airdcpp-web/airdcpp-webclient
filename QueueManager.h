@@ -82,7 +82,7 @@ public:
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles);
 
-	void removeQI(QueueItemPtr qi, bool moved = false) noexcept;
+	void removeQI(QueueItemPtr qi, bool noFiring = false) noexcept;
 	void remove(const string aTarget) noexcept;
 	void removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
@@ -137,7 +137,7 @@ public:
 	void connectBundleSources(BundlePtr aBundle);
 	void mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle);
 	void mergeFileBundles(BundlePtr aBundle);
-	void moveBundle(const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
+	void moveBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	int changeBundleTarget(BundlePtr aBundle, const string& newTarget);
 	void moveFileBundle(BundlePtr aBundle, const string& aTarget) noexcept;
@@ -173,7 +173,7 @@ public:
 	void handleBundleUpdate(const string& bundleToken);
 
 	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished);
-	bool move(QueueItemPtr qs, const string& aTarget) noexcept;
+	bool moveBundleFile(QueueItemPtr qs, const string& aTarget, bool movingSingleItems) noexcept;
 
 	void setBundlePriorities(const string& aSource, const BundleList& sourceBundles, Bundle::Priority p, bool autoPrio=false);
 	void calculateBundlePriorities(bool verbose);
@@ -184,7 +184,7 @@ public:
 	int getDirItemCount(const BundlePtr aBundle, const string& aDir) const noexcept;
 
 	/** Move the target location of a queued item. Running items are silently ignored */
-	void move(const StringPairList& sourceTargetList) noexcept;
+	void moveFiles(const StringPairList& sourceTargetList) noexcept;
 	int isFileQueued(const TTHValue& aTTH, const string& aFile) { RLock l (cs); return fileQueue.isFileQueued(aTTH, aFile); }
 	
 	bool dropSource(Download* d);

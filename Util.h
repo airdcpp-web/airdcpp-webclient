@@ -79,6 +79,26 @@ private:
 	const T2& a;
 };
 
+
+/* Case insensitive string comparison classes */
+class Stricmp {
+public:
+	Stricmp(const string& compareTo) : a(compareTo) { }
+	bool operator()(const string& p) { return stricmp(p.c_str(), a.c_str()) == 0; }
+private:
+	Stricmp& operator=(const Stricmp&);
+	const string& a;
+};
+
+class StricmpT {
+public:
+	StricmpT(const wstring& compareTo) : a(compareTo) { }
+	bool operator()(const wstring& p) { return stricmp(p.c_str(), a.c_str()) == 0; }
+private:
+	StricmpT& operator=(const StricmpT&);
+	const wstring& a;
+};
+
 /** 
  * Compares two values
  * @return -1 if v1 < v2, 0 if v1 == v2 and 1 if v1 > v2
