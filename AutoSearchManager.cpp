@@ -52,21 +52,17 @@ using namespace boost::gregorian;
 
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
-	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime,
+	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, ProfileToken aToken /*rand*/) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
-		searchInterval(aSearchInterval), expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
+		expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
 		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString),
 		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING) {
 
 	if (token == 0)
 		token = Util::randInt(10);
 
-	if (matcherString.empty())
-		matcherString = aSearchString;
-
 	setMethod(aMethod);
-
 	userMatcher.setMethod(StringMatch::WILDCARD);
 	userMatcher.pattern = aUserMatch;
 	userMatcher.prepare();
@@ -121,6 +117,9 @@ string AutoSearch::getDisplayName() {
 }
 
 void AutoSearch::updatePattern() {
+	if (matcherString.empty())
+		matcherString = searchString;
+
 	if (useParams) {
 		ParamMap params;
 		if (usingIncrementation()) {
@@ -320,7 +319,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false);
 
 	return addAutoSearch(as, true) ? as : nullptr;
 }
@@ -363,16 +362,16 @@ void AutoSearchManager::setActiveItem(unsigned int index, bool active) {
 	}
 }
 
-bool AutoSearchManager::updateAutoSearch(unsigned int index, AutoSearchPtr ipw) {
+bool AutoSearchManager::updateAutoSearch(AutoSearchPtr ipw) {
+	WLock l(cs);
+	ipw->prepareUserMatcher();
 	ipw->updatePattern();
 	ipw->updateSearchTime();
 	ipw->updateStatus();
 
-	WLock l(cs);
-	if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
-		return false;
+	//if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
+	//	return false;
 
-	searchItems[index] = ipw;
 	dirty = true;
 	return true;
 }
@@ -511,7 +510,7 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 
 bool AutoSearchManager::addFailedBundle(BundlePtr aBundle, ProfileToken aToken) {
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, 0, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, aToken);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, aToken);
 	as->setBundleStatus(aBundle, AutoSearch::STATUS_FAILED_MISSING);
 	return addAutoSearch(as, true);
 }
@@ -853,7 +852,6 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("TargetType", as->getTargetType());
 				xml.addChildAttrib("MatcherType", as->getMethod()),
 				xml.addChildAttrib("MatcherString", as->pattern),
-				xml.addChildAttrib("SearchInterval", as->getSearchInterval()),
 				xml.addChildAttrib("UserMatch", (*i)->getNickPattern());
 				xml.addChildAttrib("ExpireTime", (*i)->getExpireTime());
 				xml.addChildAttrib("CheckAlreadyQueued", as->getCheckAlreadyQueued());
@@ -918,7 +916,6 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				(StringMatch::Method)aXml.getIntChildAttrib("MatcherType"),
 				aXml.getChildAttrib("MatcherString"),
 				aXml.getChildAttrib("UserMatch"),
-				aXml.getIntChildAttrib("SearchInterval"),
 				aXml.getIntChildAttrib("ExpireTime"),
 				aXml.getBoolChildAttrib("CheckAlreadyQueued"),
 				aXml.getBoolChildAttrib("CheckAlreadyShared"),

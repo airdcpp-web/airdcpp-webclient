@@ -1003,9 +1003,9 @@ int DirectoryListing::run() {
 					ClientManager::getInstance()->directSearch(hintedUser, s->sizeMode, s->size, s->typeMode, s->searchString, searchToken, s->extList, s->directory);
 					//...
 				} else {
-					const auto dir = (s->directory.empty()) ? root : findDirectory(s->directory, root);
+					const auto dir = (s->directory.empty()) ? root : findDirectory(Util::toNmdcFile(s->directory), root);
 					if (dir)
-						root->search(searchResults, *curSearch, 100);
+						dir->search(searchResults, *curSearch, 100);
 					endSearch(false);
 				}
 			}

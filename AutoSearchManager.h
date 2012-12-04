@@ -92,7 +92,7 @@ public:
 	};
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
-		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, int aSearchInterval, time_t aExpireTime, bool aCheckAlreadyQueued, 
+		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime, bool aCheckAlreadyQueued, 
 		bool aCheckAlreadyShared, bool matchFullPath, ProfileToken aToken = 0) noexcept;
 
 	~AutoSearch();
@@ -107,7 +107,6 @@ public:
 	GETSET(string, target, Target); //download to Target
 	GETSET(TargetUtil::TargetType, tType, TargetType);
 	GETSET(time_t, lastSearch, LastSearch);
-	GETSET(int, searchInterval, SearchInterval);
 	GETSET(time_t, expireTime, ExpireTime);
 	bitset<7> searchDays;
 	GETSET(bool, checkAlreadyQueued, CheckAlreadyQueued);
@@ -148,6 +147,9 @@ public:
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;
 	static string formatParams(const AutoSearchPtr as, const string& aString);
+	void setUserMatcher(const string& aPattern) { userMatcher.pattern = aPattern; }
+	void prepareUserMatcher() { userMatcher.prepare(); }
+
 private:
 	StringMatch userMatcher;
 	time_t nextSearchChange;
@@ -177,7 +179,7 @@ public:
 	void clearPaths(AutoSearchPtr as);
 
 	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, OrderedStringSet& finishedPaths) const;
-	bool updateAutoSearch(unsigned int index, AutoSearchPtr ipw);
+	bool updateAutoSearch(AutoSearchPtr ipw);
 	void removeAutoSearch(AutoSearchPtr a);
 	bool searchItem(AutoSearchPtr as, SearchType aType);
 	
