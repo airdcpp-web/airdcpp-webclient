@@ -71,7 +71,7 @@ SearchManager::~SearchManager() {
 	TimerManager::getInstance()->removeListener(this);
 	SettingsManager::getInstance()->removeListener(this);
 
-	for_each(searchKeys, DeleteFunction());
+	for_each(searchKeys, [](pair<uint8_t*, uint64_t> p) { delete p.first; });
 }
 
 string SearchManager::normalizeWhitespace(const string& aString){
@@ -102,7 +102,7 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 			//generate a random key and store it so we can check the results
 			uint8_t* key = new uint8_t[16];
 			RAND_bytes(key, 16);
-			searchKeys.push_back(key);
+			searchKeys.push_back(make_pair(key, GET_TICK()));
 			keyStr = Encoder::toBase32(key, 16);
 		}
 
@@ -148,7 +148,7 @@ bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t b
 		EVP_CIPHER_CTX_init(&ctx);
 
 		int len = 0, tmpLen=0;
-		EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, *i, ivd);
+		EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, i->first, ivd);
 		EVP_DecryptUpdate(&ctx, &out[0], &len, buf, aLen);
 		EVP_DecryptFinal_ex(&ctx, &out[0] + aLen, &tmpLen);
 		EVP_CIPHER_CTX_cleanup(&ctx);
@@ -378,6 +378,16 @@ void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		if (get<SEARCHTIME>((*i).second) + 1000*60*15 <  aTick) {
 			searches.erase(i);
 			i = searches.begin();
+		} else {
+			++i;
+		}
+	}
+
+	for (auto i = searchKeys.begin(); i != searchKeys.end();) {
+		if (i->second + 1000*60*15 < aTick) {
+			delete i->first;
+			searchKeys.erase(i);
+			i = searchKeys.begin();
 		} else {
 			++i;
 		}

@@ -1166,7 +1166,8 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
 		su += "," + TCP4_FEATURE;
 		su += "," + UDP4_FEATURE;
-		//su += "," + SUD1_FEATURE;
+		if (BOOLSETTING(ENABLE_SUDP))
+			su += "," + SUD1_FEATURE;
 	} else {
 		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL)) {
 			su += "," + NAT0_FEATURE;

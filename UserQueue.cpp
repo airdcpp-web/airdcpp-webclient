@@ -133,22 +133,9 @@ QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const HubSet& onli
 
 void UserQueue::addDownload(QueueItemPtr qi, Download* d) {
 	qi->getDownloads().push_back(d);
-	auto& j = running[d->getUser()];
-	j.push_back(qi);
 }
 
 void UserQueue::removeDownload(QueueItemPtr qi, const UserPtr& aUser, const string& aToken) {
-	auto i = running.find(aUser);
-	if (i != running.end()) {
-		auto m = find(i->second.begin(), i->second.end(), qi);
-		if (m != i->second.end()) {
-			i->second.erase(m);
-			if (i->second.empty()) {
-				running.erase(i);
-			}
-		}
-	}
-
 	if (!aToken.empty()) {
 		//erase a specific download
 		qi->removeDownload(aToken);
@@ -165,15 +152,6 @@ void UserQueue::setQIPriority(QueueItemPtr qi, QueueItem::Priority p) {
 	addQI(qi);
 }
 
-QueueItemList UserQueue::getRunning(const UserPtr& aUser) {
-	QueueItemList ret;
-	auto i = running.find(aUser);
-	if (i != running.end()) {
-		return i->second;
-	}
-	return ret;
-}
-
 void UserQueue::removeQI(QueueItemPtr qi, bool removeRunning /*true*/, bool fireSources /*false*/) {
 	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
 		removeQI(qi, i->getUser(), removeRunning, false, fireSources);
@@ -183,11 +161,7 @@ void UserQueue::removeQI(QueueItemPtr qi, bool removeRunning /*true*/, bool fire
 void UserQueue::removeQI(QueueItemPtr qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool fireSources /*false*/) {
 
 	if(removeRunning) {
-		QueueItemList runningItems = getRunning(aUser);
-		auto m = find(runningItems.begin(), runningItems.end(), qi);
-		if (m != runningItems.end()) {
-			removeDownload(qi, aUser);
-		}
+		removeDownload(qi, aUser);
 	}
 
 	dcassert(qi->isSource(aUser));

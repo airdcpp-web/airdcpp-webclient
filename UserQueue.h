@@ -37,7 +37,6 @@ public:
 	QueueItemPtr getNext(const UserPtr& aUser, const HubSet& onlineHubs, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
 	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const HubSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const HubSet& onlineHubs, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
-	QueueItemList getRunning(const UserPtr& aUser);
 	void addDownload(QueueItemPtr qi, Download* d);
 	void removeDownload(QueueItemPtr qi, const UserPtr& d, const string& token = Util::emptyString);
 
@@ -51,7 +50,6 @@ public:
 
 	boost::unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }
-	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getRunning()  { return running; }
 
 	string getLastError() { 
 		string tmp = lastError;
@@ -64,8 +62,6 @@ private:
 	boost::unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue;
 	/** High priority QueueItems by user (this is where the download order is determined) */
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash> userPrioQueue;
-	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
-	boost::unordered_map<UserPtr, QueueItemList, User::Hash> running;
 	/** Last error message to sent to TransferView */
 	string lastError;
 };
