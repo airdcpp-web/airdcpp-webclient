@@ -23,6 +23,7 @@
 
 #include "forward.h"
 
+#include "DelayedEvents.h"
 #include "AutoSearchManagerListener.h"
 #include "GetSet.h"
 #include "Pointer.h"
@@ -104,7 +105,6 @@ public:
 	GETSET(ActionType, action, Action);
 	GETSET(string, fileType, FileType);
 	GETSET(bool, remove, Remove); //remove after 1 hit
-	GETSET(string, target, Target); //download to Target
 	GETSET(TargetUtil::TargetType, tType, TargetType);
 	GETSET(time_t, lastSearch, LastSearch);
 	GETSET(time_t, expireTime, ExpireTime);
@@ -149,11 +149,13 @@ public:
 	static string formatParams(const AutoSearchPtr as, const string& aString);
 	void setUserMatcher(const string& aPattern) { userMatcher.pattern = aPattern; }
 	void prepareUserMatcher() { userMatcher.prepare(); }
-
+	string getTarget() { return target; }
+	void setTarget(const string& aTarget);
 private:
 	StringMatch userMatcher;
 	time_t nextSearchChange;
 	bool nextIsDisable;
+	string target;
 };
 
 class SimpleXML;
@@ -217,6 +219,8 @@ public:
 private:
 	mutable SharedMutex cs;
 
+	DelayedEvents<ProfileToken> resultCollector;
+
 	void performSearch(AutoSearchPtr as, StringList& aHubs, SearchType aType);
 	//count minutes to be more accurate than comparing ticks every minute.
 	unsigned int lastSearch;
@@ -231,6 +235,8 @@ private:
 	GETSET(uint64_t, lastSave, LastSave);
 	bool dirty;
 
+	unordered_map<ProfileToken, SearchResultList> searchResults;
+	void pickMatch(AutoSearchPtr as);
 	void handleAction(const SearchResultPtr sr, AutoSearchPtr as);
 
 	/* Listeners */

@@ -145,13 +145,13 @@ void DirectoryListingManager::removeDirectoryDownload(const UserPtr aUser) {
 }
 
 void DirectoryListingManager::addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,  
-	QueueItem::Priority p /* = QueueItem::DEFAULT */, bool useFullList /*false*/, ProfileToken aAutoSearch) noexcept {
+	QueueItem::Priority p /* = QueueItem::DEFAULT */, bool useFullList /*false*/, ProfileToken aAutoSearch /*0*/, bool checkNameDupes /*false*/) noexcept {
 
 	bool needList;
 	{
 		WLock l(cs);
 
-		if (aAutoSearch > 0) {
+		if (checkNameDupes && aAutoSearch > 0) {
 			//check for dupes
 			auto d = move(Util::getLastDir(aDir));
 			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, d)).base() != dlDirectories.end() ||

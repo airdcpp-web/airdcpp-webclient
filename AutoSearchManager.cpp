@@ -37,6 +37,7 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/algorithm/find_if.hpp>
+#include <boost/range/algorithm/copy.hpp>
 
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "boost/range/algorithm/max_element.hpp"
@@ -44,7 +45,9 @@
 
 namespace dcpp {
 
+using boost::range::copy;
 using boost::adaptors::map_values;
+using boost::adaptors::map_keys;
 using boost::range::for_each;
 using boost::range::find_if;
 using namespace boost::posix_time;
@@ -54,7 +57,7 @@ using namespace boost::gregorian;
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
 	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, ProfileToken aToken /*rand*/) noexcept : 
-	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), target(aTarget), tType(aTargetType), 
+	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), tType(aTargetType), 
 		expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
 		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString),
 		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING) {
@@ -62,6 +65,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	if (token == 0)
 		token = Util::randInt(10);
 
+	setTarget(aTarget);
 	setMethod(aMethod);
 	userMatcher.setMethod(StringMatch::WILDCARD);
 	userMatcher.pattern = aUserMatch;
@@ -84,7 +88,7 @@ bool AutoSearch::allowNewItems() const {
 	if (status == STATUS_FAILED_MISSING)
 		return true;
 
-	return !remove;
+	return !remove && !usingIncrementation();
 }
 
 void AutoSearch::increaseNumber() {
@@ -114,6 +118,13 @@ string AutoSearch::getDisplayName() {
 
 	auto formated = formatParams(this, searchString);
 	return formated + " (" + searchString + ")";
+}
+
+void AutoSearch::setTarget(const string& aTarget) {
+	target = Util::validateFileName(aTarget);
+	if(target[target.size() - 1] != PATH_SEPARATOR) {
+		target += PATH_SEPARATOR;
+	}
 }
 
 void AutoSearch::updatePattern() {
@@ -493,8 +504,10 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 
 				if (!removeAs) {
 					dirty = true;
-					as->addPath(aBundle->getTarget());
-					as->increaseNumber();
+					if (finished) {
+						as->addPath(aBundle->getTarget());
+						as->increaseNumber();
+					}
 					as->updateStatus();
 				}
 			}
@@ -781,7 +794,75 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				//lets agree that it's match...
 			}
 		}
-		handleAction(sr, as); 
+
+		{
+			WLock l(cs);
+			searchResults[as->getToken()].push_back(sr);
+		}
+
+		resultCollector.addEvent(as->getToken(), [this, as] { pickMatch(as); }, 2000);
+	}
+}
+
+void AutoSearchManager::pickMatch(AutoSearchPtr as) {
+	SearchResultList results;
+
+	//get the result list
+	{
+		WLock l(cs);
+		auto p = searchResults.find(as->getToken());
+		if (p != searchResults.end()) {
+			results = move(p->second);
+			searchResults.erase(p);
+		} else {
+			return;
+		}
+	}
+
+	if (results.empty())
+		return;
+
+	//sort results by the name
+	unordered_map<string, SearchResultList> dirList;
+	for (auto i = results.begin(); i != results.end(); ++i) {
+		dirList[Text::toLower((*i)->getFileName())].push_back(*i);
+	}
+
+	//we'll pick one name or all of them, depending on the auto search item
+	if (as->getRemove() || as->usingIncrementation()) {
+		auto p = find_if(dirList | map_keys, [](const string& s) { return s.find("proper") != string::npos; }).base();
+		if (p == dirList.end()) {
+			p = find_if(dirList | map_keys, [](const string& s) { return s.find("repack") != string::npos; }).base();
+		}
+
+		// no repack or proper, pick the one with most matches
+		if (p == dirList.end()) {
+			p = max_element(dirList | map_values, [](const SearchResultList& p1, const SearchResultList& p2) { return p1.size() < p2.size(); }).base();
+		}
+
+		unordered_map<string, SearchResultList> dirList2;
+		dirList2.insert(*p);
+		dirList = move(dirList2);
+	}
+
+	//pick the item for each name that has most size matches
+	for (auto i = dirList.begin(); i != dirList.end(); ++i) {
+		unordered_map<int64_t, int> sizeMap;
+		for_each(i->second, [&sizeMap](const SearchResultPtr sr) { sizeMap[sr->getSize()]++; });
+
+		auto p = max_element(sizeMap.begin(), sizeMap.end(), [](pair<int64_t, int> p1, pair<int64_t, int> p2) { 
+			if (p1.second == 0)
+				return true;
+			if (p2.second == 0)
+				return false;
+			return p1.second < p2.second; 
+		});
+
+		//download all matches with the given size
+		for_each(i->second, [p, this, as](const SearchResultPtr sr) { 
+			if (sr->getSize() == p->first)
+				handleAction(sr, as);
+		});
 	}
 }
 
@@ -790,7 +871,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
-					(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken());
+					(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken(), as->getRemove() || as->usingIncrementation());
 			} else {
 				TargetUtil::TargetInfo ti;
 				bool hasSpace = TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize());
