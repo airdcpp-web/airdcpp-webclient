@@ -850,7 +850,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 		unordered_map<int64_t, int> sizeMap;
 		for_each(i->second, [&sizeMap](const SearchResultPtr sr) { sizeMap[sr->getSize()]++; });
 
-		auto p = max_element(sizeMap.begin(), sizeMap.end(), [](pair<int64_t, int> p1, pair<int64_t, int> p2) { 
+		auto p = max_element(sizeMap.begin(), sizeMap.end(), [] (pair<int64_t, int> p1, pair<int64_t, int> p2)-> bool { 
 			if (p1.first == 0)
 				return true;
 			if (p2.first == 0)
