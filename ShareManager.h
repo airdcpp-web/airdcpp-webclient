@@ -114,7 +114,13 @@ public:
 	void toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& noAccess_);
 	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const;
 	
-	int refresh(bool incoming=false, bool isStartup=false);
+	enum RefreshType {
+		TYPE_MANUAL,
+		TYPE_SCHEDULED,
+		TYPE_STARTUP
+	};
+
+	int refresh(bool incoming, RefreshType aType);
 	int refresh(const string& aDir);
 
 	bool isRefreshing() {	return refreshRunning; }
@@ -218,7 +224,6 @@ public:
 		ADD_DIR,
 		REFRESH_ALL,
 		REFRESH_DIR,
-		REFRESH_STARTUP,
 		REFRESH_INCOMING
 	};
 
@@ -414,7 +419,7 @@ private:
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2);
 	};
 
-	int addTask(uint8_t aType, StringList& dirs, const string& displayName=Util::emptyString, bool isStartup=false) noexcept;
+	int addTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString) noexcept;
 	void removeDir(Directory::Ptr aDir);
 	Directory::Ptr getDirByName(const string& directory) const;
 
@@ -583,7 +588,7 @@ private:
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);
 	void save(SimpleXML& aXml);
 
-	void reportTaskStatus(uint8_t aTask, const StringList& aDirectories, bool finished, int64_t aHashSize, const string& displayName);
+	void reportTaskStatus(uint8_t aTask, const StringList& aDirectories, bool finished, int64_t aHashSize, const string& displayName, RefreshType aRefreshType);
 	
 	ShareProfileList shareProfiles;
 

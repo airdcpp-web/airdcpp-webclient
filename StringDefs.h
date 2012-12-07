@@ -1162,7 +1162,7 @@ enum Strings { // @DontAdd
 	LIST_HL_TEXT, // "HighLight matches in file lists (wildcards, | separate)"
 	LIST_HL_EXAMPLE, // "Example, *NORDIC* (this may slow down file list loading...)"
 	SETTINGS_DUPES, // "Dupes Settings"
-	REPORT_SKIPLIST, // "Show files blocked by the skiplist in systemlog"
+	REPORT_SKIPLIST, // "Show files blocked by the skiplist in system log"
 	X_USERS, // "%d users"
 	X_USERS_WAITING, // "%d user(s) (%d waiting)"
 	X_CONNECTIONS, // "%d connection(s)"
@@ -1210,7 +1210,7 @@ enum Strings { // @DontAdd
 	CONFIRM_MOVE_DIR_FINISHED_BUNDLE_PART, // "The selected bundle directory contains total of %d finished files. Do you also want to move them?"
 	MATCH_ADL, // "ADLSearch"
 	MATCHING_ADL, // "Matching file list with ADL search, this might take a while if the list is large..."
-	LOG_HASHING, // "Show Hashing Files in systemlog"
+	LOG_HASHING, // "Show each hashed file in system log"
 	ADLSEARCH_IN_PROGRESS, // "The ADLSearch list can't be modified while matching is in progress!"
 	PRIOPAGE_ORDER_BALANCED, // "Balanced (based on sources and their speeds)"
 	PRIOPAGE_ORDER_PROGRESS, // "Set priorities automatically based on the progress"
@@ -1596,5 +1596,6 @@ enum Strings { // @DontAdd
 	SETTINGS_AUTO_COMPLETE_BUNDLES, // "Try to to complete bundles with missing files automatically"
 	REQUIRE_EXACT_MATCH, // "Require an exact match"
 	CLEAR_HISTORY, // "Clear history"
+	SETTINGS_LOG_SCHEDULED_REFRESHES, // "Show scheduled filelist refreshes in system log"
 	LAST // @DontAdd
 };

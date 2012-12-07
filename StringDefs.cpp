@@ -1155,7 +1155,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "HighLight matches in file lists (wildcards, | separate)", 
 "Example, *NORDIC* (this may slow down file list loading...)", 
 "Dupes Settings", 
-"Show files blocked by the skiplist in systemlog", 
+"Show files blocked by the skiplist in system log", 
 "%d users", 
 "%d user(s) (%d waiting)", 
 "%d connection(s)", 
@@ -1203,7 +1203,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The selected bundle directory contains total of %d finished files. Do you also want to move them?", 
 "ADLSearch", 
 "Matching file list with ADL search, this might take a while if the list is large...", 
-"Show Hashing Files in systemlog", 
+"Show each hashed file in system log", 
 "The ADLSearch list can't be modified while matching is in progress!", 
 "Balanced (based on sources and their speeds)", 
 "Set priorities automatically based on the progress", 
@@ -1589,6 +1589,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Try to to complete bundles with missing files automatically", 
 "Require an exact match", 
 "Clear history", 
+"Show scheduled filelist refreshes in system log", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3178,4 +3179,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsAutoCompleteBundles", 
 "RequireExactMatch", 
 "ClearHistory", 
+"SettingsLogScheduledRefreshes", 
 };

@@ -122,7 +122,7 @@ string AutoSearch::getDisplayName() {
 
 void AutoSearch::setTarget(const string& aTarget) {
 	target = Util::validateFileName(aTarget);
-	if(target[target.size() - 1] != PATH_SEPARATOR) {
+	if(fileType == SEARCH_TYPE_DIRECTORY && target[target.size() - 1] != PATH_SEPARATOR) {
 		target += PATH_SEPARATOR;
 	}
 }

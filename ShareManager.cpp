@@ -116,7 +116,7 @@ void ShareManager::startup() {
 	shareProfiles.push_back(hidden);
 
 	if(!loadCache()) {
-		refresh(false, true);
+		refresh(false, TYPE_STARTUP);
 	}
 
 	rebuildTotalExcludes();
@@ -1237,11 +1237,11 @@ int ShareManager::refresh(const string& aDir){
 		}
 	}
 
-	return addTask(REFRESH_DIR, refreshPaths, displayName);
+	return addTask(REFRESH_DIR, refreshPaths, TYPE_MANUAL, displayName);
 }
 
 
-int ShareManager::refresh(bool incoming /*false*/, bool isStartup /*false*/){
+int ShareManager::refresh(bool incoming, RefreshType aType){
 	StringList dirs;
 
 	DirMap parents;
@@ -1256,16 +1256,17 @@ int ShareManager::refresh(bool incoming /*false*/, bool isStartup /*false*/){
 		dirs.push_back(i->first);
 	}
 
-	return addTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, Util::emptyString, isStartup);
+	return addTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, aType, Util::emptyString);
 }
 
 struct ShareTask : public Task {
-	ShareTask(const StringList& aDirs, const string& aDisplayName) : dirs(aDirs), displayName(aDisplayName) { }
+	ShareTask(const StringList& aDirs, const string& aDisplayName, ShareManager::RefreshType aRefreshType) : dirs(aDirs), displayName(aDisplayName), type(aRefreshType) { }
 	StringList dirs;
 	string displayName;
+	ShareManager::RefreshType type;
 };
 
-int ShareManager::addTask(uint8_t aType, StringList& dirs, const string& displayName /*Util::emptyString*/, bool isStartup /*false*/) noexcept {
+int ShareManager::addTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshType, const string& displayName /*Util::emptyString*/) noexcept {
 	if (dirs.empty()) {
 		return REFRESH_PATH_NOT_FOUND;
 	}
@@ -1273,7 +1274,7 @@ int ShareManager::addTask(uint8_t aType, StringList& dirs, const string& display
 	{
 		Lock l(tasks.cs);
 		auto& tq = tasks.getTasks();
-		if (aType == REFRESH_ALL) {
+		if (aTask == REFRESH_ALL) {
 			//don't queue multiple full refreshes
 			auto p = find_if(tq, [](const TaskQueue::UniqueTaskPair& tp) { return tp.first == 1; });
 			if (p != tq.end())
@@ -1291,11 +1292,11 @@ int ShareManager::addTask(uint8_t aType, StringList& dirs, const string& display
 		return REFRESH_ALREADY_QUEUED;
 	}
 
-	tasks.add(aType, unique_ptr<Task>(new ShareTask(dirs, displayName)));
+	tasks.add(aTask, unique_ptr<Task>(new ShareTask(dirs, displayName, aRefreshType)));
 
 	if(refreshing.test_and_set()) {
 		string msg;
-		switch (aType) {
+		switch (aTask) {
 			case(REFRESH_ALL):
 				msg = STRING(REFRESH_QUEUED);
 				break;
@@ -1327,7 +1328,7 @@ int ShareManager::addTask(uint8_t aType, StringList& dirs, const string& display
 	join();
 	try {
 		start();
-		if(isStartup) { 
+		if(aRefreshType == TYPE_STARTUP) { 
 			join();
 		} else {
 			setThreadPriority(Thread::NORMAL);
@@ -1435,7 +1436,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 
 	rebuildTotalExcludes();
 	if (!refresh.empty())
-		addTask(REFRESH_DIR, refresh);
+		addTask(REFRESH_DIR, refresh, TYPE_MANUAL);
 
 	if (add.empty()) {
 		//we are only modifying existing trees
@@ -1443,7 +1444,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 		return;
 	}
 
-	addTask(ADD_DIR, add);
+	addTask(ADD_DIR, add, TYPE_MANUAL);
 }
 
 void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
@@ -1520,7 +1521,7 @@ void ShareManager::changeDirectories(const ShareDirInfo::list& changedDirs)  {
 	setDirty(dirtyProfiles, false);
 }
 
-void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories, bool finished, int64_t aHashSize, const string& displayName) {
+void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories, bool finished, int64_t aHashSize, const string& displayName, RefreshType aRefreshType) {
 	string msg;
 	switch (aTask) {
 		case(REFRESH_ALL):
@@ -1548,6 +1549,8 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 	if (!msg.empty()) {
 		if (aHashSize > 0) {
 			msg += " " + STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(aHashSize));
+		} else if (aRefreshType == TYPE_SCHEDULED && !BOOLSETTING(LOG_SCHEDULED_REFRESHES)) {
+			return;
 		}
 		LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
 	}
@@ -1579,7 +1582,7 @@ int ShareManager::run() {
 			}
 		}
 
-		reportTaskStatus(t.first, task->dirs, false, hashSize, task->displayName);
+		reportTaskStatus(t.first, task->dirs, false, hashSize, task->displayName, task->type);
 		if (t.first == REFRESH_INCOMING) {
 			lastIncomingUpdate = GET_TICK();
 		} else if (t.first == REFRESH_ALL) {
@@ -1594,7 +1597,7 @@ int ShareManager::run() {
 		DirMultiMap newShareDirs;
 		DirMap newShares;
 
-		if(t.first == REFRESH_DIR || t.first == REFRESH_INCOMING || t.first == ADD_DIR) {
+		if(t.first != REFRESH_ALL) {
 			{
 				WLock l (cs);
 				newShares = shares;
@@ -1628,7 +1631,7 @@ int ShareManager::run() {
 		{		
 			WLock l(cs);
 			shares = newShares;
-			if(t.first == REFRESH_DIR || t.first == REFRESH_INCOMING || t.first == ADD_DIR) {
+			if(t.first != REFRESH_ALL) {
 				dirNameMap.insert(newShareDirs.begin(), newShareDirs.end());
 			} else {
 				dirNameMap = newShareDirs;
@@ -1639,14 +1642,14 @@ int ShareManager::run() {
 
 		setDirty(dirtyProfiles, true);
 			
-		if (t.first == REFRESH_STARTUP) {
+		if (task->type == TYPE_STARTUP) {
 			generateXmlList(SP_DEFAULT, true);
 			saveXmlList();
 		} else {
 			ClientManager::getInstance()->infoUpdated();
 		}
 
-		reportTaskStatus(t.first, task->dirs, true, hashSize, task->displayName);
+		reportTaskStatus(t.first, task->dirs, true, hashSize, task->displayName, task->type);
 	}
 end:
 	{
@@ -1667,10 +1670,10 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 	if(SETTING(AUTO_REFRESH_TIME) > 0 && lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= tick) {
 		lastIncomingUpdate = tick;
 		lastFullUpdate = tick;
-		refresh(false);
+		refresh(false, TYPE_SCHEDULED);
 	} else if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
 		lastIncomingUpdate = tick;
-		refresh(true);
+		refresh(true, TYPE_SCHEDULED);
 	}
 }
 

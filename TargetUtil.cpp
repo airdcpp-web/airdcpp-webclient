@@ -94,9 +94,7 @@ bool TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 		if (targetType == TARGET_FAVORITE) {
 			dirList = FavoriteManager::getInstance()->getFavoriteDirs();
 		} else {
-			//ShareManager::getInstance()->LockRead();
 			dirList = ShareManager::getInstance()->getGroupedDirectories();
-			//ShareManager::getInstance()->unLockRead();
 		}
 
 		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));

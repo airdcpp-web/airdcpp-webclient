@@ -312,7 +312,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	if(path.empty())
 		return;
 
-	StringList sfvFileList, fileList = findFiles(path, "*", false, false);
+	StringList sfvFileList, fileList = findFiles(path, "*", false, true);
 
 	if (fileList.empty()) {
 		//check if there are folders
