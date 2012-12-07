@@ -577,7 +577,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 			}
 		}
 
-		if (percent > 0.00 && percent < 100.00) {
+		if (percent >= 0.00 && percent <= 100.00) {
 			bundle->setUploadedSegments(bundle->getSize()*(percent / 100.00000));
 		}
 	}

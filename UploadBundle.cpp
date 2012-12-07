@@ -30,12 +30,11 @@ UploadBundle::UploadBundle(const string& aTarget, const string& aToken, int64_t 
 }
 
 void UploadBundle::addUploadedSegment(int64_t aSize) {
-	if (singleUser) {
-		dcassert(aSize + uploadedSegments <= size);
+	dcassert(aSize + uploadedSegments <= size);
+	if (singleUser && aSize + uploadedSegments <= size) {
 		countSpeed();
 		uploadedSegments += aSize;
 		uploaded -= aSize;
-		dcassert(uploadedSegments <= size);
 	}
 }
 

@@ -122,7 +122,7 @@ string AutoSearch::getDisplayName() {
 
 void AutoSearch::setTarget(const string& aTarget) {
 	target = Util::validateFileName(aTarget);
-	if(fileType == SEARCH_TYPE_DIRECTORY && target[target.size() - 1] != PATH_SEPARATOR) {
+	if(tType == TargetUtil::TARGET_PATH && !target.empty() && target[target.size() - 1] != PATH_SEPARATOR) {
 		target += PATH_SEPARATOR;
 	}
 }
@@ -132,16 +132,6 @@ void AutoSearch::updatePattern() {
 		matcherString = searchString;
 
 	if (useParams) {
-		ParamMap params;
-		if (usingIncrementation()) {
-			auto num = Util::toString(curNumber);
-			if (num.length() < numberLen) {
-				//prepend the zeroes
-				num.insert(num.begin(), numberLen - num.length(), '0');
-			}
-			params["inc"] = num;
-		}
-
 		pattern = formatParams(this, matcherString);
 	} else {
 		pattern = matcherString;
