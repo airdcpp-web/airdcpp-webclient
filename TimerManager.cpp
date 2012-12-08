@@ -50,7 +50,7 @@ int TimerManager::run() {
 		now = microsec_clock::universal_time();
 		nextSecond += seconds(1);
 		if(nextSecond < now) {
-			nextSecond = now;
+			nextSecond = now + seconds(1); //https://bugs.launchpad.net/dcplusplus/+bug/713742
 		}
 
 		fire(TimerManagerListener::Second(), t);
