@@ -377,16 +377,17 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 	createPartialList(aUser, text);
 }
 
-void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/) {
+void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool fullList /*false*/) {
 	auto me = HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString);
 	if (hasList(me.user))
 		return;
 
-	if (!useADL) {
+	if (!fullList) {
 		createPartialList(me, Util::emptyString, aProfile, true);
 	} else {
 		DirectoryListing* dl = new DirectoryListing(me, false, Util::toString(aProfile), true, true);
-		dl->setMatchADL(true);
+		if (BOOLSETTING(USE_ADLS_OWN))
+			dl->setMatchADL(true);
 		fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString);
 
 		WLock l(cs);

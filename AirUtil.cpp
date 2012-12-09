@@ -20,6 +20,7 @@
 #include <direct.h>
 #include "AirUtil.h"
 #include "Util.h"
+#include "ThrottleManager.h"
 
 #include "File.h"
 #include "QueueManager.h"
@@ -207,10 +208,14 @@ int AirUtil::getSlots(bool download, double value, bool rarLimits) {
 	}
 
 	double speed;
-	if (download) {
-		(value != 0) ? speed=value : speed = Util::toDouble(SETTING(DOWNLOAD_SPEED));
+	if (value != 0) {
+		speed=value;
+	} else if (download) {
+		int limit = BOOLSETTING(AUTO_DETECTION_USE_LIMITED) ? ThrottleManager::getInstance()->getDownLimit() : 0;
+		speed = limit > 0 ? (limit * 8.00) / 1024.00 : Util::toDouble(SETTING(DOWNLOAD_SPEED));
 	} else {
-		(value != 0) ? speed=value : speed = Util::toDouble(SETTING(UPLOAD_SPEED));
+		int limit = BOOLSETTING(AUTO_DETECTION_USE_LIMITED) ? ThrottleManager::getInstance()->getUpLimit() : 0;
+		speed = limit > 0 ? (limit * 8.00) / 1024.00 : Util::toDouble(SETTING(UPLOAD_SPEED));
 	}
 
 	int slots=3;
