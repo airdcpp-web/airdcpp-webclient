@@ -1590,6 +1590,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Require an exact match", 
 "Clear history", 
 "Show scheduled filelist refreshes in system log", 
+"Set away message", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3180,4 +3181,5 @@ std::string dcpp::ResourceManager::names[] = {
 "RequireExactMatch", 
 "ClearHistory", 
 "SettingsLogScheduledRefreshes", 
+"SetAwayMessage", 
 };

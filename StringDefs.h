@@ -1597,5 +1597,6 @@ enum Strings { // @DontAdd
 	REQUIRE_EXACT_MATCH, // "Require an exact match"
 	CLEAR_HISTORY, // "Clear history"
 	SETTINGS_LOG_SCHEDULED_REFRESHES, // "Show scheduled filelist refreshes in system log"
+	SET_AWAY_MESSAGE, // "Set away message"
 	LAST // @DontAdd
 };
