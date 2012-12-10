@@ -922,7 +922,7 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("Target", as->getTarget());
 				xml.addChildAttrib("TargetType", as->getTargetType());
 				xml.addChildAttrib("MatcherType", as->getMethod()),
-				xml.addChildAttrib("MatcherString", as->pattern),
+				xml.addChildAttrib("MatcherString", as->getMatcherString()),
 				xml.addChildAttrib("UserMatch", (*i)->getNickPattern());
 				xml.addChildAttrib("ExpireTime", (*i)->getExpireTime());
 				xml.addChildAttrib("CheckAlreadyQueued", as->getCheckAlreadyQueued());

@@ -34,8 +34,10 @@
 #include "Wildcards.h"
 #include "ShareManager.h"
 #include <locale.h>
+
 #include <boost/date_time/format_date_parser.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/scoped_array.hpp>
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -440,13 +442,13 @@ void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
 				wstring cmdLine = Text::toT(Util::formatParams(sp.second, params));
 				wstring cmd = Text::toT(sp.first);
 
-				AutoArray<TCHAR> cmdLineBuf(cmdLine.length() + 1);
-				_tcscpy(cmdLineBuf, cmdLine.c_str());
+				boost::scoped_array<TCHAR> cmdLineBuf(new TCHAR[cmdLine.length() + 1]);
+				_tcscpy(&cmdLineBuf[0], cmdLine.c_str());
 
-				AutoArray<TCHAR> cmdBuf(cmd.length() + 1);
-				_tcscpy(cmdBuf, cmd.c_str());
+				boost::scoped_array<TCHAR> cmdBuf(new TCHAR[cmd.length() + 1]);
+				_tcscpy(&cmdBuf[0], cmd.c_str());
 
-				if(::CreateProcess(cmdBuf, cmdLineBuf, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+				if(::CreateProcess(&cmdBuf[0], &cmdLineBuf[0], NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
 					::CloseHandle(pi.hThread);
 					::CloseHandle(pi.hProcess);
 				}
@@ -463,13 +465,13 @@ void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
 			wstring cmdLine = Text::toT(Util::formatParams(sp.second, params));
 			wstring cmd = Text::toT(sp.first);
 
-			AutoArray<TCHAR> cmdLineBuf(cmdLine.length() + 1);
-			_tcscpy(cmdLineBuf, cmdLine.c_str());
+			boost::scoped_array<TCHAR> cmdLineBuf(new TCHAR[cmdLine.length() + 1]);
+			_tcscpy(&cmdLineBuf[0], cmdLine.c_str());
 
-			AutoArray<TCHAR> cmdBuf(cmd.length() + 1);
-			_tcscpy(cmdBuf, cmd.c_str());
+			boost::scoped_array<TCHAR> cmdBuf(new TCHAR[cmd.length() + 1]);
+			_tcscpy(&cmdBuf[0], cmd.c_str());
 
-			if(::CreateProcess(cmdBuf, cmdLineBuf, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+			if(::CreateProcess(&cmdBuf[0], &cmdLineBuf[0], NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
 				//wait for the process to finish executing
 				if(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE)) {
 					DWORD code = 0;

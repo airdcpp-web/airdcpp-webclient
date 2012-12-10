@@ -106,22 +106,6 @@ private:
 template<typename T1>
 inline int compare(const T1& v1, const T1& v2) { return (v1 < v2) ? -1 : ((v1 == v2) ? 0 : 1); }
 
-template<typename T>
-class AutoArray {
-	typedef T* TPtr;
-public:
-	explicit AutoArray(TPtr t) : p(t) { }
-	explicit AutoArray(size_t size) : p(new T[size]) { }
-	~AutoArray() { delete[] p; }
-	operator TPtr() { return p; }
-	AutoArray& operator=(TPtr t) { delete[] p; p = t; return *this; }
-private:
-	AutoArray(const AutoArray&);
-	AutoArray& operator=(const AutoArray&);
-
-	TPtr p;
-};
-
 class Util  
 {
 public:

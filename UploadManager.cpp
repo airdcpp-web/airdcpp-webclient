@@ -529,7 +529,7 @@ void UploadManager::checkMultiConn() {
 void UploadManager::onUBN(const AdcCommand& cmd) {
 	string bundleToken;
 	string hubIpPort;
-	float percent = 0;
+	float percent = -1;
 	string speedStr;
 
 	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
