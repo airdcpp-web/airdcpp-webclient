@@ -1570,7 +1570,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Download speed - Click to adjust limiter value", 
 "Upload speed - Click to adjust limiter value", 
 "Uploaded", 
-"Switching to an address %s", 
+"Switching to the address %s", 
 "%d bundles queued", 
 "%d finished bundle(s)", 
 "Active for %s", 

@@ -485,7 +485,7 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 	for(auto i = aSearches.begin(); i != aSearches.end(); ++i) {
 		auto as = getSearchByToken(*i);
 		if (as) {
-			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() > as->getMaxNumber() && as->getMaxNumber() > 0)) && finished;
+			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0)) && finished;
 			{
 				WLock l (cs);
 				as->removeBundle(aBundle);

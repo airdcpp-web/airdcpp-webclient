@@ -60,7 +60,7 @@ namespace dcpp {
 		void addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,
 			QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false, ProfileToken aAutoSearch = 0, bool checkNameDupes = false) noexcept;
 
-		void removeDirectoryDownload(const UserPtr aUser);
+		void removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList);
 
 		void handleSizeConfirmation(const string& aName, bool accept);
 	private:

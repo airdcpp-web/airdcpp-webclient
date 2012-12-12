@@ -1492,7 +1492,7 @@ void QueueManager::removeQI(QueueItemPtr q, bool moved /*false*/) noexcept {
 	}
 
 	if (u)
-		DirectoryListingManager::getInstance()->removeDirectoryDownload(u);
+		DirectoryListingManager::getInstance()->removeDirectoryDownload(u, q->getTempTarget(), q->isSet(QueueItem::FLAG_PARTIAL_LIST));
 
 	removeBundleItem(q, false, moved);
 	for_each(x, [](UserConnection* u) { u->disconnect(true); });

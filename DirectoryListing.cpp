@@ -409,7 +409,7 @@ bool DirectoryListing::Directory::findIncomplete() {
 	return find_if(directories, [](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
 }
 
-void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, 
+bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, 
 	QueueItem::Priority prio, bool first, BundlePtr aBundle, ProfileToken aAutoSearch) {
 
 	string target;
@@ -422,7 +422,7 @@ void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 				//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
 				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, true);
 			}
-			return;
+			return false;
 		}
 
 		//validate the target
@@ -432,13 +432,11 @@ void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 		/* Check if this is a root dir containing release dirs */
 		boost::regex reg;
 		reg.assign(AirUtil::getReleaseRegBasic());
-
-		if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && count_if(aDir->directories.begin(), aDir->directories.end(), 
-			[&reg](Directory* d) { return boost::regex_match(d->getName(), reg); }) == (int)aDir->directories.size()) {
+		if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && 
+			all_of(aDir->directories.begin(), aDir->directories.end(), [&reg](Directory* d) { return boost::regex_match(d->getName(), reg); })) {
 			
 			/* Create bundles from each subfolder */
-			for_each(aDir->directories, [&](Directory* dir) { downloadDir(dir, target, aTargetType, isSizeUnknown, prio, false, nullptr); });
-			return;
+			return any_of(aDir->directories.begin(), aDir->directories.end(), [&](Directory* dir) { return downloadDir(dir, target, aTargetType, isSizeUnknown, prio, false, nullptr); });
 		}
 	} else {
 		target = aTarget + aDir->getName() + PATH_SEPARATOR;
@@ -473,16 +471,18 @@ void DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 	}
 
 	if (first) {
-		QueueManager::getInstance()->addBundle(aBundle);
+		return QueueManager::getInstance()->addBundle(aBundle);
 	}
+	return true;
 }
 
-void DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio, ProfileToken aAutoSearch) {
+bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio, ProfileToken aAutoSearch) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = findDirectory(aDir, root);
 	if(d)
-		downloadDir(d, aTarget, aTargetType, highPrio, prio, true, nullptr, aAutoSearch);
+		return downloadDir(d, aTarget, aTargetType, highPrio, prio, true, nullptr, aAutoSearch);
+	return false;
 }
 
 int64_t DirectoryListing::getDirSize(const string& aDir) {
@@ -519,12 +519,7 @@ DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName
 }
 
 void DirectoryListing::Directory::findFiles(const boost::regex& aReg, File::List& aResults) const {
-	for(auto i = files.begin(); i != files.end(); ++i) {
-		auto df = *i;
-		if (boost::regex_match(df->getName(), aReg)) {
-			aResults.push_back(df);
-		}
-	}
+	copy_if(files.begin(), files.end(), back_inserter(aResults), [&aReg](File* df) { return boost::regex_match(df->getName(), aReg); });
 
 	for_each(directories, [&aReg, &aResults](Directory* dir) { dir->findFiles(aReg, aResults); });
 }
@@ -571,6 +566,12 @@ struct DirectoryEmpty {
 	}
 };
 
+struct SizeLess {
+	bool operator()(const DirectoryListing::File::Ptr f) const {
+		return f->getSize() < (SETTING(SKIP_SUBTRACT) *1024);
+	}
+};
+
 DirectoryListing::Directory::~Directory() {
 	for_each(directories, DeleteFunction());
 	for_each(files, DeleteFunction());
@@ -592,23 +593,23 @@ void DirectoryListing::Directory::filterList(DirectoryListing& dirList) {
 }
 
 void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet& l) {
-	for(auto i = directories.begin(); i != directories.end(); ++i) (*i)->filterList(l);
+	for(auto i = directories.begin(); i != directories.end(); ++i) 
+		(*i)->filterList(l);
 
-	directories.erase(std::remove_if(directories.begin(),directories.end(),DirectoryEmpty()),directories.end());
+	directories.erase(remove_if(directories.begin(), directories.end(), DirectoryEmpty()), directories.end());
+	files.erase(remove_if(files.begin(), files.end(), HashContained(l)), files.end());
 
-	files.erase(std::remove_if(files.begin(),files.end(),HashContained(l)),files.end());
 	if((SETTING(SKIP_SUBTRACT) > 0) && (files.size() < 2)) {   //setting for only skip if folder filecount under x ?
-		for(auto f = files.begin(); f != files.end(); ) {
-			if((*f)->getSize() < (SETTING(SKIP_SUBTRACT) *1024) ) {
-				files.erase(f);
-			} else ++f;
-		}
+		files.erase(remove_if(files.begin(), files.end(), SizeLess()), files.end());
 	}
 }
 
 void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSet& l) {
-	for(auto i = directories.begin(); i != directories.end(); ++i) (*i)->getHashList(l);
-		for(DirectoryListing::File::Iter i = files.begin(); i != files.end(); ++i) l.insert((*i)->getTTH());
+	for(auto i = directories.begin(); i != directories.end(); ++i) 
+		(*i)->getHashList(l);
+
+	for(auto i = files.begin(); i != files.end(); ++i) 
+		l.insert((*i)->getTTH());
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {

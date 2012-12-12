@@ -1577,7 +1577,7 @@ enum Strings { // @DontAdd
 	DL_STATUS_POPUP, // "Download speed - Click to adjust limiter value"
 	UL_STATUS_POPUP, // "Upload speed - Click to adjust limiter value"
 	UPLOADED, // "Uploaded"
-	SWITCHING_TO_ADDRESS, // "Switching to an address %s"
+	SWITCHING_TO_ADDRESS, // "Switching to the address %s"
 	X_BUNDLES_QUEUED, // "%d bundles queued"
 	X_FINISHED_BUNDLES, // "%d finished bundle(s)"
 	ACTIVE_FOR, // "Active for %s"
