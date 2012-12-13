@@ -1593,6 +1593,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "Encryption", 
 "Always match other users' file lists with ADL search", 
 "Always match own full file list with ADL search ", 
+"Collecting results", 
+"Searching for proper", 
+"Increase current number", 
+"Decrease current number", 
+"Hours to search for proper when using incrementation", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3186,4 +3191,9 @@ std::string dcpp::ResourceManager::names[] = {
 "Encryption", 
 "SettingsUseAdls", 
 "SettingsUseAdlsOwn", 
+"CollectingResults", 
+"PostSearching", 
+"IncreaseNum", 
+"DecreaseNum", 
+"SettingsDelayHours", 
 };

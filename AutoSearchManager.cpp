@@ -38,10 +38,9 @@
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/algorithm/copy.hpp>
-
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include "boost/range/algorithm/max_element.hpp"
+#include <boost/range/algorithm/max_element.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace dcpp {
 
@@ -50,6 +49,7 @@ using boost::adaptors::map_values;
 using boost::adaptors::map_keys;
 using boost::range::for_each;
 using boost::range::find_if;
+using boost::range::max_element;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
@@ -60,7 +60,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), tType(aTargetType), 
 		expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
 		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString),
-		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING) {
+		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING), noDelay(false) {
 
 	if (token == 0)
 		token = Util::randInt(10);
@@ -91,9 +91,10 @@ bool AutoSearch::allowNewItems() const {
 	return !remove && !usingIncrementation();
 }
 
-void AutoSearch::increaseNumber() {
+void AutoSearch::changeNumber(bool increase) {
 	if (usingIncrementation()) {
-		curNumber++;
+		noDelay = true;
+		increase ? curNumber++ : curNumber--;
 		updatePattern();
 	}
 }
@@ -152,8 +153,8 @@ void AutoSearch::removeBundle(BundlePtr aBundle) {
 	bundles.erase(aBundle);
 }
 
-void AutoSearch::addPath(const string& aPath) { 
-	finishedPaths.insert(aPath);
+void AutoSearch::addPath(const string& aPath, time_t aFinishTime) { 
+	finishedPaths[aPath] = aFinishTime;
 }
 
 bool AutoSearch::usingIncrementation() const {
@@ -165,13 +166,17 @@ string AutoSearch::getSearchingStatus() const {
 		return STRING(DISABLED);
 	} else if (status == STATUS_MANUAL) {
 		return STRING(MATCHING_MANUAL);
+	} else if (status == STATUS_COLLECTING) {
+		return STRING(COLLECTING_RESULTS);
+	} else if (status == STATUS_POSTSEARCH) {
+		return STRING(POST_SEARCHING);
 	} else if (status == STATUS_WAITING) {
 		auto time = GET_TIME();
 		if (nextSearchChange > time) {
 			auto timeStr = Util::formatTime(nextSearchChange - time, true, true);
 			return nextIsDisable ? STRING_F(ACTIVE_FOR, timeStr) : STRING_F(WAITING_LEFT, timeStr);
 		}
-	} else if (remove) {
+	} else if (remove || usingIncrementation()) {
 		if (status == STATUS_QUEUED_OK) {
 			return STRING(INACTIVE_QUEUED);
 		} else if (status == STATUS_FAILED_MISSING) {
@@ -208,12 +213,31 @@ void AutoSearch::updateStatus() {
 	}
 
 	if (bundles.empty()) {
+		if (!noDelay && usingIncrementation() && !finishedPaths.empty()) {
+			if (*max_element(finishedPaths | map_values) + SETTING(AS_DELAY_HOURS)+60*60 > GET_TIME()) {
+				status = AutoSearch::STATUS_POSTSEARCH;
+				return;
+			}
+		}
 		status = AutoSearch::STATUS_SEARCHING;
 		return;
 	}
 
 	status = *boost::max_element(bundles | map_values);
 }
+
+bool AutoSearch::removePostSearch() {
+	if (!noDelay && usingIncrementation() && !finishedPaths.empty() && SETTING(AS_DELAY_HOURS) > 0) {
+		auto max = *max_element(finishedPaths | map_values);
+		if (max > 0 && max + SETTING(AS_DELAY_HOURS)+60*60 <= GET_TIME()) {
+			updateStatus();
+			return true;
+		}
+	}
+
+	return false;
+}
+
 
 time_t AutoSearch::nextAllowedSearch() {
 	if (nextSearchChange == 0 || nextIsDisable)
@@ -377,6 +401,13 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr ipw) {
 	return true;
 }
 
+void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) {
+	WLock l(cs);
+	as->changeNumber(increase);
+	as->updateStatus();
+	fire(AutoSearchManagerListener::UpdateItem(), as, true);
+}
+
 void AutoSearchManager::removeAutoSearch(AutoSearchPtr aItem) {
 	WLock l(cs);
 	auto i = find(searchItems.begin(), searchItems.end(), aItem);
@@ -408,7 +439,7 @@ AutoSearchPtr AutoSearchManager::getSearchByToken(ProfileToken aToken) const {
 
 
 /* GUI things */
-void AutoSearchManager::getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, OrderedStringSet& finishedPaths) const {
+void AutoSearchManager::getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const {
 	{
 		RLock l(cs);
 		finishedPaths = as->getFinishedPaths();
@@ -495,10 +526,15 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 				if (!removeAs) {
 					dirty = true;
 					if (finished) {
-						as->addPath(aBundle->getTarget());
-						as->increaseNumber();
+						as->addPath(aBundle->getTarget(), GET_TIME());
+						if (SETTING(AS_DELAY_HOURS) > 0) {
+							as->setNoDelay(false);
+							as->setStatus(AutoSearch::STATUS_POSTSEARCH);
+						} else {
+							as->changeNumber(true);
+							as->updateStatus();
+						}
 					}
-					as->updateStatus();
 				}
 			}
 
@@ -605,6 +641,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 /* Scheduled searching */
 bool AutoSearchManager::checkItems() {
 	AutoSearchList expired;
+	AutoSearchList il;
 	bool result = false;
 	auto curTime = GET_TIME();
 
@@ -627,6 +664,9 @@ bool AutoSearchManager::checkItems() {
 				search = false;
 			}
 
+			if ((*i)->removePostSearch())
+				il.push_back(*i);
+
 			if ((*i)->updateSearchTime() || (*i)->getExpireTime() > 0)
 				fire(AutoSearchManagerListener::UpdateItem(), *i, false);
 
@@ -640,6 +680,15 @@ bool AutoSearchManager::checkItems() {
 		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getSearchString(), LogManager::LOG_INFO); 
 		removeAutoSearch(as);
 	});
+
+	if (!il.empty()) {
+		WLock l(cs);
+		for_each(il, [&](AutoSearchPtr as) {
+			as->changeNumber(true);
+			fire(AutoSearchManagerListener::UpdateItem(), as, false);
+		});
+		dirty = true;
+	}
 
 	if(!result) //if no enabled items, start checking from the beginning with newly enabled ones.
 		curPos = 0;
@@ -718,8 +767,10 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			if (!as->allowNewItems() && !as->getManualSearch())
 				continue;
 			
-			as->setManualSearch(false);
-			as->updateStatus();
+			if (as->getManualSearch()) {
+				as->setManualSearch(false);
+				as->updateStatus();
+			}
 
 			//match
 			if (as->getFileType() == SEARCH_TYPE_TTH) {
@@ -787,7 +838,12 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 		{
 			WLock l(cs);
-			searchResults[as->getToken()].push_back(sr);
+			auto& rl = searchResults[as->getToken()];
+			if (rl.empty()) {
+				as->setStatus(AutoSearch::STATUS_COLLECTING);
+				fire(AutoSearchManagerListener::UpdateItem(), as, false);
+			}
+			rl.push_back(sr);
 		}
 
 		resultCollector.addEvent(as->getToken(), [this, as] { pickMatch(as); }, 2000);
@@ -804,13 +860,13 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 		if (p != searchResults.end()) {
 			results = move(p->second);
 			searchResults.erase(p);
-		} else {
-			return;
 		}
+
+		as->updateStatus();
 	}
 
-	if (results.empty())
-		return;
+	fire(AutoSearchManagerListener::UpdateItem(), as, false);
+	dcassert(!results.empty());
 
 	//sort results by the name
 	unordered_map<string, SearchResultList> dirList;
@@ -827,6 +883,8 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 
 		// no repack or proper, pick the one with most matches
 		if (p == dirList.end()) {
+			if (as->getStatus() == AutoSearch::STATUS_POSTSEARCH) //don't download anything
+				return;
 			p = max_element(dirList | map_values, [](const SearchResultList& p1, const SearchResultList& p2) { return p1.size() < p2.size(); }).base();
 		}
 
@@ -840,7 +898,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 		unordered_map<int64_t, int> sizeMap;
 		for_each(i->second, [&sizeMap](const SearchResultPtr sr) { sizeMap[sr->getSize()]++; });
 
-		auto p = max_element(sizeMap.begin(), sizeMap.end(), [] (pair<int64_t, int> p1, pair<int64_t, int> p2)-> bool { 
+		auto p = max_element(sizeMap, [] (pair<int64_t, int> p1, pair<int64_t, int> p2)-> bool { 
 			if (p1.first == 0)
 				return true;
 			if (p2.first == 0)
@@ -941,13 +999,15 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("CurNumber", as->getCurNumber());
 				xml.addChildAttrib("MaxNumber", as->getMaxNumber());
 				xml.addChildAttrib("MinNumberLen", as->getNumberLen());
+				xml.addChildAttrib("ForceNoDelay", as->getNoDelay());
 
 
 				if (!as->getFinishedPaths().empty()) {
 					xml.addTag("FinishedPaths");
 					xml.stepIn();
 					for(auto i = as->getFinishedPaths().begin(); i != as->getFinishedPaths().end(); ++i) {
-						xml.addTag("Path", *i);
+						xml.addTag("Path", i->first);
+						xml.addChildAttrib("FinishTime", i->second);
 					}
 					xml.stepOut();
 				}
@@ -1024,14 +1084,16 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				as->setCurNumber(aXml.getIntChildAttrib("CurNumber"));
 				as->setMaxNumber(aXml.getIntChildAttrib("MaxNumber"));
 				as->setNumberLen(aXml.getIntChildAttrib("MinNumberLen"));
+				as->setNoDelay(aXml.getBoolChildAttrib("ForceNoDelay"));
 			}
 			aXml.resetCurrentChild();
 
 			if (aXml.findChild("FinishedPaths")) {
 				aXml.stepIn();
 				while(aXml.findChild("Path")) {
+					auto time = aXml.getIntChildAttrib("FinishTime");
 					aXml.stepIn();
-					as->addPath(aXml.getData());
+					as->addPath(aXml.getData(), time);
 					aXml.stepOut();
 				}
 				aXml.stepOut();

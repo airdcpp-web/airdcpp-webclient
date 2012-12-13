@@ -86,7 +86,9 @@ public:
 		STATUS_DISABLED,
 		STATUS_MANUAL,
 		STATUS_SEARCHING,
+		STATUS_COLLECTING,
 		STATUS_WAITING,
+		STATUS_POSTSEARCH,
 		STATUS_QUEUED_OK,
 		STATUS_FAILED_MISSING,
 		STATUS_FAILED_EXTRAS
@@ -98,6 +100,7 @@ public:
 
 	~AutoSearch();
 	typedef map<BundlePtr, Status> BundleStatusMap;
+	typedef map<string, time_t> FinishedPathMap;
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
@@ -115,13 +118,14 @@ public:
 	GETSET(bool, matchFullPath, MatchFullPath);
 	GETSET(ProfileToken, token, Token);
 	GETSET(BundleStatusMap, bundles, Bundles);
-	GETSET(OrderedStringSet, finishedPaths, FinishedPaths);
+	GETSET(FinishedPathMap, finishedPaths, FinishedPaths);
 	GETSET(Status, status, Status);
 
 	GETSET(int, curNumber, CurNumber);
 	GETSET(int, maxNumber, MaxNumber);
 	GETSET(int, numberLen, NumberLen);
 	GETSET(bool, useParams, UseParams);
+	GETSET(bool, noDelay, NoDelay);
 
 	time_t nextAllowedSearch();
 	SearchTime startTime;
@@ -137,13 +141,13 @@ public:
 
 	bool allowNewItems() const;
 	void updatePattern();
-	void increaseNumber();
+	void changeNumber(bool increase);
 	bool updateSearchTime();
 	void updateStatus();
 
 	void removeBundle(BundlePtr aBundle);
 	void setBundleStatus(BundlePtr aBundle, Status aStatus);
-	void addPath(const string& aPath);
+	void addPath(const string& aPath, time_t aFinishTime);
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;
 	static string formatParams(const AutoSearchPtr as, const string& aString);
@@ -151,6 +155,7 @@ public:
 	void prepareUserMatcher() { userMatcher.prepare(); }
 	string getTarget() { return target; }
 	void setTarget(const string& aTarget);
+	bool removePostSearch();
 private:
 	StringMatch userMatcher;
 	time_t nextSearchChange;
@@ -180,10 +185,12 @@ public:
 	string getBundleStatuses(const AutoSearchPtr as) const;
 	void clearPaths(AutoSearchPtr as);
 
-	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, OrderedStringSet& finishedPaths) const;
+	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const;
 	bool updateAutoSearch(AutoSearchPtr ipw);
 	void removeAutoSearch(AutoSearchPtr a);
 	bool searchItem(AutoSearchPtr as, SearchType aType);
+
+	void changeNumber(AutoSearchPtr as, bool increase);
 	
 	AutoSearchList& getSearchItems() { 
 		RLock l(cs);

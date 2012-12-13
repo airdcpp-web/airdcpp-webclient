@@ -589,13 +589,11 @@ void UpdateManager::completeLanguageCheck() {
 }
 
 void UpdateManager::checkVersion(bool aManual) {
-	if (conns[CONN_SIGNATURE] || conns[CONN_VERSION]) {
+	if (conns[CONN_SIGNATURE] || conns[CONN_VERSION] || conns[CONN_CLIENT]) {
+		if (aManual) {
+			fire(UpdateManagerListener::UpdateFailed(), STRING(ALREADY_UPDATING));
+		}
 		return;
-	}
-
-	if (conns[CONN_CLIENT]) {
-		if (aManual)
-			failUpdateDownload(STRING(ALREADY_UPDATING), aManual);
 	}
 
 	conns[CONN_SIGNATURE].reset(new HttpDownload(static_cast<string>(VERSION_URL) + ".sign",

@@ -1600,5 +1600,10 @@ enum Strings { // @DontAdd
 	ENCRYPTION, // "Encryption"
 	SETTINGS_USE_ADLS, // "Always match other users' file lists with ADL search"
 	SETTINGS_USE_ADLS_OWN, // "Always match own full file list with ADL search "
+	COLLECTING_RESULTS, // "Collecting results"
+	POST_SEARCHING, // "Searching for proper"
+	INCREASE_NUM, // "Increase current number"
+	DECREASE_NUM, // "Decrease current number"
+	SETTINGS_DELAY_HOURS, // "Hours to search for proper when using incrementation"
 	LAST // @DontAdd
 };
