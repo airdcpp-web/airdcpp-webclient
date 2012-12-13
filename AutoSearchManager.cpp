@@ -144,9 +144,14 @@ string AutoSearch::getDisplayType() const {
 	return SearchManager::isDefaultTypeStr(fileType) ? SearchManager::getTypeStr(fileType[0]-'0') : fileType;
 }
 
-void AutoSearch::setBundleStatus(BundlePtr aBundle, Status aStatus) {
-	bundles[aBundle] = aStatus;
+bool AutoSearch::setBundleStatus(BundlePtr aBundle, Status aStatus) {
+	auto& s = bundles[aBundle];
+	if (aStatus == s)
+		return false;
+
+	s = aStatus;
 	updateStatus();
+	return true;
 }
 
 void AutoSearch::removeBundle(BundlePtr aBundle) { 
@@ -495,17 +500,24 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 
 /* Bundle updates */
 bool AutoSearchManager::onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus) {
-	bool found = false;
+	bool found = false, searched = false;
 	for(auto i = aSearches.begin(); i != aSearches.end(); ++i) {
 		auto as = getSearchByToken(*i);
 		if (as) {
 			found = true;
+			bool changed = false;
 			{
 				WLock l (cs);
-				as->setBundleStatus(aBundle, aStatus);
+				if (as->setBundleStatus(aBundle, aStatus)) {
+					fire(AutoSearchManagerListener::UpdateItem(), as, true);
+					changed = true;
+				}
 			}
 
-			fire(AutoSearchManagerListener::UpdateItem(), as, true);
+			if (changed && !searched && aStatus == AutoSearch::STATUS_FAILED_MISSING) {
+				searchItem(as, TYPE_NORMAL);
+				searched = true;
+			}
 		}
 	}
 
@@ -532,9 +544,9 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 							as->setStatus(AutoSearch::STATUS_POSTSEARCH);
 						} else {
 							as->changeNumber(true);
-							as->updateStatus();
 						}
 					}
+					as->updateStatus();
 				}
 			}
 
@@ -568,12 +580,25 @@ void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, Searc
 		ftype = SearchManager::TYPE_ANY;
 	}
 
-
+	string searchWord;
+	bool failedBundle = false;
+	
 	//Update the item
 	{
 		WLock l(cs);
 		as->updatePattern();
+		if (as->getStatus() == AutoSearch::STATUS_FAILED_MISSING) {
+			auto p = find(as->getBundles() | map_values, AutoSearch::STATUS_FAILED_MISSING).base();
+			if (p != as->getBundles().end()) {
+				searchWord = p->first->getName();
+				failedBundle = true;
+			}
+		}
 	}
+
+	if (!failedBundle)
+		searchWord = as->getUseParams() ? AutoSearch::formatParams(as, as->getSearchString()) : as->getSearchString();
+
 	as->setLastSearch(GET_TIME());
 	if (aType == TYPE_MANUAL && !as->getEnabled()) {
 		as->setManualSearch(true);
@@ -583,18 +608,32 @@ void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, Searc
 
 
 	//Run the search
-	string searchWord = as->getUseParams() ? AutoSearch::formatParams(as, as->getSearchString()) : as->getSearchString();
 	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchWord, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, 
 		"as", extList, StringList(), aType == TYPE_MANUAL ? Search::MANUAL : Search::AUTO_SEARCH);
 
 
 	//Report
+	string msg;
 	if (searchTime == 0) {
-		logMessage(aType == TYPE_NEW ? CSTRING_F(AUTOSEARCH_ADDED_SEARCHED, searchWord) : STRING_F(ITEM_SEARCHED, searchWord), false);
+		if (failedBundle) {
+			msg = STRING_F(FAILED_BUNDLE_SEARCHED, searchWord);
+		} else if (aType == TYPE_NEW) {
+			msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED, searchWord);
+		} else {
+			msg = STRING_F(ITEM_SEARCHED, searchWord);
+		}
 	} else {
 		auto time = searchTime / 1000;
-		logMessage(aType == TYPE_NEW ? CSTRING_F(AUTOSEARCH_ADDED_SEARCHED_IN, searchWord % time) : STRING_F(ITEM_SEARCHED_IN, searchWord % time), false);
+		if (failedBundle) {
+			msg = STRING_F(FAILED_BUNDLE_SEARCHED_IN, searchWord % time);
+		} else if (aType == TYPE_NEW) {
+			msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED_IN, searchWord % time);
+		} else {
+			msg = STRING_F(ITEM_SEARCHED_IN, searchWord % time);
+		}
 	}
+
+	logMessage(msg, false);
 }
 
 
@@ -842,6 +881,9 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			if (rl.empty()) {
 				as->setStatus(AutoSearch::STATUS_COLLECTING);
 				fire(AutoSearchManagerListener::UpdateItem(), as, false);
+			} else if (find_if(rl, [&sr](const SearchResultPtr aSR) { return aSR->getUser() == sr->getUser() && aSR->getFile() == sr->getFile(); }) != rl.end()) {
+				//don't add the same result multiple times, makes the counting more reliable
+				return;
 			}
 			rl.push_back(sr);
 		}
@@ -852,6 +894,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 	SearchResultList results;
+	int64_t minWantedSize = -1;
 
 	//get the result list
 	{
@@ -863,6 +906,11 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 		}
 
 		as->updateStatus();
+		if (as->getStatus() == AutoSearch::STATUS_FAILED_MISSING) {
+			auto p = find(as->getBundles() | map_values, AutoSearch::STATUS_FAILED_MISSING).base();
+			dcassert(p != as->getBundles().end());
+			minWantedSize = p->first->getSize();
+		}
 	}
 
 	fire(AutoSearchManagerListener::UpdateItem(), as, false);
@@ -885,18 +933,24 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 		if (p == dirList.end()) {
 			if (as->getStatus() == AutoSearch::STATUS_POSTSEARCH) //don't download anything
 				return;
+
 			p = max_element(dirList | map_values, [](const SearchResultList& p1, const SearchResultList& p2) { return p1.size() < p2.size(); }).base();
 		}
 
+		// only download this directory
 		unordered_map<string, SearchResultList> dirList2;
 		dirList2.insert(*p);
 		dirList = move(dirList2);
 	}
 
-	//pick the item for each name that has most size matches
-	for (auto i = dirList.begin(); i != dirList.end(); ++i) {
+
+	auto getDownloadSize = [&] (const SearchResultList& srl, int64_t minSize) -> int64_t {
+		//pick the item that has most size matches
 		unordered_map<int64_t, int> sizeMap;
-		for_each(i->second, [&sizeMap](const SearchResultPtr sr) { sizeMap[sr->getSize()]++; });
+		for_each(srl, [&sizeMap, minSize](const SearchResultPtr sr) {
+			if (sr->getSize() > minSize)
+				sizeMap[sr->getSize()]++; 
+		});
 
 		auto p = max_element(sizeMap, [] (pair<int64_t, int> p1, pair<int64_t, int> p2)-> bool { 
 			if (p1.first == 0)
@@ -906,9 +960,23 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 			return p1.second < p2.second; 
 		});
 
+		return p != sizeMap.end() ? p->first : -1;
+	};
+
+
+	for (auto i = dirList.begin(); i != dirList.end(); ++i) {
+		// if we have a bundle with missing files, try to find one that is bigger than it
+		auto dlSize = getDownloadSize(i->second, minWantedSize);
+		if (dlSize == -1) {
+			//no bigger items found
+			dlSize = getDownloadSize(i->second, -1);
+		}
+
+		dcassert(dlSize > -1);
+
 		//download all matches with the given size
-		for_each(i->second, [p, this, as](const SearchResultPtr sr) { 
-			if (sr->getSize() == p->first)
+		for_each(i->second, [dlSize, this, as](const SearchResultPtr sr) { 
+			if (sr->getSize() == dlSize)
 				handleAction(sr, as);
 		});
 	}

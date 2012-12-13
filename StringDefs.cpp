@@ -1598,6 +1598,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Increase current number", 
 "Decrease current number", 
 "Hours to search for proper when using incrementation", 
+"%d folders with no release files", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3196,4 +3197,5 @@ std::string dcpp::ResourceManager::names[] = {
 "IncreaseNum", 
 "DecreaseNum", 
 "SettingsDelayHours", 
+"XNoReleaseFiles", 
 };

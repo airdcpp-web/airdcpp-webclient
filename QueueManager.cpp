@@ -992,14 +992,8 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 
 	if (!SETTING(SCAN_DL_BUNDLES) || b->isFileBundle()) {
 		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, b->getName().c_str()), LogManager::LOG_INFO);
-	} else if (SETTING(SCAN_DL_BUNDLES)) {
-		bool hasMissing=false, hasExtras=false;
-		ShareScannerManager::getInstance()->scanBundle(b, hasMissing, hasExtras);
-		if (hasMissing || hasExtras) {
-			b->setFlag(Bundle::FLAG_SHARING_FAILED);
-			onBundleStatusChanged(b, hasExtras ? AutoSearch::STATUS_FAILED_EXTRAS : AutoSearch::STATUS_FAILED_MISSING);
-			return;
-		}
+	} else if (!scanBundle(b)) {
+		return;
 	} 
 
 	onBundleRemoved(b, true);
@@ -1008,6 +1002,20 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr qi) {
 	} else {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	}
+}
+
+bool QueueManager::scanBundle(BundlePtr aBundle) {
+	if (!SETTING(SCAN_DL_BUNDLES))
+		return true;
+
+	bool hasMissing=false, hasExtras=false;
+	ShareScannerManager::getInstance()->scanBundle(aBundle, hasMissing, hasExtras);
+	if (hasMissing || hasExtras) {
+		aBundle->setFlag(Bundle::FLAG_SHARING_FAILED);
+		onBundleStatusChanged(aBundle, hasExtras ? AutoSearch::STATUS_FAILED_EXTRAS : AutoSearch::STATUS_FAILED_MISSING);
+		return false;
+	}
+	return true;
 }
 
 void QueueManager::hashBundle(BundlePtr aBundle) {
@@ -2614,11 +2622,8 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 
 	for (auto i = hash.begin(); i != hash.end(); i++) {
 		BundlePtr b = *i;
-		if(b->isSet(Bundle::FLAG_SHARING_FAILED) && SETTING(SCAN_DL_BUNDLES)) {
-			bool hasExtras=false, hasMissing=false;
-			ShareScannerManager::getInstance()->scanBundle(b, hasMissing, hasExtras);
-			if (hasExtras || hasMissing)
-				continue;
+		if(b->isSet(Bundle::FLAG_SHARING_FAILED) && !scanBundle(b)) {
+			continue;
 		}
 
 		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
@@ -2638,24 +2643,15 @@ void QueueManager::onBundleStatusChanged(BundlePtr aBundle, AutoSearch::Status a
 
 	auto found = AutoSearchManager::getInstance()->onBundleStatus(aBundle, searches, aStatus);
 
-	if (aStatus == AutoSearch::STATUS_FAILED_MISSING) {
-		if (!found && BOOLSETTING(AUTO_COMPLETE_BUNDLES)) {
-			auto token = Util::randInt(10);
+	if (aStatus == AutoSearch::STATUS_FAILED_MISSING && !found && BOOLSETTING(AUTO_COMPLETE_BUNDLES)) {
+		auto token = Util::randInt(10);
 
-			{
-				WLock l(cs);
-				aBundle->addAutoSearch(token);
-			}
-
-			AutoSearchManager::getInstance()->addFailedBundle(aBundle, token); 
-		} else if (found) {
-			uint64_t time = SearchManager::getInstance()->search(aBundle->getName(), 0, SearchManager::TYPE_DIRECTORY, SearchManager::SIZE_DONTCARE, "asfail", Search::AUTO_SEARCH);
-			if (time == 0) {
-				LogManager::getInstance()->message(STRING_F(FAILED_BUNDLE_SEARCHED, aBundle->getName()), LogManager::LOG_INFO);
-			} else {
-				LogManager::getInstance()->message(STRING_F(FAILED_BUNDLE_SEARCHED_IN, aBundle->getName() % (time / 1000)), LogManager::LOG_INFO);
-			}
+		{
+			WLock l(cs);
+			aBundle->addAutoSearch(token);
 		}
+
+		AutoSearchManager::getInstance()->addFailedBundle(aBundle, token); 
 	}
 }
 
@@ -2826,11 +2822,10 @@ void QueueManager::mergeBundle(BundlePtr targetBundle, BundlePtr sourceBundle) {
 	onBundleStatusChanged(targetBundle, AutoSearch::STATUS_QUEUED_OK);
 
 	{
-		RLock l (cs);
+		WLock l (cs);
 		added = (int)sourceBundle->getQueueItems().size();
+		moveBundleItems(sourceBundle, targetBundle, true);
 	}
-
-	moveBundleItems(sourceBundle, targetBundle, true);
 	
 	if (finished) {
 		readdBundle(targetBundle);
@@ -2895,9 +2890,9 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 				bundleQueue.addFinishedItem(q, aBundle);
 				j = b->getFinishedFiles().begin();
 			}
-		}
 
-		moveBundleItems(b, aBundle, false);
+			moveBundleItems(b, aBundle, false);
+		}
 	});
 
 	aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
@@ -3164,6 +3159,7 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 	}
 
 	if (newBundle != sourceBundle) {
+		WLock l(cs);
 		moveBundleItems(ql, tempBundle, false);
 	}
 
@@ -3324,11 +3320,11 @@ void QueueManager::moveFiles(const StringPairList& sourceTargetList) noexcept {
 			}
 
 			{
-				RLock l(cs);
+				WLock l(cs);
 				finished = targetBundle->isFinished();
+				moveBundleItems(ql, targetBundle, !finished);
 			}
 
-			moveBundleItems(ql, targetBundle, !finished);
 			if (finished) {
 				readdBundle(targetBundle);
 

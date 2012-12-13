@@ -146,7 +146,8 @@ public:
 	void updateStatus();
 
 	void removeBundle(BundlePtr aBundle);
-	void setBundleStatus(BundlePtr aBundle, Status aStatus);
+	//returns true if the status has changed
+	bool setBundleStatus(BundlePtr aBundle, Status aStatus);
 	void addPath(const string& aPath, time_t aFinishTime);
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;

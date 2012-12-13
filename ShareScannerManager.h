@@ -56,8 +56,8 @@ public:
 		TYPE_FAILED_FINISHED,
 	};
 
-	void find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, ScanType scanType);
-	void scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders, ScanType scanType);
+	void find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& noReleaseFiles, int& emptyFolders, ScanType scanType);
+	void scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& noReleaseFiles, int& emptyFolders, ScanType scanType);
 	int scan(StringList paths = StringList(), bool sfv = false);
 	void scanBundle(BundlePtr aBundle, bool& hasMissing, bool& hasExtras);
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan);
@@ -115,7 +115,7 @@ private:
 	void prepareSFVScanFile(const string& path, StringList& files);
 	StringList bundleDirs;
 
-	void reportResults(const string& path, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound = 0);
+	void reportResults(const string& path, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int noReleaseFiles, int emptyFolders, int dupesFound);
 	void reportMessage(const string& aMessage, ScanType scanType, bool warning = true);
 
 	string scanReport;

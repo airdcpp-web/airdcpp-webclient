@@ -1605,5 +1605,6 @@ enum Strings { // @DontAdd
 	INCREASE_NUM, // "Increase current number"
 	DECREASE_NUM, // "Decrease current number"
 	SETTINGS_DELAY_HOURS, // "Hours to search for proper when using incrementation"
+	X_NO_RELEASE_FILES, // "%d folders with no release files"
 	LAST // @DontAdd
 };

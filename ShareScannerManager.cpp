@@ -168,7 +168,7 @@ int ShareScannerManager::run() {
 		sort(bundleDirs.begin(), bundleDirs.end());
 
 		string dir;
-		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0;
+		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0, noReleaseFiles = 0;
 
 		for(auto i = rootPaths.begin(); i != rootPaths.end(); ++i) {
 			if (stop)
@@ -182,15 +182,15 @@ int ShareScannerManager::run() {
 				if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {
 					continue;
 				}
-				scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, isDirScan ? TYPE_PARTIAL : TYPE_FULL);
+				scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, noReleaseFiles, emptyFolders, isDirScan ? TYPE_PARTIAL : TYPE_FULL);
 				if(SETTING(CHECK_DUPES) && isDirScan)
 					findDupes(dir, dupesFound, isDirScan ? TYPE_PARTIAL : TYPE_FULL);
 
-				find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, isDirScan ? TYPE_PARTIAL : TYPE_FULL);
+				find(dir, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, noReleaseFiles, emptyFolders, isDirScan ? TYPE_PARTIAL : TYPE_FULL);
 			}
 		}
 		if(!stop) {
-			reportResults(Util::emptyString, isDirScan ? TYPE_PARTIAL : TYPE_FULL, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, dupesFound);
+			reportResults(Util::emptyString, isDirScan ? TYPE_PARTIAL : TYPE_FULL, missingFiles, missingSFV, missingNFO, extrasFound, noReleaseFiles, emptyFolders, dupesFound);
 			if (!scanReport.empty()) {
 				char buf[255];
 				time_t time = GET_TIME();
@@ -217,7 +217,7 @@ bool ShareScannerManager::matchSkipList(const string& dir) {
 	return false;
 }
 
-void ShareScannerManager::find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& emptyFolders, ScanType scanType) {
+void ShareScannerManager::find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& noReleaseFiles, int& emptyFolders, ScanType scanType) {
 	if(path.empty())
 		return;
 
@@ -236,7 +236,7 @@ void ShareScannerManager::find(const string& path, int& missingFiles, int& missi
 					continue;
 				}
 				if(!i->isHidden()) {
-					scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, scanType);
+					scanDir(dir, missingFiles, missingSFV, missingNFO, extrasFound, noReleaseFiles, emptyFolders, scanType);
 					if(SETTING(CHECK_DUPES) && scanType != TYPE_FINISHED)
 						findDupes(dir, dupesFound, scanType);
 					dirs.push_back(dir);
@@ -246,7 +246,7 @@ void ShareScannerManager::find(const string& path, int& missingFiles, int& missi
 	}
 
 	for(auto j = dirs.begin(); j != dirs.end(); j++) {
-		find(*j, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, scanType);
+		find(*j, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, noReleaseFiles, emptyFolders, scanType);
 	}
 }
 
@@ -308,7 +308,7 @@ StringList ShareScannerManager::findFiles(const string& path, const string& patt
 	return ret;
 }
 
-void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& emptyFolders, ScanType st) throw(FileException) {
+void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& noReleaseFiles, int& emptyFolders, ScanType st) throw(FileException) {
 	if(path.empty())
 		return;
 
@@ -343,12 +343,11 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 	/* No release files at all? */
 	if (!fileList.empty() && ((nfoFiles + sfvFiles) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
-		if (sfvFiles > 0) {
-			// continue so we can report the missing files...
-		} else if (!regex_match(dirName, emptyDirReg)) {
+		if (!regex_match(dirName, emptyDirReg)) {
 			StringList folderList = findFiles(path, "*", true, true);
 			if (folderList.empty()) {
 				reportMessage(STRING(RELEASE_FILES_MISSING) + " " + path, st);
+				noReleaseFiles++;
 				return;
 			}
 		}
@@ -601,14 +600,14 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 void ShareScannerManager::scanBundle(BundlePtr aBundle, bool& hasMissing, bool& hasExtras) noexcept {
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
 		ScanType st = aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? TYPE_FAILED_FINISHED : TYPE_FINISHED;
-		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0;
+		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0, noReleaseFiles =0;
 
-		scanDir(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders, st);
-		find(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, emptyFolders, st);
+		scanDir(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, noReleaseFiles, emptyFolders, st);
+		find(aBundle->getTarget(), missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, noReleaseFiles, emptyFolders, st);
 
-		reportResults(aBundle->getName(), st, missingFiles, missingSFV, missingNFO, extrasFound, emptyFolders);
+		reportResults(aBundle->getName(), st, missingFiles, missingSFV, missingNFO, extrasFound, noReleaseFiles, emptyFolders, 0);
 
-		hasMissing = (missingFiles > 0 || missingNFO > 0 || missingSFV > 0);
+		hasMissing = (missingFiles > 0 || missingNFO > 0 || missingSFV > 0 || noReleaseFiles > 0);
 		hasExtras = extrasFound > 0;
 	}
 }
@@ -621,9 +620,9 @@ void ShareScannerManager::reportMessage(const string& aMessage, ScanType scanTyp
 	}
 }
 
-void ShareScannerManager::reportResults(const string& dir, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int emptyFolders, int dupesFound) {
+void ShareScannerManager::reportResults(const string& dir, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int noReleaseFiles, int emptyFolders, int dupesFound) {
 	string tmp;
-	bool clean = (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0);
+	bool clean = (missingFiles == 0 && extrasFound == 0 && missingNFO == 0 && missingSFV == 0 && noReleaseFiles == 0);
 	if (scanType == TYPE_FULL) {
 		tmp = CSTRING(SCAN_SHARE_FINISHED);
 	} else if (scanType == TYPE_PARTIAL) {
@@ -674,6 +673,14 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 			}
 			first = false;
 			tmp += STRING_F(X_FOLDERS_EXTRAS, extrasFound);
+		}
+
+		if (noReleaseFiles > 0) {
+			if (!first) {
+				tmp += ", ";
+			}
+			first = false;
+			tmp += STRING_F(X_NO_RELEASE_FILES, noReleaseFiles);
 		}
 
 		if (emptyFolders > 0) {

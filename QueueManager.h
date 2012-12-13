@@ -286,6 +286,7 @@ private:
 	void rechecked(QueueItemPtr qi);
 	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
 	void hashBundle(BundlePtr aBundle);
+	bool scanBundle(BundlePtr aBundle);
 	void checkBundleHashed(BundlePtr aBundle);
 	void onBundleStatusChanged(BundlePtr aBundle, AutoSearch::Status aStatus);
 	void onBundleRemoved(BundlePtr aBundle, bool finished);
