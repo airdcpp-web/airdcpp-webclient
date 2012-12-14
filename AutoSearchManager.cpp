@@ -1157,7 +1157,6 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				as->setMaxNumber(aXml.getIntChildAttrib("MaxNumber"));
 				as->setNumberLen(aXml.getIntChildAttrib("MinNumberLen"));
 				as->setLastIncFinish(aXml.getBoolChildAttrib("LastIncFinish"));
-				as->removePostSearch();
 			}
 			aXml.resetCurrentChild();
 

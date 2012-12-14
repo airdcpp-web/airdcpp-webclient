@@ -27,6 +27,7 @@
 #include "File.h"
 #include "FilteredFile.h"
 #include "ZUtils.h"
+#include "SharedFileStream.h"
 
 namespace dcpp {
 
@@ -203,7 +204,9 @@ void Download::open(int64_t bytes, bool z) {
 			File::ensureDirectory(target);
 		}
 
-		unique_ptr<File> f(new File(target, File::WRITE, File::OPEN | File::CREATE | File::SHARED));
+		//unique_ptr<File> f(new File(target, File::WRITE, File::OPEN | File::CREATE | File::SHARED));
+		// open stream for both writing and reading, because UploadManager can request reading from it
+		unique_ptr<SharedFileStream> f(new SharedFileStream(target, File::RW, File::OPEN | File::CREATE | File::SHARED | File::NO_CACHE_HINT));
 
 		if(f->getSize() != fullSize) {
 			f->setSize(fullSize);

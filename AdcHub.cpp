@@ -780,8 +780,11 @@ void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
 }
 
 void AdcHub::hubMessage(const string& aMessage, bool thirdPerson) {
-	if(state != STATE_NORMAL)
+	if(state != STATE_NORMAL) {
+		LogManager::getInstance()->message("Failed to send a hub message because of invalid hub state: " + aMessage + " (current state " + Util::toString(state) + ")", LogManager::LOG_ERROR);
 		return;
+	}
+
 	AdcCommand c(AdcCommand::CMD_MSG, AdcCommand::TYPE_BROADCAST);
 	c.addParam(aMessage);
 	if(thirdPerson)
@@ -790,8 +793,11 @@ void AdcHub::hubMessage(const string& aMessage, bool thirdPerson) {
 }
 
 void AdcHub::privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson) {
-	if(state != STATE_NORMAL)
+	if(state != STATE_NORMAL) {
+		LogManager::getInstance()->message("Failed to send a private message because of invalid hub state: " + aMessage + " (current state " + Util::toString(state) + ")", LogManager::LOG_ERROR);
 		return;
+	}
+
 	AdcCommand c(AdcCommand::CMD_MSG, user->getIdentity().getSID(), AdcCommand::TYPE_ECHO);
 	c.addParam(aMessage);
 	if(thirdPerson)

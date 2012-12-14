@@ -841,7 +841,7 @@ void SettingsManager::load(string const& aFileName)
 		double v = Util::toDouble(SETTING(CONFIG_VERSION));
 
 		if(v <= 2.30 && SETTING(POPUP_TYPE) == 1)
-			set(AUTO_DETECT_CONNECTION, 0);
+			set(POPUP_TYPE, 0);
 
 
 		if(v <= 2.07 && SETTING(INCOMING_CONNECTIONS) != INCOMING_FIREWALL_PASSIVE) {
