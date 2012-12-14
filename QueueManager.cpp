@@ -610,7 +610,6 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 		auto ql = aBundle->getQueueItems();
 		for_each(ql, [&](QueueItemPtr q) {
 			dcassert(!q->isSource(aUser));
-			//LogManager::getInstance()->message("READD, BAD SOURCES: " + Util::toString(q->getBadSources().size()));
 			if(q && q->isBadSource(aUser.user)) {
 				try {
 					if (addSource(q, aUser, QueueItem::Source::FLAG_MASK, Util::emptyString)) { //FIX
@@ -619,9 +618,6 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 				} catch(...) {
 					LogManager::getInstance()->message("Failed to add the source for " + q->getTarget(), LogManager::LOG_WARNING);
 				}
-				//LogManager::getInstance()->message("SOURCE ADDED FOR: " + q->getTarget() + " CID " + aUser.user->getCID().toBase32());
-			} else {
-				//LogManager::getInstance()->message("SOURCE NOT ADDED3 FOR: " + q->getTarget() + " CID " + aUser.user->getCID().toBase32());
 			}
 		});
 		aBundle->removeBadSource(aUser);

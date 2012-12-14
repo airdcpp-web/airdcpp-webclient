@@ -155,6 +155,9 @@ int UDPServer::PacketProcessor::run() {
 		}
 			
 		delete t.buf;
+		if (x.empty())
+			continue;
+
 		COMMAND_DEBUG(x, DebugManager::TYPE_CLIENT_UDP, DebugManager::INCOMING, remoteIp);
 
 		if(x.compare(0, 4, "$SR ") == 0) {

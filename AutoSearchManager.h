@@ -125,7 +125,7 @@ public:
 	GETSET(int, maxNumber, MaxNumber);
 	GETSET(int, numberLen, NumberLen);
 	GETSET(bool, useParams, UseParams);
-	GETSET(bool, noDelay, NoDelay);
+	GETSET(time_t, lastIncFinish, LastIncFinish);
 
 	time_t nextAllowedSearch();
 	SearchTime startTime;

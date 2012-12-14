@@ -484,7 +484,6 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 
 	get<SOURCE_FILES>(*m)--;
 	get<SOURCE_SIZE>(*m) -= qi->getSize();
-	//LogManager::getInstance()->message("REMOVE, SOURCE FOR " + Util::toString(<SOURCE_FILES>(*m)) + " ITEMS");
 	if (get<SOURCE_FILES>(*m) == 0) {
 		sources.erase(m);
 		return true;
@@ -734,7 +733,6 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 				//LogManager::getInstance()->message("DON'T SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is less than " + Util::toString(size / 200));
 			}
 
-			//LogManager::getInstance()->message("Bundle notify info, percent: " + Util::toString(percent) + " speed: " + speedStr);
 			if (!speedStr.empty() || percent > 0) {
 				for(auto i = uploadReports.cbegin(), iend = uploadReports.cend(); i != iend; ++i) {
 					AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
@@ -759,16 +757,13 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 	bool updateOnly = false;
 	auto y = runningUsers.find(aSource->getUser());
 	if (y == runningUsers.end()) {
-		//LogManager::getInstance()->message("ADD DL BUNDLE, USER NOT FOUND, ADD NEW");
 		if (runningUsers.size() == 1) {
-			//LogManager::getInstance()->message("SEND BUNDLE MODE");
 			setBundleMode(false);
 		}
 		runningUsers[aSource->getUser()]++;
 	} else {
 		y->second++;
 		updateOnly = true;
-		//LogManager::getInstance()->message("ADD DL BUNDLE, USER FOUND, INCREASE CONNECTIONS: " + Util::toString(y->second));
 	}
 
 	if (aSource->isSet(UserConnection::FLAG_UBN1)) {
@@ -806,10 +801,8 @@ void Bundle::setBundleMode(bool setSingleUser) noexcept {
 		lastSpeed = 0;
 		lastDownloaded= 0;
 		singleUser= true;
-		//LogManager::getInstance()->message("SET BUNDLE SINGLEUSER, RUNNING: " + Util::toString(aBundle->runningUsers.size()));
 	} else {
 		singleUser = false;
-		//LogManager::getInstance()->message("SET BUNDLE MULTIUSER, RUNNING: " + aBundle->runningUsers.size());
 	}
 
 	if (!uploadReports.empty()) {
@@ -839,7 +832,6 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 	if (y != runningUsers.end()) {
 		y->second--;
 		if (y->second == 0) {
-			//LogManager::getInstance()->message("NO RUNNING, ERASE: uploadReports size " + Util::toString(bundle->getUploadReports().size()));
 			runningUsers.erase(aSource->getUser());
 			if (runningUsers.size() == 1) {
 				setBundleMode(true);
@@ -875,7 +867,6 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 }
 
 void Bundle::sendSizeNameUpdate() noexcept {
-	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
 	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 		cmd.addParam("HI", (*i).hint);
@@ -884,13 +875,11 @@ void Bundle::sendSizeNameUpdate() noexcept {
 		if (isSet(FLAG_UPDATE_SIZE)) {
 			unsetFlag(FLAG_UPDATE_SIZE);
 			cmd.addParam("SI", Util::toString(size));
-			//LogManager::getInstance()->message("UBD for bundle: " + aBundle->getName() + ", size: " + Util::toString(aBundle->getSize()));
 		}
 
 		if (isSet(FLAG_UPDATE_NAME)) {
 			unsetFlag(FLAG_UPDATE_NAME);
 			cmd.addParam("NA", getName());
-			//LogManager::getInstance()->message("UBD for bundle: " + aBundle->getName() + ", name: " + aBundle->getName());
 		}
 
 		cmd.addParam("UD1");
@@ -903,7 +892,6 @@ void Bundle::sendSizeNameUpdate() noexcept {
 
 
 void Bundle::save() {
-	//LogManager::getInstance()->message("SAVING BUNDLE: " + bundle->getName());
 	File ff(getBundleFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 	BufferedOutputStream<false> f(&ff);
 	f.write(SimpleXML::utf8Header);
@@ -967,9 +955,7 @@ void Bundle::save() {
 	try {
 		File::deleteFile(getBundleFile());
 		File::renameFile(getBundleFile() + ".tmp", getBundleFile());
-	} catch(...) {
-		//LogManager::getInstance()->message("ERROR WHEN MOVING BUNDLEXML: " + getName());
-	}
+	} catch(...) { }
 	setDirty(false);
 }
 

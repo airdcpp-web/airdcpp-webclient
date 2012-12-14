@@ -60,7 +60,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), tType(aTargetType), 
 		expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
 		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString),
-		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING), noDelay(false) {
+		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING), lastIncFinish(0) {
 
 	if (token == 0)
 		token = Util::randInt(10);
@@ -93,7 +93,7 @@ bool AutoSearch::allowNewItems() const {
 
 void AutoSearch::changeNumber(bool increase) {
 	if (usingIncrementation()) {
-		noDelay = true;
+		lastIncFinish = 0;
 		increase ? curNumber++ : curNumber--;
 		updatePattern();
 	}
@@ -218,11 +218,9 @@ void AutoSearch::updateStatus() {
 	}
 
 	if (bundles.empty()) {
-		if (!noDelay && usingIncrementation() && !finishedPaths.empty()) {
-			if (*max_element(finishedPaths | map_values) + SETTING(AS_DELAY_HOURS)+60*60 > GET_TIME()) {
-				status = AutoSearch::STATUS_POSTSEARCH;
-				return;
-			}
+		if (lastIncFinish > 0) {
+			status = AutoSearch::STATUS_POSTSEARCH;
+			return;
 		}
 		status = AutoSearch::STATUS_SEARCHING;
 		return;
@@ -232,12 +230,10 @@ void AutoSearch::updateStatus() {
 }
 
 bool AutoSearch::removePostSearch() {
-	if (!noDelay && usingIncrementation() && !finishedPaths.empty() && SETTING(AS_DELAY_HOURS) > 0) {
-		auto max = *max_element(finishedPaths | map_values);
-		if (max > 0 && max + SETTING(AS_DELAY_HOURS)+60*60 <= GET_TIME()) {
-			updateStatus();
-			return true;
-		}
+	if (lastIncFinish > 0 && lastIncFinish + SETTING(AS_DELAY_HOURS)+60*60 <= GET_TIME()) {
+		lastIncFinish = 0;
+		updateStatus();
+		return true;
 	}
 
 	return false;
@@ -528,7 +524,7 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 	for(auto i = aSearches.begin(); i != aSearches.end(); ++i) {
 		auto as = getSearchByToken(*i);
 		if (as) {
-			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0)) && finished;
+			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0)) && finished && SETTING(AS_DELAY_HOURS) == 0;
 			{
 				WLock l (cs);
 				as->removeBundle(aBundle);
@@ -538,9 +534,10 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 				if (!removeAs) {
 					dirty = true;
 					if (finished) {
-						as->addPath(aBundle->getTarget(), GET_TIME());
+						auto time = GET_TIME();
+						as->addPath(aBundle->getTarget(), time);
 						if (SETTING(AS_DELAY_HOURS) > 0) {
-							as->setNoDelay(false);
+							as->setLastIncFinish(time);
 							as->setStatus(AutoSearch::STATUS_POSTSEARCH);
 						} else {
 							as->changeNumber(true);
@@ -721,10 +718,17 @@ bool AutoSearchManager::checkItems() {
 	});
 
 	if (!il.empty()) {
-		WLock l(cs);
 		for_each(il, [&](AutoSearchPtr as) {
-			as->changeNumber(true);
-			fire(AutoSearchManagerListener::UpdateItem(), as, false);
+			{
+				WLock l(cs);
+				as->changeNumber(true);
+			}
+
+			if (as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0) {
+				removeAutoSearch(as);
+			} else {
+				fire(AutoSearchManagerListener::UpdateItem(), as, false);
+			}
 		});
 		dirty = true;
 	}
@@ -853,7 +857,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			}
 
 			//check queued
-			if(as->getCheckAlreadyQueued() && QueueManager::getInstance()->isDirQueued(dir)) {
+			if(as->getCheckAlreadyQueued() && as->getStatus() != AutoSearch::STATUS_FAILED_MISSING && QueueManager::getInstance()->isDirQueued(dir)) {
 				continue;
 			}
 		} else if (as->getFileType() != SEARCH_TYPE_ANY && as->getFileType() != SEARCH_TYPE_TTH) {
@@ -944,7 +948,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 	}
 
 
-	auto getDownloadSize = [&] (const SearchResultList& srl, int64_t minSize) -> int64_t {
+	auto getDownloadSize = [] (const SearchResultList& srl, int64_t minSize) -> int64_t {
 		//pick the item that has most size matches
 		unordered_map<int64_t, int> sizeMap;
 		for_each(srl, [&sizeMap, minSize](const SearchResultPtr sr) {
@@ -1067,7 +1071,7 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("CurNumber", as->getCurNumber());
 				xml.addChildAttrib("MaxNumber", as->getMaxNumber());
 				xml.addChildAttrib("MinNumberLen", as->getNumberLen());
-				xml.addChildAttrib("ForceNoDelay", as->getNoDelay());
+				xml.addChildAttrib("LastIncFinish", as->getLastIncFinish());
 
 
 				if (!as->getFinishedPaths().empty()) {
@@ -1152,7 +1156,8 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				as->setCurNumber(aXml.getIntChildAttrib("CurNumber"));
 				as->setMaxNumber(aXml.getIntChildAttrib("MaxNumber"));
 				as->setNumberLen(aXml.getIntChildAttrib("MinNumberLen"));
-				as->setNoDelay(aXml.getBoolChildAttrib("ForceNoDelay"));
+				as->setLastIncFinish(aXml.getBoolChildAttrib("LastIncFinish"));
+				as->removePostSearch();
 			}
 			aXml.resetCurrentChild();
 
