@@ -666,10 +666,12 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 			curPos = 0;
 			endOfListReached = false;
 		} else {
+			checkItems();
 			return;
 		}
 	}
-	if(lastSearch >= (SETTING(AUTOSEARCH_EVERY))) {
+
+	if(checkItems() && lastSearch >= (SETTING(AUTOSEARCH_EVERY))) {
 		runSearches();
 	}
 }
@@ -740,9 +742,6 @@ bool AutoSearchManager::checkItems() {
 }
 
 void AutoSearchManager::runSearches() {
-	if(!checkItems())
-		return;
-
 	StringList allowedHubs;
 	ClientManager::getInstance()->getOnlineClients(allowedHubs);
 	//no hubs? no fun...
