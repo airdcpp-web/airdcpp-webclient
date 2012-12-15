@@ -21,11 +21,9 @@
 
 #include "forward.h"
 #include "StringSearch.h"
-//#include "HashValue.h"
 
 #include <string>
 
-#include <boost/regex.hpp>
 #include <boost/variant.hpp>
 
 namespace dcpp {

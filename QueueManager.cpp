@@ -19,10 +19,6 @@
 #include "stdinc.h"
 #include "QueueManager.h"
 
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-
 #include "AutoSearchManager.h"
 #include "AirUtil.h"
 #include "Bundle.h"
@@ -63,7 +59,6 @@
 
 namespace dcpp {
 
-using boost::adaptors::map_values;
 using boost::range::for_each;
 
 #ifdef ATOMIC_FLAG_INIT

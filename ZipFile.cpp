@@ -31,8 +31,6 @@
 #include "stdinc.h"
 #include "ZipFile.h"
 
-#include <boost/regex.hpp>
-
 #include "TimerManager.h"
 #include "Util.h"
 
@@ -277,26 +275,26 @@ void ZipFile::CreateZipFileList(StringPairList& files, const string& srcPath, co
 		if(i->isHidden() || i->isLink() || name.empty())
 			continue;
 
+		if(!aPattern.empty()) {
+			try {
+				boost::regex reg(aPattern);
+				if(!boost::regex_search(name.begin(), name.end(), reg))
+					continue;
+			} catch(...) { /* ... */ }
+		}
+
 		if(i->isDirectory()) {
-			/*string newSrcPath = srcPath + name + PATH_SEPARATOR;
+			string newSrcPath = srcPath + name + PATH_SEPARATOR;
 			string newDstPath = dstPath + name + '/';
 
 			StringPairList subFiles;
-			ZipFile::CreateZipFileList(subFiles, newSrcPath, newDstPath, aPattern);
+			ZipFile::CreateZipFileList(subFiles, newSrcPath, newDstPath); //don't pass the pattern to sub directories
 
 			if(keepEmpty || !subFiles.empty()) {
 				files.push_back(make_pair(newSrcPath, newDstPath));
 				files.insert(files.end(), subFiles.begin(), subFiles.end());
-			}*/
-		} else {
-			if(!aPattern.empty()) {
-				try {
-					boost::regex reg(aPattern);
-					if(!boost::regex_search(name.begin(), name.end(), reg))
-						continue;
-				} catch(...) { /* ... */ }
 			}
-
+		} else {
 			files.push_back(make_pair(srcPath + name, dstPath + name));
 		}
 	}

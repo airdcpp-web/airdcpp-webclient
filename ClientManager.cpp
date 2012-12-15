@@ -425,21 +425,24 @@ void ClientManager::listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles
 	}
 }
 
-ProfileToken ClientManager::findProfile(UserConnection& p, const string& userSID) {
+optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const string& userSID) {
 	OnlineUser* u;
+	optional<ProfileToken> ret;
+
 	if(!userSID.empty()) {
 		RLock l(cs);
-		auto op = onlineUsers.equal_range(const_cast<CID*>(&p.getUser()->getCID()));
-		for(auto i = op.first; i != op.second; ++i) {
-			u = i->second;
+		auto op = onlineUsers.equal_range(const_cast<CID*>(&p.getUser()->getCID())) | map_values;
+		for(auto i = op.begin(); i != op.end(); ++i) {
+			u = *i;
 			if(compare(u->getIdentity().getSIDString(), userSID) == 0) {
 				p.setHubUrl(u->getClient().getAddress());
-				return u->getClient().getShareProfile();
+				ret = u->getClient().getShareProfile();
+				break;
 			}
 		}
 
 		//don't accept invalid SIDs
-		return -1;
+		return ret;
 	}
 
 	//no SID specified, find with hint.
@@ -448,13 +451,13 @@ ProfileToken ClientManager::findProfile(UserConnection& p, const string& userSID
 	RLock l(cs);
 	u = findOnlineUserHint(p.getUser()->getCID(), p.getHubUrl(), op);
 	if(u) {
-		return u->getClient().getShareProfile();
+		ret = u->getClient().getShareProfile();
 	} else if(op.first != op.second) {
 		//pick a random profile
-		return op.first->second->getClient().getShareProfile();
+		ret = op.first->second->getClient().getShareProfile();
 	}
 
-	return -1;
+	return ret;
 }
 
 string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) {

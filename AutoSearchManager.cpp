@@ -411,7 +411,7 @@ void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) {
 
 void AutoSearchManager::removeAutoSearch(AutoSearchPtr aItem) {
 	WLock l(cs);
-	auto i = find(searchItems.begin(), searchItems.end(), aItem);
+	auto i = find_if(searchItems, [aItem](const AutoSearchPtr as) { return compare(as->getToken(), aItem->getToken()) == 0; });
 	if(i != searchItems.end()) {
 
 		if(distance(searchItems.begin(), i) < curPos) //dont skip a search if we remove before the last search.
@@ -524,7 +524,8 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 	for(auto i = aSearches.begin(); i != aSearches.end(); ++i) {
 		auto as = getSearchByToken(*i);
 		if (as) {
-			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0)) && finished && SETTING(AS_DELAY_HOURS) == 0;
+			auto usingInc = as->usingIncrementation();
+			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0)) && finished && (!usingInc || SETTING(AS_DELAY_HOURS) == 0);
 			{
 				WLock l (cs);
 				as->removeBundle(aBundle);
@@ -536,11 +537,13 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 					if (finished) {
 						auto time = GET_TIME();
 						as->addPath(aBundle->getTarget(), time);
-						if (SETTING(AS_DELAY_HOURS) > 0) {
-							as->setLastIncFinish(time);
-							as->setStatus(AutoSearch::STATUS_POSTSEARCH);
-						} else {
-							as->changeNumber(true);
+						if (usingInc) {
+							if (SETTING(AS_DELAY_HOURS) > 0) {
+								as->setLastIncFinish(time);
+								as->setStatus(AutoSearch::STATUS_POSTSEARCH);
+							} else {
+								as->changeNumber(true);
+							}
 						}
 					}
 					as->updateStatus();

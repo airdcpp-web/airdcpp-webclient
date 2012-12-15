@@ -436,7 +436,12 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 			all_of(aDir->directories.begin(), aDir->directories.end(), [&reg](Directory* d) { return boost::regex_match(d->getName(), reg); })) {
 			
 			/* Create bundles from each subfolder */
-			return any_of(aDir->directories.begin(), aDir->directories.end(), [&](Directory* dir) { return downloadDir(dir, target, aTargetType, isSizeUnknown, prio, false, nullptr); });
+			bool queued = false;
+			for_each(aDir->directories, [&](Directory* dir) { 
+				if (downloadDir(dir, target, aTargetType, isSizeUnknown, prio, false, nullptr)) 
+					queued = true; 
+			});
+			return queued;
 		}
 	} else {
 		target = aTarget + aDir->getName() + PATH_SEPARATOR;

@@ -71,13 +71,21 @@
 #include <utility>
 #include <vector>
 
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
+#include <boost/range/algorithm/find_if.hpp>
+#include <boost/range/adaptor/map.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/regex.hpp>
+#include <boost/optional.hpp>
 
 namespace dcpp {
 	using namespace std;
+	using boost::optional;
+	using boost::adaptors::map_values;
+	using boost::adaptors::map_keys;
 	
 	inline int stricmp(const string& a, const string& b) { return _stricmp(a.c_str(), b.c_str()); }
 	inline int strnicmp(const string& a, const string& b, size_t n) { return _strnicmp(a.c_str(), b.c_str(), n); }

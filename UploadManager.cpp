@@ -113,8 +113,8 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	bool noAccess = false;
 
 	//make sure that we have an user
-	ProfileToken profile = ClientManager::getInstance()->findProfile(aSource, userSID);
-	if (profile < 0) {
+	auto profile = ClientManager::getInstance()->findProfile(aSource, userSID);
+	if (!profile) {
 		aSource.sendError("Unknown user", AdcCommand::ERROR_UNKNOWN_USER);
 		return false;
 	}
@@ -125,14 +125,14 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 			//check that we have a file
 			if (userlist) {
-				sourceFile = move(ShareManager::getInstance()->getFileListName(aFile, profile));
+				sourceFile = move(ShareManager::getInstance()->getFileListName(aFile, *profile));
 			} else {
 				//get all hubs with file transfers
 				ProfileTokenSet profiles;
 				ClientManager::getInstance()->listProfiles(aSource.getHintedUser().user, profiles);
 				if (profiles.empty()) {
 					//the user managed to go offline already?
-					profiles.insert(profile);
+					profiles.insert(*profile);
 				}
 
 				ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, noAccess);
@@ -146,7 +146,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			ClientManager::getInstance()->listProfiles(aSource.getHintedUser().user, profiles);
 			if (profiles.empty()) {
 				//the user managed to go offline already?
-				profiles.insert(profile);
+				profiles.insert(*profile);
 			}
 
 			ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, noAccess);
@@ -295,7 +295,7 @@ checkslots:
 		case Transfer::TYPE_TREE:
 			{
 				sourceFile = aFile;
-				MemoryInputStream* mis = ShareManager::getInstance()->getTree(aFile, profile);
+				MemoryInputStream* mis = ShareManager::getInstance()->getTree(aFile, *profile);
 				if(!mis) {
 					aSource.sendError();
 					return false;
@@ -312,12 +312,12 @@ checkslots:
 				// Partial file list
 				if (tthList) {
 					if (aFile[0] != '/') {
-						mis = QueueManager::getInstance()->generateTTHList(aFile, profile != SP_HIDDEN);
+						mis = QueueManager::getInstance()->generateTTHList(aFile, *profile != SP_HIDDEN);
 					} else {
-						mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, profile);
+						mis = ShareManager::getInstance()->generateTTHList(aFile, listRecursive, *profile);
 					}
 				} else {
-					mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, profile);
+					mis = ShareManager::getInstance()->generatePartialList(aFile, listRecursive, *profile);
 				}
 
 				if(mis == NULL) {
@@ -1155,15 +1155,16 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 	}
 
 	auto shareProfile = ClientManager::getInstance()->findProfile(*aSource, Util::emptyString);
+	if (shareProfile) {
+		const string& type = c.getParam(0);
+		const string& ident = c.getParam(1);
 
-	const string& type = c.getParam(0);
-	const string& ident = c.getParam(1);
-
-	if(type == Transfer::names[Transfer::TYPE_FILE]) {
-		try {
-			aSource->send(ShareManager::getInstance()->getFileInfo(ident, shareProfile));
-			return;
-		} catch(const ShareException&) { }
+		if(type == Transfer::names[Transfer::TYPE_FILE]) {
+			try {
+				aSource->send(ShareManager::getInstance()->getFileInfo(ident, *shareProfile));
+				return;
+			} catch(const ShareException&) { }
+		}
 	}
 
 	aSource->sendError();

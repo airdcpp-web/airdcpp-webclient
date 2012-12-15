@@ -67,6 +67,32 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath) {
 		}
 	}
 
+	//update the version in the registry
+	HKEY hk;
+	TCHAR Buf[512];
+	tstring app = Text::toT(Util::getFilePath(Util::getAppName()));
+	Buf[0] = 0;
+
+#ifdef _WIN64
+	string regkey = "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
+	int flags = KEY_WRITE | KEY_QUERY_VALUE | KEY_WOW64_64KEY;
+#else
+	string regkey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
+	int flags = KEY_WRITE | KEY_QUERY_VALUE;
+#endif
+
+	auto err = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, Text::toT(regkey).c_str(), 0, flags, &hk);
+	if(err == ERROR_SUCCESS) {
+		DWORD bufLen = sizeof(Buf);
+		DWORD type;
+		::RegQueryValueEx(hk, _T("InstallLocation"), 0, &type, (LPBYTE)Buf, &bufLen);
+		if(stricmp(app.c_str(), Buf) == 0) {
+			string tmp = SHORTVERSIONSTRING;
+			::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE)Text::toT(tmp).c_str(), sizeof(TCHAR) * (tmp.length() + 1));
+		}
+		::RegCloseKey(hk);
+	}
+
 	return ret;
 }
 
@@ -76,6 +102,11 @@ void Updater::createUpdate() {
 
 	StringPairList files;
 	ZipFile::CreateZipFileList(files, Util::getFilePath(Util::getAppName()), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
+
+	//add the theme folder
+	auto installer = Util::getParentDir(updaterFilePath) + "installer" + PATH_SEPARATOR;
+	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Themes)$");
+
 	ZipFile::CreateZipFile(updaterFilePath + updaterFile, files);
 
 	try {

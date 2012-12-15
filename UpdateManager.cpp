@@ -19,8 +19,6 @@
 #include "stdinc.h"
 #include "UpdateManager.h"
 
-#include <boost/regex.hpp>
-
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/pem.h>

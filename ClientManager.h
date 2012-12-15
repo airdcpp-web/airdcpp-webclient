@@ -104,7 +104,7 @@ public:
 	
 	void setIPUser(const UserPtr& user, const string& IP, const string& udpPort = Util::emptyString);
 	
-	ProfileToken findProfile(UserConnection& p, const string& userSID);
+	optional<ProfileToken> findProfile(UserConnection& p, const string& userSID);
 	void listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles);
 
 	string findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback);

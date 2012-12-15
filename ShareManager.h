@@ -71,7 +71,7 @@ public:
 	~ShareDirInfo() {}
 
 	string vname;
-	int profile;
+	ProfileToken profile;
 	string path;
 	bool incoming;
 	bool found; //used when detecting removed dirs with using dir tree
