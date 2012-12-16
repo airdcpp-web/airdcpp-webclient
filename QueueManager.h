@@ -65,6 +65,7 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 public:
 	void getBloom(HashBloom& bloom) const;
 	size_t getQueuedFiles() const noexcept;
+	bool hasDownloadedBytes(const string& aTarget) throw(QueueException);
 
 	bool allowAdd(const string& aTarget, const TTHValue& root) throw(QueueException, FileException);
 	/** Add a file to the queue. */

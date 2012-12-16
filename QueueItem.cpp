@@ -568,7 +568,7 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 
 bool QueueItem::hasSegment(const UserPtr& aUser, const HubSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	auto source = getSource(aUser);
-	if (!source->blockedHubs.empty() && includes(onlineHubs.begin(), onlineHubs.end(), source->blockedHubs.begin(), source->blockedHubs.end())) {
+	if (!source->blockedHubs.empty() && includes(source->blockedHubs.begin(), source->blockedHubs.end(), onlineHubs.begin(), onlineHubs.end())) {
 		lastError = STRING(NO_ACCESS_ONLINE_HUBS);
 		return false;
 	}
@@ -730,8 +730,7 @@ bool QueueItem::Source::updateHubUrl(const HubSet& onlineHubs, string& hubUrl, b
 	} else if (blockedHubs.find(hubUrl) != blockedHubs.end()) {
 		//we can't connect via a blocked hub
 		StringList availableHubs;
-		set_difference(onlineHubs.begin(), onlineHubs.end(), blockedHubs.begin(), blockedHubs.end(), availableHubs.begin());
-		dcassert(!availableHubs.empty());
+		set_difference(onlineHubs.begin(), onlineHubs.end(), blockedHubs.begin(), blockedHubs.end(), back_inserter(availableHubs));
 		hubUrl = availableHubs[0];
 		return true;
 	}

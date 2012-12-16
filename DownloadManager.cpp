@@ -352,8 +352,12 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	}
 	
 	try {
-		WLock l (cs);
-		d->open(bytes, z);
+		auto hasDownloadedBytes = QueueManager::getInstance()->hasDownloadedBytes(d->getPath());
+
+		{
+			RLock l (cs);
+			d->open(bytes, z, hasDownloadedBytes);
+		}
 	} catch(const FileException& e) {
 		failDownload(aSource, STRING(COULD_NOT_OPEN_TARGET_FILE) + " " + e.getError(), true);
 		return;

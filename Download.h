@@ -56,7 +56,7 @@ public:
 	string getTargetFileName() const;
 
 	/** Open the target output for writing */
-	void open(int64_t bytes, bool z);
+	void open(int64_t bytes, bool z, bool hasDownloadedBytes);
 
 	/** Release the target output */
 	void close();

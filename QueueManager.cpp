@@ -353,6 +353,15 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
+bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueException) {
+	RLock l(cs);
+	auto q = fileQueue.findFile(aTarget);
+	if (!q)
+		throw QueueException(STRING(TARGET_REMOVED));
+
+	return q->getDownloadedBytes() > 0;
+}
+
 void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */) throw(QueueException, FileException) {
 	addFile(aInitialDir, -1, TTHValue(), aUser, Util::emptyString, (Flags::MaskType)(QueueItem::FLAG_USER_LIST | aFlags));
 }
