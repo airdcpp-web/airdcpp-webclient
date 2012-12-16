@@ -28,85 +28,70 @@
 
 namespace dcpp {
 
-CriticalSection SharedFileStream::critical_section;
-SharedFileStream::SharedFileHandleMap SharedFileStream::file_handle_pool;
+CriticalSection SharedFileStream::cs;
+SharedFileStream::SharedFileHandleMap SharedFileStream::readpool;
+SharedFileStream::SharedFileHandleMap SharedFileStream::writepool;
 
-SharedFileHandle::SharedFileHandle(const string& aFileName, int access, int mode) : 
-	File(aFileName, access, mode)
+SharedFileHandle::SharedFileHandle(const string& aPath, int aAccess, int aMode) : 
+	File(aPath, aAccess, mode), ref_cnt(1), path(aPath), mode(aMode)
 { }
 
-SharedFileStream::SharedFileStream(const string& aFileName, int access, int mode)
-{
-	Lock l(critical_section);
-
-	if(file_handle_pool.count(aFileName) > 0)
-	{
-	    shared_handle_ptr = file_handle_pool[aFileName];
-		shared_handle_ptr->ref_cnt++;
-	}
-	else
-	{
-	    shared_handle_ptr = new SharedFileHandle(aFileName, access, mode);
-	    shared_handle_ptr->ref_cnt = 1;
-		file_handle_pool[aFileName] = shared_handle_ptr;
+SharedFileStream::SharedFileStream(const string& aFileName, int aAccess, int aMode) {
+	Lock l(cs);
+	auto& pool = aAccess == File::READ ? readpool : writepool;
+	auto p = pool.find(aFileName);
+	if (p != pool.end()) {
+		sfh = p->second.get();
+		sfh->ref_cnt++;
+	} else {
+	    sfh = new SharedFileHandle(aFileName, aAccess, aMode);
+		pool[aFileName] = unique_ptr<SharedFileHandle>(sfh);
 	}
 }
 
-SharedFileStream::~SharedFileStream()
-{
-	Lock l(critical_section);
+SharedFileStream::~SharedFileStream() {
+	Lock l(cs);
 
-	shared_handle_ptr->ref_cnt--;
-	
-	if(!shared_handle_ptr->ref_cnt)
-	{
-        for(SharedFileHandleMap::iterator i = file_handle_pool.begin();
-        							i != file_handle_pool.end();
-                                    i++)
-		{
-			if(i->second == shared_handle_ptr)
-			{
-            	file_handle_pool.erase(i);
-				delete shared_handle_ptr;
-                return;
-            }
-        }
-
-		dcassert(0);
+	sfh->ref_cnt--;
+	if(sfh->ref_cnt == 0) {
+		auto& pool = sfh->mode == File::READ ? readpool : writepool;
+		pool.erase(sfh->path);
     }
 }
 
-size_t SharedFileStream::write(const void* buf, size_t len) throw(Exception)
-{
-	Lock l(*shared_handle_ptr);
+size_t SharedFileStream::write(const void* buf, size_t len) throw(Exception) {
+	Lock l(sfh->cs);
 
-	shared_handle_ptr->setPos(pos);
-	shared_handle_ptr->write(buf, len);
+	sfh->setPos(pos);
+	sfh->write(buf, len);
 
     pos += len;
 	return len;
 }
 
 size_t SharedFileStream::read(void* buf, size_t& len) throw(Exception) {
-	Lock l(*shared_handle_ptr);
+	Lock l(sfh->cs);
 
-	shared_handle_ptr->setPos(pos);
-	len = shared_handle_ptr->read(buf, len);
+	sfh->setPos(pos);
+	len = sfh->read(buf, len);
 
     pos += len;
 	return len;
 }
 
-int64_t SharedFileStream::getSize() const noexcept
-{
-	Lock l(*shared_handle_ptr);
-	return shared_handle_ptr->getSize();
+int64_t SharedFileStream::getSize() const noexcept {
+	Lock l(sfh->cs);
+	return sfh->getSize();
 }
 
-void SharedFileStream::setSize(int64_t newSize) throw(FileException)
-{
-	Lock l(*shared_handle_ptr);
-	shared_handle_ptr->setSize(newSize);
+void SharedFileStream::setSize(int64_t newSize) throw(FileException) {
+	Lock l(sfh->cs);
+	sfh->setSize(newSize);
+}
+
+size_t SharedFileStream::flush() throw(Exception) {
+	Lock l(sfh->cs);
+	return sfh->flush();
 }
 
 }

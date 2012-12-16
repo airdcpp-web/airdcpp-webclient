@@ -238,7 +238,7 @@ checkslots:
 			{
 				if(partialFileSharing) {
 					// open stream for both reading and writing, because QueueManager can request write to it
-					auto ss = new SharedFileStream(sourceFile, File::RW, File::OPEN | File::SHARED | File::NO_CACHE_HINT);
+					auto ss = new SharedFileStream(sourceFile, File::READ, File::OPEN | File::SHARED | File::NO_CACHE_HINT);
 
 					start = aStartPos;
 					fileSize = ss->getSize();

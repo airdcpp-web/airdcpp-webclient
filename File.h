@@ -39,7 +39,7 @@ namespace dcpp {
 
 class File : public IOStream {
 public:
-	enum {
+	enum Mode {
 		OPEN = 0x01,
 		CREATE = 0x02,
 		TRUNCATE = 0x04,
@@ -49,7 +49,7 @@ public:
 	};
 
 #ifdef _WIN32
-	enum {
+	enum Access {
 		READ = GENERIC_READ,
 		WRITE = GENERIC_WRITE,
 		RW = READ | WRITE

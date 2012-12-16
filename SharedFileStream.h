@@ -22,23 +22,25 @@
 
 #include "File.h"
 #include "Thread.h"
+#include "GetSet.h"
 
 namespace dcpp {
 
-struct SharedFileHandle : File, CriticalSection
-{
-    int					ref_cnt;
-
-	SharedFileHandle(const string& aFileName, int access, int mode);
+struct SharedFileHandle : File {
+	SharedFileHandle(const string& aPath, int access, int mode);
 	~SharedFileHandle() noexcept { }
+
+	CriticalSection cs;
+	int	ref_cnt;
+	string path;
+	int mode;
 };
 
 class SharedFileStream : public IOStream
 {
 
 public:
-
-    typedef map<string, SharedFileHandle*> SharedFileHandleMap;
+	typedef unordered_map<string, unique_ptr<SharedFileHandle>, noCaseStringHash, noCaseStringEq> SharedFileHandleMap;
 
     SharedFileStream(const string& aFileName, int access, int mode);
     ~SharedFileStream();
@@ -49,25 +51,15 @@ public:
 	int64_t getSize() const noexcept;
 	void setSize(int64_t newSize) throw(FileException);
 
-	size_t flush() throw(Exception) 
-	{
-		Lock l(*shared_handle_ptr);
-		return shared_handle_ptr->flush();
-	}
+	size_t flush() throw(Exception);
 
-	void setPos(int64_t _pos) 
-	{ 
-		pos = _pos; 
-	}
+    static CriticalSection cs;
+	static SharedFileHandleMap readpool;
+	static SharedFileHandleMap writepool;
 
-    static CriticalSection critical_section;
-	static SharedFileHandleMap file_handle_pool;
-
+	GETSET(int64_t, pos, Pos);
 private:
-	SharedFileHandle* shared_handle_ptr;
-	int64_t pos;
-
-
+	SharedFileHandle* sfh;
 };
 
 }
