@@ -33,7 +33,7 @@ SharedFileStream::SharedFileHandleMap SharedFileStream::readpool;
 SharedFileStream::SharedFileHandleMap SharedFileStream::writepool;
 
 SharedFileHandle::SharedFileHandle(const string& aPath, int aAccess, int aMode) : 
-	File(aPath, aAccess, mode), ref_cnt(1), path(aPath), mode(aMode)
+	File(aPath, aAccess, aMode), ref_cnt(1), path(aPath), mode(aMode)
 { }
 
 SharedFileStream::SharedFileStream(const string& aFileName, int aAccess, int aMode) {

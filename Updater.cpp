@@ -40,9 +40,9 @@
 
 namespace dcpp {
 
-bool Updater::extractFiles(const string& curSourcePath, const string& curExtractPath) {
+bool Updater::extractFiles(const string& curSourcePath, const string& curExtractPath, string& error) {
 	bool ret = true;
-	File::ensureDirectory(curExtractPath);
+	//File::ensureDirectory(curExtractPath);
 	FileFindIter end;
 #ifdef _WIN32
 	for(FileFindIter i(curSourcePath + "*"); i != end; ++i) {
@@ -61,19 +61,20 @@ bool Updater::extractFiles(const string& curSourcePath, const string& curExtract
 				if(Util::fileExists(curExtractPath + name))
 					File::deleteFile(curExtractPath + name);
 				File::copyFile(curSourcePath + name, curExtractPath + name);
-			} catch(Exception&) { 
+			} catch(Exception& e) {
+				error = e.getError() + " (" + curExtractPath + name + ")";
 				return false; 
 			}
 		} else {
-			ret = extractFiles(curSourcePath + name + PATH_SEPARATOR, curExtractPath + name + PATH_SEPARATOR);
+			ret = extractFiles(curSourcePath + name + PATH_SEPARATOR, curExtractPath + name + PATH_SEPARATOR, error);
 			if(!ret) break;
 		}
 	}
 	return ret;
 }
 
-bool Updater::applyUpdate(const string& sourcePath, const string& installPath) {
-	bool ret = extractFiles(sourcePath, installPath);
+bool Updater::applyUpdate(const string& sourcePath, const string& installPath, string& error) {
+	bool ret = extractFiles(sourcePath, installPath, error);
 	if (ret) {
 		//update the version in the registry
 		HKEY hk;

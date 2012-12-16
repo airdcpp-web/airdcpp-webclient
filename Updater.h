@@ -25,8 +25,8 @@ using std::unique_ptr;
 
 class Updater {
 public:
-	static bool applyUpdate(const string& sourcePath, const string& installPath);
-	static bool extractFiles(const string& curSourcePath, const string& curExtractPath);
+	static bool applyUpdate(const string& sourcePath, const string& installPath, string& error);
+	static bool extractFiles(const string& curSourcePath, const string& curExtractPath, string& error);
 	static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
 	static void createUpdate();
 };
