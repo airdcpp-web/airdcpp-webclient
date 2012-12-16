@@ -150,9 +150,6 @@ bool QueueItem::hasPartialSharingTarget() {
 	if (isFinished() && !isSet(QueueItem::FLAG_MOVED))
 		return false;
 
-	// don't share when the file has been moved but it's waiting to be hashed
-	//if (
-
 	// don't share when the file does not exist
 	if(!Util::fileExists(isFinished() ? target : getTempTarget()))
 		return false;

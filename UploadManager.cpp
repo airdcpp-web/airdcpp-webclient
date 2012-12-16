@@ -237,8 +237,13 @@ checkslots:
 		case Transfer::TYPE_FILE:
 			{
 				if(partialFileSharing) {
-					// open stream for both reading and writing, because QueueManager can request write to it
-					auto ss = new SharedFileStream(sourceFile, File::READ, File::OPEN | File::SHARED | File::NO_CACHE_HINT);
+					int flags = File::OPEN | File::SHARED;
+					if (aBytes+aStartPos != fileSize) {
+						//segmented download
+						flags |= File::NO_CACHE_HINT;
+					}
+
+					auto ss = new SharedFileStream(sourceFile, File::READ, flags);
 
 					start = aStartPos;
 					fileSize = ss->getSize();

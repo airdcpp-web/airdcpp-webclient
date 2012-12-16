@@ -40,13 +40,14 @@
 
 namespace dcpp {
 
-bool Updater::applyUpdate(const string& sourcePath, const string& installPath) {
+bool Updater::extractFiles(const string& curSourcePath, const string& curExtractPath) {
 	bool ret = true;
+	File::ensureDirectory(curExtractPath);
 	FileFindIter end;
 #ifdef _WIN32
-	for(FileFindIter i(sourcePath + "*"); i != end; ++i) {
+	for(FileFindIter i(curSourcePath + "*"); i != end; ++i) {
 #else
-	for(FileFindIter i(sourcePath); i != end; ++i) {
+	for(FileFindIter i(curSourcePath); i != end; ++i) {
 #endif
 		string name = i->getFileName();
 		if(name == "." || name == "..")
@@ -57,40 +58,47 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath) {
 
 		if(!i->isDirectory()) {
 			try {
-				if(Util::fileExists(installPath + name))
-					File::deleteFile(installPath + name);
-				File::copyFile(sourcePath + name, installPath + name);
-			} catch(Exception&) { return false; }
+				if(Util::fileExists(curExtractPath + name))
+					File::deleteFile(curExtractPath + name);
+				File::copyFile(curSourcePath + name, curExtractPath + name);
+			} catch(Exception&) { 
+				return false; 
+			}
 		} else {
-			ret = applyUpdate(sourcePath + name + PATH_SEPARATOR, installPath + name + PATH_SEPARATOR);
+			ret = extractFiles(curSourcePath + name + PATH_SEPARATOR, curExtractPath + name + PATH_SEPARATOR);
 			if(!ret) break;
 		}
 	}
+	return ret;
+}
 
-	//update the version in the registry
-	HKEY hk;
-	TCHAR Buf[512];
-	tstring app = Text::toT(Util::getFilePath(Util::getAppName()));
-	Buf[0] = 0;
+bool Updater::applyUpdate(const string& sourcePath, const string& installPath) {
+	bool ret = extractFiles(sourcePath, installPath);
+	if (ret) {
+		//update the version in the registry
+		HKEY hk;
+		TCHAR Buf[512];
+		Buf[0] = 0;
 
-#ifdef _WIN64
-	string regkey = "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
-	int flags = KEY_WRITE | KEY_QUERY_VALUE | KEY_WOW64_64KEY;
-#else
-	string regkey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
-	int flags = KEY_WRITE | KEY_QUERY_VALUE;
-#endif
+	#ifdef _WIN64
+		string regkey = "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
+		int flags = KEY_WRITE | KEY_QUERY_VALUE | KEY_WOW64_64KEY;
+	#else
+		string regkey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
+		int flags = KEY_WRITE | KEY_QUERY_VALUE;
+	#endif
 
-	auto err = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, Text::toT(regkey).c_str(), 0, flags, &hk);
-	if(err == ERROR_SUCCESS) {
-		DWORD bufLen = sizeof(Buf);
-		DWORD type;
-		::RegQueryValueEx(hk, _T("InstallLocation"), 0, &type, (LPBYTE)Buf, &bufLen);
-		if(stricmp(app.c_str(), Buf) == 0) {
-			string tmp = SHORTVERSIONSTRING;
-			::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE)Text::toT(tmp).c_str(), sizeof(TCHAR) * (tmp.length() + 1));
+		auto err = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, Text::toT(regkey).c_str(), 0, flags, &hk);
+		if(err == ERROR_SUCCESS) {
+			DWORD bufLen = sizeof(Buf);
+			DWORD type;
+			::RegQueryValueEx(hk, _T("InstallLocation"), 0, &type, (LPBYTE)Buf, &bufLen);
+			if(stricmp(Text::toT(installPath).c_str(), Buf) == 0) {
+				string tmp = SHORTVERSIONSTRING;
+				::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE)Text::toT(tmp).c_str(), sizeof(TCHAR) * (tmp.length() + 1));
+			}
+			::RegCloseKey(hk);
 		}
-		::RegCloseKey(hk);
 	}
 
 	return ret;
