@@ -2502,8 +2502,8 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 }
 void ShareManager::cleanIndices(Directory::Ptr& dir) {
 	for(auto i = dir->directories.begin(); i != dir->directories.end(); ++i) {
-		removeDir(dir);
 		cleanIndices(i->second);
+		removeDir(i->second);
 	}
 
 	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
@@ -2513,6 +2513,7 @@ void ShareManager::cleanIndices(Directory::Ptr& dir) {
 			tthIndex.erase(p.base());
 	}
 
+	removeDir(dir);
 	dir->files.clear();
 	dir->directories.clear();
 }
@@ -2635,10 +2636,10 @@ void ShareManager::onFileHashed(const string& fname, const TTHValue& root) noexc
 	setDirty(dirtyProfiles, true);
 }
 
-void ShareManager::getExcludes(ProfileToken aProfile, StringSet& excludes) {
+void ShareManager::getExcludes(ProfileToken aProfile, StringList& excludes) {
 	for(auto i = profileDirs.begin(); i != profileDirs.end(); ++i) {
 		if (i->second->isExcluded(aProfile))
-			excludes.insert(i->first);
+			excludes.push_back(i->first);
 	}
 }
 

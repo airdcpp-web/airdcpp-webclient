@@ -42,7 +42,7 @@ namespace dcpp {
 
 bool Updater::extractFiles(const string& curSourcePath, const string& curExtractPath, string& error) {
 	bool ret = true;
-	//File::ensureDirectory(curExtractPath);
+	File::ensureDirectory(curExtractPath);
 	FileFindIter end;
 #ifdef _WIN32
 	for(FileFindIter i(curSourcePath + "*"); i != end; ++i) {

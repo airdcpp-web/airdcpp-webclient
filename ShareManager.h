@@ -79,10 +79,6 @@ public:
 
 	State state;
 
-	bool operator==(const ShareDirInfo* rhs) const {
-		return rhs->path == path && compare(rhs->profile, profile) == 0;
-	}
-
 	struct Hash {
 		size_t operator()(const ShareDirInfo* x) const { return hash<string>()(x->path) + x->profile; }
 	};
@@ -239,7 +235,7 @@ public:
 
 	/* Only for gui use purposes, no locking */
 	const ShareProfileList& getProfiles() { return shareProfiles; }
-	void getExcludes(ProfileToken aProfile, StringSet& excludes);
+	void getExcludes(ProfileToken aProfile, StringList& excludes);
 private:
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
 		public:
