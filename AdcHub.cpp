@@ -939,7 +939,7 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 		}
 
 		for(auto i = excluded.begin(); i != excluded.end(); ++i) {
-			c.addParam("EX", *i);
+			c.addParam("NO", *i);
 		}
 
 		if(aFileType == SearchManager::TYPE_DIRECTORY) {
