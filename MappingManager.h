@@ -46,16 +46,9 @@ public:
 	/** add an implementation derived from the base Mapper class, passed as template parameter.
 	the first added mapper will be tried first, unless the "MAPPER" setting is not empty. */
 	template<typename T> void addMapper() {
-#if defined(_MSC_VER) && _MSC_VER < 1700
-		// the rvalue ref deal is too smart for MSVC; resort to a string copy...
-		mappers.push_back(make_pair(T::name, [](string localIp) {
-			return new T(std::move(localIp));
-		}));
-#else
 		mappers.emplace_back(T::name, [](string&& localIp) {
 			return new T(move(localIp));
 		});
-#endif
 	}
 	StringList getMappers() const;
 

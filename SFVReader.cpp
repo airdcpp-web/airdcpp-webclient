@@ -101,24 +101,24 @@ std::istream& getline(std::istream &is, std::string &s) {
 void DirSFVReader::load() noexcept {
 	string line;
 
-	for(auto i = sfvFiles.begin(); i != sfvFiles.end(); ++i) {
+	for(auto path: sfvFiles) {
 		ifstream sfv;
 		
 		/* Try to open the sfv */
 		try {
-			if (File::getSize(Text::utf8ToAcp(*i)) > 1000000) {
+			if (File::getSize(Text::utf8ToAcp(path)) > 1000000) {
 				//this isn't a proper sfv file
 				throw FileException();
 			}
 
 			//incase we have some extended characters in the path
-			sfv.open(Text::utf8ToAcp(Util::FormatPath(*i)));
+			sfv.open(Text::utf8ToAcp(Util::FormatPath(path)));
 
 			if(!sfv.is_open()) {
 				throw FileException();
 			}
 		} catch(const FileException&) {
-			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + *i, LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + path, LogManager::LOG_ERROR);
 			continue;
 		}
 
@@ -144,7 +144,7 @@ void DirSFVReader::load() noexcept {
 
 				//don't list the same file multiple times...
 				if (!hasFile(line)) {
-					content.push_back(make_pair(line, crc32));
+					content.emplace_back(line, crc32);
 				}
 			}
 

@@ -36,9 +36,6 @@
 #include "DirectoryListingManager.h"
 #include "ScopedFunctor.h"
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm/find_if.hpp>
-
 
 namespace dcpp {
 
@@ -65,9 +62,9 @@ void DirectoryListing::sortDirs() {
 }
 
 void DirectoryListing::Directory::sortDirs() {
-	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		(*i)->sortDirs();
-	}
+	for(auto d: directories)
+		d->sortDirs();
+
 	sort(directories.begin(), directories.end(), Directory::DefaultSort());
 }
 
@@ -248,10 +245,10 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& date = getAttrib(attribs, sBaseDate, 3);
 
 			StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
-			for(auto i = sl.begin(); i != sl.end(); ++i) {
-				auto s = find_if(cur->directories, [&](DirectoryListing::Directory* dir) { return dir->getName() == *i; });
+			for(auto& name: sl) {
+				auto s = find_if(cur->directories, [&name](DirectoryListing::Directory* dir) { return dir->getName() == name; });
 				if (s == cur->directories.end()) {
-					auto d = new DirectoryListing::Directory(cur, *i, false, false, true);
+					auto d = new DirectoryListing::Directory(cur, name, false, false, true);
 					cur->directories.push_back(d);
 					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = make_pair(d, false);
 					cur = d;
@@ -269,7 +266,6 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 				//also clean the visited dirs
 				for(auto i = list->baseDirs.begin(); i != list->baseDirs.end(); ) {
-					auto tmp = i->first;
 					if (AirUtil::isSub(i->first, base)) {
 						list->baseDirs.erase(i++);
 					} else {
@@ -369,8 +365,8 @@ void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSe
 		}
 
 		if(!aStrings.isDirectory) {
-			for(auto i = files.begin(); i != files.end(); ++i) {
-				if(aStrings.matchesDirectFile((*i)->getName(), (*i)->getSize())) {
+			for(auto& f: files) {
+				if(aStrings.matchesDirectFile(f->getName(), f->getSize())) {
 					DirectSearchResultPtr sr(new DirectSearchResult(Util::toAdcFile(getPath())));
 					aResults.push_back(sr);
 					break;
@@ -437,10 +433,10 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 			
 			/* Create bundles from each subfolder */
 			bool queued = false;
-			for_each(aDir->directories, [&](Directory* dir) { 
-				if (downloadDir(dir, target, aTargetType, isSizeUnknown, prio, false, nullptr)) 
+			for(auto d: aDir->directories) { 
+				if (downloadDir(d, target, aTargetType, isSizeUnknown, prio, false, nullptr)) 
 					queued = true; 
-			});
+			}
 			return queued;
 		}
 	} else {
@@ -461,13 +457,14 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 
 	// First, recurse over the directories
 	sort(dirList.begin(), dirList.end(), Directory::Sort());
-	for_each(dirList, [&](Directory* dir) { downloadDir(dir, target, aTargetType, isSizeUnknown, prio, false, aBundle); });
+	for(auto d: dirList) 
+		downloadDir(d, target, aTargetType, isSizeUnknown, prio, false, aBundle);
 
 	// Then add the files
 	sort(fileList.begin(), fileList.end(), File::Sort());
-	for(auto i = fileList.begin(); i != fileList.end(); ++i) {
+	for(auto& f: fileList) {
 		try {
-			download(*i, target + (*i)->getName(), false, QueueItem::DEFAULT, aBundle);
+			download(f, target + f->getName(), false, QueueItem::DEFAULT, aBundle);
 		} catch(const QueueException&) {
 			// Catch it here to allow parts of directories to be added...
 		} catch(const FileException&) {
@@ -526,7 +523,8 @@ DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName
 void DirectoryListing::Directory::findFiles(const boost::regex& aReg, File::List& aResults) const {
 	copy_if(files.begin(), files.end(), back_inserter(aResults), [&aReg](File* df) { return boost::regex_match(df->getName(), aReg); });
 
-	for_each(directories, [&aReg, &aResults](Directory* dir) { dir->findFiles(aReg, aResults); });
+	for(auto d: directories)
+		d->findFiles(aReg, aResults); 
 }
 
 bool DirectoryListing::findNfo(const string& aPath) {
@@ -598,8 +596,8 @@ void DirectoryListing::Directory::filterList(DirectoryListing& dirList) {
 }
 
 void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet& l) {
-	for(auto i = directories.begin(); i != directories.end(); ++i) 
-		(*i)->filterList(l);
+	for(auto d: directories) 
+		d->filterList(l);
 
 	directories.erase(remove_if(directories.begin(), directories.end(), DirectoryEmpty()), directories.end());
 	files.erase(remove_if(files.begin(), files.end(), HashContained(l)), files.end());
@@ -610,11 +608,11 @@ void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet
 }
 
 void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSet& l) {
-	for(auto i = directories.begin(); i != directories.end(); ++i) 
-		(*i)->getHashList(l);
+	for(auto d: directories)  
+		d->getHashList(l);
 
-	for(auto i = files.begin(); i != files.end(); ++i) 
-		l.insert((*i)->getTTH());
+	for(auto d: files) 
+		l.insert(d->getTTH());
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
@@ -649,10 +647,10 @@ int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) {
 		return 0;
 	
 	int64_t x = getFilesSize();
-	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		if(!countAdls && (*i)->getAdls())
+	for(auto d: directories) {
+		if(!countAdls && d->getAdls())
 			continue;
-		x += (*i)->getTotalSize(adls);
+		x += d->getTotalSize(adls);
 	}
 	return x;
 }
@@ -662,10 +660,10 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) {
 		return 0;
 
 	size_t x = getFileCount();
-	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		if(!countAdls && (*i)->getAdls())
+	for(auto d: directories) {
+		if(!countAdls && d->getAdls())
 			continue;
-		x += (*i)->getTotalFileCount(adls);
+		x += d->getTotalFileCount(adls);
 	}
 	return x;
 }
@@ -691,8 +689,8 @@ string DirectoryListing::Directory::getPath() const {
 
 int64_t DirectoryListing::Directory::getFilesSize() const {
 	int64_t x = 0;
-	for(auto i = files.begin(); i != files.end(); ++i) {
-		x+=(*i)->getSize();
+	for(auto f: files) {
+		x += f->getSize();
 	}
 	return x;
 }
@@ -700,8 +698,8 @@ int64_t DirectoryListing::Directory::getFilesSize() const {
 uint8_t DirectoryListing::Directory::checkShareDupes() {
 	uint8_t result = DUPE_NONE;
 	bool first = true;
-	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		result = (*i)->checkShareDupes();
+	for(auto d: directories) {
+		result = d->checkShareDupes();
 		if(getDupe() == DUPE_NONE && first)
 			setDupe((DupeType)result);
 
@@ -724,38 +722,38 @@ uint8_t DirectoryListing::Directory::checkShareDupes() {
 	}
 
 	first = true;
-	for(auto i = files.begin(); i != files.end(); ++i) {
+	for(auto f: files) {
 		//don't count 0 byte files since it'll give lots of partial dupes
 		//of no interest
-		if((*i)->getSize() > 0) {			
+		if(f->getSize() > 0) {			
 			//if it's the first file in the dir and no sub-folders exist mark it as a dupe.
-			if(getDupe() == DUPE_NONE && (*i)->getDupe() == SHARE_DUPE && directories.empty() && first)
+			if(getDupe() == DUPE_NONE && f->getDupe() == SHARE_DUPE && directories.empty() && first)
 				setDupe(SHARE_DUPE);
-			else if(getDupe() == DUPE_NONE && (*i)->isQueued() && directories.empty() && first)
+			else if(getDupe() == DUPE_NONE && f->isQueued() && directories.empty() && first)
 				setDupe(QUEUE_DUPE);
 
 			//if it's the first file in the dir and we do have sub-folders but no dupes, mark as partial.
-			else if(getDupe() == DUPE_NONE && (*i)->getDupe() == SHARE_DUPE && !directories.empty() && first)
+			else if(getDupe() == DUPE_NONE && f->getDupe() == SHARE_DUPE && !directories.empty() && first)
 				setDupe(PARTIAL_SHARE_DUPE);
-			else if(getDupe() == DUPE_NONE && (*i)->isQueued() && !directories.empty() && first)
+			else if(getDupe() == DUPE_NONE && f->isQueued() && !directories.empty() && first)
 				setDupe(PARTIAL_QUEUE_DUPE);
 			
 			//if it's not the first file in the dir and we still don't have a dupe, mark it as partial.
-			else if(getDupe() == DUPE_NONE && (*i)->getDupe() == SHARE_DUPE && !first)
+			else if(getDupe() == DUPE_NONE && f->getDupe() == SHARE_DUPE && !first)
 				setDupe(PARTIAL_SHARE_DUPE);
-			else if(getDupe() == DUPE_NONE && (*i)->isQueued() && !first)
+			else if(getDupe() == DUPE_NONE && f->isQueued() && !first)
 				setDupe(PARTIAL_QUEUE_DUPE);
 			
 			//if it's a dupe and we find a non-dupe, mark as partial.
-			else if(getDupe() == SHARE_DUPE && (*i)->getDupe() != SHARE_DUPE)
+			else if(getDupe() == SHARE_DUPE && f->getDupe() != SHARE_DUPE)
 				setDupe(PARTIAL_SHARE_DUPE);
-			else if(getDupe() == QUEUE_DUPE && !(*i)->isQueued())
+			else if(getDupe() == QUEUE_DUPE && !f->isQueued())
 				setDupe(PARTIAL_QUEUE_DUPE);
 
 			//if we find different type of dupe, change to mixed
-			else if((getDupe() == SHARE_DUPE || getDupe() == PARTIAL_SHARE_DUPE) && (*i)->isQueued())
+			else if((getDupe() == SHARE_DUPE || getDupe() == PARTIAL_SHARE_DUPE) && f->isQueued())
 				setDupe(SHARE_QUEUE_DUPE);
-			else if((getDupe() == QUEUE_DUPE || getDupe() == PARTIAL_QUEUE_DUPE) && (*i)->getDupe() == SHARE_DUPE)
+			else if((getDupe() == QUEUE_DUPE || getDupe() == PARTIAL_QUEUE_DUPE) && f->getDupe() == SHARE_DUPE)
 				setDupe(SHARE_QUEUE_DUPE);
 
 			first = false;

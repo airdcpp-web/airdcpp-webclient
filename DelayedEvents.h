@@ -79,7 +79,7 @@ public:
 			return;
 		}
 
-		eventList.insert(make_pair(aKey, unique_ptr<DelayTask>(new DelayTask(f, GET_TICK() + aDelayTicks))));
+		eventList.emplace(aKey, unique_ptr<DelayTask>(new DelayTask(f, GET_TICK() + aDelayTicks)));
 	}
 
 	void clear() {

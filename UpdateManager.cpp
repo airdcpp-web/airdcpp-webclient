@@ -191,11 +191,11 @@ void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
 
 bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_, bool updated) {
 	StringList fileList = File::findFiles(UPDATE_TEMP_DIR, "UpdateInfo_*");
-	for (auto i = fileList.begin(); i != fileList.end(); ++i) {
-		if (Util::getFileExt(*i) == ".xml") {
+	for (auto& uiPath: fileList) {
+		if (Util::getFileExt(uiPath) == ".xml") {
 			try {
 				SimpleXML xml;
-				xml.fromXML(File(*i, File::READ, File::OPEN).read());
+				xml.fromXML(File(uiPath, File::READ, File::OPEN).read());
 				if(xml.findChild("UpdateInfo")) {
 					xml.stepIn();
 					if(xml.findChild("DestinationPath")) {
@@ -216,7 +216,7 @@ bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_,
 								if (xml.getData() <= SVNVERSION || updated) {
 									//we have an old update for this instance, delete the files
 									cleanTempFiles(Util::getFilePath(updater_));
-									File::deleteFile(*i);
+									File::deleteFile(uiPath);
 									continue;
 								}
 								return true;
@@ -226,7 +226,7 @@ bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_,
 
 				}
 			} catch(const Exception& e) {
-				LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, *i % e.getError()), LogManager::LOG_WARNING);
+				LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, uiPath % e.getError()), LogManager::LOG_WARNING);
 			}
 		}
 	}

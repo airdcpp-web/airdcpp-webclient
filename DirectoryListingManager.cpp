@@ -23,14 +23,10 @@
 #include "QueueManager.h"
 #include "format.h"
 
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/algorithm/copy.hpp>
 
 namespace dcpp {
 
-using boost::adaptors::map_values;
 using boost::range::for_each;
 using boost::range::find_if;
 
@@ -184,7 +180,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 		}
 		
 		// Unique directory, fine...
-		dlDirectories.insert(make_pair(aUser.user, new DirectoryDownloadInfo(aUser, aDir, aTarget, aTargetType, p, aSizeCheckMode, aAutoSearch)));
+		dlDirectories.emplace(aUser.user, new DirectoryDownloadInfo(aUser, aDir, aTarget, aTargetType, p, aSizeCheckMode, aAutoSearch));
 		needList = aUser.user->isSet(User::NMDC) ? (dp.first == dp.second) : true;
 	}
 
@@ -252,8 +248,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 			}
 		}
 
-		for(auto i = dl.begin(); i != dl.end(); ++i) {
-			auto di = *i;
+		for(auto di: dl) {
 
 			bool download = false;
 			{
@@ -350,9 +345,9 @@ void DirectoryListingManager::handleSizeConfirmation(const string& aTarget, bool
 	}
 
 	if (accepted) {
-		for_each(wdi->getDownloadInfos(), [](DirectoryDownloadInfo* di) {
+		for(auto di: wdi->getDownloadInfos()) {
 			di->getListing()->downloadDir(di->getListPath(), di->getTarget(), di->getTargetType(), false, di->getPriority(), di->getAutoSearch());
-		});
+		}
 	}
 	wdi->deleteListings();
 }

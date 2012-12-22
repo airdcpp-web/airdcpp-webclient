@@ -38,14 +38,14 @@ Magnet::Magnet(const string& aLink) {
 	//  xl = exact length
 	StringTokenizer<string> mag(aLink.substr(8), _T('&'));
 	map<string, string> hashes;
-	for(auto idx = mag.getTokens().begin(); idx != mag.getTokens().end(); ++idx) {
+	for(auto& idx: mag.getTokens()) {
 		// break into pairs
-		auto pos = idx->find(_T('='));
+		auto pos = idx.find(_T('='));
 		if(pos != string::npos) {
-			type = Text::toLower(Util::encodeURI(idx->substr(0, pos), true));
-			param = Util::encodeURI(idx->substr(pos+1), true);
+			type = Text::toLower(Util::encodeURI(idx.substr(0, pos), true));
+			param = Util::encodeURI(idx.substr(pos+1), true);
 		} else {
-			type = Util::encodeURI(*idx, true);
+			type = Util::encodeURI(idx, true);
 			param.clear();
 		}
 		// extract what is of value

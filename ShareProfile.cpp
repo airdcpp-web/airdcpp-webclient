@@ -27,8 +27,6 @@
 #include "ClientManager.h"
 #include "version.h"
 
-#include <boost/range/algorithm/for_each.hpp>
-
 namespace dcpp {
 
 FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { 

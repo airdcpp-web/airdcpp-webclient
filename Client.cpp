@@ -68,8 +68,7 @@ void Client::shutdown() {
 	TimerManager::getInstance()->removeListener(this);
 
 	if(sock) {
-		auto c = this; //can't use "this" inside lambda with VS10...
-		BufferedSocket::putSocket(sock, [c] { delete c; }); //delete in its own thread to allow safely using async calls
+		BufferedSocket::putSocket(sock, [this] { delete this; }); //delete in its own thread to allow safely using async calls
 	} else {
 		delete this;
 	}
@@ -263,7 +262,6 @@ vector<uint8_t> Client::getKeyprint() const {
 }
 
 bool Client::updateCounts(bool aRemove, bool updateIcons) {
-	//Lock l(cs); //prevent data race
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
 		counts[countType]--;

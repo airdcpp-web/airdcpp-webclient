@@ -37,8 +37,8 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 	conn.setDownload(this);
 	
 	QueueItem::SourceConstIter source = qi.getSource(getUser());
-	if (SettingsManager::lanMode)
-		remotePath = source->getRemotePath();
+	//if (SettingsManager::lanMode)
+	//	remotePath = source->getRemotePath();
 
 	if(qi.isSet(QueueItem::FLAG_PARTIAL_LIST)) {
 		setType(TYPE_PARTIAL_LIST);

@@ -28,10 +28,11 @@
 #endif
 
 #include "noexcept.h"
+#include <boost/noncopyable.hpp>
 
 namespace dcpp {
 
-class Semaphore  
+class Semaphore : boost::noncopyable 
 {
 #ifdef _WIN32
 public:
@@ -97,9 +98,6 @@ public:
 private:
 	sem_t semaphore;
 #endif
-	Semaphore(const Semaphore&);
-	Semaphore& operator=(const Semaphore&);
-
 };
 
 } // namespace dcpp

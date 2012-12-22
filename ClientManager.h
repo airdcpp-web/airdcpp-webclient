@@ -50,7 +50,7 @@ public:
 
 	string getField(const CID& cid, const string& hintUrl, const char* field) const;
 
-	HubSet getHubSet(const CID& cid) const;
+	OrderedStringSet getHubSet(const CID& cid) const;
 	StringList getHubUrls(const CID& cid, const string& hintUrl = Util::emptyString) const;
 	StringList getHubNames(const CID& cid, const string& hintUrl = Util::emptyString) const;
 	StringList getNicks(const CID& cid, const string& hintUrl = Util::emptyString) const;

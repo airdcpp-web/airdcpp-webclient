@@ -31,9 +31,6 @@
 #include "AirUtil.h"
 #include "format.h"
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-
 namespace dcpp {
 
 string TokenManager::getToken() {
@@ -114,8 +111,8 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 
 		{
 			WLock l(cs);
-			for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-				cqi = *i;
+			for(auto i: downloads) {
+				cqi = i;
 				if (cqi->getUser() == aUser.user && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
 						supportMcn = true;
@@ -204,15 +201,15 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 
 void ConnectionManager::onUserUpdated(const UserPtr& aUser) {
 	RLock l(cs);
-	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-		if((*i)->getUser() == aUser) {
-			fire(ConnectionManagerListener::UserUpdated(), *i);
+	for(auto cqi: downloads) {
+		if(cqi->getUser() == aUser) {
+			fire(ConnectionManagerListener::UserUpdated(), cqi);
 		}
 	}
 
-	for(auto i = uploads.begin(); i != uploads.end(); ++i) {
-		if((*i)->getUser() == aUser) {
-			fire(ConnectionManagerListener::UserUpdated(), *i);
+	for(auto cqi: uploads) {
+		if(cqi->getUser() == aUser) {
+			fire(ConnectionManagerListener::UserUpdated(), cqi);
 		}
 	}
 }
@@ -224,8 +221,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		RLock l(cs);
 		int attemptLimit = SETTING(DOWNCONN_PER_SEC);
 		uint16_t attempts = 0;
-		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			ConnectionQueueItem* cqi = *i;
+		for(auto cqi: downloads) {
 			if(cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING) {
 				if(!cqi->getUser()->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					removedTokens.push_back(cqi->getToken());
@@ -284,8 +280,8 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 	if (!removedTokens.empty()) {
 		WLock l (cs);
-		for(auto m = removedTokens.begin(); m != removedTokens.end(); ++m) {
-			auto s = find(downloads.begin(), downloads.end(), *m);
+		for(auto& m: removedTokens) {
+			auto s = find(downloads.begin(), downloads.end(), m);
 			if (s != downloads.end()) {
 				putCQI(*s);
 			}
@@ -308,9 +304,9 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 			//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
 
 			int running = 0;
-			for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-				if ((*i)->getUser() == aSource->getUser() && !(*i)->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && !(*i)->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					if ((*i)->getState() != ConnectionQueueItem::RUNNING) {
+			for(auto cqi: downloads) {
+				if (cqi->getUser() == aSource->getUser() && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+					if (cqi->getState() != ConnectionQueueItem::RUNNING) {
 						return;
 					}
 					running++;
@@ -345,9 +341,9 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 			++i;
 	}
 
-	for(auto j = userConnections.begin(); j != userConnections.end(); ++j) {
-		if(((*j)->getLastActivity() + 180*1000) < aTick) { //hmm 3 minutes?
-			(*j)->disconnect(true);
+	for(auto j: userConnections) {
+		if((j->getLastActivity() + 180*1000) < aTick) { //hmm 3 minutes?
+			j->disconnect(true);
 		}
 	}
 }
@@ -456,7 +452,7 @@ void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, 
 	nmdcConnect(aServer, aPort, Util::emptyString, BufferedSocket::NAT_NONE, aNick, hubUrl, encoding, stealth, secure);
 }
 
-void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure) {
+void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool /*stealth*/, bool secure) {
 	if(shuttingDown)
 		return;
 
@@ -513,9 +509,9 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 	bool baseOk = false;
 	bool tigrOk = false;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		if(i->compare(0, 2, "AD") == 0) {
-			string feat = i->substr(2);
+	for(auto& i: cmd.getParameters()) {
+		if(i.compare(0, 2, "AD") == 0) {
+			string feat = i.substr(2);
 			if(feat == UserConnection::FEATURE_ADC_BASE || feat == UserConnection::FEATURE_ADC_BAS0) {
 				baseOk = true;
 				// For bas0 tiger is implicit
@@ -633,8 +629,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 	// First, we try looking in the pending downloads...hopefully it's one of them...
 	{
 		RLock l(cs);
-		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			ConnectionQueueItem* cqi = *i;
+		for(auto cqi: downloads) {
 			cqi->setErrors(0);
 			if((cqi->getState() == ConnectionQueueItem::CONNECTING || cqi->getState() == ConnectionQueueItem::WAITING) && 
 				cqi->getUser()->getCID() == cid)
@@ -986,8 +981,7 @@ void ConnectionManager::on(UserConnectionListener::ProtocolError, UserConnection
 
 void ConnectionManager::disconnect(const UserPtr& aUser) {
 	RLock l(cs);
-	for(auto i = userConnections.begin(); i != userConnections.end(); ++i) {
-		UserConnection* uc = *i;
+	for(auto uc: userConnections) {
 		if(uc->getUser() == aUser)
 			uc->disconnect(true);
 	}
@@ -1002,8 +996,7 @@ void ConnectionManager::disconnect(const string& token) {
 
 void ConnectionManager::disconnect(const UserPtr& aUser, int isDownload) {
 	RLock l(cs);
-	for(auto i = userConnections.begin(); i != userConnections.end(); ++i) {
-		UserConnection* uc = *i;
+	for(auto uc: userConnections) {
 		if(uc->getUser() == aUser && uc->isSet((Flags::MaskType)(isDownload ? UserConnection::FLAG_DOWNLOAD : UserConnection::FLAG_UPLOAD))) {
 			uc->disconnect(true);
 		}
@@ -1027,8 +1020,8 @@ void ConnectionManager::shutdown() {
 	disconnect();
 	{
 		RLock l(cs);
-		for(auto j = userConnections.begin(); j != userConnections.end(); ++j) {
-			(*j)->disconnect(true);
+		for(auto uc: userConnections) {
+			uc->disconnect(true);
 		}
 	}
 	// Wait until all connections have died out...
@@ -1046,21 +1039,21 @@ void ConnectionManager::shutdown() {
 // UserConnectionListener
 void ConnectionManager::on(UserConnectionListener::Supports, UserConnection* conn, const StringList& feat) noexcept {
 	string sup = Util::emptyString;
-	for(auto i = feat.begin(); i != feat.end(); ++i) {
-		sup += (string)*i + " ";
-		if(*i == UserConnection::FEATURE_MINISLOTS) {
+	for(auto& i: feat) {
+		sup += i + " ";
+		if(i == UserConnection::FEATURE_MINISLOTS) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_MINISLOTS);
-		} else if(*i == UserConnection::FEATURE_XML_BZLIST) {
+		} else if(i == UserConnection::FEATURE_XML_BZLIST) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_XML_BZLIST);
-		} else if(*i == UserConnection::FEATURE_ADCGET) {
+		} else if(i == UserConnection::FEATURE_ADCGET) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_ADCGET);
-		} else if(*i == UserConnection::FEATURE_ZLIB_GET) {
+		} else if(i == UserConnection::FEATURE_ZLIB_GET) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_ZLIB_GET);
-		} else if(*i == UserConnection::FEATURE_TTHL) {
+		} else if(i == UserConnection::FEATURE_TTHL) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_TTHL);
-		} else if(*i == UserConnection::FEATURE_TTHF) {
+		} else if(i == UserConnection::FEATURE_TTHF) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_TTHF);
-		} else if(*i == UserConnection::FEATURE_AIRDC) {
+		} else if(i == UserConnection::FEATURE_AIRDC) {
 			if(!conn->getUser()->isSet(User::AIRDCPLUSPLUS))
 				conn->getUser()->setFlag(User::AIRDCPLUSPLUS);
 		}

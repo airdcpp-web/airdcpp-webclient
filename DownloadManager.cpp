@@ -28,11 +28,6 @@
 #include "User.h"
 #include "UserConnection.h"
 
-
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-
-
 #include "UploadManager.h"
 #include "FavoriteManager.h"
 
@@ -46,8 +41,6 @@
 #endif
 
 namespace dcpp {
-
-using boost::range::for_each;
 
 static const string DOWNLOAD_AREA = "Downloads";
 
@@ -131,10 +124,14 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		}
 	}
 
-	for_each(userSpeedMap.begin(), userSpeedMap.end(), [](pair<UserPtr, int64_t> us) { us.first->setSpeed(us.second); });
+	for (auto& usp: userSpeedMap)
+		usp.first->setSpeed(usp.second);
 
-	for_each(UBNList, [](pair<CID, AdcCommand>& cap) { ClientManager::getInstance()->send(cap.second, cap.first, true, true); } );
-	for_each(dropTargets, [](pair<string, UserPtr>& dt) { QueueManager::getInstance()->removeSource(dt.first, dt.second, QueueItem::Source::FLAG_SLOW_SOURCE);});
+	for(auto& ubp: UBNList)
+		ClientManager::getInstance()->send(ubp.second, ubp.first, true, true);
+
+	for (auto& dtp: dropTargets)
+		QueueManager::getInstance()->removeSource(dtp.first, dtp.second, QueueItem::Source::FLAG_SLOW_SOURCE);
 }
 
 void DownloadManager::sendSizeNameUpdate(BundlePtr aBundle) {
@@ -232,7 +229,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	bool smallSlot = aConn->isSet(UserConnection::FLAG_SMALL_SLOT);
 
-	HubSet hubs = ClientManager::getInstance()->getHubSet(aConn->getUser()->getCID());
+	auto hubs = ClientManager::getInstance()->getHubSet(aConn->getUser()->getCID());
 
 	//always make sure that the current hub is also compared even if it is offline
 	hubs.insert(aConn->getHubUrl());

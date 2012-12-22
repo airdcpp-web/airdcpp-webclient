@@ -67,8 +67,6 @@ private:
 	friend class CryptoManager;
 
 	SSLSocket(SSL_CTX* context);
-	SSLSocket(const SSLSocket&);
-	SSLSocket& operator=(const SSLSocket&);
 
 	SSL_CTX* ctx;
 	ssl::SSL ssl;

@@ -403,7 +403,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 
 	static string toString(const StringSet& lst) { return listToString<StringSet>(lst); }
 	static string toString(const StringList& lst) { return listToString<StringList>(lst); }
-	static string toString(const HubSet& lst) { return listToString<HubSet>(lst); }
+	static string toString(const OrderedStringSet& lst) { return listToString<OrderedStringSet>(lst); }
 
 	static wstring toStringW( int32_t val ) {
 		wchar_t buf[32];

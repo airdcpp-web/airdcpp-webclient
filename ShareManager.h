@@ -204,10 +204,12 @@ public:
 
 	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
 	TempShareMap tempShares;
-	CriticalSection tScs;
 	void addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, ProfileToken aProfile);
-	bool hasTempShares() { Lock l(tScs); return !tempShares.empty(); }
-	TempShareMap getTempShares() { Lock l(tScs); return tempShares; }
+
+	// GUI only
+	bool hasTempShares() { return !tempShares.empty(); }
+	TempShareMap& getTempShares() { return tempShares; }
+
 	void removeTempShare(const string& aKey, const TTHValue& tth);
 	bool isTempShared(const string& aKey, const TTHValue& tth);
 	//tempShares end
@@ -296,15 +298,6 @@ private:
 			File() : size(0), parent(0) { }
 			File(const string& aName, int64_t aSize, Directory::Ptr aParent, const TTHValue& aRoot) : 
 				name(aName), tth(aRoot), size(aSize), parent(aParent.get()) { }
-			File(const File& rhs) : 
-				name(rhs.getName()), tth(rhs.getTTH()), size(rhs.getSize()), parent(rhs.getParent()) { }
-
-			~File() { }
-
-			File& operator=(const File& rhs) {
-				name = rhs.name; size = rhs.size; parent = rhs.parent; tth = rhs.tth;
-				return *this;
-			}
 
 			bool operator==(const File& rhs) const {
 				return stricmp(name, rhs.getName()) == 0;

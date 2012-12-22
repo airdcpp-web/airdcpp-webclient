@@ -280,8 +280,8 @@ const wstring& toLower(const wstring& str, wstring& tmp) noexcept {
 		return Util::emptyStringW;
 	tmp.clear();
 	tmp.reserve(str.length());
-	for (auto i = str.begin(); i != str.end(); ++i) {
-		tmp += toLower(*i);
+	for(auto& i: str) {
+		tmp += toLower(i);
 	}
 	return tmp;
 }

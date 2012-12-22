@@ -55,9 +55,9 @@ struct Prepare : boost::static_visitor<bool> {
 	bool operator()(StringSearch::List& s) const {
 		s.clear();
 		StringTokenizer<string> st(pattern, ' ');
-		for(auto i = st.getTokens().cbegin(), iend = st.getTokens().cend(); i != iend; ++i) {
-			if(!i->empty()) {
-				s.emplace_back(*i);
+		for(auto& i: st.getTokens()) {
+			if(!i.empty()) {
+				s.emplace_back(i);
 			}
 		}
 		return true;
@@ -95,8 +95,8 @@ struct Match : boost::static_visitor<bool> {
 	Match(const string& aStr) : str(aStr) { }
 
 	bool operator()(const StringSearch::List& s) const {
-		for(auto i = s.cbegin(), iend = s.cend(); i != iend; ++i) {
-			if(!i->match(str)) {
+		for(auto& i: s) {
+			if(!i.match(str)) {
 				return false;
 			}
 		}

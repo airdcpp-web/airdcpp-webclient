@@ -48,6 +48,7 @@ typedef std::set<string> OrderedStringSet;
 typedef std::unordered_set<string> StringSet;
 typedef StringSet::iterator StringSetIter;
 
+typedef std::unordered_map <string, int> StringIntMap;
 typedef std::unordered_map <string, int64_t> StringInt64Map;
 typedef StringInt64Map::iterator StringInt64Iter;
 
@@ -69,8 +70,6 @@ typedef int ProfileToken;
 typedef vector<ProfileToken> ProfileTokenList;
 typedef vector<pair<ProfileToken, string>> ProfileTokenStringList;
 typedef std::unordered_map <ProfileToken, string> ProfileTokenStringMap;
-
-typedef std::set<string> HubSet;
 
 #ifdef UNICODE
 

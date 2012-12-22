@@ -26,6 +26,8 @@
 #include "File.h"
 #include "SimpleXMLReader.h"
 
+#include <boost/noncopyable.hpp>
+
 namespace dcpp {
 
 STANDARD_EXCEPTION(SimpleXMLException);
@@ -160,7 +162,7 @@ public:
 	}
 	static const string utf8Header;
 private:
-	class Tag {
+	class Tag : boost::noncopyable {
 	public:
 		typedef Tag* Ptr;
 		typedef vector<Ptr> List;
@@ -207,10 +209,6 @@ private:
 				delete *i;
 			}
 		}
-
-	private:
-		Tag(const Tag&);
-		Tag& operator=(Tag&);
 	};
 
 	class TagReader : public SimpleXMLReader::CallBack {

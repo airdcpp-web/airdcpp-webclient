@@ -21,10 +21,6 @@
 #include <functional>
 #include <vector>
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-#include <boost/range/adaptor/map.hpp>
-
 #include "UserQueue.h"
 #include "SettingsManager.h"
 #include "HashManager.h"
@@ -35,13 +31,10 @@
 
 namespace dcpp {
 
-using boost::range::for_each;
-using boost::adaptors::map_values;
-
 
 void UserQueue::addQI(QueueItemPtr qi, bool newBundle /*false*/) {
-	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		addQI(qi, i->getUser(), newBundle);
+	for(auto i: qi->getSources()) {
+		addQI(qi, i.getUser(), newBundle);
 	}
 }
 
@@ -79,11 +72,12 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	auto s = userBundleQueue.find(aUser);
 	if(s != userBundleQueue.end()) {
 		dcassert(!s->second.empty());
-		for_each(s->second, [&](BundlePtr b) { b->getItems(aUser, ql); });
+		for(auto b: s->second)
+			b->getItems(aUser, ql);
 	}
 }
 
-QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const HubSet& onlineHubs, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
+QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
 	/* Using the PAUSED priority will list all files */
 	QueueItemPtr qi = getNextPrioQI(aUser, onlineHubs, 0, 0, smallSlot, allowOverlap);
 	if(!qi) {
@@ -97,32 +91,32 @@ QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const HubSet& onlineHubs, 
 	return qi;
 }
 
-QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const HubSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
-		for(auto j = i->second.begin(); j != i->second.end(); ++j) {
-			QueueItemPtr qi = *j;
-			if (qi->hasSegment(aUser, onlineHubs, lastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
-				return qi;
+		for(auto q: i->second) {
+			if (q->hasSegment(aUser, onlineHubs, lastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
+				return q;
 			}
 		}
 	}
 	return nullptr;
 }
 
-QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const HubSet& onlineHubs, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 
 	auto i = userBundleQueue.find(aUser);
 	if(i != userBundleQueue.end()) {
 		dcassert(!i->second.empty());
-		for (auto j = i->second.begin(); j != i->second.end(); ++j) {
-			if ((*j)->getPriority() < minPrio) {
+		for (auto b: i->second) {
+			if (b->getPriority() < minPrio) {
 				break;
 			}
-			QueueItemPtr qi = (*j)->getNextQI(aUser, onlineHubs, lastError, minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
+
+			QueueItemPtr qi = b->getNextQI(aUser, onlineHubs, lastError, minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
 			if (qi) {
 				return qi;
 			}
@@ -153,8 +147,8 @@ void UserQueue::setQIPriority(QueueItemPtr qi, QueueItem::Priority p) {
 }
 
 void UserQueue::removeQI(QueueItemPtr qi, bool removeRunning /*true*/, bool fireSources /*false*/) {
-	for(auto i = qi->getSources().begin(); i != qi->getSources().end(); ++i) {
-		removeQI(qi, i->getUser(), removeRunning, false, fireSources);
+	for(auto i: qi->getSources()) {
+		removeQI(qi, i.getUser(), removeRunning, false, fireSources);
 	}
 }
 
@@ -232,9 +226,13 @@ void UserQueue::setBundlePriority(BundlePtr aBundle, Bundle::Priority p) {
 	HintedUserList sources;
 	aBundle->getSources(sources);
 
-	for_each(sources, [&](HintedUser u) { removeBundle(aBundle, u); });
+	for(auto& u: sources)
+		removeBundle(aBundle, u);
+
 	aBundle->setPriority(p);
-	for_each(sources, [&](HintedUser u) { addBundle(aBundle, u); });
+
+	for(auto& u: sources) 
+		addBundle(aBundle, u);
 }
 
 } //dcpp

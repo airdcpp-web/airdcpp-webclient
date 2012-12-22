@@ -31,6 +31,16 @@
 
 namespace dcpp {
 
+#ifdef ATOMIC_FLAG_INIT
+atomic_flag HashManager::HashStore::saving = ATOMIC_FLAG_INIT;
+#else
+atomic_flag HashManager::HashStore::saving;
+#endif
+
+using boost::range::find_if;
+
+CriticalSection HashManager::Hasher::hcs;
+
 #define HASH_FILE_VERSION_STRING "2"
 static const uint32_t HASH_FILE_VERSION = 2;
 const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
@@ -41,12 +51,11 @@ HashManager::HashManager(): lastSave(0), pausers(0) {
 
 HashManager::~HashManager() {
 	TimerManager::getInstance()->removeListener(this);
-	hasher.join();
 }
 
 bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp) {
 	if (!store.checkTTH(Text::toLower(aFileName), aSize, aTimeStamp)) {
-		hasher.hashFile(aFileName, aSize);
+		hashFile(aFileName, aSize);
 		return false;
 	}
 	return true;
@@ -55,7 +64,7 @@ bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTim
 TTHValue HashManager::getTTH(const string& aFileName, int64_t aSize) {
 	const TTHValue* tth = store.getTTH(Text::toLower(aFileName));
 	if (!tth) {
-		hasher.hashFile(aFileName, aSize);
+		hashFile(aFileName, aSize);
 		throw HashException();
 	}
 	return *tth;
@@ -67,6 +76,71 @@ bool HashManager::getTree(const TTHValue& root, TigerTree& tt) {
 
 size_t HashManager::getBlockSize(const TTHValue& root) {
 	return store.getBlockSize(root);
+}
+
+int64_t HashManager::Hasher::getTimeLeft() const {
+	return lastSpeed > 0 ? (totalBytesLeft / lastSpeed) : 0;
+}
+
+HashManager::HasherList::iterator HashManager::getLeastLoaded() {
+	//usually we don't know the speed so only compare the size...
+	return min_element(hashers.begin(), hashers.end(), [](const Hasher* h1, const Hasher* h2) { return h1->getBytesLeft() < h2->getBytesLeft(); });
+
+	//return min_element(hashers.begin(), hashers.end(), [](const Hasher* h1, const Hasher* h2) { return h1->getTimeLeft() < h2->getTimeLeft(); });
+}
+
+void HashManager::hashFile(const string& fileName, int64_t size) {
+	TCHAR* buf = new TCHAR[fileName.length()];
+	GetVolumePathName(Text::toT(fileName).c_str(), buf, fileName.length());
+	auto vol = Text::fromT(buf);
+	dcassert(!vol.empty());
+
+	Hasher* h = nullptr;
+
+	Lock l(Hasher::hcs);
+	if (hashers.size() == 1 && !hashers.front()->hasDevices()) {
+		//always use the first hasher if it's idle
+		h = hashers.front();
+	} else {
+		if (SETTING(HASHERS_PER_VOLUME) == 1) {
+			//do we have files for this volume queued already? always use the same one in that case
+			auto p = find_if(hashers, [&vol](const Hasher* aHasher) { return aHasher->hasDevice(vol); });
+			if (p != hashers.end()) {
+				h = *p;
+			} else if (hashers.size() >= SETTING(MAX_HASHING_THREADS)) {
+				// can't create new ones
+				h = *getLeastLoaded();
+			}
+		} else {
+			//get the hashers with this volume
+			HasherList volHashers;
+			copy_if(hashers.begin(), hashers.end(), back_inserter(volHashers), [&vol](const Hasher* aHasher) { return aHasher->hasDevice(vol); });
+
+			if (volHashers.empty() && hashers.size() >= SETTING(MAX_HASHING_THREADS)) {
+				//we just need choose from all hashers
+				h = *getLeastLoaded();
+			} else {
+				auto minLoaded = min_element(volHashers.begin(), volHashers.end(), [](const Hasher* h1, const Hasher* h2) { return h1->getBytesLeft() < h2->getBytesLeft(); });
+
+				//don't create new hashers if the file is less than 10 megabytes and there's a hasher with less than 200MB queued or the maximum number of threads have been reached for this volume
+				if (volHashers.size() >= SETTING(HASHERS_PER_VOLUME) || (size <= 10*1024*1024 && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= 200*1024*1024)) {
+					//use the least loaded hasher that already has this volume
+					h = *minLoaded;
+				}
+			}
+		}
+
+		if (!h) {
+			//add a new one
+			h = new Hasher(pausers > 0);
+			hashers.push_back(h);
+		}
+	}
+
+	dcassert(h);
+
+	//queue the file for hashing
+	h->hashFile(fileName, size, vol);
 }
 
 void HashManager::getFileTTH(const string& aFile, bool addStore, TTHValue& tth_, int64_t& size_) {
@@ -123,13 +197,13 @@ void HashManager::HashStore::addFile(const string&& aFileLower, uint64_t aTimeSt
 	addTree(tth);
 
 	WLock l(cs);
-	FileInfoList& fileList = fileIndex[Util::getFilePath(aFileLower)];
-	FileInfoIter j = find(fileList.begin(), fileList.end(), Util::getFileName(aFileLower));
+	auto& fileList = fileIndex[Util::getFilePath(aFileLower)];
+	auto j = find(fileList.begin(), fileList.end(), Util::getFileName(aFileLower));
 	if (j != fileList.end()) {
 		fileList.erase(j);
 	}
 
-	fileList.push_back(FileInfo(Util::getFileName(aFileLower), tth.getRoot(), aTimeStamp, aUsed));
+	fileList.emplace_back(Util::getFileName(aFileLower), tth.getRoot(), aTimeStamp, aUsed);
 	dirty = true;
 }
 
@@ -139,7 +213,7 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 		try {
 			File f(getDataFile(), File::READ | File::WRITE, File::OPEN | File::SHARED);
 			int64_t index = saveTree(f, tt);
-			treeIndex.insert(make_pair(tt.getRoot(), TreeInfo(tt.getFileSize(), index, tt.getBlockSize())));
+			treeIndex.emplace(tt.getRoot(), TreeInfo(tt.getFileSize(), index, tt.getBlockSize()));
 			dirty = true;
 		} catch (const FileException& e) {
 			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError(), LogManager::LOG_ERROR);
@@ -193,7 +267,7 @@ bool HashManager::HashStore::loadTree(File& f, const TreeInfo& ti, const TTHValu
 
 bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
 	RLock l(cs);
-	TreeIterC i = treeIndex.find(root);
+	auto i = treeIndex.find(root);
 	if (i == treeIndex.end())
 		return false;
 	try {
@@ -206,18 +280,18 @@ bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
 
 size_t HashManager::HashStore::getBlockSize(const TTHValue& root) const {
 	RLock l(cs);
-	TreeMap::const_iterator i = treeIndex.find(root);
+	auto i = treeIndex.find(root);
 	return i == treeIndex.end() ? 0 : static_cast<size_t>(i->second.getBlockSize());
 }
 
 bool HashManager::HashStore::checkTTH(const string&& aFileLower, int64_t aSize, uint32_t aTimeStamp) {
 	RLock l(cs);
-	DirIter i = fileIndex.find(Util::getFilePath(aFileLower));
+	auto i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		FileInfoIter j = find(i->second.begin(), i->second.end(), Util::getFileName(aFileLower));
+		auto j = find(i->second.begin(), i->second.end(), Util::getFileName(aFileLower));
 		if (j != i->second.end()) {
-			FileInfo& fi = *j;
-			TreeIterC ti = treeIndex.find(fi.getRoot());
+			auto& fi = *j;
+			auto ti = treeIndex.find(fi.getRoot());
 			if (ti == treeIndex.end() || ti->second.getSize() != aSize || fi.getTimeStamp() != aTimeStamp) {
 				i->second.erase(j);
 				dirty = true;
@@ -231,9 +305,9 @@ bool HashManager::HashStore::checkTTH(const string&& aFileLower, int64_t aSize, 
 
 const TTHValue* HashManager::HashStore::getTTH(const string&& aFileLower) {
 	RLock l(cs);
-	DirIter i = fileIndex.find(Util::getFilePath(aFileLower));
+	auto i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		FileInfoIter j = find(i->second.begin(), i->second.end(), Util::getFileName(aFileLower));
+		auto j = find(i->second.begin(), i->second.end(), Util::getFileName(aFileLower));
 		if (j != i->second.end()) {
 			j->setUsed(true);
 			return &(j->getRoot());
@@ -244,19 +318,19 @@ const TTHValue* HashManager::HashStore::getTTH(const string&& aFileLower) {
 
 void HashManager::HashStore::rebuild() {
 	try {
-		DirMap newFileIndex;
-		TreeMap newTreeIndex;
+		decltype(fileIndex) newFileIndex;
+		decltype(treeIndex) newTreeIndex;
 
 		{
 			RLock l(cs);
-			for (DirIterC i = fileIndex.begin(); i != fileIndex.end(); ++i) {
-				for (FileInfoIterC j = i->second.begin(); j != i->second.end(); ++j) {
-					if (!j->getUsed())
+			for (auto& i: fileIndex) {
+				for (auto& j: i.second) {
+					if (!j.getUsed())
 						continue;
 
-					TreeIterC k = treeIndex.find(j->getRoot());
+					auto k = treeIndex.find(j.getRoot());
 					if (k != treeIndex.end()) {
-						newTreeIndex[j->getRoot()] = k->second;
+						newTreeIndex[j.getRoot()] = k->second;
 					}
 				}
 			}
@@ -271,7 +345,7 @@ void HashManager::HashStore::rebuild() {
 			File in(origName, File::READ, File::OPEN | File::SHARED | File::RANDOM_ACCESS);
 			File out(tmpName, File::READ | File::WRITE, File::OPEN | File::RANDOM_ACCESS);
 
-			for (TreeIter i = newTreeIndex.begin(); i != newTreeIndex.end();) {
+			for (auto i = newTreeIndex.begin(); i != newTreeIndex.end();) {
 				TigerTree tree;
 				bool loaded;
 			{
@@ -287,19 +361,28 @@ void HashManager::HashStore::rebuild() {
 				}
 			}
 		}
-	{
-		RLock l(cs);
-		for (DirIterC i = fileIndex.begin(); i != fileIndex.end(); ++i) {
-			DirIter fi = newFileIndex.insert(make_pair(i->first, FileInfoList())).first;
-			for (FileInfoIterC j = i->second.begin(); j != i->second.end(); ++j) {
-				if (newTreeIndex.find(j->getRoot()) != newTreeIndex.end()) {
-					fi->second.push_back(*j);
+
+		{
+			RLock l(cs);
+			for (auto& i: fileIndex) {
+	#ifndef _MSC_VER
+				decltype(fileIndex)::mapped_type newFileList;
+	#else
+				/// @todo remove this workaround when VS has a proper decltype...
+				decltype(fileIndex.begin()->second) newFileList;
+	#endif
+
+				for (auto& j: i.second) {
+					if (newTreeIndex.find(j.getRoot()) != newTreeIndex.end()) {
+						newFileList.push_back(j);
+					}
+				}
+
+				if(!newFileList.empty()) {
+					newFileIndex[i.first] = move(newFileList);
 				}
 			}
-			if (fi->second.empty())
-				newFileIndex.erase(fi);
 		}
-	}//unlock
 	
 		{
 			WLock l(cs); //need to lock, we wont be able to rename if the file is in use...
@@ -317,7 +400,7 @@ void HashManager::HashStore::rebuild() {
 }
 
 void HashManager::HashStore::save() {
-	if (dirty && !SettingsManager::lanMode) {
+	if (dirty && !SettingsManager::lanMode && saving.test_and_set()) {
 		try {
 			File ff(getIndexFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE, false);
 			BufferedOutputStream<false> f(&ff);
@@ -331,8 +414,9 @@ void HashManager::HashStore::save() {
 			f.write(LIT("\t<Trees>\r\n"));
 			{
 				RLock l(cs);
-				for (TreeIterC i = treeIndex.begin(); i != treeIndex.end(); ++i) {
-					const TreeInfo& ti = i->second;
+				dirty = false;
+				for (auto& i: treeIndex) {
+					const TreeInfo& ti = i.second;
 					f.write(LIT("\t\t<Hash Type=\"TTH\" Index=\""));
 					f.write(Util::toString(ti.getIndex()));
 					f.write(LIT("\" BlockSize=\""));
@@ -341,16 +425,15 @@ void HashManager::HashStore::save() {
 					f.write(Util::toString(ti.getSize()));
 					f.write(LIT("\" Root=\""));
 					b32tmp.clear();
-					f.write(i->first.toBase32(b32tmp));
+					f.write(i.first.toBase32(b32tmp));
 					f.write(LIT("\"/>\r\n"));
 				}
 		
 				f.write(LIT("\t</Trees>\r\n\t<Files>\r\n"));
 
-				for (DirIterC i = fileIndex.begin(); i != fileIndex.end(); ++i) {
-					const string& dir = i->first;
-					for (FileInfoIterC j = i->second.begin(); j != i->second.end(); ++j) {
-						const FileInfo& fi = *j;
+				for (auto& i: fileIndex) {
+					const string& dir = i.first;
+					for (auto& fi: i.second) {
 						f.write(LIT("\t\t<File Name=\""));
 						f.write(SimpleXML::escape(dir + fi.getFileName(), tmp, true));
 						f.write(LIT("\" TimeStamp=\""));
@@ -367,10 +450,11 @@ void HashManager::HashStore::save() {
 			ff.close();
 			File::deleteFile( getIndexFile());
 			File::renameFile(getIndexFile() + ".tmp", getIndexFile());
-			dirty = false;
 		} catch (const FileException& e) {
 			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError(), LogManager::LOG_ERROR);
 		}
+
+		saving.clear();
 	}
 }
 
@@ -406,7 +490,6 @@ void HashManager::HashStore::load() {
 
 		HashLoader loader(*this);
 		File f(getIndexFile(), File::READ, File::OPEN);
-		WLock l(cs);
 		SimpleXMLReader(&loader).parse(f);
 	} catch (const Exception&) {
 		// ...
@@ -453,8 +536,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if (!file.empty() && size >= 0 && timeStamp > 0 && !root.empty()) {
 				string fileLower = Text::toLower(file);
-				store.fileIndex[Util::getFilePath(fileLower)].push_back(HashManager::HashStore::FileInfo(Util::getFileName(fileLower), TTHValue(root), timeStamp,
-					false));
+				store.fileIndex[Util::getFilePath(fileLower)].emplace_back(Util::getFileName(fileLower), TTHValue(root), timeStamp, false);
 			}
 		} else if (name == sTrees) {
 			inTrees = !simple;
@@ -508,18 +590,19 @@ void HashManager::HashStore::createDataFile(const string& name) {
 	}
 }
 
-void HashManager::Hasher::hashFile(const string& fileName, int64_t size) {
+void HashManager::Hasher::hashFile(const string& fileName, int64_t size, const string& devID) {
 	Lock l(hcs);
-	auto p = move(make_pair(fileName, size));
-	auto hqr = equal_range(w.begin(), w.end(), p, HashSortOrder());
+	auto wi = move(WorkItem(fileName, size, devID));
+	auto hqr = equal_range(w.begin(), w.end(), wi, HashSortOrder());
 	if (hqr.first == hqr.second) {
 		//it doesn't exist yet
-		w.insert(hqr.first, p);
+		devices[devID]++; 
+		w.insert(hqr.first, move(wi));
 		totalBytesLeft += size;
 		s.signal();
 	} else {
 		//in case the size has changed...
-		p.second = size;
+		wi.fileSize = size;
 	}
 }
 
@@ -537,26 +620,114 @@ bool HashManager::Hasher::isPaused() const {
 	return paused;
 }
 
+void HashManager::Hasher::removeDevice(const string& aID) {
+	dcassert(!aID.empty());
+	auto dp = devices.find(aID);
+	if (dp != devices.end()) {
+		dp->second--;
+		if (dp->second == 0)
+			devices.erase(dp);
+	}
+}
+
 void HashManager::Hasher::stopHashing(const string& baseDir) {
-	Lock l(hcs);
 	for (auto i = w.begin(); i != w.end();) {
-		if (strnicmp(baseDir, i->first, baseDir.length()) == 0) {
-			totalBytesLeft -= i->second;
-			w.erase(i++);
+		if (strnicmp(baseDir, i->filePath, baseDir.length()) == 0) {
+			totalBytesLeft -= i->fileSize;
+			removeDevice(i->devID);
+			w.erase(i);
+			i = w.begin();
 		} else {
 			++i;
 		}
 	}
 }
 
+void HashManager::stopHashing(const string& baseDir) {
+	Lock l(Hasher::hcs);
+	for (auto h: hashers)
+		h->stopHashing(baseDir); 
+}
+
+void HashManager::setPriority(Thread::Priority p) {
+	Lock l(Hasher::hcs);
+	for (auto h: hashers)
+		h->setThreadPriority(p); 
+}
+
+void HashManager::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hasherCount) {
+	Lock l(Hasher::hcs);
+	hasherCount = hashers.size();
+	for (auto i: hashers)
+		i->getStats(curFile, bytesLeft, filesLeft, speed);
+}
+
+void HashManager::rebuild() {
+	Lock l(Hasher::hcs);
+	hashers.front()->scheduleRebuild(); 
+}
+
+void HashManager::startup() {
+	hashers.push_back(new Hasher(false, true));
+	store.load(); 
+}
+
+void HashManager::stop() {
+	Lock l(Hasher::hcs);
+	for (auto h: hashers)
+		h->clear();
+}
+
+void HashManager::Hasher::shutdown() { 
+	stop = true; 
+	if(paused) 
+		resume(); 
+	s.signal(); 
+}
+
+void HashManager::Hasher::scheduleRebuild() { 
+	rebuild = true; 
+	s.signal(); 
+	if(paused) 
+		t_resume(); 
+}
+
+void HashManager::shutdown() {
+	{
+		Lock l(Hasher::hcs);
+		for (auto h: hashers) {
+			h->clear();
+			h->shutdown();
+		}
+	}
+
+	// Wait for the hashers to shut down
+	while(true) {
+		{
+			Lock l(Hasher::hcs);
+			if(hashers.empty()) {
+				break;
+			}
+		}
+		Thread::sleep(50);
+	}
+
+	store.save(); 
+}
+
+void HashManager::Hasher::clear() {
+	w.clear();
+	devices.clear();
+	totalBytesLeft = 0;
+}
+
 void HashManager::Hasher::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) {
-	Lock l(hcs);
 	curFile = currentFile;
-	filesLeft = w.size();
+	filesLeft += w.size();
 	if (running)
 		filesLeft++;
-	bytesLeft = totalBytesLeft;
-	speed = lastSpeed;
+	bytesLeft += totalBytesLeft;
+	speed += lastSpeed;
 }
 
 void HashManager::Hasher::instantPause() {
@@ -565,8 +736,13 @@ void HashManager::Hasher::instantPause() {
 	}
 }
 
-HashManager::Hasher::Hasher() : stop(false), running(false), paused(false), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
-	filesHashed(0), dirFilesHashed(0), dirSizeHashed(0), dirHashTime(0) { }
+HashManager::Hasher::Hasher(bool isPaused, bool aIsFirst /*false*/) : isFirst(aIsFirst), stop(false), running(false), paused(isPaused), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
+	filesHashed(0), dirFilesHashed(0), dirSizeHashed(0), dirHashTime(0) { 
+
+	start();
+	if (isPaused)
+		t_suspend();
+}
 
 int HashManager::Hasher::run() {
 	setThreadPriority(Thread::IDLE);
@@ -575,8 +751,11 @@ int HashManager::Hasher::run() {
 	for(;;) {
 		s.wait();
 		instantPause(); //suspend the thread...
-		if(stop)
+		if(stop) {
+			Lock l(hcs);
+			HashManager::getInstance()->removeHasher(this);
 			break;
+		}
 
 		if(saveData) {
 			HashManager::getInstance()->SaveData();
@@ -593,11 +772,15 @@ int HashManager::Hasher::run() {
 		
 		bool failed = true;
 		bool dirChanged = false;
+		string curDevID;
 		{
 			Lock l(hcs);
 			if(!w.empty()) {
-				dirChanged = compare(Util::getFilePath(w.front().first), Util::getFilePath(fname)) != 0;
-				currentFile = fname = move(w.front().first);
+				auto& wi = w.front();
+				dirChanged = compare(Util::getFilePath(wi.filePath), Util::getFilePath(fname)) != 0;
+				currentFile = fname = move(wi.filePath);
+				curDevID = move(wi.devID);
+				dcassert(!curDevID.empty());
 				w.pop_front();
 			} else {
 				fname.clear();
@@ -724,6 +907,9 @@ int HashManager::Hasher::run() {
 
 		{
 			Lock l(hcs);
+			if (!fname.empty())
+				removeDevice(curDevID);
+
 			if (w.empty()) {
 				if (sizeHashed > 0) {
 					if (dirsHashed == 0) {
@@ -740,27 +926,37 @@ int HashManager::Hasher::run() {
 				sizeHashed = 0;
 				dirsHashed = 0;
 				filesHashed = 0;
-			} else if (!AirUtil::isParentOrExact(initialDir, w.front().first)) {
+				if (!isFirst) {
+					//Delete this hasher
+					HashManager::getInstance()->removeHasher(this);
+					break;
+				}
+			} else if (!AirUtil::isParentOrExact(initialDir, w.front().filePath)) {
 				onDirHashed();
 			}
 
 			currentFile.clear();
 		}
 
-		if (!failed)
+		if (!failed && !fname.empty())
 			HashManager::getInstance()->fire(HashManagerListener::TTHDone(), fname, tth);
 
 		running = false;
-	}		
+	}
 
+	delete this;
 	return 0;
 }
 
-bool HashManager::Hasher::HashSortOrder::operator()(const WorkPair& left, const WorkPair& right) const {
+void HashManager::removeHasher(Hasher* aHasher) {
+	hashers.erase(remove(hashers.begin(), hashers.end(), aHasher), hashers.end());
+}
+
+bool HashManager::Hasher::HashSortOrder::operator()(const WorkItem& left, const WorkItem& right) const {
 	// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.
-	auto comp = compare(Util::getFilePath(left.first), Util::getFilePath(right.first));
+	auto comp = compare(Util::getFilePath(left.filePath), Util::getFilePath(right.filePath));
 	if (comp == 0) {
-		return compare(left.first, right.first) < 0;
+		return compare(left.filePath, right.filePath) < 0;
 	}
 	return comp < 0;
 }
@@ -774,27 +970,41 @@ HashManager::HashPauser::~HashPauser() {
 }
 
 bool HashManager::pauseHashing() {
-	//Lock l(cs);
 	pausers++;
-	if (pausers == 1)
-		return hasher.pause();
+	if (pausers == 1) {
+		Lock l (Hasher::hcs);
+		for (auto h: hashers)
+			h->pause();
+		return isHashingPaused();
+	}
 	return true;
 }
 
 void HashManager::resumeHashing(bool forced) {
-	//Lock l(cs);
 	if (forced )
 		pausers = 0;
 	else if (pausers > 0)
 		pausers--;
 
-	if (pausers == 0)
-		hasher.resume();
+	if (pausers == 0) {
+		Lock l(Hasher::hcs);
+		for(auto h: hashers)
+			h->resume();
+	}
 }
 
 bool HashManager::isHashingPaused() const {
-	//Lock l(cs);
-	return hasher.isPaused();
+	Lock l(Hasher::hcs);
+	return all_of(hashers.begin(), hashers.end(), [](const Hasher* h) { return h->isPaused(); });
+}
+
+void HashManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
+	if(GET_TICK() - lastSave > 15*60*1000 && store.isDirty()) { 
+		lastSave = GET_TICK();
+
+		Lock l(Hasher::hcs);
+		hashers.front()->save();
+	}
 }
 
 } // namespace dcpp

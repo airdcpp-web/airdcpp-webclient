@@ -19,9 +19,6 @@
 #include "stdinc.h"
 #include "SearchManager.h"
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-
 #include "format.h"
 #include "ClientManager.h"
 #include "ShareManager.h"
@@ -39,8 +36,6 @@
 #include <openssl/rand.h>
 
 namespace dcpp {
-
-using boost::range::for_each;
 
 const char* SearchManager::types[TYPE_LAST] = {
 	CSTRING(ANY),
@@ -71,7 +66,8 @@ SearchManager::~SearchManager() {
 	TimerManager::getInstance()->removeListener(this);
 	SettingsManager::getInstance()->removeListener(this);
 
-	for_each(searchKeys, [](pair<uint8_t*, uint64_t> p) { delete p.first; });
+	for(auto& p: searchKeys) 
+		delete p.first;
 }
 
 string SearchManager::normalizeWhitespace(const string& aString){
@@ -102,19 +98,19 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 			//generate a random key and store it so we can check the results
 			uint8_t* key = new uint8_t[16];
 			RAND_bytes(key, 16);
-			searchKeys.push_back(make_pair(key, GET_TICK()));
+			searchKeys.emplace_back(key, GET_TICK());
 			keyStr = Encoder::toBase32(key, 16);
 		}
 
-		for_each(who, [&](string& hub) {
+		for(auto& hub: who) {
 			string hubToken = Util::toString(Util::rand());
 			searches[hubToken] = (SearchItem)(make_tuple(GET_TICK(), aToken, hub));
-			tokenHubList.push_back(make_pair(hubToken, hub));
-		});
+			tokenHubList.emplace_back(hubToken, hub);
+		}
 	}
 
 	uint64_t estimateSearchSpan = 0;
-	for_each(tokenHubList, [&](StringPair& sp) {
+	for(auto& sp: tokenHubList) {
 		auto s = new Search;
 		s->fileType = aFileType;
 		s->size     = aSize;
@@ -132,14 +128,14 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 
 		uint64_t ret = ClientManager::getInstance()->search(sp.second, s);
 		estimateSearchSpan = max(estimateSearchSpan, ret);			
-	});
+	}
 
 	return estimateSearchSpan;
 }
 
 bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t bufLen) {
 	RLock l (cs);
-	for(auto i = searchKeys.cbegin(); i != searchKeys.cend(); ++i) {
+	for(auto& i: searchKeys | reversed) {
 		boost::scoped_array<uint8_t> out(new uint8_t[bufLen]);
 
 		uint8_t ivd[16] = { };
@@ -148,7 +144,7 @@ bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t b
 		EVP_CIPHER_CTX_init(&ctx);
 
 		int len = 0, tmpLen=0;
-		EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, i->first, ivd);
+		EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, i.first, ivd);
 		EVP_DecryptUpdate(&ctx, &out[0], &len, buf, aLen);
 		EVP_DecryptFinal_ex(&ctx, &out[0] + aLen, &tmpLen);
 		EVP_CIPHER_CTX_cleanup(&ctx);
@@ -297,8 +293,7 @@ void SearchManager::onDSR(const AdcCommand& cmd) {
 	}
 
 	string folderName;
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "FN") == 0) {
 			folderName = str.substr(2);
 		} else if(str.compare(0, 2, "TO") == 0) {
@@ -320,8 +315,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	string tth;
 	string token;
 
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "FN") == 0) {
 			file = Util::toNmdcFile(str.substr(2));
 		} else if(str.compare(0, 2, "SL") == 0) {
@@ -400,8 +394,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 	string tth;
 	bool add=false, update=false, reply=false, notify = false, remove = false;
 
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "HI") == 0) {
 			hubIpPort = str.substr(2);
 		} else if(str.compare(0, 2, "BU") == 0) {
@@ -481,8 +474,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 	string nick;
 	PartsInfo partialInfo;
 
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "U4") == 0) {
 			udpPort = static_cast<uint16_t>(Util::toInt(str.substr(2)));
 		} else if(str.compare(0, 2, "NI") == 0) {
@@ -495,8 +487,8 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 			partialCount = Util::toUInt32(str.substr(2))*2;
 		} else if(str.compare(0, 2, "PI") == 0) {
 			StringTokenizer<string> tok(str.substr(2), ',');
-			for(auto i = tok.getTokens().begin(); i != tok.getTokens().end(); ++i) {
-				partialInfo.push_back((uint16_t)Util::toInt(*i));
+			for(auto& i: tok.getTokens()) {
+				partialInfo.push_back((uint16_t)Util::toInt(i));
 			}
 		}
 	}
@@ -561,9 +553,9 @@ void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool 
 	string token;
 	aCmd.getParam("TO", 0, token);
 
-	for(auto i = results.begin(); i != results.end(); ++i) {
-		(*i)->setToken(token);
-		AdcCommand cmd = (*i)->toDSR(AdcCommand::TYPE_UDP);
+	for(auto dsr: results) {
+		dsr->setToken(token);
+		AdcCommand cmd = dsr->toDSR(AdcCommand::TYPE_UDP);
 		ClientManager::getInstance()->send(cmd, from);
 	}
 
@@ -619,8 +611,8 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 	string key;
 	adc.getParam("KY", 0, key);
 
-	for(auto i = results.begin(); i != results.end(); ++i) {
-		AdcCommand cmd = (*i)->toRES(AdcCommand::TYPE_UDP);
+	for(auto sr: results) {
+		AdcCommand cmd = sr->toRES(AdcCommand::TYPE_UDP);
 		if(!token.empty())
 			cmd.addParam("TO", token);
 		ClientManager::getInstance()->send(cmd, from, false, false, key);
@@ -770,16 +762,16 @@ void SearchManager::getSearchType(int pos, int& type, StringList& extList, strin
 	pos = pos-3;
 
 	int counter = 0;
-	for(auto i = searchTypes.begin(); i != searchTypes.end(); ++i) {
+	for(auto& i: searchTypes) {
 		if (counter++ == pos) {
-			if(i->first.size() > 1 || i->first[0] < '1' || i->first[0] > '6') {
+			if(i.first.size() > 1 || i.first[0] < '1' || i.first[0] > '6') {
 				// custom search type
 				type = SearchManager::TYPE_ANY;
 			} else {
-				type = i->first[0] - '0';
+				type = i.first[0] - '0';
 			}
-			name = i->first;
-			extList = i->second;
+			name = i.first;
+			extList = i.second;
 			return;
 		}
 	}
@@ -822,9 +814,9 @@ void SearchManager::on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
 	xml.addTag("SearchTypes");
 	xml.stepIn();
 	{
-		for(auto i = searchTypes.begin(); i != searchTypes.end(); ++i) {
-			xml.addTag("SearchType", Util::toString(";", i->second));
-			xml.addChildAttrib("Id", i->first);
+		for(auto& i: searchTypes) {
+			xml.addTag("SearchType", Util::toString(";", i.second));
+			xml.addChildAttrib("Id", i.first);
 		}
 	}
 	xml.stepOut();

@@ -166,18 +166,17 @@ public:
 				| FLAG_NO_TREE | FLAG_TTH_INCONSISTENCY | FLAG_UNTRUSTED
 		};
 
-		Source(const HintedUser& aUser, const string& aRemoteFile) : user(aUser), partialSource(nullptr), remotePath(aRemoteFile) { }
-		Source(const Source& aSource) : Flags(aSource), user(aSource.user), partialSource(aSource.partialSource), remotePath(aSource.remotePath) { }
+		Source(const HintedUser& aUser) : user(aUser), partialSource(nullptr) { }
+		//Source(const Source& aSource) : Flags(aSource), user(aSource.user), partialSource(aSource.partialSource), remotePath(aSource.remotePath) { }
 
 		bool operator==(const UserPtr& aUser) const { return user == aUser; }
 		PartialSource::Ptr& getPartialSource() { return partialSource; }
 
 		GETSET(HintedUser, user, User);
 		GETSET(PartialSource::Ptr, partialSource, PartialSource);
-		GETSET(string, remotePath, RemotePath);
-		//GETSET(set<string>, blockedHubs, BlockedHubs);
-		HubSet blockedHubs;
-		bool updateHubUrl(const HubSet& onlineHubs, string& hubUrl, bool isFileList);
+		//GETSET(string, remotePath, RemotePath);
+		OrderedStringSet blockedHubs;
+		bool updateHubUrl(const OrderedStringSet& onlineHubs, string& hubUrl, bool isFileList);
 	};
 
 	typedef vector<Source> SourceList;
@@ -204,7 +203,7 @@ public:
 	void save(OutputStream &save, string tmp, string b32tmp);
 	size_t countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
-	bool hasSegment(const UserPtr& aUser, const HubSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	bool hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	bool startDown();
 
 	SourceList& getSources() { return sources; }
@@ -302,7 +301,7 @@ private:
 	SourceList badSources;
 	string tempTarget;
 
-	void addSource(const HintedUser& aUser, const string& aRemotePath=Util::emptyString);
+	void addSource(const HintedUser& aUser);
 	void blockSourceHub(const HintedUser& aUser);
 	bool isHubBlocked(const UserPtr& aUser, const string& aUrl);
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason);

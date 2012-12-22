@@ -23,9 +23,6 @@
 #include "QueueManager.h"
 #include "SearchManager.h"
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-
 namespace dcpp {
 
 using boost::range::for_each;

@@ -37,9 +37,9 @@ AdcSearch::AdcSearch(const string& aSearch, const StringList& aExt) : ext(aExt),
 
 	//add included
 	StringTokenizer<string> st(aSearch, ' ');
-	for(auto i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
-		if(i->size() > 0) {
-			includeX.push_back(StringSearch(*i));
+	for(auto& i: st.getTokens()) {
+		if(i.size() > 0) {
+			includeX.emplace_back(i);
 		}
 	}
 }
@@ -47,8 +47,7 @@ AdcSearch::AdcSearch(const string& aSearch, const StringList& aExt) : ext(aExt),
 AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
 	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false)
 {
-	for(auto i = params.begin(); i != params.end(); ++i) {
-		const string& p = *i;
+	for(const auto& p: params) {
 		if(p.length() <= 2)
 			continue;
 
@@ -58,9 +57,9 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 			root = TTHValue(p.substr(2));
 			return;
 		} else if(toCode('A', 'N') == cmd) {
-			includeX.push_back(StringSearch(p.substr(2)));		
+			includeX.emplace_back(p.substr(2));		
 		} else if(toCode('N', 'O') == cmd) {
-			exclude.push_back(StringSearch(p.substr(2)));
+			exclude.emplace_back(p.substr(2));
 		} else if(toCode('E', 'X') == cmd) {
 			ext.push_back(p.substr(2));
 		} else if(toCode('G', 'R') == cmd) {
@@ -81,8 +80,8 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 }
 
 bool AdcSearch::isExcluded(const string& str) {
-	for(auto i = exclude.begin(); i != exclude.end(); ++i) {
-		if(i->match(str))
+	for(auto& i: exclude) {
+		if(i.match(str))
 			return true;
 	}
 	return false;
@@ -91,12 +90,14 @@ bool AdcSearch::isExcluded(const string& str) {
 bool AdcSearch::hasExt(const string& name) {
 	if(ext.empty())
 		return true;
+
 	if(!noExt.empty()) {
 		ext = StringList(ext.begin(), set_difference(ext.begin(), ext.end(), noExt.begin(), noExt.end(), ext.begin()));
 		noExt.clear();
 	}
-	for(auto i = ext.cbegin(), iend = ext.cend(); i != iend; ++i) {
-		if(name.length() >= i->length() && stricmp(name.c_str() + name.length() - i->length(), i->c_str()) == 0)
+
+	for(auto& i: ext) {
+		if(name.length() >= i.length() && stricmp(name.c_str() + name.length() - i.length(), i.c_str()) == 0)
 			return true;
 	}
 	return false;

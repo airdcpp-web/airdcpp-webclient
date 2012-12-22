@@ -31,16 +31,12 @@
 #include "TimerManager.h"
 #include "UserConnection.h"
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/numeric.hpp>
-#include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/algorithm/copy.hpp>
 
 namespace dcpp {
 
 using boost::range::find_if;
-using boost::range::for_each;
 using boost::accumulate;
 using boost::range::copy;
 	
@@ -217,8 +213,8 @@ bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 
 bool Bundle::removeFinishedItem(QueueItemPtr qi) {
 	int pos = 0;
-	for (auto s = finishedFiles.begin(); s != finishedFiles.end(); ++s) {
-		if ((*s) == qi) {
+	for (auto& fqi: finishedFiles) {
+		if (fqi == qi) {
 			decreaseSize(qi->getSize());
 			removeDownloadedSegment(qi->getSize());
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
@@ -253,8 +249,8 @@ bool Bundle::addQueue(QueueItemPtr qi) {
 
 bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 	int pos = 0;
-	for (auto s = queueItems.begin(); s != queueItems.end(); ++s) {
-		if ((*s) == qi) {
+	for (auto cur: queueItems) {
+		if (cur == qi) {
 			swap(queueItems[pos], queueItems[queueItems.size()-1]);
 			queueItems.pop_back();
 			break;
@@ -290,7 +286,8 @@ bool Bundle::isBadSource(const UserPtr& aUser) const {
 }
 
 void Bundle::addUserQueue(QueueItemPtr qi) {
-	for_each(qi->getSources(), [&](QueueItem::Source s) { addUserQueue(qi, s.getUser()); });
+	for(auto& s: qi->getSources())
+		addUserQueue(qi, s.getUser());
 }
 
 bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
@@ -316,19 +313,18 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 		get<SOURCE_SIZE>(*i) += qi->getSize();
 		return false;
 	} else {
-		sources.push_back(make_tuple(aUser, qi->getSize() - qi->getDownloadedSegments(), 1));
+		sources.emplace_back(aUser, qi->getSize() - qi->getDownloadedSegments(), 1);
 		return true;
 	}
 }
 
-QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const HubSet& onlineHubs, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	int p = QueueItem::LAST - 1;
 	do {
 		auto i = userQueue[p].find(aUser);
 		if(i != userQueue[p].end()) {
 			dcassert(!i->second.empty());
-			for(auto j = i->second.begin(); j != i->second.end(); ++j) {
-				QueueItemPtr qi = *j;
+			for(auto& qi: i->second) {
 				if (qi->hasSegment(aUser, onlineHubs, aLastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
 					return qi;
 				}
@@ -346,7 +342,7 @@ bool Bundle::isFinishedNotified(const UserPtr& aUser) const {
 
 void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) {
 	if (!isFinishedNotified(aUser.user) && !isBadSource(aUser)) {
-		finishedNotifications.push_back(make_pair(aUser, remoteBundle));
+		finishedNotifications.emplace_back(aUser, remoteBundle);
 	}
 }
 
@@ -358,7 +354,8 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) {
 }
 
 void Bundle::getSources(HintedUserList& l) const {
-	for_each(sources, [&](SourceTuple st) { l.push_back(get<Bundle::SOURCE_USER>(st)); });
+	for(auto& st: sources) 
+		l.push_back(get<Bundle::SOURCE_USER>(st));
 }
 
 void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
@@ -367,11 +364,11 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
 		return;
 	}
 
-	for_each(queueItems, [&](QueueItemPtr qi) {
-		if (AirUtil::isSub(qi->getTarget(), aDir)) {
-			ql.push_back(qi);
+	for(auto& q: queueItems) {
+		if (AirUtil::isSub(q->getTarget(), aDir)) {
+			ql.push_back(q);
 		}
-	});
+	}
 }
 
 string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const {
@@ -445,7 +442,8 @@ void Bundle::rotateUserQueue(QueueItemPtr qi, const UserPtr& aUser) noexcept {
 }
 
 void Bundle::removeUserQueue(QueueItemPtr qi) noexcept {
-	for_each(qi->getSources(), [&](QueueItem::Source s) { removeUserQueue(qi, s.getUser(), false); });
+	for(auto& s: qi->getSources())
+		removeUserQueue(qi, s.getUser(), false);
 }
 
 bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad) noexcept {
@@ -475,7 +473,7 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 	if (addBad) {
 		auto bsi = find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
 		if (bsi == badSources.end()) {
-			badSources.push_back(make_tuple(get<SOURCE_USER>(*m), qi->getSize(), 1));
+			badSources.emplace_back(get<SOURCE_USER>(*m), qi->getSize(), 1);
 		} else {
 			get<SOURCE_FILES>(*bsi)++;
 			get<SOURCE_SIZE>(*bsi) += qi->getSize();
@@ -528,13 +526,13 @@ Bundle::Priority Bundle::calculateProgressPriority() const noexcept {
 pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	int64_t bundleSpeed = 0;
 	double bundleSources = 0;
-	for (auto s = sources.begin(); s != sources.end(); ++s) {
-		UserPtr& user = get<SOURCE_USER>(*s).user;
+	for (auto s: sources) {
+		UserPtr& user = get<SOURCE_USER>(s).user;
 		if (user->isOnline()) {
 			bundleSpeed += user->getSpeed();
-			bundleSources += get<SOURCE_FILES>(*s);
+			bundleSources += get<SOURCE_FILES>(s);
 		} else {
-			bundleSources += get<SOURCE_FILES>(*s);
+			bundleSources += get<SOURCE_FILES>(s);
 		}
 	}
 	bundleSources = bundleSources / queueItems.size();
@@ -544,20 +542,19 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcept {
 	multimap<QueueItemPtr, pair<int64_t, double>> speedSourceMap;
 
-	for (auto j = queueItems.begin(); j != queueItems.end(); ++j) {
-		QueueItemPtr q = *j;
+	for (auto& q: queueItems) {
 		if(q->getAutoPriority()) {
 			int64_t qiSpeed = 0;
 			double qiSources = 0;
-			for (auto s = q->getSources().begin(); s != q->getSources().end(); ++s) {
-				if ((*s).getUser().user->isOnline()) {
-					qiSpeed += (*s).getUser().user->getSpeed();
+			for (auto s: q->getSources()) {
+				if (s.getUser().user->isOnline()) {
+					qiSpeed += s.getUser().user->getSpeed();
 					qiSources++;
 				} else {
 					qiSources += 2;
 				}
 			}
-			speedSourceMap.insert(make_pair(q, make_pair(qiSpeed, qiSources)));
+			speedSourceMap.emplace(q, make_pair(qiSpeed, qiSources));
 		}
 	}
 	return speedSourceMap;
@@ -566,10 +563,10 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 size_t Bundle::countOnlineUsers() const noexcept {
 	size_t users = 0;
 	int files = 0;
-	for(auto i = sources.begin(); i != sources.end(); ++i) {
-		if(get<SOURCE_USER>(*i).user->isOnline()) {
+	for(auto i: sources) {
+		if(get<SOURCE_USER>(i).user->isOnline()) {
 			users++;
-			files += get<SOURCE_FILES>(*i);
+			files += get<SOURCE_FILES>(i);
 		}
 	}
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
@@ -606,13 +603,13 @@ bool Bundle::allowAutoSearch() const {
 
 void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept {
 	if (fileBundle || queueItems.size() == 1) {
-		searches.insert(make_pair(Util::emptyString, queueItems.front()));
+		searches.emplace(Util::emptyString, queueItems.front());
 		return;
 	}
 
 	QueueItemPtr searchItem = nullptr;
-	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
-		string dir = Util::getReleaseDir(i->first, false);
+	for (auto& i: bundleDirs | map_keys) {
+		string dir = Util::getReleaseDir(i, false);
 		//don't add the same directory twice
 		if (searches.find(dir) != searches.end()) {
 			continue;
@@ -646,15 +643,15 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 		}
 
 		if (searchItem) {
-			searches.insert(make_pair(dir, searchItem));
+			searches.emplace(dir, searchItem);
 		}
 	}
 }
 
 void Bundle::updateSearchMode() {
 	StringList searches;
-	for (auto i = bundleDirs.begin(); i != bundleDirs.end(); ++i) {
-		string dir = Util::getReleaseDir(i->first, false);
+	for (auto& i: bundleDirs | map_keys) {
+		string dir = Util::getReleaseDir(i, false);
 		if (find(searches, dir) == searches.end()) {
 			searches.push_back(dir);
 		}
@@ -679,8 +676,7 @@ void Bundle::removeDownload(Download* d) noexcept {
 bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
 	int down = 0;
-	for (auto s = downloads.begin(); s != downloads.end(); ++s) {
-		Download* d = *s;
+	for (auto d: downloads) {
 		if (d->getAverageSpeed() > 0 && d->getStart() > 0) {
 			down++;
 			int64_t pos = d->getPos();
@@ -734,17 +730,17 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 			}
 
 			if (!speedStr.empty() || percent > 0) {
-				for(auto i = uploadReports.cbegin(), iend = uploadReports.cend(); i != iend; ++i) {
+				for(auto& i: uploadReports) {
 					AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
 
-					cmd.addParam("HI", i->hint);
+					cmd.addParam("HI", i.hint);
 					cmd.addParam("BU", token);
 					if (!speedStr.empty())
 						cmd.addParam("DS", speedStr);
 					if (percent > 0)
 						cmd.addParam("PE", Util::toString(percent));
 
-					UBNList.push_back(make_pair(i->user->getCID(), cmd));
+					UBNList.emplace_back(i.user->getCID(), cmd);
 				}
 			}
 		}
@@ -867,9 +863,9 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 }
 
 void Bundle::sendSizeNameUpdate() noexcept {
-	for(auto i = uploadReports.begin(); i != uploadReports.end(); ++i) {
+	for(auto& u: uploadReports) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-		cmd.addParam("HI", (*i).hint);
+		cmd.addParam("HI", u.hint);
 		cmd.addParam("BU", token);
 
 		if (isSet(FLAG_UPDATE_SIZE)) {
@@ -884,7 +880,7 @@ void Bundle::sendSizeNameUpdate() noexcept {
 
 		cmd.addParam("UD1");
 
-		ClientManager::getInstance()->send(cmd, (*i).user->getCID(), true, true);
+		ClientManager::getInstance()->send(cmd, u.user->getCID(), true, true);
 	}
 }
 
@@ -901,9 +897,9 @@ void Bundle::save() {
 	if (isFileBundle()) {
 		f.write(LIT("<File Version=\"1.0\" Token=\""));
 		f.write(token);
-		for (auto j = autoSearches.begin(); j != autoSearches.end(); ++j) {
+		for (auto& as: autoSearches) {
 			f.write(LIT("\t<AutoSearch Token=\""));
-			f.write(Util::toString(*j));
+			f.write(Util::toString(as));
 			f.write(LIT("\"/>\r\n"));
 		}
 		f.write(LIT("\">\r\n"));
@@ -924,14 +920,13 @@ void Bundle::save() {
 		}
 
 		f.write(LIT("\">\r\n"));
-		for (auto j = autoSearches.begin(); j != autoSearches.end(); ++j) {
+		for (auto& as: autoSearches) {
 			f.write(LIT("\t<AutoSearch Token=\""));
-			f.write(Util::toString(*j));
+			f.write(Util::toString(as));
 			f.write(LIT("\"/>\r\n"));
 		}
 
-		for (auto k = finishedFiles.begin(); k != finishedFiles.end(); ++k) {
-			QueueItemPtr qi = *k;
+		for (auto& qi: finishedFiles) {
 			f.write(LIT("\t<Finished TTH=\""));
 			f.write(qi->getTTH().toBase32());
 			f.write(LIT("\" Target=\""));
@@ -943,8 +938,8 @@ void Bundle::save() {
 			f.write(LIT("\"/>\r\n"));
 		}
 
-		for (auto j = queueItems.begin(); j != queueItems.end(); ++j) {
-			(*j)->save(f, tmp, b32tmp);
+		for (auto& q: queueItems) {
+			q->save(f, tmp, b32tmp);
 		}
 
 		f.write(LIT("</Bundle>\r\n"));

@@ -28,24 +28,19 @@
 
 #include "noexcept.h"
 
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/algorithm/find_if.hpp>
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/algorithm/copy.hpp>
 
 namespace dcpp {
 
-using boost::adaptors::map_values;
 using boost::range::for_each;
 using boost::range::copy;
 
 FileQueue::~FileQueue() { }
 
 void FileQueue::getBloom(HashBloom& bloom) const {
-	for(auto i = tthIndex.begin(); i != tthIndex.end(); ++i) {
-		if (i->second->getBundle()) {
-			bloom.add(*i->first);
+	for(auto& i: tthIndex) {
+		if (i.second->getBundle()) {
+			bloom.add(*i.first);
 		}
 	}
 }
@@ -65,8 +60,8 @@ void FileQueue::add(QueueItemPtr qi) noexcept {
 		queueSize += qi->getSize();
 	}
 	dcassert(queueSize >= 0);
-	queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi));
-	tthIndex.insert(make_pair(const_cast<TTHValue*>(&qi->getTTH()), qi));
+	queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
+	tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
 }
 
 void FileQueue::remove(QueueItemPtr qi) noexcept {
@@ -103,8 +98,8 @@ void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) noexcept {
 void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) {
 	if (SettingsManager::lanMode) {
 		QueueItem::StringMultiMap qsm;
-		for(auto j = tthIndex.begin(); j != tthIndex.end(); ++j) {
-			qsm.insert(make_pair(j->second->getTargetFileName(), j->second));
+		for(auto q: tthIndex | map_values) {
+			qsm.emplace(q->getTargetFileName(), q);
 		}
 		matchDir(dl.getRoot(), ql, qsm);
 	} else {
@@ -113,38 +108,32 @@ void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemLi
 }
 
 void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql) {
-	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
-		if(!(*j)->getAdls())
-			matchDir(*j, ql);
+	for(auto& d: dir->directories) {
+		if(!d->getAdls())
+			matchDir(d, ql);
 	}
 
-	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
-		auto s = tthIndex.equal_range(const_cast<TTHValue*>(&(*i)->getTTH()));
-		if (s.first != s.second) {
-			DirectoryListing::File* f = *i;
-			for_each(s | map_values, [f, &ql](const QueueItemPtr q) {
-				if (!q->isFinished() && q->getSize() == f->getSize() && find_if(ql, CompareSecond<string, QueueItemPtr>(q)) == ql.end()) 
-					ql.push_back(make_pair(Util::emptyString, q)); 
-			});
+	for(auto& f: dir->files) {
+		auto tp = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
+		for(auto q: tp | map_values) {
+			if (!q->isFinished() && q->getSize() == f->getSize() && find_if(ql, CompareSecond<string, QueueItemPtr>(q)) == ql.end()) 
+				ql.emplace_back(Util::emptyString, q); 
 		}
 	}
 }
 
 void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql, const QueueItem::StringMultiMap& qsm) {
-	for(auto j = dir->directories.begin(); j != dir->directories.end(); ++j) {
-		if(!(*j)->getAdls())
-			matchDir(*j, ql, qsm);
+	for(auto& d: dir->directories) {
+		if(!d->getAdls())
+			matchDir(d, ql, qsm);
 	}
 
-	for(auto i = dir->files.begin(); i != dir->files.end(); ++i) {
-		auto s = qsm.equal_range((*i)->getName());
-		if (s.first != s.second) {
-			DirectoryListing::File* f = *i;
-			for_each(s.first, s.second, [f, &ql](const pair<string, QueueItemPtr> tqp) {
-				if (tqp.second->getSize() == f->getSize() && !tqp.second->isFinished() && boost::find_if(ql, CompareSecond<string, QueueItemPtr>(tqp.second)) == ql.end()) 
-					ql.push_back(make_pair(f->getPath(), tqp.second)); 
-			});
-		}
+	for(auto& f: dir->files) {
+		auto s = qsm.equal_range(f->getName());
+		for_each(s, [f, &ql](const pair<string, QueueItemPtr> tqp) {
+			if (tqp.second->getSize() == f->getSize() && !tqp.second->isFinished() && boost::find_if(ql, CompareSecond<string, QueueItemPtr>(tqp.second)) == ql.end()) 
+				ql.emplace_back(f->getPath(), tqp.second); 
+		});
 	}
 }
 
@@ -170,7 +159,7 @@ QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileNa
 void FileQueue::move(QueueItemPtr qi, const string& aTarget) noexcept {
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
-	queue.insert(make_pair(const_cast<string*>(&qi->getTarget()), qi));
+	queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
 }
 
 // compare nextQueryTime, get the oldest ones
@@ -179,8 +168,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 	Buffer buffer;
 	uint64_t now = GET_TICK();
 
-	for(auto i = queue.begin(); i != queue.end(); ++i) {
-		QueueItemPtr q = i->second;
+	for(auto q: queue | map_values) {
 
 		if(q->getSize() < PARTIAL_SHARE_MIN_SIZE) continue;
 
@@ -191,7 +179,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 			if(	(*j).isSet(QueueItem::Source::FLAG_PARTIAL) && (*j).getPartialSource()->getNextQueryTime() <= now &&
 				(*j).getPartialSource()->getPendingQueryCount() < 10 && !(*j).getPartialSource()->getUdpPort().empty())
 			{
-				buffer.insert(make_pair((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q)));
+				buffer.emplace((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q));
 			}
 		}
 
@@ -200,7 +188,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 				(*j).getPartialSource()->getNextQueryTime() <= now && (*j).getPartialSource()->getPendingQueryCount() < 10 &&
 				!(*j).getPartialSource()->getUdpPort().empty())
 			{
-				buffer.insert(make_pair((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q)));
+				buffer.emplace((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q));
 			}
 		}
 	}

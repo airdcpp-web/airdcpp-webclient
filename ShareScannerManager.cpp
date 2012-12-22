@@ -121,8 +121,7 @@ int ShareScannerManager::run() {
 		scanFolderSize = 0;
 		SFVScanList sfvDirPaths;
 		StringList sfvFilePaths;
-		for(auto i = rootPaths.begin(); i != rootPaths.end(); i++) {
-			string path = *i;
+		for(auto& path: rootPaths) {
 			if(path[path.size() -1] == PATH_SEPARATOR) {
 				prepareSFVScanDir(path, sfvDirPaths);
 			} else {
@@ -133,25 +132,25 @@ int ShareScannerManager::run() {
 		/* Scan root files */
 		if (!sfvFilePaths.empty()) {
 			DirSFVReader sfv(Util::getFilePath(rootPaths.front()));
-			for(auto i = sfvFilePaths.begin(); i != sfvFilePaths.end(); i++) {
+			for(auto& path: sfvFilePaths) {
 				if (stop)
 					break;
 
-				checkFileSFV(*i, sfv, false);
+				checkFileSFV(path, sfv, false);
 			}
 		}
 
 		/* Scan all directories */
-		for(auto i = sfvDirPaths.begin(); i != sfvDirPaths.end(); i++) {
+		for(auto& i: sfvDirPaths) {
 			if (stop)
 				break;
 
-			auto files = findFiles(i->first, "*", false, false);
+			auto files = findFiles(i.first, "*", false, false);
 			for(auto s = files.begin(); s != files.end(); ++s) {
 				if (stop)
 					break;
 
-				checkFileSFV(*s, i->second, true);
+				checkFileSFV(*s, i.second, true);
 			}
 		}
 
@@ -167,13 +166,12 @@ int ShareScannerManager::run() {
 		QueueManager::getInstance()->getUnfinishedPaths(bundleDirs);
 		sort(bundleDirs.begin(), bundleDirs.end());
 
-		string dir;
 		int missingFiles = 0, dupesFound = 0, extrasFound = 0, missingNFO = 0, missingSFV = 0, emptyFolders = 0, noReleaseFiles = 0;
 
-		for(auto i = rootPaths.begin(); i != rootPaths.end(); ++i) {
+		for(auto& dir: rootPaths) {
 			if (stop)
 				break;
-			dir = *i;
+
 			DWORD attrib = GetFileAttributes(Text::toT(dir).c_str());
 			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
 				if (matchSkipList(Util::getLastDir(dir))) {
@@ -217,20 +215,20 @@ bool ShareScannerManager::matchSkipList(const string& dir) {
 	return false;
 }
 
-void ShareScannerManager::find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& noReleaseFiles, int& emptyFolders, ScanType scanType) {
-	if(path.empty())
+void ShareScannerManager::find(const string& aPath, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& noReleaseFiles, int& emptyFolders, ScanType scanType) {
+	if(aPath.empty())
 		return;
 
 	string dir;
 	StringList dirs;
 	
-	for(FileFindIter i(path + "*"); i != FileFindIter(); ++i) {
+	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
 		try {
 			if(i->isDirectory() && strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0){
 				if (matchSkipList(i->getFileName())) {
 					continue;
 				}
-				dir = path + i->getFileName() + PATH_SEPARATOR;
+				dir = aPath + i->getFileName() + PATH_SEPARATOR;
 				
 				if (scanType != TYPE_FINISHED && std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {
 					continue;
@@ -245,8 +243,8 @@ void ShareScannerManager::find(const string& path, int& missingFiles, int& missi
 		} catch(const FileException&) { } 
 	}
 
-	for(auto j = dirs.begin(); j != dirs.end(); j++) {
-		find(*j, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, noReleaseFiles, emptyFolders, scanType);
+	for(auto d: dirs) {
+		find(d, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, noReleaseFiles, emptyFolders, scanType);
 	}
 }
 
@@ -272,7 +270,7 @@ void ShareScannerManager::findDupes(const string& path, int& dupesFound, ScanTyp
 		}
 	}
 
-	dupeDirs.insert(make_pair(dirName, path));
+	dupeDirs.emplace(dirName, path);
 }
 
 StringList ShareScannerManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/, bool aMatchSkipList) {
@@ -308,18 +306,18 @@ StringList ShareScannerManager::findFiles(const string& path, const string& patt
 	return ret;
 }
 
-void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& noReleaseFiles, int& emptyFolders, ScanType st) throw(FileException) {
-	if(path.empty())
+void ShareScannerManager::scanDir(const string& aPath, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& noReleaseFiles, int& emptyFolders, ScanType st) throw(FileException) {
+	if(aPath.empty())
 		return;
 
-	StringList sfvFileList, fileList = findFiles(path, "*", false, true);
+	StringList sfvFileList, fileList = findFiles(aPath, "*", false, true);
 
 	if (fileList.empty()) {
 		//check if there are folders
-		StringList folderList = findFiles(path, "*", true, true);
+		StringList folderList = findFiles(aPath, "*", true, true);
 		if (folderList.empty()) {
 			if (SETTING(CHECK_EMPTY_DIRS)) {
-				reportMessage(STRING(DIR_EMPTY) + " " + path, st);
+				reportMessage(STRING(DIR_EMPTY) + " " + aPath, st);
 				emptyFolders++;
 			}
 			return;
@@ -329,14 +327,14 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	int nfoFiles=0, sfvFiles=0;
 	bool isSample=false, isRelease=false, isZipRls=false, found=false, extrasInFolder = false;
 
-	string dirName = Util::getLastDir(path);
+	string dirName = Util::getLastDir(aPath);
 
 	// Find NFO and SFV files
-	for(auto i = fileList.begin(); i != fileList.end(); ++i) {
-		if (Util::getFileExt(*i) == ".nfo") {
+	for(auto& fileName: fileList) {
+		if (Util::getFileExt(fileName) == ".nfo") {
 			nfoFiles++;
-		} else if (Util::getFileExt(*i) == ".sfv") {
-			sfvFileList.push_back(path + *i);
+		} else if (Util::getFileExt(fileName) == ".sfv") {
+			sfvFileList.push_back(aPath + fileName);
 			sfvFiles++;
 		}
 	}
@@ -344,9 +342,9 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 	/* No release files at all? */
 	if (!fileList.empty() && ((nfoFiles + sfvFiles) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
 		if (!regex_match(dirName, emptyDirReg)) {
-			StringList folderList = findFiles(path, "*", true, true);
+			StringList folderList = findFiles(aPath, "*", true, true);
 			if (folderList.empty()) {
-				reportMessage(STRING(RELEASE_FILES_MISSING) + " " + path, st);
+				reportMessage(STRING(RELEASE_FILES_MISSING) + " " + aPath, st);
 				noReleaseFiles++;
 				return;
 			}
@@ -357,12 +355,12 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		//Check for multiple NFO or SFV files
 		if (SETTING(CHECK_EXTRA_SFV_NFO)) {
 			if (nfoFiles > 1) {
-				reportMessage(STRING(MULTIPLE_NFO) + " " + path, st);
+				reportMessage(STRING(MULTIPLE_NFO) + " " + aPath, st);
 				extrasFound++;
 				extrasInFolder = true;
 			}
 			if (sfvFiles > 1) {
-				reportMessage(STRING(MULTIPLE_SFV) + " " + path, st);
+				reportMessage(STRING(MULTIPLE_SFV) + " " + aPath, st);
 				if (!extrasInFolder) {
 					extrasInFolder = true;
 					extrasFound++;
@@ -392,7 +390,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				if (isZipRls && SETTING(CHECK_EXTRA_FILES) && sfvFiles == 0) {
 					AirUtil::listRegexSubtract(fileList, zipFolderReg);
 					if (!fileList.empty()) {
-						reportMessage(STRING_F(EXTRA_FILES_RLSDIR_X, path.c_str() % Util::toString(", ", fileList)), st);
+						reportMessage(STRING_F(EXTRA_FILES_RLSDIR_X, aPath.c_str() % Util::toString(", ", fileList)), st);
 						extrasFound++;
 					}
 				}
@@ -404,12 +402,12 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				if (fileList.size() > 1) {
 					//check that all files have the same extension.. otherwise there are extras
 					string extension;
-					for(auto i = fileList.begin(); i != fileList.end(); ++i) {
+					for(auto& fileName: fileList) {
 						//ignore image files
-						if (boost::regex_match(Util::getFileExt(*i), proofImageReg))
+						if (boost::regex_match(Util::getFileExt(fileName), proofImageReg))
 							continue;
 						
-						string loopExt = Util::getFileExt(*i);
+						string loopExt = Util::getFileExt(fileName);
 						if (!extension.empty() && loopExt != extension) {
 							found = true;
 							break;
@@ -419,7 +417,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				}
 
 				if (nfoFiles > 0 || sfvFiles > 0 || isRelease || found) {
-					reportMessage(STRING_F(EXTRA_FILES_SAMPLEDIR_X, path), st);
+					reportMessage(STRING_F(EXTRA_FILES_SAMPLEDIR_X, aPath), st);
 					extrasFound++;
 				}
 			}
@@ -432,12 +430,12 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				found = false;
 				if (fileList.empty()) {
 					found = true;
-					StringList folderList = findFiles(path, "*", true, true);
+					StringList folderList = findFiles(aPath, "*", true, true);
 					//check if there are multiple disks and nfo inside them
-					for(auto i = folderList.begin(); i != folderList.end(); ++i) {
-						if (regex_match(*i, subDirReg)) {
+					for(auto& dirName: folderList) {
+						if (regex_match(dirName, subDirReg)) {
 							found = false;
-							StringList filesListSub = findFiles(path + *i + "\\", "*.nfo", false, true);
+							StringList filesListSub = findFiles(aPath + dirName + "\\", "*.nfo", false, true);
 							if (!filesListSub.empty()) {
 								found = true;
 								break;
@@ -447,7 +445,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 				}
 
 				if (!found) {
-					reportMessage(STRING(NFO_MISSING) + path, st);
+					reportMessage(STRING(NFO_MISSING) + aPath, st);
 					missingNFO++;
 				}
 			}
@@ -456,7 +454,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 			if (sfvFiles == 0 && isRelease) {
 				//avoid extra matches
 				if (!regex_match(dirName,subReg) && SETTING(CHECK_SFV)) {
-					reportMessage(STRING(SFV_MISSING) + path, st);
+					reportMessage(STRING(SFV_MISSING) + aPath, st);
 					missingSFV++;
 				}
 				return;
@@ -474,7 +472,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 	int releaseFiles=0, loopMissing=0;
 
-	DirSFVReader sfv(path, sfvFileList);
+	DirSFVReader sfv(aPath, sfvFileList);
 	while (sfv.read(fileName)) {
 		hasValidSFV = true;
 		releaseFiles++;
@@ -483,7 +481,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 		if(s == fileList.end()) { 
 			loopMissing++;
 			if (SETTING(CHECK_MISSING))
-				reportMessage(STRING(FILE_MISSING) + " " + path + fileName, st);
+				reportMessage(STRING(FILE_MISSING) + " " + aPath + fileName, st);
 		} else {
 			fileList.erase(s);
 		}
@@ -506,7 +504,7 @@ void ShareScannerManager::scanDir(const string& path, int& missingFiles, int& mi
 
 		AirUtil::listRegexSubtract(fileList, extraRegs[extrasType]);
 		if (!fileList.empty()) {
-			reportMessage(CSTRING_F(EXTRA_FILES_RLSDIR_X, path % Util::toString(", ", fileList)), st);
+			reportMessage(CSTRING_F(EXTRA_FILES_RLSDIR_X, aPath % Util::toString(", ", fileList)), st);
 			if (!extrasInFolder)
 				extrasFound++;
 		}
@@ -527,7 +525,7 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 				checkFailed++;
 			}
 		}
-		dirs.push_back(make_pair(aPath, sfv));
+		dirs.emplace_back(aPath, sfv);
 	}
 
 	/* Recursively scan subfolders */

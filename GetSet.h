@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_GET_SET_H
 #define DCPLUSPLUS_DCPP_GET_SET_H
 
-#pragma warning(disable:4100)
+//#pragma warning(disable:4100)
 
 /* adds a private member variable to a class and provides public get & set member functions to
 access it. */

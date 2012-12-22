@@ -34,9 +34,6 @@
 #include "FilteredFile.h"
 #include "CID.h"
 
-#include <boost/range/algorithm/find_if.hpp>
-#include <boost/range/algorithm/for_each.hpp>
-
 namespace dcpp {
 
 using boost::range::for_each;
@@ -188,7 +185,7 @@ void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
 	FavoriteUser fu = FavoriteUser(aUser, nick, aUser.hint, aUser.user->getCID().toBase32());
 	{
 		Lock l (cs);
-		users.insert(make_pair(aUser.user->getCID(), fu)).first;
+		users.emplace(aUser.user->getCID(), fu).first;
 	}
 
 	fire(FavoriteManagerListener::UserAdded(), fu);
@@ -710,7 +707,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			} else {
 				u = ClientManager::getInstance()->getUser(CID(cid));
 			}
-			auto i = users.insert(make_pair(u->getCID(), FavoriteUser(u, nick, hubUrl, cid))).first;
+			auto i = users.emplace(u->getCID(), FavoriteUser(u, nick, hubUrl, cid)).first;
 
 			if(aXml.getBoolChildAttrib("GrantSlot"))
 				i->second.setFlag(FavoriteUser::FLAG_GRANTSLOT);
@@ -1086,7 +1083,7 @@ void FavoriteManager::on(UserDisconnected, const UserPtr& user, bool wentOffline
 		fire(FavoriteManagerListener::StatusChanged(), user);
 }
 
-void FavoriteManager::on(UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept {
+void FavoriteManager::on(UserConnected, const OnlineUser& aUser, bool /*wasOffline*/) noexcept {
 	bool isFav = false;
 	UserPtr user = aUser.getUser();
 	{

@@ -162,7 +162,7 @@ const string SettingsManager::settingTags[] =
 	"ShowUselessSpam", "DisconnectMinSources", "UseSlowDisconnectingDefault", "PrioListHighest", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "HorizontalQueue",
 	"DLAutoSelectMethod", "WinampBarIconSize", "ShowTBStatusBar", "TBProgressTextColor", "LockTB", "ClearDirHistory", "PopunderPartialList", "TLSMode", "UpdateMethod",
 	"QueueSplitterPos", "UpdateIPHourly", "OpenTextOnBackground", "FullListDLLimit", "SearchSaveHubsState", "ConfirmHubExit", "ConfirmASRemove", "EnableSUDP", "NmdcMagnetWarn",
-	"AutoCompleteBundles", "LogScheduledRefreshes", "AutoDetectionUseLimited", "UseAdlsOwnList", "ASDelayHours", "LastListProfile",
+	"AutoCompleteBundles", "LogScheduledRefreshes", "AutoDetectionUseLimited", "UseAdlsOwnList", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -736,6 +736,9 @@ SettingsManager::SettingsManager()
 	setDefault(USE_ADLS_OWN, true);
 	setDefault(AS_DELAY_HOURS, 12);
 	setDefault(LAST_LIST_PROFILE, 0);
+
+	setDefault(MAX_HASHING_THREADS, 4);
+	setDefault(HASHERS_PER_VOLUME, 1);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

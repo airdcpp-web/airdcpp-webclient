@@ -32,7 +32,7 @@ FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getN
 	description(rhs.getDescription()), connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), 
 	stealth(false), userliststate(true), mode(0), chatNotify(false), token(Util::randInt()) {
 
-		servers.push_back(make_pair(rhs.getServer(), false));
+		servers.emplace_back(rhs.getServer(), false);
 }
 
 FavoriteHubEntry::FavoriteHubEntry(const FavoriteHubEntry& rhs) noexcept : userdescription(rhs.userdescription), name(rhs.getName()), 
@@ -47,7 +47,8 @@ const string& FavoriteHubEntry::getNick(bool useDefault /*true*/) const {
 void FavoriteHubEntry::setServerStr(const string& aServers) {
 	StringTokenizer<string> tmp(aServers, ';');
 	servers.clear();
-	boost::for_each(tmp.getTokens(), [this](const string& aUrl) { servers.push_back(make_pair(move(aUrl), false)); });
+	for(auto& url: tmp.getTokens())
+		servers.emplace_back(move(url), false);
 	validateFailOvers();
 }
 
@@ -59,7 +60,8 @@ bool FavoriteHubEntry::isAdcHub() const {
 
 void FavoriteHubEntry::addFailOvers(StringList&& addresses) {
 	ServerList tmp;
-	boost::for_each(addresses, [this, &tmp](const string& aUrl) { tmp.push_back(make_pair(move(aUrl), false)); });
+	for(auto& url: addresses) 
+		tmp.emplace_back(move(url), false);
 
 	servers.resize(tmp.size()+1);
 	move(tmp.begin(), tmp.end(), servers.begin()+1);
@@ -76,7 +78,8 @@ void FavoriteHubEntry::blockFailOver(const string& aServer) {
 string FavoriteHubEntry::getServerStr() {
 	string ret;
 	if (!servers.empty()) {
-		boost::for_each(servers, [&ret](const ServerBoolPair& sbp) { ret += sbp.first + ";"; });
+		for(auto& sbp: servers)
+			ret += sbp.first + ";";
 		ret.pop_back();
 	}
 	return ret;

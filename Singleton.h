@@ -21,10 +21,12 @@
 
 #include "debug.h"
 
+#include <boost/noncopyable.hpp>
+
 namespace dcpp {
 
 template<typename T>
-class Singleton {
+class Singleton : boost::noncopyable {
 public:
 	Singleton() { }
 	virtual ~Singleton() { }
@@ -48,9 +50,6 @@ public:
 	}
 protected:
 	static T* instance;
-private:
-	Singleton(const Singleton&);
-	Singleton& operator=(const Singleton&);
 
 };
 

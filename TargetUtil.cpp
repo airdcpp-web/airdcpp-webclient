@@ -24,11 +24,6 @@
 #include "ShareManager.h"
 #include "TargetUtil.h"
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-#include <boost/range/adaptor/map.hpp>
-//#include <boost/range/algorithm/sort.hpp>
-
 #ifdef _WIN32
 # include <ShlObj.h>
 #else
@@ -39,9 +34,6 @@
 #endif
 
 namespace dcpp {
-
-using boost::range::for_each;
-using boost::adaptors::map_values;
 
 string TargetUtil::getMountPath(const string& aPath) {
 	TCHAR buf[MAX_PATH];
@@ -120,12 +112,12 @@ bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_
 	TargetInfoMap targetMap;
 	int64_t tmpSize = 0;
 
-	for(auto i = targets.begin(); i != targets.end(); ++i) {
-		string target = getMountPath(*i, volumes);
+	for(auto& i: targets) {
+		string target = getMountPath(i, volumes);
 		if (!target.empty() && targetMap.find(target) == targetMap.end()) {
 			int64_t free = 0;
 			if (GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&free)) {
-				targetMap[target] = TargetInfo(*i, free);
+				targetMap[target] = TargetInfo(i, free);
 			}
 		}
 	}
@@ -153,8 +145,7 @@ bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_
 
 void TargetUtil::compareMap(const TargetInfoMap& aTargetMap, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod) {
 
-	for (auto i = aTargetMap.begin(); i != aTargetMap.end(); ++i) {
-		auto mapTi = i->second;
+	for (auto mapTi: aTargetMap | map_values) {
 		if (aMethod == (int8_t)SettingsManager::SELECT_LEAST_SPACE) {
 			int64_t diff = mapTi.getFreeSpace() - aSize;
 			if (diff > 0 && (diff < (retTi_.getFreeSpace() - aSize) || !retTi_.isInitialized()))

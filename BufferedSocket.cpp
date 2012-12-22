@@ -526,7 +526,7 @@ void BufferedSocket::shutdown(function<void ()> f) {
 
 void BufferedSocket::addTask(Tasks task, TaskData* data) {
 	dcassert(task == DISCONNECT || task == SHUTDOWN || sock.get());
-	tasks.push_back(make_pair(task, unique_ptr<TaskData>(data))); taskSem.signal();
+	tasks.emplace_back(task, unique_ptr<TaskData>(data)); taskSem.signal();
 }
 
 } // namespace dcpp

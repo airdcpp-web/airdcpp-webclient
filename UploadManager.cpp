@@ -829,7 +829,8 @@ int64_t UploadManager::getRunningAverage() {
 	int64_t avg = 0;
 
 	Lock l(cs);
-	for_each(uploads.begin(), uploads.end(), [&](const Upload* u) { avg += static_cast<int64_t>(u->getAverageSpeed()); });
+	for (auto u: uploads)
+		avg += static_cast<int64_t>(u->getAverageSpeed()); 
 	return avg;
 }
 

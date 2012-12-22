@@ -19,9 +19,6 @@
 #include "stdinc.h"
 #include "ClientManager.h"
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-
 #include "ConnectionManager.h"
 #include "CryptoManager.h"
 #include "DebugManager.h"
@@ -48,8 +45,6 @@
 
 
 namespace dcpp {
-
-using boost::range::for_each;
 
 
 ClientManager::ClientManager() : udp(Socket::TYPE_UDP) {
@@ -117,11 +112,11 @@ StringList ClientManager::getHubUrls(const CID& cid, const string& /*hintUrl*/) 
 	return lst;
 }
 
-HubSet ClientManager::getHubSet(const CID& cid) const {
-	HubSet lst;
+OrderedStringSet ClientManager::getHubSet(const CID& cid) const {
+	OrderedStringSet lst;
 
 	RLock l(cs);
-	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&cid));
+	auto op = onlineUsers.equal_range(const_cast<CID*>(&cid));
 	for(auto i = op.first; i != op.second; ++i) {
 		lst.insert(i->second->getClientBase().getHubUrl());
 	}
@@ -146,7 +141,7 @@ StringPairList ClientManager::getHubs(const CID& cid, const string& /*hintUrl*/)
 	StringPairList lst;
 	auto op = onlineUsers.equal_range(const_cast<CID*>(&cid));
 	for(auto i = op.first; i != op.second; ++i) {
-		lst.push_back(make_pair(i->second->getClient().getHubUrl(), i->second->getClient().getHubName()));
+		lst.emplace_back(i->second->getClient().getHubUrl(), i->second->getClient().getHubName());
 	}
 	return lst;
 }
@@ -510,7 +505,7 @@ void ClientManager::getUserInfoList(const UserPtr user, User::UserInfoList& aLis
 
 	for(auto i = p.first; i != p.second; ++i) {
 		auto ou = i->second;
-		aList_.push_back(User::UserHubInfo(ou->getHubUrl(), ou->getClient().getHubName(), Util::toInt64(ou->getIdentity().getShareSize())));
+		aList_.emplace_back(ou->getHubUrl(), ou->getClient().getHubName(), Util::toInt64(ou->getIdentity().getShareSize()));
 	}
 }
 
@@ -760,10 +755,10 @@ void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t 
 
 void ClientManager::getOnlineClients(StringList& onlineClients) {
 	RLock l (cs);
-	for_each(clients, [&onlineClients](pair<string*, Client*> cp) {
-		if (cp.second->isConnected())
-			onlineClients.push_back(cp.second->getHubUrl());
-	});
+	for (auto c: clients | map_values) {
+		if (c->isConnected())
+			onlineClients.push_back(c->getHubUrl());
+	}
 }
 
 void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
@@ -965,7 +960,7 @@ void ClientManager::on(HubUpdated, const Client* c) noexcept {
 	fire(ClientManagerListener::ClientUpdated(), c);
 }
 
-void ClientManager::on(Failed, const string& aHubUrl, const string& aLine) noexcept {
+void ClientManager::on(Failed, const string& aHubUrl, const string& /*aLine*/) noexcept {
 	fire(ClientManagerListener::ClientDisconnected(), aHubUrl);
 }
 

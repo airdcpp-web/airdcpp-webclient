@@ -27,9 +27,11 @@
 #include "Util.h"
 #include "GetSet.h"
 
+#include <boost/noncopyable.hpp>
+
 namespace dcpp {
 
-class DirectSearchResult : public FastAlloc<DirectSearchResult>, public intrusive_ptr_base<DirectSearchResult> {
+class DirectSearchResult : public FastAlloc<DirectSearchResult>, public intrusive_ptr_base<DirectSearchResult>, boost::noncopyable {
 public:	
 	DirectSearchResult(const string& aPath);
 
@@ -76,8 +78,6 @@ private:
 	friend class SearchManager;
 
 	SearchResult();
-
-	SearchResult(const SearchResult& rhs);
 
 	TTHValue tth;
 	

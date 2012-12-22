@@ -160,9 +160,9 @@ bool QueueItem::hasPartialSharingTarget() {
 bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const {
 	if(len <= 0) return false;
 
-	for(SegmentSet::const_iterator i = done.begin(); i != done.end(); ++i) {
-		int64_t first  = (*i).getStart();
-		int64_t second = (*i).getEnd();
+	for(auto& i: done) {
+		int64_t first  = i.getStart();
+		int64_t second = i.getEnd();
 
 		if(first <= startPos && startPos < second){
 			len = min(len, second - startPos);
@@ -224,19 +224,20 @@ size_t QueueItem::countOnlineUsers() const {
 QueueItem::~QueueItem() { }
 
 void QueueItem::getOnlineUsers(HintedUserList& l) const {
-	for(auto i = sources.begin(), iend = sources.end(); i != iend; ++i)
-		if(i->getUser().user->isOnline())
-			l.push_back(i->getUser());
+	for(auto& i: sources) {
+		if(i.getUser().user->isOnline())
+			l.push_back(i.getUser());
+	}
 }
 
-void QueueItem::addSource(const HintedUser& aUser, const string& aRemotePath) {
+void QueueItem::addSource(const HintedUser& aUser) {
 	dcassert(!isSource(aUser.user));
 	auto i = getBadSource(aUser);
 	if(i != badSources.end()) {
 		sources.push_back(*i);
 		badSources.erase(i);
 	} else {
-		sources.push_back(Source(aUser, aRemotePath));
+		sources.emplace_back(aUser);
 	}
 }
 
@@ -285,8 +286,8 @@ const string& QueueItem::getTempTarget() {
 uint64_t QueueItem::getAverageSpeed() const {
 	uint64_t totalSpeed = 0;
 	
-	for(auto i = downloads.begin(); i != downloads.end(); i++) {
-		totalSpeed += static_cast<int64_t>((*i)->getAverageSpeed());
+	for(auto d: downloads) {
+		totalSpeed += static_cast<int64_t>(d->getAverageSpeed());
 	}
 
 	return totalSpeed;
@@ -338,8 +339,8 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		posArray.reserve(partialSource->getPartialInfo().size());
 
 		// Convert block index to file position
-		for(PartsInfo::const_iterator i = partialSource->getPartialInfo().begin(); i != partialSource->getPartialInfo().end(); i++)
-			posArray.push_back(min(getSize(), (int64_t)(*i) * blockSize));
+		for(auto& i: partialSource->getPartialInfo())
+			posArray.push_back(min(getSize(), (int64_t)(i) * blockSize));
 	}
 
 	/***************************/
@@ -363,16 +364,16 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		int64_t end = std::min(getSize(), start + curSize);
 		Segment block(start, end - start);
 		bool overlaps = false;
-		for(SegmentConstIter i = done.begin(); !overlaps && i != done.end(); ++i) {
+		for(auto& i: done) {
 			if(curSize <= blockSize) {
-				int64_t dstart = i->getStart();
-				int64_t dend = i->getEnd();
+				int64_t dstart = i.getStart();
+				int64_t dend = i.getEnd();
 				// We accept partial overlaps, only consider the block done if it is fully consumed by the done block
 				if(dstart <= start && dend >= end) {
 					overlaps = true;
 				}
 			} else {
-				overlaps = block.overlaps(*i);
+				overlaps = block.overlaps(i);
 			}
 		}
 		
@@ -392,7 +393,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 						dcassert(b % blockSize == 0);
 						dcassert(e % blockSize == 0 || e == getSize());
 
-						neededParts.push_back(Segment(b, e - b));
+						neededParts.emplace_back(b, e - b);
 					}
 				}
 			} else {
@@ -424,9 +425,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
 	if(allowOverlap && partialSource == NULL && bundle && BOOLSETTING(OVERLAP_SLOW_SOURCES) && lastSpeed > 0) {
 		// overlap slow running chunk
-		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			Download* d = *i;
-			
+		for(auto d: downloads) {
 			// current chunk mustn't be already overlapped
 			if(d->getOverlapped())
 				continue;
@@ -457,8 +456,8 @@ Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const Par
 uint64_t QueueItem::getDownloadedSegments() const {
 	uint64_t total = 0;
 	// count done segments
-	for(auto i = done.begin(); i != done.end(); ++i) {
-		total += i->getSize();
+	for(auto& i: done) {
+		total += i.getSize();
 	}
 	return total;
 }
@@ -467,13 +466,13 @@ uint64_t QueueItem::getDownloadedBytes() const {
 	uint64_t total = 0;
 
 	// count done segments
-	for(auto i = done.begin(); i != done.end(); ++i) {
-		total += i->getSize();
+	for(auto& i: done) {
+		total += i.getSize();
 	}
 
 	// count running segments
-	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-		total += (*i)->getPos();
+	for(auto d: downloads) {
+		total += d->getPos();
 	}
 
 	return total;
@@ -546,27 +545,27 @@ vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 
 	switch(type) {
 	case 0:
 		v.reserve(downloads.size());
-		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			v.push_back((*i)->getSegment());
+		for(auto d: downloads) {
+			v.push_back(d->getSegment());
 		}
 		break;
 	case 1:
 		v.reserve(downloads.size());
-		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			v.push_back(Segment((*i)->getStartPos(), (*i)->getPos()));
+		for(auto d: downloads) {
+			v.emplace_back(d->getStartPos(), d->getPos());
 		}
 		break;
 	case 2:
 		v.reserve(done.size());
-		for(auto i = done.begin(); i != done.end(); ++i) {
-			v.push_back(*i);
+		for(auto& i: done) {
+			v.push_back(i);
 		}
 		break;
 	}
 	return v;
 }
 
-bool QueueItem::hasSegment(const UserPtr& aUser, const HubSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	auto source = getSource(aUser);
 	if (!source->blockedHubs.empty() && includes(source->blockedHubs.begin(), source->blockedHubs.end(), onlineHubs.begin(), onlineHubs.end())) {
 		lastError = STRING(NO_ACCESS_ONLINE_HUBS);
@@ -685,20 +684,20 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 
 	f.write(LIT("\">\r\n"));
 
-	for(auto i = done.begin(); i != done.end(); ++i) {
+	for(auto& s: done) {
 		f.write(indent);
 		f.write(LIT("\t<Segment Start=\""));
-		f.write(Util::toString(i->getStart()));
+		f.write(Util::toString(s.getStart()));
 		f.write(LIT("\" Size=\""));
-		f.write(Util::toString(i->getSize()));
+		f.write(Util::toString(s.getSize()));
 		f.write(LIT("\"/>\r\n"));
 	}
 
-	for(auto j = sources.begin(); j != sources.end(); ++j) {
-		if(j->isSet(QueueItem::Source::FLAG_PARTIAL)) continue;
+	for(auto& j: sources) {
+		if(j.isSet(QueueItem::Source::FLAG_PARTIAL)) continue;
 					
-		const CID& cid = j->getUser().user->getCID();
-		const string& hint = j->getUser().hint;
+		const CID& cid = j.getUser().user->getCID();
+		const string& hint = j.getUser().hint;
 
 		f.write(indent);
 		f.write(LIT("\t<Source CID=\""));
@@ -710,10 +709,10 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 			f.write(hint);
 		}
 
-		if (SettingsManager::lanMode) {
+		/*if (SettingsManager::lanMode) {
 			f.write(LIT("\" RemotePath=\""));
-			f.write(j->getRemotePath());
-		}
+			f.write(j.getRemotePath());
+		}*/
 		f.write(LIT("\"/>\r\n"));
 	}
 
@@ -721,7 +720,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(LIT("</Download>\r\n"));
 }
 
-bool QueueItem::Source::updateHubUrl(const HubSet& onlineHubs, string& hubUrl, bool isFileList) {
+bool QueueItem::Source::updateHubUrl(const OrderedStringSet& onlineHubs, string& hubUrl, bool isFileList) {
 	if (isFileList) {
 		//we already know that the hub is online
 		dcassert(onlineHubs.find(user.hint) != onlineHubs.end());

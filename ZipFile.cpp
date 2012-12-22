@@ -188,9 +188,9 @@ void ZipFile::CreateZipFile(const string& dstPath, const StringPairList& files) 
 	if(!zFile)
 		throw ZipFileException("zipOpen");
 
-	for(StringPairList::const_iterator i = files.begin(); i != files.end(); ++i) {
-		string path = i->first;
-		const char* nameInZip = i->second.c_str();
+	for(const auto& i: files) {
+		auto& path = i.first;
+		const char* nameInZip = i.second.c_str();
 
 		while(nameInZip[0] == '/' || nameInZip[0] == '\\')
 			nameInZip++;
@@ -198,7 +198,7 @@ void ZipFile::CreateZipFile(const string& dstPath, const StringPairList& files) 
 		zip_fileinfo zi;
 		memzero(&zi, sizeof(zip_fileinfo));
 
-		if(i->second[i->second.size()-1] == '/') {
+		if(i.second[i.second.size()-1] == '/') {
 			// Add directory entry (missing folder attributes)
 			err = zipOpenNewFileInZip(zFile, nameInZip, &zi,
 				NULL, 0, NULL, 0, NULL, Z_DEFLATED, Z_BEST_COMPRESSION);
@@ -291,11 +291,11 @@ void ZipFile::CreateZipFileList(StringPairList& files, const string& srcPath, co
 			ZipFile::CreateZipFileList(subFiles, newSrcPath, newDstPath); //don't pass the pattern to sub directories
 
 			if(keepEmpty || !subFiles.empty()) {
-				files.push_back(make_pair(newSrcPath, newDstPath));
+				files.emplace_back(newSrcPath, newDstPath);
 				files.insert(files.end(), subFiles.begin(), subFiles.end());
 			}
 		} else {
-			files.push_back(make_pair(srcPath + name, dstPath + name));
+			files.emplace_back(srcPath + name, dstPath + name);
 		}
 	}
 }
