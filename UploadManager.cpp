@@ -496,12 +496,12 @@ bool UploadManager::getMultiConn(const UserConnection& aSource) {
 
 	if (!multiUploads.empty()) {
 		uint16_t highest=0;
-		for(auto i = multiUploads.begin(); i != multiUploads.end(); ++i) {
-			if (i->first == u) {
+		for(auto& i: multiUploads) {
+			if (i.first == u) {
 				continue;
 			}
-			if (i->second > highest) {
-				highest = i->second;
+			if (i.second > highest) {
+				highest = i.second;
 			}
 		}
 
@@ -539,8 +539,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 	float percent = -1;
 	string speedStr;
 
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(const auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "HI") == 0) {
 			hubIpPort = str.substr(2);
 		} else if(str.compare(0, 2, "BU") == 0) {
@@ -598,8 +597,7 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 	int64_t size=0, downloaded=0;
 	bool singleUser = false;
 
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(const auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "BU") == 0) {
 			bundleToken = str.substr(2);
 		} else if(str.compare(0, 2, "TO") == 0) {
@@ -653,8 +651,7 @@ void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
 	int64_t size=0, downloaded=0;
 	bool singleUser = false, multiUser = false;
 
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(const auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "BU") == 0) {
 			bundleToken = str.substr(2);
 		} else if(str.compare(0, 2, "SI") == 0) {
@@ -700,8 +697,7 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 	string bundleToken;
 	string token;
 
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(const auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "BU") == 0) {
 			bundleToken = str.substr(2);
 		} else if(str.compare(0, 2, "TO") == 0) {
@@ -735,9 +731,9 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 void UploadManager::finishBundle(const AdcCommand& cmd) {
 	string bundleToken;
 
-	for(auto i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		if((*i).compare(0, 2, "BU") == 0) {
-			bundleToken = (*i).substr(2);
+	for(const auto& str: cmd.getParameters()) {
+		if(str.compare(0, 2, "BU") == 0) {
+			bundleToken = str.substr(2);
 			break;
 		}
 	}
@@ -764,8 +760,7 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 void UploadManager::removeBundleConnection(const AdcCommand& cmd) {
 	string token;
 
-	for(StringIterC i = cmd.getParameters().begin(); i != cmd.getParameters().end(); ++i) {
-		const string& str = *i;
+	for(const auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "TO") == 0) {
 			token = str.substr(2);
 		}
@@ -1112,8 +1107,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		}
 
 		if( BOOLSETTING(AUTO_KICK) ) {
-			for(auto i = uploads.begin(); i != uploads.end(); ++i) {
-				Upload* u = *i;
+			for(auto u: uploads) {
 				if(u->getUser()->isOnline()) {
 					u->unsetFlag(Upload::FLAG_PENDING_KICK);
 					continue;
@@ -1133,9 +1127,9 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		}
 	}
 		
-	for(auto i = disconnects.begin(); i != disconnects.end(); ++i) {
-		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks((*i)->getCID())), LogManager::LOG_INFO);
-		ConnectionManager::getInstance()->disconnect(*i, false);
+	for(auto i: disconnects) {
+		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks(i->getCID())), LogManager::LOG_INFO);
+		ConnectionManager::getInstance()->disconnect(i, false);
 	}
 
 	int freeSlots = getFreeSlots();
@@ -1212,10 +1206,10 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			}
 		}
 
-		for(auto i = uploads.begin(); i != uploads.end(); ++i) {
-			if((*i)->getPos() > 0) {
-				ticks.push_back(*i);
-				(*i)->tick();
+		for(auto u: uploads) {
+			if(u->getPos() > 0) {
+				ticks.push_back(u);
+				u->tick();
 			}
 		}
 		
@@ -1261,10 +1255,8 @@ void UploadManager::abortUpload(const string& aFile, bool waiting){
 	{
 		Lock l(cs);
 
-		for(auto i = uploads.begin(); i != uploads.end(); i++){
-			Upload* u = (*i);
-
-			if(u->getPath() == aFile){
+		for(auto u: uploads) {
+			if(u->getPath() == aFile) {
 				u->getUserConnection().disconnect(true);
 				nowait = false;
 			}
@@ -1280,8 +1272,7 @@ void UploadManager::abortUpload(const string& aFile, bool waiting){
 			Lock l(cs);
 
 			nowait = true;
-			for(auto i = uploads.begin(); i != uploads.end(); i++){
-				Upload* u = (*i);
+			for(auto u: uploads) {
 
 				if(u->getPath() == aFile){
 					dcdebug("upload %s is not removed\n", aFile.c_str());

@@ -1151,6 +1151,7 @@ void QueueManager::checkBundleHashed(BundlePtr b) {
 			}
 
 			if (b->isSet(Bundle::FLAG_HASH)) {
+				b->unsetFlag(Bundle::FLAG_HASH);
 				if (!b->isSet(Bundle::FLAG_SHARING_FAILED)) {
 					fireHashed = true;
 				} else {
