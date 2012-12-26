@@ -61,7 +61,7 @@ public:
 	void moveBundle(BundlePtr aBundle, const string& newTarget);
 	void removeBundle(BundlePtr aBundle);
 
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) const;
+	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const;
 
 	void addSearchPrio(BundlePtr aBundle);
 	void removeSearchPrio(BundlePtr aBundle);

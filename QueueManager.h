@@ -149,7 +149,7 @@ public:
 	void removeBundle(BundlePtr aBundle, bool finished, bool removeFinished, bool moved = false);
 	uint8_t isDirQueued(const string& aDir) const;
 	tstring getDirPath(const string& aDir) const;
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) const { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
+	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundlePaths, const StringList& sharePaths);
 

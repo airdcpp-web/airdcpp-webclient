@@ -390,7 +390,7 @@ void BundleQueue::moveBundle(BundlePtr aBundle, const string& newTarget) {
 	addDirectory(newTarget, aBundle);
 }
 
-void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const StringSet& volumes) const {
+void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const {
 	string tempVol;
 	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("%[targetdrive]") == string::npos);
 	if (useSingleTempDir) {

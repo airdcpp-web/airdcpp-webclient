@@ -51,16 +51,17 @@ public:
 		TARGET_SHARE
 	};
 
-	typedef map<string, TargetInfo> TargetInfoMap;
+	typedef unordered_map<string, TargetInfo, noCaseStringHash, noCaseStringEq> TargetInfoMap;
+	typedef unordered_set<string, noCaseStringHash, noCaseStringEq> VolumeSet;
 
 	static string getMountPath(const string& aPath);
-	static string getMountPath(const string& aPath, const StringSet& aVolumes);
+	static string getMountPath(const string& aPath, const VolumeSet& aVolumes);
 
 	static bool getTarget(StringList& targets, TargetInfo& ti_, const int64_t& size);
 
 	static bool getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_, const int64_t& size);
 
-	static void getVolumes(StringSet& volumes);
+	static void getVolumes(VolumeSet& volumes);
 	static bool getDiskInfo(TargetInfo& ti_);
 
 	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod);

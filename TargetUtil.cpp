@@ -50,7 +50,7 @@ string TargetUtil::getMountPath(const string& aPath) {
 	return Util::emptyString;
 }
 
-string TargetUtil::getMountPath(const string& aPath, const StringSet& aVolumes) {
+string TargetUtil::getMountPath(const string& aPath, const VolumeSet& aVolumes) {
 	if (aVolumes.find(aPath) != aVolumes.end()) {
 		return aPath;
 	}
@@ -107,7 +107,7 @@ bool TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 }
 
 bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_t& aSize) {
-	StringSet volumes;
+	VolumeSet volumes;
 	getVolumes(volumes);
 	TargetInfoMap targetMap;
 	int64_t tmpSize = 0;
@@ -157,7 +157,7 @@ void TargetUtil::compareMap(const TargetInfoMap& aTargetMap, TargetInfo& retTi_,
 }
 
 bool TargetUtil::getDiskInfo(TargetInfo& targetInfo_) {
-	StringSet volumes;
+	VolumeSet volumes;
 	getVolumes(volumes);
 	string pathVol = getMountPath(targetInfo_.targetDir, volumes);
 	if (pathVol.empty()) {
@@ -175,7 +175,7 @@ bool TargetUtil::getDiskInfo(TargetInfo& targetInfo_) {
 	return true;
 }
 
-void TargetUtil::getVolumes(StringSet& volumes) {
+void TargetUtil::getVolumes(VolumeSet& volumes) {
 	TCHAR   buf[MAX_PATH];  
 	HANDLE  hVol;    
 	BOOL    found;
