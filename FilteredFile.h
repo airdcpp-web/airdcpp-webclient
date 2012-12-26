@@ -146,6 +146,12 @@ public:
 
 	virtual bool eof() { return !more; }
 
+	virtual void setPos(int64_t aPos, int64_t aMaxBytes) noexcept {
+		dcassert(!flushed);
+		more = true;
+		//filter = Filter();
+		f->setPos(aPos, aMaxBytes);
+	}
 private:
 	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64, test
 
@@ -197,6 +203,14 @@ public:
 		return totalProduced;
 	}
 
+	virtual void setPos(int64_t aPos, int64_t aMaxBytes) noexcept {
+		pos = 0;
+		more = true;
+		valid = 0;
+		//filter = Filter();
+		filter.reset();
+		f->setPos(aPos, aMaxBytes);
+	}
 private:
 	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64
 

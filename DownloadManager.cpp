@@ -69,16 +69,15 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 	{
 		RLock l(cs);
-		for (auto i = runningBundles.begin(); i != runningBundles.end(); ++i) {
-			if (i->second->onDownloadTick(UBNList)) {
-				bundleTicks.push_back(i->second);
+		for (auto b: runningBundles | map_values) {
+			if (b->onDownloadTick(UBNList)) {
+				bundleTicks.push_back(b);
 			}
 		}
 
 		DownloadList tickList;
 		// Tick each ongoing download
-		for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-			Download* d = *i;
+		for(auto d: downloads) {
 			double speed = d->getAverageSpeed();
 
 			if(d->getPos() > 0) {
@@ -162,8 +161,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
 
 	RLock l(cs);
-	for(auto i = idlers.begin(); i != idlers.end(); ++i) {	
-		UserConnection* uc = *i;
+	for(auto uc: idlers) {
 		if(uc->getUser() == user) {
 			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
@@ -461,10 +459,9 @@ void DownloadManager::endData(UserConnection* aSource) {
 int64_t DownloadManager::getRunningAverage() {
 	RLock l(cs);
 	int64_t avg = 0;
-	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-		Download* d = *i;
+	for(auto d: downloads)
 		avg += static_cast<int64_t>(d->getAverageSpeed());
-	}
+
 	return avg;
 }
 
@@ -533,8 +530,7 @@ void DownloadManager::removeDownload(Download* d) {
 
 void DownloadManager::setTarget(const string& oldTarget, const string& newTarget) {
 	RLock l (cs);
-	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-		Download* d = *i;
+	for(auto d: downloads) {
 		if (d->getPath() == oldTarget) {
 			d->setPath(newTarget);
 			dcassert(d->getBundle());
@@ -563,8 +559,8 @@ void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundl
 		}
 	}
 
-	for(auto i = ucl.begin(); i != ucl.end(); ++i) {
-		startBundle(*i, targetBundle);
+	for(auto uc: ucl) {
+		startBundle(uc, targetBundle);
 	}
 }
 
@@ -598,8 +594,7 @@ void DownloadManager::disconnectBundle(BundlePtr aBundle, const UserPtr& aUser) 
 	//UserConnectionList u;
 	{
 		RLock l(cs);
-		for(auto i = aBundle->getDownloads().begin(); i != aBundle->getDownloads().end(); ++i) {
-			Download* d = *i;
+		for(auto d: aBundle->getDownloads()) {
 			if (aUser && d->getUser() != aUser) {
 				continue;
 			}
@@ -614,8 +609,7 @@ void DownloadManager::disconnectBundle(BundlePtr aBundle, const UserPtr& aUser) 
 void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser) {
 	RLock l(cs);
 	
-	for(auto i = downloads.begin(); i != downloads.end(); ++i) {
-		Download* d = *i;
+	for(auto d: downloads) {
 		if(d->getPath() == aTarget) {
 			if (aUser) {
 				if (d->getUser() != aUser) {

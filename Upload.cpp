@@ -21,22 +21,43 @@
 
 #include "UserConnection.h"
 #include "Streams.h"
+#include "FilteredFile.h"
+#include "ZUtils.h"
 
 namespace dcpp {
 
-Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth) : Transfer(conn, path, tth), stream(0), fileSize(-1), delayTime(0) { 
+Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth, unique_ptr<InputStream> aIS) : 
+	Transfer(conn, path, tth), fileSize(-1), delayTime(0), stream(move(aIS)) { 
+
 	conn.setUpload(this);
 }
 
+InputStream* Upload::getStream() { 
+	return stream.get(); 
+}
+
+void Upload::setFiltered() {
+	stream.reset(new FilteredInputStream<ZFilter, true>(stream.release()));
+	setFlag(Upload::FLAG_ZUPLOAD);
+}
+
 Upload::~Upload() {
-	dcassert(!bundle);
-	getUserConnection().setUpload(0);
-	delete stream; 
+	if (bundle) {
+		bundle->removeUpload(this);
+		bundle = nullptr;
+	}
+
+	getUserConnection().setUpload(nullptr);
 }
 
 void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {
 	Transfer::getParams(aSource, params);
 	params["source"] = (getType() == TYPE_PARTIAL_LIST ? STRING(PARTIAL_FILELIST) : getPath());
 }
+
+void Upload::setPos(int64_t pos, int64_t aMaxBytes) noexcept {
+	stream->setPos(pos, aMaxBytes);
+}
+
 
 } // namespace dcpp

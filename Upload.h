@@ -42,16 +42,20 @@ public:
 		return compare(getToken(), u->getToken()) == 0;
 	}
 
-	Upload(UserConnection& conn, const string& path, const TTHValue& tth);
+	Upload(UserConnection& aSource, const string& aPath, const TTHValue& aTTH, unique_ptr<InputStream> aIS);
 	~Upload();
 
 	void getParams(const UserConnection& aSource, ParamMap& params) const;
 
 	GETSET(int64_t, fileSize, FileSize);
-	GETSET(InputStream*, stream, Stream);
 	GETSET(UploadBundlePtr, bundle, Bundle);
 
 	uint8_t delayTime;
+	InputStream* getStream();
+	void setFiltered();
+	void setPos(int64_t pos, int64_t aMaxBytes) noexcept;
+private:
+	unique_ptr<InputStream> stream;
 };
 
 } // namespace dcpp

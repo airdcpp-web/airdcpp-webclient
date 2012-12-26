@@ -94,4 +94,8 @@ size_t SharedFileStream::flush() throw(Exception) {
 	return sfh->flush();
 }
 
+void SharedFileStream::setPos(int64_t aPos) noexcept {
+	pos = aPos;
+}
+
 }

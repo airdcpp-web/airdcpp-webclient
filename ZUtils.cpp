@@ -43,6 +43,15 @@ ZFilter::~ZFilter() {
 	deflateEnd(&zs);
 }
 
+void ZFilter::reset() {
+	deflateEnd(&zs);
+	memset(&zs, 0, sizeof(zs));
+
+	if(deflateInit(&zs, 3) != Z_OK) {
+		throw Exception(STRING(COMPRESSION_ERROR));
+	}
+}
+
 bool ZFilter::operator()(const void* in, size_t& insize, void* out, size_t& outsize) {
 	if(outsize == 0)
 		return false;
@@ -107,6 +116,14 @@ UnZFilter::UnZFilter() {
 UnZFilter::~UnZFilter() {
 	//dcdebug("UnZFilter end, %ld/%ld = %.04f\n", zs.total_out, zs.total_in, (float)zs.total_out / max((float)zs.total_in, (float)1));
 	inflateEnd(&zs);
+}
+
+void UnZFilter::reset() {
+	inflateEnd(&zs);
+	memset(&zs, 0, sizeof(zs));
+
+	if(inflateInit(&zs) != Z_OK)
+		throw Exception(STRING(COMPRESSION_ERROR));
 }
 
 bool UnZFilter::operator()(const void* in, size_t& insize, void* out, size_t& outsize) {

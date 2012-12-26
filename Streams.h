@@ -53,6 +53,9 @@ public:
 	 */
 	virtual size_t flush() = 0;
 
+	/* This only works for file streams */
+	virtual void setPos(int64_t /*pos*/, int64_t /*aMaxBytes*/) noexcept { }
+
 	/**
 	 * @return True if stream is at expected end
 	 */
@@ -71,6 +74,9 @@ public:
 	 *		   actually read from the stream source in this call.
 	 */
 	virtual size_t read(void* buf, size_t& len) = 0;
+
+	/* This only works for file streams */
+	virtual void setPos(int64_t /*pos*/, int64_t /*aMaxBytes*/) noexcept { }
 };
 
 class MemoryInputStream : public InputStream {
@@ -121,6 +127,11 @@ public:
 		return x;
 	}
 
+	virtual void setPos(int64_t pos, int64_t aMaxBytes) noexcept {
+		maxBytes = aMaxBytes;
+		s->setPos(pos, aMaxBytes);
+	}
+
 private:
 	InputStream* s;
 	int64_t maxBytes;
@@ -144,6 +155,11 @@ public:
 	
 	virtual size_t flush() {
 		return s->flush();
+	}
+
+	virtual void setPos(int64_t aPos, int64_t aMaxBytes) noexcept {
+		maxBytes = aMaxBytes;
+		s->setPos(aPos, aMaxBytes);
 	}
 	
 	virtual bool eof() { return maxBytes == 0; }

@@ -36,6 +36,7 @@ public:
 
 	ZFilter();
 	~ZFilter();
+	void reset();
 	/**
 	 * Compress data.
 	 * @param in Input data
@@ -56,6 +57,7 @@ class UnZFilter {
 public:
 	UnZFilter();
 	~UnZFilter();
+	void reset();
 	/**
 	 * Decompress data.
 	 * @param in Input data

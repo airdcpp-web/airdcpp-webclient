@@ -215,24 +215,20 @@ public:
 	} mover;
 
 	class Rechecker : public Thread {
-		struct DummyOutputStream : OutputStream {
-			virtual size_t write(const void*, size_t n) throw(Exception) { return n; }
-			virtual size_t flush() throw(Exception) { return 0; }
-		};
 
-	public:
-		explicit Rechecker(QueueManager* qm_) : qm(qm_), active(false) { }
-		virtual ~Rechecker() { join(); }
+		public:
+			explicit Rechecker(QueueManager* qm_) : qm(qm_), active(false) { }
+			virtual ~Rechecker() { join(); }
 
-		void add(const string& file);
-		virtual int run();
+			void add(const string& file);
+			virtual int run();
 
-	private:
-		QueueManager* qm;
-		bool active;
+		private:
+			QueueManager* qm;
+			bool active;
 
-		StringList files;
-		CriticalSection cs;
+			StringList files;
+			CriticalSection cs;
 	} rechecker;
 
 	/** QueueItems by target and TTH */

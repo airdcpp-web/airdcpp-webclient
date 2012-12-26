@@ -89,9 +89,9 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 			setFlag(FLAG_OVERLAP);
 
 			// set overlapped flag to original segment
-			for(auto i = qi.getDownloads().begin(); i != qi.getDownloads().end(); ++i) {
-				if((*i)->getSegment().contains(getSegment())) {
-					(*i)->setOverlapped(true);
+			for(auto d: qi.getDownloads()) {
+				if(d->getSegment().contains(getSegment())) {
+					d->setOverlapped(true);
 					break;
 				}
 			}
@@ -174,17 +174,17 @@ void Download::open(int64_t bytes, bool z, bool hasDownloadedBytes) {
  	 
 			bool found = false;
 			// ok, we got a fast slot, so it's possible to disconnect original user now
-			for(auto i = bundle->getDownloads().begin(); i != bundle->getDownloads().end(); ++i) {
-				if((*i) != this && compare((*i)->getPath(), getPath()) == 0 && (*i)->getSegment().contains(getSegment())) {
+			for(auto d: bundle->getDownloads()) {
+				if(d != this && compare(d->getPath(), getPath()) == 0 && d->getSegment().contains(getSegment())) {
  	 
 					// overlapping has no sense if segment is going to finish
-					if((*i)->getSecondsLeft() < 10)
+					if(d->getSecondsLeft() < 10)
 						break;
  	 
 					found = true;
  	 
 					// disconnect slow chunk
-					(*i)->getUserConnection().disconnect();
+					d->getUserConnection().disconnect();
 					break;
 				}
 			}

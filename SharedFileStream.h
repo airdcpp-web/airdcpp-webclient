@@ -57,9 +57,10 @@ public:
 	static SharedFileHandleMap readpool;
 	static SharedFileHandleMap writepool;
 
-	GETSET(int64_t, pos, Pos);
+	void setPos(int64_t aPos) noexcept;
 private:
 	SharedFileHandle* sfh;
+	int64_t pos;
 };
 
 }

@@ -105,7 +105,7 @@ void File::setSize(int64_t newSize) {
 	setEOF();
 	setPos(pos);
 }
-void File::setPos(int64_t pos) noexcept {
+void File::setPos(int64_t pos, int64_t) noexcept {
 	LONG x = (LONG) (pos>>32);
 	::SetFilePointer(h, (DWORD)(pos & 0xffffffff), &x, FILE_BEGIN);
 }
