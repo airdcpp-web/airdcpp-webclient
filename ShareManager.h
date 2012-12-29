@@ -128,6 +128,7 @@ public:
 
 	void startup();
 	void shutdown();
+	void abortRefresh();
 
 	void changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove);
 	void rebuildTotalExcludes();

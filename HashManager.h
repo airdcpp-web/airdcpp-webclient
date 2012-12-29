@@ -251,6 +251,7 @@ private:
 	friend class HashLoader;
 
 	void hashFile(const string& fileName, int64_t size);
+	bool aShutdown;
 
 	typedef vector<Hasher*> HasherList;
 	HasherList hashers;
@@ -265,6 +266,8 @@ private:
 	void hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size);
 
 	void doRebuild() {
+		// its useless to allow hashing with other threads during rebuild. ( TODO: Disallow resuming and show something in hashprogress )
+		HashPauser pause;
 		store.rebuild();
 	}
 	void SaveData() {

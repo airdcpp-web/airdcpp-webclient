@@ -152,6 +152,8 @@ void shutdown(function<void (const string&)> f) {
 		}
 	};
 
+	ShareManager::getInstance()->abortRefresh();
+
 	announce(STRING(SAVING_HASH_DATA));
 	HashManager::getInstance()->shutdown();
 

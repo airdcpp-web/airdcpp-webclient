@@ -118,9 +118,13 @@ void ShareManager::startup() {
 	setSkipList();
 }
 
-void ShareManager::shutdown() {
+void ShareManager::abortRefresh() {
 	//abort buildtree and refresh, we are shutting down.
 	aShutdown = true;
+	//join(); would slow down closing at this point.
+}
+
+void ShareManager::shutdown() {
 
 	if(ShareCacheDirty || !Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"))
 		saveXmlList();

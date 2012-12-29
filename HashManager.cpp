@@ -45,7 +45,7 @@ CriticalSection HashManager::Hasher::hcs;
 static const uint32_t HASH_FILE_VERSION = 2;
 const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
 
-HashManager::HashManager(): lastSave(0), pausers(0) {
+HashManager::HashManager(): lastSave(0), pausers(0), aShutdown(false) {
 	TimerManager::getInstance()->addListener(this);
 }
 
@@ -90,6 +90,9 @@ HashManager::HasherList::iterator HashManager::getLeastLoaded() {
 }
 
 void HashManager::hashFile(const string& fileName, int64_t size) {
+	if(aShutdown) //we cant allow adding more hashers if we are shutting down, it will result in infinite loop
+		return;
+
 	TCHAR* buf = new TCHAR[fileName.length()];
 	GetVolumePathName(Text::toT(fileName).c_str(), buf, fileName.length());
 	auto vol = Text::fromT(buf);
@@ -400,7 +403,10 @@ void HashManager::HashStore::rebuild() {
 }
 
 void HashManager::HashStore::save() {
-	if (dirty && !SettingsManager::lanMode && saving.test_and_set()) {
+	if(saving.test_and_set())
+		return;
+
+	if (dirty && !SettingsManager::lanMode) {
 		try {
 			File ff(getIndexFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE, false);
 			BufferedOutputStream<false> f(&ff);
@@ -453,9 +459,8 @@ void HashManager::HashStore::save() {
 		} catch (const FileException& e) {
 			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError(), LogManager::LOG_ERROR);
 		}
-
-		saving.clear();
 	}
+	saving.clear();
 }
 
 string HashManager::HashStore::getIndexFile() { return Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml"; }
@@ -693,6 +698,7 @@ void HashManager::Hasher::scheduleRebuild() {
 }
 
 void HashManager::shutdown() {
+	aShutdown = true;
 	{
 		Lock l(Hasher::hcs);
 		for (auto h: hashers) {
