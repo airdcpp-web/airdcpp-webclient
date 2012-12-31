@@ -934,7 +934,6 @@ enum Strings { // @DontAdd
 	PRESET_ADD_ALL, // "Add all"
 	PRESET_MY_NICK, // "My nick"
 	PRESET_MY_MESSAGES, // "My messages"
-	PRESET_USER_LIMITER, // "Users Limiting Upload"
 	PRESET_TIMESTAMP, // "Timestamps"
 	PRESET_URLS, // "Urls"
 	PRESET_ME, // "/me"
@@ -1505,7 +1504,6 @@ enum Strings { // @DontAdd
 	MANDATORY_UPDATE, // "Mandatory Update"
 	ATTEMPT_AUTO_UPDATE, // "AirDC++ will now attempt to update your installation automatically"
 	LOADING_GUI, // "Loading the user interface"
-	UNLOADING_GUI, // "Unloading the user interface"
 	PARTIAL_FILELIST, // "Partial file list"
 	DOWNLOAD_LIMIT, // "Download limit"
 	UPLOAD_LIMIT, // "Upload limit"
@@ -1607,5 +1605,6 @@ enum Strings { // @DontAdd
 	SETTINGS_DELAY_HOURS, // "Hours to search for proper when using incrementation"
 	X_NO_RELEASE_FILES, // "%d folders with no release files"
 	MENU_HIDE, // "Hide"
+	CLOSING_WINDOWS, // "Closing windows"
 	LAST // @DontAdd
 };

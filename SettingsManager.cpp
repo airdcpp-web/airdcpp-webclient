@@ -737,7 +737,11 @@ SettingsManager::SettingsManager()
 	setDefault(AS_DELAY_HOURS, 12);
 	setDefault(LAST_LIST_PROFILE, 0);
 
-	setDefault(MAX_HASHING_THREADS, 4);
+	//set depending on the cpu count
+	SYSTEM_INFO info={{0}};
+	GetSystemInfo(&info);
+	setDefault(MAX_HASHING_THREADS, info.dwNumberOfProcessors);
+
 	setDefault(HASHERS_PER_VOLUME, 1);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  

@@ -911,6 +911,7 @@ int HashManager::Hasher::run() {
 			initialDir.clear();
 		};
 
+		bool deleteThis = false;
 		{
 			Lock l(hcs);
 			if (!fname.empty())
@@ -932,11 +933,7 @@ int HashManager::Hasher::run() {
 				sizeHashed = 0;
 				dirsHashed = 0;
 				filesHashed = 0;
-				if (!isFirst) {
-					//Delete this hasher
-					HashManager::getInstance()->removeHasher(this);
-					break;
-				}
+				deleteThis = !isFirst;
 			} else if (!AirUtil::isParentOrExact(initialDir, w.front().filePath)) {
 				onDirHashed();
 			}
@@ -946,6 +943,17 @@ int HashManager::Hasher::run() {
 
 		if (!failed && !fname.empty())
 			HashManager::getInstance()->fire(HashManagerListener::TTHDone(), fname, tth);
+
+		if (deleteThis) {
+			//check again if we have added new items while this was unlocked
+
+			Lock l(hcs);
+			if (w.empty()) {
+				//Nothing more to has, delete this hasher
+				HashManager::getInstance()->removeHasher(this);
+				break;
+			}
+		}
 
 		running = false;
 	}

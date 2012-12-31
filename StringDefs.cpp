@@ -930,7 +930,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Add all", 
 "My nick", 
 "My messages", 
-"Users Limiting Upload", 
 "Timestamps", 
 "Urls", 
 "/me", 
@@ -1498,7 +1497,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Mandatory Update", 
 "AirDC++ will now attempt to update your installation automatically", 
 "Loading the user interface", 
-"Unloading the user interface", 
 "Partial file list", 
 "Download limit", 
 "Upload limit", 
@@ -1600,6 +1598,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Hours to search for proper when using incrementation", 
 "%d folders with no release files", 
 "Hide", 
+"Closing windows", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2530,7 +2529,6 @@ std::string dcpp::ResourceManager::names[] = {
 "PresetAddAll", 
 "PresetMyNick", 
 "PresetMyMessages", 
-"PresetUserLimiter", 
 "PresetTimestamp", 
 "PresetUrls", 
 "PresetMe", 
@@ -3098,7 +3096,6 @@ std::string dcpp::ResourceManager::names[] = {
 "MandatoryUpdate", 
 "AttemptAutoUpdate", 
 "LoadingGui", 
-"UnloadingGui", 
 "PartialFilelist", 
 "DownloadLimit", 
 "UploadLimit", 
@@ -3200,4 +3197,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsDelayHours", 
 "XNoReleaseFiles", 
 "MenuHide", 
+"ClosingWindows", 
 };

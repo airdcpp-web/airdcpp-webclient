@@ -179,9 +179,9 @@ int64_t ShareManager::Directory::getSize(ProfileToken aProfile) const noexcept {
 
 int64_t ShareManager::Directory::getTotalSize() const noexcept {
 	int64_t tmp = size;
-	for(auto i = directories.begin(); i != directories.end(); ++i) {
-		tmp += i->second->getTotalSize();
-	}
+	for(auto d: directories | map_values)
+		tmp += d->getTotalSize();
+
 	return tmp;
 }
 
@@ -212,7 +212,7 @@ void ShareManager::Directory::addType(uint32_t type) noexcept {
 	}
 }
 
-string ShareManager::getRealPath(const string& aFileName, int64_t aSize) {
+string ShareManager::getRealPath(const string& aFileName, int64_t aSize) const {
 	RLock l(cs);
 	for(auto f: tthIndex | map_values) {
 		if(stricmp(aFileName.c_str(), f->getName().c_str()) == 0 && f->getSize() == aSize) {
@@ -222,7 +222,7 @@ string ShareManager::getRealPath(const string& aFileName, int64_t aSize) {
 	return Util::emptyString;
 }
 
-string ShareManager::getRealPath(const TTHValue& root) {
+string ShareManager::getRealPath(const TTHValue& root) const {
 	RLock l(cs);
 	auto i = tthIndex.find(const_cast<TTHValue*>(&root)); 
 	if(i != tthIndex.end()) {
@@ -232,7 +232,7 @@ string ShareManager::getRealPath(const TTHValue& root) {
 }
 
 
-bool ShareManager::isTTHShared(const TTHValue& tth) {
+bool ShareManager::isTTHShared(const TTHValue& tth) const {
 	RLock l(cs);
 	return tthIndex.find(const_cast<TTHValue*>(&tth)) != tthIndex.end();
 }
@@ -271,11 +271,11 @@ string ShareManager::findRealRoot(const string& virtualRoot, const string& virtu
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-bool ShareManager::Directory::isRootLevel(ProfileToken aProfile) {
+bool ShareManager::Directory::isRootLevel(ProfileToken aProfile) const {
 	return profileDir && profileDir->hasRootProfile(aProfile) ? true : false;
 }
 
-bool ShareManager::Directory::hasProfile(const ProfileTokenSet& aProfiles) {
+bool ShareManager::Directory::hasProfile(const ProfileTokenSet& aProfiles) const {
 	if (profileDir && profileDir->hasRootProfile(aProfiles))
 		return true;
 	if (parent)
@@ -284,7 +284,7 @@ bool ShareManager::Directory::hasProfile(const ProfileTokenSet& aProfiles) {
 }
 
 
-void ShareManager::Directory::copyRootProfiles(ProfileTokenSet& aProfiles) {
+void ShareManager::Directory::copyRootProfiles(ProfileTokenSet& aProfiles) const {
 	if (profileDir) {
 		copy(profileDir->getRootProfiles() | map_keys, inserter(aProfiles, aProfiles.begin()));
 	}
@@ -293,7 +293,7 @@ void ShareManager::Directory::copyRootProfiles(ProfileTokenSet& aProfiles) {
 		parent->copyRootProfiles(aProfiles);
 }
 
-bool ShareManager::ProfileDirectory::hasRootProfile(const ProfileTokenSet& aProfiles) {
+bool ShareManager::ProfileDirectory::hasRootProfile(const ProfileTokenSet& aProfiles) const {
 	for(auto ap: aProfiles) {
 		if (rootProfiles.find(ap) != rootProfiles.end())
 			return true;
@@ -301,7 +301,7 @@ bool ShareManager::ProfileDirectory::hasRootProfile(const ProfileTokenSet& aProf
 	return false;
 }
 
-bool ShareManager::Directory::hasProfile(ProfileToken aProfile) {
+bool ShareManager::Directory::hasProfile(ProfileToken aProfile) const {
 	if(profileDir) {
 		if (isLevelExcluded(aProfile))
 			return false;
@@ -315,27 +315,27 @@ bool ShareManager::Directory::hasProfile(ProfileToken aProfile) {
 	return false;
 }
 
-bool ShareManager::ProfileDirectory::hasRootProfile(ProfileToken aProfile) {
+bool ShareManager::ProfileDirectory::hasRootProfile(ProfileToken aProfile) const {
 	return rootProfiles.find(aProfile) != rootProfiles.end();
 }
 
-bool ShareManager::ProfileDirectory::isExcluded(const ProfileTokenSet& aProfiles) {
+bool ShareManager::ProfileDirectory::isExcluded(const ProfileTokenSet& aProfiles) const {
 	return std::search(excludedProfiles.begin(), excludedProfiles.end(), aProfiles.begin(), aProfiles.end()) != aProfiles.end();
 }
 
-bool ShareManager::Directory::isLevelExcluded(ProfileToken aProfile) {
+bool ShareManager::Directory::isLevelExcluded(ProfileToken aProfile) const {
 	if (profileDir && profileDir->isExcluded(aProfile))
 		return true;
 	return false;
 }
 
-bool ShareManager::Directory::isLevelExcluded(const ProfileTokenSet& aProfiles) {
+bool ShareManager::Directory::isLevelExcluded(const ProfileTokenSet& aProfiles) const {
 	if (profileDir && profileDir->isExcluded(aProfiles))
 		return true;
 	return false;
 }
 
-bool ShareManager::ProfileDirectory::isExcluded(ProfileToken aProfile) {
+bool ShareManager::ProfileDirectory::isExcluded(ProfileToken aProfile) const {
 	return !excludedProfiles.empty() && excludedProfiles.find(aProfile) != excludedProfiles.end();
 }
 
@@ -369,7 +369,7 @@ bool ShareManager::ProfileDirectory::removeExcludedProfile(ProfileToken aProfile
 	return excludedProfiles.empty();
 }
 
-string ShareManager::ProfileDirectory::getName(ProfileToken aProfile) {
+string ShareManager::ProfileDirectory::getName(ProfileToken aProfile) const {
 	auto p = rootProfiles.find(aProfile);
 	return p == rootProfiles.end() ? Util::emptyString : p->second; 
 }
@@ -570,7 +570,7 @@ void ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) {
 	}
 }
 
-void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) {
+void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const {
 	if(path.empty())
 		throw ShareException("empty virtual path");
 
@@ -1783,7 +1783,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 	return fl;
 }
 
-MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) {
+MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) const {
 	if(dir[0] != '/' || dir[dir.size()-1] != '/')
 		return 0;
 
@@ -1882,7 +1882,7 @@ void ShareManager::Directory::toFileList(FileListDir* aListDir, ProfileToken aPr
 ShareManager::FileListDir::FileListDir(const string& aName, int64_t aSize, int aDate) : name(aName), size(aSize), date(aDate) { }
 
 #define LITERAL(n) n, sizeof(n)-1
-void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) {
+void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const {
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));
 	xmlFile.write(SimpleXML::escape(name, tmp2, true));
@@ -1897,8 +1897,8 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 		xmlFile.write(LITERAL("\">\r\n"));
 
 		indent += '\t';
-		for(auto i = listDirs.begin(); i != listDirs.end(); ++i) {
-			i->second->toXml(xmlFile, indent, tmp2, fullList);
+		for(auto d: listDirs | map_values) {
+			d->toXml(xmlFile, indent, tmp2, fullList);
 		}
 
 		filesToXml(xmlFile, indent, tmp2);
@@ -1915,7 +1915,7 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 	}
 }
 
-void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) {
+void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const {
 	bool filesAdded = false;
 	for(auto di = shareDirs.begin(); di != shareDirs.end(); ++di) {
 		if (filesAdded) {
@@ -2023,7 +2023,7 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 	xmlFile.write(LITERAL("</Directory>\r\n"));
 }
 
-MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) {
+MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) const {
 	
 	if(aProfile == SP_HIDDEN)
 		return NULL;
@@ -2053,7 +2053,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 	}
 }
 
-void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, bool recursive) {
+void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const {
 	if (recursive) {
 		for(auto d: directories | map_values) {
 			d->toTTHList(tthList, tmp2, recursive);

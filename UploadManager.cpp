@@ -232,7 +232,45 @@ checkslots:
 	int64_t size = 0;
 
 	try {
+		auto countFilePositions = [&] () -> void {
+			start = aStartPos;
+			size = (aBytes == -1) ? fileSize - start : aBytes;
 
+			if((start + size) > fileSize) {
+				throw;
+			}
+		};
+
+
+		{
+			//are we resuming an existing upload?
+			Lock l(cs);
+			auto i = find_if(delayUploads, [&aSource](const Upload* up) { return &aSource == &up->getUserConnection(); });
+			if (i != delayUploads.end()) {
+				Upload* up = *i;
+				delayUploads.erase(i);
+
+				if(sourceFile != up->getPath()) {
+					if (up->isSet(Upload::FLAG_CHUNKED))
+						logUpload(up);
+				} else if (up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE) {
+					//we are resuming the same file, reuse the existing upload
+					countFilePositions();
+					up->delayTime = 0;
+					up->setFlag(Upload::FLAG_RESUMED);
+					up->setSegment(Segment(start, size));
+					up->setPos(start, size);
+					//aSource.setUpload(up);
+					dcassert(aSource.getUpload());
+					uploads.push_back(up);
+					goto end;
+				}
+
+				delete up;
+			}
+		}
+
+		// a new upload
 		switch(type) {
 		case Transfer::TYPE_FILE:
 			// handle below...
@@ -249,39 +287,7 @@ checkslots:
 					start = 0;
 					fileSize = size = xml.size();
 				} else {
-					start = aStartPos;
-					size = (aBytes == -1) ? fileSize - start : aBytes;
-
-					if((start + size) > fileSize) {
-						aSource.sendError();
-						return false;
-					}
-
-					{
-						//are we resuming an existing upload?
-						Lock l(cs);
-						auto i = find_if(delayUploads, [&aSource](const Upload* up) { return &aSource == &up->getUserConnection(); });
-						if (i != delayUploads.end()) {
-							Upload* up = *i;
-							delayUploads.erase(i);
-
-							if(sourceFile != up->getPath()) {
-								if (up->isSet(Upload::FLAG_CHUNKED))
-									logUpload(up);
-							} else {
-								//we are resuming the same file, reuse the existing upload
-								up->delayTime = 0;
-								up->setFlag(Upload::FLAG_RESUMED);
-								up->setSegment(Segment(start, size));
-								up->setPos(start, size);
-								uploads.push_back(up);
-								goto end;
-							}
-
-							delete up;
-						}
-					}
-
+					countFilePositions();
 					unique_ptr<File> f(new File(sourceFile, File::READ, File::OPEN));
 			
 					f->setPos(start);
@@ -337,7 +343,8 @@ checkslots:
 		aSource.sendError(e.getError());
 		return false;
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError(), LogManager::LOG_ERROR);
+		if (!e.getError().empty())
+			LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError(), LogManager::LOG_ERROR);
 		aSource.sendError();
 		return false;
 	}
@@ -890,8 +897,12 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 	const string& fname = c.getParam(1);
 	int64_t aStartPos = Util::toInt64(c.getParam(2));
 	int64_t aBytes = Util::toInt64(c.getParam(3));
-	string userSID = Util::emptyString;
+	string userSID;
 	c.getParam("ID", 0, userSID);
+
+	// bundles
+
+
 	if(prepareFile(*aSource, type, fname, aStartPos, aBytes, userSID, c.hasFlag("RE", 4), c.hasFlag("TL", 4))) {
 		Upload* u = aSource->getUpload();
 		dcassert(u);
