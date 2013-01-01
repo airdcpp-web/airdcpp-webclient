@@ -95,12 +95,14 @@ void AutoSearch::changeNumber(bool increase) {
 string AutoSearch::formatParams(const AutoSearchPtr as, const string& aString) {
 	ParamMap params;
 	if (as->usingIncrementation()) {
-		auto num = Util::toString(as->getCurNumber());
-		if (num.length() < as->getNumberLen()) {
-			//prepend the zeroes
-			num.insert(num.begin(), as->getNumberLen() - num.length(), '0');
-		}
-		params["inc"] = num;
+		params["inc"] = [&] { 
+			auto num = Util::toString(as->getCurNumber());
+			if (num.length() < as->getNumberLen()) {
+				//prepend the zeroes
+				num.insert(num.begin(), as->getNumberLen() - num.length(), '0');
+			}
+			return num;
+		};
 	}
 
 	return Util::formatParams(aString, params);

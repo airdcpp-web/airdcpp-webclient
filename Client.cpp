@@ -219,11 +219,11 @@ void Client::onPassword() {
 
 void Client::on(Failed, const string& aLine) noexcept {
 	string msg = aLine;
-	string url = hubUrl;
+	string oldUrl = hubUrl;
 	if (state == STATE_CONNECTING || (state != STATE_NORMAL && FavoriteManager::getInstance()->isFailOverUrl(favToken, hubUrl))) {
-		string newUrl = hubUrl;
-		if (FavoriteManager::getInstance()->getFailOverUrl(favToken, newUrl) && !ClientManager::getInstance()->isConnected(newUrl)) {
-			ClientManager::getInstance()->setClientUrl(hubUrl, newUrl);
+		auto newUrl = FavoriteManager::getInstance()->getFailOverUrl(favToken, hubUrl);
+		if (newUrl && !ClientManager::getInstance()->isConnected(*newUrl)) {
+			ClientManager::getInstance()->setClientUrl(hubUrl, *newUrl);
 
 			if (msg[msg.length()-1] != '.')
 				msg += ".";
@@ -237,7 +237,7 @@ void Client::on(Failed, const string& aLine) noexcept {
 	state = STATE_DISCONNECTED;
 
 	sock->removeListener(this);
-	fire(ClientListener::Failed(), url, msg);
+	fire(ClientListener::Failed(), oldUrl, msg);
 }
 
 void Client::disconnect(bool graceLess) {

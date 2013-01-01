@@ -283,4 +283,30 @@ void UserConnection::send(const string& aString) {
 	socket->write(aString);
 }
 
+Download* UserConnection::getDownload() { 
+	dcassert(isSet(FLAG_DOWNLOAD)); 
+	return download;
+}
+
+void UserConnection::setDownload(Download* d, bool deleting) {
+	dcassert(isSet(FLAG_DOWNLOAD));
+	if (!deleting && download)
+		delete download;
+	download = d;
+}
+
+Upload* UserConnection::getUpload() { 
+	dcassert(isSet(FLAG_UPLOAD));
+	return upload;
+}
+
+void UserConnection::setUpload(Upload* u) { 
+	dcassert(isSet(FLAG_UPLOAD));
+	upload = u;
+}
+
+UserConnection::UserConnection(bool secure_) noexcept : encoding(Text::systemCharset), state(STATE_UNCONNECTED),
+	lastActivity(0), speed(0), chunkSize(0), secure(secure_), socket(0), slotType(NOSLOT), lastBundle(Util::emptyString), download(nullptr) {
+}
+
 } // namespace dcpp

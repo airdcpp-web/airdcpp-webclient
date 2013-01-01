@@ -68,6 +68,7 @@ public:
 	/** @internal */
 	AdcCommand getCommand(bool zlib, const string& mySID) const;
 	const unique_ptr<OutputStream>& getOutput() const { return output; }
+	OutputStream* releaseRootStream();
 
 	GETSET(string, tempTarget, TempTarget);
 	GETSET(uint64_t, lastTick, LastTick);

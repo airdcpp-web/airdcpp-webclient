@@ -80,26 +80,33 @@ int64_t Transfer::getSecondsLeft(bool wholeFile) const {
 }
 
 void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const {
-	params["userCID"] = aSource.getUser()->getCID().toBase32();
-	params["userNI"] = Util::toString(ClientManager::getInstance()->getNicks(aSource.getUser()->getCID(), aSource.getHubUrl()));
-	params["userI4"] = aSource.getRemoteIp();
-	StringList hubNames = ClientManager::getInstance()->getHubNames(aSource.getUser()->getCID(), aSource.getHubUrl());
-	if(hubNames.empty())
-		hubNames.push_back(STRING(OFFLINE));
-	params["hub"] = Util::toString(hubNames);
-	StringList hubs = ClientManager::getInstance()->getHubUrls(aSource.getUser()->getCID(), aSource.getHubUrl());
-	if(hubs.empty())
-		hubs.push_back(STRING(OFFLINE));
-	params["hubURL"] = Util::toString(hubs);
-	params["fileSI"] = Util::toString(getSize());
-	params["fileSIshort"] = Util::formatBytes(getSize());
-	params["fileSIchunk"] = Util::toString(getPos());
-	params["fileSIchunkshort"] = Util::formatBytes(getPos());
-	params["fileSIactual"] = Util::toString(getActual());
-	params["fileSIactualshort"] = Util::formatBytes(getActual());
-	params["speed"] = Util::formatBytes(static_cast<int64_t>(getAverageSpeed())) + "/s";
-	params["time"] = Util::formatSeconds((GET_TICK() - getStart()) / 1000);
-	params["fileTR"] = getTTH().toBase32();
+	params["userCID"] = [&] { return  aSource.getUser()->getCID().toBase32(); };
+	params["userNI"] = [&] { return Util::toString(ClientManager::getInstance()->getNicks(aSource.getUser()->getCID(), aSource.getHubUrl())); };
+	params["userI4"] = [&] { return aSource.getRemoteIp(); };
+
+	params["hub"] = [&] {
+		StringList hubNames = ClientManager::getInstance()->getHubNames(aSource.getUser()->getCID(), aSource.getHubUrl());
+		if(hubNames.empty())
+			hubNames.push_back(STRING(OFFLINE));
+		return Util::toString(hubNames);
+	};
+
+	params["hubURL"] = [&] { 
+		StringList hubs = ClientManager::getInstance()->getHubUrls(aSource.getUser()->getCID(), aSource.getHubUrl());
+		if(hubs.empty())
+			hubs.push_back(STRING(OFFLINE));
+		return Util::toString(hubs); 
+	};
+
+	params["fileSI"] = [&] { return Util::toString(getSize()); };
+	params["fileSIshort"] = [&] { return Util::formatBytes(getSize()); };
+	params["fileSIchunk"] = [&] { return Util::toString(getPos()); };
+	params["fileSIchunkshort"] = [&] { return Util::formatBytes(getPos()); };
+	params["fileSIactual"] = [&] { return Util::toString(getActual()); };
+	params["fileSIactualshort"] = [&] { return Util::formatBytes(getActual()); };
+	params["speed"] = [&] { return Util::formatBytes(static_cast<int64_t>(getAverageSpeed())) + "/s"; };
+	params["time"] = [&] { return Util::formatSeconds((GET_TICK() - getStart()) / 1000); };
+	params["fileTR"] = [&] { return getTTH().toBase32(); };
 }
 
 UserPtr Transfer::getUser() {

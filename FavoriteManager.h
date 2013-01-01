@@ -118,7 +118,7 @@ public:
 	void updateRecent(const RecentHubEntry* entry);
 
 	// remove user commands and possibly change the address for the next attempt
-	bool getFailOverUrl(ProfileToken aToken, string& hubAddress_);
+	optional<string> getFailOverUrl(ProfileToken aToken, const string& curHubUrl);
 	void setFailOvers(const string& hubUrl, ProfileToken aToken, StringList&& fo_);
 	bool blockFailOverUrl(ProfileToken aToken, string& hubAddress_);
 	bool isFailOverUrl(ProfileToken aToken, const string& hubAddress_);

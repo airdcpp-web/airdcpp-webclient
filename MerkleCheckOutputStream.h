@@ -27,7 +27,8 @@ namespace dcpp {
 template<class TreeType, bool managed>
 class MerkleCheckOutputStream : public OutputStream {
 public:
-	MerkleCheckOutputStream(const TreeType& aTree, OutputStream* aStream, int64_t start) : s(aStream), real(aTree), cur(aTree.getBlockSize()), verified(0), bufPos(0) {
+	MerkleCheckOutputStream(const TreeType& aTree, OutputStream* aStream, int64_t start) : real(aTree), cur(aTree.getBlockSize()), verified(0), bufPos(0) {
+		s.reset(aStream);
 		// Only start at block boundaries
 		dcassert(start % aTree.getBlockSize() == 0);
 		cur.setFileSize(start);
@@ -40,7 +41,10 @@ public:
 		cur.getLeaves().insert(cur.getLeaves().begin(), aTree.getLeaves().begin(), aTree.getLeaves().begin() + nBlocks);
 	}
 
-	~MerkleCheckOutputStream() { if(managed) delete s; }
+	~MerkleCheckOutputStream() { 
+		if(!managed) 
+			s.release(); 
+	}
 
 	size_t flush() {
 		if (bufPos != 0)
@@ -96,8 +100,13 @@ public:
 	int64_t verifiedBytes() const {
 		return min(real.getFileSize(), (int64_t)(cur.getBlockSize() * cur.getLeaves().size()));
 	}
+
+	OutputStream* releaseRootStream() { 
+		auto as = s.release();
+		return as->releaseRootStream();
+	}
 private:
-	OutputStream* s;
+	unique_ptr<OutputStream> s;
 	TreeType real;
 	TreeType cur;
 	size_t verified;

@@ -54,7 +54,7 @@ public:
 	virtual size_t flush() = 0;
 
 	/* This only works for file streams */
-	virtual void setPos(int64_t /*pos*/, int64_t /*aMaxBytes*/) noexcept { }
+	virtual void setPos(int64_t /*pos*/) noexcept { }
 
 	/**
 	 * @return True if stream is at expected end
@@ -62,6 +62,7 @@ public:
 	virtual bool eof() { return false; }
 
 	size_t write(const string& str) { return write(str.c_str(), str.size()); }
+	virtual OutputStream* releaseRootStream() { return this; }
 };
 
 class InputStream : boost::noncopyable {
@@ -76,7 +77,8 @@ public:
 	virtual size_t read(void* buf, size_t& len) = 0;
 
 	/* This only works for file streams */
-	virtual void setPos(int64_t /*pos*/, int64_t /*aMaxBytes*/) noexcept { }
+	virtual void setPos(int64_t /*pos*/) noexcept { }
+	virtual InputStream* releaseRootStream() { return this; }
 };
 
 class MemoryInputStream : public InputStream {
@@ -113,9 +115,14 @@ class IOStream : public InputStream, public OutputStream {
 template<bool managed>
 class LimitedInputStream : public InputStream {
 public:
-	LimitedInputStream(InputStream* is, int64_t aMaxBytes) : s(is), maxBytes(aMaxBytes) {
+	LimitedInputStream(InputStream* is, int64_t aMaxBytes) : maxBytes(aMaxBytes) {
+		s.reset(is);
 	}
-	~LimitedInputStream() { if(managed) delete s; }
+
+	~LimitedInputStream() {
+		if (!managed)
+			s.release();
+	}
 
 	size_t read(void* buf, size_t& len) {
 		dcassert(maxBytes >= 0);
@@ -126,14 +133,12 @@ public:
 		maxBytes -= x;
 		return x;
 	}
-
-	virtual void setPos(int64_t pos, int64_t aMaxBytes) noexcept {
-		maxBytes = aMaxBytes;
-		s->setPos(pos, aMaxBytes);
+	InputStream* releaseRootStream() { 
+		auto as = s.release();
+		return as->releaseRootStream();
 	}
-
 private:
-	InputStream* s;
+	unique_ptr<InputStream> s;
 	int64_t maxBytes;
 };
 
@@ -141,9 +146,13 @@ private:
 template<bool managed>
 class LimitedOutputStream : public OutputStream {
 public:
-	LimitedOutputStream(OutputStream* os, uint64_t aMaxBytes) : s(os), maxBytes(aMaxBytes) {
+	LimitedOutputStream(OutputStream* os, uint64_t aMaxBytes) : maxBytes(aMaxBytes) {
+		s.reset(os);
 	}
-	virtual ~LimitedOutputStream() { if(managed) delete s; }
+	virtual ~LimitedOutputStream() { 
+		if (!managed)
+			s.release();
+	}
 
 	virtual size_t write(const void* buf, size_t len) {
 		if(maxBytes < len) {
@@ -156,15 +165,14 @@ public:
 	virtual size_t flush() {
 		return s->flush();
 	}
-
-	virtual void setPos(int64_t aPos, int64_t aMaxBytes) noexcept {
-		maxBytes = aMaxBytes;
-		s->setPos(aPos, aMaxBytes);
-	}
 	
 	virtual bool eof() { return maxBytes == 0; }
+	OutputStream* releaseRootStream() { 
+		auto as = s.release();
+		return as->releaseRootStream();
+	}
 private:
-	OutputStream* s;
+	unique_ptr<OutputStream> s;
 	uint64_t maxBytes;
 };
 
@@ -173,15 +181,19 @@ class BufferedOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
 
-	BufferedOutputStream(OutputStream* aStream, size_t aBufSize = SETTING(BUFFER_SIZE) * 1024) : s(aStream), pos(0), buf(aBufSize) { }
+	BufferedOutputStream(OutputStream* aStream, size_t aBufSize = SETTING(BUFFER_SIZE) * 1024) : pos(0), buf(aBufSize) { 
+		s.reset(aStream);
+	}
+
 	~BufferedOutputStream() {
 		try {
 			// We must do this in order not to lose bytes when a download
 			// is disconnected prematurely
 			flush();
-		} catch(const Exception&) {
-		}
-		if(managed) delete s;
+		} catch(const Exception&) { }
+
+		if (!managed)
+			s.release();
 	}
 
 	size_t flush() {
@@ -214,8 +226,13 @@ public:
 		}
 		return l2;
 	}
+
+	OutputStream* releaseRootStream() { 
+		auto as = s.release();
+		return as->releaseRootStream();
+	}
 private:
-	OutputStream* s;
+	unique_ptr<OutputStream> s;
 	size_t pos;
 	ByteVector buf;
 };

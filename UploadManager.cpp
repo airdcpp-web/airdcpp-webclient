@@ -256,11 +256,7 @@ checkslots:
 				} else if (up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE) {
 					//we are resuming the same file, reuse the existing upload
 					countFilePositions();
-					up->delayTime = 0;
-					up->setFlag(Upload::FLAG_RESUMED);
-					up->setSegment(Segment(start, size));
-					up->setPos(start, size);
-					//aSource.setUpload(up);
+					up->resume(start, size);
 					dcassert(aSource.getUpload());
 					uploads.push_back(up);
 					goto end;
@@ -913,8 +909,7 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 			.addParam(Util::toString(u->getSize()));
 
 		if(c.hasFlag("ZL", 4)) {
-			if (!u->isSet(Upload::FLAG_ZUPLOAD))
-				u->setFiltered();
+			u->setFiltered();
 			cmd.addParam("ZL1");
 		}
 		if(c.hasFlag("TL", 4) && type == Transfer::names[Transfer::TYPE_PARTIAL_LIST]) {

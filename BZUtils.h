@@ -27,7 +27,6 @@ class BZFilter {
 public:
 	BZFilter();
 	~BZFilter();
-	void reset() { }
 	/**
 	* Compress data.
 	* @param in Input data
@@ -45,7 +44,6 @@ class UnBZFilter {
 public:
 	UnBZFilter();
 	~UnBZFilter();
-	void reset() { }
 	/**
 	* Decompress data.
 	* @param in Input data

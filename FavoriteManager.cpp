@@ -855,7 +855,7 @@ FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(ProfileToke
 	return find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr f) { return f->getToken() == aToken; });
 }
 
-bool FavoriteManager::getFailOverUrl(ProfileToken aToken, string& hubAddress_) {
+optional<string> FavoriteManager::getFailOverUrl(ProfileToken aToken, const string& curHubUrl) {
 	//removeUserCommand(hubAddress_);
 
 	if (aToken == 0)
@@ -866,7 +866,7 @@ bool FavoriteManager::getFailOverUrl(ProfileToken aToken, string& hubAddress_) {
 	if (p != favoriteHubs.end()) {
 		auto& servers = (*p)->getServers();
 		if (servers.size() > 1) {
-			auto s = find_if(servers.begin(), servers.end(), CompareFirst<string, bool>(hubAddress_));
+			auto s = find_if(servers.begin(), servers.end(), CompareFirst<string, bool>(curHubUrl));
 			if (s != servers.end()) {
 				//find the next address that hasn't been blocked
 				auto beginPos = s;
@@ -877,15 +877,14 @@ bool FavoriteManager::getFailOverUrl(ProfileToken aToken, string& hubAddress_) {
 					}
 
 					if (!s->second) {
-						hubAddress_ = s->first;
-						return true;
+						return s->first;
 					}
 				}
 			}
 		}
 	}
 
-	return false;
+	return nullptr;
 }
 
 bool FavoriteManager::blockFailOverUrl(ProfileToken aToken, string& hubAddress_) {

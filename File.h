@@ -79,7 +79,7 @@ public:
 	void setSize(int64_t newSize);
 
 	int64_t getPos() const noexcept;
-	void setPos(int64_t pos, int64_t aMaxBytes = 0) noexcept;
+	void setPos(int64_t pos) noexcept;
 	void setEndPos(int64_t pos) noexcept;
 	void movePos(int64_t pos) noexcept;
 	void setEOF();

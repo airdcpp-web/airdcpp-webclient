@@ -55,8 +55,18 @@ void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {
 	params["source"] = (getType() == TYPE_PARTIAL_LIST ? STRING(PARTIAL_FILELIST) : getPath());
 }
 
-void Upload::setPos(int64_t pos, int64_t aMaxBytes) noexcept {
-	stream->setPos(pos, aMaxBytes);
+void Upload::resume(int64_t aStart, int64_t aSize) noexcept {
+	setSegment(Segment(aStart, aSize));
+	setFlag(Upload::FLAG_RESUMED);
+	delayTime = 0;
+
+	auto s = stream.get()->releaseRootStream();
+	s->setPos(aStart);
+	stream.reset(s);
+
+	if((aStart + aSize) < fileSize) {
+		stream.reset(new LimitedInputStream<true>(stream.release(), aSize));
+	}
 }
 
 

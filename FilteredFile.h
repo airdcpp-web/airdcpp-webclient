@@ -95,8 +95,14 @@ class FilteredOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
 
-	FilteredOutputStream(OutputStream* aFile) : f(aFile), buf(new uint8_t[BUF_SIZE]), flushed(false), more(true) { }
-	~FilteredOutputStream() { if(manage) delete f; }
+	FilteredOutputStream(OutputStream* aFile) : buf(new uint8_t[BUF_SIZE]), flushed(false), more(true) { 
+		f.reset(aFile);
+	}
+
+	~FilteredOutputStream() { 
+		if(!manage) 
+			f.release(); 
+	}
 
 	size_t flush() {
 		if(flushed)
@@ -144,18 +150,16 @@ public:
 		return written;
 	}
 
-	virtual bool eof() { return !more; }
-
-	virtual void setPos(int64_t aPos, int64_t aMaxBytes) noexcept {
-		dcassert(!flushed);
-		more = true;
-		//filter = Filter();
-		f->setPos(aPos, aMaxBytes);
+	OutputStream* releaseRootStream() { 
+		auto as = f.release();
+		return as->releaseRootStream();
 	}
+
+	virtual bool eof() { return !more; }
 private:
 	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64, test
 
-	OutputStream* f;
+	unique_ptr<OutputStream> f;
 	Filter filter;
 
 	boost::scoped_array<uint8_t> buf;
@@ -166,8 +170,14 @@ private:
 template<class Filter, bool managed>
 class FilteredInputStream : public InputStream {
 public:
-	FilteredInputStream(InputStream* aFile) : f(aFile), buf(new uint8_t[BUF_SIZE]), pos(0), valid(0), more(true) { }
-	~FilteredInputStream() noexcept { if(managed) delete f; }
+	FilteredInputStream(InputStream* aFile) : buf(new uint8_t[BUF_SIZE]), pos(0), valid(0), more(true) { 
+		f.reset(aFile);
+	}
+
+	~FilteredInputStream() noexcept { 
+		if(!managed) 
+			f.release(); 
+	}
 
 	/**
 	* Read data through filter, keep calling until len returns 0.
@@ -203,18 +213,14 @@ public:
 		return totalProduced;
 	}
 
-	virtual void setPos(int64_t aPos, int64_t aMaxBytes) noexcept {
-		pos = 0;
-		more = true;
-		valid = 0;
-		//filter = Filter();
-		filter.reset();
-		f->setPos(aPos, aMaxBytes);
+	InputStream* releaseRootStream() { 
+		auto as = f.release();
+		return as->releaseRootStream();
 	}
 private:
 	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64
 
-	InputStream* f;
+	unique_ptr<InputStream> f;
 	Filter filter;
 	boost::scoped_array<uint8_t> buf;
 	size_t pos;

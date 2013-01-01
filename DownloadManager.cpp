@@ -223,7 +223,8 @@ bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
 }
 
 void DownloadManager::checkDownloads(UserConnection* aConn) {
-	dcassert(aConn->getDownload() == NULL);
+	//We may have download assigned for a connection if we are downloading in segments
+	dcassert(!aConn->getDownload() || aConn->getDownload()->isSet(Download::FLAG_CHUNKED));
 
 	bool smallSlot = aConn->isSet(UserConnection::FLAG_SMALL_SLOT);
 
@@ -236,6 +237,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	bool start = startDownload(prio);
 
 	if(!start && !smallSlot) { //add small slot connections to idlers instead of disconnecting
+		aConn->setDownload(nullptr);
 		removeRunningUser(aConn);
 		removeConnection(aConn);
 		return;
@@ -245,6 +247,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	string errorMessage, newUrl;
 	Download* d = QueueManager::getInstance()->getDownload(*aConn, hubs, errorMessage, newUrl, smallSlot);
 	if(!d) {
+		aConn->setDownload(nullptr);
 		aConn->unsetFlag(UserConnection::FLAG_RUNNING);
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);

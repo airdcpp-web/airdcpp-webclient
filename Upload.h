@@ -53,7 +53,7 @@ public:
 	uint8_t delayTime;
 	InputStream* getStream();
 	void setFiltered();
-	void setPos(int64_t pos, int64_t aMaxBytes) noexcept;
+	void resume(int64_t aStart, int64_t aSize) noexcept;
 private:
 	unique_ptr<InputStream> stream;
 };
