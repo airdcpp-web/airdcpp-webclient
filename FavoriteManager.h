@@ -123,15 +123,7 @@ public:
 	bool blockFailOverUrl(ProfileToken aToken, string& hubAddress_);
 	bool isFailOverUrl(ProfileToken aToken, const string& hubAddress_);
 
-	RecentHubEntry* getRecentHubEntry(const string& aServer) {
-		for(RecentHubEntry::Iter i = recentHubs.begin(); i != recentHubs.end(); ++i) {
-			RecentHubEntry* r = *i;
-			if(stricmp(r->getServer(), aServer) == 0) {
-				return r;
-			}
-		}
-		return NULL;
-	}
+	RecentHubEntry* getRecentHubEntry(const string& aServer);
 
 	PreviewApplication* addPreviewApp(string name, string application, string arguments, string extension){
 		PreviewApplication* pa = new PreviewApplication(name, application, arguments, extension);

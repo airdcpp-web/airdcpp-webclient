@@ -91,14 +91,7 @@ private:
 	typedef unordered_map<uint32_t, OnlineUser*> SIDMap;
 	typedef SIDMap::const_iterator SIDIter;
 
-	void getUserList(OnlineUserList& list) const {
-		RLock l(cs);
-		for(auto i = users.begin(); i != users.end(); i++) {
-			if(i->first != AdcCommand::HUB_SID) {
-				list.push_back(i->second);
-			}
-		}
-	}
+	void getUserList(OnlineUserList& list) const;
 
 	bool oldPassword;
 	Socket udp;

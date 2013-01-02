@@ -42,8 +42,6 @@ namespace dcpp {
 using boost::range::for_each;
 using boost::range::find_if;
 
-//atomic_flag DirectoryListing::running = ATOMIC_FLAG_INIT;
-
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(BOOLSETTING(USE_ADLS) && !aPartial), typingFilter(false), reloading(false)

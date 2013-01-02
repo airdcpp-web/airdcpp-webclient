@@ -82,7 +82,7 @@ OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
 
 	{
 		WLock l(cs);
-		ou = users.insert(make_pair(aSID, new OnlineUser(p, *this, aSID))).first->second;
+		ou = users.emplace(aSID, new OnlineUser(p, *this, aSID)).first->second;
 		ou->inc();
 	}
 
@@ -99,12 +99,21 @@ OnlineUser* AdcHub::findUser(const uint32_t aSID) const {
 
 OnlineUser* AdcHub::findUser(const CID& aCID) const {
 	RLock l(cs);
-	for(auto i = users.begin(); i != users.end(); ++i) {
-		if(i->second->getUser()->getCID() == aCID) {
-			return i->second;
+	for(const auto& ou: users | map_values) {
+		if(ou->getUser()->getCID() == aCID) {
+			return ou;
 		}
 	}
 	return 0;
+}
+
+void AdcHub::getUserList(OnlineUserList& list) const {
+	RLock l(cs);
+	for(const auto& i: users) {
+		if(i.first != AdcCommand::HUB_SID) {
+			list.push_back(i.second);
+		}
+	}
 }
 
 void AdcHub::putUser(const uint32_t aSID, bool disconnect) {
@@ -136,10 +145,10 @@ void AdcHub::clearUsers() {
 		availableBytes = 0;
 	}
 
-	for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-		if(i->first != AdcCommand::HUB_SID)
-			ClientManager::getInstance()->putOffline(i->second, false);
-		i->second->dec();
+	for(auto& i: tmp) {
+		if(i.first != AdcCommand::HUB_SID)
+			ClientManager::getInstance()->putOffline(i.second, false);
+		i.second->dec();
 	}
 }
 
@@ -182,20 +191,20 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		return;
 	}
 
-	for(auto i = c.getParameters().begin(); i != c.getParameters().end(); ++i) {
-		if(i->length() < 2)
+	for(const auto& p: c.getParameters()) {
+		if(p.length() < 2)
 			continue;
 
-		if(i->substr(0, 2) == "SS") {
+		if(p.substr(0, 2) == "SS") {
 			availableBytes -= u->getIdentity().getBytesShared();
-			u->getIdentity().setBytesShared(i->substr(2));
+			u->getIdentity().setBytesShared(p.substr(2));
 			availableBytes += u->getIdentity().getBytesShared();
 		} else {
-			u->getIdentity().set(i->c_str(), i->substr(2));
+			u->getIdentity().set(p.c_str(), p.substr(2));
 		}
 		
-		if((i->substr(0, 2) == "VE") || (i->substr(0, 2) == "AP")) {
-			if (i->find("AirDC++") != string::npos) {
+		if((p.substr(0, 2) == "VE") || (p.substr(0, 2) == "AP")) {
+			if (p.find("AirDC++") != string::npos) {
 				u->getUser()->setFlag(User::AIRDCPLUSPLUS);
 			}
 		}
@@ -231,13 +240,13 @@ void AdcHub::handle(AdcCommand::SUP, AdcCommand& c) noexcept {
 		return;
 	bool baseOk = false;
 	bool tigrOk = false;
-	for(StringIter i = c.getParameters().begin(); i != c.getParameters().end(); ++i) {
-		if(*i == BAS0_SUPPORT) {
+	for(const auto& p: c.getParameters()) {
+		if(p == BAS0_SUPPORT) {
 			baseOk = true;
 			tigrOk = true;
-		} else if(*i == BASE_SUPPORT) {
+		} else if(p == BASE_SUPPORT) {
 			baseOk = true;
-		} else if(*i == TIGR_SUPPORT) {
+		} else if(p == TIGR_SUPPORT) {
 			tigrOk = true;
 		}
 	}
@@ -816,9 +825,9 @@ void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 		} else {
 			const string& to = command.getTo();
 			RLock l(cs);
-			for(auto i = users.begin(); i != users.end(); ++i) {
-				if(i->second->getIdentity().getNick() == to) {
-					privateMessage(i->second, cmd);
+			for(const auto& ou: users | map_values) {
+				if(ou->getIdentity().getNick() == to) {
+					privateMessage(ou, cmd);
 					return;
 				}
 			}
@@ -934,12 +943,11 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 		}
 
 		StringTokenizer<string> st(aString, ' ');
-		for(auto i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
-			c.addParam("AN", *i);
-		}
+		for(const auto& t: st.getTokens())
+			c.addParam("AN", t);
 
-		for(auto i = excluded.begin(); i != excluded.end(); ++i) {
-			c.addParam("NO", *i);
+		for(const auto& e: excluded) {
+			c.addParam("NO", e);
 		}
 
 		if(aFileType == SearchManager::TYPE_DIRECTORY) {
@@ -994,11 +1002,12 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 
 			if(gr) {
 				auto appendGroupInfo = [rx, exts, gr] (AdcCommand& aCmd) -> void {
-					for(auto i = exts.cbegin(), iend = exts.cend(); i != iend; ++i)
-						aCmd.addParam("EX", *i);
+					for(const auto& ext: exts)
+						aCmd.addParam("EX", ext);
+
 					aCmd.addParam("GR", Util::toString(gr));
-					for(auto i = rx.cbegin(), iend = rx.cend(); i != iend; ++i)
-						aCmd.addParam("RX", *i);
+					for(const auto& i: rx)
+						aCmd.addParam("RX", i);
 				};
 
 				if (isDirect) {
@@ -1011,8 +1020,8 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 					c_gr.setFeatures('+' + SEGA_FEATURE);
 
 					const auto& params = c.getParameters();
-					for(auto i = params.cbegin(), iend = params.cend(); i != iend; ++i)
-						c_gr.addParam(*i);
+					for(const auto& p: params)
+						c_gr.addParam(p);
 
 					appendGroupInfo(c_gr);
 					sendSearch(c_gr);
@@ -1024,8 +1033,8 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 			}
 		}
 
-		for(auto i = aExtList.cbegin(), iend = aExtList.cend(); i != iend; ++i)
-			c.addParam("EX", *i);
+		for(const auto& ex: aExtList)
+			c.addParam("EX", ex);
 	}
 }
 
@@ -1093,7 +1102,7 @@ static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, c
 			c.addParam(var, value);
 		}
 	} else if(!value.empty()) {
-		lastInfoMap.insert(make_pair(var, value));
+		lastInfoMap.emplace(var, value);
 		c.addParam(var, value);
 	}
 }
@@ -1194,9 +1203,9 @@ void AdcHub::refreshUserList(bool) {
 	OnlineUserList v;
 
 	RLock l(cs);
-	for(auto i = users.begin(); i != users.end(); ++i) {
-		if(i->first != AdcCommand::HUB_SID) {
-			v.push_back(i->second);
+	for(const auto& i: users) {
+		if(i.first != AdcCommand::HUB_SID) {
+			v.push_back(i.second);
 		}
 	}
 	fire(ClientListener::UsersUpdated(), this, v);
@@ -1282,9 +1291,9 @@ void AdcHub::on(Second s, uint64_t aTick) noexcept {
 
 OnlineUserPtr AdcHub::findUser(const string& aNick) const { 
 	RLock l(cs); 
-	for(auto i = users.begin(); i != users.end(); ++i) { 
-		if(i->second->getIdentity().getNick() == aNick) { 
-			return i->second; 
+	for(auto ou: users | map_values) { 
+		if(ou->getIdentity().getNick() == aNick) { 
+			return ou; 
 		} 
 	} 
 	return nullptr; 

@@ -245,8 +245,7 @@ string ClientManager::findHub(const string& ipPort) const {
 	string url;
 
 	RLock l(cs);
-	for(auto i = clients.begin(); i != clients.end(); ++i) {
-		const Client* c = i->second;
+	for(const auto c: clients | map_values) {
 		if(c->getIp() == ip) {
 			// If exact match is found, return it
 			if(c->getPort() == port)
@@ -275,8 +274,7 @@ UserPtr ClientManager::findLegacyUser(const string& aNick) const noexcept {
 		return UserPtr();
 
 	RLock l(cs);
-	for(auto i = onlineUsers.begin(); i != onlineUsers.end(); ++i) {
-		const OnlineUser* ou = i->second;
+	for(const auto& ou: onlineUsers | map_values) {
 		if(ou->getUser()->isSet(User::NMDC) && Util::stricmp(ou->getIdentity().getNick(), aNick) == 0)
 			return ou->getUser();
 	}
@@ -330,8 +328,7 @@ UserPtr ClientManager::findUser(const CID& cid) const noexcept {
 
 UserPtr ClientManager::findUserByNick(const string& aNick, const string& aHubUrl) const noexcept {
 	RLock l(cs);
-	for(auto i = clients.begin(); i != clients.end(); ++i) {
-		Client* c = i->second;
+	for(const auto c: clients | map_values) {
 		if(c->getHubUrl() == aHubUrl) {
 			return c->findUser(aNick)->getUser();
 		}
@@ -421,17 +418,15 @@ void ClientManager::listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles
 }
 
 optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const string& userSID) {
-	OnlineUser* u;
 	optional<ProfileToken> ret;
 
 	if(!userSID.empty()) {
 		RLock l(cs);
 		auto op = onlineUsers.equal_range(const_cast<CID*>(&p.getUser()->getCID())) | map_values;
-		for(auto i = op.begin(); i != op.end(); ++i) {
-			u = *i;
-			if(compare(u->getIdentity().getSIDString(), userSID) == 0) {
-				p.setHubUrl(u->getClient().getAddress());
-				ret = u->getClient().getShareProfile();
+		for(const auto& ou: op) {
+			if(compare(ou->getIdentity().getSIDString(), userSID) == 0) {
+				p.setHubUrl(ou->getClient().getAddress());
+				ret = ou->getClient().getShareProfile();
 				break;
 			}
 		}
@@ -444,9 +439,9 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 	OnlinePairC op;
 
 	RLock l(cs);
-	u = findOnlineUserHint(p.getUser()->getCID(), p.getHubUrl(), op);
-	if(u) {
-		ret = u->getClient().getShareProfile();
+	auto ou = findOnlineUserHint(p.getUser()->getCID(), p.getHubUrl(), op);
+	if(ou) {
+		ret = ou->getClient().getShareProfile();
 	} else if(op.first != op.second) {
 		//pick a random profile
 		ret = op.first->second->getClient().getShareProfile();
@@ -625,8 +620,7 @@ bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, 
 
 void ClientManager::infoUpdated() {
 	RLock l(cs);
-	for(auto i = clients.begin(); i != clients.end(); ++i) {
-		Client* c = i->second;
+	for(auto c: clients | map_values) {
 		if(c->isConnected()) {
 			c->callAsync([c] { c->info(false); });
 		}
@@ -635,10 +629,9 @@ void ClientManager::infoUpdated() {
 
 void ClientManager::resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr aDefaultProfile) {
 	RLock l(cs);
-	for(auto k = aProfiles.begin(); k != aProfiles.end(); ++k) {
-		for(auto i = clients.begin(); i != clients.end(); ++i) {
-			Client* c = i->second;
-			if (c->getShareProfile() == *k) {
+	for(auto pt: aProfiles) {
+		for(auto c: clients | map_values) {
+			if (c->getShareProfile() == pt) {
 				c->setShareProfile(SP_DEFAULT);
 				c->callAsync([c] { c->info(false); });
 			}
@@ -660,8 +653,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			string name = aSeeker.substr(4);
 			// Good, we have a passive seeker, those are easier...
 			string str;
-			for(SearchResultList::const_iterator i = l.begin(); i != l.end(); ++i) {
-				const SearchResultPtr& sr = *i;
+			for(const auto& sr: l) {
 				str += sr->toSR(*aClient);
 				str[str.length()-1] = 5;
 				str += Text::fromUtf8(name, aClient->getEncoding());
@@ -680,10 +672,10 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 				
 				if(port.empty()) 
 					port = "412";
-				for(auto i = l.begin(); i != l.end(); ++i) {
-					const SearchResultPtr& sr = *i;
+
+				for(const auto& sr: l)
 					udp.writeTo(ip, port, sr->toSR(*aClient));
-				}
+
 			} catch(...) {
 				dcdebug("Search caught error\n");
 			}
@@ -780,10 +772,8 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcep
 	}
 
 	RLock l (cs);
-	for(auto j = clients.begin(); j != clients.end(); ++j) {
-		auto c = j->second;
-		j->second->callAsync([c] { c->info(false); });
-	}
+	for(auto c: clients | map_values)
+		c->callAsync([c] { c->info(false); });
 }
 
 string ClientManager::getClientStats() {
@@ -807,9 +797,9 @@ string ClientManager::getClientStats() {
 
 	//results_bimap clientNames;
 	map<string, double> clientNames;
-	for(auto i = onlineUsers.begin(); i != onlineUsers.end(); ++i) {
-		if (!(*i).second->getIdentity().isBot()) {
-			auto app = (*i).second->getIdentity().getApplication();
+	for(auto ou: onlineUsers | map_values) {
+		if (!ou->getIdentity().isBot()) {
+			auto app = ou->getIdentity().getApplication();
 			auto pos = app.find(" ");
 
 			if (pos != string::npos) {
@@ -827,7 +817,7 @@ string ClientManager::getClientStats() {
 	};*/
 
 	auto countCompare = [] (pair<string, int> i, pair<string, int> j) -> bool {
-		return (i.second>j.second);
+		return (i.second > j.second);
 	};
 	//bool myfunction (int i,int j) { return (i<j); }
 
@@ -838,14 +828,14 @@ string ClientManager::getClientStats() {
 	vector<pair<string, int> > print(clientNames.begin(), clientNames.end());
 	sort(print.begin(), print.end(), countCompare);
 	//boost::sort(clientNames | boost::adaptors::map_values, countCompare);
-	for(auto i = print.begin(); i != print.end(); ++i) {
+	for(auto& p: print) {
 		//std::stringstream a_stream;
 		//std::string the_string = Util::toString(i->second) + " (" + Util::toString((i->second/allUsers)*100.00) + "%)" + lb;
 		//a_stream << std::setiosflags ( std::ios_base::left ) << std::setw ( 20 ) << i->first << the_string.c_str() << std::endl;
 		//std::cout << the_string.c_str();
 		//ret += a_stream.get();
 		//ret += a_stream.str();
-		ret += i->first + ":\t\t" + Util::toString(i->second) + " (" + Util::toString(((double)i->second/(double)allUsers)*100.00) + "%)" + lb;
+		ret += p.first + ":\t\t" + Util::toString(p.second) + " (" + Util::toString(((double)p.second/(double)allUsers)*100.00) + "%)" + lb;
 		//printf("%-20s", ret);
 	}
 
@@ -934,10 +924,8 @@ int ClientManager::getMode(const string& aHubUrl) const {
 
 void ClientManager::cancelSearch(void* aOwner) {
 	RLock l(cs);
-
-	for(auto i = clients.begin(); i != clients.end(); ++i) {
-		i->second->cancelSearch(aOwner);
-	}
+	for(auto c: clients | map_values)
+		c->cancelSearch(aOwner);
 }
 
 

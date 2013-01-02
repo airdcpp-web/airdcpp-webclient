@@ -28,10 +28,6 @@
 #include "User.h"
 #include "UserConnectionListener.h"
 #include "TimerManager.h"
-#include "Upload.h"
-#include "Download.h"
-
-#include <boost\variant.hpp>
 
 namespace dcpp {
 

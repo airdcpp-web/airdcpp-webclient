@@ -1472,9 +1472,9 @@ void ShareManager::removeDirectories(const ShareDirInfo::list& aRemoveDirs) {
 
 					//no parent directories, check if we have any child roots for other profiles inside this tree and get the most top one
 					Directory::Ptr subDir = nullptr;
-					for(auto p = shares.begin(); p != shares.end(); ++p) {
-						if(strnicmp(rd->path, p->first, rd->path.length()) == 0 && (!subDir || p->first.length() < subDir->getProfileDir()->getPath().length())) {
-							subDir = p->second;
+					for(auto sdp: shares) {
+						if(strnicmp(rd->path, sdp.first, rd->path.length()) == 0 && (!subDir || sdp.first.length() < subDir->getProfileDir()->getPath().length())) {
+							subDir = sdp.second;
 						}
 					}
 
@@ -1696,9 +1696,8 @@ void ShareManager::getShares(ShareDirInfo::map& aDirs) {
 		
 void ShareManager::getBloom(HashBloom& bloom) const {
 	RLock l(cs);
-	for(auto i = tthIndex.begin(); i != tthIndex.end(); ++i) {
-		bloom.add(*i->first);
-	}
+	for(auto tth: tthIndex | map_keys)
+		bloom.add(*tth);
 }
 
 string ShareManager::generateOwnList(ProfileToken aProfile) {
@@ -1833,9 +1832,9 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		StringOutputStream sos(xml);
 		string indent = "\t";
 
-		for(auto it2 = root->listDirs.begin(); it2 != root->listDirs.end(); ++it2) {
-			it2->second->toXml(sos, indent, tmp, recurse);
-		}
+		for(auto ld: root->listDirs | map_values)
+			ld->toXml(sos, indent, tmp, recurse);
+
 		root->filesToXml(sos, indent, tmp);
 
 		//auto end = GET_TICK();
@@ -2369,8 +2368,8 @@ void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch
 		return;
 	}
 
-	for(auto i = srch.includeX.begin(); i != srch.includeX.end(); ++i) {
-		if(!bloom.match(i->getPattern())) {
+	for(const auto& i: srch.includeX) {
+		if(!bloom.match(i.getPattern())) {
 			return;
 		}
 	}
@@ -2388,7 +2387,7 @@ void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch
 	} else {
 		DirectoryList result;
 		findVirtuals<ProfileToken>(aDirectory, aProfile, result);
-		for(auto it: result) {
+		for(const auto it: result) {
 			if (!it->isLevelExcluded(aProfile))
 				it->directSearch(results, srch, maxResults, aProfile);
 		}

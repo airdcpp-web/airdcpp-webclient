@@ -30,6 +30,8 @@
 #include "ResourceManager.h"
 #include "FavoriteManager.h"
 
+#include "LogManager.h"
+
 namespace dcpp {
 
 FastCriticalSection Identity::cs;
@@ -90,8 +92,8 @@ string Identity::getIp() const {
 void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
 	{
 		FastLock l(cs);
-		for(auto i = info.begin(); i != info.end(); ++i) {
-			sm[prefix + string((char*)(&i->first), 2)] = i->second;
+		for(auto& i: info) {
+			sm[prefix + string((char*)(&i.first), 2)] = i.second;
 		}
 	}
 	if(user) {
@@ -180,8 +182,8 @@ void Identity::set(const char* name, const string& val) {
 bool Identity::supports(const string& name) const {
 	string su = get("SU");
 	StringTokenizer<string> st(su, ',');
-	for(auto i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
-		if(*i == name)
+	for(auto s: st.getTokens()) {
+		if(s == name)
 			return true;
 	}
 	return false;
@@ -191,8 +193,8 @@ std::map<string, string> Identity::getInfo() const {
 	std::map<string, string> ret;
 
 	FastLock l(cs);
-	for(auto i = info.begin(); i != info.end(); ++i) {
-		ret[string((char*)(&i->first), 2)] = i->second;
+	for(auto& i: info) {
+		ret[string((char*)(&i.first), 2)] = i.second;
 	}
 
 	return ret;
@@ -277,7 +279,6 @@ bool OnlineUser::update(int sortCol, const tstring& oldText) {
 }
 
 const string& OnlineUser::getHubUrl() const { 
-	//return HintedUser(getIdentity().getUser(), (&getClient())->getHubUrl());
 	return getClient().getHubUrl();
 }
 
@@ -296,6 +297,17 @@ uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 		image += 1 << (USER_ICON_OP - USER_ICON_MOD_START);
 	}
 	return image;
+}
+
+string OnlineUser::getLogPath() {
+	ParamMap params;
+	params["userNI"] = [this] { return getIdentity().getNick(); };
+	params["hubNI"] = [this] { return getClient().getHubName(); };
+	params["myNI"] = [this] { return getClient().getMyNick(); };
+	params["userCID"] = [this] { return getUser()->getCID().toBase32(); };
+	params["hubURL"] = [this] { return getClient().getHubUrl(); };
+
+	return LogManager::getInstance()->getPath(LogManager::PM, params);
 }
 
 } // namespace dcpp

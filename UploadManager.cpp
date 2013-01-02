@@ -56,9 +56,9 @@ UploadManager::~UploadManager() {
 	ClientManager::getInstance()->removeListener(this);
 	{
 		Lock l(cs);
-		for(auto ii = uploadQueue.cbegin(); ii != uploadQueue.cend(); ++ii) {
-			for(auto i = ii->files.cbegin(); i != ii->files.cend(); ++i) {
-				(*i)->dec();
+		for(const auto ii: uploadQueue) {
+			for(const auto& f: ii.files) {
+				f->dec();
 			}
 		}
 		uploadQueue.clear();
@@ -971,21 +971,21 @@ void UploadManager::logUpload(const Upload* u) {
 	fire(UploadManagerListener::Complete(), u);
 }
 
-size_t UploadManager::addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size) {
+size_t UploadManager::addFailedUpload(const UserConnection& source, const string& aFile, int64_t pos, int64_t size) {
 	size_t queue_position = 0;
 	Lock l(cs);
 	auto it = find_if(uploadQueue.begin(), uploadQueue.end(), [&](const UserPtr& u) -> bool { ++queue_position; return u == source.getUser(); });
 	if(it != uploadQueue.end()) {
 		it->token = source.getToken();
-		for(auto fileIter = it->files.cbegin(); fileIter != it->files.cend(); ++fileIter) {
-			if((*fileIter)->getFile() == file) {
-				(*fileIter)->setPos(pos);
+		for(const auto f: it->files) {
+			if(f->getFile() == aFile) {
+				f->setPos(pos);
 				return queue_position;
 			}
 		}
 	}
 
-	UploadQueueItem* uqi = new UploadQueueItem(source.getHintedUser(), file, pos, size);
+	UploadQueueItem* uqi = new UploadQueueItem(source.getHintedUser(), aFile, pos, size);
 	if(it == uploadQueue.end()) {
 		++queue_position;
 
@@ -1005,9 +1005,9 @@ void UploadManager::clearUserFiles(const UserPtr& aUser) {
 	Lock l (cs);
 	auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser; });
 	if(it != uploadQueue.cend()) {
-		for(auto i = it->files.cbegin(); i != it->files.cend(); ++i) {
-			fire(UploadManagerListener::QueueItemRemove(), (*i));
-			(*i)->dec();
+		for(const auto f: it->files) {
+			fire(UploadManagerListener::QueueItemRemove(), f);
+			f->dec();
 		}
 		uploadQueue.erase(it);
 		fire(UploadManagerListener::QueueRemove(), aUser);

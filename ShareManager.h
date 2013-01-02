@@ -394,7 +394,7 @@ private:
 	};
 
 	struct FileListDir {
-		typedef unordered_map<string, FileListDir*, noCaseStringHash, noCaseStringEq> List;
+		typedef unordered_map<string, FileListDir*, noCaseStringHash, noCaseStringEq> ListDirectoryMap;
 		vector<Directory::Ptr> shareDirs;
 
 		FileListDir(const string& aName, int64_t aSize, int aDate);
@@ -403,7 +403,7 @@ private:
 		string name;
 		int64_t size;
 		uint32_t date;
-		List listDirs;
+		ListDirectoryMap listDirs;
 
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;

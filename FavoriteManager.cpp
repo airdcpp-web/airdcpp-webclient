@@ -77,9 +77,9 @@ UserCommand FavoriteManager::addUserCommand(int type, int ctx, Flags::MaskType f
 
 bool FavoriteManager::getUserCommand(int cid, UserCommand& uc) {
 	Lock l(cs);
-	for(auto i = userCommands.begin(); i != userCommands.end(); ++i) {
-		if(i->getId() == cid) {
-			uc = *i;
+	for(auto& u: userCommands) {
+		if(u.getId() == cid) {
+			uc = u;
 			return true;
 		}
 	}
@@ -467,12 +467,12 @@ void FavoriteManager::save() {
 		xml.addChildAttrib("Version", 2);
 		xml.stepIn();
 		FavDirList spl = getFavoriteDirs();
-		for(auto i = spl.begin(), iend = spl.end(); i != iend; ++i) {
-			xml.addTag("Directory", i->first);
-			xml.addChildAttrib("Name", i->first);
+		for(const auto& fde: spl) {
+			xml.addTag("Directory", fde.first);
+			xml.addChildAttrib("Name", fde.first);
 			xml.stepIn();
-			for (auto s = i->second.begin(); s != i->second.end(); ++s) {
-				xml.addTag("Target", (*s));
+			for (const auto& t: fde.second) {
+				xml.addTag("Target", t);
 			}
 			xml.stepOut();
 		}
@@ -511,12 +511,12 @@ void FavoriteManager::previewload(SimpleXML& aXml){
 void FavoriteManager::previewsave(SimpleXML& aXml){
 	aXml.addTag("PreviewApps");
 	aXml.stepIn();
-	for(auto i = previewApplications.begin(); i != previewApplications.end(); ++i) {
+	for(const auto pa: previewApplications) {
 		aXml.addTag("Application");
-		aXml.addChildAttrib("Name", (*i)->getName());
-		aXml.addChildAttrib("Application", (*i)->getApplication());
-		aXml.addChildAttrib("Arguments", (*i)->getArguments());
-		aXml.addChildAttrib("Extension", (*i)->getExtension());
+		aXml.addChildAttrib("Name", pa->getName());
+		aXml.addChildAttrib("Application", pa->getApplication());
+		aXml.addChildAttrib("Arguments", pa->getArguments());
+		aXml.addChildAttrib("Extension", pa->getExtension());
 	}
 	aXml.stepOut();
 }
@@ -531,13 +531,13 @@ void FavoriteManager::recentsave() {
 		xml.addTag("Hubs");
 		xml.stepIn();
 
-		for(RecentHubEntry::Iter i = recentHubs.begin(); i != recentHubs.end(); ++i) {
+		for(const auto rhe: recentHubs) {
 			xml.addTag("Hub");
-			xml.addChildAttrib("Name", (*i)->getName());
-			xml.addChildAttrib("Description", (*i)->getDescription());
-			xml.addChildAttrib("Users", (*i)->getUsers());
-			xml.addChildAttrib("Shared", (*i)->getShared());
-			xml.addChildAttrib("Server", (*i)->getServer());
+			xml.addChildAttrib("Name", rhe->getName());
+			xml.addChildAttrib("Description", rhe->getDescription());
+			xml.addChildAttrib("Users", rhe->getUsers());
+			xml.addChildAttrib("Shared", rhe->getShared());
+			xml.addChildAttrib("Server", rhe->getServer());
 		}
 
 		xml.stepOut();
@@ -928,6 +928,15 @@ void FavoriteManager::setHubList(int aHubList) {
 	refresh();
 }
 
+RecentHubEntry* FavoriteManager::getRecentHubEntry(const string& aServer) {
+	for(auto r: recentHubs) {
+		if(stricmp(r->getServer(), aServer) == 0) {
+			return r;
+		}
+	}
+	return nullptr;
+}
+
 void FavoriteManager::refresh(bool forceDownload /* = false */) {
 	StringList sl = getHubLists();
 	if(sl.empty())
@@ -995,8 +1004,7 @@ UserCommand::List FavoriteManager::getUserCommands(int ctx, const StringList& hu
 
 	Lock l(cs);
 	UserCommand::List lst;
-	for(auto i = userCommands.begin(); i != userCommands.end(); ++i) {
-		UserCommand& uc = *i;
+	for(const auto& uc: userCommands) {
 		if(!(uc.getCtx() & ctx)) {
 			continue;
 		}
@@ -1010,7 +1018,7 @@ UserCommand::List FavoriteManager::getUserCommands(int ctx, const StringList& hu
 					((uc.getHub() == "adc://op" || uc.getHub() == "adcs://op") && isOp[j]) ||
 					(uc.getHub() == hub) )
 				{
-					lst.push_back(*i);
+					lst.push_back(uc);
 					break;
 				}
 			} else if((!hubAdc && !commandAdc) || uc.isChat()) {
@@ -1018,7 +1026,7 @@ UserCommand::List FavoriteManager::getUserCommands(int ctx, const StringList& hu
 					(uc.getHub() == "op" && isOp[j]) ||
 					(uc.getHub() == hub) )
 				{
-					lst.push_back(*i);
+					lst.push_back(uc);
 					break;
 				}
 			}

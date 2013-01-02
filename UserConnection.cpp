@@ -27,6 +27,8 @@
 #include "Transfer.h"
 #include "DebugManager.h"
 
+#include "Download.h"
+
 namespace dcpp {
 
 const string UserConnection::FEATURE_MINISLOTS = "MiniSlots";
@@ -174,8 +176,8 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 
 void UserConnection::sup(const StringList& features) {
 	AdcCommand c(AdcCommand::CMD_SUP);
-	for(auto i = features.begin(); i != features.end(); ++i)
-		c.addParam(*i);
+	for(auto& f: features)
+		c.addParam(f);
 	send(c);
 }
 
@@ -189,9 +191,9 @@ void UserConnection::sendError(const std::string& msg /*FILE_NOT_AVAILABLE*/, Ad
 
 void UserConnection::supports(const StringList& feat) {
 	string x;
-	for(auto i = feat.begin(); i != feat.end(); ++i) {
-		x += *i + ' ';
-	}
+	for(auto f: feat)
+		x += f + ' ';
+
 	send("$Supports " + x + '|');
 }
 

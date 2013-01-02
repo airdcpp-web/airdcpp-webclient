@@ -193,6 +193,7 @@ public:
 	bool isHidden() const { return identity.isHidden(); }
 	
 	tstring getText(uint8_t col, bool copy = false) const;
+	string getLogPath();
 
 	bool isInList;
 	GETSET(Identity, identity, Identity);
