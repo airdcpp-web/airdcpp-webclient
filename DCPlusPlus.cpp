@@ -104,7 +104,7 @@ void startup(function<void (const string&)> f) {
 	AutoSearchManager::getInstance()->AutoSearchLoad();
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
-	if(BOOLSETTING(WIZARD_RUN_NEW)) {
+	if(SETTING(WIZARD_RUN_NEW)) {
 		WizardDlg dlg;
 		dlg.DoModal(/*m_hWnd*/);
 		SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN_NEW, false); //wizard has run on startup
@@ -137,7 +137,7 @@ void startup(function<void (const string&)> f) {
 
 	FavoriteManager::getInstance()->load();
 
-	if(BOOLSETTING(GET_USER_COUNTRY)) {
+	if(SETTING(GET_USER_COUNTRY)) {
 		announce(STRING(COUNTRY_INFORMATION));
 		GeoManager::getInstance()->init();
 	}

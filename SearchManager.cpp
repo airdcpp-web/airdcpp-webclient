@@ -94,7 +94,7 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 
 	{
 		WLock l (cs);
-		if (BOOLSETTING(ENABLE_SUDP)) {
+		if (SETTING(ENABLE_SUDP)) {
 			//generate a random key and store it so we can check the results
 			uint8_t* key = new uint8_t[16];
 			RAND_bytes(key, 16);
@@ -583,7 +583,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 	adc.getParam("TO", 0, token);
 
 	// TODO: don't send replies to passive users
-	if(results.empty() && BOOLSETTING(USE_PARTIAL_SHARING)) {
+	if(results.empty() && SETTING(USE_PARTIAL_SHARING)) {
 		string tth;
 		if(!adc.getParam("TR", 0, tth))
 			return;

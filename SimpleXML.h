@@ -22,8 +22,8 @@
 #include "forward.h"
 #include "noexcept.h"
 #include "Exception.h"
+#include "Util.h"
 
-#include "File.h"
 #include "SimpleXMLReader.h"
 
 #include <boost/noncopyable.hpp>
@@ -142,7 +142,7 @@ public:
 	void fromXML(const string& aXML);
 	string toXML();
 	string childToXML();
-	void toXML(OutputStream* f) throw(FileException);
+	void toXML(OutputStream* f);
 	
 	static const string& escape(const string& str, string& tmp, bool aAttrib, bool aLoading = false, const string &encoding = Text::utf8) {
 		if(needsEscape(str, aAttrib, aLoading, encoding)) {

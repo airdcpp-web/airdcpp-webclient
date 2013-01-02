@@ -19,15 +19,19 @@
 #ifndef DCPLUSPLUS_DCPP_STREAMS_H
 #define DCPLUSPLUS_DCPP_STREAMS_H
 
-#include "typedefs.h"
-
-#include "SettingsManager.h"
-#include "Exception.h"
-#include "ResourceManager.h"
+#include <algorithm>
 
 #include <boost/noncopyable.hpp>
 
+#include "typedefs.h"
+#include "ResourceManager.h"
+
+#include "SettingsManager.h"
+#include "Exception.h"
+
 namespace dcpp {
+
+using std::min;
 
 STANDARD_EXCEPTION(FileException);
 

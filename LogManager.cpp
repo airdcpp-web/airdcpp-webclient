@@ -29,7 +29,7 @@ void LogManager::log(Area area, ParamMap& params) noexcept {
 }
 
 void LogManager::message(const string& msg, Severity severity) {
-	if(BOOLSETTING(LOG_SYSTEM)) {
+	if(SETTING(LOG_SYSTEM)) {
 		ParamMap params;
 		params["message"] = msg;
 		log(SYSTEM, params);

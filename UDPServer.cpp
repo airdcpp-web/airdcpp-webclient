@@ -150,7 +150,7 @@ int UDPServer::PacketProcessor::run() {
 		string remoteIp = move(t.remoteIp);
 
 		//check if this packet has been encrypted
-		if (BOOLSETTING(ENABLE_SUDP) && t.len >= 32 && ((t.len & 15) == 0)) {
+		if (SETTING(ENABLE_SUDP) && t.len >= 32 && ((t.len & 15) == 0)) {
 			SearchManager::getInstance()->decryptPacket(x, t.len, t.buf, BUFSIZE);
 		}
 			

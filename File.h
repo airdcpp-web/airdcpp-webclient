@@ -19,10 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_FILE_H
 #define DCPLUSPLUS_DCPP_FILE_H
 
-#include "SettingsManager.h"
-
-#include "Util.h"
-#include "Text.h"
 #include "Streams.h"
 
 #ifdef _WIN32

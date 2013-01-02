@@ -165,7 +165,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 			TTHValue fileHash(aFile.substr(4));
 
-			if(BOOLSETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile)){
+			if(SETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile)){
 				//Todo: Do we need to set fileSize here?
 				partialFileSharing = true;
 				type = Transfer::TYPE_FILE;
@@ -962,7 +962,7 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 }
 
 void UploadManager::logUpload(const Upload* u) {
-	if(BOOLSETTING(LOG_UPLOADS) && u->getType() != Transfer::TYPE_TREE && (BOOLSETTING(LOG_FILELIST_TRANSFERS) || u->getType() != Transfer::TYPE_FULL_LIST)) {
+	if(SETTING(LOG_UPLOADS) && u->getType() != Transfer::TYPE_TREE && (SETTING(LOG_FILELIST_TRANSFERS) || u->getType() != Transfer::TYPE_FULL_LIST)) {
 		ParamMap params;
 		u->getParams(u->getUserConnection(), params);
 		LOG(LogManager::UPLOAD, params);
@@ -1075,7 +1075,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 				++i;
 		}
 
-		if( BOOLSETTING(AUTO_KICK) ) {
+		if( SETTING(AUTO_KICK) ) {
 			for(auto u: uploads) {
 				if(u->getUser()->isOnline()) {
 					u->unsetFlag(Upload::FLAG_PENDING_KICK);
@@ -1087,7 +1087,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 					continue;
 				}
 
-				if(BOOLSETTING(AUTO_KICK_NO_FAVS) && FavoriteManager::getInstance()->isFavoriteUser(u->getUser())) {
+				if(SETTING(AUTO_KICK_NO_FAVS) && FavoriteManager::getInstance()->isFavoriteUser(u->getUser())) {
 					continue;
 				}
 

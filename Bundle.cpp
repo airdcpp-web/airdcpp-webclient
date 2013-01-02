@@ -52,7 +52,7 @@ Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, 
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	setFlag(FLAG_NEW);
-	if (BOOLSETTING(USE_SLOW_DISCONNECTING_DEFAULT))
+	if (SETTING(USE_SLOW_DISCONNECTING_DEFAULT))
 		setFlag(FLAG_AUTODROP);
 }
 
@@ -85,7 +85,7 @@ Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, const Pr
 		autoPriority = true;
 	}
 	setFlag(FLAG_NEW);
-	if (BOOLSETTING(USE_SLOW_DISCONNECTING_DEFAULT))
+	if (SETTING(USE_SLOW_DISCONNECTING_DEFAULT))
 		setFlag(FLAG_AUTODROP);
 }
 

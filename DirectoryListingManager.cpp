@@ -397,7 +397,7 @@ void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool fullList /
 		createPartialList(me, Util::emptyString, aProfile, true);
 	} else {
 		DirectoryListing* dl = new DirectoryListing(me, false, Util::toString(aProfile), true, true);
-		if (BOOLSETTING(USE_ADLS_OWN))
+		if (SETTING(USE_ADLS_OWN))
 			dl->setMatchADL(true);
 		fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString);
 

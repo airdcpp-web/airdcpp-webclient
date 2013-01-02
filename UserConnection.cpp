@@ -153,14 +153,14 @@ void UserConnection::connect(const string& aServer, const string& aPort, const s
 
 	socket = BufferedSocket::getSocket(0);
 	socket->addListener(this);
-	socket->connect(aServer, aPort, localPort, natRole, secure, BOOLSETTING(ALLOW_UNTRUSTED_CLIENTS), true);
+	socket->connect(aServer, aPort, localPort, natRole, secure, SETTING(ALLOW_UNTRUSTED_CLIENTS), true);
 }
 
 void UserConnection::accept(const Socket& aServer) {
 	dcassert(!socket);
 	socket = BufferedSocket::getSocket(0);
 	socket->addListener(this);
-	socket->accept(aServer, secure, BOOLSETTING(ALLOW_UNTRUSTED_CLIENTS));
+	socket->accept(aServer, secure, SETTING(ALLOW_UNTRUSTED_CLIENTS));
 }
 
 void UserConnection::inf(bool withToken, int mcnSlots) { 

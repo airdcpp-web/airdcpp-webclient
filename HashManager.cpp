@@ -179,7 +179,7 @@ void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const T
 		return;
 	}
 	
-	if(BOOLSETTING(LOG_HASHING)) {
+	if(SETTING(LOG_HASHING)) {
 			string fn = aFileName;
 		if (count(fn.begin(), fn.end(), PATH_SEPARATOR) >= 2) {
 			string::size_type i = fn.rfind(PATH_SEPARATOR);

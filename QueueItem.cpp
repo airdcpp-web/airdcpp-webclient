@@ -67,7 +67,7 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 				priority = LOW;
 			} else if(SETTING(PRIO_LOWEST)) {
 				priority = LOWEST;
-			} else if(BOOLSETTING(AUTO_PRIORITY_DEFAULT)) {
+			} else if(SETTING(AUTO_PRIORITY_DEFAULT)) {
 				autoPriority = true;
 				priority = LOW;
 			} else {
@@ -186,7 +186,7 @@ string QueueItem::getListName() const {
 uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
 	uint8_t MaxSegments = 1;
 
-	if(BOOLSETTING(SEGMENTS_MANUAL)) {
+	if(SETTING(SEGMENTS_MANUAL)) {
 		MaxSegments = min((uint8_t)SETTING(NUMBER_OF_SEGMENTS), (uint8_t)10);
 	} else {
 		if((filesize >= 2*1048576) && (filesize < 15*1048576)) {
@@ -298,7 +298,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		return Segment(0, -1);
 	}
 	
-	if(!BOOLSETTING(MULTI_CHUNK) || blockSize >= size) {
+	if(!SETTING(MULTI_CHUNK) || blockSize >= size) {
 		if(!downloads.empty()) {
 			return checkOverlaps(blockSize, lastSpeed, partialSource, allowOverlap);
 		}
@@ -325,7 +325,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 	}
 	
 	if(downloads.size() >= maxSegments ||
-		(BOOLSETTING(DONT_BEGIN_SEGMENT) && (size_t)(SETTING(DONT_BEGIN_SEGMENT_SPEED) * 1024) < getAverageSpeed()))
+		(SETTING(DONT_BEGIN_SEGMENT) && (size_t)(SETTING(DONT_BEGIN_SEGMENT_SPEED) * 1024) < getAverageSpeed()))
 	{
 		// no other segments if we have reached the speed or segment limit
 		return Segment(-1, 0);
@@ -423,7 +423,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 }
 
 Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
-	if(allowOverlap && partialSource == NULL && bundle && BOOLSETTING(OVERLAP_SLOW_SOURCES) && lastSpeed > 0) {
+	if(allowOverlap && partialSource == NULL && bundle && SETTING(OVERLAP_SLOW_SOURCES) && lastSpeed > 0) {
 		// overlap slow running chunk
 		for(auto d: downloads) {
 			// current chunk mustn't be already overlapped

@@ -1021,7 +1021,7 @@ uint64_t Util::getDirSize(const string &sFullPath) {
 				continue;
 			if(name.find('$') != string::npos)
 				continue;
-			if(!BOOLSETTING(SHARE_HIDDEN) && (fData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
+			if(!SETTING(SHARE_HIDDEN) && (fData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
 				continue;
 			if(fData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 				string newName = sFullPath + PATH_SEPARATOR + name;
@@ -1361,7 +1361,7 @@ TCHAR* Util::strstr(const TCHAR *str1, const TCHAR *str2, int *pnIdxFound) {
 /* natural sorting */ 
 
 int Util::DefaultSort(const wchar_t *a, const wchar_t *b, bool noCase /*=  true*/) {
-	if(BOOLSETTING(NAT_SORT)) {
+	if(SETTING(NAT_SORT)) {
 		int v1, v2;
 		while(*a != 0 && *b != 0) {
 			v1 = 0; v2 = 0;

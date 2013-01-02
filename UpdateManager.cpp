@@ -58,7 +58,7 @@ UpdateManager::~UpdateManager() {
 }
 
 void UpdateManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-	if (BOOLSETTING(UPDATE_IP_HOURLY) && lastIPUpdate + 60*60*1000 < aTick) {
+	if (SETTING(UPDATE_IP_HOURLY) && lastIPUpdate + 60*60*1000 < aTick) {
 		checkIP(false);
 		lastIPUpdate = aTick;
 	}
@@ -319,7 +319,7 @@ void UpdateManager::checkGeoUpdate(bool v6) {
 }
 
 /*void UpdateManager::updateGeo() {
-	if(BOOLSETTING(GET_USER_COUNTRY)) {
+	if(SETTING(GET_USER_COUNTRY)) {
 		updateGeo(true);
 		updateGeo(false);
 	} else {
@@ -541,13 +541,13 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 	}
 
 
-	if(BOOLSETTING(IP_UPDATE) && !BOOLSETTING(AUTO_DETECT_CONNECTION)) {
+	if(SETTING(IP_UPDATE) && !SETTING(AUTO_DETECT_CONNECTION)) {
 		checkIP(false);
 	}
 
 	checkLanguage();
 
-	if(BOOLSETTING(GET_USER_COUNTRY)) {
+	if(SETTING(GET_USER_COUNTRY)) {
 		checkGeoUpdate();
 	}
 }
@@ -613,7 +613,7 @@ void UpdateManager::init(const string& aExeName) {
 
 	checkVersion(false);
 
-	/*if(BOOLSETTING(GET_USER_COUNTRY)) {
+	/*if(SETTING(GET_USER_COUNTRY)) {
 		GeoManager::getInstance()->init();
 		checkGeoUpdate();
 	} else {

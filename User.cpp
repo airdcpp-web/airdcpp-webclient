@@ -212,7 +212,7 @@ int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t c
 			return -1;
 		if(!a_isOp && b_isOp)
 			return 1;
-		if(BOOLSETTING(SORT_FAVUSERS_FIRST)) {
+		if(SETTING(SORT_FAVUSERS_FIRST)) {
 			bool a_isFav = FavoriteManager::getInstance()->isFavoriteUser(a->getIdentity().getUser()),
 				b_isFav = FavoriteManager::getInstance()->isFavoriteUser(b->getIdentity().getUser());
 			if(a_isFav && !b_isFav)

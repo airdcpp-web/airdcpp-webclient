@@ -21,10 +21,11 @@
 
 #include <string>
 
-#include "SettingsManager.h"
 #include "GetSet.h"
 #include "ShareProfile.h"
 #include "Util.h"
+
+#include "HubSettings.h"
 
 namespace dcpp {
 
@@ -48,9 +49,6 @@ public:
 	}
 
 	HubEntry() { }
-	HubEntry(const HubEntry& rhs) : name(rhs.name), server(rhs.server), description(rhs.description), country(rhs.country),
-		rating(rhs.rating), reliability(rhs.reliability), shared(rhs.shared), minShare(rhs.minShare), users(rhs.users), minSlots(rhs.minSlots),
-		maxHubs(rhs.maxHubs), maxUsers(rhs.maxUsers) { }
 
 	~HubEntry() { }
 
@@ -69,7 +67,7 @@ public:
 };
 
 class ShareProfile;
-class FavoriteHubEntry {
+class FavoriteHubEntry  : public HubSettings {
 public:
 	typedef FavoriteHubEntry* Ptr;
 	typedef vector<Ptr> List;
@@ -78,19 +76,12 @@ public:
 	FavoriteHubEntry() noexcept;
 	FavoriteHubEntry(const HubEntry& rhs) noexcept;
 
-	FavoriteHubEntry(const FavoriteHubEntry& rhs) noexcept;
-
 	~FavoriteHubEntry() noexcept { }
-	
-	const string& getNick(bool useDefault = true) const;
-
-	void setNick(const string& aNick) { nick = aNick; }
 
 	// url, is blocked
 	typedef pair<string, bool> ServerBoolPair;
 	typedef vector<ServerBoolPair> ServerList;
 
-	GETSET(string, userdescription, UserDescription);
 	GETSET(string, name, Name);
 	GETSET(ServerList, servers, Servers);
 	GETSET(string, description, Description);
@@ -108,11 +99,7 @@ public:
 	GETSET(bool, stealth, Stealth);
 	GETSET(bool, userliststate, UserListState);	
 	GETSET(int, mode, Mode); // 0 = default, 1 = active, 2 = passive
-	GETSET(string, ip, IP);
-	GETSET(bool, favnoPM, FavNoPM); 
-	GETSET(bool, hubShowJoins, HubShowJoins); //show joins
-	GETSET(bool, hubLogMainchat, HubLogMainchat);
-	GETSET(uint32_t, searchInterval, SearchInterval);
+	GETSET(bool, favnoPM, FavNoPM);
 	GETSET(string, group, Group);	
 	GETSET(bool, chatNotify, ChatNotify);
 	GETSET(ShareProfilePtr, shareProfile, ShareProfile);
@@ -124,8 +111,6 @@ public:
 	void validateFailOvers();
 	void blockFailOver(const string& aServer);
 	string getServerStr();
-private:
-	string nick;
 };
 
 class RecentHubEntry {

@@ -696,7 +696,7 @@ void ShareScannerManager::reportResults(const string& dir, ScanType scanType, in
 			tmp += STRING_F(X_DUPE_FOLDERS, dupesFound);
 		}
 
-		if ((scanType == TYPE_FINISHED || scanType == TYPE_FAILED_FINISHED) && BOOLSETTING(ADD_FINISHED_INSTANTLY)) {
+		if ((scanType == TYPE_FINISHED || scanType == TYPE_FAILED_FINISHED) && SETTING(ADD_FINISHED_INSTANTLY)) {
 			tmp += str(boost::format(". " + STRING(FORCE_HASH_NOTIFICATION)) % dir);
 		}
 	}

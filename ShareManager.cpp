@@ -1069,7 +1069,7 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			return;
 		}
 
-		if(!BOOLSETTING(SHARE_HIDDEN) && i->isHidden())
+		if(!SETTING(SHARE_HIDDEN) && i->isHidden())
 			continue;
 
 		if(i->isDirectory()) {
@@ -1129,7 +1129,7 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 }
 
 bool ShareManager::checkHidden(const string& aName) const {
-	if (BOOLSETTING(SHARE_HIDDEN))
+	if (SETTING(SHARE_HIDDEN))
 		return true;
 
 	auto ff = FileFindIter(aName.substr(0, aName.size() - 1));
@@ -1547,7 +1547,7 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 	if (!msg.empty()) {
 		if (aHashSize > 0) {
 			msg += " " + STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(aHashSize));
-		} else if (aRefreshType == TYPE_SCHEDULED && !BOOLSETTING(LOG_SCHEDULED_REFRESHES)) {
+		} else if (aRefreshType == TYPE_SCHEDULED && !SETTING(LOG_SCHEDULED_REFRESHES)) {
 			return;
 		}
 		LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
@@ -2759,7 +2759,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 		return false;
 
 	if (skipList.match(aName)) {
-		if(BOOLSETTING(REPORT_SKIPLIST) && report)
+		if(SETTING(REPORT_SKIPLIST) && report)
 			LogManager::getInstance()->message(STRING(SKIPLIST_HIT) + aPath, LogManager::LOG_INFO);
 		return false;
 	}
@@ -2776,7 +2776,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 		}
 
 		//check for forbidden file patterns
-		if(BOOLSETTING(REMOVE_FORBIDDEN)) {
+		if(SETTING(REMOVE_FORBIDDEN)) {
 			string::size_type nameLen = aName.size();
 			if ((strcmp(fileExt.c_str(), ".tdc") == 0) ||
 				(strcmp(fileExt.c_str(), ".getright") == 0) ||
@@ -2804,7 +2804,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 			return false;
 		}
 
-		if(BOOLSETTING(NO_ZERO_BYTE) && !(size > 0))
+		if(SETTING(NO_ZERO_BYTE) && !(size > 0))
 			return false;
 
 		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > (SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
@@ -2829,7 +2829,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 void ShareManager::setSkipList() {
 	WLock l (dirNames);
 	skipList.pattern = SETTING(SKIPLIST_SHARE);
-	skipList.setMethod(BOOLSETTING(SHARE_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
+	skipList.setMethod(SETTING(SHARE_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
 	skipList.prepare();
 }
 

@@ -86,7 +86,7 @@ OnlineUser& NmdcHub::getUser(const string& aNick) {
 	}
 
 	UserPtr p;
-	if(aNick == getCurrentNick()) {
+	if(aNick == get(Nick)) {
 		p = ClientManager::getInstance()->getMe();
 	} else {
 		p = ClientManager::getInstance()->getUser(aNick, getHubUrl());
@@ -197,7 +197,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		return;
 
 	if(aLine[0] != '$') {
-		if (BOOLSETTING(SUPPRESS_MAIN_CHAT)) return;
+		if (SETTING(SUPPRESS_MAIN_CHAT)) return;
 
 		// Check if we're being banned...
 		if(state != STATE_NORMAL) {
@@ -358,7 +358,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 				// ignore if we or remote client don't support NAT traversal in passive mode
 				// although many NMDC hubs won't send us passive if we're in passive too, so just in case...
-				if(!meActive && (!u->getUser()->isSet(User::NAT_TRAVERSAL) || !BOOLSETTING(ALLOW_NAT_TRAVERSAL)))
+				if(!meActive && (!u->getUser()->isSet(User::NAT_TRAVERSAL) || !SETTING(ALLOW_NAT_TRAVERSAL)))
 					return;
 			}
 
@@ -507,7 +507,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 		}
 
-		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL)) {
+		if(SETTING(ALLOW_NAT_TRAVERSAL)) {
 			if(port[port.size() - 1] == 'N') {
 				if(senderNick.empty())
 					return;
@@ -552,7 +552,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 		if(isActive()) {
 			connectToMe(*u);
-		} else if(BOOLSETTING(ALLOW_NAT_TRAVERSAL) && (u->getIdentity().getStatus() & Identity::NAT)) {
+		} else if(SETTING(ALLOW_NAT_TRAVERSAL) && (u->getIdentity().getStatus() & Identity::NAT)) {
 			bool secure = CryptoManager::getInstance()->TLSOk() && u->getUser()->isSet(User::TLS) && !getStealth();
 			// NMDC v2.205 supports "$ConnectToMe sender_nick remote_nick ip:port", but many NMDC hubsofts block it
 			// sender_nick at the end should work at least in most used hubsofts
@@ -677,7 +677,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 
 			key(CryptoManager::getInstance()->makeKey(lock));
-			OnlineUser& ou = getUser(getCurrentNick());
+			OnlineUser& ou = getUser(get(Nick));
 			validateNick(ou.getIdentity().getNick());
 		}
 	} else if(cmd == "Hello") {
@@ -936,7 +936,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 		if(Util::getAway()) {
 			status |= Identity::AWAY;
 		}
-		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL) && !isActive()) {
+		if(SETTING(ALLOW_NAT_TRAVERSAL) && !isActive()) {
 			status |= Identity::NAT;
 		}
 	}
@@ -954,8 +954,8 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	}
 
 	char myInfo[256];
-	snprintf(myInfo, sizeof(myInfo), "$MyINFO $ALL %s %s<%s V:%s,M:%c,H:%s,S:%d>$ $%s%c$%s$", fromUtf8(getCurrentNick()).c_str(),
-		fromUtf8(escape(getCurrentDescription())).c_str(), dc.c_str(), version.c_str(), modeChar, getCounts().c_str(), 
+	snprintf(myInfo, sizeof(myInfo), "$MyINFO $ALL %s %s<%s V:%s,M:%c,H:%s,S:%d>$ $%s%c$%s$", fromUtf8(getMyNick()).c_str(),
+		fromUtf8(escape(get(Description))).c_str(), dc.c_str(), version.c_str(), modeChar, getCounts().c_str(), 
 		UploadManager::getInstance()->getSlots(), fromUtf8(uploadSpeed).c_str(), status, fromUtf8(escape(SETTING(EMAIL))).c_str());
 
 	int64_t newBytesShared = getShareProfile() == SP_HIDDEN ? 0 : ShareManager::getInstance()->getTotalShareSize(SP_DEFAULT);
@@ -979,7 +979,7 @@ void NmdcHub::search(Search* s){
 		tmp[i] = '$';
 	}
 	string tmp2;
-	if(isActive() && !BOOLSETTING(SEARCH_PASSIVE)) {
+	if(isActive() && !SETTING(SEARCH_PASSIVE)) {
 		tmp2 = getLocalIp() + ':' + SearchManager::getInstance()->getPort();
 	} else {
 		tmp2 = "Hub:" + fromUtf8(getMyNick());

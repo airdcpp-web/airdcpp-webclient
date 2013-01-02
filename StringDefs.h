@@ -687,7 +687,6 @@ enum Strings { // @DontAdd
 	SETTINGS_USE_CTRL_FOR_LINE_HISTORY, // "Use CTRL for line history"
 	SETTINGS_USE_OLD_SHARING_UI, // "Use old sharing user interface"
 	SETTINGS_USE_SYSTEM_ICONS, // "Use system icons when browsing files (slows browsing down a bit)"
-	SETTINGS_USE_VERTICAL_VIEW, // "Use vertical view by default"
 	SETTINGS_USER_COLORS, // "User List Colors"
 	SETTINGS_USER_COMMANDS, // "User Commands"
 	SETTINGS_USER_MENU, // "User Menu Items"

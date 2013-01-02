@@ -69,7 +69,7 @@ void FinishedManager::removeAll(bool upload /* = false */) {
 
 void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept {
 		
-	if(!qi->isSet(QueueItem::FLAG_USER_LIST) || BOOLSETTING(LOG_FILELIST_TRANSFERS)) {
+	if(!qi->isSet(QueueItem::FLAG_USER_LIST) || SETTING(LOG_FILELIST_TRANSFERS)) {
 		
 		FinishedItemPtr item = new FinishedItem(qi->getTarget(), aUser, qi->getSize(), static_cast<int64_t>(aSpeed), GET_TIME(), qi->getTTH().toBase32());
 		{
@@ -78,7 +78,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, 
 		}
 			
 		fire(FinishedManagerListener::AddedDl(), item);
-		if(BOOLSETTING(SYSTEM_SHOW_DOWNLOADS)) {
+		if(SETTING(SYSTEM_SHOW_DOWNLOADS)) {
 			size_t BUF_SIZE = STRING(FINISHED_DOWNLOAD).size() + UNC_MAX_PATH + 128;
 			char* buf = new char[BUF_SIZE];
 			snprintf(buf, BUF_SIZE, CSTRING(FINISHED_DOWNLOAD), Util::getFileName(qi->getTarget()).c_str(), 
@@ -92,7 +92,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, 
 
 void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexcept
 {
-	if(u->getType() == Transfer::TYPE_FILE || (u->getType() == Transfer::TYPE_FULL_LIST && BOOLSETTING(LOG_FILELIST_TRANSFERS))) {
+	if(u->getType() == Transfer::TYPE_FILE || (u->getType() == Transfer::TYPE_FULL_LIST && SETTING(LOG_FILELIST_TRANSFERS))) {
 		FinishedItemPtr item = new FinishedItem(u->getPath(), u->getHintedUser(),	u->getFileSize(), static_cast<int64_t>(u->getAverageSpeed()), GET_TIME());
 		{
 			Lock l(cs);
@@ -100,7 +100,7 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexc
 		}
 
 		fire(FinishedManagerListener::AddedUl(), item);
-		if(BOOLSETTING(SYSTEM_SHOW_UPLOADS)) {
+		if(SETTING(SYSTEM_SHOW_UPLOADS)) {
 		size_t BUF_SIZE = STRING(FINISHED_UPLOAD).size() + UNC_MAX_PATH + 128;
 		char* buf = new char[BUF_SIZE];
 		snprintf(buf, BUF_SIZE, CSTRING(FINISHED_UPLOAD), (Util::getFileName(u->getPath())).c_str(), 

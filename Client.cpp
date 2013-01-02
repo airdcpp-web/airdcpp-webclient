@@ -29,6 +29,8 @@
 #include "AirUtil.h"
 #include "LogManager.h"
 
+#include "ConnectivityManager.h"
+
 namespace dcpp {
 
 atomic<long> Client::counts[COUNT_UNCOUNTED];
@@ -75,56 +77,45 @@ void Client::shutdown() {
 }
 
 void Client::reloadSettings(bool updateNick) {
-	FavoriteHubEntry* hub = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
+	/// @todo update the nick in ADC hubs?
+	string prevNick;
+	if(!updateNick)
+		prevNick = get(Nick);
+
+	auto fav = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
+
+	*static_cast<HubSettings*>(this) = SettingsManager::getInstance()->getHubSettings();
+
 	bool isAdcHub = AirUtil::isAdcHub(hubUrl);
 
-	string limitDesc = Util::emptyString;
+	/*string limitDesc = Util::emptyString;
 	int upLimit = ThrottleManager::getInstance()->getUpLimit();
 	if(upLimit > 0)
-		limitDesc += "[L:" + Util::toString(upLimit) + "KB]";
+		limitDesc += "[L:" + Util::toString(upLimit) + "KB]";*/
 
-	if(hub) {
-		if(updateNick) {
-			setCurrentNick(checkNick(hub->getNick(true)));
-		}		
+	if(fav) {
+		FavoriteManager::getInstance()->mergeHubSettings(*fav, *this);
+		if(!fav->getPassword().empty())
+			setPassword(fav->getPassword());
 
-		if(!hub->getUserDescription().empty()) {
-			setCurrentDescription(limitDesc + hub->getUserDescription());
-		} else {
-			setCurrentDescription(limitDesc + SETTING(DESCRIPTION));
-		}
-
-		if(!hub->getPassword().empty())
-			setPassword(hub->getPassword());
-		setStealth(!isAdcHub ? hub->getStealth() : false);
-		setFavIp(hub->getIP());
-		setFavNoPM(hub->getFavNoPM());
-		setHubShowJoins(hub->getHubShowJoins()); //show joins
-		setHubLogMainchat(hub->getHubLogMainchat());
-		setChatNotify(hub->getChatNotify());
+		setStealth(!isAdcHub ? fav->getStealth() : false);
+		setFavNoPM(fav->getFavNoPM());
+		setChatNotify(fav->getChatNotify());
 
 		//only set the token on the initial attempt. we may have other hubs in favs with the failover addresses but keep on using the initial list for now.
 		if (favToken == 0)
-			favToken = hub->getToken();
+			favToken = fav->getToken();
 
-		if(!hub->getEncoding().empty())
-			setEncoding(hub->getEncoding());
-		
-		if(hub->getSearchInterval() < 10)
-			setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
-		else
-			setSearchInterval(hub->getSearchInterval() * 1000);
+		if(!fav->getEncoding().empty())
+			setEncoding(fav->getEncoding());
 
 		if (isAdcHub) {
-			setShareProfile(hub->getShareProfile()->getToken());
+			setShareProfile(fav->getShareProfile()->getToken());
 		} else {
-			setShareProfile(hub->getShareProfile()->getToken() == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
+			setShareProfile(fav->getShareProfile()->getToken() == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
 		}
 		
-	} else {
-		if(updateNick) {
-			setCurrentNick(checkNick(SETTING(NICK)));
-		}
+	} /*else {
 		setCurrentDescription(limitDesc + SETTING(DESCRIPTION));
 		setStealth(false);
 		setFavIp(Util::emptyString);
@@ -137,9 +128,23 @@ void Client::reloadSettings(bool updateNick) {
 		//favToken = 0;
 
 		if (!isAdcHub)
-			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
-	}
+			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);*/
+	//}
+
+	searchQueue.minInterval = get(HubSettings::SearchInterval);
+	if(updateNick)
+		checkNick(get(Nick));
+	else
+		get(Nick) = prevNick;
 }
+
+const string& Client::getUserIp() const {
+	if(!get(UserIp).empty()) {
+		return get(UserIp);
+	}
+	return CONNSETTING(EXTERNAL_IP);
+}
+
 
 bool Client::isActive() const {
 	return ClientManager::getInstance()->isActive(hubUrl);
@@ -163,7 +168,7 @@ void Client::connect() {
 	try {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
-		sock->connect(address, port, secure, BOOLSETTING(ALLOW_UNTRUSTED_HUBS), true);
+		sock->connect(address, port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true);
 	} catch(const Exception& e) {
 		state = STATE_DISCONNECTED;
 		fire(ClientListener::Failed(), hubUrl, e.getError());
@@ -275,7 +280,7 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 			countType = COUNT_REGISTERED;
 		} else {
 				//disconnect before the hubcount is updated.
-			if(BOOLSETTING(DISALLOW_CONNECTION_TO_PASSED_HUBS)) {
+			if(SETTING(DISALLOW_CONNECTION_TO_PASSED_HUBS)) {
 				fire(ClientListener::AddLine(), this, STRING(HUB_NOT_PROTECTED));
 				disconnect(true);
 				setAutoReconnect(false);
@@ -296,11 +301,11 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 
 string Client::getLocalIp() const {
 	// Favorite hub Ip
-	if(!getFavIp().empty())
-		return Socket::resolve(getFavIp());
+	if(!getUserIp().empty())
+		return Socket::resolve(getUserIp());
 
 	// Best case - the server detected it
-	if((!BOOLSETTING(NO_IP_OVERRIDE) || SETTING(EXTERNAL_IP).empty()) && !getMyIdentity().getIp().empty()) {
+	if((!SETTING(NO_IP_OVERRIDE) || SETTING(EXTERNAL_IP).empty()) && !getMyIdentity().getIp().empty()) {
 		return getMyIdentity().getIp();
 	}
 

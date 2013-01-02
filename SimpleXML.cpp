@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 #include "SimpleXML.h"
+#include "Streams.h"
 
 namespace dcpp {
 
@@ -202,7 +203,7 @@ string SimpleXML::toXML() {
 	return tmp; 
 }
 
-void SimpleXML::toXML(OutputStream* f) throw(FileException) { 
+void SimpleXML::toXML(OutputStream* f) { 
 	if(!root.children.empty()) 
 		root.children[0]->toXML(0, f); 
 }

@@ -143,7 +143,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
 	if(!mySID.empty()) //add requester's SID (mySID) to the filelist request, so he can find the hub we are calling from.
 		cmd.addParam("ID", mySID); 
 
-	if(zlib && BOOLSETTING(COMPRESS_TRANSFERS)) {
+	if(zlib && SETTING(COMPRESS_TRANSFERS)) {
 		cmd.addParam("ZL1");
 	}
 

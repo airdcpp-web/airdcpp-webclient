@@ -395,69 +395,64 @@ void FavoriteManager::save() {
 		xml.addTag("Hubs");
 		xml.stepIn();
 
-		for(auto i = favHubGroups.begin(), iend = favHubGroups.end(); i != iend; ++i) {
+		for(auto& i: favHubGroups) {
 			xml.addTag("Group");
-			xml.addChildAttrib("Name", i->first);
-			xml.addChildAttrib("Private", i->second.priv);
+			xml.addChildAttrib("Name", i.first);
+			i.second.save(xml);
 		}
 
-		for(auto i = favoriteHubs.begin(), iend = favoriteHubs.end(); i != iend; ++i) {
+		for(auto& i: favoriteHubs) {
 			xml.addTag("Hub");
-			xml.addChildAttrib("Name", (*i)->getName());
-			xml.addChildAttrib("Connect", (*i)->getConnect());
-			xml.addChildAttrib("Description", (*i)->getDescription());
-			xml.addChildAttrib("Nick", (*i)->getNick(false));
-			xml.addChildAttrib("Password", (*i)->getPassword());
-			xml.addChildAttrib("Server", (*i)->getServerStr());
-			xml.addChildAttrib("UserDescription", (*i)->getUserDescription());
-			xml.addChildAttrib("Encoding", (*i)->getEncoding());
-			xml.addChildAttrib("ChatUserSplit", (*i)->getChatUserSplit());
-			xml.addChildAttrib("StealthMode", (*i)->getStealth());
-			xml.addChildAttrib("UserListState", (*i)->getUserListState());
-			xml.addChildAttrib("HubFrameOrder",	(*i)->getHeaderOrder());
-			xml.addChildAttrib("HubFrameWidths", (*i)->getHeaderWidths());
-			xml.addChildAttrib("HubFrameVisible", (*i)->getHeaderVisible());
-			xml.addChildAttrib("Mode", Util::toString((*i)->getMode()));
-			xml.addChildAttrib("IP", (*i)->getIP());
-			xml.addChildAttrib("FavNoPM", (*i)->getFavNoPM());	
-			xml.addChildAttrib("HubShowJoins", (*i)->getHubShowJoins());	//show joins
-			xml.addChildAttrib("HubLogMainchat", (*i)->getHubLogMainchat());
-			xml.addChildAttrib("SearchInterval", Util::toString((*i)->getSearchInterval()));
-			xml.addChildAttrib("Group", (*i)->getGroup());
-			xml.addChildAttrib("ChatNotify", (*i)->getChatNotify());
-			xml.addChildAttrib("Bottom",			Util::toString((*i)->getBottom()));
-			xml.addChildAttrib("Top",				Util::toString((*i)->getTop()));
-			xml.addChildAttrib("Right",				Util::toString((*i)->getRight()));
-			xml.addChildAttrib("Left",				Util::toString((*i)->getLeft()));
-			xml.addChildAttrib("ShareProfile",		(*i)->getShareProfile()->getToken());
+			xml.addChildAttrib("Name", i->getName());
+			xml.addChildAttrib("Connect", i->getConnect());
+			xml.addChildAttrib("Description", i->getDescription());
+			xml.addChildAttrib("Password", i->getPassword());
+			xml.addChildAttrib("Server", i->getServerStr());
+			xml.addChildAttrib("Encoding", i->getEncoding());
+			xml.addChildAttrib("ChatUserSplit", i->getChatUserSplit());
+			xml.addChildAttrib("StealthMode", i->getStealth());
+			xml.addChildAttrib("UserListState", i->getUserListState());
+			xml.addChildAttrib("HubFrameOrder",	i->getHeaderOrder());
+			xml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
+			xml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
+			xml.addChildAttrib("Mode", Util::toString(i->getMode()));
+			xml.addChildAttrib("FavNoPM", i->getFavNoPM());	
+			xml.addChildAttrib("Group", i->getGroup());
+			xml.addChildAttrib("ChatNotify", i->getChatNotify());
+			xml.addChildAttrib("Bottom",			Util::toString(i->getBottom()));
+			xml.addChildAttrib("Top",				Util::toString(i->getTop()));
+			xml.addChildAttrib("Right",				Util::toString(i->getRight()));
+			xml.addChildAttrib("Left",				Util::toString(i->getLeft()));
+			xml.addChildAttrib("ShareProfile",		i->getShareProfile()->getToken());
+			i->save(xml);
 		}
 
 		xml.stepOut();
 
 		xml.addTag("Users");
 		xml.stepIn();
-		for(auto i = users.begin(), iend = users.end(); i != iend; ++i) {
+		for(auto& i: users) {
 			xml.addTag("User");
-			xml.addChildAttrib("LastSeen", i->second.getLastSeen());
-			xml.addChildAttrib("GrantSlot", i->second.isSet(FavoriteUser::FLAG_GRANTSLOT));
-			xml.addChildAttrib("UserDescription", i->second.getDescription());
-			xml.addChildAttrib("Nick", i->second.getNick());
-			xml.addChildAttrib("URL", i->second.getUrl());
-			xml.addChildAttrib("CID", i->first.toBase32());
+			xml.addChildAttrib("LastSeen", i.second.getLastSeen());
+			xml.addChildAttrib("GrantSlot", i.second.isSet(FavoriteUser::FLAG_GRANTSLOT));
+			xml.addChildAttrib("UserDescription", i.second.getDescription());
+			xml.addChildAttrib("Nick", i.second.getNick());
+			xml.addChildAttrib("URL", i.second.getUrl());
+			xml.addChildAttrib("CID", i.first.toBase32());
 		}
 		xml.stepOut();
 
 		xml.addTag("UserCommands");
 		xml.stepIn();
-		for(auto i = userCommands.begin(), iend = userCommands.end(); i != iend; ++i) {
-			if(!i->isSet(UserCommand::FLAG_NOSAVE)) {
+		for(auto& i: userCommands) {
+			if(!i.isSet(UserCommand::FLAG_NOSAVE)) {
 				xml.addTag("UserCommand");
-				xml.addChildAttrib("Type", i->getType());
-				xml.addChildAttrib("Context", i->getCtx());
-				xml.addChildAttrib("Name", i->getName());
-				xml.addChildAttrib("Command", i->getCommand());
-				xml.addChildAttrib("To", i->getTo());
-				xml.addChildAttrib("Hub", i->getHub());
+				xml.addChildAttrib("Type", i.getType());
+				xml.addChildAttrib("Context", i.getCtx());
+				xml.addChildAttrib("Name", i.getName());
+				xml.addChildAttrib("Command", i.getCommand());
+				xml.addChildAttrib("To", i.getTo());
+				xml.addChildAttrib("Hub", i.getHub());
 			}
 		}
 		xml.stepOut();
@@ -646,8 +641,10 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			string name = aXml.getChildAttrib("Name");
 			if(name.empty())
 				continue;
-			FavHubGroupProperties props = { aXml.getBoolChildAttrib("Private") };
-			favHubGroups[name] = props;
+
+			HubSettings settings;
+			settings.load(aXml);
+			favHubGroups[name] = std::move(settings);
 		}
 
 		aXml.resetCurrentChild();
@@ -656,10 +653,8 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setName(aXml.getChildAttrib("Name"));
 			e->setConnect(aXml.getBoolChildAttrib("Connect"));
 			e->setDescription(aXml.getChildAttrib("Description"));
-			e->setNick(aXml.getChildAttrib("Nick"));
 			e->setPassword(aXml.getChildAttrib("Password"));
 			e->setServerStr(aXml.getChildAttrib("Server"));
-			e->setUserDescription(aXml.getChildAttrib("UserDescription"));
 			e->setEncoding(aXml.getChildAttrib("Encoding"));
 			e->setChatUserSplit(aXml.getIntChildAttrib("ChatUserSplit"));
 			e->setStealth(aXml.getBoolChildAttrib("StealthMode"));
@@ -672,11 +667,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setRight((uint16_t)	aXml.getIntChildAttrib("Right"));
 			e->setLeft((uint16_t)	aXml.getIntChildAttrib("Left"));
 			e->setMode(Util::toInt(aXml.getChildAttrib("Mode")));
-			e->setIP(aXml.getChildAttrib("IP"));
 			e->setFavNoPM(aXml.getBoolChildAttrib("FavNoPM"));
-			e->setHubShowJoins(aXml.getBoolChildAttrib("HubShowJoins")); //show joins
-			e->setHubLogMainchat(aXml.getBoolChildAttrib("HubLogMainchat")); 
-			e->setSearchInterval(Util::toUInt32(aXml.getChildAttrib("SearchInterval")));
 			e->setGroup(aXml.getChildAttrib("Group"));
 			e->setChatNotify(aXml.getBoolChildAttrib("ChatNotify"));
 			if (aXml.getBoolChildAttrib("HideShare")) {
@@ -686,6 +677,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 				e->setShareProfile(ShareManager::getInstance()->getShareProfile(profile, true));
 			}
 
+			e->load(aXml);
 			favoriteHubs.push_back(e);
 		}
 
@@ -844,6 +836,19 @@ StringList FavoriteManager::getHubLists() {
 FavoriteHubEntry* FavoriteManager::getFavoriteHubEntry(const string& aServer) const {
 	auto p = getFavoriteHub(aServer);
 	return p != favoriteHubs.end() ? *p : nullptr;
+}
+
+void FavoriteManager::mergeHubSettings(const FavoriteHubEntry& entry, HubSettings& settings) const {
+	// apply group settings first.
+	const string& name = entry.getGroup();
+	if(!name.empty()) {
+		auto group = favHubGroups.find(name);
+		if(group != favHubGroups.end())
+			settings.merge(group->second);
+	}
+
+	// apply fav entry settings next.
+	settings.merge(entry);
 }
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(const string& aServer) const {

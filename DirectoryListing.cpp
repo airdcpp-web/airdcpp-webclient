@@ -44,7 +44,7 @@ using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(BOOLSETTING(USE_ADLS) && !aPartial), typingFilter(false), reloading(false)
+	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), reloading(false)
 {
 	running.clear();
 }
@@ -156,7 +156,7 @@ string DirectoryListing::updateXML(const string& xml) {
 }
 
 string DirectoryListing::loadXML(InputStream& is, bool updating) {
-	ListLoader ll(this, root, updating, getUser(), !isOwnList && isClientView && BOOLSETTING(DUPES_IN_FILELIST), partialList);
+	ListLoader ll(this, root, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
@@ -421,7 +421,7 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 
 		//validate the target
 		target = Util::validateFileName(Util::formatTime(aTarget + (aDir == root ? Util::emptyString : aDir->getName() + PATH_SEPARATOR), 
-			(BOOLSETTING(FORMAT_DIR_REMOTE_TIME) && aDir->getDate() > 0) ? aDir->getDate() : GET_TIME()));
+			(SETTING(FORMAT_DIR_REMOTE_TIME) && aDir->getDate() > 0) ? aDir->getDate() : GET_TIME()));
 
 		/* Check if this is a root dir containing release dirs */
 		boost::regex reg;

@@ -25,23 +25,13 @@
 
 namespace dcpp {
 
-FavoriteHubEntry::FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false), hubShowJoins(false), 
-	hubLogMainchat(true), stealth(false), userliststate(true), mode(0), ip(Util::emptyString), chatNotify(false), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL)), token(Util::rand())  { }
+FavoriteHubEntry::FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false),
+	stealth(false), userliststate(true), mode(0), chatNotify(false), token(Util::rand())  { }
 
-FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), encoding(Text::systemCharset), searchInterval(SETTING(MINIMUM_SEARCH_INTERVAL)),
-	description(rhs.getDescription()), connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), hubShowJoins(false), hubLogMainchat(true), 
-	stealth(false), userliststate(true), mode(0), chatNotify(false), token(Util::randInt()) {
+FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), encoding(Text::systemCharset), description(rhs.getDescription()), connect(true), 
+	bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), stealth(false), userliststate(true), mode(0), chatNotify(false), token(Util::randInt()) {
 
 		servers.emplace_back(rhs.getServer(), false);
-}
-
-FavoriteHubEntry::FavoriteHubEntry(const FavoriteHubEntry& rhs) noexcept : userdescription(rhs.userdescription), name(rhs.getName()), 
-	servers(rhs.getServers()), description(rhs.getDescription()), password(rhs.getPassword()), connect(rhs.getConnect()), bottom(0), top(0), left(0), right(0),
-	nick(rhs.nick), chatusersplit(rhs.chatusersplit), favnoPM(rhs.favnoPM), hubShowJoins(rhs.hubShowJoins), hubLogMainchat(rhs.hubLogMainchat), stealth(rhs.stealth), searchInterval(rhs.searchInterval),
-	userliststate(rhs.userliststate), mode(rhs.mode), ip(rhs.ip), chatNotify(rhs.chatNotify), encoding(rhs.getEncoding()), shareProfile(rhs.getShareProfile()), token(rhs.getToken()) { }
-
-const string& FavoriteHubEntry::getNick(bool useDefault /*true*/) const { 
-	return (!nick.empty() || !useDefault) ? nick : SETTING(NICK);
 }
 
 void FavoriteHubEntry::setServerStr(const string& aServers) {

@@ -438,7 +438,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 		return;
 	}
 
-	if (!u->getIdentity().supports(NAT0_FEATURE) || !BOOLSETTING(ALLOW_NAT_TRAVERSAL))
+	if (!u->getIdentity().supports(NAT0_FEATURE) || !SETTING(ALLOW_NAT_TRAVERSAL))
 		return;
 
 	// Attempt to traverse NATs and/or firewalls with TCP.
@@ -650,7 +650,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		size_t n = 0;
 		
 		if (getShareProfile() != SP_HIDDEN) {
-			if (BOOLSETTING(USE_PARTIAL_SHARING))
+			if (SETTING(USE_PARTIAL_SHARING))
 				n = QueueManager::getInstance()->getQueuedFiles();
 
 			int64_t tmp = 0;
@@ -671,7 +671,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 			HashBloom bloom;
 			bloom.reset(k, m, h);
 			ShareManager::getInstance()->getBloom(bloom);
-			if (BOOLSETTING(USE_PARTIAL_SHARING))
+			if (SETTING(USE_PARTIAL_SHARING))
 				QueueManager::getInstance()->getBloom(bloom);
 			bloom.copy_to(v);
 		}
@@ -1060,7 +1060,7 @@ void AdcHub::sendSearch(AdcCommand& c) {
 	} else {
 		c.setType(AdcCommand::TYPE_FEATURE);
 		string features = c.getFeatures();
-		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL)) {
+		if(SETTING(ALLOW_NAT_TRAVERSAL)) {
 			c.setFeatures(features + '+' + TCP4_FEATURE + '-' + NAT0_FEATURE);
 			send(c);		
 			c.setFeatures(features + "+" + NAT0_FEATURE);
@@ -1122,12 +1122,12 @@ void AdcHub::info(bool /*alwaysSend*/) {
 
 	addParam(lastInfoMap, c, "ID", ClientManager::getInstance()->getMyCID().toBase32());
 	addParam(lastInfoMap, c, "PD", ClientManager::getInstance()->getMyPID().toBase32());
-	addParam(lastInfoMap, c, "NI", getCurrentNick());
-	addParam(lastInfoMap, c, "DE", getCurrentDescription());
+	addParam(lastInfoMap, c, "NI", get(Nick));
+	addParam(lastInfoMap, c, "DE", get(Description));
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
 
-	size_t fileCount = BOOLSETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedFiles() : 0;
+	size_t fileCount = SETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedFiles() : 0;
 	int64_t size = 0;
 	if (getShareProfile() != SP_HIDDEN)
 		ShareManager::getInstance()->getProfileInfo(getShareProfile(), size, fileCount);
@@ -1166,12 +1166,10 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		addParam(lastInfoMap, c, "KP", "SHA256/" + Encoder::toBase32(&kp[0], kp.size()));
 	}
 
-	if(isActive() || BOOLSETTING(ALLOW_NAT_TRAVERSAL))
+	if(isActive() || SETTING(ALLOW_NAT_TRAVERSAL))
 	{
-		if(!getFavIp().empty()) {
-			addParam(lastInfoMap, c, "I4", Socket::resolve(getFavIp()));
-		} else if(BOOLSETTING(NO_IP_OVERRIDE) && !SETTING(EXTERNAL_IP).empty()) {
-			addParam(lastInfoMap, c, "I4", Socket::resolve(SETTING(EXTERNAL_IP)));
+		if(!getUserIp().empty()) {
+			addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp(), AF_INET));
 		} else {
 			addParam(lastInfoMap, c, "I4", "0.0.0.0");
 		}
@@ -1181,10 +1179,10 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
 		su += "," + TCP4_FEATURE;
 		su += "," + UDP4_FEATURE;
-		if (BOOLSETTING(ENABLE_SUDP))
+		if (SETTING(ENABLE_SUDP))
 			su += "," + SUD1_FEATURE;
 	} else {
-		if(BOOLSETTING(ALLOW_NAT_TRAVERSAL)) {
+		if(SETTING(ALLOW_NAT_TRAVERSAL)) {
 			su += "," + NAT0_FEATURE;
 		} else {
 			addParam(lastInfoMap, c, "I4", "");
@@ -1252,11 +1250,11 @@ void AdcHub::on(Connected c) noexcept {
 	AdcCommand cmd(AdcCommand::CMD_SUP, AdcCommand::TYPE_HUB);
 	cmd.addParam(BAS0_SUPPORT).addParam(BASE_SUPPORT).addParam(TIGR_SUPPORT);
 	
-	if(BOOLSETTING(HUB_USER_COMMANDS)) {
+	if(SETTING(HUB_USER_COMMANDS)) {
 		cmd.addParam(UCM0_SUPPORT);
 	}
 
-	if(BOOLSETTING(SEND_BLOOM)) {
+	if(SETTING(BLOOM_MODE) == SettingsManager::BLOOM_ENABLED) {
 		cmd.addParam(BLO0_SUPPORT);
 	}
 	cmd.addParam(ZLIF_SUPPORT);
@@ -1271,9 +1269,6 @@ void AdcHub::on(Line l, const string& aLine) noexcept {
 		return;
 	}
 
-	if(BOOLSETTING(ADC_DEBUG)) {
-		fire(ClientListener::StatusMessage(), this, "<ADC>" + aLine + "</ADC>");
-	}
 	dispatch(aLine);
 }
 
