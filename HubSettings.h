@@ -51,6 +51,7 @@ struct HubSettings
 		ShowJoins = HubBoolFirst,
 		FavShowJoins,
 		LogMainChat,
+		ChatNotify,
 		// don't forget to edit boolNames in HubSettings.cpp when adding a def here!
 
 		HubBoolLast
@@ -58,8 +59,9 @@ struct HubSettings
 
 	enum HubIntSetting {
 		HubIntFirst = HubBoolLast + 1,
-
+		
 		SearchInterval = HubIntFirst,
+		Connection,
 		// don't forget to edit intNames in HubSettings.cpp when adding a def here!
 
 		HubIntLast

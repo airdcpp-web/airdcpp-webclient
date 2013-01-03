@@ -1598,6 +1598,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "%d folders with no release files", 
 "Hide", 
 "Closing windows", 
+"Use default", 
+"Overrides for global settings", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3196,4 +3198,6 @@ std::string dcpp::ResourceManager::names[] = {
 "XNoReleaseFiles", 
 "MenuHide", 
 "ClosingWindows", 
+"UseDefault", 
+"GlobalSettingOverrides", 
 };

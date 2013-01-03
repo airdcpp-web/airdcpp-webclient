@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "ClientManager.h"
 
+#include "ConnectivityManager.h"
 #include "ConnectionManager.h"
 #include "CryptoManager.h"
 #include "DebugManager.h"
@@ -448,6 +449,10 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 	}
 
 	return ret;
+}
+
+bool ClientManager::isActive() const {
+	return CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_FIREWALL_PASSIVE || FavoriteManager::getInstance()->hasActiveHubs();
 }
 
 string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) {
@@ -896,30 +901,6 @@ string ClientManager::getMyNick(const string& hubUrl) const {
 		return i->second->getMyIdentity().getNick();
 	}
 	return Util::emptyString;
-}
-	
-int ClientManager::getMode(const string& aHubUrl) const {
-	
-	if(aHubUrl.empty()) 
-		return SETTING(INCOMING_CONNECTIONS);
-
-	int mode = 0;
-	const FavoriteHubEntry* hub = FavoriteManager::getInstance()->getFavoriteHubEntry(aHubUrl);
-	if(hub) {
-		switch(hub->getMode()) {
-			case 1 :
-				mode = SettingsManager::INCOMING_DIRECT;
-				break;
-			case 2 :
-				mode = SettingsManager::INCOMING_FIREWALL_PASSIVE;
-				break;
-			default:
-				mode = SETTING(INCOMING_CONNECTIONS);
-		}
-	} else {
-		mode = SETTING(INCOMING_CONNECTIONS);
-	}
-	return mode;
 }
 
 void ClientManager::cancelSearch(void* aOwner) {

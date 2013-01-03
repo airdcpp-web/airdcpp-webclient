@@ -76,6 +76,15 @@ void Client::shutdown() {
 	}
 }
 
+string Client::getDescription() const {
+	string ret = get(HubSettings::Description);
+
+	int upLimit = ThrottleManager::getInstance()->getUpLimit();
+	if(upLimit > 0)
+		ret = "[L:" + Util::toString(upLimit) + "KB] " + ret;
+	return ret;
+}
+
 void Client::reloadSettings(bool updateNick) {
 	/// @todo update the nick in ADC hubs?
 	string prevNick;
@@ -88,11 +97,6 @@ void Client::reloadSettings(bool updateNick) {
 
 	bool isAdcHub = AirUtil::isAdcHub(hubUrl);
 
-	/*string limitDesc = Util::emptyString;
-	int upLimit = ThrottleManager::getInstance()->getUpLimit();
-	if(upLimit > 0)
-		limitDesc += "[L:" + Util::toString(upLimit) + "KB]";*/
-
 	if(fav) {
 		FavoriteManager::getInstance()->mergeHubSettings(*fav, *this);
 		if(!fav->getPassword().empty())
@@ -100,7 +104,6 @@ void Client::reloadSettings(bool updateNick) {
 
 		setStealth(!isAdcHub ? fav->getStealth() : false);
 		setFavNoPM(fav->getFavNoPM());
-		setChatNotify(fav->getChatNotify());
 
 		//only set the token on the initial attempt. we may have other hubs in favs with the failover addresses but keep on using the initial list for now.
 		if (favToken == 0)
@@ -115,21 +118,21 @@ void Client::reloadSettings(bool updateNick) {
 			setShareProfile(fav->getShareProfile()->getToken() == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
 		}
 		
-	} /*else {
-		setCurrentDescription(limitDesc + SETTING(DESCRIPTION));
+	} else {
+		//setCurrentDescription(limitDesc + SETTING(DESCRIPTION));
 		setStealth(false);
-		setFavIp(Util::emptyString);
+		//setFavIp(Util::emptyString);
 		setFavNoPM(false);
-		setHubShowJoins(false);
-		setChatNotify(false);
-		setHubLogMainchat(true);
-		setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
+		//setHubShowJoins(false);
+		//setChatNotify(false);
+		//setHubLogMainchat(true);
+		//setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
 		setPassword(Util::emptyString);
 		//favToken = 0;
 
 		if (!isAdcHub)
-			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);*/
-	//}
+			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
+	}
 
 	searchQueue.minInterval = get(HubSettings::SearchInterval);
 	if(updateNick)
@@ -147,7 +150,7 @@ const string& Client::getUserIp() const {
 
 
 bool Client::isActive() const {
-	return ClientManager::getInstance()->isActive(hubUrl);
+	return get(HubSettings::Connection) != SettingsManager::INCOMING_FIREWALL_PASSIVE;
 }
 
 void Client::connect() {

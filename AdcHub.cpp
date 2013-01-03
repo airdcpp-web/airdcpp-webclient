@@ -23,6 +23,7 @@
 #include "ChatMessage.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
+#include "ConnectivityManager.h"
 #include "FavoriteManager.h"
 #include "Localization.h"
 #include "ShareManager.h"
@@ -1123,7 +1124,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "ID", ClientManager::getInstance()->getMyCID().toBase32());
 	addParam(lastInfoMap, c, "PD", ClientManager::getInstance()->getMyPID().toBase32());
 	addParam(lastInfoMap, c, "NI", get(Nick));
-	addParam(lastInfoMap, c, "DE", get(Description));
+	addParam(lastInfoMap, c, "DE", getDescription());
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
 
@@ -1166,13 +1167,10 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		addParam(lastInfoMap, c, "KP", "SHA256/" + Encoder::toBase32(&kp[0], kp.size()));
 	}
 
-	if(isActive() || SETTING(ALLOW_NAT_TRAVERSAL))
-	{
-		if(!getUserIp().empty()) {
-			addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp(), AF_INET));
-		} else {
-			addParam(lastInfoMap, c, "I4", "0.0.0.0");
-		}
+	if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp().empty()) {
+		addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp(), AF_INET));
+	} else {
+		addParam(lastInfoMap, c, "I4", "0.0.0.0");
 	}
 
 	if(isActive()) {

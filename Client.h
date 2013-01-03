@@ -141,7 +141,6 @@ public:
 	GETSET(bool, registered, Registered);
 	GETSET(bool, autoReconnect, AutoReconnect);
 	GETSET(bool, stealth, Stealth);
-	GETSET(bool, chatNotify, ChatNotify);
 	GETSET(ProfileToken, shareProfile, ShareProfile);
 	GETSET(ProfileToken, favToken, FavToken);
 
@@ -180,6 +179,7 @@ protected:
 	void reloadSettings(bool updateNick);
 	/// Get the external IP the user has defined for this hub, if any.
 	const string& getUserIp() const;
+	string getDescription() const;
 
 	virtual string checkNick(const string& nick) = 0;
 	virtual void search(Search* aSearch) = 0;

@@ -97,11 +97,9 @@ public:
 	GETSET(string, encoding, Encoding);
 	GETSET(int, chatusersplit, ChatUserSplit);
 	GETSET(bool, stealth, Stealth);
-	GETSET(bool, userliststate, UserListState);	
-	GETSET(int, mode, Mode); // 0 = default, 1 = active, 2 = passive
+	GETSET(bool, userliststate, UserListState);
 	GETSET(bool, favnoPM, FavNoPM);
 	GETSET(string, group, Group);	
-	GETSET(bool, chatNotify, ChatNotify);
 	GETSET(ShareProfilePtr, shareProfile, ShareProfile);
 	GETSET(ProfileToken, token, Token);
 

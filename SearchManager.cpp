@@ -637,7 +637,7 @@ AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const s
 		cmd.addParam("NI", Text::utf8ToAcp(myNick));
 		
 	cmd.addParam("HI", hubIpPort);
-	cmd.addParam("U4", (wantResponse && ClientManager::getInstance()->isActive(hubIpPort)) ? getPort() : "0");
+	//cmd.addParam("U4", (wantResponse && ClientManager::getInstance()->isActive(hubIpPort)) ? getPort() : "0");
 	cmd.addParam("TR", tth);
 	cmd.addParam("PC", Util::toString(partialInfo.size() / 2));
 	cmd.addParam("PI", getPartsString(partialInfo));

@@ -25,10 +25,10 @@ const string HubSettings::stringNames[StringCount] = {
 	"Nick", "UserDescription", "Email", "UserIp" // not "Description" for compat with prev fav hub lists
 };
 const string HubSettings::boolNames[BoolCount] = {
-	"ShowJoins", "FavShowJoins", "LogMainChat"
+	"ShowJoins", "FavShowJoins", "LogMainChat", "ChatNotify"
 };
 const string HubSettings::intNames[IntCount] = {
-	"SearchInterval"
+	"SearchInterval", "IncomingConnections"
 };
 
 namespace {
@@ -98,7 +98,9 @@ void HubSettings::load(SimpleXML& xml) {
 		bools[i] = to3bool(xml.getIntChildAttrib(boolNames[i]));
 	}
 	for(uint8_t i = 0; i < IntCount; ++i) {
-		ints[i] = xml.getIntChildAttrib(intNames[i]);
+		auto tmp = xml.getChildAttrib(intNames[i]);
+		if (!tmp.empty())
+			ints[i] = Util::toInt(tmp);
 	}
 }
 
@@ -115,7 +117,7 @@ void HubSettings::save(SimpleXML& xml) const {
 	}
 	for(uint8_t i = 0; i < IntCount; ++i) {
 		if(defined(ints[i])) {
-			xml.addChildAttrib(intNames[i], toInt(ints[i]));
+			xml.addChildAttrib(intNames[i], ints[i]);
 		}
 	}
 }

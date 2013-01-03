@@ -1605,5 +1605,7 @@ enum Strings { // @DontAdd
 	X_NO_RELEASE_FILES, // "%d folders with no release files"
 	MENU_HIDE, // "Hide"
 	CLOSING_WINDOWS, // "Closing windows"
+	USE_DEFAULT, // "Use default"
+	GLOBAL_SETTING_OVERRIDES, // "Overrides for global settings"
 	LAST // @DontAdd
 };

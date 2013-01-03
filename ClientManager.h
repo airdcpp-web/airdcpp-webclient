@@ -127,8 +127,7 @@ public:
 	void privateMessage(const HintedUser& user, const string& msg, bool thirdPerson);
 	void userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility);
 
-	int getMode(const string& aHubUrl) const;
-	bool isActive(const string& aHubUrl = Util::emptyString) const { return getMode(aHubUrl) != SettingsManager::INCOMING_FIREWALL_PASSIVE; }
+	bool isActive() const;
 
 	void lockRead() noexcept { cs.lock_shared(); }
 	void unlockRead() noexcept { cs.unlock_shared(); }

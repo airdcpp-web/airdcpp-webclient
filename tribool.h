@@ -24,10 +24,10 @@
 using boost::indeterminate;
 using boost::tribool;
 
-// conversions between tribools and ints, with 0 being the indeterminate value
+// conversions between tribools and ints, with 2 being the indeterminate value
 namespace {
-	inline tribool to3bool(int x) { if(x) { return tribool(x == 1); } return tribool(indeterminate); }
-	inline int toInt(tribool x) { return x ? 1 : !x ? 2 : 0; }
+	inline tribool to3bool(int x) { if (x == 2) return tribool(indeterminate); return tribool(x == 1); }
+	inline int toInt(tribool x) { return x ? 1 : !x ? 0 : 2; }
 }
 
 #endif

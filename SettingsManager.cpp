@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "SettingsManager.h"
 
+#include "ConnectivityManager.h"
 #include "ResourceManager.h"
 #include "SimpleXML.h"
 #include "Util.h"
@@ -150,7 +151,7 @@ const string SettingsManager::settingTags[] =
 	"UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist",
 	"AutoAddSource", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
-	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", 
+	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ChatNotify",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -719,6 +720,7 @@ SettingsManager::SettingsManager()
 	setDefault(USE_ADLS_OWN, true);
 	setDefault(AS_DELAY_HOURS, 12);
 	setDefault(LAST_LIST_PROFILE, 0);
+	setDefault(SHOW_CHAT_NOTIFY, false);
 
 	//set depending on the cpu count
 	SYSTEM_INFO info={{0}};
@@ -988,6 +990,8 @@ HubSettings SettingsManager::getHubSettings() const {
 	ret.get(HubSettings::FavShowJoins) = get(FAV_SHOW_JOINS);
 	ret.get(HubSettings::LogMainChat) = get(LOG_MAIN_CHAT);
 	ret.get(HubSettings::SearchInterval) = get(MINIMUM_SEARCH_INTERVAL);
+	ret.get(HubSettings::Connection) = CONNSETTING(INCOMING_CONNECTIONS);
+	ret.get(HubSettings::ChatNotify) = get(SHOW_CHAT_NOTIFY);
 	return ret;
 }
 

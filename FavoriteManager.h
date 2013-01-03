@@ -173,6 +173,8 @@ public:
 
 	int resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr defaultProfile);
 	void onProfilesRenamed();
+
+	bool hasActiveHubs() const;
 private:
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;

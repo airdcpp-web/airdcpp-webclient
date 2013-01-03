@@ -379,6 +379,10 @@ void FavoriteManager::onProfilesRenamed() {
 	fire(FavoriteManagerListener::FavoritesUpdated());
 }
 
+bool FavoriteManager::hasActiveHubs() const {
+	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr f) { return f->get(HubSettings::Connection) == SettingsManager::INCOMING_DIRECT; });
+}
+
 void FavoriteManager::save() {
 	if(dontSave)
 		return;
@@ -415,10 +419,8 @@ void FavoriteManager::save() {
 			xml.addChildAttrib("HubFrameOrder",	i->getHeaderOrder());
 			xml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
 			xml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
-			xml.addChildAttrib("Mode", Util::toString(i->getMode()));
 			xml.addChildAttrib("FavNoPM", i->getFavNoPM());	
 			xml.addChildAttrib("Group", i->getGroup());
-			xml.addChildAttrib("ChatNotify", i->getChatNotify());
 			xml.addChildAttrib("Bottom",			Util::toString(i->getBottom()));
 			xml.addChildAttrib("Top",				Util::toString(i->getTop()));
 			xml.addChildAttrib("Right",				Util::toString(i->getRight()));
@@ -666,10 +668,8 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setTop((uint16_t)	aXml.getIntChildAttrib("Top"));
 			e->setRight((uint16_t)	aXml.getIntChildAttrib("Right"));
 			e->setLeft((uint16_t)	aXml.getIntChildAttrib("Left"));
-			e->setMode(Util::toInt(aXml.getChildAttrib("Mode")));
 			e->setFavNoPM(aXml.getBoolChildAttrib("FavNoPM"));
 			e->setGroup(aXml.getChildAttrib("Group"));
-			e->setChatNotify(aXml.getBoolChildAttrib("ChatNotify"));
 			if (aXml.getBoolChildAttrib("HideShare")) {
 				e->setShareProfile(ShareManager::getInstance()->getShareProfile(SP_HIDDEN));
 			} else {

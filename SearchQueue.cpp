@@ -37,7 +37,7 @@ SearchQueue::~SearchQueue() {
 }
 
 int SearchQueue::getInterval(const Search* aSearch) const {
-	int32_t ret = 0;
+	int ret = 0;
 	switch(aSearch->type) {
 		case Search::MANUAL: ret = 5000; break;
 		case Search::ALT: ret = 10000; break;
