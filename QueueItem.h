@@ -221,12 +221,7 @@ public:
 
 	bool isSource(const UserPtr& aUser) const { return getSource(aUser) != sources.end(); }
 	bool isBadSource(const UserPtr& aUser) const { return getBadSource(aUser) != badSources.end(); }
-	bool isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions) const {
-		SourceConstIter i = getBadSource(aUser);
-		if(i != badSources.end())
-			return i->isAnySet((Flags::MaskType)(exceptions^Source::FLAG_MASK));
-		return false;
-	}
+	bool isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions, bool& isBad_) const;
 	
 	vector<Segment> getChunksVisualisation(int type) const;
 

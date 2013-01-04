@@ -324,9 +324,9 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 
 			params.push_back(param);
 
-			source->setPendingQueryCount(source->getPendingQueryCount() + 1);
+			auto newPending = source->getPendingQueryCount() + 1; // TMP fix to avoid a compiler crash with 32 bit builds
+			source->setPendingQueryCount(newPending);
 			source->setNextQueryTime(aTick + 300000);		// 5 minutes
-
 		}
 
 		if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE))
@@ -604,13 +604,11 @@ void QueueManager::readdQISource(const string& target, const HintedUser& aUser) 
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
 
-void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) throw(QueueException) {
+void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) {
 	bool wantConnection = false;
-	if (!aBundle)
-		return;
 	{
 		WLock l(cs);
-		auto ql = aBundle->getQueueItems();
+		auto& ql = aBundle->getQueueItems();
 		for(auto q: ql) {
 			dcassert(!q->isSource(aUser));
 			if(q && q->isBadSource(aUser.user)) {
@@ -623,8 +621,8 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 				}
 			}
 		}
-		aBundle->removeBadSource(aUser);
 	}
+
 	if(wantConnection && aUser.user->isOnline())
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
@@ -686,13 +684,14 @@ bool QueueManager::addSource(QueueItemPtr qi, const HintedUser& aUser, Flags::Ma
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
 
-	if(qi->isBadSourceExcept(aUser, addBad)) {
+	bool isBad = false;
+	if(qi->isBadSourceExcept(aUser, addBad, isBad)) {
 		throw QueueException(STRING(DUPLICATE_SOURCE) + ": " + Util::getFileName(qi->getTarget()));
 	}
 
 	//qi->addSource(aUser, SettingsManager::lanMode ? aRemotePath : Util::emptyString);
 	qi->addSource(aUser);
-	userQueue.addQI(qi, aUser, newBundle);
+	userQueue.addQI(qi, aUser, newBundle, isBad);
 
 	if ((!SETTING(SOURCEFILE).empty()) && (!SETTING(SOUNDS_DISABLED)))
 		PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
@@ -1672,24 +1671,6 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQICha
 		} else if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 			setBundlePriority(b, b->calculateProgressPriority(), true);
 		}
-	}
-}
-
-void QueueManager::getBundleSources(BundlePtr aBundle, Bundle::SourceInfoList& sources, Bundle::SourceInfoList& badSources) noexcept {
-	RLock l(cs);
-	sources = aBundle->getSources();
-	badSources = aBundle->getBadSources();
-}
-
-void QueueManager::removeBundleSources(BundlePtr aBundle) noexcept {
-	Bundle::SourceInfoList tmp;
-	{
-		RLock l(cs);
-		tmp = aBundle->getSources();
-	}
-
-	for(auto& si: tmp) {
-		removeBundleSource(aBundle, get<Bundle::SOURCE_USER>(si).user);
 	}
 }
 

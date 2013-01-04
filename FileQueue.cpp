@@ -69,7 +69,7 @@ void FileQueue::remove(QueueItemPtr qi) noexcept {
 	auto f = queue.find(const_cast<string*>(&qi->getTarget()));
 	if (f != queue.end()) {
 		queue.erase(f);
-		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_FINISHED) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
+		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && (!qi->isSet(QueueItem::FLAG_FINISHED) || !qi->getBundle()) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
 			dcassert(qi->getSize() >= 0);
 			queueSize -= qi->getSize();
 		}

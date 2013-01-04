@@ -38,7 +38,7 @@ void UserQueue::addQI(QueueItemPtr qi, bool newBundle /*false*/) {
 	}
 }
 
-void UserQueue::addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /*false*/) {
+void UserQueue::addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /*false*/, bool isBadSource /*false*/) {
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
@@ -47,7 +47,7 @@ void UserQueue::addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle /
 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
-		if (bundle->addUserQueue(qi, aUser)) {
+		if (bundle->addUserQueue(qi, aUser, isBadSource)) {
 			addBundle(qi->getBundle(), aUser);
 			if (!newBundle) {
 				QueueManager::getInstance()->fire(QueueManagerListener::BundleSources(), bundle);

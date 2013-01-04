@@ -157,6 +157,15 @@ bool QueueItem::hasPartialSharingTarget() {
 	return true;
 }
 
+bool QueueItem::isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions, bool& isBad_) const {
+	const auto i = getBadSource(aUser);
+	if(i != badSources.end()) {
+		isBad_ = true;
+		return i->isAnySet((Flags::MaskType)(exceptions^Source::FLAG_MASK));
+	}
+	return false;
+}
+
 bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const {
 	if(len <= 0) return false;
 

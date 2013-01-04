@@ -229,11 +229,10 @@ public:
 	bool isSource(const UserPtr& aUser) const noexcept;
 	bool isBadSource(const UserPtr& aUser) const noexcept;
 	bool isFinished() const { return queueItems.empty(); }
-	void removeBadSource(const HintedUser& aUser) noexcept;
 
 	/** All queue items indexed by user */
 	void addUserQueue(QueueItemPtr qi) noexcept;
-	bool addUserQueue(QueueItemPtr qi, const HintedUser& aUser) noexcept;
+	bool addUserQueue(QueueItemPtr qi, const HintedUser& aUser, bool isBad = false) noexcept;
 	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 

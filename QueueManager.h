@@ -77,7 +77,7 @@ public:
 
 	/** Readd a source that was removed */
 	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
-	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) throw(QueueException);
+	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser);
 	void onUseSeqOrder(BundlePtr aBundle);
 
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
@@ -107,8 +107,13 @@ public:
 	bool isFinished(const QueueItemPtr qi) const { RLock l(cs); return qi->isFinished(); }
 	bool isWaiting(const QueueItemPtr qi) const { RLock l(cs); return qi->isWaiting(); }
 	uint64_t getDownloadedBytes(const QueueItemPtr qi) const { RLock l(cs); return qi->getDownloadedBytes(); }
+
 	QueueItem::SourceList getSources(const QueueItemPtr qi) const { RLock l(cs); return qi->getSources(); }
 	QueueItem::SourceList getBadSources(const QueueItemPtr qi) const { RLock l(cs); return qi->getBadSources(); }
+
+	Bundle::SourceInfoList getBundleSources(const BundlePtr b) const { RLock l(cs); return b->getSources(); }
+	Bundle::SourceInfoList getBadBundleSources(const BundlePtr b) const { RLock l(cs); return b->getBadSources(); }
+
 	size_t getSourcesCount(const QueueItemPtr qi) const { RLock l(cs); return qi->getSources().size(); }
 	vector<Segment> getChunksVisualisation(const QueueItemPtr qi, int type) const { RLock l(cs); return qi->getChunksVisualisation(type); }
 
@@ -162,10 +167,8 @@ public:
 	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
 	void setBundlePriority(BundlePtr aBundle, Bundle::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;
-	void getBundleSources(BundlePtr aBundle, Bundle::SourceInfoList& sources, Bundle::SourceInfoList& badSources) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
-	void removeBundleSources(BundlePtr aBundle) noexcept;
 	void sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken);
 	void getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) { 
 		RLock l (cs); 

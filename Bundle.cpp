@@ -290,7 +290,7 @@ void Bundle::addUserQueue(QueueItemPtr qi) {
 		addUserQueue(qi, s.getUser());
 }
 
-bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
+bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser, bool isBad /*false*/) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 	dcassert(find(l, qi) == l.end());
 
@@ -305,6 +305,19 @@ bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser) {
 		}
 	} else {
 		l.push_back(qi);
+	}
+
+	if (isBad) {
+		auto i = find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+		dcassert(i != badSources.end());
+		if (i != badSources.end()) {
+			get<SOURCE_FILES>(*i)--;
+			get<SOURCE_SIZE>(*i) -= qi->getSize();
+
+			if (get<SOURCE_FILES>(*i) == 0) {
+				badSources.erase(i);
+			}
+		}
 	}
 
 	auto i = find_if(sources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
@@ -487,14 +500,6 @@ bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad)
 		return true;
 	}
 	return false;
-}
-
-void Bundle::removeBadSource(const HintedUser& aUser) noexcept {
-	auto m = find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
-	dcassert(m != badSources.end());
-	if (m != badSources.end()) {
-		badSources.erase(m);
-	}
 }
 	
 Bundle::Priority Bundle::calculateProgressPriority() const noexcept {

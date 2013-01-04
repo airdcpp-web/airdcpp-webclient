@@ -32,7 +32,7 @@ namespace dcpp {
 class UserQueue {
 public:
 	void addQI(QueueItemPtr qi, bool newBundle=false);
-	void addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle=false);
+	void addQI(QueueItemPtr qi, const HintedUser& aUser, bool newBundle=false, bool isBadSource = false);
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql);
 	QueueItemPtr getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
 	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
