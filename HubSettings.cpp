@@ -95,7 +95,10 @@ void HubSettings::load(SimpleXML& xml) {
 		strings[i] = xml.getChildAttrib(stringNames[i]);
 	}
 	for(uint8_t i = 0; i < BoolCount; ++i) {
-		bools[i] = to3bool(xml.getIntChildAttrib(boolNames[i]));
+		auto tmp = xml.getChildAttrib(boolNames[i]);
+		if (!tmp.empty())
+			bools[i] = to3bool(Util::toInt(tmp));
+		//bools[i] = to3bool(xml.getIntChildAttrib(boolNames[i]));
 	}
 	for(uint8_t i = 0; i < IntCount; ++i) {
 		auto tmp = xml.getChildAttrib(intNames[i]);

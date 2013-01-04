@@ -28,6 +28,10 @@ using boost::tribool;
 namespace {
 	inline tribool to3bool(int x) { if (x == 2) return tribool(indeterminate); return tribool(x == 1); }
 	inline int toInt(tribool x) { return x ? 1 : !x ? 0 : 2; }
+
+	//to keep the compatibility with DC++....
+	//inline tribool to3boolXml(int x) { if(x) { return tribool(x == 1); } return tribool(indeterminate); }
+	//inline int toIntXml(tribool x) { return x ? 1 : !x ? 2 : 0; }
 }
 
 #endif

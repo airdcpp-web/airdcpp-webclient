@@ -88,6 +88,7 @@ bool DirSFVReader::isCrcValid(const string& fileName) const {
 	return true;
 }
 
+//use a custom implementation in order to detect line breaks that used by other operating systems
 std::istream& getline(std::istream &is, std::string &s) { 
     char ch;
 
