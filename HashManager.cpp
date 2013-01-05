@@ -82,13 +82,6 @@ int64_t HashManager::Hasher::getTimeLeft() const {
 	return lastSpeed > 0 ? (totalBytesLeft / lastSpeed) : 0;
 }
 
-HashManager::HasherList::iterator HashManager::getLeastLoaded() {
-	//usually we don't know the speed so only compare the size...
-	return min_element(hashers.begin(), hashers.end(), [](const Hasher* h1, const Hasher* h2) { return h1->getBytesLeft() < h2->getBytesLeft(); });
-
-	//return min_element(hashers.begin(), hashers.end(), [](const Hasher* h1, const Hasher* h2) { return h1->getTimeLeft() < h2->getTimeLeft(); });
-}
-
 void HashManager::hashFile(const string& fileName, int64_t size) {
 	if(aShutdown) //we cant allow adding more hashers if we are shutting down, it will result in infinite loop
 		return;
@@ -105,6 +98,10 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 		//always use the first hasher if it's idle
 		h = hashers.front();
 	} else {
+		auto getLeastLoaded = [](const HasherList& hl) {
+			return min_element(hl.begin(), hl.end(), [](const Hasher* h1, const Hasher* h2) { return h1->getBytesLeft() < h2->getBytesLeft(); });
+		};
+
 		if (SETTING(HASHERS_PER_VOLUME) == 1) {
 			//do we have files for this volume queued already? always use the same one in that case
 			auto p = find_if(hashers, [&vol](const Hasher* aHasher) { return aHasher->hasDevice(vol); });
@@ -112,7 +109,7 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 				h = *p;
 			} else if (hashers.size() >= SETTING(MAX_HASHING_THREADS)) {
 				// can't create new ones
-				h = *getLeastLoaded();
+				h = *getLeastLoaded(hashers);
 			}
 		} else {
 			//get the hashers with this volume
@@ -121,11 +118,11 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 
 			if (volHashers.empty() && hashers.size() >= SETTING(MAX_HASHING_THREADS)) {
 				//we just need choose from all hashers
-				h = *getLeastLoaded();
+				h = *getLeastLoaded(hashers);
 			} else {
-				auto minLoaded = min_element(volHashers.begin(), volHashers.end(), [](const Hasher* h1, const Hasher* h2) { return h1->getBytesLeft() < h2->getBytesLeft(); });
+				auto minLoaded = getLeastLoaded(volHashers);
 
-				//don't create new hashers if the file is less than 10 megabytes and there's a hasher with less than 200MB queued or the maximum number of threads have been reached for this volume
+				//don't create new hashers if the file is less than 10 megabytes and there's a hasher with less than 200MB queued, or the maximum number of threads have been reached for this volume
 				if (volHashers.size() >= SETTING(HASHERS_PER_VOLUME) || (size <= 10*1024*1024 && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= 200*1024*1024)) {
 					//use the least loaded hasher that already has this volume
 					h = *minLoaded;
@@ -139,8 +136,6 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 			hashers.push_back(h);
 		}
 	}
-
-	dcassert(h);
 
 	//queue the file for hashing
 	h->hashFile(fileName, size, vol);

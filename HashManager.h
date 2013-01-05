@@ -256,8 +256,6 @@ private:
 	typedef vector<Hasher*> HasherList;
 	HasherList hashers;
 
-	HasherList::iterator getLeastLoaded();
-
 	HashStore store;
 
 	/** Single node tree where node = root, no storage in HashData.dat */

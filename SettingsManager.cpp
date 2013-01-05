@@ -109,24 +109,23 @@ const string SettingsManager::settingTags[] =
 	"SENTRY",
 
 	// Bools
-	"AddFinishedInstantly", "AdlsBreakOnFirst", "AltSortOrder",
+	"AddFinishedInstantly", "AdlsBreakOnFirst",
 	"AllowUntrustedClients", "AllowUntrustedHubs", "AutoAway",
 	"AutoDetectIncomingConnection", "AutoFollow", "AutoKick", "AutoKickNoFavs", "AutoSearch",
-	"AutoSearchAutoMatch", "AutoDropAll", "AutoDropDisconnect", "AutoDropFilelists",
-	"AwayCompLock", "BoldFinishedDownloads", "BoldFinishedUploads", "BoldFL", "BoldHub", "BoldPm",
+	"AwayCompLock", "BoldFinishedDownloads", "BoldFinishedUploads", "BoldHub", "BoldPm",
 	"BoldQueue", "BoldSearch", "BoldSystemLog", "ClearSearch",
-	"CompressTransfers", "ConfirmADLSRemoval", "ConfirmExit", "ConfirmHubClosing",
-	"ConfirmHubRemoval", "ConfirmItemRemoval", "ConfirmUserRemoval", "Coral",
-	"DontDLAlreadyShared", "FavShowJoins", "FilterMessages",
-	"FinishedDLOnlyFull", "FollowLinks", "GetUserCountry", "GetUserInfo", "HubUserCommands",
+	"CompressTransfers", "ConfirmADLSRemoval", "ConfirmExit",
+	"ConfirmHubRemoval", "ConfirmUserRemoval", "Coral",
+	"DontDlAlreadyQueued", "DontDLAlreadyShared", "FavShowJoins", "FilterMessages",
+	"FollowLinks", "GetUserCountry", "GetUserInfo", "HubUserCommands",
 	"IgnoreBotPms", "IgnoreHubPms", "OpenNewWindow", "KeepFinishedFiles", "KeepLists",
-	"ListDuplicates", "LogDownloads", "LogFilelistTransfers", "LogFinishedDownloads", "LogMainChat",
+	"LogDownloads", "LogFilelistTransfers", "LogFinishedDownloads", "LogMainChat",
 	"LogPrivateChat", "LogStatusMessages", "LogSystem", "LogUploads", "MagnetAsk",
-	"MagnetRegister", "MinimizeToTray", "NoAwayMsgToBots", "NoIpOverride", "OpenUserCmdHelp",
-	"OwnerDrawnMenus", "PopupBotPms", "PopupHubPms", "PopupPMs", "PopunderFilelist", "PopunderPm",
-	"LowestPrio", "PromptPassword", "QueueFrameShowTree", "RequireTLS", "SearchFilterShared",
-	"SearchMerge", "SearchOnlyFreeSlots", "SegmentedDL", "SendUnknownCommands",
-	"SFVCheck", "ShareHidden", "ShowJoins", "ShowMenuBar", "ShowStatusbar", "ShowToolbar",
+	"MagnetRegister", "MinimizeToTray", "NoAwayMsgToBots", "NoIpOverride",
+	"PopupBotPms", "PopupHubPms", "PopupPMs", "PopunderFilelist", "PopunderPm",
+	"LowestPrio", "PromptPassword", "QueueFrameShowTree", "SearchFilterShared",
+	"SearchOnlyFreeSlots", "SendUnknownCommands",
+	"ShareHidden", "ShowJoins", "ShowMenuBar", "ShowStatusbar", "ShowToolbar",
 	"ShowTransferview", "SkipZeroByte", "SocksResolve", "SortFavUsersFirst",
 	"StatusInChat", "TimeDependentThrottle", "TimeStamps",
 	"ToggleActiveTab", "UrlHandler", "UseCTRLForLineHistory", "UseSystemIcons",
@@ -296,7 +295,7 @@ SettingsManager::SettingsManager()
 	setDefault(USE_CTRL_FOR_LINE_HISTORY, true);
 	setDefault(JOIN_OPEN_NEW_WINDOW, false);
 	setDefault(SHOW_LAST_LINES_LOG, 10);
-	setDefault(CONFIRM_DELETE, true);
+	setDefault(CONFIRM_QUEUE_REMOVAL, true);
 	setDefault(TOGGLE_ACTIVE_WINDOW, true);
 	setDefault(SEARCH_HISTORY, 10);
 	setDefault(SET_MINISLOT_SIZE, 512);
@@ -710,8 +709,8 @@ SettingsManager::SettingsManager()
 	setDefault(POPUNDER_TEXT, false);
 	setDefault(FULL_LIST_DL_LIMIT, 30000);
 	setDefault(SEARCH_SAVE_HUBS_STATE, false);
-	setDefault(CONFIRM_HUB_EXIT, true);
-	setDefault(CONFIRM_AS_REMOVE, true);
+	setDefault(CONFIRM_HUB_CLOSING, true);
+	setDefault(CONFIRM_AS_REMOVAL, true);
 	setDefault(ENABLE_SUDP, false);
 	setDefault(NMDC_MAGNET_WARN, true);
 	setDefault(AUTO_COMPLETE_BUNDLES, false);
@@ -789,7 +788,7 @@ void SettingsManager::load(string const& aFileName)
 				if(xml.findChild(attr)) {
 					auto val = Util::toInt(xml.getChildData());
 					dcassert(val == 0 || val == 1);
-					set(BoolSetting(i), val);
+					set(BoolSetting(i), val ? true : false);
 				}
 				xml.resetCurrentChild();
 			}

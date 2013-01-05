@@ -324,8 +324,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 
 			params.push_back(param);
 
-			auto newPending = source->getPendingQueryCount() + 1; // TMP fix to avoid a compiler crash with 32 bit builds
-			source->setPendingQueryCount(newPending);
+			source->setPendingQueryCount((uint8_t)(source->getPendingQueryCount() + 1));
 			source->setNextQueryTime(aTick + 300000);		// 5 minutes
 		}
 
