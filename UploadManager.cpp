@@ -125,7 +125,9 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 			//check that we have a file
 			if (userlist) {
-				sourceFile = move(ShareManager::getInstance()->getFileListName(aFile, *profile));
+				auto info = move(ShareManager::getInstance()->getFileListInfo(aFile, *profile));
+				sourceFile = move(info.second);
+				fileSize = info.first;
 			} else {
 				//get all hubs with file transfers
 				ProfileTokenSet profiles;
@@ -188,7 +190,7 @@ checkslots:
 			bool hasReserved = reservedSlots.find(aSource.getUser()) != reservedSlots.end();
 			bool hasFreeSlot = (getFreeSlots() > 0) && ((uploadQueue.empty() && notifiedUsers.empty()) || isNotifiedUser(aSource.getUser()));
 		
-			if ((type==Transfer::TYPE_PARTIAL_LIST || ( fileSize > 0 && fileSize <= 65792)) && smallSlots <= 8) {
+			if ((type==Transfer::TYPE_PARTIAL_LIST || (type != Transfer::TYPE_FULL_LIST && fileSize <= 65792)) && smallSlots <= 8) {
 				slotType = UserConnection::SMALLSLOT;
 			} else if (aSource.isSet(UserConnection::FLAG_MCN1)) {
 				if (getMultiConn(aSource) || ((hasReserved || isFavorite|| getAutoSlot()) && !isUploading(aSource.getUser()))) {

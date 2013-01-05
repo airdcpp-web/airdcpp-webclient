@@ -106,7 +106,7 @@ public:
 	void validatePath(const string& realPath, const string& virtualName);
 
 	string toVirtual(const TTHValue& tth, ProfileToken aProfile) const;
-	string getFileListName(const string& virtualFile, ProfileToken aProfile);
+	pair<int64_t, string> getFileListInfo(const string& virtualFile, ProfileToken aProfile);
 	void toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& noAccess_);
 	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const;
 	

@@ -1071,17 +1071,29 @@ bool Util::fileExists(const string &aFile) {
 
 string Util::formatTime(const string &msg, const time_t t) {
 	if (!msg.empty()) {
+		string ret = msg;
 		tm* loc = localtime(&t);
 		if(!loc) {
 			return Util::emptyString;
 		}
 
-		size_t bufsize = msg.size() + 256;
+#ifndef _WIN64
+		// Work it around :P
+		string::size_type i = 0;
+		while((i = ret.find("%", i)) != string::npos) {
+			if(string("aAbBcdHIjmMpSUwWxXyYzZ%").find(ret[i+1]) == string::npos) {
+				ret.replace(i, 1, "%%");
+			}
+			i += 2;
+		}
+#endif
+
+		size_t bufsize = ret.size() + 256;
 		string buf(bufsize, 0);
 
 		errno = 0;
 
-		buf.resize(strftime(&buf[0], bufsize-1, msg.c_str(), loc));
+		buf.resize(strftime(&buf[0], bufsize-1, ret.c_str(), loc));
 		
 		while(buf.empty()) {
 			if(errno == EINVAL)
@@ -1089,7 +1101,7 @@ string Util::formatTime(const string &msg, const time_t t) {
 
 			bufsize+=64;
 			buf.resize(bufsize);
-			buf.resize(strftime(&buf[0], bufsize-1, msg.c_str(), loc));
+			buf.resize(strftime(&buf[0], bufsize-1, ret.c_str(), loc));
 		}
 
 #ifdef _WIN32

@@ -405,13 +405,13 @@ FileList* ShareManager::getFileList(ProfileToken aProfile) const{
 	//return shareProfiles[SP_DEFAULT]->second->getProfileList();
 }
 
-string ShareManager::getFileListName(const string& virtualFile, ProfileToken aProfile) {
+pair<int64_t, string> ShareManager::getFileListInfo(const string& virtualFile, ProfileToken aProfile) {
 	if(virtualFile == "MyList.DcLst") 
 		throw ShareException("NMDC-style lists no longer supported, please upgrade your client");
 
 	if(virtualFile == Transfer::USER_LIST_NAME_BZ || virtualFile == Transfer::USER_LIST_NAME) {
 		FileList* fl = generateXmlList(aProfile);
-		return fl->getFileName();
+		return make_pair(fl->getBzXmlListLen(), fl->getFileName());
 	}
 
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
