@@ -42,9 +42,48 @@ typedef boost::detail::spinlock	FastCriticalSection;
 typedef boost::lock_guard<boost::recursive_mutex> Lock;
 //typedef boost::unique_lock<boost::recursive_mutex> Lock;
 typedef boost::lock_guard<boost::detail::spinlock> FastLock;
+
+#ifndef _WIN64
 typedef boost::shared_mutex	SharedMutex;
 typedef boost::shared_lock<boost::shared_mutex> RLock;
 typedef boost::unique_lock<boost::shared_mutex> WLock;
+#else
+
+typedef boost::shared_mutex FLock;
+
+// A custom Slim Reader/Writer (SRW) solution, only works on Windows Vista or newer
+
+class SharedMutex {
+public:
+	SharedMutex();
+	~SharedMutex();
+
+	void lock_shared();
+	void unlock_shared();
+
+	void lock();
+	void unlock();
+private:
+	SRWLOCK psrw;
+};
+
+class RLock {
+public:
+	RLock(SharedMutex& cs);
+	~RLock();
+private:
+	SharedMutex* cs;
+};
+
+struct WLock {
+public:
+	WLock(SharedMutex& cs);
+	~WLock();
+private:
+	SharedMutex* cs;
+};
+
+#endif
 
 class Thread : private boost::noncopyable
 {

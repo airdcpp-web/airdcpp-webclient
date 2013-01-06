@@ -43,4 +43,50 @@ void Thread::start() {
 }
 #endif
 
+#ifdef _WIN64
+
+SharedMutex::SharedMutex() {
+	InitializeSRWLock(&psrw);
+}
+
+SharedMutex::~SharedMutex() {
+
+}
+
+void SharedMutex::lock_shared() {
+	AcquireSRWLockShared(&psrw);
+}
+
+void SharedMutex::lock() {
+	AcquireSRWLockExclusive(&psrw);
+}
+
+void SharedMutex::unlock_shared() {
+	ReleaseSRWLockShared(&psrw);
+}
+
+void SharedMutex::unlock() {
+	ReleaseSRWLockExclusive(&psrw);
+}
+
+
+RLock::RLock(SharedMutex& aCS) : cs(&aCS) {
+	aCS.lock_shared();
+}
+
+RLock::~RLock() {
+	cs->unlock_shared();
+}
+
+WLock::WLock(SharedMutex& aCS) : cs(&aCS) {
+	aCS.lock();
+}
+
+WLock::~WLock() {
+	cs->unlock();
+}
+
+#endif
+
+
 } // namespace dcpp
