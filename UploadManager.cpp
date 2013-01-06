@@ -239,7 +239,7 @@ checkslots:
 			size = (aBytes == -1) ? fileSize - start : aBytes;
 
 			if((start + size) > fileSize) {
-				throw;
+				throw Exception();
 			}
 		};
 
