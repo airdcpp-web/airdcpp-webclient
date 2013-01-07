@@ -86,6 +86,26 @@ WLock::~WLock() {
 	cs->unlock();
 }
 
+ConditionalRLock::ConditionalRLock(SharedMutex& aCS, bool aLock) : cs(&aCS), lock(aLock) {
+	if (lock)
+		aCS.lock_shared();
+}
+
+ConditionalRLock::~ConditionalRLock() {
+	if (lock)
+		cs->unlock_shared();
+}
+
+ConditionalWLock::ConditionalWLock(SharedMutex& aCS, bool aLock) : cs(&aCS), lock(aLock) {
+	if (lock)
+		aCS.lock();
+}
+
+ConditionalWLock::~ConditionalWLock() {
+	if (lock)
+		cs->unlock();
+}
+
 #endif
 
 

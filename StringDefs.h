@@ -1607,5 +1607,6 @@ enum Strings { // @DontAdd
 	CLOSING_WINDOWS, // "Closing windows"
 	USE_DEFAULT, // "Use default"
 	GLOBAL_SETTING_OVERRIDES, // "Overrides for global settings"
+	HASHER_X, // "Hasher #%d"
 	LAST // @DontAdd
 };

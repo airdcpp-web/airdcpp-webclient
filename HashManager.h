@@ -109,7 +109,7 @@ private:
 	int pausers;
 	class Hasher : public Thread {
 	public:
-		Hasher(bool isPaused, bool isFirst = false);
+		Hasher(bool isPaused, int aHasherID);
 
 		void hashFile(const string& fileName, int64_t size, const string& devID);
 
@@ -133,6 +133,8 @@ private:
 
 		int64_t getBytesLeft() const { return totalBytesLeft; }
 		static CriticalSection hcs;
+
+		int hasherID;
 	private:
 		struct WorkItem {
 			WorkItem(const string& aFilePath, int64_t aSize, const string& aDevID) : filePath(aFilePath), fileSize(aSize), devID(aDevID) { }
@@ -156,7 +158,6 @@ private:
 		bool paused;
 		bool rebuild;
 		bool saveData;
-		bool isFirst;
 
 		string currentFile;
 		int64_t totalBytesLeft;
@@ -181,6 +182,7 @@ private:
 
 	friend class Hasher;
 	void removeHasher(Hasher* aHasher);
+	void log(const string& aMessage, int hasherID, bool isError);
 
 	class HashStore {
 	public:
@@ -261,7 +263,7 @@ private:
 	/** Single node tree where node = root, no storage in HashData.dat */
 	static const int64_t SMALL_TREE = -1;
 
-	void hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size);
+	void hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size, int hasherID = 0);
 
 	void doRebuild() {
 		// its useless to allow hashing with other threads during rebuild. ( TODO: Disallow resuming and show something in hashprogress )

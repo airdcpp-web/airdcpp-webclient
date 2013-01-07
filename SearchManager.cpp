@@ -789,11 +789,7 @@ void SearchManager::getSearchType(const string& aName, int& type, StringList& ex
 		return;
 	}
 
-	if (lock) {
-		cs.lock_shared();
-	}
-	ScopedFunctor([&] { if (lock) cs.unlock_shared(); });
-
+	ConditionalRLock(cs, lock);
 	auto p = searchTypes.find(aName);
 	if (p != searchTypes.end()) {
 		extList = p->second;

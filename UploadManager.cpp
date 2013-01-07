@@ -239,7 +239,7 @@ checkslots:
 			size = (aBytes == -1) ? fileSize - start : aBytes;
 
 			if((start + size) > fileSize) {
-				throw Exception();
+				throw Exception("Bytes were requested beyond the end of the file");
 			}
 		};
 
@@ -342,7 +342,7 @@ checkslots:
 		return false;
 	} catch(const Exception& e) {
 		if (!e.getError().empty())
-			LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError(), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError() + " (" + (Util::toString(ClientManager::getInstance()->getNicks(aSource.getUser()->getCID())) + ")"), LogManager::LOG_ERROR);
 		aSource.sendError();
 		return false;
 	}
@@ -723,6 +723,19 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 		{
 			Lock l (cs);
 			bundles.erase(bundle->getToken());
+			for(auto i = delayUploads.begin(); i != delayUploads.end();) {
+				Upload* u = *i;
+				if(compare(u->getBundle()->getToken(), bundle->getToken()) == 0) {
+					if (u->isSet(Upload::FLAG_CHUNKED))
+						logUpload(u);
+				
+					delayUploads.erase(i);
+					delete u;
+					i = delayUploads.begin();
+				} else {
+					i++;
+				}
+			}
 		}
 
 		ConnectionManager::getInstance()->tokens.removeToken(bundle->getToken());
@@ -920,8 +933,9 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 
 		aSource->send(cmd);
 		
+		if (!u->isSet(Upload::FLAG_RESUMED))
+			u->setStart(GET_TICK());
 
-		u->setStart(GET_TICK());
 		u->tick();
 		aSource->setState(UserConnection::STATE_RUNNING);
 		aSource->transmitFile(u->getStream());
@@ -960,7 +974,8 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 	if(!u->isSet(Upload::FLAG_CHUNKED)) {
 		logUpload(u);
 	}
-	removeUpload(u, (u->isSet(Upload::FLAG_CHUNKED) || u->getBundle()) ? true : false);
+
+	removeUpload(u, ((u->isSet(Upload::FLAG_CHUNKED) && u->getSegment().getEnd() != u->getFileSize()) || u->getBundle()) ? true : false);
 }
 
 void UploadManager::logUpload(const Upload* u) {

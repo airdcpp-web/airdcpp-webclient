@@ -63,6 +63,7 @@ void Upload::resume(int64_t aStart, int64_t aSize) noexcept {
 	auto s = stream.get()->releaseRootStream();
 	s->setPos(aStart);
 	stream.reset(s);
+	resetPos();
 
 	if((aStart + aSize) < fileSize) {
 		stream.reset(new LimitedInputStream<true>(stream.release(), aSize));

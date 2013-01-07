@@ -108,7 +108,7 @@
 # pragma warning(disable: 4503) // decorated name length exceeded, name was truncated
 # pragma warning(disable: 4428) // universal-character-name encountered in source
 # pragma warning(disable: 4201) // nonstadard extension used : nameless struct/union
-
+# pragma warning(disable: 4324) // structure was padded due to __declspec(align()), lockfree queue
 
 
 # pragma warning(disable: 4244) // conversion from 'xxx' to 'yyy', possible loss of data

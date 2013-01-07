@@ -1600,6 +1600,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Closing windows", 
 "Use default", 
 "Overrides for global settings", 
+"Hasher #%d", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3200,4 +3201,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ClosingWindows", 
 "UseDefault", 
 "GlobalSettingOverrides", 
+"HasherX", 
 };

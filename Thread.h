@@ -85,6 +85,24 @@ private:
 
 #endif
 
+class ConditionalRLock {
+public:
+	ConditionalRLock(SharedMutex& cs, bool lock);
+	~ConditionalRLock();
+private:
+	SharedMutex* cs;
+	bool lock;
+};
+
+struct ConditionalWLock {
+public:
+	ConditionalWLock(SharedMutex& cs, bool lock);
+	~ConditionalWLock();
+private:
+	SharedMutex* cs;
+	bool lock;
+};
+
 class Thread : private boost::noncopyable
 {
 public:

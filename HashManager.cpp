@@ -132,7 +132,14 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 
 		if (!h) {
 			//add a new one
-			h = new Hasher(pausers > 0);
+			int id = 0;
+			for (auto i: hashers) {
+				if (i->hasherID != id)
+					break;
+				id++;
+			}
+
+			h = new Hasher(pausers > 0, id);
 			hashers.push_back(h);
 		}
 	}
@@ -166,16 +173,16 @@ void HashManager::getFileTTH(const string& aFile, bool addStore, TTHValue& tth_,
 	}
 }
 
-void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t /*size*/) {
+void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t /*size*/, int hasherID /*0*/) {
 	try {
 		store.addFile(Text::toLower(aFileName), aTimeStamp, tth, true);
 	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
+		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true);
 		return;
 	}
 	
 	if(SETTING(LOG_HASHING)) {
-			string fn = aFileName;
+		string fn = aFileName;
 		if (count(fn.begin(), fn.end(), PATH_SEPARATOR) >= 2) {
 			string::size_type i = fn.rfind(PATH_SEPARATOR);
 			i = fn.rfind(PATH_SEPARATOR, i - 1);
@@ -184,9 +191,9 @@ void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const T
 		}
 	
 		if (speed > 0) {
-			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)", LogManager::LOG_INFO);
+			log(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)", hasherID, false);
 		} else {
-			LogManager::getInstance()->message(STRING(HASHING_FINISHED) + " " + fn, LogManager::LOG_INFO);
+			log(STRING(HASHING_FINISHED) + " " + fn, hasherID, false);
 		}
 	}
 }
@@ -668,7 +675,7 @@ void HashManager::rebuild() {
 }
 
 void HashManager::startup() {
-	hashers.push_back(new Hasher(false, true));
+	hashers.push_back(new Hasher(false, 0));
 	store.load(); 
 }
 
@@ -737,12 +744,18 @@ void HashManager::Hasher::instantPause() {
 	}
 }
 
-HashManager::Hasher::Hasher(bool isPaused, bool aIsFirst /*false*/) : isFirst(aIsFirst), stop(false), running(false), paused(isPaused), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
-	filesHashed(0), dirFilesHashed(0), dirSizeHashed(0), dirHashTime(0) { 
+HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : stop(false), running(false), paused(isPaused), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
+	filesHashed(0), dirFilesHashed(0), dirSizeHashed(0), dirHashTime(0), hasherID(aHasherID) { 
 
 	start();
 	if (isPaused)
 		t_suspend();
+}
+
+void HashManager::log(const string& aMessage, int hasherID, bool isError) {
+	//LogManager::getInstance()->message(((hashers.size() > 1) ? STRING_F(HASHER_X, hasherID) + ": " : Util::emptyString) + aMessage, isError ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
+	//LogManager::getInstance()->message(STRING_F(HASHER_X, hasherID) + ": " + aMessage, isError ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
+	LogManager::getInstance()->message("[" + STRING_F(HASHER_X, hasherID) + "] " + aMessage, isError ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
 int HashManager::Hasher::run() {
@@ -870,32 +883,32 @@ int HashManager::Hasher::run() {
 				}
 
 				if(failed) {
-					LogManager::getInstance()->message(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), LogManager::LOG_ERROR);
+					HashManager::getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true);
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 				} else {
-					HashManager::getInstance()->hashDone(fname, timestamp, tt, averageSpeed, size);
+					HashManager::getInstance()->hashDone(fname, timestamp, tt, averageSpeed, size, hasherID);
 					tth = tt.getRoot();
 				}
 			} catch(const FileException& e) {
-				LogManager::getInstance()->message(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), LogManager::LOG_ERROR);
+				HashManager::getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true);
 				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
 			}
 		
 		}
 
 		auto onDirHashed = [&] () -> void {
-			if (dirFilesHashed > 1 || !failed) {
+			if (SETTING(HASHERS_PER_VOLUME) == 1 && (dirFilesHashed > 1 || !failed)) {
 				if (dirFilesHashed == 1) {
-					LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_FILE, currentFile % 
+					HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_FILE, currentFile % 
 						Util::formatBytes(dirSizeHashed) % 
 						Util::formatTime(dirHashTime / 1000, true) % 
-						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), LogManager::LOG_INFO);
+						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false);
 				} else {
-					LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
+					HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
 						dirFilesHashed %
 						Util::formatBytes(dirSizeHashed) % 
 						Util::formatTime(dirHashTime / 1000, true) % 
-						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), LogManager::LOG_INFO);
+						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false);
 				}
 			}
 
@@ -919,16 +932,16 @@ int HashManager::Hasher::run() {
 						//LogManager::getInstance()->message(STRING(HASHING_FINISHED_TOTAL_PLAIN), LogManager::LOG_INFO);
 					} else {
 						onDirHashed();
-						LogManager::getInstance()->message(STRING_F(HASHING_FINISHED_TOTAL, filesHashed % Util::formatBytes(sizeHashed) % dirsHashed % 
+						HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_TOTAL, filesHashed % Util::formatBytes(sizeHashed) % dirsHashed % 
 							Util::formatTime(hashTime / 1000, true) % 
-							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), LogManager::LOG_INFO);
+							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), hasherID, false);
 					}
 				}
 				hashTime = 0;
 				sizeHashed = 0;
 				dirsHashed = 0;
 				filesHashed = 0;
-				deleteThis = !isFirst;
+				deleteThis = hasherID != 0;
 			} else if (!AirUtil::isParentOrExact(initialDir, w.front().filePath)) {
 				onDirHashed();
 			}
