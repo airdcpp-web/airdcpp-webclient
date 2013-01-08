@@ -656,7 +656,15 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setConnect(aXml.getBoolChildAttrib("Connect"));
 			e->setDescription(aXml.getChildAttrib("Description"));
 			e->setPassword(aXml.getChildAttrib("Password"));
-			e->setServerStr(aXml.getChildAttrib("Server"));
+
+			auto server = aXml.getChildAttrib("Server");
+			if (server.empty()) {
+				LogManager::getInstance()->message("A favorite hub with an empty address wasn't loaded: " + e->getName(), LogManager::LOG_WARNING);
+				delete e;
+				continue;
+			}
+			e->setServerStr(server);
+
 			e->setEncoding(aXml.getChildAttrib("Encoding"));
 			e->setChatUserSplit(aXml.getIntChildAttrib("ChatUserSplit"));
 			e->setStealth(aXml.getBoolChildAttrib("StealthMode"));

@@ -830,7 +830,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			//check the nick
 			if(!as->getNickPattern().empty()) {
 				StringList nicks = ClientManager::getInstance()->getNicks(sr->getUser()->getCID(), sr->getHubURL());
-				if (find_if(nicks.begin(), nicks.end(), [&](const string& aNick) { return as->matchNick(aNick); }) == nicks.end())
+				if (find_if(nicks, [&](const string& aNick) { return as->matchNick(aNick); }) == nicks.end())
 					continue;
 			}
 
@@ -949,11 +949,13 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 				sizeMap[sr->getSize()]++; 
 		}
 
-		auto p = max_element(sizeMap, [] (pair<int64_t, int> p1, pair<int64_t, int> p2)-> bool { 
+		auto p = max_element(sizeMap, [] (pair<int64_t, int> p1, pair<int64_t, int> p2)-> bool {
+			//NMDC results always come last
 			if (p1.first == 0)
 				return true;
 			if (p2.first == 0)
 				return false;
+
 			return p1.second < p2.second; 
 		});
 
@@ -999,10 +1001,9 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 			return;
 		}
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
-		ClientManager* c = ClientManager::getInstance();
-		c->lockRead();
-		ScopedFunctor([c] { c->unlockRead(); });
-		OnlineUser* u = c->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL());
+		ClientManager* cm = ClientManager::getInstance();
+		cm->lockRead();
+		OnlineUser* u = cm->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL());
 
 		if(u) {
 			Client* client = &u->getClient();
@@ -1013,9 +1014,9 @@ void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as)
 			if(as->getRemove()) {
 				removeAutoSearch(as);
 			}
-		} else {
-			return;
 		}
+
+		cm->unlockRead();
 	}
 }
 

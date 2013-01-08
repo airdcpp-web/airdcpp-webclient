@@ -148,7 +148,7 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 	h->hashFile(fileName, size, vol);
 }
 
-void HashManager::getFileTTH(const string& aFile, bool addStore, TTHValue& tth_, int64_t& size_) {
+void HashManager::getFileTTH(const string& aFile, bool addStore, TTHValue& tth_, int64_t& size_, const bool& aCancel, std::function<void (int64_t, const string&)> updateF/*nullptr*/) {
 	size_ = File::getSize(aFile);
 	if (!store.checkTTH(Text::toLower(aFile), size_, AirUtil::getLastWrite(aFile))) {
 		File f(aFile, File::READ, File::OPEN);
@@ -156,17 +156,36 @@ void HashManager::getFileTTH(const string& aFile, bool addStore, TTHValue& tth_,
 		uint64_t timestamp = f.getLastModified();
 		TigerTree tt(bs);
 
+		auto start = GET_TICK();
+		int64_t sizeLeft = size_;
+		int64_t tickHashed = 0;
+
 		FileReader fr(true);
 		fr.read(aFile, [&](const void* buf, size_t n) -> bool {
 			tt.update(buf, n);
-			return true;
+
+			if (updateF) {
+				tickHashed += n;
+
+				uint64_t end = GET_TICK();
+				if (end - start > 1000) {
+					sizeLeft -= tickHashed;
+					auto lastSpeed = tickHashed * 1000 / (end - start);
+
+					updateF(lastSpeed > 0 ? (sizeLeft / lastSpeed) : 0, aFile);
+
+					tickHashed = 0;
+					start = end;
+				}
+			}
+			return !aCancel;
 		});
 
 		f.close();
 		tt.finalize();
 		tth_ = tt.getRoot();
 
-		if (addStore)
+		if (addStore && !aCancel)
 			store.addFile(Text::toLower(aFile), timestamp, tt, true);
 	} else {
 		tth_ = *store.getTTH(Text::toLower(aFile));
