@@ -1608,8 +1608,10 @@ enum Strings { // @DontAdd
 	USE_DEFAULT, // "Use default"
 	GLOBAL_SETTING_OVERRIDES, // "Overrides for global settings"
 	HASHER_X, // "Hasher #%d"
-	CREATING_MAGNET_FOR, // "Creating magnet for a file %s..."
-	MAGNET_CREATED_FOR, // "Magnet created for a file %s"
+	CREATING_MAGNET_FOR, // "Creating magnet link for a file %s..."
+	MAGNET_CREATED_FOR, // "Magnet link was created for a file %s"
 	HASHING_X_LEFT, // "Hashing %s, %s left"
+	MAGNET_CREATED_FOR_X, // "Magnet links were created for %d files"
+	CREATING_MAGNET_FOR_X, // "Creating magnet links for %d files..."
 	LAST // @DontAdd
 };

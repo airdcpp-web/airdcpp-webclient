@@ -1601,9 +1601,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "Use default", 
 "Overrides for global settings", 
 "Hasher #%d", 
-"Creating magnet for a file %s...", 
-"Magnet created for a file %s", 
+"Creating magnet link for a file %s...", 
+"Magnet link was created for a file %s", 
 "Hashing %s, %s left", 
+"Magnet links were created for %d files", 
+"Creating magnet links for %d files...", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3208,4 +3210,6 @@ std::string dcpp::ResourceManager::names[] = {
 "CreatingMagnetFor", 
 "MagnetCreatedFor", 
 "HashingXLeft", 
+"MagnetCreatedForX", 
+"CreatingMagnetForX", 
 };
