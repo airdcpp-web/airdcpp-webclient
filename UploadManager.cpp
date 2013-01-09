@@ -167,7 +167,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 			TTHValue fileHash(aFile.substr(4));
 
-			if(SETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, sourceFile)){
+			if(SETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, fileSize, sourceFile)){
 				//Todo: Do we need to set fileSize here?
 				partialFileSharing = true;
 				type = Transfer::TYPE_FILE;

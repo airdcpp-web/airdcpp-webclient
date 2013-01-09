@@ -2544,6 +2544,10 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 
 		qi = ql.front();
 
+		//don't share files download from private chat
+		if (qi->isSet(QueueItem::FLAG_PRIVATE))
+			return false;
+
 		BundlePtr b = qi->getBundle();
 		if (b) {
 			_bundle = b->getToken();
@@ -2675,7 +2679,7 @@ void QueueManager::shareBundle(const string& aName) {
 	}
 }
 
-bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, string& target) {
+bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, int64_t& fileSize_, string& target) {
 	QueueItemList ql;
 
 	RLock l(cs);
@@ -2688,6 +2692,7 @@ bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int6
 	if (!qi->hasPartialSharingTarget())
 		return false;
 
+	fileSize_ = qi->getSize();
 	target = qi->isFinished() ? qi->getTarget() : qi->getTempTarget();
 
 	return qi->isChunkDownloaded(startPos, bytes);

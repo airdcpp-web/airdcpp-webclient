@@ -1613,5 +1613,6 @@ enum Strings { // @DontAdd
 	HASHING_X_LEFT, // "Hashing %s, %s left"
 	MAGNET_CREATED_FOR_X, // "Magnet links were created for %d files"
 	CREATING_MAGNET_FOR_X, // "Creating magnet links for %d files..."
+	PM_MAGNET_SHARED_WARNING, // "The download destination %s is a shared directory. Files sent in private chat may contain sensitive information that you or the sender don't want to be made available for other user.\r\n\r\nDo you want to use this destination anyway?"
 	LAST // @DontAdd
 };

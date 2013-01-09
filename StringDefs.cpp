@@ -1606,6 +1606,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Hashing %s, %s left", 
 "Magnet links were created for %d files", 
 "Creating magnet links for %d files...", 
+"The download destination %s is a shared directory. Files sent in private chat may contain sensitive information that you or the sender don't want to be made available for other user.\r\n\r\nDo you want to use this destination anyway?", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3212,4 +3213,5 @@ std::string dcpp::ResourceManager::names[] = {
 "HashingXLeft", 
 "MagnetCreatedForX", 
 "CreatingMagnetForX", 
+"PmMagnetSharedWarning", 
 };

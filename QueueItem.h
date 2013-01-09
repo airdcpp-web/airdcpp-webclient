@@ -122,7 +122,9 @@ public:
 		/** Open directly with an external program after the file has been downloaded */
 		FLAG_OPEN				= 0x2000,
 		/** A hashed bundle item */
-		FLAG_HASHED				= 0x4000
+		FLAG_HASHED				= 0x4000,
+		/** A private file that won't be added in share and it's not available via partial sharing */
+		FLAG_PRIVATE			= 0x8000
 	};
 
 	/**

@@ -713,7 +713,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, aClient->getMyNick(), aClient->getIpPort(), aTTH.toBase32(), partialInfo);
-			udp.writeTo(Socket::resolve(ip), port, cmd.toString(ClientManager::getInstance()->getMe()->getCID()));
+			udp.writeTo(Socket::resolve(ip), port, cmd.toString(getMe()->getCID()));
 		} catch(...) {
 			dcdebug("Partial search caught error\n");		
 		}
