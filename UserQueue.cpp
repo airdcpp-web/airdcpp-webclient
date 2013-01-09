@@ -72,7 +72,7 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	auto s = userBundleQueue.find(aUser);
 	if(s != userBundleQueue.end()) {
 		dcassert(!s->second.empty());
-		for(auto b: s->second)
+		for(auto& b: s->second)
 			b->getItems(aUser, ql);
 	}
 }
@@ -96,7 +96,7 @@ QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringS
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
-		for(auto q: i->second) {
+		for(auto& q: i->second) {
 			if (q->hasSegment(aUser, onlineHubs, lastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
 				return q;
 			}
@@ -111,7 +111,7 @@ QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const OrderedStrin
 	auto i = userBundleQueue.find(aUser);
 	if(i != userBundleQueue.end()) {
 		dcassert(!i->second.empty());
-		for (auto b: i->second) {
+		for (auto& b: i->second) {
 			if (b->getPriority() < minPrio) {
 				break;
 			}

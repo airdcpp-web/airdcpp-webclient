@@ -148,16 +148,14 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 	h->hashFile(fileName, size, vol);
 }
 
-void HashManager::getFileTTH(const string& aFile, bool addStore, TTHValue& tth_, int64_t& size_, const bool& aCancel, std::function<void (int64_t, const string&)> updateF/*nullptr*/) {
-	size_ = File::getSize(aFile);
-	if (!store.checkTTH(Text::toLower(aFile), size_, AirUtil::getLastWrite(aFile))) {
+void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void (int64_t, const string&)> updateF/*nullptr*/) {
+	if (!store.checkTTH(Text::toLower(aFile), aSize, AirUtil::getLastWrite(aFile))) {
 		File f(aFile, File::READ, File::OPEN);
-		int64_t bs = max(TigerTree::calcBlockSize(size_, 10), MIN_BLOCK_SIZE);
+		int64_t bs = max(TigerTree::calcBlockSize(aSize, 10), MIN_BLOCK_SIZE);
 		uint64_t timestamp = f.getLastModified();
 		TigerTree tt(bs);
 
 		auto start = GET_TICK();
-		int64_t sizeLeft = size_;
 		int64_t tickHashed = 0;
 
 		FileReader fr(true);
@@ -169,10 +167,10 @@ void HashManager::getFileTTH(const string& aFile, bool addStore, TTHValue& tth_,
 
 				uint64_t end = GET_TICK();
 				if (end - start > 1000) {
-					sizeLeft -= tickHashed;
+					sizeLeft_ -= tickHashed;
 					auto lastSpeed = tickHashed * 1000 / (end - start);
 
-					updateF(lastSpeed > 0 ? (sizeLeft / lastSpeed) : 0, aFile);
+					updateF(lastSpeed > 0 ? (sizeLeft_ / lastSpeed) : 0, aFile);
 
 					tickHashed = 0;
 					start = end;

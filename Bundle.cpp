@@ -249,7 +249,7 @@ bool Bundle::addQueue(QueueItemPtr qi) {
 
 bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
 	int pos = 0;
-	for (auto cur: queueItems) {
+	for (auto& cur: queueItems) {
 		if (cur == qi) {
 			swap(queueItems[pos], queueItems[queueItems.size()-1]);
 			queueItems.pop_back();

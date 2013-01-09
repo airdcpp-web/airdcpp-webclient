@@ -85,7 +85,7 @@ public:
 
 	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hashers);
 
-	void getFileTTH(const string& aFile, bool addStore, TTHValue& tth_, int64_t& size_, const bool& aCancel, std::function<void (int64_t /*timeLeft*/, const string& /*fileName*/)> updateF = nullptr);
+	void getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void (int64_t /*timeLeft*/, const string& /*fileName*/)> updateF = nullptr);
 
 	/**
 	 * Rebuild hash data file

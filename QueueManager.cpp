@@ -608,7 +608,7 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 	{
 		WLock l(cs);
 		auto& ql = aBundle->getQueueItems();
-		for(auto q: ql) {
+		for(auto& q: ql) {
 			dcassert(!q->isSource(aUser));
 			if(q && q->isBadSource(aUser.user)) {
 				try {
@@ -834,7 +834,7 @@ StringList QueueManager::getTargets(const TTHValue& tth) {
 		fileQueue.findFiles(tth, ql);
 	}
 
-	for(auto q: ql)
+	for(auto& q: ql)
 		sl.push_back(q->getTarget());
 
 	return sl;
@@ -1025,7 +1025,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 
 		{
 			RLock l(cs);
-			for (auto qi: aBundle->getFinishedFiles()) {
+			for (auto& qi: aBundle->getFinishedFiles()) {
 				if (ShareManager::getInstance()->checkSharedName(qi->getTarget(), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
 					qi->unsetFlag(QueueItem::FLAG_HASHED);
 					hash.push_back(qi);
@@ -1037,7 +1037,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 
 		if (!removed.empty()) {
 			WLock l (cs);
-			for(auto q: removed) {
+			for(auto& q: removed) {
 				//erase failed items
 				bundleQueue.removeFinishedItem(q);
 				fileQueue.remove(q);
@@ -1048,7 +1048,7 @@ void QueueManager::hashBundle(BundlePtr aBundle) {
 
 		{
 			HashManager::HashPauser pauser;
-			for(auto q: hash) {
+			for(auto& q: hash) {
 				try {
 					// Schedule for hashing, it'll be added automatically later on...
 					if (!HashManager::getInstance()->checkTTH(q->getTarget(), q->getSize(), AirUtil::getLastWrite(q->getTarget()))) {
@@ -1446,7 +1446,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 
 		if (!ql.empty()) {
 			WLock l (cs);
-			for(auto qi: ql) {
+			for(auto& qi: ql) {
 				try {
 					if (addSource(qi, user, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) {
 						wantConnection = true;
@@ -1580,7 +1580,7 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) no
 		userQueue.getUserQIs(aUser, ql);
 	}
 
-	for(auto qi: ql) 
+	for(auto& qi: ql) 
 		removeSource(qi, aUser, reason);
 }
 
@@ -1696,7 +1696,7 @@ void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) n
 			}
 		}
 
-		for(auto qi: ql) {
+		for(auto& qi: ql) {
 			removeSource(qi, aUser, QueueItem::Source::FLAG_REMOVED);
 		}
 	}
@@ -2109,7 +2109,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		else
 			fileQueue.findFiles(sr->getTTH(), matches);
 
-		for(auto q: matches) {
+		for(auto& q: matches) {
 			qi = q;
 			// Size compare to avoid popular spoof
 			if(qi->getSize() == sr->getSize() && !qi->isSource(sr->getUser()) && qi->getBundle()) {
@@ -2148,7 +2148,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 				{
 					WLock l(cs);
 					b->getDirQIs(path, ql);
-					for (auto q: ql) {
+					for (auto& q: ql) {
 						try {	 
 							if (addSource(q, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) { // no SettingsManager::lanMode in NMDC...
 								wantConnection = true;
@@ -2195,7 +2195,7 @@ void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aU
 			userQueue.getUserQIs(aUser.getUser(), ql);
 		}
 
-		for(auto q: ql) {
+		for(auto& q: ql) {
 			fire(QueueManagerListener::StatusUpdated(), q);
 			if(!hasDown && q->startDown() && !q->isHubBlocked(aUser.getUser(), aUser.getHubUrl()))
 				hasDown = true;
@@ -2217,7 +2217,7 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 		userQueue.getUserQIs(aUser, ql);
 	}
 
-	for(auto q: ql)
+	for(auto& q: ql)
 		fire(QueueManagerListener::StatusUpdated(), q);
 }
 
@@ -2242,7 +2242,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 
 	{
 		RLock l(cs);
-		for (auto b: bundleQueue.getBundles() | map_values) {
+		for (auto& b: bundleQueue.getBundles() | map_values) {
 			if (b->isFinished()) {
 				continue;
 			}
@@ -2254,7 +2254,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 				}
 			}
 
-			for(auto q: b->getQueueItems()) {
+			for(auto& q: b->getQueueItems()) {
 				if(q->isRunning()) {
 					fire(QueueManagerListener::StatusUpdated(), q);
 					if (calculate && SETTING(QI_AUTOPRIO) && q->getAutoPriority() && prioType == SettingsManager::PRIO_PROGRESS) {
@@ -2375,7 +2375,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 
 	{
 		RLock l (cs);
-		for (auto b: bundleQueue.getBundles() | map_values) {
+		for (auto& b: bundleQueue.getBundles() | map_values) {
 			if (!b->isFinished()) {
 				if (b->getAutoPriority()) {
 					bundleSpeedSourceMap.emplace(b, b->getPrioInfo());
@@ -2583,7 +2583,7 @@ tstring QueueManager::getDirPath(const string& aDirName) const {
 
 void QueueManager::getUnfinishedPaths(StringList& retBundles) {
 	RLock l(cs);
-	for(auto b: bundleQueue.getBundles() | map_values) {
+	for(auto& b: bundleQueue.getBundles() | map_values) {
 		if (!b->isFileBundle() && !b->isFinished())
 			retBundles.push_back(b->getTarget());
 	}
@@ -2593,7 +2593,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 	BundleList hash;
 	{
 		RLock l(cs);
-		for (auto b: bundleQueue.getBundles() | map_values) {
+		for (auto& b: bundleQueue.getBundles() | map_values) {
 			if (b->isFileBundle())
 				continue;
 
@@ -2610,7 +2610,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 		}
 	}
 
-	for (auto b: hash) {
+	for (auto& b: hash) {
 		if(b->isSet(Bundle::FLAG_SHARING_FAILED) && !scanBundle(b)) {
 			continue;
 		}
@@ -2780,7 +2780,7 @@ void QueueManager::mergeFileBundles(BundlePtr targetBundle) {
 		bundleQueue.getSubBundles(targetBundle->getTarget(), bl);
 	}
 
-	for(auto sourceBundle: bl) {
+	for(auto& sourceBundle: bl) {
 		fire(QueueManagerListener::BundleMoved(), sourceBundle); 
 		mergeBundle(targetBundle, sourceBundle);
 	}
@@ -2876,7 +2876,7 @@ int QueueManager::changeBundleTarget(BundlePtr aBundle, const string& newTarget)
 
 	{
 		WLock l(cs);
-		for(auto b: mBundles) {
+		for(auto& b: mBundles) {
 			fire(QueueManagerListener::BundleRemoved(), b);
 			for (auto j = b->getFinishedFiles().begin(); j != b->getFinishedFiles().end();) {
 				QueueItemPtr q = *j;
@@ -2945,7 +2945,7 @@ void QueueManager::setBundlePriorities(const string& aSource, const BundleList& 
 			bundle->getDirQIs(aSource, ql);
 		}
 
-		for (auto q: ql) {
+		for (auto& q: ql) {
 			if (autoPrio) {
 				setQIAutoPriority(q->getTarget(), q->getAutoPriority());
 			} else {
@@ -2953,7 +2953,7 @@ void QueueManager::setBundlePriorities(const string& aSource, const BundleList& 
 			}
 		}
 	} else {
-		for(auto b: sourceBundles) {
+		for(auto& b: sourceBundles) {
 			if (autoPrio) {
 				setBundleAutoPriority(b->getToken());
 			} else {
@@ -2991,10 +2991,10 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 		}
 
 		AirUtil::removeIfEmpty(aSource);
-		for(auto qi: ql) 
+		for(auto& qi: ql) 
 			removeQI(qi, false);
 	} else {
-		for(auto b: sourceBundles) 
+		for(auto& b: sourceBundles) 
 			removeBundle(b, false, removeFinished);
 	}
 }
@@ -3312,7 +3312,7 @@ void QueueManager::moveFiles(const StringPairList& sourceTargetList) noexcept {
 			bool finished = false;
 			//are we moving items inside the same bundle?
 			if (targetBundle == sourceBundle) {
-				for(auto qi: ql)
+				for(auto& qi: ql)
 					fire(QueueManagerListener::Added(), qi);
 				return;
 			}
@@ -3334,7 +3334,7 @@ void QueueManager::moveFiles(const StringPairList& sourceTargetList) noexcept {
 			BundleList newBundles;
 			{
 				WLock l(cs);
-				for(auto qi: ql) {
+				for(auto& qi: ql) {
 					bundleQueue.removeBundleItem(qi, false);
 					userQueue.removeQI(qi, false); //we definately don't want to remove downloads because the QI will stay the same
 					targetBundle = BundlePtr(new Bundle(qi, sourceBundle->getAutoSearches()));
@@ -3354,7 +3354,7 @@ void QueueManager::moveFiles(const StringPairList& sourceTargetList) noexcept {
 				}
 			}
 
-			for(auto b: newBundles) 
+			for(auto& b: newBundles) 
 				addBundle(b, false);
 		}
 
@@ -3378,7 +3378,7 @@ void QueueManager::moveBundleItems(const QueueItemList& ql, BundlePtr targetBund
 
 		{
 			WLock l(cs);
-			for(auto qi: ql) 
+			for(auto& qi: ql) 
 				moveBundleItem(qi, targetBundle, fireAdded);
 			empty = sourceBundle->getQueueItems().empty();
 		}	
@@ -3546,7 +3546,7 @@ MemoryInputStream* QueueManager::generateTTHList(const string& bundleToken, bool
 		if (b) {
 			//write finished items
 			string tmp2;
-			for(auto q: b->getFinishedFiles()) {
+			for(auto& q: b->getFinishedFiles()) {
 				if (q->isSet(QueueItem::FLAG_MOVED)) {
 					tmp2.clear();
 					tthList.write(q->getTTH().toBase32(tmp2) + " ");
@@ -3614,7 +3614,7 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) {
 	{
 		WLock l(cs);
 		fileQueue.findFiles(aTTH, qiList);
-		for(auto q: qiList) {
+		for(auto& q: qiList) {
 			try {
 				//LogManager::getInstance()->message("ADDSOURCE");
 				if (addSource(q, aUser, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) {
@@ -3704,7 +3704,7 @@ void QueueManager::onUseSeqOrder(BundlePtr b) {
 		WLock l (cs);
 		b->setSeqOrder(true);
 		auto ql = b->getQueueItems();
-		for (auto q: ql) {
+		for (auto& q: ql) {
 			if (q->getPriority() != QueueItem::PAUSED) {
 				userQueue.removeQI(q, false, false);
 				userQueue.addQI(q, true);

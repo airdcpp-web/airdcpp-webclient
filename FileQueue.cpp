@@ -98,7 +98,7 @@ void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) noexcept {
 void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) {
 	if (SettingsManager::lanMode) {
 		QueueItem::StringMultiMap qsm;
-		for(auto q: tthIndex | map_values) {
+		for(auto& q: tthIndex | map_values) {
 			qsm.emplace(q->getTargetFileName(), q);
 		}
 		matchDir(dl.getRoot(), ql, qsm);
@@ -115,7 +115,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::Stri
 
 	for(auto& f: dir->files) {
 		auto tp = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
-		for(auto q: tp | map_values) {
+		for(auto& q: tp | map_values) {
 			if (!q->isFinished() && q->getSize() == f->getSize() && find_if(ql, CompareSecond<string, QueueItemPtr>(q)) == ql.end()) 
 				ql.emplace_back(Util::emptyString, q); 
 		}
@@ -168,7 +168,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 	Buffer buffer;
 	uint64_t now = GET_TICK();
 
-	for(auto q: queue | map_values) {
+	for(auto& q: queue | map_values) {
 
 		if(q->getSize() < PARTIAL_SHARE_MIN_SIZE) continue;
 

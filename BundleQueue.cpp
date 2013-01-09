@@ -275,7 +275,7 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 
 void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const {
 	//find the matching bundles
-	for(auto b: bundles | map_values) {
+	for(auto& b: bundles | map_values) {
 		if (b->isFinished()) {
 			//don't modify those
 			continue;
@@ -298,7 +298,7 @@ void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& fini
 
 BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
-	for(auto compareBundle: bundles | map_values) {
+	for(auto& compareBundle: bundles | map_values) {
 		if (!compareBundle->isFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParentOrExact(aTarget, compareBundle->getTarget()))) {
 			return compareBundle;
 		}
@@ -308,7 +308,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const {
 
 void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) const {
 	/* Returns bundles that are inside aTarget */
-	for(auto compareBundle: bundles | map_values) {
+	for(auto& compareBundle: bundles | map_values) {
 		if (AirUtil::isSub(compareBundle->getTarget(), aTarget)) {
 			retBundles.push_back(compareBundle);
 		}
@@ -397,7 +397,7 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUti
 		tempVol = TargetUtil::getMountPath(SETTING(TEMP_DOWNLOAD_DIRECTORY), volumes);
 	}
 
-	for(auto b: bundles | map_values) {
+	for(auto& b: bundles | map_values) {
 		string mountPath = TargetUtil::getMountPath(b->getTarget(), volumes);
 		if (!mountPath.empty()) {
 			auto s = dirMap.find(mountPath);
@@ -414,7 +414,7 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUti
 }
 
 void BundleQueue::saveQueue(bool force) noexcept {
-	for(auto b: bundles | map_values) {
+	for(auto& b: bundles | map_values) {
 		if (!b->isFinished() && (b->getDirty() || force)) {
 			try {
 				b->save();

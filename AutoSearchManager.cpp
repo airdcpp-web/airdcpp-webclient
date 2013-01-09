@@ -491,7 +491,7 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 /* Bundle updates */
 bool AutoSearchManager::onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus) {
 	bool found = false, searched = false;
-	for(auto t: aSearches) {
+	for(const auto t: aSearches) {
 		auto as = getSearchByToken(t);
 		if (as) {
 			found = true;
@@ -515,7 +515,7 @@ bool AutoSearchManager::onBundleStatus(BundlePtr aBundle, const ProfileTokenSet&
 }
 
 void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet& aSearches, bool finished) {
-	for(auto t: aSearches) {
+	for(const auto t: aSearches) {
 		auto as = getSearchByToken(t);
 		if (as) {
 			auto usingInc = as->usingIncrementation();
@@ -688,7 +688,7 @@ bool AutoSearchManager::checkItems() {
 			return false;
 		}
 
-		for(auto as: searchItems) {
+		for(auto& as: searchItems) {
 			bool search = true;
 			if (!as->allowNewItems())
 				search = false;
@@ -711,13 +711,13 @@ bool AutoSearchManager::checkItems() {
 		}
 	}
 
-	for(auto as: expired) {
+	for(auto& as: expired) {
 		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getSearchString(), LogManager::LOG_INFO); 
 		removeAutoSearch(as);
 	}
 
 	if (!il.empty()) {
-		for (auto as: il) {
+		for (auto& as: il) {
 			{
 				WLock l(cs);
 				as->changeNumber(true);
@@ -784,7 +784,7 @@ void AutoSearchManager::runSearches() {
 /* SearchManagerListener and matching */
 void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept {
 	RLock l(cs);
-	for(auto as: searchItems) {
+	for(auto& as: searchItems) {
 		if (as->getFileType() == oldName) {
 			as->setFileType(newName);
 			fire(AutoSearchManagerListener::UpdateItem(), as, false);
@@ -801,7 +801,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 	{
 		RLock l (cs);
-		for(auto as: searchItems) {
+		for(auto& as: searchItems) {
 			if (!as->allowNewItems() && !as->getManualSearch())
 				continue;
 			
@@ -840,7 +840,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 	}
 
 	//extra checks outside the lock
-	for (auto as: matches) {
+	for (auto& as: matches) {
 		if (as->getFileType() == SEARCH_TYPE_DIRECTORY) {
 			string dir = Util::getLastDir(sr->getFile());
 
@@ -963,7 +963,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 	};
 
 
-	for (auto srl: dirList | map_values) {
+	for (auto& srl: dirList | map_values) {
 		// if we have a bundle with missing files, try to find one that is bigger than it
 		auto dlSize = getDownloadSize(srl, minWantedSize);
 		if (dlSize == -1) {
@@ -974,7 +974,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 		dcassert(dlSize > -1);
 
 		//download all matches with the given size
-		for(auto sr: srl) { 
+		for(auto& sr: srl) { 
 			if (sr->getSize() == dlSize)
 				handleAction(sr, as);
 		}
@@ -1035,7 +1035,7 @@ void AutoSearchManager::AutoSearchSave() {
 
 		{
 			RLock l(cs);
-			for(auto as: searchItems) {
+			for(auto& as: searchItems) {
 				xml.addTag("Autosearch");
 				xml.addChildAttrib("Enabled", as->getEnabled());
 				xml.addChildAttrib("SearchString", as->getSearchString());
