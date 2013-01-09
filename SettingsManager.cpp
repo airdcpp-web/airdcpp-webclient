@@ -98,14 +98,14 @@ const string SettingsManager::settingTags[] =
 
 	//AirDC
 	"tabactivebg", "TabActiveText", "TabActiveBorder", "TabInactiveBg", "TabInactiveBgDisconnected", "TabInactiveText", "TabInactiveBorder", "TabInactiveBgNotify", "TabDirtyBlend", "TabSize", "MediaPlayer",
-	"FavDownloadSpeed", "OpenFirstXHubs", "PopupTime", "MaxMsgLength", "PopupBackColor", "PopupTextColor", "PopupTitleTextColor", "AutoSearchEvery", "AutoSearchRecheckTime", "TbImageSize", "TbImageSizeHot", 
+	"FavDownloadSpeed", "PopupTime", "MaxMsgLength", "PopupBackColor", "PopupTextColor", "PopupTitleTextColor", "AutoSearchEvery", "AutoSearchRecheckTime", "TbImageSize", "TbImageSizeHot", 
 	"DupeColor", "TextDupeBackColor", "MinSegmentSize", "AutoSlots", "MaxResizeLines", "IncomingRefreshTime", "TextNormBackColor", "TextNormForeColor", "SettingsProfile", "LogLines",
 	"MaxFileSizeShared", "FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
-	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", 
+	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos",
 	"SENTRY",
 
 	// Bools
@@ -580,7 +580,6 @@ SettingsManager::SettingsManager()
 	setDefault(IGNORE_USE_REGEXP_OR_WC, true);
 	setDefault(NAT_SORT, true);
 	setDefault(FAV_DL_SPEED, 0);
-	setDefault(OPEN_FIRST_X_HUBS, 0);
 	setDefault(IP_UPDATE, true);
 	setDefault(SERVER_COMMANDS, true);
 	setDefault(CLIENT_COMMANDS, true);
@@ -720,6 +719,7 @@ SettingsManager::SettingsManager()
 	setDefault(AS_DELAY_HOURS, 12);
 	setDefault(LAST_LIST_PROFILE, 0);
 	setDefault(SHOW_CHAT_NOTIFY, false);
+	setDefault(FAV_USERS_SPLITTER_POS, 7500);
 
 	//set depending on the cpu count
 	SYSTEM_INFO info={{0}};

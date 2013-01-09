@@ -70,7 +70,7 @@ public:
 	};
 	typedef vector<UserHubInfo> UserInfoList;
 private:
-	CID cid;
+	const CID cid;
 };
 
 } // namespace dcpp

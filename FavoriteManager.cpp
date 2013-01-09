@@ -164,6 +164,9 @@ void FavoriteManager::removeHubUserCommands(int ctx, const string& hub) {
 }
 
 void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
+	if(aUser.user == ClientManager::getInstance()->getMe()) // we cant allow adding ourself as a favorite user :P
+		return;
+
 	{
 		Lock l(cs);
 		if(users.find(aUser.user->getCID()) != users.end()) {

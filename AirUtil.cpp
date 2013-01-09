@@ -78,11 +78,11 @@ tstring AirUtil::getDupePath(DupeType aType, const TTHValue& aTTH) {
 }
 
 DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
-	auto sd = ShareManager::getInstance()->isDirShared(aDir, aSize);
+	const auto sd = ShareManager::getInstance()->isDirShared(aDir, aSize);
 	if (sd > 0) {
 		return sd == 2 ? SHARE_DUPE : PARTIAL_SHARE_DUPE;
 	} else {
-		auto qd = QueueManager::getInstance()->isDirQueued(aDir);
+		const auto qd = QueueManager::getInstance()->isDirQueued(aDir);
 		if (qd > 0)
 			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE;
 	}
@@ -93,7 +93,7 @@ DupeType AirUtil::checkFileDupe(const TTHValue& aTTH, const string& aFileName) {
 	if (ShareManager::getInstance()->isFileShared(aTTH, aFileName)) {
 		return SHARE_DUPE;
 	} else {
-		int qd = QueueManager::getInstance()->isFileQueued(aTTH, aFileName);
+		const int qd = QueueManager::getInstance()->isFileQueued(aTTH, aFileName);
 		if (qd > 0) {
 			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
 		}
@@ -105,7 +105,7 @@ DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
 	if (ShareManager::getInstance()->isFileShared(aFileName, aSize)) {
 		return SHARE_DUPE;
 	} else {
-		int qd = QueueManager::getInstance()->isFileQueued(AirUtil::getTTH(aFileName, aSize), aFileName);
+		const int qd = QueueManager::getInstance()->isFileQueued(AirUtil::getTTH(aFileName, aSize), aFileName);
 		if (qd > 0) {
 			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
 		}
@@ -599,17 +599,6 @@ bool AirUtil::isHubLink(const string& hubUrl) {
 		return true;
 	}
 	return false;
-}
-
-string AirUtil::stripHubUrl(const string& url) {
-	
-	if(strnicmp("adc://", url.c_str(), 6) == 0) {
-		return "_" + Util::validateFileName(url.substr(6, url.length()));
-	} else if(strnicmp("adcs://", url.c_str(), 7) == 0) {
-		return "_" + Util::validateFileName(url.substr(7, url.length()));
-
-	}
-	return Util::emptyString;
 }
 
 string AirUtil::convertMovePath(const string& aPath, const string& aParent, const string& aTarget) {

@@ -451,7 +451,7 @@ private:
 	FileList* getFileList(ProfileToken aProfile) const;
 
 	bool ShareCacheDirty;
-	bool aShutdown;
+	volatile bool aShutdown;
 
 	boost::regex rxxReg;
 	

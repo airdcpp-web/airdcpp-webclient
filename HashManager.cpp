@@ -89,6 +89,7 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 	TCHAR* buf = new TCHAR[fileName.length()];
 	GetVolumePathName(Text::toT(fileName).c_str(), buf, fileName.length());
 	auto vol = Text::fromT(buf);
+	delete[] buf;
 	dcassert(!vol.empty());
 
 	Hasher* h = nullptr;
