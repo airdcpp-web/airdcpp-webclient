@@ -95,7 +95,8 @@ public:
 	void setQIAutoPriority(const string& aTarget, bool ap, bool isBundleChange=false) noexcept;
 
 	StringList getTargets(const TTHValue& tth);
-	const QueueItem::StringMap& getQueue() noexcept { RLock l (cs); return fileQueue.getQueue(); } ;
+	void readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue);
+	//const QueueItem::StringMap& getQueue() noexcept { RLock l (cs); return fileQueue.getQueue(); } ;
 	//const QueueItem::StringMap& lockQueue() noexcept { cs.lock(); return fileQueue.getQueue(); } ;
 	//void unlockQueue() noexcept { cs.unlock(); }
 	void onSlowDisconnect(const string& aToken);

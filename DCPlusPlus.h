@@ -32,7 +32,7 @@
 
 namespace dcpp {
 
-extern void startup(function<void (const string&)> f);
+extern void startup(function<void (const string&)> splashF, function<void (const string&)> messageF);
 extern void shutdown(function<void (const string&)> f);
 
 } // namespace dcpp

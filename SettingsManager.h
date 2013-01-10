@@ -352,15 +352,15 @@ public:
 
 	void unset(size_t key) { isSet[key] = false; }
 
-	void load() {
+	void load(function<void (const string&)> messageF) {
 		Util::migrate(getConfigFile());
-		load(getConfigFile());
+		return load(getConfigFile(), messageF);
 	}
 	void save() {
 		save(getConfigFile());
 	}
 
-	void load(const string& aFileName);
+	void load(const string& aFileName, function<void (const string&)> messageF);
 	void save(const string& aFileName);
 	void reloadPages(int group = 0) {
 		fire(SettingsManagerListener::ReloadPages(), group);

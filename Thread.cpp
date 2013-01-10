@@ -86,6 +86,8 @@ WLock::~WLock() {
 	cs->unlock();
 }
 
+#endif
+
 ConditionalRLock::ConditionalRLock(SharedMutex& aCS, bool aLock) : cs(&aCS), lock(aLock) {
 	if (lock)
 		aCS.lock_shared();
@@ -105,8 +107,6 @@ ConditionalWLock::~ConditionalWLock() {
 	if (lock)
 		cs->unlock();
 }
-
-#endif
 
 
 } // namespace dcpp

@@ -725,7 +725,7 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 			bundles.erase(bundle->getToken());
 			for(auto i = delayUploads.begin(); i != delayUploads.end();) {
 				Upload* u = *i;
-				if(compare(u->getBundle()->getToken(), bundle->getToken()) == 0) {
+				if(u->getBundle() && compare(u->getBundle()->getToken(), bundle->getToken()) == 0) {
 					if (u->isSet(Upload::FLAG_CHUNKED))
 						logUpload(u);
 				

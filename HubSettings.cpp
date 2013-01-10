@@ -25,10 +25,10 @@ const string HubSettings::stringNames[StringCount] = {
 	"Nick", "UserDescription", "Email", "UserIp" // not "Description" for compat with prev fav hub lists
 };
 const string HubSettings::boolNames[BoolCount] = {
-	"ShowJoins", "FavShowJoins", "LogMainChat", "ChatNotify"
+	"ShowJoins", "FavShowJoins", "LogMainChat", "ShowChatNotify"
 };
 const string HubSettings::intNames[IntCount] = {
-	"SearchInterval", "IncomingConnections"
+	"MinSearchInterval", "IncomingConnections"
 };
 
 namespace {

@@ -53,9 +53,11 @@
 #include "HighlightManager.h"
 #include "AutoSearchManager.h"
 #include "ShareScannerManager.h"
+
+#include "format.h"
 namespace dcpp {
 
-void startup(function<void (const string&)> f) {
+void startup(function<void (const string&)> splashF, function<void (const string&)> messageF) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
 	while(1) break;
@@ -100,7 +102,9 @@ void startup(function<void (const string&)> f) {
 	DirectoryListingManager::newInstance();
 	UpdateManager::newInstance();
 
-	SettingsManager::getInstance()->load();	
+	SettingsManager::getInstance()->load(messageF);
+
+
 	AutoSearchManager::getInstance()->AutoSearchLoad();
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
@@ -120,9 +124,9 @@ void startup(function<void (const string&)> f) {
 
 	CryptoManager::getInstance()->loadCertificates();
 
-	auto announce = [&f](const string& str) {
-		if(f) {
-			f(str);
+	auto announce = [&splashF](const string& str) {
+		if(splashF) {
+			splashF(str);
 		}
 	};
 

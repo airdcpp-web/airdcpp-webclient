@@ -150,7 +150,7 @@ const string SettingsManager::settingTags[] =
 	"UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist",
 	"AutoAddSource", "AllowNATTraversal", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
-	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ChatNotify",
+	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -744,8 +744,7 @@ SettingsManager::SettingsManager()
 	*/
 }
 
-void SettingsManager::load(string const& aFileName)
-{
+void SettingsManager::load(string const& aFileName, function<void (const string&)> messageF) {
 	try {
 		SimpleXML xml;
 		
@@ -843,17 +842,64 @@ void SettingsManager::load(string const& aFileName)
 			xml.stepOut();
 		}
 
-		double v = Util::toDouble(SETTING(CONFIG_VERSION));
+		double prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
+		if (prevVersion > 0 && prevVersion < 2.41) {
+			auto getSettingTextStr = [] (const string& aSettingCaption, SettingsManager::StrSetting aSetting) -> string {
+				auto val = SettingsManager::getInstance()->get(aSetting);
+				return aSettingCaption + "\t(globally " + (!val.empty() ? val : "not set") + ")";
+			};
 
-		if(v <= 2.30 && SETTING(POPUP_TYPE) == 1)
-			set(POPUP_TYPE, 0);
+			auto getSettingTextBool = [] (const string& aSettingCaption, SettingsManager::BoolSetting aSetting) -> string {
+				return aSettingCaption + "\t(globally " + (SettingsManager::getInstance()->get(aSetting) ? "Enabled" : "Disabled") + ")";
+			};
 
+			auto getSettingTextInt = [] (const string& aSettingCaption, SettingsManager::IntSetting aSetting) -> string {
+				return aSettingCaption + "\t(globally " + Util::toString(SettingsManager::getInstance()->get(aSetting)) + " seconds)";
+			};
 
-		if(v <= 2.07 && SETTING(INCOMING_CONNECTIONS) != INCOMING_FIREWALL_PASSIVE) {
-			set(AUTO_DETECT_CONNECTION, false); //Don't touch if it works
+			auto getConnection = [] {
+				string text;
+
+				if (SETTING(AUTO_DETECT_CONNECTION)) {
+					text = STRING(CONNECTION_DETECTION);
+				} else {
+					switch(SETTING(INCOMING_CONNECTIONS)) {
+						case SettingsManager::INCOMING_DIRECT: text = STRING(SETTINGS_DIRECT); break;
+						case SettingsManager::INCOMING_FIREWALL_UPNP: text = STRING(SETTINGS_FIREWALL_UPNP); break;
+						case SettingsManager::INCOMING_FIREWALL_NAT: text = STRING(SETTINGS_FIREWALL_NAT); break;
+						case SettingsManager::INCOMING_FIREWALL_PASSIVE: text = STRING(SETTINGS_FIREWALL_PASSIVE); break;
+					}
+				}
+
+				return "Incoming connection\t(globally " + text + ")";
+			};
+
+			string msg = boost::str(boost::format(
+				"\rAll favorite hubs have been reset to use the global values for the following settings:\r\n\r\n\
+%s\r\n\
+%s\r\n\
+%s\r\n\
+%s\r\n\r\n\
+%s\r\n\
+%s\r\n\r\n\
+You can customize those settings for each favorite hub if needed")
+
+				% getSettingTextBool(STRING(FAV_SHOW_JOIN) + "\t", SettingsManager::SHOW_JOINS)
+				% getSettingTextBool(STRING(FAV_LOG_CHAT) + "\t\t", SettingsManager::LOG_MAIN_CHAT)
+				% getSettingTextInt(STRING(MINIMUM_SEARCH_INTERVAL) + "\t", SettingsManager::MINIMUM_SEARCH_INTERVAL)
+				% getSettingTextBool(STRING(CHAT_NOTIFY), SettingsManager::SHOW_CHAT_NOTIFY)
+				% getSettingTextStr(STRING(SETTINGS_EXTERNAL_IP) + "\t", SettingsManager::EXTERNAL_IP)
+				//% STRING(SETTINGS_EXTERNAL_IP)
+				% getConnection());
+
+			messageF(msg);
+			//::MessageBox(NULL, Text::toT(ret).c_str(), _T(APPNAME) _T(" ") _T(VERSIONSTRING), MB_OK);
 		}
 
-		if(v <= 2.21) {
+		if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
+			set(POPUP_TYPE, 0);
+
+		if(prevVersion <= 2.21) {
 		try {
 			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2"))			
 				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2");
@@ -873,7 +919,8 @@ void SettingsManager::load(string const& aFileName)
 
 	} catch(const Exception&) { }
 
-	lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
+	//lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
+	lanMode = false;
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT || INCOMING_FIREWALL_UPNP || INCOMING_FIREWALL_NAT) {
 		if(SETTING(TLS_PORT) == 0) {
 			set(TLS_PORT, (int)Util::rand(10000, 32000));

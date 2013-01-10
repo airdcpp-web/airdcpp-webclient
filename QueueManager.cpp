@@ -840,6 +840,11 @@ StringList QueueManager::getTargets(const TTHValue& tth) {
 	return sl;
 }
 
+void QueueManager::readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue) {
+	RLock l(cs);
+	if(currentQueue) currentQueue(fileQueue.getQueue());
+}
+
 Download* QueueManager::getDownload(UserConnection& aSource, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, bool smallSlot) noexcept {
 	QueueItemPtr q = nullptr;
 	const UserPtr& u = aSource.getUser();
