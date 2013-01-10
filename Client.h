@@ -144,6 +144,9 @@ public:
 	GETSET(ProfileToken, shareProfile, ShareProfile);
 	GETSET(ProfileToken, favToken, FavToken);
 
+	/* Set a hub setting and return the new value */
+	bool changeBoolHubSetting(HubSettings::HubBoolSetting aSetting);
+
 	enum CountType {
 		COUNT_NORMAL = 0x00,
 		COUNT_REGISTERED = 0x01,

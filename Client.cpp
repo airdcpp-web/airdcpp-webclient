@@ -141,6 +141,17 @@ void Client::reloadSettings(bool updateNick) {
 		get(Nick) = prevNick;
 }
 
+bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) {
+	auto newValue = !get(aSetting);
+	get(aSetting) = newValue;
+
+	//save for a favorite hub if needed
+	if (favToken > 0) {
+		FavoriteManager::getInstance()->setHubSetting(hubUrl, aSetting, newValue);
+	}
+	return newValue;
+}
+
 const string& Client::getUserIp() const {
 	if(!get(UserIp).empty()) {
 		return get(UserIp);

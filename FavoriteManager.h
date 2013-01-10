@@ -97,6 +97,7 @@ public:
 	FavoriteHubEntry* getFavoriteHubEntry(const string& aServer) const;
 
 	void mergeHubSettings(const FavoriteHubEntry& entry, HubSettings& settings) const;
+	void setHubSetting(const string& aUrl, HubSettings::HubBoolSetting aSetting, bool newValue);
 // Favorite hub groups
 	const FavHubGroups& getFavHubGroups() const { return favHubGroups; }
 	void setFavHubGroups(const FavHubGroups& favHubGroups_) { favHubGroups = favHubGroups_; }

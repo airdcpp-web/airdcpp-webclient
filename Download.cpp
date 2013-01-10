@@ -86,7 +86,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), 0, 0, source->getPartialSource(), true));
 		}
 		
-		if((getStartPos() + getSize()) != qi.getSize()) {
+		if((getStartPos() + getSize()) != qi.getSize() || (conn.getDownload() && conn.getDownload()->isSet(FLAG_CHUNKED))) {
 			setFlag(FLAG_CHUNKED);
 		}
 

@@ -361,7 +361,7 @@ checkslots:
 
 	Upload* u = new Upload(aSource, sourceFile, TTHValue(), move(is));
 	u->setSegment(Segment(start, size));
-	if(u->getSize() != fileSize)
+	if(u->getSegment().getEnd() != fileSize)
 		u->setFlag(Upload::FLAG_CHUNKED);
 	if(partialFileSharing)
 		u->setFlag(Upload::FLAG_PARTIAL);
@@ -723,19 +723,6 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 		{
 			Lock l (cs);
 			bundles.erase(bundle->getToken());
-			for(auto i = delayUploads.begin(); i != delayUploads.end();) {
-				Upload* u = *i;
-				if(u->getBundle() && compare(u->getBundle()->getToken(), bundle->getToken()) == 0) {
-					if (u->isSet(Upload::FLAG_CHUNKED))
-						logUpload(u);
-				
-					delayUploads.erase(i);
-					delete u;
-					i = delayUploads.begin();
-				} else {
-					i++;
-				}
-			}
 		}
 
 		ConnectionManager::getInstance()->tokens.removeToken(bundle->getToken());
@@ -971,11 +958,12 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 
 	aSource->setState(UserConnection::STATE_GET);
 
-	if(!u->isSet(Upload::FLAG_CHUNKED)) {
+	bool partialSegmentFinished = u->isSet(Upload::FLAG_CHUNKED) && u->getSegment().getEnd() != u->getFileSize();
+	if(!partialSegmentFinished) {
 		logUpload(u);
 	}
 
-	removeUpload(u, ((u->isSet(Upload::FLAG_CHUNKED) && u->getSegment().getEnd() != u->getFileSize()) || u->getBundle()) ? true : false);
+	removeUpload(u, partialSegmentFinished || u->getBundle());
 }
 
 void UploadManager::logUpload(const Upload* u) {

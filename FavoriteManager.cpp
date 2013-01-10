@@ -787,6 +787,14 @@ FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const
 	return ret;
 }
 
+void FavoriteManager::setHubSetting(const string& aUrl, HubSettings::HubBoolSetting aSetting, bool newValue) {
+	Lock l(cs);
+	auto p = getFavoriteHub(aUrl);
+	if (p != favoriteHubs.end()) {
+		(*p)->get(aSetting) = newValue;
+	}
+}
+
 bool FavoriteManager::hasSlot(const UserPtr& aUser) const { 
 	Lock l(cs);
 	auto i = users.find(aUser->getCID());
