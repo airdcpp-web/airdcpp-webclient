@@ -161,7 +161,7 @@ const string& Client::getUserIp() const {
 
 
 bool Client::isActive() const {
-	return get(HubSettings::Connection) != SettingsManager::INCOMING_FIREWALL_PASSIVE;
+	return get(HubSettings::Connection) != SettingsManager::INCOMING_PASSIVE;
 }
 
 void Client::connect() {

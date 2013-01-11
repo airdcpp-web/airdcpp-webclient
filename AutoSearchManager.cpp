@@ -712,7 +712,7 @@ bool AutoSearchManager::checkItems() {
 	}
 
 	for(auto& as: expired) {
-		LogManager::getInstance()->message("An expired autosearch has been removed: " + as->getSearchString(), LogManager::LOG_INFO); 
+		logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), false);
 		removeAutoSearch(as);
 	}
 

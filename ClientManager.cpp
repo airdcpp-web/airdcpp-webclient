@@ -463,7 +463,7 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 }
 
 bool ClientManager::isActive() const {
-	return CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_FIREWALL_PASSIVE || FavoriteManager::getInstance()->hasActiveHubs();
+	return CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_PASSIVE || FavoriteManager::getInstance()->hasActiveHubs();
 }
 
 string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) {

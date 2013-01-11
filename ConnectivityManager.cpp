@@ -96,7 +96,8 @@ void ConnectivityManager::detectConnection() {
 		SettingsManager::EXTERNAL_IP, SettingsManager::EXTERNAL_IP6, SettingsManager::NO_IP_OVERRIDE,
 		SettingsManager::BIND_ADDRESS, SettingsManager::BIND_ADDRESS6,
 		SettingsManager::INCOMING_CONNECTIONS, SettingsManager::OUTGOING_CONNECTIONS };
-	std::for_each(settings, settings + sizeof(settings) / sizeof(settings[0]), [this](int setting) {
+
+	for(const auto setting: settings) {
 		if(setting >= SettingsManager::STR_FIRST && setting < SettingsManager::STR_LAST) {
 			autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::StrSetting>(setting));
 		} else if(setting >= SettingsManager::INT_FIRST && setting < SettingsManager::INT_LAST) {
@@ -106,13 +107,13 @@ void ConnectivityManager::detectConnection() {
 		} else {
 			dcassert(0);
 		}
-	});
+	}
 
 	log((string)("Determining the best connectivity settings..."), LogManager::LOG_INFO);
 	try {
 		listen();
 	} catch(const Exception& e) {
-		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_FIREWALL_PASSIVE;
+		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
 		log(str(boost::format("Unable to open %1% port(s); connectivity settings must be configured manually") % e.getError()), LogManager::LOG_ERROR);
 		fire(ConnectivityManagerListener::Finished());
 		running = false;
@@ -122,14 +123,14 @@ void ConnectivityManager::detectConnection() {
 	autoDetected = true;
 
 	if(!Util::isPrivateIp(AirUtil::getLocalIp())) {
-		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_DIRECT;
+		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
 		log((string)("Public IP address detected, selecting active mode with direct connection"), LogManager::LOG_INFO);
 		fire(ConnectivityManagerListener::Finished());
 		running = false;
 		return;
 	}
 
-	autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_FIREWALL_UPNP;
+	autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE_UPNP;
 	log((string)("Local network with possible NAT detected, trying to map the ports..."), LogManager::LOG_INFO);
 
 	startMapping();
@@ -145,11 +146,11 @@ void ConnectivityManager::setup(bool settingsChanged) {
 			autoSettings.clear();
 		}
 		if(autoDetected || settingsChanged) {
-			if(settingsChanged || (SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_FIREWALL_UPNP)) {
+			if(settingsChanged || (SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_ACTIVE_UPNP)) {
 				MappingManager::getInstance()->close();
 			}
 			startSocket();
-		} else if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP && !running) {
+		} else if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_ACTIVE_UPNP && !running) {
 			// previous mappings had failed; try again
 			startMapping();
 		}
@@ -182,23 +183,18 @@ string ConnectivityManager::getInformation() const {
 	string mode;
 
 	switch(CONNSETTING(INCOMING_CONNECTIONS)) {
-	case SettingsManager::INCOMING_DIRECT:
+	case SettingsManager::INCOMING_ACTIVE:
 		{
 			mode = "Direct connection to the Internet (no router)";
 			break;
 		}
-	case SettingsManager::INCOMING_FIREWALL_UPNP:
+	case SettingsManager::INCOMING_ACTIVE_UPNP:
 		{
 			mode = str(boost::format("Active mode behind a router that %1% can configure; port mapping status: %2%") %
 				APPNAME % MappingManager::getInstance()->getStatus());
 			break;
 		}
-	case SettingsManager::INCOMING_FIREWALL_NAT:
-		{
-			mode = "Active mode behind a router";
-			break;
-		}
-	case SettingsManager::INCOMING_FIREWALL_PASSIVE:
+	case SettingsManager::INCOMING_PASSIVE:
 		{
 			mode = "Passive mode";
 			break;
@@ -235,7 +231,7 @@ void ConnectivityManager::mappingFinished(const string& mapper) {
 	if(SETTING(AUTO_DETECT_CONNECTION)) {
 		if(mapper.empty()) {
 			disconnect();
-			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_FIREWALL_PASSIVE;
+			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
 			log((string)("Active mode could not be achieved; a manual configuration is recommended for better connectivity"), LogManager::LOG_WARNING);
 		} else {
 			SettingsManager::getInstance()->set(SettingsManager::MAPPER, mapper);
@@ -265,7 +261,7 @@ void ConnectivityManager::startSocket() {
 		listen();
 
 		// must be done after listen calls; otherwise ports won't be set
-		if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_FIREWALL_UPNP && !running)
+		if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_ACTIVE_UPNP && !running)
 			startMapping();
 	}
 }

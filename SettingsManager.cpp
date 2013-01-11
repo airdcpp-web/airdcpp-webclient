@@ -211,7 +211,7 @@ SettingsManager::SettingsManager()
 	setDefault(UDP_PORT, 0);
 	setDefault(TLS_PORT, 0);
 //	setDefault(INCOMING_CONNECTIONS, Util::isPrivateIp(Util::getLocalIp()) ? INCOMING_FIREWALL_PASSIVE : INCOMING_DIRECT);
-	setDefault(INCOMING_CONNECTIONS, INCOMING_DIRECT);
+	setDefault(INCOMING_CONNECTIONS, INCOMING_ACTIVE);
 	setDefault(OUTGOING_CONNECTIONS, OUTGOING_DIRECT);
 	setDefault(AUTO_DETECT_CONNECTION, true);
 	setDefault(AUTO_FOLLOW, true);
@@ -844,6 +844,15 @@ void SettingsManager::load(string const& aFileName, function<void (const string&
 
 		double prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
 		if (prevVersion > 0 && prevVersion < 2.41) {
+			// port previous conn settings
+			enum { OLD_INCOMING_DIRECT, OLD_INCOMING_UPNP, OLD_INCOMING_NAT, OLD_INCOMING_PASSIVE };
+			switch(SETTING(INCOMING_CONNECTIONS)) {
+				case OLD_INCOMING_UPNP: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE_UPNP); break;
+				case OLD_INCOMING_PASSIVE: set(INCOMING_CONNECTIONS, INCOMING_PASSIVE); break;
+				default: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE); break;
+			}
+
+			//notify about changed fav hub settings
 			auto getSettingTextStr = [] (const string& aSettingCaption, SettingsManager::StrSetting aSetting) -> string {
 				auto val = SettingsManager::getInstance()->get(aSetting);
 				return aSettingCaption + "\t(globally " + (!val.empty() ? val : "not set") + ")";
@@ -864,10 +873,9 @@ void SettingsManager::load(string const& aFileName, function<void (const string&
 					text = STRING(CONNECTION_DETECTION);
 				} else {
 					switch(SETTING(INCOMING_CONNECTIONS)) {
-						case SettingsManager::INCOMING_DIRECT: text = STRING(SETTINGS_DIRECT); break;
-						case SettingsManager::INCOMING_FIREWALL_UPNP: text = STRING(SETTINGS_FIREWALL_UPNP); break;
-						case SettingsManager::INCOMING_FIREWALL_NAT: text = STRING(SETTINGS_FIREWALL_NAT); break;
-						case SettingsManager::INCOMING_FIREWALL_PASSIVE: text = STRING(SETTINGS_FIREWALL_PASSIVE); break;
+						case SettingsManager::INCOMING_ACTIVE: text = STRING(SETTINGS_ACTIVE); break;
+						case SettingsManager::INCOMING_ACTIVE_UPNP: text = STRING(SETTINGS_ACTIVE_UPNP); break;
+						case SettingsManager::INCOMING_PASSIVE: text = STRING(SETTINGS_PASSIVE); break;
 					}
 				}
 
@@ -889,11 +897,9 @@ You can customize those settings for each favorite hub if needed")
 				% getSettingTextInt(STRING(MINIMUM_SEARCH_INTERVAL) + "\t", SettingsManager::MINIMUM_SEARCH_INTERVAL)
 				% getSettingTextBool(STRING(CHAT_NOTIFY), SettingsManager::SHOW_CHAT_NOTIFY)
 				% getSettingTextStr(STRING(SETTINGS_EXTERNAL_IP) + "\t", SettingsManager::EXTERNAL_IP)
-				//% STRING(SETTINGS_EXTERNAL_IP)
 				% getConnection());
 
 			messageF(msg);
-			//::MessageBox(NULL, Text::toT(ret).c_str(), _T(APPNAME) _T(" ") _T(VERSIONSTRING), MB_OK);
 		}
 
 		if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
@@ -921,13 +927,13 @@ You can customize those settings for each favorite hub if needed")
 
 	//lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
 	lanMode = false;
-	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT || INCOMING_FIREWALL_UPNP || INCOMING_FIREWALL_NAT) {
+	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_ACTIVE || INCOMING_ACTIVE_UPNP) {
 		if(SETTING(TLS_PORT) == 0) {
 			set(TLS_PORT, (int)Util::rand(10000, 32000));
 		}
 	}
 
-	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_DIRECT) {
+	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_ACTIVE) {
 		set(TCP_PORT, (int)Util::rand(10000, 32000));
 		set(UDP_PORT, (int)Util::rand(10000, 32000));
 		set(TLS_PORT, (int)Util::rand(10000, 32000));

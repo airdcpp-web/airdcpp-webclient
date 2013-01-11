@@ -383,7 +383,7 @@ void FavoriteManager::onProfilesRenamed() {
 }
 
 bool FavoriteManager::hasActiveHubs() const {
-	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr f) { return f->get(HubSettings::Connection) == SettingsManager::INCOMING_DIRECT; });
+	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr f) { return f->get(HubSettings::Connection) == SettingsManager::INCOMING_ACTIVE; });
 }
 
 void FavoriteManager::save() {

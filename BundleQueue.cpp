@@ -204,7 +204,7 @@ BundlePtr BundleQueue::findAutoSearch() {
 	dcassert(!sbq.empty());
 
 	//find the first item from the search queue that can be searched for
-	auto s = find_if(sbq, [](BundlePtr b) { return b->allowAutoSearch(); } );
+	auto s = find_if(sbq, [](const BundlePtr& b) { return b->allowAutoSearch(); } );
 	if (s != sbq.end()) {
 		BundlePtr b = *s;
 		//move to the back
