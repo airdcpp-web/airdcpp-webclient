@@ -870,12 +870,12 @@ void SettingsManager::load(string const& aFileName, function<void (const string&
 				string text;
 
 				if (SETTING(AUTO_DETECT_CONNECTION)) {
-					text = STRING(CONNECTION_DETECTION);
+					text = "Auto detect";
 				} else {
 					switch(SETTING(INCOMING_CONNECTIONS)) {
-						case SettingsManager::INCOMING_ACTIVE: text = STRING(SETTINGS_ACTIVE); break;
-						case SettingsManager::INCOMING_ACTIVE_UPNP: text = STRING(SETTINGS_ACTIVE_UPNP); break;
-						case SettingsManager::INCOMING_PASSIVE: text = STRING(SETTINGS_PASSIVE); break;
+						case SettingsManager::INCOMING_ACTIVE: text = "Active (no router or manual config)"; break;
+						case SettingsManager::INCOMING_ACTIVE_UPNP: text = "Active (UPnP/NAT-PMP)"; break;
+						case SettingsManager::INCOMING_PASSIVE: text = "Passive"; break;
 					}
 				}
 
