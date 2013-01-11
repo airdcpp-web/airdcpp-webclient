@@ -932,12 +932,6 @@ You can customize those settings for each favorite hub if needed")
 			set(TLS_PORT, (int)Util::rand(10000, 32000));
 		}
 	}
-
-	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_ACTIVE) {
-		set(TCP_PORT, (int)Util::rand(10000, 32000));
-		set(UDP_PORT, (int)Util::rand(10000, 32000));
-		set(TLS_PORT, (int)Util::rand(10000, 32000));
-	}
 }
 
 void SettingsManager::save(string const& aFileName) {
