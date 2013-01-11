@@ -95,10 +95,7 @@ void HubSettings::load(SimpleXML& xml) {
 		strings[i] = xml.getChildAttrib(stringNames[i]);
 	}
 	for(uint8_t i = 0; i < BoolCount; ++i) {
-		auto tmp = xml.getChildAttrib(boolNames[i]);
-		if (!tmp.empty())
-			bools[i] = to3bool(Util::toInt(tmp));
-		//bools[i] = to3bool(xml.getIntChildAttrib(boolNames[i]));
+		bools[i] = to3boolXml(xml.getIntChildAttrib(boolNames[i]));
 	}
 	for(uint8_t i = 0; i < IntCount; ++i) {
 		auto tmp = xml.getChildAttrib(intNames[i]);
@@ -115,7 +112,7 @@ void HubSettings::save(SimpleXML& xml) const {
 	}
 	for(uint8_t i = 0; i < BoolCount; ++i) {
 		if(defined(bools[i])) {
-			xml.addChildAttrib(boolNames[i], toInt(bools[i]));
+			xml.addChildAttrib(boolNames[i], toIntXml(bools[i]));
 		}
 	}
 	for(uint8_t i = 0; i < IntCount; ++i) {

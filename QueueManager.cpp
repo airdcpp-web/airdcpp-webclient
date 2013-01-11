@@ -1713,7 +1713,7 @@ void QueueManager::sendRemovePBD(const HintedUser& aUser, const string& aRemoteT
 	cmd.addParam("HI", aUser.hint);
 	cmd.addParam("BU", aRemoteToken);
 	cmd.addParam("RM1");
-	ClientManager::getInstance()->send(cmd, aUser.user->getCID());
+	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), false, true);
 }
 
 void QueueManager::setQIPriority(const string& aTarget, QueueItem::Priority p) noexcept {
