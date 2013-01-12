@@ -62,10 +62,6 @@ string Util::emptyString;
 wstring Util::emptyStringW;
 tstring Util::emptyStringT;
 
-bool Util::away = false;
-string Util::awayMsg;
-time_t Util::awayTime;
-
 string Util::paths[Util::PATH_LAST];
 StringList Util::params;
 
@@ -562,21 +558,6 @@ map<string, string> Util::decodeQuery(const string& query) {
 	}
 
 	return ret;
-}
-
-void Util::setAway(bool aAway, bool byminimize /*false*/) {
-	away = aAway;
-	
-	if(!byminimize) //only save the state if away mode is set by user
-	SettingsManager::getInstance()->set(SettingsManager::AWAY, aAway);
-
-	if (away)
-		awayTime = time(NULL);
-}
-
-string Util::getAwayMessage(ParamMap& params) { 
-	params["idleTI"] = formatSeconds(time(NULL) - awayTime);
-	return formatParams(awayMsg.empty() ? SETTING(DEFAULT_AWAY_MESSAGE) : awayMsg, params);
 }
 
 wstring Util::formatSecondsW(int64_t aSec, bool supressHours /*false*/) {

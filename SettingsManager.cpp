@@ -105,7 +105,7 @@ const string SettingsManager::settingTags[] =
 	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
-	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos",
+	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 	"SENTRY",
 
 	// Bools
@@ -720,6 +720,7 @@ SettingsManager::SettingsManager()
 	setDefault(LAST_LIST_PROFILE, 0);
 	setDefault(SHOW_CHAT_NOTIFY, false);
 	setDefault(FAV_USERS_SPLITTER_POS, 7500);
+	setDefault(AWAY_IDLE_TIME, 5);
 
 	//set depending on the cpu count
 	SYSTEM_INFO info={{0}};

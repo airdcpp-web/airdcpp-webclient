@@ -759,8 +759,9 @@ void AutoSearchManager::runSearches() {
 			return;
 		}
 
-		for(auto as: searchItems) {
-			
+		 for(auto i = searchItems.begin() + curPos; i != searchItems.end(); ++i) {
+			AutoSearchPtr as = *i;
+
 			curPos++; //move to next one, even if we skip something, dont check the same ones again until list has gone thru.
 
 			if (!as->allowNewItems())

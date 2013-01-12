@@ -25,6 +25,14 @@
 
 namespace dcpp {
 
+//Away modes
+enum AwayMode {
+	AWAY_OFF,
+	AWAY_IDLE,
+	AWAY_MINIMIZE,
+	AWAY_MANUAL //highest value
+};
+
 enum DupeType { 
 	DUPE_NONE, 
 	PARTIAL_SHARE_DUPE, 
@@ -91,7 +99,18 @@ class AirUtil {
 
 		static string convertMovePath(const string& aPath, const string& aParent, const string& aTarget);
 		static string regexEscape(const string& aStr, bool isWildcard);
+
+		static bool getAway() { return away > 0; }
+		static AwayMode getAwayMode() { return away; }
+		static void setAway(AwayMode aAway);
+		static string getAwayMessage(ParamMap& params);
+		static void setAwayMessage(const string& aMsg) { awayMsg = aMsg; }
+
 	private:
+
+		static AwayMode away;
+		static string awayMsg;
+		static time_t awayTime;
 
 	};
 }

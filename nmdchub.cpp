@@ -933,7 +933,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 
 
 		version = SHORTVERSIONSTRING;
-		if(Util::getAway()) {
+		if(AirUtil::getAway()) {
 			status |= Identity::AWAY;
 		}
 		if(SETTING(ALLOW_NAT_TRAVERSAL) && !isActive()) {

@@ -1614,6 +1614,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Refreshing options", 
 "An expired auto search has been removed: %s", 
 "Proxies", 
+"Away Mode", 
+"Automatically set away mode after", 
+"minutes of inactivity (0 = disabled)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3228,4 +3231,7 @@ std::string dcpp::ResourceManager::names[] = {
 "RefreshOptions", 
 "ExpiredAsRemoved", 
 "Proxies", 
+"AwayMode", 
+"AwayIdleTimeBegin", 
+"AwayIdleTimeEnd", 
 };

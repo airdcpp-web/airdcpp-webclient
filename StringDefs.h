@@ -1621,5 +1621,8 @@ enum Strings { // @DontAdd
 	REFRESH_OPTIONS, // "Refreshing options"
 	EXPIRED_AS_REMOVED, // "An expired auto search has been removed: %s"
 	PROXIES, // "Proxies"
+	AWAY_MODE, // "Away Mode"
+	AWAY_IDLE_TIME_BEGIN, // "Automatically set away mode after"
+	AWAY_IDLE_TIME_END, // "minutes of inactivity (0 = disabled)"
 	LAST // @DontAdd
 };

@@ -57,6 +57,10 @@ boost::regex AirUtil::crcReg;
 string AirUtil::privKeyFile;
 string AirUtil::tempDLDir;
 
+AwayMode AirUtil::away = AWAY_OFF;
+string AirUtil::awayMsg;
+time_t AirUtil::awayTime;
+
 tstring AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
 	if (aType == SHARE_DUPE || aType == PARTIAL_SHARE_DUPE) {
 		return ShareManager::getInstance()->getDirPath(aPath);
@@ -620,6 +624,24 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
 		result = "^(" + result + ")$";
 	}
     return result;
+}
+
+void AirUtil::setAway(AwayMode aAway) {
+	if(aAway != away)
+		ClientManager::getInstance()->infoUpdated();
+
+	if((aAway == AWAY_MANUAL) || (getAwayMode() == AWAY_MANUAL && aAway == AWAY_OFF) ) //only save the state if away mode is set by user
+		SettingsManager::getInstance()->set(SettingsManager::AWAY, aAway > 0);
+
+	away = aAway;
+
+	if (away > AWAY_OFF)
+		awayTime = time(NULL);
+}
+
+string AirUtil::getAwayMessage(ParamMap& params) { 
+	params["idleTI"] = Util::formatSeconds(time(NULL) - awayTime);
+	return Util::formatParams(awayMsg.empty() ? SETTING(DEFAULT_AWAY_MESSAGE) : awayMsg, params);
 }
 
 }
