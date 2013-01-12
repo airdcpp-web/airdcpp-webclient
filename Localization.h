@@ -65,9 +65,7 @@ class Localization {
 		static uint8_t getFlagIndexByCode(const char* countryCode);
 		static uint8_t getFlagIndexByName(const char* countryName);
 
-		//static vector<Language> languageList;
-	private:
-		//static Language curLanguage;
+		static bool usingInbuiltLanguage();
 	};
 }
 #endif

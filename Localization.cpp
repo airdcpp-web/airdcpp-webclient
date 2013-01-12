@@ -139,7 +139,7 @@ namespace dcpp {
 			boost::replace_all(langFile, "/", "\\"); //eh, the previous versions have saved the language path in a wrong format, remove this workaround in some point
 			langFile = Util::getFileName(langFile);
 
-			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language aLang) { return aLang.languageFile == langFile; });
+			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language& aLang) { return aLang.languageFile == langFile; });
 			if (s != languageList.end()) {
 				curLanguage = distance(languageList.begin(), s);
 			} else {
@@ -150,6 +150,12 @@ namespace dcpp {
 				curLanguage = languageList.size()-1;
 			}
 		}
+
+		languageList.shrink_to_fit();
+	}
+
+	bool Localization::usingInbuiltLanguage() {
+		return languageList[curLanguage].locale != "en-US";
 	}
 
 	double Localization::getCurLanguageVersion() {

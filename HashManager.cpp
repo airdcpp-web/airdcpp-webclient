@@ -915,7 +915,7 @@ int HashManager::Hasher::run() {
 		}
 
 		auto onDirHashed = [&] () -> void {
-			if (SETTING(HASHERS_PER_VOLUME) == 1 && (dirFilesHashed > 1 || !failed)) {
+			if ((SETTING(HASHERS_PER_VOLUME) == 1 || w.empty()) && (dirFilesHashed > 1 || !failed)) {
 				if (dirFilesHashed == 1) {
 					HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_FILE, currentFile % 
 						Util::formatBytes(dirSizeHashed) % 

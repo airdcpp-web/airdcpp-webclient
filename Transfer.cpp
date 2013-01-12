@@ -125,6 +125,15 @@ const string& Transfer::getToken() const {
 	return getUserConnection().getToken(); 
 }
 
+void Transfer::resetPos() { 
+	pos = 0; 
+	actual = 0;
+	samples.clear();
+};
 
+void Transfer::addPos(int64_t aBytes, int64_t aActual) { 
+	pos += aBytes; 
+	actual+= aActual; 
+}
 
 } // namespace dcpp
