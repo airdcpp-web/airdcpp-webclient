@@ -2517,7 +2517,7 @@ void ShareManager::cleanIndices(Directory::Ptr& dir) {
 	dir->directories.clear();
 }
 
-void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr aBundle) noexcept {
+void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
 	WLock l (dirNames);
 	bundleDirs.insert(upper_bound(bundleDirs.begin(), bundleDirs.end(), aBundle->getTarget()), aBundle->getTarget());
 }

@@ -145,13 +145,13 @@ public:
 	bool updateSearchTime();
 	void updateStatus();
 
-	void removeBundle(BundlePtr aBundle);
+	void removeBundle(BundlePtr& aBundle);
 	//returns true if the status has changed
-	bool setBundleStatus(BundlePtr aBundle, Status aStatus);
+	bool setBundleStatus(BundlePtr& aBundle, Status aStatus);
 	void addPath(const string& aPath, time_t aFinishTime);
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;
-	static string formatParams(const AutoSearchPtr as, const string& aString);
+	static string formatParams(const AutoSearchPtr& as, const string& aString);
 	void setUserMatcher(const string& aPattern) { userMatcher.pattern = aPattern; }
 	void prepareUserMatcher() { userMatcher.prepare(); }
 	string getTarget() { return target; }
@@ -177,19 +177,19 @@ public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
-	bool addFailedBundle(BundlePtr aBundle, ProfileToken aToken);
+	bool addFailedBundle(BundlePtr& aBundle, ProfileToken aToken);
 	bool addAutoSearch(AutoSearchPtr aAutoSearch, bool search);
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
 	AutoSearchPtr getSearchByIndex(unsigned int index) const;
 	AutoSearchPtr getSearchByToken(ProfileToken aToken) const;
 
-	string getBundleStatuses(const AutoSearchPtr as) const;
+	string getBundleStatuses(const AutoSearchPtr& as) const;
 	void clearPaths(AutoSearchPtr as);
 
-	void getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const;
-	bool updateAutoSearch(AutoSearchPtr ipw);
-	void removeAutoSearch(AutoSearchPtr a);
-	bool searchItem(AutoSearchPtr as, SearchType aType);
+	void getMenuInfo(const AutoSearchPtr& as, AutoSearch::BundleStatusMap& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const;
+	bool updateAutoSearch(AutoSearchPtr& ipw);
+	void removeAutoSearch(AutoSearchPtr& a);
+	bool searchItem(AutoSearchPtr& as, SearchType aType);
 
 	void changeNumber(AutoSearchPtr as, bool increase);
 	
@@ -229,7 +229,7 @@ private:
 
 	DelayedEvents<ProfileToken> resultCollector;
 
-	void performSearch(AutoSearchPtr as, StringList& aHubs, SearchType aType);
+	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType);
 	//count minutes to be more accurate than comparing ticks every minute.
 	unsigned int lastSearch;
 	unsigned int recheckTime;
@@ -245,7 +245,7 @@ private:
 
 	unordered_map<ProfileToken, SearchResultList> searchResults;
 	void pickMatch(AutoSearchPtr as);
-	void handleAction(const SearchResultPtr sr, AutoSearchPtr as);
+	void handleAction(const SearchResultPtr& sr, AutoSearchPtr& as);
 
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
@@ -255,8 +255,8 @@ private:
 
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
-	bool onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus);
-	void onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet& aSearches, bool finished);
+	bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus);
+	void onRemoveBundle(BundlePtr& aBundle, const ProfileTokenSet& aSearches, bool finished);
 };
 }
 #endif

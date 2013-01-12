@@ -67,7 +67,7 @@ void FinishedManager::removeAll(bool upload /* = false */) {
 	}
 }
 
-void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept {
+void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept {
 		
 	if(!qi->isSet(QueueItem::FLAG_USER_LIST) || SETTING(LOG_FILELIST_TRANSFERS)) {
 		

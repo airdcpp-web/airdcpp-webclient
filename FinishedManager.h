@@ -115,7 +115,7 @@ private:
 	FinishedManager();
 	~FinishedManager();
 
-	void on(QueueManagerListener::Finished, const QueueItemPtr, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept;
+	void on(QueueManagerListener::Finished, const QueueItemPtr&, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept;
 	void on(UploadManagerListener::Complete, const Upload*) noexcept;
 
 	CriticalSection cs;

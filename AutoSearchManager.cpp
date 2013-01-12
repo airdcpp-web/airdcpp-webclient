@@ -92,7 +92,7 @@ void AutoSearch::changeNumber(bool increase) {
 	}
 }
 
-string AutoSearch::formatParams(const AutoSearchPtr as, const string& aString) {
+string AutoSearch::formatParams(const AutoSearchPtr& as, const string& aString) {
 	ParamMap params;
 	if (as->usingIncrementation()) {
 		params["inc"] = [&] { 
@@ -139,7 +139,7 @@ string AutoSearch::getDisplayType() const {
 	return SearchManager::isDefaultTypeStr(fileType) ? SearchManager::getTypeStr(fileType[0]-'0') : fileType;
 }
 
-bool AutoSearch::setBundleStatus(BundlePtr aBundle, Status aStatus) {
+bool AutoSearch::setBundleStatus(BundlePtr& aBundle, Status aStatus) {
 	auto& s = bundles[aBundle];
 	if (aStatus == s)
 		return false;
@@ -149,7 +149,7 @@ bool AutoSearch::setBundleStatus(BundlePtr aBundle, Status aStatus) {
 	return true;
 }
 
-void AutoSearch::removeBundle(BundlePtr aBundle) { 
+void AutoSearch::removeBundle(BundlePtr& aBundle) { 
 	bundles.erase(aBundle);
 }
 
@@ -339,7 +339,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 		return nullptr;
 	}
 
-	auto as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
+	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
 		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false);
 
 	return addAutoSearch(as, true) ? as : nullptr;
@@ -382,7 +382,7 @@ void AutoSearchManager::setActiveItem(unsigned int index, bool active) {
 	}
 }
 
-bool AutoSearchManager::updateAutoSearch(AutoSearchPtr ipw) {
+bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) {
 	WLock l(cs);
 	ipw->prepareUserMatcher();
 	ipw->updatePattern();
@@ -403,7 +403,7 @@ void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) {
 	fire(AutoSearchManagerListener::UpdateItem(), as, true);
 }
 
-void AutoSearchManager::removeAutoSearch(AutoSearchPtr aItem) {
+void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) {
 	WLock l(cs);
 	auto i = find_if(searchItems, [aItem](const AutoSearchPtr as) { return compare(as->getToken(), aItem->getToken()) == 0; });
 	if(i != searchItems.end()) {
@@ -434,7 +434,7 @@ AutoSearchPtr AutoSearchManager::getSearchByToken(ProfileToken aToken) const {
 
 
 /* GUI things */
-void AutoSearchManager::getMenuInfo(const AutoSearchPtr as, AutoSearch::BundleStatusMap& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const {
+void AutoSearchManager::getMenuInfo(const AutoSearchPtr& as, AutoSearch::BundleStatusMap& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const {
 	{
 		RLock l(cs);
 		finishedPaths = as->getFinishedPaths();
@@ -452,7 +452,7 @@ void AutoSearchManager::clearPaths(AutoSearchPtr as) {
 	dirty = true;
 }
 
-string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
+string AutoSearchManager::getBundleStatuses(const AutoSearchPtr& as) const {
 	string statusString;
 	{
 		RLock l (cs);
@@ -489,7 +489,7 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr as) const {
 
 
 /* Bundle updates */
-bool AutoSearchManager::onBundleStatus(BundlePtr aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus) {
+bool AutoSearchManager::onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus) {
 	bool found = false, searched = false;
 	for(const auto t: aSearches) {
 		auto as = getSearchByToken(t);
@@ -514,7 +514,7 @@ bool AutoSearchManager::onBundleStatus(BundlePtr aBundle, const ProfileTokenSet&
 	return found;
 }
 
-void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet& aSearches, bool finished) {
+void AutoSearchManager::onRemoveBundle(BundlePtr& aBundle, const ProfileTokenSet& aSearches, bool finished) {
 	for(const auto t: aSearches) {
 		auto as = getSearchByToken(t);
 		if (as) {
@@ -553,7 +553,7 @@ void AutoSearchManager::onRemoveBundle(BundlePtr aBundle, const ProfileTokenSet&
 	}
 }
 
-bool AutoSearchManager::addFailedBundle(BundlePtr aBundle, ProfileToken aToken) {
+bool AutoSearchManager::addFailedBundle(BundlePtr& aBundle, ProfileToken aToken) {
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
 		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, aToken);
 	as->setBundleStatus(aBundle, AutoSearch::STATUS_FAILED_MISSING);
@@ -561,7 +561,7 @@ bool AutoSearchManager::addFailedBundle(BundlePtr aBundle, ProfileToken aToken) 
 }
 
 /* Item searching */
-void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, SearchType aType) {
+void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType) {
 
 	//Get the search type
 	StringList extList;
@@ -631,7 +631,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr as, StringList& aHubs, Searc
 }
 
 
-bool AutoSearchManager::searchItem(AutoSearchPtr as, SearchType aType) {
+bool AutoSearchManager::searchItem(AutoSearchPtr& as, SearchType aType) {
 	StringList allowedHubs;
 	ClientManager::getInstance()->getOnlineClients(allowedHubs);
 	//no hubs? no fun...
@@ -982,7 +982,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 	}
 }
 
-void AutoSearchManager::handleAction(const SearchResultPtr sr, AutoSearchPtr as) {
+void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {

@@ -54,7 +54,7 @@ QueueItemPtr FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskTyp
 	return qi;
 }
 
-void FileQueue::add(QueueItemPtr qi) noexcept {
+void FileQueue::add(QueueItemPtr& qi) noexcept {
 	if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
 		dcassert(qi->getSize() >= 0);
 		queueSize += qi->getSize();
@@ -64,7 +64,7 @@ void FileQueue::add(QueueItemPtr qi) noexcept {
 	tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
 }
 
-void FileQueue::remove(QueueItemPtr qi) noexcept {
+void FileQueue::remove(QueueItemPtr& qi) noexcept {
 	//TargetMap
 	auto f = queue.find(const_cast<string*>(&qi->getTarget()));
 	if (f != queue.end()) {
@@ -156,7 +156,7 @@ QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileNa
 	return nullptr;
 }
 
-void FileQueue::move(QueueItemPtr qi, const string& aTarget) noexcept {
+void FileQueue::move(QueueItemPtr& qi, const string& aTarget) noexcept {
 	queue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
 	queue.emplace(const_cast<string*>(&qi->getTarget()), qi);

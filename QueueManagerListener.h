@@ -62,26 +62,26 @@ public:
 	typedef X<26> FileHashed;
 	typedef X<27> BundleFilesMoved;
 
-	virtual void on(Added, QueueItemPtr) noexcept { }
-	virtual void on(Finished, const QueueItemPtr, const string&, const HintedUser&, int64_t) noexcept { }
-	virtual void on(Removed, const QueueItemPtr, bool) noexcept { }
-	virtual void on(Moved, const QueueItemPtr, const string&) noexcept { }
-	virtual void on(SourcesUpdated, const QueueItemPtr) noexcept { }
-	virtual void on(StatusUpdated, const QueueItemPtr) noexcept { }
+	virtual void on(Added, QueueItemPtr&) noexcept { }
+	virtual void on(Finished, const QueueItemPtr&, const string&, const HintedUser&, int64_t) noexcept { }
+	virtual void on(Removed, const QueueItemPtr&, bool) noexcept { }
+	virtual void on(Moved, const QueueItemPtr&, const string&) noexcept { }
+	virtual void on(SourcesUpdated, const QueueItemPtr&) noexcept { }
+	virtual void on(StatusUpdated, const QueueItemPtr&) noexcept { }
 	virtual void on(PartialList, const HintedUser&, const string&) noexcept { }
 
-	virtual void on(BundleSources, const BundlePtr) noexcept { }
-	virtual void on(BundleFinished, const BundlePtr) noexcept { }
-	virtual void on(BundleRemoved, const BundlePtr) noexcept { }
-	virtual void on(BundleMoved, const BundlePtr) noexcept { }
-	virtual void on(BundleMerged, const BundlePtr, const string&) noexcept { }
-	virtual void on(BundleSize, const BundlePtr) noexcept { }
-	virtual void on(BundleTarget, const BundlePtr) noexcept { }
-	virtual void on(BundlePriority, const BundlePtr) noexcept { }
-	virtual void on(BundleAdded, const BundlePtr) noexcept { }
+	virtual void on(BundleSources, const BundlePtr&) noexcept { }
+	virtual void on(BundleFinished, const BundlePtr&) noexcept { }
+	virtual void on(BundleRemoved, const BundlePtr&) noexcept { }
+	virtual void on(BundleMoved, const BundlePtr&) noexcept { }
+	virtual void on(BundleMerged, const BundlePtr&, const string&) noexcept { }
+	virtual void on(BundleSize, const BundlePtr&) noexcept { }
+	virtual void on(BundleTarget, const BundlePtr&) noexcept { }
+	virtual void on(BundlePriority, const BundlePtr&) noexcept { }
+	virtual void on(BundleAdded, const BundlePtr&) noexcept { }
 	virtual void on(BundleHashed, const string&) noexcept { }
 	virtual void on(FileHashed, const string& /* fileName */, const TTHValue& /* root */) noexcept { }
-	virtual void on(BundleFilesMoved, const BundlePtr) noexcept { }
+	virtual void on(BundleFilesMoved, const BundlePtr&) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }
 	virtual void on(RecheckNoFile, const string&) noexcept { }

@@ -193,7 +193,7 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 	}
 }
 
-bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
+bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) {
 	finishedFiles.push_back(qi);
 	if (!finished) {
 		qi->setFlag(QueueItem::FLAG_MOVED);
@@ -211,7 +211,7 @@ bool Bundle::addFinishedItem(QueueItemPtr qi, bool finished) {
 	return false;
 }
 
-bool Bundle::removeFinishedItem(QueueItemPtr qi) {
+bool Bundle::removeFinishedItem(QueueItemPtr& qi) {
 	int pos = 0;
 	for (auto& fqi: finishedFiles) {
 		if (fqi == qi) {
@@ -233,7 +233,7 @@ bool Bundle::removeFinishedItem(QueueItemPtr qi) {
 	return false;
 }
 
-bool Bundle::addQueue(QueueItemPtr qi) {
+bool Bundle::addQueue(QueueItemPtr& qi) {
 	dcassert(find(queueItems, qi) == queueItems.end());
 	qi->setBundle(this);
 	queueItems.push_back(qi);
@@ -247,7 +247,7 @@ bool Bundle::addQueue(QueueItemPtr qi) {
 	return false;
 }
 
-bool Bundle::removeQueue(QueueItemPtr qi, bool finished) {
+bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) {
 	int pos = 0;
 	for (auto& cur: queueItems) {
 		if (cur == qi) {
@@ -285,12 +285,12 @@ bool Bundle::isBadSource(const UserPtr& aUser) const {
 	return find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
 }
 
-void Bundle::addUserQueue(QueueItemPtr qi) {
+void Bundle::addUserQueue(QueueItemPtr& qi) {
 	for(auto& s: qi->getSources())
 		addUserQueue(qi, s.getUser());
 }
 
-bool Bundle::addUserQueue(QueueItemPtr qi, const HintedUser& aUser, bool isBad /*false*/) {
+bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 	dcassert(find(l, qi) == l.end());
 
@@ -436,7 +436,7 @@ pair<uint32_t, uint32_t> Bundle::getPathInfo(const string& aDir) const noexcept 
 	return make_pair(0, 0);
 }
 
-void Bundle::rotateUserQueue(QueueItemPtr qi, const UserPtr& aUser) noexcept {
+void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];
 	auto j = ulm.find(aUser);
@@ -454,12 +454,12 @@ void Bundle::rotateUserQueue(QueueItemPtr qi, const UserPtr& aUser) noexcept {
 	}
 }
 
-void Bundle::removeUserQueue(QueueItemPtr qi) noexcept {
+void Bundle::removeUserQueue(QueueItemPtr& qi) noexcept {
 	for(auto& s: qi->getSources())
 		removeUserQueue(qi, s.getUser(), false);
 }
 
-bool Bundle::removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad) noexcept {
+bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, bool addBad) noexcept {
 
 	//remove from UserQueue
 	dcassert(qi->isSource(aUser));

@@ -79,7 +79,7 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 	}
 }
 
-bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr left, const QueueItemPtr right) const {
+bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const {
 	auto extLeft = left->getTarget().rfind('.');
 	auto extRight = right->getTarget().rfind('.');
 	if (extLeft != string::npos && extRight != string::npos && 
@@ -103,7 +103,7 @@ bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr left, const QueueI
 }
 
 /* This has a few extra checks because the size is unknown for filelists */
-bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr left, const QueueItemPtr right) const {
+bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const {
 	//partial lists always go first
 	if (left->isSet(QueueItem::FLAG_PARTIAL_LIST)) return true;
 	if (right->isSet(QueueItem::FLAG_PARTIAL_LIST)) return false;
@@ -115,7 +115,7 @@ bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr left, const QueueIt
 	return left->getSize() < right->getSize();
 }
 
-bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr left, const QueueItemPtr right) const {
+bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const {
 	return left->getPriority() > right->getPriority();
 }
 

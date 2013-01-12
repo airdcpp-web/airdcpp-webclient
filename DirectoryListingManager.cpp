@@ -352,7 +352,7 @@ void DirectoryListingManager::handleSizeConfirmation(const string& aTarget, bool
 	wdi->deleteListings();
 }
 
-void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItemPtr qi, const string& dir, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {
 	if (!qi->isSet(QueueItem::FLAG_CLIENT_VIEW) || !qi->isSet(QueueItem::FLAG_USER_LIST))
 		return;
 

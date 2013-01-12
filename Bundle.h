@@ -171,13 +171,13 @@ public:
 
 	/* QueueManager */
 	void save();
-	bool removeQueue(QueueItemPtr qi, bool finished) noexcept;
-	bool addQueue(QueueItemPtr qi) noexcept;
+	bool removeQueue(QueueItemPtr& qi, bool finished) noexcept;
+	bool addQueue(QueueItemPtr& qi) noexcept;
 
 	void getDirQIs(const string& aDir, QueueItemList& ql) const noexcept;
 
-	bool addFinishedItem(QueueItemPtr qi, bool finished) noexcept;
-	bool removeFinishedItem(QueueItemPtr qi) noexcept;
+	bool addFinishedItem(QueueItemPtr& qi, bool finished) noexcept;
+	bool removeFinishedItem(QueueItemPtr& qi) noexcept;
 	void finishBundle() noexcept;
 	bool allowHash();
 
@@ -231,16 +231,16 @@ public:
 	bool isFinished() const { return queueItems.empty(); }
 
 	/** All queue items indexed by user */
-	void addUserQueue(QueueItemPtr qi) noexcept;
-	bool addUserQueue(QueueItemPtr qi, const HintedUser& aUser, bool isBad = false) noexcept;
+	void addUserQueue(QueueItemPtr& qi) noexcept;
+	bool addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad = false) noexcept;
 	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 
-	void removeUserQueue(QueueItemPtr qi) noexcept;
-	bool removeUserQueue(QueueItemPtr qi, const UserPtr& aUser, bool addBad) noexcept;
+	void removeUserQueue(QueueItemPtr& qi) noexcept;
+	bool removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, bool addBad) noexcept;
 
 	//moves the file back in userqueue for the given user (only within the same priority)
-	void rotateUserQueue(QueueItemPtr qi, const UserPtr& aUser) noexcept;
+	void rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept;
 private:
 	int64_t finishedSegments;
 	int64_t currentDownloaded; //total downloaded for the running downloads

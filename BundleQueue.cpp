@@ -45,7 +45,7 @@ size_t BundleQueue::getTotalFiles() const {
 	return boost::accumulate(bundles | map_values, (size_t)0, [](int64_t old, const BundlePtr b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
 }
 
-void BundleQueue::addBundle(BundlePtr aBundle) {
+void BundleQueue::addBundle(BundlePtr& aBundle) {
 	aBundle->unsetFlag(Bundle::FLAG_NEW);
 	aBundle->setDownloadedBytes(0); //sets to downloaded segments
 
@@ -60,7 +60,7 @@ void BundleQueue::addBundle(BundlePtr aBundle) {
 	}
 }
 
-void BundleQueue::addSearchPrio(BundlePtr aBundle) {
+void BundleQueue::addSearchPrio(BundlePtr& aBundle) {
 	if (aBundle->getPriority() < Bundle::LOW) {
 		return;
 	}
@@ -75,7 +75,7 @@ void BundleQueue::addSearchPrio(BundlePtr aBundle) {
 	}
 }
 
-void BundleQueue::removeSearchPrio(BundlePtr aBundle) {
+void BundleQueue::removeSearchPrio(BundlePtr& aBundle) {
 	if (aBundle->getPriority() < Bundle::LOW) {
 		return;
 	}
@@ -315,13 +315,13 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 	}
 }
 
-void BundleQueue::addBundleItem(QueueItemPtr qi, BundlePtr aBundle) {
+void BundleQueue::addBundleItem(QueueItemPtr& qi, BundlePtr aBundle) {
 	if (aBundle->addQueue(qi) && !aBundle->isFileBundle()) {
 		addDirectory(qi->getFilePath(), aBundle);
 	}
 }
 
-void BundleQueue::removeBundleItem(QueueItemPtr qi, bool finished) {
+void BundleQueue::removeBundleItem(QueueItemPtr& qi, bool finished) {
 	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !qi->getBundle()->isFileBundle()) {
 		removeDirectory(qi->getFilePath());
 	}
@@ -344,19 +344,19 @@ Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) {
 	return s.base() != bdr.second ? s.base() : bundleDirs.end();
 }
 
-void BundleQueue::addFinishedItem(QueueItemPtr qi, BundlePtr aBundle) {
+void BundleQueue::addFinishedItem(QueueItemPtr& qi, BundlePtr aBundle) {
 	if (aBundle->addFinishedItem(qi, false) && !aBundle->isFileBundle()) {
 		addDirectory(qi->getFilePath(), aBundle);
 	}
 }
 
-void BundleQueue::removeFinishedItem(QueueItemPtr qi) {
+void BundleQueue::removeFinishedItem(QueueItemPtr& qi) {
 	if (qi->getBundle()->removeFinishedItem(qi) && !qi->getBundle()->isFileBundle()) {
 		removeDirectory(qi->getFilePath());
 	}
 }
 
-void BundleQueue::removeBundle(BundlePtr aBundle) {
+void BundleQueue::removeBundle(BundlePtr& aBundle) {
 	if (aBundle->isSet(Bundle::FLAG_NEW)) {
 		return;
 	}
@@ -380,7 +380,7 @@ void BundleQueue::removeBundle(BundlePtr aBundle) {
 	aBundle->deleteBundleFile();
 }
 
-void BundleQueue::moveBundle(BundlePtr aBundle, const string& newTarget) {
+void BundleQueue::moveBundle(BundlePtr& aBundle, const string& newTarget) {
 	//remove the old release dir
 	removeDirectory(aBundle->getTarget());
 

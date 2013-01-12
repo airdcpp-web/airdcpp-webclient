@@ -559,7 +559,7 @@ private:
 	virtual int run();
 
 	// QueueManagerListener
-	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr aBundle) noexcept;
+	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
 	virtual void on(QueueManagerListener::BundleHashed, const string& path) noexcept;
 	virtual void on(QueueManagerListener::FileHashed, const string& fname, const TTHValue& root) noexcept { onFileHashed(fname, root); }
 
