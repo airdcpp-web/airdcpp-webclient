@@ -761,22 +761,29 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 
 void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_UPLOAD));
-	bool added = false;
+	bool allowAdd = true;
 
 	{
 		WLock l(cs);
-		added = tokens.addToken(uc->getToken());
-		if (added) {
-			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-			ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
-			uc->setToken(cqi->getToken()); //sync if the uc token was empty
-			cqi->setState(ConnectionQueueItem::ACTIVE);
-			//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
-			fire(ConnectionManagerListener::Connected(), cqi);
+		if (!uc->isSet(UserConnection::FLAG_MCN1) && find(uploads.begin(), uploads.end(), uc->getUser()) != uploads.end()) {
+			//one connection per CID for non-mcn users
+			allowAdd=false;
+		}
+
+		if (allowAdd) {
+			allowAdd = tokens.addToken(uc->getToken());
+			if (allowAdd) {
+				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+				ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
+				uc->setToken(cqi->getToken()); //sync if the uc token was empty
+				cqi->setState(ConnectionQueueItem::ACTIVE);
+				//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
+				fire(ConnectionManagerListener::Connected(), cqi);
+			}
 		}
 	}
 
-	if (!added) {
+	if (!allowAdd) {
 		putConnection(uc);
 		return;
 	}

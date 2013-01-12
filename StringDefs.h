@@ -606,7 +606,6 @@ enum Strings { // @DontAdd
 	SETTINGS_LOGGING, // "Logging"
 	SETTINGS_LOGS, // "Logs"
 	SETTINGS_MAX_COMPRESS, // "Max compression level"
-	SETTINGS_MAX_HASH_SPEED, // "Max hash speed"
 	SETTINGS_MAX_TAB_ROWS, // "Max tab rows"
 	SETTINGS_MINIMIZE_ON_STARTUP, // "Minimize at program startup"
 	SETTINGS_MINIMIZE_TRAY, // "Minimize to tray"
@@ -1626,5 +1625,6 @@ enum Strings { // @DontAdd
 	AWAY_MODE, // "Away Mode"
 	AWAY_IDLE_TIME_BEGIN, // "Automatically set away mode after"
 	AWAY_IDLE_TIME_END, // "minutes of inactivity (0 = disabled)"
+	SETTINGS_MAX_HASHER_SPEED, // "Max speed per hasher"
 	LAST // @DontAdd
 };

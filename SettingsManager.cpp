@@ -733,16 +733,6 @@ SettingsManager::SettingsManager()
 #else
 	setDefault(DECREASE_RAM, true); //32 bit windows will most likely have less ram to spend (4gb max)
 #endif
-/*
-#ifdef _WIN32
-	OSVERSIONINFO ver;
-	memzero(&ver, sizeof(OSVERSIONINFO));
-	ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	GetVersionEx((OSVERSIONINFO*)&ver);
-
-	setDefault(USE_OLD_SHARING_UI, (ver.dwPlatformId == VER_PLATFORM_WIN32_NT) ? false : true);
-#endif
-	*/
 }
 
 void SettingsManager::load(string const& aFileName, function<void (const string&)> messageF) {
@@ -842,9 +832,21 @@ void SettingsManager::load(string const& aFileName, function<void (const string&
 			}
 			xml.stepOut();
 		}
+		xml.resetCurrentChild();
 
 		double prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
-		if (prevVersion > 0 && prevVersion < 2.41) {
+		if (prevVersion < 2.41) {
+			//previous versions have saved two settings in a wrong order... fix the dupe color here (queuebars don't matter)
+			if(xml.findChild("Settings")) {
+				xml.stepIn();
+				const string& attr = settingTags[SHOW_QUEUE_BARS];
+				if(xml.findChild(attr)) {
+					set(IntSetting(DUPE_COLOR), Util::toInt(xml.getChildData()));
+				}
+				xml.resetCurrentChild();
+				xml.stepOut();
+			}
+
 			// port previous conn settings
 			enum { OLD_INCOMING_DIRECT, OLD_INCOMING_UPNP, OLD_INCOMING_NAT, OLD_INCOMING_PASSIVE };
 			switch(SETTING(INCOMING_CONNECTIONS)) {
