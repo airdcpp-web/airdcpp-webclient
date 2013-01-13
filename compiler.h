@@ -19,21 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_COMPILER_H
 #define DCPLUSPLUS_DCPP_COMPILER_H
 
-#if defined(__GNUC__)
-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 5)
-#error GCC 4.5 is required
-
+#if _MSC_VER < 1700
+#error MSVC 11 (2012) is required
 #endif
 
-#elif defined(_MSC_VER)
-#if _MSC_VER < 1600
-#error MSVC 10 (2010) is required
-#endif
-
-#define _SECURE_SCL  0
-#define _ITERATOR_DEBUG_LEVEL 0
-#define _HAS_ITERATOR_DEBUGGING 0
-#define _SECURE_SCL_THROWS 0
+//#define _SECURE_SCL  0
+//#define _ITERATOR_DEBUG_LEVEL 0
+//#define _HAS_ITERATOR_DEBUGGING 0
+//#define _SECURE_SCL_THROWS 0
 #define memzero(dest, n) memset(dest, 0, n)
 
 //disable the deprecated warnings for the CRT functions.
@@ -45,11 +38,6 @@
 
 #define snprintf _snprintf
 #define snwprintf _snwprintf
-
-#else
-#error No supported compiler found
-
-#endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define _LL(x) x##ll

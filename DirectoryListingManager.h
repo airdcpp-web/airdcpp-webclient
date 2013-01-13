@@ -70,7 +70,7 @@ namespace dcpp {
 
 		bool hasList(const UserPtr& aUser);
 		void createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir = Util::emptyString, bool isOwnList=false);
-		void createPartialList(const HintedUser& aUser, const string& aXml, ProfileToken aProfile=SP_DEFAULT, bool isOwnList=false);
+		void createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir = Util::emptyString, ProfileToken aProfile=SP_DEFAULT, bool isOwnList=false);
 
 		/** Directories queued for downloading */
 		boost::unordered_multimap<UserPtr, DirectoryDownloadInfo*, User::Hash> dlDirectories;
@@ -80,7 +80,7 @@ namespace dcpp {
 		unordered_map<UserPtr, DirectoryListingPtr, User::Hash> viewedLists;
 
 		void on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
-		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& text) noexcept;
+		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& aXml, const string& aBase) noexcept;
 
 		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	};

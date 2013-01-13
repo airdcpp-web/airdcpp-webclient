@@ -1262,6 +1262,8 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 			}
 
 			if(d->getType() != Transfer::TYPE_TREE && q->getDownloadedBytes() == 0) {
+				if(d->getType() == Transfer::TYPE_FILE)
+					File::deleteFile(d->getTempTarget());
 				q->setTempTarget(Util::emptyString);
 			}
 
@@ -1301,7 +1303,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 						| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT
 						| (q->isSet(QueueItem::FLAG_VIEW_NFO) ? QueueItem::FLAG_VIEW_NFO : 0);
 				} else {
-					fire(QueueManagerListener::PartialList(), d->getHintedUser(), d->getPFS());
+					fire(QueueManagerListener::PartialList(), d->getHintedUser(), d->getPFS(), q->getTempTarget());
 				}
 				userQueue.removeQI(q);
 				fire(QueueManagerListener::Removed(), q, true);

@@ -1173,9 +1173,12 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 }
 
 void AutoSearchManager::AutoSearchLoad() {
+	auto configPath = Util::getPath(Util::PATH_USER_CONFIG) + AUTOSEARCH_FILE;
 	try {
+		Util::migrate(configPath);
+
 		SimpleXML xml;
-		xml.fromXML(File(Util::getPath(Util::PATH_USER_CONFIG) + AUTOSEARCH_FILE, File::READ, File::OPEN).read());
+		xml.fromXML(File(configPath, File::READ, File::OPEN).read());
 		if(xml.findChild("Autosearch")) {
 			curPos = xml.getIntChildAttrib("LastPosition");
 			xml.stepIn();

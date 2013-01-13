@@ -68,7 +68,7 @@ public:
 	virtual void on(Moved, const QueueItemPtr&, const string&) noexcept { }
 	virtual void on(SourcesUpdated, const QueueItemPtr&) noexcept { }
 	virtual void on(StatusUpdated, const QueueItemPtr&) noexcept { }
-	virtual void on(PartialList, const HintedUser&, const string&) noexcept { }
+	virtual void on(PartialList, const HintedUser&, const string&, const string&) noexcept { }
 
 	virtual void on(BundleSources, const BundlePtr&) noexcept { }
 	virtual void on(BundleFinished, const BundlePtr&) noexcept { }

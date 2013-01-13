@@ -39,7 +39,7 @@ public:
 	typedef X<8> UpdateStatusMessage;
 	typedef X<9> Filter;
 
-	virtual void on(LoadingFinished, int64_t, const string&, bool, bool) noexcept { }
+	virtual void on(LoadingFinished, int64_t /*start*/, const string& /*aDir*/, bool /*reloadList*/, bool /*changeDir*/, bool /*load in gui thread*/) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
 	virtual void on(LoadingStarted) noexcept { }
 	virtual void on(QueueMatched, const string&) noexcept { }

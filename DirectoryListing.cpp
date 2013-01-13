@@ -44,7 +44,7 @@ using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), reloading(false)
+	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), waiting(false)
 {
 	running.clear();
 }
@@ -117,18 +117,20 @@ void DirectoryListing::loadFile(const string& name) {
 	string ext = Util::getFileExt(name);
 
 	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
+
+	int tmp = 0;
 	if(stricmp(ext, ".bz2") == 0) {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
-		loadXML(f, false);
+		loadXML(f, false, tmp);
 	} else if(stricmp(ext, ".xml") == 0) {
-		loadXML(ff, false);
+		loadXML(ff, false, tmp);
 	}
 }
 
 class ListLoader : public SimpleXMLReader::CallBack {
 public:
-	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList) : 
-	  list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList) { 
+	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList, int& aDirsLoaded) : 
+	  list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList), dirsLoaded(aDirsLoaded) { 
 	}
 
 	virtual ~ListLoader() { }
@@ -148,15 +150,16 @@ private:
 	bool updating;
 	bool checkDupe;
 	bool partialList;
+	int& dirsLoaded;
 };
 
-string DirectoryListing::updateXML(const string& xml) {
+string DirectoryListing::updateXML(const string& xml, int& dirsLoaded) {
 	MemoryInputStream mis(xml);
-	return loadXML(mis, true);
+	return loadXML(mis, true, dirsLoaded);
 }
 
-string DirectoryListing::loadXML(InputStream& is, bool updating) {
-	ListLoader ll(this, root, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList);
+string DirectoryListing::loadXML(InputStream& is, bool updating, int& dirsLoaded) {
+	ListLoader ll(this, root, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList, dirsLoaded);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
@@ -212,6 +215,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			DirectoryListing::Directory* d = nullptr;
 			if(updating) {
+				dirsLoaded++;
 				auto s =  list->baseDirs.find(baseLower + Text::toLower(n) + '/');
 				if (s != list->baseDirs.end()) {
 					d = s->second.first;
@@ -257,20 +261,6 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			baseLower = Text::toLower(base);
 			auto& p = list->baseDirs[baseLower];
-
-			if ((!cur->directories.empty() || !cur->files.empty() || base.empty()) && p.second) {
-				//we have been here already, just reload all items
-				cur->clearAll();
-
-				//also clean the visited dirs
-				for(auto i = list->baseDirs.begin(); i != list->baseDirs.end(); ) {
-					if (AirUtil::isSub(i->first, base)) {
-						list->baseDirs.erase(i++);
-					} else {
-						i++;
-					}
-				}
-			}
 
 			//set the dir as visited
 			p.second = true;
@@ -784,14 +774,15 @@ void DirectoryListing::addListDiffTask(const string& aFile, bool aOwnList) {
 }
 
 struct PartialLoadingTask : public Task {
-	PartialLoadingTask(const string& aXml, std::function<void ()> aF) : f(aF), xml(aXml) { }
+	PartialLoadingTask(const string& aXml, const string& aBaseDir, std::function<void ()> aF) : f(aF), xml(aXml), baseDir(aBaseDir) { }
 
 	string xml;
+	string baseDir;
 	std::function<void ()> f;
 };
 
-void DirectoryListing::addPartialListTask(const string& aXmlDir, std::function<void ()> f) {
-	tasks.add(REFRESH_DIR, unique_ptr<Task>(new PartialLoadingTask(aXmlDir, f)));
+void DirectoryListing::addPartialListTask(const string& aXml, const string& aBase, std::function<void ()> f) {
+	tasks.add(REFRESH_DIR, unique_ptr<Task>(new PartialLoadingTask(aXml, Util::toAdcFile(aBase), f)));
 	runTasks();
 }
 
@@ -880,7 +871,8 @@ int DirectoryListing::run() {
 				if (ldt->ownList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
 					if (mis) {
-						dirList.loadXML(*mis, true);
+						int tmp = 0;
+						dirList.loadXML(*mis, true, tmp);
 					} else {
 						throw CSTRING(FILE_NOT_AVAILABLE);
 					}
@@ -889,11 +881,11 @@ int DirectoryListing::run() {
 				}
 
 				root->filterList(dirList);
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true, false);
 			} else if(t.first == MATCH_ADL) {
 				root->clearAdls(); //not much to check even if its the first time loaded without adls...
 				ADLSearchManager::getInstance()->matchListing(*this);
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true, false);
 			} else if(t.first == FILTER) {
 				for(;;) {
 					typingFilter = false;
@@ -906,16 +898,24 @@ int DirectoryListing::run() {
 			}else if(t.first == LOAD_FILE) {
 				partialList = false;
 
+				waiting = true;
 				fire(DirectoryListingListener::LoadingStarted());
+				bool reloading = !root->directories.empty();
+
 				if (reloading) {
+					//wait for the gui to disable the window
+					while (waiting)
+						sleep(50);
+
 					root->clearAll();
 					baseDirs.clear();
 				}
 
 				if (isOwnList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
+					int tmp = 0;
 					if (mis)
-						loadXML(*mis, true);
+						loadXML(*mis, true, tmp);
 					else
 						throw CSTRING(FILE_NOT_AVAILABLE);
 				} else {
@@ -927,36 +927,74 @@ int DirectoryListing::run() {
 					ADLSearchManager::getInstance()->matchListing(*this);
 				}
 
-				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second)->str, reloading, true);
+				fire(DirectoryListingListener::LoadingFinished(), start, static_cast<StringTask*>(t.second)->str, reloading, true, false);
 				reloading = false;
 			} else if (t.first == REFRESH_DIR) {
 				if (!partialList)
 					continue;
 
-				if (reloading) {
-					baseDirs.clear();
-					root->clearAll();
-					root->setComplete(false);
-				}
-
 				auto lt = static_cast<PartialLoadingTask*>(t.second);
+
+				bool reloading = false;
+				auto bd = baseDirs.find(Text::toLower(lt->baseDir));
+				if (bd != baseDirs.end()) {
+					reloading = bd->second.second;
+					if (reloading) {
+						waiting = true;
+						fire(DirectoryListingListener::LoadingStarted());
+
+						//wait for the gui to disable the window
+						while (waiting)
+							sleep(50);
+
+
+						if (lt->baseDir.empty()) {
+							baseDirs.clear();
+							root->clearAll();
+							root->setComplete(false);
+						} else {
+							auto cur = findDirectory(Util::toNmdcFile(lt->baseDir));
+							if (cur && (!cur->directories.empty() || !cur->files.empty())) {
+								//we have been here already, just reload all items
+								cur->clearAll();
+
+								//also clean the visited dirs
+								for(auto i = baseDirs.begin(); i != baseDirs.end(); ) {
+									if (AirUtil::isSub(i->first, lt->baseDir)) {
+										baseDirs.erase(i++);
+									} else {
+										i++;
+									}
+								}
+							}
+						}
+					}
+				}
 				
+				int dirsLoaded = 0;
 				string path;
 				if (isOwnList) {
-					auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(lt->xml), false, Util::toInt(fileName));
+					auto mis = ShareManager::getInstance()->generatePartialList(lt->baseDir, false, Util::toInt(fileName));
 					if (mis) {
-						path = loadXML(*mis, true);
+						path = loadXML(*mis, true, dirsLoaded);
 					} else {
 						throw CSTRING(FILE_NOT_AVAILABLE);
 					}
 				} else {
-					path = updateXML(lt->xml);
+					path = updateXML(lt->xml, dirsLoaded);
 				}
 
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(path), reloading, lt->f == nullptr);
-				reloading = false;
+				auto useGuiThread = !reloading && dirsLoaded < 5000;
+				waiting = true;
+
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(path), reloading, lt->f == nullptr, useGuiThread);
 				if (lt->f) {
 					lt->f();
+				}
+
+				if (useGuiThread) {
+					while (waiting)
+						sleep(50);
 				}
 			} else if (t.first == CLOSE) {
 				//delete this;
@@ -1066,8 +1104,9 @@ void DirectoryListing::changeDir(bool reload) {
 		} else if (isOwnList) {
 			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, Util::toInt(fileName));
 			if (mis) {
-				loadXML(*mis, true);
-				fire(DirectoryListingListener::LoadingFinished(), 0, path, false, true);
+				int tmp = 0;
+				loadXML(*mis, true, tmp);
+				fire(DirectoryListingListener::LoadingFinished(), 0, path, false, true, true);
 			} else {
 				//might happen if have refreshed the share meanwhile
 				fire(DirectoryListingListener::LoadingFailed(), CSTRING(FILE_NOT_AVAILABLE));

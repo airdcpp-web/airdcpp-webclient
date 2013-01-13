@@ -146,8 +146,8 @@ public:
 	
 	void loadFile(const string& name);
 
-	string updateXML(const std::string&);
-	string loadXML(InputStream& xml, bool updating);
+	string updateXML(const std::string& aXml, int& dirsLoaded);
+	string loadXML(InputStream& xml, bool updating, int& dirsLoaded);
 
 	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
 	bool downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio=QueueItem::DEFAULT, bool first=true, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch=0);
@@ -176,17 +176,17 @@ public:
 	const string& getHubUrl() const { return hintedUser.hint; }	
 		
 	GETSET(HintedUser, hintedUser, HintedUser);
-	GETSET(bool, reloading, Reloading);
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, abort, Abort);
 	GETSET(bool, isOwnList, IsOwnList);
 	GETSET(bool, isClientView, isClientView);
 	GETSET(string, fileName, FileName);
-	GETSET(bool, matchADL, MatchADL);	
+	GETSET(bool, matchADL, MatchADL);
+	GETSET(bool, waiting, Waiting);	
 
 	void addMatchADLTask();
 	void addListDiffTask(const string& aFile, bool aOwnList);
-	void addPartialListTask(const string& aXmlDir, std::function<void ()> f = nullptr);
+	void addPartialListTask(const string& aXml, const string& aBase, std::function<void ()> f = nullptr);
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
 	void addFilterTask();
