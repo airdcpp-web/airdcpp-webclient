@@ -1626,5 +1626,6 @@ enum Strings { // @DontAdd
 	AWAY_IDLE_TIME_BEGIN, // "Automatically set away mode after"
 	AWAY_IDLE_TIME_END, // "minutes of inactivity (0 = disabled)"
 	SETTINGS_MAX_HASHER_SPEED, // "Max speed per hasher"
+	LOADING_QUEUE, // "Loading queue..."
 	LAST // @DontAdd
 };

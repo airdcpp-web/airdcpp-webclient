@@ -204,13 +204,15 @@ public:
 	class FileMover : public Thread {
 	public:
 		enum Tasks {
-			MOVE_FILE
+			MOVE_FILE,
+			REMOVE_DIR
 		};
 
 		FileMover() { }
 		virtual ~FileMover() { join(); }
 
 		void moveFile(const string& source, const string& target, QueueItemPtr aBundle);
+		void removeDir(const string& aDir);
 		virtual int run();
 	private:
 

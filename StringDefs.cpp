@@ -1619,6 +1619,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Automatically set away mode after", 
 "minutes of inactivity (0 = disabled)", 
 "Max speed per hasher", 
+"Loading queue...", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3238,4 +3239,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AwayIdleTimeBegin", 
 "AwayIdleTimeEnd", 
 "SettingsMaxHasherSpeed", 
+"LoadingQueue", 
 };

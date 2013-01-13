@@ -466,6 +466,15 @@ bool ClientManager::isActive() const {
 	return CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_PASSIVE || FavoriteManager::getInstance()->hasActiveHubs();
 }
 
+bool ClientManager::isActive(const string& aHubUrl) const {
+	RLock l(cs);
+	auto i = clients.find(const_cast<string*>(&aHubUrl));
+	if(i != clients.end() && i->second->isConnected()) {
+		return i->second->isActive();		
+	}
+	return false;
+}
+
 string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) {
 	if(!aHubUrl.empty()) { // we cannot find the correct SID without a hubUrl
 		OnlinePairC op;

@@ -128,6 +128,7 @@ public:
 	void userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility);
 
 	bool isActive() const;
+	bool isActive(const string& aHubUrl) const;
 
 	void lockRead() noexcept { cs.lock_shared(); }
 	void unlockRead() noexcept { cs.unlock_shared(); }

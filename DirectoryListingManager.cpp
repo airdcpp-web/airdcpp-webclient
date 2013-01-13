@@ -216,8 +216,7 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(name);
-			int tmp = 0;
-			dirList->loadXML(mis, true, tmp);
+			dirList->loadXML(mis, true, aPath);
 		} else {
 			dirList->loadFile(name);
 		}

@@ -82,6 +82,14 @@ void QueueManager::FileMover::moveFile(const string& source, const string& targe
 	}
 }
 
+void QueueManager::FileMover::removeDir(const string& aDir) {
+	tasks.add(REMOVE_DIR, unique_ptr<StringTask>(new StringTask(aDir)));
+	if(!active.test_and_set()) {
+		start();
+		setThreadPriority(Thread::LOW);
+	}
+}
+
 int QueueManager::FileMover::run() {
 	for(;;) {
 		TaskQueue::TaskPair t;
@@ -90,8 +98,13 @@ int QueueManager::FileMover::run() {
 			return 0;
 		}
 
-		auto mv = static_cast<MoverTask*>(t.second);
-		moveFile_(mv->source, mv->target, mv->qi);
+		if (t.first == MOVE_FILE) {
+			auto mv = static_cast<MoverTask*>(t.second);
+			moveFile_(mv->source, mv->target, mv->qi);
+		} else if (t.first == REMOVE_DIR) {
+			auto dir = static_cast<StringTask*>(t.second);
+			AirUtil::removeIfEmpty(dir->str);
+		}
 
 		tasks.pop_front();
 	}
@@ -3057,7 +3070,8 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 			bundleQueue.removeFinishedItem(qi);
 		}
 
-		AirUtil::removeIfEmpty(sourceBundle->getTarget());
+		//we may not be able to remove the directory instantly if we have finished files to move
+		mover.removeDir(sourceBundle->getTarget());
 	}
 
 	//convert the QIs
@@ -3151,7 +3165,8 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 			}
 		}
 
-		AirUtil::removeIfEmpty(aSource);
+		//we may not be able to remove the directory instantly if we have finished files to move
+		mover.removeDir(sourceBundle->getTarget());
 
 		fire(QueueManagerListener::BundleMoved(), sourceBundle);
 	}
@@ -3687,7 +3702,7 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) {
 	if (manual) {
 		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchCount), LogManager::LOG_INFO);
 	} else if(SETTING(REPORT_ALTERNATES)) {
-		if (aBundle->getSimpleMatching()) {
+		//if (aBundle->getSimpleMatching()) {
 			if (aBundle->isRecent()) {
 				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH_RECENT) + 
 				" " + (STRING(NEXT_RECENT_SEARCH_IN))) % 
@@ -3701,13 +3716,13 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) {
 					searchCount % 
 					nextSearch), LogManager::LOG_INFO);
 			}
-		} else {
+		/*} else {
 			if (!aBundle->isRecent()) {
 				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::toString(nextSearch) + " minutes", LogManager::LOG_INFO);
 			} else {
 				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next recent search in " + Util::toString(nextSearch) + " minutes", LogManager::LOG_INFO);
 			}
-		}
+		}*/
 	}
 }
 

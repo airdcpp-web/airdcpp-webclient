@@ -118,19 +118,18 @@ void DirectoryListing::loadFile(const string& name) {
 
 	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
 
-	int tmp = 0;
 	if(stricmp(ext, ".bz2") == 0) {
 		FilteredInputStream<UnBZFilter, false> f(&ff);
-		loadXML(f, false, tmp);
+		loadXML(f, false);
 	} else if(stricmp(ext, ".xml") == 0) {
-		loadXML(ff, false, tmp);
+		loadXML(ff, false);
 	}
 }
 
 class ListLoader : public SimpleXMLReader::CallBack {
 public:
-	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList, int& aDirsLoaded) : 
-	  list(aList), cur(root), base("/"), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList), dirsLoaded(aDirsLoaded) { 
+	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, const string& aBase, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList) : 
+	  list(aList), cur(root), base(aBase), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList), dirsLoaded(0) { 
 	}
 
 	virtual ~ListLoader() { }
@@ -138,7 +137,8 @@ public:
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name);
 
-	const string& getBase() const { return base; }
+	//const string& getBase() const { return base; }
+	int getLoadedDirs() { return dirsLoaded; }
 private:
 	DirectoryListing* list;
 	DirectoryListing::Directory* cur;
@@ -150,16 +150,16 @@ private:
 	bool updating;
 	bool checkDupe;
 	bool partialList;
-	int& dirsLoaded;
+	int dirsLoaded;
 };
 
-string DirectoryListing::updateXML(const string& xml, int& dirsLoaded) {
+int DirectoryListing::updateXML(const string& xml, const string& aBase) {
 	MemoryInputStream mis(xml);
-	return loadXML(mis, true, dirsLoaded);
+	return loadXML(mis, true, aBase);
 }
 
-string DirectoryListing::loadXML(InputStream& is, bool updating, int& dirsLoaded) {
-	ListLoader ll(this, root, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList, dirsLoaded);
+int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBase) {
+	ListLoader ll(this, root, aBase, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
@@ -168,7 +168,7 @@ string DirectoryListing::loadXML(InputStream& is, bool updating, int& dirsLoaded
 			Util::toString(ClientManager::getInstance()->getNicks(HintedUser(getUser(), Util::emptyString))) + " ]", LogManager::LOG_ERROR);
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
 	}
-	return ll.getBase();
+	return ll.getLoadedDirs();
 }
 
 static const string sFileListing = "FileListing";
@@ -243,6 +243,8 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& b = getAttrib(attribs, sBase, 2);
 			if(b.size() >= 1 && b[0] == '/' && b[b.size()-1] == '/') {
 				base = b;
+				if (b != base) 
+					throw AbortException("The base directory specified in the file list (" + b + ") doesn't match with the excepted base (" + base + ")");
 			}
 			const string& date = getAttrib(attribs, sBaseDate, 3);
 
@@ -871,8 +873,7 @@ int DirectoryListing::run() {
 				if (ldt->ownList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
 					if (mis) {
-						int tmp = 0;
-						dirList.loadXML(*mis, true, tmp);
+						dirList.loadXML(*mis, true);
 					} else {
 						throw CSTRING(FILE_NOT_AVAILABLE);
 					}
@@ -913,9 +914,8 @@ int DirectoryListing::run() {
 
 				if (isOwnList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
-					int tmp = 0;
 					if (mis)
-						loadXML(*mis, true, tmp);
+						loadXML(*mis, true);
 					else
 						throw CSTRING(FILE_NOT_AVAILABLE);
 				} else {
@@ -972,22 +972,21 @@ int DirectoryListing::run() {
 				}
 				
 				int dirsLoaded = 0;
-				string path;
 				if (isOwnList) {
 					auto mis = ShareManager::getInstance()->generatePartialList(lt->baseDir, false, Util::toInt(fileName));
 					if (mis) {
-						path = loadXML(*mis, true, dirsLoaded);
+						dirsLoaded = loadXML(*mis, true, lt->baseDir);
 					} else {
 						throw CSTRING(FILE_NOT_AVAILABLE);
 					}
 				} else {
-					path = updateXML(lt->xml, dirsLoaded);
+					dirsLoaded = updateXML(lt->xml, lt->baseDir);
 				}
 
 				auto useGuiThread = !reloading && dirsLoaded < 5000;
 				waiting = true;
 
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(path), reloading, lt->f == nullptr, useGuiThread);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(lt->baseDir), reloading && lt->baseDir == "/", lt->f == nullptr, useGuiThread);
 				if (lt->f) {
 					lt->f();
 				}
@@ -1104,8 +1103,7 @@ void DirectoryListing::changeDir(bool reload) {
 		} else if (isOwnList) {
 			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, Util::toInt(fileName));
 			if (mis) {
-				int tmp = 0;
-				loadXML(*mis, true, tmp);
+				loadXML(*mis, true, Util::toAdcFile(path));
 				fire(DirectoryListingListener::LoadingFinished(), 0, path, false, true, true);
 			} else {
 				//might happen if have refreshed the share meanwhile

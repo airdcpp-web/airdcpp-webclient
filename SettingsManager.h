@@ -288,10 +288,10 @@ public:
 
 	void set(BoolSetting key, const string& value) {
 		if(value.empty()) {
-			intSettings[key - INT_FIRST] = 0;
+			boolSettings[key - BOOL_FIRST] = 0;
 			isSet[key] = false;
 		} else {
-			intSettings[key - INT_FIRST] = Util::toInt(value) > 0 ? true : false;
+			boolSettings[key - BOOL_FIRST] = Util::toInt(value) > 0 ? true : false;
 			isSet[key] = true;
 		}
 	}

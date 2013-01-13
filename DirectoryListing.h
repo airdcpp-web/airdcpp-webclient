@@ -146,8 +146,11 @@ public:
 	
 	void loadFile(const string& name);
 
-	string updateXML(const std::string& aXml, int& dirsLoaded);
-	string loadXML(InputStream& xml, bool updating, int& dirsLoaded);
+	//return the number of loaded dirs
+	int updateXML(const string& aXml, const string& aBase);
+
+	//return the number of loaded dirs
+	int loadXML(InputStream& xml, bool updating, const string& aBase = "/");
 
 	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
 	bool downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio=QueueItem::DEFAULT, bool first=true, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch=0);
