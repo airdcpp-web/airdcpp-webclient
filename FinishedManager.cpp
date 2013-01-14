@@ -118,12 +118,9 @@ bool FinishedManager::getTarget(const string& aTTH, string& target) {
 
 	{
 		Lock l(cs);
-
-		for(FinishedItemList::const_iterator i = downloads.begin(); i != downloads.end(); i++)
-		{
-			if((*i)->getTTH() == aTTH)
-			{
-				target = (*i)->getTarget();
+		for(auto fi: downloads) {
+			if(fi->getTTH() == aTTH) {
+				target = fi->getTarget();
 				return true;
 			}
 		}

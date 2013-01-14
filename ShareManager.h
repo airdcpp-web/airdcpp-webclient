@@ -244,7 +244,7 @@ private:
 		public:
 			typedef boost::intrusive_ptr<ProfileDirectory> Ptr;
 
-			ProfileDirectory(const string& aRootPath, const string& aVname, ProfileToken aProfile);
+			ProfileDirectory(const string& aRootPath, const string& aVname, ProfileToken aProfile, bool incoming = false);
 			ProfileDirectory(const string& aRootPath, ProfileToken aProfile);
 
 			GETSET(string, path, Path);

@@ -48,8 +48,7 @@ void ResourceManager::loadLanguage(const string& aFile) {
 				xml.stepIn();
 
 				while(xml.findChild("String")) {
-					unordered_map<string, int>::const_iterator j = h.find(xml.getChildAttrib("Name"));
-
+					const auto j = h.find(xml.getChildAttrib("Name"));
 					if(j != h.end()) {
 						strings[j->second] = xml.getChildData();
 					}
@@ -58,7 +57,7 @@ void ResourceManager::loadLanguage(const string& aFile) {
 			}
 		}
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message("Error when loading the language file: " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message("Failed to load the language file " + aFile + ": " + e.getError(), LogManager::LOG_ERROR);
 	}
 }
 

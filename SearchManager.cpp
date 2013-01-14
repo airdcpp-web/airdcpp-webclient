@@ -611,7 +611,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 	string key;
 	adc.getParam("KY", 0, key);
 
-	for(auto sr: results) {
+	for(const auto& sr: results) {
 		AdcCommand cmd = sr->toRES(AdcCommand::TYPE_UDP);
 		if(!token.empty())
 			cmd.addParam("TO", token);

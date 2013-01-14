@@ -339,9 +339,11 @@ bool ShareManager::ProfileDirectory::isExcluded(ProfileToken aProfile) const {
 	return !excludedProfiles.empty() && excludedProfiles.find(aProfile) != excludedProfiles.end();
 }
 
-ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, const string& aVname, ProfileToken aProfile) : path(aRootPath) { 
+ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, const string& aVname, ProfileToken aProfile, bool incoming /*false*/) : path(aRootPath) { 
 	rootProfiles[aProfile] = aVname;
 	setFlag(FLAG_ROOT);
+	if (incoming)
+		setFlag(FLAG_INCOMING);
 }
 
 ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, ProfileToken aProfile) : path(aRootPath) { 
@@ -1399,7 +1401,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 							dcassert(dir->getProfileDir()->hasExcludes());
 							dir->getProfileDir()->addRootProfile(d->vname, d->profile);
 						} else {
-							auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile));
+							auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile, d->incoming));
 							dir->setProfileDir(root);
 							profileDirs[d->path] = root;
 						}
@@ -1409,7 +1411,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 						//this is probably in an excluded dirs of an existing root, add it
 						dir = findDirectory(d->path, true, true, false);
 						if (dir) {
-							auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile));
+							auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile, d->incoming));
 							profileDirs[d->path] = root;
 							shares[d->path] = dir;
 							refresh.push_back(*p); //refresh the top directory.....
@@ -1417,7 +1419,7 @@ void ShareManager::addDirectories(const ShareDirInfo::list& aNewDirs) {
 					}
 				} else {
 					// It's a new parent, will be handled in the task thread
-					auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile));
+					auto root = ProfileDirectory::Ptr(new ProfileDirectory(d->path, d->vname, d->profile, d->incoming));
 					//root->setFlag(ProfileDirectory::FLAG_ADD);
 					Directory::Ptr dp = Directory::create(Util::getLastDir(d->path), nullptr, findLastWrite(d->path), root);
 					shares[d->path] = dp;
