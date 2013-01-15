@@ -21,10 +21,13 @@
 
 #include "forward.h"
 #include "AirUtil.h"
+#include "GetSet.h"
 
 namespace dcpp {
 
-struct ChatLink {
+class ChatLink {
+
+public:
 	enum LinkType {
 		TYPE_URL,
 		TYPE_MAGNET,
@@ -38,8 +41,10 @@ struct ChatLink {
 
 	string url;
 	string getDisplayText();
-	LinkType type;
-	DupeType dupe;
+	DupeType updateDupeType();
+
+	GETSET(LinkType, type, Type);
+	GETSET(DupeType, dupe, Dupe);
 };
 
 

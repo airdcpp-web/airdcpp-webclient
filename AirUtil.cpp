@@ -71,7 +71,9 @@ tstring AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
 
 tstring AirUtil::getDupePath(DupeType aType, const TTHValue& aTTH) {
 	if (aType == SHARE_DUPE) {
-		return Text::toT(ShareManager::getInstance()->getRealPath(aTTH));
+		try {
+			return Text::toT(ShareManager::getInstance()->getRealPath(aTTH));
+		} catch(...) { }
 	} else {
 		StringList localPaths = QueueManager::getInstance()->getTargets(aTTH);
 		if (!localPaths.empty()) {
