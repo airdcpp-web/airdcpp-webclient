@@ -544,7 +544,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			version = Util::toInt(getAttrib(attribs, sversion, 0));
 		}
 		inHashStore = !simple;
-	} else if (inHashStore && version == 2) {
+	} else if (inHashStore && (version == 2 || version == 3)) {
 		if (inTrees && name == sHash) {
 			const string& type = getAttrib(attribs, sType, 0);
 			int64_t index = Util::toInt64(getAttrib(attribs, sIndex, 1));
