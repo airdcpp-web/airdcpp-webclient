@@ -29,26 +29,13 @@
 
 namespace dcpp {
 
-FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { 
-	if (profile == SP_HIDDEN && !Util::fileExists(getFileName()))  {
-		try {
-			FilteredOutputStream<BZFilter, true> emptyXmlFile(new File(getFileName(), File::WRITE, File::TRUNCATE | File::CREATE));
-			emptyXmlFile.write(SimpleXML::utf8Header);
-			emptyXmlFile.write("<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"/\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n"); // Hide Share Mod
-			emptyXmlFile.write("</FileListing>");
-			emptyXmlFile.flush();
-		} catch(...) { }
-	}
-}
+FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { }
 
 string FileList::getFileName() {
 	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + "_" + Util::toString(listN) + ".xml.bz2";
 }
 
 bool FileList::generateNew(bool forced) {
-	if (profile == SP_HIDDEN)
-		return false;
-
 	cs.mutex.lock();
 
 	bool dirty = (forced && xmlDirty) || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK()));

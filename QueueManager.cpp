@@ -1192,8 +1192,7 @@ void QueueManager::checkBundleHashed(BundlePtr b) {
 		WLock l(cs);
 		for(auto i = b->getFinishedFiles().begin(); i != b->getFinishedFiles().end(); ) {
 			fileQueue.remove(*i);
-			b->getFinishedFiles().erase(i);
-			i = b->getFinishedFiles().begin();
+			i = b->getFinishedFiles().erase(i);
 		}
 
 		//for_each(b->getFinishedFiles(), [&] (QueueItemPtr qi) { fileQueue.remove(qi); } );
@@ -3083,9 +3082,8 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 	}
 
 	for (auto i = ql.begin(); i != ql.end();) {
-		QueueItemPtr qi = *i;
-		if (!moveBundleFile(qi, AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget), false)) {
-			ql.erase(i);
+		if (!moveBundleFile(*i, AirUtil::convertMovePath((*i)->getTarget(), aSource, aTarget), false)) {
+			i = ql.erase(i);
 		} else {
 			++i;
 		}
@@ -3093,6 +3091,7 @@ void QueueManager::moveBundle(const string& aSource, const string& aTarget, Bund
 
 	if (ql.empty()) {
 		//may happen if all queueitems are being merged with existing ones
+		removeBundle(sourceBundle, false, false, true);
 		return;
 	}
 
@@ -3173,9 +3172,8 @@ void QueueManager::splitBundle(const string& aSource, const string& aTarget, Bun
 
 	//convert the QIs
 	for (auto i = ql.begin(); i != ql.end();) {
-		QueueItemPtr qi = *i;
-		if (!moveBundleFile(qi, AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget), false)) {
-			ql.erase(i);
+		if (!moveBundleFile(*i, AirUtil::convertMovePath((*i)->getTarget(), aSource, aTarget), false)) {
+			i = ql.erase(i);
 		} else {
 			i++;
 		}
@@ -3517,8 +3515,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 					File::deleteFile(q->getTarget());
 				}
 
-				aBundle->getFinishedFiles().erase(i);
-				i = aBundle->getFinishedFiles().begin();
+				i = aBundle->getFinishedFiles().erase(i);
 			}
 
 			for (auto i = aBundle->getQueueItems().begin(); i != aBundle->getQueueItems().end();) {
@@ -3535,8 +3532,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 				}
 
 				fileQueue.remove(qi);
-				aBundle->getQueueItems().erase(i);
-				i = aBundle->getQueueItems().begin();
+				i = aBundle->getQueueItems().erase(i);
 			}
 
 			fire(QueueManagerListener::BundleRemoved(), aBundle);
