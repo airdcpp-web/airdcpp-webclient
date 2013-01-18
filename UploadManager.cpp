@@ -1075,7 +1075,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		for(auto i = notifiedUsers.begin(); i != notifiedUsers.end();) {
 			if((i->second + (90 * 1000)) < aTick) {
 				clearUserFiles(i->first);
-				notifiedUsers.erase(i++);
+				i = notifiedUsers.erase(i);
 			} else
 				++i;
 		}
@@ -1157,9 +1157,8 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 				if (u->isSet(Upload::FLAG_CHUNKED))
 					logUpload(u);
 				
-				delayUploads.erase(i);
 				delete u;
-				i = delayUploads.begin();
+				i = delayUploads.erase(i);
 			} else {
 				i++;
 			}
@@ -1169,8 +1168,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			UploadBundlePtr ub = i->second;
 			if (ub->getUploads().empty() && ++ub->delayTime > 10) {
 				ConnectionManager::getInstance()->tokens.removeToken((*i).second->getToken());
-				bundles.erase(i);
-				i = bundles.begin();
+				i = bundles.erase(i);
 			} else {
 				if (ub->countSpeed() > 0)
 					tickBundles.push_back(ub);

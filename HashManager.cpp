@@ -660,8 +660,7 @@ void HashManager::Hasher::stopHashing(const string& baseDir) {
 		if (strnicmp(baseDir, i->filePath, baseDir.length()) == 0) {
 			totalBytesLeft -= i->fileSize;
 			removeDevice(i->devID);
-			w.erase(i);
-			i = w.begin();
+			i = w.erase(i);
 		} else {
 			++i;
 		}

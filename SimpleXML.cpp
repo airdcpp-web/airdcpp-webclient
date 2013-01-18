@@ -189,7 +189,6 @@ void SimpleXML::replaceChildAttrib(const string& aName, const string& aData) {
 
 	auto i = find_if((*currentChild)->attribs.begin(), (*currentChild)->attribs.end(), CompareFirst<string,string>(aName));
 	if(i != (*currentChild)->attribs.end()) {
-		(*currentChild)->attribs.erase(i);
 		(*i).second = aData;
 	} else {
 		(*currentChild)->attribs.emplace_back(aName, aData);
