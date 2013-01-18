@@ -61,7 +61,6 @@ const string SettingsManager::settingTags[] =
 	"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat",
 
 	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat","WinampPath",
-	"AntivirPath",
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",

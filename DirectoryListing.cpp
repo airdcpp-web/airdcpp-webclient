@@ -659,11 +659,12 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) {
 }
 
 void DirectoryListing::Directory::clearAdls() {
-	for(auto i = directories.begin(); i != directories.end(); ++i) {
+	for(auto i = directories.begin(); i != directories.end();) {
 		if((*i)->getAdls()) {
 			delete *i;
-			directories.erase(i);
-			--i;
+			i = directories.erase(i);
+		} else {
+			++i;
 		}
 	}
 }

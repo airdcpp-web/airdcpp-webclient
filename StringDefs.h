@@ -882,7 +882,6 @@ enum Strings { // @DontAdd
 	BEGIN, // "Begin"
 	END, // "End"
 	NAT_SORT, // "Use natural sorting"
-	SETAIRDC_ANTI_VIR, // "Virus scan after download finished"
 	UPDATE_IP, // "Update IP on startup"
 	SETTINGS_SERVER_COMMANDS, // "Show Server Commands as status messages"
 	SET_CLIENT_COMMANDS, // "Show Client Commands as status messages"

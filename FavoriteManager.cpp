@@ -709,6 +709,9 @@ void FavoriteManager::load(SimpleXML& aXml) {
 					continue;
 				u = ClientManager::getInstance()->getUser(nick, hubUrl);
 			} else {
+				//prevent loading own Identity as favorite user
+				if(cid == ClientManager::getInstance()->getMyCID().toBase32())
+					continue;
 				u = ClientManager::getInstance()->getUser(CID(cid));
 			}
 			auto i = users.emplace(u->getCID(), FavoriteUser(u, nick, hubUrl, cid)).first;
