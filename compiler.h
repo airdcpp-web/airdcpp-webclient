@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #define DCPLUSPLUS_DCPP_COMPILER_H
 
 #if _MSC_VER < 1700
-#error MSVC 11 (2012) is required
+#error MSVC 11 (2013) is required
 #endif
 
 //#define _SECURE_SCL  0

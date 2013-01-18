@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2010 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 
 namespace dcpp {
 
-extern void startup(function<void (const string&)> splashF, function<void (const string&)> messageF);
+extern void startup(function<void (const string&)> splashF, function<void (const string&)> messageF, function<void ()> runWizard);
 extern void shutdown(function<void (const string&)> f);
 
 } // namespace dcpp

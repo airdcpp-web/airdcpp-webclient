@@ -36,18 +36,12 @@ public:
 	typedef X<2> UpdateFailed;
 	typedef X<3> UpdateComplete;
 
-	typedef X<4> AuthSuccess;
-	typedef X<5> AuthFailure;
-
-	typedef X<6> SettingUpdated;
+	typedef X<4> SettingUpdated;
 
 	virtual void on(UpdateAvailable, const string& /*title*/, const string& /*message*/, const string& /*version*/, const string& /*url*/, bool /*autoUpdate*/, int /*build*/, const string& /*updateUrl*/) noexcept { }
 	virtual void on(BadVersion, const string& /*message*/, const string& /*url*/, const string& /*update*/, int /*build*/, bool /*autoUpdate*/) noexcept { }
 	virtual void on(UpdateFailed, const string& /*line*/) noexcept { }
 	virtual void on(UpdateComplete, const string& /*updater*/) noexcept { }
-
-	virtual void on(AuthSuccess, const string& /*title*/, const string& /*message*/) noexcept { }
-	virtual void on(AuthFailure, const string& /*message*/) noexcept { }
 
 	virtual void on(SettingUpdated, size_t /*key*/, const string& /*value*/) noexcept { }
 };

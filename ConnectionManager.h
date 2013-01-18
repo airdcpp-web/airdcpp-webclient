@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,7 +86,7 @@ class ExpectedMap {
 public:
 	void add(const string& aKey, const string& aMyNick, const string& aHubUrl) {
 		Lock l(cs);
-		expectedConnections.insert(make_pair(aKey, make_pair(aMyNick, aHubUrl)));
+		expectedConnections.emplace(aKey, make_pair(aMyNick, aHubUrl));
 	}
 
 	StringPair remove(const string& aKey) {

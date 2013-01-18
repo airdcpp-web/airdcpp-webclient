@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ void Transfer::tick() {
 		}
 	}
 
-	samples.push_back(std::make_pair(t, pos));
+	samples.emplace_back(t, pos);
 }
 
 double Transfer::getAverageSpeed() const {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ Client* ClientManager::createClient(const string& aHubURL) {
 
 	{
 		WLock l(cs);
-		clients.insert(make_pair(const_cast<string*>(&c->getHubUrl()), c));
+		clients.emplace(const_cast<string*>(&c->getHubUrl()), c);
 	}
 
 	c->addListener(this);
@@ -98,7 +98,7 @@ void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) {
 		auto c = p->second;
 		clients.erase(p);
 		c->setHubUrl(aNewUrl);
-		clients.insert(make_pair(const_cast<string*>(&c->getHubUrl()), c));
+		clients.emplace(const_cast<string*>(&c->getHubUrl()), c);
 	}
 }
 
@@ -308,7 +308,7 @@ UserPtr ClientManager::getUser(const string& aNick, const string& aHubUrl) noexc
 	p->setFlag(User::NMDC);
 
 	WLock l(cs);
-	users.insert(make_pair(const_cast<CID*>(&p->getCID()), p));
+	users.emplace(const_cast<CID*>(&p->getCID()), p);
 
 	return p;
 }
@@ -325,7 +325,7 @@ UserPtr ClientManager::getUser(const CID& cid) noexcept {
 	UserPtr p(new User(cid));
 
 	WLock l(cs);
-	users.insert(make_pair(const_cast<CID*>(&p->getCID()), p));
+	users.emplace(const_cast<CID*>(&p->getCID()), p);
 	return p;
 }
 
@@ -382,7 +382,7 @@ CID ClientManager::makeCid(const string& aNick, const string& aHubUrl) const noe
 void ClientManager::putOnline(OnlineUser* ou) noexcept {
 	{
 		WLock l(cs);
-		onlineUsers.insert(make_pair(const_cast<CID*>(&ou->getUser()->getCID()), ou));
+		onlineUsers.emplace(const_cast<CID*>(&ou->getUser()->getCID()), ou);
 	}
 	
 	if(!ou->getUser()->isOnline()) {
@@ -876,7 +876,7 @@ UserPtr& ClientManager::getMe() {
 		me = new User(getMyCID());
 
 		WLock l(cs);
-		users.insert(make_pair(const_cast<CID*>(&me->getCID()), me));
+		users.emplace(const_cast<CID*>(&me->getCID()), me);
 	}
 	return me;
 }

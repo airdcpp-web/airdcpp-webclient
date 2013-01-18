@@ -19,7 +19,7 @@
 	
 	SVN Info :
 		$Author: crise $
-		$Date: 2012-01-06 17:59:44 +0200 (pe, 06 tammi 2012) $
+		$Date: 2013-01-06 17:59:44 +0200 (pe, 06 tammi 2013) $
 		$Revision: 1215 $
 */
 

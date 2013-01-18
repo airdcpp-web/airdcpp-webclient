@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2012 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,7 +49,6 @@
 
 #include "../windows/IgnoreManager.h"
 #include "../windows/PopupManager.h"
-#include "../windows/Wizard.h"
 #include "HighlightManager.h"
 #include "AutoSearchManager.h"
 #include "ShareScannerManager.h"
@@ -57,7 +56,7 @@
 #include "format.h"
 namespace dcpp {
 
-void startup(function<void (const string&)> splashF, function<void (const string&)> messageF) {
+void startup(function<void (const string&)> splashF, function<void (const string&)> messageF, function<void ()> runWizard) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
 	while(1) break;
@@ -109,8 +108,7 @@ void startup(function<void (const string&)> splashF, function<void (const string
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
 	if(SETTING(WIZARD_RUN_NEW)) {
-		WizardDlg dlg;
-		dlg.DoModal(/*m_hWnd*/);
+		runWizard();
 		SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN_NEW, false); //wizard has run on startup
 	}
 
