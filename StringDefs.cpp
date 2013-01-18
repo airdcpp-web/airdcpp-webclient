@@ -1603,7 +1603,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Creating magnet links for %d files...", 
 "The download destination %s is a shared directory. Files sent in private chat may contain sensitive information that you or the sender don't want to be made available for other user.\r\n\r\nDo you want to use this destination anyway?", 
 "Passive mode (last resort - has serious limitations)", 
-"Active mode (let the client configure my router with NAT-PMP / UPnP)", 
+"Active mode with NAT-PMP / UPnP (let the client configure my router)", 
 "Active mode (no router or manual router configuration)", 
 "Manual router/firewall configuration", 
 "Max hashers per volume", 
@@ -1620,6 +1620,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "minutes of inactivity (0 = disabled)", 
 "Max speed per hasher", 
 "Loading queue...", 
+"Refreshing share", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3240,4 +3241,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AwayIdleTimeEnd", 
 "SettingsMaxHasherSpeed", 
 "LoadingQueue", 
+"RefreshingShare", 
 };

@@ -159,6 +159,7 @@ public:
 
 	/** Migrate from pre-localmode config location */
 	static void migrate(const string& file);
+	static void migrate(const string& aDir, const string& aPattern);
 
 	/** Path of file lists */
 	static string getListPath() { return getPath(PATH_FILE_LISTS); }

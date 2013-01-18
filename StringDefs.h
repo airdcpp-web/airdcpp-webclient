@@ -1610,7 +1610,7 @@ enum Strings { // @DontAdd
 	CREATING_MAGNET_FOR_X, // "Creating magnet links for %d files..."
 	PM_MAGNET_SHARED_WARNING, // "The download destination %s is a shared directory. Files sent in private chat may contain sensitive information that you or the sender don't want to be made available for other user.\r\n\r\nDo you want to use this destination anyway?"
 	SETTINGS_PASSIVE, // "Passive mode (last resort - has serious limitations)"
-	SETTINGS_ACTIVE_UPNP, // "Active mode (let the client configure my router with NAT-PMP / UPnP)"
+	SETTINGS_ACTIVE_UPNP, // "Active mode with NAT-PMP / UPnP (let the client configure my router)"
 	SETTINGS_ACTIVE, // "Active mode (no router or manual router configuration)"
 	SETTINGS_MANUAL_CONFIG, // "Manual router/firewall configuration"
 	MAX_VOL_HASHERS, // "Max hashers per volume"
@@ -1627,5 +1627,6 @@ enum Strings { // @DontAdd
 	AWAY_IDLE_TIME_END, // "minutes of inactivity (0 = disabled)"
 	SETTINGS_MAX_HASHER_SPEED, // "Max speed per hasher"
 	LOADING_QUEUE, // "Loading queue..."
+	REFRESHING_SHARE, // "Refreshing share"
 	LAST // @DontAdd
 };

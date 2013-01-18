@@ -1855,6 +1855,11 @@ private:
 void QueueManager::loadQueue() noexcept {
 	setMatchers();
 
+
+	
+	//migrate old bundles
+	Util::migrate(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
+
 	QueueLoader loader;
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
 	for (auto& path: fileList) {
@@ -1872,7 +1877,10 @@ void QueueManager::loadQueue() noexcept {
 
 	try {
 		//load the old queue file and delete it
-		File f(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml", File::READ, File::OPEN);
+		auto path = Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml";
+		Util::migrate(path);
+
+		File f(path, File::READ, File::OPEN);
 		SimpleXMLReader(&loader).parse(f);
 		f.close();
 		File::copyFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml", Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml.bak");

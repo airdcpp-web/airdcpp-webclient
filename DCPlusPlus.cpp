@@ -137,7 +137,7 @@ void startup(function<void (const string&)> splashF, function<void (const string
 	QueueManager::getInstance()->loadQueue();
 
 	announce(STRING(SHARED_FILES));
-	ShareManager::getInstance()->startup(); 
+	ShareManager::getInstance()->startup(splashF); 
 
 	FavoriteManager::getInstance()->load();
 

@@ -100,7 +100,7 @@ ShareManager::~ShareManager() {
 	join();
 }
 
-void ShareManager::startup() {
+void ShareManager::startup(function<void (const string&)> splashF) {
 	AirUtil::updateCachedSettings();
 	if (!getShareProfile(SP_DEFAULT)) {
 		ShareProfilePtr sp = ShareProfilePtr(new ShareProfile(STRING(DEFAULT), SP_DEFAULT));
@@ -111,6 +111,8 @@ void ShareManager::startup() {
 	shareProfiles.push_back(hidden);
 
 	if(!loadCache()) {
+		if (splashF)
+			splashF(STRING(REFRESHING_SHARE));
 		refresh(false, TYPE_STARTUP);
 	}
 
@@ -792,6 +794,7 @@ bool ShareManager::loadCache() {
 		HashManager::HashPauser pauser;
 		ShareLoader loader(profileDirs);
 		//look for shares.xml
+		Util::migrate(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml");
 		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
 		SimpleXMLReader(&loader).parse(ff);
 		dirNameMap = loader.dirs;

@@ -126,7 +126,7 @@ public:
 
 	void setDirty(ProfileTokenSet aProfiles, bool setCacheDirty, bool forceXmlRefresh=false);
 
-	void startup();
+	void startup(function<void (const string&)> splashF);
 	void shutdown();
 	void abortRefresh();
 
