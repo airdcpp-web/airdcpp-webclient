@@ -316,6 +316,7 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 }
 
 void BundleQueue::addBundleItem(QueueItemPtr& qi, BundlePtr aBundle) {
+	dcassert(!qi->getBundle());
 	if (aBundle->addQueue(qi) && !aBundle->isFileBundle()) {
 		addDirectory(qi->getFilePath(), aBundle);
 	}
@@ -345,6 +346,7 @@ Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) {
 }
 
 void BundleQueue::addFinishedItem(QueueItemPtr& qi, BundlePtr aBundle) {
+	dcassert(!qi->getBundle());
 	if (aBundle->addFinishedItem(qi, false) && !aBundle->isFileBundle()) {
 		addDirectory(qi->getFilePath(), aBundle);
 	}

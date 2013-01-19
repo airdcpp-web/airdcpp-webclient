@@ -99,8 +99,6 @@ public:
 		File::List files;
 
 		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe = false, const string& aSize = Util::emptyString, const string& aDate = Util::emptyString);
-		void setDate(const string& aDate);
-		time_t getDate() { return date; }
 
 		virtual ~Directory();
 
@@ -130,8 +128,7 @@ public:
 		GETSET(bool, adls, Adls);		
 		GETSET(bool, complete, Complete);
 		GETSET(DupeType, dupe, Dupe)
-	private:
-		time_t date;
+		GETSET(time_t, date, Date)
 	};
 
 	class AdlDirectory : public Directory {

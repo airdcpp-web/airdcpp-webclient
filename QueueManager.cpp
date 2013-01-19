@@ -2889,8 +2889,7 @@ void QueueManager::mergeBundle(BundlePtr& targetBundle, BundlePtr& sourceBundle)
 
 void QueueManager::moveBundleItems(BundlePtr& sourceBundle, BundlePtr& targetBundle, bool fireAdded) {
 	for (auto j = sourceBundle->getQueueItems().begin(); j != sourceBundle->getQueueItems().end();) {
-		QueueItemPtr q = *j;
-		moveBundleItem(q, targetBundle, fireAdded);
+		moveBundleItem(*j, targetBundle, fireAdded);
 		j = sourceBundle->getQueueItems().begin();
 	}
 

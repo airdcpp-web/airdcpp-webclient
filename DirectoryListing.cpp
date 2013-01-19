@@ -73,6 +73,8 @@ bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) c
 bool DirectoryListing::Directory::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
 	if (a->getAdls() && !b->getAdls())
 		return true;
+	if (!a->getAdls() && b->getAdls())
+		return false;
 	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
 }
 
@@ -229,7 +231,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				if(!d->getComplete()) {
 					d->setComplete(!incomp);
 				}
-				d->setDate(date);
+				d->setDate(Util::toUInt32(date));
 			}
 			cur = d;
 
@@ -267,7 +269,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			//set the dir as visited
 			p.second = true;
 
-			cur->setDate(date);
+			cur->setDate(Util::toUInt32(date));
 		}
 
 		cur->setComplete(true);
@@ -299,7 +301,7 @@ DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
-		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(DUPE_NONE), partialSize(0) {
+		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(DUPE_NONE), partialSize(0), date(Util::toUInt32(aDate)) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
@@ -308,30 +310,6 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	if (checkDupe) {
 		dupe = AirUtil::checkDirDupe(getPath(), partialSize);
 	}
-
-	setDate(aDate);
-}
-
-void DirectoryListing::Directory::setDate(const string& aDate) {
-	time_t dateRaw = 0;
-	if (!aDate.empty()) {
-		dateRaw = static_cast<time_t>(Util::toUInt32(aDate));
-		//workaround for versions 2.2x, remove later
-		if (dateRaw < 10000 && aDate.length() == 10) {
-			int yy=0, mm=0, dd=0;
-			struct tm when;
-			sscanf_s(aDate.c_str(), "%d-%d-%d", &yy, &mm, &dd );
-			when.tm_year = yy - 1900;
-			when.tm_mon = mm - 1;
-			when.tm_mday = dd;
-			when.tm_isdst = 0;
-			when.tm_hour=16;
-			when.tm_min=0;
-			when.tm_sec=0;
-			dateRaw = mktime(&when);
-		}
-	}
-	date = dateRaw;
 }
 
 void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
@@ -984,15 +962,14 @@ int DirectoryListing::run() {
 					dirsLoaded = updateXML(lt->xml, lt->baseDir);
 				}
 
-				auto useGuiThread = !reloading && dirsLoaded < 5000;
 				waiting = true;
 
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(lt->baseDir), reloading && lt->baseDir == "/", lt->f == nullptr, useGuiThread);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(lt->baseDir), reloading && lt->baseDir == "/", lt->f == nullptr, !reloading);
 				if (lt->f) {
 					lt->f();
 				}
 
-				if (useGuiThread) {
+				if (!reloading) {
 					while (waiting)
 						sleep(50);
 				}
