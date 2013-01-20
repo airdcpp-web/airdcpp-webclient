@@ -242,7 +242,7 @@ private:
 
 		void createDataFile(const string& name);
 
-		bool loadTree(File& dataFile, const TreeInfo& ti, const TTHValue& root, TigerTree& tt);
+		bool loadTree(File& dataFile, const TreeInfo& ti, const TTHValue& root, TigerTree& tt, bool rebuilding = false);
 		int64_t saveTree(File& dataFile, const TigerTree& tt);
 
 		static string getIndexFile();

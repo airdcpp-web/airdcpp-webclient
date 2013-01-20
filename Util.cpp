@@ -186,9 +186,6 @@ void Util::initialize() {
 	paths[PATH_GLOBAL_CONFIG] = exePath;
 
 	paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + "Settings\\";
-	paths[PATH_USER_LANGUAGE] = paths[PATH_GLOBAL_CONFIG] + "Language\\";
-
-
 
 	loadBootConfig();
 
@@ -206,12 +203,12 @@ void Util::initialize() {
 			paths[PATH_USER_CONFIG] = Text::fromT(buf) + "\\AirDC++\\";
 		}
 
-		paths[PATH_USER_LOCAL] = ::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK ? Text::fromT(buf) + "\\AirDC++\\" : paths[PATH_USER_CONFIG];
+		paths[PATH_USER_LOCAL] = ::SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK ? Text::fromT(buf) + "\\AirDC++\\" : paths[PATH_USER_CONFIG];
 	}
 	
 	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 	paths[PATH_RESOURCES] = exePath;
-	paths[PATH_LOCALE] = exePath;
+	paths[PATH_LOCALE] = paths[PATH_USER_LOCAL] + "Language\\";
 	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 
 #else
@@ -239,16 +236,17 @@ void Util::initialize() {
 	paths[PATH_DOWNLOADS] = home + "/Downloads/";
 #endif
 
-	paths[PATH_FILE_LISTS] = paths[PATH_USER_LOCAL] + "FileLists" PATH_SEPARATOR_STR;
+	paths[PATH_FILE_LISTS] = paths[PATH_USER_CONFIG] + "FileLists" PATH_SEPARATOR_STR;
 	paths[PATH_HUB_LISTS] = paths[PATH_USER_LOCAL] + "HubLists" PATH_SEPARATOR_STR;
 	paths[PATH_NOTEPAD] = paths[PATH_USER_CONFIG] + "Notepad.txt";
 	paths[PATH_EMOPACKS] = paths[PATH_RESOURCES] + "EmoPacks" PATH_SEPARATOR_STR;
-	paths[PATH_BUNDLES] = paths[PATH_USER_LOCAL] + "Bundles" PATH_SEPARATOR_STR;
+	paths[PATH_BUNDLES] = paths[PATH_USER_CONFIG] + "Bundles" PATH_SEPARATOR_STR;
 	paths[PATH_THEMES] = paths[PATH_GLOBAL_CONFIG] + "Themes" PATH_SEPARATOR_STR;
 
 	File::ensureDirectory(paths[PATH_USER_CONFIG]);
 	File::ensureDirectory(paths[PATH_USER_LOCAL]);
 	File::ensureDirectory(paths[PATH_THEMES]);
+	File::ensureDirectory(paths[PATH_LOCALE]);
 }
 
 void Util::migrate(const string& file) {

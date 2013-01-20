@@ -1639,6 +1639,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Generic", 
 "Transfer", 
 "Encrypted transfer", 
+"Failed to load hash data for a TTH root %s: %s (consider rebuilding your hash database by typing /rebuild)", 
+"Hasher #%d created", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3278,4 +3280,6 @@ std::string dcpp::ResourceManager::names[] = {
 "Generic", 
 "Transfer", 
 "EncryptedTransfer", 
+"TreeLoadFailed", 
+"HasherXCreated", 
 };

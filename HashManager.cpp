@@ -140,6 +140,7 @@ void HashManager::hashFile(const string& fileName, int64_t size) {
 				id++;
 			}
 
+			LogManager::getInstance()->message(STRING_F(HASHER_X_CREATED, id), LogManager::LOG_INFO);
 			h = new Hasher(pausers > 0, id);
 			hashers.push_back(h);
 		}
@@ -268,7 +269,7 @@ int64_t HashManager::HashStore::saveTree(File& f, const TigerTree& tt) {
 	return pos;
 }
 
-bool HashManager::HashStore::loadTree(File& f, const TreeInfo& ti, const TTHValue& root, TigerTree& tt) {
+bool HashManager::HashStore::loadTree(File& f, const TreeInfo& ti, const TTHValue& root, TigerTree& tt, bool rebuilding /*false*/) {
 	if (ti.getIndex() == SMALL_TREE) {
 		tt = TigerTree(ti.getSize(), ti.getBlockSize(), root);
 		return true;
@@ -279,9 +280,14 @@ bool HashManager::HashStore::loadTree(File& f, const TreeInfo& ti, const TTHValu
 		boost::scoped_array<uint8_t> buf(new uint8_t[datalen]);
 		f.read(&buf[0], datalen);
 		tt = TigerTree(ti.getSize(), ti.getBlockSize(), &buf[0]);
-		if (!(tt.getRoot() == root))
+		if (!(tt.getRoot() == root)) {
+			if (!rebuilding)
+				LogManager::getInstance()->message(STRING_F(TREE_LOAD_FAILED, STRING(INVALID_TREE)), LogManager::LOG_ERROR);
 			return false;
-	} catch (const Exception&) {
+		}
+	} catch (const Exception& e) {
+		if (!rebuilding)
+			LogManager::getInstance()->message(STRING_F(TREE_LOAD_FAILED, e.getError()), LogManager::LOG_ERROR);
 		return false;
 	}
 
@@ -368,41 +374,36 @@ void HashManager::HashStore::rebuild() {
 			File in(origName, File::READ, File::OPEN | File::SHARED | File::RANDOM_ACCESS);
 			File out(tmpName, File::READ | File::WRITE, File::OPEN | File::RANDOM_ACCESS);
 
-			for (auto i = newTreeIndex.begin(); i != newTreeIndex.end();) {
-				TigerTree tree;
-				bool loaded;
 			{
-				//check this again, trying to minimize the locking time but locking in a loop, plus allowing shared access to the datafile..
 				RLock l(cs);
-				loaded = loadTree(in, i->second, i->first, tree);
-			}
-				if (loaded) {
-					i->second.setIndex(saveTree(out, tree));
-					++i;
-				} else {
-					newTreeIndex.erase(i++);
-				}
-			}
-		}
-
-		{
-			RLock l(cs);
-			for (auto& i: fileIndex) {
-	#ifndef _MSC_VER
-				decltype(fileIndex)::mapped_type newFileList;
-	#else
-				/// @todo remove this workaround when VS has a proper decltype...
-				decltype(fileIndex.begin()->second) newFileList;
-	#endif
-
-				for (auto& j: i.second) {
-					if (newTreeIndex.find(j.getRoot()) != newTreeIndex.end()) {
-						newFileList.push_back(j);
+				for (auto i = newTreeIndex.begin(); i != newTreeIndex.end();) {
+					TigerTree tree;
+					bool loaded = loadTree(in, i->second, i->first, tree, true);
+					if (loaded) {
+						i->second.setIndex(saveTree(out, tree));
+						++i;
+					} else {
+						newTreeIndex.erase(i++);
 					}
 				}
 
-				if(!newFileList.empty()) {
-					newFileIndex[i.first] = move(newFileList);
+				for (auto& i: fileIndex) {
+		#ifndef _MSC_VER
+					decltype(fileIndex)::mapped_type newFileList;
+		#else
+					/// @todo remove this workaround when VS has a proper decltype...
+					decltype(fileIndex.begin()->second) newFileList;
+		#endif
+
+					for (auto& j: i.second) {
+						if (newTreeIndex.find(j.getRoot()) != newTreeIndex.end()) {
+							newFileList.push_back(j);
+						}
+					}
+
+					if(!newFileList.empty()) {
+						newFileIndex[i.first] = move(newFileList);
+					}
 				}
 			}
 		}
@@ -770,9 +771,8 @@ HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : stop(false), running
 }
 
 void HashManager::log(const string& aMessage, int hasherID, bool isError) {
-	//LogManager::getInstance()->message(((hashers.size() > 1) ? STRING_F(HASHER_X, hasherID) + ": " : Util::emptyString) + aMessage, isError ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
-	//LogManager::getInstance()->message(STRING_F(HASHER_X, hasherID) + ": " + aMessage, isError ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
-	LogManager::getInstance()->message("[" + STRING_F(HASHER_X, hasherID) + "] " + aMessage, isError ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
+	Lock l(Hasher::hcs);
+	LogManager::getInstance()->message((hashers.size() > 1 ? "[" + STRING_F(HASHER_X, hasherID) + "] " + ": " : Util::emptyString) + aMessage, isError ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
 int HashManager::Hasher::run() {

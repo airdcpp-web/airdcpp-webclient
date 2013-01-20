@@ -84,7 +84,7 @@ namespace dcpp {
 	}
 
 	string Localization::Language::getLanguageFilePath() {
-		return languageFile.empty() ? Util::emptyString : Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Language\\" + languageFile;
+		return languageFile.empty() ? Util::emptyString : Util::getPath(Util::PATH_LOCALE) + languageFile;
 	}
 
 	double Localization::Language::getLanguageVersion() {

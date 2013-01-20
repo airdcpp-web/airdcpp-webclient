@@ -1646,5 +1646,7 @@ enum Strings { // @DontAdd
 	GENERIC, // "Generic"
 	TRANSFER, // "Transfer"
 	ENCRYPTED_TRANSFER, // "Encrypted transfer"
+	TREE_LOAD_FAILED, // "Failed to load hash data for a TTH root %s: %s (consider rebuilding your hash database by typing /rebuild)"
+	HASHER_X_CREATED, // "Hasher #%d created"
 	LAST // @DontAdd
 };

@@ -119,8 +119,6 @@ public:
 		PATH_GLOBAL_CONFIG,
 		/** Per-user configuration (queue, favorites, ...) */
 		PATH_USER_CONFIG,
-		/** Per-user local data (cache, temp files, ...) */
-		PATH_USER_LANGUAGE,
 		/** Language files */
 		PATH_USER_LOCAL,
 		/** Various resources (help files etc) */
