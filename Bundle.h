@@ -101,8 +101,8 @@ public:
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
 
-	Bundle(const string& target, time_t added, Priority aPriority, const ProfileTokenSet& aAutoSearch = ProfileTokenSet(), time_t aDirDate=0, const string& aToken = Util::emptyString) noexcept;
-	Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches = ProfileTokenSet(), const string& aToken = Util::emptyString) noexcept;
+	Bundle(const string& target, time_t added, Priority aPriority, const ProfileTokenSet& aAutoSearch = ProfileTokenSet(), time_t aDirDate=0, const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
+	Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches = ProfileTokenSet(), const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
 	~Bundle();
 
 	GETSET(string, token, Token);
@@ -162,8 +162,8 @@ public:
 	string getBundleFile() const;
 	void deleteBundleFile();
 
-	void setDirty(bool dirty);
-	bool getDirty() const { return dirty; }
+	void setDirty();
+	bool getDirty() const;
 	bool checkRecent();
 	bool isRecent() const { return recent; }
 
@@ -179,7 +179,7 @@ public:
 	bool addFinishedItem(QueueItemPtr& qi, bool finished) noexcept;
 	bool removeFinishedItem(QueueItemPtr& qi) noexcept;
 	void finishBundle() noexcept;
-	bool allowHash();
+	bool allowHash() const;
 
 	void clearFinishedNotifications(FinishedNotifyList& fnl) noexcept;
 	bool isFinishedNotified(const UserPtr& aUser) const noexcept;

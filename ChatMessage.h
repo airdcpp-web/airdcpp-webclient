@@ -36,12 +36,12 @@ public:
 		TYPE_PATH,
 	};
 
-	explicit ChatLink(const string& aLink, LinkType aLinkType);
+	explicit ChatLink(const string& aLink, LinkType aLinkType, const UserPtr& aUser);
 	explicit ChatLink() { }
 
 	string url;
 	string getDisplayText();
-	DupeType updateDupeType();
+	DupeType updateDupeType(const UserPtr& aUser);
 
 	GETSET(LinkType, type, Type);
 	GETSET(DupeType, dupe, Dupe);

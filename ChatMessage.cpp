@@ -30,11 +30,11 @@
 namespace dcpp {
 
 
-ChatLink::ChatLink(const string& aUrl, LinkType aLinkType) : url(Text::toUtf8(aUrl)), type(aLinkType), dupe(DUPE_NONE) {
-	updateDupeType();
+ChatLink::ChatLink(const string& aUrl, LinkType aLinkType, const UserPtr& aUser) : url(Text::toUtf8(aUrl)), type(aLinkType), dupe(DUPE_NONE) {
+	updateDupeType(aUser);
 }
 
-DupeType ChatLink::updateDupeType() {
+DupeType ChatLink::updateDupeType(const UserPtr& aUser) {
 	if (type == TYPE_RELEASE) {
 		if (ShareManager::getInstance()->isDirShared(url)) {
 			dupe = SHARE_DUPE;
@@ -49,6 +49,9 @@ DupeType ChatLink::updateDupeType() {
 	} else if (type == TYPE_MAGNET) {
 		Magnet m = Magnet(url);
 		dupe = m.getDupeType();
+		if (dupe == DUPE_NONE && ShareManager::getInstance()->ShareManager::getInstance()->isTempShared(aUser ? aUser->getCID().toBase32() : Util::emptyString, m.getTTH())) {
+			dupe = SHARE_DUPE;
+		}
 	}
 	return dupe;
 }

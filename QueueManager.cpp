@@ -554,7 +554,7 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 				bundleQueue.addBundleItem(q, aBundle);
 				if (aAutoSearch > 0)
 					aBundle->addAutoSearch(aAutoSearch);
-				aBundle->setDirty(true);
+				aBundle->setDirty();
 			} else {
 				ProfileTokenSet as;
 				if (aAutoSearch > 0)
@@ -712,7 +712,7 @@ bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::M
 		fire(QueueManagerListener::SourcesUpdated(), qi);
 	}
 	if (qi->getBundle()) {
-		qi->getBundle()->setDirty(true);
+		qi->getBundle()->setDirty();
 	}
 
 	return wantConnection;
@@ -1227,7 +1227,7 @@ void QueueManager::rechecked(QueueItemPtr& qi) {
 	fire(QueueManagerListener::RecheckDone(), qi->getTarget());
 	fire(QueueManagerListener::StatusUpdated(), qi);
 	if (qi->getBundle()) {
-		qi->getBundle()->setDirty(true);
+		qi->getBundle()->setDirty();
 	}
 }
 
@@ -1577,7 +1577,7 @@ void QueueManager::removeSource(QueueItemPtr& q, const UserPtr& aUser, Flags::Ma
 
 		BundlePtr b = q->getBundle();
 		if (b) {
-			b->setDirty(true);
+			b->setDirty();
 		}
 	}
 endCheck:
@@ -1638,7 +1638,7 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, Bundle::Priority p, boo
 		}
 	}
 
-	aBundle->setDirty(true);
+	aBundle->setDirty();
 
 	if(p == Bundle::PAUSED) {
 		DownloadManager::getInstance()->disconnectBundle(aBundle);
@@ -1663,7 +1663,7 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQICha
 		b = bundleQueue.findBundle(bundleToken);
 		if (b) {
 			b->setAutoPriority(!b->getAutoPriority());
-			b->setDirty(true);
+			b->setDirty();
 		}
 	}
 
@@ -1765,7 +1765,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItem::Priority p, bool is
 	if (b->isFileBundle() && !isBundleChange) {
 		setBundlePriority(b, (Bundle::Priority)p, isAP, true);
 	} else {
-		b->setDirty(true);
+		b->setDirty();
 	}
 
 	if(p == QueueItem::PAUSED && running) {
@@ -1805,7 +1805,7 @@ void QueueManager::setQIAutoPriority(const string& aTarget, bool ap, bool isBund
 			}
 		}
 		dcassert(q->getBundle());
-		q->getBundle()->setDirty(true);
+		q->getBundle()->setDirty();
 		fire(QueueManagerListener::StatusUpdated(), q);
 	}
 
@@ -1935,7 +1935,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		const string& bundleTarget = getAttrib(attribs, sTarget, 0);
 		const string& token = getAttrib(attribs, sToken, 1);
 		if(token.empty())
-			return;
+			throw Exception("Missing bundle token");
 
 		time_t dirDate = static_cast<time_t>(Util::toInt(getAttrib(attribs, sDate, 2)));
 		time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 3)));
@@ -1945,9 +1945,9 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		}
 
 		if (ConnectionManager::getInstance()->tokens.addToken(token))
-			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, ProfileTokenSet(), dirDate, token);
+			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (Bundle::Priority)Util::toInt(prio) : Bundle::DEFAULT, ProfileTokenSet(), dirDate, token, false);
 		else
-			throw Exception("Duplicate token");
+			throw Exception("Duplicate bundle token");
 
 		inBundle = true;		
 	} else if(inDownloads || inBundle || inFile) {
@@ -2001,7 +2001,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 					curBundle = new Bundle(qi);
 				} else if (inFile && !curToken.empty()) {
 					if (ConnectionManager::getInstance()->tokens.addToken(curToken)) {
-						curBundle = new Bundle(qi, ProfileTokenSet(), curToken);
+						curBundle = new Bundle(qi, ProfileTokenSet(), curToken, false);
 					} else {
 						qm->fileQueue.remove(qi);
 						throw Exception("Duplicate token");
@@ -2858,7 +2858,7 @@ void QueueManager::mergeBundle(BundlePtr& targetBundle, BundlePtr& sourceBundle)
 	} else if (!changeTarget) {
 		targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 		addBundleUpdate(targetBundle);
-		targetBundle->setDirty(true);
+		targetBundle->setDirty();
 	}
 
 	if (targetBundle->getPriority() != Bundle::PAUSED) {
@@ -2923,7 +2923,7 @@ int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget
 	aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	aBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
 	addBundleUpdate(aBundle);
-	aBundle->setDirty(true);
+	aBundle->setDirty();
 
 	return (int)mBundles.size();
 }
@@ -3239,7 +3239,7 @@ void QueueManager::moveFileBundle(BundlePtr& aBundle, const string& aTarget) noe
 		/* update the bundle path in transferview */
 		fire(QueueManagerListener::BundleTarget(), aBundle);
 
-		aBundle->setDirty(true);
+		aBundle->setDirty();
 	}
 }
 
@@ -3420,11 +3420,11 @@ void QueueManager::moveBundleItems(const QueueItemList& ql, BundlePtr& targetBun
 		} else {
 			targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 			addBundleUpdate(targetBundle);
-			targetBundle->setDirty(true);
+			targetBundle->setDirty();
 			if (fireAdded) {
 				sourceBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 				addBundleUpdate(sourceBundle);
-				sourceBundle->setDirty(true);
+				sourceBundle->setDirty();
 			}
 		}
 	}
@@ -3497,7 +3497,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished, bool moved 
 	if (emptyBundle) {
 		removeBundle(bundle, finished, false, moved);
 	} else {
-		bundle->setDirty(true);
+		bundle->setDirty();
 	}
 }
 

@@ -40,9 +40,9 @@ using boost::range::find_if;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, const string& aToken /*empty*/) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
+Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, const string& aToken /*empty*/, bool aDirty /*true*/) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
-	priority((Priority)qi->getPriority()), autoPriority(qi->getAutoPriority()), dirty(true), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
+	priority((Priority)qi->getPriority()), autoPriority(qi->getAutoPriority()), dirty(aDirty), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
 	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0), autoSearches(aAutoSearches) {
 
 	if (aToken.empty())
@@ -56,9 +56,9 @@ Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, 
 		setFlag(FLAG_AUTODROP);
 }
 
-Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, const ProfileTokenSet& aAutoSearches /*empty*/, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/) : 
+Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, const ProfileTokenSet& aAutoSearches /*empty*/, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/) : 
 	fileBundle(false), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true), priority(aPriority), 
-	dirty(true), added(added), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearches(aAutoSearches) {
+	dirty(aDirty), added(added), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearches(aAutoSearches) {
 
 	if (aToken.empty()) {
 		token = ConnectionManager::getInstance()->tokens.getToken();
@@ -104,7 +104,7 @@ bool Bundle::checkRecent() {
 	return recent;
 }
 
-bool Bundle::allowHash() {
+bool Bundle::allowHash() const {
 	return !isSet(FLAG_HASH) && queueItems.empty() && find_if(finishedFiles, [](QueueItemPtr q) { 
 		return !q->isSet(QueueItem::FLAG_MOVED); }) == finishedFiles.end();
 }
@@ -135,7 +135,7 @@ void Bundle::addFinishedSegment(int64_t aSize) {
 	dcassert(currentDownloaded >= 0);
 	dcassert(currentDownloaded <= size);
 	dcassert(finishedSegments <= size);
-	setDirty(true);
+	setDirty();
 }
 
 void Bundle::removeDownloadedSegment(int64_t aSize) {
@@ -162,8 +162,16 @@ string Bundle::getName() const {
 	}
 }
 
-void Bundle::setDirty(bool enable) {
-	dirty = enable;
+void Bundle::setDirty() {
+	if (!isSet(FLAG_NEW))
+		dirty = true;
+}
+
+bool Bundle::getDirty() const {
+	if (isSet(FLAG_NEW))
+		return false; //don't save bundles that are currently being added
+
+	return dirty; 
 }
 
 QueueItemPtr Bundle::findQI(const string& aTarget) const {
@@ -244,6 +252,7 @@ bool Bundle::addQueue(QueueItemPtr& qi) {
 	if (bd.first == 1 && bd.second == 0) {
 		return true;
 	}
+
 	return false;
 }
 
@@ -956,7 +965,8 @@ void Bundle::save() {
 		File::deleteFile(getBundleFile());
 		File::renameFile(getBundleFile() + ".tmp", getBundleFile());
 	} catch(...) { }
-	setDirty(false);
+	
+	dirty = false;
 }
 
 }

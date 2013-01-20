@@ -230,6 +230,12 @@ string ShareManager::getRealPath(const TTHValue& root) const {
 	if(i != tthIndex.end()) {
 		return i->second->getRealPath();
 	}
+
+	const auto k = tempShares.find(root);
+	if (k != tempShares.end()) {
+		return k->second.path;
+	}
+
 	return Util::emptyString;
 }
 
