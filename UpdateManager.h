@@ -95,6 +95,7 @@ public:
 	bool isUpdating();
 
 	static bool getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
+	void checkAdditionalUpdates(bool manualCheck);
 private:
 	uint64_t lastIPUpdate;
 	static uint8_t publicKey[];

@@ -358,7 +358,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 				// ignore if we or remote client don't support NAT traversal in passive mode
 				// although many NMDC hubs won't send us passive if we're in passive too, so just in case...
-				if(!meActive && (!u->getUser()->isSet(User::NAT_TRAVERSAL) || !SETTING(ALLOW_NAT_TRAVERSAL)))
+				if(!meActive && !u->getUser()->isSet(User::NAT_TRAVERSAL))
 					return;
 			}
 
@@ -507,28 +507,26 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 		}
 
-		if(SETTING(ALLOW_NAT_TRAVERSAL)) {
-			if(port[port.size() - 1] == 'N') {
-				if(senderNick.empty())
-					return;
-
-				port.erase(port.size() - 1);
-
-				// Trigger connection attempt sequence locally ...
-				ConnectionManager::getInstance()->nmdcConnect(server, port, Util::toString(sock->getLocalPort()), 
-					BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure && !getStealth());
-
-				// ... and signal other client to do likewise.
-				send("$ConnectToMe " + senderNick + " " + getLocalIp() + ":" + Util::toString(sock->getLocalPort()) + (secure ? "RS" : "R") + "|");
+		if(port[port.size() - 1] == 'N') {
+			if(senderNick.empty())
 				return;
-			} else if(port[port.size() - 1] == 'R') {
-				port.erase(port.size() - 1);
+
+			port.erase(port.size() - 1);
+
+			// Trigger connection attempt sequence locally ...
+			ConnectionManager::getInstance()->nmdcConnect(server, port, Util::toString(sock->getLocalPort()), 
+				BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure && !getStealth());
+
+			// ... and signal other client to do likewise.
+			send("$ConnectToMe " + senderNick + " " + getLocalIp() + ":" + Util::toString(sock->getLocalPort()) + (secure ? "RS" : "R") + "|");
+			return;
+		} else if(port[port.size() - 1] == 'R') {
+			port.erase(port.size() - 1);
 				
-				// Trigger connection attempt sequence locally
-				ConnectionManager::getInstance()->nmdcConnect(server, port, Util::toString(sock->getLocalPort()), 
-					BufferedSocket::NAT_SERVER, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure);
-				return;
-			}
+			// Trigger connection attempt sequence locally
+			ConnectionManager::getInstance()->nmdcConnect(server, port, Util::toString(sock->getLocalPort()), 
+				BufferedSocket::NAT_SERVER, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure);
+			return;
 		}
 		
 		if(port.empty())
@@ -552,7 +550,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 		if(isActive()) {
 			connectToMe(*u);
-		} else if(SETTING(ALLOW_NAT_TRAVERSAL) && (u->getIdentity().getStatus() & Identity::NAT)) {
+		} else if(u->getIdentity().getStatus() & Identity::NAT) {
 			bool secure = CryptoManager::getInstance()->TLSOk() && u->getUser()->isSet(User::TLS) && !getStealth();
 			// NMDC v2.205 supports "$ConnectToMe sender_nick remote_nick ip:port", but many NMDC hubsofts block it
 			// sender_nick at the end should work at least in most used hubsofts
@@ -936,7 +934,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 		if(AirUtil::getAway()) {
 			status |= Identity::AWAY;
 		}
-		if(SETTING(ALLOW_NAT_TRAVERSAL) && !isActive()) {
+		if(!isActive()) {
 			status |= Identity::NAT;
 		}
 	}

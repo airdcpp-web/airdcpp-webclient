@@ -29,6 +29,7 @@
 #include "Mapper_WinUPnP.h"
 #include "ScopedFunctor.h"
 #include "SearchManager.h"
+#include "ResourceManager.h"
 #include "version.h"
 
 namespace dcpp {
@@ -47,8 +48,8 @@ MappingManager::MappingManager() : renewal(0) {
 
 StringList MappingManager::getMappers() const {
 	StringList ret;
-	for(auto i = mappers.cbegin(), iend = mappers.cend(); i != iend; ++i)
-		ret.push_back(i->first);
+	for(auto& i: mappers)
+		ret.push_back(i.first);
 	return ret;
 }
 
@@ -57,12 +58,12 @@ bool MappingManager::open() {
 		return false;
 
 	if(mappers.empty()) {
-		log("No port mapping interface available", LogManager::LOG_ERROR);
+		log(STRING(MAPPER_NO_INTERFACE), LogManager::LOG_ERROR);
 		return false;
 	}
 
 	if(busy.test_and_set()) {
-		log("Another port mapping attempt is in progress...", LogManager::LOG_INFO);
+		log(STRING(MAPPER_IN_PROGRESS), LogManager::LOG_INFO);
 		return false;
 	}
 
@@ -92,10 +93,9 @@ bool MappingManager::getOpened() const {
 string MappingManager::getStatus() const {
 	if(working.get()) {
 		auto& mapper = *working;
-		return str(boost::format("Successfully created port mappings on the %1% device with the %2% interface") %
-			deviceString(mapper) % mapper.getName());
+		return STRING_F(MAPPER_CREATING_SUCCESS, deviceString(mapper) % mapper.getName());
 	}
-	return "Failed to create port mappings";
+	return STRING(MAPPER_CREATING_FAILED);
 }
 
 int MappingManager::run() {
@@ -120,7 +120,7 @@ int MappingManager::run() {
 		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) {
 			// just launch renewal requests - don't bother with possible failures.
 			if(!port.empty()) {
-				mapper.open(port, protocol, str(boost::format("%1% %2% port (%3% %4%)") %
+				mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X,
 					description % port % Mapper::protocols[protocol]));
 			}
 		};
@@ -146,35 +146,31 @@ int MappingManager::run() {
 		}
 	}
 
-	for(auto i = mappers.begin(); i != mappers.end(); ++i) {
-		unique_ptr<Mapper> pMapper(i->second(AirUtil::getLocalIp()));
+	for(auto& i: mappers) {
+		unique_ptr<Mapper> pMapper(i.second(AirUtil::getLocalIp()));
 		Mapper& mapper = *pMapper;
 
 		ScopedFunctor([&mapper] { mapper.uninit(); });
 		if(!mapper.init()) {
-			log(str(boost::format("Failed to initalize the %1% interface") % mapper.getName()), LogManager::LOG_WARNING);
+			log(STRING_F(MAPPER_INIT_FAILED, mapper.getName()), LogManager::LOG_WARNING);
 			continue;
 		}
 
 		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) -> bool {
-			if(!port.empty() && !mapper.open(port, protocol, str(boost::format("%1% %2% port (%3% %4%)") %
-				APPNAME % description % port % Mapper::protocols[protocol])))
-			{
-				this->log(str(boost::format("Failed to map the %1% port (%2% %3%) with the %4% interface") %
-					description % port % Mapper::protocols[protocol] % mapper.getName()), LogManager::LOG_WARNING);
+			if(!port.empty() && !mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, APPNAME % description % port % Mapper::protocols[protocol]))) {
+				this->log(STRING_F(MAPPER_INTERFACE_FAILED, description % port % Mapper::protocols[protocol] % mapper.getName()), LogManager::LOG_WARNING);
 				mapper.close();
 				return false;
 			}
 			return true;
 		};
 
-		if(!(addRule(conn_port, Mapper::PROTOCOL_TCP, "Transfer") &&
-			addRule(secure_port, Mapper::PROTOCOL_TCP, "Encrypted transfer") &&
-			addRule(search_port, Mapper::PROTOCOL_UDP, "Search")))
+		if(!(addRule(conn_port, Mapper::PROTOCOL_TCP, STRING(TRANSFER)) &&
+			addRule(secure_port, Mapper::PROTOCOL_TCP, STRING(ENCRYPTED_TRANSFER)) &&
+			addRule(search_port, Mapper::PROTOCOL_UDP, STRING(SEARCH))))
 			continue;
 
-		log(str(boost::format("Successfully created port mappings (Transfers: %1%, Encrypted transfers: %2%, Search: %3%) on the %4% device with the %5% interface") %
-			conn_port % secure_port % search_port % deviceString(mapper) % mapper.getName()), LogManager::LOG_INFO);
+		log(STRING_F(MAPPER_CREATING_SUCCESS_LONG, conn_port % secure_port % search_port % deviceString(mapper) % mapper.getName()), LogManager::LOG_INFO);
 
 		working = move(pMapper);
 
@@ -184,7 +180,7 @@ int MappingManager::run() {
 				ConnectivityManager::getInstance()->set(SettingsManager::EXTERNAL_IP, externalIP);
 			} else {
 				// no cleanup because the mappings work and hubs will likely provide the correct IP.
-				log("Failed to get external IP", LogManager::LOG_WARNING);
+				log(STRING(MAPPER_IP_FAILED), LogManager::LOG_WARNING);
 			}
 		}
 
@@ -195,7 +191,7 @@ int MappingManager::run() {
 	}
 
 	if(!getOpened()) {
-		log(str(boost::format("Failed to create port mappings")), LogManager::LOG_ERROR);
+		log(STRING(MAPPER_CREATING_FAILED), LogManager::LOG_ERROR);
 		ConnectivityManager::getInstance()->mappingFinished(Util::emptyString);
 	}
 
@@ -207,20 +203,20 @@ void MappingManager::close(Mapper& mapper) {
 		bool ret = mapper.init() && mapper.close();
 		mapper.uninit();
 		if (ret)
-			log(str(boost::format("Successfully removed port mappings from the %1% device with the %2% interface") % deviceString(mapper) % mapper.getName()), LogManager::LOG_INFO);
+			log(STRING_F(MAPPER_REMOVING_SUCCESS, deviceString(mapper) % mapper.getName()), LogManager::LOG_INFO);
 		else
-			log(str(boost::format("Failed to remove port mappings from the %1% device with the %2% interface") % deviceString(mapper) % mapper.getName()), LogManager::LOG_WARNING);
+			log(STRING_F(MAPPER_REMOVING_FAILED, deviceString(mapper) % mapper.getName()), LogManager::LOG_WARNING);
 	}
 }
 
 void MappingManager::log(const string& message, LogManager::Severity sev) {
-	ConnectivityManager::getInstance()->log(str(boost::format("Port mapping: %1%") % message), sev);
+	ConnectivityManager::getInstance()->log(STRING(PORT_MAPPING) + ": " + message, sev);
 }
 
 string MappingManager::deviceString(Mapper& mapper) const {
 	string name(mapper.getDeviceName());
 	if(name.empty())
-		name = "Generic";
+		name = STRING(GENERIC);
 	return '"' + name + '"';
 }
 

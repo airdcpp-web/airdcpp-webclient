@@ -272,7 +272,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			cur->setDate(Util::toUInt32(date));
 		}
 
-		cur->setComplete(true);
+		//set the root complete only after we have finished loading (will prevent possible problems like the GUI counting the size for this folder)
 		inListing = true;
 
 		if(simple) {
@@ -287,7 +287,8 @@ void ListLoader::endTag(const string& name) {
 		if(name == sDirectory) {
 			cur = cur->getParent();
 		} else if(name == sFileListing) {
-			// cur should be root now...
+			// cur should be root now, set it complete
+			cur->setComplete(true);
 			inListing = false;
 		}
 	}

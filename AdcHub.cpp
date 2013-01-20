@@ -439,7 +439,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 		return;
 	}
 
-	if (!u->getIdentity().supports(NAT0_FEATURE) || !SETTING(ALLOW_NAT_TRAVERSAL))
+	if (!u->getIdentity().supports(NAT0_FEATURE))
 		return;
 
 	// Attempt to traverse NATs and/or firewalls with TCP.
@@ -1061,13 +1061,10 @@ void AdcHub::sendSearch(AdcCommand& c) {
 	} else {
 		c.setType(AdcCommand::TYPE_FEATURE);
 		string features = c.getFeatures();
-		if(SETTING(ALLOW_NAT_TRAVERSAL)) {
-			c.setFeatures(features + '+' + TCP4_FEATURE + '-' + NAT0_FEATURE);
-			send(c);		
-			c.setFeatures(features + "+" + NAT0_FEATURE);
-		} else {
-			c.setFeatures(features + "+" + TCP4_FEATURE);
-		}
+		c.setFeatures(features + '+' + TCP4_FEATURE + '-' + NAT0_FEATURE);
+		send(c);		
+		c.setFeatures(features + "+" + NAT0_FEATURE);
+
 		send(c);
 	}
 }
@@ -1180,11 +1177,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		if (SETTING(ENABLE_SUDP))
 			su += "," + SUD1_FEATURE;
 	} else {
-		if(SETTING(ALLOW_NAT_TRAVERSAL)) {
-			su += "," + NAT0_FEATURE;
-		} else {
-			addParam(lastInfoMap, c, "I4", "");
-		}
+		su += "," + NAT0_FEATURE;
 		addParam(lastInfoMap, c, "U4", "");
 	}
 

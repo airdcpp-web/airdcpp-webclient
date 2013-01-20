@@ -75,7 +75,7 @@ private:
 
 	void startMapping();
 	void mappingFinished(const string& mapper);
-	void log(string&& message, LogManager::Severity sev);
+	void log(const string& message, LogManager::Severity sev);
 
 	void startSocket();
 	void listen();

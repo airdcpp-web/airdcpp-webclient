@@ -264,6 +264,8 @@ void UpdateManager::failUpdateDownload(const string& aError, bool manualCheck) {
 	} else {
 		LogManager::getInstance()->message(msg, LogManager::LOG_WARNING);
 	}
+
+	checkAdditionalUpdates(manualCheck);
 }
 
 void UpdateManager::checkIP(bool manual) {
@@ -540,8 +542,11 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		failUpdateDownload(STRING_F(VERSION_PARSING_FAILED, e.getError()), manualCheck);
 	}
 
+	checkAdditionalUpdates(manualCheck);
+}
 
-	if(SETTING(IP_UPDATE) && !SETTING(AUTO_DETECT_CONNECTION)) {
+void UpdateManager::checkAdditionalUpdates(bool manualCheck) {
+	if(!manualCheck && SETTING(IP_UPDATE) && !SETTING(AUTO_DETECT_CONNECTION)) {
 		checkIP(false);
 	}
 

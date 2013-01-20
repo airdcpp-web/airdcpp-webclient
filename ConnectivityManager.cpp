@@ -109,12 +109,12 @@ void ConnectivityManager::detectConnection() {
 		}
 	}
 
-	log((string)("Determining the best connectivity settings..."), LogManager::LOG_INFO);
+	log(STRING(CONN_DETERMINING), LogManager::LOG_INFO);
 	try {
 		listen();
 	} catch(const Exception& e) {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
-		log(str(boost::format("Unable to open %1% port(s); connectivity settings must be configured manually") % e.getError()), LogManager::LOG_ERROR);
+		log(STRING_F(CONN_PORT_X_FAILED, e.getError()), LogManager::LOG_ERROR);
 		fire(ConnectivityManagerListener::Finished());
 		running = false;
 		return;
@@ -124,14 +124,14 @@ void ConnectivityManager::detectConnection() {
 
 	if(!Util::isPrivateIp(AirUtil::getLocalIp())) {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
-		log((string)("Public IP address detected, selecting active mode with direct connection"), LogManager::LOG_INFO);
+		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO);
 		fire(ConnectivityManagerListener::Finished());
 		running = false;
 		return;
 	}
 
 	autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE_UPNP;
-	log((string)("Local network with possible NAT detected, trying to map the ports..."), LogManager::LOG_INFO);
+	log(STRING(CONN_NAT_DETECTED), LogManager::LOG_INFO);
 
 	startMapping();
 }
@@ -232,7 +232,7 @@ void ConnectivityManager::mappingFinished(const string& mapper) {
 		if(mapper.empty()) {
 			disconnect();
 			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
-			log((string)("Active mode could not be achieved; a manual configuration is recommended for better connectivity"), LogManager::LOG_WARNING);
+			log(STRING(CONN_ACTIVE_FAILED), LogManager::LOG_WARNING);
 		} else {
 			SettingsManager::getInstance()->set(SettingsManager::MAPPER, mapper);
 		}
@@ -242,10 +242,10 @@ void ConnectivityManager::mappingFinished(const string& mapper) {
 	running = false;
 }
 
-void ConnectivityManager::log(string&& message, LogManager::Severity sev) {
+void ConnectivityManager::log(const string& message, LogManager::Severity sev) {
 	if(SETTING(AUTO_DETECT_CONNECTION)) {
 		status = move(message);
-		LogManager::getInstance()->message("Connectivity: " + status, sev);
+		LogManager::getInstance()->message(STRING(CONNECTIVITY) + ": " + status, sev);
 		fire(ConnectivityManagerListener::Message(), status);
 	} else {
 		LogManager::getInstance()->message(message, sev);
