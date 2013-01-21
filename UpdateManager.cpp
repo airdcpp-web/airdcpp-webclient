@@ -335,7 +335,7 @@ void UpdateManager::updateGeo(bool v6) {
 	if(conn)
 		return;
 
-	LogManager::getInstance()->message(str(boost::format("Updating the %1% GeoIP database...") % (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING_FAILED, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
 	conn.reset(new HttpDownload(v6 ? links.geoip6 : links.geoip4,
 		[this, v6] { completeGeoDownload(v6); }, false));
 }
@@ -349,11 +349,11 @@ void UpdateManager::completeGeoDownload(bool v6) {
 		try {
 			File(GeoManager::getDbPath(v6) + ".gz", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
 			GeoManager::getInstance()->update(v6);
-			LogManager::getInstance()->message(str(boost::format("The %1% GeoIP database has been successfully updated") % (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(GEOIP_UPDATED, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
 			return;
 		} catch(const FileException&) { }
 	}
-	LogManager::getInstance()->message(str(boost::format("The %1% GeoIP database could not be updated") % (v6 ? "IPv6" : "IPv4")), LogManager::LOG_WARNING);
+	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING_FAILED, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_WARNING);
 }
 
 void UpdateManager::completeLanguageDownload() {

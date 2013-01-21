@@ -871,9 +871,7 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 	string windows = Text::fromT((tstring)path) + PATH_SEPARATOR;
 	// don't share Windows directory
 	if(strnicmp(realPath, windows, windows.length()) == 0) {
-		char buf[MAX_PATH];
-		snprintf(buf, sizeof(buf), CSTRING(CHECK_FORBIDDEN), realPath.c_str());
-		throw ShareException(buf);
+		throw ShareException(STRING_F(CHECK_FORBIDDEN, realPath));
 	}
 #endif
 }

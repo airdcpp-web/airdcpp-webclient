@@ -1009,7 +1009,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 		if(u) {
 			Client* client = &u->getClient();
 			if(client && client->isConnected()) {
-				client->Message("AutoSearch found a file: " + sr->getFile() + " from an user " + u->getIdentity().getNick());
+				client->Message(STRING(AUTO_SEARCH) + ": " + STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFile() % u->getIdentity().getNick()));
 			}
 
 			if(as->getRemove()) {
