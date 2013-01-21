@@ -1917,10 +1917,13 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("</Directory>\r\n"));
 	} else {
-		if(find_if(shareDirs, [](Directory::Ptr d) { return !d->files.empty() || !d->directories.empty(); } ) == shareDirs.end()) {
+		bool hasDirs = any_of(shareDirs.begin(), shareDirs.end(), [](Directory::Ptr d) { return !d->directories.empty(); });
+		if(!hasDirs && all_of(shareDirs.begin(), shareDirs.end(), [](Directory::Ptr d) { return d->files.empty(); })) {
 			xmlFile.write(LITERAL("\" />\r\n"));
 		} else {
-			xmlFile.write(LITERAL("\" Incomplete=\"1\" />\r\n"));
+			xmlFile.write(LITERAL("\" Incomplete=\"1\" Children=\""));
+			xmlFile.write(Util::toString(hasDirs));
+			xmlFile.write(LITERAL("\" />\r\n"));
 		}
 	}
 }

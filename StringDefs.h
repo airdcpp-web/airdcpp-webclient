@@ -1648,5 +1648,8 @@ enum Strings { // @DontAdd
 	ENCRYPTED_TRANSFER, // "Encrypted transfer"
 	TREE_LOAD_FAILED, // "Failed to load hash data for a TTH root %s: %s (consider rebuilding your hash database by typing /rebuild)"
 	HASHER_X_CREATED, // "Hasher #%d created"
+	SHOW_DIRECTORY_TREE, // "Show directory tree"
+	ADDITIONAL_UP_LIMITS, // "Additional upload limits"
+	ENABLE_PARAMETERS, // "Enable parameters"
 	LAST // @DontAdd
 };

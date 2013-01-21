@@ -1641,6 +1641,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Encrypted transfer", 
 "Failed to load hash data for a TTH root %s: %s (consider rebuilding your hash database by typing /rebuild)", 
 "Hasher #%d created", 
+"Show directory tree", 
+"Additional upload limits", 
+"Enable parameters", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3282,4 +3285,7 @@ std::string dcpp::ResourceManager::names[] = {
 "EncryptedTransfer", 
 "TreeLoadFailed", 
 "HasherXCreated", 
+"ShowDirectoryTree", 
+"AdditionalUpLimits", 
+"EnableParameters", 
 };
