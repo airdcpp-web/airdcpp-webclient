@@ -335,7 +335,7 @@ void UpdateManager::updateGeo(bool v6) {
 	if(conn)
 		return;
 
-	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING_FAILED, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
 	conn.reset(new HttpDownload(v6 ? links.geoip6 : links.geoip4,
 		[this, v6] { completeGeoDownload(v6); }, false));
 }

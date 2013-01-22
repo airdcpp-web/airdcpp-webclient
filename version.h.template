@@ -21,15 +21,13 @@
 #define DCVERSIONSTRING "0.802"
 #define SVNVERSION "$WCREV$"
 
-#define BETAVER
+//#define BETAVER
 
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"
-#define INSTALLER "AirDC_Installer64.exe"
 #else
 # define CONFIGURATION_TYPE "x86-32"
-#define INSTALLER "AirDC_Installer.exe"
 #endif
 
 #ifdef BETAVER
