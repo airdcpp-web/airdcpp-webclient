@@ -43,7 +43,7 @@ using boost::range::for_each;
 using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
-	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, false, false)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
+	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), waiting(false)
 {
 	running.clear();
@@ -179,6 +179,7 @@ static const string sBaseDate = "BaseDate";
 static const string sGenerator = "Generator";
 static const string sDirectory = "Directory";
 static const string sIncomplete = "Incomplete";
+static const string sChildren = "Children";
 static const string sFile = "File";
 static const string sName = "Name";
 static const string sSize = "Size";
@@ -211,7 +212,10 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			if(n.empty()) {
 				throw SimpleXMLException("Directory missing name attribute");
 			}
+
 			bool incomp = getAttrib(attribs, sIncomplete, 1) == "1";
+			bool children = getAttrib(attribs, sChildren, 2) == "1";
+
 			const string& size = getAttrib(attribs, sSize, 2);
 			const string& date = getAttrib(attribs, sDate, 3);
 
@@ -225,11 +229,12 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 
 			if(!d) {
-				d = new DirectoryListing::Directory(cur, n, false, !incomp, (partialList && checkDupe), size, date);
+				d = new DirectoryListing::Directory(cur, n, incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) : 
+					DirectoryListing::Directory::TYPE_NORMAL, (partialList && checkDupe), size, date);
 				cur->directories.push_back(d);
 			} else {
-				if(!d->getComplete()) {
-					d->setComplete(!incomp);
+				if(!d->isComplete()) {
+					d->setComplete();
 				}
 				d->setDate(Util::toUInt32(date));
 			}
@@ -254,7 +259,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			for(auto& name: sl) {
 				auto s = find_if(cur->directories, [&name](DirectoryListing::Directory* dir) { return dir->getName() == name; });
 				if (s == cur->directories.end()) {
-					auto d = new DirectoryListing::Directory(cur, name, false, false, true);
+					auto d = new DirectoryListing::Directory(cur, name, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, true);
 					cur->directories.push_back(d);
 					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = make_pair(d, false);
 					cur = d;
@@ -288,7 +293,7 @@ void ListLoader::endTag(const string& name) {
 			cur = cur->getParent();
 		} else if(name == sFileListing) {
 			// cur should be root now, set it complete
-			cur->setComplete(true);
+			cur->setComplete();
 			inListing = false;
 		}
 	}
@@ -301,8 +306,8 @@ DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize
 	}
 }
 
-DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
-		: name(aName), parent(aParent), adls(_adls), complete(aComplete), dupe(DUPE_NONE), partialSize(0), date(Util::toUInt32(aDate)) {
+DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
+		: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), date(Util::toUInt32(aDate)) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
@@ -314,7 +319,7 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 }
 
 void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
-	if (adls)
+	if (getAdls())
 		return;
 
 	if (aStrings.hasRoot) {
@@ -368,7 +373,7 @@ string DirectoryListing::getPath(const Directory* d) const {
 
 bool DirectoryListing::Directory::findIncomplete() {
 	/* Recursive check for incomplete dirs */
-	if(!complete) {
+	if(!isComplete()) {
 		return true;
 	}
 	return find_if(directories, [](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
@@ -610,29 +615,29 @@ void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
 }
 
 int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) {
-	if(!complete)
+	if(!isComplete())
 		return partialSize;
-	if(!countAdls && adls)
+	if(!countAdls && getAdls())
 		return 0;
 	
 	int64_t x = getFilesSize();
 	for(auto d: directories) {
 		if(!countAdls && d->getAdls())
 			continue;
-		x += d->getTotalSize(adls);
+		x += d->getTotalSize(getAdls());
 	}
 	return x;
 }
 
 size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) {
-	if(!countAdls && adls)
+	if(!countAdls && getAdls())
 		return 0;
 
 	size_t x = getFileCount();
 	for(auto d: directories) {
 		if(!countAdls && d->getAdls())
 			continue;
-		x += d->getTotalFileCount(adls);
+		x += d->getTotalFileCount(getAdls());
 	}
 	return x;
 }
@@ -931,7 +936,7 @@ int DirectoryListing::run() {
 						if (lt->baseDir.empty()) {
 							baseDirs.clear();
 							root->clearAll();
-							root->setComplete(false);
+							root->setComplete();
 						} else {
 							auto cur = findDirectory(Util::toNmdcFile(lt->baseDir));
 							if (cur && (!cur->directories.empty() || !cur->files.empty())) {
@@ -965,7 +970,7 @@ int DirectoryListing::run() {
 
 				waiting = true;
 
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(lt->baseDir), reloading && lt->baseDir == "/", lt->f == nullptr, !reloading);
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(lt->baseDir), reloading && lt->baseDir == "/", lt->f == nullptr, true);
 				if (lt->f) {
 					lt->f();
 				}
@@ -1077,7 +1082,7 @@ void DirectoryListing::changeDir(bool reload) {
 		fire(DirectoryListingListener::ChangeDirectory(), path, true);
 	} else {
 		const auto dir = (path == Util::emptyString) ? root : findDirectory(path, root);
-		if (dir && dir->getComplete() && !reload) {
+		if (dir && dir->isComplete() && !reload) {
 			fire(DirectoryListingListener::ChangeDirectory(), path, true);
 		} else if (isOwnList) {
 			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, Util::toInt(fileName));

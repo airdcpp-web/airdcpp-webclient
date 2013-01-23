@@ -522,7 +522,7 @@ void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) {
 void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory* root) {
 	// Load default destination directory (index = 0)
 	destDirs.clear();
-	DestDir dir = { "ADLSearch", new DirectoryListing::Directory(root, "<<<ADLSearch>>>", true, true) };
+	DestDir dir = { "ADLSearch", new DirectoryListing::Directory(root, "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS) };
 	destDirs.push_back(std::move(dir));
 
 	// Scan all loaded searches
@@ -548,7 +548,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 
 		if(isNew) {
 			// Add new destination directory
-			DestDir dir = { is.destDir, new DirectoryListing::Directory(root, "<<<" + is.destDir + ">>>", true, true) };
+			DestDir dir = { is.destDir, new DirectoryListing::Directory(root, "<<<" + is.destDir + ">>>", DirectoryListing::Directory::TYPE_ADLS) };
 			destDirs.push_back(std::move(dir));
 			is.ddIndex = ddIndex;
 		}

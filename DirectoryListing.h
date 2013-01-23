@@ -86,6 +86,13 @@ public:
 
 	class Directory :  boost::noncopyable {
 	public:
+		enum DirType {
+			TYPE_NORMAL,
+			TYPE_INCOMPLETE_CHILD,
+			TYPE_INCOMPLETE_NOCHILD,
+			TYPE_ADLS,
+		};
+
 		typedef Directory* Ptr;
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
@@ -98,7 +105,7 @@ public:
 		List directories;
 		File::List files;
 
-		Directory(Directory* aParent, const string& aName, bool _adls, bool aComplete, bool checkDupe = false, const string& aSize = Util::emptyString, const string& aDate = Util::emptyString);
+		Directory(Directory* aParent, const string& aName, DirType aType, bool checkDupe = false, const string& aSize = Util::emptyString, const string& aDate = Util::emptyString);
 
 		virtual ~Directory();
 
@@ -124,16 +131,19 @@ public:
 		
 		GETSET(string, name, Name);
 		GETSET(int64_t, partialSize, PartialSize);
-		GETSET(Directory*, parent, Parent);		
-		GETSET(bool, adls, Adls);		
-		GETSET(bool, complete, Complete);
+		GETSET(Directory*, parent, Parent);
+		GETSET(DirType, type, Type);
 		GETSET(DupeType, dupe, Dupe)
 		GETSET(time_t, date, Date)
+
+		bool isComplete() const { return type == TYPE_ADLS || type == TYPE_NORMAL; }
+		void setComplete() { type = TYPE_NORMAL; }
+		bool getAdls() const { return type == TYPE_ADLS; }
 	};
 
 	class AdlDirectory : public Directory {
 	public:
-		AdlDirectory(const string& aFullPath, Directory* aParent, const string& aName) : Directory(aParent, aName, true, true), fullPath(aFullPath) { }
+		AdlDirectory(const string& aFullPath, Directory* aParent, const string& aName) : Directory(aParent, aName, Directory::TYPE_ADLS), fullPath(aFullPath) { }
 
 		GETSET(string, fullPath, FullPath);
 	};

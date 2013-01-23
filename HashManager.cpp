@@ -280,14 +280,11 @@ bool HashManager::HashStore::loadTree(File& f, const TreeInfo& ti, const TTHValu
 		boost::scoped_array<uint8_t> buf(new uint8_t[datalen]);
 		f.read(&buf[0], datalen);
 		tt = TigerTree(ti.getSize(), ti.getBlockSize(), &buf[0]);
-		if (!(tt.getRoot() == root)) {
-			if (!rebuilding)
-				LogManager::getInstance()->message(STRING_F(TREE_LOAD_FAILED, STRING(INVALID_TREE)), LogManager::LOG_ERROR);
-			return false;
-		}
+		if (!(tt.getRoot() == root))
+			throw HashException(STRING(INVALID_TREE));
 	} catch (const Exception& e) {
 		if (!rebuilding)
-			LogManager::getInstance()->message(STRING_F(TREE_LOAD_FAILED, e.getError()), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(TREE_LOAD_FAILED, root.toBase32() % e.getError()), LogManager::LOG_ERROR);
 		return false;
 	}
 
