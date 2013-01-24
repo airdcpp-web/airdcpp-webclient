@@ -325,7 +325,6 @@ enum Strings { // @DontAdd
 	MENU_OPEN_DOWNLOADS_DIR, // "Open downloads directory"
 	MENU_OPEN_FILE_LIST, // "Open file list...\tCtrl+L"
 	MENU_OPEN_MATCH_ALL, // "Match downloaded lists"
-	MENU_OPEN_OWN_LIST, // "Open own list"
 	MENU_PUBLIC_HUBS, // "Public Hubs\tCtrl+P"
 	MENU_QUICK_CONNECT, // "Quick Connect ...\tCtrl+Q"
 	MENU_RECONNECT, // "Reconnect\tCtrl+R"
@@ -1538,7 +1537,6 @@ enum Strings { // @DontAdd
 	SETTINGS_AUTO_DETECTION_USE_LIMITED, // "Use the limiter values when setting the auto detected speed and slot limits"
 	ENCRYPTION, // "Encryption"
 	SETTINGS_USE_ADLS, // "Always match other users' file lists with ADL search"
-	SETTINGS_USE_ADLS_OWN, // "Always match own full file list with ADL search "
 	COLLECTING_RESULTS, // "Collecting results"
 	POST_SEARCHING, // "Searching for proper"
 	INCREASE_NUM, // "Increase current number"
@@ -1604,5 +1602,9 @@ enum Strings { // @DontAdd
 	GEOIP_UPDATED, // "The %1% GeoIP database has been successfully updated"
 	GEOIP_UPDATING_FAILED, // "The %1% GeoIP database could not be updated"
 	AS_X_FOUND_FROM, // "A %s %s was found from an user %s"
+	FAV_DIRECTORY, // "Favorite directory"
+	TRASFER_RATE_LIMITING, // "Transfer rate limiting"
+	HOURS_LOWER, // "hours"
+	OWN_LIST_ADL, // "Match own list with ADL search"
 	LAST // @DontAdd
 };

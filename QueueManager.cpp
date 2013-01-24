@@ -3430,7 +3430,7 @@ void QueueManager::moveBundleItems(const QueueItemList& ql, BundlePtr& targetBun
 	}
 }
 
-void QueueManager::moveBundleItem(QueueItemPtr& qi, BundlePtr& targetBundle, bool fireAdded) {
+void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle, bool fireAdded) {
 	BundlePtr sourceBundle = qi->getBundle();
 	bundleQueue.removeBundleItem(qi, false);
 	userQueue.removeQI(qi, false); //we definately don't want to remove downloads because the QI will stay the same
@@ -3439,6 +3439,8 @@ void QueueManager::moveBundleItem(QueueItemPtr& qi, BundlePtr& targetBundle, boo
 		//now we need to move the download(s) to correct bundle... the target has been changed earlier, if needed
 		DownloadManager::getInstance()->changeBundle(sourceBundle, targetBundle, qi->getTarget());
 	}
+
+	qi->setBundle(nullptr);
 
 	/* ADDING */
 	bundleQueue.addBundleItem(qi, targetBundle);

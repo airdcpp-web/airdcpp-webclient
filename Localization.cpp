@@ -142,6 +142,10 @@ namespace dcpp {
 			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language& aLang) { return aLang.languageFile == langFile; });
 			if (s != languageList.end()) {
 				curLanguage = distance(languageList.begin(), s);
+				if (!Util::fileExists(SETTING(LANGUAGE_FILE))) {
+					//paths changed? reset the default path
+					SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, (*s).getLanguageFilePath());
+				}
 			} else {
 				/* Not one of the predefined language files, add a custom list item */
 				/*TCHAR buf[512];

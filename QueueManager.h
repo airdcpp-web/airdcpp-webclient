@@ -149,7 +149,7 @@ public:
 	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget);
 	void moveFileBundle(BundlePtr& aBundle, const string& aTarget) noexcept;
 	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false);
-	void moveBundleItem(QueueItemPtr& qi, BundlePtr& targetBundle, bool fireAdded);
+	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle, bool fireAdded); //don't use reference here!
 	void moveBundleItems(const QueueItemList& ql, BundlePtr& targetBundle, bool fireAdded);
 	void moveBundleItems(BundlePtr& sourceBundle, BundlePtr& targetBundle, bool fireAdded);
 	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false);
