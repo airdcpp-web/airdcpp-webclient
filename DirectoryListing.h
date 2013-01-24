@@ -56,6 +56,7 @@ public:
 	public:
 		typedef File* Ptr;
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
+		struct DefaultSort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
@@ -117,6 +118,7 @@ public:
 		void clearAdls();
 		void clearAll();
 		void sortDirs();
+		void sortFiles();
 
 		bool findIncomplete();
 		void search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
@@ -135,6 +137,7 @@ public:
 		GETSET(DirType, type, Type);
 		GETSET(DupeType, dupe, Dupe)
 		GETSET(time_t, date, Date)
+		GETSET(bool, loading, Loading)
 
 		bool isComplete() const { return type == TYPE_ADLS || type == TYPE_NORMAL; }
 		void setComplete() { type = TYPE_NORMAL; }

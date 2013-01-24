@@ -66,6 +66,11 @@ void DirectoryListing::Directory::sortDirs() {
 	sort(directories.begin(), directories.end(), Directory::DefaultSort());
 }
 
+void DirectoryListing::Directory::sortFiles() {
+	sort(files.begin(), files.end(), File::DefaultSort());
+}
+
+
 bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) const {
 	return compare(a->getName(), b->getName()) < 0;
 }
@@ -75,6 +80,10 @@ bool DirectoryListing::Directory::DefaultSort::operator()(const Ptr& a, const Pt
 		return true;
 	if (!a->getAdls() && b->getAdls())
 		return false;
+	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
+}
+
+bool DirectoryListing::File::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
 	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
 }
 
@@ -307,7 +316,7 @@ DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
-		: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), date(Util::toUInt32(aDate)) {
+		: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), date(Util::toUInt32(aDate)), loading(false) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
