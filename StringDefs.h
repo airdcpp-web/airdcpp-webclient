@@ -199,7 +199,6 @@ enum Strings { // @DontAdd
 	HASH_PROGRESS_STATS, // "Statistics"
 	HASH_PROGRESS_TEXT, // "Please wait while AirDC++ indexes your files (they won't be shared until they've been indexed)..."
 	HASH_READ_FAILED, // "Unable to read hash data file"
-	HASH_REBUILT, // "Hash database rebuilt"
 	HASHING_FAILED, // "Hashing failed: "
 	HASHING_FINISHED, // "Finished hashing: "
 	HIBERNATE, // "Hibernate"
@@ -1031,7 +1030,7 @@ enum Strings { // @DontAdd
 	CHECK_EXTRA_FILES, // "Check extra files in the release folders"
 	CHECK_DUPES, // "Check duplicate directory names"
 	SETTINGS_SCAN_OPTIONS, // "Scanning options for missing/extra files"
-	REBUILD_STARTED, // "Hash database rebuild Started"
+	REBUILD_STARTED, // "Hash database rebuild started"
 	SORT_DIRS, // "Sort directories first in search window"
 	DECREASE_RAM, // "Decrease Ram WorkingSet size on minimize"
 	RUN_SFV_CHECK, // "Perform SFV check"
@@ -1606,6 +1605,9 @@ enum Strings { // @DontAdd
 	TRASFER_RATE_LIMITING, // "Transfer rate limiting"
 	HOURS_LOWER, // "hours"
 	OWN_LIST_ADL, // "Match own list with ADL search"
+	HASH_REBUILT_UNUSED, // "Hash database has been rebuilt: %d unused file entries and %d unused tree entries have been removed"
+	REBUILD_FAILED_ENTRIES, // "Failed to load %d tree entries from the hash data; it's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared"
+	HASH_REBUILT_NO_UNUSED, // "Hash database has been rebuilt and no unused entries were found"
 	SETTINGS_USE_SPACE_WARNING, // "Warn me about Insufficient space left on target drive"
 	LAST // @DontAdd
 };

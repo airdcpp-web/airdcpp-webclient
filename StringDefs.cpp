@@ -196,7 +196,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Statistics", 
 "Please wait while AirDC++ indexes your files (they won't be shared until they've been indexed)...", 
 "Unable to read hash data file", 
-"Hash database rebuilt", 
 "Hashing failed: ", 
 "Finished hashing: ", 
 "Hibernate", 
@@ -1027,7 +1026,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Check extra files in the release folders", 
 "Check duplicate directory names", 
 "Scanning options for missing/extra files", 
-"Hash database rebuild Started", 
+"Hash database rebuild started", 
 "Sort directories first in search window", 
 "Decrease Ram WorkingSet size on minimize", 
 "Perform SFV check", 
@@ -1602,6 +1601,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Transfer rate limiting", 
 "hours", 
 "Match own list with ADL search", 
+"Hash database has been rebuilt: %d unused file entries and %d unused tree entries have been removed", 
+"Failed to load %d tree entries from the hash data; it's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared", 
+"Hash database has been rebuilt and no unused entries were found", 
 "Warn me about Insufficient space left on target drive", 
 };
 std::string dcpp::ResourceManager::names[] = {
@@ -1799,7 +1801,6 @@ std::string dcpp::ResourceManager::names[] = {
 "HashProgressStats", 
 "HashProgressText", 
 "HashReadFailed", 
-"HashRebuilt", 
 "HashingFailed", 
 "HashingFinished", 
 "Hibernate", 
@@ -3205,5 +3206,8 @@ std::string dcpp::ResourceManager::names[] = {
 "TrasferRateLimiting", 
 "HoursLower", 
 "OwnListAdl", 
+"HashRebuiltUnused", 
+"RebuildFailedEntries", 
+"HashRebuiltNoUnused", 
 "SettingsUseSpaceWarning", 
 };

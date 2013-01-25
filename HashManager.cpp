@@ -347,8 +347,14 @@ void HashManager::HashStore::rebuild() {
 		decltype(fileIndex) newFileIndex;
 		decltype(treeIndex) newTreeIndex;
 
+		size_t initialTreeIndexSize = 0, finalTreeIndexSize=0;
+		int failedTrees = 0;
+		int unusedFiles=0; 
+		int64_t failedSize = 0;
+
 		{
 			RLock l(cs);
+			initialTreeIndexSize = treeIndex.size();
 			for (auto& i: fileIndex) {
 				for (auto& j: i.second) {
 					if (!j.getUsed())
@@ -380,6 +386,8 @@ void HashManager::HashStore::rebuild() {
 						i->second.setIndex(saveTree(out, tree));
 						++i;
 					} else {
+						failedTrees++;
+						failedSize += i->second.getSize();
 						newTreeIndex.erase(i++);
 					}
 				}
@@ -395,6 +403,8 @@ void HashManager::HashStore::rebuild() {
 					for (auto& j: i.second) {
 						if (newTreeIndex.find(j.getRoot()) != newTreeIndex.end()) {
 							newFileList.push_back(j);
+						} else {
+							unusedFiles++;
 						}
 					}
 
@@ -402,6 +412,8 @@ void HashManager::HashStore::rebuild() {
 						newFileIndex[i.first] = move(newFileList);
 					}
 				}
+
+				finalTreeIndexSize = newTreeIndex.size();
 			}
 		}
 	
@@ -415,6 +427,20 @@ void HashManager::HashStore::rebuild() {
 
 		dirty = true;
 		save();
+
+		string msg;
+		if (finalTreeIndexSize < initialTreeIndexSize) {
+			msg = STRING_F(HASH_REBUILT_UNUSED, (initialTreeIndexSize-finalTreeIndexSize) % unusedFiles);
+		} else {
+			msg = STRING(HASH_REBUILT_NO_UNUSED);
+		}
+
+		if (failedTrees > 0) {
+			msg += ". ";
+			msg += STRING_F(REBUILD_FAILED_ENTRIES, failedTrees % Util::formatBytes(failedSize));
+		}
+
+		LogManager::getInstance()->message(msg, failedTrees > 0 ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 	} catch (const Exception& e) {
 		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
 	}
@@ -794,7 +820,6 @@ int HashManager::Hasher::run() {
 		if(rebuild) {
 			HashManager::getInstance()->doRebuild();
 			rebuild = false;
-			LogManager::getInstance()->message(STRING(HASH_REBUILT), LogManager::LOG_INFO);
 			continue;
 		}
 		
