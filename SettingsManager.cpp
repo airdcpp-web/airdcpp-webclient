@@ -149,7 +149,7 @@ const string SettingsManager::settingTags[] =
 	"UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist",
 	"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
-	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify",
+	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -718,6 +718,7 @@ SettingsManager::SettingsManager()
 	setDefault(SHOW_CHAT_NOTIFY, false);
 	setDefault(FAV_USERS_SPLITTER_POS, 7500);
 	setDefault(AWAY_IDLE_TIME, 5);
+	setDefault(FREE_SPACE_WARN, true);
 
 	//set depending on the cpu count
 	SYSTEM_INFO info={{0}};

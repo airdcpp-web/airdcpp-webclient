@@ -1602,6 +1602,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Transfer rate limiting", 
 "hours", 
 "Match own list with ADL search", 
+"Warn me about Insufficient space left on target drive", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3204,4 +3205,5 @@ std::string dcpp::ResourceManager::names[] = {
 "TrasferRateLimiting", 
 "HoursLower", 
 "OwnListAdl", 
+"SettingsUseSpaceWarning", 
 };
