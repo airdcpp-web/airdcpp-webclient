@@ -39,6 +39,7 @@ void UDPServer::listen() {
 		socket.reset(new Socket(Socket::TYPE_UDP));
 		socket->setLocalIp4(CONNSETTING(BIND_ADDRESS));
 		socket->setLocalIp6(CONNSETTING(BIND_ADDRESS6));
+		socket->setV4only(false);
 		port = socket->listen(Util::toString(CONNSETTING(UDP_PORT)));
 		start();
 	} catch(...) {

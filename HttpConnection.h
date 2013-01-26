@@ -31,7 +31,7 @@ using std::string;
 class HttpConnection : BufferedSocketListener, public Speaker<HttpConnectionListener>, boost::noncopyable
 {
 public:
-	HttpConnection(bool coralize = true, bool aIsUnique = false);
+	HttpConnection(bool coralize = true, bool aIsUnique = false, bool v4only = false);
 	virtual ~HttpConnection();
 
 	void downloadFile(const string& aUrl);
@@ -76,6 +76,7 @@ private:
 	void on(ModeChange) noexcept;
 	void on(Failed, const string&) noexcept;
 	bool isUnique;
+	bool v4only;
 };
 
 } // namespace dcpp

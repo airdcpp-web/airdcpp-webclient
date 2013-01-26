@@ -33,7 +33,7 @@ struct HttpDownload : private HttpConnectionListener, private boost::noncopyable
 	typedef std::function<void ()> CompletionF;
 	CompletionF f;
 
-	explicit HttpDownload(const string& address, CompletionF f, bool coralize = true);
+	explicit HttpDownload(const string& address, CompletionF f, bool coralize = true, bool v4only = false);
 	~HttpDownload();
 
 	// HttpConnectionListener

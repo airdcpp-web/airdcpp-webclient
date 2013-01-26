@@ -185,6 +185,7 @@ public:
 	GETSET(string, localIp6, LocalIp6);
 	GETSET(bool, v4only, V4only);
 
+	bool isV6Valid() const noexcept;
 protected:
 	typedef union {
 		sockaddr sa;

@@ -270,7 +270,7 @@ void UpdateManager::failUpdateDownload(const string& aError, bool manualCheck) {
 
 void UpdateManager::checkIP(bool manual) {
 	conns[CONN_IP].reset(new HttpDownload(links.ipcheck,
-		[this, manual] { completeIPCheck(manual); }, false));
+		[this, manual] { completeIPCheck(manual); }, false, true));
 }
 
 void UpdateManager::completeIPCheck(bool manual) {

@@ -255,6 +255,10 @@ socket_t Socket::create(const addrinfo& ai) {
 	return setSock(check([&] { return ::socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol); }), ai.ai_family);
 }
 
+bool Socket::isV6Valid() const noexcept {
+	return sock6.valid();
+}
+
 void Socket::accept(const Socket& listeningSocket) {
 	disconnect();
 

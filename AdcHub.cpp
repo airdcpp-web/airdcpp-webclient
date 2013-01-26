@@ -1164,23 +1164,40 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		addParam(lastInfoMap, c, "KP", "SHA256/" + Encoder::toBase32(&kp[0], kp.size()));
 	}
 
-	if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp().empty()) {
-		addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp(), AF_INET));
+	if (!sock->isV6Valid()) {
+		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp().empty()) {
+			addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp(), AF_INET));
+		} else {
+			addParam(lastInfoMap, c, "I4", "0.0.0.0");
+		}
+
+		if(isActive()) {
+			addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
+			su += "," + TCP4_FEATURE;
+			su += "," + UDP4_FEATURE;
+		} else {
+			su += "," + NAT0_FEATURE;
+			addParam(lastInfoMap, c, "U4", "");
+		}
 	} else {
-		addParam(lastInfoMap, c, "I4", "0.0.0.0");
+		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp().empty()) {
+			addParam(lastInfoMap, c, "I6", Socket::resolve(getUserIp(), AF_INET6));
+		} else {
+			addParam(lastInfoMap, c, "I6", "::");
+		}
+
+		if(isActive()) {
+			addParam(lastInfoMap, c, "U6", SearchManager::getInstance()->getPort());
+			su += "," + TCP6_FEATURE;
+			su += "," + UDP6_FEATURE;
+		} else {
+			su += "," + NAT0_FEATURE;
+			addParam(lastInfoMap, c, "U6", "");
+		}
 	}
 
-	if(isActive()) {
-		addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
-		su += "," + TCP4_FEATURE;
-		su += "," + UDP4_FEATURE;
-		if (SETTING(ENABLE_SUDP))
-			su += "," + SUD1_FEATURE;
-	} else {
-		su += "," + NAT0_FEATURE;
-		addParam(lastInfoMap, c, "U4", "");
-	}
-
+	if (SETTING(ENABLE_SUDP) && isActive())
+		su += "," + SUD1_FEATURE;
 	addParam(lastInfoMap, c, "SU", su);
 
 	if(c.getParameters().size() > 0) {

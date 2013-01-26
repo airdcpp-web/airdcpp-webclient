@@ -31,14 +31,15 @@ namespace dcpp {
 
 static const std::string CORAL_SUFFIX = ".nyud.net";
 
-HttpConnection::HttpConnection(bool coralize, bool aIsUnique) :
+HttpConnection::HttpConnection(bool coralize, bool aIsUnique, bool aV4only /*false*/) :
 port("80"),
 size(-1),
 done(0),
 connState(CONN_UNKNOWN),
 coralizeState(coralize ? CST_DEFAULT : CST_NOCORALIZE),
 isUnique(aIsUnique),
-socket(0)
+socket(0),
+v4only(aV4only)
 {
 }
 
@@ -119,7 +120,7 @@ void HttpConnection::prepareRequest(RequestType type) {
 		port = "80";
 
 	if(!socket)
-		socket = BufferedSocket::getSocket(0x0a);
+		socket = BufferedSocket::getSocket(0x0a, v4only);
 
 
 	socket->addListener(this);
