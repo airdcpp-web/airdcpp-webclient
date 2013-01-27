@@ -389,7 +389,7 @@ bool DirectoryListing::Directory::findIncomplete() {
 }
 
 bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, 
-	QueueItem::Priority prio, bool first, BundlePtr aBundle, ProfileToken aAutoSearch) {
+	QueueItemBase::Priority prio, bool first, BundlePtr aBundle, ProfileToken aAutoSearch) {
 
 	string target;
 	if (first) {
@@ -434,7 +434,7 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 		if (aAutoSearch > 0)
 			as.insert(aAutoSearch);
 
-		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (Bundle::Priority)prio, as, aDir->getDate()));
+		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (QueueItemBase::Priority)prio, as, aDir->getDate()));
 		first = true;
 	}
 
@@ -461,7 +461,7 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 	return true;
 }
 
-bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio, ProfileToken aAutoSearch) {
+bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = findDirectory(aDir, root);
@@ -479,7 +479,7 @@ int64_t DirectoryListing::getDirSize(const string& aDir) {
 	return 0;
 }
 
-void DirectoryListing::download(File* aFile, const string& aTarget, bool view, QueueItem::Priority prio, BundlePtr aBundle) {
+void DirectoryListing::download(File* aFile, const string& aTarget, bool view, QueueItemBase::Priority prio, BundlePtr aBundle) {
 	Flags::MaskType flags = (Flags::MaskType)(view ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : 0);
 
 	QueueManager::getInstance()->addFile(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), aFile->getPath() + aFile->getName(), flags, true, prio, aBundle);
@@ -815,17 +815,17 @@ void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize,
 }
 
 struct DirDownloadTask : public Task {
-	DirDownloadTask(DirectoryListing::Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool aIsSizeUnknown, QueueItem::Priority aPrio) : dir(aDir), 
+	DirDownloadTask(DirectoryListing::Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool aIsSizeUnknown, QueueItemBase::Priority aPrio) : dir(aDir), 
 		target(aTarget), targetType(aTargetType), isSizeUnknown(aIsSizeUnknown), prio(aPrio) { }
 
 	DirectoryListing::Directory* dir;
-	QueueItem::Priority prio;
+	QueueItemBase::Priority prio;
 	bool isSizeUnknown;
 	TargetUtil::TargetType targetType;
 	string target;
 };
 
-void DirectoryListing::addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio) {
+void DirectoryListing::addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio) {
 	tasks.add(DIR_DOWNLOAD, unique_ptr<Task>(new DirDownloadTask(aDir, aTarget, aTargetType, isSizeUnknown, prio)));
 	runTasks();
 }

@@ -34,7 +34,7 @@ using boost::range::find_if;
 class DirectoryDownloadInfo {
 public:
 	DirectoryDownloadInfo() : priority(QueueItem::DEFAULT) { }
-	DirectoryDownloadInfo(const UserPtr& aUser, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItem::Priority p, 
+	DirectoryDownloadInfo(const UserPtr& aUser, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p, 
 		SizeCheckMode aPromptSizeConfirm, ProfileToken aAutoSearch) : 
 		listPath(aListPath), target(aTarget), priority(p), user(aUser), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr), autoSearch(aAutoSearch) { }
 	~DirectoryDownloadInfo() { }
@@ -45,7 +45,7 @@ public:
 	GETSET(SizeCheckMode, sizeConfirm, SizeConfirm);
 	GETSET(string, listPath, ListPath);
 	GETSET(string, target, Target);
-	GETSET(QueueItem::Priority, priority, Priority);
+	GETSET(QueueItemBase::Priority, priority, Priority);
 	GETSET(TargetUtil::TargetType, targetType, TargetType);
 	GETSET(DirectoryListingPtr, listing, Listing);
 	GETSET(ProfileToken, autoSearch, AutoSearch);
@@ -150,7 +150,7 @@ void DirectoryListingManager::removeDirectoryDownload(const UserPtr& aUser, cons
 }
 
 void DirectoryListingManager::addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,  
-	QueueItem::Priority p /* = QueueItem::DEFAULT */, bool useFullList /*false*/, ProfileToken aAutoSearch /*0*/, bool checkNameDupes /*false*/) noexcept {
+	QueueItemBase::Priority p /* = QueueItem::DEFAULT */, bool useFullList /*false*/, ProfileToken aAutoSearch /*0*/, bool checkNameDupes /*false*/) noexcept {
 
 	if (aUser.user && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		//this is the only thing that could cause queuing the filelist to fail.... remember to change if more are added

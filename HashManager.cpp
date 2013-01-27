@@ -296,6 +296,7 @@ bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
 	auto i = treeIndex.find(root);
 	if (i == treeIndex.end())
 		return false;
+
 	try {
 		File f(getDataFile(), File::READ, File::OPEN | File::SHARED | File::RANDOM_ACCESS);
 		return loadTree(f, i->second, root, tt);

@@ -241,7 +241,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					string bundleToken, hubHint = cqi->getHubUrl();
 
 					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
-					QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, cqi->isSet(ConnectionQueueItem::FLAG_SMALL), bundleToken);
+					QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, cqi->isSet(ConnectionQueueItem::FLAG_SMALL), bundleToken);
 					cqi->setHubUrl(hubHint);
 					cqi->setLastBundle(bundleToken);
 					
@@ -321,7 +321,7 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 		}
 	}
 
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aSource->getHintedUser(), ClientManager::getInstance()->getHubSet(aSource->getUser()->getCID()), false);
+	QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(aSource->getHintedUser(), ClientManager::getInstance()->getHubSet(aSource->getUser()->getCID()), false);
 	bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
 
 	if(prio != QueueItem::PAUSED && startDown) {

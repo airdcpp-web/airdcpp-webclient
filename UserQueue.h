@@ -34,19 +34,19 @@ public:
 	void addQI(QueueItemPtr& qi, bool newBundle=false);
 	void addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle=false, bool isBadSource = false);
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql);
-	QueueItemPtr getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItem::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
+	QueueItemPtr getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
 	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
-	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	void addDownload(QueueItemPtr& qi, Download* d);
 	void removeDownload(QueueItemPtr& qi, const UserPtr& d, const string& token = Util::emptyString);
 
 	void removeQI(QueueItemPtr& qi, bool removeRunning = true, bool fireSources = false);
 	void removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning=true, bool addBad=false, bool fireSources=false);
-	void setQIPriority(QueueItemPtr& qi, QueueItem::Priority p);
+	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p);
 
 	void addBundle(BundlePtr& aBundle, const UserPtr& aUser);
 	void removeBundle(BundlePtr& aBundle, const UserPtr& aUser);
-	void setBundlePriority(BundlePtr& aBundle, Bundle::Priority p);
+	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p);
 
 	boost::unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }
 	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }

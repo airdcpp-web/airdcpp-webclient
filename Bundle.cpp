@@ -40,25 +40,30 @@ using boost::range::find_if;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, const string& aToken /*empty*/, bool aDirty /*true*/) : target(qi->getTarget()), fileBundle(true), size(qi->getSize()), 
+Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, const string& aToken /*empty*/, bool aDirty /*true*/) : 
+	//QueueItemBase(qi), 
+	QueueItemBase(qi->getTarget(), qi->getSize(), qi->getPriority(), qi->getAdded(), FLAG_NEW), 
+
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
-	priority((Priority)qi->getPriority()), autoPriority(qi->getAutoPriority()), dirty(aDirty), added(qi->getAdded()), dirDate(0), simpleMatching(true), recent(false), 
+	dirty(aDirty), dirDate(0), simpleMatching(true), recent(false), 
 	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0), autoSearches(aAutoSearches) {
 
+
+	setAutoPriority(qi->getAutoPriority());
 	if (aToken.empty())
 		token = ConnectionManager::getInstance()->tokens.getToken();
 	else
 		token = aToken;
 	qi->setBundle(this);
 	queueItems.push_back(qi);
-	setFlag(FLAG_NEW);
 	if (SETTING(USE_SLOW_DISCONNECTING_DEFAULT))
 		setFlag(FLAG_AUTODROP);
 }
 
-Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, const ProfileTokenSet& aAutoSearches /*empty*/, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/) : 
-	fileBundle(false), size(0), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true), priority(aPriority), 
-	dirty(aDirty), added(added), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearches(aAutoSearches) {
+Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, const ProfileTokenSet& aAutoSearches /*empty*/, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/) : 
+	QueueItemBase(aTarget, 0, aPriority, aAdded, FLAG_NEW), 
+	fileBundle(false), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true),
+	dirty(aDirty), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearches(aAutoSearches) {
 
 	if (aToken.empty()) {
 		token = ConnectionManager::getInstance()->tokens.getToken();
@@ -79,18 +84,26 @@ Bundle::Bundle(const string& aTarget, time_t added, Priority aPriority, const Pr
 	seqOrder = (dirDate + (7*24*60*60)) < time;
 
 	if (aPriority != DEFAULT) {
-		autoPriority = false;
+		setAutoPriority(false);
 	} else {
-		priority = LOW;
-		autoPriority = true;
+		setPriority(LOW);
+		setAutoPriority(true);
 	}
-	setFlag(FLAG_NEW);
+
 	if (SETTING(USE_SLOW_DISCONNECTING_DEFAULT))
 		setFlag(FLAG_AUTODROP);
 }
 
 Bundle::~Bundle() {
 	ConnectionManager::getInstance()->tokens.removeToken(token);
+}
+
+void Bundle::increaseSize(int64_t aSize) { 
+	size += aSize; 
+}
+
+void Bundle::decreaseSize(int64_t aSize) { 
+	size -= aSize; 
 }
 
 void Bundle::setTarget(const string& aTarget) {
@@ -511,9 +524,9 @@ bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, bool addBad
 	return false;
 }
 	
-Bundle::Priority Bundle::calculateProgressPriority() const noexcept {
-	if(autoPriority) {
-		Bundle::Priority p;
+QueueItemBase::Priority Bundle::calculateProgressPriority() const noexcept {
+	if(getAutoPriority()) {
+		QueueItemBase::Priority p;
 		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
 		switch(percent){
 			case 0:
@@ -534,7 +547,7 @@ Bundle::Priority Bundle::calculateProgressPriority() const noexcept {
 		}
 		return p;			
 	}
-	return priority;
+	return getPriority();
 }
 
 pair<int64_t, double> Bundle::getPrioInfo() noexcept {
@@ -591,7 +604,7 @@ tstring Bundle::getBundleText() noexcept {
 	if (fileBundle) {
 		return Text::toT(getName());
 	} else {
-		return Text::toT(getName()) + _T(" (") + Util::toStringW(percent) + _T("%, ") + Text::toT(AirUtil::getPrioText(priority)) + _T(", ") + Util::toStringW(sources.size()) + _T(" sources)");
+		return Text::toT(getName()) + _T(" (") + Util::toStringW(percent) + _T("%, ") + Text::toT(AirUtil::getPrioText(getPriority())) + _T(", ") + Util::toStringW(sources.size()) + _T(" sources)");
 	}
 }
 
@@ -925,12 +938,12 @@ void Bundle::save() {
 		f.write(LIT("\" Token=\""));
 		f.write(token);
 		f.write(LIT("\" Added=\""));
-		f.write(Util::toString(added));
+		f.write(Util::toString(getAdded()));
 		f.write(LIT("\" Date=\""));
 		f.write(Util::toString(dirDate));
-		if (!autoPriority) {
+		if (!getAutoPriority()) {
 			f.write(LIT("\" Priority=\""));
-			f.write(Util::toString((int)priority));
+			f.write(Util::toString((int)getPriority()));
 		}
 
 		f.write(LIT("\">\r\n"));

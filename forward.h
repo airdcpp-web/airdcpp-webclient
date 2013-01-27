@@ -100,6 +100,8 @@ typedef std::vector<OnlineUserPtr> OnlineUserList;
 
 class OutputStream;
 
+class QueueItemBase;
+
 class QueueItem;
 typedef boost::intrusive_ptr<QueueItem> QueueItemPtr;
 typedef std::vector<QueueItemPtr> QueueItemList;

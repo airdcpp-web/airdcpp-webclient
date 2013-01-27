@@ -22,12 +22,11 @@
 #include <string>
 #include <set>
 
-#include "Flags.h"
 #include "Pointer.h"
 #include "QueueItem.h"
-#include "forward.h"
 #include "User.h"
-#include "GetSet.h"
+
+#include "QueueItemBase.h"
 
 #include "boost/unordered_map.hpp"
 
@@ -35,20 +34,8 @@ namespace dcpp {
 
 using std::string;
 
-class Bundle : public Flags, public intrusive_ptr_base<Bundle> {
+class Bundle : public QueueItemBase, public intrusive_ptr_base<Bundle> {
 public:
-
-	enum Priority {
-		DEFAULT = -1,
-		PAUSED = 0,
-		LOWEST,
-		LOW,
-		NORMAL,
-		HIGH,
-		HIGHEST,
-		LAST
-	};
-
 	enum Flags {
 		/** Flags for scheduled actions */
 		FLAG_UPDATE_SIZE			= 0x01,
@@ -95,8 +82,6 @@ public:
 	typedef vector<UserBundlePair> FinishedNotifyList;
 	typedef boost::unordered_map<string, pair<uint32_t, uint32_t>> DirMap;
 
-
-	typedef vector<pair<QueueItemPtr, int8_t>> PrioList;
 	typedef multimap<double, BundlePtr> SourceSpeedMapB;
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
@@ -107,10 +92,6 @@ public:
 
 	GETSET(string, token, Token);
 	GETSET(uint64_t, start, Start);
-	GETSET(int64_t, size, Size);
-	GETSET(Priority, priority, Priority);
-	GETSET(bool, autoPriority, AutoPriority);
-	GETSET(time_t, added, Added);
 	GETSET(time_t, dirDate, DirDate);				// the directory modify date picked from the remote filelist when the bundle has been queued
 	GETSET(bool, simpleMatching, SimpleMatching);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
 	GETSET(bool, seqOrder, SeqOrder);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
@@ -195,8 +176,8 @@ public:
 	multimap<QueueItemPtr, pair<int64_t, double>> getQIBalanceMaps() noexcept;
 	pair<int64_t, double> getPrioInfo() noexcept;
 
-	void increaseSize(int64_t aSize) { size += aSize; }
-	void decreaseSize(int64_t aSize) { size -= aSize; }
+	void increaseSize(int64_t aSize);
+	void decreaseSize(int64_t aSize);
 
 	void setTarget(const string& aTarget);
 
@@ -244,7 +225,6 @@ public:
 private:
 	int64_t finishedSegments;
 	int64_t currentDownloaded; //total downloaded for the running downloads
-	string target;
 	bool fileBundle;
 	bool dirty;
 	bool recent;

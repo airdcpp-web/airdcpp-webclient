@@ -58,7 +58,7 @@ namespace dcpp {
 		void processListAction(DirectoryListingPtr aList, const string& path, int flags);
 
 		void addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,
-			QueueItem::Priority p = QueueItem::DEFAULT, bool useFullList = false, ProfileToken aAutoSearch = 0, bool checkNameDupes = false) noexcept;
+			QueueItemBase::Priority p = QueueItem::DEFAULT, bool useFullList = false, ProfileToken aAutoSearch = 0, bool checkNameDupes = false) noexcept;
 
 		void removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList);
 

@@ -200,7 +200,7 @@ void DownloadManager::addConnection(UserConnection* conn) {
 	checkDownloads(conn);
 }
 
-bool DownloadManager::startDownload(QueueItem::Priority prio, bool mcn) {
+bool DownloadManager::startDownload(QueueItemBase::Priority prio, bool mcn) {
 	size_t downloadCount = getDownloadCount();
 	bool full = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t)AirUtil::getSlots(true));
 	full = full || ((AirUtil::getSpeedLimit(true) != 0) && (getRunningAverage() >= (AirUtil::getSpeedLimit(true)*1024)));
@@ -233,7 +233,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	//always make sure that the current hub is also compared even if it is offline
 	hubs.insert(aConn->getHubUrl());
 
-	QueueItem::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getHintedUser(), hubs, smallSlot);
+	QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getHintedUser(), hubs, smallSlot);
 	bool start = startDownload(prio);
 
 	if(!start && !smallSlot) { //add small slot connections to idlers instead of disconnecting

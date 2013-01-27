@@ -62,7 +62,7 @@ public:
 		return downloads.size();
 	}
 
-	bool startDownload(QueueItem::Priority prio, bool mcn=false);
+	bool startDownload(QueueItemBase::Priority prio, bool mcn=false);
 private:
 	
 	SharedMutex cs;

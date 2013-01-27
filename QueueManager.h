@@ -70,7 +70,7 @@ public:
 	bool allowAdd(const string& aTarget, const TTHValue& root) throw(QueueException, FileException);
 	/** Add a file to the queue. */
 	void addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath,
-		Flags::MaskType aFlags = 0, bool addBad = true, QueueItem::Priority aPrio = QueueItem::DEFAULT, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch = 0) throw(QueueException, FileException);
+		Flags::MaskType aFlags = 0, bool addBad = true, QueueItemBase::Priority aPrio = QueueItem::DEFAULT, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch = 0) throw(QueueException, FileException);
 		/** Add a user's filelist to the queue. */
 	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
 	void addListDir(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
@@ -90,8 +90,8 @@ public:
 
 	void recheck(const string& aTarget);
 
-	void setQIPriority(const string& aTarget, QueueItem::Priority p) noexcept;
-	void setQIPriority(QueueItemPtr& qi, QueueItem::Priority p, bool isAP=false, bool isBundleChange=false) noexcept;
+	void setQIPriority(const string& aTarget, QueueItemBase::Priority p) noexcept;
+	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p, bool isAP=false, bool isBundleChange=false) noexcept;
 	void setQIAutoPriority(const string& aTarget, bool ap, bool isBundleChange=false) noexcept;
 
 	StringList getTargets(const TTHValue& tth);
@@ -123,9 +123,9 @@ public:
 	void putDownload(Download* aDownload, bool finished, bool noAccess=false, bool rotateQueue=false) noexcept;
 	
 	/** @return The highest priority download the user has, PAUSED may also mean no downloads */
-	QueueItem::Priority hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, bool smallSlot) noexcept;
+	QueueItemBase::Priority hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, bool smallSlot) noexcept;
 	/** The same thing but only used before any connect requests */
-	QueueItem::Priority hasDownload(const UserPtr& aUser, string& hubUrl, bool smallSlot, string& bundleToken) noexcept;
+	QueueItemBase::Priority hasDownload(const UserPtr& aUser, string& hubUrl, bool smallSlot, string& bundleToken) noexcept;
 	
 	void loadQueue() noexcept;
 	void saveQueue(bool force) noexcept;
@@ -165,8 +165,8 @@ public:
 	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle);
 	void updatePBD(const HintedUser& aUser, const TTHValue& aTTH);
 	void removeBundleNotify(const UserPtr& aUser, const string& bundleToken);
-	void setBundlePriority(const string& bundleToken, Bundle::Priority p) noexcept;
-	void setBundlePriority(BundlePtr& aBundle, Bundle::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
+	void setBundlePriority(const string& bundleToken, QueueItemBase::Priority p) noexcept;
+	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
@@ -180,7 +180,7 @@ public:
 	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished);
 	bool moveBundleFile(QueueItemPtr& qs, const string& aTarget, bool movingSingleItems) noexcept;
 
-	void setBundlePriorities(const string& aSource, const BundleList& sourceBundles, Bundle::Priority p, bool autoPrio=false);
+	void setBundlePriorities(const string& aSource, const BundleList& sourceBundles, QueueItemBase::Priority p, bool autoPrio=false);
 	void calculateBundlePriorities(bool verbose);
 	void searchBundle(BundlePtr& aBundle, bool manual);
 

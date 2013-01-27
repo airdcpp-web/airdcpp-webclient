@@ -77,11 +77,11 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	}
 }
 
-QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItem::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
+QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap /*false*/) {
 	/* Using the PAUSED priority will list all files */
 	QueueItemPtr qi = getNextPrioQI(aUser, onlineHubs, 0, 0, smallSlot, allowOverlap);
 	if(!qi) {
-		qi = getNextBundleQI(aUser, onlineHubs, (Bundle::Priority)minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
+		qi = getNextBundleQI(aUser, onlineHubs, (QueueItemBase::Priority)minPrio, wantedSize, lastSpeed, smallSlot, allowOverlap);
 	}
 
 	if (!qi && !allowOverlap) {
@@ -105,7 +105,7 @@ QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringS
 	return nullptr;
 }
 
-QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, Bundle::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
 	lastError = Util::emptyString;
 
 	auto i = userBundleQueue.find(aUser);
@@ -140,7 +140,7 @@ void UserQueue::removeDownload(QueueItemPtr& qi, const UserPtr& aUser, const str
 	return;
 }
 
-void UserQueue::setQIPriority(QueueItemPtr& qi, QueueItem::Priority p) {
+void UserQueue::setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p) {
 	removeQI(qi, false);
 	qi->setPriority(p);
 	addQI(qi);
@@ -220,7 +220,7 @@ void UserQueue::removeBundle(BundlePtr& aBundle, const UserPtr& aUser) {
 	}
 }
 
-void UserQueue::setBundlePriority(BundlePtr& aBundle, Bundle::Priority p) {
+void UserQueue::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p) {
 	dcassert(!aBundle->isFinished());
 
 	HintedUserList sources;

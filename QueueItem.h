@@ -19,11 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 #define DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 
+#include "QueueItemBase.h"
 #include "Bundle.h"
-#include "GetSet.h"
 #include "FastAlloc.h"
-#include "Flags.h"
-#include "forward.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
@@ -35,24 +33,12 @@
 
 namespace dcpp {
 
-class QueueItem : public Flags, public intrusive_ptr_base<QueueItem> {
+class QueueItem : public QueueItemBase, public intrusive_ptr_base<QueueItem> {
 public:
 	typedef boost::unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 	typedef unordered_multimap<TTHValue*, QueueItemPtr> TTHMap;
 	typedef boost::unordered_multimap<string, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMultiMap;
 	typedef vector<pair<string, QueueItemPtr>> StringItemList;
-
-	enum Priority {
-		DEFAULT = -1,
-		PAUSED = 0,
-		LOWEST,
-		LOW,
-		NORMAL,
-		HIGH,
-		HIGHEST,
-		LAST
-	};
-
 
 	struct Hash {
 		size_t operator()(const QueueItemPtr x) const { return hash<string>()(x->getTarget()); }
@@ -89,8 +75,6 @@ public:
 	struct PrioSortOrder {
 		bool operator()(const QueueItemPtr& left, const QueueItemPtr& right) const;
 	};
-
-	typedef vector<pair<QueueItemPtr, Priority>> PrioList;
 
 	enum FileFlags {
 		/** Normal download, no flags set */
@@ -191,12 +175,12 @@ public:
 	
 	QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag, time_t aAdded, const TTHValue& tth, const string& aTempTarget);
 
-	QueueItem(const QueueItem& rhs) : 
+	/*QueueItem(const QueueItem& rhs) : 
 		Flags(rhs), done(rhs.done), downloads(rhs.downloads), target(rhs.target), 
 		size(rhs.size), priority(rhs.priority), added(rhs.added), tthRoot(rhs.tthRoot),
 		autoPriority(rhs.autoPriority), maxSegments(rhs.maxSegments), fileBegin(rhs.fileBegin),
 		sources(rhs.sources), badSources(rhs.badSources), tempTarget(rhs.tempTarget), nextPublishingTime(rhs.nextPublishingTime)
-	{ }
+	{ }*/
 
 	~QueueItem();
 
@@ -241,7 +225,7 @@ public:
 
 	uint64_t getDownloadedBytes() const;
 	uint64_t getDownloadedSegments() const;
-	double getDownloadedFraction() const { return static_cast<double>(getDownloadedBytes()) / getSize(); }
+	double getDownloadedFraction() const;
 	
 	DownloadList& getDownloads() { return downloads; }
 	void removeDownload(const string& aToken);
@@ -254,9 +238,7 @@ public:
 	void addFinishedSegment(const Segment& segment);
 	void resetDownloaded() { done.clear(); }
 	
-	bool isFinished() const {
-		return done.size() == 1 && *done.begin() == Segment(0, getSize());
-	}
+	bool isFinished() const;
 
 	bool isRunning() const {
 		return !isWaiting();
@@ -275,20 +257,16 @@ public:
 	GETSET(TTHValue, tthRoot, TTH);
 	GETSET(SegmentSet, done, Done);	
 	GETSET(DownloadList, downloads, Downloads);
-	GETSET(string, target, Target);
 	GETSET(uint64_t, fileBegin, FileBegin);
 	GETSET(uint64_t, nextPublishingTime, NextPublishingTime);
-	GETSET(int64_t, size, Size);
-	GETSET(time_t, added, Added);
-	GETSET(Priority, priority, Priority);
 	GETSET(uint8_t, maxSegments, MaxSegments);
-	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(BundlePtr, bundle, Bundle);
 	
-	QueueItem::Priority calculateAutoPriority() const;
+	QueueItemBase::Priority calculateAutoPriority() const;
 
 	uint64_t getAverageSpeed() const;
 
+	void setTarget(const string& aTarget);
 private:
 	QueueItem& operator=(const QueueItem&);
 

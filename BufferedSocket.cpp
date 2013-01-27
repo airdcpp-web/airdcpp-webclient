@@ -61,6 +61,11 @@ void BufferedSocket::setMode (Modes aMode, size_t aRollback) {
 		return;
 	}
 
+	if(mode == MODE_ZPIPE && filterIn) {
+		// delete the filter when going out of zpipe mode.
+		filterIn.reset();
+	}
+
 	switch (aMode) {
 		case MODE_LINE:
 			rollback = aRollback;

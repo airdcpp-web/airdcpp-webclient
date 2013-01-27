@@ -47,31 +47,32 @@ namespace {
 
 QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag,
 		time_t aAdded, const TTHValue& tth, const string& aTempTarget) :
-		Flags(aFlag), target(aTarget), maxSegments(1), fileBegin(0),
-		size(aSize), priority(aPriority), added(aAdded),
-		tthRoot(tth), autoPriority(false), nextPublishingTime(0), tempTarget(aTempTarget)
+		QueueItemBase(aTarget, aSize, aPriority, aAdded, aFlag),
+		maxSegments(1), fileBegin(0),
+		tthRoot(tth), nextPublishingTime(0), tempTarget(aTempTarget)
 	{
 
+	
 	if(isSet(FLAG_USER_LIST) || isSet(FLAG_CLIENT_VIEW)) {
 		/* Always use highest for the items without bundle */
-		priority = QueueItem::HIGHEST;
+		setPriority(HIGHEST);
 	} else {
-		if (priority == DEFAULT) {
+		if (getPriority() == DEFAULT) {
 			if(aSize <= SETTING(PRIO_HIGHEST_SIZE)*1024) {
-				priority = HIGHEST;
+				setPriority(HIGHEST);
 			} else if(aSize <= SETTING(PRIO_HIGH_SIZE)*1024) {
-				priority = HIGH;
+				setPriority(HIGH);
 			} else if(aSize <= SETTING(PRIO_NORMAL_SIZE)*1024) {
-				priority = NORMAL;
+				setPriority(NORMAL);
 			} else if(aSize <= SETTING(PRIO_LOW_SIZE)*1024) {
-				priority = LOW;
+				setPriority(LOW);
 			} else if(SETTING(PRIO_LOWEST)) {
-				priority = LOWEST;
+				setPriority(LOWEST);
 			} else if(SETTING(AUTO_PRIORITY_DEFAULT)) {
-				autoPriority = true;
-				priority = LOW;
+				setAutoPriority(true);
+				setPriority(LOW);
 			} else {
-				priority = NORMAL;
+				setPriority(NORMAL);
 			}
 		}
 
@@ -119,9 +120,9 @@ bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr& left, const QueueI
 	return left->getPriority() > right->getPriority();
 }
 
-QueueItem::Priority QueueItem::calculateAutoPriority() const {
-	if(autoPriority) {
-		QueueItem::Priority p;
+QueueItemBase::Priority QueueItem::calculateAutoPriority() const {
+	if(getAutoPriority()) {
+		QueueItemBase::Priority p;
 		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
 		switch(percent){
 				case 0:
@@ -142,7 +143,7 @@ QueueItem::Priority QueueItem::calculateAutoPriority() const {
 		}
 		return p;			
 	}
-	return priority;
+	return getPriority();
 }
 
 bool QueueItem::hasPartialSharingTarget() {
@@ -185,9 +186,9 @@ bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const {
 string QueueItem::getListName() const {
 	dcassert(isSet(QueueItem::FLAG_USER_LIST));
 	if(isSet(QueueItem::FLAG_XML_BZLIST)) {
-		return getTarget() + ".xml.bz2";
+		return target + ".xml.bz2";
 	} else {
-		return getTarget() + ".xml";
+		return target + ".xml";
 	}
 }
 
@@ -302,8 +303,20 @@ uint64_t QueueItem::getAverageSpeed() const {
 	return totalSpeed;
 }
 
+void QueueItem::setTarget(const string& aTarget) {
+	target = aTarget;
+}
+
+double QueueItem::getDownloadedFraction() const { 
+	return static_cast<double>(getDownloadedBytes()) / size; 
+}
+
+bool QueueItem::isFinished() const {
+	return done.size() == 1 && *done.begin() == Segment(0, size);
+}
+
 Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
-	if(getSize() == -1 || blockSize == 0) {
+	if(size == -1 || blockSize == 0) {
 		return Segment(0, -1);
 	}
 	
@@ -313,7 +326,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		}
 
 		int64_t start = 0;
-		int64_t end = getSize();
+		int64_t end = size;
 
 		if(!done.empty()) {
 			const Segment& first = *done.begin();
@@ -330,7 +343,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 			}
 		}
 
-		return Segment(start, std::min(getSize(), end) - start);
+		return Segment(start, std::min(size, end) - start);
 	}
 	
 	if(downloads.size() >= maxSegments ||
@@ -349,12 +362,12 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 
 		// Convert block index to file position
 		for(auto& i: partialSource->getPartialInfo())
-			posArray.push_back(min(getSize(), (int64_t)(i) * blockSize));
+			posArray.push_back(min(size, (int64_t)(i) * blockSize));
 	}
 
 	/***************************/
 
-	double donePart = static_cast<double>(getDownloadedBytes()) / getSize();
+	double donePart = static_cast<double>(getDownloadedBytes()) / size;
 		
 	// We want smaller blocks at the end of the transfer, squaring gives a nice curve...
 	int64_t targetSize = static_cast<int64_t>(static_cast<double>(wantedSize) * std::max(0.25, (1. - (donePart * donePart))));
@@ -369,8 +382,8 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 	int64_t start = 0;
 	int64_t curSize = targetSize;
 
-	while(start < getSize()) {
-		int64_t end = std::min(getSize(), start + curSize);
+	while(start < size) {
+		int64_t end = std::min(size, start + curSize);
 		Segment block(start, end - start);
 		bool overlaps = false;
 		for(auto& i: done) {
@@ -400,7 +413,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 
 						// segment must be blockSize aligned
 						dcassert(b % blockSize == 0);
-						dcassert(e % blockSize == 0 || e == getSize());
+						dcassert(e % blockSize == 0 || e == size);
 
 						neededParts.emplace_back(b, e - b);
 					}
@@ -626,9 +639,9 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 }
 
 bool QueueItem::startDown() {
-	if(bundle && bundle->getPriority() != PAUSED && priority != PAUSED) {
+	if(bundle && bundle->getPriority() != PAUSED && getPriority() != PAUSED) {
 		return true;
-	} else if (priority == HIGHEST) {
+	} else if (getPriority() == HIGHEST) {
 		return true;
 	}
 	return false;
@@ -674,9 +687,9 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(LIT("\" Size=\""));
 	f.write(Util::toString(size));
 	f.write(LIT("\" Priority=\""));
-	f.write(Util::toString((int)priority));
+	f.write(Util::toString((int)getPriority()));
 	f.write(LIT("\" Added=\""));
-	f.write(Util::toString(added));
+	f.write(Util::toString(getAdded()));
 	if (!SettingsManager::lanMode) {
 		b32tmp.clear();
 		f.write(LIT("\" TTH=\""));
@@ -687,7 +700,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 		f.write(SimpleXML::escape(tempTarget, tmp, true));
 	}
 	f.write(LIT("\" AutoPriority=\""));
-	f.write(Util::toString(autoPriority));
+	f.write(Util::toString(getAutoPriority()));
 	f.write(LIT("\" MaxSegments=\""));
 	f.write(Util::toString(maxSegments));
 

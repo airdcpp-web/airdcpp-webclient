@@ -162,9 +162,9 @@ public:
 	//return the number of loaded dirs
 	int loadXML(InputStream& xml, bool updating, const string& aBase = "/");
 
-	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItem::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
-	bool downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio=QueueItem::DEFAULT, bool first=true, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch=0);
-	void download(File* aFile, const string& aTarget, bool view, QueueItem::Priority prio = QueueItem::DEFAULT, BundlePtr aBundle=NULL);
+	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
+	bool downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio=QueueItem::DEFAULT, bool first=true, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch=0);
+	void download(File* aFile, const string& aTarget, bool view, QueueItemBase::Priority prio = QueueItem::DEFAULT, BundlePtr aBundle=NULL);
 
 	string getPath(const Directory* d) const;
 	string getPath(const File* f) const { return getPath(f->getParent()); }
@@ -203,7 +203,7 @@ public:
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
 	void addFilterTask();
-	void addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItem::Priority prio=QueueItem::DEFAULT);
+	void addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio=QueueItem::DEFAULT);
 
 	void close();
 
