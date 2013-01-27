@@ -243,7 +243,7 @@ void ShareScannerManager::find(const string& aPath, int& missingFiles, int& miss
 		} catch(const FileException&) { } 
 	}
 
-	for(auto d: dirs) {
+	for(auto& d: dirs) {
 		find(d, missingFiles, missingSFV, missingNFO, extrasFound, dupesFound, noReleaseFiles, emptyFolders, scanType);
 	}
 }

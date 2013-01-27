@@ -773,7 +773,7 @@ void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
 		proto = &CLIENT_PROTOCOL;
 	}
 
-	if(ClientManager::getInstance()->isActive()) {
+	if(isActive()) {
 		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(port.empty()) {
 			// Oops?
