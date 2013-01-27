@@ -60,23 +60,18 @@ void DirSFVReader::loadPath(const string& aPath) {
 	load();
 }
 
-bool DirSFVReader::hasFile(const string& fileName, uint32_t& crc32_) const {
+optional<uint32_t> DirSFVReader::hasFile(const string& fileName) const {
 	if (loaded) {
-		auto p = find_if(content, CompareFirst<string, uint32_t>(fileName));
+		auto p = content.find(fileName);
 		if (p != content.end()) {
-			crc32_ = p->second;
-			return true;
+			return p->second;
 		}
 	}
-	return false;
-}
-
-bool DirSFVReader::hasFile(const string& fileName) const {
-	return find_if(content, CompareFirst<string, uint32_t>(fileName)) != content.end();
+	return nullptr;
 }
 
 bool DirSFVReader::isCrcValid(const string& fileName) const {
-	auto p = find_if(content, CompareFirst<string, uint32_t>(fileName));
+	auto p = content.find(fileName);
 	if (p != content.end()) {
 		CRC32Filter crc32;
 		FileReader(true).read(path + fileName, [&](const void* x, size_t n) {
@@ -88,7 +83,7 @@ bool DirSFVReader::isCrcValid(const string& fileName) const {
 	return true;
 }
 
-//use a custom implementation in order to detect line breaks that used by other operating systems
+//use a custom implementation in order to detect line breaks used by other operating systems
 std::istream& getline(std::istream &is, std::string &s) { 
     char ch;
 
@@ -107,19 +102,21 @@ void DirSFVReader::load() noexcept {
 		
 		/* Try to open the sfv */
 		try {
-			if (File::getSize(Text::utf8ToAcp(path)) > 1000000) {
+			auto loadPath = Text::utf8ToAcp(Util::FormatPath(path));
+			auto size = File::getSize(loadPath);
+			if (size > 1*1024*1024) {
 				//this isn't a proper sfv file
-				throw FileException();
+				throw FileException(STRING_F(SFV_TOO_LARGE, Util::formatBytes(size)));
 			}
 
 			//incase we have some extended characters in the path
-			sfv.open(Text::utf8ToAcp(Util::FormatPath(path)));
+			sfv.open(loadPath);
 
 			if(!sfv.is_open()) {
-				throw FileException();
+				throw FileException(STRING(CANT_OPEN_SFV));
 			}
-		} catch(const FileException&) {
-			LogManager::getInstance()->message(STRING(CANT_OPEN_SFV) + path, LogManager::LOG_ERROR);
+		} catch(const FileException& e) {
+			LogManager::getInstance()->message(path + ": " + e.getError(), LogManager::LOG_ERROR);
 			continue;
 		}
 
@@ -143,10 +140,7 @@ void DirSFVReader::load() noexcept {
 					line = line.substr(1,line.length()-2);
 				}
 
-				//don't list the same file multiple times...
-				if (!hasFile(line)) {
-					content.emplace_back(line, crc32);
-				}
+				content[line] = crc32;
 			}
 
 		}
@@ -154,17 +148,12 @@ void DirSFVReader::load() noexcept {
 	}
 
 	loaded = true;
-	readPos = content.begin();
 }
 
-bool DirSFVReader::read(string& fileName) {
-	if (readPos == content.end()) {
-		readPos = content.begin();
-		return false;
+void DirSFVReader::read(std::function<void (const string&)> readF) const {
+	for (auto& p: content | map_keys) {
+		readF(p);
 	}
-	fileName = readPos->first;
-	advance(readPos, 1);
-	return true;
 }
 
 } // namespace dcpp

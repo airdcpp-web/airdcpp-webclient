@@ -858,12 +858,9 @@ int HashManager::Hasher::run() {
 				int64_t sizeLeft = size;
 				TigerTree tt(bs);
 
-				uint32_t fileCRC = 0;
 				CRC32Filter crc32;
-				CRC32Filter* xcrc32 = 0;
 
-				if (sfv.hasFile(Text::toLower(Util::getFileName(fname)), fileCRC))
-					xcrc32 = &crc32;
+				auto fileCRC = sfv.hasFile(Text::toLower(Util::getFileName(fname)));
 
 				uint64_t lastRead = GET_TICK();
  
@@ -882,8 +879,8 @@ int HashManager::Hasher::run() {
 					}
 					tt.update(buf, n);
 				
-					if(xcrc32)
-						(*xcrc32)(buf, n);
+					if(fileCRC)
+						crc32(buf, n);
 
 					sizeLeft -= n;
 
@@ -902,7 +899,7 @@ int HashManager::Hasher::run() {
 				f.close();
 				tt.finalize();
 
-				failed = xcrc32 && xcrc32->getValue() != fileCRC;
+				failed = fileCRC && crc32.getValue() != *fileCRC;
 
 				uint64_t end = GET_TICK();
 				int64_t averageSpeed = 0;

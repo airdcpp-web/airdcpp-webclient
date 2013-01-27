@@ -1040,7 +1040,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "SFV check stopped", 
 "Unable to check file: ", 
 "No SFV file found or the selected file isn't listed in it", 
-"Failed to open SFV file: ", 
 "Open System Log to see the scan results", 
 "Stop", 
 "Show notify icon on main chat messages", 
@@ -1605,6 +1604,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to load %d tree entries from the hash data; it's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared", 
 "Hash database has been rebuilt and no unused entries were found", 
 "Warn me about Insufficient space left on target drive", 
+"The SFV file is too large to be loaded (%s)", 
+"Failed to open the SFV file", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2645,7 +2646,6 @@ std::string dcpp::ResourceManager::names[] = {
 "CrcStopped", 
 "CrcFileError", 
 "NoCrc32", 
-"CantOpenSfv", 
 "SeeSyslogForResults", 
 "Stop", 
 "ChatNotify", 
@@ -3210,4 +3210,6 @@ std::string dcpp::ResourceManager::names[] = {
 "RebuildFailedEntries", 
 "HashRebuiltNoUnused", 
 "SettingsUseSpaceWarning", 
+"SfvTooLarge", 
+"CantOpenSfv", 
 };

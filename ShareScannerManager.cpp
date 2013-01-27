@@ -467,13 +467,12 @@ void ShareScannerManager::scanDir(const string& aPath, int& missingFiles, int& m
 
 
 	/* Check for missing files */
-	string fileName;
 	bool hasValidSFV = false;
 
 	int releaseFiles=0, loopMissing=0;
 
 	DirSFVReader sfv(aPath, sfvFileList);
-	while (sfv.read(fileName)) {
+	sfv.read([&](const string& fileName) {
 		hasValidSFV = true;
 		releaseFiles++;
 
@@ -485,7 +484,7 @@ void ShareScannerManager::scanDir(const string& aPath, int& missingFiles, int& m
 		} else {
 			fileList.erase(s);
 		}
-	}
+	});
 
 	if (SETTING(CHECK_MISSING))
 		missingFiles += loopMissing;
@@ -516,15 +515,14 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 
 	/* Get the size and see if all files in the sfv exists */
 	if (sfv.hasSFV()) {
-		string fileName;
-		while (sfv.read(fileName)) {
+		sfv.read([&](const string& fileName) {
 			if (Util::fileExists(aPath + fileName)) {
 				scanFolderSize = scanFolderSize + File::getSize(aPath + fileName);
 			} else {
 				LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + aPath + fileName, LogManager::LOG_WARNING);
 				checkFailed++;
 			}
-		}
+		});
 		dirs.emplace_back(aPath, sfv);
 	}
 

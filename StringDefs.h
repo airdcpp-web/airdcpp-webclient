@@ -1044,7 +1044,6 @@ enum Strings { // @DontAdd
 	CRC_STOPPED, // "SFV check stopped"
 	CRC_FILE_ERROR, // "Unable to check file: "
 	NO_CRC32, // "No SFV file found or the selected file isn't listed in it"
-	CANT_OPEN_SFV, // "Failed to open SFV file: "
 	SEE_SYSLOG_FOR_RESULTS, // "Open System Log to see the scan results"
 	STOP, // "Stop"
 	CHAT_NOTIFY, // "Show notify icon on main chat messages"
@@ -1609,5 +1608,7 @@ enum Strings { // @DontAdd
 	REBUILD_FAILED_ENTRIES, // "Failed to load %d tree entries from the hash data; it's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared"
 	HASH_REBUILT_NO_UNUSED, // "Hash database has been rebuilt and no unused entries were found"
 	SETTINGS_USE_SPACE_WARNING, // "Warn me about Insufficient space left on target drive"
+	SFV_TOO_LARGE, // "The SFV file is too large to be loaded (%s)"
+	CANT_OPEN_SFV, // "Failed to open the SFV file"
 	LAST // @DontAdd
 };

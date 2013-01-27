@@ -45,14 +45,13 @@ public:
 	 * considered comments, and we throw away lines with ' ' or '#' as well
 	 * (pdSFV 1.2 does this...).
 	 */
-	bool hasFile(const string& fileName) const;
-	bool hasFile(const string& fileName, uint32_t& crc32_) const;
+	optional<uint32_t> hasFile(const string& fileName) const;
 
 	bool hasSFV() const { return !sfvFiles.empty(); }
 	bool isCrcValid(const string& file) const;
 
 	/* Loops through the file names */
-	bool read(string& fileName);
+	void read(std::function<void (const string&)> readF) const;
 
 	void loadPath(const string& aPath);
 	string getPath() const { return path; }
@@ -63,8 +62,7 @@ private:
 	string path;
 
 	/* File name + crc */
-	vector<pair<string, uint32_t>> content;
-	vector<pair<string, uint32_t>>::const_iterator readPos;
+	unordered_map<string, uint32_t> content;
 
 	void load() noexcept;
 };
