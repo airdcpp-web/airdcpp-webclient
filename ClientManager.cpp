@@ -546,11 +546,12 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl)
 	return p.first->second;
 }
 
-bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_) {
+bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError) {
 	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 
 	auto connectUser = [&] (OnlineUser* ou) -> bool {
+		isProtocolError = false;
 		auto ret = ou->getClientBase().connect(*ou, aToken, lastError_);
 		if (ret == AdcCommand::SUCCESS) {
 			return true;
@@ -558,8 +559,10 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 
 		//get the error string
 		if (ret == AdcCommand::ERROR_TLS_REQUIRED) {
+			isProtocolError = true;
 			lastError_ = STRING(SOURCE_NO_ENCRYPTION);
 		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
+			isProtocolError = true;
 			lastError_ = STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, lastError_);
 		} else if (ret == AdcCommand::ERROR_BAD_STATE) {
 			lastError_ = STRING(CONNECTING_IN_PROGRESS);

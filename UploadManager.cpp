@@ -853,7 +853,10 @@ void UploadManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) {
 void UploadManager::connectUser(const HintedUser& aUser, const string& aToken) {
 	string lastError;
 	string hubUrl = aUser.hint;
-	ClientManager::getInstance()->connect(aUser.user, aToken, true, lastError, hubUrl);
+	bool protocolError = false;
+	ClientManager::getInstance()->connect(aUser.user, aToken, true, lastError, hubUrl, protocolError);
+
+	//TODO: report errors?
 }
 
 void UploadManager::unreserveSlot(const UserPtr& aUser) {
