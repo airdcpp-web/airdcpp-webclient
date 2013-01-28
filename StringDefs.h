@@ -1611,5 +1611,6 @@ enum Strings { // @DontAdd
 	SFV_TOO_LARGE, // "The SFV file is too large to be loaded (%s)"
 	CANT_OPEN_SFV, // "Failed to open the SFV file"
 	REMOTE_PROTOCOL_UNSUPPORTED, // "The remote user doesn't support %s protocol"
+	CONNECTING_IN_PROGRESS, // "Connecting to the hub in progress"
 	LAST // @DontAdd
 };

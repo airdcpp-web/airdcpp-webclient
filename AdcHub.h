@@ -35,7 +35,7 @@ public:
 	using Client::connect;
 
 	int connect(const OnlineUser& user, const string& token, string& lastError_);
-	int connect(const OnlineUser& user, string const& token, bool secure, string& lastError_);
+	void connect(const OnlineUser& user, string const& token, bool secure);
 	
 	void hubMessage(const string& aMessage, bool thirdPerson = false);
 	void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false);
@@ -92,6 +92,11 @@ private:
 	typedef SIDMap::const_iterator SIDIter;
 
 	void getUserList(OnlineUserList& list) const;
+
+	/* Checks if we are allowed to connect to the user */
+	AdcCommand::Error allowConnect(const OnlineUser& user, bool secure, string& failedProtocol_, bool checkBase) const;
+	/* Does the same thing but also sends the error to the remote user */
+	bool checkProtocol(const OnlineUser& user, bool& secure, const string& aRemoteProtocol, const string& aToken);
 
 	bool oldPassword;
 	Socket udp;

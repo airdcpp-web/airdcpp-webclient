@@ -561,6 +561,8 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 			lastError_ = STRING(SOURCE_NO_ENCRYPTION);
 		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
 			lastError_ = STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, lastError_);
+		} else if (ret == AdcCommand::ERROR_BAD_STATE) {
+			lastError_ = STRING(CONNECTING_IN_PROGRESS);
 		}
 
 		return false;

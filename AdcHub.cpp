@@ -373,24 +373,8 @@ void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 	const string& token = c.getParam(2);
 
 	bool secure = false;
-	if(protocol == CLIENT_PROTOCOL) {
-		// Nothing special
-	} else if(protocol == SECURE_CLIENT_PROTOCOL_TEST && CryptoManager::getInstance()->TLSOk()) {
-		secure = true;
-	} else {
-		unknownProtocol(c.getFrom(), protocol, token);
+	if (!checkProtocol(*u, secure, protocol, token))
 		return;
-	}
-
-	if (!secure && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
-		send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "TLS encryption required", AdcCommand::TYPE_DIRECT).setTo(c.getFrom()));
-		return;
-	}
-
-	if(!u->getIdentity().isTcpActive()) {
-		send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "IP unknown", AdcCommand::TYPE_DIRECT).setTo(c.getFrom()));
-		return;
-	}
 
 	ConnectionManager::getInstance()->adcConnect(*u, port, token, secure);
 }
@@ -423,31 +407,13 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 	const string& protocol = c.getParam(0);
 	const string& token = c.getParam(1);
 
-	bool secure;
-	if(protocol == CLIENT_PROTOCOL) {
-		secure = false;
-	} else if(protocol == SECURE_CLIENT_PROTOCOL_TEST && CryptoManager::getInstance()->TLSOk()) {
-		secure = true;
-	} else {
-		unknownProtocol(c.getFrom(), protocol, token);
+	bool secure = false;
+	if (!checkProtocol(*u, secure, protocol, token))
 		return;
-	}
 
 	if(isActive()) {
-		string lastError;
 		//we are active the other guy is not, this leaves hubhint empty. 
-    	auto ret = connect(*u, token, secure, lastError);
-		if (ret != AdcCommand::SUCCESS) {
-			lastError.clear();
-			if (ret == AdcCommand::ERROR_TLS_REQUIRED) {
-				lastError = "TLS encryption required";
-			} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
-				lastError = "Protocol not supported";
-			}
-
-			if (!lastError.empty())
-				send(AdcCommand(AdcCommand::SEV_FATAL, (AdcCommand::Error)ret, lastError, AdcCommand::TYPE_DIRECT).setTo(u->getIdentity().getSID()));
-		}
+    	connect(*u, token, secure);
 		return;
 	}
 
@@ -710,16 +676,9 @@ void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
 	const string& port = c.getParam(1);
 	const string& token = c.getParam(2);
 
-	// bool secure = secureAvail(c.getFrom(), protocol, token);
 	bool secure = false;
-	if(protocol == CLIENT_PROTOCOL) {
-		// Nothing special
-	} else if(protocol == SECURE_CLIENT_PROTOCOL_TEST && CryptoManager::getInstance()->TLSOk()) {
-		secure = true;
-	} else {
-		unknownProtocol(c.getFrom(), protocol, token);
+	if (!checkProtocol(*u, secure, protocol, token))
 		return;
-	}
 
 	// Trigger connection attempt sequence locally ...
 	auto localPort = Util::toString(sock->getLocalPort());
@@ -743,14 +702,8 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 	const string& token = c.getParam(2);
 
 	bool secure = false;
-	if(protocol == CLIENT_PROTOCOL) {
-		// Nothing special
-	} else if(protocol == SECURE_CLIENT_PROTOCOL_TEST && CryptoManager::getInstance()->TLSOk()) {
-		secure = true;
-	} else {
-		unknownProtocol(c.getFrom(), protocol, token);
+	if (!checkProtocol(*u, secure, protocol, token))
 		return;
-	}
 
 	// Trigger connection attempt sequence locally
 	dcdebug("triggering connecting attempt in RNT: remote port = %s, local IP = %s, local port = %d\n", port.c_str(), sock->getLocalIp().c_str(), sock->getLocalPort());
@@ -758,43 +711,75 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 }
 
 int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
-	return connect(user, token, CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS), lastError_);
-}
-
-int AdcHub::connect(const OnlineUser& user, string const& token, bool secure, string& lastError_) {
-	if(state != STATE_NORMAL)
-		return AdcCommand::SUCCESS;
-
-
-	//check the ADC protocol
-	const string* proto;
-	if(secure) {
-		if(user.getUser()->isSet(User::NO_ADCS_0_10_PROTOCOL)) {
-			lastError_ = SECURE_CLIENT_PROTOCOL_TEST;
-			return AdcCommand::ERROR_PROTOCOL_GENERIC;
-		}
-		proto = &SECURE_CLIENT_PROTOCOL_TEST;
-	} else {
-		if(user.getUser()->isSet(User::NO_ADC_1_0_PROTOCOL)) {
-			lastError_ = CLIENT_PROTOCOL;
-			return AdcCommand::ERROR_PROTOCOL_GENERIC;
-		}
-		proto = &CLIENT_PROTOCOL;
+	bool secure = CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS);
+	auto conn = allowConnect(user, secure, lastError_, true);
+	if (conn == AdcCommand::SUCCESS) {
+		connect(user, token, secure);
 	}
 
+	return conn;
+}
+
+bool AdcHub::checkProtocol(const OnlineUser& user, bool& secure, const string& aRemoteProtocol, const string& aToken) {
+	if(aRemoteProtocol == CLIENT_PROTOCOL) {
+		// Nothing special
+	} else if(aRemoteProtocol == SECURE_CLIENT_PROTOCOL_TEST && CryptoManager::getInstance()->TLSOk()) {
+		secure = true;
+	} else {
+		unknownProtocol(user.getIdentity().getSID(), aRemoteProtocol, aToken);
+		return false;
+	}
+
+
+	string error;
+	auto ret = allowConnect(user, secure, error, false);
+	if (ret != AdcCommand::SUCCESS) {
+		if (ret == AdcCommand::ERROR_TLS_REQUIRED) {
+			error = "TLS encryption required";
+		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
+			error = error + " protocol not supported";
+		}
+
+		if (!error.empty())
+			send(AdcCommand(AdcCommand::SEV_FATAL, ret, error, AdcCommand::TYPE_DIRECT).setTo(user.getIdentity().getSID()));
+		return false;
+	}
+
+	return true;
+}
+
+AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, string& failedProtocol_, bool checkBase) const {
+	//check the state
+	if(state != STATE_NORMAL)
+		return AdcCommand::ERROR_BAD_STATE;
+
+	if (checkBase) {
+		//check the ADC protocol
+		if(secure) {
+			if(user.getUser()->isSet(User::NO_ADCS_0_10_PROTOCOL)) {
+				failedProtocol_ = SECURE_CLIENT_PROTOCOL_TEST;
+				return AdcCommand::ERROR_PROTOCOL_GENERIC;
+			}
+		} else {
+			if(user.getUser()->isSet(User::NO_ADC_1_0_PROTOCOL)) {
+				failedProtocol_ = CLIENT_PROTOCOL;
+				return AdcCommand::ERROR_PROTOCOL_GENERIC;
+			}
+		}
+	}
 
 	//check TLS
 	if (!secure && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		return AdcCommand::ERROR_TLS_REQUIRED;
 	}
 
+	//check the IP protocol
 	if (user.getIdentity().isTcpActive()) {
 		bool hasValidProtocol = user.getUser()->isSet(User::PASSIVE) && !user.getUser()->isSet(User::NAT_TRAVERSAL); //we can't know what they support...
 
-		//check the IP protocol, TODO: improve when in passive mode
 		if (!hasValidProtocol && !getMyIdentity().getIp6().empty()) {
 			if (user.getIdentity().getIp6().empty()) {
-				lastError_ = "IPv6";
+				failedProtocol_ = "IPv6";
 			} else {
 				hasValidProtocol = true;
 			}
@@ -802,7 +787,7 @@ int AdcHub::connect(const OnlineUser& user, string const& token, bool secure, st
 
 		if (!hasValidProtocol && !getMyIdentity().getIp4().empty()) {
 			if (user.getIdentity().getIp4().empty()) {
-				lastError_ = "IPv4";
+				failedProtocol_ = "IPv4";
 			} else {
 				hasValidProtocol = true;
 			}
@@ -812,14 +797,18 @@ int AdcHub::connect(const OnlineUser& user, string const& token, bool secure, st
 			return AdcCommand::ERROR_PROTOCOL_GENERIC;
 	}
 
+	return AdcCommand::SUCCESS;
+}
 
+void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
+	const string* proto = secure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
 	if(isActive()) {
 		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(port.empty()) {
 			// Oops?
 			LogManager::getInstance()->message(STRING(NOT_LISTENING), LogManager::LOG_ERROR);
-			return AdcCommand::SUCCESS;
+			return;
 		}
 
 
@@ -830,8 +819,6 @@ int AdcHub::connect(const OnlineUser& user, string const& token, bool secure, st
 	} else {
 		send(AdcCommand(AdcCommand::CMD_RCM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(token));
 	}
-
-	return AdcCommand::SUCCESS;
 }
 
 void AdcHub::hubMessage(const string& aMessage, bool thirdPerson) {

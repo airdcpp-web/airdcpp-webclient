@@ -1607,6 +1607,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The SFV file is too large to be loaded (%s)", 
 "Failed to open the SFV file", 
 "The remote user doesn't support %s protocol", 
+"Connecting to the hub in progress", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3214,4 +3215,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SfvTooLarge", 
 "CantOpenSfv", 
 "RemoteProtocolUnsupported", 
+"ConnectingInProgress", 
 };
