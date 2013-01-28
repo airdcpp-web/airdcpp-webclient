@@ -1610,5 +1610,6 @@ enum Strings { // @DontAdd
 	SETTINGS_USE_SPACE_WARNING, // "Warn me about Insufficient space left on target drive"
 	SFV_TOO_LARGE, // "The SFV file is too large to be loaded (%s)"
 	CANT_OPEN_SFV, // "Failed to open the SFV file"
+	REMOTE_PROTOCOL_UNSUPPORTED, // "The remote user doesn't support %s protocol"
 	LAST // @DontAdd
 };

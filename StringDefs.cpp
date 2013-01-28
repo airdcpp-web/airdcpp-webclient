@@ -1606,6 +1606,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Warn me about Insufficient space left on target drive", 
 "The SFV file is too large to be loaded (%s)", 
 "Failed to open the SFV file", 
+"The remote user doesn't support %s protocol", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3212,4 +3213,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsUseSpaceWarning", 
 "SfvTooLarge", 
 "CantOpenSfv", 
+"RemoteProtocolUnsupported", 
 };

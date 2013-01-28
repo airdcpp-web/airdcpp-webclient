@@ -47,7 +47,7 @@ public:
 	virtual const string& getHubUrl() const = 0;
 	virtual string getHubName() const = 0;
 	virtual bool isOp() const = 0;
-	virtual void connect(const OnlineUser& user, const string& token) = 0;
+	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) = 0;
 	virtual void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false) = 0;
 	virtual void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir) = 0;
 };
@@ -61,7 +61,7 @@ public:
 	virtual void connect();
 	virtual void disconnect(bool graceless);
 
-	virtual void connect(const OnlineUser& user, const string& token) = 0;
+	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) = 0;
 	virtual void hubMessage(const string& aMessage, bool thirdPerson = false) = 0;
 	virtual void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false) = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;

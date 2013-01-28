@@ -125,7 +125,7 @@ public:
 	/** @return The highest priority download the user has, PAUSED may also mean no downloads */
 	QueueItemBase::Priority hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, bool smallSlot) noexcept;
 	/** The same thing but only used before any connect requests */
-	QueueItemBase::Priority hasDownload(const UserPtr& aUser, string& hubUrl, bool smallSlot, string& bundleToken) noexcept;
+	QueueItemBase::Priority hasDownload(const UserPtr& aUser, string& hubUrl, bool smallSlot, string& bundleToken, bool& allowUrlChange) noexcept;
 	
 	void loadQueue() noexcept;
 	void saveQueue(bool force) noexcept;

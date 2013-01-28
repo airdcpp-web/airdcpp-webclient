@@ -434,8 +434,20 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 	}
 
 	if(isActive()) {
+		string lastError;
 		//we are active the other guy is not, this leaves hubhint empty. 
-    	connect(*u, token, secure);
+    	auto ret = connect(*u, token, secure, lastError);
+		if (ret != AdcCommand::SUCCESS) {
+			lastError.clear();
+			if (ret == AdcCommand::ERROR_TLS_REQUIRED) {
+				lastError = "TLS encryption required";
+			} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
+				lastError = "Protocol not supported";
+			}
+
+			if (!lastError.empty())
+				send(AdcCommand(AdcCommand::SEV_FATAL, (AdcCommand::Error)ret, lastError, AdcCommand::TYPE_DIRECT).setTo(u->getIdentity().getSID()));
+		}
 		return;
 	}
 
@@ -745,41 +757,72 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 	ConnectionManager::getInstance()->adcConnect(*u, port, Util::toString(sock->getLocalPort()), BufferedSocket::NAT_SERVER, token, secure);
 }
 
-void AdcHub::connect(const OnlineUser& user, const string& token) {
-	connect(user, token, CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS));
+int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
+	return connect(user, token, CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS), lastError_);
 }
 
-void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
+int AdcHub::connect(const OnlineUser& user, string const& token, bool secure, string& lastError_) {
 	if(state != STATE_NORMAL)
-		return;
+		return AdcCommand::SUCCESS;
 
-	if (!secure && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
-		send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "TLS encryption required", AdcCommand::TYPE_DIRECT).setTo(user.getIdentity().getSID()));
-		return;
-	}
 
+	//check the ADC protocol
 	const string* proto;
 	if(secure) {
 		if(user.getUser()->isSet(User::NO_ADCS_0_10_PROTOCOL)) {
-			/// @todo log
-			return;
+			lastError_ = SECURE_CLIENT_PROTOCOL_TEST;
+			return AdcCommand::ERROR_PROTOCOL_GENERIC;
 		}
 		proto = &SECURE_CLIENT_PROTOCOL_TEST;
 	} else {
 		if(user.getUser()->isSet(User::NO_ADC_1_0_PROTOCOL)) {
-			/// @todo log
-			return;
+			lastError_ = CLIENT_PROTOCOL;
+			return AdcCommand::ERROR_PROTOCOL_GENERIC;
 		}
 		proto = &CLIENT_PROTOCOL;
 	}
+
+
+	//check TLS
+	if (!secure && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
+		return AdcCommand::ERROR_TLS_REQUIRED;
+	}
+
+	if (user.getIdentity().isTcpActive()) {
+		bool hasValidProtocol = user.getUser()->isSet(User::PASSIVE) && !user.getUser()->isSet(User::NAT_TRAVERSAL); //we can't know what they support...
+
+		//check the IP protocol, TODO: improve when in passive mode
+		if (!hasValidProtocol && !getMyIdentity().getIp6().empty()) {
+			if (user.getIdentity().getIp6().empty()) {
+				lastError_ = "IPv6";
+			} else {
+				hasValidProtocol = true;
+			}
+		}
+
+		if (!hasValidProtocol && !getMyIdentity().getIp4().empty()) {
+			if (user.getIdentity().getIp4().empty()) {
+				lastError_ = "IPv4";
+			} else {
+				hasValidProtocol = true;
+			}
+		}
+
+		if (!hasValidProtocol)
+			return AdcCommand::ERROR_PROTOCOL_GENERIC;
+	}
+
+
 
 	if(isActive()) {
 		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(port.empty()) {
 			// Oops?
 			LogManager::getInstance()->message(STRING(NOT_LISTENING), LogManager::LOG_ERROR);
-			return;
+			return AdcCommand::SUCCESS;
 		}
+
+
 		send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(port).addParam(token));
 
 		//we are expecting an incoming connection from these, map so we know where its coming from.
@@ -787,6 +830,8 @@ void AdcHub::connect(const OnlineUser& user, string const& token, bool secure) {
 	} else {
 		send(AdcCommand(AdcCommand::CMD_RCM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(token));
 	}
+
+	return AdcCommand::SUCCESS;
 }
 
 void AdcHub::hubMessage(const string& aMessage, bool thirdPerson) {

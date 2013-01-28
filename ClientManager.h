@@ -123,7 +123,7 @@ public:
 	
 	bool send(AdcCommand& c, const CID& to, bool noCID=false, bool noPassive=false, const string& key=Util::emptyString);
 
-	void connect(const HintedUser& user, const string& token);
+	bool connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_);
 	void privateMessage(const HintedUser& user, const string& msg, bool thirdPerson);
 	void userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility);
 

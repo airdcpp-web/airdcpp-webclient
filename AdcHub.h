@@ -34,8 +34,8 @@ public:
 	using Client::send;
 	using Client::connect;
 
-	void connect(const OnlineUser& user, const string& token);
-	void connect(const OnlineUser& user, string const& token, bool secure);
+	int connect(const OnlineUser& user, const string& token, string& lastError_);
+	int connect(const OnlineUser& user, string const& token, bool secure, string& lastError_);
 	
 	void hubMessage(const string& aMessage, bool thirdPerson = false);
 	void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false);

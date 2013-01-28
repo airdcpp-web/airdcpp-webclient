@@ -50,14 +50,17 @@ NmdcHub::~NmdcHub() {
 
 #define checkstate() if(state != STATE_NORMAL) return
 
-void NmdcHub::connect(const OnlineUser& aUser, const string&) {
-	checkstate(); 
-	dcdebug("NmdcHub::connect %s\n", aUser.getIdentity().getNick().c_str());
-	if(isActive()) {
-		connectToMe(aUser);
-	} else {
-		revConnectToMe(aUser);
+int NmdcHub::connect(const OnlineUser& aUser, const string&, string& /*lastError_*/) {
+	if(state == STATE_NORMAL) {
+		dcdebug("NmdcHub::connect %s\n", aUser.getIdentity().getNick().c_str());
+		if(isActive()) {
+			connectToMe(aUser);
+		} else {
+			revConnectToMe(aUser);
+		}
 	}
+
+	return AdcCommand::SUCCESS;
 }
 
 void NmdcHub::refreshUserList(bool refreshOnly) {

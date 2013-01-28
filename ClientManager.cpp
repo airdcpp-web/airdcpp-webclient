@@ -546,21 +546,45 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl)
 	return p.first->second;
 }
 
-void ClientManager::connect(const HintedUser& user, const string& token) {
-	/* 
-	ok, we allways prefer to connect with the reguested hub.
-	Buf if dont find a user matching to hint and hub is not marked as private,
-	the connection can start from any hub, with custom shares this might be bad,
-	alltho we just can get the wrong list, or possibly a file not available.
-	should we just set it allways as private?
-	*/
-
+bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_) {
 	RLock l(cs);
-	OnlineUser* u = findOnlineUser(user);
+	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 
-	if(u) {
-		u->getClientBase().connect(*u, token);
+	auto connectUser = [&] (OnlineUser* ou) -> bool {
+		auto ret = ou->getClientBase().connect(*ou, aToken, lastError_);
+		if (ret == AdcCommand::SUCCESS) {
+			return true;
+		}
+
+		//get the error string
+		if (ret == AdcCommand::ERROR_TLS_REQUIRED) {
+			lastError_ = STRING(SOURCE_NO_ENCRYPTION);
+		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
+			lastError_ = STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, lastError_);
+		}
+
+		return false;
+	};
+
+	//prefer the hinted hub
+	auto p = boost::find_if(op, [&hubHint_](pair<CID*, OnlineUser*> ouc) { return ouc.second->getHubUrl() == hubHint_; });
+	if (p != op.second && connectUser(p->second)) {
+		return true;
 	}
+
+	if (!allowUrlChange) {
+		return false;
+	}
+
+	//connect via any available hub
+	for(auto i = op.first; i != op.second; ++i) {
+		if (connectUser(p->second)) {
+			hubHint_ = p->second->getHubUrl();
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void ClientManager::privateMessage(const HintedUser& user, const string& msg, bool thirdPerson) {

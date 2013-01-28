@@ -239,9 +239,10 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					cqi->setLastAttempt(aTick);
 
 					string bundleToken, hubHint = cqi->getHubUrl();
+					bool allowUrlChange = true;
 
 					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
-					QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, cqi->isSet(ConnectionQueueItem::FLAG_SMALL), bundleToken);
+					QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, cqi->isSet(ConnectionQueueItem::FLAG_SMALL), bundleToken, allowUrlChange);
 					cqi->setHubUrl(hubHint);
 					cqi->setLastBundle(bundleToken);
 					
@@ -255,10 +256,18 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown) {
-							cqi->setState(ConnectionQueueItem::CONNECTING);							
-							ClientManager::getInstance()->connect(cqi->getHintedUser(), cqi->getToken());
-							fire(ConnectionManagerListener::StatusChanged(), cqi);
-							attempts++;
+							cqi->setState(ConnectionQueueItem::CONNECTING);		
+							string lastError;
+
+							if (!ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken(), allowUrlChange, lastError, hubHint)) {
+								cqi->setErrors(-1); // protocol error
+								dcassert(!lastError.empty());
+								fire(ConnectionManagerListener::Failed(), cqi, lastError);
+							} else {
+								cqi->setHubUrl(hubHint);
+								fire(ConnectionManagerListener::StatusChanged(), cqi);
+								attempts++;
+							}
 						} else {
 							cqi->setState(ConnectionQueueItem::NO_DOWNLOAD_SLOTS);
 							fire(ConnectionManagerListener::Failed(), cqi, STRING(ALL_DOWNLOAD_SLOTS_TAKEN));

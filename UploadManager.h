@@ -166,6 +166,7 @@ private:
 
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
 	void notifyQueuedUsers();
+	void connectUser(const HintedUser& aUser, const string& aToken);
 
 	bool isUploading(const UserPtr& aUser) const { return multiUploads.find(aUser) != multiUploads.end(); }
 	bool getMultiConn(const UserConnection& aSource);

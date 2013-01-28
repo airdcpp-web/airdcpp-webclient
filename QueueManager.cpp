@@ -723,12 +723,12 @@ QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, const Or
 	RLock l(cs);
 	QueueItemPtr qi = userQueue.getNext(aUser, onlineHubs, QueueItem::LOWEST, 0, 0, smallSlot);
 	if(qi) {
-		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : (QueueItemBase::Priority)qi->getBundle()->getPriority();
+		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
 	}
 	return QueueItem::PAUSED;
 }
 
-QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& hubHint, bool smallSlot, string& bundleToken) noexcept {
+QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& hubHint, bool smallSlot, string& bundleToken, bool& allowUrlChange) noexcept {
 	auto hubs = ClientManager::getInstance()->getHubSet(aUser->getCID());
 	if (hubs.empty())
 		return QueueItem::PAUSED;
@@ -746,9 +746,10 @@ QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& 
 			hubHint = *hubs.begin();
 		}
 		
+		allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
 		qi->getSource(aUser)->updateHubUrl(hubs, hubHint, qi->isSet(QueueItem::FLAG_USER_LIST));
 
-		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : (QueueItemBase::Priority)qi->getBundle()->getPriority();
+		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
 	}
 	return QueueItem::PAUSED;
 }

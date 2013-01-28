@@ -845,8 +845,15 @@ void UploadManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) {
 		}
 	}
 
-	if(connect)
-		ClientManager::getInstance()->connect(aUser, token);
+	if(connect) {
+		connectUser(aUser, token);
+	}
+}
+
+void UploadManager::connectUser(const HintedUser& aUser, const string& aToken) {
+	string lastError;
+	string hubUrl = aUser.hint;
+	ClientManager::getInstance()->connect(aUser.user, aToken, true, lastError, hubUrl);
 }
 
 void UploadManager::unreserveSlot(const UserPtr& aUser) {
@@ -1053,7 +1060,7 @@ void UploadManager::notifyQueuedUsers() {
 			
 			notifiedUsers[wu.user] = GET_TICK();
 
-			ClientManager::getInstance()->connect(wu.user, wu.token);
+			connectUser(wu.user, wu.token);
 
 			freeslots--;
 		}
