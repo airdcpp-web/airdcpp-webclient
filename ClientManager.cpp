@@ -773,10 +773,10 @@ void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const Onlin
 
 	bool isUdpActive = from.getIdentity().isUdpActive();
 	if (isUdpActive) {
-		//check that we have a common IP protocol available (we don't want to send responses for wrong hubs)
+		//check that we have a common IP protocol available (we don't want to send responses via wrong hubs)
 		const auto& me = c->getMyIdentity();
-		if (me.isUdpActive() && (!me.isUdp4Active() || !from.getIdentity().isUdp4Active())) {
-			if (!me.isUdp6Active() || !from.getIdentity().isUdp6Active()) {
+		if (me.getIp4().empty() || !from.getIdentity().isUdp4Active()) {
+			if (me.getIp6().empty() || !from.getIdentity().isUdp6Active()) {
 				return;
 			}
 		}

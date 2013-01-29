@@ -420,8 +420,8 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 	if (!checkProtocol(*u, secure, protocol, token))
 		return;
 
-	if(u->getIdentity().allowActiveConnection()) {
-		//we are active the other guy is not, this leaves hubhint empty. 
+	if(getMyIdentity().isTcpActive()) {
+		//we are active the other guy is not
     	connect(*u, token, secure);
 		return;
 	}
@@ -801,7 +801,7 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, stri
 
 	//check the IP protocol
 	if (user.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_IP) {
-		failedProtocol_ = (!getMyIdentity().getIp6().empty() && !user.getIdentity().allowV6Connection()) ? "IPv6" : "IPv4";
+		failedProtocol_ = (!getMyIdentity().getIp6().empty() && !user.getIdentity().allowV6Connections()) ? "IPv6" : "IPv4";
 		return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 	}
 
@@ -811,7 +811,7 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, stri
 void AdcHub::connect(const OnlineUser& user, const string& token, bool secure) {
 	const string* proto = secure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
-	if(user.getIdentity().allowActiveConnection()) {
+	if(getMyIdentity().isTcpActive()) {
 		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(port.empty()) {
 			// Oops?

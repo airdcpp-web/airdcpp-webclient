@@ -152,8 +152,7 @@ public:
 	GETSET(Mode, connectMode, ConnectMode);
 	bool updateConnectMode(const Identity& me);
 
-	bool allowActiveConnection() const;
-	bool allowV6Connection() const;
+	bool allowV6Connections() const;
 private:
 	UserPtr user;
 	uint32_t sid;

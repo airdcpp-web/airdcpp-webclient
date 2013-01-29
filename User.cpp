@@ -81,7 +81,7 @@ string Identity::getUdpPort() const {
 }
 
 string Identity::getIp() const {
-	return !allowV6Connection() ? getIp4() : getIp6();
+	return !allowV6Connections() ? getIp4() : getIp6();
 }
 
 void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
@@ -320,11 +320,7 @@ bool Identity::updateConnectMode(const Identity& me) {
 	return false;
 }
 
-bool Identity::allowActiveConnection() const {
-	return connectMode == MODE_ACTIVE_V4 || connectMode == MODE_ACTIVE_V6;
-}
-
-bool Identity::allowV6Connection() const {
+bool Identity::allowV6Connections() const {
 	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6;
 }
 
