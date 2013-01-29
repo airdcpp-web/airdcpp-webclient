@@ -949,33 +949,37 @@ bool ConnectionManager::checkKeyprint(UserConnection *aSource) {
 	return true;
 }
 
+void ConnectionManager::failDownload(const string& aToken, const string& aError, bool protocolError) {
+	//this may flag other user connections as removed which would possibly cause threading issues
+	WLock l (cs);
+	auto i = find(downloads.begin(), downloads.end(), aToken);
+	dcassert(i != downloads.end());
+	if (i != downloads.end()) {
+		ConnectionQueueItem* cqi = *i;
+
+		if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+			//remove an existing waiting item, if exists
+			auto s = find_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* c) { 
+				return c->getUser() == cqi->getUser() && !c->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && 
+					c->getState() != ConnectionQueueItem::RUNNING && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
+			});
+
+			if (s != downloads.end())
+				(*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
+		}
+
+		cqi->setLastAttempt(GET_TICK());
+		cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
+
+		cqi->setState(ConnectionQueueItem::WAITING);
+		fire(ConnectionManagerListener::Failed(), cqi, aError);
+	}
+}
+
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool protocolError) {
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
-			//this may flag other user connections as removed which would possibly cause threading issues
-			WLock l (cs);
-			auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
-			dcassert(i != downloads.end());
-			if (i != downloads.end()) {
-				ConnectionQueueItem* cqi = *i;
-
-				if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					//remove an existing waiting item, if exists
-					auto s = find_if(downloads.begin(), downloads.end(), [&](ConnectionQueueItem* c) { 
-						return c->getUser() == aSource->getUser() && !c->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && 
-							c->getState() != ConnectionQueueItem::RUNNING && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
-					});
-
-					if (s != downloads.end())
-						(*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
-				}
-
-				cqi->setLastAttempt(GET_TICK());
-				cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
-
-				cqi->setState(ConnectionQueueItem::WAITING);
-				fire(ConnectionManagerListener::Failed(), cqi, aError);
-			}
+			failDownload(aSource->getToken(), aError, protocolError);
 		} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
 			{
 				WLock l (cs);

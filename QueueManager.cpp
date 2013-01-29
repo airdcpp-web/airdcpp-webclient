@@ -970,7 +970,7 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr& qi) {
 		cmd.addParam("UP1");
 		cmd.addParam("HI", u.hint);
 		cmd.addParam("TH", qi->getTTH().toBase32());
-		ClientManager::getInstance()->send(cmd, u.user->getCID(), false, true);
+		ClientManager::getInstance()->sendUDP(cmd, u.user->getCID(), false, true);
 	}
 
 	bool hasNotifications = false;
@@ -1725,7 +1725,7 @@ void QueueManager::sendRemovePBD(const HintedUser& aUser, const string& aRemoteT
 	cmd.addParam("HI", aUser.hint);
 	cmd.addParam("BU", aRemoteToken);
 	cmd.addParam("RM1");
-	ClientManager::getInstance()->send(cmd, aUser.user->getCID(), false, true);
+	ClientManager::getInstance()->sendUDP(cmd, aUser.user->getCID(), false, true);
 }
 
 void QueueManager::setQIPriority(const string& aTarget, QueueItemBase::Priority p) noexcept {
@@ -2159,14 +2159,14 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		/* No reason to match anything with file bundles */
 		WLock l(cs);
 		try {	 
-			wantConnection = addSource(qi, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, sr->getFile());
+			wantConnection = addSource(qi, sr->getUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, sr->getFile());
 		} catch(...) {
 			// Ignore...
 		}
 	} else if(addSources) {
-		string path = b->getMatchPath(sr->getFile(), qi->getTarget(), sr->getUser()->isSet(User::NMDC));
+		string path = b->getMatchPath(sr->getFile(), qi->getTarget(), sr->getUser().user->isSet(User::NMDC));
 		if (!path.empty()) {
-			if (sr->getUser()->isSet(User::NMDC)) {
+			if (sr->getUser().user->isSet(User::NMDC)) {
 				//A NMDC directory bundle, just add the sources without matching
 				QueueItemList ql;
 				int newFiles = 0;
@@ -2175,7 +2175,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					b->getDirQIs(path, ql);
 					for (auto& q: ql) {
 						try {	 
-							if (addSource(q, HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) { // no SettingsManager::lanMode in NMDC...
+							if (addSource(q, sr->getUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) { // no SettingsManager::lanMode in NMDC...
 								wantConnection = true;
 							}
 							newFiles++;
@@ -2185,19 +2185,19 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					}
 				}
 				if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
-					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(HintedUser(sr->getUser(), sr->getHubURL()))) + ": " + 
+					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(sr->getUser())) + ": " + 
 						STRING_F(MATCH_SOURCE_ADDED, newFiles % b->getName().c_str()), LogManager::LOG_INFO);
 				}
 			} else {
 				//An ADC directory bundle, match recursive partial list
 				try {
-					addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
+					addList(sr->getUser(), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path);
 				} catch(...) { }
 			}
 		} else if (SETTING(ALLOW_MATCH_FULL_LIST)) {
 			//failed, use full filelist
 			try {
-				addList(HintedUser(sr->getUser(), sr->getHubURL()), QueueItem::FLAG_MATCH_QUEUE);
+				addList(sr->getUser(), QueueItem::FLAG_MATCH_QUEUE);
 			} catch(const Exception&) {
 				// ...
 			}
@@ -2205,7 +2205,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 	}
 
 	if(wantConnection) {
-		ConnectionManager::getInstance()->getDownloadConnection(HintedUser(sr->getUser(), sr->getHubURL()));
+		ConnectionManager::getInstance()->getDownloadConnection(sr->getUser());
 	}
 }
 

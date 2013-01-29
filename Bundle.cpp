@@ -806,7 +806,7 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 			cmd.addParam("CH1");
 		}
 
-		if (ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true) && !updateOnly) {
+		if (ClientManager::getInstance()->sendUDP(cmd, aSource->getUser()->getCID(), true, true) && !updateOnly) {
 			//add a new upload report
 			if (!uploadReports.empty()) {
 				lastSpeed = 0;
@@ -844,7 +844,7 @@ void Bundle::setBundleMode(bool setSingleUser) noexcept {
 			cmd.addParam("MU1");
 		}
 
-		ClientManager::getInstance()->send(cmd, u.user->getCID(), true, true);
+		ClientManager::getInstance()->sendUDP(cmd, u.user->getCID(), true, true);
 	}
 }
 
@@ -874,7 +874,7 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 				cmd.addParam("RM1");
 			}
 
-			ClientManager::getInstance()->send(cmd, aSource->getUser()->getCID(), true, true);
+			ClientManager::getInstance()->sendUDP(cmd, aSource->getUser()->getCID(), true, true);
 
 			if (finished)
 				uploadReports.erase(remove(uploadReports.begin(), uploadReports.end(), aSource->getUser()), uploadReports.end());
@@ -907,7 +907,7 @@ void Bundle::sendSizeNameUpdate() noexcept {
 
 		cmd.addParam("UD1");
 
-		ClientManager::getInstance()->send(cmd, u.user->getCID(), true, true);
+		ClientManager::getInstance()->sendUDP(cmd, u.user->getCID(), true, true);
 	}
 }
 

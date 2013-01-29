@@ -127,7 +127,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		usp.first->setSpeed(usp.second);
 
 	for(auto& ubp: UBNList)
-		ClientManager::getInstance()->send(ubp.second, ubp.first, true, true);
+		ClientManager::getInstance()->sendUDP(ubp.second, ubp.first, true, true);
 
 	for (auto& dtp: dropTargets)
 		QueueManager::getInstance()->removeSource(dtp.first, dtp.second, QueueItem::Source::FLAG_SLOW_SOURCE);

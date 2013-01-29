@@ -204,16 +204,16 @@ string ClientManager::getField(const CID& cid, const string& hint, const char* f
 	return Util::emptyString;
 }
 
-string ClientManager::getConnection(const CID& cid) const {
+string ClientManager::getConnection(const HintedUser& aUser) const {
 	RLock l(cs);
-	OnlineIterC i = onlineUsers.find(const_cast<CID*>(&cid));
-	if(i != onlineUsers.end()) {
-		if(i->second->getIdentity().get("US").empty())
-			return i->second->getIdentity().getConnection();
+	auto ou = findOnlineUser(aUser);
+	if (ou) {
+		if(ou->getIdentity().get("US").empty())
+			return ou->getIdentity().getConnection();
 		else
-			return Util::formatBytes(i->second->getIdentity().get("US")) + "/s";
-		
+			return Util::formatBytes(ou->getIdentity().get("US")) + "/s";
 	}
+
 	return STRING(OFFLINE);
 }
 
@@ -618,20 +618,19 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, P
 	ou->getClient().sendUserCmd(uc, params);
 }
 
-bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, bool noPassive /*false*/, const string& aKey) {
+bool ClientManager::sendUDP(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, bool noPassive /*false*/, const string& aKey /*Util::emptyString*/, const string& aHubUrl /*Util::emptyString*/) {
 	RLock l(cs);
-	OnlineIterC i = onlineUsers.find(const_cast<CID*>(&cid));
-	if(i != onlineUsers.end()) {
-		OnlineUser& u = *i->second;
-		if(cmd.getType() == AdcCommand::TYPE_UDP && !u.getIdentity().isUdpActive()) {
-			if(u.getUser()->isNMDC() || noPassive)
+	auto u = findOnlineUser(cid, aHubUrl);
+	if(u) {
+		if(cmd.getType() == AdcCommand::TYPE_UDP && !u->getIdentity().isUdpActive()) {
+			if(u->getUser()->isNMDC() || noPassive)
 				return false;
 			cmd.setType(AdcCommand::TYPE_DIRECT);
-			cmd.setTo(u.getIdentity().getSID());
-			u.getClient().send(cmd);
+			cmd.setTo(u->getIdentity().getSID());
+			u->getClient().send(cmd);
 		} else {
 			try {
-				COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u.getIdentity().getIp());
+				COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u->getIdentity().getIp());
 				auto cmdStr = noCID ? cmd.toString() : cmd.toString(getMe()->getCID());
 				if (!aKey.empty() && Encoder::isBase32(aKey.c_str())) {
 					uint8_t keyChar[16];
@@ -662,7 +661,7 @@ bool ClientManager::send(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, 
 					cmdStr.insert(0, (char*)out, aLen);
 					delete[] out;
 				}
-				udp.writeTo(u.getIdentity().getIp(), u.getIdentity().getUdpPort(), cmdStr);
+				udp.writeTo(u->getIdentity().getIp(), u->getIdentity().getUdpPort(), cmdStr);
 			} catch(const SocketException&) {
 				dcdebug("Socket exception sending ADC UDP command\n");
 			}
@@ -757,21 +756,21 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		}
 	}
 }
-void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const CID& from, bool directSearch) noexcept {
-	bool isUdpActive = false;
+void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const OnlineUser& from, bool directSearch) noexcept {
+	// Filter own searches
 	fire(ClientManagerListener::IncomingADCSearch(), adc);
-	{
-		RLock l(cs);
-		
-		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&from));
-		for(auto i = op.first; i != op.second; ++i) {
-			const OnlineUserPtr& u = i->second;
-			if(&u->getClient() == c)
-			{
-				isUdpActive = u->getIdentity().isUdpActive();
-				break;
+	if(from.getUser() == me)
+		return;
+
+	bool isUdpActive = from.getIdentity().isUdpActive();
+	if (isUdpActive) {
+		//check that we have a common IP protocol available (we don't want to send responses for wrong hubs)
+		const auto& me = c->getMyIdentity();
+		if (me.isUdpActive() && (!me.isUdp4Active() || !from.getIdentity().isUdp4Active())) {
+			if (!me.isUdp6Active() || !from.getIdentity().isUdp6Active()) {
+				return;
 			}
-		}			
+		}
 	}
 
 	if (directSearch)

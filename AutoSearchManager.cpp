@@ -830,7 +830,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 			//check the nick
 			if(!as->getNickPattern().empty()) {
-				StringList nicks = ClientManager::getInstance()->getNicks(sr->getUser()->getCID(), sr->getHubURL());
+				StringList nicks = ClientManager::getInstance()->getNicks(sr->getUser());
 				if (find_if(nicks, [&](const string& aNick) { return as->matchNick(aNick); }) == nicks.end())
 					continue;
 			}
@@ -986,7 +986,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		try {
 			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), HintedUser(sr->getUser(), sr->getHubURL()), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
+				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), sr->getUser(), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
 					(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken(), as->getRemove() || as->usingIncrementation());
 			} else {
 				TargetUtil::TargetInfo ti;
@@ -994,7 +994,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 				if (!hasSpace)
 					TargetUtil::reportInsufficientSize(ti, sr->getSize());
 
-				QueueManager::getInstance()->addFile(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), HintedUser(sr->getUser(), sr->getHubURL()), sr->getFile(), 0, true, 
+				QueueManager::getInstance()->addFile(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), sr->getUser(), sr->getFile(), 0, true, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT), nullptr, as->getToken());
 			}
 		} catch(const Exception& /*e*/) {
@@ -1004,7 +1004,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
 		ClientManager* cm = ClientManager::getInstance();
 		cm->lockRead();
-		OnlineUser* u = cm->findOnlineUser(sr->getUser()->getCID(), sr->getHubURL());
+		OnlineUser* u = cm->findOnlineUser(sr->getUser());
 
 		if(u) {
 			Client* client = &u->getClient();

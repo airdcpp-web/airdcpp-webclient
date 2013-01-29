@@ -66,7 +66,7 @@ public:
 	vector<Identity> getIdentities(const UserPtr &u) const;
 
 
-	string getConnection(const CID& cid) const;
+	string getConnection(const HintedUser& aUser) const;
 	string getDLSpeed(const CID& cid) const;
 	uint8_t getSlots(const CID& cid) const;
 
@@ -121,7 +121,7 @@ public:
 	UserPtr& getMe();
 	string getClientStats();
 	
-	bool send(AdcCommand& c, const CID& to, bool noCID=false, bool noPassive=false, const string& key=Util::emptyString);
+	bool sendUDP(AdcCommand& c, const CID& to, bool noCID=false, bool noPassive=false, const string& encryptionKey=Util::emptyString, const string& aHubUrl=Util::emptyString);
 
 	bool connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError);
 	void privateMessage(const HintedUser& user, const string& msg, bool thirdPerson);
@@ -185,7 +185,7 @@ private:
 	*/
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const;
 
-	void onSearch(const Client* c, const AdcCommand& adc, const CID& from, bool directSearch);
+	void onSearch(const Client* c, const AdcCommand& adc, const OnlineUser& from, bool directSearch);
 
 	// ClientListener
 	void on(Connected, const Client* c) noexcept;
@@ -196,8 +196,8 @@ private:
 	void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
 	void on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
 		int aFileType, const string& aString, bool) noexcept;
-	void on(AdcSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept { onSearch(c, adc, from, false); }
-	void on(DirectSearch, const Client* c, const AdcCommand& adc, const CID& from) noexcept { onSearch(c, adc, from, true); }
+	void on(AdcSearch, const Client* c, const AdcCommand& adc, const OnlineUser& from) noexcept { onSearch(c, adc, from, false); }
+	void on(DirectSearch, const Client* c, const AdcCommand& adc, const OnlineUser& from) noexcept { onSearch(c, adc, from, true); }
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 };

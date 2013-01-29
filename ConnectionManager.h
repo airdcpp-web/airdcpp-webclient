@@ -154,6 +154,7 @@ public:
 	const string& getSecurePort() const;
 
 	void addRunningMCN(const UserConnection *aSource) noexcept;
+	void failDownload(const string& aToken, const string& aError, bool protocolError);
 private:
 
 	class Server : public Thread {

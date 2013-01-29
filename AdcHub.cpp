@@ -513,16 +513,19 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 
 	case AdcCommand::ERROR_PROTOCOL_UNSUPPORTED:
 		{
-			string tmp;
-			if(c.getParam("PR", 1, tmp)) {
-				if(tmp == CLIENT_PROTOCOL) {
+			string protocol;
+			if(c.getParam("PR", 1, protocol)) {
+				if(protocol == CLIENT_PROTOCOL) {
 					u->getUser()->setFlag(User::NO_ADC_1_0_PROTOCOL);
-				} else if(tmp == SECURE_CLIENT_PROTOCOL_TEST) {
+				} else if(protocol == SECURE_CLIENT_PROTOCOL_TEST) {
 					u->getUser()->setFlag(User::NO_ADCS_0_10_PROTOCOL);
 					u->getUser()->unsetFlag(User::TLS);
 				}
 				// Try again...
-				ConnectionManager::getInstance()->force(u->getUser());
+				//ConnectionManager::getInstance()->force(u->getUser());
+				string token;
+				if (c.getParam("TO", 2, token))
+					ConnectionManager::getInstance()->failDownload(token, STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, protocol), true);
 			}
 			return;
 		}
@@ -539,7 +542,7 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 		return;
 	}
 
-	fire(ClientListener::AdcSearch(), this, c, ou->getUser()->getCID());
+	fire(ClientListener::AdcSearch(), this, c, *ou);
 }
 
 
@@ -550,7 +553,7 @@ void AdcHub::handle(AdcCommand::DSC, AdcCommand& c) noexcept {
 		return;
 	}
 
-	fire(ClientListener::DirectSearch(), this, c, ou->getUser()->getCID());
+	fire(ClientListener::DirectSearch(), this, c, *ou);
 }
 
 void AdcHub::handle(AdcCommand::DSR, AdcCommand& c) noexcept {
@@ -721,27 +724,35 @@ int AdcHub::connect(const OnlineUser& user, const string& token, string& lastErr
 }
 
 bool AdcHub::checkProtocol(const OnlineUser& user, bool& secure, const string& aRemoteProtocol, const string& aToken) {
+	string failedProtocol;
+	AdcCommand::Error errCode = AdcCommand::SUCCESS;
 	if(aRemoteProtocol == CLIENT_PROTOCOL) {
 		// Nothing special
-	} else if(aRemoteProtocol == SECURE_CLIENT_PROTOCOL_TEST && CryptoManager::getInstance()->TLSOk()) {
+	} else if(aRemoteProtocol == SECURE_CLIENT_PROTOCOL_TEST) {
+		if (!CryptoManager::getInstance()->TLSOk())
+			return false;
 		secure = true;
 	} else {
-		unknownProtocol(user.getIdentity().getSID(), aRemoteProtocol, aToken);
-		return false;
+		errCode = AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
+		failedProtocol = aRemoteProtocol;
 	}
 
 
-	string error;
-	auto ret = allowConnect(user, secure, error, false);
-	if (ret != AdcCommand::SUCCESS) {
-		if (ret == AdcCommand::ERROR_TLS_REQUIRED) {
-			error = "TLS encryption required";
-		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
-			error = error + " protocol not supported";
+	if (errCode == AdcCommand::SUCCESS)
+		errCode = allowConnect(user, secure, failedProtocol, false);
+
+	if (errCode != AdcCommand::SUCCESS) {
+		if (errCode == AdcCommand::ERROR_TLS_REQUIRED) {
+			send(AdcCommand(AdcCommand::SEV_FATAL, errCode, "TLS encryption required", AdcCommand::TYPE_DIRECT).setTo(user.getIdentity().getSID()));
+		} else if (errCode == AdcCommand::ERROR_PROTOCOL_UNSUPPORTED) {
+			AdcCommand cmd(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_UNSUPPORTED, failedProtocol + " protocol not supported", AdcCommand::TYPE_DIRECT);
+			cmd.setTo(user.getIdentity().getSID());
+			cmd.addParam("PR", failedProtocol);
+			cmd.addParam("TO", aToken);
+
+			send(cmd);
 		}
 
-		if (!error.empty())
-			send(AdcCommand(AdcCommand::SEV_FATAL, ret, error, AdcCommand::TYPE_DIRECT).setTo(user.getIdentity().getSID()));
 		return false;
 	}
 
@@ -1265,15 +1276,6 @@ void AdcHub::send(const AdcCommand& cmd) {
 			sendUDP(cmd);
 		send(cmd.toString(sid));
 	}
-}
-
-void AdcHub::unknownProtocol(uint32_t target, const string& protocol, const string& token) {
-	AdcCommand cmd(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_UNSUPPORTED, "Protocol unknown", AdcCommand::TYPE_DIRECT);
-	cmd.setTo(target);
-	cmd.addParam("PR", protocol);
-	cmd.addParam("TO", token);
-
-	send(cmd);
 }
 
 void AdcHub::on(Connected c) noexcept {

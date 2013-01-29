@@ -19,13 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCHRESULT_H
 #define DCPLUSPLUS_DCPP_SEARCHRESULT_H
 
+#include "AdcCommand.h"
+#include "GetSet.h"
 #include "forward.h"
 #include "FastAlloc.h"
+#include "HintedUser.h"
 #include "MerkleTree.h"
-#include "AdcCommand.h"
 #include "Pointer.h"
 #include "Util.h"
-#include "GetSet.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -51,19 +52,18 @@ public:
 
 	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH);
 
-	SearchResult(const UserPtr& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
+	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
 		int64_t aSize, const string& aFile, const string& aHubName, 
-			const string& aHubURL, const string& ip, TTHValue aTTH, const string& aToken);
+			const string& ip, TTHValue aTTH, const string& aToken);
 
 	string getFileName() const;
 	string toSR(const Client& client) const;
 	AdcCommand toRES(char type) const;
 
-	const UserPtr& getUser() const { return user; }
-	string getSlotString() const { return Util::toString(getFreeSlots()) + '/' + Util::toString(getSlots()); }
+	HintedUser& getUser() { return user; }
+	string getSlotString() const;
 
 	const string& getFile() const { return file; }
-	const string& getHubURL() const { return hubURL; }
 	const string& getHubName() const { return hubName; }
 	int64_t getSize() const { return size; }
 	Types getType() const { return type; }
@@ -83,7 +83,6 @@ private:
 	
 	string file;
 	string hubName;
-	string hubURL;
 	string IP;
 	string token;
 	
@@ -92,7 +91,7 @@ private:
 	size_t slots;
 	size_t freeSlots;
 	
-	UserPtr user;
+	HintedUser user;
 	Types type;
 
 

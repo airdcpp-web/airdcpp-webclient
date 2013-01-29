@@ -279,8 +279,8 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	}
 
 
-	SearchResultPtr sr(new SearchResult(user, type, slots, freeSlots, size,
-		file, hubName, url, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString));
+	SearchResultPtr sr(new SearchResult(HintedUser(user, url), type, slots, freeSlots, size,
+		file, hubName, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString));
 	fire(SearchManagerListener::SR(), sr);
 }
 
@@ -331,17 +331,16 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 
 	if(!file.empty() && freeSlots != -1 && size != -1) {
 		TTHValue th;
-		/// @todo get the hub this was sent from, to be passed as a hint? (eg by using the token?)
 		StringList names = ClientManager::getInstance()->getHubNames(from->getCID());
 		string hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
-		string hub, localToken;
+		string hubUrl, localToken;
 
 		{
 			RLock l (cs);
 			auto i = searches.find(token);
 			if (i != searches.end()) {
 				localToken = get<LOCALTOKEN>((*i).second);
-				hub = get<HUBURL>((*i).second);
+				hubUrl = get<HUBURL>((*i).second);
 			} else {
 				//LogManager::getInstance()->message("A search result from " + Util::toString(ClientManager::getInstance()->getNicks(from->getCID())) + " could not be connected to any hub: " + cmd.toString(), LogManager::LOG_INFO);
 				return;
@@ -360,8 +359,8 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		}
 		
 		uint8_t slots = ClientManager::getInstance()->getSlots(from->getCID());
-		SearchResultPtr sr(new SearchResult(from, type, slots, (uint8_t)freeSlots, size,
-			file, hubName, hub, remoteIp, th, localToken));
+		SearchResultPtr sr(new SearchResult(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
+			file, hubName, remoteIp, th, localToken));
 		fire(SearchManagerListener::SR(), sr);
 	}
 }
@@ -449,7 +448,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 		if (QueueManager::getInstance()->checkPBDReply(u, TTHValue(tth), localBundle, notify, add, remoteBundle)) {
 			//LogManager::getInstance()->message("PBD REPLY: ACCEPTED");
 			AdcCommand cmd = toPBD(hubIpPort, localBundle, tth, false, add, notify);
-			ClientManager::getInstance()->send(cmd, from->getCID(), false, true);
+			ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true);
 		} else {
 			//LogManager::getInstance()->message("PBD REPLY: QUEUEMANAGER FAIL");
 		}
@@ -528,7 +527,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 	if(!udpPort.empty() && !outPartialInfo.empty()) {
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(false, ps.getMyNick(), hubIpPort, tth, outPartialInfo);
-			ClientManager::getInstance()->send(cmd, from->getCID(), false, true);
+			ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true, Util::emptyString, url);
 		} catch(...) {
 			dcdebug("Partial search caught error\n");
 		}
@@ -536,7 +535,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 }
 
-void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool /*isUdpActive*/, ProfileToken aProfile) {
+void SearchManager::respondDirect(const AdcCommand& aCmd, const OnlineUser& aUser, bool /*isUdpActive*/, ProfileToken aProfile) {
 	AdcSearch sch(aCmd.getParameters());
 
 	string directory;
@@ -556,27 +555,19 @@ void SearchManager::respondDirect(const AdcCommand& aCmd, const CID& from, bool 
 	for(auto dsr: results) {
 		dsr->setToken(token);
 		AdcCommand cmd = dsr->toDSR(AdcCommand::TYPE_UDP);
-		ClientManager::getInstance()->send(cmd, from);
+		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, Util::emptyString, aUser.getHubUrl());
 	}
 
 
 	AdcCommand cmd(AdcCommand::CMD_DSR, AdcCommand::TYPE_UDP);
 	cmd.addParam("ED1");
 	cmd.addParam("TO", token);
-	ClientManager::getInstance()->send(cmd, from);
+	ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, Util::emptyString, aUser.getHubUrl());
 }
 
-void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
-	// Filter own searches
-	if(from == ClientManager::getInstance()->getMe()->getCID())
-		return;
-
-	UserPtr p = ClientManager::getInstance()->findUser(from);
-	if(!p)
-		return;
-
+void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
 	SearchResultList results;
-	ShareManager::getInstance()->search(results, adc.getParameters(), isUdpActive ? 10 : 5, aProfile, from);
+	ShareManager::getInstance()->search(results, adc.getParameters(), isUdpActive ? 10 : 5, aProfile, aUser.getUser()->getCID());
 
 	string token;
 
@@ -591,18 +582,18 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		PartsInfo partialInfo;
 		string bundle;
 		bool reply = false, add = false;
-		QueueManager::getInstance()->handlePartialSearch(p, TTHValue(tth), partialInfo, bundle, reply, add);
+		QueueManager::getInstance()->handlePartialSearch(aUser.getUser(), TTHValue(tth), partialInfo, bundle, reply, add);
 
 		if (!partialInfo.empty()) {
 			//LogManager::getInstance()->message("SEARCH RESPOND: PARTIALINFO NOT EMPTY");
 			AdcCommand cmd = toPSR(true, Util::emptyString, hubIpPort, tth, partialInfo);
-			ClientManager::getInstance()->send(cmd, from, false, true);
+			ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl());
 		}
 		
 		if (!bundle.empty()) {
 			//LogManager::getInstance()->message("SEARCH RESPOND: BUNDLE NOT EMPTY");
 			AdcCommand cmd = toPBD(hubIpPort, bundle, tth, reply, add);
-			ClientManager::getInstance()->send(cmd, from, false, true);
+			ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl());
 		}
 
 		return;
@@ -615,7 +606,7 @@ void SearchManager::respond(const AdcCommand& adc, const CID& from, bool isUdpAc
 		AdcCommand cmd = sr->toRES(AdcCommand::TYPE_UDP);
 		if(!token.empty())
 			cmd.addParam("TO", token);
-		ClientManager::getInstance()->send(cmd, from, false, false, key);
+		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, key, aUser.getHubUrl());
 	}
 }
 

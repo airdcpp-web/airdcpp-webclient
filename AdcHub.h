@@ -150,7 +150,6 @@ private:
 
 	void sendSearch(AdcCommand& c);
 	void sendUDP(const AdcCommand& cmd) noexcept;
-	void unknownProtocol(uint32_t target, const string& protocol, const string& token);
 	bool secureAvail(uint32_t target, const string& protocol, const string& token);
 
 	virtual bool v4only() const { return false; }

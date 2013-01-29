@@ -37,15 +37,15 @@ AdcCommand DirectSearchResult::toDSR(char type) const {
 	return cmd;
 }
 
-SearchResult::SearchResult(const UserPtr& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
+SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
 	int64_t aSize, const string& aFile, const string& aHubName, 
-	const string& aHubURL, const string& ip, TTHValue aTTH, const string& aToken) :
-	file(aFile), hubName(aHubName), hubURL(aHubURL), user(aUser),
+	const string& ip, TTHValue aTTH, const string& aToken) :
+	file(aFile), hubName(aHubName), user(aUser),
 	size(aSize), type(aType), slots(aSlots), freeSlots(aFreeSlots), IP(ip),
 	tth(aTTH), token(aToken) { }
 
 SearchResult::SearchResult(Types aType, int64_t aSize, const string& aFile, const TTHValue& aTTH) :
-	file(aFile), user(ClientManager::getInstance()->getMe()), size(aSize), type(aType), slots(UploadManager::getInstance()->getSlots()), 
+	file(aFile), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), slots(UploadManager::getInstance()->getSlots()), 
 	freeSlots(UploadManager::getInstance()->getFreeSlots()),  
 	tth(aTTH) { }
 
@@ -100,5 +100,11 @@ string SearchResult::getFileName() const {
 
 	return getFile().substr(i + 1);
 }
+
+string SearchResult::getSlotString() const { 
+	return Util::toString(getFreeSlots()) + '/' + Util::toString(getSlots()); 
+}
+
+
 
 }
