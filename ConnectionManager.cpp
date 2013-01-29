@@ -482,11 +482,11 @@ void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, 
 	}
 }
 
-void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure) {
-	adcConnect(aUser, aPort, Util::emptyString, BufferedSocket::NAT_NONE, aToken, secure);
+void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure, bool ipV6) {
+	adcConnect(aUser, aPort, Util::emptyString, BufferedSocket::NAT_NONE, aToken, secure, ipV6);
 }
 
-void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure) {
+void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure, bool ipV6) {
 	if(shuttingDown)
 		return;
 
@@ -499,7 +499,7 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 		uc->setFlag(UserConnection::FLAG_OP);
 	}
 	try {
-		uc->connect(aUser.getIdentity().getIp(), aPort, localPort, natRole);
+		uc->connect(ipV6 ? aUser.getIdentity().getIp6() : aUser.getIdentity().getIp4(), aPort, localPort, natRole);
 	} catch(const Exception&) {
 		putConnection(uc);
 		delete uc;

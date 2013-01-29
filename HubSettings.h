@@ -40,6 +40,7 @@ struct HubSettings
 		Description,
 		Email,
 		UserIp,
+		UserIp6,
 		// don't forget to edit stringNames in HubSettings.cpp when adding a def here!
 
 		HubStrLast
@@ -62,6 +63,7 @@ struct HubSettings
 		
 		SearchInterval = HubIntFirst,
 		Connection,
+		Connection6,
 		// don't forget to edit intNames in HubSettings.cpp when adding a def here!
 
 		HubIntLast

@@ -1608,6 +1608,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to open the SFV file", 
 "The remote user doesn't support %s protocol", 
 "Connecting to the hub in progress", 
+"Mode (IPv4)", 
+"Mode (IPv6)", 
+"Ip (IPv4)", 
+"Ip (IPv6)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3216,4 +3220,8 @@ std::string dcpp::ResourceManager::names[] = {
 "CantOpenSfv", 
 "RemoteProtocolUnsupported", 
 "ConnectingInProgress", 
+"ModeV4", 
+"ModeV6", 
+"IpV4", 
+"IpV6", 
 };

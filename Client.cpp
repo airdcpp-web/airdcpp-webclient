@@ -152,16 +152,30 @@ bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) {
 	return newValue;
 }
 
-const string& Client::getUserIp() const {
+const string& Client::getUserIp4() const {
 	if(!get(UserIp).empty()) {
 		return get(UserIp);
 	}
 	return CONNSETTING(EXTERNAL_IP);
 }
 
+const string& Client::getUserIp6() const {
+	if(!get(UserIp6).empty()) {
+		return get(UserIp6);
+	}
+	return CONNSETTING(EXTERNAL_IP6);
+}
 
 bool Client::isActive() const {
-	return get(HubSettings::Connection) != SettingsManager::INCOMING_PASSIVE;
+	return isActiveV4() || isActiveV6();
+}
+
+bool Client::isActiveV4() const {
+	return get(HubSettings::Connection) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED;
+}
+
+bool Client::isActiveV6() const {
+	return !v4only() && get(HubSettings::Connection6) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED;
 }
 
 void Client::connect() {
@@ -315,8 +329,8 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 
 string Client::getLocalIp() const {
 	// Favorite hub Ip
-	if(!getUserIp().empty())
-		return Socket::resolve(getUserIp());
+	if(!getUserIp4().empty())
+		return Socket::resolve(getUserIp4());
 
 	// Best case - the server detected it
 	if((!SETTING(NO_IP_OVERRIDE) || SETTING(EXTERNAL_IP).empty()) && !getMyIdentity().getIp().empty()) {

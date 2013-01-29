@@ -1612,5 +1612,9 @@ enum Strings { // @DontAdd
 	CANT_OPEN_SFV, // "Failed to open the SFV file"
 	REMOTE_PROTOCOL_UNSUPPORTED, // "The remote user doesn't support %s protocol"
 	CONNECTING_IN_PROGRESS, // "Connecting to the hub in progress"
+	MODE_V4, // "Mode (IPv4)"
+	MODE_V6, // "Mode (IPv6)"
+	IP_V4, // "Ip (IPv4)"
+	IP_V6, // "Ip (IPv6)"
 	LAST // @DontAdd
 };

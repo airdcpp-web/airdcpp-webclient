@@ -131,8 +131,8 @@ public:
 
 	void nmdcConnect(const string& aServer, const string& aPort, const string& aMyNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);
 	void nmdcConnect(const string& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool stealth, bool secure);
-	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure);
-	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
+	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure, bool ipV6);
+	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure, bool ipV6);
 
 	void getDownloadConnection(const HintedUser& aUser, bool smallSlot=false);
 	void force(const string& token);

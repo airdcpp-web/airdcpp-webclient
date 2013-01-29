@@ -463,7 +463,13 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 }
 
 bool ClientManager::isActive() const {
-	return CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_PASSIVE || FavoriteManager::getInstance()->hasActiveHubs();
+	if (CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_PASSIVE && CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED)
+		return true;
+
+	if (CONNSETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_PASSIVE && CONNSETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED)
+		return true;
+
+	return FavoriteManager::getInstance()->hasActiveHubs();
 }
 
 bool ClientManager::isActive(const string& aHubUrl) const {
@@ -561,7 +567,7 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 		if (ret == AdcCommand::ERROR_TLS_REQUIRED) {
 			isProtocolError = true;
 			lastError_ = STRING(SOURCE_NO_ENCRYPTION);
-		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
+		} else if (ret == AdcCommand::ERROR_PROTOCOL_UNSUPPORTED) {
 			isProtocolError = true;
 			lastError_ = STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, lastError_);
 		} else if (ret == AdcCommand::ERROR_BAD_STATE) {

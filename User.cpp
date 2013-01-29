@@ -44,21 +44,21 @@ bool Identity::isTcpActive(const Client* c) const {
 }
 
 bool Identity::isTcp4Active(const Client* c) const {
-	if(c != NULL && user == ClientManager::getInstance()->getMe()) {
-		return c->isActive(); // userlist should display our real mode
-	} else {
+	//if(c != NULL && user == ClientManager::getInstance()->getMe()) {
+	//	return c->isActiveV4(); // userlist should display our real mode
+	//} else {
 		return (!user->isSet(User::NMDC)) ?
 			!getIp4().empty() && supports(AdcHub::TCP4_FEATURE) :
 			!user->isSet(User::PASSIVE);
-	}
+	//}
 }
 
 bool Identity::isTcp6Active(const Client* c) const {
-	if(c != NULL && user == ClientManager::getInstance()->getMe()) {
-		return c->isActive(); // userlist should display our real mode
-	} else {
+	//if(c != NULL && user == ClientManager::getInstance()->getMe()) {
+	//	return c->isActiveV6(); // userlist should display our real mode
+	//} else {
 		return !getIp6().empty() && supports(AdcHub::TCP6_FEATURE);
-	}
+	//}
 }
 
 bool Identity::isUdpActive() const {
@@ -134,8 +134,23 @@ string Identity::getTag() const {
 		return get("TA");
 	if(get("VE").empty() || get("HN").empty() || get("HR").empty() || get("HO").empty() || get("SL").empty())
 		return Util::emptyString;
-	return "<" + getApplication() + ",M:" + string(isTcpActive() ? "A" : "P") + 
+
+	return "<" + getApplication() + ",M:" + getV4ModeString() + getV6ModeString() + 
 		",H:" + get("HN") + "/" + get("HR") + "/" + get("HO") + ",S:" + get("SL") + ">";
+}
+
+string Identity::getV4ModeString() const {
+	if (!getIp4().empty())
+		return isTcp4Active() ? "A" : "P";
+	else
+		return "-";
+}
+
+string Identity::getV6ModeString() const {
+	if (!getIp6().empty())
+		return isTcp6Active() ? "A" : "P";
+	else
+		return "-";
 }
 
 string Identity::getApplication() const {
@@ -241,8 +256,17 @@ tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 		case COLUMN_TAG: return Text::toT(identity.getTag());
 		case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getConnection()) : (Text::toT(Util::formatBytes(identity.get("US"))) + _T("/s"));
 		case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Text::toT(Util::formatBytes(identity.get("DS"))) + _T("/s"));
-		case COLUMN_IP: {
-			string ip = identity.getIp();
+		case COLUMN_IP4: {
+			string ip = identity.getIp4();
+			if (!copy) {
+				string country = ip.empty() ? Util::emptyString : identity.getCountry();
+				if (!country.empty())
+					ip = country + " (" + ip + ")";
+			}
+			return Text::toT(ip);
+		}
+		case COLUMN_IP6: {
+			string ip = identity.getIp6();
 			if (!copy) {
 				string country = ip.empty() ? Util::emptyString : identity.getCountry();
 				if (!country.empty())
@@ -252,7 +276,9 @@ tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 		}
 		case COLUMN_EMAIL: return Text::toT(identity.getEmail());
 		case COLUMN_VERSION: return Text::toT(identity.get("CL").empty() ? identity.get("VE") : identity.get("CL"));
-		case COLUMN_MODE: return identity.isTcpActive(&getClient()) ? _T("A") : _T("P");
+		case COLUMN_MODE4: return Text::toT(identity.getV4ModeString());
+		case COLUMN_MODE6: return Text::toT(identity.getV6ModeString());
+		case COLUMN_FILES: return Text::toT(identity.get("SF"));
 		case COLUMN_HUBS: {
 			const tstring hn = Text::toT(identity.get("HN"));
 			const tstring hr = Text::toT(identity.get("HR"));

@@ -113,6 +113,8 @@ public:
 	bool isUdp6Active() const;
 	string getIp() const;
 	string getUdpPort() const;
+	string getV4ModeString() const;
+	string getV6ModeString() const;
 
 	std::map<string, string> getInfo() const;
 	string get(const char* name) const;
@@ -156,10 +158,13 @@ public:
 		COLUMN_TAG,
 		COLUMN_ULSPEED,
 		COLUMN_DLSPEED,
-		COLUMN_IP,
+		COLUMN_IP4,
+		COLUMN_IP6,
 		COLUMN_EMAIL, 
 		COLUMN_VERSION, 
-		COLUMN_MODE, 
+		COLUMN_MODE4,
+		COLUMN_MODE6,
+		COLUMN_FILES, 
 		COLUMN_HUBS, 
 		COLUMN_SLOTS,
 		COLUMN_CID,

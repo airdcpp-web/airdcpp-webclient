@@ -34,8 +34,17 @@ public:
 	using Client::send;
 	using Client::connect;
 
+	enum ConnectMode {
+		MODE_NOCONNECT,
+		MODE_PASSIVE_UNKNOWN,
+		MODE_ACTIVE_V4,
+		MODE_PASSIVE_V4,
+		MODE_ACTIVE_V6,
+		MODE_PASSIVE_V6
+	};
+
 	int connect(const OnlineUser& user, const string& token, string& lastError_);
-	void connect(const OnlineUser& user, string const& token, bool secure);
+	void connect(const OnlineUser& user, const string& token, bool secure, ConnectMode aMode);
 	
 	void hubMessage(const string& aMessage, bool thirdPerson = false);
 	void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false);
@@ -94,9 +103,9 @@ private:
 	void getUserList(OnlineUserList& list) const;
 
 	/* Checks if we are allowed to connect to the user */
-	AdcCommand::Error allowConnect(const OnlineUser& user, bool secure, string& failedProtocol_, bool checkBase) const;
+	AdcCommand::Error allowConnect(const OnlineUser& user, bool secure, string& failedProtocol_, bool checkBase, ConnectMode& aMode) const;
 	/* Does the same thing but also sends the error to the remote user */
-	bool checkProtocol(const OnlineUser& user, bool& secure, const string& aRemoteProtocol, const string& aToken);
+	ConnectMode checkProtocol(const OnlineUser& user, bool& secure, const string& aRemoteProtocol, const string& aToken);
 
 	bool oldPassword;
 	Socket udp;

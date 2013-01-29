@@ -68,7 +68,7 @@ const string SettingsManager::settingTags[] =
 
 	"SENTRY", 
 	// Ints
-	"IncomingConnections", "InPort", "Slots", "BackgroundColor", "TextColor", "BufferSize", "DownloadSlots", "MaxDownloadSpeed", "MinUploadSpeed", "MainWindowState", 
+	"IncomingConnections", "IncomingConnections6", "InPort", "Slots", "BackgroundColor", "TextColor", "BufferSize", "DownloadSlots", "MaxDownloadSpeed", "MinUploadSpeed", "MainWindowState", 
 	"MainWindowSizeX", "MainWindowSizeY", "MainWindowPosX", "MainWindowPosY", "SocksPort", "MaxTabRows",
 	"MaxCompression", "DownloadBarColor", "UploadBarColor", "SetMinislotSize", "ShutdownInterval", "ExtraSlots", "ExtraPartialSlots",
 	"TextGeneralBackColor", "TextGeneralForeColor",
@@ -209,8 +209,11 @@ SettingsManager::SettingsManager()
 	setDefault(TCP_PORT, 0);
 	setDefault(UDP_PORT, 0);
 	setDefault(TLS_PORT, 0);
-//	setDefault(INCOMING_CONNECTIONS, Util::isPrivateIp(Util::getLocalIp()) ? INCOMING_FIREWALL_PASSIVE : INCOMING_DIRECT);
 	setDefault(INCOMING_CONNECTIONS, INCOMING_ACTIVE);
+
+	//TODO: check whether we have ipv6 available
+	setDefault(INCOMING_CONNECTIONS6, INCOMING_ACTIVE);
+
 	setDefault(OUTGOING_CONNECTIONS, OUTGOING_DIRECT);
 	setDefault(AUTO_DETECT_CONNECTION, true);
 	setDefault(AUTO_FOLLOW, true);
@@ -1038,6 +1041,7 @@ HubSettings SettingsManager::getHubSettings() const {
 	ret.get(HubSettings::LogMainChat) = get(LOG_MAIN_CHAT);
 	ret.get(HubSettings::SearchInterval) = get(MINIMUM_SEARCH_INTERVAL);
 	ret.get(HubSettings::Connection) = CONNSETTING(INCOMING_CONNECTIONS);
+	ret.get(HubSettings::Connection6) = CONNSETTING(INCOMING_CONNECTIONS6);
 	ret.get(HubSettings::ChatNotify) = get(SHOW_CHAT_NOTIFY);
 	return ret;
 }
