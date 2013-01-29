@@ -1612,6 +1612,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Mode (IPv6)", 
 "Ip (IPv4)", 
 "Ip (IPv6)", 
+"The remote user doesn't support passive-passive connections", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3224,4 +3225,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ModeV6", 
 "IpV4", 
 "IpV6", 
+"NoNattSupport", 
 };

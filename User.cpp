@@ -44,21 +44,16 @@ bool Identity::isTcpActive(const Client* c) const {
 }
 
 bool Identity::isTcp4Active(const Client* c) const {
-	//if(c != NULL && user == ClientManager::getInstance()->getMe()) {
-	//	return c->isActiveV4(); // userlist should display our real mode
-	//} else {
-		return (!user->isSet(User::NMDC)) ?
-			!getIp4().empty() && supports(AdcHub::TCP4_FEATURE) :
-			!user->isSet(User::PASSIVE);
-	//}
+	if (!user->isSet(User::NMDC)) {
+		return !getIp4().empty() && supports(AdcHub::TCP4_FEATURE);
+	} else {
+		//we don't want to use the global passive flag for our own user...
+		return c != NULL && user == ClientManager::getInstance()->getMe() ? c->isActiveV4() : !user->isSet(User::PASSIVE);
+	}
 }
 
 bool Identity::isTcp6Active(const Client* c) const {
-	//if(c != NULL && user == ClientManager::getInstance()->getMe()) {
-	//	return c->isActiveV6(); // userlist should display our real mode
-	//} else {
-		return !getIp6().empty() && supports(AdcHub::TCP6_FEATURE);
-	//}
+	return !getIp6().empty() && supports(AdcHub::TCP6_FEATURE);
 }
 
 bool Identity::isUdpActive() const {
@@ -86,7 +81,7 @@ string Identity::getUdpPort() const {
 }
 
 string Identity::getIp() const {
-	return getIp6().empty() ? getIp4() : getIp6();
+	return !allowV6Connection() ? getIp4() : getIp6();
 }
 
 void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
@@ -151,6 +146,14 @@ string Identity::getV6ModeString() const {
 		return isTcp6Active() ? "A" : "P";
 	else
 		return "-";
+}
+
+Identity::Identity() : sid(0), connectMode(MODE_ME) { }
+
+Identity::Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr), sid(aSID), connectMode(MODE_ME) { }
+
+Identity::Identity(const Identity& rhs) : Flags(), sid(0), connectMode(rhs.getConnectMode()) { 
+	*this = rhs;  // Use operator= since we have to lock before reading...
 }
 
 string Identity::getApplication() const {
@@ -291,6 +294,40 @@ tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 	}
 }
 
+bool Identity::updateConnectMode(const Identity& me) {
+	Mode newMode = MODE_NOCONNECT_IP;
+	if (!me.getIp6().empty() && !getIp6().empty()) {
+		newMode = isTcp6Active() ? MODE_ACTIVE_V6 : MODE_PASSIVE_V6;
+	}
+
+	if ((newMode == MODE_NOCONNECT_IP || newMode == MODE_PASSIVE_V6) && !me.getIp4().empty()) {
+		if (!getIp4().empty()) {
+			auto isActive = isTcp4Active();
+			if (newMode == MODE_NOCONNECT_IP || isActive) {
+				newMode = isActive ? MODE_ACTIVE_V4 : MODE_PASSIVE_V4;
+			}
+		}
+	}
+
+	if (!me.isTcpActive() && (newMode == MODE_PASSIVE_V4 || newMode == MODE_PASSIVE_V6) && !supports(AdcHub::NAT0_FEATURE)) {
+		newMode = MODE_NOCONNECT_PASSIVE;
+	}
+
+	if (connectMode != newMode) {
+		connectMode = newMode;
+		return true;
+	}
+	return false;
+}
+
+bool Identity::allowActiveConnection() const {
+	return connectMode == MODE_ACTIVE_V4 || connectMode == MODE_ACTIVE_V6;
+}
+
+bool Identity::allowV6Connection() const {
+	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6;
+}
+
 tstring old = Util::emptyStringT;
 bool OnlineUser::update(int sortCol, const tstring& oldText) {
 	bool needsSort = ((identity.get("WO").empty() ? false : true) != identity.isOp());
@@ -314,7 +351,13 @@ uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 	uint8_t image = bot ? USER_ICON_BOT : identity.isAway() ? USER_ICON_AWAY : USER_ICON;
 	image *= (USER_ICON_LAST - USER_ICON_MOD_START) * (USER_ICON_LAST - USER_ICON_MOD_START);
 
-	if(!bot && !identity.isTcpActive(c))
+	if(!bot && (identity.getConnectMode() == Identity::MODE_PASSIVE_V6 || identity.getConnectMode() == Identity::MODE_PASSIVE_V4))
+	{
+		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
+	}
+
+	//TODO: add icon for noconnect
+	if(!bot && (identity.getConnectMode() == Identity::MODE_NOCONNECT_PASSIVE || identity.getConnectMode() == Identity::MODE_NOCONNECT_IP))
 	{
 		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
 	}

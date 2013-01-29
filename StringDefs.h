@@ -1616,5 +1616,6 @@ enum Strings { // @DontAdd
 	MODE_V6, // "Mode (IPv6)"
 	IP_V4, // "Ip (IPv4)"
 	IP_V6, // "Ip (IPv6)"
+	NO_NATT_SUPPORT, // "The remote user doesn't support passive-passive connections"
 	LAST // @DontAdd
 };

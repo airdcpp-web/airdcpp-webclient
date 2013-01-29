@@ -226,6 +226,15 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		setAutoReconnect(true);
 		setMyIdentity(u->getIdentity());
 		updateCounts(false, true);
+
+		//we have to update the modes in case our connectivity changed
+		for(auto ou: users | map_values) {
+			if (ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity())) {
+				fire(ClientListener::UserUpdated(), this, ou);
+			}
+		}
+	} else {
+		u->getIdentity().updateConnectMode(getMyIdentity());
 	}
 
 	if(u->getIdentity().isHub()) {
@@ -373,11 +382,10 @@ void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 	const string& token = c.getParam(2);
 
 	bool secure = false;
-	auto connectMode = checkProtocol(*u, secure, protocol, token);
-	if (connectMode == MODE_NOCONNECT)
+	if (!checkProtocol(*u, secure, protocol, token))
 		return;
 
-	ConnectionManager::getInstance()->adcConnect(*u, port, token, secure, connectMode == MODE_ACTIVE_V6 || connectMode == MODE_PASSIVE_V6);
+	ConnectionManager::getInstance()->adcConnect(*u, port, token, secure);
 }
 
 void AdcHub::handle(AdcCommand::ZON, AdcCommand& /*c */) noexcept {
@@ -409,13 +417,12 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 	const string& token = c.getParam(1);
 
 	bool secure = false;
-	auto connectMode = checkProtocol(*u, secure, protocol, token);
-	if (connectMode == MODE_NOCONNECT)
+	if (!checkProtocol(*u, secure, protocol, token))
 		return;
 
-	if(connectMode == MODE_ACTIVE_V4 || connectMode == MODE_ACTIVE_V6) {
+	if(u->getIdentity().allowActiveConnection()) {
 		//we are active the other guy is not, this leaves hubhint empty. 
-    	connect(*u, token, secure, connectMode);
+    	connect(*u, token, secure);
 		return;
 	}
 
@@ -682,15 +689,13 @@ void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
 	const string& token = c.getParam(2);
 
 	bool secure = false;
-	auto connectMode = checkProtocol(*u, secure, protocol, token);
-	if (connectMode == MODE_NOCONNECT)
+	if (!checkProtocol(*u, secure, protocol, token))
 		return;
 
 	// Trigger connection attempt sequence locally ...
 	auto localPort = Util::toString(sock->getLocalPort());
 	dcdebug("triggering connecting attempt in NAT: remote port = %s, local IP = %s, local port = %d\n", port.c_str(), sock->getLocalIp().c_str(), sock->getLocalPort());
-	dcassert(connectMode == MODE_PASSIVE_V6 || connectMode == MODE_PASSIVE_V4);
-	ConnectionManager::getInstance()->adcConnect(*u, port, localPort, BufferedSocket::NAT_CLIENT, token, secure, connectMode == MODE_PASSIVE_V6);
+	ConnectionManager::getInstance()->adcConnect(*u, port, localPort, BufferedSocket::NAT_CLIENT, token, secure);
 
 	// ... and signal other client to do likewise.
 	send(AdcCommand(AdcCommand::CMD_RNT, u->getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(protocol).
@@ -709,37 +714,33 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 	const string& token = c.getParam(2);
 
 	bool secure = false;
-	auto connectMode = checkProtocol(*u, secure, protocol, token);
-	if (connectMode == MODE_NOCONNECT)
+	if (!checkProtocol(*u, secure, protocol, token))
 		return;
 
 	// Trigger connection attempt sequence locally
 	dcdebug("triggering connecting attempt in RNT: remote port = %s, local IP = %s, local port = %d\n", port.c_str(), sock->getLocalIp().c_str(), sock->getLocalPort());
-	dcassert(connectMode == MODE_PASSIVE_V6 || connectMode == MODE_PASSIVE_V4);
-	ConnectionManager::getInstance()->adcConnect(*u, port, Util::toString(sock->getLocalPort()), BufferedSocket::NAT_SERVER, token, secure, connectMode == MODE_PASSIVE_V6);
+	ConnectionManager::getInstance()->adcConnect(*u, port, Util::toString(sock->getLocalPort()), BufferedSocket::NAT_SERVER, token, secure);
 }
 
 int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
 	bool secure = CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS);
-	ConnectMode mode = MODE_NOCONNECT;
-	auto conn = allowConnect(user, secure, lastError_, true, mode);
+	auto conn = allowConnect(user, secure, lastError_, true);
 	if (conn == AdcCommand::SUCCESS) {
-		connect(user, token, secure, mode);
+		connect(user, token, secure);
 	}
 
 	return conn;
 }
 
-AdcHub::ConnectMode AdcHub::checkProtocol(const OnlineUser& user, bool& secure, const string& aRemoteProtocol, const string& aToken) {
+bool AdcHub::checkProtocol(const OnlineUser& user, bool& secure, const string& aRemoteProtocol, const string& aToken) {
 	string failedProtocol;
 	AdcCommand::Error errCode = AdcCommand::SUCCESS;
-	ConnectMode mode = MODE_NOCONNECT;
 
 	if(aRemoteProtocol == CLIENT_PROTOCOL) {
 		// Nothing special
 	} else if(aRemoteProtocol == SECURE_CLIENT_PROTOCOL_TEST) {
 		if (!CryptoManager::getInstance()->TLSOk())
-			return MODE_NOCONNECT;
+			return false;
 		secure = true;
 	} else {
 		errCode = AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
@@ -748,7 +749,7 @@ AdcHub::ConnectMode AdcHub::checkProtocol(const OnlineUser& user, bool& secure, 
 
 
 	if (errCode == AdcCommand::SUCCESS)
-		errCode = allowConnect(user, secure, failedProtocol, false, mode);
+		errCode = allowConnect(user, secure, failedProtocol, false);
 
 	if (errCode != AdcCommand::SUCCESS) {
 		if (errCode == AdcCommand::ERROR_TLS_REQUIRED) {
@@ -762,13 +763,13 @@ AdcHub::ConnectMode AdcHub::checkProtocol(const OnlineUser& user, bool& secure, 
 			send(cmd);
 		}
 
-		return MODE_NOCONNECT;
+		return false;
 	}
 
-	return mode;
+	return true;
 }
 
-AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, string& failedProtocol_, bool checkBase, ConnectMode& aMode) const {
+AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, string& failedProtocol_, bool checkBase) const {
 	//check the state
 	if(state != STATE_NORMAL)
 		return AdcCommand::ERROR_BAD_STATE;
@@ -793,38 +794,24 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, stri
 		return AdcCommand::ERROR_TLS_REQUIRED;
 	}
 
+	//check the passive mode
+	if (user.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_PASSIVE) {
+		return AdcCommand::ERROR_PROTOCOL_GENERIC;
+	}
+
 	//check the IP protocol
-	bool supportsNat = user.getIdentity().supports(NAT0_FEATURE);
-	if (user.getIdentity().isTcpActive() || supportsNat) {
-		if (!getMyIdentity().getIp6().empty()) {
-			if (user.getIdentity().getIp6().empty()) {
-				failedProtocol_ = "IPv6";
-			} else {
-				aMode = supportsNat ? MODE_PASSIVE_V6 : MODE_ACTIVE_V6;
-			}
-		}
-
-		if ((aMode == MODE_NOCONNECT || aMode == MODE_PASSIVE_V6) && !getMyIdentity().getIp4().empty()) {
-			if (user.getIdentity().getIp4().empty() && aMode == MODE_NOCONNECT) {
-				failedProtocol_ = "IPv4";
-			} else if (!supportsNat) {
-				aMode = supportsNat ? MODE_PASSIVE_V4 : MODE_ACTIVE_V4;
-			}
-		}
-
-		if (aMode == MODE_NOCONNECT)
-			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
-	} else {
-		aMode = MODE_PASSIVE_UNKNOWN;
+	if (user.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_IP) {
+		failedProtocol_ = (!getMyIdentity().getIp6().empty() && !user.getIdentity().allowV6Connection()) ? "IPv6" : "IPv4";
+		return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 	}
 
 	return AdcCommand::SUCCESS;
 }
 
-void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, ConnectMode aMode) {
+void AdcHub::connect(const OnlineUser& user, const string& token, bool secure) {
 	const string* proto = secure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
-	if(aMode == MODE_ACTIVE_V6 || aMode == MODE_ACTIVE_V4) {
+	if(user.getIdentity().allowActiveConnection()) {
 		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(port.empty()) {
 			// Oops?

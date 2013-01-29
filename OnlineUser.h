@@ -58,9 +58,20 @@ public:
 		AIRDC		= 0x40
 	};
 
-	Identity() : sid(0) { }
-	Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr), sid(aSID) { }
-	Identity(const Identity& rhs) : Flags(), sid(0) { *this = rhs; } // Use operator= since we have to lock before reading...
+	enum Mode {
+		MODE_ME,
+		MODE_NOCONNECT_IP,
+		MODE_NOCONNECT_PASSIVE,
+		MODE_ACTIVE_V4,
+		MODE_PASSIVE_V4,
+		MODE_ACTIVE_V6,
+		MODE_PASSIVE_V6
+	};
+
+	Identity();
+	Identity(const UserPtr& ptr, uint32_t aSID);
+	Identity(const Identity& rhs);
+
 	Identity& operator=(const Identity& rhs) {
 		FastLock l(cs);
 		*static_cast<Flags*>(this) = rhs;
@@ -136,6 +147,13 @@ public:
 	const UserPtr& getUser() const { return user; }
 	UserPtr& getUser() { return user; }
 	uint32_t getSID() const { return sid; }
+
+	//this caches the mode, taking into account what we support too
+	GETSET(Mode, connectMode, ConnectMode);
+	bool updateConnectMode(const Identity& me);
+
+	bool allowActiveConnection() const;
+	bool allowV6Connection() const;
 private:
 	UserPtr user;
 	uint32_t sid;
