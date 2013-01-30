@@ -118,7 +118,7 @@ public:
 	bool isAway() const { return (getStatus() & AWAY) || isSet("AW"); }
 	bool isTcpActive(const Client* = NULL) const;
 	bool isTcp4Active(const Client* = NULL) const;
-	bool isTcp6Active(const Client* = NULL) const;
+	bool isTcp6Active() const;
 	bool isUdpActive() const;
 	bool isUdp4Active() const;
 	bool isUdp6Active() const;

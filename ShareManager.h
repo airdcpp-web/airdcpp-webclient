@@ -162,7 +162,6 @@ public:
 	int64_t getShareSize(const string& realPath, ProfileToken aProfile) const noexcept;
 	void getProfileInfo(ProfileToken aProfile, int64_t& size, size_t& files) const;
 	
-	//size_t getSharedFiles(ProfileToken aProfile) const noexcept;
 	void getBloom(HashBloom& bloom) const;
 
 	SearchManager::TypeModes getType(const string& fileName) noexcept;
@@ -177,9 +176,6 @@ public:
 	bool isTTHShared(const TTHValue& tth) const;
 
 	void getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const;
-
-	//void LockRead() noexcept { cs.lock_shared(); }
-	//void unLockRead() noexcept { cs.unlock_shared(); }
 
 	string getRealPath(const TTHValue& root) const;
 	string getRealPath(const string& aFileName, int64_t aSize) const;
@@ -226,7 +222,7 @@ public:
 		REFRESH_INCOMING
 	};
 
-	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback=false);
+	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback=false) const;
 	void getParentPaths(StringList& aDirs) const;
 
 	void addDirectories(const ShareDirInfo::list& aNewDirs);

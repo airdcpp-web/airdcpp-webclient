@@ -78,11 +78,15 @@ public:
 		size_t operator()(const ShareProfilePtr x) const { return x->getToken(); }
 	};
 
-	//GETSET(ShareManager::DirMap, shares, Shares);
 	GETSET(ProfileToken, token, Token);
 	GETSET(string, plainName, PlainName);
-	string getDisplayName();
+	GETSET(bool, profileInfoDirty, ProfileInfoDirty);
+	GETSET(int64_t, shareSize, ShareSize);
+	GETSET(size_t, sharedFiles, SharedFiles);
+
 	GETSET(FileList*, profileList, ProfileList);
+
+	string getDisplayName();
 	ShareProfile(const string& aName, ProfileToken aToken = Util::randInt(100));
 	~ShareProfile();
 

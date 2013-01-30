@@ -40,7 +40,7 @@ OnlineUser::OnlineUser(const UserPtr& ptr, ClientBase& client_, uint32_t sid_) :
 }
 
 bool Identity::isTcpActive(const Client* c) const {
-	return isTcp4Active(c) || isTcp6Active(c);
+	return isTcp4Active(c) || isTcp6Active();
 }
 
 bool Identity::isTcp4Active(const Client* c) const {
@@ -48,11 +48,11 @@ bool Identity::isTcp4Active(const Client* c) const {
 		return !getIp4().empty() && supports(AdcHub::TCP4_FEATURE);
 	} else {
 		//we don't want to use the global passive flag for our own user...
-		return c != NULL && user == ClientManager::getInstance()->getMe() ? c->isActiveV4() : !user->isSet(User::PASSIVE);
+		return c && user == ClientManager::getInstance()->getMe() ? c->isActiveV4() : !user->isSet(User::PASSIVE);
 	}
 }
 
-bool Identity::isTcp6Active(const Client* c) const {
+bool Identity::isTcp6Active() const {
 	return !getIp6().empty() && supports(AdcHub::TCP6_FEATURE);
 }
 

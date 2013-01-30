@@ -71,7 +71,7 @@ void FileList::saveList() {
 	boost::for_each(lists, File::deleteFile);
 }
 
-ShareProfile::ShareProfile(const string& aName, ProfileToken aToken) : token(aToken), plainName(aName), profileList(new FileList(aToken)) { }
+ShareProfile::ShareProfile(const string& aName, ProfileToken aToken) : token(aToken), plainName(aName), profileList(new FileList(aToken)), sharedFiles(0), shareSize(0), profileInfoDirty(true) { }
 
 ShareProfile::~ShareProfile() {
 	delete profileList;

@@ -725,106 +725,108 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
+	// Validate the command
 	if (c.getParameters().size() < 3) {
 		return;
 	}
 
 	string token;
-	if (c.getParam("TO", 2, token)) {
-		string hubUrl;
-		bool v6 = !sock->isV6Valid();
-		if (c.getParam(v6 ? "I6" : "I4", 0, hubUrl)) {
-			fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")));
-			//parse the address
-			string address, proto, query, fragment, port, file;
-			Util::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
+	if (!c.getParam("TO", 2, token))
+		return;
 
-			//construct the command
-			string su;
-			AdcCommand hbriCmd(AdcCommand::CMD_TCP, AdcCommand::TYPE_HUB);
-			appendIpParams(lastInfoMap, hbriCmd, su, v6);
-			if (!su.empty()) {
-				//remove the leading comma
-				su.erase(0, 1);
-				hbriCmd.addParam("SU", su + "," + su);
-			}
-			hbriCmd.addParam("TO", token);
-
-			unique_ptr<Socket> hbri(stricmp(proto, "adcs") == 0 ? CryptoManager::getInstance()->getServerSocket(true) : new Socket(Socket::TYPE_TCP));
-
-			try {
-				// create the socket
-				if (v6) {
-					hbri->setLocalIp6(SETTING(BIND_ADDRESS6));
-					hbri->setV4only(false);
-				} else {
-					hbri->setLocalIp4(SETTING(BIND_ADDRESS));
-					hbri->setV4only(true);
-				}
-
-				// connect
-				hbri->connect(address, port);
-
-				auto endTime = GET_TICK() + 5000; //wait max 5 seconds
-				bool connSucceeded;
-				while(!(connSucceeded = hbri->waitConnected(250)) && endTime >= GET_TICK()) {
-					if(closing) throw Exception();
-				}
+	string hubUrl;
+	bool v6 = !sock->isV6Valid();
+	if (!c.getParam(v6 ? "I6" : "I4", 0, hubUrl)) 
+		return;
 
 
-				if (connSucceeded) {
+	fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")));
 
-					// send
-					auto snd = hbriCmd.toString(sid);
-					COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, hbri->getIp() + ":" + port);
-					hbri->write(snd);
+	// Parse the address
+	string address, proto, query, fragment, port, file;
+	Util::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
 
-					//wait for a reply
-					boost::scoped_array<char> buf(new char[8192]);
+	// Construct the command we are going to send
+	string su;
+	AdcCommand hbriCmd(AdcCommand::CMD_TCP, AdcCommand::TYPE_HUB);
 
-					int loops = 0;
-					while (endTime >= GET_TICK()) {
-						loops++;
+	StringMap dummyMap;
+	appendSupportsAndConnectivity(state == STATE_NORMAL ? dummyMap : lastInfoMap, hbriCmd, !v6, v6);
+	hbriCmd.addParam("TO", token);
 
-						int read = hbri->read(&buf[0], 8192);
-						if (read <= 0) {
-							if(closing) throw Exception();
-							Sleep(250);
-							continue;
-						}
 
-						string l = string ((char*)&buf[0], read);
-						try {
-							AdcCommand response(l);
-							if(response.getParameters().size() < 2)
-								throw Exception();
-
-							if(response.getParam(0).size() != 1) {
-								throw Exception();
-							}
-
-							int severity = Util::toInt(response.getParam(0).substr(0, 1));
-							if (severity == SEVERITY_SUCCESS) {
-								fire(ClientListener::StatusMessage(), this, STRING(VALIDATION_SUCCEED));
-								return;
-							} else {
-								throw(c.getParam(1));
-							}
-						} catch (...) { 
-							fire(ClientListener::StatusMessage(), this, STRING(INVALID_HUB_RESPONSE));
-							return;
-						}
-					}
-				}
-			} catch (const Exception& e) {
-				if (!e.getError().empty())
-					fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, e.getError() % (v6 ? "IPv6" : "IPv4")));
-				return;
-			}
-
-			fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")));
+	try {
+		// Create the socket
+		unique_ptr<Socket> hbri(stricmp(proto, "adcs") == 0 ? CryptoManager::getInstance()->getClientSocket(SETTING(ALLOW_UNTRUSTED_HUBS)) : new Socket(Socket::TYPE_TCP));
+		if (v6) {
+			hbri->setLocalIp6(SETTING(BIND_ADDRESS6));
+			hbri->setV4only(false);
+		} else {
+			hbri->setLocalIp4(SETTING(BIND_ADDRESS));
+			hbri->setV4only(true);
 		}
+
+		// Connect
+		hbri->connect(address, port);
+
+		auto endTime = GET_TICK() + 5000; //wait max 5 seconds
+		bool connSucceeded;
+		while(!(connSucceeded = hbri->waitConnected(250)) && endTime >= GET_TICK()) {
+			if(closing) throw Exception();
+		}
+
+
+		if (connSucceeded) {
+
+			// Send our command
+			auto snd = hbriCmd.toString(sid);
+			COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, hbri->getIp() + ":" + port);
+			hbri->write(snd);
+
+			// Wait for the hub to reply
+			boost::scoped_array<char> buf(new char[8192]);
+
+			while (endTime >= GET_TICK()) {
+				int read = hbri->read(&buf[0], 8192);
+				if (read <= 0) {
+					if(closing) throw Exception();
+					Sleep(250);
+					continue;
+				}
+
+				// We got our reply
+				string l = string ((char*)&buf[0], read);
+				COMMAND_DEBUG(l, DebugManager::TYPE_HUB, DebugManager::INCOMING, hbri->getIp() + ":" + port);
+
+				try {
+					AdcCommand response(l);
+					if(response.getParameters().size() < 2)
+						throw Exception();
+
+					if(response.getParam(0).size() != 1) {
+						throw Exception();
+					}
+
+					int severity = Util::toInt(response.getParam(0).substr(0, 1));
+					if (severity == SEVERITY_SUCCESS) {
+						fire(ClientListener::StatusMessage(), this, STRING(VALIDATION_SUCCEED));
+						return;
+					} else {
+						throw(c.getParam(1));
+					}
+				} catch (...) { 
+					fire(ClientListener::StatusMessage(), this, STRING(INVALID_HUB_RESPONSE));
+					return;
+				}
+			}
+		}
+	} catch (const Exception& e) {
+		if (!e.getError().empty())
+			fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, e.getError() % (v6 ? "IPv6" : "IPv4")));
+		return;
 	}
+
+	fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")));
 }
 
 int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
@@ -1250,8 +1252,17 @@ static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, c
 	}
 }
 
-void AdcHub::appendIpParams(StringMap& lastInfoMap, AdcCommand& c, string& su, bool v6) {
-	if (!v6) {
+void AdcHub::appendSupportsAndConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, bool v6) {
+	string su(SEGA_FEATURE);
+
+	if(CryptoManager::getInstance()->TLSOk()) {
+		su += "," + ADCS_FEATURE;
+	}
+
+	if (SETTING(ENABLE_SUDP) && isActive())
+		su += "," + SUD1_FEATURE;
+
+	if (v4) {
 		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp4().empty()) {
 			addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp4(), AF_INET));
 		} else {
@@ -1266,7 +1277,9 @@ void AdcHub::appendIpParams(StringMap& lastInfoMap, AdcCommand& c, string& su, b
 			su += "," + NAT0_FEATURE;
 			addParam(lastInfoMap, c, "U4", "");
 		}
-	} else {
+	}
+
+	if (v6) {
 		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp6().empty()) {
 			addParam(lastInfoMap, c, "I6", Socket::resolve(getUserIp6(), AF_INET6));
 		} else {
@@ -1282,6 +1295,8 @@ void AdcHub::appendIpParams(StringMap& lastInfoMap, AdcCommand& c, string& su, b
 			addParam(lastInfoMap, c, "U6", "");
 		}
 	}
+
+	addParam(lastInfoMap, c, "SU", su);
 }
 
 void AdcHub::info(bool /*alwaysSend*/) {
@@ -1334,20 +1349,13 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	} else {
 		addParam(lastInfoMap, c, "US", Util::toString((long)(Util::toDouble(SETTING(UPLOAD_SPEED))*1024*1024/8)));
 	}
-	
-	string su(SEGA_FEATURE);
 
 	if(CryptoManager::getInstance()->TLSOk()) {
-		su += "," + ADCS_FEATURE;
 		auto &kp = CryptoManager::getInstance()->getKeyprint();
 		addParam(lastInfoMap, c, "KP", "SHA256/" + Encoder::toBase32(&kp[0], kp.size()));
 	}
 
-	appendIpParams(lastInfoMap, c, su, sock->isV6Valid());
-
-	if (SETTING(ENABLE_SUDP) && isActive())
-		su += "," + SUD1_FEATURE;
-	addParam(lastInfoMap, c, "SU", su);
+	appendSupportsAndConnectivity(lastInfoMap, c, !sock->isV6Valid() || !getMyIdentity().getIp4().empty(), sock->isV6Valid() || !getMyIdentity().getIp6().empty());
 
 	if(c.getParameters().size() > 0) {
 		send(c);

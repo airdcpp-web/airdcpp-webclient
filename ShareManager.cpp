@@ -153,6 +153,7 @@ void ShareManager::setDirty(ProfileTokenSet aProfiles, bool setCacheDirty, bool 
 			if (forceXmlRefresh)
 				(*i)->getProfileList()->setForceXmlRefresh(true);
 			(*i)->getProfileList()->setXmlDirty(true);
+			(*i)->setProfileInfoDirty(true);
 		}
 	}
 
@@ -689,7 +690,7 @@ void ShareManager::load(SimpleXML& aXml) {
 	}
 }
 
-ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowFallback /*false*/) {
+ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowFallback /*false*/) const {
 	RLock l (cs);
 	const auto p = find(shareProfiles.begin(), shareProfiles.end(), aProfile);
 	if (p != shareProfiles.end()) {
@@ -917,10 +918,22 @@ void ShareManager::Directory::getProfileInfo(ProfileToken aProfile, int64_t& tot
 
 void ShareManager::getProfileInfo(ProfileToken aProfile, int64_t& size, size_t& files) const {
 	RLock l(cs);
-	for(const auto& d: shares | map_values) {
-		if(d->getProfileDir()->hasRootProfile(aProfile)) {
-			d->getProfileInfo(aProfile, size, files);
+	//auto p = find_if(shareProfiles, [](const ShareProfilePtr& sp) { return sp->getToken() == aProfile; });
+	auto sp = getShareProfile(aProfile);
+	if (sp) {
+		if (sp->getProfileInfoDirty()) {
+			for(const auto& d: shares | map_values) {
+				if(d->getProfileDir()->hasRootProfile(aProfile)) {
+					d->getProfileInfo(aProfile, size, files);
+				}
+			}
+			sp->setSharedFiles(files);
+			sp->setShareSize(size);
+			sp->setProfileInfoDirty(false);
 		}
+
+		size = sp->getShareSize();
+		files = sp->getSharedFiles();
 	}
 }
 
