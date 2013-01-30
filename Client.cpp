@@ -39,7 +39,7 @@ Client::Client(const string& hubURL, char separator_) :
 	myIdentity(ClientManager::getInstance()->getMe(), 0),
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	encoding(Text::systemCharset), state(STATE_DISCONNECTED), sock(0),
-	separator(separator_),
+	separator(separator_), closing(false),
 	countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0), favToken(0)
 {
 	setHubUrl(hubURL);
@@ -66,6 +66,7 @@ void Client::reconnect() {
 }
 
 void Client::shutdown() {
+	closing = true;
 	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	TimerManager::getInstance()->removeListener(this);
 

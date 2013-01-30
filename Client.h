@@ -202,6 +202,8 @@ protected:
 	virtual bool v4only() const = 0;
 	void setHubUrl(const string& url);
 	void onPassword();
+
+	bool closing;
 private:
 
 	Client(const Client&);

@@ -704,7 +704,7 @@ void ClientManager::resetProfiles(const ProfileTokenList& aProfiles, ShareProfil
 void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize, 
 									int aFileType, const string& aString, bool isPassive) noexcept
 {
-	Speaker<ClientManagerListener>::fire(ClientManagerListener::IncomingSearch(), aString);
+	fire(ClientManagerListener::IncomingSearch(), aString);
 
 	bool hideShare = aClient->getShareProfile() == SP_HIDDEN;
 

@@ -120,6 +120,7 @@ public:
 	C(UBN, 'U','B','N');
 	C(DSC, 'D','S','C');
 	C(DSR, 'D','S','R');
+	C(TCP, 'T','C','P');
 #undef C
 
 	static const uint32_t HUB_SID = 0xffffffff;		// No client will have this sid
@@ -226,6 +227,7 @@ public:
 				C(ZOF);
 				C(DSC);
 				C(DSR);
+				C(TCP);
 			default: 
 				dcdebug("Unknown ADC command: %.50s\n", aLine.c_str());
 				break;

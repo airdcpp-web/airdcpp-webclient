@@ -1617,5 +1617,9 @@ enum Strings { // @DontAdd
 	IP_V4, // "Ip (IPv4)"
 	IP_V6, // "Ip (IPv6)"
 	NO_NATT_SUPPORT, // "The remote user doesn't support passive-passive connections"
+	HBRI_VALIDATING_X, // "Validating the %s address..."
+	HBRI_VALIDATION_FAILED, // "Validation failed: %s. %s connectivity has been disabled in this hub."
+	VALIDATION_SUCCEED, // "Validation succeed"
+	INVALID_HUB_RESPONSE, // "The hub returned an invalid response"
 	LAST // @DontAdd
 };

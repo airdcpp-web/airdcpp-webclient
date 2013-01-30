@@ -1613,6 +1613,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Ip (IPv4)", 
 "Ip (IPv6)", 
 "The remote user doesn't support passive-passive connections", 
+"Validating the %s address...", 
+"Validation failed: %s. %s connectivity has been disabled in this hub.", 
+"Validation succeed", 
+"The hub returned an invalid response", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3226,4 +3230,8 @@ std::string dcpp::ResourceManager::names[] = {
 "IpV4", 
 "IpV6", 
 "NoNattSupport", 
+"HbriValidatingX", 
+"HbriValidationFailed", 
+"ValidationSucceed", 
+"InvalidHubResponse", 
 };

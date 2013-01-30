@@ -39,6 +39,7 @@
 #include "ThrottleManager.h"
 #include "QueueManager.h"
 #include "HashBloom.h"
+#include "DebugManager.h"
 
 namespace dcpp {
 
@@ -60,6 +61,7 @@ const string AdcHub::ZLIF_SUPPORT("ADZLIF");
 const string AdcHub::BNDL_FEATURE("BNDL");
 const string AdcHub::DSCH_FEATURE("DSCH");
 const string AdcHub::SUD1_FEATURE("SUD1");
+const string AdcHub::HBRI_SUPPORT("ADHBRI");
 
 const vector<StringList> AdcHub::searchExts;
 
@@ -722,6 +724,109 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 	ConnectionManager::getInstance()->adcConnect(*u, port, Util::toString(sock->getLocalPort()), BufferedSocket::NAT_SERVER, token, secure);
 }
 
+void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
+	if (c.getParameters().size() < 3) {
+		return;
+	}
+
+	string token;
+	if (c.getParam("TO", 2, token)) {
+		string hubUrl;
+		bool v6 = !sock->isV6Valid();
+		if (c.getParam(v6 ? "I6" : "I4", 0, hubUrl)) {
+			fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")));
+			//parse the address
+			string address, proto, query, fragment, port, file;
+			Util::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
+
+			//construct the command
+			string su;
+			AdcCommand hbriCmd(AdcCommand::CMD_TCP, AdcCommand::TYPE_HUB);
+			appendIpParams(lastInfoMap, hbriCmd, su, v6);
+			if (!su.empty()) {
+				//remove the leading comma
+				su.erase(0, 1);
+				hbriCmd.addParam("SU", su + "," + su);
+			}
+			hbriCmd.addParam("TO", token);
+
+			unique_ptr<Socket> hbri(stricmp(proto, "adcs") == 0 ? CryptoManager::getInstance()->getServerSocket(true) : new Socket(Socket::TYPE_TCP));
+
+			try {
+				// create the socket
+				if (v6) {
+					hbri->setLocalIp6(SETTING(BIND_ADDRESS6));
+					hbri->setV4only(false);
+				} else {
+					hbri->setLocalIp4(SETTING(BIND_ADDRESS));
+					hbri->setV4only(true);
+				}
+
+				// connect
+				hbri->connect(address, port);
+
+				auto endTime = GET_TICK() + 5000; //wait max 5 seconds
+				bool connSucceeded;
+				while(!(connSucceeded = hbri->waitConnected(250)) && endTime >= GET_TICK()) {
+					if(closing) throw Exception();
+				}
+
+
+				if (connSucceeded) {
+
+					// send
+					auto snd = hbriCmd.toString(sid);
+					COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, hbri->getIp() + ":" + port);
+					hbri->write(snd);
+
+					//wait for a reply
+					boost::scoped_array<char> buf(new char[8192]);
+
+					int loops = 0;
+					while (endTime >= GET_TICK()) {
+						loops++;
+
+						int read = hbri->read(&buf[0], 8192);
+						if (read <= 0) {
+							if(closing) throw Exception();
+							Sleep(250);
+							continue;
+						}
+
+						string l = string ((char*)&buf[0], read);
+						try {
+							AdcCommand response(l);
+							if(response.getParameters().size() < 2)
+								throw Exception();
+
+							if(response.getParam(0).size() != 1) {
+								throw Exception();
+							}
+
+							int severity = Util::toInt(response.getParam(0).substr(0, 1));
+							if (severity == SEVERITY_SUCCESS) {
+								fire(ClientListener::StatusMessage(), this, STRING(VALIDATION_SUCCEED));
+								return;
+							} else {
+								throw(c.getParam(1));
+							}
+						} catch (...) { 
+							fire(ClientListener::StatusMessage(), this, STRING(INVALID_HUB_RESPONSE));
+							return;
+						}
+					}
+				}
+			} catch (const Exception& e) {
+				if (!e.getError().empty())
+					fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, e.getError() % (v6 ? "IPv6" : "IPv4")));
+				return;
+			}
+
+			fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")));
+		}
+	}
+}
+
 int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
 	bool secure = CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS);
 	auto conn = allowConnect(user, secure, lastError_, true);
@@ -1145,6 +1250,40 @@ static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, c
 	}
 }
 
+void AdcHub::appendIpParams(StringMap& lastInfoMap, AdcCommand& c, string& su, bool v6) {
+	if (!v6) {
+		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp4().empty()) {
+			addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp4(), AF_INET));
+		} else {
+			addParam(lastInfoMap, c, "I4", "0.0.0.0");
+		}
+
+		if(isActiveV4()) {
+			addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
+			su += "," + TCP4_FEATURE;
+			su += "," + UDP4_FEATURE;
+		} else {
+			su += "," + NAT0_FEATURE;
+			addParam(lastInfoMap, c, "U4", "");
+		}
+	} else {
+		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp6().empty()) {
+			addParam(lastInfoMap, c, "I6", Socket::resolve(getUserIp6(), AF_INET6));
+		} else {
+			addParam(lastInfoMap, c, "I6", "::");
+		}
+
+		if(isActiveV6()) {
+			addParam(lastInfoMap, c, "U6", SearchManager::getInstance()->getPort());
+			su += "," + TCP6_FEATURE;
+			su += "," + UDP6_FEATURE;
+		} else {
+			su += "," + NAT0_FEATURE;
+			addParam(lastInfoMap, c, "U6", "");
+		}
+	}
+}
+
 void AdcHub::info(bool /*alwaysSend*/) {
 	if(state != STATE_IDENTIFY && state != STATE_NORMAL)
 		return;
@@ -1204,37 +1343,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		addParam(lastInfoMap, c, "KP", "SHA256/" + Encoder::toBase32(&kp[0], kp.size()));
 	}
 
-	if (!sock->isV6Valid()) {
-		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp4().empty()) {
-			addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp4(), AF_INET));
-		} else {
-			addParam(lastInfoMap, c, "I4", "0.0.0.0");
-		}
-
-		if(isActiveV4()) {
-			addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
-			su += "," + TCP4_FEATURE;
-			su += "," + UDP4_FEATURE;
-		} else {
-			su += "," + NAT0_FEATURE;
-			addParam(lastInfoMap, c, "U4", "");
-		}
-	} else {
-		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp6().empty()) {
-			addParam(lastInfoMap, c, "I6", Socket::resolve(getUserIp6(), AF_INET6));
-		} else {
-			addParam(lastInfoMap, c, "I6", "::");
-		}
-
-		if(isActiveV6()) {
-			addParam(lastInfoMap, c, "U6", SearchManager::getInstance()->getPort());
-			su += "," + TCP6_FEATURE;
-			su += "," + UDP6_FEATURE;
-		} else {
-			su += "," + NAT0_FEATURE;
-			addParam(lastInfoMap, c, "U6", "");
-		}
-	}
+	appendIpParams(lastInfoMap, c, su, sock->isV6Valid());
 
 	if (SETTING(ENABLE_SUDP) && isActive())
 		su += "," + SUD1_FEATURE;
@@ -1297,6 +1406,9 @@ void AdcHub::on(Connected c) noexcept {
 		cmd.addParam(BLO0_SUPPORT);
 	}
 	cmd.addParam(ZLIF_SUPPORT);
+	if (CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED && CONNSETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED)
+		cmd.addParam(HBRI_SUPPORT);
+
 	send(cmd);
 }
 
