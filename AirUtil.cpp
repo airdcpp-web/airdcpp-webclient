@@ -347,15 +347,12 @@ void AirUtil::setProfile(int profile, bool setSkiplist) {
 	/*Make settings depending selected client settings profile
 	Note that if add a setting to one profile will need to add it to other profiles too*/
 	if(profile == 0 && SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_PUBLIC) {
-		SettingsManager::getInstance()->set(SettingsManager::MIN_SEGMENT_SIZE, 1024);
-		//add more here
+		SettingsManager::getInstance()->set(SettingsManager::MULTI_CHUNK, true);
 
 		SettingsManager::getInstance()->set(SettingsManager::SETTINGS_PROFILE, SettingsManager::PROFILE_PUBLIC);
-
-	} else if (profile == 1) {
+	} else if (profile == SettingsManager::PROFILE_RAR) {
 		if (SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_RAR) {
-			SettingsManager::getInstance()->set(SettingsManager::SEGMENTS_MANUAL, false);
-			SettingsManager::getInstance()->set(SettingsManager::MIN_SEGMENT_SIZE, 10240000);
+			SettingsManager::getInstance()->set(SettingsManager::MULTI_CHUNK, false);
 			SettingsManager::getInstance()->set(SettingsManager::CHECK_SFV, true);
 			SettingsManager::getInstance()->set(SettingsManager::CHECK_NFO, true);
 			SettingsManager::getInstance()->set(SettingsManager::CHECK_EXTRA_SFV_NFO, true);
@@ -365,7 +362,6 @@ void AirUtil::setProfile(int profile, bool setSkiplist) {
 			SettingsManager::getInstance()->set(SettingsManager::SEARCH_TIME, 5);
 			SettingsManager::getInstance()->set(SettingsManager::AUTO_SEARCH_LIMIT, 5);
 			SettingsManager::getInstance()->set(SettingsManager::AUTO_FOLLOW, false);
-			//add more here
 
 			SettingsManager::getInstance()->set(SettingsManager::SETTINGS_PROFILE, SettingsManager::PROFILE_RAR);
 		}
@@ -376,12 +372,10 @@ void AirUtil::setProfile(int profile, bool setSkiplist) {
 			ShareManager::getInstance()->setSkipList();
 		}
 
-	} else if (profile == 2 && SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_PRIVATE) {
-		SettingsManager::getInstance()->set(SettingsManager::SEGMENTS_MANUAL, false);
-		SettingsManager::getInstance()->set(SettingsManager::MIN_SEGMENT_SIZE, 1024);
+	} else if (profile == SettingsManager::PROFILE_PRIVATE && SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_PRIVATE) {
+		SettingsManager::getInstance()->set(SettingsManager::MULTI_CHUNK, true);
 		SettingsManager::getInstance()->set(SettingsManager::AUTO_FOLLOW, false);
-		//add more here
-			
+
 		SettingsManager::getInstance()->set(SettingsManager::SETTINGS_PROFILE, SettingsManager::PROFILE_PRIVATE);
 	}
 }

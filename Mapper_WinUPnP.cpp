@@ -64,7 +64,7 @@ bool Mapper_WinUPnP::init() {
 	hr = ::CoCreateInstance(upnp, 0, CLSCTX_INPROC_SERVER, iupnp, reinterpret_cast<LPVOID*>(&pUN));
 	if(FAILED(hr))
 		pUN = 0;
-	return pUN;
+	return pUN ? true : false;
 }
 
 void Mapper_WinUPnP::uninit() {
@@ -175,7 +175,17 @@ IStaticPortMappingCollection* Mapper_WinUPnP::getStaticPortMappingCollection() {
 	if(!pUN)
 		return 0;
 	IStaticPortMappingCollection* ret = 0;
-	HRESULT hr = pUN->get_StaticPortMappingCollection(&ret);
+	HRESULT hr = 0;
+
+	// some routers lag here
+	for(int i = 0; i < 3; i++) {
+		hr = pUN->get_StaticPortMappingCollection (&ret);
+			
+		if(SUCCEEDED(hr) && ret) break;
+
+		Sleep(1500);
+	}
+
 	if(FAILED(hr))
 		return 0;
 	return ret;

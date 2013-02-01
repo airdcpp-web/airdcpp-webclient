@@ -147,7 +147,7 @@ int MappingManager::run() {
 	}
 
 	for(auto& i: mappers) {
-		unique_ptr<Mapper> pMapper(i.second(AirUtil::getLocalIp()));
+		unique_ptr<Mapper> pMapper(i.second(SettingsManager::getInstance()->isDefault(SettingsManager::BIND_ADDRESS) ? Util::emptyString : (string)SETTING(BIND_ADDRESS)));
 		Mapper& mapper = *pMapper;
 
 		ScopedFunctor([&mapper] { mapper.uninit(); });

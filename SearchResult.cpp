@@ -38,9 +38,9 @@ AdcCommand DirectSearchResult::toDSR(char type) const {
 }
 
 SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-	int64_t aSize, const string& aFile, const string& aHubName, 
-	const string& ip, TTHValue aTTH, const string& aToken) :
-	file(aFile), hubName(aHubName), user(aUser),
+	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken) :
+
+	file(aFilePath), user(aUser),
 	size(aSize), type(aType), slots(aSlots), freeSlots(aFreeSlots), IP(ip),
 	tth(aTTH), token(aToken) { }
 

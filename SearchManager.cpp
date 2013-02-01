@@ -270,8 +270,6 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	string tth;
 	if(hubName.compare(0, 4, "TTH:") == 0) {
 		tth = hubName.substr(4);
-		StringList names = ClientManager::getInstance()->getHubNames(user->getCID(), Util::emptyString);
-		hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
 	}
 
 	if(tth.empty() && type == SearchResult::TYPE_FILE && !SettingsManager::lanMode) {
@@ -280,7 +278,7 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 
 
 	SearchResultPtr sr(new SearchResult(HintedUser(user, url), type, slots, freeSlots, size,
-		file, hubName, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString));
+		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString));
 	fire(SearchManagerListener::SR(), sr);
 }
 
@@ -331,8 +329,6 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 
 	if(!file.empty() && freeSlots != -1 && size != -1) {
 		TTHValue th;
-		StringList names = ClientManager::getInstance()->getHubNames(from->getCID());
-		string hubName = names.empty() ? STRING(OFFLINE) : Util::toString(names);
 		string hubUrl, localToken;
 
 		{
@@ -360,7 +356,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		
 		uint8_t slots = ClientManager::getInstance()->getSlots(from->getCID());
 		SearchResultPtr sr(new SearchResult(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
-			file, hubName, remoteIp, th, localToken));
+			file, remoteIp, th, localToken));
 		fire(SearchManagerListener::SR(), sr);
 	}
 }

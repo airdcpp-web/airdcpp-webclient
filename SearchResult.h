@@ -53,8 +53,7 @@ public:
 	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH);
 
 	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-		int64_t aSize, const string& aFile, const string& aHubName, 
-			const string& ip, TTHValue aTTH, const string& aToken);
+		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken);
 
 	string getFileName() const;
 	string toSR(const Client& client) const;
@@ -64,7 +63,6 @@ public:
 	string getSlotString() const;
 
 	const string& getFile() const { return file; }
-	const string& getHubName() const { return hubName; }
 	int64_t getSize() const { return size; }
 	Types getType() const { return type; }
 	size_t getSlots() const { return slots; }
@@ -82,7 +80,6 @@ private:
 	TTHValue tth;
 	
 	string file;
-	string hubName;
 	string IP;
 	string token;
 	

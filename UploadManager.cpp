@@ -1227,7 +1227,7 @@ void UploadManager::removeDelayUpload(const UserConnection& aSource) {
  * Abort upload of specific file
  */
 void UploadManager::abortUpload(const string& aFile, bool waiting){
-	bool nowait = true;
+	bool fileRunning = false;
 
 	{
 		Lock l(cs);
@@ -1236,48 +1236,53 @@ void UploadManager::abortUpload(const string& aFile, bool waiting){
 		for(auto u: delayUploads) {
 			if(u->getPath() == aFile) {
 				u->getUserConnection().disconnect(true);
-				nowait = false;
+				fileRunning = true;
 			}
 		}
 
 		for(auto u: uploads) {
 			if(u->getPath() == aFile) {
 				u->getUserConnection().disconnect(true);
-				nowait = false;
+				fileRunning = true;
 			}
 		}
 	}
 	
-	if(nowait) return;
+	if(!fileRunning) return;
 	if(!waiting) return;
 	
-	for(int i = 0; i < 20 && nowait == false; i++){
+	for(int i = 0; i < 20 && fileRunning == true; i++){
 		Thread::sleep(250);
 		{
 			Lock l(cs);
-
-			nowait = true;
-			for(auto u: uploads) {
+			fileRunning = false;
+			for(auto u: delayUploads) {
 				if(u->getPath() == aFile){
-					dcdebug("upload %s is not removed\n", aFile.c_str());
-					nowait = false;
+					dcdebug("delayUpload %s is not removed\n", aFile.c_str());
+					fileRunning = true;
 					break;
 				}
 			}
 
-			nowait = true;
-			for(auto u: delayUploads) {
+			if (fileRunning)
+				continue;
+
+			fileRunning = false;
+			for(auto u: uploads) {
 				if(u->getPath() == aFile){
-					dcdebug("delayUpload %s is not removed\n", aFile.c_str());
-					nowait = false;
+					dcdebug("upload %s is not removed\n", aFile.c_str());
+					fileRunning = true;
 					break;
 				}
 			}
 		}
 	}
 	
-	if(!nowait)
-		dcdebug("abort upload timeout %s\n", aFile.c_str());
+	if(fileRunning)
+		LogManager::getInstance()->message("Aborting an upload " + aFile + " timed out", LogManager::LOG_ERROR);
+		//dcdebug("abort upload timeout %s\n", aFile.c_str());
+
+	//LogManager::getInstance()->message("Aborting an upload " + aFile + " timed out", LogManager::LOG_ERROR);
 }
 
 } // namespace dcpp

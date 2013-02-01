@@ -1621,5 +1621,6 @@ enum Strings { // @DontAdd
 	HBRI_VALIDATION_FAILED, // "Validation failed: %s. %s connectivity has been disabled in this hub."
 	VALIDATION_SUCCEED, // "Validation succeed"
 	INVALID_HUB_RESPONSE, // "The hub returned an invalid response"
+	PREFERRED_MAPPER, // "Preferred port mapping interface"
 	LAST // @DontAdd
 };

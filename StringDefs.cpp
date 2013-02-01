@@ -1617,6 +1617,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Validation failed: %s. %s connectivity has been disabled in this hub.", 
 "Validation succeed", 
 "The hub returned an invalid response", 
+"Preferred port mapping interface", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3234,4 +3235,5 @@ std::string dcpp::ResourceManager::names[] = {
 "HbriValidationFailed", 
 "ValidationSucceed", 
 "InvalidHubResponse", 
+"PreferredMapper", 
 };
