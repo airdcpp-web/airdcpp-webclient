@@ -24,6 +24,7 @@
 #include "Singleton.h"
 #include "Speaker.h"
 #include "LogManager.h"
+#include "MappingManager.h"
 
 #include <string>
 #include <unordered_map>
@@ -62,10 +63,12 @@ public:
 	void setup(bool settingsChanged);
 	void editAutoSettings();
 	bool ok() const { return autoDetected; }
-	bool isRunning() const { return running; }
-	const string& getStatus() const { return status; }
+	bool isRunning() const { return runningV4 || runningV6; }
+	const string& getStatus(bool v6) const;
 	string getInformation() const;
 
+	void close();
+	StringList getMappers(bool v6) const;
 private:
 	friend class Singleton<ConnectivityManager>;
 	friend class MappingManager;
@@ -74,22 +77,36 @@ private:
 	virtual ~ConnectivityManager() { }
 
 	void startMapping();
-	void mappingFinished(const string& mapper);
-	void log(const string& message, LogManager::Severity sev);
+	void startMapping(bool v6);
+	void mappingFinished(const string& mapper, bool v6);
+
+	enum LogType {
+		TYPE_NORMAL,
+		TYPE_V4,
+		TYPE_V6,
+		TYPE_BOTH
+	};
+
+	void log(const string& message, LogManager::Severity sev, LogType aType);
 
 	void startSocket();
 	void listen();
 	void disconnect();
 
 	bool autoDetected;
-	bool running;
+	bool runningV4;
+	bool runningV6;
 
-	string status;
+	string statusV4;
+	string statusV6;
 
 	/* contains auto-detected settings. they are stored separately from manual connectivity
 	settings (stored in SettingsManager) in case the user wants to keep the manually set ones for
 	future use. */
 	unordered_map<int, boost::variant<bool, int, string>> autoSettings;
+
+	MappingManager mapperV4;
+	MappingManager mapperV6;
 };
 
 #define CONNSETTING(k) ConnectivityManager::getInstance()->get(SettingsManager::k)

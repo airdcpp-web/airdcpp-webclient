@@ -33,7 +33,7 @@ using std::string;
 class Mapper : boost::noncopyable
 {
 public:
-	Mapper(string&& localIp);
+	Mapper(const string& localIp, bool v6);
 	virtual ~Mapper() { }
 
 	enum Protocol {
@@ -64,10 +64,10 @@ public:
 
 	/** user-friendly name for this implementation. */
 	virtual const string& getName() const = 0;
-
+	virtual bool supportsProtocol(bool v6) const = 0;
 protected:
 	const string localIp;
-
+	const bool v6;
 private:
 	/** add a port mapping rule. */
 	virtual bool add(const string& port, const Protocol protocol, const string& description) = 0;

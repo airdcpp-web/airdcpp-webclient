@@ -34,7 +34,6 @@
 #include "SettingsManager.h"
 #include "FinishedManager.h"
 #include "ADLSearch.h"
-#include "MappingManager.h"
 #include "ConnectivityManager.h"
 #include "WebShortcuts.h"
 #include "Localization.h"
@@ -88,7 +87,6 @@ void startup(function<void (const string&)> splashF, function<void (const string
 	FavoriteManager::newInstance();
 	FinishedManager::newInstance();
 	ADLSearchManager::newInstance();
-	MappingManager::newInstance();
 	ConnectivityManager::newInstance();
 	DebugManager::newInstance();
 	PopupManager::newInstance();
@@ -166,7 +164,7 @@ void shutdown(function<void (const string&)> f) {
 
 	announce(STRING(CLOSING_CONNECTIONS));
 	ConnectionManager::getInstance()->shutdown();
-	MappingManager::getInstance()->close();
+	ConnectivityManager::getInstance()->close();
 	GeoManager::getInstance()->close();
 	BufferedSocket::waitShutdown();
 	
@@ -179,7 +177,6 @@ void shutdown(function<void (const string&)> f) {
 
 	UpdateManager::deleteInstance();
 	GeoManager::deleteInstance();
-	MappingManager::deleteInstance();
 	ConnectivityManager::deleteInstance();
 	DebugManager::deleteInstance();
 	HighlightManager::deleteInstance();

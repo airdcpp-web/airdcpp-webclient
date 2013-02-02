@@ -109,7 +109,7 @@ public:
 	static string getCounts();
 	
 	void reconnect();
-	void shutdown();
+	virtual void shutdown();
 	bool isActive() const;
 	bool isActiveV4() const;
 	bool isActiveV6() const;

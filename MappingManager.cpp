@@ -34,16 +34,13 @@
 
 namespace dcpp {
 
-#ifdef ATOMIC_FLAG_INIT
-atomic_flag MappingManager::busy = ATOMIC_FLAG_INIT;
-#else
-atomic_flag MappingManager::busy;
-#endif
-
-MappingManager::MappingManager() : renewal(0) {
-	addMapper<Mapper_NATPMP>();
+MappingManager::MappingManager(bool v6) : renewal(0), v6(v6) {
+	busy.clear();
 	addMapper<Mapper_MiniUPnPc>();
-	addMapper<Mapper_WinUPnP>();
+	if (!v6) {
+		addMapper<Mapper_NATPMP>();
+		addMapper<Mapper_WinUPnP>();
+	}
 }
 
 StringList MappingManager::getMappers() const {
@@ -147,7 +144,7 @@ int MappingManager::run() {
 	}
 
 	for(auto& i: mappers) {
-		unique_ptr<Mapper> pMapper(i.second(SettingsManager::getInstance()->isDefault(SettingsManager::BIND_ADDRESS) ? Util::emptyString : (string)SETTING(BIND_ADDRESS)));
+		unique_ptr<Mapper> pMapper(i.second((SettingsManager::getInstance()->isDefault(SettingsManager::BIND_ADDRESS) ? Util::emptyString : SETTING(BIND_ADDRESS)), v6));
 		Mapper& mapper = *pMapper;
 
 		ScopedFunctor([&mapper] { mapper.uninit(); });
@@ -184,7 +181,7 @@ int MappingManager::run() {
 			}
 		}
 
-		ConnectivityManager::getInstance()->mappingFinished(mapper.getName());
+		ConnectivityManager::getInstance()->mappingFinished(mapper.getName(), v6);
 
 		renewLater(mapper);
 		break;
@@ -192,7 +189,7 @@ int MappingManager::run() {
 
 	if(!getOpened()) {
 		log(STRING(MAPPER_CREATING_FAILED), LogManager::LOG_ERROR);
-		ConnectivityManager::getInstance()->mappingFinished(Util::emptyString);
+		ConnectivityManager::getInstance()->mappingFinished(Util::emptyString, v6);
 	}
 
 	return 0;
@@ -210,7 +207,7 @@ void MappingManager::close(Mapper& mapper) {
 }
 
 void MappingManager::log(const string& message, LogManager::Severity sev) {
-	ConnectivityManager::getInstance()->log(STRING(PORT_MAPPING) + ": " + message, sev);
+	ConnectivityManager::getInstance()->log(STRING(PORT_MAPPING) + ": " + message, sev, v6 ? ConnectivityManager::TYPE_V6 : ConnectivityManager::TYPE_V4);
 }
 
 string MappingManager::deviceString(Mapper& mapper) const {

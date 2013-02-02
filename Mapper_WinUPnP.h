@@ -30,7 +30,7 @@ namespace dcpp {
 class Mapper_WinUPnP : public Mapper
 {
 public:
-	Mapper_WinUPnP(string&& localIp);
+	Mapper_WinUPnP(const string& localIp, bool v6);
 
 	static const string name;
 
@@ -40,6 +40,7 @@ private:
 
 	bool add(const string& port, const Protocol protocol, const string& description);
 	bool remove(const string& port, const Protocol protocol);
+	bool supportsProtocol(bool v6) const;
 
 	uint32_t renewal() const { return 0; }
 

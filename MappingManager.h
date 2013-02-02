@@ -37,7 +37,6 @@ using std::unique_ptr;
 using std::vector;
 
 class MappingManager :
-	public Singleton<MappingManager>,
 	private Thread,
 	private TimerManagerListener
 {
@@ -45,8 +44,8 @@ public:
 	/** add an implementation derived from the base Mapper class, passed as template parameter.
 	the first added mapper will be tried first, unless the "MAPPER" setting is not empty. */
 	template<typename T> void addMapper() {
-		mappers.emplace_back(T::name, [](string&& localIp) {
-			return new T(move(localIp));
+		mappers.emplace_back(T::name, [](const string& localIp, bool v6) {
+			return new T(localIp, v6);
 		});
 	}
 	StringList getMappers() const;
@@ -59,21 +58,16 @@ public:
 	string stating otherwise. */
 	string getStatus() const;
 
+	MappingManager(bool v6);
+	virtual ~MappingManager() { }
 private:
-	friend class Singleton<MappingManager>;
+	//friend class Singleton<MappingManager>;
 
-#if defined(_MSC_VER) && _MSC_VER < 1700
-	vector<pair<string, function<Mapper* (const string&)>>> mappers;
-#else
-	vector<pair<string, function<Mapper* (string&&)>>> mappers;
-#endif
+	vector<pair<string, function<Mapper* (const string&, bool)>>> mappers;
 
-	static atomic_flag busy;
+	atomic_flag busy;
 	unique_ptr<Mapper> working; /// currently working implementation.
 	uint64_t renewal; /// when the next renewal should happen, if requested by the mapper.
-
-	MappingManager();
-	virtual ~MappingManager() { }
 
 	int run();
 
@@ -82,6 +76,7 @@ private:
 	string deviceString(Mapper& mapper) const;
 	void renewLater(Mapper& mapper);
 
+	bool v6;
 	void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
 };
 

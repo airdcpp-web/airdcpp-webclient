@@ -296,21 +296,31 @@ tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 
 bool Identity::updateConnectMode(const Identity& me) {
 	Mode newMode = MODE_NOCONNECT_IP;
-	if (!me.getIp6().empty() && !getIp6().empty()) {
-		newMode = isTcp6Active() ? MODE_ACTIVE_V6 : MODE_PASSIVE_V6;
+	bool meSupports6 = !me.getIp6().empty();
+
+	if (meSupports6 && !getIp6().empty()) {
+		newMode = isTcp6Active() ? MODE_ACTIVE_V6 : MODE_PASSIVE_V6; // IPv6: active / NAT-T
 	}
 
 	if ((newMode == MODE_NOCONNECT_IP || newMode == MODE_PASSIVE_V6) && !me.getIp4().empty()) {
 		if (!getIp4().empty()) {
 			auto isActive = isTcp4Active();
-			if (newMode == MODE_NOCONNECT_IP || isActive) {
+			if (newMode == MODE_NOCONNECT_IP || isActive) { //passive v4 isn't any better than passive v6
 				newMode = isActive ? MODE_ACTIVE_V4 : MODE_PASSIVE_V4;
 			}
 		}
 	}
 
-	if (!me.isTcpActive() && (newMode == MODE_PASSIVE_V4 || newMode == MODE_PASSIVE_V6) && !supports(AdcHub::NAT0_FEATURE)) {
-		newMode = MODE_NOCONNECT_PASSIVE;
+	if (newMode == MODE_NOCONNECT_IP) {
+		if (!me.isTcpActive()) {
+			//this user is passive with no NAT-T
+			if (!supports(AdcHub::NAT0_FEATURE)) {
+				newMode = MODE_NOCONNECT_PASSIVE;
+			}
+		} else {
+			//could this other user still support the same protocol? can't know for sure
+			newMode = meSupports6 ? MODE_PASSIVE_V6_UNKNOWN : MODE_PASSIVE_V4_UNKNOWN;
+		}
 	}
 
 	if (connectMode != newMode) {
@@ -354,6 +364,12 @@ uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 
 	//TODO: add icon for noconnect
 	if(!bot && (identity.getConnectMode() == Identity::MODE_NOCONNECT_PASSIVE || identity.getConnectMode() == Identity::MODE_NOCONNECT_IP))
+	{
+		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
+	}
+
+	//TODO: add icon for unknown (passive) connectivity
+	if(!bot && (identity.getConnectMode() == Identity::MODE_PASSIVE_V4_UNKNOWN || identity.getConnectMode() == Identity::MODE_PASSIVE_V6_UNKNOWN))
 	{
 		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
 	}

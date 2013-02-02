@@ -36,11 +36,15 @@ namespace dcpp {
 
 const string Mapper_WinUPnP::name = "Windows UPnP";
 
-Mapper_WinUPnP::Mapper_WinUPnP(string&& localIp) :
-Mapper(move(localIp)),
+Mapper_WinUPnP::Mapper_WinUPnP(const string& localIp, bool v6) :
+Mapper(localIp, v6),
 pUN(0),
 lastPort(0)
 {
+}
+
+bool Mapper_WinUPnP::supportsProtocol(bool v6) const {
+	return !v6;
 }
 
 #ifdef HAVE_NATUPNP_H

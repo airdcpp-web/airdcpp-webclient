@@ -110,7 +110,7 @@ const string SettingsManager::settingTags[] =
 	// Bools
 	"AddFinishedInstantly", "AdlsBreakOnFirst",
 	"AllowUntrustedClients", "AllowUntrustedHubs", "AutoAway",
-	"AutoDetectIncomingConnection", "AutoFollow", "AutoKick", "AutoKickNoFavs", "AutoSearch",
+	"AutoDetectIncomingConnection", "AutoDetectIncomingConnection6", "AutoFollow", "AutoKick", "AutoKickNoFavs", "AutoSearch",
 	"AwayCompLock", "BoldFinishedDownloads", "BoldFinishedUploads", "BoldHub", "BoldPm",
 	"BoldQueue", "BoldSearch", "BoldSystemLog", "ClearSearch",
 	"CompressTransfers", "ConfirmADLSRemoval", "ConfirmExit",

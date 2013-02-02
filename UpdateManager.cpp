@@ -59,7 +59,7 @@ UpdateManager::~UpdateManager() {
 
 void UpdateManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	if (SETTING(UPDATE_IP_HOURLY) && lastIPUpdate + 60*60*1000 < aTick) {
-		checkIP(false);
+		checkIP(false, false);
 		lastIPUpdate = aTick;
 	}
 }
@@ -268,22 +268,23 @@ void UpdateManager::failUpdateDownload(const string& aError, bool manualCheck) {
 	checkAdditionalUpdates(manualCheck);
 }
 
-void UpdateManager::checkIP(bool manual) {
-	conns[CONN_IP].reset(new HttpDownload(links.ipcheck,
-		[this, manual] { completeIPCheck(manual); }, false, true));
+void UpdateManager::checkIP(bool manual, bool v6) {
+	conns[v6 ? CONN_IP6 : CONN_IP4].reset(new HttpDownload(v6 ? links.ipcheck6 : links.ipcheck4,
+		[=] { completeIPCheck(manual, v6); }, false, !v6));
 }
 
-void UpdateManager::completeIPCheck(bool manual) {
-	auto& conn = conns[CONN_IP];
+void UpdateManager::completeIPCheck(bool manual, bool v6) {
+	auto& conn = conns[v6 ? CONN_IP6 : CONN_IP4];
 	if(!conn) { return; }
 
 	string ip;
 	ScopedFunctor([&conn] { conn.reset(); });
+	const auto& setting = v6 ? SettingsManager::EXTERNAL_IP6 : SettingsManager::EXTERNAL_IP;
 
 	if (!conn->buf.empty()) {
 		try {
-			const string pattern = "\\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b";
-			const boost::regex reg(pattern, boost::regex_constants::icase);
+			const string pattern = !v6 ? "\\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b" : "(\\A([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,6}\\Z)|(\\A([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,5}\\Z)|(\\A([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,4}\\Z)|(\\A([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,3}\\Z)|(\\A([0-9a-f]{1,4}:){1,5}(:[0-9a-f]{1,4}){1,2}\\Z)|(\\A([0-9a-f]{1,4}:){1,6}(:[0-9a-f]{1,4}){1,1}\\Z)|(\\A(([0-9a-f]{1,4}:){1,7}|:):\\Z)|(\\A:(:[0-9a-f]{1,4}){1,7}\\Z)|(\\A((([0-9a-f]{1,4}:){6})(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})\\Z)|(\\A(([0-9a-f]{1,4}:){5}[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})\\Z)|(\\A([0-9a-f]{1,4}:){5}:[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,3}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,2}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,1}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A(([0-9a-f]{1,4}:){1,5}|:):(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A:(:[0-9a-f]{1,4}){1,5}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)";
+			const boost::regex reg(pattern);
 			boost::match_results<string::const_iterator> results;
 			// RSX++ workaround for msvc std lib problems
 			string::const_iterator start = conn->buf.begin();
@@ -294,13 +295,13 @@ void UpdateManager::completeIPCheck(bool manual) {
 					ip = results.str(0);
 					//const string& ip = results.str(0);
 					if (!manual)
-						SettingsManager::getInstance()->set(SettingsManager::EXTERNAL_IP, ip);
+						SettingsManager::getInstance()->set(setting, ip);
 				}
 			}
 		} catch(...) { }
 	}
 
-	fire(UpdateManagerListener::SettingUpdated(), SettingsManager::EXTERNAL_IP, ip);
+	fire(UpdateManagerListener::SettingUpdated(), setting, ip);
 }
 
 
@@ -463,7 +464,11 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			}
 			xml.resetCurrentChild();
 			if(xml.findChild("IPCheck")) {
-				links.ipcheck = xml.getChildData();
+				links.ipcheck4 = xml.getChildData();
+			}
+			xml.resetCurrentChild();
+			if(xml.findChild("IPCheck6")) {
+				links.ipcheck6 = xml.getChildData();
 			}
 			xml.stepOut();
 		}
@@ -546,8 +551,14 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 }
 
 void UpdateManager::checkAdditionalUpdates(bool manualCheck) {
-	if(!manualCheck && SETTING(IP_UPDATE) && !SETTING(AUTO_DETECT_CONNECTION)) {
-		checkIP(false);
+	//v4
+	if(!manualCheck && SETTING(IP_UPDATE) && !SETTING(AUTO_DETECT_CONNECTION) && SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED) {
+		checkIP(false, false);
+	}
+
+	//v6
+	if(!manualCheck && SETTING(IP_UPDATE) && !SETTING(AUTO_DETECT_CONNECTION6) && SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED) {
+		checkIP(false, true);
 	}
 
 	checkLanguage();
@@ -611,7 +622,8 @@ void UpdateManager::init(const string& aExeName) {
 	links.guides = links.homepage + "guides/";
 	links.customize = links.homepage + "c/customizations/";
 	links.discuss = links.homepage + "forum/";
-	links.ipcheck = "http://checkip.dyndns.org/";
+	links.ipcheck4 = "http://checkip.dyndns.org/";
+	links.ipcheck6 = "http://checkip.dyndns.org/";
 	links.language = "http://languages.airdcpp.net/";
 
 	exename = aExeName;

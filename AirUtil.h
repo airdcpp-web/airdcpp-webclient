@@ -65,7 +65,8 @@ class AirUtil {
 
 		static void init();
 		static void updateCachedSettings();
-		static string getLocalIp();
+		static string getLocalIp(bool v6, bool allowPrivate = true);
+		static void getIpAddresses(OrderedStringMap& addresses, bool v6);
 
 		static void setProfile(int profile, bool setSkiplist=false);
 		static int getSlotsPerUser(bool download, double value=0, int aSlots=0);

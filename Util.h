@@ -468,7 +468,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 
 	static string encodeURI(const string& /*aString*/, bool reverse = false);
 	
-	static bool isPrivateIp(string const& ip);
+	static bool isPrivateIp(const string& ip, bool v6);
 	/**
 	 * Case insensitive substring search.
 	 * @return First position found or string::npos

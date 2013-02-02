@@ -343,7 +343,7 @@ string Client::getLocalIp() const {
 	}
 
 	if(localIp.empty()) {
-		return AirUtil::getLocalIp();
+		return AirUtil::getLocalIp(false);
 	}
 
 	return localIp;

@@ -723,18 +723,35 @@ wstring Util::formatExactSize(int64_t aBytes) {
 #endif
 }
 
-bool Util::isPrivateIp(string const& ip) {
-	struct in_addr addr;
+bool Util::isPrivateIp(const string& ip, bool v6) {
+	if (v6) {
+		/*struct sockaddr_in6 sendAddr;
+		int sendAddrSize = sizeof(sendAddr);
 
-	addr.s_addr = inet_addr(ip.c_str());
+		auto tmp = Text::toT(ip).c_str();
+		if (WSAStringToAddress(targetIp, AF_INET6, NULL, (LPSOCKADDR)&sendAddr, &sendAddrSize)) {
+			BYTE prefix[8] = { 0xFE, 0x80 };
+			auto fLinkLocal = (memcmp(sendAddr.sin6_addr.u.Byte, prefix, sizeof(prefix)) == 0);
 
-	if (addr.s_addr  != INADDR_NONE) {
-		unsigned long haddr = ntohl(addr.s_addr);
-		return ((haddr & 0xff000000) == 0x0a000000 || // 10.0.0.0/8
-				(haddr & 0xff000000) == 0x7f000000 || // 127.0.0.0/8
-				(haddr & 0xffff0000) == 0xa9fe0000 || // 169.254.0.0/16
-				(haddr & 0xfff00000) == 0xac100000 || // 172.16.0.0/12
-				(haddr & 0xffff0000) == 0xc0a80000);  // 192.168.0.0/16
+			return fLinkLocal;
+		}*/
+
+		struct sockaddr_in6 addr6;
+		inet_pton(AF_INET6, ip.data(), &addr6.sin6_addr);
+		return IN6_IS_ADDR_LINKLOCAL(&addr6.sin6_addr) ? true : false;
+	} else {
+		struct in_addr addr;
+
+		addr.s_addr = inet_addr(ip.c_str());
+
+		if (addr.s_addr  != INADDR_NONE) {
+			unsigned long haddr = ntohl(addr.s_addr);
+			return ((haddr & 0xff000000) == 0x0a000000 || // 10.0.0.0/8
+					(haddr & 0xff000000) == 0x7f000000 || // 127.0.0.0/8
+					(haddr & 0xffff0000) == 0xa9fe0000 || // 169.254.0.0/16
+					(haddr & 0xfff00000) == 0xac100000 || // 172.16.0.0/12
+					(haddr & 0xffff0000) == 0xc0a80000);  // 192.168.0.0/16
+		}
 	}
 	return false;
 }

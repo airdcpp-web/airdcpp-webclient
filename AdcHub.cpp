@@ -35,6 +35,7 @@
 #include "ResourceManager.h"
 #include "LogManager.h"
 #include "UploadManager.h"
+#include "ScopedFunctor.h"
 #include "StringTokenizer.h"
 #include "ThrottleManager.h"
 #include "QueueManager.h"
@@ -71,8 +72,16 @@ AdcHub::AdcHub(const string& aHubURL) :
 }
 
 AdcHub::~AdcHub() {
-	TimerManager::getInstance()->removeListener(this);
 	clearUsers();
+}
+
+void AdcHub::shutdown() {
+	Client::shutdown();
+	TimerManager::getInstance()->removeListener(this);
+
+	if (hbriThread.valid()) {
+		hbriThread.wait();
+	}
 }
 
 OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
@@ -725,6 +734,9 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
+	if (hbriThread.valid())
+		return;
+
 	// Validate the command
 	if (c.getParameters().size() < 3) {
 		return;
@@ -742,9 +754,23 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 
 	fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")));
 
+	hbriThread = std::async([=] {
+		sendHBRI(hubUrl, token, v6);
+		callAsync([this] { 
+			hbriThread.get();
+			//if (state != STATE_NORMAL) {
+			//	info(true);
+			//}
+		});
+	});
+}
+
+void AdcHub::sendHBRI(const string& aHubUrl, const string& aToken, bool v6) {
+	//ScopedFunctor([this] { hbriThread.get(); }); //make sure that it gets reset
+
 	// Parse the address
 	string address, proto, query, fragment, port, file;
-	Util::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
+	Util::decodeUrl(aHubUrl, proto, address, port, file, query, fragment);
 
 	// Construct the command we are going to send
 	string su;
@@ -752,8 +778,7 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 
 	StringMap dummyMap;
 	appendSupportsAndConnectivity(state == STATE_NORMAL ? dummyMap : lastInfoMap, hbriCmd, !v6, v6);
-	hbriCmd.addParam("TO", token);
-
+	hbriCmd.addParam("TO", aToken);
 
 	try {
 		// Create the socket
@@ -812,7 +837,7 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 						fire(ClientListener::StatusMessage(), this, STRING(VALIDATION_SUCCEED));
 						return;
 					} else {
-						throw(c.getParam(1));
+						throw(response.getParam(1));
 					}
 				} catch (...) { 
 					fire(ClientListener::StatusMessage(), this, STRING(INVALID_HUB_RESPONSE));
@@ -1414,7 +1439,9 @@ void AdcHub::on(Connected c) noexcept {
 		cmd.addParam(BLO0_SUPPORT);
 	}
 	cmd.addParam(ZLIF_SUPPORT);
-	if (CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED && CONNSETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED)
+
+	bool usingV6 = sock->isV6Valid();
+	if ((CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED || !usingV6) && (CONNSETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED) || usingV6)
 		cmd.addParam(HBRI_SUPPORT);
 
 	send(cmd);

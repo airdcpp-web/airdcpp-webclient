@@ -26,7 +26,7 @@ namespace dcpp {
 class Mapper_NATPMP : public Mapper
 {
 public:
-	Mapper_NATPMP(string&& localIp);
+	Mapper_NATPMP(const string& localIp, bool v6);
 
 	static const string name;
 
@@ -36,6 +36,7 @@ private:
 
 	bool add(const string& port, const Protocol protocol, const string& description);
 	bool remove(const string& port, const Protocol protocol);
+	bool supportsProtocol(bool v6) const;
 
 	uint32_t renewal() const { return lifetime / 2; }
 

@@ -33,16 +33,20 @@ namespace dcpp {
 
 const string Mapper_MiniUPnPc::name = "MiniUPnP";
 
-Mapper_MiniUPnPc::Mapper_MiniUPnPc(string&& localIp) :
-Mapper(move(localIp))
+Mapper_MiniUPnPc::Mapper_MiniUPnPc(const string& localIp, bool v6) :
+Mapper(localIp, v6)
 {
+}
+
+bool Mapper_MiniUPnPc::supportsProtocol(bool v6) const {
+	return true;
 }
 
 bool Mapper_MiniUPnPc::init() {
 	if(!url.empty())
 		return true;
 
-	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, 0, 0);
+	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, v6, 0);
 	if(!devices)
 		return false;
 

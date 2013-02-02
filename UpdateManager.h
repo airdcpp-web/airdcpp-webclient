@@ -49,7 +49,8 @@ public:
 		string customize;
 		string discuss;
 		string language;
-		string ipcheck;
+		string ipcheck4;
+		string ipcheck6;
 	} links;
 
 	void downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck);
@@ -69,7 +70,8 @@ public:
 		CONN_LANGUAGE_CHECK,
 		CONN_CLIENT,
 		CONN_SIGNATURE,
-		CONN_IP,
+		CONN_IP4,
+		CONN_IP6,
 
 		CONN_LAST
 	};
@@ -85,7 +87,7 @@ public:
 	void checkVersion(bool aManual);
 	void checkLanguage();
 
-	void checkIP(bool manual);
+	void checkIP(bool manual, bool v6);
 
 	void checkGeoUpdate();
 	//void updateGeo();
@@ -117,7 +119,7 @@ private:
 	void completeVersionDownload(bool manualCheck);
 	void completeLanguageDownload();
 	void completeUpdateDownload(int buildID, bool manualCheck);
-	void completeIPCheck(bool manualCheck);
+	void completeIPCheck(bool manualCheck, bool v6);
 
 	void failUpdateDownload(const string& aError, bool manualCheck);
 

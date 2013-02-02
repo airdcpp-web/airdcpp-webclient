@@ -41,6 +41,8 @@
 
 #ifdef _WIN32
 # include <ShlObj.h>
+#include <IPHlpApi.h>
+#pragma comment(lib, "iphlpapi.lib")
 #else
 # include <dirent.h>
 # include <sys/stat.h>
@@ -137,36 +139,64 @@ void AirUtil::updateCachedSettings() {
 	tempDLDir = Text::toLower(SETTING(TEMP_DOWNLOAD_DIRECTORY));
 }
 
-string AirUtil::getLocalIp() {
-	const auto& bindAddr = CONNSETTING(BIND_ADDRESS);
-	if(!bindAddr.empty() && bindAddr != SettingsManager::getInstance()->getDefault(SettingsManager::BIND_ADDRESS)) {
+void AirUtil::getIpAddresses(OrderedStringMap& addresses, bool v6) {
+	ULONG len =	8192; // begin with 8 kB, it should be enough in most of cases
+	for(int i = 0; i < 3; ++i)
+	{
+		PIP_ADAPTER_ADDRESSES adapterInfo = (PIP_ADAPTER_ADDRESSES)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+		ULONG ret = GetAdaptersAddresses(v6 ? AF_INET6 : AF_INET, GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, NULL, adapterInfo, &len);
+		bool freeObject = true;
+
+		if(ret == ERROR_SUCCESS)
+		{
+			for(PIP_ADAPTER_ADDRESSES pAdapterInfo = adapterInfo; pAdapterInfo != NULL; pAdapterInfo = pAdapterInfo->Next)
+			{
+				// we want only enabled ethernet interfaces
+				if(pAdapterInfo->OperStatus == IfOperStatusUp && (pAdapterInfo->IfType == IF_TYPE_ETHERNET_CSMACD || pAdapterInfo->IfType == IF_TYPE_IEEE80211))
+				{
+					PIP_ADAPTER_UNICAST_ADDRESS ua;
+					for (ua = pAdapterInfo->FirstUnicastAddress; ua != NULL; ua = ua->Next) {
+						//get the name of the adapter
+						char buf[BUFSIZ];
+						memset(buf, 0, BUFSIZ);
+						getnameinfo(ua->Address.lpSockaddr, ua->Address.iSockaddrLength, buf, sizeof(buf), NULL, 0,NI_NUMERICHOST);
+
+						//is it a local address?
+						/*SOCKADDR_IN6* pAddr = (SOCKADDR_IN6*) ua->Address.lpSockaddr;
+						BYTE prefix[8] = { 0xFE, 0x80 };
+						auto fLinkLocal = (memcmp(pAddr->sin6_addr.u.Byte, prefix, sizeof(prefix)) == 0);*/
+
+						addresses.emplace(buf, Text::fromT(tstring(pAdapterInfo->FriendlyName)));
+					}
+					freeObject = false;
+				}
+			}
+		}
+
+		if(freeObject)
+			HeapFree(GetProcessHeap(), 0, adapterInfo);
+
+		if(ret != ERROR_BUFFER_OVERFLOW)
+			break;
+	}
+}
+
+string AirUtil::getLocalIp(bool v6, bool allowPrivate /*true*/) {
+	const auto& bindAddr = v6 ? CONNSETTING(BIND_ADDRESS6) : CONNSETTING(BIND_ADDRESS);
+	if(!bindAddr.empty() && bindAddr != SettingsManager::getInstance()->getDefault(v6 ? SettingsManager::BIND_ADDRESS6 : SettingsManager::BIND_ADDRESS)) {
 		return bindAddr;
 	}
 
-	string tmp;
-
-	char buf[256];
-	gethostname(buf, 255);
-	hostent* he = gethostbyname(buf);
-	if(he == NULL || he->h_addr_list[0] == 0)
+	OrderedStringMap addresses;
+	getIpAddresses(addresses, v6);
+	if (addresses.empty())
 		return Util::emptyString;
-	sockaddr_in dest;
-	int i = 0;
 
-	// We take the first ip as default, but if we can find a better one, use it instead...
-	memcpy(&(dest.sin_addr), he->h_addr_list[i++], he->h_length);
-	tmp = inet_ntoa(dest.sin_addr);
-	if(Util::isPrivateIp(tmp) || strncmp(tmp.c_str(), "169", 3) == 0) {
-		while(he->h_addr_list[i]) {
-			memcpy(&(dest.sin_addr), he->h_addr_list[i], he->h_length);
-			string tmp2 = inet_ntoa(dest.sin_addr);
-			if(!Util::isPrivateIp(tmp2) && strncmp(tmp2.c_str(), "169", 3) != 0) {
-				tmp = tmp2;
-			}
-			i++;
-		}
-	}
-	return tmp;
+	auto p = boost::find_if(addresses | map_keys, [v6](const string& aAddress) { return !Util::isPrivateIp(aAddress, v6); });
+	if (p.base() != addresses.end())
+		return *p;
+
+	return allowPrivate ? addresses.begin()->second : Util::emptyString;
 }
 
 int AirUtil::getSlotsPerUser(bool download, double value, int aSlots) {
