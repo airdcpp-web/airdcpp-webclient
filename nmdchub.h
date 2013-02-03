@@ -61,13 +61,7 @@ public:
 	static string validateMessage(string tmp, bool reverse);
 	void refreshUserList(bool);
 
-	void getUserList(OnlineUserList& list) const {
-		Lock l(cs);
-		for(NickIter i = users.begin(); i != users.end(); i++) {
-				list.push_back(i->second);
-		}
-	}
-	
+	void getUserList(OnlineUserList& list) const;
 private:
 	friend class ClientManager;
 	enum SupportFlags {
@@ -83,6 +77,7 @@ private:
 
 	NickMap users;
 
+	string localIp;
 	string lastMyInfo;
 	uint64_t lastUpdate;	
 	int64_t lastBytesShared;
@@ -123,17 +118,18 @@ private:
 	void clearFlooders(uint64_t tick);
 
 	void updateFromTag(Identity& id, const string& tag);
+	void refreshLocalIp() noexcept;
 
 	string checkNick(const string& aNick);
 	virtual bool v4only() const { return true; }
 
 	// TimerManagerListener
-	void on(Second, uint64_t aTick) noexcept;
+	virtual void on(Second, uint64_t aTick) noexcept;
+	virtual void on(Minute, uint64_t aTick) noexcept;
 
 	void on(Connected) noexcept;
 	void on(Line, const string& l) noexcept;
 	void on(Failed, const string&) noexcept;
-
 };
 
 } // namespace dcpp

@@ -34,7 +34,11 @@ const string HubSettings::intNames[IntCount] = {
 namespace {
 inline bool defined(const string& s) { return !s.empty(); }
 inline bool defined(tribool b) { return !indeterminate(b); }
-inline bool defined(int b) { return b > -1; }
+inline bool defined(int b) { return b > numeric_limits<int>::min(); }
+}
+
+int HubSettings::getMinInt() { 
+	return numeric_limits<int>::min(); 
 }
 
 HubSettings::HubSettings() {
@@ -44,7 +48,7 @@ HubSettings::HubSettings() {
 	}
 
 	for(auto& setting: ints) {
-		setting = -1;
+		setting = getMinInt();
 	}
 }
 

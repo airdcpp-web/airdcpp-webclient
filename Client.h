@@ -98,9 +98,9 @@ public:
 
 	const string& getIp() const { return ip; }
 	string getIpPort() const { return getIp() + ':' + port; }
-	string getLocalIp() const;
 
-	void updated(const OnlineUserPtr& aUser) { fire(ClientListener::UserUpdated(), this, aUser); }
+	void updated(const OnlineUserPtr& aUser);
+	void updated(OnlineUserList& users);
 
 	static int getTotalCounts() {
 		return counts[COUNT_NORMAL] + counts[COUNT_REGISTERED] + counts[COUNT_OP];

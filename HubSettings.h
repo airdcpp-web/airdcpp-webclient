@@ -71,6 +71,7 @@ struct HubSettings
 
 	HubSettings();
 
+	static int getMinInt();
 	const string& get(HubStrSetting setting) const;
 	const tribool& get(HubBoolSetting setting) const;
 	const int& get(HubIntSetting setting) const;

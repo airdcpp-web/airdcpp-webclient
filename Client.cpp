@@ -153,6 +153,16 @@ bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) {
 	return newValue;
 }
 
+void Client::updated(const OnlineUserPtr& aUser) { 
+	fire(ClientListener::UserUpdated(), this, aUser); 
+}
+
+void Client::updated(OnlineUserList& users) {
+	//std::for_each(users.begin(), users.end(), [](OnlineUser* user) { UserMatchManager::getInstance()->match(*user); });
+
+	fire(ClientListener::UsersUpdated(), this, users);
+}
+
 const string& Client::getUserIp4() const {
 	if(!get(UserIp).empty()) {
 		return get(UserIp);
@@ -176,7 +186,7 @@ bool Client::isActiveV4() const {
 }
 
 bool Client::isActiveV6() const {
-	return !v4only() && get(HubSettings::Connection6) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED;
+	return !v4only() && get(HubSettings::Connection6) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED;
 }
 
 void Client::connect() {
@@ -326,27 +336,6 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 		counts[countType]++;
 	}
 	return true;
-}
-
-string Client::getLocalIp() const {
-	// Favorite hub Ip
-	if(!getUserIp4().empty())
-		return Socket::resolve(getUserIp4());
-
-	// Best case - the server detected it
-	if((!SETTING(NO_IP_OVERRIDE) || SETTING(EXTERNAL_IP).empty()) && !getMyIdentity().getIp().empty()) {
-		return getMyIdentity().getIp();
-	}
-
-	if(!SETTING(EXTERNAL_IP).empty()) {
-		return Socket::resolve(SETTING(EXTERNAL_IP));
-	}
-
-	if(localIp.empty()) {
-		return AirUtil::getLocalIp(false);
-	}
-
-	return localIp;
 }
 
 uint64_t Client::queueSearch(Search* aSearch){

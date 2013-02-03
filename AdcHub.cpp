@@ -1441,7 +1441,7 @@ void AdcHub::on(Connected c) noexcept {
 	cmd.addParam(ZLIF_SUPPORT);
 
 	bool usingV6 = sock->isV6Valid();
-	if ((CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED || !usingV6) && (CONNSETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED) || usingV6)
+	if ((get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED || !usingV6) && (get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED || usingV6))
 		cmd.addParam(HBRI_SUPPORT);
 
 	send(cmd);

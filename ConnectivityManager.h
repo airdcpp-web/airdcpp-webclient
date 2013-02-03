@@ -62,7 +62,7 @@ public:
 	void detectConnection();
 	void setup(bool settingsChanged);
 	void editAutoSettings();
-	bool ok() const { return autoDetected; }
+	bool ok(bool v6) const { return v6 ? autoDetectedV6 : autoDetectedV4; }
 	bool isRunning() const { return runningV4 || runningV6; }
 	const string& getStatus(bool v6) const;
 	string getInformation() const;
@@ -93,7 +93,8 @@ private:
 	void listen();
 	void disconnect();
 
-	bool autoDetected;
+	bool autoDetectedV4;
+	bool autoDetectedV6;
 	bool runningV4;
 	bool runningV6;
 

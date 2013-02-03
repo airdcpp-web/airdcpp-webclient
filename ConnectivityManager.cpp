@@ -33,7 +33,8 @@
 namespace dcpp {
 
 ConnectivityManager::ConnectivityManager() :
-autoDetected(false),
+autoDetectedV4(false),
+autoDetectedV6(false),
 runningV4(false),
 runningV6(false),
 mapperV6(true),
@@ -138,7 +139,8 @@ void ConnectivityManager::detectConnection() {
 		return;
 	}
 
-	autoDetected = true;
+	autoDetectedV4 = runningV4;
+	autoDetectedV6 = runningV6;
 
 	if(runningV4 && !AirUtil::getLocalIp(false, false).empty()) {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
@@ -166,14 +168,14 @@ void ConnectivityManager::detectConnection() {
 
 void ConnectivityManager::setup(bool settingsChanged) {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
-		if(!autoDetected) {
+		if(!autoDetectedV6 || !autoDetectedV4) {
 			detectConnection();
 		}
 	} else {
-		if(autoDetected) {
+		if(autoDetectedV6 || autoDetectedV4) {
 			autoSettings.clear();
 		}
-		if(autoDetected || settingsChanged) {
+		if(autoDetectedV6 || autoDetectedV4 || settingsChanged) {
 			if(settingsChanged || (SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_ACTIVE_UPNP)) {
 				mapperV4.close();
 			}
@@ -214,44 +216,46 @@ string ConnectivityManager::getInformation() const {
 		return "Connectivity settings are being configured; try again later";
 	}
 
-	string autoStatusV4 = ok() ? str(boost::format("enabled - %1%") % getStatus(false)) : "disabled";
-	string autoStatusV6 = ok() ? str(boost::format("enabled - %1%") % getStatus(true)) : "disabled";
+	string autoStatusV4 = ok(false) ? str(boost::format("enabled - %1%") % getStatus(false)) : "disabled";
+	string autoStatusV6 = ok(true) ? str(boost::format("enabled - %1%") % getStatus(true)) : "disabled";
 
-	string mode;
-
-	switch(CONNSETTING(INCOMING_CONNECTIONS)) {
-	case SettingsManager::INCOMING_ACTIVE:
-		{
-			mode = "Direct connection to the Internet (no router)";
-			break;
+	auto getMode = [&](bool v6) -> string { 
+		switch(CONNSETTING(INCOMING_CONNECTIONS)) {
+		case SettingsManager::INCOMING_ACTIVE:
+			{
+				return "Direct connection to the Internet (no router or manual router configuration)";
+				break;
+			}
+		case SettingsManager::INCOMING_ACTIVE_UPNP:
+			{
+				return str(boost::format("Active mode behind a router that %1% can configure; port mapping status: %2%") % APPNAME % (v6 ? mapperV6.getStatus() : mapperV4.getStatus()));
+				break;
+			}
+		case SettingsManager::INCOMING_PASSIVE:
+			{
+				return "Passive mode";
+				break;
+			}
+		default:
+			return "Disabled";
 		}
-	case SettingsManager::INCOMING_ACTIVE_UPNP:
-		{
-			mode = str(boost::format("Active mode behind a router that %1% can configure; port mapping status: %2%") %
-				APPNAME % mapperV4.getStatus());
-			break;
-		}
-	case SettingsManager::INCOMING_PASSIVE:
-		{
-			mode = "Passive mode";
-			break;
-		}
-	}
+	};
 
 	auto field = [](const string& s) { return s.empty() ? "undefined" : s; };
 
 	return str(boost::format(
 		"Connectivity information:\n\n"
 		"Automatic connectivity setup (v4) is: %1%\n\n"
-		"Automatic connectivity setup (v6) is: %1%\n\n"
-		"\t%2%\n"
-		"\tExternal IP (v4): %3%\n"
-		"\tExternal IP (v6): %4%\n"
-		"\tBound interface (v4): %5%\n"
-		"\tBound interface (v6): %6%\n"
-		"\tTransfer port: %7%\n"
-		"\tEncrypted transfer port: %8%\n"
-		"\tSearch port: %9%") % autoStatusV4 % autoStatusV6 % mode %
+		"Automatic connectivity setup (v6) is: %2%\n\n"
+		"\tMode (v4): %3%\n"
+		"\tMode (v6): %4%\n"
+		"\tExternal IP (v4): %5%\n"
+		"\tExternal IP (v6): %6%\n"
+		"\tBound interface (v4): %7%\n"
+		"\tBound interface (v6): %8%\n"
+		"\tTransfer port: %9%\n"
+		"\tEncrypted transfer port: %10%\n"
+		"\tSearch port: %11%") % autoStatusV4 % autoStatusV6 % getMode(false) % getMode(true) %
 		field(CONNSETTING(EXTERNAL_IP)) % field(CONNSETTING(EXTERNAL_IP6)) %
 		field(CONNSETTING(BIND_ADDRESS)) % field(CONNSETTING(BIND_ADDRESS6)) %
 		field(ConnectionManager::getInstance()->getPort()) % field(ConnectionManager::getInstance()->getSecurePort()) %
@@ -336,7 +340,8 @@ StringList ConnectivityManager::getMappers(bool v6) const {
 }
 
 void ConnectivityManager::startSocket() {
-	autoDetected = false;
+	autoDetectedV4 = false;
+	autoDetectedV6 = false;
 
 	disconnect();
 
