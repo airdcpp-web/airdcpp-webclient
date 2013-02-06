@@ -331,10 +331,9 @@ bool Identity::updateConnectMode(const Identity& me) {
 }
 
 bool Identity::allowV6Connections() const {
-	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6;
+	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6 || connectMode == MODE_PASSIVE_V6_UNKNOWN ;
 }
 
-tstring old = Util::emptyStringT;
 bool OnlineUser::update(int sortCol, const tstring& oldText) {
 	bool needsSort = ((identity.get("WO").empty() ? false : true) != identity.isOp());
 	

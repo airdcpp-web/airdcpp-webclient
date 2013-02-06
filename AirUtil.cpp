@@ -139,7 +139,7 @@ void AirUtil::updateCachedSettings() {
 	tempDLDir = Text::toLower(SETTING(TEMP_DOWNLOAD_DIRECTORY));
 }
 
-void AirUtil::getIpAddresses(OrderedStringMap& addresses, bool v6) {
+void AirUtil::getIpAddresses(IPMap& addresses, bool v6) {
 	ULONG len =	8192; // begin with 8 kB, it should be enough in most of cases
 	for(int i = 0; i < 3; ++i)
 	{
@@ -166,7 +166,7 @@ void AirUtil::getIpAddresses(OrderedStringMap& addresses, bool v6) {
 						BYTE prefix[8] = { 0xFE, 0x80 };
 						auto fLinkLocal = (memcmp(pAddr->sin6_addr.u.Byte, prefix, sizeof(prefix)) == 0);*/
 
-						addresses.emplace(buf, Text::fromT(tstring(pAdapterInfo->FriendlyName)));
+						addresses.emplace(buf, make_pair(Text::fromT(tstring(pAdapterInfo->FriendlyName)), ua->OnLinkPrefixLength));
 					}
 					freeObject = false;
 				}
@@ -187,7 +187,7 @@ string AirUtil::getLocalIp(bool v6, bool allowPrivate /*true*/) {
 		return bindAddr;
 	}
 
-	OrderedStringMap addresses;
+	IPMap addresses;
 	getIpAddresses(addresses, v6);
 	if (addresses.empty())
 		return Util::emptyString;
@@ -196,7 +196,7 @@ string AirUtil::getLocalIp(bool v6, bool allowPrivate /*true*/) {
 	if (p.base() != addresses.end())
 		return *p;
 
-	return allowPrivate ? addresses.begin()->second : Util::emptyString;
+	return allowPrivate ? addresses.begin()->second.first : Util::emptyString;
 }
 
 int AirUtil::getSlotsPerUser(bool download, double value, int aSlots) {

@@ -18,8 +18,10 @@
 
 #include "stdinc.h"
 #include "Mapper_MiniUPnPc.h"
+#include "AirUtil.h"
 
 #include "Util.h"
+#include "Socket.h"
 
 extern "C" {
 #ifndef STATICLIB
@@ -42,6 +44,49 @@ bool Mapper_MiniUPnPc::supportsProtocol(bool v6) const {
 	return true;
 }
 
+uint32_t IPToUInt(const std::string ip) {
+    int a, b, c, d;
+    uint32_t addr = 0;
+ 
+    if (sscanf(ip.c_str(), "%d.%d.%d.%d", &a, &b, &c, &d) != 4)
+        return 0;
+ 
+    addr = a << 24;
+    addr |= b << 16;
+    addr |= c << 8;
+    addr |= d;
+    return addr;
+}
+
+bool isIPInRange(const string& aIP1, const string& aIP2, uint8_t mask, bool v6) {
+	if (!v6) {
+		int result1 = IPToUInt(aIP1) & mask;
+		int result2 = IPToUInt(aIP2) & mask;
+
+		return result1 == result2;
+	} else {
+		if (mask & 16)
+			return false;
+
+		in6_addr addr1, addr2;
+
+		auto p = aIP1.find("%");
+		inet_pton(AF_INET6, (p != string::npos ? aIP1.substr(0, p) : aIP1).c_str(), &addr1);
+
+		p = aIP2.find("%");
+		inet_pton(AF_INET6, (p != string::npos ? aIP2.substr(0, p) : aIP2).c_str(), &addr2);
+
+		//reset the non-common bytes
+		int resetPos = 16-((128-mask) / 16);
+		for (int i = resetPos; i < 16; ++i) {
+			addr1.u.Byte[i] = 0;
+			addr2.u.Byte[i] = 0;
+		}
+
+		return memcmp(addr1.u.Byte, addr2.u.Byte, 16) == 0;
+	}
+}
+
 bool Mapper_MiniUPnPc::init() {
 	if(!url.empty())
 		return true;
@@ -57,6 +102,27 @@ bool Mapper_MiniUPnPc::init() {
 
 	bool ok = ret == 1;
 	if(ok) {
+		if (localIp.empty()) {
+			AirUtil::IPMap addresses;
+			AirUtil::getIpAddresses(addresses, v6);
+	
+			auto remoteIP = string(string(data.urlbase).empty() ?  urls.controlURL : data.urlbase);
+			auto start = remoteIP.find("//");
+			if (start != string::npos) {
+				start = start+2;
+				auto end = remoteIP.find(":", start);
+				if (end != string::npos) {
+					remoteIP = Socket::resolve(remoteIP.substr(start, end-start), v6 ? AF_INET6 : AF_INET);
+					if (!remoteIP.empty()) {
+						auto p = boost::find_if(addresses, [&remoteIP, this](const pair<string, pair<string, uint8_t>>& ipp) { return isIPInRange(ipp.first, remoteIP, ipp.second.second, v6); });
+						if (p != addresses.end()) {
+							localIp = p->first;
+						}
+					}
+				}
+			}
+		}
+
 		url = urls.controlURL;
 		service = data.first.servicetype;
 		device = data.CIF.friendlyName;

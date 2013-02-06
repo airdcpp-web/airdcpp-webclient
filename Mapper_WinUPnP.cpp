@@ -83,7 +83,7 @@ bool Mapper_WinUPnP::add(const string& port, const Protocol protocol, const stri
 	/// @todo use a BSTR wrapper
 	BSTR protocol_ = SysAllocString(Text::toT(protocols[protocol]).c_str());
 	BSTR description_ = SysAllocString(Text::toT(description).c_str());
-	BSTR localIP = SysAllocString(Text::toT(localIp).c_str());
+	BSTR localIP = !localIp.empty() ? SysAllocString(Text::toT(localIp).c_str()) : nullptr;
 	auto port_ = Util::toInt(port);
 
 	IStaticPortMapping* pSPM = 0;

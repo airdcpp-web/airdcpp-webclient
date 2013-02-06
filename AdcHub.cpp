@@ -751,11 +751,15 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 	if (!c.getParam(v6 ? "I6" : "I4", 0, hubUrl)) 
 		return;
 
+	string port;
+	if (!c.getParam(v6 ? "P6" : "P4", 0, port)) 
+		return;
+
 
 	fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")));
 
 	hbriThread = std::async([=] {
-		sendHBRI(hubUrl, token, v6);
+		sendHBRI(hubUrl, port, token, v6);
 		callAsync([this] { 
 			hbriThread.get();
 			//if (state != STATE_NORMAL) {
@@ -765,12 +769,12 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 	});
 }
 
-void AdcHub::sendHBRI(const string& aHubUrl, const string& aToken, bool v6) {
+void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aToken, bool v6) {
 	//ScopedFunctor([this] { hbriThread.get(); }); //make sure that it gets reset
 
 	// Parse the address
-	string address, proto, query, fragment, port, file;
-	Util::decodeUrl(aHubUrl, proto, address, port, file, query, fragment);
+	//string address, proto, query, fragment, port, file;
+	//Util::decodeUrl(aHubUrl, proto, address, port, file, query, fragment);
 
 	// Construct the command we are going to send
 	string su;
@@ -780,9 +784,10 @@ void AdcHub::sendHBRI(const string& aHubUrl, const string& aToken, bool v6) {
 	appendSupportsAndConnectivity(state == STATE_NORMAL ? dummyMap : lastInfoMap, hbriCmd, !v6, v6);
 	hbriCmd.addParam("TO", aToken);
 
+	bool secure = strnicmp("adcs://", getHubUrl().c_str(), 7) == 0;
 	try {
 		// Create the socket
-		unique_ptr<Socket> hbri(stricmp(proto, "adcs") == 0 ? CryptoManager::getInstance()->getClientSocket(SETTING(ALLOW_UNTRUSTED_HUBS)) : new Socket(Socket::TYPE_TCP));
+		unique_ptr<Socket> hbri(secure ? CryptoManager::getInstance()->getClientSocket(SETTING(ALLOW_UNTRUSTED_HUBS)) : new Socket(Socket::TYPE_TCP));
 		if (v6) {
 			hbri->setLocalIp6(SETTING(BIND_ADDRESS6));
 			hbri->setV4only(false);
@@ -792,7 +797,7 @@ void AdcHub::sendHBRI(const string& aHubUrl, const string& aToken, bool v6) {
 		}
 
 		// Connect
-		hbri->connect(address, port);
+		hbri->connect(aIP, aPort);
 
 		auto endTime = GET_TICK() + 5000; //wait max 5 seconds
 		bool connSucceeded;
@@ -805,7 +810,7 @@ void AdcHub::sendHBRI(const string& aHubUrl, const string& aToken, bool v6) {
 
 			// Send our command
 			auto snd = hbriCmd.toString(sid);
-			COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, hbri->getIp() + ":" + port);
+			COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, hbri->getIp() + ":" + aPort);
 			hbri->write(snd);
 
 			// Wait for the hub to reply
@@ -821,7 +826,7 @@ void AdcHub::sendHBRI(const string& aHubUrl, const string& aToken, bool v6) {
 
 				// We got our reply
 				string l = string ((char*)&buf[0], read);
-				COMMAND_DEBUG(l, DebugManager::TYPE_HUB, DebugManager::INCOMING, hbri->getIp() + ":" + port);
+				COMMAND_DEBUG(l, DebugManager::TYPE_HUB, DebugManager::INCOMING, hbri->getIp() + ":" + aPort);
 
 				try {
 					AdcCommand response(l);

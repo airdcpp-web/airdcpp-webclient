@@ -66,7 +66,7 @@ public:
 	virtual const string& getName() const = 0;
 	virtual bool supportsProtocol(bool v6) const = 0;
 protected:
-	const string localIp;
+	string localIp;
 	const bool v6;
 private:
 	/** add a port mapping rule. */

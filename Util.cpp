@@ -725,20 +725,7 @@ wstring Util::formatExactSize(int64_t aBytes) {
 
 bool Util::isPrivateIp(const string& ip, bool v6) {
 	if (v6) {
-		/*struct sockaddr_in6 sendAddr;
-		int sendAddrSize = sizeof(sendAddr);
-
-		auto tmp = Text::toT(ip).c_str();
-		if (WSAStringToAddress(targetIp, AF_INET6, NULL, (LPSOCKADDR)&sendAddr, &sendAddrSize)) {
-			BYTE prefix[8] = { 0xFE, 0x80 };
-			auto fLinkLocal = (memcmp(sendAddr.sin6_addr.u.Byte, prefix, sizeof(prefix)) == 0);
-
-			return fLinkLocal;
-		}*/
-
-		struct sockaddr_in6 addr6;
-		inet_pton(AF_INET6, ip.data(), &addr6.sin6_addr);
-		return IN6_IS_ADDR_LINKLOCAL(&addr6.sin6_addr) ? true : false;
+		return ip.find("%") != string::npos;
 	} else {
 		struct in_addr addr;
 

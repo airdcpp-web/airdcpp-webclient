@@ -128,7 +128,7 @@ private:
 	void clearUsers();
 	void appendSupportsAndConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, bool v6);
 	std::future<void> hbriThread;
-	void sendHBRI(const string& aTargetIP, const string& aToken, bool v6);
+	void sendHBRI(const string& aIP, const string& aPort, const string& aToken, bool v6);
 
 	void handle(AdcCommand::SUP, AdcCommand& c) noexcept;
 	void handle(AdcCommand::SID, AdcCommand& c) noexcept;
