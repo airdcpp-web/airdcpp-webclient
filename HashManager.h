@@ -105,6 +105,8 @@ public:
 	bool pauseHashing();
 	void resumeHashing(bool forced = false);	
 	bool isHashingPaused() const;
+
+	GETSET(uint64_t, nextSave, NextSave);
 private:
 	int pausers;
 	class Hasher : public Thread {
@@ -125,7 +127,7 @@ private:
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed);
 		void shutdown();
 		void scheduleRebuild();
-		void save() { saveData = true; s.signal(); if(paused) t_resume(); }
+		void save();
 
 		bool hasDevice(const string& aID) const { return devices.find(aID) != devices.end(); }
 		bool hasDevices() { return !devices.empty(); }
@@ -191,6 +193,7 @@ private:
 
 		void load();
 		void save();
+		void countNextSave();
 
 		void rebuild();
 
@@ -265,16 +268,10 @@ private:
 
 	void hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size, int hasherID = 0);
 
-	void doRebuild() {
-		// its useless to allow hashing with other threads during rebuild. ( TODO: Disallow resuming and show something in hashprogress )
-		HashPauser pause;
-		store.rebuild();
-	}
+	void doRebuild();
 	void SaveData() {
 		store.save();
 	}
-
-	uint64_t lastSave;
 
 	void on(TimerManagerListener::Minute, uint64_t) noexcept;
 };

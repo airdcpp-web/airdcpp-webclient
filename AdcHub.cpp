@@ -76,12 +76,13 @@ AdcHub::~AdcHub() {
 }
 
 void AdcHub::shutdown() {
-	Client::shutdown();
-	TimerManager::getInstance()->removeListener(this);
-
+	closing = true;
 	if (hbriThread.valid()) {
 		hbriThread.wait();
 	}
+
+	Client::shutdown();
+	TimerManager::getInstance()->removeListener(this);
 }
 
 OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {

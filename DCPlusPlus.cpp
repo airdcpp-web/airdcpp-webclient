@@ -170,7 +170,7 @@ void shutdown(function<void (const string&)> f) {
 	
 	announce(STRING(SAVING_SETTINGS));
 	AutoSearchManager::getInstance()->AutoSearchSave();
-	QueueManager::getInstance()->saveQueue(true);
+	QueueManager::getInstance()->saveQueue(false);
 	SettingsManager::getInstance()->save();
 
 	announce(STRING(SHUTTING_DOWN));

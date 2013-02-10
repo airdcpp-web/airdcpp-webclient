@@ -279,7 +279,7 @@ void ConnectivityManager::startMapping(bool v6) {
 void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
 	if(SETTING(AUTO_DETECT_CONNECTION)) {
 		if(mapper.empty()) {
-			disconnect();
+			//disconnect();
 			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
 			log(STRING(CONN_ACTIVE_FAILED), LogManager::LOG_WARNING, v6 ? TYPE_V6 : TYPE_V4);
 		} else {

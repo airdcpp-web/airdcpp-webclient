@@ -904,7 +904,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const OrderedString
 		userQueue.addDownload(q, d);
 
 		fire(QueueManagerListener::SourcesUpdated(), q);
-		dcdebug("found %s\n", q->getTarget().c_str());
+		dcdebug("found %s (%u, %u)\n", q->getTarget().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
 		return d;
 	}
 }
@@ -1350,6 +1350,8 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 			} else if(d->getType() == Transfer::TYPE_FILE) {
 				d->setOverlapped(false);
 				q->addFinishedSegment(d->getSegment());
+				//dcdebug("Finish segment");
+				dcdebug("Finish segment (%u,%u)\n", d->getSegment().getStart(), d->getSegment().getEnd());
 
 				if(q->isFinished()) {
 					d->close();

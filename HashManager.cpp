@@ -45,12 +45,12 @@ CriticalSection HashManager::Hasher::hcs;
 static const uint32_t HASH_FILE_VERSION = 2;
 const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
 
-HashManager::HashManager(): lastSave(0), pausers(0), aShutdown(false) {
+HashManager::HashManager(): nextSave(0), pausers(0), aShutdown(false) {
 	TimerManager::getInstance()->addListener(this);
 }
 
 HashManager::~HashManager() {
-	TimerManager::getInstance()->removeListener(this);
+	//TimerManager::getInstance()->removeListener(this);
 }
 
 bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp) {
@@ -447,6 +447,11 @@ void HashManager::HashStore::rebuild() {
 	}
 }
 
+void HashManager::HashStore::countNextSave() {
+	//TODO: improve this
+	getInstance()->setNextSave(GET_TICK()+15*60*1000);
+}
+
 void HashManager::HashStore::save() {
 	if(saving.test_and_set())
 		return;
@@ -505,6 +510,8 @@ void HashManager::HashStore::save() {
 			LogManager::getInstance()->message(STRING(ERROR_SAVING_HASH) + " " + e.getError(), LogManager::LOG_ERROR);
 		}
 	}
+
+	countNextSave();
 	saving.clear();
 }
 
@@ -535,6 +542,7 @@ private:
 void HashManager::HashStore::load() {
 	if (SettingsManager::lanMode)
 		return;
+
 	try {
 		Util::migrate(getIndexFile());
 
@@ -544,6 +552,8 @@ void HashManager::HashStore::load() {
 	} catch (const Exception&) {
 		// ...
 	}
+
+	countNextSave();
 }
 
 static const string sHashStore = "HashStore";
@@ -742,7 +752,9 @@ void HashManager::Hasher::scheduleRebuild() {
 }
 
 void HashManager::shutdown() {
+	TimerManager::getInstance()->removeListener(this);
 	aShutdown = true;
+
 	{
 		Lock l(Hasher::hcs);
 		for (auto h: hashers) {
@@ -762,7 +774,8 @@ void HashManager::shutdown() {
 		Thread::sleep(50);
 	}
 
-	store.save(); 
+	if (store.isDirty())
+		store.save(); 
 }
 
 void HashManager::Hasher::clear() {
@@ -1058,12 +1071,22 @@ bool HashManager::isHashingPaused() const {
 }
 
 void HashManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
-	if(GET_TICK() - lastSave > 15*60*1000 && store.isDirty()) { 
-		lastSave = GET_TICK();
-
-		Lock l(Hasher::hcs);
+	if(GET_TICK() > nextSave && store.isDirty()) {
 		hashers.front()->save();
 	}
+}
+
+void HashManager::Hasher::save() { 
+	saveData = true; 
+	s.signal(); 
+	if(paused) 
+		t_resume(); 
+}
+
+void HashManager::doRebuild() {
+	// its useless to allow hashing with other threads during rebuild. ( TODO: Disallow resuming and show something in hashprogress )
+	HashPauser pause;
+	store.rebuild();
 }
 
 } // namespace dcpp

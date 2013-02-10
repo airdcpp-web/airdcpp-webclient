@@ -66,7 +66,6 @@ void Client::reconnect() {
 }
 
 void Client::shutdown() {
-	closing = true;
 	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	TimerManager::getInstance()->removeListener(this);
 
