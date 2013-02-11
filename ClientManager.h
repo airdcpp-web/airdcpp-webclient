@@ -39,6 +39,9 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	private ClientListener, public Singleton<ClientManager>, 
 	private TimerManagerListener
 {
+	typedef unordered_map<CID*, UserPtr> UserMap;
+	typedef UserMap::iterator UserIter;
+
 public:
 	Client* createClient(const string& aHubURL);
 	Client* getClient(const string& aHubURL);
@@ -63,8 +66,10 @@ public:
 
 	StringPairList getHubs(const CID& cid, const string& hintUrl);
 
-	vector<Identity> getIdentities(const UserPtr &u) const;
-
+	map<string, Identity> getIdentities(const UserPtr &u) const;
+	
+	//get a nick and hub match, update the hint if empty.
+	string getNick(const UserPtr& u, string& hintUrl) const;
 
 	string getConnection(const HintedUser& aUser) const;
 	string getDLSpeed(const CID& cid) const;
@@ -82,6 +87,9 @@ public:
 
 	UserPtr getUser(const string& aNick, const string& aHubUrl) noexcept;
 	UserPtr getUser(const CID& cid) noexcept;
+
+	// usage needs to be locked!
+	const UserMap& getUsers() const { return users; }
 
 	string findHub(const string& ipPort) const;
 	const string& findHubEncoding(const string& aUrl) const;
@@ -141,9 +149,6 @@ public:
 
 	void resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr aDefaultProfile);
 private:
-
-	typedef unordered_map<CID*, UserPtr> UserMap;
-	typedef UserMap::iterator UserIter;
 
 	typedef unordered_map<CID*, std::string> NickMap;
 

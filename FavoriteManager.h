@@ -81,6 +81,7 @@ public:
 	void addFavoriteUser(const HintedUser& aUser);
 	bool isFavoriteUser(const UserPtr& aUser) const { Lock l(cs); return users.find(aUser->getCID()) != users.end(); }
 	void removeFavoriteUser(const UserPtr& aUser);
+	optional<FavoriteUser> getFavoriteUser(const UserPtr& aUser) const;
 
 	bool hasSlot(const UserPtr& aUser) const;
 	void setUserDescription(const UserPtr& aUser, const string& description);

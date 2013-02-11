@@ -204,6 +204,12 @@ void FavoriteManager::removeFavoriteUser(const UserPtr& aUser) {
 	}
 }
 
+optional<FavoriteUser> FavoriteManager::getFavoriteUser(const UserPtr &aUser) const {
+	Lock l(cs);
+	auto i = users.find(aUser->getCID());
+	return i == users.end() ? optional<FavoriteUser>() : i->second;
+}
+
 std::string FavoriteManager::getUserURL(const UserPtr& aUser) const {
 	Lock l(cs);
 	auto i = users.find(aUser->getCID());

@@ -1617,6 +1617,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Validation failed: %s. %s connectivity has been disabled in this hub.", 
 "Validation succeed", 
 "The hub returned an invalid response", 
+"Show/Hide user information", 
+"Favorite", 
+"Auto grant slot", 
 "Preferred port mapping interface", 
 };
 std::string dcpp::ResourceManager::names[] = {
@@ -3235,5 +3238,8 @@ std::string dcpp::ResourceManager::names[] = {
 "HbriValidationFailed", 
 "ValidationSucceed", 
 "InvalidHubResponse", 
+"ShowHideInformation", 
+"Favorite", 
+"AutoGrantSlot", 
 "PreferredMapper", 
 };

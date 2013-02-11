@@ -718,6 +718,16 @@ bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::M
 	return wantConnection;
 	
 }
+int64_t QueueManager::getUserQueuedSize(const UserPtr& u) {
+	RLock l(cs);
+	int64_t ret = 0;
+	QueueItemList ql;
+	userQueue.getUserQIs(u, ql);
+	for(auto& qi: ql) {
+		ret += qi->getSize();
+	}
+	return ret;
+}
 
 QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, bool smallSlot) noexcept {
 	RLock l(cs);

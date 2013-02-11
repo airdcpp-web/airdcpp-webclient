@@ -194,6 +194,8 @@ public:
 	
 	bool dropSource(Download* d);
 
+	int64_t getUserQueuedSize(const UserPtr& u);
+
 	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, int64_t& fileSize_, string& tempTarget);
 	string getBundlePath(const string& aBundleToken) const;
 	
