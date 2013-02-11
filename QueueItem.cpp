@@ -561,30 +561,21 @@ void QueueItem::getPartialInfo(PartsInfo& partialInfo, int64_t blockSize) const 
 	}
 }
 
-vector<Segment> QueueItem::getChunksVisualisation(int type) const {  // type: 0 - downloaded bytes, 1 - running chunks, 2 - done chunks
-	vector<Segment> v;
-
-	switch(type) {
-	case 0:
-		v.reserve(downloads.size());
-		for(auto d: downloads) {
-			v.push_back(d->getSegment());
-		}
-		break;
-	case 1:
-		v.reserve(downloads.size());
-		for(auto d: downloads) {
-			v.emplace_back(d->getStartPos(), d->getPos());
-		}
-		break;
-	case 2:
-		v.reserve(done.size());
-		for(auto& i: done) {
-			v.push_back(i);
-		}
-		break;
+void QueueItem::getChunksVisualisation(vector<Segment>& running_, vector<Segment>& downloaded_, vector<Segment>& done_) const {  // type: 0 - downloaded bytes, 1 - running chunks, 2 - done chunks
+	running_.reserve(downloads.size());
+	for(auto d: downloads) {
+		running_.push_back(d->getSegment());
 	}
-	return v;
+
+	downloaded_.reserve(downloads.size());
+	for(auto d: downloads) {
+		downloaded_.emplace_back(d->getStartPos(), d->getPos());
+	}
+
+	done_.reserve(done.size());
+	for(auto& i: done) {
+		done_.push_back(i);
+	}
 }
 
 bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {

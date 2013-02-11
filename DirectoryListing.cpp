@@ -684,19 +684,19 @@ uint8_t DirectoryListing::Directory::checkShareDupes() {
 	bool first = true;
 	for(auto d: directories) {
 		result = d->checkShareDupes();
-		if(getDupe() == DUPE_NONE && first)
+		if(dupe == DUPE_NONE && first)
 			setDupe((DupeType)result);
 
 		//full dupe with same type for non-dupe dir, change to partial (or pass partial dupes to upper level folder)
-		else if((result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE) && getDupe() == DUPE_NONE && !first)
+		else if((result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE) && (dupe == DUPE_NONE || dupe == SHARE_DUPE) && !first)
 			setDupe(PARTIAL_SHARE_DUPE);
-		else if((result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE) && getDupe() == DUPE_NONE && !first)
+		else if((result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE) && (dupe == DUPE_NONE || dupe == QUEUE_DUPE) && !first)
 			setDupe(PARTIAL_QUEUE_DUPE);
 
 		//change to mixed dupe type
-		else if((getDupe() == SHARE_DUPE || getDupe() == PARTIAL_SHARE_DUPE) && (result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE))
+		else if((getDupe() == SHARE_DUPE || dupe == PARTIAL_SHARE_DUPE) && (result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE))
 			setDupe(SHARE_QUEUE_DUPE);
-		else if((getDupe() == QUEUE_DUPE || getDupe() == PARTIAL_QUEUE_DUPE) && (result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE))
+		else if((getDupe() == QUEUE_DUPE || dupe == PARTIAL_QUEUE_DUPE) && (result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE))
 			setDupe(SHARE_QUEUE_DUPE);
 
 		else if (result == SHARE_QUEUE_DUPE)

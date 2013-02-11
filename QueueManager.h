@@ -116,7 +116,7 @@ public:
 	Bundle::SourceInfoList getBadBundleSources(const BundlePtr& b) const { RLock l(cs); return b->getBadSources(); }
 
 	size_t getSourcesCount(const QueueItemPtr& qi) const { RLock l(cs); return qi->getSources().size(); }
-	vector<Segment> getChunksVisualisation(const QueueItemPtr& qi, int type) const { RLock l(cs); return qi->getChunksVisualisation(type); }
+	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
 
 	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
 	Download* getDownload(UserConnection& aSource, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, bool smallSlot) noexcept;

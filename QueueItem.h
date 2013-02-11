@@ -209,7 +209,7 @@ public:
 	bool isBadSource(const UserPtr& aUser) const { return getBadSource(aUser) != badSources.end(); }
 	bool isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions, bool& isBad_) const;
 	
-	vector<Segment> getChunksVisualisation(int type) const;
+	void getChunksVisualisation(vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const;
 
 	bool isChunkDownloaded(int64_t startPos, int64_t& len) const;
 

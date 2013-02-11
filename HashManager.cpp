@@ -49,9 +49,7 @@ HashManager::HashManager(): nextSave(0), pausers(0), aShutdown(false) {
 	TimerManager::getInstance()->addListener(this);
 }
 
-HashManager::~HashManager() {
-	//TimerManager::getInstance()->removeListener(this);
-}
+HashManager::~HashManager() { }
 
 bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp) {
 	if (!store.checkTTH(Text::toLower(aFileName), aSize, aTimeStamp)) {
@@ -752,8 +750,8 @@ void HashManager::Hasher::scheduleRebuild() {
 }
 
 void HashManager::shutdown() {
-	TimerManager::getInstance()->removeListener(this);
 	aShutdown = true;
+	TimerManager::getInstance()->removeListener(this);
 
 	{
 		Lock l(Hasher::hcs);
