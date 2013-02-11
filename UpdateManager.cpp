@@ -240,14 +240,12 @@ void UpdateManager::completeSignatureDownload(bool manualCheck) {
 
 	if(conn->buf.empty()) {
 		failUpdateDownload(STRING_F(DOWNLOAD_SIGN_FAILED, conn->status), manualCheck);
-		return;
+	} else {
+		versionSig.assign(conn->buf.begin(), conn->buf.end());
 	}
 
-	size_t sig_size = static_cast<size_t>(conn->buf.size());
-	versionSig.resize(sig_size);
-	memcpy(&versionSig[0], conn->buf.c_str(), sig_size);
-
 	conns[CONN_VERSION].reset(new HttpDownload(VERSION_URL,
+	//conns[CONN_VERSION].reset(new HttpDownload("http://beta.airdcpp.net/testversion/version.xml",
 		[this, manualCheck] { completeVersionDownload(manualCheck); }, false));
 }
 
@@ -417,9 +415,9 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		return; 
 	}
 
-	if(!UpdateManager::verifyVersionData(conn->buf, versionSig)) {
+	bool verified = !versionSig.empty() && UpdateManager::verifyVersionData(conn->buf, versionSig);
+	if(!verified) {
 		failUpdateDownload(STRING(VERSION_VERIFY_FAILED), manualCheck);
-		return;
 	}
 
 	try {
@@ -487,7 +485,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			if(xml.findChild(UPGRADE_TAG)) {
 				updateUrl = xml.getChildData();
 				updateTTH = xml.getChildAttrib("TTH");
-				autoUpdateEnabled = xml.getIntChildAttrib("MinUpdateRev") <= ownBuild;
+				autoUpdateEnabled = (verified && xml.getIntChildAttrib("MinUpdateRev") <= ownBuild);
 			}
 			xml.resetCurrentChild();
 
@@ -502,7 +500,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 				fire(UpdateManagerListener::BadVersion(), msg, url, updateUrl, remoteBuild, autoUpdateEnabled);
 			};
 
-			if(xml.findChild("VeryOldVersion")) {
+			if(verified && xml.findChild("VeryOldVersion")) {
 				if(Util::toInt(xml.getChildData()) >= ownBuild) {
 					reportBadVersion();
 					return;
@@ -510,7 +508,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			}
 			xml.resetCurrentChild();
 
-			if(xml.findChild("BadVersion")) {
+			if(verified && xml.findChild("BadVersion")) {
 				xml.stepIn();
 				while(xml.findChild("BadVersion")) {
 					double v = Util::toDouble(xml.getChildAttrib("Version"));
@@ -610,7 +608,9 @@ void UpdateManager::checkVersion(bool aManual) {
 		return;
 	}
 
+	versionSig.clear();
 	conns[CONN_SIGNATURE].reset(new HttpDownload(static_cast<string>(VERSION_URL) + ".sign",
+	//conns[CONN_SIGNATURE].reset(new HttpDownload("http://beta.airdcpp.net/testversion/version.xml.sign",
 		[this, aManual] { completeSignatureDownload(aManual); }, false));
 }
 
