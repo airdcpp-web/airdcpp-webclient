@@ -60,7 +60,7 @@ private:
 		virtual int run() noexcept;
 
 		Semaphore s;
-		boost::lockfree::queue<PacketTask> queue;
+		boost::lockfree::queue<PacketTask*> queue;
 	private:
 		bool stop;
 	};

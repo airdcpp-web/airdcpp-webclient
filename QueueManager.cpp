@@ -1299,7 +1299,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				q->getOnlineUsers(getConn);
 			}
 
-			userQueue.removeDownload(q, d->getUser());
+			userQueue.removeDownload(q, d->getUser(), d->getToken());
 			fire(QueueManagerListener::StatusUpdated(), q);
 		} else { // Finished
 			if(d->getType() == Transfer::TYPE_PARTIAL_LIST) {
@@ -1320,7 +1320,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				fileQueue.remove(q);
 			} else if(d->getType() == Transfer::TYPE_TREE) {
 				//add it in hashmanager outside the lock
-				userQueue.removeDownload(q, d->getUser());
+				userQueue.removeDownload(q, d->getUser(), d->getToken());
 				fire(QueueManagerListener::StatusUpdated(), q);
 			} else if(d->getType() == Transfer::TYPE_FULL_LIST) {
 				d->close();
@@ -1373,7 +1373,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 							fileQueue.remove(q);
 					}
 				} else {
-					userQueue.removeDownload(q, d->getUser());
+					userQueue.removeDownload(q, d->getUser(), d->getToken());
 					fire(QueueManagerListener::StatusUpdated(), q);
 
 					//the segment finished, don't close the file in this point in case we continue with the same one

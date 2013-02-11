@@ -155,7 +155,7 @@ void UserQueue::removeQI(QueueItemPtr& qi, bool removeRunning /*true*/, bool fir
 void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool fireSources /*false*/) {
 
 	if(removeRunning) {
-		removeDownload(qi, aUser);
+		removeDownload(qi, aUser, Util::emptyString);
 	}
 
 	dcassert(qi->isSource(aUser));

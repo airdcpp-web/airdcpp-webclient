@@ -419,6 +419,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 					}
 				}
 			} else {
+				dcassert(find_if(downloads.begin(), downloads.end(), [&block](const Download* d) { return block.getEnd() == d->getSegment().getEnd(); }) == downloads.end());
 				return block;
 			}
 		}

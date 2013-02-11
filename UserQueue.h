@@ -38,7 +38,7 @@ public:
 	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	void addDownload(QueueItemPtr& qi, Download* d);
-	void removeDownload(QueueItemPtr& qi, const UserPtr& d, const string& token = Util::emptyString);
+	void removeDownload(QueueItemPtr& qi, const UserPtr& d, const string& aToken);
 
 	void removeQI(QueueItemPtr& qi, bool removeRunning = true, bool fireSources = false);
 	void removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning=true, bool addBad=false, bool fireSources=false);

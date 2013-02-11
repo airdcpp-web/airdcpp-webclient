@@ -87,7 +87,7 @@ int UDPServer::run() {
 
 			buf = new uint8_t[BUFSIZE];
 			if((len = socket->read(buf, BUFSIZE, remoteAddr)) > 0) {
-				pp.queue.push(move(PacketProcessor::PacketTask(buf, len, remoteAddr)));
+				pp.queue.push(new PacketProcessor::PacketTask(buf, len, remoteAddr));
 				pp.s.signal();
 				continue;
 			}
@@ -142,20 +142,20 @@ int UDPServer::PacketProcessor::run() {
 		if (stop)
 			break;
 
-		PacketTask t;
+		unique_ptr<PacketTask> t;
 		if(!queue.pop(t)) {
 			continue;
 		}
 
-		string x((char*)t.buf, t.len);
-		string remoteIp = move(t.remoteIp);
+		string x((char*)t->buf, t->len);
+		string remoteIp = move(t->remoteIp);
 
 		//check if this packet has been encrypted
-		if (SETTING(ENABLE_SUDP) && t.len >= 32 && ((t.len & 15) == 0)) {
-			SearchManager::getInstance()->decryptPacket(x, t.len, t.buf, BUFSIZE);
+		if (SETTING(ENABLE_SUDP) && t->len >= 32 && ((t->len & 15) == 0)) {
+			SearchManager::getInstance()->decryptPacket(x, t->len, t->buf, BUFSIZE);
 		}
 			
-		delete t.buf;
+		delete t->buf;
 		if (x.empty())
 			continue;
 
