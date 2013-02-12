@@ -1621,6 +1621,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Favorite", 
 "Auto grant slot", 
 "Preferred port mapping interface", 
+"The %s bind address %s doesn't appear to be available. Do you want to switch to listen to all interfaces?", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3242,4 +3243,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Favorite", 
 "AutoGrantSlot", 
 "PreferredMapper", 
+"BindAddressMissing", 
 };

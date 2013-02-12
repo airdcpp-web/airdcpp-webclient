@@ -1625,5 +1625,6 @@ enum Strings { // @DontAdd
 	FAVORITE, // "Favorite"
 	AUTO_GRANT_SLOT, // "Auto grant slot"
 	PREFERRED_MAPPER, // "Preferred port mapping interface"
+	BIND_ADDRESS_MISSING, // "The %s bind address %s doesn't appear to be available. Do you want to switch to listen to all interfaces?"
 	LAST // @DontAdd
 };

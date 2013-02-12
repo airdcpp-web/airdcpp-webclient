@@ -589,7 +589,7 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 size_t Bundle::countOnlineUsers() const noexcept {
 	size_t users = 0;
 	int files = 0;
-	for(auto i: sources) {
+	for(const auto& i: sources) {
 		if(get<SOURCE_USER>(i).user->isOnline()) {
 			users++;
 			files += get<SOURCE_FILES>(i);
@@ -599,7 +599,7 @@ size_t Bundle::countOnlineUsers() const noexcept {
 }
 
 tstring Bundle::getBundleText() noexcept {
-	double percent = (currentDownloaded+finishedSegments) > size ? 100.00 : (double)((currentDownloaded+finishedSegments)*100.0)/(double)size;
+	double percent = size <= 0 ? 0.00 : (double)((currentDownloaded+finishedSegments)*100.0)/(double)size;
 	if (fileBundle) {
 		return Text::toT(getName());
 	} else {

@@ -160,7 +160,7 @@ void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunn
 		}
 		if (qi->getBundle()->removeUserQueue(qi, aUser, addBad)) {
 			removeBundle(bundle, aUser);
-			if (!fireSources) {
+			if (fireSources) {
 				QueueManager::getInstance()->fire(QueueManagerListener::BundleSources(), bundle);
 			}
 		} else {

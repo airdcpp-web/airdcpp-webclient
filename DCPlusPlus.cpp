@@ -55,7 +55,7 @@
 #include "format.h"
 namespace dcpp {
 
-void startup(function<void (const string&)> splashF, function<void (const string&)> messageF, function<void ()> runWizard) {
+void startup(function<void (const string&)> splashF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF, function<void ()> runWizard) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
 	while(1) break;

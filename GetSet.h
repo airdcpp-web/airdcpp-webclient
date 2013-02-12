@@ -21,7 +21,7 @@
 
 //#pragma warning(disable:4100)
 
-/* adds a private member variable to a class and provides public get & set member functions to
+/* adds a protected member variable to a class and provides public get & set member functions to
 access it. */
 
 #include <type_traits>
@@ -29,7 +29,7 @@ access it. */
 #ifndef DCPLUSPLUS_SIMPLE_GETSET
 
 #define GETSET(t, name, name2) \
-private: t name; \
+protected: t name; \
 public: std::conditional<std::is_class<t>::value, const t&, t>::type get##name2() const { return name; } \
 	template<typename GetSetT> void set##name2(GetSetT&& name) { this->name = std::forward<GetSetT>(name); }
 

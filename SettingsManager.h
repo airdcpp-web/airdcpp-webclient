@@ -358,7 +358,7 @@ public:
 
 	void unset(size_t key) { isSet[key] = false; }
 
-	void load(function<void (const string&)> messageF) {
+	void load(function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF) {
 		Util::migrate(getConfigFile());
 		return load(getConfigFile(), messageF);
 	}
@@ -366,7 +366,7 @@ public:
 		save(getConfigFile());
 	}
 
-	void load(const string& aFileName, function<void (const string&)> messageF);
+	void load(const string& aFileName, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF);
 	void save(const string& aFileName);
 	
 	void reloadPages(int group = 0) {

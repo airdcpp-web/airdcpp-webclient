@@ -738,7 +738,7 @@ SettingsManager::SettingsManager()
 #endif
 }
 
-void SettingsManager::load(string const& aFileName, function<void (const string&)> messageF) {
+void SettingsManager::load(string const& aFileName, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF) {
 	try {
 		SimpleXML xml;
 		
@@ -905,7 +905,7 @@ You can customize those settings for each favorite hub if needed")
 				% getSettingTextStr(STRING(SETTINGS_EXTERNAL_IP) + "\t", SettingsManager::EXTERNAL_IP)
 				% getConnection());
 
-			messageF(msg);
+			messageF(msg, false);
 		}
 
 		if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
@@ -938,6 +938,21 @@ You can customize those settings for each favorite hub if needed")
 			set(TLS_PORT, (int)Util::rand(10000, 32000));
 		}
 	}
+
+	//check the bind address
+	auto checkBind = [&] (SettingsManager::StrSetting aSetting, bool v6) {
+		if (!isDefault(aSetting)) {
+			AirUtil::IpList addresses;
+			AirUtil::getIpAddresses(addresses, v6);
+			auto p = boost::find_if(addresses, [this, aSetting](const AirUtil::AddressInfo& aInfo) { return aInfo.ip == get(aSetting); });
+			if (p == addresses.end() && messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true)) {
+				set(aSetting, Util::emptyString);
+			}
+		}
+	};
+
+	checkBind(BIND_ADDRESS, false);
+	checkBind(BIND_ADDRESS6, true);
 }
 
 void SettingsManager::save(string const& aFileName) {

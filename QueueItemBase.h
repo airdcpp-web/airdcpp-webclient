@@ -46,19 +46,17 @@ public:
 	};
 
 	QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, Flags::MaskType aFlags);
-	//QueueItemBase(const QueueItemPtr qi);
 
-	const string& getTarget() { return target; }
+	virtual void setTarget(const string& aTarget) = 0;
 	int64_t getSize() { return size; }
+	const DownloadList& getDownloads() { return downloads; }
 
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
-	//GETSET(int64_t, size, Size);
 	GETSET(time_t, added, Added);
-
-	virtual void setTarget(const string& aTarget) = 0;
+	GETSET(string, target, Target);
+	GETSET(DownloadList, downloads, Downloads);
 protected:
-	string target;
 	int64_t size;
 };
 

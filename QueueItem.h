@@ -227,7 +227,6 @@ public:
 	uint64_t getDownloadedSegments() const;
 	double getDownloadedFraction() const;
 	
-	const DownloadList& getDownloads() { return downloads; }
 	void addDownload(Download* d);
 	void removeDownload(const string& aToken);
 	void removeDownloads(const UserPtr& aUser);
@@ -257,7 +256,6 @@ public:
 
 	GETSET(TTHValue, tthRoot, TTH);
 	GETSET(SegmentSet, done, Done);	
-	GETSET(DownloadList, downloads, Downloads);
 	GETSET(uint64_t, fileBegin, FileBegin);
 	GETSET(uint64_t, nextPublishingTime, NextPublishingTime);
 	GETSET(uint8_t, maxSegments, MaxSegments);

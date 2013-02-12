@@ -113,7 +113,6 @@ public:
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);	 // sources receiving UBN notifications (running only)
-	GETSET(DownloadList, downloads, Downloads);
 	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceInfoList, badSources, BadSources);
 	GETSET(SourceInfoList, sources, Sources);
@@ -124,7 +123,6 @@ public:
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
-	DownloadList& getDownloads() { return downloads; }
 	DirMap& getBundleDirs() { return bundleDirs; }
 	SourceInfoList& getBundleSources() { return sources; }
 	SourceInfoList& getBadSources() { return badSources; }

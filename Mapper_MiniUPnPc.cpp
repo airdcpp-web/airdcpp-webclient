@@ -40,7 +40,7 @@ Mapper(localIp, v6)
 {
 }
 
-bool Mapper_MiniUPnPc::supportsProtocol(bool v6) const {
+bool Mapper_MiniUPnPc::supportsProtocol(bool /*v6*/) const {
 	return true;
 }
 
@@ -103,7 +103,7 @@ bool Mapper_MiniUPnPc::init() {
 	bool ok = ret == 1;
 	if(ok) {
 		if (localIp.empty()) {
-			AirUtil::IPMap addresses;
+			AirUtil::IpList addresses;
 			AirUtil::getIpAddresses(addresses, v6);
 	
 			auto remoteIP = string(string(data.urlbase).empty() ?  urls.controlURL : data.urlbase);
@@ -114,9 +114,9 @@ bool Mapper_MiniUPnPc::init() {
 				if (end != string::npos) {
 					remoteIP = Socket::resolve(remoteIP.substr(start, end-start), v6 ? AF_INET6 : AF_INET);
 					if (!remoteIP.empty()) {
-						auto p = boost::find_if(addresses, [&remoteIP, this](const pair<string, pair<string, uint8_t>>& ipp) { return isIPInRange(ipp.first, remoteIP, ipp.second.second, v6); });
+						auto p = boost::find_if(addresses, [&remoteIP, this](const AirUtil::AddressInfo& aInfo) { return isIPInRange(aInfo.ip, remoteIP, aInfo.prefix, v6); });
 						if (p != addresses.end()) {
-							localIp = p->first;
+							localIp = p->ip;
 						}
 					}
 				}

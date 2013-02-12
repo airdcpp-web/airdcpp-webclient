@@ -67,8 +67,15 @@ class AirUtil {
 		static void updateCachedSettings();
 		static string getLocalIp(bool v6, bool allowPrivate = true);
 
-		typedef map<string, pair<string, uint8_t>> IPMap;
-		static void getIpAddresses(IPMap& addresses, bool v6);
+
+		struct AddressInfo {
+			AddressInfo(const string& aName, const string& aIP, uint8_t aPrefix) : adapterName(aName), ip(aIP), prefix(aPrefix) { }
+			string adapterName;
+			string ip;
+			uint8_t prefix;
+		};
+		typedef vector<AddressInfo> IpList;
+		static void getIpAddresses(IpList& addresses, bool v6);
 
 		static void setProfile(int profile, bool setSkiplist=false);
 		static int getSlotsPerUser(bool download, double value=0, int aSlots=0);

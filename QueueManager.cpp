@@ -3546,7 +3546,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 				}
 
 				if(!qi->isFinished()) {
-					userQueue.removeQI(qi, true, true);
+					userQueue.removeQI(qi, true, false);
 					fire(QueueManagerListener::Removed(), qi, false);
 				}
 
