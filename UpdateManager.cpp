@@ -523,7 +523,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 
 			//Check for updated version
 
-			if((remoteBuild > ownBuild && remoteBuild > installedUpdate) || manualCheck) {
+			if((remoteBuild > ownBuild && remoteBuild > installedUpdate && Util::toDouble(versionString) >= Util::toDouble(VERSIONSTRING)) || manualCheck) {
 				auto updateMethod = SETTING(UPDATE_METHOD);
 				if ((!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) || manualCheck) {
 					if(xml.findChild("Title")) {

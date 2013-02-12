@@ -914,7 +914,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const OrderedString
 		userQueue.addDownload(q, d);
 
 		fire(QueueManagerListener::SourcesUpdated(), q);
-		dcdebug("found %s (%u, %u)\n", q->getTarget().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
+		dcdebug("found %s for %s (%u, %u)\n", q->getTarget().c_str(), d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
 		return d;
 	}
 }
@@ -1309,7 +1309,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				q->getOnlineUsers(getConn);
 			}
 
-			userQueue.removeDownload(q, d->getUser(), d->getToken());
+			userQueue.removeDownload(q, d->getToken());
 			fire(QueueManagerListener::StatusUpdated(), q);
 		} else { // Finished
 			if(d->getType() == Transfer::TYPE_PARTIAL_LIST) {
@@ -1330,7 +1330,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				fileQueue.remove(q);
 			} else if(d->getType() == Transfer::TYPE_TREE) {
 				//add it in hashmanager outside the lock
-				userQueue.removeDownload(q, d->getUser(), d->getToken());
+				userQueue.removeDownload(q, d->getToken());
 				fire(QueueManagerListener::StatusUpdated(), q);
 			} else if(d->getType() == Transfer::TYPE_FULL_LIST) {
 				d->close();
@@ -1361,7 +1361,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				d->setOverlapped(false);
 				q->addFinishedSegment(d->getSegment());
 				//dcdebug("Finish segment");
-				dcdebug("Finish segment (%u,%u)\n", d->getSegment().getStart(), d->getSegment().getEnd());
+				dcdebug("Finish segment for %s (%u,%u)\n", d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
 
 				if(q->isFinished()) {
 					d->close();
@@ -1383,7 +1383,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 							fileQueue.remove(q);
 					}
 				} else {
-					userQueue.removeDownload(q, d->getUser(), d->getToken());
+					userQueue.removeDownload(q, d->getToken());
 					fire(QueueManagerListener::StatusUpdated(), q);
 
 					//the segment finished, don't close the file in this point in case we continue with the same one

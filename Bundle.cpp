@@ -124,7 +124,7 @@ bool Bundle::allowHash() const {
 
 void Bundle::setDownloadedBytes(int64_t aSize) {
 	dcassert(aSize + finishedSegments <= size);
-	dcassert(((aSize + finishedSegments)) >= currentDownloaded);
+	//dcassert(((aSize + finishedSegments)) >= currentDownloaded);
 	dcassert(((aSize + finishedSegments)) >= 0);
 	currentDownloaded = aSize;
 	dcassert(currentDownloaded <= size);
@@ -139,7 +139,6 @@ void Bundle::addFinishedSegment(int64_t aSize) {
 	tmp1 = accumulate(finishedFiles, tmp1, [&](int64_t old, QueueItemPtr qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
-	//LogManager::getInstance()->message("Adding segment with size " + Util::formatBytes(aSize) + ", total finished size " + Util::formatBytes(tmp1) + " (qi), " + Util::formatBytes(aSize + finishedSegments) + " (bundle)", LogManager::LOG_INFO);
 	dcassert(tmp1 == aSize + finishedSegments);
 #endif
 

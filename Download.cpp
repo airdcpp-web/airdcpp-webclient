@@ -73,10 +73,6 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 		}
 
 		if(treeValid) {
-			auto s = qi.getNextSegment(getTigerTree().getBlockSize(), conn.getChunkSize(), conn.getSpeed(), source->getPartialSource(), true);
-			if (conn.getDownload())
-				dcassert(conn.getDownload()->getSegment().getEnd() != s.getEnd());
-
 			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), conn.getChunkSize(), conn.getSpeed(), source->getPartialSource(), true));
 		} else if(conn.isSet(UserConnection::FLAG_SUPPORTS_TTHL) && !source->isSet(QueueItem::Source::FLAG_NO_TREE) && qi.getSize() > HashManager::MIN_BLOCK_SIZE) {
 			// Get the tree unless the file is small (for small files, we'd probably only get the root anyway)

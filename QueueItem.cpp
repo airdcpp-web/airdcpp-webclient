@@ -386,16 +386,16 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		int64_t end = std::min(size, start + curSize);
 		Segment block(start, end - start);
 		bool overlaps = false;
-		for(auto& i: done) {
+		for(auto i = done.begin(); !overlaps && i != done.end(); ++i) {
 			if(curSize <= blockSize) {
-				int64_t dstart = i.getStart();
-				int64_t dend = i.getEnd();
+				int64_t dstart = i->getStart();
+				int64_t dend = i->getEnd();
 				// We accept partial overlaps, only consider the block done if it is fully consumed by the done block
 				if(dstart <= start && dend >= end) {
 					overlaps = true;
 				}
 			} else {
-				overlaps = block.overlaps(i);
+				overlaps = block.overlaps(*i);
 			}
 		}
 		
@@ -419,7 +419,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 					}
 				}
 			} else {
-				dcassert(find_if(downloads.begin(), downloads.end(), [&block](const Download* d) { return block.getEnd() == d->getSegment().getEnd(); }) == downloads.end());
+				//dcassert(find_if(downloads.begin(), downloads.end(), [&block](const Download* d) { return block.getEnd() == d->getSegment().getEnd(); }) == downloads.end());
 				return block;
 			}
 		}
@@ -502,31 +502,42 @@ uint64_t QueueItem::getDownloadedBytes() const {
 }
 
 void QueueItem::addFinishedSegment(const Segment& segment) {
+#ifdef _DEBUG
+	if (bundle)
+		dcdebug("adding segment segment of size %u (%u, %u)...", segment.getSize(), segment.getStart(), segment.getEnd());
+#endif
+
 	dcassert(segment.getOverlapped() == false);
-	//LogManager::getInstance()->message("Adding segment with size " + Util::formatBytes(segment.getSize()) + ", total finished size " + Util::formatBytes(getDownloadedSegments()) + ", QI size " + Util::formatBytes(size), LogManager::LOG_INFO);
 	done.insert(segment);
 
 	// Consolidate segments
-	if(done.size() == 1) {
-		if (bundle)
-			bundle->addFinishedSegment(segment.getSize());
-		return;
-	}
-	
-	for(auto i = ++done.begin() ; i != done.end(); ) {
-		auto prev = i;
-		prev--;
-		if(prev->getEnd() >= i->getStart()) {
-			Segment big(prev->getStart(), i->getEnd() - prev->getStart());
-			auto newBytes = big.getSize() - prev->getSize(); //minus the part that has been counted before...
-			done.erase(prev);
-			done.erase(i++);
-			done.insert(big);
-			if (bundle)
-				bundle->addFinishedSegment(newBytes);
-		} else {
-			++i;
+
+	bool added = false;
+	if(done.size() != 1) {
+		for(auto i = ++done.begin() ; i != done.end(); ) {
+			auto prev = i;
+			prev--;
+			if(prev->getEnd() >= i->getStart()) {
+				Segment big(prev->getStart(), i->getEnd() - prev->getStart());
+				auto newBytes = big.getSize() - (*prev == segment ? i->getSize() : prev->getSize()); //minus the part that has been counted before...
+
+				done.erase(prev);
+				done.erase(i++);
+				done.insert(big);
+				if (bundle && !added) {
+					dcdebug("added %u for the bundle (segments merged)\n", newBytes);
+					bundle->addFinishedSegment(newBytes);
+				}
+				added = true;
+			} else {
+				++i;
+			}
 		}
+	}
+
+	if (!added && bundle) {
+		dcdebug("added %u for the bundle (no merging)\n", segment.getSize());
+		bundle->addFinishedSegment(segment.getSize());
 	}
 }
 
@@ -646,12 +657,17 @@ void QueueItem::searchAlternates() {
 		SearchManager::getInstance()->search(tthRoot.toBase32(), 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "qa", Search::ALT_AUTO);
 }
 
+void QueueItem::addDownload(Download* d) {
+	downloads.push_back(d);
+}
+
 void QueueItem::removeDownload(const string& aToken) {
 	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getToken(), aToken) == 0; });
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
 		downloads.erase(m);
-		return;
+	} else {
+		dcassert(0);
 	}
 }
 

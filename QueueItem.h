@@ -227,7 +227,8 @@ public:
 	uint64_t getDownloadedSegments() const;
 	double getDownloadedFraction() const;
 	
-	DownloadList& getDownloads() { return downloads; }
+	const DownloadList& getDownloads() { return downloads; }
+	void addDownload(Download* d);
 	void removeDownload(const string& aToken);
 	void removeDownloads(const UserPtr& aUser);
 	
