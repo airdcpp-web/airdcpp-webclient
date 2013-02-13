@@ -1622,6 +1622,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Preferred port mapping interface", 
 "The %s bind address %s doesn't appear to be available. Do you want to switch to listen to all interfaces?", 
 "Show warning about trying to download already shared files", 
+"Duplicate", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3244,4 +3245,5 @@ std::string dcpp::ResourceManager::names[] = {
 "PreferredMapper", 
 "BindAddressMissing", 
 "SettingsLogAlreadyShared", 
+"Duplicate", 
 };

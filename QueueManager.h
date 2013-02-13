@@ -52,7 +52,6 @@
 
 #include "boost/unordered_map.hpp"
 #include "boost/bimap.hpp"
-#include <boost/bimap/set_of.hpp>
 #include <boost/bimap/unordered_multiset_of.hpp>
 
 namespace dcpp {

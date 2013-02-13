@@ -46,6 +46,9 @@ using boost::max_element;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
+AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) { 
+
+}
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
 	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,

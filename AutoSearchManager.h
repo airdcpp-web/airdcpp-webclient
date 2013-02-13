@@ -98,6 +98,7 @@ public:
 		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime, bool aCheckAlreadyQueued, 
 		bool aCheckAlreadyShared, bool matchFullPath, ProfileToken aToken = 0) noexcept;
 
+	AutoSearch() noexcept;
 	~AutoSearch();
 	typedef map<BundlePtr, Status> BundleStatusMap;
 	typedef map<string, time_t> FinishedPathMap;
