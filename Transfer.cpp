@@ -81,18 +81,18 @@ int64_t Transfer::getSecondsLeft(bool wholeFile) const {
 
 void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const {
 	params["userCID"] = [&] { return  aSource.getUser()->getCID().toBase32(); };
-	params["userNI"] = [&] { return Util::toString(ClientManager::getInstance()->getNicks(aSource.getUser()->getCID(), aSource.getHubUrl())); };
+	params["userNI"] = [&] { return Util::toString(ClientManager::getInstance()->getNicks(aSource.getUser()->getCID())); };
 	params["userI4"] = [&] { return aSource.getRemoteIp(); };
 
 	params["hub"] = [&] {
-		StringList hubNames = ClientManager::getInstance()->getHubNames(aSource.getUser()->getCID(), aSource.getHubUrl());
+		StringList hubNames = ClientManager::getInstance()->getHubNames(aSource.getUser()->getCID());
 		if(hubNames.empty())
 			hubNames.push_back(STRING(OFFLINE));
 		return Util::toString(hubNames);
 	};
 
 	params["hubURL"] = [&] { 
-		StringList hubs = ClientManager::getInstance()->getHubUrls(aSource.getUser()->getCID(), aSource.getHubUrl());
+		StringList hubs = ClientManager::getInstance()->getHubUrls(aSource.getUser()->getCID());
 		if(hubs.empty())
 			hubs.push_back(STRING(OFFLINE));
 		return Util::toString(hubs); 

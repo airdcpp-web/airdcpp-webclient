@@ -102,7 +102,7 @@ void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) {
 	}
 }
 
-StringList ClientManager::getHubUrls(const CID& cid, const string& /*hintUrl*/) const {
+StringList ClientManager::getHubUrls(const CID& cid) const {
 	StringList lst;
 
 	RLock l(cs);
@@ -124,7 +124,7 @@ OrderedStringSet ClientManager::getHubSet(const CID& cid) const {
 	return lst;
 }
 
-StringList ClientManager::getHubNames(const CID& cid, const string& /*hintUrl*/) const {
+StringList ClientManager::getHubNames(const CID& cid) const {
 	StringList lst;
 
 	RLock l(cs);
@@ -137,7 +137,7 @@ StringList ClientManager::getHubNames(const CID& cid, const string& /*hintUrl*/)
 	return lst;
 }
 
-StringPairList ClientManager::getHubs(const CID& cid, const string& /*hintUrl*/) {
+StringPairList ClientManager::getHubs(const CID& cid) {
 	RLock l(cs);
 	StringPairList lst;
 	auto op = onlineUsers.equal_range(const_cast<CID*>(&cid));
@@ -147,7 +147,7 @@ StringPairList ClientManager::getHubs(const CID& cid, const string& /*hintUrl*/)
 	return lst;
 }
 
-StringList ClientManager::getNicks(const CID& cid, const string& /*hintUrl*/) const {
+StringList ClientManager::getNicks(const CID& cid) const {
 	set<string> ret;
 
 	{
@@ -182,14 +182,14 @@ map<string, Identity> ClientManager::getIdentities(const UserPtr &u) const {
 	return ret;
 }
 
-string ClientManager::getNick(const UserPtr& u, string& hint) const {
+string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFallback /*true*/) const {
 	RLock l(cs);
 	OnlinePairC p;
 	auto ou = findOnlineUserHint(u->getCID(), hint, p);
 	if(ou)
 		return ou->getIdentity().getNick();
-	if(p.first != p.second){
-		hint = p.first->second->getHubUrl();
+
+	if(allowFallback && p.first != p.second){
 		return p.first->second->getIdentity().getNick();
 	}
 

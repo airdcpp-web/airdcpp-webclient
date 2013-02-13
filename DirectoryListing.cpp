@@ -1047,7 +1047,7 @@ int DirectoryListing::run() {
 		} catch(const ShareException& e) {
 			fire(DirectoryListingListener::LoadingFailed(), e.getError());
 		} catch(const Exception& e) {
-			fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNicks(getUser()->getCID(), hintedUser.hint)[0] + ": " + e.getError());
+			fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) + ": " + e.getError());
 		}
 	}
 

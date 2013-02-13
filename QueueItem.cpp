@@ -733,7 +733,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 		f.write(LIT("\t<Source CID=\""));
 		f.write(cid.toBase32());
 		f.write(LIT("\" Nick=\""));
-		f.write(SimpleXML::escape(ClientManager::getInstance()->getNicks(cid, hint)[0], tmp, true));
+		f.write(SimpleXML::escape(ClientManager::getInstance()->getNick(j.getUser(), hint), tmp, true));
 		if(!hint.empty()) {
 			f.write(LIT("\" HubHint=\""));
 			f.write(hint);

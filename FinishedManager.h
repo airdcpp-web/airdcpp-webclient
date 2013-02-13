@@ -53,26 +53,7 @@ public:
 	{
 	}
 
-	const tstring getText(uint8_t col) const {
-		dcassert(col >= 0 && col < COLUMN_LAST);
-		switch(col) {
-			case COLUMN_FILE: return Text::toT(Util::getFileName(getTarget()));
-			case COLUMN_DONE: return Text::toT(Util::formatTime("%Y-%m-%d %H:%M:%S", getTime()));
-			case COLUMN_PATH: return Text::toT(Util::getFilePath(getTarget()));
-			case COLUMN_NICK: return Text::toT(Util::toString(ClientManager::getInstance()->getNicks(getUser())));
-			case COLUMN_HUB: return Text::toT(Util::toString(ClientManager::getInstance()->getHubNames(getUser()))); 
-			case COLUMN_SIZE: return Util::formatBytesW(getSize());
-			case COLUMN_SPEED: return Util::formatBytesW(getAvgSpeed()) + _T("/s");
-			case COLUMN_TYPE: {
-			tstring filetype = Text::toT(Util::getFileExt(Text::fromT(getText(COLUMN_FILE))));
-						if(!filetype.empty() && filetype[0] == _T('.'))
-							filetype.erase(0, 1);
-						return filetype;
-							  }
-			default: return Util::emptyStringT;
-		}
-	}
-
+	const tstring getText(uint8_t col) const;
 	static int compareItems(const FinishedItem* a, const FinishedItem* b, uint8_t col) {
 		switch(col) {
 			case COLUMN_SPEED:	return compare(a->getAvgSpeed(), b->getAvgSpeed());

@@ -54,22 +54,21 @@ public:
 	string getField(const CID& cid, const string& hintUrl, const char* field) const;
 
 	OrderedStringSet getHubSet(const CID& cid) const;
-	StringList getHubUrls(const CID& cid, const string& hintUrl = Util::emptyString) const;
-	StringList getHubNames(const CID& cid, const string& hintUrl = Util::emptyString) const;
-	StringList getNicks(const CID& cid, const string& hintUrl = Util::emptyString) const;
+	StringList getHubUrls(const CID& cid) const;
+	StringList getHubNames(const CID& cid) const;
+	StringList getNicks(const CID& cid) const;
 	pair<int64_t, int> getShareInfo(const HintedUser& user) const;
 	void getUserInfoList(const UserPtr user, User::UserInfoList& aList_) const;
 
-	StringList getNicks(const HintedUser& user) { return getNicks(user.user->getCID(), user.hint); }
-	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID(), user.hint); }
-	StringList getHubUrls(const HintedUser& user) { return getHubUrls(user.user->getCID(), user.hint); }
+	StringList getNicks(const HintedUser& user) { return getNicks(user.user->getCID()); }
+	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID()); }
+	StringList getHubUrls(const HintedUser& user) { return getHubUrls(user.user->getCID()); }
 
-	StringPairList getHubs(const CID& cid, const string& hintUrl);
+	StringPairList getHubs(const CID& cid);
 
 	map<string, Identity> getIdentities(const UserPtr &u) const;
 	
-	//get a nick and hub match, update the hint if empty.
-	string getNick(const UserPtr& u, string& hintUrl) const;
+	string getNick(const UserPtr& u, const string& hintUrl, bool allowFallback = true) const;
 
 	string getConnection(const HintedUser& aUser) const;
 	string getDLSpeed(const CID& cid) const;
