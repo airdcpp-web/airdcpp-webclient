@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_MANAGER_H
 #define DCPLUSPLUS_DCPP_QUEUE_MANAGER_H
 
+# pragma warning(disable: 4512) // assignment operator could not be generated (bimap)
+
 #include "TimerManager.h"
 #include "ClientManager.h"
 
@@ -49,8 +51,13 @@
 #include "HashBloom.h"
 
 #include "boost/unordered_map.hpp"
+#include "boost/bimap.hpp"
+#include <boost/bimap/set_of.hpp>
+#include <boost/bimap/unordered_multiset_of.hpp>
 
 namespace dcpp {
+
+namespace bimaps = boost::bimaps;
 
 STANDARD_EXCEPTION(QueueException);
 
@@ -67,13 +74,11 @@ public:
 	size_t getQueuedFiles() const noexcept;
 	bool hasDownloadedBytes(const string& aTarget) throw(QueueException);
 
-	bool allowAdd(const string& aTarget, const TTHValue& root) throw(QueueException, FileException);
 	/** Add a file to the queue. */
 	void addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath,
 		Flags::MaskType aFlags = 0, bool addBad = true, QueueItemBase::Priority aPrio = QueueItem::DEFAULT, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch = 0) throw(QueueException, FileException);
 		/** Add a user's filelist to the queue. */
-	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
-	void addListDir(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString) throw(QueueException, FileException);
+	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, BundlePtr aBundle=nullptr) throw(QueueException, FileException);
 
 	/** Readd a source that was removed */
 	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
@@ -96,9 +101,7 @@ public:
 
 	StringList getTargets(const TTHValue& tth);
 	void readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue);
-	//const QueueItem::StringMap& getQueue() noexcept { RLock l (cs); return fileQueue.getQueue(); } ;
-	//const QueueItem::StringMap& lockQueue() noexcept { cs.lock(); return fileQueue.getQueue(); } ;
-	//void unlockQueue() noexcept { cs.unlock(); }
+
 	void onSlowDisconnect(const string& aToken);
 	bool getAutoDrop(const string& aToken);
 
@@ -321,6 +324,9 @@ private:
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 
 	DelayedEvents<string> delayEvents;
+
+	typedef boost::bimap<bimaps::unordered_multiset_of<string>, bimaps::unordered_multiset_of<string>> StringMultiBiMap;
+	StringMultiBiMap matchLists;
 };
 
 } // namespace dcpp

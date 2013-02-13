@@ -227,7 +227,7 @@ uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
 #endif
 }
 
-size_t QueueItem::countOnlineUsers() const {
+int QueueItem::countOnlineUsers() const {
 	return count_if(sources.begin(), sources.end(), [](const Source& s) { return s.getUser().user->isOnline(); } );
 }
 

@@ -54,7 +54,7 @@ namespace dcpp {
 		DirectoryListingManager();
 		~DirectoryListingManager();
 
-		void processList(const string& name, const HintedUser& user, const string& path, int flags);
+		void processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags);
 		void processListAction(DirectoryListingPtr aList, const string& path, int flags);
 
 		void addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,

@@ -92,6 +92,7 @@ public:
 
 	GETSET(string, token, Token);
 	GETSET(uint64_t, start, Start);
+	GETSET(time_t, lastSearch, LastSearch);			// last time when the bundle was searched for
 	GETSET(time_t, dirDate, DirDate);				// the directory modify date picked from the remote filelist when the bundle has been queued
 	GETSET(bool, simpleMatching, SimpleMatching);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
 	GETSET(bool, seqOrder, SeqOrder);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
@@ -168,7 +169,7 @@ public:
 	pair<uint32_t, uint32_t> getPathInfo(const string& aDir) const noexcept;
 	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept;
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
-	size_t countOnlineUsers() const noexcept;
+	int countOnlineUsers() const noexcept;
 
 	Priority calculateProgressPriority() const;
 	multimap<QueueItemPtr, pair<int64_t, double>> getQIBalanceMaps() noexcept;

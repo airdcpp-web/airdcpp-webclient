@@ -197,7 +197,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 	}
 }
 
-void DirectoryListingManager::processList(const string& name, const HintedUser& user, const string& aPath, int flags) {
+void DirectoryListingManager::processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags) {
 	{
 		RLock l(cs);
 		auto p = viewedLists.find(user.user);
@@ -205,27 +205,27 @@ void DirectoryListingManager::processList(const string& name, const HintedUser& 
 			if (p->second->getPartialList()) {
 				if(flags & QueueItem::FLAG_TEXT) {
 					//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
-					p->second->addPartialListTask(name, aPath, [=] { processListAction(p->second, aPath, flags); });
+					p->second->addPartialListTask(aXml, aRemotePath, [=] { processListAction(p->second, aRemotePath, flags); });
 					return;
 				}
 			}
 		}
 	}
 
-	DirectoryListing* dirList = new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, name, false, false);
+	DirectoryListing* dirList = new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, aFileName, false, false);
 	try {
 		if(flags & QueueItem::FLAG_TEXT) {
-			MemoryInputStream mis(name);
-			dirList->loadXML(mis, true, aPath);
+			MemoryInputStream mis(aXml);
+			dirList->loadXML(mis, true, aRemotePath);
 		} else {
-			dirList->loadFile(name);
+			dirList->loadFile(aFileName);
 		}
 	} catch(const Exception&) {
-		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + name, LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + aFileName, LogManager::LOG_ERROR);
 		return;
 	}
 
-	processListAction(DirectoryListingPtr(dirList), aPath, flags);
+	processListAction(DirectoryListingPtr(dirList), aRemotePath, flags);
 }
 
 void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const string& path, int flags) {

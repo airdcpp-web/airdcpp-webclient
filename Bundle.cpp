@@ -46,7 +46,7 @@ Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, 
 
 	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
 	dirty(aDirty), dirDate(0), simpleMatching(true), recent(false), 
-	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0), autoSearches(aAutoSearches) {
+	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0), autoSearches(aAutoSearches), lastSearch(0) {
 
 
 	setAutoPriority(qi->getAutoPriority());
@@ -63,7 +63,7 @@ Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, const ProfileTokenSet& aAutoSearches /*empty*/, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/) : 
 	QueueItemBase(aTarget, 0, aPriority, aAdded, FLAG_NEW), 
 	fileBundle(false), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true),
-	dirty(aDirty), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearches(aAutoSearches) {
+	dirty(aDirty), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearches(aAutoSearches), lastSearch(0) {
 
 	if (aToken.empty()) {
 		token = ConnectionManager::getInstance()->tokens.getToken();
@@ -586,9 +586,8 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 	return speedSourceMap;
 }
 
-size_t Bundle::countOnlineUsers() const noexcept {
-	size_t users = 0;
-	int files = 0;
+int Bundle::countOnlineUsers() const noexcept {
+	int files=0, users=0;
 	for(const auto& i: sources) {
 		if(get<SOURCE_USER>(i).user->isOnline()) {
 			users++;

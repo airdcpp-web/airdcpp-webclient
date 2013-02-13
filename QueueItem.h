@@ -93,6 +93,8 @@ public:
 		FLAG_XML_BZLIST			= 0x20,
 		/** Only download a part of the file list */
 		FLAG_PARTIAL_LIST 		= 0x40,
+		/** Open directly with an external program after the file has been downloaded */
+		FLAG_OPEN				= 0x80,
 		/** Find NFO from partial list and view it */
 		FLAG_VIEW_NFO			= 0x100,
 		/** Recursive partial list */
@@ -103,12 +105,12 @@ public:
 		FLAG_FINISHED			= 0x800,
 		/** A finished bundle item that has also been moved */
 		FLAG_MOVED				= 0x1000,
-		/** Open directly with an external program after the file has been downloaded */
-		FLAG_OPEN				= 0x2000,
 		/** A hashed bundle item */
 		FLAG_HASHED				= 0x4000,
 		/** A private file that won't be added in share and it's not available via partial sharing */
-		FLAG_PRIVATE			= 0x8000
+		FLAG_PRIVATE			= 0x8000,
+		/** Associated to a specific bundle for matching */
+		FLAG_MATCH_BUNDLE		= 0x16000
 	};
 
 	/**
@@ -187,7 +189,7 @@ public:
 	void searchAlternates();
 
 	void save(OutputStream &save, string tmp, string b32tmp);
-	size_t countOnlineUsers() const;
+	int countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
 	bool hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
 	bool startDown();

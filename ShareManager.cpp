@@ -1918,7 +1918,7 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 		xmlFile.write(LITERAL("\">\r\n"));
 
 		indent += '\t';
-		for(auto& d: listDirs | map_values) {
+		for(const auto& d: listDirs | map_values) {
 			d->toXml(xmlFile, indent, tmp2, fullList);
 		}
 
@@ -1928,8 +1928,8 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("</Directory>\r\n"));
 	} else {
-		bool hasDirs = any_of(shareDirs.begin(), shareDirs.end(), [](Directory::Ptr d) { return !d->directories.empty(); });
-		if(!hasDirs && all_of(shareDirs.begin(), shareDirs.end(), [](Directory::Ptr d) { return d->files.empty(); })) {
+		bool hasDirs = any_of(shareDirs.begin(), shareDirs.end(), [](const Directory::Ptr& d) { return !d->directories.empty(); });
+		if(!hasDirs && all_of(shareDirs.begin(), shareDirs.end(), [](const Directory::Ptr& d) { return d->files.empty(); })) {
 			xmlFile.write(LITERAL("\" />\r\n"));
 		} else {
 			xmlFile.write(LITERAL("\" Incomplete=\"1\" Children=\""));
@@ -1943,15 +1943,15 @@ void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent
 	bool filesAdded = false;
 	for(auto di = shareDirs.begin(); di != shareDirs.end(); ++di) {
 		if (filesAdded) {
-			for(auto& fi: (*di)->files) {
+			for(const auto& fi: (*di)->files) {
 				//go through the dirs that we have added already
-				if (find_if(shareDirs.begin(), di-1, [fi](Directory::Ptr d) { return d->files.find(fi) != d->files.end(); }) == shareDirs.end()) {
+				if (find_if(shareDirs.begin(), di-1, [fi](const Directory::Ptr d) { return d->files.find(fi) != d->files.end(); }) == shareDirs.end()) {
 					fi.toXml(xmlFile, indent, tmp2);
 				}
 			}
 		} else if (!(*di)->files.empty()) {
 			filesAdded = true;
-			for(auto& f: (*di)->files)
+			for(const auto& f: (*di)->files)
 				f.toXml(xmlFile, indent, tmp2);
 		}
 	}
@@ -2029,11 +2029,11 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 	xmlFile.write(LITERAL("\">\r\n"));
 
 	indent += '\t';
-	for(auto& d: directories) {
+	for(const auto& d: directories) {
 		d.second->toXmlList(xmlFile, path + d.first + PATH_SEPARATOR, indent);
 	}
 
-	for(auto& f: files) {
+	for(const auto& f: files) {
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("<File Name=\""));
 		xmlFile.write(SimpleXML::escape(f.getName(), tmp2, true));
@@ -2084,7 +2084,7 @@ void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, boo
 		}
 	}
 
-	for(auto& f: files) {
+	for(const auto& f: files) {
 		tmp2.clear();
 		tthList.write(f.getTTH().toBase32(tmp2));
 		tthList.write(LITERAL(" "));
@@ -2263,7 +2263,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 	}
 
 	if(aFileType != SearchManager::TYPE_DIRECTORY) {
-		for(auto& f: files) {
+		for(const auto& f: files) {
 			
 			if(aSearchType == SearchManager::SIZE_ATLEAST && aSize > f.getSize()) {
 				continue;
@@ -2363,7 +2363,7 @@ void ShareManager::Directory::directSearch(DirectSearchResultList& aResults, Adc
 	}
 
 	if(!aStrings.isDirectory) {
-		for(auto& f: files) {
+		for(const auto& f: files) {
 			if(aStrings.matchesDirectFile(f.getName(), f.getSize())) {
 				DirectSearchResultPtr sr(new DirectSearchResult(getADCPath(aProfile)));
 				aResults.push_back(sr);
@@ -2446,7 +2446,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	}
 
 	if(!aStrings.isDirectory) {
-		for(auto& f: files) {
+		for(const auto& f: files) {
 
 			if(!(f.getSize() >= aStrings.gt)) {
 				continue;
