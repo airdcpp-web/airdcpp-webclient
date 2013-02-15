@@ -2353,7 +2353,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 
 /* Each matching directory is only being added once in the results. For directory results we return the path of the parent directory and for files the current directory */
 void ShareManager::Directory::directSearch(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
-	if(aStrings.matchesDirectDirectoryName(profileDir ? profileDir->getName(aProfile) : realName)) {
+	if(aStrings.matchesDirectory(profileDir ? profileDir->getName(aProfile) : realName)) {
 		auto path = parent ? parent->getADCPath(aProfile) : "/";
 		auto res = find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
 		if (res == aResults.end() && aStrings.matchesSize(getSize(aProfile))) {
@@ -2364,7 +2364,7 @@ void ShareManager::Directory::directSearch(DirectSearchResultList& aResults, Adc
 
 	if(!aStrings.isDirectory) {
 		for(const auto& f: files) {
-			if(aStrings.matchesDirectFile(f.getName(), f.getSize())) {
+			if(aStrings.matchesFile(f.getName(), f.getSize())) {
 				DirectSearchResultPtr sr(new DirectSearchResult(getADCPath(aProfile)));
 				aResults.push_back(sr);
 				break;

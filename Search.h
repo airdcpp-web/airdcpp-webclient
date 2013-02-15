@@ -25,7 +25,8 @@
 
 namespace dcpp {
 
-struct Search {
+class Search {
+public:
 	Search() { }
 	~Search() { }
 

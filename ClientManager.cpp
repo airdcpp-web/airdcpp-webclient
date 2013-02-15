@@ -803,14 +803,12 @@ void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const Onlin
 		SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
 }
 
-uint64_t ClientManager::search(string& who, Search* aSearch) {
+uint64_t ClientManager::search(string& who, SearchPtr aSearch) {
 	RLock l(cs);
 	auto i = clients.find(const_cast<string*>(&who));
 	if(i != clients.end() && i->second->isConnected()) {
-		return i->second->queueSearch(aSearch);		
+		return i->second->queueSearch(move(aSearch));		
 	}
-
-	delete aSearch;
 	return 0;
 }
 

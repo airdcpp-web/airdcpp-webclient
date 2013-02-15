@@ -337,9 +337,9 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 	return true;
 }
 
-uint64_t Client::queueSearch(Search* aSearch){
+uint64_t Client::queueSearch(SearchPtr aSearch){
 	dcdebug("Queue search %s\n", aSearch->query.c_str());
-	return searchQueue.add(aSearch);
+	return searchQueue.add(move(aSearch));
 }
 
 string Client::getCounts() {
@@ -362,10 +362,9 @@ void Client::on(Second, uint64_t aTick) noexcept {
 	if(searchQueue.hasWaitingTime(aTick)) return;
 
 	if(isConnected()){
-		Search* s = searchQueue.pop();
-		
+		auto s = move(searchQueue.pop());
 		if(s){
-			search(s);
+			search(move(s));
 		}
 	}
 

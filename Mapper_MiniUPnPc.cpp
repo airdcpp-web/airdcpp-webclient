@@ -44,24 +44,25 @@ bool Mapper_MiniUPnPc::supportsProtocol(bool /*v6*/) const {
 	return true;
 }
 
-uint32_t IPToUInt(const std::string ip) {
+uint32_t IPToUInt(const string& ip) {
     int a, b, c, d;
     uint32_t addr = 0;
  
     if (sscanf(ip.c_str(), "%d.%d.%d.%d", &a, &b, &c, &d) != 4)
         return 0;
- 
-    addr = a << 24;
-    addr |= b << 16;
-    addr |= c << 8;
+	
+	addr = a << 24;
+	addr |= b << 16;
+	addr |= c << 8;
     addr |= d;
     return addr;
 }
 
 bool isIPInRange(const string& aIP1, const string& aIP2, uint8_t mask, bool v6) {
-	if (!v6) {
-		int result1 = IPToUInt(aIP1) & mask;
-		int result2 = IPToUInt(aIP2) & mask;
+	if (!v6) { 
+		uint32_t mmask = (~0u) << (32-mask);
+		uint32_t result1 = IPToUInt(aIP1) & mmask;
+		uint32_t result2 = IPToUInt(aIP2) & mmask;
 
 		return result1 == result2;
 	} else {

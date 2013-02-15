@@ -50,8 +50,6 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 }
 
 DirectoryListing::~DirectoryListing() {
-	if (curSearch)
-		delete curSearch;
 	delete root;
 }
 
@@ -338,7 +336,7 @@ void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSe
 			aResults.push_back(sr);
 		}
 	} else {
-		if(aStrings.matchesDirectDirectoryName(name)) {
+		if(aStrings.matchesDirectory(name)) {
 			auto path = parent ? Util::toAdcFile(parent->getPath()) : "/";
 			auto res = find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
 			if (res == aResults.end() && aStrings.matchesSize(getTotalSize(false))) {
@@ -349,7 +347,7 @@ void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSe
 
 		if(!aStrings.isDirectory) {
 			for(auto& f: files) {
-				if(aStrings.matchesDirectFile(f->getName(), f->getSize())) {
+				if(aStrings.matchesFile(f->getName(), f->getSize())) {
 					DirectSearchResultPtr sr(new DirectSearchResult(Util::toAdcFile(getPath())));
 					aResults.push_back(sr);
 					break;
@@ -1003,24 +1001,13 @@ int DirectoryListing::run() {
 			} else if (t.first == SEARCH) {
 				secondsEllapsed = 0;
 				searchResults.clear();
-				if (curSearch)
-					delete curSearch;
 
 				auto s = static_cast<SearchTask*>(t.second);
 				fire(DirectoryListingListener::SearchStarted());
 
-				if(s->typeMode == SearchManager::TYPE_TTH) {
-					curSearch = new AdcSearch(TTHValue(s->searchString));
-				} else {
-					curSearch = new AdcSearch(s->searchString, s->extList);
-					if(s->sizeMode == SearchManager::SIZE_ATLEAST) {
-						curSearch->gt = s->size;
-					} else if(s->sizeMode == SearchManager::SIZE_ATMOST) {
-						curSearch->lt = s->size;
-					}
-
-					curSearch->isDirectory = (s->typeMode == SearchManager::TYPE_DIRECTORY);
-				}
+				auto search = AdcSearch::getSearch(s->searchString, Util::emptyString, s->size, s->typeMode, s->sizeMode, s->extList);
+				if (search)
+					curSearch.reset(search);
 
 				if (isOwnList && partialList) {
 					try {

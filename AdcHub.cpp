@@ -1121,8 +1121,8 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 			c.addParam("LE", Util::toString(aSize));
 		}
 
-		StringTokenizer<string> st(aString, ' ');
-		for(const auto& t: st.getTokens())
+		auto tmp = move(AdcSearch::parseSearchString(aString));
+		for(const auto& t: tmp)
 			c.addParam("AN", t);
 
 		for(const auto& e: excluded) {
@@ -1217,7 +1217,7 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 	}
 }
 
-void AdcHub::search(Search* s) {
+void AdcHub::search(SearchPtr s) {
 	if(state != STATE_NORMAL)
 		return;
 
@@ -1229,7 +1229,6 @@ void AdcHub::search(Search* s) {
 		c.addParam("KY", s->key);
 	}
 
-	delete s;
 	sendSearch(c);
 }
 

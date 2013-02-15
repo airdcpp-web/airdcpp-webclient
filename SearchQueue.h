@@ -30,8 +30,8 @@ public:
 	SearchQueue();
 	~SearchQueue();
 
-	uint64_t add(Search* s);
-	Search* pop();
+	uint64_t add(SearchPtr s);
+	SearchPtr pop();
 	
 	void clear()
 	{
@@ -47,9 +47,9 @@ public:
 	bool hasWaitingTime(uint64_t aTick);
 	uint64_t lastSearchTime;
 private:
-	int getInterval(const Search* aSearch) const;
+	int getInterval(const Search::searchType aSearchType) const;
 
-	deque<Search*>	searchQueue;
+	deque<SearchPtr>	searchQueue;
 	int	nextInterval;
 	CriticalSection cs;
 };

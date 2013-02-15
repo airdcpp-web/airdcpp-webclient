@@ -21,6 +21,7 @@
 #include "Util.h"
 #include "AdcHub.h"
 #include "StringTokenizer.h"
+#include "SearchManager.h"
 
 namespace {
 	inline uint16_t toCode(char a, char b) { return (uint16_t)a | ((uint16_t)b)<<8; }
@@ -28,20 +29,76 @@ namespace {
 
 namespace dcpp {
 
+AdcSearch* AdcSearch::getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList) {
+	AdcSearch* s = nullptr;
+
+	if(aTypeMode == SearchManager::TYPE_TTH) {
+		s = new AdcSearch(TTHValue(aSearchString));
+	} else {
+		s = new AdcSearch(aSearchString, aExcluded, aExtList);
+		if(aSizeMode == SearchManager::SIZE_ATLEAST) {
+			s->gt = aSize;
+		} else if(aSizeMode == SearchManager::SIZE_ATMOST) {
+			s->lt = aSize;
+		}
+
+		s->isDirectory = (aTypeMode == SearchManager::TYPE_DIRECTORY);
+	}
+
+	return s;
+}
+
+StringList AdcSearch::parseSearchString(const string& aString) {
+	StringList ret;
+	string::size_type i = 0, prev=0;
+	auto addString = [&] () {
+		if (prev != i) {
+			ret.push_back(aString.substr(prev, i-prev));
+		}
+		prev = i+1;
+	};
+
+	bool quote = false;
+	while( (i = aString.find_first_of(" \"", i)) != string::npos) {
+		switch(aString[i]) {
+			case ' ': {
+				if (!quote) addString();
+				break;
+			}
+			case '\"': {
+				quote = !quote;
+				addString();
+				break;
+			}
+		}
+		i++;
+	}
+
+	if(prev < aString.size()) {
+		i = aString.size();
+		addString();
+	}
+		
+	return ret;
+}
+
 AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), gt(0), 
 	lt(numeric_limits<int64_t>::max()), hasRoot(true), isDirectory(false) {
 }
 
-AdcSearch::AdcSearch(const string& aSearch, const StringList& aExt) : ext(aExt), include(&includeX), gt(0), 
+AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt) : ext(aExt), include(&includeX), gt(0), 
 	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false) {
 
 	//add included
-	StringTokenizer<string> st(aSearch, ' ');
-	for(auto& i: st.getTokens()) {
-		if(i.size() > 0) {
-			includeX.emplace_back(i);
-		}
-	}
+	auto inc = move(parseSearchString(aSearch));
+	for(auto& i: inc)
+		includeX.emplace_back(i);
+
+
+	//add excluded
+	auto ex = move(parseSearchString(aExcluded));
+	for(auto& i: ex)
+		exclude.emplace_back(i);
 }
 
 AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
@@ -103,7 +160,7 @@ bool AdcSearch::hasExt(const string& name) {
 	return false;
 }
 
-bool AdcSearch::matchesDirectFile(const string& aName, int64_t aSize) {
+bool AdcSearch::matchesFile(const string& aName, int64_t aSize) {
 	if(!(aSize >= gt)) {
 		return false;
 	} else if(!(aSize <= lt)) {
@@ -124,7 +181,7 @@ bool AdcSearch::matchesDirectFile(const string& aName, int64_t aSize) {
 	return hasExt(aName);
 }
 
-bool AdcSearch::matchesDirectDirectoryName(const string& aName) {
+bool AdcSearch::matchesDirectory(const string& aName) {
 	bool hasMatch = false;
 	for(auto k = include->begin(); k != include->end(); ++k) {
 		if(k->match(aName) && !isExcluded(aName))

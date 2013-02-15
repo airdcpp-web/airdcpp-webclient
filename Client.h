@@ -66,7 +66,7 @@ public:
 	virtual void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false) = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
-	uint64_t queueSearch(Search* aSearch);
+	uint64_t queueSearch(SearchPtr aSearch);
 	void cancelSearch(void* aOwner) { searchQueue.cancelSearch(aOwner); }
 	
 	virtual void password(const string& pwd) = 0;
@@ -189,7 +189,7 @@ protected:
 	string getDescription() const;
 
 	virtual string checkNick(const string& nick) = 0;
-	virtual void search(Search* aSearch) = 0;
+	virtual void search(SearchPtr aSearch) = 0;
 
 	// TimerManagerListener
 	virtual void on(Second, uint64_t aTick) noexcept;

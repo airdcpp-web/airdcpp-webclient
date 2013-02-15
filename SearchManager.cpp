@@ -111,7 +111,7 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 
 	uint64_t estimateSearchSpan = 0;
 	for(auto& sp: tokenHubList) {
-		auto s = new Search;
+		auto s = SearchPtr(new Search);
 		s->fileType = aFileType;
 		s->size     = aSize;
 		s->query    = aName;
@@ -126,7 +126,7 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 		if (strnicmp("adcs://", sp.second.c_str(), 7) == 0)
 			s->key		= keyStr;
 
-		uint64_t ret = ClientManager::getInstance()->search(sp.second, s);
+		uint64_t ret = ClientManager::getInstance()->search(sp.second, move(s));
 		estimateSearchSpan = max(estimateSearchSpan, ret);			
 	}
 

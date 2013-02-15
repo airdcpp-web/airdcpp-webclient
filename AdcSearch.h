@@ -31,9 +31,12 @@ namespace dcpp {
 
 	class AdcSearch {
 	public:
+		static AdcSearch* getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList);
+		static StringList parseSearchString(const string& aString);
+
 		AdcSearch(const StringList& params);
 
-		AdcSearch(const string& aString, const StringList& aExt);
+		AdcSearch(const string& aString, const string& aExcluded, const StringList& aExt);
 		AdcSearch(const TTHValue& aRoot);
 
 		bool isExcluded(const string& str);
@@ -53,8 +56,8 @@ namespace dcpp {
 
 		bool isDirectory;
 
-		bool matchesDirectFile(const string& aName, int64_t aSize);
-		bool matchesDirectDirectoryName(const string& aName);
+		bool matchesFile(const string& aName, int64_t aSize);
+		bool matchesDirectory(const string& aName);
 		bool matchesSize(int64_t aSize);
 	};
 }

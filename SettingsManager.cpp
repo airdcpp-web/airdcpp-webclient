@@ -87,7 +87,7 @@ const string SettingsManager::settingTags[] =
 	"MenubarRightColor", "DisconnectFileSize", "NumberOfSegments", "MaxHashSpeed", "PMLogLines", "SearchAlternateColour", "SearchTime", "DontBeginSegmentSpeed",
 	"MagnetAction",  "PopupType", "ShutdownAction", "MinimumSearchInterval", "MaxAutoMatchSource", "ReservedSlotColor", "IgnoredColor", "FavoriteColor","NormalColour",
 	"PasiveColor", "OpColor", "ProgressBackColor", "ProgressCompressColor", "ProgressSegmentColor", "UDPPort",
- 	"UserListDoubleClick", "TransferListDoubleClick", "ChatDoubleClick", "SearchHistory", "OutgoingConnections","SocketInBuffer", "SocketOutBuffer", 
+ 	"UserListDoubleClick", "TransferListDoubleClick", "ChatDoubleClick", "OutgoingConnections","SocketInBuffer", "SocketOutBuffer", 
 	"ColorDownloaded", "ColorRunning", "ColorDone", "AutoRefreshTime", "AutoSearchLimit",
  	"MaxCommandLength", "TLSPort", "DownConnPerSec", "HighestPrioSize", "HighPrioSize", "NormalPrioSize", "LowPrioSize",
 
@@ -105,6 +105,7 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
 	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
+	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax",
 	"SENTRY",
 
 	// Bools
@@ -141,7 +142,7 @@ const string SettingsManager::settingTags[] =
 	"TextMyNickBold", "TextMyNickItalic", "TextFavBold", "TextFavItalic", "TextOPBold", "TextOPItalic", "TextURLBold", "TextURLItalic", "ProgressOverrideColors", "ProgressOverrideColors2", "MenubarTwoColors", "MenubarBumped", "DontBeginSegment", 
 
 	"AutoDetectionUseLimited", "LogScheduledRefreshes", "AutoCompleteBundles", "SearchSaveHubsState", "ConfirmHubExit", "ConfirmASRemove", "EnableSUDP", "NmdcMagnetWarn",
-	"UpdateIPHourly", "OpenTextOnBackground", "LockTB", "ClearDirHistory", "PopunderPartialList", "ShowTBStatusBar", "HorizontalQueue", "UseSlowDisconnectingDefault", "PrioListHighest", 
+	"UpdateIPHourly", "OpenTextOnBackground", "LockTB", "PopunderPartialList", "ShowTBStatusBar", "HorizontalQueue", "UseSlowDisconnectingDefault", "PrioListHighest", 
 	"UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "LogHashedFiles",
 	"UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist", "ScanDLBundles", "MCNAutoDetect", "DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", 
 	"TextDupeBold", "TextDupeItalic", "UnderlineLinks", "UnderlineDupes", "DupesInFilelists", "DupesInChat", "NoZeroByte", "CheckEmptyDirs","CheckEmptyReleases",  "CheckMissing", "CheckSfv", 
@@ -150,6 +151,7 @@ const string SettingsManager::settingTags[] =
 	"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "FavUsersOnlyFav", "LogAlreadyShared",
+	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -299,7 +301,6 @@ SettingsManager::SettingsManager()
 	setDefault(SHOW_LAST_LINES_LOG, 10);
 	setDefault(CONFIRM_QUEUE_REMOVAL, true);
 	setDefault(TOGGLE_ACTIVE_WINDOW, true);
-	setDefault(SEARCH_HISTORY, 10);
 	setDefault(SET_MINISLOT_SIZE, 512);
 	setDefault(PRIO_HIGHEST_SIZE, 64);
 	setDefault(PRIO_HIGH_SIZE, 0);
@@ -699,7 +700,6 @@ SettingsManager::SettingsManager()
 	setDefault(TB_PROGRESS_TEXT_COLOR, RGB(255, 0, 0));
 	setDefault(TB_PROGRESS_FONT, "Arial,-11,400,0");
 	setDefault(LOCK_TB, false);
-	setDefault(CLEAR_DIR_HISTORY, false);
 	setDefault(POPUNDER_PARTIAL_LIST, false);
 	setDefault(TLS_MODE, 1);
 	setDefault(LAST_SEARCH_DISABLED_HUBS, Util::emptyString);
@@ -725,6 +725,14 @@ SettingsManager::SettingsManager()
 	setDefault(FAV_USERS_SHOW_INFO, true);
 	setDefault(FAV_USERS_ONLY_FAV, true);
 	setDefault(LOG_ALREADY_SHARED, true);
+
+	setDefault(HISTORY_SEARCH_MAX, 10);
+	setDefault(HISTORY_EXCLUDE_MAX, 10);
+	setDefault(HISTORY_DIR_MAX, 10);
+
+	setDefault(HISTORY_SEARCH_CLEAR, false);
+	setDefault(HISTORY_EXCLUDE_CLEAR, false);
+	setDefault(HISTORY_DIR_CLEAR, false);
 
 	//set depending on the cpu count
 	SYSTEM_INFO info={{0}};
@@ -801,24 +809,20 @@ void SettingsManager::load(string const& aFileName, function<bool (const string&
 		}
 
 		xml.resetCurrentChild();
-		if(xml.findChild("SearchHistory")) {
-			xml.stepIn();
-			while(xml.findChild("Search")) {
-				addSearchToHistory(Text::toT(xml.getChildData()));
-			}
-			xml.stepOut();
-		}
 
-		xml.resetCurrentChild();
-		if(xml.findChild("DirectoryHistory")) {
-			xml.stepIn();
-			while(xml.findChild("Directory")) {
-				addDirToHistory(Text::toT(xml.getChildData()));
+
+		//load history lists
+		for(int i = 0; i < HISTORY_LAST; ++i) {
+			if (xml.findChild(historyTags[i])) {
+				xml.stepIn();
+				while(xml.findChild("HistoryItem")) {
+					addToHistory(Text::toT(xml.getChildData()), (HistoryType)i);
+				}
+				xml.stepOut();
 			}
-			xml.stepOut();
+			xml.resetCurrentChild();
 		}
 		
-		xml.resetCurrentChild();
 		if(xml.findChild("FileEvents")) {
 			xml.stepIn();
 			if(xml.findChild("OnFileComplete")) {
@@ -956,6 +960,51 @@ You can customize those settings for each favorite hub if needed")
 	checkBind(BIND_ADDRESS6, true);
 }
 
+const SettingsManager::BoolSetting clearSettings[SettingsManager::HISTORY_LAST] = {
+	SettingsManager::HISTORY_SEARCH_CLEAR,
+	SettingsManager::HISTORY_EXCLUDE_CLEAR,
+	SettingsManager::HISTORY_DIR_CLEAR
+};
+
+const SettingsManager::IntSetting maxLimits[SettingsManager::HISTORY_LAST] = {
+	SettingsManager::HISTORY_SEARCH_MAX,
+	SettingsManager::HISTORY_EXCLUDE_MAX,
+	SettingsManager::HISTORY_DIR_MAX
+};
+
+const string SettingsManager::historyTags[] = {
+	"SearchHistory",
+	"ExcludeHistory",
+	"DirectoryHistory"
+};
+
+bool SettingsManager::addToHistory(const tstring& aString, HistoryType aType) {
+	auto& hist = history[aType];
+
+	if(aString.empty() || get(maxLimits[aType]) == 0)
+		return false;
+
+	auto s = boost::find(hist, aString);
+	if(s != hist.end()) {
+		hist.erase(s);
+	}
+
+	if(hist.size() == get(maxLimits[aType])) {
+		hist.pop_front();
+	}
+
+	hist.push_back(aString);
+	return true;
+}
+
+void SettingsManager::clearHistory(HistoryType aType) {
+	history[aType].clear();
+}
+
+const SettingsManager::HistoryList& SettingsManager::getHistory(HistoryType aType) const {
+	return history[aType];
+}
+
 void SettingsManager::save(string const& aFileName) {
 
 	SimpleXML xml;
@@ -1006,20 +1055,17 @@ void SettingsManager::save(string const& aFileName) {
 	}
 	xml.stepOut();
 
-	xml.addTag("SearchHistory");
-	xml.stepIn();
-	for(auto i = searchHistory.begin(); i != searchHistory.end(); ++i) {
-		xml.addTag("Search", Text::fromT(*i));
-	}
-	xml.stepOut();
-
-	if (!SETTING(CLEAR_DIR_HISTORY)) {
-		xml.addTag("DirectoryHistory");
-		xml.stepIn();
-		for(auto i = dirHistory.begin(); i != dirHistory.end(); ++i) {
-			xml.addTag("Directory", Text::fromT(*i));
+	for(int i = 0; i < HISTORY_LAST; ++i) {
+		const auto& hist = history[i];
+		if (!hist.empty() && !get(clearSettings[i])) {
+			xml.addTag(historyTags[i]);
+			xml.stepIn();
+			const auto& hist = history[i];
+			for (auto& hi: hist) {
+				xml.addTag("HistoryItem", Text::fromT(hi));
+			}
+			xml.stepOut();
 		}
-		xml.stepOut();
 	}
 
 	xml.addTag("FileEvents");
@@ -1062,39 +1108,6 @@ HubSettings SettingsManager::getHubSettings() const {
 	ret.get(HubSettings::Connection6) = CONNSETTING(INCOMING_CONNECTIONS6);
 	ret.get(HubSettings::ChatNotify) = get(SHOW_CHAT_NOTIFY);
 	return ret;
-}
-
-bool SettingsManager::addSearchToHistory(const tstring& aSearch) {
-	if(aSearch.empty() || SETTING(SEARCH_HISTORY) == 0)
-		return false;
-
-	auto s = find(searchHistory.begin(), searchHistory.end(), aSearch);
-	if(s != searchHistory.end()) {
-		searchHistory.erase(s);
-	}
-
-	if(searchHistory.size() == SETTING(SEARCH_HISTORY)) {
-		searchHistory.erase(searchHistory.begin());
-	}
-	searchHistory.push_back(aSearch);
-	return true;
-}
-
-
-bool SettingsManager::addDirToHistory(const tstring& aDir) {
-	if(aDir.empty())
-		return false;
-
-	auto s = find(dirHistory.begin(), dirHistory.end(), aDir);
-	if(s != dirHistory.end()) {
-		dirHistory.erase(s);
-	}
-
-	if(dirHistory.size() == 10) {
-		dirHistory.erase(dirHistory.begin());
-	}
-	dirHistory.push_back(aDir);
-	return true;
 }
 
 } // namespace dcpp

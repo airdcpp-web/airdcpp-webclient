@@ -993,11 +993,14 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	}
 }
 
-void NmdcHub::search(Search* s){
+void NmdcHub::search(SearchPtr s){
 	checkstate();
 	char c1 = (s->sizeType == SearchManager::SIZE_DONTCARE || s->sizeType == SearchManager::SIZE_EXACT) ? 'F' : 'T';
 	char c2 = (s->sizeType == SearchManager::SIZE_ATLEAST) ? 'F' : 'T';
+
 	string tmp = ((s->fileType == SearchManager::TYPE_TTH) ? "TTH:" + s->query : fromUtf8(escape(s->query)));
+	Util::replace(tmp, "\"", ""); //can't use quotes in NMDC searches
+
 	string::size_type i;
 	while((i = tmp.find(' ')) != string::npos) {
 		tmp[i] = '$';
@@ -1009,7 +1012,6 @@ void NmdcHub::search(Search* s){
 		tmp2 = "Hub:" + fromUtf8(getMyNick());
 	}
 	send("$Search " + tmp2 + ' ' + c1 + '?' + c2 + '?' + Util::toString(s->size) + '?' + Util::toString(s->fileType+1) + '?' + tmp + '|');
-	delete s;
 }
 
 string NmdcHub::validateMessage(string tmp, bool reverse) {

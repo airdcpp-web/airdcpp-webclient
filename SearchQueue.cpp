@@ -32,13 +32,11 @@ SearchQueue::SearchQueue() : lastSearchTime(0)
 	nextInterval = 10*1000;
 }
 
-SearchQueue::~SearchQueue() {
-	for_each(searchQueue, DeleteFunction());
-}
+SearchQueue::~SearchQueue() { }
 
-int SearchQueue::getInterval(const Search* aSearch) const {
+int SearchQueue::getInterval(const Search::searchType aSearchType) const {
 	int ret = 0;
-	switch(aSearch->type) {
+	switch(aSearchType) {
 		case Search::MANUAL: ret = 5000; break;
 		case Search::ALT: ret = 10000; break;
 		case Search::ALT_AUTO: ret = 20000; break;
@@ -47,7 +45,7 @@ int SearchQueue::getInterval(const Search* aSearch) const {
 	return max(ret, minInterval);
 }
 
-uint64_t SearchQueue::add(Search* s)
+uint64_t SearchQueue::add(SearchPtr s)
 {
 	dcassert(s->owners.size() == 1);
 	uint32_t x = 0;
@@ -76,14 +74,12 @@ uint64_t SearchQueue::add(Search* s)
 			break;
 		}
 
-		x += getInterval((*i));
+		x += getInterval((*i)->type);
 		i++;
 	}
 
 	if (add)
-		searchQueue.insert(i, s);
-	else
-		delete s;
+		searchQueue.insert(i, move(s));
 
 	auto now = GET_TICK();
 	if (x > 0) {
@@ -100,7 +96,7 @@ uint64_t SearchQueue::add(Search* s)
 		}
 	} else {
 		//we have the first item, recount the tick allowed for the search
-		nextInterval = getInterval(s);
+		nextInterval = getInterval(searchQueue.front()->type);
 		if (getNextSearchTick() <= now) {
 			return 0;
 		}
@@ -110,7 +106,7 @@ uint64_t SearchQueue::add(Search* s)
 	}
 }
 
-Search* SearchQueue::pop() {
+SearchPtr SearchQueue::pop() {
 	uint64_t now = GET_TICK();
 	if(now <= lastSearchTime + nextInterval) 
 		return false;
@@ -118,11 +114,11 @@ Search* SearchQueue::pop() {
 	{
 		Lock l(cs);
 		if(!searchQueue.empty()){
-			Search* s = searchQueue.front();
+			auto s = move(searchQueue.front());
 			searchQueue.pop_front();
 			lastSearchTime = GET_TICK();
-			nextInterval = !searchQueue.empty() ? getInterval(searchQueue.front()) : minInterval;
-			return s;
+			nextInterval = !searchQueue.empty() ? getInterval(searchQueue.front()->type) : minInterval;
+			return move(s);
 		} else {
 			nextInterval = -1;
 		}

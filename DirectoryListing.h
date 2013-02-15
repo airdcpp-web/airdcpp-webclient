@@ -209,7 +209,7 @@ public:
 
 	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
 	bool nextResult(bool prev);
-	AdcSearch *curSearch;
+	unique_ptr<AdcSearch> curSearch;
 
 	bool isCurrentSearchPath(const string& path);
 	size_t getResultCount() { return searchResults.size(); }
