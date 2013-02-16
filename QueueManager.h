@@ -49,6 +49,7 @@
 #include "UserQueue.h"
 #include "DelayedEvents.h"
 #include "HashBloom.h"
+#include "HashedFile.h"
 
 #include "boost/unordered_map.hpp"
 #include "boost/bimap.hpp"
@@ -291,7 +292,7 @@ private:
 
 	void moveStuckFile(QueueItemPtr& qi);
 	void rechecked(QueueItemPtr& qi);
-	void onFileHashed(const string& fname, const TTHValue& root, bool failed);
+	void onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, bool failed);
 	void hashBundle(BundlePtr& aBundle);
 	bool scanBundle(BundlePtr& aBundle);
 	void checkBundleHashed(BundlePtr aBundle);
@@ -315,8 +316,8 @@ private:
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
 	
 	// HashManagerListener
-	void on(HashManagerListener::TTHDone, const string& fname, const TTHValue& root) noexcept { onFileHashed(fname, root, false); }
-	void on(HashManagerListener::HashFailed, const string& fname) noexcept { onFileHashed(fname, TTHValue(Util::emptyString), true); }
+	void on(HashManagerListener::TTHDone, const string& aPath, HashedFilePtr& fi) noexcept { onFileHashed(aPath, fi, false); }
+	void on(HashManagerListener::HashFailed, const string& aPath, HashedFilePtr& fi) noexcept { onFileHashed(aPath, fi, true); }
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;

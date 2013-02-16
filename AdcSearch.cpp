@@ -49,9 +49,11 @@ AdcSearch* AdcSearch::getSearch(const string& aSearchString, const string& aExcl
 }
 
 StringList AdcSearch::parseSearchString(const string& aString) {
+	// similar to StringTokenizer but handles quotation marks (and doesn't create empty tokens)
+
 	StringList ret;
 	string::size_type i = 0, prev=0;
-	auto addString = [&] () {
+	auto addString = [&] {
 		if (prev != i) {
 			ret.push_back(aString.substr(prev, i-prev));
 		}

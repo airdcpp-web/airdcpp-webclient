@@ -57,42 +57,10 @@ public:
 
 	const string& getPattern() const { return pattern; }
 
-	bool match(const string& aText) const noexcept{
-			// Lower-case representation of UTF-8 string, since we no longer have that 1 char = 1 byte...
-			string lower;
-			Text::toLower(aText, lower);
-			return matchLower(lower);
-		}
+	bool match(const string& aText) const noexcept;
 	
 	/** Match a text against the pattern */
-	bool matchLower(const string& aText) const noexcept
-		{
-			register const string::size_type plen = pattern.length();
-			register const string::size_type tlen = aText.length();
-			
-			if (tlen < plen)// fix UTF-8 support
-				return false;
-			
-			// uint8_t to avoid problems with signed char pointer arithmetic
-			register uint8_t *tx = (uint8_t*)aText.c_str();
-			register uint8_t *px = (uint8_t*)pattern.c_str();
-			
-			register uint8_t *end = tx + tlen - plen + 1;
-			while (tx < end)
-			{
-				register size_t i = 0;
-				for (; px[i] && (px[i] == tx[i]); ++i)
-					;       // Empty!
-					
-				if (px[i] == 0)
-					return true;
-					
-				tx += delta1[tx[plen]];
-			}
-			
-			return false;
-		}
-
+	bool matchLower(const string& aText) const noexcept;
 private:
 	enum { ASIZE = 256 };
 	/** 
@@ -102,19 +70,7 @@ private:
 	uint16_t delta1[ASIZE];
 	string pattern;
 
-	void initDelta1() {
-		uint16_t x = (uint16_t)(pattern.length() + 1);
-		uint16_t i;
-		for(i = 0; i < ASIZE; ++i) {
-			delta1[i] = x;
-		}
-		// x = pattern.length();
-		x--;
-		uint8_t* p = (uint8_t*)pattern.data();
-		for(i = 0; i < x; ++i) {
-			delta1[p[i]] = (uint16_t)(x - i);
-		}
-	}
+	void initDelta1();
 };
 
 } // namespace dcpp

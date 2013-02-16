@@ -59,13 +59,13 @@ bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTim
 	return true;
 }
 
-TTHValue HashManager::getTTH(const string& aFileName, int64_t aSize) {
-	const TTHValue* tth = store.getTTH(Text::toLower(aFileName));
-	if (!tth) {
-		hashFile(aFileName, aSize);
+HashedFilePtr HashManager::getFileInfo(const string& aFileName, int64_t aSize) {
+	const auto fi = store.getFileInfo(Text::toLower(aFileName));
+	if (!fi) {
+		hashFile(aFileName, aSize > 0 ? aSize : AirUtil::getLastWrite(aFileName));
 		throw HashException();
 	}
-	return *tth;
+	return fi;
 }
 
 bool HashManager::getTree(const TTHValue& root, TigerTree& tt) {
@@ -186,16 +186,17 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 		if (addStore && !aCancel)
 			store.addFile(Text::toLower(aFile), timestamp, tt, true);
 	} else {
-		tth_ = *store.getTTH(Text::toLower(aFile));
+		tth_ = store.getFileInfo(Text::toLower(aFile))->getRoot();
 	}
 }
 
-void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t /*size*/, int hasherID /*0*/) {
+HashedFilePtr HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tt, int64_t speed, int64_t /*size*/, int hasherID /*0*/) {
+	HashedFilePtr fi = nullptr;
 	try {
-		store.addFile(Text::toLower(aFileName), aTimeStamp, tth, true);
+		fi = move(store.addFile(Text::toLower(aFileName), aTimeStamp, tt, true));
 	} catch (const Exception& e) {
 		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true);
-		return;
+		return nullptr;
 	}
 	
 	if(SETTING(LOG_HASHING)) {
@@ -213,20 +214,22 @@ void HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const T
 			log(STRING(HASHING_FINISHED) + " " + fn, hasherID, false);
 		}
 	}
+	return fi;
 }
 
-void HashManager::HashStore::addFile(const string&& aFileLower, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed) {
+HashedFilePtr& HashManager::HashStore::addFile(const string&& aFileLower, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed) {
 	addTree(tth);
 
 	WLock l(cs);
 	auto& fileList = fileIndex[Util::getFilePath(aFileLower)];
-	auto j = find(fileList.begin(), fileList.end(), Util::getFileName(aFileLower));
+	auto j = find_if(fileList, [&aFileLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), Util::getFileName(aFileLower)) == 0; });
 	if (j != fileList.end()) {
 		fileList.erase(j);
 	}
 
-	fileList.emplace_back(Util::getFileName(aFileLower), tth.getRoot(), aTimeStamp, aUsed);
+	fileList.push_back(new HashedFile(Util::getFileName(aFileLower), tth.getRoot(), aTimeStamp, aUsed));
 	dirty = true;
+	return fileList.back();
 }
 
 void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
@@ -313,11 +316,11 @@ bool HashManager::HashStore::checkTTH(const string&& aFileLower, int64_t aSize, 
 	RLock l(cs);
 	auto i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		auto j = find(i->second.begin(), i->second.end(), Util::getFileName(aFileLower));
+		auto j = find_if(i->second, [&aFileLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), Util::getFileName(aFileLower)) == 0; });
 		if (j != i->second.end()) {
 			auto& fi = *j;
-			auto ti = treeIndex.find(fi.getRoot());
-			if (ti == treeIndex.end() || ti->second.getSize() != aSize || fi.getTimeStamp() != aTimeStamp) {
+			auto ti = treeIndex.find(fi->getRoot());
+			if (ti == treeIndex.end() || ti->second.getSize() != aSize || fi->getTimeStamp() != aTimeStamp) {
 				i->second.erase(j);
 				dirty = true;
 				return false;
@@ -328,14 +331,14 @@ bool HashManager::HashStore::checkTTH(const string&& aFileLower, int64_t aSize, 
 	return false;
 }
 
-const TTHValue* HashManager::HashStore::getTTH(const string&& aFileLower) {
+const HashedFilePtr HashManager::HashStore::getFileInfo(string&& aFileLower) {
 	RLock l(cs);
 	auto i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		auto j = find(i->second.begin(), i->second.end(), Util::getFileName(aFileLower));
+		auto j = find_if(i->second, [&aFileLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), Util::getFileName(aFileLower)) == 0; });
 		if (j != i->second.end()) {
-			j->setUsed(true);
-			return &(j->getRoot());
+			(*j)->setUsed(true);
+			return *j;
 		}
 	}
 	return nullptr;
@@ -356,12 +359,12 @@ void HashManager::HashStore::rebuild() {
 			initialTreeIndexSize = treeIndex.size();
 			for (auto& i: fileIndex) {
 				for (auto& j: i.second) {
-					if (!j.getUsed())
+					if (!j->getUsed())
 						continue;
 
-					auto k = treeIndex.find(j.getRoot());
+					auto k = treeIndex.find(j->getRoot());
 					if (k != treeIndex.end()) {
-						newTreeIndex[j.getRoot()] = k->second;
+						newTreeIndex[j->getRoot()] = k->second;
 					}
 				}
 			}
@@ -400,7 +403,7 @@ void HashManager::HashStore::rebuild() {
 		#endif
 
 					for (auto& j: i.second) {
-						if (newTreeIndex.find(j.getRoot()) != newTreeIndex.end()) {
+						if (newTreeIndex.find(j->getRoot()) != newTreeIndex.end()) {
 							newFileList.push_back(j);
 						} else {
 							unusedFiles++;
@@ -487,14 +490,14 @@ void HashManager::HashStore::save() {
 
 				for (auto& i: fileIndex) {
 					const string& dir = i.first;
-					for (auto& fi: i.second) {
+					for (const auto& fi: i.second) {
 						f.write(LIT("\t\t<File Name=\""));
-						f.write(SimpleXML::escape(dir + fi.getFileName(), tmp, true));
+						f.write(SimpleXML::escape(dir + fi->getFileName(), tmp, true));
 						f.write(LIT("\" TimeStamp=\""));
-						f.write(Util::toString(fi.getTimeStamp()));
+						f.write(Util::toString(fi->getTimeStamp()));
 						f.write(LIT("\" Root=\""));
 						b32tmp.clear();
-						f.write(fi.getRoot().toBase32(b32tmp));
+						f.write(fi->getRoot().toBase32(b32tmp));
 						f.write(LIT("\"/>\r\n"));
 					}
 				}
@@ -555,7 +558,6 @@ void HashManager::HashStore::load() {
 }
 
 static const string sHashStore = "HashStore";
-static const string sversion = "version";		// Oops, v1 was like this
 static const string sVersion = "Version";
 static const string sTrees = "Trees";
 static const string sFiles = "Files";
@@ -573,9 +575,6 @@ static const string sRoot = "Root";
 void HashLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
 	if (!inHashStore && name == sHashStore) {
 		version = Util::toInt(getAttrib(attribs, sVersion, 0));
-		if (version == 0) {
-			version = Util::toInt(getAttrib(attribs, sversion, 0));
-		}
 		inHashStore = !simple;
 	} else if (inHashStore && (version == 2 || version == 3)) {
 		if (inTrees && name == sHash) {
@@ -594,7 +593,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if (!file.empty() && size >= 0 && timeStamp > 0 && !root.empty()) {
 				string fileLower = Text::toLower(file);
-				store.fileIndex[Util::getFilePath(fileLower)].emplace_back(Util::getFileName(fileLower), TTHValue(root), timeStamp, false);
+				store.fileIndex[Util::getFilePath(fileLower)].push_back(new HashedFile(Util::getFileName(fileLower), TTHValue(root), timeStamp, false));
 			}
 		} else if (name == sTrees) {
 			inTrees = !simple;
@@ -853,7 +852,7 @@ int HashManager::Hasher::run() {
 		}
 		running = true;
 
-		TTHValue tth;
+		HashedFilePtr fi;
 		if(!fname.empty()) {
 			try {
 				if (initialDir.empty()) {
@@ -932,14 +931,14 @@ int HashManager::Hasher::run() {
 
 				if(failed) {
 					HashManager::getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true);
-					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
+					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
 				} else {
-					HashManager::getInstance()->hashDone(fname, timestamp, tt, averageSpeed, size, hasherID);
-					tth = tt.getRoot();
+					fi = HashManager::getInstance()->hashDone(fname, timestamp, tt, averageSpeed, size, hasherID);
+					//tth = tt.getRoot();
 				}
 			} catch(const FileException& e) {
 				HashManager::getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true);
-				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname);
+				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
 			}
 		
 		}
@@ -998,7 +997,7 @@ int HashManager::Hasher::run() {
 		}
 
 		if (!failed && !fname.empty())
-			HashManager::getInstance()->fire(HashManagerListener::TTHDone(), fname, tth);
+			HashManager::getInstance()->fire(HashManagerListener::TTHDone(), fname, fi);
 
 		if (deleteThis) {
 			//check again if we have added new items while this was unlocked

@@ -212,7 +212,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				return;		
 			TTHValue tth(h); /// @todo verify validity?
 
-			DirectoryListing::File* f = new DirectoryListing::File(cur, n, size, tth, checkDupe);
+			DirectoryListing::File* f = new DirectoryListing::File(cur, n, size, tth, checkDupe, Util::toUInt32(getAttrib(attribs, sDate, 3)));
 			cur->files.push_back(f);
 		} else if(name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
@@ -237,7 +237,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if(!d) {
 				d = new DirectoryListing::Directory(cur, n, incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) : 
-					DirectoryListing::Directory::TYPE_NORMAL, (partialList && checkDupe), size, date);
+					DirectoryListing::Directory::TYPE_NORMAL, (partialList && checkDupe), size, Util::toUInt32(date));
 				cur->directories.push_back(d);
 			} else {
 				if(!d->isComplete()) {
@@ -306,15 +306,15 @@ void ListLoader::endTag(const string& name) {
 	}
 }
 
-DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe) noexcept : 
-	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE) {
+DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aDate) noexcept : 
+	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE), date(aDate) {
 	if (checkDupe && size > 0) {
 		dupe = SettingsManager::lanMode ? AirUtil::checkFileDupe(name, size) : AirUtil::checkFileDupe(tthRoot, name);
 	}
 }
 
-DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, bool checkDupe /*false*/, const string& aSize /*empty*/, const string& aDate /*empty*/) 
-		: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), date(Util::toUInt32(aDate)), loading(false) {
+DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, bool checkDupe, const string& aSize, time_t aDate /*0*/) 
+		: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), date(aDate), loading(false) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);

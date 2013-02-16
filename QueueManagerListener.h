@@ -22,6 +22,7 @@
 #include "forward.h"
 #include "noexcept.h"
 #include "QueueItem.h"
+#include "HashManager.h"
 
 namespace dcpp {
 
@@ -80,7 +81,7 @@ public:
 	virtual void on(BundlePriority, const BundlePtr&) noexcept { }
 	virtual void on(BundleAdded, const BundlePtr&) noexcept { }
 	virtual void on(BundleHashed, const string&) noexcept { }
-	virtual void on(FileHashed, const string& /* fileName */, const TTHValue& /* root */) noexcept { }
+	virtual void on(FileHashed, const string& /* fileName */, HashedFilePtr& /* fileInfo */) noexcept { }
 	virtual void on(BundleFilesMoved, const BundlePtr&) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }

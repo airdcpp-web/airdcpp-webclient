@@ -286,6 +286,12 @@ const wstring& toLower(const wstring& str, wstring& tmp) noexcept {
 	return tmp;
 }
 
+bool isLower(const string& str) noexcept {
+	string tmp;
+	toLower(str, tmp);
+	return compare(str, tmp) == 0;
+}
+
 const string& toLower(const string& str, string& tmp) noexcept {
 	if(str.empty())
 		return Util::emptyString;

@@ -61,9 +61,9 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
-		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe) noexcept;
+		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aDate) noexcept;
 
-		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe)
+		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), date(rhs.date)
 		{
 		}
 
@@ -79,7 +79,8 @@ public:
 		GETSET(int64_t, size, Size);
 		GETSET(Directory*, parent, Parent);
 		GETSET(bool, adls, Adls);
-		GETSET(DupeType, dupe, Dupe)
+		GETSET(DupeType, dupe, Dupe);
+		GETSET(time_t, date, Date);
 		bool isQueued() {
 			return (dupe == QUEUE_DUPE || dupe == FINISHED_DUPE);
 		}
@@ -106,7 +107,7 @@ public:
 		List directories;
 		File::List files;
 
-		Directory(Directory* aParent, const string& aName, DirType aType, bool checkDupe = false, const string& aSize = Util::emptyString, const string& aDate = Util::emptyString);
+		Directory(Directory* aParent, const string& aName, DirType aType, bool checkDupe = false, const string& aSize = Util::emptyString, time_t aDate = 0);
 
 		virtual ~Directory();
 
@@ -135,9 +136,9 @@ public:
 		GETSET(int64_t, partialSize, PartialSize);
 		GETSET(Directory*, parent, Parent);
 		GETSET(DirType, type, Type);
-		GETSET(DupeType, dupe, Dupe)
-		GETSET(time_t, date, Date)
-		GETSET(bool, loading, Loading)
+		GETSET(DupeType, dupe, Dupe);
+		GETSET(time_t, date, Date);
+		GETSET(bool, loading, Loading);
 
 		bool isComplete() const { return type == TYPE_ADLS || type == TYPE_NORMAL; }
 		void setComplete() { type = TYPE_NORMAL; }

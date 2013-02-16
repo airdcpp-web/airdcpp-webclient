@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_HASH_MANAGER_H
 #define DCPLUSPLUS_DCPP_HASH_MANAGER_H
 
+#include "HashedFile.h"
 #include "Singleton.h"
 #include "MerkleTree.h"
 #include "Thread.h"
@@ -44,8 +45,8 @@ public:
 	typedef X<0> TTHDone;
 	typedef X<1> HashFailed;
 
-	virtual void on(TTHDone, const string& /* fileName */, const TTHValue& /* root */) noexcept { }
-	virtual void on(HashFailed, const string& /* fileName */) noexcept { }
+	virtual void on(TTHDone, const string& /* filePath */, HashedFilePtr& /* fileInfo */) noexcept { }
+	virtual void on(HashFailed, const string& /* filePath */, HashedFilePtr& /*null*/) noexcept { }
 };
 
 class HashLoader;
@@ -71,7 +72,7 @@ public:
 	void setPriority(Thread::Priority p);
 
 	/** @return TTH root */
-	TTHValue getTTH(const string& aFileName, int64_t aSize);
+	HashedFilePtr getFileInfo(const string& aFileName, int64_t aSize);
 
 	bool getTree(const TTHValue& root, TigerTree& tt);
 
@@ -189,7 +190,7 @@ private:
 	class HashStore {
 	public:
 		HashStore();
-		void addFile(const string&& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
+		HashedFilePtr& addFile(const string&& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
 
 		void load();
 		void save();
@@ -200,7 +201,7 @@ private:
 		bool checkTTH(const string&& aFileName, int64_t aSize, uint32_t aTimeStamp);
 
 		void addTree(const TigerTree& tt) noexcept;
-		const TTHValue* getTTH(const string&& aFileName);
+		const HashedFilePtr getFileInfo(string&& aFileName);
 		bool getTree(const TTHValue& root, TigerTree& tth);
 		size_t getBlockSize(const TTHValue& root) const;
 		bool isDirty() { return dirty; }
@@ -215,21 +216,7 @@ private:
 			GETSET(int64_t, blockSize, BlockSize);
 		};
 
-		/** File -> root mapping info */
-		struct FileInfo {
-		public:
-			FileInfo(const string& aFileName, const TTHValue& aRoot, uint64_t aTimeStamp, bool aUsed) :
-			  fileName(aFileName), root(aRoot), timeStamp(aTimeStamp), used(aUsed) { }
-
-			bool operator==(const string& name) { return name == fileName; }
-
-			GETSET(string, fileName, FileName);
-			GETSET(TTHValue, root, Root);
-			GETSET(uint64_t, timeStamp, TimeStamp);
-			GETSET(bool, used, Used);
-		};
-
-		typedef vector<FileInfo> FileInfoList;
+		typedef vector<HashedFilePtr> FileInfoList;
 
 		typedef unordered_map<string, FileInfoList> DirMap;
 
@@ -266,7 +253,7 @@ private:
 	/** Single node tree where node = root, no storage in HashData.dat */
 	static const int64_t SMALL_TREE = -1;
 
-	void hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size, int hasherID = 0);
+	HashedFilePtr hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size, int hasherID = 0);
 
 	void doRebuild();
 	void SaveData() {

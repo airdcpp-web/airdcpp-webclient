@@ -1113,29 +1113,29 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 	}
 }
 
-void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool failed) {
+void QueueManager::onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, bool failed) {
 	QueueItemPtr q;
 	{
 		RLock l(cs);
 
 		//prefer the exact path match
-		q = fileQueue.findFile(fname);
+		q = fileQueue.findFile(aPath);
 		if (!q) {
 			//also remove bundles that haven't been removed in a shared directories... remove this when the bundles are shown correctly in GUI
 
 			auto tpi = make_pair(fileQueue.getTTHIndex().begin(), fileQueue.getTTHIndex().end());
 			if (!failed) {
 				//we have the tth so we can limit the range
-				tpi = fileQueue.getTTHIndex().equal_range(const_cast<TTHValue*>(&root));
+				tpi = fileQueue.getTTHIndex().equal_range(const_cast<TTHValue*>(&aFileInfo->getRoot()));
 			}
 
 			if (tpi.first != tpi.second) {
 				int64_t size = 0;
 				if (failed) {
-					size = File::getSize(fname);
+					size = File::getSize(aPath);
 				}
 
-				auto file = Util::getFileName(fname);
+				auto file = Util::getFileName(aPath);
 				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getBundle() && aQI->getBundle()->isSet(Bundle::FLAG_HASH) && 
 					aQI->getTargetFileName() == file && aQI->isFinished() && !aQI->isSet(QueueItem::FLAG_HASHED); });
 
@@ -1148,7 +1148,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 
 	if (!q) {
 		if (!failed) {
-			fire(QueueManagerListener::FileHashed(), fname, root);
+			fire(QueueManagerListener::FileHashed(), aPath, aFileInfo);
 		}
 		return;
 	}
@@ -1162,7 +1162,7 @@ void QueueManager::onFileHashed(const string& fname, const TTHValue& root, bool 
 		q->getBundle()->setFlag(Bundle::FLAG_SHARING_FAILED);
 	} else if (!q->getBundle()->isSet(Bundle::FLAG_HASH)) {
 		//instant sharing disabled/the folder wasn't shared when the bundle finished
-		fire(QueueManagerListener::FileHashed(), fname, root);
+		fire(QueueManagerListener::FileHashed(), aPath, aFileInfo);
 	}
 
 	checkBundleHashed(q->getBundle());
@@ -1202,7 +1202,8 @@ void QueueManager::checkBundleHashed(BundlePtr b) {
 		if (!b->isFileBundle()) {
 			fire(QueueManagerListener::BundleHashed(), b->getTarget());
 		} else {
-			fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), b->getFinishedFiles().front()->getTTH());
+			auto fi = HashManager::getInstance()->getFileInfo(Util::getFileName(b->getFinishedFiles().front()->getTarget()), b->getFinishedFiles().front()->getSize());
+			fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
 		}
 	}
 

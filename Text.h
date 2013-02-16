@@ -127,6 +127,9 @@ namespace Text {
 		return toLower(str, tmp);
 	}
 
+	//returns a pointer to a lowercase representation if it differs from the given string
+	bool isLower(const string& str) noexcept;
+
 	const string& toLower(const string& str, string& tmp) noexcept;
 	inline string toLower(const string& str) noexcept {
 		string tmp;

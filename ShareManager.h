@@ -29,6 +29,7 @@
 #include "Exception.h"
 #include "Flags.h"
 #include "HashBloom.h"
+#include "HashedFile.h"
 #include "LogManager.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
@@ -279,46 +280,51 @@ private:
 		typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
 		typedef Map::iterator MapIter;
 
-		struct File {
-			struct StringComp {
-				StringComp(const string& s) : a(s) { }
-				bool operator()(const File& b) const { return stricmp(a, b.getName()) == 0; }
-				const string& a;
-			private:
-				StringComp& operator=(const StringComp&);
-			};
+		struct DirLess {
+			bool operator()(const Ptr& a, const Ptr& b) const { return (compare(a->getRealNameLower(), b->getRealNameLower()) < 0); }
+		};
+
+		class File {
+		public:
 			struct FileLess {
-				bool operator()(const File& a, const File& b) const { return (stricmp(a.getName(), b.getName()) < 0); }
+				bool operator()(const File& a, const File& b) const { return (compare(a.getNameLower(), b.getNameLower()) < 0); }
 			};
 			typedef set<File, FileLess> Set;
 
-			File() : size(0), parent(0) { }
-			File(const string& aName, int64_t aSize, Directory::Ptr aParent, const TTHValue& aRoot) : 
-				name(aName), tth(aRoot), size(aSize), parent(aParent.get()) { }
+			File(const string& aName, int64_t aSize, Directory::Ptr aParent, HashedFilePtr& aFileInfo);
+			~File();
 
 			bool operator==(const File& rhs) const {
-				return stricmp(name, rhs.getName()) == 0;
+				return stricmp(getNameLower(), rhs.getNameLower()) == 0;
 			}
 		
-			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + name; }
-			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + name; }
-			string getRealPath(bool validate = true) const { return parent->getRealPath(name, validate); }
+			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + getName(); }
+			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + getName(); }
+			string getRealPath(bool validate = true) const { return parent->getRealPath(getName(), validate); }
 
-			void toXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
+			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 
-			GETSET(TTHValue, tth, TTH);
-			GETSET(string, name, Name);
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
+			GETSET(HashedFilePtr, fileInfo, FileInfo);
+
+			const string& getNameLower() const { return fileInfo->getFileName(); }
+			const string& getName() const { return name ? *name : fileInfo->getFileName(); }
+			const TTHValue& getTTH() const { return fileInfo->getRoot(); }
+			uint32_t getLastWrite() const { return fileInfo->getTimeStamp(); }
+		private:
+			File(const File& src);
+			string* name;
 		};
 
-		Map directories;
+		typedef set<Directory::Ptr, DirLess> Set;
+		Set directories;
 		File::Set files;
 
 		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot = nullptr) {
 			auto dir = Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
 			if (aParent)
-				aParent->directories[aName] = dir;
+				aParent->directories.insert(dir);
 			return dir;
 		}
 
@@ -364,10 +370,9 @@ private:
 		void toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList);
 		void toXml(SimpleXML& aXml, bool fullList, ProfileToken aProfile) const;
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
-		//for filelist caching
-		void toXmlList(OutputStream& xmlFile, const string& path, string& indent);
 
-		File::Set::const_iterator findFile(const string& aFile) const { return find_if(files.begin(), files.end(), Directory::File::StringComp(aFile)); }
+		//for file list caching
+		void toXmlList(OutputStream& xmlFile, const string& path, string& indent, bool addPath);
 
 		GETSET(uint32_t, lastWrite, LastWrite);
 		GETSET(Directory*, parent, Parent);
@@ -381,12 +386,19 @@ private:
 		bool isLevelExcluded(ProfileToken aProfile) const;
 		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const;
 		int64_t size;
+
+		const string& getRealNameLower() const { return realNameLower; }
+
+		File::Set::const_iterator findFile(const string& aName) const;
+		Set::const_iterator findDirectory(string&& aName) const;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;
+
 		string getRealPath(const string& path, bool checkExistance) const;
 		string realName;
+		string realNameLower;
 	};
 
 	struct FileListDir {
@@ -402,7 +414,7 @@ private:
 		ListDirectoryMap listDirs;
 
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
-		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2) const;
+		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 	};
 
 	int addTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString) noexcept;
@@ -489,7 +501,7 @@ private:
 	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
 	void cleanIndices(Directory::Ptr& dir);
 
-	void onFileHashed(const string& fname, const TTHValue& root);
+	void onFileHashed(const string& fname, HashedFilePtr& fileInfo);
 	
 	StringList bundleDirs;
 
@@ -526,10 +538,10 @@ private:
 			} else {
 				while((i = virtualPath.find('/', j)) != string::npos) {
 					if(d) {
-						auto mi = d->directories.find(virtualPath.substr(j, i - j));
+						auto mi = d->findDirectory(Text::toLower(virtualPath.substr(j, i - j)));
 						j = i + 1;
-						if(mi != d->directories.end() && !mi->second->isLevelExcluded(aProfile)) {   //if we found something, look for more.
-							d = mi->second;
+						if(mi != d->directories.end() && !(*mi)->isLevelExcluded(aProfile)) {   //if we found something, look for more.
+							d = *mi;
 						} else {
 							d = nullptr;   //make the pointer null so we can check if found something or not.
 							break;
@@ -556,8 +568,8 @@ private:
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
-	virtual void on(QueueManagerListener::BundleHashed, const string& path) noexcept;
-	virtual void on(QueueManagerListener::FileHashed, const string& fname, const TTHValue& root) noexcept { onFileHashed(fname, root); }
+	virtual void on(QueueManagerListener::BundleHashed, const string& aPath) noexcept;
+	virtual void on(QueueManagerListener::FileHashed, const string& aPath, HashedFilePtr& aFileInfo) noexcept { onFileHashed(aPath, aFileInfo); }
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
