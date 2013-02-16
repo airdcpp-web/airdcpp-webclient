@@ -1623,6 +1623,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "The %s bind address %s doesn't appear to be available. Do you want to switch to listen to all interfaces?", 
 "Show warning about trying to download already shared files", 
 "Duplicate", 
+"Partial match", 
+"RegEx", 
+"Wildcard", 
+"Exact match", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3246,4 +3250,8 @@ std::string dcpp::ResourceManager::names[] = {
 "BindAddressMissing", 
 "SettingsLogAlreadyShared", 
 "Duplicate", 
+"PartialMatch", 
+"RegularExpression", 
+"Wildcard", 
+"ExactMatch", 
 };

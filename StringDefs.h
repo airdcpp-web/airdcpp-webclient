@@ -1627,5 +1627,9 @@ enum Strings { // @DontAdd
 	BIND_ADDRESS_MISSING, // "The %s bind address %s doesn't appear to be available. Do you want to switch to listen to all interfaces?"
 	SETTINGS_LOG_ALREADY_SHARED, // "Show warning about trying to download already shared files"
 	DUPLICATE, // "Duplicate"
+	PARTIAL_MATCH, // "Partial match"
+	REGULAR_EXPRESSION, // "RegEx"
+	WILDCARD, // "Wildcard"
+	EXACT_MATCH, // "Exact match"
 	LAST // @DontAdd
 };
