@@ -1631,5 +1631,6 @@ enum Strings { // @DontAdd
 	REGULAR_EXPRESSION, // "RegEx"
 	WILDCARD, // "Wildcard"
 	EXACT_MATCH, // "Exact match"
+	ENABLE_CONNECTIVITY, // "Enable %s connectivity"
 	LAST // @DontAdd
 };

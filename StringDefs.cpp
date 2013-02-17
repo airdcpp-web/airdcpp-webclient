@@ -1627,6 +1627,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "RegEx", 
 "Wildcard", 
 "Exact match", 
+"Enable %s connectivity", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3254,4 +3255,5 @@ std::string dcpp::ResourceManager::names[] = {
 "RegularExpression", 
 "Wildcard", 
 "ExactMatch", 
+"EnableConnectivity", 
 };

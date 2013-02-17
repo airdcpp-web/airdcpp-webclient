@@ -555,7 +555,7 @@ void UpdateManager::checkAdditionalUpdates(bool manualCheck) {
 	}
 
 	//v6
-	if(!manualCheck && SETTING(IP_UPDATE) && !SETTING(AUTO_DETECT_CONNECTION6) && SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED) {
+	if(!manualCheck && SETTING(IP_UPDATE6) && !SETTING(AUTO_DETECT_CONNECTION6) && SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED) {
 		checkIP(false, true);
 	}
 

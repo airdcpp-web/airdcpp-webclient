@@ -151,7 +151,7 @@ const string SettingsManager::settingTags[] =
 	"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "FavUsersOnlyFav", "LogAlreadyShared",
-	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory",
+	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -318,6 +318,7 @@ SettingsManager::SettingsManager()
 	setDefault(OPEN_NETWORK_STATISTICS, false);
 	setDefault(OPEN_NOTEPAD, false);
 	setDefault(NO_IP_OVERRIDE, false);
+	setDefault(NO_IP_OVERRIDE6, false);
 	setDefault(SOCKET_IN_BUFFER, 64*1024);
 	setDefault(SOCKET_OUT_BUFFER, 64*1024);
 	setDefault(OPEN_WAITING_USERS, false);
@@ -584,6 +585,7 @@ SettingsManager::SettingsManager()
 	setDefault(NAT_SORT, true);
 	setDefault(FAV_DL_SPEED, 0);
 	setDefault(IP_UPDATE, true);
+	setDefault(IP_UPDATE6, false);
 	setDefault(SERVER_COMMANDS, true);
 	setDefault(CLIENT_COMMANDS, true);
 	setDefault(SKIPLIST_SHARE, "(.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log)");

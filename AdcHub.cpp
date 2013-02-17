@@ -1310,7 +1310,7 @@ void AdcHub::appendSupportsAndConnectivity(StringMap& lastInfoMap, AdcCommand& c
 	}
 
 	if (v6) {
-		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp6().empty()) {
+		if(CONNSETTING(NO_IP_OVERRIDE6) && !getUserIp6().empty()) {
 			addParam(lastInfoMap, c, "I6", Socket::resolve(getUserIp6(), AF_INET6));
 		} else {
 			addParam(lastInfoMap, c, "I6", "::");
