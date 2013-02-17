@@ -2310,7 +2310,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 	if( (cur->empty()) && 
 		(((aFileType == SearchManager::TYPE_ANY) && sizeOk) || (aFileType == SearchManager::TYPE_DIRECTORY)) ) {
 		// We satisfied all the search words! Add the directory...(NMDC searches don't support directory size)
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, 0, getFullName(SP_DEFAULT), TTHValue()));
+		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, 0, getFullName(SP_DEFAULT), TTHValue(), 0));
 		aResults.push_back(sr);
 	}
 
@@ -2332,7 +2332,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 			
 			// Check file type...
 			if(checkType(f.getName(), aFileType)) {
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.getSize(), getFullName(SP_DEFAULT) + f.getName(), f.getTTH()));
+				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.getSize(), getFullName(SP_DEFAULT) + f.getName(), f.getTTH(), 0));
 				aResults.push_back(sr);
 				if(aResults.size() >= maxResults) {
 					break;
@@ -2358,7 +2358,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 				const auto i = tthIndex.find(const_cast<TTHValue*>(&tth));
 				if(i != tthIndex.end() && i->second->getParent()->hasProfile(SP_DEFAULT)) {
 					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second->getSize(), 
-						i->second->getParent()->getFullName(SP_DEFAULT) + i->second->getName(), i->second->getTTH()));
+						i->second->getParent()->getFullName(SP_DEFAULT) + i->second->getName(), i->second->getTTH(), 0));
 
 					results.push_back(sr);
 				} 
@@ -2367,7 +2367,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 			auto files = tempShares.equal_range(tth);
 			for(auto& i = files.first; i != files.second; ++i) {
 				if(i->second.key.empty()) { // nmdc shares are shared to everyone.
-					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, "tmp\\" + Util::getFileName(i->second.path), i->first));
+					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, "tmp\\" + Util::getFileName(i->second.path), i->first, 0));
 					results.push_back(sr);
 				}
 			}
@@ -2493,7 +2493,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	bool sizeOk = (aStrings.gt == 0);
 	if( aStrings.include->empty() && aStrings.ext.empty() && sizeOk ) {
 		// We satisfied all the search words! Add the directory...
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, getSize(aProfile), getFullName(aProfile), TTHValue()));
+		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, getSize(aProfile), getFullName(aProfile), TTHValue(), lastWrite));
 		aResults.push_back(sr);
 	}
 
@@ -2520,7 +2520,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 			if(aStrings.hasExt(f.getName())) {
 
 				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
-					f.getSize(), getFullName(aProfile) + f.getName(), f.getTTH()));
+					f.getSize(), getFullName(aProfile) + f.getName(), f.getTTH(), f.getLastWrite()));
 				aResults.push_back(sr);
 				if(aResults.size() >= maxResults) {
 					return;
@@ -2552,7 +2552,7 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 		if(i != tthIndex.end() && i->second->getParent()->hasProfile(aProfile)) {
 			SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
 				i->second->getSize(), i->second->getParent()->getFullName(aProfile) + i->second->getName(), 
-				i->second->getTTH()));
+				i->second->getTTH(), i->second->getLastWrite()));
 			results.push_back(sr);
 			return;
 		}
@@ -2560,7 +2560,8 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 		const auto files = tempShares.equal_range(srch.root);
 		for(auto& f: files | map_values) {
 			if(f.key.empty() || (f.key == cid.toBase32())) { // if no key is set, it means its a hub share.
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.size, "tmp\\" + Util::getFileName(f.path), srch.root));
+				//TODO: fix the date?
+				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.size, "tmp\\" + Util::getFileName(f.path), srch.root, 0));
 				results.push_back(sr);
 			}
 		}

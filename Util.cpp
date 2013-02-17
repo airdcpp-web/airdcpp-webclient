@@ -1193,12 +1193,14 @@ int Util::randInt(int min, int max) {
     return dist(gen);
 }
 
-string Util::getDateTime(time_t t) {
-	
-	char buf[64];
+wstring Util::getDateTimeW(time_t t) {
+	if (t == 0)
+		return Util::emptyStringT;
+
+	TCHAR buf[64];
 	tm _tm;
 	localtime_s(&_tm, &t);
-	strftime(buf, 64, "%Y-%m-%d", &_tm);
+	wcsftime(buf, 64, _T("%Y-%m-%d"), &_tm);
 	
 	return buf;
 }

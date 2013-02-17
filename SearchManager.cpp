@@ -278,7 +278,7 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 
 
 	SearchResultPtr sr(new SearchResult(HintedUser(user, url), type, slots, freeSlots, size,
-		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString));
+		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0));
 	fire(SearchManagerListener::SR(), sr);
 }
 
@@ -312,6 +312,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	string file;
 	string tth;
 	string token;
+	time_t date = 0;
 
 	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "FN") == 0) {
@@ -324,6 +325,8 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 			tth = str.substr(2);
 		} else if(str.compare(0, 2, "TO") == 0) {
 			token = str.substr(2);
+		} else if(str.compare(0, 2, "DM") == 0) {
+			date = Util::toUInt32(str.substr(2));
 		}
 	}
 
@@ -356,7 +359,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		
 		uint8_t slots = ClientManager::getInstance()->getSlots(from->getCID());
 		SearchResultPtr sr(new SearchResult(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
-			file, remoteIp, th, localToken));
+			file, remoteIp, th, localToken, date));
 		fire(SearchManagerListener::SR(), sr);
 	}
 }

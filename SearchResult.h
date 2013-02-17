@@ -50,10 +50,10 @@ public:
 		TYPE_DIRECTORY
 	};
 
-	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH);
+	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate);
 
 	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken);
+		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate);
 
 	string getFileName() const;
 	string toSR(const Client& client) const;
@@ -71,7 +71,7 @@ public:
 	
 	const string& getIP() const { return IP; }
 	const string& getToken() const { return token; }
-
+	time_t getDate() const { return date; }
 private:
 	friend class SearchManager;
 
@@ -91,7 +91,7 @@ private:
 	HintedUser user;
 	Types type;
 
-
+	time_t date;
 };
 
 }

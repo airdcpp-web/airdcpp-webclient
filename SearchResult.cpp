@@ -38,16 +38,16 @@ AdcCommand DirectSearchResult::toDSR(char type) const {
 }
 
 SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken) :
+	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate) :
 
 	file(aFilePath), user(aUser),
 	size(aSize), type(aType), slots(aSlots), freeSlots(aFreeSlots), IP(ip),
-	tth(aTTH), token(aToken) { }
+	tth(aTTH), token(aToken), date(aDate) { }
 
-SearchResult::SearchResult(Types aType, int64_t aSize, const string& aFile, const TTHValue& aTTH) :
+SearchResult::SearchResult(Types aType, int64_t aSize, const string& aFile, const TTHValue& aTTH, time_t aDate) :
 	file(aFile), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), slots(UploadManager::getInstance()->getSlots()), 
 	freeSlots(UploadManager::getInstance()->getFreeSlots()),  
-	tth(aTTH) { }
+	tth(aTTH), date(aDate) { }
 
 string SearchResult::toSR(const Client& c) const {
 	// File:		"$SR %s %s%c%s %d/%d%c%s (%s)|"
@@ -84,6 +84,7 @@ AdcCommand SearchResult::toRES(char type) const {
 	cmd.addParam("FN", Util::toAdcFile(file));
 	if (!SettingsManager::lanMode)
 		cmd.addParam("TR", getTTH().toBase32());
+	cmd.addParam("DM", Util::toString(date));
 	return cmd;
 }
 
