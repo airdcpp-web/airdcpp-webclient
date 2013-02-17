@@ -189,8 +189,16 @@ string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFa
 	if(ou)
 		return ou->getIdentity().getNick();
 
-	if(allowFallback && p.first != p.second){
-		return p.first->second->getIdentity().getNick();
+	if(allowFallback) {
+		if (p.first != p.second){
+			return p.first->second->getIdentity().getNick();
+		} else {
+			// offline
+			auto i = nicks.find(const_cast<CID*>(&u->getCID()));
+			if(i != nicks.end()) {
+				return i->second;
+			}
+		}
 	}
 
 	return Util::emptyString;

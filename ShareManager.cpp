@@ -784,8 +784,8 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			this will keep us sync to hashindex */
 			try {
 				auto s = Util::toInt64(size);
-				auto fi = SettingsManager::lanMode ? new HashedFile(Text::toLower(fname), TTHValue(), 0, true) : HashManager::getInstance()->getFileInfo(curDirPath + fname, s);
-				lastFileIter = cur->files.emplace_hint(lastFileIter, fname, s, cur, move(fi));
+				//HashedFilePtr fi = (SettingsManager::lanMode ? HashedFilePtr(new HashedFile(Text::toLower(fname)), TTHValue(), 0, true) : HashManager::getInstance()->getFileInfo(curDirPath + fname, s));
+				lastFileIter = cur->files.emplace_hint(lastFileIter, fname, s, cur, move(HashManager::getInstance()->getFileInfo(curDirPath + fname, s)));
 			}catch(Exception& e) {
 				hashSize += Util::toInt64(size);
 				dcdebug("Error loading filelist %s \n", e.getError().c_str());
@@ -1167,7 +1167,7 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 					HashedFilePtr hf = new HashedFile(Text::toLower(name), TTHValue(), File::convertTime(&i->ftLastWriteTime), true);
 					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, hf);
 				} else if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) {
-					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, HashManager::getInstance()->getFileInfo(path, size));
+					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, move(HashManager::getInstance()->getFileInfo(path, size)));
 					//aDir->files.emplace(name, size, aDir, HashManager::getInstance()->getFileInfo(path, size));
 				} else {
 					hashSize += size;
@@ -2688,7 +2688,7 @@ void ShareManager::onFileHashed(const string& fname, HashedFilePtr& fileInfo) no
 			return;
 		}
 
-		auto i = d->findFile(Util::getFileName(fname));
+		auto i = d->findFile(Text::toLower(Util::getFileName(fname)));
 		if(i != d->files.end()) {
 			// Get rid of false constness...
 			/*auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));

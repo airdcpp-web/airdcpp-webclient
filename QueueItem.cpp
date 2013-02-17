@@ -714,7 +714,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 
 	f.write(LIT("\">\r\n"));
 
-	for(auto& s: done) {
+	for(const auto& s: done) {
 		f.write(indent);
 		f.write(LIT("\t<Segment Start=\""));
 		f.write(Util::toString(s.getStart()));
@@ -723,7 +723,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 		f.write(LIT("\"/>\r\n"));
 	}
 
-	for(auto& j: sources) {
+	for(const auto& j: sources) {
 		if(j.isSet(QueueItem::Source::FLAG_PARTIAL)) continue;
 					
 		const CID& cid = j.getUser().user->getCID();

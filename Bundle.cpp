@@ -922,7 +922,7 @@ void Bundle::save() {
 	if (isFileBundle()) {
 		f.write(LIT("<File Version=\"1.0\" Token=\""));
 		f.write(token);
-		for (auto& as: autoSearches) {
+		for (const auto& as: autoSearches) {
 			f.write(LIT("\t<AutoSearch Token=\""));
 			f.write(Util::toString(as));
 			f.write(LIT("\"/>\r\n"));
@@ -945,13 +945,13 @@ void Bundle::save() {
 		}
 
 		f.write(LIT("\">\r\n"));
-		for (auto& as: autoSearches) {
+		for (const auto& as: autoSearches) {
 			f.write(LIT("\t<AutoSearch Token=\""));
 			f.write(Util::toString(as));
 			f.write(LIT("\"/>\r\n"));
 		}
 
-		for (auto& qi: finishedFiles) {
+		for (const auto& qi: finishedFiles) {
 			f.write(LIT("\t<Finished TTH=\""));
 			f.write(qi->getTTH().toBase32());
 			f.write(LIT("\" Target=\""));
@@ -963,7 +963,7 @@ void Bundle::save() {
 			f.write(LIT("\"/>\r\n"));
 		}
 
-		for (auto& q: queueItems) {
+		for (const auto& q: queueItems) {
 			q->save(f, tmp, b32tmp);
 		}
 

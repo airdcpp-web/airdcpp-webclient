@@ -257,7 +257,7 @@ QueueManager::~QueueManager() noexcept {
 	ClientManager::getInstance()->removeListener(this);
 	HashManager::getInstance()->removeListener(this);
 
-	saveQueue(true);
+	saveQueue(false);
 
 	if(!SETTING(KEEP_LISTS)) {
 		string path = Util::getListPath();

@@ -1357,7 +1357,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "SS", Util::toString(size));
 	addParam(lastInfoMap, c, "SF", Util::toString(fileCount));
 
-	addParam(lastInfoMap, c, "EM", SETTING(EMAIL));
+	addParam(lastInfoMap, c, "EM", get(Email));
 	addParam(lastInfoMap, c, "HN", Util::toString(counts[COUNT_NORMAL]));
 	addParam(lastInfoMap, c, "HR", Util::toString(counts[COUNT_REGISTERED]));
 	addParam(lastInfoMap, c, "HO", Util::toString(counts[COUNT_OP]));	

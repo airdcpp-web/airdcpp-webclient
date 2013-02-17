@@ -33,6 +33,8 @@ public:
 	HashedFile(const string& aFileName, const TTHValue& aRoot, uint64_t aTimeStamp, bool aUsed) :
 		fileName(aFileName), root(aRoot), timeStamp(aTimeStamp), used(aUsed) { }
 
+	~HashedFile() { }
+
 	//bool operator==(const string& name) { return compare(name == fileName) == 0; }
 
 	GETSET(string, fileName, FileName);
@@ -40,9 +42,6 @@ public:
 	GETSET(uint64_t, timeStamp, TimeStamp);
 	GETSET(bool, used, Used);
 };
-
-//typedef boost::intrusive_ptr<FileInfo> FileInfoPtr;
-//typedef HashedFile* HashedFilePtr;
 
 }
 

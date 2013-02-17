@@ -193,7 +193,7 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 HashedFilePtr HashManager::hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tt, int64_t speed, int64_t /*size*/, int hasherID /*0*/) {
 	HashedFilePtr fi = nullptr;
 	try {
-		fi = move(store.addFile(Text::toLower(aFileName), aTimeStamp, tt, true));
+		fi = store.addFile(Text::toLower(aFileName), aTimeStamp, tt, true);
 	} catch (const Exception& e) {
 		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true);
 		return nullptr;
@@ -227,7 +227,7 @@ HashedFilePtr& HashManager::HashStore::addFile(const string&& aFileLower, uint64
 		fileList.erase(j);
 	}
 
-	fileList.push_back(new HashedFile(Util::getFileName(aFileLower), tth.getRoot(), aTimeStamp, aUsed));
+	fileList.emplace_back(new HashedFile(Util::getFileName(aFileLower), tth.getRoot(), aTimeStamp, aUsed));
 	dirty = true;
 	return fileList.back();
 }
@@ -593,7 +593,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if (!file.empty() && size >= 0 && timeStamp > 0 && !root.empty()) {
 				string fileLower = Text::toLower(file);
-				store.fileIndex[Util::getFilePath(fileLower)].push_back(new HashedFile(Util::getFileName(fileLower), TTHValue(root), timeStamp, false));
+				store.fileIndex[Util::getFilePath(fileLower)].emplace_back(new HashedFile(Util::getFileName(fileLower), TTHValue(root), timeStamp, false));
 			}
 		} else if (name == sTrees) {
 			inTrees = !simple;
@@ -933,7 +933,7 @@ int HashManager::Hasher::run() {
 					HashManager::getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true);
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
 				} else {
-					fi = HashManager::getInstance()->hashDone(fname, timestamp, tt, averageSpeed, size, hasherID);
+					fi = move(HashManager::getInstance()->hashDone(fname, timestamp, tt, averageSpeed, size, hasherID));
 					//tth = tt.getRoot();
 				}
 			} catch(const FileException& e) {

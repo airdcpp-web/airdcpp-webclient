@@ -980,7 +980,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	char myInfo[256];
 	snprintf(myInfo, sizeof(myInfo), "$MyINFO $ALL %s %s<%s V:%s,M:%c,H:%s,S:%d>$ $%s%c$%s$", fromUtf8(getMyNick()).c_str(),
 		fromUtf8(escape(get(Description))).c_str(), dc.c_str(), version.c_str(), modeChar, getCounts().c_str(), 
-		UploadManager::getInstance()->getSlots(), fromUtf8(uploadSpeed).c_str(), status, fromUtf8(escape(SETTING(EMAIL))).c_str());
+		UploadManager::getInstance()->getSlots(), fromUtf8(uploadSpeed).c_str(), status, fromUtf8(escape(get(Email))).c_str());
 
 	int64_t newBytesShared = getShareProfile() == SP_HIDDEN ? 0 : ShareManager::getInstance()->getTotalShareSize(SP_DEFAULT);
 	if (strcmp(myInfo, lastMyInfo.c_str()) != 0 || alwaysSend || (newBytesShared != lastBytesShared && lastUpdate + 15*60*1000 < GET_TICK())) {
