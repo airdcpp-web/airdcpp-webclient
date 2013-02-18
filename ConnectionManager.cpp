@@ -1036,17 +1036,21 @@ bool ConnectionManager::setBundle(const string& token, const string& bundleToken
 	return false;
 }
 
-void ConnectionManager::shutdown() {
+void ConnectionManager::shutdown(function<void (float)> progressF) {
 	TimerManager::getInstance()->removeListener(this);
 	ClientManager::getInstance()->removeListener(this);
 	shuttingDown = true;
 	disconnect();
+
+	int connections = 0;
 	{
 		RLock l(cs);
+		connections = userConnections.size();
 		for(auto uc: userConnections) {
 			uc->disconnect(true);
 		}
 	}
+
 	// Wait until all connections have died out...
 	while(true) {
 		{
@@ -1054,6 +1058,7 @@ void ConnectionManager::shutdown() {
 			if(userConnections.empty()) {
 				break;
 			}
+			progressF(static_cast<float>(userConnections.size()) / static_cast<float>(connections));
 		}
 		Thread::sleep(50);
 	}

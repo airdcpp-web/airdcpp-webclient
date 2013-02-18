@@ -128,7 +128,7 @@ public:
 	void setDirty(ProfileTokenSet aProfiles, bool setCacheDirty, bool forceXmlRefresh=false);
 
 	void startup(function<void (const string&)> stepF, function<void (float)> progressF);
-	void shutdown();
+	void shutdown(function<void (float)> progressF);
 	void abortRefresh();
 
 	void changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove);
@@ -155,7 +155,7 @@ public:
 	MemoryInputStream* generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) const;
 	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const;
 
-	void saveXmlList(bool verbose = false);	//for filelist caching
+	void saveXmlList(bool verbose=false, function<void (float)> progressF = nullptr);	//for filelist caching
 
 	AdcCommand getFileInfo(const string& aFile, ProfileToken aProfile);
 

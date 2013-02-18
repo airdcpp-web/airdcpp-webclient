@@ -125,7 +125,7 @@ void ShareManager::abortRefresh() {
 	//join(); would slow down closing at this point.
 }
 
-void ShareManager::shutdown() {
+void ShareManager::shutdown(function<void (float)> progressF) {
 
 	if(ShareCacheDirty || !Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"))
 		saveXmlList();
@@ -2051,7 +2051,7 @@ ShareManager::FileListDir::~FileListDir() {
 
 #define LITERAL(n) n, sizeof(n)-1
 
-void ShareManager::saveXmlList(bool verbose /* false */) {
+void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> progressF /*nullptr*/) {
 
 	if(xml_saving)
 		return;
@@ -2069,10 +2069,17 @@ void ShareManager::saveXmlList(bool verbose /* false */) {
 		xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION "\">\r\n"));
 		indent +='\t';
 
+		if (progressF)
+			progressF(0);
+
 		{
 			RLock l(cs);
-			for(const auto& s: shares)
+			int cur = 0;
+			for(const auto& s: shares) {
 				s.second->toXmlList(xmlFile, s.first, indent, true);
+				if (progressF)
+					progressF(static_cast<float>(cur) / static_cast<float>(shares.size()));
+			}
 		}
 
 		xmlFile.write(LITERAL("</Share>"));

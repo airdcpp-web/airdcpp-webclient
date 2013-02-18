@@ -454,7 +454,7 @@ void HashManager::HashStore::countNextSave() {
 	getInstance()->setNextSave(GET_TICK()+15*60*1000);
 }
 
-void HashManager::HashStore::save() {
+void HashManager::HashStore::save(function<void (float)> progressF /*nullptr*/) {
 	if(saving.test_and_set())
 		return;
 
@@ -473,6 +473,10 @@ void HashManager::HashStore::save() {
 			{
 				RLock l(cs);
 				dirty = false;
+
+				size_t initialSize = treeIndex.size()+fileIndex.size();
+				int cur = 0;
+
 				for (auto& i: treeIndex) {
 					const TreeInfo& ti = i.second;
 					f.write(LIT("\t\t<Hash Type=\"TTH\" Index=\""));
@@ -485,6 +489,9 @@ void HashManager::HashStore::save() {
 					b32tmp.clear();
 					f.write(i.first.toBase32(b32tmp));
 					f.write(LIT("\"/>\r\n"));
+
+					if (progressF)
+						progressF(static_cast<float>(cur) / static_cast<float>(initialSize));
 				}
 		
 				f.write(LIT("\t</Trees>\r\n\t<Files>\r\n"));
@@ -500,6 +507,9 @@ void HashManager::HashStore::save() {
 						b32tmp.clear();
 						f.write(fi->getRoot().toBase32(b32tmp));
 						f.write(LIT("\"/>\r\n"));
+
+						if (progressF)
+							progressF(static_cast<float>(cur) / static_cast<float>(initialSize));
 					}
 				}
 			} //unlock
@@ -770,7 +780,7 @@ void HashManager::Hasher::scheduleRebuild() {
 		t_resume(); 
 }
 
-void HashManager::shutdown() {
+void HashManager::shutdown(function<void (float)> progressF) {
 	aShutdown = true;
 	TimerManager::getInstance()->removeListener(this);
 
@@ -794,7 +804,7 @@ void HashManager::shutdown() {
 	}
 
 	if (store.isDirty())
-		store.save(); 
+		store.save(progressF); 
 }
 
 void HashManager::Hasher::clear() {

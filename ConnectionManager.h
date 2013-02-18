@@ -143,7 +143,7 @@ public:
 	void disconnect(const string& token);
 	bool setBundle(const string& token, const string& bundleToken);
 
-	void shutdown();
+	void shutdown(function<void (float)> progressF);
 	bool isShuttingDown() const { return shuttingDown; }
 
 	/** Find a suitable port to listen on, and start doing it */
@@ -202,7 +202,7 @@ private:
 	friend class Singleton<ConnectionManager>;
 	ConnectionManager();
 
-	~ConnectionManager() { shutdown(); }
+	~ConnectionManager() { }
 	
 	UserConnection* getConnection(bool aNmdc, bool secure) noexcept;
 	void putConnection(UserConnection* aConn);

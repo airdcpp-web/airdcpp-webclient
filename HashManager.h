@@ -95,7 +95,7 @@ public:
 
 	void startup(function<void (float)> progressF);
 	void stop();
-	void shutdown();
+	void shutdown(function<void (float)> progressF);
 
 	struct HashPauser {
 		HashPauser();
@@ -193,7 +193,7 @@ private:
 		HashedFilePtr& addFile(const string&& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
 
 		void load(function<void (float)> progressF);
-		void save();
+		void save(function<void (float)> progressF = nullptr);
 		void countNextSave();
 
 		void rebuild();

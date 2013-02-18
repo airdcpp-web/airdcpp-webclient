@@ -144,26 +144,26 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	announce(STRING(LOADING_GUI));
 }
 
-void shutdown(function<void (const string&)> f) {
+void shutdown(function<void (const string&)> stepF, function<void (float)> progressF) {
 	TimerManager::getInstance()->shutdown();
-	auto announce = [&f](const string& str) {
-		if(f) {
-			f(str);
+	auto announce = [&stepF](const string& str) {
+		if(stepF) {
+			stepF(str);
 		}
 	};
 
 	ShareManager::getInstance()->abortRefresh();
 
 	announce(STRING(SAVING_HASH_DATA));
-	HashManager::getInstance()->shutdown();
+	HashManager::getInstance()->shutdown(progressF);
 
 	ThrottleManager::getInstance()->shutdown();
 
 	announce(STRING(SAVING_SHARE));
-	ShareManager::getInstance()->shutdown();
+	ShareManager::getInstance()->shutdown(progressF);
 
 	announce(STRING(CLOSING_CONNECTIONS));
-	ConnectionManager::getInstance()->shutdown();
+	ConnectionManager::getInstance()->shutdown(progressF);
 	ConnectivityManager::getInstance()->close();
 	GeoManager::getInstance()->close();
 	BufferedSocket::waitShutdown();
