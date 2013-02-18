@@ -312,13 +312,15 @@ HintedUser ClientManager::findLegacyUser(const string& nick) const noexcept {
 	RLock l(cs);
 
 	for(auto i: clients | map_values) {
-		auto nmdc = dynamic_cast<NmdcHub*>(i);
-		if(nmdc) {
+		if (!AirUtil::isAdcHub(i->getAddress())) {
+			auto nmdc = static_cast<NmdcHub*>(i);
+			//if(nmdc) {
 			/** @todo run the search directly on non-UTF-8 nicks when we store them. */
 			auto ou = nmdc->findUser(nmdc->toUtf8(nick));
 			if(ou) {
 				return HintedUser(*ou);
 			}
+			//}
 		}
 	}
 

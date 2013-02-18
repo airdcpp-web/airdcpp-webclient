@@ -63,8 +63,8 @@ const string SettingsManager::settingTags[] =
 	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat","WinampPath",
 	"SkiplistShare", "FreeSlotsExtensions",
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
-	"MediaToolbar", "password", "skiplistSearch", "skipMsg1", "skipMsg2", "skipMsg3", "DownloadSpeed", "HighlightList", "IconPath",
-	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype",
+	"MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
+	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
 
 	"SENTRY", 
 	// Ints
@@ -147,11 +147,11 @@ const string SettingsManager::settingTags[] =
 	"UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist", "ScanDLBundles", "MCNAutoDetect", "DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", 
 	"TextDupeBold", "TextDupeItalic", "UnderlineLinks", "UnderlineDupes", "DupesInFilelists", "DupesInChat", "NoZeroByte", "CheckEmptyDirs","CheckEmptyReleases",  "CheckMissing", "CheckSfv", 
 	"CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "SortDirs", "DecreaseRam", "WizardRunNew", "FormatRelease", "TextNormBold", "TextNormItalic", "SystemShowUploads", "SystemShowDownloads", 
-	"UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick", "searchSkiplist",
+	"UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick",
 	"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "FavUsersOnlyFav", "LogAlreadyShared",
-	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6",
+	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -628,11 +628,7 @@ SettingsManager::SettingsManager()
 	setDefault(PASSWD_PROTECT_TRAY, false);
 	setDefault(DISALLOW_CONNECTION_TO_PASSED_HUBS, false);
 	setDefault(BOLD_HUB_TABS_ON_KICK, false);
-	setDefault(SKIPLIST_SEARCH, "");
-	setDefault(SEARCH_SKIPLIST, false);
-	setDefault(SKIP_MSG_01, "*DISK2*|*cd2*");
-	setDefault(SKIP_MSG_02, "*sample*");
-	setDefault(SKIP_MSG_03, "*cover*");
+	setDefault(SEARCH_USE_EXCLUDED, false);
 	setDefault(AUTO_ADD_SOURCE, true);
 	setDefault(KEEP_FINISHED_FILES, false);
 	setDefault(USE_EXPLORER_THEME, true);
