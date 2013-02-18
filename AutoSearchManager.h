@@ -96,7 +96,7 @@ public:
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType, 
 		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime, bool aCheckAlreadyQueued, 
-		bool aCheckAlreadyShared, bool matchFullPath, ProfileToken aToken = 0) noexcept;
+		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, ProfileToken aToken = 0) noexcept;
 
 	AutoSearch() noexcept;
 	~AutoSearch();
@@ -105,6 +105,7 @@ public:
 
 	GETSET(bool, enabled, Enabled);
 	GETSET(string, searchString, SearchString);
+	GETSET(string, excludedString, ExcludedString);
 	GETSET(string, matcherString, MatcherString);
 	GETSET(ActionType, action, Action);
 	GETSET(string, fileType, FileType);
@@ -158,11 +159,14 @@ public:
 	string getTarget() { return target; }
 	void setTarget(const string& aTarget);
 	bool removePostSearch();
+	bool isExcluded(const string& aString);
+	void updateExcluded();
 private:
 	StringMatch userMatcher;
 	time_t nextSearchChange;
 	bool nextIsDisable;
 	string target;
+	StringSearch::List excluded;
 };
 
 class SimpleXML;

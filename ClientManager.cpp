@@ -267,7 +267,7 @@ bool ClientManager::isConnected(const string& aUrl) const {
 	return i != clients.end();
 }
 
-string ClientManager::findHub(const string& ipPort) const {
+string ClientManager::findHub(const string& ipPort, bool nmdc) const {
 	string ip;
 	string port = "411";
 	string::size_type i = ipPort.rfind(':');
@@ -282,7 +282,7 @@ string ClientManager::findHub(const string& ipPort) const {
 
 	RLock l(cs);
 	for(const auto c: clients | map_values) {
-		if(c->getIp() == ip) {
+		if(c->getIp() == ip && AirUtil::isAdcHub(c->getHubUrl()) == !nmdc) {
 			// If exact match is found, return it
 			if(c->getPort() == port)
 				return c->getHubUrl();
@@ -312,7 +312,7 @@ HintedUser ClientManager::findLegacyUser(const string& nick) const noexcept {
 	RLock l(cs);
 
 	for(auto i: clients | map_values) {
-		if (!AirUtil::isAdcHub(i->getAddress())) {
+		if (!AirUtil::isAdcHub(i->getHubUrl())) {
 			auto nmdc = static_cast<NmdcHub*>(i);
 			//if(nmdc) {
 			/** @todo run the search directly on non-UTF-8 nicks when we store them. */

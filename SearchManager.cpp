@@ -252,7 +252,7 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 
 	HintedUser user;
 
-	user.hint = ClientManager::getInstance()->findHub(x.substr(i, j - i));
+	user.hint = ClientManager::getInstance()->findHub(x.substr(i, j - i), true);
 	if(user.hint.empty()) {
 		// Could happen if hub has multiple URLs / IPs
 		user = ClientManager::getInstance()->findLegacyUser(nick);
@@ -430,7 +430,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
 		return;
 	}
 
-	string url = ClientManager::getInstance()->findHub(hubIpPort);
+	string url = Util::emptyString; //TODO: fix
 
 	if (update) {
 		//LogManager::getInstance()->message("PBD UPDATE TTH");
@@ -497,7 +497,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 		}
 	}
 
-	string url = ClientManager::getInstance()->findHub(hubIpPort);
+	string url = ClientManager::getInstance()->findHub(hubIpPort, !from);
 	if(!from || from == ClientManager::getInstance()->getMe()) {
 		// for NMDC support
 		
@@ -514,9 +514,9 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 				return;
 			}
 		}
+
+		ClientManager::getInstance()->setIPUser(from, remoteIp, udpPort);
 	}
-	
-	ClientManager::getInstance()->setIPUser(from, remoteIp, udpPort);
 
 	if(partialInfo.size() != partialCount) {
 		// what to do now ? just ignore partial search result :-/

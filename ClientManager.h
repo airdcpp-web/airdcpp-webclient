@@ -90,7 +90,7 @@ public:
 	// usage needs to be locked!
 	const UserMap& getUsers() const { return users; }
 
-	string findHub(const string& ipPort) const;
+	string findHub(const string& ipPort, bool nmdc) const;
 	const string& findHubEncoding(const string& aUrl) const;
 
 	/**

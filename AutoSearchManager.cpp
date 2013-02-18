@@ -52,11 +52,11 @@ AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) {
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, 
 	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
-	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, ProfileToken aToken /*rand*/) noexcept : 
+	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, ProfileToken aToken /*rand*/) noexcept : 
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), tType(aTargetType), 
 		expireTime(aExpireTime), lastSearch(0), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
 		manualSearch(false), token(aToken), matchFullPath(aMatchFullPath), useParams(false), curNumber(1), maxNumber(0), numberLen(2), matcherString(aMatcherString),
-		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING), lastIncFinish(0) {
+		nextSearchChange(0), nextIsDisable(false), status(STATUS_SEARCHING), lastIncFinish(0), excludedString(aExcluded) {
 
 	if (token == 0)
 		token = Util::randInt(10);
@@ -92,6 +92,23 @@ void AutoSearch::changeNumber(bool increase) {
 		lastIncFinish = 0;
 		increase ? curNumber++ : curNumber--;
 		updatePattern();
+	}
+}
+
+bool AutoSearch::isExcluded(const string& aString) {
+	for(auto& i: excluded) {
+		if(i.match(aString))
+			return true;
+	}
+	return false;
+}
+
+void AutoSearch::updateExcluded() {
+	excluded.clear();
+	if (!excludedString.empty()) {
+		auto ex = move(AdcSearch::parseSearchString(excludedString));
+		for(const auto& i: ex)
+			excluded.emplace_back(i);
 	}
 }
 
@@ -343,7 +360,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString);
 
 	return addAutoSearch(as, true) ? as : nullptr;
 }
@@ -354,6 +371,7 @@ bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 	aAutoSearch->updatePattern();
 	aAutoSearch->updateSearchTime();
 	aAutoSearch->updateStatus();
+	aAutoSearch->updateExcluded();
 
 	{
 		WLock l(cs);
@@ -391,6 +409,7 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) {
 	ipw->updatePattern();
 	ipw->updateSearchTime();
 	ipw->updateStatus();
+	ipw->updateExcluded();
 
 	//if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
 	//	return false;
@@ -558,7 +577,7 @@ void AutoSearchManager::onRemoveBundle(BundlePtr& aBundle, const ProfileTokenSet
 
 bool AutoSearchManager::addFailedBundle(BundlePtr& aBundle, ProfileToken aToken) {
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, aToken);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, aToken);
 	as->setBundleStatus(aBundle, AutoSearch::STATUS_FAILED_MISSING);
 	return addAutoSearch(as, true);
 }
@@ -606,7 +625,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 
 	//Run the search
 	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchWord, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, 
-		"as", extList, StringList(), aType == TYPE_MANUAL ? Search::MANUAL : Search::AUTO_SEARCH);
+		"as", extList, AdcSearch::parseSearchString(as->getExcludedString()), aType == TYPE_MANUAL ? Search::MANUAL : Search::AUTO_SEARCH);
 
 
 	//Report
@@ -827,8 +846,15 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				if (as->getMatchFullPath()) {
 					if (!as->match(sr->getFile()))
 						continue;
-				} else if (!as->match(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName()))
-					continue;
+					if (as->isExcluded(sr->getFile()))
+						continue;
+				} else {
+					const string matchPath = move(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName());
+					if (!as->match(matchPath))
+						continue;
+					if (as->isExcluded(matchPath))
+						continue;
+				}
 			}
 
 			//check the nick
@@ -1059,6 +1085,7 @@ void AutoSearchManager::AutoSearchSave() {
 				xml.addChildAttrib("EndTime", as->endTime.toString());
 				xml.addChildAttrib("LastSearchTime", Util::toString(as->getLastSearch()));
 				xml.addChildAttrib("MatchFullPath", as->getMatchFullPath());
+				xml.addChildAttrib("ExcludedWords", as->getExcludedString());
 				xml.addChildAttrib("Token", Util::toString(as->getToken()));
 
 				xml.stepIn();
@@ -1120,6 +1147,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.getBoolChildAttrib("CheckAlreadyQueued"),
 				aXml.getBoolChildAttrib("CheckAlreadyShared"),
 				aXml.getBoolChildAttrib("MatchFullPath"),
+				aXml.getChildAttrib("ExcludedWords"),
 				aXml.getIntChildAttrib("Token"));
 
 			as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
