@@ -740,13 +740,13 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 
 
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
-		ScopedFunctor([this] {
+		//ScopedFunctor([this] {
 			auto readBytes = countedStream.getReadBytes();
 			if(readBytes != streamPos) {
 				streamPos = readBytes;
 				progressF(static_cast<float>(readBytes) / static_cast<float>(fileSize));
 			}
-		});
+		//});
 
 		if(name == SDIRECTORY) {
 			if (!blockNode || depth == 0) {

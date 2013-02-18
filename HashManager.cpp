@@ -587,13 +587,13 @@ static const string sTimeStamp = "TimeStamp";
 static const string sRoot = "Root";
 
 void HashLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
-	ScopedFunctor([this] {
+	//ScopedFunctor([this] {
 		auto readBytes = countedStream.getReadBytes();
 		if(readBytes != streamPos) {
 			streamPos = readBytes;
 			progressF(static_cast<float>(readBytes) / static_cast<float>(fileSize));
 		}
-	});
+	//});
 
 	if (!inHashStore && name == sHashStore) {
 		version = Util::toInt(getAttrib(attribs, sVersion, 0));
