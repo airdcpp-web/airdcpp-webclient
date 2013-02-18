@@ -105,7 +105,7 @@ void Client::reloadSettings(bool updateNick) {
 		setStealth(!isAdcHub ? fav->getStealth() : false);
 		setFavNoPM(fav->getFavNoPM());
 
-		//only set the token on the initial attempt. we may have other hubs in favs with the failover addresses but keep on using the initial list for now.
+		//only set the token on the initial attempt. we may have other hubs in favs with failover addresses but keep on using the initial list for now.
 		if (favToken == 0)
 			favToken = fav->getToken();
 
@@ -119,16 +119,9 @@ void Client::reloadSettings(bool updateNick) {
 		}
 		
 	} else {
-		//setCurrentDescription(limitDesc + SETTING(DESCRIPTION));
 		setStealth(false);
-		//setFavIp(Util::emptyString);
 		setFavNoPM(false);
-		//setHubShowJoins(false);
-		//setChatNotify(false);
-		//setHubLogMainchat(true);
-		//setSearchInterval(SETTING(MINIMUM_SEARCH_INTERVAL) * 1000);
 		setPassword(Util::emptyString);
-		//favToken = 0;
 
 		if (!isAdcHub)
 			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);

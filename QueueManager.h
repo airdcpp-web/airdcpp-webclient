@@ -130,7 +130,7 @@ public:
 	/** The same thing but only used before any connect requests */
 	QueueItemBase::Priority hasDownload(const UserPtr& aUser, string& hubUrl, bool smallSlot, string& bundleToken, bool& allowUrlChange) noexcept;
 	
-	void loadQueue() noexcept;
+	void loadQueue(function<void (float)> progressF) noexcept;
 	void saveQueue(bool force) noexcept;
 
 	void noDeleteFileList(const string& path);

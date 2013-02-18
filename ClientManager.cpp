@@ -47,6 +47,7 @@
 
 namespace dcpp {
 
+using boost::find_if;
 
 ClientManager::ClientManager() : udp(Socket::TYPE_UDP) {
 	TimerManager::getInstance()->addListener(this);
@@ -304,16 +305,24 @@ const string& ClientManager::findHubEncoding(const string& aUrl) const {
 	return Text::systemCharset;
 }
 
-UserPtr ClientManager::findLegacyUser(const string& aNick) const noexcept {
-	if (aNick.empty())
-		return UserPtr();
+HintedUser ClientManager::findLegacyUser(const string& nick) const noexcept {
+	if(nick.empty())
+		return HintedUser();
 
 	RLock l(cs);
-	for(const auto& ou: onlineUsers | map_values) {
-		if(ou->getUser()->isSet(User::NMDC) && Util::stricmp(ou->getIdentity().getNick(), aNick) == 0)
-			return ou->getUser();
+
+	for(auto i: clients | map_values) {
+		auto nmdc = dynamic_cast<NmdcHub*>(i);
+		if(nmdc) {
+			/** @todo run the search directly on non-UTF-8 nicks when we store them. */
+			auto ou = nmdc->findUser(nmdc->toUtf8(nick));
+			if(ou) {
+				return HintedUser(*ou);
+			}
+		}
 	}
-	return UserPtr();
+
+	return HintedUser();
 }
 
 UserPtr ClientManager::getUser(const string& aNick, const string& aHubUrl) noexcept {
@@ -571,7 +580,7 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl)
 	if(p.first == p.second) // no user found with the given CID.
 		return 0;
 
-	// ok, hub not private, return a random user that matches the given CID but not the hint.
+	// return a random user
 	return p.first->second;
 }
 
@@ -604,7 +613,7 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 	};
 
 	//prefer the hinted hub
-	auto p = boost::find_if(op, [&hubHint_](pair<CID*, OnlineUser*> ouc) { return ouc.second->getHubUrl() == hubHint_; });
+	auto p = find_if(op, [&hubHint_](const pair<CID*, OnlineUser*>& ouc) { return ouc.second->getHubUrl() == hubHint_; });
 	if (p != op.second && connectUser(p->second)) {
 		return true;
 	}
@@ -899,18 +908,17 @@ string ClientManager::getClientStats() {
 		return (i<j);
 	};*/
 
-	auto countCompare = [] (pair<string, int> i, pair<string, int> j) -> bool {
+	auto countCompare = [] (const pair<string, int>& i, const pair<string, int>& j) -> bool {
 		return (i.second > j.second);
 	};
 	//bool myfunction (int i,int j) { return (i<j); }
 
 	//sort(clientNames.begin(), clientNames.end(), countCompare);
-	vector<double> dv;
+	//vector<double> dv;
 	//boost::copy(countCompare | boost::adaptors::map_values, dv.begin());
 
 	vector<pair<string, int> > print(clientNames.begin(), clientNames.end());
 	sort(print.begin(), print.end(), countCompare);
-	//boost::sort(clientNames | boost::adaptors::map_values, countCompare);
 	for(auto& p: print) {
 		//std::stringstream a_stream;
 		//std::string the_string = Util::toString(i->second) + " (" + Util::toString((i->second/allUsers)*100.00) + "%)" + lb;
@@ -921,10 +929,6 @@ string ClientManager::getClientStats() {
 		ret += p.first + ":\t\t" + Util::toString(p.second) + " (" + Util::toString(((double)p.second/(double)allUsers)*100.00) + "%)" + lb;
 		//printf("%-20s", ret);
 	}
-
-	/*for(auto i = clientNames.begin(); i != clientNames.end(); ++i) {
-		ret += i->first + ": " + Util::toString(i->second) + " (" + Util::toString((i->second/allUsers)*100.00) + "%)" + lb;
-	}*/
 
 	return ret;
 }

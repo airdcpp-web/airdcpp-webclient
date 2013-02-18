@@ -127,7 +127,7 @@ public:
 
 	void setDirty(ProfileTokenSet aProfiles, bool setCacheDirty, bool forceXmlRefresh=false);
 
-	void startup(function<void (const string&)> splashF);
+	void startup(function<void (const string&)> stepF, function<void (float)> progressF);
 	void shutdown();
 	void abortRefresh();
 
@@ -147,7 +147,7 @@ public:
 	bool allowAddDir(const string& dir);
 	tstring getDirPath(const string& directory);
 
-	bool loadCache();
+	bool loadCache(function<void (float)> progressF);
 
 	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
 	static bool checkType(const string& aString, int aType);

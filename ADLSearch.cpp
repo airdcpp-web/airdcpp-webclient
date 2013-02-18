@@ -188,7 +188,7 @@ bool ADLSearch::matchesDirectory(const string& d) {
 }
 
 // Constructor/destructor
-ADLSearchManager::ADLSearchManager() : running(0), user(HintedUser(UserPtr(), Util::emptyString)), dirty(false) {
+ADLSearchManager::ADLSearchManager() : running(0), user(HintedUser()), dirty(false) {
 	load();
 }
 

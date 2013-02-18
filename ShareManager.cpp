@@ -99,7 +99,7 @@ ShareManager::~ShareManager() {
 	join();
 }
 
-void ShareManager::startup(function<void (const string&)> splashF) {
+void ShareManager::startup(function<void (const string&)> splashF, function<void (float)> progressF) {
 	AirUtil::updateCachedSettings();
 	if (!getShareProfile(SP_DEFAULT)) {
 		ShareProfilePtr sp = ShareProfilePtr(new ShareProfile(STRING(DEFAULT), SP_DEFAULT));
@@ -109,7 +109,7 @@ void ShareManager::startup(function<void (const string&)> splashF) {
 	ShareProfilePtr hidden = ShareProfilePtr(new ShareProfile("Hidden", SP_HIDDEN));
 	shareProfiles.push_back(hidden);
 
-	if(!loadCache()) {
+	if(!loadCache(progressF)) {
 		if (splashF)
 			splashF(STRING(REFRESHING_SHARE));
 		refresh(false, TYPE_STARTUP);
@@ -726,8 +726,27 @@ static const string SHARE = "Share";
 static const string SVERSION = "Version";
 
 struct ShareLoader : public SimpleXMLReader::CallBack {
-	ShareLoader(ShareManager::ProfileDirMap& aDirs) : profileDirs(aDirs), cur(nullptr), depth(0), blockNode(false), hashSize(0) { }
+	ShareLoader(ShareManager::ProfileDirMap& aDirs, const CountedInputStream<false>& countedStream, uint64_t fileSize, function<void (float)> progressF) : 
+		profileDirs(aDirs), 
+		cur(nullptr), 
+		depth(0), 
+		blockNode(false), 
+		hashSize(0),
+		countedStream(countedStream),
+		streamPos(0),
+		fileSize(fileSize),
+		progressF(progressF)
+	{ }
+
+
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
+		ScopedFunctor([this] {
+			auto readBytes = countedStream.getReadBytes();
+			if(readBytes != streamPos) {
+				streamPos = readBytes;
+				progressF(static_cast<float>(readBytes) / static_cast<float>(fileSize));
+			}
+		});
 
 		if(name == SDIRECTORY) {
 			if (!blockNode || depth == 0) {
@@ -819,16 +838,25 @@ private:
 	bool blockNode;
 	size_t depth;
 	string curDirPath;
+
+	const CountedInputStream<false>& countedStream;
+	uint64_t streamPos;
+	uint64_t fileSize;
+	function<void (float)> progressF;
 };
 
-bool ShareManager::loadCache() {
+bool ShareManager::loadCache(function<void (float)> progressF) {
 	try {
 		HashManager::HashPauser pauser;
-		ShareLoader loader(profileDirs);
+
 		//look for shares.xml
 		Util::migrate(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml");
-		dcpp::File ff(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
-		SimpleXMLReader(&loader).parse(ff);
+		dcpp::File f(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
+		CountedInputStream<false> countedStream(&f);
+
+		ShareLoader loader(profileDirs, countedStream, f.getSize(), progressF);
+		SimpleXMLReader(&loader).parse(countedStream);
+
 		dirNameMap = loader.dirs;
 		if (loader.hashSize > 0) {
 			LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(loader.hashSize)), LogManager::LOG_INFO);

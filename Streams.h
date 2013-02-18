@@ -116,6 +116,35 @@ private:
 class IOStream : public InputStream, public OutputStream {
 };
 
+/** Count how many bytes have been read. */
+template<bool managed>
+class CountedInputStream : public InputStream {
+public:
+	CountedInputStream(InputStream* is) : readBytes(0) {
+		s.reset(is);
+	}
+
+	virtual ~CountedInputStream() { 
+		if(!managed) 
+			s.release(); 
+	}
+
+	size_t read(void* buf, size_t& len) {
+		auto ret = s->read(buf, len);
+		readBytes += len;
+		return ret;
+	}
+
+	uint64_t getReadBytes() const { return readBytes; }
+	InputStream* releaseRootStream() { 
+		auto as = s.release();
+		return as->releaseRootStream();
+	}
+private:
+	unique_ptr<InputStream> s;
+	uint64_t readBytes;
+};
+
 template<bool managed>
 class LimitedInputStream : public InputStream {
 public:

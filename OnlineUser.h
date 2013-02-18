@@ -30,7 +30,6 @@
 #include "Util.h"
 #include "User.h"
 #include "UserInfoBase.h"
-#include "HintedUser.h"
 
 namespace dcpp {
 

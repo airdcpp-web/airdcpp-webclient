@@ -1882,7 +1882,7 @@ private:
 	string curToken;
 };
 
-void QueueManager::loadQueue() noexcept {
+void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 	setMatchers();
 
 
@@ -1892,6 +1892,7 @@ void QueueManager::loadQueue() noexcept {
 
 	QueueLoader loader;
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
+	int loaded = 0;
 	for (auto& path: fileList) {
 		if (Util::getFileExt(path) == ".xml") {
 			try {
@@ -1903,6 +1904,8 @@ void QueueManager::loadQueue() noexcept {
 				loader.resetBundle();
 			}
 		}
+		loaded++;
+		progressF(static_cast<float>(loaded) / static_cast<float>(fileList.size()));
 	}
 
 	try {

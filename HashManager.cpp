@@ -28,6 +28,7 @@
 #include "ZUtils.h"
 #include "ShareManager.h"
 #include "AirUtil.h"
+#include "ScopedFunctor.h"
 
 namespace dcpp {
 
@@ -521,35 +522,48 @@ string HashManager::HashStore::getDataFile() { return Util::getPath(Util::PATH_U
 
 class HashLoader: public SimpleXMLReader::CallBack {
 public:
-	HashLoader(HashManager::HashStore& s) : 
-		store(s), size(0), timeStamp(0), version(HASH_FILE_VERSION), inTrees(false), inFiles(false), inHashStore(false) {
-	}
+	HashLoader(HashManager::HashStore& s, const CountedInputStream<false>& countedStream, uint64_t fileSize, function<void (float)> progressF) :
+		store(s),
+		countedStream(countedStream),
+		streamPos(0),
+		fileSize(fileSize),
+		progressF(progressF),
+		version(HASH_FILE_VERSION),
+		inTrees(false),
+		inFiles(false),
+		inHashStore(false)
+	{ }
+
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name);
 	
 private:
 	HashManager::HashStore& store;
 
-	string file;
-	int64_t size;
-	uint32_t timeStamp;
+	const CountedInputStream<false>& countedStream;
+	uint64_t streamPos;
+	uint64_t fileSize;
+	function<void (float)> progressF;
+
 	int version;
+	string file;
 
 	bool inTrees;
 	bool inFiles;
 	bool inHashStore;
 };
 
-void HashManager::HashStore::load() {
+void HashManager::HashStore::load(function<void (float)> progressF) {
 	if (SettingsManager::lanMode)
 		return;
 
 	try {
 		Util::migrate(getIndexFile());
 
-		HashLoader loader(*this);
 		File f(getIndexFile(), File::READ, File::OPEN);
-		SimpleXMLReader(&loader).parse(f);
+		CountedInputStream<false> countedStream(&f);
+		HashLoader l(*this, countedStream, f.getSize(), progressF);
+		SimpleXMLReader(&l).parse(countedStream);
 	} catch (const Exception&) {
 		// ...
 	}
@@ -573,6 +587,14 @@ static const string sTimeStamp = "TimeStamp";
 static const string sRoot = "Root";
 
 void HashLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
+	ScopedFunctor([this] {
+		auto readBytes = countedStream.getReadBytes();
+		if(readBytes != streamPos) {
+			streamPos = readBytes;
+			progressF(static_cast<float>(readBytes) / static_cast<float>(fileSize));
+		}
+	});
+
 	if (!inHashStore && name == sHashStore) {
 		version = Util::toInt(getAttrib(attribs, sVersion, 0));
 		inHashStore = !simple;
@@ -588,10 +610,10 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 		} else if (inFiles && name == sFile) {
 			file = getAttrib(attribs, sName, 0);
-			timeStamp = Util::toUInt32(getAttrib(attribs, sTimeStamp, 1));
+			auto timeStamp = Util::toUInt32(getAttrib(attribs, sTimeStamp, 1));
 			const string& root = getAttrib(attribs, sRoot, 2);
 
-			if (!file.empty() && size >= 0 && timeStamp > 0 && !root.empty()) {
+			if (!file.empty() && timeStamp > 0 && !root.empty()) {
 				string fileLower = Text::toLower(file);
 				store.fileIndex[Util::getFilePath(fileLower)].emplace_back(new HashedFile(Util::getFileName(fileLower), TTHValue(root), timeStamp, false));
 			}
@@ -723,9 +745,9 @@ void HashManager::rebuild() {
 	hashers.front()->scheduleRebuild(); 
 }
 
-void HashManager::startup() {
+void HashManager::startup(function<void (float)> progressF) {
 	hashers.push_back(new Hasher(false, 0));
-	store.load(); 
+	store.load(progressF); 
 }
 
 void HashManager::stop() {

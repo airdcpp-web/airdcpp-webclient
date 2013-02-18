@@ -102,7 +102,7 @@ public:
 
 	UserPtr findUser(const string& aNick, const string& aHubUrl) const noexcept { return findUser(makeCid(aNick, aHubUrl)); }
 	UserPtr findUser(const CID& cid) const noexcept;
-	UserPtr findLegacyUser(const string& aNick) const noexcept;
+	HintedUser findLegacyUser(const string& nick) const noexcept;
 
 	UserPtr findUserByNick(const string& aNick, const string& aHubUrl) const noexcept;
 	

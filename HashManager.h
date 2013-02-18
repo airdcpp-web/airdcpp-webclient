@@ -93,7 +93,7 @@ public:
 	 */
 	void rebuild();
 
-	void startup();
+	void startup(function<void (float)> progressF);
 	void stop();
 	void shutdown();
 
@@ -192,7 +192,7 @@ private:
 		HashStore();
 		HashedFilePtr& addFile(const string&& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
 
-		void load();
+		void load(function<void (float)> progressF);
 		void save();
 		void countNextSave();
 

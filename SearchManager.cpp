@@ -250,21 +250,27 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 		return;
 	}
 
-	string hubIpPort = x.substr(i, j-i);
-	string url = ClientManager::getInstance()->findHub(hubIpPort);
+	HintedUser user;
 
-	string encoding = ClientManager::getInstance()->findHubEncoding(url);
+	user.hint = ClientManager::getInstance()->findHub(x.substr(i, j - i));
+	if(user.hint.empty()) {
+		// Could happen if hub has multiple URLs / IPs
+		user = ClientManager::getInstance()->findLegacyUser(nick);
+		if(!user.user)
+			return;
+	}
+
+	string encoding = ClientManager::getInstance()->findHubEncoding(user.hint);
 	nick = Text::toUtf8(nick, encoding);
 	file = Text::toUtf8(file, encoding);
 	hubName = Text::toUtf8(hubName, encoding);
 
-	UserPtr user = ClientManager::getInstance()->findUser(nick, url);
-	if(!user) {
-		// Could happen if hub has multiple URLs / IPs
-		user = ClientManager::getInstance()->findLegacyUser(nick);
-		if(!user)
+	if(!user.user) {
+		user.user = ClientManager::getInstance()->findUser(nick, user.hint);
+		if(!user.user)
 			return;
 	}
+
 	ClientManager::getInstance()->setIPUser(user, aRemoteIP);
 
 	string tth;
@@ -277,7 +283,7 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	}
 
 
-	SearchResultPtr sr(new SearchResult(HintedUser(user, url), type, slots, freeSlots, size,
+	SearchResultPtr sr(new SearchResult(user, type, slots, freeSlots, size,
 		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0));
 	fire(SearchManagerListener::SR(), sr);
 }

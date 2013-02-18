@@ -55,7 +55,7 @@
 #include "format.h"
 namespace dcpp {
 
-void startup(function<void (const string&)> splashF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF, function<void ()> runWizard) {
+void startup(function<void (const string&)> stepF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF, function<void ()> runWizard, function<void (float)> progressF) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
 	while(1) break;
@@ -120,20 +120,20 @@ void startup(function<void (const string&)> splashF, function<bool (const string
 
 	CryptoManager::getInstance()->loadCertificates();
 
-	auto announce = [&splashF](const string& str) {
-		if(splashF) {
-			splashF(str);
+	auto announce = [&stepF](const string& str) {
+		if(stepF) {
+			stepF(str);
 		}
 	};
 
 	announce(STRING(HASH_DATABASE));
-	HashManager::getInstance()->startup();
+	HashManager::getInstance()->startup(progressF);
 
 	announce(STRING(DOWNLOAD_QUEUE));
-	QueueManager::getInstance()->loadQueue();
+	QueueManager::getInstance()->loadQueue(progressF);
 
 	announce(STRING(SHARED_FILES));
-	ShareManager::getInstance()->startup(splashF); 
+	ShareManager::getInstance()->startup(stepF, progressF); 
 
 	FavoriteManager::getInstance()->load();
 
