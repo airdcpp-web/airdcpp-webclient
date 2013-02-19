@@ -111,21 +111,10 @@ public:
 	void getSearchType(int pos, int& type, StringList& extList, string& name);
 	void getSearchType(const string& aName, int& type, StringList& extList, bool lock=false);
 
-	void lockRead() noexcept { cs.lock_shared(); }
-	void unlockRead() noexcept { cs.unlock_shared(); }
-
 	bool decryptPacket(string& x, size_t aLen, uint8_t* aBuf, size_t bufLen);
 private:
-	enum ItemT {
-		SEARCHTIME		= 0,
-		LOCALTOKEN		= 1,
-		HUBURL			= 2,
-	};
-
 	vector<pair<uint8_t*, uint64_t>> searchKeys;
-	typedef tuple<uint64_t, string, string> SearchItem;
 
-	boost::unordered_map<string, SearchItem> searches;
 	SharedMutex cs;
 
 	friend class Singleton<SearchManager>;

@@ -89,44 +89,35 @@ uint64_t SearchManager::search(const string& aName, int64_t aSize, TypeModes aTy
 uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize, TypeModes aFileType, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, const StringList& aExcluded,
 	Search::searchType sType, void* aOwner /* NULL */) {
 
-	StringPairList tokenHubList;
 	string keyStr;
 
 	{
-		WLock l (cs);
 		if (SETTING(ENABLE_SUDP)) {
+			WLock l (cs);
 			//generate a random key and store it so we can check the results
 			uint8_t* key = new uint8_t[16];
 			RAND_bytes(key, 16);
 			searchKeys.emplace_back(key, GET_TICK());
 			keyStr = Encoder::toBase32(key, 16);
 		}
-
-		for(auto& hub: who) {
-			string hubToken = Util::toString(Util::rand());
-			searches[hubToken] = (SearchItem)(make_tuple(GET_TICK(), aToken, hub));
-			tokenHubList.emplace_back(hubToken, hub);
-		}
 	}
 
+	auto s = SearchPtr(new Search);
+	s->fileType = aFileType;
+	s->size     = aSize;
+	s->query    = aName;
+	s->sizeType = aSizeMode;
+	s->token    = aToken;
+	s->exts	    = aExtList;
+	s->type		= sType;
+	s->excluded = aExcluded;
+
+	s->owners.insert(aOwner);
+	s->key		= keyStr;
+
 	uint64_t estimateSearchSpan = 0;
-	for(auto& sp: tokenHubList) {
-		auto s = SearchPtr(new Search);
-		s->fileType = aFileType;
-		s->size     = aSize;
-		s->query    = aName;
-		s->sizeType = aSizeMode;
-		s->token    = sp.first;
-		s->exts	    = aExtList;
-		s->type		= sType;
-		s->excluded = aExcluded;
-
-		s->owners.insert(aOwner);
-
-		if (strnicmp("adcs://", sp.second.c_str(), 7) == 0)
-			s->key		= keyStr;
-
-		uint64_t ret = ClientManager::getInstance()->search(sp.second, move(s));
+	for(auto& hubUrl: who) {
+		uint64_t ret = ClientManager::getInstance()->search(hubUrl, s);
 		estimateSearchSpan = max(estimateSearchSpan, ret);			
 	}
 
@@ -250,28 +241,11 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 		return;
 	}
 
+	string connection;
 	HintedUser user;
+	if (!ClientManager::getInstance()->connectNMDCSearchResult(aRemoteIP, x.substr(i, j - i), user, nick, connection, file, hubName))
+		return;
 
-	user.hint = ClientManager::getInstance()->findHub(x.substr(i, j - i), true);
-	if(user.hint.empty()) {
-		// Could happen if hub has multiple URLs / IPs
-		user = ClientManager::getInstance()->findLegacyUser(nick);
-		if(!user.user)
-			return;
-	}
-
-	string encoding = ClientManager::getInstance()->findHubEncoding(user.hint);
-	nick = Text::toUtf8(nick, encoding);
-	file = Text::toUtf8(file, encoding);
-	hubName = Text::toUtf8(hubName, encoding);
-
-	if(!user.user) {
-		user.user = ClientManager::getInstance()->findUser(nick, user.hint);
-		if(!user.user)
-			return;
-	}
-
-	ClientManager::getInstance()->setIPUser(user, aRemoteIP);
 
 	string tth;
 	if(hubName.compare(0, 4, "TTH:") == 0) {
@@ -284,7 +258,7 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 
 
 	SearchResultPtr sr(new SearchResult(user, type, slots, freeSlots, size,
-		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0));
+		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0, connection));
 	fire(SearchManagerListener::SR(), sr);
 }
 
@@ -337,25 +311,16 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	}
 
 	if(!file.empty() && freeSlots != -1 && size != -1) {
-		TTHValue th;
-		string hubUrl, localToken;
-
-		{
-			RLock l (cs);
-			auto i = searches.find(token);
-			if (i != searches.end()) {
-				localToken = get<LOCALTOKEN>((*i).second);
-				hubUrl = get<HUBURL>((*i).second);
-			} else {
-				//LogManager::getInstance()->message("A search result from " + Util::toString(ClientManager::getInstance()->getNicks(from->getCID())) + " could not be connected to any hub: " + cmd.toString(), LogManager::LOG_INFO);
-				return;
-			}
-		}
+		//connect to a correct hub
+		string hubUrl, connection;
+		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection))
+			return;
 
 		auto type = (file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
 		if(type == SearchResult::TYPE_FILE && tth.empty())
 			return;
 
+		TTHValue th;
 		if (type == SearchResult::TYPE_DIRECTORY || SettingsManager::lanMode) {
 			//calculate a TTH from the directory name and size
 			th = AirUtil::getTTH(type == SearchResult::TYPE_FILE ? Util::getFileName(file) : Util::getLastDir(file), size);
@@ -365,22 +330,13 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		
 		uint8_t slots = ClientManager::getInstance()->getSlots(from->getCID());
 		SearchResultPtr sr(new SearchResult(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
-			file, remoteIp, th, localToken, date));
+			file, remoteIp, th, token, date, connection));
 		fire(SearchManagerListener::SR(), sr);
 	}
 }
 
 void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	WLock l (cs);
-	for (auto i = searches.begin(); i != searches.end();) {
-		if (get<SEARCHTIME>((*i).second) + 1000*60*15 <  aTick) {
-			searches.erase(i);
-			i = searches.begin();
-		} else {
-			++i;
-		}
-	}
-
 	for (auto i = searchKeys.begin(); i != searchKeys.end();) {
 		if (i->second + 1000*60*15 < aTick) {
 			delete i->first;

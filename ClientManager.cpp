@@ -228,19 +228,6 @@ string ClientManager::getField(const CID& cid, const string& hint, const char* f
 	return Util::emptyString;
 }
 
-string ClientManager::getConnection(const HintedUser& aUser) const {
-	RLock l(cs);
-	auto ou = findOnlineUser(aUser);
-	if (ou) {
-		if(ou->getIdentity().get("US").empty())
-			return ou->getIdentity().getConnection();
-		else
-			return Util::formatBytes(ou->getIdentity().get("US")) + "/s";
-	}
-
-	return STRING(OFFLINE);
-}
-
 string ClientManager::getDLSpeed(const CID& cid) const {
 	RLock l(cs);
 	OnlineIterC i = onlineUsers.find(const_cast<CID*>(&cid));
@@ -1042,6 +1029,73 @@ void ClientManager::setIPUser(const UserPtr& user, const string& IP, const strin
 		if(!udpPort.empty())
 			i->second->getIdentity().setUdp4Port(udpPort);
 	}
+}
+
+bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_) {
+	RLock l(cs);
+
+	// token format: [per-hub unique id] "/" [per-search actual token] (see AdcHub::search)
+	auto slash = token_.find('/');
+	if(slash == string::npos) { return false; }
+
+	auto uniqueId = Util::toUInt32(token_.substr(0, slash));
+	auto i = find_if(clients | map_values, [uniqueId](const Client* client) { return client->getUniqueId() == uniqueId; });
+	if(i.base() == clients.end()) { return false; }
+	hubUrl_ = (*i)->getHubUrl();
+
+	token_.erase(0, slash + 1);
+
+
+	// get the connection
+	connection_ = getConnection(aCID, hubUrl_);
+	return true;
+}
+
+string ClientManager::getConnection(const CID& aCid, const string& hubUrl) const {
+	OnlinePairC p;
+	auto ou = findOnlineUserHint(aCid, hubUrl, p);
+	if (ou && !ou->getIdentity().getUploadSpeed().empty()) {
+		return ou->getIdentity().getUploadSpeed();
+	} else {
+		// some hubs may hide this information...
+		for (auto i = p.first; i != p.second; i++) {
+			const auto& conn = i->second->getIdentity().getUploadSpeed();
+			if (!conn.empty()) {
+				return conn;
+				break;
+			}
+		}
+	}
+
+	return Util::emptyString;
+}
+
+bool ClientManager::connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName) {
+	//RLock l(cs);
+	user.hint = ClientManager::getInstance()->findHub(hubIpPort, true);
+	if(user.hint.empty()) {
+		// Could happen if hub has multiple URLs / IPs
+		user = ClientManager::getInstance()->findLegacyUser(nick);
+		if(!user.user)
+			return false;
+	}
+
+	string encoding = ClientManager::getInstance()->findHubEncoding(user.hint);
+	nick = Text::toUtf8(nick, encoding);
+	file = Text::toUtf8(file, encoding);
+	hubName = Text::toUtf8(hubName, encoding);
+
+	if(!user.user) {
+		user.user = ClientManager::getInstance()->findUser(nick, user.hint);
+		if(!user.user)
+			return false;
+	}
+
+	ClientManager::getInstance()->setIPUser(user, userIP);
+
+	RLock l(cs);
+	connection_ = getConnection(user.user->getCID(), user.hint);
+	return true;
 }
 
 } // namespace dcpp

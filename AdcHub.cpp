@@ -1223,9 +1223,9 @@ void AdcHub::search(SearchPtr s) {
 
 	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
 
-	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, s->token, s->exts, s->excluded, false);
+	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, Util::toString(getUniqueId()) + "/" + s->token, s->exts, s->excluded, false);
 
-	if (!s->key.empty()) {
+	if (!s->key.empty() && strnicmp("adcs://", getHubUrl().c_str(), 7) == 0) {
 		c.addParam("KY", s->key);
 	}
 

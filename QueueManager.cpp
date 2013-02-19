@@ -2151,8 +2151,6 @@ void QueueManager::noDeleteFileList(const string& path) {
 
 // SearchManagerListener
 void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
-	bool wantConnection = false;
-	BundlePtr b = nullptr;
 	QueueItemPtr selQI = nullptr;
 
 	{
@@ -2170,16 +2168,15 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 
 			// Size compare to avoid popular spoof
 			if((SETTING(AUTO_ADD_SOURCE) || (q->getBundle()->getLastSearch() != 0 && q->getBundle()->getLastSearch() + 15*60*1000 > GET_TICK())) && q->getSize() == sr->getSize() && !q->isSource(sr->getUser())) {
-				b = q->getBundle();
-				if (b->isFinished()) {
+				if (q->getBundle()->isFinished()) {
 					continue;
 				}
 
-				if(q->isFinished() && b->isSource(sr->getUser())) {
+				if(q->isFinished() && q->getBundle()->isSource(sr->getUser())) {
 					continue;
 				}
 
-				if((b->countOnlineUsers() + matchLists.left.count(b->getToken())) < SETTING(MAX_AUTO_MATCH_SOURCES)) {
+				if((q->getBundle()->countOnlineUsers() + matchLists.left.count(q->getBundle()->getToken())) < SETTING(MAX_AUTO_MATCH_SOURCES)) {
 					selQI = q;
 				} 
 			}
@@ -2187,27 +2184,68 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		}
 	}
 
-	if (selQI && b->isFileBundle()) {
+	if (selQI) {
+		{
+			WLock l(cs);
+			auto& rl = searchResults[selQI->getTarget()];
+			if (find(rl, sr) != rl.end()) {
+				//don't add the same result multiple times, makes the counting more reliable
+				return;
+			}
+			rl.push_back(sr);
+		}
+		delayEvents.addEvent(selQI->getTarget(), [=] { pickMatch(selQI); }, 2000);
+	}
+}
+
+void QueueManager::pickMatch(QueueItemPtr qi) {
+	SearchResultList results;
+	int addNum = 0;
+
+	//get the result list
+	{
+		WLock l(cs);
+		auto p = searchResults.find(qi->getTarget());
+		if (p != searchResults.end()) {
+			results = move(p->second);
+			searchResults.erase(p);
+		}
+
+		addNum = SETTING(MAX_AUTO_MATCH_SOURCES) - (qi->getBundle()->countOnlineUsers() + matchLists.left.count(qi->getBundle()->getToken()));
+	}
+
+	if (addNum <= 0)
+		return;
+
+	SearchResult::pickResults(results, addNum);
+	for(const auto& sr: results) {
+		matchBundle(qi, sr);
+	}
+}
+
+void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult) {
+	bool wantConnection = false;
+	if (aQI->getBundle()->isFileBundle()) {
 		/* No reason to match anything with file bundles */
 		WLock l(cs);
 		try {	 
-			wantConnection = addSource(selQI, sr->getUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, sr->getFile());
+			wantConnection = addSource(aQI, aResult->getUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, aResult->getFile());
 		} catch(...) {
 			// Ignore...
 		}
-	} else if(selQI) {
-		string path = b->getMatchPath(sr->getFile(), selQI->getTarget(), sr->getUser().user->isSet(User::NMDC));
+	} else {
+		string path = aQI->getBundle()->getMatchPath(aResult->getFile(), aQI->getTarget(), aResult->getUser().user->isSet(User::NMDC));
 		if (!path.empty()) {
-			if (sr->getUser().user->isSet(User::NMDC)) {
+			if (aResult->getUser().user->isSet(User::NMDC)) {
 				//A NMDC directory bundle, just add the sources without matching
 				QueueItemList ql;
 				int newFiles = 0;
 				{
 					WLock l(cs);
-					b->getDirQIs(path, ql);
+					aQI->getBundle()->getDirQIs(path, ql);
 					for (auto& q: ql) {
 						try {	 
-							if (addSource(q, sr->getUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) { // no SettingsManager::lanMode in NMDC...
+							if (addSource(q, aResult->getUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, Util::emptyString)) { // no SettingsManager::lanMode in NMDC...
 								wantConnection = true;
 							}
 							newFiles++;
@@ -2217,19 +2255,19 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					}
 				}
 				if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
-					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(sr->getUser())) + ": " + 
-						STRING_F(MATCH_SOURCE_ADDED, newFiles % b->getName().c_str()), LogManager::LOG_INFO);
+					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(aResult->getUser())) + ": " + 
+						STRING_F(MATCH_SOURCE_ADDED, newFiles % aQI->getBundle()->getName().c_str()), LogManager::LOG_INFO);
 				}
 			} else {
 				//An ADC directory bundle, match recursive partial list
 				try {
-					addList(sr->getUser(), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path, b);
+					addList(aResult->getUser(), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path, aQI->getBundle());
 				} catch(...) { }
 			}
 		} else if (SETTING(ALLOW_MATCH_FULL_LIST)) {
 			//failed, use full filelist
 			try {
-				addList(sr->getUser(), QueueItem::FLAG_MATCH_QUEUE, Util::emptyString, b);
+				addList(aResult->getUser(), QueueItem::FLAG_MATCH_QUEUE, Util::emptyString, aQI->getBundle());
 			} catch(const Exception&) {
 				// ...
 			}
@@ -2237,7 +2275,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 	}
 
 	if(wantConnection) {
-		ConnectionManager::getInstance()->getDownloadConnection(sr->getUser());
+		ConnectionManager::getInstance()->getDownloadConnection(aResult->getUser());
 	}
 }
 

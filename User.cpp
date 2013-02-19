@@ -84,6 +84,13 @@ string Identity::getIp() const {
 	return !allowV6Connections() ? getIp4() : getIp6();
 }
 
+string Identity::getUploadSpeed(bool format) const {
+	if(user->isNMDC())
+		return getConnection();
+	else
+		return format ? Util::formatBytes(get("US")) + "/s" : get("US");
+}
+
 void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
 	{
 		FastLock l(cs);

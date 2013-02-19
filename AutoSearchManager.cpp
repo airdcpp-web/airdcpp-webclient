@@ -46,7 +46,7 @@ using boost::max_element;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
-AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) { 
+AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)), status(STATUS_SEARCHING), nextIsDisable(false) { 
 
 }
 
@@ -908,7 +908,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			if (rl.empty()) {
 				as->setStatus(AutoSearch::STATUS_COLLECTING);
 				fire(AutoSearchManagerListener::UpdateItem(), as, false);
-			} else if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getFile() == sr->getFile(); }) != rl.end()) {
+			} else if (find(rl, sr) != rl.end()) {
 				//don't add the same result multiple times, makes the counting more reliable
 				return;
 			}
@@ -1003,10 +1003,12 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 
 		dcassert(dlSize > -1);
 
-		//download all matches with the given size
-		for(auto& sr: srl) { 
-			if (sr->getSize() == dlSize)
-				handleAction(sr, as);
+		//download matches with the given size
+		srl.erase(remove_if(srl.begin(), srl.end(), [dlSize](const SearchResultPtr& aSR) { return aSR->getSize() != dlSize; }), srl.end());
+		SearchResult::pickResults(srl, SETTING(MAX_AUTO_MATCH_SOURCES));
+
+		for(const auto& sr: srl) { 
+			handleAction(sr, as);
 		}
 	}
 }

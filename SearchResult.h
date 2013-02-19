@@ -53,7 +53,11 @@ public:
 	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate);
 
 	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate);
+		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection);
+
+	bool operator==(const SearchResult& rhs) const {
+		return rhs.getCID() == user.user->getCID() && rhs.getFile() == file;;
+	}
 
 	string getFileName() const;
 	string toSR(const Client& client) const;
@@ -69,9 +73,20 @@ public:
 	size_t getFreeSlots() const { return freeSlots; }
 	const TTHValue& getTTH() const { return tth; }
 	
+	string getConnectionStr() const;
+	int64_t getConnectionInt() const;
+	int64_t getSpeedPerSlot() const;
+
 	const string& getIP() const { return IP; }
 	const string& getToken() const { return token; }
 	time_t getDate() const { return date; }
+	const CID& getCID() const { return user.user->getCID(); }
+	bool isNMDC() const { return user.user->isNMDC(); }
+
+	static void pickResults(SearchResultList& aResults, int pickedNum);
+	struct SpeedSortOrder {
+		bool operator()(const SearchResultPtr& left, const SearchResultPtr& right) const;
+	};
 private:
 	friend class SearchManager;
 
@@ -92,6 +107,7 @@ private:
 	Types type;
 
 	time_t date;
+	string connection;
 };
 
 }

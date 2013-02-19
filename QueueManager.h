@@ -290,6 +290,10 @@ private:
 
 	void handleMovedBundleItem(QueueItemPtr& q);
 
+	unordered_map<string, SearchResultList> searchResults;
+	void pickMatch(QueueItemPtr qi);
+	void matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult);
+
 	void moveStuckFile(QueueItemPtr& qi);
 	void rechecked(QueueItemPtr& qi);
 	void onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, bool failed);

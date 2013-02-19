@@ -38,11 +38,11 @@ AdcCommand DirectSearchResult::toDSR(char type) const {
 }
 
 SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate) :
+	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection) :
 
 	file(aFilePath), user(aUser),
 	size(aSize), type(aType), slots(aSlots), freeSlots(aFreeSlots), IP(ip),
-	tth(aTTH), token(aToken), date(aDate) { }
+	tth(aTTH), token(aToken), date(aDate), connection(aConnection) { }
 
 SearchResult::SearchResult(Types aType, int64_t aSize, const string& aFile, const TTHValue& aTTH, time_t aDate) :
 	file(aFile), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), slots(UploadManager::getInstance()->getSlots()), 
@@ -106,6 +106,49 @@ string SearchResult::getSlotString() const {
 	return Util::toString(getFreeSlots()) + '/' + Util::toString(getSlots()); 
 }
 
+int64_t SearchResult::getConnectionInt() const {
+	return isNMDC() ? Util::toInt64(connection)*1024*1024/8 : Util::toInt64(connection);
+}
 
+string SearchResult::getConnectionStr() const {
+	if (connection.empty())
+		return STRING(OFFLINE);
+
+	return isNMDC() ? connection : Util::formatBytes(connection) + "/s";
+}
+
+int64_t SearchResult::getSpeedPerSlot() const {
+	return slots > 0 ? getConnectionInt() / slots : 0;
+}
+
+bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const SearchResultPtr& rhs) const {
+	//prefer the one that has free slots
+	if (lhs->getFreeSlots() > 0 && rhs->getFreeSlots() == 0)
+		return true;
+
+	if (lhs->getFreeSlots() == 0 && rhs->getFreeSlots() > 0)
+		return false;
+
+	//count the speed per slot
+	auto slotSpeedLeft = lhs->getSpeedPerSlot();
+	auto slotSpeedRight = rhs->getSpeedPerSlot();
+
+	//both have free slots?
+	if (lhs->getFreeSlots() && rhs->getFreeSlots())
+		return lhs->getFreeSlots() * slotSpeedLeft > rhs->getFreeSlots() * slotSpeedRight;
+
+	//no free slots
+	return slotSpeedLeft > slotSpeedRight;
+}
+
+void SearchResult::pickResults(SearchResultList& aResults, int pickedNum) {
+	if (aResults.size() <= pickedNum) {
+		//we can pick all matches
+	} else {
+		//pick the best matches
+		sort(aResults.begin(), aResults.end(), SearchResult::SpeedSortOrder());
+		aResults.erase(aResults.begin()+pickedNum, aResults.end());
+	}
+}
 
 }

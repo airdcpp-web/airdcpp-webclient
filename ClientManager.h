@@ -70,7 +70,7 @@ public:
 	
 	string getNick(const UserPtr& u, const string& hintUrl, bool allowFallback = true) const;
 
-	string getConnection(const HintedUser& aUser) const;
+	string getConnection(const CID& aCid, const string& hubUrl) const;
 	string getDLSpeed(const CID& cid) const;
 	uint8_t getSlots(const CID& cid) const;
 
@@ -147,6 +147,9 @@ public:
 	const CID& getMyPID();
 
 	void resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr aDefaultProfile);
+
+	bool connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_);
+	bool connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName);
 private:
 
 	typedef unordered_map<CID*, std::string> NickMap;

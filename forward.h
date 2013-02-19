@@ -117,7 +117,7 @@ typedef std::vector<DirectSearchResultPtr> DirectSearchResultList;
 //typedef std::map<string, DirectSRPtr> DirectSearchResultMap;
 
 class Search;
-typedef unique_ptr<Search> SearchPtr;
+typedef shared_ptr<Search> SearchPtr;
 
 class SearchResult;
 typedef boost::intrusive_ptr<SearchResult> SearchResultPtr;

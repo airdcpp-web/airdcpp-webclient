@@ -145,6 +145,7 @@ public:
 	GETSET(bool, stealth, Stealth);
 	GETSET(ProfileToken, shareProfile, ShareProfile);
 	GETSET(ProfileToken, favToken, FavToken);
+	GETSET(uint32_t, uniqueId, UniqueId);
 
 	/* Set a hub setting and return the new value */
 	bool changeBoolHubSetting(HubSettings::HubBoolSetting aSetting);
