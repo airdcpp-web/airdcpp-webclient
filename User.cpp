@@ -84,11 +84,20 @@ string Identity::getIp() const {
 	return !allowV6Connections() ? getIp4() : getIp6();
 }
 
-string Identity::getUploadSpeed(bool format) const {
+string Identity::getUploadSpeed() const {
 	if(user->isNMDC())
 		return getConnection();
-	else
-		return format ? Util::formatBytes(get("US")) + "/s" : get("US");
+	else {
+		const auto& us = get("US");
+
+		//workaround for versions older than 2.40 that use wrong units.....
+		const auto& ver = get("VE");
+		if (ver.length() >= 12 && strncmp("AirDC++", ver.c_str(), 7) == 0 && Util::toDouble(ver.substr(8, 4)) < 2.40) {
+			return Util::toString(Util::toInt(us) / 8);
+		}
+
+		return us;
+	}
 }
 
 void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {

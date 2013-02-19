@@ -90,16 +90,15 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 	Search::searchType sType, void* aOwner /* NULL */) {
 
 	string keyStr;
-
-	{
-		if (SETTING(ENABLE_SUDP)) {
+	if (SETTING(ENABLE_SUDP)) {
+		//generate a random key and store it so we can check the results
+		uint8_t* key = new uint8_t[16];
+		RAND_bytes(key, 16);
+		{
 			WLock l (cs);
-			//generate a random key and store it so we can check the results
-			uint8_t* key = new uint8_t[16];
-			RAND_bytes(key, 16);
 			searchKeys.emplace_back(key, GET_TICK());
-			keyStr = Encoder::toBase32(key, 16);
 		}
+		keyStr = Encoder::toBase32(key, 16);
 	}
 
 	auto s = SearchPtr(new Search);

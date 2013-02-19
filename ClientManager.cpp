@@ -1072,26 +1072,26 @@ string ClientManager::getConnection(const CID& aCid, const string& hubUrl) const
 
 bool ClientManager::connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName) {
 	//RLock l(cs);
-	user.hint = ClientManager::getInstance()->findHub(hubIpPort, true);
+	user.hint = findHub(hubIpPort, true);
 	if(user.hint.empty()) {
 		// Could happen if hub has multiple URLs / IPs
-		user = ClientManager::getInstance()->findLegacyUser(nick);
+		user = findLegacyUser(nick);
 		if(!user.user)
 			return false;
 	}
 
-	string encoding = ClientManager::getInstance()->findHubEncoding(user.hint);
+	string encoding = findHubEncoding(user.hint);
 	nick = Text::toUtf8(nick, encoding);
 	file = Text::toUtf8(file, encoding);
 	hubName = Text::toUtf8(hubName, encoding);
 
 	if(!user.user) {
-		user.user = ClientManager::getInstance()->findUser(nick, user.hint);
+		user.user = findUser(nick, user.hint);
 		if(!user.user)
 			return false;
 	}
 
-	ClientManager::getInstance()->setIPUser(user, userIP);
+	setIPUser(user, userIP);
 
 	RLock l(cs);
 	connection_ = getConnection(user.user->getCID(), user.hint);

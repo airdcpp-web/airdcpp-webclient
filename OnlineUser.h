@@ -128,7 +128,7 @@ public:
 	string getV4ModeString() const;
 	string getV6ModeString() const;
 
-	string getUploadSpeed(bool format=false) const;
+	string getUploadSpeed() const;
 
 	std::map<string, string> getInfo() const;
 	string get(const char* name) const;

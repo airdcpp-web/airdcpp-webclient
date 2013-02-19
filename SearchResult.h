@@ -55,10 +55,6 @@ public:
 	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
 		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection);
 
-	bool operator==(const SearchResult& rhs) const {
-		return rhs.getCID() == user.user->getCID() && rhs.getFile() == file;;
-	}
-
 	string getFileName() const;
 	string toSR(const Client& client) const;
 	AdcCommand toRES(char type) const;
