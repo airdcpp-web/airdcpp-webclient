@@ -100,6 +100,10 @@ string Identity::getUploadSpeed() const {
 	}
 }
 
+uint8_t Identity::getSlots() const {
+	return static_cast<uint8_t>(Util::toInt(get("SL")));
+}
+
 void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
 	{
 		FastLock l(cs);

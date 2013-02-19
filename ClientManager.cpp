@@ -1031,7 +1031,7 @@ void ClientManager::setIPUser(const UserPtr& user, const string& IP, const strin
 	}
 }
 
-bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_) {
+bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_, uint8_t& slots_) {
 	RLock l(cs);
 
 	// token format: [per-hub unique id] "/" [per-search actual token] (see AdcHub::search)
@@ -1046,28 +1046,30 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	token_.erase(0, slash + 1);
 
 
-	// get the connection
-	connection_ = getConnection(aCID, hubUrl_);
-	return true;
-}
-
-string ClientManager::getConnection(const CID& aCid, const string& hubUrl) const {
+	// get the connection and total slots
 	OnlinePairC p;
-	auto ou = findOnlineUserHint(aCid, hubUrl, p);
-	if (ou && !ou->getIdentity().getUploadSpeed().empty()) {
-		return ou->getIdentity().getUploadSpeed();
+	auto ou = findOnlineUserHint(aCID, hubUrl_, p);
+	if (ou) {
+		slots_ = ou->getIdentity().getSlots();
+		if (!ou->getIdentity().getUploadSpeed().empty()) {
+			connection_ = ou->getIdentity().getUploadSpeed();
+			return true;
+		}
 	} else {
 		// some hubs may hide this information...
 		for (auto i = p.first; i != p.second; i++) {
+			if (slots_ == 0)
+				slots_ = i->second->getIdentity().getSlots();
+
 			const auto& conn = i->second->getIdentity().getUploadSpeed();
 			if (!conn.empty()) {
-				return conn;
+				connection_ = conn;
 				break;
 			}
 		}
 	}
 
-	return Util::emptyString;
+	return true;
 }
 
 bool ClientManager::connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName) {
@@ -1094,7 +1096,10 @@ bool ClientManager::connectNMDCSearchResult(const string& userIP, const string& 
 	setIPUser(user, userIP);
 
 	RLock l(cs);
-	connection_ = getConnection(user.user->getCID(), user.hint);
+	auto ou = findOnlineUser(user);
+	if (ou)
+		connection_ = ou->getIdentity().getUploadSpeed();
+
 	return true;
 }
 

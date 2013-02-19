@@ -312,7 +312,8 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	if(!file.empty() && freeSlots != -1 && size != -1) {
 		//connect to a correct hub
 		string hubUrl, connection;
-		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection))
+		uint8_t slots = 0;
+		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection, slots))
 			return;
 
 		auto type = (file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
@@ -327,7 +328,6 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 			th = TTHValue(tth);
 		}
 		
-		uint8_t slots = ClientManager::getInstance()->getSlots(from->getCID());
 		SearchResultPtr sr(new SearchResult(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
 			file, remoteIp, th, token, date, connection));
 		fire(SearchManagerListener::SR(), sr);

@@ -1202,8 +1202,10 @@ void QueueManager::checkBundleHashed(BundlePtr b) {
 		if (!b->isFileBundle()) {
 			fire(QueueManagerListener::BundleHashed(), b->getTarget());
 		} else {
-			auto fi = HashManager::getInstance()->getFileInfo(Util::getFileName(b->getFinishedFiles().front()->getTarget()), b->getFinishedFiles().front()->getSize());
-			fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
+			try {
+				auto fi = HashManager::getInstance()->getFileInfo(b->getFinishedFiles().front()->getTarget(), b->getFinishedFiles().front()->getSize());
+				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
+			} catch (...) { dcassert(0); }
 		}
 	}
 

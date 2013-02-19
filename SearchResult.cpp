@@ -111,9 +111,6 @@ int64_t SearchResult::getConnectionInt() const {
 }
 
 string SearchResult::getConnectionStr() const {
-	if (connection.empty())
-		return STRING(OFFLINE);
-
 	return isNMDC() ? connection : Util::formatBytes(connection) + "/s";
 }
 
@@ -129,16 +126,13 @@ bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const 
 	if (lhs->getFreeSlots() == 0 && rhs->getFreeSlots() > 0)
 		return false;
 
-	//count the speed per slot
-	auto slotSpeedLeft = lhs->getSpeedPerSlot();
-	auto slotSpeedRight = rhs->getSpeedPerSlot();
 
-	//both have free slots?
+	//both have free slots? compare the per slot speed
 	if (lhs->getFreeSlots() && rhs->getFreeSlots())
-		return lhs->getFreeSlots() * slotSpeedLeft > rhs->getFreeSlots() * slotSpeedRight;
+		return lhs->getFreeSlots() * lhs->getSpeedPerSlot() > rhs->getFreeSlots() * rhs->getSpeedPerSlot();
 
-	//no free slots
-	return slotSpeedLeft > slotSpeedRight;
+	//no free slots, choose a random user with the fastest connection available
+	return lhs->getConnectionInt() > lhs->getConnectionInt();
 }
 
 void SearchResult::pickResults(SearchResultList& aResults, int pickedNum) {

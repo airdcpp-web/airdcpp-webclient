@@ -979,7 +979,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 				sizeMap[sr->getSize()]++; 
 		}
 
-		auto p = max_element(sizeMap, [] (pair<int64_t, int> p1, pair<int64_t, int> p2)-> bool {
+		auto p = max_element(sizeMap, [] (const pair<int64_t, int>& p1, const pair<int64_t, int>& p2)-> bool {
 			//NMDC results always come last
 			if (p1.first == 0)
 				return true;

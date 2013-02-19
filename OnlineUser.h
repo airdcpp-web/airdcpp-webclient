@@ -96,7 +96,7 @@ public:
 	GETSET_FIELD(SharedFiles, "SF")
 	GETSET_FIELD(ShareSize, "SS")
 #undef GETSET_FIELD
-
+	uint8_t getSlots() const;
 	void setBytesShared(const string& bs) { set("SS", bs); }
 	int64_t getBytesShared() const { return Util::toInt64(get("SS")); }
 	
