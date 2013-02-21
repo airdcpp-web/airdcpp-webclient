@@ -709,28 +709,29 @@ void HashManager::Hasher::hashFile(const string& fileName, string&& filePathLowe
 	Lock l(hcs);
 	auto wi = move(WorkItem(fileName, move(filePathLower), size, move(devID)));
 
+	bool added = false;
 	if (w.empty()) {
 		w.push_back(wi);
+		added = true;
 	} else if (HashSortOrder()(w.back(), wi)) {
 		// When adding large amounts of files from ShareManager, they should be sorted already. Prefer using push_back because of resource optimization
 		if(compare(w.back().filePath, fileName) != 0) {
 			w.push_back(wi);
-			devices[wi.devID]++; 
-			totalBytesLeft += size;
-			s.signal();
+			added = true;
 		}
 	} else {
 		auto hqr = equal_range(w.begin(), w.end(), wi, HashSortOrder());
 		if (hqr.first == hqr.second) {
 			//it doesn't exist yet
-			devices[wi.devID]++; 
 			w.insert(hqr.first, move(wi));
-			totalBytesLeft += size;
-			s.signal();
-		} else {
-			//in case the size has changed...
-			//wi.fileSize = size;
+			added = true;
 		}
+	}
+
+	if (added) {
+		devices[wi.devID]++; 
+		totalBytesLeft += size;
+		s.signal();
 	}
 }
 
