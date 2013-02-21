@@ -79,9 +79,7 @@ public:
 	/** Return block size of the tree associated with root, or 0 if no such tree is in the store */
 	size_t getBlockSize(const TTHValue& root);
 
-	void addTree(const string& aFileName, uint32_t aTimeStamp, const TigerTree& tt) {
-		hashDone(aFileName, aTimeStamp, tt, -1, -1);
-	}
+	void addTree(const string& aFileName, uint32_t aTimeStamp, const TigerTree& tt);
 	void addTree(const TigerTree& tree) { store.addTree(tree); }
 
 	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hashers);
@@ -114,7 +112,7 @@ private:
 	public:
 		Hasher(bool isPaused, int aHasherID);
 
-		void hashFile(const string& fileName, int64_t size, const string& devID);
+		void hashFile(const string& filePath, string&& filePathLower, int64_t size, string&& devID);
 
 		/// @return whether hashing was already paused
 		bool pause();
@@ -130,6 +128,7 @@ private:
 		void scheduleRebuild();
 		void save();
 
+		bool getPathVolume(const string& aPath, string& vol_) const;
 		bool hasDevice(const string& aID) const { return devices.find(aID) != devices.end(); }
 		bool hasDevices() { return !devices.empty(); }
 		int64_t getTimeLeft() const;
@@ -140,10 +139,11 @@ private:
 		int hasherID;
 	private:
 		struct WorkItem {
-			WorkItem(const string& aFilePath, int64_t aSize, const string& aDevID) : filePath(aFilePath), fileSize(aSize), devID(aDevID) { }
+			WorkItem(const string& aFilePath, string&& aFilePathLower, int64_t aSize, string&& aDevID) : filePath(aFilePath), fileSize(aSize), devID(move(aDevID)), filePathLower(move(aFilePathLower)) { }
 
 			string devID;
 			string filePath;
+			string filePathLower;
 			int64_t fileSize;
 		};
 
@@ -190,7 +190,7 @@ private:
 	class HashStore {
 	public:
 		HashStore();
-		HashedFilePtr& addFile(const string&& aFileName, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
+		HashedFilePtr& addFile(string&& aFilePathLower, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
 
 		void load(function<void (float)> progressF);
 		void save(function<void (float)> progressF = nullptr);
@@ -198,10 +198,10 @@ private:
 
 		void rebuild();
 
-		bool checkTTH(const string&& aFileName, int64_t aSize, uint32_t aTimeStamp);
+		bool checkTTH(const string& aFileNameLower, int64_t aSize, uint32_t aTimeStamp);
 
 		void addTree(const TigerTree& tt) noexcept;
-		const HashedFilePtr getFileInfo(string&& aFileName);
+		const HashedFilePtr getFileInfo(const string& aFileName);
 		bool getTree(const TTHValue& root, TigerTree& tth);
 		size_t getBlockSize(const TTHValue& root) const;
 		bool isDirty() { return dirty; }
@@ -242,7 +242,7 @@ private:
 
 	friend class HashLoader;
 
-	void hashFile(const string& fileName, int64_t size);
+	void hashFile(const string& filePath, string&& pathLower, int64_t size);
 	bool aShutdown;
 
 	typedef vector<Hasher*> HasherList;
@@ -253,7 +253,7 @@ private:
 	/** Single node tree where node = root, no storage in HashData.dat */
 	static const int64_t SMALL_TREE = -1;
 
-	HashedFilePtr hashDone(const string& aFileName, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size, int hasherID = 0);
+	HashedFilePtr hashDone(const string& aFileName, string&& pathLower, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size, int hasherID = 0);
 
 	void doRebuild();
 	void SaveData() {

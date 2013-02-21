@@ -128,7 +128,7 @@ void ShareManager::abortRefresh() {
 void ShareManager::shutdown(function<void (float)> progressF) {
 
 	if(ShareCacheDirty || !Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"))
-		saveXmlList();
+		saveXmlList(false, progressF);
 
 	try {
 		RLock l (cs);
@@ -2085,8 +2085,10 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> pr
 			int cur = 0;
 			for(const auto& s: rootPaths) {
 				s.second->toXmlList(xmlFile, s.first, indent, true);
-				if (progressF)
+				if (progressF) {
+					cur++;
 					progressF(static_cast<float>(cur) / static_cast<float>(rootPaths.size()));
+				}
 			}
 		}
 
@@ -2124,10 +2126,6 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 	xmlFile.write(LITERAL("\">\r\n"));
 
 	indent += '\t';
-	for(const auto& d: directories) {
-		d->toXmlList(xmlFile, path + d->getRealName() + PATH_SEPARATOR, indent, false);
-	}
-
 	for(const auto& f: files) {
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("<File Name=\""));
@@ -2135,6 +2133,10 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, const string& pat
 		xmlFile.write(LITERAL("\" Size=\""));
 		xmlFile.write(Util::toString(f.getSize()));
 		xmlFile.write(LITERAL("\"/>\r\n"));
+	}
+
+	for(const auto& d: directories) {
+		d->toXmlList(xmlFile, path + d->getRealName() + PATH_SEPARATOR, indent, false);
 	}
 
 	indent.erase(indent.length()-1);
@@ -2553,7 +2555,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 				continue;
 
 			auto j = aStrings.include->begin();
-			for(; j != aStrings.include->end() && j->match(f.getNameLower()); ++j) 
+			for(; j != aStrings.include->end() && j->matchLower(f.getNameLower()); ++j) 
 				;	// Empty
 
 			if(j != aStrings.include->end())
