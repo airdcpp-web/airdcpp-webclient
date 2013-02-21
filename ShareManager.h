@@ -422,10 +422,11 @@ private:
 	Directory::Ptr getDirByName(const string& directory) const;
 
 	/* Directory items mapped to realpath*/
-	typedef boost::unordered_map<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMap;
+	typedef map<string, Directory::Ptr> DirMap;
 
 	void getParents(DirMap& aDirs) const;
-	void addShares(const string& aPath, Directory::Ptr aDir) { shares[aPath] = aDir; }
+	void addRoot(const string& aPath, Directory::Ptr& aDir);
+	DirMap::const_iterator findRoot(const string& aPath) const;
 
 	friend struct ShareLoader;
 
@@ -490,7 +491,7 @@ private:
 	typedef std::vector<Directory::Ptr> DirectoryList;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
-	DirMap shares;
+	DirMap rootPaths;
 	DirMultiMap dirNameMap;
 
 	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize);
