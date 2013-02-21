@@ -45,6 +45,7 @@ public:
 	void pm(const string& aUrl);
 
 	void grant();
+	void grantTimeless();
 	void grantHour();
 	void grantDay();
 	void grantWeek();
@@ -52,6 +53,7 @@ public:
 	void addFav();
 	void removeAll();
 	void connectFav();
+	bool hasReservedSlot();
 	
 	virtual const UserPtr& getUser() const = 0;
 	virtual const string& getHubUrl() const = 0;
@@ -66,8 +68,8 @@ public:
 		// modifiers
 		USER_ICON_MOD_START,
 		USER_ICON_PASSIVE = USER_ICON_MOD_START,
-		//USER_ICON_AIRDC,
 		USER_ICON_OP,
+		//USER_ICON_FAVORITE,
 
 		USER_ICON_LAST
 	};

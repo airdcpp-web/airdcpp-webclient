@@ -848,6 +848,8 @@ void UploadManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) {
 	if(connect) {
 		connectUser(aUser, token);
 	}
+
+	fire(UploadManagerListener::SlotsUpdated(), aUser);
 }
 
 void UploadManager::connectUser(const HintedUser& aUser, const string& aToken) {
@@ -860,10 +862,17 @@ void UploadManager::connectUser(const HintedUser& aUser, const string& aToken) {
 }
 
 void UploadManager::unreserveSlot(const UserPtr& aUser) {
-	Lock l(cs);
-	auto uis = reservedSlots.find(aUser);
-	if(uis != reservedSlots.end())
-		reservedSlots.erase(uis);
+	bool found = false;
+	{
+		Lock l(cs);
+		auto uis = reservedSlots.find(aUser);
+		if(uis != reservedSlots.end()){
+			reservedSlots.erase(uis);
+			found = true;
+		}
+	}
+	if(found)
+		fire(UploadManagerListener::SlotsUpdated(), aUser);
 }
 
 void UploadManager::on(UserConnectionListener::Get, UserConnection* aSource, const string& aFile, int64_t aResume) noexcept {
@@ -1072,10 +1081,12 @@ void UploadManager::notifyQueuedUsers() {
 
 void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	UserList disconnects;
+	vector<UserPtr> reservedRemoved;
 	{
 		Lock l(cs);
 		for(auto j = reservedSlots.begin(); j != reservedSlots.end();) {
-			if(j->second < aTick) {
+			if((j->second != 0) && j->second < aTick) {
+				reservedRemoved.push_back(j->first);
 				reservedSlots.erase(j++);
 			} else {
 				++j;
@@ -1120,6 +1131,9 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	if(freeSlots != lastFreeSlots) {
 		lastFreeSlots = freeSlots;
 	}
+
+	for(auto& u: reservedRemoved)
+		fire(UploadManagerListener::SlotsUpdated(), u);
 }
 
 void UploadManager::on(GetListLength, UserConnection* conn) noexcept { 

@@ -43,6 +43,7 @@ public:
 	typedef X<8> BundleComplete;
 	typedef X<9> BundleSizeName;
 	typedef X<10> BundleTick;
+	typedef X<11> SlotsUpdated; //Added / removed reserved slot
 
 	virtual void on(Starting, const Upload*) noexcept { }
 	virtual void on(Tick, const UploadList&) noexcept { }
@@ -57,6 +58,7 @@ public:
 	virtual void on(BundleComplete, const string&, const string&) noexcept { }
 	virtual void on(BundleSizeName, const string&, const string&, int64_t) noexcept { }
 	virtual void on(BundleTick, const UploadBundleList&) noexcept { }
+	virtual void on(SlotsUpdated, const UserPtr&) noexcept { }
 };
 
 } // namespace dcpp
