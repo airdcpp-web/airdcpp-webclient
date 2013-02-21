@@ -46,7 +46,7 @@ using boost::max_element;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
-AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)), status(STATUS_SEARCHING), nextIsDisable(false) { 
+AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)), status(STATUS_SEARCHING), nextIsDisable(false), enabled(true), manualSearch(false), nextSearchChange(0), lastIncFinish(0) { 
 
 }
 

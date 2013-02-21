@@ -31,7 +31,7 @@
 #endif
 
 #ifdef BETAVER
-#define VERSION_URL "http://beta.airdcpp.net/version/version.xml"
+#define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
 #else
 #define VERSION_URL "http://version.airdcpp.net/version.xml"
 #endif

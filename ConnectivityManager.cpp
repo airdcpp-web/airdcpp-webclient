@@ -84,18 +84,29 @@ void ConnectivityManager::detectConnection() {
 	if(isRunning())
 		return;
 
-	runningV4 = SETTING(AUTO_DETECT_CONNECTION);
-	runningV6 = SETTING(AUTO_DETECT_CONNECTION6);
+	bool detectV4 = false;
+	if (SETTING(AUTO_DETECT_CONNECTION) && SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED) {
+		detectV4 = true;
+		runningV4 = true;
+	}
 
-	statusV4.clear();
-	statusV6.clear();
+	bool detectV6 = false;
+	if (SETTING(AUTO_DETECT_CONNECTION6) && SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED) {
+		detectV6 = true;
+		runningV6 = true;
+	}
+
+	if (detectV4)
+		statusV4.clear();
+	if (detectV6)
+		statusV6.clear();
 	fire(ConnectivityManagerListener::Started());
 
-	if(mapperV4.getOpened()) {
+	if(detectV4 && mapperV4.getOpened()) {
 		mapperV4.close();
 	}
 
-	if(mapperV6.getOpened()) {
+	if(detectV4 && mapperV6.getOpened()) {
 		mapperV6.close();
 	}
 
@@ -134,22 +145,24 @@ void ConnectivityManager::detectConnection() {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_PASSIVE;
 		log(STRING_F(CONN_PORT_X_FAILED, e.getError()), LogManager::LOG_ERROR, TYPE_NORMAL);
 		fire(ConnectivityManagerListener::Finished());
-		runningV4 = false;
-		runningV6 = false;
+		if (detectV4)
+			runningV4 = false;
+		if (detectV6)
+			runningV6 = false;
 		return;
 	}
 
-	autoDetectedV4 = runningV4;
-	autoDetectedV6 = runningV6;
+	autoDetectedV4 = detectV4;
+	autoDetectedV6 = detectV6;
 
-	if(runningV4 && !AirUtil::getLocalIp(false, false).empty()) {
+	if(detectV4 && !AirUtil::getLocalIp(false, false).empty()) {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
 		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V4);
 		fire(ConnectivityManagerListener::Finished());
 		runningV4 = false;
 	}
 
-	if(runningV6 && !AirUtil::getLocalIp(true, false).empty()) {
+	if(detectV6 && !AirUtil::getLocalIp(true, false).empty()) {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE;
 		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V6);
 		fire(ConnectivityManagerListener::Finished());
@@ -160,34 +173,58 @@ void ConnectivityManager::detectConnection() {
 
 	log(STRING(CONN_NAT_DETECTED), LogManager::LOG_INFO, TYPE_BOTH);
 
-	if (runningV6)
+	if (detectV6)
 		startMapping(true);
-	if (runningV4)
+	if (detectV4)
 		startMapping(false);
 }
 
-void ConnectivityManager::setup(bool settingsChanged) {
-	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
-		if(!autoDetectedV6 || !autoDetectedV4) {
-			detectConnection();
-		}
-	} else {
-		if(autoDetectedV6 || autoDetectedV4) {
-			autoSettings.clear();
-		}
-		if(autoDetectedV6 || autoDetectedV4 || settingsChanged) {
-			if(settingsChanged || (SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_ACTIVE_UPNP)) {
+void ConnectivityManager::setup(bool v4SettingsChanged, bool v6SettingsChanged) {
+	bool autoDetect4 = SETTING(AUTO_DETECT_CONNECTION) &&  SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED;
+	bool autoDetect6 = SETTING(AUTO_DETECT_CONNECTION6) &&  SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED;
+
+	/*{
+		if((!autoDetect4 && autoDetectedV4) || (!autoDetect6 && autoDetectedV6) || v4SettingsChanged || v6SettingsChanged) {
+			if(v4SettingsChanged || (SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_ACTIVE_UPNP)) {
 				mapperV4.close();
 			}
-			if(settingsChanged || (SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_ACTIVE_UPNP)) {
+			if((SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_ACTIVE_UPNP) || v6SettingsChanged) {
 				mapperV6.close();
 			}
 			startSocket();
-		} else {
+		} else if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_ACTIVE_UPNP && !runningV4) {
 			// previous mappings had failed; try again
 			startMapping();
 		}
+	}*/
+
+	if (v4SettingsChanged || (autoDetectedV4 &&! autoDetect4))
+		mapperV4.close();
+
+	if (v6SettingsChanged || (autoDetectedV6 &&! autoDetect6))
+		mapperV6.close();
+
+
+	if((!autoDetect6 && autoDetectedV6) || (!autoDetect4 && autoDetectedV4)) {
+		autoSettings.clear();
 	}
+
+	bool autoDetect = false;
+	if(autoDetect4  || autoDetect6) {
+		if((!autoDetectedV4 && autoDetect4) || (!autoDetectedV6 && autoDetect6) || autoSettings.empty()) {
+			detectConnection();
+			autoDetect = true;
+		}
+	}
+
+	if (!autoDetect && (v4SettingsChanged || v6SettingsChanged))
+		startSocket();
+
+	if(!autoDetect4 && SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_ACTIVE_UPNP && !runningV4) // previous mappings had failed; try again
+		startMapping(false);
+
+	if(!autoDetect6 && SETTING(INCOMING_CONNECTIONS6) == SettingsManager::INCOMING_ACTIVE_UPNP && !runningV4) // previous mappings had failed; try again
+		startMapping(true);
 }
 
 void ConnectivityManager::close() {

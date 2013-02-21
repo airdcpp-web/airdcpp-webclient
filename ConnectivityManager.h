@@ -60,7 +60,7 @@ public:
 	void set(SettingsManager::StrSetting setting, const string& str);
 
 	void detectConnection();
-	void setup(bool settingsChanged);
+	void setup(bool v4SettingsChanged, bool v6SettingsChanged);
 	void editAutoSettings();
 	bool ok(bool v6) const { return v6 ? autoDetectedV6 : autoDetectedV4; }
 	bool isRunning() const { return runningV4 || runningV6; }

@@ -214,7 +214,7 @@ SettingsManager::SettingsManager()
 	setDefault(INCOMING_CONNECTIONS, INCOMING_ACTIVE);
 
 	//TODO: check whether we have ipv6 available
-	setDefault(INCOMING_CONNECTIONS6, INCOMING_ACTIVE);
+	setDefault(INCOMING_CONNECTIONS6, INCOMING_DISABLED);
 
 	setDefault(OUTGOING_CONNECTIONS, OUTGOING_DIRECT);
 	setDefault(AUTO_DETECT_CONNECTION, true);
