@@ -833,7 +833,7 @@ void UploadManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) {
 	string token;
 	{
 		Lock l(cs);
-		reservedSlots[aUser] = GET_TICK() + aTime*1000;
+		reservedSlots[aUser] = aTime > 0 ? (GET_TICK() + aTime*1000) : 0;
 	
 		if(aUser.user->isOnline()){
 			// find user in uploadqueue to connect with correct token
@@ -1085,7 +1085,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	{
 		Lock l(cs);
 		for(auto j = reservedSlots.begin(); j != reservedSlots.end();) {
-			if((j->second != 0) && j->second < aTick) {
+			if((j->second > 0) && j->second < aTick) {
 				reservedRemoved.push_back(j->first);
 				reservedSlots.erase(j++);
 			} else {
