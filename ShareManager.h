@@ -41,7 +41,7 @@
 #include "TaskQueue.h"
 #include "Thread.h"
 
-#include "boost/unordered_map.hpp"
+#include <boost/unordered_map.hpp>
 
 namespace dcpp {
 
@@ -58,16 +58,25 @@ class AdcSearch;
 class Worker;
 class TaskQueue;
 
-class ShareDirInfo : public FastAlloc<ShareDirInfo> {
+class ShareDirInfo;
+typedef boost::intrusive_ptr<ShareDirInfo> ShareDirInfoPtr;
+
+class ShareDirInfo : public FastAlloc<ShareDirInfo>, public intrusive_ptr_base<ShareDirInfo> {
 public:
+	enum DiffState { 
+		DIFF_NORMAL,
+		DIFF_ADDED,
+		DIFF_REMOVED
+	};
+
 	enum State { 
-		NORMAL,
-		ADDED,
-		REMOVED
+		STATE_NORMAL,
+		STATE_ADDED,
+		STATE_REMOVED
 	};
 
 	ShareDirInfo(const string& aVname, ProfileToken aProfile, const string& aPath, bool aIncoming=false) : vname(aVname), profile(aProfile), path(aPath), incoming(aIncoming), 
-		found(false), state(NORMAL), size(0) {}
+		found(false), diffState(DIFF_NORMAL), state(STATE_NORMAL), size(0) {}
 
 	~ShareDirInfo() {}
 
@@ -78,15 +87,16 @@ public:
 	bool found; //used when detecting removed dirs with using dir tree
 	int64_t size;
 
+	DiffState diffState;
 	State state;
 
-	struct Hash {
+	/*struct Hash {
 		size_t operator()(const ShareDirInfo* x) const { return hash<string>()(x->path) + x->profile; }
 	};
 
-	typedef unordered_set<ShareDirInfo*, Hash> set;
-	typedef vector<ShareDirInfo*> list;
-	typedef unordered_map<int, list> map;
+	typedef unordered_set<ShareDirInfoPtr, Hash> set;*/
+	typedef vector<ShareDirInfoPtr> List;
+	typedef unordered_map<int, List> Map;
 };
 
 class ShareProfile;
@@ -214,7 +224,7 @@ public:
 
 	typedef vector<ShareProfilePtr> ShareProfileList;
 
-	void getShares(ShareDirInfo::map& aDirs);
+	void getShares(ShareDirInfo::Map& aDirs);
 
 	enum Tasks {
 		ADD_DIR,
@@ -226,9 +236,9 @@ public:
 	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback=false) const;
 	void getParentPaths(StringList& aDirs) const;
 
-	void addDirectories(const ShareDirInfo::list& aNewDirs);
-	void removeDirectories(const ShareDirInfo::list& removeDirs);
-	void changeDirectories(const ShareDirInfo::list& renameDirs);
+	void addDirectories(const ShareDirInfo::List& aNewDirs);
+	void removeDirectories(const ShareDirInfo::List& removeDirs);
+	void changeDirectories(const ShareDirInfo::List& renameDirs);
 
 	void addProfiles(const ShareProfile::set& aProfiles);
 	void removeProfiles(ProfileTokenList aProfiles);

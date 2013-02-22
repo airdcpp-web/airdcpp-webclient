@@ -1627,6 +1627,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Download locations", 
 "Excluded words (separate with space)", 
 "Histories", 
+"The directory %s has been removed from the share", 
+"%d directories have been removed from the share", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3254,4 +3256,6 @@ std::string dcpp::ResourceManager::names[] = {
 "DirHistory", 
 "ExcludedWordsDesc", 
 "Histories", 
+"SharedDirRemoved", 
+"XSharedDirsRemoved", 
 };

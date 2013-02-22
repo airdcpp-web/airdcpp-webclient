@@ -531,11 +531,11 @@ void HashManager::HashStore::save(function<void (float)> progressF /*nullptr*/) 
 						b32tmp.clear();
 						f.write(fi->getRoot().toBase32(b32tmp));
 						f.write(LIT("\"/>\r\n"));
+					}
 
-						if (progressF) {
-							cur++;
-							progressF(static_cast<float>(cur) / static_cast<float>(initialSize));
-						}
+					if (progressF) {
+						cur++;
+						progressF(static_cast<float>(cur) / static_cast<float>(initialSize));
 					}
 				}
 			} //unlock

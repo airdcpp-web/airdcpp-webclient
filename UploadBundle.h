@@ -46,20 +46,20 @@ public:
 	GETSET(UploadList, uploads, Uploads);
 	UploadList& getUploads() { return uploads; }
 	
-	int getRunning() { return (int)uploads.size(); }
+	int getRunning() const { return (int)uploads.size(); }
 
 	uint64_t getStart() const { return start; }
 
-	bool getSingleUser() { return singleUser; }
+	bool getSingleUser() const { return singleUser; }
 	void setSingleUser(bool aSingleUser, int64_t uploadedSegments = 0);
 
-	string getName();
-	string getTarget() { return target; }
+	string getName() const;
+	string getTarget() const { return target; }
 	void setTarget(string targetNew) { target = targetNew; }
 
-	string getToken() { return token; }
+	string getToken() const { return token; }
 
-	uint64_t getSecondsLeft();
+	uint64_t getSecondsLeft() const;
 	uint64_t getUploaded() const { return uploaded + uploadedSegments; }
 
 	void findBundlePath(const string& aName);

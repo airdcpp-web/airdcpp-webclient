@@ -42,8 +42,8 @@ public:
 	void decreaseSize(uint64_t aSize) { queueSize -= aSize; }
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItemPtr> > PFSSourceList;
 
-	void add(QueueItemPtr& qi);
-	QueueItemPtr add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItemBase::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
+	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi);
+	pair<QueueItemPtr, bool> add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItemBase::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
 	QueueItemPtr findFile(const string& target) noexcept;
 	void findFiles(const TTHValue& tth, QueueItemList& ql) noexcept;

@@ -49,6 +49,8 @@
 #include <mmsystem.h>
 #include <limits>
 
+#include <ppl.h>
+
 #if !defined(_WIN32) && !defined(PATH_MAX) // Extra PATH_MAX check for Mac OS X
 #include <sys/syslimits.h>
 #endif
@@ -477,8 +479,11 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 	QueueItemPtr q = nullptr;
 	{
 		WLock l(cs);
-		q = fileQueue.findFile(target);
-		if(q) {
+		//q = fileQueue.findFile(target);
+		auto ret = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), SettingsManager::lanMode ? AirUtil::getTTH(Util::getFileName(target), aSize) : root);
+		q = move(ret.first);
+
+		if(!ret.second) {
 			if(q->isFinished()) {
 				/* The target file doesn't exist, add our item. Also recheck the existance in case of finished files being moved on the same time. */
 				dcassert(q->getBundle());
@@ -537,8 +542,6 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 		} else {
 			aPrio = QueueItem::HIGHEST;
 		}
-
-		q = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), SettingsManager::lanMode ? AirUtil::getTTH(Util::getFileName(target), aSize) : root);
 
 		/* Bundles */
 
@@ -1892,23 +1895,24 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 	//migrate old bundles
 	Util::migrate(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
 
-	QueueLoader loader;
+	//QueueLoader loader;
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
-	int loaded = 0;
-	for (auto& path: fileList) {
+	atomic<long> loaded = 0;
+	concurrency::parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
 		if (Util::getFileExt(path) == ".xml") {
+			QueueLoader loader;
 			try {
 				File f(path, File::READ, File::OPEN, false);
 				SimpleXMLReader(&loader).parse(f);
 			} catch(const Exception& e) {
 				LogManager::getInstance()->message(STRING_F(BUNDLE_LOAD_FAILED, path % e.getError().c_str()), LogManager::LOG_ERROR);
 				File::deleteFile(path);
-				loader.resetBundle();
+				//loader.resetBundle();
 			}
 		}
 		loaded++;
 		progressF(static_cast<float>(loaded) / static_cast<float>(fileList.size()));
-	}
+	});
 
 	try {
 		//load the old queue file and delete it
@@ -1916,6 +1920,7 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 		Util::migrate(path);
 
 		File f(path, File::READ, File::OPEN);
+		QueueLoader loader;
 		SimpleXMLReader(&loader).parse(f);
 		f.close();
 		File::copyFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml", Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml.bak");
@@ -2017,14 +2022,14 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			if(added == 0)
 				added = GET_TIME();
 
-			QueueItemPtr qi = qm->fileQueue.findFile(target);
+			if (Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1) {
+				p = QueueItem::DEFAULT;
+			}
 
-			if(!qi) {
-				if (Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1) {
-					p = QueueItem::DEFAULT;
-				}
-
-				qi = qm->fileQueue.add(target, size, 0, p, tempTarget, added, TTHValue(tthRoot));
+			WLock l (qm->cs);
+			auto ret = qm->fileQueue.add(target, size, 0, p, tempTarget, added, TTHValue(tthRoot));
+			if(ret.second) {
+				auto& qi = ret.first;
 				qi->setMaxSegments(max((uint8_t)1, maxSegments));
 
 				//bundles
@@ -2044,8 +2049,11 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				}
 			}
 			if(!simple)
-				curFile = qi;
+				curFile = ret.first;
 		} else if(curFile && name == sSegment) {
+			if(!curFile)
+				return;
+
 			int64_t start = Util::toInt64(getAttrib(attribs, sStart, 0));
 			int64_t size = Util::toInt64(getAttrib(attribs, sSize, 1));
 			
@@ -2067,15 +2075,16 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			try {
 				const string& hubHint = getAttrib(attribs, sHubHint, 1);
 				HintedUser hintedUser(user, hubHint);
-				if (SettingsManager::lanMode) {
+				/*if (SettingsManager::lanMode) {
 					const string& remotePath = getAttrib(attribs, sRemotePath, 2);
 					if (remotePath.empty())
 						return;
 
 					qm->addSource(curFile, hintedUser, 0, remotePath) && user->isOnline();
-				} else {
+				} else {*/
+					WLock l (qm->cs);
 					qm->addSource(curFile, hintedUser, 0, Util::emptyString, true, false) && user->isOnline();
-				}
+				//}
 			} catch(const Exception&) {
 				return;
 			}
@@ -2133,7 +2142,7 @@ string QueueManager::getBundlePath(const string& aBundleToken) const {
 }
 
 void QueueManager::addFinishedItem(const TTHValue& tth, BundlePtr& aBundle, const string& aTarget, int64_t aSize, time_t aFinished) {
-	//LogManager::getInstance()->message("ADD FINISHED TTH: " + tth.toBase32());
+	WLock l(cs);
 	if (fileQueue.findFile(aTarget)) {
 		return;
 	}

@@ -45,23 +45,23 @@ void FileQueue::getBloom(HashBloom& bloom) const {
 	}
 }
 
-QueueItemPtr FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItemBase::Priority p, 
+pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItemBase::Priority p, 
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
 	QueueItemPtr qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
 	dcassert(findFile(aTarget) == nullptr);
-	add(qi);
-	return qi;
+	auto ret = add(qi);
+	return make_pair((ret.second ? qi : ret.first->second), ret.second);
 }
 
-void FileQueue::add(QueueItemPtr& qi) noexcept {
+pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi) noexcept {
 	if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
 		dcassert(qi->getSize() >= 0);
 		queueSize += qi->getSize();
 	}
 	dcassert(queueSize >= 0);
-	queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
 	tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
+	return queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
 }
 
 void FileQueue::remove(QueueItemPtr& qi) noexcept {

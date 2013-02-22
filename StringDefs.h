@@ -1631,5 +1631,7 @@ enum Strings { // @DontAdd
 	DIR_HISTORY, // "Download locations"
 	EXCLUDED_WORDS_DESC, // "Excluded words (separate with space)"
 	HISTORIES, // "Histories"
+	SHARED_DIR_REMOVED, // "The directory %s has been removed from the share"
+	X_SHARED_DIRS_REMOVED, // "%d directories have been removed from the share"
 	LAST // @DontAdd
 };

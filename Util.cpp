@@ -1700,6 +1700,9 @@ string Util::getOsVersion(bool http /*false*/, bool doubleStr /*false*/) {
 				case PRODUCT_PROFESSIONAL:
 				   os += " Professional";
 				   break;
+				case PRODUCT_PROFESSIONAL_WMC:
+					os += " Professional with Media Center";
+					break;
 				case PRODUCT_HOME_PREMIUM:
 				   os += " Home Premium Edition";
 				   break;

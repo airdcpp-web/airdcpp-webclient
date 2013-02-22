@@ -102,6 +102,7 @@ public:
 
 	string read(size_t len);
 	string read();
+	void write(string&& aString) { write((void*)aString.data(), aString.size()); }
 	void write(const string& aString) { write((void*)aString.data(), aString.size()); }
 	static StringList findFiles(const string& path, const string& pattern);
 
