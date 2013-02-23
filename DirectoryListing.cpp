@@ -248,6 +248,8 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				d->setDate(Util::toUInt32(date));
 			}
 			cur = d;
+			if (updating && cur->isComplete())
+				baseLower += Text::toLower(n) + '/';
 
 			if(simple) {
 				// To handle <Directory Name="..." />
@@ -299,6 +301,8 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 void ListLoader::endTag(const string& name) {
 	if(inListing) {
 		if(name == sDirectory) {
+			if (updating && cur->isComplete())
+				baseLower = baseLower.substr(0, baseLower.length()-cur->getName().length()-1);
 			cur = cur->getParent();
 		} else if(name == sFileListing) {
 			// cur should be root now, set it complete
@@ -909,7 +913,7 @@ int DirectoryListing::run() {
 				if (isOwnList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
 					if (mis)
-						loadXML(*mis, true);
+						loadXML(*mis, false);
 					else
 						throw CSTRING(FILE_NOT_AVAILABLE);
 				} else {

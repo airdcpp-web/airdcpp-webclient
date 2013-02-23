@@ -723,6 +723,13 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 	return nullptr;
 }
 
+ShareManager::Directory::Ptr ShareManager::Directory::create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot /*nullptr*/) {
+	auto dir = Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
+	if (aParent)
+		aParent->directories.insert(aParent->directories.end(), dir);
+	return dir;
+}
+
 static const string SDIRECTORY = "Directory";
 static const string SFILE = "File";
 static const string SNAME = "Name";
@@ -812,7 +819,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			try {
 				auto s = Util::toInt64(size);
 				//HashedFilePtr fi = (SettingsManager::lanMode ? HashedFilePtr(new HashedFile(Text::toLower(fname)), TTHValue(), 0, true) : HashManager::getInstance()->getFileInfo(curDirPath + fname, s));
-				lastFileIter = cur->files.emplace_hint(lastFileIter, fname, s, cur, move(HashManager::getInstance()->getFileInfo(curDirPath + fname, s)));
+				lastFileIter = cur->files.emplace_hint(lastFileIter, fname, s, cur, move(HashManager::getInstance()->getFileInfo(curDirPath + fname, s)))++;
 			}catch(Exception& e) {
 				hashSize += Util::toInt64(size);
 				dcdebug("Error loading filelist %s \n", e.getError().c_str());
@@ -1201,9 +1208,9 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 				if (SettingsManager::lanMode) {
 					//aDir->files.emplace(name, size, aDir, nullptr);
 					HashedFilePtr hf = new HashedFile(Text::toLower(name), TTHValue(), File::convertTime(&i->ftLastWriteTime), true);
-					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, hf);
+					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, hf)++;
 				} else if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) {
-					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, move(HashManager::getInstance()->getFileInfo(path, size)));
+					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, move(HashManager::getInstance()->getFileInfo(path, size)))++;
 					//aDir->files.emplace(name, size, aDir, HashManager::getInstance()->getFileInfo(path, size));
 				} else {
 					hashSize += size;
@@ -2025,7 +2032,7 @@ void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent
 		if (filesAdded) {
 			for(const auto& fi: (*di)->files) {
 				//go through the dirs that we have added already
-				if (find_if(shareDirs.begin(), di-1, [&fi](const Directory::Ptr d) { return d->files.find(fi) != d->files.end(); }) == shareDirs.end()) {
+				if (none_of(shareDirs.begin(), di, [&fi](const Directory::Ptr& d) { return d->files.find(fi) != d->files.end(); })) {
 					fi.toXml(xmlFile, indent, tmp2, addDate);
 				}
 			}

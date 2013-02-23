@@ -331,12 +331,7 @@ private:
 		Set directories;
 		File::Set files;
 
-		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot = nullptr) {
-			auto dir = Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
-			if (aParent)
-				aParent->directories.insert(dir);
-			return dir;
-		}
+		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
 
 		struct DateCompare {
 			bool operator()(const Ptr left, const Ptr right) const {

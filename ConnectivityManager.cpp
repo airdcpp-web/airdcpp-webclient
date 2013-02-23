@@ -160,6 +160,7 @@ void ConnectivityManager::detectConnection() {
 		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V4);
 		fire(ConnectivityManagerListener::Finished());
 		runningV4 = false;
+		detectV4 = false;
 	}
 
 	if(detectV6 && !AirUtil::getLocalIp(true, false).empty()) {
@@ -167,11 +168,21 @@ void ConnectivityManager::detectConnection() {
 		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V6);
 		fire(ConnectivityManagerListener::Finished());
 		runningV6 = false;
+		detectV6 = false;
 	}
 
-	autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE_UPNP;
+	if (!detectV6 && !detectV4)
+		return;
 
-	log(STRING(CONN_NAT_DETECTED), LogManager::LOG_INFO, TYPE_BOTH);
+	if (detectV4) {
+		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE_UPNP;
+	}
+
+	if (detectV6) {
+		autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE_UPNP;
+	}
+
+	log(STRING(CONN_NAT_DETECTED), LogManager::LOG_INFO, (detectV4 && detectV6 ? TYPE_BOTH : detectV4 ? TYPE_V4 : TYPE_V6));
 
 	if (detectV6)
 		startMapping(true);
