@@ -40,7 +40,7 @@ atomic_flag HashManager::HashStore::saving;
 
 using boost::range::find_if;
 
-CriticalSection HashManager::Hasher::hcs;
+SharedMutex HashManager::Hasher::hcs;
 
 #define HASH_FILE_VERSION_STRING "2"
 static const uint32_t HASH_FILE_VERSION = 2;
@@ -98,7 +98,7 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 
 	Hasher* h = nullptr;
 
-	Lock l(Hasher::hcs);
+	WLock l(Hasher::hcs);
 
 	//get the volume name
 	string vol;
@@ -218,7 +218,7 @@ HashedFilePtr HashManager::hashDone(const string& aFileName, string&& pathLower,
 	try {
 		fi = store.addFile(move(pathLower), aTimeStamp, tt, true);
 	} catch (const Exception& e) {
-		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true);
+		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true, true);
 		return nullptr;
 	}
 	
@@ -232,9 +232,9 @@ HashedFilePtr HashManager::hashDone(const string& aFileName, string&& pathLower,
 		}
 	
 		if (speed > 0) {
-			log(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)", hasherID, false);
+			log(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)", hasherID, false, true);
 		} else {
-			log(STRING(HASHING_FINISHED) + " " + fn, hasherID, false);
+			log(STRING(HASHING_FINISHED) + " " + fn, hasherID, false, true);
 		}
 	}
 	return fi;
@@ -706,7 +706,7 @@ void HashManager::HashStore::createDataFile(const string& name) {
 }
 
 void HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) {
-	Lock l(hcs);
+	//always locked
 	auto wi = move(WorkItem(fileName, move(filePathLower), size, move(devID)));
 
 	bool added = false;
@@ -772,26 +772,25 @@ void HashManager::Hasher::stopHashing(const string& baseDir) {
 }
 
 void HashManager::stopHashing(const string& baseDir) {
-	Lock l(Hasher::hcs);
+	WLock l(Hasher::hcs);
 	for (auto h: hashers)
 		h->stopHashing(baseDir); 
 }
 
 void HashManager::setPriority(Thread::Priority p) {
-	Lock l(Hasher::hcs);
+	RLock l(Hasher::hcs);
 	for (auto h: hashers)
 		h->setThreadPriority(p); 
 }
 
 void HashManager::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hasherCount) {
-	Lock l(Hasher::hcs);
+	RLock l(Hasher::hcs);
 	hasherCount = hashers.size();
 	for (auto i: hashers)
 		i->getStats(curFile, bytesLeft, filesLeft, speed);
 }
 
 void HashManager::rebuild() {
-	Lock l(Hasher::hcs);
 	hashers.front()->scheduleRebuild(); 
 }
 
@@ -801,13 +800,14 @@ void HashManager::startup(function<void (float)> progressF) {
 }
 
 void HashManager::stop() {
-	Lock l(Hasher::hcs);
+	WLock l(Hasher::hcs);
 	for (auto h: hashers)
 		h->clear();
 }
 
 void HashManager::Hasher::shutdown() { 
-	stop = true; 
+	closing = true; 
+	clear();
 	if(paused) 
 		resume(); 
 	s.signal(); 
@@ -825,9 +825,8 @@ void HashManager::shutdown(function<void (float)> progressF) {
 	TimerManager::getInstance()->removeListener(this);
 
 	{
-		Lock l(Hasher::hcs);
+		WLock l(Hasher::hcs);
 		for (auto h: hashers) {
-			h->clear();
 			h->shutdown();
 		}
 	}
@@ -835,7 +834,7 @@ void HashManager::shutdown(function<void (float)> progressF) {
 	// Wait for the hashers to shut down
 	while(true) {
 		{
-			Lock l(Hasher::hcs);
+			RLock l(Hasher::hcs);
 			if(hashers.empty()) {
 				break;
 			}
@@ -868,7 +867,7 @@ void HashManager::Hasher::instantPause() {
 	}
 }
 
-HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : stop(false), running(false), paused(isPaused), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
+HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : closing(false), running(false), paused(isPaused), rebuild(false), saveData(false), totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
 	filesHashed(0), dirFilesHashed(0), dirSizeHashed(0), dirHashTime(0), hasherID(aHasherID) { 
 
 	start();
@@ -876,8 +875,8 @@ HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : stop(false), running
 		t_suspend();
 }
 
-void HashManager::log(const string& aMessage, int hasherID, bool isError) {
-	Lock l(Hasher::hcs);
+void HashManager::log(const string& aMessage, int hasherID, bool isError, bool lock) {
+	ConditionalRLock l(Hasher::hcs, lock);
 	LogManager::getInstance()->message((hashers.size() > 1 ? "[" + STRING_F(HASHER_X, hasherID) + "] " + ": " : Util::emptyString) + aMessage, isError ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
@@ -888,8 +887,8 @@ int HashManager::Hasher::run() {
 	for(;;) {
 		s.wait();
 		instantPause(); //suspend the thread...
-		if(stop) {
-			Lock l(hcs);
+		if(closing) {
+			WLock l(hcs);
 			HashManager::getInstance()->removeHasher(this);
 			break;
 		}
@@ -910,7 +909,7 @@ int HashManager::Hasher::run() {
 		bool dirChanged = false;
 		string curDevID, pathLower;
 		{
-			Lock l(hcs);
+			WLock l(hcs);
 			if(!w.empty()) {
 				auto& wi = w.front();
 				dirChanged = compare(Util::getFilePath(wi.filePath), Util::getFilePath(fname)) != 0;
@@ -969,7 +968,7 @@ int HashManager::Hasher::run() {
 					sizeLeft -= n;
 
 					{
-						Lock l(hcs);
+						WLock l(hcs);
 						if(totalBytesLeft > 0)
 							totalBytesLeft -= n;
 						if(now > start)
@@ -977,7 +976,7 @@ int HashManager::Hasher::run() {
 
 					}
 
-					return !stop;
+					return !closing;
 				});
 
 				f.close();
@@ -1003,14 +1002,14 @@ int HashManager::Hasher::run() {
 				}
 
 				if(failed) {
-					HashManager::getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true);
+					HashManager::getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true, true);
 					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
 				} else {
 					fi = move(HashManager::getInstance()->hashDone(fname, move(pathLower), timestamp, tt, averageSpeed, size, hasherID));
 					//tth = tt.getRoot();
 				}
 			} catch(const FileException& e) {
-				HashManager::getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true);
+				HashManager::getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true, true);
 				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
 			}
 		
@@ -1022,13 +1021,13 @@ int HashManager::Hasher::run() {
 					HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_FILE, currentFile % 
 						Util::formatBytes(dirSizeHashed) % 
 						Util::formatTime(dirHashTime / 1000, true) % 
-						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false);
+						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false, false);
 				} else {
 					HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
 						dirFilesHashed %
 						Util::formatBytes(dirSizeHashed) % 
 						Util::formatTime(dirHashTime / 1000, true) % 
-						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false);
+						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false, false);
 				}
 			}
 
@@ -1041,7 +1040,7 @@ int HashManager::Hasher::run() {
 
 		bool deleteThis = false;
 		{
-			Lock l(hcs);
+			WLock l(hcs);
 			if (!fname.empty())
 				removeDevice(curDevID);
 
@@ -1054,7 +1053,7 @@ int HashManager::Hasher::run() {
 						onDirHashed();
 						HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_TOTAL, filesHashed % Util::formatBytes(sizeHashed) % dirsHashed % 
 							Util::formatTime(hashTime / 1000, true) % 
-							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), hasherID, false);
+							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), hasherID, false, false);
 					}
 				}
 				hashTime = 0;
@@ -1075,7 +1074,7 @@ int HashManager::Hasher::run() {
 		if (deleteThis) {
 			//check again if we have added new items while this was unlocked
 
-			Lock l(hcs);
+			WLock l(hcs);
 			if (w.empty()) {
 				//Nothing more to has, delete this hasher
 				HashManager::getInstance()->removeHasher(this);
@@ -1114,10 +1113,10 @@ HashManager::HashPauser::~HashPauser() {
 bool HashManager::pauseHashing() {
 	pausers++;
 	if (pausers == 1) {
-		Lock l (Hasher::hcs);
+		RLock l (Hasher::hcs);
 		for (auto h: hashers)
 			h->pause();
-		return isHashingPaused();
+		return isHashingPaused(false);
 	}
 	return true;
 }
@@ -1129,14 +1128,14 @@ void HashManager::resumeHashing(bool forced) {
 		pausers--;
 
 	if (pausers == 0) {
-		Lock l(Hasher::hcs);
+		RLock l(Hasher::hcs);
 		for(auto h: hashers)
 			h->resume();
 	}
 }
 
-bool HashManager::isHashingPaused() const {
-	Lock l(Hasher::hcs);
+bool HashManager::isHashingPaused(bool lock /*true*/) const {
+	ConditionalRLock l(Hasher::hcs, lock);
 	return all_of(hashers.begin(), hashers.end(), [](const Hasher* h) { return h->isPaused(); });
 }
 

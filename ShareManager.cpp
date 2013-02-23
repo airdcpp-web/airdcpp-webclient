@@ -1297,11 +1297,11 @@ int ShareManager::refresh(const string& aDir){
 			//check if it's a virtual path
 
 			OrderedStringSet vNames;
-			for(const auto& s: rootPaths) {
+			for(const auto& d: rootPaths | map_values) {
 				// compare all virtual names for real paths
-				for(const auto& vName: s.second->getProfileDir()->getRootProfiles() | map_values) {
+				for(const auto& vName: d->getProfileDir()->getRootProfiles() | map_values) {
 					if(stricmp(vName, aDir ) == 0) {
-						refreshPaths.push_back(s.first);
+						refreshPaths.push_back(d->getRealPath(false));
 						vNames.insert(vName);
 					}
 				}
@@ -1330,10 +1330,10 @@ int ShareManager::refresh(bool incoming, RefreshType aType){
 		getParents(parents);
 	}
 
-	for(const auto& i: parents) {
-		if (incoming && !i.second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
+	for(const auto& d: parents | map_values) {
+		if (incoming && !d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
 			continue;
-		dirs.push_back(i.first);
+		dirs.push_back(d->getProfileDir()->getPath());
 	}
 
 	return addTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, aType, Util::emptyString);
@@ -1432,9 +1432,9 @@ void ShareManager::getParents(DirMap& aDirs) const {
 void ShareManager::getParentPaths(StringList& aDirs) const {
 	//removes subroots from shared dirs
 	RLock l (cs);
-	for(const auto& realPath: rootPaths | map_keys) {
-		if (find_if(rootPaths | map_keys, [&realPath](const string& aPath) { return AirUtil::isSub(realPath, aPath); }).base() == rootPaths.end())
-			aDirs.push_back(realPath);
+	for(const auto& dp: rootPaths) {
+		if (find_if(rootPaths | map_keys, [&dp](const string& aPath) { return AirUtil::isSub(dp.first, aPath); }).base() == rootPaths.end())
+			aDirs.push_back(dp.second->getProfileDir()->getPath());
 	}
 }
 
@@ -2093,8 +2093,8 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> pr
 		{
 			RLock l(cs);
 			int cur = 0;
-			for(const auto& s: rootPaths) {
-				s.second->toXmlList(xmlFile, s.first, indent, true);
+			for(const auto& d: rootPaths | map_values) {
+				d->toXmlList(xmlFile, d->getProfileDir()->getPath(), indent, true);
 				if (progressF) {
 					cur++;
 					progressF(static_cast<float>(cur) / static_cast<float>(rootPaths.size()));
@@ -2868,7 +2868,7 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 	{
 		RLock l (cs);
 		getParents(parents);
-		for(const auto& d: rootPaths | map_values) {
+		for(const auto& d: parents | map_values) {
 			for(const auto& vName: d->getProfileDir()->getRootProfiles() | map_values) {
 				auto retVirtual = find_if(ret, CompareFirst<string, StringList>(vName));
 

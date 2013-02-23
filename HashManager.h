@@ -103,7 +103,7 @@ public:
 	/// @return whether hashing was already paused
 	bool pauseHashing();
 	void resumeHashing(bool forced = false);	
-	bool isHashingPaused() const;
+	bool isHashingPaused(bool lock = true) const;
 
 	GETSET(uint64_t, nextSave, NextSave);
 private:
@@ -134,7 +134,7 @@ private:
 		int64_t getTimeLeft() const;
 
 		int64_t getBytesLeft() const { return totalBytesLeft; }
-		static CriticalSection hcs;
+		static SharedMutex hcs;
 
 		int hasherID;
 	private:
@@ -156,7 +156,7 @@ private:
 		Semaphore s;
 		void removeDevice(const string& aID);
 
-		bool stop;
+		bool closing;
 		bool running;
 		bool paused;
 		bool rebuild;
@@ -185,7 +185,7 @@ private:
 
 	friend class Hasher;
 	void removeHasher(Hasher* aHasher);
-	void log(const string& aMessage, int hasherID, bool isError);
+	void log(const string& aMessage, int hasherID, bool isError, bool lock);
 
 	class HashStore {
 	public:
