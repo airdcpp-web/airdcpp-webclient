@@ -239,6 +239,8 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				d = new DirectoryListing::Directory(cur, n, incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) : 
 					DirectoryListing::Directory::TYPE_NORMAL, (partialList && checkDupe), size, Util::toUInt32(date));
 				cur->directories.push_back(d);
+				if (updating && !incomp)
+					list->baseDirs[baseLower + Text::toLower(n) + '/'] = make_pair(d, true); //recursive partial lists
 			} else {
 				if(!d->isComplete()) {
 					d->setComplete();

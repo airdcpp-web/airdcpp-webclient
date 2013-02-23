@@ -1245,7 +1245,7 @@ void ShareManager::updateIndices(Directory& dir) {
 			bloom.add(Text::toLower(vName));
 		}
 	} else {
-		bloom.add(Text::toLower(dir.getRealName()));
+		bloom.add(dir.getRealNameLower());
 	}
 
 	// update all sub items
@@ -1278,7 +1278,7 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::ite
 	dir.addType(getType(f.getName()));
 
 	tthIndex.emplace(const_cast<TTHValue*>(&f.getTTH()), i);
-	bloom.add(Text::toLower(f.getName()));
+	bloom.add(f.getNameLower());
 }
 
 int ShareManager::refresh(const string& aDir){
@@ -1579,8 +1579,12 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 			rebuildIndices();
 	}
 
+	if (stopHashing.size() == 1)
+		LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, stopHashing.front()), LogManager::LOG_INFO);
+	else if (!stopHashing.empty())
+		LogManager::getInstance()->message(STRING_F(X_SHARED_DIRS_REMOVED, stopHashing.size()), LogManager::LOG_INFO);
+
 	for(const auto& p: stopHashing) {
-		LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, p), LogManager::LOG_INFO);
 		HashManager::getInstance()->stopHashing(p);
 	}
 
@@ -2523,13 +2527,18 @@ void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch
 }
 
 void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
+	for(const auto& i: aStrings.exclude) {
+		if(i.matchLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : realNameLower))
+			return;
+	}
+
 	StringSearch::List* old = aStrings.include;
 
 	unique_ptr<StringSearch::List> newStr;
 
 	// Find any matches in the directory name
 	for(const auto& k: *aStrings.include) {
-		if(k.matchLower(profileDir ? Text::toLower(profileDir->getName(SP_DEFAULT)) : realNameLower) && !aStrings.isExcluded(profileDir ? profileDir->getName(aProfile) : realName)) {
+		if(k.matchLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : realNameLower)) {
 			if(!newStr.get()) {
 				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(*aStrings.include));
 			}
@@ -2542,7 +2551,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	}
 
 	bool sizeOk = (aStrings.gt == 0);
-	if( aStrings.include->empty() && aStrings.ext.empty() && sizeOk ) {
+	if(aStrings.include->empty() && aStrings.ext.empty() && sizeOk) {
 		// We satisfied all the search words! Add the directory...
 		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, getSize(aProfile), getFullName(aProfile), TTHValue(), lastWrite));
 		aResults.push_back(sr);
@@ -2555,10 +2564,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 				continue;
 			} else if(!(f.getSize() <= aStrings.lt)) {
 				continue;
-			}	
-
-			if(aStrings.isExcluded(f.getName()))
-				continue;
+			}
 
 			auto j = aStrings.include->begin();
 			for(; j != aStrings.include->end() && j->matchLower(f.getNameLower()); ++j) 
@@ -2569,6 +2575,8 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 			// Check file type...
 			if(aStrings.hasExt(f.getName())) {
+				if(aStrings.isExcluded(f.getName()))
+					continue;
 
 				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
 					f.getSize(), getFullName(aProfile) + f.getName(), f.getTTH(), f.getLastWrite()));
@@ -2743,20 +2751,21 @@ void ShareManager::onFileHashed(const string& fname, HashedFilePtr& fileInfo) no
 		auto i = d->findFile(Text::toLower(Util::getFileName(fname)));
 		if(i != d->files.end()) {
 			// Get rid of false constness...
-			/*auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
+			auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
 			auto p = find(flst | map_values, i);
 			if (p.base() != flst.second)
 				tthIndex.erase(p.base());
 
-			//Directory::File* f = const_cast<Directory::File*>(&(*i));
-			//f->setTTH(root);
-			tthIndex.emplace(const_cast<TTHValue*>(&f->getTTH()), i);*/
-		} else {
-			string name = Util::getFileName(fname);
-			int64_t size = File::getSize(fname);
-			auto it = d->files.emplace(name, size, d, fileInfo).first;
-			updateIndices(*d, it);
+			d->size -= (*i).getSize();
+			sharedSize -= (*i).getSize();
+
+			d->files.erase(i);
 		}
+
+		string name = Util::getFileName(fname);
+		int64_t size = File::getSize(fname);
+		auto it = d->files.emplace(name, size, d, fileInfo).first;
+		updateIndices(*d, it);
 
 		d->copyRootProfiles(dirtyProfiles);
 	}

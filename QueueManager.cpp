@@ -479,33 +479,6 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 	QueueItemPtr q = nullptr;
 	{
 		WLock l(cs);
-		//q = fileQueue.findFile(target);
-		auto ret = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), SettingsManager::lanMode ? AirUtil::getTTH(Util::getFileName(target), aSize) : root);
-		q = move(ret.first);
-
-		if(!ret.second) {
-			if(q->isFinished()) {
-				/* The target file doesn't exist, add our item. Also recheck the existance in case of finished files being moved on the same time. */
-				dcassert(q->getBundle());
-				if (replaceFinishedItem(q)) {
-					q = nullptr;
-				} else {
-					throw QueueException(STRING(FILE_ALREADY_FINISHED));
-				}
-			} else {
-				/* try to add the source for the existing item */
-				if(q->getSize() != aSize) {
-					throw QueueException(STRING(FILE_WITH_DIFFERENT_SIZE));
-				}
-				if(!(root == q->getTTH())) {
-					throw QueueException(STRING(FILE_WITH_DIFFERENT_TTH));
-				}
-
-				q->setFlag(aFlags);
-				wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aRemotePath, aBundle != nullptr);
-				goto connect;
-			}
-		}
 
 		if(!(aFlags & QueueItem::FLAG_USER_LIST) && !(aFlags & QueueItem::FLAG_CLIENT_VIEW) && !(aFlags & QueueItem::FLAG_OPEN)) {
 			if (SETTING(DONT_DL_ALREADY_QUEUED) && !SettingsManager::lanMode) {
@@ -541,6 +514,34 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 			}
 		} else {
 			aPrio = QueueItem::HIGHEST;
+		}
+
+
+		auto ret = fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), SettingsManager::lanMode ? AirUtil::getTTH(Util::getFileName(target), aSize) : root);
+		q = move(ret.first);
+
+		if(!ret.second) {
+			if(q->isFinished()) {
+				/* The target file doesn't exist, add our item. Also recheck the existance in case of finished files being moved on the same time. */
+				dcassert(q->getBundle());
+				if (replaceFinishedItem(q)) {
+					q = nullptr;
+				} else {
+					throw QueueException(STRING(FILE_ALREADY_FINISHED));
+				}
+			} else {
+				/* try to add the source for the existing item */
+				if(q->getSize() != aSize) {
+					throw QueueException(STRING(FILE_WITH_DIFFERENT_SIZE));
+				}
+				if(!(root == q->getTTH())) {
+					throw QueueException(STRING(FILE_WITH_DIFFERENT_TTH));
+				}
+
+				q->setFlag(aFlags);
+				wantConnection = aUser.user && addSource(q, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), aRemotePath, aBundle != nullptr);
+				goto connect;
+			}
 		}
 
 		/* Bundles */
