@@ -243,14 +243,16 @@ HashedFilePtr HashManager::hashDone(const string& aFileName, string&& pathLower,
 HashedFilePtr& HashManager::HashStore::addFile(string&& aFileLower, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed) {
 	addTree(tth);
 
+	auto nameLower = move(Util::getFileName(aFileLower));
+
 	WLock l(cs);
 	auto& fileList = fileIndex[Util::getFilePath(aFileLower)];
-	auto j = find_if(fileList, [&aFileLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), Util::getFileName(aFileLower)) == 0; });
+	auto j = find_if(fileList, [&nameLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), nameLower) == 0; });
 	if (j != fileList.end()) {
 		fileList.erase(j);
 	}
 
-	fileList.emplace_back(new HashedFile(Util::getFileName(aFileLower), tth.getRoot(), aTimeStamp, aUsed));
+	fileList.emplace_back(new HashedFile(nameLower, tth.getRoot(), aTimeStamp, aUsed));
 	dirty = true;
 	return fileList.back();
 }
@@ -336,10 +338,12 @@ size_t HashManager::HashStore::getBlockSize(const TTHValue& root) const {
 }
 
 bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, uint32_t aTimeStamp) {
+	auto nameLower = move(Util::getFileName(aFileLower));
+
 	RLock l(cs);
 	auto i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		auto j = find_if(i->second, [&aFileLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), Util::getFileName(aFileLower)) == 0; });
+		auto j = find_if(i->second, [&nameLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), nameLower) == 0; });
 		if (j != i->second.end()) {
 			auto& fi = *j;
 			auto ti = treeIndex.find(fi->getRoot());
@@ -355,10 +359,12 @@ bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, u
 }
 
 const HashedFilePtr HashManager::HashStore::getFileInfo(const string& aFileLower) {
+	auto nameLower = move(Util::getFileName(aFileLower));
+
 	RLock l(cs);
 	auto i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		auto j = find_if(i->second, [&aFileLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), Util::getFileName(aFileLower)) == 0; });
+		auto j = find_if(i->second, [&nameLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), nameLower) == 0; });
 		if (j != i->second.end()) {
 			(*j)->setUsed(true);
 			return *j;
@@ -943,7 +949,7 @@ int HashManager::Hasher::run() {
 
 				CRC32Filter crc32;
 
-				auto fileCRC = sfv.hasFile(Text::toLower(Util::getFileName(fname)));
+				auto fileCRC = sfv.hasFile(Util::getFileName(pathLower));
 
 				uint64_t lastRead = GET_TICK();
  

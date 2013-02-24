@@ -218,6 +218,8 @@ SettingsManager::SettingsManager()
 
 	setDefault(OUTGOING_CONNECTIONS, OUTGOING_DIRECT);
 	setDefault(AUTO_DETECT_CONNECTION, true);
+	setDefault(AUTO_DETECT_CONNECTION6, true);
+
 	setDefault(AUTO_FOLLOW, true);
 	setDefault(CLEAR_SEARCH, true);
 	setDefault(SHARE_HIDDEN, false);
@@ -957,6 +959,12 @@ You can customize those settings for each favorite hub if needed")
 
 	checkBind(BIND_ADDRESS, false);
 	checkBind(BIND_ADDRESS6, true);
+
+	if (isDefault(INCOMING_CONNECTIONS6)) {
+		auto ip = AirUtil::getLocalIp(true, false);
+		if (!ip.empty())
+			setDefault(INCOMING_CONNECTIONS6, INCOMING_ACTIVE);
+	}
 }
 
 const SettingsManager::BoolSetting clearSettings[SettingsManager::HISTORY_LAST] = {

@@ -362,7 +362,7 @@ void ConnectivityManager::log(const string& message, LogManager::Severity sev, L
 			statusV6 = message;
 		}
 
-		LogManager::getInstance()->message(STRING(CONNECTIVITY) + "(" + proto + "): " + message, sev);
+		LogManager::getInstance()->message(STRING(CONNECTIVITY) + " (" + proto + "): " + message, sev);
 		fire(ConnectivityManagerListener::Message(), message);
 	}
 

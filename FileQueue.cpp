@@ -49,7 +49,6 @@ pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Fl
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
 	QueueItemPtr qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
-	dcassert(findFile(aTarget) == nullptr);
 	auto ret = add(qi);
 	return make_pair((ret.second ? qi : ret.first->second), ret.second);
 }

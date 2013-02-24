@@ -771,7 +771,7 @@ QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& 
 		}
 		
 		allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
-		qi->getSource(aUser)->updateHubUrl(hubs, hubHint, qi->isSet(QueueItem::FLAG_USER_LIST));
+		qi->getSource(aUser)->updateHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
 
 		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
 	}
@@ -893,7 +893,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const OrderedString
 
 			//update the hub hint
 			newUrl = aSource.getHubUrl();
-			source->updateHubUrl(onlineHubs, newUrl, q->isSet(QueueItem::FLAG_USER_LIST));
+			source->updateHubUrl(onlineHubs, newUrl, (q->isSet(QueueItem::FLAG_USER_LIST) && !q->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
 			
 			//check partial sources
 			if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
@@ -3688,8 +3688,9 @@ MemoryInputStream* QueueManager::generateTTHList(const string& bundleToken, bool
 
 void QueueManager::addBundleTTHList(const HintedUser& aUser, const string& remoteBundle, const TTHValue& tth) {
 	//LogManager::getInstance()->message("ADD TTHLIST");
-	if (findBundle(tth)) {
-		addList(aUser, QueueItem::FLAG_TTHLIST_BUNDLE | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_MATCH_QUEUE, remoteBundle);
+	auto b = findBundle(tth);
+	if (b) {
+		addList(aUser, QueueItem::FLAG_TTHLIST_BUNDLE | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_MATCH_QUEUE, remoteBundle, b);
 	}
 }
 

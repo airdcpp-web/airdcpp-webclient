@@ -243,7 +243,6 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
 					QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, cqi->isSet(ConnectionQueueItem::FLAG_SMALL), bundleToken, allowUrlChange);
-					cqi->setHubUrl(hubHint);
 					cqi->setLastBundle(bundleToken);
 					
 
@@ -252,6 +251,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 						continue;
 					}
 
+					cqi->setHubUrl(hubHint);
 					bool startDown = DownloadManager::getInstance()->startDownload(prio);
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {

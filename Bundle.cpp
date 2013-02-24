@@ -44,8 +44,8 @@ Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, 
 	//QueueItemBase(qi), 
 	QueueItemBase(qi->getTarget(), qi->getSize(), qi->getPriority(), qi->getAdded(), FLAG_NEW), 
 
-	finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), lastDownloaded(0), singleUser(true), 
-	dirty(aDirty), dirDate(0), simpleMatching(true), recent(false), 
+	fileBundle(true), finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), dirDate(0), lastDownloaded(0), singleUser(true), 
+	dirty(aDirty), simpleMatching(true), recent(false),
 	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0), autoSearches(aAutoSearches), lastSearch(0) {
 
 
