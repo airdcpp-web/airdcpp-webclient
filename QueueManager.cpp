@@ -525,7 +525,7 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 				/* The target file doesn't exist, add our item. Also recheck the existance in case of finished files being moved on the same time. */
 				dcassert(q->getBundle());
 				if (replaceFinishedItem(q)) {
-					q = nullptr;
+					q = move(fileQueue.add( target, aSize, aFlags, aPrio, tempTarget, GET_TIME(), SettingsManager::lanMode ? AirUtil::getTTH(Util::getFileName(target), aSize) : root).first);
 				} else {
 					throw QueueException(STRING(FILE_ALREADY_FINISHED));
 				}
