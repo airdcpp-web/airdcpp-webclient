@@ -30,8 +30,8 @@ using std::string;
 
 class HashedFile : public intrusive_ptr_base<HashedFile> {
 public:
-	HashedFile(const string& aFileName, const TTHValue& aRoot, uint64_t aTimeStamp, bool aUsed) :
-		fileName(aFileName), root(aRoot), timeStamp(aTimeStamp), used(aUsed) { }
+	HashedFile(const string& aFileName, const TTHValue& aRoot, uint64_t aTimeStamp) :
+		fileName(aFileName), root(aRoot), timeStamp(aTimeStamp) { }
 
 	~HashedFile() { }
 
@@ -40,7 +40,6 @@ public:
 	GETSET(string, fileName, FileName);
 	GETSET(TTHValue, root, Root);
 	GETSET(uint64_t, timeStamp, TimeStamp);
-	GETSET(bool, used, Used);
 };
 
 }

@@ -1207,7 +1207,7 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			try {
 				if (SettingsManager::lanMode) {
 					//aDir->files.emplace(name, size, aDir, nullptr);
-					HashedFilePtr hf = new HashedFile(Text::toLower(name), TTHValue(), File::convertTime(&i->ftLastWriteTime), true);
+					HashedFilePtr hf = new HashedFile(Text::toLower(name), TTHValue(), File::convertTime(&i->ftLastWriteTime));
 					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, hf)++;
 				} else if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) {
 					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, move(HashManager::getInstance()->getFileInfo(path, size)))++;

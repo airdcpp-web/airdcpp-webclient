@@ -190,7 +190,7 @@ private:
 	class HashStore {
 	public:
 		HashStore();
-		HashedFilePtr& addFile(string&& aFilePathLower, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed);
+		HashedFilePtr& addFile(string&& aFilePathLower, uint64_t aTimeStamp, const TigerTree& tth);
 
 		void load(function<void (float)> progressF);
 		void save(function<void (float)> progressF = nullptr);

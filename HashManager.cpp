@@ -203,7 +203,7 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 		tth_ = tt.getRoot();
 
 		if (addStore && !aCancel)
-			store.addFile(move(pathLower), timestamp, tt, true);
+			store.addFile(move(pathLower), timestamp, tt);
 	} else {
 		tth_ = store.getFileInfo(pathLower)->getRoot();
 	}
@@ -216,7 +216,7 @@ void HashManager::addTree(const string& aFileName, uint32_t aTimeStamp, const Ti
 HashedFilePtr HashManager::hashDone(const string& aFileName, string&& pathLower, uint64_t aTimeStamp, const TigerTree& tt, int64_t speed, int64_t /*size*/, int hasherID /*0*/) {
 	HashedFilePtr fi = nullptr;
 	try {
-		fi = store.addFile(move(pathLower), aTimeStamp, tt, true);
+		fi = store.addFile(move(pathLower), aTimeStamp, tt);
 	} catch (const Exception& e) {
 		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true, true);
 		return nullptr;
@@ -240,7 +240,7 @@ HashedFilePtr HashManager::hashDone(const string& aFileName, string&& pathLower,
 	return fi;
 }
 
-HashedFilePtr& HashManager::HashStore::addFile(string&& aFileLower, uint64_t aTimeStamp, const TigerTree& tth, bool aUsed) {
+HashedFilePtr& HashManager::HashStore::addFile(string&& aFileLower, uint64_t aTimeStamp, const TigerTree& tth) {
 	addTree(tth);
 
 	auto nameLower = move(Util::getFileName(aFileLower));
@@ -252,7 +252,7 @@ HashedFilePtr& HashManager::HashStore::addFile(string&& aFileLower, uint64_t aTi
 		fileList.erase(j);
 	}
 
-	fileList.emplace_back(new HashedFile(nameLower, tth.getRoot(), aTimeStamp, aUsed));
+	fileList.emplace_back(new HashedFile(nameLower, tth.getRoot(), aTimeStamp));
 	dirty = true;
 	return fileList.back();
 }
@@ -366,7 +366,6 @@ const HashedFilePtr HashManager::HashStore::getFileInfo(const string& aFileLower
 	if (i != fileIndex.end()) {
 		auto j = find_if(i->second, [&nameLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), nameLower) == 0; });
 		if (j != i->second.end()) {
-			(*j)->setUsed(true);
 			return *j;
 		}
 	}
@@ -388,7 +387,7 @@ void HashManager::HashStore::rebuild() {
 			initialTreeIndexSize = treeIndex.size();
 			for (auto& i: fileIndex) {
 				for (auto& j: i.second) {
-					if (!j->getUsed())
+					if (j->unique())
 						continue;
 
 					auto k = treeIndex.find(j->getRoot());
@@ -657,7 +656,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if (!file.empty() && timeStamp > 0 && !root.empty()) {
 				string fileLower = Text::toLower(file);
-				store.fileIndex[Util::getFilePath(fileLower)].emplace_back(new HashedFile(Util::getFileName(fileLower), TTHValue(root), timeStamp, false));
+				store.fileIndex[Util::getFilePath(fileLower)].emplace_back(new HashedFile(Util::getFileName(fileLower), TTHValue(root), timeStamp));
 			}
 		} else if (name == sTrees) {
 			inTrees = !simple;
