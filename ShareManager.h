@@ -127,7 +127,7 @@ public:
 		TYPE_STARTUP
 	};
 
-	int refresh(bool incoming, RefreshType aType);
+	int refresh(bool incoming, RefreshType aType, function<void (float)> progressF = nullptr);
 	int refresh(const string& aDir);
 
 	bool isRefreshing() {	return refreshRunning; }
@@ -422,7 +422,7 @@ private:
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 	};
 
-	int addTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString) noexcept;
+	int addTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
 	void removeDir(Directory::Ptr aDir);
 	Directory::Ptr getDirByName(const string& directory) const;
 
@@ -571,6 +571,8 @@ private:
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report, bool checkExcludes=true);
 
 	virtual int run();
+
+	void runTasks(function<void (float)> progressF = nullptr);
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;

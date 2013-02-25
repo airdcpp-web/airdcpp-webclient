@@ -58,6 +58,7 @@ public:
 	};
 
 	enum Mode {
+		MODE_UNDEFINED,
 		MODE_ME,
 		MODE_NOCONNECT_IP,
 		MODE_NOCONNECT_PASSIVE,

@@ -234,19 +234,24 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 	}
 
 	if(u->getUser() == getMyIdentity().getUser()) {
+		auto oldState = state;
 		state = STATE_NORMAL;
 		setAutoReconnect(true);
 		setMyIdentity(u->getIdentity());
 		updateCounts(false, true);
 
 		//we have to update the modes in case our connectivity changed
-		for(auto ou: users | map_values) {
-			if (ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity())) {
-				fire(ClientListener::UserUpdated(), this, ou);
+
+		if (oldState != STATE_NORMAL || any_of(c.getParameters().begin(), c.getParameters().end(), [](const string& p) { return p.substr(0, 2) == "SU" || p.substr(0, 2) == "I4" || p.substr(0, 2) == "I6"; })) {
+			for(auto ou: users | map_values) {
+				if (ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity())) {
+					fire(ClientListener::UserUpdated(), this, ou);
+				}
 			}
 		}
 	} else {
-		u->getIdentity().updateConnectMode(getMyIdentity());
+		if (state == STATE_NORMAL)
+			u->getIdentity().updateConnectMode(getMyIdentity());
 	}
 
 	if(u->getIdentity().isHub()) {

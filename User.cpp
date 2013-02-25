@@ -168,9 +168,9 @@ string Identity::getV6ModeString() const {
 		return "-";
 }
 
-Identity::Identity() : sid(0), connectMode(MODE_ME) { }
+Identity::Identity() : sid(0), connectMode(MODE_UNDEFINED) { }
 
-Identity::Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr), sid(aSID), connectMode(MODE_ME) { }
+Identity::Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr), sid(aSID), connectMode(MODE_UNDEFINED) { }
 
 Identity::Identity(const Identity& rhs) : Flags(), sid(0), connectMode(rhs.getConnectMode()) { 
 	*this = rhs;  // Use operator= since we have to lock before reading...
@@ -266,6 +266,7 @@ int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t c
 		case COLUMN_EXACT_SHARED: return compare(a->identity.getBytesShared(), b->identity.getBytesShared());
 		case COLUMN_SLOTS: return compare(Util::toInt(a->identity.get("SL")), Util::toInt(b->identity.get("SL")));
 		case COLUMN_HUBS: return compare(Util::toInt(a->identity.get("HN"))+Util::toInt(a->identity.get("HR"))+Util::toInt(a->identity.get("HO")), Util::toInt(b->identity.get("HN"))+Util::toInt(b->identity.get("HR"))+Util::toInt(b->identity.get("HO")));
+		case COLUMN_FILES: return compare(Util::toInt64(a->identity.get("SF")), Util::toInt64(b->identity.get("SF")));
 	}
 	return Util::DefaultSort(a->getText(col).c_str(), b->getText(col).c_str());
 }
@@ -374,23 +375,30 @@ uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 
 	bool bot = identity.isBot() && !identity.getUser()->isSet(User::NMDC);
 	uint8_t image = bot ? USER_ICON_BOT : identity.isAway() ? USER_ICON_AWAY : USER_ICON;
-	image *= (USER_ICON_LAST - USER_ICON_MOD_START) * (USER_ICON_LAST - USER_ICON_MOD_START);
+	image *= (USER_ICON_MOD_START - USER_ICON_MOD_START);
 
-	if(!bot && (identity.getConnectMode() == Identity::MODE_PASSIVE_V6 || identity.getConnectMode() == Identity::MODE_PASSIVE_V4))
-	{
-		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
-	}
+	if (identity.getUser()->isNMDC()) {
+		if(!bot && !identity.isTcpActive(c))
+		{
+			image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
+		}
+	} else {
+		const auto cm = identity.getConnectMode();
+		if(!bot && (cm == Identity::MODE_PASSIVE_V6 || cm == Identity::MODE_PASSIVE_V4))
+		{
+			image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
+		}
 
-	//TODO: add icon for noconnect
-	if(!bot && (identity.getConnectMode() == Identity::MODE_NOCONNECT_PASSIVE || identity.getConnectMode() == Identity::MODE_NOCONNECT_IP))
-	{
-		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
-	}
+		if(!bot && (cm == Identity::MODE_NOCONNECT_PASSIVE || cm == Identity::MODE_NOCONNECT_IP || cm == Identity::MODE_UNDEFINED))
+		{
+			image += 1 << (USER_ICON_NOCONNECT - USER_ICON_MOD_START);
+		}
 
-	//TODO: add icon for unknown (passive) connectivity
-	if(!bot && (identity.getConnectMode() == Identity::MODE_PASSIVE_V4_UNKNOWN || identity.getConnectMode() == Identity::MODE_PASSIVE_V6_UNKNOWN))
-	{
-		image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
+		//TODO: add icon for unknown (passive) connectivity
+		if(!bot && (cm == Identity::MODE_PASSIVE_V4_UNKNOWN || cm == Identity::MODE_PASSIVE_V6_UNKNOWN))
+		{
+			image += 1 << (USER_ICON_PASSIVE - USER_ICON_MOD_START);
+		}
 	}
 
 	if(identity.isOp()) {

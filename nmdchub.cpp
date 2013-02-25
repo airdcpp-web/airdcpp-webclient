@@ -124,6 +124,7 @@ OnlineUser& NmdcHub::getUser(const string& aNick) {
 		u->getIdentity().setNick(aNick);
 		if(u->getUser() == getMyIdentity().getUser()) {
 			setMyIdentity(u->getIdentity());
+			u->getIdentity().setConnectMode(isActive() ? Identity::MODE_ACTIVE_V4 : Identity::MODE_PASSIVE_V4);
 		}
 	}
 	

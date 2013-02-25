@@ -112,7 +112,7 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 	if(!loadCache(progressF)) {
 		if (splashF)
 			splashF(STRING(REFRESHING_SHARE));
-		refresh(false, TYPE_STARTUP);
+		refresh(false, TYPE_STARTUP, progressF);
 	}
 
 	rebuildTotalExcludes();
@@ -1328,7 +1328,7 @@ int ShareManager::refresh(const string& aDir){
 }
 
 
-int ShareManager::refresh(bool incoming, RefreshType aType){
+int ShareManager::refresh(bool incoming, RefreshType aType, function<void (float)> progressF /*nullptr*/) {
 	StringList dirs;
 
 	DirMap parents;
@@ -1343,7 +1343,7 @@ int ShareManager::refresh(bool incoming, RefreshType aType){
 		dirs.push_back(d->getProfileDir()->getPath());
 	}
 
-	return addTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, aType, Util::emptyString);
+	return addTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, aType, Util::emptyString, progressF);
 }
 
 struct ShareTask : public Task {
@@ -1353,7 +1353,7 @@ struct ShareTask : public Task {
 	ShareManager::RefreshType type;
 };
 
-int ShareManager::addTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshType, const string& displayName /*Util::emptyString*/) noexcept {
+int ShareManager::addTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshType, const string& displayName /*Util::emptyString*/, function<void (float)> progressF /*nullptr*/) noexcept {
 	if (dirs.empty()) {
 		return REFRESH_PATH_NOT_FOUND;
 	}
@@ -1412,18 +1412,17 @@ int ShareManager::addTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshT
 		return REFRESH_IN_PROGRESS;
 	}
 
-	join();
-	try {
-		start();
-		if(aRefreshType == TYPE_STARTUP) { 
-			join();
-		} else {
+	if(aRefreshType == TYPE_STARTUP) { 
+		runTasks(progressF);
+	} else {
+		join();
+		try {
+			start();
 			setThreadPriority(Thread::NORMAL);
+		} catch(const ThreadException& e) {
+			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogManager::LOG_WARNING);
+			refreshing.clear();
 		}
-
-	} catch(const ThreadException& e) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogManager::LOG_WARNING);
-		refreshing.clear();
 	}
 
 	return REFRESH_STARTED;
@@ -1658,6 +1657,11 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 }
 
 int ShareManager::run() {
+	runTasks();
+	return 0;
+}
+
+void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 	HashManager::HashPauser pauser;
 	refreshRunning = true;
 
@@ -1720,12 +1724,17 @@ int ShareManager::run() {
 			}
 		}
 		
+		float progressCounter = 0, dirCount = dirs.size();
 		for(const auto& i: dirs) {
 			Directory::Ptr dp = Directory::create(Util::getLastDir(i.first), nullptr, findLastWrite(i.first), i.second.first->getProfileDir());
 			newShareDirs.emplace(Util::getLastDir(i.first), dp);
 			newShares[Text::toLower(i.first)] = dp;
 			if (checkHidden(i.first)) {
 				buildTree(i.first, dp, true, i.second.second, newShareDirs, newShares, hashSize);
+			}
+
+			if(progressF) {
+				progressF(++progressCounter / dirCount);
 			}
 
 			if(aShutdown) goto end;  //abort refresh
@@ -1745,12 +1754,7 @@ int ShareManager::run() {
 
 		setDirty(dirtyProfiles, true);
 			
-		if (task->type == TYPE_STARTUP) {
-			generateXmlList(SP_DEFAULT, true);
-			saveXmlList();
-		} else {
-			ClientManager::getInstance()->infoUpdated();
-		}
+		ClientManager::getInstance()->infoUpdated();
 
 		reportTaskStatus(t.first, task->dirs, true, hashSize, task->displayName, task->type);
 	}
@@ -1761,7 +1765,6 @@ end:
 	}
 	refreshRunning = false;
 	refreshing.clear();
-	return 0;
 }
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {

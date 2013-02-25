@@ -35,8 +35,6 @@ public:
 
 	~HashedFile() { }
 
-	//bool operator==(const string& name) { return compare(name == fileName) == 0; }
-
 	GETSET(string, fileName, FileName);
 	GETSET(TTHValue, root, Root);
 	GETSET(uint64_t, timeStamp, TimeStamp);
