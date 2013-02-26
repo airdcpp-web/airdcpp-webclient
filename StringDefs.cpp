@@ -1629,6 +1629,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Histories", 
 "The directory %s has been removed from the share", 
 "%d directories have been removed from the share", 
+"You aren't allowed to send private messages to this user", 
+"You aren't allowed to send messages to main chat", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3258,4 +3260,6 @@ std::string dcpp::ResourceManager::names[] = {
 "Histories", 
 "SharedDirRemoved", 
 "XSharedDirsRemoved", 
+"PmPermissionDenied", 
+"MainPermissionDenied", 
 };

@@ -972,23 +972,29 @@ void AdcHub::connect(const OnlineUser& user, const string& token, bool secure) {
 	}
 }
 
-void AdcHub::hubMessage(const string& aMessage, bool thirdPerson) {
+bool AdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) {
 	if(state != STATE_NORMAL) {
-		LogManager::getInstance()->message("Failed to send a hub message because of invalid hub state: " + aMessage + " (current state " + Util::toString(state) + ")", LogManager::LOG_ERROR);
-		return;
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
 	}
 
 	AdcCommand c(AdcCommand::CMD_MSG, AdcCommand::TYPE_BROADCAST);
 	c.addParam(aMessage);
 	if(thirdPerson)
 		c.addParam("ME", "1");
-	send(c);
+
+	if (!send(c)) {
+		error_ = STRING(MAIN_PERMISSION_DENIED);
+		return false;
+	}
+
+	return true;
 }
 
-void AdcHub::privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson) {
+bool AdcHub::privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson) {
 	if(state != STATE_NORMAL) {
-		LogManager::getInstance()->message("Failed to send a private message because of invalid hub state: " + aMessage + " (current state " + Util::toString(state) + ")", LogManager::LOG_ERROR);
-		return;
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
 	}
 
 	AdcCommand c(AdcCommand::CMD_MSG, user->getIdentity().getSID(), AdcCommand::TYPE_ECHO);
@@ -996,7 +1002,12 @@ void AdcHub::privateMessage(const OnlineUserPtr& user, const string& aMessage, b
 	if(thirdPerson)
 		c.addParam("ME", "1");
 	c.addParam("PM", getMySID());
-	send(c);
+	if (!send(c)) {
+		error_ = STRING(PM_PERMISSION_DENIED);
+		return false;
+	}
+
+	return true;
 }
 
 void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
@@ -1004,14 +1015,15 @@ void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 		return;
 	string cmd = Util::formatParams(command.getCommand(), params, escape);
 	if(command.isChat()) {
+		string error;
 		if(command.getTo().empty()) {
-			hubMessage(cmd);
+			hubMessage(cmd, error);
 		} else {
 			const string& to = command.getTo();
 			RLock l(cs);
 			for(const auto& ou: users | map_values) {
 				if(ou->getIdentity().getNick() == to) {
-					privateMessage(ou, cmd);
+					privateMessage(ou, cmd, error);
 					return;
 				}
 			}
@@ -1419,12 +1431,14 @@ string AdcHub::checkNick(const string& aNick) {
 	return tmp;
 }
 
-void AdcHub::send(const AdcCommand& cmd) {
+bool AdcHub::send(const AdcCommand& cmd) {
 	if(forbiddenCommands.find(AdcCommand::toFourCC(cmd.getFourCC().c_str())) == forbiddenCommands.end()) {
 		if(cmd.getType() == AdcCommand::TYPE_UDP)
 			sendUDP(cmd);
 		send(cmd.toString(sid));
+		return true;
 	}
+	return false;
 }
 
 void AdcHub::on(Connected c) noexcept {

@@ -1633,5 +1633,7 @@ enum Strings { // @DontAdd
 	HISTORIES, // "Histories"
 	SHARED_DIR_REMOVED, // "The directory %s has been removed from the share"
 	X_SHARED_DIRS_REMOVED, // "%d directories have been removed from the share"
+	PM_PERMISSION_DENIED, // "You aren't allowed to send private messages to this user"
+	MAIN_PERMISSION_DENIED, // "You aren't allowed to send messages to main chat"
 	LAST // @DontAdd
 };

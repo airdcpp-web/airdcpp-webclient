@@ -922,9 +922,14 @@ void NmdcHub::revConnectToMe(const OnlineUser& aUser) {
 	send("$RevConnectToMe " + fromUtf8(getMyNick()) + " " + fromUtf8(aUser.getIdentity().getNick()) + "|");
 }
 
-void NmdcHub::hubMessage(const string& aMessage, bool thirdPerson) { 
-	checkstate(); 
+bool NmdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) { 
+	if(state != STATE_NORMAL) {
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
+	}
+
 	send(fromUtf8( "<" + getMyNick() + "> " + escape(thirdPerson ? "/me " + aMessage : aMessage) + "|" ) );
+	return true;
 }
 
 void NmdcHub::myInfo(bool alwaysSend) {
@@ -1067,8 +1072,11 @@ void NmdcHub::privateMessage(const string& nick, const string& message, bool thi
 	send("$To: " + fromUtf8(nick) + " From: " + fromUtf8(getMyNick()) + " $" + fromUtf8(escape("<" + getMyNick() + "> " + (thirdPerson ? "/me " + message : message))) + "|");
 }
 
-void NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, bool thirdPerson) {
-	checkstate();
+bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool thirdPerson) {
+	if(state != STATE_NORMAL) {
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
+	}
 
 	privateMessage(aUser->getIdentity().getNick(), aMessage, thirdPerson);
 	// Emulate a returning message...
@@ -1076,15 +1084,19 @@ void NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage,
 	if(ou) {
 		ChatMessage message = { aMessage, ou, aUser, ou };
 		fire(ClientListener::Message(), this, message);
+		return true;
 	}
+	error_ = STRING(USER_OFFLINE);
+	return false;
 }
 
 void NmdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 	checkstate();
 	string cmd = Util::formatParams(command.getCommand(), params);
 	if(command.isChat()) {
+		string error;
 		if(command.getTo().empty()) {
-			hubMessage(cmd);
+			hubMessage(cmd, error);
 		} else {
 			privateMessage(command.getTo(), cmd, false);
 		}

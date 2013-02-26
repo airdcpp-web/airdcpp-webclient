@@ -155,7 +155,7 @@ public:
 	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, bool aIsOwnList=false);
 	~DirectoryListing();
 	
-	void loadFile(const string& name);
+	void loadFile();
 
 	//return the number of loaded dirs
 	int updateXML(const string& aXml, const string& aBase);

@@ -130,7 +130,7 @@ public:
 	bool sendUDP(AdcCommand& c, const CID& to, bool noCID=false, bool noPassive=false, const string& encryptionKey=Util::emptyString, const string& aHubUrl=Util::emptyString);
 
 	bool connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError);
-	void privateMessage(const HintedUser& user, const string& msg, bool thirdPerson);
+	bool privateMessage(const HintedUser& user, const string& msg, string& error_, bool thirdPerson);
 	void userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility);
 
 	bool isActive() const;

@@ -43,8 +43,8 @@ public:
 
 	int connect(const OnlineUser& aUser, const string& token, string& lastError_);
 
-	void hubMessage(const string& aMessage, bool /*thirdPerson*/ = false);
-	void privateMessage(const OnlineUserPtr& aUser, const string& aMessage, bool /*thirdPerson*/ = false);
+	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
+	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
 	void directSearch(const OnlineUser& /*user*/, int /*aSizeMode*/, int64_t /*aSize*/, int /*aFileType*/, const string& /*aString*/, const string& /*aToken*/, const StringList& /*aExtList*/, const string& /*aDir*/) { dcassert(0); }
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
 	void search(SearchPtr aSearch);
@@ -56,7 +56,7 @@ public:
 	string escape(string const& str) const { return validateMessage(str, false); }
 	static string unescape(const string& str) { return validateMessage(str, true); }
 
-	void send(const AdcCommand&) { dcassert(0); }
+	bool send(const AdcCommand&) { dcassert(0); return false; }
 
 	static string validateMessage(string tmp, bool reverse);
 	void refreshUserList(bool);

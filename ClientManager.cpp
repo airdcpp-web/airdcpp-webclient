@@ -622,13 +622,15 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 	return false;
 }
 
-void ClientManager::privateMessage(const HintedUser& user, const string& msg, bool thirdPerson) {
+bool ClientManager::privateMessage(const HintedUser& user, const string& msg, string& error_, bool thirdPerson) {
 	RLock l(cs);
 	OnlineUser* u = findOnlineUser(user);
 	
 	if(u) {
-		u->getClientBase().privateMessage(u, msg, thirdPerson);
+		return u->getClientBase().privateMessage(u, msg, error_, thirdPerson);
 	}
+	error_ = STRING(USER_OFFLINE);
+	return false;
 }
 
 void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility) {

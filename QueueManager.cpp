@@ -2345,7 +2345,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	vector<pair<QueueItemPtr, QueueItemBase::Priority>> qiPriorities;
 	vector<pair<BundlePtr, QueueItemBase::Priority>> bundlePriorities;
 	auto prioType = SETTING(AUTOPRIO_TYPE);
-	bool calculate = aTick >= getLastAutoPrio() + (SETTING(AUTOPRIO_INTERVAL)*1000);
+	bool calculate = lastAutoPrio == 0 || (aTick >= lastAutoPrio + (SETTING(AUTOPRIO_INTERVAL)*1000));
 
 	{
 		RLock l(cs);

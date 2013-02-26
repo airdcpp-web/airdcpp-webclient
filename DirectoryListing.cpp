@@ -121,17 +121,27 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 	return ClientManager::getInstance()->getUser(cid);
 }
 
-void DirectoryListing::loadFile(const string& name) {
-	// For now, we detect type by ending...
-	string ext = Util::getFileExt(name);
+void DirectoryListing::loadFile() {
+	if (isOwnList) {
+		auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
+		if (mis) {
+			loadXML(*mis, true);
+		} else {
+			throw CSTRING(FILE_NOT_AVAILABLE);
+		}
+	} else {
 
-	dcpp::File ff(name, dcpp::File::READ, dcpp::File::OPEN);
+		// For now, we detect type by ending...
+		string ext = Util::getFileExt(fileName);
 
-	if(stricmp(ext, ".bz2") == 0) {
-		FilteredInputStream<UnBZFilter, false> f(&ff);
-		loadXML(f, false);
-	} else if(stricmp(ext, ".xml") == 0) {
-		loadXML(ff, false);
+		dcpp::File ff(fileName, dcpp::File::READ, dcpp::File::OPEN);
+
+		if(stricmp(ext, ".bz2") == 0) {
+			FilteredInputStream<UnBZFilter, false> f(&ff);
+			loadXML(f, false);
+		} else if(stricmp(ext, ".xml") == 0) {
+			loadXML(ff, false);
+		}
 	}
 }
 
@@ -756,7 +766,7 @@ void DirectoryListing::checkShareDupes() {
 }
 
 void DirectoryListing::addMatchADLTask() {
-	tasks.add(MATCH_ADL, nullptr);
+	tasks.addUnique(MATCH_ADL, nullptr);
 	runTasks();
 }
 
@@ -787,12 +797,12 @@ void DirectoryListing::addPartialListTask(const string& aXml, const string& aBas
 }
 
 void DirectoryListing::addFullListTask(const string& aDir) {
-	tasks.add(LOAD_FILE, unique_ptr<Task>(new StringTask(aDir)));
+	tasks.addUnique(LOAD_FILE, unique_ptr<Task>(new StringTask(aDir)));
 	runTasks();
 }
 
 void DirectoryListing::addQueueMatchTask() {
-	tasks.add(MATCH_QUEUE, nullptr);
+	tasks.addUnique(MATCH_QUEUE, nullptr);
 	runTasks();
 }
 
@@ -871,18 +881,19 @@ int DirectoryListing::run() {
 			int64_t start = GET_TICK();
 			
 			if (t.first == LISTDIFF) {
-				auto ldt = static_cast<ListDiffTask*>(t.second);
-				DirectoryListing dirList(hintedUser, partialList, ldt->name, false, ldt->ownList);
-				if (ldt->ownList) {
+				if (isOwnList && partialList) {
 					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
 					if (mis) {
-						dirList.loadXML(*mis, true);
+						loadXML(*mis, true);
+						partialList = false;
 					} else {
 						throw CSTRING(FILE_NOT_AVAILABLE);
 					}
-				} else {
-					dirList.loadFile(ldt->name);
 				}
+
+				auto ldt = static_cast<ListDiffTask*>(t.second);
+				DirectoryListing dirList(hintedUser, false, ldt->name, false, ldt->ownList);
+				dirList.loadFile();
 
 				root->filterList(dirList);
 				fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true, false);
@@ -914,15 +925,7 @@ int DirectoryListing::run() {
 					baseDirs.clear();
 				}
 
-				if (isOwnList) {
-					auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
-					if (mis)
-						loadXML(*mis, false);
-					else
-						throw CSTRING(FILE_NOT_AVAILABLE);
-				} else {
-					loadFile(fileName);
-				}
+				loadFile();
 				
 				if(matchADL) {
 					fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(MATCHING_ADL));

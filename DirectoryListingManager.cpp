@@ -218,7 +218,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 			MemoryInputStream mis(aXml);
 			dirList->loadXML(mis, true, aRemotePath);
 		} else {
-			dirList->loadFile(aFileName);
+			dirList->loadFile();
 		}
 	} catch(const Exception&) {
 		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + aFileName, LogManager::LOG_ERROR);

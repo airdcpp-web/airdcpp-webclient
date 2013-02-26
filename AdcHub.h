@@ -39,8 +39,8 @@ public:
 	int connect(const OnlineUser& user, const string& token, string& lastError_);
 	void connect(const OnlineUser& user, const string& token, bool secure);
 	
-	void hubMessage(const string& aMessage, bool thirdPerson = false);
-	void privateMessage(const OnlineUserPtr& user, const string& aMessage, bool thirdPerson = false);
+	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false);
+	bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false);
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
 	void search(SearchPtr aSearch);
 	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir);
@@ -53,7 +53,7 @@ public:
 	size_t getUserCount() const { RLock l(cs); return users.size(); }
 
 	static string escape(const string& str) { return AdcCommand::escape(str, false); }
-	void send(const AdcCommand& cmd);
+	bool send(const AdcCommand& cmd);
 
 	string getMySID() { return AdcCommand::fromSID(sid); }
 
