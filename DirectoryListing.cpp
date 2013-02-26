@@ -862,6 +862,11 @@ int DirectoryListing::run() {
 
 		ScopedFunctor([this] { tasks.pop_front(); });
 
+		auto waitFinished = [this] {
+			while (waiting)
+				sleep(50);
+		};
+
 		try {
 			int64_t start = GET_TICK();
 			
@@ -898,13 +903,12 @@ int DirectoryListing::run() {
 				partialList = false;
 
 				waiting = true;
-				fire(DirectoryListingListener::LoadingStarted());
+				fire(DirectoryListingListener::LoadingStarted(), false);
 				bool reloading = !root->directories.empty();
 
 				if (reloading) {
 					//wait for the gui to disable the window
-					while (waiting)
-						sleep(50);
+					waitFinished();
 
 					root->clearAll();
 					baseDirs.clear();
@@ -939,11 +943,10 @@ int DirectoryListing::run() {
 					reloading = bd->second.second;
 					if (reloading) {
 						waiting = true;
-						fire(DirectoryListingListener::LoadingStarted());
+						fire(DirectoryListingListener::LoadingStarted(), false);
 
 						//wait for the gui to disable the window
-						while (waiting)
-							sleep(50);
+						waitFinished();
 
 
 						if (lt->baseDir.empty()) {
@@ -968,6 +971,12 @@ int DirectoryListing::run() {
 						}
 					}
 				}
+
+				waiting = true;
+				if (!reloading) {
+					fire(DirectoryListingListener::LoadingStarted(), true);
+					waitFinished();
+				}
 				
 				int dirsLoaded = 0;
 				if (isOwnList) {
@@ -982,15 +991,20 @@ int DirectoryListing::run() {
 				}
 
 				waiting = true;
+				bool useGuiThread = !reloading && dirsLoaded < 5000;
+				if (!useGuiThread && !reloading) {
+					fire(DirectoryListingListener::LoadingStarted(), false);
+					waitFinished();
+				}
 
-				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(lt->baseDir), reloading && lt->baseDir == "/", lt->f == nullptr, true);
+				waiting = true;
+				fire(DirectoryListingListener::LoadingFinished(), start, Util::toNmdcFile(lt->baseDir), reloading && lt->baseDir == "/", lt->f == nullptr, useGuiThread);
 				if (lt->f) {
 					lt->f();
 				}
 
-				if (!reloading) {
-					while (waiting)
-						sleep(50);
+				if (useGuiThread) {
+					waitFinished();
 				}
 			} else if (t.first == CLOSE) {
 				//delete this;

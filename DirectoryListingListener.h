@@ -41,7 +41,7 @@ public:
 
 	virtual void on(LoadingFinished, int64_t /*start*/, const string& /*aDir*/, bool /*reloadList*/, bool /*changeDir*/, bool /*load in gui thread*/) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
-	virtual void on(LoadingStarted) noexcept { }
+	virtual void on(LoadingStarted, bool /* changeDir */) noexcept { }
 	virtual void on(QueueMatched, const string&) noexcept { }
 	virtual void on(Close) noexcept { }
 	virtual void on(SearchStarted) noexcept { }
