@@ -65,6 +65,7 @@ const string SettingsManager::settingTags[] =
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
 	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
+	"UsersFrmVisible", "ListViewFont",
 
 	"SENTRY", 
 	// Ints
@@ -734,6 +735,7 @@ SettingsManager::SettingsManager()
 	setDefault(HISTORY_EXCLUDE_CLEAR, false);
 	setDefault(HISTORY_DIR_CLEAR, false);
 	setDefault(AUTOSEARCH_BOLD, true);
+	setDefault(LIST_VIEW_FONT, "");
 
 	//set depending on the cpu count
 	SYSTEM_INFO info={{0}};
