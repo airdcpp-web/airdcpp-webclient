@@ -179,16 +179,6 @@ int UDPServer::PacketProcessor::run() {
 			c.getParameters().erase(c.getParameters().begin());
 
 			SearchManager::getInstance()->onRES(c, user, remoteIp);
-		} else if(x.compare(1, 4, "DSR ") == 0 && x[x.length() - 1] == 0x0a) {
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
-			string cid = c.getParam(0);
-			if(cid.size() != 39)
-				continue;
-
-			c.getParameters().erase(c.getParameters().begin());
-			SearchManager::getInstance()->onDSR(c);
 		} else if (x.compare(1, 4, "PSR ") == 0 && x[x.length() - 1] == 0x0a) {
 			AdcCommand c(x.substr(0, x.length()-1));
 			if(c.getParameters().empty())

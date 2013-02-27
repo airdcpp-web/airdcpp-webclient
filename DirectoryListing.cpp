@@ -341,22 +341,22 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	}
 }
 
-void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
+void DirectoryListing::Directory::search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
 	if (getAdls())
 		return;
 
 	if (aStrings.hasRoot) {
 		auto pos = find_if(files, [aStrings](File* aFile) { return aFile->getTTH() == aStrings.root; });
 		if (pos != files.end()) {
-			DirectSearchResultPtr sr(new DirectSearchResult(Util::toAdcFile(getPath())));
+			SearchResultPtr sr(new SearchResult(Util::toAdcFile(getPath())));
 			aResults.push_back(sr);
 		}
 	} else {
 		if(aStrings.matchesDirectory(name)) {
 			auto path = parent ? Util::toAdcFile(parent->getPath()) : "/";
-			auto res = find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
+			auto res = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getFile() == path; });
 			if (res == aResults.end() && aStrings.matchesSize(getTotalSize(false))) {
-				DirectSearchResultPtr sr(new DirectSearchResult(path));
+				SearchResultPtr sr(new SearchResult(path));
 				aResults.push_back(sr);
 			}
 		}
@@ -364,7 +364,7 @@ void DirectoryListing::Directory::search(DirectSearchResultList& aResults, AdcSe
 		if(!aStrings.isDirectory) {
 			for(auto& f: files) {
 				if(aStrings.matchesFile(f->getName(), f->getSize())) {
-					DirectSearchResultPtr sr(new DirectSearchResult(Util::toAdcFile(getPath())));
+					SearchResultPtr sr(new SearchResult(Util::toAdcFile(getPath())));
 					aResults.push_back(sr);
 					break;
 				}
@@ -1028,13 +1028,13 @@ int DirectoryListing::run() {
 				auto s = static_cast<SearchTask*>(t.second);
 				fire(DirectoryListingListener::SearchStarted());
 
-				auto search = AdcSearch::getSearch(s->searchString, Util::emptyString, s->size, s->typeMode, s->sizeMode, s->extList);
+				auto search = AdcSearch::getSearch(s->searchString, Util::emptyString, s->size, s->typeMode, s->sizeMode, s->extList, AdcSearch::MATCH_NAME, true);
 				if (search)
 					curSearch.reset(search);
 
 				if (isOwnList && partialList) {
 					try {
-						ShareManager::getInstance()->directSearch(searchResults, *curSearch, 50, Util::toInt(fileName), s->directory);
+						ShareManager::getInstance()->search(searchResults, *curSearch, 50, Util::toInt(fileName), CID(), s->directory);
 					} catch (...) { }
 					endSearch(false);
 				} else if (partialList) {
@@ -1065,9 +1065,9 @@ int DirectoryListing::run() {
 	return 0;
 }
 
-void DirectoryListing::on(SearchManagerListener::DSR, const DirectSearchResultPtr& aDSR) noexcept {
-	if (compare(aDSR->getToken(), searchToken) == 0)
-		searchResults.push_back(aDSR);
+void DirectoryListing::on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept {
+	if (compare(aSR->getToken(), searchToken) == 0)
+		searchResults.push_back(aSR);
 }
 
 void DirectoryListing::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
@@ -1096,7 +1096,7 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) {
 }
 
 void DirectoryListing::changeDir(bool reload) {
-	auto path = Util::toNmdcFile((*curResult)->getPath());
+	auto path = (*curResult)->getFile();
 	if (!partialList) {
 		fire(DirectoryListingListener::ChangeDirectory(), path, true);
 	} else {
@@ -1141,7 +1141,7 @@ bool DirectoryListing::isCurrentSearchPath(const string& path) {
 	if (searchResults.empty())
 		return false;
 
-	return (*curResult)->getPath() == Util::toAdcFile(path);
+	return (*curResult)->getFile() == Util::toAdcFile(path);
 }
 
 } // namespace dcpp

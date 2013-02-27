@@ -111,11 +111,6 @@ typedef std::vector<QueueItemPtr> QueueItemList;
 
 class RecentHubEntry;
 
-class DirectSearchResult;
-typedef boost::intrusive_ptr<DirectSearchResult> DirectSearchResultPtr;
-typedef std::vector<DirectSearchResultPtr> DirectSearchResultList;
-//typedef std::map<string, DirectSRPtr> DirectSearchResultMap;
-
 class Search;
 typedef shared_ptr<Search> SearchPtr;
 

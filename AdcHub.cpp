@@ -60,7 +60,6 @@ const string AdcHub::UCM0_SUPPORT("ADUCM0");
 const string AdcHub::BLO0_SUPPORT("ADBLO0");
 const string AdcHub::ZLIF_SUPPORT("ADZLIF");
 const string AdcHub::BNDL_FEATURE("BNDL");
-const string AdcHub::DSCH_FEATURE("DSCH");
 const string AdcHub::SUD1_FEATURE("SUD1");
 const string AdcHub::HBRI_SUPPORT("ADHBRI");
 
@@ -569,21 +568,6 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 	}
 
 	fire(ClientListener::AdcSearch(), this, c, *ou);
-}
-
-
-void AdcHub::handle(AdcCommand::DSC, AdcCommand& c) noexcept {
-	OnlineUser* ou = findUser(c.getFrom());
-	if(!ou) {
-		dcdebug("Invalid user in AdcHub::onSCH\n");
-		return;
-	}
-
-	fire(ClientListener::DirectSearch(), this, c, *ou);
-}
-
-void AdcHub::handle(AdcCommand::DSR, AdcCommand& c) noexcept {
-	SearchManager::getInstance()->onDSR(c);
 }
 
 void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
@@ -1111,11 +1095,13 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 	if(state != STATE_NORMAL)
 		return;
 
-	AdcCommand c(AdcCommand::CMD_DSC, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
+	AdcCommand c(AdcCommand::CMD_SCH, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
 	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, StringList(), true);
 	if (!aDir.empty()) {
 		c.addParam("PA", aDir);
 	}
+
+	c.addParam("MT", "1");
 
 	//sendSearch(c);
 	send(c);
@@ -1123,7 +1109,7 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 
 void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, bool isDirect) {
 	if(!aToken.empty())
-		c.addParam("TO", aToken);
+		c.addParam("TO", Util::toString(getUniqueId()) + "/" + aToken);
 
 	if(aFileType == SearchManager::TYPE_TTH) {
 		c.addParam("TR", aString);
@@ -1240,7 +1226,7 @@ void AdcHub::search(SearchPtr s) {
 
 	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
 
-	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, Util::toString(getUniqueId()) + "/" + s->token, s->exts, s->excluded, false);
+	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, s->token, s->exts, s->excluded, false);
 
 	if (!s->key.empty() && strnicmp("adcs://", getHubUrl().c_str(), 7) == 0) {
 		c.addParam("KY", s->key);

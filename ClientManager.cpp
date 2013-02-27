@@ -788,7 +788,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		}
 	}
 }
-void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const OnlineUser& from, bool directSearch) noexcept {
+void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const OnlineUser& from) noexcept {
 	// Filter own searches
 	fire(ClientManagerListener::IncomingADCSearch(), adc);
 	if(from.getUser() == me)
@@ -805,10 +805,7 @@ void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const Onlin
 		}
 	}
 
-	if (directSearch)
-		SearchManager::getInstance()->respondDirect(adc, from, isUdpActive, c->getShareProfile());
-	else
-		SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
+	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
 }
 
 uint64_t ClientManager::search(string& who, SearchPtr aSearch) {

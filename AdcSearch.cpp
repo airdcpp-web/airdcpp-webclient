@@ -29,7 +29,7 @@ namespace {
 
 namespace dcpp {
 
-AdcSearch* AdcSearch::getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList) {
+AdcSearch* AdcSearch::getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents) {
 	AdcSearch* s = nullptr;
 
 	if(aTypeMode == SearchManager::TYPE_TTH) {
@@ -43,6 +43,8 @@ AdcSearch* AdcSearch::getSearch(const string& aSearchString, const string& aExcl
 		}
 
 		s->isDirectory = (aTypeMode == SearchManager::TYPE_DIRECTORY);
+		s->addParents = returnParents;
+		s->matchType = aMatchType;
 	}
 
 	return s;
@@ -85,11 +87,11 @@ StringList AdcSearch::parseSearchString(const string& aString) {
 }
 
 AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(true), isDirectory(false) {
+	lt(numeric_limits<int64_t>::max()), hasRoot(true), isDirectory(false), matchType(MATCH_FULL_PATH), addParents(false), minDate(0) {
 }
 
 AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt) : ext(aExt), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false) {
+	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false), matchType(MATCH_FULL_PATH), addParents(false), minDate(0) {
 
 	//add included
 	auto inc = move(parseSearchString(aSearch));
@@ -104,7 +106,7 @@ AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const Strin
 }
 
 AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false)
+	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false), matchType(MATCH_FULL_PATH), addParents(false), minDate(0)
 {
 	for(const auto& p: params) {
 		if(p.length() <= 2)
@@ -134,6 +136,10 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 			lt = gt = Util::toInt64(p.substr(2));
 		} else if(toCode('T', 'Y') == cmd) {
 			isDirectory = (p[2] == '2');
+		} else if(toCode('M', 'T') == cmd) {
+			matchType = static_cast<MatchType>(Util::toInt(p.substr(2)));
+		} else if(toCode('M', 'D') == cmd) {
+			minDate = Util::toInt64(p.substr(2));
 		}
 	}
 }

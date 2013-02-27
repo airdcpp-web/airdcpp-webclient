@@ -261,30 +261,6 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	fire(SearchManagerListener::SR(), sr);
 }
 
-void SearchManager::onDSR(const AdcCommand& cmd) {
-	string token;
-	if (cmd.hasFlag("ED1", 0)) {
-		cmd.getParam("TO", 1, token);
-		fire(SearchManagerListener::DirectSearchEnd(), token);
-		return;
-	}
-
-	string folderName;
-	for(auto& str: cmd.getParameters()) {
-		if(str.compare(0, 2, "FN") == 0) {
-			folderName = str.substr(2);
-		} else if(str.compare(0, 2, "TO") == 0) {
-			token = str.substr(2);
-		}
-	}
-
-	if (!folderName.empty() && !token.empty()) {
-		DirectSearchResultPtr dsr(new DirectSearchResult(folderName));
-		dsr->setToken(token);
-		fire(SearchManagerListener::DSR(), dsr);
-	}
-}
-
 void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const string& remoteIp) {
 	int freeSlots = -1;
 	int64_t size = -1;
@@ -292,7 +268,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	string tth;
 	string token;
 	time_t date = 0;
-
+	//fire(SearchManagerListener::DirectSearchEnd(), token);
 	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "FN") == 0) {
 			file = Util::toNmdcFile(str.substr(2));
@@ -495,7 +471,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 }
 
-void SearchManager::respondDirect(const AdcCommand& aCmd, const OnlineUser& aUser, bool /*isUdpActive*/, ProfileToken aProfile) {
+/*void SearchManager::respondDirect(const AdcCommand& aCmd, const OnlineUser& aUser, bool isUdpActive, ProfileToken aProfile) {
 	AdcSearch sch(aCmd.getParameters());
 
 	string directory;
@@ -523,11 +499,19 @@ void SearchManager::respondDirect(const AdcCommand& aCmd, const OnlineUser& aUse
 	cmd.addParam("ED1");
 	cmd.addParam("TO", token);
 	ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, Util::emptyString, aUser.getHubUrl());
-}
+}*/
 
 void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
+	auto isDirect = adc.getType() == 'D';
+	string path;
+
+	if (isDirect) {
+		adc.getParam("PA", 0, path);
+	}
+
 	SearchResultList results;
-	ShareManager::getInstance()->search(results, adc.getParameters(), isUdpActive ? 10 : 5, aProfile, aUser.getUser()->getCID());
+	AdcSearch srch(adc.getParameters());
+	ShareManager::getInstance()->search(results, srch, isUdpActive ? 10 : 5, aProfile, aUser.getUser()->getCID(), path);
 
 	string token;
 

@@ -122,7 +122,7 @@ public:
 		void sortFiles();
 
 		bool findIncomplete();
-		void search(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
+		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
 		void findFiles(const boost::regex& aReg, File::List& aResults) const;
 		
 		size_t getFileCount() { return files.size(); }
@@ -245,10 +245,10 @@ private:
 
 	TaskQueue tasks;
 
-	DirectSearchResultList searchResults;
-	DirectSearchResultList::iterator curResult;
+	SearchResultList searchResults;
+	SearchResultList::iterator curResult;
 
-	void on(SearchManagerListener::DSR, const DirectSearchResultPtr& aDSR) noexcept;
+	void on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept;
 	void on(SearchManagerListener::DirectSearchEnd, const string& aToken) noexcept;
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 

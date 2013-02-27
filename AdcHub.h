@@ -76,7 +76,6 @@ public:
 	static const string BLO0_SUPPORT;
 	static const string ZLIF_SUPPORT;
 	static const string BNDL_FEATURE;
-	static const string DSCH_FEATURE;
 	static const string SUD1_FEATURE;
 	static const string HBRI_SUPPORT;
 private:
@@ -150,8 +149,6 @@ private:
 	void handle(AdcCommand::UBD, AdcCommand& c) noexcept;
 	void handle(AdcCommand::ZON, AdcCommand& c) noexcept;
 	void handle(AdcCommand::ZOF, AdcCommand& c) noexcept;
-	void handle(AdcCommand::DSR, AdcCommand& c) noexcept;
-	void handle(AdcCommand::DSC, AdcCommand& c) noexcept;
 	void handle(AdcCommand::TCP, AdcCommand& c) noexcept;
 
 	template<typename T> void handle(T, AdcCommand&) { }

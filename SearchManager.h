@@ -78,8 +78,6 @@ public:
 	
 	void respond(const AdcCommand& cmd, const OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 
-	void respondDirect(const AdcCommand& cmd, const OnlineUser& aUser, bool isUdpActive, ProfileToken aProfile);
-
 	const string& getPort() const;
 
 	void listen();
@@ -87,7 +85,6 @@ public:
 	void onSR(const string& aLine, const string& aRemoteIP=Util::emptyString);
 
 	void onRES(const AdcCommand& cmd, const UserPtr& from, const string& remoteIp = Util::emptyString);
-	void onDSR(const AdcCommand& cmd);
 	void onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp = Util::emptyString);
 	void onPBD(const AdcCommand& cmd, UserPtr from);
 	AdcCommand toPSR(bool wantResponse, const string& myNick, const string& hubIpPort, const string& tth, const vector<uint16_t>& partialInfo) const;

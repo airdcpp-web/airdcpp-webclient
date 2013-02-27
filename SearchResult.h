@@ -32,17 +32,6 @@
 
 namespace dcpp {
 
-class DirectSearchResult : public FastAlloc<DirectSearchResult>, public intrusive_ptr_base<DirectSearchResult>, boost::noncopyable {
-public:	
-	DirectSearchResult(const string& aPath);
-
-	GETSET(string, token, Token);
-	GETSET(string, path, Path);
-
-	AdcCommand toDSR(char type) const;
-private:
-};
-
 class SearchResult : public FastAlloc<SearchResult>, public intrusive_ptr_base<SearchResult> {
 public:	
 	enum Types {
@@ -50,8 +39,13 @@ public:
 		TYPE_DIRECTORY
 	};
 
+	//outgoing result (normal)
 	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate);
 
+	//outgoing result (direct)
+	SearchResult(const string& name);
+
+	//incoming results
 	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
 		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection);
 

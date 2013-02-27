@@ -2468,74 +2468,6 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 	}
 }
 
-/* Each matching directory is only being added once in the results. For directory results we return the path of the parent directory and for files the current directory */
-void ShareManager::Directory::directSearch(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
-	if(aStrings.matchesDirectory(profileDir ? profileDir->getName(aProfile) : realName)) {
-		auto path = parent ? parent->getADCPath(aProfile) : "/";
-		auto res = find_if(aResults, [path](DirectSearchResultPtr sr) { return sr->getPath() == path; });
-		if (res == aResults.end() && aStrings.matchesSize(getSize(aProfile))) {
-			DirectSearchResultPtr sr(new DirectSearchResult(path));
-			aResults.push_back(sr);
-		}
-	}
-
-	if(!aStrings.isDirectory) {
-		for(const auto& f: files) {
-			if(aStrings.matchesFile(f.getName(), f.getSize())) {
-				DirectSearchResultPtr sr(new DirectSearchResult(getADCPath(aProfile)));
-				aResults.push_back(sr);
-				break;
-			}
-		}
-	}
-
-
-	for(auto l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
-		if ((*l)->isLevelExcluded(aProfile))
-			continue;
-		(*l)->directSearch(aResults, aStrings, maxResults, aProfile);
-	}
-}
-
-void ShareManager::directSearch(DirectSearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, ProfileToken aProfile, const string& aDirectory) noexcept {
-	RLock l(cs);
-	if(srch.hasRoot) {
-		const auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&srch.root));
-		for(auto f = flst.first; f != flst.second; ++f) {
-			if (f->second->getParent()->hasProfile(aProfile)) {
-				DirectSearchResultPtr sr(new DirectSearchResult(f->second->getParent()->getADCPath(aProfile)));
-				results.push_back(sr);
-			}
-		}
-		return;
-	}
-
-	for(const auto& i: srch.includeX) {
-		if(!bloom.match(i.getPattern())) {
-			return;
-		}
-	}
-
-	/*for(auto j = dirNameMap.begin(); (j != dirNameMap.end()) && (results.size() < maxResults); ++j) {
-		if(j->second->getProfileDir()->hasProfile(aProfile))
-			j->second->directSearch(results, srch, maxResults, aProfile);
-	}*/
-
-	if (aDirectory.empty() || aDirectory == "/") {
-		for(auto j = rootPaths.begin(); (j != rootPaths.end()) && (results.size() < maxResults); ++j) {
-			if(j->second->getProfileDir()->hasRootProfile(aProfile))
-				j->second->directSearch(results, srch, maxResults, aProfile);
-		}
-	} else {
-		DirectoryList result;
-		findVirtuals<ProfileToken>(aDirectory, aProfile, result);
-		for(const auto& it: result) {
-			if (!it->isLevelExcluded(aProfile))
-				it->directSearch(results, srch, maxResults, aProfile);
-		}
-	}
-}
-
 void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
 	for(const auto& i: aStrings.exclude) {
 		if(i.matchLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : realNameLower))
@@ -2556,15 +2488,24 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 		}
 	}
 
-	if(newStr.get() != 0) {
+	if(newStr.get() != 0 && aStrings.matchType == AdcSearch::MATCH_FULL_PATH) {
 		aStrings.include = newStr.get();
 	}
 
 	bool sizeOk = (aStrings.gt == 0);
-	if(aStrings.include->empty() && aStrings.ext.empty() && sizeOk) {
+	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk) {
 		// We satisfied all the search words! Add the directory...
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, getSize(aProfile), getFullName(aProfile), TTHValue(), lastWrite));
-		aResults.push_back(sr);
+		if (aStrings.addParents) {
+			const auto path = parent ? parent->getADCPath(aProfile) : "/";
+			auto res = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getFile() == path; });
+			if (res == aResults.end() /*&& aStrings.matchesSize(getSize(aProfile))*/) {
+				SearchResultPtr sr(new SearchResult(getFullName(aProfile)));
+				aResults.push_back(sr);
+			}
+		} else {
+			SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, getSize(aProfile), getFullName(aProfile), TTHValue(), lastWrite));
+			aResults.push_back(sr);
+		}
 	}
 
 	if(!aStrings.isDirectory) {
@@ -2588,12 +2529,21 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 				if(aStrings.isExcluded(f.getName()))
 					continue;
 
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
-					f.getSize(), getFullName(aProfile) + f.getName(), f.getTTH(), f.getLastWrite()));
-				aResults.push_back(sr);
+				if (aStrings.addParents) {
+					SearchResultPtr sr(new SearchResult(getFullName(aProfile)));
+					aResults.push_back(sr);
+				} else {
+					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
+						f.getSize(), getFullName(aProfile) + f.getName(), f.getTTH(), f.getLastWrite()));
+					aResults.push_back(sr);
+				}
+
 				if(aResults.size() >= maxResults) {
 					return;
 				}
+
+				if (aStrings.addParents)
+					break;
 			}
 		}
 	}
@@ -2610,19 +2560,21 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 }
 
 
-void ShareManager::search(SearchResultList& results, const StringList& params, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid) noexcept {
-
-	AdcSearch srch(params);	
+void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) noexcept {
 
 	RLock l(cs);
-
 	if(srch.hasRoot) {
 		const auto i = tthIndex.find(const_cast<TTHValue*>(&srch.root));
 		if(i != tthIndex.end() && i->second->getParent()->hasProfile(aProfile)) {
-			SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
-				i->second->getSize(), i->second->getParent()->getFullName(aProfile) + i->second->getName(), 
-				i->second->getTTH(), i->second->getLastWrite()));
-			results.push_back(sr);
+			if (srch.addParents) {
+				SearchResultPtr sr(new SearchResult(i->second->getParent()->getFullName(aProfile)));
+				results.push_back(sr);
+			} else {
+				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
+					i->second->getSize(), i->second->getParent()->getFullName(aProfile) + i->second->getName(), 
+					i->second->getTTH(), i->second->getLastWrite()));
+				results.push_back(sr);
+			}
 			return;
 		}
 
@@ -2642,11 +2594,21 @@ void ShareManager::search(SearchResultList& results, const StringList& params, S
 			return;
 	}
 
-	for(auto j = rootPaths.begin(); (j != rootPaths.end()) && (results.size() < maxResults); ++j) {
-		if(j->second->getProfileDir()->hasRootProfile(aProfile))
-			j->second->search(results, srch, maxResults, aProfile);
+	if (aDir.empty() || aDir == "/") {
+		for(auto j = rootPaths.begin(); (j != rootPaths.end()) && (results.size() < maxResults); ++j) {
+			if(j->second->getProfileDir()->hasRootProfile(aProfile))
+				j->second->search(results, srch, maxResults, aProfile);
+		}
+	} else {
+		DirectoryList result;
+		findVirtuals<ProfileToken>(aDir, aProfile, result);
+		for(auto j = result.begin(); (j != result.end()) && (results.size() < maxResults); ++j) {
+			if ((*j)->hasProfile(aProfile))
+				(*j)->search(results, srch, maxResults, aProfile);
+		}
 	}
 }
+
 void ShareManager::cleanIndices(Directory::Ptr& dir) {
 	for(auto d: dir->directories) {
 		cleanIndices(d);

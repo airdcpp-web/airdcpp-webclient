@@ -31,7 +31,13 @@ namespace dcpp {
 
 	class AdcSearch {
 	public:
-		static AdcSearch* getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList);
+		enum MatchType {
+			MATCH_FULL_PATH,
+			MATCH_NAME,
+			MATCH_EXACT
+		};
+
+		static AdcSearch* getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents);
 		static StringList parseSearchString(const string& aString);
 
 		AdcSearch(const StringList& params);
@@ -51,9 +57,13 @@ namespace dcpp {
 		int64_t gt;
 		int64_t lt;
 
+		int64_t minDate;
+
 		TTHValue root;
 		bool hasRoot;
 
+		MatchType matchType;
+		bool addParents;
 		bool isDirectory;
 
 		bool matchesFile(const string& aName, int64_t aSize);

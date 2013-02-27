@@ -118,8 +118,6 @@ public:
 	C(PBD, 'P','B','D');
 	C(UBD, 'U','B','D');
 	C(UBN, 'U','B','N');
-	C(DSC, 'D','S','C');
-	C(DSR, 'D','S','R');
 	C(TCP, 'T','C','P');
 #undef C
 
@@ -225,8 +223,6 @@ public:
 				C(UBD);
 				C(ZON);
 				C(ZOF);
-				C(DSC);
-				C(DSR);
 				C(TCP);
 			default: 
 				dcdebug("Unknown ADC command: %.50s\n", aLine.c_str());

@@ -46,7 +46,6 @@
 namespace dcpp {
 
 STANDARD_EXCEPTION(ShareException);
-static string FileListALL = "All";
 
 class SimpleXML;
 class Client;
@@ -145,8 +144,7 @@ public:
 	void rebuildTotalExcludes();
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
-	void search(SearchResultList& l, const StringList& params, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid) noexcept;
-	void directSearch(DirectSearchResultList& l, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile, const string& aDirectory) noexcept;
+	void search(SearchResultList& l, AdcSearch& aSearch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) noexcept;
 
 	bool isDirShared(const string& aDir) const;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const;
@@ -369,8 +367,6 @@ private:
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) const noexcept;
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
-
-		void directSearch(DirectSearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
 
 		void toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList);
 		void toXml(SimpleXML& aXml, bool fullList, ProfileToken aProfile) const;
