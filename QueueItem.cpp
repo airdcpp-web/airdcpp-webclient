@@ -320,7 +320,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 		return Segment(0, -1);
 	}
 	
-	if(!SETTING(MULTI_CHUNK) || blockSize >= size) {
+	if((!SETTING(MULTI_CHUNK) || blockSize >= size) /*&& (done.size() == 0 || (done.size() == 1 && *done.begin()->getStart() == 0))*/) {
 		if(!downloads.empty()) {
 			return checkOverlaps(blockSize, lastSpeed, partialSource, allowOverlap);
 		}

@@ -54,13 +54,14 @@ pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Fl
 }
 
 pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi) noexcept {
-	if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
+	dcassert(queueSize >= 0);
+	tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
+	auto ret = queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
+	if (ret.second && !qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
 		dcassert(qi->getSize() >= 0);
 		queueSize += qi->getSize();
 	}
-	dcassert(queueSize >= 0);
-	tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
-	return queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
+	return ret;
 }
 
 void FileQueue::remove(QueueItemPtr& qi) noexcept {

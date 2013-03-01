@@ -2560,7 +2560,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 }
 
 
-void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) noexcept {
+void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) {
 
 	RLock l(cs);
 	if(srch.hasRoot) {

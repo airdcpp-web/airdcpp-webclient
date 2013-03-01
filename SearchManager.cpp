@@ -268,7 +268,8 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	string tth;
 	string token;
 	time_t date = 0;
-	//fire(SearchManagerListener::DirectSearchEnd(), token);
+	bool directEnd = false;
+
 	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "FN") == 0) {
 			file = Util::toNmdcFile(str.substr(2));
@@ -282,7 +283,19 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 			token = str.substr(2);
 		} else if(str.compare(0, 2, "DM") == 0) {
 			date = Util::toUInt32(str.substr(2));
+		} else if(str.compare(0, 2, "ED") == 0) {
+			directEnd = true;
 		}
+	}
+
+	if (token.empty())
+		return;
+
+	if (directEnd) {
+		auto slash = token.find('/');
+		if(slash != string::npos)
+			fire(SearchManagerListener::DirectSearchEnd(), token.substr(slash+1));
+		return;
 	}
 
 	if(!file.empty() && freeSlots != -1 && size != -1) {
@@ -471,51 +484,35 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 }
 
-/*void SearchManager::respondDirect(const AdcCommand& aCmd, const OnlineUser& aUser, bool isUdpActive, ProfileToken aProfile) {
-	AdcSearch sch(aCmd.getParameters());
-
-	string directory;
-	aCmd.getParam("PA", 0, directory);
-
-	DirectSearchResultList results;
-
-	try {
-		ShareManager::getInstance()->directSearch(results, sch, 30, aProfile, directory);
-	} catch(...) {
-		//ignore
-	}
-
-	string token;
-	aCmd.getParam("TO", 0, token);
-
-	for(auto dsr: results) {
-		dsr->setToken(token);
-		AdcCommand cmd = dsr->toDSR(AdcCommand::TYPE_UDP);
-		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, Util::emptyString, aUser.getHubUrl());
-	}
-
-
-	AdcCommand cmd(AdcCommand::CMD_DSR, AdcCommand::TYPE_UDP);
-	cmd.addParam("ED1");
-	cmd.addParam("TO", token);
-	ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, Util::emptyString, aUser.getHubUrl());
-}*/
-
-void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
+void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
 	auto isDirect = adc.getType() == 'D';
 	string path;
 
+	bool reply = false;
 	if (isDirect) {
 		adc.getParam("PA", 0, path);
+		reply = adc.hasFlag("RE", 0);
 	}
 
 	SearchResultList results;
 	AdcSearch srch(adc.getParameters());
-	ShareManager::getInstance()->search(results, srch, isUdpActive ? 10 : 5, aProfile, aUser.getUser()->getCID(), path);
 
 	string token;
-
 	adc.getParam("TO", 0, token);
+
+	try {
+		ShareManager::getInstance()->search(results, srch, isUdpActive ? 10 : 5, aProfile, aUser.getUser()->getCID(), path);
+	} catch(const ShareException& e) {
+		if (reply) {
+			//path not found (direct search)
+			AdcCommand c(AdcCommand::SEV_FATAL, AdcCommand::ERROR_FILE_NOT_AVAILABLE, e.getError(), AdcCommand::TYPE_DIRECT);
+			c.setTo(aUser.getIdentity().getSID());
+			c.addParam("TO", token);
+
+			aUser.getClient().send(c);
+		}
+		return;
+	}
 
 	// TODO: don't send replies to passive users
 	if(results.empty() && SETTING(USE_PARTIAL_SHARING)) {
@@ -543,6 +540,17 @@ void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool
 		return;
 	}
 
+
+	/*if (isDirect && reply) {
+		AdcCommand c(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, AdcCommand::TYPE_DIRECT);
+		c.setTo(aUser.getIdentity().getSID());
+		c.addParam("TO", token);
+		c.addParam("SR", Util::toString(results.size()));
+
+		aUser.getClient().send(c);
+	}*/
+
+
 	string key;
 	adc.getParam("KY", 0, key);
 
@@ -551,6 +559,20 @@ void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool
 		if(!token.empty())
 			cmd.addParam("TO", token);
 		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, key, aUser.getHubUrl());
+	}
+
+	if (reply) {
+		AdcCommand cmd(AdcCommand::CMD_RES, AdcCommand::TYPE_UDP);
+		cmd.addParam("ED1");
+		cmd.addParam("TO", token);
+		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, Util::emptyString, aUser.getHubUrl());
+
+		/*AdcCommand c(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, AdcCommand::TYPE_DIRECT);
+		c.setTo(aUser.getIdentity().getSID());
+		c.addParam("TO", token);
+		c.addParam("SR", Util::toString(results.size()));
+
+		aUser.getClient().send(c);*/
 	}
 }
 

@@ -45,7 +45,6 @@ public:
 	typedef X<13> NickTaken;
 	typedef X<14> SearchFlood;
 	typedef X<15> NmdcSearch;
-	typedef X<16> AdcSearch;
 	typedef X<17> HubTopic;
 	typedef X<18> AddLine;
 	typedef X<19> SetIcons;
@@ -71,7 +70,6 @@ public:
 	virtual void on(NickTaken, const Client*) noexcept { }
 	virtual void on(SearchFlood, const Client*, const string&) noexcept { }
 	virtual void on(NmdcSearch, Client*, const string&, int, int64_t, int, const string&, bool) noexcept { }
-	virtual void on(AdcSearch, const Client*, const AdcCommand&, const OnlineUser&) noexcept { }
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
 	virtual void on(SetIcons, const Client*, int) noexcept { }

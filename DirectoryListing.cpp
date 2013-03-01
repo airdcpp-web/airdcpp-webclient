@@ -44,7 +44,7 @@ using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), secondsEllapsed(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), waiting(false)
+	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), waiting(false)
 {
 	running.clear();
 }
@@ -1022,7 +1022,7 @@ int DirectoryListing::run() {
 				auto dli = static_cast<DirDownloadTask*>(t.second);
 				downloadDir(dli->dir, dli->target, dli->targetType, dli->isSizeUnknown , dli->prio);
 			} else if (t.first == SEARCH) {
-				secondsEllapsed = 0;
+				lastResult = GET_TICK();
 				searchResults.clear();
 
 				auto s = static_cast<SearchTask*>(t.second);
@@ -1039,11 +1039,11 @@ int DirectoryListing::run() {
 					endSearch(false);
 				} else if (partialList) {
 					SearchManager::getInstance()->addListener(this);
-					TimerManager::getInstance()->addListener(this);
 
 					searchToken = Util::toString(Util::rand());
 					ClientManager::getInstance()->directSearch(hintedUser, s->sizeMode, s->size, s->typeMode, s->searchString, searchToken, s->extList, s->directory);
-					//...
+
+					TimerManager::getInstance()->addListener(this);
 				} else {
 					const auto dir = (s->directory.empty()) ? root : findDirectory(Util::toNmdcFile(s->directory), root);
 					if (dir)
@@ -1066,20 +1066,25 @@ int DirectoryListing::run() {
 }
 
 void DirectoryListing::on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept {
-	if (compare(aSR->getToken(), searchToken) == 0)
+	if (compare(aSR->getToken(), searchToken) == 0) {
+		lastResult = GET_TICK();
 		searchResults.push_back(aSR);
-}
-
-void DirectoryListing::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
-	secondsEllapsed++;
-	if (secondsEllapsed == 5) {
-		endSearch(true);
 	}
 }
 
 void DirectoryListing::on(SearchManagerListener::DirectSearchEnd, const string& aToken) noexcept {
 	if (compare(aToken, searchToken) == 0)
+		lastResult = 0;
+		//endSearch(false);
+}
+
+void DirectoryListing::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+	if (searchResults.empty()) {
+		if (lastResult + 5000 < aTick)
+			endSearch(true);
+	} else if (lastResult + 1000 < aTick) {
 		endSearch(false);
+	}
 }
 
 void DirectoryListing::endSearch(bool timedOut /*false*/) {
@@ -1096,7 +1101,7 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) {
 }
 
 void DirectoryListing::changeDir(bool reload) {
-	auto path = (*curResult)->getFile();
+	auto path = (*curResult)->getFilePath();
 	if (!partialList) {
 		fire(DirectoryListingListener::ChangeDirectory(), path, true);
 	} else {
@@ -1141,7 +1146,7 @@ bool DirectoryListing::isCurrentSearchPath(const string& path) {
 	if (searchResults.empty())
 		return false;
 
-	return (*curResult)->getFile() == Util::toAdcFile(path);
+	return (*curResult)->getFilePath() == path;
 }
 
 } // namespace dcpp

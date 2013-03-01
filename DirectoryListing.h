@@ -250,9 +250,10 @@ private:
 
 	void on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept;
 	void on(SearchManagerListener::DirectSearchEnd, const string& aToken) noexcept;
+
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
-	int secondsEllapsed;
+	uint64_t lastResult;
 
 	void endSearch(bool timedOut=false);
 

@@ -788,7 +788,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 		}
 	}
 }
-void ClientManager::onSearch(const Client* c, const AdcCommand& adc, const OnlineUser& from) noexcept {
+void ClientManager::onSearch(const Client* c, const AdcCommand& adc, OnlineUser& from) noexcept {
 	// Filter own searches
 	fire(ClientManagerListener::IncomingADCSearch(), adc);
 	if(from.getUser() == me)

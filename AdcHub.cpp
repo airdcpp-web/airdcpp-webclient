@@ -194,6 +194,13 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			StringTokenizer<string> addresses(fo, ',');
 			FavoriteManager::getInstance()->setFailOvers(getHubUrl(), getFavToken(), move(addresses.getTokens()));
 		}
+
+		string version;
+		if(c.getParam("VE", 0, version)) {
+			if (version.find("FlexHub") != string::npos) {
+				fire(ClientListener::StatusMessage(), this, "WARNING: This hub is running on FlexHub, which may disable certain features in the client (at least searching in partial file lists)");
+			}
+		}
 	} else {
 		u = findUser(c.getFrom());
 	}
@@ -567,7 +574,23 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 		return;
 	}
 
-	fire(ClientListener::AdcSearch(), this, c, *ou);
+	// Filter own searches
+	ClientManager::getInstance()->fire(ClientManagerListener::IncomingADCSearch(), c);
+	if(ou->getUser() == ClientManager::getInstance()->getMe())
+		return;
+
+	bool isUdpActive = ou->getIdentity().isUdpActive();
+	if (isUdpActive) {
+		//check that we have a common IP protocol available (we don't want to send responses via wrong hubs)
+		const auto& me = getMyIdentity();
+		if (me.getIp4().empty() || !ou->getIdentity().isUdp4Active()) {
+			if (me.getIp6().empty() || !ou->getIdentity().isUdp6Active()) {
+				return;
+			}
+		}
+	}
+
+	SearchManager::getInstance()->respond(c, *ou, isUdpActive, getIpPort(), shareProfile);
 }
 
 void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
@@ -1101,7 +1124,9 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 		c.addParam("PA", aDir);
 	}
 
-	c.addParam("MT", "1");
+	c.addParam("RE", "1"); // require a reply
+	c.addParam("PP", "1"); // parent paths
+	c.addParam("MT", "1"); // name matches only
 
 	//sendSearch(c);
 	send(c);

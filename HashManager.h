@@ -163,8 +163,8 @@ private:
 		bool saveData;
 
 		string currentFile;
-		int64_t totalBytesLeft;
-		int64_t lastSpeed;
+		atomic<int64_t> totalBytesLeft;
+		atomic<int64_t> lastSpeed;
 
 		void instantPause();
 

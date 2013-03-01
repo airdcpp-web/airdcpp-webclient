@@ -137,4 +137,10 @@ void SearchResult::pickResults(SearchResultList& aResults, int pickedNum) {
 	}
 }
 
+string SearchResult::getFilePath() const {
+	if (type == TYPE_DIRECTORY)
+		return file;
+	return Util::getFilePath(file);
+}
+
 }

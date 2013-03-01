@@ -76,7 +76,7 @@ public:
 	uint64_t search(const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, Search::searchType sType);
 	uint64_t search(StringList& who, const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, const StringList& excluded, Search::searchType sType, void* aOwner = NULL);
 	
-	void respond(const AdcCommand& cmd, const OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
+	void respond(const AdcCommand& cmd, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 
 	const string& getPort() const;
 

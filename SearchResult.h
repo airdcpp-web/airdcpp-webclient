@@ -56,6 +56,7 @@ public:
 	HintedUser& getUser() { return user; }
 	string getSlotString() const;
 
+	string getFilePath() const;
 	const string& getFile() const { return file; }
 	int64_t getSize() const { return size; }
 	Types getType() const { return type; }

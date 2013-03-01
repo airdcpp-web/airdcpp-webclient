@@ -972,14 +972,10 @@ int HashManager::Hasher::run() {
 
 					sizeLeft -= n;
 
-					{
-						WLock l(hcs);
-						if(totalBytesLeft > 0)
-							totalBytesLeft -= n;
-						if(now > start)
-							lastSpeed = (size - sizeLeft)*1000 / (now -start);
-
-					}
+					if(totalBytesLeft > 0)
+						totalBytesLeft -= n;
+					if(now > start)
+						lastSpeed = (size - sizeLeft)*1000 / (now -start);
 
 					return !closing;
 				});

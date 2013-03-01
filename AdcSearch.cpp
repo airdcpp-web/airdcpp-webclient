@@ -140,6 +140,8 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 			matchType = static_cast<MatchType>(Util::toInt(p.substr(2)));
 		} else if(toCode('M', 'D') == cmd) {
 			minDate = Util::toInt64(p.substr(2));
+		} else if(toCode('P', 'P') == cmd) {
+			addParents = (p[2] == '1');
 		}
 	}
 }
