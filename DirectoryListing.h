@@ -24,6 +24,8 @@
 #include "Thread.h"
 
 #include "DirectoryListingListener.h"
+
+#include "ClientManagerListener.h"
 #include "SearchManagerListener.h"
 #include "TimerManager.h"
 
@@ -47,7 +49,7 @@ namespace dcpp {
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
-class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, private SearchManagerListener, private TimerManagerListener
+class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, private SearchManagerListener, private TimerManagerListener, private ClientManagerListener
 {
 public:
 	class Directory;
@@ -245,19 +247,22 @@ private:
 
 	TaskQueue tasks;
 
-	SearchResultList searchResults;
-	SearchResultList::iterator curResult;
-
 	void on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept;
-	void on(SearchManagerListener::DirectSearchEnd, const string& aToken) noexcept;
+	void on(ClientManagerListener::DirectSearchEnd, const string& aToken, int resultCount) noexcept;
 
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
-
-	uint64_t lastResult;
 
 	void endSearch(bool timedOut=false);
 
 	void changeDir(bool reload=false);
+
+
+	SearchResultList searchResults;
+	SearchResultList::iterator curResult;
+
+	int curResultCount;
+	int maxResultCount;
+	uint64_t lastResult;
 	string searchToken;
 	bool typingFilter;
 };

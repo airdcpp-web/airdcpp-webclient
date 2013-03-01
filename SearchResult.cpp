@@ -27,7 +27,7 @@
 
 namespace dcpp {
 
-SearchResult::SearchResult(const string& aPath) : file(aPath), size(0), date(0), slots(0), type(TYPE_DIRECTORY) { }
+SearchResult::SearchResult(const string& aPath) : file(aPath), size(0), date(0), slots(0), type(TYPE_DIRECTORY), freeSlots(0) { }
 
 SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
 	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection) :
@@ -69,12 +69,12 @@ string SearchResult::toSR(const Client& c) const {
 	return tmp;
 }
 
-AdcCommand SearchResult::toRES(char type) const {
-	AdcCommand cmd(AdcCommand::CMD_RES, type);
+AdcCommand SearchResult::toRES(char aType) const {
+	AdcCommand cmd(AdcCommand::CMD_RES, aType);
 	cmd.addParam("SI", Util::toString(size));
 	cmd.addParam("SL", Util::toString(freeSlots));
 	cmd.addParam("FN", Util::toAdcFile(file));
-	if (!SettingsManager::lanMode)
+	if (!SettingsManager::lanMode && type != TYPE_DIRECTORY)
 		cmd.addParam("TR", getTTH().toBase32());
 	cmd.addParam("DM", Util::toString(date));
 	return cmd;

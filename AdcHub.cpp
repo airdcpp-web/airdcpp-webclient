@@ -522,49 +522,69 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 	if(!u)
 		return;
 
-	//int severity = Util::toInt(c.getParam(0).substr(0, 1));
+	int severity = Util::toInt(c.getParam(0).substr(0, 1));
 	if(c.getParam(0).size() != 3) {
 		return;
 	}
 
-	switch(Util::toInt(c.getParam(0).substr(1))) {
-
-	case AdcCommand::ERROR_BAD_PASSWORD:
-		{
-		setPassword(Util::emptyString);
-			break;
-		}
-
-	case AdcCommand::ERROR_COMMAND_ACCESS:
-		{
-			string tmp;
-			if(c.getParam("FC", 1, tmp) && tmp.size() == 4)
-				forbiddenCommands.insert(AdcCommand::toFourCC(tmp.c_str()));
-			break;
-		}
-
-	case AdcCommand::ERROR_PROTOCOL_UNSUPPORTED:
-		{
-			string protocol;
-			if(c.getParam("PR", 1, protocol)) {
-				if(protocol == CLIENT_PROTOCOL) {
-					u->getUser()->setFlag(User::NO_ADC_1_0_PROTOCOL);
-				} else if(protocol == SECURE_CLIENT_PROTOCOL_TEST) {
-					u->getUser()->setFlag(User::NO_ADCS_0_10_PROTOCOL);
-					u->getUser()->unsetFlag(User::TLS);
-				}
-				// Try again...
-				//ConnectionManager::getInstance()->force(u->getUser());
-				string token;
-				if (c.getParam("TO", 2, token))
-					ConnectionManager::getInstance()->failDownload(token, STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, protocol), true);
-			}
+	if (severity == AdcCommand::SUCCESS) {
+		string fc;
+		if(!c.getParam("FC", 1, fc) || fc.size() != 4)
 			return;
-		}
-	}
 
-	ChatMessage message = { c.getParam(1), u };
-	fire(ClientListener::Message(), this, message);
+		if (fc == "DSCH") {
+			string token;
+			if(!c.getParam("TO", 2, token))
+				return;
+
+			string resultCount;
+			if(!c.getParam("SR", 2, resultCount))
+				return;
+
+			auto slash = token.find('/');
+			if(slash != string::npos)
+				ClientManager::getInstance()->fire(ClientManagerListener::DirectSearchEnd(), token.substr(slash+1), Util::toInt(resultCount));
+		}
+	} else {
+		switch(Util::toInt(c.getParam(0).substr(1))) {
+
+		case AdcCommand::ERROR_BAD_PASSWORD:
+			{
+			setPassword(Util::emptyString);
+				break;
+			}
+
+		case AdcCommand::ERROR_COMMAND_ACCESS:
+			{
+				string tmp;
+				if(c.getParam("FC", 1, tmp) && tmp.size() == 4)
+					forbiddenCommands.insert(AdcCommand::toFourCC(tmp.c_str()));
+				break;
+			}
+
+		case AdcCommand::ERROR_PROTOCOL_UNSUPPORTED:
+			{
+				string protocol;
+				if(c.getParam("PR", 1, protocol)) {
+					if(protocol == CLIENT_PROTOCOL) {
+						u->getUser()->setFlag(User::NO_ADC_1_0_PROTOCOL);
+					} else if(protocol == SECURE_CLIENT_PROTOCOL_TEST) {
+						u->getUser()->setFlag(User::NO_ADCS_0_10_PROTOCOL);
+						u->getUser()->unsetFlag(User::TLS);
+					}
+					// Try again...
+					//ConnectionManager::getInstance()->force(u->getUser());
+					string token;
+					if (c.getParam("TO", 2, token))
+						ConnectionManager::getInstance()->failDownload(token, STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, protocol), true);
+				}
+				return;
+			}
+		}
+
+		ChatMessage message = { c.getParam(1), u };
+		fire(ClientListener::Message(), this, message);
+	}
 }
 
 void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {

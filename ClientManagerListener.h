@@ -38,7 +38,7 @@ public:
 	typedef X<5> ClientUpdated;
 	typedef X<6> ClientDisconnected;
 	typedef X<7> IncomingADCSearch;
-
+	typedef X<8> DirectSearchEnd;
 
 	virtual void on(UserConnected, const OnlineUser&, bool /*was offline*/) noexcept { }
 	virtual void on(UserDisconnected, const UserPtr&, bool /*went offline*/) noexcept { }
@@ -49,6 +49,7 @@ public:
 	virtual void on(ClientUpdated, const Client*) noexcept { }
 	virtual void on(ClientDisconnected, const string&) noexcept { }
 	virtual void on(IncomingADCSearch, const AdcCommand&) noexcept { }
+	virtual void on(DirectSearchEnd, const string& /*token*/, int /*resultcount*/) noexcept { }
 };
 
 } // namespace dcpp

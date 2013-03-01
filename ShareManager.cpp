@@ -2496,10 +2496,10 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk) {
 		// We satisfied all the search words! Add the directory...
 		if (aStrings.addParents) {
-			const auto path = parent ? parent->getADCPath(aProfile) : "/";
+			const auto path = parent ? parent->getFullName(aProfile) : Util::emptyString;
 			auto res = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getFile() == path; });
 			if (res == aResults.end() /*&& aStrings.matchesSize(getSize(aProfile))*/) {
-				SearchResultPtr sr(new SearchResult(getFullName(aProfile)));
+				SearchResultPtr sr(new SearchResult(path));
 				aResults.push_back(sr);
 			}
 		} else {

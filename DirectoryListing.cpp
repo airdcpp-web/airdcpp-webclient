@@ -44,12 +44,15 @@ using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), waiting(false)
+	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), waiting(false), maxResultCount(0), curResultCount(0)
 {
 	running.clear();
+
+	ClientManager::getInstance()->addListener(this);
 }
 
 DirectoryListing::~DirectoryListing() {
+	ClientManager::getInstance()->removeListener(this);
 	delete root;
 }
 
@@ -1023,6 +1026,8 @@ int DirectoryListing::run() {
 				downloadDir(dli->dir, dli->target, dli->targetType, dli->isSizeUnknown , dli->prio);
 			} else if (t.first == SEARCH) {
 				lastResult = GET_TICK();
+				maxResultCount = 0;
+				curResultCount = 0;
 				searchResults.clear();
 
 				auto s = static_cast<SearchTask*>(t.second);
@@ -1069,17 +1074,23 @@ void DirectoryListing::on(SearchManagerListener::SR, const SearchResultPtr& aSR)
 	if (compare(aSR->getToken(), searchToken) == 0) {
 		lastResult = GET_TICK();
 		searchResults.push_back(aSR);
+		curResultCount++;
+
+		if (maxResultCount == curResultCount)
+			lastResult = 0; //we can call endSearch only from the TimerManagerListener thread
 	}
 }
 
-void DirectoryListing::on(SearchManagerListener::DirectSearchEnd, const string& aToken) noexcept {
-	if (compare(aToken, searchToken) == 0)
-		lastResult = 0;
-		//endSearch(false);
+void DirectoryListing::on(ClientManagerListener::DirectSearchEnd, const string& aToken, int aResultCount) noexcept {
+	if (compare(aToken, searchToken) == 0) {
+		maxResultCount = aResultCount;
+		if (maxResultCount == curResultCount)
+			endSearch(false);
+	}
 }
 
 void DirectoryListing::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	if (searchResults.empty()) {
+	if (curResultCount == 0) {
 		if (lastResult + 5000 < aTick)
 			endSearch(true);
 	} else if (lastResult + 1000 < aTick) {
@@ -1091,7 +1102,7 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
 
-	if (searchResults.empty()) {
+	if (curResultCount == 0) {
 		curSearch = nullptr;
 		fire(DirectoryListingListener::SearchFailed(), timedOut);
 	} else {

@@ -268,7 +268,6 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	string tth;
 	string token;
 	time_t date = 0;
-	bool directEnd = false;
 
 	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "FN") == 0) {
@@ -283,19 +282,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 			token = str.substr(2);
 		} else if(str.compare(0, 2, "DM") == 0) {
 			date = Util::toUInt32(str.substr(2));
-		} else if(str.compare(0, 2, "ED") == 0) {
-			directEnd = true;
 		}
-	}
-
-	if (token.empty())
-		return;
-
-	if (directEnd) {
-		auto slash = token.find('/');
-		if(slash != string::npos)
-			fire(SearchManagerListener::DirectSearchEnd(), token.substr(slash+1));
-		return;
 	}
 
 	if(!file.empty() && freeSlots != -1 && size != -1) {
@@ -486,7 +473,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
 	auto isDirect = adc.getType() == 'D';
-	string path;
+	string path, key;
 
 	bool reply = false;
 	if (isDirect) {
@@ -518,7 +505,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	if(results.empty() && SETTING(USE_PARTIAL_SHARING)) {
 		string tth;
 		if(!adc.getParam("TR", 0, tth))
-			return;
+			goto end;
 			
 		PartsInfo partialInfo;
 		string bundle;
@@ -537,23 +524,11 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 			ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl());
 		}
 
-		return;
+		goto end;
 	}
 
 
-	/*if (isDirect && reply) {
-		AdcCommand c(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, AdcCommand::TYPE_DIRECT);
-		c.setTo(aUser.getIdentity().getSID());
-		c.addParam("TO", token);
-		c.addParam("SR", Util::toString(results.size()));
-
-		aUser.getClient().send(c);
-	}*/
-
-
-	string key;
 	adc.getParam("KY", 0, key);
-
 	for(const auto& sr: results) {
 		AdcCommand cmd = sr->toRES(AdcCommand::TYPE_UDP);
 		if(!token.empty())
@@ -561,18 +536,15 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, key, aUser.getHubUrl());
 	}
 
+end:
 	if (reply) {
-		AdcCommand cmd(AdcCommand::CMD_RES, AdcCommand::TYPE_UDP);
-		cmd.addParam("ED1");
-		cmd.addParam("TO", token);
-		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, Util::emptyString, aUser.getHubUrl());
-
-		/*AdcCommand c(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, AdcCommand::TYPE_DIRECT);
+		AdcCommand c(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, "Succeed", AdcCommand::TYPE_DIRECT);
 		c.setTo(aUser.getIdentity().getSID());
+		c.addParam("FC", adc.getFourCC());
 		c.addParam("TO", token);
 		c.addParam("SR", Util::toString(results.size()));
 
-		aUser.getClient().send(c);*/
+		aUser.getClient().send(c);
 	}
 }
 

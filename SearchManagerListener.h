@@ -31,12 +31,10 @@ public:
 	template<int I>	struct X { enum { TYPE = I };  };
 
 	typedef X<0> SR;
-	typedef X<2> DirectSearchEnd;
-	typedef X<3> SearchTypesChanged;
-	typedef X<4> SearchTypeRenamed;
+	typedef X<1> SearchTypesChanged;
+	typedef X<2> SearchTypeRenamed;
 
 	virtual void on(SR, const SearchResultPtr&) noexcept { }
-	virtual void on(DirectSearchEnd, const string&) noexcept { }
 
 	virtual void on(SearchTypesChanged) noexcept { }
 	virtual void on(SearchTypeRenamed, const string&, const string&) noexcept { }
