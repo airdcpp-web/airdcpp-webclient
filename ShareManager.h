@@ -36,6 +36,7 @@
 #include "SearchManager.h"
 #include "Singleton.h"
 #include "ShareProfile.h"
+#include "SortedVector.h"
 #include "StringMatch.h"
 #include "StringSearch.h"
 #include "TaskQueue.h"
@@ -292,6 +293,10 @@ private:
 			bool operator()(const Ptr& a, const Ptr& b) const { return (compare(a->getRealNameLower(), b->getRealNameLower()) < 0); }
 		};
 
+		struct NameLower {
+			const string& operator()(const Ptr& a) const { return a->getRealNameLower(); }
+		};
+
 		class File {
 		public:
 			struct FileLess {
@@ -325,7 +330,9 @@ private:
 			string* name;
 		};
 
-		typedef set<Directory::Ptr, DirLess> Set;
+		//typedef set<Directory::Ptr, DirLess> Set;
+
+		typedef SortedVector<Ptr, string, DirLess, NameLower> Set;
 		Set directories;
 		File::Set files;
 
@@ -391,7 +398,6 @@ private:
 		const string& getRealNameLower() const { return realNameLower; }
 
 		File::Set::const_iterator findFile(const string& aName) const;
-		Set::const_iterator findDirectory(string&& aName) const;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
@@ -540,7 +546,7 @@ private:
 			} else {
 				while((i = virtualPath.find('/', j)) != string::npos) {
 					if(d) {
-						auto mi = d->findDirectory(Text::toLower(virtualPath.substr(j, i - j)));
+						auto mi = d->directories.find(Text::toLower(virtualPath.substr(j, i - j)));
 						j = i + 1;
 						if(mi != d->directories.end() && !(*mi)->isLevelExcluded(aProfile)) {   //if we found something, look for more.
 							d = *mi;

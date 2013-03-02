@@ -177,12 +177,6 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::Directory::find
 	return find_if(files, [&aName](const Directory::File& f) { return compare(aName, f.getNameLower()) == 0; });
 }
 
-ShareManager::Directory::Set::const_iterator ShareManager::Directory::findDirectory(string&& aName) const {
-	//TODO: use binary search
-	dcassert(Text::isLower(aName));
-	return find_if(directories, [&aName](const Directory::Ptr& d) { return compare(aName, d->getRealNameLower()) == 0; });
-}
-
 int64_t ShareManager::Directory::getSize(ProfileToken aProfile) const noexcept {
 	int64_t tmp = size;
 	for(const auto& d: directories) {
@@ -726,7 +720,7 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 ShareManager::Directory::Ptr ShareManager::Directory::create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot /*nullptr*/) {
 	auto dir = Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
 	if (aParent)
-		aParent->directories.insert(aParent->directories.end(), dir);
+		aParent->directories.insert_sorted(dir);
 	return dir;
 }
 
@@ -2691,7 +2685,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 		string fullPath = Text::toLower(mi->first);
 		for(const auto& name: sl) {
 			fullPath += name + PATH_SEPARATOR;
-			auto j = curDir->findDirectory(Text::toLower(name));
+			auto j = curDir->directories.find(Text::toLower(name));
 			if (j != curDir->directories.end()) {
 				curDir = *j;
 			} else if (!allowAdd || !checkSharedName(fullPath, true, report)) {

@@ -29,6 +29,7 @@
 #include "GetSet.h"
 #include "SFVReader.h"
 #include "typedefs.h"
+#include "SortedVector.h"
 
 #include "atomic.h"
 
@@ -216,7 +217,7 @@ private:
 			GETSET(int64_t, blockSize, BlockSize);
 		};
 
-		typedef vector<HashedFilePtr> FileInfoList;
+		typedef SortedVector<HashedFilePtr, string, HashedFile::FileLess, HashedFile::Name> FileInfoList;
 
 		typedef unordered_map<string, FileInfoList> DirMap;
 

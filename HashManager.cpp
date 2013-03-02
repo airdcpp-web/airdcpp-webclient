@@ -1,3 +1,4 @@
+second
 /* 
  * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
  *
@@ -247,14 +248,14 @@ HashedFilePtr& HashManager::HashStore::addFile(string&& aFileLower, uint64_t aTi
 
 	WLock l(cs);
 	auto& fileList = fileIndex[Util::getFilePath(aFileLower)];
-	auto j = find_if(fileList, [&nameLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), nameLower) == 0; });
+	auto j = fileList.find(nameLower);
 	if (j != fileList.end()) {
 		fileList.erase(j);
 	}
 
-	fileList.emplace_back(new HashedFile(nameLower, tth.getRoot(), aTimeStamp));
+	auto ret = fileList.insert_sorted(new HashedFile(nameLower, tth.getRoot(), aTimeStamp));
 	dirty = true;
-	return fileList.back();
+	return *ret.first;
 }
 
 void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
@@ -338,12 +339,10 @@ size_t HashManager::HashStore::getBlockSize(const TTHValue& root) const {
 }
 
 bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, uint32_t aTimeStamp) {
-	auto nameLower = move(Util::getFileName(aFileLower));
-
 	RLock l(cs);
 	auto i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		auto j = find_if(i->second, [&nameLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), nameLower) == 0; });
+		auto j = i->second.find(Util::getFileName(aFileLower));
 		if (j != i->second.end()) {
 			auto& fi = *j;
 			auto ti = treeIndex.find(fi->getRoot());
@@ -359,12 +358,10 @@ bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, u
 }
 
 const HashedFilePtr HashManager::HashStore::getFileInfo(const string& aFileLower) {
-	auto nameLower = move(Util::getFileName(aFileLower));
-
 	RLock l(cs);
 	auto i = fileIndex.find(Util::getFilePath(aFileLower));
 	if (i != fileIndex.end()) {
-		auto j = find_if(i->second, [&nameLower](const HashedFilePtr& fi) { return compare(fi->getFileName(), nameLower) == 0; });
+		auto j = i->second.find(Util::getFileName(aFileLower));
 		if (j != i->second.end()) {
 			return *j;
 		}
@@ -656,7 +653,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if (!file.empty() && timeStamp > 0 && !root.empty()) {
 				string fileLower = Text::toLower(file);
-				store.fileIndex[Util::getFilePath(fileLower)].emplace_back(new HashedFile(Util::getFileName(fileLower), TTHValue(root), timeStamp));
+				store.fileIndex[Util::getFilePath(fileLower)].insert_sorted(new HashedFile(Util::getFileName(fileLower), TTHValue(root), timeStamp));
 			}
 		} else if (name == sTrees) {
 			inTrees = !simple;

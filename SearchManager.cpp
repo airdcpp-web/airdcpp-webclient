@@ -475,10 +475,10 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	auto isDirect = adc.getType() == 'D';
 	string path, key;
 
-	bool reply = false;
+	bool replyDirect = false;
 	if (isDirect) {
 		adc.getParam("PA", 0, path);
-		reply = adc.hasFlag("RE", 0);
+		replyDirect = adc.hasFlag("RE", 0);
 	}
 
 	SearchResultList results;
@@ -490,7 +490,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	try {
 		ShareManager::getInstance()->search(results, srch, isUdpActive ? 10 : 5, aProfile, aUser.getUser()->getCID(), path);
 	} catch(const ShareException& e) {
-		if (reply) {
+		if (replyDirect) {
 			//path not found (direct search)
 			AdcCommand c(AdcCommand::SEV_FATAL, AdcCommand::ERROR_FILE_NOT_AVAILABLE, e.getError(), AdcCommand::TYPE_DIRECT);
 			c.setTo(aUser.getIdentity().getSID());
@@ -537,7 +537,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	}
 
 end:
-	if (reply) {
+	if (replyDirect) {
 		AdcCommand c(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, "Succeed", AdcCommand::TYPE_DIRECT);
 		c.setTo(aUser.getIdentity().getSID());
 		c.addParam("FC", adc.getFourCC());
