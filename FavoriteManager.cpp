@@ -176,7 +176,9 @@ void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
 	string nick = Util::emptyString;
 
 	//prefer to use the add nick
-	OnlineUser* ou = ClientManager::getInstance()->findOnlineUser(aUser.user->getCID(), aUser.hint);
+	ClientManager* cm = ClientManager::getInstance();
+	cm->lockRead();
+	OnlineUser* ou = cm->findOnlineUser(aUser.user->getCID(), aUser.hint);
 	if(!ou) {
 		StringList nicks = move(ClientManager::getInstance()->getNicks(aUser.user->getCID()));  
 		if(!nicks.empty())
@@ -184,6 +186,7 @@ void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
 	} else {
 		nick = ou->getIdentity().getNick();
 	}
+	cm->unlockRead();
 
 	FavoriteUser fu = FavoriteUser(aUser, nick, aUser.hint, aUser.user->getCID().toBase32());
 	{
