@@ -60,30 +60,23 @@ public:
 	}*/
 
 	typename std::vector<T>::iterator find(const keyType& aKey) {
-		const size_t s_start = 0;
-		const size_t vec_size = size();
-		if (vec_size == 0)
-			return end();
-
-		auto pos = binary_search(s_start, vec_size-1, aKey);
+		auto pos = binary_search(0, size()-1, aKey);
 		return (pos != -1) ? begin()+pos : end();
 	}
 
-	int binary_search(size_t start, size_t end, const keyType& key) {
-		if(start > end) {
-			return -1;
+	int binary_search(int left, int right, const keyType& key) {
+		while (left <= right) {
+			int middle = (left + right) / 2;
+
+			auto res = key.compare(NameOperator()((*(begin() + middle))));
+			if (res == 0)
+				return middle;
+			else if (res < 0)
+				right = middle - 1;
+			else
+				left = middle + 1;
 		}
-
-		size_t middle = start + ((end - start) / 2);
-
-		auto res = key.compare(NameOperator()((*(begin() + middle))));
-		if(res == 0) {
-			return middle;
-		} else if(res < 0) {
-			return binary_search(start, middle - 1, key);
-		}
-
-		return binary_search(middle + 1, end, key);
+		return -1;
 	}
 private:
 
