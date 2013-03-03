@@ -1284,8 +1284,6 @@ void ShareManager::Directory::addBloom(ShareBloom& aBloom) const {
 }
 
 void ShareManager::updateIndices(Directory& dir, ShareBloom& aBloom) {
-	dir.size = 0;
-
 	// add to bloom
 	dir.addBloom(aBloom);
 
@@ -1570,8 +1568,9 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 
 void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 	ProfileTokenSet dirtyProfiles;
-	bool rebuildIncides = false;
 	StringList stopHashing;
+
+	bool isCacheDirty = false;
 
 	{
 		WLock l (cs);
@@ -1595,28 +1594,34 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 						continue;
 					}
 
-					removeDir(*sd);
+					cleanIndices(*sd);
+					isCacheDirty = true;
 
-					//no parent directories, check if we have any child roots for other profiles inside this tree and get the most top one
-					Directory::Ptr subDir = nullptr;
+					//no parent directories, get all child roots for this
+					DirectoryList subDirs;
 					for(auto& sdp: rootPaths) {
-						if(strnicmp(rd->path, sdp.first, rd->path.length()) == 0 && (!subDir || sdp.first.length() < subDir->getProfileDir()->getPath().length())) {
-							subDir = sdp.second;
+						if(AirUtil::isSub(sdp.first, rd->path)) {
+							subDirs.push_back(sdp.second);
 						}
 					}
 
-					if (subDir) {
-						//this dir becomes the new parent
-						subDir->setParent(nullptr);
+					//check the folder levels
+					size_t minLen = UNC_MAX_PATH;
+					for (auto& d: subDirs) {
+						minLen = min(Util::getParentDir(d->getProfileDir()->getPath()).length(), minLen);
 					}
 
-					rebuildIncides = true;
+					//update our new parents
+					for (auto& d: subDirs) {
+						if (Util::getParentDir(d->getProfileDir()->getPath()).length() == minLen) {
+							d->setParent(nullptr);
+							d->getProfileDir()->bloom.reset(new ShareBloom(1<<20));
+							updateIndices(*d, *d->getProfileDir()->bloom.get());
+						}
+					}
 				}
 			}
 		}
-
-		if (rebuildIncides)
-			rebuildIndices();
 	}
 
 	if (stopHashing.size() == 1)
@@ -1629,7 +1634,7 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 	}
 
 	rebuildTotalExcludes();
-	setDirty(dirtyProfiles, rebuildIncides);
+	setDirty(dirtyProfiles, isCacheDirty);
 }
 
 void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs)  {
@@ -1781,25 +1786,21 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			}
 		});
 
+		if (aShutdown)
+			goto end;
+
 		int64_t totalHash=0;
 
 		//append the changes
 		{		
 			WLock l(cs);
 			if(t.first != REFRESH_ALL) {
-				//recursively remove the content of this dir from TTHIndex and dir name list
-				for(auto& i: refreshDirs) {
-					cleanIndices(*i.oldRoot);
-				}
-			}
-
-			if(t.first != REFRESH_ALL) {
 				for(auto& ri: refreshDirs) {
 					//remove all dupe root paths
 					for(auto i = rootPaths.begin(); i != rootPaths.end(); ) {
 						if (AirUtil::isParentOrExact(ri.path, i->first)) {
-							if (compare(ri.path, i->first) == 0) {
-								//recursively remove the content of this dir from TTHIndex and dir name list (not needed for sub roots)
+							if (ri.path == i->first || (ri.oldRoot->directories.empty() && ri.oldRoot->files.empty())) {
+								//recursively remove the content of this dir from TTHIndex and dir name list (not needed for sub roots unless we are adding a new parent)
 								cleanIndices(*ri.oldRoot);
 							}
 
@@ -1824,7 +1825,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 				tthIndex.swap(newTTHs);
 
 				sharedSize = totalAdded;
-				rebuildIndices();
 			}
 		}
 
@@ -1835,7 +1835,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 		reportTaskStatus(t.first, task->dirs, true, totalHash, task->displayName, task->type);
 	}
 
-//end:
+end:
 	{
 		WLock l (dirNames);
 		bundleDirs.clear();
@@ -2691,6 +2691,9 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 }
 
 void ShareManager::cleanIndices(Directory& dir, const Directory::File::Set::iterator& i) {
+	dir.size -= (*i).getSize();
+	sharedSize -= (*i).getSize();
+
 	auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
 	if (distance(flst.first, flst.second) == 1) {
 		tthIndex.erase(flst.first);
@@ -2708,8 +2711,6 @@ void ShareManager::cleanIndices(Directory& dir) {
 		cleanIndices(*d);
 		removeDir(*d);
 	}
-
-	sharedSize -= dir.size;
 
 	for(auto i = dir.files.begin(); i != dir.files.end(); ++i) {
 		cleanIndices(dir, i);
