@@ -246,6 +246,8 @@ public:
 	const ShareProfileList& getProfiles() { return shareProfiles; }
 	void getExcludes(ProfileToken aProfile, StringList& excludes);
 private:
+	typedef BloomFilter<5> ShareBloom;
+
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
 		public:
 			typedef boost::intrusive_ptr<ProfileDirectory> Ptr;
@@ -280,6 +282,8 @@ private:
 			bool removeRootProfile(ProfileToken aProfile);
 			bool removeExcludedProfile(ProfileToken aProfile);
 			string getName(ProfileToken aProfile) const;
+
+			unique_ptr<ShareBloom> bloom;
 	};
 
 	struct FileListDir;
@@ -308,7 +312,7 @@ private:
 			~File();
 
 			bool operator==(const File& rhs) const {
-				return stricmp(getNameLower(), rhs.getNameLower()) == 0;
+				return getNameLower().compare(rhs.getNameLower()) == 0 && parent == rhs.getParent();
 			}
 		
 			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + getName(); }
@@ -398,6 +402,10 @@ private:
 		const string& getRealNameLower() const { return realNameLower; }
 
 		File::Set::const_iterator findFile(const string& aName) const;
+
+		void addBloom(ShareBloom& aBloom) const;
+		bool matchBloom(const StringSearch::List& aSearches) const;
+		ShareBloom& getBloom() const;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
@@ -425,7 +433,7 @@ private:
 	};
 
 	int addTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
-	void removeDir(Directory::Ptr aDir);
+	void removeDir(Directory& aDir);
 	Directory::Ptr getDirByName(const string& directory) const;
 
 	/* Directory items mapped to realpath*/
@@ -487,8 +495,6 @@ private:
 
 	int refreshOptions;
 
-	BloomFilter<5> bloom;
-
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
@@ -501,13 +507,42 @@ private:
 	DirMap rootPaths;
 	DirMultiMap dirNameMap;
 
-	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize);
+	class RefreshInfo {
+	public:
+		RefreshInfo(const string& aPath, Directory::Ptr aOldRoot);
+		~RefreshInfo();
+
+		Directory::Ptr oldRoot;
+		Directory::Ptr root;
+		int64_t hashSize;
+		int64_t addedSize;
+		unique_ptr<ShareBloom> newBloom;
+		ProfileDirMap subProfiles;
+		DirMultiMap dirNameMapNew;
+		HashFileMap tthIndexNew;
+		DirMap rootPathsNew;
+		string path;
+
+		RefreshInfo(RefreshInfo&&);
+		RefreshInfo& operator=(RefreshInfo&&) { return *this; }
+	private:
+		RefreshInfo(const RefreshInfo&);
+		RefreshInfo& operator=(const RefreshInfo&);
+	};
+
+	typedef vector<RefreshInfo> RefreshInfoList;
+
+	void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded);
+
+
+	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
 	bool checkHidden(const string& aName) const;
 
 	void rebuildIndices();
-	void updateIndices(Directory& aDirectory);
-	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i);
-	void cleanIndices(Directory::Ptr& dir);
+	void updateIndices(Directory& aDirectory, ShareBloom& aBloom);
+	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i, ShareBloom& aBloom);
+	void cleanIndices(Directory& dir);
+	void cleanIndices(Directory& dir, const Directory::File::Set::iterator& i);
 
 	void onFileHashed(const string& fname, HashedFilePtr& fileInfo);
 	
