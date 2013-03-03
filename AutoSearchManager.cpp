@@ -89,6 +89,17 @@ bool AutoSearch::allowNewItems() const {
 
 void AutoSearch::changeNumber(bool increase) {
 	if (usingIncrementation()) {
+		for (auto i = bundles.begin(); i != bundles.end(); ) {
+			if (i->second == STATUS_QUEUED_OK) {
+				i++;
+			} else {
+				if (Util::fileExists(i->first->getTarget())) {
+					addPath(i->first->getTarget(), GET_TIME());
+				}
+				i = bundles.erase(i);
+			}
+		}
+
 		lastIncFinish = 0;
 		increase ? curNumber++ : curNumber--;
 		updatePattern();
@@ -201,8 +212,8 @@ string AutoSearch::getSearchingStatus() const {
 			return STRING(INACTIVE_QUEUED);
 		} else if (status == STATUS_FAILED_MISSING) {
 			return STRING_F(BUNDLE_X_FILES_MISSING, STRING(ACTIVE));
-		} else if (status == STATUS_FAILED_MISSING) {
-			return STRING(INACTIVE_QUEUED);
+		} else if (status == STATUS_FAILED_EXTRAS) {
+			return STRING_F(BUNDLE_X_EXTRA_FILES, STRING(INACTIVE));
 		}
 	}
 
@@ -421,6 +432,7 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) {
 void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) {
 	WLock l(cs);
 	as->changeNumber(increase);
+
 	as->updateStatus();
 	fire(AutoSearchManagerListener::UpdateItem(), as, true);
 }
