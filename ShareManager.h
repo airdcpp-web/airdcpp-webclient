@@ -433,7 +433,6 @@ private:
 	};
 
 	int addTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
-	void removeDir(Directory& aDir);
 	Directory::Ptr getDirByName(const string& directory) const;
 
 	/* Directory items mapped to realpath*/

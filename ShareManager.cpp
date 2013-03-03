@@ -124,7 +124,6 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 void ShareManager::abortRefresh() {
 	//abort buildtree and refresh, we are shutting down.
 	aShutdown = true;
-	//join(); would slow down closing at this point.
 }
 
 void ShareManager::shutdown(function<void (float)> progressF) {
@@ -886,7 +885,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		ShareLoader loader(profileDirs, countedStream, f.getSize(), progressF);
 		SimpleXMLReader(&loader).parse(countedStream);
 
-		dirNameMap = loader.dirs;
+		dirNameMap.swap(loader.dirs);
 		if (loader.hashSize > 0) {
 			LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(loader.hashSize)), LogManager::LOG_INFO);
 		}
@@ -1140,21 +1139,6 @@ bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
 	}
 
 	return false;
-}
-
-void ShareManager::removeDir(Directory& aDir) {
-	for(auto& d : aDir.directories)
-		removeDir(*d);
-
-	//LogManager::getInstance()->message("Removing dir " + aDir->getRealName() + (aDir->getParent() ? " (parent: " + aDir->getParent()->getRealName() + ")" : Util::emptyString), LogManager::LOG_INFO);
-
-	//speed this up a bit
-	auto directories = dirNameMap.equal_range(aDir.getRealName());
-	string realPath = aDir.getRealPath(false);
-	
-	auto p = find_if(directories | map_values, [&realPath](const Directory::Ptr& d) { return d->getRealPath(false) == realPath; });
-	if (p.base() != dirNameMap.end())
-		dirNameMap.erase(p.base());
 }
 
 void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
@@ -1796,12 +1780,15 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			WLock l(cs);
 			if(t.first != REFRESH_ALL) {
 				for(auto& ri: refreshDirs) {
-					//remove all dupe root paths
+					//recursively remove the content of this dir from TTHIndex and dir name list
+					cleanIndices(*ri.oldRoot);
+
+					//clear this path and its children from root paths
 					for(auto i = rootPaths.begin(); i != rootPaths.end(); ) {
 						if (AirUtil::isParentOrExact(ri.path, i->first)) {
-							if (ri.path == i->first || (ri.oldRoot->directories.empty() && ri.oldRoot->files.empty())) {
-								//recursively remove the content of this dir from TTHIndex and dir name list (not needed for sub roots unless we are adding a new parent)
-								cleanIndices(*ri.oldRoot);
+							if (t.first == ADD_DIR) {
+								//in case we are adding a new parent
+								cleanIndices(*i->second);
 							}
 
 							i = rootPaths.erase(i);
@@ -2709,9 +2696,17 @@ void ShareManager::cleanIndices(Directory& dir, const Directory::File::Set::iter
 void ShareManager::cleanIndices(Directory& dir) {
 	for(auto& d: dir.directories) {
 		cleanIndices(*d);
-		removeDir(*d);
 	}
 
+	//remove from the name map
+	auto directories = dirNameMap.equal_range(dir.getRealName());
+	auto p = find_if(directories | map_values, [&dir](const Directory::Ptr& d) { return d.get() == &dir; });
+	if (p.base() != dirNameMap.end())
+		dirNameMap.erase(p.base());
+	else
+		dcassert(0);
+
+	//remove all files
 	for(auto i = dir.files.begin(); i != dir.files.end(); ++i) {
 		cleanIndices(dir, i);
 	}
