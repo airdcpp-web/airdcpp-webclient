@@ -940,7 +940,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 		WLock l(cs);
 		auto p = searchResults.find(as->getToken());
 		if (p != searchResults.end()) {
-			results = move(p->second);
+			results.swap(p->second);
 			searchResults.erase(p);
 		}
 

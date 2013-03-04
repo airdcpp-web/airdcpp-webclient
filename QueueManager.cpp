@@ -2222,7 +2222,7 @@ void QueueManager::pickMatch(QueueItemPtr qi) {
 		WLock l(cs);
 		auto p = searchResults.find(qi->getTarget());
 		if (p != searchResults.end()) {
-			results = move(p->second);
+			results.swap(p->second);
 			searchResults.erase(p);
 		}
 

@@ -1397,10 +1397,12 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
 
-	size_t fileCount = SETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedFiles() : 0;
+	size_t fileCount = 0;
 	int64_t size = 0;
-	if (getShareProfile() != SP_HIDDEN)
+	if (getShareProfile() != SP_HIDDEN) {
+		fileCount = SETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedFiles() : 0;
 		ShareManager::getInstance()->getProfileInfo(getShareProfile(), size, fileCount);
+	}
 
 	addParam(lastInfoMap, c, "SS", Util::toString(size));
 	addParam(lastInfoMap, c, "SF", Util::toString(fileCount));

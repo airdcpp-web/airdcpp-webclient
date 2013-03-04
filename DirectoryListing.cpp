@@ -351,12 +351,12 @@ void DirectoryListing::Directory::search(SearchResultList& aResults, AdcSearch& 
 	if (aStrings.hasRoot) {
 		auto pos = find_if(files, [aStrings](File* aFile) { return aFile->getTTH() == aStrings.root; });
 		if (pos != files.end()) {
-			SearchResultPtr sr(new SearchResult(Util::toAdcFile(getPath())));
+			SearchResultPtr sr(new SearchResult(getPath()));
 			aResults.push_back(sr);
 		}
 	} else {
 		if(aStrings.matchesDirectory(name)) {
-			auto path = parent ? Util::toAdcFile(parent->getPath()) : "/";
+			auto path = parent ? parent->getPath() : Util::emptyString;
 			auto res = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getFile() == path; });
 			if (res == aResults.end() && aStrings.matchesSize(getTotalSize(false))) {
 				SearchResultPtr sr(new SearchResult(path));
@@ -367,7 +367,7 @@ void DirectoryListing::Directory::search(SearchResultList& aResults, AdcSearch& 
 		if(!aStrings.isDirectory) {
 			for(auto& f: files) {
 				if(aStrings.matchesFile(f->getName(), f->getSize())) {
-					SearchResultPtr sr(new SearchResult(Util::toAdcFile(getPath())));
+					SearchResultPtr sr(new SearchResult(getPath()));
 					aResults.push_back(sr);
 					break;
 				}
@@ -1041,6 +1041,9 @@ int DirectoryListing::run() {
 					try {
 						ShareManager::getInstance()->search(searchResults, *curSearch, 50, Util::toInt(fileName), CID(), s->directory);
 					} catch (...) { }
+
+					curResultCount = searchResults.size();
+					maxResultCount = searchResults.size();
 					endSearch(false);
 				} else if (partialList) {
 					SearchManager::getInstance()->addListener(this);
@@ -1053,6 +1056,9 @@ int DirectoryListing::run() {
 					const auto dir = (s->directory.empty()) ? root : findDirectory(Util::toNmdcFile(s->directory), root);
 					if (dir)
 						dir->search(searchResults, *curSearch, 100);
+
+					curResultCount = searchResults.size();
+					maxResultCount = searchResults.size();
 					endSearch(false);
 				}
 			}

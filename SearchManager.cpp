@@ -502,7 +502,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	}
 
 	// TODO: don't send replies to passive users
-	if(results.empty() && SETTING(USE_PARTIAL_SHARING)) {
+	if(results.empty() && SETTING(USE_PARTIAL_SHARING) && aProfile != SP_HIDDEN) {
 		string tth;
 		if(!adc.getParam("TR", 0, tth))
 			goto end;
