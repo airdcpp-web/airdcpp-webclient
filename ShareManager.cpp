@@ -754,8 +754,8 @@ static const string SHARE = "Share";
 static const string SVERSION = "Version";
 
 struct ShareLoader : public SimpleXMLReader::CallBack {
-	ShareLoader(ShareManager::ProfileDirMap& aDirs, const CountedInputStream<false>& countedStream, uint64_t fileSize, function<void (float)> progressF) : 
-		profileDirs(aDirs), 
+	ShareLoader(ShareManager::ProfileDirMap& aProfileDirs, ShareManager::DirMap& aRoots, const CountedInputStream<false>& countedStream, uint64_t fileSize, function<void (float)> progressF) : 
+		profileDirs(aProfileDirs), 
 		cur(nullptr), 
 		depth(0), 
 		blockNode(false), 
@@ -796,7 +796,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 					if(i != profileDirs.end()) {
 						cur->setProfileDir(i->second);
 						if (i->second->hasRoots())
-							ShareManager::getInstance()->addRoot(curDirPath, cur);
+							roots[Text::toLower(curDirPath)] = cur;
 					} else if (depth == 0) {
 						// Something wrong... all roots need to have profile directory
 						// Block the whole node so the directories won't be added in the dupe list
@@ -806,7 +806,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 						return;
 					}
 
-					dirs.emplace(name, cur);
+					dirNames.emplace(name, cur);
 					lastFileIter = cur->files.begin();
 				}
 			}
@@ -856,7 +856,8 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 	}
 
 	int64_t hashSize;
-	ShareManager::DirMultiMap dirs;
+	ShareManager::DirMultiMap dirNames;
+	ShareManager::DirMap roots;
 private:
 	ShareManager::ProfileDirMap& profileDirs;
 
@@ -882,10 +883,12 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		dcpp::File f(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml", dcpp::File::READ, dcpp::File::OPEN, false);
 		CountedInputStream<false> countedStream(&f);
 
-		ShareLoader loader(profileDirs, countedStream, f.getSize(), progressF);
+		ShareLoader loader(profileDirs, rootPaths, countedStream, f.getSize(), progressF);
 		SimpleXMLReader(&loader).parse(countedStream);
 
-		dirNameMap.swap(loader.dirs);
+		dirNameMap.swap(loader.dirNames);
+		rootPaths.swap(loader.roots);
+
 		if (loader.hashSize > 0) {
 			LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(loader.hashSize)), LogManager::LOG_INFO);
 		}
@@ -1519,9 +1522,11 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 						dir = findDirectory(sdiPath, true, true, false);
 						if (dir) {
 							auto root = ProfileDirectory::Ptr(new ProfileDirectory(sdiPath, d->vname, d->profile, d->incoming));
+							dir->setProfileDir(root);
 							profileDirs[sdiPath] = root;
 							addRoot(sdiPath, dir);
-							refresh.push_back(*p); //refresh the top directory.....
+							if (find_if(aNewDirs, [p](const ShareDirInfoPtr& aSDI) { return stricmp(aSDI->path, *p) == 0; }) == aNewDirs.end())
+								refresh.push_back(*p); //refresh the top directory unless it's also added now.....
 						}
 					}
 				} else {
@@ -1531,6 +1536,7 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 					Directory::Ptr dp = Directory::create(Util::getLastDir(sdiPath), nullptr, findLastWrite(sdiPath), root);
 					addRoot(sdiPath, dp);
 					profileDirs[sdiPath] = root;
+					dirNameMap.emplace(dp->getRealName(), dp);
 					add.push_back(sdiPath);
 				}
 			}
@@ -2178,9 +2184,12 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> pr
 			progressF(0);
 
 		{
+			DirMap parents;
+
 			RLock l(cs);
 			int cur = 0;
-			for(const auto& d: rootPaths | map_values) {
+			getParents(parents);
+			for(const auto& d: parents | map_values) {
 				d->toXmlList(xmlFile, d->getProfileDir()->getPath(), indent, true);
 				if (progressF) {
 					cur++;
