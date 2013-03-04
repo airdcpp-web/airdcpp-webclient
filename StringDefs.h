@@ -1636,5 +1636,6 @@ enum Strings { // @DontAdd
 	PM_PERMISSION_DENIED, // "You aren't allowed to send private messages to this user"
 	MAIN_PERMISSION_DENIED, // "You aren't allowed to send messages to main chat"
 	INACTIVE, // "Inactive"
+	MULTILINE_INPUT, // "Multiline input area"
 	LAST // @DontAdd
 };

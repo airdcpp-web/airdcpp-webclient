@@ -1632,6 +1632,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "You aren't allowed to send private messages to this user", 
 "You aren't allowed to send messages to main chat", 
 "Inactive", 
+"Multiline input area", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3264,4 +3265,5 @@ std::string dcpp::ResourceManager::names[] = {
 "PmPermissionDenied", 
 "MainPermissionDenied", 
 "Inactive", 
+"MultilineInput", 
 };
