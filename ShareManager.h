@@ -133,9 +133,7 @@ public:
 	bool isRefreshing() {	return refreshRunning; }
 	
 	//need to be called from inside a lock.
-	//void setDirty(bool force = false);
-
-	void setDirty(ProfileTokenSet aProfiles, bool setCacheDirty, bool forceXmlRefresh=false);
+	void setProfilesDirty(ProfileTokenSet aProfiles, bool forceXmlRefresh=false);
 
 	void startup(function<void (const string&)> stepF, function<void (float)> progressF);
 	void shutdown(function<void (float)> progressF);
@@ -174,7 +172,7 @@ public:
 	
 	void getBloom(HashBloom& bloom) const;
 
-	SearchManager::TypeModes getType(const string& fileName) noexcept;
+	static SearchManager::TypeModes getType(const string& fileName) noexcept;
 
 	string validateVirtual(const string& /*aVirt*/) const noexcept;
 	void addHits(uint32_t aHits) {
@@ -260,6 +258,7 @@ private:
 			//lists the profiles where this directory is set as root and virtual names
 			GETSET(ProfileTokenStringMap, rootProfiles, RootProfiles);
 			GETSET(ProfileTokenSet, excludedProfiles, ExcludedProfiles);
+			GETSET(bool, cacheDirty, CacheDirty);
 
 			~ProfileDirectory() { }
 
@@ -284,6 +283,8 @@ private:
 			string getName(ProfileToken aProfile) const;
 
 			unique_ptr<ShareBloom> bloom;
+			string getCachePath() const;
+			string getCacheName() const;
 	};
 
 	struct FileListDir;
@@ -384,7 +385,7 @@ private:
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
 
 		//for file list caching
-		void toXmlList(OutputStream& xmlFile, const string& path, string& indent, bool addPath);
+		void toXmlList(OutputStream& xmlFile, string&& path, string& indent, string& tmp);
 
 		GETSET(uint32_t, lastWrite, LastWrite);
 		GETSET(Directory*, parent, Parent);
@@ -393,7 +394,7 @@ private:
 		Directory(const string& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
 		~Directory() { }
 
-		void copyRootProfiles(ProfileTokenSet& aProfiles) const;
+		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const;
 		bool isRootLevel(ProfileToken aProfile) const;
 		bool isLevelExcluded(ProfileToken aProfile) const;
 		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const;
@@ -473,10 +474,9 @@ private:
 	FileList* generateXmlList(ProfileToken aProfile, bool forced = false);
 	FileList* getFileList(ProfileToken aProfile) const;
 
-	bool ShareCacheDirty;
 	volatile bool aShutdown;
 
-	boost::regex rxxReg;
+	static boost::regex rxxReg;
 	
 	static atomic_flag refreshing;
 	bool refreshRunning;
@@ -508,7 +508,7 @@ private:
 
 	class RefreshInfo {
 	public:
-		RefreshInfo(const string& aPath, Directory::Ptr aOldRoot);
+		RefreshInfo(const string& aPath, Directory::Ptr aOldRoot, const string& loaderPath = Util::emptyString);
 		~RefreshInfo();
 
 		Directory::Ptr oldRoot;
@@ -520,7 +520,9 @@ private:
 		DirMultiMap dirNameMapNew;
 		HashFileMap tthIndexNew;
 		DirMap rootPathsNew;
-		string path;
+		//string path;
+
+		string loaderPath;
 
 		RefreshInfo(RefreshInfo&&);
 		RefreshInfo& operator=(RefreshInfo&&) { return *this; }
@@ -537,9 +539,9 @@ private:
 	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
 	bool checkHidden(const string& aName) const;
 
-	void rebuildIndices();
-	void updateIndices(Directory& aDirectory, ShareBloom& aBloom);
-	void updateIndices(Directory& dir, const Directory::File::Set::iterator& i, ShareBloom& aBloom);
+	//void rebuildIndices();
+	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames);
+	static void updateIndices(Directory& dir, const Directory::File::Set::iterator& i, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex);
 	void cleanIndices(Directory& dir);
 	void cleanIndices(Directory& dir, const Directory::File::Set::iterator& i);
 
