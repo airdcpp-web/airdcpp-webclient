@@ -284,7 +284,6 @@ private:
 
 			unique_ptr<ShareBloom> bloom;
 			string getCachePath() const;
-			string getCacheName() const;
 	};
 
 	struct FileListDir;
@@ -343,20 +342,20 @@ private:
 
 		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
 
-		struct DateCompare {
-			bool operator()(const Ptr left, const Ptr right) const {
-				return left->getLastWrite() < right->getLastWrite();
-			}
-		};
-
 		struct HasRootProfile {
 			HasRootProfile(ProfileToken aT) : t(aT) { }
-			bool operator()(const Ptr d) const {
+			bool operator()(const Ptr& d) const {
 				return d->getProfileDir()->hasRootProfile(t);
 			}
 			ProfileToken t;
 		private:
 			HasRootProfile& operator=(const HasRootProfile&);
+		};
+
+		struct IsParent {
+			bool operator()(const Ptr& d) const {
+				return !d->getParent();
+			}
 		};
 
 		bool hasType(uint32_t type) const noexcept {
@@ -439,7 +438,6 @@ private:
 	/* Directory items mapped to realpath*/
 	typedef map<string, Directory::Ptr> DirMap;
 
-	void getParents(DirMap& aDirs) const;
 	void addRoot(const string& aPath, Directory::Ptr& aDir);
 	DirMap::const_iterator findRoot(const string& aPath) const;
 

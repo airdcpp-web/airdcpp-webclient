@@ -858,8 +858,12 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 			auto rp = find_if(rootPaths | map_values, [&p](const Directory::Ptr& aDir) { return stricmp(aDir->getProfileDir()->getCachePath(), p) == 0; });
 			if (rp.base() != rootPaths.end()) {
 				ll.emplace_back(rp.base()->first, *rp, p);
+				continue;
 			}
 		}
+
+		//no use for extra files
+		File::deleteFile(p);
 	}
 
 
@@ -876,6 +880,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 
 			SimpleXMLReader(&loader).parse(f);
 		} catch(SimpleXMLException& e) {
+			LogManager::getInstance()->message("Error loading " + ri.loaderPath + ": "+  e.getError(), LogManager::LOG_ERROR);
 			hasFailed = true;
 			File::deleteFile(ri.loaderPath);
 		} catch(...) {
@@ -893,8 +898,13 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 
 	//apply the changes
 	int64_t hashSize = 0;
-	rootPaths.clear();
-	mergeRefreshChanges(ll, dirNameMap, rootPaths, tthIndex, hashSize, sharedSize);
+
+	DirMap newRoots;
+	mergeRefreshChanges(ll, dirNameMap, newRoots, tthIndex, hashSize, sharedSize);
+
+	for (auto& i: newRoots) {
+		rootPaths[i.first] = i.second;
+	}
 
 	if (hashSize > 0) {
 		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogManager::LOG_INFO);
@@ -1209,27 +1219,9 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			}
 
 			try {
-				/*if (SettingsManager::lanMode) {
-					//aDir->files.emplace(name, size, aDir, nullptr);
-					HashedFilePtr hf = new HashedFile(Text::toLower(name), TTHValue(), File::convertTime(&i->ftLastWriteTime));
-					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, hf)++;
-				} else*/ 
-				
 				if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) {
 					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, move(HashManager::getInstance()->getFileInfo(path, size)));
-
 					updateIndices(*aDir, lastFileIter++, aBloom, addedSize, tthIndexNew);
-
-					/*const Directory::File& f = *lastFileIter;
-					aDir->size += f.getSize();
-					addedSize += f.getSize();
-
-					aDir->addType(getType(f.getName()));
-
-					tthIndexNew.emplace(const_cast<TTHValue*>(&f.getTTH()), lastFileIter);*/
-
-					//lastFileIter++;
-					//aBloom.add(f.getNameLower());
 				} else {
 					hashSize += size;
 				}
@@ -1340,16 +1332,13 @@ int ShareManager::refresh(const string& aDir){
 int ShareManager::refresh(bool incoming, RefreshType aType, function<void (float)> progressF /*nullptr*/) {
 	StringList dirs;
 
-	DirMap parents;
 	{
 		RLock l (cs);
-		getParents(parents);
-	}
-
-	for(const auto& d: parents | map_values) {
-		if (incoming && !d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
-			continue;
-		dirs.push_back(d->getProfileDir()->getPath());
+		for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
+			if (incoming && !d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
+				continue;
+			dirs.push_back(d->getProfileDir()->getPath());
+		}
 	}
 
 	return addTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, aType, Util::emptyString, progressF);
@@ -1435,13 +1424,6 @@ int ShareManager::addTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshT
 	}
 
 	return REFRESH_STARTED;
-}
-
-void ShareManager::getParents(DirMap& aDirs) const {
-	for(const auto& s: rootPaths) {
-		if (find_if(rootPaths | map_keys, [&s](const string& path) { return AirUtil::isSub(s.first, path); } ).base() == rootPaths.end())
-			aDirs.insert(s);
-	}
 }
 
 void ShareManager::getParentPaths(StringList& aDirs) const {
@@ -2158,10 +2140,6 @@ string ShareManager::ProfileDirectory::getCachePath() const {
 	return Util::validateFileName(Util::getPath(Util::PATH_SHARECACHE) + "ShareCache_" + Util::cleanPathChars(path) + ".xml");
 }
 
-string ShareManager::ProfileDirectory::getCacheName() const {
-	return Util::validateFileName(path);
-}
-
 #define LITERAL(n) n, sizeof(n)-1
 
 void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> progressF /*nullptr*/) {
@@ -2174,57 +2152,54 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> pr
 	if (progressF)
 		progressF(0);
 
-	//string rootPath = Util::getPath(Util::PATH_SHARECACHE);
+	int cur = 0;
+
 	{
-		DirMap parents;
-
 		RLock l(cs);
-		int cur = 0;
-		getParents(parents);
-		const int dirtyCount = boost::count_if(parents | map_values, [](const Directory::Ptr& aDir) { return aDir->getProfileDir()->getCacheDirty(); });
+		const int dirtyCount = boost::count_if(rootPaths | map_values, [](const Directory::Ptr& aDir) { return aDir->getProfileDir()->getCacheDirty(); });
 
-		for(const auto& d: parents | map_values) {
-			if (!d->getProfileDir()->getCacheDirty())
-				continue;
+		concurrency::parallel_for_each(rootPaths.begin(), rootPaths.end(), [&](const pair<string, Directory::Ptr>& dp) {
+			if (dp.second->getProfileDir()->getCacheDirty() && !dp.second->getParent()) {
+				auto& d = dp.second;
+				string path = d->getProfileDir()->getCachePath();
+				try {
+					string indent, tmp;
 
-			string path = d->getProfileDir()->getCachePath();
-			try {
-				string indent, tmp;
+					//create a backup first in case we get interrupted on creation.
+					File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
+					BufferedOutputStream<false> xmlFile(&ff);
 
-				//create a backup first in case we get interrupted on creation.
-				File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
-				BufferedOutputStream<false> xmlFile(&ff);
+					xmlFile.write(SimpleXML::utf8Header);
+					xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
+					xmlFile.write(LITERAL("\" Path=\""));
+					xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
 
-				xmlFile.write(SimpleXML::utf8Header);
-				xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
-				xmlFile.write(LITERAL("\" Path=\""));
-				xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
+					xmlFile.write(LITERAL("\" Date=\""));
+					xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
+					xmlFile.write(LITERAL("\">\r\n"));
+					indent +='\t';
 
-				xmlFile.write(LITERAL("\" Date=\""));
-				xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
-				xmlFile.write(LITERAL("\">\r\n"));
-				indent +='\t';
+					for(const auto& child: d->directories) {
+						child->toXmlList(xmlFile, d->getProfileDir()->getPath() + child->getRealName() + PATH_SEPARATOR, indent, tmp);
+					}
 
-				for(const auto& child: d->directories) {
-					child->toXmlList(xmlFile, d->getProfileDir()->getPath() + child->getRealName() + PATH_SEPARATOR, indent, tmp);
+					xmlFile.write(LITERAL("</Share>"));
+					xmlFile.flush();
+					ff.close();
+
+					File::deleteFile(path);
+					File::renameFile(path + ".tmp", path);
+				} catch(Exception& e){
+					LogManager::getInstance()->message("Error saving " + path + ": " + e.getError(), LogManager::LOG_WARNING);
 				}
 
-				xmlFile.write(LITERAL("</Share>"));
-				xmlFile.flush();
-				ff.close();
-
-				File::deleteFile(path);
-				File::renameFile(path + ".tmp", path);
-			} catch(Exception& e){
-				LogManager::getInstance()->message("Error saving " + path + ": " + e.getError(), LogManager::LOG_WARNING);
+				d->getProfileDir()->setCacheDirty(false);
+				if (progressF) {
+					cur++;
+					progressF(static_cast<float>(cur) / static_cast<float>(dirtyCount));
+				}
 			}
-
-			d->getProfileDir()->setCacheDirty(false);
-			if (progressF) {
-				cur++;
-				progressF(static_cast<float>(cur) / static_cast<float>(dirtyCount));
-			}
-		}
+		});
 	}
 
 	xml_saving = false;
@@ -2938,12 +2913,10 @@ void ShareManager::rebuildTotalExcludes() {
 
 vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noexcept {
 	vector<pair<string, StringList>> ret;
-	DirMap parents;
 	
 	{
 		RLock l (cs);
-		getParents(parents);
-		for(const auto& d: parents | map_values) {
+		for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
 			for(const auto& vName: d->getProfileDir()->getRootProfiles() | map_values) {
 				auto retVirtual = find_if(ret, CompareFirst<string, StringList>(vName));
 
