@@ -426,4 +426,13 @@ string OnlineUser::getLogPath() {
 	return LogManager::getInstance()->getPath(LogManager::PM, params);
 }
 
+void User::addQueued(int64_t inc) {
+	queued += inc;
+}
+
+void User::removeQueued(int64_t rm) {
+	queued -= rm;
+	dcassert(queued >= 0);
+}
+
 } // namespace dcpp

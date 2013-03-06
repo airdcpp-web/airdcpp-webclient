@@ -38,6 +38,7 @@ public:
 	typedef X<4> SourcesUpdated;
 	typedef X<5> StatusUpdated;
 	typedef X<6> PartialList;
+	typedef X<7> SourceFilesUpdated;
 
 	typedef X<8> RecheckStarted;
 	typedef X<9> RecheckNoFile;
@@ -70,6 +71,7 @@ public:
 	virtual void on(SourcesUpdated, const QueueItemPtr&) noexcept { }
 	virtual void on(StatusUpdated, const QueueItemPtr&) noexcept { }
 	virtual void on(PartialList, const HintedUser&, const string&, const string&) noexcept { }
+	virtual void on(SourceFilesUpdated, const UserPtr&) noexcept { }
 
 	virtual void on(BundleSources, const BundlePtr&) noexcept { }
 	virtual void on(BundleFinished, const BundlePtr&) noexcept { }

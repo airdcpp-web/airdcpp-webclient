@@ -50,7 +50,7 @@ public:
 		size_t operator()(const UserPtr& x) const { return ((size_t)(&(*x)))/sizeof(User); }
 	};
 
-	User(const CID& aCID) : cid(aCID), speed(0) { }
+	User(const CID& aCID) : cid(aCID), speed(0), queued(0) { }
 
 	~User() { }
 
@@ -69,7 +69,12 @@ public:
 		int64_t shared;
 	};
 	typedef vector<UserHubInfo> UserInfoList;
+
+	void addQueued(int64_t inc);
+	void removeQueued(int64_t inc);
+	int64_t getQueued() const { return queued; }
 private:
+	int64_t queued;
 	const CID cid;
 };
 

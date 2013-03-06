@@ -60,6 +60,20 @@ void BundleQueue::addBundle(BundlePtr& aBundle) {
 	}
 }
 
+void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const {
+	for(auto& b: bundles | map_values) {
+		const auto& sources = b->getSources();
+		auto s = find(sources.begin(), sources.end(), aUser);
+		if (s != sources.end())
+			aSources.emplace_back(b, *s);
+
+		const auto& badSources = b->getBadSources();
+		auto bs = find(badSources.begin(), badSources.end(), aUser);
+		if (bs != badSources.end())
+			aBad.emplace_back(b, *bs);
+	}
+}
+
 void BundleQueue::addSearchPrio(BundlePtr& aBundle) {
 	if (aBundle->getPriority() < Bundle::LOW) {
 		return;

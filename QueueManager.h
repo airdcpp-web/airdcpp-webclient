@@ -115,8 +115,8 @@ public:
 	QueueItem::SourceList getSources(const QueueItemPtr& qi) const { RLock l(cs); return qi->getSources(); }
 	QueueItem::SourceList getBadSources(const QueueItemPtr& qi) const { RLock l(cs); return qi->getBadSources(); }
 
-	Bundle::SourceInfoList getBundleSources(const BundlePtr& b) const { RLock l(cs); return b->getSources(); }
-	Bundle::SourceInfoList getBadBundleSources(const BundlePtr& b) const { RLock l(cs); return b->getBadSources(); }
+	Bundle::SourceList getBundleSources(const BundlePtr& b) const { RLock l(cs); return b->getSources(); }
+	Bundle::SourceList getBadBundleSources(const BundlePtr& b) const { RLock l(cs); return b->getBadSources(); }
 
 	size_t getSourcesCount(const QueueItemPtr& qi) const { RLock l(cs); return qi->getSources().size(); }
 	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
@@ -142,7 +142,7 @@ public:
 	MemoryInputStream* generateTTHList(const string& bundleToken, bool isInSharingHub);
 
 	//merging, adding, deletion
-	bool addBundle(BundlePtr& aBundle, bool loading = false);
+	bool addBundle(BundlePtr& aBundle, bool loading = false, const UserPtr& aUser = nullptr);
 	void readdBundle(BundlePtr& aBundle);
 	void connectBundleSources(BundlePtr& aBundle);
 	void mergeBundle(BundlePtr& targetBundle, BundlePtr& sourceBundle);
@@ -161,6 +161,8 @@ public:
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles);
 	void getForbiddenPaths(StringList& bundlePaths, const StringList& sharePaths);
+
+	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const;
 
 	BundlePtr getBundle(const string& bundleToken) { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth);

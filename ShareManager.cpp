@@ -1533,8 +1533,6 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 	ProfileTokenSet dirtyProfiles;
 	StringList stopHashing;
 
-	bool isCacheDirty = false;
-
 	{
 		WLock l (cs);
 		for(const auto& rd: aRemoveDirs) {
@@ -1560,8 +1558,6 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 					cleanIndices(*sd);
 					File::deleteFile(sd->getProfileDir()->getCachePath());
 
-					isCacheDirty = true;
-
 					//no parent directories, get all child roots for this
 					DirectoryList subDirs;
 					for(auto& sdp: rootPaths) {
@@ -1581,6 +1577,7 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 						if (Util::getParentDir(d->getProfileDir()->getPath()).length() == minLen) {
 							d->setParent(nullptr);
 							d->getProfileDir()->bloom.reset(new ShareBloom(1<<20));
+							d->getProfileDir()->setCacheDirty(true);
 							updateIndices(d, *d->getProfileDir()->bloom.get(), sharedSize, tthIndex, dirNameMap);
 						}
 					}

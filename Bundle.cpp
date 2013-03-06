@@ -299,11 +299,11 @@ bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) {
 }
 
 bool Bundle::isSource(const UserPtr& aUser) const {
-	return find_if(sources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != sources.end();
+	return find(sources, aUser) != sources.end();
 }
 
 bool Bundle::isBadSource(const UserPtr& aUser) const {
-	return find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; }) != badSources.end();
+	return find(badSources, aUser) != badSources.end();
 }
 
 void Bundle::addUserQueue(QueueItemPtr& qi) {
@@ -329,25 +329,25 @@ bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad 
 	}
 
 	if (isBad) {
-		auto i = find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+		auto i = find(badSources, aUser);
 		dcassert(i != badSources.end());
 		if (i != badSources.end()) {
-			get<SOURCE_FILES>(*i)--;
-			get<SOURCE_SIZE>(*i) -= qi->getSize();
+			(*i).files--;
+			(*i).size  -= qi->getSize();
 
-			if (get<SOURCE_FILES>(*i) == 0) {
+			if ((*i).files == 0) {
 				badSources.erase(i);
 			}
 		}
 	}
 
-	auto i = find_if(sources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st) == aUser; });
+	auto i = find(sources, aUser);
 	if (i != sources.end()) {
-		get<SOURCE_FILES>(*i)++;
-		get<SOURCE_SIZE>(*i) += qi->getSize();
+		(*i).files++;
+		(*i).size += qi->getSize();
 		return false;
 	} else {
-		sources.emplace_back(aUser, qi->getSize() - qi->getDownloadedSegments(), 1);
+		sources.emplace_back(aUser, qi->getSize() - qi->getDownloadedSegments());
 		return true;
 	}
 }
@@ -389,7 +389,7 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) {
 
 void Bundle::getSources(HintedUserList& l) const {
 	for(auto& st: sources) 
-		l.push_back(get<Bundle::SOURCE_USER>(st));
+		l.push_back(st.user);
 }
 
 void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
@@ -501,22 +501,23 @@ bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, bool addBad
 	}
 
 	//remove from bundle sources
-	auto m = find_if(sources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
+	auto m = find(sources, aUser);
 	dcassert(m != sources.end());
 
 	if (addBad) {
-		auto bsi = find_if(badSources, [&aUser](const SourceTuple& st) { return get<Bundle::SOURCE_USER>(st).user == aUser; });
+		auto bsi = find(badSources, aUser);
 		if (bsi == badSources.end()) {
-			badSources.emplace_back(get<SOURCE_USER>(*m), qi->getSize(), 1);
+			badSources.emplace_back((*m).user, qi->getSize());
 		} else {
-			get<SOURCE_FILES>(*bsi)++;
-			get<SOURCE_SIZE>(*bsi) += qi->getSize();
+			(*bsi).files++;
+			(*bsi).size += qi->getSize();
 		}
 	}
 
-	get<SOURCE_FILES>(*m)--;
-	get<SOURCE_SIZE>(*m) -= qi->getSize();
-	if (get<SOURCE_FILES>(*m) == 0) {
+	(*m).files--;
+	(*m).size  -= qi->getSize();
+
+	if ((*m).files == 0) {
 		sources.erase(m);
 		return true;
 	}
@@ -553,13 +554,11 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	int64_t bundleSpeed = 0;
 	double bundleSources = 0;
 	for (auto s: sources) {
-		UserPtr& user = get<SOURCE_USER>(s).user;
-		if (user->isOnline()) {
-			bundleSpeed += user->getSpeed();
-			bundleSources += get<SOURCE_FILES>(s);
-		} else {
-			bundleSources += get<SOURCE_FILES>(s);
+		if (s.user.user->isOnline()) {
+			bundleSpeed += s.user.user->getSpeed();
 		}
+
+		bundleSources += s.files;
 	}
 	bundleSources = bundleSources / queueItems.size();
 	return make_pair(bundleSpeed, bundleSources);
@@ -588,10 +587,10 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 
 int Bundle::countOnlineUsers() const noexcept {
 	int files=0, users=0;
-	for(const auto& i: sources) {
-		if(get<SOURCE_USER>(i).user->isOnline()) {
+	for(const auto& s: sources) {
+		if(s.user.user->isOnline()) {
 			users++;
-			files += get<SOURCE_FILES>(i);
+			files += s.files;
 		}
 	}
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));

@@ -47,6 +47,7 @@ void UserQueue::addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle 
 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
+		aUser.user->addQueued(qi->getSize());
 		if (bundle->addUserQueue(qi, aUser, isBadSource)) {
 			addBundle(bundle, aUser);
 			if (!newBundle) {
@@ -158,6 +159,8 @@ void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunn
 		if (!bundle->isSource(aUser)) {
 			return;
 		}
+
+		aUser->removeQueued(qi->getSize());
 		if (qi->getBundle()->removeUserQueue(qi, aUser, addBad)) {
 			removeBundle(bundle, aUser);
 			if (fireSources) {

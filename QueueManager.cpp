@@ -567,6 +567,7 @@ void QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 					if (aAutoSearch > 0)
 						as.insert(aAutoSearch);
 					aBundle = new Bundle(q, as);
+					fire(QueueManagerListener::SourceFilesUpdated(), aUser.user);
 				}
 			}
 		}
@@ -626,6 +627,8 @@ void QueueManager::readdQISource(const string& target, const HintedUser& aUser) 
 			wantConnection = addSource(q, aUser, QueueItem::Source::FLAG_MASK, Util::emptyString); //FIX
 		}
 	}
+
+	fire(QueueManagerListener::SourceFilesUpdated(), aUser.user);
 	if(wantConnection && aUser.user->isOnline())
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
@@ -649,6 +652,7 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 		}
 	}
 
+	fire(QueueManagerListener::SourceFilesUpdated(), aUser.user);
 	if(wantConnection && aUser.user->isOnline())
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
@@ -803,6 +807,9 @@ void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& n
 			}
 		}
 	}
+
+	fire(QueueManagerListener::SourceFilesUpdated(), dl.getUser());
+
 	//uint64_t end = GET_TICK();
 	//LogManager::getInstance()->message("List matched in " + Util::toString(end-start) + " ms WITHOUT buildMap");
 
@@ -1510,6 +1517,8 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 				}
 				matches++;
 			}
+
+			fire(QueueManagerListener::SourceFilesUpdated(), user.user);
 		}
 
 		if((matches > 0) && wantConnection)
@@ -1576,13 +1585,16 @@ void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
 }
 
 void QueueManager::removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
-	QueueItemPtr qi = NULL;
+	QueueItemPtr qi = nullptr;
 	{
 		RLock l(cs);
 		qi = fileQueue.findFile(aTarget);
 	}
-	if (qi)
+
+	if (qi) {
 		removeSource(qi, aUser, reason, removeConn);
+		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
+	}
 }
 
 void QueueManager::removeSource(QueueItemPtr& q, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
@@ -1640,6 +1652,8 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) no
 
 	for(auto& qi: ql) 
 		removeSource(qi, aUser, reason);
+
+	fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 }
 
 void QueueManager::setBundlePriority(const string& bundleToken, QueueItemBase::Priority p) noexcept {
@@ -1757,6 +1771,8 @@ void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) n
 		for(auto& qi: ql) {
 			removeSource(qi, aUser, QueueItem::Source::FLAG_REMOVED);
 		}
+
+		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 	}
 }
 
@@ -2269,6 +2285,9 @@ void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult
 						}
 					}
 				}
+
+				fire(QueueManagerListener::SourceFilesUpdated(), aResult->getUser());
+
 				if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
 					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(aResult->getUser())) + ": " + 
 						STRING_F(MATCH_SOURCE_ADDED, newFiles % aQI->getBundle()->getName().c_str()), LogManager::LOG_INFO);
@@ -2808,12 +2827,21 @@ bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int6
 	return qi->isChunkDownloaded(startPos, bytes);
 }
 
-bool QueueManager::addBundle(BundlePtr& aBundle, bool loading) {
+void QueueManager::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const {
+	RLock l(cs);
+	bundleQueue.getSourceInfo(aUser, aSources, aBad);
+}
+
+bool QueueManager::addBundle(BundlePtr& aBundle, bool loading /*false*/, const UserPtr& aUser /*nullptr*/) {
+	if (aUser)
+		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
+
 	if (aBundle->getQueueItems().empty()) {
 		return false;
 	}
 
-	BundlePtr oldBundle = NULL;
+
+	BundlePtr oldBundle = nullptr;
 	{
 		RLock l(cs);
 		oldBundle = bundleQueue.getMergeBundle(aBundle->getTarget());
@@ -2910,7 +2938,7 @@ void QueueManager::mergeBundle(BundlePtr& targetBundle, BundlePtr& sourceBundle)
 	//new bundle? we need to connect to sources then
 	if (sourceBundle->isSet(Bundle::FLAG_NEW)) {
 		for(auto& st: sourceBundle->getSources())
-			x.push_back(get<Bundle::SOURCE_USER>(st));
+			x.push_back(st.user);
 	}
 
 	int added = 0;
@@ -3582,6 +3610,8 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished, bool moved 
 	if (emptyBundle) {
 		removeBundle(bundle, finished, false, moved);
 	} else {
+		for (auto& aSource: qi->getSources())
+			fire(QueueManagerListener::SourceFilesUpdated(), aSource.getUser());
 		bundle->setDirty();
 	}
 }
@@ -3590,6 +3620,11 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 	if (aBundle->isSet(Bundle::FLAG_NEW)) {
 		return;
 	}
+
+	vector<UserPtr> sources;
+	for (auto& aSource: aBundle->getSources())
+		sources.push_back(aSource.user.user);
+
 
 	if (finished) {
 		aBundle->finishBundle();
@@ -3637,6 +3672,11 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 			AirUtil::removeIfEmpty(aBundle->getTarget());
 		}
 	}
+
+
+	for (const auto& aUser: sources)
+		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
+
 
 	QueueItemList removed;
 	{

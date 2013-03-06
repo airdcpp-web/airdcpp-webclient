@@ -22,6 +22,7 @@
 #include <string>
 #include <set>
 
+#include "HintedUser.h"
 #include "Pointer.h"
 #include "QueueItem.h"
 #include "User.h"
@@ -51,10 +52,14 @@ public:
 		FLAG_AUTODROP				= 0x400
 	};
 
-	enum SourceInfo {
-		SOURCE_USER					= 0,
-		SOURCE_SIZE					= 1,
-		SOURCE_FILES				= 2,
+	struct BundleSource {
+		BundleSource(const HintedUser& aUser, int64_t aSize) : user(aUser), size(aSize), files(1) { }
+
+		bool operator==(const UserPtr& aUser) const { return user == aUser; }
+
+		int64_t size;
+		int files;
+		HintedUser user;
 	};
 
 	struct Hash {
@@ -76,8 +81,9 @@ public:
 	typedef vector<pair<string, BundlePtr>> StringBundleList;
 
 	typedef boost::unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
-	typedef tuple<HintedUser, uint64_t, uint32_t> SourceTuple;
-	typedef vector<SourceTuple> SourceInfoList;
+	typedef vector<BundleSource> SourceList;
+	typedef vector<pair<BundlePtr, BundleSource>> SourceBundleList;
+
 	typedef pair<HintedUser, string> UserBundlePair;
 	typedef vector<UserBundlePair> FinishedNotifyList;
 	typedef boost::unordered_map<string, pair<uint32_t, uint32_t>> DirMap;
@@ -115,8 +121,8 @@ public:
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
 	GETSET(HintedUserList, uploadReports, UploadReports);	 // sources receiving UBN notifications (running only)
 	GETSET(DirMap, bundleDirs, BundleDirs);
-	GETSET(SourceInfoList, badSources, BadSources);
-	GETSET(SourceInfoList, sources, Sources);
+	GETSET(SourceList, badSources, BadSources);
+	GETSET(SourceList, sources, Sources);
 	GETSET(ProfileTokenSet, autoSearches, AutoSearches);
 
 	UserIntMap& getRunningUsers() { return runningUsers; }
@@ -125,8 +131,8 @@ public:
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
 	DirMap& getBundleDirs() { return bundleDirs; }
-	SourceInfoList& getBundleSources() { return sources; }
-	SourceInfoList& getBadSources() { return badSources; }
+	SourceList& getBundleSources() { return sources; }
+	SourceList& getBadSources() { return badSources; }
 	ProfileTokenSet& getAutoSearchess() { return autoSearches; }
 
 	/* Misc */

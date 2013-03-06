@@ -73,6 +73,8 @@ public:
 	void removeDirectory(const string& aPath);
 	Bundle::BundleDirMap::iterator findLocalDir(const string& aPath);
 	pair<string, BundlePtr> findRemoteDir(const string& aPath) const;
+
+	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const;
 private:
 	/** Bundles by priority (low-highest, for auto search) */
 	vector<BundlePtr> prioSearchQueue[Bundle::LAST];
