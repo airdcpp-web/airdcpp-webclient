@@ -80,6 +80,8 @@ private:
 	void startMapping(bool v6);
 	void mappingFinished(const string& mapper, bool v6);
 
+	void clearAutoSettings(bool v6, bool resetDefaults);
+
 	enum LogType {
 		TYPE_NORMAL,
 		TYPE_V4,

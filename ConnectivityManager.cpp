@@ -42,6 +42,17 @@ mapperV4(false)
 {
 }
 
+/*template<class T, typename SettingType>
+T get(SettingType setting) const {
+	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
+		auto i = autoSettings.find(setting);
+		if(i != autoSettings.end()) {
+			return boost::get<T>(i->second);
+		}
+	}
+	return SettingsManager::getInstance()->get(setting);
+}*/
+
 bool ConnectivityManager::get(SettingsManager::BoolSetting setting) const {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
 		auto i = autoSettings.find(setting);
@@ -80,6 +91,58 @@ void ConnectivityManager::set(SettingsManager::StrSetting setting, const string&
 	}
 }
 
+void ConnectivityManager::clearAutoSettings(bool v6, bool resetDefaults) {
+	int settings6[] = { SettingsManager::EXTERNAL_IP6, SettingsManager::BIND_ADDRESS6, 
+		SettingsManager::NO_IP_OVERRIDE6, SettingsManager::INCOMING_CONNECTIONS6 };
+
+	int settings4[] = { SettingsManager::EXTERNAL_IP, SettingsManager::NO_IP_OVERRIDE,
+		SettingsManager::BIND_ADDRESS, SettingsManager::INCOMING_CONNECTIONS };
+
+	int portSettings[] = { SettingsManager::TCP_PORT, SettingsManager::UDP_PORT,
+		SettingsManager::TLS_PORT };
+
+	auto setDefaults = [&] {
+		const auto& settings = v6 ? settings6 : settings4;
+		for(auto setting = settings[0]; setting != sizeof(settings); ++setting) {
+			if(setting >= SettingsManager::STR_FIRST && setting < SettingsManager::STR_LAST) {
+				autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::StrSetting>(setting));
+			} else if(setting >= SettingsManager::INT_FIRST && setting < SettingsManager::INT_LAST) {
+				autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::IntSetting>(setting));
+			} else if(setting >= SettingsManager::BOOL_FIRST && setting < SettingsManager::BOOL_LAST) {
+				autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::BoolSetting>(setting));
+			} else {
+				dcassert(0);
+			}
+		}
+	};
+
+	for(const auto setting: settings4) {
+		autoSettings.erase(setting);
+	}
+
+	auto clearSettings = [&] {
+		const auto& settings = v6 ? settings6 : settings4;
+		for(auto setting = settings[0]; setting != sizeof(settings); ++setting) {
+			autoSettings.erase(setting);
+		}
+	};
+
+	clearSettings();
+	if (resetDefaults) {
+		setDefaults();
+	}
+
+
+	if ((!SETTING(AUTO_DETECT_CONNECTION) && SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED) || (!SETTING(AUTO_DETECT_CONNECTION6) && SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED)) {
+		//we must prefer the configured port instead of default now...
+		for(const auto setting: portSettings)
+			autoSettings[setting] = SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(setting));
+	} else if (resetDefaults) {
+		for(const auto setting: portSettings)
+			autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::IntSetting>(setting));
+	}
+}
+
 void ConnectivityManager::detectConnection() {
 	if(isRunning())
 		return;
@@ -113,23 +176,10 @@ void ConnectivityManager::detectConnection() {
 	disconnect();
 
 	// restore auto settings to their default value.
-	int settings[] = { SettingsManager::TCP_PORT, SettingsManager::TLS_PORT, SettingsManager::UDP_PORT,
-		SettingsManager::EXTERNAL_IP, SettingsManager::EXTERNAL_IP6, SettingsManager::NO_IP_OVERRIDE,
-		SettingsManager::BIND_ADDRESS, SettingsManager::BIND_ADDRESS6,
-		SettingsManager::INCOMING_CONNECTIONS, SettingsManager::INCOMING_CONNECTIONS6, 
-		SettingsManager::OUTGOING_CONNECTIONS };
-
-	for(const auto setting: settings) {
-		if(setting >= SettingsManager::STR_FIRST && setting < SettingsManager::STR_LAST) {
-			autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::StrSetting>(setting));
-		} else if(setting >= SettingsManager::INT_FIRST && setting < SettingsManager::INT_LAST) {
-			autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::IntSetting>(setting));
-		} else if(setting >= SettingsManager::BOOL_FIRST && setting < SettingsManager::BOOL_LAST) {
-			autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::BoolSetting>(setting));
-		} else {
-			dcassert(0);
-		}
-	}
+	if (detectV6)
+		clearAutoSettings(true, true);
+	if (detectV4)
+		clearAutoSettings(false, true);
 
 	log(STRING(CONN_DETERMINING), LogManager::LOG_INFO, TYPE_BOTH);
 
@@ -209,15 +259,18 @@ void ConnectivityManager::setup(bool v4SettingsChanged, bool v6SettingsChanged) 
 		}
 	}*/
 
-	if (v4SettingsChanged || (autoDetectedV4 &&! autoDetect4))
+	if (v4SettingsChanged || (autoDetectedV4 && !autoDetect4))
 		mapperV4.close();
 
 	if (v6SettingsChanged || (autoDetectedV6 &&! autoDetect6))
 		mapperV6.close();
 
 
-	if((!autoDetect6 && autoDetectedV6) || (!autoDetect4 && autoDetectedV4)) {
-		autoSettings.clear();
+	if(!autoDetect6 && autoDetectedV6)
+		clearAutoSettings(true, false);
+		
+	if (!autoDetect4 && autoDetectedV4) {
+		clearAutoSettings(false, false);
 	}
 
 	bool autoDetect = false;
@@ -325,10 +378,10 @@ void ConnectivityManager::startMapping(bool v6) {
 }
 
 void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
-	if(SETTING(AUTO_DETECT_CONNECTION)) {
+	if((SETTING(AUTO_DETECT_CONNECTION) && !v6) || (SETTING(AUTO_DETECT_CONNECTION6) && v6)) {
 		if(mapper.empty()) {
 			//disconnect();
-			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
+			autoSettings[v6 ? SettingsManager::INCOMING_CONNECTIONS6 : SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
 			log(STRING(CONN_ACTIVE_FAILED), LogManager::LOG_WARNING, v6 ? TYPE_V6 : TYPE_V4);
 		} else {
 			SettingsManager::getInstance()->set(SettingsManager::MAPPER, mapper);

@@ -154,8 +154,9 @@ public:
 
 	//this caches the mode, taking into account what we support too
 	GETSET(Mode, connectMode, ConnectMode);
-	bool updateConnectMode(const Identity& me);
+	bool updateConnectMode(const Identity& me, const Client* aClient);
 
+	bool allowV4Connections() const;
 	bool allowV6Connections() const;
 private:
 	UserPtr user;

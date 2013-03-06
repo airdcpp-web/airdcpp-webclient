@@ -315,7 +315,7 @@ tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 	}
 }
 
-bool Identity::updateConnectMode(const Identity& me) {
+bool Identity::updateConnectMode(const Identity& me, const Client* aClient) {
 	Mode newMode = MODE_NOCONNECT_IP;
 	bool meSupports6 = !me.getIp6().empty();
 
@@ -333,7 +333,11 @@ bool Identity::updateConnectMode(const Identity& me) {
 	}
 
 	if (newMode == MODE_NOCONNECT_IP) {
-		if (!me.isTcpActive()) {
+		if (isTcp4Active() && aClient->get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED) {
+			newMode = MODE_ACTIVE_V4;
+		} else if (isTcp6Active() && aClient->get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED) {
+			newMode = MODE_ACTIVE_V6;
+		} else if (!me.isTcpActive()) {
 			//this user is passive with no NAT-T
 			if (!supports(AdcHub::NAT0_FEATURE)) {
 				newMode = MODE_NOCONNECT_PASSIVE;
@@ -352,7 +356,11 @@ bool Identity::updateConnectMode(const Identity& me) {
 }
 
 bool Identity::allowV6Connections() const {
-	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6 || connectMode == MODE_PASSIVE_V6_UNKNOWN ;
+	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6 || connectMode == MODE_PASSIVE_V6_UNKNOWN;
+}
+
+bool Identity::allowV4Connections() const {
+	return connectMode == MODE_PASSIVE_V4 || connectMode == MODE_ACTIVE_V4 || connectMode == MODE_PASSIVE_V4_UNKNOWN;
 }
 
 bool OnlineUser::update(int sortCol, const tstring& oldText) {

@@ -250,14 +250,14 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 		if (oldState != STATE_NORMAL || any_of(c.getParameters().begin(), c.getParameters().end(), [](const string& p) { return p.substr(0, 2) == "SU" || p.substr(0, 2) == "I4" || p.substr(0, 2) == "I6"; })) {
 			for(auto ou: users | map_values) {
-				if (ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity())) {
+				if (ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this)) {
 					fire(ClientListener::UserUpdated(), this, ou);
 				}
 			}
 		}
 	} else {
 		if (state == STATE_NORMAL)
-			u->getIdentity().updateConnectMode(getMyIdentity());
+			u->getIdentity().updateConnectMode(getMyIdentity(), this);
 	}
 
 	if(u->getIdentity().isHub()) {
@@ -981,7 +981,7 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, stri
 void AdcHub::connect(const OnlineUser& user, const string& token, bool secure) {
 	const string* proto = secure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
-	if(getMyIdentity().isTcpActive()) {
+	if((user.getIdentity().allowV6Connections() && getMyIdentity().isTcp6Active()) || (user.getIdentity().allowV4Connections() && getMyIdentity().isTcp4Active())) {
 		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(port.empty()) {
 			// Oops?

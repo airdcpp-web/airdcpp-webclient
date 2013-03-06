@@ -114,6 +114,8 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 	ShareProfilePtr hidden = ShareProfilePtr(new ShareProfile("Hidden", SP_HIDDEN));
 	shareProfiles.push_back(hidden);
 
+	setSkipList();
+
 	if(!loadCache(progressF)) {
 		if (splashF)
 			splashF(STRING(REFRESHING_SHARE));
@@ -121,7 +123,6 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 	}
 
 	rebuildTotalExcludes();
-	setSkipList();
 
 	TimerManager::getInstance()->addListener(this);
 }
@@ -856,7 +857,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	for(const auto& p: fileList) {
 		if (Util::getFileExt(p) == ".xml") {
 			auto rp = find_if(rootPaths | map_values, [&p](const Directory::Ptr& aDir) { return stricmp(aDir->getProfileDir()->getCachePath(), p) == 0; });
-			if (rp.base() != rootPaths.end()) {
+			if (rp.base() != rootPaths.end() && find_if(rootPaths | map_keys, [&](const string& path) { return AirUtil::isSub((*rp)->getProfileDir()->getPath(), path); } ).base() == rootPaths.end()) { //make sure that subdirs are never listed here...
 				ll.emplace_back(rp.base()->first, *rp, p);
 				continue;
 			}
@@ -1768,9 +1769,11 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 					//clear this path and its children from root paths
 					for(auto i = rootPaths.begin(); i != rootPaths.end(); ) {
 						if (AirUtil::isParentOrExact(ri.root->getProfileDir()->getPath(), i->first)) {
-							if (t.first == ADD_DIR) {
+							if (t.first == ADD_DIR && AirUtil::isSub(i->first, ri.root->getProfileDir()->getPath()) && !i->second->getParent()) {
 								//in case we are adding a new parent
+								File::deleteFile(i->second->getProfileDir()->getCachePath());
 								cleanIndices(*i->second);
+								i->second->getProfileDir()->bloom.reset(nullptr);
 							}
 
 							i = rootPaths.erase(i);
