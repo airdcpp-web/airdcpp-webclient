@@ -151,7 +151,7 @@ const string SettingsManager::settingTags[] =
 	"UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick",
 	"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
-	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "FavUsersOnlyFav", "LogAlreadyShared",
+	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold",
 	"SENTRY",
 	// Int64
@@ -724,7 +724,8 @@ SettingsManager::SettingsManager()
 	setDefault(AWAY_IDLE_TIME, 5);
 	setDefault(FREE_SPACE_WARN, true);
 	setDefault(FAV_USERS_SHOW_INFO, true);
-	setDefault(FAV_USERS_ONLY_FAV, true);
+	setDefault(USERS_FILTER_FAVORITE, false);
+	setDefault(USERS_FILTER_QUEUE, false);
 	setDefault(LOG_ALREADY_SHARED, true);
 
 	setDefault(HISTORY_SEARCH_MAX, 10);

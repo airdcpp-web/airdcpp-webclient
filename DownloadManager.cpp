@@ -478,7 +478,7 @@ void DownloadManager::noSlots(UserConnection* aSource, string param) {
 		return;
 	}
 
-	string extra = param.empty() ? Util::emptyString : " - " + STRING(QUEUED) + " " + param;
+	string extra = param.empty() ? Util::emptyString : " - " + STRING(QUEUED) + ": " + param;
 	failDownload(aSource, STRING(NO_SLOTS_AVAILABLE) + extra, false);
 }
 

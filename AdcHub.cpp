@@ -84,6 +84,18 @@ void AdcHub::shutdown() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
+size_t AdcHub::getUserCount() const { 
+	RLock l(cs); 
+	//return users.size();
+	size_t userCount = 0;
+	for(auto& i: users) {
+		if(!i.second->isHidden()) {
+			++userCount;
+		}
+	}
+	return userCount;
+}
+
 OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
 	OnlineUser* ou = findUser(aSID);
 	if(ou) {

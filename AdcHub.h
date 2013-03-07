@@ -50,7 +50,7 @@ public:
 
 	void constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, bool isDirect);
 
-	size_t getUserCount() const { RLock l(cs); return users.size(); }
+	size_t getUserCount() const;
 
 	static string escape(const string& str) { return AdcCommand::escape(str, false); }
 	bool send(const AdcCommand& cmd);

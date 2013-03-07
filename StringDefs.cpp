@@ -432,7 +432,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "It's a match!", 
 "It's not a match.", 
 "RegExp", 
-"Queued: ", 
 "Quick Connect", 
 "Rating", 
 "Ratio", 
@@ -1633,6 +1632,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "You aren't allowed to send messages to main chat", 
 "Inactive", 
 "Multiline input area", 
+"Queued", 
+"Queued bundle files", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2065,7 +2066,6 @@ std::string dcpp::ResourceManager::names[] = {
 "RegexpMatch", 
 "RegexpMismatch", 
 "Regexp", 
-"Queued", 
 "QuickConnect", 
 "Rating", 
 "Ratio", 
@@ -3266,4 +3266,6 @@ std::string dcpp::ResourceManager::names[] = {
 "MainPermissionDenied", 
 "Inactive", 
 "MultilineInput", 
+"Queued", 
+"BundlesQueued", 
 };

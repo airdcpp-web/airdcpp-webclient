@@ -435,7 +435,6 @@ enum Strings { // @DontAdd
 	REGEXP_MATCH, // "It's a match!"
 	REGEXP_MISMATCH, // "It's not a match."
 	REGEXP, // "RegExp"
-	QUEUED, // "Queued: "
 	QUICK_CONNECT, // "Quick Connect"
 	RATING, // "Rating"
 	RATIO, // "Ratio"
@@ -1637,5 +1636,7 @@ enum Strings { // @DontAdd
 	MAIN_PERMISSION_DENIED, // "You aren't allowed to send messages to main chat"
 	INACTIVE, // "Inactive"
 	MULTILINE_INPUT, // "Multiline input area"
+	QUEUED, // "Queued"
+	BUNDLES_QUEUED, // "Queued bundle files"
 	LAST // @DontAdd
 };
