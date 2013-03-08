@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 #include "UpdateManager.h"
+#include "version.h"
 
 #include <openssl/rsa.h>
 #include <openssl/objects.h>

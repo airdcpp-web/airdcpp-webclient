@@ -25,7 +25,6 @@
 #include "SimpleXML.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
-#include "version.h"
 
 namespace dcpp {
 

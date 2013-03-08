@@ -23,6 +23,7 @@
 #include "LogManager.h"
 #include "ClientManager.h"
 #include "File.h"
+#include "version.h"
 
 #ifdef HEADER_OPENSSLV_H
 # include <openssl/bn.h>

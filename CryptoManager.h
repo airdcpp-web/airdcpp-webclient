@@ -24,7 +24,6 @@
 #include "Exception.h"
 #include "Singleton.h"
 #include "FastAlloc.h"
-#include "version.h"
 #include "SSLSocket.h"
 
 namespace dcpp {

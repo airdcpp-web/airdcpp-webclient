@@ -21,7 +21,6 @@
 
 #include "Speaker.h"
 #include "Singleton.h"
-#include "version.h"
 #include "UpdateManagerListener.h"
 #include "HttpDownload.h"
 #include "TimerManager.h"
