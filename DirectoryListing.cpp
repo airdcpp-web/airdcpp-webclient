@@ -473,7 +473,7 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 	}
 
 	if (first) {
-		return QueueManager::getInstance()->addBundle(aBundle, hintedUser.user);
+		return QueueManager::getInstance()->addBundle(aBundle, false, hintedUser.user);
 	}
 	return true;
 }

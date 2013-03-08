@@ -2722,12 +2722,18 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 			return;
 		}
 
-		/* get rid of any existing crap we might have in the bundle directory and refresh it.
-		done at this point as the file and directory pointers should still be valid, if there are any */
-		cleanIndices(*dir);
+		if (!dir->files.empty() || !dir->files.empty()) {
+			/* get rid of any existing crap we might have in the bundle directory and refresh it.
+			done at this point as the file and directory pointers should still be valid, if there are any */
 
-		dir->files.clear();
-		dir->directories.clear();
+			cleanIndices(*dir);
+
+			//there went our dir..
+			dirNameMap.emplace(dir->getRealName(), dir);
+
+			dir->files.clear();
+			dir->directories.clear();
+		}
 
 		ProfileDirMap profileDirs;
 		DirMap newShares;

@@ -1044,8 +1044,10 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr& qi) {
 
 	if (SETTING(ADD_FINISHED_INSTANTLY)) {
 		hashBundle(b);
-	} else {
+	} else if (!qi->isSet(QueueItem::FLAG_PRIVATE)) {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
+	} else {
+		removeFinishedBundle(b);
 	}
 }
 
@@ -1120,11 +1122,25 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 			//all files have been hashed already?
 			checkBundleHashed(aBundle);
 		}
-	} else if (SETTING(ADD_FINISHED_INSTANTLY)) {
-		LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
+	} else if (!aBundle->getQueueItems().empty() && !aBundle->getQueueItems().front()->isSet(QueueItem::FLAG_PRIVATE)) {
+		if (SETTING(ADD_FINISHED_INSTANTLY)) {
+			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
+		} else {
+			LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
+		}
 	} else {
-		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
+		removeFinishedBundle(aBundle);
 	}
+}
+
+void QueueManager::removeFinishedBundle(BundlePtr& aBundle) {
+	WLock l(cs);
+	for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ) {
+		fileQueue.remove(*i);
+		i = aBundle->getFinishedFiles().erase(i);
+	}
+
+	bundleQueue.removeBundle(aBundle);
 }
 
 void QueueManager::onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, bool failed) {
@@ -1223,16 +1239,7 @@ void QueueManager::checkBundleHashed(BundlePtr b) {
 		}
 	}
 
-	{
-		WLock l(cs);
-		for(auto i = b->getFinishedFiles().begin(); i != b->getFinishedFiles().end(); ) {
-			fileQueue.remove(*i);
-			i = b->getFinishedFiles().erase(i);
-		}
-
-		//for_each(b->getFinishedFiles(), [&] (QueueItemPtr qi) { fileQueue.remove(qi); } );
-		bundleQueue.removeBundle(b);
-	}
+	removeFinishedBundle(b);
 }
 
 void QueueManager::moveStuckFile(QueueItemPtr& qi) {

@@ -304,6 +304,7 @@ private:
 	void checkBundleHashed(BundlePtr aBundle);
 	void onBundleStatusChanged(BundlePtr& aBundle, AutoSearch::Status aStatus);
 	void onBundleRemoved(BundlePtr& aBundle, bool finished);
+	void removeFinishedBundle(BundlePtr& aBundle);
 
 	bool replaceFinishedItem(QueueItemPtr qi);
 
