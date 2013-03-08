@@ -41,6 +41,8 @@
 #include "Wildcards.h"
 #include "AirUtil.h"
 
+#include "version.h"
+
 #include <boost/range/algorithm/remove_if.hpp>
 #include <boost/algorithm/cxx11/copy_if.hpp>
 #include <boost/range/algorithm/search.hpp>

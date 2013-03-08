@@ -20,15 +20,9 @@
 #define DCPLUSPLUS_DCPP_NMDC_HUB_H
 
 #include "TimerManager.h"
-#include "SettingsManager.h"
 
 #include "forward.h"
-#include "Text.h"
 #include "Client.h"
-#include "ConnectionManager.h"
-#include "UploadManager.h"
-#include "StringTokenizer.h"
-#include "ZUtils.h"
 #include "Search.h"
 
 namespace dcpp {
@@ -103,8 +97,8 @@ private:
 	void putUser(const string& aNick);
 	
 	// don't convert to UTF-8 if string is already in this encoding
-	string toUtf8(const string& str) const { return Text::validateUtf8(str) ? str : Text::toUtf8(str, getEncoding()); }
-	string fromUtf8(const string& str) const { return Text::fromUtf8(str, getEncoding()); }
+	string toUtf8(const string& str) const;
+	string fromUtf8(const string& str) const;
 
 	void privateMessage(const string& nick, const string& aMessage, bool thirdPerson);
 	void validateNick(const string& aNick) { send("$ValidateNick " + fromUtf8(aNick) + "|"); }

@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_SEARCH_MANAGER_LISTENER_H
 
 #include "forward.h"
+#include "noexcept.h"
 
 namespace dcpp {
 

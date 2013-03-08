@@ -23,6 +23,7 @@
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "Download.h"
+#include "File.h"
 #include "HashManager.h"
 #include "LogManager.h"
 #include "QueueItem.h"

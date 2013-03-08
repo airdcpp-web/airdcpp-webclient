@@ -29,7 +29,6 @@
 #include "OnlineUser.h"
 #include "Search.h"
 #include "SearchQueue.h"
-#include "ShareProfile.h"
 #include "Speaker.h"
 #include "TimerManager.h"
 #include "User.h"

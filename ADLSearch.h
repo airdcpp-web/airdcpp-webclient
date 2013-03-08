@@ -24,15 +24,9 @@
 #ifndef DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 #define DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 
-#include "SettingsManager.h"
-#include "ResourceManager.h"
-#include "FavoriteManager.h"
-
 #include "StringSearch.h"
-#include "StringTokenizer.h"
 #include "Singleton.h"
 #include "DirectoryListing.h"
-#include "LogManager.h"
 #include "StringMatch.h"
 
 namespace dcpp {

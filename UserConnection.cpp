@@ -156,6 +156,29 @@ void UserConnection::connect(const string& aServer, const string& aPort, const s
 	socket->connect(aServer, aPort, localPort, natRole, secure, SETTING(ALLOW_UNTRUSTED_CLIENTS), true);
 }
 
+int64_t UserConnection::getChunkSize() const {
+	int64_t min_seg_size = (SETTING(MIN_SEGMENT_SIZE)*1024);
+	if(chunkSize < min_seg_size) {
+		return min_seg_size;
+	}else{
+		return chunkSize; 
+	}
+}
+
+void UserConnection::maxedOut(size_t qPos /*0*/) {
+	bool sendPos = qPos > 0;
+
+	if(isSet(FLAG_NMDC)) {
+		send("$MaxedOut" + (sendPos ? (" " + Util::toString(qPos)) : Util::emptyString) + "|");
+	} else {
+		AdcCommand cmd(AdcCommand::SEV_RECOVERABLE, AdcCommand::ERROR_SLOTS_FULL, "Slots full");
+		if(sendPos) {
+			cmd.addParam("QP", Util::toString(qPos));
+		}
+		send(cmd);
+	}
+}
+
 void UserConnection::accept(const Socket& aServer) {
 	dcassert(!socket);
 	socket = BufferedSocket::getSocket(0);

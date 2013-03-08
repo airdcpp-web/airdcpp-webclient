@@ -21,7 +21,6 @@
 
 #include "typedefs.h"
 
-#include "SettingsManager.h"
 #include "Exception.h"
 
 namespace dcpp {

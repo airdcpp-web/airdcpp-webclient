@@ -36,6 +36,7 @@
 #include "QueueManager.h"
 #include "ZUtils.h"
 #include "ThrottleManager.h"
+#include "UploadManager.h"
 
 namespace dcpp {
 
@@ -46,6 +47,14 @@ NmdcHub::NmdcHub(const string& aHubURL) : Client(aHubURL, '|'), supportFlags(0),
 
 NmdcHub::~NmdcHub() {
 	clearUsers();
+}
+
+string NmdcHub::toUtf8(const string& str) const { 
+	return Text::validateUtf8(str) ? str : Text::toUtf8(str, getEncoding()); 
+}
+
+string NmdcHub::fromUtf8(const string& str) const { 
+	return Text::fromUtf8(str, getEncoding()); 
 }
 
 

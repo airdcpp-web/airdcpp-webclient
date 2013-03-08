@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SHARE_SCANNER_MANAGER_H_
 #define DCPLUSPLUS_DCPP_SHARE_SCANNER_MANAGER_H_
 
-#include "File.h"
+#include "Speaker.h"
 #include "Thread.h"
 #include "Singleton.h"
 #include <string>
