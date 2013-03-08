@@ -92,6 +92,9 @@ class AirUtil {
 		static void listRegexSubtract(StringList& l, const boost::regex& aReg);
 		static bool stringRegexMatch(const string& aReg, const string& aString);
 
+		static void getRegexMatches(const tstring& aString, TStringList& l, const boost::wregex& aReg);
+		static void getRegexMatches(const string& aString, StringList& l, const boost::regex& aReg);
+
 		static string formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial);
 
 		static void fileEvent(const string& tgt, bool file=false);
@@ -100,6 +103,8 @@ class AirUtil {
 
 		static const string getReleaseRegLong(bool chat);
 		static const string getReleaseRegBasic();
+
+		static const string getLinkUrl();
 
 		static void removeIfEmpty(const string& tgt);
 		static bool removeDirectoryIfEmpty(const string& tgt);

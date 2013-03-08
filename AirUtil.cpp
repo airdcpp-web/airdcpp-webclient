@@ -554,6 +554,34 @@ bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
 	return false;
 }
 
+void AirUtil::getRegexMatches(const tstring& aString, TStringList& l, const boost::wregex& aReg) {
+	auto start = aString.begin();
+	auto end = aString.end();
+	boost::match_results<tstring::const_iterator> result;
+	try {
+		while(boost::regex_search(start, end, result, aReg, boost::match_default)) {
+			l.emplace_back(tstring( result[0].first, result[0].second));
+			start = result[0].second;
+		}
+	} catch(...) { 
+		//...
+	}
+}
+
+void AirUtil::getRegexMatches(const string& aString, StringList& l, const boost::regex& aReg) {
+	auto start = aString.begin();
+	auto end = aString.end();
+	boost::match_results<string::const_iterator> result;
+	try {
+		while(boost::regex_search(start, end, result, aReg, boost::match_default)) {
+			l.emplace_back(string( result[0].first, result[0].second));
+			start = result[0].second;
+		}
+	} catch(...) { 
+		//...
+	}
+}
+
 bool AirUtil::isSub(const string& aDir, const string& aParent) {
 	/* returns true if aDir is a subdir of aParent */
 	return (aDir.length() > aParent.length() && (stricmp(aDir.substr(0, aParent.length()), aParent) == 0));
@@ -562,6 +590,10 @@ bool AirUtil::isSub(const string& aDir, const string& aParent) {
 bool AirUtil::isParentOrExact(const string& aDir, const string& aSub) {
 	/* returns true if aSub is a subdir of aDir OR both are the same dir */
 	return (aSub.length() >= aDir.length() && (stricmp(aSub.substr(0, aDir.length()), aDir) == 0));
+}
+
+const string AirUtil::getLinkUrl() {
+	return "(((?:[a-z][\\w-]{0,10})?:/{1,3}|www\\d{0,3}[.]|magnet:\\?[^\\s=]+=|spotify:|[a-z0-9.\\-]+[.][a-z]{2,4}/)(?:[^\\s()<>]+|\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\))+(?:\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\)|[^\\s`()\\[\\]{};:'\".,<>?«»“”‘’]))";
 }
 
 const string AirUtil::getReleaseRegLong(bool chat) {
@@ -621,14 +653,7 @@ bool AirUtil::isAdcHub(const string& hubUrl) {
 }
 
 bool AirUtil::isHubLink(const string& hubUrl) {
-	if(strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
-		return true;
-	} else if(strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
-		return true;
-	} else if(strnicmp("dchub://", hubUrl.c_str(), 8) == 0) {
-		return true;
-	}
-	return false;
+	return isAdcHub(hubUrl) || strnicmp("dchub://", hubUrl.c_str(), 8) == 0;
 }
 
 string AirUtil::convertMovePath(const string& aPath, const string& aParent, const string& aTarget) {
