@@ -1634,6 +1634,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Multiline input area", 
 "Queued", 
 "Queued bundle files", 
+"Detailed scanning results are shown in a separate tab.", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3268,4 +3269,5 @@ std::string dcpp::ResourceManager::names[] = {
 "MultilineInput", 
 "Queued", 
 "BundlesQueued", 
+"ScanResultNote", 
 };

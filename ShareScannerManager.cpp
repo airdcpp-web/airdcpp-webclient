@@ -168,9 +168,10 @@ int ShareScannerManager::run() {
 		QueueManager::getInstance()->getUnfinishedPaths(bundleDirs);
 		sort(bundleDirs.begin(), bundleDirs.end());
 
+		ScanType scanType = isDirScan ? TYPE_PARTIAL : TYPE_FULL;
 		ScanInfoList scanners;
 		for(auto& dir: rootPaths) {
-			scanners.emplace_back(dir, isDirScan ? TYPE_PARTIAL : TYPE_FULL);
+			scanners.emplace_back(dir, scanType);
 		}
 
 		concurrency::parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
@@ -188,7 +189,7 @@ int ShareScannerManager::run() {
 
 		if(!stop) {
 			//merge the results
-			ScanInfo total(Util::emptyString, isDirScan ? TYPE_PARTIAL : TYPE_FULL);
+			ScanInfo total(Util::emptyString, scanType);
 			for(auto& s: scanners) {
 				s.merge(total);
 			}
@@ -233,7 +234,7 @@ bool ShareScannerManager::matchSkipList(const string& dir) {
 }
 
 void ShareScannerManager::find(const string& aPath, ScanInfo& aScan) {
-	if(aPath.empty())
+	if(aPath.empty() || stop)
 		return;
 
 	string dir;
@@ -270,24 +271,27 @@ void ShareScannerManager::findDupes(const string& path, ScanInfo& aScan) throw(F
 	if(path.empty())
 		return;
 	
-	string dirName = Util::getLastDir(path);
+	string dirName = Text::toLower(Util::getLastDir(path));
 	string listfolder;
 
 	//only match release names here
 	if (!regex_match(dirName, releaseReg))
 		return;
 	
-	auto dupes = dupeDirs.equal_range(dirName);
-	if (dupes.first != dupes.second) {
-		aScan.dupesFound++;
+	{
+		WLock l(cs);
+		auto dupes = dupeDirs.equal_range(dirName);
+		if (dupes.first != dupes.second) {
+			aScan.dupesFound++;
 
-		//list all dupes here
-		for(auto k = dupes.first; k != dupes.second; ++k) {
-			reportMessage(STRING_F(X_IS_SAME_THAN, path % k->second), aScan, false);
+			//list all dupes here
+			for(auto k = dupes.first; k != dupes.second; ++k) {
+				reportMessage(STRING_F(X_IS_SAME_THAN, path % k->second), aScan, false);
+			}
 		}
-	}
 
-	dupeDirs.emplace(dirName, path);
+		dupeDirs.emplace(dirName, path);
+	}
 }
 
 StringList ShareScannerManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/, bool aMatchSkipList) {
@@ -720,7 +724,9 @@ void ShareScannerManager::ScanInfo::reportResults() const {
 		}
 
 		if ((scanType == TYPE_FINISHED || scanType == TYPE_FAILED_FINISHED) && SETTING(ADD_FINISHED_INSTANTLY)) {
-			tmp += str(boost::format(". " + STRING(FORCE_HASH_NOTIFICATION)) % rootPath);
+			tmp += ". " + STRING_F(FORCE_HASH_NOTIFICATION, rootPath);
+		} else if (scanType == TYPE_FULL || scanType == TYPE_PARTIAL) {
+			tmp += ". " + STRING(SCAN_RESULT_NOTE);
 		}
 	}
 

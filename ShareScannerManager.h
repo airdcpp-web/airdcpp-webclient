@@ -106,7 +106,7 @@ private:
 
 	int64_t scanFolderSize;
 	volatile bool stop;
-	boost::unordered_multimap<string, string, noCaseStringHash, noCaseStringEq> dupeDirs;
+	boost::unordered_multimap<string, string> dupeDirs;
 	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList);
 	void prepareSFVScanDir(const string& path, SFVScanList& dirs);
 	void prepareSFVScanFile(const string& path, StringList& files);
@@ -140,6 +140,8 @@ private:
 	void findDupes(const string& path, ScanInfo& aScan);
 
 	void reportMessage(const string& aMessage, ScanInfo& aScan, bool warning = true);
+
+	SharedMutex cs;
 };
 
 } // namespace dcpp

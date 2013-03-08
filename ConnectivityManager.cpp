@@ -103,7 +103,7 @@ void ConnectivityManager::clearAutoSettings(bool v6, bool resetDefaults) {
 
 	auto setDefaults = [&] {
 		const auto& settings = v6 ? settings6 : settings4;
-		for(auto setting = settings[0]; setting != sizeof(settings); ++setting) {
+		std::for_each(settings, settings + 4, [this](int setting) {
 			if(setting >= SettingsManager::STR_FIRST && setting < SettingsManager::STR_LAST) {
 				autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::StrSetting>(setting));
 			} else if(setting >= SettingsManager::INT_FIRST && setting < SettingsManager::INT_LAST) {
@@ -113,7 +113,7 @@ void ConnectivityManager::clearAutoSettings(bool v6, bool resetDefaults) {
 			} else {
 				dcassert(0);
 			}
-		}
+		});
 	};
 
 	for(const auto setting: settings4) {
@@ -321,7 +321,7 @@ string ConnectivityManager::getInformation() const {
 	string autoStatusV6 = ok(true) ? str(boost::format("enabled - %1%") % getStatus(true)) : "disabled";
 
 	auto getMode = [&](bool v6) -> string { 
-		switch(CONNSETTING(INCOMING_CONNECTIONS)) {
+		switch(v6 ? CONNSETTING(INCOMING_CONNECTIONS6) : CONNSETTING(INCOMING_CONNECTIONS)) {
 		case SettingsManager::INCOMING_ACTIVE:
 			{
 				return "Direct connection to the Internet (no router or manual router configuration)";

@@ -1638,5 +1638,6 @@ enum Strings { // @DontAdd
 	MULTILINE_INPUT, // "Multiline input area"
 	QUEUED, // "Queued"
 	BUNDLES_QUEUED, // "Queued bundle files"
+	SCAN_RESULT_NOTE, // "Detailed scanning results are shown in a separate tab."
 	LAST // @DontAdd
 };
