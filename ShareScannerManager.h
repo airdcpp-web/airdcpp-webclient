@@ -56,8 +56,6 @@ public:
 		TYPE_FAILED_FINISHED,
 	};
 
-	void find(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& dupesFound, int& noReleaseFiles, int& emptyFolders, ScanType scanType);
-	void scanDir(const string& path, int& missingFiles, int& missingSFV, int& missingNFO, int& extrasFound, int& noReleaseFiles, int& emptyFolders, ScanType scanType);
 	int scan(StringList paths = StringList(), bool sfv = false);
 	void scanBundle(BundlePtr aBundle, bool& hasMissing, bool& hasExtras);
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan);
@@ -108,17 +106,40 @@ private:
 
 	int64_t scanFolderSize;
 	volatile bool stop;
-	void findDupes(const string& path, int& dupesFound, ScanType scanType);
 	boost::unordered_multimap<string, string, noCaseStringHash, noCaseStringEq> dupeDirs;
 	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList);
 	void prepareSFVScanDir(const string& path, SFVScanList& dirs);
 	void prepareSFVScanFile(const string& path, StringList& files);
 	StringList bundleDirs;
 
-	void reportResults(const string& path, ScanType scanType, int missingFiles, int missingSFV, int missingNFO, int extrasFound, int noReleaseFiles, int emptyFolders, int dupesFound);
-	void reportMessage(const string& aMessage, ScanType scanType, bool warning = true);
+	struct ScanInfo {
+		ScanInfo(const string& aRootPath, ScanType aScanType) : rootPath(aRootPath), scanType(aScanType), missingFiles(0), missingSFV(0), missingNFO(0), extrasFound(0), noReleaseFiles(0), emptyFolders(0), dupesFound(0) {}
 
-	string scanReport;
+		int missingFiles;
+		int missingSFV;
+		int missingNFO;
+		int extrasFound;
+		int noReleaseFiles;
+		int emptyFolders;
+		int dupesFound;
+
+		ScanType scanType;
+		string rootPath;
+		string scanMessage;
+
+		void reportResults() const;
+		bool hasMissing() const;
+		bool hasExtras() const;
+		void merge(ScanInfo& collect) const;
+	};
+
+	typedef vector<ScanInfo> ScanInfoList;
+
+	void find(const string& path, ScanInfo& aScan);
+	void scanDir(const string& path, ScanInfo& aScan);
+	void findDupes(const string& path, ScanInfo& aScan);
+
+	void reportMessage(const string& aMessage, ScanInfo& aScan, bool warning = true);
 };
 
 } // namespace dcpp
