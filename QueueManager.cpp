@@ -1061,15 +1061,16 @@ bool QueueManager::scanBundle(BundlePtr& aBundle) {
 		aBundle->setFlag(Bundle::FLAG_SHARING_FAILED);
 		onBundleStatusChanged(aBundle, hasExtras ? AutoSearch::STATUS_FAILED_EXTRAS : AutoSearch::STATUS_FAILED_MISSING);
 		return false;
-	} /*else if (aBundle->isSet(Bundle::FLAG_SHARING_FAILED)) {
+	} else {
 		aBundle->unsetFlag(Bundle::FLAG_SHARING_FAILED);
+		onBundleRemoved(aBundle, true);
 		//onBundleStatusChanged(aBundle, AutoSearch::STATUS_QUEUED_OK);
-	}*/
+	}
 	return true;
 }
 
 void QueueManager::hashBundle(BundlePtr& aBundle) {
-	onBundleRemoved(aBundle, true);
+	//onBundleRemoved(aBundle, true);
 	if(ShareManager::getInstance()->allowAddDir(aBundle->getTarget())) {
 		aBundle->setFlag(Bundle::FLAG_HASH);
 		QueueItemList hash;
