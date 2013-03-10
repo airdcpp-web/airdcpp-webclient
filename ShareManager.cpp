@@ -379,14 +379,14 @@ bool ShareManager::ProfileDirectory::isExcluded(ProfileToken aProfile) const {
 	return !excludedProfiles.empty() && excludedProfiles.find(aProfile) != excludedProfiles.end();
 }
 
-ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, const string& aVname, ProfileToken aProfile, bool incoming /*false*/) : path(aRootPath), bloom(nullptr), cacheDirty(false) { 
+ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, const string& aVname, ProfileToken aProfile, bool incoming /*false*/) : path(aRootPath), bloom(new ShareBloom(5)), cacheDirty(false) { 
 	rootProfiles[aProfile] = aVname;
 	setFlag(FLAG_ROOT);
 	if (incoming)
 		setFlag(FLAG_INCOMING);
 }
 
-ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, ProfileToken aProfile) : path(aRootPath), bloom(nullptr), cacheDirty(false) {
+ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, ProfileToken aProfile) : path(aRootPath), bloom(new ShareBloom(5)), cacheDirty(false) {
 	excludedProfiles.insert(aProfile);
 	setFlag(FLAG_EXCLUDE_PROFILE);
 }
@@ -844,7 +844,6 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*");
 
-
 	if (fileList.empty()) {
 		if (Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"))	{
 			//delete the old cache
@@ -918,9 +917,6 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		if (p != newRoots.end()) {
 			rootPaths[i.first] = p->second;
 		} else {
-			//no cache for this root, set a temp bloom
-			i.second->getProfileDir()->bloom.reset(new ShareBloom(1<<20));
-
 			//add for refresh
 			refreshPaths.push_back(i.second->getProfileDir()->getPath());
 		}

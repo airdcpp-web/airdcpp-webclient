@@ -17,6 +17,7 @@
  */
 
 #include "stdinc.h"
+#include "version.h"
 
 #include "AdcCommand.h"
 #include "AdcHub.h"
@@ -28,7 +29,6 @@
 #include "Localization.h"
 #include "ShareManager.h"
 #include "StringTokenizer.h"
-#include "version.h"
 #include "Util.h"
 #include "UserCommand.h"
 #include "CryptoManager.h"
