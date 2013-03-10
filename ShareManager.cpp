@@ -854,12 +854,19 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	}
 
 	RefreshInfoList ll;
+	DirMap parents;
+
+	//get the parent dirs
+	for(const auto& p: rootPaths) {
+		if (find_if(rootPaths | map_keys, [&p](const string& path) { return AirUtil::isSub(p.second->getProfileDir()->getPath(), path); } ).base() == rootPaths.end())
+			parents.emplace(p);
+	}
 
 	//create the info dirs
 	for(const auto& p: fileList) {
 		if (Util::getFileExt(p) == ".xml") {
-			auto rp = find_if(rootPaths | map_values, [&p](const Directory::Ptr& aDir) { return stricmp(aDir->getProfileDir()->getCachePath(), p) == 0; });
-			if (rp.base() != rootPaths.end() && find_if(rootPaths | map_keys, [&](const string& path) { return AirUtil::isSub((*rp)->getProfileDir()->getPath(), path); } ).base() == rootPaths.end()) { //make sure that subdirs are never listed here...
+			auto rp = find_if(parents | map_values, [&p](const Directory::Ptr& aDir) { return stricmp(aDir->getProfileDir()->getCachePath(), p) == 0; });
+			if (rp.base() != parents.end()) { //make sure that subdirs are never listed here...
 				ll.emplace_back(rp.base()->first, *rp, p);
 				continue;
 			}
@@ -905,9 +912,21 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	DirMap newRoots;
 	mergeRefreshChanges(ll, dirNameMap, newRoots, tthIndex, hashSize, sharedSize);
 
-	for (auto& i: newRoots) {
-		rootPaths[i.first] = i.second;
+	StringList refreshPaths;
+	for (auto& i: parents) {
+		auto p = newRoots.find(i.first);
+		if (p != newRoots.end()) {
+			rootPaths[i.first] = p->second;
+		} else {
+			//no cache for this root, set a temp bloom
+			i.second->getProfileDir()->bloom.reset(new ShareBloom(1<<20));
+
+			//add for refresh
+			refreshPaths.push_back(i.second->getProfileDir()->getPath());
+		}
 	}
+
+	addTask(REFRESH_DIR, refreshPaths, TYPE_MANUAL, Util::emptyString);
 
 	if (hashSize > 0) {
 		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogManager::LOG_INFO);
@@ -1635,6 +1654,8 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 				msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, displayName) : STRING_F(FILE_LIST_REFRESH_INITIATED_VPATH, displayName);
 			} else if (directories.size() == 1) {
 				msg = finished ? STRING_F(DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
+			} else {
+				msg = finished ? STRING_F(X_DIRECTORIES_REFRESHED, directories.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_PATHS, directories.size());
 			}
 			break;
 		case(ADD_DIR):

@@ -1635,6 +1635,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Queued", 
 "Queued bundle files", 
 "Detailed scanning results are shown in a separate tab.", 
+"%d directories have been refreshed", 
+"File list refresh initiated for %d directories", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3270,4 +3272,6 @@ std::string dcpp::ResourceManager::names[] = {
 "Queued", 
 "BundlesQueued", 
 "ScanResultNote", 
+"XDirectoriesRefreshed", 
+"FileListRefreshInitiatedXPaths", 
 };

@@ -1639,5 +1639,7 @@ enum Strings { // @DontAdd
 	QUEUED, // "Queued"
 	BUNDLES_QUEUED, // "Queued bundle files"
 	SCAN_RESULT_NOTE, // "Detailed scanning results are shown in a separate tab."
+	X_DIRECTORIES_REFRESHED, // "%d directories have been refreshed"
+	FILE_LIST_REFRESH_INITIATED_X_PATHS, // "File list refresh initiated for %d directories"
 	LAST // @DontAdd
 };
