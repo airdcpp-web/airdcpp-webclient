@@ -255,7 +255,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				if (updating && !incomp)
 					list->baseDirs[baseLower + Text::toLower(n) + '/'] = make_pair(d, true); //recursive partial lists
 			} else {
-				if(!d->isComplete()) {
+				if(!incomp) {
 					d->setComplete();
 				}
 				d->setDate(Util::toUInt32(date));

@@ -33,7 +33,7 @@ namespace dcpp {
 
 
 void UserQueue::addQI(QueueItemPtr& qi, bool newBundle /*false*/) {
-	for(auto i: qi->getSources()) {
+	for(auto& i: qi->getSources()) {
 		addQI(qi, i.getUser(), newBundle);
 	}
 }

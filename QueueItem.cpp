@@ -675,8 +675,7 @@ void QueueItem::removeDownloads(const UserPtr& aUser) {
 	//erase all downloads from this user
 	for(auto i = downloads.begin(); i != downloads.end();) {
 		if((*i)->getUser() == aUser) {
-			downloads.erase(i);
-			i = downloads.begin();
+			i = downloads.erase(i);
 		} else {
 			i++;
 		}
