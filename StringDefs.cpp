@@ -1636,6 +1636,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Queued bundle files", 
 "Detailed scanning results are shown in a separate tab.", 
 "%d directories have been refreshed", 
+"Show Emoticon button in chat windows", 
+ "Show Multiline message button in chat windows", 
+ "Show Magnet button in chat windows", 
 "File list refresh initiated for %d directories", 
 };
 std::string dcpp::ResourceManager::names[] = {
@@ -3273,5 +3276,8 @@ std::string dcpp::ResourceManager::names[] = {
 "BundlesQueued", 
 "ScanResultNote", 
 "XDirectoriesRefreshed", 
+"ShowEmoticonButton", 
+"ShowMultilineButton", 
+"ShowMagnetButton", 
 "FileListRefreshInitiatedXPaths", 
 };

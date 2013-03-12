@@ -152,7 +152,7 @@ const string SettingsManager::settingTags[] =
 	"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
-	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold",
+	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -737,6 +737,9 @@ SettingsManager::SettingsManager()
 	setDefault(HISTORY_DIR_CLEAR, false);
 	setDefault(AUTOSEARCH_BOLD, true);
 	setDefault(LIST_VIEW_FONT, "");
+	setDefault(SHOW_EMOTICON, true);
+	setDefault(SHOW_MULTILINE, true);
+	setDefault(SHOW_MAGNET, true);
 
 	//set depending on the cpu count
 	SYSTEM_INFO info={{0}};
