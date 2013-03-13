@@ -23,6 +23,7 @@
 #include "noexcept.h"
 #include "Thread.h"
 
+#include "Bundle.h"
 #include "DirectoryListingListener.h"
 
 #include "ClientManagerListener.h"
@@ -145,6 +146,8 @@ public:
 		bool isComplete() const { return type == TYPE_ADLS || type == TYPE_NORMAL; }
 		void setComplete() { type = TYPE_NORMAL; }
 		bool getAdls() const { return type == TYPE_ADLS; }
+
+		void download(const string& aTarget, BundleFileList& aFiles);
 	};
 
 	class AdlDirectory : public Directory {
@@ -166,8 +169,10 @@ public:
 	int loadXML(InputStream& xml, bool updating, const string& aBase = "/");
 
 	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
-	bool downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio=QueueItem::DEFAULT, bool first=true, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch=0);
-	void download(File* aFile, const string& aTarget, bool view, QueueItemBase::Priority prio = QueueItem::DEFAULT, BundlePtr aBundle=NULL);
+	bool downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio=QueueItem::DEFAULT, ProfileToken aAutoSearch=0);
+	bool createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
+
+	void openFile(File* aFile, bool isClientView);
 
 	string getPath(const Directory* d) const;
 	string getPath(const File* f) const { return getPath(f->getParent()); }

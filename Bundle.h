@@ -22,6 +22,8 @@
 #include <string>
 #include <set>
 
+#include "HashValue.h"
+#include "TigerHash.h"
 #include "HintedUser.h"
 #include "Pointer.h"
 #include "QueueItem.h"
@@ -34,6 +36,16 @@
 namespace dcpp {
 
 using std::string;
+
+struct BundleFileInfo {
+	BundleFileInfo(const string& aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, QueueItemBase::Priority aPrio = QueueItemBase::DEFAULT) : file(aFile), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
+
+	string file;
+	TTHValue tth;
+	int64_t size;
+	QueueItemBase::Priority prio;
+	time_t date;
+};
 
 class Bundle : public QueueItemBase, public intrusive_ptr_base<Bundle> {
 public:
@@ -92,7 +104,7 @@ public:
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
 
-	Bundle(const string& target, time_t added, Priority aPriority, const ProfileTokenSet& aAutoSearch = ProfileTokenSet(), time_t aDirDate=0, const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
+	Bundle(const string& target, time_t added, Priority aPriority, const ProfileTokenSet& aAutoSearch = ProfileTokenSet(), time_t aDirDate=0, const string& aToken = Util::emptyString, bool aDirty = true, bool isFileBundle = false) noexcept;
 	Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches = ProfileTokenSet(), const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
 	~Bundle();
 

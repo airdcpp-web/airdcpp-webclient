@@ -61,9 +61,9 @@ Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, 
 		setFlag(FLAG_AUTODROP);
 }
 
-Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, const ProfileTokenSet& aAutoSearches /*empty*/, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/) : 
+Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, const ProfileTokenSet& aAutoSearches /*empty*/, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) : 
 	QueueItemBase(aTarget, 0, aPriority, aAdded, FLAG_NEW), 
-	fileBundle(false), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true),
+	fileBundle(isFileBundle), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true),
 	dirty(aDirty), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearches(aAutoSearches), lastSearch(0) {
 
 	if (aToken.empty()) {

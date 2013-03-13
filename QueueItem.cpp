@@ -650,6 +650,10 @@ bool QueueItem::startDown() {
 	return false;
 }
 
+bool QueueItem::usesSmallSlot() const {
+	return (isSet(FLAG_PARTIAL_LIST) || (size <= 65792 && !isSet(FLAG_USER_LIST) && isSet(FLAG_CLIENT_VIEW)));
+}
+
 void QueueItem::searchAlternates() {
 	if (SettingsManager::lanMode)
 		SearchManager::getInstance()->search(getTargetFileName(), size, SearchManager::TYPE_ANY, SearchManager::SIZE_EXACT, "qa", Search::ALT_AUTO);

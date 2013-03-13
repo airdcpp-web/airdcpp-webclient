@@ -1644,5 +1644,8 @@ enum Strings { // @DontAdd
 	SHOW_MULTILINE_BUTTON, //  "Show Multiline message button in chat windows"
 	SHOW_MAGNET_BUTTON, //  "Show Magnet button in chat windows"
 	FILE_LIST_REFRESH_INITIATED_X_PATHS, // "File list refresh initiated for %d directories"
+	CANT_OPEN_EMPTY_FILE, // "A zero-byte file can't be opened"
+	LIST_ALREADY_QUEUED, // "The file list is queued already"
+	FILE_X_QUEUED, // "The file %s has been added in queue (%s)"
 	LAST // @DontAdd
 };

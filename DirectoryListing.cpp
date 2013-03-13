@@ -405,77 +405,58 @@ bool DirectoryListing::Directory::findIncomplete() {
 	return find_if(directories, [](Directory* dir) { return dir->findIncomplete(); }) != directories.end();
 }
 
-bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, 
-	QueueItemBase::Priority prio, bool first, BundlePtr aBundle, ProfileToken aAutoSearch) {
-
-	string target;
-	if (first) {
-		//check if there are incomplete dirs in a partial list
-		if (partialList && aDir->findIncomplete()) {
-			if (isClientView) {
-				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio);
-			} else {
-				//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-				DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, true);
-			}
-			return false;
-		}
-
-		//validate the target
-		target = Util::validateFileName(Util::formatTime(aTarget + (aDir == root ? Util::emptyString : aDir->getName() + PATH_SEPARATOR), 
-			(SETTING(FORMAT_DIR_REMOTE_TIME) && aDir->getDate() > 0) ? aDir->getDate() : GET_TIME()));
-
-		/* Check if this is a root dir containing release dirs */
-		boost::regex reg;
-		reg.assign(AirUtil::getReleaseRegBasic());
-		if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && 
-			all_of(aDir->directories.begin(), aDir->directories.end(), [&reg](Directory* d) { return boost::regex_match(d->getName(), reg); })) {
-			
-			/* Create bundles from each subfolder */
-			bool queued = false;
-			for(auto d: aDir->directories) { 
-				if (downloadDir(d, target, aTargetType, isSizeUnknown, prio, false, nullptr)) 
-					queued = true; 
-			}
-			return queued;
-		}
-	} else {
-		target = aTarget + aDir->getName() + PATH_SEPARATOR;
-	}
-
-	auto& dirList = aDir->directories;
-	auto& fileList = aDir->files;
-
-	if (!aBundle) {
-		ProfileTokenSet as;
-		if (aAutoSearch > 0)
-			as.insert(aAutoSearch);
-
-		aBundle = BundlePtr(new Bundle(target, GET_TIME(), (QueueItemBase::Priority)prio, as, aDir->getDate()));
-		first = true;
-	}
-
+void DirectoryListing::Directory::download(const string& aTarget, BundleFileList& aFiles) {
 	// First, recurse over the directories
-	sort(dirList.begin(), dirList.end(), Directory::Sort());
-	for(auto d: dirList) 
-		downloadDir(d, target, aTargetType, isSizeUnknown, prio, false, aBundle);
+	sort(directories.begin(), directories.end(), Directory::Sort());
+	for(auto d: directories) {
+		d->download(aTarget + name + PATH_SEPARATOR, aFiles);
+	}
 
 	// Then add the files
-	sort(fileList.begin(), fileList.end(), File::Sort());
-	for(auto& f: fileList) {
-		try {
-			download(f, target + f->getName(), false, QueueItem::DEFAULT, aBundle);
-		} catch(const QueueException&) {
-			// Catch it here to allow parts of directories to be added...
-		} catch(const FileException&) {
-			//..
+	sort(files.begin(), files.end(), File::Sort());
+	for(auto& f: files) {
+		aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize());
+	}
+}
+
+bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
+	string target = QueueManager::formatBundleTarget(aTarget, aDir->getDate());
+	if (aDir != root)
+		target += aDir->getName() + PATH_SEPARATOR;
+
+	BundleFileList aFiles;
+	aDir->download(target, aFiles);
+	return QueueManager::getInstance()->createBundle(target, hintedUser, aFiles, prio, aDir->getDate(), aAutoSearch);
+}
+
+bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
+	//check if there are incomplete dirs in a partial list
+	if (partialList && aDir->findIncomplete()) {
+		if (isClientView) {
+			DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio);
+		} else {
+			//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
+			DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, true);
 		}
+		return false;
 	}
 
-	if (first) {
-		return QueueManager::getInstance()->addBundle(aBundle, false, hintedUser.user);
+	/* Check if this is a root dir containing release dirs */
+	boost::regex reg;
+	reg.assign(AirUtil::getReleaseRegBasic());
+	if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && 
+		all_of(aDir->directories.begin(), aDir->directories.end(), [&reg](Directory* d) { return boost::regex_match(d->getName(), reg); })) {
+			
+		/* Create bundles from each subfolder */
+		bool queued = false;
+		for(auto d: aDir->directories) {
+			if (createBundle(d, aTarget, prio, aAutoSearch))
+				queued = true;
+		}
+		return queued;
 	}
-	return true;
+
+	return createBundle(aDir, aTarget, prio, aAutoSearch);
 }
 
 bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
@@ -483,7 +464,7 @@ bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, Ta
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = findDirectory(aDir, root);
 	if(d)
-		return downloadDir(d, aTarget, aTargetType, highPrio, prio, true, nullptr, aAutoSearch);
+		return downloadDir(d, aTarget, aTargetType, highPrio, prio, aAutoSearch);
 	return false;
 }
 
@@ -496,10 +477,8 @@ int64_t DirectoryListing::getDirSize(const string& aDir) {
 	return 0;
 }
 
-void DirectoryListing::download(File* aFile, const string& aTarget, bool view, QueueItemBase::Priority prio, BundlePtr aBundle) {
-	Flags::MaskType flags = (Flags::MaskType)(view ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : 0);
-
-	QueueManager::getInstance()->addFile(aTarget, aFile->getSize(), aFile->getTTH(), getHintedUser(), aFile->getPath() + aFile->getName(), flags, true, prio, aBundle);
+void DirectoryListing::openFile(File* aFile, bool isClientView) {
+	QueueManager::getInstance()->addOpenedItem(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, isClientView);
 }
 
 DirectoryListing::Directory* DirectoryListing::findDirectory(const string& aName, const Directory* current) const {
@@ -537,8 +516,7 @@ bool DirectoryListing::findNfo(const string& aPath) {
 
 		if (!results.empty()) {
 			try {
-				QueueManager::getInstance()->addFile(Util::getOpenPath(results.front()->getName()), results.front()->getSize(), results.front()->getTTH(), 
-					hintedUser, results.front()->getPath() + results.front()->getName(), QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_TEXT);
+				openFile(results.front(), true);
 			} catch(const Exception&) { }
 			return true;
 		}

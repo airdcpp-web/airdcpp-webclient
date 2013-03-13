@@ -48,6 +48,7 @@ size_t BundleQueue::getTotalFiles() const {
 void BundleQueue::addBundle(BundlePtr& aBundle) {
 	aBundle->unsetFlag(Bundle::FLAG_NEW);
 	aBundle->setDownloadedBytes(0); //sets to downloaded segments
+	aBundle->updateSearchMode();
 
 	addSearchPrio(aBundle);
 	bundles[aBundle->getToken()] = aBundle;

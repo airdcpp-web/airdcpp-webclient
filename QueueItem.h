@@ -186,6 +186,7 @@ public:
 
 	~QueueItem();
 
+	bool usesSmallSlot() const;
 	void searchAlternates();
 
 	void save(OutputStream &save, string tmp, string b32tmp);

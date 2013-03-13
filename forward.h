@@ -36,6 +36,8 @@ class ADLSearch;
 
 class BufferedSocket;
 
+struct BundleFileInfo;
+typedef vector<BundleFileInfo> BundleFileList;
 
 class Bundle;
 typedef boost::intrusive_ptr<Bundle> BundlePtr;

@@ -1037,8 +1037,8 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 				if (!hasSpace)
 					TargetUtil::reportInsufficientSize(ti, sr->getSize());
 
-				QueueManager::getInstance()->addFile(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), sr->getUser(), sr->getFile(), 0, true, 
-					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT), nullptr, as->getToken());
+				QueueManager::getInstance()->createFileBundle(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), sr->getUser(), sr->getDate(), 0, 
+					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT), as->getToken());
 			}
 		} catch(const Exception& /*e*/) {
 			//LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");

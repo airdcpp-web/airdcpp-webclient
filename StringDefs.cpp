@@ -1640,6 +1640,9 @@ std::string dcpp::ResourceManager::strings[] = {
  "Show Multiline message button in chat windows", 
  "Show Magnet button in chat windows", 
 "File list refresh initiated for %d directories", 
+"A zero-byte file can't be opened", 
+"The file list is queued already", 
+"The file %s has been added in queue (%s)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3280,4 +3283,7 @@ std::string dcpp::ResourceManager::names[] = {
 "ShowMultilineButton", 
 "ShowMagnetButton", 
 "FileListRefreshInitiatedXPaths", 
+"CantOpenEmptyFile", 
+"ListAlreadyQueued", 
+"FileXQueued", 
 };

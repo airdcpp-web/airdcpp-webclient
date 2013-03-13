@@ -70,15 +70,19 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 	private SearchManagerListener, private ClientManagerListener, private HashManagerListener
 {
 public:
+	static string formatBundleTarget(const string& aPath, time_t aRemoteDate);
 	void getBloom(HashBloom& bloom) const;
 	size_t getQueuedFiles() const noexcept;
 	bool hasDownloadedBytes(const string& aTarget) throw(QueueException);
 
-	/** Add a file to the queue. */
-	void addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, const string& aRemotePath,
-		Flags::MaskType aFlags = 0, bool addBad = true, QueueItemBase::Priority aPrio = QueueItem::DEFAULT, BundlePtr aBundle=nullptr, ProfileToken aAutoSearch = 0) throw(QueueException, FileException);
-		/** Add a user's filelist to the queue. */
+	/** Add a user's filelist to the queue. */
 	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, BundlePtr aBundle=nullptr) throw(QueueException, FileException);
+
+	bool createBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, ProfileToken aAutoSearch = 0, bool isFileBundle=false, Flags::MaskType aFlags = 0) throw(QueueException, FileException);
+
+	void createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0) throw(QueueException, FileException);
+
+	void addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUse, bool isClientView);
 
 	/** Readd a source that was removed */
 	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
@@ -142,11 +146,12 @@ public:
 	MemoryInputStream* generateTTHList(const string& bundleToken, bool isInSharingHub);
 
 	//merging, adding, deletion
-	bool addBundle(BundlePtr& aBundle, bool loading = false, const UserPtr& aUser = nullptr);
+	void addLoadedBundle(BundlePtr& aBundle);
+	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded);
 	void readdBundle(BundlePtr& aBundle);
 	void connectBundleSources(BundlePtr& aBundle);
-	void mergeBundle(BundlePtr& targetBundle, BundlePtr& sourceBundle);
-	void mergeFileBundles(BundlePtr& aBundle);
+	void mergeDirectoryBundle(BundlePtr& aBundle, const string& aNewTarget, int itemsAdded);
+	//void mergeFileBundles(BundlePtr& aBundle);
 	void moveBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void splitBundle(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget);
@@ -164,7 +169,7 @@ public:
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const;
 
-	BundlePtr getBundle(const string& bundleToken) { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
+	BundlePtr findBundle(const string& bundleToken) { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth);
 	bool checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add, const string& remoteBundle);
 	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle);
@@ -273,10 +278,29 @@ private:
 	UserQueue userQueue;
 	/** File lists not to delete */
 	StringList protectedFileLists;
+
+	/** Get a bundle for adding new items in queue (a new one or existing)  */
+	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, ProfileToken aAutoSearch, bool isFileBundle);
+
+	/** Add a file to the queue (returns the item and whether it didn't exist before) */
+	pair<QueueItemPtr, bool> addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException);
+
+	/** Check that we can download from this user */
+	void checkSource(const UserPtr& aUser) const throw(QueueException);
+
+	/** Check if there's a file with the same TTH queued already */
+	void checkQueued(const string& aTarget, const TTHValue& root, const HintedUser& aUser, bool addBad, bool& wantConnection);
+
+	/** Check that we can download from this user */
+	bool checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueException);
+
 	/** Sanity check for the target filename */
 	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, const string& aRemotePath, bool newBundle=false, bool checkTLS=true) throw(QueueException, FileException);
+
+	/** Add a source to an existing queue item */
+	void mergeFinishedItems(const string& aSource, const string& aTarget, BundlePtr& aSourceBundle, BundlePtr& aTargetBundle, bool moveFiles);
 	 
 	void matchTTHList(const string& name, const HintedUser& user, int flags);
 
@@ -306,7 +330,8 @@ private:
 	void onBundleRemoved(BundlePtr& aBundle, bool finished);
 	void removeFinishedBundle(BundlePtr& aBundle);
 
-	bool replaceFinishedItem(QueueItemPtr qi);
+	/* Returns true if an item can be replaces */
+	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH);
 
 	void removeSource(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
