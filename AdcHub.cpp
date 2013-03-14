@@ -698,7 +698,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		
 		if (getShareProfile() != SP_HIDDEN) {
 			if (SETTING(USE_PARTIAL_SHARING))
-				n = QueueManager::getInstance()->getQueuedFiles();
+				n = QueueManager::getInstance()->getQueuedBundleFiles();
 
 			int64_t tmp = 0;
 			ShareManager::getInstance()->getProfileInfo(getShareProfile(), tmp, n);
@@ -1412,7 +1412,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	size_t fileCount = 0;
 	int64_t size = 0;
 	if (getShareProfile() != SP_HIDDEN) {
-		fileCount = SETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedFiles() : 0;
+		fileCount = SETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedBundleFiles() : 0;
 		ShareManager::getInstance()->getProfileInfo(getShareProfile(), size, fileCount);
 	}
 

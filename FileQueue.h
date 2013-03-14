@@ -62,7 +62,7 @@ public:
 	int isFileQueued(const TTHValue& aTTH, const string& aFile) noexcept;
 	QueueItemPtr getQueuedFile(const TTHValue& aTTH, const string& aFile) noexcept;
 
-	uint64_t getTotalQueueSize() noexcept { return queueSize; }
+	uint64_t getTotalQueueSize() const noexcept { return queueSize; }
 private:
 	QueueItem::StringMap queue;
 	QueueItem::TTHMap tthIndex;

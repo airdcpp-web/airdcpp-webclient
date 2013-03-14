@@ -726,7 +726,6 @@ SettingsManager::SettingsManager()
 	setDefault(FAV_USERS_SHOW_INFO, true);
 	setDefault(USERS_FILTER_FAVORITE, false);
 	setDefault(USERS_FILTER_QUEUE, false);
-	setDefault(LOG_ALREADY_SHARED, true);
 
 	setDefault(HISTORY_SEARCH_MAX, 10);
 	setDefault(HISTORY_EXCLUDE_MAX, 10);

@@ -121,6 +121,8 @@ class AirUtil {
 		static string getAwayMessage(ParamMap& params);
 		static void setAwayMessage(const string& aMsg) { awayMsg = aMsg; }
 
+		/* Removes common dirs from the end of toSubtract */
+		static string subtractCommonDirs(const string& toCompare, const string& toSubtract);
 	private:
 
 		static AwayMode away;

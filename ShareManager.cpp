@@ -2798,7 +2798,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 	if (mi != rootPaths.end()) {
 		auto curDir = mi->second;
 		StringList sl = StringTokenizer<string>(fname.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
-		string fullPath = Text::toLower(mi->first);
+		string fullPath = mi->first;
 		for(const auto& name: sl) {
 			fullPath += name + PATH_SEPARATOR;
 			auto j = curDir->directories.find(Text::toLower(name));
@@ -2814,6 +2814,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 
 				curDir = Directory::create(name, curDir, GET_TIME(), m != profileDirs.end() ? m->second : nullptr);
 				dirNameMap.emplace(name, curDir);
+				curDir->addBloom(curDir->getBloom());
 			}
 		}
 		return curDir;

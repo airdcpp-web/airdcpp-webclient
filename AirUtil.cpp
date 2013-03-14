@@ -695,4 +695,21 @@ string AirUtil::getAwayMessage(ParamMap& params) {
 	return Util::formatParams(awayMsg.empty() ? SETTING(DEFAULT_AWAY_MESSAGE) : awayMsg, params);
 }
 
+string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubtract) {
+	if (toSubtract.length() > 3) {
+		string::size_type i = toSubtract.length()-2;
+		string::size_type j;
+		for(;;) {
+			j = toSubtract.find_last_of(PATH_SEPARATOR, i);
+			if(j == string::npos || (int)(toCompare.length() - (toSubtract.length() - j)) < 0) //also check if it goes out of scope for toCompare
+				break;
+			if(stricmp(toSubtract.substr(j), toCompare.substr(toSubtract.length() - (toSubtract.length()-j))) != 0)
+				break;
+			i = j - 1;
+		}
+		return toSubtract.substr(0, i+2);
+	}
+	return toSubtract;
+}
+
 }

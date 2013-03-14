@@ -426,7 +426,17 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 
 	BundleFileList aFiles;
 	aDir->download(target, aFiles);
-	return QueueManager::getInstance()->createBundle(target, hintedUser, aFiles, prio, aDir->getDate(), aAutoSearch);
+
+	bool created = false;
+
+	try {
+		created = QueueManager::getInstance()->createBundle(target, hintedUser, aFiles, prio, aDir->getDate(), aAutoSearch);
+	} catch(QueueException& e) {
+		//TODO: forward to auto search
+		LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % e.getError()), LogManager::LOG_WARNING);
+	}
+
+	return created;
 }
 
 bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {

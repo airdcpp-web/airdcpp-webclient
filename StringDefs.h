@@ -1268,7 +1268,6 @@ enum Strings { // @DontAdd
 	CLEAR_MESSAGES, // "Clear messages"
 	USE_SEQ_ORDER, // "Use sequential order"
 	LANGUAGE_NOTE, // "Note: you need to restart the client for the new language to take effect"
-	FILE_ALREADY_QUEUED, // "The file %s already exists in the queue as %s"
 	FILE_LIST_REFRESH_INITIATED_RPATH, // "File list refresh initiated for the path %s"
 	FILE_LIST_REFRESH_INITIATED_VPATH, // "File list refresh initiated for the virtual directory \"%s\""
 	FILE_LIST_REFRESH_INITIATED_INCOMING, // "File list refresh initiated for the incoming directories"
@@ -1617,7 +1616,6 @@ enum Strings { // @DontAdd
 	AUTO_GRANT_SLOT, // "Auto grant slot"
 	PREFERRED_MAPPER, // "Preferred port mapping interface"
 	BIND_ADDRESS_MISSING, // "The %s bind address %s doesn't appear to be available. Do you want to switch to listen to all interfaces?"
-	SETTINGS_LOG_ALREADY_SHARED, // "Show warning about trying to download already shared files"
 	DUPLICATE, // "Duplicate"
 	PARTIAL_MATCH, // "Partial match"
 	REGULAR_EXPRESSION, // "RegEx"
@@ -1647,5 +1645,9 @@ enum Strings { // @DontAdd
 	CANT_OPEN_EMPTY_FILE, // "A zero-byte file can't be opened"
 	LIST_ALREADY_QUEUED, // "The file list is queued already"
 	FILE_X_QUEUED, // "The file %s has been added in queue (%s)"
+	ADD_BUNDLE_ERRORS_OCC, // "The following error(s) occurred when queueing the bundle %s from an user %s: %s"
+	X_FILE_COUNT, // "%s (%d out of %d bundle files)"
+	X_FILE_NAMES, // "%s (files %s)"
+	FILE_ALREADY_QUEUED, // "The file exists in queue already"
 	LAST // @DontAdd
 };
