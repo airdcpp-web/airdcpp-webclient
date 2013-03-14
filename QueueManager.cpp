@@ -49,8 +49,6 @@
 #include <mmsystem.h>
 #include <limits>
 
-#include <ppl.h>
-
 #if !defined(_WIN32) && !defined(PATH_MAX) // Extra PATH_MAX check for Mac OS X
 #include <sys/syslimits.h>
 #endif
@@ -276,6 +274,8 @@ QueueManager::~QueueManager() noexcept {
 		std::for_each(filelists.begin(), std::set_difference(filelists.begin(), filelists.end(),
 			protectedFileLists.begin(), protectedFileLists.end(), filelists.begin()), &File::deleteFile);
 	}
+
+	tasks.wait();
 }
 
 void QueueManager::getBloom(HashBloom& bloom) const {
@@ -475,7 +475,7 @@ bool QueueManager::checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueE
 	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aInfo.tth, fileName)) {
 		//get the path
 		auto path = AirUtil::subtractCommonDirs(Util::getFilePath(aInfo.file), Util::getFilePath(ShareManager::getInstance()->getRealPath(aInfo.tth)));
-		throw QueueException(STRING(TTH_ALREADY_SHARED) + " ( " + path + " )");
+		throw QueueException(STRING_F(TTH_ALREADY_SHARED, path));
 	}
 
 	//check the skiplist
@@ -688,8 +688,6 @@ bool QueueManager::createBundle(const string& aTarget, const HintedUser& aUser, 
 		smallSlot = any_of(b->getQueueItems().begin(), b->getQueueItems().end(), [&aUser](const QueueItemPtr& aQI) { return aQI->usesSmallSlot() && aQI->isSource(aUser.user); });
 	}
 
-	onBundleStatusChanged(b, AutoSearch::STATUS_QUEUED_OK);
-
 	//connect to the source (we must have an user in this case)
 	if (wantConnection) {
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
@@ -725,7 +723,7 @@ void QueueManager::checkQueued(const string& aTarget, const TTHValue& root, cons
 			}
 
 			auto path = AirUtil::subtractCommonDirs(Util::getFilePath(aTarget), q->getFilePath());
-			throw QueueException(STRING(FILE_ALREADY_QUEUED) + " ( " + path + " )");
+			throw QueueException(STRING_F(FILE_ALREADY_QUEUED, path));
 		}
 	}
 }
@@ -2985,14 +2983,16 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) {
 	bundleQueue.addBundle(aBundle);
 }
 
-bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int itemsAdded) {
+bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int itemsAdded, bool moving /*false*/) {
 	if (itemsAdded == 0 || aBundle->getQueueItems().empty()) {
 		return false;
 	}
 
+	bool statusChanged = false;
 	if (aBundle->isSet(Bundle::FLAG_NEW)) {
 		bundleQueue.addBundle(aBundle);
 		fire(QueueManagerListener::BundleAdded(), aBundle);
+		statusChanged = true;
 
 		if (aBundle->isFileBundle())
 			LogManager::getInstance()->message(STRING_F(FILE_X_QUEUED, aBundle->getName() % Util::formatBytes(aBundle->getSize())), LogManager::LOG_INFO);
@@ -3003,11 +3003,15 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 		bool finished = aBundle->getQueueItems().size() == itemsAdded;
 
 		if (finished) {
+			statusChanged = true;
 			readdBundle(aBundle);
 		} else {
 			aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 			addBundleUpdate(aBundle);
 			aBundle->setDirty();
+
+			if (moving)
+				fire(QueueManagerListener::BundleAdded(), aBundle);
 		}
 
 
@@ -3023,10 +3027,15 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 		aBundle->updateSearchMode();
 	}
 
-
-	if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && aBundle->getPriority() != Bundle::PAUSED) {
-		aBundle->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
-		addBundleUpdate(aBundle);
+	if (statusChanged) {
+		tasks.run([=] {
+			auto b = aBundle;
+			onBundleStatusChanged(b, AutoSearch::STATUS_QUEUED_OK);
+			if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && b->getPriority() != Bundle::PAUSED) {
+				b->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
+				addBundleUpdate(b);
+			}
+		});
 	}
 
 	return true;
@@ -3081,15 +3090,6 @@ void QueueManager::readdBundle(BundlePtr& aBundle) {
 	}
 }*/
 
-void QueueManager::moveBundleItems(BundlePtr& sourceBundle, BundlePtr& targetBundle) {
-	for (auto j = sourceBundle->getQueueItems().begin(); j != sourceBundle->getQueueItems().end();) {
-		moveBundleItem(*j, targetBundle, false);
-		j = sourceBundle->getQueueItems().begin();
-	}
-
-	bundleQueue.removeBundle(sourceBundle);
-}
-
 int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget) {
 	/* In this case we also need check if there are directory bundles inside the subdirectories */
 	BundleList mBundles;
@@ -3106,7 +3106,8 @@ int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget
 				j = b->getFinishedFiles().begin();
 			}
 
-			moveBundleItems(b, aBundle);
+			auto items = b->getQueueItems();
+			moveBundleItems(items, aBundle);
 		}
 	}
 
@@ -3258,13 +3259,18 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) {
 	QueueItemList ql;
 
-	auto newBundleTarget = AirUtil::convertMovePath(sourceBundle->getTarget(), aSource, aTarget);
+	//auto newBundleTarget = AirUtil::convertMovePath(sourceBundle->getTarget(), aSource, aTarget);
 
 	BundlePtr newBundle = nullptr;
 	{
 		WLock l(cs);
 		//get the target bundle
+
 		newBundle = getBundle(aTarget, sourceBundle->getPriority(), sourceBundle->getDirDate(), 0, false);
+		if (newBundle->isSet(Bundle::FLAG_NEW) && aSource == sourceBundle->getTarget()) {
+			//no need to create a new bundle
+			newBundle = sourceBundle;
+		}
 
 		//handle finished items
 		mergeFinishedItems(aSource, aTarget, sourceBundle, newBundle, moveFinished);
@@ -3289,17 +3295,18 @@ void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, B
 	}
 
 	{
-		RLock l(cs);
-		//add the old bundle (or the target bundle if it was the same)
-		if (!sourceBundle->getQueueItems().empty()) {
-			fire(QueueManagerListener::BundleAdded(), sourceBundle);
-		}
-	}
-
-	if (newBundle != sourceBundle) {
 		WLock l(cs);
-		if (newBundle->isSet(Bundle::FLAG_NEW)) {
-			//nothing to merge to, move the old bundle
+		if (newBundle != sourceBundle) {
+			//we are moving the items to another bundle
+			moveBundleItems(ql, newBundle);
+
+			//add the old bundle (if needed)
+			if (!sourceBundle->getQueueItems().empty()) {
+				fire(QueueManagerListener::BundleAdded(), sourceBundle);
+			}
+
+			addBundle(newBundle, aTarget, ql.size(), true);
+		} else {
 			int merged = changeBundleTarget(sourceBundle, aTarget);
 
 			fire(QueueManagerListener::BundleAdded(), sourceBundle);
@@ -3309,10 +3316,6 @@ void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, B
 				tmp += str(boost::format(" (" + STRING(EXISTING_BUNDLES_MERGED) + ")") % merged);
 
 			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
-		} else {
-			//we are merging to another bundle
-			moveBundleItems(ql, newBundle);
-			addBundle(newBundle, newBundleTarget, 0);
 		}
 	}
 }
@@ -3443,26 +3446,20 @@ void QueueManager::moveBundleItems(const QueueItemList& ql, BundlePtr& targetBun
 	/* NO FILEBUNDLES SHOULD COME HERE */
 	if (!ql.empty() && !ql.front()->getBundle()->isFileBundle()) {
 		BundlePtr sourceBundle = ql.front()->getBundle();
-		bool empty = false;
 
-		{
-			WLock l(cs);
-			for(auto& qi: ql) 
-				moveBundleItem(qi, targetBundle, false);
-			empty = sourceBundle->getQueueItems().empty();
-		}	
+		for(auto& qi: ql) 
+			moveBundleItem(qi, targetBundle, false);
 
-		if (empty) {
-			removeBundle(sourceBundle, false, false, true);
+
+		if (sourceBundle->getQueueItems().empty()) {
+			tasks.run([=] { 
+				auto b = sourceBundle;
+				removeBundle(b, false, false, true); 
+			});
 		} else {
 			targetBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 			addBundleUpdate(targetBundle);
 			targetBundle->setDirty();
-			/*if (fireAdded) {
-				sourceBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
-				addBundleUpdate(sourceBundle);
-				sourceBundle->setDirty();
-			}*/
 		}
 	}
 }

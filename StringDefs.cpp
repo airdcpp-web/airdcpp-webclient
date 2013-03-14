@@ -731,7 +731,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Trusted certificates path", 
 "Under construction, restart AirDC++ to see effects...", 
 "Experimental feature, don't consider AirDC++ secure in any way", 
-"A file with the same hash already exists in your share", 
 "TTH Inconsistency", 
 "TTH Root", 
 "Two colors", 
@@ -1160,7 +1159,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "%d existing bundles have been merged into it", 
 "The file bundle %s has been merged into bundle %s", 
 "The file bundle %s has been moved to %s", 
-"The bundle %s has been merged into existing bundle %s (%d items were merged)", 
+"The directory %s has been merged into existing bundle %s (%d items were merged)", 
 "%d items were added into an existing bundle %s", 
 "The file %s has been added into an existing bundle %s", 
 "The bundle %s has been moved to %s", 
@@ -1643,8 +1642,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "The file %s has been added in queue (%s)", 
 "The following error(s) occurred when queueing the bundle %s from an user %s: %s", 
 "%s (%d out of %d bundle files)", 
-"%s (files %s)", 
-"The file exists in queue already", 
+"%s (affected file(s): %s)", 
+"A file with the same hash exists in a queued directory %s", 
+"A file with the same hash exists in a shared directory %s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2376,7 +2376,6 @@ std::string dcpp::ResourceManager::names[] = {
 "TrustedCertificatesPath", 
 "CertificatesConstuction", 
 "CertificatesExperimental", 
-"TthAlreadyShared", 
 "TthInconsistency", 
 "TthRoot", 
 "TwoColors", 
@@ -3290,4 +3289,5 @@ std::string dcpp::ResourceManager::names[] = {
 "XFileCount", 
 "XFileNames", 
 "FileAlreadyQueued", 
+"TthAlreadyShared", 
 };

@@ -55,6 +55,9 @@
 #include "boost/bimap.hpp"
 #include <boost/bimap/unordered_multiset_of.hpp>
 
+#include <ppl.h>
+
+
 namespace dcpp {
 
 namespace bimaps = boost::bimaps;
@@ -269,15 +272,16 @@ private:
 	/** File lists not to delete */
 	StringList protectedFileLists;
 
+	concurrency::task_group tasks;
+
 	void connectBundleSources(BundlePtr& aBundle);
 
 	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget);
 	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false);
 	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle, bool fireAdded); //don't use reference here!
 	void moveBundleItems(const QueueItemList& ql, BundlePtr& targetBundle);
-	void moveBundleItems(BundlePtr& sourceBundle, BundlePtr& targetBundle);
 	void addLoadedBundle(BundlePtr& aBundle);
-	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded);
+	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded, bool moving = false);
 	void readdBundle(BundlePtr& aBundle);
 
 	bool changeTarget(QueueItemPtr& qs, const string& aTarget, bool movingSingleItems) noexcept;
