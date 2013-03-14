@@ -616,7 +616,7 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 
 void ShareScannerManager::scanBundle(BundlePtr aBundle, bool& hasMissing, bool& hasExtras) noexcept {
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
-		ScanInfo scanner(aBundle->getName(), aBundle->isSet(Bundle::FLAG_SHARING_FAILED) ? TYPE_FAILED_FINISHED : TYPE_FINISHED);
+		ScanInfo scanner(aBundle->getName(), aBundle->isFailed() ? TYPE_FAILED_FINISHED : TYPE_FINISHED);
 
 		scanDir(aBundle->getTarget(), scanner);
 		find(aBundle->getTarget(), scanner);

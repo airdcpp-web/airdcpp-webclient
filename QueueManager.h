@@ -33,7 +33,6 @@
 #include "MerkleTree.h"
 #include "Socket.h"
 
-#include "AutoSearchManager.h"
 #include "QueueManagerListener.h"
 #include "SearchManagerListener.h"
 #include "ClientManagerListener.h"
@@ -336,7 +335,7 @@ private:
 	void hashBundle(BundlePtr& aBundle);
 	bool scanBundle(BundlePtr& aBundle);
 	void checkBundleHashed(BundlePtr aBundle);
-	void onBundleStatusChanged(BundlePtr& aBundle, AutoSearch::Status aStatus);
+	void onBundleStatusChanged(BundlePtr& aBundle);
 	void onBundleRemoved(BundlePtr& aBundle, bool finished);
 	void removeFinishedBundle(BundlePtr& aBundle);
 

@@ -409,7 +409,7 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileList
 	// First, recurse over the directories
 	sort(directories.begin(), directories.end(), Directory::Sort());
 	for(auto d: directories) {
-		d->download(aTarget + name + PATH_SEPARATOR, aFiles);
+		d->download(aTarget + d->getName() + PATH_SEPARATOR, aFiles);
 	}
 
 	// Then add the files

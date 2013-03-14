@@ -716,7 +716,6 @@ enum Strings { // @DontAdd
 	SUSPEND, // "Suspend"
 	TABS_ON_TOP, // "Tabs on top"
 	TAG, // "Tag"
-	TARGET_FILE_EXISTS, // "File already exists at the target Download location"
 	TARGET_FILENAME_TOO_LONG, // "Target filename too long"
 	TARGET_REMOVED, // "Target removed"
 	TiB, // "TiB"
@@ -1645,9 +1644,11 @@ enum Strings { // @DontAdd
 	LIST_ALREADY_QUEUED, // "The file list is queued already"
 	FILE_X_QUEUED, // "The file %s has been added in queue (%s)"
 	ADD_BUNDLE_ERRORS_OCC, // "The following error(s) occurred when queueing the bundle %s from an user %s: %s"
-	X_FILE_COUNT, // "%s (%d out of %d bundle files)"
+	X_FILE_COUNT, // "%s (%d out of %d bundle files were affected)"
 	X_FILE_NAMES, // "%s (affected file(s): %s)"
 	FILE_ALREADY_QUEUED, // "A file with the same hash exists in a queued directory %s"
 	TTH_ALREADY_SHARED, // "A file with the same hash exists in a shared directory %s"
+	ALL_BUNDLE_FILES_EXIST, // "All %d files exist on the disk already"
+	TARGET_FILE_EXISTS, // "File exists on the disk already"
 	LAST // @DontAdd
 };

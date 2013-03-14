@@ -46,7 +46,7 @@ size_t BundleQueue::getTotalFiles() const {
 }
 
 void BundleQueue::addBundle(BundlePtr& aBundle) {
-	aBundle->unsetFlag(Bundle::FLAG_NEW);
+	aBundle->setStatus(Bundle::STATUS_QUEUED);
 	aBundle->setDownloadedBytes(0); //sets to downloaded segments
 	aBundle->updateSearchMode();
 
@@ -374,7 +374,7 @@ void BundleQueue::removeFinishedItem(QueueItemPtr& qi) {
 }
 
 void BundleQueue::removeBundle(BundlePtr& aBundle) {
-	if (aBundle->isSet(Bundle::FLAG_NEW)) {
+	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		return;
 	}
 

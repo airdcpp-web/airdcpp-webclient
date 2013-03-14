@@ -54,14 +54,19 @@ public:
 		FLAG_UPDATE_SIZE			= 0x01,
 		FLAG_UPDATE_NAME			= 0x02,
 		FLAG_SCHEDULE_SEARCH		= 0x04,
-		/** The bundle is currently being hashed */
-		FLAG_HASH					= 0x40,
-		/** Missing/extra files have been found or it has failed to hash */
-		FLAG_SHARING_FAILED			= 0x100,
-		/** Not added into bundleQueue yet */
-		FLAG_NEW					= 0x200,
 		/** Autodrop slow sources is enabled for this bundle */
 		FLAG_AUTODROP				= 0x400
+	};
+
+	enum Status {
+		STATUS_NEW, // not added in queue yet
+		STATUS_QUEUED,
+		STATUS_FINISHED,
+		STATUS_FAILED_MISSING,
+		STATUS_FAILED_EXTRAS,
+		STATUS_HASHING,
+		STATUS_HASH_FAILED,
+		STATUS_SHARED
 	};
 
 	struct BundleSource {
@@ -74,12 +79,26 @@ public:
 		HintedUser user;
 	};
 
+	class HasStatus {
+	public:
+		HasStatus(Status aStatus) : status(aStatus) { }
+		bool operator()(const BundlePtr& aBundle) { return aBundle->getStatus() == status; }
+	private:
+		Status status;
+	};
+
+	struct StatusOrder {
+		bool operator()(const BundlePtr& left, const BundlePtr& right) const {
+			return left->getStatus() > right->getStatus();
+		}
+	};
+
 	struct Hash {
-		size_t operator()(const BundlePtr x) const { return hash<string>()(x->getToken()); }
+		size_t operator()(const BundlePtr& x) const { return hash<string>()(x->getToken()); }
 	};
 
 	struct SortOrder {
-		bool operator()(const BundlePtr left, const BundlePtr right) const {
+		bool operator()(const BundlePtr& left, const BundlePtr& right) const {
 			if (left->getPriority() == right->getPriority()) {
 				return left->getAdded() < right->getAdded();
 			} else {
@@ -108,6 +127,7 @@ public:
 	Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches = ProfileTokenSet(), const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
 	~Bundle();
 
+	GETSET(Status, status, Status);
 	GETSET(string, token, Token);
 	GETSET(uint64_t, start, Start);
 	GETSET(time_t, lastSearch, LastSearch);			// last time when the bundle was searched for
@@ -168,6 +188,7 @@ public:
 	tstring getBundleText();
 
 	/* QueueManager */
+	bool isFailed() const;
 	void save();
 	bool removeQueue(QueueItemPtr& qi, bool finished) noexcept;
 	bool addQueue(QueueItemPtr& qi) noexcept;

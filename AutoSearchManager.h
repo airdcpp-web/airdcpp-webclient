@@ -100,7 +100,6 @@ public:
 
 	AutoSearch() noexcept;
 	~AutoSearch();
-	typedef map<BundlePtr, Status> BundleStatusMap;
 	typedef map<string, time_t> FinishedPathMap;
 
 	GETSET(bool, enabled, Enabled);
@@ -119,7 +118,7 @@ public:
 	GETSET(bool, manualSearch, ManualSearch);
 	GETSET(bool, matchFullPath, MatchFullPath);
 	GETSET(ProfileToken, token, Token);
-	GETSET(BundleStatusMap, bundles, Bundles);
+	GETSET(BundleList, bundles, Bundles);
 	GETSET(FinishedPathMap, finishedPaths, FinishedPaths);
 	GETSET(Status, status, Status);
 
@@ -148,8 +147,7 @@ public:
 	void updateStatus();
 
 	void removeBundle(BundlePtr& aBundle);
-	//returns true if the status has changed
-	bool setBundleStatus(BundlePtr& aBundle, Status aStatus);
+	void updateBundleStatus(BundlePtr& aBundle);
 	void addPath(const string& aPath, time_t aFinishTime);
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;
@@ -191,7 +189,7 @@ public:
 	string getBundleStatuses(const AutoSearchPtr& as) const;
 	void clearPaths(AutoSearchPtr as);
 
-	void getMenuInfo(const AutoSearchPtr& as, AutoSearch::BundleStatusMap& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const;
+	void getMenuInfo(const AutoSearchPtr& as, BundleList& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const;
 	bool updateAutoSearch(AutoSearchPtr& ipw);
 	void removeAutoSearch(AutoSearchPtr& a);
 	bool searchItem(AutoSearchPtr& as, SearchType aType);
@@ -260,7 +258,7 @@ private:
 
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
-	bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches, AutoSearch::Status aStatus);
+	bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);
 	void onRemoveBundle(BundlePtr& aBundle, const ProfileTokenSet& aSearches, bool finished);
 };
 }

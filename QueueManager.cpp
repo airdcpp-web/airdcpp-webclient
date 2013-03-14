@@ -473,14 +473,18 @@ bool QueueManager::checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueE
 
 	//check share dupes
 	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aInfo.tth, fileName)) {
-		//get the path
-		auto path = AirUtil::subtractCommonDirs(Util::getFilePath(aInfo.file), Util::getFilePath(ShareManager::getInstance()->getRealPath(aInfo.tth)));
-		throw QueueException(STRING_F(TTH_ALREADY_SHARED, path));
+		try {
+			//get the path
+			auto path = ShareManager::getInstance()->getRealPath(aInfo.tth);
+			path = AirUtil::subtractCommonDirs(Util::getFilePath(aInfo.file), Util::getFilePath(path));
+			throw QueueException(STRING_F(TTH_ALREADY_SHARED, path));
+		} catch(ShareException& e) { 
+			//it doesn't exist on the disk, ignore
+		}
 	}
 
 	//check the skiplist
 	if(skipList.match(fileName)) {
-		//LogManager::getInstance()->message(STRING(DOWNLOAD_SKIPLIST_MATCH) + ": " + aTarget, LogManager::LOG_INFO);
 		throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
 	}
 
@@ -530,7 +534,6 @@ void QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const T
 	bool wantConnection = false;
 	{
 		WLock l(cs);
-		//qi = addFile(target, aSize, aTTH, aUser, (Flags::MaskType)(isClientView ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : QueueItem::FLAG_OPEN), true, QueueItem::HIGHEST, wantConnection, nullptr).first;
 		auto ret = fileQueue.add(target, aSize, (Flags::MaskType)(isClientView ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : QueueItem::FLAG_OPEN), QueueItem::HIGHEST, Util::emptyString, GET_TIME(), aTTH);
 		qi = move(ret.first);
 		wantConnection = addSource(qi, aUser, true, false, false);
@@ -554,8 +557,9 @@ BundlePtr QueueManager::getBundle(const string& aTarget, QueueItemBase::Priority
 	} else {
 		// use an existing one
 
-		//the target bundle is a sub directory of the source bundle?
 		if (AirUtil::isSub(b->getTarget(), aTarget)) {
+			//the target bundle is a sub directory of the source bundle
+
 			string oldTarget = b->getTarget();
 			int mergedBundles = changeBundleTarget(b, aTarget);
 
@@ -602,7 +606,7 @@ bool QueueManager::createBundle(const string& aTarget, const HintedUser& aUser, 
 
 			for (const auto& e: errorNames) {
 				auto c = errors.count(e);
-				if (c < 3) {
+				if (c <= 3) {
 					//report each file
 					StringList paths;
 					auto k = errors.equal_range(e);
@@ -630,6 +634,7 @@ bool QueueManager::createBundle(const string& aTarget, const HintedUser& aUser, 
 		checkSource(aUser);
 	}
 
+	int existingFiles = 0;
 	//check the files
 	for (auto i = aFiles.begin(); i != aFiles.end(); ) {
 		try {
@@ -639,14 +644,21 @@ bool QueueManager::createBundle(const string& aTarget, const HintedUser& aUser, 
 			}
 		} catch(QueueException& e) {
 			handleException(e, (*i).file);
-		} catch(FileException& /*e*/) {
-			//handleException(e, (*i).file);
+		} catch(FileException& e) {
+			if (isFileBundle)
+				throw(e);
+
+			existingFiles++;
 		}
 
 		i = aFiles.erase(i);
 	}
 
 	if (aFiles.empty()) {
+		if (existingFiles == fileCount) {
+			throw QueueException(STRING_F(ALL_BUNDLE_FILES_EXIST, existingFiles));
+		}
+
 		reportErrors();
 		return false;
 	}
@@ -669,7 +681,7 @@ bool QueueManager::createBundle(const string& aTarget, const HintedUser& aUser, 
 				dcassert(ret.first);
 				if (ret.second) {
 					added++;
-					if (!b->isSet(Bundle::FLAG_NEW))
+					if (b->getStatus() != Bundle::STATUS_NEW)
 						fire(QueueManagerListener::Added(), ret.first);
 				} else {
 					fire(QueueManagerListener::SourcesUpdated(), ret.first);
@@ -782,8 +794,7 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 	bool wantConnection = false;
 	{
 		WLock l(cs);
-		auto& ql = aBundle->getQueueItems();
-		for(auto& q: ql) {
+		for(auto& q: aBundle->getQueueItems()) {
 			dcassert(!q->isSource(aUser));
 			if(q && q->isBadSource(aUser.user)) {
 				try {
@@ -832,7 +843,7 @@ string QueueManager::checkTarget(const string& aTarget, bool checkExistence, Bun
 			aBundle->increaseSize(size);
 			aBundle->addFinishedSegment(size);
 		}
-		throw FileException(target + ": " + STRING(TARGET_FILE_EXISTS));
+		throw FileException(STRING(TARGET_FILE_EXISTS));
 	}
 	return target;	
 }
@@ -919,7 +930,7 @@ QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& 
 void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) {
 	bool wantConnection = false;
 	QueueItem::StringItemList ql;
-	//uint64_t start = GET_TICK();
+
 	{
 		RLock l(cs);
 		fileQueue.matchListing(dl, ql);
@@ -942,10 +953,8 @@ void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& n
 		}
 	}
 
-	fire(QueueManagerListener::SourceFilesUpdated(), dl.getUser());
-
-	//uint64_t end = GET_TICK();
-	//LogManager::getInstance()->message("List matched in " + Util::toString(end-start) + " ms WITHOUT buildMap");
+	if (newFiles > 0)
+		fire(QueueManagerListener::SourceFilesUpdated(), dl.getUser());
 
 	matches = (int)ql.size();
 	if(wantConnection)
@@ -1192,21 +1201,22 @@ bool QueueManager::scanBundle(BundlePtr& aBundle) {
 	bool hasMissing=false, hasExtras=false;
 	ShareScannerManager::getInstance()->scanBundle(aBundle, hasMissing, hasExtras);
 	if (hasMissing || hasExtras) {
-		aBundle->setFlag(Bundle::FLAG_SHARING_FAILED);
-		onBundleStatusChanged(aBundle, hasExtras ? AutoSearch::STATUS_FAILED_EXTRAS : AutoSearch::STATUS_FAILED_MISSING);
+		auto newStatus = hasMissing ? Bundle::STATUS_FAILED_MISSING : Bundle::STATUS_FAILED_EXTRAS;
+		if (aBundle->getStatus() != newStatus) {
+			aBundle->setStatus(newStatus);
+			onBundleStatusChanged(aBundle);
+		}
 		return false;
 	} else {
-		aBundle->unsetFlag(Bundle::FLAG_SHARING_FAILED);
+		aBundle->setStatus(Bundle::STATUS_FINISHED);
 		onBundleRemoved(aBundle, true);
-		//onBundleStatusChanged(aBundle, AutoSearch::STATUS_QUEUED_OK);
 	}
 	return true;
 }
 
 void QueueManager::hashBundle(BundlePtr& aBundle) {
-	//onBundleRemoved(aBundle, true);
 	if(ShareManager::getInstance()->allowAddDir(aBundle->getTarget())) {
-		aBundle->setFlag(Bundle::FLAG_HASH);
+		aBundle->setStatus(Bundle::STATUS_HASHING);
 		QueueItemList hash;
 		QueueItemList removed;
 
@@ -1301,7 +1311,7 @@ void QueueManager::onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, b
 				}
 
 				auto file = Util::getFileName(aPath);
-				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getBundle() && aQI->getBundle()->isSet(Bundle::FLAG_HASH) && 
+				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getBundle() && aQI->getBundle()->getStatus() == Bundle::STATUS_HASHING && 
 					aQI->getTargetFileName() == file && aQI->isFinished() && !aQI->isSet(QueueItem::FLAG_HASHED); });
 
 				if (p.base() != tpi.second) {
@@ -1322,10 +1332,10 @@ void QueueManager::onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, b
 		return;
 
 
-	q->setFlag(QueueItem::FLAG_HASHED);
+	//q->setFlag(QueueItem::FLAG_HASHED);
 	if (failed) {
-		q->getBundle()->setFlag(Bundle::FLAG_SHARING_FAILED);
-	} else if (!q->getBundle()->isSet(Bundle::FLAG_HASH)) {
+		q->getBundle()->setStatus(Bundle::STATUS_HASH_FAILED);
+	} else if (q->getBundle()->getStatus() != Bundle::STATUS_HASHING) {
 		//instant sharing disabled/the folder wasn't shared when the bundle finished
 		fire(QueueManagerListener::FileHashed(), aPath, aFileInfo);
 	}
@@ -1345,18 +1355,15 @@ void QueueManager::checkBundleHashed(BundlePtr b) {
 		if (!b->getFinishedFiles().empty()) {
 			if (!b->getQueueItems().empty()) {
 				//new items have been added while it was being hashed
-				b->unsetFlag(Bundle::FLAG_HASH);
+				//b->unsetFlag(Bundle::FLAG_HASH);
 				return;
 			}
 
-			if (b->isSet(Bundle::FLAG_HASH)) {
-				b->unsetFlag(Bundle::FLAG_HASH);
-				if (!b->isSet(Bundle::FLAG_SHARING_FAILED)) {
-					fireHashed = true;
-				} else {
-					LogManager::getInstance()->message(STRING_F(BUNDLE_HASH_FAILED, b->getTarget().c_str()), LogManager::LOG_ERROR);
-					return;
-				}
+			if (b->getStatus() == Bundle::STATUS_HASH_FAILED) {
+				LogManager::getInstance()->message(STRING_F(BUNDLE_HASH_FAILED, b->getTarget().c_str()), LogManager::LOG_ERROR);
+				return;
+			} else if (b->getStatus() == Bundle::STATUS_HASHING) {
+				fireHashed = true;
 			} else {
 				//instant sharing disabled/the folder wasn't shared when the bundle finished
 			}
@@ -2875,7 +2882,7 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 				continue;
 			}
 
-			if(b->isFinished() && (b->isSet(Bundle::FLAG_SHARING_FAILED) || b->allowHash())) {
+			if(b->isFinished() && (b->isFailed() || b->allowHash())) {
 				hash.push_back(b);
 			}
 
@@ -2884,18 +2891,17 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 	}
 
 	for (auto& b: hash) {
-		if(b->isSet(Bundle::FLAG_SHARING_FAILED) && !scanBundle(b)) {
+		if(b->isFailed() && !scanBundle(b)) {
 			continue;
 		}
 
-		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
 		hashBundle(b); 
 	}
 
 	sort(retBundles.begin(), retBundles.end());
 }
 
-void QueueManager::onBundleStatusChanged(BundlePtr& aBundle, AutoSearch::Status aStatus) {
+void QueueManager::onBundleStatusChanged(BundlePtr& aBundle) {
 	ProfileTokenSet searches;
 
 	{
@@ -2903,9 +2909,9 @@ void QueueManager::onBundleStatusChanged(BundlePtr& aBundle, AutoSearch::Status 
 		searches = aBundle->getAutoSearches();
 	}
 
-	auto found = AutoSearchManager::getInstance()->onBundleStatus(aBundle, searches, aStatus);
+	auto found = AutoSearchManager::getInstance()->onBundleStatus(aBundle, searches);
 
-	if (aStatus == AutoSearch::STATUS_FAILED_MISSING && !found && SETTING(AUTO_COMPLETE_BUNDLES)) {
+	if (aBundle->getStatus() == Bundle::STATUS_FAILED_MISSING && !found && SETTING(AUTO_COMPLETE_BUNDLES)) {
 		auto token = Util::randInt(10);
 
 		{
@@ -2939,7 +2945,7 @@ void QueueManager::shareBundle(const string& aName) {
 	}
 
 	if (b) {
-		b->unsetFlag(Bundle::FLAG_SHARING_FAILED);
+		b->setStatus(Bundle::STATUS_FINISHED);
 		onBundleRemoved(b, true);
 		hashBundle(b); 
 		LogManager::getInstance()->message("The bundle " + aName + " has been added for hashing", LogManager::LOG_INFO);
@@ -2989,7 +2995,7 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 	}
 
 	bool statusChanged = false;
-	if (aBundle->isSet(Bundle::FLAG_NEW)) {
+	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		bundleQueue.addBundle(aBundle);
 		fire(QueueManagerListener::BundleAdded(), aBundle);
 		statusChanged = true;
@@ -3030,7 +3036,7 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 	if (statusChanged) {
 		tasks.run([=] {
 			auto b = aBundle;
-			onBundleStatusChanged(b, AutoSearch::STATUS_QUEUED_OK);
+			onBundleStatusChanged(b);
 			if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && b->getPriority() != Bundle::PAUSED) {
 				b->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
 				addBundleUpdate(b);
@@ -3058,7 +3064,7 @@ void QueueManager::connectBundleSources(BundlePtr& aBundle) {
 }
 
 void QueueManager::readdBundle(BundlePtr& aBundle) {
-	aBundle->unsetFlag(Bundle::FLAG_SHARING_FAILED);
+	aBundle->setStatus(Bundle::STATUS_QUEUED);
 
 	//check that the finished files still exist
 	for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
@@ -3070,9 +3076,8 @@ void QueueManager::readdBundle(BundlePtr& aBundle) {
 			++i;
 		}
 	}
-	bundleQueue.addSearchPrio(aBundle);
 
-	//onBundleStatusChanged(aBundle, AutoSearch::STATUS_QUEUED_OK);
+	bundleQueue.addSearchPrio(aBundle);
 	LogManager::getInstance()->message(STRING_F(BUNDLE_READDED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 }
 
@@ -3267,7 +3272,7 @@ void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, B
 		//get the target bundle
 
 		newBundle = getBundle(aTarget, sourceBundle->getPriority(), sourceBundle->getDirDate(), 0, false);
-		if (newBundle->isSet(Bundle::FLAG_NEW) && aSource == sourceBundle->getTarget()) {
+		if (newBundle->getStatus() == Bundle::STATUS_NEW && aSource == sourceBundle->getTarget()) {
 			//no need to create a new bundle
 			newBundle = sourceBundle;
 		}
@@ -3540,7 +3545,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished, bool moved 
 }
 
 void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved /*false*/) {
-	if (aBundle->isSet(Bundle::FLAG_NEW)) {
+	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		return;
 	}
 

@@ -43,7 +43,7 @@ using boost::range::copy;
 	
 Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, const string& aToken /*empty*/, bool aDirty /*true*/) : 
 	//QueueItemBase(qi), 
-	QueueItemBase(qi->getTarget(), qi->getSize(), qi->getPriority(), qi->getAdded(), FLAG_NEW), 
+	QueueItemBase(qi->getTarget(), qi->getSize(), qi->getPriority(), qi->getAdded()), status(STATUS_NEW),
 
 	fileBundle(true), finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), dirDate(0), lastDownloaded(0), singleUser(true), 
 	dirty(aDirty), simpleMatching(true), recent(false),
@@ -62,7 +62,7 @@ Bundle::Bundle(QueueItemPtr qi, const ProfileTokenSet& aAutoSearches /*empty*/, 
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, const ProfileTokenSet& aAutoSearches /*empty*/, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) : 
-	QueueItemBase(aTarget, 0, aPriority, aAdded, FLAG_NEW), 
+	QueueItemBase(aTarget, 0, aPriority, aAdded), status(STATUS_NEW), 
 	fileBundle(isFileBundle), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true),
 	dirty(aDirty), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), autoSearches(aAutoSearches), lastSearch(0) {
 
@@ -119,7 +119,7 @@ bool Bundle::checkRecent() {
 }
 
 bool Bundle::allowHash() const {
-	return !isSet(FLAG_HASH) && queueItems.empty() && find_if(finishedFiles, [](QueueItemPtr q) { 
+	return status != STATUS_HASHING && queueItems.empty() && find_if(finishedFiles, [](QueueItemPtr q) { 
 		return !q->isSet(QueueItem::FLAG_MOVED); }) == finishedFiles.end();
 }
 
@@ -176,12 +176,12 @@ string Bundle::getName() const {
 }
 
 void Bundle::setDirty() {
-	if (!isSet(FLAG_NEW))
+	if (status != STATUS_NEW)
 		dirty = true;
 }
 
 bool Bundle::getDirty() const {
-	if (isSet(FLAG_NEW))
+	if (status == STATUS_NEW)
 		return false; //don't save bundles that are currently being added
 
 	return dirty; 
@@ -404,6 +404,10 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
 			ql.push_back(q);
 		}
 	}
+}
+
+bool Bundle::isFailed() const {
+	return status == STATUS_FAILED_EXTRAS || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED;
 }
 
 string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const {
