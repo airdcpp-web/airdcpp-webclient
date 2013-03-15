@@ -23,11 +23,13 @@
 
 #include "forward.h"
 
-#include "DelayedEvents.h"
 #include "AutoSearchManagerListener.h"
+#include "SearchManagerListener.h"
+#include "QueueManagerListener.h"
+
+#include "DelayedEvents.h"
 #include "GetSet.h"
 #include "Pointer.h"
-#include "SearchManagerListener.h"
 #include "Singleton.h"
 #include "Speaker.h"
 #include "StringMatch.h"
@@ -146,8 +148,10 @@ public:
 	bool updateSearchTime();
 	void updateStatus();
 
-	void removeBundle(BundlePtr& aBundle);
-	void updateBundleStatus(BundlePtr& aBundle);
+	void removeBundle(const BundlePtr& aBundle);
+	void addBundle(const BundlePtr& aBundle);
+	bool hasBundle(const BundlePtr& aBundle);
+
 	void addPath(const string& aPath, time_t aFinishTime);
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;
@@ -169,7 +173,7 @@ private:
 
 class SimpleXML;
 
-class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener {
+class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener, private QueueManagerListener {
 public:
 	enum SearchType {
 		TYPE_MANUAL,
@@ -180,7 +184,7 @@ public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
-	bool addFailedBundle(BundlePtr& aBundle, ProfileToken aToken);
+	bool addFailedBundle(const BundlePtr& aBundle);
 	bool addAutoSearch(AutoSearchPtr aAutoSearch, bool search);
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
 	AutoSearchPtr getSearchByIndex(unsigned int index) const;
@@ -250,6 +254,8 @@ private:
 	void pickMatch(AutoSearchPtr as);
 	void handleAction(const SearchResultPtr& sr, AutoSearchPtr& as);
 
+	void updateStatus(AutoSearchPtr& as, bool setTabDirty);
+
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
 
@@ -258,8 +264,12 @@ private:
 
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
-	bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);
-	void onRemoveBundle(BundlePtr& aBundle, const ProfileTokenSet& aSearches, bool finished);
+	void onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch);
+	virtual void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept { onRemoveBundle(aBundle, false); }
+	virtual void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
+
+	//bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);
+	void onRemoveBundle(const BundlePtr& aBundle, bool finished);
 };
 }
 #endif

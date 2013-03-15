@@ -21,6 +21,7 @@
 #include "Bundle.h"
 #include "DirectoryListing.h"
 
+#include "AutoSearchManager.h"
 #include "QueueManager.h"
 #include "ShareManager.h"
 
@@ -427,16 +428,22 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	BundleFileList aFiles;
 	aDir->download(target, aFiles);
 
-	bool created = false;
+	BundlePtr b = nullptr;
 
 	try {
-		created = QueueManager::getInstance()->createBundle(target, hintedUser, aFiles, prio, aDir->getDate(), aAutoSearch);
+		b = QueueManager::getInstance()->createBundle(target, hintedUser, aFiles, prio, aDir->getDate());
 	} catch(QueueException& e) {
 		//TODO: forward to auto search
-		LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % e.getError()), LogManager::LOG_WARNING);
+		LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % e.getError()), LogManager::LOG_WARNING);
 	}
 
-	return created;
+	if (b) {
+		if (aAutoSearch > 0) {
+			AutoSearchManager::getInstance()->onBundleCreated(b, aAutoSearch);
+		}
+		return true;
+	}
+	return false;
 }
 
 bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
@@ -460,7 +467,7 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 		/* Create bundles from each subfolder */
 		bool queued = false;
 		for(auto d: aDir->directories) {
-			if (createBundle(d, aTarget, prio, aAutoSearch))
+			if (createBundle(d, aTarget + aDir->getName() + PATH_SEPARATOR, prio, aAutoSearch))
 				queued = true;
 		}
 		return queued;

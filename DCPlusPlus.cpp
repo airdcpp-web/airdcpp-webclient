@@ -102,7 +102,6 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	SettingsManager::getInstance()->load(messageF);
 
 
-	AutoSearchManager::getInstance()->AutoSearchLoad();
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
 	if(SETTING(WIZARD_RUN_NEW)) {
@@ -135,6 +134,7 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	announce(STRING(SHARED_FILES));
 	ShareManager::getInstance()->startup(stepF, progressF); 
 
+	AutoSearchManager::getInstance()->AutoSearchLoad();
 	FavoriteManager::getInstance()->load();
 
 	if(SETTING(GET_USER_COUNTRY)) {

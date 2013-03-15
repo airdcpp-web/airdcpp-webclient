@@ -140,8 +140,8 @@ public:
 	void noDeleteFileList(const string& path);
 
 	//merging, adding, deletion
-	bool createBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, ProfileToken aAutoSearch = 0, bool isFileBundle=false, Flags::MaskType aFlags = 0) throw(QueueException, FileException);
-	void createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0) throw(QueueException, FileException);
+	BundlePtr createBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle=false, Flags::MaskType aFlags = 0) throw(QueueException, FileException);
+	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException);
 	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void moveFileBundle(BundlePtr& aBundle, const string& aTarget) noexcept;
 	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false);
@@ -289,7 +289,7 @@ private:
 	void handleBundleUpdate(const string& bundleToken);
 
 	/** Get a bundle for adding new items in queue (a new one or existing)  */
-	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, ProfileToken aAutoSearch, bool isFileBundle);
+	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle);
 
 	/** Add a file to the queue (returns the item and whether it didn't exist before) */
 	pair<QueueItemPtr, bool> addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException);
@@ -334,9 +334,8 @@ private:
 	void onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, bool failed);
 	void hashBundle(BundlePtr& aBundle);
 	bool scanBundle(BundlePtr& aBundle);
-	void checkBundleHashed(BundlePtr aBundle);
-	void onBundleStatusChanged(BundlePtr& aBundle);
-	void onBundleRemoved(BundlePtr& aBundle, bool finished);
+	void checkBundleHashed(BundlePtr& aBundle);
+	void setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus);
 	void removeFinishedBundle(BundlePtr& aBundle);
 
 	/* Returns true if an item can be replaces */
