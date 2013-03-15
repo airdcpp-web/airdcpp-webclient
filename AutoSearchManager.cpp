@@ -550,6 +550,10 @@ void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const ProfileT
 	}
 }
 
+void AutoSearchManager::onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir) {
+	logMessage(aError, true);
+}
+
 void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
 	if (aBundle->getStatus() == Bundle::STATUS_FINISHED) {
 		onRemoveBundle(aBundle, true);
@@ -578,6 +582,8 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 }
 
 void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) {
+	AutoSearchList removed;
+
 	for(auto& as: searchItems) {
 		if (as->hasBundle(aBundle)) {
 			auto usingInc = as->usingIncrementation();
@@ -607,12 +613,15 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 			}
 
 			if (removeAs) {
-				removeAutoSearch(as);
+				removed.push_back(as);
 			} else {
 				fire(AutoSearchManagerListener::UpdateItem(), as, true);
 			}
 		}
 	}
+
+	for(auto& as: removed)
+		removeAutoSearch(as);
 }
 
 bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) {

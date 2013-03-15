@@ -265,6 +265,8 @@ private:
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
 	void onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch);
+	void onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir);
+
 	virtual void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept { onRemoveBundle(aBundle, false); }
 	virtual void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
 

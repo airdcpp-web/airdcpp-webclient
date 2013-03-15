@@ -470,6 +470,14 @@ void QueueManager::checkSource(const UserPtr& aUser) const throw(QueueException)
 bool QueueManager::checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueException) {
 	string fileName = Util::getFileName(aInfo.file);
 
+	//check the skiplist
+	if(skipList.match(fileName)) {
+		throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
+	}
+
+	//we can check the existence and throw even with FTPlogger support, if the file exists already the directory must exist too.
+	aInfo.file = checkTarget(aInfo.file, /*checkExistence*/ true);
+
 	//check share dupes
 	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aInfo.tth, fileName)) {
 		try {
@@ -482,21 +490,16 @@ bool QueueManager::checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueE
 		}
 	}
 
-	//check the skiplist
-	if(skipList.match(fileName)) {
-		throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
+	if(SETTING(USE_FTP_LOGGER)) {
+		AirUtil::fileEvent(aInfo.file);
 	}
+
+
+	//valid file
 
 	//set the prio
 	if (highPrioFiles.match(fileName)) {
 		aInfo.prio = SETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
-	}
-
-	//we can check the existence and throw even with FTPlogger support, if the file exists already the directory must exist too.
-	aInfo.file = checkTarget(aInfo.file, /*checkExistence*/ true);
-
-	if(SETTING(USE_FTP_LOGGER)) {
-		AirUtil::fileEvent(aInfo.file);
 	}
 
 	if(aInfo.size == 0) {
@@ -1324,7 +1327,7 @@ void QueueManager::onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, b
 		return;
 
 
-	//q->setFlag(QueueItem::FLAG_HASHED);
+	q->setFlag(QueueItem::FLAG_HASHED);
 	if (failed) {
 		setBundleStatus(b, Bundle::STATUS_HASH_FAILED);
 	} else if (q->getBundle()->getStatus() != Bundle::STATUS_HASHING) {
@@ -1347,7 +1350,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) {
 		if (!b->getFinishedFiles().empty()) {
 			if (!b->getQueueItems().empty()) {
 				//new items have been added while it was being hashed
-				//b->unsetFlag(Bundle::FLAG_HASH);
+				dcassert(b->getStatus() != Bundle::STATUS_HASHING);
 				return;
 			}
 

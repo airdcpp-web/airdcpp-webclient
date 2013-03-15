@@ -433,8 +433,10 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	try {
 		b = QueueManager::getInstance()->createBundle(target, hintedUser, aFiles, prio, aDir->getDate());
 	} catch(QueueException& e) {
-		//TODO: forward to auto search
-		LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % e.getError()), LogManager::LOG_WARNING);
+		//if (aAutoSearch == 0)
+			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % e.getError()), LogManager::LOG_WARNING);
+		//else
+		//	AutoSearchManager::getInstance()->onBundleCreationFailed(aAutoSearch, e.getError(), target);
 	}
 
 	if (b) {
