@@ -170,7 +170,7 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	
 	announce(STRING(SAVING_SETTINGS));
 	AutoSearchManager::getInstance()->AutoSearchSave();
-	QueueManager::getInstance()->saveQueue(false);
+	QueueManager::getInstance()->shutdown();
 	SettingsManager::getInstance()->save();
 
 	announce(STRING(SHUTTING_DOWN));

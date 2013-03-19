@@ -20,6 +20,8 @@
 #include "SimpleXML.h"
 #include "Streams.h"
 
+#include "File.h"
+
 namespace dcpp {
 
 const string SimpleXML::utf8Header = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\r\n";
@@ -74,6 +76,33 @@ string& SimpleXML::escape(string& aString, bool aAttrib, bool aLoading /* = fals
 		// should store it as utf8.
 	}
 	return aString;
+}
+
+void SimpleXML::loadSettingFile(Util::Paths aPath, const string& aFileName, bool migrate /*true*/) {
+	string fname = Util::getPath(aPath) + aFileName;
+
+	if (migrate)
+		Util::migrate(fname);
+
+	fromXML(File(fname, File::READ, File::OPEN).read());
+}
+
+void SimpleXML::saveSettingFile(Util::Paths aPath, const string& aFileName) {
+	string fname = Util::getPath(aPath) + aFileName;
+
+	//try {
+		File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
+		f.write(SimpleXML::utf8Header);
+		f.write(toXML());
+		f.close();
+
+		//dont overWrite with empty file.
+		if(File::getSize(fname + ".tmp") > 0) {
+			File::deleteFile(fname);
+			File::renameFile(fname + ".tmp", fname);
+		}
+	//} catch(const FileException&) {
+	//}
 }
 
 void SimpleXML::Tag::appendAttribString(string& tmp) {

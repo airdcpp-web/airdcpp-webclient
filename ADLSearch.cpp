@@ -29,6 +29,9 @@
 #include "QueueManager.h"
 #include "SimpleXML.h"
 
+#define CONFIG_NAME "ADLSearch.xml"
+#define CONFIG_DIR Util::PATH_USER_CONFIG
+
 namespace dcpp {
 	
 // Constructor
@@ -221,8 +224,7 @@ void ADLSearchManager::load()
 	// Load file as a string
 	try {
 		SimpleXML xml;
-		Util::migrate(getConfigFile());
-		xml.fromXML(File(getConfigFile(), File::READ, File::OPEN).read());
+		xml.loadSettingFile(CONFIG_DIR, CONFIG_NAME);
 
 		if(xml.findChild("ADLSearch")) {
 			xml.stepIn();
@@ -423,13 +425,7 @@ void ADLSearchManager::save(bool force /*false*/) {
 
 		xml.stepOut();
 
-		// Save string to file			
-		try {
-			File fout(getConfigFile(), File::WRITE, File::CREATE | File::TRUNCATE);
-			fout.write(SimpleXML::utf8Header);
-			fout.write(xml.toXML());
-			fout.close();
-		} catch(const FileException&) {	}
+		xml.saveSettingFile(CONFIG_DIR, CONFIG_NAME);
 	} catch(const SimpleXMLException&) { }
 }
 
@@ -611,10 +607,6 @@ void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListi
 		MatchesFile(aDestList, *fileIt, aPath);
 	}
 	stepUpDirectory(aDestList);
-}
-
-string ADLSearchManager::getConfigFile() {
-	 return Util::getPath(Util::PATH_USER_CONFIG) + "ADLSearch.xml"; 
 }
 
 } // namespace dcpp

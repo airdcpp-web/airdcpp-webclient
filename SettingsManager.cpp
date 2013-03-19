@@ -29,6 +29,9 @@
 
 namespace dcpp {
 
+#define CONFIG_NAME "DCPlusPlus.xml"
+#define CONFIG_DIR Util::PATH_USER_CONFIG
+
 bool SettingsManager::lanMode;
 
 StringList SettingsManager::connectionSpeeds;
@@ -753,11 +756,10 @@ SettingsManager::SettingsManager()
 #endif
 }
 
-void SettingsManager::load(string const& aFileName, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF) {
+void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF) {
 	try {
 		SimpleXML xml;
-		
-		xml.fromXML(File(aFileName, File::READ, File::OPEN).read());
+		xml.loadSettingFile(CONFIG_DIR, CONFIG_NAME);
 		
 		xml.resetCurrentChild();
 		
@@ -1017,7 +1019,7 @@ const SettingsManager::HistoryList& SettingsManager::getHistory(HistoryType aTyp
 	return history[aType];
 }
 
-void SettingsManager::save(string const& aFileName) {
+void SettingsManager::save() {
 
 	SimpleXML xml;
 	xml.addTag("DCPlusPlus");
@@ -1093,7 +1095,8 @@ void SettingsManager::save(string const& aFileName) {
 
 	fire(SettingsManagerListener::Save(), xml);
 
-	try {
+	xml.saveSettingFile(CONFIG_DIR, CONFIG_NAME);
+	/*try {
 		File out(aFileName + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 		BufferedOutputStream<false> f(&out);
 		f.write(SimpleXML::utf8Header);
@@ -1104,7 +1107,7 @@ void SettingsManager::save(string const& aFileName) {
 		File::renameFile(aFileName + ".tmp", aFileName);
 	} catch(...) {
 		// ...
-	}
+	}*/
 }
 
 HubSettings SettingsManager::getHubSettings() const {

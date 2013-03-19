@@ -1646,6 +1646,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "A file with the same hash exists in a shared directory %s", 
 "All %d files exist on the disk already", 
 "File exists on the disk already", 
+"%s: %s (on %s from an user %s)", 
+"Last error", 
+"Clear error", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3292,4 +3295,7 @@ std::string dcpp::ResourceManager::names[] = {
 "TthAlreadyShared", 
 "AllBundleFilesExist", 
 "TargetFileExists", 
+"AsError", 
+"LastError", 
+"ClearError", 
 };

@@ -66,6 +66,15 @@ atomic_flag QueueManager::FileMover::active = ATOMIC_FLAG_INIT;
 atomic_flag QueueManager::FileMover::active;
 #endif
 
+QueueManager::FileMover::FileMover() { 
+	start();
+	setThreadPriority(Thread::LOW);
+}
+
+QueueManager::FileMover::~FileMover() { 
+	join();
+}
+
 struct MoverTask : public Task {
 	MoverTask(const string& aSource, const string& aTarget, QueueItemPtr aQI) : target(aTarget), source(aSource), qi(aQI) { }
 
@@ -75,22 +84,22 @@ struct MoverTask : public Task {
 
 void QueueManager::FileMover::moveFile(const string& source, const string& target, QueueItemPtr q) {
 	tasks.add(MOVE_FILE, unique_ptr<Task>(new MoverTask(source, target, q)));
-	if(!active.test_and_set()) {
-		start();
-		setThreadPriority(Thread::LOW);
-	}
+	s.signal();
 }
 
 void QueueManager::FileMover::removeDir(const string& aDir) {
 	tasks.add(REMOVE_DIR, unique_ptr<StringTask>(new StringTask(aDir)));
-	if(!active.test_and_set()) {
-		start();
-		setThreadPriority(Thread::LOW);
-	}
+	s.signal();
+}
+
+void QueueManager::FileMover::shutdown() {
+	tasks.add(SHUTDOWN, nullptr);
+	s.signal();
 }
 
 int QueueManager::FileMover::run() {
 	for(;;) {
+		s.wait();
 		TaskQueue::TaskPair t;
 		if (!tasks.getFront(t)) {
 			active.clear();
@@ -103,10 +112,20 @@ int QueueManager::FileMover::run() {
 		} else if (t.first == REMOVE_DIR) {
 			auto dir = static_cast<StringTask*>(t.second);
 			AirUtil::removeIfEmpty(dir->str);
+		} else if (t.first == SHUTDOWN) {
+			tasks.clear();
+			break;
 		}
 
 		tasks.pop_front();
 	}
+
+	return 0;
+}
+
+void QueueManager::shutdown() {
+	saveQueue(false);
+	mover.shutdown();
 }
 
 void QueueManager::Rechecker::add(const string& file) {
@@ -672,7 +691,7 @@ BundlePtr QueueManager::createBundle(const string& aTarget, const HintedUser& aU
 		for (auto& bfi: aFiles) {
 			try {
 				checkQueued(bfi.file, bfi.tth, aUser, true, wantConnection);
-				auto ret = addFile(bfi.file, bfi.size, bfi.tth, aUser, aFlags, true, aPrio, wantConnection, b);
+				auto ret = addFile(bfi.file, bfi.size, bfi.tth, aUser, aFlags, true, bfi.prio, wantConnection, b);
 				dcassert(ret.first);
 				if (ret.second) {
 					added++;
@@ -1078,25 +1097,17 @@ Download* QueueManager::getDownload(UserConnection& aSource, const OrderedString
 	}
 }
 
-void QueueManager::moveFile(const string& source, const string& target, QueueItemPtr q /*nullptr, only add when download finishes!*/, bool forceThreading /*false*/) {
-	File::ensureDirectory(target);
-	if(forceThreading || File::getSize(source) > MOVER_LIMIT) {
-		mover.moveFile(source, target, q);
-	} else {
-		moveFile_(source, target, q);
-	}
+void QueueManager::moveFile(const string& source, const string& target, QueueItemPtr q /*nullptr, only add when download finishes!*/) {
+	mover.moveFile(source, target, q);
 }
 
 void QueueManager::moveFile_(const string& source, const string& target, QueueItemPtr& qi) {
 	try {
+		File::ensureDirectory(target);
 		UploadManager::getInstance()->abortUpload(source);
 		File::renameFile(source, target);
 		if (Util::fileExists(source)) {
-			//UploadManager::getInstance()->abortUpload(source);
-			//File::deleteFile(source);
-			//if (Util::fileExists(source)) {
-				LogManager::getInstance()->message("Failed to delete the file: " + source, LogManager::LOG_INFO);
-			//}
+			LogManager::getInstance()->message("Failed to delete the file: " + source, LogManager::LOG_INFO);
 		}
 	} catch(const FileException& /*e1*/) {
 		// Try to just rename it to the correct name at least
@@ -3197,7 +3208,7 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 				if (!fileQueue.findFile(targetPath)) {
 					if(!Util::fileExists(targetPath)) {
 						qi->unsetFlag(QueueItem::FLAG_MOVED);
-						moveFile(qi->getTarget(), targetPath, qi, true);
+						moveFile(qi->getTarget(), targetPath, qi);
 						if (targetBundle == sourceBundle) {
 							fileQueue.move(qi, targetPath);
 							i++;

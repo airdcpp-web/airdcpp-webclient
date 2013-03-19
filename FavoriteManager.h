@@ -240,8 +240,6 @@ private:
 	void previewload(SimpleXML& aXml);
 	void previewsave(SimpleXML& aXml);
 	void loadCID();
-
-	string getConfigFile() { return Util::getPath(Util::PATH_USER_CONFIG) + "Favorites.xml"; }
 };
 
 } // namespace dcpp

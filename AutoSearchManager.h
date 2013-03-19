@@ -38,7 +38,6 @@
 #include "Util.h"
 
 namespace dcpp {
-#define AUTOSEARCH_FILE "AutoSearch.xml"
 
 struct SearchTime {
 	uint16_t hour;
@@ -129,6 +128,7 @@ public:
 	GETSET(int, numberLen, NumberLen);
 	GETSET(bool, useParams, UseParams);
 	GETSET(time_t, lastIncFinish, LastIncFinish);
+	GETSET(string, lastError, LastError);
 
 	time_t nextAllowedSearch();
 	SearchTime startTime;
@@ -265,7 +265,7 @@ private:
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
 	void onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch);
-	void onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir);
+	void onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser);
 
 	virtual void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept { onRemoveBundle(aBundle, false); }
 	virtual void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;

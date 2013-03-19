@@ -1650,5 +1650,8 @@ enum Strings { // @DontAdd
 	TTH_ALREADY_SHARED, // "A file with the same hash exists in a shared directory %s"
 	ALL_BUNDLE_FILES_EXIST, // "All %d files exist on the disk already"
 	TARGET_FILE_EXISTS, // "File exists on the disk already"
+	AS_ERROR, // "%s: %s (on %s from an user %s)"
+	LAST_ERROR, // "Last error"
+	CLEAR_ERROR, // "Clear error"
 	LAST // @DontAdd
 };

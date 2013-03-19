@@ -163,7 +163,6 @@ private:
 	void FinalizeDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory* root);
 
 	int8_t running;
-	static string getConfigFile();
 };
 
 } // namespace dcpp

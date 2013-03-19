@@ -205,22 +205,24 @@ public:
 	GETSET(uint64_t, lastSave, LastSave);
 	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);
 
-	enum { MOVER_LIMIT = 10*1024*1024 };
 	class FileMover : public Thread {
 	public:
 		enum Tasks {
 			MOVE_FILE,
-			REMOVE_DIR
+			REMOVE_DIR,
+			SHUTDOWN
 		};
 
-		FileMover() { }
-		virtual ~FileMover() { join(); }
+		FileMover();
+		virtual ~FileMover();
 
 		void moveFile(const string& source, const string& target, QueueItemPtr aBundle);
 		void removeDir(const string& aDir);
+		void shutdown();
 		virtual int run();
 	private:
 
+		Semaphore s;
 		static atomic_flag active;
 		TaskQueue tasks;
 	} mover;
@@ -248,6 +250,7 @@ public:
 	RLock lockRead() { return RLock(cs); }
 
 	void setMatchers();
+	void shutdown();
 private:
 	friend class QueueLoader;
 	friend class Singleton<QueueManager>;
@@ -320,7 +323,7 @@ private:
 	void load(const SimpleXML& aXml);
 
 	//always use forceThreading if this is called from within a lock and it's being used for bundle items
-	void moveFile(const string& source, const string& target, QueueItemPtr q = nullptr, bool forceThreading = false);
+	void moveFile(const string& source, const string& target, QueueItemPtr q = nullptr);
 	static void moveFile_(const string& source, const string& target, QueueItemPtr& q);
 
 	void handleMovedBundleItem(QueueItemPtr& q);

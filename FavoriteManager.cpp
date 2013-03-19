@@ -36,6 +36,10 @@
 
 namespace dcpp {
 
+#define CONFIG_FAV_NAME "Favorites.xml"
+#define CONFIG_RECENTS_NAME "Recents.xml"
+#define CONFIG_DIR Util::PATH_USER_CONFIG
+
 using boost::range::for_each;
 using boost::range::find_if;
 
@@ -489,17 +493,8 @@ void FavoriteManager::save() {
 
 		xml.stepOut();
 
-		string fname = getConfigFile();
 
-		File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
-		f.write(SimpleXML::utf8Header);
-		f.write(xml.toXML());
-		f.close();
-		//dont overWrite with empty file.
-		if(File::getSize(fname + ".tmp") > 0) {
-			File::deleteFile(fname);
-			File::renameFile(fname + ".tmp", fname);
-		}
+		xml.saveSettingFile(CONFIG_DIR, CONFIG_FAV_NAME);
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::save: %s\n", e.getError().c_str());
 	}
@@ -552,14 +547,7 @@ void FavoriteManager::recentsave() {
 		xml.stepOut();
 		xml.stepOut();
 		
-		string fname = Util::getPath(Util::PATH_USER_CONFIG) + "Recents.xml";
-
-		File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
-		f.write(SimpleXML::utf8Header);
-		f.write(xml.toXML());
-		f.close();
-		File::deleteFile(fname);
-		File::renameFile(fname + ".tmp", fname);
+		xml.saveSettingFile(CONFIG_DIR, CONFIG_RECENTS_NAME);
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::recentsave: %s\n", e.getError().c_str());
 	}
@@ -568,19 +556,18 @@ void FavoriteManager::recentsave() {
 void FavoriteManager::loadCID() {
 	try {
 		SimpleXML xml;
-		if(Util::fileExists(getConfigFile())) {
-			xml.fromXML(File(getConfigFile(), File::READ, File::OPEN).read());
-		
-			if(xml.findChild("Favorites")) {
-				xml.stepIn();
-				if(xml.findChild("CID")) {
-					xml.stepIn();
-					SettingsManager::getInstance()->set(SettingsManager::PRIVATE_ID, xml.getData());
-					xml.stepOut();
-				}
 
+		xml.loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME);
+
+		if(xml.findChild("Favorites")) {
+			xml.stepIn();
+			if(xml.findChild("CID")) {
+				xml.stepIn();
+				SettingsManager::getInstance()->set(SettingsManager::PRIVATE_ID, xml.getData());
 				xml.stepOut();
 			}
+
+			xml.stepOut();
 		}
 	} catch(const Exception& e) {
 		LogManager::getInstance()->message("Error Loading CID : " + e.getError(), LogManager::LOG_ERROR);
@@ -610,29 +597,26 @@ void FavoriteManager::load() {
 
 	try {
 		SimpleXML xml;
-		Util::migrate(getConfigFile());
-		if(Util::fileExists(getConfigFile())) {
-			xml.fromXML(File(getConfigFile(), File::READ, File::OPEN).read());
-		
-			if(xml.findChild("Favorites")) {
-				xml.stepIn();
-				load(xml);
-				xml.stepOut();
-			}
-			//we have load it fine now, so make a backup of a working favorites.xml
-			File::deleteFile(getConfigFile() + ".bak");
-			CopyFile(Text::toT(getConfigFile()).c_str(), Text::toT(getConfigFile() + ".bak").c_str(), FALSE);
+		xml.loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME, false); //we have migrated already when loading the CID
+
+		if(xml.findChild("Favorites")) {
+			xml.stepIn();
+			load(xml);
+			xml.stepOut();
 		}
+
+		//we have load it fine now, so make a backup of a working favorites.xml
+		auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
+		File::deleteFile(f + ".bak");
+		CopyFile(Text::toT(f).c_str(), Text::toT(f + ".bak").c_str(), FALSE);
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::load: %s\n", e.getError().c_str());
 		LogManager::getInstance()->message("Error Loading Favorites.xml : " + e.getError(), LogManager::LOG_ERROR);
 	}
 
 	try {
-		Util::migrate(Util::getPath(Util::PATH_USER_CONFIG) + "Recents.xml");
-		
 		SimpleXML xml;
-		xml.fromXML(File(Util::getPath(Util::PATH_USER_CONFIG) + "Recents.xml", File::READ, File::OPEN).read());
+		xml.loadSettingFile(CONFIG_DIR, CONFIG_RECENTS_NAME);
 		
 		if(xml.findChild("Recents")) {
 			xml.stepIn();

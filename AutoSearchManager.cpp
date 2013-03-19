@@ -40,6 +40,9 @@
 
 namespace dcpp {
 
+#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_NAME "AutoSearch.xml"
+
 using boost::range::copy;
 using boost::range::find_if;
 using boost::max_element;
@@ -550,8 +553,15 @@ void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const ProfileT
 	}
 }
 
-void AutoSearchManager::onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir) {
-	logMessage(aError, true);
+void AutoSearchManager::onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) {
+	RLock l(cs);
+	auto as = getSearchByToken(aSearch);
+	if (as) {
+		as->setLastError(STRING_F(AS_ERROR, Util::getLastDir(aDir) % aError % Util::getTimeString() % Util::toString(ClientManager::getInstance()->getNicks(aUser))));
+		fire(AutoSearchManagerListener::UpdateItem(), as, true);
+	}
+
+	//logMessage(aError, true);
 }
 
 void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
@@ -1182,15 +1192,7 @@ void AutoSearchManager::AutoSearchSave() {
 		xml.stepOut();
 		xml.stepOut();
 		
-		string fname = Util::getPath(Util::PATH_USER_CONFIG) + AUTOSEARCH_FILE;
-
-		File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
-		f.write(SimpleXML::utf8Header);
-		f.write(xml.toXML());
-		f.close();
-		File::deleteFile(fname);
-		File::renameFile(fname + ".tmp", fname);
-		
+		xml.saveSettingFile(CONFIG_DIR, CONFIG_NAME);
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::recentsave: %s\n", e.getError().c_str());
 	}
@@ -1288,12 +1290,10 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 }
 
 void AutoSearchManager::AutoSearchLoad() {
-	auto configPath = Util::getPath(Util::PATH_USER_CONFIG) + AUTOSEARCH_FILE;
 	try {
-		Util::migrate(configPath);
-
 		SimpleXML xml;
-		xml.fromXML(File(configPath, File::READ, File::OPEN).read());
+		xml.loadSettingFile(CONFIG_DIR, CONFIG_NAME);
+
 		if(xml.findChild("Autosearch")) {
 			curPos = xml.getIntChildAttrib("LastPosition");
 			xml.stepIn();

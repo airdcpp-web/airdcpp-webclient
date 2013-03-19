@@ -361,16 +361,8 @@ public:
 
 	void unset(size_t key) { isSet[key] = false; }
 
-	void load(function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF) {
-		Util::migrate(getConfigFile());
-		return load(getConfigFile(), messageF);
-	}
-	void save() {
-		save(getConfigFile());
-	}
-
-	void load(const string& aFileName, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF);
-	void save(const string& aFileName);
+	void load(function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF);
+	void save();
 	
 	void reloadPages(int group = 0) {
 		fire(SettingsManagerListener::ReloadPages(), group);
@@ -420,7 +412,6 @@ private:
 	static const string historyTags[HISTORY_LAST];
 
 	StringPairList fileEvents;
-	string getConfigFile() { return Util::getPath(Util::PATH_USER_CONFIG) + "DCPlusPlus.xml"; }
 };
 
 // Shorthand accessor macros
