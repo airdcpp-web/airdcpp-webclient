@@ -37,7 +37,7 @@ Transfer::Transfer(UserConnection& conn, const string& path_, const TTHValue& tt
 	path(path_), tth(tth_), actual(0), pos(0), userConnection(conn) { }
 
 void Transfer::tick() {
-	Lock l(cs);
+	WLock l(cs);
 	
 	uint64_t t = GET_TICK();
 	
@@ -63,7 +63,7 @@ void Transfer::tick() {
 }
 
 double Transfer::getAverageSpeed() const {
-	Lock l(cs);
+	RLock l(cs);
 	if(samples.size() < 2) {
 		return 0;
 	}

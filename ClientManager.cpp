@@ -59,7 +59,7 @@ ClientManager::~ClientManager() {
 
 Client* ClientManager::createClient(const string& aHubURL) {
 	Client* c;
-	if(strnicmp("adc://", aHubURL.c_str(), 6) == 0 || strnicmp("adcs://", aHubURL.c_str(), 7) == 0) {
+	if(AirUtil::isAdcHub(aHubURL)) {
 		c = new AdcHub(aHubURL);
 	} else {
 		c = new NmdcHub(aHubURL);

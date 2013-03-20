@@ -56,7 +56,8 @@ namespace dcpp {
 		int64_t gt;
 		int64_t lt;
 
-		int64_t minDate;
+		uint32_t minDate;
+		uint32_t maxDate;
 
 		TTHValue root;
 		bool hasRoot;
@@ -68,6 +69,7 @@ namespace dcpp {
 		bool matchesFile(const string& aName, int64_t aSize);
 		bool matchesDirectory(const string& aName);
 		bool matchesSize(int64_t aSize);
+		bool matchesDate(uint32_t aDate);
 	};
 }
 

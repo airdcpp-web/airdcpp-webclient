@@ -428,6 +428,11 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	BundleFileList aFiles;
 	aDir->download(target, aFiles);
 
+	if (aFiles.empty() || (SETTING(SKIP_ZERO_BYTE) && none_of(aFiles.begin(), aFiles.end(), [](const BundleFileInfo& aFile) { return aFile.size > 0; }))) {
+		fire(DirectoryListingListener::UpdateStatusMessage(), STRING(DIR_EMPTY) + " " + aDir->getName());
+		return false;
+	}
+
 	BundlePtr b = nullptr;
 
 	try {
@@ -463,7 +468,7 @@ bool DirectoryListing::downloadDir(Directory* aDir, const string& aTarget, Targe
 	/* Check if this is a root dir containing release dirs */
 	boost::regex reg;
 	reg.assign(AirUtil::getReleaseRegBasic());
-	if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && 
+	if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && !aDir->directories.empty() &&
 		all_of(aDir->directories.begin(), aDir->directories.end(), [&reg](Directory* d) { return boost::regex_match(d->getName(), reg); })) {
 			
 		/* Create bundles from each subfolder */

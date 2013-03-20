@@ -60,7 +60,7 @@ public:
 	{
 		size_t n = calcBlocks(aFileSize, aBlockSize);
 		for(size_t i = 0; i < n; i++)
-			leaves.push_back(MerkleValue(aData + i * Hasher::BYTES));
+			leaves.emplace_back(MerkleValue(aData + i * Hasher::BYTES));
 
 		calcRoot();
 	}
@@ -108,10 +108,10 @@ public:
 			h.update(&zero, 1);
 			h.update(buf + i, n);
 			if((int64_t)baseBlockSize < blockSize) {
-				blocks.push_back(make_pair(MerkleValue(h.finalize()), baseBlockSize));
+				blocks.emplace_back(MerkleValue(h.finalize()), baseBlockSize);
 				reduceBlocks();
 			} else {
-				leaves.push_back(MerkleValue(h.finalize()));
+				leaves.emplace_back(h.finalize());
 			}
 			i += n;
 		} while(i < len);
@@ -207,7 +207,7 @@ private:
 			MerkleBlock& b = blocks[blocks.size()-1];
 			if(a.second == b.second) {
 				if(a.second*2 == blockSize) {
-					leaves.push_back(combine(a.first, b.first));
+					leaves.emplace_back(combine(a.first, b.first));
 					blocks.pop_back();
 					blocks.pop_back();
 				} else {

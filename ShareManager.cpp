@@ -181,6 +181,18 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::Directory::find
 	return find_if(files, [&aName](const Directory::File& f) { return compare(aName, f.getNameLower()) == 0; });
 }
 
+void ShareManager::Directory::getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_) const noexcept {
+	for(const auto& d: directories) {
+		if (d->isLevelExcluded(aProfile))
+			continue;
+		
+		d->getResultInfo(aProfile, size_, files_);
+	}
+
+	size_ += size;
+	files_ += files.size();
+}
+
 int64_t ShareManager::Directory::getSize(ProfileToken aProfile) const noexcept {
 	int64_t tmp = size;
 	for(const auto& d: directories) {
@@ -778,8 +790,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 				}
 
 				cur = ShareManager::Directory::create(name, cur, Util::toUInt32(date), pd);
-				if (pd && pd->isSet(ShareManager::ProfileDirectory::FLAG_ROOT))
+				if (pd && pd->isSet(ShareManager::ProfileDirectory::FLAG_ROOT)) {
 					ri.rootPathsNew[Text::toLower(curDirPath)] = cur;
+				}
 
 				cur->addBloom(*ri.newBloom.get());
 				ri.dirNameMapNew.emplace(name, cur);
@@ -814,6 +827,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			if (version > Util::toInt(SHARE_CACHE_VERSION))
 				throw("Newer cache version"); //don't load those...
 
+			cur->addBloom(*ri.newBloom.get());
 			cur->setLastWrite(Util::toUInt32(getAttrib(attribs, DATE, 2)));
 
 		}
@@ -1882,6 +1896,9 @@ void ShareManager::getBloom(HashBloom& bloom) const {
 	RLock l(cs);
 	for(const auto tth: tthIndex | map_keys)
 		bloom.add(*tth);
+
+	for(const auto& tth: tempShares | map_keys)
+		bloom.add(tth);
 }
 
 string ShareManager::generateOwnList(ProfileToken aProfile) {
@@ -2466,7 +2483,9 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 	if( (cur->empty()) && 
 		(((aFileType == SearchManager::TYPE_ANY) && sizeOk) || (aFileType == SearchManager::TYPE_DIRECTORY)) ) {
 		// We satisfied all the search words! Add the directory...(NMDC searches don't support directory size)
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, 0, getFullName(SP_DEFAULT), TTHValue(), 0));
+		//getInstance()->addDirResult(getFullName(SP_DEFAULT), aResults, SP_DEFAULT, false);
+
+		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, 0, getFullName(SP_DEFAULT), TTHValue(), 0, 0));
 		aResults.push_back(sr);
 	}
 
@@ -2488,7 +2507,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 			
 			// Check file type...
 			if(checkType(f.getName(), aFileType)) {
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.getSize(), getFullName(SP_DEFAULT) + f.getName(), f.getTTH(), 0));
+				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.getSize(), getFullName(SP_DEFAULT) + f.getName(), f.getTTH(), 0, 1));
 				aResults.push_back(sr);
 				if(aResults.size() >= maxResults) {
 					break;
@@ -2513,17 +2532,14 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 			if(!aHideShare) {
 				const auto i = tthIndex.find(const_cast<TTHValue*>(&tth));
 				if(i != tthIndex.end() && i->second->getParent()->hasProfile(SP_DEFAULT)) {
-					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second->getSize(), 
-						i->second->getParent()->getFullName(SP_DEFAULT) + i->second->getName(), i->second->getTTH(), 0));
-
-					results.push_back(sr);
+					i->second->addSR(results, SP_DEFAULT, false);
 				} 
 			}
 
 			auto files = tempShares.equal_range(tth);
 			for(auto& i = files.first; i != files.second; ++i) {
 				if(i->second.key.empty()) { // nmdc shares are shared to everyone.
-					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, "tmp\\" + Util::getFileName(i->second.path), i->first, 0));
+					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, "tmp\\" + Util::getFileName(i->second.path), i->first, 0, 1));
 					results.push_back(sr);
 				}
 			}
@@ -2555,6 +2571,54 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 	}
 }
 
+bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, AdcSearch& srch) const {
+	const string path = srch.addParents ? (Util::getParentDir(aPath, true)) : aPath;
+
+	//have we added it already?
+	auto p = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getFile() == path; });
+	if (p != aResults.end())
+		return false;
+
+	//get all dirs with this path
+	DirectoryList result;
+
+	try {
+		findVirtuals<ProfileToken>(Util::toAdcFile(path), aProfile, result);
+	} catch(...) {
+		dcassert(0);
+	}
+
+	uint32_t date = 0;
+	int64_t size = 0;
+	size_t files = 0;
+	for(const auto& d: result) {
+		if (!d->isLevelExcluded(aProfile)) {
+			d->getResultInfo(aProfile, size, files);
+			date = max(date, d->getLastWrite());
+		}
+	}
+
+	if (srch.matchesDate(date)) {
+		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, size, path, TTHValue(), date, files));
+		aResults.push_back(sr);
+		return true;
+	}
+
+	return false;
+}
+
+void ShareManager::Directory::File::addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const {
+	if (addParent) {
+		//getInstance()->addDirResult(getFullName(aProfile), aResults, aProfile, true);
+		SearchResultPtr sr(new SearchResult(getFullName(aProfile)));
+		aResults.push_back(sr);
+	} else {
+		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
+			size, getFullName(aProfile) + getName(), getTTH(), getLastWrite(), 1));
+		aResults.push_back(sr);
+	}
+}
+
 void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
 	for(const auto& i: aStrings.exclude) {
 		if(i.matchLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : realNameLower))
@@ -2579,20 +2643,10 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 		aStrings.include = newStr.get();
 	}
 
-	bool sizeOk = (aStrings.gt == 0);
+	bool sizeOk = (aStrings.gt == 0) && aStrings.matchesSize(lastWrite);
 	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk) {
 		// We satisfied all the search words! Add the directory...
-		if (aStrings.addParents) {
-			const auto path = parent ? parent->getFullName(aProfile) : Util::emptyString;
-			auto res = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getFile() == path; });
-			if (res == aResults.end() /*&& aStrings.matchesSize(getSize(aProfile))*/) {
-				SearchResultPtr sr(new SearchResult(path));
-				aResults.push_back(sr);
-			}
-		} else {
-			SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, getSize(aProfile), getFullName(aProfile), TTHValue(), lastWrite));
-			aResults.push_back(sr);
-		}
+		getInstance()->addDirResult(getFullName(aProfile), aResults, aProfile, aStrings);
 	}
 
 	if(!aStrings.isDirectory) {
@@ -2601,6 +2655,8 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 			if(!(f.getSize() >= aStrings.gt)) {
 				continue;
 			} else if(!(f.getSize() <= aStrings.lt)) {
+				continue;
+			} else if (!aStrings.matchesDate(f.getLastWrite())) {
 				continue;
 			}
 
@@ -2616,14 +2672,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 				if(aStrings.isExcluded(f.getName()))
 					continue;
 
-				if (aStrings.addParents) {
-					SearchResultPtr sr(new SearchResult(getFullName(aProfile)));
-					aResults.push_back(sr);
-				} else {
-					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
-						f.getSize(), getFullName(aProfile) + f.getName(), f.getTTH(), f.getLastWrite()));
-					aResults.push_back(sr);
-				}
+				f.addSR(aResults, aProfile, aStrings.addParents);
 
 				if(aResults.size() >= maxResults) {
 					return;
@@ -2641,9 +2690,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 		(*l)->search(aResults, aStrings, maxResults, aProfile);
 	}
 
-	//faster to check this?
-	if (aStrings.include->size() != old->size())
-		aStrings.include = old;
+	aStrings.include = old;
 }
 
 
@@ -2651,28 +2698,34 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 
 	RLock l(cs);
 	if(srch.hasRoot) {
-		const auto i = tthIndex.find(const_cast<TTHValue*>(&srch.root));
-		if(i != tthIndex.end() && i->second->getParent()->hasProfile(aProfile)) {
-			if (srch.addParents) {
-				SearchResultPtr sr(new SearchResult(i->second->getParent()->getFullName(aProfile)));
-				results.push_back(sr);
-			} else {
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
-					i->second->getSize(), i->second->getParent()->getFullName(aProfile) + i->second->getName(), 
-					i->second->getTTH(), i->second->getLastWrite()));
-				results.push_back(sr);
+		const auto i = tthIndex.equal_range(const_cast<TTHValue*>(&srch.root));
+		for(auto& f: i | map_values) {
+			if (f->hasProfile(aProfile) && AirUtil::isParentOrExact(aDir, f->getADCPath(aProfile))) {
+				f->addSR(results, aProfile, srch.addParents);
+				return;
 			}
-			return;
 		}
 
 		const auto files = tempShares.equal_range(srch.root);
-		for(auto& f: files | map_values) {
+		for(const auto& f: files | map_values) {
 			if(f.key.empty() || (f.key == cid.toBase32())) { // if no key is set, it means its a hub share.
 				//TODO: fix the date?
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.size, "tmp\\" + Util::getFileName(f.path), srch.root, 0));
+				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.size, "tmp\\" + Util::getFileName(f.path), srch.root, 0, 1));
 				results.push_back(sr);
 			}
 		}
+		return;
+	}
+
+	if (srch.isDirectory && srch.matchType == AdcSearch::MATCH_EXACT) {
+		const auto i = dirNameMap.equal_range(srch.includeX.front().getPattern());
+		for(const auto& d: i | map_values) {
+			string path = d->getADCPath(aProfile);
+			if (d->hasProfile(aProfile) && AirUtil::isParentOrExact(aDir, path) && srch.matchesDate(d->getLastWrite()) && addDirResult(path, results, aProfile, srch)) {
+				return;
+			}
+		}
+
 		return;
 	}
 

@@ -223,7 +223,6 @@ public:
 	private:
 
 		Semaphore s;
-		static atomic_flag active;
 		TaskQueue tasks;
 	} mover;
 
@@ -304,7 +303,7 @@ private:
 	void checkQueued(const string& aTarget, const TTHValue& root, const HintedUser& aUser, bool addBad, bool& wantConnection);
 
 	/** Check that we can download from this user */
-	bool checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueException);
+	void checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueException);
 
 	/** Sanity check for the target filename */
 	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
@@ -322,11 +321,10 @@ private:
 
 	void load(const SimpleXML& aXml);
 
-	//always use forceThreading if this is called from within a lock and it's being used for bundle items
-	void moveFile(const string& source, const string& target, QueueItemPtr q = nullptr);
 	static void moveFile_(const string& source, const string& target, QueueItemPtr& q);
 
 	void handleMovedBundleItem(QueueItemPtr& q);
+	void checkBundleFinished(BundlePtr& aBundle, bool isPrivate);
 
 	unordered_map<string, SearchResultList> searchResults;
 	void pickMatch(QueueItemPtr qi);

@@ -60,12 +60,6 @@ namespace dcpp {
 
 using boost::range::for_each;
 
-#ifdef ATOMIC_FLAG_INIT
-atomic_flag QueueManager::FileMover::active = ATOMIC_FLAG_INIT;
-#else
-atomic_flag QueueManager::FileMover::active;
-#endif
-
 QueueManager::FileMover::FileMover() { 
 	start();
 	setThreadPriority(Thread::LOW);
@@ -102,8 +96,7 @@ int QueueManager::FileMover::run() {
 		s.wait();
 		TaskQueue::TaskPair t;
 		if (!tasks.getFront(t)) {
-			active.clear();
-			return 0;
+			continue;
 		}
 
 		if (t.first == MOVE_FILE) {
@@ -486,7 +479,7 @@ void QueueManager::checkSource(const UserPtr& aUser) const throw(QueueException)
 	}
 }
 
-bool QueueManager::checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueException) {
+void QueueManager::checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueException) {
 	string fileName = Util::getFileName(aInfo.file);
 
 	//check the skiplist
@@ -520,16 +513,6 @@ bool QueueManager::checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueE
 	if (highPrioFiles.match(fileName)) {
 		aInfo.prio = SETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
 	}
-
-	if(aInfo.size == 0) {
-		if(!SETTING(SKIP_ZERO_BYTE)) {
-			File::ensureDirectory(aInfo.file);
-			File f(aInfo.file, File::WRITE, File::CREATE);
-		}
-		return false;
-	}
-
-	return true;
 }
 
 void QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool isClientView) {
@@ -652,10 +635,9 @@ BundlePtr QueueManager::createBundle(const string& aTarget, const HintedUser& aU
 	//check the files
 	for (auto i = aFiles.begin(); i != aFiles.end(); ) {
 		try {
-			if (checkBundleFileInfo(*i)) {
-				i++;
-				continue;
-			}
+			checkBundleFileInfo(*i);
+			i++;
+			continue;
 		} catch(QueueException& e) {
 			handleException(e, (*i).file);
 		} catch(FileException& e) {
@@ -680,7 +662,7 @@ BundlePtr QueueManager::createBundle(const string& aTarget, const HintedUser& aU
 	BundlePtr b = nullptr;
 	bool wantConnection = false;
 	int added = 0;
-	bool smallSlot = false;
+	bool smallSlot = false, bundleEmpty = false;
 
 	{
 		WLock l(cs);
@@ -692,12 +674,11 @@ BundlePtr QueueManager::createBundle(const string& aTarget, const HintedUser& aU
 			try {
 				checkQueued(bfi.file, bfi.tth, aUser, true, wantConnection);
 				auto ret = addFile(bfi.file, bfi.size, bfi.tth, aUser, aFlags, true, bfi.prio, wantConnection, b);
-				dcassert(ret.first);
 				if (ret.second) {
 					added++;
-					if (b->getStatus() != Bundle::STATUS_NEW)
+					if (b->getStatus() != Bundle::STATUS_NEW && ret.first)
 						fire(QueueManagerListener::Added(), ret.first);
-				} else {
+				} else if (ret.first) {
 					fire(QueueManagerListener::SourcesUpdated(), ret.first);
 				}
 			} catch(QueueException& e) {
@@ -705,8 +686,10 @@ BundlePtr QueueManager::createBundle(const string& aTarget, const HintedUser& aU
 			}
 		}
 
-		//add the bundle
-		if (!addBundle(b, aTarget, added)) {
+		if (added > 0 && b->getQueueItems().empty()) {
+			//it finished already?
+			bundleEmpty = true;
+		} else if (!addBundle(b, aTarget, added)) {
 			reportErrors();
 			return nullptr;
 		}
@@ -714,8 +697,10 @@ BundlePtr QueueManager::createBundle(const string& aTarget, const HintedUser& aU
 		smallSlot = any_of(b->getQueueItems().begin(), b->getQueueItems().end(), [&aUser](const QueueItemPtr& aQI) { return aQI->usesSmallSlot() && aQI->isSource(aUser.user); });
 	}
 
-	//connect to the source (we must have an user in this case)
-	if (wantConnection) {
+	if (bundleEmpty) {
+		checkBundleFinished(b, false);
+	} else if (wantConnection) {
+		//connect to the source (we must have an user in this case)
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
 	}
@@ -757,6 +742,20 @@ void QueueManager::checkQueued(const string& aTarget, const TTHValue& root, cons
 pair<QueueItemPtr, bool> QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags /* = 0 */, 
 								   bool addBad /* = true */, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException)
 {
+	//handle zero byte items
+	if(aSize == 0) {
+		if(!SETTING(SKIP_ZERO_BYTE)) {
+			File::ensureDirectory(aTarget);
+			File f(aTarget, File::WRITE, File::CREATE);
+			if (aBundle) {
+				auto qi = QueueItemPtr(new QueueItem(aTarget, aSize, aPrio, aFlags, GET_TIME(), root, aTarget));
+				aBundle->addFinishedItem(qi, false);
+			}
+			return make_pair(nullptr, true);
+		}
+		return make_pair(nullptr, false);
+	}
+
 	// add the file
 	auto ret = fileQueue.add(aTarget, aSize, aFlags, aPrio, Util::emptyString, GET_TIME(), root);
 	//QueueItemPtr q = move(ret.first);
@@ -1097,10 +1096,6 @@ Download* QueueManager::getDownload(UserConnection& aSource, const OrderedString
 	}
 }
 
-void QueueManager::moveFile(const string& source, const string& target, QueueItemPtr q /*nullptr, only add when download finishes!*/) {
-	mover.moveFile(source, target, q);
-}
-
 void QueueManager::moveFile_(const string& source, const string& target, QueueItemPtr& qi) {
 	try {
 		File::ensureDirectory(target);
@@ -1153,7 +1148,7 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr& qi) {
 		ClientManager::getInstance()->sendUDP(cmd, u.user->getCID(), false, true);
 	}
 
-	bool hasNotifications = false;
+
 	{
 		RLock l (cs);
 		//flag this file as moved
@@ -1164,12 +1159,21 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr& qi) {
 			//the bundle was removed while the file was being moved?
 			return;
 		}
+	}
 
+	checkBundleFinished(b, qi->isSet(QueueItem::FLAG_PRIVATE));
+}
+
+
+void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) {
+	bool hasNotifications = false;
+	{
+		RLock l (cs);
 		//check if there are queued or non-moved files remaining
-		if (!b->allowHash()) 
+		if (!aBundle->allowHash()) 
 			return;
 
-		hasNotifications = !b->getFinishedNotifications().empty();
+		hasNotifications = !aBundle->getFinishedNotifications().empty();
 	}
 
 	if (hasNotifications) {
@@ -1178,25 +1182,25 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr& qi) {
 		Bundle::FinishedNotifyList fnl;
 		{
 			WLock l(cs);
-			b->clearFinishedNotifications(fnl);
+			aBundle->clearFinishedNotifications(fnl);
 		}
 
 		for(auto& ubp: fnl)
 			sendRemovePBD(ubp.first, ubp.second);
 	}
 
-	if (!SETTING(SCAN_DL_BUNDLES) || b->isFileBundle()) {
-		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, b->getName().c_str()), LogManager::LOG_INFO);
-	} else if (!scanBundle(b)) {
+	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
+		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
+	} else if (!scanBundle(aBundle)) {
 		return;
 	} 
 
 	if (SETTING(ADD_FINISHED_INSTANTLY)) {
-		hashBundle(b);
-	} else if (!qi->isSet(QueueItem::FLAG_PRIVATE)) {
+		hashBundle(aBundle);
+	} else if (!isPrivate) {
 		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 	} else {
-		removeFinishedBundle(b);
+		removeFinishedBundle(aBundle);
 	}
 }
 
@@ -1392,7 +1396,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) {
 
 void QueueManager::moveStuckFile(QueueItemPtr& qi) {
 
-	moveFile(qi->getTempTarget(), qi->getTarget());
+	mover.moveFile(qi->getTempTarget(), qi->getTarget(), nullptr);
 
 	if(qi->isFinished()) {
 		WLock l(cs);
@@ -1601,7 +1605,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 
 		// Check if we need to move the file
 		if(!d->getTempTarget().empty() && (Util::stricmp(d->getPath().c_str(), d->getTempTarget().c_str()) != 0) ) {
-			moveFile(d->getTempTarget(), d->getPath(), q);
+			mover.moveFile(d->getTempTarget(), d->getPath(), q);
 		}
 
 		fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
@@ -3208,7 +3212,7 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 				if (!fileQueue.findFile(targetPath)) {
 					if(!Util::fileExists(targetPath)) {
 						qi->unsetFlag(QueueItem::FLAG_MOVED);
-						moveFile(qi->getTarget(), targetPath, qi);
+						mover.moveFile(qi->getTarget(), targetPath, qi);
 						if (targetBundle == sourceBundle) {
 							fileQueue.move(qi, targetPath);
 							i++;

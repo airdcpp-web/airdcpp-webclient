@@ -101,7 +101,7 @@ public:
 	void setFreeSlotMatcher();
 
 	/** @return Number of uploads. */ 
-	size_t getUploadCount() { Lock l(cs); return uploads.size(); }
+	size_t getUploadCount() const;
 
 	/**
 	 * @remarks This is only used in the tray icons. Could be used in
@@ -123,10 +123,10 @@ public:
 	void reserveSlot(const HintedUser& aUser, uint64_t aTime);
 	void unreserveSlot(const UserPtr& aUser);
 	void clearUserFiles(const UserPtr&);
-	bool hasReservedSlot(const UserPtr& aUser) const { Lock l(cs); return reservedSlots.find(aUser) != reservedSlots.end(); }
-	bool isNotifiedUser(const UserPtr& aUser) const { return notifiedUsers.find(aUser) != notifiedUsers.end(); }
+	bool hasReservedSlot(const UserPtr& aUser) const;
+	bool isNotifiedUser(const UserPtr& aUser) const;
 	typedef vector<WaitingUser> SlotQueue;
-	SlotQueue getUploadQueue() const { Lock l(cs); return uploadQueue; }
+	SlotQueue getUploadQueue() const;
 
 	void unreserveSlot(const UserPtr& aUser, bool add);
 	void onUBD(const AdcCommand& cmd);
@@ -151,7 +151,7 @@ private:
 
 	UploadList uploads;
 	UploadList delayUploads;
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;
 
 	int lastFreeSlots; /// amount of free slots at the previous minute
 	

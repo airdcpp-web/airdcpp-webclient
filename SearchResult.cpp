@@ -27,18 +27,18 @@
 
 namespace dcpp {
 
-SearchResult::SearchResult(const string& aPath) : file(aPath), size(0), date(0), slots(0), type(TYPE_DIRECTORY), freeSlots(0) { }
+SearchResult::SearchResult(const string& aPath) : file(aPath), size(0), date(0), slots(0), type(TYPE_DIRECTORY), freeSlots(0), files(0) { }
 
 SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection) :
+	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection, int aFiles) :
 
-	file(aFilePath), user(aUser),
+	file(aFilePath), user(aUser), files(aFiles),
 	size(aSize), type(aType), slots(aSlots), freeSlots(aFreeSlots), IP(ip),
 	tth(aTTH), token(aToken), date(aDate), connection(aConnection) { }
 
-SearchResult::SearchResult(Types aType, int64_t aSize, const string& aFile, const TTHValue& aTTH, time_t aDate) :
+SearchResult::SearchResult(Types aType, int64_t aSize, const string& aFile, const TTHValue& aTTH, time_t aDate, int aFiles) :
 	file(aFile), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), slots(UploadManager::getInstance()->getSlots()), 
-	freeSlots(UploadManager::getInstance()->getFreeSlots()),  
+	freeSlots(UploadManager::getInstance()->getFreeSlots()), files(aFiles),
 	tth(aTTH), date(aDate) { }
 
 string SearchResult::toSR(const Client& c) const {
@@ -77,6 +77,9 @@ AdcCommand SearchResult::toRES(char aType) const {
 	if (!SettingsManager::lanMode && type != TYPE_DIRECTORY)
 		cmd.addParam("TR", getTTH().toBase32());
 	cmd.addParam("DM", Util::toString(date));
+
+	if (type == TYPE_DIRECTORY)
+		cmd.addParam("FI", Util::toString(files));
 	return cmd;
 }
 

@@ -39,15 +39,15 @@ public:
 		TYPE_DIRECTORY
 	};
 
-	//outgoing result (normal)
-	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate);
-
 	//outgoing result (direct)
 	SearchResult(const string& name);
 
+	//outgoing result (normal)
+	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate, int fileCount);
+
 	//incoming results
 	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection);
+		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection, int fileCount);
 
 	string getFileName() const;
 	string toSR(const Client& client) const;
@@ -62,6 +62,7 @@ public:
 	Types getType() const { return type; }
 	size_t getSlots() const { return slots; }
 	size_t getFreeSlots() const { return freeSlots; }
+	int getFileCount() const { return files; }
 	const TTHValue& getTTH() const { return tth; }
 	
 	string getConnectionStr() const;
@@ -93,6 +94,8 @@ private:
 	
 	size_t slots;
 	size_t freeSlots;
+
+	int files;
 	
 	HintedUser user;
 	Types type;

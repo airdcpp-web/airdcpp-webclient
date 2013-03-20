@@ -92,7 +92,7 @@ private:
 	typedef deque<Sample> SampleList;
 	
 	SampleList samples;
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;
 	
 	/** The file being transferred */
 	//string path;

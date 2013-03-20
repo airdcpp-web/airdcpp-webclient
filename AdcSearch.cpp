@@ -106,7 +106,7 @@ AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const Strin
 }
 
 AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false), matchType(MATCH_FULL_PATH), addParents(false), minDate(0)
+	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max())
 {
 	for(const auto& p: params) {
 		if(p.length() <= 2)
@@ -138,8 +138,10 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 			isDirectory = (p[2] == '2');
 		} else if(toCode('M', 'T') == cmd) {
 			matchType = static_cast<MatchType>(Util::toInt(p.substr(2)));
-		} else if(toCode('M', 'D') == cmd) {
-			minDate = Util::toInt64(p.substr(2));
+		} else if(toCode('O', 'T') == cmd) {
+			maxDate = Util::toUInt32(p.substr(2));
+		} else if(toCode('N', 'T') == cmd) {
+			minDate = Util::toUInt32(p.substr(2));
 		} else if(toCode('P', 'P') == cmd) {
 			addParents = (p[2] == '1');
 		}
@@ -212,6 +214,10 @@ bool AdcSearch::matchesDirectory(const string& aName) {
 
 bool AdcSearch::matchesSize(int64_t aSize) {
 	return aSize >= gt && aSize <= lt;
+}
+
+bool AdcSearch::matchesDate(uint32_t aDate) {
+	return aDate == 0 || (aDate >= minDate && aDate <= maxDate);
 }
 
 } //dcpp

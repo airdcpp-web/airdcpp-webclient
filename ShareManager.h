@@ -318,8 +318,10 @@ private:
 			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + getName(); }
 			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + getName(); }
 			string getRealPath(bool validate = true) const { return parent->getRealPath(getName(), validate); }
+			bool hasProfile(ProfileToken aProfile) const { return parent->hasProfile(aProfile); }
 
 			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
+			void addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const;
 
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
@@ -329,6 +331,7 @@ private:
 			const string& getName() const { return name ? *name : fileInfo->getFileName(); }
 			const TTHValue& getTTH() const { return fileInfo->getRoot(); }
 			uint32_t getLastWrite() const { return fileInfo->getTimeStamp(); }
+
 		private:
 			File(const File& src);
 			string* name;
@@ -372,6 +375,7 @@ private:
 		bool hasProfile(const ProfileTokenSet& aProfiles) const noexcept;
 		bool hasProfile(ProfileToken aProfiles) const noexcept;
 
+		void getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_) const noexcept;
 		int64_t getSize(ProfileToken aProfile) const noexcept;
 		int64_t getTotalSize() const noexcept;
 		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const;
@@ -462,6 +466,7 @@ private:
 		int refreshOptions;
 	};
 
+	bool addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, AdcSearch& srch) const;
 	typedef boost::unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
 	ProfileDirMap profileDirs;
 

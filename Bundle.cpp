@@ -119,7 +119,7 @@ bool Bundle::checkRecent() {
 }
 
 bool Bundle::allowHash() const {
-	return status != STATUS_HASHING && queueItems.empty() && find_if(finishedFiles, [](QueueItemPtr q) { 
+	return status != STATUS_HASHING && queueItems.empty() && find_if(finishedFiles, [](const QueueItemPtr& q) { 
 		return !q->isSet(QueueItem::FLAG_MOVED); }) == finishedFiles.end();
 }
 
@@ -133,11 +133,11 @@ void Bundle::setDownloadedBytes(int64_t aSize) {
 
 void Bundle::addFinishedSegment(int64_t aSize) {
 #ifdef _DEBUG
-	int64_t tmp1 = accumulate(queueItems, (int64_t)0, [&](int64_t old, QueueItemPtr qi) {
+	int64_t tmp1 = accumulate(queueItems, (int64_t)0, [&](int64_t old, const QueueItemPtr& qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
 
-	tmp1 = accumulate(finishedFiles, tmp1, [&](int64_t old, QueueItemPtr qi) {
+	tmp1 = accumulate(finishedFiles, tmp1, [&](int64_t old, const QueueItemPtr& qi) {
 		return old + qi->getDownloadedSegments(); 
 	});
 	dcassert(tmp1 == aSize + finishedSegments);
@@ -188,7 +188,7 @@ bool Bundle::getDirty() const {
 }
 
 QueueItemPtr Bundle::findQI(const string& aTarget) const {
-	auto p = find_if(queueItems, [&aTarget](QueueItemPtr q) { return q->getTarget() == aTarget; });
+	auto p = find_if(queueItems, [&aTarget](const QueueItemPtr& q) { return q->getTarget() == aTarget; });
 	return p != queueItems.end() ? *p : nullptr;
 }
 
@@ -621,7 +621,7 @@ bool Bundle::allowAutoSearch() const {
 	if (countOnlineUsers() >= (size_t)SETTING(AUTO_SEARCH_LIMIT))
 		return false; // can't exceed the user limit
 
-	if (find_if(queueItems, [](QueueItemPtr q) { return q->getPriority() != QueueItem::PAUSED; } ) == queueItems.end())
+	if (find_if(queueItems, [](const QueueItemPtr& q) { return q->getPriority() != QueueItem::PAUSED; } ) == queueItems.end())
 		return false; // must have valid queue items
 
 	if (getSecondsLeft() < 20 && getSecondsLeft() != 0)
