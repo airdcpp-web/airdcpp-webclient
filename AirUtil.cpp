@@ -604,7 +604,7 @@ const string AirUtil::getReleaseRegLong(bool chat) {
 }
 
 const string AirUtil::getReleaseRegBasic() {
-	return "(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))";
+	return "(((?=\\S*[A-Za-z]\\S*)[A-Z0-9]\\S{3,})-([A-Za-z0-9_]{2,}))";
 }
 
 bool AirUtil::removeDirectoryIfEmpty(const string& aPath) {

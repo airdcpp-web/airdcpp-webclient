@@ -55,7 +55,7 @@ atomic_flag ShareScannerManager::scanning;
 
 ShareScannerManager::ShareScannerManager() {
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
-	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9]{2,}))");
+	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9_]{2,}))");
 	emptyDirReg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
 	rarReg.assign("(.+\\.((r\\w{2})|(0\\d{2})))");
 	rarMp3Reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))");

@@ -2643,7 +2643,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 		aStrings.include = newStr.get();
 	}
 
-	bool sizeOk = (aStrings.gt == 0) && aStrings.matchesSize(lastWrite);
+	bool sizeOk = (aStrings.gt == 0) && aStrings.matchesDate(lastWrite);
 	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk) {
 		// We satisfied all the search words! Add the directory...
 		getInstance()->addDirResult(getFullName(aProfile), aResults, aProfile, aStrings);
