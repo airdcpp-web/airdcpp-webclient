@@ -347,11 +347,11 @@ checkslots:
 		return false;
 	}
 
-	// remove file from upload queue
-	clearUserFiles(aSource.getUser());
-
 	{
 		WLock l(cs);
+		// remove file from upload queue
+		clearUserFiles(aSource.getUser(), false);
+
 		// remove user from notified list
 		auto cu = notifiedUsers.find(aSource.getUser());
 		if(cu != notifiedUsers.end()) {
@@ -1024,9 +1024,9 @@ size_t UploadManager::addFailedUpload(const UserConnection& source, const string
 	return queue_position;
 }
 
-void UploadManager::clearUserFiles(const UserPtr& aUser) {
+void UploadManager::clearUserFiles(const UserPtr& aUser, bool lock) {
 	
-	WLock l (cs);
+	ConditionalWLock l (cs, lock);
 	auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser; });
 	if(it != uploadQueue.cend()) {
 		for(const auto f: it->files) {
@@ -1059,24 +1059,30 @@ void UploadManager::removeConnection(UserConnection* aSource) {
 }
 
 void UploadManager::notifyQueuedUsers() {
-	if (uploadQueue.empty()) return;		//no users to notify
-
-	int freeslots = getFreeSlots();
-	if(freeslots > 0)
+	vector<WaitingUser> notifyList;
 	{
-		freeslots -= notifiedUsers.size();
-		while(!uploadQueue.empty() && freeslots > 0) {
-			// let's keep him in the notifiedList until he asks for a file
-			WaitingUser wu = uploadQueue.front();
-			clearUserFiles(wu.user);
-			
-			notifiedUsers[wu.user] = GET_TICK();
-
-			connectUser(wu.user, wu.token);
-
-			freeslots--;
+		WLock l(cs);
+		if (uploadQueue.empty()) return;		//no users to notify
+		
+		int freeslots = getFreeSlots();
+		if(freeslots > 0)
+		{
+			freeslots -= notifiedUsers.size();
+			while(!uploadQueue.empty() && freeslots > 0) {
+				// let's keep him in the connectingList until he asks for a file
+				WaitingUser wu = uploadQueue.front();
+				clearUserFiles(wu.user, false);
+				if(wu.user.user->isOnline()) {
+					notifiedUsers[wu.user] = GET_TICK();
+					notifyList.push_back(wu);
+					freeslots--;
+				}
+			}
 		}
 	}
+
+	for(auto it = notifyList.cbegin(); it != notifyList.cend(); ++it)
+		connectUser(it->user, it->token);
 }
 
 void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
@@ -1095,7 +1101,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	
 		for(auto i = notifiedUsers.begin(); i != notifiedUsers.end();) {
 			if((i->second + (90 * 1000)) < aTick) {
-				clearUserFiles(i->first);
+				clearUserFiles(i->first, false);
 				i = notifiedUsers.erase(i);
 			} else
 				++i;
@@ -1232,6 +1238,8 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 
 		if (!tickBundles.empty())
 			fire(UploadManagerListener::BundleTick(), tickBundles);
+
+
 	}
 
 	notifyQueuedUsers();
@@ -1239,8 +1247,8 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 }
 
 void UploadManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept {
-	if(wentOffline && !aUser->isOnline()) {
-		clearUserFiles(aUser);
+	if(wentOffline) {
+		clearUserFiles(aUser, true);
 	}
 }
 

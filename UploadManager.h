@@ -122,7 +122,7 @@ public:
 	/** @param aUser Reserve an upload slot for this user and connect. */
 	void reserveSlot(const HintedUser& aUser, uint64_t aTime);
 	void unreserveSlot(const UserPtr& aUser);
-	void clearUserFiles(const UserPtr&);
+	void clearUserFiles(const UserPtr& aUser, bool lock);
 	bool hasReservedSlot(const UserPtr& aUser) const;
 	bool isNotifiedUser(const UserPtr& aUser) const;
 	typedef vector<WaitingUser> SlotQueue;
