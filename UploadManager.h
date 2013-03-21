@@ -109,7 +109,7 @@ public:
 	 *
 	 * @return Running average download speed in Bytes/s
 	 */
-	int64_t getRunningAverage();
+	int64_t getRunningAverage(bool lock=true);
 	
 	uint8_t getSlots() const;
 

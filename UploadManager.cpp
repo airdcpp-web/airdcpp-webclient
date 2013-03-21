@@ -793,10 +793,10 @@ Upload* UploadManager::findUpload(const string& aToken) {
 }
 
 
-int64_t UploadManager::getRunningAverage() {
+int64_t UploadManager::getRunningAverage(bool lock) {
 	int64_t avg = 0;
 
-	RLock l(cs);
+	ConditionalRLock l(cs, lock);
 	for (auto u: uploads)
 		avg += static_cast<int64_t>(u->getAverageSpeed()); 
 	return avg;
@@ -813,7 +813,7 @@ bool UploadManager::getAutoSlot() {
 	if(GET_TICK() < getLastGrant() + 30*1000)
 		return false;
 	/** Grant if upload speed is less than the threshold speed */
-	return getRunningAverage() < (AirUtil::getSpeedLimit(false)*1024);
+	return getRunningAverage(false) < (AirUtil::getSpeedLimit(false)*1024);
 }
 
 void UploadManager::removeUpload(Upload* aUpload, bool delay) {
