@@ -2610,11 +2610,11 @@ bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults,
 void ShareManager::Directory::File::addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const {
 	if (addParent) {
 		//getInstance()->addDirResult(getFullName(aProfile), aResults, aProfile, true);
-		SearchResultPtr sr(new SearchResult(getFullName(aProfile)));
+		SearchResultPtr sr(new SearchResult(parent->getFullName(aProfile)));
 		aResults.push_back(sr);
 	} else {
 		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
-			size, getFullName(aProfile) + getName(), getTTH(), getLastWrite(), 1));
+			size, getFullName(aProfile), getTTH(), getLastWrite(), 1));
 		aResults.push_back(sr);
 	}
 }
