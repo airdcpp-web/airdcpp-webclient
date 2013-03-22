@@ -541,6 +541,9 @@ void QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const T
 		auto ret = fileQueue.add(target, aSize, (Flags::MaskType)(isClientView ? (QueueItem::FLAG_TEXT | QueueItem::FLAG_CLIENT_VIEW) : QueueItem::FLAG_OPEN), QueueItem::HIGHEST, Util::emptyString, GET_TIME(), aTTH);
 		qi = move(ret.first);
 		wantConnection = addSource(qi, aUser, true, false, false);
+
+		if (ret.second)
+			fire(QueueManagerListener::Added(), qi);
 	}
 
 	//connect
@@ -1101,9 +1104,9 @@ void QueueManager::moveFile_(const string& source, const string& target, QueueIt
 		File::ensureDirectory(target);
 		UploadManager::getInstance()->abortUpload(source);
 		File::renameFile(source, target);
-		if (Util::fileExists(source)) {
+		/*if (Util::fileExists(source)) {
 			LogManager::getInstance()->message("Failed to delete the file: " + source, LogManager::LOG_INFO);
-		}
+		}*/
 	} catch(const FileException& /*e1*/) {
 		// Try to just rename it to the correct name at least
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
@@ -1345,7 +1348,7 @@ void QueueManager::onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, b
 	q->setFlag(QueueItem::FLAG_HASHED);
 	if (failed) {
 		setBundleStatus(b, Bundle::STATUS_HASH_FAILED);
-	} else if (q->getBundle()->getStatus() != Bundle::STATUS_HASHING) {
+	} else if (b->getStatus() != Bundle::STATUS_HASHING && b->getStatus() != Bundle::STATUS_HASH_FAILED) {
 		//instant sharing disabled/the folder wasn't shared when the bundle finished
 		fire(QueueManagerListener::FileHashed(), aPath, aFileInfo);
 	}

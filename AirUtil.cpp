@@ -703,7 +703,7 @@ string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubt
 			j = toSubtract.find_last_of(PATH_SEPARATOR, i);
 			if(j == string::npos || (int)(toCompare.length() - (toSubtract.length() - j)) < 0) //also check if it goes out of scope for toCompare
 				break;
-			if(stricmp(toSubtract.substr(j), toCompare.substr(toSubtract.length() - (toSubtract.length()-j))) != 0)
+			if(stricmp(toSubtract.substr(j), toCompare.substr(toCompare.length() - (toSubtract.length()-j))) != 0)
 				break;
 			i = j - 1;
 		}

@@ -88,7 +88,8 @@ public:
 
 	static void copyFile(const string& src, const string& target);
 	static void renameFile(const string& source, const string& target);
-	static void deleteFile(const string& aFileName) noexcept;
+	static bool deleteFile(const string& aFileName) noexcept;
+	static bool delayedDeleteFile(const string& aFileName, int maxAttempts) noexcept;
 
 	static int64_t getSize(const string& aFileName) noexcept;
 

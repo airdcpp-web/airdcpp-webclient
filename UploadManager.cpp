@@ -611,10 +611,15 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 			bundle->findBundlePath(name);
 			bundles[bundle->getToken()] = bundle;
 			u->getUserConnection().setLastBundle(bundleToken);
-		} else if (ConnectionManager::getInstance()->setBundle(token, bundleToken)) {
-			bundles[bundle->getToken()] = bundle;
+			return;
 		}
 		//LogManager::getInstance()->message("ADDBUNDLE, BUNDLE ADDED!");
+	}
+
+	//no upload
+	if (ConnectionManager::getInstance()->setBundle(token, bundleToken)) {
+		WLock l (cs);
+		bundles[bundle->getToken()] = bundle;
 	}
 }
 
@@ -689,14 +694,18 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 	dcassert(b);
 
 	if (b) {
-		WLock l (cs);
-		Upload* u = findUpload(token);
-		if (u) {
-			b->addUpload(u);
-			u->getUserConnection().setLastBundle(bundleToken);
-		} else {
-			ConnectionManager::getInstance()->setBundle(token, bundleToken);
+		{
+			WLock l (cs);
+			Upload* u = findUpload(token);
+			if (u) {
+				b->addUpload(u);
+				u->getUserConnection().setLastBundle(bundleToken);
+				return;
+			}
 		}
+
+		//no upload
+		ConnectionManager::getInstance()->setBundle(token, bundleToken);
 	}
 }
 

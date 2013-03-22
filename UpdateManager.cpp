@@ -111,7 +111,9 @@ void UpdateManager::cleanTempFiles(const string& tmpPath) {
 
 		if(i->isDirectory()) {
 			UpdateManager::cleanTempFiles(tmpPath + name + PATH_SEPARATOR);
-		} else File::deleteFile(tmpPath + name);
+		} else {
+			File::delayedDeleteFile(tmpPath + name, 3);
+		}
 	}
 
 	// Remove the empty dir

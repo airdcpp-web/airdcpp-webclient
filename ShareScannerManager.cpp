@@ -630,7 +630,7 @@ void ShareScannerManager::scanBundle(BundlePtr aBundle, bool& hasMissing, bool& 
 }
 
 void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan, bool warning /*true*/) {
-	if (aScan.scanType == TYPE_FINISHED) {
+	if (aScan.scanType == TYPE_FINISHED || aScan.scanType == TYPE_FAILED_FINISHED) {
 		LogManager::getInstance()->message(aMessage, warning ? LogManager::LOG_WARNING : LogManager::LOG_INFO);
 	} else {
 		aScan.scanMessage += aMessage + "\n";
