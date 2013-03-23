@@ -1653,5 +1653,6 @@ enum Strings { // @DontAdd
 	AS_ERROR, // "%s: %s (on %s from an user %s)"
 	LAST_ERROR, // "Last error"
 	CLEAR_ERROR, // "Clear error"
+	SETTINGS_NMDC_MAGNET_WARNING, // "Warn me about sending files in private chat at nmdc hubs" 
 	LAST // @DontAdd
 };

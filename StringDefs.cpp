@@ -1649,6 +1649,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "%s: %s (on %s from an user %s)", 
 "Last error", 
 "Clear error", 
+"Warn me about sending files in private chat at nmdc hubs", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3298,4 +3299,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AsError", 
 "LastError", 
 "ClearError", 
+"SettingsNmdcMagnetWarning", 
 };
