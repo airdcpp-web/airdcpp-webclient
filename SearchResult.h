@@ -43,11 +43,11 @@ public:
 	SearchResult(const string& name);
 
 	//outgoing result (normal)
-	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate, int fileCount);
+	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate, int fileCount=0, int dirCount=0);
 
 	//incoming results
 	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection, int fileCount);
+		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection, int fileCount, int dirCount);
 
 	string getFileName() const;
 	string toSR(const Client& client) const;
@@ -95,6 +95,7 @@ private:
 	size_t slots;
 	size_t freeSlots;
 
+	int folders;
 	int files;
 	
 	HintedUser user;

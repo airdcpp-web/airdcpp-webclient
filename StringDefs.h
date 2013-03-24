@@ -1480,7 +1480,6 @@ enum Strings { // @DontAdd
 	DIRECTORY_LOADED, // "The directory %s has been loaded"
 	REDIRECT_FAILOVER, // "A redirection request was received via a failover address; press the follow redirect button to connect to %s"
 	NMDC_MAGNET_WARNING, // "In NMDC hubs the file will be shared so everyone can access it, continue?"
-	NMDC_HUB_PRIVATE, // "NMDC hub Private chat!"
 	DONT_ASK_AGAIN, // "Don't ask me again"
 	DONT_SHOW_AGAIN, // "Don't show this again"
 	DATA_PARSING_FAILED, // "Failed to parse the data"
@@ -1653,6 +1652,8 @@ enum Strings { // @DontAdd
 	AS_ERROR, // "%s: %s (on %s from an user %s)"
 	LAST_ERROR, // "Last error"
 	CLEAR_ERROR, // "Clear error"
-	SETTINGS_NMDC_MAGNET_WARNING, // "Warn me about sending files in private chat at nmdc hubs" 
+	MIN_DUPE_CHECK_SIZE, // "No dupe check for files smaller than"
+	SETTINGS_NMDC_MAGNET_WARNING, // "Warn me about sending files in private chat at nmdc hubs"
+	ELEVATED_WARNING, // "You appear to run the client with administrative privileges. This may disable the following client functionality:\r\n\r\n- Clicking on web links in chat doesn't work\r\n- All drives aren't shown in the sharing settings\r\n- Drag and drop functionality can't be used\r\n\r\nYou may also notice other unexcepted behaviour, so it is heavily recommended that you switch the client to run with normal privileges."
 	LAST // @DontAdd
 };

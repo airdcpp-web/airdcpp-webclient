@@ -181,14 +181,15 @@ ShareManager::Directory::File::Set::const_iterator ShareManager::Directory::find
 	return find_if(files, [&aName](const Directory::File& f) { return compare(aName, f.getNameLower()) == 0; });
 }
 
-void ShareManager::Directory::getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_) const noexcept {
+void ShareManager::Directory::getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_, size_t& folders_) const noexcept {
 	for(const auto& d: directories) {
 		if (d->isLevelExcluded(aProfile))
 			continue;
 		
-		d->getResultInfo(aProfile, size_, files_);
+		d->getResultInfo(aProfile, size_, files_, folders_);
 	}
 
+	folders_ += directories.size();
 	size_ += size;
 	files_ += files.size();
 }
@@ -1154,13 +1155,14 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 
 bool ShareManager::isFileShared(const TTHValue& aTTH, const string& fileName) const {
 	RLock l (cs);
-	const auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
+	/*const auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
 	for(auto i = files.first; i != files.second; ++i) {
 		if(stricmp(fileName.c_str(), i->second->getName().c_str()) == 0) {
 			return true;
 		}
 	}
-	return false;
+	return false;*/
+	return tthIndex.find(const_cast<TTHValue*>(&aTTH)) != tthIndex.end();
 }
 
 bool ShareManager::isFileShared(const TTHValue& aTTH, const string& fileName, ProfileToken aProfile) const {
@@ -2590,16 +2592,16 @@ bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults,
 
 	uint32_t date = 0;
 	int64_t size = 0;
-	size_t files = 0;
+	size_t files = 0, folders = 0;
 	for(const auto& d: result) {
 		if (!d->isLevelExcluded(aProfile)) {
-			d->getResultInfo(aProfile, size, files);
+			d->getResultInfo(aProfile, size, files, folders);
 			date = max(date, d->getLastWrite());
 		}
 	}
 
 	if (srch.matchesDate(date)) {
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, size, path, TTHValue(), date, files));
+		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, size, path, TTHValue(), date, files, folders));
 		aResults.push_back(sr);
 		return true;
 	}
@@ -3074,7 +3076,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 		if(SETTING(NO_ZERO_BYTE) && !(size > 0))
 			return false;
 
-		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > ((int64_t)SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
+		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > static_cast<int64_t>(SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
 			if (report) {
 				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath, LogManager::LOG_INFO);
 			}

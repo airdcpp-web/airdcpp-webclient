@@ -375,7 +375,7 @@ private:
 		bool hasProfile(const ProfileTokenSet& aProfiles) const noexcept;
 		bool hasProfile(ProfileToken aProfiles) const noexcept;
 
-		void getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_) const noexcept;
+		void getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_, size_t& folders_) const noexcept;
 		int64_t getSize(ProfileToken aProfile) const noexcept;
 		int64_t getTotalSize() const noexcept;
 		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const;

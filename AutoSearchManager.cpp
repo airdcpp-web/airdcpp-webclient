@@ -1078,26 +1078,26 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 
 void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
-		try {
-			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), sr->getUser(), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
-					(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken(), as->getRemove() || as->usingIncrementation());
-			} else {
-				TargetUtil::TargetInfo ti;
-				bool hasSpace = TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize());
-				if (!hasSpace)
-					TargetUtil::reportInsufficientSize(ti, sr->getSize());
+		if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
+			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), sr->getUser(), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
+				(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken(), as->getRemove() || as->usingIncrementation());
+		} else {
+			TargetUtil::TargetInfo ti;
+			bool hasSpace = TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize());
+			if (!hasSpace)
+				TargetUtil::reportInsufficientSize(ti, sr->getSize());
 
+			try {
 				auto b = QueueManager::getInstance()->createFileBundle(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), sr->getUser(), sr->getDate(), 0, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT));
 
 				if (b) {
 					onBundleCreated(b, as->getToken());
 				}
+			} catch(const Exception& e) {
+				onBundleCreationFailed(as->getToken(), e.getError(), ti.targetDir + sr->getFileName(), sr->getUser());
+				return;
 			}
-		} catch(const Exception& /*e*/) {
-			//LogManager::getInstance()->message("AutoSearch failed to queue " + sr->getFileName() + " (" + e.getError() + ")");
-			return;
 		}
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
 		ClientManager* cm = ClientManager::getInstance();

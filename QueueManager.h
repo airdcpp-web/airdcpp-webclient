@@ -62,6 +62,7 @@ namespace dcpp {
 namespace bimaps = boost::bimaps;
 
 STANDARD_EXCEPTION(QueueException);
+STANDARD_EXCEPTION(DupeException);
 
 class UserConnection;
 
@@ -72,8 +73,6 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 	private SearchManagerListener, private ClientManagerListener, private HashManagerListener
 {
 public:
-	static string formatBundleTarget(const string& aPath, time_t aRemoteDate);
-
 	void getBloom(HashBloom& bloom) const;
 	size_t getQueuedBundleFiles() const noexcept;
 	bool hasDownloadedBytes(const string& aTarget) throw(QueueException);
@@ -140,7 +139,7 @@ public:
 	void noDeleteFileList(const string& path);
 
 	//merging, adding, deletion
-	BundlePtr createBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle=false, Flags::MaskType aFlags = 0) throw(QueueException, FileException);
+	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate) throw(QueueException, FileException);
 	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException);
 	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
 	void moveFileBundle(BundlePtr& aBundle, const string& aTarget) noexcept;
@@ -294,19 +293,19 @@ private:
 	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle);
 
 	/** Add a file to the queue (returns the item and whether it didn't exist before) */
-	pair<QueueItemPtr, bool> addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException);
+	bool addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, bool& smallSlot, BundlePtr& aBundle) throw(QueueException, FileException);
 
 	/** Check that we can download from this user */
 	void checkSource(const UserPtr& aUser) const throw(QueueException);
 
-	/** Check if there's a file with the same TTH queued already */
-	void checkQueued(const string& aTarget, const TTHValue& root, const HintedUser& aUser, bool addBad, bool& wantConnection);
-
 	/** Check that we can download from this user */
-	void checkBundleFileInfo(BundleFileInfo& aInfo) const throw(QueueException);
+	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& aPrio) const throw(QueueException);
 
 	/** Sanity check for the target filename */
-	static string checkTarget(const string& aTarget, bool checkExsistence, BundlePtr aBundle = NULL) throw(QueueException, FileException);
+	//static string checkTargetPath(const string& aTarget) throw(QueueException, FileException);
+	static string checkTarget(const string& toValidate, const string& aParentDir=Util::emptyString) throw(QueueException, FileException);
+	static string formatBundleTarget(const string& aPath, time_t aRemoteDate);
+
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle=false, bool checkTLS=true) throw(QueueException, FileException);
 

@@ -224,7 +224,7 @@ bool DownloadManager::startDownload(QueueItemBase::Priority prio, bool mcn) {
 
 void DownloadManager::checkDownloads(UserConnection* aConn) {
 	//We may have download assigned for a connection if we are downloading in segments
-	dcassert(!aConn->getDownload() || aConn->getDownload()->isSet(Download::FLAG_CHUNKED));
+	//dcassert(!aConn->getDownload() || aConn->getDownload()->isSet(Download::FLAG_CHUNKED));
 
 	bool smallSlot = aConn->isSet(UserConnection::FLAG_SMALL_SLOT);
 

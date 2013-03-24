@@ -1476,7 +1476,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "The directory %s has been loaded", 
 "A redirection request was received via a failover address; press the follow redirect button to connect to %s", 
 "In NMDC hubs the file will be shared so everyone can access it, continue?", 
-"NMDC hub Private chat!", 
 "Don't ask me again", 
 "Don't show this again", 
 "Failed to parse the data", 
@@ -1649,7 +1648,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "%s: %s (on %s from an user %s)", 
 "Last error", 
 "Clear error", 
+"No dupe check for files smaller than", 
 "Warn me about sending files in private chat at nmdc hubs", 
+"You appear to run the client with administrative privileges. This may disable the following client functionality:\r\n\r\n- Clicking on web links in chat doesn't work\r\n- All drives aren't shown in the sharing settings\r\n- Drag and drop functionality can't be used\r\n\r\nYou may also notice other unexcepted behaviour, so it is heavily recommended that you switch the client to run with normal privileges.", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3126,7 +3127,6 @@ std::string dcpp::ResourceManager::names[] = {
 "DirectoryLoaded", 
 "RedirectFailover", 
 "NmdcMagnetWarning", 
-"NmdcHubPrivate", 
 "DontAskAgain", 
 "DontShowAgain", 
 "DataParsingFailed", 
@@ -3299,5 +3299,7 @@ std::string dcpp::ResourceManager::names[] = {
 "AsError", 
 "LastError", 
 "ClearError", 
+"MinDupeCheckSize", 
 "SettingsNmdcMagnetWarning", 
+"ElevatedWarning", 
 };

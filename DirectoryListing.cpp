@@ -421,12 +421,12 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileList
 }
 
 bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
-	string target = QueueManager::formatBundleTarget(aTarget, aDir->getDate());
+	string target = aTarget;
 	if (aDir != root)
 		target += aDir->getName() + PATH_SEPARATOR;
 
 	BundleFileList aFiles;
-	aDir->download(target, aFiles);
+	aDir->download(Util::emptyString, aFiles);
 
 	if (aFiles.empty() || (SETTING(SKIP_ZERO_BYTE) && none_of(aFiles.begin(), aFiles.end(), [](const BundleFileInfo& aFile) { return aFile.size > 0; }))) {
 		fire(DirectoryListingListener::UpdateStatusMessage(), STRING(DIR_EMPTY) + " " + aDir->getName());
@@ -436,7 +436,7 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	BundlePtr b = nullptr;
 
 	try {
-		b = QueueManager::getInstance()->createBundle(target, hintedUser, aFiles, prio, aDir->getDate());
+		b = QueueManager::getInstance()->createDirectoryBundle(target, hintedUser, aFiles, prio, aDir->getDate());
 	} catch(QueueException& e) {
 		if (aAutoSearch == 0)
 			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % e.getError()), LogManager::LOG_WARNING);

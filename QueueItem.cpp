@@ -274,7 +274,7 @@ void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) {
 }
 
 const string& QueueItem::getTempTarget() {
-	if (isSet(FLAG_OPEN)) {
+	if (isSet(FLAG_OPEN) || (isSet(FLAG_CLIENT_VIEW) && isSet(FLAG_TEXT))) {
 		setTempTarget(target);
 	} else if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
 		if(!SETTING(TEMP_DOWNLOAD_DIRECTORY).empty() && (File::getSize(getTarget()) == -1)) {

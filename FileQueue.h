@@ -59,8 +59,8 @@ public:
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
 	void move(QueueItemPtr& qi, const string& aTarget) noexcept;
 	void remove(QueueItemPtr& qi) noexcept;
-	int isFileQueued(const TTHValue& aTTH, const string& aFile) noexcept;
-	QueueItemPtr getQueuedFile(const TTHValue& aTTH, const string& aFile) noexcept;
+	int isFileQueued(const TTHValue& aTTH, const string& aFile) const noexcept;
+	QueueItemPtr getQueuedFile(const TTHValue& aTTH, const string& aFile) const noexcept;
 
 	uint64_t getTotalQueueSize() const noexcept { return queueSize; }
 private:

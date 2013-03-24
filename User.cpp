@@ -93,7 +93,7 @@ string Identity::getUploadSpeed() const {
 		//workaround for versions older than 2.40 that use wrong units.....
 		const auto& ver = get("VE");
 		if (ver.length() >= 12 && strncmp("AirDC++", ver.c_str(), 7) == 0 && Util::toDouble(ver.substr(8, 4)) < 2.40) {
-			return Util::toString(Util::toInt(us) / 8);
+			return Util::toString(Util::toInt64(us) / 8);
 		}
 
 		return us;
