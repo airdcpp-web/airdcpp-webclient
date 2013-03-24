@@ -783,21 +783,21 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 	}
 
 	validateBundleFile(filePath, fileName, aTTH, aPrio);
-	//checkBundleFileInfo(dir, *i);
 
 	BundlePtr b = nullptr;
 	bool wantConnection = false;
 	bool smallSlot = false;
 
+	auto target = filePath + fileName;
 	{
 		WLock l(cs);
 		//get the bundle
-		b = getBundle(filePath, aPrio, aDate, true);
+		b = getBundle(target, aPrio, aDate, true);
 
 		//add the file
-		bool added = addFile(filePath + fileName, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, smallSlot, b);
+		bool added = addFile(target, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, smallSlot, b);
 
-		if (!addBundle(b, filePath + fileName, added ? 1 : 0)) {
+		if (!addBundle(b, target, added ? 1 : 0)) {
 			return nullptr;
 		}
 	}
@@ -1274,6 +1274,7 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) {
 
 	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
 		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
+		setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
 	} else if (!scanBundle(aBundle)) {
 		return;
 	} 
@@ -1299,8 +1300,6 @@ bool QueueManager::scanBundle(BundlePtr& aBundle) {
 		return false;
 	} else {
 		setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
-		//aBundle->setStatus(Bundle::STATUS_FINISHED);
-		//onBundleRemoved(aBundle, true);
 	}
 	return true;
 }

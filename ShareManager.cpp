@@ -2646,12 +2646,12 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	}
 
 	bool sizeOk = (aStrings.gt == 0) && aStrings.matchesDate(lastWrite);
-	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk) {
+	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk && aStrings.itemType != AdcSearch::TYPE_FILE) {
 		// We satisfied all the search words! Add the directory...
 		getInstance()->addDirResult(getFullName(aProfile), aResults, aProfile, aStrings);
 	}
 
-	if(!aStrings.isDirectory) {
+	if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
 		for(const auto& f: files) {
 
 			if(!(f.getSize() >= aStrings.gt)) {
@@ -2719,7 +2719,7 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 		return;
 	}
 
-	if (srch.isDirectory && srch.matchType == AdcSearch::MATCH_EXACT) {
+	if (srch.itemType == AdcSearch::TYPE_DIRECTORY && srch.matchType == AdcSearch::MATCH_EXACT) {
 		const auto i = dirNameMap.equal_range(srch.includeX.front().getPattern());
 		for(const auto& d: i | map_values) {
 			string path = d->getADCPath(aProfile);

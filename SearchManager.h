@@ -35,6 +35,7 @@ namespace dcpp {
 #define SEARCH_TYPE_ANY "0"
 #define SEARCH_TYPE_DIRECTORY "7"
 #define SEARCH_TYPE_TTH "8"
+#define SEARCH_TYPE_FILE "9"
 
 STANDARD_EXCEPTION(SearchTypeException);
 
@@ -65,6 +66,7 @@ public:
 		TYPE_VIDEO,
 		TYPE_DIRECTORY,
 		TYPE_TTH,
+		TYPE_FILE,
 		TYPE_LAST
 	};
 private:

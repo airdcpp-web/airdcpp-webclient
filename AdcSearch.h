@@ -36,6 +36,12 @@ namespace dcpp {
 			MATCH_EXACT
 		};
 
+		enum ItemType {
+			TYPE_ANY,
+			TYPE_FILE,
+			TYPE_DIRECTORY
+		};
+
 		static AdcSearch* getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents);
 		static StringList parseSearchString(const string& aString);
 
@@ -64,7 +70,8 @@ namespace dcpp {
 
 		MatchType matchType;
 		bool addParents;
-		bool isDirectory;
+
+		ItemType itemType;
 
 		bool matchesFile(const string& aName, int64_t aSize);
 		bool matchesDirectory(const string& aName);

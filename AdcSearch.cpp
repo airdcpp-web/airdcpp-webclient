@@ -42,7 +42,7 @@ AdcSearch* AdcSearch::getSearch(const string& aSearchString, const string& aExcl
 			s->lt = aSize;
 		}
 
-		s->isDirectory = (aTypeMode == SearchManager::TYPE_DIRECTORY);
+		s->itemType = (aTypeMode == SearchManager::TYPE_DIRECTORY) ? AdcSearch::TYPE_DIRECTORY : (aTypeMode == SearchManager::TYPE_FILE) ? AdcSearch::TYPE_FILE : AdcSearch::TYPE_ANY;
 		s->addParents = returnParents;
 		s->matchType = aMatchType;
 	}
@@ -87,11 +87,11 @@ StringList AdcSearch::parseSearchString(const string& aString) {
 }
 
 AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(true), isDirectory(false), matchType(MATCH_FULL_PATH), addParents(false), minDate(0) {
+	lt(numeric_limits<int64_t>::max()), hasRoot(true), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0) {
 }
 
 AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt) : ext(aExt), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false), matchType(MATCH_FULL_PATH), addParents(false), minDate(0) {
+	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0) {
 
 	//add included
 	auto inc = move(parseSearchString(aSearch));
@@ -106,7 +106,7 @@ AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const Strin
 }
 
 AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), isDirectory(false), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max())
+	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max())
 {
 	for(const auto& p: params) {
 		if(p.length() <= 2)
@@ -135,7 +135,7 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 		} else if(toCode('E', 'Q') == cmd) {
 			lt = gt = Util::toInt64(p.substr(2));
 		} else if(toCode('T', 'Y') == cmd) {
-			isDirectory = (p[2] == '2');
+			itemType = static_cast<ItemType>(Util::toInt(p.substr(2)));
 		} else if(toCode('M', 'T') == cmd) {
 			matchType = static_cast<MatchType>(Util::toInt(p.substr(2)));
 		} else if(toCode('O', 'T') == cmd) {
@@ -194,6 +194,9 @@ bool AdcSearch::matchesFile(const string& aName, int64_t aSize) {
 }
 
 bool AdcSearch::matchesDirectory(const string& aName) {
+	if (itemType == TYPE_FILE)
+		return false;
+
 	bool hasMatch = false;
 	for(auto k = include->begin(); k != include->end(); ++k) {
 		if(k->match(aName) && !isExcluded(aName))

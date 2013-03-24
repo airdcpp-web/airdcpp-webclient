@@ -1026,7 +1026,10 @@ void NmdcHub::search(SearchPtr s){
 	} else {
 		tmp2 = "Hub:" + fromUtf8(getMyNick());
 	}
-	send("$Search " + tmp2 + ' ' + c1 + '?' + c2 + '?' + Util::toString(s->size) + '?' + Util::toString(s->fileType+1) + '?' + tmp + '|');
+
+	string type = Util::toString((s->fileType == SearchManager::TYPE_FILE ? SearchManager::TYPE_ANY : s->fileType)+1);
+
+	send("$Search " + tmp2 + ' ' + c1 + '?' + c2 + '?' + Util::toString(s->size) + '?' + type + '?' + tmp + '|');
 }
 
 string NmdcHub::validateMessage(string tmp, bool reverse) {

@@ -46,14 +46,15 @@ const char* SearchManager::types[TYPE_LAST] = {
 	CSTRING(PICTURE),
 	CSTRING(VIDEO),
 	CSTRING(DIRECTORY),
-	"TTH"
+	"TTH",
+	CSTRING(FILE)
 };
 const char* SearchManager::getTypeStr(int type) {
 	return types[type];
 }
 
 bool SearchManager::isDefaultTypeStr(const string& type) {
-	 return type.size() == 1 && type[0] >= '0' && type[0] <= '8';
+	 return type.size() == 1 && type[0] >= '0' && type[0] <= '9';
 }
 
 SearchManager::SearchManager() {
@@ -680,7 +681,7 @@ SearchManager::SearchTypesIter SearchManager::getSearchType(const string& name) 
 
 void SearchManager::getSearchType(int pos, int& type, StringList& extList, string& name) {
 	// Any, directory or TTH
-	if (pos < 3) {
+	if (pos < 4) {
 		if (pos == 0) {
 			name = SEARCH_TYPE_ANY;
 			type = SearchManager::TYPE_ANY;
@@ -690,10 +691,13 @@ void SearchManager::getSearchType(int pos, int& type, StringList& extList, strin
 		} else if (pos == 2) {
 			name = SEARCH_TYPE_TTH;
 			type = SearchManager::TYPE_TTH;
+		} else if (pos == 3) {
+			name = SEARCH_TYPE_FILE;
+			type = SearchManager::TYPE_FILE;
 		}
 		return;
 	}
-	pos = pos-3;
+	pos = pos-4;
 
 	int counter = 0;
 	for(auto& i: searchTypes) {
@@ -718,7 +722,7 @@ void SearchManager::getSearchType(const string& aName, int& type, StringList& ex
 		throw SearchTypeException("No such search type"); 
 
 	// Any, directory or TTH
-	if (aName[0] == SEARCH_TYPE_ANY[0] || aName[0] == SEARCH_TYPE_DIRECTORY[0] || aName[0] == SEARCH_TYPE_TTH[0]) {
+	if (aName[0] == SEARCH_TYPE_ANY[0] || aName[0] == SEARCH_TYPE_DIRECTORY[0] || aName[0] == SEARCH_TYPE_TTH[0]  || aName[0] == SEARCH_TYPE_FILE[0]) {
 		type = aName[0] - '0';
 		return;
 	}

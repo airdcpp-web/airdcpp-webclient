@@ -387,7 +387,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 		return nullptr;
 	}
 
-	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_ANY, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
+	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_FILE, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
 		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString);
 
 	return addAutoSearch(as, true) ? as : nullptr;
@@ -901,6 +901,8 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				/* Check the type (folder) */
 				if(as->getFileType() == SEARCH_TYPE_DIRECTORY && sr->getType() != SearchResult::TYPE_DIRECTORY) {
 					continue;
+				} else if (as->getFileType() == SEARCH_TYPE_FILE && sr->getType() != SearchResult::TYPE_FILE) {
+					continue;
 				}
 
 				if (as->getMatchFullPath()) {
@@ -943,7 +945,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			if(as->getCheckAlreadyQueued() && as->getStatus() != AutoSearch::STATUS_FAILED_MISSING && QueueManager::getInstance()->isDirQueued(dir)) {
 				continue;
 			}
-		} else if (as->getFileType() != SEARCH_TYPE_ANY && as->getFileType() != SEARCH_TYPE_TTH) {
+		} else if (!SearchManager::isDefaultTypeStr(as->getFileType())) {
 			if (sr->getType() == SearchResult::TYPE_DIRECTORY)
 				continue;
 

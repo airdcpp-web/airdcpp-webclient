@@ -1191,6 +1191,8 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 
 		if(aFileType == SearchManager::TYPE_DIRECTORY) {
 			c.addParam("TY", "2");
+		} else if (aFileType == SearchManager::TYPE_FILE) {
+			c.addParam("TY", "1");
 		}
 
 		if(aExtList.size() > 2) {
