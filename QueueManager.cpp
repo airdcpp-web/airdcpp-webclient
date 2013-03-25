@@ -491,14 +491,13 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 		}
 	};
 
-	if(aBundleFile.find(PATH_SEPARATOR, j) == string::npos) {	  // we only have root virtualpaths.
-		//no dirs
-		matchSkipList(aBundleFile);
-	} else {
-		//match each subdirectory and the file name
-		while((i = aBundleFile.find(PATH_SEPARATOR, j)) != string::npos) {
-			matchSkipList(aBundleFile.substr(j, i - j));
-		}
+	//match the file name
+	matchSkipList(Util::getFileName(aBundleFile));
+
+	//match all dirs (if any)
+	while((i = aBundleFile.find(PATH_SEPARATOR, j)) != string::npos) {
+		matchSkipList(aBundleFile.substr(j, i - j));
+		j = i + 1;
 	}
 
 

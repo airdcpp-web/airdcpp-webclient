@@ -365,7 +365,7 @@ void DirectoryListing::Directory::search(SearchResultList& aResults, AdcSearch& 
 			}
 		}
 
-		if(!aStrings.isDirectory) {
+		if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
 			for(auto& f: files) {
 				if(aStrings.matchesFile(f->getName(), f->getSize())) {
 					SearchResultPtr sr(new SearchResult(getPath()));
