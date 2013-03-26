@@ -1655,5 +1655,9 @@ enum Strings { // @DontAdd
 	MIN_DUPE_CHECK_SIZE, // "No dupe check for files smaller than"
 	SETTINGS_NMDC_MAGNET_WARNING, // "Warn me about sending files in private chat at nmdc hubs"
 	ELEVATED_WARNING, // "You appear to run the client with administrative privileges. This may disable the following client functionality:\r\n\r\n- Clicking on web links in chat doesn't work\r\n- All drives aren't shown in the sharing settings\r\n- Drag and drop functionality can't be used\r\n\r\nYou may also notice other unexcepted behaviour, so it is heavily recommended that you switch the client to run with normal privileges."
+	DONT_SHARE_EMPTY_DIRS, // "Don't share empty directories"
+	SCANNING_OPTIONS, // "Scanning options"
+	LOG_SHARE_SCAN, // "Save the results to a log file when scanning the share"
+	LOG_SHARE_SCAN_PATH, // "Log filename (relative to the global log directory)"
 	LAST // @DontAdd
 };

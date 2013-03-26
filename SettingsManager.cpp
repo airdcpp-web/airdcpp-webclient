@@ -68,7 +68,7 @@ const string SettingsManager::settingTags[] =
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
 	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
-	"UsersFrmVisible", "ListViewFont",
+	"UsersFrmVisible", "ListViewFont", "LogShareScanPath",
 
 	"SENTRY", 
 	// Ints
@@ -155,7 +155,7 @@ const string SettingsManager::settingTags[] =
 	"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
-	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated",
+	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -752,6 +752,10 @@ SettingsManager::SettingsManager()
 
 	setDefault(MIN_DUPE_CHECK_SIZE, 512);
 	setDefault(WARN_ELEVATED, true);
+	setDefault(SKIP_EMPTY_DIRS_SHARE, true);
+
+	setDefault(LOG_SHARE_SCANS, false);
+	setDefault(LOG_SHARE_SCAN_PATH, "Scan Results\\Scan %Y-%m-%d %H:%M.log");
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

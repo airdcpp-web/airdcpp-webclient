@@ -197,6 +197,15 @@ int ShareScannerManager::run() {
 			total.reportResults();
 
 			if (!total.scanMessage.empty()) {
+				if (SETTING(LOG_SHARE_SCANS)) {
+					auto path = Util::validateFileName(Util::formatTime(SETTING(LOG_DIRECTORY) + SETTING(LOG_SHARE_SCAN_PATH), time(NULL)));
+					File::ensureDirectory(path);
+
+					File f(path, File::WRITE, File::OPEN | File::CREATE);
+					f.setEndPos(0);
+					f.write(total.scanMessage);
+				}
+
 				char buf[255];
 				time_t time = GET_TIME();
 				tm* _tm = localtime(&time);
@@ -633,7 +642,7 @@ void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan,
 	if (aScan.scanType == TYPE_FINISHED || aScan.scanType == TYPE_FAILED_FINISHED) {
 		LogManager::getInstance()->message(aMessage, warning ? LogManager::LOG_WARNING : LogManager::LOG_INFO);
 	} else {
-		aScan.scanMessage += aMessage + "\n";
+		aScan.scanMessage += aMessage + "\r\n";
 	}
 }
 

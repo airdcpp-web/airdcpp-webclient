@@ -1236,13 +1236,24 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			}
 
 			auto dir = Directory::create(name, aDir, i->getLastWriteTime(), profileDir);
+
+			buildTree(curPath, dir, checkQueued, aSubRoots, aDirs, newShares, hashSize, addedSize, tthIndexNew, aBloom);
+
+			//roots will always be added
+			if (profileDir && profileDir->isSet(ProfileDirectory::FLAG_ROOT)) {
+				newShares[Text::toLower(curPath)] = dir;
+			} else if (SETTING(SKIP_EMPTY_DIRS_SHARE) && dir->directories.empty() && dir->files.empty()) {
+				//remove it
+				auto p = aDir->directories.find(dir->getRealNameLower());
+				aDir->directories.erase(p);
+				continue;
+			}
+
 			aDirs.emplace(name, dir);
 			if (profileDir && profileDir->isSet(ProfileDirectory::FLAG_ROOT))
 				newShares[Text::toLower(curPath)] = dir;
 
 			dir->addBloom(aBloom);
-
-			buildTree(curPath, dir, checkQueued, aSubRoots, aDirs, newShares, hashSize, addedSize, tthIndexNew, aBloom);
 		} else {
 			// Not a directory, assume it's a file...
 			string path = aPath + name;
@@ -3076,7 +3087,7 @@ bool ShareManager::checkSharedName(const string& aPath, bool isDir, bool report 
 		if(SETTING(NO_ZERO_BYTE) && !(size > 0))
 			return false;
 
-		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > static_cast<int64_t>(SETTING(MAX_FILE_SIZE_SHARED)*1024*1024))) {
+		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > static_cast<int64_t>(SETTING(MAX_FILE_SIZE_SHARED))*1024*1024)) {
 			if (report) {
 				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath, LogManager::LOG_INFO);
 			}

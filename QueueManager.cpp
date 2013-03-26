@@ -485,7 +485,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 	string::size_type i = 0;
 	string::size_type j = i + 1;
 
-	auto matchSkipList = [&] (const string& aName) -> void {
+	auto matchSkipList = [&] (string&& aName) -> void {
 		if(skipList.match(aName)) {
 			throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
 		}
@@ -3047,10 +3047,7 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) {
 }
 
 bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int itemsAdded, bool moving /*false*/) {
-	if (aBundle->getQueueItems().empty()) {
-		if (itemsAdded == 0)
-			return false;
-
+	if (aBundle->getQueueItems().empty() && itemsAdded > 0) {
 		// it finished already? (only 0 byte files were added)
 		tasks.run([=] {
 			BundlePtr b = aBundle;
@@ -3059,6 +3056,9 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 
 		return false;
 	}
+
+	if (itemsAdded == 0)
+		return false;
 
 	bool statusChanged = false;
 	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
