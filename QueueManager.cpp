@@ -1087,15 +1087,6 @@ void QueueManager::onSlowDisconnect(const string& aToken) {
 	}
 }
 
-bool QueueManager::getAutoDrop(const string& aToken) {
-	RLock l(cs);
-	auto b = bundleQueue.findBundle(aToken);
-	if(b) {
-		return b->isSet(Bundle::FLAG_AUTODROP);
-	}
-	return false;
-}
-
 string QueueManager::getTempTarget(const string& aTarget) {
 	RLock l(cs);
 	auto qi = fileQueue.findFile(aTarget);

@@ -106,7 +106,6 @@ public:
 	void readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue);
 
 	void onSlowDisconnect(const string& aToken);
-	bool getAutoDrop(const string& aToken);
 
 	string getTempTarget(const string& aTarget);
 	void setSegments(const string& aTarget, uint8_t aSegments);
