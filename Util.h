@@ -234,7 +234,6 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = 0);
 
 	static string formatTime(const string &msg, const time_t t);
-	static string formatRegExp(const string& msg, const StringMap& params);
 
 	static inline int64_t roundDown(int64_t size, int64_t blockSize) {
 		return ((size + blockSize / 2) / blockSize) * blockSize;
@@ -500,7 +499,6 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static int strnicmp(const wstring& a, const wstring& b, size_t n) { return strnicmp(a.c_str(), b.c_str(), n); }
 	
 	static void replace(string& aString, const string& findStr, const string& replaceStr);
-	static TCHAR* strstr(const TCHAR *str1, const TCHAR *str2, int *pnIdxFound);
 	static tstring replace(const tstring& aString, const tstring& fStr, const tstring& rStr);
 
 	static bool toBool(const int aNumber) {
@@ -510,7 +508,6 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static string base64_encode(unsigned char const*, unsigned int len);
     static string base64_decode(string const& s);
 
-	static uint64_t getDirSize(const string &sFullPath);
 	static bool validatePath(const string &sPath);
 	static bool fileExists(const string &aFile);
 	static string getReleaseDir(const string& dir, bool cut);

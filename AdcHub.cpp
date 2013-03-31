@@ -550,7 +550,7 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 				return;
 
 			string resultCount;
-			if(!c.getParam("SR", 2, resultCount))
+			if(!c.getParam("RC", 2, resultCount))
 				return;
 
 			auto slash = token.find('/');

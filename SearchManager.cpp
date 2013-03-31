@@ -548,7 +548,7 @@ end:
 		c.setTo(aUser.getIdentity().getSID());
 		c.addParam("FC", adc.getFourCC());
 		c.addParam("TO", token);
-		c.addParam("SR", Util::toString(results.size()));
+		c.addParam("RC", Util::toString(results.size()));
 
 		aUser.getClient().send(c);
 	}

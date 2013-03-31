@@ -50,7 +50,6 @@ public:
 	enum State {
 		CONNECTING,					// Recently sent request to connect
 		WAITING,					// Waiting to send request to connect
-		NO_DOWNLOAD_SLOTS,			// Not needed right now
 		ACTIVE,						// In one up/downmanager
 		RUNNING						// Running/idle
 	};
@@ -136,7 +135,6 @@ public:
 
 	void getDownloadConnection(const HintedUser& aUser, bool smallSlot=false);
 	void force(const string& token);
-	void force(const UserPtr& aUser);
 	
 	void disconnect(const UserPtr& aUser); // disconnect downloads and uploads
 	void disconnect(const UserPtr& aUser, int isDownload);

@@ -270,11 +270,8 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 								attempts++;
 							}
 						} else {
-							cqi->setState(ConnectionQueueItem::NO_DOWNLOAD_SLOTS);
 							fire(ConnectionManagerListener::Failed(), cqi, STRING(ALL_DOWNLOAD_SLOTS_TAKEN));
 						}
-					} else if(cqi->getState() == ConnectionQueueItem::NO_DOWNLOAD_SLOTS && startDown) {
-						cqi->setState(ConnectionQueueItem::WAITING);
 					}
 				} else if(cqi->getState() == ConnectionQueueItem::CONNECTING && cqi->getLastAttempt() + 50*1000 < aTick) {
 
@@ -903,19 +900,13 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	}
 }
 
-void ConnectionManager::force(const UserPtr& aUser) {
-	RLock l(cs);
-	auto i = find(downloads.begin(), downloads.end(), aUser);
-	if(i != downloads.end()) {
-		(*i)->setLastAttempt(0);
-	}
-}
-
 void ConnectionManager::force(const string& aToken) {
 	RLock l(cs);
 	auto i = find(downloads.begin(), downloads.end(), aToken);
-	if (i != downloads.end())
+	if (i != downloads.end()) {
+		fire(ConnectionManagerListener::Forced(), *i);
 		(*i)->setLastAttempt(0);
+	}
 }
 
 bool ConnectionManager::checkKeyprint(UserConnection *aSource) {

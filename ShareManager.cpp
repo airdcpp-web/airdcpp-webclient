@@ -1250,9 +1250,6 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			}
 
 			aDirs.emplace(name, dir);
-			if (profileDir && profileDir->isSet(ProfileDirectory::FLAG_ROOT))
-				newShares[Text::toLower(curPath)] = dir;
-
 			dir->addBloom(aBloom);
 		} else {
 			// Not a directory, assume it's a file...
@@ -2897,7 +2894,7 @@ void ShareManager::onFileHashed(const string& fname, HashedFilePtr& fileInfo) no
 			return;
 		}
 
-		auto i = d->findFile(Text::toLower(Util::getFileName(fname)));
+		auto i = d->findFile(fileInfo->getFileName());
 		if(i != d->files.end()) {
 			// Get rid of false constness...
 			cleanIndices(*d, i);

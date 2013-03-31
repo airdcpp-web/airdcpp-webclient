@@ -106,7 +106,6 @@ int QueueManager::FileMover::run() {
 			auto dir = static_cast<StringTask*>(t.second);
 			AirUtil::removeIfEmpty(dir->str);
 		} else if (t.first == SHUTDOWN) {
-			tasks.clear();
 			break;
 		}
 
@@ -697,8 +696,7 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		} catch(FileException& /*e*/) {
 			existingFiles++;
 		} catch(DupeException& e) {
-			bool isSmall = (*i).size < static_cast<int64_t>(SETTING(MIN_DUPE_CHECK_SIZE)*1024);
-			//errors.emplace(e.getError(), (*i).file);
+			bool isSmall = (*i).size < static_cast<int64_t>(SETTING(MIN_DUPE_CHECK_SIZE))*1024;
 			errors.add(e.getError(), (*i).file, isSmall);
 			if (isSmall) {
 				smallDupes++;
@@ -861,6 +859,8 @@ bool QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 					fire(QueueManagerListener::SourcesUpdated(), ret.first);
 			}
 		} catch(const Exception&) {
+			if (ret.second)
+				dcassert(0);
 			//This should never fail for new items, and for existing items it doesn't matter (useless spam)
 		}
 	}
@@ -1770,12 +1770,13 @@ void QueueManager::recheck(const string& aTarget) {
 	rechecker.add(aTarget);
 }
 
-void QueueManager::remove(const string aTarget) noexcept {
-	QueueItemPtr qi = NULL;
+void QueueManager::removeFile(const string aTarget) noexcept {
+	QueueItemPtr qi = nullptr;
 	{
 		RLock l(cs);
 		qi = fileQueue.findFile(aTarget);
 	}
+
 	if (qi) {
 		removeQI(qi);
 	}

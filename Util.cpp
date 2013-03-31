@@ -988,64 +988,6 @@ string Util::formatParams(const string& msg, const ParamMap& params, FilterF fil
 	return result;
 }
 
-string Util::formatRegExp(const string& msg, const StringMap& params) {
-	string result = msg;
-	string::size_type i, j, k;
-	i = 0;
-	while (( j = result.find("%[", i)) != string::npos) {
-		if( (result.size() < j + 2) || ((k = result.find(']', j + 2)) == string::npos) ) {
-			break;
-		}
-		string name = result.substr(j + 2, k - j - 2);
-		StringMap::const_iterator smi = params.find(name);
-		if(smi != params.end()) {
-			result.replace(j, k-j + 1, smi->second);
-			i = j + smi->second.size();
-		} else {
-			i = k + 1;
-		}
-	}
-	return result;
-}
-
-uint64_t Util::getDirSize(const string &sFullPath) {
-	uint64_t total = 0;
-
-	WIN32_FIND_DATA fData;
-	HANDLE hFind;
-	
-	hFind = FindFirstFile(Text::toT(sFullPath + "\\*").c_str(), &fData);
-
-	if(hFind != INVALID_HANDLE_VALUE) {
-		do {
-			string name = Text::fromT(fData.cFileName);
-			if(name == "." || name == "..")
-				continue;
-			if(name.find('$') != string::npos)
-				continue;
-			if(!SETTING(SHARE_HIDDEN) && (fData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
-				continue;
-			if(fData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-				string newName = sFullPath + PATH_SEPARATOR + name;
-				if(stricmp(newName + PATH_SEPARATOR, SETTING(TEMP_DOWNLOAD_DIRECTORY)) != 0) {
-					total += getDirSize(newName);
-				}
-			} else {
-				// Not a directory, assume it's a file...make sure we're not sharing the settings file...
-				if( (stricmp(name.c_str(), "DCPlusPlus.xml") != 0) && 
-					(stricmp(name.c_str(), "Favorites.xml") != 0)) {
-
-					total+=(uint64_t)fData.nFileSizeLow | ((uint64_t)fData.nFileSizeHigh)<<32;
-				}
-			}
-		} while(FindNextFile(hFind, &fData));
-	}
-	
-	FindClose(hFind);
-
-	return total;
-}
-
 bool Util::validatePath(const string &sPath) {
 	if(sPath.empty())
 		return false;
@@ -1348,30 +1290,6 @@ string Util::translateError(int aError) {
 #else // _WIN32
 	return Text::toUtf8(strerror(aError));
 #endif // _WIN32
-}
-	
-TCHAR* Util::strstr(const TCHAR *str1, const TCHAR *str2, int *pnIdxFound) {
-	TCHAR *s1, *s2;
-	TCHAR *cp = const_cast<TCHAR*>(str1);
-	if (!*str2)
-		return const_cast<TCHAR*>(str1);
-	int nIdx = 0;
-	while (*cp) {
-		s1 = cp;
-		s2 = (TCHAR *) str2;
-                while(*s1 && *s2 && !(*s1-*s2))
-                        s1++, s2++;
-		if (!*s2) {
-			if (pnIdxFound != NULL)
-				*pnIdxFound = nIdx;
-			return cp;
-		}
-		cp++;
-		nIdx++;
-	}
-	if (pnIdxFound != NULL)
-		*pnIdxFound = -1;
-	return NULL;
 }
 
 /* natural sorting */ 
