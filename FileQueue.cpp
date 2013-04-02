@@ -55,11 +55,13 @@ pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Fl
 
 pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi) noexcept {
 	dcassert(queueSize >= 0);
-	tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
 	auto ret = queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
-	if (ret.second && !qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
-		dcassert(qi->getSize() >= 0);
-		queueSize += qi->getSize();
+	if (ret.second) {
+		tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
+		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
+			dcassert(qi->getSize() >= 0);
+			queueSize += qi->getSize();
+		}
 	}
 	return ret;
 }
