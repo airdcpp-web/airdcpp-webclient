@@ -1659,5 +1659,8 @@ enum Strings { // @DontAdd
 	SCANNING_OPTIONS, // "Scanning options"
 	LOG_SHARE_SCAN, // "Save the results to a log file when scanning the share"
 	LOG_SHARE_SCAN_PATH, // "Log filename (relative to the global log directory)"
+	CUSTOM_AWAY_MESSAGE, // "Custom away message"
+	ACCEPT_FAILOVERS_FAV, // "Accept failover addresses from the hub"
+	ACCEPT_FAILOVERS_GLOBAL, // "Accept failover addresses from favorite hubs"
 	LAST // @DontAdd
 };

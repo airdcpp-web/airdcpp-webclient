@@ -118,15 +118,13 @@ class AirUtil {
 		static bool getAway() { return away > 0; }
 		static AwayMode getAwayMode() { return away; }
 		static void setAway(AwayMode aAway);
-		static string getAwayMessage(ParamMap& params);
-		static void setAwayMessage(const string& aMsg) { awayMsg = aMsg; }
+		static string getAwayMessage(const string& aAwayMsg, ParamMap& params);
 
 		/* Removes common dirs from the end of toSubtract */
 		static string subtractCommonDirs(const string& toCompare, const string& toSubtract);
 	private:
 
 		static AwayMode away;
-		static string awayMsg;
 		static time_t awayTime;
 
 	};

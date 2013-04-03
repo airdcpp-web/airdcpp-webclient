@@ -60,7 +60,6 @@ string AirUtil::privKeyFile;
 string AirUtil::tempDLDir;
 
 AwayMode AirUtil::away = AWAY_OFF;
-string AirUtil::awayMsg;
 time_t AirUtil::awayTime;
 
 tstring AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
@@ -690,9 +689,9 @@ void AirUtil::setAway(AwayMode aAway) {
 		awayTime = time(NULL);
 }
 
-string AirUtil::getAwayMessage(ParamMap& params) { 
+string AirUtil::getAwayMessage(const string& aAwayMsg, ParamMap& params) { 
 	params["idleTI"] = Util::formatSeconds(time(NULL) - awayTime);
-	return Util::formatParams(awayMsg.empty() ? SETTING(DEFAULT_AWAY_MESSAGE) : awayMsg, params);
+	return Util::formatParams(aAwayMsg, params);
 }
 
 string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubtract) {

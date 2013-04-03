@@ -41,6 +41,7 @@ struct HubSettings
 		Email,
 		UserIp,
 		UserIp6,
+		AwayMsg,
 		// don't forget to edit stringNames in HubSettings.cpp when adding a def here!
 
 		HubStrLast
@@ -53,6 +54,7 @@ struct HubSettings
 		FavShowJoins,
 		LogMainChat,
 		ChatNotify,
+		AcceptFailovers,
 		// don't forget to edit boolNames in HubSettings.cpp when adding a def here!
 
 		HubBoolLast

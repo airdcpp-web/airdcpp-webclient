@@ -87,11 +87,11 @@ StringList AdcSearch::parseSearchString(const string& aString) {
 }
 
 AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(true), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0) {
+	lt(numeric_limits<int64_t>::max()), hasRoot(true), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 }
 
 AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt) : ext(aExt), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0) {
+	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 
 	//add included
 	auto inc = move(parseSearchString(aSearch));

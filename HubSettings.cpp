@@ -22,10 +22,10 @@
 namespace dcpp {
 
 const string HubSettings::stringNames[StringCount] = {
-	"Nick", "UserDescription", "Email", "UserIp", "UserIp6" // not "Description" for compat with prev fav hub lists
+	"Nick", "UserDescription", "Email", "UserIp", "UserIp6", "AwayMessage" // not "Description" for compat with prev fav hub lists
 };
 const string HubSettings::boolNames[BoolCount] = {
-	"ShowJoins", "FavShowJoins", "LogMainChat", "ShowChatNotify"
+	"ShowJoins", "FavShowJoins", "LogMainChat", "ShowChatNotify", "AcceptFailovers"
 };
 const string HubSettings::intNames[IntCount] = {
 	"MinSearchInterval", "IncomingConnections", "IncomingConnections6"

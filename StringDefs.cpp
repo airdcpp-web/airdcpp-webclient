@@ -1655,6 +1655,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Scanning options", 
 "Save the results to a log file when scanning the share", 
 "Log filename (relative to the global log directory)", 
+"Custom away message", 
+"Accept failover addresses from the hub", 
+"Accept failover addresses from favorite hubs", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3310,4 +3313,7 @@ std::string dcpp::ResourceManager::names[] = {
 "ScanningOptions", 
 "LogShareScan", 
 "LogShareScanPath", 
+"CustomAwayMessage", 
+"AcceptFailoversFav", 
+"AcceptFailoversGlobal", 
 };

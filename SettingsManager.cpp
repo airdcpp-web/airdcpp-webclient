@@ -68,7 +68,7 @@ const string SettingsManager::settingTags[] =
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
 	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
-	"UsersFrmVisible", "ListViewFont", "LogShareScanPath",
+	"UsersFrmVisible", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype",
 
 	"SENTRY", 
 	// Ints
@@ -156,6 +156,7 @@ const string SettingsManager::settingTags[] =
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
+	"AcceptFailoversFavs",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -756,6 +757,10 @@ SettingsManager::SettingsManager()
 
 	setDefault(LOG_SHARE_SCANS, false);
 	setDefault(LOG_SHARE_SCAN_PATH, "Scan Results\\Scan %Y-%m-%d %H:%M.log");
+
+
+	setDefault(LAST_FL_FILETYPE, "0");
+	setDefault(ACCEPT_FAILOVERS, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else
@@ -1129,6 +1134,8 @@ HubSettings SettingsManager::getHubSettings() const {
 	ret.get(HubSettings::Connection) = CONNSETTING(INCOMING_CONNECTIONS);
 	ret.get(HubSettings::Connection6) = CONNSETTING(INCOMING_CONNECTIONS6);
 	ret.get(HubSettings::ChatNotify) = get(SHOW_CHAT_NOTIFY);
+	ret.get(HubSettings::AwayMsg) = get(DEFAULT_AWAY_MESSAGE);
+	ret.get(HubSettings::AcceptFailovers) = get(ACCEPT_FAILOVERS);
 	return ret;
 }
 
