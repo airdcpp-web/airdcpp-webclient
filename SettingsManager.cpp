@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "SettingsManager.h"
 
+#include "CID.h"
 #include "ConnectivityManager.h"
 #include "ResourceManager.h"
 #include "SimpleXML.h"
@@ -936,16 +937,6 @@ You can customize those settings for each favorite hub if needed")
 		if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
 			set(POPUP_TYPE, 0);
 
-		if(prevVersion <= 2.21) {
-		try {
-			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2"))			
-				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml.bz2");
-
-			if(Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml"))			
-				File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Share.xml");
-		}catch(...) { }
-		}
-
 		setDefault(UDP_PORT, SETTING(TCP_PORT));
 
 		File::ensureDirectory(SETTING(TLS_TRUSTED_CERTIFICATES_PATH));
@@ -954,7 +945,13 @@ You can customize those settings for each favorite hub if needed")
 
 		xml.stepOut();
 
-	} catch(const Exception&) { }
+	} catch(const Exception&) { 
+		//...
+	}
+
+	if(SETTING(PRIVATE_ID).length() != 39 || CID(SETTING(PRIVATE_ID)).isZero()) {
+		set(SettingsManager::PRIVATE_ID, CID::generate().toBase32());
+	}
 
 	//lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
 	lanMode = false;
@@ -1107,7 +1104,11 @@ void SettingsManager::save() {
 
 	fire(SettingsManagerListener::Save(), xml);
 
-	xml.saveSettingFile(CONFIG_DIR, CONFIG_NAME);
+	try {
+		xml.saveSettingFile(CONFIG_DIR, CONFIG_NAME);
+	} catch(const Exception& e) {
+		LogManager::getInstance()->message("Failed to save the setting file: " + e.getError(), LogManager::LOG_ERROR);
+	}
 	/*try {
 		File out(aFileName + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 		BufferedOutputStream<false> f(&out);

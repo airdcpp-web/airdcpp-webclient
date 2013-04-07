@@ -325,6 +325,10 @@ UserPtr ClientManager::getUser(const string& aNick, const string& aHubUrl) noexc
 		}
 	}
 
+	if(cid == getMe()->getCID()) {
+		return getMe();
+	}
+
 	UserPtr p(new User(cid));
 	p->setFlag(User::NMDC);
 

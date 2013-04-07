@@ -830,7 +830,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 
 			cur->addBloom(*ri.newBloom.get());
 			cur->setLastWrite(Util::toUInt32(getAttrib(attribs, DATE, 2)));
-
+			lastFileIter = cur->files.begin();
 		}
 	}
 	void endTag(const string& name) {
@@ -2152,6 +2152,17 @@ void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent
 	}
 }
 
+void ShareManager::Directory::filesToXmlList(OutputStream& xmlFile, string& indent, string& tmp2) const {
+	for(const auto& f: files) {
+		xmlFile.write(indent);
+		xmlFile.write(LITERAL("<File Name=\""));
+		xmlFile.write(SimpleXML::escape(f.getName(), tmp2, true));
+		xmlFile.write(LITERAL("\" Size=\""));
+		xmlFile.write(Util::toString(f.getSize()));
+		xmlFile.write(LITERAL("\"/>\r\n"));
+	}
+}
+
 ShareManager::Directory::File::File(const string& aName, int64_t aSize, Directory::Ptr aParent, HashedFilePtr& aFileInfo) : 
 	name(Text::isLower(aName) ? nullptr : new string(aName)), size(aSize), parent(aParent.get()), fileInfo(aFileInfo) {
 }
@@ -2202,48 +2213,49 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> pr
 
 	{
 		RLock l(cs);
-		const int dirtyCount = boost::count_if(rootPaths | map_values, [](const Directory::Ptr& aDir) { return aDir->getProfileDir()->getCacheDirty(); });
 
-		concurrency::parallel_for_each(rootPaths.begin(), rootPaths.end(), [&](const pair<string, Directory::Ptr>& dp) {
-			if (dp.second->getProfileDir()->getCacheDirty() && !dp.second->getParent()) {
-				auto& d = dp.second;
-				string path = d->getProfileDir()->getCachePath();
-				try {
-					string indent, tmp;
+		DirectoryList dirtyDirs;
+		//boost::algorithm::copy_if(
+		boost::algorithm::copy_if(rootPaths | map_values, back_inserter(dirtyDirs), [](const Directory::Ptr& aDir) { return aDir->getProfileDir()->getCacheDirty() && !aDir->getParent(); });
 
-					//create a backup first in case we get interrupted on creation.
-					File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
-					BufferedOutputStream<false> xmlFile(&ff);
+		concurrency::parallel_for_each(dirtyDirs.begin(), dirtyDirs.end(), [&](const Directory::Ptr& d) {
+			string path = d->getProfileDir()->getCachePath();
+			try {
+				string indent, tmp;
 
-					xmlFile.write(SimpleXML::utf8Header);
-					xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
-					xmlFile.write(LITERAL("\" Path=\""));
-					xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
+				//create a backup first in case we get interrupted on creation.
+				File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
+				BufferedOutputStream<false> xmlFile(&ff);
 
-					xmlFile.write(LITERAL("\" Date=\""));
-					xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
-					xmlFile.write(LITERAL("\">\r\n"));
-					indent +='\t';
+				xmlFile.write(SimpleXML::utf8Header);
+				xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
+				xmlFile.write(LITERAL("\" Path=\""));
+				xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
 
-					for(const auto& child: d->directories) {
-						child->toXmlList(xmlFile, d->getProfileDir()->getPath() + child->getRealName() + PATH_SEPARATOR, indent, tmp);
-					}
+				xmlFile.write(LITERAL("\" Date=\""));
+				xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
+				xmlFile.write(LITERAL("\">\r\n"));
+				indent +='\t';
 
-					xmlFile.write(LITERAL("</Share>"));
-					xmlFile.flush();
-					ff.close();
-
-					File::deleteFile(path);
-					File::renameFile(path + ".tmp", path);
-				} catch(Exception& e){
-					LogManager::getInstance()->message("Error saving " + path + ": " + e.getError(), LogManager::LOG_WARNING);
+				for(const auto& child: d->directories) {
+					child->toXmlList(xmlFile, d->getProfileDir()->getPath() + child->getRealName() + PATH_SEPARATOR, indent, tmp);
 				}
+				d->filesToXmlList(xmlFile, indent, tmp);
 
-				d->getProfileDir()->setCacheDirty(false);
-				if (progressF) {
-					cur++;
-					progressF(static_cast<float>(cur) / static_cast<float>(dirtyCount));
-				}
+				xmlFile.write(LITERAL("</Share>"));
+				xmlFile.flush();
+				ff.close();
+
+				File::deleteFile(path);
+				File::renameFile(path + ".tmp", path);
+			} catch(Exception& e){
+				LogManager::getInstance()->message("Error saving " + path + ": " + e.getError(), LogManager::LOG_WARNING);
+			}
+
+			d->getProfileDir()->setCacheDirty(false);
+			if (progressF) {
+				cur++;
+				progressF(static_cast<float>(cur) / static_cast<float>(dirtyDirs.size()));
 			}
 		});
 	}
@@ -2264,14 +2276,7 @@ void ShareManager::Directory::toXmlList(OutputStream& xmlFile, string&& path, st
 	xmlFile.write(LITERAL("\">\r\n"));
 
 	indent += '\t';
-	for(const auto& f: files) {
-		xmlFile.write(indent);
-		xmlFile.write(LITERAL("<File Name=\""));
-		xmlFile.write(SimpleXML::escape(f.getName(), tmp, true));
-		xmlFile.write(LITERAL("\" Size=\""));
-		xmlFile.write(Util::toString(f.getSize()));
-		xmlFile.write(LITERAL("\"/>\r\n"));
-	}
+	filesToXmlList(xmlFile, indent, tmp);
 
 	for(const auto& d: directories) {
 		d->toXmlList(xmlFile, path + d->getRealName() + PATH_SEPARATOR, indent, tmp);

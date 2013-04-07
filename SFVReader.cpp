@@ -29,6 +29,7 @@
 #include "AirUtil.h"
 
 #include <boost/range/algorithm/find_if.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -135,6 +136,9 @@ void DirSFVReader::load() noexcept {
 				sscanf(line.substr(pos+1, 8).c_str(), "%x", &crc32);
 
 				line = Text::toLower(line.substr(0,pos));
+
+				boost::trim(line);
+
 				//quoted filename?
 				if (line[0] == '\"' && line[line.length()-1] == '\"') {
 					line = line.substr(1,line.length()-2);

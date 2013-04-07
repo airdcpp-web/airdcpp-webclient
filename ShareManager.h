@@ -389,6 +389,7 @@ private:
 
 		//for file list caching
 		void toXmlList(OutputStream& xmlFile, string&& path, string& indent, string& tmp);
+		void filesToXmlList(OutputStream& xmlFile, string& indent, string& tmp2) const;
 
 		GETSET(uint32_t, lastWrite, LastWrite);
 		GETSET(Directory*, parent, Parent);
