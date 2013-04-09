@@ -2023,6 +2023,8 @@ void QueueManager::setQIPriority(const string& aTarget, QueueItemBase::Priority 
 		RLock l(cs);
 		q = fileQueue.findFile(aTarget);
 	}
+
+	q->setAutoPriority(false);
 	setQIPriority(q, p);
 }
 
@@ -3183,11 +3185,9 @@ int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget
 	return (int)mBundles.size();
 }
 
-int QueueManager::getDirItemCount(const BundlePtr& aBundle, const string& aDir) const noexcept { 
+void QueueManager::getDirItems(const BundlePtr& aBundle, const string& aDir, QueueItemList& aItems) const noexcept { 
 	RLock l(cs);
-	QueueItemList ql;
-	aBundle->getDirQIs(aDir, ql);
-	return (int)ql.size();
+	aBundle->getDirQIs(aDir, aItems);
 }
 
 uint8_t QueueManager::isDirQueued(const string& aDir) const {

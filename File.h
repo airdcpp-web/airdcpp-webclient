@@ -159,6 +159,13 @@ private:
 	DirData data;
 };
 
+#ifdef _WIN32
+	// on Windows, prefer _wfopen over fopen.
+	FILE* dcpp_fopen(const char* filename, const char* mode);
+#else
+#define dcpp_fopen fopen
+#endif
+
 } // namespace dcpp
 
 #endif // !defined(FILE_H)

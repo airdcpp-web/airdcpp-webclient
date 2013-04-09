@@ -24,10 +24,6 @@
 
 #include "SSL.h"
 
-#ifndef SSL_SUCCESS
-#define SSL_SUCCESS 1
-#endif
-
 namespace dcpp {
 
 class SSLSocketException : public SocketException {

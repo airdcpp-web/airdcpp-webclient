@@ -726,7 +726,7 @@ wstring Util::formatExactSize(int64_t aBytes) {
 
 bool Util::isPrivateIp(const string& ip, bool v6) {
 	if (v6) {
-		return ip.find("%") != string::npos;
+		return ip.length() > 5 && ip.substr(0, 4) == "fe80";
 	} else {
 		struct in_addr addr;
 
