@@ -344,8 +344,8 @@ bool AutoSearch::updateSearchTime() {
 		tm td_tm = to_tm(nextSearch);
 		time_t next = mktime(&td_tm);
 		if (next != nextSearchChange) {
-			updateStatus();
 			nextSearchChange = next;
+			updateStatus();
 		}
 
 		return true;
@@ -454,6 +454,7 @@ void AutoSearchManager::updateStatus(AutoSearchPtr& as, bool setTabDirty) {
 void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) {
 	WLock l(cs);
 	as->changeNumber(increase);
+	as->setLastError(Util::emptyString);
 
 	updateStatus(as, true);
 }
@@ -543,6 +544,11 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr& as) const {
 
 
 /* Bundle updates */
+
+void AutoSearchManager::clearError(AutoSearchPtr& as) {
+	as->setLastError(Util::emptyString);
+	fire(AutoSearchManagerListener::UpdateItem(), as, true);
+}
 
 void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch) {
 	WLock l(cs);

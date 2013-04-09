@@ -125,7 +125,7 @@ private:
 
 	void shutdown();
 	void clearUsers();
-	void appendSupportsAndConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, bool v6);
+	void appendConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, bool v6);
 	std::future<void> hbriThread;
 	void sendHBRI(const string& aIP, const string& aPort, const string& aToken, bool v6);
 

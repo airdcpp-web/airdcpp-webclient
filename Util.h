@@ -521,6 +521,8 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static bool hasParam(const string& aParam);
 	static tstring getParams(bool isFirst);
 	static void addParam(const string& aParam);
+
+	static bool usingLocalMode() { return localMode; }
 private:
 	/** In local mode, all config and temp files are kept in the same dir as the executable */
 	static bool localMode;

@@ -267,6 +267,8 @@ private:
 	void onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch);
 	void onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser);
 
+	void clearError(AutoSearchPtr& as);
+
 	virtual void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept { onRemoveBundle(aBundle, false); }
 	virtual void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
 

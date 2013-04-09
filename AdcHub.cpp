@@ -826,7 +826,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 	AdcCommand hbriCmd(AdcCommand::CMD_TCP, AdcCommand::TYPE_HUB);
 
 	StringMap dummyMap;
-	appendSupportsAndConnectivity(state == STATE_NORMAL ? dummyMap : lastInfoMap, hbriCmd, !v6, v6);
+	appendConnectivity(state == STATE_NORMAL ? dummyMap : lastInfoMap, hbriCmd, !v6, v6);
 	hbriCmd.addParam("TO", aToken);
 
 	bool secure = strnicmp("adcs://", getHubUrl().c_str(), 7) == 0;
@@ -1344,16 +1344,7 @@ static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, c
 	}
 }
 
-void AdcHub::appendSupportsAndConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, bool v6) {
-	string su(SEGA_FEATURE);
-
-	if(CryptoManager::getInstance()->TLSOk()) {
-		su += "," + ADCS_FEATURE;
-	}
-
-	if (SETTING(ENABLE_SUDP) && isActive())
-		su += "," + SUD1_FEATURE;
-
+void AdcHub::appendConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, bool v6) {
 	if (v4) {
 		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp4().empty()) {
 			addParam(lastInfoMap, c, "I4", Socket::resolve(getUserIp4(), AF_INET));
@@ -1363,10 +1354,7 @@ void AdcHub::appendSupportsAndConnectivity(StringMap& lastInfoMap, AdcCommand& c
 
 		if(isActiveV4()) {
 			addParam(lastInfoMap, c, "U4", SearchManager::getInstance()->getPort());
-			su += "," + TCP4_FEATURE;
-			su += "," + UDP4_FEATURE;
 		} else {
-			su += "," + NAT0_FEATURE;
 			addParam(lastInfoMap, c, "U4", "");
 		}
 	}
@@ -1380,15 +1368,10 @@ void AdcHub::appendSupportsAndConnectivity(StringMap& lastInfoMap, AdcCommand& c
 
 		if(isActiveV6()) {
 			addParam(lastInfoMap, c, "U6", SearchManager::getInstance()->getPort());
-			su += "," + TCP6_FEATURE;
-			su += "," + UDP6_FEATURE;
 		} else {
-			su += "," + NAT0_FEATURE;
 			addParam(lastInfoMap, c, "U6", "");
 		}
 	}
-
-	addParam(lastInfoMap, c, "SU", su);
 }
 
 void AdcHub::info(bool /*alwaysSend*/) {
@@ -1449,7 +1432,38 @@ void AdcHub::info(bool /*alwaysSend*/) {
 		addParam(lastInfoMap, c, "KP", "SHA256/" + Encoder::toBase32(&kp[0], kp.size()));
 	}
 
-	appendSupportsAndConnectivity(lastInfoMap, c, !sock->isV6Valid() || !getMyIdentity().getIp4().empty(), sock->isV6Valid() || !getMyIdentity().getIp6().empty());
+	bool addV4 = !sock->isV6Valid() || !getMyIdentity().getIp4().empty();
+	bool addV6 = sock->isV6Valid() || !getMyIdentity().getIp6().empty();
+
+
+	// supports
+	string su(SEGA_FEATURE);
+
+	if(CryptoManager::getInstance()->TLSOk()) {
+		su += "," + ADCS_FEATURE;
+	}
+
+	if (SETTING(ENABLE_SUDP) && isActive())
+		su += "," + SUD1_FEATURE;
+
+	if(addV4 && isActiveV4()) {
+		su += "," + TCP4_FEATURE;
+		su += "," + UDP4_FEATURE;
+	}
+
+	if(addV6 && isActiveV6()) {
+		su += "," + TCP6_FEATURE;
+		su += "," + UDP6_FEATURE;
+	}
+
+	if ((addV6 && !isActiveV6()) || (addV4 && !isActiveV4())) {
+		su += "," + NAT0_FEATURE;
+	}
+
+	addParam(lastInfoMap, c, "SU", su);
+
+
+	appendConnectivity(lastInfoMap, c, addV4, addV6);
 
 	if(c.getParameters().size() > 0) {
 		send(c);
