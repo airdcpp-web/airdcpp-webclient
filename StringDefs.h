@@ -1662,5 +1662,6 @@ enum Strings { // @DontAdd
 	CUSTOM_AWAY_MESSAGE, // "Custom away message"
 	ACCEPT_FAILOVERS_FAV, // "Accept failover addresses from the hub"
 	ACCEPT_FAILOVERS_GLOBAL, // "Accept failover addresses from favorite hubs"
+	INVALID_TTH_SEARCH, // "Invalid input value for TTH search"
 	LAST // @DontAdd
 };

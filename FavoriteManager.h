@@ -67,19 +67,16 @@ public:
 	int getSelectedHubList() { return lastServer; }
 	void refresh(bool forceDownload = false);
 	HubTypes getHubListType() { return listType; }
-	HubEntryList getPublicHubs() {
-		Lock l(cs);
-		return publicListMatrix[publicListServer];
-	}
+	HubEntryList getPublicHubs();
 	bool isDownloading() { return (useHttp && running); }
 
 // Favorite Users
 	typedef unordered_map<CID, FavoriteUser> FavoriteMap;
-	FavoriteMap getFavoriteUsers() { Lock l(cs); return users; }
+	FavoriteMap getFavoriteUsers() { RLock l(cs); return users; }
 	PreviewApplication::List& getPreviewApps() { return previewApplications; }
 
 	void addFavoriteUser(const HintedUser& aUser);
-	bool isFavoriteUser(const UserPtr& aUser) const { Lock l(cs); return users.find(aUser->getCID()) != users.end(); }
+	bool isFavoriteUser(const UserPtr& aUser) const { RLock l(cs); return users.find(aUser->getCID()) != users.end(); }
 	void removeFavoriteUser(const UserPtr& aUser);
 	optional<FavoriteUser> getFavoriteUser(const UserPtr& aUser) const;
 
@@ -110,7 +107,7 @@ public:
 	typedef vector<FavDirPair> FavDirList;
 
 	bool addFavoriteDir(const string& aName, StringList& aTargets);
-	void saveFavoriteDirs(FavDirList dirs);
+	void saveFavoriteDirs(FavDirList& dirs);
 	FavDirList getFavoriteDirs() { return favoriteDirs; }
 
 // Recent Hubs
@@ -151,10 +148,7 @@ public:
 		return NULL;
 	}
 
-	void removeallRecent() {
-		recentHubs.clear();
-		recentsave();
-	}
+	void removeallRecent();
 
 // User Commands
 	UserCommand addUserCommand(int type, int ctx, Flags::MaskType flags, const string& name, const string& command, const string& to, const string& hub);
@@ -166,7 +160,7 @@ public:
 	void removeUserCommand(const string& srv);
 	void removeHubUserCommands(int ctx, const string& hub);
 
-	UserCommand::List getUserCommands() { Lock l(cs); return userCommands; }
+	UserCommand::List getUserCommands() { RLock l(cs); return userCommands; }
 	UserCommand::List getUserCommands(int ctx, const StringList& hub, bool& op);
 
 	void load();
@@ -188,7 +182,7 @@ private:
 
 	FavoriteMap users;
 
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;
 
 	// Public Hubs
 	typedef unordered_map<string, HubEntryList> PubListMap;

@@ -1658,6 +1658,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Custom away message", 
 "Accept failover addresses from the hub", 
 "Accept failover addresses from favorite hubs", 
+"Invalid input value for TTH search", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3316,4 +3317,5 @@ std::string dcpp::ResourceManager::names[] = {
 "CustomAwayMessage", 
 "AcceptFailoversFav", 
 "AcceptFailoversGlobal", 
+"InvalidTthSearch", 
 };
