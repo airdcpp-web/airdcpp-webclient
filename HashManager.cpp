@@ -371,7 +371,7 @@ void HashManager::HashStore::loadTree(const TTHValue& aRoot, TigerTree& aTree, c
 
 	if (datalen > 0) {
 		boost::scoped_array<uint8_t> buf(new uint8_t[datalen]);
-		memcpy(p, &buf[0], datalen);
+		memcpy(&buf[0], p, datalen);
 		aTree = TigerTree(fileSize, blockSize, &buf[0]);
 	} else {
 		aTree = TigerTree(fileSize, blockSize, aRoot);
@@ -687,8 +687,9 @@ void HashManager::HashStore::updateCacheSize() {
 		auto tableSize = statp->bt_nkeys;
 		free(statp);*/
 
-		size_t newSize = (fileIndex.size()*120) / 1024;
-		SettingsManager::getInstance()->set(SettingsManager::DB_CACHE_SIZE, static_cast<int>(newSize));
+		//auto indexSize = fileIndex.size(false);
+		//size_t newSize = max((indexSize*120) / (1024*1024), static_cast<size_t>(1));
+		//SettingsManager::getInstance()->set(SettingsManager::DB_CACHE_SIZE, static_cast<int>(newSize));
 	}
 }
 
@@ -762,6 +763,70 @@ private:
 	unique_ptr<File> dataFile;
 };
 
+/*int pathCompare(DB* dbp, const DBT* a, const DBT* b) {
+
+	auto tmp1 = (const char *)a->data;
+	auto tmp2 = (const char *)b->data;
+
+	auto comp = strcmp(Util::getFilePath((const char *)a->data).c_str(), Util::getFilePath((const char *)b->data).c_str());
+	if (comp == 0) {
+		comp = strcmp((const char *)a->data, (const char *)b->data);
+		return strcmp((const char *)a->data, (const char *)b->data);
+	}
+	return comp;
+} 
+
+size_t prefixF(DB* dbp, const DBT* a, const DBT* b) {
+    size_t cnt, len;
+    uint8_t *p1, *p2;
+
+    cnt = 1;
+    len = a->size > b->size ? b->size : a->size;
+    for (p1 =
+        (uint8_t*)a->data, p2 = (uint8_t*)b->data; len--; ++p1, ++p2, ++cnt)
+            if (*p1 != *p2)
+                return (cnt);
+
+    if (a->size < b->size)
+        return (a->size + 1);
+    if (b->size < a->size)
+        return (b->size + 1);
+    return (b->size);
+
+
+	/*auto tmp1 = (const char *)a->data;
+	auto tmp2 = (const char *)b->data;
+	//auto pos = abs(strcmp((const char *)a->data, (const char *)b->data));
+
+	
+	size_t len = a->size > b->size ? b->size : a->size;
+	size_t i = 0;
+	for (i = 0; i < len-1; i++ )
+    {
+		if (((const char *)a->data)[i] != ((const char *)b->data)[i])
+			return i;
+    }
+
+	if (a->size < b->size)
+        return (a->size + 1);
+    if (b->size < a->size)
+        return (b->size + 1);
+    return (b->size);
+
+	return i;
+
+	//auto ret = abs(strcmp((const char *)a->data, (const char *)b->data));
+	//return abs(strcmp((const char *)a->data, (const char *)b->data));
+	//don't mix file names and folders
+	/*auto p1 = strrchr((const char *)a->data, PATH_SEPARATOR);
+	auto p2 = strrchr((const char *)b->data, PATH_SEPARATOR);
+
+	if (p1 - a->data != p2 - b->data)
+	//	return min(p1, p2);
+
+	//return 0;
+} */
+
 void HashManager::HashStore::load(function<void (float)> progressF) {
 	//migrate the old database file
 	Util::migrate(Util::getPath(Util::PATH_USER_CONFIG) + "HashStore.db");
@@ -771,11 +836,11 @@ void HashManager::HashStore::load(function<void (float)> progressF) {
 	u_int32_t env_flags = DB_PRIVATE | DB_THREAD | DB_CREATE |
 		DB_INIT_MPOOL | DB_AUTO_COMMIT | DB_INIT_LOCK;
 
-		//DB_INIT_CDB | // multiple reader/single writer access*/
-
 	try {
 		dbEnv.open(Util::getPath(Util::PATH_USER_CONFIG).c_str(), env_flags, 0);
-		dbEnv.set_cachesize(0, static_cast<uint32_t>(SETTING(DB_CACHE_SIZE)), 1);
+
+		uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1));
+		dbEnv.set_cachesize(0, cacheSize*1024*1024, 1);
 
 		// Redirect debugging information to std::cerr
 		dbEnv.set_error_stream(&std::cerr);
@@ -789,6 +854,9 @@ void HashManager::HashStore::load(function<void (float)> progressF) {
 			0); // File mode (using defaults)
 
 		fileDb = new Db(&dbEnv, DB_CXX_NO_EXCEPTIONS);
+		//fileDb->set_bt_prefix(prefixF);
+		//fileDb->set_bt_compare(pathCompare);
+
 		fileDb->open(NULL, // Transaction pointer 
 			"FileIndex.db", // Database file name 
 			NULL, // Optional logical database name
@@ -808,7 +876,6 @@ void HashManager::HashStore::load(function<void (float)> progressF) {
 	pTigerTraits->set_size_function(getTreeSize);
 	pTigerTraits->set_copy_function(saveTree);
 	pTigerTraits->set_restore_function(loadTree);*/
-
 
 	if (SettingsManager::lanMode)
 		return;
@@ -832,8 +899,6 @@ void HashManager::HashStore::load(function<void (float)> progressF) {
 
 			File::renameFile(dataFile, dataFile + ".bak");
 			File::renameFile(indexFile, indexFile + ".bak");
-
-			//save(nullptr, true);
 		}
 	} catch (const Exception&) {
 		// ...
