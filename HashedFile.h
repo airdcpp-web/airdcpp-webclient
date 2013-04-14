@@ -26,26 +26,26 @@
 
 namespace dcpp {
 
-using std::string;
-
-class HashedFile : public intrusive_ptr_base<HashedFile> {
+class HashedFile {
 public:
-	HashedFile(const string& aFileName, const TTHValue& aRoot, uint64_t aTimeStamp) :
-		fileName(aFileName), root(aRoot), timeStamp(aTimeStamp) { }
+	HashedFile() : size(-1), timeStamp(0) { }
+	HashedFile(const TTHValue& aRoot, uint64_t aTimeStamp, int64_t aSize) :
+		root(aRoot), timeStamp(aTimeStamp), size(aSize) { }
 
 	~HashedFile() { }
 
-	GETSET(string, fileName, FileName);
+	//GETSET(string, fileName, FileName);
 	GETSET(TTHValue, root, Root);
 	GETSET(uint64_t, timeStamp, TimeStamp);
+	GETSET(int64_t, size, Size);
 
-	struct FileLess {
+	/*struct FileLess {
 		bool operator()(const HashedFilePtr& a, const HashedFilePtr& b) const { return (a->getFileName().compare(b->getFileName()) < 0); }
 	};
 
 	struct Name {
 		const string& operator()(const HashedFilePtr& a) const { return a->getFileName(); }
-	};
+	};*/
 };
 
 }

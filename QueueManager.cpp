@@ -1329,7 +1329,8 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 			for(auto& q: hash) {
 				try {
 					// Schedule for hashing, it'll be added automatically later on...
-					if (!HashManager::getInstance()->checkTTH(q->getTarget(), q->getSize(), AirUtil::getLastWrite(q->getTarget()))) {
+					TTHValue tth;
+					if (!HashManager::getInstance()->checkTTH(q->getTarget(), q->getSize(), AirUtil::getLastWrite(q->getTarget()), tth)) {
 						//..
 					} else {
 						//fine, it's there already..
@@ -1369,7 +1370,7 @@ void QueueManager::removeFinishedBundle(BundlePtr& aBundle) {
 	bundleQueue.removeBundle(aBundle);
 }
 
-void QueueManager::onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, bool failed) {
+void QueueManager::onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) {
 	QueueItemPtr q;
 	{
 		RLock l(cs);
@@ -1382,7 +1383,7 @@ void QueueManager::onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, b
 			auto tpi = make_pair(fileQueue.getTTHIndex().begin(), fileQueue.getTTHIndex().end());
 			if (!failed) {
 				//we have the tth so we can limit the range
-				tpi = fileQueue.getTTHIndex().equal_range(const_cast<TTHValue*>(&aFileInfo->getRoot()));
+				tpi = fileQueue.getTTHIndex().equal_range(const_cast<TTHValue*>(&aFileInfo.getRoot()));
 			}
 
 			if (tpi.first != tpi.second) {
@@ -1457,7 +1458,8 @@ void QueueManager::checkBundleHashed(BundlePtr& b) {
 			fire(QueueManagerListener::BundleHashed(), b->getTarget());
 		} else {
 			try {
-				auto fi = HashManager::getInstance()->getFileInfo(b->getFinishedFiles().front()->getTarget(), b->getFinishedFiles().front()->getSize());
+				HashedFile fi;
+				HashManager::getInstance()->getFileInfo(b->getFinishedFiles().front()->getTarget(), fi);
 				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
 			} catch (...) { dcassert(0); }
 		}

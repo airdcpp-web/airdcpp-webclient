@@ -81,7 +81,6 @@ template<class Hasher>
 struct HashValue;
 
 class HashedFile;
-typedef boost::intrusive_ptr<HashedFile> HashedFilePtr;
 
 struct HintedUser;
 typedef std::vector<HintedUser> HintedUserList;

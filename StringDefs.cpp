@@ -1659,6 +1659,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Accept failover addresses from the hub", 
 "Accept failover addresses from favorite hubs", 
 "Invalid input value for TTH search", 
+"Database cache size", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3318,4 +3319,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AcceptFailoversFav", 
 "AcceptFailoversGlobal", 
 "InvalidTthSearch", 
+"DbCacheSize", 
 };

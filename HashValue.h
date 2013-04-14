@@ -30,9 +30,11 @@ struct HashValue : FastAlloc<HashValue<Hasher> >{
 	static const size_t BYTES = Hasher::BYTES;
 	
 	HashValue() { }
+
 	explicit HashValue(const uint8_t* aData) { memcpy(data, aData, BYTES); }
 	explicit HashValue(const std::string& base32) { Encoder::fromBase32(base32.c_str(), data, BYTES); }
 	HashValue(const HashValue& rhs) { memcpy(data, rhs.data, BYTES); }
+	HashValue(HashValue&& rhs) { memmove(data, rhs.data, BYTES); }
 	HashValue& operator=(const HashValue& rhs) { memcpy(data, rhs.data, BYTES); return *this; }
 	bool operator!=(const HashValue& rhs) const { return !(*this == rhs); }
 	bool operator==(const HashValue& rhs) const { return memcmp(data, rhs.data, BYTES) == 0; }

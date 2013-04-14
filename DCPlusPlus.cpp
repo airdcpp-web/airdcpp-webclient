@@ -46,8 +46,6 @@
 #include "DebugManager.h"
 #include "File.h"
 
-#include "../windows/IgnoreManager.h"
-#include "../windows/PopupManager.h"
 #include "HighlightManager.h"
 #include "AutoSearchManager.h"
 #include "ShareScannerManager.h"
@@ -89,8 +87,6 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	ADLSearchManager::newInstance();
 	ConnectivityManager::newInstance();
 	DebugManager::newInstance();
-	PopupManager::newInstance();
-	IgnoreManager::newInstance();
 	WebShortcuts::newInstance();
 	AutoSearchManager::newInstance();
 	HighlightManager::newInstance();
@@ -181,9 +177,7 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	DebugManager::deleteInstance();
 	HighlightManager::deleteInstance();
 	AutoSearchManager::deleteInstance();
-	IgnoreManager::deleteInstance();
 	WebShortcuts::deleteInstance();
-	PopupManager::deleteInstance();
 	ADLSearchManager::deleteInstance();
 	FinishedManager::deleteInstance();
 	ShareManager::deleteInstance();

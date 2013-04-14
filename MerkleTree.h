@@ -73,6 +73,9 @@ public:
 	~MerkleTree() {
 	}
 
+	bool operator==(const MerkleTree& rhs) const { return root == rhs.root; }
+	bool operator<(const MerkleTree& rhs) const { return root < rhs.root; }
+
 	static int64_t calcBlockSize(int64_t aFileSize, int maxLevels) {
 		int64_t tmp = baseBlockSize;
 		int64_t maxHashes = ((int64_t)1) << (maxLevels - 1);

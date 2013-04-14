@@ -330,7 +330,7 @@ private:
 
 	void moveStuckFile(QueueItemPtr& qi);
 	void rechecked(QueueItemPtr& qi);
-	void onFileHashed(const string& aPath, HashedFilePtr& aFileInfo, bool failed);
+	void onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed);
 	void hashBundle(BundlePtr& aBundle);
 	bool scanBundle(BundlePtr& aBundle);
 	void checkBundleHashed(BundlePtr& aBundle);
@@ -355,8 +355,8 @@ private:
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
 	
 	// HashManagerListener
-	void on(HashManagerListener::TTHDone, const string& aPath, HashedFilePtr& fi) noexcept { onFileHashed(aPath, fi, false); }
-	void on(HashManagerListener::HashFailed, const string& aPath, HashedFilePtr& fi) noexcept { onFileHashed(aPath, fi, true); }
+	void on(HashManagerListener::TTHDone, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, false); }
+	void on(HashManagerListener::HashFailed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, true); }
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;

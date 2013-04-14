@@ -24,14 +24,15 @@
 #include "MerkleTree.h"
 #include "Thread.h"
 #include "Semaphore.h"
-#include "TimerManager.h"
-#include "FastAlloc.h"
 #include "GetSet.h"
 #include "SFVReader.h"
 #include "typedefs.h"
 #include "SortedVector.h"
+#include "Speaker.h"
 
 #include "atomic.h"
+
+#include "../bdb/include/dbstl_map.h"
 
 namespace dcpp {
 
@@ -46,16 +47,15 @@ public:
 	typedef X<0> TTHDone;
 	typedef X<1> HashFailed;
 
-	virtual void on(TTHDone, const string& /* filePath */, HashedFilePtr& /* fileInfo */) noexcept { }
-	virtual void on(HashFailed, const string& /* filePath */, HashedFilePtr& /*null*/) noexcept { }
+	virtual void on(TTHDone, const string& /* filePath */, HashedFile& /* fileInfo */) noexcept { }
+	virtual void on(HashFailed, const string& /* filePath */, HashedFile& /*null*/) noexcept { }
 };
 
 class HashLoader;
 class FileException;
 
-class HashManager : public Singleton<HashManager>, public Speaker<HashManagerListener>,
-	private TimerManagerListener 
-{
+class HashManager : public Singleton<HashManager>, public Speaker<HashManagerListener> {
+
 public:
 
 	/** We don't keep leaves for blocks smaller than this... */
@@ -67,20 +67,20 @@ public:
 	/**
 	 * Check if the TTH tree associated with the filename is current.
 	 */
-	bool checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp);
+	bool checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp, TTHValue& outTTH_);
 
 	void stopHashing(const string& baseDir);
 	void setPriority(Thread::Priority p);
 
 	/** @return TTH root */
-	HashedFilePtr getFileInfo(const string& aFileName, int64_t aSize);
+	void getFileInfo(const string& aFileName, HashedFile& aFileInfo);
 
 	bool getTree(const TTHValue& root, TigerTree& tt);
 
 	/** Return block size of the tree associated with root, or 0 if no such tree is in the store */
 	size_t getBlockSize(const TTHValue& root);
 
-	void addTree(const string& aFileName, uint32_t aTimeStamp, const TigerTree& tt);
+	//void addTree(const string& aFileName, uint32_t aTimeStamp, const TigerTree& tt);
 	void addTree(const TigerTree& tree) { store.addTree(tree); }
 
 	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hashers);
@@ -106,7 +106,7 @@ public:
 	void resumeHashing(bool forced = false);	
 	bool isHashingPaused(bool lock = true) const;
 
-	GETSET(uint64_t, nextSave, NextSave);
+	string getDbStats() { return store.getDbStats(); }
 private:
 	int pausers;
 	class Hasher : public Thread {
@@ -127,7 +127,6 @@ private:
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed);
 		void shutdown();
 		void scheduleRebuild();
-		void save();
 
 		bool getPathVolume(const string& aPath, string& vol_) const;
 		bool hasDevice(const string& aID) const { return devices.find(aID) != devices.end(); }
@@ -161,7 +160,6 @@ private:
 		bool running;
 		bool paused;
 		bool rebuild;
-		bool saveData;
 
 		string currentFile;
 		atomic<int64_t> totalBytesLeft;
@@ -191,23 +189,44 @@ private:
 	class HashStore {
 	public:
 		HashStore();
-		HashedFilePtr& addFile(string&& aFilePathLower, uint64_t aTimeStamp, const TigerTree& tth);
+		~HashStore();
+
+		void addFile(string&& aFilePathLower, const TigerTree& tt, HashedFile& fi_);
 
 		void load(function<void (float)> progressF);
-		void save(function<void (float)> progressF = nullptr);
-		void countNextSave();
 
 		void rebuild();
 
-		bool checkTTH(const string& aFileNameLower, int64_t aSize, uint32_t aTimeStamp);
+		bool checkTTH(const string& aFileNameLower, int64_t aSize, uint32_t aTimeStamp, TTHValue& outTTH_);
 
 		void addTree(const TigerTree& tt) noexcept;
-		const HashedFilePtr getFileInfo(const string& aFileName);
-		bool getTree(const TTHValue& root, TigerTree& tth);
-		size_t getBlockSize(const TTHValue& root) const;
-		bool isDirty() { return dirty; }
+		bool getFileInfo(const string& aFileName, HashedFile& aFile);
+		bool getTree(const TTHValue& root, TigerTree& tth) const;
+
+		enum InfoType {
+			TYPE_FILESIZE,
+			TYPE_BLOCKSIZE
+		};
+		int64_t getRootInfo(const TTHValue& root, InfoType aType) const;
+
+		string getDbStats();
+		void updateCacheSize();
 	private:
-		/** Root -> tree mapping info, we assume there's only one tree for each root (a collision would mean we've broken tiger...) */
+		DbEnv dbEnv;
+		Db* hashDb;
+		Db* fileDb;
+
+		//typedef dbstl::db_map<TTHValue, TigerTree> HashDataMap;
+		//HashDataMap hashData;
+
+		typedef dbstl::db_map<string, HashedFile> HashFileMap;
+		HashFileMap fileIndex;
+
+
+		friend class HashLoader;
+		mutable SharedMutex cs;
+
+		/** FOR CONVERSION ONLY: Root -> tree mapping info, we assume there's only one tree for each root (a collision would mean we've broken tiger...) */
 		struct TreeInfo {
 			TreeInfo() : size(0), index(0), blockSize(0) { }
 			TreeInfo(int64_t aSize, int64_t aIndex, int64_t aBlockSize) : size(aSize), index(aIndex), blockSize(aBlockSize) { }
@@ -216,29 +235,24 @@ private:
 			GETSET(int64_t, index, Index);
 			GETSET(int64_t, blockSize, BlockSize);
 		};
+		bool loadLegacyTree(File& dataFile, const TreeInfo& ti, const TTHValue& root, TigerTree& tt, bool rebuilding = false);
 
-		typedef SortedVector<HashedFilePtr, string, HashedFile::FileLess, HashedFile::Name> FileInfoList;
 
-		typedef unordered_map<string, FileInfoList> DirMap;
 
-		typedef unordered_map<TTHValue, TreeInfo> TreeMap;
+		static void loadTree(const TTHValue& aRoot, TigerTree& aTree, const void *src);
 
-		friend class HashLoader;
-		mutable SharedMutex cs;
+		//static void loadTree(TigerTree& aTree, const void *src);
+		//static void saveTree(void *dest, const TigerTree& aTree);
+		//static u_int32_t getTreeSize(const TigerTree& aTree);
 
-		DirMap fileIndex;
-		TreeMap treeIndex;
-
-		bool dirty;
-
-		void createDataFile(const string& name);
-
-		bool loadTree(File& dataFile, const TreeInfo& ti, const TTHValue& root, TigerTree& tt, bool rebuilding = false);
-		int64_t saveTree(File& dataFile, const TigerTree& tt);
+		static void loadFileInfo(HashedFile& aFile, const void *src);
+		static void saveFileInfo(void *dest, const HashedFile& aTree);
+		static u_int32_t getFileInfoSize(const HashedFile& aTree);
 
 		static string getIndexFile();
-		static string getDataFile();
-		static atomic_flag saving;
+		//static string getDataFile();
+
+		bool isDbError(int err) const;
 	};
 
 	friend class HashLoader;
@@ -254,14 +268,9 @@ private:
 	/** Single node tree where node = root, no storage in HashData.dat */
 	static const int64_t SMALL_TREE = -1;
 
-	HashedFilePtr hashDone(const string& aFileName, string&& pathLower, uint64_t aTimeStamp, const TigerTree& tth, int64_t speed, int64_t size, int hasherID = 0);
+	void hashDone(const string& aFileName, string&& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID = 0);
 
 	void doRebuild();
-	void SaveData() {
-		store.save();
-	}
-
-	void on(TimerManagerListener::Minute, uint64_t) noexcept;
 };
 
 } // namespace dcpp

@@ -373,7 +373,10 @@ bool ShareManager::ProfileDirectory::hasRootProfile(ProfileToken aProfile) const
 }
 
 bool ShareManager::ProfileDirectory::isExcluded(const ProfileTokenSet& aProfiles) const {
-	return std::search(excludedProfiles.begin(), excludedProfiles.end(), aProfiles.begin(), aProfiles.end()) != aProfiles.end();
+	//return all_of(excludedProfiles.begin(), excludedProfiles.end(), [](const ProfileToken t) { return aProfiles.find(t) != aProfiles.end() });
+
+	//TODO: FIX THIS (doesn't detect the excludes correctly but not really used now)
+	return std::search(excludedProfiles.begin(), excludedProfiles.end(), aProfiles.begin(), aProfiles.end()) != excludedProfiles.end();
 }
 
 bool ShareManager::Directory::isLevelExcluded(ProfileToken aProfile) const {
@@ -648,6 +651,20 @@ void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToke
 		}
 	}
 }
+
+bool ShareManager::isRealPathShared(const string& aPath) {
+	RLock l (cs);
+	auto d = findDirectory(Util::getFilePath(aPath), false, false, true);
+	if (d) {
+		auto it = d->findFile(Text::toLower(Util::getFileName(aPath)));
+		if(it != d->files.end()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 string ShareManager::validateVirtual(const string& aVirt) const noexcept {
 	string tmp = aVirt;
 	string::size_type idx = 0;
@@ -809,18 +826,18 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 			}
 		} else if(cur && name == SFILE) {
 			const string& fname = getAttrib(attribs, SNAME, 0);
-			const string& size = getAttrib(attribs, SSIZE, 1);   
-			if(fname.empty() || size.empty() ) {
+			if(fname.empty()) {
 				dcdebug("Invalid file found: %s\n", fname.c_str());
 				return;
 			}
 
 			try {
-				auto s = Util::toInt64(size);
-				lastFileIter = cur->files.emplace_hint(lastFileIter, fname, s, cur, move(HashManager::getInstance()->getFileInfo(curDirPath + fname, s)));
+				HashedFile fi;
+				HashManager::getInstance()->getFileInfo(curDirPath + fname, fi);
+				lastFileIter = cur->files.emplace_hint(lastFileIter, fname, cur, fi);
 				ShareManager::updateIndices(*cur, lastFileIter++, *ri.newBloom.get(), ri.addedSize, ri.tthIndexNew);
 			}catch(Exception& e) {
-				ri.hashSize += Util::toInt64(size);
+				ri.hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading file list %s \n", e.getError().c_str());
 			}
 		} else if (name == SHARE) {
@@ -1261,8 +1278,11 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			}
 
 			try {
-				if(HashManager::getInstance()->checkTTH(path, size, i->getLastWriteTime())) {
-					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, size, aDir, move(HashManager::getInstance()->getFileInfo(path, size)));
+				auto lastWrite = i->getLastWriteTime();
+				TTHValue tth;
+				if(HashManager::getInstance()->checkTTH(path, size, lastWrite, tth)) {
+					HashedFile fi(tth, lastWrite, size);
+					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, aDir, fi);
 					updateIndices(*aDir, lastFileIter++, aBloom, addedSize, tthIndexNew);
 				} else {
 					hashSize += size;
@@ -2157,14 +2177,17 @@ void ShareManager::Directory::filesToXmlList(OutputStream& xmlFile, string& inde
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("<File Name=\""));
 		xmlFile.write(SimpleXML::escape(f.getName(), tmp2, true));
-		xmlFile.write(LITERAL("\" Size=\""));
-		xmlFile.write(Util::toString(f.getSize()));
+		/*xmlFile.write(LITERAL("\" Size=\""));
+		xmlFile.write(Util::toString(f.getSize()));*/
 		xmlFile.write(LITERAL("\"/>\r\n"));
 	}
 }
 
-ShareManager::Directory::File::File(const string& aName, int64_t aSize, Directory::Ptr aParent, HashedFilePtr& aFileInfo) : 
-	name(Text::isLower(aName) ? nullptr : new string(aName)), size(aSize), parent(aParent.get()), fileInfo(aFileInfo) {
+ShareManager::Directory::File::File(const string& aName, Directory::Ptr aParent, HashedFile& aFileInfo) : 
+	size(aFileInfo.getSize()), parent(aParent.get()), tth(aFileInfo.getRoot()), lastWrite(aFileInfo.getTimeStamp()) {
+	
+	nameLower = Text::toLower(aName);
+	name = (compare(nameLower, aName) == 0 ? nullptr : new string(aName)); 
 }
 
 ShareManager::Directory::File::~File() {
@@ -2184,7 +2207,7 @@ void ShareManager::Directory::File::toXml(OutputStream& xmlFile, string& indent,
 
 	if (addDate) {
 		xmlFile.write(LITERAL("\" Date=\""));
-		xmlFile.write(SimpleXML::escape(Util::toString(fileInfo->getTimeStamp()), tmp2, true));
+		xmlFile.write(SimpleXML::escape(Util::toString(lastWrite), tmp2, true));
 	}
 	xmlFile.write(LITERAL("\"/>\r\n"));
 }
@@ -2890,7 +2913,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 	return nullptr;
 }
 
-void ShareManager::onFileHashed(const string& fname, HashedFilePtr& fileInfo) noexcept {
+void ShareManager::onFileHashed(const string& fname, HashedFile& fileInfo) noexcept {
 	ProfileTokenSet dirtyProfiles;
 	{
 		WLock l(cs);
@@ -2899,16 +2922,15 @@ void ShareManager::onFileHashed(const string& fname, HashedFilePtr& fileInfo) no
 			return;
 		}
 
-		auto i = d->findFile(fileInfo->getFileName());
+		string name = Util::getFileName(fname);
+		auto i = d->findFile(Text::toLower(name));
 		if(i != d->files.end()) {
 			// Get rid of false constness...
 			cleanIndices(*d, i);
 			d->files.erase(i);
 		}
 
-		string name = Util::getFileName(fname);
-		int64_t size = File::getSize(fname);
-		auto it = d->files.emplace(name, size, d, fileInfo).first;
+		auto it = d->files.emplace(name, d, fileInfo).first;
 		updateIndices(*d, it, d->getBloom(), sharedSize, tthIndex);
 
 		d->copyRootProfiles(dirtyProfiles, true);
@@ -2981,17 +3003,10 @@ void ShareManager::rebuildTotalExcludes() {
 		}
 
 
-		bool stop = false;
 		//Is the directory excluded in all profiles?
-		for(auto p: sharedProfiles) {
-			if (pd->getExcludedProfiles().find(p) == pd->getExcludedProfiles().end()) {
-				stop = true;
-				break;
-			}
-		}
-
-		if (stop)
+		if (any_of(sharedProfiles.begin(), sharedProfiles.end(), [&pd](const ProfileToken aToken) { return pd->getExcludedProfiles().find(aToken) == pd->getExcludedProfiles().end(); }))
 			continue;
+
 
 		//Are there shared roots in subdirs?
 		auto subDirs = find_if(profileDirs | map_values, [pdPos](const ProfileDirectory::Ptr& spd) { 

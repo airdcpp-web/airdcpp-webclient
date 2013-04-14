@@ -240,9 +240,13 @@ public:
 	void addProfiles(const ShareProfile::set& aProfiles);
 	void removeProfiles(ProfileTokenList aProfiles);
 
+	bool isRealPathShared(const string& aPath);
+
 	/* Only for gui use purposes, no locking */
 	const ShareProfileList& getProfiles() { return shareProfiles; }
 	void getExcludes(ProfileToken aProfile, StringList& excludes);
+
+	mutable SharedMutex cs;
 private:
 	typedef BloomFilter<5> ShareBloom;
 
@@ -308,7 +312,7 @@ private:
 			};
 			typedef set<File, FileLess> Set;
 
-			File(const string& aName, int64_t aSize, Directory::Ptr aParent, HashedFilePtr& aFileInfo);
+			File(const string& aName, Directory::Ptr aParent, HashedFile& aFileInfo);
 			~File();
 
 			bool operator==(const File& rhs) const {
@@ -325,12 +329,18 @@ private:
 
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
-			GETSET(HashedFilePtr, fileInfo, FileInfo);
+			GETSET(uint64_t, lastWrite, LastWrite);
+			GETSET(string, nameLower, NameLower);
+			GETSET(TTHValue, tth, TTH);
 
-			const string& getNameLower() const { return fileInfo->getFileName(); }
+			//GETSET(HashedFilePtr, fileInfo, FileInfo);
+
+			const string& getName() const { return name ? *name : nameLower; }
+
+			/*const string& getNameLower() const { return fileInfo->getFileName(); }
 			const string& getName() const { return name ? *name : fileInfo->getFileName(); }
 			const TTHValue& getTTH() const { return fileInfo->getRoot(); }
-			uint32_t getLastWrite() const { return fileInfo->getTimeStamp(); }
+			uint32_t getLastWrite() const { return fileInfo->getTimeStamp(); }*/
 
 		private:
 			File(const File& src);
@@ -493,7 +503,6 @@ private:
 	//caching the share size so we dont need to loop tthindex everytime
 	bool xml_saving;
 
-	mutable SharedMutex cs;  // NON-recursive mutex BE Aware!!
 	mutable SharedMutex dirNames; // Bundledirs, releasedirs and excluded dirs
 
 	int refreshOptions;
@@ -549,7 +558,7 @@ private:
 	void cleanIndices(Directory& dir);
 	void cleanIndices(Directory& dir, const Directory::File::Set::iterator& i);
 
-	void onFileHashed(const string& fname, HashedFilePtr& fileInfo);
+	void onFileHashed(const string& fname, HashedFile& fileInfo);
 	
 	StringList bundleDirs;
 
@@ -581,25 +590,19 @@ private:
 			string::size_type j = i + 1;
 			d = *k;
 
-			if(virtualPath.find('/', j) == string::npos) {	  // we only have root virtualpaths.
-				dirs.push_back(d);
-			} else {
-				while((i = virtualPath.find('/', j)) != string::npos) {
-					if(d) {
-						auto mi = d->directories.find(Text::toLower(virtualPath.substr(j, i - j)));
-						j = i + 1;
-						if(mi != d->directories.end() && !(*mi)->isLevelExcluded(aProfile)) {   //if we found something, look for more.
-							d = *mi;
-						} else {
-							d = nullptr;   //make the pointer null so we can check if found something or not.
-							break;
-						}
-					}
+			while((i = virtualPath.find('/', j)) != string::npos) {
+				auto mi = d->directories.find(Text::toLower(virtualPath.substr(j, i - j)));
+				j = i + 1;
+				if(mi != d->directories.end() && !(*mi)->isLevelExcluded(aProfile)) {   //if we found something, look for more.
+					d = *mi;
+				} else {
+					d = nullptr;   //make the pointer null so we can check if found something or not.
+					break;
 				}
-
-				if(d) 
-					dirs.push_back(d);
 			}
+
+			if(d) 
+				dirs.push_back(d);
 		}
 
 		if(dirs.empty()) {
@@ -607,6 +610,25 @@ private:
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 	}
+
+	/*template<class T>
+	Directory::Ptr findDirectory(const string& virtualPath, const T& aProfile, const Directory::Ptr& aDir) const noexcept {
+		string::size_type i = 0; // always start from the begin.
+		string::size_type j = 1;
+
+		Directory::Ptr d = aDir;
+		while((i = virtualPath.find('/', j)) != string::npos) {
+			auto mi = d->directories.find(virtualPath.substr(j, i - j));
+			j = i + 1;
+			if(mi != d->directories.end() && !(*mi)->isLevelExcluded(aProfile)) {   //if we found something, look for more.
+				d = *mi;
+			} else {
+				return nullptr;
+			}
+		}
+
+		return d;
+	}*/
 
 	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
 
@@ -619,7 +641,7 @@ private:
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
 	virtual void on(QueueManagerListener::BundleHashed, const string& aPath) noexcept;
-	virtual void on(QueueManagerListener::FileHashed, const string& aPath, HashedFilePtr& aFileInfo) noexcept { onFileHashed(aPath, aFileInfo); }
+	virtual void on(QueueManagerListener::FileHashed, const string& aPath, HashedFile& aFileInfo) noexcept { onFileHashed(aPath, aFileInfo); }
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {

@@ -84,7 +84,7 @@ public:
 	virtual void on(BundlePriority, const BundlePtr&) noexcept { }
 	virtual void on(BundleAdded, const BundlePtr&) noexcept { }
 	virtual void on(BundleHashed, const string&) noexcept { }
-	virtual void on(FileHashed, const string& /* fileName */, HashedFilePtr& /* fileInfo */) noexcept { }
+	virtual void on(FileHashed, const string& /* fileName */, HashedFile& /* fileInfo */) noexcept { }
 	virtual void on(BundleFilesMoved, const BundlePtr&) noexcept { }
 	virtual void on(BundleStatusChanged, const BundlePtr&) noexcept { }
 	
