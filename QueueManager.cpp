@@ -1900,12 +1900,9 @@ void QueueManager::setBundlePriority(const string& bundleToken, QueueItemBase::P
 	setBundlePriority(bundle, p, false);
 }
 
-void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool isAuto, bool isQIChange /*false*/) noexcept {
-	QueueItemPtr fileBundleQI = nullptr;
+void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool isAuto) noexcept {
 	QueueItemBase::Priority oldPrio = aBundle->getPriority();
-	//LogManager::getInstance()->message("Changing priority to: " + Util::toString(p));
 	if (oldPrio == p) {
-		//LogManager::getInstance()->message("Prio not changed: " + Util::toString(oldPrio));
 		return;
 	}
 
@@ -1920,8 +1917,12 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 		}
 
 		fire(QueueManagerListener::BundlePriority(), aBundle);
-		if (aBundle->isFileBundle() && !isQIChange) {
-			fileBundleQI = aBundle->getQueueItems().front();
+		if (aBundle->isFileBundle()) {
+			auto qi = aBundle->getQueueItems().front();
+			userQueue.setQIPriority(qi, p);
+			qi->setAutoPriority(aBundle->getAutoPriority());
+
+			fire(QueueManagerListener::StatusUpdated(), qi);
 		}
 	}
 
@@ -1933,48 +1934,119 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 		connectBundleSources(aBundle);
 	}
 
-	if (fileBundleQI) {
-		setQIPriority(fileBundleQI, p, isAuto, true);
-		if (aBundle->getAutoPriority() != fileBundleQI->getAutoPriority()) {
-			setQIAutoPriority(fileBundleQI->getTarget(), aBundle->getAutoPriority(), true);
-		}
-	}
-
-	//LogManager::getInstance()->message("Prio changed to: " + Util::toString(bundle->getPriority()));
+	dcassert(!aBundle->isFileBundle() || aBundle->getPriority() == aBundle->getQueueItems().front()->getPriority());
 }
 
-void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQIChange /*false*/) noexcept {
+void QueueManager::setBundleAutoPriority(const string& bundleToken) noexcept {
 	BundlePtr b = nullptr;
 	{
 		RLock l(cs);
 		b = bundleQueue.findBundle(bundleToken);
 		if (b) {
 			b->setAutoPriority(!b->getAutoPriority());
+			if (b->isFileBundle()) {
+				b->getQueueItems().front()->setAutoPriority(b->getAutoPriority());
+			}
+
 			b->setDirty();
 		}
 	}
 
 	if (b) {
-		if (!isQIChange && b->isFileBundle()) {
-			QueueItemPtr qi = nullptr;
-			{
-				RLock l (cs);
-				qi = b->getQueueItems().front();
-			}
-
-			if (qi->getAutoPriority() != b->getAutoPriority()) {
-				setQIAutoPriority(qi->getTarget(), b->getAutoPriority(), true);
-			}
-		}
-
 		if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_BALANCED) {
 			calculateBundlePriorities(false);
 			if (b->getPriority() == Bundle::PAUSED) {
-				//failed to count auto priorities, but we don't want it to stay paused
+				//can't count auto priorities with the current bundles, but we don't want this one to stay paused
 				setBundlePriority(b, Bundle::LOW, true);
 			}
 		} else if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 			setBundlePriority(b, b->calculateProgressPriority(), true);
+		}
+	}
+}
+
+void QueueManager::setQIPriority(const string& aTarget, QueueItemBase::Priority p) noexcept {
+	QueueItemPtr q = nullptr;
+	{
+		RLock l(cs);
+		q = fileQueue.findFile(aTarget);
+	}
+
+	setQIPriority(q, p);
+}
+
+void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, bool isAP /*false*/) noexcept {
+	HintedUserList getConn;
+	bool running = false;
+	if (!q || !q->getBundle()) {
+		//items without a bundle should always use the highest prio
+		return;
+	}
+
+	BundlePtr b = q->getBundle();
+	if (b->isFileBundle()) {
+		dcassert(!isAP);
+		setBundlePriority(b, p, false);
+		return;
+	}
+
+	{
+		WLock l(cs);
+		if(q->getPriority() != p && !q->isFinished() ) {
+			if((q->getPriority() == QueueItem::PAUSED && b->getPriority() != Bundle::PAUSED) || p == QueueItem::HIGHEST) {
+				// Problem, we have to request connections to all these users...
+				q->getOnlineUsers(getConn);
+			}
+
+			running = q->isRunning();
+
+			if (!isAP)
+				q->setAutoPriority(false);
+
+			userQueue.setQIPriority(q, p);
+			fire(QueueManagerListener::StatusUpdated(), q);
+		}
+	}
+
+	b->setDirty();
+	if(p == QueueItem::PAUSED && running) {
+		DownloadManager::getInstance()->abortDownload(q->getTarget());
+	} else {
+		for(auto& u: getConn)
+			ConnectionManager::getInstance()->getDownloadConnection(u);
+	}
+
+	dcassert(!b->isFileBundle() || b->getPriority() == q->getPriority());
+}
+
+void QueueManager::setQIAutoPriority(const string& aTarget) noexcept {
+	QueueItemPtr q = nullptr;
+
+	{
+		RLock l(cs);
+		q = fileQueue.findFile(aTarget);
+	}
+
+	if (!q)
+		return;
+	if (!q->getBundle())
+		return;
+
+	if (q->getBundle()->isFileBundle()) {
+		setBundleAutoPriority(q->getBundle()->getToken());
+		return;
+	}
+
+	q->setAutoPriority(!q->getAutoPriority());
+	fire(QueueManagerListener::StatusUpdated(), q);
+
+	q->getBundle()->setDirty();
+
+	if(q->getAutoPriority()) {
+		if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
+			setQIPriority(q, q->calculateAutoPriority());
+		} else if (q->getPriority() == QueueItem::PAUSED) {
+			setQIPriority(q, QueueItem::LOW);
 		}
 	}
 }
@@ -2025,96 +2097,6 @@ void QueueManager::sendRemovePBD(const HintedUser& aUser, const string& aRemoteT
 	cmd.addParam("BU", aRemoteToken);
 	cmd.addParam("RM1");
 	ClientManager::getInstance()->sendUDP(cmd, aUser.user->getCID(), false, true);
-}
-
-void QueueManager::setQIPriority(const string& aTarget, QueueItemBase::Priority p) noexcept {
-	QueueItemPtr q = nullptr;
-	{
-		RLock l(cs);
-		q = fileQueue.findFile(aTarget);
-	}
-
-	q->setAutoPriority(false);
-	setQIPriority(q, p);
-}
-
-void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, bool isAP /*false*/, bool isBundleChange /*false*/) noexcept {
-	HintedUserList getConn;
-	bool running = false;
-	if (!q || !q->getBundle()) {
-		//items without a bundle should always use the highest prio
-		return;
-	}
-
-	BundlePtr b = q->getBundle();
-	{
-		WLock l(cs);
-		if(q && q->getPriority() != p && !q->isFinished() ) {
-			if((q->getPriority() == QueueItem::PAUSED && b->getPriority() != Bundle::PAUSED) || p == QueueItem::HIGHEST) {
-				// Problem, we have to request connections to all these users...
-				q->getOnlineUsers(getConn);
-			}
-
-			running = q->isRunning();
-			userQueue.setQIPriority(q, p);
-			fire(QueueManagerListener::StatusUpdated(), q);
-		}
-	}
-
-	if (b->isFileBundle() && !isBundleChange) {
-		setBundlePriority(b, p, isAP, true);
-	} else {
-		b->setDirty();
-	}
-
-	if(p == QueueItem::PAUSED && running) {
-		DownloadManager::getInstance()->abortDownload(q->getTarget());
-	} else {
-		for(auto& u: getConn)
-			ConnectionManager::getInstance()->getDownloadConnection(u);
-	}
-}
-
-void QueueManager::setQIAutoPriority(const string& aTarget, bool ap, bool isBundleChange /*false*/) noexcept {
-	vector<pair<QueueItemPtr, QueueItemBase::Priority>> priorities;
-	string bundleToken;
-
-	{
-		RLock l(cs);
-		QueueItemPtr q = fileQueue.findFile(aTarget);
-		if (!q)
-			return;
-		if (!q->getBundle())
-			return;
-		if (q->getAutoPriority() == ap)
-			return;
-
-		q->setAutoPriority(ap);
-		if (!isBundleChange && q->getBundle()->isFileBundle()) {
-			BundlePtr bundle = q->getBundle();
-			if (q->getAutoPriority() != bundle->getAutoPriority()) {
-				bundleToken = bundle->getToken();
-			}
-		}
-		if(ap && !isBundleChange) {
-			if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
-				priorities.emplace_back(q, q->calculateAutoPriority());
-			} else if (q->getPriority() == QueueItem::PAUSED) {
-				priorities.emplace_back(q, QueueItem::LOW);
-			}
-		}
-		dcassert(q->getBundle());
-		q->getBundle()->setDirty();
-		fire(QueueManagerListener::StatusUpdated(), q);
-	}
-
-	for(auto& qp: priorities) {
-		setQIPriority(qp.first, qp.second);
-	}
-
-	if (!bundleToken.empty()) {
-		setBundleAutoPriority(bundleToken, true);
-	}
 }
 
 void QueueManager::saveQueue(bool force) noexcept {
@@ -2620,6 +2602,9 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 					bundlePriorities.emplace_back(b, p2);
 				}
 			}
+
+			if (b->isFileBundle())
+				continue;
 
 			for(auto& q: b->getQueueItems()) {
 				if(q->isRunning()) {
@@ -3223,40 +3208,6 @@ int QueueManager::getBundleItemCount(const BundlePtr& aBundle) const noexcept {
 int QueueManager::getFinishedItemCount(const BundlePtr& aBundle) const noexcept { 
 	RLock l(cs); 
 	return (int)aBundle->getFinishedFiles().size(); 
-}
-
-void QueueManager::setBundlePriorities(const string& aSource, const BundleList& sourceBundles, QueueItemBase::Priority p, bool autoPrio) {
-	if (sourceBundles.empty()) {
-		return;
-	}
-
-	BundlePtr bundle;
-
-	if (sourceBundles.size() == 1 && AirUtil::isSub(aSource, sourceBundles.front()->getTarget())) {
-		//we aren't removing the whole bundle
-		bundle = sourceBundles.front();
-		QueueItemList ql;
-		{
-			RLock l(cs);
-			bundle->getDirQIs(aSource, ql);
-		}
-
-		for (auto& q: ql) {
-			if (autoPrio) {
-				setQIAutoPriority(q->getTarget(), q->getAutoPriority());
-			} else {
-				setQIPriority(q, p);
-			}
-		}
-	} else {
-		for(auto b: sourceBundles) {
-			if (autoPrio) {
-				setBundleAutoPriority(b->getToken());
-			} else {
-				setBundlePriority(b, p);
-			}
-		}
-	}
 }
 
 void QueueManager::removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished) {

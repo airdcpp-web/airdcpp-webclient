@@ -34,7 +34,7 @@
 #include "FastAlloc.h"
 #include "MerkleTree.h"
 #include "Streams.h"
-#include "QueueItem.h"
+#include "QueueItemBase.h"
 #include "UserInfoBase.h"
 #include "GetSet.h"
 #include "AirUtil.h"
@@ -42,8 +42,6 @@
 #include "SearchResult.h"
 #include "TargetUtil.h"
 #include "Pointer.h"
-
-#include "boost/unordered_map.hpp"
 
 namespace dcpp {
 
@@ -230,7 +228,7 @@ private:
 	Directory* root;
 
 	//maps loaded base dirs with their full lowercase paths and whether they've been visited or not
-	typedef boost::unordered_map<string, pair<Directory::Ptr, bool>> DirMap;
+	typedef unordered_map<string, pair<Directory::Ptr, bool>> DirMap;
 	DirMap baseDirs;
 
 	int run();

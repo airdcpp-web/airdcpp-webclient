@@ -30,9 +30,6 @@
 #include "AirUtil.h"
 #include "ScopedFunctor.h"
 
-#include "../bdb/include/dbstl_vector.h"
-#include "../bdb/include/dbstl_set.h"
-
 # ifdef _DEBUG
 #   pragma comment(lib, "libdb53sd.lib")
 #	pragma comment(lib, "libdb_stl53sd.lib")
@@ -43,18 +40,9 @@
 
 namespace dcpp {
 
-/*#ifdef ATOMIC_FLAG_INIT
-atomic_flag HashManager::HashStore::saving = ATOMIC_FLAG_INIT;
-#else
-atomic_flag HashManager::HashStore::saving;
-#endif*/
-
 using boost::range::find_if;
 
 SharedMutex HashManager::Hasher::hcs;
-
-#define HASH_FILE_VERSION_STRING "2"
-static const uint32_t HASH_FILE_VERSION = 2;
 const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
 
 HashManager::HashManager(): /*nextSave(0),*/ pausers(0), aShutdown(false) {
@@ -302,10 +290,7 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 		hashDb->errx("Error! %s", e.what());
 	}
 
-	if (ret == DB_KEYEXIST) {
-		hashDb->err(ret, "Put failed because key %s already exists", tth.toBase32().c_str());
-	} else if (ret != 0)
-		dcassert(0);
+	isDbError(ret);
 
 	free(buf);
 }
@@ -317,7 +302,6 @@ bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) const 
 	key.set_flags(DB_DBT_USERMEM);
 
 	Dbt data;
-	//memset(&data, 0, sizeof(data));
 	data.set_flags(DB_DBT_USERMEM);
 
 	//set a reasonable value to start with
@@ -539,8 +523,6 @@ bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& f
 
 void HashManager::HashStore::rebuild() {
 	try {
-		//decltype(fileIndex) newFileIndex;
-
 		int unusedTrees = 0;
 		int failedTrees = 0;
 		int unusedFiles=0; 
@@ -669,9 +651,10 @@ bool HashManager::HashStore::isDbError(int err) const {
 	if (err == 0)
 		return false;
 	
-	if (err != DB_NOTFOUND) {
+	if (err != DB_NOTFOUND && err != DB_KEYEXIST) {
 		string error(db_strerror(err));
 		LogManager::getInstance()->message("Database error:" + error, LogManager::LOG_ERROR);
+		dcassert(0);
 	}
 	return true;
 }
@@ -733,7 +716,7 @@ public:
 		streamPos(0),
 		fileSize(fileSize),
 		progressF(progressF),
-		version(HASH_FILE_VERSION),
+		version(0),
 		inTrees(false),
 		inFiles(false),
 		inHashStore(false),
@@ -763,73 +746,11 @@ private:
 	unique_ptr<File> dataFile;
 };
 
-/*int pathCompare(DB* dbp, const DBT* a, const DBT* b) {
-
-	auto tmp1 = (const char *)a->data;
-	auto tmp2 = (const char *)b->data;
-
-	auto comp = strcmp(Util::getFilePath((const char *)a->data).c_str(), Util::getFilePath((const char *)b->data).c_str());
-	if (comp == 0) {
-		comp = strcmp((const char *)a->data, (const char *)b->data);
-		return strcmp((const char *)a->data, (const char *)b->data);
-	}
-	return comp;
-} 
-
-size_t prefixF(DB* dbp, const DBT* a, const DBT* b) {
-    size_t cnt, len;
-    uint8_t *p1, *p2;
-
-    cnt = 1;
-    len = a->size > b->size ? b->size : a->size;
-    for (p1 =
-        (uint8_t*)a->data, p2 = (uint8_t*)b->data; len--; ++p1, ++p2, ++cnt)
-            if (*p1 != *p2)
-                return (cnt);
-
-    if (a->size < b->size)
-        return (a->size + 1);
-    if (b->size < a->size)
-        return (b->size + 1);
-    return (b->size);
-
-
-	/*auto tmp1 = (const char *)a->data;
-	auto tmp2 = (const char *)b->data;
-	//auto pos = abs(strcmp((const char *)a->data, (const char *)b->data));
-
-	
-	size_t len = a->size > b->size ? b->size : a->size;
-	size_t i = 0;
-	for (i = 0; i < len-1; i++ )
-    {
-		if (((const char *)a->data)[i] != ((const char *)b->data)[i])
-			return i;
-    }
-
-	if (a->size < b->size)
-        return (a->size + 1);
-    if (b->size < a->size)
-        return (b->size + 1);
-    return (b->size);
-
-	return i;
-
-	//auto ret = abs(strcmp((const char *)a->data, (const char *)b->data));
-	//return abs(strcmp((const char *)a->data, (const char *)b->data));
-	//don't mix file names and folders
-	/*auto p1 = strrchr((const char *)a->data, PATH_SEPARATOR);
-	auto p2 = strrchr((const char *)b->data, PATH_SEPARATOR);
-
-	if (p1 - a->data != p2 - b->data)
-	//	return min(p1, p2);
-
-	//return 0;
-} */
-
 void HashManager::HashStore::load(function<void (float)> progressF) {
 	//migrate the old database file
 	Util::migrate(Util::getPath(Util::PATH_USER_CONFIG) + "HashStore.db");
+
+	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1));
 
 	//set the flags 
 	u_int32_t db_flags = DB_CREATE /*| DB_READ_UNCOMMITTED*/;
@@ -838,9 +759,8 @@ void HashManager::HashStore::load(function<void (float)> progressF) {
 
 	try {
 		dbEnv.open(Util::getPath(Util::PATH_USER_CONFIG).c_str(), env_flags, 0);
-
-		uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1));
 		dbEnv.set_cachesize(0, cacheSize*1024*1024, 1);
+		dbEnv.set_lk_detect(DB_LOCK_DEFAULT);
 
 		// Redirect debugging information to std::cerr
 		dbEnv.set_error_stream(&std::cerr);
@@ -854,9 +774,6 @@ void HashManager::HashStore::load(function<void (float)> progressF) {
 			0); // File mode (using defaults)
 
 		fileDb = new Db(&dbEnv, DB_CXX_NO_EXCEPTIONS);
-		//fileDb->set_bt_prefix(prefixF);
-		//fileDb->set_bt_compare(pathCompare);
-
 		fileDb->open(NULL, // Transaction pointer 
 			"FileIndex.db", // Database file name 
 			NULL, // Optional logical database name
@@ -876,6 +793,11 @@ void HashManager::HashStore::load(function<void (float)> progressF) {
 	pTigerTraits->set_size_function(getTreeSize);
 	pTigerTraits->set_copy_function(saveTree);
 	pTigerTraits->set_restore_function(loadTree);*/
+
+	dbstl::DbstlElemTraits<HashedFile> *pTigerTraits = dbstl::DbstlElemTraits<HashedFile>::instance();
+	pTigerTraits->set_size_function(getFileInfoSize);
+	pTigerTraits->set_copy_function(saveFileInfo);
+	pTigerTraits->set_restore_function(loadFileInfo);
 
 	if (SettingsManager::lanMode)
 		return;

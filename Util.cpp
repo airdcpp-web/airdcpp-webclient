@@ -1330,7 +1330,7 @@ int Util::DefaultSort(const char* a, const char* b, bool noCase /*true*/) {
 
 		return noCase ? (((int)Text::toLower(*a)) - ((int)Text::toLower(*b))) : (((int)*a) - ((int)*b));
 	} else {
-		return noCase ? strcmp(a, b) : stricmp(a, b);
+		return noCase ? stricmp(a, b) : strcmp(a, b);
 	}
 }
 

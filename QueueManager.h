@@ -99,8 +99,8 @@ public:
 	void recheck(const string& aTarget);
 
 	void setQIPriority(const string& aTarget, QueueItemBase::Priority p) noexcept;
-	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p, bool isAP=false, bool isBundleChange=false) noexcept;
-	void setQIAutoPriority(const string& aTarget, bool ap, bool isBundleChange=false) noexcept;
+	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p, bool isAP=false) noexcept;
+	void setQIAutoPriority(const string& aTarget) noexcept;
 
 	StringList getTargets(const TTHValue& tth);
 	void readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue);
@@ -163,9 +163,8 @@ public:
 
 	/* Priorities */
 	void setBundlePriority(const string& bundleToken, QueueItemBase::Priority p) noexcept;
-	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
-	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;
-	void setBundlePriorities(const string& aSource, const BundleList& sourceBundles, QueueItemBase::Priority p, bool autoPrio=false);
+	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool isAuto=false) noexcept;
+	void setBundleAutoPriority(const string& bundleToken) noexcept;
 	void calculateBundlePriorities(bool verbose);
 
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser, Flags::MaskType reason) noexcept;

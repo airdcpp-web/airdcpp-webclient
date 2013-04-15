@@ -29,7 +29,6 @@
 #include "SimpleXML.h"
 #include "FilteredFile.h"
 #include "BZUtils.h"
-#include "CryptoManager.h"
 #include "ResourceManager.h"
 #include "SimpleXMLReader.h"
 #include "User.h"
