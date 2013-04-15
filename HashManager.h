@@ -107,6 +107,8 @@ public:
 	bool isHashingPaused(bool lock = true) const;
 
 	string getDbStats() { return store.getDbStats(); }
+
+	void closeDB() { store.closeDb(false); }
 private:
 	int pausers;
 	class Hasher : public Thread {
@@ -209,9 +211,12 @@ private:
 		int64_t getRootInfo(const TTHValue& root, InfoType aType) const;
 
 		string getDbStats();
-		void updateCacheSize();
+		void setCacheSize(uint32_t aSize);
+
+		void openDb();
+		void closeDb(bool doDelete);
 	private:
-		DbEnv dbEnv;
+		DbEnv* dbEnv;
 		Db* hashDb;
 		Db* fileDb;
 

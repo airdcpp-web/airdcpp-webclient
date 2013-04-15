@@ -659,23 +659,6 @@ bool HashManager::HashStore::isDbError(int err) const {
 	return true;
 }
 
-void HashManager::HashStore::updateCacheSize() {
-	if (SETTING(DB_CACHE_AUTOSET)) {
-		/*DB_BTREE_STAT *statp;
-		int ret;
-        if ((ret = fileDb->stat(NULL, &statp, DB_FAST_STAT)) != 0) {
-			return;
-        }
-
-		auto tableSize = statp->bt_nkeys;
-		free(statp);*/
-
-		//auto indexSize = fileIndex.size(false);
-		//size_t newSize = max((indexSize*120) / (1024*1024), static_cast<size_t>(1));
-		//SettingsManager::getInstance()->set(SettingsManager::DB_CACHE_SIZE, static_cast<int>(newSize));
-	}
-}
-
 
 string statMsg;
 void printF(const DbEnv* /*env*/, const char* msg) {
@@ -686,24 +669,101 @@ void printF(const DbEnv* /*env*/, const char* msg) {
 string HashManager::HashStore::getDbStats() {
 	string ret;
 
-	dbEnv.set_msgcall(printF);
+	dbEnv->set_msgcall(printF);
 
 	statMsg += "\n\nGENERAL STATS\n\n";
-	dbEnv.stat_print(0);
+	dbEnv->stat_print(0);
 	statMsg += "\n\nMEMORY STATS\n\n";
-	dbEnv.memp_stat_print(0);
+	dbEnv->memp_stat_print(0);
 	statMsg += "\n\nLOCKING STATS\n\n";
-	dbEnv.mutex_stat_print(0);
+	dbEnv->mutex_stat_print(0);
 	/*statMsg += "\n\nHASHDATA STATS\n\n";
 	hashDb->stat_print(0);
 	statMsg += "\n\nFILEINDEX STATS\n\n";
 	fileDb->stat_print(0);*/
 
-	dbEnv.set_msgcall(NULL);
+	dbEnv->set_msgcall(NULL);
 	//hashDb->set_msgcall(NULL);
 
 	ret.swap(statMsg);
 	return ret;
+}
+
+void HashManager::HashStore::openDb() {
+	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1));
+
+	//set the flags 
+	u_int32_t db_flags = DB_CREATE /*| DB_READ_UNCOMMITTED*/;
+	u_int32_t env_flags = DB_PRIVATE | DB_THREAD | DB_CREATE |
+		DB_INIT_MPOOL | DB_AUTO_COMMIT | DB_INIT_LOCK;
+
+	try {
+		dbEnv = new DbEnv(DB_CXX_NO_EXCEPTIONS);
+
+		auto ret = dbEnv->set_cachesize(0, cacheSize*1024*1024, 1);
+		dcassert(ret == 0);
+
+		dbEnv->open(Util::getPath(Util::PATH_USER_CONFIG).c_str(), env_flags, 0);
+
+		ret = dbEnv->set_lk_detect(DB_LOCK_DEFAULT);
+		dcassert(ret == 0);
+
+		// Redirect debugging information to std::cerr
+		dbEnv->set_error_stream(&std::cerr);
+
+		hashDb = new Db(dbEnv, DB_CXX_NO_EXCEPTIONS);
+		hashDb->open(NULL, // Transaction pointer 
+			"HashData.db", // Database file name 
+			NULL, // Optional logical database name
+			DB_HASH, // Database access method
+			db_flags, // Open flags
+			0); // File mode (using defaults)
+
+		fileDb = new Db(dbEnv, DB_CXX_NO_EXCEPTIONS);
+		fileDb->open(NULL, // Transaction pointer 
+			"FileIndex.db", // Database file name 
+			NULL, // Optional logical database name
+			DB_BTREE, // Database access method
+			db_flags, // Open flags
+			0); // File mode (using defaults)
+
+		fileIndex.set_db_handle(fileDb, dbEnv);
+		//hashData.set_db_handle(hashDb, &dbEnv);
+	} catch(DbException &e) {
+		LogManager::getInstance()->message("Failed to open the hash database: " + string(e.what()), LogManager::LOG_ERROR);
+	} catch(Exception& e) {
+		LogManager::getInstance()->message("Failed to open the hash database: " + string(e.getError()), LogManager::LOG_ERROR);
+	}
+
+	/*dbstl::DbstlElemTraits<TigerTree> *pTigerTraits = dbstl::DbstlElemTraits<TigerTree>::instance();
+	pTigerTraits->set_size_function(getTreeSize);
+	pTigerTraits->set_copy_function(saveTree);
+	pTigerTraits->set_restore_function(loadTree);*/
+
+	dbstl::DbstlElemTraits<HashedFile> *pHashedFileTraits = dbstl::DbstlElemTraits<HashedFile>::instance();
+	pHashedFileTraits->set_size_function(getFileInfoSize);
+	pHashedFileTraits->set_copy_function(saveFileInfo);
+	pHashedFileTraits->set_restore_function(loadFileInfo);
+}
+
+void HashManager::HashStore::setCacheSize(uint32_t aSize) {
+	if (aSize < 1024*1024) // min 1 MB
+		return;
+
+	uint32_t curBytes, curGB;
+	auto ret = dbEnv->get_cachesize(&curGB, &curBytes, 0);
+	dcassert(ret == 0);
+
+	if (ret == 0) {
+		curBytes = curBytes + curGB*1024*1024*1024;
+
+		//don't change if the difference is less than 5%
+		if (static_cast<double>(abs(static_cast<int64_t>(curBytes)-static_cast<int64_t>(aSize))) < aSize*0.05)
+			return;
+	}
+
+	closeDb(true);
+	openDb();
 }
 
 string HashManager::HashStore::getIndexFile() { return Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml"; }
@@ -720,14 +780,11 @@ public:
 		inTrees(false),
 		inFiles(false),
 		inHashStore(false),
-		dataFile(nullptr),
-		migrating(false)
+		dataFile(nullptr)
 	{ }
 
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name);
-	
-	bool migrating;
 private:
 	HashManager::HashStore& store;
 
@@ -747,86 +804,51 @@ private:
 };
 
 void HashManager::HashStore::load(function<void (float)> progressF) {
-	//migrate the old database file
+	//open the BDB database
 	Util::migrate(Util::getPath(Util::PATH_USER_CONFIG) + "HashStore.db");
+	openDb();
 
-	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1));
+	//check if we have and old database to convert
+	Util::migrate(getIndexFile());
 
-	//set the flags 
-	u_int32_t db_flags = DB_CREATE /*| DB_READ_UNCOMMITTED*/;
-	u_int32_t env_flags = DB_PRIVATE | DB_THREAD | DB_CREATE |
-		DB_INIT_MPOOL | DB_AUTO_COMMIT | DB_INIT_LOCK;
 
-	try {
-		dbEnv.open(Util::getPath(Util::PATH_USER_CONFIG).c_str(), env_flags, 0);
-		dbEnv.set_cachesize(0, cacheSize*1024*1024, 1);
-		dbEnv.set_lk_detect(DB_LOCK_DEFAULT);
+	//set the cache size
+	bool migrating = Util::fileExists(getIndexFile());
 
-		// Redirect debugging information to std::cerr
-		dbEnv.set_error_stream(&std::cerr);
+	uint32_t cacheSize = 0;
+	if (migrating) {
+		//make sure there is enough memory for the migration progress to complete in a reasonable time
+		cacheSize = File::getSize(getIndexFile());
+	} else if (SETTING(DB_CACHE_AUTOSET)) {
+		/* Guess a reasonable new value for the cache (100 bytes per file). Note that the real mem usage is 25% bigger if the cache size is less than 500MB */
+		auto indexSize = fileIndex.size(true);
+		size_t newSize = max((indexSize*100) / (1024*1024), static_cast<size_t>(8)); // min 8 MB
+		SettingsManager::getInstance()->set(SettingsManager::DB_CACHE_SIZE, static_cast<int>(newSize));
 
-		hashDb = new Db(&dbEnv, DB_CXX_NO_EXCEPTIONS);
-		hashDb->open(NULL, // Transaction pointer 
-			"HashData.db", // Database file name 
-			NULL, // Optional logical database name
-			DB_HASH, // Database access method
-			db_flags, // Open flags
-			0); // File mode (using defaults)
-
-		fileDb = new Db(&dbEnv, DB_CXX_NO_EXCEPTIONS);
-		fileDb->open(NULL, // Transaction pointer 
-			"FileIndex.db", // Database file name 
-			NULL, // Optional logical database name
-			DB_BTREE, // Database access method
-			db_flags, // Open flags
-			0); // File mode (using defaults)
-
-		fileIndex.set_db_handle(fileDb, &dbEnv);
-		//hashData.set_db_handle(hashDb, &dbEnv);
-	} catch(DbException &e) {
-		LogManager::getInstance()->message("Failed to open the hash database: " + string(e.what()), LogManager::LOG_ERROR);
-	} catch(Exception& e) {
-		LogManager::getInstance()->message("Failed to open the hash database: " + string(e.getError()), LogManager::LOG_ERROR);
+		cacheSize = newSize*1024*1024;
 	}
 
-	/*dbstl::DbstlElemTraits<TigerTree> *pTigerTraits = dbstl::DbstlElemTraits<TigerTree>::instance();
-	pTigerTraits->set_size_function(getTreeSize);
-	pTigerTraits->set_copy_function(saveTree);
-	pTigerTraits->set_restore_function(loadTree);*/
+	setCacheSize(cacheSize);
 
-	dbstl::DbstlElemTraits<HashedFile> *pTigerTraits = dbstl::DbstlElemTraits<HashedFile>::instance();
-	pTigerTraits->set_size_function(getFileInfoSize);
-	pTigerTraits->set_copy_function(saveFileInfo);
-	pTigerTraits->set_restore_function(loadFileInfo);
+	//migrate the old database file
+	if (migrating) { 
+		try {
+			{
+				File f(getIndexFile(), File::READ, File::OPEN);
+				CountedInputStream<false> countedStream(&f);
+				HashLoader l(*this, countedStream, f.getSize(), progressF);
+				SimpleXMLReader(&l).parse(countedStream);
+			}
 
-	if (SettingsManager::lanMode)
-		return;
-
-	try {
-		Util::migrate(getIndexFile());
-		bool migrating = false;
-
-		{
-			File f(getIndexFile(), File::READ, File::OPEN);
-			CountedInputStream<false> countedStream(&f);
-			HashLoader l(*this, countedStream, f.getSize(), progressF);
-			SimpleXMLReader(&l).parse(countedStream);
-
-			migrating = l.migrating;
-		}
-
-		if (migrating) {
 			auto dataFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat";
 			auto indexFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml";
 
 			File::renameFile(dataFile, dataFile + ".bak");
 			File::renameFile(indexFile, indexFile + ".bak");
+		} catch (const Exception&) {
+			// ...
 		}
-	} catch (const Exception&) {
-		// ...
 	}
-
-	//countNextSave();
 }
 
 static const string sHashStore = "HashStore";
@@ -868,11 +890,8 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			if (!root.empty() && type == sTTH && (index >= 8 || index == HashManager::SMALL_TREE) && blockSize >= 1024) {
 				auto tth = TTHValue(root);
 				try {
-					if (!migrating) {
-						migrating = true;
-						if (!dataFile) {
-							dataFile.reset(new File(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat", File::READ, File::OPEN | File::SHARED | File::RANDOM_ACCESS));
-						}
+					if (!dataFile) {
+						dataFile.reset(new File(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat", File::READ, File::OPEN | File::SHARED | File::RANDOM_ACCESS));
 					}
 
 					if (dataFile) {
@@ -910,25 +929,31 @@ void HashLoader::endTag(const string& name) {
 	}
 }
 
-HashManager::HashStore::HashStore() :
-	/*dirty(false),*/ dbEnv(DB_CXX_NO_EXCEPTIONS) {
+HashManager::HashStore::HashStore() {
 }
 
-HashManager::HashStore::~HashStore() {
+void HashManager::HashStore::closeDb(bool doDelete) {
 	try {
 		// Close the database
 		hashDb->close(0);
 		fileDb->close(0);
 
-		dbEnv.close(0);
+		dbEnv->close(0);
 	} catch(DbException& /*e*/) {
 		//...
 	} catch(std::exception& /*e*/) {
 		//...
 	}
 
-	delete fileDb;
-	delete hashDb;
+	if (doDelete) {
+		delete fileDb;
+		delete hashDb;
+		delete dbEnv;
+	}
+}
+
+HashManager::HashStore::~HashStore() {
+	closeDb(true);
 }
 
 void HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) {
@@ -1067,8 +1092,6 @@ void HashManager::shutdown(function<void (float)> progressF) {
 		}
 		Thread::sleep(50);
 	}
-
-	store.updateCacheSize();
 }
 
 void HashManager::Hasher::clear() {

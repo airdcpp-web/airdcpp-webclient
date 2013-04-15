@@ -1662,6 +1662,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Database cache size", 
 "Remove the source from", 
 "Whole queue", 
+"Month", 
+"Months", 
+"Year", 
+"Years", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3324,4 +3328,8 @@ std::string dcpp::ResourceManager::names[] = {
 "DbCacheSize", 
 "RemoveSourceFrom", 
 "WholeQueue", 
+"Month", 
+"Months", 
+"Year", 
+"Years", 
 };

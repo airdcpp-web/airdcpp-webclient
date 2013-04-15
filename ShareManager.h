@@ -246,8 +246,10 @@ public:
 	const ShareProfileList& getProfiles() { return shareProfiles; }
 	void getExcludes(ProfileToken aProfile, StringList& excludes);
 
+	string getStats() const;
 	mutable SharedMutex cs;
 private:
+	uint64_t totalSearches;
 	typedef BloomFilter<5> ShareBloom;
 
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
@@ -342,6 +344,7 @@ private:
 			const TTHValue& getTTH() const { return fileInfo->getRoot(); }
 			uint32_t getLastWrite() const { return fileInfo->getTimeStamp(); }*/
 
+			bool isLowerName() const { return name == nullptr; }
 		private:
 			File(const File& src);
 			string* name;
@@ -421,6 +424,8 @@ private:
 		void addBloom(ShareBloom& aBloom) const;
 		bool matchBloom(const StringSearch::List& aSearches) const;
 		ShareBloom& getBloom() const;
+
+		void getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles) const;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */

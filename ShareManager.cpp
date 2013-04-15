@@ -82,7 +82,7 @@ atomic_flag ShareManager::refreshing;
 boost::regex ShareManager::rxxReg;
 
 ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), sharedSize(0),
-	xml_saving(false), lastSave(0), aShutdown(false), refreshRunning(false)
+	xml_saving(false), lastSave(0), aShutdown(false), refreshRunning(false), totalSearches(0)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
@@ -993,6 +993,57 @@ void ShareManager::save(SimpleXML& aXml) {
 		aXml.stepOut();
 		aXml.stepOut();
 	}
+}
+
+void ShareManager::Directory::getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles_, size_t& lowerCaseFiles_) const {
+	for(auto& d: directories) {
+		d->getStats(totalAge_, totalDirs_, totalSize_, totalFiles_, lowerCaseFiles_);
+	}
+
+	for(auto& f: files) {
+		totalSize_ += f.getSize();
+		totalAge_ += f.getLastWrite();
+		if (!f.isLowerName()) {
+			lowerCaseFiles_++;
+		}
+	}
+
+	totalDirs_ += directories.size();
+	totalFiles_ += files.size();
+}
+
+string ShareManager::getStats() const {
+	uint64_t totalAge=0;
+	size_t totalFiles=0, lowerCaseFiles=0, totalDirs=0;
+	int64_t totalSize=0;
+	double roots = 0;
+	for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
+		totalDirs++;
+		roots++;
+		d->getStats(totalAge, totalDirs, totalSize, totalFiles, lowerCaseFiles);
+	}
+
+	auto upMinutes = static_cast<double>(GET_TICK()) / (1000.00*1000.00);
+
+	string ret = boost::str(boost::format(
+"\r\n\r\n-=[ Share statistics ]=-\r\n\r\n\
+Share profiles: %d\r\n\
+Shared root paths: %d (of which %d%% have no parent)\r\n\
+Total share size: %s\r\n\
+Total incoming searches: %d (%d per minute)\r\n\
+Total shared files: %d (of which %d%% are lowercase)\r\n\
+Total shared directories: %d (%d files per directory)\r\n\
+Average age of a file: %s")
+
+		% shareProfiles.size()
+		% roots % ((static_cast<double>(roots == 0 ? 0 : rootPaths.size()) / roots)*100.00)
+		% Util::formatBytes(totalSize)
+		% totalSearches % (totalSearches / upMinutes)
+		% totalFiles % ((static_cast<double>(lowerCaseFiles) / static_cast<double>(totalFiles))*100.00)
+		% totalDirs % (static_cast<double>(totalFiles) / static_cast<double>(totalDirs))
+		% Util::formatTime(GET_TIME() - (totalFiles > 0 ? (totalAge / totalFiles) : 0), false, true));
+
+	return ret;
 }
 
 void ShareManager::validatePath(const string& realPath, const string& virtualName) {
@@ -2562,6 +2613,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 }
 //NMDC Search
 void ShareManager::search(SearchResultList& results, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept {
+	totalSearches++;
 	if(aFileType == SearchManager::TYPE_TTH) {
 		if(aString.compare(0, 4, "TTH:") == 0) {
 			TTHValue tth(aString.substr(4));
@@ -2733,6 +2785,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 
 void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) {
+	totalSearches++;
 
 	RLock l(cs);
 	if(srch.hasRoot) {

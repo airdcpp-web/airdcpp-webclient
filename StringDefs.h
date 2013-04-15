@@ -1666,5 +1666,9 @@ enum Strings { // @DontAdd
 	DB_CACHE_SIZE, // "Database cache size"
 	REMOVE_SOURCE_FROM, // "Remove the source from"
 	WHOLE_QUEUE, // "Whole queue"
+	MONTH, // "Month"
+	MONTHS, // "Months"
+	YEAR, // "Year"
+	YEARS, // "Years"
 	LAST // @DontAdd
 };

@@ -615,6 +615,18 @@ string Util::formatTime(int64_t aSec, bool translate, bool perMinute) {
 		i++;
 	};
 
+	n = aSec / (24*3600*365);
+	aSec %= (24*3600*7*365);
+	if(n) {
+		appendTime(STRING(YEAR), "year", STRING(YEARS), "years");
+	}
+
+	n = aSec / (24*3600*30);
+	aSec %= (24*3600*7*30);
+	if(n) {
+		appendTime(STRING(MONTH), "month", STRING(MONTHS), "months");
+	}
+
 	n = aSec / (24*3600*7);
 	aSec %= (24*3600*7);
 	if(n) {
