@@ -1664,5 +1664,7 @@ enum Strings { // @DontAdd
 	ACCEPT_FAILOVERS_GLOBAL, // "Accept failover addresses from favorite hubs"
 	INVALID_TTH_SEARCH, // "Invalid input value for TTH search"
 	DB_CACHE_SIZE, // "Database cache size"
+	REMOVE_SOURCE_FROM, // "Remove the source from"
+	WHOLE_QUEUE, // "Whole queue"
 	LAST // @DontAdd
 };

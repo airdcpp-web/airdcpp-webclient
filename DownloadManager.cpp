@@ -60,8 +60,16 @@ DownloadManager::~DownloadManager() {
 	}
 }
 
+struct DropInfo {
+	DropInfo(const string& aTarget, const BundlePtr& aBundle, const UserPtr& aUser) : bundle(aBundle), user(aUser), target(aTarget) { } 
+
+	BundlePtr bundle;
+	string target;
+	UserPtr user;
+};
+
 void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	vector<pair<string, UserPtr> > dropTargets;
+	vector<DropInfo> dropTargets;
 	vector<pair<CID, AdcCommand>> UBNList;
 	StringList targets;
 	BundleList bundleTicks;
@@ -96,7 +104,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 						{
 							if(QueueManager::getInstance()->dropSource(d))
 							{
-								dropTargets.emplace_back(d->getPath(), d->getUser());
+								dropTargets.emplace_back(d->getPath(), d->getBundle(), d->getUser());
 							}
 						}
 					} else {
@@ -130,7 +138,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		ClientManager::getInstance()->sendUDP(ubp.second, ubp.first, true, true);
 
 	for (auto& dtp: dropTargets)
-		QueueManager::getInstance()->removeSource(dtp.first, dtp.second, QueueItem::Source::FLAG_SLOW_SOURCE);
+		QueueManager::getInstance()->handleSlowDisconnect(dtp.user, dtp.target, dtp.bundle);
 }
 
 void DownloadManager::sendSizeNameUpdate(BundlePtr aBundle) {
@@ -429,7 +437,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 			removeDownload(d);
 			fire(DownloadManagerListener::Failed(), d, STRING(INVALID_TREE));
 
-			QueueManager::getInstance()->removeSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_BAD_TREE, false);
+			QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_BAD_TREE, false);
 			QueueManager::getInstance()->putDownload(d, false);
 
 			checkDownloads(aSource);
@@ -704,7 +712,7 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
 
 	fire(DownloadManagerListener::Failed(), d, (d->isSet(Download::FLAG_NFO) && isNmdc) ? STRING(NO_PARTIAL_SUPPORT) : noAccess ? STRING(NO_FILE_ACCESS) : STRING(FILE_NOT_AVAILABLE));
 	if (!noAccess)
-		QueueManager::getInstance()->removeSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
+		QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
 
 	QueueManager::getInstance()->putDownload(d, false, noAccess);
 	checkDownloads(aSource);

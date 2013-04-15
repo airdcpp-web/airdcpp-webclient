@@ -54,7 +54,7 @@
 #include "boost/bimap.hpp"
 #include <boost/bimap/unordered_multiset_of.hpp>
 
-#include <ppl.h>
+#include "concurrency.h"
 
 
 namespace dcpp {
@@ -93,7 +93,7 @@ public:
 	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles);
 
 	void removeFile(const string aTarget) noexcept;
-	void removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
+	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
 	void recheck(const string& aTarget);
@@ -165,11 +165,13 @@ public:
 	void setBundlePriority(const string& bundleToken, QueueItemBase::Priority p) noexcept;
 	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool isAuto=false, bool isQIChange=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken, bool isQIChange=false) noexcept;
-	void removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept;
-	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept;
 	void setBundlePriorities(const string& aSource, const BundleList& sourceBundles, QueueItemBase::Priority p, bool autoPrio=false);
 	void calculateBundlePriorities(bool verbose);
 
+	void removeBundleSource(const string& bundleToken, const UserPtr& aUser, Flags::MaskType reason) noexcept;
+	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType reason) noexcept;
+
+	void handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle);
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void moveFiles(const StringPairList& sourceTargetList) noexcept;
@@ -271,7 +273,7 @@ private:
 	/** File lists not to delete */
 	StringList protectedFileLists;
 
-	concurrency::task_group tasks;
+	task_group tasks;
 
 	void connectBundleSources(BundlePtr& aBundle);
 
@@ -340,7 +342,7 @@ private:
 	/* Returns true if an item can be replaces */
 	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH);
 
-	void removeSource(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
+	void removeFileSource(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
 	string getListPath(const HintedUser& user);
 

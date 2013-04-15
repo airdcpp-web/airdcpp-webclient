@@ -517,7 +517,7 @@ void BufferedSocket::fail(const string& aError) {
 		sock->disconnect();
 	}
 
-	if(state == RUNNING) {
+	if(state != FAILED) {
 		state = FAILED;
 		fire(BufferedSocketListener::Failed(), aError);
 	}

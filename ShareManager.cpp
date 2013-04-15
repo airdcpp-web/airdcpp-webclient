@@ -50,7 +50,7 @@
 #include <boost/range/algorithm/count_if.hpp>
 #include <boost/range/algorithm/copy.hpp>
 
-#include <ppl.h>
+#include "concurrency.h"
 
 #ifdef _WIN32
 # include <ShlObj.h>
@@ -71,7 +71,7 @@ using boost::range::find_if;
 using boost::range::for_each;
 using boost::range::copy;
 
-#define SHARE_CACHE_VERSION "2"
+#define SHARE_CACHE_VERSION "3"
 
 #ifdef ATOMIC_FLAG_INIT
 atomic_flag ShareManager::refreshing = ATOMIC_FLAG_INIT;
@@ -913,7 +913,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	const auto dirCount = ll.size();
 	bool hasFailed = false;
 
-	concurrency::parallel_for_each(ll.begin(), ll.end(), [&](RefreshInfo& ri) {
+	parallel_for_each(ll.begin(), ll.end(), [&](RefreshInfo& ri) {
 		try {
 			ShareLoader loader(ri);
 
@@ -1801,7 +1801,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 		atomic<long> progressCounter = 0;
 		const size_t dirCount = refreshDirs.size();
 
-		concurrency::parallel_for_each(refreshDirs.begin(), refreshDirs.end(), [&](RefreshInfo& ri) {
+		parallel_for_each(refreshDirs.begin(), refreshDirs.end(), [&](RefreshInfo& ri) {
 			if (checkHidden(ri.root->getProfileDir()->getPath())) {
 				buildTree(ri.root->getProfileDir()->getPath(), ri.root, true, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *ri.newBloom.get());
 			}
@@ -2241,7 +2241,7 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> pr
 		//boost::algorithm::copy_if(
 		boost::algorithm::copy_if(rootPaths | map_values, back_inserter(dirtyDirs), [](const Directory::Ptr& aDir) { return aDir->getProfileDir()->getCacheDirty() && !aDir->getParent(); });
 
-		concurrency::parallel_for_each(dirtyDirs.begin(), dirtyDirs.end(), [&](const Directory::Ptr& d) {
+		parallel_for_each(dirtyDirs.begin(), dirtyDirs.end(), [&](const Directory::Ptr& d) {
 			string path = d->getProfileDir()->getCachePath();
 			try {
 				string indent, tmp;

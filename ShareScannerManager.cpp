@@ -43,7 +43,7 @@
 #include <fnmatch.h>
 #endif
 
-#include <ppl.h>
+#include "concurrency.h"
 
 namespace dcpp {
 
@@ -174,7 +174,7 @@ int ShareScannerManager::run() {
 			scanners.emplace_back(dir, scanType);
 		}
 
-		concurrency::parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
+		parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
 			DWORD attrib = GetFileAttributes(Text::toT(s.rootPath).c_str());
 			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
 				if (!matchSkipList(Util::getLastDir(s.rootPath)) && !std::binary_search(bundleDirs.begin(), bundleDirs.end(), s.rootPath)) {

@@ -1818,7 +1818,7 @@ void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
 		u->disconnect(true);
 }
 
-void QueueManager::removeSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
+void QueueManager::removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
 	QueueItemPtr qi = nullptr;
 	{
 		RLock l(cs);
@@ -1826,12 +1826,12 @@ void QueueManager::removeSource(const string& aTarget, const UserPtr& aUser, Fla
 	}
 
 	if (qi) {
-		removeSource(qi, aUser, reason, removeConn);
+		removeFileSource(qi, aUser, reason, removeConn);
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 	}
 }
 
-void QueueManager::removeSource(QueueItemPtr& q, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
+void QueueManager::removeFileSource(QueueItemPtr& q, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
 	bool isRunning = false;
 	bool removeCompletely = false;
 	{
@@ -1885,7 +1885,7 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) no
 	}
 
 	for(auto& qi: ql) 
-		removeSource(qi, aUser, reason);
+		removeFileSource(qi, aUser, reason);
 
 	fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 }
@@ -1979,16 +1979,24 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken, bool isQICha
 	}
 }
 
-void QueueManager::removeBundleSource(const string& bundleToken, const UserPtr& aUser) noexcept {
+void QueueManager::handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle) {
+	switch (SETTING(DL_AUTO_DISCONNECT_MODE)) {
+		case SettingsManager::QUEUE_FILE: removeFileSource(aTarget, aUser, QueueItem::Source::FLAG_SLOW_SOURCE); break;
+		case SettingsManager::QUEUE_BUNDLE: removeBundleSource(aBundle, aUser, QueueItem::Source::FLAG_SLOW_SOURCE); break;
+		case SettingsManager::QUEUE_ALL: removeSource(aUser, QueueItem::Source::FLAG_SLOW_SOURCE); break;
+	}
+}
+
+void QueueManager::removeBundleSource(const string& bundleToken, const UserPtr& aUser, Flags::MaskType reason) noexcept {
 	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
 		bundle = bundleQueue.findBundle(bundleToken);
 	}
-	removeBundleSource(bundle, aUser);
+	removeBundleSource(bundle, aUser, reason);
 }
 
-void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) noexcept {
+void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType reason) noexcept {
 	if (aBundle) {
 		QueueItemList ql;
 		{
@@ -2003,7 +2011,7 @@ void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser) n
 		}
 
 		for(auto& qi: ql) {
-			removeSource(qi, aUser, QueueItem::Source::FLAG_REMOVED);
+			removeFileSource(qi, aUser, reason);
 		}
 
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
@@ -2154,7 +2162,7 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 	// multithreaded loading
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
 	atomic<long> loaded = 0;
-	concurrency::parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
+	parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
 		if (Util::getFileExt(path) == ".xml") {
 			QueueLoader loader;
 			try {
