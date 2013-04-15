@@ -48,8 +48,6 @@ namespace {
 
 #ifdef _WIN32
 
-inline int getLastError() { return ::WSAGetLastError(); }
-
 template<typename F>
 inline auto check(F f, bool blockOk = false) -> decltype(f()) {
 	for(;;) {
@@ -58,7 +56,7 @@ inline auto check(F f, bool blockOk = false) -> decltype(f()) {
 			return ret;
 		}
 
-		auto error = getLastError();
+		auto error = Socket::getLastError();
 		if(blockOk && error == WSAEWOULDBLOCK) {
 			return static_cast<decltype(ret)>(-1);
 		}
@@ -86,7 +84,7 @@ inline auto check(F f, bool blockOk = false) -> decltype(f()) {
 			return ret;
 		}
 
-		auto error = getLastError();
+		auto error = Socket::getLastError();
 		if(blockOk && (error == EWOULDBLOCK || error == ENOBUFS || error == EINPROGRESS || error == EAGAIN)) {
 			return -1;
 		}
@@ -179,6 +177,8 @@ void SocketHandle::reset(socket_t s) {
 	sock = s;
 }
 
+int Socket::getLastError() { return ::WSAGetLastError(); }
+
 #else
 
 void SocketHandle::reset(socket_t s) {
@@ -188,6 +188,8 @@ void SocketHandle::reset(socket_t s) {
 
 	sock = s;
 }
+
+int Socket::getLastError() { return errno; }
 
 #endif
 

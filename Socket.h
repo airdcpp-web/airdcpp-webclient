@@ -180,6 +180,8 @@ public:
 	/** When socks settings are updated, this has to be called... */
 	static void socksUpdated();
 
+	static int getLastError();
+
 	GETSET(string, ip, Ip);
 	GETSET(string, localIp4, LocalIp4);
 	GETSET(string, localIp6, LocalIp6);

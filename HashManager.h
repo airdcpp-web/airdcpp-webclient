@@ -147,7 +147,6 @@ private:
 			int64_t fileSize;
 		};
 
-		//typedef pair<string, int64_t> WorkItem;
 		deque<WorkItem> w;
 		struct HashSortOrder {
 			bool operator()(const WorkItem& left, const WorkItem& right) const;
@@ -224,7 +223,6 @@ private:
 
 
 		friend class HashLoader;
-		mutable SharedMutex cs;
 
 		/** FOR CONVERSION ONLY: Root -> tree mapping info, we assume there's only one tree for each root (a collision would mean we've broken tiger...) */
 		struct TreeInfo {
