@@ -995,35 +995,50 @@ void ShareManager::save(SimpleXML& aXml) {
 	}
 }
 
-void ShareManager::Directory::getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles_, size_t& lowerCaseFiles_) const {
+void ShareManager::Directory::getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles_, size_t& lowerCaseFiles_, size_t& totalStrLen_) const {
 	for(auto& d: directories) {
-		d->getStats(totalAge_, totalDirs_, totalSize_, totalFiles_, lowerCaseFiles_);
+		d->getStats(totalAge_, totalDirs_, totalSize_, totalFiles_, lowerCaseFiles_, totalStrLen_);
 	}
 
 	for(auto& f: files) {
 		totalSize_ += f.getSize();
 		totalAge_ += f.getLastWrite();
-		if (!f.isLowerName()) {
+		totalStrLen_ += f.getNameLower().length();
+		if (f.isLowerName()) {
 			lowerCaseFiles_++;
+		} else {
+			totalStrLen_ += f.getNameLower().length(); //the len is the same, right?
 		}
 	}
 
+	totalStrLen_ += realNameLower.length() + realName.length();
 	totalDirs_ += directories.size();
 	totalFiles_ += files.size();
 }
 
 string ShareManager::getStats() const {
 	uint64_t totalAge=0;
-	size_t totalFiles=0, lowerCaseFiles=0, totalDirs=0;
+	size_t totalFiles=0, lowerCaseFiles=0, totalDirs=0, totalStrLen=0;
 	int64_t totalSize=0;
 	double roots = 0;
 	for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
 		totalDirs++;
 		roots++;
-		d->getStats(totalAge, totalDirs, totalSize, totalFiles, lowerCaseFiles);
+		d->getStats(totalAge, totalDirs, totalSize, totalFiles, lowerCaseFiles, totalStrLen);
 	}
 
-	auto upMinutes = static_cast<double>(GET_TICK()) / (1000.00*1000.00);
+	/*auto dirSize1 = sizeof(Directory);
+	auto dirSize2 = sizeof(Directory::Ptr);
+	auto fileSize = sizeof(File);
+	auto bloomSize = 1<<20;*/
+
+	size_t memUsage = totalStrLen; // total length of all names
+	memUsage += sizeof(Directory)*totalDirs; //directories
+	memUsage += sizeof(File)*totalFiles; //files
+	memUsage += roots*(1<<20); //root blooms
+	memUsage += sizeof(Directory::Ptr)*totalDirs; //pointers stored in the vector for each directory
+
+	auto upMinutes = static_cast<double>(GET_TICK()) / (1000.00*1000.00*60.00);
 
 	string ret = boost::str(boost::format(
 "\r\n\r\n-=[ Share statistics ]=-\r\n\r\n\
@@ -1033,6 +1048,7 @@ Total share size: %s\r\n\
 Total incoming searches: %d (%d per minute)\r\n\
 Total shared files: %d (of which %d%% are lowercase)\r\n\
 Total shared directories: %d (%d files per directory)\r\n\
+Estimated memory usage for the share: %d (this doesn't include the hash store)\r\n\
 Average age of a file: %s")
 
 		% shareProfiles.size()
@@ -1041,6 +1057,7 @@ Average age of a file: %s")
 		% totalSearches % (totalSearches / upMinutes)
 		% totalFiles % ((static_cast<double>(lowerCaseFiles) / static_cast<double>(totalFiles))*100.00)
 		% totalDirs % (static_cast<double>(totalFiles) / static_cast<double>(totalDirs))
+		% Util::formatBytes(memUsage)
 		% Util::formatTime(GET_TIME() - (totalFiles > 0 ? (totalAge / totalFiles) : 0), false, true));
 
 	return ret;

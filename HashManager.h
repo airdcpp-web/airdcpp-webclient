@@ -202,16 +202,18 @@ private:
 
 		void addTree(const TigerTree& tt) noexcept;
 		bool getFileInfo(const string& aFileName, HashedFile& aFile);
-		bool getTree(const TTHValue& root, TigerTree& tth) const;
+		bool getTree(const TTHValue& root, TigerTree& tth);
+		bool hasTree(TTHValue& root);
 
 		enum InfoType {
 			TYPE_FILESIZE,
 			TYPE_BLOCKSIZE
 		};
-		int64_t getRootInfo(const TTHValue& root, InfoType aType) const;
+		int64_t getRootInfo(const TTHValue& root, InfoType aType);
 
 		string getDbStats();
 		void setCacheSize(uint32_t aSize);
+		void updateAutoCacheSize(bool setNow);
 
 		void openDb();
 		void closeDb(bool doDelete);
@@ -220,6 +222,7 @@ private:
 		Db* hashDb;
 		Db* fileDb;
 
+		int performDbOperation(function<int ()> f);
 		//typedef dbstl::db_map<TTHValue, TigerTree> HashDataMap;
 		//HashDataMap hashData;
 
