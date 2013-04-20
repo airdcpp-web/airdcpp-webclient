@@ -36,14 +36,14 @@ namespace dcpp {
 
 class LevelDB : public DbHandler {
 public:
-	LevelDB(const string& aPath, uint64_t cacheSize, bool cacheReads) : DbHandler(aPath, cacheSize) {
+	LevelDB(const string& aPath, uint64_t cacheSize, bool cacheReads, uint64_t aBlockSize = 4096) : DbHandler(aPath, cacheSize) {
 		dbEnv = nullptr;
 		//readoptions.verify_checksums = true;
 
 		//iteroptions.verify_checksums = true;
 		iteroptions.fill_cache = cacheReads;
 
-
+		options.block_size = aBlockSize;
 		options.block_cache = leveldb::NewLRUCache(cacheSize / 2);
 		//options.write_buffer_size = cacheSize / 4; // up to two write buffers may be held in memory simultaneously
 		options.filter_policy = leveldb::NewBloomFilterPolicy(10);
