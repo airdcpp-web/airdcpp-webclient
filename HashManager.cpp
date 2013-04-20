@@ -30,12 +30,13 @@
 #include "AirUtil.h"
 #include "ScopedFunctor.h"
 
+#include "LevelDB.h"
+//#include "HamsterDB.h"
+
 # ifdef _DEBUG
-#   pragma comment(lib, "libdb53sd.lib")
-#	pragma comment(lib, "libdb_stl53sd.lib")
+#   pragma comment(lib, "libhamsterdb-2.1.0d.lib")
 # else
-#   pragma comment(lib, "libdb53s.lib")
-#	pragma comment(lib, "libdb_stl53s.lib")
+#   pragma comment(lib, "libhamsterdb-2.1.0.lib")
 # endif
 
 namespace dcpp {
@@ -204,14 +205,14 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 
 		if (addStore && !aCancel) {
 			auto fi = HashedFile(tth_, timestamp, aSize);
-			store.addFile(move(pathLower), tt, fi);
+			store.addHashedFile(move(pathLower), tt, fi);
 		}
 	}
 }
 
 void HashManager::hashDone(const string& aFileName, string&& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID /*0*/) {
 	try {
-		store.addFile(move(pathLower), tt, aFileInfo);
+		store.addHashedFile(move(pathLower), tt, aFileInfo);
 	} catch (const Exception& e) {
 		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true, true);
 	}
@@ -233,31 +234,32 @@ void HashManager::hashDone(const string& aFileName, string&& pathLower, const Ti
 	}
 }
 
-void HashManager::HashStore::addFile(string&& aFileLower,  const TigerTree& tt, HashedFile& fi_) {
+void HashManager::HashStore::addHashedFile(string&& aFileLower, const TigerTree& tt, HashedFile& fi_) {
 	addTree(tt);
-	fileIndex[aFileLower] =  fi_;
+	addFile(move(aFileLower), fi_);
+}
+
+void HashManager::HashStore::addFile(string&& aFileLower, HashedFile& fi_) {
+	auto sz = getFileInfoSize(fi_);
+	void* buf = malloc(sz);
+	saveFileInfo(buf, fi_);
+
+	fileDb->put((void*)aFileLower.c_str(), aFileLower.length(), (void*)buf, sz);
+
+	free(buf);
+
+	/*HashedFile tmpFile;
+	getFileInfo(aFileLower, tmpFile);
+	auto fafas = "asgasg";*/
 }
 
 
 void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
-	//hashData.insert(make_pair(tt.getRoot(), tt));
-
-
-	auto tth = tt.getRoot();
-	Dbt key(&tth, sizeof(TTHValue));
-
-
-	Dbt data;
-
 	size_t treelen = tt.getLeaves().size() == 1 ? 0 : tt.getLeaves().size() * TTHValue::BYTES;
 	auto sz = sizeof(int64_t) + sizeof(int64_t) + sizeof(treelen) + treelen;
 
-	data.set_ulen(sz);
-	data.set_size(sz);
-
 	//allocate the memory
-	void* buf = malloc(data.get_ulen());
-	data.set_flags(DB_DBT_USERMEM);
+	void* buf = malloc(sz);
 
 
 	//set the data
@@ -278,60 +280,28 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 	if (treelen > 0)
 		memcpy(p, tt.getLeaves()[0].data, treelen);
 
-	data.set_data(buf);
+	hashDb->put((void*)tt.getRoot().data, sizeof(TTHValue), buf, sz);
 
-	performDbOperation([&] { return hashDb->put(NULL, &key, &data, DB_NOOVERWRITE); });
 	free(buf);
+
+	/*TigerTree tmpTree;
+	getTree(tt.getRoot(), tmpTree);
+	auto fafas = "asgasg";*/
 }
 
-#define INITIAL_BUF 15*1024
 bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
-	auto tth = root;
-	Dbt key(&tth, sizeof(TTHValue));
-	key.set_flags(DB_DBT_USERMEM);
-
-	Dbt data;
-	data.set_flags(DB_DBT_USERMEM);
-
-	//set a reasonable value to start with
-	data.set_ulen(INITIAL_BUF);
-
-	void* buf = malloc(INITIAL_BUF);
-	data.set_data(buf);
-	ScopedFunctor([&buf] { free(buf); });
-
-
-	auto ret = performDbOperation([&] { return hashDb->get(NULL, &key, &data, 0); });
-	if (ret == DB_BUFFER_SMALL) {
-		//enlarge the buffer
-		data.set_ulen(data.get_size());
-		realloc(buf, data.get_size());
-
-		ret = performDbOperation([&] { return hashDb->get(NULL, &key, &data, 0); });
-	}
-
-	if (isDbError(ret))
-		return false;
-
-	loadTree(root, tt, data.get_data());
-	return true;
-
-
-	/*auto p = hashData.find(root);
-	if (p != hashData.end()) {
-		tt = p->second;
+	auto buf = hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024); 
+	if (buf) {
+		loadTree(root, tt, buf);
+		free(buf);
 		return true;
 	}
 
-	return false;*/
+	return false;
 }
 
 bool HashManager::HashStore::hasTree(TTHValue& root) {
-	Dbt key(&root, sizeof(TTHValue));
-	key.set_flags(DB_DBT_USERMEM);
-
-	auto ret = performDbOperation([&] { return hashDb->exists(NULL, &key, 0); });
-	return ret == 0; 
+	return hashDb->hasKey((void*)root.data, sizeof(TTHValue));
 }
 
 void HashManager::HashStore::loadTree(const TTHValue& aRoot, TigerTree& aTree, const void *src) {
@@ -393,61 +363,9 @@ void HashManager::HashStore::saveFileInfo(void *dest, const HashedFile& aFile) {
 	p += sizeof(int64_t);
 }
 
-u_int32_t HashManager::HashStore::getFileInfoSize(const HashedFile& /*aTree*/) {
+uint32_t HashManager::HashStore::getFileInfoSize(const HashedFile& /*aTree*/) {
 	return sizeof(uint64_t) + sizeof(TTHValue) + sizeof(int64_t);
 }
-
-/*void HashManager::HashStore::saveTree(void *dest, const TigerTree& aTree) {
-	char *p = (char *)dest;
-
-	int64_t fileSize = aTree.getFileSize();
-	memcpy(p, &fileSize, sizeof(int64_t));
-	p += sizeof(int64_t);
-
-	int64_t blockSize = aTree.getBlockSize();
-	memcpy(p, &blockSize, sizeof(int64_t));
-	p += sizeof(int64_t);
-
-	size_t datalen = aTree.getLeaves().size() * TTHValue::BYTES;
-
-	//size_t datalen = aTree.getLeaves().size() == 1 ? 0 : aTree.getLeaves().size() * TTHValue::BYTES;
-	memcpy(p, &datalen, sizeof(size_t));
-	p += sizeof(size_t);
-
-	//if (datalen > 0)
-		memcpy(p, aTree.getLeaves()[0].data, datalen);
-}
-
-void HashManager::HashStore::loadTree(TigerTree& aTree, const void *src) {
-	char *p = (char*)src;
-
-	int64_t fileSize;
-	memcpy(&fileSize, p, sizeof(int64_t));
-	p += sizeof(int64_t);
-
-	int64_t blockSize;
-	memcpy(&blockSize, p, sizeof(int64_t));
-	p += sizeof(int64_t);
-
-	//size_t datalen = TigerTree::calcBlocks(fileSize, blockSize) * TTHValue::BYTES;
-	size_t datalen;
-	memcpy(&datalen, p, sizeof(size_t));
-	p += sizeof(size_t);
-
-	if (datalen > TTHValue::BYTES) {
-		boost::scoped_array<uint8_t> buf(new uint8_t[datalen]);
-		memcpy(&buf[0], p, datalen);
-		aTree = TigerTree(fileSize, blockSize, &buf[0]);
-	} else {
-		TTHValue root;
-		memcpy(&root, p, sizeof(TTHValue));
-		aTree = TigerTree(fileSize, blockSize, root);
-	}
-}
-
-u_int32_t HashManager::HashStore::getTreeSize(const TigerTree& aTree) {
-	return sizeof(aTree.getFileSize()) + sizeof(aTree.getFileSize()) + sizeof(size_t) + (aTree.getLeaves().size() * TTHValue::BYTES);
-}*/
 
 bool HashManager::HashStore::loadLegacyTree(File& f, const TreeInfo& ti, const TTHValue& root, TigerTree& tt, bool rebuilding) {
 	if (ti.getIndex() == SMALL_TREE) {
@@ -472,55 +390,24 @@ bool HashManager::HashStore::loadLegacyTree(File& f, const TreeInfo& ti, const T
 }
 
 int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType) {
-	auto tth = root;
-	int64_t value;
+	auto buf = hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024);
+	if (buf) {
+		char* p = (char*)buf;
+		p += (aType == TYPE_FILESIZE ? 0 : sizeof(int64_t));
 
-	Dbt key(&tth, sizeof(TTHValue));
-	key.set_flags(DB_DBT_USERMEM);
-
-	Dbt data;
-	data.set_data(&value);
-	data.set_flags(DB_DBT_PARTIAL | DB_DBT_USERMEM);
-	data.set_dlen(sizeof(int64_t));
-	data.set_doff(aType == TYPE_FILESIZE ? 0 : sizeof(int64_t));
-	data.set_ulen(sizeof(int64_t));
-
-	auto ret = performDbOperation([&] { return hashDb->get(NULL, &key, &data, 0); }); 
-	if (ret != 0)
-		return 0;
-
-	return value;
-
-	//auto i = hashData.find(root);
-	//return i == hashData.end() ? 0 : static_cast<size_t>(i->second.getBlockSize());
-}
-
-#define MAX_DB_RETRIES 10
-int HashManager::HashStore::performDbOperation(function<int ()> f) {
-	int attempts = 0;
-	int ret = 0;
-	for (;;) {
-		auto ret = f();
-		if (ret == DB_LOCK_DEADLOCK) {
-			attempts++;
-			if (attempts == MAX_DB_RETRIES) {
-				break;
-			}
-			continue;
-		}
-
-		break;
+		int64_t info;
+		memcpy(&info, p, sizeof(int64_t));
+		free(buf);
+		return info;
 	}
-
-	isDbError(ret);
-	return ret;
+	return 0;
 }
 
 bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, uint32_t aTimeStamp, TTHValue& outTTH_) {
-	auto i = fileIndex.find(aFileLower);
-	if (i != fileIndex.end()) {
-		if (i->second.getTimeStamp() == aTimeStamp && i->second.getSize() == aSize) {
-			outTTH_ = i->second.getRoot();
+	HashedFile fi;
+	if (getFileInfo(aFileLower, fi)) {
+		if (fi.getTimeStamp() == aTimeStamp && fi.getSize() == aSize) {
+			outTTH_ = fi.getRoot();
 			return hasTree(outTTH_);
 		}
 	}
@@ -529,9 +416,10 @@ bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, u
 }
 
 bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& fi_) {
-	auto p = fileIndex.find(aFileLower);
-	if (p != fileIndex.end()) {
-		fi_ = p->second;
+	auto buf = fileDb->get((void*)aFileLower.c_str(), aFileLower.length(), sizeof(HashedFile));
+	if (buf) {
+		loadFileInfo(fi_, buf);
+		free(buf);
 		return true;
 	}
 
@@ -547,88 +435,33 @@ void HashManager::HashStore::rebuild() {
 
 		unordered_set<TTHValue> usedRoots;
 		{
-			/*
-			
-			//DB map doesn't allow erasing while looping, do it in the hard way
-
-			Dbc *cursorp;
-			fileDb->cursor(NULL, &cursorp, 0); 
-
-			string curPath;
 			HashedFile fi;
+			string path;
 
-			Dbt key(&curPath, UNC_MAX_PATH);
-			key.set_flags(DB_DBT_USERMEM);
-			key.set_ulen(UNC_MAX_PATH);
-
-			size_t bufSize = sizeof(uint64_t) + sizeof(TTHValue) + sizeof(int64_t);
-
-			Dbt data(&fi, bufSize);
-			data.set_ulen(bufSize);
-			data.set_flags(DB_DBT_USERMEM);
-			//void* buf = malloc(bufSize);
-			//data.set_data(buf);
-
-			int ret;
-			while ((ret = cursorp->get(&key, &data, DB_PREV)) == 0) {
-				if (ShareManager::getInstance()->isRealPathShared(curPath)) {
+			fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue) {
+				path = string((const char*)aKey, key_len);
+				if (ShareManager::getInstance()->isRealPathShared(path)) {
+					loadFileInfo(fi, aValue);
 					usedRoots.insert(fi.getRoot());
-				} else {
-					cursorp->del(0);
-				}
-			}
-
-			if (ret != 0 && ret != DB_NOTFOUND) {
-				auto error = db_strerror(ret);
-				dcassert(0);
-			}
-
-			//free(buf);
-			cursorp->close();*/
-
-			StringList toErase;
-			for (auto& i: fileIndex) {
-				if (ShareManager::getInstance()->isRealPathShared(i.first)) {
-					usedRoots.insert(i.second.getRoot());
+					return false;
 				} else {
 					unusedFiles++;
-					toErase.push_back(i.first);
+					return true;
 				}
-			}
-
-			for (auto& i: toErase) {
-				fileIndex.erase(i);
-			}
+			});
 		}
 
 		{
-			Dbc *cursorp;
-			hashDb->cursor(NULL, &cursorp, 0); 
-
 			TTHValue curRoot;
-			TigerTree tt;
-
-			Dbt key(&curRoot, sizeof(TTHValue));
-			key.set_flags(DB_DBT_USERMEM);
-			key.set_ulen(sizeof(TTHValue));
-
-			Dbt data;
-			size_t bufSize = 1024*1024;
-			data.set_ulen(bufSize);
-			data.set_flags(DB_DBT_USERMEM);
-			void* buf = malloc(bufSize);
-			data.set_data(buf);
-
-			int ret;
-			while ((ret = performDbOperation([&] { return cursorp->get(&key, &data, DB_PREV); })) == 0) {
+			hashDb->remove_if([&](void* aKey, size_t key_len, void* aValue) {
+				memcpy(&curRoot, aKey, key_len);
 				if (usedRoots.find(curRoot) == usedRoots.end()) {
-					auto ret = cursorp->del(0);
-					dcassert(ret == 0);
+					//auto ret = cursorp->del(0);
 					unusedTrees++;
+					return true;
 				} else {
 					//check if the data is valid
 					/*loadTree(curRoot, tt, data.get_data());
-					tt.calcRoot();
 					if (tt.getRoot() == curRoot)	
 						continue;
 
@@ -636,13 +469,9 @@ void HashManager::HashStore::rebuild() {
 					failedSize += tt.getFileSize();
 					failedTrees++;
 					usedRoots.erase(curRoot);*/
+					return false;
 				}
-			}
-
-			isDbError(ret);
-
-			free(buf);
-			cursorp->close();
+			});
 		}
 
 
@@ -665,131 +494,53 @@ void HashManager::HashStore::rebuild() {
 }
 
 bool HashManager::HashStore::isDbError(int err) const {
-	if (err == 0)
+	/*if (err == 0)
 		return false;
 	
 	if (err != DB_NOTFOUND && err != DB_KEYEXIST) {
 		string error(db_strerror(err));
 		LogManager::getInstance()->message("Database error:" + error, LogManager::LOG_ERROR);
 		dcassert(0);
-	}
+	}*/
 	return true;
 }
 
-
-string statMsg;
-void printF(const DbEnv* /*env*/, const char* msg) {
-	statMsg += msg;
-	statMsg += "\n";
-}
-
 string HashManager::HashStore::getDbStats() {
-	string ret;
+	string statMsg;
 
-	dbEnv->set_msgcall(printF);
-
-	statMsg += "\n\nGENERAL STATS\n\n";
-	dbEnv->stat_print(0);
-	statMsg += "\n\nMEMORY STATS\n\n";
-	dbEnv->memp_stat_print(0);
-	statMsg += "\n\nLOCKING STATS\n\n";
-	dbEnv->mutex_stat_print(0);
-	/*statMsg += "\n\nHASHDATA STATS\n\n";
-	hashDb->stat_print(0);
-	statMsg += "\n\nFILEINDEX STATS\n\n";
-	fileDb->stat_print(0);*/
-
-	dbEnv->set_msgcall(NULL);
-	//hashDb->set_msgcall(NULL);
-
-	ret.swap(statMsg);
-	return ret;
+	statMsg += "\nFILEINDEX STATS\n\n";
+	statMsg += fileDb->getStats();
+	statMsg += "\nHASHDATA STATS\n\n";
+	statMsg += hashDb->getStats();
+	return statMsg;
 }
 
-void errorF(const DbEnv* /*env*/, const char* prefix, const char* errorMsg) {
-	LogManager::getInstance()->message("Database error in " + string(prefix) + ": " + string(errorMsg), LogManager::LOG_ERROR);
+bool HashManager::HashStore::setDebug() {
+	showDebugInfo = !showDebugInfo;
+
+	/*if (showDebugInfo) {
+		dbEnv->set_errcall(errorF);
+	} else {
+		dbEnv->set_errcall(NULL);
+	}*/
+
+	return showDebugInfo;
 }
 
 void HashManager::HashStore::openDb() {
-	//hashDataErrPrefix = unique_ptr<string>(new string("HashData.db"));
-	//fileIndexErrPrefix = unique_ptr<string>(new string("FileIndex.db"));
-	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1));
+	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1)) * 1024*1024;
 
-	//set the flags 
-	u_int32_t db_flags = DB_CREATE /*| DB_READ_UNCOMMITTED*/;
-	u_int32_t env_flags = DB_PRIVATE | DB_THREAD | DB_CREATE |
-		DB_INIT_MPOOL | DB_AUTO_COMMIT | DB_INIT_LOCK;
-
-	try {
-		dbEnv = new DbEnv(DB_CXX_NO_EXCEPTIONS);
-
-		auto ret = dbEnv->set_cachesize(0, cacheSize*1024*1024, 1);
-		dcassert(ret == 0);
-
-		dbEnv->set_errcall(errorF);
-
-		dbEnv->open(Util::getPath(Util::PATH_USER_CONFIG).c_str(), env_flags, 0);
-
-
-		uint32_t gb, b;
-		dbEnv->get_memory_max(&gb, &b);
-
-		ret = dbEnv->set_lk_detect(DB_LOCK_DEFAULT);
-		dcassert(ret == 0);
-		// Redirect debugging information to std::cerr
-		//dbEnv->set_error_stream(&std::cerr);
-
-		hashDb = new Db(dbEnv, DB_CXX_NO_EXCEPTIONS);
-		hashDb->set_errpfx("HashData.db");
-
-
-		/*ret = hashDb->verify("HashData.db", NULL, NULL, 0);
-		if (ret != 0 && ret != 2) {
-			hashDb->
-			string error(db_strerror(ret));
-			isDbError(ret);
-		}*/
-
-		hashDb->open(NULL, // Transaction pointer 
-			"HashData.db", // Database file name 
-			NULL, // Optional logical database name
-			DB_HASH, // Database access method
-			db_flags, // Open flags
-			0); // File mode (using defaults)
-
-		fileDb = new Db(dbEnv, DB_CXX_NO_EXCEPTIONS);
-		fileDb->set_errpfx("FileIndex.db");
-		fileDb->open(NULL, // Transaction pointer 
-			"FileIndex.db", // Database file name 
-			NULL, // Optional logical database name
-			DB_BTREE, // Database access method
-			db_flags, // Open flags
-			0); // File mode (using defaults)
-
-		fileIndex.set_db_handle(fileDb, dbEnv);
-		//hashData.set_db_handle(hashDb, &dbEnv);
-	} catch(DbException &e) {
-		LogManager::getInstance()->message("Failed to open the hash database: " + string(e.what()), LogManager::LOG_ERROR);
-	} catch(Exception& e) {
-		LogManager::getInstance()->message("Failed to open the hash database: " + string(e.getError()), LogManager::LOG_ERROR);
-	}
-
-	/*dbstl::DbstlElemTraits<TigerTree> *pTigerTraits = dbstl::DbstlElemTraits<TigerTree>::instance();
-	pTigerTraits->set_size_function(getTreeSize);
-	pTigerTraits->set_copy_function(saveTree);
-	pTigerTraits->set_restore_function(loadTree);*/
-
-	dbstl::DbstlElemTraits<HashedFile> *pHashedFileTraits = dbstl::DbstlElemTraits<HashedFile>::instance();
-	pHashedFileTraits->set_size_function(getFileInfoSize);
-	pHashedFileTraits->set_copy_function(saveFileInfo);
-	pHashedFileTraits->set_restore_function(loadFileInfo);
+	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize, false));
+	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize, true));
+	//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize, sizeof(TTHValue)));
+	//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize, 255));
 }
 
-void HashManager::HashStore::setCacheSize(uint32_t aSize) {
+void HashManager::HashStore::setCacheSize(uint64_t aSize) {
 	if (aSize < 1024*1024) // min 1 MB
 		return;
 
-	uint32_t curBytes, curGB;
+	/*uint32_t curBytes, curGB;
 	auto ret = dbEnv->get_cachesize(&curGB, &curBytes, 0);
 	dcassert(ret == 0);
 
@@ -799,16 +550,19 @@ void HashManager::HashStore::setCacheSize(uint32_t aSize) {
 		//don't change if the difference is less than 5%
 		if (static_cast<double>(abs(static_cast<int64_t>(curBytes)-static_cast<int64_t>(aSize))) < aSize*0.05)
 			return;
-	}
+	}*/
 
-	closeDb(true);
+	if (static_cast<double>(abs(static_cast<int64_t>(fileDb->getCacheSize()+hashDb->getCacheSize())-static_cast<int64_t>(aSize))) < aSize*0.05)
+		return;
+
+	closeDb();
 	openDb();
 }
 
 void HashManager::HashStore::updateAutoCacheSize(bool setNow) {
 	if (SETTING(DB_CACHE_AUTOSET)) {
 		/* Guess a reasonable new value for the cache (100 bytes per file). Note that the real mem usage is 25% bigger if the cache size is less than 500MB */
-		auto indexSize = fileIndex.size(true);
+		size_t indexSize = fileDb->size(true); //fileIndex.size(true);
 		size_t newSize = max((indexSize*100) / (1024*1024), static_cast<size_t>(8)); // min 8 MB
 		SettingsManager::getInstance()->set(SettingsManager::DB_CACHE_SIZE, static_cast<int>(newSize));
 
@@ -957,8 +711,10 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			if (!file.empty() && timeStamp > 0 && !root.empty()) {
 				string fileLower = Text::toLower(file);
 				auto size = store.getRootInfo(TTHValue(root), HashManager::HashStore::TYPE_FILESIZE);
-				if (size > 0)
-					store.fileIndex[fileLower] = HashedFile(TTHValue(root), timeStamp, size);
+				if (size > 0) {
+					auto fi = HashedFile(TTHValue(root), timeStamp, size);
+					store.addFile(move(fileLower), fi);
+				}
 			}
 		} else if (name == sTrees) {
 			inTrees = !simple;
@@ -974,31 +730,23 @@ void HashLoader::endTag(const string& name) {
 	}
 }
 
-HashManager::HashStore::HashStore() {
+HashManager::HashStore::HashStore() : showDebugInfo(false) {
 }
 
-void HashManager::HashStore::closeDb(bool doDelete) {
-	try {
-		// Close the database
-		hashDb->close(0);
-		fileDb->close(0);
+void HashManager::HashStore::closeDb() {
+	hashDb.reset(nullptr);
+	fileDb.reset(nullptr);
 
-		dbEnv->close(0);
-	} catch(DbException& /*e*/) {
-		//...
-	} catch(std::exception& /*e*/) {
-		//...
-	}
-
-	if (doDelete) {
+	/*if (doDelete) {
 		delete fileDb;
 		delete hashDb;
-		delete dbEnv;
-	}
+		if (dbEnv)
+			delete dbEnv;
+	}*/
 }
 
 HashManager::HashStore::~HashStore() {
-	closeDb(true);
+	closeDb();
 }
 
 void HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) {

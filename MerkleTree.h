@@ -168,6 +168,7 @@ public:
 		return buf;
 	}
 
+
 private:	
 	typedef pair<MerkleValue, int64_t> MerkleBlock;
 	typedef vector<MerkleBlock> MBList;

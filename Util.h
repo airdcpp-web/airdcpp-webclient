@@ -523,6 +523,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static void addParam(const string& aParam);
 
 	static bool usingLocalMode() { return localMode; }
+	static bool wasUncleanShutdown;
 private:
 	/** In local mode, all config and temp files are kept in the same dir as the executable */
 	static bool localMode;

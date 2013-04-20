@@ -414,6 +414,12 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 		OnlineUser& u = getUser(nick);
 
+		// If he is already considered to be the hub (thus hidden), probably should appear in the UserList
+		if(u.getIdentity().isHidden()) {
+			u.getIdentity().setHidden(false);
+			u.getIdentity().setHub(false);
+		}
+
 		j = param.find('$', i);
 		if(j == string::npos)
 			return;
@@ -1169,6 +1175,17 @@ void NmdcHub::getUserList(OnlineUserList& list) const {
 	for(auto& u: users | map_values) {
 		list.push_back(u);
 	}
+}
+
+size_t NmdcHub::getUserCount() const { 
+	Lock l(cs); 
+	size_t userCount = 0;
+	for(auto& i: users) {
+		if(!i.second->isHidden()) {
+			++userCount;
+		}
+	}
+	return userCount;
 }
 
 } // namespace dcpp

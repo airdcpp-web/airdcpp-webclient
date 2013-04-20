@@ -53,6 +53,8 @@
 #include "format.h"
 namespace dcpp {
 
+#define RUNNING_FLAG Util::getPath(Util::PATH_USER_LOCAL) + "RUNNING"
+
 void startup(function<void (const string&)> stepF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF, function<void ()> runWizard, function<void (float)> progressF) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
@@ -66,6 +68,15 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 
 	Util::initialize();
 	AirUtil::init();
+
+	//create the running flag
+	if (Util::fileExists(RUNNING_FLAG)) {
+		Util::wasUncleanShutdown = true;
+	} else {
+		try {
+			File ff(RUNNING_FLAG, File::WRITE, File::CREATE | File::TRUNCATE);
+		} catch (...) { }
+	}
 
 	ResourceManager::newInstance();
 	SettingsManager::newInstance();
@@ -96,7 +107,6 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	UpdateManager::newInstance();
 
 	SettingsManager::getInstance()->load(messageF);
-
 
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
@@ -198,6 +208,7 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	TimerManager::deleteInstance();
 	ResourceManager::deleteInstance();
 
+	File::deleteFile(RUNNING_FLAG);
 #ifdef _WIN32	
 	::WSACleanup();
 #endif

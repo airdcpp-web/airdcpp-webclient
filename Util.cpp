@@ -66,6 +66,7 @@ string Util::paths[Util::PATH_LAST];
 StringList Util::params;
 
 bool Util::localMode = true;
+bool Util::wasUncleanShutdown = false;
 
 static void sgenrand(unsigned long seed);
 

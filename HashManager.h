@@ -19,6 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_HASH_MANAGER_H
 #define DCPLUSPLUS_DCPP_HASH_MANAGER_H
 
+#include <functional>
+
+#include "DbHandler.h"
 #include "HashedFile.h"
 #include "Singleton.h"
 #include "MerkleTree.h"
@@ -31,8 +34,6 @@
 #include "Speaker.h"
 
 #include "atomic.h"
-
-#include "../bdb/include/dbstl_map.h"
 
 namespace dcpp {
 
@@ -108,7 +109,8 @@ public:
 
 	string getDbStats() { return store.getDbStats(); }
 
-	void closeDB() { store.closeDb(false); }
+	void closeDB() { store.closeDb(); }
+	bool setDebug() { return store.setDebug(); }
 private:
 	int pausers;
 	class Hasher : public Thread {
@@ -192,7 +194,8 @@ private:
 		HashStore();
 		~HashStore();
 
-		void addFile(string&& aFilePathLower, const TigerTree& tt, HashedFile& fi_);
+		void addHashedFile(string&& aFilePathLower, const TigerTree& tt, HashedFile& fi_);
+		void addFile(string&& aFilePathLower, HashedFile& fi_);
 
 		void load(function<void (float)> progressF);
 
@@ -205,6 +208,8 @@ private:
 		bool getTree(const TTHValue& root, TigerTree& tth);
 		bool hasTree(TTHValue& root);
 
+		bool setDebug();
+
 		enum InfoType {
 			TYPE_FILESIZE,
 			TYPE_BLOCKSIZE
@@ -212,22 +217,14 @@ private:
 		int64_t getRootInfo(const TTHValue& root, InfoType aType);
 
 		string getDbStats();
-		void setCacheSize(uint32_t aSize);
+		void setCacheSize(uint64_t aSize);
 		void updateAutoCacheSize(bool setNow);
 
 		void openDb();
-		void closeDb(bool doDelete);
+		void closeDb();
 	private:
-		DbEnv* dbEnv;
-		Db* hashDb;
-		Db* fileDb;
-
-		int performDbOperation(function<int ()> f);
-		//typedef dbstl::db_map<TTHValue, TigerTree> HashDataMap;
-		//HashDataMap hashData;
-
-		typedef dbstl::db_map<string, HashedFile> HashFileMap;
-		HashFileMap fileIndex;
+		std::unique_ptr<DbHandler> fileDb;
+		std::unique_ptr<DbHandler> hashDb;
 
 
 		friend class HashLoader;
@@ -253,12 +250,14 @@ private:
 
 		static void loadFileInfo(HashedFile& aFile, const void *src);
 		static void saveFileInfo(void *dest, const HashedFile& aTree);
-		static u_int32_t getFileInfoSize(const HashedFile& aTree);
+		static uint32_t getFileInfoSize(const HashedFile& aTree);
 
 		static string getIndexFile();
 		//static string getDataFile();
 
 		bool isDbError(int err) const;
+
+		bool showDebugInfo;
 	};
 
 	friend class HashLoader;

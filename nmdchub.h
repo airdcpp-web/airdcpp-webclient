@@ -45,7 +45,7 @@ public:
 	void password(const string& aPass) { send("$MyPass " + fromUtf8(aPass) + "|"); }
 	void info(bool force) { myInfo(force); }
 
-	size_t getUserCount() const { Lock l(cs); return users.size(); }
+	size_t getUserCount() const;
 	
 	string escape(string const& str) const { return validateMessage(str, false); }
 	static string unescape(const string& str) { return validateMessage(str, true); }
