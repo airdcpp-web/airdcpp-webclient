@@ -50,10 +50,7 @@ public:
 		options.create_if_missing = true;
 
 		auto ret = leveldb::DB::Open(options, dbPath, &db);
-		if (!ret.ok()) {
-			//LogManager::getInstance()->message("Failed to open the hash database: " + ret.ToString(), LogManager::LOG_ERROR);
-			dcassert(0);
-		}
+		checkDbError(ret);
 	}
 
 	~LevelDB() {
@@ -66,11 +63,12 @@ public:
 		leveldb::Slice key((const char*)aKey, keyLen);
 		leveldb::Slice value((const char*)aValue, valueLen);
 
-		auto ret = db->Put(writeoptions, key, value);
-		if (!ret.ok()) {
-			auto error = ret.ToString();
-			dcassert(0);
+		string tmp;
+		auto ret = db->Get(iteroptions, key, &tmp);
+		if (ret.IsNotFound()) {
+			ret = db->Put(writeoptions, key, value);
 		}
+		checkDbError(ret);
 	}
 
 	void* get(void* aKey, size_t keyLen, size_t /*valueLen*/) {
@@ -84,19 +82,8 @@ public:
 			return (void*)value->data();
 		}
 
+		checkDbError(ret);
 		return nullptr;
-		/*auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(iteroptions));
-
-		leveldb::Slice key((const char*)aKey, keyLen);
-		it->Seek(key);
-		if (it->Valid()) {
-			auto v = it->value();
-			void* aValue = malloc(v.size());
-			memcpy(aValue, (void*)v.data(), v.size());
-			return aValue;
-		}
-
-		return nullptr;*/
 	}
 
 	string getStats() { 
@@ -118,11 +105,16 @@ public:
 
 		leveldb::Slice key((const char*)aKey, keyLen);
 		it->Seek(key);
-		leveldb::Options options;
-		return it->Valid() && options.comparator->Compare(key, it->key()) == 0;
+
+		if (it->Valid() && options.comparator->Compare(key, it->key()) == 0)
+			return true;
+
+		checkDbError(it->status());
+		return false;
 	}
 
 	size_t size(bool /*thorough*/) {
+		// leveldb doesn't support any easy way to do this
 		size_t ret = 0;
 		leveldb::ReadOptions options;
 		options.fill_cache = false;
@@ -131,10 +123,12 @@ public:
 			ret++;
 		}
 
+		checkDbError(it->status());
 		return ret;
 	}
 
 	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue)> f) {
+		// leveldb doesn't support erasing with an iterator, do it in the hard way
 		leveldb::WriteBatch wb;
 		leveldb::ReadOptions options;
 		options.fill_cache = false;
@@ -146,11 +140,20 @@ public:
 					wb.Delete(it->key());
 				}
 			}
+
+			checkDbError(it->status());
 		}
 
 		db->Write(writeoptions, &wb);
 	}
 private:
+	void checkDbError(leveldb::Status aStatus) {
+		if (aStatus.ok() || aStatus.IsNotFound())
+			return;
+
+		throw DbException(aStatus.ToString());
+	}
+
 	leveldb::DB* db;
 	leveldb::Env* dbEnv;
 

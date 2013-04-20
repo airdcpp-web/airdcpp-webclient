@@ -244,7 +244,11 @@ void HashManager::HashStore::addFile(string&& aFileLower, HashedFile& fi_) {
 	void* buf = malloc(sz);
 	saveFileInfo(buf, fi_);
 
-	fileDb->put((void*)aFileLower.c_str(), aFileLower.length(), (void*)buf, sz);
+	try {
+		fileDb->put((void*)aFileLower.c_str(), aFileLower.length(), (void*)buf, sz);
+	} catch(DbException& e) {
+		LogManager::getInstance()->message("Failed to insert new file in file index: " + e.getError(), LogManager::LOG_ERROR);
+	}
 
 	free(buf);
 
@@ -280,7 +284,11 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 	if (treelen > 0)
 		memcpy(p, tt.getLeaves()[0].data, treelen);
 
-	hashDb->put((void*)tt.getRoot().data, sizeof(TTHValue), buf, sz);
+	try {
+		hashDb->put((void*)tt.getRoot().data, sizeof(TTHValue), buf, sz);
+	} catch(DbException& e) {
+		LogManager::getInstance()->message("Failed to insert tree in hash data: " + e.getError(), LogManager::LOG_ERROR);
+	}
 
 	free(buf);
 
@@ -290,18 +298,28 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 }
 
 bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
-	auto buf = hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024); 
-	if (buf) {
-		loadTree(root, tt, buf);
-		free(buf);
-		return true;
+	try {
+		auto buf = hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024); 
+		if (buf) {
+			loadTree(root, tt, buf);
+			free(buf);
+			return true;
+		}
+	} catch(DbException& e) {
+		LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
 	}
 
 	return false;
 }
 
 bool HashManager::HashStore::hasTree(TTHValue& root) {
-	return hashDb->hasKey((void*)root.data, sizeof(TTHValue));
+	bool ret = false;
+	try {
+		ret = hashDb->hasKey((void*)root.data, sizeof(TTHValue));
+	} catch(DbException& e) {
+		LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
+	}
+	return ret;
 }
 
 void HashManager::HashStore::loadTree(const TTHValue& aRoot, TigerTree& aTree, const void *src) {
@@ -390,15 +408,19 @@ bool HashManager::HashStore::loadLegacyTree(File& f, const TreeInfo& ti, const T
 }
 
 int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType) {
-	auto buf = hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024);
-	if (buf) {
-		char* p = (char*)buf;
-		p += (aType == TYPE_FILESIZE ? 0 : sizeof(int64_t));
+	try {
+		auto buf = hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024);
+		if (buf) {
+			char* p = (char*)buf;
+			p += (aType == TYPE_FILESIZE ? 0 : sizeof(int64_t));
 
-		int64_t info;
-		memcpy(&info, p, sizeof(int64_t));
-		free(buf);
-		return info;
+			int64_t info;
+			memcpy(&info, p, sizeof(int64_t));
+			free(buf);
+			return info;
+		}
+	} catch(DbException& e) {
+		LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
 	}
 	return 0;
 }
@@ -416,11 +438,15 @@ bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, u
 }
 
 bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& fi_) {
-	auto buf = fileDb->get((void*)aFileLower.c_str(), aFileLower.length(), sizeof(HashedFile));
-	if (buf) {
-		loadFileInfo(fi_, buf);
-		free(buf);
-		return true;
+	try {
+		auto buf = fileDb->get((void*)aFileLower.c_str(), aFileLower.length(), sizeof(HashedFile));
+		if (buf) {
+			loadFileInfo(fi_, buf);
+			free(buf);
+			return true;
+		}
+	} catch(DbException& e) {
+		LogManager::getInstance()->message("Failed to get file info: " + e.getError(), LogManager::LOG_ERROR);
 	}
 
 	return false;
@@ -438,40 +464,48 @@ void HashManager::HashStore::rebuild() {
 			HashedFile fi;
 			string path;
 
-			fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue) {
-				path = string((const char*)aKey, key_len);
-				if (ShareManager::getInstance()->isRealPathShared(path)) {
-					loadFileInfo(fi, aValue);
-					usedRoots.insert(fi.getRoot());
-					return false;
-				} else {
-					unusedFiles++;
-					return true;
-				}
-			});
+			try {
+				fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue) {
+					path = string((const char*)aKey, key_len);
+					if (ShareManager::getInstance()->isRealPathShared(path)) {
+						loadFileInfo(fi, aValue);
+						usedRoots.insert(fi.getRoot());
+						return false;
+					} else {
+						unusedFiles++;
+						return true;
+					}
+				});
+			} catch(DbException& e) {
+				LogManager::getInstance()->message("Failed to read the file index: " + e.getError(), LogManager::LOG_ERROR);
+			}
 		}
 
 		{
 			TTHValue curRoot;
-			hashDb->remove_if([&](void* aKey, size_t key_len, void* aValue) {
-				memcpy(&curRoot, aKey, key_len);
-				if (usedRoots.find(curRoot) == usedRoots.end()) {
-					//auto ret = cursorp->del(0);
-					unusedTrees++;
-					return true;
-				} else {
-					//check if the data is valid
-					/*loadTree(curRoot, tt, data.get_data());
-					if (tt.getRoot() == curRoot)	
-						continue;
+			try {
+				hashDb->remove_if([&](void* aKey, size_t key_len, void* aValue) {
+					memcpy(&curRoot, aKey, key_len);
+					if (usedRoots.find(curRoot) == usedRoots.end()) {
+						//auto ret = cursorp->del(0);
+						unusedTrees++;
+						return true;
+					} else {
+						//check if the data is valid
+						/*loadTree(curRoot, tt, data.get_data());
+						if (tt.getRoot() == curRoot)	
+							continue;
 
-					//failed
-					failedSize += tt.getFileSize();
-					failedTrees++;
-					usedRoots.erase(curRoot);*/
-					return false;
-				}
-			});
+						//failed
+						failedSize += tt.getFileSize();
+						failedTrees++;
+						usedRoots.erase(curRoot);*/
+						return false;
+					}
+				});
+			} catch(DbException& e) {
+				LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
+			}
 		}
 
 
@@ -530,27 +564,20 @@ bool HashManager::HashStore::setDebug() {
 void HashManager::HashStore::openDb() {
 	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1)) * 1024*1024;
 
-	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize, false));
-	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize, true));
-	//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize, sizeof(TTHValue)));
-	//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize, 255));
+	try {
+		hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize, false));
+		fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize, true));
+		//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize, sizeof(TTHValue)));
+		//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize, 255));
+	} catch(DbException& e) {
+		LogManager::getInstance()->message("Failed to open the hash database: " + e.getError(), LogManager::LOG_ERROR);
+	}
 }
 
 void HashManager::HashStore::setCacheSize(uint64_t aSize) {
 	if (aSize < 1024*1024) // min 1 MB
 		return;
 
-	/*uint32_t curBytes, curGB;
-	auto ret = dbEnv->get_cachesize(&curGB, &curBytes, 0);
-	dcassert(ret == 0);
-
-	if (ret == 0) {
-		curBytes = curBytes + curGB*1024*1024*1024;
-
-		//don't change if the difference is less than 5%
-		if (static_cast<double>(abs(static_cast<int64_t>(curBytes)-static_cast<int64_t>(aSize))) < aSize*0.05)
-			return;
-	}*/
 
 	if (static_cast<double>(abs(static_cast<int64_t>(fileDb->getCacheSize()+hashDb->getCacheSize())-static_cast<int64_t>(aSize))) < aSize*0.05)
 		return;
@@ -562,7 +589,13 @@ void HashManager::HashStore::setCacheSize(uint64_t aSize) {
 void HashManager::HashStore::updateAutoCacheSize(bool setNow) {
 	if (SETTING(DB_CACHE_AUTOSET)) {
 		/* Guess a reasonable new value for the cache (100 bytes per file). Note that the real mem usage is 25% bigger if the cache size is less than 500MB */
-		size_t indexSize = fileDb->size(true); //fileIndex.size(true);
+		size_t indexSize = 0;
+		try {
+			indexSize = fileDb->size(true); //fileIndex.size(true);
+		} catch(DbException& e) {
+			LogManager::getInstance()->message("Failed to read file index: " + e.getError(), LogManager::LOG_ERROR);
+			return;
+		}
 		size_t newSize = max((indexSize*100) / (1024*1024), static_cast<size_t>(8)); // min 8 MB
 		SettingsManager::getInstance()->set(SettingsManager::DB_CACHE_SIZE, static_cast<int>(newSize));
 
