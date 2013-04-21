@@ -125,7 +125,11 @@ bool GeoIP::decompress() const {
 }
 
 void GeoIP::open() {
-	geo = GeoIP_open(path.c_str(), GEOIP_STANDARD);
+#ifdef _WIN32
+	geo = GeoIP_open(Text::toT(path).c_str(), GEOIP_STANDARD);
+#else
+	geo = GeoIP_open(path, GEOIP_STANDARD);
+#endif
 	if(geo) {
 		GeoIP_set_charset(geo, GEOIP_CHARSET_UTF8);
 	}

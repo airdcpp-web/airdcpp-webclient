@@ -660,6 +660,8 @@ void HashManager::HashStore::load(function<void (const string&)> stepF, function
 		} catch (const Exception&) {
 			// ...
 		}
+
+		updateAutoCacheSize(false);
 	}
 }
 
