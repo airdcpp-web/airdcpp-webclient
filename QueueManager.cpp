@@ -1283,7 +1283,9 @@ bool QueueManager::scanBundle(BundlePtr& aBundle) {
 		return true;
 
 	bool hasMissing=false, hasExtras=false;
-	ShareScannerManager::getInstance()->scanBundle(aBundle, hasMissing, hasExtras);
+	string msg;
+	ShareScannerManager::getInstance()->scanBundle(aBundle, hasMissing, hasExtras, msg);
+
 	if (hasMissing || hasExtras) {
 		auto newStatus = hasExtras ? Bundle::STATUS_FAILED_EXTRAS : Bundle::STATUS_FAILED_MISSING;
 		setBundleStatus(aBundle, newStatus);
