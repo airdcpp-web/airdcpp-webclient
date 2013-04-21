@@ -132,7 +132,7 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	};
 
 	announce(STRING(HASH_DATABASE));
-	HashManager::getInstance()->startup(progressF);
+	HashManager::getInstance()->startup(stepF, progressF, messageF);
 
 	announce(STRING(DOWNLOAD_QUEUE));
 	QueueManager::getInstance()->loadQueue(progressF);

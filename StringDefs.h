@@ -1682,5 +1682,7 @@ enum Strings { // @DontAdd
 	MONTHS, // "Months"
 	YEAR, // "Year"
 	YEARS, // "Years"
+	UPGRADING_HASHDATA, // "Upgrading hash database"
+	TLS_ERROR, // "TLS error"
 	LAST // @DontAdd
 };

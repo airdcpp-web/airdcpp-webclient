@@ -1678,6 +1678,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Months", 
 "Year", 
 "Years", 
+"Upgrading hash database", 
+"TLS error", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3356,4 +3358,6 @@ std::string dcpp::ResourceManager::names[] = {
 "Months", 
 "Year", 
 "Years", 
+"UpgradingHashdata", 
+"TlsError", 
 };

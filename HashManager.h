@@ -93,7 +93,7 @@ public:
 	 */
 	void rebuild();
 
-	void startup(function<void (float)> progressF);
+	void startup(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF);
 	void stop();
 	void shutdown(function<void (float)> progressF);
 
@@ -197,7 +197,7 @@ private:
 		void addHashedFile(string&& aFilePathLower, const TigerTree& tt, HashedFile& fi_);
 		void addFile(string&& aFilePathLower, HashedFile& fi_);
 
-		void load(function<void (float)> progressF);
+		void load(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF);
 
 		void rebuild();
 
@@ -206,7 +206,7 @@ private:
 		void addTree(const TigerTree& tt) noexcept;
 		bool getFileInfo(const string& aFileName, HashedFile& aFile);
 		bool getTree(const TTHValue& root, TigerTree& tth);
-		bool hasTree(TTHValue& root);
+		bool hasTree(const TTHValue& root);
 
 		bool setDebug();
 
@@ -230,15 +230,7 @@ private:
 		friend class HashLoader;
 
 		/** FOR CONVERSION ONLY: Root -> tree mapping info, we assume there's only one tree for each root (a collision would mean we've broken tiger...) */
-		struct TreeInfo {
-			TreeInfo() : size(0), index(0), blockSize(0) { }
-			TreeInfo(int64_t aSize, int64_t aIndex, int64_t aBlockSize) : size(aSize), index(aIndex), blockSize(aBlockSize) { }
-
-			GETSET(int64_t, size, Size);
-			GETSET(int64_t, index, Index);
-			GETSET(int64_t, blockSize, BlockSize);
-		};
-		bool loadLegacyTree(File& dataFile, const TreeInfo& ti, const TTHValue& root, TigerTree& tt, bool rebuilding = false);
+		void loadLegacyTree(File& dataFile, int64_t aSize, int64_t aIndex, int64_t aBlockSize, size_t datLen, const TTHValue& root, TigerTree& tt);
 
 
 
@@ -251,11 +243,6 @@ private:
 		static void loadFileInfo(HashedFile& aFile, const void *src);
 		static void saveFileInfo(void *dest, const HashedFile& aTree);
 		static uint32_t getFileInfoSize(const HashedFile& aTree);
-
-		static string getIndexFile();
-		//static string getDataFile();
-
-		bool isDbError(int err) const;
 
 		bool showDebugInfo;
 	};

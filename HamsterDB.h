@@ -28,16 +28,25 @@
 
 #include "DbHandler.h"
 #include "ScopedFunctor.h"
+#include "Util.h"
+#include "Thread.h"
 
 #include <ham/hamsterdb.hpp>
+
+# ifdef _DEBUG
+#   pragma comment(lib, "libhamsterdb-2.1.0d.lib")
+# else
+#   pragma comment(lib, "libhamsterdb-2.1.0.lib")
+# endif
 
 namespace dcpp {
 
 class HamsterDB : public DbHandler {
 public:
-	HamsterDB(const string& aPath, uint64_t cacheSize, size_t keyLen) : DbHandler(aPath, cacheSize) {
+	HamsterDB(const string& aPath, uint64_t cacheSize, size_t keyLen, bool isFixedLen /*, uint64_t pageSize = 4096*/) : DbHandler(aPath, cacheSize) {
 		ham_parameter_t envOptions[] = {
 			{HAM_PARAM_CACHESIZE, cacheSize},
+			//{HAM_PARAM_PAGESIZE, cacheSize},
 			{ 0,0 }
 		};
 
@@ -54,10 +63,11 @@ public:
 				};
 
 				env->create(aPath.c_str(), HAM_CACHE_STRICT, 0, &envOptions[0]);
-				db = new hamsterdb::db(env->create_db(1, 0, &dbOptions[0]));
+				db = new hamsterdb::db(env->create_db(1, isFixedLen ? 0 : HAM_ENABLE_EXTENDED_KEYS, &dbOptions[0]));
 			}
 		} catch (hamsterdb::error &e) {
-
+			dcassert(0);
+			throw DbException(e.get_string());
 		}
 	}
 
@@ -80,10 +90,12 @@ public:
 		}
 
 		hamsterdb::record rec(aValue, valueLen);
+
+		Lock l(cs);
 		try {
 			db->insert(&key, &rec);
 		} catch (hamsterdb::error &e) {
-
+			checkDbError(e);
 		}
 	}
 
@@ -91,12 +103,14 @@ public:
 		hamsterdb::key key(aKey, keyLen);
 		hamsterdb::record rec;
 
-		try {
-			rec = db->find(&key);
-		} catch (hamsterdb::error &e) {
-			return nullptr;
-			//if (e.get_errno() != HAM_KEY_NOT_FOUND)
-			//	return false;
+		{
+			Lock l(cs);
+			try {
+				rec = db->find(&key);
+			} catch (hamsterdb::error &e) {
+				checkDbError(e);
+				return nullptr;
+			}
 		}
 
 		void* aValue = malloc(rec.get_size());
@@ -109,14 +123,16 @@ public:
 
 	bool hasKey(void* aKey, size_t keyLen) {
 		hamsterdb::key key(aKey, keyLen);
+
+		Lock l(cs);
 		try {
 			db->find(&key);
 			return true;
 		} catch (hamsterdb::error &e) {
-			return false;
-			//if (e.get_errno() != HAM_KEY_NOT_FOUND)
-			//	return false;
+			checkDbError(e);
 		}
+
+		return false;
 	}
 
 	size_t size(bool /*thorough*/) {
@@ -136,11 +152,18 @@ public:
 				}
 			}
 		} catch (hamsterdb::error &e) {
-			//if (e.get_errno() != HAM_KEY_NOT_FOUND)
-			//	return false;
+			checkDbError(e);
 		}
 	}
 private:
+	void checkDbError(hamsterdb::error& e) {
+		if (e.get_errno() == HAM_SUCCESS || e.get_errno() == HAM_KEY_NOT_FOUND || e.get_errno() == HAM_DUPLICATE_KEY)
+			return;
+
+		dcassert(0);
+		throw DbException(e.get_string());
+	}
+
 	inline void* compress(void* aValue, size_t aLen, size_t& outLen_) {
 	#ifdef SNAPPY
 		auto len = snappy::MaxCompressedLength(aLen);
@@ -169,6 +192,7 @@ private:
 	#endif
 	}
 
+	CriticalSection cs;
 	hamsterdb::db* db;
 	hamsterdb::env* env;
 };

@@ -172,7 +172,7 @@ int SSLSocket::checkSSL(int ret) {
 			additional management necessary (eg SSL_load_error_strings) and 2) openssl error codes
 			aren't shown to the end user; they only hit standard output in debug builds. */
 			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = %d\n", ret, err, ERR_get_error());
-			throw SSLSocketException("TLS error");
+			throw SSLSocketException(STRING(TLS_ERROR));
 		}
 	}
 	return ret;

@@ -32,6 +32,8 @@
 #include <leveldb/status.h>
 #include <leveldb/write_batch.h>
 
+#define MAX_DB_RETRIES 5
+
 namespace dcpp {
 
 class LevelDB : public DbHandler {
@@ -41,10 +43,11 @@ public:
 		//readoptions.verify_checksums = true;
 
 		//iteroptions.verify_checksums = true;
-		iteroptions.fill_cache = cacheReads;
+		iteroptions.fill_cache = false;
+		readoptions.fill_cache = true;
 
 		options.block_size = aBlockSize;
-		options.block_cache = leveldb::NewLRUCache(cacheSize / 2);
+		options.block_cache = leveldb::NewLRUCache(cacheSize);
 		//options.write_buffer_size = cacheSize / 4; // up to two write buffers may be held in memory simultaneously
 		options.filter_policy = leveldb::NewBloomFilterPolicy(10);
 		options.create_if_missing = true;
@@ -64,7 +67,7 @@ public:
 		leveldb::Slice value((const char*)aValue, valueLen);
 
 		string tmp;
-		auto ret = db->Get(iteroptions, key, &tmp);
+		auto ret = performDbOperation([&] { return db->Get(iteroptions, key, &tmp); });
 		if (ret.IsNotFound()) {
 			ret = db->Put(writeoptions, key, value);
 		}
@@ -74,7 +77,7 @@ public:
 	void* get(void* aKey, size_t keyLen, size_t /*valueLen*/) {
 		auto value = new string();
 		leveldb::Slice key((const char*)aKey, keyLen);
-		auto ret = db->Get(iteroptions, key, value);
+		auto ret = performDbOperation([&] { return db->Get(readoptions, key, value); });
 		if (ret.ok()) {
 			//void* aValue = malloc(value->size());
 			//memcpy(aValue, (void*)value->data(), value->size());
@@ -104,7 +107,20 @@ public:
 		auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(iteroptions));
 
 		leveldb::Slice key((const char*)aKey, keyLen);
-		it->Seek(key);
+
+		int attempts = 0;
+		for (;;) {
+			it->Seek(key);
+			if (it->status().IsIOError()) {
+				attempts++;
+				if (attempts == MAX_DB_RETRIES) {
+					break;
+				}
+				continue;
+			}
+
+			break;
+		}
 
 		if (it->Valid() && options.comparator->Compare(key, it->key()) == 0)
 			return true;
@@ -147,6 +163,26 @@ public:
 		db->Write(writeoptions, &wb);
 	}
 private:
+	leveldb::Status performDbOperation(function<leveldb::Status ()> f) {
+		int attempts = 0;
+		leveldb::Status ret;
+		for (;;) {
+			ret = f();
+			if (ret.IsIOError()) {
+				attempts++;
+				if (attempts == MAX_DB_RETRIES) {
+					break;
+				}
+				continue;
+			}
+
+			break;
+		}
+
+		checkDbError(ret);
+		return ret;
+	}
+
 	void checkDbError(leveldb::Status aStatus) {
 		if (aStatus.ok() || aStatus.IsNotFound())
 			return;
@@ -161,7 +197,7 @@ private:
 	leveldb::Options options;
 
 	// options used when reading from the database
-	//leveldb::ReadOptions readoptions;
+	leveldb::ReadOptions readoptions;
 
 	// options used when iterating over values of the database
 	leveldb::ReadOptions iteroptions;
