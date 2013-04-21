@@ -768,7 +768,7 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 	return nullptr;
 }
 
-ShareManager::Directory::Ptr ShareManager::Directory::create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot /*nullptr*/) {
+ShareManager::Directory::Ptr ShareManager::Directory::create(const string& aName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aRoot /*nullptr*/) {
 	auto dir = Ptr(new Directory(aName, aParent, aLastWrite, aRoot));
 	if (aParent)
 		aParent->directories.insert_sorted(dir);
@@ -898,7 +898,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		if (Util::getFileExt(p) == ".xml") {
 			auto rp = find_if(parents | map_values, [&p](const Directory::Ptr& aDir) { return stricmp(aDir->getProfileDir()->getCachePath(), p) == 0; });
 			if (rp.base() != parents.end()) { //make sure that subdirs are never listed here...
-				ll.emplace_back(rp.base()->first, *rp, p);
+				ll.emplace_back(rp.base()->first, *rp, 0, p); // the date will be read from the cache
 				continue;
 			}
 		}
@@ -1815,11 +1815,11 @@ ShareManager::RefreshInfo::~RefreshInfo() {
 
 }
 
-ShareManager::RefreshInfo::RefreshInfo(const string& aPath, Directory::Ptr aOldRoot, const string& aLoaderPath /*Util::emptyString*/) : loaderPath(aLoaderPath), newBloom(new ShareBloom(1<<20)), oldRoot(aOldRoot), addedSize(0), hashSize(0) {
+ShareManager::RefreshInfo::RefreshInfo(const string& aPath, Directory::Ptr aOldRoot, uint32_t aLastWrite, const string& aLoaderPath /*Util::emptyString*/) : loaderPath(aLoaderPath), newBloom(new ShareBloom(1<<20)), oldRoot(aOldRoot), addedSize(0), hashSize(0) {
 	subProfiles = std::move(getInstance()->getSubProfileDirs(aPath));
 
 	//create the new root
-	root = Directory::create(Util::getLastDir(aPath), nullptr, getInstance()->findLastWrite(aPath), aOldRoot->getProfileDir());
+	root = Directory::create(Util::getLastDir(aPath), nullptr, aLastWrite, aOldRoot->getProfileDir());
 	dirNameMapNew.emplace(Util::getLastDir(aPath), root);
 	rootPathsNew[Text::toLower(aPath)] = root;
 }
@@ -1846,7 +1846,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			for(auto& i: task->dirs) {
 				auto d = findRoot(i);
 				if (d != rootPaths.end()) {
-					refreshDirs.emplace_back(i, d->second);
+					refreshDirs.emplace_back(i, d->second, findLastWrite(i));
 					d->second->copyRootProfiles(dirtyProfiles, false);
 				}
 			}

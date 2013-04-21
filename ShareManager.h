@@ -356,7 +356,7 @@ private:
 		Set directories;
 		File::Set files;
 
-		static Ptr create(const string& aName, const Ptr& aParent, uint32_t&& aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
+		static Ptr create(const string& aName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
 
 		struct HasRootProfile {
 			HasRootProfile(ProfileToken aT) : t(aT) { }
@@ -526,7 +526,7 @@ private:
 
 	class RefreshInfo {
 	public:
-		RefreshInfo(const string& aPath, Directory::Ptr aOldRoot, const string& loaderPath = Util::emptyString);
+		RefreshInfo(const string& aPath, Directory::Ptr aOldRoot, uint32_t aLastWrite, const string& loaderPath = Util::emptyString);
 		~RefreshInfo();
 
 		Directory::Ptr oldRoot;
