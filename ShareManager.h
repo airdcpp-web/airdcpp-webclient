@@ -299,10 +299,6 @@ private:
 		typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
 		typedef Map::iterator MapIter;
 
-		struct DirLess {
-			bool operator()(const Ptr& a, const Ptr& b) const { return (compare(a->getRealNameLower(), b->getRealNameLower()) < 0); }
-		};
-
 		struct NameLower {
 			const string& operator()(const Ptr& a) const { return a->getRealNameLower(); }
 		};
@@ -352,7 +348,7 @@ private:
 
 		//typedef set<Directory::Ptr, DirLess> Set;
 
-		typedef SortedVector<Ptr, string, DirLess, NameLower> Set;
+		typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;
 		Set directories;
 		File::Set files;
 
@@ -543,7 +539,6 @@ private:
 		string loaderPath;
 
 		RefreshInfo(RefreshInfo&&);
-		RefreshInfo& operator=(RefreshInfo&&) { return *this; }
 	private:
 		RefreshInfo(const RefreshInfo&);
 		RefreshInfo& operator=(const RefreshInfo&);

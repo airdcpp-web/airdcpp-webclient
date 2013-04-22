@@ -50,6 +50,7 @@ public:
 	uint64_t getCacheSize() const { return cacheSize; }
 protected:
 	DbHandler(const string& aPath, uint64_t aCacheSize) : cacheSize(aCacheSize), dbPath(aPath) { }
+	DbHandler(const DbHandler& src); // no copying
 
 	string dbPath;
 	uint64_t cacheSize;

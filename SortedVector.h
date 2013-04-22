@@ -21,54 +21,78 @@
 
 #include "typedefs.h"
 
-/* This vector container is optimized for fast lookup and inserting items that are sorted already */
+/* This vector-like container is optimized for fast lookup and inserting items that are sorted already */
 
-template<typename T, class keyType, class SortOperator, class NameOperator>
-class SortedVector : public std::vector<T> {
+template<typename T, template<class T, class = std::allocator<T> > class ContainerT, class keyType, class SortOperator, class NameOperator>
+class SortedVector : public ContainerT<T> {
 
 public:
-	typename std::vector<T>::iterator it;
+	typename ContainerT<T>::iterator it;
 
-	std::pair<typename std::vector<T>::iterator, bool> insert_sorted(const T& aItem) {
+	std::pair<typename ContainerT<T>::iterator, bool> insert_sorted(const T& aItem) {
 		if (empty()) {
 			push_back(aItem);
 			return make_pair(begin(), true);
-		} else if (SortOperator()(back(), aItem)) {
-			if(NameOperator()(back()).compare(NameOperator()(aItem)) != 0) {
+		} else {
+			int res = SortOperator()(NameOperator()(back()), NameOperator()(aItem));
+			if (res < 0) {
 				push_back(aItem);
 				return make_pair(end()-1, true);
+			} else if (res == 0) {
+				//return the dupe
+				return make_pair(end()-1, false);
 			}
-			return make_pair(end()-1, false);
 		}
 
-		auto hqr = equal_range(begin(), end(), aItem, SortOperator());
-		if (hqr.first == hqr.second) {
-			//it doesn't exist yet
-			return make_pair(insert(hqr.first, aItem), true);
+		auto p = getPos(begin(), end(), NameOperator()(aItem));
+		if (p.second) {
+			//return the dupe
+			return make_pair(p.first, false);
 		}
-			
-		//return the dupe
-		return make_pair(hqr.first, false);
+
+		//insert
+		p.first = insert(p.first, aItem);
+		return make_pair(p.first, true);
 	}
 
-	/*boost::optional<T> find(const keyType& aKey) {
-		const size_t start = 0;
-		const size_t end = size()-1;
+	// TODO: improve when we have variadic templates
+	template<typename T0, typename T1, typename T2>
+	std::pair<typename ContainerT<T>::iterator, bool> emplace_sorted(const keyType& aKey, T0& p1, T1& p2, T2& p3) {
+		if (empty()) {
+			emplace_back(aKey, p1, p2, p3);
+			return make_pair(begin(), true);
+		} else {
+			int res = SortOperator()(NameOperator()(back()), aKey);
+			if (res < 0) {
+				emplace_back(aKey, p1, p2, p3);
+				return make_pair(end()-1, true);
+			} else if (res == 0) {
+				//return the dupe
+				return make_pair(end()-1, false);
+			}
+		}
 
-		auto pos = binary_search(start, end, aKey);
-		return (pos != -1) ? this[pos] : this[pos];
-	}*/
+		auto p = getPos(begin(), end(), aKey);
+		if (p.second) {
+			//return the dupe
+			return make_pair(p.first, false);
+		}
 
-	typename std::vector<T>::iterator find(const keyType& aKey) {
-		auto pos = binary_search(0, size()-1, aKey);
-		return (pos != -1) ? begin()+pos : end();
+		//insert
+		p.first = emplace(p.first, aKey, p1, p2, p3);
+		return make_pair(p.first, true);
 	}
 
-	int binary_search(int left, int right, const keyType& key) {
+	typename ContainerT<T>::iterator find(const keyType& aKey) {
+		auto pos = getPos(begin(), end(), aKey);
+		return pos.second ? pos.first : end();
+	}
+
+	/*int binary_search(int left, int right, const keyType& key) {
 		while (left <= right) {
 			int middle = (left + right) / 2;
 
-			auto res = key.compare(NameOperator()((*(begin() + middle))));
+			auto res = SortOperator()(key, NameOperator()((*(begin() + middle))));
 			if (res == 0)
 				return middle;
 			else if (res < 0)
@@ -77,9 +101,30 @@ public:
 				left = middle + 1;
 		}
 		return -1;
-	}
+	}*/
 private:
-
+	// Returns the excepted position and whether the value was found or not
+	std::pair<typename ContainerT<T>::iterator, bool> getPos(typename ContainerT<T>::iterator first, typename ContainerT<T>::iterator last, const keyType& key) {
+		decltype(first) it;
+		std::iterator_traits<typename ContainerT<T>::iterator>::difference_type count, step;
+		count = std::distance(first,last);
+ 
+		while (count > 0) {
+			it = first;
+			step = count / 2;
+			std::advance(it, step);
+			auto res = SortOperator()(NameOperator()(*it), key);
+			if (res < 0) {
+				first = ++it;
+				count -= step + 1;
+			} else if (res == 0) {
+				return make_pair(first, true);
+			} else {
+				count = step;
+			}
+		}
+		return make_pair(first, false);
+	}
 
 
 };

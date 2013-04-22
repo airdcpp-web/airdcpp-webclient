@@ -772,29 +772,9 @@ HashManager::HashStore::~HashStore() {
 
 void HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) {
 	//always locked
-	auto wi = move(WorkItem(fileName, move(filePathLower), size, move(devID)));
-
-	bool added = false;
-	if (w.empty()) {
-		w.push_back(wi);
-		added = true;
-	} else if (HashSortOrder()(w.back(), wi)) {
-		// When adding large amounts of files from ShareManager, they should be sorted already. Prefer using push_back because of resource optimization
-		if(compare(w.back().filePath, fileName) != 0) {
-			w.push_back(wi);
-			added = true;
-		}
-	} else {
-		auto hqr = equal_range(w.begin(), w.end(), wi, HashSortOrder());
-		if (hqr.first == hqr.second) {
-			//it doesn't exist yet
-			w.insert(hqr.first, move(wi));
-			added = true;
-		}
-	}
-
-	if (added) {
-		devices[wi.devID]++; 
+	auto ret = w.emplace_sorted(filePathLower, fileName, size, devID);
+	if (ret.second) {
+		devices[(*ret.first).devID]++; 
 		totalBytesLeft += size;
 		s.signal();
 	}
@@ -1146,13 +1126,28 @@ void HashManager::removeHasher(Hasher* aHasher) {
 	hashers.erase(remove(hashers.begin(), hashers.end(), aHasher), hashers.end());
 }
 
-bool HashManager::Hasher::HashSortOrder::operator()(const WorkItem& left, const WorkItem& right) const {
+int HashManager::Hasher::WorkItem::HashSortOrder::operator()(const string& left, const string& right) const {
 	// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.
-	auto comp = compare(Util::getFilePath(left.filePathLower), Util::getFilePath(right.filePathLower));
+	auto comp = compare(Util::getFilePath(left), Util::getFilePath(right));
 	if (comp == 0) {
-		return compare(left.filePathLower, right.filePathLower) < 0;
+		return compare(left, right);
 	}
-	return comp < 0;
+	return comp;
+}
+
+HashManager::Hasher::WorkItem::WorkItem(WorkItem&& rhs) {
+	devID.swap(rhs.devID);
+	filePath.swap(rhs.filePath);
+	filePathLower.swap(rhs.filePathLower);
+	fileSize = rhs.fileSize;
+}
+
+HashManager::Hasher::WorkItem& HashManager::Hasher::WorkItem::operator=(WorkItem&& rhs) { 
+	devID.swap(rhs.devID);
+	filePath.swap(rhs.filePath);
+	filePathLower.swap(rhs.filePathLower);
+	fileSize = rhs.fileSize;
+	return *this; 
 }
 
 HashManager::HashPauser::HashPauser() {

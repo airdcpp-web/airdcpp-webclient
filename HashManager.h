@@ -142,19 +142,30 @@ private:
 
 		int hasherID;
 	private:
-		struct WorkItem {
-			WorkItem(const string& aFilePath, string&& aFilePathLower, int64_t aSize, string&& aDevID) : filePath(aFilePath), fileSize(aSize), devID(move(aDevID)), filePathLower(move(aFilePathLower)) { }
+		class WorkItem {
+		public:
+			WorkItem(const string& aFilePathLower, const string& aFilePath, int64_t aSize, const string& aDevID) : filePath(aFilePath), fileSize(aSize), devID(aDevID), filePathLower(aFilePathLower) { }
+			WorkItem(WorkItem&& rhs);
+			WorkItem& operator=(WorkItem&&);
 
 			string devID;
 			string filePath;
 			string filePathLower;
 			int64_t fileSize;
+
+			struct NameLower {
+				const string& operator()(const WorkItem& a) const { return a.filePathLower; }
+			};
+
+			struct HashSortOrder {
+				int operator()(const string& left, const string& right) const;
+			};
+		private:
+			WorkItem(const WorkItem&);
+			WorkItem& operator=(const WorkItem&);
 		};
 
-		deque<WorkItem> w;
-		struct HashSortOrder {
-			bool operator()(const WorkItem& left, const WorkItem& right) const;
-		};
+		SortedVector<WorkItem, std::deque, string, WorkItem::HashSortOrder, WorkItem::NameLower> w;
 
 		Semaphore s;
 		void removeDevice(const string& aID);
