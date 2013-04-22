@@ -58,6 +58,8 @@ public:
 
 	~LevelDB() {
 		delete db;
+		delete options.filter_policy;
+		delete options.block_cache;
 		if (dbEnv)
 			delete dbEnv;
 	}
