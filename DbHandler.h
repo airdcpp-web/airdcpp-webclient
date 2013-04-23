@@ -34,13 +34,13 @@ STANDARD_EXCEPTION(DbException);
 class DbHandler {
 public:
 	virtual void put(void* key, size_t keyLen, void* value, size_t valueLen) = 0;
-	virtual void* get(void* key, size_t keyLen, size_t initialValueLen) = 0;
+	virtual bool get(void* key, size_t keyLen, size_t initialValueLen, std::function<bool (void* aValue, size_t aValueLen)> loadF) = 0;
 
 	virtual bool hasKey(void* key, size_t keyLen) = 0;
 
 	virtual size_t size(bool thorough) = 0;
 
-	virtual void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue)> f) = 0;
+	virtual void remove_if(std::function<bool (void* aKey, size_t keyLen, void* aValue, size_t valueLen)> f) = 0;
 
 	virtual string getStats() { return "Not supported"; }
 

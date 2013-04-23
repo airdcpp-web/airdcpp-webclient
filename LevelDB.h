@@ -21,6 +21,7 @@
 #define DCPLUSPLUS_DCPP_LEVELDB_H_
 
 #include "DbHandler.h"
+#include "ScopedFunctor.h"
 
 #include <leveldb/comparator.h>
 #include <leveldb/db.h>
@@ -64,31 +65,32 @@ public:
 			delete dbEnv;
 	}
 
+	#define DBACTION(f) (performDbOperation([&] { return f; }))
+
 	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen) {
 		leveldb::Slice key((const char*)aKey, keyLen);
 		leveldb::Slice value((const char*)aValue, valueLen);
 
+		// leveldb doesn't support unique values, so check and delete existing ones manually before inserting (those shouldn't exist ofter and bloom filter should handle false searches efficiently)
 		string tmp;
-		auto ret = performDbOperation([&] { return db->Get(iteroptions, key, &tmp); });
-		if (ret.IsNotFound()) {
-			ret = db->Put(writeoptions, key, value);
+		auto ret = DBACTION(db->Get(iteroptions, key, &tmp));
+		if (!ret.IsNotFound()) {
+			DBACTION(db->Delete(writeoptions, key));
 		}
-		checkDbError(ret);
+
+		DBACTION(db->Put(writeoptions, key, value));
 	}
 
-	void* get(void* aKey, size_t keyLen, size_t /*valueLen*/) {
-		auto value = new string();
+	bool get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF) {
+		string value;
 		leveldb::Slice key((const char*)aKey, keyLen);
-		auto ret = performDbOperation([&] { return db->Get(readoptions, key, value); });
+
+		auto ret = DBACTION(db->Get(readoptions, key, &value));
 		if (ret.ok()) {
-			//void* aValue = malloc(value->size());
-			//memcpy(aValue, (void*)value->data(), value->size());
-			//return aValue;
-			return (void*)value->data();
+			return loadF((void*)value.data(), value.size());
 		}
 
-		checkDbError(ret);
-		return nullptr;
+		return false;
 	}
 
 	string getStats() { 
@@ -145,7 +147,7 @@ public:
 		return ret;
 	}
 
-	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue)> f) {
+	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f) {
 		// leveldb doesn't support erasing with an iterator, do it in the hard way
 		leveldb::WriteBatch wb;
 		leveldb::ReadOptions options;
@@ -154,7 +156,7 @@ public:
 		{
 			auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(options));
 			for (it->SeekToFirst(); it->Valid(); it->Next()) {
-				if (f((void*)it->key().data(), it->key().size(), (void*)it->value().data())) {
+				if (f((void*)it->key().data(), it->key().size(), (void*)it->value().data(), it->value().size())) {
 					wb.Delete(it->key());
 				}
 			}

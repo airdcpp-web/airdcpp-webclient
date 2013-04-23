@@ -30,8 +30,12 @@
 #include "AirUtil.h"
 #include "ScopedFunctor.h"
 
+//#include "BerkeleyDB.h"
 #include "LevelDB.h"
 //#include "HamsterDB.h"
+
+#define FILEINDEX_VERSION 1
+#define HASHDATA_VERSION 1
 
 namespace dcpp {
 
@@ -257,7 +261,7 @@ void HashManager::HashStore::addFile(string&& aFileLower, HashedFile& fi_) {
 
 void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 	size_t treelen = tt.getLeaves().size() == 1 ? 0 : tt.getLeaves().size() * TTHValue::BYTES;
-	auto sz = sizeof(int64_t) + sizeof(int64_t) + sizeof(treelen) + treelen;
+	auto sz = sizeof(uint8_t) + sizeof(int64_t) + sizeof(int64_t) + treelen;
 
 	//allocate the memory
 	void* buf = malloc(sz);
@@ -266,6 +270,9 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 	//set the data
 	char *p = (char *)buf;
 
+	uint8_t version = HASHDATA_VERSION;
+	memcpy(p, &version, sizeof(uint8_t));
+	p += sizeof(uint8_t);
 
 	int64_t fileSize = tt.getFileSize();
 	memcpy(p, &fileSize, sizeof(int64_t));
@@ -274,9 +281,6 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 	int64_t blockSize = tt.getBlockSize();
 	memcpy(p, &blockSize, sizeof(int64_t));
 	p += sizeof(int64_t);
-
-	memcpy(p, &treelen, sizeof(size_t));
-	p += sizeof(size_t);
 
 	if (treelen > 0)
 		memcpy(p, tt.getLeaves()[0].data, treelen);
@@ -296,12 +300,9 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 
 bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
 	try {
-		auto buf = hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024); 
-		if (buf) {
-			loadTree(root, tt, buf);
-			free(buf);
-			return true;
-		}
+		return hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024, [&](void* aValue, size_t valueLen) {
+			return loadTree(aValue, valueLen, root, tt);
+		});
 	} catch(DbException& e) {
 		LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
 	}
@@ -319,8 +320,16 @@ bool HashManager::HashStore::hasTree(const TTHValue& root) {
 	return ret;
 }
 
-void HashManager::HashStore::loadTree(const TTHValue& aRoot, TigerTree& aTree, const void *src) {
+bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree) {
 	char *p = (char*)src;
+
+	uint8_t version;
+	memcpy(&version, p, sizeof(uint8_t));
+	p += sizeof(uint8_t);
+
+	if (version > HASHDATA_VERSION) {
+		return false;
+	}
 
 	int64_t fileSize;
 	memcpy(&fileSize, p, sizeof(int64_t));
@@ -330,22 +339,28 @@ void HashManager::HashStore::loadTree(const TTHValue& aRoot, TigerTree& aTree, c
 	memcpy(&blockSize, p, sizeof(int64_t));
 	p += sizeof(int64_t);
 
-	//size_t datalen = TigerTree::calcBlocks(fileSize, blockSize) * TTHValue::BYTES;
-	size_t datalen;
-	memcpy(&datalen, p, sizeof(size_t));
-	p += sizeof(size_t);
-
+	size_t datalen = len - sizeof(uint8_t) - sizeof(int64_t) - sizeof(int64_t);
 	if (datalen > 0) {
+		dcassert(datalen % TTHValue::BYTES == 0);
 		boost::scoped_array<uint8_t> buf(new uint8_t[datalen]);
 		memcpy(&buf[0], p, datalen);
 		aTree = TigerTree(fileSize, blockSize, &buf[0]);
 	} else {
 		aTree = TigerTree(fileSize, blockSize, aRoot);
 	}
+	return true;
 }
 
-void HashManager::HashStore::loadFileInfo(HashedFile& aFile, const void *src) {
+bool HashManager::HashStore::loadFileInfo(const void* src, size_t len, HashedFile& aFile) {
 	char *p = (char*)src;
+
+	uint8_t version;
+	memcpy(&version, p, sizeof(uint8_t));
+	p += sizeof(uint8_t);
+
+	if (version > FILEINDEX_VERSION) {
+		return false;
+	}
 
 	uint64_t timeStamp;
 	memcpy(&timeStamp, p, sizeof(uint64_t));
@@ -360,10 +375,15 @@ void HashManager::HashStore::loadFileInfo(HashedFile& aFile, const void *src) {
 	p += sizeof(int64_t);
 
 	aFile = HashedFile(root, timeStamp, fileSize);
+	return true;
 }
 
 void HashManager::HashStore::saveFileInfo(void *dest, const HashedFile& aFile) {
 	char *p = (char *)dest;
+
+	uint8_t version = FILEINDEX_VERSION;
+	memcpy(p, &version, sizeof(uint8_t));
+	p += sizeof(uint8_t);
 
 	uint64_t timeStamp = aFile.getTimeStamp();
 	memcpy(p, &timeStamp, sizeof(uint64_t));
@@ -379,7 +399,7 @@ void HashManager::HashStore::saveFileInfo(void *dest, const HashedFile& aFile) {
 }
 
 uint32_t HashManager::HashStore::getFileInfoSize(const HashedFile& /*aTree*/) {
-	return sizeof(uint64_t) + sizeof(TTHValue) + sizeof(int64_t);
+	return sizeof(uint8_t) + sizeof(uint64_t) + sizeof(TTHValue) + sizeof(int64_t);
 }
 
 void HashManager::HashStore::loadLegacyTree(File& f, int64_t aSize, int64_t aIndex, int64_t aBlockSize, size_t datLen, const TTHValue& root, TigerTree& tt) {
@@ -396,21 +416,28 @@ void HashManager::HashStore::loadLegacyTree(File& f, int64_t aSize, int64_t aInd
 }
 
 int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType) {
+	int64_t ret = 0;
 	try {
-		auto buf = hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024);
-		if (buf) {
-			char* p = (char*)buf;
+		hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024, [&](void* aValue, size_t /*valueLen*/) {
+			char* p = (char*)aValue;
+
+			uint8_t version;
+			memcpy(&version, p, sizeof(uint8_t));
+			p += sizeof(uint8_t);
+
+			if (version > FILEINDEX_VERSION) {
+				return false;
+			}
+
 			p += (aType == TYPE_FILESIZE ? 0 : sizeof(int64_t));
 
-			int64_t info;
-			memcpy(&info, p, sizeof(int64_t));
-			free(buf);
-			return info;
-		}
+			memcpy(&ret, p, sizeof(ret));
+			return true;
+		});
 	} catch(DbException& e) {
 		LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
 	}
-	return 0;
+	return ret;
 }
 
 bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, uint32_t aTimeStamp, TTHValue& outTTH_) {
@@ -428,12 +455,9 @@ bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, u
 
 bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& fi_) {
 	try {
-		auto buf = fileDb->get((void*)aFileLower.c_str(), aFileLower.length(), sizeof(HashedFile));
-		if (buf) {
-			loadFileInfo(fi_, buf);
-			free(buf);
-			return true;
-		}
+		return fileDb->get((void*)aFileLower.c_str(), aFileLower.length(), sizeof(HashedFile), [&](void* aValue, size_t valueLen) {
+			return loadFileInfo(aValue, valueLen, fi_);
+		});
 	} catch(DbException& e) {
 		LogManager::getInstance()->message("Failed to get file info: " + e.getError(), LogManager::LOG_ERROR);
 	}
@@ -454,10 +478,10 @@ void HashManager::HashStore::rebuild() {
 			string path;
 
 			try {
-				fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue) {
+				fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
 					path = string((const char*)aKey, key_len);
 					if (ShareManager::getInstance()->isRealPathShared(path)) {
-						loadFileInfo(fi, aValue);
+						loadFileInfo(aValue, valueLen, fi);
 						usedRoots.insert(fi.getRoot());
 						return false;
 					} else {
@@ -473,7 +497,7 @@ void HashManager::HashStore::rebuild() {
 		{
 			TTHValue curRoot;
 			try {
-				hashDb->remove_if([&](void* aKey, size_t key_len, void* /*aValue*/) {
+				hashDb->remove_if([&](void* aKey, size_t key_len, void* /*aValue*/, size_t /*valueLen*/) {
 					memcpy(&curRoot, aKey, key_len);
 					if (usedRoots.find(curRoot) == usedRoots.end()) {
 						//auto ret = cursorp->del(0);
@@ -542,6 +566,8 @@ void HashManager::HashStore::openDb() {
 	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1)) * 1024*1024;
 
 	try {
+		//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
+		//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
 		hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize*0.30, true, 64*1024));
 		fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize*0.70, true));
 		//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));

@@ -245,13 +245,13 @@ private:
 
 
 
-		static void loadTree(const TTHValue& aRoot, TigerTree& aTree, const void *src);
+		static bool loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree);
 
 		//static void loadTree(TigerTree& aTree, const void *src);
 		//static void saveTree(void *dest, const TigerTree& aTree);
 		//static u_int32_t getTreeSize(const TigerTree& aTree);
 
-		static void loadFileInfo(HashedFile& aFile, const void *src);
+		static bool loadFileInfo(const void* src, size_t len, HashedFile& aFile);
 		static void saveFileInfo(void *dest, const HashedFile& aTree);
 		static uint32_t getFileInfoSize(const HashedFile& aTree);
 

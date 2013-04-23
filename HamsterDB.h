@@ -99,7 +99,7 @@ public:
 		}
 	}
 
-	void* get(void* aKey, size_t keyLen, size_t /*valueLen*/) {
+	bool get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF) {
 		hamsterdb::key key(aKey, keyLen);
 		hamsterdb::record rec;
 
@@ -109,16 +109,16 @@ public:
 				rec = db->find(&key);
 			} catch (hamsterdb::error &e) {
 				checkDbError(e);
-				return nullptr;
+				return false;
 			}
 		}
 
-		void* aValue = malloc(rec.get_size());
+		/*void* aValue = malloc(rec.get_size());
 		if (!uncompress(rec.get_data(), rec.get_size(), aValue)) {
 			memcpy(aValue, rec.get_data(), rec.get_size());
-		}
+		}*/
 
-		return aValue;
+		return loadF(rec.get_data(), rec.get_size());
 	}
 
 	bool hasKey(void* aKey, size_t keyLen) {
@@ -139,7 +139,7 @@ public:
 		return db->get_key_count();
 	}
 
-	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue)> f) {
+	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f) {
 		hamsterdb::cursor cursor(db, NULL, 0);
 		hamsterdb::key key;
 		hamsterdb::record rec;
@@ -147,7 +147,7 @@ public:
 		try {
 			while (1) {
 				cursor.move_next(&key, &rec);
-				if (f(key.get_data(), key.get_size(), rec.get_data())) {
+				if (f(key.get_data(), key.get_size(), rec.get_data(), rec.get_size())) {
 					cursor.erase();
 				}
 			}
