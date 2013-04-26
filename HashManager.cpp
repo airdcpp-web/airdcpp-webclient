@@ -65,7 +65,8 @@ void HashManager::getFileInfo(const string& aFileName, HashedFile& fi_) {
 	auto found = store.getFileInfo(nameLower, fi_);
 	if (!found) {
 		auto size = File::getSize(aFileName);
-		hashFile(aFileName, move(nameLower), size);
+		if (size >= 0)
+			hashFile(aFileName, move(nameLower), size);
 		throw HashException();
 	}
 
@@ -472,7 +473,7 @@ void HashManager::HashStore::rebuild() {
 		int unusedFiles=0; 
 		int64_t failedSize = 0;
 
-		unordered_set<TTHValue> usedRoots;
+		unordered_map<TTHValue, string> sharedPaths;
 		{
 			HashedFile fi;
 			string path;
@@ -482,7 +483,7 @@ void HashManager::HashStore::rebuild() {
 					path = string((const char*)aKey, key_len);
 					if (ShareManager::getInstance()->isRealPathShared(path)) {
 						loadFileInfo(aValue, valueLen, fi);
-						usedRoots.insert(fi.getRoot());
+						sharedPaths.emplace(fi.getRoot(), path);
 						return false;
 					} else {
 						unusedFiles++;
@@ -490,7 +491,8 @@ void HashManager::HashStore::rebuild() {
 					}
 				});
 			} catch(DbException& e) {
-				LogManager::getInstance()->message("Failed to read the file index: " + e.getError(), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message("Failed to read the file index (rebuild cancelled): " + e.getError(), LogManager::LOG_ERROR);
+				return;
 			}
 		}
 
@@ -499,11 +501,12 @@ void HashManager::HashStore::rebuild() {
 			try {
 				hashDb->remove_if([&](void* aKey, size_t key_len, void* /*aValue*/, size_t /*valueLen*/) {
 					memcpy(&curRoot, aKey, key_len);
-					if (usedRoots.find(curRoot) == usedRoots.end()) {
-						//auto ret = cursorp->del(0);
+					auto i = sharedPaths.find(curRoot);
+					if (i == sharedPaths.end()) {
 						unusedTrees++;
 						return true;
 					} else {
+						sharedPaths.erase(i);
 						//check if the data is valid
 						/*loadTree(curRoot, tt, data.get_data());
 						if (tt.getRoot() == curRoot)	
@@ -517,10 +520,17 @@ void HashManager::HashStore::rebuild() {
 					}
 				});
 			} catch(DbException& e) {
-				LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message("Failed to read the hash data (rebuild cancelled): " + e.getError(), LogManager::LOG_ERROR);
+				return;
 			}
 		}
 
+
+		//remove file entries that don't have a corresponding hash data entry
+		failedTrees = sharedPaths.size();
+		for (const auto& path: sharedPaths | map_values) {
+			fileDb->remove((void*)path.c_str(), path.length());
+		}
 
 		string msg;
 		if (unusedFiles > 0 || unusedTrees > 0) {
@@ -568,8 +578,8 @@ void HashManager::HashStore::openDb() {
 	try {
 		//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
 		//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
-		hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize*0.30, true, 64*1024));
-		fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize*0.70, true));
+		hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize*0.30, 64*1024));
+		fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize*0.70));
 		//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));
 		//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70, 255, false));
 	} catch(DbException& e) {

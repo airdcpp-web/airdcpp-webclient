@@ -118,7 +118,7 @@ private:
 				first = ++it;
 				count -= step + 1;
 			} else if (res == 0) {
-				return make_pair(first, true);
+				return make_pair(it, true);
 			} else {
 				count = step;
 			}

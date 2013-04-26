@@ -21,178 +21,32 @@
 #define DCPLUSPLUS_DCPP_LEVELDB_H_
 
 #include "DbHandler.h"
-#include "ScopedFunctor.h"
 
-#include <leveldb/comparator.h>
+#include <leveldb/status.h>
 #include <leveldb/db.h>
 #include <leveldb/env.h>
 #include <leveldb/options.h>
-#include <leveldb/filter_policy.h>
-#include <leveldb/cache.h>
-#include <leveldb/slice.h>
-#include <leveldb/status.h>
-#include <leveldb/write_batch.h>
-
-#define MAX_DB_RETRIES 5
 
 namespace dcpp {
 
 class LevelDB : public DbHandler {
 public:
-	LevelDB(const string& aPath, uint64_t cacheSize, bool cacheReads, uint64_t aBlockSize = 4096) : DbHandler(aPath, cacheSize) {
-		dbEnv = nullptr;
-		//readoptions.verify_checksums = true;
+	LevelDB(const string& aPath, uint64_t cacheSize, uint64_t aBlockSize = 4096);
+	~LevelDB();
 
-		//iteroptions.verify_checksums = true;
-		iteroptions.fill_cache = false;
-		readoptions.fill_cache = true;
+	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen);
+	bool get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF);
+	void remove(void* aKey, size_t keyLen);
+	bool hasKey(void* aKey, size_t keyLen);
 
-		options.block_size = aBlockSize;
-		options.block_cache = leveldb::NewLRUCache(cacheSize);
-		//options.write_buffer_size = cacheSize / 4; // up to two write buffers may be held in memory simultaneously
-		options.filter_policy = leveldb::NewBloomFilterPolicy(10);
-		options.create_if_missing = true;
+	string getStats();
 
-		auto ret = leveldb::DB::Open(options, dbPath, &db);
-		checkDbError(ret);
-	}
+	size_t size(bool /*thorough*/);
 
-	~LevelDB() {
-		delete db;
-		delete options.filter_policy;
-		delete options.block_cache;
-		if (dbEnv)
-			delete dbEnv;
-	}
-
-	#define DBACTION(f) (performDbOperation([&] { return f; }))
-
-	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen) {
-		leveldb::Slice key((const char*)aKey, keyLen);
-		leveldb::Slice value((const char*)aValue, valueLen);
-
-		// leveldb doesn't support unique values, so check and delete existing ones manually before inserting (those shouldn't exist ofter and bloom filter should handle false searches efficiently)
-		string tmp;
-		auto ret = DBACTION(db->Get(iteroptions, key, &tmp));
-		if (!ret.IsNotFound()) {
-			DBACTION(db->Delete(writeoptions, key));
-		}
-
-		DBACTION(db->Put(writeoptions, key, value));
-	}
-
-	bool get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF) {
-		string value;
-		leveldb::Slice key((const char*)aKey, keyLen);
-
-		auto ret = DBACTION(db->Get(readoptions, key, &value));
-		if (ret.ok()) {
-			return loadF((void*)value.data(), value.size());
-		}
-
-		return false;
-	}
-
-	string getStats() { 
-		string ret;
-		string value = "leveldb.stats";
-		leveldb::Slice prop(value.c_str(), value.length());
-		db->GetProperty(prop, &ret);
-		return ret;
-	}
-
-	bool hasKey(void* aKey, size_t keyLen) {
-
-		/*string value;
-		leveldb::Slice key((const char*)aKey, keyLen);
-		auto ret = db->Get(iteroptions, key, &value);
-		return ret.ok();*/
-
-		auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(iteroptions));
-
-		leveldb::Slice key((const char*)aKey, keyLen);
-
-		int attempts = 0;
-		for (;;) {
-			it->Seek(key);
-			if (it->status().IsIOError()) {
-				attempts++;
-				if (attempts == MAX_DB_RETRIES) {
-					break;
-				}
-				continue;
-			}
-
-			break;
-		}
-
-		if (it->Valid() && options.comparator->Compare(key, it->key()) == 0)
-			return true;
-
-		checkDbError(it->status());
-		return false;
-	}
-
-	size_t size(bool /*thorough*/) {
-		// leveldb doesn't support any easy way to do this
-		size_t ret = 0;
-		leveldb::ReadOptions options;
-		options.fill_cache = false;
-		auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(options));
-		for (it->SeekToFirst(); it->Valid(); it->Next()) {
-			ret++;
-		}
-
-		checkDbError(it->status());
-		return ret;
-	}
-
-	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f) {
-		// leveldb doesn't support erasing with an iterator, do it in the hard way
-		leveldb::WriteBatch wb;
-		leveldb::ReadOptions options;
-		options.fill_cache = false;
-
-		{
-			auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(options));
-			for (it->SeekToFirst(); it->Valid(); it->Next()) {
-				if (f((void*)it->key().data(), it->key().size(), (void*)it->value().data(), it->value().size())) {
-					wb.Delete(it->key());
-				}
-			}
-
-			checkDbError(it->status());
-		}
-
-		db->Write(writeoptions, &wb);
-	}
+	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f);
 private:
-	leveldb::Status performDbOperation(function<leveldb::Status ()> f) {
-		int attempts = 0;
-		leveldb::Status ret;
-		for (;;) {
-			ret = f();
-			if (ret.IsIOError()) {
-				attempts++;
-				if (attempts == MAX_DB_RETRIES) {
-					break;
-				}
-				continue;
-			}
-
-			break;
-		}
-
-		checkDbError(ret);
-		return ret;
-	}
-
-	void checkDbError(leveldb::Status aStatus) {
-		if (aStatus.ok() || aStatus.IsNotFound())
-			return;
-
-		throw DbException(aStatus.ToString());
-	}
+	leveldb::Status performDbOperation(function<leveldb::Status ()> f);
+	void checkDbError(leveldb::Status aStatus);
 
 	leveldb::DB* db;
 	leveldb::Env* dbEnv;
