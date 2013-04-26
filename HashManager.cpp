@@ -536,7 +536,7 @@ void HashManager::HashStore::rebuild() {
 		if (failedTrees > 0) {
 			try {
 				HashedFile fi;
-				fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
+				fileDb->remove_if([&](void* /*aKey*/, size_t /*key_len*/, void* aValue, size_t valueLen) {
 					loadFileInfo(aValue, valueLen, fi);
 					if (usedRoots.find(fi.getRoot()) != usedRoots.end()) {
 						validFiles--;
@@ -800,7 +800,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 						sizeMap.emplace(tth, size);
 						migratedTrees++;
 					}
-				} catch (const Exception& e) {
+				} catch (const Exception& /*e*/) {
 					failedTrees++;
 				}
 			}

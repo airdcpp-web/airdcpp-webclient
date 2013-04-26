@@ -377,7 +377,6 @@ private:
 
 		string getADCPath(ProfileToken aProfile) const noexcept;
 		string getVirtualName(ProfileToken aProfile) const noexcept;
-		string getRealName() const { return realName; }
 		string getFullName(ProfileToken aProfile) const noexcept; 
 		string getRealPath(bool checkExistance) const { return getRealPath(Util::emptyString, checkExistance); };
 
@@ -413,6 +412,7 @@ private:
 		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const;
 		int64_t size;
 
+		const string& getRealName() const { return realName; }
 		const string& getRealNameLower() const { return realNameLower; }
 
 		File::Set::const_iterator findFile(const string& aName) const;
@@ -428,8 +428,8 @@ private:
 		uint32_t fileTypes;
 
 		string getRealPath(const string& path, bool checkExistance) const;
-		string realName;
-		string realNameLower;
+		const string realName;
+		const string realNameLower;
 	};
 
 	struct FileListDir {
@@ -461,9 +461,7 @@ private:
 
 	friend class Singleton<ShareManager>;
 
-	typedef unordered_multimap<TTHValue*, Directory::File::Set::const_iterator> HashFileMap;
-	typedef HashFileMap::const_iterator HashFileIter;
-
+	typedef unordered_multimap<TTHValue*, const Directory::File*> HashFileMap;
 	HashFileMap tthIndex;
 	
 	ShareManager();
@@ -479,7 +477,7 @@ private:
 	};
 
 	bool addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, AdcSearch& srch) const;
-	typedef boost::unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
+	typedef unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
 	ProfileDirMap profileDirs;
 
 	ProfileDirMap getSubProfileDirs(const string& aPath);
@@ -511,7 +509,7 @@ private:
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
-	typedef boost::unordered_multimap<string, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMultiMap; 
+	typedef boost::unordered_multimap<string*, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMultiMap; 
 
 	//list to return multiple directory item pointers
 	typedef std::vector<Directory::Ptr> DirectoryList;
