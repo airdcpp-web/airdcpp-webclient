@@ -1684,5 +1684,12 @@ enum Strings { // @DontAdd
 	YEARS, // "Years"
 	UPGRADING_HASHDATA, // "Upgrading hash database"
 	TLS_ERROR, // "TLS error"
+	DB_MIGRATION_FREE_SPACE, // "There is only %s of free space in the location %s while %s is needed in order to upgrade the hash database. Please free up some space and run the client again."
+	DB_MIGRATION_INFO, // "%s uses a new format for storing the information about hashed files in order to improve performance and reduce resource usage.\r\n\r\nThe client will now convert the database to use the new format. This will take from a few seconds to several hours, depending on the amount of shared files and the hard disk speed."
+	WANT_CONTINUE, // "Do you want to continue?"
+	DB_MIGRATION_COMPLETE, // "The hash database has been upgraded.\r\n\r\nConverted file entries: %s\r\nConverted tree entries: %s\r\nFailed tree entries: %s\r\n\r\nThe old database files in the settings directory have been renamed to HashIndex.xml.bak (%s) and HashData.dat.bak (%s). Those files can safely be removed."
+	COMPACTING_X, // "Compacting %s..."
+	FILE_INDEX, // "File index"
+	HASH_DATA, // "Hash data"
 	LAST // @DontAdd
 };

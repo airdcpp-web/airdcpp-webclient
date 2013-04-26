@@ -44,6 +44,7 @@ public:
 	size_t size(bool /*thorough*/);
 
 	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f);
+	void compact();
 private:
 	leveldb::Status performDbOperation(function<leveldb::Status ()> f);
 	void checkDbError(leveldb::Status aStatus);

@@ -164,8 +164,7 @@ bool TargetUtil::getDiskInfo(TargetInfo& targetInfo_) {
 		return false;
 	}
 
-	int64_t totalSize = 0;
-	GetDiskFreeSpaceEx(Text::toT(pathVol).c_str(), NULL, (PULARGE_INTEGER)&totalSize, (PULARGE_INTEGER)&targetInfo_.diskSpace);
+	targetInfo_.diskSpace = getFreeSpace(pathVol);
 
 	TargetInfoMap targetMap;
 	targetMap[pathVol] = targetInfo_;
@@ -173,6 +172,13 @@ bool TargetUtil::getDiskInfo(TargetInfo& targetInfo_) {
 	QueueManager::getInstance()->getDiskInfo(targetMap, volumes);
 	targetInfo_ = targetMap[pathVol];
 	return true;
+}
+
+int64_t TargetUtil::getFreeSpace(const string& aPath) {
+	int64_t totalSize = 0;
+	int64_t ret = 0;
+	GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&totalSize, (PULARGE_INTEGER)&ret);
+	return ret;
 }
 
 void TargetUtil::getVolumes(VolumeSet& volumes) {

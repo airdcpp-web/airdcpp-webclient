@@ -63,6 +63,7 @@ public:
 
 	static void getVolumes(VolumeSet& volumes);
 	static bool getDiskInfo(TargetInfo& ti_);
+	static int64_t getFreeSpace(const string& aPath);
 
 	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod);
 	static void reportInsufficientSize(const TargetInfo& ti, int64_t aSize);

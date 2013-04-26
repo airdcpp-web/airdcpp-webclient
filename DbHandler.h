@@ -42,6 +42,7 @@ public:
 	virtual size_t size(bool thorough) = 0;
 
 	virtual void remove_if(std::function<bool (void* aKey, size_t keyLen, void* aValue, size_t valueLen)> f) = 0;
+	virtual void compact() { }
 
 	virtual string getStats() { return "Not supported"; }
 

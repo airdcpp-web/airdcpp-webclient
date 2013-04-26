@@ -110,7 +110,7 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
 	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
-	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode",
+	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", 
 	"SENTRY",
 
 	// Bools
@@ -157,7 +157,7 @@ const string SettingsManager::settingTags[] =
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
-	"AcceptFailoversFavs", "DbCacheAutoset",
+	"AcceptFailoversFavs",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -763,7 +763,9 @@ SettingsManager::SettingsManager()
 	setDefault(ACCEPT_FAILOVERS, true);
 
 	setDefault(DB_CACHE_SIZE, 8);
-	setDefault(DB_CACHE_AUTOSET, true);
+	setDefault(CUR_REMOVED_TREES, 0);
+	setDefault(CUR_REMOVED_FILES, 0);
+
 	setDefault(DL_AUTO_DISCONNECT_MODE, QUEUE_FILE);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
@@ -772,7 +774,7 @@ SettingsManager::SettingsManager()
 #endif
 }
 
-void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF) {
+void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) {
 	try {
 		SimpleXML xml;
 		xml.loadSettingFile(CONFIG_DIR, CONFIG_NAME);
@@ -934,7 +936,7 @@ You can customize those settings for each favorite hub if needed")
 				% getSettingTextStr(STRING(SETTINGS_EXTERNAL_IP) + "\t", SettingsManager::EXTERNAL_IP)
 				% getConnection());
 
-			messageF(msg, false);
+			messageF(msg, false, false);
 		}
 
 		if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
@@ -970,7 +972,7 @@ You can customize those settings for each favorite hub if needed")
 			AirUtil::IpList addresses;
 			AirUtil::getIpAddresses(addresses, v6);
 			auto p = boost::find_if(addresses, [this, aSetting](const AirUtil::AddressInfo& aInfo) { return aInfo.ip == get(aSetting); });
-			if (p == addresses.end() && messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true)) {
+			if (p == addresses.end() && messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true, false)) {
 				set(aSetting, Util::emptyString);
 			}
 		}

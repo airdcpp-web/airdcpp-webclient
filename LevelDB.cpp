@@ -153,7 +153,11 @@ void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aV
 	}
 
 	db->Write(writeoptions, &wb);
-	db->CompactRange(NULL, NULL); //free up some space, https://code.google.com/p/leveldb/issues/detail?id=158
+}
+
+//free up some space, https://code.google.com/p/leveldb/issues/detail?id=158
+void LevelDB::compact() {
+	db->CompactRange(NULL, NULL);
 }
 
 

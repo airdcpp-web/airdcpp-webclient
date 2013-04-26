@@ -1680,6 +1680,13 @@ std::string dcpp::ResourceManager::strings[] = {
 "Years", 
 "Upgrading hash database", 
 "TLS error", 
+"There is only %s of free space in the location %s while %s is needed in order to upgrade the hash database. Please free up some space and run the client again.", 
+"%s uses a new format for storing the information about hashed files in order to improve performance and reduce resource usage.\r\n\r\nThe client will now convert the database to use the new format. This will take from a few seconds to several hours, depending on the amount of shared files and the hard disk speed.", 
+"Do you want to continue?", 
+"The hash database has been upgraded.\r\n\r\nConverted file entries: %s\r\nConverted tree entries: %s\r\nFailed tree entries: %s\r\n\r\nThe old database files in the settings directory have been renamed to HashIndex.xml.bak (%s) and HashData.dat.bak (%s). Those files can safely be removed.", 
+"Compacting %s...", 
+"File index", 
+"Hash data", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3360,4 +3367,11 @@ std::string dcpp::ResourceManager::names[] = {
 "Years", 
 "UpgradingHashdata", 
 "TlsError", 
+"DbMigrationFreeSpace", 
+"DbMigrationInfo", 
+"WantContinue", 
+"DbMigrationComplete", 
+"CompactingX", 
+"FileIndex", 
+"HashData", 
 };

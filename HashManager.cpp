@@ -29,6 +29,8 @@
 #include "ShareManager.h"
 #include "AirUtil.h"
 #include "ScopedFunctor.h"
+#include "TargetUtil.h"
+#include "version.h"
 
 //#include "BerkeleyDB.h"
 #include "LevelDB.h"
@@ -471,19 +473,21 @@ void HashManager::HashStore::rebuild() {
 		int unusedTrees = 0;
 		int failedTrees = 0;
 		int unusedFiles=0; 
+		int validFiles = 0;
+		int validTrees = 0;
 		int64_t failedSize = 0;
 
-		unordered_map<TTHValue, string> sharedPaths;
+		unordered_set<TTHValue> usedRoots;
 		{
 			HashedFile fi;
 			string path;
-
 			try {
 				fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
 					path = string((const char*)aKey, key_len);
 					if (ShareManager::getInstance()->isRealPathShared(path)) {
 						loadFileInfo(aValue, valueLen, fi);
-						sharedPaths.emplace(fi.getRoot(), path);
+						usedRoots.emplace(fi.getRoot());
+						validFiles++;
 						return false;
 					} else {
 						unusedFiles++;
@@ -501,12 +505,13 @@ void HashManager::HashStore::rebuild() {
 			try {
 				hashDb->remove_if([&](void* aKey, size_t key_len, void* /*aValue*/, size_t /*valueLen*/) {
 					memcpy(&curRoot, aKey, key_len);
-					auto i = sharedPaths.find(curRoot);
-					if (i == sharedPaths.end()) {
+					auto i = usedRoots.find(curRoot);
+					if (i == usedRoots.end()) {
 						unusedTrees++;
 						return true;
 					} else {
-						sharedPaths.erase(i);
+						usedRoots.erase(i);
+						validTrees++;
 						//check if the data is valid
 						/*loadTree(curRoot, tt, data.get_data());
 						if (tt.getRoot() == curRoot)	
@@ -527,9 +532,47 @@ void HashManager::HashStore::rebuild() {
 
 
 		//remove file entries that don't have a corresponding hash data entry
-		failedTrees = sharedPaths.size();
-		for (const auto& path: sharedPaths | map_values) {
-			fileDb->remove((void*)path.c_str(), path.length());
+		failedTrees = usedRoots.size();
+		if (failedTrees > 0) {
+			try {
+				HashedFile fi;
+				fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
+					loadFileInfo(aValue, valueLen, fi);
+					if (usedRoots.find(fi.getRoot()) != usedRoots.end()) {
+						validFiles--;
+						return true;
+					}
+
+					return false;
+				});
+			} catch(DbException& e) {
+				LogManager::getInstance()->message("Failed to read the file index (rebuild cancelled): " + e.getError(), LogManager::LOG_ERROR);
+				return;
+			}
+		}
+
+		/*auto maybeCompact = [&](const SettingsManager::IntSetting setting, const string& aName, DbHandler* aDB) {
+			int curRemoved = SettingsManager::getInstance()->get(setting)+;
+			SettingsManager::getInstance()->set(setting, SettingsManager::getInstance()->get(setting) + unusedFiles);
+			if ((static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
+				LogManager::getInstance()->message(STRING_F(COMPACTING_X, Text::toLower(aName)), LogManager::LOG_INFO);
+				fileDb->compact();
+				SettingsManager::getInstance()->set(setting, 0);
+			}
+		}*/
+
+		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles);
+		if (validFiles == 0 || (static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
+			LogManager::getInstance()->message(STRING_F(COMPACTING_X, Text::toLower(STRING(FILE_INDEX))), LogManager::LOG_INFO);
+			fileDb->compact();
+			SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, 0);
+		}
+
+		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, SETTING(CUR_REMOVED_TREES) + unusedTrees);
+		if (validTrees == 0 || (static_cast<double>(SETTING(CUR_REMOVED_TREES)) / static_cast<double>(validTrees)) > 0.05) {
+			LogManager::getInstance()->message(STRING_F(COMPACTING_X, Text::toLower(STRING(HASH_DATA))), LogManager::LOG_INFO);
+			hashDb->compact();
+			SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, 0);
 		}
 
 		string msg;
@@ -599,25 +642,6 @@ void HashManager::HashStore::setCacheSize(uint64_t aSize) {
 	openDb();
 }
 
-void HashManager::HashStore::updateAutoCacheSize(bool setNow) {
-	if (SETTING(DB_CACHE_AUTOSET)) {
-		/* Guess a reasonable new value for the cache (100 bytes per file). Note that the real mem usage is 25% bigger if the cache size is less than 500MB */
-		size_t indexSize = 0;
-		try {
-			indexSize = fileDb->size(true); //fileIndex.size(true);
-		} catch(DbException& e) {
-			LogManager::getInstance()->message("Failed to read file index: " + e.getError(), LogManager::LOG_ERROR);
-			return;
-		}
-		size_t newSize = max((indexSize*100) / (1024*1024), static_cast<size_t>(8)); // min 8 MB
-		SettingsManager::getInstance()->set(SettingsManager::DB_CACHE_SIZE, static_cast<int>(newSize));
-
-		if (setNow) {
-			setCacheSize(newSize*1024*1024);
-		}
-	}
-}
-
 class HashLoader: public SimpleXMLReader::CallBack {
 public:
 	HashLoader(HashManager::HashStore& s, const CountedInputStream<false>& countedStream, uint64_t fileSize, function<void (float)> progressF) :
@@ -631,12 +655,19 @@ public:
 		inFiles(false),
 		inHashStore(false),
 		dataFile(nullptr),
-		readDataBytes(0)
+		readDataBytes(0),
+		migratedFiles(0),
+		migratedTrees(0),
+		failedTrees(0)
 	{ }
 
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name);
 	int64_t readDataBytes;
+
+	int failedTrees;
+	int migratedTrees;
+	int migratedFiles;
 private:
 	HashManager::HashStore& store;
 
@@ -656,11 +687,7 @@ private:
 	unordered_map<TTHValue, int64_t> sizeMap;
 };
 
-void HashManager::HashStore::load(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> /*messageF*/) {
-	//open the new database (fix migration)
-	//Util::migrate(Util::getPath(Util::PATH_USER_CONFIG) + "HashStore.db");
-	openDb();
-
+void HashManager::HashStore::load(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) {
 	auto dataFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat";
 	auto indexFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml";
 
@@ -674,30 +701,47 @@ void HashManager::HashStore::load(function<void (const string&)> stepF, function
 
 	bool migrating = hashDataSize != -1 && hashIndexSize != -1;
 	if (migrating) {
-		//make sure there is enough memory for the migration progress to complete in a reasonable time
-		setCacheSize(hashIndexSize / 2);
-	} else if (SETTING(DB_CACHE_AUTOSET)) {
-		updateAutoCacheSize(true);
+		auto ret = messageF(STRING_F(DB_MIGRATION_INFO, APPNAME " " SHORTVERSIONSTRING) + "\r\n\r\n" + STRING(WANT_CONTINUE), true, false);
+		if (!ret) {
+			exit(0);
+		}
+
+		auto volume = TargetUtil::getMountPath(Util::getPath(Util::PATH_USER_CONFIG));
+		if (!volume.empty()) {
+			auto freeSpace = TargetUtil::getFreeSpace(volume);
+			if (hashDataSize + hashIndexSize > freeSpace) {
+				messageF(STRING_F(DB_MIGRATION_FREE_SPACE, Util::formatBytes(freeSpace) % volume % Util::formatBytes(hashDataSize + hashIndexSize)), false, true);
+				exit(0);
+			}
+		}
 	}
+
+
+	//open the new database (fix migration)
+	openDb();
+
 
 	//migrate the old database file
 	if (migrating) {
 		stepF(STRING(UPGRADING_HASHDATA));
 		try {
+			int migratedFiles, migratedTrees, failedTrees;
 			{
 				File f(indexFile, File::READ, File::OPEN);
 				CountedInputStream<false> countedStream(&f);
 				HashLoader l(*this, countedStream, hashDataSize + hashIndexSize, progressF);
 				SimpleXMLReader(&l).parse(countedStream);
+				migratedFiles = l.migratedFiles;
+				migratedTrees = l.migratedTrees;
+				failedTrees = l.failedTrees;
 			}
 
 			File::renameFile(dataFile, dataFile + ".bak");
 			File::renameFile(indexFile, indexFile + ".bak");
+			messageF(STRING_F(DB_MIGRATION_COMPLETE, migratedFiles % migratedTrees % failedTrees % Util::formatBytes(hashIndexSize) % Util::formatBytes(hashDataSize)), false, false);
 		} catch (const Exception&) {
 			// ...
 		}
-
-		updateAutoCacheSize(false);
 	}
 }
 
@@ -754,9 +798,10 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 						store.addTree(tt);
 						sizeMap.emplace(tth, size);
+						migratedTrees++;
 					}
 				} catch (const Exception& e) {
-					//..
+					failedTrees++;
 				}
 			}
 		} else if (inFiles && name == sFile) {
@@ -771,6 +816,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				if (p != sizeMap.end()) {
 					auto fi = HashedFile(tth, timeStamp, p->second);
 					store.addFile(move(fileLower), fi);
+					migratedFiles++;
 				}
 			}
 		} else if (name == sTrees) {
@@ -875,7 +921,7 @@ void HashManager::rebuild() {
 	hashers.front()->scheduleRebuild(); 
 }
 
-void HashManager::startup(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF) {
+void HashManager::startup(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) {
 	hashers.push_back(new Hasher(false, 0));
 	store.load(stepF, progressF, messageF); 
 }

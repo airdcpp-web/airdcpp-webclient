@@ -93,7 +93,7 @@ public:
 	 */
 	void rebuild();
 
-	void startup(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF);
+	void startup(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF);
 	void stop();
 	void shutdown(function<void (float)> progressF);
 
@@ -208,7 +208,7 @@ private:
 		void addHashedFile(string&& aFilePathLower, const TigerTree& tt, HashedFile& fi_);
 		void addFile(string&& aFilePathLower, HashedFile& fi_);
 
-		void load(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/)> messageF);
+		void load(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF);
 
 		void rebuild();
 
