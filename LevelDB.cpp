@@ -30,7 +30,7 @@
 
 namespace dcpp {
 
-LevelDB::LevelDB(const string& aPath, uint64_t cacheSize, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, cacheSize), totalWrites(0), totalReads(0), ioErrors(0) {
+LevelDB::LevelDB(const string& aPath, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, cacheSize), totalWrites(0), totalReads(0), ioErrors(0) {
 	dbEnv = nullptr;
 	//readoptions.verify_checksums = true;
 
@@ -38,6 +38,7 @@ LevelDB::LevelDB(const string& aPath, uint64_t cacheSize, uint64_t aBlockSize /*
 	iteroptions.fill_cache = false;
 	readoptions.fill_cache = true;
 
+	options.max_open_files = maxOpenFiles;
 	options.block_size = aBlockSize;
 	options.block_cache = leveldb::NewLRUCache(cacheSize);
 	//options.write_buffer_size = cacheSize / 4; // up to two write buffers may be held in memory simultaneously
@@ -161,7 +162,8 @@ void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aV
 	db->Write(writeoptions, &wb);
 }
 
-//free up some space, https://code.google.com/p/leveldb/issues/detail?id=158
+// free up some space, https://code.google.com/p/leveldb/issues/detail?id=158
+// LevelDB will perform some kind of compaction on every startup but it's not as comprehensive as manual one
 void LevelDB::compact() {
 	db->CompactRange(NULL, NULL);
 }

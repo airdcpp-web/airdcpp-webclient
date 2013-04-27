@@ -621,8 +621,8 @@ void HashManager::HashStore::openDb() {
 	try {
 		//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
 		//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
-		hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize*0.30, 64*1024));
-		fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize*0.70));
+		hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize*0.30, 50, 64*1024));
+		fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize*0.70, 50));
 		//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));
 		//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70, 255, false));
 	} catch(DbException& e) {
