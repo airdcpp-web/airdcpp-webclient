@@ -633,7 +633,7 @@ public:
 		}
 	}
 
-	void reportErrors() {
+	void setErrorMsg(string& errorMsg_) {
 		if (!errors.empty()) {
 			StringList msg;
 
@@ -661,7 +661,7 @@ public:
 			}
 
 			//throw (long errors will crash the debug build.. fix maybe)
-			throw QueueException(Util::toString(", ", msg));
+			errorMsg_ = Util::toString(", ", msg);
 		}
 	}
 
@@ -670,7 +670,7 @@ private:
 	unordered_multimap<string, Error> errors;
 };
 
-BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate) throw(QueueException, FileException) {
+BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) noexcept {
 	string target = formatBundleTarget(aTarget, aDate);
 
 	auto fileCount = aFiles.size();
@@ -713,15 +713,17 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 	if (aFiles.empty()) {
 		//report existing files only if all files exist to prevent useless spamming
 		if (existingFiles == fileCount) {
-			throw QueueException(STRING_F(ALL_BUNDLE_FILES_EXIST, existingFiles));
+			errorMsg_ = STRING_F(ALL_BUNDLE_FILES_EXIST, existingFiles);
+			return nullptr;
 		}
 
-		errors.reportErrors();
+		errors.setErrorMsg(errorMsg_);
 		return nullptr;
 	} else if (smallDupes > 0) {
 		if (smallDupes == aFiles.size()) {
 			//no reason to continue if all remaining files are dupes
-			errors.reportErrors();
+			errors.setErrorMsg(errorMsg_);
+			return nullptr;
 		} else {
 			//those will get queued, don't report
 			errors.clearMinor();
@@ -751,7 +753,7 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		}
 
 		if (!addBundle(b, target, added)) {
-			errors.reportErrors();
+			errors.setErrorMsg(errorMsg_);
 			return nullptr;
 		}
 	}
@@ -762,7 +764,7 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
 	}
 
-	errors.reportErrors();
+	errors.setErrorMsg(errorMsg_);
 	return b;
 }
 

@@ -1687,6 +1687,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Compacting %s...", 
 "File index", 
 "Hash data", 
+"Open log directory", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3374,4 +3375,5 @@ std::string dcpp::ResourceManager::names[] = {
 "CompactingX", 
 "FileIndex", 
 "HashData", 
+"OpenLogDir", 
 };

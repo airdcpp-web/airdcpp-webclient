@@ -559,7 +559,7 @@ void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const ProfileT
 	}
 }
 
-void AutoSearchManager::onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) {
+void AutoSearchManager::onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) {
 	RLock l(cs);
 	auto as = getSearchByToken(aSearch);
 	if (as) {
@@ -1103,7 +1103,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 					onBundleCreated(b, as->getToken());
 				}
 			} catch(const Exception& e) {
-				onBundleCreationFailed(as->getToken(), e.getError(), ti.targetDir + sr->getFileName(), sr->getUser());
+				onBundleError(as->getToken(), e.getError(), ti.targetDir + sr->getFileName(), sr->getUser());
 				return;
 			}
 		}

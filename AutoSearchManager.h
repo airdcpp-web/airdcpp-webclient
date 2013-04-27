@@ -265,7 +265,7 @@ private:
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
 	void onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch);
-	void onBundleCreationFailed(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser);
+	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser);
 
 	void clearError(AutoSearchPtr& as);
 

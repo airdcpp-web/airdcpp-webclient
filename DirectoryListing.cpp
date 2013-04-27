@@ -432,15 +432,14 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 		return false;
 	}
 
-	BundlePtr b = nullptr;
-
-	try {
-		b = QueueManager::getInstance()->createDirectoryBundle(target, hintedUser, aFiles, prio, aDir->getDate());
-	} catch(QueueException& e) {
-		if (aAutoSearch == 0)
-			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % e.getError()), LogManager::LOG_WARNING);
-		else
-			AutoSearchManager::getInstance()->onBundleCreationFailed(aAutoSearch, e.getError(), target, hintedUser);
+	string errorMsg;
+	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(target, hintedUser, aFiles, prio, aDir->getDate(), errorMsg);
+	if (!errorMsg.empty()) {
+		if (aAutoSearch == 0) {
+			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % errorMsg), LogManager::LOG_WARNING);
+		} else {
+			AutoSearchManager::getInstance()->onBundleError(aAutoSearch, errorMsg, target, hintedUser);
+		}
 	}
 
 	if (b) {

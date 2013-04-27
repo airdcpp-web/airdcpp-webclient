@@ -1691,5 +1691,6 @@ enum Strings { // @DontAdd
 	COMPACTING_X, // "Compacting %s..."
 	FILE_INDEX, // "File index"
 	HASH_DATA, // "Hash data"
+	OPEN_LOG_DIR, // "Open log directory"
 	LAST // @DontAdd
 };

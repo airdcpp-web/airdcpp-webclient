@@ -63,6 +63,10 @@ private:
 
 	// options used when writing to the database
 	leveldb::WriteOptions writeoptions;
+
+	uint64_t totalReads;
+	uint64_t totalWrites;
+	uint64_t ioErrors;
 };
 
 } //dcpp

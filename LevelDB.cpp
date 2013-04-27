@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 #include "LevelDB.h"
+#include "Util.h"
 
 #include <leveldb/comparator.h>
 #include <leveldb/filter_policy.h>
@@ -25,11 +26,11 @@
 #include <leveldb/slice.h>
 #include <leveldb/write_batch.h>
 
-#define MAX_DB_RETRIES 5
+#define MAX_DB_RETRIES 10
 
 namespace dcpp {
 
-LevelDB::LevelDB(const string& aPath, uint64_t cacheSize, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, cacheSize) {
+LevelDB::LevelDB(const string& aPath, uint64_t cacheSize, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, cacheSize), totalWrites(0), totalReads(0), ioErrors(0) {
 	dbEnv = nullptr;
 	//readoptions.verify_checksums = true;
 
@@ -58,6 +59,7 @@ LevelDB::~LevelDB() {
 #define DBACTION(f) (performDbOperation([&] { return f; }))
 
 void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen) {
+	totalWrites++;
 	leveldb::Slice key((const char*)aKey, keyLen);
 	leveldb::Slice value((const char*)aValue, valueLen);
 
@@ -72,9 +74,9 @@ void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen) {
 }
 
 bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF) {
+	totalReads++;
 	string value;
 	leveldb::Slice key((const char*)aKey, keyLen);
-
 	auto ret = DBACTION(db->Get(readoptions, key, &value));
 	if (ret.ok()) {
 		return loadF((void*)value.data(), value.size());
@@ -88,6 +90,10 @@ string LevelDB::getStats() {
 	string value = "leveldb.stats";
 	leveldb::Slice prop(value.c_str(), value.length());
 	db->GetProperty(prop, &ret);
+	ret += "\r\n\r\nTotal reads: " + Util::toString(totalReads);
+	ret += "\r\nTotal Writes: " + Util::toString(totalWrites);
+	ret += "\r\nI/O errors: " + Util::toString(ioErrors);
+	ret += "\r\n\r\n";
 	return ret;
 }
 
@@ -168,10 +174,12 @@ leveldb::Status LevelDB::performDbOperation(function<leveldb::Status ()> f) {
 	for (;;) {
 		ret = f();
 		if (ret.IsIOError()) {
+			ioErrors++;
 			attempts++;
 			if (attempts == MAX_DB_RETRIES) {
 				break;
 			}
+			Sleep(50);
 			continue;
 		}
 
