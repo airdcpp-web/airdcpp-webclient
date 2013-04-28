@@ -652,9 +652,9 @@ void ShareScannerManager::scanBundle(BundlePtr aBundle, bool& hasMissing, bool& 
 		if (!aBundle->isFailed() || hasMissing || hasExtras) {
 			string report;
 			if (aBundle->isFailed()) {
-				report = STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getTarget());
+				report = STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getName());
 			} else {
-				report = STRING_F(SCAN_BUNDLE_FINISHED, aBundle->getTarget());
+				report = STRING_F(SCAN_BUNDLE_FINISHED, aBundle->getName());
 			}
 
 			if (hasMissing || hasExtras) {

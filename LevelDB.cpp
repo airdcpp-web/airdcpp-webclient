@@ -33,7 +33,7 @@
 
 namespace dcpp {
 
-LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, aFriendlyName, cacheSize), 
+	LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, aFriendlyName, cacheSize), 
 	totalWrites(0), totalReads(0), ioErrors(0), dbEnv(nullptr), db(nullptr) {
 
 	readoptions.verify_checksums = false;
@@ -60,7 +60,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 		File::deleteFile(getRepairFlag());
 	}
 
-	auto ret = leveldb::DB::Open(options, dbPath, &db);
+	auto ret = leveldb::DB::Open(options, Text::fromUtf8(dbPath), &db);
 	if (!ret.ok()) {
 		if (ret.IsIOError()) {
 			// most likely there's another instance running or the permissions are wrong
@@ -72,7 +72,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 			repair(stepF, messageF);
 
 			// try it again
-			ret = leveldb::DB::Open(options, dbPath, &db);
+			ret = leveldb::DB::Open(options, Text::fromUtf8(dbPath), &db);
 		}
 	}
 
@@ -85,7 +85,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 void LevelDB::repair(StepFunction stepF, MessageFunction messageF) {
 	stepF(STRING_F(REPAIRING_X, getNameLower()));
 
-	auto ret = leveldb::RepairDB(dbPath, options);
+	auto ret = leveldb::RepairDB(Text::fromUtf8(dbPath), options);
 	if (!ret.ok()) {
 		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % ret.ToString() % dbPath % APPNAME % APPNAME), false, true);
 	}
