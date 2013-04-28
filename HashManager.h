@@ -93,9 +93,9 @@ public:
 	 */
 	void rebuild();
 
-	void startup(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF);
+	void startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
 	void stop();
-	void shutdown(function<void (float)> progressF);
+	void shutdown(ProgressFunction progressF);
 
 	struct HashPauser {
 		HashPauser();
@@ -208,7 +208,7 @@ private:
 		void addHashedFile(string&& aFilePathLower, const TigerTree& tt, HashedFile& fi_);
 		void addFile(string&& aFilePathLower, HashedFile& fi_);
 
-		void load(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF);
+		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
 
 		void rebuild();
 
@@ -228,10 +228,8 @@ private:
 		int64_t getRootInfo(const TTHValue& root, InfoType aType);
 
 		string getDbStats();
-		void setCacheSize(uint64_t aSize);
-		void updateAutoCacheSize(bool setNow);
 
-		void openDb();
+		void openDb(StepFunction stepF, MessageFunction messageF);
 		void closeDb();
 	private:
 		std::unique_ptr<DbHandler> fileDb;

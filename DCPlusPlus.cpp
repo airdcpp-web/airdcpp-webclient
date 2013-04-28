@@ -73,9 +73,7 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	if (Util::fileExists(RUNNING_FLAG)) {
 		Util::wasUncleanShutdown = true;
 	} else {
-		try {
-			File ff(RUNNING_FLAG, File::WRITE, File::CREATE | File::TRUNCATE);
-		} catch (...) { }
+		File::createFile(RUNNING_FLAG);
 	}
 
 	ResourceManager::newInstance();

@@ -52,6 +52,18 @@ File::File(const string& aFileName, int access, int mode, bool isAbsolute) {
 	}
 }
 
+bool File::createFile(const string& aPath, const string& aContent) noexcept {
+	try {
+		File ff(aPath, File::WRITE, File::CREATE | File::TRUNCATE);
+		if (!aContent.empty()) {
+			ff.write(aContent);
+		}
+		return true;
+	} catch (...) { 
+		return false;
+	}
+}
+
 uint32_t File::getLastModified() const noexcept {
 	FILETIME f = {0};
 	::GetFileTime(h, NULL, NULL, &f);

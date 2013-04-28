@@ -1692,5 +1692,14 @@ enum Strings { // @DontAdd
 	FILE_INDEX, // "File index"
 	HASH_DATA, // "Hash data"
 	OPEN_LOG_DIR, // "Open log directory"
+	REPAIRING_X, // "Repairing %s"
+	READ_FAILED_X, // "Failed to read from %s: %s"
+	WRITE_FAILED_X, // "Failed to write into %s: %s"
+	REBUILD_FAILED, // "Rebuild failed"
+	DB_OPEN_FAILED, // "Failed to open %s: %s\r\n\r\n%s will now exit."
+	DB_OPEN_FAILED_IO, // "Failed to open %s: %s\r\n\r\nMake sure that there isn't another instance of %s using the same settings directory and that the directory %s is accessible. %s will now exit."
+	DB_OPEN_FAILED_REPAIR, // "Failed to open %s: %s\r\n\r\n%s will now attempt to repair it automatically."
+	DB_REPAIR_FAILED, // "Failed to repair %s: %s\r\n\r\nMake sure that the path %s is accessible and there isn't there isn't another instance of %s using the same settings directory. Remove the directory in case the error can't be fixed."
+	DB_CORRUPTED_RESTART, // "Please restart the client and %s will attempt to repair the database automatically on the startup."
 	LAST // @DontAdd
 };

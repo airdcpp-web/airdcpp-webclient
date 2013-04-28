@@ -86,6 +86,7 @@ public:
 
 	uint32_t getLastModified() const noexcept;
 
+	static bool createFile(const string& aPath, const string& aContent = Util::emptyString) noexcept;
 	static void copyFile(const string& src, const string& target);
 	static void renameFile(const string& source, const string& target);
 	static bool deleteFile(const string& aFileName) noexcept;

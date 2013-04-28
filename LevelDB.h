@@ -31,7 +31,7 @@ namespace dcpp {
 
 class LevelDB : public DbHandler {
 public:
-	LevelDB(const string& aPath, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize = 4096);
+	LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize = 4096);
 	~LevelDB();
 
 	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen);
@@ -45,7 +45,10 @@ public:
 
 	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f);
 	void compact();
+	void repair(StepFunction stepF, MessageFunction messageF);
+	void open(StepFunction stepF, MessageFunction messageF);
 private:
+	string LevelDB::getRepairFlag() const;
 	leveldb::Status performDbOperation(function<leveldb::Status ()> f);
 	void checkDbError(leveldb::Status aStatus);
 

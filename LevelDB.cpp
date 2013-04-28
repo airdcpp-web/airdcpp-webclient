@@ -19,6 +19,9 @@
 #include "stdinc.h"
 #include "LevelDB.h"
 #include "Util.h"
+#include "version.h"
+#include "ResourceManager.h"
+#include "File.h"
 
 #include <leveldb/comparator.h>
 #include <leveldb/filter_policy.h>
@@ -30,27 +33,67 @@
 
 namespace dcpp {
 
-LevelDB::LevelDB(const string& aPath, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, cacheSize), totalWrites(0), totalReads(0), ioErrors(0) {
-	dbEnv = nullptr;
-	//readoptions.verify_checksums = true;
+LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, aFriendlyName, cacheSize), 
+	totalWrites(0), totalReads(0), ioErrors(0), dbEnv(nullptr), db(nullptr) {
 
-	//iteroptions.verify_checksums = true;
+	readoptions.verify_checksums = false;
+	iteroptions.verify_checksums = false;
+
 	iteroptions.fill_cache = false;
 	readoptions.fill_cache = true;
 
 	options.max_open_files = maxOpenFiles;
 	options.block_size = aBlockSize;
 	options.block_cache = leveldb::NewLRUCache(cacheSize);
+	options.paranoid_checks = false;
 	//options.write_buffer_size = cacheSize / 4; // up to two write buffers may be held in memory simultaneously
 	options.filter_policy = leveldb::NewBloomFilterPolicy(10);
 	options.create_if_missing = true;
+}
+
+string LevelDB::getRepairFlag() const { return dbPath + "REPAIR"; }
+
+void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
+	bool forceRepair = Util::fileExists(getRepairFlag());
+	if (forceRepair) {
+		repair(stepF, messageF);
+		File::deleteFile(getRepairFlag());
+	}
 
 	auto ret = leveldb::DB::Open(options, dbPath, &db);
-	checkDbError(ret);
+	if (!ret.ok()) {
+		if (ret.IsIOError()) {
+			// most likely there's another instance running or the permissions are wrong
+			messageF(STRING_F(DB_OPEN_FAILED_IO, getNameLower() % ret.ToString() % APPNAME % dbPath % APPNAME), false, true);
+			exit(0);
+		} else if (!forceRepair) {
+			// the database is corrupted?
+			messageF(STRING_F(DB_OPEN_FAILED_REPAIR, getNameLower() % ret.ToString() % APPNAME), false, false);
+			repair(stepF, messageF);
+
+			// try it again
+			ret = leveldb::DB::Open(options, dbPath, &db);
+		}
+	}
+
+	if (!ret.ok()) {
+		messageF(STRING_F(DB_OPEN_FAILED, getNameLower() % ret.ToString() % APPNAME), false, true);
+		exit(0);
+	}
+}
+
+void LevelDB::repair(StepFunction stepF, MessageFunction messageF) {
+	stepF(STRING_F(REPAIRING_X, getNameLower()));
+
+	auto ret = leveldb::RepairDB(dbPath, options);
+	if (!ret.ok()) {
+		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % ret.ToString() % dbPath % APPNAME % APPNAME), false, true);
+	}
 }
 
 LevelDB::~LevelDB() {
-	delete db;
+	if (db)
+		delete db;
 	delete options.filter_policy;
 	delete options.block_cache;
 	if (dbEnv)
@@ -145,6 +188,7 @@ void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aV
 	leveldb::WriteBatch wb;
 	leveldb::ReadOptions options;
 	options.fill_cache = false;
+	options.verify_checksums = false;
 
 	{
 		auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(options));
@@ -196,7 +240,15 @@ void LevelDB::checkDbError(leveldb::Status aStatus) {
 	if (aStatus.ok() || aStatus.IsNotFound())
 		return;
 
-	throw DbException(aStatus.ToString());
+	string ret = aStatus.ToString();
+	if (aStatus.IsCorruption()) {
+		File::createFile(getRepairFlag());
+		if (ret.back() != '.')
+			ret += ".";
+		ret += " " + STRING_F(DB_CORRUPTED_RESTART, APPNAME);
+	}
+
+	throw DbException(ret);
 }
 
 } //dcpp

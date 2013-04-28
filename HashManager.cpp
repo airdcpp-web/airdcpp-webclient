@@ -251,7 +251,7 @@ void HashManager::HashStore::addFile(string&& aFileLower, HashedFile& fi_) {
 	try {
 		fileDb->put((void*)aFileLower.c_str(), aFileLower.length(), (void*)buf, sz);
 	} catch(DbException& e) {
-		LogManager::getInstance()->message("Failed to insert new file in file index: " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(WRITE_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 	}
 
 	free(buf);
@@ -291,7 +291,7 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 	try {
 		hashDb->put((void*)tt.getRoot().data, sizeof(TTHValue), buf, sz);
 	} catch(DbException& e) {
-		LogManager::getInstance()->message("Failed to insert tree in hash data: " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 	}
 
 	free(buf);
@@ -307,7 +307,7 @@ bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
 			return loadTree(aValue, valueLen, root, tt);
 		});
 	} catch(DbException& e) {
-		LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 	}
 
 	return false;
@@ -318,7 +318,7 @@ bool HashManager::HashStore::hasTree(const TTHValue& root) {
 	try {
 		ret = hashDb->hasKey((void*)root.data, sizeof(TTHValue));
 	} catch(DbException& e) {
-		LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 	}
 	return ret;
 }
@@ -348,6 +348,8 @@ bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValu
 		boost::scoped_array<uint8_t> buf(new uint8_t[datalen]);
 		memcpy(&buf[0], p, datalen);
 		aTree = TigerTree(fileSize, blockSize, &buf[0]);
+		if (aTree.getRoot() != aRoot)
+			return false;
 	} else {
 		aTree = TigerTree(fileSize, blockSize, aRoot);
 	}
@@ -355,6 +357,9 @@ bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValu
 }
 
 bool HashManager::HashStore::loadFileInfo(const void* src, size_t len, HashedFile& aFile) {
+	if (len != sizeof(HashedFile)+1)
+		return false;
+
 	char *p = (char*)src;
 
 	uint8_t version;
@@ -438,7 +443,7 @@ int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType
 			return true;
 		});
 	} catch(DbException& e) {
-		LogManager::getInstance()->message("Failed to read the hash data: " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 	}
 	return ret;
 }
@@ -462,7 +467,7 @@ bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& f
 			return loadFileInfo(aValue, valueLen, fi_);
 		});
 	} catch(DbException& e) {
-		LogManager::getInstance()->message("Failed to get file info: " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 	}
 
 	return false;
@@ -495,37 +500,33 @@ void HashManager::HashStore::rebuild() {
 					}
 				});
 			} catch(DbException& e) {
-				LogManager::getInstance()->message("Failed to read the file index (rebuild cancelled): " + e.getError(), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING(REBUILD_FAILED), LogManager::LOG_ERROR);
 				return;
 			}
 		}
 
 		{
+			TigerTree tt;
 			TTHValue curRoot;
 			try {
-				hashDb->remove_if([&](void* aKey, size_t key_len, void* /*aValue*/, size_t /*valueLen*/) {
+				hashDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
 					memcpy(&curRoot, aKey, key_len);
 					auto i = usedRoots.find(curRoot);
 					if (i == usedRoots.end()) {
 						unusedTrees++;
-						return true;
-					} else {
+					} else if (loadTree(aValue, valueLen, curRoot, tt)) {
 						usedRoots.erase(i);
 						validTrees++;
-						//check if the data is valid
-						/*loadTree(curRoot, tt, data.get_data());
-						if (tt.getRoot() == curRoot)	
-							continue;
-
-						//failed
-						failedSize += tt.getFileSize();
-						failedTrees++;
-						usedRoots.erase(curRoot);*/
 						return false;
 					}
+
+					//failed
+					return true;
 				});
 			} catch(DbException& e) {
-				LogManager::getInstance()->message("Failed to read the hash data (rebuild cancelled): " + e.getError(), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING(REBUILD_FAILED), LogManager::LOG_ERROR);
 				return;
 			}
 		}
@@ -539,6 +540,7 @@ void HashManager::HashStore::rebuild() {
 				fileDb->remove_if([&](void* /*aKey*/, size_t /*key_len*/, void* aValue, size_t valueLen) {
 					loadFileInfo(aValue, valueLen, fi);
 					if (usedRoots.find(fi.getRoot()) != usedRoots.end()) {
+						failedSize += fi.getSize();
 						validFiles--;
 						return true;
 					}
@@ -546,7 +548,8 @@ void HashManager::HashStore::rebuild() {
 					return false;
 				});
 			} catch(DbException& e) {
-				LogManager::getInstance()->message("Failed to read the file index (rebuild cancelled): " + e.getError(), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING(REBUILD_FAILED), LogManager::LOG_ERROR);
 				return;
 			}
 		}
@@ -563,14 +566,14 @@ void HashManager::HashStore::rebuild() {
 
 		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles);
 		if (validFiles == 0 || (static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
-			LogManager::getInstance()->message(STRING_F(COMPACTING_X, Text::toLower(STRING(FILE_INDEX))), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogManager::LOG_INFO);
 			fileDb->compact();
 			SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, 0);
 		}
 
 		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, SETTING(CUR_REMOVED_TREES) + unusedTrees);
 		if (validTrees == 0 || (static_cast<double>(SETTING(CUR_REMOVED_TREES)) / static_cast<double>(validTrees)) > 0.05) {
-			LogManager::getInstance()->message(STRING_F(COMPACTING_X, Text::toLower(STRING(HASH_DATA))), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogManager::LOG_INFO);
 			hashDb->compact();
 			SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, 0);
 		}
@@ -615,36 +618,24 @@ bool HashManager::HashStore::setDebug() {
 	return showDebugInfo;
 }
 
-void HashManager::HashStore::openDb() {
+void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
 	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1)) * 1024*1024;
 
-	try {
-		//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
-		//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
-		hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", cacheSize*0.30, 50, 64*1024));
-		fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", cacheSize*0.70, 50));
-		//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));
-		//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70, 255, false));
-	} catch(DbException& e) {
-		LogManager::getInstance()->message("Failed to open the hash database: " + e.getError(), LogManager::LOG_ERROR);
-	}
-}
-
-void HashManager::HashStore::setCacheSize(uint64_t aSize) {
-	if (aSize < 1024*1024) // min 1 MB
-		return;
+	//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
+	//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
+	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", STRING(HASH_DATA), cacheSize*0.30, 50, 64*1024));
+	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", STRING(FILE_INDEX), cacheSize*0.70, 50));
+	//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));
+	//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70, 255, false));
 
 
-	if (static_cast<double>(abs(static_cast<int64_t>(fileDb->getCacheSize()+hashDb->getCacheSize())-static_cast<int64_t>(aSize))) < aSize*0.05)
-		return;
-
-	closeDb();
-	openDb();
+	hashDb->open(stepF, messageF);
+	fileDb->open(stepF, messageF);
 }
 
 class HashLoader: public SimpleXMLReader::CallBack {
 public:
-	HashLoader(HashManager::HashStore& s, const CountedInputStream<false>& countedStream, uint64_t fileSize, function<void (float)> progressF) :
+	HashLoader(HashManager::HashStore& s, const CountedInputStream<false>& countedStream, uint64_t fileSize, ProgressFunction progressF) :
 		store(s),
 		countedStream(countedStream),
 		streamPos(0),
@@ -674,7 +665,7 @@ private:
 	const CountedInputStream<false>& countedStream;
 	uint64_t streamPos;
 	uint64_t fileSize;
-	function<void (float)> progressF;
+	ProgressFunction progressF;
 
 	int version;
 	string file;
@@ -687,7 +678,7 @@ private:
 	unordered_map<TTHValue, int64_t> sizeMap;
 };
 
-void HashManager::HashStore::load(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) {
+void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
 	auto dataFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat";
 	auto indexFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml";
 
@@ -717,8 +708,8 @@ void HashManager::HashStore::load(function<void (const string&)> stepF, function
 	}
 
 
-	//open the new database (fix migration)
-	openDb();
+	//open the new database
+	openDb(stepF, messageF);
 
 
 	//migrate the old database file
@@ -921,7 +912,7 @@ void HashManager::rebuild() {
 	hashers.front()->scheduleRebuild(); 
 }
 
-void HashManager::startup(function<void (const string&)> stepF, function<void (float)> progressF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) {
+void HashManager::startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
 	hashers.push_back(new Hasher(false, 0));
 	store.load(stepF, progressF, messageF); 
 }
@@ -947,7 +938,7 @@ void HashManager::Hasher::scheduleRebuild() {
 		t_resume(); 
 }
 
-void HashManager::shutdown(function<void (float)> progressF) {
+void HashManager::shutdown(ProgressFunction progressF) {
 	aShutdown = true;
 	//TimerManager::getInstance()->removeListener(this);
 

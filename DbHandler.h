@@ -22,6 +22,8 @@
 
 #include "stdinc.h"
 #include "Exception.h"
+#include "Text.h"
+#include "Util.h"
 
 #include <functional>
 
@@ -33,6 +35,9 @@ STANDARD_EXCEPTION(DbException);
 
 class DbHandler {
 public:
+	virtual void repair(StepFunction stepF, MessageFunction messageF) = 0;
+	virtual void open(StepFunction stepF, MessageFunction messageF) = 0;
+
 	virtual void put(void* key, size_t keyLen, void* value, size_t valueLen) = 0;
 	virtual bool get(void* key, size_t keyLen, size_t initialValueLen, std::function<bool (void* aValue, size_t aValueLen)> loadF) = 0;
 	virtual void remove(void* aKey, size_t keyLen) = 0;
@@ -48,12 +53,18 @@ public:
 
 	virtual ~DbHandler() { }
 
+	const string& getFriendlyName() const { return friendlyName; }
+	string getNameLower() const { return Text::toLower(friendlyName); }
 	const string& getPath() const { return dbPath; }
 	uint64_t getCacheSize() const { return cacheSize; }
 protected:
-	DbHandler(const string& aPath, uint64_t aCacheSize) : cacheSize(aCacheSize), dbPath(aPath) { }
+	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) : cacheSize(aCacheSize), dbPath(aPath), friendlyName(aFriendlyName) { 
+		if (dbPath.back() != PATH_SEPARATOR)
+			dbPath += PATH_SEPARATOR;
+	}
 	DbHandler(const DbHandler& src); // no copying
 
+	string friendlyName;
 	string dbPath;
 	uint64_t cacheSize;
 };
