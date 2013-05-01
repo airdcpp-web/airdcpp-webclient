@@ -60,9 +60,11 @@ void DirectoryListing::sortDirs() {
 	root->sortDirs();
 }
 
-void DirectoryListing::Directory::sortDirs() {
-	for(auto d: directories)
-		d->sortDirs();
+void DirectoryListing::Directory::sortDirs(bool recursive /*true*/) {
+	if (recursive) {
+		for(auto d: directories)
+			d->sortDirs();
+	}
 
 	sort(directories.begin(), directories.end(), Directory::DefaultSort());
 }

@@ -19,15 +19,16 @@
 #include "stdinc.h"
 #include "CryptoManager.h"
 
-#include "ResourceManager.h"
+#include <boost/scoped_array.hpp>
+
+#include "File.h"
 #include "LogManager.h"
 #include "ClientManager.h"
-#include "File.h"
 #include "version.h"
 
-#ifdef HEADER_OPENSSLV_H
-# include <openssl/bn.h>
-# include <openssl/err.h>
+#include <openssl/bn.h>
+#include <bzlib.h>
+
 # ifdef _DEBUG
 #  ifndef _WIN64
 #   pragma comment(lib, "libeay32d.lib")
@@ -45,62 +46,25 @@
 #   pragma comment(lib, "ssleay64.lib")
 #  endif
 # endif
-#elif defined YASSL_VERSION
-# pragma comment(lib, "taocrypt.lib")
-# pragma comment(lib, "yassl.lib")
-#else
-# define pid_t int
-# include <gcrypt.h>
-# pragma comment(lib, "libgnutls-26.lib")
-# pragma comment(lib, "libgnutls-openssl-26.lib")
-#endif
-
-#ifdef _WIN32
-#include "../bzip2/bzlib.h"
-#else
-#include <bzlib.h>
-#endif
 
 namespace dcpp {
 
-#ifdef HEADER_OPENSSLV_H
-CriticalSection* CryptoManager::cs = NULL;
-#else
-static int mutex_init(void **priv) { *priv = new CriticalSection(); return 0; }
-static int mutex_destroy(void **priv) { delete *priv; *priv = NULL; return 0; }
-static int mutex_lock(void **priv) { ((CriticalSection*)(*priv))->enter(); return 0; }
-static int mutex_unlock(void **priv) { ((CriticalSection*)(*priv))->leave(); return 0; }
-  
-static struct gcry_thread_cbs gcry_threads_other = { 0, NULL, mutex_init, mutex_destroy, mutex_lock, mutex_unlock, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-#endif
-
-CryptoManager::CryptoManager() 
-:	
-	certsLoaded(false), 
-	lock("EXTENDEDPROTOCOLABCABCABCABCABCABC"), 
-	pk("DCPLUSPLUS" DCVERSIONSTRING)
+CryptoManager::CryptoManager()
+:
+	certsLoaded(false),
+	lock("EXTENDEDPROTOCOLABCABCABCABCABCABC"),
+	pk("DCPLUSPLUS" VERSIONSTRING)
 {
-#ifdef HEADER_OPENSSLV_H
-	cs = new CriticalSection[CRYPTO_num_locks()];
-	CRYPTO_set_locking_callback(locking_function);
-#else
-	typedef gcry_error_t (CALLBACK* LPFUNC)(enum gcry_ctl_cmds CMD, ...);
-	LPFUNC _d_gcry_control = (LPFUNC)GetProcAddress(LoadLibrary(_T("libgcrypt-11")), "gcry_control");
-	_d_gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_other);
-#endif
-	
 	SSL_library_init();
-	SSL_load_error_strings();
 
 	clientContext.reset(SSL_CTX_new(TLSv1_client_method()));
 	clientVerContext.reset(SSL_CTX_new(TLSv1_client_method()));
 	serverContext.reset(SSL_CTX_new(TLSv1_server_method()));
 	serverVerContext.reset(SSL_CTX_new(TLSv1_server_method()));
-	
+
 	if(clientContext && clientVerContext && serverContext && serverVerContext) {
-#ifdef HEADER_OPENSSLV_H	
 		dh.reset(DH_new());
-		
+
         static unsigned char dh4096_p[]={
                 0xCA,0x35,0xA8,0xBB,0x65,0x33,0x28,0xC6,0x3F,0xD7,0x21,0x55,
                 0x95,0xDF,0xC0,0xDC,0x11,0x10,0x23,0x2D,0x1E,0xD6,0x52,0x23,
@@ -145,11 +109,11 @@ CryptoManager::CryptoManager()
                 0x7E,0x97,0x2A,0x96,0x50,0x14,0x0D,0xEA,0x02,0xB1,0xD2,0x22,
                 0xEB,0xE7,0xF4,0xAC,0xB6,0x37,0xCA,0xAB,0x4A,0x1E,0x4D,0x4E,
                 0xCF,0xFE,0x5D,0xEF,0x23,0x78,0xC6,0xBB,
-		};
+                };
 
         static unsigned char dh4096_g[]={
-			0x02,
-		};
+                0x02,
+                };
 
 		if(dh) {
 			dh->p = BN_bin2bn(dh4096_p, sizeof(dh4096_p), 0);
@@ -164,11 +128,6 @@ CryptoManager::CryptoManager()
 				SSL_CTX_set_tmp_dh(serverVerContext, (DH*)dh);
 			}
 		}
-#else
-# define SSL_VERIFY_PEER			0x01
-# define SSL_VERIFY_FAIL_IF_NO_PEER_CERT	0x02
-# define SSL_VERIFY_CLIENT_ONCE		0x04
-#endif
 
 		SSL_CTX_set_verify(serverContext, SSL_VERIFY_NONE, 0);
 		SSL_CTX_set_verify(clientContext, SSL_VERIFY_NONE, 0);
@@ -178,29 +137,10 @@ CryptoManager::CryptoManager()
 }
 
 CryptoManager::~CryptoManager() {
-
-#ifdef HEADER_OPENSSLV_H
-	CRYPTO_set_locking_callback(NULL);
-	delete[] cs;
-#endif
-
-	/* thread-local cleanup */ 
-	ERR_remove_state(0); 
-
-	clientContext.reset();
-	clientVerContext.reset();
-	serverContext.reset();
-	serverVerContext.reset();
-	dh.reset();
-
-	/* global application exit cleanup (after all SSL activity is shutdown) */ 
-	ERR_free_strings(); 
-	EVP_cleanup(); 
-	CRYPTO_cleanup_all_ex_data();
 }
 
 bool CryptoManager::TLSOk() const noexcept {
-	return SETTING(TLS_MODE) > 0 && certsLoaded && !keyprint.empty();
+	return certsLoaded && !keyprint.empty();
 }
 
 void CryptoManager::generateCertificate() {
@@ -212,7 +152,6 @@ void CryptoManager::generateCertificate() {
 		throw CryptoException("No certificate file chosen");
 	}
 
-#ifdef HEADER_OPENSSLV_H
 	ssl::BIGNUM bn(BN_new());
 	ssl::RSA rsa(RSA_new());
 	ssl::EVP_PKEY pkey(EVP_PKEY_new());
@@ -220,16 +159,16 @@ void CryptoManager::generateCertificate() {
 	const EVP_MD *digest = EVP_sha1();
 	ssl::X509 x509ss(X509_new());
 	ssl::ASN1_INTEGER serial(ASN1_INTEGER_new());
-	
+
 	if(!bn || !rsa || !pkey || !nm || !x509ss || !serial) {
-		throw CryptoException("Error creating objects for cert generation");
+		throw CryptoException("Error generating certificate");
 	}
-	
+
 	int days = 10;
 	int keylength = 2048;
 
 #define CHECK(n) if(!(n)) { throw CryptoException(#n); }
-	
+
 	// Generate key pair
 	CHECK((BN_set_word(bn, RSA_F4)))
 	CHECK((RSA_generate_key_ex(rsa, keylength, bn, NULL)))
@@ -248,7 +187,7 @@ void CryptoManager::generateCertificate() {
 	CHECK((X509_gmtime_adj(X509_get_notBefore(x509ss), 0)))
 	CHECK((X509_gmtime_adj(X509_get_notAfter(x509ss), (long)60*60*24*days)))
 	CHECK((X509_set_pubkey(x509ss, pkey)))
-	
+
 	// Sign using own private key
 	CHECK((X509_sign(x509ss, pkey, digest)))
 
@@ -273,7 +212,6 @@ void CryptoManager::generateCertificate() {
 		PEM_write_X509(f, x509ss);
 		fclose(f);
 	}
-#endif
 }
 
 void CryptoManager::loadCertificates() noexcept {
@@ -337,22 +275,20 @@ void CryptoManager::loadCertificates() noexcept {
 		return;
 	}
 
-#ifdef HEADER_OPENSSLV_H
 	StringList certs = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.pem");
 	StringList certs2 = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.crt");
 	certs.insert(certs.end(), certs2.begin(), certs2.end());
 
-	for(StringIter i = certs.begin(); i != certs.end(); ++i) {
+	for(auto& i: certs) {
 		if(
-			SSL_CTX_load_verify_locations(clientContext, i->c_str(), NULL) != SSL_SUCCESS ||
-			SSL_CTX_load_verify_locations(clientVerContext, i->c_str(), NULL) != SSL_SUCCESS ||
-			SSL_CTX_load_verify_locations(serverContext, i->c_str(), NULL) != SSL_SUCCESS ||
-			SSL_CTX_load_verify_locations(serverVerContext, i->c_str(), NULL) != SSL_SUCCESS
+			SSL_CTX_load_verify_locations(clientContext, i.c_str(), NULL) != SSL_SUCCESS ||
+			SSL_CTX_load_verify_locations(clientVerContext, i.c_str(), NULL) != SSL_SUCCESS ||
+			SSL_CTX_load_verify_locations(serverContext, i.c_str(), NULL) != SSL_SUCCESS ||
+			SSL_CTX_load_verify_locations(serverVerContext, i.c_str(), NULL) != SSL_SUCCESS
 		) {
-			LogManager::getInstance()->message("Failed to load trusted certificate from " + *i, LogManager::LOG_WARNING);
+			LogManager::getInstance()->message("Failed to load trusted certificate from " + Util::addBrackets(i), LogManager::LOG_WARNING);
 		}
 	}
-#endif
 
 	loadKeyprint(cert.c_str());
 
@@ -409,7 +345,7 @@ const vector<uint8_t>& CryptoManager::getKeyprint() const noexcept {
 	return keyprint;
 }
 
-void CryptoManager::loadKeyprint(const string& /*file*/) noexcept {
+void CryptoManager::loadKeyprint(const string& file) noexcept {
 	auto x509 = ssl::getX509(SETTING(TLS_CERTIFICATE_FILE).c_str());
 	if(x509) {
 		keyprint = ssl::X509_digest(x509, EVP_sha256());
@@ -423,7 +359,7 @@ SSLSocket* CryptoManager::getServerSocket(bool allowUntrusted) {
 	return new SSLSocket(allowUntrusted ? serverContext : serverVerContext);
 }
 
-void CryptoManager::decodeBZ2(const uint8_t* is, unsigned int sz, string& os) {
+void CryptoManager::decodeBZ2(const uint8_t* is, size_t sz, string& os) {
 	bz_stream bs = { 0 };
 
 	if(BZ2_bzDecompressInit(&bs, 0, 0) != BZ_OK)
@@ -431,9 +367,9 @@ void CryptoManager::decodeBZ2(const uint8_t* is, unsigned int sz, string& os) {
 
 	// We assume that the files aren't compressed more than 2:1...if they are it'll work anyway,
 	// but we'll have to do multiple passes...
-	unsigned int bufsize = 2 * sz;
+	size_t bufsize = 2*sz;
 	boost::scoped_array<char> buf(new char[bufsize]);
-	
+
 	bs.avail_in = sz;
 	bs.avail_out = bufsize;
 	bs.next_in = reinterpret_cast<char*>(const_cast<uint8_t*>(is));
@@ -442,33 +378,33 @@ void CryptoManager::decodeBZ2(const uint8_t* is, unsigned int sz, string& os) {
 	int err;
 
 	os.clear();
-	
-	while((err = BZ2_bzDecompress(&bs)) == BZ_OK) { 
-		if (bs.avail_in == 0 && bs.avail_out > 0) { // error: BZ_UNEXPECTED_EOF 
-			BZ2_bzDecompressEnd(&bs); 
-			throw CryptoException(STRING(DECOMPRESSION_ERROR)); 
-		} 
+
+	while((err = BZ2_bzDecompress(&bs)) == BZ_OK) {
+		if (bs.avail_in == 0 && bs.avail_out > 0) { // error: BZ_UNEXPECTED_EOF
+			BZ2_bzDecompressEnd(&bs);
+			throw CryptoException(STRING(DECOMPRESSION_ERROR));
+		}
 		os.append(&buf[0], bufsize-bs.avail_out);
-		bs.avail_out = bufsize; 
+		bs.avail_out = bufsize;
 		bs.next_out = &buf[0];
-	} 
+	}
 
 	if(err == BZ_STREAM_END)
 		os.append(&buf[0], bufsize-bs.avail_out);
-	
+
 	BZ2_bzDecompressEnd(&bs);
 
 	if(err < 0) {
 		// This was a real error
-		throw CryptoException(STRING(DECOMPRESSION_ERROR));	
+		throw CryptoException(STRING(DECOMPRESSION_ERROR));
 	}
 }
 
 string CryptoManager::keySubst(const uint8_t* aKey, size_t len, size_t n) {
 	boost::scoped_array<uint8_t> temp(new uint8_t[len + n * 10]);
-	
+
 	size_t j=0;
-	
+
 	for(size_t i = 0; i<len; i++) {
 		if(isExtra(aKey[i])) {
 			temp[j++] = '/'; temp[j++] = '%'; temp[j++] = 'D';
@@ -496,11 +432,11 @@ string CryptoManager::makeKey(const string& aLock) {
 	boost::scoped_array<uint8_t> temp(new uint8_t[aLock.length()]);
 	uint8_t v1;
 	size_t extra=0;
-	
+
 	v1 = (uint8_t)(aLock[0]^5);
 	v1 = (uint8_t)(((v1 >> 4) | (v1 << 4)) & 0xff);
 	temp[0] = v1;
-	
+
 	string::size_type i;
 
 	for(i = 1; i<aLock.length(); i++) {
@@ -510,25 +446,14 @@ string CryptoManager::makeKey(const string& aLock) {
 		if(isExtra(temp[i]))
 			extra++;
 	}
-	
+
 	temp[0] = (uint8_t)(temp[0] ^ temp[aLock.length()-1]);
-	
+
 	if(isExtra(temp[0])) {
 		extra++;
 	}
-	
+
 	return keySubst(&temp[0], aLock.length(), extra);
 }
-
-#ifdef HEADER_OPENSSLV_H
-void CryptoManager::locking_function(int mode, int n, const char* /*file*/, int /*line*/)
-{
-    if (mode & CRYPTO_LOCK) {
-        cs[n].lock();
-    } else {
-        cs[n].unlock();
-    }
-}
-#endif
 
 } // namespace dcpp

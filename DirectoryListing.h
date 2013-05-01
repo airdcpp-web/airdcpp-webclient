@@ -119,7 +119,7 @@ public:
 		void getHashList(TTHSet& l);
 		void clearAdls();
 		void clearAll();
-		void sortDirs();
+		void sortDirs(bool recursive = true);
 		void sortFiles();
 
 		bool findIncomplete();

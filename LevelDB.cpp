@@ -33,7 +33,7 @@
 
 namespace dcpp {
 
-	LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, aFriendlyName, cacheSize), 
+LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, aFriendlyName, cacheSize), 
 	totalWrites(0), totalReads(0), ioErrors(0), dbEnv(nullptr), db(nullptr) {
 
 	readoptions.verify_checksums = false;
@@ -42,6 +42,7 @@ namespace dcpp {
 	iteroptions.fill_cache = false;
 	readoptions.fill_cache = true;
 
+	options.compression = useCompression ? leveldb::kSnappyCompression : leveldb::kNoCompression;
 	options.max_open_files = maxOpenFiles;
 	options.block_size = aBlockSize;
 	options.block_cache = leveldb::NewLRUCache(cacheSize);

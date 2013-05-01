@@ -23,25 +23,21 @@
 
 #include "Exception.h"
 #include "Singleton.h"
-#include "FastAlloc.h"
 #include "SSLSocket.h"
 
 namespace dcpp {
 
 STANDARD_EXCEPTION(CryptoException);
 
-class File;
-class FileException;
-
 class CryptoManager : public Singleton<CryptoManager>
 {
 public:
 	string makeKey(const string& aLock);
-	const string& getLock() const { return lock; }
-	const string& getPk() const  { return pk; }
-	bool isExtended(const string& aLock) const { return strncmp(aLock.c_str(), "EXTENDEDPROTOCOL", 16) == 0; }
+	const string& getLock() { return lock; }
+	const string& getPk() { return pk; }
+	bool isExtended(const string& aLock) { return strncmp(aLock.c_str(), "EXTENDEDPROTOCOL", 16) == 0; }
 
-	void decodeBZ2(const uint8_t* is, unsigned int sz, string& os);
+	void decodeBZ2(const uint8_t* is, size_t sz, string& os);
 
 	SSLSocket* getClientSocket(bool allowUntrusted);
 	SSLSocket* getServerSocket(bool allowUntrusted);
@@ -52,40 +48,28 @@ public:
 	const vector<uint8_t>& getKeyprint() const noexcept;
 
 	bool TLSOk() const noexcept;
-
-#ifdef HEADER_OPENSSLV_H	
-	static void __cdecl locking_function(int mode, int n, const char *file, int line);
-#endif
-
-
 private:
 
 	friend class Singleton<CryptoManager>;
-	
+
 	CryptoManager();
-	~CryptoManager();
+	virtual ~CryptoManager();
 
 	ssl::SSL_CTX clientContext;
 	ssl::SSL_CTX clientVerContext;
 	ssl::SSL_CTX serverContext;
 	ssl::SSL_CTX serverVerContext;
 
-#ifdef HEADER_OPENSSLV_H	
 	ssl::DH dh;
-#endif
-	
+
 	bool certsLoaded;
 
 	vector<uint8_t> keyprint;
 	const string lock;
 	const string pk;
-	
-#ifdef HEADER_OPENSSLV_H
-	static CriticalSection* cs;
-#endif
 
 	string keySubst(const uint8_t* aKey, size_t len, size_t n);
-	bool isExtra(uint8_t b) const {
+	bool isExtra(uint8_t b) {
 		return (b == 0 || b==5 || b==124 || b==96 || b==126 || b==36);
 	}
 

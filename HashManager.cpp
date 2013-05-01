@@ -623,8 +623,8 @@ void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF
 
 	//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
 	//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
-	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", STRING(HASH_DATA), cacheSize*0.30, 50, 64*1024));
-	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", STRING(FILE_INDEX), cacheSize*0.70, 50));
+	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", STRING(HASH_DATA), cacheSize*0.30, 50, false, 64*1024));
+	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", STRING(FILE_INDEX), cacheSize*0.70, 50, true));
 	//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));
 	//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70, 255, false));
 

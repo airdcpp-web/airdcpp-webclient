@@ -44,7 +44,7 @@ public:
 	T* operator->() { return t; }
 	const T* operator->() const { return t; }
 	
-	void reset(T* t_ = NULL) { Release(t); t = t_; }
+	void reset(T* t_ = nullptr) { Release(t); t = t_; }
 
 	scoped_handle(scoped_handle&& rhs) : t(rhs.t) { rhs.t = nullptr; }
 	scoped_handle& operator=(scoped_handle&& rhs) { if(&rhs != this) { t = rhs.t; rhs.t = nullptr; } return *this; }

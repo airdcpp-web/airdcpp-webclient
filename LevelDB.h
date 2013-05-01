@@ -31,7 +31,7 @@ namespace dcpp {
 
 class LevelDB : public DbHandler {
 public:
-	LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, uint64_t aBlockSize = 4096);
+	LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize = 4096);
 	~LevelDB();
 
 	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen);
