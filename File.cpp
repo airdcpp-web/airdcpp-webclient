@@ -509,8 +509,12 @@ StringList File::findFiles(const string& path, const string& pattern) {
 
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
-FileFindIter::FileFindIter(const string& path) : handle(INVALID_HANDLE_VALUE) {
-	handle = ::FindFirstFile(Text::toT(Util::FormatPath(path)).c_str(), &data);
+FileFindIter::FileFindIter(const string& path, bool dirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
+	if (Util::getOsMajor() >= 6 && Util::getOsMinor() >= 1) {
+		handle = ::FindFirstFileEx(Text::toT(Util::FormatPath(path)).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+	} else {
+		handle = ::FindFirstFile(Text::toT(Util::FormatPath(path)).c_str(), &data);
+	}
 }
 
 FileFindIter::~FileFindIter() {
@@ -549,6 +553,12 @@ bool FileFindIter::DirData::isLink() {
 
 int64_t FileFindIter::DirData::getSize() {
 	return (int64_t)nFileSizeLow | ((int64_t)nFileSizeHigh)<<32;
+}
+
+int64_t File::getBlockSize(const string& aFileName) noexcept {
+	DWORD sectorBytes, clusterSectors, tmp2, tmp3;
+	GetDiskFreeSpace(Text::toT(aFileName).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
+	return static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors);
 }
 
 uint32_t FileFindIter::DirData::getLastWriteTime() {

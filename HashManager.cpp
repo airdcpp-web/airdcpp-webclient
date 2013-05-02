@@ -603,6 +603,7 @@ string HashManager::HashStore::getDbStats() {
 	statMsg += fileDb->getStats();
 	statMsg += "\nHASHDATA STATS\n\n";
 	statMsg += hashDb->getStats();
+	statMsg += "\n\nDisk block size: " + Util::formatBytes(File::getBlockSize(hashDb->getPath())) + "\n\n";
 	return statMsg;
 }
 
@@ -620,11 +621,12 @@ bool HashManager::HashStore::setDebug() {
 
 void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
 	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1)) * 1024*1024;
+	//auto blockSize = File::getBlockSize(Util::getPath(Util::PATH_USER_CONFIG));
 
 	//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
 	//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
-	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", STRING(HASH_DATA), cacheSize*0.30, 50, false, 64*1024));
-	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", STRING(FILE_INDEX), cacheSize*0.70, 50, true));
+	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", STRING(HASH_DATA), cacheSize, 20, false, 16*1024));
+	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", STRING(FILE_INDEX), cacheSize, 50, true, 64*1024));
 	//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));
 	//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70, 255, false));
 

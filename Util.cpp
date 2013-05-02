@@ -68,6 +68,9 @@ StringList Util::params;
 bool Util::localMode = true;
 bool Util::wasUncleanShutdown = false;
 
+int Util::osMinor;
+int Util::osMajor;
+
 static void sgenrand(unsigned long seed);
 
 extern "C" void bz_internal_error(int errcode) { 
@@ -212,6 +215,17 @@ void Util::initialize() {
 	paths[PATH_LOCALE] = paths[PATH_USER_LOCAL] + "Language\\";
 	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 
+	OSVERSIONINFOEX ver;
+	memzero(&ver, sizeof(OSVERSIONINFOEX));
+	if(!GetVersionEx((OSVERSIONINFO*)&ver)) 
+	{
+		ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+	}
+	GetVersionEx((OSVERSIONINFO*)&ver);
+	ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+
+	osMajor = ver.dwMajorVersion;
+	osMinor = ver.dwMinorVersion;
 #else
 	paths[PATH_GLOBAL_CONFIG] = "/etc/";
 	const char* home_ = getenv("HOME");

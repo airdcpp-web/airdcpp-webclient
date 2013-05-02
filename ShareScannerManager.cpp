@@ -223,6 +223,9 @@ int ShareScannerManager::run() {
 				strftime(buf, 254, "%c", _tm);
 
 				fire(ScannerManagerListener::ScanFinished(), total.scanMessage, STRING_F(SCANNING_RESULTS_ON, string(buf)));
+			} else {
+				report += ", ";
+				report += CSTRING(SCAN_NO_PROBLEMS);
 			}
 
 			LogManager::getInstance()->message(report, LogManager::LOG_INFO);
@@ -262,9 +265,9 @@ void ShareScannerManager::find(const string& aPath, ScanInfo& aScan) {
 	string dir;
 	StringList dirs;
 	
-	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
+	for(FileFindIter i(aPath + "*", true); i != FileFindIter(); ++i) {
 		try {
-			if(i->isDirectory() && strcmpi(i->getFileName().c_str(), ".") != 0 && strcmpi(i->getFileName().c_str(), "..") != 0){
+			if(i->isDirectory() && strcmp(i->getFileName().c_str(), ".") != 0 && strcmp(i->getFileName().c_str(), "..") != 0){
 				if (matchSkipList(i->getFileName())) {
 					continue;
 				}
@@ -570,7 +573,7 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 	}
 
 	/* Recursively scan subfolders */
-	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
+	for(FileFindIter i(aPath + "*", true); i != FileFindIter(); ++i) {
 		try {
 			if (!i->isHidden()) {
 				if (i->isDirectory()) {
@@ -669,6 +672,7 @@ void ShareScannerManager::scanBundle(BundlePtr aBundle, bool& hasMissing, bool& 
 					report += ". " + STRING_F(FORCE_HASH_NOTIFICATION, aBundle->getTarget());
 				}
 			} else {
+				report += ", ";
 				report += CSTRING(SCAN_NO_PROBLEMS);
 			}
 

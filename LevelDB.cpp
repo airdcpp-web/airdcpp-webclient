@@ -65,11 +65,11 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 	if (!ret.ok()) {
 		if (ret.IsIOError()) {
 			// most likely there's another instance running or the permissions are wrong
-			messageF(STRING_F(DB_OPEN_FAILED_IO, getNameLower() % ret.ToString() % APPNAME % dbPath % APPNAME), false, true);
+			messageF(STRING_F(DB_OPEN_FAILED_IO, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME % dbPath % APPNAME), false, true);
 			exit(0);
 		} else if (!forceRepair) {
 			// the database is corrupted?
-			messageF(STRING_F(DB_OPEN_FAILED_REPAIR, getNameLower() % ret.ToString() % APPNAME), false, false);
+			messageF(STRING_F(DB_OPEN_FAILED_REPAIR, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME), false, false);
 			repair(stepF, messageF);
 
 			// try it again
@@ -78,7 +78,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 	}
 
 	if (!ret.ok()) {
-		messageF(STRING_F(DB_OPEN_FAILED, getNameLower() % ret.ToString() % APPNAME), false, true);
+		messageF(STRING_F(DB_OPEN_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME), false, true);
 		exit(0);
 	}
 }
@@ -88,7 +88,7 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) {
 
 	auto ret = leveldb::RepairDB(Text::fromUtf8(dbPath), options);
 	if (!ret.ok()) {
-		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % ret.ToString() % dbPath % APPNAME % APPNAME), false, true);
+		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % dbPath % APPNAME % APPNAME), false, true);
 	}
 }
 
@@ -138,6 +138,7 @@ string LevelDB::getStats() {
 	ret += "\r\n\r\nTotal reads: " + Util::toString(totalReads);
 	ret += "\r\nTotal Writes: " + Util::toString(totalWrites);
 	ret += "\r\nI/O errors: " + Util::toString(ioErrors);
+	ret += "\r\nCurrent block size: " + Util::formatBytes(options.block_size);
 	ret += "\r\n\r\n";
 	return ret;
 }
@@ -241,7 +242,7 @@ void LevelDB::checkDbError(leveldb::Status aStatus) {
 	if (aStatus.ok() || aStatus.IsNotFound())
 		return;
 
-	string ret = aStatus.ToString();
+	string ret = Text::toUtf8(aStatus.ToString());
 	if (aStatus.IsCorruption()) {
 		File::createFile(getRepairFlag());
 		if (ret.back() != '.')

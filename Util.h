@@ -523,6 +523,9 @@ static string getShortTimeString(time_t t = time(NULL) );
 
 	static bool usingLocalMode() { return localMode; }
 	static bool wasUncleanShutdown;
+
+	static int getOsMinor() { return osMinor; }
+	static int getOsMajor() { return osMajor; }
 private:
 	/** In local mode, all config and temp files are kept in the same dir as the executable */
 	static bool localMode;
@@ -536,6 +539,8 @@ private:
 	static void loadBootConfig();
 	
 	static long mUptimeSeconds;
+	static int osMinor;
+	static int osMajor;
 };
 	
 /** Case insensitive hash function for strings */
