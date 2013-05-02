@@ -323,7 +323,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 			return;
 		}
 
-		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(aList->getHintedUser())) + ": " + 
+		LogManager::getInstance()->message(aList->getNick(false) + ": " + 
 			AirUtil::formatMatchResults(matches, newFiles, bundles, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0), LogManager::LOG_INFO);
 	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
 		aList->findNfo(path);

@@ -187,6 +187,8 @@ public:
 	void getLocalPaths(const Directory* d, StringList& ret);
 	void getLocalPaths(const File* f, StringList& ret);
 
+	string getNick(bool firstOnly) const;
+	static string getNickFromFilename(const string& fileName);
 	static UserPtr getUserFromFilename(const string& fileName);
 	void checkShareDupes();
 	bool findNfo(const string& aPath);

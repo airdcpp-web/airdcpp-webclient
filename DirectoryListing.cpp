@@ -94,12 +94,28 @@ bool DirectoryListing::File::Sort::operator()(const Ptr& a, const Ptr& b) const 
 	return compare(a->getName(), b->getName()) < 0;
 }
 
-UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
-	// General file list name format: [username].[CID].[xml|xml.bz2]
+string DirectoryListing::getNick(bool firstOnly) const {
+	string ret;
+	if (!hintedUser.user->isOnline()) {
+		if (isOwnList) {
+			ret = SETTING(NICK);
+		} else if (!partialList) {
+			ret = DirectoryListing::getNickFromFilename(fileName);
+		}
+	}
 
-	string name = Util::getFileName(fileName);
+	if (ret.empty()) {
+		if (firstOnly) {
+			ret = ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint, true);
+		} else {
+			ret = Util::toString(ClientManager::getInstance()->getNicks(hintedUser));
+		}
+	}
 
-	// Strip off any extensions
+	return ret;
+}
+
+void stripExtensions(string& name) {
 	if(stricmp(name.c_str() + name.length() - 4, ".bz2") == 0) {
 		name.erase(name.length() - 4);
 	}
@@ -107,6 +123,32 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 	if(stricmp(name.c_str() + name.length() - 4, ".xml") == 0) {
 		name.erase(name.length() - 4);
 	}
+}
+
+string DirectoryListing::getNickFromFilename(const string& fileName) {
+	// General file list name format: [username].[CID].[xml|xml.bz2]
+
+	string name = Util::getFileName(fileName);
+
+	// Strip off any extensions
+	stripExtensions(name);
+
+	// Find CID
+	string::size_type i = name.rfind('.');
+	if(i == string::npos) {
+		return STRING(UNKNOWN);
+	}
+
+	return name.substr(0, i);
+}
+
+UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
+	// General file list name format: [username].[CID].[xml|xml.bz2]
+
+	string name = Util::getFileName(fileName);
+
+	// Strip off any extensions
+	stripExtensions(name);
 
 	// Find CID
 	string::size_type i = name.rfind('.');
@@ -189,7 +231,7 @@ int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBas
 	} catch(SimpleXMLException& e) {
 		//Better to abort and show the error, than just leave it hanging.
 		LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " +  
-			Util::toString(ClientManager::getInstance()->getNicks(HintedUser(getUser(), Util::emptyString))) + " ]", LogManager::LOG_ERROR);
+			getNick(false) + " ]", LogManager::LOG_ERROR);
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
 	}
 	return ll.getLoadedDirs();
@@ -438,7 +480,7 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(target, hintedUser, aFiles, prio, aDir->getDate(), errorMsg);
 	if (!errorMsg.empty()) {
 		if (aAutoSearch == 0) {
-			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) % errorMsg), LogManager::LOG_WARNING);
+			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % getNick(false) % errorMsg), LogManager::LOG_WARNING);
 		} else {
 			AutoSearchManager::getInstance()->onBundleError(aAutoSearch, errorMsg, target, hintedUser);
 		}
@@ -549,7 +591,7 @@ bool DirectoryListing::findNfo(const string& aPath) {
 	if (isClientView)
 		fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(NO_NFO_FOUND));
 	else
-		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(hintedUser)) + ": " + STRING(NO_NFO_FOUND), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(getNick(false) + ": " + STRING(NO_NFO_FOUND), LogManager::LOG_INFO);
 	return false;
 }
 
