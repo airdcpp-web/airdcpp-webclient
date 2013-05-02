@@ -24,8 +24,6 @@
 #include "HintedUser.h"
 #include "QueueItem.h"
 
-#include "boost/unordered_map.hpp"
-
 namespace dcpp {
 
 /** All queue items indexed by user (this is a cache for the FileQueue really...) */
@@ -48,8 +46,8 @@ public:
 	void removeBundle(BundlePtr& aBundle, const UserPtr& aUser);
 	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p);
 
-	boost::unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }
-	boost::unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }
+	unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }
+	unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }
 
 	string getLastError() { 
 		string tmp = lastError;
@@ -59,9 +57,9 @@ public:
 
 private:
 	/** Bundles by priority and user (this is where the download order is determined) */
-	boost::unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue;
+	unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue;
 	/** High priority QueueItems by user (this is where the download order is determined) */
-	boost::unordered_map<UserPtr, QueueItemList, User::Hash> userPrioQueue;
+	unordered_map<UserPtr, QueueItemList, User::Hash> userPrioQueue;
 	/** Last error message to sent to TransferView */
 	string lastError;
 };

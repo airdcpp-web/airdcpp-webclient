@@ -147,7 +147,7 @@ int FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) const 
 	return 0;
 }
 
-QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& fileName) const noexcept {
+QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& /*fileName*/) const noexcept {
 	//auto s = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
 	//if (s.first != s.second) {
 		//auto k = find_if(s | map_values, [&fileName](const QueueItemPtr& q) { return (stricmp(fileName, q->getTargetFileName()) == 0); });

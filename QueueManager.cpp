@@ -673,7 +673,7 @@ private:
 BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) noexcept {
 	string target = formatBundleTarget(aTarget, aDate);
 
-	auto fileCount = aFiles.size();
+	int fileCount = aFiles.size();
 
 	//check the source
 	if (aUser.user) {
@@ -720,7 +720,7 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		errors.setErrorMsg(errorMsg_);
 		return nullptr;
 	} else if (smallDupes > 0) {
-		if (smallDupes == aFiles.size()) {
+		if (smallDupes == static_cast<int>(aFiles.size())) {
 			//no reason to continue if all remaining files are dupes
 			errors.setErrorMsg(errorMsg_);
 			return nullptr;
@@ -861,8 +861,7 @@ bool QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 					fire(QueueManagerListener::SourcesUpdated(), ret.first);
 			}
 		} catch(const Exception&) {
-			if (ret.second)
-				dcassert(0);
+			dcassert(!ret.second);
 			//This should never fail for new items, and for existing items it doesn't matter (useless spam)
 		}
 	}
@@ -2422,7 +2421,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 				continue;
 
 			// Size compare to avoid popular spoof
-			if((SETTING(AUTO_ADD_SOURCE) || (q->getBundle()->getLastSearch() != 0 && q->getBundle()->getLastSearch() + 15*60*1000 > GET_TICK())) && q->getSize() == sr->getSize() && !q->isSource(sr->getUser())) {
+			if((SETTING(AUTO_ADD_SOURCE) || (q->getBundle()->getLastSearch() != 0 && static_cast<uint64_t>(q->getBundle()->getLastSearch() + 15*60*1000) > GET_TICK())) && q->getSize() == sr->getSize() && !q->isSource(sr->getUser())) {
 				if (q->getBundle()->isFinished()) {
 					continue;
 				}
@@ -2431,7 +2430,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 					continue;
 				}
 
-				if((q->getBundle()->countOnlineUsers() + matchLists.left.count(q->getBundle()->getToken())) < SETTING(MAX_AUTO_MATCH_SOURCES)) {
+				if(static_cast<int>(q->getBundle()->countOnlineUsers() + matchLists.left.count(q->getBundle()->getToken())) < SETTING(MAX_AUTO_MATCH_SOURCES)) {
 					selQI = q;
 				} 
 			}
@@ -3065,7 +3064,7 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 			LogManager::getInstance()->message(STRING_F(BUNDLE_CREATED, aBundle->getName() % aBundle->getQueueItems().size()) + " (" + CSTRING_F(TOTAL_SIZE, Util::formatBytes(aBundle->getSize())) + ")", LogManager::LOG_INFO);
 	} else {
 		//finished bundle but failed hashing/scanning?
-		bool finished = aBundle->getQueueItems().size() == itemsAdded;
+		bool finished = static_cast<int>(aBundle->getQueueItems().size()) == itemsAdded;
 
 		if (finished) {
 			statusChanged = true;

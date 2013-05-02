@@ -50,7 +50,6 @@
 #include "HashBloom.h"
 #include "HashedFile.h"
 
-#include "boost/unordered_map.hpp"
 #include "boost/bimap.hpp"
 #include <boost/bimap/unordered_multiset_of.hpp>
 

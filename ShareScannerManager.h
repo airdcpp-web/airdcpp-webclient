@@ -19,16 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_SHARE_SCANNER_MANAGER_H_
 #define DCPLUSPLUS_DCPP_SHARE_SCANNER_MANAGER_H_
 
-#include "Speaker.h"
-#include "Thread.h"
-#include "Singleton.h"
 #include <string>
 
 #include "noexcept.h"
 #include "atomic.h"
-#include "boost/unordered_map.hpp"
 
 #include "SFVReader.h"
+#include "Speaker.h"
+#include "Singleton.h"
+#include "Thread.h"
+
+#include <boost/regex.hpp>
 
 namespace dcpp {
 
@@ -106,7 +107,7 @@ private:
 
 	int64_t scanFolderSize;
 	volatile bool stop;
-	boost::unordered_multimap<string, string> dupeDirs;
+	unordered_multimap<string, string> dupeDirs;
 	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList);
 	void prepareSFVScanDir(const string& path, SFVScanList& dirs);
 	void prepareSFVScanFile(const string& path, StringList& files);

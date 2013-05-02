@@ -28,8 +28,6 @@
 #include "UDPServer.h"
 #include "User.h"
 
-#include <boost/unordered_map.hpp>
-
 namespace dcpp {
 
 #define SEARCH_TYPE_ANY "0"

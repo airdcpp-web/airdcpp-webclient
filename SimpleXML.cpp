@@ -126,7 +126,7 @@ void SimpleXML::Tag::appendAttribString(string& tmp) {
  * with streams and only one code set but streams are slow...the file f should be a buffered
  * file, otherwise things will be very slow (I assume write is not expensive and call it a lot
  */
-void SimpleXML::Tag::toXML(int indent, OutputStream* f, bool noIndent /*false*/) {
+void SimpleXML::Tag::toXML(int indent, OutputStream* f, bool /*noIndent*/ /*false*/) {
 	if(children.empty() && data.empty() && !forceEndTag) {
 		string tmp;
 		tmp.reserve(indent + name.length() + 30);

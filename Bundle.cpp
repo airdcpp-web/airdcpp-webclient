@@ -618,7 +618,7 @@ bool Bundle::allowAutoSearch() const {
 	if (isSet(FLAG_SCHEDULE_SEARCH))
 		return false; // handle this via bundle updates
 
-	if (countOnlineUsers() >= (size_t)SETTING(AUTO_SEARCH_LIMIT))
+	if (countOnlineUsers() >= SETTING(AUTO_SEARCH_LIMIT))
 		return false; // can't exceed the user limit
 
 	if (find_if(queueItems, [](const QueueItemPtr& q) { return q->getPriority() != QueueItem::PAUSED; } ) == queueItems.end())

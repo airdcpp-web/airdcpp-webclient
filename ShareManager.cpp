@@ -1238,7 +1238,7 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 	return nullptr;
 }
 
-bool ShareManager::isFileShared(const TTHValue& aTTH, const string& fileName) const {
+bool ShareManager::isFileShared(const TTHValue& aTTH, const string& /*fileName*/) const {
 	RLock l (cs);
 	/*const auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
 	for(auto i = files.first; i != files.second; ++i) {

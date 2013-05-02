@@ -33,8 +33,6 @@
 #include "UserConnectionListener.h"
 #include "UserInfoBase.h"
 
-#include "boost/unordered_map.hpp"
-
 namespace dcpp {
 
 class UploadQueueItem : public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
@@ -155,7 +153,7 @@ private:
 
 	int lastFreeSlots; /// amount of free slots at the previous minute
 	
-	typedef boost::unordered_map<UserPtr, uint16_t> MultiConnMap;
+	typedef unordered_map<UserPtr, uint16_t, User::Hash> MultiConnMap;
 	MultiConnMap multiUploads;
 
 	typedef unordered_map<UserPtr, uint64_t, User::Hash> SlotMap;

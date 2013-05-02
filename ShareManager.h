@@ -42,8 +42,6 @@
 #include "TaskQueue.h"
 #include "Thread.h"
 
-#include <boost/unordered_map.hpp>
-
 namespace dcpp {
 
 STANDARD_EXCEPTION(ShareException);
@@ -509,7 +507,7 @@ private:
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
-	typedef boost::unordered_multimap<string*, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMultiMap; 
+	typedef unordered_multimap<string*, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMultiMap; 
 
 	//list to return multiple directory item pointers
 	typedef std::vector<Directory::Ptr> DirectoryList;

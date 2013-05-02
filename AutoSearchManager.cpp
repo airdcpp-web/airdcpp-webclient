@@ -131,7 +131,7 @@ string AutoSearch::formatParams(const AutoSearchPtr& as, const string& aString) 
 	if (as->usingIncrementation()) {
 		params["inc"] = [&] { 
 			auto num = Util::toString(as->getCurNumber());
-			if (num.length() < as->getNumberLen()) {
+			if (static_cast<int>(num.length()) < as->getNumberLen()) {
 				//prepend the zeroes
 				num.insert(num.begin(), as->getNumberLen() - num.length(), '0');
 			}
@@ -464,7 +464,7 @@ void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) {
 	auto i = find_if(searchItems, [aItem](const AutoSearchPtr as) { return compare(as->getToken(), aItem->getToken()) == 0; });
 	if(i != searchItems.end()) {
 
-		if(distance(searchItems.begin(), i) < curPos) //dont skip a search if we remove before the last search.
+		if(static_cast<uint32_t>(distance(searchItems.begin(), i)) < curPos) //dont skip a search if we remove before the last search.
 			curPos--;
 
 		fire(AutoSearchManagerListener::RemoveItem(), aItem);
@@ -747,7 +747,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 
 	if(endOfListReached) {
 		recheckTime++;
-		if(recheckTime >= SETTING(AUTOSEARCH_RECHECK_TIME)) {
+		if(recheckTime >= static_cast<uint32_t>(SETTING(AUTOSEARCH_RECHECK_TIME))) {
 			curPos = 0;
 			endOfListReached = false;
 		} else {
@@ -756,7 +756,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 		}
 	}
 
-	if(checkItems() && lastSearch >= (SETTING(AUTOSEARCH_EVERY))) {
+	if(checkItems() && lastSearch >= static_cast<uint32_t>(SETTING(AUTOSEARCH_EVERY))) {
 		runSearches();
 	}
 }

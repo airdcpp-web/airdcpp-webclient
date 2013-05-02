@@ -28,8 +28,6 @@
 #include "DirectoryListing.h"
 #include "HashBloom.h"
 
-#include "boost/unordered_map.hpp"
-
 namespace dcpp {
 
 /** All queue items indexed by user (this is a cache for the FileQueue really...) **/

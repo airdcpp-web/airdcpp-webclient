@@ -133,7 +133,7 @@ bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const 
 }
 
 void SearchResult::pickResults(SearchResultList& aResults, int pickedNum) {
-	if (aResults.size() <= pickedNum) {
+	if (static_cast<int>(aResults.size()) <= pickedNum) {
 		//we can pick all matches
 	} else {
 		//pick the best matches

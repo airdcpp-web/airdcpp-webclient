@@ -29,15 +29,13 @@
 #include "SettingsManager.h"
 #include "User.h"
 
-#include "boost/unordered_map.hpp"
-
 namespace dcpp {
 
 class QueueItem : public QueueItemBase, public intrusive_ptr_base<QueueItem> {
 public:
-	typedef boost::unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
+	typedef unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 	typedef unordered_multimap<TTHValue*, QueueItemPtr> TTHMap;
-	typedef boost::unordered_multimap<string, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMultiMap;
+	typedef unordered_multimap<string, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMultiMap;
 	typedef vector<pair<string, QueueItemPtr>> StringItemList;
 
 	struct Hash {

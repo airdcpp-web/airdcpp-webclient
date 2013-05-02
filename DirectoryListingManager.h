@@ -31,8 +31,6 @@
 
 #include "Singleton.h"
 
-#include "boost/unordered_map.hpp"
-
 namespace dcpp {
 
 	enum SizeCheckMode {
@@ -73,7 +71,7 @@ namespace dcpp {
 		void createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir = Util::emptyString, ProfileToken aProfile=SP_DEFAULT, bool isOwnList=false);
 
 		/** Directories queued for downloading */
-		boost::unordered_multimap<UserPtr, DirectoryDownloadInfo*, User::Hash> dlDirectories;
+		unordered_multimap<UserPtr, DirectoryDownloadInfo*, User::Hash> dlDirectories;
 		/** Directories asking for size confirmation (later also directories added for scanning etc. ) **/
 		unordered_map<string, FinishedDirectoryItem*> finishedListings;
 		/** Lists open in the client **/

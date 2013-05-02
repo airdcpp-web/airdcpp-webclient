@@ -73,7 +73,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 	vector<pair<CID, AdcCommand>> UBNList;
 	StringList targets;
 	BundleList bundleTicks;
-	boost::unordered_map<UserPtr, int64_t> userSpeedMap;
+	unordered_map<UserPtr, int64_t, User::Hash> userSpeedMap;
 
 	{
 		RLock l(cs);

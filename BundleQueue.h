@@ -25,8 +25,6 @@
 #include "Bundle.h"
 #include "TargetUtil.h"
 
-#include "boost/unordered_map.hpp"
-
 namespace dcpp {
 
 /* Stores the queue bundle lists and the bundle search queue */

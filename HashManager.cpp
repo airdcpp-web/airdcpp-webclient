@@ -129,7 +129,7 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 			auto p = find_if(hashers, [&vol](const Hasher* aHasher) { return aHasher->hasDevice(vol); });
 			if (p != hashers.end()) {
 				h = *p;
-			} else if (hashers.size() >= SETTING(MAX_HASHING_THREADS)) {
+			} else if (static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS)) {
 				// can't create new ones
 				h = *getLeastLoaded(hashers);
 			}
@@ -138,14 +138,14 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 			HasherList volHashers;
 			copy_if(hashers.begin(), hashers.end(), back_inserter(volHashers), [&vol](const Hasher* aHasher) { return aHasher->hasDevice(vol); });
 
-			if (volHashers.empty() && hashers.size() >= SETTING(MAX_HASHING_THREADS)) {
+			if (volHashers.empty() && static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS)) {
 				//we just need choose from all hashers
 				h = *getLeastLoaded(hashers);
 			} else {
 				auto minLoaded = getLeastLoaded(volHashers);
 
 				//don't create new hashers if the file is less than 10 megabytes and there's a hasher with less than 200MB queued, or the maximum number of threads have been reached for this volume
-				if (hashers.size() >= SETTING(MAX_HASHING_THREADS) || volHashers.size() >= SETTING(HASHERS_PER_VOLUME) || (size <= 10*1024*1024 && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= 200*1024*1024)) {
+				if (static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS) || static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) || (size <= 10*1024*1024 && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= 200*1024*1024)) {
 					//use the least loaded hasher that already has this volume
 					h = *minLoaded;
 				}

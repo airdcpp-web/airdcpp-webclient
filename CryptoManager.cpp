@@ -345,7 +345,7 @@ const vector<uint8_t>& CryptoManager::getKeyprint() const noexcept {
 	return keyprint;
 }
 
-void CryptoManager::loadKeyprint(const string& file) noexcept {
+void CryptoManager::loadKeyprint(const string& /*file*/) noexcept {
 	auto x509 = ssl::getX509(SETTING(TLS_CERTIFICATE_FILE).c_str());
 	if(x509) {
 		keyprint = ssl::X509_digest(x509, EVP_sha256());

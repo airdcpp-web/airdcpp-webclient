@@ -26,8 +26,6 @@
 #include "forward.h"
 #include "GetSet.h"
 
-#include "boost/unordered_map.hpp"
-
 namespace dcpp {
 
 using std::string;

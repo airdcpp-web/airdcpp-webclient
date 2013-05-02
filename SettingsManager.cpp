@@ -1017,7 +1017,7 @@ bool SettingsManager::addToHistory(const tstring& aString, HistoryType aType) {
 		hist.erase(s);
 	}
 
-	if(hist.size() == get(maxLimits[aType])) {
+	if(static_cast<int>(hist.size()) == get(maxLimits[aType])) {
 		hist.pop_front();
 	}
 

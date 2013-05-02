@@ -31,8 +31,6 @@
 
 #include "QueueItemBase.h"
 
-#include "boost/unordered_map.hpp"
-
 namespace dcpp {
 
 using std::string;
@@ -107,17 +105,17 @@ public:
 		}
 	};
 
-	typedef boost::unordered_map<string, BundlePtr> StringBundleMap;
-	typedef boost::unordered_multimap<string, pair<string, BundlePtr>, noCaseStringHash, noCaseStringEq> BundleDirMap;
+	typedef unordered_map<string, BundlePtr> StringBundleMap;
+	typedef unordered_multimap<string, pair<string, BundlePtr>, noCaseStringHash, noCaseStringEq> BundleDirMap;
 	typedef vector<pair<string, BundlePtr>> StringBundleList;
 
-	typedef boost::unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
+	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
 	typedef vector<BundleSource> SourceList;
 	typedef vector<pair<BundlePtr, BundleSource>> SourceBundleList;
 
 	typedef pair<HintedUser, string> UserBundlePair;
 	typedef vector<UserBundlePair> FinishedNotifyList;
-	typedef boost::unordered_map<string, pair<uint32_t, uint32_t>> DirMap;
+	typedef unordered_map<string, pair<uint32_t, uint32_t>> DirMap;
 
 	typedef multimap<double, BundlePtr> SourceSpeedMapB;
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
@@ -265,9 +263,9 @@ private:
 	bool recent;
 
 	/** QueueItems by priority and user (this is where the download order is determined) */
-	boost::unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[LAST];
+	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[LAST];
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
-	boost::unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
+	unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
 };
 
 }
