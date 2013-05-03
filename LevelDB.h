@@ -48,7 +48,7 @@ public:
 	void repair(StepFunction stepF, MessageFunction messageF);
 	void open(StepFunction stepF, MessageFunction messageF);
 private:
-	string LevelDB::getRepairFlag() const;
+	string getRepairFlag() const;
 	leveldb::Status performDbOperation(function<leveldb::Status ()> f);
 	void checkDbError(leveldb::Status aStatus);
 

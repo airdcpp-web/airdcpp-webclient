@@ -78,13 +78,17 @@ string& SimpleXML::escape(string& aString, bool aAttrib, bool aLoading /* = fals
 	return aString;
 }
 
-void SimpleXML::loadSettingFile(Util::Paths aPath, const string& aFileName, bool migrate /*true*/) {
+bool SimpleXML::loadSettingFile(Util::Paths aPath, const string& aFileName, bool migrate /*true*/) {
 	string fname = Util::getPath(aPath) + aFileName;
 
 	if (migrate)
 		Util::migrate(fname);
 
+	if (!Util::fileExists(fname))
+		return false;
+
 	fromXML(File(fname, File::READ, File::OPEN).read());
+	return true;
 }
 
 void SimpleXML::saveSettingFile(Util::Paths aPath, const string& aFileName) {

@@ -1696,7 +1696,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to open %s: %s\r\n\r\nMake sure that there isn't another instance of %s using the same settings directory and that the directory %s is accessible. %s will now exit.", 
 "Failed to open %s: %s\r\n\r\n%s will now attempt to repair it automatically.", 
 "Failed to repair %s: %s\r\n\r\nMake sure that the path %s is accessible and there isn't there isn't another instance of %s using the same settings directory. Remove the directory in case the error can't be fixed.", 
-"Please restart the client and %s will attempt to repair the database automatically on the startup.", 
+"Multithreaded file list refresh", 
+"Always", 
+"Manual refreshes only", 
+"You can set the database to be verified and repaired from the \"Sharing options\" tab in Settings (if needed)", 
+"Verify and repair the hash database on next startup", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3393,5 +3397,9 @@ std::string dcpp::ResourceManager::names[] = {
 "DbOpenFailedIo", 
 "DbOpenFailedRepair", 
 "DbRepairFailed", 
-"DbCorruptedRestart", 
+"MultithreadedRefresh", 
+"Always", 
+"ManualRefreshes", 
+"DbErrorHint", 
+"SettingsDbRepair", 
 };

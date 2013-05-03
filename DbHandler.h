@@ -50,6 +50,7 @@ public:
 	virtual void compact() { }
 
 	virtual string getStats() { return "Not supported"; }
+	virtual string getRepairFlag() const = 0;
 
 	virtual ~DbHandler() { }
 

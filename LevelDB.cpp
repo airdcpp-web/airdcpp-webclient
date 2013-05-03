@@ -243,11 +243,10 @@ void LevelDB::checkDbError(leveldb::Status aStatus) {
 		return;
 
 	string ret = Text::toUtf8(aStatus.ToString());
-	if (aStatus.IsCorruption()) {
-		File::createFile(getRepairFlag());
+	if (aStatus.IsCorruption() || aStatus.IsIOError()) {
 		if (ret.back() != '.')
 			ret += ".";
-		ret += " " + STRING_F(DB_CORRUPTED_RESTART, APPNAME);
+		ret += " " + STRING(DB_ERROR_HINT);
 	}
 
 	throw DbException(ret);

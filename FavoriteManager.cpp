@@ -604,18 +604,18 @@ void FavoriteManager::load() {
 
 	try {
 		SimpleXML xml;
-		xml.loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME, false); //we have migrated already when loading the CID
+		if (xml.loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME, false)) { //we have migrated already when loading the CID
+			if(xml.findChild("Favorites")) {
+				xml.stepIn();
+				load(xml);
+				xml.stepOut();
+			}
 
-		if(xml.findChild("Favorites")) {
-			xml.stepIn();
-			load(xml);
-			xml.stepOut();
+			//we have load it fine now, so make a backup of a working favorites.xml
+			auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
+			File::deleteFile(f + ".bak");
+			CopyFile(Text::toT(f).c_str(), Text::toT(f + ".bak").c_str(), FALSE);
 		}
-
-		//we have load it fine now, so make a backup of a working favorites.xml
-		auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
-		File::deleteFile(f + ".bak");
-		CopyFile(Text::toT(f).c_str(), Text::toT(f + ".bak").c_str(), FALSE);
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::load: %s\n", e.getError().c_str());
 		LogManager::getInstance()->message("Error Loading Favorites.xml : " + e.getError(), LogManager::LOG_ERROR);

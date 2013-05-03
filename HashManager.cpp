@@ -607,16 +607,18 @@ string HashManager::HashStore::getDbStats() {
 	return statMsg;
 }
 
-bool HashManager::HashStore::setDebug() {
-	showDebugInfo = !showDebugInfo;
-
-	/*if (showDebugInfo) {
-		dbEnv->set_errcall(errorF);
+void HashManager::HashStore::onScheduleRepair(bool schedule) {
+	if (schedule) {
+		File::createFile(hashDb->getRepairFlag());
+		File::createFile(fileDb->getRepairFlag());
 	} else {
-		dbEnv->set_errcall(NULL);
-	}*/
+		File::deleteFile(hashDb->getRepairFlag());
+		File::deleteFile(fileDb->getRepairFlag());
+	}
+}
 
-	return showDebugInfo;
+bool HashManager::HashStore::isRepairScheduled() const {
+	return Util::fileExists(hashDb->getRepairFlag()) && Util::fileExists(fileDb->getRepairFlag());
 }
 
 void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
@@ -826,7 +828,7 @@ void HashLoader::endTag(const string& name) {
 	}
 }
 
-HashManager::HashStore::HashStore() : showDebugInfo(false) {
+HashManager::HashStore::HashStore() {
 }
 
 void HashManager::HashStore::closeDb() {

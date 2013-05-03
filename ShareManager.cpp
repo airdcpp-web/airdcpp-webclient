@@ -1869,7 +1869,8 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 		atomic<long> progressCounter = 0;
 		const size_t dirCount = refreshDirs.size();
 
-		parallel_for_each(refreshDirs.begin(), refreshDirs.end(), [&](RefreshInfo& ri) {
+
+		auto Refresh = [&](RefreshInfo& ri) {
 			if (checkHidden(ri.root->getProfileDir()->getPath())) {
 				buildTree(ri.root->getProfileDir()->getPath(), ri.root, true, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *ri.newBloom.get());
 			}
@@ -1879,7 +1880,13 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			}
 
 			ri.root->getProfileDir()->setCacheDirty(true);
-		});
+		};
+
+		if (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_ALWAYS || (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_MANUAL && (task->type == TYPE_MANUAL || task->type == TYPE_STARTUP))) {
+			parallel_for_each(refreshDirs.begin(), refreshDirs.end(), Refresh);
+		} else {
+			for_each(refreshDirs, Refresh);
+		}
 
 		if (aShutdown)
 			goto end;

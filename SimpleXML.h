@@ -140,7 +140,7 @@ public:
 	}
 
 	void saveSettingFile(Util::Paths aPath, const string& aFileName);
-	void loadSettingFile(Util::Paths aPath, const string& aFileName, bool migrate=true);
+	bool loadSettingFile(Util::Paths aPath, const string& aFileName, bool migrate=true);
 	
 	void fromXML(const string& aXML);
 	string toXML();

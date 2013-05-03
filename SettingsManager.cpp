@@ -110,7 +110,7 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
 	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
-	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", 
+	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh",
 	"SENTRY",
 
 	// Bools
@@ -767,6 +767,7 @@ SettingsManager::SettingsManager()
 	setDefault(CUR_REMOVED_FILES, 0);
 
 	setDefault(DL_AUTO_DISCONNECT_MODE, QUEUE_FILE);
+	setDefault(REFRESH_THREADING, MULTITHREAD_MANUAL);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

@@ -1700,6 +1700,10 @@ enum Strings { // @DontAdd
 	DB_OPEN_FAILED_IO, // "Failed to open %s: %s\r\n\r\nMake sure that there isn't another instance of %s using the same settings directory and that the directory %s is accessible. %s will now exit."
 	DB_OPEN_FAILED_REPAIR, // "Failed to open %s: %s\r\n\r\n%s will now attempt to repair it automatically."
 	DB_REPAIR_FAILED, // "Failed to repair %s: %s\r\n\r\nMake sure that the path %s is accessible and there isn't there isn't another instance of %s using the same settings directory. Remove the directory in case the error can't be fixed."
-	DB_CORRUPTED_RESTART, // "Please restart the client and %s will attempt to repair the database automatically on the startup."
+	MULTITHREADED_REFRESH, // "Multithreaded file list refresh"
+	ALWAYS, // "Always"
+	MANUAL_REFRESHES, // "Manual refreshes only"
+	DB_ERROR_HINT, // "You can set the database to be verified and repaired from the \"Sharing options\" tab in Settings (if needed)"
+	SETTINGS_DB_REPAIR, // "Verify and repair the hash database on next startup"
 	LAST // @DontAdd
 };

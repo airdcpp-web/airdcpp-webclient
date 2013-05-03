@@ -108,9 +108,9 @@ public:
 	bool isHashingPaused(bool lock = true) const;
 
 	string getDbStats() { return store.getDbStats(); }
-
 	void closeDB() { store.closeDb(); }
-	bool setDebug() { return store.setDebug(); }
+	void onScheduleRepair(bool schedule) { store.onScheduleRepair(schedule); }
+	bool isRepairScheduled() const { return store.isRepairScheduled(); }
 private:
 	int pausers;
 	class Hasher : public Thread {
@@ -219,8 +219,6 @@ private:
 		bool getTree(const TTHValue& root, TigerTree& tth);
 		bool hasTree(const TTHValue& root);
 
-		bool setDebug();
-
 		enum InfoType {
 			TYPE_FILESIZE,
 			TYPE_BLOCKSIZE
@@ -231,6 +229,9 @@ private:
 
 		void openDb(StepFunction stepF, MessageFunction messageF);
 		void closeDb();
+
+		void onScheduleRepair(bool schedule);
+		bool isRepairScheduled() const;
 	private:
 		std::unique_ptr<DbHandler> fileDb;
 		std::unique_ptr<DbHandler> hashDb;
@@ -252,8 +253,6 @@ private:
 		static bool loadFileInfo(const void* src, size_t len, HashedFile& aFile);
 		static void saveFileInfo(void *dest, const HashedFile& aTree);
 		static uint32_t getFileInfoSize(const HashedFile& aTree);
-
-		bool showDebugInfo;
 	};
 
 	friend class HashLoader;
