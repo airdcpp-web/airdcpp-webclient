@@ -463,6 +463,16 @@ FileList* ShareManager::getFileList(ProfileToken aProfile) const{
 	//return shareProfiles[SP_DEFAULT]->second->getProfileList();
 }
 
+ShareProfilePtr ShareManager::getProfile(ProfileToken aProfile) const {
+	RLock l(cs);
+	const auto i = find(shareProfiles.begin(), shareProfiles.end(), aProfile);
+	if(i != shareProfiles.end()) {
+		return *i;
+	}
+
+	return nullptr;
+}
+
 pair<int64_t, string> ShareManager::getFileListInfo(const string& virtualFile, ProfileToken aProfile) {
 	if(virtualFile == "MyList.DcLst") 
 		throw ShareException("NMDC-style lists no longer supported, please upgrade your client");

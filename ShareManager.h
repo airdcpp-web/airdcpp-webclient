@@ -239,6 +239,7 @@ public:
 	void removeProfiles(ProfileTokenList aProfiles);
 
 	bool isRealPathShared(const string& aPath);
+	ShareProfilePtr getProfile(ProfileToken aProfile) const;
 
 	/* Only for gui use purposes, no locking */
 	const ShareProfileList& getProfiles() { return shareProfiles; }
