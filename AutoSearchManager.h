@@ -85,6 +85,7 @@ public:
 
 	enum Status {
 		STATUS_DISABLED,
+		STATUS_EXPIRED,
 		STATUS_MANUAL,
 		STATUS_SEARCHING,
 		STATUS_COLLECTING,
@@ -223,7 +224,7 @@ public:
 		}
 	}
 
-	void setActiveItem(unsigned int index, bool active);
+	bool setItemActive(AutoSearchPtr& as, bool active);
 
 	void runSearches();
 

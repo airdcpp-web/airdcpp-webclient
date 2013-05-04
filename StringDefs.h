@@ -1547,7 +1547,7 @@ enum Strings { // @DontAdd
 	MAX_HASHING_THREADS, // "Max hashing threads"
 	HASHING_OPTIONS, // "Hashing options"
 	REFRESH_OPTIONS, // "Refreshing options"
-	EXPIRED_AS_REMOVED, // "An expired auto search has been removed: %s"
+	EXPIRED_AS_REMOVED, // "An expired item %s has been removed"
 	PROXIES, // "Proxies"
 	PASSIVE_MODE, // "Passive mode"
 	ACTIVE_MODE, // "Active mode"
@@ -1705,5 +1705,8 @@ enum Strings { // @DontAdd
 	MANUAL_REFRESHES, // "Manual refreshes only"
 	DB_ERROR_HINT, // "You can set the database to be verified and repaired from the \"Sharing options\" tab in Settings (if needed)"
 	SETTINGS_DB_REPAIR, // "Verify and repair the hash database on next startup"
+	DB_X_REPAIRED, // "%s has been verified and repaired successfully. Detailed information about the process has been saved in %s"
+	EXPIRED_AS_DISABLED, // "An expired item %s has been disabled"
+	REMOVE_EXPIRED_AS, // "Remove expired auto search items instead of disabling them"
 	LAST // @DontAdd
 };

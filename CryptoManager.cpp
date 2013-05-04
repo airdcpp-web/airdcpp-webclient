@@ -49,12 +49,28 @@
 
 namespace dcpp {
 
+#ifdef HEADER_OPENSSLV_H
+CriticalSection* CryptoManager::cs = NULL;
+#else
+static int mutex_init(void **priv) { *priv = new CriticalSection(); return 0; }
+static int mutex_destroy(void **priv) { delete *priv; *priv = NULL; return 0; }
+static int mutex_lock(void **priv) { ((CriticalSection*)(*priv))->enter(); return 0; }
+static int mutex_unlock(void **priv) { ((CriticalSection*)(*priv))->leave(); return 0; }
+  
+static struct gcry_thread_cbs gcry_threads_other = { 0, NULL, mutex_init, mutex_destroy, mutex_lock, mutex_unlock, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+#endif
+
 CryptoManager::CryptoManager()
 :
 	certsLoaded(false),
 	lock("EXTENDEDPROTOCOLABCABCABCABCABCABC"),
 	pk("DCPLUSPLUS" VERSIONSTRING)
 {
+#ifdef HEADER_OPENSSLV_H
+	cs = new CriticalSection[CRYPTO_num_locks()];
+	CRYPTO_set_locking_callback(locking_function);
+#endif
+
 	SSL_library_init();
 
 	clientContext.reset(SSL_CTX_new(TLSv1_client_method()));
@@ -137,10 +153,25 @@ CryptoManager::CryptoManager()
 }
 
 CryptoManager::~CryptoManager() {
+#ifdef HEADER_OPENSSLV_H
+	CRYPTO_set_locking_callback(NULL);
+	delete[] cs;
+#endif
 }
 
+#ifdef HEADER_OPENSSLV_H
+void CryptoManager::locking_function(int mode, int n, const char* /*file*/, int /*line*/)
+{
+    if (mode & CRYPTO_LOCK) {
+        cs[n].lock();
+    } else {
+        cs[n].unlock();
+    }
+}
+#endif
+
 bool CryptoManager::TLSOk() const noexcept {
-	return certsLoaded && !keyprint.empty();
+	return SETTING(TLS_MODE) > 0 && certsLoaded && !keyprint.empty();
 }
 
 void CryptoManager::generateCertificate() {

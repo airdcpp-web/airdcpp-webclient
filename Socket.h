@@ -167,7 +167,9 @@ public:
 
 	/** Binds a socket to a certain local port and possibly IP. */
 	virtual string listen(const string& port);
-	virtual void accept(const Socket& listeningSocket);
+	/** Accept a socket.
+	@return remote port */
+	virtual uint16_t accept(const Socket& listeningSocket);
 
 	int getSocketOptInt(int option);
 	void setSocketOpt(int option, int value);

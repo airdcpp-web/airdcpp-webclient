@@ -53,7 +53,6 @@ private:
 	void checkDbError(leveldb::Status aStatus);
 
 	leveldb::DB* db;
-	leveldb::Env* dbEnv;
 
 	//DB options
 	leveldb::Options options;

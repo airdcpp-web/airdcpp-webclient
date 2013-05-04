@@ -201,6 +201,8 @@ bool AutoSearch::usingIncrementation() const {
 string AutoSearch::getSearchingStatus() const {
 	if (status == STATUS_DISABLED) {
 		return STRING(DISABLED);
+	} else if (status == STATUS_EXPIRED) {
+		return STRING(EXPIRED);
 	} else if (status == STATUS_MANUAL) {
 		return STRING(MATCHING_MANUAL);
 	} else if (status == STATUS_COLLECTING) {
@@ -240,7 +242,11 @@ string AutoSearch::getExpiration() const {
 
 void AutoSearch::updateStatus() {
 	if (!enabled) {
-		status = manualSearch ? AutoSearch::STATUS_MANUAL : AutoSearch::STATUS_DISABLED;
+		if (manualSearch) {
+			status = AutoSearch::STATUS_MANUAL;
+		} else {
+			status = (expireTime > 0 && static_cast<uint64_t>(expireTime) < GET_TIME()) ? AutoSearch::STATUS_EXPIRED : AutoSearch::STATUS_DISABLED;
+		}
 		return;
 	}
 
@@ -420,15 +426,18 @@ bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 	return true;
 }
 
-void AutoSearchManager::setActiveItem(unsigned int index, bool active) {
-	RLock l(cs);
-	auto i = searchItems.begin() + index;
-	if(i < searchItems.end()) {
-		(*i)->setEnabled(active);
-
-		updateStatus(*i, true);
-		dirty = true;
+bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) {
+	if (as->getExpireTime() < GET_TIME() && toActive) {
+		//move the expiration date
+		as->setExpireTime(GET_TIME() + SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60);
 	}
+
+	RLock l(cs);
+	as->setEnabled(toActive);
+
+	updateStatus(as, true);
+	dirty = true;
+	return true;
 }
 
 bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) {
@@ -782,7 +791,7 @@ bool AutoSearchManager::checkItems() {
 				search = false;
 			
 			//check expired, and remove them.
-			if (as->getExpireTime() > 0 && as->getExpireTime() <= curTime && as->getBundles().empty()) {
+			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->getExpireTime() > 0 && as->getExpireTime() <= curTime && as->getBundles().empty()) {
 				expired.push_back(as);
 				search = false;
 			}
@@ -800,8 +809,13 @@ bool AutoSearchManager::checkItems() {
 	}
 
 	for(auto& as: expired) {
-		logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), false);
-		removeAutoSearch(as);
+		if (SETTING(REMOVE_EXPIRED_AS)) {
+			logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), false);
+			removeAutoSearch(as);
+		} else {
+			logMessage(STRING_F(EXPIRED_AS_DISABLED, as->getSearchString()), false);
+			setItemActive(as, false);
+		}
 	}
 
 	if (!il.empty()) {
@@ -1289,6 +1303,10 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.stepOut();
 			}
 			aXml.resetCurrentChild();
+
+			if (as->getBundles().empty() && as->getExpireTime() < GET_TIME()) {
+				as->setEnabled(false);
+			}
 
 			addAutoSearch(as, false);
 			aXml.stepOut();

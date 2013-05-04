@@ -38,14 +38,13 @@ public:
 	virtual ~SSLSocketException() throw() { }
 };
 
-
 class CryptoManager;
 
 class SSLSocket : public Socket {
 public:
 	virtual ~SSLSocket() { }
 
-	virtual void accept(const Socket& listeningSocket);
+	virtual uint16_t accept(const Socket& listeningSocket);
 	virtual void connect(const string& aIp, const string& aPort);
 	virtual int read(void* aBuffer, int aBufLen);
 	virtual int write(const void* aBuffer, int aLen);

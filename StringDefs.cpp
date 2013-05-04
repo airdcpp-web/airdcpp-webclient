@@ -1543,7 +1543,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Max hashing threads", 
 "Hashing options", 
 "Refreshing options", 
-"An expired auto search has been removed: %s", 
+"An expired item %s has been removed", 
 "Proxies", 
 "Passive mode", 
 "Active mode", 
@@ -1701,6 +1701,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Manual refreshes only", 
 "You can set the database to be verified and repaired from the \"Sharing options\" tab in Settings (if needed)", 
 "Verify and repair the hash database on next startup", 
+"%s has been verified and repaired successfully. Detailed information about the process has been saved in %s", 
+"An expired item %s has been disabled", 
+"Remove expired auto search items instead of disabling them", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3402,4 +3405,7 @@ std::string dcpp::ResourceManager::names[] = {
 "ManualRefreshes", 
 "DbErrorHint", 
 "SettingsDbRepair", 
+"DbXRepaired", 
+"ExpiredAsDisabled", 
+"RemoveExpiredAs", 
 };

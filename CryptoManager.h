@@ -48,6 +48,11 @@ public:
 	const vector<uint8_t>& getKeyprint() const noexcept;
 
 	bool TLSOk() const noexcept;
+
+#ifdef HEADER_OPENSSLV_H	
+	static void __cdecl locking_function(int mode, int n, const char *file, int line);
+#endif
+
 private:
 
 	friend class Singleton<CryptoManager>;
@@ -74,6 +79,10 @@ private:
 	}
 
 	void loadKeyprint(const string& file) noexcept;
+
+#ifdef HEADER_OPENSSLV_H
+	static CriticalSection* cs;
+#endif
 };
 
 } // namespace dcpp

@@ -22,6 +22,7 @@
 #include "version.h"
 #include "ResourceManager.h"
 #include "File.h"
+#include "LogManager.h"
 
 #include <leveldb/comparator.h>
 #include <leveldb/filter_policy.h>
@@ -34,7 +35,7 @@
 namespace dcpp {
 
 LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, aFriendlyName, cacheSize), 
-	totalWrites(0), totalReads(0), ioErrors(0), dbEnv(nullptr), db(nullptr) {
+	totalWrites(0), totalReads(0), ioErrors(0), db(nullptr) {
 
 	readoptions.verify_checksums = false;
 	iteroptions.verify_checksums = false;
@@ -42,6 +43,7 @@ LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cach
 	iteroptions.fill_cache = false;
 	readoptions.fill_cache = true;
 
+	options.env = leveldb::Env::Default();
 	options.compression = useCompression ? leveldb::kSnappyCompression : leveldb::kNoCompression;
 	options.max_open_files = maxOpenFiles;
 	options.block_size = aBlockSize;
@@ -85,11 +87,22 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 
 void LevelDB::repair(StepFunction stepF, MessageFunction messageF) {
 	stepF(STRING_F(REPAIRING_X, getNameLower()));
+	
+	//remove any existing log
+	string logPath = dbPath + "repair.log";
+	File::deleteFile(logPath);
+	options.env->NewLogger(Text::fromUtf8(logPath), &options.info_log);
 
 	auto ret = leveldb::RepairDB(Text::fromUtf8(dbPath), options);
 	if (!ret.ok()) {
 		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % dbPath % APPNAME % APPNAME), false, true);
 	}
+
+	LogManager::getInstance()->message(STRING_F(DB_X_REPAIRED, friendlyName % logPath), LogManager::LOG_INFO);
+
+	//reset the log
+	delete options.info_log;
+	options.info_log = nullptr;
 }
 
 LevelDB::~LevelDB() {
@@ -97,8 +110,6 @@ LevelDB::~LevelDB() {
 		delete db;
 	delete options.filter_policy;
 	delete options.block_cache;
-	if (dbEnv)
-		delete dbEnv;
 }
 
 #define DBACTION(f) (performDbOperation([&] { return f; }))
