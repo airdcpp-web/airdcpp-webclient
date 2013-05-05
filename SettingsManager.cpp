@@ -784,178 +784,182 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 		
 		xml.resetCurrentChild();
 		
-		xml.stepIn();
-		
-		if(xml.findChild("Settings"))
+		if(xml.findChild("DCPlusPlus"))
 		{
 			xml.stepIn();
-
-			int i;
-			
-			for(i=STR_FIRST; i<STR_LAST; i++)
-			{
-				const string& attr = settingTags[i];
-				dcassert(attr.find("SENTRY") == string::npos);
-				
-				if(xml.findChild(attr))
-					set(StrSetting(i), xml.getChildData());
-				xml.resetCurrentChild();
-			}
-			for(i=INT_FIRST; i<INT_LAST; i++)
-			{
-				const string& attr = settingTags[i];
-				dcassert(attr.find("SENTRY") == string::npos);
-				
-				if(xml.findChild(attr))
-					set(IntSetting(i), Util::toInt(xml.getChildData()));
-				xml.resetCurrentChild();
-			}
-
-			for(i=BOOL_FIRST; i<BOOL_LAST; i++)
-			{
-				const string& attr = settingTags[i];
-				dcassert(attr.find("SENTRY") == string::npos);
-
-				if(xml.findChild(attr)) {
-					auto val = Util::toInt(xml.getChildData());
-					dcassert(val == 0 || val == 1);
-					set(BoolSetting(i), val ? true : false);
-				}
-				xml.resetCurrentChild();
-			}
-
-			for(i=INT64_FIRST; i<INT64_LAST; i++)
-			{
-				const string& attr = settingTags[i];
-				dcassert(attr.find("SENTRY") == string::npos);
-				
-				if(xml.findChild(attr))
-					set(Int64Setting(i), Util::toInt64(xml.getChildData()));
-				xml.resetCurrentChild();
-			}
-			
-			xml.stepOut();
-		}
-
-		xml.resetCurrentChild();
-
-
-		//load history lists
-		for(int i = 0; i < HISTORY_LAST; ++i) {
-			if (xml.findChild(historyTags[i])) {
-				xml.stepIn();
-				while(xml.findChild("HistoryItem")) {
-					addToHistory(Text::toT(xml.getChildData()), (HistoryType)i);
-				}
-				xml.stepOut();
-			}
-			xml.resetCurrentChild();
-		}
 		
-		if(xml.findChild("FileEvents")) {
-			xml.stepIn();
-			if(xml.findChild("OnFileComplete")) {
-				StringPair sp;
-				sp.first = xml.getChildAttrib("Command");
-				sp.second = xml.getChildAttrib("CommandLine");
-				fileEvents[ON_FILE_COMPLETE] = sp;
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("OnDirCreated")) {
-				StringPair sp;
-				sp.first = xml.getChildAttrib("Command");
-				sp.second = xml.getChildAttrib("CommandLine");
-				fileEvents[ON_DIR_CREATED] = sp;
-			}
-			xml.stepOut();
-		}
-		xml.resetCurrentChild();
-
-		double prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
-		if (prevVersion < 2.41) {
-			//previous versions have saved two settings in a wrong order... fix the dupe color here (queuebars don't matter)
-			if(xml.findChild("Settings")) {
+			if(xml.findChild("Settings"))
+			{
 				xml.stepIn();
-				const string& attr = settingTags[SHOW_QUEUE_BARS];
-				if(xml.findChild(attr)) {
-					set(IntSetting(DUPE_COLOR), Util::toInt(xml.getChildData()));
+
+				int i;
+			
+				for(i=STR_FIRST; i<STR_LAST; i++)
+				{
+					const string& attr = settingTags[i];
+					dcassert(attr.find("SENTRY") == string::npos);
+				
+					if(xml.findChild(attr))
+						set(StrSetting(i), xml.getChildData());
+					xml.resetCurrentChild();
 				}
-				xml.resetCurrentChild();
-				xml.stepOut();
-			}
+				for(i=INT_FIRST; i<INT_LAST; i++)
+				{
+					const string& attr = settingTags[i];
+					dcassert(attr.find("SENTRY") == string::npos);
+				
+					if(xml.findChild(attr))
+						set(IntSetting(i), Util::toInt(xml.getChildData()));
+					xml.resetCurrentChild();
+				}
 
-			// port previous conn settings
-			enum { OLD_INCOMING_DIRECT, OLD_INCOMING_UPNP, OLD_INCOMING_NAT, OLD_INCOMING_PASSIVE };
-			switch(SETTING(INCOMING_CONNECTIONS)) {
-				case OLD_INCOMING_UPNP: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE_UPNP); break;
-				case OLD_INCOMING_PASSIVE: set(INCOMING_CONNECTIONS, INCOMING_PASSIVE); break;
-				default: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE); break;
-			}
+				for(i=BOOL_FIRST; i<BOOL_LAST; i++)
+				{
+					const string& attr = settingTags[i];
+					dcassert(attr.find("SENTRY") == string::npos);
 
-			//notify about changed fav hub settings
-			auto getSettingTextStr = [] (const string& aSettingCaption, SettingsManager::StrSetting aSetting) -> string {
-				auto val = SettingsManager::getInstance()->get(aSetting);
-				return aSettingCaption + "\t(globally " + (!val.empty() ? val : "not set") + ")";
-			};
-
-			auto getSettingTextBool = [] (const string& aSettingCaption, SettingsManager::BoolSetting aSetting) -> string {
-				return aSettingCaption + "\t(globally " + (SettingsManager::getInstance()->get(aSetting) ? "Enabled" : "Disabled") + ")";
-			};
-
-			auto getSettingTextInt = [] (const string& aSettingCaption, SettingsManager::IntSetting aSetting) -> string {
-				return aSettingCaption + "\t(globally " + Util::toString(SettingsManager::getInstance()->get(aSetting)) + " seconds)";
-			};
-
-			auto getConnection = [] {
-				string text;
-
-				if (SETTING(AUTO_DETECT_CONNECTION)) {
-					text = "Auto detect";
-				} else {
-					switch(SETTING(INCOMING_CONNECTIONS)) {
-						case SettingsManager::INCOMING_ACTIVE: text = "Active (no router or manual config)"; break;
-						case SettingsManager::INCOMING_ACTIVE_UPNP: text = "Active (UPnP/NAT-PMP)"; break;
-						case SettingsManager::INCOMING_PASSIVE: text = "Passive"; break;
+					if(xml.findChild(attr)) {
+						auto val = Util::toInt(xml.getChildData());
+						dcassert(val == 0 || val == 1);
+						set(BoolSetting(i), val ? true : false);
 					}
+					xml.resetCurrentChild();
 				}
 
-				return "Incoming connection\t(globally " + text + ")";
-			};
+				for(i=INT64_FIRST; i<INT64_LAST; i++)
+				{
+					const string& attr = settingTags[i];
+					dcassert(attr.find("SENTRY") == string::npos);
+				
+					if(xml.findChild(attr))
+						set(Int64Setting(i), Util::toInt64(xml.getChildData()));
+					xml.resetCurrentChild();
+				}
+			
+				xml.stepOut();
+			}
 
-			string msg = boost::str(boost::format(
-				"\rAll favorite hubs have been reset to use the global values for the following settings:\r\n\r\n\
-%s\r\n\
-%s\r\n\
-%s\r\n\
-%s\r\n\r\n\
-%s\r\n\
-%s\r\n\r\n\
-You can customize those settings for each favorite hub if needed")
+			xml.resetCurrentChild();
 
-				% getSettingTextBool(STRING(FAV_SHOW_JOIN) + "\t", SettingsManager::SHOW_JOINS)
-				% getSettingTextBool(STRING(FAV_LOG_CHAT) + "\t\t", SettingsManager::LOG_MAIN_CHAT)
-				% getSettingTextInt(STRING(MINIMUM_SEARCH_INTERVAL) + "\t", SettingsManager::MINIMUM_SEARCH_INTERVAL)
-				% getSettingTextBool(STRING(CHAT_NOTIFY), SettingsManager::SHOW_CHAT_NOTIFY)
-				% getSettingTextStr(STRING(SETTINGS_EXTERNAL_IP) + "\t", SettingsManager::EXTERNAL_IP)
-				% getConnection());
 
-			messageF(msg, false, false);
-		}
-
-		if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
-			set(POPUP_TYPE, 0);
-
-		setDefault(UDP_PORT, SETTING(TCP_PORT));
-
-		File::ensureDirectory(SETTING(TLS_TRUSTED_CERTIFICATES_PATH));
+			//load history lists
+			for(int i = 0; i < HISTORY_LAST; ++i) {
+				if (xml.findChild(historyTags[i])) {
+					xml.stepIn();
+					while(xml.findChild("HistoryItem")) {
+						addToHistory(Text::toT(xml.getChildData()), (HistoryType)i);
+					}
+					xml.stepOut();
+				}
+				xml.resetCurrentChild();
+			}
 		
-		fire(SettingsManagerListener::Load(), xml);
+			if(xml.findChild("FileEvents")) {
+				xml.stepIn();
+				if(xml.findChild("OnFileComplete")) {
+					StringPair sp;
+					sp.first = xml.getChildAttrib("Command");
+					sp.second = xml.getChildAttrib("CommandLine");
+					fileEvents[ON_FILE_COMPLETE] = sp;
+				}
+				xml.resetCurrentChild();
+				if(xml.findChild("OnDirCreated")) {
+					StringPair sp;
+					sp.first = xml.getChildAttrib("Command");
+					sp.second = xml.getChildAttrib("CommandLine");
+					fileEvents[ON_DIR_CREATED] = sp;
+				}
+				xml.stepOut();
+			}
+			xml.resetCurrentChild();
 
-		xml.stepOut();
+			double prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
+			if (prevVersion < 2.41) {
+				//previous versions have saved two settings in a wrong order... fix the dupe color here (queuebars don't matter)
+				if(xml.findChild("Settings")) {
+					xml.stepIn();
+					const string& attr = settingTags[SHOW_QUEUE_BARS];
+					if(xml.findChild(attr)) {
+						set(IntSetting(DUPE_COLOR), Util::toInt(xml.getChildData()));
+					}
+					xml.resetCurrentChild();
+					xml.stepOut();
+				}
+
+				// port previous conn settings
+				enum { OLD_INCOMING_DIRECT, OLD_INCOMING_UPNP, OLD_INCOMING_NAT, OLD_INCOMING_PASSIVE };
+				switch(SETTING(INCOMING_CONNECTIONS)) {
+					case OLD_INCOMING_UPNP: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE_UPNP); break;
+					case OLD_INCOMING_PASSIVE: set(INCOMING_CONNECTIONS, INCOMING_PASSIVE); break;
+					default: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE); break;
+				}
+
+				//notify about changed fav hub settings
+				auto getSettingTextStr = [] (const string& aSettingCaption, SettingsManager::StrSetting aSetting) -> string {
+					auto val = SettingsManager::getInstance()->get(aSetting);
+					return aSettingCaption + "\t(globally " + (!val.empty() ? val : "not set") + ")";
+				};
+
+				auto getSettingTextBool = [] (const string& aSettingCaption, SettingsManager::BoolSetting aSetting) -> string {
+					return aSettingCaption + "\t(globally " + (SettingsManager::getInstance()->get(aSetting) ? "Enabled" : "Disabled") + ")";
+				};
+
+				auto getSettingTextInt = [] (const string& aSettingCaption, SettingsManager::IntSetting aSetting) -> string {
+					return aSettingCaption + "\t(globally " + Util::toString(SettingsManager::getInstance()->get(aSetting)) + " seconds)";
+				};
+
+				auto getConnection = [] {
+					string text;
+
+					if (SETTING(AUTO_DETECT_CONNECTION)) {
+						text = "Auto detect";
+					} else {
+						switch(SETTING(INCOMING_CONNECTIONS)) {
+							case SettingsManager::INCOMING_ACTIVE: text = "Active (no router or manual config)"; break;
+							case SettingsManager::INCOMING_ACTIVE_UPNP: text = "Active (UPnP/NAT-PMP)"; break;
+							case SettingsManager::INCOMING_PASSIVE: text = "Passive"; break;
+						}
+					}
+
+					return "Incoming connection\t(globally " + text + ")";
+				};
+
+				string msg = boost::str(boost::format(
+					"\rAll favorite hubs have been reset to use the global values for the following settings:\r\n\r\n\
+	%s\r\n\
+	%s\r\n\
+	%s\r\n\
+	%s\r\n\r\n\
+	%s\r\n\
+	%s\r\n\r\n\
+	You can customize those settings for each favorite hub if needed")
+
+					% getSettingTextBool(STRING(FAV_SHOW_JOIN) + "\t", SettingsManager::SHOW_JOINS)
+					% getSettingTextBool(STRING(FAV_LOG_CHAT) + "\t\t", SettingsManager::LOG_MAIN_CHAT)
+					% getSettingTextInt(STRING(MINIMUM_SEARCH_INTERVAL) + "\t", SettingsManager::MINIMUM_SEARCH_INTERVAL)
+					% getSettingTextBool(STRING(CHAT_NOTIFY), SettingsManager::SHOW_CHAT_NOTIFY)
+					% getSettingTextStr(STRING(SETTINGS_EXTERNAL_IP) + "\t", SettingsManager::EXTERNAL_IP)
+					% getConnection());
+
+				messageF(msg, false, false);
+			}
+
+			if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
+				set(POPUP_TYPE, 0);
+
+		
+			fire(SettingsManagerListener::Load(), xml);
+
+			xml.stepOut();
+		}
 
 	} catch(const Exception&) { 
 		//...
 	}
+
+	setDefault(UDP_PORT, SETTING(TCP_PORT));
+
+	File::ensureDirectory(SETTING(TLS_TRUSTED_CERTIFICATES_PATH));
 
 	if(SETTING(PRIVATE_ID).length() != 39 || CID(SETTING(PRIVATE_ID)).isZero()) {
 		set(SettingsManager::PRIVATE_ID, CID::generate().toBase32());
