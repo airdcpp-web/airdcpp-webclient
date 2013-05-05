@@ -427,6 +427,10 @@ bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 }
 
 bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) {
+	if (as->getEnabled() == toActive) {
+		return false;
+	}
+
 	if (as->getExpireTime() < GET_TIME() && toActive) {
 		//move the expiration date
 		as->setExpireTime(GET_TIME() + SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60);

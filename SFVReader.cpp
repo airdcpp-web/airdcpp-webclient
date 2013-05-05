@@ -61,6 +61,13 @@ void DirSFVReader::loadPath(const string& aPath) {
 	load();
 }
 
+void DirSFVReader::unload() {
+	if (loaded) {
+		content.clear();
+		loaded = false;
+	}
+}
+
 optional<uint32_t> DirSFVReader::hasFile(const string& fileName) const {
 	if (loaded) {
 		auto p = content.find(fileName);

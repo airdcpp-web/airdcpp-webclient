@@ -55,6 +55,7 @@ public:
 
 	void loadPath(const string& aPath);
 	string getPath() const { return path; }
+	void unload();
 private:
 	bool loaded;
 
