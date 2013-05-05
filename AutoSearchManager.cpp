@@ -431,7 +431,7 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) {
 		return false;
 	}
 
-	if (as->getExpireTime() < GET_TIME() && toActive) {
+	if (as->getExpireTime() > 0 && as->getExpireTime() < GET_TIME() && toActive) {
 		//move the expiration date
 		as->setExpireTime(GET_TIME() + SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60);
 	}
@@ -1308,7 +1308,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 			}
 			aXml.resetCurrentChild();
 
-			if (as->getBundles().empty() && as->getExpireTime() < GET_TIME()) {
+			if (as->getExpireTime() > 0 && as->getBundles().empty() && as->getExpireTime() < GET_TIME()) {
 				as->setEnabled(false);
 			}
 

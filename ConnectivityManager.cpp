@@ -101,9 +101,15 @@ void ConnectivityManager::clearAutoSettings(bool v6, bool resetDefaults) {
 	int portSettings[] = { SettingsManager::TCP_PORT, SettingsManager::UDP_PORT,
 		SettingsManager::TLS_PORT };
 
-	auto setDefaults = [&] {
-		const auto& settings = v6 ? settings6 : settings4;
-		std::for_each(settings, settings + 4, [this](int setting) {
+
+	//erase the old settings first
+	for(const auto setting: v6 ? settings6 : settings4) {
+		autoSettings.erase(setting);
+	}
+
+
+	if (resetDefaults) {
+		for(const auto setting: v6 ? settings6 : settings4) {
 			if(setting >= SettingsManager::STR_FIRST && setting < SettingsManager::STR_LAST) {
 				autoSettings[setting] = SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::StrSetting>(setting));
 			} else if(setting >= SettingsManager::INT_FIRST && setting < SettingsManager::INT_LAST) {
@@ -113,23 +119,7 @@ void ConnectivityManager::clearAutoSettings(bool v6, bool resetDefaults) {
 			} else {
 				dcassert(0);
 			}
-		});
-	};
-
-	for(const auto setting: settings4) {
-		autoSettings.erase(setting);
-	}
-
-	auto clearSettings = [&] {
-		const auto& settings = v6 ? settings6 : settings4;
-		for(auto setting = settings[0]; setting != sizeof(settings); ++setting) {
-			autoSettings.erase(setting);
 		}
-	};
-
-	clearSettings();
-	if (resetDefaults) {
-		setDefaults();
 	}
 
 
