@@ -46,8 +46,8 @@ public:
 	typedef X<3> SettingChanged; // auto-detection has been enabled / disabled
 
 	virtual void on(Message, const string&) noexcept { }
-	virtual void on(Started) noexcept { }
-	virtual void on(Finished) noexcept { }
+	virtual void on(Started, bool /*v6*/) noexcept { }
+	virtual void on(Finished, bool /*v6*/, bool /*failed*/) noexcept { }
 	virtual void on(SettingChanged) noexcept { }
 };
 
@@ -110,6 +110,8 @@ private:
 
 	MappingManager mapperV4;
 	MappingManager mapperV6;
+
+	mutable SharedMutex cs;
 };
 
 #define CONNSETTING(k) ConnectivityManager::getInstance()->get(SettingsManager::k)

@@ -55,6 +55,7 @@ T get(SettingType setting) const {
 
 bool ConnectivityManager::get(SettingsManager::BoolSetting setting) const {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
+		RLock l(cs);
 		auto i = autoSettings.find(setting);
 		if(i != autoSettings.end()) {
 			return boost::get<bool>(i->second);
@@ -65,6 +66,7 @@ bool ConnectivityManager::get(SettingsManager::BoolSetting setting) const {
 
 int ConnectivityManager::get(SettingsManager::IntSetting setting) const {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
+		RLock l(cs);
 		auto i = autoSettings.find(setting);
 		if(i != autoSettings.end()) {
 			return boost::get<int>(i->second);
@@ -75,6 +77,7 @@ int ConnectivityManager::get(SettingsManager::IntSetting setting) const {
 
 const string& ConnectivityManager::get(SettingsManager::StrSetting setting) const {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
+		RLock l(cs);
 		auto i = autoSettings.find(setting);
 		if(i != autoSettings.end()) {
 			return boost::get<const string&>(i->second);
@@ -85,6 +88,7 @@ const string& ConnectivityManager::get(SettingsManager::StrSetting setting) cons
 
 void ConnectivityManager::set(SettingsManager::StrSetting setting, const string& str) {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
+		WLock l(cs);
 		autoSettings[setting] = str;
 	} else {
 		SettingsManager::getInstance()->set(setting, str);
@@ -101,6 +105,8 @@ void ConnectivityManager::clearAutoSettings(bool v6, bool resetDefaults) {
 	int portSettings[] = { SettingsManager::TCP_PORT, SettingsManager::UDP_PORT,
 		SettingsManager::TLS_PORT };
 
+
+	WLock l(cs);
 
 	//erase the old settings first
 	for(const auto setting: v6 ? settings6 : settings4) {
@@ -149,11 +155,15 @@ void ConnectivityManager::detectConnection() {
 		runningV6 = true;
 	}
 
-	if (detectV4)
+	if (detectV4) {
 		statusV4.clear();
-	if (detectV6)
+		fire(ConnectivityManagerListener::Started(), false);
+	}
+
+	if (detectV6) {
 		statusV6.clear();
-	fire(ConnectivityManagerListener::Started());
+		fire(ConnectivityManagerListener::Started(), true);
+	}
 
 	if(detectV4 && mapperV4.getOpened()) {
 		mapperV4.close();
@@ -181,10 +191,15 @@ void ConnectivityManager::detectConnection() {
 	try {
 		listen();
 	} catch(const Exception& e) {
-		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
-		autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_PASSIVE;
+		{
+			WLock l(cs);
+			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
+			autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_PASSIVE;
+		}
+
 		log(STRING_F(CONN_PORT_X_FAILED, e.getError()), LogManager::LOG_ERROR, TYPE_NORMAL);
-		fire(ConnectivityManagerListener::Finished());
+		fire(ConnectivityManagerListener::Finished(), false, true);
+		fire(ConnectivityManagerListener::Finished(), true, true);
 		if (detectV4)
 			runningV4 = false;
 		if (detectV6)
@@ -196,17 +211,25 @@ void ConnectivityManager::detectConnection() {
 	autoDetectedV6 = detectV6;
 
 	if(detectV4 && !AirUtil::getLocalIp(false, false).empty()) {
-		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
+		{
+			WLock l(cs);
+			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
+		}
+
 		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V4);
-		fire(ConnectivityManagerListener::Finished());
+		fire(ConnectivityManagerListener::Finished(), false, true);
 		runningV4 = false;
 		detectV4 = false;
 	}
 
 	if(detectV6 && !AirUtil::getLocalIp(true, false).empty()) {
-		autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE;
+		{
+			WLock l(cs);
+			autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE;
+		}
+
 		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V6);
-		fire(ConnectivityManagerListener::Finished());
+		fire(ConnectivityManagerListener::Finished(), true, true);
 		runningV6 = false;
 		detectV6 = false;
 	}
@@ -215,10 +238,12 @@ void ConnectivityManager::detectConnection() {
 		return;
 
 	if (detectV4) {
+		WLock l(cs);
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE_UPNP;
 	}
 
 	if (detectV6) {
+		WLock l(cs);
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE_UPNP;
 	}
 
@@ -371,12 +396,15 @@ void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
 	if((SETTING(AUTO_DETECT_CONNECTION) && !v6) || (SETTING(AUTO_DETECT_CONNECTION6) && v6)) {
 		if(mapper.empty()) {
 			//disconnect();
-			autoSettings[v6 ? SettingsManager::INCOMING_CONNECTIONS6 : SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
+			{
+				WLock l(cs);
+				autoSettings[v6 ? SettingsManager::INCOMING_CONNECTIONS6 : SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
+			}
 			log(STRING(CONN_ACTIVE_FAILED), LogManager::LOG_WARNING, v6 ? TYPE_V6 : TYPE_V4);
 		} else {
 			SettingsManager::getInstance()->set(SettingsManager::MAPPER, mapper);
 		}
-		fire(ConnectivityManagerListener::Finished());
+		fire(ConnectivityManagerListener::Finished(), v6, mapper.empty());
 	}
 
 	if (v6)
@@ -406,7 +434,7 @@ void ConnectivityManager::log(const string& message, LogManager::Severity sev, L
 		}
 
 		LogManager::getInstance()->message(STRING(CONNECTIVITY) + " (" + proto + "): " + message, sev);
-		fire(ConnectivityManagerListener::Message(), message);
+		fire(ConnectivityManagerListener::Message(), proto + ": " + message);
 	}
 
 	/*if((SETTING(AUTO_DETECT_CONNECTION) && !v6) || (SETTING(AUTO_DETECT_CONNECTION6) && v6)) {
