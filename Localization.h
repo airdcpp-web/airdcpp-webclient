@@ -56,6 +56,7 @@ class Localization {
 		static vector<Language> languageList;
 
 		static void setLanguage(int languageIndex);
+		static void loadLanguage(int languageIndex);
 		static int getLangIndex();
 
 		static string getLocale();

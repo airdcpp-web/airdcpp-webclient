@@ -257,7 +257,7 @@ int AirUtil::getSlots(bool download, double value, bool rarLimits) {
 
 	int slots=3;
 
-	bool rar = ((SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR) && (value == 0)) || (rarLimits && value != 0);
+	bool rar = (SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR && value == 0) || (rarLimits && value != 0);
 	if (speed <= 1) {
 		if (rar) {
 			slots=1;
