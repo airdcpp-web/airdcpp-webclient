@@ -363,6 +363,7 @@ public:
 	}
 
 	void unset(size_t key) { isSet[key] = false; }
+	bool isset(size_t key) const { return isSet[key]; }
 
 	void load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF);
 	void save();
