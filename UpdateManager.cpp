@@ -52,6 +52,17 @@ namespace dcpp {
 UpdateManager::UpdateManager() : installedUpdate(0), lastIPUpdate(GET_TICK()) {
 	TimerManager::getInstance()->addListener(this);
 	sessionToken = Util::toString(Util::rand());
+
+	links.homepage = "http://www.airdcpp.net/";
+	links.downloads = links.homepage + "download/";
+	links.geoip6 = "http://geoip6.airdcpp.net";
+	links.geoip4 = "http://geoip4.airdcpp.net";
+	links.guides = links.homepage + "guides/";
+	links.customize = links.homepage + "c/customizations/";
+	links.discuss = links.homepage + "forum/";
+	links.ipcheck4 = "http://checkip.dyndns.org/";
+	links.ipcheck6 = "http://checkip.dyndns.org/";
+	links.language = "http://languages.airdcpp.net/";
 }
 
 UpdateManager::~UpdateManager() { 
@@ -618,17 +629,6 @@ void UpdateManager::checkVersion(bool aManual) {
 }
 
 void UpdateManager::init(const string& aExeName) {
-	links.homepage = "http://www.airdcpp.net/";
-	links.downloads = links.homepage + "download/";
-	links.geoip6 = "http://geoip6.airdcpp.net";
-	links.geoip4 = "http://geoip4.airdcpp.net";
-	links.guides = links.homepage + "guides/";
-	links.customize = links.homepage + "c/customizations/";
-	links.discuss = links.homepage + "forum/";
-	links.ipcheck4 = "http://checkip.dyndns.org/";
-	links.ipcheck6 = "http://checkip.dyndns.org/";
-	links.language = "http://languages.airdcpp.net/";
-
 	exename = aExeName;
 
 	checkVersion(false);
