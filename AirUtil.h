@@ -22,6 +22,7 @@
 #include "compiler.h"
 
 #include "Text.h"
+#include "SettingsManager.h"
 
 namespace dcpp {
 
@@ -77,9 +78,8 @@ class AirUtil {
 		typedef vector<AddressInfo> IpList;
 		static void getIpAddresses(IpList& addresses, bool v6);
 
-		static void setProfile(int profile, bool setSkiplist=false);
-		static int getSlotsPerUser(bool download, double value=0, int aSlots=0);
-		static int getSlots(bool download, double value=0, bool rarLimits=false);
+		static int getSlotsPerUser(bool download, double value=0, int aSlots=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
+		static int getSlots(bool download, double value=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
 		static int getSpeedLimit(bool download, double value=0);
 		static int getMaxAutoOpened(double value = 0);
 

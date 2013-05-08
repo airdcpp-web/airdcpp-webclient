@@ -21,8 +21,8 @@
 
 #include "stdinc.h"
 
-#include "SettingsManager.h"
 #include "ResourceManager.h"
+#include "Util.h"
 
 #include <boost/variant.hpp>
 
@@ -36,79 +36,20 @@ struct SettingItem {
 	SettingValue profileValue;
 	ResourceManager::Strings name;
 
-	SettingValue getCurValue() const {
-		if(key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-			return SettingsManager::getInstance()->get(static_cast<SettingsManager::StrSetting>(key), false);
-		} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-			return SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(key), false);
-		} else if(key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-			 return SettingsManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(key), false);
-		} else {
-			dcassert(0);
-		}
-		return 0;
-	}
+	SettingValue getCurValue() const;
 
-	bool isSet() const {
-		return SettingsManager::getInstance()->isset(key);
-	}
+	bool isSet() const;
+	bool isDefault() const;
 
-	bool isDefault() const {
-		if(key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-			return SettingsManager::getInstance()->isDefault(static_cast<SettingsManager::StrSetting>(key));
-		} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-			return SettingsManager::getInstance()->isDefault(static_cast<SettingsManager::IntSetting>(key));
-		} else if(key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-			 return SettingsManager::getInstance()->isDefault(static_cast<SettingsManager::BoolSetting>(key));
-		} else {
-			dcassert(0);
-		}
-		return true;
-	}
+	/*void useProfileValue() const;*/
 
-	/*void useProfileValue() const {
-		if(key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-			SettingsManager::getInstance()->set(static_cast<SettingsManager::StrSetting>(key), boost::get<string>(profileValue));
-		} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-			return SettingsManager::getInstance()->set(static_cast<SettingsManager::IntSetting>(key), boost::get<int>(profileValue));
-		} else if(key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-			return SettingsManager::getInstance()->set(static_cast<SettingsManager::BoolSetting>(key), boost::get<bool>(profileValue));
-		} else {
-			dcassert(0);
-		}
-	}*/
+	void setDefault(bool reset) const;
 
-	void setDefault(bool reset) const {
-		if (reset)
-			SettingsManager::getInstance()->unset(key);
+	const string& getName() const;
+	bool isProfileCurrent() const;
 
-		if(key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-			SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::StrSetting>(key), boost::get<string>(profileValue));
-		} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-			SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::IntSetting>(key), boost::get<int>(profileValue));
-		} else if(key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-			SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::BoolSetting>(key), boost::get<bool>(profileValue));
-		} else {
-			dcassert(0);
-		}
-	}
-
-	const string& getName() const {
-		return ResourceManager::getInstance()->getString(name);
-	}
-
-	bool isProfileCurrent() const {
-		return profileValue == getCurValue();
-	}
-
-	string profileToString() const {
-		return boost::apply_visitor(ToString(key), profileValue);
-	}
-
-	string currentToString() const {
-		auto cur = getCurValue();
-		return boost::apply_visitor(ToString(key), cur);
-	}
+	string profileToString() const;
+	string currentToString() const;
 
 	struct ToString : boost::static_visitor<string> {
 		ToString(int aKey) : key(aKey) { }

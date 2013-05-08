@@ -37,6 +37,48 @@ bool SettingsManager::lanMode;
 
 StringList SettingsManager::connectionSpeeds;
 
+const SettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][9] = {
+
+{ 
+	// profile normal
+	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
+	{ SettingsManager::CHECK_SFV, false, ResourceManager::CHECK_SFV },
+	{ SettingsManager::CHECK_NFO, false, ResourceManager::CHECK_NFO },
+	{ SettingsManager::CHECK_EXTRA_SFV_NFO, false, ResourceManager::CHECK_EXTRA_SFV_NFO },
+	{ SettingsManager::CHECK_EXTRA_FILES, false, ResourceManager::CHECK_EXTRA_FILES },
+	{ SettingsManager::CHECK_DUPES, false, ResourceManager::CHECK_DUPES },
+	{ SettingsManager::MAX_FILE_SIZE_SHARED, 0, ResourceManager::DONT_SHARE_BIGGER_THAN },
+	{ SettingsManager::SEARCH_TIME, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
+	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
+	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
+}, {
+	// profile RAR
+	{ SettingsManager::MULTI_CHUNK, false, ResourceManager::SEGMENTS },
+	{ SettingsManager::CHECK_SFV, true, ResourceManager::CHECK_SFV },
+	{ SettingsManager::CHECK_NFO, true, ResourceManager::CHECK_NFO },
+	{ SettingsManager::CHECK_EXTRA_SFV_NFO, true, ResourceManager::CHECK_EXTRA_SFV_NFO },
+	{ SettingsManager::CHECK_EXTRA_FILES, true, ResourceManager::CHECK_EXTRA_FILES },
+	{ SettingsManager::CHECK_DUPES, true, ResourceManager::CHECK_DUPES },
+	{ SettingsManager::MAX_FILE_SIZE_SHARED, 600, ResourceManager::DONT_SHARE_BIGGER_THAN },
+	{ SettingsManager::SEARCH_TIME, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
+	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
+	{ SettingsManager::AUTO_FOLLOW, false, ResourceManager::SETTINGS_AUTO_FOLLOW },
+}, {
+	// profile LAN
+	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
+	{ SettingsManager::CHECK_SFV, false, ResourceManager::CHECK_SFV },
+	{ SettingsManager::CHECK_NFO, false, ResourceManager::CHECK_NFO },
+	{ SettingsManager::CHECK_EXTRA_SFV_NFO, false, ResourceManager::CHECK_EXTRA_SFV_NFO },
+	{ SettingsManager::CHECK_EXTRA_FILES, false, ResourceManager::CHECK_EXTRA_FILES },
+	{ SettingsManager::CHECK_DUPES, false, ResourceManager::CHECK_DUPES },
+	{ SettingsManager::MAX_FILE_SIZE_SHARED, 0, ResourceManager::DONT_SHARE_BIGGER_THAN },
+	{ SettingsManager::SEARCH_TIME, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
+	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
+	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
+} 
+
+};
+
 const string SettingsManager::settingTags[] =
 {
 	// Strings
@@ -777,6 +819,12 @@ SettingsManager::SettingsManager()
 #endif
 }
 
+void SettingsManager::applyProfileDefaults() {
+	for (const auto& newSetting: profileSettings[get(SETTINGS_PROFILE)]) {
+		newSetting.setDefault(false);
+	}
+}
+
 void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) {
 	try {
 		SimpleXML xml;
@@ -993,6 +1041,8 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 		if (!ip.empty())
 			setDefault(INCOMING_CONNECTIONS6, INCOMING_ACTIVE);
 	}
+
+	applyProfileDefaults();
 }
 
 const SettingsManager::BoolSetting clearSettings[SettingsManager::HISTORY_LAST] = {

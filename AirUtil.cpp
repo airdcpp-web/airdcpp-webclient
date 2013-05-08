@@ -198,9 +198,13 @@ string AirUtil::getLocalIp(bool v6, bool allowPrivate /*true*/) {
 	return allowPrivate ? addresses.front().ip : Util::emptyString;
 }
 
-int AirUtil::getSlotsPerUser(bool download, double value, int aSlots) {
+int AirUtil::getSlotsPerUser(bool download, double value, int aSlots, SettingsManager::SettingProfile aProfile) {
 	if (!SETTING(MCN_AUTODETECT) && value == 0) {
 		return download ? SETTING(MAX_MCN_DOWNLOADS) : SETTING(MAX_MCN_UPLOADS);
+	}
+
+	if (aProfile == SettingsManager::PROFILE_LAN) {
+		return 1;
 	}
 
 	int totalSlots = aSlots;
@@ -235,7 +239,7 @@ int AirUtil::getSlotsPerUser(bool download, double value, int aSlots) {
 }
 
 
-int AirUtil::getSlots(bool download, double value, bool rarLimits) {
+int AirUtil::getSlots(bool download, double value, SettingsManager::SettingProfile aProfile) {
 	if (!SETTING(DL_AUTODETECT) && value == 0 && download) {
 		//LogManager::getInstance()->message("Slots1");
 		return SETTING(DOWNLOAD_SLOTS);
@@ -257,7 +261,7 @@ int AirUtil::getSlots(bool download, double value, bool rarLimits) {
 
 	int slots=3;
 
-	bool rar = (SETTING(SETTINGS_PROFILE) == SettingsManager::PROFILE_RAR && value == 0) || (rarLimits && value != 0);
+	bool rar = aProfile == SettingsManager::PROFILE_RAR;
 	if (speed <= 1) {
 		if (rar) {
 			slots=1;
@@ -370,43 +374,6 @@ int AirUtil::getMaxAutoOpened(double value) {
 	}
 
 	return slots;
-}
-
-void AirUtil::setProfile(int profile, bool setSkiplist) {
-	/*Make settings depending selected client settings profile
-	Note that if add a setting to one profile will need to add it to other profiles too*/
-	if(profile == 0 && SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_PUBLIC) {
-		SettingsManager::getInstance()->set(SettingsManager::MULTI_CHUNK, true);
-
-		SettingsManager::getInstance()->set(SettingsManager::SETTINGS_PROFILE, SettingsManager::PROFILE_PUBLIC);
-	} else if (profile == SettingsManager::PROFILE_RAR) {
-		if (SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_RAR) {
-			SettingsManager::getInstance()->set(SettingsManager::MULTI_CHUNK, false);
-			SettingsManager::getInstance()->set(SettingsManager::CHECK_SFV, true);
-			SettingsManager::getInstance()->set(SettingsManager::CHECK_NFO, true);
-			SettingsManager::getInstance()->set(SettingsManager::CHECK_EXTRA_SFV_NFO, true);
-			SettingsManager::getInstance()->set(SettingsManager::CHECK_EXTRA_FILES, true);
-			SettingsManager::getInstance()->set(SettingsManager::CHECK_DUPES, true);
-			SettingsManager::getInstance()->set(SettingsManager::MAX_FILE_SIZE_SHARED, 600);
-			SettingsManager::getInstance()->set(SettingsManager::SEARCH_TIME, 5);
-			SettingsManager::getInstance()->set(SettingsManager::AUTO_SEARCH_LIMIT, 5);
-			SettingsManager::getInstance()->set(SettingsManager::AUTO_FOLLOW, false);
-
-			SettingsManager::getInstance()->set(SettingsManager::SETTINGS_PROFILE, SettingsManager::PROFILE_RAR);
-		}
-
-		if (setSkiplist) {
-			SettingsManager::getInstance()->set(SettingsManager::SHARE_SKIPLIST_USE_REGEXP, true);
-			SettingsManager::getInstance()->set(SettingsManager::SKIPLIST_SHARE, "(.*(\\.(scn|asd|lnk|cmd|conf|dll|url|log|crc|dat|sfk|mxm|txt|message|iso|inf|sub|exe|img|bin|aac|mrg|tmp|xml|sup|ini|db|debug|pls|ac3|ape|par2|htm(l)?|bat|idx|srt|doc(x)?|ion|b4s|bgl|cab|cat|bat)$))|((All-Files-CRC-OK|xCOMPLETEx|imdb.nfo|- Copy|(.*\\s\\(\\d\\).*)).*$)");
-			ShareManager::getInstance()->setSkipList();
-		}
-
-	} else if (profile == SettingsManager::PROFILE_PRIVATE && SETTING(SETTINGS_PROFILE) != SettingsManager::PROFILE_PRIVATE) {
-		SettingsManager::getInstance()->set(SettingsManager::MULTI_CHUNK, true);
-		SettingsManager::getInstance()->set(SettingsManager::AUTO_FOLLOW, false);
-
-		SettingsManager::getInstance()->set(SettingsManager::SETTINGS_PROFILE, SettingsManager::PROFILE_PRIVATE);
-	}
 }
 
 string AirUtil::getPrioText(int prio) {

@@ -23,6 +23,7 @@
 #include "Speaker.h"
 #include "Singleton.h"
 #include "HubSettings.h"
+#include "SettingItem.h"
 
 namespace dcpp {
 
@@ -196,7 +197,7 @@ public:
 
 	enum {  MAGNET_SEARCH, MAGNET_DOWNLOAD, MAGNET_OPEN };
 	
-	enum {  PROFILE_PUBLIC, PROFILE_RAR, PROFILE_PRIVATE, PROFILE_LAN };
+	enum SettingProfile {  PROFILE_PUBLIC, PROFILE_RAR, PROFILE_LAN, PROFILE_LAST };
 
 	enum {  QUEUE_FILE, QUEUE_BUNDLE, QUEUE_ALL };
 
@@ -393,6 +394,9 @@ public:
 	StringPair getFileEvent(SettingsManager::FileEvents fe) {
 		return fileEvents[fe];
 	}
+
+	static const SettingItem profileSettings[SettingsManager::PROFILE_LAST][9];
+	void applyProfileDefaults();
 private:
 	friend class Singleton<SettingsManager>;
 	SettingsManager();
