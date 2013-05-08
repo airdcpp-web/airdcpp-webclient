@@ -262,7 +262,7 @@ SettingsManager::SettingsManager()
 	setDefault(INCOMING_CONNECTIONS, INCOMING_ACTIVE);
 
 	//TODO: check whether we have ipv6 available
-	setDefault(INCOMING_CONNECTIONS6, INCOMING_DISABLED);
+	setDefault(INCOMING_CONNECTIONS6, INCOMING_ACTIVE);
 
 	setDefault(OUTGOING_CONNECTIONS, OUTGOING_DIRECT);
 	setDefault(AUTO_DETECT_CONNECTION, true);
@@ -688,7 +688,7 @@ SettingsManager::SettingsManager()
 	setDefault(DONT_DL_ALREADY_QUEUED, false);
 	setDefault(SYSTEM_SHOW_UPLOADS, false);
 	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
-	setDefault(SETTINGS_PROFILE, PROFILE_PUBLIC);
+	setDefault(SETTINGS_PROFILE, PROFILE_NORMAL);
 	setDefault(DOWNLOAD_SPEED, connectionSpeeds[0]);
 	setDefault(WIZARD_RUN_NEW, true); // run wizard on startup
 	setDefault(FORMAT_RELEASE, true);
@@ -822,6 +822,15 @@ SettingsManager::SettingsManager()
 void SettingsManager::applyProfileDefaults() {
 	for (const auto& newSetting: profileSettings[get(SETTINGS_PROFILE)]) {
 		newSetting.setDefault(false);
+	}
+}
+
+string SettingsManager::getProfileName(int profile) {
+	switch(SETTING(SETTINGS_PROFILE)) {
+		case PROFILE_NORMAL: return STRING(NORMAL);
+		case PROFILE_RAR: return STRING(RAR_HUBS);
+		case PROFILE_LAN: return STRING(LAN_HUBS);
+		default: return STRING(NORMAL);
 	}
 }
 
@@ -995,6 +1004,9 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 			if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
 				set(POPUP_TYPE, 0);
 
+			//reset the old private hub profile to normal
+			if(prevVersion < 2.50 && SETTING(SETTINGS_PROFILE) == PROFILE_LAN)
+				unset(SETTINGS_PROFILE);
 		
 			fire(SettingsManagerListener::Load(), xml);
 
@@ -1035,12 +1047,6 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 
 	checkBind(BIND_ADDRESS, false);
 	checkBind(BIND_ADDRESS6, true);
-
-	if (isDefault(INCOMING_CONNECTIONS6)) {
-		auto ip = AirUtil::getLocalIp(true, false);
-		if (!ip.empty())
-			setDefault(INCOMING_CONNECTIONS6, INCOMING_ACTIVE);
-	}
 
 	applyProfileDefaults();
 }

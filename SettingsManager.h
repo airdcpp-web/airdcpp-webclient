@@ -197,7 +197,7 @@ public:
 
 	enum {  MAGNET_SEARCH, MAGNET_DOWNLOAD, MAGNET_OPEN };
 	
-	enum SettingProfile {  PROFILE_PUBLIC, PROFILE_RAR, PROFILE_LAN, PROFILE_LAST };
+	enum SettingProfile {  PROFILE_NORMAL, PROFILE_RAR, PROFILE_LAN, PROFILE_LAST };
 
 	enum {  QUEUE_FILE, QUEUE_BUNDLE, QUEUE_ALL };
 
@@ -397,6 +397,7 @@ public:
 
 	static const SettingItem profileSettings[SettingsManager::PROFILE_LAST][9];
 	void applyProfileDefaults();
+	string getProfileName(int profile);
 private:
 	friend class Singleton<SettingsManager>;
 	SettingsManager();

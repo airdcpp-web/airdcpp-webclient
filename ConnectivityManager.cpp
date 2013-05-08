@@ -222,13 +222,23 @@ void ConnectivityManager::detectConnection() {
 		detectV4 = false;
 	}
 
-	if(detectV6 && !AirUtil::getLocalIp(true, false).empty()) {
-		{
-			WLock l(cs);
-			autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE;
+	if(detectV6) {
+		if (!AirUtil::getLocalIp(true, false).empty()) {
+			{
+				WLock l(cs);
+				autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE;
+			}
+
+			log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V6);
+		} else {
+			//disable IPv6 if no public IP address is available
+			{
+				WLock l(cs);
+				autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_DISABLED;
+			}
+			log(STRING(IPV6_NO_PUBLIC_IP), LogManager::LOG_INFO, TYPE_V6);
 		}
 
-		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V6);
 		fire(ConnectivityManagerListener::Finished(), true, true);
 		runningV6 = false;
 		detectV6 = false;
