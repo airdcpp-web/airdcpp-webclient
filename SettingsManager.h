@@ -395,6 +395,7 @@ public:
 		return fileEvents[fe];
 	}
 
+	void setProfile(int aProfile, const SettingItem::List& conflicts);
 	static const SettingItem profileSettings[SettingsManager::PROFILE_LAST][9];
 	void applyProfileDefaults();
 	string getProfileName(int profile);

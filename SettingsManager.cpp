@@ -826,6 +826,15 @@ void SettingsManager::applyProfileDefaults() {
 	}
 }
 
+void SettingsManager::setProfile(int aProfile, const SettingItem::List& conflicts) {
+	set(SettingsManager::SETTINGS_PROFILE, aProfile);
+	applyProfileDefaults();
+
+	for (const auto& setting: conflicts) {
+		setting.setDefault(true);
+	}
+}
+
 string SettingsManager::getProfileName(int profile) {
 	switch(SETTING(SETTINGS_PROFILE)) {
 		case PROFILE_NORMAL: return STRING(NORMAL);

@@ -31,6 +31,7 @@ namespace dcpp {
 
 struct SettingItem {
 	typedef boost::variant<string, bool, int, double> SettingValue;
+	typedef vector<SettingItem> List;
 
 	int key;
 	SettingValue profileValue;

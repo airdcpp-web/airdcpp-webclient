@@ -217,7 +217,7 @@ void ConnectivityManager::detectConnection() {
 		}
 
 		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V4);
-		fire(ConnectivityManagerListener::Finished(), false, true);
+		fire(ConnectivityManagerListener::Finished(), false, false);
 		runningV4 = false;
 		detectV4 = false;
 	}
@@ -239,7 +239,7 @@ void ConnectivityManager::detectConnection() {
 			log(STRING(IPV6_NO_PUBLIC_IP), LogManager::LOG_INFO, TYPE_V6);
 		}
 
-		fire(ConnectivityManagerListener::Finished(), true, true);
+		fire(ConnectivityManagerListener::Finished(), true, false);
 		runningV6 = false;
 		detectV6 = false;
 	}
