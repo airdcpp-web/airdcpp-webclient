@@ -623,14 +623,22 @@ bool HashManager::HashStore::isRepairScheduled() const {
 
 void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
 	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1)) * 1024*1024;
-	//auto blockSize = File::getBlockSize(Util::getPath(Util::PATH_USER_CONFIG));
+	auto blockSize = File::getBlockSize(Util::getPath(Util::PATH_USER_CONFIG));
 
-	//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
-	//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
-	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", STRING(HASH_DATA), cacheSize, 20, false, 16*1024));
+	// Use the file system block size in here. Using a block size smaller than that reduces the performance significantly especially when writing a lot of data (e.g. when migrating the data)
+	// The default cache size of 8 MB is able to hold approximately 256-512 trees with the block size of 16KB which should be enough for most common transfers (should the size be increased with larger block size?)
+	// The number of open files doesn't matter here since the tree lookups are very much random (20 is the minimum allowed by LevelDB). The data won't compress so no need to even try it.
+	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", STRING(HASH_DATA), cacheSize, 20, false, max(static_cast<int64_t>(16*1024), blockSize)));
+
+	// Use a large block size and allow more open files because the reads are nearly sequential in here (but done with multiple threads). 
+	// The default database sorting isn't perfect when having files and folders mixed within the same directory but that shouldn't be a big issue (avoid using custom comparison function for now...)
 	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", STRING(FILE_INDEX), cacheSize, 50, true, 64*1024));
+
+
 	//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));
 	//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70, 255, false));
+	//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
+	//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
 
 
 	hashDb->open(stepF, messageF);
@@ -1025,7 +1033,7 @@ int HashManager::Hasher::run() {
 			WLock l(hcs);
 			if(!w.empty()) {
 				auto& wi = w.front();
-				dirChanged = compare(Util::getFilePath(wi.filePath), Util::getFilePath(fname)) != 0;
+				dirChanged = initialDir.empty() || compare(Util::getFilePath(wi.filePath), Util::getFilePath(fname)) != 0;
 				currentFile = fname = move(wi.filePath);
 				curDevID = move(wi.devID);
 				pathLower = move(wi.filePathLower);
@@ -1165,14 +1173,20 @@ int HashManager::Hasher::run() {
 							Util::formatTime(hashTime / 1000, true) % 
 							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), hasherID, false, false);
 					}
+				} else {
+					//all files failed to hash?
+					HashManager::getInstance()->log(STRING(HASHING_FINISHED_TOTAL_PLAIN), hasherID, false, false);
+
+					//always clear the directory so that the will be a fresh start when more files are added for hashing
+					initialDir.clear();
 				}
+
 				hashTime = 0;
 				sizeHashed = 0;
 				dirsHashed = 0;
 				filesHashed = 0;
 				deleteThis = hasherID != 0;
 				sfv.unload();
-				fname.clear();
 			} else if (!AirUtil::isParentOrExact(initialDir, w.front().filePath)) {
 				onDirHashed();
 			}
