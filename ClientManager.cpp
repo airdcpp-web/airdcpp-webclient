@@ -148,7 +148,7 @@ StringPairList ClientManager::getHubs(const CID& cid) {
 	return lst;
 }
 
-StringList ClientManager::getNicks(const CID& cid) const {
+StringList ClientManager::getNicks(const CID& cid, bool allowCID/*true*/) const {
 	set<string> ret;
 
 	{
@@ -163,7 +163,7 @@ StringList ClientManager::getNicks(const CID& cid) const {
 			auto i = nicks.find(const_cast<CID*>(&cid));
 			if(i != nicks.end()) {
 				ret.insert(i->second);
-			} else {
+			} else if(allowCID) {
 				ret.insert('{' + cid.toBase32() + '}');
 			}
 		}
@@ -204,6 +204,25 @@ string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFa
 
 	return Util::emptyString;
 
+}
+
+//get nick,hub combination
+StringPair ClientManager::getNickHubPair(const CID& cid, const string& hint) const {
+	RLock l(cs);
+	OnlinePairC p;
+	auto ou = findOnlineUserHint(cid, hint, p);
+	if(ou)
+		return make_pair(ou->getIdentity().getNick(), hint);
+	if(p.first != p.second){
+		return make_pair(p.first->second->getIdentity().getNick(),  p.first->second->getHubUrl());
+	}
+	// offline
+	auto i = nicks.find(const_cast<CID*>(&cid));
+	if(i != nicks.end()) {
+		return make_pair(i->second, hint);
+	}
+ 
+	return make_pair(cid.toBase32(), hint);
 }
 
 string ClientManager::getField(const CID& cid, const string& hint, const char* field) const {

@@ -308,7 +308,7 @@ enum Strings { // @DontAdd
 	MENU_EXIT, // "Exit"
 	MENU_FAQ, // "Frequently asked questions"
 	MENU_FAVORITE_HUBS, // "Favorite Hubs\tCtrl+H"
-	MENU_FAVORITE_USERS, // "Favorite Users\tCtrl+U"
+	MENU_FAVORITE_USERS, // "Users\tCtrl+U"
 	MENU_FILE, // "File"
 	MENU_FILE_RECENT_HUBS, // "Recent Hubs"
 	MENU_FOLLOW_REDIRECT, // "Follow last redirect\tCtrl+T"

@@ -56,7 +56,7 @@ public:
 	OrderedStringSet getHubSet(const CID& cid) const;
 	StringList getHubUrls(const CID& cid) const;
 	StringList getHubNames(const CID& cid) const;
-	StringList getNicks(const CID& cid) const;
+	StringList getNicks(const CID& cid, bool allowCID = true) const;
 	pair<int64_t, int> getShareInfo(const HintedUser& user) const;
 	void getUserInfoList(const UserPtr user, User::UserInfoList& aList_) const;
 
@@ -69,6 +69,7 @@ public:
 	map<string, Identity> getIdentities(const UserPtr &u) const;
 	
 	string getNick(const UserPtr& u, const string& hintUrl, bool allowFallback = true) const;
+	StringPair getNickHubPair(const CID& cid, const string& hint) const;
 
 	string getDLSpeed(const CID& cid) const;
 	uint8_t getSlots(const CID& cid) const;

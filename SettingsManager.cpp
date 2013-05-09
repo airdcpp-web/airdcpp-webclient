@@ -742,7 +742,7 @@ SettingsManager::SettingsManager()
 	setDefault(AUTOSEARCH_EXPIRE_DAYS, 5);
 	setDefault(HORIZONTAL_QUEUE, false);
 	setDefault(DL_AUTOSELECT_METHOD, 0);
-	setDefault(WTB_IMAGE_SIZE, 22);
+	setDefault(WTB_IMAGE_SIZE, 16);
 	setDefault(SHOW_TBSTATUS, true);
 
 	setDefault(TB_PROGRESS_TEXT_COLOR, RGB(255, 0, 0));
@@ -773,6 +773,7 @@ SettingsManager::SettingsManager()
 	setDefault(FAV_USERS_SHOW_INFO, true);
 	setDefault(USERS_FILTER_FAVORITE, false);
 	setDefault(USERS_FILTER_QUEUE, false);
+	setDefault(USERS_FILTER_ONLINE, false);
 
 	setDefault(HISTORY_SEARCH_MAX, 10);
 	setDefault(HISTORY_EXCLUDE_MAX, 10);

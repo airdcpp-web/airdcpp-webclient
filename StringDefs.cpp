@@ -305,7 +305,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Exit", 
 "Frequently asked questions", 
 "Favorite Hubs\tCtrl+H", 
-"Favorite Users\tCtrl+U", 
+"Users\tCtrl+U", 
 "File", 
 "Recent Hubs", 
 "Follow last redirect\tCtrl+T", 
