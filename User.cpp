@@ -423,7 +423,7 @@ string OnlineUser::getLogPath() {
 	params["userCID"] = [this] { return getUser()->getCID().toBase32(); };
 	params["hubURL"] = [this] { return getClient().getHubUrl(); };
 
-	return LogManager::getInstance()->getPath(LogManager::PM, params);
+	return LogManager::getInstance()->getPath(getUser(), params);
 }
 
 void User::addQueued(int64_t inc) {

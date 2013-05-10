@@ -27,6 +27,7 @@
 #include "Singleton.h"
 #include "Speaker.h"
 #include "LogManagerListener.h"
+#include "User.h"
 
 namespace dcpp {
 
@@ -57,9 +58,13 @@ public:
 	string getPath(Area area, ParamMap& params) const;
 	string getPath(Area area) const;
 
+	// PM functions
+	string getPath(const UserPtr& aUser, ParamMap& params, bool addCache = false);
+	void log(const UserPtr& aUser, ParamMap& params);
+	void removePmCache(const UserPtr& aUser);
+
 	const string& getSetting(int area, int sel) const;
 	void saveSetting(int area, int sel, const string& setting);
-
 private:
 	void log(const string& area, const string& msg) noexcept;
 
@@ -71,6 +76,9 @@ private:
 
 	LogManager();
 	virtual ~LogManager();
+
+	unordered_map<CID, string> pmPaths;
+	void ensureParam(const string& aParam, string& aFile);
 };
 
 #define LOG(area, msg) LogManager::getInstance()->log(area, msg)

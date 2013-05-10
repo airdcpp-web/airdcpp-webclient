@@ -1137,9 +1137,9 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		}
 	}
 		
-	for(auto i: disconnects) {
-		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks(i->getCID())), LogManager::LOG_INFO);
-		ConnectionManager::getInstance()->disconnect(i, false);
+	for(auto& u: disconnects) {
+		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks(u->getCID())), LogManager::LOG_INFO);
+		ConnectionManager::getInstance()->disconnect(u, false);
 	}
 
 	int freeSlots = getFreeSlots();

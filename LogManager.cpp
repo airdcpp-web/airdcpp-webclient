@@ -28,6 +28,64 @@ void LogManager::log(Area area, ParamMap& params) noexcept {
 	log(SETTING(LOG_DIRECTORY) + Util::formatParams(getSetting(area, FILE), params), Util::formatParams(getSetting(area, FORMAT), params));
 }
 
+void LogManager::ensureParam(const string& aParam, string& fileName) {
+	if (fileName.find(aParam) == string::npos) {
+		auto slash = fileName.find_last_of("\\/");
+
+		auto ext = fileName.rfind('.');
+
+
+		//check that the dot is part of the file name (not in the directory name)
+		auto appendPos = (ext == string::npos || (slash != string::npos && ext < slash)) ? fileName.size() : ext;
+
+		fileName.insert(appendPos, "." + aParam);
+		//fileName.append("." + aParam, appendPos, string::npos);
+	}
+}
+
+void LogManager::log(const UserPtr& aUser, ParamMap& params) {
+	if (aUser->isNMDC() || !SETTING(PM_LOG_GROUP_CID)) {
+		log(PM, params);
+		return;
+	}
+
+	auto path = getPath(aUser, params, true);
+	log(path, Util::formatParams(getSetting(PM, FORMAT), params));
+}
+
+void LogManager::removePmCache(const UserPtr& aUser) {
+	pmPaths.erase(aUser->getCID());
+}
+
+string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache /*false*/) {
+	if (aUser->isNMDC() || !SETTING(PM_LOG_GROUP_CID)) {
+		return getPath(PM, params);
+	}
+
+
+	//is it cached?
+	auto p = pmPaths.find(aUser->getCID());
+	if (p != pmPaths.end()) {
+		//can we still use the same dir?
+		if (Util::getFilePath(getPath(PM, params)) == Util::getFilePath(p->second))
+			return p->second;
+	}
+
+	//check the directory
+	string fileName = getSetting(PM, FILE);
+	ensureParam("%[userCID]", fileName);
+	string path = SETTING(LOG_DIRECTORY) + Util::formatParams(fileName, params);
+
+	auto files = File::findFiles(Util::getFilePath(path), "*" + aUser->getCID().toBase32() + "*");
+	if (!files.empty()) {
+		path = files.front();
+	}
+
+	if (addCache)
+		pmPaths.emplace(aUser->getCID(), path);
+	return path;
+}
+
 void LogManager::message(const string& msg, Severity severity) {
 	if(SETTING(LOG_SYSTEM)) {
 		ParamMap params;
