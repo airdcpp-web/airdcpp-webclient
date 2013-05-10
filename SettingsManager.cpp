@@ -838,7 +838,7 @@ void SettingsManager::setProfile(int aProfile, const SettingItem::List& conflict
 }
 
 string SettingsManager::getProfileName(int profile) {
-	switch(SETTING(SETTINGS_PROFILE)) {
+	switch(profile) {
 		case PROFILE_NORMAL: return STRING(NORMAL);
 		case PROFILE_RAR: return STRING(RAR_HUBS);
 		case PROFILE_LAN: return STRING(LAN_HUBS);

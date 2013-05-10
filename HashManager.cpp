@@ -842,13 +842,6 @@ HashManager::HashStore::HashStore() {
 void HashManager::HashStore::closeDb() {
 	hashDb.reset(nullptr);
 	fileDb.reset(nullptr);
-
-	/*if (doDelete) {
-		delete fileDb;
-		delete hashDb;
-		if (dbEnv)
-			delete dbEnv;
-	}*/
 }
 
 HashManager::HashStore::~HashStore() {

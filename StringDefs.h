@@ -1738,7 +1738,6 @@ enum Strings { // @DontAdd
 	TEST_SPEED_ONLINE, // "Test your speed online"
 	UPLOAD_LIMITS, // "Upload Limits"
 	IPV6_NO_PUBLIC_IP, // "IPv6 connectivity has been disabled as no public IPv6 address was detected"
-	CURRENT_USER_PROFILE, // "Current user profile:"
-	USER_PROFILE_TIP, // "You may change the profile from the Settings Wizard (\"File\" -> \"Settings Wizard\")"
+	LOG_COMBINE_ADC_PM, // "Use a single log file per CID for ADC users"
 	LAST // @DontAdd
 };
