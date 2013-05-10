@@ -69,7 +69,7 @@ public:
 	map<string, Identity> getIdentities(const UserPtr &u) const;
 	
 	string getNick(const UserPtr& u, const string& hintUrl, bool allowFallback = true) const;
-	StringPair getNickHubPair(const CID& cid, const string& hint) const;
+	StringPairList getNickHubPair(const CID& cid, string& hint) const;
 
 	string getDLSpeed(const CID& cid) const;
 	uint8_t getSlots(const CID& cid) const;

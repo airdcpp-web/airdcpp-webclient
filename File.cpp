@@ -511,7 +511,7 @@ FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
 FileFindIter::FileFindIter(const string& path, bool dirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
 	if (Util::getOsMajor() >= 6 && Util::getOsMinor() >= 1) {
-		handle = ::FindFirstFileEx(Text::toT(Util::FormatPath(path)).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+		handle = ::FindFirstFileEx(Text::toT(Util::FormatPath(path)).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
 	} else {
 		handle = ::FindFirstFile(Text::toT(Util::FormatPath(path)).c_str(), &data);
 	}

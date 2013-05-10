@@ -86,7 +86,7 @@ const string SettingsManager::settingTags[] =
 	"Font", "TransferViewOrder", "TransferViewWidths", "HubFrameOrder", "HubFrameWidths", 
 	"LanguageFile", "SearchFrameOrder", "SearchFrameWidths", "FavoritesFrameOrder", "FavoritesFrameWidths", 
 	"HublistServers", "QueueFrameOrder", "QueueFrameWidths", "PublicHubsFrameOrder", "PublicHubsFrameWidths", 
-	"UsersFrmOrder", "UsersFrmWidths", "HttpProxy", "LogDirectory", "LogFormatPostDownload", 
+	"UsersFrmOrder2", "UsersFrmWidths2", "HttpProxy", "LogDirectory", "LogFormatPostDownload", 
 	"LogFormatPostUpload", "LogFormatMainChat", "LogFormatPrivateChat", "FinishedOrder", "FinishedWidths",	 
 	"TempDownloadDirectory", "BindAddress", "BindAddress6", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", 
 	"DefaultAwayMessage", "TimeStampsFormat", "ADLSearchFrameOrder", "ADLSearchFrameWidths", 
@@ -111,7 +111,7 @@ const string SettingsManager::settingTags[] =
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
 	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
-	"UsersFrmVisible", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype",
+	"UsersFrmVisible2", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype",
 
 	"SENTRY", 
 	// Ints

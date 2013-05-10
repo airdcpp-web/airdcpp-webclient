@@ -206,23 +206,35 @@ string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFa
 
 }
 
-//get nick,hub combination
-StringPair ClientManager::getNickHubPair(const CID& cid, const string& hint) const {
+//get nick,hubname combination, update the hint.
+StringPairList ClientManager::getNickHubPair(const CID& cid, string& hint) const {
+	StringPairList ret;
+	
 	RLock l(cs);
-	OnlinePairC p;
-	auto ou = findOnlineUserHint(cid, hint, p);
-	if(ou)
-		return make_pair(ou->getIdentity().getNick(), hint);
-	if(p.first != p.second){
-		return make_pair(p.first->second->getIdentity().getNick(),  p.first->second->getHubUrl());
+	OnlinePairC op;
+	auto ou = findOnlineUserHint(cid, hint, op);
+	if(ou) //insert the exact hint,nick match first. 
+		ret.push_back(make_pair(ou->getIdentity().getNick(), ou->getClientBase().getHubName()));
+	
+	if (op.first != op.second) {
+		if(!ou) //update the hint to match the first nick.
+			hint = op.first->second->getHubUrl();
+		
+		for(auto i = op.first; i != op.second; ++i) {
+			if(ou && ou == i->second)
+				continue;
+			ret.push_back(make_pair(i->second->getIdentity().getNick(), i->second->getClientBase().getHubName()));
+		}
+	} else if(ret.empty()) {
+		// offline
+		auto i = nicks.find(const_cast<CID*>(&cid));
+		if(i != nicks.end()) {
+			ret.push_back(make_pair(i->second, hint));
+		} else
+			ret.push_back(make_pair(cid.toBase32(), hint));
 	}
-	// offline
-	auto i = nicks.find(const_cast<CID*>(&cid));
-	if(i != nicks.end()) {
-		return make_pair(i->second, hint);
-	}
- 
-	return make_pair(cid.toBase32(), hint);
+
+	return ret;
 }
 
 string ClientManager::getField(const CID& cid, const string& hint, const char* field) const {
