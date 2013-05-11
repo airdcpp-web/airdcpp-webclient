@@ -380,7 +380,7 @@ const string& OnlineUser::getHubUrl() const {
 }
 
 bool OnlineUser::NickSort::operator()(const OnlineUserPtr& left, const OnlineUserPtr& right) const {
-	return stricmp(left->getIdentity().getNick(), right->getIdentity().getNick()) < 0;
+	return compare(left->getIdentity().getNick(), right->getIdentity().getNick()) < 0;
 }
 
 string OnlineUser::HubName::operator()(const OnlineUserPtr& u) { 

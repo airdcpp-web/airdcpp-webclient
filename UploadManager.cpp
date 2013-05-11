@@ -1138,7 +1138,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 		
 	for(auto& u: disconnects) {
-		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::toString(ClientManager::getInstance()->getNicks(u->getCID())), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::listToString(ClientManager::getInstance()->getNicks(u->getCID())), LogManager::LOG_INFO);
 		ConnectionManager::getInstance()->disconnect(u, false);
 	}
 

@@ -44,8 +44,6 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 
-#include <boost/range/algorithm_ext/push_back.hpp>
-
 
 namespace dcpp {
 
@@ -209,15 +207,13 @@ string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFa
 }
 
 OnlineUserPtr ClientManager::getUsers(const HintedUser& user, OnlineUserList& ouList) const {
-	{
-		RLock l(cs);
-		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&user.user->getCID()));
-		for(auto i = op.first; i != op.second; ++i) {
-			ouList.push_back(i->second);
-		}
+	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&user.user->getCID()));
+	for(auto i = op.first; i != op.second; ++i) {
+		ouList.push_back(i->second);
 	}
 
 	sort(ouList.begin(), ouList.end(), OnlineUser::NickSort());
+
 	auto p = find_if(ouList, OnlineUser::UrlCompare(user.hint));
 	if (p != ouList.end()) {
 		auto hinted = *p;
@@ -229,11 +225,22 @@ OnlineUserPtr ClientManager::getUsers(const HintedUser& user, OnlineUserList& ou
 }
 
 string ClientManager::getFormatedNicks(const HintedUser& user) const {
-	return formatUserList<OnlineUser::Nick>(user, true, '{' + user.user->getCID().toBase32() + '}');
+	auto ret = formatUserList<OnlineUser::Nick>(user, true);
+	if (ret.empty()) {
+		// offline
+		RLock l(cs);
+		auto i = nicks.find(const_cast<CID*>(&user.user->getCID()));
+		dcassert(i != nicks.end());
+		if(i != nicks.end()) {
+			return i->second;
+		}
+	}
+	return ret;
 }
 
 string ClientManager::getFormatedHubNames(const HintedUser& user) const {
-	return formatUserList<OnlineUser::HubName>(user, false);
+	auto ret = formatUserList<OnlineUser::HubName>(user, false);
+	return ret.empty() ? STRING(OFFLINE) : ret;
 }
 
 //get nick,hubname combination, update the hint.
@@ -611,7 +618,7 @@ pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const {
 	return make_pair(0, 0);
 }
 
-void ClientManager::getUserInfoList(const UserPtr user, User::UserInfoList& aList_) const {
+void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const {
 	RLock l(cs);
 	auto p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
 

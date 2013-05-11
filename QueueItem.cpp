@@ -631,7 +631,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 		if(segment.getSize() == 0) {
 			lastError = (segment.getStart() == -1 || getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
 			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
-			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::toString(onlineHubs).c_str(), getTarget().c_str(), blockSize);
+			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::listToString(onlineHubs).c_str(), getTarget().c_str(), blockSize);
 			return false;
 		}
 	} else if (!isWaiting()) {

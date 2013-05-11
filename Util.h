@@ -386,18 +386,24 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static string toString(const string& sep, const StringList& lst);
 
 	template<typename T, class NameOperator>
-	static string toStringT(const T& lst, bool forceBrackets = false) {
+	static string listToStringT(const T& lst, bool forceBrackets, bool squareBrackets) {
 		if(lst.size() == 1 && !forceBrackets)
 			return NameOperator()(*lst.begin());
-		string tmp("[");
+
+		string tmp;
+		tmp.push_back(squareBrackets ? '[' : '(');
 		for(auto i = lst.begin(), iend = lst.end(); i != iend; ++i) {
 			tmp += NameOperator()(*i);
-			tmp += ',';
+			tmp += ", ";
 		}
-		if(tmp.length() == 1)
-			tmp.push_back(']');
-		else
-			tmp[tmp.length()-1] = ']';
+
+		if(tmp.length() == 1) {
+			tmp.push_back(squareBrackets ? ']' : ')');
+		} else {
+			tmp.pop_back();
+			tmp[tmp.length()-1] = squareBrackets ? ']' : ')';
+		}
+
 		return tmp;
 	}
 
@@ -405,9 +411,8 @@ static string getShortTimeString(time_t t = time(NULL) );
 		const char* operator()(const string& u) { return u.c_str(); }
 	};
 
-	static string toString(const StringSet& lst) { return toStringT<StringSet, StrChar>(lst); }
-	static string toString(const StringList& lst) { return toStringT<StringList, StrChar>(lst); }
-	static string toString(const OrderedStringSet& lst) { return toStringT<OrderedStringSet, StrChar>(lst); }
+	template<typename ListT>
+	static string listToString(const ListT& lst) { return listToStringT<ListT, StrChar>(lst, false, true); }
 
 	static wstring toStringW( int32_t val ) {
 		wchar_t buf[32];

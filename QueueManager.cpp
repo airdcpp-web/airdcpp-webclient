@@ -2512,7 +2512,7 @@ void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult
 				fire(QueueManagerListener::SourceFilesUpdated(), aResult->getUser());
 
 				if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
-					LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(aResult->getUser())) + ": " + 
+					LogManager::getInstance()->message(ClientManager::getInstance()->getFormatedNicks(aResult->getUser()) + ": " + 
 						STRING_F(MATCH_SOURCE_ADDED, newFiles % aQI->getBundle()->getName().c_str()), LogManager::LOG_INFO);
 				}
 			} else {

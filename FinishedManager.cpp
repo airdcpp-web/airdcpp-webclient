@@ -38,14 +38,7 @@ const tstring FinishedItem::getText(uint8_t col) const {
 		case COLUMN_DONE: return Text::toT(Util::formatTime("%Y-%m-%d %H:%M:%S", getTime()));
 		case COLUMN_PATH: return Text::toT(Util::getFilePath(getTarget()));
 		case COLUMN_NICK: return Text::toT(ClientManager::getInstance()->getFormatedNicks(getUser()));
-		case COLUMN_HUB: {
-			auto hubs = ClientManager::getInstance()->getHubNames(getUser());
-			if (hubs.empty())
-				hubs.push_back(STRING(OFFLINE));
-
-			return Text::toT(Util::toString(hubs));
-		}
-
+		case COLUMN_HUB: return Text::toT(ClientManager::getInstance()->getFormatedHubNames(getUser()));
 		case COLUMN_SIZE: return Util::formatBytesW(getSize());
 		case COLUMN_SPEED: return Util::formatBytesW(getAvgSpeed()) + _T("/s");
 		case COLUMN_TYPE: {

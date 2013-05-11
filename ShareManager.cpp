@@ -1459,7 +1459,7 @@ int ShareManager::refresh(const string& aDir){
 			refreshPaths.erase(unique(refreshPaths.begin(), refreshPaths.end()), refreshPaths.end());
 
 			if (!vNames.empty())
-				displayName = Util::toString(vNames);
+				displayName = Util::listToString(vNames);
 		} else {
 			refreshPaths.push_back(path);
 		}

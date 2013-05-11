@@ -58,24 +58,32 @@ public:
 	StringList getHubNames(const CID& cid) const;
 	StringList getNicks(const CID& cid, bool allowCID = true) const;
 	pair<int64_t, int> getShareInfo(const HintedUser& user) const;
-	void getUserInfoList(const UserPtr user, User::UserInfoList& aList_) const;
+	void getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const;
 
 	StringList getNicks(const HintedUser& user) { return getNicks(user.user->getCID()); }
 	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID()); }
 	StringList getHubUrls(const HintedUser& user) { return getHubUrls(user.user->getCID()); }
 
 	template<class NameOperator>
-	string formatUserList(const HintedUser& user, bool removeDuplicates, const string& offlineStr = STRING(OFFLINE)) const {
+	string formatUserList(const HintedUser& user, bool removeDuplicates) const {
 		OnlineUserList ouList;
+
+		RLock l(cs);
 		auto hinted = getUsers(user, ouList);
 
-		if (removeDuplicates)
-			ouList.erase(unique(ouList.begin(), ouList.end(), [](const OnlineUserPtr& a, const OnlineUserPtr& b) { return stricmp(NameOperator()(a), NameOperator()(b)) == 0; }), ouList.end());
+		if (removeDuplicates) {
+			ouList.erase(unique(ouList.begin(), ouList.end(), [](const OnlineUserPtr& a, const OnlineUserPtr& b) { return compare(NameOperator()(a), NameOperator()(b)) == 0; }), ouList.end());
+			if (hinted) {
+				//erase users with the hinted nick
+				auto p = equal_range(ouList.begin(), ouList.end(), hinted, OnlineUser::NickSort());
+				ouList.erase(p.first, p.second);
+			}
+		}
 
 		string ret = hinted ? NameOperator()(hinted) + " " : Util::emptyString;
 		if (!ouList.empty())
-			ret += Util::toStringT<OnlineUserList, NameOperator>(ouList, true);
-		return ret.empty() ? offlineStr : ret;
+			ret += Util::listToStringT<OnlineUserList, NameOperator>(ouList, hinted ? true : false, hinted ? false : true);
+		return ret;
 	}
 
 	string getFormatedNicks(const HintedUser& user) const;
