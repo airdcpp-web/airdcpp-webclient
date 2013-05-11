@@ -154,7 +154,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 
 	if (aUser.user && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		//this is the only thing that could cause queuing the filelist to fail.... remember to change if more are added
-		LogManager::getInstance()->message(Util::toString(ClientManager::getInstance()->getNicks(aUser)) + ": " + STRING(SOURCE_NO_ENCRYPTION), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(ClientManager::getInstance()->getFormatedNicks(aUser) + ": " + STRING(SOURCE_NO_ENCRYPTION), LogManager::LOG_ERROR);
 		return;
 	}
 

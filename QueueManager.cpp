@@ -387,7 +387,7 @@ bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueExceptio
 
 void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, BundlePtr aBundle /*nullptr*/) throw(QueueException, FileException) {
 	//check the source
-	checkSource(aUser.user);
+	checkSource(aUser);
 
 	//format the target
 	string target;
@@ -466,15 +466,15 @@ void QueueManager::setMatchers() {
 	highPrioFiles.prepare();
 }
 
-void QueueManager::checkSource(const UserPtr& aUser) const throw(QueueException) {
+void QueueManager::checkSource(const HintedUser& aUser) const throw(QueueException) {
 	// Check that we're not downloading from ourselves...
-	if(aUser == ClientManager::getInstance()->getMe()) {
+	if(aUser.user == ClientManager::getInstance()->getMe()) {
 		throw QueueException(STRING(NO_DOWNLOADS_FROM_SELF));
 	}
 
 	// Check the encryption
-	if (aUser && !aUser->isSet(User::NMDC) && !aUser->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
-		throw QueueException(Util::toString(ClientManager::getInstance()->getNicks(aUser->getCID())) + ": " + STRING(SOURCE_NO_ENCRYPTION));
+	if (aUser.user && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
+		throw QueueException(ClientManager::getInstance()->getFormatedNicks(aUser) + ": " + STRING(SOURCE_NO_ENCRYPTION));
 	}
 }
 

@@ -295,7 +295,7 @@ private:
 	bool addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, bool& smallSlot, BundlePtr& aBundle) throw(QueueException, FileException);
 
 	/** Check that we can download from this user */
-	void checkSource(const UserPtr& aUser) const throw(QueueException);
+	void checkSource(const HintedUser& aUser) const throw(QueueException);
 
 	/** Check that we can download from this user */
 	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& aPrio) const throw(QueueException);

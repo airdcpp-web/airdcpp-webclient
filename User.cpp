@@ -379,6 +379,14 @@ const string& OnlineUser::getHubUrl() const {
 	return getClient().getHubUrl();
 }
 
+bool OnlineUser::NickSort::operator()(const OnlineUserPtr& left, const OnlineUserPtr& right) const {
+	return stricmp(left->getIdentity().getNick(), right->getIdentity().getNick()) < 0;
+}
+
+string OnlineUser::HubName::operator()(const OnlineUserPtr& u) { 
+	return u->getClientBase().getHubName(); 
+}
+
 uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 
 	bool bot = identity.isBot() && !identity.getUser()->isSet(User::NMDC);

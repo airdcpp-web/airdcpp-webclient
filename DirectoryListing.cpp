@@ -108,7 +108,7 @@ string DirectoryListing::getNick(bool firstOnly) const {
 		if (firstOnly) {
 			ret = ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint, true);
 		} else {
-			ret = Util::toString(ClientManager::getInstance()->getNicks(hintedUser));
+			ret = ClientManager::getInstance()->getFormatedNicks(hintedUser);
 		}
 	}
 

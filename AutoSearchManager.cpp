@@ -576,7 +576,7 @@ void AutoSearchManager::onBundleError(const ProfileToken aSearch, const string& 
 	RLock l(cs);
 	auto as = getSearchByToken(aSearch);
 	if (as) {
-		as->setLastError(STRING_F(AS_ERROR, Util::getLastDir(aDir) % aError % Util::getTimeString() % Util::toString(ClientManager::getInstance()->getNicks(aUser))));
+		as->setLastError(STRING_F(AS_ERROR, Util::getLastDir(aDir) % aError % Util::getTimeString() % ClientManager::getInstance()->getFormatedNicks(aUser)));
 		fire(AutoSearchManagerListener::UpdateItem(), as, true);
 	}
 

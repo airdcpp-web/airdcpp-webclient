@@ -44,6 +44,8 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 
+#include <boost/range/algorithm_ext/push_back.hpp>
+
 
 namespace dcpp {
 
@@ -204,6 +206,34 @@ string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFa
 
 	return Util::emptyString;
 
+}
+
+OnlineUserPtr ClientManager::getUsers(const HintedUser& user, OnlineUserList& ouList) const {
+	{
+		RLock l(cs);
+		OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&user.user->getCID()));
+		for(auto i = op.first; i != op.second; ++i) {
+			ouList.push_back(i->second);
+		}
+	}
+
+	sort(ouList.begin(), ouList.end(), OnlineUser::NickSort());
+	auto p = find_if(ouList, OnlineUser::UrlCompare(user.hint));
+	if (p != ouList.end()) {
+		auto hinted = *p;
+		ouList.erase(p);
+		return hinted;
+	}
+
+	return nullptr;
+}
+
+string ClientManager::getFormatedNicks(const HintedUser& user) const {
+	return formatUserList<OnlineUser::Nick>(user, true, '{' + user.user->getCID().toBase32() + '}');
+}
+
+string ClientManager::getFormatedHubNames(const HintedUser& user) const {
+	return formatUserList<OnlineUser::HubName>(user, false);
 }
 
 //get nick,hubname combination, update the hint.

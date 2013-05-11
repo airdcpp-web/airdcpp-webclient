@@ -197,6 +197,27 @@ public:
 		size_t operator()(const OnlineUserPtr& x) const { return ((size_t)(&(*x)))/sizeof(OnlineUser); }
 	};
 
+	struct NickSort {
+		bool operator()(const OnlineUserPtr& left, const OnlineUserPtr& right) const;
+	};
+
+	struct Nick {
+		string operator()(const OnlineUserPtr& u) { return u->getIdentity().getNick(); }
+	};
+
+	struct HubName {
+		string operator()(const OnlineUserPtr& u);
+	};
+
+	class UrlCompare {
+	public:
+		UrlCompare(const string& aUrl) : url(aUrl) { }
+		bool operator()(const OnlineUserPtr& ou) { return ou->getHubUrl() == url; }
+	private:
+		UrlCompare& operator=(const UrlCompare&);
+		const string& url;
+	};
+
 	OnlineUser(const UserPtr& ptr, ClientBase& client_, uint32_t sid_);
 	virtual ~OnlineUser() noexcept { }
 

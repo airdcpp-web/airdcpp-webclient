@@ -37,7 +37,7 @@ const tstring FinishedItem::getText(uint8_t col) const {
 		case COLUMN_FILE: return Text::toT(Util::getFileName(getTarget()));
 		case COLUMN_DONE: return Text::toT(Util::formatTime("%Y-%m-%d %H:%M:%S", getTime()));
 		case COLUMN_PATH: return Text::toT(Util::getFilePath(getTarget()));
-		case COLUMN_NICK: return Text::toT(Util::toString(ClientManager::getInstance()->getNicks(getUser())));
+		case COLUMN_NICK: return Text::toT(ClientManager::getInstance()->getFormatedNicks(getUser()));
 		case COLUMN_HUB: {
 			auto hubs = ClientManager::getInstance()->getHubNames(getUser());
 			if (hubs.empty())
@@ -106,13 +106,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr& qi,
 			
 		fire(FinishedManagerListener::AddedDl(), item);
 		if(SETTING(SYSTEM_SHOW_DOWNLOADS)) {
-			size_t BUF_SIZE = STRING(FINISHED_DOWNLOAD).size() + UNC_MAX_PATH + 128;
-			char* buf = new char[BUF_SIZE];
-			snprintf(buf, BUF_SIZE, CSTRING(FINISHED_DOWNLOAD), Util::getFileName(qi->getTarget()).c_str(), 
-			Util::toString(ClientManager::getInstance()->getNicks(aUser)).c_str());
-
-			LogManager::getInstance()->message(buf, LogManager::LOG_INFO);
-			delete[] buf;
+			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, qi->getTarget()), LogManager::LOG_INFO);
 		}
 	}
 }
@@ -128,15 +122,9 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexc
 
 		fire(FinishedManagerListener::AddedUl(), item);
 		if(SETTING(SYSTEM_SHOW_UPLOADS)) {
-		size_t BUF_SIZE = STRING(FINISHED_UPLOAD).size() + UNC_MAX_PATH + 128;
-		char* buf = new char[BUF_SIZE];
-		snprintf(buf, BUF_SIZE, CSTRING(FINISHED_UPLOAD), (Util::getFileName(u->getPath())).c_str(), 
-			Util::toString(ClientManager::getInstance()->getNicks(u->getHintedUser())).c_str());
-
-		LogManager::getInstance()->message(buf, LogManager::LOG_INFO);
-		delete[] buf;		
-			}
+			LogManager::getInstance()->message(STRING_F(FINISHED_UPLOAD, u->getPath()), LogManager::LOG_INFO);		
 		}
+	}
 }
 
 bool FinishedManager::getTarget(const string& aTTH, string& target) {

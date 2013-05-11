@@ -64,6 +64,23 @@ public:
 	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID()); }
 	StringList getHubUrls(const HintedUser& user) { return getHubUrls(user.user->getCID()); }
 
+	template<class NameOperator>
+	string formatUserList(const HintedUser& user, bool removeDuplicates, const string& offlineStr = STRING(OFFLINE)) const {
+		OnlineUserList ouList;
+		auto hinted = getUsers(user, ouList);
+
+		if (removeDuplicates)
+			ouList.erase(unique(ouList.begin(), ouList.end(), [](const OnlineUserPtr& a, const OnlineUserPtr& b) { return stricmp(NameOperator()(a), NameOperator()(b)) == 0; }), ouList.end());
+
+		string ret = hinted ? NameOperator()(hinted) + " " : Util::emptyString;
+		if (!ouList.empty())
+			ret += Util::toStringT<OnlineUserList, NameOperator>(ouList, true);
+		return ret.empty() ? offlineStr : ret;
+	}
+
+	string getFormatedNicks(const HintedUser& user) const;
+	string getFormatedHubNames(const HintedUser& user) const;
+
 	StringPairList getHubs(const CID& cid);
 
 	map<string, Identity> getIdentities(const UserPtr &u) const;
@@ -180,6 +197,8 @@ private:
 	virtual ~ClientManager();
 
 	void updateUser(const OnlineUser& user) noexcept;
+
+	OnlineUserPtr getUsers(const HintedUser& aUser, OnlineUserList& users) const;
 		
 	/// @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl) const {
