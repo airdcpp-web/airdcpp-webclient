@@ -1734,8 +1734,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Test your speed online", 
 "Upload Limits", 
 "IPv6 connectivity has been disabled as no public IPv6 address was detected", 
-"Current user profile:", 
-"You may change the profile from the Settings Wizard (\"File\" -> \"Settings Wizard\")", 
+"Use a single log file per CID for ADC users", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3470,6 +3469,5 @@ std::string dcpp::ResourceManager::names[] = {
 "TestSpeedOnline", 
 "UploadLimits", 
 "Ipv6NoPublicIp", 
-"CurrentUserProfile", 
-"UserProfileTip", 
+"LogCombineAdcPm", 
 };

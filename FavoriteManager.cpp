@@ -715,6 +715,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 				u = ClientManager::getInstance()->getUser(CID(cid));
 			}
 			auto i = users.emplace(u->getCID(), FavoriteUser(u, nick, hubUrl, cid)).first;
+			ClientManager::getInstance()->updateNick(u, nick);
 
 			if(aXml.getBoolChildAttrib("GrantSlot"))
 				i->second.setFlag(FavoriteUser::FLAG_GRANTSLOT);
