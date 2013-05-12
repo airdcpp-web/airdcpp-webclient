@@ -86,7 +86,7 @@ string Identity::getIp() const {
 
 string Identity::getUploadSpeed() const {
 	if(user->isNMDC())
-		return getConnection();
+		return getNmdcConnection();
 	else {
 		const auto& us = get("US");
 
@@ -116,8 +116,8 @@ void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility)
 		sm[prefix + "SID"] = getSIDString();
 		sm[prefix + "CID"] = user->getCID().toBase32();
 		sm[prefix + "TAG"] = getTag();
-		sm[prefix + "CO"] = getConnection();
-		sm[prefix + "DS"] = getDLSpeed();
+		sm[prefix + "CO"] = getNmdcConnection();
+		sm[prefix + "DS"] = getDownloadSpeed();
 		sm[prefix + "SSshort"] = Util::formatBytes(get("SS"));
 
 		if(compatibility) {
@@ -278,7 +278,7 @@ tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 		case COLUMN_EXACT_SHARED: return Util::formatExactSize(identity.getBytesShared());
 		case COLUMN_DESCRIPTION: return Text::toT(identity.getDescription());
 		case COLUMN_TAG: return Text::toT(identity.getTag());
-		case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getConnection()) : (Text::toT(Util::formatBytes(identity.get("US"))) + _T("/s"));
+		case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getNmdcConnection()) : (Text::toT(Util::formatBytes(identity.get("US"))) + _T("/s"));
 		case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Text::toT(Util::formatBytes(identity.get("DS"))) + _T("/s"));
 		case COLUMN_IP4: {
 			string ip = identity.getIp4();

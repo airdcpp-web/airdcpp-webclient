@@ -457,7 +457,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		u.getIdentity().setHub(false);
 		u.getIdentity().setHidden(false);
 
-		u.getIdentity().setConnection(connection);
+		u.getIdentity().setNmdcConnection(connection);
 		u.getIdentity().setStatus(Util::toString(param[j-1]));
 		
 		

@@ -39,9 +39,13 @@ wchar_t toUpper(wchar_t c) noexcept {
 #endif
 }
 
-DualString::DualString(const string& aStr) : charSizes(0) {
-	reserve(size());
-	for (auto i = 0; i != aStr.size(); i++) {
+#define ARRAY_BITS (sizeof(MaskType)*8)
+
+DualString::DualString(const string& aStr) : charSizes(nullptr) {
+	reserve(aStr.size());
+
+	int pos = 0;
+	for (auto i = 0; i != aStr.size(); ) {
 		wchar_t c = 0;
 		int n = dcpp::Text::utf8ToWc(&aStr[i], c);
 		if (n < 0) {
@@ -49,19 +53,42 @@ DualString::DualString(const string& aStr) : charSizes(0) {
 		} else {
 			auto lc = toLower(c);
 			if (lc != c) {
-				charSizes |= (1 << i);
+				if (!charSizes) {
+					// Create an array with minumum possible length that will store the character sizes (unset=lowercase, set=uppercase)
+					auto arrSize = aStr.size() % ARRAY_BITS == 0 ? aStr.size() / ARRAY_BITS : (aStr.size() / ARRAY_BITS) +1;
+					charSizes = new MaskType[arrSize];
+					for (uint8_t i = 0; i < arrSize; ++i) {
+						charSizes[i] = 0;
+					}
+				}
+				charSizes[pos] |= (1 << i);
 			}
 
 			dcpp::Text::wcToUtf8(lc, *this);
 		}
+
+		i++;
+		if (i % ARRAY_BITS == 0) {
+			pos++;
+		}
 	}
 }
 
+DualString::~DualString() { 
+	if (charSizes)
+		delete[] charSizes; 
+}
+
 string DualString::getNormal() const {
+	if (!charSizes)
+		return *this;
+
 	string ret;
 	ret.reserve(size());
-	for (auto i = 0; i != size(); i++) {
-		if (charSizes & (1 << i)) {
+
+	int pos = 0;
+	for (auto i = 0; i != size(); ) {
+		if (charSizes[pos] & (1 << i)) {
 			wchar_t c = 0;
 			dcpp::Text::utf8ToWc(&c_str()[i], c);
 
@@ -69,11 +96,15 @@ string DualString::getNormal() const {
 		} else {
 			ret += c_str()[i];
 		}
+
+		i++;
+		if (i % ARRAY_BITS == 0)
+			pos++;
 	}
 
 	return ret;
 }
 
-bool DualString::hasUpperCase() const {
-	return strcmp(getNormal().c_str(), c_str()) != 0;
+bool DualString::lowerCaseOnly() const { 
+	return !charSizes; 
 }

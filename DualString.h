@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DUALSTRING
 
 #include <string>
+#include <bitset>
 
 #include "typedefs.h"
 #include "Text.h"
@@ -30,16 +31,19 @@ using std::string;
 
 class DualString : private string {
 public:
+	typedef uint32_t MaskType;
+
 	DualString(const string& aStr);
+	~DualString();
 
 	const string& getLower() const { return *this; }
 	string getNormal() const;
 
 	size_t size() const noexcept { return std::string::size(); }
 
-	bool hasUpperCase() const;
+	bool lowerCaseOnly() const;
 private:
-	uint32_t charSizes;
+	MaskType* charSizes;
 };
 
 #endif

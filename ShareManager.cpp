@@ -2260,7 +2260,7 @@ void ShareManager::Directory::filesToXmlList(OutputStream& xmlFile, string& inde
 	for(const auto& f: files) {
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("<File Name=\""));
-		xmlFile.write(SimpleXML::escape(f.name.getNormal(), tmp2, true));
+		xmlFile.write(SimpleXML::escape(f.name.lowerCaseOnly() ? f.name.getLower() : f.name.getNormal(), tmp2, true));
 		/*xmlFile.write(LITERAL("\" Size=\""));
 		xmlFile.write(Util::toString(f.getSize()));*/
 		xmlFile.write(LITERAL("\"/>\r\n"));
@@ -2282,7 +2282,7 @@ ShareManager::Directory::File::~File() {
 void ShareManager::Directory::File::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const {
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<File Name=\""));
-	xmlFile.write(SimpleXML::escape(name.getNormal(), tmp2, true));
+	xmlFile.write(SimpleXML::escape(name.lowerCaseOnly() ? name.getLower() : name.getNormal(), tmp2, true));
 	xmlFile.write(LITERAL("\" Size=\""));
 	xmlFile.write(Util::toString(size));
 	xmlFile.write(LITERAL("\" TTH=\""));
@@ -2376,7 +2376,7 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> pr
 void ShareManager::Directory::toXmlList(OutputStream& xmlFile, string&& path, string& indent, string& tmp) {
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));
-	xmlFile.write(SimpleXML::escape(name.getNormal(), tmp, true));
+	xmlFile.write(SimpleXML::escape(name.lowerCaseOnly() ? name.getLower() : name.getNormal(), tmp, true));
 
 	xmlFile.write(LITERAL("\" Date=\""));
 	xmlFile.write(SimpleXML::escape(Util::toString(lastWrite), tmp, true));

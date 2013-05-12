@@ -92,8 +92,9 @@ public:
 	GETSET_FIELD(Udp4Port, "U4")
 	GETSET_FIELD(Udp6Port, "U6")
 	GETSET_FIELD(Email, "EM")
-	GETSET_FIELD(Connection, "CO")
-	GETSET_FIELD(DLSpeed, "DS")
+	GETSET_FIELD(NmdcConnection, "CO")
+	GETSET_FIELD(DownloadSpeed, "DS")
+	//GETSET_FIELD(UploadSpeed, "US")
 	GETSET_FIELD(SharedFiles, "SF")
 	GETSET_FIELD(ShareSize, "SS")
 #undef GETSET_FIELD

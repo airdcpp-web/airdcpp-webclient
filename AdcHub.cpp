@@ -258,21 +258,16 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		setMyIdentity(u->getIdentity());
 		updateCounts(false, true);
 
+		if (u->getIdentity().getUploadSpeed().empty())
+			fire(ClientListener::StatusMessage(), this, "WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.");
+
 		//we have to update the modes in case our connectivity changed
 
 		if (oldState != STATE_NORMAL || any_of(c.getParameters().begin(), c.getParameters().end(), [](const string& p) { return p.substr(0, 2) == "SU" || p.substr(0, 2) == "I4" || p.substr(0, 2) == "I6"; })) {
-			bool hasConnectionField = false;
 			for(auto ou: users | map_values) {
 				if (ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this)) {
 					fire(ClientListener::UserUpdated(), this, ou);
-					if (!hasConnectionField && !ou->getIdentity().get("US").empty()) {
-						hasConnectionField = true;
-					}
 				}
-			}
-
-			if (!hasConnectionField) {
-				fire(ClientListener::StatusMessage(), this, "WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.");
 			}
 		}
 	} else {
