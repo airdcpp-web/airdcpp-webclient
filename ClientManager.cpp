@@ -243,35 +243,37 @@ string ClientManager::getFormatedHubNames(const HintedUser& user) const {
 	return ret.empty() ? STRING(OFFLINE) : ret;
 }
 
-//get nick,hubname combination, update the hint.
-StringPairList ClientManager::getNickHubPair(const CID& cid, string& hint) const {
-	StringPairList ret;
-	
+//get nick,hubname combination same with formatUserList() but updates the hint and returns both infos with one lookup.
+StringPair ClientManager::getNickHubPair(HintedUser user) {
+	OnlineUserList ouList;
+
 	RLock l(cs);
-	OnlinePairC op;
-	auto ou = findOnlineUserHint(cid, hint, op);
-	if(ou) //insert the exact hint,nick match first. 
-		ret.push_back(make_pair(ou->getIdentity().getNick(), ou->getClientBase().getHubName()));
-	
-	if (op.first != op.second) {
-		if(!ou) //update the hint to match the first nick.
-			hint = op.first->second->getHubUrl();
+	auto hinted = getUsers(user, ouList);
+
+	string hubs = hinted ? OnlineUser::HubName()(hinted) + " " : Util::emptyString;
+	if (!ouList.empty())
+		hubs += Util::listToStringT<OnlineUserList, OnlineUser::HubName>(ouList, hinted ? true : false, hinted ? false : true);
+
+	ouList.erase(unique(ouList.begin(), ouList.end(), [](const OnlineUserPtr& a, const OnlineUserPtr& b) { return compare(OnlineUser::Nick()(a), OnlineUser::Nick()(b)) == 0; }), ouList.end());
+	if (hinted) {
+		//erase users with the hinted nick
+		auto p = equal_range(ouList.begin(), ouList.end(), hinted, OnlineUser::NickSort());
+		ouList.erase(p.first, p.second);
+	} else if (!ouList.empty()) //set the hint to match the first nick
+		user.hint = ouList[0]->getHubUrl();
+
+	string nick = hinted ? OnlineUser::Nick()(hinted) + " " : Util::emptyString;
+	if (!ouList.empty())
+		nick += Util::listToStringT<OnlineUserList, OnlineUser::Nick>(ouList, hinted ? true : false, hinted ? false : true);
 		
-		for(auto i = op.first; i != op.second; ++i) {
-			if(ou && ou == i->second)
-				continue;
-			ret.push_back(make_pair(i->second->getIdentity().getNick(), i->second->getClientBase().getHubName()));
-		}
-	} else if(ret.empty()) {
-		// offline
-		auto i = nicks.find(const_cast<CID*>(&cid));
+	if (nick.empty()) {
+		auto i = nicks.find(const_cast<CID*>(&user.user->getCID()));
 		if(i != nicks.end()) {
-			ret.push_back(make_pair(i->second, hint));
-		} else
-			ret.push_back(make_pair(cid.toBase32(), hint));
+			nick = i->second;
+		}
 	}
 
-	return ret;
+	return make_pair(nick, hubs);
 }
 
 string ClientManager::getField(const CID& cid, const string& hint, const char* field) const {
