@@ -42,6 +42,8 @@
 #include "TaskQueue.h"
 #include "Thread.h"
 
+#include "DualString.h"
+
 namespace dcpp {
 
 STANDARD_EXCEPTION(ShareException);
@@ -299,13 +301,13 @@ private:
 		typedef Map::iterator MapIter;
 
 		struct NameLower {
-			const string& operator()(const Ptr& a) const { return a->getRealNameLower(); }
+			const string& operator()(const Ptr& a) const { return a->name.getLower(); }
 		};
 
 		class File {
 		public:
 			struct FileLess {
-				bool operator()(const File& a, const File& b) const { return (compare(a.getNameLower(), b.getNameLower()) < 0); }
+				bool operator()(const File& a, const File& b) const { return strcmp(a.name.getLower().c_str(), b.name.getLower().c_str()) < 0; }
 			};
 			typedef set<File, FileLess> Set;
 
@@ -313,12 +315,12 @@ private:
 			~File();
 
 			bool operator==(const File& rhs) const {
-				return getNameLower().compare(rhs.getNameLower()) == 0 && parent == rhs.getParent();
+				return name.getLower().compare(rhs.name.getLower()) == 0 && parent == rhs.getParent();
 			}
 		
-			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + getName(); }
-			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + getName(); }
-			string getRealPath(bool validate = true) const { return parent->getRealPath(getName(), validate); }
+			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + name.getNormal(); }
+			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + name.getNormal(); }
+			string getRealPath(bool validate = true) const { return parent->getRealPath(name.getNormal(), validate); }
 			bool hasProfile(ProfileToken aProfile) const { return parent->hasProfile(aProfile); }
 
 			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
@@ -327,22 +329,12 @@ private:
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
 			GETSET(uint64_t, lastWrite, LastWrite);
-			GETSET(string, nameLower, NameLower);
+			//GETSET(string, nameLower, NameLower);
 			GETSET(TTHValue, tth, TTH);
 
-			//GETSET(HashedFilePtr, fileInfo, FileInfo);
-
-			const string& getName() const { return name ? *name : nameLower; }
-
-			/*const string& getNameLower() const { return fileInfo->getFileName(); }
-			const string& getName() const { return name ? *name : fileInfo->getFileName(); }
-			const TTHValue& getTTH() const { return fileInfo->getRoot(); }
-			uint32_t getLastWrite() const { return fileInfo->getTimeStamp(); }*/
-
-			bool isLowerName() const { return name == nullptr; }
+			DualString name;
 		private:
 			File(const File& src);
-			string* name;
 		};
 
 		//typedef set<Directory::Ptr, DirLess> Set;
@@ -411,9 +403,6 @@ private:
 		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const;
 		int64_t size;
 
-		const string& getRealName() const { return realName; }
-		const string& getRealNameLower() const { return realNameLower; }
-
 		File::Set::const_iterator findFile(const string& aName) const;
 
 		void addBloom(ShareBloom& aBloom) const;
@@ -421,14 +410,13 @@ private:
 		ShareBloom& getBloom() const;
 
 		void getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const;
+		DualString name;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;
 
 		string getRealPath(const string& path, bool checkExistance) const;
-		const string realName;
-		const string realNameLower;
 	};
 
 	struct FileListDir {
