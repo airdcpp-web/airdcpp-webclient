@@ -199,7 +199,7 @@ const string SettingsManager::settingTags[] =
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
-	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID",
+	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -815,6 +815,7 @@ SettingsManager::SettingsManager()
 	setDefault(REMOVE_EXPIRED_AS, false);
 
 	setDefault(PM_LOG_GROUP_CID, true);
+	setDefault(SHARE_FOLLOW_SYMLINKS, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

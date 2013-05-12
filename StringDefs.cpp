@@ -1735,6 +1735,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Upload Limits", 
 "IPv6 connectivity has been disabled as no public IPv6 address was detected", 
 "Use a single log file per CID for ADC users", 
+"Follow symbolic links", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3470,4 +3471,5 @@ std::string dcpp::ResourceManager::names[] = {
 "UploadLimits", 
 "Ipv6NoPublicIp", 
 "LogCombineAdcPm", 
+"FollowSymlinks", 
 };

@@ -44,10 +44,12 @@ wchar_t toUpper(wchar_t c) noexcept {
 DualString::DualString(const string& aStr) : charSizes(nullptr) {
 	reserve(aStr.size());
 
-	int pos = 0;
-	for (auto i = 0; i != aStr.size(); ) {
+	//auto tmp = dcpp::Text::toLower(aStr);
+	int arrayPos = 0, bitPos = 0;
+	const char* end = &aStr[0] + aStr.size();
+	for (const char* p = &aStr[0]; p < end;) {
 		wchar_t c = 0;
-		int n = dcpp::Text::utf8ToWc(&aStr[i], c);
+		int n = dcpp::Text::utf8ToWc(p, c);
 		if (n < 0) {
 			append("_");
 		} else {
@@ -55,28 +57,32 @@ DualString::DualString(const string& aStr) : charSizes(nullptr) {
 			if (lc != c) {
 				if (!charSizes) {
 					// Create an array with minumum possible length that will store the character sizes (unset=lowercase, set=uppercase)
-					auto arrSize = aStr.size() % ARRAY_BITS == 0 ? aStr.size() / ARRAY_BITS : (aStr.size() / ARRAY_BITS) +1;
+					auto arrSize = aStr.size() % ARRAY_BITS == 0 ? aStr.size() / ARRAY_BITS : (aStr.size() / ARRAY_BITS) + 1;
 					charSizes = new MaskType[arrSize];
-					for (uint8_t i = 0; i < arrSize; ++i) {
-						charSizes[i] = 0;
+					for (int s = 0; s < arrSize; ++s) {
+						charSizes[s] = 0;
 					}
 				}
-				charSizes[pos] |= (1 << i);
+				charSizes[arrayPos] |= (1 << bitPos);
 			}
 
 			dcpp::Text::wcToUtf8(lc, *this);
 		}
 
-		i++;
-		if (i % ARRAY_BITS == 0) {
-			pos++;
+		p += n;
+		bitPos += n;
+
+		// move to the next array?
+		if (bitPos >= ARRAY_BITS) {
+			bitPos = 0 + bitPos-ARRAY_BITS;
+			arrayPos++;
 		}
 	}
 }
 
 DualString::~DualString() { 
 	if (charSizes)
-		delete[] charSizes; 
+		delete charSizes; 
 }
 
 string DualString::getNormal() const {
@@ -86,20 +92,27 @@ string DualString::getNormal() const {
 	string ret;
 	ret.reserve(size());
 
-	int pos = 0;
-	for (auto i = 0; i != size(); ) {
-		if (charSizes[pos] & (1 << i)) {
+	int bitPos = 0, arrayPos = 0;
+	const char* end = &c_str()[0] + string::size();
+	for (const char* p = &c_str()[0]; p < end;) {
+		if (charSizes[arrayPos] & (1 << bitPos)) {
 			wchar_t c = 0;
-			dcpp::Text::utf8ToWc(&c_str()[i], c);
+			int n = dcpp::Text::utf8ToWc(p, c);
 
 			dcpp::Text::wcToUtf8(toUpper(c), ret);
+
+			bitPos += n;
+			p += n;
 		} else {
-			ret += c_str()[i];
+			ret += p[0];
+			bitPos++;
+			p++;
 		}
 
-		i++;
-		if (i % ARRAY_BITS == 0)
-			pos++;
+		if (bitPos >= ARRAY_BITS) {
+			bitPos = 0 + bitPos-ARRAY_BITS;
+			arrayPos++;
+		}
 	}
 
 	return ret;

@@ -20,10 +20,9 @@
 #define DCPLUSPLUS_DUALSTRING
 
 #include <string>
-#include <bitset>
 
 #include "typedefs.h"
-#include "Text.h"
+#include "noexcept.h"
 
 using std::string;
 
@@ -41,7 +40,7 @@ public:
 
 	size_t size() const noexcept { return std::string::size(); }
 
-	bool lowerCaseOnly() const;
+	bool lowerCaseOnly() const noexcept;
 private:
 	MaskType* charSizes;
 };

@@ -548,7 +548,7 @@ bool FileFindIter::DirData::isHidden() {
 }
 
 bool FileFindIter::DirData::isLink() {
-	return false;
+	return (dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) > 0;
 }
 
 int64_t FileFindIter::DirData::getSize() {

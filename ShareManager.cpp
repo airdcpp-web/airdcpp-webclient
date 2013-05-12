@@ -1302,6 +1302,9 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 		if(!SETTING(SHARE_HIDDEN) && i->isHidden())
 			continue;
 
+		if (!SETTING(SHARE_FOLLOW_SYMLINKS) && i->isLink())
+			continue;
+
 		if(i->isDirectory()) {
 			string curPath = aPath + name + PATH_SEPARATOR;
 
