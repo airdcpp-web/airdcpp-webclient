@@ -48,6 +48,8 @@ public:
 	};*/
 };
 
+typedef std::vector<pair<std::string, HashedFile>> RenameList;
+
 }
 
 #endif // !defined(DCPLUSPLUS_DCPP_HASHEDFILEINFO_H)

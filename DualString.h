@@ -41,7 +41,12 @@ public:
 	size_t size() const noexcept { return std::string::size(); }
 
 	bool lowerCaseOnly() const noexcept;
+
+	DualString(DualString&& rhs);
+	DualString& operator=(DualString&&);
 private:
+	DualString(const DualString&);
+	DualString& operator= (const DualString& other);
 	MaskType* charSizes;
 };
 

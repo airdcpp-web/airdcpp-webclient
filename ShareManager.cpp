@@ -124,9 +124,132 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 		refresh(false, TYPE_STARTUP, progressF);
 	}
 
+	monitor.reset(new DirectoryMonitor(1, true));
+	monitor->addListener(this);
+	for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
+		monitor->addDirectory(d->getProfileDir()->getPath());
+	}
+
+	//monitor->init();
+	//monitor->addDirectory("C:\\air32\\EmoPacks\\");
+	//monitor->addDirectory("E:\\projects\\filesysmon\\Debug\\");
+
 	rebuildTotalExcludes();
 
 	TimerManager::getInstance()->addListener(this);
+}
+
+void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
+	//LogManager::getInstance()->message("File added: " + Text::fromT(notifyPath), LogManager::LOG_INFO);
+}
+
+void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPath) noexcept {
+	//LogManager::getInstance()->message("File modified: " + Text::fromT(notifyPath), LogManager::LOG_INFO);
+}
+
+void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList& aRename) {
+	//string curPath = aPath + name.getNormal() + PATH_SEPARATOR;
+
+	for (const auto& f: files) {
+		aRename.emplace_back(aPath + f.name.getNormal(), HashedFile(f.getTTH(), f.getLastWrite(), f.getSize()));
+	}
+
+	for (const auto& d: directories) {
+		d->getRenameInfoList(aPath + name.getNormal() + PATH_SEPARATOR, aRename);
+	}
+}
+
+void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldPath, const string& aNewPath) noexcept {
+	ProfileTokenSet dirtyProfiles;
+	//bool renameHashed = false;
+	RenameList toRename;
+
+	{
+		WLock l(cs);
+		auto parent = findDirectory(Util::getFilePath(aOldPath), false, false, false);
+		if (parent) {
+			auto fileNameOldLower = Text::toLower(Util::getFileName(aOldPath));
+			auto p = parent->directories.find(fileNameOldLower);
+			if (p != parent->directories.end()) {
+				auto d = *p;
+
+				// remove from the dir name map
+				removeDirName(*d);
+
+				//rename
+				parent->directories.erase(p);
+				//parent->directories.erase(d);
+				d->name = DualString(Util::getFileName(aNewPath));
+				parent->directories.insert_sorted(d);
+
+				//add in bloom and dir name map
+				d->addBloom(d->getBloom());
+				dirNameMap.emplace(const_cast<string*>(&d->name.getLower()), d);
+
+				//get files to convert in the hash database (recursive
+				d->getRenameInfoList(Util::emptyString, toRename);
+
+				LogManager::getInstance()->message("Shared folder renamed, new name: " + aNewPath + PATH_SEPARATOR + " old name: " + aOldPath + PATH_SEPARATOR, LogManager::LOG_INFO);
+			} else {
+				auto f = parent->findFile(fileNameOldLower);
+				if (f != parent->files.end()) {
+					//get the info
+					HashedFile fi((*f).getTTH(), (*f).getLastWrite(), (*f).getSize());
+
+					//remove old
+					cleanIndices(*parent, f);
+					parent->files.erase(f);
+
+					//add new
+					addFile(Util::getFileName(aNewPath), parent, fi, dirtyProfiles);
+
+					//add for renaming in file index
+					toRename.emplace_back(Util::emptyString, fi);
+
+					LogManager::getInstance()->message("Shared file renamed, new name: " + aNewPath + " old name: " + aOldPath, LogManager::LOG_INFO);
+				}
+			}
+		}
+	}
+
+	//rename in hash database
+	for (const auto& ri: toRename) {
+		HashManager::getInstance()->renameFile(aOldPath + (ri.first.empty() ? Util::emptyString : PATH_SEPARATOR + ri.first), aNewPath + (ri.first.empty() ? Util::emptyString : PATH_SEPARATOR + ri.first), ri.second);
+	}
+
+	setProfilesDirty(dirtyProfiles, false);
+}
+
+void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept {
+	ProfileTokenSet dirtyProfiles;
+	{
+		WLock l(cs);
+		auto d = findDirectory(Util::getFilePath(aPath), false, false, false);
+		if (d) {
+			d->copyRootProfiles(dirtyProfiles, true);
+
+			auto fileNameLower = Util::getFileName(aPath);
+			auto p = d->directories.find(fileNameLower);
+			if (p != d->directories.end()) {
+				LogManager::getInstance()->message("Shared file: " + aPath + PATH_SEPARATOR, LogManager::LOG_INFO);
+				cleanIndices(*(*p));
+			} else {
+				auto f = d->findFile(fileNameLower);
+				if (f != d->files.end()) {
+					LogManager::getInstance()->message("Shared file deleted: " + aPath, LogManager::LOG_INFO);
+					cleanIndices(*d, f);
+					d->files.erase(f);
+				}
+			}
+		}
+	}
+
+	setProfilesDirty(dirtyProfiles, false);
+}
+
+void ShareManager::on(DirectoryMonitorListener::Overflow, const string& aPath) noexcept {
+	// refresh the dir
+	refresh(aPath);
 }
 
 void ShareManager::abortRefresh() {
@@ -135,6 +258,7 @@ void ShareManager::abortRefresh() {
 }
 
 void ShareManager::shutdown(function<void (float)> progressF) {
+	monitor->removeListener(this);
 	saveXmlList(false, progressF);
 
 	try {
@@ -2887,18 +3011,22 @@ void ShareManager::cleanIndices(Directory& dir, const Directory::File::Set::iter
 	}
 }
 
-void ShareManager::cleanIndices(Directory& dir) {
-	for(auto& d: dir.directories) {
-		cleanIndices(*d);
-	}
-
-	//remove from the name map
+void ShareManager::removeDirName(Directory& dir) {
 	auto directories = dirNameMap.equal_range(const_cast<string*>(&dir.name.getLower()));
 	auto p = find_if(directories | map_values, [&dir](const Directory::Ptr& d) { return d.get() == &dir; });
 	if (p.base() != dirNameMap.end())
 		dirNameMap.erase(p.base());
 	else
 		dcassert(0);
+}
+
+void ShareManager::cleanIndices(Directory& dir) {
+	for(auto& d: dir.directories) {
+		cleanIndices(*d);
+	}
+
+	//remove from the name map
+	removeDirName(dir);
 
 	//remove all files
 	for(auto i = dir.files.begin(); i != dir.files.end(); ++i) {
@@ -3011,21 +3139,24 @@ void ShareManager::onFileHashed(const string& fname, HashedFile& fileInfo) noexc
 			return;
 		}
 
-		string name = Util::getFileName(fname);
-		auto i = d->findFile(Text::toLower(name));
-		if(i != d->files.end()) {
-			// Get rid of false constness...
-			cleanIndices(*d, i);
-			d->files.erase(i);
-		}
-
-		auto it = d->files.emplace(name, d, fileInfo).first;
-		updateIndices(*d, it, d->getBloom(), sharedSize, tthIndex);
-
-		d->copyRootProfiles(dirtyProfiles, true);
+		addFile(Util::getFileName(fname), d, fileInfo, dirtyProfiles);
 	}
 
 	setProfilesDirty(dirtyProfiles);
+}
+
+void ShareManager::addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_) {
+	auto i = aDir->findFile(Text::toLower(aName));
+	if(i != aDir->files.end()) {
+		// Get rid of false constness...
+		cleanIndices(*aDir, i);
+		aDir->files.erase(i);
+	}
+
+	auto it = aDir->files.emplace(aName, aDir, fi).first;
+	updateIndices(*aDir, it, aDir->getBloom(), sharedSize, tthIndex);
+
+	aDir->copyRootProfiles(dirtyProfiles_, true);
 }
 
 void ShareManager::getExcludes(ProfileToken aProfile, StringList& excludes) {

@@ -111,6 +111,7 @@ public:
 	void closeDB() { store.closeDb(); }
 	void onScheduleRepair(bool schedule) { store.onScheduleRepair(schedule); }
 	bool isRepairScheduled() const { return store.isRepairScheduled(); }
+	bool renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi);
 private:
 	int pausers;
 	class Hasher : public Thread {
@@ -205,8 +206,9 @@ private:
 		HashStore();
 		~HashStore();
 
-		void addHashedFile(string&& aFilePathLower, const TigerTree& tt, HashedFile& fi_);
-		void addFile(string&& aFilePathLower, HashedFile& fi_);
+		void addHashedFile(string&& aFilePathLower, const TigerTree& tt, const HashedFile& fi_);
+		void addFile(string&& aFilePathLower, const HashedFile& fi_);
+		bool renameFile(const string& oldPath, const string& newPath, const HashedFile& fi);
 
 		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
 

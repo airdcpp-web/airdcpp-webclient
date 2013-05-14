@@ -42,6 +42,8 @@
 #include "TaskQueue.h"
 #include "Thread.h"
 
+#include "DirectoryMonitor.h"
+#include "DirectoryMonitorListener.h"
 #include "DualString.h"
 
 namespace dcpp {
@@ -102,7 +104,7 @@ public:
 class ShareProfile;
 class FileList;
 
-class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener, private QueueManagerListener
+class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener, private QueueManagerListener, private DirectoryMonitorListener
 {
 public:
 	/**
@@ -250,6 +252,8 @@ public:
 	string getStats() const;
 	mutable SharedMutex cs;
 private:
+	unique_ptr<DirectoryMonitor> monitor;
+
 	uint64_t totalSearches;
 	typedef BloomFilter<5> ShareBloom;
 
@@ -411,6 +415,8 @@ private:
 
 		void getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const;
 		DualString name;
+
+		void getRenameInfoList(const string& aPath, RenameList& aRename);
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
@@ -536,11 +542,13 @@ private:
 
 	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
 	bool checkHidden(const string& aName) const;
+	void addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_);
 
 	//void rebuildIndices();
 	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames);
 	static void updateIndices(Directory& dir, const Directory::File::Set::iterator& i, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex);
 	void cleanIndices(Directory& dir);
+	void removeDirName(Directory& dir);
 	void cleanIndices(Directory& dir, const Directory::File::Set::iterator& i);
 
 	void onFileHashed(const string& fname, HashedFile& fileInfo);
@@ -638,6 +646,16 @@ private:
 	
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
+
+
+	//DirectoryMonitorListener
+	virtual void on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept;
+	virtual void on(DirectoryMonitorListener::FileModified, const string& aPath) noexcept;
+	virtual void on(DirectoryMonitorListener::FileRenamed, const string& aOldPath, const string& aNewPath) noexcept;
+	virtual void on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept;
+	virtual void on(DirectoryMonitorListener::Overflow, const string& aPath) noexcept;
+
+	//Directory::Ptr ShareManager::removeFileOrDirectory(Directory::Ptr& aDir, const string& aName) throw(ShareException);
 
 	void load(SimpleXML& aXml);
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);

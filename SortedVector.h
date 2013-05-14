@@ -88,6 +88,16 @@ public:
 		return pos.second ? pos.first : end();
 	}
 
+	bool erase_key(const keyType& aKey) {
+		auto pos = getPos(begin(), end(), aKey);
+		if (pos.second) {
+			erase(pos.first);
+			return true;
+		}
+
+		return false;
+	}
+
 	/*int binary_search(int left, int right, const keyType& key) {
 		while (left <= right) {
 			int middle = (left + right) / 2;

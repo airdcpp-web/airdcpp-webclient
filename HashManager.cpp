@@ -238,12 +238,12 @@ void HashManager::hashDone(const string& aFileName, string&& pathLower, const Ti
 	}
 }
 
-void HashManager::HashStore::addHashedFile(string&& aFileLower, const TigerTree& tt, HashedFile& fi_) {
+void HashManager::HashStore::addHashedFile(string&& aFileLower, const TigerTree& tt, const HashedFile& fi_) {
 	addTree(tt);
 	addFile(move(aFileLower), fi_);
 }
 
-void HashManager::HashStore::addFile(string&& aFileLower, HashedFile& fi_) {
+void HashManager::HashStore::addFile(string&& aFileLower, const HashedFile& fi_) {
 	auto sz = getFileInfoSize(fi_);
 	void* buf = malloc(sz);
 	saveFileInfo(buf, fi_);
@@ -259,6 +259,23 @@ void HashManager::HashStore::addFile(string&& aFileLower, HashedFile& fi_) {
 	/*HashedFile tmpFile;
 	getFileInfo(aFileLower, tmpFile);
 	auto fafas = "asgasg";*/
+}
+
+bool HashManager::renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi) {
+	return store.renameFile(aOldPath, aNewPath, fi);
+}
+
+bool HashManager::HashStore::renameFile(const string& oldPath, const string& newPath, const HashedFile& fi) {
+	auto oldNameLower = Text::toLower(oldPath);
+	auto newNameLower = Text::toLower(newPath);
+	//HashedFile fi;
+	//if (getFileInfo(oldNameLower, fi)) {
+		fileDb->remove((void*)oldNameLower.c_str(), oldNameLower.length());
+		addFile(move(newNameLower), fi);
+		//return true;
+	//}
+
+	return true;
 }
 
 
