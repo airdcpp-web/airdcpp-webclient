@@ -19,12 +19,21 @@
 #ifndef DCPLUSPLUS_DCPP_TASK_H
 #define DCPLUSPLUS_DCPP_TASK_H
 
-#include <boost/range/algorithm/find_if.hpp>
+#include <functional>
+
+#include "forward.h"
+#include "Thread.h"
 
 namespace dcpp {
 
 struct Task {
 	virtual ~Task() { };
+};
+
+typedef std::function<void ()> AsyncF;
+struct AsyncTask : public Task {
+	AsyncTask(AsyncF aF) : f(aF) { }
+	AsyncF f;
 };
 
 struct StringTask : public Task {
@@ -35,7 +44,7 @@ struct StringTask : public Task {
 
 class TaskQueue {
 public:
-	typedef pair<uint8_t, unique_ptr<Task>> UniqueTaskPair;
+	typedef pair<uint8_t, std::unique_ptr<Task>> UniqueTaskPair;
 	typedef pair<uint8_t, Task*> TaskPair;
 	typedef deque<UniqueTaskPair> List;
 

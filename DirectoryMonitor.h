@@ -28,6 +28,8 @@
 #include "typedefs.h"
 #include "noexcept.h"
 #include "atomic.h"
+#include "Exception.h"
+#include "Util.h"
 
 #include "Thread.h"
 #include "Semaphore.h"
@@ -40,6 +42,8 @@ namespace dcpp {
 //typedef std::function<void (const string&)> ActionFunction;
 //typedef std::function<void (const string& /*old*/, const string& /*new*/)> RenameFunction;
 
+STANDARD_EXCEPTION(MonitorException);
+
 class Monitor;
 class DirectoryMonitor : public Speaker<DirectoryMonitorListener>, public Thread {
 public:
@@ -51,28 +55,28 @@ public:
 	DirectoryMonitor(int numThreads, bool useDispatcherThread);
 	~DirectoryMonitor();
 
-	void addDirectory(const string& aPath);
+	void addDirectory(const string& aPath) throw(MonitorException);
 	void removeDirectory(const string& aPath);
 
 	void stopMonitoring();
-	void init();
+	void init() throw(MonitorException);
 private:
 	friend class Monitor;
 	class Server : public Thread {
 	public:
 		Server(DirectoryMonitor* aBase, int numThreads);
 		~Server();
-		void addDirectory(const string& aPath);
+		void addDirectory(const string& aPath) throw(MonitorException);
 		void removeDirectory(const string& aPath);
 
 		void stop();
 
 		DirectoryMonitor* base;
 		virtual int run();
-		void init();
+		void init() throw(MonitorException);
 	private:
 		SharedMutex cs;
-		std::unordered_map<string, Monitor*> monitors;
+		std::unordered_map<string, Monitor*, noCaseStringHash, noCaseStringEq> monitors;
 
 		int read();
 

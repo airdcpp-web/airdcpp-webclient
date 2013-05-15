@@ -124,19 +124,57 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 		refresh(false, TYPE_STARTUP, progressF);
 	}
 
-	monitor.reset(new DirectoryMonitor(1, true));
-	monitor->addListener(this);
-	for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
-		monitor->addDirectory(d->getProfileDir()->getPath());
-	}
+	addAsyncTask([this] {
+		rebuildTotalExcludes();
 
-	//monitor->init();
-	//monitor->addDirectory("C:\\air32\\EmoPacks\\");
-	//monitor->addDirectory("E:\\projects\\filesysmon\\Debug\\");
+		monitor.reset(new DirectoryMonitor(1, true));
+		monitor->addListener(this);
 
-	rebuildTotalExcludes();
+		//this requires disk access
+		StringList monitorPaths;
+
+		{
+			RLock l(cs);
+			for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
+				if (d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
+					monitorPaths.push_back(d->getProfileDir()->getPath());
+			}
+		}
+
+		addMonitoring(monitorPaths);
+	});
 
 	TimerManager::getInstance()->addListener(this);
+}
+
+void ShareManager::addMonitoring(const StringList& aPaths) {
+	int added = 0;
+	for(const auto& p: aPaths) {
+		try {
+			monitor->addDirectory(p);
+			added++;
+		} catch (MonitorException& e) {
+			LogManager::getInstance()->message("Failed to add the folder " + p + " for monitoring: " + e.getError(), LogManager::LOG_ERROR);
+		}
+	}
+
+	if (added > 0)
+		LogManager::getInstance()->message(Util::toString(added) + " folders have been added for monitoring", LogManager::LOG_INFO);
+}
+
+void ShareManager::removeMonitoring(const StringList& aPaths) {
+	int removed = 0;
+	for(const auto& p: aPaths) {
+		try {
+			monitor->removeDirectory(p);
+			removed++;
+		} catch (MonitorException& e) {
+			LogManager::getInstance()->message("Error occurred when trying to remove the foldrer " + p + " from monitoring: " + e.getError(), LogManager::LOG_ERROR);
+		}
+	}
+
+	if (removed > 0)
+		LogManager::getInstance()->message(Util::toString(removed) + " folders have been removed from monitoring", LogManager::LOG_INFO);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
@@ -148,8 +186,6 @@ void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPat
 }
 
 void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList& aRename) {
-	//string curPath = aPath + name.getNormal() + PATH_SEPARATOR;
-
 	for (const auto& f: files) {
 		aRename.emplace_back(aPath + f.name.getNormal(), HashedFile(f.getTTH(), f.getLastWrite(), f.getSize()));
 	}
@@ -161,7 +197,6 @@ void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList&
 
 void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldPath, const string& aNewPath) noexcept {
 	ProfileTokenSet dirtyProfiles;
-	//bool renameHashed = false;
 	RenameList toRename;
 
 	{
@@ -178,7 +213,6 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 
 				//rename
 				parent->directories.erase(p);
-				//parent->directories.erase(d);
 				d->name = DualString(Util::getFileName(aNewPath));
 				parent->directories.insert_sorted(d);
 
@@ -186,10 +220,10 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 				d->addBloom(d->getBloom());
 				dirNameMap.emplace(const_cast<string*>(&d->name.getLower()), d);
 
-				//get files to convert in the hash database (recursive
+				//get files to convert in the hash database (recursive)
 				d->getRenameInfoList(Util::emptyString, toRename);
 
-				LogManager::getInstance()->message("Shared folder renamed, new name: " + aNewPath + PATH_SEPARATOR + " old name: " + aOldPath + PATH_SEPARATOR, LogManager::LOG_INFO);
+				LogManager::getInstance()->message("Shared folder renamed, new path: " + aNewPath + PATH_SEPARATOR + " old path: " + aOldPath + PATH_SEPARATOR, LogManager::LOG_INFO);
 			} else {
 				auto f = parent->findFile(fileNameOldLower);
 				if (f != parent->files.end()) {
@@ -231,8 +265,8 @@ void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath
 			auto fileNameLower = Util::getFileName(aPath);
 			auto p = d->directories.find(fileNameLower);
 			if (p != d->directories.end()) {
-				LogManager::getInstance()->message("Shared file: " + aPath + PATH_SEPARATOR, LogManager::LOG_INFO);
-				cleanIndices(*(*p));
+				LogManager::getInstance()->message("Shared folder deleted: " + aPath + PATH_SEPARATOR, LogManager::LOG_INFO);
+				cleanIndices(**p);
 			} else {
 				auto f = d->findFile(fileNameLower);
 				if (f != d->files.end()) {
@@ -247,9 +281,9 @@ void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath
 	setProfilesDirty(dirtyProfiles, false);
 }
 
-void ShareManager::on(DirectoryMonitorListener::Overflow, const string& aPath) noexcept {
+void ShareManager::on(DirectoryMonitorListener::Overflow, const string& aRootPath) noexcept {
 	// refresh the dir
-	refresh(aPath);
+	refresh(aRootPath);
 }
 
 void ShareManager::abortRefresh() {
@@ -1087,7 +1121,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		}
 	}
 
-	addTask(REFRESH_DIR, refreshPaths, TYPE_MANUAL, Util::emptyString);
+	addRefreshTask(REFRESH_DIR, refreshPaths, TYPE_MANUAL, Util::emptyString);
 
 	if (hashSize > 0) {
 		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogManager::LOG_INFO);
@@ -1591,7 +1625,7 @@ int ShareManager::refresh(const string& aDir){
 		}
 	}
 
-	return addTask(REFRESH_DIR, refreshPaths, TYPE_MANUAL, displayName);
+	return addRefreshTask(REFRESH_DIR, refreshPaths, TYPE_MANUAL, displayName);
 }
 
 
@@ -1607,7 +1641,7 @@ int ShareManager::refresh(bool incoming, RefreshType aType, function<void (float
 		}
 	}
 
-	return addTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, aType, Util::emptyString, progressF);
+	return addRefreshTask(incoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, aType, Util::emptyString, progressF);
 }
 
 struct ShareTask : public Task {
@@ -1617,7 +1651,15 @@ struct ShareTask : public Task {
 	ShareManager::RefreshType type;
 };
 
-int ShareManager::addTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshType, const string& displayName /*Util::emptyString*/, function<void (float)> progressF /*nullptr*/) noexcept {
+void ShareManager::addAsyncTask(AsyncF aF) {
+	tasks.add(ASYNC, unique_ptr<Task>(new AsyncTask(aF)));
+	if (!refreshing.test_and_set()) {
+		join();
+		start();
+	}
+}
+
+int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshType, const string& displayName /*Util::emptyString*/, function<void (float)> progressF /*nullptr*/) noexcept {
 	if (dirs.empty()) {
 		return REFRESH_PATH_NOT_FOUND;
 	}
@@ -1633,8 +1675,10 @@ int ShareManager::addTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshT
 		} else {
 			//remove directories that have already been queued for refreshing
 			for(const auto& i: tq) {
-				auto t = static_cast<ShareTask*>(i.second.get());
-				dirs.erase(boost::remove_if(dirs, [t](const string& s) { return boost::find(t->dirs, s) != t->dirs.end(); }), dirs.end());
+				if (i.first != ASYNC) {
+					auto t = static_cast<ShareTask*>(i.second.get());
+					dirs.erase(boost::remove_if(dirs, [t](const string& s) { return boost::find(t->dirs, s) != t->dirs.end(); }), dirs.end());
+				}
 			}
 		}
 	}
@@ -1676,7 +1720,7 @@ int ShareManager::addTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshT
 		return REFRESH_IN_PROGRESS;
 	}
 
-	if(aRefreshType == TYPE_STARTUP) { 
+	if(aRefreshType == TYPE_STARTUP && aTask == REFRESH_ALL) { 
 		runTasks(progressF);
 	} else {
 		join();
@@ -1783,7 +1827,7 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 
 	rebuildTotalExcludes();
 	if (!refresh.empty())
-		addTask(REFRESH_DIR, refresh, TYPE_MANUAL);
+		addRefreshTask(REFRESH_DIR, refresh, TYPE_MANUAL);
 
 	if (add.empty()) {
 		//we are only modifying existing trees
@@ -1791,12 +1835,13 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 		return;
 	}
 
-	addTask(ADD_DIR, add, TYPE_MANUAL);
+	addRefreshTask(ADD_DIR, add, TYPE_MANUAL);
 }
 
 void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 	ProfileTokenSet dirtyProfiles;
 	StringList stopHashing;
+	StringList removeMonitors;
 
 	{
 		WLock l (cs);
@@ -1818,6 +1863,10 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 						//the content still stays shared.. just null the profile
 						sd->setProfileDir(nullptr);
 						continue;
+					}
+
+					if (sd->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING)) {
+						removeMonitors.push_back(rd->path);
 					}
 
 					cleanIndices(*sd);
@@ -1860,6 +1909,8 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 		HashManager::getInstance()->stopHashing(p);
 	}
 
+	removeMonitoring(removeMonitors);
+
 	rebuildTotalExcludes();
 	setProfilesDirty(dirtyProfiles);
 }
@@ -1868,6 +1919,8 @@ void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs)  {
 	//updates the incoming status and the virtual name (called from GUI)
 
 	ProfileTokenSet dirtyProfiles;
+	StringList monAdd;
+	StringList monRem;
 
 	{
 		WLock l(cs);
@@ -1878,12 +1931,21 @@ void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs)  {
 			auto p = findRoot(cd->path);
 			if (p != rootPaths.end()) {
 				p->second->getProfileDir()->addRootProfile(vName, cd->profile); //renames it really
-				auto pd = p->second->getProfileDir();
-				cd->incoming ? p->second->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING) : p->second->getProfileDir()->unsetFlag(ProfileDirectory::FLAG_INCOMING);
+
+				// change the incoming state
+				if (p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING) && !cd->incoming) {
+					monRem.push_back(cd->path);
+					p->second->getProfileDir()->unsetFlag(ProfileDirectory::FLAG_INCOMING);
+				} else if (!p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING) && cd->incoming) {
+					monAdd.push_back(cd->path);
+					p->second->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING);
+				}
 			}
 		}
 	}
 
+	addMonitoring(monAdd);
+	removeMonitoring(monRem);
 	setProfilesDirty(dirtyProfiles);
 }
 
@@ -1961,8 +2023,7 @@ ShareManager::RefreshInfo::RefreshInfo(const string& aPath, Directory::Ptr aOldR
 }
 
 void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
-	HashManager::HashPauser pauser;
-	refreshRunning = true;
+	unique_ptr<HashManager::HashPauser> pauser = nullptr;
 
 	for (;;) {
 		TaskQueue::TaskPair t;
@@ -1970,9 +2031,21 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			break;
 		ScopedFunctor([this] { tasks.pop_front(); });
 
+		if (t.first == ASYNC) {
+			refreshRunning = false;
+			auto task = static_cast<AsyncTask*>(t.second);
+			task->f();
+			continue;
+		}
+
+		refreshRunning = true;
+		if (!pauser) {
+			pauser.reset(new HashManager::HashPauser);
+		}
 
 		auto task = static_cast<ShareTask*>(t.second);
 
+		StringList monitoring;
 		RefreshInfoList refreshDirs;
 		ProfileTokenSet dirtyProfiles;
 
@@ -1984,6 +2057,9 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 				if (d != rootPaths.end()) {
 					refreshDirs.emplace_back(i, d->second, findLastWrite(i));
 					d->second->copyRootProfiles(dirtyProfiles, false);
+
+					if (t.first == ADD_DIR && d->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
+						monitoring.push_back(i);
 				}
 			}
 		}
@@ -2076,6 +2152,8 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 		ClientManager::getInstance()->infoUpdated();
 
 		reportTaskStatus(t.first, task->dirs, true, totalHash, task->displayName, task->type);
+
+		addMonitoring(monitoring);
 	}
 
 end:

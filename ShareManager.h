@@ -226,6 +226,7 @@ public:
 	void getShares(ShareDirInfo::Map& aDirs);
 
 	enum Tasks {
+		ASYNC,
 		ADD_DIR,
 		REFRESH_ALL,
 		REFRESH_DIR,
@@ -441,7 +442,8 @@ private:
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 	};
 
-	int addTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
+	int addRefreshTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
+	void addAsyncTask(AsyncF aF);
 	Directory::Ptr getDirByName(const string& directory) const;
 
 	/* Directory items mapped to realpath*/
@@ -667,6 +669,9 @@ private:
 
 	StringMatch skipList;
 	string winDir;
+
+	void addMonitoring(const StringList& aPaths);
+	void removeMonitoring(const StringList& aPaths);
 }; //sharemanager end
 
 } // namespace dcpp

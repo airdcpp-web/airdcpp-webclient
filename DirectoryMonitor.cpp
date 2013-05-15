@@ -27,29 +27,8 @@
 namespace dcpp {
 
 
-/*unsigned int WINAPI DirectoryMonitor::Server::ThreadStartProc(LPVOID arg)
-{
-	DirectoryMonitor::Server* pServer = (DirectoryMonitor::Server*)arg;
-	pServer->run();
-	return 0;
-}
-
-// Called by QueueUserAPC to start orderly shutdown.
-void CALLBACK DirectoryMonitor::Server::TerminateProc(__in  ULONG_PTR arg)
-{
-	auto pServer = (DirectoryMonitor::Server*)arg;
-	pServer->stop();
-}
-
-// Called by QueueUserAPC to add another directory.
-void CALLBACK DirectoryMonitor::Server::AddDirectoryProc(__in  ULONG_PTR arg)
-{
-	auto mon = (Monitor*)arg;
-	mon->server->addDirectory(mon);
-}*/
-
 DirectoryMonitor::DirectoryMonitor(int numThreads, bool aUseDispatcherThread) : server(new Server(this, numThreads)), useDispatcherThread(aUseDispatcherThread), queue(1024), stop(false) {
-	init();
+	//init();
 	if (useDispatcherThread)
 		start();
 }
@@ -79,39 +58,43 @@ void DirectoryMonitor::stopMonitoring() {
 	server->stop();
 }
 
-void DirectoryMonitor::init() {
+void DirectoryMonitor::init() throw(MonitorException) {
 	server->init();
 }
 
-void DirectoryMonitor::Server::init() {
+void DirectoryMonitor::Server::init() throw(MonitorException) {
 	m_hIOCP = CreateIoCompletionPort(
 							(HANDLE)INVALID_HANDLE_VALUE,
 							NULL,
 							0,
 							m_nThreads);
 	if (!m_hIOCP) {
-		//m_nLastError = GetLastError();
-		return;
+		throw MonitorException(Util::translateError(::GetLastError()));
 	}
 
 	start();
 }
 
-void DirectoryMonitor::Server::addDirectory(const string& aPath) {
+void DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
+	{
+		RLock l(cs);
+		if (monitors.find(aPath) != monitors.end())
+			return;
+	}
+
 	if (threadHandle == INVALID_HANDLE_VALUE)
 		init();
 
 	Monitor* mon = new Monitor(aPath, this, 0, 4*1024, true);
 	if (!mon->openDirectory()) {
 		delete mon;
-		return;
+		throw MonitorException(Util::translateError(::GetLastError()));
 	}
 
 	if (CreateIoCompletionPort(mon->m_hDirectory, m_hIOCP, (ULONG_PTR)mon->m_hDirectory, 0) == NULL) {
 		CloseHandle(mon->m_hDirectory);
 		delete mon;
-		//return E_FILESYSMON_ERRORADDTOIOCP;
-		return;
+		throw MonitorException(Util::translateError(::GetLastError()));
 	}
 
 	{
@@ -139,15 +122,12 @@ void DirectoryMonitor::Server::stop() {
 	// Wait for the thread to stop
 	while (true) {
 		{
-			{
-				RLock l(cs);
-				if (monitors.empty())
-					break;
-			}
-
-			Sleep(50);
+			RLock l(cs);
+			if (monitors.empty())
+				break;
 		}
 
+		Sleep(50);
 	}
 }
 
@@ -235,28 +215,26 @@ int DirectoryMonitor::Server::read() {
 	auto ret = GetQueuedCompletionStatus(m_hIOCP, &dwBytesXFered, &ulKey, &pOl, INFINITE);
 	auto dwError = GetLastError();
 	if (!ret) {
-		//if ((m_nLastError = GetLastError()) == WAIT_TIMEOUT)
-		//	return E_FILESYSMON_NOCHANGE;
-		auto dwError = GetLastError();
 		if (dwError == WAIT_TIMEOUT) {
 			//harmless
 			return 1;
 		}
-
-		//auto tmp = Util::translateError(::GetLastError());
-		if (dwError != ERROR_NOTIFY_ENUM_DIR)
-			return 0;
 	}
 
 	{
 		RLock l(cs);
 		auto mon = find_if(monitors | map_values, [ulKey](const Monitor* m) { return (ULONG_PTR)m->m_hDirectory == ulKey; });
 		if (mon.base() != monitors.end()) {
-			if (dwError == ERROR_NOTIFY_ENUM_DIR) {
-				(*mon)->beginRead();
+			if (dwError != 0) {
+				if (dwError == ERROR_NOTIFY_ENUM_DIR) {
+					(*mon)->beginRead();
 
-				// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
-				(*mon)->server->base->fire(DirectoryMonitorListener::Overflow(), Text::fromT((*mon)->path));
+					// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
+					(*mon)->server->base->fire(DirectoryMonitorListener::Overflow(), Text::fromT((*mon)->path));
+				} else {
+					LogManager::getInstance()->message("Error when monitoring " + Text::fromT((*mon)->path) + ": " + Util::translateError(dwError) + " (all monitoring has been stopped)", LogManager::LOG_ERROR);
+					return 0;
+				}
 			} else {
 				(*mon)->queueNotificationTask(dwBytesXFered);
 				(*mon)->beginRead();
@@ -304,11 +282,6 @@ Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int mon
 
 {
 	::ZeroMemory(&m_Overlapped, sizeof(OVERLAPPED));
-
-	// The hEvent member is not used when there is a completion
-	// function, so it's ok to use it to point to the object.
-	//m_Overlapped.hEvent = this;
-
 	m_Buffer.resize(bufferSize);
 }
 
@@ -367,39 +340,25 @@ void DirectoryMonitor::processNotification(const tstring& aPath, ByteVector& aBu
 		notifyPath = aPath + notifyPath;
 		switch(fni.Action) {
 			case FILE_ACTION_ADDED: 
-				// The file was added to the directory. 
-				//if (server->base->creationAction)
-				//	server->base->creationAction(Text::fromT(notifyPath));
+				// The file was added to the directory.
 				fire(DirectoryMonitorListener::FileCreated(), Text::fromT(notifyPath));
 				break;
 			case FILE_ACTION_REMOVED: 
-				// The file was removed from the directory. 
-				//if (server->base->deletionAction)
-				//	server->base->deletionAction(Text::fromT(notifyPath));
+				// The file was removed from the directory.
 				fire(DirectoryMonitorListener::FileDeleted(), Text::fromT(notifyPath));
 				break;
 			case FILE_ACTION_RENAMED_OLD_NAME: 
 				// The file was renamed and this is the old name. 
 				oldPath = Text::fromT(notifyPath);
-				//LogManager::getInstance()->message("File renamed (old name): " + Text::fromT(notifyPath), LogManager::LOG_INFO);
 				break;
 			case FILE_ACTION_RENAMED_NEW_NAME: 
 				// The file was renamed and this is the new name.
-				//if (server->base->renameAction)
-				//	server->base->renameAction(oldPath, Text::fromT(notifyPath));
-
 				fire(DirectoryMonitorListener::FileRenamed(), oldPath, Text::fromT(notifyPath));
 				break;
-				// ...
 			case FILE_ACTION_MODIFIED:
-
-				//if (server->base->modificationAction)
-				//	server->base->modificationAction(Text::fromT(notifyPath));
 				fire(DirectoryMonitorListener::FileModified(), Text::fromT(notifyPath));
 				break;
 		}
-
-		//server->m_pBase->Push(fni.Action, wstrFilename);
 
 		if (!fni.NextEntryOffset)
 			break;
