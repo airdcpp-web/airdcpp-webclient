@@ -335,11 +335,8 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 			const QueueItemPtr qi = i.second;
 
 			PartsInfoReqParam* param = new PartsInfoReqParam;
-			
-			int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-			if(blockSize == 0)
-				blockSize = qi->getSize();			
-			qi->getPartialInfo(param->parts, blockSize);
+				
+			qi->getPartialInfo(param->parts, qi->getBlockSize());
 			
 			param->tth = qi->getTTH().toBase32();
 			param->ip  = source->getIp();
@@ -839,6 +836,7 @@ bool QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 	
 	//add in the bundle
 	if (ret.second && aBundle) {
+		//doesn't matter if the bundle is forced paused
 		if (aBundle->getPriority() == Bundle::PAUSED && ret.first->getPriority() == QueueItem::HIGHEST) {
 			ret.first->setPriority(QueueItem::HIGH);
 		}
@@ -1134,11 +1132,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const OrderedString
 			
 			//check partial sources
 			if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
-				int64_t blockSize = HashManager::getInstance()->getBlockSize(q->getTTH());
-				if(blockSize == 0)
-					blockSize = q->getSize();
-					
-				Segment segment = q->getNextSegment(blockSize, aSource.getChunkSize(), aSource.getSpeed(), source->getPartialSource(), false);
+				Segment segment = q->getNextSegment(q->getBlockSize(), aSource.getChunkSize(), aSource.getSpeed(), source->getPartialSource(), false);
 				if(segment.getStart() != -1 && segment.getSize() == 0) {
 					// no other partial chunk from this user, remove him from queue
 					userQueue.removeQI(q, u);
@@ -1568,7 +1562,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				q->blockSourceHub(d->getHintedUser());
 			}
 
-			if(q->getPriority() != QueueItem::PAUSED) {
+			if(!q->isPausedPrio()) {
 				q->getOnlineUsers(getConn);
 			}
 
@@ -1931,9 +1925,9 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 
 	aBundle->setDirty();
 
-	if(p == Bundle::PAUSED) {
+	if(p == QueueItemBase::PAUSED_FORCE) {
 		DownloadManager::getInstance()->disconnectBundle(aBundle);
-	} else if (oldPrio == Bundle::PAUSED || oldPrio == Bundle::LOWEST) {
+	} else if (oldPrio <= QueueItemBase::LOWEST) {
 		connectBundleSources(aBundle);
 	}
 
@@ -1958,7 +1952,7 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken) noexcept {
 	if (b) {
 		if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_BALANCED) {
 			calculateBundlePriorities(false);
-			if (b->getPriority() == Bundle::PAUSED) {
+			if (b->isPausedPrio()) {
 				//can't count auto priorities with the current bundles, but we don't want this one to stay paused
 				setBundlePriority(b, Bundle::LOW, true);
 			}
@@ -1996,7 +1990,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	{
 		WLock l(cs);
 		if(q->getPriority() != p && !q->isFinished() ) {
-			if((q->getPriority() == QueueItem::PAUSED && b->getPriority() != Bundle::PAUSED) || p == QueueItem::HIGHEST) {
+			if((q->isPausedPrio() && !b->isPausedPrio()) || (p == QueueItem::HIGHEST && b->getPriority() != QueueItemBase::PAUSED_FORCE)) {
 				// Problem, we have to request connections to all these users...
 				q->getOnlineUsers(getConn);
 			}
@@ -2012,9 +2006,9 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	}
 
 	b->setDirty();
-	if(p == QueueItem::PAUSED && running) {
+	if(p == QueueItem::PAUSED_FORCE && running) {
 		DownloadManager::getInstance()->abortDownload(q->getTarget());
-	} else {
+	} else if (p != QueueItemBase::PAUSED) {
 		for(auto& u: getConn)
 			ConnectionManager::getInstance()->getDownloadConnection(u);
 	}
@@ -2048,7 +2042,7 @@ void QueueManager::setQIAutoPriority(const string& aTarget) noexcept {
 	if(q->getAutoPriority()) {
 		if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 			setQIPriority(q, q->calculateAutoPriority());
-		} else if (q->getPriority() == QueueItem::PAUSED) {
+		} else if (q->isPausedPrio()) {
 			setQIPriority(q, QueueItem::LOW);
 		}
 	}
@@ -2112,10 +2106,11 @@ void QueueManager::saveQueue(bool force) noexcept {
 
 class QueueLoader : public SimpleXMLReader::CallBack {
 public:
-	QueueLoader() : curFile(NULL), inDownloads(false), inBundle(false), inFile(false), qm(QueueManager::getInstance()) { }
+	QueueLoader() : curFile(NULL), inDownloads(false), inBundle(false), inFile(false), qm(QueueManager::getInstance()), version(0) { }
 	~QueueLoader() { }
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name);
+	QueueItemBase::Priority validatePrio(const string& aPrio);
 	void resetBundle() {
 		curFile = nullptr;
 		curBundle = nullptr;
@@ -2135,6 +2130,7 @@ private:
 	bool inFile;
 	string curToken;
 
+	int version;
 	QueueManager* qm;
 };
 
@@ -2208,17 +2204,36 @@ static const string sAutoPriority = "AutoPriority";
 static const string sMaxSegments = "MaxSegments";
 static const string sBundleToken = "BundleToken";
 static const string sFinished = "Finished";
+static const string sVersion = "Version";
 
+QueueItemBase::Priority QueueLoader::validatePrio(const string& aPrio) {
+	int prio = Util::toInt(aPrio);
+	if (version == 1)
+		prio++;
 
+	if (prio > QueueItemBase::HIGHEST)
+		return QueueItemBase::HIGHEST;
+	if (prio < QueueItemBase::PAUSED_FORCE)
+		return QueueItemBase::PAUSED_FORCE;
+
+	return static_cast<QueueItemBase::Priority>(prio);
+}
 
 void QueueLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
 	if(!inDownloads && name == "Downloads") {
 		inDownloads = true;
 	} else if (!inFile && name == sFile) {
 		curToken = getAttrib(attribs, sToken, 1);
-		inFile = true;		
+		inFile = true;
+		version = Util::toInt(getAttrib(attribs, sVersion, 0));
+		if (version == 0 || version > Util::toInt(FILE_BUNDLE_VERSION))
+			throw Exception("Non-supported file bundle version");
 	} else if (!inBundle && name == sBundle) {
-		const string& bundleTarget = getAttrib(attribs, sTarget, 0);
+		version = Util::toInt(getAttrib(attribs, sVersion, 0));
+		if (version == 0 || version > Util::toInt(DIR_BUNDLE_VERSION))
+			throw Exception("Non-supported directory bundle version");
+
+		const string& bundleTarget = getAttrib(attribs, sTarget, 1);
 		const string& token = getAttrib(attribs, sToken, 1);
 		if(token.empty())
 			throw Exception("Missing bundle token");
@@ -2231,7 +2246,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		}
 
 		if (ConnectionManager::getInstance()->tokens.addToken(token))
-			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? (QueueItemBase::Priority)Util::toInt(prio) : Bundle::DEFAULT, dirDate, token, false);
+			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Bundle::DEFAULT, dirDate, token, false);
 		else
 			throw Exception("Duplicate bundle token");
 
@@ -2256,7 +2271,8 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 			}
 
-			QueueItemBase::Priority p = (QueueItemBase::Priority)Util::toInt(getAttrib(attribs, sPriority, 3));
+			QueueItemBase::Priority p = validatePrio(getAttrib(attribs, sPriority, 3));
+
 			time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 4)));
 			const string& tthRoot = getAttrib(attribs, sTTH, 5);
 			if(tthRoot.empty())
@@ -2614,7 +2630,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 					fire(QueueManagerListener::StatusUpdated(), q);
 					if (calculate && SETTING(QI_AUTOPRIO) && q->getAutoPriority() && prioType == SettingsManager::PRIO_PROGRESS) {
 						auto p1 = q->getPriority();
-						if(p1 != QueueItem::PAUSED) {
+						if(p1 != QueueItemBase::PAUSED && p1 != QueueItemBase::PAUSED_FORCE) {
 							auto p2 = q->calculateAutoPriority();
 							if(p1 != p2)
 								qiPriorities.emplace_back(q, p2);
@@ -2821,9 +2837,7 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 	}
 
 	// Get my parts info
-	int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-	if(blockSize == 0)
-		blockSize = qi->getSize();
+	int64_t blockSize = qi->getBlockSize();
 
 	{
 		WLock l(cs);
@@ -2924,9 +2938,7 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 	}
 
 
-	int64_t blockSize = HashManager::getInstance()->getBlockSize(qi->getTTH());
-	if(blockSize == 0)
-		blockSize = qi->getSize();
+	int64_t blockSize = qi->getBlockSize();
 
 	RLock l(cs);
 	qi->getPartialInfo(_outPartsInfo, blockSize);
@@ -3096,7 +3108,7 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 		tasks.run([=] {
 			auto b = aBundle;
 			fire(QueueManagerListener::BundleStatusChanged(), aBundle);
-			if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && b->getPriority() != Bundle::PAUSED) {
+			if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && !b->isPausedPrio()) {
 				b->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
 				addBundleUpdate(b);
 			}
@@ -3107,7 +3119,7 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 }
 
 void QueueManager::connectBundleSources(BundlePtr& aBundle) {
-	if (aBundle->getPriority() == Bundle::PAUSED)
+	if (aBundle->isPausedPrio())
 		return;
 
 	HintedUserList x;
@@ -3818,7 +3830,7 @@ void QueueManager::onUseSeqOrder(BundlePtr& b) {
 		b->setSeqOrder(true);
 		auto ql = b->getQueueItems();
 		for (auto& q: ql) {
-			if (q->getPriority() != QueueItem::PAUSED) {
+			if (!q->isPausedPrio()) {
 				userQueue.removeQI(q, false, false);
 				userQueue.addQI(q, true);
 			}

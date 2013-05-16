@@ -45,6 +45,9 @@ struct BundleFileInfo {
 	time_t date;
 };
 
+#define DIR_BUNDLE_VERSION "2"
+#define FILE_BUNDLE_VERSION "2"
+
 class Bundle : public QueueItemBase, public intrusive_ptr_base<Bundle> {
 public:
 	enum Flags {

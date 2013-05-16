@@ -49,7 +49,7 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 		time_t aAdded, const TTHValue& tth, const string& aTempTarget) :
 		QueueItemBase(aTarget, aSize, aPriority, aAdded, aFlag),
 		maxSegments(1), fileBegin(0),
-		tthRoot(tth), nextPublishingTime(0), tempTarget(aTempTarget)
+		tthRoot(tth), nextPublishingTime(0), tempTarget(aTempTarget), blockSize(-1)
 	{
 
 	
@@ -78,6 +78,15 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 
 		maxSegments = getMaxSegments(size);
 	}
+}
+
+int64_t QueueItem::getBlockSize() {
+	if (blockSize == -1) {
+		blockSize = HashManager::getInstance()->getBlockSize(tthRoot);
+		if (blockSize == 0)
+			blockSize = size; //don't recheck those as the block size will get automatically updated when the tree is downloaded...
+	}
+	return blockSize;
 }
 
 bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const {
@@ -623,11 +632,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 	}
 
 	if(!isSet(QueueItem::FLAG_USER_LIST) && !isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-		int64_t blockSize = HashManager::getInstance()->getBlockSize(getTTH());
-		if(blockSize == 0)
-			blockSize = getSize();
-
-		Segment segment = getNextSegment(blockSize, wantedSize, lastSpeed, source->getPartialSource(), allowOverlap);
+		Segment segment = getNextSegment(getBlockSize(), wantedSize, lastSpeed, source->getPartialSource(), allowOverlap);
 		if(segment.getSize() == 0) {
 			lastError = (segment.getStart() == -1 || getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
 			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
@@ -642,9 +647,9 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 }
 
 bool QueueItem::startDown() {
-	if(bundle && bundle->getPriority() != PAUSED && getPriority() != PAUSED) {
+	if(bundle && !bundle->isPausedPrio() && getPriority() != PAUSED) {
 		return true;
-	} else if (getPriority() == HIGHEST) {
+	} else if (bundle->getPriority() != PAUSED_FORCE && getPriority() == HIGHEST) {
 		return true;
 	}
 	return false;

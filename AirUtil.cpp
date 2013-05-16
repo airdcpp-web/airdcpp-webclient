@@ -378,12 +378,13 @@ int AirUtil::getMaxAutoOpened(double value) {
 
 string AirUtil::getPrioText(int prio) {
 	switch(prio) {
-		case 0: return STRING(PAUSED);
-		case 1: return STRING(LOWEST);
-		case 2: return STRING(LOW);
-		case 3: return STRING(NORMAL);
-		case 4: return STRING(HIGH);
-		case 5: return STRING(HIGHEST);
+		case QueueItemBase::PAUSED_FORCE: return STRING(PAUSED_FORCED);
+		case QueueItemBase::PAUSED: return STRING(PAUSED);
+		case QueueItemBase::LOWEST: return STRING(LOWEST);
+		case QueueItemBase::LOW: return STRING(LOW);
+		case QueueItemBase::NORMAL: return STRING(NORMAL);
+		case QueueItemBase::HIGH: return STRING(HIGH);
+		case QueueItemBase::HIGHEST: return STRING(HIGHEST);
 		default: return STRING(PAUSED);
 	}
 }

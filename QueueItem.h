@@ -267,6 +267,9 @@ public:
 	uint64_t getAverageSpeed() const;
 
 	void setTarget(const string& aTarget);
+
+	int64_t getBlockSize();
+	void setBlockSize(int64_t aBlockSize) { blockSize = aBlockSize; }
 private:
 	QueueItem& operator=(const QueueItem&);
 
@@ -281,6 +284,8 @@ private:
 	bool isHubBlocked(const UserPtr& aUser, const string& aUrl);
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason);
 	uint8_t getMaxSegments(int64_t filesize) const noexcept;
+
+	int64_t blockSize;
 };
 
 } // namespace dcpp

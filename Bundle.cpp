@@ -206,7 +206,7 @@ void Bundle::deleteBundleFile() {
 }
 
 void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
-	for(int i = 0; i < QueueItem::LAST; ++i) {
+	for(int i = QueueItemBase::PAUSED_FORCE; i < QueueItemBase::LAST; ++i) {
 		auto j = userQueue[i].find(aUser);
 		if(j != userQueue[i].end()) {
 			copy(j->second, back_inserter(ql));
@@ -621,7 +621,7 @@ bool Bundle::allowAutoSearch() const {
 	if (countOnlineUsers() >= SETTING(AUTO_SEARCH_LIMIT))
 		return false; // can't exceed the user limit
 
-	if (find_if(queueItems, [](const QueueItemPtr& q) { return q->getPriority() != QueueItem::PAUSED; } ) == queueItems.end())
+	if (find_if(queueItems, [](const QueueItemPtr& q) { return !q->isPausedPrio(); } ) == queueItems.end())
 		return false; // must have valid queue items
 
 	if (getSecondsLeft() < 20 && getSecondsLeft() != 0)
@@ -657,11 +657,11 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 		//do a few guesses to get a random item
 		while (s <= ql.size()) {
 			QueueItemPtr q = ql[ql.size() == 1 ? 0 : Util::rand(ql.size()-1)];
-			if(q->getPriority() == QueueItem::PAUSED && !manual) {
+			if(q->isPausedPrio() && !manual) {
 				s++;
 				continue;
 			}
-			if(q->isRunning() || (q->getPriority() == QueueItem::PAUSED)) {
+			if(q->isRunning() || (q->isPausedPrio())) {
 				//it's ok but see if we can find better one
 				searchItem = q;
 			} else {
@@ -924,13 +924,15 @@ void Bundle::save() {
 	string b32tmp;
 
 	if (isFileBundle()) {
-		f.write(LIT("<File Version=\"1.0\" Token=\""));
+		f.write(LIT("<File Version=\"" FILE_BUNDLE_VERSION));
+		f.write(LIT("\" Token=\""));
 		f.write(token);
 		f.write(LIT("\">\r\n"));
 		queueItems.front()->save(f, tmp, b32tmp);
 		f.write(LIT("</File>\r\n"));
 	} else {
-		f.write(LIT("<Bundle Version=\"1\" Target=\""));
+		f.write(LIT("<Bundle Version=\"" DIR_BUNDLE_VERSION));
+		f.write(LIT("\" Target=\""));
 		f.write(SimpleXML::escape(target, tmp, true));
 		f.write(LIT("\" Token=\""));
 		f.write(token);

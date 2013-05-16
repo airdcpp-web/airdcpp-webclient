@@ -34,7 +34,8 @@ class QueueItemBase : public Flags {
 public:
 	enum Priority {
 		DEFAULT = -1,
-		PAUSED = 0,
+		PAUSED_FORCE = 0,
+		PAUSED,
 		LOWEST,
 		LOW,
 		NORMAL,
@@ -54,6 +55,8 @@ public:
 	GETSET(time_t, added, Added);
 	GETSET(string, target, Target);
 	GETSET(DownloadList, downloads, Downloads);
+
+	bool isPausedPrio() const { return priority == PAUSED_FORCE || priority == PAUSED; }
 protected:
 	int64_t size;
 };

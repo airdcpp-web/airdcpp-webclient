@@ -1740,5 +1740,6 @@ enum Strings { // @DontAdd
 	IPV6_NO_PUBLIC_IP, // "IPv6 connectivity has been disabled as no public IPv6 address was detected"
 	LOG_COMBINE_ADC_PM, // "Use a single log file per CID for ADC users"
 	FOLLOW_SYMLINKS, // "Follow symbolic links"
+	PAUSED_FORCED, // "Paused (forced)"
 	LAST // @DontAdd
 };
