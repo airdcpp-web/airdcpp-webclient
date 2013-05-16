@@ -249,6 +249,12 @@ StringPair ClientManager::getNickHubPair(HintedUser user) {
 
 	RLock l(cs);
 	auto hinted = getUsers(user, ouList);
+	if(!ouList.empty() && !hinted) { //set the hint to match the first nick
+		auto i = ouList.begin();
+		hinted = *i;
+		ouList.erase(i);
+		user.hint = hinted->getHubUrl();
+	}
 
 	string hubs = hinted ? OnlineUser::HubName()(hinted) + " " : Util::emptyString;
 	if (!ouList.empty())
@@ -259,8 +265,7 @@ StringPair ClientManager::getNickHubPair(HintedUser user) {
 		//erase users with the hinted nick
 		auto p = equal_range(ouList.begin(), ouList.end(), hinted, OnlineUser::NickSort());
 		ouList.erase(p.first, p.second);
-	} else if (!ouList.empty()) //set the hint to match the first nick
-		user.hint = ouList[0]->getHubUrl();
+	}
 
 	string nick = hinted ? OnlineUser::Nick()(hinted) + " " : Util::emptyString;
 	if (!ouList.empty())
