@@ -28,7 +28,7 @@ namespace dcpp {
 
 class HashedFile {
 public:
-	HashedFile() : size(-1), timeStamp(0) { }
+	HashedFile(uint64_t aTimeStamp = 0, int64_t aSize = -1) : size(aSize), timeStamp(aTimeStamp) { }
 	HashedFile(const TTHValue& aRoot, uint64_t aTimeStamp, int64_t aSize) :
 		root(aRoot), timeStamp(aTimeStamp), size(aSize) { }
 

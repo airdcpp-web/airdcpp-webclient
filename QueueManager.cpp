@@ -1332,8 +1332,8 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 			for(auto& q: hash) {
 				try {
 					// Schedule for hashing, it'll be added automatically later on...
-					TTHValue tth;
-					if (!HashManager::getInstance()->checkTTH(q->getTarget(), q->getSize(), AirUtil::getLastWrite(q->getTarget()), tth)) {
+					HashedFile fi(AirUtil::getLastWrite(q->getTarget()), q->getSize());
+					if (!HashManager::getInstance()->checkTTH(q->getTarget(), fi)) {
 						//..
 					} else {
 						//fine, it's there already..
@@ -2943,8 +2943,8 @@ tstring QueueManager::getDirPath(const string& aDirName) const {
 void QueueManager::getUnfinishedPaths(StringList& retBundles) {
 	RLock l(cs);
 	for(auto& b: bundleQueue.getBundles() | map_values) {
-		if (!b->isFileBundle() && !b->isFinished())
-			retBundles.push_back(b->getTarget());
+		if (!b->isFinished())
+			retBundles.push_back(Text::toLower(b->getTarget()));
 	}
 }
 

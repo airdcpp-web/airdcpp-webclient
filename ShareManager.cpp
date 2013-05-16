@@ -177,12 +177,147 @@ void ShareManager::removeMonitoring(const StringList& aPaths) {
 		LogManager::getInstance()->message(Util::toString(removed) + " folders have been removed from monitoring", LogManager::LOG_INFO);
 }
 
+void ShareManager::onFileModified(const string& aPath) {
+	FileFindIter f(aPath);
+	if (f != FileFindIter()) {
+		auto filePath = f->isDirectory() ? aPath + PATH_SEPARATOR : Util::getFilePath(aPath);
+		if(!SETTING(SHARE_HIDDEN) && f->isHidden())
+			return;
+
+		if (!SETTING(SHARE_FOLLOW_SYMLINKS) && f->isLink())
+			return;
+
+		{
+			WLock l(cs);
+			auto p = fileModifications.find(filePath);
+			if (p == fileModifications.end()) {
+				p = find_if(fileModifications, [&aPath](const pair<string, DirModifyInfo>& pdp) { return AirUtil::isParentOrExact(pdp.first, aPath); });
+			}
+
+			if (p == fileModifications.end()) {
+				fileModifications.emplace(filePath, f->isDirectory() ? DirModifyInfo() : DirModifyInfo(Util::getFileName(aPath)));
+			} else if (!f->isDirectory()) {
+				p->second.addFile(aPath.substr(p->first.length()));
+			}
+		}
+	}
+}
+
+void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
+	vector<DirAddInfo> dirs;
+
+	{
+		RLock l(cs);
+		for (auto& info: fileModifications) {
+			auto dir = findDirectory(info.first, false, false, true);
+			if (!dir || any_of(info.second.files.begin(), info.second.files.end(), [](const string& fileName) { return fileName.find(PATH_SEPARATOR) != string::npos; })) {
+				dirs.emplace_back(info.first, info.second, nullptr);
+			} else {
+				dirs.emplace_back(info.first, info.second, dir);
+			}
+		}
+	}
+
+	if (dirs.empty())
+		return;
+
+	StringList bundlePaths;
+	QueueManager::getInstance()->getUnfinishedPaths(bundlePaths);
+
+	ProfileTokenSet dirtyProfiles;
+	StringList refresh;
+	for (auto i = dirs.begin(); i != dirs.end(); ) {
+		// a new dir? can we add it?
+		if (!(*i).dir && !allowAddDir((*i).path)) {
+			i++;
+			continue;
+		}
+
+		if (find_if(bundlePaths, [&i](const string& p) { return AirUtil::isParentOrExact(p, (*i).path); }) != bundlePaths.end()) {
+			i++;
+			continue;
+		}
+
+		vector<FileAddInfo> files;
+		bool failed = false;
+
+		// Check that the file can be accessed, FileFindIter won't show it (also files being copied will come here)
+		for (const auto& fi: (*i).files) {
+			//check for file bundles
+			if (binary_search(bundlePaths.begin(), bundlePaths.end(), Text::toLower((*i).path + fi))) {
+				failed = true;
+				break;
+			}
+
+			try {
+				File ff((*i).path + fi, File::READ, File::SHARED_WRITE | File::OPEN | File::NO_CACHE_HINT);
+				if ((*i).dir) {
+					files.emplace_back(Util::getFileName(fi), ff.getLastModified(), ff.getSize());
+				}
+			} catch(...) {
+				failed = true;
+				break;
+			}
+		}
+
+		if (failed) {
+			//keep this in the main list and try again later
+			i = dirs.erase(i);
+		}
+
+		if (!(*i).dir) {
+			//add new directories via normal refresh
+			refresh.push_back((*i).path);
+		} else {
+			//add each file in the dir
+			int addedFiles=0;
+			int64_t hashSize=0;
+			for (const auto& file: files) {
+				if (!checkSharedName((*i).path + file.name, false, false, file.size))
+					continue;
+
+				addedFiles++;
+				try {
+					HashedFile fi(file.lastWrite, file.size);
+					HashManager::getInstance()->checkTTH((*i).path + file.name, fi);
+
+					{
+						WLock l(cs);
+						addFile(Util::getFileName((*i).path + file.name), (*i).dir, fi, dirtyProfiles);
+					}
+
+				} catch (...) { 
+					hashSize += file.size;
+				}
+			}
+
+			//if (files > 1 && hashSize > 0)
+			//	LogManager::getInstance()->message(Util::toString(added) + " files (" + Util::formatBytes(hashSize) + ") have been added for hashing; they won't be visible in the file list until they have finished hashing"
+		}
+		i++;
+	}
+
+	//delete directories from the main list that have been handled now
+	if (!dirs.empty()) {
+		WLock l(cs);
+		for (const auto& i: dirs) {
+			fileModifications.erase(i.path);
+		}
+	}
+
+	// add directories for refresh
+	if (!refresh.empty()) {
+		//addRefreshTask(0, refresh, ...
+	}
+}
+
 void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
 	//LogManager::getInstance()->message("File added: " + Text::fromT(notifyPath), LogManager::LOG_INFO);
+	onFileModified(aPath);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPath) noexcept {
-	//LogManager::getInstance()->message("File modified: " + Text::fromT(notifyPath), LogManager::LOG_INFO);
+	onFileModified(aPath);
 }
 
 void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList& aRename) {
@@ -262,7 +397,7 @@ void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath
 		if (d) {
 			d->copyRootProfiles(dirtyProfiles, true);
 
-			auto fileNameLower = Util::getFileName(aPath);
+			auto fileNameLower = Text::toLower(Util::getFileName(aPath));
 			auto p = d->directories.find(fileNameLower);
 			if (p != d->directories.end()) {
 				LogManager::getInstance()->message("Shared folder deleted: " + aPath + PATH_SEPARATOR, LogManager::LOG_INFO);
@@ -1121,7 +1256,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		}
 	}
 
-	addRefreshTask(REFRESH_DIR, refreshPaths, TYPE_MANUAL, Util::emptyString);
+	addRefreshTask(REFRESH_ROOT, refreshPaths, TYPE_MANUAL, Util::emptyString);
 
 	if (hashSize > 0) {
 		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogManager::LOG_INFO);
@@ -1516,10 +1651,8 @@ void ShareManager::buildTree(const string& aPath, const Directory::Ptr& aDir, bo
 			}
 
 			try {
-				auto lastWrite = i->getLastWriteTime();
-				TTHValue tth;
-				if(HashManager::getInstance()->checkTTH(path, size, lastWrite, tth)) {
-					HashedFile fi(tth, lastWrite, size);
+				HashedFile fi(i->getLastWriteTime(), size);
+				if(HashManager::getInstance()->checkTTH(path, fi)) {
 					lastFileIter = aDir->files.emplace_hint(lastFileIter, name, aDir, fi);
 					updateIndices(*aDir, lastFileIter++, aBloom, addedSize, tthIndexNew);
 				} else {
@@ -1625,7 +1758,7 @@ int ShareManager::refresh(const string& aDir){
 		}
 	}
 
-	return addRefreshTask(REFRESH_DIR, refreshPaths, TYPE_MANUAL, displayName);
+	return addRefreshTask(REFRESH_ROOT, refreshPaths, TYPE_MANUAL, displayName);
 }
 
 
@@ -1695,7 +1828,7 @@ int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aR
 			case(REFRESH_ALL):
 				msg = STRING(REFRESH_QUEUED);
 				break;
-			case(REFRESH_DIR):
+			case(REFRESH_ROOT):
 				if (!displayName.empty()) {
 					msg = STRING_F(VIRTUAL_REFRESH_QUEUED, displayName);
 				} else if (dirs.size() == 1) {
@@ -1827,7 +1960,7 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 
 	rebuildTotalExcludes();
 	if (!refresh.empty())
-		addRefreshTask(REFRESH_DIR, refresh, TYPE_MANUAL);
+		addRefreshTask(REFRESH_ROOT, refresh, TYPE_MANUAL);
 
 	if (add.empty()) {
 		//we are only modifying existing trees
@@ -1955,7 +2088,7 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 		case(REFRESH_ALL):
 			msg = finished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED);
 			break;
-		case(REFRESH_DIR):
+		case(REFRESH_ROOT):
 			if (!displayName.empty()) {
 				msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, displayName) : STRING_F(FILE_LIST_REFRESH_INITIATED_VPATH, displayName);
 			} else if (directories.size() == 1) {
@@ -2192,6 +2325,8 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 		lastIncomingUpdate = tick;
 		refresh(true, TYPE_SCHEDULED);
 	}
+
+	handleChangedFiles(tick, false);
 }
 
 void ShareManager::getShares(ShareDirInfo::Map& aDirs) {
@@ -2472,11 +2607,9 @@ void ShareManager::Directory::filesToXmlList(OutputStream& xmlFile, string& inde
 	}
 }
 
-ShareManager::Directory::File::File(const string& aName, Directory::Ptr aParent, HashedFile& aFileInfo) : 
+ShareManager::Directory::File::File(const string& aName, const Directory::Ptr& aParent, HashedFile& aFileInfo) : 
 	size(aFileInfo.getSize()), parent(aParent.get()), tth(aFileInfo.getRoot()), lastWrite(aFileInfo.getTimeStamp()), name(aName) {
 	
-	//nameLower = Text::toLower(aName);
-	//name = (compare(nameLower, aName) == 0 ? nullptr : new string(aName)); 
 }
 
 ShareManager::Directory::File::~File() {

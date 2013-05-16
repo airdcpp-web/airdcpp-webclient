@@ -1407,7 +1407,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The selected theme has highlight color settings, \r\nloading them will override your old highlights, \r\nwould you still like to load them?", 
 "Search times", 
 "This hub requires authentication via a failover address; aborting connection and switching to the default address", 
-"Browse own list", 
+"Browse own list\tCtrl+O", 
 "A new item %s has been added", 
 "A new item %s has been added and it has been searched for", 
 "A new item %s has been added and it will be searched for in %d seconds", 

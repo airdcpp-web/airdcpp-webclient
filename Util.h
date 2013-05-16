@@ -108,6 +108,26 @@ typedef std::function<void (float)> ProgressFunction;
 class Util  
 {
 public:
+	struct PathSortOrderInt {
+		int operator()(const string& left, const string& right) const {
+			auto comp = compare(Util::getFilePath(left), Util::getFilePath(right));
+			if (comp == 0) {
+				return compare(left, right);
+			}
+			return comp;
+		}
+	};
+
+	struct PathSortOrderBool {
+		bool operator()(const string& left, const string& right) const {
+			auto comp = compare(Util::getFilePath(left), Util::getFilePath(right));
+			if (comp == 0) {
+				return compare(left, right) < 0;
+			}
+			return comp < 0;
+		}
+	};
+
 	static tstring emptyStringT;
 	static string emptyString;
 	static wstring emptyStringW;

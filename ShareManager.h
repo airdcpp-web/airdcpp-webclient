@@ -114,6 +114,7 @@ public:
 
 	void setSkipList();
 
+	void handleChangedFiles(uint64_t aTick, bool forced=false);
 	bool matchSkipList(const string& aStr) { return skipList.match(aStr); }
 	bool checkSharedName(const string& fullPath, bool dir, bool report = true, int64_t size = 0);
 	void validatePath(const string& realPath, const string& virtualName);
@@ -229,8 +230,9 @@ public:
 		ASYNC,
 		ADD_DIR,
 		REFRESH_ALL,
-		REFRESH_DIR,
-		REFRESH_INCOMING
+		REFRESH_ROOT,
+		REFRESH_INCOMING,
+		REFRESH_SUBDIR
 	};
 
 	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback=false) const;
@@ -316,7 +318,7 @@ private:
 			};
 			typedef set<File, FileLess> Set;
 
-			File(const string& aName, Directory::Ptr aParent, HashedFile& aFileInfo);
+			File(const string& aName, const Directory::Ptr& aParent, HashedFile& aFileInfo);
 			~File();
 
 			bool operator==(const File& rhs) const {
@@ -672,6 +674,41 @@ private:
 
 	void addMonitoring(const StringList& aPaths);
 	void removeMonitoring(const StringList& aPaths);
+
+	void onFileModified(const string& aPath);
+
+	struct DirModifyInfo {
+		DirModifyInfo() : lastActivity(GET_TICK()) { }
+		DirModifyInfo(const string& aFile) : lastActivity(GET_TICK()) {
+			files.insert(aFile);
+		}
+
+		void addFile(const string& aFile) {
+			files.insert(aFile);
+			lastActivity = GET_TICK();
+		}
+
+		set<string, Util::PathSortOrderBool> files;
+		time_t lastActivity;
+	};
+
+	struct DirAddInfo {
+		DirAddInfo(const string& aPath, DirModifyInfo& aDmi, Directory::Ptr aDir) : path(aPath), dir(aDir), files(aDmi.files) { }
+
+		string path;
+		set<string, Util::PathSortOrderBool> files;
+		Directory::Ptr dir;
+	};
+
+	struct FileAddInfo {
+		FileAddInfo(string&& aName, uint32_t aLastWrite, int64_t aSize) : name(aName), lastWrite(aLastWrite), size(aSize) { }
+
+		string name;
+		uint32_t lastWrite;
+		int64_t size;
+	};
+
+	map<string, DirModifyInfo> fileModifications;
 }; //sharemanager end
 
 } // namespace dcpp

@@ -53,10 +53,10 @@ HashManager::HashManager(): /*nextSave(0),*/ pausers(0), aShutdown(false) {
 HashManager::~HashManager() { 
 }
 
-bool HashManager::checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp, TTHValue& outTTH_) {
+bool HashManager::checkTTH(const string& aFileName, HashedFile& fi_) {
 	auto nameLower = Text::toLower(aFileName);
-	if (!store.checkTTH(nameLower, aSize, aTimeStamp, outTTH_)) {
-		hashFile(aFileName, move(nameLower), aSize);
+	if (!store.checkTTH(nameLower, fi_)) {
+		hashFile(aFileName, move(nameLower), fi_.getSize());
 		return false;
 	}
 	return true;
@@ -173,7 +173,9 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 
 void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void (int64_t, const string&)> updateF/*nullptr*/) {
 	auto pathLower = move(Text::toLower(aFile));
-	if (!store.checkTTH(pathLower, aSize, AirUtil::getLastWrite(aFile), tth_)) {
+	HashedFile fi(AirUtil::getLastWrite(aFile), aSize);
+
+	if (!store.checkTTH(pathLower, fi)) {
 		File f(aFile, File::READ, File::OPEN);
 		int64_t bs = max(TigerTree::calcBlockSize(aSize, 10), MIN_BLOCK_SIZE);
 		uint64_t timestamp = f.getLastModified();
@@ -211,6 +213,8 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 			auto fi = HashedFile(tth_, timestamp, aSize);
 			store.addHashedFile(move(pathLower), tt, fi);
 		}
+	} else {
+		tth_ = fi.getRoot();
 	}
 }
 
@@ -465,11 +469,12 @@ int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType
 	return ret;
 }
 
-bool HashManager::HashStore::checkTTH(const string& aFileLower, int64_t aSize, uint32_t aTimeStamp, TTHValue& outTTH_) {
-	HashedFile fi;
+bool HashManager::HashStore::checkTTH(const string& aFileLower, HashedFile& fi) {
+	auto initialTime = fi.getTimeStamp();
+	auto initialSize = fi.getSize();
+
 	if (getFileInfo(aFileLower, fi)) {
-		if (fi.getTimeStamp() == aTimeStamp && fi.getSize() == aSize) {
-			outTTH_ = fi.getRoot();
+		if (fi.getTimeStamp() == initialTime && fi.getSize() == initialSize) {
 			return true;
 			//return hasTree(outTTH_);
 		}
@@ -803,7 +808,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				auto tth = TTHValue(root);
 				try {
 					if (!dataFile) {
-						dataFile.reset(new File(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat", File::READ, File::OPEN | File::SHARED | File::RANDOM_ACCESS));
+						dataFile.reset(new File(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat", File::READ, File::OPEN | File::SHARED_WRITE | File::RANDOM_ACCESS));
 					}
 
 					if (dataFile) {
@@ -1227,15 +1232,6 @@ int HashManager::Hasher::run() {
 
 void HashManager::removeHasher(Hasher* aHasher) {
 	hashers.erase(remove(hashers.begin(), hashers.end(), aHasher), hashers.end());
-}
-
-int HashManager::Hasher::WorkItem::HashSortOrder::operator()(const string& left, const string& right) const {
-	// Case-sensitive (faster), it is rather unlikely that case changes, and if it does it's harmless.
-	auto comp = compare(Util::getFilePath(left), Util::getFilePath(right));
-	if (comp == 0) {
-		return compare(left, right);
-	}
-	return comp;
 }
 
 HashManager::Hasher::WorkItem::WorkItem(WorkItem&& rhs) {

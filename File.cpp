@@ -39,7 +39,10 @@ File::File(const string& aFileName, int access, int mode, bool isAbsolute) {
 			dcassert(0);
 		}
 	}
-	DWORD shared = FILE_SHARE_READ | (mode & SHARED ? (FILE_SHARE_WRITE | FILE_SHARE_DELETE) : 0);
+	DWORD shared = FILE_SHARE_READ | (mode & SHARED_WRITE ? (FILE_SHARE_WRITE) : 0);
+	if (mode & SHARED_DELETE)
+		shared |= FILE_SHARE_DELETE;
+
 	DWORD dwFlags = mode & RANDOM_ACCESS ? FILE_FLAG_RANDOM_ACCESS : mode & NO_CACHE_HINT ? 0 : FILE_FLAG_SEQUENTIAL_SCAN;
 	string path = aFileName;
 	if(isAbsolute)

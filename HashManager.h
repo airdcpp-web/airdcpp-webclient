@@ -68,7 +68,7 @@ public:
 	/**
 	 * Check if the TTH tree associated with the filename is current.
 	 */
-	bool checkTTH(const string& aFileName, int64_t aSize, uint32_t aTimeStamp, TTHValue& outTTH_);
+	bool checkTTH(const string& aFileName, HashedFile& fi_);
 
 	void stopHashing(const string& baseDir);
 	void setPriority(Thread::Priority p);
@@ -157,16 +157,12 @@ private:
 			struct NameLower {
 				const string& operator()(const WorkItem& a) const { return a.filePathLower; }
 			};
-
-			struct HashSortOrder {
-				int operator()(const string& left, const string& right) const;
-			};
 		private:
 			WorkItem(const WorkItem&);
 			WorkItem& operator=(const WorkItem&);
 		};
 
-		SortedVector<WorkItem, std::deque, string, WorkItem::HashSortOrder, WorkItem::NameLower> w;
+		SortedVector<WorkItem, std::deque, string, Util::PathSortOrderInt, WorkItem::NameLower> w;
 
 		Semaphore s;
 		void removeDevice(const string& aID);
@@ -214,7 +210,7 @@ private:
 
 		void rebuild();
 
-		bool checkTTH(const string& aFileNameLower, int64_t aSize, uint32_t aTimeStamp, TTHValue& outTTH_);
+		bool checkTTH(const string& aFileNameLower, HashedFile& fi_);
 
 		void addTree(const TigerTree& tt) noexcept;
 		bool getFileInfo(const string& aFileName, HashedFile& aFile);

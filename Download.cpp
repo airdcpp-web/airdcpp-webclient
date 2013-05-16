@@ -216,7 +216,7 @@ void Download::open(int64_t bytes, bool z, bool hasDownloadedBytes) {
 				File::ensureDirectory(target);
 			}
 
-			int flags = File::OPEN | File::CREATE | File::SHARED;
+			int flags = File::OPEN | File::CREATE | File::SHARED_WRITE;
 			if (getSegment().getEnd() != fullSize) {
 				//segmented download
 				flags |= File::NO_CACHE_HINT;

@@ -1411,7 +1411,7 @@ enum Strings { // @DontAdd
 	HIGHLIGHTS_IN_THEME, // "The selected theme has highlight color settings, \r\nloading them will override your old highlights, \r\nwould you still like to load them?"
 	SEARCH_TIMES, // "Search times"
 	FAILOVER_AUTH, // "This hub requires authentication via a failover address; aborting connection and switching to the default address"
-	MENU_BROWSE_OWN_LIST, // "Browse own list"
+	MENU_BROWSE_OWN_LIST, // "Browse own list\tCtrl+O"
 	AUTOSEARCH_ADDED, // "A new item %s has been added"
 	AUTOSEARCH_ADDED_SEARCHED, // "A new item %s has been added and it has been searched for"
 	AUTOSEARCH_ADDED_SEARCHED_IN, // "A new item %s has been added and it will be searched for in %d seconds"

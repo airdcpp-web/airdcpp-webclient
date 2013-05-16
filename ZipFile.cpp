@@ -214,7 +214,7 @@ void ZipFile::CreateZipFile(const string& dstPath, const StringPairList& files) 
 			char* buf = new char[buf_size];
 
 			try {
-				File f(path, File::READ, File::OPEN | File::SHARED);
+				File f(path, File::READ, File::OPEN | File::SHARED_WRITE);
 
 				if(f.getSize() != -1) {
 					time_t time = f.getLastModified();

@@ -39,9 +39,14 @@ public:
 		OPEN = 0x01,
 		CREATE = 0x02,
 		TRUNCATE = 0x04,
-		SHARED = 0x08,
+		SHARED_WRITE = 0x08,
 		NO_CACHE_HINT = 0x10,
-		RANDOM_ACCESS = 0x20
+		RANDOM_ACCESS = 0x20,
+#ifdef _WIN32
+		SHARED_DELETE = 0x40
+#else
+		SHARED_DELETE = 0x00
+#endif
 	};
 
 #ifdef _WIN32
