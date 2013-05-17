@@ -209,6 +209,9 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 	{
 		RLock l(cs);
 		for (auto& info: fileModifications) {
+			if (!forced && info.second.lastActivity + static_cast<uint64_t>(30*1000) > aTick)
+				continue;
+
 			auto dir = findDirectory(info.first, false, false, true);
 			if (!dir || any_of(info.second.files.begin(), info.second.files.end(), [](const string& fileName) { return fileName.find(PATH_SEPARATOR) != string::npos; })) {
 				dirs.emplace_back(info.first, info.second, nullptr);
@@ -310,6 +313,8 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 	if (!refresh.empty()) {
 		addRefreshTask(REFRESH_DIRS, refresh, TYPE_MONITORING, Util::emptyString);
 	}
+
+	setProfilesDirty(dirtyProfiles, true);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
@@ -387,7 +392,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 		HashManager::getInstance()->renameFile(aOldPath + (ri.first.empty() ? Util::emptyString : PATH_SEPARATOR + ri.first), aNewPath + (ri.first.empty() ? Util::emptyString : PATH_SEPARATOR + ri.first), ri.second);
 	}
 
-	setProfilesDirty(dirtyProfiles, false);
+	setProfilesDirty(dirtyProfiles, true);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept {
@@ -403,6 +408,7 @@ void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath
 			if (p != d->directories.end()) {
 				LogManager::getInstance()->message("Shared folder deleted: " + aPath + PATH_SEPARATOR, LogManager::LOG_INFO);
 				cleanIndices(**p);
+				d->directories.erase(p);
 			} else {
 				auto f = d->findFile(fileNameLower);
 				if (f != d->files.end()) {
@@ -414,7 +420,7 @@ void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath
 		}
 	}
 
-	setProfilesDirty(dirtyProfiles, false);
+	setProfilesDirty(dirtyProfiles, true);
 }
 
 void ShareManager::on(DirectoryMonitorListener::Overflow, const string& aRootPath) noexcept {
@@ -446,14 +452,16 @@ void ShareManager::shutdown(function<void (float)> progressF) {
 }
 
 void ShareManager::setProfilesDirty(ProfileTokenSet aProfiles, bool forceXmlRefresh /*false*/) {
-	RLock l(cs);
-	for(const auto aProfile: aProfiles) {
-		auto i = find(shareProfiles.begin(), shareProfiles.end(), aProfile);
-		if(i != shareProfiles.end()) {
-			if (forceXmlRefresh)
-				(*i)->getProfileList()->setForceXmlRefresh(true);
-			(*i)->getProfileList()->setXmlDirty(true);
-			(*i)->setProfileInfoDirty(true);
+	if (!aProfiles.empty()) {
+		RLock l(cs);
+		for(const auto aProfile: aProfiles) {
+			auto i = find(shareProfiles.begin(), shareProfiles.end(), aProfile);
+			if(i != shareProfiles.end()) {
+				if (forceXmlRefresh)
+					(*i)->getProfileList()->setForceXmlRefresh(true);
+				(*i)->getProfileList()->setXmlDirty(true);
+				(*i)->setProfileInfoDirty(true);
+			}
 		}
 	}
 }
@@ -2158,9 +2166,15 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 
 		auto task = static_cast<ShareTask*>(t.second);
 
+		//get unfinished directories and erase exact matches
+		bundleDirs.clear();
+		QueueManager::getInstance()->checkRefreshPaths(bundleDirs, task->dirs);
+		if (task->dirs.empty()) {
+			continue;
+		}
+
 		StringList monitoring;
 		RefreshInfoList refreshDirs;
-		ProfileTokenSet dirtyProfiles;
 
 		//find excluded dirs and sub-roots for each directory being refreshed (they will be passed on to buildTree for matching)
 		{
@@ -2178,8 +2192,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 
 					//curDir may also be nullptr
 					refreshDirs.emplace_back(i, curDir, findLastWrite(i));
-
-					//dirty profiles are set later
 				}
 			}
 		}
@@ -2191,11 +2203,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			lastFullUpdate = GET_TICK();
 			lastIncomingUpdate = GET_TICK();
 		}
-
-		//get unfinished directories and erase exact matches
-		bundleDirs.clear();
-		QueueManager::getInstance()->checkRefreshPaths(bundleDirs, task->dirs);
-
 
 		//build the new tree
 		atomic<long> progressCounter = 0;
@@ -2225,6 +2232,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			goto end;
 
 		int64_t totalHash=0;
+		ProfileTokenSet dirtyProfiles;
 
 		//append the changes
 		{		
@@ -3274,7 +3282,7 @@ void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundl
 
 void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) noexcept {
 	{
-		//we don't want any monitoring actions for this...
+		//we don't want any monitoring actions for this folder...
 		WLock l(cs);
 		fileModifications.erase(path);
 	}
@@ -3282,40 +3290,6 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 	StringList dirs;
 	dirs.push_back(path);
 	addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, Util::getLastDir(path));
-
-	/*ProfileTokenSet dirtyProfiles;
-	{
-		WLock l(cs);
-		Directory::Ptr dir = findDirectory(path, true, true);
-		if (!dir) {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_SHARING_FAILED, Util::getLastDir(path)), LogManager::LOG_WARNING);
-			return;
-		}
-
-		if (!dir->files.empty() || !dir->files.empty()) {
-			// get rid of any existing crap we might have in the bundle directory and refresh it.
-			//done at this point as the file and directory pointers should still be valid, if there are any
-
-			cleanIndices(*dir);
-
-			//there went our dir..
-			dirNameMap.emplace(const_cast<string*>(&dir->name.getLower()), dir);
-
-			dir->files.clear();
-			dir->directories.clear();
-		}
-
-		ProfileDirMap profileDirs;
-		DirMap newShares;
-		int64_t hashSize = 0;
-
-		buildTree(path, dir, false, profileDirs, dirNameMap, newShares, hashSize, sharedSize, tthIndex, *bloom.get());
-
-		dir->copyRootProfiles(dirtyProfiles, true);
-	}
-
-	setProfilesDirty(dirtyProfiles);
-	LogManager::getInstance()->message(STRING_F(BUNDLE_X_SHARED, Util::getLastDir(path)), LogManager::LOG_INFO);*/
 }
 
 bool ShareManager::allowAddDir(const string& aPath) noexcept {
