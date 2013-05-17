@@ -31,12 +31,13 @@ public:
 
 	void add(const string& s) { xadd(s, N); }
 	bool match(const StringList& s) const {
-		for(auto i = s.begin(); i != s.end(); ++i) {
-			if(!match(*i))
+		for(const auto& i: s) {
+			if(!match(i))
 				return false;
 		}
 		return true;
 	}
+
 	bool match(const string& s) const {
 		if(s.length() >= N) {
 			string::size_type l = s.length() - N;
@@ -52,6 +53,14 @@ public:
 		size_t s = table.size();
 		table.clear();
 		table.resize(s);
+	}
+
+	void merge(BloomFilter<N>& aBloom) {
+		for (unsigned int i = 0; i < table.size(); ++i) {
+			if (aBloom.table[i] == true) {
+				table[i] = true;
+			}
+		}
 	}
 #ifdef TESTER
 	void print_table_status() {

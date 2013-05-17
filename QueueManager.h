@@ -198,7 +198,7 @@ public:
 
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles);
-	void getForbiddenPaths(StringList& bundlePaths, const StringList& sharePaths);
+	void checkRefreshPaths(StringList& bundlePaths, StringList& refreshPaths);
 	
 	GETSET(uint64_t, lastSave, LastSave);
 	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);

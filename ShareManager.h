@@ -127,7 +127,9 @@ public:
 	enum RefreshType {
 		TYPE_MANUAL,
 		TYPE_SCHEDULED,
-		TYPE_STARTUP
+		TYPE_STARTUP,
+		TYPE_MONITORING,
+		TYPE_BUNDLE
 	};
 
 	int refresh(bool incoming, RefreshType aType, function<void (float)> progressF = nullptr);
@@ -296,9 +298,10 @@ private:
 			bool removeExcludedProfile(ProfileToken aProfile);
 			string getName(ProfileToken aProfile) const;
 
-			unique_ptr<ShareBloom> bloom;
-			string getCachePath() const;
+			string getCacheXmlPath() const;
 	};
+
+	unique_ptr<ShareBloom> bloom;
 
 	struct FileListDir;
 	class Directory : public intrusive_ptr_base<Directory>, boost::noncopyable {
@@ -413,8 +416,6 @@ private:
 		File::Set::const_iterator findFile(const string& aName) const;
 
 		void addBloom(ShareBloom& aBloom) const;
-		bool matchBloom(const StringSearch::List& aSearches) const;
-		ShareBloom& getBloom() const;
 
 		void getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const;
 		DualString name;
@@ -517,31 +518,27 @@ private:
 
 	class RefreshInfo {
 	public:
-		RefreshInfo(const string& aPath, Directory::Ptr aOldRoot, uint32_t aLastWrite, const string& loaderPath = Util::emptyString);
+		RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint32_t aLastWrite);
 		~RefreshInfo();
 
 		Directory::Ptr oldRoot;
 		Directory::Ptr root;
 		int64_t hashSize;
 		int64_t addedSize;
-		unique_ptr<ShareBloom> newBloom;
 		ProfileDirMap subProfiles;
 		DirMultiMap dirNameMapNew;
 		HashFileMap tthIndexNew;
 		DirMap rootPathsNew;
-		//string path;
 
-		string loaderPath;
-
-		RefreshInfo(RefreshInfo&&);
+		string path;
 	private:
 		RefreshInfo(const RefreshInfo&);
 		RefreshInfo& operator=(const RefreshInfo&);
 	};
 
-	typedef vector<RefreshInfo> RefreshInfoList;
+	typedef std::list<RefreshInfo> RefreshInfoList;
 
-	void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded);
+	void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles);
 
 
 	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);

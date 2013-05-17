@@ -2960,7 +2960,7 @@ void QueueManager::getUnfinishedPaths(StringList& retBundles) {
 	}
 }
 
-void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& sharePaths) {
+void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePaths) {
 	BundleList hash;
 	{
 		RLock l(cs);
@@ -2969,9 +2969,24 @@ void QueueManager::getForbiddenPaths(StringList& retBundles, const StringList& s
 				continue;
 
 			//check the path just to avoid hashing/scanning bundles from dirs that aren't being refreshed
-			if (boost::find_if(sharePaths, [b](const string& p) { return AirUtil::isParentOrExact(p, b->getTarget()); }) == sharePaths.end()) {
-				continue;
+			bool found = false;
+			for (auto i = sharePaths.begin(); i != sharePaths.end(); ) {
+				if (AirUtil::isParentOrExact(*i, b->getTarget())) {
+					if (stricmp(*i, b->getTarget()) == 0) {
+						//erase exact matches
+						i = sharePaths.erase(i);
+					}
+					found = true;
+					break;
+				}
+
+				i++;
 			}
+
+			//not inside the refreshed dirs
+			if (!found)
+				continue;
+
 
 			if(b->isFinished() && (b->isFailed() || b->allowHash())) {
 				hash.push_back(b);
