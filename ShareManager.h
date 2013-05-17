@@ -232,9 +232,9 @@ public:
 		ASYNC,
 		ADD_DIR,
 		REFRESH_ALL,
-		REFRESH_ROOT,
+		REFRESH_DIRS,
 		REFRESH_INCOMING,
-		REFRESH_SUBDIR
+		ADD_BUNDLE
 	};
 
 	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback=false) const;
@@ -256,6 +256,8 @@ public:
 
 	string getStats() const;
 	mutable SharedMutex cs;
+
+	int addRefreshTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
 private:
 	unique_ptr<DirectoryMonitor> monitor;
 
@@ -445,7 +447,6 @@ private:
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 	};
 
-	int addRefreshTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
 	void addAsyncTask(AsyncF aF);
 	Directory::Ptr getDirByName(const string& directory) const;
 

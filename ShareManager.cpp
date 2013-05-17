@@ -263,6 +263,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 		if (failed) {
 			//keep this in the main list and try again later
 			i = dirs.erase(i);
+			continue;
 		}
 
 		if (!(*i).dir) {
@@ -307,7 +308,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 
 	// add directories for refresh
 	if (!refresh.empty()) {
-		addRefreshTask(REFRESH_SUBDIR, refresh, TYPE_MONITORING, Util::emptyString);
+		addRefreshTask(REFRESH_DIRS, refresh, TYPE_MONITORING, Util::emptyString);
 	}
 }
 
@@ -1241,7 +1242,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		}
 	}
 
-	addRefreshTask(REFRESH_ROOT, refreshPaths, TYPE_MANUAL, Util::emptyString);
+	addRefreshTask(REFRESH_DIRS, refreshPaths, TYPE_MANUAL, Util::emptyString);
 
 	if (hashSize > 0) {
 		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogManager::LOG_INFO);
@@ -1733,17 +1734,24 @@ int ShareManager::refresh(const string& aDir){
 				}
 			}
 
-			sort(refreshPaths.begin(), refreshPaths.end());
-			refreshPaths.erase(unique(refreshPaths.begin(), refreshPaths.end()), refreshPaths.end());
+			if (refreshPaths.empty()) {
+				sort(refreshPaths.begin(), refreshPaths.end());
+				refreshPaths.erase(unique(refreshPaths.begin(), refreshPaths.end()), refreshPaths.end());
 
-			if (!vNames.empty())
-				displayName = Util::listToString(vNames);
+				if (!vNames.empty())
+					displayName = Util::listToString(vNames);
+			} else {
+				auto d = findDirectory(aDir, false, false, false);
+				if (d) {
+					refreshPaths.push_back(path);
+				}
+			}
 		} else {
 			refreshPaths.push_back(path);
 		}
 	}
 
-	return addRefreshTask(REFRESH_ROOT, refreshPaths, TYPE_MANUAL, displayName);
+	return addRefreshTask(REFRESH_DIRS, refreshPaths, TYPE_MANUAL, displayName);
 }
 
 
@@ -1813,7 +1821,7 @@ int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aR
 			case(REFRESH_ALL):
 				msg = STRING(REFRESH_QUEUED);
 				break;
-			case(REFRESH_ROOT):
+			case(REFRESH_DIRS):
 				if (!displayName.empty()) {
 					msg = STRING_F(VIRTUAL_REFRESH_QUEUED, displayName);
 				} else if (dirs.size() == 1) {
@@ -1945,7 +1953,7 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 
 	rebuildTotalExcludes();
 	if (!refresh.empty())
-		addRefreshTask(REFRESH_ROOT, refresh, TYPE_MANUAL);
+		addRefreshTask(REFRESH_DIRS, refresh, TYPE_MANUAL);
 
 	if (add.empty()) {
 		//we are only modifying existing trees
@@ -2072,7 +2080,7 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 		case(REFRESH_ALL):
 			msg = finished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED);
 			break;
-		case(REFRESH_ROOT):
+		case(REFRESH_DIRS):
 			if (!displayName.empty()) {
 				msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, displayName) : STRING_F(FILE_LIST_REFRESH_INITIATED_VPATH, displayName);
 			} else if (directories.size() == 1) {
@@ -2090,6 +2098,10 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 			break;
 		case(REFRESH_INCOMING):
 			msg = finished ? STRING(INCOMING_REFRESHED) : STRING(FILE_LIST_REFRESH_INITIATED_INCOMING);
+			break;
+		case(ADD_BUNDLE):
+			if (finished)
+				msg = STRING_F(BUNDLE_X_SHARED, displayName);
 			break;
 	};
 
@@ -3261,7 +3273,17 @@ void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundl
 }
 
 void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) noexcept {
-	ProfileTokenSet dirtyProfiles;
+	{
+		//we don't want any monitoring actions for this...
+		WLock l(cs);
+		fileModifications.erase(path);
+	}
+
+	StringList dirs;
+	dirs.push_back(path);
+	addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, Util::getLastDir(path));
+
+	/*ProfileTokenSet dirtyProfiles;
 	{
 		WLock l(cs);
 		Directory::Ptr dir = findDirectory(path, true, true);
@@ -3271,8 +3293,8 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 		}
 
 		if (!dir->files.empty() || !dir->files.empty()) {
-			/* get rid of any existing crap we might have in the bundle directory and refresh it.
-			done at this point as the file and directory pointers should still be valid, if there are any */
+			// get rid of any existing crap we might have in the bundle directory and refresh it.
+			//done at this point as the file and directory pointers should still be valid, if there are any
 
 			cleanIndices(*dir);
 
@@ -3293,7 +3315,7 @@ void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) no
 	}
 
 	setProfilesDirty(dirtyProfiles);
-	LogManager::getInstance()->message(STRING_F(BUNDLE_X_SHARED, Util::getLastDir(path)), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(BUNDLE_X_SHARED, Util::getLastDir(path)), LogManager::LOG_INFO);*/
 }
 
 bool ShareManager::allowAddDir(const string& aPath) noexcept {
