@@ -357,7 +357,7 @@ void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPat
 
 void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList& aRename) {
 	for (const auto& f: files) {
-		aRename.emplace_back(aPath + f.name.getNormal(), HashedFile(f.getTTH(), f.getLastWrite(), f.getSize()));
+		aRename.emplace_back(aPath + f->name.getNormal(), HashedFile(f->getTTH(), f->getLastWrite(), f->getSize()));
 	}
 
 	for (const auto& d: directories) {
@@ -395,13 +395,13 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 
 				LogManager::getInstance()->message("Shared folder renamed, new path: " + aNewPath + PATH_SEPARATOR + " old path: " + aOldPath + PATH_SEPARATOR, LogManager::LOG_INFO);
 			} else {
-				auto f = parent->findFile(fileNameOldLower);
+				auto f = parent->files.find(fileNameOldLower);
 				if (f != parent->files.end()) {
 					//get the info
-					HashedFile fi((*f).getTTH(), (*f).getLastWrite(), (*f).getSize());
+					HashedFile fi((*f)->getTTH(), (*f)->getLastWrite(), (*f)->getSize());
 
 					//remove old
-					cleanIndices(*parent, f);
+					cleanIndices(*parent, *f);
 					parent->files.erase(f);
 
 					//add new
@@ -439,10 +439,10 @@ void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath
 				cleanIndices(**p);
 				d->directories.erase(p);
 			} else {
-				auto f = d->findFile(fileNameLower);
+				auto f = d->files.find(fileNameLower);
 				if (f != d->files.end()) {
 					LogManager::getInstance()->message("Shared file deleted: " + aPath, LogManager::LOG_INFO);
-					cleanIndices(*d, f);
+					cleanIndices(*d, *f);
 					d->files.erase(f);
 				}
 			}
@@ -505,10 +505,8 @@ ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::D
 {
 }
 
-ShareManager::Directory::File::Set::const_iterator ShareManager::Directory::findFile(const string& aName) const {
-	//TODO: use binary search
-	dcassert(Text::isLower(aName));
-	return find_if(files, [&aName](const Directory::File& f) { return strcmp(aName.c_str(), f.name.getLower().c_str()) == 0; });
+ShareManager::Directory::~Directory() { 
+	for_each(files, DeleteFunction());
 }
 
 void ShareManager::Directory::getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_, size_t& folders_) const noexcept {
@@ -835,10 +833,10 @@ void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenS
 
 		auto fileName = Text::toLower(Util::getFileName(Util::toNmdcFile(virtualFile)));
 		for(const auto& d: dirs) {
-			auto it = d->findFile(fileName);
+			auto it = d->files.find(fileName);
 			if(it != d->files.end()) {
-				path_ = it->getRealPath();
-				size_ = it->getSize();
+				path_ = (*it)->getRealPath();
+				size_ = (*it)->getSize();
 				return;
 			}
 		}
@@ -901,11 +899,11 @@ AdcCommand ShareManager::getFileInfo(const string& aFile, ProfileToken aProfile)
 	RLock l(cs);
 	auto i = tthIndex.find(const_cast<TTHValue*>(&val)); 
 	if(i != tthIndex.end()) {
-		const Directory::File& f = *i->second;
+		const Directory::File* f = i->second;
 		AdcCommand cmd(AdcCommand::CMD_RES);
-		cmd.addParam("FN", f.getADCPath(aProfile));
-		cmd.addParam("SI", Util::toString(f.getSize()));
-		cmd.addParam("TR", f.getTTH().toBase32());
+		cmd.addParam("FN", f->getADCPath(aProfile));
+		cmd.addParam("SI", Util::toString(f->getSize()));
+		cmd.addParam("TR", f->getTTH().toBase32());
 		return cmd;
 	}
 
@@ -965,9 +963,9 @@ void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToke
 	} else { //its a file
 		auto fileName = Text::toLower(Util::getFileName(Util::toNmdcFile(path)));
 		for(const auto& d: dirs) {
-			auto it = d->findFile(fileName);
+			auto it = d->files.find(fileName);
 			if(it != d->files.end()) {
-				ret.push_back(it->getRealPath());
+				ret.push_back((*it)->getRealPath());
 				return;
 			}
 		}
@@ -978,7 +976,7 @@ bool ShareManager::isRealPathShared(const string& aPath) {
 	RLock l (cs);
 	auto d = findDirectory(Util::getFilePath(aPath), false, false, true);
 	if (d) {
-		auto it = d->findFile(Text::toLower(Util::getFileName(aPath)));
+		auto it = d->files.find(Text::toLower(Util::getFileName(aPath)));
 		if(it != d->files.end()) {
 			return true;
 		}
@@ -1111,7 +1109,8 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 		curDirPath(aRefreshInfo.root->getProfileDir()->getPath()),
 		curDirPathLower(Text::toLower(aRefreshInfo.root->getProfileDir()->getPath())),
 		cur(aRefreshInfo.root),
-		bloom(aBloom)
+		bloom(aBloom)//,
+		//lastPos(curDirPath.size())
 	{ }
 
 
@@ -1122,6 +1121,7 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 
 			if(!name.empty()) {
 				curDirPath += name + PATH_SEPARATOR;
+				//lastPos += cur->name.size()+1;
 
 				ShareManager::ProfileDirectory::Ptr pd = nullptr;
 				if (!ri.subProfiles.empty()) {
@@ -1139,14 +1139,11 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 
 				cur->addBloom(*bloom);
 				ri.dirNameMapNew.emplace(const_cast<string*>(&cur->name.getLower()), cur);
-				lastFileIter = cur->files.begin();
 			}
 
 			if(simple) {
 				if(cur) {
 					cur = cur->getParent();
-					if(cur)
-						lastFileIter = cur->files.begin();
 				}
 			}
 		} else if(cur && name == SFILE) {
@@ -1160,8 +1157,8 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 				DualString name(fname);
 				HashedFile fi;
 				HashManager::getInstance()->getFileInfo(curDirPathLower + name.getLower(), curDirPath, fi);
-				lastFileIter = cur->files.emplace_hint(lastFileIter, move(name), cur, fi);
-				ShareManager::updateIndices(*cur, lastFileIter++, *bloom, ri.addedSize, ri.tthIndexNew);
+				auto pos = cur->files.insert_sorted(new ShareManager::Directory::File(move(name), cur, fi));
+				ShareManager::updateIndices(*cur, *pos.first, *bloom, ri.addedSize, ri.tthIndexNew);
 			}catch(Exception& e) {
 				ri.hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading file list %s \n", e.getError().c_str());
@@ -1173,29 +1170,30 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 
 			cur->addBloom(*bloom);
 			cur->setLastWrite(Util::toUInt32(getAttrib(attribs, DATE, 2)));
-			lastFileIter = cur->files.begin();
 		}
 	}
 	void endTag(const string& name) {
 		if(name == SDIRECTORY) {
 			if(cur) {
+				//auto len = curDirPath.size()-lastPos;
+				//curDirPath.erase(lastPos, len);
+				//curDirPathLower.erase(lastPos, len);
+				//lastPos -= len;
 				curDirPath = Util::getParentDir(curDirPath);
 				curDirPathLower = Util::getParentDir(curDirPathLower);
 				cur = cur->getParent();
-				if(cur)
-					lastFileIter = cur->files.begin();
 			}
 		}
 	}
 
 private:
-	ShareManager::Directory::File::Set::iterator lastFileIter;
 	ShareManager::Directory::Ptr cur;
 	ShareManager::RefreshInfo& ri;
 
 	string curDirPathLower;
 	string curDirPath;
 	ShareManager::ShareBloom* bloom;
+	//int lastPos;
 };
 
 bool ShareManager::loadCache(function<void (float)> progressF) {
@@ -1331,9 +1329,9 @@ void ShareManager::Directory::getStats(uint64_t& totalAge_, size_t& totalDirs_, 
 	}
 
 	for(auto& f: files) {
-		totalSize_ += f.getSize();
-		totalAge_ += f.getLastWrite();
-		totalStrLen_ += f.name.getLower().length();
+		totalSize_ += f->getSize();
+		totalAge_ += f->getLastWrite();
+		totalStrLen_ += f->name.getLower().length();
 		/*if (!f.hasUpperCase()) {
 			lowerCaseFiles_++;
 		} else {
@@ -1602,8 +1600,7 @@ bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
 	return false;
 }
 
-void ShareManager::buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
-	auto lastFileIter = aDir->files.begin();
+void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
 	FileFindIter end;
 
 #ifdef _WIN32
@@ -1684,8 +1681,8 @@ void ShareManager::buildTree(const string& aPath, const string& aPathLower, cons
 			try {
 				HashedFile fi(i->getLastWriteTime(), size);
 				if(HashManager::getInstance()->checkTTH(aPathLower + dualName.getLower(), aPath + name, fi)) {
-					lastFileIter = aDir->files.emplace_hint(lastFileIter, move(dualName), aDir, fi);
-					updateIndices(*aDir, lastFileIter++, aBloom, addedSize, tthIndexNew);
+					auto pos = aDir->files.insert_sorted(new ShareManager::Directory::File(move(dualName), aDir, fi));
+					updateIndices(*aDir, *pos.first, aBloom, addedSize, tthIndexNew);
 				} else {
 					hashSize += size;
 				}
@@ -1737,20 +1734,19 @@ void ShareManager::updateIndices(Directory::Ptr& dir, ShareBloom& aBloom, int64_
 		updateIndices(d, aBloom, sharedSize, tthIndex, aDirNames);
 	}
 
-	for(auto i = dir->files.begin(); i != dir->files.end(); ) {
-		updateIndices(*dir, i++, aBloom, sharedSize, tthIndex);
+	for(auto i = dir->files.begin(); i != dir->files.end(); i++) {
+		updateIndices(*dir, *i, aBloom, sharedSize, tthIndex);
 	}
 }
 
-void ShareManager::updateIndices(Directory& dir, const Directory::File::Set::iterator& i, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) {
-	const Directory::File& f = *i;
-	dir.size += f.getSize();
-	sharedSize += f.getSize();
+void ShareManager::updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) {
+	dir.size += f->getSize();
+	sharedSize += f->getSize();
 
-	dir.addType(getType(f.name.getLower()));
+	dir.addType(getType(f->name.getLower()));
 
-	tthIndex.emplace(const_cast<TTHValue*>(&f.getTTH()), &f);
-	aBloom.add(f.name.getLower());
+	tthIndex.emplace(const_cast<TTHValue*>(&f->getTTH()), f);
+	aBloom.add(f->name.getLower());
 }
 
 int ShareManager::refresh(const string& aDir){
@@ -2251,7 +2247,10 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 
 		auto doRefresh = [&](RefreshInfo& ri) {
 			if (checkHidden(ri.path)) {
-				buildTree(ri.path, Text::toLower(ri.path), ri.root, true, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
+				auto pathLower = Text::toLower(ri.path);
+				auto path = ri.path;
+				buildTree(path, pathLower, ri.root, true, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
+				dcassert(ri.path == path);
 			}
 
 			if(progressF) {
@@ -2644,14 +2643,14 @@ void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent
 		if (filesAdded) {
 			for(const auto& fi: (*di)->files) {
 				//go through the dirs that we have added already
-				if (none_of(shareDirs.begin(), di, [&fi](const Directory::Ptr& d) { return d->files.find(fi) != d->files.end(); })) {
-					fi.toXml(xmlFile, indent, tmp2, addDate);
+				if (none_of(shareDirs.begin(), di, [&fi](const Directory::Ptr& d) { return d->files.find(fi->name.getLower()) != d->files.end(); })) {
+					fi->toXml(xmlFile, indent, tmp2, addDate);
 				}
 			}
 		} else if (!(*di)->files.empty()) {
 			filesAdded = true;
 			for(const auto& f: (*di)->files)
-				f.toXml(xmlFile, indent, tmp2, addDate);
+				f->toXml(xmlFile, indent, tmp2, addDate);
 		}
 	}
 }
@@ -2660,7 +2659,7 @@ void ShareManager::Directory::filesToXmlList(OutputStream& xmlFile, string& inde
 	for(const auto& f: files) {
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("<File Name=\""));
-		xmlFile.write(SimpleXML::escape(f.name.lowerCaseOnly() ? f.name.getLower() : f.name.getNormal(), tmp2, true));
+		xmlFile.write(SimpleXML::escape(f->name.lowerCaseOnly() ? f->name.getLower() : f->name.getNormal(), tmp2, true));
 		/*xmlFile.write(LITERAL("\" Size=\""));
 		xmlFile.write(Util::toString(f.getSize()));*/
 		xmlFile.write(LITERAL("\"/>\r\n"));
@@ -2831,7 +2830,7 @@ void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, boo
 
 	for(const auto& f: files) {
 		tmp2.clear();
-		tthList.write(f.getTTH().toBase32(tmp2));
+		tthList.write(f->getTTH().toBase32(tmp2));
 		tthList.write(LITERAL(" "));
 	}
 }
@@ -3012,22 +3011,22 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 	if(aFileType != SearchManager::TYPE_DIRECTORY) {
 		for(const auto& f: files) {
 			
-			if(aSearchType == SearchManager::SIZE_ATLEAST && aSize > f.getSize()) {
+			if(aSearchType == SearchManager::SIZE_ATLEAST && aSize > f->getSize()) {
 				continue;
-			} else if(aSearchType == SearchManager::SIZE_ATMOST && aSize < f.getSize()) {
+			} else if(aSearchType == SearchManager::SIZE_ATMOST && aSize < f->getSize()) {
 				continue;
 			}
 
 			auto j = cur->begin();
-			for(; j != cur->end() && j->matchLower(f.name.getLower()); ++j) 
+			for(; j != cur->end() && j->matchLower(f->name.getLower()); ++j) 
 				;	// Empty
 			
 			if(j != cur->end())
 				continue;
 			
 			// Check file type...
-			if(checkType(f.name.getLower(), aFileType)) {
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.getSize(), getFullName(SP_DEFAULT) + f.name.getNormal(), f.getTTH(), 0, 1));
+			if(checkType(f->name.getLower(), aFileType)) {
+				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f->getSize(), getFullName(SP_DEFAULT) + f->name.getNormal(), f->getTTH(), 0, 1));
 				aResults.push_back(sr);
 				if(aResults.size() >= maxResults) {
 					break;
@@ -3175,27 +3174,27 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
 		for(const auto& f: files) {
 
-			if(!(f.getSize() >= aStrings.gt)) {
+			if(!(f->getSize() >= aStrings.gt)) {
 				continue;
-			} else if(!(f.getSize() <= aStrings.lt)) {
+			} else if(!(f->getSize() <= aStrings.lt)) {
 				continue;
-			} else if (!aStrings.matchesDate(f.getLastWrite())) {
+			} else if (!aStrings.matchesDate(f->getLastWrite())) {
 				continue;
 			}
 
 			auto j = aStrings.include->begin();
-			for(; j != aStrings.include->end() && j->matchLower(f.name.getLower()); ++j) 
+			for(; j != aStrings.include->end() && j->matchLower(f->name.getLower()); ++j) 
 				;	// Empty
 
 			if(j != aStrings.include->end())
 				continue;
 
 			// Check file type...
-			if(aStrings.hasExt(f.name.getLower())) {
-				if(aStrings.isExcluded(f.name.getLower()))
+			if(aStrings.hasExt(f->name.getLower())) {
+				if(aStrings.isExcluded(f->name.getLower()))
 					continue;
 
-				f.addSR(aResults, aProfile, aStrings.addParents);
+				f->addSR(aResults, aProfile, aStrings.addParents);
 
 				if(aResults.size() >= maxResults) {
 					return;
@@ -3273,15 +3272,15 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 	}
 }
 
-void ShareManager::cleanIndices(Directory& dir, const Directory::File::Set::iterator& i) {
-	dir.size -= (*i).getSize();
-	sharedSize -= (*i).getSize();
+void ShareManager::cleanIndices(Directory& dir, const Directory::File* f) {
+	dir.size -= f->getSize();
+	sharedSize -= f->getSize();
 
-	auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&i->getTTH()));
+	auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
 	if (distance(flst.first, flst.second) == 1) {
 		tthIndex.erase(flst.first);
 	} else {
-		auto p = find(flst | map_values, &(*i));
+		auto p = find(flst | map_values, f);
 		if (p.base() != flst.second)
 			tthIndex.erase(p.base());
 		else
@@ -3308,7 +3307,7 @@ void ShareManager::cleanIndices(Directory& dir) {
 
 	//remove all files
 	for(auto i = dir.files.begin(); i != dir.files.end(); ++i) {
-		cleanIndices(dir, i);
+		cleanIndices(dir, *i);
 	}
 }
 
@@ -3408,15 +3407,15 @@ void ShareManager::onFileHashed(const string& fname, HashedFile& fileInfo) noexc
 
 void ShareManager::addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_) {
 	DualString dualName(aName);
-	auto i = aDir->findFile(dualName.getLower());
+	auto i = aDir->files.find(dualName.getLower());
 	if(i != aDir->files.end()) {
 		// Get rid of false constness...
-		cleanIndices(*aDir, i);
+		cleanIndices(*aDir, *i);
 		aDir->files.erase(i);
 	}
 
-	auto it = aDir->files.emplace(move(dualName), aDir, fi).first;
-	updateIndices(*aDir, it, *bloom.get(), sharedSize, tthIndex);
+	auto it = aDir->files.insert_sorted(new Directory::File(move(dualName), aDir, fi)).first;
+	updateIndices(*aDir, *it, *bloom.get(), sharedSize, tthIndex);
 
 	aDir->copyRootProfiles(dirtyProfiles_, true);
 }

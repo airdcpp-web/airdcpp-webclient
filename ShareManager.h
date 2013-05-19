@@ -318,17 +318,23 @@ private:
 
 		class File {
 		public:
-			struct FileLess {
+			/*struct FileLess {
 				bool operator()(const File& a, const File& b) const { return strcmp(a.name.getLower().c_str(), b.name.getLower().c_str()) < 0; }
+			};*/
+
+			struct NameLower {
+				const string& operator()(const File* a) const { return a->name.getLower(); }
 			};
-			typedef set<File, FileLess> Set;
+
+			//typedef set<File, FileLess> Set;
+			typedef SortedVector<File*, std::vector, string, Compare, NameLower> Set;
 
 			File(DualString&& aName, const Directory::Ptr& aParent, HashedFile& aFileInfo);
 			~File();
 
-			bool operator==(const File& rhs) const {
+			/*bool operator==(const File& rhs) const {
 				return name.getLower().compare(rhs.name.getLower()) == 0 && parent == rhs.getParent();
-			}
+			}*/
 		
 			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + name.getNormal(); }
 			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + name.getNormal(); }
@@ -345,7 +351,7 @@ private:
 
 			DualString name;
 		private:
-			File(const File& src);
+			File(const File* src);
 		};
 
 		//typedef set<Directory::Ptr, DirLess> Set;
@@ -406,15 +412,13 @@ private:
 		GETSET(ProfileDirectory::Ptr, profileDir, ProfileDir);
 
 		Directory(DualString&& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
-		~Directory() { }
+		~Directory();
 
 		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const;
 		bool isRootLevel(ProfileToken aProfile) const;
 		bool isLevelExcluded(ProfileToken aProfile) const;
 		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const;
 		int64_t size;
-
-		File::Set::const_iterator findFile(const string& aName) const;
 
 		void addBloom(ShareBloom& aBloom) const;
 
@@ -541,16 +545,16 @@ private:
 	void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles);
 
 
-	void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
+	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
 	bool checkHidden(const string& aName) const;
 	void addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_);
 
 	//void rebuildIndices();
 	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames);
-	static void updateIndices(Directory& dir, const Directory::File::Set::iterator& i, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex);
+	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex);
 	void cleanIndices(Directory& dir);
 	void removeDirName(Directory& dir);
-	void cleanIndices(Directory& dir, const Directory::File::Set::iterator& i);
+	void cleanIndices(Directory& dir, const Directory::File* f);
 
 	void onFileHashed(const string& fname, HashedFile& fileInfo);
 	
