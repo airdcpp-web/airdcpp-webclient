@@ -157,7 +157,7 @@ public:
 	bool isFileShared(const TTHValue& aTTH, const string& fileName, ProfileToken aProfile) const;
 
 	bool allowAddDir(const string& dir);
-	tstring getDirPath(const string& directory);
+	string getDirPath(const string& directory);
 
 	bool loadCache(function<void (float)> progressF);
 

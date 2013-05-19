@@ -99,7 +99,7 @@ void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr& qi,
 			
 		fire(FinishedManagerListener::AddedDl(), item);
 		if(SETTING(SYSTEM_SHOW_DOWNLOADS)) {
-			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, qi->getTarget()), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, qi->getTarget() % ClientManager::getInstance()->getFormatedNicks(aUser)), LogManager::LOG_INFO);
 		}
 	}
 }
@@ -115,7 +115,7 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexc
 
 		fire(FinishedManagerListener::AddedUl(), item);
 		if(SETTING(SYSTEM_SHOW_UPLOADS)) {
-			LogManager::getInstance()->message(STRING_F(FINISHED_UPLOAD, u->getPath()), LogManager::LOG_INFO);		
+			LogManager::getInstance()->message(STRING_F(FINISHED_UPLOAD, u->getPath() % ClientManager::getInstance()->getFormatedNicks(u->getHintedUser())), LogManager::LOG_INFO);		
 		}
 	}
 }

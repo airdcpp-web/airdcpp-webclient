@@ -2949,10 +2949,10 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 	return !_outPartsInfo.empty();
 }
 
-tstring QueueManager::getDirPath(const string& aDirName) const {
+string QueueManager::getDirPath(const string& aDirName) const {
 	RLock l(cs);
 	auto dbp = bundleQueue.findRemoteDir(aDirName);
-	return Text::toT(dbp.first);
+	return dbp.first;
 }
 
 void QueueManager::getUnfinishedPaths(StringList& retBundles) {

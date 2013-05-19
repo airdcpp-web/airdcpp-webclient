@@ -218,7 +218,7 @@ void File::ensureDirectory(const string& aFile) noexcept {
 		return;
 	start++;
 	while( (start = file.find_first_of(_T("\\/"), start)) != string::npos) {
-		::CreateDirectory((Util::FormatPath(file.substr(0, start+1))).c_str(), NULL);
+		::CreateDirectory((Util::FormatPathT(file.substr(0, start+1))).c_str(), NULL);
 		start++;
 	}
 }

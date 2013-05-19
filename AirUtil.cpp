@@ -62,7 +62,7 @@ string AirUtil::tempDLDir;
 AwayMode AirUtil::away = AWAY_OFF;
 time_t AirUtil::awayTime;
 
-tstring AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
+string AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
 	if (aType == SHARE_DUPE || aType == PARTIAL_SHARE_DUPE) {
 		return ShareManager::getInstance()->getDirPath(aPath);
 	} else {
@@ -70,18 +70,18 @@ tstring AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
 	}
 }
 
-tstring AirUtil::getDupePath(DupeType aType, const TTHValue& aTTH) {
+string AirUtil::getDupePath(DupeType aType, const TTHValue& aTTH) {
 	if (aType == SHARE_DUPE) {
 		try {
-			return Text::toT(ShareManager::getInstance()->getRealPath(aTTH));
+			return ShareManager::getInstance()->getRealPath(aTTH);
 		} catch(...) { }
 	} else {
 		StringList localPaths = QueueManager::getInstance()->getTargets(aTTH);
 		if (!localPaths.empty()) {
-			return Text::toT(localPaths.front());
+			return localPaths.front();
 		}
 	}
-	return Util::emptyStringT;
+	return Util::emptyString;
 }
 
 DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
@@ -139,6 +139,7 @@ void AirUtil::updateCachedSettings() {
 }
 
 void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
+#ifdef _WIN32
 	ULONG len =	8192; // begin with 8 kB, it should be enough in most of cases
 	for(int i = 0; i < 3; ++i)
 	{
@@ -178,6 +179,9 @@ void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 		if(ret != ERROR_BUFFER_OVERFLOW)
 			break;
 	}
+#else
+	//...
+#endif
 }
 
 string AirUtil::getLocalIp(bool v6, bool allowPrivate /*true*/) {
@@ -427,6 +431,7 @@ string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& 
 
 //fuldc ftp logger support
 void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
+#ifdef _WIN32
 	string target = tgt;
 	if(file) {
 		if(File::getSize(target) != -1) {
@@ -508,6 +513,7 @@ void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
 			}
 		}
 	}
+#endif
 }
 
 bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
@@ -521,7 +527,7 @@ bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
 	return false;
 }
 
-void AirUtil::getRegexMatches(const tstring& aString, TStringList& l, const boost::wregex& aReg) {
+void AirUtil::getRegexMatchesT(const tstring& aString, TStringList& l, const boost::wregex& aReg) {
 	auto start = aString.begin();
 	auto end = aString.end();
 	boost::match_results<tstring::const_iterator> result;

@@ -59,8 +59,8 @@ class AirUtil {
 		static DupeType checkFileDupe(const TTHValue& aDir, const string& aFileName);
 		static DupeType checkFileDupe(const string& aFileName, int64_t aSize);
 
-		static tstring getDirDupePath(DupeType aType, const string& aPath);
-		static tstring getDupePath(DupeType aType, const TTHValue& aTTH);
+		static string getDirDupePath(DupeType aType, const string& aPath);
+		static string getDupePath(DupeType aType, const TTHValue& aTTH);
 
 		static TTHValue getTTH(const string& aFileName, int64_t aSize);
 
@@ -92,7 +92,7 @@ class AirUtil {
 		static void listRegexSubtract(StringList& l, const boost::regex& aReg);
 		static bool stringRegexMatch(const string& aReg, const string& aString);
 
-		static void getRegexMatches(const tstring& aString, TStringList& l, const boost::wregex& aReg);
+		static void getRegexMatchesT(const tstring& aString, TStringList& l, const boost::wregex& aReg);
 		static void getRegexMatches(const string& aString, StringList& l, const boost::regex& aReg);
 
 		static string formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial);

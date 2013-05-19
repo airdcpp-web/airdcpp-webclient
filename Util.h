@@ -271,6 +271,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	}
 
 	inline static string FormatPath(const string& path) {
+#ifdef _WIN32
 		//dont format unless its needed, xp works slower with these so.
 		//also we want to limit the unc path lower, no point on endless paths.
 		if(path.size() < 250 || path.size() > UNC_MAX_PATH) 
@@ -282,9 +283,13 @@ static string getShortTimeString(time_t t = time(NULL) );
 		else
 			temp = "\\\\?\\" + path;
 		return temp;
+#else
+		return path;
+#endif
 	}
 		
-	inline static tstring FormatPath(const tstring& path) {
+	inline static tstring FormatPathT(const tstring& path) {
+#ifdef _WIN32
 		//dont format unless its needed, xp works slower with these so.
 		//also we want to limit the unc path lower, no point on endless paths. 
 		if(path.size() < 250 || path.size() > UNC_MAX_PATH) 
@@ -296,6 +301,9 @@ static string getShortTimeString(time_t t = time(NULL) );
 		else
 			temp = _T("\\\\?\\") + path;
 		return temp;
+#else
+		return path;
+#endif
 	}
 
 	static string formatTime(int64_t aSec, bool translate, bool perMinute = false);
@@ -528,7 +536,7 @@ static string getShortTimeString(time_t t = time(NULL) );
 	static int strnicmp(const wstring& a, const wstring& b, size_t n) { return strnicmp(a.c_str(), b.c_str(), n); }
 	
 	static void replace(string& aString, const string& findStr, const string& replaceStr);
-	static tstring replace(const tstring& aString, const tstring& fStr, const tstring& rStr);
+	static tstring replaceT(const tstring& aString, const tstring& fStr, const tstring& rStr);
 
 	static bool toBool(const int aNumber) {
 		return (aNumber > 0 ? true : false);

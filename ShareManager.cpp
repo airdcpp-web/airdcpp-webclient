@@ -1501,13 +1501,13 @@ uint8_t ShareManager::isDirShared(const string& aDir, int64_t aSize) const {
 	return dir->getTotalSize() == aSize ? 2 : 1;
 }
 
-tstring ShareManager::getDirPath(const string& aDir) {
+string ShareManager::getDirPath(const string& aDir) {
 	RLock l (cs);
 	auto dir = getDirByName(aDir);
 	if (!dir)
-		return Util::emptyStringT;
+		return Util::emptyString;
 
-	return Text::toT(dir->getRealPath(true));
+	return dir->getRealPath(true);
 }
 
 /* This isn't optimized for matching subdirs but there shouldn't be need to match many of those 

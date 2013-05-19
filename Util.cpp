@@ -1410,7 +1410,7 @@ void Util::replace(string& aString, const string& findStr, const string& replace
    }
 }
 
-tstring Util::replace(const tstring& aString, const tstring& fStr, const tstring& rStr) {
+tstring Util::replaceT(const tstring& aString, const tstring& fStr, const tstring& rStr) {
 	tstring tmp = aString;
 	tstring::size_type pos = 0;
 	while( (pos = tmp.find(fStr, pos)) != tstring::npos ) {

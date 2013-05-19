@@ -184,7 +184,7 @@ public:
 	bool checkRecent();
 	bool isRecent() const { return recent; }
 
-	tstring getBundleText();
+	string getBundleText();
 
 	/* QueueManager */
 	bool isFailed() const;

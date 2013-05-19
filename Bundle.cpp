@@ -601,12 +601,12 @@ int Bundle::countOnlineUsers() const noexcept {
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
 }
 
-tstring Bundle::getBundleText() noexcept {
+string Bundle::getBundleText() noexcept {
 	double percent = size <= 0 ? 0.00 : (double)((currentDownloaded+finishedSegments)*100.0)/(double)size;
 	if (fileBundle) {
-		return Text::toT(getName());
+		return getName();
 	} else {
-		return Text::toT(getName()) + _T(" (") + Util::toStringW(percent) + _T("%, ") + Text::toT(AirUtil::getPrioText(getPriority())) + _T(", ") + Util::toStringW(sources.size()) + _T(" sources)");
+		return getName() + " (" + Util::toString(percent) + "%, " + AirUtil::getPrioText(getPriority()) + ", " + Util::toString(sources.size()) + " sources)";
 	}
 }
 
