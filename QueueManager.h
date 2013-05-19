@@ -338,7 +338,7 @@ private:
 	void removeFinishedBundle(BundlePtr& aBundle);
 
 	/* Returns true if an item can be replaces */
-	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH);
+	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH) throw(FileException, QueueException);
 
 	void removeFileSource(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 

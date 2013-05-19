@@ -219,9 +219,9 @@ string AutoSearch::getSearchingStatus() const {
 		if (status == STATUS_QUEUED_OK) {
 			return STRING(INACTIVE_QUEUED);
 		} else if (status == STATUS_FAILED_MISSING) {
-			return STRING_F(BUNDLE_X_FILES_MISSING, STRING(ACTIVE));
+			return STRING_F(X_MISSING_FILES, STRING(ACTIVE));
 		} else if (status == STATUS_FAILED_EXTRAS) {
-			return STRING_F(BUNDLE_X_EXTRA_FILES, STRING(INACTIVE));
+			return STRING_F(X_FAILED_SHARING, STRING(INACTIVE));
 		}
 	}
 
@@ -269,7 +269,7 @@ void AutoSearch::updateStatus() {
 		status = AutoSearch::STATUS_QUEUED_OK;
 	} else if (maxBundle->getStatus() == Bundle::STATUS_FAILED_MISSING) {
 		status = AutoSearch::STATUS_FAILED_MISSING;
-	} else if (maxBundle->getStatus() == Bundle::STATUS_FAILED_EXTRAS) {
+	} else if (maxBundle->getStatus() == Bundle::STATUS_SHARING_FAILED) {
 		status = AutoSearch::STATUS_FAILED_EXTRAS;
 	} else {
 		dcassert(0);
@@ -536,10 +536,8 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr& as) const {
 				auto& b = *as->getBundles().begin();
 				if (b->getStatus() == Bundle::STATUS_QUEUED) {
 					statusString += STRING_F(BUNDLE_X_QUEUED, b->getName());
-				} else if (b->getStatus() == Bundle::STATUS_FAILED_MISSING) {
-					statusString += STRING_F(BUNDLE_X_FILES_MISSING, b->getName());
-				} else if (b->getStatus() == Bundle::STATUS_FAILED_EXTRAS) {
-					statusString += STRING_F(BUNDLE_X_EXTRA_FILES, b->getName());
+				} else if (b->getStatus() == Bundle::STATUS_FAILED_MISSING || b->getStatus() == Bundle::STATUS_SHARING_FAILED) {
+					statusString += b->getName() + " (" + b->getLastError() + ")";
 				}
 			} else {
 				statusString += STRING_F(X_BUNDLES_QUEUED, bundleCount);

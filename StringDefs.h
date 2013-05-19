@@ -1504,8 +1504,6 @@ enum Strings { // @DontAdd
 	INACTIVE_QUEUED, // "Inactive (files queued)"
 	MATCHING_MANUAL, // "Matching only (manual search)"
 	BUNDLE_X_QUEUED, // "%s (queued)"
-	BUNDLE_X_FILES_MISSING, // "%s (missing files)"
-	BUNDLE_X_EXTRA_FILES, // "%s (extra files)"
 	FAILED_BUNDLE_SEARCHED, // "A failed bundle %s has been searched for"
 	FAILED_BUNDLE_SEARCHED_IN, // "A failed bundle %s will be searched for in %d seconds"
 	AWAY_ON, // "Away mode ON - Click to adjust"
@@ -1741,5 +1739,12 @@ enum Strings { // @DontAdd
 	LOG_COMBINE_ADC_PM, // "Use a single log file per CID for ADC users"
 	FOLLOW_SYMLINKS, // "Follow symbolic links"
 	PAUSED_FORCED, // "Paused (forced)"
+	SCAN_MONITORED_FOLDERS, // "Scan new directories in share for missing/extra files (monitoring only)"
+	FORCE_SHARE_SCAN,  // "Refresh the directory after fixing the problem(s) to add it in share"
+	SCAN_SHARE_DIR_FAILED, // "The directory %s won't be shared because the following problems were found: %s"
+	SCANNING_FAILED_X, // "Scanning failed: %s"
+	X_FILES_FAILED_HASHING, // "%d files failed to hash"
+	X_FAILED_SHARING, // "%s (failed sharing)"
+	X_MISSING_FILES, // "%s (missing files)"
 	LAST // @DontAdd
 };

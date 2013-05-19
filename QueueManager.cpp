@@ -385,6 +385,7 @@ bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueExceptio
 void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, BundlePtr aBundle /*nullptr*/) throw(QueueException, FileException) {
 	//check the source
 	checkSource(aUser);
+	dcassert(!aUser.hint.empty());
 
 	//format the target
 	string target;
@@ -427,7 +428,7 @@ string QueueManager::getListPath(const HintedUser& user) {
 	return Util::validateFileName(Util::getListPath() + nick + user.user->getCID().toBase32());
 }
 
-bool QueueManager::replaceItem(QueueItemPtr& q, int64_t aSize, const TTHValue& aTTH) {
+bool QueueManager::replaceItem(QueueItemPtr& q, int64_t aSize, const TTHValue& aTTH) throw(FileException, QueueException) {
 	if(q->isFinished()) {
 		/* The target file doesn't exist, add our item. Also recheck the existance in case of finished files being moved on the same time. */
 		dcassert(q->getBundle());
@@ -436,7 +437,7 @@ bool QueueManager::replaceItem(QueueItemPtr& q, int64_t aSize, const TTHValue& a
 			fileQueue.remove(q);
 			return true;
 		} else {
-			throw QueueException(STRING(FILE_ALREADY_FINISHED));
+			throw FileException(STRING(FILE_ALREADY_FINISHED));
 		}
 	} else {
 		/* try to add the source for the existing item */
@@ -746,10 +747,18 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 					added++;
 			} catch(QueueException& e) {
 				errors.add(e.getError(), bfi.file, false);
+			} catch(FileException& /*e*/) {
+				//the file has finished after we made the initial target check, don't add error for those
+				existingFiles++;
 			}
 		}
 
 		if (!addBundle(b, target, added)) {
+			if (existingFiles == fileCount) {
+				errorMsg_ = STRING_F(ALL_BUNDLE_FILES_EXIST, existingFiles);
+				return nullptr;
+			}
+
 			errors.setErrorMsg(errorMsg_);
 			return nullptr;
 		}
@@ -760,6 +769,8 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
 	}
+
+	errors.clearMinor();
 
 	errors.setErrorMsg(errorMsg_);
 	return b;
@@ -1274,21 +1285,13 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) {
 }
 
 bool QueueManager::scanBundle(BundlePtr& aBundle) {
-	if (!SETTING(SCAN_DL_BUNDLES))
-		return true;
+	string error_;
+	auto newStatus = ShareScannerManager::getInstance()->onScanBundle(aBundle, error_);
+	if (!error_.empty())
+		aBundle->setLastError(error_);
 
-	bool hasMissing=false, hasExtras=false;
-	string msg;
-	ShareScannerManager::getInstance()->scanBundle(aBundle, hasMissing, hasExtras, msg);
-
-	if (hasMissing || hasExtras) {
-		auto newStatus = hasExtras ? Bundle::STATUS_FAILED_EXTRAS : Bundle::STATUS_FAILED_MISSING;
-		setBundleStatus(aBundle, newStatus);
-		return false;
-	} else {
-		setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
-	}
-	return true;
+	setBundleStatus(aBundle, newStatus);
+	return newStatus == Bundle::STATUS_FINISHED;
 }
 
 void QueueManager::hashBundle(BundlePtr& aBundle) {
@@ -3425,17 +3428,21 @@ bool QueueManager::changeTarget(QueueItemPtr& qs, const string& aTarget, bool mo
 		QueueItemPtr qt = fileQueue.findFile(target);
 		if (qt) {
 			//we have something already
-			if (replaceItem(qt, qs->getSize(), qs->getTTH())) {
-				qt = nullptr;
-			} else {
-				//add the sources
-				for(auto& s: qs->getSources()) {
-					try {
-						addSource(qt, s.getUser(), QueueItem::Source::FLAG_MASK);
-					} catch(const Exception&) {
-						//..
+			try {
+				if (replaceItem(qt, qs->getSize(), qs->getTTH())) {
+					qt = nullptr;
+				} else {
+					//add the sources
+					for(auto& s: qs->getSources()) {
+						try {
+							addSource(qt, s.getUser(), QueueItem::Source::FLAG_MASK);
+						} catch(const Exception&) {
+							//..
+						}
 					}
 				}
+			} catch(...) { 
+				//finished or invalcontinue to removal
 			}
 		}
 

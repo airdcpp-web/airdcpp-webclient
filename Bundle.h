@@ -64,7 +64,7 @@ public:
 		STATUS_QUEUED,
 		STATUS_FINISHED,
 		STATUS_FAILED_MISSING,
-		STATUS_FAILED_EXTRAS,
+		STATUS_SHARING_FAILED,
 		STATUS_HASHING,
 		STATUS_HASH_FAILED,
 		STATUS_SHARED
@@ -135,6 +135,7 @@ public:
 	GETSET(time_t, dirDate, DirDate);				// the directory modify date picked from the remote filelist when the bundle has been queued
 	GETSET(bool, simpleMatching, SimpleMatching);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
 	GETSET(bool, seqOrder, SeqOrder);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
+	GETSET(string, lastError, LastError); 
 
 	GETSET(uint16_t, running, Running);				// number of running users
 	GETSET(uint64_t, bundleBegin, BundleBegin);		// time that is being reset every time when a waiting the bundle gets running downloads (GUI purposes really)

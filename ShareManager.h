@@ -676,26 +676,34 @@ private:
 	void onFileModified(const string& aPath);
 
 	struct DirModifyInfo {
-		DirModifyInfo() : lastActivity(GET_TICK()) { }
-		DirModifyInfo(const string& aFile) : lastActivity(GET_TICK()) {
+		DirModifyInfo() : lastFileActivity(GET_TICK()), lastReportedError(0) { }
+		DirModifyInfo(const string& aFile) : lastFileActivity(GET_TICK()), lastReportedError(0) {
 			files.insert(aFile);
 		}
 
 		void addFile(const string& aFile) {
 			files.insert(aFile);
-			lastActivity = GET_TICK();
+			lastFileActivity = GET_TICK();
 		}
 
 		set<string, Util::PathSortOrderBool> files;
-		time_t lastActivity;
+		time_t lastFileActivity;
+		time_t lastReportedError;
 	};
 
 	struct DirAddInfo {
-		DirAddInfo(const string& aPath, DirModifyInfo& aDmi, Directory::Ptr aDir) : path(aPath), dir(aDir), files(aDmi.files) { }
+		enum DmiAction {
+			ACTION_NONE,
+			ACTION_UPDATE_TIMES,
+			ACTION_REMOVE
+		};
+
+		DirAddInfo(const string& aPath, DirModifyInfo& aDmi, const Directory::Ptr& aDir) : path(aPath), dir(aDir), dmiCopy(aDmi), parentAction(ACTION_NONE) { }
 
 		string path;
-		set<string, Util::PathSortOrderBool> files;
+		DirModifyInfo dmiCopy;
 		Directory::Ptr dir;
+		DmiAction parentAction;
 	};
 
 	struct FileAddInfo {

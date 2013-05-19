@@ -639,46 +639,68 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 	}
 }
 
-void ShareScannerManager::scanBundle(BundlePtr aBundle, bool& hasMissing, bool& hasExtras, string& resultMsg_) noexcept {
+Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, string& error_) noexcept {
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
 		ScanInfo scanner(aBundle->getName(), false);
 
 		scanDir(aBundle->getTarget(), scanner);
 		find(aBundle->getTarget(), scanner);
 
-
-		resultMsg_ = scanner.getResults();
-
-		hasMissing = scanner.hasMissing();
-		hasExtras = scanner.hasExtras();
+		bool hasMissing = scanner.hasMissing();
+		bool hasExtras = scanner.hasExtras();
 
 		if (!aBundle->isFailed() || hasMissing || hasExtras) {
-			string report;
+			string logMsg;
 			if (aBundle->isFailed()) {
-				report = STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getName());
+				logMsg = STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getName());
 			} else {
-				report = STRING_F(SCAN_BUNDLE_FINISHED, aBundle->getName());
+				logMsg = STRING_F(SCAN_BUNDLE_FINISHED, aBundle->getName());
 			}
 
 			if (hasMissing || hasExtras) {
 				if (!aBundle->isFailed()) {
-					report += " ";
-					report += CSTRING(SCAN_PROBLEMS_FOUND);
-					report += ":  ";
+					logMsg += " ";
+					logMsg += CSTRING(SCAN_PROBLEMS_FOUND);
+					logMsg += ":  ";
 				}
 
-				report += resultMsg_;
+				logMsg += scanner.getResults();
 				if (SETTING(ADD_FINISHED_INSTANTLY)) {
-					report += ". " + STRING_F(FORCE_HASH_NOTIFICATION, aBundle->getTarget());
+					logMsg += ". " + STRING_F(FORCE_HASH_NOTIFICATION, aBundle->getTarget());
 				}
+
+				error_ = STRING_F(SCANNING_FAILED_X, scanner.getResults());
 			} else {
-				report += ", ";
-				report += CSTRING(SCAN_NO_PROBLEMS);
+				logMsg += ", ";
+				logMsg += CSTRING(SCAN_NO_PROBLEMS);
 			}
 
-			LogManager::getInstance()->message(report, (hasMissing || hasExtras) ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
+			LogManager::getInstance()->message(logMsg, (hasMissing || hasExtras) ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
+			if (hasMissing && !hasExtras)
+				return Bundle::STATUS_FAILED_MISSING;
+			if (hasExtras)
+				return Bundle::STATUS_SHARING_FAILED;
 		}
 	}
+
+	return Bundle::STATUS_FINISHED;
+}
+
+bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_) {
+	if (!SETTING(SCAN_MONITORED_FOLDERS))
+		return true;
+
+	ScanInfo scanner(aDir, false);
+
+	scanDir(aDir, scanner);
+	find(aDir, scanner);
+
+	if (scanner.hasMissing() || scanner.hasExtras()) {
+		error_ = scanner.getResults();
+		return false;
+	}
+
+	return true;
 }
 
 void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan, bool warning /*true*/) {
@@ -701,55 +723,45 @@ string ShareScannerManager::ScanInfo::getResults() const {
 	string tmp;
 	bool first = true;
 
-	if (missingFiles > 0) {
+	auto checkFirst = [&] {
+		if (!first) {
+			tmp += ", ";
+		}
 		first = false;
+	};
+
+	if (missingFiles > 0) {
+		checkFirst();
 		tmp += STRING_F(X_MISSING_RELEASE_FILES, missingFiles);
 	}
 
 	if (missingSFV > 0) {
-		if (!first) {
-			tmp += ", ";
-		}
-		first = false;
+		checkFirst();
 		tmp += STRING_F(X_MISSING_SFV_FILES, missingSFV);
 	}
 
 	if (missingNFO > 0) {
-		if (!first) {
-			tmp += ", ";
-		}
-		first = false;
+		checkFirst();
 		tmp += STRING_F(X_MISSING_NFO_FILES, missingNFO);
 	}
 
 	if (extrasFound > 0) {
-		if (!first) {
-			tmp += ", ";
-		}
-		first = false;
+		checkFirst();
 		tmp += STRING_F(X_FOLDERS_EXTRAS, extrasFound);
 	}
 
 	if (noReleaseFiles > 0) {
-		if (!first) {
-			tmp += ", ";
-		}
-		first = false;
+		checkFirst();
 		tmp += STRING_F(X_NO_RELEASE_FILES, noReleaseFiles);
 	}
 
 	if (emptyFolders > 0) {
-		if (!first) {
-			tmp += ", ";
-		}
-		first = false;
+		checkFirst();
 		tmp += STRING_F(X_EMPTY_FOLDERS, emptyFolders);
 	}
 
 	if (dupesFound > 0) {
-		if (!first) {
-			tmp += ", ";
-		}
+		checkFirst();
 		tmp += STRING_F(X_DUPE_FOLDERS, dupesFound);
 	}
 

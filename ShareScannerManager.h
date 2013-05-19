@@ -24,6 +24,7 @@
 #include "noexcept.h"
 #include "atomic.h"
 
+#include "Bundle.h"
 #include "SFVReader.h"
 #include "Speaker.h"
 #include "Singleton.h"
@@ -58,7 +59,9 @@ public:
 	};
 
 	int scan(StringList paths = StringList(), bool sfv = false);
-	void scanBundle(BundlePtr aBundle, bool& hasMissing, bool& hasExtras, string& resultMsg_);
+	Bundle::Status onScanBundle(const BundlePtr& aBundle, string& error_);
+	bool onScanSharedDir(const string& aDir, string& error_);
+
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan);
 	void Stop();
 

@@ -40,6 +40,7 @@
 #include "SearchResult.h"
 #include "Wildcards.h"
 #include "AirUtil.h"
+#include "ShareScannerManager.h"
 
 #include "version.h"
 
@@ -209,7 +210,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 	{
 		RLock l(cs);
 		for (auto& info: fileModifications) {
-			if (!forced && info.second.lastActivity + static_cast<uint64_t>(30*1000) > aTick)
+			if (!forced && info.second.lastFileActivity + static_cast<uint64_t>(30*1000) > aTick)
 				continue;
 
 			auto dir = findDirectory(info.first, false, false, true);
@@ -229,15 +230,34 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 
 	ProfileTokenSet dirtyProfiles;
 	StringList refresh;
-	for (auto i = dirs.begin(); i != dirs.end(); ) {
+	for (auto& i: dirs) {
 		// a new dir? can we add it?
-		if (!(*i).dir && !allowAddDir((*i).path)) {
-			i++;
+		if (!i.dir && !allowAddDir(i.path)) {
+			i.parentAction = DirAddInfo::ACTION_REMOVE;
 			continue;
 		}
 
-		if (find_if(bundlePaths, [&i](const string& p) { return AirUtil::isParentOrExact(p, (*i).path); }) != bundlePaths.end()) {
-			i++;
+		// scan for missing/extra files
+		string error_;
+		if (!ShareScannerManager::getInstance()->onScanSharedDir(i.path, error_)) {
+			if (forced || i.dmiCopy.lastReportedError == 0 || (i.dmiCopy.lastReportedError + static_cast<uint64_t>(10*60*1000) < aTick)) {
+				string logMsg;
+				logMsg += STRING_F(SCAN_SHARE_DIR_FAILED, i.path % error_);
+				logMsg += ". ";
+				logMsg += STRING(FORCE_SHARE_SCAN);
+
+				LogManager::getInstance()->message(logMsg, LogManager::LOG_ERROR );
+
+				i.dmiCopy.lastReportedError = aTick;
+				i.parentAction = DirAddInfo::ACTION_UPDATE_TIMES;
+			}
+
+			//keep in the main list and try again later
+			continue;
+		}
+
+		if (find_if(bundlePaths, [&i](const string& bundlePath) { return AirUtil::isParentOrExact(bundlePath, i.path); }) != bundlePaths.end()) {
+			i.parentAction = DirAddInfo::ACTION_REMOVE;
 			continue;
 		}
 
@@ -245,16 +265,16 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 		bool failed = false;
 
 		// Check that the file can be accessed, FileFindIter won't show it (also files being copied will come here)
-		for (const auto& fi: (*i).files) {
+		for (const auto& fi: i.dmiCopy.files) {
 			//check for file bundles
-			if (binary_search(bundlePaths.begin(), bundlePaths.end(), Text::toLower((*i).path + fi))) {
+			if (binary_search(bundlePaths.begin(), bundlePaths.end(), Text::toLower(i.path + fi))) {
 				failed = true;
 				break;
 			}
 
 			try {
-				File ff((*i).path + fi, File::READ, File::SHARED_WRITE | File::OPEN | File::NO_CACHE_HINT);
-				if ((*i).dir) {
+				File ff(i.path + fi, File::READ, File::SHARED_WRITE | File::OPEN | File::NO_CACHE_HINT);
+				if (i.dir) {
 					files.emplace_back(Util::getFileName(fi), ff.getLastModified(), ff.getSize());
 				}
 			} catch(...) {
@@ -265,29 +285,28 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 
 		if (failed) {
 			//keep this in the main list and try again later
-			i = dirs.erase(i);
 			continue;
 		}
 
-		if (!(*i).dir) {
+		if (!i.dir) {
 			//add new directories via normal refresh
-			refresh.push_back((*i).path);
+			refresh.push_back(i.path);
 		} else {
 			//add each file in the dir
 			int addedFiles=0;
 			int64_t hashSize=0;
 			for (const auto& file: files) {
-				if (!checkSharedName((*i).path + file.name, false, false, file.size))
+				if (!checkSharedName(i.path + file.name, false, false, file.size))
 					continue;
 
 				addedFiles++;
 				try {
 					HashedFile fi(file.lastWrite, file.size);
-					HashManager::getInstance()->checkTTH((*i).path + file.name, fi);
+					HashManager::getInstance()->checkTTH(i.path + file.name, fi);
 
 					{
 						WLock l(cs);
-						addFile(Util::getFileName((*i).path + file.name), (*i).dir, fi, dirtyProfiles);
+						addFile(Util::getFileName(i.path + file.name), i.dir, fi, dirtyProfiles);
 					}
 
 				} catch (...) { 
@@ -298,14 +317,23 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 			//if (files > 1 && hashSize > 0)
 			//	LogManager::getInstance()->message(Util::toString(added) + " files (" + Util::formatBytes(hashSize) + ") have been added for hashing; they won't be visible in the file list until they have finished hashing"
 		}
-		i++;
+
+		i.parentAction = DirAddInfo::ACTION_REMOVE;
 	}
 
-	//delete directories from the main list that have been handled now
-	if (!dirs.empty()) {
+	//apply the changes to the parent item list
+	{
 		WLock l(cs);
 		for (const auto& i: dirs) {
-			fileModifications.erase(i.path);
+			if (i.parentAction == DirAddInfo::ACTION_REMOVE) {
+				fileModifications.erase(i.path);
+			} else if (i.parentAction == DirAddInfo::ACTION_UPDATE_TIMES) {
+				auto p = fileModifications.find(i.path);
+				if (p != fileModifications.end()) {
+					(*p).second.lastFileActivity = max((*p).second.lastFileActivity, i.dmiCopy.lastFileActivity);
+					(*p).second.lastReportedError = max((*p).second.lastReportedError, i.dmiCopy.lastReportedError);
+				}
+			}
 		}
 	}
 

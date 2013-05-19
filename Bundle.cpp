@@ -407,7 +407,7 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
 }
 
 bool Bundle::isFailed() const {
-	return status == STATUS_FAILED_EXTRAS || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED;
+	return status == STATUS_SHARING_FAILED || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED;
 }
 
 string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const {

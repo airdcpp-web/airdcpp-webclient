@@ -174,7 +174,7 @@ void DirectoryListing::loadFile() {
 		if (mis) {
 			loadXML(*mis, true);
 		} else {
-			throw CSTRING(FILE_NOT_AVAILABLE);
+			throw Exception(CSTRING(FILE_NOT_AVAILABLE));
 		}
 	} else {
 
@@ -1034,7 +1034,7 @@ int DirectoryListing::run() {
 					if (mis) {
 						dirsLoaded = loadXML(*mis, true, lt->baseDir);
 					} else {
-						throw CSTRING(FILE_NOT_AVAILABLE);
+						throw Exception(CSTRING(FILE_NOT_AVAILABLE));
 					}
 				} else {
 					dirsLoaded = updateXML(lt->xml, lt->baseDir);
@@ -1106,7 +1106,7 @@ int DirectoryListing::run() {
 					endSearch(false);
 				}
 			}
-		} catch(const AbortException) {
+		} catch(const AbortException&) {
 			fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
 			break;
 		} catch(const ShareException& e) {
