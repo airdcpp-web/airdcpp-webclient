@@ -53,22 +53,22 @@ HashManager::HashManager(): /*nextSave(0),*/ pausers(0), aShutdown(false) {
 HashManager::~HashManager() { 
 }
 
-bool HashManager::checkTTH(const string& aFileName, HashedFile& fi_) {
-	auto nameLower = Text::toLower(aFileName);
-	if (!store.checkTTH(nameLower, fi_)) {
-		hashFile(aFileName, move(nameLower), fi_.getSize());
+bool HashManager::checkTTH(string&& aFileLower, const string& aFileName, HashedFile& fi_) {
+	dcassert(Text::isLower(aFileLower));
+	if (!store.checkTTH(aFileLower, fi_)) {
+		hashFile(aFileName, move(aFileLower), fi_.getSize());
 		return false;
 	}
 	return true;
 }
 
-void HashManager::getFileInfo(const string& aFileName, HashedFile& fi_) {
-	auto nameLower = Text::toLower(aFileName);
-	auto found = store.getFileInfo(nameLower, fi_);
+void HashManager::getFileInfo(string&& aFileLower, const string& aFileName, HashedFile& fi_) {
+	dcassert(Text::isLower(aFileLower));
+	auto found = store.getFileInfo(aFileLower, fi_);
 	if (!found) {
 		auto size = File::getSize(aFileName);
 		if (size >= 0)
-			hashFile(aFileName, move(nameLower), size);
+			hashFile(aFileName, move(aFileLower), size);
 		throw HashException();
 	}
 
@@ -259,10 +259,6 @@ void HashManager::HashStore::addFile(string&& aFileLower, const HashedFile& fi_)
 	}
 
 	free(buf);
-
-	/*HashedFile tmpFile;
-	getFileInfo(aFileLower, tmpFile);
-	auto fafas = "asgasg";*/
 }
 
 bool HashManager::renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi) {

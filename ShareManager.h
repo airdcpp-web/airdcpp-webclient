@@ -116,7 +116,7 @@ public:
 
 	void handleChangedFiles(uint64_t aTick, bool forced=false);
 	bool matchSkipList(const string& aStr) { return skipList.match(aStr); }
-	bool checkSharedName(const string& fullPath, bool dir, bool report = true, int64_t size = 0);
+	bool checkSharedName(const string& fullPath, const string& fullPathLower, bool dir, bool report = true, int64_t size = 0);
 	void validatePath(const string& realPath, const string& virtualName);
 
 	string toVirtual(const TTHValue& tth, ProfileToken aProfile) const;
@@ -323,7 +323,7 @@ private:
 			};
 			typedef set<File, FileLess> Set;
 
-			File(const string& aName, const Directory::Ptr& aParent, HashedFile& aFileInfo);
+			File(DualString&& aName, const Directory::Ptr& aParent, HashedFile& aFileInfo);
 			~File();
 
 			bool operator==(const File& rhs) const {
@@ -341,7 +341,6 @@ private:
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
 			GETSET(uint64_t, lastWrite, LastWrite);
-			//GETSET(string, nameLower, NameLower);
 			GETSET(TTHValue, tth, TTH);
 
 			DualString name;
@@ -355,7 +354,7 @@ private:
 		Set directories;
 		File::Set files;
 
-		static Ptr create(const string& aName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
+		static Ptr create(DualString&& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
 
 		struct HasRootProfile {
 			HasRootProfile(ProfileToken aT) : t(aT) { }
@@ -406,7 +405,7 @@ private:
 		GETSET(Directory*, parent, Parent);
 		GETSET(ProfileDirectory::Ptr, profileDir, ProfileDir);
 
-		Directory(const string& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
+		Directory(DualString&& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
 		~Directory() { }
 
 		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const;
@@ -542,7 +541,7 @@ private:
 	void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles);
 
 
-	void buildTree(const string& aPath, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
+	void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
 	bool checkHidden(const string& aName) const;
 	void addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_);
 

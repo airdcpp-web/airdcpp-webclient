@@ -1304,7 +1304,7 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 		{
 			RLock l(cs);
 			for (auto& qi: aBundle->getFinishedFiles()) {
-				if (ShareManager::getInstance()->checkSharedName(qi->getTarget(), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
+				if (ShareManager::getInstance()->checkSharedName(qi->getTarget(), Text::toLower(qi->getTarget()), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
 					qi->unsetFlag(QueueItem::FLAG_HASHED);
 					hash.push_back(qi);
 				} else {
@@ -1330,7 +1330,7 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 				try {
 					// Schedule for hashing, it'll be added automatically later on...
 					HashedFile fi(AirUtil::getLastWrite(q->getTarget()), q->getSize());
-					if (!HashManager::getInstance()->checkTTH(q->getTarget(), fi)) {
+					if (!HashManager::getInstance()->checkTTH(Text::toLower(q->getTarget()), q->getTarget(), fi)) {
 						//..
 					} else {
 						//fine, it's there already..
@@ -1459,7 +1459,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) {
 		} else {
 			try {
 				HashedFile fi;
-				HashManager::getInstance()->getFileInfo(b->getFinishedFiles().front()->getTarget(), fi);
+				HashManager::getInstance()->getFileInfo(Text::toLower(b->getFinishedFiles().front()->getTarget()), b->getFinishedFiles().front()->getTarget(), fi);
 				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
 			} catch (...) { dcassert(0); }
 		}

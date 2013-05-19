@@ -68,13 +68,13 @@ public:
 	/**
 	 * Check if the TTH tree associated with the filename is current.
 	 */
-	bool checkTTH(const string& aFileName, HashedFile& fi_);
+	bool checkTTH(string&& fileLower, const string& aFileName, HashedFile& fi_);
 
 	void stopHashing(const string& baseDir);
 	void setPriority(Thread::Priority p);
 
-	/** @return TTH root */
-	void getFileInfo(const string& aFileName, HashedFile& aFileInfo);
+	/** @return HashedFileInfo */
+	void getFileInfo(string&& fileLower, const string& aFileName, HashedFile& aFileInfo);
 
 	bool getTree(const TTHValue& root, TigerTree& tt);
 
@@ -213,7 +213,7 @@ private:
 		bool checkTTH(const string& aFileNameLower, HashedFile& fi_);
 
 		void addTree(const TigerTree& tt) noexcept;
-		bool getFileInfo(const string& aFileName, HashedFile& aFile);
+		bool getFileInfo(const string& aFileLower, HashedFile& aFile);
 		bool getTree(const TTHValue& root, TigerTree& tth);
 		bool hasTree(const TTHValue& root);
 
