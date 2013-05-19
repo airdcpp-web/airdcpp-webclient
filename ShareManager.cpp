@@ -1775,7 +1775,7 @@ int ShareManager::refresh(const string& aDir){
 				}
 			}
 
-			if (refreshPaths.empty()) {
+			if (!refreshPaths.empty()) {
 				sort(refreshPaths.begin(), refreshPaths.end());
 				refreshPaths.erase(unique(refreshPaths.begin(), refreshPaths.end()), refreshPaths.end());
 
