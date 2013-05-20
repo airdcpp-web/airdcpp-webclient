@@ -170,7 +170,7 @@ int ShareScannerManager::run() {
 
 		ScanInfoList scanners;
 		for(auto& dir: rootPaths) {
-			scanners.emplace_back(dir, true);
+			scanners.emplace_back(dir, ScanInfo::TYPE_COLLECT_LOG, true);
 		}
 
 		parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
@@ -181,14 +181,14 @@ int ShareScannerManager::run() {
 					if(SETTING(CHECK_DUPES) && isDirScan)
 						findDupes(s.rootPath, s);
 
-					find(s.rootPath, s);
+					find(s.rootPath, Text::toLower(s.rootPath), s);
 				}
 			}
 		});
 
 		if(!stop) {
 			//merge the results
-			ScanInfo total(Util::emptyString, false);
+			ScanInfo total(Util::emptyString, ScanInfo::TYPE_COLLECT_LOG, true);
 			for(auto& s: scanners) {
 				s.merge(total);
 			}
@@ -258,12 +258,12 @@ bool ShareScannerManager::matchSkipList(const string& dir) {
 	return false;
 }
 
-void ShareScannerManager::find(const string& aPath, ScanInfo& aScan) {
+void ShareScannerManager::find(const string& aPath, const string& aPathLower, ScanInfo& aScan) {
 	if(aPath.empty() || stop)
 		return;
 
 	string dir;
-	StringList dirs;
+	string dirLower;
 	
 	for(FileFindIter i(aPath + "*", true); i != FileFindIter(); ++i) {
 		try {
@@ -272,22 +272,21 @@ void ShareScannerManager::find(const string& aPath, ScanInfo& aScan) {
 					continue;
 				}
 				dir = aPath + i->getFileName() + PATH_SEPARATOR;
+				dirLower = aPathLower + Text::toLower(i->getFileName()) + PATH_SEPARATOR;
 				
-				if (aScan.isShareScan && std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir)) {
+				if (aScan.isManualShareScan && std::binary_search(bundleDirs.begin(), bundleDirs.end(), dirLower)) {
 					continue;
 				}
+
 				if(!i->isHidden()) {
 					scanDir(dir, aScan);
-					if(SETTING(CHECK_DUPES) && aScan.isShareScan)
+					if(SETTING(CHECK_DUPES) && aScan.isManualShareScan)
 						findDupes(dir, aScan);
-					dirs.push_back(dir);
+
+					find(dir, dirLower, aScan);
 				}
 			}
 		} catch(const FileException&) { } 
-	}
-
-	for(auto& d: dirs) {
-		find(d, aScan);
 	}
 }
 
@@ -641,10 +640,10 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 
 Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, string& error_) noexcept {
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
-		ScanInfo scanner(aBundle->getName(), false);
+		ScanInfo scanner(aBundle->getName(), ScanInfo::TYPE_SYSLOG, false);
 
 		scanDir(aBundle->getTarget(), scanner);
-		find(aBundle->getTarget(), scanner);
+		find(aBundle->getTarget(), Text::toLower(aBundle->getTarget()), scanner);
 
 		bool hasMissing = scanner.hasMissing();
 		bool hasExtras = scanner.hasExtras();
@@ -686,14 +685,14 @@ Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, strin
 	return Bundle::STATUS_FINISHED;
 }
 
-bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_) {
+bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_, bool report) {
 	if (!SETTING(SCAN_MONITORED_FOLDERS))
 		return true;
 
-	ScanInfo scanner(aDir, false);
+	ScanInfo scanner(aDir, report ? ScanInfo::TYPE_SYSLOG : ScanInfo::TYPE_NOREPORT, false);
 
 	scanDir(aDir, scanner);
-	find(aDir, scanner);
+	find(aDir, Text::toLower(aDir), scanner);
 
 	if (scanner.hasMissing() || scanner.hasExtras()) {
 		error_ = scanner.getResults();
@@ -704,9 +703,9 @@ bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_) {
 }
 
 void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan, bool warning /*true*/) {
-	if (!aScan.isShareScan) {
+	if (aScan.reportType == ScanInfo::TYPE_SYSLOG) {
 		LogManager::getInstance()->message(aMessage, warning ? LogManager::LOG_WARNING : LogManager::LOG_INFO);
-	} else {
+	} else if (aScan.reportType == ScanInfo::TYPE_COLLECT_LOG) {
 		aScan.scanMessage += aMessage + "\r\n";
 	}
 }

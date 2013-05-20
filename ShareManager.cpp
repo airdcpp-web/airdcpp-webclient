@@ -237,10 +237,16 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 			continue;
 		}
 
+		if (find_if(bundlePaths, [&i](const string& bundlePath) { return AirUtil::isParentOrExact(bundlePath, i.path); }) != bundlePaths.end()) {
+			i.parentAction = DirAddInfo::ACTION_REMOVE;
+			continue;
+		}
+
 		// scan for missing/extra files
 		string error_;
-		if (!ShareScannerManager::getInstance()->onScanSharedDir(i.path, error_)) {
-			if (forced || i.dmiCopy.lastReportedError == 0 || (i.dmiCopy.lastReportedError + static_cast<uint64_t>(10*60*1000) < aTick)) {
+		bool report = forced || i.dmiCopy.lastReportedError == 0 || (i.dmiCopy.lastReportedError + static_cast<uint64_t>(10*60*1000) < aTick);
+		if (!ShareScannerManager::getInstance()->onScanSharedDir(i.path, error_, forced)) {
+			if (report) {
 				string logMsg;
 				logMsg += STRING_F(SCAN_SHARE_DIR_FAILED, i.path % error_);
 				logMsg += ". ";
@@ -253,11 +259,6 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 			}
 
 			//keep in the main list and try again later
-			continue;
-		}
-
-		if (find_if(bundlePaths, [&i](const string& bundlePath) { return AirUtil::isParentOrExact(bundlePath, i.path); }) != bundlePaths.end()) {
-			i.parentAction = DirAddInfo::ACTION_REMOVE;
 			continue;
 		}
 

@@ -60,7 +60,7 @@ public:
 
 	int scan(StringList paths = StringList(), bool sfv = false);
 	Bundle::Status onScanBundle(const BundlePtr& aBundle, string& error_);
-	bool onScanSharedDir(const string& aDir, string& error_);
+	bool onScanSharedDir(const string& aDir, string& error_, bool report);
 
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan);
 	void Stop();
@@ -117,7 +117,13 @@ private:
 	StringList bundleDirs;
 
 	struct ScanInfo {
-		ScanInfo(const string& aRootPath, bool aIsShareScan) : rootPath(aRootPath), isShareScan(aIsShareScan), missingFiles(0), missingSFV(0), missingNFO(0), extrasFound(0), noReleaseFiles(0), emptyFolders(0), dupesFound(0) {}
+		enum ReportType {
+			TYPE_COLLECT_LOG,
+			TYPE_SYSLOG,
+			TYPE_NOREPORT
+		};
+
+		ScanInfo(const string& aRootPath, ReportType aReportType, bool aIsManualShareScan) : rootPath(aRootPath), reportType(aReportType), isManualShareScan(aIsManualShareScan), missingFiles(0), missingSFV(0), missingNFO(0), extrasFound(0), noReleaseFiles(0), emptyFolders(0), dupesFound(0) {}
 
 		int missingFiles;
 		int missingSFV;
@@ -127,7 +133,9 @@ private:
 		int emptyFolders;
 		int dupesFound;
 
-		bool isShareScan;
+		bool isManualShareScan;
+		ReportType reportType;
+
 		string rootPath;
 		string scanMessage;
 
@@ -139,7 +147,7 @@ private:
 
 	typedef vector<ScanInfo> ScanInfoList;
 
-	void find(const string& path, ScanInfo& aScan);
+	void find(const string& path, const string& aPathLower, ScanInfo& aScan);
 	void scanDir(const string& path, ScanInfo& aScan);
 	void findDupes(const string& path, ScanInfo& aScan);
 
