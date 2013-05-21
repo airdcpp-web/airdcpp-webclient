@@ -178,9 +178,13 @@ void ShareManager::removeMonitoring(const StringList& aPaths) {
 		LogManager::getInstance()->message(Util::toString(removed) + " folders have been removed from monitoring", LogManager::LOG_INFO);
 }
 
-void ShareManager::onFileModified(const string& aPath) {
+void ShareManager::onFileModified(const string& aPath, bool created) {
 	FileFindIter f(aPath);
 	if (f != FileFindIter()) {
+		// filter directory modifications as they may come for parent folders too
+		if (f->isDirectory() && !created)
+			return;
+
 		auto filePath = f->isDirectory() ? aPath + PATH_SEPARATOR : Util::getFilePath(aPath);
 		if(!SETTING(SHARE_HIDDEN) && f->isHidden())
 			return;
@@ -349,11 +353,11 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 
 void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
 	//LogManager::getInstance()->message("File added: " + Text::fromT(notifyPath), LogManager::LOG_INFO);
-	onFileModified(aPath);
+	onFileModified(aPath, true);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPath) noexcept {
-	onFileModified(aPath);
+	onFileModified(aPath, false);
 }
 
 void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList& aRename) {

@@ -676,7 +676,7 @@ private:
 	void addMonitoring(const StringList& aPaths);
 	void removeMonitoring(const StringList& aPaths);
 
-	void onFileModified(const string& aPath);
+	void onFileModified(const string& aPath, bool created);
 
 	struct DirModifyInfo {
 		DirModifyInfo() : lastFileActivity(GET_TICK()), lastReportedError(0) { }
