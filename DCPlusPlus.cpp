@@ -65,8 +65,6 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
-
-	Util::initialize();
 	AirUtil::init();
 
 	//create the running flag

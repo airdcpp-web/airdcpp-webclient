@@ -65,6 +65,7 @@ public:
 	 */
 	virtual bool eof() { return false; }
 
+	size_t write(string&& str) { return write(str.c_str(), str.size()); }
 	size_t write(const string& str) { return write(str.c_str(), str.size()); }
 	virtual OutputStream* releaseRootStream() { return this; }
 };

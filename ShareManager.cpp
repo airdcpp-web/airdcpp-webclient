@@ -496,7 +496,7 @@ void ShareManager::setProfilesDirty(ProfileTokenSet aProfiles, bool forceXmlRefr
 	}
 }
 
-ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::Directory::Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aProfileDir) :
+ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::Directory::Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr aProfileDir) :
 	size(0),
 	parent(aParent.get()),
 	fileTypes(1 << SearchManager::TYPE_DIRECTORY),
@@ -1089,7 +1089,7 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 	return nullptr;
 }
 
-ShareManager::Directory::Ptr ShareManager::Directory::create(DualString&& aName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aRoot /*nullptr*/) {
+ShareManager::Directory::Ptr ShareManager::Directory::create(DualString&& aName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr aRoot /*nullptr*/) {
 	auto dir = Ptr(new Directory(move(aName), aParent, aLastWrite, aRoot));
 	if (aParent)
 		aParent->directories.insert_sorted(dir);
@@ -1705,7 +1705,7 @@ bool ShareManager::checkHidden(const string& aName) const {
 	return true;
 }
 
-uint32_t ShareManager::findLastWrite(const string& aName) const {
+uint64_t ShareManager::findLastWrite(const string& aName) const {
 	auto ff = FileFindIter(aName.substr(0, aName.size() - 1));
 
 	if (ff != FileFindIter()) {
@@ -2166,7 +2166,7 @@ ShareManager::RefreshInfo::~RefreshInfo() {
 
 }
 
-ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint32_t aLastWrite) : path(aPath), oldRoot(aOldRoot), addedSize(0), hashSize(0) {
+ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite) : path(aPath), oldRoot(aOldRoot), addedSize(0), hashSize(0) {
 	subProfiles = std::move(getInstance()->getSubProfileDirs(aPath));
 
 	//create the new root
@@ -2689,7 +2689,7 @@ void ShareManager::Directory::File::toXml(OutputStream& xmlFile, string& indent,
 
 	if (addDate) {
 		xmlFile.write(LITERAL("\" Date=\""));
-		xmlFile.write(SimpleXML::escape(Util::toString(lastWrite), tmp2, true));
+		xmlFile.write(Util::toString(lastWrite));
 	}
 	xmlFile.write(LITERAL("\"/>\r\n"));
 }
@@ -3111,7 +3111,7 @@ bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults,
 		dcassert(0);
 	}
 
-	uint32_t date = 0;
+	uint64_t date = 0;
 	int64_t size = 0;
 	size_t files = 0, folders = 0;
 	for(const auto& d: result) {

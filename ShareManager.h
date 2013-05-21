@@ -360,7 +360,7 @@ private:
 		Set directories;
 		File::Set files;
 
-		static Ptr create(DualString&& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
+		static Ptr create(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
 
 		struct HasRootProfile {
 			HasRootProfile(ProfileToken aT) : t(aT) { }
@@ -407,11 +407,11 @@ private:
 		void toXmlList(OutputStream& xmlFile, string&& path, string& indent, string& tmp);
 		void filesToXmlList(OutputStream& xmlFile, string& indent, string& tmp2) const;
 
-		GETSET(uint32_t, lastWrite, LastWrite);
+		GETSET(uint64_t, lastWrite, LastWrite);
 		GETSET(Directory*, parent, Parent);
 		GETSET(ProfileDirectory::Ptr, profileDir, ProfileDir);
 
-		Directory(DualString&& aRealName, const Ptr& aParent, uint32_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
+		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
 		~Directory();
 
 		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const;
@@ -443,7 +443,7 @@ private:
 
 		string name;
 		int64_t size;
-		uint32_t date;
+		uint64_t date;
 		ListDirectoryMap listDirs;
 
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
@@ -499,7 +499,7 @@ private:
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
 	uint64_t lastSave;
-	uint32_t findLastWrite(const string& aName) const;
+	uint64_t findLastWrite(const string& aName) const;
 	
 	//caching the share size so we dont need to loop tthindex everytime
 	bool xml_saving;
@@ -522,7 +522,7 @@ private:
 
 	class RefreshInfo {
 	public:
-		RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint32_t aLastWrite);
+		RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite);
 		~RefreshInfo();
 
 		Directory::Ptr oldRoot;
@@ -710,10 +710,10 @@ private:
 	};
 
 	struct FileAddInfo {
-		FileAddInfo(string&& aName, uint32_t aLastWrite, int64_t aSize) : name(aName), lastWrite(aLastWrite), size(aSize) { }
+		FileAddInfo(string&& aName, uint64_t aLastWrite, int64_t aSize) : name(aName), lastWrite(aLastWrite), size(aSize) { }
 
 		string name;
-		uint32_t lastWrite;
+		uint64_t lastWrite;
 		int64_t size;
 	};
 

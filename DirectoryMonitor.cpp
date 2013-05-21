@@ -175,18 +175,23 @@ int DirectoryMonitor::run() {
 		if (stop)
 			break;
 
-		unique_ptr<NotifyTask> t;
-		if(!queue.pop(t)) {
-			continue;
-		}
-
-		if (t->eventType == EVENT_OVERFLOW) {
-			fire(DirectoryMonitorListener::Overflow(), Text::fromT(t->path));
-		} else {
-			processNotification(t->path, t->buf);
-		}
+		dispatch();
 	}
 	return 0;
+}
+
+bool DirectoryMonitor::dispatch() {
+	unique_ptr<NotifyTask> t;
+	if(!queue.pop(t)) {
+		return false;
+	}
+
+	if (t->eventType == EVENT_OVERFLOW) {
+		fire(DirectoryMonitorListener::Overflow(), Text::fromT(t->path));
+	} else {
+		processNotification(t->path, t->buf);
+	}
+	return true;
 }
 
 int DirectoryMonitor::Server::run() {

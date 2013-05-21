@@ -649,7 +649,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 bool QueueItem::startDown() {
 	if(bundle && !bundle->isPausedPrio() && getPriority() != PAUSED) {
 		return true;
-	} else if (bundle && bundle->getPriority() != PAUSED_FORCE && getPriority() == HIGHEST) {
+	} else if ((!bundle || bundle->getPriority() != PAUSED_FORCE) && getPriority() == HIGHEST) {
 		return true;
 	}
 	return false;

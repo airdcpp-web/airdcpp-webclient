@@ -60,6 +60,9 @@ public:
 
 	void stopMonitoring();
 	void init() throw(MonitorException);
+
+	// returns true as long as there are messages queued
+	bool dispatch();
 private:
 	friend class Monitor;
 	class Server : public Thread {
