@@ -196,12 +196,17 @@ size_t LevelDB::size(bool /*thorough*/) {
 	return ret;
 }
 
-void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f) {
+DbSnapshot* LevelDB::getSnapshot() {
+	return new LevelSnapshot(db);
+}
+
+void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/) {
 	// leveldb doesn't support erasing with an iterator, do it in the hard way
 	leveldb::WriteBatch wb;
 	leveldb::ReadOptions options;
 	options.fill_cache = false;
 	options.verify_checksums = false;
+	options.snapshot = static_cast<LevelSnapshot*>(aSnapshot)->snapshot;
 
 	{
 		auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(options));

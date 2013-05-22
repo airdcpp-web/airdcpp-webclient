@@ -31,6 +31,8 @@ namespace dcpp {
 
 class LevelDB : public DbHandler {
 public:
+	DbSnapshot* getSnapshot();
+
 	LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize = 4096);
 	~LevelDB();
 
@@ -43,11 +45,25 @@ public:
 
 	size_t size(bool /*thorough*/);
 
-	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f);
+	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/);
 	void compact();
 	void repair(StepFunction stepF, MessageFunction messageF);
 	void open(StepFunction stepF, MessageFunction messageF);
 private:
+	class LevelSnapshot : public DbSnapshot {
+	public:
+		LevelSnapshot(leveldb::DB* aDb) : snapshot(aDb->GetSnapshot()), db(aDb) {
+
+		}
+
+		~LevelSnapshot() { 
+			db->ReleaseSnapshot(snapshot);
+		}
+
+		leveldb::DB* db;
+		const leveldb::Snapshot* snapshot;
+	};
+
 	string getRepairFlag() const;
 	leveldb::Status performDbOperation(function<leveldb::Status ()> f);
 	void checkDbError(leveldb::Status aStatus);

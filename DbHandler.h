@@ -33,8 +33,14 @@ using std::string;
 
 STANDARD_EXCEPTION(DbException);
 
+class DbSnapshot {
+
+};
+
 class DbHandler {
 public:
+	virtual DbSnapshot* getSnapshot() { return nullptr; }
+
 	virtual void repair(StepFunction stepF, MessageFunction messageF) = 0;
 	virtual void open(StepFunction stepF, MessageFunction messageF) = 0;
 
@@ -46,7 +52,7 @@ public:
 
 	virtual size_t size(bool thorough) = 0;
 
-	virtual void remove_if(std::function<bool (void* aKey, size_t keyLen, void* aValue, size_t valueLen)> f) = 0;
+	virtual void remove_if(std::function<bool (void* aKey, size_t keyLen, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot = nullptr) = 0;
 	virtual void compact() { }
 
 	virtual string getStats() { return "Not supported"; }

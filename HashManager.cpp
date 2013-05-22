@@ -50,7 +50,8 @@ HashManager::HashManager(): /*nextSave(0),*/ pausers(0), aShutdown(false) {
 	//TimerManager::getInstance()->addListener(this);
 }
 
-HashManager::~HashManager() { 
+HashManager::~HashManager() {
+	optimizer.join();
 }
 
 bool HashManager::checkTTH(string&& aFileLower, const string& aFileName, HashedFile& fi_) {
@@ -493,64 +494,65 @@ bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& f
 
 void HashManager::HashStore::optimize(bool doVerify) {
 	getInstance()->fire(HashManagerListener::MaintananceStarted());
-	try {
-		int unusedTrees = 0;
-		int failedTrees = 0;
-		int unusedFiles=0; 
-		int validFiles = 0;
-		int validTrees = 0;
-		int64_t failedSize = 0;
 
-		LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_STARTED), LogManager::LOG_INFO);
-		unordered_set<TTHValue> usedRoots;
-		{
-			HashedFile fi;
-			string path;
-			try {
-				fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
-					path = string((const char*)aKey, key_len);
-					if (ShareManager::getInstance()->isRealPathShared(path)) {
-						loadFileInfo(aValue, valueLen, fi);
-						usedRoots.emplace(fi.getRoot());
-						validFiles++;
-						return false;
-					} else {
-						unusedFiles++;
-						return true;
-					}
-				});
-			} catch(DbException& e) {
-				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
-				LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogManager::LOG_ERROR);
-				getInstance()->fire(HashManagerListener::MaintananceFinished());
-				return;
-			}
+	int unusedTrees = 0;
+	int failedTrees = 0;
+	int unusedFiles=0; 
+	int validFiles = 0;
+	int validTrees = 0;
+	int64_t failedSize = 0;
+
+	LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_STARTED), LogManager::LOG_INFO);
+	unordered_set<TTHValue> usedRoots;
+	{
+		//make sure that the databases stay in sync so that trees added while this operation won't get removed
+		unique_ptr<DbSnapshot> fileSnapshot(fileDb->getSnapshot()); 
+		unique_ptr<DbSnapshot> hashSnapshot(fileDb->getSnapshot()); 
+
+		HashedFile fi;
+		string path;
+		try {
+			fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
+				path = string((const char*)aKey, key_len);
+				if (ShareManager::getInstance()->isRealPathShared(path)) {
+					loadFileInfo(aValue, valueLen, fi);
+					usedRoots.emplace(fi.getRoot());
+					validFiles++;
+					return false;
+				} else {
+					unusedFiles++;
+					return true;
+				}
+			}, fileSnapshot.get());
+		} catch(DbException& e) {
+			LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogManager::LOG_ERROR);
+			getInstance()->fire(HashManagerListener::MaintananceFinished());
+			return;
 		}
 
-		{
-			TigerTree tt;
-			TTHValue curRoot;
-			try {
-				hashDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
-					memcpy(&curRoot, aKey, key_len);
-					auto i = usedRoots.find(curRoot);
-					if (i == usedRoots.end()) {
-						unusedTrees++;
-					} else if (!doVerify || loadTree(aValue, valueLen, curRoot, tt)) {
-						usedRoots.erase(i);
-						validTrees++;
-						return false;
-					}
+		TigerTree tt;
+		TTHValue curRoot;
+		try {
+			hashDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
+				memcpy(&curRoot, aKey, key_len);
+				auto i = usedRoots.find(curRoot);
+				if (i == usedRoots.end()) {
+					unusedTrees++;
+				} else if (!doVerify || loadTree(aValue, valueLen, curRoot, tt)) {
+					usedRoots.erase(i);
+					validTrees++;
+					return false;
+				}
 
-					//failed
-					return true;
-				});
-			} catch(DbException& e) {
-				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
-				LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogManager::LOG_ERROR);
-				getInstance()->fire(HashManagerListener::MaintananceFinished());
-				return;
-			}
+				//failed
+				return true;
+			}, hashSnapshot.get());
+		} catch(DbException& e) {
+			LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogManager::LOG_ERROR);
+			getInstance()->fire(HashManagerListener::MaintananceFinished());
+			return;
 		}
 
 
@@ -568,7 +570,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 					}
 
 					return false;
-				});
+				}, fileSnapshot.get());
 			} catch(DbException& e) {
 				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 				LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogManager::LOG_ERROR);
@@ -576,47 +578,45 @@ void HashManager::HashStore::optimize(bool doVerify) {
 				return;
 			}
 		}
-
-		/*auto maybeCompact = [&](const SettingsManager::IntSetting setting, const string& aName, DbHandler* aDB) {
-			int curRemoved = SettingsManager::getInstance()->get(setting)+;
-			SettingsManager::getInstance()->set(setting, SettingsManager::getInstance()->get(setting) + unusedFiles);
-			if ((static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
-				LogManager::getInstance()->message(STRING_F(COMPACTING_X, Text::toLower(aName)), LogManager::LOG_INFO);
-				fileDb->compact();
-				SettingsManager::getInstance()->set(setting, 0);
-			}
-		}*/
-
-		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles);
-		if (validFiles == 0 || (static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
-			LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogManager::LOG_INFO);
-			fileDb->compact();
-			SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, 0);
-		}
-
-		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, SETTING(CUR_REMOVED_TREES) + unusedTrees);
-		if (validTrees == 0 || (static_cast<double>(SETTING(CUR_REMOVED_TREES)) / static_cast<double>(validTrees)) > 0.05) {
-			LogManager::getInstance()->message(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogManager::LOG_INFO);
-			hashDb->compact();
-			SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, 0);
-		}
-
-		string msg;
-		if (unusedFiles > 0 || unusedTrees > 0) {
-			msg = STRING_F(HASHDB_MAINTENANCE_UNUSED, unusedFiles % unusedTrees);
-		} else {
-			msg = STRING(HASHDB_MAINTENANCE_NO_UNUSED);
-		}
-
-		if (failedTrees > 0) {
-			msg += ". ";
-			msg += STRING_F(REBUILD_FAILED_ENTRIES, failedTrees % Util::formatBytes(failedSize));
-		}
-
-		LogManager::getInstance()->message(msg, failedTrees > 0 ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
-	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
 	}
+
+	/*auto maybeCompact = [&](const SettingsManager::IntSetting setting, const string& aName, DbHandler* aDB) {
+		int curRemoved = SettingsManager::getInstance()->get(setting)+;
+		SettingsManager::getInstance()->set(setting, SettingsManager::getInstance()->get(setting) + unusedFiles);
+		if ((static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
+			LogManager::getInstance()->message(STRING_F(COMPACTING_X, Text::toLower(aName)), LogManager::LOG_INFO);
+			fileDb->compact();
+			SettingsManager::getInstance()->set(setting, 0);
+		}
+	}*/
+
+	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles);
+	if (validFiles == 0 || (static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
+		LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogManager::LOG_INFO);
+		fileDb->compact();
+		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, 0);
+	}
+
+	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, SETTING(CUR_REMOVED_TREES) + unusedTrees);
+	if (validTrees == 0 || (static_cast<double>(SETTING(CUR_REMOVED_TREES)) / static_cast<double>(validTrees)) > 0.05) {
+		LogManager::getInstance()->message(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogManager::LOG_INFO);
+		hashDb->compact();
+		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, 0);
+	}
+
+	string msg;
+	if (unusedFiles > 0 || unusedTrees > 0) {
+		msg = STRING_F(HASHDB_MAINTENANCE_UNUSED, unusedFiles % unusedTrees);
+	} else {
+		msg = STRING(HASHDB_MAINTENANCE_NO_UNUSED);
+	}
+
+	if (failedTrees > 0) {
+		msg += ". ";
+		msg += STRING_F(REBUILD_FAILED_ENTRIES, failedTrees % Util::formatBytes(failedSize));
+	}
+
+	LogManager::getInstance()->message(msg, failedTrees > 0 ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 
 	getInstance()->fire(HashManagerListener::MaintananceFinished());
 }
@@ -952,7 +952,6 @@ HashManager::Optimizer::Optimizer() : running(false) {
 }
 
 HashManager::Optimizer::~Optimizer() {
-	join();
 }
 
 void HashManager::Optimizer::startMaintenance(bool aVerify) {
