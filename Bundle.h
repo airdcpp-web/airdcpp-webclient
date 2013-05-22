@@ -62,11 +62,14 @@ public:
 	enum Status {
 		STATUS_NEW, // not added in queue yet
 		STATUS_QUEUED,
-		STATUS_FINISHED,
+		STATUS_DOWNLOADED, // no queued files
+		STATUS_MOVED, // all files moved
 		STATUS_FAILED_MISSING,
 		STATUS_SHARING_FAILED,
+		STATUS_FINISHED, // no missing files, ready for hashing
 		STATUS_HASHING,
 		STATUS_HASH_FAILED,
+		STATUS_HASHED,
 		STATUS_SHARED
 	};
 

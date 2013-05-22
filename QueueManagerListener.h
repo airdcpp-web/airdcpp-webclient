@@ -50,7 +50,6 @@ public:
 	
 	typedef X<15> BundleSources;
 
-	typedef X<16> BundleFinished;
 	typedef X<17> BundleMerged;
 	typedef X<18> BundleRemoved;
 	typedef X<19> BundleMoved;
@@ -59,10 +58,8 @@ public:
 	typedef X<22> BundleUser;
 	typedef X<23> BundlePriority;
 	typedef X<24> BundleAdded;
-	typedef X<25> BundleHashed;
 
 	typedef X<26> FileHashed;
-	typedef X<27> BundleFilesMoved;
 	typedef X<28> BundleStatusChanged;
 
 	virtual void on(Added, QueueItemPtr&) noexcept { }
@@ -75,7 +72,6 @@ public:
 	virtual void on(SourceFilesUpdated, const UserPtr&) noexcept { }
 
 	virtual void on(BundleSources, const BundlePtr&) noexcept { }
-	virtual void on(BundleFinished, const BundlePtr&) noexcept { }
 	virtual void on(BundleRemoved, const BundlePtr&) noexcept { }
 	virtual void on(BundleMoved, const BundlePtr&) noexcept { }
 	virtual void on(BundleMerged, const BundlePtr&, const string&) noexcept { }
@@ -83,9 +79,7 @@ public:
 	virtual void on(BundleTarget, const BundlePtr&) noexcept { }
 	virtual void on(BundlePriority, const BundlePtr&) noexcept { }
 	virtual void on(BundleAdded, const BundlePtr&) noexcept { }
-	virtual void on(BundleHashed, const string&) noexcept { }
 	virtual void on(FileHashed, const string& /* fileName */, HashedFile& /* fileInfo */) noexcept { }
-	virtual void on(BundleFilesMoved, const BundlePtr&) noexcept { }
 	virtual void on(BundleStatusChanged, const BundlePtr&) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }

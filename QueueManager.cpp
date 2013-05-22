@@ -1268,6 +1268,8 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) {
 			sendRemovePBD(ubp.first, ubp.second);
 	}
 
+	setBundleStatus(aBundle, Bundle::STATUS_MOVED);
+
 	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
 		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 		setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
@@ -1455,7 +1457,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) {
 
 	if (fireHashed) {
 		if (!b->isFileBundle()) {
-			fire(QueueManagerListener::BundleHashed(), b->getTarget());
+			setBundleStatus(b, Bundle::STATUS_HASHED);
 		} else {
 			try {
 				HashedFile fi;
@@ -3613,7 +3615,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 
 	if (finished) {
 		aBundle->finishBundle();
-		fire(QueueManagerListener::BundleFinished(), aBundle);
+		setBundleStatus(aBundle, Bundle::STATUS_DOWNLOADED);
 	} else if (!moved) {
 		//LogManager::getInstance()->message("The Bundle " + aBundle->getName() + " has been removed");
 		DownloadManager::getInstance()->disconnectBundle(aBundle);

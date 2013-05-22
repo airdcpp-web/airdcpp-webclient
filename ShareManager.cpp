@@ -991,7 +991,7 @@ bool ShareManager::isRealPathShared(const string& aPath) {
 }
 
 string ShareManager::validateVirtual(const string& aVirt) const noexcept {
-	string tmp = aVirt;
+	string tmp = aVirt.data(); // no terminating char
 	string::size_type idx = 0;
 
 	while( (idx = tmp.find_first_of("\\/"), idx) != string::npos) {
@@ -3321,16 +3321,22 @@ void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundl
 	bundleDirs.insert(upper_bound(bundleDirs.begin(), bundleDirs.end(), aBundle->getTarget()), aBundle->getTarget());
 }
 
-void ShareManager::on(QueueManagerListener::BundleHashed, const string& path) noexcept {
-	{
+void ShareManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
+	if (aBundle->getStatus() == Bundle::STATUS_MOVED) {
 		//we don't want any monitoring actions for this folder...
 		WLock l(cs);
-		fileModifications.erase(path);
-	}
+		auto p = fileModifications.find(aBundle->getTarget());
+		if (p == fileModifications.end()) {
+			p = find_if(fileModifications, [&aBundle](const pair<string, DirModifyInfo>& pdp) { return AirUtil::isParentOrExact(pdp.first, aBundle->getTarget()); });
+		}
 
-	StringList dirs;
-	dirs.push_back(path);
-	addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, Util::getLastDir(path));
+		if (p != fileModifications.end())
+			fileModifications.erase(p);
+	} else if (aBundle->getStatus() == Bundle::STATUS_HASHED) {
+		StringList dirs;
+		dirs.push_back(aBundle->getTarget());
+		addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, aBundle->getTarget());
+	}
 }
 
 bool ShareManager::allowAddDir(const string& aPath) noexcept {

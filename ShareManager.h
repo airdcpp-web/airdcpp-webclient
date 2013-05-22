@@ -638,7 +638,7 @@ private:
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
-	virtual void on(QueueManagerListener::BundleHashed, const string& aPath) noexcept;
+	virtual void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
 	virtual void on(QueueManagerListener::FileHashed, const string& aPath, HashedFile& aFileInfo) noexcept { onFileHashed(aPath, aFileInfo); }
 
 	// SettingsManagerListener
