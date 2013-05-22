@@ -97,8 +97,10 @@ public:
 	static bool deleteFile(const string& aFileName) noexcept;
 	static bool delayedDeleteFile(const string& aFileName, int maxAttempts) noexcept;
 
+
 	static int64_t getSize(const string& aFileName) noexcept;
 	static int64_t getBlockSize(const string& aFileName) noexcept;
+	static int64_t getDirSize(const string& aPath, bool recursive) noexcept;
 
 	static void ensureDirectory(const string& aFile) noexcept;
 	static bool createDirectory(const string& aFile);

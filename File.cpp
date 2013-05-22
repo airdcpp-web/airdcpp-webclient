@@ -564,6 +564,24 @@ int64_t File::getBlockSize(const string& aFileName) noexcept {
 	return static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors);
 }
 
+static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursive) {
+	try {
+		for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
+			if (i->isDirectory() && recursive) {
+				getDirSizeInternal(aPath + i->getFileName() + PATH_SEPARATOR, size_, true);
+			} else {
+				size_ += i->getSize();
+			}
+		}
+	} catch(...) { }
+}
+
+int64_t File::getDirSize(const string& aPath, bool recursive) noexcept {
+	int64_t ret = 0;
+	getDirSizeInternal(aPath, ret, recursive);
+	return ret;
+}
+
 uint32_t FileFindIter::DirData::getLastWriteTime() {
 	return File::convertTime(&ftLastWriteTime);
 }

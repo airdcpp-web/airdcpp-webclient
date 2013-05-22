@@ -47,9 +47,13 @@ public:
 
 	typedef X<0> TTHDone;
 	typedef X<1> HashFailed;
+	typedef X<2> MaintananceFinished;
+	typedef X<3> MaintananceStarted;
 
 	virtual void on(TTHDone, const string& /* filePath */, HashedFile& /* fileInfo */) noexcept { }
 	virtual void on(HashFailed, const string& /* filePath */, HashedFile& /*null*/) noexcept { }
+	virtual void on(MaintananceStarted) noexcept { }
+	virtual void on(MaintananceFinished) noexcept { }
 };
 
 class HashLoader;
@@ -91,7 +95,7 @@ public:
 	/**
 	 * Rebuild hash data file
 	 */
-	void rebuild();
+	void startMaintenance(bool verify);
 
 	void startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
 	void stop();
@@ -108,9 +112,13 @@ public:
 	bool isHashingPaused(bool lock = true) const;
 
 	string getDbStats() { return store.getDbStats(); }
+
 	void closeDB() { store.closeDb(); }
 	void onScheduleRepair(bool schedule) { store.onScheduleRepair(schedule); }
 	bool isRepairScheduled() const { return store.isRepairScheduled(); }
+	void getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const { return store.getDbSizes(fileDbSize_, hashDbSize_); }
+	bool maintenanceRunning() const { return optimizer.isRunning(); }
+
 	bool renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi);
 private:
 	int pausers;
@@ -131,7 +139,6 @@ private:
 		int run();
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed);
 		void shutdown();
-		void scheduleRebuild();
 
 		bool getPathVolume(const string& aPath, string& vol_) const;
 		bool hasDevice(const string& aID) const { return devices.find(aID) != devices.end(); }
@@ -170,7 +177,6 @@ private:
 		bool closing;
 		bool running;
 		bool paused;
-		bool rebuild;
 
 		string currentFile;
 		atomic<int64_t> totalBytesLeft;
@@ -197,6 +203,8 @@ private:
 	void removeHasher(Hasher* aHasher);
 	void log(const string& aMessage, int hasherID, bool isError, bool lock);
 
+	void optimize(bool doVerify) { store.optimize(doVerify); }
+
 	class HashStore {
 	public:
 		HashStore();
@@ -208,7 +216,7 @@ private:
 
 		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
 
-		void rebuild();
+		void optimize(bool doVerify);
 
 		bool checkTTH(const string& aFileNameLower, HashedFile& fi_);
 
@@ -230,6 +238,8 @@ private:
 
 		void onScheduleRepair(bool schedule);
 		bool isRepairScheduled() const;
+
+		void getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const;
 	private:
 		std::unique_ptr<DbHandler> fileDb;
 		std::unique_ptr<DbHandler> hashDb;
@@ -268,7 +278,20 @@ private:
 
 	void hashDone(const string& aFileName, string&& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID = 0);
 
-	void doRebuild();
+	class Optimizer : public Thread {
+	public:
+		Optimizer();
+		~Optimizer();
+
+		void startMaintenance(bool verify);
+		bool isRunning() const { return running; }
+	private:
+		bool verify;
+		atomic<bool> running;
+		virtual int run();
+	};
+
+	Optimizer optimizer;
 };
 
 } // namespace dcpp

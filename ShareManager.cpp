@@ -433,23 +433,29 @@ void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath
 	ProfileTokenSet dirtyProfiles;
 	{
 		WLock l(cs);
-		auto d = findDirectory(Util::getFilePath(aPath), false, false, false);
-		if (d) {
-			d->copyRootProfiles(dirtyProfiles, true);
+		auto parent = findDirectory(Util::getFilePath(aPath), false, false, false);
+		if (parent) {
+			parent->copyRootProfiles(dirtyProfiles, true);
 
 			auto fileNameLower = Text::toLower(Util::getFileName(aPath));
-			auto p = d->directories.find(fileNameLower);
-			if (p != d->directories.end()) {
+			auto p = parent->directories.find(fileNameLower);
+			if (p != parent->directories.end()) {
 				LogManager::getInstance()->message("Shared folder deleted: " + aPath + PATH_SEPARATOR, LogManager::LOG_INFO);
 				cleanIndices(**p);
-				d->directories.erase(p);
+				parent->directories.erase(p);
 			} else {
-				auto f = d->files.find(fileNameLower);
-				if (f != d->files.end()) {
+				auto f = parent->files.find(fileNameLower);
+				if (f != parent->files.end()) {
 					LogManager::getInstance()->message("Shared file deleted: " + aPath, LogManager::LOG_INFO);
-					cleanIndices(*d, *f);
-					d->files.erase(f);
+					cleanIndices(*parent, *f);
+					parent->files.erase(f);
 				}
+			}
+
+			if (SETTING(SKIP_EMPTY_DIRS_SHARE) && parent->directories.empty() && parent->files.empty() && parent->getParent()) {
+				//remove the parent
+				cleanIndices(*parent);
+				parent->getParent()->directories.erase_key(parent->name.getLower());
 			}
 		}
 	}
@@ -991,7 +997,7 @@ bool ShareManager::isRealPathShared(const string& aPath) {
 }
 
 string ShareManager::validateVirtual(const string& aVirt) const noexcept {
-	string tmp = aVirt.data(); // no terminating char
+	string tmp = aVirt;
 	string::size_type idx = 0;
 
 	while( (idx = tmp.find_first_of("\\/"), idx) != string::npos) {
@@ -1666,8 +1672,7 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 				newShares[curPathLower] = dir;
 			} else if (SETTING(SKIP_EMPTY_DIRS_SHARE) && dir->directories.empty() && dir->files.empty()) {
 				//remove it
-				auto p = aDir->directories.find(dir->name.getLower());
-				aDir->directories.erase(p);
+				aDir->directories.erase_key(dir->name.getLower());
 				continue;
 			}
 
@@ -3335,7 +3340,7 @@ void ShareManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr
 	} else if (aBundle->getStatus() == Bundle::STATUS_HASHED) {
 		StringList dirs;
 		dirs.push_back(aBundle->getTarget());
-		addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, aBundle->getTarget());
+		addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, aBundle->getName());
 	}
 }
 

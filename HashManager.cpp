@@ -491,7 +491,8 @@ bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& f
 	return false;
 }
 
-void HashManager::HashStore::rebuild() {
+void HashManager::HashStore::optimize(bool doVerify) {
+	getInstance()->fire(HashManagerListener::MaintananceStarted());
 	try {
 		int unusedTrees = 0;
 		int failedTrees = 0;
@@ -500,6 +501,7 @@ void HashManager::HashStore::rebuild() {
 		int validTrees = 0;
 		int64_t failedSize = 0;
 
+		LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_STARTED), LogManager::LOG_INFO);
 		unordered_set<TTHValue> usedRoots;
 		{
 			HashedFile fi;
@@ -519,7 +521,8 @@ void HashManager::HashStore::rebuild() {
 				});
 			} catch(DbException& e) {
 				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
-				LogManager::getInstance()->message(STRING(REBUILD_FAILED), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogManager::LOG_ERROR);
+				getInstance()->fire(HashManagerListener::MaintananceFinished());
 				return;
 			}
 		}
@@ -533,7 +536,7 @@ void HashManager::HashStore::rebuild() {
 					auto i = usedRoots.find(curRoot);
 					if (i == usedRoots.end()) {
 						unusedTrees++;
-					} else if (loadTree(aValue, valueLen, curRoot, tt)) {
+					} else if (!doVerify || loadTree(aValue, valueLen, curRoot, tt)) {
 						usedRoots.erase(i);
 						validTrees++;
 						return false;
@@ -544,7 +547,8 @@ void HashManager::HashStore::rebuild() {
 				});
 			} catch(DbException& e) {
 				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
-				LogManager::getInstance()->message(STRING(REBUILD_FAILED), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogManager::LOG_ERROR);
+				getInstance()->fire(HashManagerListener::MaintananceFinished());
 				return;
 			}
 		}
@@ -567,7 +571,8 @@ void HashManager::HashStore::rebuild() {
 				});
 			} catch(DbException& e) {
 				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
-				LogManager::getInstance()->message(STRING(REBUILD_FAILED), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogManager::LOG_ERROR);
+				getInstance()->fire(HashManagerListener::MaintananceFinished());
 				return;
 			}
 		}
@@ -598,9 +603,9 @@ void HashManager::HashStore::rebuild() {
 
 		string msg;
 		if (unusedFiles > 0 || unusedTrees > 0) {
-			msg = STRING_F(HASH_REBUILT_UNUSED, unusedFiles % unusedTrees);
+			msg = STRING_F(HASHDB_MAINTENANCE_UNUSED, unusedFiles % unusedTrees);
 		} else {
-			msg = STRING(HASH_REBUILT_NO_UNUSED);
+			msg = STRING(HASHDB_MAINTENANCE_NO_UNUSED);
 		}
 
 		if (failedTrees > 0) {
@@ -612,6 +617,8 @@ void HashManager::HashStore::rebuild() {
 	} catch (const Exception& e) {
 		LogManager::getInstance()->message(STRING(HASHING_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
 	}
+
+	getInstance()->fire(HashManagerListener::MaintananceFinished());
 }
 
 string HashManager::HashStore::getDbStats() {
@@ -637,6 +644,11 @@ void HashManager::HashStore::onScheduleRepair(bool schedule) {
 
 bool HashManager::HashStore::isRepairScheduled() const {
 	return Util::fileExists(hashDb->getRepairFlag()) && Util::fileExists(fileDb->getRepairFlag());
+}
+
+void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const {
+	fileDbSize_ = File::getDirSize(fileDb->getPath(), false);
+	hashDbSize_ = File::getDirSize(hashDb->getPath(), false);
 }
 
 void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
@@ -931,8 +943,31 @@ void HashManager::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLef
 		i->getStats(curFile, bytesLeft, filesLeft, speed);
 }
 
-void HashManager::rebuild() {
-	hashers.front()->scheduleRebuild(); 
+void HashManager::startMaintenance(bool verify){
+	optimizer.startMaintenance(verify); 
+}
+
+HashManager::Optimizer::Optimizer() : running(false) {
+
+}
+
+HashManager::Optimizer::~Optimizer() {
+	join();
+}
+
+void HashManager::Optimizer::startMaintenance(bool aVerify) {
+	if (running)
+		return;
+
+	verify = aVerify;
+	running = true;
+	run();
+}
+
+int HashManager::Optimizer::run() {
+	HashManager::getInstance()->optimize(verify);
+	running = false;
+	return 0;
 }
 
 void HashManager::startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
@@ -952,13 +987,6 @@ void HashManager::Hasher::shutdown() {
 	if(paused) 
 		resume(); 
 	s.signal(); 
-}
-
-void HashManager::Hasher::scheduleRebuild() { 
-	rebuild = true; 
-	s.signal(); 
-	if(paused) 
-		t_resume(); 
 }
 
 void HashManager::shutdown(ProgressFunction progressF) {
@@ -1005,7 +1033,7 @@ void HashManager::Hasher::instantPause() {
 	}
 }
 
-HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : closing(false), running(false), paused(isPaused), rebuild(false), /*saveData(false),*/ totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
+HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : closing(false), running(false), paused(isPaused), /*saveData(false),*/ totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
 	filesHashed(0), dirFilesHashed(0), dirSizeHashed(0), dirHashTime(0), hasherID(aHasherID) { 
 
 	start();
@@ -1029,12 +1057,6 @@ int HashManager::Hasher::run() {
 			WLock l(hcs);
 			HashManager::getInstance()->removeHasher(this);
 			break;
-		}
-
-		if(rebuild) {
-			HashManager::getInstance()->doRebuild();
-			rebuild = false;
-			continue;
 		}
 		
 		bool failed = true;
@@ -1280,12 +1302,6 @@ void HashManager::resumeHashing(bool forced) {
 bool HashManager::isHashingPaused(bool lock /*true*/) const {
 	ConditionalRLock l(Hasher::hcs, lock);
 	return all_of(hashers.begin(), hashers.end(), [](const Hasher* h) { return h->isPaused(); });
-}
-
-void HashManager::doRebuild() {
-	// its useless to allow hashing with other threads during rebuild. ( TODO: Disallow resuming and show something in hashprogress )
-	HashPauser pause;
-	store.rebuild();
 }
 
 } // namespace dcpp
