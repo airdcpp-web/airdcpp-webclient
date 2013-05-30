@@ -50,6 +50,9 @@
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/algorithm/count_if.hpp>
 #include <boost/range/algorithm/copy.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/range/numeric.hpp>
+#include <boost/range/algorithm/min_element.hpp>
 
 #include "concurrency.h"
 
@@ -83,7 +86,7 @@ atomic_flag ShareManager::refreshing;
 boost::regex ShareManager::rxxReg;
 
 ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), sharedSize(0),
-	xml_saving(false), lastSave(0), aShutdown(false), refreshRunning(false), totalSearches(0), bloom(new ShareBloom(1<<20))
+	xml_saving(false), lastSave(0), aShutdown(false), refreshRunning(false), totalSearches(0), bloom(new ShareBloom(1<<20)), monitorDebug(false)
 { 
 	SettingsManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
@@ -352,11 +355,14 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
-	//LogManager::getInstance()->message("File added: " + Text::fromT(notifyPath), LogManager::LOG_INFO);
+	if (monitorDebug)
+		LogManager::getInstance()->message("File added: " + aPath, LogManager::LOG_INFO);
 	onFileModified(aPath, true);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPath) noexcept {
+	if (monitorDebug)
+		LogManager::getInstance()->message("File modified: " + aPath, LogManager::LOG_INFO);
 	onFileModified(aPath, false);
 }
 
@@ -371,6 +377,9 @@ void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList&
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldPath, const string& aNewPath) noexcept {
+	if (monitorDebug)
+		LogManager::getInstance()->message("File renamed, old: " + aOldPath + " new: " + aNewPath, LogManager::LOG_INFO);
+
 	ProfileTokenSet dirtyProfiles;
 	RenameList toRename;
 
@@ -430,6 +439,9 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept {
+	if (monitorDebug)
+		LogManager::getInstance()->message("File deleted: " + aPath, LogManager::LOG_INFO);
+
 	ProfileTokenSet dirtyProfiles;
 	{
 		WLock l(cs);
@@ -464,6 +476,9 @@ void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath
 }
 
 void ShareManager::on(DirectoryMonitorListener::Overflow, const string& aRootPath) noexcept {
+	if (monitorDebug)
+		LogManager::getInstance()->message("Monitoring overflow: " + aRootPath, LogManager::LOG_INFO);
+
 	// refresh the dir
 	refresh(aRootPath);
 }
@@ -1114,15 +1129,16 @@ static const string DATE = "Date";
 static const string SHARE = "Share";
 static const string SVERSION = "Version";
 
-struct ShareLoader : public SimpleXMLReader::CallBack {
-	ShareLoader(ShareManager::RefreshInfo& aRefreshInfo, ShareManager::ShareBloom* aBloom) : 
-		ri(aRefreshInfo),
-		curDirPath(aRefreshInfo.root->getProfileDir()->getPath()),
-		curDirPathLower(Text::toLower(aRefreshInfo.root->getProfileDir()->getPath())),
-		cur(aRefreshInfo.root),
-		bloom(aBloom)//,
-		//lastPos(curDirPath.size())
-	{ }
+struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, public ShareManager::RefreshInfo {
+	ShareLoader(const string& aPath, const ShareManager::Directory::Ptr& aOldRoot, ShareManager::ShareBloom* aBloom) : 
+		ShareManager::RefreshInfo(aPath, aOldRoot, 0),
+		ThreadedCallBack(aOldRoot->getProfileDir()->getCacheXmlPath()),
+		curDirPath(aOldRoot->getProfileDir()->getPath()),
+		curDirPathLower(Text::toLower(aOldRoot->getProfileDir()->getPath())),
+		bloom(aBloom)
+	{ 
+		cur = root;
+	}
 
 
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
@@ -1135,9 +1151,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 				//lastPos += cur->name.size()+1;
 
 				ShareManager::ProfileDirectory::Ptr pd = nullptr;
-				if (!ri.subProfiles.empty()) {
-					auto i = ri.subProfiles.find(curDirPath);
-					if(i != ri.subProfiles.end()) {
+				if (!subProfiles.empty()) {
+					auto i = subProfiles.find(curDirPath);
+					if(i != subProfiles.end()) {
 						pd = i->second;
 					}
 				}
@@ -1145,11 +1161,11 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 				cur = ShareManager::Directory::create(name, cur, Util::toUInt32(date), pd);
 				curDirPathLower += cur->name.getLower() + PATH_SEPARATOR;
 				if (pd && pd->isSet(ShareManager::ProfileDirectory::FLAG_ROOT)) {
-					ri.rootPathsNew[curDirPathLower] = cur;
+					rootPathsNew[curDirPathLower] = cur;
 				}
 
 				cur->addBloom(*bloom);
-				ri.dirNameMapNew.emplace(const_cast<string*>(&cur->name.getLower()), cur);
+				dirNameMapNew.emplace(const_cast<string*>(&cur->name.getLower()), cur);
 			}
 
 			if(simple) {
@@ -1169,9 +1185,9 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 				HashedFile fi;
 				HashManager::getInstance()->getFileInfo(curDirPathLower + name.getLower(), curDirPath, fi);
 				auto pos = cur->files.insert_sorted(new ShareManager::Directory::File(move(name), cur, fi));
-				ShareManager::updateIndices(*cur, *pos.first, *bloom, ri.addedSize, ri.tthIndexNew);
+				ShareManager::updateIndices(*cur, *pos.first, *bloom, addedSize, tthIndexNew);
 			}catch(Exception& e) {
-				ri.hashSize += File::getSize(curDirPath + fname);
+				hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading file list %s \n", e.getError().c_str());
 			}
 		} else if (name == SHARE) {
@@ -1198,8 +1214,10 @@ struct ShareLoader : public SimpleXMLReader::CallBack {
 	}
 
 private:
+	friend struct SizeSort;
+
 	ShareManager::Directory::Ptr cur;
-	ShareManager::RefreshInfo& ri;
+	//ShareManager::RefreshInfo& ri;
 
 	string curDirPathLower;
 	string curDirPath;
@@ -1222,7 +1240,6 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		return rootPaths.empty();
 	}
 
-	RefreshInfoList ll;
 	DirMap parents;
 
 	//get the parent dirs
@@ -1231,13 +1248,19 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 			parents.emplace(p);
 	}
 
+	typedef boost::ptr_vector<ShareLoader> LoaderList;
+	boost::ptr_vector<ShareLoader> ll;
+
 	//create the info dirs
 	for(const auto& p: fileList) {
 		if (Util::getFileExt(p) == ".xml") {
 			auto rp = find_if(parents | map_values, [&p](const Directory::Ptr& aDir) { return stricmp(aDir->getProfileDir()->getCacheXmlPath(), p) == 0; });
 			if (rp.base() != parents.end()) { //make sure that subdirs are never listed here...
-				ll.emplace_back(rp.base()->first, *rp, 0); // the date will be read from the cache
-				continue;
+				try {
+					auto loader = new ShareLoader(rp.base()->first, *rp, bloom.get());
+					ll.push_back(loader);
+					continue;
+				} catch(...) { }
 			}
 		}
 
@@ -1245,27 +1268,26 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 		File::deleteFile(p);
 	}
 
+	const auto dirCount = ll.size();
+
+	//ll.sort(SimpleXMLReader::ThreadedCallBack::SizeSort());
 
 	//load the XML files
 	atomic<long> loaded = 0;
-	const auto dirCount = ll.size();
 	bool hasFailed = false;
 
-	parallel_for_each(ll.begin(), ll.end(), [&](RefreshInfo& ri) {
-		string xmlPath = ri.root->getProfileDir()->getCacheXmlPath();
+	//run_parallel<LoaderList, ShareLoader, SimpleXMLReader::ThreadedCallBack::Size>(ll, [&](ShareLoader& loader) {
+	parallel_for_each(ll.begin(), ll.end(), [&](ShareLoader& loader) {
+		//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogManager::LOG_INFO);
 		try {
-			ShareLoader loader(ri, bloom.get());
-
-			dcpp::File f(xmlPath, dcpp::File::READ, dcpp::File::OPEN, false);
-
-			SimpleXMLReader(&loader).parse(f);
+			SimpleXMLReader(&loader).parse(*loader.file);
 		} catch(SimpleXMLException& e) {
-			LogManager::getInstance()->message("Error loading " + xmlPath + ": "+  e.getError(), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message("Error loading " + loader.xmlPath + ": "+  e.getError(), LogManager::LOG_ERROR);
 			hasFailed = true;
-			File::deleteFile(xmlPath);
+			File::deleteFile(loader.xmlPath);
 		} catch(...) {
 			hasFailed = true;
-			File::deleteFile(xmlPath);
+			File::deleteFile(loader.xmlPath);
 		}
 
 		if(progressF) {
@@ -1280,8 +1302,10 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	int64_t hashSize = 0;
 
 	DirMap newRoots;
+
 	mergeRefreshChanges(ll, dirNameMap, newRoots, tthIndex, hashSize, sharedSize, nullptr);
 
+	//were all parents loaded?
 	StringList refreshPaths;
 	for (auto& i: parents) {
 		auto p = newRoots.find(i.first);
@@ -1611,7 +1635,7 @@ bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
 	return false;
 }
 
-void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
+void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
 	FileFindIter end;
 
 #ifdef _WIN32
@@ -1646,7 +1670,7 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 				}
 
 				//check queue so we dont add incomplete stuff to share.
-				if(checkQueued && std::binary_search(bundleDirs.begin(), bundleDirs.end(), curPathLower)) {
+				if(binary_search(bundleDirs.begin(), bundleDirs.end(), curPathLower)) {
 					continue;
 				}
 			}
@@ -1665,7 +1689,7 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 
 			auto dir = Directory::create(move(dualName), aDir, i->getLastWriteTime(), profileDir);
 
-			buildTree(curPath, curPathLower, dir, checkQueued, aSubRoots, aDirs, newShares, hashSize, addedSize, tthIndexNew, aBloom);
+			buildTree(curPath, curPathLower, dir, aSubRoots, aDirs, newShares, hashSize, addedSize, tthIndexNew, aBloom);
 
 			//roots will always be added
 			if (profileDir && profileDir->isSet(ProfileDirectory::FLAG_ROOT)) {
@@ -1831,7 +1855,6 @@ struct ShareTask : public Task {
 void ShareManager::addAsyncTask(AsyncF aF) {
 	tasks.add(ASYNC, unique_ptr<Task>(new AsyncTask(aF)));
 	if (!refreshing.test_and_set()) {
-		join();
 		start();
 	}
 }
@@ -1900,10 +1923,9 @@ int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aR
 	if(aRefreshType == TYPE_STARTUP && aTask == REFRESH_ALL) { 
 		runTasks(progressF);
 	} else {
-		join();
 		try {
 			start();
-			setThreadPriority(Thread::NORMAL);
+			setThreadPriority(aRefreshType == TYPE_MANUAL ? Thread::NORMAL : Thread::IDLE);
 		} catch(const ThreadException& e) {
 			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogManager::LOG_WARNING);
 			refreshing.clear();
@@ -2259,7 +2281,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			if (checkHidden(ri.path)) {
 				auto pathLower = Text::toLower(ri.path);
 				auto path = ri.path;
-				buildTree(path, pathLower, ri.root, true, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
+				buildTree(path, pathLower, ri.root, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
 				dcassert(ri.path == path);
 			}
 
@@ -2366,7 +2388,7 @@ end:
 	refreshing.clear();
 }
 
-void ShareManager::mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) {
+/*void ShareManager::mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) {
 	for (auto& ri: aList) {
 		aDirNameMap.insert(ri.dirNameMapNew.begin(), ri.dirNameMapNew.end());
 		aRootPaths.insert(ri.rootPathsNew.begin(), ri.rootPathsNew.end());
@@ -2378,7 +2400,7 @@ void ShareManager::mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDir
 		if (dirtyProfiles)
 			ri.root->copyRootProfiles(*dirtyProfiles, true);
 	}
-}
+}*/
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 
@@ -3159,18 +3181,10 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 	StringSearch::List* old = aStrings.include;
 
-	unique_ptr<StringSearch::List> newStr;
+	//unique_ptr<StringSearch::List> newStr;
 
 	// Find any matches in the directory name
-	for(const auto& k: *aStrings.include) {
-		if(k.matchLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : name.getLower())) {
-			if(!newStr.get()) {
-				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(*aStrings.include));
-			}
-			newStr->erase(remove(newStr->begin(), newStr->end(), k), newStr->end());
-		}
-	}
-
+	unique_ptr<StringSearch::List> newStr(aStrings.matchesDirectoryReLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : name.getLower()));
 	if(newStr.get() != 0 && aStrings.matchType == AdcSearch::MATCH_FULL_PATH) {
 		aStrings.include = newStr.get();
 	}
@@ -3183,36 +3197,19 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 	if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
 		for(const auto& f: files) {
-
-			if(!(f->getSize() >= aStrings.gt)) {
-				continue;
-			} else if(!(f->getSize() <= aStrings.lt)) {
-				continue;
-			} else if (!aStrings.matchesDate(f->getLastWrite())) {
+			if (!aStrings.matchesFileLower(f->name.getLower(), f->getSize(), f->getLastWrite())) {
 				continue;
 			}
 
-			auto j = aStrings.include->begin();
-			for(; j != aStrings.include->end() && j->matchLower(f->name.getLower()); ++j) 
-				;	// Empty
 
-			if(j != aStrings.include->end())
-				continue;
+			f->addSR(aResults, aProfile, aStrings.addParents);
 
-			// Check file type...
-			if(aStrings.hasExt(f->name.getLower())) {
-				if(aStrings.isExcluded(f->name.getLower()))
-					continue;
-
-				f->addSR(aResults, aProfile, aStrings.addParents);
-
-				if(aResults.size() >= maxResults) {
-					return;
-				}
-
-				if (aStrings.addParents)
-					break;
+			if(aResults.size() >= maxResults) {
+				return;
 			}
+
+			if (aStrings.addParents)
+				break;
 		}
 	}
 

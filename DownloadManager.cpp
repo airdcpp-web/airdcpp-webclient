@@ -463,7 +463,15 @@ void DownloadManager::endData(UserConnection* aSource) {
 	removeDownload(d);
 
 	fire(DownloadManagerListener::Complete(), d, d->getType() == Transfer::TYPE_TREE);
-	QueueManager::getInstance()->putDownload(d, true);	
+	try {
+		QueueManager::getInstance()->putDownload(d, true);
+	} catch (const HashException& e) {
+		aSource->setDownload(nullptr);
+		failDownload(aSource, e.getError(), false);
+		ConnectionManager::getInstance()->failDownload(aSource->getToken(), e.getError(), true);
+		return;
+	}
+
 	checkDownloads(aSource);
 }
 

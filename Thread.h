@@ -30,6 +30,7 @@
 #include <boost/noncopyable.hpp>
 #include "Exception.h"
 #include <stdint.h>
+#include <thread>
 
 #include <boost/thread.hpp>
 
@@ -43,7 +44,7 @@ typedef boost::lock_guard<boost::recursive_mutex> Lock;
 //typedef boost::unique_lock<boost::recursive_mutex> Lock;
 typedef boost::lock_guard<boost::detail::spinlock> FastLock;
 
-#ifndef _WIN64
+#ifndef _WIN32
 typedef boost::shared_mutex	SharedMutex;
 typedef boost::shared_lock<boost::shared_mutex> RLock;
 typedef boost::unique_lock<boost::shared_mutex> WLock;

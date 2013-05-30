@@ -55,7 +55,7 @@ class Client;
 class File;
 class OutputStream;
 class MemoryInputStream;
-struct ShareLoader;
+//struct ShareLoader;
 class AdcSearch;
 class Worker;
 class TaskQueue;
@@ -200,6 +200,7 @@ public:
 		REFRESH_ALREADY_QUEUED = 3
 	};
 
+	GETSET(bool, monitorDebug, MonitorDebug);
 	GETSET(size_t, hits, Hits);
 	GETSET(int64_t, sharedSize, SharedSize);
 
@@ -258,6 +259,7 @@ public:
 	mutable SharedMutex cs;
 
 	int addRefreshTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
+	struct ShareLoader;
 private:
 	unique_ptr<DirectoryMonitor> monitor;
 
@@ -459,8 +461,6 @@ private:
 	void addRoot(const string& aPath, Directory::Ptr& aDir);
 	DirMap::const_iterator findRoot(const string& aPath) const;
 
-	friend struct ShareLoader;
-
 	friend class Singleton<ShareManager>;
 
 	typedef unordered_multimap<TTHValue*, const Directory::File*> HashFileMap;
@@ -535,6 +535,12 @@ private:
 		DirMap rootPathsNew;
 
 		string path;
+
+		/*struct FileCount {
+			int64_t operator()(const RefreshInfo& ri) const {
+				return ri.root->getProfileDir() ? ri.root->getProfileDir()->getRootProfiles();
+			}
+		};*/
 	private:
 		RefreshInfo(const RefreshInfo&);
 		RefreshInfo& operator=(const RefreshInfo&);
@@ -542,10 +548,23 @@ private:
 
 	typedef std::list<RefreshInfo> RefreshInfoList;
 
-	void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles);
+	//void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles);
+	template<typename T>
+	void mergeRefreshChanges(T& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) {
+		for (auto& ri: aList) {
+			aDirNameMap.insert(ri.dirNameMapNew.begin(), ri.dirNameMapNew.end());
+			aRootPaths.insert(ri.rootPathsNew.begin(), ri.rootPathsNew.end());
+			aTTHIndex.insert(ri.tthIndexNew.begin(), ri.tthIndexNew.end());
 
+			totalHash += ri.hashSize;
+			totalAdded += ri.addedSize;
 
-	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, bool checkQueued, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
+			if (dirtyProfiles)
+				ri.root->copyRootProfiles(*dirtyProfiles, true);
+		}
+	}
+
+	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
 	bool checkHidden(const string& aName) const;
 	void addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_);
 

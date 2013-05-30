@@ -22,8 +22,6 @@
 #include "Text.h"
 #include "LogManager.h"
 
-#include <boost/scoped_array.hpp>
-
 namespace dcpp {
 
 
@@ -63,6 +61,9 @@ void DirectoryMonitor::init() throw(MonitorException) {
 }
 
 void DirectoryMonitor::Server::init() throw(MonitorException) {
+	if (!threadRunning.test_and_set())
+		return;
+
 	m_hIOCP = CreateIoCompletionPort(
 							(HANDLE)INVALID_HANDLE_VALUE,
 							NULL,
@@ -82,29 +83,26 @@ void DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorEx
 			return;
 	}
 
-	if (threadHandle == INVALID_HANDLE_VALUE)
-		init();
+	init();
 
 	Monitor* mon = new Monitor(aPath, this, 0, 4*1024, true);
-	if (!mon->openDirectory()) {
-		delete mon;
-		throw MonitorException(Util::translateError(::GetLastError()));
-	}
+	try {
+		mon->openDirectory(m_hIOCP);
 
-	if (CreateIoCompletionPort(mon->m_hDirectory, m_hIOCP, (ULONG_PTR)mon->m_hDirectory, 0) == NULL) {
-		CloseHandle(mon->m_hDirectory);
+		{
+			WLock l(cs);
+			mon->beginRead();
+			monitors.emplace(aPath, mon);
+		}
+	} catch(MonitorException& e) {
+		mon->stopMonitoring();
 		delete mon;
-		throw MonitorException(Util::translateError(::GetLastError()));
-	}
-
-	{
-		WLock l(cs);
-		monitors.emplace(aPath, mon);
-		mon->beginRead();
+		throw e;
 	}
 }
 	
 void DirectoryMonitor::Server::stop() {
+	m_bTerminate = true;
 	{
 		WLock l(cs);
 		for (auto m: monitors | map_values) {
@@ -131,7 +129,8 @@ void DirectoryMonitor::Server::stop() {
 	}
 }
 
-DirectoryMonitor::Server::Server(DirectoryMonitor* aBase, int numThreads) : base(aBase), m_bTerminate(false), m_nThreads(numThreads), m_hIOCP(NULL), lastKey(0) {
+DirectoryMonitor::Server::Server(DirectoryMonitor* aBase, int numThreads) : base(aBase), m_bTerminate(false), m_nThreads(numThreads), m_hIOCP(NULL) {
+	threadRunning.clear();
 	//start();
 }
 
@@ -152,6 +151,9 @@ void Monitor::beginRead() {
 		&dwBytes,                           // bytes returned
 		&m_Overlapped,                      // overlapped buffer
 		NULL);           // completion routine
+
+	if (success == 0)
+		throw MonitorException(Util::translateError(::GetLastError()));
 }
 
 void Monitor::queueNotificationTask(int dwSize) {
@@ -199,15 +201,16 @@ int DirectoryMonitor::Server::run() {
 		//...
 	}
 
-	//we are quiting
+	//we are stopping (quiting/no dirs to monitor)
 
 	WLock l(cs);
+	m_bTerminate = false;
 	for (auto m: monitors | map_values) {
 		delete m;
 	}
 
 	monitors.clear();
-
+	threadRunning.clear();
 	return 0;
 }
 
@@ -220,36 +223,73 @@ int DirectoryMonitor::Server::read() {
 	auto ret = GetQueuedCompletionStatus(m_hIOCP, &dwBytesXFered, &ulKey, &pOl, INFINITE);
 	auto dwError = GetLastError();
 	if (!ret) {
+		if (!m_hIOCP) {
+			// shutting down
+			return 0;
+		}
+
 		if (dwError == WAIT_TIMEOUT) {
 			//harmless
 			return 1;
 		}
 	}
 
+	unique_ptr<string> removeDir(nullptr);
 	{
 		RLock l(cs);
 		auto mon = find_if(monitors | map_values, [ulKey](const Monitor* m) { return (ULONG_PTR)m->m_hDirectory == ulKey; });
 		if (mon.base() != monitors.end()) {
-			if (dwError != 0) {
-				if (dwError == ERROR_NOTIFY_ENUM_DIR) {
-					(*mon)->beginRead();
+			try {
+				if (dwError != 0) {
+					if (dwError == ERROR_NOTIFY_ENUM_DIR) {
+						(*mon)->beginRead();
 
-					// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
-					(*mon)->server->base->fire(DirectoryMonitorListener::Overflow(), Text::fromT((*mon)->path));
+						// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
+						(*mon)->server->base->fire(DirectoryMonitorListener::Overflow(), Text::fromT((*mon)->path));
+					} else {
+						throw MonitorException(Util::translateError(dwError));
+					}
 				} else {
-					LogManager::getInstance()->message("Error when monitoring " + Text::fromT((*mon)->path) + ": " + Util::translateError(dwError) + " (all monitoring has been stopped)", LogManager::LOG_ERROR);
-					return 0;
+					if ((*mon)->errorCount > 0) {
+						LogManager::getInstance()->message("Monitoring was successfully restored for " + Text::fromT((*mon)->path), LogManager::LOG_ERROR);
+						(*mon)->errorCount = 0;
+					}
+
+					if (dwBytesXFered > 0) {
+						(*mon)->queueNotificationTask(dwBytesXFered);
+					} else {
+						LogManager::getInstance()->message("An empty notification was received when monitoring " + Text::fromT((*mon)->path) + " (report this)", LogManager::LOG_WARNING);
+					}
+
+					(*mon)->beginRead();
 				}
-			} else {
-				if (dwBytesXFered > 0) {
-					(*mon)->queueNotificationTask(dwBytesXFered);
+			} catch (const MonitorException& e) {
+				auto path = Text::fromT((*mon)->path);
+				if ((*mon)->errorCount == 0)
+					LogManager::getInstance()->message("Error when monitoring " + path + ": " + e.getError() + ". Retrying for 60 seconds...", LogManager::LOG_ERROR);
+
+				(*mon)->errorCount++;
+
+				if ((*mon)->errorCount == 60) {
+					// remove this directory from monitoring
+					LogManager::getInstance()->message("A failed directory " + path + " has been removed from monitoring", LogManager::LOG_ERROR);
+					removeDir.reset(new string(path));
 				} else {
-					LogManager::getInstance()->message("An empty notification was received when monitoring " + Text::fromT((*mon)->path) + " (report this)", LogManager::LOG_WARNING);
+					if ((*mon)->m_hDirectory == INVALID_HANDLE_VALUE) {
+						(*mon)->openDirectory(m_hIOCP);
+					}
+
+					//we'll most likely get the error instantly again...
+					Sleep(1000);
 				}
-				(*mon)->beginRead();
 			}
 		}
 	}
+
+	if (removeDir) {
+		removeDirectory(*removeDir);
+	}
+
 	return 1;
 }
 
@@ -273,8 +313,7 @@ void DirectoryMonitor::Server::removeDirectory(const string& aPath) {
 		if (monitors.empty()) {
 			//MSDN: The completion port is freed when there are
 			//no more references to it
-			if (m_hIOCP)
-			{
+			if (m_hIOCP) {
 				CloseHandle(m_hIOCP);
 				m_hIOCP = NULL;
 			}
@@ -287,18 +326,18 @@ Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int mon
 	server(aServer), 
 	m_hDirectory(nullptr),
 	m_dwFlags(monitorFlags),
-	m_bChildren(recursive)
+	m_bChildren(recursive),
+	errorCount(0)
 
 {
 	::ZeroMemory(&m_Overlapped, sizeof(OVERLAPPED));
 	m_Buffer.resize(bufferSize);
 }
 
-bool Monitor::openDirectory()
-{
+void Monitor::openDirectory(HANDLE iocp) {
 	// Allow this routine to be called redundantly.
 	if (m_hDirectory)
-		return true;
+		return;
 
 	m_hDirectory = ::CreateFile(
 		path.c_str(),					// pointer to the file name
@@ -312,12 +351,13 @@ bool Monitor::openDirectory()
 		 | FILE_FLAG_OVERLAPPED,
 		NULL);                              // file with attributes to copy
 
-	if (m_hDirectory == INVALID_HANDLE_VALUE)
-	{
-		return false;
+	if (m_hDirectory == INVALID_HANDLE_VALUE) {
+		throw MonitorException(Util::translateError(::GetLastError()));
 	}
 
-	return true;
+	if (CreateIoCompletionPort(m_hDirectory, iocp, (ULONG_PTR)m_hDirectory, 0) == NULL) {
+		throw MonitorException(Util::translateError(::GetLastError()));
+	}
 }
 
 Monitor::~Monitor() {

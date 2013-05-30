@@ -313,7 +313,7 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 			int running = 0;
 			for(auto cqi: downloads) {
 				if (cqi->getUser() == aSource->getUser() && !cqi->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-					if (cqi->getState() != ConnectionQueueItem::RUNNING) {
+					if (cqi->getState() != ConnectionQueueItem::RUNNING && cqi->getState() != ConnectionQueueItem::ACTIVE) {
 						return;
 					}
 					running++;
@@ -947,22 +947,25 @@ void ConnectionManager::failDownload(const string& aToken, const string& aError,
 	dcassert(i != downloads.end());
 	if (i != downloads.end()) {
 		ConnectionQueueItem* cqi = *i;
+		if (cqi->getState() == ConnectionQueueItem::WAITING)
+			return;
+
 
 		if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 			//remove an existing waiting item, if exists
 			auto s = find_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* c) { 
 				return c->getUser() == cqi->getUser() && !c->isSet(ConnectionQueueItem::FLAG_SMALL_CONF) && 
-					c->getState() != ConnectionQueueItem::RUNNING && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
+					c->getState() != ConnectionQueueItem::RUNNING && c->getState() != ConnectionQueueItem::ACTIVE && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
 			});
 
 			if (s != downloads.end())
 				(*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
 		}
 
-		cqi->setLastAttempt(GET_TICK());
-		cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
-
 		cqi->setState(ConnectionQueueItem::WAITING);
+
+		cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
+		cqi->setLastAttempt(GET_TICK());
 		fire(ConnectionManagerListener::Failed(), cqi, aError);
 	}
 }
@@ -970,7 +973,16 @@ void ConnectionManager::failDownload(const string& aToken, const string& aError,
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool protocolError) {
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
-			failDownload(aSource->getToken(), aError, protocolError);
+			if (aSource->getState() == UserConnection::STATE_IDLE) {
+				WLock l (cs);
+				auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
+				dcassert(i != downloads.end());
+				if (i != downloads.end()) {
+					putCQI(*i);
+				}
+			} else {
+				failDownload(aSource->getToken(), aError, protocolError);
+			}
 		} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
 			{
 				WLock l (cs);

@@ -1027,6 +1027,9 @@ QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& 
 		allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
 		qi->getSource(aUser)->updateHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
 
+		if (!qi->startDown())
+			return QueueItem::PAUSED;
+
 		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
 	}
 	return QueueItem::PAUSED;

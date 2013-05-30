@@ -42,7 +42,7 @@ BundleQueue::BundleQueue() :
 BundleQueue::~BundleQueue() { }
 
 size_t BundleQueue::getTotalFiles() const {
-	return boost::accumulate(bundles | map_values, (size_t)0, [](int64_t old, const BundlePtr b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
+	return boost::accumulate(bundles | map_values, (size_t)0, [](int64_t old, const BundlePtr& b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
 }
 
 void BundleQueue::addBundle(BundlePtr& aBundle) {
@@ -146,7 +146,7 @@ int64_t BundleQueue::recalculateSearchTimes(bool aRecent, bool isPrioChange) {
 }
 
 int BundleQueue::getRecentIntervalMs() const {
-	int recentBundles = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](BundlePtr b) { return b->allowAutoSearch(); });
+	int recentBundles = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](const BundlePtr& b) { return b->allowAutoSearch(); });
 	if (recentBundles == 1) {
 		return 15 * 60 * 1000;
 	} else if (recentBundles == 2) {
@@ -194,7 +194,7 @@ int BundleQueue::getPrioSum() const {
 	int prioBundles = 0;
 	int p = Bundle::LOW;
 	do {
-		int dequeBundles = count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [](BundlePtr b) { return b->allowAutoSearch(); });
+		int dequeBundles = count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [](const BundlePtr& b) { return b->allowAutoSearch(); });
 		probabilities.push_back((p-1)*dequeBundles); //multiply with a priority factor to get bigger probability for higher prio bundles
 		prioBundles += dequeBundles;
 		p++;
@@ -215,7 +215,7 @@ BundlePtr BundleQueue::findAutoSearch() {
 	auto dist = boost::random::discrete_distribution<>(probabilities);
 
 	//choose the search queue, can't be paused or lowest
-	auto& sbq = prioSearchQueue[dist(gen) + 2];
+	auto& sbq = prioSearchQueue[dist(gen) + QueueItemBase::LOW];
 	dcassert(!sbq.empty());
 
 	//find the first item from the search queue that can be searched for

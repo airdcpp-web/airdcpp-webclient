@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_SIMPLEXMLREADER_H_
 
 #include "typedefs.h"
+#include "File.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -51,6 +52,36 @@ public:
 	protected:
 		static const std::string& getAttrib(StringPairList& attribs, const std::string& name, size_t hint);
 	};
+
+	struct ThreadedCallBack : public CallBack {
+		ThreadedCallBack(const string& path);
+		std::unique_ptr<File> file;
+		int64_t size;
+		string xmlPath;
+
+		struct SizeSort : std::binary_function<ThreadedCallBack, ThreadedCallBack,bool> {
+			bool operator()(const ThreadedCallBack& left, const ThreadedCallBack& right) const;
+		};
+
+		struct Size {
+			int64_t operator()(const ThreadedCallBack& cb) const {
+				return cb.size;
+			}
+		};
+	};
+	typedef std::set<ThreadedCallBack, ThreadedCallBack::SizeSort> ThreadedCallBackSet;
+
+	/*class ThreadedCallBackLoader {
+	public:
+		ThreadedCallBackLoader(const ThreadedCallBackList& loaders);
+		void parse(ProgressFunction prog);
+	private:
+		struct SizeSort {
+			bool operator()(const ThreadedCallBack& left, const ThreadedCallBack& right) const;
+		};
+
+		boost::ptr_set<ThreadedCallBack, SizeSort> callbacks;
+	};*/
 
 	SimpleXMLReader(CallBack* callback);
 	virtual ~SimpleXMLReader() { }

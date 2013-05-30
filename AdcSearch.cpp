@@ -22,6 +22,7 @@
 #include "AdcHub.h"
 #include "StringTokenizer.h"
 #include "SearchManager.h"
+#include "AirUtil.h"
 
 namespace {
 	inline uint16_t toCode(char a, char b) { return (uint16_t)a | ((uint16_t)b)<<8; }
@@ -35,7 +36,7 @@ AdcSearch* AdcSearch::getSearch(const string& aSearchString, const string& aExcl
 	if(aTypeMode == SearchManager::TYPE_TTH) {
 		s = new AdcSearch(TTHValue(aSearchString));
 	} else {
-		s = new AdcSearch(aSearchString, aExcluded, aExtList);
+		s = new AdcSearch(aSearchString, aExcluded, aExtList, aMatchType);
 		if(aSizeMode == SearchManager::SIZE_ATLEAST) {
 			s->gt = aSize;
 		} else if(aSizeMode == SearchManager::SIZE_ATMOST) {
@@ -44,7 +45,6 @@ AdcSearch* AdcSearch::getSearch(const string& aSearchString, const string& aExcl
 
 		s->itemType = (aTypeMode == SearchManager::TYPE_DIRECTORY) ? AdcSearch::TYPE_DIRECTORY : (aTypeMode == SearchManager::TYPE_FILE) ? AdcSearch::TYPE_FILE : AdcSearch::TYPE_ANY;
 		s->addParents = returnParents;
-		s->matchType = aMatchType;
 	}
 
 	return s;
@@ -90,8 +90,8 @@ AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), g
 	lt(numeric_limits<int64_t>::max()), hasRoot(true), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 }
 
-AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt) : ext(aExt), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
+AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt, MatchType aMatchType) : matchType(aMatchType), ext(aExt), include(&includeX), gt(0), 
+	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 
 	//add included
 	auto inc = move(parseSearchString(aSearch));
@@ -172,25 +172,31 @@ bool AdcSearch::hasExt(const string& name) {
 	return false;
 }
 
-bool AdcSearch::matchesFile(const string& aName, int64_t aSize) {
+bool AdcSearch::matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate) {
 	if(!(aSize >= gt)) {
 		return false;
 	} else if(!(aSize <= lt)) {
 		return false;
-	}	
-
-	if(isExcluded(aName))
+	} else if (!(aDate == 0 || (aDate >= minDate && aDate <= maxDate))) {
 		return false;
+	}
 
 	auto j = include->begin();
-	for(; j != include->end() && j->match(aName); ++j) 
+	for(; j != include->end() && j->matchLower(aName); ++j) 
 		;	// Empty
 
 	if(j != include->end())
 		return false;
 
 	// Check file type...
-	return hasExt(aName);
+	if (!hasExt(aName))
+		return false;
+
+
+	if(isExcluded(aName))
+		return false;
+
+	return true;
 }
 
 bool AdcSearch::matchesDirectory(const string& aName) {
@@ -213,6 +219,20 @@ bool AdcSearch::matchesDirectory(const string& aName) {
 	}
 
 	return false;
+}
+
+StringSearch::List* AdcSearch::matchesDirectoryReLower(const string& aName) {
+	StringSearch::List* newStr = nullptr;
+	for(const auto& k: *include) {
+		if(k.matchLower(aName)) {
+			if(!newStr) {
+				newStr = new StringSearch::List(*include);
+			}
+			newStr->erase(remove(newStr->begin(), newStr->end(), k), newStr->end());
+		}
+	}
+
+	return newStr;
 }
 
 bool AdcSearch::matchesSize(int64_t aSize) {

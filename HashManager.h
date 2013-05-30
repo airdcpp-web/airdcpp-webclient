@@ -220,7 +220,7 @@ private:
 
 		bool checkTTH(const string& aFileNameLower, HashedFile& fi_);
 
-		void addTree(const TigerTree& tt) noexcept;
+		void addTree(const TigerTree& tt);
 		bool getFileInfo(const string& aFileLower, HashedFile& aFile);
 		bool getTree(const TTHValue& root, TigerTree& tth);
 		bool hasTree(const TTHValue& root);

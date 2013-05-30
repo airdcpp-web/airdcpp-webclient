@@ -17,6 +17,7 @@
  */
 
 #include "stdinc.h"
+#include "SimpleXML.h"
 #include "HubSettings.h"
 
 namespace dcpp {

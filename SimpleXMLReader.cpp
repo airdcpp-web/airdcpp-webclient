@@ -67,6 +67,23 @@ static bool isNameChar(int c) {
 		;
 }
 
+SimpleXMLReader::ThreadedCallBack::ThreadedCallBack(const string& path) {
+	file.reset(new File(path, dcpp::File::READ, dcpp::File::OPEN, false));
+	size = file->getSize();
+}
+
+bool SimpleXMLReader::ThreadedCallBack::SizeSort::operator()(const ThreadedCallBack& left, const ThreadedCallBack& right) const {
+	return left.size > right.size;
+}
+
+/*SimpleXMLReader::ThreadedCallBackLoader::ThreadedCallBackLoader(const ThreadedCallBackList& loaders) {
+
+}
+
+void SimpleXMLReader::ThreadedCallBackLoader::parse(ProgressFunction prog) {
+
+}*/
+
 SimpleXMLReader::SimpleXMLReader(SimpleXMLReader::CallBack* callback) :
 	bufPos(0), pos(0), cb(callback), state(STATE_START)
 {

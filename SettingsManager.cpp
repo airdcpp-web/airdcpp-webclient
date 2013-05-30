@@ -789,9 +789,7 @@ SettingsManager::SettingsManager()
 	setDefault(SHOW_MAGNET, true);
 
 	//set depending on the cpu count
-	SYSTEM_INFO info={{0}};
-	GetSystemInfo(&info);
-	setDefault(MAX_HASHING_THREADS, info.dwNumberOfProcessors);
+	setDefault(MAX_HASHING_THREADS, std::thread::hardware_concurrency());
 
 	setDefault(HASHERS_PER_VOLUME, 1);
 

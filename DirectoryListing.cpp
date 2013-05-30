@@ -410,7 +410,7 @@ void DirectoryListing::Directory::search(SearchResultList& aResults, AdcSearch& 
 
 		if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
 			for(auto& f: files) {
-				if(aStrings.matchesFile(f->getName(), f->getSize())) {
+				if(aStrings.matchesFileLower(Text::toLower(f->getName()), f->getSize(), f->getDate())) {
 					SearchResultPtr sr(new SearchResult(getPath()));
 					aResults.push_back(sr);
 					break;
@@ -903,7 +903,6 @@ void DirectoryListing::runTasks() {
 		join();
 		try {
 			start();
-			setThreadPriority(Thread::NORMAL);
 		} catch(const ThreadException& /*e*/) {
 			LogManager::getInstance()->message("DirListThread error", LogManager::LOG_WARNING);
 			running.clear();

@@ -47,7 +47,7 @@ namespace dcpp {
 
 		AdcSearch(const StringList& params);
 
-		AdcSearch(const string& aString, const string& aExcluded, const StringList& aExt);
+		AdcSearch(const string& aString, const string& aExcluded, const StringList& aExt, MatchType aMatchType);
 		AdcSearch(const TTHValue& aRoot);
 
 		bool isExcluded(const string& str);
@@ -73,8 +73,12 @@ namespace dcpp {
 
 		ItemType itemType;
 
-		bool matchesFile(const string& aName, int64_t aSize);
+		bool matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate);
 		bool matchesDirectory(const string& aName);
+
+		//returns list of search terms that didn't match the name
+		StringSearch::List* matchesDirectoryReLower(const string& aName);
+
 		bool matchesSize(int64_t aSize);
 		bool matchesDate(uint32_t aDate);
 	};

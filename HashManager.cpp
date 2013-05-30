@@ -72,9 +72,6 @@ void HashManager::getFileInfo(string&& aFileLower, const string& aFileName, Hash
 			hashFile(aFileName, move(aFileLower), size);
 		throw HashException();
 	}
-
-	//if (!store.hasTree(fi_.getRoot()))
-	//	throw HashException();
 }
 
 bool HashManager::getTree(const TTHValue& root, TigerTree& tt) {
@@ -280,7 +277,7 @@ bool HashManager::HashStore::renameFile(const string& oldPath, const string& new
 }
 
 
-void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
+void HashManager::HashStore::addTree(const TigerTree& tt) {
 	size_t treelen = tt.getLeaves().size() == 1 ? 0 : tt.getLeaves().size() * TTHValue::BYTES;
 	auto sz = sizeof(uint8_t) + sizeof(int64_t) + sizeof(int64_t) + treelen;
 
@@ -306,17 +303,16 @@ void HashManager::HashStore::addTree(const TigerTree& tt) noexcept {
 	if (treelen > 0)
 		memcpy(p, tt.getLeaves()[0].data, treelen);
 
+	//throw HashException(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % "TEST"));
 	try {
 		hashDb->put((void*)tt.getRoot().data, sizeof(TTHValue), buf, sz);
 	} catch(DbException& e) {
-		LogManager::getInstance()->message(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
+		free(buf);
+		throw HashException(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % e.getError()));
+		//LogManager::getInstance()->message(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 	}
 
 	free(buf);
-
-	/*TigerTree tmpTree;
-	getTree(tt.getRoot(), tmpTree);
-	auto fafas = "asgasg";*/
 }
 
 bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
@@ -511,6 +507,8 @@ void HashManager::HashStore::optimize(bool doVerify) {
 
 		HashedFile fi;
 		string path;
+
+		// lookup each item in file index from the share
 		try {
 			fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
 				path = string((const char*)aKey, key_len);
@@ -531,6 +529,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 			return;
 		}
 
+		//remove trees that aren't shared and optionally check whether each tree can be loaded
 		TigerTree tt;
 		TTHValue curRoot;
 		try {

@@ -86,7 +86,7 @@ private:
 		int	m_nThreads;
 		bool m_bTerminate;
 		HANDLE m_hIOCP;
-		int lastKey;
+		atomic_flag threadRunning;
 	};
 
 	struct NotifyTask {
@@ -115,7 +115,7 @@ public:
 	Monitor(const string& aPath, DirectoryMonitor::Server* aParent, int monitorFlags, size_t bufferSize, bool recursive);
 	~Monitor();
 
-	bool openDirectory();
+	void openDirectory(HANDLE iocp);
 	void beginRead();
 
 	void stopMonitoring();
@@ -140,6 +140,7 @@ private:
 	// Since the memory is allocated by malloc, it will always
 	// be aligned as required by ReadDirectoryChangesW().
 	ByteVector m_Buffer;
+	int errorCount;
 };
 
 } //dcpp

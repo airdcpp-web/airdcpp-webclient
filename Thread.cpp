@@ -43,8 +43,6 @@ void Thread::start() {
 }
 #endif
 
-#ifdef _WIN64
-
 SharedMutex::SharedMutex() {
 	InitializeSRWLock(&psrw);
 }
@@ -85,8 +83,6 @@ WLock::WLock(SharedMutex& aCS) : cs(&aCS) {
 WLock::~WLock() {
 	cs->unlock();
 }
-
-#endif
 
 ConditionalRLock::ConditionalRLock(SharedMutex& aCS, bool aLock) : cs(&aCS), lock(aLock) {
 	if (lock)
