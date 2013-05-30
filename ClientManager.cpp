@@ -244,16 +244,16 @@ string ClientManager::getFormatedHubNames(const HintedUser& user) const {
 }
 
 //get nick,hubname combination same with formatUserList() but updates the hint and returns both infos with one lookup.
-StringPair ClientManager::getNickHubPair(HintedUser user) {
+StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint) {
 	OnlineUserList ouList;
 
 	RLock l(cs);
-	auto hinted = getUsers(user, ouList);
+	auto hinted = getUsers(HintedUser(user, hint), ouList);
 	if(!ouList.empty() && !hinted) { //set the hint to match the first nick
 		auto i = ouList.begin();
 		hinted = *i;
 		ouList.erase(i);
-		user.hint = hinted->getHubUrl();
+		hint = hinted->getHubUrl();
 	}
 
 	string hubs = hinted ? OnlineUser::HubName()(hinted) + " " : Util::emptyString;
@@ -272,7 +272,7 @@ StringPair ClientManager::getNickHubPair(HintedUser user) {
 		nick += Util::listToStringT<OnlineUserList, OnlineUser::Nick>(ouList, hinted ? true : false, hinted ? false : true);
 		
 	if (nick.empty()) {
-		auto i = nicks.find(const_cast<CID*>(&user.user->getCID()));
+		auto i = nicks.find(const_cast<CID*>(&user->getCID()));
 		if(i != nicks.end()) {
 			nick = i->second;
 		}

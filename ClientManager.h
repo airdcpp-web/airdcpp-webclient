@@ -64,7 +64,7 @@ public:
 	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID()); }
 	StringList getHubUrls(const HintedUser& user) { return getHubUrls(user.user->getCID()); }
 
-	StringPair ClientManager::getNickHubPair(HintedUser user);
+	StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint);
 
 	template<class NameOperator>
 	string formatUserList(const HintedUser& user, bool removeDuplicates) const {
