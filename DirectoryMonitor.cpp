@@ -61,7 +61,7 @@ void DirectoryMonitor::init() throw(MonitorException) {
 }
 
 void DirectoryMonitor::Server::init() throw(MonitorException) {
-	if (!threadRunning.test_and_set())
+	if (threadRunning.test_and_set())
 		return;
 
 	m_hIOCP = CreateIoCompletionPort(
