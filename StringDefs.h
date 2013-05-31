@@ -1756,5 +1756,14 @@ enum Strings { // @DontAdd
 	MAINTENANCE, // "Maintenance"
 	FILE_INDEX_SIZE, // "File index size:"
 	HASH_DATA_SIZE, // "Hash data size:"
+	MONITORING_CHANGES, // "Monitoring for share changes"
+	ALL_DIRS, // "All directories"
+	INCOMING_ONLY, // "Incoming directories only"
+	X_MONITORING_ADDED, // "%d directories have been added for monitoring"
+	X_MONITORING_REMOVED, // "%d directories have been removed from monitoring"
+	FAILED_ADD_MONITORING, // "Failed to add the directory %s for monitoring: %s"
+	DETECT_NOW, // "Detect now"
+	CONN_USE_MANUAL_CONFIG, // "I want to configure connectivity settings manually"
+	PROTOCOL_OPTIONS, // "Protocol options"
 	LAST // @DontAdd
 };

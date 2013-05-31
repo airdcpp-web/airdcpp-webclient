@@ -75,31 +75,6 @@ void DirectoryMonitor::Server::init() throw(MonitorException) {
 
 	start();
 }
-
-void DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
-	{
-		RLock l(cs);
-		if (monitors.find(aPath) != monitors.end())
-			return;
-	}
-
-	init();
-
-	Monitor* mon = new Monitor(aPath, this, 0, 4*1024, true);
-	try {
-		mon->openDirectory(m_hIOCP);
-
-		{
-			WLock l(cs);
-			mon->beginRead();
-			monitors.emplace(aPath, mon);
-		}
-	} catch(MonitorException& e) {
-		mon->stopMonitoring();
-		delete mon;
-		throw e;
-	}
-}
 	
 void DirectoryMonitor::Server::stop() {
 	m_bTerminate = true;
@@ -293,15 +268,60 @@ int DirectoryMonitor::Server::read() {
 	return 1;
 }
 
-void DirectoryMonitor::addDirectory(const string& aPath) {
-	server->addDirectory(aPath);
+bool DirectoryMonitor::addDirectory(const string& aPath) {
+	return server->addDirectory(aPath);
 }
 
-void DirectoryMonitor::removeDirectory(const string& aPath) {
-	server->removeDirectory(aPath);
+bool DirectoryMonitor::removeDirectory(const string& aPath) {
+	return server->removeDirectory(aPath);
 }
 
-void DirectoryMonitor::Server::removeDirectory(const string& aPath) {
+size_t DirectoryMonitor::clear() {
+	return server->clear();
+}
+
+size_t DirectoryMonitor::Server::clear() {
+	StringList remove;
+
+	{
+		RLock l(cs);
+		for (auto& m: monitors)
+			remove.push_back(m.first);
+	}
+
+	for (auto& p: remove)
+		removeDirectory(p);
+	return remove.size();
+}
+
+bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
+	{
+		RLock l(cs);
+		if (monitors.find(aPath) != monitors.end())
+			return false;
+	}
+
+	init();
+
+	Monitor* mon = new Monitor(aPath, this, 0, 4*1024, true);
+	try {
+		mon->openDirectory(m_hIOCP);
+
+		{
+			WLock l(cs);
+			mon->beginRead();
+			monitors.emplace(aPath, mon);
+		}
+	} catch(MonitorException& e) {
+		mon->stopMonitoring();
+		delete mon;
+		throw e;
+	}
+
+	return true;
+}
+
+bool DirectoryMonitor::Server::removeDirectory(const string& aPath) {
 	WLock l(cs);
 	auto p = monitors.find(aPath);
 	if (p != monitors.end()) {
@@ -318,7 +338,11 @@ void DirectoryMonitor::Server::removeDirectory(const string& aPath) {
 				m_hIOCP = NULL;
 			}
 		}
+
+		return true;
 	}
+
+	return false;
 }
 
 Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int monitorFlags, size_t bufferSize, bool recursive) : 

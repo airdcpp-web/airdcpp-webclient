@@ -140,7 +140,7 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 		{
 			RLock l(cs);
 			for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
-				if (d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
+				if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_ALL || (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING)))
 					monitorPaths.push_back(d->getProfileDir()->getPath());
 			}
 		}
@@ -155,30 +155,30 @@ void ShareManager::addMonitoring(const StringList& aPaths) {
 	int added = 0;
 	for(const auto& p: aPaths) {
 		try {
-			monitor->addDirectory(p);
-			added++;
+			if (monitor->addDirectory(p))
+				added++;
 		} catch (MonitorException& e) {
-			LogManager::getInstance()->message("Failed to add the folder " + p + " for monitoring: " + e.getError(), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(FAILED_ADD_MONITORING, p % e.getError()), LogManager::LOG_ERROR);
 		}
 	}
 
 	if (added > 0)
-		LogManager::getInstance()->message(Util::toString(added) + " folders have been added for monitoring", LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(X_MONITORING_ADDED, added), LogManager::LOG_INFO);
 }
 
 void ShareManager::removeMonitoring(const StringList& aPaths) {
 	int removed = 0;
 	for(const auto& p: aPaths) {
 		try {
-			monitor->removeDirectory(p);
-			removed++;
+			if (monitor->removeDirectory(p))
+				removed++;
 		} catch (MonitorException& e) {
 			LogManager::getInstance()->message("Error occurred when trying to remove the foldrer " + p + " from monitoring: " + e.getError(), LogManager::LOG_ERROR);
 		}
 	}
 
 	if (removed > 0)
-		LogManager::getInstance()->message(Util::toString(removed) + " folders have been removed from monitoring", LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(X_MONITORING_REMOVED, removed), LogManager::LOG_INFO);
 }
 
 void ShareManager::onFileModified(const string& aPath, bool created) {
@@ -2131,10 +2131,10 @@ void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs)  {
 				p->second->getProfileDir()->addRootProfile(vName, cd->profile); //renames it really
 
 				// change the incoming state
-				if (p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING) && !cd->incoming) {
+				if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING) && !cd->incoming) {
 					monRem.push_back(cd->path);
 					p->second->getProfileDir()->unsetFlag(ProfileDirectory::FLAG_INCOMING);
-				} else if (!p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING) && cd->incoming) {
+				} else if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && !p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING) && cd->incoming) {
 					monAdd.push_back(cd->path);
 					p->second->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING);
 				}
@@ -2145,6 +2145,25 @@ void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs)  {
 	addMonitoring(monAdd);
 	removeMonitoring(monRem);
 	setProfilesDirty(dirtyProfiles);
+}
+
+void ShareManager::rebuildMonitoring() {
+	StringList monAdd;
+	StringList monRem;
+
+	{
+		RLock l(cs);
+		for(auto& dp: rootPaths) {
+			if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_DISABLED || (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && !dp.second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))) {
+				monRem.push_back(dp.first);
+			} else if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_ALL || (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && dp.second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))) {
+				monAdd.push_back(dp.first);
+			}
+		}
+	}
+
+	addMonitoring(monAdd);
+	removeMonitoring(monRem);
 }
 
 void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories, bool finished, int64_t aHashSize, const string& displayName, RefreshType aRefreshType) {
@@ -2250,7 +2269,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 					refreshDirs.emplace_back(i, d->second, findLastWrite(i));
 					
 					//a monitored dir?
-					if (t.first == ADD_DIR && d->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
+					if (t.first == ADD_DIR && (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_ALL || (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && d->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))))
 						monitoring.push_back(i);
 				} else {
 					auto curDir = findDirectory(i, false, false, false);

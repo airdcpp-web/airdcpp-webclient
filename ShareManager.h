@@ -260,6 +260,8 @@ public:
 
 	int addRefreshTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
 	struct ShareLoader;
+
+	void rebuildMonitoring();
 private:
 	unique_ptr<DirectoryMonitor> monitor;
 

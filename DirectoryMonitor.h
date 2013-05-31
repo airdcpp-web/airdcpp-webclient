@@ -55,8 +55,9 @@ public:
 	DirectoryMonitor(int numThreads, bool useDispatcherThread);
 	~DirectoryMonitor();
 
-	void addDirectory(const string& aPath) throw(MonitorException);
-	void removeDirectory(const string& aPath);
+	bool addDirectory(const string& aPath) throw(MonitorException);
+	bool removeDirectory(const string& aPath);
+	size_t clear();
 
 	void stopMonitoring();
 	void init() throw(MonitorException);
@@ -69,8 +70,9 @@ private:
 	public:
 		Server(DirectoryMonitor* aBase, int numThreads);
 		~Server();
-		void addDirectory(const string& aPath) throw(MonitorException);
-		void removeDirectory(const string& aPath);
+		bool addDirectory(const string& aPath) throw(MonitorException);
+		bool removeDirectory(const string& aPath);
+		size_t clear();
 
 		void stop();
 
