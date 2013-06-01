@@ -191,7 +191,7 @@ public:
 	int countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
 	bool hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
-	bool startDown();
+	bool startDown() const;
 
 	SourceList& getSources() { return sources; }
 	const SourceList& getSources() const { return sources; }
