@@ -2704,8 +2704,8 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 	}
 
 
-	//priority to set (4-2, high-low)
-	int8_t prio = 4;
+	//start with the high prio, continue to normal and low
+	int8_t prio = QueueItemBase::HIGH;
 
 	//counters for analyzing identical points
 	int lastPoints = 999;
@@ -2718,14 +2718,15 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 			}
 
 			if(i.second->getPriority() != prio)
-				priorities.emplace_back(i.second, (QueueItemBase::Priority)prio);
+				priorities.emplace_back(i.second, static_cast<QueueItemBase::Priority>(prio));
 
 			//don't increase the prio if two items have identical points
 			if (prioSet < prioGroup) {
 				prioSet++;
 			}
 		} else {
-			if (prioSet == prioGroup && prio != 2) {
+			//all priorities set from this group? but don't go below LOW
+			if (prioSet == prioGroup && prio != QueueItemBase::LOW) {
 				prio--;
 				prioSet=0;
 			} 
@@ -2735,7 +2736,7 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 			}
 
 			if(i.second->getPriority() != prio)
-				priorities.emplace_back(i.second, (QueueItemBase::Priority)prio);
+				priorities.emplace_back(i.second, static_cast<QueueItemBase::Priority>(prio));
 
 			prioSet++;
 			lastPoints = i.first;
