@@ -815,7 +815,7 @@ SettingsManager::SettingsManager()
 	setDefault(PM_LOG_GROUP_CID, true);
 	setDefault(SHARE_FOLLOW_SYMLINKS, true);
 	setDefault(SCAN_MONITORED_FOLDERS, true);
-	setDefault(MONITORING_MODE, MONITORING_INCOMING);
+	setDefault(MONITORING_MODE, MONITORING_DISABLED);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

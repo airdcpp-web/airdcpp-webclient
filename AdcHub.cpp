@@ -210,7 +210,10 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		string version;
 		if(c.getParam("VE", 0, version)) {
 			if (version.find("FlexHub") != string::npos) {
-				fire(ClientListener::StatusMessage(), this, "WARNING: This hub is running on FlexHub, which may disable certain features in the client (at least searching in partial file lists)");
+				auto p = version.rfind(" ");
+				if (p == string::npos || Util::toInt(version.substr(p+1)) < 1417) {
+					fire(ClientListener::StatusMessage(), this, "WARNING: This hub is running on FlexHub, which may disable certain features in the client (at least searching in partial file lists)");
+				}
 			}
 		}
 	} else {

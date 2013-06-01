@@ -959,7 +959,7 @@ void HashManager::Optimizer::startMaintenance(bool aVerify) {
 
 	verify = aVerify;
 	running = true;
-	run();
+	start();
 }
 
 int HashManager::Optimizer::run() {
