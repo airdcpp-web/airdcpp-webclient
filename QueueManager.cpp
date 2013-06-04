@@ -1512,13 +1512,12 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 	unique_ptr<Download> d(aDownload);
 	aDownload = nullptr;
 
-	//remember to close the file when needed...
+	d->close();
 
 	{
 		WLock l(cs);
 		q = fileQueue.findFile(d->getPath());
 		if(!q) {
-			d->close();
 			// Target has been removed, clean up the mess
 			auto hasTempTarget = !d->getTempTarget().empty();
 			auto isFullList = d->getType() == Transfer::TYPE_FULL_LIST;
@@ -1532,12 +1531,10 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 		}
 
 		if (q->isSet(QueueItem::FLAG_FINISHED)) {
-			d->close();
 			return;
 		}
 
 		if(!finished) {
-			d->close();
 			if(d->getType() == Transfer::TYPE_FULL_LIST && !d->getTempTarget().empty()) {
 				// No use keeping an unfinished file list...
 				File::deleteFile(d->getTempTarget());
@@ -1595,7 +1592,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				userQueue.removeDownload(q, d->getToken());
 				fire(QueueManagerListener::StatusUpdated(), q);
 			} else if(d->getType() == Transfer::TYPE_FULL_LIST) {
-				d->close();
 				if(d->isSet(Download::FLAG_XML_BZ_LIST)) {
 					q->setFlag(QueueItem::FLAG_XML_BZLIST);
 				} else {
@@ -1626,7 +1622,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				dcdebug("Finish segment for %s (%u,%u)\n", d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
 
 				if(q->isFinished()) {
-					d->close();
 					// Disconnect all possible overlapped downloads
 					for(auto aD: q->getDownloads()) {
 						if(compare(aD->getToken(), d->getToken()) != 0)
@@ -1647,10 +1642,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				} else {
 					userQueue.removeDownload(q, d->getToken());
 					fire(QueueManagerListener::StatusUpdated(), q);
-
-					//the segment finished, don't close the file in this point in case we continue with the same one
-					d.release();
-					return;
 				}
 			} else {
 				dcassert(0);

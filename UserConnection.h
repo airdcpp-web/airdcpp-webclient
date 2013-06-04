@@ -163,10 +163,10 @@ public:
 	vector<uint8_t> getKeyprint() const { return socket ? socket->getKeyprint() : vector<uint8_t>(); }
 
 	const string& getRemoteIp() const { if(socket) return socket->getIp(); else return Util::emptyString; }
-	Download* getDownload();
-	void setDownload(Download* d, bool isDeleting = false);
-	Upload* getUpload();
-	void setUpload(Upload* u);
+	Download* getDownload() { dcassert(isSet(FLAG_DOWNLOAD)); return download; }
+	void setDownload(Download* d) { dcassert(isSet(FLAG_DOWNLOAD)); download = d; }
+	Upload* getUpload() { dcassert(isSet(FLAG_UPLOAD)); return upload; }
+	void setUpload(Upload* u) { dcassert(isSet(FLAG_UPLOAD)); upload = u; }
 	
 	void handle(AdcCommand::SUP t, const AdcCommand& c) { fire(t, this, c); }
 	void handle(AdcCommand::INF t, const AdcCommand& c) { fire(t, this, c); }

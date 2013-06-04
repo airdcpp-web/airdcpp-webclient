@@ -1765,5 +1765,6 @@ enum Strings { // @DontAdd
 	DETECT_NOW, // "Detect now"
 	CONN_USE_MANUAL_CONFIG, // "I want to configure connectivity settings manually"
 	PROTOCOL_OPTIONS, // "Protocol options"
+	INVALID_PASSWORD, // "Invalid password"
 	LAST // @DontAdd
 };

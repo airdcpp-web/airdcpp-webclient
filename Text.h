@@ -43,22 +43,22 @@ namespace Text {
 
 	void initialize();
 
-	const string& acpToUtf8(const string& str, string& tmp) noexcept;
-	inline string acpToUtf8(const string& str) noexcept {
+	const string& acpToUtf8(const string& str, string& tmp, const string& fromCharset = "") noexcept;
+	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept {
 		string tmp;
-		return acpToUtf8(str, tmp);
+		return acpToUtf8(str, tmp, fromCharset);
 	}
 
-	const wstring& acpToWide(const string& str, wstring& tmp) noexcept;
-	inline wstring acpToWide(const string& str) noexcept {
+	const wstring& acpToWide(const string& str, wstring& tmp, const string& fromCharset = "") noexcept;
+	inline wstring acpToWide(const string& str, const string& fromCharset = "") noexcept {
 		wstring tmp;
-		return acpToWide(str, tmp);
+		return acpToWide(str, tmp, fromCharset);
 	}
 
-	const string& utf8ToAcp(const string& str, string& tmp) noexcept;
-	inline string utf8ToAcp(const string& str) noexcept {
+	const string& utf8ToAcp(const string& str, string& tmp, const string& toCharset = "") noexcept;
+	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept {
 		string tmp;
-		return utf8ToAcp(str, tmp);
+		return utf8ToAcp(str, tmp, toCharset);
 	}
 
 	const wstring& utf8ToWide(const string& str, wstring& tmp) noexcept;
@@ -67,10 +67,10 @@ namespace Text {
 		return utf8ToWide(str, tmp);
 	}
 
-	const string& wideToAcp(const wstring& str, string& tmp) noexcept;
-	inline string wideToAcp(const wstring& str) noexcept {
+	const string& wideToAcp(const wstring& str, string& tmp, const string& toCharset = "") noexcept;
+	inline string wideToAcp(const wstring& str, const string& toCharset = "") noexcept {
 		string tmp;
-		return wideToAcp(str, tmp);
+		return wideToAcp(str, tmp, toCharset);
 	}
 
 	const string& wideToUtf8(const wstring& str, string& tmp) noexcept;
@@ -97,18 +97,14 @@ namespace Text {
 #endif
 
 	inline const TStringList& toT(const StringList& lst, TStringList& tmp) noexcept {
-		//for(auto& i: lst)
-		//	tmp.push_back(toT(i));
-		for (auto i = lst.begin(); i != lst.end(); ++i)
-			tmp.push_back(toT(*i));
+		for(auto& i: lst)
+			tmp.push_back(toT(i));
 		return tmp;
 	}
 
 	inline const StringList& fromT(const TStringList& lst, StringList& tmp) noexcept {
-		//for(auto& i: lst)
-		//	tmp.push_back(fromT(i));
-		for (auto i = lst.begin(); i != lst.end(); ++i)
-			tmp.push_back(fromT(*i));
+		for(auto& i: lst)
+			tmp.push_back(fromT(i));
 		return tmp;
 	}
 
@@ -127,7 +123,6 @@ namespace Text {
 		return toLower(str, tmp);
 	}
 
-	//returns a pointer to a lowercase representation if it differs from the given string
 	bool isLower(const string& str) noexcept;
 
 	const string& toLower(const string& str, string& tmp) noexcept;

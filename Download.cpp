@@ -34,6 +34,8 @@ namespace dcpp {
 Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn, qi.getTarget(), qi.getTTH()),
 	tempTarget(qi.getTempTarget()), lastTick(GET_TICK()), treeValid(false)
 {
+	conn.setDownload(this);
+	
 	QueueItem::SourceConstIter source = qi.getSource(getUser());
 	//if (SettingsManager::lanMode)
 	//	remotePath = source->getRemotePath();
@@ -64,15 +66,8 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 	}
 	
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
-		if (conn.getDownload() && conn.getDownload()->getType() == Transfer::TYPE_FILE && conn.getDownload()->getPath() == getPath()) {
-			output.reset(conn.getDownload()->releaseRootStream());
+		if(HashManager::getInstance()->getTree(getTTH(), getTigerTree())) {
 			setTreeValid(true);
-			tt = conn.getDownload()->getTigerTree();
-		} else {
-			setTreeValid(HashManager::getInstance()->getTree(getTTH(), getTigerTree()));
-		}
-
-		if(treeValid) {
 			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), conn.getChunkSize(), conn.getSpeed(), source->getPartialSource(), true));
 			qi.setBlockSize(getTigerTree().getBlockSize());
 		} else if(conn.isSet(UserConnection::FLAG_SUPPORTS_TTHL) && !source->isSet(QueueItem::Source::FLAG_NO_TREE) && qi.getSize() > HashManager::MIN_BLOCK_SIZE) {
@@ -103,16 +98,10 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 			}
 		}
 	}
-
-	conn.setDownload(this);
 }
 
 Download::~Download() {
-	getUserConnection().setDownload(nullptr, true);
-}
-
-OutputStream* Download::releaseRootStream() {
-	return output.get()->releaseRootStream();
+	getUserConnection().setDownload(0);
 }
 
 AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
@@ -178,6 +167,8 @@ const string& Download::getDownloadTarget() const {
 
 void Download::open(int64_t bytes, bool z, bool hasDownloadedBytes) {
 	if(getType() == Transfer::TYPE_FILE) {
+		auto target = getDownloadTarget();
+		auto fullSize = tt.getFileSize();
 
 		if(getOverlapped() && bundle) {
 			setOverlapped(false);
@@ -205,33 +196,30 @@ void Download::open(int64_t bytes, bool z, bool hasDownloadedBytes) {
 			}
 		}
 
-		if (!output.get()) {
-			auto target = getDownloadTarget();
-			auto fullSize = tt.getFileSize();
-			if(hasDownloadedBytes) {
-				if(File::getSize(target) != fullSize) {
-					// When trying the download the next time, the resume pos will be reset
-					throw Exception(CSTRING(TARGET_FILE_MISSING));
-				}
-			} else {
-				File::ensureDirectory(target);
+		if(hasDownloadedBytes) {
+			if(File::getSize(target) != fullSize) {
+				// When trying the download the next time, the resume pos will be reset
+				throw Exception(CSTRING(TARGET_FILE_MISSING));
 			}
-
-			int flags = File::OPEN | File::CREATE | File::SHARED_WRITE;
-			if (getSegment().getEnd() != fullSize) {
-				//segmented download
-				flags |= File::NO_CACHE_HINT;
-			}
-
-			unique_ptr<File> f(new File(target, File::WRITE, flags));
-
-			if(f->getSize() != fullSize) {
-				f->setSize(fullSize);
-			}
-			tempTarget = target;
-			output = move(f);
+		} else {
+			File::ensureDirectory(target);
 		}
-		output->setPos(getSegment().getStart());
+
+		int flags = File::OPEN | File::CREATE | File::SHARED_WRITE;
+		if (getSegment().getEnd() != fullSize) {
+			//segmented download
+			flags |= File::NO_CACHE_HINT;
+		}
+
+		unique_ptr<SharedFileStream> f(new SharedFileStream(target, File::WRITE, flags));
+
+		if(f->getSize() != fullSize) {
+			f->setSize(fullSize);
+		}
+
+		f->setPos(getSegment().getStart());
+		output = move(f);
+		tempTarget = target;
 	} else if(getType() == Transfer::TYPE_FULL_LIST) {
 		auto target = getPath();
 		File::ensureDirectory(target);

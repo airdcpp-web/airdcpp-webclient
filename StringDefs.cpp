@@ -1761,6 +1761,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Detect now", 
 "I want to configure connectivity settings manually", 
 "Protocol options", 
+"Invalid password", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3522,4 +3523,5 @@ std::string dcpp::ResourceManager::names[] = {
 "DetectNow", 
 "ConnUseManualConfig", 
 "ProtocolOptions", 
+"InvalidPassword", 
 };
