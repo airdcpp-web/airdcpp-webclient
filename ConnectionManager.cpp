@@ -328,10 +328,8 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 		}
 	}
 
-	QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(aSource->getHintedUser(), ClientManager::getInstance()->getHubSet(aSource->getUser()->getCID()), false);
-	bool startDown = DownloadManager::getInstance()->startDownload(prio, true);
-
-	if(prio != QueueItem::PAUSED && startDown) {
+	auto prio = QueueManager::getInstance()->hasDownload(aSource->getHintedUser(), ClientManager::getInstance()->getHubSet(aSource->getUser()->getCID()), false);
+	if(prio != QueueItem::PAUSED) {
 		WLock l (cs);
 		ConnectionQueueItem* cqiNew = getCQI(aSource->getHintedUser(),true);
 		cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
