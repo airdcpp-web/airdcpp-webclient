@@ -353,14 +353,14 @@ bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad 
 	}
 }
 
-QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) {
 	int p = QueueItem::LAST - 1;
 	do {
 		auto i = userQueue[p].find(aUser);
 		if(i != userQueue[p].end()) {
 			dcassert(!i->second.empty());
 			for(auto& qi: i->second) {
-				if (qi->hasSegment(aUser, onlineHubs, aLastError, wantedSize, lastSpeed, smallSlot, allowOverlap)) {
+				if (qi->hasSegment(aUser, onlineHubs, aLastError, wantedSize, lastSpeed, aType, allowOverlap)) {
 					return qi;
 				}
 			}

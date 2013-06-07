@@ -234,17 +234,22 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	//We may have download assigned for a connection if we are downloading in segments
 	//dcassert(!aConn->getDownload() || aConn->getDownload()->isSet(Download::FLAG_CHUNKED));
 
-	bool smallSlot = aConn->isSet(UserConnection::FLAG_SMALL_SLOT);
+	QueueItemBase::DownloadType dlType = QueueItemBase::TYPE_ANY;
+	if (aConn->isSet(UserConnection::FLAG_SMALL_SLOT)) {
+		dlType = QueueItemBase::TYPE_SMALL;
+	} else if (aConn->isSet(UserConnection::FLAG_MCN1)) {
+		dlType = QueueItemBase::TYPE_MCN_NORMAL;
+	}
 
 	auto hubs = ClientManager::getInstance()->getHubSet(aConn->getUser()->getCID());
 
 	//always make sure that the current hub is also compared even if it is offline
 	hubs.insert(aConn->getHubUrl());
 
-	QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getHintedUser(), hubs, smallSlot);
+	QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getHintedUser(), hubs, dlType);
 	bool start = startDownload(prio);
 
-	if(!start && !smallSlot) { //add small slot connections to idlers instead of disconnecting
+	if(!start && dlType != QueueItemBase::TYPE_SMALL) { //add small slot connections to idlers instead of disconnecting
 		aConn->setDownload(nullptr);
 		removeRunningUser(aConn);
 		removeConnection(aConn);
@@ -253,7 +258,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 
 	string errorMessage, newUrl;
-	Download* d = QueueManager::getInstance()->getDownload(*aConn, hubs, errorMessage, newUrl, smallSlot);
+	Download* d = QueueManager::getInstance()->getDownload(*aConn, hubs, errorMessage, newUrl, dlType);
 	if(!d) {
 		aConn->setDownload(nullptr);
 		aConn->unsetFlag(UserConnection::FLAG_RUNNING);

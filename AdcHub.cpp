@@ -847,6 +847,9 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 			hbri->setV4only(true);
 		}
 
+		auto snd = hbriCmd.toString(sid);
+		COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, aIP + ":" + aPort);
+
 		// Connect
 		hbri->connect(aIP, aPort);
 
@@ -856,12 +859,9 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 			if(closing) throw Exception();
 		}
 
-
 		if (connSucceeded) {
 
 			// Send our command
-			auto snd = hbriCmd.toString(sid);
-			COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, hbri->getIp() + ":" + aPort);
 			hbri->write(snd);
 
 			// Wait for the hub to reply

@@ -1766,5 +1766,6 @@ enum Strings { // @DontAdd
 	CONN_USE_MANUAL_CONFIG, // "I want to configure connectivity settings manually"
 	PROTOCOL_OPTIONS, // "Protocol options"
 	INVALID_PASSWORD, // "Invalid password"
+	SETTINGS_FINISHED_NO_HASH, // "Allow adding finished bundles in share without hashing"
 	LAST // @DontAdd
 };

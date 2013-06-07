@@ -123,13 +123,13 @@ public:
 	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
 
 	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
-	Download* getDownload(UserConnection& aSource, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, bool smallSlot) noexcept;
+	Download* getDownload(UserConnection& aSource, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, QueueItemBase::DownloadType aType) noexcept;
 	void putDownload(Download* aDownload, bool finished, bool noAccess=false, bool rotateQueue=false) noexcept;
 	
 	/** @return The highest priority download the user has, PAUSED may also mean no downloads */
-	QueueItemBase::Priority hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, bool smallSlot) noexcept;
+	QueueItemBase::Priority hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType) noexcept;
 	/** The same thing but only used before any connect requests */
-	QueueItemBase::Priority hasDownload(const UserPtr& aUser, string& hubUrl, bool smallSlot, string& bundleToken, bool& allowUrlChange) noexcept;
+	QueueItemBase::Priority hasDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange) noexcept;
 	
 	void loadQueue(function<void (float)> progressF) noexcept;
 	void saveQueue(bool force) noexcept;

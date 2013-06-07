@@ -32,6 +32,12 @@ using std::string;
 
 class QueueItemBase : public Flags {
 public:
+	enum DownloadType {
+		TYPE_ANY,
+		TYPE_SMALL,
+		TYPE_MCN_NORMAL
+	};
+
 	enum Priority {
 		DEFAULT = -1,
 		PAUSED_FORCE = 0,

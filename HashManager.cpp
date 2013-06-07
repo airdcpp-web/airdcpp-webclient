@@ -240,6 +240,18 @@ void HashManager::hashDone(const string& aFileName, string&& pathLower, const Ti
 	}
 }
 
+bool HashManager::addFile(string&& aFilePathLower, const HashedFile& fi_) {
+	if (fi_.getSize() < MIN_BLOCK_SIZE) {
+		TigerTree tt = TigerTree(fi_.getSize(), fi_.getSize(), fi_.getRoot());
+		store.addTree(tt);
+	} else if (!store.hasTree(fi_.getRoot())) {
+		return false;
+	}
+
+	store.addFile(move(aFilePathLower), fi_);
+	return true;
+}
+
 void HashManager::HashStore::addHashedFile(string&& aFileLower, const TigerTree& tt, const HashedFile& fi_) {
 	addTree(tt);
 	addFile(move(aFileLower), fi_);

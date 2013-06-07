@@ -599,7 +599,7 @@ void QueueItem::getChunksVisualisation(vector<Segment>& running_, vector<Segment
 	}
 }
 
-bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) {
+bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, DownloadType aType, bool allowOverlap) {
 	if (!startDown())
 		return false;
 
@@ -620,8 +620,10 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 		return false;
 	}
 
-	if(smallSlot && !isSet(QueueItem::FLAG_PARTIAL_LIST) && getSize() > 65792) {
+	if(aType == TYPE_SMALL && !isSet(QueueItem::FLAG_PARTIAL_LIST) && getSize() > 65792) {
 		//don't even think of stealing our priority channel
+		return false;
+	} else if (aType == TYPE_MCN_NORMAL && (isSet(QueueItem::FLAG_PARTIAL_LIST) || getSize() <= 65792)) {
 		return false;
 	}
 

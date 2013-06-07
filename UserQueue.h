@@ -32,9 +32,9 @@ public:
 	void addQI(QueueItemPtr& qi, bool newBundle=false);
 	void addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle=false, bool isBadSource = false);
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql);
-	QueueItemPtr getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, bool smallSlot=false, bool allowOverlap=false);
-	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
-	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	QueueItemPtr getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, QueueItemBase::DownloadType aType = QueueItem::TYPE_ANY, bool allowOverlap=false);
+	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap);
+	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap);
 	void addDownload(QueueItemPtr& qi, Download* d);
 	void removeDownload(QueueItemPtr& qi, const string& aToken);
 

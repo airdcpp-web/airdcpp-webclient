@@ -56,16 +56,20 @@ public:
 
 	enum Flags {
 		FLAG_MCN1				= 0x01,
-		FLAG_SMALL				= 0x02,
-		FLAG_SMALL_CONF			= 0x04,
 		FLAG_REMOVE				= 0x08
 	};
 
+	enum Type {
+		TYPE_ANY,
+		TYPE_SMALL,
+		TYPE_SMALL_CONF,
+	};
+
 	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken ) : token(aToken), 
-		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser.user), hubUrl(aUser.hint), maxConns(0) { }
+		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser.user), hubUrl(aUser.hint), maxConns(0), type(TYPE_ANY) { }
 	
 	GETSET(string, token, Token);
-
+	GETSET(Type, type, Type);
 	GETSET(string, hubUrl, HubUrl);
 	GETSET(string, lastBundle, LastBundle);
 	GETSET(uint8_t, maxConns, MaxConns);
@@ -76,7 +80,7 @@ public:
 	const UserPtr& getUser() const { return user; }
 	//UserPtr& getUser() { return user; }
 	const HintedUser getHintedUser() const { return HintedUser(user, hubUrl); }
-	bool allowNewConnections(int running);
+	bool allowNewConnections(int running) const;
 private:
 	UserPtr user;
 };
@@ -154,6 +158,8 @@ public:
 	void addRunningMCN(const UserConnection *aSource) noexcept;
 	void failDownload(const string& aToken, const string& aError, bool protocolError);
 private:
+	bool allowNewMCN(const ConnectionQueueItem* aCQI);
+	void createNewMCN(const HintedUser& aUser);
 
 	class Server : public Thread {
 	public:

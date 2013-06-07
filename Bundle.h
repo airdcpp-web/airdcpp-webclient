@@ -254,7 +254,7 @@ public:
 	/** All queue items indexed by user */
 	void addUserQueue(QueueItemPtr& qi) noexcept;
 	bool addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad = false) noexcept;
-	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap) noexcept;
+	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 
 	void removeUserQueue(QueueItemPtr& qi) noexcept;

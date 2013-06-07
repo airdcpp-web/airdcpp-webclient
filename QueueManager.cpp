@@ -997,22 +997,22 @@ bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::M
 	
 }
 
-QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, bool smallSlot) noexcept {
+QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType) noexcept {
 	RLock l(cs);
-	QueueItemPtr qi = userQueue.getNext(aUser, onlineHubs, QueueItem::LOWEST, 0, 0, smallSlot);
+	QueueItemPtr qi = userQueue.getNext(aUser, onlineHubs, QueueItem::LOWEST, 0, 0, aType);
 	if(qi) {
 		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
 	}
 	return QueueItem::PAUSED;
 }
 
-QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& hubHint, bool smallSlot, string& bundleToken, bool& allowUrlChange) noexcept {
+QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& hubHint, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange) noexcept {
 	auto hubs = ClientManager::getInstance()->getHubSet(aUser->getCID());
 	if (hubs.empty())
 		return QueueItem::PAUSED;
 
 	RLock l(cs);
-	auto qi = userQueue.getNext(aUser, hubs, QueueItem::LOWEST, 0, 0, smallSlot);
+	auto qi = userQueue.getNext(aUser, hubs, QueueItem::LOWEST, 0, 0, aType);
 
 	if(qi) {
 		if (qi->getBundle()) {
@@ -1126,14 +1126,14 @@ void QueueManager::readLockedOperation(const function<void (const QueueItem::Str
 	if(currentQueue) currentQueue(fileQueue.getQueue());
 }
 
-Download* QueueManager::getDownload(UserConnection& aSource, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, bool smallSlot) noexcept {
+Download* QueueManager::getDownload(UserConnection& aSource, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, QueueItemBase::DownloadType aType) noexcept {
 	QueueItemPtr q = nullptr;
 	const UserPtr& u = aSource.getUser();
 	{
 		WLock l(cs);
 		dcdebug("Getting download for %s...", u->getCID().toBase32().c_str());
 
-		q = userQueue.getNext(aSource.getUser(), onlineHubs, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), smallSlot);
+		q = userQueue.getNext(aSource.getUser(), onlineHubs, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), aType);
 		if (q) {
 			auto source = q->getSource(aSource.getUser());
 
@@ -1280,7 +1280,11 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) {
 	if (SETTING(ADD_FINISHED_INSTANTLY)) {
 		hashBundle(aBundle);
 	} else if (!isPrivate) {
-		LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
+		if (ShareManager::getInstance()->allowAddDir(aBundle->getTarget())) {
+			LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
+		} else {
+			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
+		}
 	} else {
 		removeFinishedBundle(aBundle);
 	}
@@ -1329,9 +1333,21 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 		{
 			HashManager::HashPauser pauser;
 			for(auto& q: hash) {
+				HashedFile fi(AirUtil::getLastWrite(q->getTarget()), q->getSize());
+				if (SETTING(FINISHED_NO_HASH) && q->getBlockSize() > 0) {
+					try {
+						if (HashManager::getInstance()->addFile(Text::toLower(q->getTarget()), fi)) {
+							q->setFlag(QueueItem::FLAG_HASHED);
+							hashSize -= q->getSize();
+							continue;
+						}
+					} catch(...) { 
+						//hash it...
+					}
+				}
+
 				try {
 					// Schedule for hashing, it'll be added automatically later on...
-					HashedFile fi(AirUtil::getLastWrite(q->getTarget()), q->getSize());
 					if (!HashManager::getInstance()->checkTTH(Text::toLower(q->getTarget()), q->getTarget(), fi)) {
 						//..
 					} else {
@@ -1352,11 +1368,11 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 			checkBundleHashed(aBundle);
 		}
 	} else if (!aBundle->getQueueItems().empty() && !aBundle->getQueueItems().front()->isSet(QueueItem::FLAG_PRIVATE)) {
-		if (SETTING(ADD_FINISHED_INSTANTLY)) {
+		//if (SETTING(ADD_FINISHED_INSTANTLY)) {
 			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
-		} else {
-			LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
-		}
+		//} else {
+		//	LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
+		//}
 	} else {
 		removeFinishedBundle(aBundle);
 	}

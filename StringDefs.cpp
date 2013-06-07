@@ -1762,6 +1762,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "I want to configure connectivity settings manually", 
 "Protocol options", 
 "Invalid password", 
+"Allow adding finished bundles in share without hashing", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3524,4 +3525,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ConnUseManualConfig", 
 "ProtocolOptions", 
 "InvalidPassword", 
+"SettingsFinishedNoHash", 
 };

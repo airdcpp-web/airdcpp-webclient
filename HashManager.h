@@ -120,6 +120,7 @@ public:
 	bool maintenanceRunning() const { return optimizer.isRunning(); }
 
 	bool renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi);
+	bool addFile(string&& aFilePathLower, const HashedFile& fi_);
 private:
 	int pausers;
 	class Hasher : public Thread {

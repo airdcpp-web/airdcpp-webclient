@@ -190,7 +190,7 @@ public:
 	void save(OutputStream &save, string tmp, string b32tmp);
 	int countOnlineUsers() const;
 	void getOnlineUsers(HintedUserList& l) const;
-	bool hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, bool smallSlot, bool allowOverlap);
+	bool hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, DownloadType aType, bool allowOverlap);
 	bool startDown() const;
 
 	SourceList& getSources() { return sources; }
