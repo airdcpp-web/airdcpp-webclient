@@ -1333,8 +1333,8 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 		{
 			HashManager::HashPauser pauser;
 			for(auto& q: hash) {
-				HashedFile fi(AirUtil::getLastWrite(q->getTarget()), q->getSize());
-				if (SETTING(FINISHED_NO_HASH) && q->getBlockSize() > 0) {
+				HashedFile fi(q->getTTH(), AirUtil::getLastWrite(q->getTarget()), q->getSize());
+				if (SETTING(FINISHED_NO_HASH)) {
 					try {
 						if (HashManager::getInstance()->addFile(Text::toLower(q->getTarget()), fi)) {
 							q->setFlag(QueueItem::FLAG_HASHED);

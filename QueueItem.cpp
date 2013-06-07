@@ -620,10 +620,10 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 		return false;
 	}
 
-	if(aType == TYPE_SMALL && !isSet(QueueItem::FLAG_PARTIAL_LIST) && getSize() > 65792) {
+	if(aType == TYPE_SMALL && !usesSmallSlot()) {
 		//don't even think of stealing our priority channel
 		return false;
-	} else if (aType == TYPE_MCN_NORMAL && (isSet(QueueItem::FLAG_PARTIAL_LIST) || getSize() <= 65792)) {
+	} else if (aType == TYPE_MCN_NORMAL && usesSmallSlot()) {
 		return false;
 	}
 

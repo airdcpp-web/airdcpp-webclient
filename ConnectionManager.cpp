@@ -245,6 +245,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
 					QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, isSmall ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, bundleToken, allowUrlChange);
 					if (prio == QueueItem::PAUSED && isSmall) {
+						cqi->setType(ConnectionQueueItem::TYPE_ANY);
 						prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY, bundleToken, allowUrlChange);
 					}
 
