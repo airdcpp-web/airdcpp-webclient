@@ -292,7 +292,7 @@ private:
 	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle);
 
 	/** Add a file to the queue (returns the item and whether it didn't exist before) */
-	bool addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, bool& smallSlot, BundlePtr& aBundle) throw(QueueException, FileException);
+	bool addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException);
 
 	/** Check that we can download from this user */
 	void checkSource(const HintedUser& aUser) const throw(QueueException);

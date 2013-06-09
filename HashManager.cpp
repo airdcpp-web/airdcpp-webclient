@@ -241,6 +241,12 @@ void HashManager::hashDone(const string& aFileName, string&& pathLower, const Ti
 }
 
 bool HashManager::addFile(string&& aFilePathLower, const HashedFile& fi_) {
+	//check that the file exists
+	if (File::getSize(aFilePathLower) != fi_.getSize()) {
+		return false;
+	}
+
+	//check that the tree exists
 	if (fi_.getSize() < MIN_BLOCK_SIZE) {
 		TigerTree tt = TigerTree(fi_.getSize(), fi_.getSize(), fi_.getRoot());
 		store.addTree(tt);
@@ -330,7 +336,7 @@ void HashManager::HashStore::addTree(const TigerTree& tt) {
 bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
 	try {
 		return hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024, [&](void* aValue, size_t valueLen) {
-			return loadTree(aValue, valueLen, root, tt);
+			return loadTree(aValue, valueLen, root, tt, true);
 		});
 	} catch(DbException& e) {
 		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
@@ -349,7 +355,7 @@ bool HashManager::HashStore::hasTree(const TTHValue& root) {
 	return ret;
 }
 
-bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree) {
+bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree, bool reportCorruption) {
 	char *p = (char*)src;
 
 	uint8_t version;
@@ -374,8 +380,12 @@ bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValu
 		boost::scoped_array<uint8_t> buf(new uint8_t[datalen]);
 		memcpy(&buf[0], p, datalen);
 		aTree = TigerTree(fileSize, blockSize, &buf[0]);
-		if (aTree.getRoot() != aRoot)
+		if (aTree.getRoot() != aRoot) {
+			if (reportCorruption) {
+				LogManager::getInstance()->message(STRING_F(TREE_LOAD_FAILED_DB, aRoot.toBase32() % STRING(INVALID_TREE) % "/verifydb"), LogManager::LOG_ERROR);
+			}
 			return false;
+		}
 	} else {
 		aTree = TigerTree(fileSize, blockSize, aRoot);
 	}
@@ -550,7 +560,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 				auto i = usedRoots.find(curRoot);
 				if (i == usedRoots.end()) {
 					unusedTrees++;
-				} else if (!doVerify || loadTree(aValue, valueLen, curRoot, tt)) {
+				} else if (!doVerify || loadTree(aValue, valueLen, curRoot, tt, false)) {
 					usedRoots.erase(i);
 					validTrees++;
 					return false;

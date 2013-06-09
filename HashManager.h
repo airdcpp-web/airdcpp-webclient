@@ -253,7 +253,7 @@ private:
 
 
 
-		static bool loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree);
+		static bool loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree, bool reportCorruption);
 
 		//static void loadTree(TigerTree& aTree, const void *src);
 		//static void saveTree(void *dest, const TigerTree& aTree);

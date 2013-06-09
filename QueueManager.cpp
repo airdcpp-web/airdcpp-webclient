@@ -733,7 +733,6 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 	BundlePtr b = nullptr;
 	bool wantConnection = false;
 	int added = 0;
-	bool smallSlot = false;
 
 	{
 		WLock l(cs);
@@ -743,7 +742,7 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		//add the files
 		for (auto& bfi: aFiles) {
 			try {
-				if (addFile(target + bfi.file, bfi.size, bfi.tth, aUser, 0, true, bfi.prio, wantConnection, smallSlot, b))
+				if (addFile(target + bfi.file, bfi.size, bfi.tth, aUser, 0, true, bfi.prio, wantConnection, b))
 					added++;
 			} catch(QueueException& e) {
 				errors.add(e.getError(), bfi.file, false);
@@ -759,18 +758,18 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 				return nullptr;
 			}
 
-			errors.setErrorMsg(errorMsg_);
-			return nullptr;
+			b = nullptr;
 		}
 	}
 
 	if (wantConnection) {
 		//connect to the source (we must have an user in this case)
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
-		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
+		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 	}
 
-	errors.clearMinor();
+	if (b)
+		errors.clearMinor();
 
 	errors.setErrorMsg(errorMsg_);
 	return b;
@@ -793,7 +792,6 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 
 	BundlePtr b = nullptr;
 	bool wantConnection = false;
-	bool smallSlot = false;
 
 	auto target = filePath + fileName;
 	{
@@ -802,24 +800,24 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 		b = getBundle(target, aPrio, aDate, true);
 
 		//add the file
-		bool added = addFile(target, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, smallSlot, b);
+		bool added = addFile(target, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, b);
 
 		if (!addBundle(b, target, added ? 1 : 0)) {
-			return nullptr;
+			b = nullptr;
 		}
 	}
 
 	if (wantConnection) {
 		//connect to the source (we must have an user in this case)
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
-		ConnectionManager::getInstance()->getDownloadConnection(aUser, smallSlot);
+		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 	}
 
 	return b;
 }
 
 bool QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags /* = 0 */, 
-								   bool addBad /* = true */, QueueItemBase::Priority aPrio, bool& wantConnection, bool& smallSlot, BundlePtr& aBundle) throw(QueueException, FileException)
+								   bool addBad /* = true */, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException)
 {
 	//handle zero byte items
 	if(aSize == 0) {
@@ -863,9 +861,6 @@ bool QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 		try {
 			if (addSource(ret.first, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), true, false)) {
 				wantConnection = true;
-				if (!smallSlot)
-					smallSlot = ret.first->usesSmallSlot();
-
 				if (!ret.second)
 					fire(QueueManagerListener::SourcesUpdated(), ret.first);
 			}
@@ -2804,7 +2799,7 @@ bool QueueManager::dropSource(Download* d) {
 			onlineUsers = b->countOnlineUsers();
 		}
 
-		if((iHighSpeed == 0 || b->getSpeed() > iHighSpeed * 1024) && onlineUsers > 2) {
+		if((iHighSpeed == 0 || b->getSpeed() > iHighSpeed * 1024) && onlineUsers >= 2) {
 			d->setFlag(Download::FLAG_SLOWUSER);
 
 			if(d->getAverageSpeed() < SETTING(REMOVE_SPEED)*1024) {

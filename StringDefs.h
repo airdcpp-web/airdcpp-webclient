@@ -1767,5 +1767,6 @@ enum Strings { // @DontAdd
 	PROTOCOL_OPTIONS, // "Protocol options"
 	INVALID_PASSWORD, // "Invalid password"
 	SETTINGS_FINISHED_NO_HASH, // "Allow adding finished Bundles in share without hashing"
+	TREE_LOAD_FAILED_DB, // "Failed to load hash data for a TTH root %s: %s (consider verifying your databases by typing %s)"
 	LAST // @DontAdd
 };

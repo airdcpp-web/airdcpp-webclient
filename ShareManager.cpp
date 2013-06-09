@@ -2193,7 +2193,7 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 			break;
 		case(ADD_BUNDLE):
 			if (finished)
-				msg = STRING_F(BUNDLE_X_SHARED, displayName);
+				msg = STRING_F(BUNDLE_X_SHARED, (SETTING(FINISHED_NO_HASH) ? displayName : Util::getLastDir(displayName))); //show the path with no hash so that it can be opened from the system log
 			break;
 	};
 
@@ -3356,7 +3356,7 @@ void ShareManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr
 	} else if (aBundle->getStatus() == Bundle::STATUS_HASHED) {
 		StringList dirs;
 		dirs.push_back(aBundle->getTarget());
-		addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, aBundle->getName());
+		addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, aBundle->getTarget());
 	}
 }
 

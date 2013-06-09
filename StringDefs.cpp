@@ -1763,6 +1763,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Protocol options", 
 "Invalid password", 
 "Allow adding finished Bundles in share without hashing", 
+"Failed to load hash data for a TTH root %s: %s (consider verifying your databases by typing %s)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3526,4 +3527,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ProtocolOptions", 
 "InvalidPassword", 
 "SettingsFinishedNoHash", 
+"TreeLoadFailedDb", 
 };
