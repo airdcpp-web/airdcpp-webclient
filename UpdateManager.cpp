@@ -597,6 +597,7 @@ void UpdateManager::downloadUpdate(const string& aUrl, int newBuildID, bool manu
 
 void UpdateManager::checkLanguage() {
 	if(!Localization::usingInbuiltLanguage() || links.language.empty()) {
+		fire(UpdateManagerListener::LanguageFinished());
 		return;
 	}
 

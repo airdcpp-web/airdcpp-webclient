@@ -27,11 +27,11 @@
 #endif
 
 #ifndef _WIN32_IE
-# define _WIN32_IE	0x600
+# define _WIN32_IE _WIN32_IE_IE70
 #endif
 
 #ifndef WINVER
-# define WINVER 0x502
+# define WINVER 0x600
 #endif
 
 #include <winsock2.h>
