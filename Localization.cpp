@@ -183,7 +183,7 @@ namespace dcpp {
 
 	void Localization::loadLanguage(int languageIndex) {
 		if (languageIndex >= 0 && languageIndex < (int)languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
-			ResourceManager::getInstance()->loadLanguage(languageList[curLanguage].getLanguageFilePath());
+			ResourceManager::getInstance()->loadLanguage(languageList[languageIndex].getLanguageFilePath());
 		}
 	}
 

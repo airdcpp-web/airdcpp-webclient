@@ -380,12 +380,15 @@ void UpdateManager::completeLanguageDownload() {
 			File::ensureDirectory(Util::getFilePath(path));
 			File(path, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
 			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getLanguageStr()), LogManager::LOG_INFO);
+			fire(UpdateManagerListener::LanguageFinished());
 
 			return;
 		} catch(const FileException& e) { 
 			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % e.getError()), LogManager::LOG_WARNING);
 		}
 	}
+
+	fire(UpdateManagerListener::LanguageFailed(), conn->status);
 	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % conn->status), LogManager::LOG_WARNING);
 }
 
@@ -608,9 +611,14 @@ void UpdateManager::completeLanguageCheck() {
 
 	if(!conn->buf.empty()) {
 		if (Util::toDouble(conn->buf) > Localization::getCurLanguageVersion()) {
+			fire(UpdateManagerListener::LanguageDownloading());
 			conns[CONN_LANGUAGE_FILE].reset(new HttpDownload(links.language + Localization::getCurLanguageFileName(),
 				[this] { completeLanguageDownload(); }, false));
+		} else {
+			fire(UpdateManagerListener::LanguageFinished());
 		}
+	} else {
+		fire(UpdateManagerListener::LanguageFailed(), conn->status);
 	}
 }
 

@@ -38,12 +38,20 @@ public:
 
 	typedef X<4> SettingUpdated;
 
+	typedef X<5> LanguageDownloading;
+	typedef X<6> LanguageFinished;
+	typedef X<7> LanguageFailed;
+
 	virtual void on(UpdateAvailable, const string& /*title*/, const string& /*message*/, const string& /*version*/, const string& /*url*/, bool /*autoUpdate*/, int /*build*/, const string& /*updateUrl*/) noexcept { }
 	virtual void on(BadVersion, const string& /*message*/, const string& /*url*/, const string& /*update*/, int /*build*/, bool /*autoUpdate*/) noexcept { }
 	virtual void on(UpdateFailed, const string& /*line*/) noexcept { }
 	virtual void on(UpdateComplete, const string& /*updater*/) noexcept { }
 
 	virtual void on(SettingUpdated, size_t /*key*/, const string& /*value*/) noexcept { }
+
+	virtual void on(LanguageDownloading) noexcept { }
+	virtual void on(LanguageFinished) noexcept { }
+	virtual void on(LanguageFailed, const string& /*updater*/) noexcept { }
 };
 
 #endif // !defined(UPDATEMANAGER_LISTENER_H)

@@ -212,7 +212,7 @@ void Util::initialize() {
 	
 	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 	paths[PATH_RESOURCES] = exePath;
-	paths[PATH_LOCALE] = paths[PATH_USER_LOCAL] + "Language\\";
+	paths[PATH_LOCALE] = (localMode ? exePath : paths[PATH_USER_LOCAL]) + "Language\\";
 	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 
 	OSVERSIONINFOEX ver;

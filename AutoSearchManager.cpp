@@ -383,7 +383,7 @@ AutoSearchManager::~AutoSearchManager() {
 }
 
 void AutoSearchManager::logMessage(const string& aMsg, bool error) {
-	LogManager::getInstance()->message(STRING(AUTO_SEARCH_SMALL) + ": " +  aMsg, error ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, error ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
 /* Adding new items for external use */
