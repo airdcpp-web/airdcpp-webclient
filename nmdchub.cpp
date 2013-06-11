@@ -831,10 +831,6 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			myInfo(false);
 		}
 	} else if(cmd == "To:") {
-
-		if(getFavNoPM()) 
-			return;
-
 		string::size_type i = param.find("From:");
 		if(i == string::npos)
 			return;
@@ -881,6 +877,12 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			// Update pointers just in case they've been invalidated
 			message.replyTo = findUser(rtNick);
 			message.from = findUser(fromNick);
+		}
+
+		if(getFavNoPM() && (isOp() || !message.replyTo->getIdentity().isOp())) {
+			string temp;
+			privateMessage(rtNick, "Private messages sent via this hub are ignored", false);
+			return;
 		}
 
 		if(strnicmp(message.text, "/me ", 4) == 0) {

@@ -346,6 +346,15 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 		message.replyTo = findUser(AdcCommand::toSID(temp));
 		if(!message.replyTo)
 			return;
+
+		if (getFavNoPM() && (isOp() || !message.replyTo->getIdentity().isOp()) && !message.replyTo->getIdentity().isBot()) {
+			privateMessage(message.replyTo, "Private messages sent via this hub are ignored", temp);
+			//AdcCommand cmd(AdcCommand::SEV_FATAL, AdcCommand::ERROR_COMMAND_ACCESS, "Private messages sent via this hub are ignored", 'D'); //AdcCommand::STA, 
+			//cmd.setTo(c.getFrom());
+			//cmd.addParam("FC", c.getFourCC());
+			//send(cmd);
+			return;
+		}
 	}
 
 	message.thirdPerson = c.hasFlag("ME", 1);
@@ -574,9 +583,11 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 
 		case AdcCommand::ERROR_COMMAND_ACCESS:
 			{
-				string tmp;
-				if(c.getParam("FC", 1, tmp) && tmp.size() == 4)
-					forbiddenCommands.insert(AdcCommand::toFourCC(tmp.c_str()));
+				if (c.getFrom() == AdcCommand::HUB_SID) {
+					string tmp;
+					if(c.getParam("FC", 1, tmp) && tmp.size() == 4)
+						forbiddenCommands.insert(AdcCommand::toFourCC(tmp.c_str()));
+				}
 				break;
 			}
 
