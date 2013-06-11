@@ -1770,5 +1770,11 @@ enum Strings { // @DontAdd
 	NEW_PROFILE, // "New profile"
 	COPY_PROFILE, // "Copy profile"
 	ADD_PROFILE_DOTS, // "Add profile..."
+	X_SHARED_FILES_REMOVED, // "%d files from the directory %s have been removed from share"
+	X_SHARED_FILES_ADDED, // "%d files in directory %s have been added in share"
+	SHARED_FILE_DELETED, // "The file %s has been removed from share"
+	SHARED_FILE_ADDED, // "The file %s has been added in share"
+	SHARED_DIR_RENAMED, // "The shared directory %s has been renamed to %s"
+	SHARED_FILE_RENAMED, // "The shared file %s has been renamed to %s"
 	LAST // @DontAdd
 };

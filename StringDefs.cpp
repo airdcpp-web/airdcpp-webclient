@@ -1766,6 +1766,12 @@ std::string dcpp::ResourceManager::strings[] = {
 "New profile", 
 "Copy profile", 
 "Add profile...", 
+"%d files from the directory %s have been removed from share", 
+"%d files in directory %s have been added in share", 
+"The file %s has been removed from share", 
+"The file %s has been added in share", 
+"The shared directory %s has been renamed to %s", 
+"The shared file %s has been renamed to %s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3532,4 +3538,10 @@ std::string dcpp::ResourceManager::names[] = {
 "NewProfile", 
 "CopyProfile", 
 "AddProfileDots", 
+"XSharedFilesRemoved", 
+"XSharedFilesAdded", 
+"SharedFileDeleted", 
+"SharedFileAdded", 
+"SharedDirRenamed", 
+"SharedFileRenamed", 
 };

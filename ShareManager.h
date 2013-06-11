@@ -697,24 +697,32 @@ private:
 	void addMonitoring(const StringList& aPaths);
 	void removeMonitoring(const StringList& aPaths);
 
-	void onFileModified(const string& aPath, bool created);
-
 	struct DirModifyInfo {
-		DirModifyInfo() : lastFileActivity(GET_TICK()), lastReportedError(0) { }
-		DirModifyInfo(const string& aFile) : lastFileActivity(GET_TICK()), lastReportedError(0) {
-			files.insert(aFile);
+		enum ActionType {
+			ACTION_NONE,
+			ACTION_MODIFIED,
+			ACTION_DELETED
+		};
+
+		DirModifyInfo(ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0), dirAction(aAction) { }
+		DirModifyInfo(const string& aFile, ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0), dirAction() {
+			files.emplace(aFile, aAction);
 		}
 
-		void addFile(const string& aFile) {
-			files.insert(aFile);
+		void addFile(const string& aFile, ActionType aAction) {
+			files[aFile] = aAction;
 			lastFileActivity = GET_TICK();
 		}
 
-		set<string, Util::PathSortOrderBool> files;
+		//map<string, ActionType, Util::PathSortOrderBool> files;
+		unordered_map<string, ActionType> files;
 		time_t lastFileActivity;
 		time_t lastReportedError;
+
+		ActionType dirAction;
 	};
 
+	typedef set<string, Util::PathSortOrderBool> PathSet;
 	struct DirAddInfo {
 		enum DmiAction {
 			ACTION_NONE,
@@ -739,6 +747,10 @@ private:
 	};
 
 	map<string, DirModifyInfo> fileModifications;
+
+	void onFileModified(const string& aPath, bool created);
+	void addModifyInfo(const string& aPath, bool isDirectory, DirModifyInfo::ActionType aAction);
+	bool handleDeletedFile(const string& aPath, bool isDirectory, ProfileTokenSet& dirtyProfiles_);
 }; //sharemanager end
 
 } // namespace dcpp
