@@ -1638,7 +1638,7 @@ enum Strings { // @DontAdd
 	CONTEXT_FILELIST, // "Context filelist"
 	CHANGE_TAB_COLOR, // "Change tab color"
 	HL_REGEXP, // "Use $Re: for regexp"
-	COLOR_FONT, // "Color & font"
+	COLOR_FONT, // "Color && font"
 	KEY, // "Key"
 	CLEAN, // "Clean"
 	LEVEL_UP, // "Up one level"
