@@ -401,12 +401,14 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 					}
 				}
 
-				string msg = addedFiles > 1 ? STRING_F(X_SHARED_FILES_ADDED, addedFiles % i.path) : STRING_F(SHARED_FILE_ADDED, addedFile);
-				if (hashSize > 0) {
-					msg += STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(hashSize));
-				}
+				if (addedFiles > 0) {
+					string msg = addedFiles > 1 ? STRING_F(X_SHARED_FILES_ADDED, addedFiles % i.path) : STRING_F(SHARED_FILE_ADDED, addedFile);
+					if (hashSize > 0) {
+						msg += STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(hashSize));
+					}
 
-				LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+					LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+				}
 			}
 
 			i.parentAction = DirAddInfo::ACTION_REMOVE;

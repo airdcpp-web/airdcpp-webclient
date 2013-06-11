@@ -76,7 +76,6 @@ public:
 	PreviewApplication::List& getPreviewApps() { return previewApplications; }
 
 	void addFavoriteUser(const HintedUser& aUser);
-	bool isFavoriteUser(const UserPtr& aUser) const { RLock l(cs); return users.find(aUser->getCID()) != users.end(); }
 	void removeFavoriteUser(const UserPtr& aUser);
 	optional<FavoriteUser> getFavoriteUser(const UserPtr& aUser) const;
 

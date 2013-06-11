@@ -1128,7 +1128,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 					continue;
 				}
 
-				if(SETTING(AUTO_KICK_NO_FAVS) && FavoriteManager::getInstance()->isFavoriteUser(u->getUser())) {
+				if(SETTING(AUTO_KICK_NO_FAVS) && u->getUser()->isFavorite()) {
 					continue;
 				}
 

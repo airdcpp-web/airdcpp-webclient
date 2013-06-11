@@ -347,7 +347,7 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 		if(!message.replyTo)
 			return;
 
-		if (getFavNoPM() && (isOp() || !message.replyTo->getIdentity().isOp()) && !message.replyTo->getIdentity().isBot()) {
+		if (getFavNoPM() && (isOp() || !message.replyTo->getIdentity().isOp()) && !message.replyTo->getIdentity().isBot() && !message.replyTo->getUser()->isFavorite()) {
 			privateMessage(message.replyTo, "Private messages sent via this hub are ignored", temp);
 			//AdcCommand cmd(AdcCommand::SEV_FATAL, AdcCommand::ERROR_COMMAND_ACCESS, "Private messages sent via this hub are ignored", 'D'); //AdcCommand::STA, 
 			//cmd.setTo(c.getFrom());

@@ -197,6 +197,7 @@ void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
 		users.emplace(aUser.user->getCID(), fu).first;
 	}
 
+	aUser.user->setFlag(User::FAVORITE);
 	fire(FavoriteManagerListener::UserAdded(), fu);
 }
 
@@ -205,6 +206,7 @@ void FavoriteManager::removeFavoriteUser(const UserPtr& aUser) {
 		WLock l(cs);
 		auto i = users.find(aUser->getCID());
 		if(i != users.end()) {
+			aUser->unsetFlag(User::FAVORITE);
 			fire(FavoriteManagerListener::UserRemoved(), i->second);
 			users.erase(i);
 		}
@@ -714,6 +716,8 @@ void FavoriteManager::load(SimpleXML& aXml) {
 					continue;
 				u = ClientManager::getInstance()->getUser(CID(cid));
 			}
+			u->setFlag(User::FAVORITE);
+
 			auto i = users.emplace(u->getCID(), FavoriteUser(u, nick, hubUrl, cid)).first;
 			ClientManager::getInstance()->updateNick(u, nick);
 
