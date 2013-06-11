@@ -453,7 +453,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Remove user from queue", 
 "Remove offline users", 
 "Remove source", 
-" renamed to ", 
 "Report user", 
 "Show auto search for alternates in system log", 
 "Resume", 
@@ -1772,6 +1771,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The file %s has been added in share", 
 "The shared directory %s has been renamed to %s", 
 "The shared file %s has been renamed to %s", 
+"Failed to move the file %s to %s (%s)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2225,7 +2225,6 @@ std::string dcpp::ResourceManager::names[] = {
 "RemoveFromAll", 
 "RemoveOffline", 
 "RemoveSource", 
-"RenamedTo", 
 "Report", 
 "ReportAlternates", 
 "Resume", 
@@ -3544,4 +3543,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SharedFileAdded", 
 "SharedDirRenamed", 
 "SharedFileRenamed", 
+"MoveFileFailed", 
 };

@@ -456,7 +456,6 @@ enum Strings { // @DontAdd
 	REMOVE_FROM_ALL, // "Remove user from queue"
 	REMOVE_OFFLINE, // "Remove offline users"
 	REMOVE_SOURCE, // "Remove source"
-	RENAMED_TO, // " renamed to "
 	REPORT, // "Report user"
 	REPORT_ALTERNATES, // "Show auto search for alternates in system log"
 	RESUME, // "Resume"
@@ -1776,5 +1775,6 @@ enum Strings { // @DontAdd
 	SHARED_FILE_ADDED, // "The file %s has been added in share"
 	SHARED_DIR_RENAMED, // "The shared directory %s has been renamed to %s"
 	SHARED_FILE_RENAMED, // "The shared file %s has been renamed to %s"
+	MOVE_FILE_FAILED, // "Failed to move the file %s to %s (%s)"
 	LAST // @DontAdd
 };

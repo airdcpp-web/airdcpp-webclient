@@ -1178,12 +1178,12 @@ void QueueManager::moveFile_(const string& source, const string& target, QueueIt
 		/*if (Util::fileExists(source)) {
 			LogManager::getInstance()->message("Failed to delete the file: " + source, LogManager::LOG_INFO);
 		}*/
-	} catch(const FileException& /*e1*/) {
+	} catch(const FileException& e1) {
 		// Try to just rename it to the correct name at least
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
 		try {
 			File::renameFile(source, newTarget);
-			LogManager::getInstance()->message(source + " " + STRING(RENAMED_TO) + " " + newTarget, LogManager::LOG_WARNING);
+			LogManager::getInstance()->message(STRING_F(MOVE_FILE_FAILED, newTarget % Util::getFilePath(target) % e1.getError()), LogManager::LOG_ERROR);
 		} catch(const FileException& e2) {
 			LogManager::getInstance()->message(STRING(UNABLE_TO_RENAME) + " " + source + ": " + e2.getError(), LogManager::LOG_ERROR);
 		}
