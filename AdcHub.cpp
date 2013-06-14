@@ -183,7 +183,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 	string cid;
 
 	OnlineUser* u = 0;
-	if(c.getFrom() == AdcCommand::HUB_SID && c.getParam("ID", 0, cid)) {
+	if(c.getParam("ID", 0, cid)) {
 		u = findUser(CID(cid));
 		if(u) {
 			if(u->getIdentity().getSID() != c.getFrom()) {
@@ -349,10 +349,6 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 
 		if (getFavNoPM() && (isOp() || !message.replyTo->getIdentity().isOp()) && !message.replyTo->getIdentity().isBot() && !message.replyTo->getUser()->isFavorite()) {
 			privateMessage(message.replyTo, "Private messages sent via this hub are ignored", temp);
-			//AdcCommand cmd(AdcCommand::SEV_FATAL, AdcCommand::ERROR_COMMAND_ACCESS, "Private messages sent via this hub are ignored", 'D'); //AdcCommand::STA, 
-			//cmd.setTo(c.getFrom());
-			//cmd.addParam("FC", c.getFourCC());
-			//send(cmd);
 			return;
 		}
 	}
