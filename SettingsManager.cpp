@@ -152,7 +152,8 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
 	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
-	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode",
+	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode", 
+	"MonitoringDelay", "DelayCountMode",
 	"SENTRY",
 
 	// Bools
@@ -817,6 +818,8 @@ SettingsManager::SettingsManager()
 	setDefault(SCAN_MONITORED_FOLDERS, true);
 	setDefault(MONITORING_MODE, MONITORING_DISABLED);
 	setDefault(FINISHED_NO_HASH, false);
+	setDefault(MONITORING_DELAY, 30);
+	setDefault(DELAY_COUNT_MODE, DELAY_VOLUME);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

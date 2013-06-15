@@ -31,6 +31,7 @@
 #include "Exception.h"
 #include "Util.h"
 
+#include "TaskQueue.h"
 #include "Thread.h"
 #include "Semaphore.h"
 #include <boost/lockfree/queue.hpp>
@@ -39,19 +40,13 @@ using std::string;
 
 namespace dcpp {
 
-//typedef std::function<void (const string&)> ActionFunction;
-//typedef std::function<void (const string& /*old*/, const string& /*new*/)> RenameFunction;
+typedef std::function<void ()> AsyncF;
 
 STANDARD_EXCEPTION(MonitorException);
 
 class Monitor;
 class DirectoryMonitor : public Speaker<DirectoryMonitorListener>, public Thread {
 public:
-	enum Event {
-		EVENT_FILEACTION,
-		EVENT_OVERFLOW,
-	};
-
 	DirectoryMonitor(int numThreads, bool useDispatcherThread);
 	~DirectoryMonitor();
 
@@ -64,6 +59,7 @@ public:
 
 	// returns true as long as there are messages queued
 	bool dispatch();
+	void callAsync(AsyncF aF);
 private:
 	friend class Monitor;
 	class Server : public Thread {
@@ -91,22 +87,27 @@ private:
 		atomic_flag threadRunning;
 	};
 
-	struct NotifyTask {
-		NotifyTask(Event aEvent, const tstring& aPath) : eventType(aEvent), path(aPath) { }
-		Event eventType;
+	enum TaskType {
+		TYPE_ASYNC,
+		TYPE_NOTIFICATION,
+		TYPE_OVERFLOW
+	};
+
+	struct NotifyTask : public Task {
+		NotifyTask(const tstring& aPath) : path(aPath) { }
 		ByteVector buf;
 		tstring path;
 	};
 
 	virtual int run();
-	boost::lockfree::queue<NotifyTask*> queue;
+	boost::lockfree::queue<TaskQueue::UniqueTaskPair*> queue;
 	bool stop;
 	Semaphore s;
 	const bool useDispatcherThread;
 
 	Server* server;
 
-	void addTask(NotifyTask* aTask);
+	void addTask(TaskType aType, Task* aTask);
 	void processNotification(const tstring& aPath, ByteVector& aBuf);
 };
 

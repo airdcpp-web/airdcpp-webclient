@@ -35,21 +35,6 @@
 
 namespace dcpp {
 
-string TargetUtil::getMountPath(const string& aPath) {
-	TCHAR buf[MAX_PATH];
-	TCHAR buf2[MAX_PATH];
-	string::size_type l = aPath.length();
-	for (;;) {
-		l = aPath.rfind('\\', l-2);
-		if (l == string::npos || l <= 1)
-			break;
-		if (GetVolumeNameForVolumeMountPoint(Text::toT(aPath.substr(0, l+1)).c_str(), buf, MAX_PATH) && GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL)) {
-			return Text::fromT(buf2);
-		}
-	}
-	return Util::emptyString;
-}
-
 string TargetUtil::getMountPath(const string& aPath, const VolumeSet& aVolumes) {
 	if (aVolumes.find(aPath) != aVolumes.end()) {
 		return aPath;

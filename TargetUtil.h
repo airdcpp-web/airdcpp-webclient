@@ -54,7 +54,6 @@ public:
 	typedef unordered_map<string, TargetInfo, noCaseStringHash, noCaseStringEq> TargetInfoMap;
 	typedef unordered_set<string, noCaseStringHash, noCaseStringEq> VolumeSet;
 
-	static string getMountPath(const string& aPath);
 	static string getMountPath(const string& aPath, const VolumeSet& aVolumes);
 
 	static bool getTarget(StringList& targets, TargetInfo& ti_, const int64_t& size);

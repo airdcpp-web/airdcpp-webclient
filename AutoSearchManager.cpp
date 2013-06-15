@@ -245,7 +245,7 @@ void AutoSearch::updateStatus() {
 		if (manualSearch) {
 			status = AutoSearch::STATUS_MANUAL;
 		} else {
-			status = (expireTime > 0 && expireTime < GET_TIME()) ? AutoSearch::STATUS_EXPIRED : AutoSearch::STATUS_DISABLED;
+			status = (expireTime > 0 && expireTime <= GET_TIME()) ? AutoSearch::STATUS_EXPIRED : AutoSearch::STATUS_DISABLED;
 		}
 		return;
 	}

@@ -31,14 +31,18 @@ DirectoryMonitor::DirectoryMonitor(int numThreads, bool aUseDispatcherThread) : 
 		start();
 }
 
-void DirectoryMonitor::addTask(NotifyTask* aTask) { 
+void DirectoryMonitor::callAsync(AsyncF aF) {
+	addTask(TYPE_ASYNC, new AsyncTask(aF));
+}
+
+void DirectoryMonitor::addTask(TaskType aType, Task* aTask) { 
+	queue.push(new TaskQueue::UniqueTaskPair(aType, unique_ptr<Task>(aTask))); 
 	if (useDispatcherThread) {
-		queue.push(aTask); 
 		s.signal(); 
-	} else {
+	} /*else {
 		processNotification(aTask->path, aTask->buf);
 		delete aTask;
-	}
+	}*/
 }
 
 DirectoryMonitor::~DirectoryMonitor() {
@@ -134,10 +138,10 @@ void Monitor::beginRead() {
 void Monitor::queueNotificationTask(int dwSize) {
 	// We could just swap back and forth between the two
 	// buffers, but this code is easier to understand and debug.
-	auto f = new DirectoryMonitor::NotifyTask(DirectoryMonitor::EVENT_FILEACTION, path);
+	auto f = new DirectoryMonitor::NotifyTask(path);
 	f->buf.resize(dwSize);
 	memcpy(&f->buf[0], &m_Buffer[0], dwSize);
-	server->base->addTask(f);
+	server->base->addTask(DirectoryMonitor::TYPE_NOTIFICATION, f);
 }
 
 void Monitor::stopMonitoring() {
@@ -158,15 +162,17 @@ int DirectoryMonitor::run() {
 }
 
 bool DirectoryMonitor::dispatch() {
-	unique_ptr<NotifyTask> t;
+	unique_ptr<TaskQueue::UniqueTaskPair> t;
 	if(!queue.pop(t)) {
 		return false;
 	}
 
-	if (t->eventType == EVENT_OVERFLOW) {
-		fire(DirectoryMonitorListener::Overflow(), Text::fromT(t->path));
-	} else {
-		processNotification(t->path, t->buf);
+	if (t->first == TYPE_OVERFLOW) {
+		fire(DirectoryMonitorListener::Overflow(), static_cast<StringTask*>(t->second.get())->str);
+	} else if (t->first == TYPE_NOTIFICATION) {
+		processNotification(static_cast<NotifyTask*>(t->second.get())->path, static_cast<NotifyTask*>(t->second.get())->buf);
+	} else if (t->first == TYPE_ASYNC) {
+		static_cast<AsyncTask*>(t->second.get())->f();
 	}
 	return true;
 }
@@ -220,7 +226,7 @@ int DirectoryMonitor::Server::read() {
 						(*mon)->beginRead();
 
 						// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
-						(*mon)->server->base->fire(DirectoryMonitorListener::Overflow(), Text::fromT((*mon)->path));
+						(*mon)->server->base->addTask(DirectoryMonitor::TYPE_OVERFLOW, new StringTask(Text::fromT((*mon)->path)));
 					} else {
 						throw MonitorException(Util::translateError(dwError));
 					}

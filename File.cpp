@@ -251,6 +251,29 @@ bool File::isAbsolute(const string& path) noexcept {
 	return path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\');
 }
 
+string File::getMountPath(const string& aPath) {
+	unique_ptr<TCHAR> buf(new TCHAR[aPath.length()]);
+	GetVolumePathName(Text::toT(aPath).c_str(), buf.get(), aPath.length());
+	return Text::fromT(buf.get());
+
+	/*
+
+	TCHAR buf[MAX_PATH];
+	TCHAR buf2[MAX_PATH];
+	string::size_type l = aPath.length();
+	for (;;) {
+		l = aPath.rfind('\\', l-2);
+		if (l == string::npos || l <= 1)
+			break;
+		if (GetVolumeNameForVolumeMountPoint(Text::toT(aPath.substr(0, l+1)).c_str(), buf, MAX_PATH) && GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL)) {
+			return Text::fromT(buf2);
+		}
+	}
+	return Util::emptyString;
+
+	*/
+}
+
 #else // !_WIN32
 
 File::File(const string& aFileName, int access, int mode) {

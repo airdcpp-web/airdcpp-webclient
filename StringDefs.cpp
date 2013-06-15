@@ -1746,7 +1746,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Maintenance", 
 "File index size:", 
 "Hash data size:", 
-"Monitoring for share changes", 
+"Real-time monitoring for share changes", 
 "All directories", 
 "Incoming directories only", 
 "%d directories have been added for monitoring", 
@@ -1772,6 +1772,12 @@ std::string dcpp::ResourceManager::strings[] = {
 "The shared directory %s has been renamed to %s", 
 "The shared file %s has been renamed to %s", 
 "Failed to move the file %s to %s (%s)", 
+"Minimum seconds since the last modification before applying the changes in share", 
+"Monitoring options", 
+"Count the last modification time", 
+"on per-directory basis", 
+"on per-volume basis", 
+"from any modification", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3544,4 +3550,10 @@ std::string dcpp::ResourceManager::names[] = {
 "SharedDirRenamed", 
 "SharedFileRenamed", 
 "MoveFileFailed", 
+"SettingsMonitoringSeconds", 
+"MonitoringOptions", 
+"SettingsDelayMode", 
+"MonitorDelayDir", 
+"MonitorDelayVolume", 
+"MonitorDelayAny", 
 };

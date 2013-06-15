@@ -114,7 +114,6 @@ public:
 
 	void setSkipList();
 
-	void handleChangedFiles(uint64_t aTick, bool forced=false);
 	bool matchSkipList(const string& aStr) { return skipList.match(aStr); }
 	bool checkSharedName(const string& fullPath, const string& fullPathLower, bool dir, bool report = true, int64_t size = 0);
 	void validatePath(const string& realPath, const string& virtualName);
@@ -262,6 +261,7 @@ public:
 	struct ShareLoader;
 
 	void rebuildMonitoring();
+	void handleChangedFiles();
 private:
 	unique_ptr<DirectoryMonitor> monitor;
 
@@ -671,6 +671,7 @@ private:
 	}
 	
 	// TimerManagerListener
+	void on(TimerManagerListener::Second, uint64_t tick) noexcept;
 	void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
 
 
@@ -698,46 +699,30 @@ private:
 	void removeMonitoring(const StringList& aPaths);
 
 	struct DirModifyInfo {
+		typedef deque<DirModifyInfo> List;
 		enum ActionType {
 			ACTION_NONE,
 			ACTION_MODIFIED,
 			ACTION_DELETED
 		};
 
-		DirModifyInfo(ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0), dirAction(aAction) { }
-		DirModifyInfo(const string& aFile, ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0), dirAction() {
-			files.emplace(aFile, aAction);
-		}
+		//DirModifyInfo(ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0), dirAction(aAction) { }
+		DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction);
 
-		void addFile(const string& aFile, ActionType aAction) {
-			files[aFile] = aAction;
-			lastFileActivity = GET_TICK();
-		}
+		void addFile(const string& aFile, ActionType aAction);
 
-		//map<string, ActionType, Util::PathSortOrderBool> files;
 		unordered_map<string, ActionType> files;
 		time_t lastFileActivity;
 		time_t lastReportedError;
 
 		ActionType dirAction;
+		string volume;
+		string path;
+
+		void setPath(const string& aPath);
 	};
 
 	typedef set<string, Util::PathSortOrderBool> PathSet;
-	struct DirAddInfo {
-		enum DmiAction {
-			ACTION_NONE,
-			ACTION_UPDATE_TIMES,
-			ACTION_REMOVE
-		};
-
-		DirAddInfo(const string& aPath, DirModifyInfo& aDmi, const Directory::Ptr& aDir) : path(aPath), dir(aDir), dmiCopy(aDmi), parentAction(ACTION_NONE) { }
-
-		string path;
-		DirModifyInfo dmiCopy;
-		Directory::Ptr dir;
-		DmiAction parentAction;
-	};
-
 	struct FileAddInfo {
 		FileAddInfo(string&& aName, uint64_t aLastWrite, int64_t aSize) : name(aName), lastWrite(aLastWrite), size(aSize) { }
 
@@ -746,11 +731,16 @@ private:
 		int64_t size;
 	};
 
-	map<string, DirModifyInfo> fileModifications;
+	DirModifyInfo::List fileModifications;
 
 	void onFileModified(const string& aPath, bool created);
 	void addModifyInfo(const string& aPath, bool isDirectory, DirModifyInfo::ActionType aAction);
 	bool handleDeletedFile(const string& aPath, bool isDirectory, ProfileTokenSet& dirtyProfiles_);
+
+	// Removes all notifications for the selected path
+	void removeNotifications(const string& aPath);
+	DirModifyInfo::List::iterator findModifyInfo(const string& aFile);
+	void handleChangedFiles(uint64_t aTick, bool forced=false);
 }; //sharemanager end
 
 } // namespace dcpp

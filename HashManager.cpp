@@ -106,10 +106,7 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 	//get the volume name
 	string vol;
 	if (none_of(hashers.begin(), hashers.end(), [&](const Hasher* h) { return h->getPathVolume(pathLower, vol); })) {
-		TCHAR* buf = new TCHAR[pathLower.length()];
-		GetVolumePathName(Text::toT(pathLower).c_str(), buf, pathLower.length());
-		vol = Text::fromT(buf);
-		delete[] buf;
+		vol = File::getMountPath(pathLower);
 	}
 
 	//dcassert(!vol.empty());
@@ -760,7 +757,7 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 			exit(0);
 		}
 
-		auto volume = TargetUtil::getMountPath(Util::getPath(Util::PATH_USER_CONFIG));
+		auto volume = File::getMountPath(Util::getPath(Util::PATH_USER_CONFIG));
 		if (!volume.empty()) {
 			auto freeSpace = TargetUtil::getFreeSpace(volume);
 			if (hashDataSize + hashIndexSize > freeSpace) {
@@ -1182,6 +1179,7 @@ int HashManager::Hasher::run() {
 			} catch(const FileException& e) {
 				HashManager::getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true, true);
 				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
+				failed = true;
 			}
 		
 		}
@@ -1226,7 +1224,7 @@ int HashManager::Hasher::run() {
 							Util::formatTime(hashTime / 1000, true) % 
 							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), hasherID, false, false);
 					}
-				} else {
+				} else if(!fname.empty()) {
 					//all files failed to hash?
 					HashManager::getInstance()->log(STRING(HASHING_FINISHED_TOTAL_PLAIN), hasherID, false, false);
 
