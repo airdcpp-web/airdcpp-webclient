@@ -879,12 +879,6 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			message.from = findUser(fromNick);
 		}
 
-		if(getFavNoPM() && (isOp() || !message.replyTo->getIdentity().isOp()) && !message.replyTo->getUser()->isSet(User::FAVORITE)) {
-			string temp;
-			privateMessage(rtNick, "Private messages sent via this hub are ignored", false);
-			return;
-		}
-
 		if(strnicmp(message.text, "/me ", 4) == 0) {
 			message.thirdPerson = true;
 			message.text = message.text.substr(4);

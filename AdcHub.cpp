@@ -346,11 +346,6 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 		message.replyTo = findUser(AdcCommand::toSID(temp));
 		if(!message.replyTo)
 			return;
-
-		if (getFavNoPM() && (isOp() || !message.replyTo->getIdentity().isOp()) && !message.replyTo->getIdentity().isBot() && !message.replyTo->getUser()->isFavorite()) {
-			privateMessage(message.replyTo, "Private messages sent via this hub are ignored", temp);
-			return;
-		}
 	}
 
 	message.thirdPerson = c.hasFlag("ME", 1);
