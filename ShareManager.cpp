@@ -298,7 +298,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 				LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, info.path), LogManager::LOG_INFO);
 				k = fileModifications.erase(k);
 				continue;
-			} else {
+			} else if (info.dirAction == DirModifyInfo::ACTION_NONE) {
 				//copy all that have been deleted
 				int removed = 0;
 				string removedPath;
@@ -340,15 +340,10 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 			Directory::Ptr dir = nullptr;
 
 			//dirs with subdirectories will always be refreshed
-			if (boost::algorithm::any_of(info.files | map_keys, [](const string& fileName) { return fileName.find(PATH_SEPARATOR) == string::npos; })) {
+			if (boost::algorithm::all_of(info.files | map_keys, [&info](const string& fileName) { return fileName.find(PATH_SEPARATOR, info.path.length()+1) == string::npos; })) {
 				RLock l(cs);
 				dir = findDirectory(info.path, false, false, true);
 			}
-
-			//dirs with subdirectories will always be refreshed
-			/*if (boost::algorithm::any_of(info.files | map_keys, [](const string& fileName) { return fileName.find(PATH_SEPARATOR) != string::npos; })) {
-				dir = nullptr;
-			}*/
 
 			if (!dir && !allowAddDir(info.path)) {
 				k = fileModifications.erase(k);
@@ -413,7 +408,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 				}
 			}
 
-			if (!hasValidFiles) {
+			if (!hasValidFiles && (!info.files.empty() || !Util::fileExists(info.path))) {
 				// no need to keep items in the list if all files have been removed...
 				k = fileModifications.erase(k);
 				continue;

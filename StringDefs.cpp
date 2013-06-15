@@ -641,7 +641,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "View status messages in main chat", 
 "TCP", 
 "TLS/TCP", 
-"Colors & fonts", 
+"Colors && fonts", 
 "Show timestamps in chat by default", 
 "Set timestamps", 
 "Toggle window when selecting an active tab", 
