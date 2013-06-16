@@ -1319,48 +1319,7 @@ string Util::translateError(int aError) {
 #endif // _WIN32
 }
 
-/* natural sorting */ 
-int Util::DefaultSort(const char* a, const char* b, bool noCase /*true*/) {
-	if(SETTING(NAT_SORT)) {
-		int v1, v2;
-		while(*a != 0 && *b != 0) {
-			v1 = 0; v2 = 0;
-			bool t1 = isNumeric(*a);
-			bool t2 = isNumeric(*b);
-			if(t1 != t2) return (t1) ? -1 : 1;
-
-			if(!t1 && noCase) {
-				if(Text::toLower(*a) != Text::toLower(*b))
-					return ((int)Text::toLower(*a)) - ((int)Text::toLower(*b));
-				a++; b++;
-			} else if(!t1) {
-				if(*a != *b)
-					return ((int)*a) - ((int)*b);
-				a++; b++;
-			} else {
-				while(isNumeric(*a)) {
-					v1 *= 10;
-					v1 += *a - '0';
-					a++;
-				}
-
-				while(isNumeric(*b)) {
-					v2 *= 10;
-					v2 += *b - '0';
-					b++;
-				}
-
-				if(v1 != v2)
-					return (v1 < v2) ? -1 : 1;
-			}			
-		}
-
-		return noCase ? (((int)Text::toLower(*a)) - ((int)Text::toLower(*b))) : (((int)*a) - ((int)*b));
-	} else {
-		return noCase ? stricmp(a, b) : strcmp(a, b);
-	}
-}
-
+/* natural sorting */
 int Util::DefaultSort(const wchar_t *a, const wchar_t *b, bool noCase /*=  true*/) {
 	if(SETTING(NAT_SORT)) {
 		int v1, v2;
@@ -1629,6 +1588,12 @@ string Util::getOsVersion(bool http /*false*/, bool doubleStr /*false*/) {
 							os = "Windows 8";
 						else
 							os = "Windows Server 2012";
+						break;
+					case 3:
+						if (ver.wProductType == VER_NT_WORKSTATION)
+							os = "Windows 8.1";
+						else
+							os = "Windows Server 2012 R2";
 						break;
 					default: os = "Unknown Windows 6-family";
 				}

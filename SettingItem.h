@@ -22,7 +22,6 @@
 #include "stdinc.h"
 
 #include "ResourceManager.h"
-#include "Util.h"
 
 #include <boost/variant.hpp>
 
@@ -55,21 +54,10 @@ struct SettingItem {
 	struct ToString : boost::static_visitor<string> {
 		ToString(int aKey) : key(aKey) { }
 
-		string operator()(const string& s) const {
-			return s;
-		}
-
-		string operator()(int s) const {
-			return Util::toString(s);
-		}
-
-		string operator()(double d) const {
-			return Util::toString(d);
-		}
-
-		string operator()(bool b) const {
-			return b ? STRING(ENABLED) : STRING(DISABLED);
-		}
+		string operator()(const string& s) const;
+		string operator()(int s) const;
+		string operator()(double d) const;
+		string operator()(bool b) const;
 	private:
 		int key;
 	};

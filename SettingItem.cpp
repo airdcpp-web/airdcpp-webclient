@@ -97,4 +97,20 @@ string SettingItem::currentToString() const {
 	return boost::apply_visitor(ToString(key), cur);
 }
 
+string SettingItem::ToString::operator()(const string& s) const {
+	return s;
+}
+
+string SettingItem::ToString::operator()(int s) const {
+	return Util::toString(s);
+}
+
+string SettingItem::ToString::operator()(double d) const {
+	return Util::toString(d);
+}
+
+string SettingItem::ToString::operator()(bool b) const {
+	return b ? STRING(ENABLED) : STRING(DISABLED);
+}
+
 }

@@ -83,11 +83,11 @@ bool DirectoryListing::Directory::DefaultSort::operator()(const Ptr& a, const Pt
 		return true;
 	if (!a->getAdls() && b->getAdls())
 		return false;
-	return Util::DefaultSort(a->getName().c_str(), b->getName().c_str()) < 0;
+	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
 }
 
 bool DirectoryListing::File::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
-	return Util::DefaultSort(a->getName().c_str(), b->getName().c_str()) < 0;
+	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
 }
 
 bool DirectoryListing::File::Sort::operator()(const Ptr& a, const Ptr& b) const {
