@@ -1772,7 +1772,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The shared directory %s has been renamed to %s", 
 "The shared file %s has been renamed to %s", 
 "Failed to move the file %s to %s (%s)", 
-"Minimum seconds since the last modification before applying the changes in share", 
+"Min. seconds since the last modification before applying the changes in share", 
 "Monitoring options", 
 "Count the last modification time", 
 "on per-directory basis", 

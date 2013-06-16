@@ -1776,7 +1776,7 @@ enum Strings { // @DontAdd
 	SHARED_DIR_RENAMED, // "The shared directory %s has been renamed to %s"
 	SHARED_FILE_RENAMED, // "The shared file %s has been renamed to %s"
 	MOVE_FILE_FAILED, // "Failed to move the file %s to %s (%s)"
-	SETTINGS_MONITORING_SECONDS, // "Minimum seconds since the last modification before applying the changes in share"
+	SETTINGS_MONITORING_SECONDS, // "Min. seconds since the last modification before applying the changes in share"
 	MONITORING_OPTIONS, // "Monitoring options"
 	SETTINGS_DELAY_MODE, // "Count the last modification time"
 	MONITOR_DELAY_DIR, // "on per-directory basis"
