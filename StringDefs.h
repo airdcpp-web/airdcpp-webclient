@@ -1577,7 +1577,6 @@ enum Strings { // @DontAdd
 	TRASFER_RATE_LIMITING, // "Transfer rate limiting"
 	HOURS_LOWER, // "hours"
 	OWN_LIST_ADL, // "Match own list with ADL search"
-	REBUILD_FAILED_ENTRIES, // "Failed to load %d tree entries from the hash data; it's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared"
 	SETTINGS_USE_SPACE_WARNING, // "Warn me about Insufficient space left on target drive"
 	SFV_TOO_LARGE, // "The SFV file is too large to be loaded (%s)"
 	CANT_OPEN_SFV, // "Failed to open the SFV file"
@@ -1784,5 +1783,8 @@ enum Strings { // @DontAdd
 	MONITOR_DELAY_ANY, // "from any modification"
 	SELECT_THEME, // "Select theme"
 	COLORS_AND_TEXT_STYLES, // "Colors and text styles"
+	REBUILD_FAILED_ENTRIES_VERIFY, // "There were %d shared TTHs without a corresponding hash tree entry and %d invalid tree entries that couldn't be loaded"
+	REBUILD_FAILED_ENTRIES_OPTIMIZE, // "%d shared TTHs without a corresponding hash tree entry were found"
+	REBUILD_REFRESH_PROMPT, // "It's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared"
 	LAST // @DontAdd
 };

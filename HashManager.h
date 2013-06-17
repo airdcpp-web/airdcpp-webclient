@@ -112,6 +112,7 @@ public:
 	bool isHashingPaused(bool lock = true) const;
 
 	string getDbStats() { return store.getDbStats(); }
+	void compact() { store.compact(); }
 
 	void closeDB() { store.closeDb(); }
 	void onScheduleRepair(bool schedule) { store.onScheduleRepair(schedule); }
@@ -241,6 +242,7 @@ private:
 		bool isRepairScheduled() const;
 
 		void getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const;
+		void compact();
 	private:
 		std::unique_ptr<DbHandler> fileDb;
 		std::unique_ptr<DbHandler> hashDb;

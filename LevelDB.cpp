@@ -221,7 +221,7 @@ void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aV
 		checkDbError(it->status());
 	}
 
-	db->Write(writeoptions, &wb);
+	DBACTION(db->Write(writeoptions, &wb));
 }
 
 // free up some space, https://code.google.com/p/leveldb/issues/detail?id=158
@@ -255,7 +255,10 @@ leveldb::Status LevelDB::performDbOperation(function<leveldb::Status ()> f) {
 }
 
 void LevelDB::checkDbError(leveldb::Status aStatus) {
-	if (aStatus.ok() || aStatus.IsNotFound())
+	if (aStatus.ok())
+		return;
+
+	if (aStatus.IsNotFound())
 		return;
 
 	string ret = Text::toUtf8(aStatus.ToString());

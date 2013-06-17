@@ -299,7 +299,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 				k = fileModifications.erase(k);
 				continue;
 			} else if (info.dirAction == DirModifyInfo::ACTION_NONE) {
-				//copy all that have been deleted
+				// handle the files that have been deleted
 				int removed = 0;
 				string removedPath;
 
@@ -322,6 +322,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 					}
 				}
 
+				// report deleted
 				if (removed > 0) {
 					if (removed == 1) {
 						LogManager::getInstance()->message((removedPath.back() == PATH_SEPARATOR ? STRING_F(SHARED_DIR_REMOVED, removedPath) : STRING_F(SHARED_FILE_DELETED, removedPath)), LogManager::LOG_INFO);
@@ -330,6 +331,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 					}
 				}
 
+				// no modified files?
 				if (info.files.empty()) {
 					k = fileModifications.erase(k);
 					continue;

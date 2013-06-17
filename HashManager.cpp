@@ -515,6 +515,8 @@ void HashManager::HashStore::optimize(bool doVerify) {
 	int unusedFiles=0; 
 	int validFiles = 0;
 	int validTrees = 0;
+	int missingTrees = 0;
+	int removedFiles = 0;
 	int64_t failedSize = 0;
 
 	LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_STARTED), LogManager::LOG_INFO);
@@ -556,14 +558,20 @@ void HashManager::HashStore::optimize(bool doVerify) {
 				memcpy(&curRoot, aKey, key_len);
 				auto i = usedRoots.find(curRoot);
 				if (i == usedRoots.end()) {
+					//not shared
 					unusedTrees++;
-				} else if (!doVerify || loadTree(aValue, valueLen, curRoot, tt, false)) {
+					return true;
+				}  
+				
+				if (!doVerify || loadTree(aValue, valueLen, curRoot, tt, false)) {
+					//valid tree
 					usedRoots.erase(i);
 					validTrees++;
 					return false;
 				}
 
-				//failed
+				//failed to load it
+				failedTrees++;
 				return true;
 			}, hashSnapshot.get());
 		} catch(DbException& e) {
@@ -575,8 +583,8 @@ void HashManager::HashStore::optimize(bool doVerify) {
 
 
 		//remove file entries that don't have a corresponding hash data entry
-		failedTrees = usedRoots.size();
-		if (failedTrees > 0) {
+		missingTrees = usedRoots.size() - failedTrees;
+		if (usedRoots.size() > 0) {
 			try {
 				HashedFile fi;
 				fileDb->remove_if([&](void* /*aKey*/, size_t /*key_len*/, void* aValue, size_t valueLen) {
@@ -584,6 +592,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 					if (usedRoots.find(fi.getRoot()) != usedRoots.end()) {
 						failedSize += fi.getSize();
 						validFiles--;
+						removedFiles++;
 						return true;
 					}
 
@@ -608,14 +617,14 @@ void HashManager::HashStore::optimize(bool doVerify) {
 		}
 	}*/
 
-	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles);
+	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles + unusedFiles);
 	if (validFiles == 0 || (static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
 		LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogManager::LOG_INFO);
 		fileDb->compact();
 		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, 0);
 	}
 
-	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, SETTING(CUR_REMOVED_TREES) + unusedTrees);
+	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, SETTING(CUR_REMOVED_TREES) + unusedTrees + failedTrees);
 	if (validTrees == 0 || (static_cast<double>(SETTING(CUR_REMOVED_TREES)) / static_cast<double>(validTrees)) > 0.05) {
 		LogManager::getInstance()->message(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogManager::LOG_INFO);
 		hashDb->compact();
@@ -629,14 +638,28 @@ void HashManager::HashStore::optimize(bool doVerify) {
 		msg = STRING(HASHDB_MAINTENANCE_NO_UNUSED);
 	}
 
-	if (failedTrees > 0) {
-		msg += ". ";
-		msg += STRING_F(REBUILD_FAILED_ENTRIES, failedTrees % Util::formatBytes(failedSize));
+	LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+
+	if (failedTrees > 0 || missingTrees > 0) {
+		if (doVerify) {
+			msg = STRING_F(REBUILD_FAILED_ENTRIES_VERIFY, missingTrees % failedTrees);
+		} else {
+			msg = STRING_F(REBUILD_FAILED_ENTRIES_OPTIMIZE, missingTrees);
+		}
+
+		msg += ". " + STRING_F(REBUILD_REFRESH_PROMPT, Util::formatBytes(failedSize));
+		LogManager::getInstance()->message(msg, LogManager::LOG_ERROR);
 	}
 
-	LogManager::getInstance()->message(msg, failedTrees > 0 ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
-
 	getInstance()->fire(HashManagerListener::MaintananceFinished());
+}
+
+void HashManager::HashStore::compact() {
+	LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogManager::LOG_INFO);
+	fileDb->compact();
+	LogManager::getInstance()->message(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogManager::LOG_INFO);
+	hashDb->compact();
+	LogManager::getInstance()->message("Done", LogManager::LOG_INFO);
 }
 
 string HashManager::HashStore::getDbStats() {
