@@ -641,7 +641,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "View status messages in main chat", 
 "TCP", 
 "TLS/TCP", 
-"Colors && fonts", 
+"Colors & fonts", 
 "Show timestamps in chat by default", 
 "Set timestamps", 
 "Toggle window when selecting an active tab", 
@@ -1778,6 +1778,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "on per-directory basis", 
 "on per-volume basis", 
 "from any modification", 
+"Select theme", 
+"Colors and text styles", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3556,4 +3558,6 @@ std::string dcpp::ResourceManager::names[] = {
 "MonitorDelayDir", 
 "MonitorDelayVolume", 
 "MonitorDelayAny", 
+"SelectTheme", 
+"ColorsAndTextStyles", 
 };

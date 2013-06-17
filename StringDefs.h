@@ -644,7 +644,7 @@ enum Strings { // @DontAdd
 	SETTINGS_STATUS_IN_CHAT, // "View status messages in main chat"
 	SETTINGS_TCP_PORT, // "TCP"
 	SETTINGS_TLS_PORT, // "TLS/TCP"
-	SETTINGS_TEXT_STYLES, // "Colors && fonts"
+	SETTINGS_TEXT_STYLES, // "Colors & fonts"
 	SETTINGS_TIME_STAMPS, // "Show timestamps in chat by default"
 	SETTINGS_TIME_STAMPS_FORMAT, // "Set timestamps"
 	SETTINGS_TOGGLE_ACTIVE_WINDOW, // "Toggle window when selecting an active tab"
@@ -1782,5 +1782,7 @@ enum Strings { // @DontAdd
 	MONITOR_DELAY_DIR, // "on per-directory basis"
 	MONITOR_DELAY_VOLUME, // "on per-volume basis"
 	MONITOR_DELAY_ANY, // "from any modification"
+	SELECT_THEME, // "Select theme"
+	COLORS_AND_TEXT_STYLES, // "Colors and text styles"
 	LAST // @DontAdd
 };
