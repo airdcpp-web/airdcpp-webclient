@@ -1328,7 +1328,7 @@ void QueueManager::hashBundle(BundlePtr& aBundle) {
 		{
 			HashManager::HashPauser pauser;
 			for(auto& q: hash) {
-				HashedFile fi(q->getTTH(), AirUtil::getLastWrite(q->getTarget()), q->getSize());
+				HashedFile fi(q->getTTH(), File::getLastModified(q->getTarget()), q->getSize());
 				if (SETTING(FINISHED_NO_HASH)) {
 					try {
 						if (HashManager::getInstance()->addFile(Text::toLower(q->getTarget()), fi)) {
@@ -1535,7 +1535,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 			auto isFile = d->getType() == Transfer::TYPE_FILE && d->getTempTarget() != d->getPath();
 
 			if(hasTempTarget && (isFullList || isFile)) {
-				File::deleteFile(d->getTempTarget());
+				File::deleteFileEx(d->getTempTarget());
 			}
 
 			return;

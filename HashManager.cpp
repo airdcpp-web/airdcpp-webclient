@@ -168,7 +168,7 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 
 void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void (int64_t, const string&)> updateF/*nullptr*/) {
 	auto pathLower = move(Text::toLower(aFile));
-	HashedFile fi(AirUtil::getLastWrite(aFile), aSize);
+	HashedFile fi(File::getLastModified(aFile), aSize);
 
 	if (!store.checkTTH(pathLower, fi)) {
 		File f(aFile, File::READ, File::OPEN);

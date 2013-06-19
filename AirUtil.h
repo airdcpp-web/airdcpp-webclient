@@ -85,8 +85,6 @@ class AirUtil {
 
 		static string getPrioText(int prio);
 
-		static uint32_t getLastWrite(const string& path);
-
 		static bool listRegexMatch(const StringList& l, const boost::regex& aReg);
 		static int listRegexCount(const StringList& l, const boost::regex& aReg);
 		static void listRegexSubtract(StringList& l, const boost::regex& aReg);

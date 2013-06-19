@@ -22,7 +22,7 @@
 namespace dcpp {
 
 #ifdef _WIN32
-File::File(const string& aFileName, int access, int mode, bool isAbsolute) {
+File::File(const string& aFileName, int access, int mode, bool isAbsolute /*true*/, bool isDirectory /*false*/) {
 	dcassert(access == WRITE || access == READ || access == (READ | WRITE));
 
 	int m = 0;
@@ -48,6 +48,9 @@ File::File(const string& aFileName, int access, int mode, bool isAbsolute) {
 	if(isAbsolute)
 		path = Util::FormatPath(aFileName);
 
+	if (isDirectory)
+		dwFlags |= FILE_FLAG_BACKUP_SEMANTICS;
+
 	h = ::CreateFile(Text::toT(path).c_str(), access, shared, NULL, m, dwFlags, NULL);
 
 	if(h == INVALID_HANDLE_VALUE) {
@@ -67,13 +70,13 @@ bool File::createFile(const string& aPath, const string& aContent) noexcept {
 	}
 }
 
-uint32_t File::getLastModified() const noexcept {
+uint64_t File::getLastModified() const noexcept {
 	FILETIME f = {0};
 	::GetFileTime(h, NULL, NULL, &f);
 	return convertTime(&f);
 }
 
-uint32_t File::convertTime(FILETIME* f) {
+uint64_t File::convertTime(FILETIME* f) {
 	SYSTEMTIME s = { 1970, 1, 0, 1, 0, 0, 0, 0 };
 	FILETIME f2 = {0};
 	if(::SystemTimeToFileTime(&s, &f2)) {
@@ -85,6 +88,14 @@ uint32_t File::convertTime(FILETIME* f) {
 		return (a.QuadPart - b.QuadPart) / (10000000LL); // 100ns > s
 	}
 	return 0;
+}
+
+FILETIME File::convertTime(uint64_t f) {
+	FILETIME ft;
+
+	ft.dwLowDateTime = (DWORD)f;
+	ft.dwHighDateTime = (DWORD)(f >> 32);
+	return ft;
 }
 
 bool File::isOpen() const noexcept {
@@ -176,14 +187,42 @@ void File::copyFile(const string& src, const string& target) {
 	}
 }
 
-bool File::deleteFile(const string& aFileName) noexcept
-{
+uint64_t File::getLastModified(const string& aPath) {
+	FileFindIter ff = FileFindIter(aPath);
+	if (ff != FileFindIter()) {
+		return ff->getLastWriteTime();
+	}
+
+	return 0;
+}
+
+bool File::deleteFile(const string& aFileName) noexcept {
 	return ::DeleteFile(Text::toT(Util::FormatPath(aFileName)).c_str()) > 0 ? true : false;
 }
 
-bool File::delayedDeleteFile(const string& aFileName, int maxAttempts) noexcept {
-	bool success = false;
+TimeKeeper::TimeKeeper(const string& aPath) : initialized(false), File(aPath, File::RW, File::OPEN | File::SHARED_WRITE, true, true) {
+	if (::GetFileTime(h, NULL, NULL, &time) > 0)
+		initialized = true;
+}
 
+TimeKeeper::~TimeKeeper() {
+	if (!initialized)
+		return;
+
+	::SetFileTime(h, NULL, NULL, &time);
+}
+
+bool File::deleteFileEx(const string& aFileName, int maxAttempts, bool keepFolderDate /*false*/) noexcept {
+	unique_ptr<TimeKeeper> keeper;
+	if (keepFolderDate) {
+		try {
+			keeper.reset(new TimeKeeper(Util::getFilePath(aFileName)));
+		} catch(FileException& /*e*/) {
+			keeper.reset(nullptr);
+		}
+	}
+
+	bool success = false;
 	for(int i = 0; i < maxAttempts && (success = deleteFile(aFileName)) == false; ++i)
 		Thread::sleep(1000);
 
@@ -581,6 +620,10 @@ int64_t FileFindIter::DirData::getSize() {
 	return (int64_t)nFileSizeLow | ((int64_t)nFileSizeHigh)<<32;
 }
 
+uint64_t FileFindIter::DirData::getLastWriteTime() {
+	return File::convertTime(&ftLastWriteTime);
+}
+
 int64_t File::getBlockSize(const string& aFileName) noexcept {
 	DWORD sectorBytes, clusterSectors, tmp2, tmp3;
 	GetDiskFreeSpace(Text::toT(aFileName).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
@@ -603,10 +646,6 @@ int64_t File::getDirSize(const string& aPath, bool recursive) noexcept {
 	int64_t ret = 0;
 	getDirSizeInternal(aPath, ret, recursive);
 	return ret;
-}
-
-uint32_t FileFindIter::DirData::getLastWriteTime() {
-	return File::convertTime(&ftLastWriteTime);
 }
 
 #else // _WIN32

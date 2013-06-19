@@ -56,8 +56,8 @@ public:
 		RW = READ | WRITE
 	};
 
-	static uint32_t convertTime(FILETIME* f);
-
+	static uint64_t convertTime(FILETIME* f);
+	static FILETIME convertTime(uint64_t f);
 #else // !_WIN32
 
 	enum {
@@ -72,7 +72,7 @@ public:
 
 #endif // !_WIN32
 
-	File(const string& aFileName, int access, int mode, bool isAbsolute = true);
+	File(const string& aFileName, int access, int mode, bool isAbsolute = true, bool isDirectory = false);
 
 	bool isOpen() const noexcept;
 	void close() noexcept;
@@ -89,15 +89,15 @@ public:
 	size_t write(const void* buf, size_t len);
 	size_t flush();
 
-	uint32_t getLastModified() const noexcept;
+	uint64_t getLastModified() const noexcept;
 
 	static bool createFile(const string& aPath, const string& aContent = Util::emptyString) noexcept;
 	static void copyFile(const string& src, const string& target);
 	static void renameFile(const string& source, const string& target);
 	static bool deleteFile(const string& aFileName) noexcept;
-	static bool delayedDeleteFile(const string& aFileName, int maxAttempts) noexcept;
+	static bool deleteFileEx(const string& aFileName, int maxAttempts = 3, bool keepDirDate = false) noexcept;
 
-
+	static uint64_t getLastModified(const string& path) noexcept;
 	static int64_t getSize(const string& aFileName) noexcept;
 	static int64_t getBlockSize(const string& aFileName) noexcept;
 	static int64_t getDirSize(const string& aPath, bool recursive) noexcept;
@@ -124,6 +124,15 @@ protected:
 #endif
 };
 
+class TimeKeeper : private File {
+public:
+	TimeKeeper(const string& aPath);
+	~TimeKeeper();
+private:
+	bool initialized;
+	FILETIME time;
+};
+
 class FileFindIter {
 public:
 	/** End iterator constructor */
@@ -148,7 +157,7 @@ public:
 		bool isHidden();
 		bool isLink();
 		int64_t getSize();
-		uint32_t getLastWriteTime();
+		uint64_t getLastWriteTime();
 		#ifndef _WIN32
 			dirent *ent;
 			string base;

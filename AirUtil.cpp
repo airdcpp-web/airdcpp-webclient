@@ -606,16 +606,6 @@ void AirUtil::removeIfEmpty(const string& tgt) {
 	}
 }
 
-uint32_t AirUtil::getLastWrite(const string& path) {
-	FileFindIter ff = FileFindIter(path);
-
-	if (ff != FileFindIter()) {
-		return ff->getLastWriteTime();
-	}
-
-	return 0;
-}
-
 bool AirUtil::isAdcHub(const string& hubUrl) {
 	if(strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
 		return true;

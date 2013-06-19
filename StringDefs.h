@@ -1786,5 +1786,6 @@ enum Strings { // @DontAdd
 	REBUILD_FAILED_ENTRIES_VERIFY, // "There were %d shared TTHs without a corresponding hash tree entry and %d invalid tree entries that couldn't be loaded"
 	REBUILD_FAILED_ENTRIES_OPTIMIZE, // "%d shared TTHs without a corresponding hash tree entry were found"
 	REBUILD_REFRESH_PROMPT, // "It's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared"
+	CONFIRM_FILE_DELETIONS, // "Confirm file deletions"
 	LAST // @DontAdd
 };
