@@ -36,14 +36,15 @@ public:
 	LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize = 4096);
 	~LevelDB();
 
-	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen);
-	bool get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF);
-	void remove(void* aKey, size_t keyLen);
-	bool hasKey(void* aKey, size_t keyLen);
+	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSnapshot* aSnapshot /*nullptr*/);
+	bool get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF, DbSnapshot* aSnapshot /*nullptr*/);
+	void remove(void* aKey, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/);
+	bool hasKey(void* aKey, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/);
 
 	string getStats();
 
-	size_t size(bool /*thorough*/);
+	size_t size(bool /*thorough*/, DbSnapshot* aSnapshot /*nullptr*/);
+	int count(void* key, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/);
 
 	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/);
 	void compact();

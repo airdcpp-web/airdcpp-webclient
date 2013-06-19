@@ -114,22 +114,16 @@ LevelDB::~LevelDB() {
 
 #define DBACTION(f) (performDbOperation([&] { return f; }))
 
-void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen) {
+void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
 	totalWrites++;
 	leveldb::Slice key((const char*)aKey, keyLen);
 	leveldb::Slice value((const char*)aValue, valueLen);
 
-	// leveldb doesn't support unique values, so check and delete existing ones manually before inserting (those shouldn't exist ofter and bloom filter should handle false searches efficiently)
-	string tmp;
-	auto ret = DBACTION(db->Get(iteroptions, key, &tmp));
-	if (!ret.IsNotFound()) {
-		DBACTION(db->Delete(writeoptions, key));
-	}
-
+	// leveldb will replace existing values
 	DBACTION(db->Put(writeoptions, key, value));
 }
 
-bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF) {
+bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
 	totalReads++;
 	string value;
 	leveldb::Slice key((const char*)aKey, keyLen);
@@ -146,7 +140,8 @@ string LevelDB::getStats() {
 	string value = "leveldb.stats";
 	leveldb::Slice prop(value.c_str(), value.length());
 	db->GetProperty(prop, &ret);
-	ret += "\r\n\r\nTotal reads: " + Util::toString(totalReads);
+	ret += "\r\n\r\nTotal entries: " + Util::toString(size(false, nullptr));
+	ret += "\r\nTotal reads: " + Util::toString(totalReads);
 	ret += "\r\nTotal Writes: " + Util::toString(totalWrites);
 	ret += "\r\nI/O errors: " + Util::toString(ioErrors);
 	ret += "\r\nCurrent block size: " + Util::formatBytes(options.block_size);
@@ -154,45 +149,50 @@ string LevelDB::getStats() {
 	return ret;
 }
 
-bool LevelDB::hasKey(void* aKey, size_t keyLen) {
-
-	/*string value;
+bool LevelDB::hasKey(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
+	string value;
 	leveldb::Slice key((const char*)aKey, keyLen);
 	auto ret = db->Get(iteroptions, key, &value);
-	return ret.ok();*/
-
-	auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(iteroptions));
-
-	leveldb::Slice key((const char*)aKey, keyLen);
-
-	performDbOperation([&] {
-		it->Seek(key);
-		return it->status();
-	});
-
-	if (it->Valid() && options.comparator->Compare(key, it->key()) == 0)
-		return true;
-
-	checkDbError(it->status());
-	return false;
+	return ret.ok();
 }
 
-void LevelDB::remove(void* aKey, size_t keyLen) {
+void LevelDB::remove(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
 	leveldb::Slice key((const char*)aKey, keyLen);
 	DBACTION(db->Delete(writeoptions, key));
 }
 
-size_t LevelDB::size(bool /*thorough*/) {
+int LevelDB::count(void* aKey, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/) {
+	leveldb::ReadOptions iterOptions;
+	iterOptions.fill_cache = false;
+	iterOptions.verify_checksums = false;
+	if (aSnapshot)
+		iterOptions.snapshot = static_cast<LevelSnapshot*>(aSnapshot)->snapshot;
+
+	auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(iterOptions));
+
+	int ret = 0;
+	leveldb::Slice key((const char*)aKey, keyLen);
+	for (performDbOperation([&] { it->Seek(key); return it->status(); }); it->Valid() && options.comparator->Compare(key, it->key()) == 0; it->Next()) {
+		checkDbError(it->status());
+		ret++;
+	}
+	return ret;
+}
+
+size_t LevelDB::size(bool /*thorough*/, DbSnapshot* aSnapshot /*nullptr*/) {
 	// leveldb doesn't support any easy way to do this
 	size_t ret = 0;
 	leveldb::ReadOptions options;
 	options.fill_cache = false;
+	if (aSnapshot)
+		options.snapshot = static_cast<LevelSnapshot*>(aSnapshot)->snapshot;
+
 	auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(options));
 	for (it->SeekToFirst(); it->Valid(); it->Next()) {
+		checkDbError(it->status());
 		ret++;
 	}
 
-	checkDbError(it->status());
 	return ret;
 }
 
@@ -201,24 +201,22 @@ DbSnapshot* LevelDB::getSnapshot() {
 }
 
 void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/) {
-	// leveldb doesn't support erasing with an iterator, do it in the hard way
 	leveldb::WriteBatch wb;
 	leveldb::ReadOptions options;
 	options.fill_cache = false;
-	options.verify_checksums = false;
-	options.snapshot = static_cast<LevelSnapshot*>(aSnapshot)->snapshot;
+	options.verify_checksums = true;
+	if (aSnapshot)
+		options.snapshot = static_cast<LevelSnapshot*>(aSnapshot)->snapshot;
 
 	{
 		auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(options));
+		for (it->SeekToFirst(); it->Valid(); it->Next()) {
+			checkDbError(it->status());
 
-		//random access file errors may also happen here....
-		for (it->SeekToFirst(); it->Valid(); performDbOperation([&] { it->Next(); return it->status(); })) {
 			if (f((void*)it->key().data(), it->key().size(), (void*)it->value().data(), it->value().size())) {
 				wb.Delete(it->key());
 			}
 		}
-
-		checkDbError(it->status());
 	}
 
 	DBACTION(db->Write(writeoptions, &wb));
@@ -230,8 +228,6 @@ void LevelDB::compact() {
 	db->CompactRange(NULL, NULL);
 }
 
-
-// avoid errors like this: "IO error: C:\Program Files (x86)\AirDC\HashData\056183.sst: Could not create random access file. "
 leveldb::Status LevelDB::performDbOperation(function<leveldb::Status ()> f) {
 	int attempts = 0;
 	leveldb::Status ret;

@@ -524,7 +524,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 	{
 		//make sure that the databases stay in sync so that trees added while this operation won't get removed
 		unique_ptr<DbSnapshot> fileSnapshot(fileDb->getSnapshot()); 
-		unique_ptr<DbSnapshot> hashSnapshot(fileDb->getSnapshot()); 
+		unique_ptr<DbSnapshot> hashSnapshot(hashDb->getSnapshot()); 
 
 		HashedFile fi;
 		string path;
@@ -534,7 +534,9 @@ void HashManager::HashStore::optimize(bool doVerify) {
 			fileDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
 				path = string((const char*)aKey, key_len);
 				if (ShareManager::getInstance()->isRealPathShared(path)) {
-					loadFileInfo(aValue, valueLen, fi);
+					if (!loadFileInfo(aValue, valueLen, fi))
+						return true;
+
 					usedRoots.emplace(fi.getRoot());
 					validFiles++;
 					return false;
@@ -561,7 +563,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 					//not shared
 					unusedTrees++;
 					return true;
-				}  
+				}
 				
 				if (!doVerify || loadTree(aValue, valueLen, curRoot, tt, false)) {
 					//valid tree
@@ -580,7 +582,6 @@ void HashManager::HashStore::optimize(bool doVerify) {
 			getInstance()->fire(HashManagerListener::MaintananceFinished());
 			return;
 		}
-
 
 		//remove file entries that don't have a corresponding hash data entry
 		missingTrees = usedRoots.size() - failedTrees;
@@ -617,7 +618,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 		}
 	}*/
 
-	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles + unusedFiles);
+	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles + missingTrees);
 	if (validFiles == 0 || (static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
 		LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogManager::LOG_INFO);
 		fileDb->compact();

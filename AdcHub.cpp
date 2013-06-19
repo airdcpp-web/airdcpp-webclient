@@ -794,6 +794,9 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
+	if (c.getType() != AdcCommand::TYPE_INFO)
+		return;
+
 	if (hbriThread.valid())
 		return;
 

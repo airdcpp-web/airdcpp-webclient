@@ -1508,9 +1508,9 @@ void ShareManager::Directory::getStats(uint64_t& totalAge_, size_t& totalDirs_, 
 		totalSize_ += f->getSize();
 		totalAge_ += f->getLastWrite();
 		totalStrLen_ += f->name.getLower().length();
-		/*if (!f.hasUpperCase()) {
+		if (f->name.lowerCaseOnly()) {
 			lowerCaseFiles_++;
-		} else {
+		} /*else {
 			totalStrLen_ += f.getNameLower().length(); //the len is the same, right?
 		}*/
 	}
@@ -1525,10 +1525,17 @@ string ShareManager::getStats() const {
 	size_t totalFiles=0, lowerCaseFiles=0, totalDirs=0, totalStrLen=0;
 	int64_t totalSize=0;
 	double roots = 0;
+
+	RLock l(cs);
 	for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
 		totalDirs++;
 		roots++;
 		d->getStats(totalAge, totalDirs, totalSize, totalFiles, lowerCaseFiles, totalStrLen);
+	}
+
+	unordered_set<TTHValue*> uniqueTTHs;
+	for(auto tth: tthIndex | map_keys) {
+		uniqueTTHs.insert(tth);
 	}
 
 	/*auto dirSize1 = sizeof(Directory);
@@ -1551,6 +1558,7 @@ Shared root paths: %d (of which %d%% have no parent)\r\n\
 Total share size: %s\r\n\
 Total incoming searches: %d (%d per minute)\r\n\
 Total shared files: %d (of which %d%% are lowercase)\r\n\
+Unique TTHs: %d (%d%%)\r\n\
 Total shared directories: %d (%d files per directory)\r\n\
 Estimated memory usage for the share: %d (this doesn't include the hash store)\r\n\
 Average age of a file: %s")
@@ -1560,6 +1568,7 @@ Average age of a file: %s")
 		% Util::formatBytes(totalSize)
 		% totalSearches % (totalSearches / upMinutes)
 		% totalFiles % ((static_cast<double>(lowerCaseFiles) / static_cast<double>(totalFiles))*100.00)
+		% uniqueTTHs.size() % ((static_cast<double>(uniqueTTHs.size()) / static_cast<double>(totalFiles))*100.00)
 		% totalDirs % (static_cast<double>(totalFiles) / static_cast<double>(totalDirs))
 		% Util::formatBytes(memUsage)
 		% Util::formatTime(GET_TIME() - (totalFiles > 0 ? (totalAge / totalFiles) : 0), false, true));
