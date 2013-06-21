@@ -2291,8 +2291,8 @@ void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs)  {
 				p->second->getProfileDir()->addRootProfile(vName, cd->profile); //renames it really
 
 				// change the incoming state
-				if (!cd->incoming)
-					if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING)) {
+				if (!cd->incoming) {
+					if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
 						monRem.push_back(cd->path);
 					p->second->getProfileDir()->unsetFlag(ProfileDirectory::FLAG_INCOMING);
 				} else {
