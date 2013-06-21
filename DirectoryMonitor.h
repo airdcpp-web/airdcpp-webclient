@@ -60,6 +60,12 @@ public:
 	// returns true as long as there are messages queued
 	bool dispatch();
 	void callAsync(AsyncF aF);
+	string getStats() const {
+		return server->getStats();
+	}
+	bool hasDirectories() const {
+		return server->hasDirectories();
+	}
 private:
 	friend class Monitor;
 	class Server : public Thread {
@@ -75,9 +81,12 @@ private:
 		DirectoryMonitor* base;
 		virtual int run();
 		void init() throw(MonitorException);
+
+		string getStats() const;
+		bool hasDirectories() const;
 	private:
 		typedef std::unordered_map<string, Monitor*, noCaseStringHash, noCaseStringEq> MonitorMap;
-		SharedMutex cs;
+		mutable SharedMutex cs;
 		MonitorMap monitors;
 
 		int read();
@@ -149,6 +158,7 @@ private:
 	ByteVector m_Buffer;
 	int errorCount;
 	int key;
+	uint64_t changes;
 };
 
 } //dcpp

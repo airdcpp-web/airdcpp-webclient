@@ -477,7 +477,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 }
 
 void ShareManager::on(DirectoryMonitorListener::DirectoryFailed, const string& aPath, const string& aError) noexcept {
-	LogManager::getInstance()->message(STRING_F(MONITOR_DIR_FAILED, aPath % aPath), LogManager::LOG_ERROR);
+	LogManager::getInstance()->message(STRING_F(MONITOR_DIR_FAILED, aPath % aError), LogManager::LOG_ERROR);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
@@ -1552,7 +1552,7 @@ string ShareManager::getStats() const {
 	memUsage += roots*(1<<20); //root blooms
 	memUsage += sizeof(Directory::Ptr)*totalDirs; //pointers stored in the vector for each directory
 
-	auto upMinutes = static_cast<double>(GET_TICK()) / (1000.00*1000.00*60.00);
+	auto upMinutes = static_cast<double>(GET_TICK()) / 1000.00 / 60.00;
 
 	string ret = boost::str(boost::format(
 "\r\n\r\n-=[ Share statistics ]=-\r\n\r\n\
@@ -1576,6 +1576,13 @@ Average age of a file: %s")
 		% Util::formatBytes(memUsage)
 		% Util::formatTime(GET_TIME() - (totalFiles > 0 ? (totalAge / totalFiles) : 0), false, true));
 
+	if (monitor->hasDirectories()) {
+		ret += "\r\n\r\n\r\n-=[ Monitoring statistics ]=-\r\n\r\n";
+		ret += "Debug mode: ";
+		ret += (monitorDebug ? "Enabled" : "Disabled");
+		ret += " \r\n\r\nMonitored paths:\r\n";
+		ret += monitor->getStats();
+	}
 	return ret;
 }
 
@@ -2284,11 +2291,13 @@ void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs)  {
 				p->second->getProfileDir()->addRootProfile(vName, cd->profile); //renames it really
 
 				// change the incoming state
-				if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING) && !cd->incoming) {
-					monRem.push_back(cd->path);
+				if (!cd->incoming)
+					if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING)) {
+						monRem.push_back(cd->path);
 					p->second->getProfileDir()->unsetFlag(ProfileDirectory::FLAG_INCOMING);
-				} else if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && !p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING) && cd->incoming) {
-					monAdd.push_back(cd->path);
+				} else {
+					if (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && !p->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))
+						monAdd.push_back(cd->path);
 					p->second->getProfileDir()->setFlag(ProfileDirectory::FLAG_INCOMING);
 				}
 			}

@@ -937,17 +937,33 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcep
 
 string ClientManager::getClientStats() {
 	RLock l(cs);
+	map<CID, OnlineUser*> uniqueUserMap;
+	for(auto ou: onlineUsers | map_values) {
+		if (!ou->getIdentity().isBot() && !ou->isHidden())
+			uniqueUserMap.emplace(ou->getUser()->getCID(), ou);
+	}
+
 	int allUsers = onlineUsers.size();
-	int uniqueUsers = users.size();
+	int uniqueUsers = uniqueUserMap.size();
+	if (uniqueUsers == 0) {
+		return "No users";
+	}
+
+	int64_t totalShare = 0;
+	for(auto ou: uniqueUserMap | map_values) {
+		totalShare += Util::toInt64(ou->getIdentity().getShareSize());
+	}
+
 	string lb = "\n";
 	string ret;
 	ret += lb;
 	ret += lb;
 	ret += "All users: " + Util::toString(allUsers) + lb;
 	ret += "Unique users: " + Util::toString(uniqueUsers) + " (" + Util::toString(((double)uniqueUsers/(double)allUsers)*100.00) + "%)" + lb;
+	ret += "Total share: " + Util::formatBytes(totalShare) + "(" + Util::formatBytes((double)totalShare / (double)uniqueUsers) + " per user)" + lb;
 	ret += lb;
 	ret += lb;
-	ret += "Clients";
+	ret += "Clients (from unique users)";
 	ret += lb;
 
 	//typedef boost::bimaps::bimap<string, int> results_bimap;
@@ -955,19 +971,18 @@ string ClientManager::getClientStats() {
 	//boost::bimaps::bimap<string, double> clientNames;
 
 	//results_bimap clientNames;
-	map<string, double> clientNames;
-	for(auto ou: onlineUsers | map_values) {
-		if (!ou->getIdentity().isBot()) {
-			auto app = ou->getIdentity().getApplication();
-			auto pos = app.find(" ");
 
-			if (pos != string::npos) {
-				clientNames[app.substr(0, pos)]++;
-				//clientNames.value_comp();
-				//clientNames.insert(position(app, 0));
-			} else {
-				clientNames["Unknown"]++;
-			}
+	map<string, double> clientNames;
+	for(auto ou: uniqueUserMap | map_values) {
+		auto app = ou->getIdentity().getApplication();
+		auto pos = app.find(" ");
+
+		if (pos != string::npos) {
+			clientNames[app.substr(0, pos)]++;
+			//clientNames.value_comp();
+			//clientNames.insert(position(app, 0));
+		} else {
+			clientNames["Unknown"]++;
 		}
 	}
 
@@ -993,7 +1008,7 @@ string ClientManager::getClientStats() {
 		//std::cout << the_string.c_str();
 		//ret += a_stream.get();
 		//ret += a_stream.str();
-		ret += p.first + ":\t\t" + Util::toString(p.second) + " (" + Util::toString(((double)p.second/(double)allUsers)*100.00) + "%)" + lb;
+		ret += p.first + ":\t\t" + Util::toString(p.second) + " (" + Util::toString(((double)p.second/(double)uniqueUsers)*100.00) + "%)" + lb;
 		//printf("%-20s", ret);
 	}
 

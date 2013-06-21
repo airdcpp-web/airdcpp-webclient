@@ -140,7 +140,6 @@ public:
 	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) noexcept;
 	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException);
 	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
-	void moveFileBundle(BundlePtr& aBundle, const string& aTarget) noexcept;
 	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false);
 
 
@@ -277,13 +276,12 @@ private:
 
 	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget);
 	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false);
-	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle, bool fireAdded); //don't use reference here!
-	void moveBundleItems(const QueueItemList& ql, BundlePtr& targetBundle);
+	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle); //don't use reference here!
 	void addLoadedBundle(BundlePtr& aBundle);
 	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded, bool moving = false);
 	void readdBundle(BundlePtr& aBundle);
 
-	bool changeTarget(QueueItemPtr& qs, const string& aTarget, bool movingSingleItems) noexcept;
+	bool changeTarget(QueueItemPtr& qs, const string& aTarget) noexcept;
 	void removeQI(QueueItemPtr& qi, bool noFiring = false) noexcept;
 
 	void handleBundleUpdate(const string& bundleToken);

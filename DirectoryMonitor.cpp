@@ -26,7 +26,6 @@ namespace dcpp {
 
 
 DirectoryMonitor::DirectoryMonitor(int numThreads, bool aUseDispatcherThread) : server(new Server(this, numThreads)), useDispatcherThread(aUseDispatcherThread), queue(1024), stop(false) {
-	//init();
 	if (useDispatcherThread)
 		start();
 }
@@ -39,10 +38,7 @@ void DirectoryMonitor::addTask(TaskType aType, Task* aTask) {
 	queue.push(new TaskQueue::UniqueTaskPair(aType, unique_ptr<Task>(aTask))); 
 	if (useDispatcherThread) {
 		s.signal(); 
-	} /*else {
-		processNotification(aTask->path, aTask->buf);
-		delete aTask;
-	}*/
+	}
 }
 
 DirectoryMonitor::~DirectoryMonitor() {
@@ -228,6 +224,7 @@ int DirectoryMonitor::Server::read() {
 					}
 
 					if (dwBytesXFered > 0) {
+						(*mon)->changes++;
 						(*mon)->queueNotificationTask(dwBytesXFered);
 					} else {
 						LogManager::getInstance()->message("An empty notification was received when monitoring " + Text::fromT((*mon)->path) + " (report this)", LogManager::LOG_WARNING);
@@ -341,7 +338,8 @@ Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int mon
 	m_dwFlags(monitorFlags),
 	m_bChildren(recursive),
 	errorCount(0),
-	key(lastKey++)
+	key(lastKey++),
+	changes(0)
 {
 	::ZeroMemory(&m_Overlapped, sizeof(OVERLAPPED));
 	m_Buffer.resize(bufferSize);
@@ -375,6 +373,26 @@ void Monitor::openDirectory(HANDLE iocp) {
 
 Monitor::~Monitor() {
 	dcassert(!m_hDirectory);
+}
+
+string DirectoryMonitor::Server::getStats() const {
+	string ret;
+	bool first = true;
+
+	RLock l(cs);
+	for (auto& m: monitors) {
+		if (!first)
+			ret += "\r\n";
+		ret += m.first + " (" + Util::toString(m.second->changes) + " change notifications)";
+		first = false;
+	}
+
+	return ret;
+}
+
+bool DirectoryMonitor::Server::hasDirectories() const {
+	RLock l(cs);
+	return !monitors.empty();
 }
 
 void DirectoryMonitor::processNotification(const tstring& aPath, ByteVector& aBuf) {
