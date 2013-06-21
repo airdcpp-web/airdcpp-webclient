@@ -200,6 +200,17 @@ bool File::deleteFile(const string& aFileName) noexcept {
 	return ::DeleteFile(Text::toT(Util::FormatPath(aFileName)).c_str()) > 0 ? true : false;
 }
 
+TimeKeeper* TimeKeeper::createKeeper(const string& aPath) noexcept {
+	TimeKeeper* ret = nullptr;
+	try {
+		ret = new TimeKeeper(aPath);
+		return ret;
+	} catch(FileException& /*e*/) {
+		delete ret;
+		return nullptr;
+	}
+}
+
 TimeKeeper::TimeKeeper(const string& aPath) : initialized(false), File(aPath, File::RW, File::OPEN | File::SHARED_WRITE, true, true) {
 	if (::GetFileTime(h, NULL, NULL, &time) > 0)
 		initialized = true;
@@ -215,11 +226,7 @@ TimeKeeper::~TimeKeeper() {
 bool File::deleteFileEx(const string& aFileName, int maxAttempts, bool keepFolderDate /*false*/) noexcept {
 	unique_ptr<TimeKeeper> keeper;
 	if (keepFolderDate) {
-		try {
-			keeper.reset(new TimeKeeper(Util::getFilePath(aFileName)));
-		} catch(FileException& /*e*/) {
-			keeper.reset(nullptr);
-		}
+		keeper.reset(TimeKeeper::createKeeper(Util::getFilePath(aFileName)));
 	}
 
 	bool success = false;

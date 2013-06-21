@@ -76,8 +76,9 @@ private:
 		virtual int run();
 		void init() throw(MonitorException);
 	private:
+		typedef std::unordered_map<string, Monitor*, noCaseStringHash, noCaseStringEq> MonitorMap;
 		SharedMutex cs;
-		std::unordered_map<string, Monitor*, noCaseStringHash, noCaseStringEq> monitors;
+		MonitorMap monitors;
 
 		int read();
 
@@ -85,6 +86,8 @@ private:
 		bool m_bTerminate;
 		HANDLE m_hIOCP;
 		atomic_flag threadRunning;
+
+		void deleteDirectory(MonitorMap::iterator mon);
 	};
 
 	enum TaskType {
@@ -113,6 +116,7 @@ private:
 
 class Monitor : boost::noncopyable {
 public:
+	static int lastKey;
 	friend class DirectoryMonitor;
 
 	Monitor(const string& aPath, DirectoryMonitor::Server* aParent, int monitorFlags, size_t bufferSize, bool recursive);
@@ -144,6 +148,7 @@ private:
 	// be aligned as required by ReadDirectoryChangesW().
 	ByteVector m_Buffer;
 	int errorCount;
+	int key;
 };
 
 } //dcpp

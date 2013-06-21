@@ -681,6 +681,7 @@ private:
 	virtual void on(DirectoryMonitorListener::FileRenamed, const string& aOldPath, const string& aNewPath) noexcept;
 	virtual void on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept;
 	virtual void on(DirectoryMonitorListener::Overflow, const string& aPath) noexcept;
+	virtual void on(DirectoryMonitorListener::DirectoryFailed, const string& aPath, const string& aError) noexcept;
 
 	//Directory::Ptr ShareManager::removeFileOrDirectory(Directory::Ptr& aDir, const string& aName) throw(ShareException);
 

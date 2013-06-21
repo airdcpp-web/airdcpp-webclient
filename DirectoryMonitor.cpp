@@ -88,12 +88,6 @@ void DirectoryMonitor::Server::stop() {
 			// Each Request object will delete itself.
 			m->stopMonitoring();
 		}
-
-		if (m_hIOCP)
-		{
-			CloseHandle(m_hIOCP);
-			m_hIOCP = NULL;
-		}
 	}
 
 	// Wait for the thread to stop
@@ -145,9 +139,11 @@ void Monitor::queueNotificationTask(int dwSize) {
 }
 
 void Monitor::stopMonitoring() {
+	dcassert(m_hDirectory);
 	::CancelIo(m_hDirectory);
 	::CloseHandle(m_hDirectory);
 	m_hDirectory = nullptr;
+
 }
 
 int DirectoryMonitor::run() {
@@ -182,24 +178,14 @@ int DirectoryMonitor::Server::run() {
 		//...
 	}
 
-	//we are stopping (quiting/no dirs to monitor)
-
-	WLock l(cs);
-	m_bTerminate = false;
-	for (auto m: monitors | map_values) {
-		delete m;
-	}
-
-	monitors.clear();
 	threadRunning.clear();
 	return 0;
 }
 
 int DirectoryMonitor::Server::read() {
 	DWORD		dwBytesXFered = 0;
-	//Monitor*	mon = 0;
 	ULONG_PTR	ulKey = 0;
-	OVERLAPPED*	pOl = 0;
+	OVERLAPPED*	pOl;
 
 	auto ret = GetQueuedCompletionStatus(m_hIOCP, &dwBytesXFered, &ulKey, &pOl, INFINITE);
 	auto dwError = GetLastError();
@@ -215,13 +201,18 @@ int DirectoryMonitor::Server::read() {
 		}
 	}
 
-	unique_ptr<string> removeDir(nullptr);
 	{
-		RLock l(cs);
-		auto mon = find_if(monitors | map_values, [ulKey](const Monitor* m) { return (ULONG_PTR)m->m_hDirectory == ulKey; });
+		WLock l(cs);
+		auto mon = find_if(monitors | map_values, [ulKey](const Monitor* m) { return (ULONG_PTR)m->key == ulKey; });
 		if (mon.base() != monitors.end()) {
+			if (!(*mon)->m_hDirectory) {
+				//this is going to be deleted
+				deleteDirectory(mon.base());
+				return 1;
+			}
+
 			try {
-				if (dwError != 0) {
+				if (dwError != 0 || !ret) {
 					if (dwError == ERROR_NOTIFY_ENUM_DIR) {
 						(*mon)->beginRead();
 
@@ -232,7 +223,7 @@ int DirectoryMonitor::Server::read() {
 					}
 				} else {
 					if ((*mon)->errorCount > 0) {
-						LogManager::getInstance()->message("Monitoring was successfully restored for " + Text::fromT((*mon)->path), LogManager::LOG_ERROR);
+						//LogManager::getInstance()->message("Monitoring was successfully restored for " + Text::fromT((*mon)->path), LogManager::LOG_ERROR);
 						(*mon)->errorCount = 0;
 					}
 
@@ -245,33 +236,43 @@ int DirectoryMonitor::Server::read() {
 					(*mon)->beginRead();
 				}
 			} catch (const MonitorException& e) {
-				auto path = Text::fromT((*mon)->path);
-				if ((*mon)->errorCount == 0)
-					LogManager::getInstance()->message("Error when monitoring " + path + ": " + e.getError() + ". Retrying for 60 seconds...", LogManager::LOG_ERROR);
-
 				(*mon)->errorCount++;
-
-				if ((*mon)->errorCount == 60) {
-					// remove this directory from monitoring
-					LogManager::getInstance()->message("A failed directory " + path + " has been removed from monitoring", LogManager::LOG_ERROR);
-					removeDir.reset(new string(path));
-				} else {
-					if ((*mon)->m_hDirectory == INVALID_HANDLE_VALUE) {
-						(*mon)->openDirectory(m_hIOCP);
-					}
-
+				if ((*mon)->errorCount < 60) {
 					//we'll most likely get the error instantly again...
 					Sleep(1000);
+
+					try {
+						(*mon)->openDirectory(m_hIOCP);
+						(*mon)->beginRead();
+						return 1;
+					} catch (const MonitorException& /*e*/) {
+						//go to removal
+					}
 				}
+
+				//remove this
+				(*mon)->stopMonitoring();
+				(*mon)->server->base->fire(DirectoryMonitorListener::DirectoryFailed(), Text::fromT((*mon)->path), e.getError());
+				deleteDirectory(mon.base());
 			}
 		}
 	}
 
-	if (removeDir) {
-		removeDirectory(*removeDir);
-	}
-
 	return 1;
+}
+
+void DirectoryMonitor::Server::deleteDirectory(DirectoryMonitor::Server::MonitorMap::iterator mon) {
+	delete mon->second;
+	monitors.erase(mon);
+
+	if (monitors.empty()) {
+		//MSDN: The completion port is freed when there are
+		//no more references to it
+		if (m_hIOCP) {
+			CloseHandle(m_hIOCP);
+			m_hIOCP = NULL;
+		}
+	}
 }
 
 bool DirectoryMonitor::addDirectory(const string& aPath) {
@@ -287,17 +288,10 @@ size_t DirectoryMonitor::clear() {
 }
 
 size_t DirectoryMonitor::Server::clear() {
-	StringList remove;
-
-	{
-		RLock l(cs);
-		for (auto& m: monitors)
-			remove.push_back(m.first);
-	}
-
-	for (auto& p: remove)
-		removeDirectory(p);
-	return remove.size();
+	WLock l(cs);
+	for (auto& m: monitors)
+		m.second->stopMonitoring();
+	return monitors.size();
 }
 
 bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
@@ -332,24 +326,13 @@ bool DirectoryMonitor::Server::removeDirectory(const string& aPath) {
 	auto p = monitors.find(aPath);
 	if (p != monitors.end()) {
 		p->second->stopMonitoring();
-		delete p->second;
-
-		monitors.erase(p);
-
-		if (monitors.empty()) {
-			//MSDN: The completion port is freed when there are
-			//no more references to it
-			if (m_hIOCP) {
-				CloseHandle(m_hIOCP);
-				m_hIOCP = NULL;
-			}
-		}
-
 		return true;
 	}
 
 	return false;
 }
+
+int Monitor::lastKey = 0;
 
 Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int monitorFlags, size_t bufferSize, bool recursive) : 
 	path(Text::toT(aPath)), 
@@ -357,8 +340,8 @@ Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int mon
 	m_hDirectory(nullptr),
 	m_dwFlags(monitorFlags),
 	m_bChildren(recursive),
-	errorCount(0)
-
+	errorCount(0),
+	key(lastKey++)
 {
 	::ZeroMemory(&m_Overlapped, sizeof(OVERLAPPED));
 	m_Buffer.resize(bufferSize);
@@ -366,7 +349,7 @@ Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int mon
 
 void Monitor::openDirectory(HANDLE iocp) {
 	// Allow this routine to be called redundantly.
-	if (m_hDirectory)
+	if (m_hDirectory && m_hDirectory != INVALID_HANDLE_VALUE)
 		return;
 
 	m_hDirectory = ::CreateFile(
@@ -385,7 +368,7 @@ void Monitor::openDirectory(HANDLE iocp) {
 		throw MonitorException(Util::translateError(::GetLastError()));
 	}
 
-	if (CreateIoCompletionPort(m_hDirectory, iocp, (ULONG_PTR)m_hDirectory, 0) == NULL) {
+	if (CreateIoCompletionPort(m_hDirectory, iocp, (ULONG_PTR)key, 0) == NULL) {
 		throw MonitorException(Util::translateError(::GetLastError()));
 	}
 }

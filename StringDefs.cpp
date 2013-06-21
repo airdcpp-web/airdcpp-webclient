@@ -1783,6 +1783,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "%d shared TTHs without a corresponding hash tree entry were found", 
 "It's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared", 
 "Confirm file deletions", 
+"A failed directory %s has been removed from monitoring: %s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3566,4 +3567,5 @@ std::string dcpp::ResourceManager::names[] = {
 "RebuildFailedEntriesOptimize", 
 "RebuildRefreshPrompt", 
 "ConfirmFileDeletions", 
+"MonitorDirFailed", 
 };

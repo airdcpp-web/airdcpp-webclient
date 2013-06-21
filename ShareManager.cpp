@@ -148,9 +148,8 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 		}
 
 		addMonitoring(monitorPaths);
+		TimerManager::getInstance()->addListener(this);
 	});
-
-	TimerManager::getInstance()->addListener(this);
 }
 
 void ShareManager::addMonitoring(const StringList& aPaths) {
@@ -434,7 +433,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 
 				for (const auto& file: files) {
 					string pathLower = Text::toLower(info.path + file.name);
-					if (!checkSharedName(info.path + file.name, pathLower, false, false, file.size))
+					if (!checkSharedName(info.path + file.name, pathLower, false, true, file.size))
 						continue;
 
 					if (addedFiles == 0)
@@ -475,6 +474,10 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 	}
 
 	setProfilesDirty(dirtyProfiles, true);
+}
+
+void ShareManager::on(DirectoryMonitorListener::DirectoryFailed, const string& aPath, const string& aError) noexcept {
+	LogManager::getInstance()->message(STRING_F(MONITOR_DIR_FAILED, aPath % aPath), LogManager::LOG_ERROR);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {

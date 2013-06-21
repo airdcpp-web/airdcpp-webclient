@@ -126,6 +126,7 @@ protected:
 
 class TimeKeeper : private File {
 public:
+	static TimeKeeper* createKeeper(const string& aPath) noexcept;
 	TimeKeeper(const string& aPath);
 	~TimeKeeper();
 private:

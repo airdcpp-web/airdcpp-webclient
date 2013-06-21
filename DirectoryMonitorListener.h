@@ -37,12 +37,14 @@ public:
 	typedef X<2> FileRenamed;
 	typedef X<3> FileDeleted;
 	typedef X<4> Overflow;
+	typedef X<5> DirectoryFailed;
 
 	virtual void on(FileCreated, const std::string&) noexcept { }
 	virtual void on(FileModified, const std::string&) noexcept { }
 	virtual void on(FileRenamed, const std::string& /*old name*/, const std::string& /*newName*/) noexcept { }
 	virtual void on(FileDeleted, const std::string&) noexcept { }
 	virtual void on(Overflow, const std::string& /*rootPath*/) noexcept { }
+	virtual void on(DirectoryFailed, const std::string& /*rootPath*/, const std::string& /*error*/) noexcept { }
 };
 
 } // namespace dcpp
