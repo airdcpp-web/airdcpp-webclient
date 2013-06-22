@@ -667,11 +667,11 @@ string HashManager::HashStore::getDbStats() {
 	string statMsg;
 
 	statMsg += fileDb->getStats();
-	statMsg += "Deleted entries since last compaction: " + Util::toString(SETTING(CUR_REMOVED_FILES)) + " (" + Util::toString((double)SETTING(CUR_REMOVED_FILES) / (double)fileDb->size(false)) + "%)";
+	statMsg += "Deleted entries since last compaction: " + Util::toString(SETTING(CUR_REMOVED_FILES)) + " (" + Util::toString(((double)SETTING(CUR_REMOVED_FILES) / (double)fileDb->size(false))*100) + "%)";
 	statMsg += "\r\n\r\n";
 
 	statMsg += hashDb->getStats();
-	statMsg += "Deleted entries since last compaction: " + Util::toString(SETTING(CUR_REMOVED_TREES)) + " (" + Util::toString((double)SETTING(CUR_REMOVED_TREES) / (double)hashDb->size(false)) + "%)";
+	statMsg += "Deleted entries since last compaction: " + Util::toString(SETTING(CUR_REMOVED_TREES)) + " (" + Util::toString(((double)SETTING(CUR_REMOVED_TREES) / (double)hashDb->size(false))*100) + "%)";
 	statMsg += "\r\n\r\n";
 	statMsg += "\n\nDisk block size: " + Util::formatBytes(File::getBlockSize(hashDb->getPath())) + "\n\n";
 	return statMsg;

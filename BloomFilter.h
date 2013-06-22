@@ -21,6 +21,8 @@
 
 #include "typedefs.h"
 
+#include "StringSearch.h"
+
 namespace dcpp {
 
 template<size_t N>
@@ -30,9 +32,9 @@ public:
 	~BloomFilter() { }
 
 	void add(const string& s) { xadd(s, N); }
-	bool match(const StringList& s) const {
+	bool match(const StringSearch::List& s) const {
 		for(const auto& i: s) {
-			if(!match(i))
+			if(!match(i.getPattern()))
 				return false;
 		}
 		return true;

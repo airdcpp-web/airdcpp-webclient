@@ -3303,7 +3303,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 
 
 	RLock l (cs);
-	if (bloom->match(sl)) {
+	if (bloom->match(ssl)) {
 		for(auto j = rootPaths.begin(); (j != rootPaths.end()) && (results.size() < maxResults); ++j) {
 			if(j->second->getProfileDir()->hasRootProfile(SP_DEFAULT))
 				j->second->search(results, ssl, aSearchType, aSize, aFileType, maxResults);
@@ -3432,10 +3432,8 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 		return;
 	}
 
-	for(auto& i: srch.includeX) {
-		if(!bloom->match(i.getPattern()))
-			return;
-	}
+	if(!bloom->match(srch.includeX))
+		return;
 
 	if (srch.itemType == AdcSearch::TYPE_DIRECTORY && srch.matchType == AdcSearch::MATCH_EXACT) {
 		const auto i = dirNameMap.equal_range(const_cast<string*>(&srch.includeX.front().getPattern()));
