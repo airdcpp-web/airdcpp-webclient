@@ -1207,7 +1207,7 @@ bool DirectoryListing::nextResult(bool prev) {
 		}
 		advance(curResult, -1);
 	} else {
-		if (distance(searchResults.begin(), curResult) == searchResults.size()-1) {
+		if (static_cast<size_t>(distance(searchResults.begin(), curResult)) == searchResults.size()-1) {
 			return false;
 		}
 		advance(curResult, 1);

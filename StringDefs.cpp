@@ -1644,7 +1644,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Last error", 
 "Clear error", 
 "No dupe check for files smaller than", 
-"Warn me about sending files in private chat at nmdc hubs", 
+"Warn me about sending files in private chat via NMDC hubs", 
 "You appear to run the client with administrative privileges. This may disable the following client functionality:\r\n\r\n- Clicking on web links in chat doesn't work\r\n- All drives aren't shown in the sharing settings\r\n- Drag and drop functionality can't be used\r\n\r\nYou may also notice other unexcepted behaviour, so it is heavily recommended that you switch the client to run with normal privileges.", 
 "Don't share empty directories", 
 "Scanning options", 
@@ -1784,6 +1784,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "It's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared", 
 "Confirm file deletions", 
 "A failed directory %s has been removed from monitoring: %s", 
+"This user doesn't support the advanced searching features in partial lists, which may result in lower hit counts.", 
+"Searching from the whole share via partial list isn't supported in NMDC hubs. It's recommended to use the full list instead.", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3568,4 +3570,6 @@ std::string dcpp::ResourceManager::names[] = {
 "RebuildRefreshPrompt", 
 "ConfirmFileDeletions", 
 "MonitorDirFailed", 
+"NoAschNote", 
+"PartialSchNmdcNote", 
 };

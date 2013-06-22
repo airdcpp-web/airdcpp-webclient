@@ -1648,7 +1648,7 @@ enum Strings { // @DontAdd
 	LAST_ERROR, // "Last error"
 	CLEAR_ERROR, // "Clear error"
 	MIN_DUPE_CHECK_SIZE, // "No dupe check for files smaller than"
-	SETTINGS_NMDC_MAGNET_WARNING, // "Warn me about sending files in private chat at nmdc hubs"
+	SETTINGS_NMDC_MAGNET_WARNING, // "Warn me about sending files in private chat via NMDC hubs"
 	ELEVATED_WARNING, // "You appear to run the client with administrative privileges. This may disable the following client functionality:\r\n\r\n- Clicking on web links in chat doesn't work\r\n- All drives aren't shown in the sharing settings\r\n- Drag and drop functionality can't be used\r\n\r\nYou may also notice other unexcepted behaviour, so it is heavily recommended that you switch the client to run with normal privileges."
 	DONT_SHARE_EMPTY_DIRS, // "Don't share empty directories"
 	SCANNING_OPTIONS, // "Scanning options"
@@ -1788,5 +1788,7 @@ enum Strings { // @DontAdd
 	REBUILD_REFRESH_PROMPT, // "It's recommended to refresh your share as those files (total of %s) must be rehashed if they are still shared"
 	CONFIRM_FILE_DELETIONS, // "Confirm file deletions"
 	MONITOR_DIR_FAILED, // "A failed directory %s has been removed from monitoring: %s"
+	NO_ASCH_NOTE, // "This user doesn't support the advanced searching features in partial lists, which may result in lower hit counts."
+	PARTIAL_SCH_NMDC_NOTE, // "Searching from the whole share via partial list isn't supported in NMDC hubs. It's recommended to use the full list instead."
 	LAST // @DontAdd
 };

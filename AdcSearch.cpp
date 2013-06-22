@@ -94,9 +94,13 @@ AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const Strin
 	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 
 	//add included
-	auto inc = move(parseSearchString(aSearch));
-	for(auto& i: inc)
-		includeX.emplace_back(i);
+	if (matchType == MATCH_EXACT) {
+		includeX.emplace_back(aSearch);
+	} else {
+		auto inc = move(parseSearchString(aSearch));
+		for(auto& i: inc)
+			includeX.emplace_back(i);
+	}
 
 
 	//add excluded
@@ -181,12 +185,17 @@ bool AdcSearch::matchesFileLower(const string& aName, int64_t aSize, uint64_t aD
 		return false;
 	}
 
-	auto j = include->begin();
-	for(; j != include->end() && j->matchLower(aName); ++j) 
-		;	// Empty
+	if (matchType == MATCH_EXACT) {
+		if (compare((*include->begin()).getPattern(), aName) != 0)
+			return false;
+	} else {
+		auto j = include->begin();
+		for(; j != include->end() && j->matchLower(aName); ++j) 
+			;	// Empty
 
-	if(j != include->end())
-		return false;
+		if(j != include->end())
+			return false;
+	}
 
 	// Check file type...
 	if (!hasExt(aName))
