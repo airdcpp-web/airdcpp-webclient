@@ -1576,12 +1576,14 @@ Average age of a file: %s")
 		% Util::formatBytes(memUsage)
 		% Util::formatTime(GET_TIME() - (totalFiles > 0 ? (totalAge / totalFiles) : 0), false, true));
 
+	ret += "\r\n\r\n\r\n-=[ Monitoring statistics ]=-\r\n\r\n";
 	if (monitor->hasDirectories()) {
-		ret += "\r\n\r\n\r\n-=[ Monitoring statistics ]=-\r\n\r\n";
 		ret += "Debug mode: ";
 		ret += (monitorDebug ? "Enabled" : "Disabled");
 		ret += " \r\n\r\nMonitored paths:\r\n";
 		ret += monitor->getStats();
+	} else {
+		ret += "No folders are being monitored\r\n";
 	}
 	return ret;
 }

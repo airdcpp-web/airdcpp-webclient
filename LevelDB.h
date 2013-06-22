@@ -44,7 +44,7 @@ public:
 	string getStats();
 
 	size_t size(bool /*thorough*/, DbSnapshot* aSnapshot /*nullptr*/);
-	int count(void* key, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/);
+	int64_t getSizeOnDisk();
 
 	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/);
 	void compact();
@@ -86,6 +86,7 @@ private:
 	uint64_t totalReads;
 	uint64_t totalWrites;
 	uint64_t ioErrors;
+	size_t lastSize;
 };
 
 } //dcpp

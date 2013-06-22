@@ -100,7 +100,7 @@ public:
 	static uint64_t getLastModified(const string& path) noexcept;
 	static int64_t getSize(const string& aFileName) noexcept;
 	static int64_t getBlockSize(const string& aFileName) noexcept;
-	static int64_t getDirSize(const string& aPath, bool recursive) noexcept;
+	static int64_t getDirSize(const string& aPath, bool recursive, const string& pattern = "*") noexcept;
 
 	static void ensureDirectory(const string& aFile) noexcept;
 	static bool createDirectory(const string& aFile);

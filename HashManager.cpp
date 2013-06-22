@@ -666,10 +666,13 @@ void HashManager::HashStore::compact() {
 string HashManager::HashStore::getDbStats() {
 	string statMsg;
 
-	statMsg += "\nFILEINDEX STATS\n\n";
 	statMsg += fileDb->getStats();
-	statMsg += "\nHASHDATA STATS\n\n";
+	statMsg += "Deleted entries since last compaction: " + Util::toString(SETTING(CUR_REMOVED_FILES)) + " (" + Util::toString((double)SETTING(CUR_REMOVED_FILES) / (double)fileDb->size(false)) + "%)";
+	statMsg += "\r\n\r\n";
+
 	statMsg += hashDb->getStats();
+	statMsg += "Deleted entries since last compaction: " + Util::toString(SETTING(CUR_REMOVED_TREES)) + " (" + Util::toString((double)SETTING(CUR_REMOVED_TREES) / (double)hashDb->size(false)) + "%)";
+	statMsg += "\r\n\r\n";
 	statMsg += "\n\nDisk block size: " + Util::formatBytes(File::getBlockSize(hashDb->getPath())) + "\n\n";
 	return statMsg;
 }
@@ -689,8 +692,8 @@ bool HashManager::HashStore::isRepairScheduled() const {
 }
 
 void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const {
-	fileDbSize_ = File::getDirSize(fileDb->getPath(), false);
-	hashDbSize_ = File::getDirSize(hashDb->getPath(), false);
+	fileDbSize_ = fileDb->getSizeOnDisk();
+	hashDbSize_ = hashDb->getSizeOnDisk();
 }
 
 void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {

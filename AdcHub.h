@@ -78,6 +78,7 @@ public:
 	static const string BNDL_FEATURE;
 	static const string SUD1_FEATURE;
 	static const string HBRI_SUPPORT;
+	static const string ASCH_FEATURE;
 private:
 	friend class ClientManager;
 	friend class CommandHandler<AdcHub>;

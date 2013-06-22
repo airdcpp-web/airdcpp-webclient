@@ -123,7 +123,7 @@ public:
 		void sortFiles();
 
 		bool findIncomplete();
-		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
+		void search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
 		void findFiles(const boost::regex& aReg, File::List& aResults) const;
 		
 		size_t getFileCount() { return files.size(); }
@@ -224,6 +224,8 @@ public:
 
 	Directory* findDirectory(const string& aName) const { return findDirectory(aName, root); }
 	Directory* findDirectory(const string& aName, const Directory* current) const;
+	
+	bool supportsASCH() const;
 private:
 	friend class ListLoader;
 
@@ -262,8 +264,8 @@ private:
 	void changeDir(bool reload=false);
 
 
-	SearchResultList searchResults;
-	SearchResultList::iterator curResult;
+	OrderedStringSet searchResults;
+	OrderedStringSet::iterator curResult;
 
 	int curResultCount;
 	int maxResultCount;

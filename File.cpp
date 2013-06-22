@@ -637,11 +637,11 @@ int64_t File::getBlockSize(const string& aFileName) noexcept {
 	return static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors);
 }
 
-static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursive) {
+static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursive, const string& pattern) {
 	try {
-		for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
+		for(FileFindIter i(aPath + pattern); i != FileFindIter(); ++i) {
 			if (i->isDirectory() && recursive) {
-				getDirSizeInternal(aPath + i->getFileName() + PATH_SEPARATOR, size_, true);
+				getDirSizeInternal(aPath + i->getFileName() + PATH_SEPARATOR, size_, true, pattern);
 			} else {
 				size_ += i->getSize();
 			}
@@ -649,9 +649,9 @@ static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursi
 	} catch(...) { }
 }
 
-int64_t File::getDirSize(const string& aPath, bool recursive) noexcept {
+int64_t File::getDirSize(const string& aPath, bool recursive, const string& pattern) noexcept {
 	int64_t ret = 0;
-	getDirSizeInternal(aPath, ret, recursive);
+	getDirSizeInternal(aPath, ret, recursive, pattern);
 	return ret;
 }
 

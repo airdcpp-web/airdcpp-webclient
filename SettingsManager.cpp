@@ -816,7 +816,7 @@ SettingsManager::SettingsManager()
 	setDefault(PM_LOG_GROUP_CID, true);
 	setDefault(SHARE_FOLLOW_SYMLINKS, true);
 	setDefault(SCAN_MONITORED_FOLDERS, true);
-	setDefault(MONITORING_MODE, MONITORING_DISABLED);
+	setDefault(MONITORING_MODE, MONITORING_INCOMING);
 	setDefault(FINISHED_NO_HASH, false);
 	setDefault(MONITORING_DELAY, 30);
 	setDefault(DELAY_COUNT_MODE, DELAY_VOLUME);

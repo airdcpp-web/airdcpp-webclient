@@ -51,7 +51,7 @@ public:
 	virtual bool hasKey(void* key, size_t keyLen, DbSnapshot* aSnapshot = nullptr) = 0;
 
 	virtual size_t size(bool thorough, DbSnapshot* aSnapshot = nullptr) = 0;
-	virtual int count(void* key, size_t keyLen, DbSnapshot* aSnapshot = nullptr) = 0;
+	virtual int64_t getSizeOnDisk() = 0;
 
 	virtual void remove_if(std::function<bool (void* aKey, size_t keyLen, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot = nullptr) = 0;
 	virtual void compact() { }

@@ -35,7 +35,7 @@
 namespace dcpp {
 
 LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, aFriendlyName, cacheSize), 
-	totalWrites(0), totalReads(0), ioErrors(0), db(nullptr) {
+	totalWrites(0), totalReads(0), ioErrors(0), db(nullptr), lastSize(0) {
 
 	readoptions.verify_checksums = false;
 	iteroptions.verify_checksums = false;
@@ -137,15 +137,17 @@ bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::fu
 
 string LevelDB::getStats() { 
 	string ret;
+	ret += "\nStats for " + getFriendlyName() + "\n\n";
 	string value = "leveldb.stats";
 	leveldb::Slice prop(value.c_str(), value.length());
 	db->GetProperty(prop, &ret);
-	ret += "\r\n\r\nTotal entries: " + Util::toString(size(false, nullptr));
+	ret += "\r\n\r\nTotal entries: " + Util::toString(size(true, nullptr));
 	ret += "\r\nTotal reads: " + Util::toString(totalReads);
 	ret += "\r\nTotal Writes: " + Util::toString(totalWrites);
 	ret += "\r\nI/O errors: " + Util::toString(ioErrors);
 	ret += "\r\nCurrent block size: " + Util::formatBytes(options.block_size);
-	ret += "\r\n\r\n";
+	ret += "\r\nCurrent size on disk: " + Util::formatBytes(getSizeOnDisk());
+	ret += "\r\n";
 	return ret;
 }
 
@@ -161,25 +163,14 @@ void LevelDB::remove(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*null
 	DBACTION(db->Delete(writeoptions, key));
 }
 
-int LevelDB::count(void* aKey, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/) {
-	leveldb::ReadOptions iterOptions;
-	iterOptions.fill_cache = false;
-	iterOptions.verify_checksums = false;
-	if (aSnapshot)
-		iterOptions.snapshot = static_cast<LevelSnapshot*>(aSnapshot)->snapshot;
-
-	auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(iterOptions));
-
-	int ret = 0;
-	leveldb::Slice key((const char*)aKey, keyLen);
-	for (performDbOperation([&] { it->Seek(key); return it->status(); }); it->Valid() && options.comparator->Compare(key, it->key()) == 0; it->Next()) {
-		checkDbError(it->status());
-		ret++;
-	}
-	return ret;
+int64_t LevelDB::getSizeOnDisk() {
+	return File::getDirSize(getPath(), false);
 }
 
-size_t LevelDB::size(bool /*thorough*/, DbSnapshot* aSnapshot /*nullptr*/) {
+size_t LevelDB::size(bool thorough, DbSnapshot* aSnapshot /*nullptr*/) {
+	if (!thorough && lastSize > 0)
+		return lastSize;
+
 	// leveldb doesn't support any easy way to do this
 	size_t ret = 0;
 	leveldb::ReadOptions options;
@@ -193,6 +184,7 @@ size_t LevelDB::size(bool /*thorough*/, DbSnapshot* aSnapshot /*nullptr*/) {
 		ret++;
 	}
 
+	lastSize = ret;
 	return ret;
 }
 

@@ -62,6 +62,7 @@ const string AdcHub::ZLIF_SUPPORT("ADZLIF");
 const string AdcHub::BNDL_FEATURE("BNDL");
 const string AdcHub::SUD1_FEATURE("SUD1");
 const string AdcHub::HBRI_SUPPORT("ADHBRI");
+const string AdcHub::ASCH_FEATURE("ASCH");
 
 const vector<StringList> AdcHub::searchExts;
 
@@ -252,6 +253,10 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 	if(u->getIdentity().supports(ADCS_FEATURE)) {
 		u->getUser()->setFlag(User::TLS);
+	}
+
+	if(u->getIdentity().supports(ASCH_FEATURE)) {
+		u->getUser()->setFlag(User::ASCH);
 	}
 
 	if(u->getUser() == getMyIdentity().getUser()) {
@@ -1170,13 +1175,17 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 
 	AdcCommand c(AdcCommand::CMD_SCH, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
 	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, StringList(), true);
-	if (!aDir.empty()) {
-		c.addParam("PA", aDir);
-	}
 
-	c.addParam("RE", "1"); // require a reply
-	c.addParam("PP", "1"); // parent paths
-	c.addParam("MT", "1"); // name matches only
+	if (user.getUser()->isSet(User::ASCH)) {
+		if (!aDir.empty()) {
+			c.addParam("PA", aDir);
+		}
+
+		c.addParam("RE", "1"); // require a reply
+		c.addParam("PP", "1"); // parent paths
+		c.addParam("MT", "1"); // name matches only
+		c.addParam("MR", "20"); // max results excepted
+	}
 
 	//sendSearch(c);
 	send(c);
@@ -1477,7 +1486,7 @@ void AdcHub::info(bool /*alwaysSend*/) {
 	if ((addV6 && !isActiveV6()) || (addV4 && !isActiveV4())) {
 		su += "," + NAT0_FEATURE;
 	}
-
+	su += "," + ASCH_FEATURE;
 	addParam(lastInfoMap, c, "SU", su);
 
 

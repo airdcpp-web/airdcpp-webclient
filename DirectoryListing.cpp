@@ -168,6 +168,10 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
 	return ClientManager::getInstance()->getUser(cid);
 }
 
+bool DirectoryListing::supportsASCH() const {
+	return !partialList || isOwnList || hintedUser.user->isSet(User::ASCH);
+}
+
 void DirectoryListing::loadFile() {
 	if (isOwnList) {
 		auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
@@ -388,31 +392,28 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	}
 }
 
-void DirectoryListing::Directory::search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
+void DirectoryListing::Directory::search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults) {
 	if (getAdls())
 		return;
 
 	if (aStrings.hasRoot) {
 		auto pos = find_if(files, [aStrings](File* aFile) { return aFile->getTTH() == aStrings.root; });
 		if (pos != files.end()) {
-			SearchResultPtr sr(new SearchResult(getPath()));
-			aResults.push_back(sr);
+			aResults.insert(getPath());
 		}
 	} else {
 		if(aStrings.matchesDirectory(name)) {
 			auto path = parent ? parent->getPath() : Util::emptyString;
-			auto res = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getFile() == path; });
+			auto res = find(aResults, path);
 			if (res == aResults.end() && aStrings.matchesSize(getTotalSize(false))) {
-				SearchResultPtr sr(new SearchResult(path));
-				aResults.push_back(sr);
+				aResults.insert(path);
 			}
 		}
 
 		if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
 			for(auto& f: files) {
 				if(aStrings.matchesFileLower(Text::toLower(f->getName()), f->getSize(), f->getDate())) {
-					SearchResultPtr sr(new SearchResult(getPath()));
-					aResults.push_back(sr);
+					aResults.insert(getPath());
 					break;
 				}
 			}
@@ -1081,9 +1082,13 @@ int DirectoryListing::run() {
 					curSearch.reset(search);
 
 				if (isOwnList && partialList) {
+					SearchResultList results;
 					try {
-						ShareManager::getInstance()->search(searchResults, *curSearch, 50, Util::toInt(fileName), CID(), s->directory);
+						ShareManager::getInstance()->search(results, *curSearch, 50, Util::toInt(fileName), CID(), s->directory);
 					} catch (...) { }
+
+					for (const auto& sr: results)
+						searchResults.insert(sr->getFile());
 
 					curResultCount = searchResults.size();
 					maxResultCount = searchResults.size();
@@ -1122,8 +1127,18 @@ int DirectoryListing::run() {
 void DirectoryListing::on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept {
 	if (compare(aSR->getToken(), searchToken) == 0) {
 		lastResult = GET_TICK();
-		searchResults.push_back(aSR);
-		curResultCount++;
+
+		string path;
+		if (supportsASCH()) {
+			path = aSR->getFile();
+		} else {
+			//convert the regular search results
+			path = aSR->getType() == SearchResult::TYPE_DIRECTORY ? Util::getParentDir(aSR->getFile()) : aSR->getFilePath();
+		}
+
+		auto insert = searchResults.insert(path);
+		if (insert.second)
+			curResultCount++;
 
 		if (maxResultCount == curResultCount)
 			lastResult = 0; //we can call endSearch only from the TimerManagerListener thread
@@ -1161,7 +1176,7 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) {
 }
 
 void DirectoryListing::changeDir(bool reload) {
-	auto path = (*curResult)->getFilePath();
+	auto path = *curResult;
 	if (!partialList) {
 		fire(DirectoryListingListener::ChangeDirectory(), path, true);
 	} else {
@@ -1192,7 +1207,7 @@ bool DirectoryListing::nextResult(bool prev) {
 		}
 		advance(curResult, -1);
 	} else {
-		if (curResult == searchResults.end()-1) {
+		if (distance(searchResults.begin(), curResult) == searchResults.size()-1) {
 			return false;
 		}
 		advance(curResult, 1);
@@ -1206,7 +1221,7 @@ bool DirectoryListing::isCurrentSearchPath(const string& path) {
 	if (searchResults.empty())
 		return false;
 
-	return (*curResult)->getFilePath() == path;
+	return *curResult == path;
 }
 
 } // namespace dcpp

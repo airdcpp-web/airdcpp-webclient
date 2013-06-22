@@ -480,11 +480,16 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
 	auto isDirect = adc.getType() == 'D';
 	string path, key;
+	int maxResults = isUdpActive ? 10 : 5;
 
 	bool replyDirect = false;
 	if (isDirect) {
 		adc.getParam("PA", 0, path);
 		replyDirect = adc.hasFlag("RE", 0);
+
+		string tmp;
+		if (adc.getParam("MR", 0, tmp)) 
+			maxResults = min(isUdpActive ? 20 : 10, Util::toInt(tmp));
 	}
 
 	SearchResultList results;
@@ -494,7 +499,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	adc.getParam("TO", 0, token);
 
 	try {
-		ShareManager::getInstance()->search(results, srch, isUdpActive ? 10 : 5, aProfile, aUser.getUser()->getCID(), path);
+		ShareManager::getInstance()->search(results, srch, maxResults, aProfile, aUser.getUser()->getCID(), path);
 	} catch(const ShareException& e) {
 		if (replyDirect) {
 			//path not found (direct search)
