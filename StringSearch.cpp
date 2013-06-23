@@ -19,8 +19,29 @@
 #include "stdinc.h"
 #include "StringSearch.h"
 
+#include "Text.h"
+
 namespace dcpp {
 
+StringSearch::StringSearch(const string& aPattern) noexcept : pattern(Text::toLower(aPattern)) {
+	initDelta1();
+}
+
+StringSearch::StringSearch(const StringSearch& rhs) noexcept : pattern(rhs.pattern) { 
+	memcpy(delta1, rhs.delta1, sizeof(delta1));
+}
+
+ const StringSearch& StringSearch::operator=(const StringSearch& rhs) {
+	memcpy(delta1, rhs.delta1, sizeof(delta1));
+	pattern = rhs.pattern;
+	return *this;
+}
+
+const StringSearch& StringSearch::operator=(const string& rhs) {
+	pattern = Text::toLower(rhs);
+	initDelta1();
+	return *this;
+}
 
 void StringSearch::initDelta1() {
 	uint16_t x = (uint16_t)(pattern.length() + 1);

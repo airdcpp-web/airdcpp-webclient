@@ -19,7 +19,9 @@
 #ifndef ADCSEARCH_H
 #define ADCSEARCH_H
 
+#include "typedefs.h"
 #include "forward.h"
+
 #include "StringSearch.h"
 #include "HashValue.h"
 #include "TigerHash.h"

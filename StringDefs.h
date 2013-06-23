@@ -1790,5 +1790,7 @@ enum Strings { // @DontAdd
 	MONITOR_DIR_FAILED, // "A failed directory %s has been removed from monitoring: %s"
 	NO_ASCH_NOTE, // "This user does not support the advanced searching features in partial lists, which may result in lower hit counts."
 	PARTIAL_SCH_NMDC_NOTE, // "Searching from the whole share via partial list is not supported in NMDC hubs. It is recommended to use the full list instead."
+	USE_DEFAULT_CERT_PATHS, // "Store in the the default location"
+	TRUSTED_CERT_NOTE, // "WARNING: Don't change the trusted certificate settings unless you know what you are doing"
 	LAST // @DontAdd
 };

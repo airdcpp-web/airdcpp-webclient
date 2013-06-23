@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_STRING_SEARCH_H
 #define DCPLUSPLUS_DCPP_STRING_SEARCH_H
 
-#include "Text.h"
-
 #include "noexcept.h"
 
 namespace dcpp {
@@ -36,22 +34,11 @@ class StringSearch {
 public:
 	typedef vector<StringSearch> List;
 
-	explicit StringSearch(const string& aPattern) noexcept : pattern(Text::toLower(aPattern)) {
-		initDelta1();
-	}
-	StringSearch(const StringSearch& rhs) noexcept : pattern(rhs.pattern) { 
-		memcpy(delta1, rhs.delta1, sizeof(delta1));
-	}
-	const StringSearch& operator=(const StringSearch& rhs) {
-		memcpy(delta1, rhs.delta1, sizeof(delta1));
-		pattern = rhs.pattern;
-		return *this;
-	}
-	const StringSearch& operator=(const string& rhs) {
-		pattern = Text::toLower(rhs);
-		initDelta1();
-		return *this;
-	}
+	explicit StringSearch(const string& aPattern) noexcept;
+	StringSearch(const StringSearch& rhs) noexcept;
+
+	const StringSearch& operator=(const StringSearch& rhs);
+	const StringSearch& operator=(const string& rhs);
 	
 	bool operator==(const StringSearch& rhs) { return pattern.compare(rhs.pattern) == 0; }
 

@@ -53,6 +53,7 @@ public:
 	static void __cdecl locking_function(int mode, int n, const char *file, int line);
 #endif
 
+	static void setCertPaths();
 private:
 
 	friend class Singleton<CryptoManager>;
