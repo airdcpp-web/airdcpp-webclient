@@ -449,8 +449,9 @@ bool BufferedSocket::checkEvents() {
 		}
 
 		if(p.first == SHUTDOWN) {
-			if (p.second)
-				static_cast<CallData*>(p.second.get())->f();
+			auto owner = static_cast<PointerData*>(p.second.get())->p;
+			if (owner)
+				delete owner;
 			return false;
 		} else if(p.first == ASYNC_CALL) {
 			static_cast<CallData*>(p.second.get())->f();
@@ -523,10 +524,10 @@ void BufferedSocket::fail(const string& aError) {
 	}
 }
 
-void BufferedSocket::shutdown(function<void ()> f) {
+void BufferedSocket::shutdown(void* aOwner) {
 	Lock l(cs);
 	disconnecting = true;
-	addTask(SHUTDOWN, f ? new CallData(f) : nullptr);
+	addTask(SHUTDOWN, new PointerData(aOwner));
 }
 
 void BufferedSocket::addTask(Tasks task, TaskData* data) {

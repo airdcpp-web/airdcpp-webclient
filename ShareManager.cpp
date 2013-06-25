@@ -2848,9 +2848,11 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 		if(!hasDirs && all_of(shareDirs.begin(), shareDirs.end(), [](const Directory::Ptr& d) { return d->files.empty(); })) {
 			xmlFile.write(LITERAL("\" />\r\n"));
 		} else {
-			xmlFile.write(LITERAL("\" Incomplete=\"1\" Children=\""));
-			xmlFile.write(Util::toString(hasDirs));
-			xmlFile.write(LITERAL("\" />\r\n"));
+			xmlFile.write(LITERAL("\" Incomplete=\"1\""));
+			if (hasDirs) {
+				xmlFile.write(LITERAL(" Children=\"1\""));
+			}
+			xmlFile.write(LITERAL("/>\r\n"));
 		}
 	}
 }
