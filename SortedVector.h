@@ -55,16 +55,15 @@ public:
 		return make_pair(p.first, true);
 	}
 
-	// TODO: improve when we have variadic templates
-	template<typename T0, typename T1, typename T2>
-	std::pair<typename ContainerT<T>::iterator, bool> emplace_sorted(const keyType& aKey, T0& p1, T1& p2, T2& p3) {
+	template<typename... ArgT>
+	std::pair<typename ContainerT<T>::iterator, bool> emplace_sorted(const keyType& aKey, ArgT&& ... args) {
 		if (empty()) {
-			emplace_back(aKey, p1, p2, p3);
+			emplace_back(aKey, forward<ArgT>(args)...);
 			return make_pair(begin(), true);
 		} else {
 			int res = SortOperator()(NameOperator()(back()), aKey);
 			if (res < 0) {
-				emplace_back(aKey, p1, p2, p3);
+				emplace_back(aKey, forward<ArgT>(args)...);
 				return make_pair(end()-1, true);
 			} else if (res == 0) {
 				//return the dupe
@@ -79,7 +78,7 @@ public:
 		}
 
 		//insert
-		p.first = emplace(p.first, aKey, p1, p2, p3);
+		p.first = emplace(p.first, aKey, forward<ArgT>(args)...);
 		return make_pair(p.first, true);
 	}
 

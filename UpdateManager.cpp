@@ -258,9 +258,9 @@ void UpdateManager::completeSignatureDownload(bool manualCheck) {
 		versionSig.assign(conn->buf.begin(), conn->buf.end());
 	}
 
-	conns[CONN_VERSION].reset(new HttpDownload(VERSION_URL,
-	//conns[CONN_VERSION].reset(new HttpDownload("http://beta.airdcpp.net/testversion/version.xml",
-		[this, manualCheck] { completeVersionDownload(manualCheck); }, false));
+	conns[CONN_VERSION] = make_unique<HttpDownload>(VERSION_URL,
+	//conns[CONN_VERSION] = make_unique<HttpDownload>("http://beta.airdcpp.net/testversion/version.xml",
+		[this, manualCheck] { completeVersionDownload(manualCheck); }, false);
 }
 
 void UpdateManager::failUpdateDownload(const string& aError, bool manualCheck) {
@@ -281,8 +281,8 @@ void UpdateManager::failUpdateDownload(const string& aError, bool manualCheck) {
 }
 
 void UpdateManager::checkIP(bool manual, bool v6) {
-	conns[v6 ? CONN_IP6 : CONN_IP4].reset(new HttpDownload(v6 ? links.ipcheck6 : links.ipcheck4,
-		[=] { completeIPCheck(manual, v6); }, false, !v6));
+	conns[v6 ? CONN_IP6 : CONN_IP4] = make_unique<HttpDownload>(v6 ? links.ipcheck6 : links.ipcheck4,
+		[=] { completeIPCheck(manual, v6); }, false, !v6);
 }
 
 void UpdateManager::completeIPCheck(bool manual, bool v6) {
@@ -349,8 +349,8 @@ void UpdateManager::updateGeo(bool v6) {
 		return;
 
 	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
-	conn.reset(new HttpDownload(v6 ? links.geoip6 : links.geoip4,
-		[this, v6] { completeGeoDownload(v6); }, false));
+	conn = make_unique<HttpDownload>(v6 ? links.geoip6 : links.geoip4,
+		[this, v6] { completeGeoDownload(v6); }, false);
 }
 
 void UpdateManager::completeGeoDownload(bool v6) {
@@ -584,15 +584,15 @@ void UpdateManager::checkAdditionalUpdates(bool manualCheck) {
 }
 
 bool UpdateManager::isUpdating() {
-	return conns[CONN_CLIENT];
+	return conns[CONN_CLIENT] ? true : false;
 }
 
 void UpdateManager::downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck) {
 	if(conns[CONN_CLIENT])
 		return;
 
-	conns[CONN_CLIENT].reset(new HttpDownload(aUrl,
-		[this, newBuildID, manualCheck] { completeUpdateDownload(newBuildID, manualCheck); }, false));
+	conns[CONN_CLIENT] = make_unique<HttpDownload>(aUrl,
+		[this, newBuildID, manualCheck] { completeUpdateDownload(newBuildID, manualCheck); }, false);
 }
 
 void UpdateManager::checkLanguage() {
@@ -601,8 +601,8 @@ void UpdateManager::checkLanguage() {
 		return;
 	}
 
-	conns[CONN_LANGUAGE_CHECK].reset(new HttpDownload(links.language + "checkLangVersion.php?file=" + Localization::getCurLanguageFileName(),
-		[this] { completeLanguageCheck(); }, false));
+	conns[CONN_LANGUAGE_CHECK] = make_unique<HttpDownload>(links.language + "checkLangVersion.php?file=" + Localization::getCurLanguageFileName(),
+		[this] { completeLanguageCheck(); }, false);
 }
 
 void UpdateManager::completeLanguageCheck() {
@@ -613,8 +613,8 @@ void UpdateManager::completeLanguageCheck() {
 	if(!conn->buf.empty()) {
 		if (Util::toDouble(conn->buf) > Localization::getCurLanguageVersion()) {
 			fire(UpdateManagerListener::LanguageDownloading());
-			conns[CONN_LANGUAGE_FILE].reset(new HttpDownload(links.language + Localization::getCurLanguageFileName(),
-				[this] { completeLanguageDownload(); }, false));
+			conns[CONN_LANGUAGE_FILE] = make_unique<HttpDownload>(links.language + Localization::getCurLanguageFileName(),
+				[this] { completeLanguageDownload(); }, false);
 		} else {
 			fire(UpdateManagerListener::LanguageFinished());
 		}
@@ -632,9 +632,9 @@ void UpdateManager::checkVersion(bool aManual) {
 	}
 
 	versionSig.clear();
-	conns[CONN_SIGNATURE].reset(new HttpDownload(static_cast<string>(VERSION_URL) + ".sign",
-	//conns[CONN_SIGNATURE].reset(new HttpDownload("http://beta.airdcpp.net/testversion/version.xml.sign",
-		[this, aManual] { completeSignatureDownload(aManual); }, false));
+	conns[CONN_SIGNATURE] = make_unique<HttpDownload>(static_cast<string>(VERSION_URL) + ".sign",
+	//conns[CONN_VERSION] = make_unique<HttpDownload>("http://beta.airdcpp.net/testversion/version.xml.sign",
+		[this, aManual] { completeSignatureDownload(aManual); }, false);
 }
 
 void UpdateManager::init(const string& aExeName) {

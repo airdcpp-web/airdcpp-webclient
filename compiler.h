@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_COMPILER_H
 #define DCPLUSPLUS_DCPP_COMPILER_H
 
-#if _MSC_VER < 1700
-#error MSVC 11 (2013) is required
+#if _MSC_VER < 1800
+#error MSVC 12 (2013) is required
 #endif
 
 //#define _SECURE_SCL  0

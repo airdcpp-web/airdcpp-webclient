@@ -41,89 +41,14 @@ public:
 	Speaker() noexcept { }
 	virtual ~Speaker() { }
 
-#if defined(__INTEL_C)
 	template<typename... ArgT>
 	void fire(ArgT&&... args) noexcept {
 		Lock l(listenerCS);
 		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<ArgT>(args)...);
+		for(auto listener: tmp) {
+			listener->on(forward<ArgT>(args)...);
 		}
 	}
-
-#else
-	template<typename T0>
-	void fire(T0&& type) noexcept {
-		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<T0>(type));
-		}
-	}
-
-	template<typename T0, typename T1>
-	void fire(T0&& type, T1&& p1) noexcept {
-		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<T0>(type), forward<T1>(p1));
-		}
-	}
-
-	template<typename T0, typename T1, typename T2>
-	void fire(T0&& type, T1&& p1, T2&& p2) noexcept {
-		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<T0>(type), forward<T1>(p1), forward<T2>(p2));
-		}
-	}
-
-	template<typename T0, typename T1, typename T2, typename T3>
-	void fire(T0&& type, T1&& p1, T2&& p2, T3&& p3) noexcept {
-		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<T0>(type), forward<T1>(p1), forward<T2>(p2), forward<T3>(p3));
-		}
-	}
-
-	template<typename T0, typename T1, typename T2, typename T3, typename T4>
-	void fire(T0&& type, T1&& p1, T2&& p2, T3&& p3, T4&& p4) noexcept {
-		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<T0>(type), forward<T1>(p1), forward<T2>(p2), forward<T3>(p3), forward<T4>(p4));
-		}
-	}
-
-	template<typename T0, typename T1, typename T2, typename T3, typename T4, typename T5>
-	void fire(T0&& type, T1&& p1, T2&& p2, T3&& p3, T4&& p4, T5&& p5) noexcept {
-		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<T0>(type), forward<T1>(p1), forward<T2>(p2), forward<T3>(p3), forward<T4>(p4), forward<T5>(p5));
-		}
-	}
-
-	template<typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-	void fire(T0&& type, T1&& p1, T2&& p2, T3&& p3, T4&& p4, T5&& p5, T6&& p6) noexcept {
-		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<T0>(type), forward<T1>(p1), forward<T2>(p2), forward<T3>(p3), forward<T4>(p4), forward<T5>(p5), forward<T6>(p6));
-		}
-	}
-
-	template<typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-	void fire(T0&& type, T1&& p1, T2&& p2, T3&& p3, T4&& p4, T5&& p5, T6&& p6, T7&& p7) noexcept {
-		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto i = tmp.begin(); i != tmp.end(); ++i) {
-			(*i)->on(forward<T0>(type), forward<T1>(p1), forward<T2>(p2), forward<T3>(p3), forward<T4>(p4), forward<T5>(p5), forward<T6>(p6), forward<T7>(p7));
-		}
-	}
-#endif
 
 	void addListener(Listener* aListener) {
 		Lock l(listenerCS);
