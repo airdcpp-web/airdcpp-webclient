@@ -71,7 +71,7 @@ void Client::shutdown() {
 	TimerManager::getInstance()->removeListener(this);
 
 	if(sock) {
-		BufferedSocket::putSocket(sock, static_cast<void*>(this)); //delete in its own thread to allow safely using async calls
+		BufferedSocket::putSocket(sock, [this] { delete this; }); //delete in its own thread to allow safely using async calls
 	} else {
 		delete this;
 	}

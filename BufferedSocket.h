@@ -61,10 +61,10 @@ public:
 		return new BufferedSocket(sep, v4only);
 	}
 
-	static void putSocket(BufferedSocket* aSock, void* aOwner = nullptr) {
+	static void putSocket(BufferedSocket* aSock, function<void ()> f = nullptr) {
 		if(aSock) {
 			aSock->removeListeners();
-			aSock->shutdown(aOwner);
+			aSock->shutdown(f);
 		}
 	}
 
@@ -145,10 +145,6 @@ private:
 		CallData(function<void ()> f) : f(f) { }
 		function<void ()> f;
 	};
-	struct PointerData : public TaskData {
-		PointerData(void* aP) : p(aP) { }
-		void* p;
-	};
 
 	BufferedSocket(char aSeparator, bool v4only);
 
@@ -189,7 +185,7 @@ private:
 
 	void setSocket(std::unique_ptr<Socket>&& s);
 	void setOptions();
-	void shutdown(void* aOwner);
+	void shutdown(function<void ()> f);
 	void addTask(Tasks task, TaskData* data);
 };
 
