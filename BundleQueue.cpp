@@ -241,7 +241,7 @@ BundlePtr BundleQueue::findBundle(const string& bundleToken) const {
 
 pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 	if (aDir.size() < 3)
-		return make_pair(Util::emptyString, nullptr);
+		return { Util::emptyString, nullptr };
 
 	//get the last directory, we might need the position later with subdirs
 	string remoteDir = aDir;
@@ -254,7 +254,7 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 
 	auto directories = bundleDirs.equal_range(remoteDir);
 	if (directories.first == directories.second)
-		return make_pair(Util::emptyString, nullptr);
+		return { Util::emptyString, nullptr };
 
 	//check the parents for dirs like CD1 to prevent false matches
 	if (boost::regex_match(remoteDir, AirUtil::subDirRegPlain) && pos != string::npos) {
@@ -282,7 +282,7 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 			}
 		}
 
-		return make_pair(Util::emptyString, nullptr);
+		return { Util::emptyString, nullptr };
 	}
 
 	return directories.first->second;

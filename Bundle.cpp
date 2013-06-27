@@ -42,23 +42,14 @@ using boost::accumulate;
 using boost::range::copy;
 	
 Bundle::Bundle(QueueItemPtr& qi, const string& aToken /*empty*/, bool aDirty /*true*/) : 
-	//QueueItemBase(qi), 
-	QueueItemBase(qi->getTarget(), qi->getSize(), qi->getPriority(), qi->getAdded()), status(STATUS_NEW),
+	Bundle(qi->getTarget(), qi->getAdded(), qi->getPriority(), 0, aToken, aDirty, true) {
 
-	fileBundle(true), finishedSegments(qi->getDownloadedSegments()), speed(0), lastSpeed(0), running(0), dirDate(0), lastDownloaded(0), singleUser(true), 
-	dirty(aDirty), simpleMatching(true), recent(false),
-	currentDownloaded(qi->getDownloadedBytes()), seqOrder(true), actual(0), bundleBegin(0), lastSearch(0) {
-
-
+	finishedSegments = qi->getDownloadedSegments();
+	currentDownloaded = qi->getDownloadedBytes();
 	setAutoPriority(qi->getAutoPriority());
-	if (aToken.empty())
-		token = ConnectionManager::getInstance()->tokens.getToken();
-	else
-		token = aToken;
+
 	qi->setBundle(this);
 	queueItems.push_back(qi);
-	if (SETTING(USE_SLOW_DISCONNECTING_DEFAULT))
-		setFlag(FLAG_AUTODROP);
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority,  time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) : 
@@ -459,7 +450,7 @@ pair<uint32_t, uint32_t> Bundle::getPathInfo(const string& aDir) const noexcept 
 	if (p != bundleDirs.end()) {
 		return p->second;
 	}
-	return make_pair(0, 0);
+	return { 0, 0 };
 }
 
 void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {
@@ -558,15 +549,16 @@ QueueItemBase::Priority Bundle::calculateProgressPriority() const noexcept {
 pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	int64_t bundleSpeed = 0;
 	double bundleSources = 0;
-	for (auto s: sources) {
+	for (auto& s: sources) {
 		if (s.user.user->isOnline()) {
 			bundleSpeed += s.user.user->getSpeed();
 		}
 
 		bundleSources += s.files;
 	}
+
 	bundleSources = bundleSources / queueItems.size();
-	return make_pair(bundleSpeed, bundleSources);
+	return { bundleSpeed, bundleSources };
 }
 
 multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcept {

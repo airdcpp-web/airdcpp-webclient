@@ -207,13 +207,13 @@ void TargetUtil::getVolumes(VolumeSet& volumes) {
 void TargetUtil::reportInsufficientSize(const TargetInfo& ti, int64_t aSize) {
 	string tmp;
 	if (ti.queued > 0) {
-		tmp = "AutoSearch: " + STRING_F(NOT_ENOUGH_SPACE_QUEUED_PAUSED, 
+		tmp = STRING(AUTO_SEARCH) + ": " + STRING_F(NOT_ENOUGH_SPACE_QUEUED_PAUSED,
 			ti.targetDir %
 			Util::formatBytes(ti.diskSpace) % 
 			Util::formatBytes(ti.queued) %
 			Util::formatBytes(aSize));
 	} else {
-		tmp = "AutoSearch: " + STRING_F(NOT_ENOUGH_SPACE_PAUSED, 
+		tmp = STRING(AUTO_SEARCH) + ": " + STRING_F(NOT_ENOUGH_SPACE_PAUSED,
 			ti.targetDir.c_str() %
 			Util::formatBytes(ti.getFreeSpace()) % 
 			Util::formatBytes(aSize));

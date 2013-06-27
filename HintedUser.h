@@ -49,7 +49,7 @@ struct HintedUser {
 	}
 
 	operator UserPtr() const { return user; }
-	//explicit operator bool() const { return user; }
+	explicit operator bool() const { return user; }
 };
 
 }

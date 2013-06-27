@@ -2409,7 +2409,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 
 		refreshRunning = true;
 		if (!pauser) {
-			pauser.reset(new HashManager::HashPauser);
+			pauser = make_unique<HashManager::HashPauser>();
 		}
 
 		auto task = static_cast<ShareTask*>(t.second);
@@ -3720,8 +3720,7 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 						retVirtual->second.push_back(rp); //sorted
 					}
 				} else {
-					StringList tmp;
-					tmp.push_back(rp);
+					StringList tmp = { rp };
 					ret.emplace_back(vName, tmp);
 				}
 			}

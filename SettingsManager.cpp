@@ -1041,7 +1041,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 
 	File::ensureDirectory(SETTING(TLS_TRUSTED_CERTIFICATES_PATH));
 
-	if(SETTING(PRIVATE_ID).length() != 39 || CID(SETTING(PRIVATE_ID)).isZero()) {
+	if(SETTING(PRIVATE_ID).length() != 39 || !CID(SETTING(PRIVATE_ID))) {
 		set(SettingsManager::PRIVATE_ID, CID::generate().toBase32());
 	}
 

@@ -177,7 +177,7 @@ map<string, Identity> ClientManager::getIdentities(const UserPtr &u) const {
 	auto op = onlineUsers.equal_range(const_cast<CID*>(&u->getCID()));
 	auto ret = map<string, Identity>();
 	for(auto i = op.first; i != op.second; ++i) {
-		ret.insert(make_pair(i->second->getHubUrl(), i->second->getIdentity()));
+		ret.emplace(i->second->getHubUrl(), i->second->getIdentity());
 	}
 
 	return ret;
@@ -278,7 +278,7 @@ StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint) {
 		}
 	}
 
-	return make_pair(nick, hubs);
+	return { nick, hubs };
 }
 
 string ClientManager::getField(const CID& cid, const string& hint, const char* field) const {
@@ -622,7 +622,7 @@ pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const {
 		return make_pair(Util::toInt64(ou->getIdentity().getShareSize()), Util::toInt(ou->getIdentity().getSharedFiles()));
 	}
 
-	return make_pair(0, 0);
+	return { 0, 0 };
 }
 
 void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const {
@@ -1026,7 +1026,7 @@ UserPtr& ClientManager::getMe() {
 }
 
 const CID& ClientManager::getMyPID() {
-	if(pid.isZero())
+	if(!pid)
 		pid = CID(SETTING(PRIVATE_ID));
 	return pid;
 }

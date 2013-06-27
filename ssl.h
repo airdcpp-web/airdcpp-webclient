@@ -32,26 +32,29 @@ namespace dcpp {
 
 namespace ssl {
 
-template<typename T, void (__cdecl *Release)(T*)>
+template<typename T, void (*Release)(T*)>
 class scoped_handle {
 public:
 	explicit scoped_handle(T* t_ = nullptr) : t(t_) { }
 	~scoped_handle() { if(t) { Release(t); } }
-	
+
 	operator T*() { return t; }
 	operator const T*() const { return t; }
-	
+
+	explicit operator bool() const { return t ? true : false; }
+
 	T* operator->() { return t; }
 	const T* operator->() const { return t; }
-	
+
 	void reset(T* t_ = nullptr) { Release(t); t = t_; }
 
 	scoped_handle(scoped_handle&& rhs) : t(rhs.t) { rhs.t = nullptr; }
 	scoped_handle& operator=(scoped_handle&& rhs) { if(&rhs != this) { t = rhs.t; rhs.t = nullptr; } return *this; }
+
 private:
 	scoped_handle(const scoped_handle<T, Release>&);
 	scoped_handle<T, Release>& operator=(const scoped_handle<T, Release>&);
-	
+
 	T* t;
 };
 
