@@ -252,8 +252,8 @@ void CryptoManager::setCertPaths() {
 	auto privPath = Util::getPath(Util::PATH_USER_LOCAL) + "Certificates" PATH_SEPARATOR_STR "client.key";
 	auto certPath = Util::getPath(Util::PATH_USER_LOCAL) + "Certificates" PATH_SEPARATOR_STR "client.crt";
 
-	SettingsManager::getInstance()->set(SettingsManager::TLS_CERTIFICATE_FILE, privPath);
-	SettingsManager::getInstance()->set(SettingsManager::TLS_PRIVATE_KEY_FILE, certPath);
+	SettingsManager::getInstance()->set(SettingsManager::TLS_CERTIFICATE_FILE, certPath);
+	SettingsManager::getInstance()->set(SettingsManager::TLS_PRIVATE_KEY_FILE, privPath);
 }
 
 void CryptoManager::loadCertificates() noexcept {
