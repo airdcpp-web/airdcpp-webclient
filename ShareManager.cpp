@@ -147,6 +147,7 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 			}
 		}
 
+		//monitor->addDirectory(R"(C:\)");
 		addMonitoring(monitorPaths);
 		TimerManager::getInstance()->addListener(this);
 	});
@@ -2586,7 +2587,9 @@ end:
 }*/
 
 void ShareManager::on(TimerManagerListener::Second, uint64_t /*tick*/) noexcept {
-	monitor->dispatch();
+	while (monitor->dispatch()) {
+		//...
+	}
 }
 
 void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {

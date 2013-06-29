@@ -209,10 +209,10 @@ int DirectoryMonitor::Server::read() {
 
 			try {
 				if (dwError != 0 || !ret) {
-					if (dwError == ERROR_NOTIFY_ENUM_DIR) {
+					// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
+					// The documentation only states the code ERROR_NOTIFY_ENUM_DIR for this, but according to the testing ERROR_NOT_ENOUGH_QUOTA and ERROR_ALREADY_EXISTS seem to be used instead....
+					if (dwError == ERROR_NOTIFY_ENUM_DIR || dwError == ERROR_NOT_ENOUGH_QUOTA || dwError == ERROR_ALREADY_EXISTS) {
 						(*mon)->beginRead();
-
-						// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
 						(*mon)->server->base->addTask(DirectoryMonitor::TYPE_OVERFLOW, new StringTask(Text::fromT((*mon)->path)));
 					} else {
 						throw MonitorException(Util::translateError(dwError));
@@ -226,9 +226,9 @@ int DirectoryMonitor::Server::read() {
 					if (dwBytesXFered > 0) {
 						(*mon)->changes++;
 						(*mon)->queueNotificationTask(dwBytesXFered);
-					} else {
+					} /*else {
 						LogManager::getInstance()->message("An empty notification was received when monitoring " + Text::fromT((*mon)->path) + " (report this)", LogManager::LOG_WARNING);
-					}
+					}*/
 
 					(*mon)->beginRead();
 				}
@@ -300,7 +300,7 @@ bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorEx
 
 	init();
 
-	Monitor* mon = new Monitor(aPath, this, 0, 4*1024, true);
+	Monitor* mon = new Monitor(aPath, this, 0, 16*1024, true);
 	try {
 		mon->openDirectory(m_hIOCP);
 
