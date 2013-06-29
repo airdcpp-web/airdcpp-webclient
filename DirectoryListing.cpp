@@ -1093,7 +1093,7 @@ int DirectoryListing::run() {
 					curResultCount = searchResults.size();
 					maxResultCount = searchResults.size();
 					endSearch(false);
-				} else if (partialList) {
+				} else if (partialList && !hintedUser.user->isNMDC()) {
 					SearchManager::getInstance()->addListener(this);
 
 					searchToken = Util::toString(Util::rand());

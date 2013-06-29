@@ -82,7 +82,6 @@ enum Strings { // @DontAdd
 	COPY_HUB, // "Copy address to clipboard"
 	COPY_LINE, // "Copy actual line"
 	COPY_MAGNET_LINK, // "Copy MAGNET link to clipboard"
-	COPY_NICK, // "Nick"
 	CORAL, // "Use Coral network when downloading hub lists (improves reliability)"
 	COULD_NOT_OPEN_TARGET_FILE, // "Could not open target file: "
 	COUNT, // "Count"
@@ -1792,5 +1791,6 @@ enum Strings { // @DontAdd
 	PARTIAL_SCH_NMDC_NOTE, // "Searching from the whole share via partial list isn't supported in NMDC hubs. It's recommended to use the full list instead."
 	USE_DEFAULT_CERT_PATHS, // "Store in the the default location"
 	TRUSTED_CERT_NOTE, // "WARNING: Don't change the trusted certificate settings unless you know what you are doing"
+	NO_RESULTS_SPECIFIED_TIME, // "No results were received in the specified time"
 	LAST // @DontAdd
 };

@@ -79,7 +79,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Copy address to clipboard", 
 "Copy actual line", 
 "Copy MAGNET link to clipboard", 
-"Nick", 
 "Use Coral network when downloading hub lists (improves reliability)", 
 "Could not open target file: ", 
 "Count", 
@@ -1788,6 +1787,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Searching from the whole share via partial list isn't supported in NMDC hubs. It's recommended to use the full list instead.", 
 "Store in the the default location", 
 "WARNING: Don't change the trusted certificate settings unless you know what you are doing", 
+"No results were received in the specified time", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -1867,7 +1867,6 @@ std::string dcpp::ResourceManager::names[] = {
 "CopyHub", 
 "CopyLine", 
 "CopyMagnetLink", 
-"CopyNick", 
 "Coral", 
 "CouldNotOpenTargetFile", 
 "Count", 
@@ -3576,4 +3575,5 @@ std::string dcpp::ResourceManager::names[] = {
 "PartialSchNmdcNote", 
 "UseDefaultCertPaths", 
 "TrustedCertNote", 
+"NoResultsSpecifiedTime", 
 };
