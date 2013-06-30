@@ -942,7 +942,7 @@ void Bundle::save() {
 			f.write(LIT("\t<Finished TTH=\""));
 			f.write(qi->getTTH().toBase32());
 			f.write(LIT("\" Target=\""));
-			f.write(qi->getTarget());
+			f.write(SimpleXML::escape(qi->getTarget(), tmp, true));
 			f.write(LIT("\" Size=\""));
 			f.write(Util::toString(qi->getSize()));
 			f.write(LIT("\" Added=\""));
