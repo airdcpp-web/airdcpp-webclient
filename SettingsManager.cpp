@@ -670,7 +670,7 @@ SettingsManager::SettingsManager()
 	setDefault(MIN_SEGMENT_SIZE, 1024);
 	setDefault(OPEN_LOGS_INTERNAL, true);
 	setDefault(OPEN_SYSTEM_LOG, true);
-	setDefault(USE_OLD_SHARING_UI, true);
+	setDefault(USE_OLD_SHARING_UI, false);
 	setDefault(LAST_SEARCH_FILETYPE, "0");
 	setDefault(LAST_AS_FILETYPE, "7");
 	setDefault(MAX_RESIZE_LINES, 4);
