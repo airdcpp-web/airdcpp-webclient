@@ -76,7 +76,7 @@ ShareProfile::~ShareProfile() {
 	delete profileList;
 }
 
-string ShareProfile::getDisplayName() {
+string ShareProfile::getDisplayName() const {
 	string ret = plainName;
 	if (token == SP_DEFAULT) {
 		ret += " (" + STRING(DEFAULT) + ")";

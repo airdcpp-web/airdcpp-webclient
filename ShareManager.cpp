@@ -2118,7 +2118,7 @@ ShareManager::ProfileDirMap ShareManager::getSubProfileDirs(const string& aPath)
 	return aRoots;
 }
 
-void ShareManager::addProfiles(const ShareProfile::set& aProfiles) {
+void ShareManager::addProfiles(const ShareProfile::Set& aProfiles) {
 	WLock l (cs);
 	for(auto& i: aProfiles) {
 		shareProfiles.insert(shareProfiles.end()-1, i);

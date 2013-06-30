@@ -70,12 +70,8 @@ class FileList {
 
 class ShareProfile : public intrusive_ptr_base<ShareProfile> {
 public:
-	bool operator==(const ShareProfilePtr rhs) const {
-		return rhs->getToken() == token;
-	}
-
 	struct Hash {
-		size_t operator()(const ShareProfilePtr x) const { return x->getToken(); }
+		size_t operator()(const ShareProfilePtr& x) const { return x->getToken(); }
 	};
 
 	GETSET(ProfileToken, token, Token);
@@ -86,16 +82,16 @@ public:
 
 	GETSET(FileList*, profileList, ProfileList);
 
-	string getDisplayName();
+	string getDisplayName() const;
 	ShareProfile(const string& aName, ProfileToken aToken = Util::randInt(100));
 	~ShareProfile();
 
 	FileList* generateProfileList();
-	typedef unordered_set<ShareProfilePtr, Hash> set;
-	typedef vector<ShareProfilePtr> list;
+	typedef unordered_set<ShareProfilePtr, Hash> Set;
+	typedef vector<ShareProfilePtr> List;
 };
 
-inline bool operator==(ShareProfilePtr ptr, ProfileToken aToken) { return ptr->getToken() == aToken; }
+inline bool operator==(const ShareProfilePtr& ptr, ProfileToken aToken) { return ptr->getToken() == aToken; }
 
 }
 

@@ -244,7 +244,7 @@ public:
 	void removeDirectories(const ShareDirInfo::List& removeDirs);
 	void changeDirectories(const ShareDirInfo::List& renameDirs);
 
-	void addProfiles(const ShareProfile::set& aProfiles);
+	void addProfiles(const ShareProfile::Set& aProfiles);
 	void removeProfiles(ProfileTokenList aProfiles);
 
 	bool isRealPathShared(const string& aPath);
