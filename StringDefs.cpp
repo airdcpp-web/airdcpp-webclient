@@ -1788,6 +1788,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Store in the the default location", 
 "WARNING: Don't change the trusted certificate settings unless you know what you are doing", 
 "No results were received in the specified time", 
+"Maximum number of running bundles (0 = infinite)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3576,4 +3577,5 @@ std::string dcpp::ResourceManager::names[] = {
 "UseDefaultCertPaths", 
 "TrustedCertNote", 
 "NoResultsSpecifiedTime", 
+"MaxRunningBundles", 
 };

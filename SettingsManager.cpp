@@ -153,7 +153,7 @@ const string SettingsManager::settingTags[] =
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
 	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode", 
-	"MonitoringDelay", "DelayCountMode",
+	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles",
 	"SENTRY",
 
 	// Bools
@@ -823,6 +823,8 @@ SettingsManager::SettingsManager()
 
 	setDefault(CONFIRM_FILE_DELETIONS, true);
 	setDefault(USE_DEFAULT_CERT_PATHS, true);
+
+	setDefault(MAX_RUNNING_BUNDLES, 0);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

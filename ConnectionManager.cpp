@@ -240,25 +240,26 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 					string bundleToken, hubHint = cqi->getHubUrl();
 					bool allowUrlChange = true;
+					bool hasDownload = false;
 
 					bool isSmall = cqi->getType() == ConnectionQueueItem::TYPE_SMALL;
-					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
-					QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, isSmall ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, bundleToken, allowUrlChange);
-					if (prio == QueueItem::PAUSED && isSmall) {
-						cqi->setType(ConnectionQueueItem::TYPE_ANY);
-						prio = QueueManager::getInstance()->hasDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY, bundleToken, allowUrlChange);
-					}
 
-					cqi->setLastBundle(bundleToken);
+					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
+					bool startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, isSmall ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, bundleToken, allowUrlChange, hasDownload);
+					if (!hasDownload && isSmall) {
+						//the small file finished already? try with any type
+						cqi->setType(ConnectionQueueItem::TYPE_ANY);
+						startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY, bundleToken, allowUrlChange, hasDownload);
+					}
 					
 
-					if(prio == QueueItem::PAUSED) {
+					if (!hasDownload) {
 						removedTokens.push_back(cqi->getToken());
 						continue;
 					}
 
+					cqi->setLastBundle(bundleToken);
 					cqi->setHubUrl(hubHint);
-					bool startDown = DownloadManager::getInstance()->startDownload(prio);
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown) {
@@ -345,8 +346,11 @@ bool ConnectionManager::allowNewMCN(const ConnectionQueueItem* aCQI) {
 }
 
 void ConnectionManager::createNewMCN(const HintedUser& aUser) {
-	auto prio = QueueManager::getInstance()->hasDownload(aUser, ClientManager::getInstance()->getHubSet(aUser.user->getCID()), QueueItem::TYPE_MCN_NORMAL);
-	if(prio != QueueItem::PAUSED) {
+	StringSet runningBundles;
+	DownloadManager::getInstance()->getRunningBundles(runningBundles);
+
+	auto start = QueueManager::getInstance()->startDownload(aUser, runningBundles, ClientManager::getInstance()->getHubSet(aUser.user->getCID()), QueueItem::TYPE_MCN_NORMAL);
+	if (start) {
 		WLock l (cs);
 		ConnectionQueueItem* cqiNew = getCQI(aUser, true);
 		cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);

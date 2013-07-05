@@ -1792,5 +1792,6 @@ enum Strings { // @DontAdd
 	USE_DEFAULT_CERT_PATHS, // "Store in the the default location"
 	TRUSTED_CERT_NOTE, // "WARNING: Don't change the trusted certificate settings unless you know what you are doing"
 	NO_RESULTS_SPECIFIED_TIME, // "No results were received in the specified time"
+	MAX_RUNNING_BUNDLES, // "Maximum number of running bundles (0 = infinite)"
 	LAST // @DontAdd
 };

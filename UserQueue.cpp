@@ -78,16 +78,16 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	}
 }
 
-QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap /*false*/) {
+QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap /*false*/) {
 	/* Using the PAUSED priority will list all files */
 	QueueItemPtr qi = getNextPrioQI(aUser, onlineHubs, 0, 0, aType, allowOverlap);
 	if(!qi) {
-		qi = getNextBundleQI(aUser, onlineHubs, (QueueItemBase::Priority)minPrio, wantedSize, lastSpeed, aType, allowOverlap);
+		qi = getNextBundleQI(aUser, runningBundles, onlineHubs, (QueueItemBase::Priority)minPrio, wantedSize, lastSpeed, aType, allowOverlap);
 	}
 
 	if (!qi && !allowOverlap) {
 		//no free segments. let's do another round and now check if there are slow sources which can be overlapped
-		qi = getNext(aUser, onlineHubs, minPrio, wantedSize, lastSpeed, aType, true);
+		qi = getNext(aUser, runningBundles, onlineHubs, minPrio, wantedSize, lastSpeed, aType, true);
 	}
 	return qi;
 }
@@ -106,13 +106,17 @@ QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringS
 	return nullptr;
 }
 
-QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) {
 	lastError = Util::emptyString;
 
+	auto bundleLimit = SETTING(MAX_RUNNING_BUNDLES);
 	auto i = userBundleQueue.find(aUser);
 	if(i != userBundleQueue.end()) {
 		dcassert(!i->second.empty());
 		for (auto& b: i->second) {
+			if (bundleLimit > 0 && bundleLimit == runningBundles.size() && runningBundles.find(b->getToken()) == runningBundles.end())
+				continue;
+
 			if (b->getPriority() < minPrio) {
 				break;
 			}

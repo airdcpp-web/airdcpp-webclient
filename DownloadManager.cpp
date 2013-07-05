@@ -208,26 +208,10 @@ void DownloadManager::addConnection(UserConnection* conn) {
 	checkDownloads(conn);
 }
 
-bool DownloadManager::startDownload(QueueItemBase::Priority prio, bool mcn) {
-	size_t downloadCount = getDownloadCount();
-	bool full = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t)AirUtil::getSlots(true));
-	full = full || ((AirUtil::getSpeedLimit(true) != 0) && (getRunningAverage() >= (AirUtil::getSpeedLimit(true)*1024)));
-	//LogManager::getInstance()->message("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
-
-	if(full) {
-		//LogManager::getInstance()->message("Full");
-		bool extraFull = (AirUtil::getSlots(true) != 0) && (getDownloadCount() >= (size_t)(AirUtil::getSlots(true)+SETTING(EXTRA_DOWNLOAD_SLOTS)));
-		if(extraFull || mcn) {
-			return false;
-		}
-		return prio == QueueItem::HIGHEST;
-	}
-
-	if(downloadCount > 0) {
-		return prio != QueueItem::LOWEST;
-	}
-
-	return true;
+void DownloadManager::getRunningBundles(StringSet& bundles_) {
+	RLock l(cs);
+	for (auto& token : runningBundles | map_keys)
+		bundles_.insert(token);
 }
 
 void DownloadManager::checkDownloads(UserConnection* aConn) {
@@ -246,9 +230,10 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	//always make sure that the current hub is also compared even if it is offline
 	hubs.insert(aConn->getHubUrl());
 
-	QueueItemBase::Priority prio = QueueManager::getInstance()->hasDownload(aConn->getHintedUser(), hubs, dlType);
-	bool start = startDownload(prio);
+	StringSet runningBundles;
+	getRunningBundles(runningBundles);
 
+	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType);
 	if(!start && dlType != QueueItemBase::TYPE_SMALL) { //add small slot connections to idlers instead of disconnecting
 		aConn->setDownload(nullptr);
 		removeRunningUser(aConn);
@@ -256,9 +241,8 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		return;
 	}
 
-
 	string errorMessage, newUrl;
-	Download* d = QueueManager::getInstance()->getDownload(*aConn, hubs, errorMessage, newUrl, dlType);
+	Download* d = QueueManager::getInstance()->getDownload(*aConn, runningBundles, hubs, errorMessage, newUrl, dlType);
 	if(!d) {
 		aConn->setDownload(nullptr);
 		aConn->unsetFlag(UserConnection::FLAG_RUNNING);

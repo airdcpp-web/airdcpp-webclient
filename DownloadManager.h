@@ -62,7 +62,7 @@ public:
 		return downloads.size();
 	}
 
-	bool startDownload(QueueItemBase::Priority prio, bool mcn=false);
+	void getRunningBundles(StringSet& bundles_);
 private:
 	
 	SharedMutex cs;

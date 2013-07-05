@@ -992,39 +992,126 @@ bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::M
 	
 }
 
-QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType) noexcept {
-	RLock l(cs);
-	QueueItemPtr qi = userQueue.getNext(aUser, onlineHubs, QueueItem::LOWEST, 0, 0, aType);
-	if(qi) {
-		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
+Download* QueueManager::getDownload(UserConnection& aSource, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, QueueItemBase::DownloadType aType) noexcept {
+	QueueItemPtr q = nullptr;
+	const UserPtr& u = aSource.getUser();
+	{
+		WLock l(cs);
+		dcdebug("Getting download for %s...", u->getCID().toBase32().c_str());
+
+		q = userQueue.getNext(aSource.getUser(), runningBundles, onlineHubs, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), aType);
+		if (q) {
+			auto source = q->getSource(aSource.getUser());
+
+			//update the hub hint
+			newUrl = aSource.getHubUrl();
+			source->updateHubUrl(onlineHubs, newUrl, (q->isSet(QueueItem::FLAG_USER_LIST) && !q->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
+
+			//check partial sources
+			if (source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
+				Segment segment = q->getNextSegment(q->getBlockSize(), aSource.getChunkSize(), aSource.getSpeed(), source->getPartialSource(), false);
+				if (segment.getStart() != -1 && segment.getSize() == 0) {
+					// no other partial chunk from this user, remove him from queue
+					userQueue.removeQI(q, u);
+					q->removeSource(u, QueueItem::Source::FLAG_NO_NEED_PARTS);
+					aMessage = STRING(NO_NEEDED_PART);
+					return nullptr;
+				}
+			}
+		} else {
+			aMessage = userQueue.getLastError();
+			dcdebug("none\n");
+			return nullptr;
+		}
+
+		// Check that the file we will be downloading to exists
+		if (q->getDownloadedBytes() > 0) {
+			if (!Util::fileExists(q->getTempTarget())) {
+				// Temp target gone?
+				q->resetDownloaded();
+			}
+		}
+
+		Download* d = new Download(aSource, *q);
+		userQueue.addDownload(q, d);
+
+		fire(QueueManagerListener::SourcesUpdated(), q);
+		dcdebug("found %s for %s (%u, %u)\n", q->getTarget().c_str(), d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
+		return d;
 	}
-	return QueueItem::PAUSED;
 }
 
-QueueItemBase::Priority QueueManager::hasDownload(const UserPtr& aUser, string& hubHint, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange) noexcept {
+bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn) {
+	if (!aQI)
+		return false;
+
+	size_t downloadCount = DownloadManager::getInstance()->getDownloadCount();
+	bool full = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t) AirUtil::getSlots(true));
+	full = full || ((AirUtil::getSpeedLimit(true) != 0) && (DownloadManager::getInstance()->getRunningAverage() >= (AirUtil::getSpeedLimit(true) * 1024)));
+	//LogManager::getInstance()->message("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
+
+	if (full) {
+		//LogManager::getInstance()->message("Full");
+		bool extraFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t) (AirUtil::getSlots(true) + SETTING(EXTRA_DOWNLOAD_SLOTS)));
+		if (extraFull || mcn) {
+			return false;
+		}
+		return aQI->getPriority() == QueueItem::HIGHEST;
+	}
+
+	//bundle with the lowest prio?
+	if (aQI->getBundle() && aQI->getBundle()->getPriority() == QueueItemBase::LOWEST && !runningBundles.empty() && runningBundles.find(aQI->getBundle()->getToken()) == runningBundles.end())
+		return false;
+
+	if (downloadCount > 0) {
+		return aQI->getPriority() != QueueItem::LOWEST;
+	}
+
+	return true;
+}
+
+bool QueueManager::startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType) noexcept {
+	QueueItemPtr qi = nullptr;
+	{
+		RLock l(cs);
+		qi = userQueue.getNext(aUser, runningBundles, onlineHubs, QueueItem::LOWEST, 0, 0, aType);
+	}
+
+	return allowStartQI(qi, runningBundles);
+}
+
+bool QueueManager::startDownload(const UserPtr& aUser, string& hubHint, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange, bool& hasDownload) noexcept {
+	StringSet runningBundles;
+	DownloadManager::getInstance()->getRunningBundles(runningBundles);
+
 	auto hubs = ClientManager::getInstance()->getHubSet(aUser->getCID());
 	if (hubs.empty())
-		return QueueItem::PAUSED;
+		return false;
 
-	RLock l(cs);
-	auto qi = userQueue.getNext(aUser, hubs, QueueItem::LOWEST, 0, 0, aType);
+	QueueItemPtr qi = nullptr;
+	{
+		RLock l(cs);
+		qi = userQueue.getNext(aUser, runningBundles, hubs, QueueItem::LOWEST, 0, 0, aType);
 
-	if(qi) {
-		if (qi->getBundle()) {
-			bundleToken = qi->getBundle()->getToken();
-		} 
+		if (qi) {
+			hasDownload = true;
+			if (qi->getBundle()) {
+				bundleToken = qi->getBundle()->getToken();
+			}
 
-		if (hubs.find(hubHint) == hubs.end()) {
-			//we can't connect via a hub that is offline...
-			hubHint = *hubs.begin();
+			if (hubs.find(hubHint) == hubs.end()) {
+				//we can't connect via a hub that is offline...
+				hubHint = *hubs.begin();
+			}
+
+			allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
+			qi->getSource(aUser)->updateHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
+
+			//return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
 		}
-		
-		allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
-		qi->getSource(aUser)->updateHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
-
-		return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
 	}
-	return QueueItem::PAUSED;
+
+	return allowStartQI(qi, runningBundles);
 }
 
 void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) {
@@ -1065,9 +1152,17 @@ bool QueueManager::getQueueInfo(const HintedUser& aUser, string& aTarget, int64_
 	OrderedStringSet hubs;
 	hubs.insert(aUser.hint);
 
-	RLock l(cs);
-	QueueItemPtr qi = userQueue.getNext(aUser, hubs);
-	if(!qi)
+	StringSet runningBundles;
+	DownloadManager::getInstance()->getRunningBundles(runningBundles);
+
+	QueueItemPtr qi = nullptr;
+
+	{
+		RLock l(cs);
+		qi = userQueue.getNext(aUser, runningBundles, hubs);
+	}
+
+	if (!qi)
 		return false;
 
 	aTarget = qi->getTarget();
@@ -1119,55 +1214,6 @@ StringList QueueManager::getTargets(const TTHValue& tth) {
 void QueueManager::readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue) {
 	RLock l(cs);
 	if(currentQueue) currentQueue(fileQueue.getQueue());
-}
-
-Download* QueueManager::getDownload(UserConnection& aSource, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, QueueItemBase::DownloadType aType) noexcept {
-	QueueItemPtr q = nullptr;
-	const UserPtr& u = aSource.getUser();
-	{
-		WLock l(cs);
-		dcdebug("Getting download for %s...", u->getCID().toBase32().c_str());
-
-		q = userQueue.getNext(aSource.getUser(), onlineHubs, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), aType);
-		if (q) {
-			auto source = q->getSource(aSource.getUser());
-
-			//update the hub hint
-			newUrl = aSource.getHubUrl();
-			source->updateHubUrl(onlineHubs, newUrl, (q->isSet(QueueItem::FLAG_USER_LIST) && !q->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
-			
-			//check partial sources
-			if(source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
-				Segment segment = q->getNextSegment(q->getBlockSize(), aSource.getChunkSize(), aSource.getSpeed(), source->getPartialSource(), false);
-				if(segment.getStart() != -1 && segment.getSize() == 0) {
-					// no other partial chunk from this user, remove him from queue
-					userQueue.removeQI(q, u);
-					q->removeSource(u, QueueItem::Source::FLAG_NO_NEED_PARTS);
-					aMessage = STRING(NO_NEEDED_PART);
-					return nullptr;
-				}
-			}
-		} else {
-			aMessage = userQueue.getLastError();
-			dcdebug("none\n");
-			return nullptr;
-		}
-
-		// Check that the file we will be downloading to exists
-		if(q->getDownloadedBytes() > 0) {
-			if(!Util::fileExists(q->getTempTarget())) {
-				// Temp target gone?
-				q->resetDownloaded();
-			}
-		}
-
-		Download* d = new Download(aSource, *q);
-		userQueue.addDownload(q, d);
-
-		fire(QueueManagerListener::SourcesUpdated(), q);
-		dcdebug("found %s for %s (%u, %u)\n", q->getTarget().c_str(), d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
-		return d;
-	}
 }
 
 void QueueManager::moveFile_(const string& source, const string& target, QueueItemPtr& qi) {
