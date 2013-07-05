@@ -2556,7 +2556,8 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 
 		setProfilesDirty(dirtyProfiles);
 			
-		ClientManager::getInstance()->infoUpdated();
+		if (task->type != TYPE_BUNDLE)
+			ClientManager::getInstance()->infoUpdated();
 
 		reportTaskStatus(t.first, task->dirs, true, totalHash, task->displayName, task->type);
 

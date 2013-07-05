@@ -1087,7 +1087,9 @@ void ConnectionManager::shutdown(function<void (float)> progressF) {
 			if(userConnections.empty()) {
 				break;
 			}
-			progressF(static_cast<float>(userConnections.size()) / static_cast<float>(connections));
+
+			if (progressF)
+				progressF(static_cast<float>(userConnections.size()) / static_cast<float>(connections));
 		}
 		Thread::sleep(50);
 	}
