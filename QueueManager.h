@@ -129,7 +129,6 @@ public:
 	bool startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType) noexcept;
 	/** The same thing but only used before any connect requests */
 	bool startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange, bool& hasDownload) noexcept;
-	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn = false);
 	
 	void loadQueue(function<void (float)> progressF) noexcept;
 	void saveQueue(bool force) noexcept;
@@ -273,6 +272,7 @@ private:
 	task_group tasks;
 
 	void connectBundleSources(BundlePtr& aBundle);
+	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn = false);
 
 	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget);
 	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false);

@@ -23,11 +23,12 @@
 
 #include "DownloadManagerListener.h"
 #include "UserConnectionListener.h"
-#include "QueueItem.h"
 #include "TimerManager.h"
 #include "Singleton.h"
-#include "MerkleTree.h"
 #include "Speaker.h"
+
+#include "Bundle.h"
+#include "MerkleTree.h"
 
 namespace dcpp {
 
@@ -46,26 +47,30 @@ public:
 	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
 	void setTarget(const string& oldTarget, const string& newTarget);
 	void changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path);
-	void sendSizeNameUpdate(BundlePtr aBundle);
+	void sendSizeNameUpdate(BundlePtr& aBundle);
 	BundlePtr findRunningBundle(const string& bundleToken);
 
 	/** @internal */
-	void abortDownload(const string& aTarget, const UserPtr& aUser = NULL);
-	void disconnectBundle(BundlePtr aBundle, const UserPtr& aUser = NULL);
+	void abortDownload(const string& aTarget, const UserPtr& aUser = nullptr);
+	void disconnectBundle(BundlePtr& aBundle, const UserPtr& aUser = nullptr);
 
 	/** @return Running average download speed in Bytes/s */
-	int64_t getRunningAverage();
+	int64_t getRunningAverage() const;
 
 	/** @return Number of downloads. */ 
-	size_t getDownloadCount() {
+	size_t getDownloadCount() const {
 		RLock l(cs);
 		return downloads.size();
 	}
+	size_t getDownloadCount(const BundlePtr& aBundle) const {
+		RLock l(cs);
+		return aBundle->getDownloads().size();
+	}
 
-	void getRunningBundles(StringSet& bundles_);
+	void getRunningBundles(StringSet& bundles_) const;
 private:
 	
-	SharedMutex cs;
+	mutable SharedMutex cs;
 	DownloadList downloads;
 	Bundle::StringBundleMap runningBundles;
 	UserConnectionList idlers;

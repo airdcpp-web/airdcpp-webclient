@@ -141,7 +141,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		QueueManager::getInstance()->handleSlowDisconnect(dtp.user, dtp.target, dtp.bundle);
 }
 
-void DownloadManager::sendSizeNameUpdate(BundlePtr aBundle) {
+void DownloadManager::sendSizeNameUpdate(BundlePtr& aBundle) {
 	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
 	RLock l (cs);
 	aBundle->sendSizeNameUpdate();
@@ -208,7 +208,7 @@ void DownloadManager::addConnection(UserConnection* conn) {
 	checkDownloads(conn);
 }
 
-void DownloadManager::getRunningBundles(StringSet& bundles_) {
+void DownloadManager::getRunningBundles(StringSet& bundles_) const {
 	RLock l(cs);
 	for (auto& token : runningBundles | map_keys)
 		bundles_.insert(token);
@@ -464,7 +464,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 	checkDownloads(aSource);
 }
 
-int64_t DownloadManager::getRunningAverage() {
+int64_t DownloadManager::getRunningAverage() const {
 	RLock l(cs);
 	int64_t avg = 0;
 	for(auto d: downloads)
@@ -598,7 +598,7 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 	aSource->setLastBundle(Util::emptyString);
 }
 
-void DownloadManager::disconnectBundle(BundlePtr aBundle, const UserPtr& aUser) {
+void DownloadManager::disconnectBundle(BundlePtr& aBundle, const UserPtr& aUser) {
 	//UserConnectionList u;
 	{
 		RLock l(cs);

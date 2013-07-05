@@ -1042,7 +1042,12 @@ Download* QueueManager::getDownload(UserConnection& aSource, const StringSet& ru
 }
 
 bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn) {
+	// nothing to download?
 	if (!aQI)
+		return false;
+
+	// paused?
+	if (aQI->isPausedPrio() || (aQI->getBundle() && aQI->getBundle()->isPausedPrio()))
 		return false;
 
 	size_t downloadCount = DownloadManager::getInstance()->getDownloadCount();
@@ -1059,12 +1064,20 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runnin
 		return aQI->getPriority() == QueueItem::HIGHEST;
 	}
 
-	//bundle with the lowest prio?
+	// bundle with the lowest prio? don't start if there are other bundle running
 	if (aQI->getBundle() && aQI->getBundle()->getPriority() == QueueItemBase::LOWEST && !runningBundles.empty() && runningBundles.find(aQI->getBundle()->getToken()) == runningBundles.end())
 		return false;
 
-	if (downloadCount > 0) {
-		return aQI->getPriority() != QueueItem::LOWEST;
+	if (aQI->getPriority() == QueueItem::LOWEST) {
+		if (aQI->getBundle()) {
+			// start only if there are no other downloads running in this bundle (or the downloads belong to this file)
+			auto bundleDownloads = DownloadManager::getInstance()->getDownloadCount(aQI->getBundle());
+
+			RLock l(cs);
+			return bundleDownloads == 0 || bundleDownloads == aQI->getDownloads().size();
+		} else {
+			return downloadCount == 0;
+		}
 	}
 
 	return true;
