@@ -69,7 +69,7 @@ public:
 	void cancelSearch(void* aOwner) { searchQueue.cancelSearch(aOwner); }
 	
 	virtual void password(const string& pwd) = 0;
-	virtual void info(bool force) = 0;
+	void info();
 
 	virtual size_t getUserCount() const = 0;
 	int64_t getAvailable() const { return availableBytes; };
@@ -190,6 +190,7 @@ protected:
 
 	virtual string checkNick(const string& nick) = 0;
 	virtual void search(SearchPtr aSearch) = 0;
+	virtual void infoImpl() = 0;
 
 	// TimerManagerListener
 	virtual void on(Second, uint64_t aTick) noexcept;

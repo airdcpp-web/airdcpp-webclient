@@ -167,10 +167,12 @@ public:
 	void save();
 	void recentsave();
 
+	int resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly);
 	int resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken defaultProfile);
 	void onProfilesRenamed();
 
 	bool hasActiveHubs() const;
+	bool hasAdcHubs() const;
 private:
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;

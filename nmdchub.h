@@ -43,7 +43,7 @@ public:
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
 	void search(SearchPtr aSearch);
 	void password(const string& aPass) { send("$MyPass " + fromUtf8(aPass) + "|"); }
-	void info(bool force) { myInfo(force); }
+	void infoImpl() { myInfo(false); }
 
 	size_t getUserCount() const;
 	

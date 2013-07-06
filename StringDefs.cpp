@@ -347,7 +347,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Move up", 
 "My nick in main chat", 
 "Network statistics", 
-"New...", 
 "Remove user from queue, if speed is below", 
 "Next", 
 "Nick", 
@@ -1789,6 +1788,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "WARNING: Don't change the trusted certificate settings unless you know what you are doing", 
 "No results were received in the specified time", 
 "Maximum number of running bundles (0 = infinite)", 
+"Do you want to set the current ADC hubs using the old default profile \"%s\" to use the new default profile \"%s\"?", 
+"New...", 
+"New", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2136,7 +2138,6 @@ std::string dcpp::ResourceManager::names[] = {
 "MoveUp", 
 "MynickInChat", 
 "NetworkStatistics", 
-"New", 
 "NewDisconnect", 
 "Next", 
 "Nick", 
@@ -3578,4 +3579,7 @@ std::string dcpp::ResourceManager::names[] = {
 "TrustedCertNote", 
 "NoResultsSpecifiedTime", 
 "MaxRunningBundles", 
+"ChangeSpAskHubs", 
+"NewDots", 
+"New", 
 };

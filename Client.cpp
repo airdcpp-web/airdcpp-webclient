@@ -116,7 +116,7 @@ void Client::reloadSettings(bool updateNick) {
 		if (isAdcHub) {
 			setShareProfile(fav->getShareProfile()->getToken());
 		} else {
-			setShareProfile(fav->getShareProfile()->getToken() == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
+			setShareProfile(fav->getShareProfile()->getToken() == SP_HIDDEN ? SP_HIDDEN : SETTING(DEFAULT_SP));
 		}
 		
 	} else {
@@ -125,7 +125,7 @@ void Client::reloadSettings(bool updateNick) {
 		setPassword(Util::emptyString);
 
 		if (!isAdcHub)
-			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SP_DEFAULT);
+			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SETTING(DEFAULT_SP));
 	}
 
 	searchQueue.minInterval = get(HubSettings::SearchInterval);
@@ -206,6 +206,10 @@ void Client::connect() {
 		fire(ClientListener::Failed(), hubUrl, e.getError());
 	}
 	updateActivity();
+}
+
+void Client::info() {
+	sock->callAsync([this] { infoImpl(); });
 }
 
 void Client::send(const char* aMessage, size_t aLen) {

@@ -68,7 +68,7 @@ namespace dcpp {
 
 		bool hasList(const UserPtr& aUser);
 		void createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir = Util::emptyString, bool isOwnList=false);
-		void createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir = Util::emptyString, ProfileToken aProfile=SP_DEFAULT, bool isOwnList=false);
+		void createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir = Util::emptyString, ProfileToken aProfile = SETTING(DEFAULT_SP), bool isOwnList = false);
 
 		/** Directories queued for downloading */
 		unordered_multimap<UserPtr, DirectoryDownloadInfo*, User::Hash> dlDirectories;

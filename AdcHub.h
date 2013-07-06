@@ -45,7 +45,7 @@ public:
 	void search(SearchPtr aSearch);
 	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir);
 	void password(const string& pwd);
-	void info(bool alwaysSend);
+	void infoImpl();
 	void refreshUserList(bool);	
 
 	void constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, bool isDirect);

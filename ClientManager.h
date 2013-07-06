@@ -174,10 +174,12 @@ public:
 	CID getMyCID();
 	const CID& getMyPID();
 
+	void resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly);
 	void resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile);
 
 	bool connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_, uint8_t& slots_);
 	bool connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName);
+	bool hasAdcHubs() const;
 private:
 
 	typedef unordered_map<CID*, std::string> NickMap;

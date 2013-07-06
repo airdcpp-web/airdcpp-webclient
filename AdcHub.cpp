@@ -330,7 +330,7 @@ void AdcHub::handle(AdcCommand::SID, AdcCommand& c) noexcept {
 	sid = AdcCommand::toSID(c.getParam(0));
 
 	state = STATE_IDENTIFY;
-	info(true);
+	infoImpl();
 }
 
 void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
@@ -1401,7 +1401,7 @@ void AdcHub::appendConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, 
 	}
 }
 
-void AdcHub::info(bool /*alwaysSend*/) {
+void AdcHub::infoImpl() {
 	if(state != STATE_IDENTIFY && state != STATE_NORMAL)
 		return;
 

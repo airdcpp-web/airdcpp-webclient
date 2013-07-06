@@ -21,7 +21,6 @@
 
 #include "compiler.h"
 
-# define SP_DEFAULT 0
 # define SP_HIDDEN 1
 
 #ifdef _WIN32

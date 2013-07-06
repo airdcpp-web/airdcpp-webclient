@@ -385,6 +385,31 @@ bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
 	return success;
 }
 
+int FavoriteManager::resetProfile(ProfileToken oldDefault, ProfileToken newDefault, bool nmdcOnly) {
+	int counter = 0;
+	auto defaultProfile = ShareManager::getInstance()->getShareProfile(newDefault);
+
+	{
+		WLock l(cs);
+		for (auto fh : favoriteHubs) {
+			if (fh->getShareProfile()->getToken() == oldDefault) {
+				counter++;
+				if (!nmdcOnly || !fh->isAdcHub())
+					fh->setShareProfile(defaultProfile);
+			}
+		}
+	}
+
+	if (counter > 0)
+		fire(FavoriteManagerListener::FavoritesUpdated());
+	return counter;
+}
+
+bool FavoriteManager::hasAdcHubs() const {
+	RLock l(cs);
+	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr f) { return f->isAdcHub(); });
+}
+
 int FavoriteManager::resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile) {
 	int counter = 0;
 	auto defaultProfile = ShareManager::getInstance()->getShareProfile(aDefaultProfile);
@@ -393,7 +418,7 @@ int FavoriteManager::resetProfiles(const ShareProfileInfo::List& aProfiles, Prof
 		WLock l(cs);
 		for(const auto& sp: aProfiles) {
 			for(auto fh: favoriteHubs) {
-				if (fh->getShareProfile() == sp->token) {
+				if (fh->getShareProfile()->getToken() == sp->token) {
 					fh->setShareProfile(defaultProfile);
 					counter++;
 				}

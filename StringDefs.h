@@ -350,7 +350,6 @@ enum Strings { // @DontAdd
 	MOVE_UP, // "Move up"
 	MYNICK_IN_CHAT, // "My nick in main chat"
 	NETWORK_STATISTICS, // "Network statistics"
-	NEW, // "New..."
 	NEW_DISCONNECT, // "Remove user from queue, if speed is below"
 	NEXT, // "Next"
 	NICK, // "Nick"
@@ -1793,5 +1792,8 @@ enum Strings { // @DontAdd
 	TRUSTED_CERT_NOTE, // "WARNING: Don't change the trusted certificate settings unless you know what you are doing"
 	NO_RESULTS_SPECIFIED_TIME, // "No results were received in the specified time"
 	MAX_RUNNING_BUNDLES, // "Maximum number of running bundles (0 = infinite)"
+	CHANGE_SP_ASK_HUBS, // "Do you want to set the current ADC hubs using the old default profile \"%s\" to use the new default profile \"%s\"?"
+	NEW_DOTS, // "New..."
+	NEW, // "New"
 	LAST // @DontAdd
 };

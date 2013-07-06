@@ -786,7 +786,17 @@ void ClientManager::infoUpdated() {
 	RLock l(cs);
 	for(auto c: clients | map_values) {
 		if(c->isConnected()) {
-			c->callAsync([c] { c->info(false); });
+			c->info();
+		}
+	}
+}
+
+void ClientManager::resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) {
+	RLock l(cs);
+	for (auto c : clients | map_values) {
+		if (c->getShareProfile() == oldProfile && (!nmdcOnly || !AirUtil::isAdcHub(c->getHubUrl()))) {
+			c->setShareProfile(newProfile);
+			c->info();
 		}
 	}
 }
@@ -797,10 +807,15 @@ void ClientManager::resetProfiles(const ShareProfileInfo::List& aProfiles, Profi
 		for(auto c: clients | map_values) {
 			if (c->getShareProfile() == sp->token) {
 				c->setShareProfile(aDefaultProfile);
-				c->callAsync([c] { c->info(false); });
+				c->info();
 			}
 		}
 	}
+}
+
+bool ClientManager::hasAdcHubs() const {
+	RLock l(cs);
+	return find_if(clients | map_values, [](const Client* c) { return AirUtil::isAdcHub(c->getHubUrl()); }).base() != clients.end();
 }
 
 void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize, 
@@ -932,7 +947,7 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcep
 
 	RLock l (cs);
 	for(auto c: clients | map_values)
-		c->callAsync([c] { c->info(false); });
+		c->info();
 }
 
 string ClientManager::getClientStats() {

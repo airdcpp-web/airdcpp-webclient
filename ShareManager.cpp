@@ -122,9 +122,13 @@ ShareManager::~ShareManager() {
 
 void ShareManager::startup(function<void (const string&)> splashF, function<void (float)> progressF) {
 	AirUtil::updateCachedSettings();
-	if (!getShareProfile(SP_DEFAULT)) {
-		ShareProfilePtr sp = ShareProfilePtr(new ShareProfile(STRING(DEFAULT), SP_DEFAULT));
-		shareProfiles.push_back(sp);
+	if (!getShareProfile(SETTING(DEFAULT_SP))) {
+		if (shareProfiles.empty()) {
+			auto sp = ShareProfilePtr(new ShareProfile(STRING(DEFAULT), 0));
+			shareProfiles.push_back(sp);
+		} else {
+			SettingsManager::getInstance()->set(SettingsManager::DEFAULT_SP, shareProfiles.front()->getToken());
+		}
 	}
 
 	ShareProfilePtr hidden = ShareProfilePtr(new ShareProfile("Hidden", SP_HIDDEN));
@@ -1243,14 +1247,14 @@ void ShareManager::load(SimpleXML& aXml) {
 
 	if(aXml.findChild("Share")) {
 		string name = aXml.getChildAttrib("Name");
-		loadProfile(aXml, !name.empty() ? name : STRING(DEFAULT), SP_DEFAULT);
+		loadProfile(aXml, !name.empty() ? name : STRING(DEFAULT), aXml.getIntChildAttrib("Token"));
 	}
 
 	aXml.resetCurrentChild();
 	while(aXml.findChild("ShareProfile")) {
 		auto token = aXml.getIntChildAttrib("Token");
 		string name = aXml.getChildAttrib("Name");
-		if (token > 10 && !name.empty()) //reserve a few numbers for predefined profiles
+		if (token != SP_HIDDEN && !name.empty()) //reserve a few numbers for predefined profiles
 			loadProfile(aXml, name, token);
 	}
 }
@@ -1261,7 +1265,7 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 	if (p != shareProfiles.end()) {
 		return *p;
 	} else if (allowFallback) {
-		dcassert(aProfile != SP_DEFAULT);
+		dcassert(aProfile != SETTING(DEFAULT_SP));
 		return *shareProfiles.begin();
 	}
 	return nullptr;
@@ -1486,7 +1490,7 @@ void ShareManager::save(SimpleXML& aXml) {
 			continue;
 		}
 
-		aXml.addTag(sp->getToken() == SP_DEFAULT ? "Share" : "ShareProfile");
+		aXml.addTag(sp->getToken() == SETTING(DEFAULT_SP) ? "Share" : "ShareProfile");
 		aXml.addChildAttrib("Token", sp->getToken());
 		aXml.addChildAttrib("Name", sp->getPlainName());
 		aXml.stepIn();
@@ -3230,7 +3234,7 @@ SearchManager::TypeModes ShareManager::getType(const string& aFileName) noexcept
  * has been matched in the directory name. This new stringlist should also be used in all descendants,
  * but not the parents...
  */
-void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults) const noexcept {
+void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
 	// Skip everything if there's nothing to find here (doh! =)
 	if(!hasType(aFileType))
 		return;
@@ -3240,7 +3244,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 
 	// Find any matches in the directory name
 	for(const auto& k: aStrings) {
-		if(k.matchLower(profileDir ? Text::toLower(profileDir->getName(SP_DEFAULT)) : name.getLower())) {
+		if (k.matchLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : name.getLower())) {
 			if(!newStr.get()) {
 				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(aStrings));
 			}
@@ -3258,7 +3262,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 		// We satisfied all the search words! Add the directory...(NMDC searches don't support directory size)
 		//getInstance()->addDirResult(getFullName(SP_DEFAULT), aResults, SP_DEFAULT, false);
 
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, 0, getFullName(SP_DEFAULT), TTHValue(), 0, 0));
+		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, 0, getFullName(aProfile), TTHValue(), 0, 0));
 		aResults.push_back(sr);
 	}
 
@@ -3280,7 +3284,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 			
 			// Check file type...
 			if(checkType(f->name.getLower(), aFileType)) {
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f->getSize(), getFullName(SP_DEFAULT) + f->name.getNormal(), f->getTTH(), 0, 1));
+				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f->getSize(), getFullName(aProfile) + f->name.getNormal(), f->getTTH(), 0, 1));
 				aResults.push_back(sr);
 				if(aResults.size() >= maxResults) {
 					break;
@@ -3290,14 +3294,16 @@ void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::L
 	}
 
 	for(auto l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
-		if ((*l)->isLevelExcluded(SP_DEFAULT))
+		if ((*l)->isLevelExcluded(aProfile))
 			continue;
-		(*l)->search(aResults, *cur, aSearchType, aSize, aFileType, maxResults);
+		(*l)->search(aResults, *cur, aSearchType, aSize, aFileType, maxResults, aProfile);
 	}
 }
 //NMDC Search
 void ShareManager::search(SearchResultList& results, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept {
 	totalSearches++;
+	ProfileToken sp = SETTING(DEFAULT_SP);
+
 	if(aFileType == SearchManager::TYPE_TTH) {
 		if(aString.compare(0, 4, "TTH:") == 0) {
 			TTHValue tth(aString.substr(4));
@@ -3305,8 +3311,8 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 			RLock l (cs);
 			if(!aHideShare) {
 				const auto i = tthIndex.find(const_cast<TTHValue*>(&tth));
-				if(i != tthIndex.end() && i->second->getParent()->hasProfile(SP_DEFAULT)) {
-					i->second->addSR(results, SP_DEFAULT, false);
+				if (i != tthIndex.end() && i->second->getParent()->hasProfile(sp)) {
+					i->second->addSR(results, sp, false);
 				} 
 			}
 
@@ -3337,12 +3343,11 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 	if(ssl.empty())
 		return;
 
-
 	RLock l (cs);
 	if (bloom->match(ssl)) {
 		for(auto j = rootPaths.begin(); (j != rootPaths.end()) && (results.size() < maxResults); ++j) {
-			if(j->second->getProfileDir()->hasRootProfile(SP_DEFAULT))
-				j->second->search(results, ssl, aSearchType, aSize, aFileType, maxResults);
+			if(j->second->getProfileDir()->hasRootProfile(sp))
+				j->second->search(results, ssl, aSearchType, aSize, aFileType, maxResults, sp);
 		}
 	}
 }
