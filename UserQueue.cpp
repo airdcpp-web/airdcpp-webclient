@@ -23,7 +23,6 @@
 
 #include "UserQueue.h"
 #include "SettingsManager.h"
-#include "HashManager.h"
 #include "QueueManager.h"
 #include "Download.h"
 
@@ -114,7 +113,7 @@ QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const StringSet& r
 	if(i != userBundleQueue.end()) {
 		dcassert(!i->second.empty());
 		for (auto& b: i->second) {
-			if (bundleLimit > 0 && bundleLimit == runningBundles.size() && runningBundles.find(b->getToken()) == runningBundles.end())
+			if (bundleLimit > 0 && runningBundles.size() >=  bundleLimit && runningBundles.find(b->getToken()) == runningBundles.end())
 				continue;
 
 			if (b->getPriority() < minPrio) {

@@ -1500,7 +1500,7 @@ enum Strings { // @DontAdd
 	FAILED_BUNDLE_SEARCHED_IN, // "A failed bundle %s will be searched for in %d seconds"
 	AWAY_ON, // "Away mode ON - click to adjust"
 	AWAY_OFF, // "Away mode OFF - click to adjust"
-	SETTINGS_AUTO_COMPLETE_BUNDLES, // "Try to to complete bundles with missing files automatically"
+	SETTINGS_AUTO_COMPLETE_BUNDLES, // "Try to complete bundles with missing files automatically"
 	REQUIRE_EXACT_MATCH, // "Require an exact match"
 	CLEAR_HISTORY, // "Clear history"
 	SETTINGS_LOG_SCHEDULED_REFRESHES, // "Show scheduled file list refreshes in system log"

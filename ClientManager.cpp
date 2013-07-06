@@ -791,12 +791,12 @@ void ClientManager::infoUpdated() {
 	}
 }
 
-void ClientManager::resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr aDefaultProfile) {
+void ClientManager::resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile) {
 	RLock l(cs);
-	for(auto pt: aProfiles) {
+	for(auto sp: aProfiles) {
 		for(auto c: clients | map_values) {
-			if (c->getShareProfile() == pt) {
-				c->setShareProfile(SP_DEFAULT);
+			if (c->getShareProfile() == sp->token) {
+				c->setShareProfile(aDefaultProfile);
 				c->callAsync([c] { c->info(false); });
 			}
 		}

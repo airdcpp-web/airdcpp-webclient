@@ -29,6 +29,7 @@
 #include "Singleton.h"
 #include "User.h"
 #include "UserCommand.h"
+#include "ShareProfile.h"
 
 namespace dcpp {
 	
@@ -166,7 +167,7 @@ public:
 	void save();
 	void recentsave();
 
-	int resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr defaultProfile);
+	int resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken defaultProfile);
 	void onProfilesRenamed();
 
 	bool hasActiveHubs() const;

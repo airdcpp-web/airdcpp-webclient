@@ -74,13 +74,19 @@ public:
 	enum State { 
 		STATE_NORMAL,
 		STATE_ADDED,
-		STATE_REMOVED
+		STATE_REMOVED,
+		STATE_CHANGED
 	};
 
-	ShareDirInfo(const string& aVname, ProfileToken aProfile, const string& aPath, bool aIncoming=false) : vname(aVname), profile(aProfile), path(aPath), incoming(aIncoming), 
-		found(false), diffState(DIFF_NORMAL), state(STATE_NORMAL), size(0) {}
+	ShareDirInfo(const ShareDirInfoPtr& aInfo, ProfileToken aNewProfile);
+	ShareDirInfo(const string& aVname, ProfileToken aProfile, const string& aPath, bool aIncoming = false, State aState = STATE_NORMAL);
 
 	~ShareDirInfo() {}
+
+	// item currently exists in the profile
+	bool isCurItem() const {
+		return diffState == DIFF_NORMAL && state != STATE_REMOVED;
+	}
 
 	string vname;
 	ProfileToken profile;
@@ -99,6 +105,15 @@ public:
 	typedef unordered_set<ShareDirInfoPtr, Hash> set;*/
 	typedef vector<ShareDirInfoPtr> List;
 	typedef unordered_map<int, List> Map;
+
+	class PathCompare {
+	public:
+		PathCompare(const string& compareTo) : a(compareTo) { }
+		bool operator()(const ShareDirInfoPtr& p) { return stricmp(p->path.c_str(), a.c_str()) == 0; }
+	private:
+		PathCompare& operator=(const PathCompare&) ;
+		const string& a;
+	};
 };
 
 class ShareProfile;
@@ -244,14 +259,16 @@ public:
 	void removeDirectories(const ShareDirInfo::List& removeDirs);
 	void changeDirectories(const ShareDirInfo::List& renameDirs);
 
-	void addProfiles(const ShareProfile::Set& aProfiles);
-	void removeProfiles(ProfileTokenList aProfiles);
+	void addProfiles(const ShareProfileInfo::List& aProfiles);
+	void removeProfiles(const ShareProfileInfo::List& aProfiles);
+	void renameProfiles(const ShareProfileInfo::List& aProfiles);
 
 	bool isRealPathShared(const string& aPath);
 	ShareProfilePtr getProfile(ProfileToken aProfile) const;
 
 	/* Only for gui use purposes, no locking */
 	const ShareProfileList& getProfiles() { return shareProfiles; }
+	ShareProfileInfo::List getProfileInfos() const;
 	void getExcludes(ProfileToken aProfile, StringList& excludes);
 
 	string getStats() const;

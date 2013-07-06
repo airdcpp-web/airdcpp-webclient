@@ -87,6 +87,14 @@ atomic_flag ShareManager::refreshing;
 
 boost::regex ShareManager::rxxReg;
 
+ShareDirInfo::ShareDirInfo(const ShareDirInfoPtr& aInfo, ProfileToken aNewProfile) : vname(aInfo->vname), profile(aNewProfile), path(aInfo->path), incoming(aInfo->incoming),
+	found(false), diffState(aInfo->diffState), state(STATE_NORMAL), size(aInfo->size) {
+
+}
+
+ShareDirInfo::ShareDirInfo(const string& aVname, ProfileToken aProfile, const string& aPath, bool aIncoming /*false*/, State aState /*STATE_NORMAL*/) : vname(aVname), profile(aProfile), path(aPath), incoming(aIncoming),
+	found(false), diffState(DIFF_NORMAL), state(aState), size(0) {}
+
 ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), sharedSize(0),
 	xml_saving(false), lastSave(0), aShutdown(false), refreshRunning(false), totalSearches(0), bloom(new ShareBloom(1<<20)), monitorDebug(false)
 { 
@@ -2118,17 +2126,39 @@ ShareManager::ProfileDirMap ShareManager::getSubProfileDirs(const string& aPath)
 	return aRoots;
 }
 
-void ShareManager::addProfiles(const ShareProfile::Set& aProfiles) {
-	WLock l (cs);
-	for(auto& i: aProfiles) {
-		shareProfiles.insert(shareProfiles.end()-1, i);
+void ShareManager::addProfiles(const ShareProfileInfo::List& aProfiles) {
+	WLock l(cs);
+	for (auto& sp : aProfiles) {
+		shareProfiles.emplace_back(new ShareProfile(sp->name, sp->token));
 	}
 }
 
-void ShareManager::removeProfiles(ProfileTokenList aProfiles) {
-	WLock l (cs);
-	for(auto& aProfile: aProfiles)
-		shareProfiles.erase(remove(shareProfiles.begin(), shareProfiles.end(), aProfile), shareProfiles.end()); 
+void ShareManager::removeProfiles(const ShareProfileInfo::List& aProfiles) {
+	WLock l(cs);
+	for (auto& sp : aProfiles) {
+		shareProfiles.erase(remove(shareProfiles.begin(), shareProfiles.end(), sp->token), shareProfiles.end());
+	}
+}
+
+void ShareManager::renameProfiles(const ShareProfileInfo::List& aProfiles) {
+	WLock l(cs);
+	for (auto& sp : aProfiles) {
+		auto p = find(shareProfiles.begin(), shareProfiles.end(), sp->token);
+		if (p != shareProfiles.end()) {
+			(*p)->setPlainName(sp->name);
+		}
+	}
+
+	// sort the profiles
+	/*ShareProfileList newProfiles;
+	for (auto& sp : aProfiles) {
+		auto p = find(shareProfiles.begin(), shareProfiles.end(), sp->token);
+		if (p != shareProfiles.end()) {
+			newProfiles.push_back(*p);
+		}
+	}
+
+	shareProfiles = newProfiles;*/
 }
 
 void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
@@ -3632,6 +3662,23 @@ void ShareManager::getExcludes(ProfileToken aProfile, StringList& excludes) {
 		if (i.second->isExcluded(aProfile))
 			excludes.push_back(i.first);
 	}
+}
+
+ShareProfileInfo::List ShareManager::getProfileInfos() const {
+	ShareProfileInfo::List ret;
+	for (const auto& sp : shareProfiles) {
+		if (sp->getToken() != SP_HIDDEN) {
+			auto p = new ShareProfileInfo(sp->getPlainName(), sp->getToken());
+			if (p->token == SETTING(DEFAULT_SP)) {
+				p->isDefault = true;
+				ret.emplace(ret.begin(), p);
+			} else {
+				ret.emplace_back(p);
+			}
+		}
+	}
+	
+	return ret;
 }
 
 void ShareManager::changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove) {

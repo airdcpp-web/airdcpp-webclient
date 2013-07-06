@@ -70,6 +70,16 @@ void FileList::saveList() {
 	boost::for_each(lists, File::deleteFile);
 }
 
+ShareProfileInfo::ShareProfileInfo(const string& aName, ProfileToken aToken /*rand*/, State aState /*STATE_NORMAL*/) : name(aName), token(aToken), state(aState), isDefault(false) {}
+
+string ShareProfileInfo::getDisplayName() const {
+	string ret = name;
+	if (isDefault) {
+		ret += " (" + STRING(DEFAULT) + ")";
+	}
+	return ret;
+}
+
 ShareProfile::ShareProfile(const string& aName, ProfileToken aToken) : token(aToken), plainName(aName), profileList(new FileList(aToken)), sharedFiles(0), shareSize(0), profileInfoDirty(true) { }
 
 ShareProfile::~ShareProfile() {
@@ -78,7 +88,7 @@ ShareProfile::~ShareProfile() {
 
 string ShareProfile::getDisplayName() const {
 	string ret = plainName;
-	if (token == SP_DEFAULT) {
+	if (token == SETTING(DEFAULT_SP)) {
 		ret += " (" + STRING(DEFAULT) + ")";
 	}
 	return ret;

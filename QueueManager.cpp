@@ -1041,7 +1041,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const StringSet& ru
 	}
 }
 
-bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn) {
+bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn /*false*/) {
 	// nothing to download?
 	if (!aQI)
 		return false;
@@ -1056,7 +1056,6 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runnin
 	//LogManager::getInstance()->message("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
 
 	if (full) {
-		//LogManager::getInstance()->message("Full");
 		bool extraFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t) (AirUtil::getSlots(true) + SETTING(EXTRA_DOWNLOAD_SLOTS)));
 		if (extraFull || mcn) {
 			return false;
@@ -1119,8 +1118,6 @@ bool QueueManager::startDownload(const UserPtr& aUser, string& hubHint, QueueIte
 
 			allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
 			qi->getSource(aUser)->updateHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
-
-			//return qi->getPriority() == QueueItem::HIGHEST ? QueueItem::HIGHEST : qi->getBundle()->getPriority();
 		}
 	}
 

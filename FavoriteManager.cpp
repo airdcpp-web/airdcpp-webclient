@@ -385,14 +385,16 @@ bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
 	return success;
 }
 
-int FavoriteManager::resetProfiles(const ProfileTokenList& aProfiles, ShareProfilePtr defaultProfile) {
+int FavoriteManager::resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile) {
 	int counter = 0;
+	auto defaultProfile = ShareManager::getInstance()->getShareProfile(aDefaultProfile);
+
 	{
 		WLock l(cs);
-		for(auto k = aProfiles.begin(), iend = aProfiles.end(); k != iend; ++k) {
-			for(auto i = favoriteHubs.begin(), iend = favoriteHubs.end(); i != iend; ++i) {
-				if ((*i)->getShareProfile() == *k) {
-					(*i)->setShareProfile(defaultProfile);
+		for(const auto& sp: aProfiles) {
+			for(auto fh: favoriteHubs) {
+				if (fh->getShareProfile() == sp->token) {
+					fh->setShareProfile(defaultProfile);
 					counter++;
 				}
 			}

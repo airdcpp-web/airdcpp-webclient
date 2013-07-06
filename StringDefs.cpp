@@ -1496,7 +1496,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "A failed bundle %s will be searched for in %d seconds", 
 "Away mode ON - click to adjust", 
 "Away mode OFF - click to adjust", 
-"Try to to complete bundles with missing files automatically", 
+"Try to complete bundles with missing files automatically", 
 "Require an exact match", 
 "Clear history", 
 "Show scheduled file list refreshes in system log", 

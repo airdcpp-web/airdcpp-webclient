@@ -68,6 +68,41 @@ class FileList {
 		bool isSavedSuccessfully;
 };
 
+class ShareProfileInfo;
+typedef boost::intrusive_ptr<ShareProfileInfo> ShareProfileInfoPtr;
+
+class ShareProfileInfo : public FastAlloc<ShareProfileInfo>, public intrusive_ptr_base<ShareProfileInfo> {
+public:
+	enum State {
+		STATE_NORMAL,
+		STATE_ADDED,
+		STATE_REMOVED,
+		STATE_RENAMED
+	};
+
+	ShareProfileInfo(const string& aName, ProfileToken aToken = Util::randInt(100), State aState = STATE_NORMAL);
+	~ShareProfileInfo() {}
+
+	string name;
+	ProfileToken token;
+	bool isDefault;
+	State state;
+
+	typedef vector<ShareProfileInfoPtr> List;
+	string getDisplayName() const;
+
+	/*class PathCompare {
+	public:
+		PathCompare(const string& compareTo) : a(compareTo) { }
+		bool operator()(const ShareDirInfoPtr& p) { return stricmp(p->path.c_str(), a.c_str()) == 0; }
+	private:
+		PathCompare& operator=(const PathCompare&) ;
+		const string& a;
+	};*/
+};
+
+inline bool operator==(const ShareProfileInfoPtr& ptr, ProfileToken aToken) { return ptr->token == aToken; }
+
 class ShareProfile : public intrusive_ptr_base<ShareProfile> {
 public:
 	struct Hash {

@@ -33,9 +33,9 @@ namespace dcpp {
 #define CONFIG_NAME "DCPlusPlus.xml"
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 
-bool SettingsManager::lanMode;
+bool SettingsManager::lanMode = false;
 
-StringList SettingsManager::connectionSpeeds;
+StringList SettingsManager::connectionSpeeds = { "0.1", "0.2", "0.5", "1", "2", "5", "8", "10", "20", "30", "40", "50", "60", "100", "200", "1000" };
 
 const SettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][9] = {
 
@@ -153,7 +153,7 @@ const string SettingsManager::settingTags[] =
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
 	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode", 
-	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles",
+	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile",
 	"SENTRY",
 
 	// Bools
@@ -212,23 +212,6 @@ SettingsManager::SettingsManager()
 	//make sure it can fit our events without using push_back since
 	//that might cause them to be in the wrong position.
 	fileEvents.resize(2);
-
-	connectionSpeeds.push_back("0.1");
-	connectionSpeeds.push_back("0.2");
-	connectionSpeeds.push_back("0.5");
-	connectionSpeeds.push_back("1");
-	connectionSpeeds.push_back("2");
-	connectionSpeeds.push_back("5");
-	connectionSpeeds.push_back("8");
-	connectionSpeeds.push_back("10");
-	connectionSpeeds.push_back("20");
-	connectionSpeeds.push_back("30");
-	connectionSpeeds.push_back("40");
-	connectionSpeeds.push_back("50");
-	connectionSpeeds.push_back("60");
-	connectionSpeeds.push_back("100");
-	connectionSpeeds.push_back("200");
-	connectionSpeeds.push_back("1000");
 
 	for(int i=0; i<SETTINGS_LAST; i++)
 		isSet[i] = false;
@@ -825,6 +808,7 @@ SettingsManager::SettingsManager()
 	setDefault(USE_DEFAULT_CERT_PATHS, true);
 
 	setDefault(MAX_RUNNING_BUNDLES, 0);
+	setDefault(DEFAULT_SP, 0);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else
@@ -1048,7 +1032,6 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 	}
 
 	//lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
-	lanMode = false;
 	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_ACTIVE || INCOMING_ACTIVE_UPNP) {
 		if(SETTING(TLS_PORT) == 0) {
 			set(TLS_PORT, (int)Util::rand(10000, 32000));
