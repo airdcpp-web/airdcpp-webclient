@@ -26,6 +26,7 @@
 #include "w.h"
 #include "shlobj.h"
 #include <shellapi.h>
+#include <VersionHelpers.h>
 
 #endif
 
@@ -1584,10 +1585,20 @@ string Util::getOsVersion(bool http /*false*/, bool doubleStr /*false*/) {
 							os = "Windows Server 2008 R2";
 						break;
 					case 2:
-						if (ver.wProductType == VER_NT_WORKSTATION)
-							os = "Windows 8";
-						else
-							os = "Windows Server 2012";
+						{
+							// http://msdn.microsoft.com/en-us/library/windows/desktop/dn302074(v=vs.85).aspx
+							if (IsWindows8Point1OrGreater()) {
+								if (IsWindowsServer())
+									os = "Windows Server 2012 R2";
+								else
+									os = "Windows 8.1";
+							} else {
+								if (ver.wProductType == VER_NT_WORKSTATION)
+									os = "Windows 8";
+								else
+									os = "Windows Server 2012";
+							}
+						}
 						break;
 					case 3:
 						if (ver.wProductType == VER_NT_WORKSTATION)
