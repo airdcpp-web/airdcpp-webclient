@@ -3413,7 +3413,7 @@ void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, B
 
 			string tmp = STRING_F(BUNDLE_MOVED, sourceBundle->getName().c_str() % sourceBundle->getTarget().c_str());
 			if (merged > 0)
-				tmp += str(boost::format(" (" + STRING(EXISTING_BUNDLES_MERGED) + ")") % merged);
+				tmp += " (" + STRING_F(EXISTING_BUNDLES_MERGED, merged) + ")";
 
 			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
 		}
@@ -3836,17 +3836,11 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) {
 	} else if(SETTING(REPORT_ALTERNATES)) {
 		//if (aBundle->getSimpleMatching()) {
 			if (aBundle->isRecent()) {
-				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH_RECENT) + 
-				" " + (STRING(NEXT_RECENT_SEARCH_IN))) % 
-					aBundle->getName().c_str() % 
-					searchCount % 
-					nextSearch), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % searchCount) + 
+					" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearch), LogManager::LOG_INFO);
 			} else {
-				LogManager::getInstance()->message(str(boost::format(STRING(BUNDLE_ALT_SEARCH) + 
-					" " + (STRING(NEXT_SEARCH_IN))) % 
-					aBundle->getName().c_str() % 
-					searchCount % 
-					nextSearch), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % searchCount) +
+					" " + STRING_F(NEXT_SEARCH_IN, nextSearch), LogManager::LOG_INFO);
 			}
 		/*} else {
 			if (!aBundle->isRecent()) {

@@ -211,7 +211,8 @@ int DirectoryMonitor::Server::read() {
 				if (dwError != 0 || !ret) {
 					// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
 					// The documentation only states the code ERROR_NOTIFY_ENUM_DIR for this, but according to the testing ERROR_NOT_ENOUGH_QUOTA and ERROR_ALREADY_EXISTS seem to be used instead....
-					if (dwError == ERROR_NOTIFY_ENUM_DIR || dwError == ERROR_NOT_ENOUGH_QUOTA || dwError == ERROR_ALREADY_EXISTS) {
+					// (and ERROR_TOO_MANY_CMDS with network drives)
+					if (dwError == ERROR_NOTIFY_ENUM_DIR || dwError == ERROR_NOT_ENOUGH_QUOTA || dwError == ERROR_ALREADY_EXISTS || dwError == ERROR_TOO_MANY_CMDS) {
 						(*mon)->beginRead();
 						(*mon)->server->base->addTask(DirectoryMonitor::TYPE_OVERFLOW, new StringTask(Text::fromT((*mon)->path)));
 					} else {
