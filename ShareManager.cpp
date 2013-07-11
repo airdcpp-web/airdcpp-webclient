@@ -139,7 +139,7 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 	if(!loadCache(progressF)) {
 		if (splashF)
 			splashF(STRING(REFRESHING_SHARE));
-		refresh(false, TYPE_STARTUP, progressF);
+		refresh(false, TYPE_STARTUP_BLOCKING, progressF);
 	}
 
 	addAsyncTask([this] {
@@ -162,6 +162,9 @@ void ShareManager::startup(function<void (const string&)> splashF, function<void
 		//monitor->addDirectory(R"(C:\)");
 		addMonitoring(monitorPaths);
 		TimerManager::getInstance()->addListener(this);
+
+		if (SETTING(STARTUP_REFRESH))
+			refresh(false, TYPE_STARTUP_DELAYED);
 	});
 }
 
@@ -2095,7 +2098,7 @@ int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aR
 		return REFRESH_IN_PROGRESS;
 	}
 
-	if(aRefreshType == TYPE_STARTUP && aTask == REFRESH_ALL) { 
+	if(aRefreshType == TYPE_STARTUP_BLOCKING && aTask == REFRESH_ALL) { 
 		runTasks(progressF);
 	} else {
 		try {
@@ -2448,6 +2451,8 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 		}
 
 		auto task = static_cast<ShareTask*>(t.second);
+		if (task->type == TYPE_STARTUP_DELAYED)
+			Sleep(5000); // let the client start first
 
 		//get unfinished directories and erase exact matches
 		bundleDirs.clear();
@@ -2508,7 +2513,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			}
 		};
 
-		if (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_ALWAYS || (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_MANUAL && (task->type == TYPE_MANUAL || task->type == TYPE_STARTUP))) {
+		if (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_ALWAYS || (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_MANUAL && (task->type == TYPE_MANUAL || task->type == TYPE_STARTUP_BLOCKING))) {
 			parallel_for_each(refreshDirs.begin(), refreshDirs.end(), doRefresh);
 		} else {
 			for_each(refreshDirs, doRefresh);

@@ -200,7 +200,7 @@ const string SettingsManager::settingTags[] =
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
-	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths",
+	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -366,7 +366,7 @@ SettingsManager::SettingsManager()
 	setDefault(BOLD_PM, true);
 	setDefault(BOLD_SEARCH, true);
 	setDefault(BOLD_WAITING_USERS, true);
-	setDefault(AUTO_REFRESH_TIME, 120);
+	setDefault(AUTO_REFRESH_TIME, 0);
 	setDefault(AUTO_SEARCH_LIMIT, 15);
 	setDefault(AUTO_KICK_NO_FAVS, false);
 	setDefault(PROMPT_PASSWORD, true);
@@ -799,7 +799,7 @@ SettingsManager::SettingsManager()
 	setDefault(PM_LOG_GROUP_CID, true);
 	setDefault(SHARE_FOLLOW_SYMLINKS, true);
 	setDefault(SCAN_MONITORED_FOLDERS, true);
-	setDefault(MONITORING_MODE, MONITORING_INCOMING);
+	setDefault(MONITORING_MODE, MONITORING_ALL);
 	setDefault(FINISHED_NO_HASH, false);
 	setDefault(MONITORING_DELAY, 30);
 	setDefault(DELAY_COUNT_MODE, DELAY_VOLUME);
@@ -809,6 +809,7 @@ SettingsManager::SettingsManager()
 
 	setDefault(MAX_RUNNING_BUNDLES, 0);
 	setDefault(DEFAULT_SP, 0);
+	setDefault(STARTUP_REFRESH, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

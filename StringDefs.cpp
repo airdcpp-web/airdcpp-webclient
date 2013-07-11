@@ -1784,6 +1784,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Do you want to set the current ADC hubs using the old default profile \"%1%\" to use the new default profile \"%2%\"?", 
 "New...", 
 "New", 
+"Refresh the share after client startup", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3568,4 +3569,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ChangeSpAskHubs", 
 "NewDots", 
 "New", 
+"SettingsStartupRefresh", 
 };

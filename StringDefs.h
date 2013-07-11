@@ -1788,5 +1788,6 @@ enum Strings { // @DontAdd
 	CHANGE_SP_ASK_HUBS, // "Do you want to set the current ADC hubs using the old default profile \"%1%\" to use the new default profile \"%2%\"?"
 	NEW_DOTS, // "New..."
 	NEW, // "New"
+	SETTINGS_STARTUP_REFRESH, // "Refresh the share after client startup"
 	LAST // @DontAdd
 };
