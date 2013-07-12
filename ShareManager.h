@@ -85,7 +85,7 @@ public:
 
 	// item currently exists in the profile
 	bool isCurItem() const {
-		return diffState == DIFF_NORMAL && state != STATE_REMOVED;
+		return diffState != DIFF_REMOVED && state != STATE_REMOVED;
 	}
 
 	string vname;

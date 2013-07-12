@@ -234,7 +234,9 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	getRunningBundles(runningBundles);
 
 	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType);
-	if(!start && dlType != QueueItemBase::TYPE_SMALL) { //add small slot connections to idlers instead of disconnecting
+
+	// not a finished download?
+	if(!start && aConn->getState() != UserConnection::STATE_RUNNING) {
 		aConn->setDownload(nullptr);
 		removeRunningUser(aConn);
 		removeConnection(aConn);
@@ -242,7 +244,11 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	}
 
 	string errorMessage, newUrl;
-	Download* d = QueueManager::getInstance()->getDownload(*aConn, runningBundles, hubs, errorMessage, newUrl, dlType);
+	Download* d = nullptr;
+
+	if (start)
+		d = QueueManager::getInstance()->getDownload(*aConn, runningBundles, hubs, errorMessage, newUrl, dlType);
+
 	if(!d) {
 		aConn->setDownload(nullptr);
 		aConn->unsetFlag(UserConnection::FLAG_RUNNING);

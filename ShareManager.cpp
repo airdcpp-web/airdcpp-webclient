@@ -1358,6 +1358,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 				throw("Newer cache version"); //don't load those...
 
 			cur->addBloom(*bloom);
+			dirNameMapNew.emplace(const_cast<string*>(&cur->name.getLower()), cur);
 			cur->setLastWrite(Util::toUInt32(getAttrib(attribs, DATE, 2)));
 		}
 	}
@@ -1816,6 +1817,10 @@ bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
 }
 
 void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
+	// make sure that the root gets also added...
+	aDirs.emplace(const_cast<string*>(&aDir->name.getLower()), aDir);
+	aDir->addBloom(aBloom);
+
 	FileFindIter end;
 
 #ifdef _WIN32
@@ -1879,9 +1884,6 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 				aDir->directories.erase_key(dir->name.getLower());
 				continue;
 			}
-
-			aDirs.emplace(const_cast<string*>(&dir->name.getLower()), dir);
-			dir->addBloom(aBloom);
 		} else {
 			// Not a directory, assume it's a file...
 			//string path = aPath + name;
@@ -2425,7 +2427,6 @@ ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr
 
 	//create the new root
 	root = Directory::create(Util::getLastDir(aPath), nullptr, aLastWrite, aOldRoot ? aOldRoot->getProfileDir() : nullptr);
-	dirNameMapNew.emplace(const_cast<string*>(&root->name.getLower()), root);
 	if (aOldRoot && aOldRoot->getProfileDir() && aOldRoot->getProfileDir()->isSet(ProfileDirectory::FLAG_ROOT)) {
 		rootPathsNew[Text::toLower(aPath)] = root;
 	}

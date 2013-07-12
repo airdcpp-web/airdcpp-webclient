@@ -1564,7 +1564,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Transfer rate limiting", 
 "hours", 
 "Match own list with ADL search", 
-"Warn me about Insufficient space left on target drive", 
+"Warn me about insufficient space left on target drive", 
 "The SFV file is too large to be loaded (%1%)", 
 "Failed to open the SFV file", 
 "The remote user doesn't support %1% protocol", 
