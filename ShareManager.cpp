@@ -2072,32 +2072,37 @@ int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aR
 	tasks.add(aTask, unique_ptr<Task>(new ShareTask(dirs, displayName, aRefreshType)));
 
 	if(refreshing.test_and_set()) {
-		string msg;
-		switch (aTask) {
-			case(REFRESH_ALL):
+		if (aRefreshType != TYPE_STARTUP_DELAYED) {
+			//this is always called from the task thread...
+			string msg;
+			switch (aTask) {
+			case(REFRESH_ALL) :
 				msg = STRING(REFRESH_QUEUED);
 				break;
-			case(REFRESH_DIRS):
+			case(REFRESH_DIRS) :
 				if (!displayName.empty()) {
 					msg = STRING_F(VIRTUAL_REFRESH_QUEUED, displayName);
-				} else if (dirs.size() == 1) {
+				}
+				else if (dirs.size() == 1) {
 					msg = STRING_F(DIRECTORY_REFRESH_QUEUED, *dirs.begin());
 				}
 				break;
-			case(ADD_DIR):
+			case(ADD_DIR) :
 				if (dirs.size() == 1) {
 					msg = STRING_F(ADD_DIRECTORY_QUEUED, *dirs.begin());
-				} else {
+				}
+				else {
 					msg = STRING_F(ADD_DIRECTORIES_QUEUED, dirs.size());
 				}
 				break;
-			case(REFRESH_INCOMING):
+			case(REFRESH_INCOMING) :
 				msg = STRING(INCOMING_REFRESH_QUEUED);
 				break;
-		};
+			};
 
-		if (!msg.empty()) {
-			LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+			if (!msg.empty()) {
+				LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+			}
 		}
 		return REFRESH_IN_PROGRESS;
 	}
@@ -2448,14 +2453,14 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			continue;
 		}
 
+		auto task = static_cast<ShareTask*>(t.second);
+		if (task->type == TYPE_STARTUP_DELAYED)
+			Sleep(5000); // let the client start first
+
 		refreshRunning = true;
 		if (!pauser) {
 			pauser = make_unique<HashManager::HashPauser>();
 		}
-
-		auto task = static_cast<ShareTask*>(t.second);
-		if (task->type == TYPE_STARTUP_DELAYED)
-			Sleep(5000); // let the client start first
 
 		//get unfinished directories and erase exact matches
 		bundleDirs.clear();
