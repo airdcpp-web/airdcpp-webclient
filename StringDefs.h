@@ -1568,7 +1568,7 @@ enum Strings { // @DontAdd
 	TRASFER_RATE_LIMITING, // "Transfer rate limiting"
 	HOURS_LOWER, // "hours"
 	OWN_LIST_ADL, // "Match own list with ADL search"
-	SETTINGS_USE_SPACE_WARNING, // "Warn me about Insufficient space left on target drive"
+	SETTINGS_USE_SPACE_WARNING, // "Warn me about insufficient space left on target drive"
 	SFV_TOO_LARGE, // "The SFV file is too large to be loaded (%1%)"
 	CANT_OPEN_SFV, // "Failed to open the SFV file"
 	REMOTE_PROTOCOL_UNSUPPORTED, // "The remote user doesn't support %1% protocol"
