@@ -301,7 +301,7 @@ bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorEx
 
 	init();
 
-	Monitor* mon = new Monitor(aPath, this, 0, 16*1024, true);
+	Monitor* mon = new Monitor(aPath, this, 0, 32*1024, true);
 	try {
 		mon->openDirectory(m_hIOCP);
 

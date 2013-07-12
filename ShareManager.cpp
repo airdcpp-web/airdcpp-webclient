@@ -258,11 +258,13 @@ void ShareManager::DirModifyInfo::setPath(const string& aPath) {
 	path = aPath;
 }
 
-ShareManager::DirModifyInfo::DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0), dirAction(aAction) {
+ShareManager::DirModifyInfo::DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0) {
 	volume = File::getMountPath(aFile);
 	if (isDirectory) {
+		dirAction = aAction;
 		setPath(aFile);
 	} else {
+		dirAction = ACTION_NONE;
 		setPath(Util::getFilePath(aFile));
 		files.emplace(aFile, aAction);
 	}
