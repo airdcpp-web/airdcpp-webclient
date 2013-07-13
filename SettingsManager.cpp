@@ -200,7 +200,7 @@ const string SettingsManager::settingTags[] =
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
-	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh",
+	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -806,6 +806,7 @@ SettingsManager::SettingsManager()
 
 	setDefault(CONFIRM_FILE_DELETIONS, true);
 	setDefault(USE_DEFAULT_CERT_PATHS, true);
+	setDefault(DCTMP_STORE_DESTINATION, true);
 
 	setDefault(MAX_RUNNING_BUNDLES, 0);
 	setDefault(DEFAULT_SP, 0);

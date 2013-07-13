@@ -286,7 +286,9 @@ const string& QueueItem::getTempTarget() {
 	if (isSet(FLAG_OPEN) || (isSet(FLAG_CLIENT_VIEW) && isSet(FLAG_TEXT))) {
 		setTempTarget(target);
 	} else if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
-		if(!SETTING(TEMP_DOWNLOAD_DIRECTORY).empty() && (File::getSize(getTarget()) == -1)) {
+		if (SETTING(DCTMP_STORE_DESTINATION)) {
+			setTempTarget(target + TEMP_EXTENSION);
+		} else if(!SETTING(TEMP_DOWNLOAD_DIRECTORY).empty() && (File::getSize(getTarget()) == -1)) {
 #ifdef _WIN32
 			ParamMap sm;
 			if(target.length() >= 3 && target[1] == ':' && target[2] == '\\')

@@ -246,7 +246,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
 					bool startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, isSmall ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, bundleToken, allowUrlChange, hasDownload);
-					if (!hasDownload && isSmall) {
+					if (!hasDownload && isSmall && count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { return aCQI != cqi && aCQI->getUser() == cqi->getUser(); }) == 0) {
 						//the small file finished already? try with any type
 						cqi->setType(ConnectionQueueItem::TYPE_ANY);
 						startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY, bundleToken, allowUrlChange, hasDownload);

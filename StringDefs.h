@@ -1056,7 +1056,6 @@ enum Strings { // @DontAdd
 	DOWNLOAD_LIMITS, // "Download limits"
 	SETTINGS_PROFILE, // "Settings profile"
 	SETTINGS_MCN_NOTE, // "* Lowering the upload connections from the default value will result the download connections to be set to the same value"
-	SETTINGS_USE_TARGETDRIVE, // "Use target drive for unfinished files"
 	CHECK_USE_SKIPLIST, // "Ignore items matching the share skiplist"
 	CHECK_IGNORE_ZERO_BYTE, // "Ignore zero byte files"
 	NO_FILES_AVAILABLE, // "No files to download"
@@ -1789,5 +1788,6 @@ enum Strings { // @DontAdd
 	NEW_DOTS, // "New..."
 	NEW, // "New"
 	SETTINGS_STARTUP_REFRESH, // "Refresh the share after client startup"
+	UNFINISHED_STORE_DESTINATION, // "Store unfinished files in the final destination directory"
 	LAST // @DontAdd
 };

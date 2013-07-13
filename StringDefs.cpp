@@ -1052,7 +1052,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Download limits", 
 "Settings profile", 
 "* Lowering the upload connections from the default value will result the download connections to be set to the same value", 
-"Use target drive for unfinished files", 
 "Ignore items matching the share skiplist", 
 "Ignore zero byte files", 
 "No files to download", 
@@ -1785,6 +1784,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "New...", 
 "New", 
 "Refresh the share after client startup", 
+"Store unfinished files in the final destination directory", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -2837,7 +2837,6 @@ std::string dcpp::ResourceManager::names[] = {
 "DownloadLimits", 
 "SettingsProfile", 
 "SettingsMcnNote", 
-"SettingsUseTargetdrive", 
 "CheckUseSkiplist", 
 "CheckIgnoreZeroByte", 
 "NoFilesAvailable", 
@@ -3570,4 +3569,5 @@ std::string dcpp::ResourceManager::names[] = {
 "NewDots", 
 "New", 
 "SettingsStartupRefresh", 
+"UnfinishedStoreDestination", 
 };
