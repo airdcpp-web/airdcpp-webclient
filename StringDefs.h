@@ -1789,5 +1789,7 @@ enum Strings { // @DontAdd
 	NEW, // "New"
 	SETTINGS_STARTUP_REFRESH, // "Refresh the share after client startup"
 	UNFINISHED_STORE_DESTINATION, // "Store unfinished files in the final destination directory"
+	QUEUED_DUPE_PATHS, // "Dupe paths (queue)"
+	SHARED_DUPE_PATHS, // "Dupe paths (share)"
 	LAST // @DontAdd
 };

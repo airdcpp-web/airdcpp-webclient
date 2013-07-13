@@ -1785,6 +1785,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "New", 
 "Refresh the share after client startup", 
 "Store unfinished files in the final destination directory", 
+"Dupe paths (queue)", 
+"Dupe paths (share)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3570,4 +3572,6 @@ std::string dcpp::ResourceManager::names[] = {
 "New", 
 "SettingsStartupRefresh", 
 "UnfinishedStoreDestination", 
+"QueuedDupePaths", 
+"SharedDupePaths", 
 };

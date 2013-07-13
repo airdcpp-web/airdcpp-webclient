@@ -70,7 +70,7 @@ public:
 	void addDirectory(const string& aPath, BundlePtr aBundle);
 	void removeDirectory(const string& aPath);
 	Bundle::BundleDirMap::iterator findLocalDir(const string& aPath);
-	pair<string, BundlePtr> findRemoteDir(const string& aPath) const;
+	void findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const;
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const;
 private:

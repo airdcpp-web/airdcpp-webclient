@@ -64,9 +64,11 @@ time_t AirUtil::awayTime;
 
 string AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
 	if (aType == SHARE_DUPE || aType == PARTIAL_SHARE_DUPE) {
-		return ShareManager::getInstance()->getDirPath(aPath);
+		auto ret = ShareManager::getInstance()->getDirPaths(aPath);
+		return ret.empty() ? Util::emptyString : ret.front();
 	} else {
-		return QueueManager::getInstance()->getDirPath(aPath);
+		auto ret = QueueManager::getInstance()->getDirPaths(aPath);
+		return ret.empty() ? Util::emptyString : ret.front();
 	}
 }
 

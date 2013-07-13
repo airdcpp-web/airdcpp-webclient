@@ -172,7 +172,7 @@ public:
 	bool isFileShared(const TTHValue& aTTH, const string& fileName, ProfileToken aProfile) const;
 
 	bool allowAddDir(const string& dir);
-	string getDirPath(const string& directory);
+	StringList getDirPaths(const string& aDir);
 
 	bool loadCache(function<void (float)> progressF);
 
@@ -333,6 +333,7 @@ private:
 		typedef boost::intrusive_ptr<Directory> Ptr;
 		typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
 		typedef Map::iterator MapIter;
+		typedef std::vector<Directory::Ptr> List;
 
 		struct NameLower {
 			const string& operator()(const Ptr& a) const { return a->name.getLower(); }
@@ -458,7 +459,7 @@ private:
 
 	struct FileListDir {
 		typedef unordered_map<string, FileListDir*, noCaseStringHash, noCaseStringEq> ListDirectoryMap;
-		vector<Directory::Ptr> shareDirs;
+		Directory::List shareDirs;
 
 		FileListDir(const string& aName, int64_t aSize, int aDate);
 		~FileListDir();
@@ -473,7 +474,7 @@ private:
 	};
 
 	void addAsyncTask(AsyncF aF);
-	Directory::Ptr getDirByName(const string& directory) const;
+	void getDirsByName(const string& aPath, Directory::List& dirs_) const;
 
 	/* Directory items mapped to realpath*/
 	typedef map<string, Directory::Ptr> DirMap;
@@ -532,9 +533,6 @@ private:
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
 	typedef unordered_multimap<string*, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMultiMap; 
-
-	//list to return multiple directory item pointers
-	typedef std::vector<Directory::Ptr> DirectoryList;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	DirMap rootPaths;
@@ -599,14 +597,14 @@ private:
 	
 	StringList bundleDirs;
 
-	void getByVirtual(const string& virtualName, ProfileToken aProfiles, DirectoryList& dirs) const noexcept;
-	void getByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, DirectoryList& dirs) const noexcept;
-	//void findVirtuals(const string& virtualPath, ProfileToken aProfiles, DirectoryList& dirs) const;
+	void getByVirtual(const string& virtualName, ProfileToken aProfiles, Directory::List& dirs) const noexcept;
+	void getByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs) const noexcept;
+	//void findVirtuals(const string& virtualPath, ProfileToken aProfiles, Directory::List& dirs) const;
 
 	template<class T>
-	void findVirtuals(const string& virtualPath, const T& aProfile, DirectoryList& dirs) const {
+	void findVirtuals(const string& virtualPath, const T& aProfile, Directory::List& dirs) const {
 
-		DirectoryList virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
+		Directory::List virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
 		if(virtualPath.empty() || virtualPath[0] != '/') {
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}

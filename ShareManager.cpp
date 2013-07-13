@@ -1014,7 +1014,7 @@ void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenS
 			}
 		}
 	} else {
-		DirectoryList dirs;
+		Directory::List dirs;
 
 		RLock l (cs);
 		findVirtuals<ProfileTokenSet>(virtualFile, aProfiles, dirs);
@@ -1140,7 +1140,7 @@ void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToke
 	if(path.empty())
 		throw ShareException("empty virtual path");
 
-	DirectoryList dirs;
+	Directory::List dirs;
 
 	RLock l (cs);
 	findVirtuals<ProfileToken>(path, aProfile, dirs);
@@ -1632,7 +1632,7 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 #endif
 }
 
-void ShareManager::getByVirtual(const string& virtualName, ProfileToken aProfile, DirectoryList& dirs) const noexcept {
+void ShareManager::getByVirtual(const string& virtualName, ProfileToken aProfile, Directory::List& dirs) const noexcept {
 	for(const auto& d: rootPaths | map_values) {
 		if(d->getProfileDir()->hasRootProfile(aProfile) && stricmp(d->getProfileDir()->getName(aProfile), virtualName) == 0) {
 			dirs.push_back(d);
@@ -1640,7 +1640,7 @@ void ShareManager::getByVirtual(const string& virtualName, ProfileToken aProfile
 	}
 }
 
-void ShareManager::getByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, DirectoryList& dirs) const noexcept {
+void ShareManager::getByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs) const noexcept {
 	for(const auto& d: rootPaths | map_values) {
 		for(auto& k: d->getProfileDir()->getRootProfiles()) {
 			if(aProfiles.find(k.first) != aProfiles.end() && stricmp(k.second, virtualName) == 0) {
@@ -1705,49 +1705,62 @@ int64_t ShareManager::getTotalShareSize(ProfileToken aProfile) const noexcept {
 }
 
 bool ShareManager::isDirShared(const string& aDir) const {
+	Directory::List dirs;
+
 	RLock l (cs);
-	return getDirByName(aDir) ? true : false;
+	getDirsByName(aDir, dirs);
+	return !dirs.empty();
 }
 
 uint8_t ShareManager::isDirShared(const string& aDir, int64_t aSize) const {
+	Directory::List dirs;
+
 	RLock l (cs);
-	auto dir = getDirByName(aDir);
-	if (!dir)
+	getDirsByName(aDir, dirs);
+	if (dirs.empty())
 		return 0;
-	return dir->getTotalSize() == aSize ? 2 : 1;
+
+	return dirs.front()->getTotalSize() == aSize ? 2 : 1;
 }
 
-string ShareManager::getDirPath(const string& aDir) {
-	RLock l (cs);
-	auto dir = getDirByName(aDir);
-	if (!dir)
-		return Util::emptyString;
+StringList ShareManager::getDirPaths(const string& aDir) {
+	Directory::List dirs;
+	StringList ret;
 
-	return dir->getRealPath(true);
+	{
+		RLock l(cs);
+		getDirsByName(aDir, dirs);
+
+		for (const auto& dir : dirs) {
+			ret.push_back(dir->getRealPath(true));
+		}
+	}
+
+	return ret;
 }
 
 /* This isn't optimized for matching subdirs but there shouldn't be need to match many of those 
    at once (especially not in filelists, but there might be some when searching though) */
-ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) const {
-	if (aDir.size() < 3)
-		return nullptr;
+void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) const {
+	if (aPath.size() < 3)
+		return;
 
 	//get the last directory, we might need the position later with subdirs
-	string dir = aDir;
+	string dir = aPath;
 	if (dir[dir.length()-1] == PATH_SEPARATOR)
-		dir.erase(aDir.size()-1, aDir.size());
+		dir.erase(aPath.size() - 1, aPath.size());
 	auto pos = dir.rfind(PATH_SEPARATOR);
 	if (pos != string::npos)
 		dir = dir.substr(pos+1);
 
 	const auto directories = dirNameMap.equal_range(&dir);
 	if (directories.first == directories.second)
-		return nullptr;
+		return;
 
 	//check the parents for dirs like CD1 to prevent false matches
 	if (boost::regex_match(dir, AirUtil::subDirRegPlain) && pos != string::npos) {
 		string::size_type i, j;
-		dir = PATH_SEPARATOR + aDir;
+		dir = PATH_SEPARATOR + aPath;
 
 		for(auto s = directories.first; s != directories.second; ++s) {
 			//start matching from the parent dir, as we know the last one already
@@ -1765,7 +1778,8 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 				auto remoteDir = dir.substr(j+1, i-j);
 				if(stricmp(cur->name.getLower(), remoteDir) == 0) {
 					if (!boost::regex_match(remoteDir, AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
-						return s->second;
+						//return s->second;
+						dirs_.push_back(s->second);
 					}
 				} else {
 					//this is something different... continue to next match
@@ -1776,10 +1790,8 @@ ShareManager::Directory::Ptr ShareManager::getDirByName(const string& aDir) cons
 			}
 		}
 	} else {
-		return directories.first->second;
+		dirs_.push_back(directories.first->second);
 	}
-
-	return nullptr;
 }
 
 bool ShareManager::isFileShared(const TTHValue& aTTH, const string& /*fileName*/) const {
@@ -2281,7 +2293,7 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 					File::deleteFile(sd->getProfileDir()->getCacheXmlPath());
 
 					//no parent directories, get all child roots for this
-					DirectoryList subDirs;
+					Directory::List subDirs;
 					for(auto& sdp: rootPaths) {
 						if(AirUtil::isSub(sdp.first, rd->path)) {
 							subDirs.push_back(sdp.second);
@@ -2794,7 +2806,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 		} else {
 			dcdebug("wanted %s \n", dir);
 			try {
-				DirectoryList result;
+				Directory::List result;
 				findVirtuals<ProfileToken>(dir, aProfile, result); 
 				if (!result.empty()) {
 					root->shareDirs = result;
@@ -2985,11 +2997,10 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void (float)> pr
 		progressF(0);
 
 	int cur = 0;
+	Directory::List dirtyDirs;
 
 	{
 		RLock l(cs);
-
-		DirectoryList dirtyDirs;
 		//boost::algorithm::copy_if(
 		boost::algorithm::copy_if(rootPaths | map_values, back_inserter(dirtyDirs), [](const Directory::Ptr& aDir) { return aDir->getProfileDir()->getCacheDirty() && !aDir->getParent(); });
 
@@ -3070,10 +3081,10 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 	string tths;
 	string tmp;
 	StringOutputStream sos(tths);
+	Directory::List result;
 
 	try{
 		RLock l(cs);
-		DirectoryList result;
 		findVirtuals<ProfileToken>(dir, aProfile, result); 
 		for(const auto& it: result) {
 			//dcdebug("result name %s \n", (*it)->getProfileDir()->getName(aProfile));
@@ -3374,7 +3385,7 @@ bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults,
 		return false;
 
 	//get all dirs with this path
-	DirectoryList result;
+	Directory::List result;
 
 	try {
 		findVirtuals<ProfileToken>(Util::toAdcFile(path), aProfile, result);
@@ -3507,7 +3518,7 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 				j->second->search(results, srch, maxResults, aProfile);
 		}
 	} else {
-		DirectoryList result;
+		Directory::List result;
 		findVirtuals<ProfileToken>(aDir, aProfile, result);
 		for(auto j = result.begin(); (j != result.end()) && (results.size() < maxResults); ++j) {
 			if ((*j)->hasProfile(aProfile))

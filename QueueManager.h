@@ -192,7 +192,7 @@ public:
 	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, int64_t& fileSize_, string& tempTarget);
 	string getBundlePath(const string& aBundleToken) const;
 	uint8_t isDirQueued(const string& aDir) const;
-	string getDirPath(const string& aDir) const;
+	StringList getDirPaths(const string& aDir) const;
 
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles);

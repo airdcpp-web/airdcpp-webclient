@@ -239,12 +239,12 @@ BundlePtr BundleQueue::findBundle(const string& bundleToken) const {
 	return nullptr;
 }
 
-pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
-	if (aDir.size() < 3)
-		return { Util::emptyString, nullptr };
+void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const {
+	if (aPath.size() < 3)
+		return;
 
 	//get the last directory, we might need the position later with subdirs
-	string remoteDir = aDir;
+	string remoteDir = aPath;
 	if (remoteDir[remoteDir.length()-1] == PATH_SEPARATOR)
 		remoteDir.pop_back();
 
@@ -254,12 +254,12 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 
 	auto directories = bundleDirs.equal_range(remoteDir);
 	if (directories.first == directories.second)
-		return { Util::emptyString, nullptr };
+		return;
 
 	//check the parents for dirs like CD1 to prevent false matches
 	if (boost::regex_match(remoteDir, AirUtil::subDirRegPlain) && pos != string::npos) {
 		string::size_type i, j;
-		remoteDir = PATH_SEPARATOR + aDir;
+		remoteDir = PATH_SEPARATOR + aPath;
 
 		for(auto s = directories.first; s != directories.second; ++s) {
 			//start matching from the parent dir, as we know the last one already
@@ -272,7 +272,8 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 					break;
 				if(stricmp(remoteDir.substr(j+1, i-j), curDir.substr(curDir.length() - (remoteDir.length()-j)+1, i-j)) == 0) {
 					if (!boost::regex_match(remoteDir.substr(j+1, i-j), AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
-						return s->second;
+						paths_.emplace_back(s->second);
+						//return s->second;
 					}
 				} else {
 					//this is something different... continue to next match
@@ -281,11 +282,9 @@ pair<string, BundlePtr> BundleQueue::findRemoteDir(const string& aDir) const {
 				i = j - 1;
 			}
 		}
-
-		return { Util::emptyString, nullptr };
 	}
 
-	return directories.first->second;
+	paths_.emplace_back(directories.first->second);
 }
 
 void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const {

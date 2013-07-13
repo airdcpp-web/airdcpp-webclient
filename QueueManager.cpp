@@ -3010,10 +3010,17 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 	return !_outPartsInfo.empty();
 }
 
-string QueueManager::getDirPath(const string& aDirName) const {
+StringList QueueManager::getDirPaths(const string& aDirName) const {
+	Bundle::StringBundleList found;
+	StringList ret;
+
 	RLock l(cs);
-	auto dbp = bundleQueue.findRemoteDir(aDirName);
-	return dbp.first;
+	bundleQueue.findRemoteDirs(aDirName, found);
+	for (const auto& p : found) {
+		ret.push_back(p.first);
+	}
+
+	return ret;
 }
 
 void QueueManager::getUnfinishedPaths(StringList& retBundles) {
@@ -3079,13 +3086,14 @@ void QueueManager::setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus)
 }
 
 void QueueManager::shareBundle(const string& aName) {
-	BundlePtr b = nullptr;
+	Bundle::StringBundleList lst;
 	{
 		RLock l (cs);
-		b = bundleQueue.findRemoteDir(aName).second;
+		bundleQueue.findRemoteDirs(aName, lst);
 	}
 
-	if (b) {
+	if (!lst.empty()) {
+		auto b = lst.front().second;
 		setBundleStatus(b, Bundle::STATUS_FINISHED);
 		hashBundle(b); 
 		LogManager::getInstance()->message("The bundle " + aName + " has been added for hashing", LogManager::LOG_INFO);
@@ -3267,10 +3275,12 @@ void QueueManager::getDirItems(const BundlePtr& aBundle, const string& aDir, Que
 }
 
 uint8_t QueueManager::isDirQueued(const string& aDir) const {
+	Bundle::StringBundleList lst;
+
 	RLock l(cs);
-	auto bdp = bundleQueue.findRemoteDir(aDir);
-	if (bdp.second) {
-		auto s = bdp.second->getPathInfo(bdp.first);
+	bundleQueue.findRemoteDirs(aDir, lst);
+	if (!lst.empty()) {
+		auto s = lst.front().second->getPathInfo(lst.front().first);
 		if (s.first == 0) //no queued items
 			return 2;
 		else
