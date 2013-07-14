@@ -373,8 +373,6 @@ private:
 			GETSET(TTHValue, tth, TTH);
 
 			DualString name;
-		private:
-			File(const File* src);
 		};
 
 		//typedef set<Directory::Ptr, DirLess> Set;
@@ -538,7 +536,7 @@ private:
 	DirMap rootPaths;
 	DirMultiMap dirNameMap;
 
-	class RefreshInfo {
+	class RefreshInfo : boost::noncopyable {
 	public:
 		RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite);
 		~RefreshInfo();
@@ -559,9 +557,6 @@ private:
 				return ri.root->getProfileDir() ? ri.root->getProfileDir()->getRootProfiles();
 			}
 		};*/
-	private:
-		RefreshInfo(const RefreshInfo&);
-		RefreshInfo& operator=(const RefreshInfo&);
 	};
 
 	typedef std::list<RefreshInfo> RefreshInfoList;

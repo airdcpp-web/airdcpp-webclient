@@ -602,8 +602,6 @@ struct HashContained {
 	bool operator()(const DirectoryListing::File::Ptr i) const {
 		return tl.count((i->getTTH())) && (DeleteFunction()(i), true);
 	}
-private:
-	HashContained& operator=(HashContained&);
 };
 
 struct DirectoryEmpty {

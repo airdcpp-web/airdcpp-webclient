@@ -129,6 +129,15 @@ class FastAlloc : public FastAllocBase  {
 			}
 		}
 
+		// Avoid hiding placement new that's needed by the stl containers...
+		static void* operator new(size_t, void* m) {
+			return m;
+		}
+		// ...and the warning about missing placement delete...
+		static void operator delete(void*, void*) {
+			// ? We didn't allocate so...
+		}
+
 	protected:
 		~FastAlloc() { }
 
