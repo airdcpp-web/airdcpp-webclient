@@ -3735,6 +3735,7 @@ void ShareManager::changeExcludedDirs(const ProfileTokenStringList& aAdd, const 
 
 		//remove existing excludes
 		for(const auto i: aRemove) {
+			dirtyProfiles.insert(i.first);
 			auto pdPos = profileDirs.find(i.second);
 			if (pdPos != profileDirs.end() && pdPos->second->removeExcludedProfile(i.first) && !pdPos->second->hasRoots()) {
 				profileDirs.erase(pdPos);
