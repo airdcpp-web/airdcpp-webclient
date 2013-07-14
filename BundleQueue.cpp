@@ -273,7 +273,7 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 				if(stricmp(remoteDir.substr(j+1, i-j), curDir.substr(curDir.length() - (remoteDir.length()-j)+1, i-j)) == 0) {
 					if (!boost::regex_match(remoteDir.substr(j+1, i-j), AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
 						paths_.emplace_back(s->second);
-						//return s->second;
+						break;
 					}
 				} else {
 					//this is something different... continue to next match

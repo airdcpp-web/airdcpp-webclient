@@ -1778,8 +1778,8 @@ void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) co
 				auto remoteDir = dir.substr(j+1, i-j);
 				if(stricmp(cur->name.getLower(), remoteDir) == 0) {
 					if (!boost::regex_match(remoteDir, AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
-						//return s->second;
 						dirs_.push_back(s->second);
+						break;
 					}
 				} else {
 					//this is something different... continue to next match
