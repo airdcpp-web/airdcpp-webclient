@@ -761,7 +761,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 			if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 				cqi->setState(ConnectionQueueItem::ACTIVE);
 				if (uc->isSet(UserConnection::FLAG_MCN1)) {
-					if (cqi->getType() == ConnectionQueueItem::TYPE_SMALL) {
+					if (cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF) {
 						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
 						cqi->setType(ConnectionQueueItem::TYPE_SMALL_CONF);
 					} else {

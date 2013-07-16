@@ -1732,7 +1732,7 @@ StringList ShareManager::getDirPaths(const string& aDir) {
 		getDirsByName(aDir, dirs);
 
 		for (const auto& dir : dirs) {
-			ret.push_back(dir->getRealPath(true));
+			ret.push_back(dir->getRealPath(false));
 		}
 	}
 
