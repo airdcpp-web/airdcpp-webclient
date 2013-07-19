@@ -321,30 +321,36 @@ bool Identity::updateConnectMode(const Identity& me, const Client* aClient) {
 	bool meSupports6 = !me.getIp6().empty();
 
 	if (meSupports6 && !getIp6().empty()) {
-		newMode = isTcp6Active() ? MODE_ACTIVE_V6 : MODE_PASSIVE_V6; // IPv6: active / NAT-T
+		// IPv6? active / NAT-T
+		if (isTcp6Active())
+			newMode = MODE_ACTIVE_V6;
+		else if (me.isTcp6Active() || supports(AdcHub::NAT0_FEATURE))
+			newMode = MODE_PASSIVE_V6;
 	}
 
 	if ((newMode == MODE_NOCONNECT_IP || newMode == MODE_PASSIVE_V6) && !me.getIp4().empty()) {
 		if (!getIp4().empty()) {
 			auto isActive = isTcp4Active();
-			if (newMode == MODE_NOCONNECT_IP || isActive) { //passive v4 isn't any better than passive v6
+			if (isActive || (newMode == MODE_NOCONNECT_IP && (me.isTcp4Active() || supports(AdcHub::NAT0_FEATURE)))) {
+				//passive v4 isn't any better than passive v6
 				newMode = isActive ? MODE_ACTIVE_V4 : MODE_PASSIVE_V4;
 			}
 		}
 	}
 
 	if (newMode == MODE_NOCONNECT_IP) {
+		// the hub doesn't support hybrid connectivity or we weren't able to authenticate the secondary protocol? we are passive via that protocol in that case
 		if (isTcp4Active() && aClient->get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED) {
 			newMode = MODE_ACTIVE_V4;
 		} else if (isTcp6Active() && aClient->get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED) {
 			newMode = MODE_ACTIVE_V6;
 		} else if (!me.isTcpActive()) {
-			//this user is passive with no NAT-T
-			if (!supports(AdcHub::NAT0_FEATURE)) {
+			//this user is passive with no NAT-T (or the hub is hiding all IP addresses)
+			if (!supports(AdcHub::NAT0_FEATURE) && !aClient->isActive()) {
 				newMode = MODE_NOCONNECT_PASSIVE;
 			}
 		} else {
-			//could this other user still support the same protocol? can't know for sure
+			//could this user still support the same protocol? can't know for sure
 			newMode = meSupports6 ? MODE_PASSIVE_V6_UNKNOWN : MODE_PASSIVE_V4_UNKNOWN;
 		}
 	}

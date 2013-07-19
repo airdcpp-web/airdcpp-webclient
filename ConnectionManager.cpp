@@ -268,6 +268,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 							bool protocolError = false;
 
 							if (!ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken(), allowUrlChange, lastError, hubHint, protocolError)) {
+								cqi->setState(ConnectionQueueItem::WAITING);
 								cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1)); // protocol error
 								dcassert(!lastError.empty());
 								fire(ConnectionManagerListener::Failed(), cqi, lastError);

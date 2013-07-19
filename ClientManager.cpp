@@ -672,9 +672,12 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 			lastError_ = STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, lastError_);
 		} else if (ret == AdcCommand::ERROR_BAD_STATE) {
 			lastError_ = STRING(CONNECTING_IN_PROGRESS);
-		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
+		} else if (ret == AdcCommand::ERROR_FEATURE_MISSING) {
 			isProtocolError = true;
 			lastError_ = STRING(NO_NATT_SUPPORT);
+		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
+			isProtocolError = true;
+			lastError_ = STRING(UNABLE_CONNECT_USER);
 		}
 
 		return false;

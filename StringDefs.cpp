@@ -1787,6 +1787,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Store unfinished files in the final destination directory", 
 "Dupe paths (queue)", 
 "Dupe paths (share)", 
+"Unable to download from this user", 
+"Refresh in share", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3574,4 +3576,6 @@ std::string dcpp::ResourceManager::names[] = {
 "UnfinishedStoreDestination", 
 "QueuedDupePaths", 
 "SharedDupePaths", 
+"UnableConnectUser", 
+"RefreshInShare", 
 };

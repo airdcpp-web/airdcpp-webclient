@@ -1001,13 +1001,21 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, stri
 
 	//check the passive mode
 	if (user.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_PASSIVE) {
-		return AdcCommand::ERROR_PROTOCOL_GENERIC;
+		return AdcCommand::ERROR_FEATURE_MISSING;
 	}
 
 	//check the IP protocol
 	if (user.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_IP) {
-		failedProtocol_ = (!getMyIdentity().getIp6().empty() && !user.getIdentity().allowV6Connections()) ? "IPv6" : "IPv4";
-		return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
+		if ((!getMyIdentity().getIp6().empty() && !user.getIdentity().allowV6Connections())) {
+			failedProtocol_ = "IPv6";
+			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
+		}
+		if ((!getMyIdentity().getIp4().empty() && !user.getIdentity().allowV4Connections())) {
+			failedProtocol_ = "IPv4";
+			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
+		}
+
+		return AdcCommand::ERROR_PROTOCOL_GENERIC;
 	}
 
 	return AdcCommand::SUCCESS;

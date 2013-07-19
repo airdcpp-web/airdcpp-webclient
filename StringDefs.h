@@ -1791,5 +1791,7 @@ enum Strings { // @DontAdd
 	UNFINISHED_STORE_DESTINATION, // "Store unfinished files in the final destination directory"
 	QUEUED_DUPE_PATHS, // "Dupe paths (queue)"
 	SHARED_DUPE_PATHS, // "Dupe paths (share)"
+	UNABLE_CONNECT_USER, // "Unable to download from this user"
+	REFRESH_IN_SHARE, // "Refresh in share"
 	LAST // @DontAdd
 };
