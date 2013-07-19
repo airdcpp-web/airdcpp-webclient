@@ -985,6 +985,18 @@ int DirectoryListing::run() {
 
 				auto lt = static_cast<PartialLoadingTask*>(t.second);
 
+				MemoryInputStream* mis = nullptr;
+				if (isOwnList) {
+					mis = ShareManager::getInstance()->generatePartialList(lt->baseDir, false, Util::toInt(fileName));
+					if (!mis) {
+						// we are probably switch to a profile that doesn't have this dir... use the root instead
+						lt->baseDir = "/";
+						mis = ShareManager::getInstance()->generatePartialList(lt->baseDir, false, Util::toInt(fileName));
+						if (!mis)
+							throw Exception(CSTRING(FILE_NOT_AVAILABLE));
+					}
+				}
+
 				bool reloading = false;
 				auto bd = baseDirs.find(Text::toLower(lt->baseDir));
 				if (bd != baseDirs.end()) {
@@ -1028,12 +1040,8 @@ int DirectoryListing::run() {
 				
 				int dirsLoaded = 0;
 				if (isOwnList) {
-					auto mis = ShareManager::getInstance()->generatePartialList(lt->baseDir, false, Util::toInt(fileName));
-					if (mis) {
-						dirsLoaded = loadXML(*mis, true, lt->baseDir);
-					} else {
-						throw Exception(CSTRING(FILE_NOT_AVAILABLE));
-					}
+					dcassert(mis);
+					dirsLoaded = loadXML(*mis, true, lt->baseDir);
 				} else {
 					dirsLoaded = updateXML(lt->xml, lt->baseDir);
 				}
