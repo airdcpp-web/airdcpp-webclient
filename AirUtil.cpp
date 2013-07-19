@@ -573,7 +573,7 @@ const string AirUtil::getLinkUrl() {
 
 const string AirUtil::getReleaseRegLong(bool chat) {
 	if (chat)
-		return R"((?<=\s)(?=\S*[A-Z]\S*)(([A-Z0-9]|\w[A-Z0-9])[A-Za-z0-9-]*)(\.|_|(-(?=\S*\d{4}\S+)))(\S+)-(\w{2,})(?=(\W)?\s|$))";
+		return R"(((?<=\s)|^)(?=\S*[A-Z]\S*)(([A-Z0-9]|\w[A-Z0-9])[A-Za-z0-9-]*)(\.|_|(-(?=\S*\d{4}\S+)))(\S+)-(\w{2,})(?=(\W)?\s|$))";
 	else
 		return R"((?=\S*[A-Z]\S*)(([A-Z0-9]|\w[A-Z0-9])[A-Za-z0-9-]*)(\.|_|(-(?=\S*\d{4}\S+)))(\S+)-(\w{2,}))";
 }
