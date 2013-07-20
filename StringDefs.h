@@ -1793,5 +1793,7 @@ enum Strings { // @DontAdd
 	SHARED_DUPE_PATHS, // "Dupe paths (share)"
 	UNABLE_CONNECT_USER, // "Unable to download from this user"
 	REFRESH_IN_SHARE, // "Refresh in share"
+	BROWSE_VIA, // "Browse via"
+	LIST_SIZE_DIFF_NOTE, // "The share size in hub %1% (%2%) is different than in the current hub %3% (%4%). Do you want to reload the list?"
 	LAST // @DontAdd
 };

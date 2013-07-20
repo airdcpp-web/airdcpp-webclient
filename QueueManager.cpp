@@ -1841,13 +1841,13 @@ void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
 
 	// For partial-share
 	UploadManager::getInstance()->abortUpload(q->getTempTarget());
-	UserPtr u = nullptr;
+	//UserPtr u = nullptr;
 
 	{
 		WLock l(cs);
-		if(q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) {
-			u = q->getSources()[0].getUser();
-		}
+		//if(q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) {
+	//		u = q->getSources()[0].getUser();
+		//}
 
 		if (q->isSet(QueueItem::FLAG_MATCH_BUNDLE)) {
 			matchLists.right.erase(q->getTarget());
@@ -1865,13 +1865,13 @@ void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
 		}
 
 		if (!moved) {
-			fire(QueueManagerListener::Removed(), q, true);
+			fire(QueueManagerListener::Removed(), q, false);
 		}
 		fileQueue.remove(q);
 	}
 
-	if (u)
-		DirectoryListingManager::getInstance()->removeDirectoryDownload(u, q->getTempTarget(), q->isSet(QueueItem::FLAG_PARTIAL_LIST));
+	//if (u)
+	//	DirectoryListingManager::getInstance()->removeDirectoryDownload(u, q->getTempTarget(), q->isSet(QueueItem::FLAG_PARTIAL_LIST));
 
 	removeBundleItem(q, false, moved);
 	for(auto& u: x)

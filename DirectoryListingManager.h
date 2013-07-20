@@ -79,6 +79,7 @@ namespace dcpp {
 
 		void on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
 		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& aXml, const string& aBase) noexcept;
+		void on(QueueManagerListener::Removed, const QueueItemPtr& qi, bool finished) noexcept;
 
 		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	};

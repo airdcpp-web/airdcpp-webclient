@@ -205,7 +205,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 			if (p->second->getPartialList()) {
 				if(flags & QueueItem::FLAG_TEXT) {
 					//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
-					p->second->addPartialListTask(aXml, aRemotePath, [=] { processListAction(p->second, aRemotePath, flags); });
+					p->second->addPartialListTask(aXml, aRemotePath, false, [=] { processListAction(p->second, aRemotePath, flags); });
 					return;
 				}
 			}
@@ -385,6 +385,27 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 	}
 
 	createPartialList(aUser, aBase, aXML);
+}
+
+void DirectoryListingManager::on(QueueManagerListener::Removed, const QueueItemPtr& qi, bool finished) noexcept {
+	if (finished)
+		return;
+
+	if (qi->isSet(QueueItem::FLAG_USER_LIST)) {
+		auto u = qi->getSources()[0].getUser();
+		if (qi->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD))
+			removeDirectoryDownload(u, qi->getTempTarget(), qi->isSet(QueueItem::FLAG_PARTIAL_LIST));
+
+		if (qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && qi->isSet(QueueItem::FLAG_PARTIAL_LIST)) {
+			RLock l(cs);
+			auto p = viewedLists.find(u);
+			if (p != viewedLists.end()) {
+				if (p->second->getPartialList()) {
+					p->second->onRemovedQueue(qi->getTempTarget());
+				}
+			}
+		}
+	}
 }
 
 void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/) {

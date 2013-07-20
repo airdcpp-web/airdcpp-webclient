@@ -167,7 +167,6 @@ public:
 	int loadXML(InputStream& xml, bool updating, const string& aBase = "/");
 
 	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
-	bool downloadDir(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio=QueueItem::DEFAULT, ProfileToken aAutoSearch=0);
 	bool createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 
 	void openFile(File* aFile, bool isClientView);
@@ -207,12 +206,13 @@ public:
 
 	void addMatchADLTask();
 	void addListDiffTask(const string& aFile, bool aOwnList);
-	void addPartialListTask(const string& aXml, const string& aBase, std::function<void ()> f = nullptr);
+	void addPartialListTask(const string& aXml, const string& aBase, bool reloadAll = false, std::function<void ()> f = nullptr);
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
 	void addFilterTask();
 	void addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio=QueueItem::DEFAULT);
 
+	void addAsyncTask(std::function<void ()> f);
 	void close();
 
 	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
@@ -226,6 +226,8 @@ public:
 	Directory* findDirectory(const string& aName, const Directory* current) const;
 	
 	bool supportsASCH() const;
+
+	void onRemovedQueue(const string& aDir);
 private:
 	friend class ListLoader;
 
@@ -238,15 +240,9 @@ private:
 	int run();
 
 	enum Tasks {
-		SEARCH,
-		MATCH_QUEUE,
+		ASYNC,
 		CLOSE,
-		REFRESH_DIR,
-		LOAD_FILE,
-		MATCH_ADL,
-		LISTDIFF,
-		FILTER,
-		DIR_DOWNLOAD
+		FILTER
 	};
 
 	void runTasks();
@@ -272,6 +268,17 @@ private:
 	uint64_t lastResult;
 	string searchToken;
 	bool typingFilter;
+
+	void listDiffImpl(const string& aFile, bool aOwnList);
+	void loadFileImpl(const string& aInitialDir);
+	bool downloadDirImpl(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
+	void searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
+	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, std::function<void ()> completionF = nullptr);
+	void matchAdlImpl();
+	void matchQueueImpl();
+	void removedQueueImpl(const string& aDir);
+
+	void waitActionFinish() const;
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }
