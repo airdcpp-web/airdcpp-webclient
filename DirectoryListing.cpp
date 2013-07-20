@@ -43,7 +43,7 @@ using boost::range::for_each;
 using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
-	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
+	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), waiting(false), maxResultCount(0), curResultCount(0)
 {
 	running.clear();
@@ -186,20 +186,20 @@ void DirectoryListing::loadFile() {
 		string ext = Util::getFileExt(fileName);
 
 		dcpp::File ff(fileName, dcpp::File::READ, dcpp::File::OPEN);
-
+		root->setUpdateDate(ff.getLastModified());
 		if(stricmp(ext, ".bz2") == 0) {
 			FilteredInputStream<UnBZFilter, false> f(&ff);
-			loadXML(f, false);
+			loadXML(f, false, "/", ff.getLastModified());
 		} else if(stricmp(ext, ".xml") == 0) {
-			loadXML(ff, false);
+			loadXML(ff, false, "/", ff.getLastModified());
 		}
 	}
 }
 
 class ListLoader : public SimpleXMLReader::CallBack {
 public:
-	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, const string& aBase, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList) : 
-	  list(aList), cur(root), base(aBase), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList), dirsLoaded(0) { 
+	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, const string& aBase, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList, time_t aListDate) : 
+	  list(aList), cur(root), base(aBase), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList), dirsLoaded(0), listDate(aListDate) { 
 	}
 
 	virtual ~ListLoader() { }
@@ -221,6 +221,7 @@ private:
 	bool checkDupe;
 	bool partialList;
 	int dirsLoaded;
+	time_t listDate;
 };
 
 int DirectoryListing::updateXML(const string& xml, const string& aBase) {
@@ -228,8 +229,8 @@ int DirectoryListing::updateXML(const string& xml, const string& aBase) {
 	return loadXML(mis, true, aBase);
 }
 
-int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBase) {
-	ListLoader ll(this, root, aBase, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList);
+int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBase, time_t aListDate) {
+	ListLoader ll(this, root, aBase, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList, aListDate);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
@@ -298,7 +299,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if(!d) {
 				d = new DirectoryListing::Directory(cur, n, incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) : 
-					DirectoryListing::Directory::TYPE_NORMAL, (partialList && checkDupe), size, Util::toUInt32(date));
+					DirectoryListing::Directory::TYPE_NORMAL, listDate, (partialList && checkDupe), size, Util::toUInt32(date));
 				cur->directories.push_back(d);
 				if (updating && !incomp)
 					list->baseDirs[baseLower + Text::toLower(n) + '/'] = make_pair(d, true); //recursive partial lists
@@ -306,7 +307,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				if(!incomp) {
 					d->setComplete();
 				}
-				d->setDate(Util::toUInt32(date));
+				d->setRemoteDate(Util::toUInt32(date));
 			}
 			cur = d;
 			if (updating && cur->isComplete())
@@ -331,7 +332,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			for(auto& name: sl) {
 				auto s = find_if(cur->directories, [&name](DirectoryListing::Directory* dir) { return dir->getName() == name; });
 				if (s == cur->directories.end()) {
-					auto d = new DirectoryListing::Directory(cur, name, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, true);
+					auto d = new DirectoryListing::Directory(cur, name, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, listDate, true);
 					cur->directories.push_back(d);
 					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = make_pair(d, false);
 					cur = d;
@@ -346,7 +347,8 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			//set the dir as visited
 			p.second = true;
 
-			cur->setDate(Util::toUInt32(date));
+			cur->setUpdateDate(listDate);
+			cur->setRemoteDate(Util::toUInt32(date));
 		}
 
 		//set the root complete only after we have finished loading (will prevent possible problems like the GUI counting the size for this folder)
@@ -373,15 +375,15 @@ void ListLoader::endTag(const string& name) {
 	}
 }
 
-DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aDate) noexcept : 
-	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE), date(aDate) {
+DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept : 
+	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE), remoteDate(aRemoteDate) {
 	if (checkDupe && size > 0) {
 		dupe = SettingsManager::lanMode ? AirUtil::checkFileDupe(name, size) : AirUtil::checkFileDupe(tthRoot, name);
 	}
 }
 
-DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, bool checkDupe, const string& aSize, time_t aDate /*0*/) 
-		: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), date(aDate), loading(false) {
+DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate /*0*/)
+	: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), remoteDate(aRemoteDate), loading(false), updateDate(aUpdateDate) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
@@ -412,7 +414,7 @@ void DirectoryListing::Directory::search(OrderedStringSet& aResults, AdcSearch& 
 
 		if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
 			for(auto& f: files) {
-				if(aStrings.matchesFileLower(Text::toLower(f->getName()), f->getSize(), f->getDate())) {
+				if(aStrings.matchesFileLower(Text::toLower(f->getName()), f->getSize(), f->getRemoteDate())) {
 					aResults.insert(getPath());
 					break;
 				}
@@ -478,7 +480,7 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	}
 
 	string errorMsg;
-	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(target, hintedUser, aFiles, prio, aDir->getDate(), errorMsg);
+	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(target, hintedUser, aFiles, prio, aDir->getRemoteDate(), errorMsg);
 	if (!errorMsg.empty()) {
 		if (aAutoSearch == 0) {
 			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % getNick(false) % errorMsg), LogManager::LOG_WARNING);
@@ -920,6 +922,7 @@ int DirectoryListing::run() {
 void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) {
 	int64_t start = GET_TICK();
 	if (isOwnList && partialList) {
+		// we need the recursive list for this
 		auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
 		if (mis) {
 			loadXML(*mis, true);

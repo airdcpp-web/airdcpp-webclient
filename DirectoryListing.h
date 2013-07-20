@@ -62,9 +62,9 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
-		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aDate) noexcept;
+		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept;
 
-		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), date(rhs.date)
+		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), remoteDate(rhs.remoteDate)
 		{
 		}
 
@@ -81,7 +81,7 @@ public:
 		GETSET(Directory*, parent, Parent);
 		GETSET(bool, adls, Adls);
 		GETSET(DupeType, dupe, Dupe);
-		GETSET(time_t, date, Date);
+		GETSET(time_t, remoteDate, RemoteDate);
 		bool isQueued() {
 			return (dupe == QUEUE_DUPE || dupe == FINISHED_DUPE);
 		}
@@ -108,7 +108,7 @@ public:
 		List directories;
 		File::List files;
 
-		Directory(Directory* aParent, const string& aName, DirType aType, bool checkDupe = false, const string& aSize = Util::emptyString, time_t aDate = 0);
+		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool checkDupe = false, const string& aSize = Util::emptyString, time_t aRemoteDate = 0);
 
 		virtual ~Directory();
 
@@ -138,7 +138,8 @@ public:
 		GETSET(Directory*, parent, Parent);
 		GETSET(DirType, type, Type);
 		GETSET(DupeType, dupe, Dupe);
-		GETSET(time_t, date, Date);
+		GETSET(time_t, remoteDate, RemoteDate);
+		GETSET(time_t, updateDate, UpdateDate);
 		GETSET(bool, loading, Loading);
 
 		bool isComplete() const { return type == TYPE_ADLS || type == TYPE_NORMAL; }
@@ -150,7 +151,7 @@ public:
 
 	class AdlDirectory : public Directory {
 	public:
-		AdlDirectory(const string& aFullPath, Directory* aParent, const string& aName) : Directory(aParent, aName, Directory::TYPE_ADLS), fullPath(aFullPath) { }
+		AdlDirectory(const string& aFullPath, Directory* aParent, const string& aName) : Directory(aParent, aName, Directory::TYPE_ADLS, GET_TIME()), fullPath(aFullPath) { }
 
 		GETSET(string, fullPath, FullPath);
 	};
@@ -164,7 +165,7 @@ public:
 	int updateXML(const string& aXml, const string& aBase);
 
 	//return the number of loaded dirs
-	int loadXML(InputStream& xml, bool updating, const string& aBase = "/");
+	int loadXML(InputStream& xml, bool updating, const string& aBase = "/", time_t aListDate = GET_TIME());
 
 	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
 	bool createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);

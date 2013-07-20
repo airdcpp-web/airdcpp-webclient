@@ -460,7 +460,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 			if(is.isAutoQueue){
 				try {
 					QueueManager::getInstance()->createFileBundle(SETTING(DOWNLOAD_DIRECTORY) + currentFile->getName(),
-						currentFile->getSize(), currentFile->getTTH(), getUser(), currentFile->getDate());
+						currentFile->getSize(), currentFile->getTTH(), getUser(), currentFile->getRemoteDate());
 				} catch(const Exception&) { }
 			}
 
@@ -518,7 +518,7 @@ void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) {
 void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory* root) {
 	// Load default destination directory (index = 0)
 	destDirs.clear();
-	DestDir dir = { "ADLSearch", new DirectoryListing::Directory(root, "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS) };
+	DestDir dir = { "ADLSearch", new DirectoryListing::Directory(root, "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
 	destDirs.push_back(std::move(dir));
 
 	// Scan all loaded searches
@@ -544,7 +544,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 
 		if(isNew) {
 			// Add new destination directory
-			DestDir dir = { is.destDir, new DirectoryListing::Directory(root, "<<<" + is.destDir + ">>>", DirectoryListing::Directory::TYPE_ADLS) };
+			DestDir dir = { is.destDir, new DirectoryListing::Directory(root, "<<<" + is.destDir + ">>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
 			destDirs.push_back(std::move(dir));
 			is.ddIndex = ddIndex;
 		}
