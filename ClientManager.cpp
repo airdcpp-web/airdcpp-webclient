@@ -535,7 +535,7 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 		auto op = onlineUsers.equal_range(const_cast<CID*>(&p.getUser()->getCID())) | map_values;
 		for(const auto& ou: op) {
 			if(compare(ou->getIdentity().getSIDString(), userSID) == 0) {
-				p.setHubUrl(ou->getClient().getAddress());
+				p.setHubUrl(ou->getClient().getHubUrl());
 				return ou->getClient().getShareProfile();
 			}
 		}

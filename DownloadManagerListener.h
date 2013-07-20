@@ -56,7 +56,7 @@ public:
 	 * This is the first message sent before a download starts.
 	 * No other messages will be sent before this.
 	 */
-	virtual void on(Requesting, const Download*) noexcept { }
+	virtual void on(Requesting, const Download*, bool /*hubChanged*/) noexcept { }
 
 	/**
 	 * This is the first message sent before a download starts.
