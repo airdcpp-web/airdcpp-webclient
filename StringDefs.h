@@ -1795,5 +1795,6 @@ enum Strings { // @DontAdd
 	REFRESH_IN_SHARE, // "Refresh in share"
 	BROWSE_VIA, // "Browse via"
 	LIST_SIZE_DIFF_NOTE, // "The share size in hub %1% (%2%) is different than in the current hub %3% (%4%). Do you want to reload the list?"
+	UPDATED_ON_X, // "Updated on: %1%"
 	LAST // @DontAdd
 };
