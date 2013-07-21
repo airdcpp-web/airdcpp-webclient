@@ -1792,6 +1792,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Browse via", 
 "The share size in hub %1% (%2%) is different than in the current hub %3% (%4%). Do you want to reload the list?", 
 "Updated on: %1%", 
+"Open file list", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3584,4 +3585,5 @@ std::string dcpp::ResourceManager::names[] = {
 "BrowseVia", 
 "ListSizeDiffNote", 
 "UpdatedOnX", 
+"OpenFileList", 
 };
