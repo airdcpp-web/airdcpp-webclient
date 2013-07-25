@@ -502,7 +502,7 @@ bool DirectoryListing::downloadDirImpl(Directory* aDir, const string& aTarget, T
 	//check if there are incomplete dirs in a partial list
 	if (partialList && aDir->findIncomplete()) {
 		//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-		DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget + aDir->getName() + PATH_SEPARATOR, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, isClientView ? false : true);
+		DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, isClientView ? false : true);
 		return false;
 	}
 
@@ -840,7 +840,7 @@ void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize,
 }
 
 void DirectoryListing::addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio) {
-	addAsyncTask([=] { downloadDirImpl(aDir, aTarget, aTargetType, isSizeUnknown, prio); });
+	addAsyncTask([=] { downloadDirImpl(aDir, aTarget + aDir->getName() + PATH_SEPARATOR, aTargetType, isSizeUnknown, prio); });
 }
 
 void DirectoryListing::addAsyncTask(std::function<void ()> f) {
