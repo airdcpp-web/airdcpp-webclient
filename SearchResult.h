@@ -57,7 +57,7 @@ public:
 	string getSlotString() const;
 
 	string getFilePath() const;
-	const string& getFile() const { return file; }
+	const string& getPath() const { return path; }
 	int64_t getSize() const { return size; }
 	Types getType() const { return type; }
 	size_t getSlots() const { return slots; }
@@ -86,7 +86,7 @@ private:
 
 	TTHValue tth;
 	
-	string file;
+	string path;
 	string IP;
 	string token;
 	

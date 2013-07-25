@@ -928,12 +928,12 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				}
 
 				if (as->getMatchFullPath()) {
-					if (!as->match(sr->getFile()))
+					if (!as->match(sr->getPath()))
 						continue;
-					if (as->isExcluded(sr->getFile()))
+					if (as->isExcluded(sr->getPath()))
 						continue;
 				} else {
-					const string matchPath = move(sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getLastDir(sr->getFile()) : sr->getFileName());
+					const string matchPath = sr->getFileName();
 					if (!as->match(matchPath))
 						continue;
 					if (as->isExcluded(matchPath))
@@ -956,7 +956,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 	//extra checks outside the lock
 	for (auto& as: matches) {
 		if (as->getFileType() == SEARCH_TYPE_DIRECTORY) {
-			string dir = Util::getLastDir(sr->getFile());
+			string dir = Util::getLastDir(sr->getPath());
 
 			//check shared
 			if(as->getCheckAlreadyShared() && ShareManager::getInstance()->isDirShared(dir)) {
@@ -992,7 +992,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			if (rl.empty()) {
 				as->setStatus(AutoSearch::STATUS_COLLECTING);
 				fire(AutoSearchManagerListener::UpdateItem(), as, false);
-			} else if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getFile() == sr->getFile(); }) != rl.end()) {
+			} else if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getPath() == sr->getPath(); }) != rl.end()) {
 				//don't add the same result multiple times, makes the counting more reliable
 				return;
 			}
@@ -1103,7 +1103,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getFile(), sr->getUser(), as->getTarget(), as->getTargetType(), REPORT_SYSLOG, 
+			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getUser(), as->getTarget() + sr->getFileName() + PATH_SEPARATOR, as->getTargetType(), REPORT_SYSLOG,
 				(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken(), as->getRemove() || as->usingIncrementation());
 		} else {
 			TargetUtil::TargetInfo ti;
@@ -1131,7 +1131,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 		if(u) {
 			Client* client = &u->getClient();
 			if(client && client->isConnected()) {
-				client->Message(STRING(AUTO_SEARCH) + ": " + STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFile() % u->getIdentity().getNick()));
+				client->Message(STRING(AUTO_SEARCH) + ": " + STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getPath() % u->getIdentity().getNick()));
 			}
 
 			if(as->getRemove()) {

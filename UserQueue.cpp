@@ -65,7 +65,7 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
-		copy_if(i->second.begin(), i->second.end(), back_inserter(ql), [](QueueItemPtr q) { return !q->getBundle(); }); //bundle items will be added from the bundle queue
+		copy_if(i->second.begin(), i->second.end(), back_inserter(ql), [](const QueueItemPtr& q) { return !q->getBundle(); }); //bundle items will be added from the bundle queue
 	}
 
 	/* Bundles */

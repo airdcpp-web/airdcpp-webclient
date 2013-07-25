@@ -3380,7 +3380,7 @@ bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults,
 	const string path = srch.addParents ? (Util::getParentDir(aPath, true)) : aPath;
 
 	//have we added it already?
-	auto p = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getFile() == path; });
+	auto p = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getPath() == path; });
 	if (p != aResults.end())
 		return false;
 

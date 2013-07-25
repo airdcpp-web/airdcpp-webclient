@@ -1935,17 +1935,22 @@ endCheck:
 	}
 }
 
-void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept {
+void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > filterF /*nullptr*/) noexcept {
 	// @todo remove from finished items
 	QueueItemList ql;
 
 	{
 		RLock l(cs);
 		userQueue.getUserQIs(aUser, ql);
+
+		if (filterF) {
+			ql.erase(remove_if(ql.begin(), ql.end(), filterF), ql.end());
+		}
 	}
 
-	for(auto& qi: ql) 
+	for (auto& qi : ql) {
 		removeFileSource(qi, aUser, reason);
+	}
 
 	fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 }
@@ -2115,7 +2120,7 @@ void QueueManager::handleSlowDisconnect(const UserPtr& aUser, const string& aTar
 	switch (SETTING(DL_AUTO_DISCONNECT_MODE)) {
 		case SettingsManager::QUEUE_FILE: removeFileSource(aTarget, aUser, QueueItem::Source::FLAG_SLOW_SOURCE); break;
 		case SettingsManager::QUEUE_BUNDLE: removeBundleSource(aBundle, aUser, QueueItem::Source::FLAG_SLOW_SOURCE); break;
-		case SettingsManager::QUEUE_ALL: removeSource(aUser, QueueItem::Source::FLAG_SLOW_SOURCE); break;
+		case SettingsManager::QUEUE_ALL: removeSource(aUser, QueueItem::Source::FLAG_SLOW_SOURCE, [](const QueueItemPtr& aQI) { return aQI->getSources().size() > 1; }); break;
 	}
 }
 
@@ -2521,7 +2526,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		{
 			WLock l(cs);
 			auto& rl = searchResults[selQI->getTarget()];
-			if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getFile() == sr->getFile(); }) != rl.end()) {
+			if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getPath() == sr->getPath(); }) != rl.end()) {
 				//don't add the same result multiple times, makes the counting more reliable
 				return;
 			}
@@ -2567,7 +2572,7 @@ void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult
 			// Ignore...
 		}
 	} else {
-		string path = aQI->getBundle()->getMatchPath(aResult->getFile(), aQI->getTarget(), aResult->getUser().user->isSet(User::NMDC));
+		string path = aQI->getBundle()->getMatchPath(aResult->getPath(), aQI->getTarget(), aResult->getUser().user->isSet(User::NMDC));
 		if (!path.empty()) {
 			if (aResult->getUser().user->isSet(User::NMDC)) {
 				//A NMDC directory bundle, just add the sources without matching

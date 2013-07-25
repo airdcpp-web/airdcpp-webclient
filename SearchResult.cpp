@@ -27,17 +27,17 @@
 
 namespace dcpp {
 
-SearchResult::SearchResult(const string& aPath) : file(aPath), size(0), date(0), slots(0), type(TYPE_DIRECTORY), freeSlots(0), files(0) { }
+SearchResult::SearchResult(const string& aPath) : path(aPath), size(0), date(0), slots(0), type(TYPE_DIRECTORY), freeSlots(0), files(0) { }
 
 SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
-	int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection, int aFiles, int dirCount) :
+	int64_t aSize, const string& aPath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection, int aFiles, int dirCount) :
 
-	file(aFilePath), user(aUser), files(aFiles), folders(dirCount),
+	path(aPath), user(aUser), files(aFiles), folders(dirCount),
 	size(aSize), type(aType), slots(aSlots), freeSlots(aFreeSlots), IP(ip),
 	tth(aTTH), token(aToken), date(aDate), connection(aConnection) { }
 
-SearchResult::SearchResult(Types aType, int64_t aSize, const string& aFile, const TTHValue& aTTH, time_t aDate, int aFiles, int dirCount) :
-	file(aFile), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), slots(UploadManager::getInstance()->getSlots()), 
+SearchResult::SearchResult(Types aType, int64_t aSize, const string& aPath, const TTHValue& aTTH, time_t aDate, int aFiles, int dirCount) :
+	path(aPath), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), slots(UploadManager::getInstance()->getSlots()),
 	freeSlots(UploadManager::getInstance()->getFreeSlots()), files(aFiles), folders(dirCount),
 	tth(aTTH), date(aDate) { }
 
@@ -49,7 +49,7 @@ string SearchResult::toSR(const Client& c) const {
 	tmp.append("$SR ", 4);
 	tmp.append(Text::fromUtf8(c.getMyNick(), c.getEncoding()));
 	tmp.append(1, ' ');
-	string acpFile = Text::fromUtf8(file, c.getEncoding());
+	string acpFile = Text::fromUtf8(path, c.getEncoding());
 	if(type == TYPE_FILE) {
 		tmp.append(acpFile);
 		tmp.append(1, '\x05');
@@ -73,7 +73,7 @@ AdcCommand SearchResult::toRES(char aType) const {
 	AdcCommand cmd(AdcCommand::CMD_RES, aType);
 	cmd.addParam("SI", Util::toString(size));
 	cmd.addParam("SL", Util::toString(freeSlots));
-	cmd.addParam("FN", Util::toAdcFile(file));
+	cmd.addParam("FN", Util::toAdcFile(path));
 	if (!SettingsManager::lanMode && type != TYPE_DIRECTORY)
 		cmd.addParam("TR", getTTH().toBase32());
 	cmd.addParam("DM", Util::toString(date));
@@ -87,16 +87,21 @@ AdcCommand SearchResult::toRES(char aType) const {
 
 string SearchResult::getFileName() const { 
 	if(getType() == TYPE_FILE) 
-		return Util::getFileName(getFile()); 
+		return Util::getFileName(path); 
 
-	if(getFile().size() < 2)
-		return getFile();
+	if(path.size() < 2)
+		return path;
 
-	string::size_type i = getFile().rfind('\\', getFile().length() - 2);
-	if(i == string::npos)
-		return getFile();
+	string::size_type i = path.rfind('\\');
+	if (i == string::npos)
+		return path;
 
-	return getFile().substr(i + 1);
+	string::size_type j = path.rfind('\\', i - 1);
+	if (j == string::npos)
+		return i == path.length() - 1 ? path.substr(0, i) : path;
+
+	return path.substr(j + 1, i - j - 1);
+	//return Util::getLastDir(path);
 }
 
 string SearchResult::getSlotString() const { 
@@ -144,8 +149,8 @@ void SearchResult::pickResults(SearchResultList& aResults, int pickedNum) {
 
 string SearchResult::getFilePath() const {
 	if (type == TYPE_DIRECTORY)
-		return file;
-	return Util::getFilePath(file);
+		return path;
+	return Util::getFilePath(path);
 }
 
 }

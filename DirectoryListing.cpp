@@ -467,9 +467,9 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileList
 }
 
 bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
-	string target = aTarget;
-	if (aDir != root)
-		target += aDir->getName() + PATH_SEPARATOR;
+	//string target = aTarget;
+	//if (aDir != root)
+	//	target += aDir->getName() + PATH_SEPARATOR;
 
 	BundleFileList aFiles;
 	aDir->download(Util::emptyString, aFiles);
@@ -480,12 +480,12 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	}
 
 	string errorMsg;
-	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(target, hintedUser, aFiles, prio, aDir->getRemoteDate(), errorMsg);
+	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser, aFiles, prio, aDir->getRemoteDate(), errorMsg);
 	if (!errorMsg.empty()) {
 		if (aAutoSearch == 0) {
-			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % getNick(false) % errorMsg), LogManager::LOG_WARNING);
+			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % getNick(false) % errorMsg), LogManager::LOG_WARNING);
 		} else {
-			AutoSearchManager::getInstance()->onBundleError(aAutoSearch, errorMsg, target, hintedUser);
+			AutoSearchManager::getInstance()->onBundleError(aAutoSearch, errorMsg, aTarget, hintedUser);
 		}
 	}
 
@@ -501,12 +501,8 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 bool DirectoryListing::downloadDirImpl(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
 	//check if there are incomplete dirs in a partial list
 	if (partialList && aDir->findIncomplete()) {
-		if (isClientView) {
-			DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio);
-		} else {
-			//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-			DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, true);
-		}
+		//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
+		DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget + aDir->getName() + PATH_SEPARATOR, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, isClientView ? false : true);
 		return false;
 	}
 
@@ -994,7 +990,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 		catch (...) {}
 
 		for (const auto& sr : results)
-			searchResults.insert(sr->getFile());
+			searchResults.insert(sr->getPath());
 
 		curResultCount = searchResults.size();
 		maxResultCount = searchResults.size();
@@ -1121,10 +1117,10 @@ void DirectoryListing::on(SearchManagerListener::SR, const SearchResultPtr& aSR)
 
 		string path;
 		if (supportsASCH()) {
-			path = aSR->getFile();
+			path = aSR->getPath();
 		} else {
 			//convert the regular search results
-			path = aSR->getType() == SearchResult::TYPE_DIRECTORY ? Util::getParentDir(aSR->getFile()) : aSR->getFilePath();
+			path = aSR->getType() == SearchResult::TYPE_DIRECTORY ? Util::getParentDir(aSR->getPath()) : aSR->getFilePath();
 		}
 
 		auto insert = searchResults.insert(path);
