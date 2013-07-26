@@ -2923,12 +2923,15 @@ void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, str
 
 void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const {
 	bool filesAdded = false;
+	int dupeFiles = 0;
 	for(auto di = shareDirs.begin(); di != shareDirs.end(); ++di) {
 		if (filesAdded) {
 			for(const auto& fi: (*di)->files) {
 				//go through the dirs that we have added already
 				if (none_of(shareDirs.begin(), di, [&fi](const Directory::Ptr& d) { return d->files.find(fi->name.getLower()) != d->files.end(); })) {
 					fi->toXml(xmlFile, indent, tmp2, addDate);
+				} else {
+					dupeFiles++;
 				}
 			}
 		} else if (!(*di)->files.empty()) {
@@ -2936,6 +2939,14 @@ void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent
 			for(const auto& f: (*di)->files)
 				f->toXml(xmlFile, indent, tmp2, addDate);
 		}
+	}
+
+	if (dupeFiles > 0 && SETTING(FL_REPORT_FILE_DUPES) && shareDirs.size() > 1) {
+		StringList paths;
+		for (const auto& d : shareDirs)
+			paths.push_back(d->getRealPath(false));
+
+		LogManager::getInstance()->message(STRING_F(DUPLICATE_FILES_DETECTED, dupeFiles % Util::toString(", ", paths)), LogManager::LOG_WARNING);
 	}
 }
 

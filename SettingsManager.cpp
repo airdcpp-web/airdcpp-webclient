@@ -200,7 +200,7 @@ const string SettingsManager::settingTags[] =
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
-	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination",
+	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -811,6 +811,7 @@ SettingsManager::SettingsManager()
 	setDefault(MAX_RUNNING_BUNDLES, 0);
 	setDefault(DEFAULT_SP, 0);
 	setDefault(STARTUP_REFRESH, true);
+	setDefault(FL_REPORT_FILE_DUPES, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

@@ -295,8 +295,7 @@ void ShareScannerManager::findDupes(const string& path, ScanInfo& aScan) throw(F
 	if(path.empty())
 		return;
 	
-	string dirName = Text::toLower(Util::getLastDir(path));
-	string listfolder;
+	string dirName = Util::getLastDir(path);
 
 	//only match release names here
 	if (!regex_match(dirName, releaseReg))
@@ -304,7 +303,7 @@ void ShareScannerManager::findDupes(const string& path, ScanInfo& aScan) throw(F
 	
 	{
 		WLock l(cs);
-		auto dupes = dupeDirs.equal_range(dirName);
+		auto dupes = dupeDirs.equal_range(Text::toLower(dirName));
 		if (dupes.first != dupes.second) {
 			aScan.dupesFound++;
 

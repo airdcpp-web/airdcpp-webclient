@@ -1798,5 +1798,7 @@ enum Strings { // @DontAdd
 	UPDATED_ON_X, // "Updated on: %1%"
 	OPEN_FILE_LIST, // "Open file list"
 	ERROR_CODE_X, // "%1% (code: %2%)"
+	REPORT_DUPLICATE_FILES, // "Report duplicate files when generating file lists"
+	DUPLICATE_FILES_DETECTED, // "%1% duplicate files were detected when generating file list from directories %2%"
 	LAST // @DontAdd
 };
