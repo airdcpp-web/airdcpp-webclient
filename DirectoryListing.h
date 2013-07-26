@@ -112,8 +112,8 @@ public:
 
 		virtual ~Directory();
 
-		size_t getTotalFileCount(bool countAdls);		
-		int64_t getTotalSize(bool countAdls);
+		size_t getTotalFileCount(bool countAdls) const;		
+		int64_t getTotalSize(bool countAdls) const;
 		void filterList(DirectoryListing& dirList);
 		void filterList(TTHSet& l);
 		void getHashList(TTHSet& l);
@@ -122,11 +122,11 @@ public:
 		void sortDirs(bool recursive = true);
 		void sortFiles();
 
-		bool findIncomplete();
+		bool findIncomplete() const;
 		void search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
 		void findFiles(const boost::regex& aReg, File::List& aResults) const;
 		
-		size_t getFileCount() { return files.size(); }
+		size_t getFileCount() const { return files.size(); }
 		
 		int64_t getFilesSize() const;
 
@@ -170,22 +170,22 @@ public:
 	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
 	bool createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 
-	void openFile(File* aFile, bool isClientView);
+	void openFile(File* aFile, bool isClientView) const;
 
 	string getPath(const Directory* d) const;
 	string getPath(const File* f) const { return getPath(f->getParent()); }
 
-	int64_t getTotalListSize(bool adls = false) { return root->getTotalSize(adls); }
-	int64_t getDirSize(const string& aDir);
-	size_t getTotalFileCount(bool adls = false) { return root->getTotalFileCount(adls); }
+	int64_t getTotalListSize(bool adls = false) const { return root->getTotalSize(adls); }
+	int64_t getDirSize(const string& aDir) const;
+	size_t getTotalFileCount(bool adls = false) const { return root->getTotalFileCount(adls); }
 
 	/** sort directories and sub-directories recursively (case-insensitive). */
 	void sortDirs();
 
 	const Directory* getRoot() const { return root; }
 	Directory* getRoot() { return root; }
-	void getLocalPaths(const Directory* d, StringList& ret);
-	void getLocalPaths(const File* f, StringList& ret);
+	void getLocalPaths(const Directory* d, StringList& ret) const;
+	void getLocalPaths(const File* f, StringList& ret) const;
 
 	string getNick(bool firstOnly) const;
 	static string getNickFromFilename(const string& fileName);
@@ -220,8 +220,8 @@ public:
 	bool nextResult(bool prev);
 	unique_ptr<AdcSearch> curSearch;
 
-	bool isCurrentSearchPath(const string& path);
-	size_t getResultCount() { return searchResults.size(); }
+	bool isCurrentSearchPath(const string& path) const;
+	size_t getResultCount() const { return searchResults.size(); }
 
 	Directory* findDirectory(const string& aName) const { return findDirectory(aName, root); }
 	Directory* findDirectory(const string& aName, const Directory* current) const;

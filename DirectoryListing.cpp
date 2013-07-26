@@ -444,7 +444,7 @@ string DirectoryListing::getPath(const Directory* d) const {
 	return dir;
 }
 
-bool DirectoryListing::Directory::findIncomplete() {
+bool DirectoryListing::Directory::findIncomplete() const {
 	/* Recursive check for incomplete dirs */
 	if(!isComplete()) {
 		return true;
@@ -467,10 +467,6 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileList
 }
 
 bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
-	//string target = aTarget;
-	//if (aDir != root)
-	//	target += aDir->getName() + PATH_SEPARATOR;
-
 	BundleFileList aFiles;
 	aDir->download(Util::emptyString, aFiles);
 
@@ -515,7 +511,7 @@ bool DirectoryListing::downloadDirImpl(Directory* aDir, const string& aTarget, T
 		/* Create bundles from each subfolder */
 		bool queued = false;
 		for(auto d: aDir->directories) {
-			if (createBundle(d, aTarget + aDir->getName() + PATH_SEPARATOR, prio, aAutoSearch))
+			if (createBundle(d, aTarget + d->getName() + PATH_SEPARATOR, prio, aAutoSearch))
 				queued = true;
 		}
 		return queued;
@@ -533,7 +529,7 @@ bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, Ta
 	return false;
 }
 
-int64_t DirectoryListing::getDirSize(const string& aDir) {
+int64_t DirectoryListing::getDirSize(const string& aDir) const {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = findDirectory(aDir, root);
@@ -542,7 +538,7 @@ int64_t DirectoryListing::getDirSize(const string& aDir) {
 	return 0;
 }
 
-void DirectoryListing::openFile(File* aFile, bool isClientView) {
+void DirectoryListing::openFile(File* aFile, bool isClientView) const {
 	QueueManager::getInstance()->addOpenedItem(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, isClientView);
 }
 
@@ -656,7 +652,7 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 		l.insert(d->getTTH());
 }
 	
-void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
+void DirectoryListing::getLocalPaths(const File* f, StringList& ret) const {
 	if(f->getParent()->getAdls() && (f->getParent()->getParent() == root || !isOwnList))
 		return;
 
@@ -669,7 +665,7 @@ void DirectoryListing::getLocalPaths(const File* f, StringList& ret) {
 	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path + f->getName()), ret, Util::toInt(fileName));
 }
 
-void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
+void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) const {
 	if(d->getAdls() && (d->getParent() == root || !isOwnList))
 		return;
 
@@ -681,7 +677,7 @@ void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) {
 	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path), ret, Util::toInt(fileName));
 }
 
-int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) {
+int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) const {
 	if(!isComplete())
 		return partialSize;
 	if(!countAdls && getAdls())
@@ -696,7 +692,7 @@ int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) {
 	return x;
 }
 
-size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) {
+size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) const {
 	if(!countAdls && getAdls())
 		return 0;
 
@@ -1204,7 +1200,7 @@ bool DirectoryListing::nextResult(bool prev) {
 	return true;
 }
 
-bool DirectoryListing::isCurrentSearchPath(const string& path) {
+bool DirectoryListing::isCurrentSearchPath(const string& path) const {
 	if (searchResults.empty())
 		return false;
 
