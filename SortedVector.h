@@ -29,7 +29,7 @@ class SortedVector : public ContainerT<T> {
 public:
 	typename ContainerT<T>::iterator it;
 
-	std::pair<typename ContainerT<T>::iterator, bool> insert_sorted(const T& aItem) {
+	std::pair<typename ContainerT<T>::const_iterator, bool> insert_sorted(const T& aItem) {
 		if (empty()) {
 			push_back(aItem);
 			return make_pair(begin(), true);
@@ -56,7 +56,7 @@ public:
 	}
 
 	template<typename... ArgT>
-	std::pair<typename ContainerT<T>::iterator, bool> emplace_sorted(const keyType& aKey, ArgT&& ... args) {
+	std::pair<typename ContainerT<T>::const_iterator, bool> emplace_sorted(const keyType& aKey, ArgT&& ... args) {
 		if (empty()) {
 			emplace_back(aKey, forward<ArgT>(args)...);
 			return make_pair(begin(), true);
@@ -71,7 +71,7 @@ public:
 			}
 		}
 
-		auto p = getPos(begin(), end(), aKey);
+		auto p = getPos(cbegin(), cend(), aKey);
 		if (p.second) {
 			//return the dupe
 			return make_pair(p.first, false);
@@ -82,13 +82,13 @@ public:
 		return make_pair(p.first, true);
 	}
 
-	typename ContainerT<T>::iterator find(const keyType& aKey) {
-		auto pos = getPos(begin(), end(), aKey);
-		return pos.second ? pos.first : end();
+	typename ContainerT<T>::const_iterator find(const keyType& aKey) const {
+		auto pos = getPos(cbegin(), cend(), aKey);
+		return pos.second ? pos.first : cend();
 	}
 
 	bool erase_key(const keyType& aKey) {
-		auto pos = getPos(begin(), end(), aKey);
+		auto pos = getPos(cbegin(), cend(), aKey);
 		if (pos.second) {
 			erase(pos.first);
 			return true;
@@ -113,9 +113,9 @@ public:
 	}*/
 private:
 	// Returns the excepted position and whether the value was found or not
-	std::pair<typename ContainerT<T>::iterator, bool> getPos(typename ContainerT<T>::iterator first, typename ContainerT<T>::iterator last, const keyType& key) {
+	std::pair<typename ContainerT<T>::const_iterator, bool> getPos(typename ContainerT<T>::const_iterator first, typename ContainerT<T>::const_iterator last, const keyType& key) const {
 		decltype(first) it;
-		std::iterator_traits<typename ContainerT<T>::iterator>::difference_type count, step;
+		std::iterator_traits<typename ContainerT<T>::const_iterator>::difference_type count, step;
 		count = std::distance(first,last);
  
 		while (count > 0) {

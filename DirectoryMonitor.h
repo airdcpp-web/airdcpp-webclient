@@ -84,6 +84,7 @@ private:
 
 		string getStats() const;
 		bool hasDirectories() const;
+		static string getErrorStr(int error);
 	private:
 		typedef std::unordered_map<string, Monitor*, noCaseStringHash, noCaseStringEq> MonitorMap;
 		mutable SharedMutex cs;

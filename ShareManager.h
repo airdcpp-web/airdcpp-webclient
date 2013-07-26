@@ -447,6 +447,7 @@ private:
 		DualString name;
 
 		void getRenameInfoList(const string& aPath, RenameList& aRename);
+		Directory::Ptr findDirByPath(const string& aPath) const;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */

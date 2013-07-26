@@ -21,6 +21,7 @@
 #include "DirectoryMonitor.h"
 #include "Text.h"
 #include "LogManager.h"
+#include "ResourceManager.h"
 
 namespace dcpp {
 
@@ -216,7 +217,7 @@ int DirectoryMonitor::Server::read() {
 						(*mon)->beginRead();
 						(*mon)->server->base->addTask(DirectoryMonitor::TYPE_OVERFLOW, new StringTask(Text::fromT((*mon)->path)));
 					} else {
-						throw MonitorException(Util::translateError(dwError));
+						throw MonitorException(getErrorStr(dwError));
 					}
 				} else {
 					if ((*mon)->errorCount > 0) {
@@ -370,6 +371,10 @@ void Monitor::openDirectory(HANDLE iocp) {
 	if (CreateIoCompletionPort(m_hDirectory, iocp, (ULONG_PTR)key, 0) == NULL) {
 		throw MonitorException(Util::translateError(::GetLastError()));
 	}
+}
+
+string DirectoryMonitor::Server::getErrorStr(int error) {
+	return STRING_F(ERROR_CODE_X, Util::translateError(error) % error);
 }
 
 Monitor::~Monitor() {

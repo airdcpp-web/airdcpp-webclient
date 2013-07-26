@@ -1797,5 +1797,6 @@ enum Strings { // @DontAdd
 	LIST_SIZE_DIFF_NOTE, // "The share size in hub %1% (%2%) is different than in the current hub %3% (%4%). Do you want to reload the list?"
 	UPDATED_ON_X, // "Updated on: %1%"
 	OPEN_FILE_LIST, // "Open file list"
+	ERROR_CODE_X, // "%1% (code: %2%)"
 	LAST // @DontAdd
 };

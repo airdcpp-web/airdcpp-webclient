@@ -282,9 +282,10 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 				i = j - 1;
 			}
 		}
+	} else {
+		for (auto s = directories.first; s != directories.second; ++s)
+			paths_.emplace_back(s->second);
 	}
-
-	paths_.emplace_back(directories.first->second);
 }
 
 void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const {

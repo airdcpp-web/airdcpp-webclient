@@ -1745,53 +1745,54 @@ void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) co
 	if (aPath.size() < 3)
 		return;
 
-	//get the last directory, we might need the position later with subdirs
-	string dir = aPath;
-	if (dir[dir.length()-1] == PATH_SEPARATOR)
-		dir.erase(aPath.size() - 1, aPath.size());
-	auto pos = dir.rfind(PATH_SEPARATOR);
-	if (pos != string::npos)
-		dir = dir.substr(pos+1);
+	//get the directory to search for
+	bool isSub = false;
+	string::size_type i = aPath.back() == PATH_SEPARATOR ? aPath.size() - 2 : aPath.size() - 1, j;
+	for (;;) {
+		j = aPath.find_last_of(PATH_SEPARATOR, i);
+		if (j == string::npos) {
+			j = 0;
+			break;
+		}
 
+		//auto remoteDir = dir.substr(j + 1, i - j);
+		if (!boost::regex_match(aPath.substr(j + 1, i - j), AirUtil::subDirRegPlain)) {
+			j++;
+			break;
+		}
+
+		isSub = true;
+		i = j - 1;
+	}
+
+	auto dir = aPath.substr(j, i - j + 1);
 	const auto directories = dirNameMap.equal_range(&dir);
 	if (directories.first == directories.second)
 		return;
 
-	//check the parents for dirs like CD1 to prevent false matches
-	if (boost::regex_match(dir, AirUtil::subDirRegPlain) && pos != string::npos) {
-		string::size_type i, j;
-		dir = PATH_SEPARATOR + aPath;
-
-		for(auto s = directories.first; s != directories.second; ++s) {
-			//start matching from the parent dir, as we know the last one already
-			i = pos;
-			Directory::Ptr cur = s->second->getParent();
-
-			for(;;) {
-				if (!cur)
-					break;
-
-				j = dir.find_last_of(PATH_SEPARATOR, i);
-				if(j == string::npos)
-					break;
-
-				auto remoteDir = dir.substr(j+1, i-j);
-				if(stricmp(cur->name.getLower(), remoteDir) == 0) {
-					if (!boost::regex_match(remoteDir, AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
-						dirs_.push_back(s->second);
-						break;
-					}
-				} else {
-					//this is something different... continue to next match
-					break;
-				}
-				cur = cur->getParent();
-				i = j - 1;
+	for (auto s = directories.first; s != directories.second; ++s) {
+		if (isSub) {
+			auto dir = s->second->findDirByPath(aPath.substr(i + 2));
+			if (dir) {
+				dirs_.push_back(dir);
 			}
+		} else {
+			dirs_.push_back(s->second);
 		}
-	} else {
-		dirs_.push_back(directories.first->second);
 	}
+}
+
+ShareManager::Directory::Ptr ShareManager::Directory::findDirByPath(const string& aPath) const {
+	auto p = aPath.find(PATH_SEPARATOR);
+	auto d = directories.find(Text::toLower(p != string::npos ? aPath.substr(0, p) : aPath));
+	if (d != directories.end()) {
+		if (p == aPath.size() || p == aPath.size() - 1)
+			return *d;
+
+		return (*d)->findDirByPath(aPath.substr(p+1));
+	}
+
+	return nullptr;
 }
 
 bool ShareManager::isFileShared(const TTHValue& aTTH, const string& /*fileName*/) const {
