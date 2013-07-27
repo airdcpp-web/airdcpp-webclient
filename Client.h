@@ -155,7 +155,6 @@ public:
 		COUNT_OP = 0x04,
 		COUNT_UNCOUNTED = 0x08
 	};
-
 protected:
 	friend class ClientManager;
 	Client(const string& hubURL, char separator);
