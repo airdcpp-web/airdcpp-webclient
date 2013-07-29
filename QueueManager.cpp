@@ -1046,6 +1046,10 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runnin
 	if (!aQI)
 		return false;
 
+	// override the slot settings for partial lists and small files
+	if (aQI->usesSmallSlot())
+		return true;
+
 	// paused?
 	if (aQI->isPausedPrio() || (aQI->getBundle() && aQI->getBundle()->isPausedPrio()))
 		return false;

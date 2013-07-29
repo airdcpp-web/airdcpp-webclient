@@ -163,8 +163,7 @@ private:
 	UserPtr user;
 	uint32_t sid;
 
-	typedef std::unordered_map<short, string> InfMap;
-	typedef InfMap::iterator InfIter;
+	typedef map<short, string> InfMap;
 	InfMap info;
 
 	static FastCriticalSection cs;

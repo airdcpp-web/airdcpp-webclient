@@ -204,7 +204,6 @@ enum Strings { // @DontAdd
 	HISTORY, // "History"
 	HIT_COUNT, // "Hits"
 	HIT_RATIO, // "Hit ratio: "
-	HITS, // "Hits: "
 	HUB, // "Hub"
 	HUB_ADDRESS, // "Address"
 	HUB_CONNECTED, // "Hub connected"

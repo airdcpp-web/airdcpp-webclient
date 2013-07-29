@@ -1103,7 +1103,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getUser(), as->getTarget() + sr->getFileName() + PATH_SEPARATOR, as->getTargetType(), REPORT_SYSLOG,
+			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getFileName(), sr->getUser(), as->getTarget(), as->getTargetType(), REPORT_SYSLOG,
 				(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken(), as->getRemove() || as->usingIncrementation());
 		} else {
 			TargetUtil::TargetInfo ti;

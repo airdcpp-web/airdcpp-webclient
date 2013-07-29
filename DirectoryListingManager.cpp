@@ -31,84 +31,6 @@ using boost::range::for_each;
 using boost::range::find_if;
 
 
-class DirectoryDownloadInfo {
-public:
-	DirectoryDownloadInfo() : priority(QueueItem::DEFAULT) { }
-	DirectoryDownloadInfo(const UserPtr& aUser, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p, 
-		SizeCheckMode aPromptSizeConfirm, ProfileToken aAutoSearch) : 
-		listPath(aListPath), target(aTarget), priority(p), user(aUser), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr), autoSearch(aAutoSearch) { }
-	~DirectoryDownloadInfo() { }
-	
-	UserPtr& getUser() { return user; }
-	void setUser(const UserPtr& aUser) { user = aUser; }
-	
-	GETSET(SizeCheckMode, sizeConfirm, SizeConfirm);
-	GETSET(string, listPath, ListPath);
-	GETSET(string, target, Target);
-	GETSET(QueueItemBase::Priority, priority, Priority);
-	GETSET(TargetUtil::TargetType, targetType, TargetType);
-	GETSET(DirectoryListingPtr, listing, Listing);
-	GETSET(ProfileToken, autoSearch, AutoSearch);
-
-	string getFinishedDirName() { return target + Util::getLastDir(listPath) + Util::toString(targetType); }
-
-	struct HasASItem {
-		HasASItem(ProfileToken aToken, const string& s) : a(s), t(aToken) { }
-		bool operator()(const DirectoryDownloadInfo* ddi) const { return t == ddi->getAutoSearch() && stricmp(a, Util::getLastDir(ddi->getListPath())) != 0; }
-		const string& a;
-		ProfileToken t;
-	private:
-		HasASItem& operator=(const HasASItem&);
-	};
-private:
-	UserPtr user;
-};
-
-class FinishedDirectoryItem {
-public:
-	enum WaitingState {
-		WAITING_ACTION,
-		ACCEPTED,
-		REJECTED
-	};
-
-	FinishedDirectoryItem(DirectoryDownloadInfo* aDDI, const string& aTargetPath) : state(WAITING_ACTION), usePausedPrio(false), targetPath(aTargetPath), timeDownloaded(0) {  
-		downloadInfos.push_back(aDDI); 
-	}
-
-	FinishedDirectoryItem(bool aUsePausedPrio, const string& aTargetPath) : state(ACCEPTED), usePausedPrio(aUsePausedPrio), targetPath(aTargetPath), timeDownloaded(GET_TICK()) { }
-
-	~FinishedDirectoryItem() { 
-		deleteListings();
-	}
-	
-	void addInfo(DirectoryDownloadInfo* aDDI) {
-		downloadInfos.push_back(aDDI);
-	}
-
-	void handleAction(bool accepted) {
-		state = accepted ? ACCEPTED : REJECTED;
-		//deleteListings();
-	}
-
-	void deleteListings() {
-		boost::for_each(downloadInfos, DeleteFunction());
-		downloadInfos.clear();
-	}
-
-	GETSET(WaitingState, state, State);
-	GETSET(vector<DirectoryDownloadInfo*>, downloadInfos, DownloadInfos);
-	GETSET(string, targetPath, TargetPath);
-	GETSET(bool, usePausedPrio, UsePausedPrio);
-	GETSET(uint64_t, timeDownloaded, TimeDownloaded);
-
-	bool hasASItems(ProfileToken as, const string& aName) const {
-		return find_if(downloadInfos, DirectoryDownloadInfo::HasASItem(as, aName)) != downloadInfos.end();
-	}
-private:
-	
-};
-
 DirectoryListingManager::DirectoryListingManager() {
 	TimerManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
@@ -123,7 +45,6 @@ void DirectoryListingManager::on(TimerManagerListener::Minute, uint64_t aTick) n
 	WLock l(cs);
 	for(auto i = finishedListings.begin(); i != finishedListings.end();) {
 		if(i->second->getState() != FinishedDirectoryItem::WAITING_ACTION && i->second->getTimeDownloaded() + 5*60*1000 < aTick) {
-			delete i->second;
 			finishedListings.erase(i);
 			i = finishedListings.begin();
 		} else {
@@ -134,23 +55,34 @@ void DirectoryListingManager::on(TimerManagerListener::Minute, uint64_t aTick) n
 
 void DirectoryListingManager::removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList) {
 	WLock l(cs);
-	auto dp = dlDirectories.equal_range(aUser) | map_values;
 	if (isPartialList) {
-		auto udp = find_if(dp, [&aPath](const DirectoryDownloadInfo* ddi) { return stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0; });
+		auto dp = dlDirectories.equal_range(aUser) | map_values;
+		auto udp = find_if(dp, [&aPath](const DirectoryDownloadInfo::Ptr& ddi) { return stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0; });
 		if (udp != dp.end()) {
-			delete *udp;
 			dlDirectories.erase(udp.base());
 		} else {
 			dcassert(0);
 		}
 	} else {
-		for_each(dp, DeleteFunction());
 		dlDirectories.erase(aUser);
 	}
 }
 
-void DirectoryListingManager::addDirectoryDownload(const string& aDir, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,  
-	QueueItemBase::Priority p /* = QueueItem::DEFAULT */, bool useFullList /*false*/, ProfileToken aAutoSearch /*0*/, bool checkNameDupes /*false*/) noexcept {
+void DirectoryListingManager::addDirectoryDownload(const string& aRemoteDir, const string& aBundleName, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,
+	QueueItemBase::Priority p, bool useFullList /*false*/, ProfileToken aAutoSearch /*0*/, bool checkNameDupes /*false*/, bool checkViewed /*true*/) noexcept {
+
+
+	if (checkViewed) {
+		RLock l(cs);
+		auto i = viewedLists.find(aUser.user);
+		if (i != viewedLists.end()) {
+			i->second->addAsyncTask([=] {
+				auto di = DirectoryDownloadInfo::Ptr(new DirectoryDownloadInfo(aUser, aBundleName, aRemoteDir, aTarget, aTargetType, p, aSizeCheckMode, aAutoSearch, false));
+				handleDownload(di, i->second); 
+			});
+			return;
+		}
+	}
 
 	if (aUser.user && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		//this is the only thing that could cause queuing the filelist to fail.... remember to change if more are added
@@ -163,33 +95,31 @@ void DirectoryListingManager::addDirectoryDownload(const string& aDir, const Hin
 		WLock l(cs);
 
 		if (checkNameDupes && aAutoSearch > 0) {
-			//check for dupes
-			auto d = move(Util::getLastDir(aDir));
-			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, d)).base() != dlDirectories.end())  {
-				//TODO: fix the finished check
-				//find_if(finishedListings | map_values, [aAutoSearch, &d](const FinishedDirectoryItem* fdi) { return fdi->hasASItems(aAutoSearch, d); }).base() != finishedListings.end())*/
-				return;
+			//don't download different directories for auto search items that don't allow it
+			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, aBundleName)).base() != dlDirectories.end()  ||
+				find_if(finishedListings | map_values, FinishedDirectoryItem::HasASItem(aAutoSearch, aBundleName)).base() != finishedListings.end())  {
+					return;
 			}
 		}
 		
 		auto dp = dlDirectories.equal_range(aUser);
 		
 		for(auto i = dp.first; i != dp.second; ++i) {
-			if(stricmp(aDir.c_str(), i->second->getListPath().c_str()) == 0)
+			if (stricmp(aRemoteDir.c_str(), i->second->getListPath().c_str()) == 0)
 				return;
 		}
 		
 		// Unique directory, fine...
-		dlDirectories.emplace(aUser.user, new DirectoryDownloadInfo(aUser, aDir, aTarget, aTargetType, p, aSizeCheckMode, aAutoSearch));
+		dlDirectories.emplace(aUser.user, new DirectoryDownloadInfo(aUser, aBundleName, aRemoteDir, aTarget, aTargetType, p, aSizeCheckMode, aAutoSearch, true));
 		needList = aUser.user->isSet(User::NMDC) ? (dp.first == dp.second) : true;
 	}
 
 	if(needList) {
 		try {
 			if (!aUser.user->isSet(User::NMDC) && !useFullList) {
-				QueueManager::getInstance()->addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, aDir);
+				QueueManager::getInstance()->addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, aRemoteDir);
 			} else {
-				QueueManager::getInstance()->addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD, aDir);
+				QueueManager::getInstance()->addList(aUser, QueueItem::FLAG_DIRECTORY_DOWNLOAD, aRemoteDir);
 			}
 		} catch(const Exception&) {
 			//We have a list queued already
@@ -212,105 +142,153 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 		}
 	}
 
-	DirectoryListing* dirList = new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, aFileName, false, false);
+	auto dirList = DirectoryListingPtr(new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, aFileName, false, false));
 	try {
-		if(flags & QueueItem::FLAG_TEXT) {
+		if (flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(aXml);
 			dirList->loadXML(mis, true, aRemotePath);
-		} else {
+		}
+		else {
 			dirList->loadFile();
 		}
-	} catch(const Exception&) {
+	}
+	catch (const Exception&) {
 		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + aFileName, LogManager::LOG_ERROR);
 		return;
 	}
 
-	processListAction(DirectoryListingPtr(dirList), aRemotePath, flags);
+	processListAction(dirList, aRemotePath, flags);
+}
+
+void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList) {
+	auto getList = [&] {
+		addDirectoryDownload(di->getListPath(), di->getBundleName(), aList->getHintedUser(), di->getTarget(), di->getTargetType(), di->getSizeConfirm(), di->getPriority(), di->getRecursiveListAttempted() ? true : false, 0, false, false);
+	};
+
+	auto doDownload = [&](const string& aTargetPath) -> bool {
+		auto dir = aList->findDirectory(di->getListPath());
+		if (!dir) {
+			//don't queue anything if it's a fresh list
+			if (aList->getisClientView()) {
+				getList();
+			}
+			return false;
+		}
+
+		if (aList->getPartialList() && dir->findIncomplete()) {
+			getList();
+			return false;
+		}
+
+		return aList->downloadDirImpl(dir, aTargetPath, di->getPriority(), di->getAutoSearch());
+	};
+
+	bool download = false;
+	{
+		RLock l(cs);
+		auto p = finishedListings.find(di->getFinishedDirName());
+		if (p != finishedListings.end()) {
+			//we have downloaded with this dirname before...
+			if (p->second->getState() == FinishedDirectoryItem::REJECTED) {
+				return;
+			}
+			else if (p->second->getState() == FinishedDirectoryItem::ACCEPTED) {
+				//download directly
+				di->setTargetType(TargetUtil::TARGET_PATH);
+				di->setTarget(p->second->getTargetPath());
+				di->setPriority(p->second->getUsePausedPrio() ? QueueItem::PAUSED : di->getPriority());
+				di->setSizeConfirm(NO_CHECK);
+				p->second->addAutoSearch(di->getAutoSearch());
+				download = true;
+			}
+			else if (p->second->getState() == FinishedDirectoryItem::WAITING_ACTION) {
+				//add in the list to wait for action
+				di->setListing(aList);
+				di->setTarget(p->second->getTargetPath());
+				p->second->addInfo(di);
+				return;
+			}
+		}
+	}
+
+	if (download) {
+		doDownload(di->getTarget());
+		return;
+	}
+
+	//we have a new directory
+	TargetUtil::TargetInfo ti;
+	int64_t dirSize = aList->getDirSize(di->getListPath());
+	TargetUtil::getVirtualTarget(di->getTarget(), di->getTargetType(), ti, dirSize);
+	bool hasFreeSpace = ti.getFreeSpace() >= dirSize;
+	ti.targetDir += Util::getLastDir(di->getListPath()) + PATH_SEPARATOR;
+
+	if (di->getSizeConfirm() == REPORT_SYSLOG) {
+		auto queued = doDownload(ti.targetDir);
+		if (!hasFreeSpace && queued)
+			TargetUtil::reportInsufficientSize(ti, dirSize);
+
+		if (queued) {
+			WLock l(cs);
+			finishedListings.emplace(di->getFinishedDirName(), new FinishedDirectoryItem(!hasFreeSpace, ti.targetDir));
+		}
+	} else if (di->getSizeConfirm() == ASK_USER && !hasFreeSpace) {
+		di->setListing(aList);
+		auto fi = FinishedDirectoryItem::Ptr(new FinishedDirectoryItem(di, ti.targetDir));
+
+		{
+			WLock l(cs);
+			finishedListings.emplace(di->getFinishedDirName(), fi);
+		}
+
+		string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
+		fire(DirectoryListingManagerListener::PromptAction(), [&](bool accepted) { handleSizeConfirmation(fi, accepted); }, msg);
+	}
+	else {
+		if (doDownload(ti.targetDir)) {
+			WLock l(cs);
+			finishedListings.emplace(di->getFinishedDirName(), new FinishedDirectoryItem(false, ti.targetDir));
+		}
+	}
 }
 
 void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const string& path, int flags) {
 	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
-		vector<DirectoryDownloadInfo*> dl;
+		DirectoryDownloadInfo::List dl;
 		{
 			WLock l(cs);
 			auto dp = dlDirectories.equal_range(aList->getHintedUser().user) | map_values;
 			if ((flags & QueueItem::FLAG_PARTIAL_LIST) && !path.empty()) {
 				//partial list
-				auto udp = find_if(dp, [&path](const DirectoryDownloadInfo* ddi) { return stricmp(path.c_str(), ddi->getListPath().c_str()) == 0; });
+				auto udp = find_if(dp, [&path](const DirectoryDownloadInfo::Ptr& ddi) { return stricmp(path.c_str(), ddi->getListPath().c_str()) == 0; });
 				if (udp != dp.end()) {
 					dl.push_back(*udp);
-					dlDirectories.erase(udp.base());
+					//dlDirectories.erase(udp.base());
 				}
 			} else {
 				//full filelist
 				dl.assign(boost::begin(dp), boost::end(dp));
-				dlDirectories.erase(aList->getHintedUser().user);
+				//dlDirectories.erase(aList->getHintedUser().user);
 			}
 		}
 
-		for(auto di: dl) {
+		if (dl.empty())
+			return;
 
-			bool download = false;
-			{
-				RLock l (cs);
-				auto p = finishedListings.find(di->getFinishedDirName());
-				if (p != finishedListings.end()) {
-					//we have downloaded with this dirname before...
-					if (p->second->getState() == FinishedDirectoryItem::REJECTED) {
-						delete di;
-						continue;
-					} else if (p->second->getState() == FinishedDirectoryItem::ACCEPTED) {
-						//download directly
-						di->setTarget(p->second->getTargetPath());
-						di->setPriority(p->second->getUsePausedPrio() ? QueueItem::PAUSED : di->getPriority());
-						download = true;
-					} else if (p->second->getState() == FinishedDirectoryItem::WAITING_ACTION) {
-						//add in the list to wait for action
-						di->setListing(aList);
-						di->setTarget(p->second->getTargetPath());
-						p->second->addInfo(di);
-						continue;
-					}
+		for(auto& di: dl) {
+			handleDownload(di, aList);
+		}
+
+		{
+			WLock l(cs);
+			if (flags & QueueItem::FLAG_PARTIAL_LIST) {
+				auto dp = dlDirectories.equal_range(aList->getHintedUser().user);
+				auto p = find(dp | map_values, dl.front());
+				if (p.base() != dp.second) {
+					dlDirectories.erase(p.base());
 				}
-			}
-
-			if (download) {
-				aList->downloadDir(di->getListPath(), di->getTarget(), TargetUtil::TARGET_PATH, false, di->getPriority(), di->getAutoSearch());
-				delete di;
-				continue;
-			}
-
-			//we have a new directory
-			TargetUtil::TargetInfo ti;
-			int64_t dirSize = aList->getDirSize(di->getListPath());
-			TargetUtil::getVirtualTarget(di->getTarget(), di->getTargetType(), ti, dirSize);
-			bool hasFreeSpace = ti.getFreeSpace() >= dirSize;
-
-			if (di->getSizeConfirm() == REPORT_SYSLOG) {
-				auto queued = aList->downloadDir(di->getListPath(), ti.targetDir, TargetUtil::TARGET_PATH, false, !hasFreeSpace ? QueueItem::PAUSED : di->getPriority(), di->getAutoSearch());
-				if (!hasFreeSpace && queued)
-					TargetUtil::reportInsufficientSize(ti, dirSize);
-
-				{
-					WLock l (cs);
-					finishedListings[di->getFinishedDirName()] = new FinishedDirectoryItem(!hasFreeSpace, ti.targetDir);
-				}
-				delete di;
-			} else if (di->getSizeConfirm() == ASK_USER && !hasFreeSpace) {
-				di->setListing(aList);
-				{
-					WLock l (cs);
-					finishedListings[di->getFinishedDirName()] = new FinishedDirectoryItem(di, ti.targetDir);
-				}
-
-				string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
-				fire(DirectoryListingManagerListener::PromptAction(), di->getFinishedDirName(), msg);
 			} else {
-				aList->downloadDir(di->getListPath(), ti.targetDir, TargetUtil::TARGET_PATH, false, di->getPriority(), di->getAutoSearch());
-
-				WLock l (cs);
-				finishedListings[di->getFinishedDirName()] = new FinishedDirectoryItem(false, ti.targetDir);
-				delete di;
+				dlDirectories.erase(aList->getHintedUser().user);
 			}
 		}
 	}
@@ -330,26 +308,18 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 	}
 }
 
-void DirectoryListingManager::handleSizeConfirmation(const string& aTarget, bool accepted) {
-	FinishedDirectoryItem* wdi = nullptr;
+void DirectoryListingManager::handleSizeConfirmation(FinishedDirectoryItem::Ptr& aFinishedItem, bool accepted) {
 	{
 		WLock l(cs);
-		auto p = finishedListings.find(aTarget);
-		if (p != finishedListings.end()) {
-			p->second->handleAction(accepted);
-			wdi = p->second;
-		} else {
-			dcassert(0);
-			return;
-		}
+		aFinishedItem->setHandledState(accepted);
 	}
 
 	if (accepted) {
-		for(auto di: wdi->getDownloadInfos()) {
-			di->getListing()->downloadDir(di->getListPath(), di->getTarget(), di->getTargetType(), false, di->getPriority(), di->getAutoSearch());
+		for (auto& di : aFinishedItem->getDownloadInfos()) {
+			di->getListing()->downloadDir(di->getListPath(), di->getTarget(), di->getPriority(), di->getAutoSearch());
 		}
 	}
-	wdi->deleteListings();
+	aFinishedItem->deleteListings();
 }
 
 void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {

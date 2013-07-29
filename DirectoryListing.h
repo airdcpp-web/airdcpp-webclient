@@ -167,7 +167,7 @@ public:
 	//return the number of loaded dirs
 	int loadXML(InputStream& xml, bool updating, const string& aBase = "/", time_t aListDate = GET_TIME());
 
-	bool downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
+	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
 	bool createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 
 	void openFile(File* aFile, bool isClientView) const;
@@ -211,7 +211,6 @@ public:
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
 	void addFilterTask();
-	void addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio=QueueItem::DEFAULT);
 
 	void addAsyncTask(std::function<void ()> f);
 	void close();
@@ -229,6 +228,9 @@ public:
 	bool supportsASCH() const;
 
 	void onRemovedQueue(const string& aDir);
+
+	/* only call from the file list thread*/
+	bool downloadDirImpl(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 private:
 	friend class ListLoader;
 
@@ -272,7 +274,6 @@ private:
 
 	void listDiffImpl(const string& aFile, bool aOwnList);
 	void loadFileImpl(const string& aInitialDir);
-	bool downloadDirImpl(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
 	void searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
 	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, std::function<void ()> completionF = nullptr);
 	void matchAdlImpl();

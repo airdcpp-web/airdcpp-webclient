@@ -494,13 +494,8 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	return false;
 }
 
-bool DirectoryListing::downloadDirImpl(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
-	//check if there are incomplete dirs in a partial list
-	if (partialList && aDir->findIncomplete()) {
-		//there shoudn't be incomplete dirs in recursive partial lists, most likely the other client doesn't support the RE flag
-		DirectoryListingManager::getInstance()->addDirectoryDownload(aDir->getPath(), hintedUser, aTarget, aTargetType, isSizeUnknown ? ASK_USER : NO_CHECK, prio, isClientView ? false : true);
-		return false;
-	}
+bool DirectoryListing::downloadDirImpl(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
+	dcassert(!aDir->findIncomplete());
 
 	/* Check if this is a root dir containing release dirs */
 	boost::regex reg;
@@ -520,12 +515,12 @@ bool DirectoryListing::downloadDirImpl(Directory* aDir, const string& aTarget, T
 	return createBundle(aDir, aTarget, prio, aAutoSearch);
 }
 
-bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool highPrio, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
+bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	Directory* d = findDirectory(aDir, root);
 	if(d)
-		return downloadDirImpl(d, aTarget, aTargetType, highPrio, prio, aAutoSearch);
+		return downloadDirImpl(d, aTarget, prio, aAutoSearch);
 	return false;
 }
 
@@ -833,10 +828,6 @@ void DirectoryListing::close() {
 
 void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) {
 	addAsyncTask([=] { searchImpl(aSearchString, aSize, aTypeMode, aSizeMode, aExtList, aDir); });
-}
-
-void DirectoryListing::addDirDownloadTask(Directory* aDir, const string& aTarget, TargetUtil::TargetType aTargetType, bool isSizeUnknown, QueueItemBase::Priority prio) {
-	addAsyncTask([=] { downloadDirImpl(aDir, aTarget + aDir->getName() + PATH_SEPARATOR, aTargetType, isSizeUnknown, prio); });
 }
 
 void DirectoryListing::addAsyncTask(std::function<void ()> f) {
