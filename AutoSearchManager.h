@@ -156,7 +156,7 @@ public:
 	void addPath(const string& aPath, time_t aFinishTime);
 	void clearPaths() { finishedPaths.clear(); }
 	bool usingIncrementation() const;
-	static string formatParams(const AutoSearchPtr& as, const string& aString);
+	string formatParams(bool formatMatcher) const;
 	void setUserMatcher(const string& aPattern) { userMatcher.pattern = aPattern; }
 	void prepareUserMatcher() { userMatcher.prepare(); }
 	string getTarget() { return target; }
@@ -164,6 +164,7 @@ public:
 	bool removePostSearch();
 	bool isExcluded(const string& aString);
 	void updateExcluded();
+	string getFormatedSearchString() const;
 private:
 	StringMatch userMatcher;
 	time_t nextSearchChange;
@@ -177,7 +178,8 @@ class SimpleXML;
 class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener, private QueueManagerListener {
 public:
 	enum SearchType {
-		TYPE_MANUAL,
+		TYPE_MANUAL_FG,
+		TYPE_MANUAL_BG,
 		TYPE_NEW,
 		TYPE_NORMAL
 	};

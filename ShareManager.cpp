@@ -1112,7 +1112,7 @@ bool ShareManager::isTempShared(const string& aKey, const TTHValue& tth) {
 void ShareManager::addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, ProfileToken aProfile) {
 	
 	//first check if already exists in Share.
-	if(isFileShared(tth, Util::getFileName(filePath), aProfile)) {
+	if(isFileShared(tth, aProfile)) {
 		return;
 	} else {
 		WLock l(cs);
@@ -1795,26 +1795,20 @@ ShareManager::Directory::Ptr ShareManager::Directory::findDirByPath(const string
 	return nullptr;
 }
 
-bool ShareManager::isFileShared(const TTHValue& aTTH, const string& /*fileName*/) const {
+bool ShareManager::isFileShared(const TTHValue& aTTH) const {
 	RLock l (cs);
-	/*const auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
-	for(auto i = files.first; i != files.second; ++i) {
-		if(stricmp(fileName.c_str(), i->second->getName().c_str()) == 0) {
-			return true;
-		}
-	}
-	return false;*/
 	return tthIndex.find(const_cast<TTHValue*>(&aTTH)) != tthIndex.end();
 }
 
-bool ShareManager::isFileShared(const TTHValue& aTTH, const string& fileName, ProfileToken aProfile) const {
+bool ShareManager::isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const {
 	RLock l (cs);
 	const auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
 	for(auto i = files.first; i != files.second; ++i) {
-		if((stricmp(fileName.c_str(), i->second->name.getLower().c_str()) == 0) && i->second->getParent()->hasProfile(aProfile)) {
+		if(i->second->getParent()->hasProfile(aProfile)) {
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -1972,6 +1966,12 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File* f, Share
 	sharedSize += f->getSize();
 
 	dir.addType(getType(f->name.getLower()));
+
+#ifdef _DEBUG
+	auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
+	auto p = find(flst | map_values, f);
+	dcassert(p.base() == flst.second);
+#endif
 
 	tthIndex.emplace(const_cast<TTHValue*>(&f->getTTH()), f);
 	aBloom.add(f->name.getLower());
@@ -2635,20 +2635,6 @@ end:
 	refreshing.clear();
 }
 
-/*void ShareManager::mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) {
-	for (auto& ri: aList) {
-		aDirNameMap.insert(ri.dirNameMapNew.begin(), ri.dirNameMapNew.end());
-		aRootPaths.insert(ri.rootPathsNew.begin(), ri.rootPathsNew.end());
-		aTTHIndex.insert(ri.tthIndexNew.begin(), ri.tthIndexNew.end());
-
-		totalHash += ri.hashSize;
-		totalAdded += ri.addedSize;
-
-		if (dirtyProfiles)
-			ri.root->copyRootProfiles(*dirtyProfiles, true);
-	}
-}*/
-
 void ShareManager::on(TimerManagerListener::Second, uint64_t /*tick*/) noexcept {
 	while (monitor->dispatch()) {
 		//...
@@ -2957,8 +2943,6 @@ void ShareManager::Directory::filesToXmlList(OutputStream& xmlFile, string& inde
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("<File Name=\""));
 		xmlFile.write(SimpleXML::escape(f->name.lowerCaseOnly() ? f->name.getLower() : f->name.getNormal(), tmp2, true));
-		/*xmlFile.write(LITERAL("\" Size=\""));
-		xmlFile.write(Util::toString(f.getSize()));*/
 		xmlFile.write(LITERAL("\"/>\r\n"));
 	}
 }
@@ -3446,8 +3430,6 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 	StringSearch::List* old = aStrings.include;
 
-	//unique_ptr<StringSearch::List> newStr;
-
 	// Find any matches in the directory name
 	unique_ptr<StringSearch::List> newStr(aStrings.matchesDirectoryReLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : name.getLower()));
 	if(newStr.get() != 0 && aStrings.matchType == AdcSearch::MATCH_FULL_PATH) {
@@ -3546,15 +3528,11 @@ void ShareManager::cleanIndices(Directory& dir, const Directory::File* f) {
 	sharedSize -= f->getSize();
 
 	auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
-	if (distance(flst.first, flst.second) == 1) {
-		tthIndex.erase(flst.first);
-	} else {
-		auto p = find(flst | map_values, f);
-		if (p.base() != flst.second)
-			tthIndex.erase(p.base());
-		else
-			dcassert(0);
-	}
+	auto p = find(flst | map_values, f);
+	if (p.base() != flst.second)
+		tthIndex.erase(p.base());
+	else
+		dcassert(0);
 }
 
 void ShareManager::addDirName(Directory::Ptr& dir) {

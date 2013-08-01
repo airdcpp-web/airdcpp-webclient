@@ -185,7 +185,7 @@ public:
 	void getDirItems(const BundlePtr& aBundle, const string& aDir, QueueItemList& aItems) const noexcept;
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const;
 
-	int isFileQueued(const TTHValue& aTTH, const string& aFile) { RLock l (cs); return fileQueue.isFileQueued(aTTH, aFile); }
+	int isFileQueued(const TTHValue& aTTH) { RLock l (cs); return fileQueue.isFileQueued(aTTH); }
 	
 	bool dropSource(Download* d);
 

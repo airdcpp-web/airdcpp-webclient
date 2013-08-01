@@ -78,11 +78,11 @@ Magnet::Magnet(const string& aLink) {
 	} */
 }
 
-DupeType Magnet::getDupeType() {
-	return AirUtil::checkFileDupe(getTTH(), fname);
+DupeType Magnet::getDupeType() const {
+	return AirUtil::checkFileDupe(getTTH());
 }
 
-TTHValue Magnet::getTTH() { 
+TTHValue Magnet::getTTH() const { 
 	return TTHValue(hash); 
 }
 

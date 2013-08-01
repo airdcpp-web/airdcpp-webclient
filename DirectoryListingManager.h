@@ -161,7 +161,7 @@ namespace dcpp {
 
 
 
-
+		bool download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget);
 		void handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList);
 
 		friend class Singleton<DirectoryListingManager>;

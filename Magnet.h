@@ -21,6 +21,7 @@
 
 #include "forward.h"
 #include "AirUtil.h"
+#include "User.h"
 
 #include <string>
 
@@ -39,8 +40,8 @@ struct Magnet {
 
 	explicit Magnet(const string& aLink);
 
-	DupeType getDupeType();
-	TTHValue getTTH();
+	DupeType getDupeType() const;
+	TTHValue getTTH() const;
 };
 
 }

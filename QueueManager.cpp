@@ -508,7 +508,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 	};*/
 
 	//check share dupes
-	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aTTH, Util::emptyString)) {
+	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aTTH)) {
 		try {
 			auto path = Util::getFilePath(ShareManager::getInstance()->getRealPath(aTTH));
 			path = AirUtil::subtractCommonDirs(aBundleDir, path);
@@ -521,7 +521,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 	//check queue dupes
 	if (SETTING(DONT_DL_ALREADY_QUEUED)) {
 		RLock l(cs);
-		auto q = fileQueue.getQueuedFile(aTTH, Util::emptyString);
+		auto q = fileQueue.getQueuedFile(aTTH);
 		if (q && q->getTarget() != aBundleDir + aBundleFile) {
 			auto path = AirUtil::subtractCommonDirs(aBundleDir, q->getFilePath());
 			throw DupeException(STRING_F(FILE_ALREADY_QUEUED, path));

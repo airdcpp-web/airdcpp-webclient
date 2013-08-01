@@ -139,23 +139,15 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::Stri
 	}
 }
 
-int FileQueue::isFileQueued(const TTHValue& aTTH, const string& fileName) const noexcept {
-	auto qi = getQueuedFile(aTTH, fileName);
+int FileQueue::isFileQueued(const TTHValue& aTTH) const noexcept {
+	auto qi = getQueuedFile(aTTH);
 	if (qi) {
 		return (qi->isFinished() ? 2 : 1);
 	}
 	return 0;
 }
 
-QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH, const string& /*fileName*/) const noexcept {
-	//auto s = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
-	//if (s.first != s.second) {
-		//auto k = find_if(s | map_values, [&fileName](const QueueItemPtr& q) { return (stricmp(fileName, q->getTargetFileName()) == 0); });
-		//if (k.base() != s.second) {
-		//	return *k;
-		//}
-	//}
-
+QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH) const noexcept {
 	auto p = tthIndex.find(const_cast<TTHValue*>(&aTTH));
 	return p != tthIndex.end() ? p->second : nullptr;
 }

@@ -98,11 +98,11 @@ DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
 	return DUPE_NONE;
 }
 
-DupeType AirUtil::checkFileDupe(const TTHValue& aTTH, const string& aFileName) {
-	if (ShareManager::getInstance()->isFileShared(aTTH, aFileName)) {
+DupeType AirUtil::checkFileDupe(const TTHValue& aTTH) {
+	if (ShareManager::getInstance()->isFileShared(aTTH)) {
 		return SHARE_DUPE;
 	} else {
-		const int qd = QueueManager::getInstance()->isFileQueued(aTTH, aFileName);
+		const int qd = QueueManager::getInstance()->isFileQueued(aTTH);
 		if (qd > 0) {
 			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
 		}
@@ -114,7 +114,7 @@ DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
 	if (ShareManager::getInstance()->isFileShared(aFileName, aSize)) {
 		return SHARE_DUPE;
 	} else {
-		const int qd = QueueManager::getInstance()->isFileQueued(AirUtil::getTTH(aFileName, aSize), aFileName);
+		const int qd = QueueManager::getInstance()->isFileQueued(AirUtil::getTTH(aFileName, aSize));
 		if (qd > 0) {
 			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
 		}

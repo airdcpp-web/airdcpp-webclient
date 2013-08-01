@@ -167,9 +167,9 @@ public:
 
 	bool isDirShared(const string& aDir) const;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const;
-	bool isFileShared(const TTHValue& aTTH, const string& fileName) const;
+	bool isFileShared(const TTHValue& aTTH) const;
 	bool isFileShared(const string& aFileName, int64_t aSize) const;
-	bool isFileShared(const TTHValue& aTTH, const string& fileName, ProfileToken aProfile) const;
+	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const;
 
 	bool allowAddDir(const string& dir);
 	StringList getDirPaths(const string& aDir);

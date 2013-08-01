@@ -126,28 +126,27 @@ void AutoSearch::updateExcluded() {
 	}
 }
 
-string AutoSearch::formatParams(const AutoSearchPtr& as, const string& aString) {
+string AutoSearch::formatParams(bool formatMatcher) const {
 	ParamMap params;
-	if (as->usingIncrementation()) {
+	if (usingIncrementation()) {
 		params["inc"] = [&] { 
-			auto num = Util::toString(as->getCurNumber());
-			if (static_cast<int>(num.length()) < as->getNumberLen()) {
+			auto num = Util::toString(getCurNumber());
+			if (static_cast<int>(num.length()) < getNumberLen()) {
 				//prepend the zeroes
-				num.insert(num.begin(), as->getNumberLen() - num.length(), '0');
+				num.insert(num.begin(), getNumberLen() - num.length(), '0');
 			}
 			return num;
 		};
 	}
 
-	return Util::formatParams(aString, params);
+	return Util::formatParams(formatMatcher ? matcherString : searchString, params);
 }
 
 string AutoSearch::getDisplayName() {
 	if (!useParams)
 		return searchString;
 
-	auto formated = formatParams(this, searchString);
-	return formated + " (" + searchString + ")";
+	return formatParams(false) + " (" + searchString + ")";
 }
 
 void AutoSearch::setTarget(const string& aTarget) {
@@ -162,7 +161,7 @@ void AutoSearch::updatePattern() {
 		matcherString = searchString;
 
 	if (useParams) {
-		pattern = formatParams(this, matcherString);
+		pattern = formatParams(true);
 	} else {
 		pattern = matcherString;
 	}
@@ -659,6 +658,10 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) {
 	return addAutoSearch(as, true);
 }
 
+string AutoSearch::getFormatedSearchString() const {
+	return useParams ? formatParams(false) : searchString;
+}
+
 /* Item searching */
 void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType) {
 
@@ -690,10 +693,10 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	}
 
 	if (!failedBundle)
-		searchWord = as->getUseParams() ? AutoSearch::formatParams(as, as->getSearchString()) : as->getSearchString();
+		searchWord = as->getFormatedSearchString();
 
 	as->setLastSearch(GET_TIME());
-	if (aType == TYPE_MANUAL && !as->getEnabled()) {
+	if ((aType == TYPE_MANUAL_BG || aType == TYPE_MANUAL_FG) && !as->getEnabled()) {
 		as->setManualSearch(true);
 		as->setStatus(AutoSearch::STATUS_MANUAL);
 	}
@@ -701,32 +704,40 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 
 
 	//Run the search
-	uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchWord, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE, 
-		"as", extList, AdcSearch::parseSearchString(as->getExcludedString()), aType == TYPE_MANUAL ? Search::MANUAL : Search::AUTO_SEARCH);
+	if (aType != TYPE_MANUAL_FG) {
+		uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchWord, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE,
+			"as", extList, AdcSearch::parseSearchString(as->getExcludedString()), aType == TYPE_MANUAL_BG ? Search::MANUAL : Search::AUTO_SEARCH);
 
-
-	//Report
-	string msg;
-	if (searchTime == 0) {
-		if (failedBundle) {
-			msg = STRING_F(FAILED_BUNDLE_SEARCHED, searchWord);
-		} else if (aType == TYPE_NEW) {
-			msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED, searchWord);
-		} else {
-			msg = STRING_F(ITEM_SEARCHED, searchWord);
+		//Report
+		string msg;
+		if (searchTime == 0) {
+			if (failedBundle) {
+				msg = STRING_F(FAILED_BUNDLE_SEARCHED, searchWord);
+			}
+			else if (aType == TYPE_NEW) {
+				msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED, searchWord);
+			}
+			else {
+				msg = STRING_F(ITEM_SEARCHED, searchWord);
+			}
 		}
+		else {
+			auto time = searchTime / 1000;
+			if (failedBundle) {
+				msg = STRING_F(FAILED_BUNDLE_SEARCHED_IN, searchWord % time);
+			}
+			else if (aType == TYPE_NEW) {
+				msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED_IN, searchWord % time);
+			}
+			else {
+				msg = STRING_F(ITEM_SEARCHED_IN, searchWord % time);
+			}
+		}
+
+		logMessage(msg, false);
 	} else {
-		auto time = searchTime / 1000;
-		if (failedBundle) {
-			msg = STRING_F(FAILED_BUNDLE_SEARCHED_IN, searchWord % time);
-		} else if (aType == TYPE_NEW) {
-			msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED_IN, searchWord % time);
-		} else {
-			msg = STRING_F(ITEM_SEARCHED_IN, searchWord % time);
-		}
+		fire(AutoSearchManagerListener::SearchForeground(), as, searchWord);
 	}
-
-	logMessage(msg, false);
 }
 
 

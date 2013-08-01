@@ -33,10 +33,12 @@ public:
 	typedef X<0> RemoveItem;
 	typedef X<1> AddItem;
 	typedef X<2> UpdateItem;
+	typedef X<3> SearchForeground;
 
 	virtual void on(RemoveItem, const AutoSearchPtr&) noexcept { }
 	virtual void on(AddItem, const AutoSearchPtr&) noexcept { }
 	virtual void on(UpdateItem, const AutoSearchPtr&, bool) noexcept { }
+	virtual void on(SearchForeground, const AutoSearchPtr&, const string& /*searchString*/) noexcept {}
 };
 
 } // namespace dcpp

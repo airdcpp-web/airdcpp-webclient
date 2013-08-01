@@ -1795,6 +1795,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "%1% (code: %2%)", 
 "Report duplicate files when generating file lists", 
 "%1% duplicate files were detected when generating file list from directories %2%", 
+"Search (foreground)", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3590,4 +3591,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ErrorCodeX", 
 "ReportDuplicateFiles", 
 "DuplicateFilesDetected", 
+"SearchForeground", 
 };
