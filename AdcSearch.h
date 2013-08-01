@@ -52,7 +52,8 @@ namespace dcpp {
 		AdcSearch(const string& aString, const string& aExcluded, const StringList& aExt, MatchType aMatchType);
 		AdcSearch(const TTHValue& aRoot);
 
-		bool isExcluded(const string& str);
+		bool isIndirectExclude(const string& aName) const;
+		bool isExcluded(const string& str) const;
 		bool hasExt(const string& name);
 
 		StringSearch::List* include;

@@ -152,7 +152,16 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 	}
 }
 
-bool AdcSearch::isExcluded(const string& str) {
+bool AdcSearch::isIndirectExclude(const string& aName) const {
+	for (auto& i : includeX) {
+		if (i.match(aName))
+			return false;
+	}
+
+	return true;
+}
+
+bool AdcSearch::isExcluded(const string& str) const {
 	for(auto& i: exclude) {
 		if(i.match(str))
 			return true;

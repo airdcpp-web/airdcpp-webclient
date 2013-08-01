@@ -586,6 +586,7 @@ private:
 	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames);
 	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex);
 	void cleanIndices(Directory& dir);
+	void addDirName(Directory::Ptr& dir);
 	void removeDirName(Directory& dir);
 	void cleanIndices(Directory& dir, const Directory::File* f);
 

@@ -1726,7 +1726,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 		HashManager::getInstance()->addTree(d->getTigerTree());
 	}
 
-	if (finished && q->isSet(QueueItem::FLAG_OPEN)) {
+	if (removeFinished && q->isSet(QueueItem::FLAG_OPEN)) {
 		Util::openFile(q->getTarget());
 	}
 

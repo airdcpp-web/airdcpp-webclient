@@ -180,7 +180,7 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, Dir
 			return false;
 		}
 
-		return aList->downloadDirImpl(dir, aTargetPath, di->getPriority(), di->getAutoSearch());
+		return aList->downloadDirImpl(dir, aTargetPath + di->getBundleName() + PATH_SEPARATOR, di->getPriority(), di->getAutoSearch());
 	};
 
 	bool download = false;
@@ -221,7 +221,6 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, Dir
 	int64_t dirSize = aList->getDirSize(di->getListPath());
 	TargetUtil::getVirtualTarget(di->getTarget(), di->getTargetType(), ti, dirSize);
 	bool hasFreeSpace = ti.getFreeSpace() >= dirSize;
-	ti.targetDir += Util::getLastDir(di->getListPath()) + PATH_SEPARATOR;
 
 	if (di->getSizeConfirm() == REPORT_SYSLOG) {
 		auto queued = doDownload(ti.targetDir);
@@ -316,7 +315,7 @@ void DirectoryListingManager::handleSizeConfirmation(FinishedDirectoryItem::Ptr&
 
 	if (accepted) {
 		for (auto& di : aFinishedItem->getDownloadInfos()) {
-			di->getListing()->downloadDir(di->getListPath(), di->getTarget(), di->getPriority(), di->getAutoSearch());
+			di->getListing()->downloadDir(di->getListPath(), di->getTarget() + di->getBundleName() + PATH_SEPARATOR, di->getPriority(), di->getAutoSearch());
 		}
 	}
 	aFinishedItem->deleteListings();

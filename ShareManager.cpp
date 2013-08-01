@@ -546,7 +546,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 
 				//add in bloom and dir name map
 				d->addBloom(*bloom.get());
-				dirNameMap.emplace(const_cast<string*>(&d->name.getLower()), d);
+				addDirName(d);
 
 				//get files to convert in the hash database (recursive)
 				d->getRenameInfoList(Util::emptyString, toRename);
@@ -1830,10 +1830,6 @@ bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
 }
 
 void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
-	// make sure that the root gets also added...
-	aDirs.emplace(const_cast<string*>(&aDir->name.getLower()), aDir);
-	aDir->addBloom(aBloom);
-
 	FileFindIter end;
 
 #ifdef _WIN32
@@ -1897,6 +1893,9 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 				aDir->directories.erase_key(dir->name.getLower());
 				continue;
 			}
+
+			aDirs.emplace(const_cast<string*>(&dir->name.getLower()), dir);
+			dir->addBloom(aBloom);
 		} else {
 			// Not a directory, assume it's a file...
 			//string path = aPath + name;
@@ -2239,7 +2238,7 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 					Directory::Ptr dp = Directory::create(Util::getLastDir(sdiPath), nullptr, findLastWrite(sdiPath), root);
 					addRoot(sdiPath, dp);
 					profileDirs[sdiPath] = root;
-					dirNameMap.emplace(const_cast<string*>(&dp->name.getLower()), dp);
+					addDirName(dp);
 					add.push_back(sdiPath);
 				}
 			}
@@ -2448,6 +2447,8 @@ ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr
 	if (aOldRoot && aOldRoot->getProfileDir() && aOldRoot->getProfileDir()->isSet(ProfileDirectory::FLAG_ROOT)) {
 		rootPathsNew[Text::toLower(aPath)] = root;
 	}
+
+	dirNameMapNew.emplace(const_cast<string*>(&root->name.getLower()), root);
 }
 
 void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
@@ -2525,6 +2526,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			if (checkHidden(ri.path)) {
 				auto pathLower = Text::toLower(ri.path);
 				auto path = ri.path;
+				ri.root->addBloom(*refreshBloom);
 				buildTree(path, pathLower, ri.root, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
 				dcassert(ri.path == path);
 			}
@@ -3555,6 +3557,15 @@ void ShareManager::cleanIndices(Directory& dir, const Directory::File* f) {
 	}
 }
 
+void ShareManager::addDirName(Directory::Ptr& dir) {
+#ifdef _DEBUG
+	auto directories = dirNameMap.equal_range(const_cast<string*>(&dir->name.getLower()));
+	auto p = find(directories | map_values, dir);
+	dcassert(p.base() == dirNameMap.end());
+#endif
+	dirNameMap.emplace(const_cast<string*>(&dir->name.getLower()), dir);
+}
+
 void ShareManager::removeDirName(Directory& dir) {
 	auto directories = dirNameMap.equal_range(const_cast<string*>(&dir.name.getLower()));
 	auto p = find_if(directories | map_values, [&dir](const Directory::Ptr& d) { return d.get() == &dir; });
@@ -3659,7 +3670,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 				}
 
 				curDir = Directory::create(move(dualName), curDir, GET_TIME(), m != profileDirs.end() ? m->second : nullptr);
-				dirNameMap.emplace(const_cast<string*>(&curDir->name.getLower()), curDir);
+				addDirName(curDir);
 				curDir->addBloom(*bloom.get());
 			}
 		}
