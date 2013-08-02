@@ -105,7 +105,7 @@ class AirUtil {
 		static const string getLinkUrl();
 
 		static void removeIfEmpty(const string& tgt);
-		static bool removeDirectoryIfEmpty(const string& tgt);
+		static bool removeDirectoryIfEmpty(const string& tgt, int attempts = 0);
 
 		static bool isAdcHub(const string& hubUrl);
 		static bool isHubLink(const string& hubUrl);

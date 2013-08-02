@@ -131,8 +131,8 @@ TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) {
 
 void AirUtil::init() {
 	releaseReg.assign(getReleaseRegBasic());
-	subDirRegPlain.assign("((((S(eason)?))|(DVD)|(CD)|(D|(DIS(K|C)))).?([0-9](0-9)?))|(Sample.?)|(Proof.?)|(Cover.?)|(.{0,5}Sub(s|pack)?)", boost::regex::icase);
-	crcReg.assign("(.{5,200}\\s(\\w{8})$)");
+	subDirRegPlain.assign(R"((((S(eason)?)|DVD|CD|(D|DIS(K|C))).?([0-9](0-9)?))|Sample.?|Proof.?|Cover.?|.{0,5}Sub(s|pack)?)", boost::regex::icase);
+	crcReg.assign(R"(.{5,200}\s(\w{8})$)");
 }
 
 void AirUtil::updateCachedSettings() {
@@ -568,7 +568,7 @@ bool AirUtil::isParentOrExact(const string& aDir, const string& aSub) {
 }
 
 const string AirUtil::getLinkUrl() {
-	return "(((?:[a-z][\\w-]{0,10})?:/{1,3}|www\\d{0,3}[.]|magnet:\\?[^\\s=]+=|spotify:|[a-z0-9.\\-]+[.][a-z]{2,4}/)(?:[^\\s()<>]+|\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\))+(?:\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\)|[^\\s`()\\[\\]{};:'\".,<>?«»“”‘’]))";
+	return R"(((?:[a-z][\w-]{0,10})?:/{1,3}|www\d{0,3}[.]|magnet:\?[^\s=]+=|spotify:|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))";
 }
 
 const string AirUtil::getReleaseRegLong(bool chat) {
@@ -582,7 +582,7 @@ const string AirUtil::getReleaseRegBasic() {
 	return R"(((?=\S*[A-Za-z]\S*)[A-Z0-9]\S{3,})-([A-Za-z0-9_]{2,}))";
 }
 
-bool AirUtil::removeDirectoryIfEmpty(const string& aPath) {
+bool AirUtil::removeDirectoryIfEmpty(const string& aPath, int attempts /*0*/) {
 	/* recursive check for empty dirs */
 	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
 		try {
@@ -593,6 +593,13 @@ bool AirUtil::removeDirectoryIfEmpty(const string& aPath) {
 				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
 				if (!removeDirectoryIfEmpty(dir))
 					return false;
+			} else if (Util::getFileExt(i->getFileName()) == ".dctmp") {
+				if (attempts == 3)
+					return false;
+
+				Sleep(500);
+				attempts++;
+				return removeDirectoryIfEmpty(aPath, attempts);
 			} else {
 				return false;
 			}
@@ -630,7 +637,7 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
 		return Util::emptyString;
 
 	//don't replace | and ? if it's wildcard
-    static const boost::regex re_boostRegexEscape(isWildcard ? "[\\^\\.\\$\\(\\)\\[\\]\\*\\+\\?\\/\\\\]" : "[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]");
+	static const boost::regex re_boostRegexEscape(isWildcard ? R"([\^\.\$\(\)\[\]\*\+\?\/\\])" : R"([\^\.\$\|\(\)\[\]\*\+\?\/\\])");
     const string rep("\\\\\\1&");
     string result = regex_replace(aStr, re_boostRegexEscape, rep, boost::match_default | boost::format_sed);
 	if (isWildcard) {

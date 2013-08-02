@@ -121,8 +121,8 @@ namespace dcpp {
 
 			void addInfo(DirectoryDownloadInfo::Ptr& aDDI) {
 				downloadInfos.push_back(aDDI);
-				if (aDDI->getAutoSearch() > 0)
-					autoSearches.insert(aDDI->getAutoSearch());
+				//if (aDDI->getAutoSearch() > 0)
+				//	autoSearches.insert(aDDI->getAutoSearch());
 			}
 
 			void setHandledState(bool accepted) {
@@ -135,17 +135,17 @@ namespace dcpp {
 				downloadInfos.clear();
 			}
 
-			void addAutoSearch(ProfileToken aAutoSearch) {
+			/*void addAutoSearch(ProfileToken aAutoSearch) {
 				if (aAutoSearch > 0)
 					autoSearches.insert(aAutoSearch);
-			}
+			}*/
 
 			GETSET(WaitingState, state, State); // is this waiting action from an user?
 			GETSET(DirectoryDownloadInfo::List, downloadInfos, DownloadInfos); // lists that are waiting for disk space confirmation from the user
 			GETSET(string, targetPath, TargetPath); // real path to the location
 			GETSET(bool, usePausedPrio, UsePausedPrio);
 			GETSET(uint64_t, timeDownloaded, TimeDownloaded); // time when this item was created
-			GETSET(ProfileTokenSet, autoSearches, AutoSearches); // list of all auto search items that have been associated to this dir
+			/*GETSET(ProfileTokenSet, autoSearches, AutoSearches); // list of all auto search items that have been associated to this dir
 
 			struct HasASItem {
 				HasASItem(ProfileToken aToken, const string& s) : a(s), t(aToken) { }
@@ -154,7 +154,7 @@ namespace dcpp {
 				ProfileToken t;
 			private:
 				HasASItem& operator=(const HasASItem&) ;
-			};
+			};*/
 		private:
 
 		};

@@ -96,8 +96,8 @@ void DirectoryListingManager::addDirectoryDownload(const string& aRemoteDir, con
 
 		if (checkNameDupes && aAutoSearch > 0) {
 			//don't download different directories for auto search items that don't allow it
-			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, aBundleName)).base() != dlDirectories.end()  ||
-				find_if(finishedListings | map_values, FinishedDirectoryItem::HasASItem(aAutoSearch, aBundleName)).base() != finishedListings.end())  {
+			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, aBundleName)).base() != dlDirectories.end()  /*||
+				find_if(finishedListings | map_values, FinishedDirectoryItem::HasASItem(aAutoSearch, aBundleName)).base() != finishedListings.end()*/)  {
 					return;
 			}
 		}
@@ -198,7 +198,7 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, Dir
 				di->setTarget(p->second->getTargetPath());
 				di->setPriority(p->second->getUsePausedPrio() ? QueueItem::PAUSED : di->getPriority());
 				di->setSizeConfirm(NO_CHECK);
-				p->second->addAutoSearch(di->getAutoSearch());
+				//p->second->addAutoSearch(di->getAutoSearch());
 				directDownload = true;
 			}
 			else if (p->second->getState() == FinishedDirectoryItem::WAITING_ACTION) {

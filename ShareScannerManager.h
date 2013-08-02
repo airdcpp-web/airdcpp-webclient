@@ -58,7 +58,7 @@ public:
 		TYPE_FAILED_FINISHED,
 	};
 
-	int scan(StringList paths = StringList(), bool sfv = false);
+	int scan(const StringList& paths = StringList(), bool sfv = false);
 	Bundle::Status onScanBundle(const BundlePtr& aBundle, string& error_);
 	bool onScanSharedDir(const string& aDir, string& error_, bool report);
 

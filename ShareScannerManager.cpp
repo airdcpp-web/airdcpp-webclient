@@ -78,7 +78,7 @@ ShareScannerManager::~ShareScannerManager() {
 	join();
 }
 
-int ShareScannerManager::scan(StringList paths, bool sfv /*false*/) {
+int ShareScannerManager::scan(const StringList& paths, bool sfv /*false*/) {
 	stop = false;
 	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
