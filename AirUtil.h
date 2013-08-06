@@ -120,6 +120,9 @@ class AirUtil {
 
 		/* Removes common dirs from the end of toSubtract */
 		static string subtractCommonDirs(const string& toCompare, const string& toSubtract);
+
+		/* Returns the name without subdirs and possible position from where the subdir starts */
+		static pair<string, string::size_type> getDirName(const string& aName);
 	private:
 
 		static AwayMode away;

@@ -684,4 +684,32 @@ string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubt
 	return toSubtract;
 }
 
+pair<string, string::size_type> AirUtil::getDirName(const string& aPath) {
+	if (aPath.size() < 3)
+		return { aPath, false };
+
+	//get the directory to search for
+	bool isSub = false;
+	string::size_type i = aPath.back() == PATH_SEPARATOR ? aPath.size() - 2 : aPath.size() - 1, j;
+	for (;;) {
+		j = aPath.find_last_of(PATH_SEPARATOR, i);
+		if (j == string::npos) {
+			j = 0;
+			break;
+		}
+
+		//auto remoteDir = dir.substr(j + 1, i - j);
+		if (!boost::regex_match(aPath.substr(j + 1, i - j), subDirRegPlain)) {
+			j++;
+			break;
+		}
+
+		isSub = true;
+		i = j - 1;
+	}
+
+	//return { aPath.substr(j, i - j + 1), isSub };
+	return make_pair(aPath.substr(j, i - j + 1), isSub ? i + 2 : string::npos);
+}
+
 }

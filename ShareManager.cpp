@@ -1745,34 +1745,14 @@ void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) co
 	if (aPath.size() < 3)
 		return;
 
-	//get the directory to search for
-	bool isSub = false;
-	string::size_type i = aPath.back() == PATH_SEPARATOR ? aPath.size() - 2 : aPath.size() - 1, j;
-	for (;;) {
-		j = aPath.find_last_of(PATH_SEPARATOR, i);
-		if (j == string::npos) {
-			j = 0;
-			break;
-		}
-
-		//auto remoteDir = dir.substr(j + 1, i - j);
-		if (!boost::regex_match(aPath.substr(j + 1, i - j), AirUtil::subDirRegPlain)) {
-			j++;
-			break;
-		}
-
-		isSub = true;
-		i = j - 1;
-	}
-
-	auto dir = aPath.substr(j, i - j + 1);
-	const auto directories = dirNameMap.equal_range(&dir);
+	auto p = AirUtil::getDirName(aPath);
+	const auto directories = dirNameMap.equal_range(&p.first);
 	if (directories.first == directories.second)
 		return;
 
 	for (auto s = directories.first; s != directories.second; ++s) {
-		if (isSub) {
-			auto dir = s->second->findDirByPath(aPath.substr(i + 2));
+		if (p.second != string::npos) {
+			auto dir = s->second->findDirByPath(aPath.substr(p.second));
 			if (dir) {
 				dirs_.push_back(dir);
 			}
@@ -3539,7 +3519,7 @@ void ShareManager::addDirName(Directory::Ptr& dir) {
 #ifdef _DEBUG
 	auto directories = dirNameMap.equal_range(const_cast<string*>(&dir->name.getLower()));
 	auto p = find(directories | map_values, dir);
-	dcassert(p.base() == dirNameMap.end());
+	dcassert(p.base() == directories.second);
 #endif
 	dirNameMap.emplace(const_cast<string*>(&dir->name.getLower()), dir);
 }

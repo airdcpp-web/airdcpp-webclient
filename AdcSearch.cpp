@@ -90,7 +90,7 @@ AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), g
 	lt(numeric_limits<int64_t>::max()), hasRoot(true), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 }
 
-AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt, MatchType aMatchType) : matchType(aMatchType), ext(aExt), include(&includeX), gt(0), 
+AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt, MatchType aMatchType) : matchType(aMatchType), include(&includeX), gt(0), 
 	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 
 	//add included
@@ -107,6 +107,9 @@ AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const Strin
 	auto ex = move(parseSearchString(aExcluded));
 	for(auto& i: ex)
 		exclude.emplace_back(i);
+
+	for (auto& i : aExt)
+		ext.push_back(Text::toLower(i));
 }
 
 AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
@@ -126,12 +129,12 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 		} else if(toCode('N', 'O') == cmd) {
 			exclude.emplace_back(p.substr(2));
 		} else if(toCode('E', 'X') == cmd) {
-			ext.push_back(p.substr(2));
+			ext.push_back(Text::toLower(p.substr(2)));
 		} else if(toCode('G', 'R') == cmd) {
 			auto exts = AdcHub::parseSearchExts(Util::toInt(p.substr(2)));
 			ext.insert(ext.begin(), exts.begin(), exts.end());
 		} else if(toCode('R', 'X') == cmd) {
-			noExt.push_back(p.substr(2));
+			noExt.push_back(Text::toLower(p.substr(2)));
 		} else if(toCode('G', 'E') == cmd) {
 			gt = Util::toInt64(p.substr(2));
 		} else if(toCode('L', 'E') == cmd) {
@@ -178,8 +181,8 @@ bool AdcSearch::hasExt(const string& name) {
 		noExt.clear();
 	}
 
-	for(auto& i: ext) {
-		if(name.length() >= i.length() && stricmp(name.c_str() + name.length() - i.length(), i.c_str()) == 0)
+	for(const auto& i: ext) {
+		if (name.length() >= i.length() && name.compare(name.length() - i.length(), i.length(), i.c_str()) == 0)
 			return true;
 	}
 	return false;
@@ -222,8 +225,8 @@ bool AdcSearch::matchesDirectory(const string& aName) {
 		return false;
 
 	bool hasMatch = false;
-	for(auto k = include->begin(); k != include->end(); ++k) {
-		if(k->match(aName) && !isExcluded(aName))
+	for(const auto& k: *include) {
+		if(k.match(aName) && !isExcluded(aName))
 			hasMatch = true;
 		else {
 			hasMatch = false;
