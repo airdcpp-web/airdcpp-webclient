@@ -68,8 +68,7 @@ namespace dcpp {
 		uint32_t minDate;
 		uint32_t maxDate;
 
-		TTHValue root;
-		bool hasRoot;
+		optional<TTHValue> root;
 
 		MatchType matchType;
 		bool addParents;

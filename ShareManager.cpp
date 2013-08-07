@@ -3453,8 +3453,8 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 	totalSearches++;
 
 	RLock l(cs);
-	if(srch.hasRoot) {
-		const auto i = tthIndex.equal_range(const_cast<TTHValue*>(&srch.root));
+	if(srch.root) {
+		const auto i = tthIndex.equal_range(const_cast<TTHValue*>(&(*srch.root)));
 		for(auto& f: i | map_values) {
 			if (f->hasProfile(aProfile) && AirUtil::isParentOrExact(aDir, f->getADCPath(aProfile))) {
 				f->addSR(results, aProfile, srch.addParents);
@@ -3462,11 +3462,11 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 			}
 		}
 
-		const auto files = tempShares.equal_range(srch.root);
+		const auto files = tempShares.equal_range(*srch.root);
 		for(const auto& f: files | map_values) {
 			if(f.key.empty() || (f.key == cid.toBase32())) { // if no key is set, it means its a hub share.
 				//TODO: fix the date?
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.size, "tmp\\" + Util::getFileName(f.path), srch.root, 0, 1));
+				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.size, "tmp\\" + Util::getFileName(f.path), *srch.root, 0, 1));
 				results.push_back(sr);
 			}
 		}

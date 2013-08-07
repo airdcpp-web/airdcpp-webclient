@@ -87,11 +87,11 @@ StringList AdcSearch::parseSearchString(const string& aString) {
 }
 
 AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(true), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
+	lt(numeric_limits<int64_t>::max()), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 }
 
 AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt, MatchType aMatchType) : matchType(aMatchType), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
+	lt(numeric_limits<int64_t>::max()), itemType(TYPE_ANY), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
 
 	//add included
 	if (matchType == MATCH_EXACT) {
@@ -113,7 +113,7 @@ AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const Strin
 }
 
 AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), hasRoot(false), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max())
+	lt(numeric_limits<int64_t>::max()), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max())
 {
 	for(const auto& p: params) {
 		if(p.length() <= 2)
@@ -121,7 +121,6 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 
 		uint16_t cmd = toCode(p[0], p[1]);
 		if(toCode('T', 'R') == cmd) {
-			hasRoot = true;
 			root = TTHValue(p.substr(2));
 			return;
 		} else if(toCode('A', 'N') == cmd) {
@@ -156,6 +155,9 @@ AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0),
 }
 
 bool AdcSearch::isIndirectExclude(const string& aName) const {
+	if (root)
+		return false;
+
 	for (auto& i : includeX) {
 		if (i.match(aName))
 			return false;

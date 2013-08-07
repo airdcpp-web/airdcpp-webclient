@@ -398,8 +398,8 @@ void DirectoryListing::Directory::search(OrderedStringSet& aResults, AdcSearch& 
 	if (getAdls())
 		return;
 
-	if (aStrings.hasRoot) {
-		auto pos = find_if(files, [aStrings](File* aFile) { return aFile->getTTH() == aStrings.root; });
+	if (aStrings.root) {
+		auto pos = find_if(files, [aStrings](File* aFile) { return aFile->getTTH() == *aStrings.root; });
 		if (pos != files.end()) {
 			aResults.insert(getPath());
 		}
