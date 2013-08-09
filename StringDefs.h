@@ -460,7 +460,6 @@ enum Strings { // @DontAdd
 	SEARCH_FOR, // "Search for"
 	SEARCH_FOR_ALTERNATES, // "Search for alternates"
 	SEARCH_FOR_FILE, // "Search for file"
-	SEARCH_IN_RESULTS, // "Search in results"
 	SEARCH_OPTIONS, // "Search options"
 	SEARCH_SPAM_FROM, // "Search spam detected from "
 	SEARCH_SPY, // "Search spy"
