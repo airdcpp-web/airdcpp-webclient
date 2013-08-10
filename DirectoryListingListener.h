@@ -37,8 +37,7 @@ public:
 	typedef X<6> SearchFailed;
 	typedef X<7> ChangeDirectory;
 	typedef X<8> UpdateStatusMessage;
-	typedef X<9> Filter;
-	typedef X<10> RemovedQueue;
+	typedef X<9> RemovedQueue;
 
 	virtual void on(LoadingFinished, int64_t /*start*/, const string& /*aDir*/, bool /*reloadList*/, bool /*changeDir*/, bool /*load in gui thread*/) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
@@ -49,7 +48,6 @@ public:
 	virtual void on(SearchFailed, bool) noexcept { }
 	virtual void on(ChangeDirectory, const string&, bool) noexcept { }
 	virtual void on(UpdateStatusMessage, const string&) noexcept { }
-	virtual void on(Filter) noexcept { }
 	virtual void on(RemovedQueue, const string&) noexcept { }
 };
 

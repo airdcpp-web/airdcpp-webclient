@@ -193,7 +193,7 @@ public:
 	void checkShareDupes();
 	bool findNfo(const string& aPath);
 	
-	const UserPtr& getUser() const { return hintedUser.user; }	
+	const UserPtr& getUser() const { return hintedUser.user; }
 	const string& getHubUrl() const { return hintedUser.hint; }	
 		
 	GETSET(HintedUser, hintedUser, HintedUser);
@@ -210,7 +210,6 @@ public:
 	void addPartialListTask(const string& aXml, const string& aBase, bool reloadAll = false, std::function<void ()> f = nullptr);
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
-	void addFilterTask();
 
 	void addAsyncTask(std::function<void ()> f);
 	void close();
@@ -244,8 +243,7 @@ private:
 
 	enum Tasks {
 		ASYNC,
-		CLOSE,
-		FILTER
+		CLOSE
 	};
 
 	void runTasks();
@@ -270,7 +268,6 @@ private:
 	int maxResultCount;
 	uint64_t lastResult;
 	string searchToken;
-	bool typingFilter;
 
 	void listDiffImpl(const string& aFile, bool aOwnList);
 	void loadFileImpl(const string& aInitialDir);

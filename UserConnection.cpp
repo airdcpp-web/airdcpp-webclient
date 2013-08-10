@@ -26,6 +26,7 @@
 #include "AdcCommand.h"
 #include "Transfer.h"
 #include "DebugManager.h"
+#include "FavoriteManager.h"
 
 #include "Download.h"
 
@@ -162,6 +163,19 @@ int64_t UserConnection::getChunkSize() const {
 		return min_seg_size;
 	}else{
 		return chunkSize; 
+	}
+}
+
+void UserConnection::setUser(const UserPtr& aUser) {
+	user = aUser;
+	if (socket) {
+		socket->setUseLimiter(true);
+		if (aUser->isSet(User::FAVORITE)) {
+			auto u = FavoriteManager::getInstance()->getFavoriteUser(aUser);
+			if (u) {
+				socket->setUseLimiter(!u->isSet(FavoriteUser::FLAG_GRANTSLOT));
+			}
+		}
 	}
 }
 

@@ -73,7 +73,9 @@ public:
 
 // Favorite Users
 	typedef unordered_map<CID, FavoriteUser> FavoriteMap;
-	FavoriteMap getFavoriteUsers() { RLock l(cs); return users; }
+
+	//remember to lock this
+	const FavoriteMap& getFavoriteUsers() { return users; }
 	PreviewApplication::List& getPreviewApps() { return previewApplications; }
 
 	void addFavoriteUser(const HintedUser& aUser);
@@ -173,6 +175,8 @@ public:
 
 	bool hasActiveHubs() const;
 	bool hasAdcHubs() const;
+
+	mutable SharedMutex cs;
 private:
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
@@ -183,8 +187,6 @@ private:
 	int lastId;
 
 	FavoriteMap users;
-
-	mutable SharedMutex cs;
 
 	// Public Hubs
 	typedef unordered_map<string, HubEntryList> PubListMap;

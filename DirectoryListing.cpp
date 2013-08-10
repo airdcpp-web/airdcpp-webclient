@@ -44,7 +44,7 @@ using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), typingFilter(false), waiting(false), maxResultCount(0), curResultCount(0)
+	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), waiting(false), maxResultCount(0), curResultCount(0)
 {
 	running.clear();
 
@@ -839,13 +839,6 @@ void DirectoryListing::onRemovedQueue(const string& aDir) {
 	addAsyncTask([=] { removedQueueImpl(aDir); });
 }
 
-void DirectoryListing::addFilterTask() {
-	if (tasks.addUnique(FILTER, nullptr))
-		runTasks();
-	else
-		typingFilter = true;
-}
-
 void DirectoryListing::runTasks() {
 	if (!running.test_and_set()) {
 		join();
@@ -872,16 +865,7 @@ int DirectoryListing::run() {
 		ScopedFunctor([this] { tasks.pop_front(); });
 
 		try {
-			if(t.first == FILTER) {
-				for(;;) {
-					typingFilter = false;
-					sleep(500);
-					if (!typingFilter)
-						break;
-				}
-
-				fire(DirectoryListingListener::Filter());
-			} else if (t.first == CLOSE) {
+			if (t.first == CLOSE) {
 				//delete this;
 				fire(DirectoryListingListener::Close());
 				return 0;

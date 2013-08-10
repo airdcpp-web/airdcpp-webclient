@@ -494,6 +494,7 @@ void FavoriteManager::save() {
 			xml.addTag("User");
 			xml.addChildAttrib("LastSeen", i.second.getLastSeen());
 			xml.addChildAttrib("GrantSlot", i.second.isSet(FavoriteUser::FLAG_GRANTSLOT));
+			xml.addChildAttrib("SuperUser", i.second.isSet(FavoriteUser::FLAG_SUPERUSER));
 			xml.addChildAttrib("UserDescription", i.second.getDescription());
 			xml.addChildAttrib("Nick", i.second.getNick());
 			xml.addChildAttrib("URL", i.second.getUrl());
@@ -738,9 +739,6 @@ void FavoriteManager::load(SimpleXML& aXml) {
 					continue;
 				u = ClientManager::getInstance()->getUser(nick, hubUrl);
 			} else {
-				//prevent loading own Identity as favorite user
-				if(cid == ClientManager::getInstance()->getMyCID().toBase32())
-					continue;
 				u = ClientManager::getInstance()->getUser(CID(cid));
 			}
 			u->setFlag(User::FAVORITE);
@@ -750,6 +748,8 @@ void FavoriteManager::load(SimpleXML& aXml) {
 
 			if(aXml.getBoolChildAttrib("GrantSlot"))
 				i->second.setFlag(FavoriteUser::FLAG_GRANTSLOT);
+			if (aXml.getBoolChildAttrib("SuperUser"))
+				i->second.setFlag(FavoriteUser::FLAG_SUPERUSER);
 
 			i->second.setLastSeen((uint32_t)aXml.getIntChildAttrib("LastSeen"));
 			i->second.setDescription(aXml.getChildAttrib("UserDescription"));

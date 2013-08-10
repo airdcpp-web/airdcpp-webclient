@@ -217,9 +217,7 @@ private:
 
 	friend struct DeleteFunction;
 
-	void setUser(const UserPtr& aUser) {
-		user = aUser;
-	}
+	void setUser(const UserPtr& aUser);
 
 	void onLine(const string& aLine) noexcept;
 	

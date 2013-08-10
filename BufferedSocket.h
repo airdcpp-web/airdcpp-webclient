@@ -108,7 +108,8 @@ public:
 	uint16_t getLocalPort() const { return sock->getLocalPort(); }
 	bool isV6Valid() const { return sock->isV6Valid(); }
 
-	GETSET(char, separator, Separator)
+	GETSET(char, separator, Separator);
+	GETSET(bool, useLimiter, UseLimiter);
 private:
 	enum Tasks {
 		CONNECT,

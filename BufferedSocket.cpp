@@ -42,7 +42,7 @@ using std::max;
 
 BufferedSocket::BufferedSocket(char aSeparator, bool v4only) :
 separator(aSeparator), mode(MODE_LINE), dataBytes(0), rollback(0), state(STARTING),
-disconnecting(false), v4only(v4only)
+disconnecting(false), v4only(v4only), useLimiter(false)
 {
 	start();
 
@@ -194,7 +194,7 @@ void BufferedSocket::threadRead() {
 	if(state != RUNNING)
 		return;
 
-	int left = (mode == MODE_DATA) ? ThrottleManager::getInstance()->read(sock.get(), &inbuf[0], inbuf.size()) : sock->read(&inbuf[0], inbuf.size());
+	int left = (mode == MODE_DATA && useLimiter) ? ThrottleManager::getInstance()->read(sock.get(), &inbuf[0], inbuf.size()) : sock->read(&inbuf[0], inbuf.size());
 	if(left == -1) {
 		// EWOULDBLOCK, no data received...
 		return;
