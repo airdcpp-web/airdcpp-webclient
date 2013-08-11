@@ -1799,5 +1799,7 @@ enum Strings { // @DontAdd
 	REPORT_DUPLICATE_FILES, // "Report duplicate files when generating file lists"
 	DUPLICATE_FILES_DETECTED, // "%1% duplicate files were detected when generating file list from directories %2%"
 	SEARCH_FOREGROUND, // "Search (foreground)"
+	HIDE_MATCHES, // "Hide matches"
+	HUB_UNKNOWN, // "No known hub"
 	LAST // @DontAdd
 };

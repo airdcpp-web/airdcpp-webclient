@@ -522,7 +522,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 	LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_STARTED), LogManager::LOG_INFO);
 	unordered_set<TTHValue> usedRoots;
 	{
-		//make sure that the databases stay in sync so that trees added while this operation won't get removed
+		//make sure that the databases stay in sync so that trees added during this operation won't get removed
 		unique_ptr<DbSnapshot> fileSnapshot(fileDb->getSnapshot()); 
 		unique_ptr<DbSnapshot> hashSnapshot(hashDb->getSnapshot()); 
 

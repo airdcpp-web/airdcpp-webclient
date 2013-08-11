@@ -385,7 +385,9 @@ bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueExceptio
 void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, BundlePtr aBundle /*nullptr*/) throw(QueueException, FileException) {
 	//check the source
 	checkSource(aUser);
-	dcassert(!aUser.hint.empty());
+	//dcassert(!aUser.hint.empty());
+	if (aUser.hint.empty())
+		throw QueueException(STRING(HUB_UNKNOWN));
 
 	//format the target
 	string target;
