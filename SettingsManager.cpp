@@ -201,7 +201,7 @@ const string SettingsManager::settingTags[] =
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
 	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
-	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed",
+	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -817,9 +817,16 @@ SettingsManager::SettingsManager()
 	setDefault(FILTER_FL_SHARED, true);
 	setDefault(FILTER_FL_QUEUED, true);
 	setDefault(FILTER_FL_INVERSED, false);
+	setDefault(FILTER_FL_TOP, true);
+	setDefault(FILTER_FL_PARTIAL_DUPES, false);
+	setDefault(FILTER_FL_RESET_CHANGE, true);
+
 	setDefault(FILTER_SEARCH_SHARED, true);
 	setDefault(FILTER_SEARCH_QUEUED, true);
 	setDefault(FILTER_SEARCH_INVERSED, false);
+	setDefault(FILTER_SEARCH_TOP, true);
+	setDefault(FILTER_SEARCH_PARTIAL_DUPES, false);
+	setDefault(FILTER_SEARCH_RESET_CHANGE, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else
