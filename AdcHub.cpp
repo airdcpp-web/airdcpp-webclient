@@ -1231,7 +1231,7 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 		}
 
 		if (aDate > 0) {
-			LogManager::getInstance()->message("Age: " + Text::fromT(Util::getDateTimeW(aDate)), LogManager::LOG_INFO);
+			//LogManager::getInstance()->message("Age: " + Text::fromT(Util::getDateTimeW(aDate)), LogManager::LOG_INFO);
 			if (aDateMode == SearchManager::DATE_NEWER) {
 				c.addParam("NT", Util::toString(aDate));
 			} else if (aDateMode == SearchManager::DATE_OLDER) {
