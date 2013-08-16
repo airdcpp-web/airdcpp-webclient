@@ -1802,10 +1802,11 @@ enum Strings { // @DontAdd
 	EXCLUDE_MATCHES, // "Exclude matches"
 	HUB_UNKNOWN, // "No known hub"
 	EXCLUDE_DOTS, // "Exclude..."
-	RESET_FOLDER_CHANGE, // "Reset when switching directory"
-	RESET_NEW_SEARCH, // "Reset on new search"
+	RESET_FOLDER_CHANGE, // "Reset the string when switching directory"
+	RESET_NEW_SEARCH, // "Reset the string on new search"
 	PARTIAL_DUPES_EQUAL, // "Treat partial dupes similar to exact dupes"
-	SHOW_ON_TOP, // "Show on top"
+	SHOW_ON_TOP, // "Show above the list"
 	OPTIONS_DOTS, // "Options..."
+	MAXIMUM_AGE, // "Maximum age"
 	LAST // @DontAdd
 };

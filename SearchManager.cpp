@@ -84,11 +84,11 @@ string SearchManager::normalizeWhitespace(const string& aString){
 uint64_t SearchManager::search(const string& aName, int64_t aSize, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, Search::searchType sType) {
 	StringList who;
 	ClientManager::getInstance()->getOnlineClients(who);
-	return search(who, aName, aSize, aTypeMode, aSizeMode, aToken, StringList(), StringList(), sType);
+	return search(who, aName, aSize, aTypeMode, aSizeMode, aToken, StringList(), StringList(), sType, 0, DATE_DONTCARE, false);
 }
 
 uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize, TypeModes aFileType, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, const StringList& aExcluded,
-	Search::searchType sType, void* aOwner /* NULL */) {
+	Search::searchType sType, time_t aDate, DateModes aDateMode, bool aAschOnly, void* aOwner /* NULL */) {
 
 	string keyStr;
 	if (SETTING(ENABLE_SUDP)) {
@@ -111,6 +111,9 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 	s->exts	    = aExtList;
 	s->type		= sType;
 	s->excluded = aExcluded;
+	s->aschOnly = aAschOnly;
+	s->dateMode = aDateMode;
+	s->date =	 aDate;
 
 	s->owners.insert(aOwner);
 	s->key		= keyStr;

@@ -1798,11 +1798,12 @@ std::string dcpp::ResourceManager::strings[] = {
 "Exclude matches", 
 "No known hub", 
 "Exclude...", 
-"Reset when switching directory", 
-"Reset on new search", 
+"Reset the string when switching directory", 
+"Reset the string on new search", 
 "Treat partial dupes similar to exact dupes", 
-"Show on top", 
+"Show above the list", 
 "Options...", 
+"Maximum age", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3606,4 +3607,5 @@ std::string dcpp::ResourceManager::names[] = {
 "PartialDupesEqual", 
 "ShowOnTop", 
 "OptionsDots", 
+"MaximumAge", 
 };

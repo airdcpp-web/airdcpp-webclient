@@ -106,7 +106,7 @@ public:
 	
 	uint64_t search(string& who, SearchPtr aSearch);
 
-	void directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir);
+	void directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir, time_t aDate, int aDateMode);
 	
 	void cancelSearch(void* aOwner);
 		

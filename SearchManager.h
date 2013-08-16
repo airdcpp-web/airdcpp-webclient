@@ -67,6 +67,12 @@ public:
 		TYPE_FILE,
 		TYPE_LAST
 	};
+
+	enum DateModes {
+		DATE_DONTCARE,
+		DATE_NEWER,
+		DATE_OLDER
+	};
 private:
 	static const char* types[TYPE_LAST];
 public:
@@ -74,7 +80,8 @@ public:
 	static bool isDefaultTypeStr(const string& type);
 	
 	uint64_t search(const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, Search::searchType sType);
-	uint64_t search(StringList& who, const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, const StringList& excluded, Search::searchType sType, void* aOwner = NULL);
+	uint64_t search(StringList& who, const string& aName, int64_t aSize, TypeModes aTypeMode, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, const StringList& excluded, Search::searchType sType, time_t aDate, DateModes aDateMode,
+		bool aschOnly=false, void* aOwner = nullptr);
 	
 	void respond(const AdcCommand& cmd, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 

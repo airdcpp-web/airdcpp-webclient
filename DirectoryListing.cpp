@@ -971,7 +971,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 		SearchManager::getInstance()->addListener(this);
 
 		searchToken = Util::toString(Util::rand());
-		ClientManager::getInstance()->directSearch(hintedUser, aSizeMode, aSize, aTypeMode, aSearchString, searchToken, aExtList, aDir);
+		ClientManager::getInstance()->directSearch(hintedUser, aSizeMode, aSize, aTypeMode, aSearchString, searchToken, aExtList, aDir, 0, SearchManager::DATE_DONTCARE);
 
 		TimerManager::getInstance()->addListener(this);
 	}

@@ -48,7 +48,9 @@ public:
 	virtual bool isOp() const = 0;
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) = 0;
 	virtual bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false) = 0;
-	virtual void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir) = 0;
+	virtual void directSearch(const OnlineUser& /*user*/, int /*aSizeMode*/, int64_t /*aSize*/, int /*aFileType*/, const string& /*aString*/, const string& /*aToken*/, const StringList& /*aExtList*/, const string& /*aDir*/, time_t /*aDate*/, int /*aDateMode*/) { 
+		dcassert(0); 
+	}
 };
 
 /** Yes, this should probably be called a Hub */
@@ -188,7 +190,7 @@ protected:
 	string getDescription() const;
 
 	virtual string checkNick(const string& nick) = 0;
-	virtual void search(SearchPtr aSearch) = 0;
+	virtual void search(const SearchPtr& aSearch) = 0;
 	virtual void infoImpl() = 0;
 
 	// TimerManagerListener

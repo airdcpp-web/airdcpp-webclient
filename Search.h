@@ -47,6 +47,9 @@ public:
 	set<void*>	owners;
 	searchType	type;
 	string		key;
+	int			dateMode;
+	time_t		date;
+	bool		aschOnly;
 
 	
 	bool operator==(const Search& rhs) const {

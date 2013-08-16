@@ -39,9 +39,8 @@ public:
 
 	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
 	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
-	void directSearch(const OnlineUser& /*user*/, int /*aSizeMode*/, int64_t /*aSize*/, int /*aFileType*/, const string& /*aString*/, const string& /*aToken*/, const StringList& /*aExtList*/, const string& /*aDir*/) { dcassert(0); }
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
-	void search(SearchPtr aSearch);
+	void search(const SearchPtr& aSearch);
 	void password(const string& aPass) { send("$MyPass " + fromUtf8(aPass) + "|"); }
 	void infoImpl() { myInfo(false); }
 

@@ -1010,8 +1010,11 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	}
 }
 
-void NmdcHub::search(SearchPtr s){
+void NmdcHub::search(const SearchPtr& s){
 	checkstate();
+	if (s->aschOnly)
+		return;
+
 	char c1 = (s->sizeType == SearchManager::SIZE_DONTCARE || s->sizeType == SearchManager::SIZE_EXACT) ? 'F' : 'T';
 	char c2 = (s->sizeType == SearchManager::SIZE_ATLEAST) ? 'F' : 'T';
 

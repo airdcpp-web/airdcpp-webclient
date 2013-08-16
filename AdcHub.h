@@ -42,13 +42,13 @@ public:
 	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false);
 	bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false);
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
-	void search(SearchPtr aSearch);
-	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir);
+	void search(const SearchPtr& aSearch);
+	void directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir, time_t aDate, int aDateMode);
 	void password(const string& pwd);
 	void infoImpl();
 	void refreshUserList(bool);	
 
-	void constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, bool isDirect);
+	void constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, time_t aDate, int aDateMode, bool isDirect);
 
 	size_t getUserCount() const;
 
