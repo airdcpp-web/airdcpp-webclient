@@ -202,7 +202,7 @@ const string SettingsManager::settingTags[] =
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
 	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
-	"SENTRY",
+	"SearchAschOnlyMan", "SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
 	"SENTRY"
@@ -814,6 +814,7 @@ SettingsManager::SettingsManager()
 	setDefault(STARTUP_REFRESH, true);
 	setDefault(FL_REPORT_FILE_DUPES, true);
 	setDefault(DATE_FORMAT, "%Y-%m-%d %H:%M");
+	setDefault(SEARCH_ASCH_ONLY, false);
 
 	setDefault(FILTER_FL_SHARED, true);
 	setDefault(FILTER_FL_QUEUED, true);
