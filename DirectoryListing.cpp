@@ -56,23 +56,6 @@ DirectoryListing::~DirectoryListing() {
 	delete root;
 }
 
-void DirectoryListing::sortDirs() {
-	root->sortDirs();
-}
-
-void DirectoryListing::Directory::sortDirs(bool recursive /*true*/) {
-	if (recursive) {
-		for(auto d: directories)
-			d->sortDirs();
-	}
-
-	sort(directories.begin(), directories.end(), Directory::DefaultSort());
-}
-
-void DirectoryListing::Directory::sortFiles() {
-	sort(files.begin(), files.end(), File::DefaultSort());
-}
-
 
 bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) const {
 	return compare(a->getName(), b->getName()) < 0;

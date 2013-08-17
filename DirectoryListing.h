@@ -119,8 +119,6 @@ public:
 		void getHashList(TTHSet& l);
 		void clearAdls();
 		void clearAll();
-		void sortDirs(bool recursive = true);
-		void sortFiles();
 
 		bool findIncomplete() const;
 		void search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
@@ -178,9 +176,6 @@ public:
 	int64_t getTotalListSize(bool adls = false) const { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const;
 	size_t getTotalFileCount(bool adls = false) const { return root->getTotalFileCount(adls); }
-
-	/** sort directories and sub-directories recursively (case-insensitive). */
-	void sortDirs();
 
 	const Directory* getRoot() const { return root; }
 	Directory* getRoot() { return root; }
