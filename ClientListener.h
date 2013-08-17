@@ -31,20 +31,21 @@ public:
 
 	typedef X<0> Connecting;
 	typedef X<1> Connected;
-	typedef X<2> UserUpdated;
-	typedef X<3> UsersUpdated;
-	typedef X<4> UserRemoved;
-	typedef X<5> Redirect;
-	typedef X<6> Failed;
-	typedef X<7> GetPassword;
-	typedef X<8> HubUpdated;
-	typedef X<9> Message;
-	typedef X<10> StatusMessage;
-	typedef X<11> HubUserCommand;
-	typedef X<12> HubFull;
-	typedef X<13> NickTaken;
-	typedef X<14> SearchFlood;
-	typedef X<15> NmdcSearch;
+	typedef X<2> UserConnected;
+	typedef X<3> UserUpdated;
+	typedef X<4> UsersUpdated;
+	typedef X<5> UserRemoved;
+	typedef X<6> Redirect;
+	typedef X<7> Failed;
+	typedef X<8> GetPassword;
+	typedef X<9> HubUpdated;
+	typedef X<10> Message;
+	typedef X<11> StatusMessage;
+	typedef X<12> HubUserCommand;
+	typedef X<13> HubFull;
+	typedef X<14> NickTaken;
+	typedef X<15> SearchFlood;
+	typedef X<16> NmdcSearch;
 	typedef X<17> HubTopic;
 	typedef X<18> AddLine;
 	typedef X<19> SetIcons;
@@ -56,6 +57,7 @@ public:
 	
 	virtual void on(Connecting, const Client*) noexcept { }
 	virtual void on(Connected, const Client*) noexcept { }
+	virtual void on(UserConnected, const Client*, const OnlineUserPtr&) noexcept {}
 	virtual void on(UserUpdated, const Client*, const OnlineUserPtr&) noexcept { }
 	virtual void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept { }
 	virtual void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept { }

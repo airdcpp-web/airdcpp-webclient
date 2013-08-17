@@ -26,6 +26,8 @@
 
 namespace dcpp {
 
+typedef std::function<void ()> AsyncF;
+
 typedef vector<string> StringList;
 typedef StringList::iterator StringIter;
 typedef StringList::const_iterator StringIterC;

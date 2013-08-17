@@ -1808,5 +1808,8 @@ enum Strings { // @DontAdd
 	SHOW_ON_TOP, // "Show above the list"
 	OPTIONS_DOTS, // "Options..."
 	MAXIMUM_AGE, // "Maximum age"
+	SEARCH_SUPPORTED_ONLY, // "Search only from supported clients"
+	FILE_DATE_FORMAT, // "File date format"
+	ASCH_SUPPORT_COUNT, // "Users with Advanced Search support: %1%/%2%"
 	LAST // @DontAdd
 };

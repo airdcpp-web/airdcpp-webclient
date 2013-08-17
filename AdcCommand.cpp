@@ -242,9 +242,9 @@ const string& AdcCommand::getParam(size_t n) const {
 
 string AdcCommand::getParamString(bool nmdc) const {
 	string tmp;
-	for(StringIterC i = getParameters().begin(); i != getParameters().end(); ++i) {
+	for(const auto& i: getParameters()) {
 		tmp += ' ';
-		tmp += escape(*i, nmdc);
+		tmp += escape(i, nmdc);
 	}
 	if(nmdc) {
 		tmp += '|';

@@ -104,7 +104,7 @@ const string SettingsManager::settingTags[] =
 	"MainFrameVisible", "SearchFrameVisible", "QueueFrameVisible", "HubFrameVisible", "UploadQueueFrameVisible", 
 	"EmoticonsFile", "TLSPrivateKeyFile", "TLSCertificateFile", "TLSTrustedCertificatesPath",
 	"FinishedVisible", "FinishedULVisible", "DirectoryListingFrameVisible",
-	"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat",
+	"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat", "DateFormat",
 
 	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat","WinampPath",
 	"SkiplistShare", "FreeSlotsExtensions",
@@ -813,6 +813,7 @@ SettingsManager::SettingsManager()
 	setDefault(DEFAULT_SP, 0);
 	setDefault(STARTUP_REFRESH, true);
 	setDefault(FL_REPORT_FILE_DUPES, true);
+	setDefault(DATE_FORMAT, "%Y-%m-%d %H:%M");
 
 	setDefault(FILTER_FL_SHARED, true);
 	setDefault(FILTER_FL_QUEUED, true);

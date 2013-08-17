@@ -180,6 +180,9 @@ public:
 	bool connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_, uint8_t& slots_);
 	bool connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName);
 	bool hasAdcHubs() const;
+
+	//return users supporting the ASCH extension (and total users)
+	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const;
 private:
 
 	typedef unordered_map<CID*, std::string> NickMap;

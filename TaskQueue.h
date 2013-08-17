@@ -30,7 +30,6 @@ struct Task {
 	virtual ~Task() { };
 };
 
-typedef std::function<void ()> AsyncF;
 struct AsyncTask : public Task {
 	AsyncTask(AsyncF aF) : f(aF) { }
 	AsyncF f;

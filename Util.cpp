@@ -1171,7 +1171,7 @@ wstring Util::getDateTimeW(time_t t) {
 	TCHAR buf[64];
 	tm _tm;
 	localtime_s(&_tm, &t);
-	wcsftime(buf, 64, _T("%Y-%m-%d"), &_tm);
+	wcsftime(buf, 64, Text::toT(SETTING(DATE_FORMAT)).c_str(), &_tm);
 	
 	return buf;
 }

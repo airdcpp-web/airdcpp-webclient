@@ -1804,6 +1804,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Show above the list", 
 "Options...", 
 "Maximum age", 
+"Search only from supported clients", 
+"File date format", 
+"Users with Advanced Search support: %1%/%2%", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3608,4 +3611,7 @@ std::string dcpp::ResourceManager::names[] = {
 "ShowOnTop", 
 "OptionsDots", 
 "MaximumAge", 
+"SearchSupportedOnly", 
+"FileDateFormat", 
+"AschSupportCount", 
 };

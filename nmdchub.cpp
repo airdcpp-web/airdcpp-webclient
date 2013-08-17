@@ -734,6 +734,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			if(state == STATE_IDENTIFY && u.getUser() == getMyIdentity().getUser()) {
 				state = STATE_NORMAL;
 				updateCounts(false, true);
+				fire(ClientListener::HubUpdated(), this);
 
 				version();
 				getNickList();

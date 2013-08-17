@@ -818,6 +818,22 @@ bool ClientManager::hasAdcHubs() const {
 	return find_if(clients | map_values, [](const Client* c) { return AirUtil::isAdcHub(c->getHubUrl()); }).base() != clients.end();
 }
 
+pair<size_t, size_t> ClientManager::countAschSupport(const OrderedStringSet& hubs) const {
+	size_t found = 0;
+	size_t total = 0;
+
+	RLock l(cs);
+	for (const auto& u : onlineUsers | map_values) {
+		if (!u->getUser()->isSet(User::BOT) && hubs.find(u->getHubUrl()) != hubs.end()) {
+			total++;
+			if (u->getUser()->isSet(User::ASCH))
+				found++;
+		}
+	}
+
+	return { found, total };
+}
+
 void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize, 
 									int aFileType, const string& aString, bool isPassive) noexcept
 {

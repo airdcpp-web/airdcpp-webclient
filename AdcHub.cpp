@@ -272,6 +272,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		//we have to update the modes in case our connectivity changed
 
 		if (oldState != STATE_NORMAL || any_of(c.getParameters().begin(), c.getParameters().end(), [](const string& p) { return p.substr(0, 2) == "SU" || p.substr(0, 2) == "I4" || p.substr(0, 2) == "I6"; })) {
+			fire(ClientListener::HubUpdated(), this);
 			for(auto ou: users | map_values) {
 				if (ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this)) {
 					fire(ClientListener::UserUpdated(), this, ou);
@@ -286,8 +287,10 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 	if(u->getIdentity().isHub()) {
 		setHubIdentity(u->getIdentity());
 		fire(ClientListener::HubUpdated(), this);
-	} else {
+	} else if (state == STATE_NORMAL) {
 		fire(ClientListener::UserUpdated(), this, u);
+	} else {
+		fire(ClientListener::UserConnected(), this, u);
 	}
 }
 
@@ -1336,6 +1339,7 @@ void AdcHub::search(const SearchPtr& s) {
 	}
 
 	if (s->aschOnly) {
+		c.setType(AdcCommand::TYPE_FEATURE);
 		string features = c.getFeatures();
 		c.setFeatures(features + '+' + ASCH_FEATURE);
 	}
