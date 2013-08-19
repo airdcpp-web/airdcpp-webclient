@@ -1209,7 +1209,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 	UploadList ticks;
 	UploadBundleList tickBundles;
 	{
-		RLock l(cs);
+		WLock l(cs);
 		for(auto i = delayUploads.begin(); i != delayUploads.end();) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
