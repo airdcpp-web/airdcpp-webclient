@@ -1205,7 +1205,6 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 
 // TimerManagerListener
 void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
-	vector<pair<UploadBundlePtr, double>> bundleSpeeds;
 	UploadList ticks;
 	UploadBundleList tickBundles;
 	{
