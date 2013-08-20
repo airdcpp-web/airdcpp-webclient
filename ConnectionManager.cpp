@@ -507,6 +507,7 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 		return;
 
 	UserConnection* uc = getConnection(false, secure);
+	uc->setUser(aUser);
 	uc->setEncoding(Text::utf8);
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setHubUrl(aUser.getClient().getHubUrl());
@@ -516,7 +517,6 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 	}
 	try {
 		uc->connect(aUser.getIdentity().getIp(), aPort, localPort, natRole);
-		adcExpect(aToken, aUser.getUser()->getCID(), aUser.getHubUrl());
 	} catch(const Exception&) {
 		putConnection(uc);
 		delete uc;
@@ -846,53 +846,56 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		return;
 	}
 
-	string token, cid;
+	string token;
 	if (aSource->isSet(UserConnection::FLAG_INCOMING)) {
 		if (!cmd.getParam("TO", 0, token)) {
 			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "TO missing"));
 			putConnection(aSource);
 			return;
 		}
+
+		// Incoming connections aren't associated with any user
+		string cid;
+
+		// Are we excepting this connection? Use the saved source
+		auto i = expectedConnections.remove(token);
+		if (i.second.empty()) {
+			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not expected"));
+			putConnection(aSource);
+			return;
+		} else {
+			aSource->setHubUrl(i.second);
+			cid = i.first;
+		}
+
+
+		string remoteCID;
+		if (!cmd.getParam("ID", 0, remoteCID)) {
+			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID missing").addParam("FL", "ID"));
+			dcdebug("CM::onINF missing ID\n");
+			aSource->disconnect();
+			return;
+		}
+
+		if (remoteCID != cid) {
+			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID doesn't match with the excepted one").addParam("FL", "ID"));
+			dcdebug("CM::onINF ID mismatch\n");
+			aSource->disconnect();
+			return;
+		}
+
+		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+		aSource->setUser(user);
+
+		if (!aSource->getUser()) {
+			dcdebug("CM::onINF: User not found");
+			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "User not found"));
+			putConnection(aSource);
+			return;
+		}
 	} else {
+		dcassert(aSource->getUser());
 		token = aSource->getToken();
-	}
-
-
-	// Are we excepting this connection? Use the saved source
-	auto i = expectedConnections.remove(token);
-	if (i.second.empty()) {
-		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not expected"));
-		putConnection(aSource);
-		return;
-	} else {
-		aSource->setHubUrl(i.second);
-		cid = i.first;
-	}
-
-
-	string remoteCID;
-	if (!cmd.getParam("ID", 0, remoteCID)) {
-		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID missing").addParam("FL", "ID"));
-		dcdebug("CM::onINF missing ID\n");
-		aSource->disconnect();
-		return;
-	}
-
-	if (remoteCID != cid) {
-		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID doesn't match with the excepted one").addParam("FL", "ID"));
-		dcdebug("CM::onINF ID mismatch\n");
-		aSource->disconnect();
-		return;
-	}
-
-	UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-	aSource->setUser(user);
-
-	if(!aSource->getUser()) {
-		dcdebug("CM::onINF: User not found");
-		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "User not found"));
-		putConnection(aSource);
-		return;
 	}
 
 	if(!checkKeyprint(aSource)) {
