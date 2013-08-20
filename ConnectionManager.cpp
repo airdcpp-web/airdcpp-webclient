@@ -516,6 +516,7 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 	}
 	try {
 		uc->connect(aUser.getIdentity().getIp(), aPort, localPort, natRole);
+		adcExpect(aToken, aUser.getUser()->getCID(), aUser.getHubUrl());
 	} catch(const Exception&) {
 		putConnection(uc);
 		delete uc;
@@ -845,13 +846,45 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		return;
 	}
 
-	string cid;
-	if(!cmd.getParam("ID", 0, cid)) {
+	string token, cid;
+	if (aSource->isSet(UserConnection::FLAG_INCOMING)) {
+		if (!cmd.getParam("TO", 0, token)) {
+			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "TO missing"));
+			putConnection(aSource);
+			return;
+		}
+	} else {
+		token = aSource->getToken();
+	}
+
+
+	// Are we excepting this connection? Use the saved source
+	auto i = expectedConnections.remove(token);
+	if (i.second.empty()) {
+		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not expected"));
+		putConnection(aSource);
+		return;
+	} else {
+		aSource->setHubUrl(i.second);
+		cid = i.first;
+	}
+
+
+	string remoteCID;
+	if (!cmd.getParam("ID", 0, remoteCID)) {
 		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID missing").addParam("FL", "ID"));
 		dcdebug("CM::onINF missing ID\n");
 		aSource->disconnect();
 		return;
 	}
+
+	if (remoteCID != cid) {
+		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID doesn't match with the excepted one").addParam("FL", "ID"));
+		dcdebug("CM::onINF ID mismatch\n");
+		aSource->disconnect();
+		return;
+	}
+
 	UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
 	aSource->setUser(user);
 
@@ -865,29 +898,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	if(!checkKeyprint(aSource)) {
 		putConnection(aSource);
 		return;
-	}
-
-	string token;
-	if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
-		if(!cmd.getParam("TO", 0, token)) {
-			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "TO missing"));
-			putConnection(aSource);
-			return;
-		}
-
-		// Try to find out where this came from...
-		// For downloads we do know it from cqi (we made the connection after all :P ), so basicly this would be needed only for passive uploads.
-		auto i = expectedConnections.remove(token);
-		if(i.second.empty()) {
-			//we dont want connections without hubhint laying around..
-			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not expected"));
-			putConnection(aSource);
-			return;
-		} else {
-			aSource->setHubUrl(i.second);
-		}
-	} else {
-		token = aSource->getToken();
 	}
 
 	dcassert(!token.empty());

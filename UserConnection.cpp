@@ -168,7 +168,7 @@ int64_t UserConnection::getChunkSize() const {
 
 void UserConnection::setUser(const UserPtr& aUser) {
 	user = aUser;
-	if (socket) {
+	if (aUser && socket) {
 		socket->setUseLimiter(true);
 		if (aUser->isSet(User::FAVORITE)) {
 			auto u = FavoriteManager::getInstance()->getFavoriteUser(aUser);
