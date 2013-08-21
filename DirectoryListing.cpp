@@ -410,23 +410,6 @@ void DirectoryListing::Directory::search(OrderedStringSet& aResults, AdcSearch& 
 	}
 }
 
-string DirectoryListing::getPath(const Directory* d) const {
-	if(d == root)
-		return Util::emptyString;
-
-	string dir;
-	dir.reserve(128);
-	dir.append(d->getName());
-	dir.append(1, '\\');
-
-	Directory* cur = d->getParent();
-	while(cur!=root) {
-		dir.insert(0, cur->getName() + '\\');
-		cur = cur->getParent();
-	}
-	return dir;
-}
-
 bool DirectoryListing::Directory::findIncomplete() const {
 	/* Recursive check for incomplete dirs */
 	if(!isComplete()) {
@@ -638,7 +621,7 @@ void DirectoryListing::getLocalPaths(const File* f, StringList& ret) const {
 	if (f->getParent()->getAdls())
 		path = ((AdlDirectory*)f->getParent())->getFullPath();
 	else
-		path = getPath(f->getParent());
+		path = f->getParent()->getPath();
 
 	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path + f->getName()), ret, Util::toInt(fileName));
 }
@@ -651,7 +634,7 @@ void DirectoryListing::getLocalPaths(const Directory* d, StringList& ret) const 
 	if (d->getAdls())
 		path = ((AdlDirectory*)d)->getFullPath();
 	else
-		path = getPath(d);
+		path = d->getPath();
 	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path), ret, Util::toInt(fileName));
 }
 
@@ -695,12 +678,13 @@ void DirectoryListing::Directory::clearAdls() {
 }
 
 string DirectoryListing::Directory::getPath() const {
-	string tmp;
 	//make sure to not try and get the name of the root dir
-	if(getParent() && getParent()->getParent()){
-		return getParent()->getPath() +  getName() + '\\';
+	if(parent) {
+		return parent->getPath() + name + '\\';
 	}
-	return getName() + '\\';
+
+	// root
+	return Util::emptyString;
 }
 
 int64_t DirectoryListing::Directory::getFilesSize() const {

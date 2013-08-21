@@ -230,7 +230,7 @@ string ClientManager::getFormatedNicks(const HintedUser& user) const {
 		// offline
 		RLock l(cs);
 		auto i = nicks.find(const_cast<CID*>(&user.user->getCID()));
-		dcassert(i != nicks.end());
+		//dcassert(i != nicks.end());
 		if(i != nicks.end()) {
 			return i->second;
 		}

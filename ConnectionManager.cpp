@@ -771,7 +771,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 					}
 				}
 
-				uc->setToken(cqi->getToken());
+				uc->setToken(cqi->getToken()); // sync for NMDC users
 				uc->setHubUrl(cqi->getHubUrl()); //set the correct hint for the uc, it might not even have a hint at first.
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 				fire(ConnectionManagerListener::Connected(), cqi);
@@ -804,7 +804,6 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 			if (allowAdd) {
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 				ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
-				uc->setToken(cqi->getToken()); //sync if the uc token was empty
 				cqi->setState(ConnectionQueueItem::ACTIVE);
 				//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
 				fire(ConnectionManagerListener::Connected(), cqi);
@@ -829,12 +828,12 @@ void ConnectionManager::on(UserConnectionListener::Key, UserConnection* aSource,
 		return;
 	}
 
-	aSource->setToken(Util::toString(Util::rand()));
 	dcassert(aSource->getUser());
 
 	if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
 	} else {
+		aSource->setToken(Util::toString(Util::rand())); // set a random token instead of using the nick
 		addUploadConnection(aSource);
 	}
 }
@@ -854,10 +853,12 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			return;
 		}
 
+		aSource->setToken(token);
+
 		// Incoming connections aren't associated with any user
 		string cid;
 
-		// Are we excepting this connection? Use the saved source
+		// Are we excepting this connection? Use the saved CID
 		auto i = expectedConnections.remove(token);
 		if (i.second.empty()) {
 			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not expected"));
@@ -922,7 +923,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		}
 	}
 
-	aSource->setToken(token);
 	if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
 	} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {

@@ -72,7 +72,7 @@ public:
 
 
 		string getPath() const {
-			return getParent()->getPath();
+			return parent->getPath() + name;
 		}
 
 		GETSET(TTHValue, tthRoot, TTH);
@@ -169,9 +169,6 @@ public:
 	bool createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 
 	void openFile(File* aFile, bool isClientView) const;
-
-	string getPath(const Directory* d) const;
-	string getPath(const File* f) const { return getPath(f->getParent()); }
 
 	int64_t getTotalListSize(bool adls = false) const { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const;
