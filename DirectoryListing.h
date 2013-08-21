@@ -199,7 +199,7 @@ public:
 
 	void addMatchADLTask();
 	void addListDiffTask(const string& aFile, bool aOwnList);
-	void addPartialListTask(const string& aXml, const string& aBase, bool reloadAll = false, std::function<void ()> f = nullptr);
+	void addPartialListTask(const string& aXml, const string& aBase, bool reloadAll = false, bool changeDir = true, std::function<void ()> f = nullptr);
 	void addFullListTask(const string& aDir);
 	void addQueueMatchTask();
 
@@ -222,6 +222,7 @@ public:
 
 	/* only call from the file list thread*/
 	bool downloadDirImpl(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
+	void setActive();
 private:
 	friend class ListLoader;
 
@@ -264,7 +265,7 @@ private:
 	void listDiffImpl(const string& aFile, bool aOwnList);
 	void loadFileImpl(const string& aInitialDir);
 	void searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
-	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, std::function<void ()> completionF = nullptr);
+	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void ()> completionF);
 	void matchAdlImpl();
 	void matchQueueImpl();
 	void removedQueueImpl(const string& aDir);

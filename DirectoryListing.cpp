@@ -687,6 +687,10 @@ string DirectoryListing::Directory::getPath() const {
 	return Util::emptyString;
 }
 
+void DirectoryListing::setActive() {
+	fire(DirectoryListingListener::SetActive());
+}
+
 int64_t DirectoryListing::Directory::getFilesSize() const {
 	int64_t x = 0;
 	for(auto f: files) {
@@ -776,8 +780,8 @@ void DirectoryListing::addListDiffTask(const string& aFile, bool aOwnList) {
 	addAsyncTask([=] { listDiffImpl(aFile, aOwnList); });
 }
 
-void DirectoryListing::addPartialListTask(const string& aXml, const string& aBase, bool reloadAll, std::function<void ()> f) {
-	addAsyncTask([=] { loadPartialImpl(aXml, aBase, reloadAll, f); });
+void DirectoryListing::addPartialListTask(const string& aXml, const string& aBase, bool reloadAll /*false*/, bool changeDir /*true*/, std::function<void ()> f) {
+	addAsyncTask([=] { loadPartialImpl(aXml, aBase, reloadAll, changeDir, f); });
 }
 
 void DirectoryListing::addFullListTask(const string& aDir) {
@@ -953,7 +957,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 	}
 }
 
-void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, std::function<void ()> completionF /*nullptr*/) {
+void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void ()> completionF) {
 	if (!partialList)
 		return;
 
@@ -1031,7 +1035,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 	}
 
 	waiting = true;
-	fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(baseDir), reloadAll || (reloading && baseDir == "/"), completionF == nullptr, useGuiThread);
+	fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(baseDir), reloadAll || (reloading && baseDir == "/"), changeDir, useGuiThread);
 	if (completionF) {
 		completionF();
 	}

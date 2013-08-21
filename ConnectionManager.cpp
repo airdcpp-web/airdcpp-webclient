@@ -805,7 +805,6 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 				ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
 				cqi->setState(ConnectionQueueItem::ACTIVE);
-				//LogManager::getInstance()->message("Token1 CQI: " + cqi->getToken());
 				fire(ConnectionManagerListener::Connected(), cqi);
 			}
 		}
@@ -817,8 +816,6 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 	}
 
 	dcdebug("ConnectionManager::addUploadConnection, leaving to uploadmanager\n");
-	//LogManager::getInstance()->message("Token1 UC: " + uc->getToken());
-
 	UploadManager::getInstance()->addConnection(uc);
 }
 
@@ -831,6 +828,7 @@ void ConnectionManager::on(UserConnectionListener::Key, UserConnection* aSource,
 	dcassert(aSource->getUser());
 
 	if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
+		// this will be synced to use CQI's random token
 		addDownloadConnection(aSource);
 	} else {
 		aSource->setToken(Util::toString(Util::rand())); // set a random token instead of using the nick

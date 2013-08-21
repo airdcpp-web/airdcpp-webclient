@@ -135,7 +135,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 			if (p->second->getPartialList()) {
 				if(flags & QueueItem::FLAG_TEXT) {
 					//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
-					p->second->addPartialListTask(aXml, aRemotePath, false, [=] { processListAction(p->second, aRemotePath, flags); });
+					p->second->addPartialListTask(aXml, aRemotePath, false, false, [=] { processListAction(p->second, aRemotePath, flags); });
 					return;
 				}
 			}
@@ -347,7 +347,8 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 		auto p = viewedLists.find(aUser.user);
 		if (p != viewedLists.end()) {
 			if (p->second->getPartialList()) {
-				p->second->addPartialListTask(aXML, aBase);
+				auto dl = p->second;
+				dl->addPartialListTask(aXML, aBase, false, true, [=] { dl->setActive(); });
 			}
 			return;
 		}
@@ -421,6 +422,7 @@ bool DirectoryListingManager::hasList(const UserPtr& aUser) {
 	RLock l (cs);
 	auto p = viewedLists.find(aUser);
 	if (p != viewedLists.end()) {
+		p->second->setActive();
 		return true;
 	}
 
