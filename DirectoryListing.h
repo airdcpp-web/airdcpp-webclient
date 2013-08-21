@@ -186,9 +186,10 @@ public:
 	bool findNfo(const string& aPath);
 	
 	const UserPtr& getUser() const { return hintedUser.user; }
+	const HintedUser& getHintedUser() const { return hintedUser; }
 	const string& getHubUrl() const { return hintedUser.hint; }	
+	void setHubUrl(const string& newUrl);
 		
-	GETSET(HintedUser, hintedUser, HintedUser);
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, abort, Abort);
 	GETSET(bool, isOwnList, IsOwnList);
@@ -271,6 +272,7 @@ private:
 	void removedQueueImpl(const string& aDir);
 
 	void waitActionFinish() const;
+	HintedUser hintedUser;
 };
 
 inline bool operator==(DirectoryListing::Directory::Ptr a, const string& b) { return stricmp(a->getName(), b) == 0; }

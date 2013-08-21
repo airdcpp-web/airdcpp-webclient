@@ -96,8 +96,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aRemoteDir, con
 
 		if (checkNameDupes && aAutoSearch > 0) {
 			//don't download different directories for auto search items that don't allow it
-			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, aBundleName)).base() != dlDirectories.end()  /*||
-				find_if(finishedListings | map_values, FinishedDirectoryItem::HasASItem(aAutoSearch, aBundleName)).base() != finishedListings.end()*/)  {
+			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, aBundleName)).base() != dlDirectories.end())  {
 					return;
 			}
 		}
@@ -198,7 +197,6 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, Dir
 				di->setTarget(p->second->getTargetPath());
 				di->setPriority(p->second->getUsePausedPrio() ? QueueItem::PAUSED : di->getPriority());
 				di->setSizeConfirm(NO_CHECK);
-				//p->second->addAutoSearch(di->getAutoSearch());
 				directDownload = true;
 			}
 			else if (p->second->getState() == FinishedDirectoryItem::WAITING_ACTION) {
@@ -262,12 +260,10 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 				auto udp = find_if(dp, [&path](const DirectoryDownloadInfo::Ptr& ddi) { return stricmp(path.c_str(), ddi->getListPath().c_str()) == 0; });
 				if (udp != dp.end()) {
 					dl.push_back(*udp);
-					//dlDirectories.erase(udp.base());
 				}
 			} else {
 				//full filelist
 				dl.assign(boost::begin(dp), boost::end(dp));
-				//dlDirectories.erase(aList->getHintedUser().user);
 			}
 		}
 
@@ -348,6 +344,7 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 		if (p != viewedLists.end()) {
 			if (p->second->getPartialList()) {
 				auto dl = p->second;
+				dl->setHubUrl(aUser.hint);
 				dl->addPartialListTask(aXML, aBase, false, true, [=] { dl->setActive(); });
 			}
 			return;

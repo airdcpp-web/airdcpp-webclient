@@ -98,6 +98,11 @@ string DirectoryListing::getNick(bool firstOnly) const {
 	return ret;
 }
 
+void DirectoryListing::setHubUrl(const string& newUrl) {
+	hintedUser.hint = newUrl;
+	fire(DirectoryListingListener::HubChanged());
+}
+
 void stripExtensions(string& name) {
 	if(stricmp(name.c_str() + name.length() - 4, ".bz2") == 0) {
 		name.erase(name.length() - 4);
