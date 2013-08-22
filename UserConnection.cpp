@@ -271,7 +271,7 @@ void UserConnection::on(TransmitDone) noexcept {
 }
 
 void UserConnection::on(Failed, const string& aLine) noexcept {
-	setState(STATE_UNCONNECTED);
+	//setState(STATE_UNCONNECTED);  // let the listeners to see the old state
 	fire(UserConnectionListener::Failed(), this, aLine);
 
 	delete this;	

@@ -63,6 +63,7 @@ public:
 		TYPE_ANY,
 		TYPE_SMALL,
 		TYPE_SMALL_CONF,
+		TYPE_MCN_NORMAL
 	};
 
 	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken ) : token(aToken), 

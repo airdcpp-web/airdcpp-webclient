@@ -1098,36 +1098,40 @@ bool QueueManager::startDownload(const UserPtr& aUser, const StringSet& runningB
 	return allowStartQI(qi, runningBundles);
 }
 
-bool QueueManager::startDownload(const UserPtr& aUser, string& hubHint, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange, bool& hasDownload) noexcept {
+pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& aUser, string& hubHint, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange, bool& hasDownload) noexcept {
 	StringSet runningBundles;
 	DownloadManager::getInstance()->getRunningBundles(runningBundles);
 
 	auto hubs = ClientManager::getInstance()->getHubSet(aUser->getCID());
-	if (hubs.empty())
-		return false;
+	if (!hubs.empty()) {
+		QueueItemPtr qi = nullptr;
+		{
+			RLock l(cs);
+			qi = userQueue.getNext(aUser, runningBundles, hubs, QueueItem::LOWEST, 0, 0, aType);
 
-	QueueItemPtr qi = nullptr;
-	{
-		RLock l(cs);
-		qi = userQueue.getNext(aUser, runningBundles, hubs, QueueItem::LOWEST, 0, 0, aType);
+			if (qi) {
+				hasDownload = true;
+				if (qi->getBundle()) {
+					bundleToken = qi->getBundle()->getToken();
+				}
+
+				if (hubs.find(hubHint) == hubs.end()) {
+					//we can't connect via a hub that is offline...
+					hubHint = *hubs.begin();
+				}
+
+				allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
+				qi->getSource(aUser)->updateHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
+			}
+		}
 
 		if (qi) {
-			hasDownload = true;
-			if (qi->getBundle()) {
-				bundleToken = qi->getBundle()->getToken();
-			}
-
-			if (hubs.find(hubHint) == hubs.end()) {
-				//we can't connect via a hub that is offline...
-				hubHint = *hubs.begin();
-			}
-
-			allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
-			qi->getSource(aUser)->updateHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
+			bool start = allowStartQI(qi, runningBundles);
+			return make_pair(qi->usesSmallSlot() ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, start);
 		}
 	}
 
-	return allowStartQI(qi, runningBundles);
+	return { QueueItem::TYPE_NONE, false };
 }
 
 void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) {

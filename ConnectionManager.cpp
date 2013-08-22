@@ -242,16 +242,22 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					bool allowUrlChange = true;
 					bool hasDownload = false;
 
-					bool isSmall = cqi->getType() == ConnectionQueueItem::TYPE_SMALL;
+					auto type = cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF ? QueueItem::TYPE_SMALL : cqi->getType() == ConnectionQueueItem::TYPE_MCN_NORMAL ? QueueItem::TYPE_MCN_NORMAL : QueueItem::TYPE_ANY;
 
 					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
-					bool startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, isSmall ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, bundleToken, allowUrlChange, hasDownload);
-					if (!hasDownload && isSmall && count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { return aCQI != cqi && aCQI->getUser() == cqi->getUser(); }) == 0) {
+					auto startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, type, bundleToken, allowUrlChange, hasDownload);
+					if (!hasDownload && cqi->getType() == ConnectionQueueItem::TYPE_SMALL && count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { return aCQI != cqi && aCQI->getUser() == cqi->getUser(); }) == 0) {
 						//the small file finished already? try with any type
 						cqi->setType(ConnectionQueueItem::TYPE_ANY);
 						startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY, bundleToken, allowUrlChange, hasDownload);
+					} else if (cqi->getType() == ConnectionQueueItem::TYPE_ANY && startDown.first == QueueItem::TYPE_SMALL && 
+						 count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { 
+							 return aCQI->getUser() == cqi->getUser() && cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF; 
+						}) == 0) {
+							// a small file has been added after the CQI was created
+							cqi->setType(ConnectionQueueItem::TYPE_SMALL);
 					}
-					
+
 
 					if (!hasDownload) {
 						removedTokens.push_back(cqi->getToken());
@@ -262,7 +268,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					cqi->setHubUrl(hubHint);
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
-						if(startDown) {
+						if(startDown.second) {
 							cqi->setState(ConnectionQueueItem::CONNECTING);		
 							string lastError;
 							bool protocolError = false;
@@ -355,6 +361,7 @@ void ConnectionManager::createNewMCN(const HintedUser& aUser) {
 		WLock l (cs);
 		ConnectionQueueItem* cqiNew = getCQI(aUser, true);
 		cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
+		cqiNew->setType(ConnectionQueueItem::TYPE_MCN_NORMAL);
 	}
 }
 
@@ -767,6 +774,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
 						cqi->setType(ConnectionQueueItem::TYPE_SMALL_CONF);
 					} else {
+						cqi->setType(ConnectionQueueItem::TYPE_MCN_NORMAL);
 						cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
 					}
 				}

@@ -128,7 +128,7 @@ public:
 	
 	bool startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType) noexcept;
 	/** The same thing but only used before any connect requests */
-	bool startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange, bool& hasDownload) noexcept;
+	pair<QueueItem::DownloadType, bool> startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange, bool& hasDownload) noexcept;
 	
 	void loadQueue(function<void (float)> progressF) noexcept;
 	void saveQueue(bool force) noexcept;

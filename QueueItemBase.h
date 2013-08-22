@@ -33,6 +33,7 @@ using std::string;
 class QueueItemBase : public Flags {
 public:
 	enum DownloadType {
+		TYPE_NONE,
 		TYPE_ANY,
 		TYPE_SMALL,
 		TYPE_MCN_NORMAL
