@@ -252,7 +252,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 						startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY, bundleToken, allowUrlChange, hasDownload);
 					} else if (cqi->getType() == ConnectionQueueItem::TYPE_ANY && startDown.first == QueueItem::TYPE_SMALL && 
 						 count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { 
-							 return aCQI->getUser() == cqi->getUser() && cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF; 
+							 return aCQI->getUser() == cqi->getUser() && (cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF); 
 						}) == 0) {
 							// a small file has been added after the CQI was created
 							cqi->setType(ConnectionQueueItem::TYPE_SMALL);
@@ -514,7 +514,6 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 		return;
 
 	UserConnection* uc = getConnection(false, secure);
-	uc->setUser(aUser);
 	uc->setEncoding(Text::utf8);
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setHubUrl(aUser.getClient().getHubUrl());
@@ -522,8 +521,10 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 	if(aUser.getIdentity().isOp()) {
 		uc->setFlag(UserConnection::FLAG_OP);
 	}
+
 	try {
 		uc->connect(aUser.getIdentity().getIp(), aPort, localPort, natRole);
+		uc->setUser(aUser);
 	} catch(const Exception&) {
 		putConnection(uc);
 		delete uc;

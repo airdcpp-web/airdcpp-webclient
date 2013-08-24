@@ -1241,9 +1241,13 @@ void QueueManager::moveFile_(const string& source, const string& target, QueueIt
 		File::ensureDirectory(target);
 		UploadManager::getInstance()->abortUpload(source);
 		File::renameFile(source, target);
-		/*if (Util::fileExists(source)) {
-			LogManager::getInstance()->message("Failed to delete the file: " + source, LogManager::LOG_INFO);
-		}*/
+		
+		if (SETTING(DCTMP_STORE_DESTINATION) && qi->getBundle() && !qi->getBundle()->isFileBundle() && compare(Util::getFilePath(source), Util::getFilePath(target)) != 0) {
+			// the bundle was moved? try to remove the old main bundle dir
+			auto p = source.find(qi->getBundle()->getName()); //was the bundle dir renamed?
+			auto dir = p != string::npos ? source.substr(0, p + qi->getBundle()->getName().length()+1) : AirUtil::subtractCommonDirs(Util::getFilePath(target), Util::getFilePath(source));
+			AirUtil::removeDirectoryIfEmpty(dir);
+		}
 	} catch(const FileException& e1) {
 		// Try to just rename it to the correct name at least
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);

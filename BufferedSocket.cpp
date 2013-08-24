@@ -353,7 +353,7 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 				written = sock->write(&writeBuf[writePos], writeSize);
 			} else {
 				writeSize = min(sockSize / 2, writeBuf.size() - writePos);	
-				written = ThrottleManager::getInstance()->write(sock.get(), &writeBuf[writePos], writeSize);
+				written = useLimiter ? ThrottleManager::getInstance()->write(sock.get(), &writeBuf[writePos], writeSize) : sock->read(&inbuf[0], inbuf.size());
 			}
 			
 			if(written > 0) {

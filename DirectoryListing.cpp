@@ -447,7 +447,7 @@ bool DirectoryListing::createBundle(Directory* aDir, const string& aTarget, Queu
 	}
 
 	string errorMsg;
-	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser, aFiles, prio, aDir->getRemoteDate(), errorMsg);
+	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser, aFiles, prio, aDir->getRemoteDate(), errorMsg);
 	if (!errorMsg.empty()) {
 		if (aAutoSearch == 0) {
 			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % getNick(false) % errorMsg), LogManager::LOG_WARNING);
@@ -853,7 +853,9 @@ int DirectoryListing::run() {
 			break;
 		} catch(const ShareException& e) {
 			fire(DirectoryListingListener::LoadingFailed(), e.getError());
-		} catch(const Exception& e) {
+		} catch (const QueueException& e) {
+			fire(DirectoryListingListener::UpdateStatusMessage(), "Queueing failed:" + e.getError());
+		} catch (const Exception& e) {
 			fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) + ": " + e.getError());
 		}
 	}
