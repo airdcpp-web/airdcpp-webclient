@@ -136,11 +136,11 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 			if (volHashers.empty() && static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS)) {
 				//we just need choose from all hashers
 				h = *getLeastLoaded(hashers);
-			} else {
+			} else if (!volHashers.empty()) {
 				auto minLoaded = getLeastLoaded(volHashers);
 
 				//don't create new hashers if the file is less than 10 megabytes and there's a hasher with less than 200MB queued, or the maximum number of threads have been reached for this volume
-				if (static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS) || static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) || (size <= 10*1024*1024 && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= 200*1024*1024)) {
+				if (static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS) || (static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) && SETTING(HASHERS_PER_VOLUME) > 0) || (size <= 10 * 1024 * 1024 && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= 200 * 1024 * 1024)) {
 					//use the least loaded hasher that already has this volume
 					h = *minLoaded;
 				}

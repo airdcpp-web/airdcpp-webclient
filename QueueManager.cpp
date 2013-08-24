@@ -1242,7 +1242,7 @@ void QueueManager::moveFile_(const string& source, const string& target, QueueIt
 		UploadManager::getInstance()->abortUpload(source);
 		File::renameFile(source, target);
 		
-		if (SETTING(DCTMP_STORE_DESTINATION) && qi->getBundle() && !qi->getBundle()->isFileBundle() && compare(Util::getFilePath(source), Util::getFilePath(target)) != 0) {
+		if (qi->getBundle() && !qi->getBundle()->isFileBundle() && compare(Util::getFilePath(source), Util::getFilePath(target)) != 0) {
 			// the bundle was moved? try to remove the old main bundle dir
 			auto p = source.find(qi->getBundle()->getName()); //was the bundle dir renamed?
 			auto dir = p != string::npos ? source.substr(0, p + qi->getBundle()->getName().length()+1) : AirUtil::subtractCommonDirs(Util::getFilePath(target), Util::getFilePath(source));
@@ -3387,8 +3387,8 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 		}
 	}
 
-	//we may not be able to remove the directory instantly if we have finished files to move
-	mover.removeDir(sourceBundle->getTarget());
+	//we may not be able to remove the directory instantly if we have finished files to move (moveFile will handle this)
+	//mover.removeDir(sourceBundle->getTarget());
 }
 
 void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) {

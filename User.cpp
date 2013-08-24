@@ -238,10 +238,15 @@ std::map<string, string> Identity::getInfo() const {
 	return ret;
 }
 
+int Identity::getTotalHubCount() const {
+	return Util::toInt(get("HN")) + Util::toInt(get("HR")) + Util::toInt(get("HO"));
+}
+
 void FavoriteUser::update(const OnlineUser& info) { 
 	//setNick(info.getIdentity().getNick()); 
 	setUrl(info.getClient().getHubUrl()); 
 }
+
 int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col)  {
 	if(col == COLUMN_NICK) {
 		bool a_isOp = a->getIdentity().isOp(),
@@ -266,7 +271,7 @@ int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t c
 		case COLUMN_SHARED:
 		case COLUMN_EXACT_SHARED: return compare(a->identity.getBytesShared(), b->identity.getBytesShared());
 		case COLUMN_SLOTS: return compare(Util::toInt(a->identity.get("SL")), Util::toInt(b->identity.get("SL")));
-		case COLUMN_HUBS: return compare(Util::toInt(a->identity.get("HN"))+Util::toInt(a->identity.get("HR"))+Util::toInt(a->identity.get("HO")), Util::toInt(b->identity.get("HN"))+Util::toInt(b->identity.get("HR"))+Util::toInt(b->identity.get("HO")));
+		case COLUMN_HUBS: return compare(a->identity.getTotalHubCount(), b->identity.getTotalHubCount());
 		case COLUMN_FILES: return compare(Util::toInt64(a->identity.get("SF")), Util::toInt64(b->identity.get("SF")));
 	}
 	return Util::DefaultSort(a->getText(col).c_str(), b->getText(col).c_str());
