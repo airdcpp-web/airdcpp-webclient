@@ -712,26 +712,36 @@ private:
 	void addMonitoring(const StringList& aPaths);
 	void removeMonitoring(const StringList& aPaths);
 
-	struct DirModifyInfo {
+	class DirModifyInfo {
+	public:
 		typedef deque<DirModifyInfo> List;
 		enum ActionType {
 			ACTION_NONE,
+			ACTION_CREATED,
 			ACTION_MODIFIED,
 			ACTION_DELETED
 		};
 
+		struct FileInfo {
+			FileInfo(ActionType aAction, const string& aOldPath) : action(aAction), oldPath(aOldPath) { }
+
+			ActionType action;
+			string oldPath;
+		};
+
 		//DirModifyInfo(ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0), dirAction(aAction) { }
-		DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction);
+		DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction, const string& aOldPath = Util::emptyString);
 
-		void addFile(const string& aFile, ActionType aAction);
+		void addFile(const string& aFile, ActionType aAction, const string& aOldPath = Util::emptyString);
 
-		unordered_map<string, ActionType> files;
+		unordered_map<string, FileInfo> files;
 		time_t lastFileActivity;
 		time_t lastReportedError;
 
 		ActionType dirAction;
 		string volume;
 		string path;
+		string oldPath;
 
 		void setPath(const string& aPath);
 	};

@@ -1098,7 +1098,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "%1% folders with extra files", 
 "%1% empty folders", 
 "%1% duplicate folders", 
-"Extra files in sample folder: ", 
+"Extra files in sample folder: %1%", 
 "The following extra files have been found from a release folder %1%: %2%", 
 "The selected folder contains %1% directory bundles and %2% file bundles. Are you sure want to remove them?", 
 "Are you sure want to remove the bundle %1%?", 
@@ -1713,7 +1713,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Follow symbolic links", 
 "Paused (forced)", 
 "Scan new directories in share for missing/extra files (monitoring only)", 
-"Refresh the directory after fixing the problem(s) to add it in share", 
+"Please fix the issue to have it rescanned automatically or for the directory to be added in share by performing a manual refresh", 
 "The directory %1% won't be shared because the following problems were found: %2%", 
 "Scanning failed: %1%", 
 "%1% files failed to hash", 
@@ -1808,6 +1808,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Search only from supported clients", 
 "File date format", 
 "Users with Advanced Search support: %1%/%2%", 
+"Do you want to continue with adding this item anyway?", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "AairdcppLanguageFile", 
@@ -3616,4 +3617,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SearchSupportedOnly", 
 "FileDateFormat", 
 "AschSupportCount", 
+"AsAddDupeConfirm", 
 };

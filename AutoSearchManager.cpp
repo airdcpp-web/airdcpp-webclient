@@ -381,7 +381,7 @@ AutoSearchManager::~AutoSearchManager() {
 	QueueManager::getInstance()->removeListener(this);
 }
 
-void AutoSearchManager::logMessage(const string& aMsg, bool error) {
+void AutoSearchManager::logMessage(const string& aMsg, bool error) const {
 	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, error ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
@@ -392,15 +392,30 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 		return nullptr;
 	}
 
+	if (hasNameDupe(ss, true)) {
+		return nullptr;
+	}
+
 	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_FILE, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
 		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString);
 
-	return addAutoSearch(as, true) ? as : nullptr;
+	addAutoSearch(as, true);
+	return as;
+}
+
+bool AutoSearchManager::hasNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch /*nullptr*/) const {
+	RLock l(cs);
+	auto found = find_if(searchItems, [&](const AutoSearchPtr& as) { return as->getSearchString() == aName && (!thisSearch || as != thisSearch); }) != searchItems.end();
+	if (found && report) {
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aName % STRING(ITEM_NAME_EXISTS)), true);
+	}
+
+	return found;
 }
 
 
 /* List changes */
-bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
+void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 	aAutoSearch->updatePattern();
 	aAutoSearch->updateSearchTime();
 	aAutoSearch->updateStatus();
@@ -408,10 +423,6 @@ bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 
 	{
 		WLock l(cs);
-		if (find_if(searchItems, [aAutoSearch](AutoSearchPtr as)  { return as->getSearchString() == aAutoSearch->getSearchString(); }) != searchItems.end()) { 
-			logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aAutoSearch->getSearchString() % STRING(ITEM_NAME_EXISTS)), true);
-			return false;
-		};
 		searchItems.push_back(aAutoSearch);
 	}
 
@@ -421,8 +432,6 @@ bool AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 		//no hubs
 		logMessage(CSTRING_F(AUTOSEARCH_ADDED, aAutoSearch->getSearchString()), false);
 	}
-
-	return true;
 }
 
 bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) {
@@ -473,7 +482,7 @@ void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) {
 
 void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) {
 	WLock l(cs);
-	auto i = find_if(searchItems, [aItem](const AutoSearchPtr as) { return compare(as->getToken(), aItem->getToken()) == 0; });
+	auto i = find_if(searchItems, [aItem](const AutoSearchPtr& as) { return compare(as->getToken(), aItem->getToken()) == 0; });
 	if(i != searchItems.end()) {
 
 		if(static_cast<uint32_t>(distance(searchItems.begin(), i)) < curPos) //dont skip a search if we remove before the last search.
@@ -651,11 +660,16 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 }
 
 bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) {
+	if (hasNameDupe(aBundle->getName(), false)) {
+		return false;
+	}
+
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
 		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString);
 
 	as->addBundle(aBundle);
-	return addAutoSearch(as, true);
+	addAutoSearch(as, true);
+	return true;
 }
 
 string AutoSearch::getFormatedSearchString() const {

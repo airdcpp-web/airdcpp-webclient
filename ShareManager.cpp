@@ -215,7 +215,7 @@ void ShareManager::onFileModified(const string& aPath, bool created) {
 
 		{
 			WLock l(cs);
-			addModifyInfo(f->isDirectory() ? aPath + PATH_SEPARATOR : aPath, f->isDirectory(), DirModifyInfo::ACTION_MODIFIED);
+			addModifyInfo(f->isDirectory() ? aPath + PATH_SEPARATOR : aPath, f->isDirectory(), created ? DirModifyInfo::ACTION_CREATED : DirModifyInfo::ACTION_MODIFIED);
 		}
 	}
 }
@@ -242,9 +242,19 @@ void ShareManager::addModifyInfo(const string& aPath, bool isDirectory, DirModif
 	}
 }
 
-void ShareManager::DirModifyInfo::addFile(const string& aFile, ActionType aAction) {
+void ShareManager::DirModifyInfo::addFile(const string& aFile, ActionType aAction, const string& aOldPath /*Util::emptyString*/) {
 	//files[aFile.substr(path.length())] = aAction;
-	files[aFile] = aAction;
+	auto p = files.find(aFile);
+	if (p != files.end()) {
+		if (p->second.action == DirModifyInfo::ACTION_CREATED && aAction == DirModifyInfo::ACTION_DELETED) {
+			files.erase(p);
+		} else {
+			p->second.action = aAction;
+		}
+	} else {
+		files.emplace(aFile, DirModifyInfo::FileInfo(aAction, aOldPath));
+	}
+
 	lastFileActivity = GET_TICK();
 }
 
@@ -258,15 +268,17 @@ void ShareManager::DirModifyInfo::setPath(const string& aPath) {
 	path = aPath;
 }
 
-ShareManager::DirModifyInfo::DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0) {
+ShareManager::DirModifyInfo::DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction, const string& aOldPath /*Util::emptyString*/) : lastFileActivity(GET_TICK()), lastReportedError(0) {
 	volume = File::getMountPath(aFile);
 	if (isDirectory) {
 		dirAction = aAction;
 		setPath(aFile);
+		oldPath = aOldPath;
 	} else {
 		dirAction = ACTION_NONE;
 		setPath(Util::getFilePath(aFile));
-		files.emplace(aFile, aAction);
+		addFile(aFile, aAction, aOldPath);
+		//files.emplace(aFile, aAction);
 	}
 }
 
@@ -323,7 +335,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 				{
 					WLock l(cs);
 					for (auto i = info.files.begin(); i != info.files.end(); ) {
-						if (i->second == DirModifyInfo::ACTION_DELETED) {
+						if (i->second.action == DirModifyInfo::ACTION_DELETED) {
 							bool isDir = i->first.back() == PATH_SEPARATOR;
 							if (handleDeletedFile(i->first, isDir, dirtyProfiles)) {
 								if (removed == 0) {
@@ -381,23 +393,25 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) {
 			}
 
 			// scan for missing/extra files
-			string error_;
-			bool report = forced || info.lastReportedError == 0 || (info.lastReportedError + static_cast<uint64_t>(10*60*1000) < aTick); //don't spam with reports on every minute
-			if (!ShareScannerManager::getInstance()->onScanSharedDir(info.path, error_, forced)) {
-				if (report) {
-					string logMsg;
-					logMsg += STRING_F(SCAN_SHARE_DIR_FAILED, info.path % error_);
-					logMsg += ". ";
-					logMsg += STRING(FORCE_SHARE_SCAN);
+			if (info.lastReportedError == 0 || info.lastReportedError < info.lastFileActivity) {
+				string error_;
+				bool report = forced || info.lastReportedError == 0 || (info.lastReportedError + static_cast<uint64_t>(10 * 60 * 1000) < aTick); //don't spam with reports on every minute
+				if (!ShareScannerManager::getInstance()->onScanSharedDir(info.path, error_, forced)) {
+					if (report) {
+						string logMsg;
+						logMsg += STRING_F(SCAN_SHARE_DIR_FAILED, info.path % error_);
+						logMsg += ". ";
+						logMsg += STRING(FORCE_SHARE_SCAN);
 
-					LogManager::getInstance()->message(logMsg, LogManager::LOG_ERROR );
+						LogManager::getInstance()->message(logMsg, LogManager::LOG_ERROR);
 
-					info.lastReportedError = aTick;
+						info.lastReportedError = aTick;
+					}
+
+					//keep in the main list and try again later
+					k++;
+					continue;
 				}
-
-				//keep in the main list and try again later
-				k++;
-				continue;
 			}
 
 			vector<FileAddInfo> files;

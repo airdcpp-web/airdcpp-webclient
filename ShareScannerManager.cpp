@@ -53,7 +53,7 @@ atomic_flag ShareScannerManager::scanning = ATOMIC_FLAG_INIT;
 atomic_flag ShareScannerManager::scanning;
 #endif
 
-ShareScannerManager::ShareScannerManager() {
+ShareScannerManager::ShareScannerManager() : stop(false) {
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
 	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9_]{2,}))");
 	emptyDirReg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);

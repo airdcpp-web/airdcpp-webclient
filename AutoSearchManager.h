@@ -187,8 +187,9 @@ public:
 	AutoSearchManager();
 	~AutoSearchManager();
 
+	bool hasNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const;
 	bool addFailedBundle(const BundlePtr& aBundle);
-	bool addAutoSearch(AutoSearchPtr aAutoSearch, bool search);
+	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search);
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
 	AutoSearchPtr getSearchByIndex(unsigned int index) const;
 	AutoSearchPtr getSearchByToken(ProfileToken aToken) const;
@@ -233,7 +234,7 @@ public:
 	void AutoSearchLoad();
 	void AutoSearchSave();
 
-	void logMessage(const string& aMsg, bool error);
+	void logMessage(const string& aMsg, bool error) const;
 private:
 	mutable SharedMutex cs;
 

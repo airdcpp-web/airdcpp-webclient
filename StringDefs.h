@@ -1102,7 +1102,7 @@ enum Strings { // @DontAdd
 	X_FOLDERS_EXTRAS, // "%1% folders with extra files"
 	X_EMPTY_FOLDERS, // "%1% empty folders"
 	X_DUPE_FOLDERS, // "%1% duplicate folders"
-	EXTRA_FILES_SAMPLEDIR_X, // "Extra files in sample folder: "
+	EXTRA_FILES_SAMPLEDIR_X, // "Extra files in sample folder: %1%"
 	EXTRA_FILES_RLSDIR_X, // "The following extra files have been found from a release folder %1%: %2%"
 	CONFIRM_REMOVE_DIR_MULTIPLE, // "The selected folder contains %1% directory bundles and %2% file bundles. Are you sure want to remove them?"
 	CONFIRM_REMOVE_DIR_BUNDLE, // "Are you sure want to remove the bundle %1%?"
@@ -1717,7 +1717,7 @@ enum Strings { // @DontAdd
 	FOLLOW_SYMLINKS, // "Follow symbolic links"
 	PAUSED_FORCED, // "Paused (forced)"
 	SCAN_MONITORED_FOLDERS, // "Scan new directories in share for missing/extra files (monitoring only)"
-	FORCE_SHARE_SCAN,  // "Refresh the directory after fixing the problem(s) to add it in share"
+	FORCE_SHARE_SCAN,  // "Please fix the issue to have it rescanned automatically or for the directory to be added in share by performing a manual refresh"
 	SCAN_SHARE_DIR_FAILED, // "The directory %1% won't be shared because the following problems were found: %2%"
 	SCANNING_FAILED_X, // "Scanning failed: %1%"
 	X_FILES_FAILED_HASHING, // "%1% files failed to hash"
@@ -1812,5 +1812,6 @@ enum Strings { // @DontAdd
 	SEARCH_SUPPORTED_ONLY, // "Search only from supported clients"
 	FILE_DATE_FORMAT, // "File date format"
 	ASCH_SUPPORT_COUNT, // "Users with Advanced Search support: %1%/%2%"
+	AS_ADD_DUPE_CONFIRM, // "Do you want to continue with adding this item anyway?"
 	LAST // @DontAdd
 };
