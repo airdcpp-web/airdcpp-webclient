@@ -56,6 +56,10 @@ DirectoryListing::~DirectoryListing() {
 	delete root;
 }
 
+bool DirectoryListing::isMyCID() const {
+	return hintedUser.user == ClientManager::getInstance()->getMe();
+}
+
 
 bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) const {
 	return compare(a->getName(), b->getName()) < 0;

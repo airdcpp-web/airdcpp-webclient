@@ -231,8 +231,9 @@ public:
 	static string formatStatus(int iStatus);
 	
 	static string formatBytes(const string& aString) { return formatBytes(toInt64(aString)); }
+	static string formatConnectionSpeed(const string& aString) { return formatConnectionSpeed(toInt64(aString)); }
 
-static string getShortTimeString(time_t t = time(NULL) );
+	static string getShortTimeString(time_t t = time(NULL) );
 	static string getTimeStamp(time_t t = time(NULL) );
 
 	static string getTimeString();
@@ -242,6 +243,9 @@ static string getShortTimeString(time_t t = time(NULL) );
 	
 	static string formatBytes(int64_t aBytes);
 	static wstring formatBytesW(int64_t aBytes);
+
+	static string formatConnectionSpeed(int64_t aBytes);
+	static wstring formatConnectionSpeedW(int64_t aBytes);
 
 	static wstring formatExactSize(int64_t aBytes);
 

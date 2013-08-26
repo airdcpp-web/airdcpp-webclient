@@ -720,6 +720,47 @@ wstring Util::formatBytesW(int64_t aBytes) {
 	return buf;
 }
 
+string Util::formatConnectionSpeed(int64_t aBytes) {
+	/*if (aBytes < 0) {
+	aBytes = abs(aBytes);
+	} */
+	aBytes *= 8;
+	char buf[64];
+	if (aBytes < 1000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000.0), "Kbit/s");
+	} else if (aBytes < 1000000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000.0), "Mbit/s");
+	} else if (aBytes < (int64_t) 1000000000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000000.0), "Gbit/s");
+	} else if (aBytes < (int64_t) 1000000000000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000000000.0), "Tbit/s");
+	} else if (aBytes < (int64_t) 1000000000000000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000000000000.0), "Pbit/s");
+	}
+
+	return buf;
+}
+
+wstring Util::formatConnectionSpeedW(int64_t aBytes) {
+	wchar_t buf[64];
+	aBytes *= 8;
+	if (aBytes < 1000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000.0), _T("Kbit/s"));
+	} else if (aBytes < 1000000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000.0), _T("Mbit/s"));
+	} else if (aBytes < (int64_t) 1000000000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000000.0), _T("Gbit/s"));
+	} else if (aBytes < (int64_t) 1000000000000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000000000.0), _T("Tbit/s"));
+	} else if (aBytes < (int64_t) 1000000000000000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000000000000.0), _T("Pbit/s"));
+	}/* else {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1152921504606846976.0), CWSTRING(EB));
+	}*/
+
+	return buf;
+}
+
 wstring Util::formatExactSize(int64_t aBytes) {
 #ifdef _WIN32	
 	wchar_t buf[64];

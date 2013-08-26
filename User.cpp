@@ -84,20 +84,32 @@ string Identity::getIp() const {
 	return !allowV6Connections() ? getIp4() : getIp6();
 }
 
-string Identity::getUploadSpeed() const {
-	if(user->isNMDC())
+string Identity::getConnectionString() const {
+	if (user->isNMDC()) {
 		return getNmdcConnection();
-	else {
-		const auto& us = get("US");
+	} else {
+		return Util::toString(getAdcConnectionSpeed(false));
+	}
+}
+
+int64_t Identity::getAdcConnectionSpeed(bool download) const {
+	auto us = Util::toInt64(download ? get("DS") : get("US"));
+
+	const auto& ver = get("VE");
+	if (ver.length() >= 12 && strncmp("AirDC++", ver.c_str(), 7) == 0) {
+		auto version = Util::toDouble(ver.substr(8, 4));
 
 		//workaround for versions older than 2.40 that use wrong units.....
-		const auto& ver = get("VE");
-		if (ver.length() >= 12 && strncmp("AirDC++", ver.c_str(), 7) == 0 && Util::toDouble(ver.substr(8, 4)) < 2.40) {
-			return Util::toString(Util::toInt64(us) / 8);
+		if (version < 2.40) {
+			us = us / 8;
 		}
 
-		return us;
+		//convert MiBit/s to Mbit/s...
+		if (version <= 2.45 || (version >= 2.50 && version <= 2.59))
+			us = us * 0.9765625 * 0.9765625;
 	}
+
+	return us;
 }
 
 uint8_t Identity::getSlots() const {
@@ -284,8 +296,8 @@ tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 		case COLUMN_EXACT_SHARED: return Util::formatExactSize(identity.getBytesShared());
 		case COLUMN_DESCRIPTION: return Text::toT(identity.getDescription());
 		case COLUMN_TAG: return Text::toT(identity.getTag());
-		case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getNmdcConnection()) : (Text::toT(Util::formatBytes(identity.get("US"))) + _T("/s"));
-		case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Text::toT(Util::formatBytes(identity.get("DS"))) + _T("/s"));
+		case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getNmdcConnection()) : (Util::formatConnectionSpeedW(identity.getAdcConnectionSpeed(false)));
+		case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Util::formatConnectionSpeedW(identity.getAdcConnectionSpeed(true)));
 		case COLUMN_IP4: {
 			string ip = identity.getIp4();
 			if (!copy) {

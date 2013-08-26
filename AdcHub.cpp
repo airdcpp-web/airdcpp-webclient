@@ -266,7 +266,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		setMyIdentity(u->getIdentity());
 		updateCounts(false, true);
 
-		if (oldState != STATE_NORMAL && u->getIdentity().getUploadSpeed().empty())
+		if (oldState != STATE_NORMAL && u->getIdentity().getAdcConnectionSpeed(false) == 0)
 			fire(ClientListener::StatusMessage(), this, "WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.");
 
 		//we have to update the modes in case our connectivity changed

@@ -179,6 +179,7 @@ public:
 	void getLocalPaths(const Directory* d, StringList& ret) const;
 	void getLocalPaths(const File* f, StringList& ret) const;
 
+	bool isMyCID() const;
 	string getNick(bool firstOnly) const;
 	static string getNickFromFilename(const string& fileName);
 	static UserPtr getUserFromFilename(const string& fileName);

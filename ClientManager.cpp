@@ -422,6 +422,10 @@ UserPtr ClientManager::getUser(const CID& cid) noexcept {
 		}
 	}
 
+	if (cid == getMe()->getCID()) {
+		return getMe();
+	}
+
 	UserPtr p(new User(cid));
 
 	WLock l(cs);
@@ -1175,17 +1179,15 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	auto ou = findOnlineUserHint(aCID, hubUrl_, p);
 	if (ou) {
 		slots_ = ou->getIdentity().getSlots();
-		if (!ou->getIdentity().getUploadSpeed().empty()) {
-			connection_ = ou->getIdentity().getUploadSpeed();
-			return true;
-		}
+		connection_ = ou->getIdentity().getConnectionString();
+		return true;
 	} else {
 		// some hubs may hide this information...
 		for (auto i = p.first; i != p.second; i++) {
 			if (slots_ == 0)
 				slots_ = i->second->getIdentity().getSlots();
 
-			const auto& conn = i->second->getIdentity().getUploadSpeed();
+			const auto& conn = i->second->getIdentity().getConnectionString();
 			if (!conn.empty()) {
 				connection_ = conn;
 				break;
@@ -1222,7 +1224,7 @@ bool ClientManager::connectNMDCSearchResult(const string& userIP, const string& 
 	RLock l(cs);
 	auto ou = findOnlineUser(user);
 	if (ou)
-		connection_ = ou->getIdentity().getUploadSpeed();
+		connection_ = ou->getIdentity().getConnectionString();
 
 	return true;
 }
