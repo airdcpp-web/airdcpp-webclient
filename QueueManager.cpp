@@ -1135,6 +1135,9 @@ pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& a
 }
 
 void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) {
+	if (dl.getUser() == ClientManager::getInstance()->getMe())
+		return;
+
 	bool wantConnection = false;
 	QueueItem::StringItemList ql;
 

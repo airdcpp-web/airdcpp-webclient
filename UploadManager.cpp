@@ -255,7 +255,7 @@ checkslots:
 				if(sourceFile != up->getPath()) {
 					if (up->isSet(Upload::FLAG_CHUNKED))
 						logUpload(up);
-				} else if (up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE) {
+				} else if (up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE && up->getSegment().getEnd() != fileSize) {
 					//we are resuming the same file, reuse the existing upload
 					countFilePositions();
 					up->resume(start, size);
