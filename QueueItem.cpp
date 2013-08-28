@@ -58,13 +58,13 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 		setPriority(HIGHEST);
 	} else {
 		if (getPriority() == DEFAULT) {
-			if(aSize <= SETTING(PRIO_HIGHEST_SIZE)*1024) {
+			if(aSize <= Util::convertSize(SETTING(PRIO_HIGHEST_SIZE), Util::KB)) {
 				setPriority(HIGHEST);
-			} else if(aSize <= SETTING(PRIO_HIGH_SIZE)*1024) {
+			} else if (aSize <= Util::convertSize(SETTING(PRIO_HIGH_SIZE), Util::KB)) {
 				setPriority(HIGH);
-			} else if(aSize <= SETTING(PRIO_NORMAL_SIZE)*1024) {
+			} else if (aSize <= Util::convertSize(SETTING(PRIO_NORMAL_SIZE), Util::KB)) {
 				setPriority(NORMAL);
-			} else if(aSize <= SETTING(PRIO_LOW_SIZE)*1024) {
+			} else if (aSize <= Util::convertSize(SETTING(PRIO_LOW_SIZE), Util::KB)) {
 				setPriority(LOW);
 			} else if(SETTING(PRIO_LOWEST)) {
 				setPriority(LOWEST);
@@ -119,8 +119,8 @@ bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr& left, const QueueI
 	if (right->isSet(QueueItem::FLAG_PARTIAL_LIST)) return false;
 
 	//small files go before full lists
-	if (right->isSet(QueueItem::FLAG_USER_LIST) && left->getSize() < SETTING(PRIO_HIGHEST_SIZE)*1024) return true;
-	if (left->isSet(QueueItem::FLAG_USER_LIST) && right->getSize() < SETTING(PRIO_HIGHEST_SIZE)*1024) return false;
+	if (right->isSet(QueueItem::FLAG_USER_LIST) && left->getSize() < Util::convertSize(SETTING(PRIO_HIGHEST_SIZE), Util::KB)) return true;
+	if (left->isSet(QueueItem::FLAG_USER_LIST) && right->getSize() < Util::convertSize(SETTING(PRIO_HIGHEST_SIZE), Util::KB)) return false;
 
 	return left->getSize() < right->getSize();
 }
@@ -358,7 +358,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 	}
 	
 	if(!startDown() || downloads.size() >= maxSegments ||
-		(SETTING(DONT_BEGIN_SEGMENT) && (size_t)(SETTING(DONT_BEGIN_SEGMENT_SPEED) * 1024) < getAverageSpeed()))
+		(SETTING(DONT_BEGIN_SEGMENT) && static_cast<uint64_t>(Util::convertSize(SETTING(DONT_BEGIN_SEGMENT_SPEED), Util::KB)) < getAverageSpeed()))
 	{
 		// no other segments if we have reached the speed or segment limit
 		return Segment(-1, 0);
@@ -641,7 +641,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 	if(!isSet(QueueItem::FLAG_USER_LIST) && !isSet(QueueItem::FLAG_CLIENT_VIEW)) {
 		Segment segment = getNextSegment(getBlockSize(), wantedSize, lastSpeed, source->getPartialSource(), allowOverlap);
 		if(segment.getSize() == 0) {
-			lastError = (segment.getStart() == -1 || getSize() < (SETTING(MIN_SEGMENT_SIZE)*1024)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
+			lastError = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
 			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
 			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::listToString(onlineHubs).c_str(), getTarget().c_str(), blockSize);
 			return false;

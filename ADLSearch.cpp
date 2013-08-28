@@ -80,43 +80,42 @@ tstring ADLSearch::SourceTypeToDisplayString(SourceType t) {
 	}
 
 ADLSearch::SizeType ADLSearch::StringToSizeType(const string& s) {
-		if(stricmp(s.c_str(), "B") == 0) {
-			return SizeBytes;
-		} else if(stricmp(s.c_str(), "KiB") == 0) {
-			return SizeKiloBytes;
-		} else if(stricmp(s.c_str(), "MiB") == 0) {
-			return SizeMegaBytes;
-		} else if(stricmp(s.c_str(), "GiB") == 0) {
-			return SizeGigaBytes;
-		} else {
-			return SizeBytes;
-		}
+	if(stricmp(s.c_str(), "B") == 0) {
+		return SizeBytes;
+	} else if(stricmp(s.c_str(), "KiB") == 0) {
+		return SizeKiloBytes;
+	} else if(stricmp(s.c_str(), "MiB") == 0) {
+		return SizeMegaBytes;
+	} else if(stricmp(s.c_str(), "GiB") == 0) {
+		return SizeGigaBytes;
+	} else {
+		return SizeBytes;
 	}
+}
 
 string ADLSearch::SizeTypeToString(SizeType t) {
-		switch(t) {
+	switch(t) {
 		default:
 		case SizeBytes:		return "B";
 		case SizeKiloBytes:	return "KiB";
 		case SizeMegaBytes:	return "MiB";
 		case SizeGigaBytes:	return "GiB";
-		
-		}
 	}
+}
 	
 
 tstring ADLSearch::SizeTypeToDisplayString(ADLSearch::SizeType t) {
-		switch(t) {
+	switch(t) {
 		default:
 		case SizeBytes:		return CTSTRING(B);
 		case SizeKiloBytes:	return CTSTRING(KiB);
 		case SizeMegaBytes:	return CTSTRING(MiB);
 		case SizeGigaBytes:	return CTSTRING(GiB);
-		}
 	}
+}
 
 int64_t ADLSearch::GetSizeBase() {
-		switch(typeFileSize) {
+	switch(typeFileSize) {
 		default:
 		case SizeBytes:		return (int64_t)1;
 		case SizeKiloBytes:	return (int64_t)1024;

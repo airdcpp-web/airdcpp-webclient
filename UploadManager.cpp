@@ -142,7 +142,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 				miniSlot = freeSlotMatcher.match(Util::getFileName(sourceFile));
 			}
 
-			miniSlot = miniSlot || (fileSize <= (int64_t)(SETTING(SET_MINISLOT_SIZE) * 1024) );
+			miniSlot = miniSlot || (fileSize <= Util::convertSize(SETTING(SET_MINISLOT_SIZE), Util::KB));
 		} else if(aType == Transfer::names[Transfer::TYPE_TREE]) {
 			ProfileTokenSet profiles;
 			ClientManager::getInstance()->listProfiles(aSource.getHintedUser().user, profiles);
@@ -822,7 +822,7 @@ bool UploadManager::getAutoSlot() {
 	if(GET_TICK() < getLastGrant() + 30*1000)
 		return false;
 	/** Grant if upload speed is less than the threshold speed */
-	return getRunningAverage(false) < (AirUtil::getSpeedLimit(false)*1024);
+	return getRunningAverage(false) < Util::convertSize(AirUtil::getSpeedLimit(false), Util::KB);
 }
 
 void UploadManager::removeUpload(Upload* aUpload, bool delay) {

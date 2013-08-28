@@ -680,6 +680,7 @@ string Util::formatBytes(int64_t aBytes) {
 		aBytes = abs(aBytes);
 	} */
 	char buf[64];
+#ifdef USE_BINARY_UNITS
 	if (aBytes < 1024) {
 		snprintf(buf, sizeof(buf), "%d %s", (int)(aBytes&0xffffffff), CSTRING(B));
 	} else if(aBytes < 1048576) {
@@ -693,14 +694,33 @@ string Util::formatBytes(int64_t aBytes) {
 	} else if(aBytes < (int64_t)1152921504606846976)  {
 		snprintf(buf, sizeof(buf), "%.02f %s", (double)aBytes/(1125899906842624.0), CSTRING(PiB));
 	} else {
-		snprintf(buf, sizeof(buf), "%.02f %s", (double)aBytes/(1152921504606846976.0), CSTRING(EB));
+		snprintf(buf, sizeof(buf), "%.02f %s", (double)aBytes/(1152921504606846976.0), CSTRING(EiB));
 	}
+#else
+	if (aBytes < 1000) {
+		snprintf(buf, sizeof(buf), "%d %s", (int) (aBytes & 0xffffffff), CSTRING(B));
+	} else if (aBytes < 1000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000.0), CSTRING(KB));
+	} else if (aBytes < 1000000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000.0), CSTRING(MB));
+	} else if (aBytes < (int64_t) 1000000000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000000.0), CSTRING(GB));
+	} else if (aBytes < (int64_t) 1000000000000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000000000.0), CSTRING(TB));
+	} else if (aBytes < (int64_t) 1000000000000000000) {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000000000000.0), CSTRING(PB));
+	} else {
+		snprintf(buf, sizeof(buf), "%.02f %s", (double) aBytes / (1000000000000000000.0), CSTRING(EB));
+	}
+#endif
 
 	return buf;
 }
 
 wstring Util::formatBytesW(int64_t aBytes) {
 	wchar_t buf[64];
+
+#ifdef USE_BINARY_UNITS
 	if(aBytes < 1024) {
 		snwprintf(buf, sizeof(buf), L"%d %s", (int)(aBytes&0xffffffff), CWSTRING(B));
 	} else if(aBytes < 1048576) {
@@ -714,10 +734,36 @@ wstring Util::formatBytesW(int64_t aBytes) {
 	} else if(aBytes < (int64_t)1152921504606846976)  {
 		snwprintf(buf, sizeof(buf), L"%.02f %s", (double)aBytes/(1125899906842624.0), CWSTRING(PiB));
 	} else {
-		snwprintf(buf, sizeof(buf), L"%.02f %s", (double)aBytes/(1152921504606846976.0), CWSTRING(EB));
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double)aBytes/(1152921504606846976.0), CWSTRING(EiB));
 	}
+#else
+
+	if (aBytes < 1000) {
+		snwprintf(buf, sizeof(buf), L"%d %s", (int) (aBytes & 0xffffffff), CWSTRING(B));
+	} else if (aBytes < 1000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000.0), CWSTRING(KB));
+	} else if (aBytes < 1000000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000.0), CWSTRING(MB));
+	} else if (aBytes < (int64_t) 1000000000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000000.0), CWSTRING(GB));
+	} else if (aBytes < (int64_t) 1000000000000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000000000.0), CWSTRING(TB));
+	} else if (aBytes < (int64_t) 1000000000000000000) {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000000000000.0), CWSTRING(PB));
+	} else {
+		snwprintf(buf, sizeof(buf), L"%.02f %s", (double) aBytes / (1000000000000000000.0), CWSTRING(EB));
+	}
+#endif
 
 	return buf;
+}
+
+int64_t Util::convertSize(int64_t aValue, Util::SizeUnits valueType, Util::SizeUnits to /*B*/) {
+#ifdef USE_BINARY_UNITS
+	return aValue * static_cast<int64_t>(valueType - to) * 1024LL;
+#else
+	return aValue * static_cast<int64_t>(valueType - to) * 1000LL;
+#endif
 }
 
 string Util::formatConnectionSpeed(int64_t aBytes) {

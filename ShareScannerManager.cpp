@@ -664,7 +664,7 @@ Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, strin
 
 				logMsg += scanner.getResults();
 				if (SETTING(ADD_FINISHED_INSTANTLY)) {
-					logMsg += ". " + STRING_F(FORCE_HASH_NOTIFICATION, aBundle->getTarget());
+					logMsg += ". " + STRING_F(FORCE_HASH_NOTIFICATION, aBundle->getName());
 				}
 
 				error_ = STRING_F(SCANNING_FAILED_X, scanner.getResults());

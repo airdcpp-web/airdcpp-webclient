@@ -3861,7 +3861,7 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 		if(SETTING(NO_ZERO_BYTE) && !(size > 0))
 			return false;
 
-		if ((SETTING(MAX_FILE_SIZE_SHARED) != 0) && (size > static_cast<int64_t>(SETTING(MAX_FILE_SIZE_SHARED))*1024*1024)) {
+		if (SETTING(MAX_FILE_SIZE_SHARED) != 0 && size > Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB)) {
 			if (report) {
 				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath, LogManager::LOG_INFO);
 			}

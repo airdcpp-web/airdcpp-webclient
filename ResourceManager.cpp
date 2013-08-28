@@ -25,6 +25,25 @@
 #include "Text.h"
 
 namespace dcpp {
+
+ResourceManager::Strings ResourceManager::SizeTranslations[] {
+	ResourceManager::B,
+#ifdef USE_BINARY_UNITS
+	ResourceManager::KiB,
+	ResourceManager::MiB,
+	ResourceManager::GiB,
+	ResourceManager::TiB,
+	ResourceManager::PiB,
+	ResourceManager::EiB
+#else
+	ResourceManager::KB,
+	ResourceManager::MB,
+	ResourceManager::GB,
+	ResourceManager::TB,
+	ResourceManager::PB,
+	ResourceManager::EB
+#endif
+};
 	
 wstring ResourceManager::wstrings[ResourceManager::LAST];
 

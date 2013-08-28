@@ -162,6 +162,20 @@ public:
 		PATH_LAST
 	};
 
+	enum SizeUnits {
+		B,
+		KB,
+		MB,
+		GB,
+		TB,
+		PB,
+		EB,
+		SIZE_LAST
+	};
+
+
+	static int64_t convertSize(int64_t aValue, SizeUnits valueType, SizeUnits to = B);
+
 	static void initialize();
 	static string getAppName();
 

@@ -98,7 +98,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			{
 				if (d->getTigerTree().getFileSize() > (SETTING(DISCONNECT_FILESIZE) * 1048576))
 				{
-					if((speed < SETTING(DISCONNECT_SPEED) * 1024))
+					if(speed < Util::convertSize(SETTING(DISCONNECT_SPEED), Util::KB))
 					{
 						if(aTick - d->getLastTick() > (uint32_t)SETTING(DISCONNECT_TIME) * 1000)
 						{
@@ -115,9 +115,9 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 			if(SETTING(FAV_DL_SPEED) > 0) {
 				HintedUser fstusr = d->getHintedUser();
-				if((speed > SETTING(FAV_DL_SPEED)*1024) && ((aTick - d->getStart()) > 7000) && !fstusr.user->isFavorite()) {
+				if(speed > Util::convertSize(SETTING(FAV_DL_SPEED), Util::KB) && (aTick - d->getStart()) > 7000 && !fstusr.user->isFavorite()) {
 					FavoriteManager::getInstance()->addFavoriteUser(fstusr);
-					FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1024) + "KB/s)"));
+					FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1000) + "KB/s)"));
 				}
 			}
 		}

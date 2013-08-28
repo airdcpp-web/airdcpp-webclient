@@ -140,7 +140,7 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 				auto minLoaded = getLeastLoaded(volHashers);
 
 				//don't create new hashers if the file is less than 10 megabytes and there's a hasher with less than 200MB queued, or the maximum number of threads have been reached for this volume
-				if (static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS) || (static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) && SETTING(HASHERS_PER_VOLUME) > 0) || (size <= 10 * 1024 * 1024 && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= 200 * 1024 * 1024)) {
+				if (static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS) || (static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) && SETTING(HASHERS_PER_VOLUME) > 0) || (size <= Util::convertSize(10, Util::MB) && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= Util::convertSize(200, Util::MB))) {
 					//use the least loaded hasher that already has this volume
 					h = *minLoaded;
 				}
@@ -697,7 +697,7 @@ void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSiz
 }
 
 void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
-	uint32_t cacheSize = static_cast<uint32_t>(max(SETTING(DB_CACHE_SIZE), 1)) * 1024*1024;
+	uint32_t cacheSize = static_cast<uint32_t>(Util::convertSize(max(SETTING(DB_CACHE_SIZE), 1), Util::MB));
 	auto blockSize = File::getBlockSize(Util::getPath(Util::PATH_USER_CONFIG));
 
 	// Use the file system block size in here. Using a block size smaller than that reduces the performance significantly especially when writing a lot of data (e.g. when migrating the data)
@@ -1149,7 +1149,7 @@ int HashManager::Hasher::run() {
 				fr.read(fname, [&](const void* buf, size_t n) -> bool {
 					uint64_t now = GET_TICK();
 					if(SETTING(MAX_HASH_SPEED)> 0) {
-						uint64_t minTime = n * 1000LL / (SETTING(MAX_HASH_SPEED) * 1024LL * 1024LL);
+						uint64_t minTime = n * 1000LL / Util::convertSize(SETTING(MAX_HASH_SPEED), Util::MB);
  
 						if(lastRead + minTime > now) {
 							Thread::sleep(minTime - (now - lastRead));

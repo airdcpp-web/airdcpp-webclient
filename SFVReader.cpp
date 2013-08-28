@@ -112,7 +112,7 @@ void DirSFVReader::load() noexcept {
 		try {
 			auto loadPath = Text::utf8ToAcp(Util::FormatPath(path));
 			auto size = File::getSize(loadPath);
-			if (size > 1*1024*1024) {
+			if (size > Util::convertSize(1, Util::MB)) {
 				//this isn't a proper sfv file
 				throw FileException(STRING_F(SFV_TOO_LARGE, Util::formatBytes(size)));
 			}

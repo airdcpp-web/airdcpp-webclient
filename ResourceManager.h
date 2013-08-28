@@ -39,6 +39,9 @@ namespace dcpp {
 #define WSTRING_F(x, args) (dcpp_fmt(ResourceManager::getStringW(ResourceManager::x)) % args).str()
 #define CWSTRING_F(x, args) (dcpp_fmt(ResourceManager::getStringW(ResourceManager::x)) % args).str().c_str()
 
+#define SIZESTRING(x) ResourceManager::getString(ResourceManager::SizeTranslations[Util::x])
+#define SIZECWSTRING(x) ResourceManager::getStringW(ResourceManager::SizeTranslations[Util::x]).c_str()
+
 #ifdef UNICODE
 #define TSTRING WSTRING
 #define TSTRING_I WSTRING_I
@@ -46,6 +49,7 @@ namespace dcpp {
 #define CTSTRING CWSTRING
 #define CTSTRING_I CWSTRING_I
 #define CTSTRING_F CWSTRING_F
+#define SIZECTSTRING SIZECWSTRING
 #else
 #define TSTRING STRING
 #define TSTRING_I STRING_I
@@ -64,6 +68,8 @@ public:
 	static const string& getString(Strings x) { dcassert(x >= 0 && x < LAST); return strings[x]; }
 	static const wstring& getStringW(Strings x) { dcassert(x >= 0 && x < LAST); return wstrings[x]; }
 	bool isRTL() { return rtl; }
+
+	static Strings SizeTranslations[];
 
 private:
 	friend class Singleton<ResourceManager>;

@@ -164,7 +164,7 @@ int QueueManager::Rechecker::run() {
 				continue;
 			}
 
-			if(tempSize < 64*1024) {
+			if(tempSize < Util::convertSize(64, Util::KB)) {
 				qm->fire(QueueManagerListener::RecheckFileTooSmall(), q->getTarget());
 				continue;
 			}
@@ -552,7 +552,7 @@ void QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const T
 	if (aSize == 0) {
 		//can't view this...
 		throw QueueException(STRING(CANT_OPEN_EMPTY_FILE));
-	} else if (isClientView && aSize > 1*1024*1024) { // 1MB
+	} else if (isClientView && aSize > Util::convertSize(1, Util::MB)) {
 		auto msg = STRING_F(VIEWED_FILE_TOO_BIG, aFileName % Util::formatBytes(aSize));
 		LogManager::getInstance()->message(msg, LogManager::LOG_ERROR);
 		throw QueueException(msg);
@@ -696,7 +696,7 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		} catch(FileException& /*e*/) {
 			existingFiles++;
 		} catch(DupeException& e) {
-			bool isSmall = (*i).size < static_cast<int64_t>(SETTING(MIN_DUPE_CHECK_SIZE))*1024;
+			bool isSmall = (*i).size < Util::convertSize(SETTING(MIN_DUPE_CHECK_SIZE), Util::KB);
 			errors.add(e.getError(), (*i).file, isSmall);
 			if (isSmall) {
 				smallDupes++;
@@ -1058,7 +1058,7 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runnin
 
 	size_t downloadCount = DownloadManager::getInstance()->getDownloadCount();
 	bool full = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t) AirUtil::getSlots(true));
-	full = full || ((AirUtil::getSpeedLimit(true) != 0) && (DownloadManager::getInstance()->getRunningAverage() >= (AirUtil::getSpeedLimit(true) * 1024)));
+	full = full || ((AirUtil::getSpeedLimit(true) != 0) && (DownloadManager::getInstance()->getRunningAverage() >= Util::convertSize(AirUtil::getSpeedLimit(true), Util::KB)));
 	//LogManager::getInstance()->message("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
 
 	if (full) {
@@ -2877,10 +2877,10 @@ bool QueueManager::dropSource(Download* d) {
 			onlineUsers = b->countOnlineUsers();
 		}
 
-		if((iHighSpeed == 0 || b->getSpeed() > iHighSpeed * 1024) && onlineUsers >= 2) {
+		if((iHighSpeed == 0 || b->getSpeed() > Util::convertSize(iHighSpeed, Util::KB)) && onlineUsers >= 2) {
 			d->setFlag(Download::FLAG_SLOWUSER);
 
-			if(d->getAverageSpeed() < SETTING(REMOVE_SPEED)*1024) {
+			if(d->getAverageSpeed() < Util::convertSize(SETTING(REMOVE_SPEED), Util::KB)) {
 				return true;
 			} else {
 				d->getUserConnection().disconnect();

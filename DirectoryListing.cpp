@@ -578,7 +578,7 @@ struct DirectoryEmpty {
 
 struct SizeLess {
 	bool operator()(const DirectoryListing::File::Ptr f) const {
-		return f->getSize() < (SETTING(SKIP_SUBTRACT) *1024);
+		return f->getSize() < Util::convertSize(SETTING(SKIP_SUBTRACT), Util::KB);
 	}
 };
 
