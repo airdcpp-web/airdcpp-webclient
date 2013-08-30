@@ -559,12 +559,12 @@ void AirUtil::getRegexMatches(const string& aString, StringList& l, const boost:
 
 bool AirUtil::isSub(const string& aDir, const string& aParent) {
 	/* returns true if aDir is a subdir of aParent */
-	return (aDir.length() > aParent.length() && (stricmp(aDir.substr(0, aParent.length()), aParent) == 0));
+	return (aDir.length() > aParent.length() && (Util::stricmp(aDir.substr(0, aParent.length()), aParent) == 0));
 }
 
 bool AirUtil::isParentOrExact(const string& aDir, const string& aSub) {
 	/* returns true if aSub is a subdir of aDir OR both are the same dir */
-	return (aSub.length() >= aDir.length() && (stricmp(aSub.substr(0, aDir.length()), aDir) == 0));
+	return (aSub.length() >= aDir.length() && (Util::stricmp(aSub.substr(0, aDir.length()), aDir) == 0));
 }
 
 const string AirUtil::getLinkUrl() {
@@ -675,7 +675,7 @@ string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubt
 			j = toSubtract.find_last_of(PATH_SEPARATOR, i);
 			if(j == string::npos || (int)(toCompare.length() - (toSubtract.length() - j)) < 0) //also check if it goes out of scope for toCompare
 				break;
-			if(stricmp(toSubtract.substr(j), toCompare.substr(toCompare.length() - (toSubtract.length()-j))) != 0)
+			if(Util::stricmp(toSubtract.substr(j), toCompare.substr(toCompare.length() - (toSubtract.length()-j))) != 0)
 				break;
 			i = j - 1;
 		}

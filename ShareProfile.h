@@ -94,7 +94,7 @@ public:
 	/*class PathCompare {
 	public:
 		PathCompare(const string& compareTo) : a(compareTo) { }
-		bool operator()(const ShareDirInfoPtr& p) { return stricmp(p->path.c_str(), a.c_str()) == 0; }
+		bool operator()(const ShareDirInfoPtr& p) { return Util::stricmp(p->path.c_str(), a.c_str()) == 0; }
 	private:
 		PathCompare& operator=(const PathCompare&) ;
 		const string& a;

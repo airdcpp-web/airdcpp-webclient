@@ -924,7 +924,7 @@ void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const strin
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	//don't match bundle searches
-	if (stricmp(sr->getToken(), "qa") == 0)
+	if (Util::stricmp(sr->getToken(), "qa") == 0)
 		return;
 
 	AutoSearchList matches;
@@ -1004,7 +1004,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				auto name = sr->getFileName();
 
 				//match
-				auto p = find_if(exts, [&name](const string& i) { return name.length() >= i.length() && stricmp(name.c_str() + name.length() - i.length(), i.c_str()) == 0; });
+				auto p = find_if(exts, [&name](const string& i) { return name.length() >= i.length() && Util::stricmp(name.c_str() + name.length() - i.length(), i.c_str()) == 0; });
 				if (p == exts.end()) continue;
 			} catch(...) {
 				//lets agree that it's match...

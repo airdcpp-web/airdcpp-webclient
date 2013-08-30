@@ -199,7 +199,7 @@ namespace dcpp {
 		// country codes are not sorted, use linear searching (it is not used so often)
 		const char** first = countryNames;
 		const char** last = countryNames + (sizeof(countryNames) / sizeof(countryNames[0]));
-		const char** i = find_if(first, last, [&](const char* cn) { return stricmp(countryName, cn) == 0; });
+		const char** i = find_if(first, last, [&](const char* cn) { return Util::stricmp(countryName, cn) == 0; });
 		if(i != last)
 			return i - countryNames + 1;
 

@@ -94,7 +94,7 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath, s
 			DWORD bufLen = sizeof(Buf);
 			DWORD type;
 			::RegQueryValueEx(hk, _T("InstallLocation"), 0, &type, (LPBYTE)Buf, &bufLen);
-			if(stricmp(Text::toT(installPath).c_str(), Buf) == 0) {
+			if(Util::stricmp(Text::toT(installPath).c_str(), Buf) == 0) {
 				string tmp = SHORTVERSIONSTRING;
 				::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE)Text::toT(tmp).c_str(), sizeof(TCHAR) * (tmp.length() + 1));
 			}

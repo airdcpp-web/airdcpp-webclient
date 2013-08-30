@@ -161,7 +161,7 @@ public:
 	 * was not needed...
 	 */
 	static bool needsEscape(const string& aString, bool aAttrib, bool aLoading = false, const string &encoding = Text::utf8) {
-		return stricmp(encoding, Text::utf8) != 0 || (((aLoading) ? aString.find('&') : aString.find_first_of(aAttrib ? "<&>'\"" : "<&>")) != string::npos);
+		return Util::stricmp(encoding, Text::utf8) != 0 || (((aLoading) ? aString.find('&') : aString.find_first_of(aAttrib ? "<&>'\"" : "<&>")) != string::npos);
 	}
 	static const string utf8Header;
 private:

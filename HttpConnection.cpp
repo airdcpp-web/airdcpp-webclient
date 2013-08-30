@@ -91,7 +91,7 @@ void HttpConnection::prepareRequest(RequestType type) {
 	method = (connType == TYPE_POST) ? "POST" : "GET";
 
 	// set download type
-	if(stricmp(currentUrl.substr(currentUrl.size() - 4).c_str(), ".bz2") == 0) {
+	if(Util::stricmp(currentUrl.substr(currentUrl.size() - 4).c_str(), ".bz2") == 0) {
 		mimeType = "application/x-bzip2";
 	} else mimeType.clear();
 

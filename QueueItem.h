@@ -48,7 +48,7 @@ public:
 
 	/*struct TargetComp {
 		TargetComp(const string& s) : a(s) { }
-		bool operator()(const QueueItemPtr q) const { return stricmp(a, q->getTarget()) == 0; }
+		bool operator()(const QueueItemPtr q) const { return Util::stricmp(a, q->getTarget()) == 0; }
 		const string& a;
 	private:
 		TargetComp& operator=(const TargetComp&);

@@ -3065,7 +3065,7 @@ void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePa
 			bool found = false;
 			for (auto i = sharePaths.begin(); i != sharePaths.end(); ) {
 				if (AirUtil::isParentOrExact(*i, b->getTarget())) {
-					if (stricmp(*i, b->getTarget()) == 0) {
+					if (Util::stricmp(*i, b->getTarget()) == 0) {
 						//erase exact matches
 						i = sharePaths.erase(i);
 					}

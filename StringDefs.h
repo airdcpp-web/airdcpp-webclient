@@ -240,7 +240,6 @@ enum Strings { // @DontAdd
 	JOINS, // "Joins: "
 	KiB, // "KiB"
 	KiBS, // "KiB/s"
-	KBS, // "KB/s"
 	KEEP_FINISHED_FILES, // "Keep finished files in the queue"
 	KICK_USER, // "Kick user(s)"
 	KICK_USER_FILE, // "Kick user(s) with filename"
@@ -549,7 +548,7 @@ enum Strings { // @DontAdd
 	SETTINGS_DOWNLOAD_DIRECTORY, // "Default download directory"
 	SETTINGS_DOWNLOADS, // "Downloads"
 	SETTINGS_DOWNLOADS_MAX, // "Maximum simultaneous downloads (0 = infinite)"
-	SETTINGS_DOWNLOADS_SPEED_PAUSE, // "No new downloads if speed exceeds (kB/s, 0 = disable)"
+	SETTINGS_DOWNLOADS_SPEED_PAUSE, // "No new downloads if speed exceeds (KiB/s, 0 = disable)"
 	SETTINGS_EXPAND_QUEUE, // "Automatically expand folders in Queue"
 	SETTINGS_EXTENSIONS, // "Extensions"
 	SETTINGS_EXTERNAL_IP, // "External / WAN IP"
@@ -1814,11 +1813,5 @@ enum Strings { // @DontAdd
 	FILE_DATE_FORMAT, // "File date format"
 	ASCH_SUPPORT_COUNT, // "Users with Advanced Search support: %1%/%2%"
 	AS_ADD_DUPE_CONFIRM, // "Do you want to continue with adding this item anyway?"
-	KB, // "KB"
-	MB, // "MB"
-	GB, // "GB"
-	TB, // "TB"
-	PB, // "PB"
-	EB, // "EB"
 	LAST // @DontAdd
 };

@@ -100,11 +100,11 @@ bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr& left, const Queue
 			return aPath.length() - extPos == 4 && aPath[extPos+1] == 'r' && isdigit(aPath[extPos+2]);
 		};
 
-		if (stricmp(left->getTarget().substr(extLeft), ".rar") == 0 && isRxx(right->getTarget(), extRight)) {
+		if (Util::stricmp(left->getTarget().substr(extLeft), ".rar") == 0 && isRxx(right->getTarget(), extRight)) {
 			return true;
 		}
 
-		if (stricmp(right->getTarget().substr(extRight), ".rar") == 0 && isRxx(left->getTarget(), extLeft)) {
+		if (Util::stricmp(right->getTarget().substr(extRight), ".rar") == 0 && isRxx(left->getTarget(), extLeft)) {
 			return false;
 		}
 	}

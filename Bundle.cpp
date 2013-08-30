@@ -430,7 +430,7 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 			j = remoteDir.find_last_of("\\", i);
 			if(j == string::npos || (int)(bundleDir.length() - (remoteDir.length() - j)) < 0) //also check if it goes out of scope for the local dir
 				break;
-			if(stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
+			if(Util::stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
 				break;
 			i = j - 1;
 		}

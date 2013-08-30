@@ -270,7 +270,7 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 				j = remoteDir.find_last_of("\\", i);
 				if(j == string::npos || (int)(curDir.length() - (remoteDir.length() - j)) < 0) //also check if it goes out of scope for the local dir
 					break;
-				if(stricmp(remoteDir.substr(j+1, i-j), curDir.substr(curDir.length() - (remoteDir.length()-j)+1, i-j)) == 0) {
+				if(Util::stricmp(remoteDir.substr(j+1, i-j), curDir.substr(curDir.length() - (remoteDir.length()-j)+1, i-j)) == 0) {
 					if (!boost::regex_match(remoteDir.substr(j+1, i-j), AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
 						paths_.emplace_back(s->second);
 						break;

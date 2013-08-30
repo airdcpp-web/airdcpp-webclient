@@ -50,11 +50,11 @@ adlsComment("none") {
 }
 
 ADLSearch::SourceType ADLSearch::StringToSourceType(const string& s) {
-		if(stricmp(s.c_str(), "Filename") == 0) {
+		if(Util::stricmp(s.c_str(), "Filename") == 0) {
 			return OnlyFile;
-		} else if(stricmp(s.c_str(), "Directory") == 0) {
+		} else if(Util::stricmp(s.c_str(), "Directory") == 0) {
 			return OnlyDirectory;
-		} else if(stricmp(s.c_str(), "Full Path") == 0) {
+		} else if(Util::stricmp(s.c_str(), "Full Path") == 0) {
 			return FullPath;
 		} else {
 			return OnlyFile;
@@ -80,13 +80,13 @@ tstring ADLSearch::SourceTypeToDisplayString(SourceType t) {
 	}
 
 ADLSearch::SizeType ADLSearch::StringToSizeType(const string& s) {
-	if(stricmp(s.c_str(), "B") == 0) {
+	if(Util::stricmp(s.c_str(), "B") == 0) {
 		return SizeBytes;
-	} else if(stricmp(s.c_str(), "KiB") == 0) {
+	} else if(Util::stricmp(s.c_str(), "KiB") == 0) {
 		return SizeKiloBytes;
-	} else if(stricmp(s.c_str(), "MiB") == 0) {
+	} else if(Util::stricmp(s.c_str(), "MiB") == 0) {
 		return SizeMegaBytes;
-	} else if(stricmp(s.c_str(), "GiB") == 0) {
+	} else if(Util::stricmp(s.c_str(), "GiB") == 0) {
 		return SizeGigaBytes;
 	} else {
 		return SizeBytes;
@@ -199,11 +199,11 @@ ADLSearchManager::~ADLSearchManager() {
 }
 
 ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
-	if(stricmp(s.c_str(), "Filename") == 0) {
+	if(Util::stricmp(s.c_str(), "Filename") == 0) {
 		return ADLSearch::OnlyFile;
-	} else if(stricmp(s.c_str(), "Directory") == 0) {
+	} else if(Util::stricmp(s.c_str(), "Directory") == 0) {
 		return ADLSearch::OnlyDirectory;
-	} else if(stricmp(s.c_str(), "Full Path") == 0) {
+	} else if(Util::stricmp(s.c_str(), "Full Path") == 0) {
 		return ADLSearch::FullPath;
 	} else {
 		return ADLSearch::OnlyFile;
@@ -557,7 +557,7 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 	for(auto id = destDirVector.begin(); id != destDirVector.end(); ++id) {
 		if(id->dir->files.size() == 0 && id->dir->directories.size() == 0) {
 			delete (id->dir);
-		} else if(stricmp(id->dir->getName(), szDiscard) == 0) {
+		} else if(Util::stricmp(id->dir->getName(), szDiscard) == 0) {
 			delete (id->dir);
 		} else {
 			root->directories.push_back(id->dir);

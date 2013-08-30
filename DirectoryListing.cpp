@@ -108,11 +108,11 @@ void DirectoryListing::setHubUrl(const string& newUrl) {
 }
 
 void stripExtensions(string& name) {
-	if(stricmp(name.c_str() + name.length() - 4, ".bz2") == 0) {
+	if(Util::stricmp(name.c_str() + name.length() - 4, ".bz2") == 0) {
 		name.erase(name.length() - 4);
 	}
 
-	if(stricmp(name.c_str() + name.length() - 4, ".xml") == 0) {
+	if(Util::stricmp(name.c_str() + name.length() - 4, ".xml") == 0) {
 		name.erase(name.length() - 4);
 	}
 }
@@ -179,10 +179,10 @@ void DirectoryListing::loadFile() {
 
 		dcpp::File ff(fileName, dcpp::File::READ, dcpp::File::OPEN);
 		root->setUpdateDate(ff.getLastModified());
-		if(stricmp(ext, ".bz2") == 0) {
+		if(Util::stricmp(ext, ".bz2") == 0) {
 			FilteredInputStream<UnBZFilter, false> f(&ff);
 			loadXML(f, false, "/", ff.getLastModified());
-		} else if(stricmp(ext, ".xml") == 0) {
+		} else if(Util::stricmp(ext, ".xml") == 0) {
 			loadXML(ff, false, "/", ff.getLastModified());
 		}
 	}

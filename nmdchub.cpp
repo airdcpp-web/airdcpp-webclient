@@ -320,7 +320,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 		} else {
 			// Hub:seeker
-			if(stricmp(seeker.c_str() + 4, getMyNick().c_str()) == 0) {
+			if(Util::stricmp(seeker.c_str() + 4, getMyNick().c_str()) == 0) {
 				return;
 			}
 		}

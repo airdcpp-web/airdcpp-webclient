@@ -772,7 +772,7 @@ void ShareManager::Directory::addType(uint32_t type) noexcept {
 string ShareManager::getRealPath(const string& aFileName, int64_t aSize) const {
 	RLock l(cs);
 	for(const auto f: tthIndex | map_values) {
-		if(stricmp(aFileName.c_str(), f->name.getLower().c_str()) == 0 && f->getSize() == aSize) {
+		if(Util::stricmp(aFileName.c_str(), f->name.getLower().c_str()) == 0 && f->getSize() == aSize) {
 			return f->getRealPath();
 		}
 	}
@@ -821,7 +821,7 @@ string ShareManager::Directory::getRealPath(const string& path, bool checkExista
 string ShareManager::findRealRoot(const string& virtualRoot, const string& virtualPath) const {
 	for(const auto& s: rootPaths | map_values) {
 		for(const auto& vName: s->getProfileDir()->getRootProfiles() | map_values) {
-			if(stricmp(vName, virtualRoot) == 0) {
+			if(Util::stricmp(vName, virtualRoot) == 0) {
 				string path = vName + virtualPath;
 				dcdebug("Matching %s\n", path.c_str());
 				if(FileFindIter(path) != FileFindIter()) {
@@ -1431,7 +1431,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	//create the info dirs
 	for(const auto& p: fileList) {
 		if (Util::getFileExt(p) == ".xml") {
-			auto rp = find_if(parents | map_values, [&p](const Directory::Ptr& aDir) { return stricmp(aDir->getProfileDir()->getCacheXmlPath(), p) == 0; });
+			auto rp = find_if(parents | map_values, [&p](const Directory::Ptr& aDir) { return Util::stricmp(aDir->getProfileDir()->getCacheXmlPath(), p) == 0; });
 			if (rp.base() != parents.end()) { //make sure that subdirs are never listed here...
 				try {
 					auto loader = new ShareLoader(rp.base()->first, *rp, bloom.get());
@@ -1630,7 +1630,7 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 		throw ShareException(STRING(DIRECTORY_IS_HIDDEN));
 	}
 
-	if(stricmp(SETTING(TEMP_DOWNLOAD_DIRECTORY), realPath) == 0) {
+	if(Util::stricmp(SETTING(TEMP_DOWNLOAD_DIRECTORY), realPath) == 0) {
 		throw ShareException(STRING(DONT_SHARE_TEMP_DIRECTORY));
 	}
 
@@ -1648,7 +1648,7 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 
 void ShareManager::getByVirtual(const string& virtualName, ProfileToken aProfile, Directory::List& dirs) const noexcept {
 	for(const auto& d: rootPaths | map_values) {
-		if(d->getProfileDir()->hasRootProfile(aProfile) && stricmp(d->getProfileDir()->getName(aProfile), virtualName) == 0) {
+		if(d->getProfileDir()->hasRootProfile(aProfile) && Util::stricmp(d->getProfileDir()->getName(aProfile), virtualName) == 0) {
 			dirs.push_back(d);
 		}
 	}
@@ -1657,7 +1657,7 @@ void ShareManager::getByVirtual(const string& virtualName, ProfileToken aProfile
 void ShareManager::getByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs) const noexcept {
 	for(const auto& d: rootPaths | map_values) {
 		for(auto& k: d->getProfileDir()->getRootProfiles()) {
-			if(aProfiles.find(k.first) != aProfiles.end() && stricmp(k.second, virtualName) == 0) {
+			if(aProfiles.find(k.first) != aProfiles.end() && Util::stricmp(k.second, virtualName) == 0) {
 				dirs.push_back(d);
 			}
 		}
@@ -1809,7 +1809,7 @@ bool ShareManager::isFileShared(const TTHValue& aTTH, ProfileToken aProfile) con
 bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
 	RLock l (cs);
 	for(const auto f: tthIndex | map_values) {
-		if(stricmp(aFileName.c_str(), f->name.getLower().c_str()) == 0 && f->getSize() == aSize) {
+		if(Util::stricmp(aFileName.c_str(), f->name.getLower().c_str()) == 0 && f->getSize() == aSize) {
 			return true;
 		}
 	}
@@ -1990,7 +1990,7 @@ int ShareManager::refresh(const string& aDir){
 			for(const auto& d: rootPaths | map_values) {
 				// compare all virtual names for real paths
 				for(const auto& vName: d->getProfileDir()->getRootProfiles() | map_values) {
-					if(stricmp(vName, aDir ) == 0) {
+					if(Util::stricmp(vName, aDir ) == 0) {
 						refreshPaths.push_back(d->getRealPath(false));
 						vNames.insert(vName);
 					}
@@ -2221,7 +2221,7 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 							dir->setProfileDir(root);
 							profileDirs[sdiPath] = root;
 							addRoot(sdiPath, dir);
-							if (find_if(aNewDirs, [p](const ShareDirInfoPtr& aSDI) { return stricmp(aSDI->path, *p) == 0; }) == aNewDirs.end())
+							if (find_if(aNewDirs, [p](const ShareDirInfoPtr& aSDI) { return Util::stricmp(aSDI->path, *p) == 0; }) == aNewDirs.end())
 								refresh.push_back(*p); //refresh the top directory unless it's also added now.....
 						}
 					}
@@ -3124,7 +3124,7 @@ static const string type2Picture[] = { ".jpeg", ".ai", ".ps", ".pict", ".tiff" }
 static const string type2Video[] = { ".mpeg", ".rm", ".divx", ".mp1v", ".mp2v", ".mpv1", ".mpv2", ".qt", ".rv", ".vivo" };
 
 #define IS_TYPE(x) ( type == (*((uint32_t*)x)) )
-#define IS_TYPE2(x) (stricmp(aString.c_str() + aString.length() - x.length(), x.c_str()) == 0) //hmm lower conversion...
+#define IS_TYPE2(x) (Util::stricmp(aString.c_str() + aString.length() - x.length(), x.c_str()) == 0) //hmm lower conversion...
 
 bool ShareManager::checkType(const string& aString, int aType) {
 

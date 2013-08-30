@@ -818,7 +818,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const {
 	FavoriteHubEntryList ret;
 	ret.reserve(favoriteHubs.size());
-	copy_if(favoriteHubs.begin(), favoriteHubs.end(), ret.begin(), [&group](const FavoriteHubEntryPtr f) { return stricmp(f->getGroup(), group) == 0; });
+	copy_if(favoriteHubs.begin(), favoriteHubs.end(), ret.begin(), [&group](const FavoriteHubEntryPtr f) { return Util::stricmp(f->getGroup(), group) == 0; });
 	return ret;
 }
 
@@ -914,7 +914,7 @@ void FavoriteManager::mergeHubSettings(const FavoriteHubEntry& entry, HubSetting
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(const string& aServer) const {
 	//find by the primary address
-	return find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr f) { return stricmp(f->getServers()[0].first, aServer) == 0; });
+	return find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr f) { return Util::stricmp(f->getServers()[0].first, aServer) == 0; });
 }
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(ProfileToken aToken) const {
@@ -992,7 +992,7 @@ bool FavoriteManager::isFailOverUrl(ProfileToken aToken, const string& hubAddres
 }
 
 RecentHubEntry::Iter FavoriteManager::getRecentHub(const string& aServer) const {
-	return find_if(recentHubs, [&aServer](const RecentHubEntry* rhe) { return stricmp(rhe->getServer(), aServer) == 0; });
+	return find_if(recentHubs, [&aServer](const RecentHubEntry* rhe) { return Util::stricmp(rhe->getServer(), aServer) == 0; });
 }
 
 void FavoriteManager::setHubList(int aHubList) {
@@ -1002,7 +1002,7 @@ void FavoriteManager::setHubList(int aHubList) {
 
 RecentHubEntry* FavoriteManager::getRecentHubEntry(const string& aServer) {
 	for(auto r: recentHubs) {
-		if(stricmp(r->getServer(), aServer) == 0) {
+		if(Util::stricmp(r->getServer(), aServer) == 0) {
 			return r;
 		}
 	}
@@ -1028,7 +1028,7 @@ void FavoriteManager::refresh(bool forceDownload /* = false */) {
 				WLock l(cs);
 				publicListMatrix[publicListServer].clear();
 			}
-			listType = (stricmp(path.substr(path.size() - 4), ".bz2") == 0) ? TYPE_BZIP2 : TYPE_NORMAL;
+			listType = (Util::stricmp(path.substr(path.size() - 4), ".bz2") == 0) ? TYPE_BZIP2 : TYPE_NORMAL;
 			try {
 				File cached(path, File::READ, File::OPEN);
 				downloadBuf = cached.read();

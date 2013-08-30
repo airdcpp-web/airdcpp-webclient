@@ -65,6 +65,7 @@ void DirectoryMonitor::Server::init() throw(MonitorException) {
 	if (threadRunning.test_and_set())
 		return;
 
+#ifdef WIN32
 	m_hIOCP = CreateIoCompletionPort(
 							(HANDLE)INVALID_HANDLE_VALUE,
 							NULL,
@@ -73,6 +74,7 @@ void DirectoryMonitor::Server::init() throw(MonitorException) {
 	if (!m_hIOCP) {
 		throw MonitorException(Util::translateError(::GetLastError()));
 	}
+#endif
 
 	start();
 }
@@ -106,6 +108,25 @@ DirectoryMonitor::Server::Server(DirectoryMonitor* aBase, int numThreads) : base
 
 DirectoryMonitor::Server::~Server() {
 
+}
+
+#ifdef WIN32
+
+Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int monitorFlags, size_t bufferSize, bool recursive) :
+	path(Text::toT(aPath)),
+	server(aServer),
+	m_hDirectory(nullptr),
+	m_dwFlags(monitorFlags),
+	m_bChildren(recursive),
+	errorCount(0),
+	key(lastKey++),
+	changes(0) {
+		::ZeroMemory(&m_Overlapped, sizeof(OVERLAPPED));
+		m_Buffer.resize(bufferSize);
+}
+
+Monitor::~Monitor() {
+	dcassert(!m_hDirectory);
 }
 
 void Monitor::beginRead() {
@@ -143,6 +164,47 @@ void Monitor::stopMonitoring() {
 
 }
 
+int Monitor::lastKey = 0;
+
+void Monitor::openDirectory(HANDLE iocp) {
+	// Allow this routine to be called redundantly.
+	if (m_hDirectory && m_hDirectory != INVALID_HANDLE_VALUE)
+		return;
+
+	m_hDirectory = ::CreateFile(
+		path.c_str(),					// pointer to the file name
+		FILE_LIST_DIRECTORY,                // access (read/write) mode
+		FILE_SHARE_READ						// share mode
+		| FILE_SHARE_WRITE
+		| FILE_SHARE_DELETE,
+		NULL,                               // security descriptor
+		OPEN_EXISTING,                      // how to create
+		FILE_FLAG_BACKUP_SEMANTICS			// file attributes
+		| FILE_FLAG_OVERLAPPED,
+		NULL);                              // file with attributes to copy
+
+	if (m_hDirectory == INVALID_HANDLE_VALUE) {
+		throw MonitorException(Util::translateError(::GetLastError()));
+	}
+
+	if (CreateIoCompletionPort(m_hDirectory, iocp, (ULONG_PTR) key, 0) == NULL) {
+		throw MonitorException(Util::translateError(::GetLastError()));
+	}
+}
+
+#else
+
+Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int monitorFlags, size_t bufferSize) {
+}
+
+Monitor::~Monitor() { }
+
+void Monitor::stopMonitoring() {
+
+}
+
+#endif
+
 int DirectoryMonitor::run() {
 	while (true) {
 		s.wait();
@@ -179,6 +241,7 @@ int DirectoryMonitor::Server::run() {
 	return 0;
 }
 
+#ifdef WIN32
 int DirectoryMonitor::Server::read() {
 	DWORD		dwBytesXFered = 0;
 	ULONG_PTR	ulKey = 0;
@@ -274,6 +337,49 @@ void DirectoryMonitor::Server::deleteDirectory(DirectoryMonitor::Server::Monitor
 	}
 }
 
+bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
+	{
+		RLock l(cs);
+		if (monitors.find(aPath) != monitors.end())
+			return false;
+	}
+
+	init();
+
+	Monitor* mon = new Monitor(aPath, this, 0, 32 * 1024, true);
+	try {
+		mon->openDirectory(m_hIOCP);
+
+		{
+			WLock l(cs);
+			mon->beginRead();
+			monitors.emplace(aPath, mon);
+		}
+	} catch (MonitorException& e) {
+		mon->stopMonitoring();
+		delete mon;
+		throw e;
+	}
+
+	return true;
+}
+
+#else
+
+bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
+	return true;
+}
+
+void DirectoryMonitor::Server::deleteDirectory(DirectoryMonitor::Server::MonitorMap::iterator mon) {
+
+}
+
+int DirectoryMonitor::Server::read() {
+	return 0;
+}
+
+#endif
+
 bool DirectoryMonitor::addDirectory(const string& aPath) {
 	return server->addDirectory(aPath);
 }
@@ -293,33 +399,6 @@ size_t DirectoryMonitor::Server::clear() {
 	return monitors.size();
 }
 
-bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
-	{
-		RLock l(cs);
-		if (monitors.find(aPath) != monitors.end())
-			return false;
-	}
-
-	init();
-
-	Monitor* mon = new Monitor(aPath, this, 0, 32*1024, true);
-	try {
-		mon->openDirectory(m_hIOCP);
-
-		{
-			WLock l(cs);
-			mon->beginRead();
-			monitors.emplace(aPath, mon);
-		}
-	} catch(MonitorException& e) {
-		mon->stopMonitoring();
-		delete mon;
-		throw e;
-	}
-
-	return true;
-}
-
 bool DirectoryMonitor::Server::removeDirectory(const string& aPath) {
 	WLock l(cs);
 	auto p = monitors.find(aPath);
@@ -331,54 +410,8 @@ bool DirectoryMonitor::Server::removeDirectory(const string& aPath) {
 	return false;
 }
 
-int Monitor::lastKey = 0;
-
-Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int monitorFlags, size_t bufferSize, bool recursive) : 
-	path(Text::toT(aPath)), 
-	server(aServer), 
-	m_hDirectory(nullptr),
-	m_dwFlags(monitorFlags),
-	m_bChildren(recursive),
-	errorCount(0),
-	key(lastKey++),
-	changes(0)
-{
-	::ZeroMemory(&m_Overlapped, sizeof(OVERLAPPED));
-	m_Buffer.resize(bufferSize);
-}
-
-void Monitor::openDirectory(HANDLE iocp) {
-	// Allow this routine to be called redundantly.
-	if (m_hDirectory && m_hDirectory != INVALID_HANDLE_VALUE)
-		return;
-
-	m_hDirectory = ::CreateFile(
-		path.c_str(),					// pointer to the file name
-		FILE_LIST_DIRECTORY,                // access (read/write) mode
-		FILE_SHARE_READ						// share mode
-		 | FILE_SHARE_WRITE
-		 | FILE_SHARE_DELETE,
-		NULL,                               // security descriptor
-		OPEN_EXISTING,                      // how to create
-		FILE_FLAG_BACKUP_SEMANTICS			// file attributes
-		 | FILE_FLAG_OVERLAPPED,
-		NULL);                              // file with attributes to copy
-
-	if (m_hDirectory == INVALID_HANDLE_VALUE) {
-		throw MonitorException(Util::translateError(::GetLastError()));
-	}
-
-	if (CreateIoCompletionPort(m_hDirectory, iocp, (ULONG_PTR)key, 0) == NULL) {
-		throw MonitorException(Util::translateError(::GetLastError()));
-	}
-}
-
 string DirectoryMonitor::Server::getErrorStr(int error) {
 	return STRING_F(ERROR_CODE_X, Util::translateError(error) % error);
-}
-
-Monitor::~Monitor() {
-	dcassert(!m_hDirectory);
 }
 
 string DirectoryMonitor::Server::getStats() const {

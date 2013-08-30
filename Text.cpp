@@ -58,7 +58,7 @@ void initialize() {
 
 #ifdef _WIN32
 int getCodePage(const string& charset) {
-	if(charset.empty() || stricmp(charset, systemCharset) == 0)
+	if(charset.empty() || Util::stricmp(charset, systemCharset) == 0)
 		return CP_ACP;
 
 	string::size_type pos = charset.find('.');

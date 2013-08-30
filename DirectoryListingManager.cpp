@@ -57,7 +57,7 @@ void DirectoryListingManager::removeDirectoryDownload(const UserPtr& aUser, cons
 	WLock l(cs);
 	if (isPartialList) {
 		auto dp = dlDirectories.equal_range(aUser) | map_values;
-		auto udp = find_if(dp, [&aPath](const DirectoryDownloadInfo::Ptr& ddi) { return stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0; });
+		auto udp = find_if(dp, [&aPath](const DirectoryDownloadInfo::Ptr& ddi) { return Util::stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0; });
 		if (udp != dp.end()) {
 			dlDirectories.erase(udp.base());
 		} else {
@@ -104,7 +104,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aRemoteDir, con
 		auto dp = dlDirectories.equal_range(aUser);
 		
 		for(auto i = dp.first; i != dp.second; ++i) {
-			if (stricmp(aRemoteDir.c_str(), i->second->getListPath().c_str()) == 0)
+			if (Util::stricmp(aRemoteDir.c_str(), i->second->getListPath().c_str()) == 0)
 				return;
 		}
 		
@@ -257,7 +257,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 			auto dp = dlDirectories.equal_range(aList->getHintedUser().user) | map_values;
 			if ((flags & QueueItem::FLAG_PARTIAL_LIST) && !path.empty()) {
 				//partial list
-				auto udp = find_if(dp, [&path](const DirectoryDownloadInfo::Ptr& ddi) { return stricmp(path.c_str(), ddi->getListPath().c_str()) == 0; });
+				auto udp = find_if(dp, [&path](const DirectoryDownloadInfo::Ptr& ddi) { return Util::stricmp(path.c_str(), ddi->getListPath().c_str()) == 0; });
 				if (udp != dp.end()) {
 					dl.push_back(*udp);
 				}

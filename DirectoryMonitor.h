@@ -92,12 +92,15 @@ private:
 
 		int read();
 
-		int	m_nThreads;
 		bool m_bTerminate;
-		HANDLE m_hIOCP;
 		atomic_flag threadRunning;
 
 		void deleteDirectory(MonitorMap::iterator mon);
+
+#ifdef WIN32
+		HANDLE m_hIOCP;
+		int	m_nThreads;
+#endif
 	};
 
 	enum TaskType {
@@ -129,11 +132,16 @@ public:
 	static int lastKey;
 	friend class DirectoryMonitor;
 
+#ifdef WIN32
 	Monitor(const string& aPath, DirectoryMonitor::Server* aParent, int monitorFlags, size_t bufferSize, bool recursive);
 	~Monitor();
 
 	void openDirectory(HANDLE iocp);
 	void beginRead();
+#else
+	Monitor(const string& aPath, DirectoryMonitor::Server* aParent, int monitorFlags, size_t bufferSize);
+	~Monitor();
+#endif
 
 	void stopMonitoring();
 
@@ -142,6 +150,8 @@ public:
 private:
 	void processNotification();
 
+	uint64_t changes;
+#ifdef WIN32
 	// Parameters from the caller for ReadDirectoryChangesW().
 	int				m_dwFlags;
 	int				m_bChildren;
@@ -159,7 +169,7 @@ private:
 	ByteVector m_Buffer;
 	int errorCount;
 	int key;
-	uint64_t changes;
+#endif
 };
 
 } //dcpp

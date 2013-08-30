@@ -43,7 +43,7 @@ class Localization {
 
 			struct NameSort { 
 				bool operator()(const Language& l1, const Language& l2) const {
-					return stricmp(l1.languageName, l2.languageName) < 0;
+					return Util::stricmp(l1.languageName, l2.languageName) < 0;
 				}
 			};
 		};

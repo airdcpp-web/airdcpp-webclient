@@ -87,7 +87,7 @@ namespace dcpp {
 
 			struct HasASItem {
 				HasASItem(ProfileToken aToken, const string& s) : a(s), t(aToken) { }
-				bool operator()(const DirectoryDownloadInfo::Ptr& ddi) const { return t == ddi->getAutoSearch() && stricmp(a, ddi->getBundleName()) != 0; }
+				bool operator()(const DirectoryDownloadInfo::Ptr& ddi) const { return t == ddi->getAutoSearch() && Util::stricmp(a, ddi->getBundleName()) != 0; }
 				const string& a;
 				ProfileToken t;
 			private:
@@ -149,7 +149,7 @@ namespace dcpp {
 
 			struct HasASItem {
 				HasASItem(ProfileToken aToken, const string& s) : a(s), t(aToken) { }
-				bool operator()(const FinishedDirectoryItem::Ptr& ddi) const { return ddi->autoSearches.find(t) != ddi->autoSearches.end() && stricmp(Util::getLastDir(ddi->targetPath), a) != 0; }
+				bool operator()(const FinishedDirectoryItem::Ptr& ddi) const { return ddi->autoSearches.find(t) != ddi->autoSearches.end() && Util::stricmp(Util::getLastDir(ddi->targetPath), a) != 0; }
 				const string& a;
 				ProfileToken t;
 			private:
