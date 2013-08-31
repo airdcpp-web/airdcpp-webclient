@@ -658,7 +658,7 @@ void FavoriteManager::load() {
 			//we have load it fine now, so make a backup of a working favorites.xml
 			auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
 			File::deleteFile(f + ".bak");
-			CopyFile(Text::toT(f).c_str(), Text::toT(f + ".bak").c_str(), FALSE);
+			File::copyFile(f, f + ".bak");
 		}
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::load: %s\n", e.getError().c_str());
@@ -1026,7 +1026,7 @@ void FavoriteManager::refresh(bool forceDownload /* = false */) {
 	if(sl.empty())
 		return;
 	publicListServer = sl[(lastServer) % sl.size()];
-	if(strnicmp(publicListServer.c_str(), "http://", 7) != 0) {
+	if (Util::strnicmp(publicListServer.c_str(), "http://", 7) != 0) {
 		lastServer++;
 		return;
 	}

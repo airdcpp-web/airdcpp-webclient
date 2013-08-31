@@ -317,7 +317,7 @@ int64_t File::getBlockSize(const string& aFileName) noexcept {
 
 #else // !_WIN32
 
-File::File(const string& aFileName, int access, int mode) {
+File::File(const string& aFileName, int access, int mode, bool /*isAbsolute*/, bool /*isDirectory*/) {
 	dcassert(access == WRITE || access == READ || access == (READ | WRITE));
 
 	int m = 0;
@@ -348,7 +348,7 @@ File::File(const string& aFileName, int access, int mode) {
 		throw FileException(Util::translateError(errno));
 }
 
-uint32_t File::getLastModified() const noexcept {
+uint64_t File::getLastModified() const noexcept {
 	struct stat s;
 	if (::fstat(h, &s) == -1)
 		return 0;
@@ -495,8 +495,8 @@ void File::copyFile(const string& source, const string& target) {
 	}
 }
 
-void File::deleteFile(const string& aFileName) noexcept {
-	::unlink(Text::fromUtf8(aFileName).c_str());
+bool File::deleteFile(const string& aFileName) noexcept {
+	return ::unlink(Text::fromUtf8(aFileName).c_str()) == 0;
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
@@ -660,7 +660,7 @@ FileFindIter::FileFindIter() {
 	data.ent = NULL;
 }
 
-FileFindIter::FileFindIter(const string& path) {
+FileFindIter::FileFindIter(const string& path, bool dirsOnly /*false*/) {
 	string filename = Text::fromUtf8(path);
 	dir = opendir(filename.c_str());
 	if (!dir)
@@ -728,7 +728,7 @@ int64_t FileFindIter::DirData::getSize() {
 	return inode.st_size;
 }
 
-uint32_t FileFindIter::DirData::getLastWriteTime() {
+uint64_t FileFindIter::DirData::getLastWriteTime() {
 	struct stat inode;
 	if (!ent) return false;
 	if (stat((base + PATH_SEPARATOR + ent->d_name).c_str(), &inode) == -1) return 0;

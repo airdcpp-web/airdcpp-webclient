@@ -58,7 +58,7 @@ public:
 		switch(col) {
 			case COLUMN_SPEED:	return compare(a->getAvgSpeed(), b->getAvgSpeed());
 			case COLUMN_SIZE:	return compare(a->getSize(), b->getSize());
-			default:			return lstrcmpi(a->getText(col).c_str(), b->getText(col).c_str());
+			default:			return Util::stricmp(a->getText(col).c_str(), b->getText(col).c_str());
 		}
 	}
 	int getImageIndex() const;

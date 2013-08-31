@@ -31,12 +31,12 @@ public:
 
 	std::pair<typename ContainerT<T>::const_iterator, bool> insert_sorted(const T& aItem) {
 		if (empty()) {
-			push_back(aItem);
+			this->push_back(aItem);
 			return make_pair(begin(), true);
 		} else {
 			int res = SortOperator()(NameOperator()(back()), NameOperator()(aItem));
 			if (res < 0) {
-				push_back(aItem);
+				this->push_back(aItem);
 				return make_pair(end()-1, true);
 			} else if (res == 0) {
 				//return the dupe
@@ -51,19 +51,19 @@ public:
 		}
 
 		//insert
-		p.first = insert(p.first, aItem);
+		p.first = this->insert(p.first, aItem);
 		return make_pair(p.first, true);
 	}
 
 	template<typename... ArgT>
 	std::pair<typename ContainerT<T>::const_iterator, bool> emplace_sorted(const keyType& aKey, ArgT&& ... args) {
 		if (empty()) {
-			emplace_back(aKey, forward<ArgT>(args)...);
+			this->emplace_back(aKey, std::forward<ArgT>(args)...);
 			return make_pair(begin(), true);
 		} else {
 			int res = SortOperator()(NameOperator()(back()), aKey);
 			if (res < 0) {
-				emplace_back(aKey, forward<ArgT>(args)...);
+				this->emplace_back(aKey, std::forward<ArgT>(args)...);
 				return make_pair(end()-1, true);
 			} else if (res == 0) {
 				//return the dupe
@@ -78,7 +78,7 @@ public:
 		}
 
 		//insert
-		p.first = emplace(p.first, aKey, forward<ArgT>(args)...);
+		p.first = this->emplace(p.first, aKey, std::forward<ArgT>(args)...);
 		return make_pair(p.first, true);
 	}
 
@@ -87,10 +87,15 @@ public:
 		return pos.second ? pos.first : cend();
 	}
 
+	typename ContainerT<T>::iterator find(const keyType& aKey) {
+		auto pos = getPos(begin(), end(), aKey);
+		return pos.second ? pos.first : end();
+	}
+
 	bool erase_key(const keyType& aKey) {
-		auto pos = getPos(cbegin(), cend(), aKey);
+		auto pos = getPos(begin(), end(), aKey);
 		if (pos.second) {
-			erase(pos.first);
+			this->erase(pos.first);
 			return true;
 		}
 
@@ -112,12 +117,12 @@ public:
 		return -1;
 	}*/
 private:
-	// Returns the excepted position and whether the value was found or not
-	std::pair<typename ContainerT<T>::const_iterator, bool> getPos(typename ContainerT<T>::const_iterator first, typename ContainerT<T>::const_iterator last, const keyType& key) const {
-		decltype(first) it;
-		std::iterator_traits<typename ContainerT<T>::const_iterator>::difference_type count, step;
-		count = std::distance(first,last);
- 
+	template<typename IterT>
+	std::pair<IterT, bool> getPos(IterT first, IterT last, const keyType& key) const {
+		IterT it;
+		typename std::iterator_traits<IterT>::difference_type count, step;
+		count = std::distance(first, last);
+
 		while (count > 0) {
 			it = first;
 			step = count / 2;
@@ -134,8 +139,6 @@ private:
 		}
 		return make_pair(first, false);
 	}
-
-
 };
 
 //}

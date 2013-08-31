@@ -57,7 +57,6 @@ public:
 	public:
 		typedef File* Ptr;
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
-		struct DefaultSort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
@@ -99,7 +98,6 @@ public:
 		typedef Directory* Ptr;
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
-		struct DefaultSort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;

@@ -49,17 +49,17 @@ Magnet::Magnet(const string& aLink) {
 			param.clear();
 		}
 		// extract what is of value
-		if(param.length() == 85 && strnicmp(param.c_str(), "urn:bitprint:", 13) == 0) {
+		if (param.length() == 85 && Util::strnicmp(param.c_str(), "urn:bitprint:", 13) == 0) {
 			hashes[type] = param.substr(46);
-		} else if(param.length() == 54 && strnicmp(param.c_str(), "urn:tree:tiger:", 15) == 0) {
+		} else if (param.length() == 54 && Util::strnicmp(param.c_str(), "urn:tree:tiger:", 15) == 0) {
 			hashes[type] = param.substr(15);
-		} else if(param.length() == 55 && strnicmp(param.c_str(), "urn:tree:tiger/:", 16) == 0) {
+		} else if (param.length() == 55 && Util::strnicmp(param.c_str(), "urn:tree:tiger/:", 16) == 0) {
 			hashes[type] = param.substr(16);
-		} else if(param.length() == 59 && strnicmp(param.c_str(), "urn:tree:tiger/1024:", 20) == 0) {
+		} else if (param.length() == 59 && Util::strnicmp(param.c_str(), "urn:tree:tiger/1024:", 20) == 0) {
 			hashes[type] = param.substr(20);
-		} else if(type.length() == 2 && strnicmp(type.c_str(), "dn", 2) == 0) {
+		} else if (type.length() == 2 && Util::strnicmp(type.c_str(), "dn", 2) == 0) {
 			fname = param;
-		} else if(type.length() == 2 && strnicmp(type.c_str(), "xl", 2) == 0) {
+		} else if (type.length() == 2 && Util::strnicmp(type.c_str(), "xl", 2) == 0) {
 			fsize = Util::toInt64(param.c_str());
 		}
 	}

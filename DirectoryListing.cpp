@@ -65,18 +65,6 @@ bool DirectoryListing::Directory::Sort::operator()(const Ptr& a, const Ptr& b) c
 	return compare(a->getName(), b->getName()) < 0;
 }
 
-bool DirectoryListing::Directory::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
-	if (a->getAdls() && !b->getAdls())
-		return true;
-	if (!a->getAdls() && b->getAdls())
-		return false;
-	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
-}
-
-bool DirectoryListing::File::DefaultSort::operator()(const Ptr& a, const Ptr& b) const {
-	return Util::DefaultSort(Text::toT(a->getName()).c_str(), Text::toT(b->getName()).c_str()) < 0;
-}
-
 bool DirectoryListing::File::Sort::operator()(const Ptr& a, const Ptr& b) const {
 	return compare(a->getName(), b->getName()) < 0;
 }

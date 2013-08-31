@@ -232,6 +232,7 @@ checkslots:
 	unique_ptr<InputStream> is = nullptr;
 	int64_t start = 0;
 	int64_t size = 0;
+	Upload* u = nullptr;
 
 	try {
 		auto countFilePositions = [&] () -> void {
@@ -359,7 +360,7 @@ checkslots:
 		}
 	}
 
-	Upload* u = new Upload(aSource, sourceFile, TTHValue(), move(is));
+	u = new Upload(aSource, sourceFile, TTHValue(), move(is));
 	u->setSegment(Segment(start, size));
 	if(u->getSegment().getEnd() != fileSize)
 		u->setFlag(Upload::FLAG_CHUNKED);
@@ -1036,7 +1037,7 @@ size_t UploadManager::addFailedUpload(const UserConnection& source, const string
 void UploadManager::clearUserFiles(const UserPtr& aUser, bool lock) {
 	
 	ConditionalWLock l (cs, lock);
-	auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser; });
+	auto it = find_if(uploadQueue, [&](const UserPtr& u) { return u == aUser; });
 	if(it != uploadQueue.cend()) {
 		for(const auto f: it->files) {
 			fire(UploadManagerListener::QueueItemRemove(), f);

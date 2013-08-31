@@ -176,6 +176,18 @@ public:
 		}
 	}
 
+	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources.
+		//if(threadHandle) {
+		//	pthread_suspend(threadHandle);
+		//}
+	}
+
+	void t_resume() {
+		//if (threadHandle) {
+		//	pthread_resume_np(threadHandle);
+		//}
+	}
+
 	void setThreadPriority(Priority p) { setpriority(PRIO_PROCESS, 0, p); }
 	static void sleep(uint32_t millis) { ::usleep(millis*1000); }
 	static void yield() { ::sched_yield(); }

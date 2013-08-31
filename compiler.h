@@ -19,8 +19,49 @@
 #ifndef DCPLUSPLUS_DCPP_COMPILER_H
 #define DCPLUSPLUS_DCPP_COMPILER_H
 
+#if defined(__GNUC__)
+
+#ifdef _WIN32
+
+#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8)
+#error GCC 4.8 is required
+#endif
+
+#ifdef HAVE_OLD_MINGW
+#error Regular MinGW has stability problems; use a MinGW package from mingw-w64
+// see <https://bugs.launchpad.net/dcplusplus/+bug/1029629> for details
+#endif
+
+#else // _WIN32
+
+#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)
+#error GCC 4.7 is required
+#endif
+
+#endif // _WIN32
+
+#elif defined(_MSC_VER)
 #if _MSC_VER < 1800
 #error MSVC 12 (2013) is required
+#endif
+
+//disable the deprecated warnings for the CRT functions.
+#define _CRT_SECURE_NO_DEPRECATE 1
+#define _ATL_SECURE_NO_DEPRECATE 1
+#define _CRT_NON_CONFORMING_SWPRINTFS 1
+
+#if defined(_MSC_VER)
+#define strtoll _strtoi64
+#define snprintf _snprintf
+#define snwprintf _snwprintf
+
+#else
+#define snwprintf snprintf
+#endif
+
+#else
+#error No supported compiler found
+
 #endif
 
 //#define _SECURE_SCL  0
@@ -28,16 +69,6 @@
 //#define _HAS_ITERATOR_DEBUGGING 0
 //#define _SECURE_SCL_THROWS 0
 #define memzero(dest, n) memset(dest, 0, n)
-
-//disable the deprecated warnings for the CRT functions.
-#define _CRT_SECURE_NO_DEPRECATE 1
-#define _ATL_SECURE_NO_DEPRECATE 1
-#define _CRT_NON_CONFORMING_SWPRINTFS 1
-
-#define strtoll _strtoi64
-
-#define snprintf _snprintf
-#define snwprintf _snwprintf
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define _LL(x) x##ll

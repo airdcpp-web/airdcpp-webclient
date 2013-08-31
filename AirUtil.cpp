@@ -17,7 +17,7 @@
  */
 
 #include "stdinc.h"
-#include <direct.h>
+
 #include "AirUtil.h"
 #include "Util.h"
 #include "ThrottleManager.h"
@@ -40,7 +40,8 @@
 #include <boost/scoped_array.hpp>
 
 #ifdef _WIN32
-# include <ShlObj.h>
+#include <direct.h>
+#include <ShlObj.h>
 #include <IPHlpApi.h>
 #pragma comment(lib, "iphlpapi.lib")
 #else
@@ -492,10 +493,10 @@ void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
 								end = tmp.find_last_of(_T("\\/"));
 								if(end != string::npos) {
 									tstring dir = tmp.substr(end+1);
-									if( strnicmp(dir, _T("sample"), 6) == 0 ||
-										strnicmp(dir, _T("subs"), 4) == 0 ||
-										strnicmp(dir, _T("cover"), 5) == 0 ||
-										strnicmp(dir, _T("cd"), 2) == 0) {
+									if(Util::strnicmp(dir, _T("sample"), 6) == 0 ||
+										Util::strnicmp(dir, _T("subs"), 4) == 0 ||
+										Util::strnicmp(dir, _T("cover"), 5) == 0 ||
+										Util::strnicmp(dir, _T("cd"), 2) == 0) {
 											RemoveDirectory(tmp.substr(0, end).c_str());
 									}
 								}
@@ -587,7 +588,7 @@ bool AirUtil::removeDirectoryIfEmpty(const string& aPath, int attempts /*0*/) {
 	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
 		try {
 			if(i->isDirectory()) {
-				if (strcmpi(i->getFileName().c_str(), ".") == 0 || strcmpi(i->getFileName().c_str(), "..") == 0)
+				if (i->getFileName().compare(".") == 0 || i->getFileName().compare("..") == 0)
 					continue;
 
 				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
@@ -597,7 +598,7 @@ bool AirUtil::removeDirectoryIfEmpty(const string& aPath, int attempts /*0*/) {
 				if (attempts == 3)
 					return false;
 
-				Sleep(500);
+				Thread::sleep(500);
 				attempts++;
 				return removeDirectoryIfEmpty(aPath, attempts);
 			} else {
@@ -616,16 +617,16 @@ void AirUtil::removeIfEmpty(const string& tgt) {
 }
 
 bool AirUtil::isAdcHub(const string& hubUrl) {
-	if(strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
+	if(Util::strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
 		return true;
-	} else if(strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
+	} else if(Util::strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
 		return true;
 	}
 	return false;
 }
 
 bool AirUtil::isHubLink(const string& hubUrl) {
-	return isAdcHub(hubUrl) || strnicmp("dchub://", hubUrl.c_str(), 8) == 0;
+	return isAdcHub(hubUrl) || Util::strnicmp("dchub://", hubUrl.c_str(), 8) == 0;
 }
 
 string AirUtil::convertMovePath(const string& aPath, const string& aParent, const string& aTarget) {

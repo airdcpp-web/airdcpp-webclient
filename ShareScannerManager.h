@@ -58,11 +58,11 @@ public:
 		TYPE_FAILED_FINISHED,
 	};
 
-	int scan(const StringList& paths = StringList(), bool sfv = false);
-	Bundle::Status onScanBundle(const BundlePtr& aBundle, string& error_);
-	bool onScanSharedDir(const string& aDir, string& error_, bool report);
+	int scan(const StringList& paths = StringList(), bool sfv = false) noexcept;
+	Bundle::Status onScanBundle(const BundlePtr& aBundle, string& error_) noexcept;
+	bool onScanSharedDir(const string& aDir, string& error_, bool report) noexcept;
 
-	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan);
+	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan) noexcept;
 	void Stop();
 
 private:
@@ -111,9 +111,9 @@ private:
 	int64_t scanFolderSize;
 	volatile bool stop;
 	unordered_multimap<string, string> dupeDirs;
-	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList);
-	void prepareSFVScanDir(const string& path, SFVScanList& dirs);
-	void prepareSFVScanFile(const string& path, StringList& files);
+	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList) noexcept;
+	void prepareSFVScanDir(const string& path, SFVScanList& dirs) noexcept;
+	void prepareSFVScanFile(const string& path, StringList& files) noexcept;
 	StringList bundleDirs;
 
 	struct ScanInfo {
@@ -147,11 +147,11 @@ private:
 
 	typedef vector<ScanInfo> ScanInfoList;
 
-	void find(const string& path, const string& aPathLower, ScanInfo& aScan);
-	void scanDir(const string& path, ScanInfo& aScan);
-	void findDupes(const string& path, ScanInfo& aScan);
+	void find(const string& path, const string& aPathLower, ScanInfo& aScan) noexcept;
+	void scanDir(const string& path, ScanInfo& aScan) noexcept;
+	void findDupes(const string& path, ScanInfo& aScan) noexcept;
 
-	void reportMessage(const string& aMessage, ScanInfo& aScan, bool warning = true);
+	void reportMessage(const string& aMessage, ScanInfo& aScan, bool warning = true) noexcept;
 
 	SharedMutex cs;
 };

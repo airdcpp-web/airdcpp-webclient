@@ -194,33 +194,33 @@ void NmdcHub::updateFromTag(Identity& id, const string& tag) {
 	if(tag.find("AirDC++") != string::npos)
 		id.getUser()->setFlag(User::AIRDCPLUSPLUS);
 
-	for(auto t: tok.getTokens()) {
-		if(t.length() < 2)
+	for(auto& i: tok.getTokens()) {
+		if(i.length() < 2)
 			continue;
 
-		if(t.compare(0, 2, "H:") == 0) {
-			StringTokenizer<string> t(t.substr(2), '/');
+		if(i.compare(0, 2, "H:") == 0) {
+			StringTokenizer<string> t(i.substr(2), '/');
 			if(t.getTokens().size() != 3)
 				continue;
 			id.set("HN", t.getTokens()[0]);
 			id.set("HR", t.getTokens()[1]);
 			id.set("HO", t.getTokens()[2]);
-		} else if(t.compare(0, 2, "S:") == 0) {
-			id.set("SL", t.substr(2));
-			slots = Util::toUInt32(t.substr(2));			
-		} else if((j = t.find("V:")) != string::npos) {
-			t.erase(t.begin(), t.begin() + j + 2);
-			id.set("VE", t);
-		} else if(t.compare(0, 2, "M:") == 0) {
-			if(t.size() == 3) {
-				if(t[2] == 'A')
+		} else if(i.compare(0, 2, "S:") == 0) {
+			id.set("SL", i.substr(2));
+			slots = Util::toUInt32(i.substr(2));			
+		} else if((j = i.find("V:")) != string::npos) {
+			i.erase(i.begin(), i.begin() + j + 2);
+			id.set("VE", i);
+		} else if(i.compare(0, 2, "M:") == 0) {
+			if(i.size() == 3) {
+				if(i[2] == 'A')
 					id.getUser()->unsetFlag(User::PASSIVE);
 				else
 					id.getUser()->setFlag(User::PASSIVE);
 			}
-		} else if((j = t.find("L:")) != string::npos) {
-			t.erase(t.begin() + j, t.begin() + j + 2);
-			id.set("US", Util::toString(Util::toInt(t) * 1024));
+		} else if((j = i.find("L:")) != string::npos) {
+			i.erase(i.begin() + j, i.begin() + j + 2);
+			id.set("US", Util::toString(Util::toInt(i) * 1024));
 		}
 	}
 	/// @todo Think about this
@@ -279,7 +279,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			chatMessage.from = o;
 		}
 
-		if(strnicmp(chatMessage.text, "/me ", 4) == 0) {
+		if (Util::strnicmp(chatMessage.text, "/me ", 4) == 0) {
 			chatMessage.thirdPerson = true;
 			chatMessage.text = chatMessage.text.substr(4);
 		}
@@ -880,7 +880,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			message.from = findUser(fromNick);
 		}
 
-		if(strnicmp(message.text, "/me ", 4) == 0) {
+		if (Util::strnicmp(message.text, "/me ", 4) == 0) {
 			message.thirdPerson = true;
 			message.text = message.text.substr(4);
 		}

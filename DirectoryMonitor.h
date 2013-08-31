@@ -99,8 +99,8 @@ private:
 
 #ifdef WIN32
 		HANDLE m_hIOCP;
-		int	m_nThreads;
 #endif
+		int	m_nThreads;
 	};
 
 	enum TaskType {
@@ -148,10 +148,10 @@ public:
 	void queueNotificationTask(int dwSize);
 	DirectoryMonitor::Server* server;
 private:
-	void processNotification();
-
 	uint64_t changes;
 #ifdef WIN32
+	void processNotification();
+
 	// Parameters from the caller for ReadDirectoryChangesW().
 	int				m_dwFlags;
 	int				m_bChildren;

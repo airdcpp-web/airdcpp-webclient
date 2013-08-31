@@ -46,7 +46,7 @@ public:
 			case COLUMN_SIZE: return compare(a->size, b->size);
 			case COLUMN_ADDED:
 			case COLUMN_WAITING: return compare(a->time, b->time);
-			default: return lstrcmpi(a->getText(col).c_str(), b->getText(col).c_str());
+			default: return Util::stricmp(a->getText(col).c_str(), b->getText(col).c_str());
 		}
 	}
 

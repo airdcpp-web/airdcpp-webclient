@@ -764,7 +764,7 @@ void SearchManager::on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
 	xml.stepOut();
 }
 
-void SearchManager::on(SettingsManagerListener::Load, SimpleXML& xml) {
+void SearchManager::on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
 	xml.resetCurrentChild();
 	if(xml.findChild("SearchTypes")) {
 		searchTypes.clear();

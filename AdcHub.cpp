@@ -855,7 +855,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 	appendConnectivity(state == STATE_NORMAL ? dummyMap : lastInfoMap, hbriCmd, !v6, v6);
 	hbriCmd.addParam("TO", aToken);
 
-	bool secure = strnicmp("adcs://", getHubUrl().c_str(), 7) == 0;
+	bool secure = Util::strnicmp("adcs://", getHubUrl().c_str(), 7) == 0;
 	try {
 		// Create the socket
 		unique_ptr<Socket> hbri(secure ? CryptoManager::getInstance()->getClientSocket(SETTING(ALLOW_UNTRUSTED_HUBS)) : new Socket(Socket::TYPE_TCP));
@@ -891,7 +891,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 				int read = hbri->read(&buf[0], 8192);
 				if (read <= 0) {
 					if(closing) throw Exception();
-					Sleep(250);
+					Thread::sleep(250);
 					continue;
 				}
 
@@ -909,7 +909,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 					}
 
 					int severity = Util::toInt(response.getParam(0).substr(0, 1));
-					if (severity == SEVERITY_SUCCESS) {
+					if (severity == AdcCommand::SUCCESS) {
 						fire(ClientListener::StatusMessage(), this, STRING(VALIDATION_SUCCEED));
 						return;
 					} else {
@@ -1334,7 +1334,7 @@ void AdcHub::search(const SearchPtr& s) {
 
 	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, s->token, s->exts, s->excluded, s->date, s->dateMode , false);
 
-	if (!s->key.empty() && strnicmp("adcs://", getHubUrl().c_str(), 7) == 0) {
+	if (!s->key.empty() && Util::strnicmp("adcs://", getHubUrl().c_str(), 7) == 0) {
 		c.addParam("KY", s->key);
 	}
 

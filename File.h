@@ -132,7 +132,11 @@ public:
 	~TimeKeeper();
 private:
 	bool initialized;
+#ifdef _WIN32
 	FILETIME time;
+#else
+	time_t time;
+#endif
 };
 
 class FileFindIter {

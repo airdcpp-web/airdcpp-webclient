@@ -21,10 +21,10 @@
 
 //#define USE_INTEL_TBB
 
-#ifdef USE_INTEL_TBB
+#if !defined(_MSC_VER) || defined(USE_INTEL_TBB)
 
-#include "../tbb/task_group.h"
-#include "../tbb/parallel_for_each.h"
+#include <tbb/task_group.h>
+#include <tbb/parallel_for_each.h>
 
 namespace dcpp
 {

@@ -281,7 +281,7 @@ void Util::migrate(const string& file) {
 		return;
 	}
 
-	CopyFile(Text::toT(old).c_str(), Text::toT(old + ".bak").c_str(), FALSE);
+	File::copyFile(old.c_str(), old + ".bak");
 	try {
 		File::renameFile(old, file);
 	} catch(const FileException& /*e*/) {
@@ -593,6 +593,7 @@ map<string, string> Util::decodeQuery(const string& query) {
 	return ret;
 }
 
+#ifdef _WIN32
 wstring Util::formatSecondsW(int64_t aSec, bool supressHours /*false*/) {
 	wchar_t buf[64];
 	if (!supressHours)
@@ -601,6 +602,7 @@ wstring Util::formatSecondsW(int64_t aSec, bool supressHours /*false*/) {
 		snwprintf(buf, sizeof(buf), L"%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));	
 	return buf;
 }
+#endif
 
 string Util::formatSeconds(int64_t aSec, bool supressHours /*false*/) {
 	char buf[64];
@@ -699,6 +701,7 @@ string Util::formatBytes(int64_t aBytes) {
 	return buf;
 }
 
+#ifdef _WIN32
 wstring Util::formatBytesW(int64_t aBytes) {
 	wchar_t buf[64];
 	if(aBytes < 1024) {
@@ -718,6 +721,7 @@ wstring Util::formatBytesW(int64_t aBytes) {
 	}
 	return buf;
 }
+#endif
 
 int64_t Util::convertSize(int64_t aValue, Util::SizeUnits valueType, Util::SizeUnits to /*B*/) {
 	if (valueType > to) {
@@ -749,6 +753,7 @@ string Util::formatConnectionSpeed(int64_t aBytes) {
 	return buf;
 }
 
+#ifdef _WIN32
 wstring Util::formatConnectionSpeedW(int64_t aBytes) {
 	wchar_t buf[64];
 	aBytes *= 8;
@@ -770,7 +775,7 @@ wstring Util::formatConnectionSpeedW(int64_t aBytes) {
 }
 
 wstring Util::formatExactSize(int64_t aBytes) {
-#ifdef _WIN32	
+//#ifdef _WIN32	
 	wchar_t buf[64];
 	wchar_t number[64];
 	NUMBERFMT nf;
@@ -794,12 +799,13 @@ wstring Util::formatExactSize(int64_t aBytes) {
 		
 	snwprintf(buf, sizeof(buf), _T("%s %s"), buf, CTSTRING(B));
 	return buf;
-#else
+/*#else
 		wchar_t buf[64];
 		snwprintf(buf, sizeof(buf), L"%'lld", (long long int)aBytes);
 		return tstring(buf) + TSTRING(B);
-#endif
+#endif*/
 }
+#endif
 
 bool Util::isPrivateIp(const string& ip, bool v6) {
 	if (v6) {
@@ -864,7 +870,7 @@ static wchar_t utf8ToLC(ccp& str) {
 
 string Util::toString(const string& sep, const StringList& lst) {
 	string ret;
-	for(StringList::const_iterator i = lst.begin(), iend = lst.end(); i != iend; ++i) {
+	for(auto i = lst.begin(), iend = lst.end(); i != iend; ++i) {
 		ret += *i;
 		if(i + 1 != iend)
 			ret += sep;
@@ -1069,18 +1075,23 @@ bool Util::validatePath(const string &sPath) {
 	if(sPath.empty())
 		return false;
 
+#ifdef _WIN32
 	if((sPath.substr(1, 2) == ":\\") || (sPath.substr(0, 2) == "\\\\")) {
 		if(GetFileAttributes(Text::toT(sPath).c_str()) & FILE_ATTRIBUTE_DIRECTORY)
 			return true;
 	}
 
 	return false;
+#else
+	return true;
+#endif
 }
 
 bool Util::fileExists(const string &aFile) {
 	if(aFile.empty())
 		return false;
 
+#ifdef _WIN32
 	string path = aFile;
 	
 	if(path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\')) //if its absolute path use the unc name.
@@ -1088,6 +1099,9 @@ bool Util::fileExists(const string &aFile) {
 
 	DWORD attr = GetFileAttributes(Text::toT(path).c_str());
 	return (attr != 0xFFFFFFFF);
+#else
+	return File::getSize(aFile) != -1;
+#endif
 }
 
 string Util::formatTime(const string &msg, const time_t t) {
@@ -1213,6 +1227,7 @@ int Util::randInt(int min, int max) {
     return dist(gen);
 }
 
+#ifdef _WIN32
 wstring Util::getDateTimeW(time_t t) {
 	if (t == 0)
 		return Util::emptyStringT;
@@ -1224,7 +1239,7 @@ wstring Util::getDateTimeW(time_t t) {
 	
 	return buf;
 }
-
+#endif
 
 string Util::getTimeString() {
 	char buf[64];
@@ -1240,12 +1255,12 @@ string Util::getTimeString() {
 }
 
 string Util::getTimeStamp(time_t t) {
-	char buf[256];
-	tm _tm;
-	if(localtime_s(&_tm, &t)) {
-		strcpy_s(buf, 256, "xx:xx");
+	char buf[255];
+	tm* _tm = localtime(&t);
+	if (_tm == NULL) {
+		strcpy(buf, "xx:xx");
 	} else {
-		strftime(buf, 254, SETTING(TIME_STAMPS_FORMAT).c_str(), &_tm);
+		strftime(buf, 254, SETTING(TIME_STAMPS_FORMAT).c_str(), _tm);
 	}
 	return Text::acpToUtf8(buf);
 }
@@ -1407,7 +1422,7 @@ int Util::DefaultSort(const wchar_t *a, const wchar_t *b, bool noCase /*=  true*
 
 		return noCase ? (((int)Text::toLower(*a)) - ((int)Text::toLower(*b))) : (((int)*a) - ((int)*b));
 	} else {
-		return noCase ? lstrcmpi(a, b) : lstrcmp(a, b);
+		return noCase ? Util::stricmp(a, b) : Util::stricmp(a, b);
 	}
 }
 

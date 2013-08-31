@@ -97,9 +97,11 @@ void DirectoryMonitor::Server::stop() {
 				break;
 		}
 
-		Sleep(50);
+		Thread::sleep(50);
 	}
 }
+
+#ifdef WIN32
 
 DirectoryMonitor::Server::Server(DirectoryMonitor* aBase, int numThreads) : base(aBase), m_bTerminate(false), m_nThreads(numThreads), m_hIOCP(NULL) {
 	threadRunning.clear();
@@ -109,8 +111,6 @@ DirectoryMonitor::Server::Server(DirectoryMonitor* aBase, int numThreads) : base
 DirectoryMonitor::Server::~Server() {
 
 }
-
-#ifdef WIN32
 
 Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int monitorFlags, size_t bufferSize, bool recursive) :
 	path(Text::toT(aPath)),
@@ -200,6 +200,14 @@ Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int mon
 Monitor::~Monitor() { }
 
 void Monitor::stopMonitoring() {
+
+}
+
+DirectoryMonitor::Server::Server(DirectoryMonitor* aBase, int numThreads) : base(aBase), m_bTerminate(false), m_nThreads(numThreads) {
+	threadRunning.clear();
+}
+
+DirectoryMonitor::Server::~Server() {
 
 }
 
@@ -301,7 +309,7 @@ int DirectoryMonitor::Server::read() {
 				(*mon)->errorCount++;
 				if ((*mon)->errorCount < 60) {
 					//we'll most likely get the error instantly again...
-					Sleep(1000);
+					Thread::sleep(1000);
 
 					try {
 						(*mon)->openDirectory(m_hIOCP);
@@ -380,7 +388,7 @@ int DirectoryMonitor::Server::read() {
 
 #endif
 
-bool DirectoryMonitor::addDirectory(const string& aPath) {
+bool DirectoryMonitor::addDirectory(const string& aPath) throw(MonitorException) {
 	return server->addDirectory(aPath);
 }
 
@@ -434,6 +442,8 @@ bool DirectoryMonitor::Server::hasDirectories() const {
 	return !monitors.empty();
 }
 
+#ifdef _WIN32
+
 void DirectoryMonitor::processNotification(const tstring& aPath, ByteVector& aBuf) {
 	char* pBase = (char*)&aBuf[0];
 	string oldPath;
@@ -484,5 +494,9 @@ void DirectoryMonitor::processNotification(const tstring& aPath, ByteVector& aBu
 		pBase += fni.NextEntryOffset;
 	};
 }
+
+#else
+
+#endif
 
 } //dcpp

@@ -41,6 +41,7 @@
 #include "StringSearch.h"
 #include "TaskQueue.h"
 #include "Thread.h"
+#include "UserConnection.h"
 
 #include "DirectoryMonitor.h"
 #include "DirectoryMonitorListener.h"
@@ -130,7 +131,7 @@ public:
 	void setSkipList();
 
 	bool matchSkipList(const string& aStr) { return skipList.match(aStr); }
-	bool checkSharedName(const string& fullPath, const string& fullPathLower, bool dir, bool report = true, int64_t size = 0);
+	bool checkSharedName(const string& fullPath, const string& fullPathLower, bool dir, bool report = true, int64_t size = 0) const;
 	void validatePath(const string& realPath, const string& virtualName);
 
 	string toVirtual(const TTHValue& tth, ProfileToken aProfile) const;
@@ -171,7 +172,7 @@ public:
 	bool isFileShared(const string& aFileName, int64_t aSize) const;
 	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const;
 
-	bool allowAddDir(const string& dir);
+	bool allowAddDir(const string& dir) const noexcept;
 	StringList getDirPaths(const string& aDir);
 
 	bool loadCache(function<void (float)> progressF);
@@ -309,13 +310,13 @@ private:
 				FLAG_INCOMING			= 0x08
 			};
 
-			bool hasExcludes() const { return !excludedProfiles.empty(); }
-			bool hasRoots() const { return !rootProfiles.empty(); }
+			bool hasExcludes() const noexcept { return !excludedProfiles.empty(); }
+			bool hasRoots() const noexcept { return !rootProfiles.empty(); }
 
-			bool hasRootProfile(ProfileToken aProfile) const;
-			bool hasRootProfile(const ProfileTokenSet& aProfiles) const;
-			bool isExcluded(ProfileToken aProfile) const;
-			bool isExcluded(const ProfileTokenSet& aProfiles) const;
+			bool hasRootProfile(ProfileToken aProfile) const noexcept;
+			bool hasRootProfile(const ProfileTokenSet& aProfiles) const noexcept;
+			bool isExcluded(ProfileToken aProfile) const noexcept;
+			bool isExcluded(const ProfileTokenSet& aProfiles) const noexcept;
 			void addRootProfile(const string& aName, ProfileToken aProfile);
 			void addExclude(ProfileToken aProfile);
 			bool removeRootProfile(ProfileToken aProfile);
@@ -362,7 +363,7 @@ private:
 			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + name.getNormal(); }
 			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + name.getNormal(); }
 			string getRealPath(bool validate = true) const { return parent->getRealPath(name.getNormal(), validate); }
-			bool hasProfile(ProfileToken aProfile) const { return parent->hasProfile(aProfile); }
+			bool hasProfile(ProfileToken aProfile) const noexcept { return parent->hasProfile(aProfile); }
 
 			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 			void addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const;
@@ -435,10 +436,10 @@ private:
 		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
 		~Directory();
 
-		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const;
-		bool isRootLevel(ProfileToken aProfile) const;
-		bool isLevelExcluded(ProfileToken aProfile) const;
-		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const;
+		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const noexcept;
+		bool isRootLevel(ProfileToken aProfile) const noexcept;
+		bool isLevelExcluded(ProfileToken aProfile) const noexcept;
+		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const noexcept;
 		int64_t size;
 
 		void addBloom(ShareBloom& aBloom) const;
@@ -592,7 +593,7 @@ private:
 	void removeDirName(Directory& dir);
 	void cleanIndices(Directory& dir, const Directory::File* f);
 
-	void onFileHashed(const string& fname, HashedFile& fileInfo);
+	void onFileHashed(const string& fname, HashedFile& fileInfo) noexcept;
 	
 	StringList bundleDirs;
 

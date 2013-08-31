@@ -45,8 +45,10 @@
 #include "SearchResult.h"
 #include "DirectoryListingManager.h"
 
+#ifdef _WIN32
 #include <mmsystem.h>
 #include <limits>
+#endif
 
 #if !defined(_WIN32) && !defined(PATH_MAX) // Extra PATH_MAX check for Mac OS X
 #include <sys/syslimits.h>
@@ -927,7 +929,7 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 		}
 	}
 #else
-	if(aTarget.length()+aFile.length() > PATH_MAX) {
+	if(toValidate.length()+aParentDir.length() > PATH_MAX) {
 		throw QueueException(STRING(TARGET_FILENAME_TOO_LONG));
 	}
 
@@ -980,8 +982,10 @@ bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::M
 	qi->addSource(aUser);
 	userQueue.addQI(qi, aUser, newBundle, isBad);
 
+#ifdef _WIN32
 	if ((!SETTING(SOURCEFILE).empty()) && (!SETTING(SOUNDS_DISABLED)))
 		PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
+#endif
 	
 	if (!newBundle) {
 		fire(QueueManagerListener::SourcesUpdated(), qi);
@@ -2230,7 +2234,7 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 
 	// multithreaded loading
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
-	atomic<long> loaded = 0;
+	atomic<long> loaded(0);
 	parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
 		if (Util::getFileExt(path) == ".xml") {
 			QueueLoader loader;

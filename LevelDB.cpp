@@ -231,7 +231,7 @@ leveldb::Status LevelDB::performDbOperation(function<leveldb::Status ()> f) {
 			if (attempts == MAX_DB_RETRIES) {
 				break;
 			}
-			Sleep(50);
+			Thread::sleep(50);
 			continue;
 		}
 

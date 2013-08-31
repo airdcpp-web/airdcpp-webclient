@@ -39,7 +39,7 @@ public:
 	typedef std::function<void (bool)> completionF;
 
 	virtual void on(OpenListing, DirectoryListing*, const string& /*aDir*/, const string& /*aXML*/) noexcept { }
-	virtual void on(PromptAction, completionF, const string & /*msg*/) noexcept {}
+	virtual void on(PromptAction, completionF aF, const string & /*msg*/) noexcept { aF(true); }
 	/*virtual void on(Loading, const string) noexcept { }
 	virtual void on(LoadingFinished, const AutoSearchPtr&) noexcept { }
 	virtual void on(LoadingError, const AutoSearchPtr&, int) noexcept { }

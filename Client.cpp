@@ -49,7 +49,7 @@ Client::Client(const string& hubURL, char separator_) :
 
 void Client::setHubUrl(const string& aUrl) {
 	hubUrl = aUrl;
-	secure = strnicmp("adcs://", aUrl.c_str(), 7) == 0 || strnicmp("nmdcs://", aUrl.c_str(), 8) == 0;
+	secure = Util::strnicmp("adcs://", aUrl.c_str(), 7) == 0 || Util::strnicmp("nmdcs://", aUrl.c_str(), 8) == 0;
 
 	string file, proto, query, fragment;
 	Util::decodeUrl(hubUrl, proto, address, port, file, query, fragment);

@@ -67,32 +67,6 @@ private:
 	const T2& a;
 };
 
-
-/* Case insensitive string comparison classes */
-class Stricmp {
-public:
-	Stricmp(const string& compareTo) : a(compareTo) { }
-	bool operator()(const string& p) { return stricmp(p.c_str(), a.c_str()) == 0; }
-private:
-	Stricmp& operator=(const Stricmp&);
-	const string& a;
-};
-
-class StricmpT {
-public:
-	StricmpT(const wstring& compareTo) : a(compareTo) { }
-	bool operator()(const wstring& p) { return stricmp(p.c_str(), a.c_str()) == 0; }
-private:
-	StricmpT& operator=(const StricmpT&);
-	const wstring& a;
-};
-
-struct Compare {
-	int operator()(const string& a, const string& b) const {
-		return a.compare(b);
-	}
-};
-
 /** 
  * Compares two values
  * @return -1 if v1 < v2, 0 if v1 == v2 and 1 if v1 > v2
@@ -251,7 +225,9 @@ public:
 	static string getTimeStamp(time_t t = time(NULL) );
 
 	static string getTimeString();
+#ifdef _WIN32
 	static wstring getDateTimeW(time_t t);
+#endif
 	static string toAdcFile(const string& file);
 	static string toNmdcFile(const string& file);
 	
@@ -458,6 +434,7 @@ public:
 	template<typename ListT>
 	static string listToString(const ListT& lst) { return listToStringT<ListT, StrChar>(lst, false, true); }
 
+#ifdef WIN32
 	static wstring toStringW( int32_t val ) {
 		wchar_t buf[32];
 		snwprintf(buf, sizeof(buf), L"%ld", val);
@@ -482,10 +459,6 @@ public:
 		return buf;
 	}
 
-	static bool isNumeric(wchar_t c) {
-		return (c >= '0' && c <= '9') ? true : false;
-	}
-
 	static wstring toStringW( uint64_t val ) {
 		wchar_t buf[32];
 		snwprintf(buf, sizeof(buf), _T(I64_FMT), val);
@@ -496,6 +469,11 @@ public:
 		wchar_t buf[32];
 		snwprintf(buf, sizeof(buf), L"%0.2f", val);
 		return buf;
+	}
+#endif
+
+	static bool isNumeric(wchar_t c) {
+		return (c >= '0' && c <= '9') ? true : false;
 	}
 
 	static string toHexEscape(char val) {
@@ -634,48 +612,73 @@ struct noCaseStringHash {
 	}
 
 	bool operator()(const string* a, const string* b) const {
-		return stricmp(*a, *b) < 0;
+		return Util::stricmp(*a, *b) < 0;
 	}
 	bool operator()(const string& a, const string& b) const {
-		return stricmp(a, b) < 0;
+		return Util::stricmp(a, b) < 0;
 	}
 	bool operator()(const wstring* a, const wstring* b) const {
-		return stricmp(*a, *b) < 0;
+		return Util::stricmp(*a, *b) < 0;
 	}
 	bool operator()(const wstring& a, const wstring& b) const {
-		return stricmp(a, b) < 0;
+		return Util::stricmp(a, b) < 0;
 	}
 };
 
 /** Case insensitive string comparison */
 struct noCaseStringEq {
 	bool operator()(const string* a, const string* b) const {
-		return a == b || stricmp(*a, *b) == 0;
+		return a == b || Util::stricmp(*a, *b) == 0;
 	}
 	bool operator()(const string& a, const string& b) const {
-		return stricmp(a, b) == 0;
+		return Util::stricmp(a, b) == 0;
 	}
 	bool operator()(const wstring* a, const wstring* b) const {
-		return a == b || stricmp(*a, *b) == 0;
+		return a == b || Util::stricmp(*a, *b) == 0;
 	}
 	bool operator()(const wstring& a, const wstring& b) const {
-		return stricmp(a, b) == 0;
+		return Util::stricmp(a, b) == 0;
 	}
 };
 
 /** Case insensitive string ordering */
 struct noCaseStringLess {
 	bool operator()(const string* a, const string* b) const {
-		return stricmp(*a, *b) < 0;
+		return Util::stricmp(*a, *b) < 0;
 	}
 	bool operator()(const string& a, const string& b) const {
-		return stricmp(a, b) < 0;
+		return Util::stricmp(a, b) < 0;
 	}
 	bool operator()(const wstring* a, const wstring* b) const {
-		return stricmp(*a, *b) < 0;
+		return Util::stricmp(*a, *b) < 0;
 	}
 	bool operator()(const wstring& a, const wstring& b) const {
-		return stricmp(a, b) < 0;
+		return Util::stricmp(a, b) < 0;
+	}
+};
+
+/* Case insensitive string comparison classes */
+class Stricmp {
+public:
+	Stricmp(const string& compareTo) : a(compareTo) { }
+	bool operator()(const string& p) { return Util::stricmp(p.c_str(), a.c_str()) == 0; }
+private:
+	Stricmp& operator=(const Stricmp&);
+	const string& a;
+};
+
+class StricmpT {
+public:
+	StricmpT(const wstring& compareTo) : a(compareTo) { }
+	bool operator()(const wstring& p) { return Util::stricmp(p.c_str(), a.c_str()) == 0; }
+private:
+	StricmpT& operator=(const StricmpT&);
+	const wstring& a;
+};
+
+struct Compare {
+	int operator()(const string& a, const string& b) const {
+		return a.compare(b);
 	}
 };
 

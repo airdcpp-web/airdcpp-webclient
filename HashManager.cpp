@@ -87,7 +87,7 @@ int64_t HashManager::Hasher::getTimeLeft() const {
 }
 
 bool HashManager::Hasher::getPathVolume(const string& aPath, string& vol_) const { 
-	auto p = find_if(devices | map_keys, [&aPath](const string& aVol) { return strncmp(aPath.c_str(), aVol.c_str(), aVol.length()) == 0; });
+	auto p = find_if(devices | map_keys, [&aPath](const string& aVol) { return aPath.compare(0, aVol.length(), aVol.c_str()) == 0; });
 	if (p.base() != devices.end()) {
 		vol_ = *p;
 		return true;
@@ -959,7 +959,7 @@ void HashManager::Hasher::removeDevice(const string& aID) {
 
 void HashManager::Hasher::stopHashing(const string& baseDir) {
 	for (auto i = w.begin(); i != w.end();) {
-		if (strnicmp(baseDir, i->filePath, baseDir.length()) == 0) {
+		if (Util::strnicmp(baseDir, i->filePath, baseDir.length()) == 0) {
 			totalBytesLeft -= i->fileSize;
 			removeDevice(i->devID);
 			i = w.erase(i);

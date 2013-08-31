@@ -23,6 +23,7 @@
 #include "compiler.h"
 #include "forward.h"
 
+#include "BufferedSocket.h"
 #include "BufferedSocketListener.h"
 #include "ClientListener.h"
 #include "HubSettings.h"

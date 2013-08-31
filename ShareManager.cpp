@@ -834,11 +834,11 @@ string ShareManager::findRealRoot(const string& virtualRoot, const string& virtu
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-bool ShareManager::Directory::isRootLevel(ProfileToken aProfile) const {
+bool ShareManager::Directory::isRootLevel(ProfileToken aProfile) const noexcept {
 	return profileDir && profileDir->hasRootProfile(aProfile) ? true : false;
 }
 
-bool ShareManager::Directory::hasProfile(const ProfileTokenSet& aProfiles) const {
+bool ShareManager::Directory::hasProfile(const ProfileTokenSet& aProfiles) const noexcept {
 	if (profileDir && profileDir->hasRootProfile(aProfiles))
 		return true;
 	if (parent)
@@ -847,7 +847,7 @@ bool ShareManager::Directory::hasProfile(const ProfileTokenSet& aProfiles) const
 }
 
 
-void ShareManager::Directory::copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const {
+void ShareManager::Directory::copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const noexcept {
 	if (profileDir) {
 		boost::copy(profileDir->getRootProfiles() | map_keys, inserter(aProfiles, aProfiles.begin()));
 		if (setCacheDirty)
@@ -858,7 +858,7 @@ void ShareManager::Directory::copyRootProfiles(ProfileTokenSet& aProfiles, bool 
 		parent->copyRootProfiles(aProfiles, setCacheDirty);
 }
 
-bool ShareManager::ProfileDirectory::hasRootProfile(const ProfileTokenSet& aProfiles) const {
+bool ShareManager::ProfileDirectory::hasRootProfile(const ProfileTokenSet& aProfiles) const noexcept {
 	for(const auto ap: aProfiles) {
 		if (rootProfiles.find(ap) != rootProfiles.end())
 			return true;
@@ -866,7 +866,7 @@ bool ShareManager::ProfileDirectory::hasRootProfile(const ProfileTokenSet& aProf
 	return false;
 }
 
-bool ShareManager::Directory::hasProfile(ProfileToken aProfile) const {
+bool ShareManager::Directory::hasProfile(ProfileToken aProfile) const noexcept {
 	if(profileDir) {
 		if (isLevelExcluded(aProfile))
 			return false;
@@ -880,30 +880,30 @@ bool ShareManager::Directory::hasProfile(ProfileToken aProfile) const {
 	return false;
 }
 
-bool ShareManager::ProfileDirectory::hasRootProfile(ProfileToken aProfile) const {
+bool ShareManager::ProfileDirectory::hasRootProfile(ProfileToken aProfile) const noexcept {
 	return rootProfiles.find(aProfile) != rootProfiles.end();
 }
 
-bool ShareManager::ProfileDirectory::isExcluded(const ProfileTokenSet& aProfiles) const {
+bool ShareManager::ProfileDirectory::isExcluded(const ProfileTokenSet& aProfiles) const noexcept {
 	//return all_of(excludedProfiles.begin(), excludedProfiles.end(), [](const ProfileToken t) { return aProfiles.find(t) != aProfiles.end() });
 
 	//TODO: FIX THIS (doesn't detect the excludes correctly but not really used now)
 	return std::search(excludedProfiles.begin(), excludedProfiles.end(), aProfiles.begin(), aProfiles.end()) != excludedProfiles.end();
 }
 
-bool ShareManager::Directory::isLevelExcluded(ProfileToken aProfile) const {
+bool ShareManager::Directory::isLevelExcluded(ProfileToken aProfile) const noexcept {
 	if (profileDir && profileDir->isExcluded(aProfile))
 		return true;
 	return false;
 }
 
-bool ShareManager::Directory::isLevelExcluded(const ProfileTokenSet& aProfiles) const {
+bool ShareManager::Directory::isLevelExcluded(const ProfileTokenSet& aProfiles) const noexcept {
 	if (profileDir && profileDir->isExcluded(aProfiles))
 		return true;
 	return false;
 }
 
-bool ShareManager::ProfileDirectory::isExcluded(ProfileToken aProfile) const {
+bool ShareManager::ProfileDirectory::isExcluded(ProfileToken aProfile) const noexcept {
 	return !excludedProfiles.empty() && excludedProfiles.find(aProfile) != excludedProfiles.end();
 }
 
@@ -1425,7 +1425,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	//get the parent dirs
 	for(const auto& p: rootPaths) {
 		if (find_if(rootPaths | map_keys, [&p](const string& path) { return AirUtil::isSub(p.second->getProfileDir()->getPath(), path); } ).base() == rootPaths.end())
-			parents.emplace(p);
+			parents.insert(p);
 	}
 
 	LoaderList ll;
@@ -1452,7 +1452,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	//ll.sort(SimpleXMLReader::ThreadedCallBack::SizeSort());
 
 	//load the XML files
-	atomic<long> loaded = 0;
+	atomic<long> loaded(0);
 	bool hasFailed = false;
 
 	//run_parallel<LoaderList, ShareLoader, SimpleXMLReader::ThreadedCallBack::Size>(ll, [&](ShareLoader& loader) {
@@ -1643,7 +1643,7 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 	::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
 	string windows = Text::fromT((tstring)path) + PATH_SEPARATOR;
 	// don't share Windows directory
-	if(strnicmp(realPath, windows, windows.length()) == 0) {
+	if (Util::strnicmp(realPath, windows, windows.length()) == 0) {
 		throw ShareException(STRING_F(CHECK_FORBIDDEN, realPath));
 	}
 #endif
@@ -1829,7 +1829,7 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 	//the fileiter just searches directorys for now, not sure if more 
 	//will be needed later
 	//for(FileFindIter i(aName + "*"); i != end; ++i) {
-	for(FileFindIter i(aName); i != end; ++i) {
+	for(FileFindIter i(aPath); i != end; ++i) {
 #endif
 		string name = i->getFileName();
 		if(name.empty()) {
@@ -2298,7 +2298,7 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) {
 					}
 
 					//check the folder levels
-					size_t minLen = UNC_MAX_PATH;
+					size_t minLen = std::numeric_limits<size_t>::max();
 					for (auto& d: subDirs) {
 						minLen = min(Util::getParentDir(d->getProfileDir()->getPath()).length(), minLen);
 					}
@@ -2466,11 +2466,11 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 
 		auto task = static_cast<ShareTask*>(t.second);
 		if (task->type == TYPE_STARTUP_DELAYED)
-			Sleep(5000); // let the client start first
+			Thread::sleep(5000); // let the client start first
 
 		refreshRunning = true;
 		if (!pauser) {
-			pauser = make_unique<HashManager::HashPauser>();
+			pauser.reset(new HashManager::HashPauser());
 		}
 
 		//get unfinished directories and erase exact matches
@@ -2512,7 +2512,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 		}
 
 		//build the new tree
-		atomic<long> progressCounter = 0;
+		atomic<long> progressCounter(0);
 		const size_t dirCount = refreshDirs.size();
 
 
@@ -2791,7 +2791,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 				}
 			}
 		} else {
-			dcdebug("wanted %s \n", dir);
+			//dcdebug("wanted %s \n", dir);
 			try {
 				Directory::List result;
 				findVirtuals<ProfileToken>(dir, aProfile, result); 
@@ -3593,7 +3593,7 @@ void ShareManager::removeNotifications(const string& aPath) {
 		fileModifications.erase(p);
 }
 
-bool ShareManager::allowAddDir(const string& aPath) noexcept {
+bool ShareManager::allowAddDir(const string& aPath) const noexcept {
 	//LogManager::getInstance()->message("QueueManagerListener::BundleFilesMoved");
 	{
 		RLock l(cs);
@@ -3811,7 +3811,7 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 	return ret;
 }
 
-bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower, bool isDir, bool report /*true*/, int64_t size /*0*/) {
+bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower, bool isDir, bool report /*true*/, int64_t size /*0*/) const {
 	string aNameLower = isDir ? Util::getLastDir(aPathLower) : Util::getFileName(aPathLower);
 
 	if(aNameLower == "." || aNameLower == "..")

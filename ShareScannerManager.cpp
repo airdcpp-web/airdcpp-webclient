@@ -78,7 +78,7 @@ ShareScannerManager::~ShareScannerManager() {
 	join();
 }
 
-int ShareScannerManager::scan(const StringList& paths, bool sfv /*false*/) {
+int ShareScannerManager::scan(const StringList& paths, bool sfv /*false*/) noexcept {
 	stop = false;
 	//initiate the thread always here for now.
 	if(scanning.test_and_set()){
@@ -174,8 +174,8 @@ int ShareScannerManager::run() {
 		}
 
 		parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
-			DWORD attrib = GetFileAttributes(Text::toT(s.rootPath).c_str());
-			if(attrib != INVALID_FILE_ATTRIBUTES && attrib != FILE_ATTRIBUTE_HIDDEN && attrib != FILE_ATTRIBUTE_SYSTEM && attrib != FILE_ATTRIBUTE_OFFLINE) {
+			FileFindIter i(s.rootPath, false);
+			if(!i->isHidden()) {
 				if (!matchSkipList(Util::getLastDir(s.rootPath)) && !std::binary_search(bundleDirs.begin(), bundleDirs.end(), s.rootPath)) {
 					scanDir(s.rootPath, s);
 					if(SETTING(CHECK_DUPES) && isDirScan)
@@ -258,7 +258,7 @@ bool ShareScannerManager::matchSkipList(const string& dir) {
 	return false;
 }
 
-void ShareScannerManager::find(const string& aPath, const string& aPathLower, ScanInfo& aScan) {
+void ShareScannerManager::find(const string& aPath, const string& aPathLower, ScanInfo& aScan) noexcept {
 	if(aPath.empty() || stop)
 		return;
 
@@ -291,7 +291,7 @@ void ShareScannerManager::find(const string& aPath, const string& aPathLower, Sc
 }
 
 
-void ShareScannerManager::findDupes(const string& path, ScanInfo& aScan) throw(FileException) {
+void ShareScannerManager::findDupes(const string& path, ScanInfo& aScan) noexcept {
 	if(path.empty())
 		return;
 	
@@ -317,40 +317,37 @@ void ShareScannerManager::findDupes(const string& path, ScanInfo& aScan) throw(F
 	}
 }
 
-StringList ShareScannerManager::findFiles(const string& path, const string& pattern, bool dirs /*false*/, bool aMatchSkipList) {
+StringList ShareScannerManager::findFiles(const string& aPath, const string& pattern, bool dirs /*false*/, bool aMatchSkipList) noexcept {
 	StringList ret;
 
-	WIN32_FIND_DATA data;
-	HANDLE hFind;
+	for (FileFindIter i(aPath + pattern, dirs); i != FileFindIter(); ++i) {
+		if (!i->isHidden()) {
+			auto fileName = i->getFileName();
+			if (fileName.empty())
+				continue;
 
-	hFind = ::FindFirstFile(Text::toT(Util::FormatPath(path + pattern)).c_str(), &data);
-	if(hFind != INVALID_HANDLE_VALUE) {
-		do {
-			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM) && !(data.dwFileAttributes &FILE_ATTRIBUTE_SYSTEM)) {
-				if (aMatchSkipList && matchSkipList(Text::fromT(data.cFileName))) {
-					continue;
-				}
-				if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-					if (dirs && Text::fromT(data.cFileName)[0] != '.') {
-						ret.push_back(Text::fromT(data.cFileName));
-					}
-				} else if (!dirs) {
-					if (SETTING(CHECK_IGNORE_ZERO_BYTE)) {
-						if (File::getSize(path + Text::fromT(data.cFileName)) <= 0) {
-							continue;
-						}
-					}
-					ret.push_back(Text::toLower(Text::fromT(data.cFileName)));
-				}
+			if (aMatchSkipList && matchSkipList(fileName)) {
+				continue;
 			}
-		} while(::FindNextFile(hFind, &data));
 
-		::FindClose(hFind);
+			if (i->isDirectory()) {
+				if (fileName[0] != '.') {
+					ret.push_back(fileName);
+				}
+			} else {
+				if (SETTING(CHECK_IGNORE_ZERO_BYTE)) {
+					if (File::getSize(aPath + fileName) <= 0) {
+						continue;
+					}
+				}
+				ret.push_back(Text::toLower(fileName));
+			}
+		}
 	}
 	return ret;
 }
 
-void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) throw(FileException) {
+void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept {
 	if(aPath.empty())
 		return;
 
@@ -554,7 +551,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) throw(Fi
 	}
 }
 
-void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& dirs) throw(FileException) {
+void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& dirs) noexcept {
 	DirSFVReader sfv(aPath);
 
 	/* Get the size and see if all files in the sfv exists */
@@ -582,7 +579,7 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 	}
 }
 
-void ShareScannerManager::prepareSFVScanFile(const string& aPath, StringList& files) {
+void ShareScannerManager::prepareSFVScanFile(const string& aPath, StringList& files) noexcept {
 	if (Util::fileExists(aPath)) {
 		scanFolderSize += File::getSize(aPath);
 		files.push_back(Text::toLower(Util::getFileName(aPath)));
@@ -592,7 +589,7 @@ void ShareScannerManager::prepareSFVScanFile(const string& aPath, StringList& fi
 	}
 }
 
-void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sfv, bool isDirScan) throw(FileException) {
+void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sfv, bool isDirScan) noexcept {
  
 	uint64_t checkStart = 0;
 	uint64_t checkEnd = 0;
@@ -684,7 +681,7 @@ Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, strin
 	return Bundle::STATUS_FINISHED;
 }
 
-bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_, bool report) {
+bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_, bool report) noexcept {
 	if (!SETTING(SCAN_MONITORED_FOLDERS))
 		return true;
 
@@ -701,7 +698,7 @@ bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_, bo
 	return true;
 }
 
-void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan, bool warning /*true*/) {
+void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan, bool warning /*true*/) noexcept {
 	if (aScan.reportType == ScanInfo::TYPE_SYSLOG) {
 		LogManager::getInstance()->message(aMessage, warning ? LogManager::LOG_WARNING : LogManager::LOG_INFO);
 	} else if (aScan.reportType == ScanInfo::TYPE_COLLECT_LOG) {
