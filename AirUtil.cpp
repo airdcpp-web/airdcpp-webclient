@@ -425,7 +425,7 @@ string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& 
 				tmp = STRING_F(MATCHED_FILES_X_BUNDLES, matches % (int)bundles.size() % newFiles);
 			}
 		} else {
-			tmp = CSTRING(NO_MATCHED_FILES);
+			tmp = STRING(NO_MATCHED_FILES);
 		}
 	}
 	return tmp;

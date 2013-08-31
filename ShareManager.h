@@ -560,12 +560,14 @@ private:
 		};*/
 	};
 
-	typedef std::list<RefreshInfo> RefreshInfoList;
+	typedef shared_ptr<RefreshInfo> RefreshInfoPtr;
+	typedef vector<RefreshInfoPtr> RefreshInfoList;
 
 	//void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles);
 	template<typename T>
 	void mergeRefreshChanges(T& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) {
-		for (auto& ri: aList) {
+		for (const auto& i: aList) {
+			auto& ri = *i;
 			aDirNameMap.insert(ri.dirNameMapNew.begin(), ri.dirNameMapNew.end());
 			aRootPaths.insert(ri.rootPathsNew.begin(), ri.rootPathsNew.end());
 			aTTHIndex.insert(ri.tthIndexNew.begin(), ri.tthIndexNew.end());

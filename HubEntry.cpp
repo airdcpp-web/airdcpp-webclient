@@ -81,7 +81,7 @@ void FavoriteHubEntry::validateFailOvers() {
 	servers.erase(remove_if(servers.begin(), servers.end(), [adc](const ServerBoolPair& sbp) { return AirUtil::isAdcHub(sbp.first) != adc; }), servers.end());
 
 	//no dupes
-	servers.erase(unique(servers.begin(), servers.end(), [](const ServerBoolPair& sbp1, const ServerBoolPair& sbp2) { return sbp1.first == sbp2.first; }), servers.end());
+	servers.erase(std::unique(servers.begin(), servers.end(), [](const ServerBoolPair& sbp1, const ServerBoolPair& sbp2) { return sbp1.first == sbp2.first; }), servers.end());
 }
 
 }

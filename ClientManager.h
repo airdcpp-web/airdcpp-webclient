@@ -44,7 +44,7 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	typedef UserMap::iterator UserIter;
 
 public:
-	Client* createClient(const string& aHubURL);
+	Client* createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile);
 	Client* getClient(const string& aHubURL);
 	void putClient(Client* aClient);
 	void setClientUrl(const string& aOldUrl, const string& aNewUrl);

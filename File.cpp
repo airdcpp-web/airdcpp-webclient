@@ -301,23 +301,18 @@ string File::getMountPath(const string& aPath) {
 	unique_ptr<TCHAR> buf(new TCHAR[aPath.length()]);
 	GetVolumePathName(Text::toT(aPath).c_str(), buf.get(), aPath.length());
 	return Text::fromT(buf.get());
+}
 
-	/*
+int64_t File::getFreeSpace(const string& aPath) {
+	int64_t freeSpace = 0, tmp = 0;
+	auto ret = GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&tmp, (PULARGE_INTEGER)&freeSpace);
+	return ret > 0 ? freeSpace : -1;
+}
 
-	TCHAR buf[MAX_PATH];
-	TCHAR buf2[MAX_PATH];
-	string::size_type l = aPath.length();
-	for (;;) {
-		l = aPath.rfind('\\', l-2);
-		if (l == string::npos || l <= 1)
-			break;
-		if (GetVolumeNameForVolumeMountPoint(Text::toT(aPath.substr(0, l+1)).c_str(), buf, MAX_PATH) && GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL)) {
-			return Text::fromT(buf2);
-		}
-	}
-	return Util::emptyString;
-
-	*/
+int64_t File::getBlockSize(const string& aFileName) noexcept {
+	DWORD sectorBytes, clusterSectors, tmp2, tmp3;
+	GetDiskFreeSpace(Text::toT(aFileName).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
+	return static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors);
 }
 
 #else // !_WIN32
@@ -525,6 +520,15 @@ bool File::isAbsolute(const string& path) noexcept {
 	return path.size() > 1 && path[0] == '/';
 }
 
+int64_t File::getFreeSpace(const string& aPath) {
+	int64_t ret = 0;
+	return ret;
+}
+
+int64_t File::getBlockSize(const string& aFileName) noexcept {
+	return 0;
+}
+
 #endif // !_WIN32
 
 string File::read(size_t len) {
@@ -574,6 +578,24 @@ StringList File::findFiles(const string& path, const string& pattern) {
 	}
 #endif
 
+	return ret;
+}
+
+static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursive, const string& pattern) {
+	try {
+		for (FileFindIter i(aPath + pattern); i != FileFindIter(); ++i) {
+			if (i->isDirectory() && recursive) {
+				getDirSizeInternal(aPath + i->getFileName() + PATH_SEPARATOR, size_, true, pattern);
+			} else {
+				size_ += i->getSize();
+			}
+		}
+	} catch (...) {}
+}
+
+int64_t File::getDirSize(const string& aPath, bool recursive, const string& pattern) noexcept {
+	int64_t ret = 0;
+	getDirSizeInternal(aPath, ret, recursive, pattern);
 	return ret;
 }
 
@@ -629,30 +651,6 @@ int64_t FileFindIter::DirData::getSize() {
 
 uint64_t FileFindIter::DirData::getLastWriteTime() {
 	return File::convertTime(&ftLastWriteTime);
-}
-
-int64_t File::getBlockSize(const string& aFileName) noexcept {
-	DWORD sectorBytes, clusterSectors, tmp2, tmp3;
-	GetDiskFreeSpace(Text::toT(aFileName).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
-	return static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors);
-}
-
-static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursive, const string& pattern) {
-	try {
-		for(FileFindIter i(aPath + pattern); i != FileFindIter(); ++i) {
-			if (i->isDirectory() && recursive) {
-				getDirSizeInternal(aPath + i->getFileName() + PATH_SEPARATOR, size_, true, pattern);
-			} else {
-				size_ += i->getSize();
-			}
-		}
-	} catch(...) { }
-}
-
-int64_t File::getDirSize(const string& aPath, bool recursive, const string& pattern) noexcept {
-	int64_t ret = 0;
-	getDirSizeInternal(aPath, ret, recursive, pattern);
-	return ret;
 }
 
 #else // _WIN32

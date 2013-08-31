@@ -1983,6 +1983,9 @@ void QueueManager::setBundlePriority(const string& bundleToken, QueueItemBase::P
 }
 
 void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool isAuto) noexcept {
+	if (!aBundle)
+		return;
+
 	QueueItemBase::Priority oldPrio = aBundle->getPriority();
 	if (oldPrio == p) {
 		return;

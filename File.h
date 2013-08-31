@@ -101,6 +101,7 @@ public:
 	static int64_t getSize(const string& aFileName) noexcept;
 	static int64_t getBlockSize(const string& aFileName) noexcept;
 	static int64_t getDirSize(const string& aPath, bool recursive, const string& pattern = "*") noexcept;
+	static int64_t getFreeSpace(const string& aPath);
 
 	static void ensureDirectory(const string& aFile) noexcept;
 	static bool createDirectory(const string& aFile);

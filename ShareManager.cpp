@@ -1402,6 +1402,9 @@ private:
 	//int lastPos;
 };
 
+typedef shared_ptr<ShareManager::ShareLoader> ShareLoaderPtr;
+typedef vector<ShareLoaderPtr> LoaderList;
+
 bool ShareManager::loadCache(function<void (float)> progressF) {
 	HashManager::HashPauser pauser;
 
@@ -1425,8 +1428,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 			parents.emplace(p);
 	}
 
-	typedef boost::ptr_vector<ShareLoader> LoaderList;
-	boost::ptr_vector<ShareLoader> ll;
+	LoaderList ll;
 
 	//create the info dirs
 	for(const auto& p: fileList) {
@@ -1435,7 +1437,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 			if (rp.base() != parents.end()) { //make sure that subdirs are never listed here...
 				try {
 					auto loader = new ShareLoader(rp.base()->first, *rp, bloom.get());
-					ll.push_back(loader);
+					ll.emplace_back(loader);
 					continue;
 				} catch(...) { }
 			}
@@ -1454,8 +1456,9 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 	bool hasFailed = false;
 
 	//run_parallel<LoaderList, ShareLoader, SimpleXMLReader::ThreadedCallBack::Size>(ll, [&](ShareLoader& loader) {
-	parallel_for_each(ll.begin(), ll.end(), [&](ShareLoader& loader) {
+	parallel_for_each(ll.begin(), ll.end(), [&](ShareLoaderPtr& i) {
 		//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogManager::LOG_INFO);
+		auto& loader = *i;
 		try {
 			SimpleXMLReader(&loader).parse(*loader.file);
 		} catch(SimpleXMLException& e) {
@@ -2478,7 +2481,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 		}
 
 		StringList monitoring;
-		RefreshInfoList refreshDirs;
+		vector<shared_ptr<RefreshInfo>> refreshDirs;
 
 		//find excluded dirs and sub-roots for each directory being refreshed (they will be passed on to buildTree for matching)
 		{
@@ -2486,7 +2489,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			for(auto& i: task->dirs) {
 				auto d = findRoot(i);
 				if (d != rootPaths.end()) {
-					refreshDirs.emplace_back(i, d->second, findLastWrite(i));
+					refreshDirs.emplace_back(new RefreshInfo(i, d->second, findLastWrite(i)));
 					
 					//a monitored dir?
 					if (t.first == ADD_DIR && (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_ALL || (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && d->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))))
@@ -2495,7 +2498,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 					auto curDir = findDirectory(i, false, false, false);
 
 					//curDir may also be nullptr
-					refreshDirs.emplace_back(i, curDir, findLastWrite(i));
+					refreshDirs.emplace_back(new RefreshInfo(i, curDir, findLastWrite(i)));
 				}
 			}
 		}
@@ -2516,7 +2519,8 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 		//bloom
 		ShareBloom* refreshBloom = t.first == REFRESH_ALL ? new ShareBloom(1<<20) : bloom.get();
 
-		auto doRefresh = [&](RefreshInfo& ri) {
+		auto doRefresh = [&](RefreshInfoPtr& i) {
+			auto& ri = *i;
 			if (checkHidden(ri.path)) {
 				auto pathLower = Text::toLower(ri.path);
 				auto path = ri.path;
@@ -2547,7 +2551,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			WLock l(cs);
 			if(t.first != REFRESH_ALL) {
 				for(auto p = refreshDirs.begin(); p != refreshDirs.end(); ) {
-					auto& ri = *p;
+					auto& ri = **p;
 
 					//recursively remove the content of this dir from TTHIndex and dir name list
 					if (ri.oldRoot)

@@ -56,13 +56,12 @@ public:
 
 	static string getMountPath(const string& aPath, const VolumeSet& aVolumes);
 
-	static bool getTarget(StringList& targets, TargetInfo& ti_, const int64_t& size);
+	static bool getTarget(const StringList& targets, TargetInfo& ti_, const int64_t& size);
 
 	static bool getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_, const int64_t& size);
 
 	static void getVolumes(VolumeSet& volumes);
 	static bool getDiskInfo(TargetInfo& ti_);
-	static int64_t getFreeSpace(const string& aPath);
 
 	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod);
 	static void reportInsufficientSize(const TargetInfo& ti, int64_t aSize);

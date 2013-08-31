@@ -786,7 +786,7 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 
 		auto volume = File::getMountPath(Util::getPath(Util::PATH_USER_CONFIG));
 		if (!volume.empty()) {
-			auto freeSpace = TargetUtil::getFreeSpace(volume);
+			auto freeSpace = File::getFreeSpace(volume);
 			if (hashDataSize + hashIndexSize > freeSpace) {
 				messageF(STRING_F(DB_MIGRATION_FREE_SPACE, Util::formatBytes(freeSpace) % volume % Util::formatBytes(hashDataSize + hashIndexSize)), false, true);
 				exit(0);

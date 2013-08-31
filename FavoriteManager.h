@@ -89,14 +89,15 @@ public:
 	std::string getUserURL(const UserPtr& aUser) const;
 	
 // Favorite Hubs
+	void autoConnect();
 	FavoriteHubEntryList& getFavoriteHubs() { return favoriteHubs; }
 
-	void addFavorite(const FavoriteHubEntry& aEntry);
-	void removeFavorite(const FavoriteHubEntry* entry);
+	void addFavorite(const FavoriteHubEntryPtr& aEntry);
+	void removeFavorite(const FavoriteHubEntryPtr& entry);
 	bool isUnique(const string& aUrl, ProfileToken aToken);
-	FavoriteHubEntry* getFavoriteHubEntry(const string& aServer) const;
+	FavoriteHubEntryPtr getFavoriteHubEntry(const string& aServer) const;
 
-	void mergeHubSettings(const FavoriteHubEntry& entry, HubSettings& settings) const;
+	void mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSettings& settings) const;
 	void setHubSetting(const string& aUrl, HubSettings::HubBoolSetting aSetting, bool newValue);
 // Favorite hub groups
 	const FavHubGroups& getFavHubGroups() const { return favHubGroups; }
@@ -113,11 +114,11 @@ public:
 	FavDirList getFavoriteDirs() { return favoriteDirs; }
 
 // Recent Hubs
-	RecentHubEntry::List& getRecentHubs() { return recentHubs; };
+	RecentHubEntryList& getRecentHubs() { return recentHubs; };
 
-	void addRecent(const RecentHubEntry& aEntry);
-	void removeRecent(const RecentHubEntry* entry);
-	void updateRecent(const RecentHubEntry* entry);
+	void addRecent(const RecentHubEntryPtr& aEntry);
+	void removeRecent(const RecentHubEntryPtr& entry);
+	void updateRecent(const RecentHubEntryPtr& entry);
 
 	// remove user commands and possibly change the address for the next attempt
 	optional<string> getFailOverUrl(ProfileToken aToken, const string& curHubUrl);
@@ -125,7 +126,7 @@ public:
 	bool blockFailOverUrl(ProfileToken aToken, string& hubAddress_);
 	bool isFailOverUrl(ProfileToken aToken, const string& hubAddress_);
 
-	RecentHubEntry* getRecentHubEntry(const string& aServer);
+	RecentHubEntryPtr getRecentHubEntry(const string& aServer);
 
 	PreviewApplication* addPreviewApp(string name, string application, string arguments, string extension){
 		PreviewApplication* pa = new PreviewApplication(name, application, arguments, extension);
@@ -181,7 +182,7 @@ private:
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
 	FavDirList favoriteDirs;
-	RecentHubEntry::List recentHubs;
+	RecentHubEntryList recentHubs;
 	PreviewApplication::List previewApplications;
 	UserCommand::List userCommands;
 	int lastId;
@@ -208,7 +209,7 @@ private:
 	
 	FavoriteHubEntryList::const_iterator getFavoriteHub(const string& aServer) const;
 	FavoriteHubEntryList::const_iterator getFavoriteHub(ProfileToken aToken) const;
-	RecentHubEntry::Iter getRecentHub(const string& aServer) const;
+	RecentHubEntryList::const_iterator getRecentHub(const string& aServer) const;
 
 	// ClientManagerListener
 	void on(UserConnected, const OnlineUser& user, bool wasOffline) noexcept;

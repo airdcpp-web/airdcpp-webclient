@@ -58,8 +58,6 @@ FavoriteManager::~FavoriteManager() {
 		c = nullptr;
 	}
 
-	for_each(favoriteHubs, DeleteFunction());
-	for_each(recentHubs, DeleteFunction());
 	for_each(previewApplications, DeleteFunction());
 }
 
@@ -231,20 +229,38 @@ std::string FavoriteManager::getUserURL(const UserPtr& aUser) const {
 	return Util::emptyString;
 }
 
-void FavoriteManager::addFavorite(const FavoriteHubEntry& aEntry) {
-	FavoriteHubEntry* f;
-
-	auto i = getFavoriteHub(aEntry.getServers()[0].first);
+void FavoriteManager::addFavorite(const FavoriteHubEntryPtr& aEntry) {
+	auto i = getFavoriteHub(aEntry->getServers()[0].first);
 	if(i != favoriteHubs.end()) {
 		return;
 	}
-	f = new FavoriteHubEntry(aEntry);
-	favoriteHubs.push_back(f);
-	fire(FavoriteManagerListener::FavoriteAdded(), f);
+
+	favoriteHubs.push_back(aEntry);
+	fire(FavoriteManagerListener::FavoriteAdded(), aEntry);
 	save();
 }
 
-void FavoriteManager::removeFavorite(const FavoriteHubEntry* entry) {
+void FavoriteManager::autoConnect() {
+	vector<pair<RecentHubEntryPtr, ProfileToken>> hubs;
+	{
+
+		RLock l(cs);
+		for (const auto& entry : favoriteHubs) {
+			if (entry->getConnect()) {
+				RecentHubEntryPtr r = new RecentHubEntry(entry->getServers()[0].first);
+				r->setName(entry->getName());
+				r->setDescription(entry->getDescription());
+				hubs.emplace_back(r, entry->getShareProfile()->getToken());
+			}
+		}
+	}
+
+	for (const auto& h : hubs) {
+		ClientManager::getInstance()->createClient(h.first, h.second);
+	}
+}
+
+void FavoriteManager::removeFavorite(const FavoriteHubEntryPtr& entry) {
 	auto i = find(favoriteHubs.begin(), favoriteHubs.end(), entry);
 	if(i == favoriteHubs.end()) {
 		return;
@@ -252,7 +268,6 @@ void FavoriteManager::removeFavorite(const FavoriteHubEntry* entry) {
 
 	fire(FavoriteManagerListener::FavoriteRemoved(), entry);
 	favoriteHubs.erase(i);
-	delete entry;
 	save();
 }
 
@@ -292,18 +307,18 @@ void FavoriteManager::removeallRecent() {
 }
 
 
-void FavoriteManager::addRecent(const RecentHubEntry& aEntry) {
-	auto i = getRecentHub(aEntry.getServer());
+void FavoriteManager::addRecent(const RecentHubEntryPtr& aEntry) {
+	auto i = getRecentHub(aEntry->getServer());
 	if(i != recentHubs.end()) {
 		return;
 	}
-	RecentHubEntry* f = new RecentHubEntry(aEntry);
-	recentHubs.push_back(f);
-	fire(FavoriteManagerListener::RecentAdded(), f);
+
+	recentHubs.push_back(aEntry);
+	fire(FavoriteManagerListener::RecentAdded(), aEntry);
 	recentsave();
 }
 
-void FavoriteManager::removeRecent(const RecentHubEntry* entry) {
+void FavoriteManager::removeRecent(const RecentHubEntryPtr& entry) {
 	auto i = find(recentHubs.begin(), recentHubs.end(), entry);
 	if(i == recentHubs.end()) {
 		return;
@@ -311,11 +326,10 @@ void FavoriteManager::removeRecent(const RecentHubEntry* entry) {
 		
 	fire(FavoriteManagerListener::RecentRemoved(), entry);
 	recentHubs.erase(i);
-	delete entry;
 	recentsave();
 }
 
-void FavoriteManager::updateRecent(const RecentHubEntry* entry) {
+void FavoriteManager::updateRecent(const RecentHubEntryPtr& entry) {
 	auto i = find(recentHubs.begin(), recentHubs.end(), entry);
 	if(i == recentHubs.end()) {
 		return;
@@ -391,7 +405,7 @@ int FavoriteManager::resetProfile(ProfileToken oldDefault, ProfileToken newDefau
 
 	{
 		WLock l(cs);
-		for (auto fh : favoriteHubs) {
+		for (const auto& fh : favoriteHubs) {
 			if (fh->getShareProfile()->getToken() == oldDefault) {
 				counter++;
 				if (!nmdcOnly || !fh->isAdcHub())
@@ -407,7 +421,7 @@ int FavoriteManager::resetProfile(ProfileToken oldDefault, ProfileToken newDefau
 
 bool FavoriteManager::hasAdcHubs() const {
 	RLock l(cs);
-	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr f) { return f->isAdcHub(); });
+	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr& f) { return f->isAdcHub(); });
 }
 
 int FavoriteManager::resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile) {
@@ -417,7 +431,7 @@ int FavoriteManager::resetProfiles(const ShareProfileInfo::List& aProfiles, Prof
 	{
 		WLock l(cs);
 		for(const auto& sp: aProfiles) {
-			for(auto fh: favoriteHubs) {
+			for(auto& fh: favoriteHubs) {
 				if (fh->getShareProfile()->getToken() == sp->token) {
 					fh->setShareProfile(defaultProfile);
 					counter++;
@@ -437,7 +451,7 @@ void FavoriteManager::onProfilesRenamed() {
 }
 
 bool FavoriteManager::hasActiveHubs() const {
-	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr f) { return f->get(HubSettings::Connection) == SettingsManager::INCOMING_ACTIVE || f->get(HubSettings::Connection6) == SettingsManager::INCOMING_ACTIVE; });
+	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr& f) { return f->get(HubSettings::Connection) == SettingsManager::INCOMING_ACTIVE || f->get(HubSettings::Connection6) == SettingsManager::INCOMING_ACTIVE; });
 }
 
 void FavoriteManager::save() {
@@ -685,7 +699,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 
 		aXml.resetCurrentChild();
 		while(aXml.findChild("Hub")) {
-			FavoriteHubEntry* e = new FavoriteHubEntry();
+			FavoriteHubEntryPtr e = new FavoriteHubEntry();
 			e->setName(aXml.getChildAttrib("Name"));
 			e->setConnect(aXml.getBoolChildAttrib("Connect"));
 			e->setDescription(aXml.getChildAttrib("Description"));
@@ -694,7 +708,6 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			auto server = aXml.getChildAttrib("Server");
 			if (server.empty()) {
 				LogManager::getInstance()->message("A favorite hub with an empty address wasn't loaded: " + e->getName(), LogManager::LOG_WARNING);
-				delete e;
 				continue;
 			}
 			e->setServerStr(server);
@@ -818,7 +831,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const {
 	FavoriteHubEntryList ret;
 	ret.reserve(favoriteHubs.size());
-	copy_if(favoriteHubs.begin(), favoriteHubs.end(), ret.begin(), [&group](const FavoriteHubEntryPtr f) { return Util::stricmp(f->getGroup(), group) == 0; });
+	copy_if(favoriteHubs.begin(), favoriteHubs.end(), ret.begin(), [&group](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getGroup(), group) == 0; });
 	return ret;
 }
 
@@ -877,12 +890,11 @@ void FavoriteManager::recentload(SimpleXML& aXml) {
 	if(aXml.findChild("Hubs")) {
 		aXml.stepIn();
 		while(aXml.findChild("Hub")) {
-			RecentHubEntry* e = new RecentHubEntry();
+			RecentHubEntryPtr e = new RecentHubEntry(aXml.getChildAttrib("Server"));
 			e->setName(aXml.getChildAttrib("Name"));
 			e->setDescription(aXml.getChildAttrib("Description"));
 			e->setUsers(aXml.getChildAttrib("Users"));
 			e->setShared(aXml.getChildAttrib("Shared"));
-			e->setServer(aXml.getChildAttrib("Server"));
 			recentHubs.push_back(e);
 		}
 		aXml.stepOut();
@@ -894,14 +906,14 @@ StringList FavoriteManager::getHubLists() {
 	return lists.getTokens();
 }
 
-FavoriteHubEntry* FavoriteManager::getFavoriteHubEntry(const string& aServer) const {
+FavoriteHubEntryPtr FavoriteManager::getFavoriteHubEntry(const string& aServer) const {
 	auto p = getFavoriteHub(aServer);
 	return p != favoriteHubs.end() ? *p : nullptr;
 }
 
-void FavoriteManager::mergeHubSettings(const FavoriteHubEntry& entry, HubSettings& settings) const {
+void FavoriteManager::mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSettings& settings) const {
 	// apply group settings first.
-	const string& name = entry.getGroup();
+	const string& name = entry->getGroup();
 	if(!name.empty()) {
 		auto group = favHubGroups.find(name);
 		if(group != favHubGroups.end())
@@ -909,16 +921,16 @@ void FavoriteManager::mergeHubSettings(const FavoriteHubEntry& entry, HubSetting
 	}
 
 	// apply fav entry settings next.
-	settings.merge(entry);
+	settings.merge(*entry);
 }
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(const string& aServer) const {
 	//find by the primary address
-	return find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr f) { return Util::stricmp(f->getServers()[0].first, aServer) == 0; });
+	return find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getServers()[0].first, aServer) == 0; });
 }
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(ProfileToken aToken) const {
-	return find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr f) { return f->getToken() == aToken; });
+	return find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr& f) { return f->getToken() == aToken; });
 }
 
 optional<string> FavoriteManager::getFailOverUrl(ProfileToken aToken, const string& curHubUrl) {
@@ -991,8 +1003,8 @@ bool FavoriteManager::isFailOverUrl(ProfileToken aToken, const string& hubAddres
 	return (p != favoriteHubs.end() && (*p)->getServers()[0].first != hubAddress_);
 }
 
-RecentHubEntry::Iter FavoriteManager::getRecentHub(const string& aServer) const {
-	return find_if(recentHubs, [&aServer](const RecentHubEntry* rhe) { return Util::stricmp(rhe->getServer(), aServer) == 0; });
+RecentHubEntryList::const_iterator FavoriteManager::getRecentHub(const string& aServer) const {
+	return find_if(recentHubs, [&aServer](const RecentHubEntryPtr& rhe) { return Util::stricmp(rhe->getServer(), aServer) == 0; });
 }
 
 void FavoriteManager::setHubList(int aHubList) {
@@ -1000,7 +1012,7 @@ void FavoriteManager::setHubList(int aHubList) {
 	refresh();
 }
 
-RecentHubEntry* FavoriteManager::getRecentHubEntry(const string& aServer) {
+RecentHubEntryPtr FavoriteManager::getRecentHubEntry(const string& aServer) {
 	for(auto r: recentHubs) {
 		if(Util::stricmp(r->getServer(), aServer) == 0) {
 			return r;

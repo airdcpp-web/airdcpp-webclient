@@ -67,7 +67,7 @@ public:
 };
 
 class ShareProfile;
-class FavoriteHubEntry  : public HubSettings {
+class FavoriteHubEntry : public HubSettings, public intrusive_ptr_base<FavoriteHubEntry> {
 public:
 	typedef FavoriteHubEntry* Ptr;
 	typedef vector<Ptr> List;
@@ -111,11 +111,11 @@ public:
 	string getServerStr();
 };
 
-class RecentHubEntry {
+class RecentHubEntry : public intrusive_ptr_base<RecentHubEntry> {
 public:
-	typedef RecentHubEntry* Ptr;
-	typedef vector<Ptr> List;
-	typedef List::const_iterator Iter;
+	RecentHubEntry(const string& aUrl) : server(aUrl), name("*"), description("*"), shared("*"), users("*") {
+
+	}
 
 	~RecentHubEntry() noexcept { }	
 	

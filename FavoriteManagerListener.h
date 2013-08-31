@@ -47,17 +47,17 @@ public:
 	virtual void on(DownloadStarting, const string&) noexcept { }
 	virtual void on(DownloadFailed, const string&) noexcept { }
 	virtual void on(DownloadFinished, const string&, bool) noexcept { }
-	virtual void on(FavoriteAdded, const FavoriteHubEntry*) noexcept { }
-	virtual void on(FavoriteRemoved, const FavoriteHubEntry*) noexcept { }
+	virtual void on(FavoriteAdded, const FavoriteHubEntryPtr&) noexcept { }
+	virtual void on(FavoriteRemoved, const FavoriteHubEntryPtr&) noexcept {}
 	virtual void on(FavoritesUpdated) noexcept { }
 	virtual void on(UserAdded, const FavoriteUser&) noexcept { }
 	virtual void on(UserRemoved, const FavoriteUser&) noexcept { }
 	virtual void on(StatusChanged, const UserPtr&) noexcept { }
 	virtual void on(LoadedFromCache, const string&, const string&) noexcept { }
 	virtual void on(Corrupted, const string&) noexcept { }
-	virtual void on(RecentAdded, const RecentHubEntry*) noexcept { }
-	virtual void on(RecentRemoved, const RecentHubEntry*) noexcept { }
-	virtual void on(RecentUpdated, const RecentHubEntry*) noexcept { }
+	virtual void on(RecentAdded, const RecentHubEntryPtr&) noexcept {}
+	virtual void on(RecentRemoved, const RecentHubEntryPtr&) noexcept {}
+	virtual void on(RecentUpdated, const RecentHubEntryPtr&) noexcept {}
 };
 
 } // namespace dcpp

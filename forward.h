@@ -64,7 +64,7 @@ typedef Download* DownloadPtr;
 typedef std::vector<DownloadPtr> DownloadList;
 
 class FavoriteHubEntry;
-typedef FavoriteHubEntry* FavoriteHubEntryPtr;
+typedef boost::intrusive_ptr<FavoriteHubEntry> FavoriteHubEntryPtr;
 typedef std::vector<FavoriteHubEntryPtr> FavoriteHubEntryList;
 
 class FavoriteUser;
@@ -111,6 +111,8 @@ typedef boost::intrusive_ptr<QueueItem> QueueItemPtr;
 typedef std::vector<QueueItemPtr> QueueItemList;
 
 class RecentHubEntry;
+typedef boost::intrusive_ptr<RecentHubEntry> RecentHubEntryPtr;
+typedef std::vector<RecentHubEntryPtr> RecentHubEntryList;
 
 class Search;
 typedef shared_ptr<Search> SearchPtr;

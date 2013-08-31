@@ -66,6 +66,10 @@ void Client::reconnect() {
 	setReconnDelay(0);
 }
 
+void Client::setActive() {
+	fire(ClientListener::SetActive(), this);
+}
+
 void Client::shutdown() {
 	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	TimerManager::getInstance()->removeListener(this);
@@ -99,7 +103,7 @@ void Client::reloadSettings(bool updateNick) {
 	bool isAdcHub = AirUtil::isAdcHub(hubUrl);
 
 	if(fav) {
-		FavoriteManager::getInstance()->mergeHubSettings(*fav, *this);
+		FavoriteManager::getInstance()->mergeHubSettings(fav, *this);
 		if(!fav->getPassword().empty())
 			setPassword(fav->getPassword());
 

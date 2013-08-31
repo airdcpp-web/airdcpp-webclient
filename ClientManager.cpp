@@ -57,21 +57,37 @@ ClientManager::~ClientManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
-Client* ClientManager::createClient(const string& aHubURL) {
+Client* ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) {
+	auto url = aEntry->getServer();
+
 	Client* c;
-	if(AirUtil::isAdcHub(aHubURL)) {
-		c = new AdcHub(aHubURL);
+	if (AirUtil::isAdcHub(url)) {
+		c = new AdcHub(url);
 	} else {
-		c = new NmdcHub(aHubURL);
+		c = new NmdcHub(url);
 	}
+
+	c->setShareProfile(aProfile);
+	bool added = true;
 
 	{
 		WLock l(cs);
-		clients.emplace(const_cast<string*>(&c->getHubUrl()), c);
+		auto ret = clients.emplace(const_cast<string*>(&c->getHubUrl()), c);
+		if (!ret.second) {
+			added = false;
+			ret.first->second->setActive();
+		}
+	}
+
+	if (!added) {
+		c->shutdown();
+		return nullptr;
 	}
 
 	c->addListener(this);
 
+	FavoriteManager::getInstance()->addRecent(aEntry);
+	fire(ClientManagerListener::ClientCreated(), c);
 	return c;
 }
 

@@ -39,9 +39,10 @@ string TargetUtil::getMountPath(const string& aPath, const VolumeSet& aVolumes) 
 	if (aVolumes.find(aPath) != aVolumes.end()) {
 		return aPath;
 	}
+
 	string::size_type l = aPath.length();
 	for (;;) {
-		l = aPath.rfind('\\', l-2);
+		l = aPath.rfind(PATH_SEPARATOR, l-2);
 		if (l == string::npos || l <= 1)
 			break;
 		if (aVolumes.find(aPath.substr(0, l+1)) != aVolumes.end()) {
@@ -49,6 +50,7 @@ string TargetUtil::getMountPath(const string& aPath, const VolumeSet& aVolumes) 
 		}
 	}
 
+#ifdef WIN32
 	//not found from the volumes... network path? this won't work with mounted dirs
 	if (aPath.length() > 2 && aPath.substr(0,2) == "\\\\") {
 		l = aPath.find("\\", 2);
@@ -60,6 +62,7 @@ string TargetUtil::getMountPath(const string& aPath, const VolumeSet& aVolumes) 
 			}
 		}
 	}
+#endif
 	return Util::emptyString;
 }
 
@@ -76,7 +79,7 @@ bool TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 
 		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));
 		if (s != dirList.end()) {
-			StringList& targets = s->second;
+			const auto& targets = s->second;
 			bool tmp = getTarget(targets, ti_, aSize);
 			if (!ti_.targetDir.empty()) {
 				return tmp;
@@ -91,17 +94,16 @@ bool TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 	return getDiskInfo(ti_);
 }
 
-bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_t& aSize) {
+bool TargetUtil::getTarget(const StringList& targets, TargetInfo& retTi_, const int64_t& aSize) {
 	VolumeSet volumes;
 	getVolumes(volumes);
 	TargetInfoMap targetMap;
-	int64_t tmpSize = 0;
 
 	for(auto& i: targets) {
 		string target = getMountPath(i, volumes);
 		if (!target.empty() && targetMap.find(target) == targetMap.end()) {
-			int64_t free = 0;
-			if (GetDiskFreeSpaceEx(Text::toT(target).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&free)) {
+			auto free = File::getFreeSpace(retTi_.targetDir);
+			if (free > 0) {
 				targetMap[target] = TargetInfo(i, free);
 			}
 		}
@@ -115,7 +117,7 @@ bool TargetUtil::getTarget(StringList& targets, TargetInfo& retTi_, const int64_
 			retTi_.targetDir = SETTING(DOWNLOAD_DIRECTORY);
 		}
 
-		GetDiskFreeSpaceEx(Text::toT(retTi_.targetDir).c_str(), NULL, (PULARGE_INTEGER)&tmpSize, (PULARGE_INTEGER)&retTi_.diskSpace);
+		retTi_.diskSpace = File::getFreeSpace(retTi_.targetDir);
 		return retTi_.getFreeSpace() >= aSize;
 	}
 
@@ -149,7 +151,7 @@ bool TargetUtil::getDiskInfo(TargetInfo& targetInfo_) {
 		return false;
 	}
 
-	targetInfo_.diskSpace = getFreeSpace(pathVol);
+	targetInfo_.diskSpace = File::getFreeSpace(pathVol);
 
 	TargetInfoMap targetMap;
 	targetMap[pathVol] = targetInfo_;
@@ -159,14 +161,9 @@ bool TargetUtil::getDiskInfo(TargetInfo& targetInfo_) {
 	return true;
 }
 
-int64_t TargetUtil::getFreeSpace(const string& aPath) {
-	int64_t totalSize = 0;
-	int64_t ret = 0;
-	GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&totalSize, (PULARGE_INTEGER)&ret);
-	return ret;
-}
-
 void TargetUtil::getVolumes(VolumeSet& volumes) {
+
+#ifdef WIN32
 	TCHAR   buf[MAX_PATH];  
 	HANDLE  hVol;    
 	BOOL    found;
@@ -202,6 +199,7 @@ void TargetUtil::getVolumes(VolumeSet& volumes) {
 		++drive[0];
 		drives = (drives >> 1);
 	}
+#endif
 }
 
 void TargetUtil::reportInsufficientSize(const TargetInfo& ti, int64_t aSize) {
