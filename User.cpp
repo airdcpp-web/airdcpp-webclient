@@ -401,6 +401,12 @@ int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t c
 		}
 		// workaround for faster hub loading
 		// lstrcmpiA(a->identity.getNick().c_str(), b->identity.getNick().c_str());
+	} else if (!a->getUser()->isNMDC()) {
+		if (col == COLUMN_ULSPEED) {
+			return compare(a->identity.getAdcConnectionSpeed(false), b->identity.getAdcConnectionSpeed(false));
+		} else if (col == COLUMN_DLSPEED) {
+			return compare(a->identity.getAdcConnectionSpeed(true), b->identity.getAdcConnectionSpeed(true));
+		}
 	}
 	switch (col) {
 	case COLUMN_SHARED:

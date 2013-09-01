@@ -57,7 +57,7 @@ DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles)
 void DirSFVReader::loadPath(const string& aPath) {
 	content.clear();
 	path = aPath;
-	sfvFiles = File::findFiles(path, "*.sfv");
+	sfvFiles = File::findFiles(path, "*.sfv", File::TYPE_FILE);
 	load();
 }
 

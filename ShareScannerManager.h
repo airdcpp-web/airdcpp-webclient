@@ -111,7 +111,6 @@ private:
 	int64_t scanFolderSize;
 	volatile bool stop;
 	unordered_multimap<string, string> dupeDirs;
-	StringList findFiles(const string& path, const string& pattern, bool dirs, bool matchSkipList) noexcept;
 	void prepareSFVScanDir(const string& path, SFVScanList& dirs) noexcept;
 	void prepareSFVScanFile(const string& path, StringList& files) noexcept;
 	StringList bundleDirs;

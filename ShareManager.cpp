@@ -670,7 +670,7 @@ void ShareManager::shutdown(function<void (float)> progressF) {
 
 	try {
 		RLock l (cs);
-		StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2");
+		StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2", File::TYPE_FILE);
 
 		//clear refs so we can delete filelists.
 		for(auto f: shareProfiles) {
@@ -1410,7 +1410,7 @@ bool ShareManager::loadCache(function<void (float)> progressF) {
 
 	Util::migrate(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*");
 
-	StringList fileList = File::findFiles(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*");
+	StringList fileList = File::findFiles(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*", File::TYPE_FILE);
 
 	if (fileList.empty()) {
 		if (Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"))	{
@@ -3865,7 +3865,6 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 		if(SETTING(NO_ZERO_BYTE) && !(size > 0))
 			return false;
 
-		auto tmp = Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB);
 		if (SETTING(MAX_FILE_SIZE_SHARED) != 0 && size > Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB)) {
 			if (report) {
 				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath + " (" + Util::formatBytes(size) + ")", LogManager::LOG_INFO);

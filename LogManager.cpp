@@ -76,7 +76,7 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 	ensureParam("%[userCID]", fileName);
 	string path = SETTING(LOG_DIRECTORY) + Util::formatParams(fileName, params);
 
-	auto files = File::findFiles(Util::getFilePath(path), "*" + aUser->getCID().toBase32() + "*");
+	auto files = File::findFiles(Util::getFilePath(path), "*" + aUser->getCID().toBase32() + "*", File::TYPE_FILE);
 	if (!files.empty()) {
 		path = files.front();
 	}

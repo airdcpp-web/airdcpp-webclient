@@ -318,8 +318,8 @@ void CryptoManager::loadCertificates() noexcept {
 		return;
 	}
 
-	StringList certs = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.pem");
-	StringList certs2 = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.crt");
+	StringList certs = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.pem", File::TYPE_FILE);
+	StringList certs2 = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.crt", File::TYPE_FILE);
 	certs.insert(certs.end(), certs2.begin(), certs2.end());
 
 	for(auto& i: certs) {

@@ -276,12 +276,7 @@ QueueManager::~QueueManager() noexcept {
 
 		std::sort(protectedFileLists.begin(), protectedFileLists.end());
 
-		StringList filelists = File::findFiles(path, "*.xml.bz2");
-		std::sort(filelists.begin(), filelists.end());
-		std::for_each(filelists.begin(), std::set_difference(filelists.begin(), filelists.end(),
-			protectedFileLists.begin(), protectedFileLists.end(), filelists.begin()), &File::deleteFile);
-
-		filelists = File::findFiles(path, "*.DcLst");
+		StringList filelists = File::findFiles(path, "*.xml.bz2", File::TYPE_FILE);
 		std::sort(filelists.begin(), filelists.end());
 		std::for_each(filelists.begin(), std::set_difference(filelists.begin(), filelists.end(),
 			protectedFileLists.begin(), protectedFileLists.end(), filelists.begin()), &File::deleteFile);
@@ -2232,7 +2227,7 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 	Util::migrate(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
 
 	// multithreaded loading
-	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*");
+	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*", File::TYPE_FILE);
 	atomic<long> loaded(0);
 	parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
 		if (Util::getFileExt(path) == ".xml") {

@@ -568,50 +568,35 @@ string File::read() {
 	return read((uint32_t)sz);
 }
 
-StringList File::findFiles(const string& path, const string& pattern) {
+StringList File::findFiles(const string& aPath, const string& pattern, int flags) {
 	StringList ret;
-
-#ifdef _WIN32
-	WIN32_FIND_DATA data;
-	HANDLE hFind;
-
-	hFind = ::FindFirstFile(Text::toT(Util::FormatPath(path + pattern)).c_str(), &data);
-	if(hFind != INVALID_HANDLE_VALUE) {
-		do {
-			const char* extra = (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? "\\" : ""; 
-			ret.push_back(path + Text::fromT(data.cFileName) + extra);
-		} while(::FindNextFile(hFind, &data));
-
-		::FindClose(hFind);
-	}
-#else
-	DIR* dir = opendir(Text::fromUtf8(path).c_str());
-	if (dir) {
-		while (struct dirent* ent = readdir(dir)) {
-			if (fnmatch(pattern.c_str(), ent->d_name, 0) == 0) {
-				struct stat s;
-				stat(ent->d_name, &s);
-				const char* extra = (s.st_mode & S_IFDIR) ? "/" : "";
-				ret.push_back(path + Text::toUtf8(ent->d_name) + extra);
-			}
-		}
-		closedir(dir);
-	}
-#endif
-
+	forEachFile(aPath, pattern, [&](const string& aFileName, bool isDir, int64_t /*size*/) { 
+		if ((flags & TYPE_FILE && !isDir) || (flags & TYPE_DIRECTORY && isDir))
+			ret.push_back(aPath + aFileName); 
+	}, !(flags & FLAG_HIDDEN));
 	return ret;
 }
 
-static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursive, const string& pattern) {
-	try {
-		for (FileFindIter i(aPath + pattern); i != FileFindIter(); ++i) {
-			if (i->isDirectory() && recursive) {
-				getDirSizeInternal(aPath + i->getFileName() + PATH_SEPARATOR, size_, true, pattern);
-			} else {
-				size_ += i->getSize();
+void File::forEachFile(const string& aPath, const string& pattern, std::function<void (const string & /*name*/, bool /*isDir*/, int64_t /*size*/)> aF, bool skipHidden) {
+	for (FileFindIter i(aPath + pattern); i != FileFindIter(); ++i) {
+		if ((!skipHidden || !i->isHidden())) {
+			auto name = i->getFileName();
+			if (name.compare(".") != 0 && (name.length() < 2 || name.compare("..") != 0)) {
+				bool isDir = i->isDirectory();
+				aF(name + (isDir ? PATH_SEPARATOR_STR : Util::emptyString), isDir, i->getSize());
 			}
 		}
-	} catch (...) {}
+	}
+}
+
+static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursive, const string& pattern) {
+	File::forEachFile(aPath, pattern, [&](const string& aFileName, bool isDir, int64_t aSize) { 
+		if (isDir && recursive) {
+			getDirSizeInternal(aPath + aFileName, size_, true, pattern);
+		} else {
+			size_ += aSize;
+		}
+	});
 }
 
 int64_t File::getDirSize(const string& aPath, bool recursive, const string& pattern) noexcept {

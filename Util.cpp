@@ -296,7 +296,7 @@ void Util::migrate(const string& aDir, const string& aPattern) {
 	string old = Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Settings\\" + Util::getLastDir(aDir) + "\\";
 
 	if (Util::fileExists(old)) {
-		StringList fileList = File::findFiles(old, aPattern);
+		auto fileList = File::findFiles(old, aPattern);
 		for (auto& path: fileList) {
 			try {
 				File::renameFile(path, aDir + Util::getFileName(path));
