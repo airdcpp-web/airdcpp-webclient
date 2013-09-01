@@ -36,11 +36,11 @@ Magnet::Magnet(const string& aLink) {
 	//  as = acceptable substitute
 	//  dn = display name
 	//  xl = exact length
-	StringTokenizer<string> mag(aLink.substr(8), _T('&'));
+	StringTokenizer<string> mag(aLink.substr(8), '&');
 	map<string, string> hashes;
 	for(auto& idx: mag.getTokens()) {
 		// break into pairs
-		auto pos = idx.find(_T('='));
+		auto pos = idx.find('=');
 		if(pos != string::npos) {
 			type = Text::toLower(Util::encodeURI(idx.substr(0, pos), true));
 			param = Util::encodeURI(idx.substr(pos+1), true);

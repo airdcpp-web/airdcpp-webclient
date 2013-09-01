@@ -1038,7 +1038,7 @@ void UploadManager::clearUserFiles(const UserPtr& aUser, bool lock) {
 	
 	ConditionalWLock l (cs, lock);
 	auto it = find_if(uploadQueue, [&](const UserPtr& u) { return u == aUser; });
-	if(it != uploadQueue.cend()) {
+	if(it != uploadQueue.end()) {
 		for(const auto f: it->files) {
 			fire(UploadManagerListener::QueueItemRemove(), f);
 			f->dec();

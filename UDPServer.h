@@ -36,7 +36,7 @@ public:
 	void disconnect();
 	void listen();
 private:
-	virtual int run() noexcept;
+	virtual int run();
 
 	std::unique_ptr<Socket> socket;
 	string port;
@@ -57,7 +57,7 @@ private:
 
 		PacketProcessor();
 		virtual ~PacketProcessor();
-		virtual int run() noexcept;
+		virtual int run();
 
 		Semaphore s;
 		boost::lockfree::queue<PacketTask*> queue;

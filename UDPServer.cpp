@@ -48,7 +48,7 @@ void UDPServer::listen() {
 	}
 }
 
-void UDPServer::disconnect() noexcept {
+void UDPServer::disconnect() {
 	if(socket.get()) {
 		stop = true;
 		socket->disconnect();

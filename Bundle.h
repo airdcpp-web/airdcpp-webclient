@@ -129,7 +129,7 @@ public:
 
 	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, const string& aToken = Util::emptyString, bool aDirty = true, bool isFileBundle = false) noexcept;
 	Bundle(QueueItemPtr& qi, const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
-	~Bundle();
+	~Bundle() noexcept;
 
 	GETSET(Status, status, Status);
 	GETSET(string, token, Token);
@@ -171,27 +171,27 @@ public:
 	SourceList& getBadSources() { return badSources; }
 
 	/* Misc */
-	bool isFileBundle() const { return fileBundle;}
+	bool isFileBundle() const noexcept { return fileBundle; }
 
-	int64_t getDownloadedBytes() const { return currentDownloaded+finishedSegments; }
-	int64_t getSecondsLeft() const;
+	int64_t getDownloadedBytes() const noexcept { return currentDownloaded + finishedSegments; }
+	int64_t getSecondsLeft() const noexcept;
 
-	string getTarget() { return target; }
-	string getName() const;
+	const string& getTarget() const noexcept { return target; }
+	string getName() const noexcept;
 
-	string getBundleFile() const;
-	void deleteBundleFile();
+	string getBundleFile() const noexcept;
+	void deleteBundleFile() noexcept;
 
-	void setDirty();
-	bool getDirty() const;
-	bool checkRecent();
-	bool isRecent() const { return recent; }
+	void setDirty() noexcept;
+	bool getDirty() const noexcept;
+	bool checkRecent() noexcept;
+	bool isRecent() const noexcept { return recent; }
 
-	string getBundleText();
+	string getBundleText() noexcept;
 
 	/* QueueManager */
-	bool isFailed() const;
-	void save();
+	bool isFailed() const noexcept;
+	void save() noexcept;
 	bool removeQueue(QueueItemPtr& qi, bool finished) noexcept;
 	bool addQueue(QueueItemPtr& qi) noexcept;
 
@@ -200,7 +200,7 @@ public:
 	bool addFinishedItem(QueueItemPtr& qi, bool finished) noexcept;
 	bool removeFinishedItem(QueueItemPtr& qi) noexcept;
 	void finishBundle() noexcept;
-	bool allowHash() const;
+	bool allowHash() const noexcept;
 
 	void clearFinishedNotifications(FinishedNotifyList& fnl) noexcept;
 	bool isFinishedNotified(const UserPtr& aUser) const noexcept;
@@ -212,17 +212,17 @@ public:
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	int countOnlineUsers() const noexcept;
 
-	Priority calculateProgressPriority() const;
+	Priority calculateProgressPriority() const noexcept;
 	multimap<QueueItemPtr, pair<int64_t, double>> getQIBalanceMaps() noexcept;
 	pair<int64_t, double> getPrioInfo() noexcept;
 
-	void increaseSize(int64_t aSize);
-	void decreaseSize(int64_t aSize);
+	void increaseSize(int64_t aSize) noexcept;
+	void decreaseSize(int64_t aSize) noexcept;
 
-	void setTarget(const string& aTarget);
+	void setTarget(const string& aTarget) noexcept;
 
 	void addFinishedSegment(int64_t aSize) noexcept;
-	void removeDownloadedSegment(int64_t aSize);
+	void removeDownloadedSegment(int64_t aSize) noexcept;
 
 	/* DownloadManager */
 	bool addRunningUser(const UserConnection* aSource) noexcept;
@@ -235,21 +235,21 @@ public:
 	void removeDownload(Download* d) noexcept;
 
 	void getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept;
-	void updateSearchMode();
-	bool allowAutoSearch() const;
+	void updateSearchMode() noexcept;
+	bool allowAutoSearch() const noexcept;
 
 	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
 
 	void setDownloadedBytes(int64_t aSize) noexcept;
 
-	void increaseRunning() { running++; }
-	void decreaseRunning() { running--; }
+	void increaseRunning() noexcept { running++; }
+	void decreaseRunning() noexcept { running--; }
 
 	/* Sources*/
 	void getSources(HintedUserList& l) const noexcept;
 	bool isSource(const UserPtr& aUser) const noexcept;
 	bool isBadSource(const UserPtr& aUser) const noexcept;
-	bool isFinished() const { return queueItems.empty(); }
+	bool isFinished() const noexcept { return queueItems.empty(); }
 
 	/** All queue items indexed by user */
 	void addUserQueue(QueueItemPtr& qi) noexcept;

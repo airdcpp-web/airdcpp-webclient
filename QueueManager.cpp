@@ -1941,9 +1941,8 @@ void QueueManager::removeFileSource(QueueItemPtr& q, const UserPtr& aUser, Flags
 		
 		fire(QueueManagerListener::SourcesUpdated(), q);
 
-		BundlePtr b = q->getBundle();
-		if (b) {
-			b->setDirty();
+		if (q->getBundle()) {
+			q->getBundle()->setDirty();
 		}
 	}
 endCheck:
@@ -1956,7 +1955,7 @@ endCheck:
 	}
 }
 
-void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > filterF /*nullptr*/) noexcept {
+void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > excludeF /*nullptr*/) noexcept {
 	// @todo remove from finished items
 	QueueItemList ql;
 
@@ -1964,8 +1963,8 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason, st
 		RLock l(cs);
 		userQueue.getUserQIs(aUser, ql);
 
-		if (filterF) {
-			ql.erase(remove_if(ql.begin(), ql.end(), filterF), ql.end());
+		if (excludeF) {
+			ql.erase(remove_if(ql.begin(), ql.end(), excludeF), ql.end());
 		}
 	}
 
@@ -2144,7 +2143,7 @@ void QueueManager::handleSlowDisconnect(const UserPtr& aUser, const string& aTar
 	switch (SETTING(DL_AUTO_DISCONNECT_MODE)) {
 		case SettingsManager::QUEUE_FILE: removeFileSource(aTarget, aUser, QueueItem::Source::FLAG_SLOW_SOURCE); break;
 		case SettingsManager::QUEUE_BUNDLE: removeBundleSource(aBundle, aUser, QueueItem::Source::FLAG_SLOW_SOURCE); break;
-		case SettingsManager::QUEUE_ALL: removeSource(aUser, QueueItem::Source::FLAG_SLOW_SOURCE, [](const QueueItemPtr& aQI) { return aQI->getSources().size() > 1; }); break;
+		case SettingsManager::QUEUE_ALL: removeSource(aUser, QueueItem::Source::FLAG_SLOW_SOURCE, [](const QueueItemPtr& aQI) { return aQI->getSources().size() <= 1; }); break;
 	}
 }
 

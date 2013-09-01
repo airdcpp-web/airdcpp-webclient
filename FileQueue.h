@@ -36,21 +36,21 @@ public:
 	FileQueue() : queueSize(0) { }
 	~FileQueue();
 
-	void getBloom(HashBloom& bloom) const;
+	void getBloom(HashBloom& bloom) const noexcept;
 	void decreaseSize(uint64_t aSize) { queueSize -= aSize; }
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItemPtr> > PFSSourceList;
 
-	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi);
+	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi) noexcept;
 	pair<QueueItemPtr, bool> add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItemBase::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
-	QueueItemPtr findFile(const string& target) noexcept;
-	void findFiles(const TTHValue& tth, QueueItemList& ql) noexcept;
-	void matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql);
-	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql);
-	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql, const QueueItem::StringMultiMap& qsm);
+	QueueItemPtr findFile(const string& target) const noexcept;
+	void findFiles(const TTHValue& tth, QueueItemList& ql) const noexcept;
+	void matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) const noexcept;
+	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql) const noexcept;
+	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql, const QueueItem::StringMultiMap& qsm) const noexcept;
 
 	// find some PFS sources to exchange parts info
-	void findPFSSources(PFSSourceList&);
+	void findPFSSources(PFSSourceList&) noexcept;
 
 	size_t getSize() noexcept { return queue.size(); }
 	QueueItem::StringMap& getQueue() noexcept { return queue; }

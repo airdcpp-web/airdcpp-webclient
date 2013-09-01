@@ -17,7 +17,6 @@
  */
 
 #include "stdinc.h"
-#include "boost\regex.hpp"
 
 #include "FileQueue.h"
 #include "SettingsManager.h"
@@ -37,7 +36,7 @@ using boost::range::copy;
 
 FileQueue::~FileQueue() { }
 
-void FileQueue::getBloom(HashBloom& bloom) const {
+void FileQueue::getBloom(HashBloom& bloom) const noexcept {
 	for(auto& i: tthIndex) {
 		if (i.second->getBundle()) {
 			bloom.add(*i.first);
@@ -88,16 +87,16 @@ void FileQueue::remove(QueueItemPtr& qi) noexcept {
 	}
 }
 
-QueueItemPtr FileQueue::findFile(const string& target) noexcept {
+QueueItemPtr FileQueue::findFile(const string& target) const noexcept {
 	auto i = queue.find(const_cast<string*>(&target));
 	return (i == queue.end()) ? nullptr : i->second;
 }
 
-void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) noexcept {
+void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) const noexcept {
 	copy(tthIndex.equal_range(const_cast<TTHValue*>(&tth)) | map_values, back_inserter(ql));
 }
 
-void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) {
+void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) const noexcept {
 	if (SettingsManager::lanMode) {
 		QueueItem::StringMultiMap qsm;
 		for(auto& q: tthIndex | map_values) {
@@ -109,22 +108,22 @@ void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemLi
 	}
 }
 
-void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql) {
-	for(auto& d: dir->directories) {
+void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql) const noexcept {
+	for(const auto& d: dir->directories) {
 		if(!d->getAdls())
 			matchDir(d, ql);
 	}
 
-	for(auto& f: dir->files) {
+	for(const auto& f: dir->files) {
 		auto tp = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
-		for(auto& q: tp | map_values) {
-			if (!q->isFinished() && q->getSize() == f->getSize() && find_if(ql, CompareSecond<string, QueueItemPtr>(q)) == ql.end()) 
-				ql.emplace_back(Util::emptyString, q); 
-		}
+		for_each(tp, [f, &ql](const pair<TTHValue*, QueueItemPtr>& tqp) {
+			if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && find_if(ql, CompareSecond<string, QueueItemPtr>(tqp.second)) == ql.end())
+				ql.emplace_back(Util::emptyString, tqp.second);
+		});
 	}
 }
 
-void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql, const QueueItem::StringMultiMap& qsm) {
+void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql, const QueueItem::StringMultiMap& qsm) const noexcept {
 	for(auto& d: dir->directories) {
 		if(!d->getAdls())
 			matchDir(d, ql, qsm);
@@ -132,7 +131,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory* dir, QueueItem::Stri
 
 	for(auto& f: dir->files) {
 		auto s = qsm.equal_range(f->getName());
-		for_each(s, [f, &ql](const pair<string, QueueItemPtr> tqp) {
+		for_each(s, [f, &ql](const pair<string, QueueItemPtr>& tqp) {
 			if (tqp.second->getSize() == f->getSize() && !tqp.second->isFinished() && boost::find_if(ql, CompareSecond<string, QueueItemPtr>(tqp.second)) == ql.end()) 
 				ql.emplace_back(f->getPath(), tqp.second); 
 		});

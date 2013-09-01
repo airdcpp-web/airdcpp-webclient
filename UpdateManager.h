@@ -99,7 +99,7 @@ public:
 	void checkAdditionalUpdates(bool manualCheck);
 private:
 	uint64_t lastIPUpdate;
-	static uint8_t publicKey[];
+	static uint8_t publicKey[270];
 
 	string exename;
 	string updateTTH;

@@ -24,13 +24,13 @@
 #include "w.h"
 #include "AirUtil.h"
 
-#ifdef HAVE_NATUPNP_H
+#ifdef HAVE_WINUPNP_H
 #include <ole2.h>
 #include <natupnp.h>
-#else // HAVE_NATUPNP_H
+#else // HAVE_WINUPNP_H
 struct IUPnPNAT { };
 struct IStaticPortMappingCollection { };
-#endif // HAVE_NATUPNP_H
+#endif // HAVE_WINUPNP_H
 
 namespace dcpp {
 
@@ -47,7 +47,7 @@ bool Mapper_WinUPnP::supportsProtocol(bool v6) const {
 	return !v6;
 }
 
-#ifdef HAVE_NATUPNP_H
+#ifdef HAVE_WINUPNP_H
 
 bool Mapper_WinUPnP::init() {
 	HRESULT hr = ::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
@@ -195,7 +195,7 @@ IStaticPortMappingCollection* Mapper_WinUPnP::getStaticPortMappingCollection() {
 	return ret;
 }
 
-#else // HAVE_NATUPNP_H
+#else // HAVE_WINUPNP_H
 
 bool Mapper_WinUPnP::init() {
 	return false;
@@ -224,6 +224,6 @@ IStaticPortMappingCollection* Mapper_WinUPnP::getStaticPortMappingCollection() {
 	return 0;
 }
 
-#endif // HAVE_NATUPNP_H
+#endif // HAVE_WINUPNP_H
 
 } // dcpp namespace

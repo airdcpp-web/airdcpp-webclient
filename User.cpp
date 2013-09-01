@@ -259,80 +259,6 @@ void FavoriteUser::update(const OnlineUser& info) {
 	setUrl(info.getClient().getHubUrl()); 
 }
 
-int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col)  {
-	if(col == COLUMN_NICK) {
-		bool a_isOp = a->getIdentity().isOp(),
-			b_isOp = b->getIdentity().isOp();
-		if(a_isOp && !b_isOp)
-			return -1;
-		if(!a_isOp && b_isOp)
-			return 1;
-		if(SETTING(SORT_FAVUSERS_FIRST)) {
-			bool a_isFav = a->getUser()->isFavorite(),
-				b_isFav = b->getUser()->isFavorite();
-
-			if(a_isFav && !b_isFav)
-				return -1;
-			if(!a_isFav && b_isFav)
-				return 1;
-		}
-		// workaround for faster hub loading
-		// lstrcmpiA(a->identity.getNick().c_str(), b->identity.getNick().c_str());
-	}
-	switch(col) {
-		case COLUMN_SHARED:
-		case COLUMN_EXACT_SHARED: return compare(a->identity.getBytesShared(), b->identity.getBytesShared());
-		case COLUMN_SLOTS: return compare(Util::toInt(a->identity.get("SL")), Util::toInt(b->identity.get("SL")));
-		case COLUMN_HUBS: return compare(a->identity.getTotalHubCount(), b->identity.getTotalHubCount());
-		case COLUMN_FILES: return compare(Util::toInt64(a->identity.get("SF")), Util::toInt64(b->identity.get("SF")));
-	}
-	return Util::DefaultSort(a->getText(col).c_str(), b->getText(col).c_str());
-}
-
-tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
-	switch(col) {
-		case COLUMN_NICK: return Text::toT(identity.getNick());
-		case COLUMN_SHARED: return Util::formatBytesW(identity.getBytesShared());
-		case COLUMN_EXACT_SHARED: return Util::formatExactSize(identity.getBytesShared());
-		case COLUMN_DESCRIPTION: return Text::toT(identity.getDescription());
-		case COLUMN_TAG: return Text::toT(identity.getTag());
-		case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getNmdcConnection()) : (Util::formatConnectionSpeedW(identity.getAdcConnectionSpeed(false)));
-		case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Util::formatConnectionSpeedW(identity.getAdcConnectionSpeed(true)));
-		case COLUMN_IP4: {
-			string ip = identity.getIp4();
-			if (!copy) {
-				string country = ip.empty() ? Util::emptyString : identity.getCountry();
-				if (!country.empty())
-					ip = country + " (" + ip + ")";
-			}
-			return Text::toT(ip);
-		}
-		case COLUMN_IP6: {
-			string ip = identity.getIp6();
-			if (!copy) {
-				string country = ip.empty() ? Util::emptyString : identity.getCountry();
-				if (!country.empty())
-					ip = country + " (" + ip + ")";
-			}
-			return Text::toT(ip);
-		}
-		case COLUMN_EMAIL: return Text::toT(identity.getEmail());
-		case COLUMN_VERSION: return Text::toT(identity.get("CL").empty() ? identity.get("VE") : identity.get("CL"));
-		case COLUMN_MODE4: return Text::toT(identity.getV4ModeString());
-		case COLUMN_MODE6: return Text::toT(identity.getV6ModeString());
-		case COLUMN_FILES: return Text::toT(identity.get("SF"));
-		case COLUMN_HUBS: {
-			const tstring hn = Text::toT(identity.get("HN"));
-			const tstring hr = Text::toT(identity.get("HR"));
-			const tstring ho = Text::toT(identity.get("HO"));
-			return (hn.empty() || hr.empty() || ho.empty()) ? Util::emptyStringT : (hn + _T("/") + hr + _T("/") + ho);
-		}
-		case COLUMN_SLOTS: return Text::toT(identity.get("SL"));
-		case COLUMN_CID: return Text::toT(identity.getUser()->getCID().toBase32());
-		default: return Util::emptyStringT;
-	}
-}
-
 bool Identity::updateConnectMode(const Identity& me, const Client* aClient) {
 	Mode newMode = MODE_NOCONNECT_IP;
 	bool meSupports6 = !me.getIp6().empty();
@@ -387,18 +313,6 @@ bool Identity::allowV4Connections() const {
 	return connectMode == MODE_PASSIVE_V4 || connectMode == MODE_ACTIVE_V4 || connectMode == MODE_PASSIVE_V4_UNKNOWN;
 }
 
-bool OnlineUser::update(int sortCol, const tstring& oldText) {
-	bool needsSort = ((identity.get("WO").empty() ? false : true) != identity.isOp());
-	
-	if(sortCol == -1) {
-		isInList = true;
-	} else {
-		needsSort = needsSort || (oldText != getText(static_cast<uint8_t>(sortCol)));
-	}
-
-	return needsSort;
-}
-
 const string& OnlineUser::getHubUrl() const { 
 	return getClient().getHubUrl();
 }
@@ -409,6 +323,26 @@ bool OnlineUser::NickSort::operator()(const OnlineUserPtr& left, const OnlineUse
 
 string OnlineUser::HubName::operator()(const OnlineUserPtr& u) { 
 	return u->getClientBase().getHubName(); 
+}
+
+void User::addQueued(int64_t inc) {
+	queued += inc;
+}
+
+void User::removeQueued(int64_t rm) {
+	queued -= rm;
+	dcassert(queued >= 0);
+}
+
+string OnlineUser::getLogPath() {
+	ParamMap params;
+	params["userNI"] = [this] { return getIdentity().getNick(); };
+	params["hubNI"] = [this] { return getClient().getHubName(); };
+	params["myNI"] = [this] { return getClient().getMyNick(); };
+	params["userCID"] = [this] { return getUser()->getCID().toBase32(); };
+	params["hubURL"] = [this] { return getClient().getHubUrl(); };
+
+	return LogManager::getInstance()->getPath(getUser(), params);
 }
 
 uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
@@ -447,24 +381,92 @@ uint8_t UserInfoBase::getImage(const Identity& identity, const Client* c) {
 	return image;
 }
 
-string OnlineUser::getLogPath() {
-	ParamMap params;
-	params["userNI"] = [this] { return getIdentity().getNick(); };
-	params["hubNI"] = [this] { return getClient().getHubName(); };
-	params["myNI"] = [this] { return getClient().getMyNick(); };
-	params["userCID"] = [this] { return getUser()->getCID().toBase32(); };
-	params["hubURL"] = [this] { return getClient().getHubUrl(); };
+#ifdef _WIN32
+int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col) {
+	if (col == COLUMN_NICK) {
+		bool a_isOp = a->getIdentity().isOp(),
+			b_isOp = b->getIdentity().isOp();
+		if (a_isOp && !b_isOp)
+			return -1;
+		if (!a_isOp && b_isOp)
+			return 1;
+		if (SETTING(SORT_FAVUSERS_FIRST)) {
+			bool a_isFav = a->getUser()->isFavorite(),
+				b_isFav = b->getUser()->isFavorite();
 
-	return LogManager::getInstance()->getPath(getUser(), params);
+			if (a_isFav && !b_isFav)
+				return -1;
+			if (!a_isFav && b_isFav)
+				return 1;
+		}
+		// workaround for faster hub loading
+		// lstrcmpiA(a->identity.getNick().c_str(), b->identity.getNick().c_str());
+	}
+	switch (col) {
+	case COLUMN_SHARED:
+	case COLUMN_EXACT_SHARED: return compare(a->identity.getBytesShared(), b->identity.getBytesShared());
+	case COLUMN_SLOTS: return compare(Util::toInt(a->identity.get("SL")), Util::toInt(b->identity.get("SL")));
+	case COLUMN_HUBS: return compare(a->identity.getTotalHubCount(), b->identity.getTotalHubCount());
+	case COLUMN_FILES: return compare(Util::toInt64(a->identity.get("SF")), Util::toInt64(b->identity.get("SF")));
+	}
+	return Util::DefaultSort(a->getText(col).c_str(), b->getText(col).c_str());
 }
 
-void User::addQueued(int64_t inc) {
-	queued += inc;
+bool OnlineUser::update(int sortCol, const tstring& oldText) {
+	bool needsSort = ((identity.get("WO").empty() ? false : true) != identity.isOp());
+
+	if (sortCol == -1) {
+		isInList = true;
+	} else {
+		needsSort = needsSort || (oldText != getText(static_cast<uint8_t>(sortCol)));
+	}
+
+	return needsSort;
 }
 
-void User::removeQueued(int64_t rm) {
-	queued -= rm;
-	dcassert(queued >= 0);
+tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
+	switch (col) {
+	case COLUMN_NICK: return Text::toT(identity.getNick());
+	case COLUMN_SHARED: return Util::formatBytesW(identity.getBytesShared());
+	case COLUMN_EXACT_SHARED: return Util::formatExactSize(identity.getBytesShared());
+	case COLUMN_DESCRIPTION: return Text::toT(identity.getDescription());
+	case COLUMN_TAG: return Text::toT(identity.getTag());
+	case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getNmdcConnection()) : (Util::formatConnectionSpeedW(identity.getAdcConnectionSpeed(false)));
+	case COLUMN_DLSPEED: return identity.get("DS").empty() ? Util::emptyStringT : (Util::formatConnectionSpeedW(identity.getAdcConnectionSpeed(true)));
+	case COLUMN_IP4: {
+		string ip = identity.getIp4();
+		if (!copy) {
+			string country = ip.empty() ? Util::emptyString : identity.getCountry();
+			if (!country.empty())
+				ip = country + " (" + ip + ")";
+		}
+		return Text::toT(ip);
+		}
+	case COLUMN_IP6: {
+		string ip = identity.getIp6();
+		if (!copy) {
+			string country = ip.empty() ? Util::emptyString : identity.getCountry();
+			if (!country.empty())
+				ip = country + " (" + ip + ")";
+		}
+		return Text::toT(ip);
+		}
+	case COLUMN_EMAIL: return Text::toT(identity.getEmail());
+	case COLUMN_VERSION: return Text::toT(identity.get("CL").empty() ? identity.get("VE") : identity.get("CL"));
+	case COLUMN_MODE4: return Text::toT(identity.getV4ModeString());
+	case COLUMN_MODE6: return Text::toT(identity.getV6ModeString());
+	case COLUMN_FILES: return Text::toT(identity.get("SF"));
+	case COLUMN_HUBS: {
+		const tstring hn = Text::toT(identity.get("HN"));
+		const tstring hr = Text::toT(identity.get("HR"));
+		const tstring ho = Text::toT(identity.get("HO"));
+		return (hn.empty() || hr.empty() || ho.empty()) ? Util::emptyStringT : (hn + _T("/") + hr + _T("/") + ho);
+		}
+	case COLUMN_SLOTS: return Text::toT(identity.get("SL"));
+	case COLUMN_CID: return Text::toT(identity.getUser()->getCID().toBase32());
+	default: return Util::emptyStringT;
+	}
 }
+#endif
 
 } // namespace dcpp

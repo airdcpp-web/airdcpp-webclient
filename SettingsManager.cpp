@@ -387,12 +387,14 @@ SettingsManager::SettingsManager()
 	setDefault(SEARCH_PASSIVE, false);
 	setDefault(TOOLBAR, "0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,16,17,-1,19,20,21,22,23");
 	setDefault(MEDIATOOLBAR, "0,-1,1,-1,2,3,4,5,6,7,8,9,-1");
-	setDefault(SEARCH_ALTERNATE_COLOUR, RGB(255,200,0));
 	setDefault(AUTO_PRIORITY_DEFAULT, false);
 	setDefault(TOOLBARIMAGE,"");
 	setDefault(TOOLBARHOTIMAGE,"");
 	setDefault(REMOVE_FORBIDDEN, true);
 	setDefault(EXTRA_DOWNLOAD_SLOTS, 3);
+
+#ifdef _WIN32
+	setDefault(SEARCH_ALTERNATE_COLOUR, RGB(255, 200, 0));
 
 	setDefault(BACKGROUND_COLOR, RGB(255, 255, 255));
 	setDefault(TEXT_COLOR, RGB(0,0,0));
@@ -505,6 +507,50 @@ SettingsManager::SettingsManager()
 	setDefault(MENUBAR_RIGHT_COLOR, RGB(0, 34, 102));
 	setDefault(MENUBAR_BUMPED, true);
 
+	setDefault(NORMAL_COLOUR, RGB(0, 0, 0));
+	setDefault(RESERVED_SLOT_COLOR, RGB(0, 51, 0));
+	setDefault(IGNORED_COLOR, RGB(192, 192, 192));
+	setDefault(FAVORITE_COLOR, RGB(51, 51, 255));
+	setDefault(PASIVE_COLOR, RGB(132, 132, 132));
+	setDefault(OP_COLOR, RGB(0, 0, 205));
+
+	setDefault(MAIN_WINDOW_STATE, SW_SHOWNORMAL);
+	setDefault(MAIN_WINDOW_SIZE_X, CW_USEDEFAULT);
+	setDefault(MAIN_WINDOW_SIZE_Y, CW_USEDEFAULT);
+	setDefault(MAIN_WINDOW_POS_X, CW_USEDEFAULT);
+	setDefault(MAIN_WINDOW_POS_Y, CW_USEDEFAULT);
+	setDefault(MDI_MAXIMIZED, true);
+	setDefault(UPLOAD_BAR_COLOR, RGB(205, 60, 55));
+	setDefault(DOWNLOAD_BAR_COLOR, RGB(55, 170, 85));
+	setDefault(PROGRESS_BACK_COLOR, RGB(95, 95, 95));
+	setDefault(PROGRESS_COMPRESS_COLOR, RGB(222, 160, 0));
+	setDefault(PROGRESS_SEGMENT_COLOR, RGB(49, 106, 197));
+	setDefault(COLOR_RUNNING, RGB(0, 150, 0));
+	setDefault(COLOR_DOWNLOADED, RGB(255, 255, 100));
+	setDefault(COLOR_DONE, RGB(222, 160, 0));
+
+	//AirDC   
+	setDefault(TAB_ACTIVE_BG, RGB(130, 211, 244));
+	setDefault(TAB_ACTIVE_TEXT, RGB(0, 0, 0));
+	setDefault(TAB_ACTIVE_BORDER, RGB(0, 0, 0));
+	setDefault(TAB_INACTIVE_BG, RGB(255, 255, 255));
+	setDefault(TAB_INACTIVE_BG_DISCONNECTED, RGB(126, 154, 194));
+	setDefault(TAB_INACTIVE_TEXT, RGB(82, 82, 82));
+	setDefault(TAB_INACTIVE_BORDER, RGB(157, 157, 161));
+	setDefault(TAB_INACTIVE_BG_NOTIFY, RGB(176, 169, 185));
+	setDefault(TAB_DIRTY_BLEND, 10);
+	setDefault(BLEND_TABS, true);
+	setDefault(BACKGROUND_IMAGE, "airdc.jpg");
+	setDefault(TAB_SHOW_ICONS, true);
+	setDefault(TAB_SIZE, 20);
+	setDefault(HUB_BOLD_TABS, true);
+	setDefault(TB_PROGRESS_TEXT_COLOR, RGB(255, 0, 0));
+
+	setDefault(POPUP_BACKCOLOR, RGB(58, 122, 180));
+	setDefault(POPUP_TEXTCOLOR, RGB(0, 0, 0));
+	setDefault(POPUP_TITLE_TEXTCOLOR, RGB(0, 0, 0));
+#endif
+
 	setDefault(REPORT_ALTERNATES, true);	
 
 	setDefault(SOUNDS_DISABLED, false);
@@ -555,12 +601,6 @@ SettingsManager::SettingsManager()
 	setDefault(USERLIST_DBLCLICK, 0);
 	setDefault(TRANSFERLIST_DBLCLICK, 0);
 	setDefault(CHAT_DBLCLICK, 0);	
-	setDefault(NORMAL_COLOUR, RGB(0,0,0));
-	setDefault(RESERVED_SLOT_COLOR, RGB(0,51,0));
-	setDefault(IGNORED_COLOR, RGB(192,192,192));	
-	setDefault(FAVORITE_COLOR, RGB(51,51,255));	
-	setDefault(PASIVE_COLOR, RGB(132,132,132));
-	setDefault(OP_COLOR, RGB(0,0,205));
 	setDefault(HUBFRAME_VISIBLE, "1,1,0,1,0,1,0,0,0,0,0,0");
 	setDefault(DIRECTORYLISTINGFRAME_VISIBLE, "1,1,0,1,1");	
 	setDefault(FINISHED_VISIBLE, "1,1,1,1,1,1,1,1");
@@ -577,38 +617,6 @@ SettingsManager::SettingsManager()
 	setDefault(DISCONNECT_TIME, 40);
 	setDefault(DISCONNECT_FILESIZE, 50);
     setDefault(REMOVE_SPEED, 2);
-
-
-	setDefault(MAIN_WINDOW_STATE, SW_SHOWNORMAL);
-	setDefault(MAIN_WINDOW_SIZE_X, CW_USEDEFAULT);
-	setDefault(MAIN_WINDOW_SIZE_Y, CW_USEDEFAULT);
-	setDefault(MAIN_WINDOW_POS_X, CW_USEDEFAULT);
-	setDefault(MAIN_WINDOW_POS_Y, CW_USEDEFAULT);
-	setDefault(MDI_MAXIMIZED, true);
-	setDefault(UPLOAD_BAR_COLOR, RGB(205, 60, 55));
-	setDefault(DOWNLOAD_BAR_COLOR, RGB(55, 170, 85));
-	setDefault(PROGRESS_BACK_COLOR, RGB(95, 95, 95));
-	setDefault(PROGRESS_COMPRESS_COLOR, RGB(222, 160, 0));
-	setDefault(PROGRESS_SEGMENT_COLOR, RGB(49, 106, 197));
-	setDefault(COLOR_RUNNING, RGB(0, 150, 0));
-	setDefault(COLOR_DOWNLOADED, RGB(255, 255, 100));
-	setDefault(COLOR_DONE, RGB(222, 160, 0));
-
-	//AirDC   
-	setDefault(TAB_ACTIVE_BG, RGB(130, 211, 244));
-	setDefault(TAB_ACTIVE_TEXT, RGB(0, 0, 0));
-	setDefault(TAB_ACTIVE_BORDER, RGB(0, 0, 0));
-	setDefault(TAB_INACTIVE_BG, RGB(255, 255, 255));
-	setDefault(TAB_INACTIVE_BG_DISCONNECTED, RGB(126, 154, 194));
-	setDefault(TAB_INACTIVE_TEXT, RGB(82, 82, 82));
-	setDefault(TAB_INACTIVE_BORDER, RGB(157, 157, 161));
-	setDefault(TAB_INACTIVE_BG_NOTIFY, RGB(176, 169, 185));
-	setDefault(TAB_DIRTY_BLEND, 10);
-	setDefault(BLEND_TABS, true);
-	setDefault(BACKGROUND_IMAGE, "airdc.jpg");
-	setDefault(TAB_SHOW_ICONS, true);
-	setDefault(TAB_SIZE, 20);
-	setDefault(HUB_BOLD_TABS, true);
 	
 	setDefault(SHOW_WINAMP_CONTROL, false);
 	setDefault(MEDIA_PLAYER, 0);
@@ -631,9 +639,6 @@ SettingsManager::SettingsManager()
 	setDefault(PM_PREVIEW, true);
 	setDefault(POPUP_TIME, 5);
 	setDefault(MAX_MSG_LENGTH, 120);
-	setDefault(POPUP_BACKCOLOR, RGB(58, 122, 180));
-	setDefault(POPUP_TEXTCOLOR, RGB(0, 0, 0));
-	setDefault(POPUP_TITLE_TEXTCOLOR, RGB(0, 0, 0));
 	setDefault(SKIPLIST_DOWNLOAD, ".*|*All-Files-CRC-OK*|Descript.ion|thumbs.db|*.bad|*.missing|rushchk.log");
 	setDefault(HIGH_PRIO_FILES, "*.sfv|*.nfo|*sample*|*subs*|*.jpg|*cover*|*.pls|*.m3u");
 	setDefault(FLASH_WINDOW_ON_PM, false);
@@ -730,7 +735,6 @@ SettingsManager::SettingsManager()
 	setDefault(WTB_IMAGE_SIZE, 16);
 	setDefault(SHOW_TBSTATUS, true);
 
-	setDefault(TB_PROGRESS_TEXT_COLOR, RGB(255, 0, 0));
 	setDefault(TB_PROGRESS_FONT, "Arial,-11,400,0");
 	setDefault(LOCK_TB, false);
 	setDefault(POPUNDER_PARTIAL_LIST, false);

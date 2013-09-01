@@ -237,12 +237,15 @@ public:
 	const ClientBase& getClientBase() const { return client; }
 
 	/* UserInfo */
-	bool update(int sortCol, const tstring& oldText = Util::emptyStringT);
 	uint8_t getImageIndex() const { return UserInfoBase::getImage(identity, &getClient()); }
-	static int compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col);
 	bool isHidden() const { return identity.isHidden(); }
-	
+
+#ifdef _WIN32
+	static int compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col);
+	bool update(int sortCol, const tstring& oldText = Util::emptyStringT);
 	tstring getText(uint8_t col, bool copy = false) const;
+#endif
+
 	string getLogPath();
 
 	bool isInList;

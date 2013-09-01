@@ -17,7 +17,7 @@
  */
 
 #include "stdinc.h"
-#include <direct.h>
+//#include <direct.h>
 #include "AirUtil.h"
 #include "Localization.h"
 #include "Util.h"

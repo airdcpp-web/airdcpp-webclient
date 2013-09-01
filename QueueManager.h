@@ -93,7 +93,7 @@ public:
 
 	void removeFile(const string aTarget) noexcept;
 	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
-	void removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > filterF = nullptr) noexcept;
+	void removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > excludeF = nullptr) noexcept;
 
 	void recheck(const string& aTarget);
 

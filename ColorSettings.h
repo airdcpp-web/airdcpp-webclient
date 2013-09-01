@@ -57,7 +57,7 @@ public:
 	GETSET(int, bContext, Context);
 	GETSET(int, bMatchColumn, MatchColumn);
     	
-	void setMatch(tstring match){
+	void setMatch(const tstring& match){
 		if( match.compare(_T("$ts$")) == 0){
 			bTimestamps = true;
 		}else if(match.compare(_T("$users$")) == 0) {

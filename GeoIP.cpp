@@ -25,7 +25,7 @@
 #include "Util.h"
 #include "ZUtils.h"
 
-#include <../geoip/GeoIP.h>
+#include <GeoIP.h>
 
 namespace dcpp {
 
@@ -128,7 +128,7 @@ void GeoIP::open() {
 #ifdef _WIN32
 	geo = GeoIP_open(Text::toT(path).c_str(), GEOIP_STANDARD);
 #else
-	geo = GeoIP_open(path, GEOIP_STANDARD);
+	geo = GeoIP_open(path.c_str(), GEOIP_STANDARD);
 #endif
 	if(geo) {
 		GeoIP_set_charset(geo, GEOIP_CHARSET_UTF8);

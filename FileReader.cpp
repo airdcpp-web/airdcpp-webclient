@@ -25,6 +25,10 @@
 #include "Text.h"
 #include "Util.h"
 
+#ifndef _WIN32
+#include "TimerManager.h"
+#endif
+
 namespace dcpp {
 
 using std::make_pair;

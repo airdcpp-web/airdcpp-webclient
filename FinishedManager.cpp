@@ -31,6 +31,7 @@
 
 namespace dcpp {
 
+#ifdef _WIN32
 const tstring FinishedItem::getText(uint8_t col) const {
 	dcassert(col >= 0 && col < COLUMN_LAST);
 	switch(col) {
@@ -50,6 +51,7 @@ const tstring FinishedItem::getText(uint8_t col) const {
 		default: return Util::emptyStringT;
 	}
 }
+#endif
 
 FinishedManager::FinishedManager() { 
 	QueueManager::getInstance()->addListener(this);

@@ -17,7 +17,6 @@
  */
 
 #include "stdinc.h"
-#include <direct.h>
 
 #include "FavoriteManager.h"
 #include "QueueManager.h"
@@ -25,7 +24,8 @@
 #include "TargetUtil.h"
 
 #ifdef _WIN32
-# include <ShlObj.h>
+#include <ShlObj.h>
+#include <direct.h>
 #else
 # include <dirent.h>
 # include <sys/stat.h>

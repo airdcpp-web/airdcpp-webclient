@@ -41,7 +41,7 @@ using boost::range::find_if;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr& qi, const string& aToken /*empty*/, bool aDirty /*true*/) : 
+Bundle::Bundle(QueueItemPtr& qi, const string& aToken /*empty*/, bool aDirty /*true*/) noexcept : 
 	Bundle(qi->getTarget(), qi->getAdded(), qi->getPriority(), 0, aToken, aDirty, true) {
 
 	finishedSegments = qi->getDownloadedSegments();
@@ -52,7 +52,7 @@ Bundle::Bundle(QueueItemPtr& qi, const string& aToken /*empty*/, bool aDirty /*t
 	queueItems.push_back(qi);
 }
 
-Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority,  time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) : 
+Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
 	QueueItemBase(aTarget, 0, aPriority, aAdded), status(STATUS_NEW), 
 	fileBundle(isFileBundle), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true),
 	dirty(aDirty), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), lastSearch(0) {
@@ -86,35 +86,35 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority,  time_t
 		setFlag(FLAG_AUTODROP);
 }
 
-Bundle::~Bundle() {
+Bundle::~Bundle() noexcept {
 	ConnectionManager::getInstance()->tokens.removeToken(token);
 }
 
-void Bundle::increaseSize(int64_t aSize) { 
+void Bundle::increaseSize(int64_t aSize) noexcept {
 	size += aSize; 
 }
 
-void Bundle::decreaseSize(int64_t aSize) { 
+void Bundle::decreaseSize(int64_t aSize) noexcept {
 	size -= aSize; 
 }
 
-void Bundle::setTarget(const string& aTarget) {
+void Bundle::setTarget(const string& aTarget) noexcept {
 	target = Util::validateFileName(aTarget);
 	if (!fileBundle && target[target.length()-1] != PATH_SEPARATOR)
 		target += PATH_SEPARATOR;
 }
 
-bool Bundle::checkRecent() {
+bool Bundle::checkRecent() noexcept {
 	recent = (SETTING(RECENT_BUNDLE_HOURS) > 0 && (dirDate + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > GET_TIME());
 	return recent;
 }
 
-bool Bundle::allowHash() const {
+bool Bundle::allowHash() const noexcept {
 	return status != STATUS_HASHING && queueItems.empty() && find_if(finishedFiles, [](const QueueItemPtr& q) { 
 		return !q->isSet(QueueItem::FLAG_MOVED); }) == finishedFiles.end();
 }
 
-void Bundle::setDownloadedBytes(int64_t aSize) {
+void Bundle::setDownloadedBytes(int64_t aSize) noexcept {
 	dcassert(aSize + finishedSegments <= size);
 	//dcassert(((aSize + finishedSegments)) >= currentDownloaded);
 	dcassert(((aSize + finishedSegments)) >= 0);
@@ -122,7 +122,7 @@ void Bundle::setDownloadedBytes(int64_t aSize) {
 	dcassert(currentDownloaded <= size);
 }
 
-void Bundle::addFinishedSegment(int64_t aSize) {
+void Bundle::addFinishedSegment(int64_t aSize) noexcept {
 #ifdef _DEBUG
 	int64_t tmp1 = accumulate(queueItems, (int64_t)0, [&](int64_t old, const QueueItemPtr& qi) {
 		return old + qi->getDownloadedSegments(); 
@@ -142,7 +142,7 @@ void Bundle::addFinishedSegment(int64_t aSize) {
 	setDirty();
 }
 
-void Bundle::removeDownloadedSegment(int64_t aSize) {
+void Bundle::removeDownloadedSegment(int64_t aSize) noexcept {
 	dcassert(finishedSegments - aSize >= 0);
 	finishedSegments -= aSize;
 	dcassert(finishedSegments <= size);
@@ -154,11 +154,11 @@ void Bundle::finishBundle() noexcept {
 	currentDownloaded = 0;
 }
 
-int64_t Bundle::getSecondsLeft() const {
+int64_t Bundle::getSecondsLeft() const noexcept {
 	return (speed > 0) ? static_cast<int64_t>((size - (currentDownloaded+finishedSegments)) / speed) : 0;
 }
 
-string Bundle::getName() const {
+string Bundle::getName() const noexcept  {
 	if (!fileBundle) {
 		return Util::getLastDir(target);
 	} else {
@@ -166,28 +166,28 @@ string Bundle::getName() const {
 	}
 }
 
-void Bundle::setDirty() {
+void Bundle::setDirty() noexcept {
 	if (status != STATUS_NEW)
 		dirty = true;
 }
 
-bool Bundle::getDirty() const {
+bool Bundle::getDirty() const noexcept {
 	if (status == STATUS_NEW)
 		return false; //don't save bundles that are currently being added
 
 	return dirty; 
 }
 
-QueueItemPtr Bundle::findQI(const string& aTarget) const {
+QueueItemPtr Bundle::findQI(const string& aTarget) const noexcept {
 	auto p = find_if(queueItems, [&aTarget](const QueueItemPtr& q) { return q->getTarget() == aTarget; });
 	return p != queueItems.end() ? *p : nullptr;
 }
 
-string Bundle::getBundleFile() const {
+string Bundle::getBundleFile() const noexcept {
 	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + token + ".xml";
 }
 
-void Bundle::deleteBundleFile() {
+void Bundle::deleteBundleFile() noexcept {
 	try {
 		File::deleteFile(getBundleFile() + ".bak");
 		File::deleteFile(getBundleFile());
@@ -205,7 +205,7 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 	}
 }
 
-bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) {
+bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) noexcept {
 	finishedFiles.push_back(qi);
 	if (!finished) {
 		qi->setFlag(QueueItem::FLAG_MOVED);
@@ -223,7 +223,7 @@ bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) {
 	return false;
 }
 
-bool Bundle::removeFinishedItem(QueueItemPtr& qi) {
+bool Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
 	int pos = 0;
 	for (auto& fqi: finishedFiles) {
 		if (fqi == qi) {
@@ -245,7 +245,7 @@ bool Bundle::removeFinishedItem(QueueItemPtr& qi) {
 	return false;
 }
 
-bool Bundle::addQueue(QueueItemPtr& qi) {
+bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
 	dcassert(find(queueItems, qi) == queueItems.end());
 	qi->setBundle(this);
 	queueItems.push_back(qi);
@@ -260,7 +260,7 @@ bool Bundle::addQueue(QueueItemPtr& qi) {
 	return false;
 }
 
-bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) {
+bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
 	int pos = 0;
 	for (auto& cur: queueItems) {
 		if (cur == qi) {
@@ -290,20 +290,20 @@ bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) {
 	return false;
 }
 
-bool Bundle::isSource(const UserPtr& aUser) const {
+bool Bundle::isSource(const UserPtr& aUser) const noexcept {
 	return find(sources, aUser) != sources.end();
 }
 
-bool Bundle::isBadSource(const UserPtr& aUser) const {
+bool Bundle::isBadSource(const UserPtr& aUser) const noexcept  {
 	return find(badSources, aUser) != badSources.end();
 }
 
-void Bundle::addUserQueue(QueueItemPtr& qi) {
+void Bundle::addUserQueue(QueueItemPtr& qi) noexcept {
 	for(auto& s: qi->getSources())
 		addUserQueue(qi, s.getUser());
 }
 
-bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) {
+bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) noexcept {
 	auto& l = userQueue[qi->getPriority()][aUser.user];
 	dcassert(find(l, qi) == l.end());
 
@@ -344,7 +344,7 @@ bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad 
 	}
 }
 
-QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) {
+QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept {
 	int p = QueueItem::LAST - 1;
 	do {
 		auto i = userQueue[p].find(aUser);
@@ -362,29 +362,29 @@ QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& onl
 	return nullptr;
 }
 
-bool Bundle::isFinishedNotified(const UserPtr& aUser) const {
+bool Bundle::isFinishedNotified(const UserPtr& aUser) const noexcept {
 	return find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
 }
 
-void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) {
+void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept {
 	if (!isFinishedNotified(aUser.user) && !isBadSource(aUser)) {
 		finishedNotifications.emplace_back(aUser, remoteBundle);
 	}
 }
 
-void Bundle::removeFinishedNotify(const UserPtr& aUser) {
+void Bundle::removeFinishedNotify(const UserPtr& aUser) noexcept {
 	auto p = find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; });
 	if (p != finishedNotifications.end()) {
 		finishedNotifications.erase(p);
 	}
 }
 
-void Bundle::getSources(HintedUserList& l) const {
+void Bundle::getSources(HintedUserList& l) const noexcept {
 	for(auto& st: sources) 
 		l.push_back(st.user);
 }
 
-void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
+void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const noexcept {
 	if (aDir == target) {
 		ql = queueItems;
 		return;
@@ -397,11 +397,11 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const {
 	}
 }
 
-bool Bundle::isFailed() const {
+bool Bundle::isFailed() const noexcept {
 	return status == STATUS_SHARING_FAILED || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED;
 }
 
-string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const {
+string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept {
 	/* returns the local path for nmdc and the remote path for adc */
 	string remoteDir = move(Util::getFilePath(aRemoteFile));
 	string bundleDir = move(Util::getFilePath(aLocalFile));
@@ -606,7 +606,7 @@ void Bundle::clearFinishedNotifications(FinishedNotifyList& fnl) noexcept {
 	finishedNotifications.swap(fnl);
 }
 
-bool Bundle::allowAutoSearch() const {
+bool Bundle::allowAutoSearch() const noexcept {
 	if (isSet(FLAG_SCHEDULE_SEARCH))
 		return false; // handle this via bundle updates
 
@@ -669,7 +669,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 	}
 }
 
-void Bundle::updateSearchMode() {
+void Bundle::updateSearchMode() noexcept {
 	StringList searches;
 	for (auto& i: bundleDirs | map_keys) {
 		string dir = Util::getReleaseDir(i, false);
@@ -908,7 +908,7 @@ void Bundle::sendSizeNameUpdate() noexcept {
 /* ONLY CALLED FROM DOWNLOADMANAGER END */
 
 
-void Bundle::save() {
+void Bundle::save() noexcept {
 	File ff(getBundleFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 	BufferedOutputStream<false> f(&ff);
 	f.write(SimpleXML::utf8Header);

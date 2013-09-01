@@ -53,14 +53,16 @@ public:
 	{
 	}
 
+#ifdef _WIN32
 	const tstring getText(uint8_t col) const;
 	static int compareItems(const FinishedItem* a, const FinishedItem* b, uint8_t col) {
-		switch(col) {
-			case COLUMN_SPEED:	return compare(a->getAvgSpeed(), b->getAvgSpeed());
-			case COLUMN_SIZE:	return compare(a->getSize(), b->getSize());
-			default:			return Util::stricmp(a->getText(col).c_str(), b->getText(col).c_str());
+		switch (col) {
+		case COLUMN_SPEED:	return compare(a->getAvgSpeed(), b->getAvgSpeed());
+		case COLUMN_SIZE:	return compare(a->getSize(), b->getSize());
+		default:			return Util::stricmp(a->getText(col).c_str(), b->getText(col).c_str());
 		}
 	}
+#endif
 	int getImageIndex() const;
 
 	GETSET(string, target, Target);
