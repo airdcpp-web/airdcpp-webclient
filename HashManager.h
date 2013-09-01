@@ -128,7 +128,7 @@ private:
 	public:
 		Hasher(bool isPaused, int aHasherID);
 
-		void hashFile(const string& filePath, string&& filePathLower, int64_t size, string&& devID);
+		bool hashFile(const string& filePath, string&& filePathLower, int64_t size, string&& devID);
 
 		/// @return whether hashing was already paused
 		bool pause();
@@ -142,9 +142,10 @@ private:
 		void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed);
 		void shutdown();
 
+		bool hasFile(const string& aPath) const;
 		bool getPathVolume(const string& aPath, string& vol_) const;
 		bool hasDevice(const string& aID) const { return devices.find(aID) != devices.end(); }
-		bool hasDevices() { return !devices.empty(); }
+		bool hasDevices() const { return !devices.empty(); }
 		int64_t getTimeLeft() const;
 
 		int64_t getBytesLeft() const { return totalBytesLeft; }
@@ -268,7 +269,7 @@ private:
 
 	friend class HashLoader;
 
-	void hashFile(const string& filePath, string&& pathLower, int64_t size);
+	bool hashFile(const string& filePath, string&& pathLower, int64_t size);
 	bool aShutdown;
 
 	typedef vector<Hasher*> HasherList;

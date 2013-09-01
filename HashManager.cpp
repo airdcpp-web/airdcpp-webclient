@@ -95,9 +95,13 @@ bool HashManager::Hasher::getPathVolume(const string& aPath, string& vol_) const
 	return false;
 }
 
-void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t size) {
+bool HashManager::Hasher::hasFile(const string& aPath) const {
+	return w.find(aPath) != w.end();
+}
+
+bool HashManager::hashFile(const string& filePath, string&& pathLower, int64_t size) {
 	if(aShutdown) //we cant allow adding more hashers if we are shutting down, it will result in infinite loop
-		return;
+		return false;
 
 	Hasher* h = nullptr;
 
@@ -137,10 +141,18 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 				//we just need choose from all hashers
 				h = *getLeastLoaded(hashers);
 			} else if (!volHashers.empty()) {
+				//check that the file isn't queued already
+				auto p = find_if(volHashers, [&pathLower](const Hasher* aHasher) { return aHasher->hasFile(pathLower); });
+				if (p != volHashers.end()) {
+					return false;
+				}
+
 				auto minLoaded = getLeastLoaded(volHashers);
 
 				//don't create new hashers if the file is less than 10 megabytes and there's a hasher with less than 200MB queued, or the maximum number of threads have been reached for this volume
-				if (static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS) || (static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) && SETTING(HASHERS_PER_VOLUME) > 0) || (size <= Util::convertSize(10, Util::MB) && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= Util::convertSize(200, Util::MB))) {
+				if (static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS) || (static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) && 
+					SETTING(HASHERS_PER_VOLUME) > 0) || (size <= Util::convertSize(10, Util::MB) && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= Util::convertSize(200, Util::MB))) {
+
 					//use the least loaded hasher that already has this volume
 					h = *minLoaded;
 				}
@@ -163,7 +175,7 @@ void HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 	}
 
 	//queue the file for hashing
-	h->hashFile(filePath, move(pathLower), size, move(vol));
+	return h->hashFile(filePath, move(pathLower), size, move(vol));
 }
 
 void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void (int64_t, const string&)> updateF/*nullptr*/) {
@@ -923,14 +935,17 @@ HashManager::HashStore::~HashStore() {
 	closeDb();
 }
 
-void HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) {
+bool HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) {
 	//always locked
 	auto ret = w.emplace_sorted(filePathLower, fileName, size, devID);
 	if (ret.second) {
 		devices[(*ret.first).devID]++; 
 		totalBytesLeft += size;
 		s.signal();
+		return true;
 	}
+
+	return false;
 }
 
 bool HashManager::Hasher::pause() {
