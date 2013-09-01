@@ -21,14 +21,8 @@
 
 #include "Streams.h"
 
-#ifdef _WIN32
-#include "w.h"
-#else
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
+#ifndef _WIN32
 #include <dirent.h>
-#include <fnmatch.h>
 #endif
 
 namespace dcpp {

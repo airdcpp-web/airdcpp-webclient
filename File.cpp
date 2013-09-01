@@ -19,6 +19,17 @@
 #include "stdinc.h"
 #include "File.h"
 
+#ifdef _WIN32
+#include "w.h"
+#else
+#include <sys/stat.h>
+#include <sys/statvfs.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <dirent.h>
+#include <fnmatch.h>
+#endif
+
 namespace dcpp {
 
 #ifdef _WIN32
@@ -311,8 +322,8 @@ int64_t File::getFreeSpace(const string& aPath) {
 
 int64_t File::getBlockSize(const string& aFileName) noexcept {
 	DWORD sectorBytes, clusterSectors, tmp2, tmp3;
-	GetDiskFreeSpace(Text::toT(aFileName).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
-	return static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors);
+	auto ret = GetDiskFreeSpace(Text::toT(aFileName).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
+	return ret > 0 ? static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors) : 4096;
 }
 
 #else // !_WIN32
@@ -520,13 +531,23 @@ bool File::isAbsolute(const string& path) noexcept {
 	return path.size() > 1 && path[0] == '/';
 }
 
-int64_t File::getFreeSpace(const string& aPath) {
-	int64_t ret = 0;
+int64_t File::getFreeSpace(const string& aFileName) {
+	struct statvfs sfs;
+	if (statvfs(Text::fromUtf8(aFileName).c_str(), &sfs) == -1) {
+		return -1;
+	}
+
+	int64_t ret = (int64_t)sfs.f_bsize * (int64_t)sfs.f_bfree;
 	return ret;
 }
 
 int64_t File::getBlockSize(const string& aFileName) noexcept {
-	return 0;
+	struct stat statbuf;
+	if (stat(Text::fromUtf8(aFileName).c_str(), &statbuf) == -1) {
+		return 4096;
+	}
+
+	return statbuf.st_size;
 }
 
 #endif // !_WIN32

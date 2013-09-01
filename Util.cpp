@@ -725,9 +725,9 @@ wstring Util::formatBytesW(int64_t aBytes) {
 
 int64_t Util::convertSize(int64_t aValue, Util::SizeUnits valueType, Util::SizeUnits to /*B*/) {
 	if (valueType > to) {
-		return aValue * 1024LL * static_cast<int64_t>(valueType - to);
+		return aValue * pow(1024LL, static_cast<int64_t>(valueType - to));
 	} else if (valueType < to) {
-		return aValue / (static_cast<int64_t>(to - valueType) * 1024LL);
+		return aValue / pow(1024LL, static_cast<int64_t>(to - valueType));
 	}
 	return aValue;
 }

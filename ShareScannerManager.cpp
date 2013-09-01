@@ -174,14 +174,20 @@ int ShareScannerManager::run() {
 		}
 
 		parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
-			FileFindIter i(s.rootPath, false);
-			if(!i->isHidden()) {
-				if (!matchSkipList(Util::getLastDir(s.rootPath)) && !std::binary_search(bundleDirs.begin(), bundleDirs.end(), s.rootPath)) {
-					scanDir(s.rootPath, s);
-					if(SETTING(CHECK_DUPES) && isDirScan)
-						findDupes(s.rootPath, s);
+			if (!s.rootPath.empty()) {
+#ifdef _WIN32
+				FileFindIter i(s.rootPath.substr(0, s.rootPath.length() - 1), false);
+#else
+				FileFindIter i(s.rootPath, false);
+#endif
+				if (!i->isHidden()) {
+					if (!matchSkipList(Util::getLastDir(s.rootPath)) && !std::binary_search(bundleDirs.begin(), bundleDirs.end(), s.rootPath)) {
+						scanDir(s.rootPath, s);
+						if (SETTING(CHECK_DUPES) && isDirScan)
+							findDupes(s.rootPath, s);
 
-					find(s.rootPath, Text::toLower(s.rootPath), s);
+						find(s.rootPath, Text::toLower(s.rootPath), s);
+					}
 				}
 			}
 		});

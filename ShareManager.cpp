@@ -3865,9 +3865,10 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 		if(SETTING(NO_ZERO_BYTE) && !(size > 0))
 			return false;
 
+		auto tmp = Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB);
 		if (SETTING(MAX_FILE_SIZE_SHARED) != 0 && size > Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB)) {
 			if (report) {
-				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath, LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath + " (" + Util::formatBytes(size) + ")", LogManager::LOG_INFO);
 			}
 			return false;
 		}
