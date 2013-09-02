@@ -23,28 +23,28 @@
 
 /* This vector-like container is optimized for fast lookup and inserting items that are sorted already */
 
-template<typename T, template<class T, class = std::allocator<T> > class ContainerT, class keyType, class SortOperator, class NameOperator>
+template<typename T, template<class V, class = std::allocator<V> > class ContainerT, class keyType, class SortOperator, class NameOperator>
 class SortedVector : public ContainerT<T> {
 
 public:
 	typename ContainerT<T>::iterator it;
 
 	std::pair<typename ContainerT<T>::const_iterator, bool> insert_sorted(const T& aItem) {
-		if (empty()) {
+		if (this->empty()) {
 			this->push_back(aItem);
-			return make_pair(begin(), true);
+			return make_pair(this->begin(), true);
 		} else {
-			int res = SortOperator()(NameOperator()(back()), NameOperator()(aItem));
+			int res = SortOperator()(NameOperator()(this->back()), NameOperator()(aItem));
 			if (res < 0) {
 				this->push_back(aItem);
-				return make_pair(end()-1, true);
+				return make_pair(this->end() - 1, true);
 			} else if (res == 0) {
 				//return the dupe
-				return make_pair(end()-1, false);
+				return make_pair(this->end() - 1, false);
 			}
 		}
 
-		auto p = getPos(begin(), end(), NameOperator()(aItem));
+		auto p = getPos(this->begin(), this->end(), NameOperator()(aItem));
 		if (p.second) {
 			//return the dupe
 			return make_pair(p.first, false);
@@ -57,21 +57,21 @@ public:
 
 	template<typename... ArgT>
 	std::pair<typename ContainerT<T>::const_iterator, bool> emplace_sorted(const keyType& aKey, ArgT&& ... args) {
-		if (empty()) {
+		if (this->empty()) {
 			this->emplace_back(aKey, std::forward<ArgT>(args)...);
-			return make_pair(begin(), true);
+			return make_pair(this->begin(), true);
 		} else {
-			int res = SortOperator()(NameOperator()(back()), aKey);
+			int res = SortOperator()(NameOperator()(this->back()), aKey);
 			if (res < 0) {
 				this->emplace_back(aKey, std::forward<ArgT>(args)...);
-				return make_pair(end()-1, true);
+				return make_pair(this->end() - 1, true);
 			} else if (res == 0) {
 				//return the dupe
-				return make_pair(end()-1, false);
+				return make_pair(this->end() - 1, false);
 			}
 		}
 
-		auto p = getPos(cbegin(), cend(), aKey);
+		auto p = getPos(this->begin(), this->end(), aKey);
 		if (p.second) {
 			//return the dupe
 			return make_pair(p.first, false);
@@ -83,17 +83,17 @@ public:
 	}
 
 	typename ContainerT<T>::const_iterator find(const keyType& aKey) const {
-		auto pos = getPos(cbegin(), cend(), aKey);
-		return pos.second ? pos.first : cend();
+		auto pos = getPos(this->cbegin(), this->cend(), aKey);
+		return pos.second ? pos.first : this->cend();
 	}
 
 	typename ContainerT<T>::iterator find(const keyType& aKey) {
-		auto pos = getPos(begin(), end(), aKey);
-		return pos.second ? pos.first : end();
+		auto pos = getPos(this->begin(), this->end(), aKey);
+		return pos.second ? pos.first : this->end();
 	}
 
 	bool erase_key(const keyType& aKey) {
-		auto pos = getPos(begin(), end(), aKey);
+		auto pos = getPos(this->begin(), this->end(), aKey);
 		if (pos.second) {
 			this->erase(pos.first);
 			return true;

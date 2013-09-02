@@ -65,7 +65,7 @@ public:
 	StringList getHubNames(const HintedUser& user) { return getHubNames(user.user->getCID()); }
 	StringList getHubUrls(const HintedUser& user) { return getHubUrls(user.user->getCID()); }
 
-	StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint);
+	StringPair getNickHubPair(const UserPtr& user, string& hint);
 
 	template<class NameOperator>
 	string formatUserList(const HintedUser& user, bool removeDuplicates) const {
@@ -227,7 +227,7 @@ private:
 	*/
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const;
 
-	void onSearch(const Client* c, const AdcCommand& adc, OnlineUser& from);
+	void onSearch(const Client* c, const AdcCommand& adc, OnlineUser& from) noexcept;
 
 	// ClientListener
 	void on(Connected, const Client* c) noexcept;

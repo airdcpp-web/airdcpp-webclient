@@ -192,7 +192,7 @@ void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
 	FavoriteUser fu = FavoriteUser(aUser, nick, aUser.hint, aUser.user->getCID().toBase32());
 	{
 		WLock l (cs);
-		users.emplace(aUser.user->getCID(), fu).first;
+		users.emplace(aUser.user->getCID(), fu);
 	}
 
 	aUser.user->setFlag(User::FAVORITE);
@@ -937,7 +937,7 @@ optional<string> FavoriteManager::getFailOverUrl(ProfileToken aToken, const stri
 	//removeUserCommand(hubAddress_);
 
 	if (aToken == 0)
-		return false;
+		return nullptr;
 
 	RLock l (cs);
 	auto p = getFavoriteHub(aToken);

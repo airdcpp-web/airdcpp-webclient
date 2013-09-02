@@ -19,7 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_COMPILER_H
 #define DCPLUSPLUS_DCPP_COMPILER_H
 
-#if defined(__GNUC__)
+#if defined (__clang__)
+
+#if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 2)
+#error Clang 3.2 is required
+#endif
+
+#elif defined(__GNUC__)
 
 #ifdef _WIN32
 

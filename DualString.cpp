@@ -140,6 +140,6 @@ string DualString::getNormal() const {
 	return ret;
 }
 
-bool DualString::lowerCaseOnly() const { 
+bool DualString::lowerCaseOnly() const noexcept {
 	return !charSizes; 
 }

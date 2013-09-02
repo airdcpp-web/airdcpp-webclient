@@ -40,22 +40,33 @@ void ResourceManager::loadLanguage(const string& aFile) {
 			h[names[i]] = i;
 		}
 
-		if(xml.findChild("Language")) {
+		string childName = "String";
+		string attribName = "Name";
+		if (xml.findChild("Language")) {
 			rtl = xml.getBoolChildAttrib("RightToLeft");
 
 			xml.stepIn();
-			if(xml.findChild("Strings")) {
+			if (xml.findChild("Strings")) {
 				xml.stepIn();
-
-				while(xml.findChild("String")) {
-					const auto j = h.find(xml.getChildAttrib("Name"));
-					if(j != h.end()) {
-						strings[j->second] = xml.getChildData();
-					}
-				}
-				createWide();
+			}
+		} else {
+			xml.resetCurrentChild();
+			if (xml.findChild("resources")) {
+				xml.stepIn();
+				childName = "string";
+				attribName = "name";
+			} else {
+				throw Exception("Invalid format");
 			}
 		}
+
+		while (xml.findChild(childName)) {
+			const auto j = h.find(xml.getChildAttrib(attribName));
+			if(j != h.end()) {
+				strings[j->second] = xml.getChildData();
+			}
+		}
+		createWide();
 	} catch(const Exception& e) {
 		LogManager::getInstance()->message("Failed to load the language file " + aFile + ": " + e.getError(), LogManager::LOG_ERROR);
 	}
