@@ -34,27 +34,21 @@ string FileList::getFileName() {
 	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + "_" + Util::toString(listN) + ".xml.bz2";
 }
 
-bool FileList::generateNew(bool forced) {
-	cs.mutex.lock();
-
+bool FileList::allowGenerateNew(bool forced) {
 	bool dirty = (forced && xmlDirty) || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK()));
 	if (!dirty) {
-		cs.mutex.unlock();
 		return false;
 	}
 
-	listN++;
 	return true;
 }
 
-void FileList::unsetDirty(bool failed) {
+void FileList::generationFinished(bool failed) {
 	xmlDirty = false;
 	forceXmlRefresh = false;
 	lastXmlUpdate = GET_TICK();
-	if (failed)
-		listN--;
-
-	cs.mutex.unlock();
+	if (!failed)
+		listN++;
 }
 
 void FileList::saveList() {

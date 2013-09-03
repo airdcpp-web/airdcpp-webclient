@@ -59,11 +59,11 @@ class FileList {
 		unique_ptr<File> bzXmlRef;
 		string getFileName();
 
-		bool generateNew(bool force=false);
-		void unsetDirty(bool failed);
+		bool allowGenerateNew(bool force=false);
+		void generationFinished(bool failed);
 		void saveList();
-	private:
 		CriticalSection cs;
+	private:
 		int listN;
 		bool isSavedSuccessfully;
 };

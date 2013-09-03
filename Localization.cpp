@@ -79,67 +79,61 @@ static const char* countryCodes[] = {
 
 namespace dcpp {
 
-	void Localization::Language::setLanguageFile() {
-		SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, getLanguageFilePath());
-	}
+void Localization::Language::setLanguageFile() {
+	SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, getLanguageFilePath());
+}
 
-	string Localization::Language::getLanguageFilePath() {
-		return languageFile.empty() ? Util::emptyString : Util::getPath(Util::PATH_LOCALE) + languageFile;
-	}
+string Localization::Language::getLanguageFilePath() {
+	return Util::getPath(Util::PATH_LOCALE) + locale + ".xml";
+}
 
-	double Localization::Language::getLanguageVersion() {
-		if (!Util::fileExists(getLanguageFilePath()))
-			return 0;
+double Localization::Language::getLanguageVersion() {
+	if (!Util::fileExists(getLanguageFilePath()))
+		return 0;
 
-		try {
-			SimpleXML xml;
-			xml.fromXML(File(getLanguageFilePath(), File::READ, File::OPEN).read());
-			if(xml.findChild("Language")) {
-				xml.stepIn();
-				if(xml.findChild("Strings")) {
-					xml.stepIn();
-					while(xml.findChild("String")) {
-						if(xml.getChildAttrib("Name") == "AairdcppLanguageVersion") {
-							return Util::toDouble(xml.getChildData());
-						}
-					}
-				}
-			}
-		} catch(...) { }
+	try {
+		SimpleXML xml;
+		xml.fromXML(File(getLanguageFilePath(), File::READ, File::OPEN).read());
+		if (xml.findChild("Language")) {
+			//xml.stepIn();
+			auto version = xml.getIntChildAttrib("Version");
+			return version;
+		}
+	} catch(...) { }
 
-		return 999;
-	}
+	return 999;
+}
 
-	vector<Localization::Language> Localization::languageList;
-	int Localization::curLanguage; //position of the current language in the list
+vector<Localization::Language> Localization::languageList;
+int Localization::curLanguage; //position of the current language in the list
 
-	void Localization::init() {
+void Localization::init() {
+	// remove the file names at some point
+	languageList.emplace_back("English", "GB", "en-US", Util::emptyString);
+	languageList.emplace_back("Danish", "DK", "da-DK", "Danish_for_AirDC");
+	languageList.emplace_back("Dutch", "NL", "nl-NL", "Dutch_for_AirDC");
+	languageList.emplace_back("Finnish", "FI", "fi-FI", "Finnish_for_AirDC");
+	languageList.emplace_back("French", "FR", "fr-FR", "French_for_AirDC");
+	languageList.emplace_back("German", "DE", "de-DE", "German_for_AirDC");
+	languageList.emplace_back("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDC");
+	languageList.emplace_back("Italian", "IT", "it-IT", "Italian_for_AirDC");
+	languageList.emplace_back("Norwegian", "NO", "no-NO", "Norwegian_for_AirDC");
+	languageList.emplace_back("Polish", "PL", "pl-PL", "Polish_for_AirDC");
+	languageList.emplace_back("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDC");
+	languageList.emplace_back("Romanian", "RO", "ro-RO", "Romanian_for_AirDC");
+	languageList.emplace_back("Russian", "RU", "ru-RU", "Russian_for_AirDC");
+	languageList.emplace_back("Spanish", "ES", "es-ES", "Spanish_for_AirDC");
+	languageList.emplace_back("Swedish", "SE", "sv-SE", "Swedish_for_AirDC");
 
-		languageList.emplace_back("English", "GB", "en-US", Util::emptyString);
-		languageList.emplace_back("Danish", "DK", "da-DK", "Danish_for_AirDC.xml");
-		languageList.emplace_back("Dutch", "NL", "nl-NL", "Dutch_for_AirDC.xml");
-		languageList.emplace_back("Finnish", "FI", "fi-FI", "Finnish_for_AirDC.xml");
-		languageList.emplace_back("French", "FR", "fr-FR", "French_for_AirDC.xml");
-		languageList.emplace_back("German", "DE", "de-DE", "German_for_AirDC.xml");
-		languageList.emplace_back("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDC.xml");
-		languageList.emplace_back("Italian", "IT", "it-IT", "Italian_for_AirDC.xml");
-		languageList.emplace_back("Norwegian", "NO", "no-NO", "Norwegian_for_AirDC.xml");
-		languageList.emplace_back("Polish", "PL", "pl-PL", "Polish_for_AirDC.xml");
-		languageList.emplace_back("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDC.xml");
-		languageList.emplace_back("Romanian", "RO", "ro-RO", "Romanian_for_AirDC.xml");
-		languageList.emplace_back("Russian", "RU", "ru-RU", "Russian_for_AirDC.xml");
-		//languageList.push_back(Language("Spanish", "ES", "es-ES", "Spanish_for_AirDC.xml"));
-		languageList.emplace_back("Swedish", "SE", "sv-SE", "Swedish_for_AirDC.xml");
+	//sort(languageList.begin()+1, languageList.end(), Language::NameSort());
 
-		//sort(languageList.begin()+1, languageList.end(), Language::NameSort());
-
-		curLanguage = 0;
-		string langFile = SETTING(LANGUAGE_FILE);
-		if (!langFile.empty()) {
-			boost::replace_all(langFile, "/", "\\"); //eh, the previous versions have saved the language path in a wrong format, remove this workaround in some point
-			langFile = Util::getFileName(langFile);
-
-			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language& aLang) { return aLang.languageFile == langFile; });
+	curLanguage = 0;
+	string langFile = SETTING(LANGUAGE_FILE);
+	if (!langFile.empty()) {
+		langFile = Util::getFileName(langFile);
+		if (langFile.length() > 4) {
+			langFile.erase(langFile.length()-4, 4);
+			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language& aLang) { return aLang.locale == langFile || aLang.languageFile == langFile; });
 			if (s != languageList.end()) {
 				curLanguage = distance(languageList.begin(), s);
 				if (!Util::fileExists(SETTING(LANGUAGE_FILE))) {
@@ -148,80 +142,93 @@ namespace dcpp {
 				}
 			} else {
 				/* Not one of the predefined language files, add a custom list item */
-				/*TCHAR buf[512];
-				GetUserDefaultLocaleName(buf, 512); // get the system locale name, breaks things on XP */
-				languageList.emplace_back("(Custom: " + langFile + ")", "", "en-US" , langFile);
-				curLanguage = languageList.size()-1;
+				languageList.emplace_back("(Custom: " + langFile + ")", "", getSystemLocale(), langFile);
+				curLanguage = languageList.size() - 1;
 			}
 		}
-
-		languageList.shrink_to_fit();
 	}
 
-	bool Localization::usingInbuiltLanguage() {
-		return languageList[curLanguage].locale != "en-US";
-	}
+	languageList.shrink_to_fit();
+}
 
-	double Localization::getCurLanguageVersion() {
-		return languageList[curLanguage].getLanguageVersion();
-	}
+string Localization::getSystemLocale() {
+#ifdef _WIN32
+	TCHAR buf[512];
+	GetUserDefaultLocaleName(buf, 512);
+	return Text::fromT(buf);
+#else
+	return "en-US";
+#endif
+}
 
-	string Localization::getCurLanguageFilePath() {
-		return languageList[curLanguage].getLanguageFilePath();
-	}
+bool Localization::usingInbuiltLanguage() {
+	return languageList[curLanguage].locale != "en-US";
+}
 
-	string Localization::getCurLanguageFileName() {
-		return languageList[curLanguage].languageFile;
-	}
+double Localization::getCurLanguageVersion() {
+	return languageList[curLanguage].getLanguageVersion();
+}
 
-	void Localization::setLanguage(int languageIndex) {
-		if (languageIndex >= 0 && languageIndex < (int)languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
-			curLanguage = languageIndex;
-			languageList[curLanguage].setLanguageFile(); //update the language file in the settings
-		}
-	}
+string Localization::getCurLanguageFilePath() {
+	return languageList[curLanguage].getLanguageFilePath();
+}
 
-	void Localization::loadLanguage(int languageIndex) {
-		if (languageIndex >= 0 && languageIndex < (int)languageList.size()) {
-			ResourceManager::getInstance()->loadLanguage(languageList[languageIndex].getLanguageFilePath());
-		}
-	}
+string Localization::getCurLanguageFileName() {
+	return languageList[curLanguage].languageFile;
+}
 
-	string Localization::getLocale() {
+void Localization::setLanguage(int languageIndex) {
+	if (languageIndex >= 0 && languageIndex < (int)languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
+		curLanguage = languageIndex;
+		languageList[curLanguage].setLanguageFile(); //update the language file in the settings
+	}
+}
+
+void Localization::loadLanguage(int languageIndex) {
+	if (languageIndex >= 0 && languageIndex < (int)languageList.size()) {
+		ResourceManager::getInstance()->loadLanguage(languageList[languageIndex].getLanguageFilePath());
+	}
+}
+
+string Localization::getCurrentLocale() {
+	if (curLanguage > 0)
 		return languageList[curLanguage].locale;
-	}
+	else
+		return getSystemLocale();
+}
 
-	string Localization::getLanguageStr() {
-		return languageList[curLanguage].languageName;
-	}
+string Localization::getLanguageStr() {
+	return languageList[curLanguage].languageName;
+}
 
-	uint8_t Localization::getFlagIndexByName(const char* countryName) {
-		// country codes are not sorted, use linear searching (it is not used so often)
-		const char** first = countryNames;
-		const char** last = countryNames + (sizeof(countryNames) / sizeof(countryNames[0]));
-		const char** i = find_if(first, last, [&](const char* cn) { return Util::stricmp(countryName, cn) == 0; });
-		if(i != last)
-			return i - countryNames + 1;
+uint8_t Localization::getFlagIndexByName(const char* countryName) {
+	// country codes are not sorted, use linear searching (it is not used so often)
+	const char** first = countryNames;
+	const char** last = countryNames + (sizeof(countryNames) / sizeof(countryNames[0]));
+	const char** i = find_if(first, last, [&](const char* cn) { return Util::stricmp(countryName, cn) == 0; });
+	if(i != last)
+		return i - countryNames + 1;
 
-		return 0;
-	}
+	return 0;
+}
 
-	uint8_t Localization::getFlagIndexByCode(const char* countryCode) {
-		// country codes are sorted, use binary search for better performance
-		int begin = 0;
-		int end = (sizeof(countryCodes) / sizeof(countryCodes[0])) - 1;
+uint8_t Localization::getFlagIndexByCode(const char* countryCode) {
+	// country codes are sorted, use binary search for better performance
+	int begin = 0;
+	int end = (sizeof(countryCodes) / sizeof(countryCodes[0])) - 1;
 		
-		while(begin <= end) {
-			int mid = (begin + end) / 2;
-			int cmp = memcmp(countryCode, countryCodes[mid], 2);
+	while(begin <= end) {
+		int mid = (begin + end) / 2;
+		int cmp = memcmp(countryCode, countryCodes[mid], 2);
 
-			if(cmp > 0)
-				begin = mid + 1;
-			else if(cmp < 0)
-				end = mid - 1;
-			else
-				return mid + 1;
-		}
-		return 0;
+		if(cmp > 0)
+			begin = mid + 1;
+		else if(cmp < 0)
+			end = mid - 1;
+		else
+			return mid + 1;
 	}
+	return 0;
+}
+
 }

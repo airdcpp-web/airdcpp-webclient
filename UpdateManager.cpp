@@ -64,7 +64,7 @@ UpdateManager::UpdateManager() : installedUpdate(0), lastIPUpdate(GET_TICK()) {
 	links.discuss = links.homepage + "forum/";
 	links.ipcheck4 = "http://checkip.dyndns.org/";
 	links.ipcheck6 = "http://checkip.dyndns.org/";
-	links.language = "http://languages.airdcpp.net/";
+	links.language = "http://languages.airdcpp.net/tx/";
 }
 
 UpdateManager::~UpdateManager() { 
@@ -612,7 +612,7 @@ void UpdateManager::checkLanguage() {
 		return;
 	}
 
-	conns[CONN_LANGUAGE_CHECK].reset(new HttpDownload(links.language + "checkLangVersion.php?file=" + Localization::getCurLanguageFileName(),
+	conns[CONN_LANGUAGE_CHECK].reset(new HttpDownload(links.language + "checkLangVersion.php?lc=" + Localization::getCurrentLocale(),
 		[this] { completeLanguageCheck(); }, false));
 }
 

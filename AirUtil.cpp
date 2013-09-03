@@ -38,6 +38,7 @@
 #include <boost/date_time/format_date_parser.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/scoped_array.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -711,6 +712,49 @@ pair<string, string::size_type> AirUtil::getDirName(const string& aPath) {
 
 	//return { aPath.substr(j, i - j + 1), isSub };
 	return make_pair(aPath.substr(j, i - j + 1), isSub ? i + 2 : string::npos);
+}
+
+string AirUtil::getTitle(const string& searchTerm) {
+	auto ret = Text::toLower(searchTerm);
+
+	//Remove group name
+	size_t pos = ret.rfind("-");
+	if (pos != string::npos)
+		ret = ret.substr(0, pos);
+
+	//replace . with space
+	pos = 0;
+	while ((pos = ret.find_first_of("._", pos)) != string::npos) {
+		ret.replace(pos, 1, " ");
+	}
+
+	//remove words after year/episode
+	boost::regex reg;
+	reg.assign("(((\\[)?((19[0-9]{2})|(20[0-1][0-9]))|(s[0-9]([0-9])?(e|d)[0-9]([0-9])?)|(Season(\\.)[0-9]([0-9])?)).*)");
+
+	boost::match_results<string::const_iterator> result;
+	if (boost::regex_search(ret, result, reg, boost::match_default)) {
+		ret = ret.substr(0, result.position());
+	}
+
+	//boost::regex_replace(ret, reg, Util::emptyStringT, boost::match_default | boost::format_sed);
+
+	//remove extra words
+	string extrawords [] = { "multisubs", "multi", "dvdrip", "dvdr", "real proper", "proper", "ultimate directors cut", "directors cut", "dircut", "x264", "pal", "complete", "limited", "ntsc", "bd25",
+		"bd50", "bdr", "bd9", "retail", "bluray", "nordic", "720p", "1080p", "read nfo", "dts", "hdtv", "pdtv", "hddvd", "repack", "internal", "custom", "subbed", "unrated", "recut",
+		"extended", "dts51", "finsub", "swesub", "dksub", "nosub", "remastered", "2disc", "rf", "fi", "swe", "stv", "r5", "festival", "anniversary edition", "bdrip", "ac3", "xvid",
+		"ws", "int" };
+	pos = 0;
+	ret += ' ';
+	auto arrayLength = sizeof (extrawords) / sizeof (*extrawords);
+	while (pos < arrayLength) {
+		boost::replace_all(ret, " " + extrawords[pos] + " ", " ");
+		pos++;
+	}
+
+	//trim spaces from the end
+	boost::trim_right(ret);
+	return ret;
 }
 
 }

@@ -48,6 +48,7 @@ class Localization {
 			};
 		};
 
+		static string getSystemLocale();
 		static int curLanguage;
 		static string getCurLanguageFilePath();
 		static string getCurLanguageFileName();
@@ -59,7 +60,7 @@ class Localization {
 		static void loadLanguage(int languageIndex);
 		static int getLangIndex();
 
-		static string getLocale();
+		static string getCurrentLocale();
 		static string getLanguageStr();
 		static void init();
 

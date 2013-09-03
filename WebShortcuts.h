@@ -18,11 +18,9 @@
 
 #ifndef _WEBSHORTCUTS_H
 #define _WEBSHORTCUTS_H
-#include "stdinc.h"
-#include "DCPlusPlus.h"
+
 #include "Singleton.h"
 #include "SettingsManager.h"
-#include "ResourceManager.h"
 
 namespace dcpp {
 
@@ -30,15 +28,14 @@ class WebShortcut {
 public:
 	typedef WebShortcut* Ptr;
 	typedef std::vector<Ptr> List;
-	typedef List::iterator Iter;
 
-	WebShortcut(const tstring& _name, const tstring& _key, const tstring& _url, bool _clean = false) :
+	WebShortcut(const string& _name, const string& _key, const string& _url, bool _clean = false) :
 	name(_name), key(_key), url(_url), clean(_clean) { }
 	WebShortcut() {}
 
-	tstring name;
-	tstring key;
-	tstring url;
+	string name;
+	string key;
+	string url;
 	bool clean;
 };
 
@@ -47,10 +44,9 @@ public:
 	WebShortcuts();
 	~WebShortcuts();
 
-	WebShortcut* getShortcutByName(const tstring& name);
-	WebShortcut* getShortcutByKey(const tstring& key);
-	static WebShortcut* getShortcutByName(WebShortcut::List& _list, const tstring& name);
-	static WebShortcut* getShortcutByKey(WebShortcut::List& _list, const tstring& key);
+	WebShortcut* getShortcutByKey(const string& key);
+	static WebShortcut* getShortcutByName(WebShortcut::List& _list, const string& name);
+	static WebShortcut* getShortcutByKey(WebShortcut::List& _list, const string& key);
 
 	WebShortcut::List copyList();
 	void replaceList(WebShortcut::List& new_list);
@@ -62,8 +58,8 @@ private:
 	void load(SimpleXML& xml);
 	void save(SimpleXML& xml);
 
-	virtual void on(SettingsManagerListener::Save, SimpleXML& xml) throw();
-	virtual void on(SettingsManagerListener::Load, SimpleXML& xml) throw();
+	virtual void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept;
+	virtual void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;
 };
 }
 #endif // _WEBSHORTCUTS_H

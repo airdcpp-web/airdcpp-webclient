@@ -2703,69 +2703,72 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 	}
 
 
-	if(fl->generateNew(forced)) {
-		auto tmpName = fl->getFileName().substr(0, fl->getFileName().length()-4);
-		try {
-			//auto start = GET_TICK();
-			{
-				File f(tmpName, File::RW, File::TRUNCATE | File::CREATE, false);
-
-				f.write(SimpleXML::utf8Header);
-				f.write("<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"/\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n");
-
-				string tmp;
-				string indent = "\t";
-
-				auto root = new FileListDir(Util::emptyString, 0, 0);
-
+	{
+		Lock l(fl->cs);
+		if (fl->allowGenerateNew(forced)) {
+			auto tmpName = fl->getFileName().substr(0, fl->getFileName().length() - 4);
+			try {
+				//auto start = GET_TICK();
 				{
-					RLock l(cs);
-					for(const auto& d: rootPaths | map_values | filtered(Directory::HasRootProfile(aProfile))) { 
-						d->toFileList(root, aProfile, true);
+					File f(tmpName, File::RW, File::TRUNCATE | File::CREATE, false);
+
+					f.write(SimpleXML::utf8Header);
+					f.write("<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"/\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n");
+
+					string tmp;
+					string indent = "\t";
+
+					auto root = new FileListDir(Util::emptyString, 0, 0);
+
+					{
+						RLock l(cs);
+						for (const auto& d : rootPaths | map_values | filtered(Directory::HasRootProfile(aProfile))) {
+							d->toFileList(root, aProfile, true);
+						}
+
+						//auto end2 = GET_TICK();
+						//LogManager::getInstance()->message("Full list directories combined in " + Util::toString(end2-start2) + " ms (" + Util::toString((end2-start2)/1000) + " seconds)", LogManager::LOG_INFO);
+
+						for (const auto it2 : root->listDirs | map_values) {
+							it2->toXml(f, indent, tmp, true);
+						}
 					}
 
-					//auto end2 = GET_TICK();
-					//LogManager::getInstance()->message("Full list directories combined in " + Util::toString(end2-start2) + " ms (" + Util::toString((end2-start2)/1000) + " seconds)", LogManager::LOG_INFO);
+					delete root;
 
-					for(const auto it2: root->listDirs | map_values) {
-						it2->toXml(f, indent, tmp, true);
-					}
+					f.write("</FileListing>");
+					f.flush();
+
+					fl->setXmlListLen(f.getSize());
+
+					File bz(fl->getFileName(), File::WRITE, File::TRUNCATE | File::CREATE, false);
+					// We don't care about the leaves...
+					CalcOutputStream<TTFilter<1024 * 1024 * 1024>, false> bzTree(&bz);
+					FilteredOutputStream<BZFilter, false> bzipper(&bzTree);
+					CalcOutputStream<TTFilter<1024 * 1024 * 1024>, false> newXmlFile(&bzipper);
+
+					newXmlFile.write(f.read());
+					newXmlFile.flush();
+
+					newXmlFile.getFilter().getTree().finalize();
+					bzTree.getFilter().getTree().finalize();
+
+					fl->setXmlRoot(newXmlFile.getFilter().getTree().getRoot());
+					fl->setBzXmlRoot(bzTree.getFilter().getTree().getRoot());
 				}
 
-				delete root;
+				//auto end = GET_TICK();
+				//LogManager::getInstance()->message("Full list generated in " + Util::toString(end-start) + " ms (" + Util::toString((end-start)/1000) + " seconds)", LogManager::LOG_INFO);
 
-				f.write("</FileListing>");
-				f.flush();
-
-				fl->setXmlListLen(f.getSize());
-
-				File bz(fl->getFileName(), File::WRITE, File::TRUNCATE | File::CREATE, false);
-				// We don't care about the leaves...
-				CalcOutputStream<TTFilter<1024*1024*1024>, false> bzTree(&bz);
-				FilteredOutputStream<BZFilter, false> bzipper(&bzTree);
-				CalcOutputStream<TTFilter<1024*1024*1024>, false> newXmlFile(&bzipper);
-
-				newXmlFile.write(f.read());
-				newXmlFile.flush();
-
-				newXmlFile.getFilter().getTree().finalize();
-				bzTree.getFilter().getTree().finalize();
-
-				fl->setXmlRoot(newXmlFile.getFilter().getTree().getRoot());
-				fl->setBzXmlRoot(bzTree.getFilter().getTree().getRoot());
+				fl->saveList();
+				fl->generationFinished(false);
+			} catch (const Exception&) {
+				// No new file lists...
+				fl->generationFinished(true);
 			}
 
-			//auto end = GET_TICK();
-			//LogManager::getInstance()->message("Full list generated in " + Util::toString(end-start) + " ms (" + Util::toString((end-start)/1000) + " seconds)", LogManager::LOG_INFO);
-
-			fl->saveList();
-			fl->unsetDirty(false);
-		} catch(const Exception&) {
-			// No new file lists...
-			fl->unsetDirty(true);
+			File::deleteFile(tmpName);
 		}
-
-		File::deleteFile(tmpName);
 	}
 	return fl;
 }

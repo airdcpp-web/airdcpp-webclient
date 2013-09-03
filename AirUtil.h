@@ -123,6 +123,7 @@ class AirUtil {
 
 		/* Returns the name without subdirs and possible position from where the subdir starts */
 		static pair<string, string::size_type> getDirName(const string& aName);
+		static string getTitle(const string& searchTerm);
 	private:
 
 		static AwayMode away;

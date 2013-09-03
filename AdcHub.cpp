@@ -1464,7 +1464,7 @@ void AdcHub::infoImpl() {
 
 	addParam(lastInfoMap, c, "VE", "AirDC++ " SHORTVERSIONSTRING);
 	addParam(lastInfoMap, c, "AW", AirUtil::getAway() ? "1" : Util::emptyString);
-	addParam(lastInfoMap, c, "LC", Localization::getLocale());
+	addParam(lastInfoMap, c, "LC", Localization::getCurrentLocale());
 
 	int limit = ThrottleManager::getInstance()->getDownLimit();
 	if (limit > 0) {

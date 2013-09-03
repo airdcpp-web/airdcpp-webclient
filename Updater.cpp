@@ -23,7 +23,7 @@
 #include "ZipFile.h"
 #include "SimpleXML.h"
 #include "HashCalc.h"
-#include "Version.h"
+#include "version.h"
 
 
 #include <boost/shared_array.hpp>
@@ -40,15 +40,16 @@
 
 namespace dcpp {
 
+#ifdef _WIN32
 bool Updater::extractFiles(const string& curSourcePath, const string& curExtractPath, string& error) {
 	bool ret = true;
 	File::ensureDirectory(curExtractPath);
 	FileFindIter end;
-#ifdef _WIN32
+//#ifdef _WIN32
 	for(FileFindIter i(curSourcePath + "*"); i != end; ++i) {
-#else
-	for(FileFindIter i(curSourcePath); i != end; ++i) {
-#endif
+//#else
+//	for(FileFindIter i(curSourcePath); i != end; ++i) {
+//#endif
 		string name = i->getFileName();
 		if(name == "." || name == "..")
 			continue;
@@ -230,5 +231,7 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 		rsa = NULL;
 	}
 }
+
+#endif
 
 }

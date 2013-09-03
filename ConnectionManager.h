@@ -108,7 +108,7 @@ public:
 private:
 	/** Nick -> myNick, hubUrl for expected NMDC incoming connections */
 	/** Token, hubUrl for expected ADC incoming connections */
-	typedef map<string, StringPair> ExpectMap;
+	typedef unordered_map<string, StringPair> ExpectMap;
 	ExpectMap expectedConnections;
 
 	CriticalSection cs;

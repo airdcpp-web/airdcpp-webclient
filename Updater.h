@@ -24,11 +24,15 @@ namespace dcpp {
 using std::unique_ptr;
 
 class Updater {
+
+#ifdef _WIN32
 public:
 	static bool applyUpdate(const string& sourcePath, const string& installPath, string& error);
 	static bool extractFiles(const string& curSourcePath, const string& curExtractPath, string& error);
 	static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
 	static void createUpdate();
+
+#endif
 };
 
 }
