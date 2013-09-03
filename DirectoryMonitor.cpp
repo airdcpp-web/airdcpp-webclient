@@ -113,7 +113,7 @@ DirectoryMonitor::Server::~Server() {
 }
 
 Monitor::Monitor(const string& aPath, DirectoryMonitor::Server* aServer, int monitorFlags, size_t bufferSize, bool recursive) :
-	path(Text::toT(aPath)),
+	path(aPath),
 	server(aServer),
 	m_hDirectory(nullptr),
 	m_dwFlags(monitorFlags),
@@ -172,7 +172,7 @@ void Monitor::openDirectory(HANDLE iocp) {
 		return;
 
 	m_hDirectory = ::CreateFile(
-		path.c_str(),					// pointer to the file name
+		Text::toT(path).c_str(),					// pointer to the file name
 		FILE_LIST_DIRECTORY,                // access (read/write) mode
 		FILE_SHARE_READ						// share mode
 		| FILE_SHARE_WRITE
@@ -286,7 +286,7 @@ int DirectoryMonitor::Server::read() {
 					// (and ERROR_TOO_MANY_CMDS with network drives)
 					if (dwError == ERROR_NOTIFY_ENUM_DIR || dwError == ERROR_NOT_ENOUGH_QUOTA || dwError == ERROR_ALREADY_EXISTS || dwError == ERROR_TOO_MANY_CMDS) {
 						(*mon)->beginRead();
-						(*mon)->server->base->addTask(DirectoryMonitor::TYPE_OVERFLOW, new StringTask(Text::fromT((*mon)->path)));
+						(*mon)->server->base->addTask(DirectoryMonitor::TYPE_OVERFLOW, new StringTask((*mon)->path));
 					} else {
 						throw MonitorException(getErrorStr(dwError));
 					}
@@ -322,7 +322,7 @@ int DirectoryMonitor::Server::read() {
 
 				//remove this
 				(*mon)->stopMonitoring();
-				(*mon)->server->base->fire(DirectoryMonitorListener::DirectoryFailed(), Text::fromT((*mon)->path), e.getError());
+				(*mon)->server->base->fire(DirectoryMonitorListener::DirectoryFailed(), (*mon)->path, e.getError());
 				deleteDirectory(mon.base());
 			}
 		}
@@ -386,6 +386,10 @@ int DirectoryMonitor::Server::read() {
 	return 0;
 }
 
+void DirectoryMonitor::processNotification(const string& aPath, ByteVector& aBuf) {
+
+}
+
 #endif
 
 bool DirectoryMonitor::addDirectory(const string& aPath) throw(MonitorException) {
@@ -444,7 +448,7 @@ bool DirectoryMonitor::Server::hasDirectories() const {
 
 #ifdef _WIN32
 
-void DirectoryMonitor::processNotification(const tstring& aPath, ByteVector& aBuf) {
+void DirectoryMonitor::processNotification(const string& aPath, ByteVector& aBuf) {
 	char* pBase = (char*)&aBuf[0];
 	string oldPath;
 
@@ -452,40 +456,40 @@ void DirectoryMonitor::processNotification(const tstring& aPath, ByteVector& aBu
 	{
 		FILE_NOTIFY_INFORMATION& fni = (FILE_NOTIFY_INFORMATION&)*pBase;
 
-		tstring notifyPath(fni.FileName, fni.FileNameLength/sizeof(wchar_t));
+		string notifyPath(Text::fromT(tstring(fni.FileName, fni.FileNameLength / sizeof(wchar_t) )));
 
 		// If it could be a short filename, expand it.
 		auto fileName = Util::getFileName(notifyPath);
 
 		// The maximum length of an 8.3 filename is twelve, including the dot.
-		if (fileName.length() <= 12 && fileName.front() == _T('~')) {
+		/*if (fileName.length() <= 12 && fileName.front() == _T('~')) {
 			// Convert to the long filename form. Unfortunately, this
 			// does not work for deletions, so it's an imperfect fix.
 			wchar_t wbuf[UNC_MAX_PATH];
 			if (::GetLongPathName(notifyPath.c_str(), wbuf, _countof (wbuf)) > 0)
 				notifyPath = wbuf;
-		}
+		}*/
 
 		notifyPath = aPath + notifyPath;
 		switch(fni.Action) {
 			case FILE_ACTION_ADDED: 
 				// The file was added to the directory.
-				fire(DirectoryMonitorListener::FileCreated(), Text::fromT(notifyPath));
+				fire(DirectoryMonitorListener::FileCreated(), notifyPath);
 				break;
 			case FILE_ACTION_REMOVED: 
 				// The file was removed from the directory.
-				fire(DirectoryMonitorListener::FileDeleted(), Text::fromT(notifyPath));
+				fire(DirectoryMonitorListener::FileDeleted(), notifyPath);
 				break;
 			case FILE_ACTION_RENAMED_OLD_NAME: 
 				// The file was renamed and this is the old name. 
-				oldPath = Text::fromT(notifyPath);
+				oldPath = notifyPath;
 				break;
 			case FILE_ACTION_RENAMED_NEW_NAME: 
 				// The file was renamed and this is the new name.
-				fire(DirectoryMonitorListener::FileRenamed(), oldPath, Text::fromT(notifyPath));
+				fire(DirectoryMonitorListener::FileRenamed(), oldPath, notifyPath);
 				break;
 			case FILE_ACTION_MODIFIED:
-				fire(DirectoryMonitorListener::FileModified(), Text::fromT(notifyPath));
+				fire(DirectoryMonitorListener::FileModified(), notifyPath);
 				break;
 		}
 

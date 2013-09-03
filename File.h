@@ -95,7 +95,7 @@ public:
 	static int64_t getSize(const string& aFileName) noexcept;
 	static int64_t getBlockSize(const string& aFileName) noexcept;
 	static int64_t getDirSize(const string& aPath, bool recursive, const string& pattern = "*") noexcept;
-	static int64_t getFreeSpace(const string& aPath);
+	static int64_t getFreeSpace(const string& aPath) noexcept;
 
 	static void ensureDirectory(const string& aFile) noexcept;
 	static bool createDirectory(const string& aFile);
@@ -118,7 +118,7 @@ public:
 
 	static StringList findFiles(const string& path, const string& pattern, int flags = TYPE_FILE | TYPE_DIRECTORY);
 	static void forEachFile(const string& path, const string& pattern, std::function<void (const string& /*name*/, bool /*isDir*/, int64_t /*size*/)> aF, bool skipHidden = true);
-	static string getMountPath(const string& aPath);
+	static string getMountPath(const string& aPath) noexcept;
 protected:
 #ifdef _WIN32
 	HANDLE h;
@@ -127,19 +127,31 @@ protected:
 #endif
 };
 
+#ifdef _WIN32
 class TimeKeeper : private File {
 public:
-	static TimeKeeper* createKeeper(const string& aPath) noexcept;
 	TimeKeeper(const string& aPath);
 	~TimeKeeper();
 private:
 	bool initialized;
-#ifdef _WIN32
 	FILETIME time;
-#else
-	time_t time;
-#endif
 };
+
+
+
+#else
+class TimeKeeper {
+public:
+	TimeKeeper(const string& aPath);
+	~TimeKeeper();
+private:
+	time_t time;
+	string path;
+};
+
+#endif
+
+static TimeKeeper* createKeeper(const string& aPath) noexcept;
 
 class FileFindIter {
 public:

@@ -38,9 +38,10 @@
 #include "HashCalc.h"
 #include "Text.h"
 
+#include "pubkey.h"
+
 #ifdef _WIN32
 #include "ZipFile.h"
-#include "pubkey.h"
 #endif
 
 #ifdef _WIN64

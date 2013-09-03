@@ -110,9 +110,9 @@ private:
 	};
 
 	struct NotifyTask : public Task {
-		NotifyTask(const tstring& aPath) : path(aPath) { }
+		NotifyTask(const string& aPath) : path(aPath) { }
 		ByteVector buf;
-		tstring path;
+		string path;
 	};
 
 	virtual int run();
@@ -124,7 +124,7 @@ private:
 	Server* server;
 
 	void addTask(TaskType aType, Task* aTask);
-	void processNotification(const tstring& aPath, ByteVector& aBuf);
+	void processNotification(const string& aPath, ByteVector& aBuf);
 };
 
 class Monitor : boost::noncopyable {
@@ -155,7 +155,7 @@ private:
 	// Parameters from the caller for ReadDirectoryChangesW().
 	int				m_dwFlags;
 	int				m_bChildren;
-	const tstring	path;
+	const string	path;
 
 	// Result of calling CreateFile().
 	HANDLE		m_hDirectory;

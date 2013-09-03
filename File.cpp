@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <dirent.h>
 #include <fnmatch.h>
+#include <utime.h>
 #endif
 
 namespace dcpp {
@@ -66,18 +67,6 @@ File::File(const string& aFileName, int access, int mode, bool isAbsolute /*true
 
 	if(h == INVALID_HANDLE_VALUE) {
 		throw FileException(Util::translateError(GetLastError()));
-	}
-}
-
-bool File::createFile(const string& aPath, const string& aContent) noexcept {
-	try {
-		File ff(aPath, File::WRITE, File::CREATE | File::TRUNCATE);
-		if (!aContent.empty()) {
-			ff.write(aContent);
-		}
-		return true;
-	} catch (...) { 
-		return false;
 	}
 }
 
@@ -211,17 +200,6 @@ bool File::deleteFile(const string& aFileName) noexcept {
 	return ::DeleteFile(Text::toT(Util::FormatPath(aFileName)).c_str()) > 0 ? true : false;
 }
 
-TimeKeeper* TimeKeeper::createKeeper(const string& aPath) noexcept {
-	TimeKeeper* ret = nullptr;
-	try {
-		ret = new TimeKeeper(aPath);
-		return ret;
-	} catch(FileException& /*e*/) {
-		delete ret;
-		return nullptr;
-	}
-}
-
 TimeKeeper::TimeKeeper(const string& aPath) : initialized(false), File(aPath, File::RW, File::OPEN | File::SHARED_WRITE, true, true) {
 	if (::GetFileTime(h, NULL, NULL, &time) > 0)
 		initialized = true;
@@ -234,21 +212,7 @@ TimeKeeper::~TimeKeeper() {
 	::SetFileTime(h, NULL, NULL, &time);
 }
 
-bool File::deleteFileEx(const string& aFileName, int maxAttempts, bool keepFolderDate /*false*/) noexcept {
-	unique_ptr<TimeKeeper> keeper;
-	if (keepFolderDate) {
-		keeper.reset(TimeKeeper::createKeeper(Util::getFilePath(aFileName)));
-	}
-
-	bool success = false;
-	for(int i = 0; i < maxAttempts && (success = deleteFile(aFileName)) == false; ++i)
-		Thread::sleep(1000);
-
-	return success;
-}
-
-void File::removeDirectory(const string& aPath) noexcept
-{
+void File::removeDirectory(const string& aPath) noexcept {
 	::RemoveDirectory(Text::toT(Util::FormatPath(aPath)).c_str());
 }
 
@@ -308,13 +272,13 @@ bool File::isAbsolute(const string& path) noexcept {
 	return path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\');
 }
 
-string File::getMountPath(const string& aPath) {
+string File::getMountPath(const string& aPath) noexcept {
 	unique_ptr<TCHAR> buf(new TCHAR[aPath.length()]);
 	GetVolumePathName(Text::toT(aPath).c_str(), buf.get(), aPath.length());
 	return Text::fromT(buf.get());
 }
 
-int64_t File::getFreeSpace(const string& aPath) {
+int64_t File::getFreeSpace(const string& aPath) noexcept {
 	int64_t freeSpace = 0, tmp = 0;
 	auto ret = GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&tmp, (PULARGE_INTEGER)&freeSpace);
 	return ret > 0 ? freeSpace : -1;
@@ -531,7 +495,7 @@ bool File::isAbsolute(const string& path) noexcept {
 	return path.size() > 1 && path[0] == '/';
 }
 
-int64_t File::getFreeSpace(const string& aFileName) {
+int64_t File::getFreeSpace(const string& aFileName) noexcept {
 	struct statvfs sfs;
 	if (statvfs(Text::fromUtf8(aFileName).c_str(), &sfs) == -1) {
 		return -1;
@@ -550,7 +514,78 @@ int64_t File::getBlockSize(const string& aFileName) noexcept {
 	return statbuf.st_size;
 }
 
+string File::getMountPath(const string& aPath) noexcept {
+	struct stat statbuf;
+	if (stat(Text::fromUtf8(aPath).c_str(), &statbuf) == -1) {
+		return Util::emptyString;
+	}
+
+	return Util::toString((uint32_t)statbuf.st_dev);
+}
+
+uint64_t File::getLastModified(const string& aPath) noexcept {
+	struct stat statbuf;
+	if (stat(Text::fromUtf8(aPath).c_str(), &statbuf) == -1) {
+		return 0;
+	}
+
+	return statbuf.st_mtime;
+}
+
+void File::removeDirectory(const string& aPath) noexcept {
+	rmdir(Text::fromUtf8(aPath).c_str());
+}
+
+TimeKeeper::TimeKeeper(const string& aPath) : path(Text::fromUtf8(aPath)), time(File::getLastModified(path)) {
+}
+
+TimeKeeper::~TimeKeeper() {
+	if (time == 0)
+		return;
+
+	struct utimbuf ubuf;
+	ubuf.modtime = time;
+	::time(&ubuf.actime); 
+	utime(path.c_str(), &ubuf);
+}
+
 #endif // !_WIN32
+
+TimeKeeper* createKeeper(const string& aPath) noexcept {
+	TimeKeeper* ret = nullptr;
+	try {
+		ret = new TimeKeeper(aPath);
+		return ret;
+	} catch (FileException & /*e*/) {
+		delete ret;
+		return nullptr;
+	}
+}
+
+bool File::deleteFileEx(const string& aFileName, int maxAttempts, bool keepFolderDate /*false*/) noexcept {
+	unique_ptr<TimeKeeper> keeper;
+	if (keepFolderDate) {
+		keeper.reset(createKeeper(Util::getFilePath(aFileName)));
+	}
+
+	bool success = false;
+	for (int i = 0; i < maxAttempts && (success = deleteFile(aFileName)) == false; ++i)
+		Thread::sleep(1000);
+
+	return success;
+}
+
+bool File::createFile(const string& aPath, const string& aContent) noexcept {
+	try {
+		File ff(aPath, File::WRITE, File::CREATE | File::TRUNCATE);
+		if (!aContent.empty()) {
+			ff.write(aContent);
+		}
+		return true;
+	} catch (...) { 
+		return false;
+	}
+}
 
 string File::read(size_t len) {
 	string s(len, 0);

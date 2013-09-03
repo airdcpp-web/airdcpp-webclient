@@ -47,7 +47,6 @@
 #include "DebugManager.h"
 #include "File.h"
 
-#include "HighlightManager.h"
 #include "AutoSearchManager.h"
 #include "ShareScannerManager.h"
 
@@ -97,7 +96,6 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	DebugManager::newInstance();
 	WebShortcuts::newInstance();
 	AutoSearchManager::newInstance();
-	HighlightManager::newInstance();
 	ShareScannerManager::newInstance();
 	GeoManager::newInstance();
 	DirectoryListingManager::newInstance();
@@ -184,7 +182,6 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	GeoManager::deleteInstance();
 	ConnectivityManager::deleteInstance();
 	DebugManager::deleteInstance();
-	HighlightManager::deleteInstance();
 	AutoSearchManager::deleteInstance();
 	WebShortcuts::deleteInstance();
 	ADLSearchManager::deleteInstance();
