@@ -774,7 +774,7 @@ wstring Util::formatConnectionSpeedW(int64_t aBytes) {
 	return buf;
 }
 
-wstring Util::formatExactSize(int64_t aBytes) {
+wstring Util::formatExactSizeW(int64_t aBytes) {
 //#ifdef _WIN32	
 	wchar_t buf[64];
 	wchar_t number[64];
@@ -806,6 +806,39 @@ wstring Util::formatExactSize(int64_t aBytes) {
 #endif*/
 }
 #endif
+
+string Util::formatExactSize(int64_t aBytes) {
+#ifdef _WIN32
+	TCHAR tbuf[128];
+	TCHAR number[64];
+	NUMBERFMT nf;
+	_sntprintf(number, 64, _T("%I64d"), aBytes);
+	TCHAR Dummy[16];
+	TCHAR sep[2] = _T(",");
+
+	/*No need to read these values from the system because they are not
+	used to format the exact size*/
+	nf.NumDigits = 0;
+	nf.LeadingZero = 0;
+	nf.NegativeOrder = 0;
+	nf.lpDecimalSep = sep;
+
+	GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SGROUPING, Dummy, 16);
+	nf.Grouping = Util::toInt(Text::fromT(Dummy));
+	GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_STHOUSAND, Dummy, 16);
+	nf.lpThousandSep = Dummy;
+
+	GetNumberFormat(LOCALE_USER_DEFAULT, 0, number, &nf, tbuf, sizeof(tbuf) / sizeof(tbuf[0]));
+
+	char buf[128];
+	_snprintf(buf, sizeof(buf), "%s %s", buf, CSTRING(B));
+	return buf;
+#else
+	char buf[128];
+	snprintf(buf, sizeof(buf), _("%'lld B"), (long long int)aBytes);
+	return string(buf);
+#endif
+}
 
 bool Util::isPrivateIp(const string& ip, bool v6) {
 	if (v6) {
@@ -1225,6 +1258,18 @@ int Util::randInt(int min, int max) {
 	mt19937 gen(rd());
 	uniform_int_distribution<> dist(min, max);
     return dist(gen);
+}
+
+string Util::getDateTime(time_t t) {
+	if (t == 0)
+		return Util::emptyString;
+
+	CHAR buf[64];
+	tm _tm;
+	localtime_s(&_tm, &t);
+	strftime(buf, 64, SETTING(DATE_FORMAT).c_str(), &_tm);
+
+	return buf;
 }
 
 #ifdef _WIN32

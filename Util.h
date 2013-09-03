@@ -225,6 +225,8 @@ public:
 	static string getTimeStamp(time_t t = time(NULL) );
 
 	static string getTimeString();
+
+	static string getDateTime(time_t t);
 #ifdef _WIN32
 	static wstring getDateTimeW(time_t t);
 #endif
@@ -237,7 +239,8 @@ public:
 	static string formatConnectionSpeed(int64_t aBytes);
 	static wstring formatConnectionSpeedW(int64_t aBytes);
 
-	static wstring formatExactSize(int64_t aBytes);
+	static string formatExactSize(int64_t aBytes);
+	static wstring formatExactSizeW(int64_t aBytes);
 
 	static wstring formatSecondsW(int64_t aSec, bool supressHours = false);
 	static string formatSeconds(int64_t aSec, bool supressHours = false);

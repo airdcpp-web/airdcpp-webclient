@@ -263,7 +263,7 @@ QueueManager::QueueManager() :
 	File::ensureDirectory(Util::getBundlePath());
 }
 
-QueueManager::~QueueManager() noexcept { 
+QueueManager::~QueueManager() { 
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this); 
 	ClientManager::getInstance()->removeListener(this);
@@ -2767,7 +2767,7 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 		if (finalMap.find(points) == finalMap.end()) {
 			uniqueValues++;
 		}
-		finalMap.emplace(points, i.first);
+		finalMap.insert(make_pair(points, i.first));
 	}
 
 	int prioGroup = 1;
@@ -2836,7 +2836,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) {
 		for (auto& b: bundleQueue.getBundles() | map_values) {
 			if (!b->isFinished()) {
 				if (b->getAutoPriority()) {
-					bundleSpeedSourceMap.emplace(b, b->getPrioInfo());
+					bundleSpeedSourceMap.insert(make_pair(b, b->getPrioInfo()));
 				}
 
 				if (SETTING(QI_AUTOPRIO)) {
@@ -3841,6 +3841,10 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) {
 			return;
 
 		aBundle->getSearchItems(searches, manual);
+	}
+
+	if (searches.empty()) {
+		return;
 	}
 
 	if (searches.size() <= 5) {

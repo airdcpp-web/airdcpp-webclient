@@ -193,7 +193,7 @@ map<string, Identity> ClientManager::getIdentities(const UserPtr &u) const {
 	auto op = onlineUsers.equal_range(const_cast<CID*>(&u->getCID()));
 	auto ret = map<string, Identity>();
 	for(auto i = op.first; i != op.second; ++i) {
-		ret.emplace(i->second->getHubUrl(), i->second->getIdentity());
+		ret.insert(make_pair(i->second->getHubUrl(), i->second->getIdentity()));
 	}
 
 	return ret;
@@ -991,7 +991,7 @@ string ClientManager::getClientStats() {
 	map<CID, OnlineUser*> uniqueUserMap;
 	for(auto ou: onlineUsers | map_values) {
 		if (!ou->getIdentity().isBot() && !ou->isHidden())
-			uniqueUserMap.emplace(ou->getUser()->getCID(), ou);
+			uniqueUserMap.insert(make_pair(ou->getUser()->getCID(), ou));
 	}
 
 	int allUsers = onlineUsers.size();

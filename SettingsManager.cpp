@@ -830,7 +830,7 @@ SettingsManager::SettingsManager()
 	setDefault(FILTER_SEARCH_SHARED, true);
 	setDefault(FILTER_SEARCH_QUEUED, true);
 	setDefault(FILTER_SEARCH_INVERSED, false);
-	setDefault(FILTER_SEARCH_TOP, true);
+	setDefault(FILTER_SEARCH_TOP, false);
 	setDefault(FILTER_SEARCH_PARTIAL_DUPES, false);
 	setDefault(FILTER_SEARCH_RESET_CHANGE, true);
 #ifdef _WIN64
@@ -982,20 +982,20 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 				}
 
 				//notify about changed fav hub settings
-				auto getSettingTextStr = [] (const string& aSettingCaption, SettingsManager::StrSetting aSetting) -> string {
-					auto val = SettingsManager::getInstance()->get(aSetting);
+				auto getSettingTextStr = [this] (const string& aSettingCaption, SettingsManager::StrSetting aSetting) -> string {
+					auto val = get(aSetting);
 					return aSettingCaption + "\t(globally " + (!val.empty() ? val : "not set") + ")";
 				};
 
-				auto getSettingTextBool = [] (const string& aSettingCaption, SettingsManager::BoolSetting aSetting) -> string {
-					return aSettingCaption + "\t(globally " + (SettingsManager::getInstance()->get(aSetting) ? "Enabled" : "Disabled") + ")";
+				auto getSettingTextBool = [this] (const string& aSettingCaption, SettingsManager::BoolSetting aSetting) -> string {
+					return aSettingCaption + "\t(globally " + (get(aSetting) ? "Enabled" : "Disabled") + ")";
 				};
 
-				auto getSettingTextInt = [] (const string& aSettingCaption, SettingsManager::IntSetting aSetting) -> string {
-					return aSettingCaption + "\t(globally " + Util::toString(SettingsManager::getInstance()->get(aSetting)) + " seconds)";
+				auto getSettingTextInt = [this] (const string& aSettingCaption, SettingsManager::IntSetting aSetting) -> string {
+					return aSettingCaption + "\t(globally " + Util::toString(get(aSetting)) + " seconds)";
 				};
 
-				auto getConnection = [] {
+				auto getConnection = [this] {
 					string text;
 
 					if (SETTING(AUTO_DETECT_CONNECTION)) {

@@ -549,7 +549,7 @@ QueueItemBase::Priority Bundle::calculateProgressPriority() const noexcept {
 pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	int64_t bundleSpeed = 0;
 	double bundleSources = 0;
-	for (auto& s: sources) {
+	for (const auto& s: sources) {
 		if (s.user.user->isOnline()) {
 			bundleSpeed += s.user.user->getSpeed();
 		}
@@ -568,7 +568,7 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 		if(q->getAutoPriority()) {
 			int64_t qiSpeed = 0;
 			double qiSources = 0;
-			for (auto s: q->getSources()) {
+			for (const auto& s: q->getSources()) {
 				if (s.getUser().user->isOnline()) {
 					qiSpeed += s.getUser().user->getSpeed();
 					qiSources++;
@@ -576,7 +576,7 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 					qiSources += 2;
 				}
 			}
-			speedSourceMap.emplace(q, make_pair(qiSpeed, qiSources));
+			speedSourceMap.insert(make_pair(q, make_pair(qiSpeed, qiSources)));
 		}
 	}
 	return speedSourceMap;
@@ -624,7 +624,7 @@ bool Bundle::allowAutoSearch() const noexcept {
 
 void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept {
 	if (fileBundle || queueItems.size() == 1) {
-		searches.emplace(Util::emptyString, queueItems.front());
+		searches.insert(make_pair(Util::emptyString, queueItems.front()));
 		return;
 	}
 
@@ -664,7 +664,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 		}
 
 		if (searchItem) {
-			searches.emplace(dir, searchItem);
+			searches.insert(make_pair(dir, searchItem));
 		}
 	}
 }

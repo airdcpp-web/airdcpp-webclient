@@ -434,7 +434,7 @@ tstring OnlineUser::getText(uint8_t col, bool copy /*false*/) const {
 	switch (col) {
 	case COLUMN_NICK: return Text::toT(identity.getNick());
 	case COLUMN_SHARED: return Util::formatBytesW(identity.getBytesShared());
-	case COLUMN_EXACT_SHARED: return Util::formatExactSize(identity.getBytesShared());
+	case COLUMN_EXACT_SHARED: return Util::formatExactSizeW(identity.getBytesShared());
 	case COLUMN_DESCRIPTION: return Text::toT(identity.getDescription());
 	case COLUMN_TAG: return Text::toT(identity.getTag());
 	case COLUMN_ULSPEED: return identity.get("US").empty() ? Text::toT(identity.getNmdcConnection()) : (Util::formatConnectionSpeedW(identity.getAdcConnectionSpeed(false)));

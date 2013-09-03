@@ -174,7 +174,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 			if(	(*j).isSet(QueueItem::Source::FLAG_PARTIAL) && (*j).getPartialSource()->getNextQueryTime() <= now &&
 				(*j).getPartialSource()->getPendingQueryCount() < 10 && !(*j).getPartialSource()->getUdpPort().empty())
 			{
-				buffer.emplace((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q));
+				buffer.insert(make_pair((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q)));
 			}
 		}
 
@@ -183,7 +183,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 				(*j).getPartialSource()->getNextQueryTime() <= now && (*j).getPartialSource()->getPendingQueryCount() < 10 &&
 				!(*j).getPartialSource()->getUdpPort().empty())
 			{
-				buffer.emplace((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q));
+				buffer.insert(make_pair((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q)));
 			}
 		}
 	}

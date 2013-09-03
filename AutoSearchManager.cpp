@@ -819,8 +819,15 @@ bool AutoSearchManager::checkItems() {
 			
 			//check expired, and remove them.
 			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->getExpireTime() > 0 && as->getExpireTime() <= curTime && as->getBundles().empty()) {
-				expired.push_back(as);
 				search = false;
+				if (SETTING(REMOVE_EXPIRED_AS)) {
+					expired.push_back(as);
+				} else {
+					as->setEnabled(false);
+					updateStatus(as, true);
+					logMessage(STRING_F(EXPIRED_AS_DISABLED, as->getSearchString()), false);
+					dirty = true;
+				}
 			}
 
 			if (as->removePostSearch())
@@ -836,13 +843,8 @@ bool AutoSearchManager::checkItems() {
 	}
 
 	for(auto& as: expired) {
-		if (SETTING(REMOVE_EXPIRED_AS)) {
-			logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), false);
-			removeAutoSearch(as);
-		} else {
-			logMessage(STRING_F(EXPIRED_AS_DISABLED, as->getSearchString()), false);
-			setItemActive(as, false);
-		}
+		logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), false);
+		removeAutoSearch(as);
 	}
 
 	if (!il.empty()) {
