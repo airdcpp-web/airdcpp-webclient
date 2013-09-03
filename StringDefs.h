@@ -5,8 +5,6 @@
 // @Names: std::string dcpp::ResourceManager::names[]
 
 enum Strings { // @DontAdd
-	AAIRDCPP_LANGUAGE_FILE, // "EN_Example.xml"
-	AAIRDCPP_LANGUAGE_VERSION, // "1.00"
 	ACTIVE, // "Active"
 	ACTIVE_SEARCH_STRING, // "Enabled / Search string"
 	ADD, // "Add"

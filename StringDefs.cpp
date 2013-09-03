@@ -2,8 +2,6 @@
 #include "DCPlusPlus.h"
 #include "ResourceManager.h"
 std::string dcpp::ResourceManager::strings[] = {
-"EN_Example.xml", 
-"1.00", 
 "Active", 
 "Enabled / Search string", 
 "Add", 
@@ -1811,8 +1809,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Do you want to continue with adding this item anyway?", 
 };
 std::string dcpp::ResourceManager::names[] = {
-"AairdcppLanguageFile", 
-"AairdcppLanguageVersion", 
 "Active", 
 "ActiveSearchString", 
 "Add", 

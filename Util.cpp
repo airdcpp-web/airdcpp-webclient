@@ -835,8 +835,8 @@ string Util::formatExactSize(int64_t aBytes) {
 	return buf;
 #else
 	char buf[128];
-	snprintf(buf, sizeof(buf), _("%'lld B"), (long long int)aBytes);
-	return string(buf);
+	snprintf(buf, sizeof(buf), "%'lld ", (long long int)aBytes);
+	return string(buf) + STRING(B);
 #endif
 }
 
@@ -1264,9 +1264,8 @@ string Util::getDateTime(time_t t) {
 	if (t == 0)
 		return Util::emptyString;
 
-	CHAR buf[64];
-	tm _tm;
-	localtime_s(&_tm, &t);
+	char buf[64];
+	tm _tm = *localtime(&t);
 	strftime(buf, 64, SETTING(DATE_FORMAT).c_str(), &_tm);
 
 	return buf;
