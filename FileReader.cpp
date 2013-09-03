@@ -27,6 +27,7 @@
 
 #ifndef _WIN32
 #include "TimerManager.h"
+#include <fcntl.h>
 #endif
 
 namespace dcpp {

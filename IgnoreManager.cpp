@@ -62,7 +62,7 @@ bool IgnoreManager::isIgnored(const string& aNick) {
 
 	if(SETTING(IGNORE_USE_REGEXP_OR_WC)) {
 		for(auto& def: ignoredUsers) {
-			if(strnicmp(def, "$Re:", 4) == 0 && def.length() > 4) {
+			if(Util::strnicmp(def, "$Re:", 4) == 0 && def.length() > 4) {
 				string str1 = def.substr(4);
 				string str2 = aNick;
 				try {
@@ -81,11 +81,11 @@ bool IgnoreManager::isIgnored(const string& aNick) {
 }
 
 // SettingsManagerListener
-void IgnoreManager::on(SettingsManagerListener::Load, SimpleXML& aXml) {
+void IgnoreManager::on(SettingsManagerListener::Load, SimpleXML& aXml) noexcept {
 	load(aXml);
 }
 
-void IgnoreManager::on(SettingsManagerListener::Save, SimpleXML& aXml) {
+void IgnoreManager::on(SettingsManagerListener::Save, SimpleXML& aXml) noexcept {
 	save(aXml);
 }
 

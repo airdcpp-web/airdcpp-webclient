@@ -70,11 +70,11 @@ string ChatLink::getDisplayText() {
 				sType = tmp.substr(0,found);
 			}
 
-			if (strcmpi(sType.c_str(), "track") == 0) {
+			if (Util::stricmp(sType.c_str(), "track") == 0) {
 				displayText = STRING(SPOTIFY_TRACK);
-			} else if (strcmpi(sType.c_str(), "artist") == 0) {
+			} else if (Util::stricmp(sType.c_str(), "artist") == 0) {
 				displayText = STRING(SPOTIFY_ARTIST);
-			} else if (strcmpi(sType.c_str(), "album") == 0) {
+			} else if (Util::stricmp(sType.c_str(), "album") == 0) {
 				displayText = STRING(SPOTIFY_ALBUM);
 			}
 			return displayText;

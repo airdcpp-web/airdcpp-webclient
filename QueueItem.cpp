@@ -19,7 +19,7 @@
 #include "stdinc.h"
 #include "QueueItem.h"
 
-#include "SimpleXml.h"
+#include "SimpleXML.h"
 #include "ClientManager.h"
 #include "HashManager.h"
 #include "Download.h"

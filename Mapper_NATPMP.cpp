@@ -21,14 +21,21 @@
 
 #include "Util.h"
 
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
+
 extern "C" {
 #ifndef STATICLIB
 #define STATICLIB
 #endif
+#if defined(_WIN32) && !defined(WIN32)
+#define WIN32
+#endif
 #include <natpmp/getgateway.h>
 #include <natpmp/natpmp.h>
-
-#include <xutility>
 }
 
 ///@todo should bind to the local IP

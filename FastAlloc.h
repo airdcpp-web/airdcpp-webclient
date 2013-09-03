@@ -57,9 +57,9 @@ public:
 
 		void deallocate(void* m, size_t size) {
 			if (size > SMALL_OBJECT_SIZE) {
-				::delete(m); //use normal delete
+				::operator delete(m); //use normal delete
 			} else {
-			FastLock l(cs);
+				FastLock l(cs);
 				if (m)
 					Pools[size-1]->free(m);
 			}

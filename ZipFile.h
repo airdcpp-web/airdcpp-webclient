@@ -50,7 +50,7 @@
 #endif
 
 #include <zlib.h>
-#include <../minizip/unzip.h>
+#include <minizip/unzip.h>
 
 namespace dcpp {
 

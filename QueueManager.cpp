@@ -1590,7 +1590,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 	int fl_flag = 0;
 	QueueItemPtr q = nullptr;
 	bool removeFinished = false;
-	bool removePartial = false;
 
 	// Make sure the download gets killed
 	unique_ptr<Download> d(aDownload);
@@ -1666,7 +1665,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 						| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0) | QueueItem::FLAG_TEXT
 						| (q->isSet(QueueItem::FLAG_VIEW_NFO) ? QueueItem::FLAG_VIEW_NFO : 0);
 				} else {
-					removePartial = true;
+					fire(QueueManagerListener::PartialList(), d->getHintedUser(), d->getPFS(), q->getTempTarget());
 				}
 				userQueue.removeQI(q);
 				fire(QueueManagerListener::Removed(), q, true);
@@ -1682,7 +1681,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 					q->unsetFlag(QueueItem::FLAG_XML_BZLIST);
 				}
 
-				//auto dir = q->getTempTarget(); // We cheated and stored the initial display directory here (when opening lists from search)
+				auto dir = q->getTempTarget(); // We cheated and stored the initial display directory here (when opening lists from search)
 				q->addFinishedSegment(Segment(0, q->getSize()));
 
 				// Now, let's see if this was a directory download filelist...
@@ -1694,8 +1693,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 						| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0);
 				}
 
-				//fire(QueueManagerListener::Finished(), q, dir, d->getHintedUser(), d->getAverageSpeed());
-				removeFinished = true;
+				fire(QueueManagerListener::Finished(), q, dir, d->getHintedUser(), d->getAverageSpeed());
 				userQueue.removeQI(q);
 
 				fire(QueueManagerListener::Removed(), q, true);
@@ -1749,20 +1747,18 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 			removeBundleItem(q, true);
 		}
 
-		if ((SETTING(LOG_DOWNLOADS) && d->getType() == Transfer::TYPE_FILE) || (SETTING(LOG_FILELIST_TRANSFERS) && d->getType() == Transfer::TYPE_FULL_LIST)) {
+		if(SETTING(LOG_DOWNLOADS)) {
 			ParamMap params;
 			d->getParams(d->getUserConnection(), params);
 			LOG(LogManager::DOWNLOAD, params);
 		}
 
 		// Check if we need to move the file
-		if (d->getType() == Transfer::TYPE_FILE && !d->getTempTarget().empty() && (Util::stricmp(d->getPath().c_str(), d->getTempTarget().c_str()) != 0)) {
+		if(!d->getTempTarget().empty() && (Util::stricmp(d->getPath().c_str(), d->getTempTarget().c_str()) != 0) ) {
 			mover.moveFile(d->getTempTarget(), d->getPath(), q);
 		}
 
-		fire(QueueManagerListener::Finished(), q, d->getType() == Transfer::TYPE_FULL_LIST ? q->getTempTarget() : Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
-	} else if (removePartial) {
-		fire(QueueManagerListener::PartialList(), d->getHintedUser(), d->getPFS(), q->getTempTarget());
+		fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
 	}
 
 	for(const auto& u: getConn) {

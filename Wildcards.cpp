@@ -10,9 +10,8 @@
 // to the wildcards pttern matching algorithm
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
 
-#include "wildcards.h"
+#include "Wildcards.h"
 
 namespace dcpp {
 int Wildcard::wildcardfit(const char *wildcard, const char *test, bool useSet) {
