@@ -61,8 +61,11 @@ void FileList::saveList() {
 	bzXmlListLen = File::getSize(getFileName());
 
 	//cleanup old filelists we failed to delete before due to uploading them.
-	StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files_" + Util::toString(profile) + "?*.xml.bz2");
-	boost::for_each(lists, File::deleteFile);
+	StringList list = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files_" + Util::toString(profile) + "?*.xml.bz2");
+	for (auto& f : list) {
+		if (f != getFileName())
+			File::deleteFile(f);
+	}
 }
 
 ShareProfileInfo::ShareProfileInfo(const string& aName, ProfileToken aToken /*rand*/, State aState /*STATE_NORMAL*/) : name(aName), token(aToken), state(aState), isDefault(false) {}

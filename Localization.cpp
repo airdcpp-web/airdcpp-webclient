@@ -96,7 +96,7 @@ double Localization::Language::getLanguageVersion() {
 		xml.fromXML(File(getLanguageFilePath(), File::READ, File::OPEN).read());
 		if (xml.findChild("Language")) {
 			//xml.stepIn();
-			auto version = xml.getIntChildAttrib("Version");
+			auto version = xml.getIntChildAttrib(LANGVER_TAG);
 			return version;
 		}
 	} catch(...) { }

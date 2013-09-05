@@ -25,11 +25,9 @@
 #define NO_FAST_ALLOC
 #include <cassert>
 
-#define dcdebug printf
-
 #ifdef _MSC_VER
 
-/*#define dcdebug debugTrace
+#define dcdebug debugTrace
 #include <crtdbg.h>
 
 inline void CDECL debugTrace(const char* format, ...) {
@@ -44,7 +42,7 @@ inline void CDECL debugTrace(const char* format, ...) {
 	OutputDebugString(str2);
 	va_end(args);
 
-}*/
+}
 
 #define dcassert(exp) \
 do { if (!(exp)) { \
@@ -52,6 +50,7 @@ do { if (!(exp)) { \
 	if(1 == _CrtDbgReport(_CRT_ASSERT, __FILE__, __LINE__, NULL, #exp)) \
 _CrtDbgBreak(); } } while(false)
 #else
+#define dcdebug printf
 #define dcassert(exp) assert(exp)
 #endif
 #define dcdrun(exp) exp

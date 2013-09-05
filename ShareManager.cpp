@@ -1817,7 +1817,7 @@ bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
 
 void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
 	FileFindIter end;
-	for(FileFindIter i(aPath + "*"); i != end && !aShutdown; ++i) {
+	for(FileFindIter i(aPath, "*"); i != end && !aShutdown; ++i) {
 		string name = i->getFileName();
 		if(name.empty()) {
 			LogManager::getInstance()->message("Invalid file name found while hashing folder " + aPath + ".", LogManager::LOG_WARNING);

@@ -22,6 +22,8 @@
 #include "Util.h"
 #include "SettingsManager.h"
 
+#define LANGVER_TAG "Revision"
+
 namespace dcpp {
 
 
