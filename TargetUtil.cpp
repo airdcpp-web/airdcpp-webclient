@@ -26,11 +26,6 @@
 #ifdef _WIN32
 #include <ShlObj.h>
 #include <direct.h>
-#else
-# include <dirent.h>
-# include <sys/stat.h>
-# include <unistd.h>
-# include <fnmatch.h>
 #endif
 
 namespace dcpp {

@@ -60,11 +60,6 @@
 
 #ifdef _WIN32
 # include <ShlObj.h>
-#else
-# include <dirent.h>
-# include <sys/stat.h>
-# include <unistd.h>
-# include <fnmatch.h>
 #endif
 
 #include <limits>
@@ -1629,7 +1624,7 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 		throw ShareException(STRING(NO_DIRECTORY_SPECIFIED));
 	}
 
-	if (!checkHidden(realPath)) {
+	if (!SETTING(SHARE_HIDDEN) && File::isHidden(realPath)) {
 		throw ShareException(STRING(DIRECTORY_IS_HIDDEN));
 	}
 
@@ -1762,14 +1757,14 @@ void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) co
 	if (aPath.size() < 3)
 		return;
 
-	auto p = AirUtil::getDirName(aPath);
+	auto p = AirUtil::getDirName(aPath, '\\');
 	const auto directories = dirNameMap.equal_range(&p.first);
 	if (directories.first == directories.second)
 		return;
 
 	for (auto s = directories.first; s != directories.second; ++s) {
 		if (p.second != string::npos) {
-			auto dir = s->second->findDirByPath(aPath.substr(p.second));
+			auto dir = s->second->findDirByPath(aPath.substr(p.second), '\\');
 			if (dir) {
 				dirs_.push_back(dir);
 			}
@@ -1779,14 +1774,14 @@ void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) co
 	}
 }
 
-ShareManager::Directory::Ptr ShareManager::Directory::findDirByPath(const string& aPath) const {
-	auto p = aPath.find(PATH_SEPARATOR);
+ShareManager::Directory::Ptr ShareManager::Directory::findDirByPath(const string& aPath, char separator) const {
+	auto p = aPath.find(separator);
 	auto d = directories.find(Text::toLower(p != string::npos ? aPath.substr(0, p) : aPath));
 	if (d != directories.end()) {
 		if (p == aPath.size() || p == aPath.size() - 1)
 			return *d;
 
-		return (*d)->findDirByPath(aPath.substr(p+1));
+		return (*d)->findDirByPath(aPath.substr(p+1), separator);
 	}
 
 	return nullptr;
@@ -1822,15 +1817,7 @@ bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const {
 
 void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
 	FileFindIter end;
-
-#ifdef _WIN32
 	for(FileFindIter i(aPath + "*"); i != end && !aShutdown; ++i) {
-#else
-	//the fileiter just searches directorys for now, not sure if more 
-	//will be needed later
-	//for(FileFindIter i(aName + "*"); i != end; ++i) {
-	for(FileFindIter i(aPath); i != end; ++i) {
-#endif
 		string name = i->getFileName();
 		if(name.empty()) {
 			LogManager::getInstance()->message("Invalid file name found while hashing folder " + aPath + ".", LogManager::LOG_WARNING);
@@ -1909,28 +1896,6 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 			}
 		}
 	}
-}
-
-bool ShareManager::checkHidden(const string& aName) const {
-	if (SETTING(SHARE_HIDDEN))
-		return true;
-
-	auto ff = FileFindIter(aName.substr(0, aName.size() - 1));
-	if (ff != FileFindIter()) {
-		return !ff->isHidden();
-	}
-
-	return true;
-}
-
-uint64_t ShareManager::findLastWrite(const string& aName) const {
-	auto ff = FileFindIter(aName.substr(0, aName.size() - 1));
-
-	if (ff != FileFindIter()) {
-		return ff->getLastWriteTime();
-	}
-
-	return 0;
 }
 
 void ShareManager::Directory::addBloom(ShareBloom& aBloom) const {
@@ -2232,7 +2197,7 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) {
 					// It's a new parent, will be handled in the task thread
 					auto root = ProfileDirectory::Ptr(new ProfileDirectory(sdiPath, d->vname, d->profile, d->incoming));
 					//root->setFlag(ProfileDirectory::FLAG_ADD);
-					Directory::Ptr dp = Directory::create(Util::getLastDir(sdiPath), nullptr, findLastWrite(sdiPath), root);
+					Directory::Ptr dp = Directory::create(Util::getLastDir(sdiPath), nullptr, File::getLastModified(sdiPath), root);
 					addRoot(sdiPath, dp);
 					profileDirs[sdiPath] = root;
 					addDirName(dp);
@@ -2489,7 +2454,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 			for(auto& i: task->dirs) {
 				auto d = findRoot(i);
 				if (d != rootPaths.end()) {
-					refreshDirs.emplace_back(new RefreshInfo(i, d->second, findLastWrite(i)));
+					refreshDirs.emplace_back(new RefreshInfo(i, d->second, File::getLastModified(i)));
 					
 					//a monitored dir?
 					if (t.first == ADD_DIR && (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_ALL || (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && d->second->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING))))
@@ -2498,7 +2463,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 					auto curDir = findDirectory(i, false, false, false);
 
 					//curDir may also be nullptr
-					refreshDirs.emplace_back(new RefreshInfo(i, curDir, findLastWrite(i)));
+					refreshDirs.emplace_back(new RefreshInfo(i, curDir, File::getLastModified(i)));
 				}
 			}
 		}
@@ -2521,13 +2486,13 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) {
 
 		auto doRefresh = [&](RefreshInfoPtr& i) {
 			auto& ri = *i;
-			if (checkHidden(ri.path)) {
+			//if (checkHidden(ri.path)) {
 				auto pathLower = Text::toLower(ri.path);
 				auto path = ri.path;
 				ri.root->addBloom(*refreshBloom);
 				buildTree(path, pathLower, ri.root, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
 				dcassert(ri.path == path);
-			}
+			//}
 
 			if(progressF) {
 				progressF(static_cast<float>(progressCounter++) / static_cast<float>(dirCount));

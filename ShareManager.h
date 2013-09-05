@@ -448,7 +448,7 @@ private:
 		DualString name;
 
 		void getRenameInfoList(const string& aPath, RenameList& aRename);
-		Directory::Ptr findDirByPath(const string& aPath) const;
+		Directory::Ptr findDirByPath(const string& aPath, char separator) const;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
@@ -520,7 +520,6 @@ private:
 	uint64_t lastFullUpdate;
 	uint64_t lastIncomingUpdate;
 	uint64_t lastSave;
-	uint64_t findLastWrite(const string& aName) const;
 	
 	//caching the share size so we dont need to loop tthindex everytime
 	bool xml_saving;
@@ -582,7 +581,6 @@ private:
 	}
 
 	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
-	bool checkHidden(const string& aName) const;
 	void addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_);
 
 	//void rebuildIndices();

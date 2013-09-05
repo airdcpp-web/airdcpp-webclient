@@ -102,6 +102,7 @@ public:
 	static void removeDirectory(const string& aPath) noexcept;
 
 	static bool isAbsolute(const string& path) noexcept;
+	static bool isHidden(const string& path) noexcept;
 
 	virtual ~File() { File::close(); }
 
@@ -158,7 +159,7 @@ public:
 	/** End iterator constructor */
 	FileFindIter();
 	/** Begin iterator constructor, path in utf-8. Note that the dirsOnly option isn't fully reliable. */
-	FileFindIter(const string& path, bool dirsOnly = false);
+	FileFindIter(const string& path, const string& pattern = Util::emptyString, bool dirsOnly = false);
 
 	~FileFindIter();
 
@@ -191,7 +192,9 @@ private:
 #ifdef _WIN32
 	HANDLE handle;
 #else
+	bool matchPattern() const;
 	DIR* dir;
+	unique_ptr<string> pattern;
 #endif
 
 	DirData data;

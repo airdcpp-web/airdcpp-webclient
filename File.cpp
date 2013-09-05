@@ -187,13 +187,22 @@ void File::copyFile(const string& src, const string& target) {
 	}
 }
 
-uint64_t File::getLastModified(const string& aPath) {
-	FileFindIter ff = FileFindIter(aPath);
+uint64_t File::getLastModified(const string& aPath) noexcept {
+	FileFindIter ff = FileFindIter(aPath.substr(0, aPath.size() - 1));
 	if (ff != FileFindIter()) {
 		return ff->getLastWriteTime();
 	}
 
 	return 0;
+}
+
+bool File::isHidden(const string& aPath) noexcept {
+	FileFindIter ff = FileFindIter(aPath.substr(0, aPath.size() - 1));
+	if (ff != FileFindIter()) {
+		return ff->isHidden();
+	}
+
+	return true;
 }
 
 bool File::deleteFile(const string& aFileName) noexcept {
@@ -536,6 +545,10 @@ void File::removeDirectory(const string& aPath) noexcept {
 	rmdir(Text::fromUtf8(aPath).c_str());
 }
 
+bool File::isHidden(const string& aPath) noexcept {
+	return aPath.find("/.") != string::npos;
+}
+
 TimeKeeper::TimeKeeper(const string& aPath) : path(Text::fromUtf8(aPath)), time(File::getLastModified(path)) {
 }
 
@@ -613,7 +626,7 @@ StringList File::findFiles(const string& aPath, const string& pattern, int flags
 }
 
 void File::forEachFile(const string& aPath, const string& pattern, std::function<void (const string & /*name*/, bool /*isDir*/, int64_t /*size*/)> aF, bool skipHidden) {
-	for (FileFindIter i(aPath + pattern); i != FileFindIter(); ++i) {
+	for (FileFindIter i(aPath, pattern); i != FileFindIter(); ++i) {
 		if ((!skipHidden || !i->isHidden())) {
 			auto name = i->getFileName();
 			if (name.compare(".") != 0 && (name.length() < 2 || name.compare("..") != 0)) {
@@ -644,11 +657,11 @@ int64_t File::getDirSize(const string& aPath, bool recursive, const string& patt
 
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
-FileFindIter::FileFindIter(const string& path, bool dirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
+FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool dirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
 	if (Util::getOsMajor() >= 6 && Util::getOsMinor() >= 1) {
-		handle = ::FindFirstFileEx(Text::toT(Util::FormatPath(path)).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
+		handle = ::FindFirstFileEx(Text::toT(Util::FormatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
 	} else {
-		handle = ::FindFirstFile(Text::toT(Util::FormatPath(path)).c_str(), &data);
+		handle = ::FindFirstFile(Text::toT(Util::FormatPath(aPath) + aPattern).c_str(), &data);
 	}
 }
 
@@ -701,16 +714,24 @@ FileFindIter::FileFindIter() {
 	data.ent = NULL;
 }
 
-FileFindIter::FileFindIter(const string& path, bool dirsOnly /*false*/) {
-	string filename = Text::fromUtf8(path);
+FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool dirsOnly /*false*/) {
+	string filename = Text::fromUtf8(aPath);
 	dir = opendir(filename.c_str());
 	if (!dir)
 		return;
+
 	data.base = filename;
 	data.ent = readdir(dir);
+	if (!aPattern.empty() && aPattern != "*") {
+		pattern.reset(new string(aPattern));
+	}
+
 	if (!data.ent) {
 		closedir(dir);
 		dir = NULL;
+		return;
+	} else if (!matchPattern()) {
+		operator++();
 	}
 }
 
@@ -725,8 +746,18 @@ FileFindIter& FileFindIter::operator++() {
 	if (!data.ent) {
 		closedir(dir);
 		dir = NULL;
+		return *this;
 	}
-	return *this;
+
+	if (matchPattern())
+		return *this;
+
+	// continue to the next one...
+	operator++();
+}
+
+bool FileFindIter::matchPattern() const {
+	return !pattern || fnmatch(pattern->c_str(), data.ent->d_name, 0) == 0;
 }
 
 bool FileFindIter::operator!=(const FileFindIter& rhs) const {

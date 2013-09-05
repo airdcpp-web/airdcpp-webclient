@@ -510,7 +510,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aTTH)) {
 		try {
 			auto path = Util::getFilePath(ShareManager::getInstance()->getRealPath(aTTH));
-			path = AirUtil::subtractCommonDirs(aBundleDir, path);
+			path = AirUtil::subtractCommonDirs(aBundleDir, path, PATH_SEPARATOR);
 			throw DupeException(STRING_F(TTH_ALREADY_SHARED, path));
 		} catch(ShareException& /*e*/) { 
 			//it doesn't exist on the disk, ignore
@@ -522,7 +522,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 		RLock l(cs);
 		auto q = fileQueue.getQueuedFile(aTTH);
 		if (q && q->getTarget() != aBundleDir + aBundleFile) {
-			auto path = AirUtil::subtractCommonDirs(aBundleDir, q->getFilePath());
+			auto path = AirUtil::subtractCommonDirs(aBundleDir, q->getFilePath(), PATH_SEPARATOR);
 			throw DupeException(STRING_F(FILE_ALREADY_QUEUED, path));
 		}
 	}
@@ -1247,7 +1247,7 @@ void QueueManager::moveFile_(const string& source, const string& target, QueueIt
 		if (qi->getBundle() && !qi->getBundle()->isFileBundle() && compare(Util::getFilePath(source), Util::getFilePath(target)) != 0) {
 			// the bundle was moved? try to remove the old main bundle dir
 			auto p = source.find(qi->getBundle()->getName()); //was the bundle dir renamed?
-			auto dir = p != string::npos ? source.substr(0, p + qi->getBundle()->getName().length()+1) : AirUtil::subtractCommonDirs(Util::getFilePath(target), Util::getFilePath(source));
+			auto dir = p != string::npos ? source.substr(0, p + qi->getBundle()->getName().length() + 1) : AirUtil::subtractCommonDirs(Util::getFilePath(target), Util::getFilePath(source), PATH_SEPARATOR);
 			AirUtil::removeDirectoryIfEmpty(dir);
 		}
 	} catch(const FileException& e1) {

@@ -45,11 +45,7 @@ bool Updater::extractFiles(const string& curSourcePath, const string& curExtract
 	bool ret = true;
 	File::ensureDirectory(curExtractPath);
 	FileFindIter end;
-//#ifdef _WIN32
 	for(FileFindIter i(curSourcePath + "*"); i != end; ++i) {
-//#else
-//	for(FileFindIter i(curSourcePath); i != end; ++i) {
-//#endif
 		string name = i->getFileName();
 		if(name == "." || name == "..")
 			continue;

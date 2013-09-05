@@ -119,10 +119,10 @@ class AirUtil {
 		static string getAwayMessage(const string& aAwayMsg, ParamMap& params);
 
 		/* Removes common dirs from the end of toSubtract */
-		static string subtractCommonDirs(const string& toCompare, const string& toSubtract);
+		static string subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator);
 
 		/* Returns the name without subdirs and possible position from where the subdir starts */
-		static pair<string, string::size_type> getDirName(const string& aName);
+		static pair<string, string::size_type> getDirName(const string& aName, char separator);
 		static string getTitle(const string& searchTerm);
 	private:
 

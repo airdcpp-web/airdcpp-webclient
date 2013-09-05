@@ -38,11 +38,6 @@
 #include <fstream>
 #include <cstring>
 
-#ifndef _WIN32
-#include <dirent.h>
-#include <fnmatch.h>
-#endif
-
 #include "concurrency.h"
 
 namespace dcpp {
@@ -175,11 +170,11 @@ int ShareScannerManager::run() {
 
 		parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
 			if (!s.rootPath.empty()) {
-#ifdef _WIN32
-				FileFindIter i(s.rootPath.substr(0, s.rootPath.length() - 1), false);
-#else
-				FileFindIter i(s.rootPath, false);
-#endif
+//#ifdef _WIN32
+				FileFindIter i(s.rootPath.substr(0, s.rootPath.length() - 1), Util::emptyString, false);
+//#else
+//				FileFindIter i(s.rootPath, false);
+//#endif
 				if (!i->isHidden()) {
 					scanDir(s.rootPath, s);
 					if (SETTING(CHECK_DUPES) && isDirScan)

@@ -41,15 +41,9 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #ifdef _WIN32
-#include <direct.h>
 #include <ShlObj.h>
 #include <IPHlpApi.h>
 #pragma comment(lib, "iphlpapi.lib")
-#else
-# include <dirent.h>
-# include <sys/stat.h>
-# include <unistd.h>
-# include <fnmatch.h>
 #endif
 
 namespace dcpp {
@@ -669,12 +663,12 @@ string AirUtil::getAwayMessage(const string& aAwayMsg, ParamMap& params) {
 	return Util::formatParams(aAwayMsg, params);
 }
 
-string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubtract) {
+string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) {
 	if (toSubtract.length() > 3) {
 		string::size_type i = toSubtract.length()-2;
 		string::size_type j;
 		for(;;) {
-			j = toSubtract.find_last_of(PATH_SEPARATOR, i);
+			j = toSubtract.find_last_of(separator, i);
 			if(j == string::npos || (int)(toCompare.length() - (toSubtract.length() - j)) < 0) //also check if it goes out of scope for toCompare
 				break;
 			if(Util::stricmp(toSubtract.substr(j), toCompare.substr(toCompare.length() - (toSubtract.length()-j))) != 0)
@@ -686,15 +680,15 @@ string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubt
 	return toSubtract;
 }
 
-pair<string, string::size_type> AirUtil::getDirName(const string& aPath) {
+pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char separator) {
 	if (aPath.size() < 3)
 		return { aPath, false };
 
 	//get the directory to search for
 	bool isSub = false;
-	string::size_type i = aPath.back() == PATH_SEPARATOR ? aPath.size() - 2 : aPath.size() - 1, j;
+	string::size_type i = aPath.back() == separator ? aPath.size() - 2 : aPath.size() - 1, j;
 	for (;;) {
-		j = aPath.find_last_of(PATH_SEPARATOR, i);
+		j = aPath.find_last_of(separator, i);
 		if (j == string::npos) {
 			j = 0;
 			break;

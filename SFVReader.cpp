@@ -34,11 +34,6 @@
 #include <iostream>
 #include <fstream>
 
-#ifndef _WIN32
-#include <dirent.h>
-#include <fnmatch.h>
-#endif
-
 namespace dcpp {
 
 using boost::range::find_if;
