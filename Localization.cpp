@@ -174,7 +174,7 @@ string Localization::getCurLanguageFilePath() {
 }
 
 string Localization::getCurLanguageFileName() {
-	return languageList[curLanguage].languageFile;
+	return languageList[curLanguage].locale + ".xml";
 }
 
 void Localization::setLanguage(int languageIndex) {
