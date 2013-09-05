@@ -124,6 +124,10 @@ private:
 
 		ScanInfo(const string& aRootPath, ReportType aReportType, bool aIsManualShareScan) : rootPath(aRootPath), reportType(aReportType), isManualShareScan(aIsManualShareScan), missingFiles(0), missingSFV(0), missingNFO(0), extrasFound(0), noReleaseFiles(0), emptyFolders(0), dupesFound(0) {}
 
+		string rootPath;
+		ReportType reportType;
+		bool isManualShareScan;
+
 		int missingFiles;
 		int missingSFV;
 		int missingNFO;
@@ -132,10 +136,6 @@ private:
 		int emptyFolders;
 		int dupesFound;
 
-		bool isManualShareScan;
-		ReportType reportType;
-
-		string rootPath;
 		string scanMessage;
 
 		string getResults() const;

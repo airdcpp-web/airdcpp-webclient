@@ -31,11 +31,11 @@ class Localization {
 		struct Language {
 			Language() { }
 			explicit Language(const string& aLanguage, const char* aCountryFlagCode, const string& aLocale, const string& aLanguageFile) : languageName(aLanguage), 
-				locale(aLocale), countryFlagCode(aCountryFlagCode), languageFile(aLanguageFile) { }
+				locale(aLocale), languageFile(aLanguageFile), countryFlagCode(aCountryFlagCode) {
+			}
 
-
-			const char* countryFlagCode;
 			string languageName, locale, languageFile;
+			const char* countryFlagCode;
 
 			void setLanguageFile();
 			string getLanguageFilePath();

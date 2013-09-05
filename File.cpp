@@ -564,7 +564,7 @@ TimeKeeper::~TimeKeeper() {
 
 #endif // !_WIN32
 
-TimeKeeper* createKeeper(const string& aPath) noexcept {
+TimeKeeper* TimeKeeper::createKeeper(const string& aPath) noexcept{
 	TimeKeeper* ret = nullptr;
 	try {
 		ret = new TimeKeeper(aPath);
@@ -578,7 +578,7 @@ TimeKeeper* createKeeper(const string& aPath) noexcept {
 bool File::deleteFileEx(const string& aFileName, int maxAttempts, bool keepFolderDate /*false*/) noexcept {
 	unique_ptr<TimeKeeper> keeper;
 	if (keepFolderDate) {
-		keeper.reset(createKeeper(Util::getFilePath(aFileName)));
+		keeper.reset(TimeKeeper::createKeeper(Util::getFilePath(aFileName)));
 	}
 
 	bool success = false;

@@ -576,7 +576,8 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 		}
 	}
 
-	if(!baseOk) {
+	// TODO: better error
+	if(!baseOk || !tigrOk) {
 		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "Invalid SUP"));
 		aSource->disconnect();
 		return;

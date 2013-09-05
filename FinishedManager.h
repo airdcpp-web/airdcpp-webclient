@@ -66,13 +66,11 @@ public:
 	int getImageIndex() const;
 
 	GETSET(string, target, Target);
-	GETSET(string, tth, TTH);
-
+	GETSET(HintedUser, user, User);
 	GETSET(int64_t, size, Size);
 	GETSET(int64_t, avgSpeed, AvgSpeed);
 	GETSET(time_t, time, Time);
-	GETSET(HintedUser, user, User);
-
+	GETSET(string, tth, TTH);
 private:
 	friend class FinishedManager;
 

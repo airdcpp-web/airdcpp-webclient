@@ -159,10 +159,10 @@ private:
 			WorkItem(WorkItem&& rhs);
 			WorkItem& operator=(WorkItem&&);
 
-			string devID;
 			string filePath;
-			string filePathLower;
 			int64_t fileSize;
+			string devID;
+			string filePathLower;
 
 			struct NameLower {
 				const string& operator()(const WorkItem& a) const { return a.filePathLower; }

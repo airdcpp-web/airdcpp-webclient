@@ -44,6 +44,14 @@
 #include <ShlObj.h>
 #include <IPHlpApi.h>
 #pragma comment(lib, "iphlpapi.lib")
+
+#else
+
+#ifdef HAVE_IFADDRS_H
+#include <ifaddrs.h>
+#include <net/if.h>
+#endif
+
 #endif
 
 namespace dcpp {
@@ -178,7 +186,46 @@ void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 			break;
 	}
 #else
-	//...
+
+#ifdef HAVE_IFADDRS_H
+	struct ifaddrs *ifap;
+
+	if (getifaddrs(&ifap) == 0) {
+		for (struct ifaddrs *i = ifap; i != NULL; i = i->ifa_next) {
+			struct sockaddr *sa = i->ifa_addr;
+
+			// If the interface is up, is not a loopback and it has an address
+			if ((i->ifa_flags & IFF_UP) && !(i->ifa_flags & IFF_LOOPBACK) && sa != NULL) {
+				void* src = NULL;
+				socklen_t len;
+				uint32_t scope = 0;
+
+				if (!v6 && sa->sa_family == AF_INET) {
+					// IPv4 address
+					struct sockaddr_in* sai = (struct sockaddr_in*)sa;
+					src = (void*) &(sai->sin_addr);
+					len = INET_ADDRSTRLEN;
+					scope = 4;
+				} else if (v6 && sa->sa_family == AF_INET6) {
+					// IPv6 address
+					struct sockaddr_in6* sai6 = (struct sockaddr_in6*)sa;
+					src = (void*) &(sai6->sin6_addr);
+					len = INET6_ADDRSTRLEN;
+					scope = sai6->sin6_scope_id;
+				}
+
+				// Convert the binary address to a string and add it to the output list
+				if (src != NULL) {
+					char address[len];
+					inet_ntop(sa->sa_family, src, address, len);
+					addresses.emplace_back("Unknown", (string)address, (uint8_t)scope);
+				}
+			}
+		}
+		freeifaddrs(ifap);
+	}
+#endif
+
 #endif
 }
 

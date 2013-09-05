@@ -41,7 +41,9 @@ public:
 
 	HubEntry(const string& aName, const string& aServer, const string& aDescription, const string& aUsers, const string& aCountry,
 		const string& aShared, const string& aMinShare, const string& aMinSlots, const string& aMaxHubs, const string& aMaxUsers,
-		const string& aReliability, const string& aRating) : name(aName), server(aServer), description(aDescription), country(aCountry),
+		const string& aReliability, const string& aRating) :
+		
+		name(aName), server(aServer), description(aDescription), country(aCountry),
 		rating(aRating), reliability((float)(Util::toFloat(aReliability) / 100.0)), shared(Util::toInt64(aShared)), minShare(Util::toInt64(aMinShare)),
 		users(Util::toInt(aUsers)), minSlots(Util::toInt(aMinSlots)), maxHubs(Util::toInt(aMaxHubs)), maxUsers(Util::toInt(aMaxUsers))
 	{
@@ -119,11 +121,11 @@ public:
 
 	~RecentHubEntry() noexcept { }	
 	
-	GETSET(string, name, Name);
 	GETSET(string, server, Server);
+	GETSET(string, name, Name);
 	GETSET(string, description, Description);
+	GETSET(string, shared, Shared);
 	GETSET(string, users, Users);
-	GETSET(string, shared, Shared);	
 };
 
 }

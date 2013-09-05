@@ -66,14 +66,14 @@ public:
 	const string& getPath() const { return dbPath; }
 	uint64_t getCacheSize() const { return cacheSize; }
 protected:
-	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) : cacheSize(aCacheSize), dbPath(aPath), friendlyName(aFriendlyName) { 
+	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) : dbPath(aPath), friendlyName(aFriendlyName), cacheSize(aCacheSize) {
 		if (dbPath.back() != PATH_SEPARATOR)
 			dbPath += PATH_SEPARATOR;
 	}
 	DbHandler(const DbHandler& src); // no copying
 
-	string friendlyName;
 	string dbPath;
+	string friendlyName;
 	uint64_t cacheSize;
 };
 

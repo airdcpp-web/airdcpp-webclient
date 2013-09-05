@@ -53,9 +53,9 @@ Bundle::Bundle(QueueItemPtr& qi, const string& aToken /*empty*/, bool aDirty /*t
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
-	QueueItemBase(aTarget, 0, aPriority, aAdded), status(STATUS_NEW), 
-	fileBundle(isFileBundle), finishedSegments(0), speed(0), lastSpeed(0), running(0), dirDate(aDirDate), lastDownloaded(0), singleUser(true),
-	dirty(aDirty), simpleMatching(true), recent(false), currentDownloaded(0), actual(0), bundleBegin(0), lastSearch(0) {
+	QueueItemBase(aTarget, 0, aPriority, aAdded), status(STATUS_NEW), start(0),
+		lastSearch(0), dirDate(aDirDate), simpleMatching(true), running(0), bundleBegin(0), singleUser(true), actual(0), speed(0), lastSpeed(0), lastDownloaded(0),
+		fileBundle(isFileBundle), dirty(aDirty), recent(false) {
 
 	if (aToken.empty()) {
 		token = ConnectionManager::getInstance()->tokens.getToken();

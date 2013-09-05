@@ -128,31 +128,26 @@ protected:
 #endif
 };
 
+class TimeKeeper 
 #ifdef _WIN32
-class TimeKeeper : private File {
+	: private File 
+#endif
+{
 public:
+	static TimeKeeper* createKeeper(const string& aPath) noexcept;
 	TimeKeeper(const string& aPath);
 	~TimeKeeper();
 private:
+
+#ifdef _WIN32
 	bool initialized;
 	FILETIME time;
-};
-
-
-
 #else
-class TimeKeeper {
-public:
-	TimeKeeper(const string& aPath);
-	~TimeKeeper();
-private:
 	time_t time;
 	string path;
-};
-
 #endif
 
-static TimeKeeper* createKeeper(const string& aPath) noexcept;
+};
 
 class FileFindIter {
 public:

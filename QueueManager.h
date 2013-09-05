@@ -19,7 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_MANAGER_H
 #define DCPLUSPLUS_DCPP_QUEUE_MANAGER_H
 
+#ifdef _MSC_VER
 # pragma warning(disable: 4512) // assignment operator could not be generated (bimap)
+#endif
 
 #include "TimerManager.h"
 #include "ClientManager.h"

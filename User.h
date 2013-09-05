@@ -52,7 +52,7 @@ public:
 		size_t operator()(const UserPtr& x) const { return ((size_t)(&(*x)))/sizeof(User); }
 	};
 
-	User(const CID& aCID) : cid(aCID), speed(0), queued(0) { }
+	User(const CID& aCID) : speed(0), queued(0), cid(aCID) {}
 
 	~User() { }
 

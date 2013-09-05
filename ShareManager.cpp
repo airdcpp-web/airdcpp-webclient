@@ -2119,7 +2119,7 @@ ShareManager::ProfileDirMap ShareManager::getSubProfileDirs(const string& aPath)
 void ShareManager::addProfiles(const ShareProfileInfo::List& aProfiles) {
 	WLock l(cs);
 	for (auto& sp : aProfiles) {
-		shareProfiles.emplace_back(new ShareProfile(sp->name, sp->token));
+		shareProfiles.emplace(shareProfiles.end()-1, new ShareProfile(sp->name, sp->token));
 	}
 }
 

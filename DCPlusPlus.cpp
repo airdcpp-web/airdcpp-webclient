@@ -106,7 +106,7 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
-	if(SETTING(WIZARD_RUN_NEW)) {
+	if(SETTING(WIZARD_RUN_NEW) && runWizard) {
 		runWizard();
 		SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN_NEW, false); //wizard has run on startup
 	}

@@ -66,18 +66,20 @@ public:
 		TYPE_MCN_NORMAL
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken ) : token(aToken), 
-		lastAttempt(0), errors(0), state(WAITING), download(aDownload), user(aUser.user), hubUrl(aUser.hint), maxConns(0), type(TYPE_ANY) { }
+	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken) : token(aToken), type(TYPE_ANY),
+		lastAttempt(0), errors(0), state(WAITING), download(aDownload), maxConns(0), hubUrl(aUser.hint), user(aUser.user) {
+	}
 	
 	GETSET(string, token, Token);
 	GETSET(Type, type, Type);
-	GETSET(string, hubUrl, HubUrl);
 	GETSET(string, lastBundle, LastBundle);
-	GETSET(uint8_t, maxConns, MaxConns);
 	GETSET(uint64_t, lastAttempt, LastAttempt);
 	GETSET(int, errors, Errors); // Number of connection errors, or -1 after a protocol error
 	GETSET(State, state, State);
 	GETSET(bool, download, Download);
+	GETSET(uint8_t, maxConns, MaxConns);
+	GETSET(string, hubUrl, HubUrl);
+
 	const UserPtr& getUser() const { return user; }
 	//UserPtr& getUser() { return user; }
 	const HintedUser getHintedUser() const { return HintedUser(user, hubUrl); }

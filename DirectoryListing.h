@@ -74,10 +74,10 @@ public:
 			return parent->getPath() + name;
 		}
 
-		GETSET(TTHValue, tthRoot, TTH);
 		GETSET(string, name, Name);
 		GETSET(int64_t, size, Size);
 		GETSET(Directory*, parent, Parent);
+		GETSET(TTHValue, tthRoot, TTH);
 		GETSET(bool, adls, Adls);
 		GETSET(DupeType, dupe, Dupe);
 		GETSET(time_t, remoteDate, RemoteDate);
@@ -257,9 +257,9 @@ private:
 	OrderedStringSet searchResults;
 	OrderedStringSet::iterator curResult;
 
-	int curResultCount;
-	int maxResultCount;
-	uint64_t lastResult;
+	int curResultCount = 0;
+	int maxResultCount = 0;
+	uint64_t lastResult = 0;
 	string searchToken;
 
 	void listDiffImpl(const string& aFile, bool aOwnList);

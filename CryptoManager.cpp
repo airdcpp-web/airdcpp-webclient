@@ -29,6 +29,7 @@
 #include <openssl/bn.h>
 #include <bzlib.h>
 
+#ifdef _MSC_VER
 # ifdef _DEBUG
 #  ifndef _WIN64
 #   pragma comment(lib, "libeay32d.lib")
@@ -46,6 +47,7 @@
 #   pragma comment(lib, "ssleay64.lib")
 #  endif
 # endif
+#endif
 
 namespace dcpp {
 

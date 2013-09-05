@@ -46,7 +46,7 @@ public:
 
 	virtual void on(UserUpdated, const OnlineUser&) noexcept { }
 	virtual void on(IncomingSearch, const string&) noexcept { }
-	virtual void on(ClientCreated, const Client*) noexcept {}
+	virtual void on(ClientCreated, Client*) noexcept {}
 	virtual void on(ClientConnected, const Client*) noexcept { }
 	virtual void on(ClientUpdated, const Client*) noexcept { }
 	virtual void on(ClientDisconnected, const string&) noexcept { }

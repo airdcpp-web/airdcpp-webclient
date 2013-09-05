@@ -27,7 +27,7 @@ namespace dcpp {
 
 class FavoriteUser : public Flags {
 public:
-	FavoriteUser(const UserPtr& user_, const string& nick_, const string& hubUrl_, const string& aCid_) : user(user_), nick(nick_), url(hubUrl_), cid(aCid_), lastSeen(0) { }
+	FavoriteUser(const UserPtr& user_, const string& nick_, const string& hubUrl_, const string& aCid_) : user(user_), cid(aCid_), nick(nick_), url(hubUrl_), lastSeen(0) {}
 
 	enum Flags {
 		FLAG_GRANTSLOT = 1 << 0,

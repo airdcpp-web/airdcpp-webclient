@@ -56,24 +56,24 @@ namespace dcpp {
 		bool isExcluded(const string& str) const;
 		bool hasExt(const string& name);
 
-		StringSearch::List* include;
+		StringSearch::List* include = &includeX;
 		StringSearch::List includeX;
 		StringSearch::List exclude;
 		StringList ext;
 		StringList noExt;
 
-		int64_t gt;
-		int64_t lt;
+		int64_t gt = 0;
+		int64_t lt = numeric_limits<int64_t>::max();
 
-		uint32_t minDate;
-		uint32_t maxDate;
+		uint32_t minDate = 0;
+		uint32_t maxDate = numeric_limits<uint32_t>::max();
 
 		optional<TTHValue> root;
 
-		MatchType matchType;
-		bool addParents;
+		MatchType matchType = MATCH_FULL_PATH;
+		bool addParents = false;
 
-		ItemType itemType;
+		ItemType itemType = TYPE_ANY;
 
 		bool matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate);
 		bool matchesDirectory(const string& aName);

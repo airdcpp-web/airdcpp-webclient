@@ -121,6 +121,7 @@
 # define _REENTRANT 1
 #endif
 
+#ifdef _MSC_VER
 # pragma warning(disable: 4307) //temp disable this annoying warning, boost::lockfree integral constant overflow
 # pragma warning(disable: 4913) //boost thread warnings (boost 1.52, remove later)
 
@@ -139,5 +140,6 @@
 # pragma warning(disable: 4244) // conversion from 'xxx' to 'yyy', possible loss of data
 # pragma warning(disable: 4267) // conversion from 'xxx' to 'yyy', possible loss of data
 
+#endif
 
 #endif // DCPLUSPLUS_DCPP_COMPILER_H

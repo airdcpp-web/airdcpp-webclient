@@ -34,8 +34,8 @@ public:
 		explicit TargetInfo() : targetDir(Util::emptyString), diskSpace(0), queued(0) { }
 		explicit TargetInfo(const string& aPath, int64_t aFreeSpace) : targetDir(aPath), diskSpace(aFreeSpace), queued(0) { }
 
-		int64_t queued, diskSpace;
 		string targetDir;
+		int64_t diskSpace, queued;
 		int64_t getFreeSpace() const { return diskSpace-queued; }
 		int64_t getDiff(int64_t aSize) const { return getFreeSpace() - aSize; }
 		bool isInitialized() { return diskSpace != 0 || queued != 0 || !targetDir.empty(); }

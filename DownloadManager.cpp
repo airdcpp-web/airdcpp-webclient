@@ -369,7 +369,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 	d->setStart(GET_TICK());
 	d->tick();
-	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isSet(UserConnection::FLAG_MCN1) && (d->getType() == Download::TYPE_FILE) || d->getType() == Download::TYPE_PARTIAL_LIST) {
+	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isSet(UserConnection::FLAG_MCN1) && (d->getType() == Download::TYPE_FILE || d->getType() == Download::TYPE_PARTIAL_LIST)) {
 		ConnectionManager::getInstance()->addRunningMCN(aSource);
 		aSource->setFlag(UserConnection::FLAG_RUNNING);
 	}

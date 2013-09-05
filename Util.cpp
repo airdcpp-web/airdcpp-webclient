@@ -172,6 +172,8 @@ string Util::getAppName() {
 	TCHAR buf[MAX_PATH+1];
 	DWORD x = GetModuleFileName(NULL, buf, MAX_PATH);
 	return Text::fromT(tstring(buf, x));
+#else
+	return "airdcpp";
 #endif
 }
 

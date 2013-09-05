@@ -86,12 +86,11 @@ StringList AdcSearch::parseSearchString(const string& aString) {
 	return ret;
 }
 
-AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
+AdcSearch::AdcSearch(const TTHValue& aRoot) : root(aRoot) {
+
 }
 
-AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt, MatchType aMatchType) : matchType(aMatchType), include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), itemType(TYPE_ANY), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max()) {
+AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const StringList& aExt, MatchType aMatchType) : matchType(aMatchType) {
 
 	//add included
 	if (matchType == MATCH_EXACT) {
@@ -112,9 +111,7 @@ AdcSearch::AdcSearch(const string& aSearch, const string& aExcluded, const Strin
 		ext.push_back(Text::toLower(i));
 }
 
-AdcSearch::AdcSearch(const StringList& params) : include(&includeX), gt(0), 
-	lt(numeric_limits<int64_t>::max()), itemType(TYPE_ANY), matchType(MATCH_FULL_PATH), addParents(false), minDate(0), maxDate(numeric_limits<uint32_t>::max())
-{
+AdcSearch::AdcSearch(const StringList& params) {
 	for(const auto& p: params) {
 		if(p.length() <= 2)
 			continue;

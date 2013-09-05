@@ -41,8 +41,8 @@ using std::max;
 #define POLL_TIMEOUT 250
 
 BufferedSocket::BufferedSocket(char aSeparator, bool v4only) :
-separator(aSeparator), mode(MODE_LINE), dataBytes(0), rollback(0), state(STARTING),
-disconnecting(false), v4only(v4only), useLimiter(false)
+separator(aSeparator), useLimiter(false), mode(MODE_LINE), dataBytes(0), rollback(0), state(STARTING),
+disconnecting(false), v4only(v4only)
 {
 	start();
 

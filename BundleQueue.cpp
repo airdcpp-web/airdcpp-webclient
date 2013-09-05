@@ -245,10 +245,10 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 
 	//get the last directory, we might need the position later with subdirs
 	string remoteDir = aPath;
-	if (remoteDir[remoteDir.length()-1] == '//')
+	if (remoteDir[remoteDir.length()-1] == '\\')
 		remoteDir.pop_back();
 
-	auto pos = remoteDir.rfind("//");
+	auto pos = remoteDir.rfind("\\");
 	if (pos != string::npos)
 		remoteDir = move(remoteDir.substr(pos+1));
 
@@ -259,7 +259,7 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 	//check the parents for dirs like CD1 to prevent false matches
 	if (boost::regex_match(remoteDir, AirUtil::subDirRegPlain) && pos != string::npos) {
 		string::size_type i, j;
-		remoteDir = "//" + aPath;
+		remoteDir = "\\" + aPath;
 
 		for(auto s = directories.first; s != directories.second; ++s) {
 			//start matching from the parent dir, as we know the last one already

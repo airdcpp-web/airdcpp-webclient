@@ -78,9 +78,9 @@ public:
 
 		bool operator==(const UserPtr& aUser) const { return user == aUser; }
 
+		HintedUser user;
 		int64_t size;
 		int files;
-		HintedUser user;
 	};
 
 	class HasStatus {
@@ -263,8 +263,8 @@ public:
 	//moves the file back in userqueue for the given user (only within the same priority)
 	void rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept;
 private:
-	int64_t finishedSegments;
-	int64_t currentDownloaded; //total downloaded for the running downloads
+	int64_t finishedSegments = 0;
+	int64_t currentDownloaded = 0; //total downloaded for the running downloads
 	bool fileBundle;
 	bool dirty;
 	bool recent;

@@ -51,8 +51,8 @@ private:
 			//~PacketTask() { if (buf) delete buf; }
 
 			uint8_t* buf;
-			string remoteIp;
 			size_t len;
+			string remoteIp;
 		};
 
 		PacketProcessor();

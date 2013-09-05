@@ -65,7 +65,9 @@ namespace dcpp {
 			DirectoryDownloadInfo() : priority(QueueItem::DEFAULT) { }
 			DirectoryDownloadInfo(const UserPtr& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p,
 				SizeCheckMode aPromptSizeConfirm, ProfileToken aAutoSearch, bool aRecursiveListAttempted) :
-				listPath(aListPath), target(aTarget), priority(p), user(aUser), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr), autoSearch(aAutoSearch), bundleName(aBundleName), recursiveListAttempted(aRecursiveListAttempted) {}
+				listPath(aListPath), target(aTarget), priority(p), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr), autoSearch(aAutoSearch), bundleName(aBundleName), 
+				recursiveListAttempted(aRecursiveListAttempted), user(aUser) {
+			}
 			~DirectoryDownloadInfo() { }
 
 			typedef boost::intrusive_ptr<DirectoryDownloadInfo> Ptr;
@@ -73,11 +75,11 @@ namespace dcpp {
 
 			UserPtr& getUser() { return user; }
 
-			GETSET(SizeCheckMode, sizeConfirm, SizeConfirm);
 			GETSET(string, listPath, ListPath);
 			GETSET(string, target, Target);
 			GETSET(QueueItemBase::Priority, priority, Priority);
 			GETSET(TargetUtil::TargetType, targetType, TargetType);
+			GETSET(SizeCheckMode, sizeConfirm, SizeConfirm);
 			GETSET(DirectoryListingPtr, listing, Listing);
 			GETSET(ProfileToken, autoSearch, AutoSearch);
 			GETSET(string, bundleName, BundleName);
@@ -141,9 +143,9 @@ namespace dcpp {
 			}*/
 
 			GETSET(WaitingState, state, State); // is this waiting action from an user?
+			GETSET(bool, usePausedPrio, UsePausedPrio);
 			GETSET(DirectoryDownloadInfo::List, downloadInfos, DownloadInfos); // lists that are waiting for disk space confirmation from the user
 			GETSET(string, targetPath, TargetPath); // real path to the location
-			GETSET(bool, usePausedPrio, UsePausedPrio);
 			GETSET(uint64_t, timeDownloaded, TimeDownloaded); // time when this item was created
 			/*GETSET(ProfileTokenSet, autoSearches, AutoSearches); // list of all auto search items that have been associated to this dir
 

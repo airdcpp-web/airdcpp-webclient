@@ -76,11 +76,10 @@ public:
 	GETSET(int64_t, pos, Pos);
 	
 private:
-
-	int64_t		size;
-	uint64_t	time;	
-	string		file;
 	HintedUser	user;
+	string		file;
+	int64_t		size;
+	uint64_t	time;
 };
 
 struct WaitingUser {
@@ -88,9 +87,9 @@ struct WaitingUser {
 	WaitingUser(const HintedUser& _user, const std::string& _token) : user(_user), token(_token) { }
 	operator const UserPtr&() const { return user.user; }
 
-	string					token;
 	set<UploadQueueItem*>	files;
-	HintedUser				user;	
+	HintedUser				user;
+	string					token;
 };
 
 class UploadManager : private ClientManagerListener, private UserConnectionListener, public Speaker<UploadManagerListener>, private TimerManagerListener, public Singleton<UploadManager>

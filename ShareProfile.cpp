@@ -40,6 +40,7 @@ bool FileList::allowGenerateNew(bool forced) {
 		return false;
 	}
 
+	listN++;
 	return true;
 }
 
@@ -47,8 +48,8 @@ void FileList::generationFinished(bool failed) {
 	xmlDirty = false;
 	forceXmlRefresh = false;
 	lastXmlUpdate = GET_TICK();
-	if (!failed)
-		listN++;
+	if (failed)
+		listN--;
 }
 
 void FileList::saveList() {

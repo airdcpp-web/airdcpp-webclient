@@ -118,7 +118,7 @@ public:
 	class PartialSource : public FastAlloc<PartialSource>, public intrusive_ptr_base<PartialSource> {
 	public:
 		PartialSource(const string& aMyNick, const string& aHubIpPort, const string& aIp, const string& udp) : 
-		  myNick(aMyNick), hubIpPort(aHubIpPort), ip(aIp), udpPort(udp), nextQueryTime(0), pendingQueryCount(0) { }
+			myNick(aMyNick), hubIpPort(aHubIpPort), ip(aIp), nextQueryTime(0), udpPort(udp), pendingQueryCount(0) {}
 		
 		~PartialSource() { }
 

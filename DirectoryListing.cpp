@@ -44,7 +44,7 @@ using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), waiting(false), maxResultCount(0), curResultCount(0)
+	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), waiting(false)
 {
 	running.clear();
 
