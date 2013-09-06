@@ -19,12 +19,30 @@
 #include "stdinc.h"
 #include "Thread.h"
 
+#include <process.h>
+
 #include "ResourceManager.h"
 
 namespace dcpp {
-
 	
 #ifdef _WIN32
+DWORD threadId;
+void Thread::start() {
+	join();
+	if ((threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, &starter, this, 0, reinterpret_cast<unsigned int*>(&threadId)))) == NULL) {
+		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
+	}
+}
+
+
+#else
+void Thread::start() {
+	join();
+	if(pthread_create(&threadHandle, NULL, &starter, this) != 0) {
+		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
+	}
+}
+#endif
 
 SharedMutex::SharedMutex() {
 	InitializeSRWLock(&psrw);
@@ -66,23 +84,6 @@ WLock::WLock(SharedMutex& aCS) : cs(&aCS) {
 WLock::~WLock() {
 	cs->unlock();
 }
-
-DWORD threadId;
-void Thread::start() {
-	join();
-	if ((threadHandle = CreateThread(NULL, 0, &starter, this, 0, &threadId)) == NULL) {
-		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
-	}
-}
-
-#else
-void Thread::start() {
-	join();
-	if(pthread_create(&threadHandle, NULL, &starter, this) != 0) {
-		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
-	}
-}
-#endif
 
 ConditionalRLock::ConditionalRLock(SharedMutex& aCS, bool aLock) : cs(&aCS), lock(aLock) {
 	if (lock)

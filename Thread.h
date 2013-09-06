@@ -135,7 +135,7 @@ public:
 	void setThreadPriority(Priority p) { ::SetThreadPriority(threadHandle, p); }
 
 	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources.
-		if(threadHandle == INVALID_HANDLE_VALUE) {
+	if(threadHandle == INVALID_HANDLE_VALUE) {
 			return;
 		}
 		::SuspendThread(threadHandle);
@@ -199,7 +199,7 @@ protected:
 #ifdef _WIN32
 	HANDLE threadHandle;
 
-	static DWORD WINAPI starter(void* p) {
+	static unsigned int WINAPI starter(void* p) {
 		#ifdef _DEBUG
 		_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 		#endif

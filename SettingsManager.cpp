@@ -1037,6 +1037,12 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 			//reset the old private hub profile to normal
 			if(prevVersion < 2.50 && SETTING(SETTINGS_PROFILE) == PROFILE_LAN)
 				unset(SETTINGS_PROFILE);
+
+			if (prevVersion <= 2.50 && SETTING(MONITORING_MODE) != MONITORING_DISABLED) {
+				set(MONITORING_MODE, MONITORING_ALL);
+				set(INCOMING_REFRESH_TIME, 0);
+				set(AUTO_REFRESH_TIME, 0);
+			}
 		
 			fire(SettingsManagerListener::Load(), xml);
 

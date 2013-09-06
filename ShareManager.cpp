@@ -535,6 +535,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 
 	ProfileTokenSet dirtyProfiles;
 	RenameList toRename;
+	bool found = true;
 
 	{
 		WLock l(cs);
@@ -578,9 +579,17 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 					toRename.emplace_back(Util::emptyString, fi);
 
 					LogManager::getInstance()->message(STRING_F(SHARED_FILE_RENAMED, aOldPath % aNewPath), LogManager::LOG_INFO);
+				} else {
+					found = false;
 				}
 			}
 		}
+	}
+
+	if (!found) {
+		// consider it as a new file
+		onFileModified(aNewPath, true);
+		return;
 	}
 
 	//rename in hash database
