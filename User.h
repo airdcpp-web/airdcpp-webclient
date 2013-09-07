@@ -52,7 +52,7 @@ public:
 		size_t operator()(const UserPtr& x) const { return ((size_t)(&(*x)))/sizeof(User); }
 	};
 
-	User(const CID& aCID) : speed(0), queued(0), cid(aCID) {}
+	User(const CID& aCID) : cid(aCID) {}
 
 	~User() { }
 
@@ -62,7 +62,6 @@ public:
 	bool isOnline() const { return isSet(ONLINE); }
 	bool isNMDC() const { return isSet(NMDC); }
 	bool isFavorite() const { return isSet(FAVORITE); }
-	GETSET(int64_t, speed, Speed);
 
 	struct UserHubInfo {
 		UserHubInfo(const string& aHubUrl, const string& aHubName, int64_t aShared) : hubName(aHubName), hubUrl(aHubUrl), shared(aShared) { }
@@ -76,8 +75,10 @@ public:
 	void addQueued(int64_t inc);
 	void removeQueued(int64_t inc);
 	int64_t getQueued() const { return queued; }
+
+	IGETSET(int64_t, speed, Speed, 0);
 private:
-	int64_t queued;
+	int64_t queued = 0;
 	const CID cid;
 };
 

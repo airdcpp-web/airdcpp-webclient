@@ -131,25 +131,26 @@ public:
 	Bundle(QueueItemPtr& qi, const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
 	~Bundle() noexcept;
 
-	GETSET(Status, status, Status);
 	GETSET(string, token, Token);
-	GETSET(uint64_t, start, Start);
-	GETSET(time_t, lastSearch, LastSearch);			// last time when the bundle was searched for
-	GETSET(time_t, dirDate, DirDate);				// the directory modify date picked from the remote filelist when the bundle has been queued
-	GETSET(bool, simpleMatching, SimpleMatching);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
-	GETSET(bool, seqOrder, SeqOrder);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
-	GETSET(string, lastError, LastError); 
+	GETSET(string, lastError, LastError);
 
-	GETSET(uint16_t, running, Running);				// number of running users
-	GETSET(uint64_t, bundleBegin, BundleBegin);		// time that is being reset every time when a waiting the bundle gets running downloads (GUI purposes really)
-	GETSET(bool, singleUser, SingleUser);			// the bundle is downloaded from a single user (may have multiple connections)
+	IGETSET(Status, status, Status, STATUS_NEW);
+	IGETSET(time_t, dirDate, DirDate, 0);				// the directory modify date picked from the remote filelist when the bundle has been queued
+	IGETSET(uint64_t, start, Start, 0);
+	IGETSET(time_t, lastSearch, LastSearch, 0);				// last time when the bundle was searched for
+	IGETSET(bool, simpleMatching, SimpleMatching, true);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
+	IGETSET(bool, seqOrder, SeqOrder, false);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
 
-	GETSET(int64_t, actual, Actual); 
-	GETSET(int64_t, speed, Speed);					// the speed calculated on every second in downloadmanager
+	IGETSET(uint16_t, running, Running, 0);				// number of running users
+	IGETSET(uint64_t, bundleBegin, BundleBegin, 0);		// time that is being reset every time when a waiting the bundle gets running downloads (GUI purposes really)
+	IGETSET(bool, singleUser, SingleUser, true);		// the bundle is downloaded from a single user (may have multiple connections)
+
+	IGETSET(int64_t, actual, Actual, 0); 
+	IGETSET(int64_t, speed, Speed, 0);					// the speed calculated on every second in downloadmanager
 	//GETSET(int, transferFlags, TransferFlags);		// combined transfer flags checked from running downloads
 
-	GETSET(int64_t, lastSpeed, LastSpeed); // the speed sent on last time to UBN sources
-	GETSET(double, lastDownloaded, LastDownloaded); // the progress percent sent on last time to UBN sources
+	IGETSET(int64_t, lastSpeed, LastSpeed, 0); // the speed sent on last time to UBN sources
+	IGETSET(double, lastDownloaded, LastDownloaded, 0); // the progress percent sent on last time to UBN sources
 
 
 	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);	// partial bundle sharing sources (mapped to their local tokens)
@@ -265,9 +266,9 @@ public:
 private:
 	int64_t finishedSegments = 0;
 	int64_t currentDownloaded = 0; //total downloaded for the running downloads
-	bool fileBundle;
-	bool dirty;
-	bool recent;
+	bool fileBundle = false;
+	bool dirty = false;
+	bool recent = false;
 
 	/** QueueItems by priority and user (this is where the download order is determined) */
 	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[LAST];

@@ -70,10 +70,11 @@ public:
 	const unique_ptr<OutputStream>& getOutput() const { return output; }
 
 	GETSET(string, tempTarget, TempTarget);
-	GETSET(uint64_t, lastTick, LastTick);
-	GETSET(bool, treeValid, TreeValid);
-	GETSET(BundlePtr, bundle, Bundle);
-	GETSET(string, remotePath, RemotePath);
+	//GETSET(string, remotePath, RemotePath);
+
+	IGETSET(uint64_t, lastTick, LastTick, GET_TICK());
+	IGETSET(bool, treeValid, TreeValid, false);
+	IGETSET(BundlePtr, bundle, Bundle, nullptr);
 private:
 	Download(const Download&);
 	Download& operator=(const Download&);

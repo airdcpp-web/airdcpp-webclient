@@ -48,8 +48,7 @@ namespace {
 QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag,
 		time_t aAdded, const TTHValue& tth, const string& aTempTarget) :
 		QueueItemBase(aTarget, aSize, aPriority, aAdded, aFlag),
-		maxSegments(1), fileBegin(0),
-		tthRoot(tth), nextPublishingTime(0), tempTarget(aTempTarget), blockSize(-1)
+		tthRoot(tth), tempTarget(aTempTarget)
 	{
 
 	

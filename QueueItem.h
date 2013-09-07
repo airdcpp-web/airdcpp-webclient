@@ -159,7 +159,7 @@ public:
 		PartialSource::Ptr& getPartialSource() { return partialSource; }
 
 		GETSET(HintedUser, user, User);
-		GETSET(PartialSource::Ptr, partialSource, PartialSource);
+		IGETSET(PartialSource::Ptr, partialSource, PartialSource, nullptr);
 		//GETSET(string, remotePath, RemotePath);
 		OrderedStringSet blockedHubs;
 		bool updateHubUrl(const OrderedStringSet& onlineHubs, string& hubUrl, bool isFileList);
@@ -257,10 +257,10 @@ public:
 
 	GETSET(TTHValue, tthRoot, TTH);
 	GETSET(SegmentSet, done, Done);	
-	GETSET(uint64_t, fileBegin, FileBegin);
-	GETSET(uint64_t, nextPublishingTime, NextPublishingTime);
-	GETSET(uint8_t, maxSegments, MaxSegments);
-	GETSET(BundlePtr, bundle, Bundle);
+	IGETSET(uint64_t, fileBegin, FileBegin, 0);
+	IGETSET(uint64_t, nextPublishingTime, NextPublishingTime, 0);
+	IGETSET(uint8_t, maxSegments, MaxSegments, 1);
+	IGETSET(BundlePtr, bundle, Bundle, nullptr);
 	
 	QueueItemBase::Priority calculateAutoPriority() const;
 
@@ -285,7 +285,7 @@ private:
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason);
 	uint8_t getMaxSegments(int64_t filesize) const noexcept;
 
-	int64_t blockSize;
+	int64_t blockSize = -1;
 };
 
 } // namespace dcpp

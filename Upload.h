@@ -47,10 +47,10 @@ public:
 
 	void getParams(const UserConnection& aSource, ParamMap& params) const;
 
-	GETSET(int64_t, fileSize, FileSize);
-	GETSET(UploadBundlePtr, bundle, Bundle);
+	IGETSET(int64_t, fileSize, FileSize, -1);
+	IGETSET(UploadBundlePtr, bundle, Bundle, nullptr);
 
-	uint8_t delayTime;
+	uint8_t delayTime = 0;
 	InputStream* getStream();
 	void setFiltered();
 	void resume(int64_t aStart, int64_t aSize) noexcept;

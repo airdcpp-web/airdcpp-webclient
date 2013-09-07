@@ -23,7 +23,7 @@
 namespace dcpp {
 
 UploadBundle::UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded) : target(aTarget), token(aToken), size(aSize),
-	speed(0), totalSpeed(0), singleUser(aSingleUser), start(GET_TICK()), delayTime(0), uploadedSegments(aUploaded), uploaded(0), bundleBegin(0) { 
+	singleUser(aSingleUser), uploadedSegments(aUploaded) { 
 
 	if (uploadedSegments > size)
 		uploadedSegments = size;

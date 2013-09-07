@@ -33,6 +33,11 @@ protected: t name; \
 public: std::conditional<std::is_class<t>::value, const t&, t>::type get##name2() const { return name; } \
 	template<typename GetSetT> void set##name2(GetSetT&& name) { this->name = std::forward<GetSetT>(name); }
 
+#define IGETSET(t, name, name2, init) \
+protected: t name = init; \
+public: std::conditional<std::is_class<t>::value, const t&, t>::type get##name2() const { return name; } \
+	template<typename GetSetT> void set##name2(GetSetT&& name) { this->name = std::forward<GetSetT>(name); }
+
 #else
 
 // This version is for my stupid editor =)

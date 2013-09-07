@@ -36,12 +36,13 @@ public:
 	UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded);
 
 	GETSET(int64_t, size, Size);
-	GETSET(int64_t, speed, Speed);
-	GETSET(int64_t, totalSpeed, TotalSpeed);
-	GETSET(int64_t, actual, Actual);
-	GETSET(int64_t, uploadedSegments, UploadedSegments);
-	GETSET(uint64_t, bundleBegin, BundleBegin);
-	int delayTime;
+
+	IGETSET(int64_t, speed, Speed, 0);
+	IGETSET(int64_t, totalSpeed, TotalSpeed, 0);
+	IGETSET(int64_t, actual, Actual, 0);
+	IGETSET(int64_t, uploadedSegments, UploadedSegments, 0);
+	IGETSET(uint64_t, bundleBegin, BundleBegin, 0);
+	int delayTime = 0;
 
 	GETSET(UploadList, uploads, Uploads);
 	UploadList& getUploads() { return uploads; }
@@ -73,9 +74,9 @@ public:
 	uint64_t countSpeed();
 
 private:
-	uint64_t uploaded;
-	bool singleUser;
-	uint64_t start;
+	uint64_t uploaded = 0;
+	bool singleUser = true;
+	time_t start = GET_TIME();
 
 	string token;
 	string target;

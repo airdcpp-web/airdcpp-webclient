@@ -32,7 +32,7 @@
 namespace dcpp {
 
 Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn, qi.getTarget(), qi.getTTH()),
-	tempTarget(qi.getTempTarget()), lastTick(GET_TICK()), treeValid(false)
+	tempTarget(qi.getTempTarget()), treeValid(false)
 {
 	conn.setDownload(this);
 	
@@ -122,10 +122,8 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
 		} else {
 			cmd.addParam(USER_LIST_NAME);
 		}
-	} else if (!SettingsManager::lanMode) {
-		cmd.addParam("TTH/" + getTTH().toBase32());
 	} else {
-		cmd.addParam(Util::toAdcFile(remotePath));
+		cmd.addParam("TTH/" + getTTH().toBase32());
 	}
 
 	cmd.addParam(Util::toString(getStartPos()));

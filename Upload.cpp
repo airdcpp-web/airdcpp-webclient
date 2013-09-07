@@ -27,7 +27,7 @@
 namespace dcpp {
 
 Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth, unique_ptr<InputStream> aIS) : 
-	Transfer(conn, path, tth), fileSize(-1), delayTime(0), stream(move(aIS)) { 
+	Transfer(conn, path, tth), stream(move(aIS)) { 
 
 	conn.setUpload(this);
 }
