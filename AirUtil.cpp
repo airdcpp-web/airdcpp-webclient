@@ -196,7 +196,7 @@ void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 
 			// If the interface is up, is not a loopback and it has an address
 			if ((i->ifa_flags & IFF_UP) && !(i->ifa_flags & IFF_LOOPBACK) && sa != NULL) {
-				void* src = NULL;
+				void* src = nullptr;
 				socklen_t len;
 				uint32_t scope = 0;
 
@@ -215,7 +215,7 @@ void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 				}
 
 				// Convert the binary address to a string and add it to the output list
-				if (src != NULL) {
+				if (src) {
 					char address[len];
 					inet_ntop(sa->sa_family, src, address, len);
 					addresses.emplace_back("Unknown", (string)address, (uint8_t)scope);

@@ -1126,7 +1126,7 @@ pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& a
 
 		if (qi) {
 			bool start = allowStartQI(qi, runningBundles);
-			return make_pair(qi->usesSmallSlot() ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, start);
+			return { qi->usesSmallSlot() ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, start };
 		}
 	}
 

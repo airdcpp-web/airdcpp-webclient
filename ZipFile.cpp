@@ -137,7 +137,7 @@ pair<uint8_t*,size_t> ZipFile::ReadCurrentFile() {
 	ret = unzReadCurrentFile(fp, buf, info.uncompressed_size);
 	if(ret != info.uncompressed_size) throw ZipFileException("unzReadCurrentFile", ret);
 
-	return make_pair(buf, info.uncompressed_size);
+	return { buf, info.uncompressed_size };
 }
 
 void ZipFile::ReadCurrentFile(const string &path) {

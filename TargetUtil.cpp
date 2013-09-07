@@ -35,7 +35,7 @@ string TargetUtil::getMountPath(const string& aPath, const VolumeSet& aVolumes) 
 		return aPath;
 	}
 
-	string::size_type l = aPath.length();
+	auto l = aPath.length();
 	for (;;) {
 		l = aPath.rfind(PATH_SEPARATOR, l-2);
 		if (l == string::npos || l <= 1)
@@ -97,7 +97,7 @@ bool TargetUtil::getTarget(const StringList& targets, TargetInfo& retTi_, const 
 	for(auto& i: targets) {
 		string target = getMountPath(i, volumes);
 		if (!target.empty() && targetMap.find(target) == targetMap.end()) {
-			auto free = File::getFreeSpace(retTi_.targetDir);
+			auto free = File::getFreeSpace(target);
 			if (free > 0) {
 				targetMap[target] = TargetInfo(i, free);
 			}

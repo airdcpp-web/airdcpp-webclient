@@ -43,6 +43,8 @@ LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cach
 	iteroptions.fill_cache = false;
 	readoptions.fill_cache = true;
 
+	writeoptions.sync = false;
+
 	options.env = leveldb::Env::Default();
 	options.compression = useCompression ? leveldb::kSnappyCompression : leveldb::kNoCompression;
 	options.max_open_files = maxOpenFiles;
