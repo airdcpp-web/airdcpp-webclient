@@ -19,18 +19,16 @@
 #include "stdinc.h"
 #include "SearchManager.h"
 
-#include "format.h"
-#include "ClientManager.h"
-#include "ShareManager.h"
-#include "SearchResult.h"
-#include "ResourceManager.h"
-#include "QueueManager.h"
-#include "AutoSearchManager.h"
-#include "StringTokenizer.h"
-#include "FinishedManager.h"
 #include "AdcHub.h"
-#include "SimpleXML.h"
+#include "ClientManager.h"
+#include "FinishedManager.h"
+#include "QueueManager.h"
+#include "ResourceManager.h"
 #include "ScopedFunctor.h"
+#include "SearchResult.h"
+#include "ShareManager.h"
+#include "SimpleXML.h"
+#include "StringTokenizer.h"
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>

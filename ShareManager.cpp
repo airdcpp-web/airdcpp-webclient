@@ -16,31 +16,27 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <string>
 #include "stdinc.h"
 #include "ShareManager.h"
-#include "ScopedFunctor.h"
 
-#include "ResourceManager.h"
 
-#include "CryptoManager.h"
+#include "AirUtil.h"
+#include "BZUtils.h"
 #include "ClientManager.h"
+#include "Download.h"
+#include "File.h"
+#include "FilteredFile.h"
 #include "LogManager.h"
 #include "HashManager.h"
 #include "QueueManager.h"
-
+#include "ResourceManager.h"
+#include "ScopedFunctor.h"
+#include "SearchResult.h"
+#include "ShareScannerManager.h"
 #include "SimpleXML.h"
 #include "StringTokenizer.h"
-#include "File.h"
-#include "FilteredFile.h"
-#include "BZUtils.h"
 #include "Transfer.h"
 #include "UserConnection.h"
-#include "Download.h"
-#include "SearchResult.h"
-#include "Wildcards.h"
-#include "AirUtil.h"
-#include "ShareScannerManager.h"
 
 #include "version.h"
 
@@ -61,8 +57,6 @@
 #ifdef _WIN32
 # include <ShlObj.h>
 #endif
-
-#include <limits>
 
 namespace dcpp {
 

@@ -36,11 +36,6 @@
 #include "AdcHub.h"
 #include "NmdcHub.h"
 
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <string>
-
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 

@@ -17,14 +17,11 @@
  */
 
 #include "stdinc.h"
-#include <algorithm>
-#include <functional>
-#include <vector>
 
-#include "UserQueue.h"
-#include "SettingsManager.h"
-#include "QueueManager.h"
 #include "Download.h"
+#include "QueueManager.h"
+#include "SettingsManager.h"
+#include "UserQueue.h"
 
 #include "noexcept.h"
 

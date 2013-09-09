@@ -20,14 +20,14 @@
 #define DCPLUSPLUS_DCPP_SHAREPROFILE_H_
 
 #include <string>
-
 #include "forward.h"
-#include "Pointer.h"
-#include "GetSet.h"
-#include "Util.h"
-#include "HashValue.h"
-#include "TigerHash.h"
+
 #include "File.h"
+#include "GetSet.h"
+#include "HashValue.h"
+#include "Pointer.h"
+#include "TigerHash.h"
+#include "Util.h"
 
 namespace dcpp {
 
@@ -35,26 +35,21 @@ using std::string;
 
 
 /*
-A Class that holds info on Hub spesific Filelist,
-a Full FileList that contains all like it did before is constructed with sharemanager instance, and then updated like before,
-this means that we should allways have FileListALL, other lists are just extra.
-Now this would be really simple if just used recursive Locks in sharemanager, to protect everything at once.
-BUT i dont want freezes and lockups so lets make it a bit more complex :) 
+A Class that holds info on a profile specific file list
 ..*/
 class FileList {
 	public:
 		FileList(ProfileToken aProfile);
 
-		GETSET(int64_t, xmlListLen, XmlListLen);
 		GETSET(TTHValue, xmlRoot, XmlRoot);
-		GETSET(int64_t, bzXmlListLen, BzXmlListLen);
 		GETSET(TTHValue, bzXmlRoot, BzXmlRoot);
-		GETSET(uint64_t, lastXmlUpdate, LastXmlUpdate);
 		GETSET(ProfileToken, profile, Profile);
-		GETSET(bool, xmlDirty, XmlDirty);
-		GETSET(bool, forceXmlRefresh, ForceXmlRefresh); /// bypass the 15-minutes guard
 
-		//static atomic_flag generating;
+		IGETSET(int64_t, xmlListLen, XmlListLen, 0);
+		IGETSET(int64_t, bzXmlListLen, BzXmlListLen, 0);
+		IGETSET(uint64_t, lastXmlUpdate, LastXmlUpdate, 0);
+		IGETSET(bool, xmlDirty, XmlDirty, true);
+		IGETSET(bool, forceXmlRefresh, ForceXmlRefresh, true); /// bypass the 15-minutes guard
 
 		unique_ptr<File> bzXmlRef;
 		string getFileName();
@@ -64,8 +59,8 @@ class FileList {
 		void saveList();
 		CriticalSection cs;
 	private:
-		int listN;
-		bool isSavedSuccessfully;
+		int listN = 0;
+		bool isSavedSuccessfully = false;
 };
 
 class ShareProfileInfo;
@@ -85,7 +80,7 @@ public:
 
 	string name;
 	ProfileToken token;
-	bool isDefault;
+	bool isDefault = false;
 	State state;
 
 	typedef vector<ShareProfileInfoPtr> List;
@@ -111,11 +106,10 @@ public:
 
 	GETSET(ProfileToken, token, Token);
 	GETSET(string, plainName, PlainName);
-	GETSET(bool, profileInfoDirty, ProfileInfoDirty);
-	GETSET(int64_t, shareSize, ShareSize);
-	GETSET(size_t, sharedFiles, SharedFiles);
-
-	GETSET(FileList*, profileList, ProfileList);
+	IGETSET(bool, profileInfoDirty, ProfileInfoDirty, true);
+	IGETSET(int64_t, shareSize, ShareSize, 0);
+	IGETSET(size_t, sharedFiles, SharedFiles, 0);
+	IGETSET(FileList*, profileList, ProfileList, nullptr);
 
 	string getDisplayName() const;
 	ShareProfile(const string& aName, ProfileToken aToken = Util::randInt(100));

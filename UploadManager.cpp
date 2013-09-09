@@ -21,30 +21,26 @@
 
 #include <cmath>
 
-#include "ConnectionManager.h"
-#include "LogManager.h"
-#include "ShareManager.h"
-#include "ClientManager.h"
-#include "ResourceManager.h"
-#include "HashManager.h"
 #include "AdcCommand.h"
-#include "FavoriteManager.h"
+#include "BZUtils.h"
+#include "ClientManager.h"
+#include "ConnectionManager.h"
 #include "CryptoManager.h"
+#include "FavoriteManager.h"
+#include "FinishedManager.h"
+#include "HashManager.h"
+#include "LogManager.h"
+#include "QueueManager.h"
+#include "ResourceManager.h"
+#include "SharedFileStream.h"
+#include "ShareManager.h"
 #include "Upload.h"
 #include "UploadBundle.h"
 #include "UserConnection.h"
-#include "QueueManager.h"
-#include "FinishedManager.h"
-#include "SharedFileStream.h"
-#include "BZUtils.h"
-
-#include "Wildcards.h"
 
 namespace dcpp {
 
 using boost::range::find_if;
-	
-static const string UPLOAD_AREA = "Uploads";
 
 UploadManager::UploadManager() noexcept : running(0), extra(0), lastGrant(0), lastFreeSlots(-1), extraPartial(0), mcnSlots(0), smallSlots(0) {	
 	ClientManager::getInstance()->addListener(this);

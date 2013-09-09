@@ -32,13 +32,12 @@
 
 #include "FastAlloc.h"
 #include "File.h"
-#include "SettingsManager.h"
-#include "ResourceManager.h"
-#include "SimpleXML.h"
-#include "version.h"
 #include "LogManager.h"
-
+#include "ResourceManager.h"
+#include "SettingsManager.h"
+#include "SimpleXML.h"
 #include "User.h"
+#include "version.h"
 
 #include <random>
 

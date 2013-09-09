@@ -18,22 +18,22 @@
  */
 
 #include "stdinc.h"
-#include "Bundle.h"
+
 #include "DirectoryListing.h"
 
-#include "AutoSearchManager.h"
-#include "QueueManager.h"
-#include "ShareManager.h"
-
-#include "StringTokenizer.h"
-#include "SimpleXML.h"
-#include "FilteredFile.h"
-#include "BZUtils.h"
-#include "ResourceManager.h"
-#include "SimpleXMLReader.h"
-#include "User.h"
 #include "ADLSearch.h"
+#include "AutoSearchManager.h"
+#include "Bundle.h"
+#include "BZUtils.h"
 #include "DirectoryListingManager.h"
+#include "FilteredFile.h"
+#include "QueueManager.h"
+#include "ResourceManager.h"
+#include "ShareManager.h"
+#include "SimpleXML.h"
+#include "SimpleXMLReader.h"
+#include "StringTokenizer.h"
+#include "User.h"
 #include "ScopedFunctor.h"
 
 

@@ -22,9 +22,9 @@
 
 #include "ClientManager.h"
 #include "LogManager.h"
-#include "ShareManager.h"
 #include "QueueManager.h"
 #include "SearchResult.h"
+#include "ShareManager.h"
 #include "SimpleXML.h"
 #include "User.h"
 #include "DirectoryListingManager.h"

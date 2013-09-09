@@ -17,21 +17,20 @@
  */
 
 #include "stdinc.h"
+
 #include "SFVReader.h"
 
-#include "StringTokenizer.h"
-#include "File.h"
-#include "LogManager.h"
-#include "FilteredFile.h"
-#include "FileReader.h"
-#include "ZUtils.h"
-#include "Text.h"
 #include "AirUtil.h"
+#include "File.h"
+#include "FileReader.h"
+#include "FilteredFile.h"
+#include "LogManager.h"
+#include "Text.h"
+#include "ZUtils.h"
 
-#include <boost/range/algorithm/find_if.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <iostream>
+//#include <iostream>
 #include <fstream>
 
 namespace dcpp {

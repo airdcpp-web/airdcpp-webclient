@@ -23,11 +23,11 @@
 #include <boost/fusion/include/count_if.hpp>
 #include <boost/range/numeric.hpp>
 
-#include "BundleQueue.h"
-#include "SettingsManager.h"
 #include "AirUtil.h"
-#include "QueueItem.h"
+#include "BundleQueue.h"
 #include "LogManager.h"
+#include "QueueItem.h"
+#include "SettingsManager.h"
 #include "TimerManager.h"
 
 namespace dcpp {

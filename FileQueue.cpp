@@ -19,13 +19,11 @@
 #include "stdinc.h"
 
 #include "FileQueue.h"
+#include "Pointer.h"
+#include "QueueManager.h"
 #include "SettingsManager.h"
 #include "Text.h"
-#include "QueueManager.h"
 #include "Util.h"
-#include "Pointer.h"
-
-#include "noexcept.h"
 
 #include <boost/range/algorithm/copy.hpp>
 

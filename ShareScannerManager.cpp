@@ -19,24 +19,20 @@
 #include "stdinc.h"
 
 #include "ShareScannerManager.h"
-#include "HashManager.h"
-#include "TimerManager.h"
 
-#include "AutoSearchManager.h"
-#include "FileReader.h"
-#include "LogManager.h"
-#include "ShareManager.h"
-#include "StringTokenizer.h"
 #include "FilteredFile.h"
 #include "File.h"
-#include "Wildcards.h"
+#include "HashManager.h"
+#include "LogManager.h"
 #include "QueueManager.h"
-#include "format.h"
+#include "ShareManager.h"
+#include "StringTokenizer.h"
+#include "TimerManager.h"
 
-#include <cstdlib>
+/*#include <cstdlib>
 #include <iostream>
 #include <fstream>
-#include <cstring>
+#include <cstring>*/
 
 #include "concurrency.h"
 

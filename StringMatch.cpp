@@ -19,11 +19,10 @@
 #include "stdinc.h"
 #include "StringMatch.h"
 
-#include "format.h"
-#include "LogManager.h"
-#include "StringTokenizer.h"
 #include "AirUtil.h"
+#include "LogManager.h"
 #include "ResourceManager.h"
+#include "StringTokenizer.h"
 
 namespace dcpp {
 

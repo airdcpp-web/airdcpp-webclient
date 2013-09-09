@@ -18,11 +18,12 @@
 
 #include "stdinc.h"
 #include "LevelDB.h"
-#include "Util.h"
-#include "version.h"
-#include "ResourceManager.h"
+
 #include "File.h"
 #include "LogManager.h"
+#include "ResourceManager.h"
+#include "Util.h"
+#include "version.h"
 
 #include <leveldb/comparator.h>
 #include <leveldb/filter_policy.h>

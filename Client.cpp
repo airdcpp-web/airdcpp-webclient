@@ -19,17 +19,16 @@
 #include "stdinc.h"
 #include "Client.h"
 
+#include "AirUtil.h"
 #include "BufferedSocket.h"
+#include "ClientManager.h"
+#include "ConnectivityManager.h"
 #include "DebugManager.h"
 #include "FavoriteManager.h"
-#include "TimerManager.h"
-#include "ResourceManager.h"
-#include "ClientManager.h"
-#include "ThrottleManager.h"
-#include "AirUtil.h"
 #include "LogManager.h"
-
-#include "ConnectivityManager.h"
+#include "ResourceManager.h"
+#include "ThrottleManager.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 

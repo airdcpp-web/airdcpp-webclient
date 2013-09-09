@@ -18,17 +18,15 @@
 
 #include "stdinc.h"
 
+#include "BZUtils.h"
+#include "FilteredFile.h"
 #include "ShareProfile.h"
 #include "TimerManager.h"
-#include "FilteredFile.h"
 #include "Streams.h"
-#include "SimpleXML.h"
-#include "BZUtils.h"
-#include "ClientManager.h"
 
 namespace dcpp {
 
-FileList::FileList(ProfileToken aProfile) : profile(aProfile), xmlDirty(true), forceXmlRefresh(true), lastXmlUpdate(0), listN(0), isSavedSuccessfully(false) { }
+FileList::FileList(ProfileToken aProfile) : profile(aProfile) { }
 
 string FileList::getFileName() {
 	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + "_" + Util::toString(listN) + ".xml.bz2";
@@ -78,7 +76,7 @@ string ShareProfileInfo::getDisplayName() const {
 	return ret;
 }
 
-ShareProfile::ShareProfile(const string& aName, ProfileToken aToken) : token(aToken), plainName(aName), profileList(new FileList(aToken)), sharedFiles(0), shareSize(0), profileInfoDirty(true) { }
+ShareProfile::ShareProfile(const string& aName, ProfileToken aToken) : token(aToken), plainName(aName), profileList(new FileList(aToken)){ }
 
 ShareProfile::~ShareProfile() {
 	delete profileList;

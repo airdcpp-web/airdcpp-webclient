@@ -19,26 +19,24 @@
 #include "stdinc.h"
 #include "Download.h"
 
-#include "UserConnection.h"
-#include "QueueItem.h"
+#include "File.h"
+#include "FilteredFile.h"
 #include "HashManager.h"
 #include "MerkleCheckOutputStream.h"
 #include "MerkleTreeOutputStream.h"
-#include "File.h"
-#include "FilteredFile.h"
-#include "ZUtils.h"
+#include "QueueItem.h"
 #include "SharedFileStream.h"
+#include "UserConnection.h"
+#include "ZUtils.h"
 
 namespace dcpp {
 
 Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn, qi.getTarget(), qi.getTTH()),
-	tempTarget(qi.getTempTarget()), treeValid(false)
+	tempTarget(qi.getTempTarget())
 {
 	conn.setDownload(this);
 	
 	QueueItem::SourceConstIter source = qi.getSource(getUser());
-	//if (SettingsManager::lanMode)
-	//	remotePath = source->getRemotePath();
 
 	if(qi.isSet(QueueItem::FLAG_PARTIAL_LIST)) {
 		setType(TYPE_PARTIAL_LIST);

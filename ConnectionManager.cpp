@@ -19,17 +19,16 @@
 #include "stdinc.h"
 #include "ConnectionManager.h"
 
-#include "ConnectivityManager.h"
-#include "ResourceManager.h"
-#include "DownloadManager.h"
-#include "UploadManager.h"
-#include "CryptoManager.h"
-#include "ClientManager.h"
-#include "QueueManager.h"
-#include "LogManager.h"
-#include "UserConnection.h"
 #include "AirUtil.h"
-#include "format.h"
+#include "ClientManager.h"
+#include "ConnectivityManager.h"
+#include "CryptoManager.h"
+#include "DownloadManager.h"
+#include "LogManager.h"
+#include "QueueManager.h"
+#include "ResourceManager.h"
+#include "UploadManager.h"
+#include "UserConnection.h"
 
 namespace dcpp {
 
@@ -236,6 +235,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 				if((cqi->getLastAttempt() == 0 && attempts < attemptLimit*2) || ((attemptLimit == 0 || attempts < attemptLimit) &&
 					cqi->getLastAttempt() + 60 * 1000 * max(1, cqi->getErrors()) < aTick))
 				{
+					// TODO: no one can understand this code, fix!
 					cqi->setLastAttempt(aTick);
 
 					string bundleToken, hubHint = cqi->getHubUrl();

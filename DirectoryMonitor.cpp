@@ -19,9 +19,8 @@
 #include "stdinc.h"
 
 #include "DirectoryMonitor.h"
-#include "Text.h"
-#include "LogManager.h"
 #include "ResourceManager.h"
+#include "Text.h"
 
 namespace dcpp {
 

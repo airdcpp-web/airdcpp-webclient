@@ -29,7 +29,6 @@
 #include "SearchManager.h"
 
 #include "AirUtil.h"
-#include "Wildcards.h"
 
 namespace dcpp {
 

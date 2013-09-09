@@ -20,7 +20,6 @@
 #define LOCALIZATION_H
 
 #include "Util.h"
-#include "SettingsManager.h"
 
 #define LANGVER_TAG "Revision"
 

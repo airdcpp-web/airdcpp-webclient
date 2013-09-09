@@ -18,25 +18,23 @@
 
 #include "stdinc.h"
 #include "UpdateManager.h"
-#include "version.h"
 
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/pem.h>
 
-#include "TimerManager.h"
-#include "ResourceManager.h"
-#include "SettingsManager.h"
-#include "LogManager.h"
-
 #include "AirUtil.h"
 #include "GeoManager.h"
-#include "ScopedFunctor.h"
-#include "Localization.h"
-
-#include "SimpleXML.h"
 #include "HashCalc.h"
+#include "Localization.h"
+#include "LogManager.h"
+#include "ResourceManager.h"
+#include "ScopedFunctor.h"
+#include "SettingsManager.h"
+#include "SimpleXML.h"
 #include "Text.h"
+#include "TimerManager.h"
+#include "version.h"
 
 #include "pubkey.h"
 

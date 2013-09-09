@@ -18,11 +18,12 @@
 
 #include "stdinc.h"
 #include "Updater.h"
+
 #include "File.h"
+#include "HashCalc.h"
+#include "SimpleXML.h"
 #include "Util.h"
 #include "ZipFile.h"
-#include "SimpleXML.h"
-#include "HashCalc.h"
 #include "version.h"
 
 

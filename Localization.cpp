@@ -17,16 +17,15 @@
  */
 
 #include "stdinc.h"
-//#include <direct.h>
+
 #include "AirUtil.h"
+#include "File.h"
 #include "Localization.h"
-#include "Util.h"
+#include "ResourceManager.h"
 #include "SimpleXML.h"
+#include "Util.h"
 
 #include <boost/algorithm/string/replace.hpp>
-
-#include "File.h"
-#include "ResourceManager.h"
 
 static const char* countryNames[] = { "ANDORRA", "UNITED ARAB EMIRATES", "AFGHANISTAN", "ANTIGUA AND BARBUDA", 
 "ANGUILLA", "ALBANIA", "ARMENIA", "NETHERLANDS ANTILLES", "ANGOLA", "ANTARCTICA", "ARGENTINA", "AMERICAN SAMOA", 

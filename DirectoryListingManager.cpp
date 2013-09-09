@@ -18,10 +18,9 @@
 
 #include "stdinc.h"
 
-#include "DirectoryListingManager.h"
 #include "ClientManager.h"
+#include "DirectoryListingManager.h"
 #include "QueueManager.h"
-#include "format.h"
 
 #include <boost/range/algorithm/copy.hpp>
 
