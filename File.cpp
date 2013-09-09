@@ -188,7 +188,10 @@ void File::copyFile(const string& src, const string& target) {
 }
 
 uint64_t File::getLastModified(const string& aPath) noexcept {
-	FileFindIter ff = FileFindIter(aPath.substr(0, aPath.size() - 1));
+	if (aPath.empty())
+		return 0;
+
+	FileFindIter ff = FileFindIter(aPath.back() == PATH_SEPARATOR ? aPath.substr(0, aPath.size() - 1) : aPath);
 	if (ff != FileFindIter()) {
 		return ff->getLastWriteTime();
 	}

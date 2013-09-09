@@ -1335,7 +1335,7 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) {
 	setBundleStatus(aBundle, Bundle::STATUS_MOVED);
 
 	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
-		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
 		setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
 	} else if (!scanBundle(aBundle)) {
 		return;
