@@ -93,7 +93,7 @@ public:
 		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, ProfileToken aToken = 0) noexcept;
 
 	AutoSearch() noexcept;
-	~AutoSearch();
+	~AutoSearch() noexcept;
 	typedef map<string, time_t> FinishedPathMap;
 
 	GETSET(string, searchString, SearchString);
@@ -129,36 +129,36 @@ public:
 	bitset<7> searchDays = bitset<7>("1111111");
 
 	bool matchNick(const string& aStr) { return userMatcher.match(aStr); }
-	const string& getNickPattern() const { return userMatcher.pattern; }
-	string getDisplayName();
+	const string& getNickPattern() const noexcept { return userMatcher.pattern; }
+	string getDisplayName() noexcept;
 
-	string getDisplayType() const;
-	string getSearchingStatus() const;
-	string getExpiration() const;
+	string getDisplayType() const noexcept;
+	string getSearchingStatus() const noexcept;
+	string getExpiration() const noexcept;
 
-	time_t nextAllowedSearch();
-	bool allowNewItems() const;
-	void updatePattern();
-	void changeNumber(bool increase);
-	bool updateSearchTime();
-	void updateStatus();
+	time_t nextAllowedSearch() noexcept;
+	bool allowNewItems() const noexcept;
+	void updatePattern() noexcept;
+	void changeNumber(bool increase) noexcept;
+	bool updateSearchTime() noexcept;
+	void updateStatus() noexcept;
 
-	void removeBundle(const BundlePtr& aBundle);
-	void addBundle(const BundlePtr& aBundle);
-	bool hasBundle(const BundlePtr& aBundle);
+	void removeBundle(const BundlePtr& aBundle) noexcept;
+	void addBundle(const BundlePtr& aBundle) noexcept;
+	bool hasBundle(const BundlePtr& aBundle) noexcept;
 
-	void addPath(const string& aPath, time_t aFinishTime);
-	void clearPaths() { finishedPaths.clear(); }
-	bool usingIncrementation() const;
-	string formatParams(bool formatMatcher) const;
-	void setUserMatcher(const string& aPattern) { userMatcher.pattern = aPattern; }
+	void addPath(const string& aPath, time_t aFinishTime) noexcept;
+	void clearPaths() noexcept { finishedPaths.clear(); }
+	bool usingIncrementation() const noexcept;
+	string formatParams(bool formatMatcher) const noexcept;
+	void setUserMatcher(const string& aPattern) noexcept { userMatcher.pattern = aPattern; }
 	void prepareUserMatcher() { userMatcher.prepare(); }
-	string getTarget() { return target; }
-	void setTarget(const string& aTarget);
-	bool removePostSearch();
-	bool isExcluded(const string& aString);
-	void updateExcluded();
-	string getFormatedSearchString() const;
+	const string& getTarget() { return target; }
+	void setTarget(const string& aTarget) noexcept;
+	bool removePostSearch() noexcept;
+	bool isExcluded(const string& aString) noexcept;
+	void updateExcluded() noexcept;
+	string getFormatedSearchString() const noexcept;
 private:
 	StringMatch userMatcher;
 	time_t nextSearchChange = 0;

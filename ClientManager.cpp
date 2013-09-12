@@ -52,7 +52,7 @@ ClientManager::~ClientManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
-Client* ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) {
+Client* ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept {
 	auto url = aEntry->getServer();
 
 	Client* c;
@@ -86,13 +86,13 @@ Client* ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToke
 	return c;
 }
 
-Client* ClientManager::getClient(const string& aHubURL) {
+Client* ClientManager::getClient(const string& aHubURL) noexcept {
 	RLock l (cs);
 	auto p = clients.find(const_cast<string*>(&aHubURL));
 	return p != clients.end() ? p->second : nullptr;
 }
 
-void ClientManager::putClient(Client* aClient) {
+void ClientManager::putClient(Client* aClient) noexcept {
 	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
 	aClient->removeListeners();
 
@@ -103,7 +103,7 @@ void ClientManager::putClient(Client* aClient) {
 	aClient->shutdown();
 }
 
-void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) {
+void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) noexcept {
 	WLock l (cs);
 	auto p = clients.find(const_cast<string*>(&aOldUrl));
 	if (p != clients.end()) {
@@ -114,7 +114,7 @@ void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) {
 	}
 }
 
-StringList ClientManager::getHubUrls(const CID& cid) const {
+StringList ClientManager::getHubUrls(const CID& cid) const noexcept {
 	StringList lst;
 
 	RLock l(cs);
@@ -125,7 +125,7 @@ StringList ClientManager::getHubUrls(const CID& cid) const {
 	return lst;
 }
 
-OrderedStringSet ClientManager::getHubSet(const CID& cid) const {
+OrderedStringSet ClientManager::getHubSet(const CID& cid) const noexcept {
 	OrderedStringSet lst;
 
 	RLock l(cs);
@@ -136,7 +136,7 @@ OrderedStringSet ClientManager::getHubSet(const CID& cid) const {
 	return lst;
 }
 
-StringList ClientManager::getHubNames(const CID& cid) const {
+StringList ClientManager::getHubNames(const CID& cid) const noexcept {
 	StringList lst;
 
 	RLock l(cs);
@@ -149,7 +149,7 @@ StringList ClientManager::getHubNames(const CID& cid) const {
 	return lst;
 }
 
-StringPairList ClientManager::getHubs(const CID& cid) {
+StringPairList ClientManager::getHubs(const CID& cid) const noexcept {
 	RLock l(cs);
 	StringPairList lst;
 	auto op = onlineUsers.equal_range(const_cast<CID*>(&cid));
@@ -159,7 +159,7 @@ StringPairList ClientManager::getHubs(const CID& cid) {
 	return lst;
 }
 
-StringList ClientManager::getNicks(const CID& cid, bool allowCID/*true*/) const {
+StringList ClientManager::getNicks(const CID& cid, bool allowCID/*true*/) const noexcept {
 	set<string> ret;
 
 	{
@@ -183,7 +183,7 @@ StringList ClientManager::getNicks(const CID& cid, bool allowCID/*true*/) const 
 	return StringList(ret.begin(), ret.end());
 }
 
-map<string, Identity> ClientManager::getIdentities(const UserPtr &u) const {
+map<string, Identity> ClientManager::getIdentities(const UserPtr &u) const noexcept {
 	RLock l(cs);
 	auto op = onlineUsers.equal_range(const_cast<CID*>(&u->getCID()));
 	auto ret = map<string, Identity>();
@@ -194,7 +194,7 @@ map<string, Identity> ClientManager::getIdentities(const UserPtr &u) const {
 	return ret;
 }
 
-string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFallback /*true*/) const {
+string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFallback /*true*/) const noexcept {
 	RLock l(cs);
 	OnlinePairC p;
 	auto ou = findOnlineUserHint(u->getCID(), hint, p);
@@ -217,7 +217,7 @@ string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFa
 
 }
 
-OnlineUserPtr ClientManager::getUsers(const HintedUser& user, OnlineUserList& ouList) const {
+OnlineUserPtr ClientManager::getUsers(const HintedUser& user, OnlineUserList& ouList) const noexcept {
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&user.user->getCID()));
 	for(auto i = op.first; i != op.second; ++i) {
 		ouList.push_back(i->second);
@@ -235,7 +235,7 @@ OnlineUserPtr ClientManager::getUsers(const HintedUser& user, OnlineUserList& ou
 	return nullptr;
 }
 
-string ClientManager::getFormatedNicks(const HintedUser& user) const {
+string ClientManager::getFormatedNicks(const HintedUser& user) const noexcept {
 	auto ret = formatUserList<OnlineUser::Nick>(user, true);
 	if (ret.empty()) {
 		// offline
@@ -249,13 +249,13 @@ string ClientManager::getFormatedNicks(const HintedUser& user) const {
 	return ret;
 }
 
-string ClientManager::getFormatedHubNames(const HintedUser& user) const {
+string ClientManager::getFormatedHubNames(const HintedUser& user) const noexcept {
 	auto ret = formatUserList<OnlineUser::HubName>(user, false);
 	return ret.empty() ? STRING(OFFLINE) : ret;
 }
 
 //get nick,hubname combination same with formatUserList() but updates the hint and returns both infos with one lookup.
-StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint) {
+StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint) const noexcept {
 	OnlineUserList ouList;
 
 	RLock l(cs);
@@ -292,7 +292,7 @@ StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint) {
 	return { nick, hubs };
 }
 
-string ClientManager::getField(const CID& cid, const string& hint, const char* field) const {
+string ClientManager::getField(const CID& cid, const string& hint, const char* field) const noexcept {
 	OnlinePairC p;
 
 	RLock l(cs);
@@ -314,7 +314,7 @@ string ClientManager::getField(const CID& cid, const string& hint, const char* f
 	return Util::emptyString;
 }
 
-string ClientManager::getDLSpeed(const CID& cid) const {
+string ClientManager::getDLSpeed(const CID& cid) const noexcept {
 	RLock l(cs);
 	OnlineIterC i = onlineUsers.find(const_cast<CID*>(&cid));
 	if(i != onlineUsers.end()) {
@@ -323,8 +323,7 @@ string ClientManager::getDLSpeed(const CID& cid) const {
 	return STRING(OFFLINE);
 }
 
-uint8_t ClientManager::getSlots(const CID& cid) const
-{
+uint8_t ClientManager::getSlots(const CID& cid) const noexcept {
 	RLock l(cs);
 	OnlineIterC i = onlineUsers.find(const_cast<CID*>(&cid));
 	if(i != onlineUsers.end()) {
@@ -333,14 +332,14 @@ uint8_t ClientManager::getSlots(const CID& cid) const
 	return 0;
 }
 
-bool ClientManager::isConnected(const string& aUrl) const {
+bool ClientManager::isConnected(const string& aUrl) const noexcept {
 	RLock l(cs);
 
 	auto i = clients.find(const_cast<string*>(&aUrl));
 	return i != clients.end();
 }
 
-string ClientManager::findHub(const string& ipPort, bool nmdc) const {
+string ClientManager::findHub(const string& ipPort, bool nmdc) const noexcept {
 	string ip;
 	string port = "411";
 	string::size_type i = ipPort.rfind(':');
@@ -368,7 +367,7 @@ string ClientManager::findHub(const string& ipPort, bool nmdc) const {
 	return url;
 }
 
-const string& ClientManager::findHubEncoding(const string& aUrl) const {
+const string& ClientManager::findHubEncoding(const string& aUrl) const noexcept {
 	RLock l(cs);
 
 	auto i = clients.find(const_cast<string*>(&aUrl));
@@ -464,7 +463,7 @@ UserPtr ClientManager::findUserByNick(const string& aNick, const string& aHubUrl
 }
 
 // deprecated
-bool ClientManager::isOp(const UserPtr& user, const string& aHubUrl) const {
+bool ClientManager::isOp(const UserPtr& user, const string& aHubUrl) const noexcept {
 	RLock l(cs);
 	OnlinePairC p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
 	for(auto i = p.first; i != p.second; ++i) {
@@ -475,7 +474,7 @@ bool ClientManager::isOp(const UserPtr& user, const string& aHubUrl) const {
 	return false;
 }
 
-bool ClientManager::isStealth(const string& aHubUrl) const {
+bool ClientManager::isStealth(const string& aHubUrl) const noexcept {
 	RLock l(cs);
 	auto i = clients.find(const_cast<string*>(&aHubUrl));
 	if(i != clients.end()) {
@@ -536,7 +535,7 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
 	}
 }
 
-void ClientManager::listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles) {
+void ClientManager::listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles) const noexcept {
 	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 	for(auto i = op.first; i != op.second; ++i) {
@@ -544,7 +543,7 @@ void ClientManager::listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles
 	}
 }
 
-optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const string& userSID) {
+optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const string& userSID) const noexcept {
 	if(!userSID.empty()) {
 		RLock l(cs);
 		auto op = onlineUsers.equal_range(const_cast<CID*>(&p.getUser()->getCID())) | map_values;
@@ -574,7 +573,7 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 	return nullptr;
 }
 
-bool ClientManager::isActive() const {
+bool ClientManager::isActive() const noexcept {
 	if (CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_PASSIVE && CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED)
 		return true;
 
@@ -584,7 +583,7 @@ bool ClientManager::isActive() const {
 	return FavoriteManager::getInstance()->hasActiveHubs();
 }
 
-bool ClientManager::isActive(const string& aHubUrl) const {
+bool ClientManager::isActive(const string& aHubUrl) const noexcept {
 	RLock l(cs);
 	auto i = clients.find(const_cast<string*>(&aHubUrl));
 	if(i != clients.end() && i->second->isConnected()) {
@@ -593,7 +592,7 @@ bool ClientManager::isActive(const string& aHubUrl) const {
 	return false;
 }
 
-string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) {
+string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) const noexcept {
 	if(!aHubUrl.empty()) { // we cannot find the correct SID without a hubUrl
 		OnlinePairC op;
 
@@ -610,7 +609,7 @@ string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allo
 	return Util::emptyString;
 }
 
-OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const {
+OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const noexcept {
 	p = onlineUsers.equal_range(const_cast<CID*>(&cid));
 	if(p.first == p.second) // no user found with the given CID.
 		return 0;
@@ -627,7 +626,7 @@ OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hint
 	return 0;
 }
 
-pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const {
+pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const noexcept {
 	RLock l (cs);
 	auto ou = findOnlineUser(user);
 	if (ou) {
@@ -637,7 +636,7 @@ pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const {
 	return { 0, 0 };
 }
 
-void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const {
+void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const noexcept {
 	RLock l(cs);
 	auto p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
 
@@ -647,11 +646,11 @@ void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aLi
 	}
 }
 
-OnlineUser* ClientManager::findOnlineUser(const HintedUser& user) const {
+OnlineUser* ClientManager::findOnlineUser(const HintedUser& user) const noexcept {
 	return findOnlineUser(user.user->getCID(), user.hint);
 }
 
-OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl) const {
+OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl) const noexcept {
 	OnlinePairC p;
 	OnlineUser* u = findOnlineUserHint(cid, hintUrl, p);
 	if(u) // found an exact match (CID + hint).
@@ -664,7 +663,7 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl)
 	return p.first->second;
 }
 
-bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError) {
+bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError) noexcept {
 	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 
@@ -716,7 +715,7 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 	return false;
 }
 
-bool ClientManager::privateMessage(const HintedUser& user, const string& msg, string& error_, bool thirdPerson) {
+bool ClientManager::privateMessage(const HintedUser& user, const string& msg, string& error_, bool thirdPerson) noexcept {
 	RLock l(cs);
 	OnlineUser* u = findOnlineUser(user);
 	
@@ -727,7 +726,7 @@ bool ClientManager::privateMessage(const HintedUser& user, const string& msg, st
 	return false;
 }
 
-void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility) {
+void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility) noexcept {
 	RLock l(cs);
 	/** @todo we allow wrong hints for now ("false" param of findOnlineUser) because users
 	 * extracted from search results don't always have a correct hint; see
@@ -744,7 +743,7 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, P
 	ou->getClient().sendUserCmd(uc, params);
 }
 
-bool ClientManager::sendUDP(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, bool noPassive /*false*/, const string& aKey /*Util::emptyString*/, const string& aHubUrl /*Util::emptyString*/) {
+bool ClientManager::sendUDP(AdcCommand& cmd, const CID& cid, bool noCID /*false*/, bool noPassive /*false*/, const string& aKey /*Util::emptyString*/, const string& aHubUrl /*Util::emptyString*/) noexcept {
 	RLock l(cs);
 	auto u = findOnlineUser(cid, aHubUrl);
 	if(u) {
@@ -797,7 +796,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& cid, bool noCID /*false*
 	return false;
 }
 
-void ClientManager::infoUpdated() {
+void ClientManager::infoUpdated() noexcept {
 	RLock l(cs);
 	for(auto c: clients | map_values) {
 		if(c->isConnected()) {
@@ -806,7 +805,7 @@ void ClientManager::infoUpdated() {
 	}
 }
 
-void ClientManager::resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) {
+void ClientManager::resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) noexcept {
 	RLock l(cs);
 	for (auto c : clients | map_values) {
 		if (c->getShareProfile() == oldProfile && (!nmdcOnly || !AirUtil::isAdcHub(c->getHubUrl()))) {
@@ -816,7 +815,7 @@ void ClientManager::resetProfile(ProfileToken oldProfile, ProfileToken newProfil
 	}
 }
 
-void ClientManager::resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile) {
+void ClientManager::resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile) noexcept {
 	RLock l(cs);
 	for(auto sp: aProfiles) {
 		for(auto c: clients | map_values) {
@@ -828,12 +827,12 @@ void ClientManager::resetProfiles(const ShareProfileInfo::List& aProfiles, Profi
 	}
 }
 
-bool ClientManager::hasAdcHubs() const {
+bool ClientManager::hasAdcHubs() const noexcept {
 	RLock l(cs);
 	return find_if(clients | map_values, [](const Client* c) { return AirUtil::isAdcHub(c->getHubUrl()); }).base() != clients.end();
 }
 
-pair<size_t, size_t> ClientManager::countAschSupport(const OrderedStringSet& hubs) const {
+pair<size_t, size_t> ClientManager::countAschSupport(const OrderedStringSet& hubs) const noexcept {
 	size_t found = 0;
 	size_t total = 0;
 
@@ -933,7 +932,7 @@ void ClientManager::onSearch(const Client* c, const AdcCommand& adc, OnlineUser&
 	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
 }
 
-uint64_t ClientManager::search(string& who, SearchPtr aSearch) {
+uint64_t ClientManager::search(string& who, SearchPtr aSearch) noexcept {
 	RLock l(cs);
 	auto i = clients.find(const_cast<string*>(&who));
 	if(i != clients.end() && i->second->isConnected()) {
@@ -942,7 +941,9 @@ uint64_t ClientManager::search(string& who, SearchPtr aSearch) {
 	return 0;
 }
 
-void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir, time_t aDate, int aDateMode) {
+void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, 
+	const StringList& aExtList, const string& aDir, time_t aDate, int aDateMode) noexcept {
+
 	RLock l (cs);
 	auto ou = findOnlineUser(user);
 	if (ou) {
@@ -950,7 +951,7 @@ void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t 
 	}
 }
 
-void ClientManager::getOnlineClients(StringList& onlineClients) {
+void ClientManager::getOnlineClients(StringList& onlineClients) const noexcept {
 	RLock l (cs);
 	for (auto c: clients | map_values) {
 		if (c->isConnected())
@@ -981,7 +982,7 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcep
 		c->info();
 }
 
-string ClientManager::getClientStats() {
+string ClientManager::getClientStats() const noexcept {
 	RLock l(cs);
 	map<CID, OnlineUser*> uniqueUserMap;
 	for(auto ou: onlineUsers | map_values) {
@@ -1061,7 +1062,7 @@ string ClientManager::getClientStats() {
 	return ret;
 }
 
-UserPtr& ClientManager::getMe() {
+UserPtr& ClientManager::getMe() noexcept {
 	if(!me) {
 		me = new User(getMyCID());
 
@@ -1071,13 +1072,13 @@ UserPtr& ClientManager::getMe() {
 	return me;
 }
 
-const CID& ClientManager::getMyPID() {
+const CID& ClientManager::getMyPID() noexcept {
 	if(!pid)
 		pid = CID(SETTING(PRIVATE_ID));
 	return pid;
 }
 
-CID ClientManager::getMyCID() {
+CID ClientManager::getMyCID() noexcept {
 	TigerHash tiger;
 	tiger.update(getMyPID().data(), CID::SIZE);
 	return CID(tiger.finalize());
@@ -1104,7 +1105,7 @@ void ClientManager::updateNick(const UserPtr& user, const string& nick) noexcept
 	}
 }
 
-string ClientManager::getMyNick(const string& hubUrl) const {
+string ClientManager::getMyNick(const string& hubUrl) const noexcept {
 	RLock l(cs);
 	auto i = clients.find(const_cast<string*>(&hubUrl));
 	if(i != clients.end()) {
@@ -1113,7 +1114,7 @@ string ClientManager::getMyNick(const string& hubUrl) const {
 	return Util::emptyString;
 }
 
-void ClientManager::cancelSearch(void* aOwner) {
+void ClientManager::cancelSearch(void* aOwner) noexcept {
 	RLock l(cs);
 	for(auto c: clients | map_values)
 		c->cancelSearch(aOwner);
@@ -1157,7 +1158,7 @@ void ClientManager::on(HubUserCommand, const Client* client, int aType, int ctx,
 	}
 }
 
-void ClientManager::setIPUser(const UserPtr& user, const string& IP, const string& udpPort /*emptyString*/) {
+void ClientManager::setIPUser(const UserPtr& user, const string& IP, const string& udpPort /*emptyString*/) noexcept {
 	if(IP.empty())
 		return;
 			
@@ -1170,7 +1171,7 @@ void ClientManager::setIPUser(const UserPtr& user, const string& IP, const strin
 	}
 }
 
-bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_, uint8_t& slots_) {
+bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_, uint8_t& slots_) const noexcept {
 	RLock l(cs);
 
 	// token format: [per-hub unique id] "/" [per-search actual token] (see AdcHub::search)
@@ -1209,7 +1210,7 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	return true;
 }
 
-bool ClientManager::connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName) {
+bool ClientManager::connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName) noexcept {
 	//RLock l(cs);
 	user.hint = findHub(hubIpPort, true);
 	if(user.hint.empty()) {

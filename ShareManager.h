@@ -130,14 +130,14 @@ public:
 
 	void setSkipList();
 
-	bool matchSkipList(const string& aStr) { return skipList.match(aStr); }
-	bool checkSharedName(const string& fullPath, const string& fullPathLower, bool dir, bool report = true, int64_t size = 0) const;
-	void validatePath(const string& realPath, const string& virtualName);
+	bool matchSkipList(const string& aStr) const noexcept { return skipList.match(aStr); }
+	bool checkSharedName(const string& fullPath, const string& fullPathLower, bool dir, bool report = true, int64_t size = 0) const noexcept;
+	void validatePath(const string& realPath, const string& virtualName) const throw(ShareException);
 
-	string toVirtual(const TTHValue& tth, ProfileToken aProfile) const;
-	pair<int64_t, string> getFileListInfo(const string& virtualFile, ProfileToken aProfile);
-	void toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& noAccess_);
-	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const;
+	string toVirtual(const TTHValue& tth, ProfileToken aProfile) const throw(ShareException);
+	pair<int64_t, string> getFileListInfo(const string& virtualFile, ProfileToken aProfile) throw(ShareException);
+	void toRealWithSize(const string& virtualFile, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& noAccess_) throw(ShareException);
+	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const throw(ShareException);
 	
 	enum RefreshType {
 		TYPE_MANUAL,
@@ -148,66 +148,66 @@ public:
 		TYPE_BUNDLE
 	};
 
-	int refresh(bool incoming, RefreshType aType, function<void (float)> progressF = nullptr);
-	int refresh(const string& aDir);
+	int refresh(bool incoming, RefreshType aType, function<void(float)> progressF = nullptr) noexcept;
+	int refresh(const string& aDir) noexcept;
 
-	bool isRefreshing() {	return refreshRunning; }
+	bool isRefreshing() const noexcept { return refreshRunning; }
 	
 	//need to be called from inside a lock.
-	void setProfilesDirty(ProfileTokenSet aProfiles, bool forceXmlRefresh=false);
+	void setProfilesDirty(ProfileTokenSet aProfiles, bool forceXmlRefresh=false) noexcept;
 
-	void startup(function<void (const string&)> stepF, function<void (float)> progressF);
-	void shutdown(function<void (float)> progressF);
-	void abortRefresh();
+	void startup(function<void(const string&)> stepF, function<void(float)> progressF) noexcept;
+	void shutdown(function<void(float)> progressF) noexcept;
+	void abortRefresh() noexcept;
 
-	void changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove);
-	void rebuildTotalExcludes();
+	void changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove) noexcept;
+	void rebuildTotalExcludes() noexcept;
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
-	void search(SearchResultList& l, AdcSearch& aSearch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir);
+	void search(SearchResultList& l, AdcSearch& aSearch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) noexcept;
 
-	bool isDirShared(const string& aDir) const;
-	uint8_t isDirShared(const string& aPath, int64_t aSize) const;
-	bool isFileShared(const TTHValue& aTTH) const;
-	bool isFileShared(const string& aFileName, int64_t aSize) const;
-	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const;
+	bool isDirShared(const string& aDir) const noexcept;
+	uint8_t isDirShared(const string& aPath, int64_t aSize) const noexcept;
+	bool isFileShared(const TTHValue& aTTH) const noexcept;
+	bool isFileShared(const string& aFileName, int64_t aSize) const noexcept;
+	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const noexcept;
 
 	bool allowAddDir(const string& dir) const noexcept;
-	StringList getDirPaths(const string& aDir);
+	StringList getDirPaths(const string& aDir) const noexcept;
 
-	bool loadCache(function<void (float)> progressF);
+	bool loadCache(function<void (float)> progressF) noexcept;
 
 	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
 	static bool checkType(const string& aString, int aType);
-	MemoryInputStream* generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) const;
-	MemoryInputStream* generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) const;
-	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const;
+	MemoryInputStream* generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept;
+	MemoryInputStream* generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept;
+	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const noexcept;
 
-	void saveXmlList(bool verbose=false, function<void (float)> progressF = nullptr);	//for filelist caching
+	void saveXmlList(bool verbose=false, function<void (float)> progressF = nullptr) noexcept;	//for filelist caching
 
-	AdcCommand getFileInfo(const string& aFile, ProfileToken aProfile);
+	AdcCommand getFileInfo(const string& aFile, ProfileToken aProfile) throw(ShareException);
 
 	int64_t getTotalShareSize(ProfileToken aProfile) const noexcept;
 	int64_t getShareSize(const string& realPath, ProfileToken aProfile) const noexcept;
-	void getProfileInfo(ProfileToken aProfile, int64_t& size, size_t& files) const;
+	void getProfileInfo(ProfileToken aProfile, int64_t& size, size_t& files) const noexcept;
 	
-	void getBloom(HashBloom& bloom) const;
+	void getBloom(HashBloom& bloom) const noexcept;
 
 	static SearchManager::TypeModes getType(const string& fileName) noexcept;
 
 	string validateVirtual(const string& /*aVirt*/) const noexcept;
-	void addHits(uint32_t aHits) {
+	void addHits(uint32_t aHits) noexcept{
 		hits += aHits;
 	}
 
-	string generateOwnList(ProfileToken aProfile);
+	string generateOwnList(ProfileToken aProfile) throw(ShareException);
 
-	bool isTTHShared(const TTHValue& tth) const;
+	bool isTTHShared(const TTHValue& tth) const noexcept;
 
-	void getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const;
+	void getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const throw(ShareException);
 
-	string getRealPath(const TTHValue& root) const;
-	string getRealPath(const string& aFileName, int64_t aSize) const;
+	string getRealPath(const TTHValue& root) const throw(ShareException);
+	string getRealPath(const string& aFileName, int64_t aSize) const throw(ShareException);
 
 	enum { 
 		REFRESH_STARTED = 0,
@@ -243,7 +243,7 @@ public:
 
 	typedef vector<ShareProfilePtr> ShareProfileList;
 
-	void getShares(ShareDirInfo::Map& aDirs);
+	void getShares(ShareDirInfo::Map& aDirs) const noexcept;
 
 	enum Tasks {
 		ASYNC,
@@ -254,33 +254,33 @@ public:
 		ADD_BUNDLE
 	};
 
-	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback=false) const;
-	void getParentPaths(StringList& aDirs) const;
+	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback = false) const noexcept;
+	void getParentPaths(StringList& aDirs) const noexcept;
 
-	void addDirectories(const ShareDirInfo::List& aNewDirs);
-	void removeDirectories(const ShareDirInfo::List& removeDirs);
-	void changeDirectories(const ShareDirInfo::List& renameDirs);
+	void addDirectories(const ShareDirInfo::List& aNewDirs) noexcept;
+	void removeDirectories(const ShareDirInfo::List& removeDirs) noexcept;
+	void changeDirectories(const ShareDirInfo::List& renameDirs) noexcept;
 
-	void addProfiles(const ShareProfileInfo::List& aProfiles);
-	void removeProfiles(const ShareProfileInfo::List& aProfiles);
-	void renameProfiles(const ShareProfileInfo::List& aProfiles);
+	void addProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
+	void removeProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
+	void renameProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
 
-	bool isRealPathShared(const string& aPath);
-	ShareProfilePtr getProfile(ProfileToken aProfile) const;
+	bool isRealPathShared(const string& aPath) noexcept;
+	ShareProfilePtr getProfile(ProfileToken aProfile) const noexcept;
 
 	/* Only for gui use purposes, no locking */
 	const ShareProfileList& getProfiles() { return shareProfiles; }
-	ShareProfileInfo::List getProfileInfos() const;
-	void getExcludes(ProfileToken aProfile, StringList& excludes);
+	ShareProfileInfo::List getProfileInfos() const noexcept;
+	void getExcludes(ProfileToken aProfile, StringList& excludes) const noexcept;
 
-	string getStats() const;
+	string getStats() const noexcept;
 	mutable SharedMutex cs;
 
 	int addRefreshTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
 	struct ShareLoader;
 
-	void rebuildMonitoring();
-	void handleChangedFiles();
+	void rebuildMonitoring() noexcept;
+	void handleChangedFiles() noexcept;
 private:
 	unique_ptr<DirectoryMonitor> monitor;
 
@@ -317,13 +317,13 @@ private:
 			bool hasRootProfile(const ProfileTokenSet& aProfiles) const noexcept;
 			bool isExcluded(ProfileToken aProfile) const noexcept;
 			bool isExcluded(const ProfileTokenSet& aProfiles) const noexcept;
-			void addRootProfile(const string& aName, ProfileToken aProfile);
-			void addExclude(ProfileToken aProfile);
-			bool removeRootProfile(ProfileToken aProfile);
-			bool removeExcludedProfile(ProfileToken aProfile);
-			string getName(ProfileToken aProfile) const;
+			void addRootProfile(const string& aName, ProfileToken aProfile) noexcept;
+			void addExclude(ProfileToken aProfile) noexcept;
+			bool removeRootProfile(ProfileToken aProfile) noexcept;
+			bool removeExcludedProfile(ProfileToken aProfile) noexcept;
+			string getName(ProfileToken aProfile) const noexcept;
 
-			string getCacheXmlPath() const;
+			string getCacheXmlPath() const noexcept;
 	};
 
 	unique_ptr<ShareBloom> bloom;
@@ -366,7 +366,7 @@ private:
 			bool hasProfile(ProfileToken aProfile) const noexcept { return parent->hasProfile(aProfile); }
 
 			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
-			void addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const;
+			void addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const noexcept;
 
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
@@ -408,7 +408,7 @@ private:
 		string getADCPath(ProfileToken aProfile) const noexcept;
 		string getVirtualName(ProfileToken aProfile) const noexcept;
 		string getFullName(ProfileToken aProfile) const noexcept; 
-		string getRealPath(bool checkExistance) const { return getRealPath(Util::emptyString, checkExistance); };
+		string getRealPath(bool checkExistance) const throw(ShareException)  { return getRealPath(Util::emptyString, checkExistance); };
 
 		bool hasProfile(const ProfileTokenSet& aProfiles) const noexcept;
 		bool hasProfile(ProfileToken aProfiles) const noexcept;
@@ -416,7 +416,7 @@ private:
 		void getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_, size_t& folders_) const noexcept;
 		int64_t getSize(ProfileToken aProfile) const noexcept;
 		int64_t getTotalSize() const noexcept;
-		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const;
+		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const noexcept;
 
 		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
 		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
@@ -442,19 +442,19 @@ private:
 		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const noexcept;
 		int64_t size;
 
-		void addBloom(ShareBloom& aBloom) const;
+		void addBloom(ShareBloom& aBloom) const noexcept;
 
-		void getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const;
+		void getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
 		DualString name;
 
-		void getRenameInfoList(const string& aPath, RenameList& aRename);
-		Directory::Ptr findDirByPath(const string& aPath, char separator) const;
+		void getRenameInfoList(const string& aPath, RenameList& aRename) noexcept;
+		Directory::Ptr findDirByPath(const string& aPath, char separator) const noexcept;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
 		uint32_t fileTypes;
 
-		string getRealPath(const string& path, bool checkExistance) const;
+		string getRealPath(const string& path, bool checkExistance) const throw(ShareException);
 	};
 
 	struct FileListDir {
@@ -473,14 +473,14 @@ private:
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 	};
 
-	void addAsyncTask(AsyncF aF);
-	void getDirsByName(const string& aPath, Directory::List& dirs_) const;
+	void addAsyncTask(AsyncF aF) noexcept;
+	void getDirsByName(const string& aPath, Directory::List& dirs_) const noexcept;
 
 	/* Directory items mapped to realpath*/
 	typedef map<string, Directory::Ptr> DirMap;
 
-	void addRoot(const string& aPath, Directory::Ptr& aDir);
-	DirMap::const_iterator findRoot(const string& aPath) const;
+	void addRoot(const string& aPath, Directory::Ptr& aDir) noexcept;
+	DirMap::const_iterator findRoot(const string& aPath) const noexcept;
 
 	friend class Singleton<ShareManager>;
 
@@ -499,16 +499,17 @@ private:
 		int refreshOptions;
 	};
 
-	bool addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, AdcSearch& srch) const;
+	bool addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, AdcSearch& srch) const noexcept;
+
 	typedef unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
 	ProfileDirMap profileDirs;
 
-	ProfileDirMap getSubProfileDirs(const string& aPath);
+	ProfileDirMap getSubProfileDirs(const string& aPath) const noexcept;
 
 	TaskQueue tasks;
 
-	FileList* generateXmlList(ProfileToken aProfile, bool forced = false);
-	FileList* getFileList(ProfileToken aProfile) const;
+	FileList* generateXmlList(ProfileToken aProfile, bool forced = false) throw(ShareException);
+	FileList* getFileList(ProfileToken aProfile) const throw(ShareException);
 
 	volatile bool aShutdown;
 
@@ -565,7 +566,7 @@ private:
 
 	//void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles);
 	template<typename T>
-	void mergeRefreshChanges(T& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) {
+	void mergeRefreshChanges(T& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept {
 		for (const auto& i: aList) {
 			auto& ri = *i;
 			aDirNameMap.insert(ri.dirNameMapNew.begin(), ri.dirNameMapNew.end());
@@ -580,16 +581,16 @@ private:
 		}
 	}
 
-	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
-	void addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_);
+	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) noexcept;
+	void addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
 
 	//void rebuildIndices();
-	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames);
-	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex);
-	void cleanIndices(Directory& dir);
-	void addDirName(Directory::Ptr& dir);
-	void removeDirName(Directory& dir);
-	void cleanIndices(Directory& dir, const Directory::File* f);
+	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames) noexcept;
+	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) noexcept;
+	void cleanIndices(Directory& dir) noexcept;
+	void addDirName(Directory::Ptr& dir) noexcept;
+	void removeDirName(Directory& dir) noexcept;
+	void cleanIndices(Directory& dir, const Directory::File* f) noexcept;
 
 	void onFileHashed(const string& fname, HashedFile& fileInfo) noexcept;
 	
@@ -600,7 +601,7 @@ private:
 	//void findVirtuals(const string& virtualPath, ProfileToken aProfiles, Directory::List& dirs) const;
 
 	template<class T>
-	void findVirtuals(const string& virtualPath, const T& aProfile, Directory::List& dirs) const {
+	void findVirtuals(const string& virtualPath, const T& aProfile, Directory::List& dirs) const throw(ShareException) {
 
 		Directory::List virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
 		if(virtualPath.empty() || virtualPath[0] != '/') {
@@ -663,13 +664,13 @@ private:
 		return d;
 	}*/
 
-	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const;
+	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const throw(ShareException);
 
-	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report, bool checkExcludes=true);
+	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report, bool checkExcludes=true) noexcept;
 
 	virtual int run();
 
-	void runTasks(function<void (float)> progressF = nullptr);
+	void runTasks(function<void (float)> progressF = nullptr) noexcept;
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
@@ -703,15 +704,15 @@ private:
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);
 	void save(SimpleXML& aXml);
 
-	void reportTaskStatus(uint8_t aTask, const StringList& aDirectories, bool finished, int64_t aHashSize, const string& displayName, RefreshType aRefreshType);
+	void reportTaskStatus(uint8_t aTask, const StringList& aDirectories, bool finished, int64_t aHashSize, const string& displayName, RefreshType aRefreshType) const noexcept;
 	
 	ShareProfileList shareProfiles;
 
 	StringMatch skipList;
 	string winDir;
 
-	void addMonitoring(const StringList& aPaths);
-	void removeMonitoring(const StringList& aPaths);
+	void addMonitoring(const StringList& aPaths) noexcept;
+	void removeMonitoring(const StringList& aPaths) noexcept;
 
 	class DirModifyInfo {
 	public:
@@ -733,9 +734,10 @@ private:
 		//DirModifyInfo(ActionType aAction) : lastFileActivity(GET_TICK()), lastReportedError(0), dirAction(aAction) { }
 		DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction, const string& aOldPath = Util::emptyString);
 
-		void addFile(const string& aFile, ActionType aAction, const string& aOldPath = Util::emptyString);
+		void addFile(const string& aFile, ActionType aAction, const string& aOldPath = Util::emptyString) noexcept;
 
-		unordered_map<string, FileInfo> files;
+		typedef unordered_map<string, FileInfo> FileInfoMap;
+		FileInfoMap files;
 		time_t lastFileActivity;
 		time_t lastReportedError;
 
@@ -744,7 +746,7 @@ private:
 		string path;
 		string oldPath;
 
-		void setPath(const string& aPath);
+		void setPath(const string& aPath) noexcept;
 	};
 
 	typedef set<string, Util::PathSortOrderBool> PathSet;
@@ -758,14 +760,20 @@ private:
 
 	DirModifyInfo::List fileModifications;
 
-	void onFileModified(const string& aPath, bool created);
-	void addModifyInfo(const string& aPath, bool isDirectory, DirModifyInfo::ActionType aAction);
-	bool handleDeletedFile(const string& aPath, bool isDirectory, ProfileTokenSet& dirtyProfiles_);
+	// Validates that the new/modified path can be shared and returns the full path (path separator is added for directories
+	optional<pair<string, bool>> checkModifiedPath(const string& aPath) const noexcept;
 
-	// Removes all notifications for the selected path
-	void removeNotifications(const string& aPath);
-	DirModifyInfo::List::iterator findModifyInfo(const string& aFile);
-	void handleChangedFiles(uint64_t aTick, bool forced=false);
+	void addModifyInfo(const string& aPath, bool isDirectory, DirModifyInfo::ActionType aAction) noexcept;
+	bool handleDeletedFile(const string& aPath, bool isDirectory, ProfileTokenSet& dirtyProfiles_) noexcept;
+
+	// Recursively removes all notifications for the given path
+	void removeNotifications(const string& aPath) noexcept;
+	void removeNotifications(DirModifyInfo::List::iterator aInfo, const string& aPath) noexcept;
+
+	DirModifyInfo::List::iterator findModifyInfo(const string& aFile) noexcept;
+	void handleChangedFiles(uint64_t aTick, bool forced = false) noexcept;
+	bool handleModifyInfo(DirModifyInfo& aInfo, optional<StringList>& bundlePaths_, ProfileTokenSet& dirtyProfiles_, StringList& refresh_, uint64_t aTick, bool forced) noexcept;
+	void onFileDeleted(const string& aPath);
 }; //sharemanager end
 
 } // namespace dcpp

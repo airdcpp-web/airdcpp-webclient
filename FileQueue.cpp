@@ -19,8 +19,6 @@
 #include "stdinc.h"
 
 #include "FileQueue.h"
-#include "Pointer.h"
-#include "QueueManager.h"
 #include "SettingsManager.h"
 #include "Text.h"
 #include "Util.h"

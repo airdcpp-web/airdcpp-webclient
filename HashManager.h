@@ -20,18 +20,17 @@
 #define DCPLUSPLUS_DCPP_HASH_MANAGER_H
 
 #include <functional>
+#include "typedefs.h"
 
 #include "DbHandler.h"
 #include "HashedFile.h"
-#include "Singleton.h"
 #include "MerkleTree.h"
-#include "Thread.h"
 #include "Semaphore.h"
-#include "GetSet.h"
 #include "SFVReader.h"
-#include "typedefs.h"
+#include "Singleton.h"
 #include "SortedVector.h"
 #include "Speaker.h"
+#include "Thread.h"
 
 #include "atomic.h"
 
@@ -123,7 +122,7 @@ public:
 	bool renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi);
 	bool addFile(string&& aFilePathLower, const HashedFile& fi_);
 private:
-	int pausers;
+	int pausers = 0;
 	class Hasher : public Thread {
 	public:
 		Hasher(bool isPaused, int aHasherID);
@@ -151,7 +150,7 @@ private:
 		int64_t getBytesLeft() const { return totalBytesLeft; }
 		static SharedMutex hcs;
 
-		int hasherID;
+		const int hasherID;
 	private:
 		class WorkItem {
 		public:
@@ -177,8 +176,8 @@ private:
 		Semaphore s;
 		void removeDevice(const string& aID);
 
-		bool closing;
-		bool running;
+		bool closing = false;
+		bool running = false;
 		bool paused;
 
 		string currentFile;
@@ -187,14 +186,14 @@ private:
 
 		void instantPause();
 
-		int64_t sizeHashed;
-		int64_t hashTime;
-		int dirsHashed;
-		int filesHashed;
+		int64_t sizeHashed = 0;
+		int64_t hashTime = 0;
+		int dirsHashed = 0;
+		int filesHashed = 0;
 
-		int64_t dirSizeHashed;
-		int64_t dirHashTime;
-		int dirFilesHashed;
+		int64_t dirSizeHashed = 0;
+		int64_t dirHashTime = 0;
+		int dirFilesHashed = 0;
 		string initialDir;
 
 		DirSFVReader sfv;
@@ -258,10 +257,6 @@ private:
 
 		static bool loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree, bool reportCorruption);
 
-		//static void loadTree(TigerTree& aTree, const void *src);
-		//static void saveTree(void *dest, const TigerTree& aTree);
-		//static u_int32_t getTreeSize(const TigerTree& aTree);
-
 		static bool loadFileInfo(const void* src, size_t len, HashedFile& aFile);
 		static void saveFileInfo(void *dest, const HashedFile& aTree);
 		static uint32_t getFileInfoSize(const HashedFile& aTree);
@@ -270,7 +265,7 @@ private:
 	friend class HashLoader;
 
 	bool hashFile(const string& filePath, string&& pathLower, int64_t size);
-	bool aShutdown;
+	bool aShutdown = false;
 
 	typedef vector<Hasher*> HasherList;
 	HasherList hashers;

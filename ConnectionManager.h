@@ -33,9 +33,9 @@ class SocketException;
 
 class TokenManager {
 public:
-	string getToken();
-	bool addToken(const string& aToken);
-	void removeToken(const string& aToken);
+	string getToken() noexcept;
+	bool addToken(const string& aToken) noexcept;
+	void removeToken(const string& aToken) noexcept;
 private:
 	StringSet tokens;
 	CriticalSection cs;

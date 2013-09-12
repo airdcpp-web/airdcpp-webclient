@@ -1050,7 +1050,7 @@ void UploadManager::addConnection(UserConnectionPtr conn) {
 }
 	
 void UploadManager::removeConnection(UserConnection* aSource) {
-	dcassert(aSource->getUpload() == NULL);
+	dcassert(!aSource->getUpload());
 	aSource->removeListener(this);
 
 	// slot lost

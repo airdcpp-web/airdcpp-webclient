@@ -29,11 +29,6 @@
 #include "StringTokenizer.h"
 #include "TimerManager.h"
 
-/*#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <cstring>*/
-
 #include "concurrency.h"
 
 namespace dcpp {
@@ -204,7 +199,7 @@ int ShareScannerManager::run() {
 				report += ". " + STRING(SCAN_RESULT_NOTE);
 
 				if (SETTING(LOG_SHARE_SCANS)) {
-					auto path = Util::validateFileName(Util::formatTime(SETTING(LOG_DIRECTORY) + SETTING(LOG_SHARE_SCAN_PATH), time(NULL)));
+					auto path = Util::validateFileName(Util::formatTime(SETTING(LOG_DIRECTORY) + SETTING(LOG_SHARE_SCAN_PATH), time(nullptr)));
 					File::ensureDirectory(path);
 
 					File f(path, File::WRITE, File::OPEN | File::CREATE);

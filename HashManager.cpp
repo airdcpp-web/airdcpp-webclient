@@ -23,6 +23,7 @@
 #include "File.h"
 #include "FileReader.h"
 #include "LogManager.h"
+#include "QueueManager.h"
 #include "ShareManager.h"
 #include "ResourceManager.h"
 #include "ScopedFunctor.h"
@@ -45,8 +46,8 @@ using boost::range::find_if;
 SharedMutex HashManager::Hasher::hcs;
 const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
 
-HashManager::HashManager(): /*nextSave(0),*/ pausers(0), aShutdown(false) {
-	//TimerManager::getInstance()->addListener(this);
+HashManager::HashManager() {
+
 }
 
 HashManager::~HashManager() {
@@ -563,15 +564,15 @@ void HashManager::HashStore::optimize(bool doVerify) {
 			return;
 		}
 
-		//remove trees that aren't shared and optionally check whether each tree can be loaded
+		//remove trees that aren't shared or queued and optionally check whether each tree can be loaded
 		TigerTree tt;
 		TTHValue curRoot;
 		try {
 			hashDb->remove_if([&](void* aKey, size_t key_len, void* aValue, size_t valueLen) {
 				memcpy(&curRoot, aKey, key_len);
 				auto i = usedRoots.find(curRoot);
-				if (i == usedRoots.end()) {
-					//not shared
+				if (i == usedRoots.end() && !QueueManager::getInstance()->isFileQueued(curRoot)) {
+					//not needed
 					unusedTrees++;
 					return true;
 				}
@@ -1049,7 +1050,6 @@ void HashManager::Hasher::shutdown() {
 
 void HashManager::shutdown(ProgressFunction progressF) {
 	aShutdown = true;
-	//TimerManager::getInstance()->removeListener(this);
 
 	{
 		WLock l(Hasher::hcs);
@@ -1091,8 +1091,7 @@ void HashManager::Hasher::instantPause() {
 	}
 }
 
-HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : closing(false), running(false), paused(isPaused), /*saveData(false),*/ totalBytesLeft(0), lastSpeed(0), sizeHashed(0), hashTime(0), dirsHashed(0),
-	filesHashed(0), dirFilesHashed(0), dirSizeHashed(0), dirHashTime(0), hasherID(aHasherID) { 
+HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : paused(isPaused), hasherID(aHasherID), totalBytesLeft(0), lastSpeed(0) {
 
 	start();
 	if (isPaused)

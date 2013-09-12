@@ -47,32 +47,32 @@ public:
 		TYPE_NORMAL
 	};
 
-	AutoSearchManager();
-	~AutoSearchManager();
+	AutoSearchManager() noexcept;
+	~AutoSearchManager() noexcept;
 
-	bool hasNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const;
-	bool addFailedBundle(const BundlePtr& aBundle);
-	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search);
-	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true);
-	AutoSearchPtr getSearchByIndex(unsigned int index) const;
-	AutoSearchPtr getSearchByToken(ProfileToken aToken) const;
+	bool hasNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const noexcept;
+	bool addFailedBundle(const BundlePtr& aBundle) noexcept;
+	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search) noexcept;
+	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true) noexcept;
+	AutoSearchPtr getSearchByIndex(unsigned int index) const noexcept;
+	AutoSearchPtr getSearchByToken(ProfileToken aToken) const noexcept;
 
-	string getBundleStatuses(const AutoSearchPtr& as) const;
-	void clearPaths(AutoSearchPtr as);
+	string getBundleStatuses(const AutoSearchPtr& as) const noexcept;
+	void clearPaths(AutoSearchPtr as) noexcept;
 
-	void getMenuInfo(const AutoSearchPtr& as, BundleList& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const;
-	bool updateAutoSearch(AutoSearchPtr& ipw);
-	void removeAutoSearch(AutoSearchPtr& a);
-	bool searchItem(AutoSearchPtr& as, SearchType aType);
+	void getMenuInfo(const AutoSearchPtr& as, BundleList& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const noexcept;
+	bool updateAutoSearch(AutoSearchPtr& ipw) noexcept;
+	void removeAutoSearch(AutoSearchPtr& a) noexcept;
+	bool searchItem(AutoSearchPtr& as, SearchType aType) noexcept;
 
-	void changeNumber(AutoSearchPtr as, bool increase);
+	void changeNumber(AutoSearchPtr as, bool increase) noexcept;
 	
-	AutoSearchList& getSearchItems() { 
+	AutoSearchList& getSearchItems() noexcept {
 		RLock l(cs);
 		return searchItems; 
 	};
 
-	void moveAutoSearchUp(unsigned int id) {
+	void moveAutoSearchUp(unsigned int id) noexcept {
 		WLock l(cs);
 		//hack =]
 		if(searchItems.size() > id) {
@@ -81,7 +81,7 @@ public:
 		}
 	}
 
-	void moveAutoSearchDown(unsigned int id) {
+	void moveAutoSearchDown(unsigned int id) noexcept {
 		WLock l(cs);
 		//hack =]
 		if(searchItems.size() > id) {
@@ -90,25 +90,25 @@ public:
 		}
 	}
 
-	bool setItemActive(AutoSearchPtr& as, bool active);
+	bool setItemActive(AutoSearchPtr& as, bool active) noexcept;
 
-	void runSearches();
+	void runSearches() noexcept;
 
 	void AutoSearchLoad();
-	void AutoSearchSave();
+	void AutoSearchSave() noexcept;
 
-	void logMessage(const string& aMsg, bool error) const;
+	void logMessage(const string& aMsg, bool error) const noexcept;
 
-	void onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch);
-	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser);
+	void onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
+	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
 private:
 	mutable SharedMutex cs;
 
 	DelayedEvents<ProfileToken> resultCollector;
 
-	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType);
+	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType) noexcept;
 	//count minutes to be more accurate than comparing ticks every minute.
-	bool checkItems();
+	bool checkItems() noexcept;
 	AutoSearchList searchItems;
 
 	void loadAutoSearch(SimpleXML& aXml);
@@ -122,11 +122,11 @@ private:
 	bool endOfListReached = false;
 
 	unordered_map<ProfileToken, SearchResultList> searchResults;
-	void pickMatch(AutoSearchPtr as);
-	void handleAction(const SearchResultPtr& sr, AutoSearchPtr& as);
+	void pickMatch(AutoSearchPtr as) noexcept;
+	void handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) noexcept;
 
-	void updateStatus(AutoSearchPtr& as, bool setTabDirty);
-	void clearError(AutoSearchPtr& as);
+	void updateStatus(AutoSearchPtr& as, bool setTabDirty) noexcept;
+	void clearError(AutoSearchPtr& as) noexcept;
 
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
@@ -140,7 +140,7 @@ private:
 	virtual void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
 
 	//bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);
-	void onRemoveBundle(const BundlePtr& aBundle, bool finished);
+	void onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept;
 };
 }
 #endif

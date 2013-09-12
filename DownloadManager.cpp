@@ -336,7 +336,7 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 
 void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t bytes, bool z) {
 	Download* d = aSource->getDownload();
-	dcassert(d != NULL);
+	dcassert(d);
 
 	dcdebug("Preparing " I64_FMT ":" I64_FMT ", " I64_FMT ":" I64_FMT"\n", d->getStartPos(), start, d->getSize(), bytes);
 	if(d->getSize() == -1) {
@@ -396,7 +396,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, const uint8_t* aData, size_t aLen) noexcept {
 	Download* d = aSource->getDownload();
-	dcassert(d != NULL);
+	dcassert(d);
 
 	try {
 		d->addPos(d->getOutput()->write(aData, aLen), aLen);
@@ -416,7 +416,7 @@ void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, 
 void DownloadManager::endData(UserConnection* aSource) {
 	dcassert(aSource->getState() == UserConnection::STATE_RUNNING);
 	Download* d = aSource->getDownload();
-	dcassert(d != NULL);
+	dcassert(d);
 
 	if(d->getType() == Transfer::TYPE_TREE) {
 		d->getOutput()->flush();
@@ -514,7 +514,7 @@ void DownloadManager::failDownload(UserConnection* aSource, const string& reason
 }
 
 void DownloadManager::removeConnection(UserConnectionPtr aConn) {
-	dcassert(aConn->getDownload() == NULL);
+	dcassert(!aConn->getDownload());
 	aConn->removeListener(this);
 	aConn->disconnect();
 }

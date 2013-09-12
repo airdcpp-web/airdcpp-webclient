@@ -32,14 +32,14 @@
 
 namespace dcpp {
 
-string TokenManager::getToken() {
+	string TokenManager::getToken() noexcept {
 	Lock l(cs);
 	string token = Util::toString(Util::rand());
 	tokens.insert(token);
 	return token;
 }
 
-bool TokenManager::addToken(const string& aToken) {
+bool TokenManager::addToken(const string& aToken) noexcept {
 	Lock l(cs);
 	if (tokens.find(aToken) == tokens.end()) {
 		tokens.insert(aToken);
@@ -48,7 +48,7 @@ bool TokenManager::addToken(const string& aToken) {
 	return false;
 }
 
-void TokenManager::removeToken(const string& aToken) {
+void TokenManager::removeToken(const string& aToken) noexcept {
 	Lock l(cs);
 	auto p = tokens.find(aToken);
 	if (p != tokens.end())

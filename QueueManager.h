@@ -74,24 +74,24 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 	private SearchManagerListener, private ClientManagerListener, private HashManagerListener
 {
 public:
-	void getBloom(HashBloom& bloom) const;
+	void getBloom(HashBloom& bloom) const noexcept;
 	size_t getQueuedBundleFiles() const noexcept;
 	bool hasDownloadedBytes(const string& aTarget) throw(QueueException);
-	uint64_t getTotalQueueSize() const { return fileQueue.getTotalQueueSize(); }
+	uint64_t getTotalQueueSize() const noexcept { return fileQueue.getTotalQueueSize(); }
 
 	/** Add a user's filelist to the queue. */
 	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, BundlePtr aBundle=nullptr) throw(QueueException, FileException);
 
 	/** Add an item that is opened in the client or with an external program */
-	void addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUse, bool isClientView);
+	void addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUse, bool isClientView) throw(QueueException, FileException);
 
 	/** Readd a source that was removed */
 	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
-	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser);
-	void onUseSeqOrder(BundlePtr& aBundle);
+	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) noexcept;
+	void onUseSeqOrder(BundlePtr& aBundle) noexcept;
 
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
-	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles);
+	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept;
 
 	void removeFile(const string aTarget) noexcept;
 	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
@@ -103,25 +103,25 @@ public:
 	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p, bool isAP=false) noexcept;
 	void setQIAutoPriority(const string& aTarget) noexcept;
 
-	StringList getTargets(const TTHValue& tth);
+	StringList getTargets(const TTHValue& tth) noexcept;
 	void readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue);
 
-	void onSlowDisconnect(const string& aToken);
+	void onSlowDisconnect(const string& aToken) noexcept;
 
-	string getTempTarget(const string& aTarget);
-	void setSegments(const string& aTarget, uint8_t aSegments);
+	string getTempTarget(const string& aTarget) noexcept;
+	void setSegments(const string& aTarget, uint8_t aSegments) noexcept;
 
-	bool isFinished(const QueueItemPtr& qi) const { RLock l(cs); return qi->isFinished(); }
-	bool isWaiting(const QueueItemPtr& qi) const { RLock l(cs); return qi->isWaiting(); }
-	uint64_t getDownloadedBytes(const QueueItemPtr& qi) const { RLock l(cs); return qi->getDownloadedBytes(); }
+	bool isFinished(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->isFinished(); }
+	bool isWaiting(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->isWaiting(); }
+	uint64_t getDownloadedBytes(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getDownloadedBytes(); }
 
-	QueueItem::SourceList getSources(const QueueItemPtr& qi) const { RLock l(cs); return qi->getSources(); }
-	QueueItem::SourceList getBadSources(const QueueItemPtr& qi) const { RLock l(cs); return qi->getBadSources(); }
+	QueueItem::SourceList getSources(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getSources(); }
+	QueueItem::SourceList getBadSources(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getBadSources(); }
 
-	Bundle::SourceList getBundleSources(const BundlePtr& b) const { RLock l(cs); return b->getSources(); }
-	Bundle::SourceList getBadBundleSources(const BundlePtr& b) const { RLock l(cs); return b->getBadSources(); }
+	Bundle::SourceList getBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getSources(); }
+	Bundle::SourceList getBadBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getBadSources(); }
 
-	size_t getSourcesCount(const QueueItemPtr& qi) const { RLock l(cs); return qi->getSources().size(); }
+	size_t getSourcesCount(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getSources().size(); }
 	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
 
 	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
@@ -138,67 +138,67 @@ public:
 	void noDeleteFileList(const string& path);
 
 	//merging, adding, deletion
-	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) noexcept;
+	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException, FileException);
 	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException);
-	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished);
-	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false);
+	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) noexcept;
+	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false) noexcept;
 
 
-	BundlePtr findBundle(const string& bundleToken) { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
-	BundlePtr findBundle(const TTHValue& tth);
+	BundlePtr findBundle(const string& bundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
+	BundlePtr findBundle(const TTHValue& tth) const noexcept;
 
 	/* Partial bundle sharing */
-	bool checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add, const string& remoteBundle);
-	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle);
-	void updatePBD(const HintedUser& aUser, const TTHValue& aTTH);
-	void removeBundleNotify(const UserPtr& aUser, const string& bundleToken);
-	void sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken);
+	bool checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add, const string& remoteBundle) noexcept;
+	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle) noexcept;
+	void updatePBD(const HintedUser& aUser, const TTHValue& aTTH) noexcept;
+	void removeBundleNotify(const UserPtr& aUser, const string& bundleToken) noexcept;
+	void sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken) noexcept;
 	bool getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t size_) noexcept;
-	bool handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add);
-	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo);
-	void addBundleTTHList(const HintedUser& aUser, const string& bundle, const TTHValue& tth);
-	MemoryInputStream* generateTTHList(const string& bundleToken, bool isInSharingHub);
+	bool handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add) noexcept;
+	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo) noexcept;
+	void addBundleTTHList(const HintedUser& aUser, const string& bundle, const TTHValue& tth) throw(QueueException);
+	MemoryInputStream* generateTTHList(const string& bundleToken, bool isInSharingHub) throw(QueueException);
 
 
 	/* Priorities */
 	void setBundlePriority(const string& bundleToken, QueueItemBase::Priority p) noexcept;
 	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool isAuto=false) noexcept;
 	void setBundleAutoPriority(const string& bundleToken) noexcept;
-	void calculateBundlePriorities(bool verbose);
+	void calculateBundlePriorities(bool verbose) noexcept;
 
 	void removeBundleSource(const string& bundleToken, const UserPtr& aUser, Flags::MaskType reason) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
-	void handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle);
+	void handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle) noexcept;
 
 	/** Move the target location of a queued item. Running items are silently ignored */
 	void moveFiles(const StringPairList& sourceTargetList) noexcept;
-	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished);
+	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished) noexcept;
 
-	void searchBundle(BundlePtr& aBundle, bool manual);
+	void searchBundle(BundlePtr& aBundle, bool manual) noexcept;
 
 	/* Info collecting */
-	void getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) { 
+	void getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) const noexcept {
 		RLock l (cs); 
 		bundleQueue.getInfo(aSource, retBundles, finishedFiles, fileBundles); 
 	}
 	int getBundleItemCount(const BundlePtr& aBundle) const noexcept;
 	int getFinishedItemCount(const BundlePtr& aBundle) const noexcept;
 	void getDirItems(const BundlePtr& aBundle, const string& aDir, QueueItemList& aItems) const noexcept;
-	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const;
+	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
 
-	int isFileQueued(const TTHValue& aTTH) { RLock l (cs); return fileQueue.isFileQueued(aTTH); }
+	int isFileQueued(const TTHValue& aTTH) const noexcept { RLock l(cs); return fileQueue.isFileQueued(aTTH); }
 	
-	bool dropSource(Download* d);
+	bool dropSource(Download* d) noexcept;
 
-	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, int64_t& fileSize_, string& tempTarget);
-	string getBundlePath(const string& aBundleToken) const;
-	uint8_t isDirQueued(const string& aDir) const;
-	StringList getDirPaths(const string& aDir) const;
+	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, int64_t& fileSize_, string& tempTarget) noexcept;
+	string getBundlePath(const string& aBundleToken) const noexcept;
+	uint8_t isDirQueued(const string& aDir) const noexcept;
+	StringList getDirPaths(const string& aDir) const noexcept;
 
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const { RLock l (cs); bundleQueue.getDiskInfo(dirMap, volumes); }
-	void getUnfinishedPaths(StringList& bundles);
-	void checkRefreshPaths(StringList& bundlePaths, StringList& refreshPaths);
+	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept { RLock l(cs); bundleQueue.getDiskInfo(dirMap, volumes); }
+	void getUnfinishedPaths(StringList& bundles) noexcept;
+	void checkRefreshPaths(StringList& bundlePaths, StringList& refreshPaths) noexcept;
 	
 	GETSET(uint64_t, lastSave, LastSave);
 	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);
@@ -241,12 +241,12 @@ public:
 			CriticalSection cs;
 	} rechecker;
 
-	void shareBundle(const string& aName);
-	void runAltSearch();
+	void shareBundle(const string& aName) noexcept;
+	void runAltSearch() noexcept;
 
 	RLock lockRead() { return RLock(cs); }
 
-	void setMatchers();
+	void setMatchers() noexcept;
 	void shutdown();
 private:
 	friend class QueueLoader;
@@ -273,23 +273,23 @@ private:
 
 	task_group tasks;
 
-	void connectBundleSources(BundlePtr& aBundle);
-	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn = false);
+	void connectBundleSources(BundlePtr& aBundle) noexcept;
+	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn = false) noexcept;
 
-	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget);
-	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false);
-	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle); //don't use reference here!
-	void addLoadedBundle(BundlePtr& aBundle);
-	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded, bool moving = false);
-	void readdBundle(BundlePtr& aBundle);
+	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget) noexcept;
+	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false) noexcept;
+	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noexcept; //don't use reference here!
+	void addLoadedBundle(BundlePtr& aBundle) noexcept;
+	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded, bool moving = false) noexcept;
+	void readdBundle(BundlePtr& aBundle) noexcept;
 
 	bool changeTarget(QueueItemPtr& qs, const string& aTarget) noexcept;
 	void removeQI(QueueItemPtr& qi, bool noFiring = false) noexcept;
 
-	void handleBundleUpdate(const string& bundleToken);
+	void handleBundleUpdate(const string& bundleToken) noexcept;
 
 	/** Get a bundle for adding new items in queue (a new one or existing)  */
-	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle);
+	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle) noexcept;
 
 	/** Add a file to the queue (returns the item and whether it didn't exist before) */
 	bool addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException);
@@ -303,46 +303,46 @@ private:
 	/** Sanity check for the target filename */
 	//static string checkTargetPath(const string& aTarget) throw(QueueException, FileException);
 	static string checkTarget(const string& toValidate, const string& aParentDir=Util::emptyString) throw(QueueException, FileException);
-	static string formatBundleTarget(const string& aPath, time_t aRemoteDate);
+	static string formatBundleTarget(const string& aPath, time_t aRemoteDate) noexcept;
 
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle=false, bool checkTLS=true) throw(QueueException, FileException);
 
 	/** Add a source to an existing queue item */
-	void mergeFinishedItems(const string& aSource, const string& aTarget, BundlePtr& aSourceBundle, BundlePtr& aTargetBundle, bool moveFiles);
+	void mergeFinishedItems(const string& aSource, const string& aTarget, BundlePtr& aSourceBundle, BundlePtr& aTargetBundle, bool moveFiles) noexcept;
 	 
-	void matchTTHList(const string& name, const HintedUser& user, int flags);
+	void matchTTHList(const string& name, const HintedUser& user, int flags) noexcept;
 
-	void addBundleUpdate(const BundlePtr& aBundle);
+	void addBundleUpdate(const BundlePtr& aBundle) noexcept;
 
-	void addFinishedItem(const TTHValue& tth, BundlePtr& aBundle, const string& aTarget, time_t aSize, int64_t aFinished);
+	void addFinishedItem(const TTHValue& tth, BundlePtr& aBundle, const string& aTarget, time_t aSize, int64_t aFinished) noexcept;
 
 	void load(const SimpleXML& aXml);
 
 	static void moveFile_(const string& source, const string& target, QueueItemPtr& q);
 
-	void handleMovedBundleItem(QueueItemPtr& q);
-	void checkBundleFinished(BundlePtr& aBundle, bool isPrivate);
+	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
+	void checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexcept;
 
 	unordered_map<string, SearchResultList> searchResults;
-	void pickMatch(QueueItemPtr qi);
-	void matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult);
+	void pickMatch(QueueItemPtr qi) noexcept;
+	void matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept;
 
 	void moveStuckFile(QueueItemPtr& qi);
 	void rechecked(QueueItemPtr& qi);
-	void onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed);
-	void hashBundle(BundlePtr& aBundle);
-	bool scanBundle(BundlePtr& aBundle);
-	void checkBundleHashed(BundlePtr& aBundle);
-	void setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus);
-	void removeFinishedBundle(BundlePtr& aBundle);
+	void onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) noexcept;
+	void hashBundle(BundlePtr& aBundle) noexcept;
+	bool scanBundle(BundlePtr& aBundle) noexcept;
+	void checkBundleHashed(BundlePtr& aBundle) noexcept;
+	void setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus) noexcept;
+	void removeFinishedBundle(BundlePtr& aBundle) noexcept;
 
 	/* Returns true if an item can be replaces */
 	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH) throw(FileException, QueueException);
 
 	void removeFileSource(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
-	string getListPath(const HintedUser& user);
+	string getListPath(const HintedUser& user) const noexcept;
 
 	StringMatch highPrioFiles;
 	StringMatch skipList;

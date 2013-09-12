@@ -30,12 +30,12 @@ using boost::range::for_each;
 using boost::range::find_if;
 
 
-DirectoryListingManager::DirectoryListingManager() {
+DirectoryListingManager::DirectoryListingManager() noexcept {
 	TimerManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
 }
 
-DirectoryListingManager::~DirectoryListingManager() {
+DirectoryListingManager::~DirectoryListingManager() noexcept {
 	QueueManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
 }
@@ -52,7 +52,7 @@ void DirectoryListingManager::on(TimerManagerListener::Minute, uint64_t aTick) n
 	}
 }
 
-void DirectoryListingManager::removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList) {
+void DirectoryListingManager::removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList) noexcept {
 	WLock l(cs);
 	if (isPartialList) {
 		auto dp = dlDirectories.equal_range(aUser) | map_values;
@@ -125,7 +125,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aRemoteDir, con
 	}
 }
 
-void DirectoryListingManager::processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags) {
+void DirectoryListingManager::processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags) noexcept {
 	{
 		RLock l(cs);
 		auto p = viewedLists.find(user.user);
@@ -158,7 +158,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 	processListAction(dirList, aRemotePath, flags);
 }
 
-bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget) {
+bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget) noexcept {
 	auto getList = [&] {
 		addDirectoryDownload(di->getListPath(), di->getBundleName(), aList->getHintedUser(), di->getTarget(), di->getTargetType(), di->getSizeConfirm(), di->getPriority(), di->getRecursiveListAttempted() ? true : false, 0, false, false);
 	};
@@ -180,7 +180,7 @@ bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, con
 	return aList->downloadDirImpl(dir, aTarget + di->getBundleName() + PATH_SEPARATOR, di->getPriority(), di->getAutoSearch());
 }
 
-void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList) {
+void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList) noexcept {
 	bool directDownload = false;
 	{
 		RLock l(cs);
@@ -248,7 +248,7 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, Dir
 	}
 }
 
-void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const string& path, int flags) {
+void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const string& path, int flags) noexcept {
 	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
 		DirectoryDownloadInfo::List dl;
 		{
@@ -302,7 +302,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 	}
 }
 
-void DirectoryListingManager::handleSizeConfirmation(FinishedDirectoryItem::Ptr& aFinishedItem, bool accepted) {
+void DirectoryListingManager::handleSizeConfirmation(FinishedDirectoryItem::Ptr& aFinishedItem, bool accepted) noexcept {
 	{
 		WLock l(cs);
 		aFinishedItem->setHandledState(accepted);
@@ -374,7 +374,7 @@ void DirectoryListingManager::on(QueueManagerListener::Removed, const QueueItemP
 	}
 }
 
-void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/) {
+void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/) noexcept {
 	auto me = HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString);
 	if (hasList(me.user))
 		return;
@@ -391,14 +391,14 @@ void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*f
 	}
 }
 
-void DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile) {
+void DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile) noexcept {
 	if (hasList(aUser.user))
 		return;
 
 	createList(aUser, aFile);
 }
 
-void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir /*empty*/, bool isOwnList /*false*/) {
+void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir /*empty*/, bool isOwnList /*false*/) noexcept {
 	DirectoryListing* dl = new DirectoryListing(aUser, false, aFile, true, isOwnList);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aInitialDir, Util::emptyString);
 
@@ -406,7 +406,7 @@ void DirectoryListingManager::createList(const HintedUser& aUser, const string& 
 	viewedLists[aUser.user] = DirectoryListingPtr(dl);
 }
 
-void DirectoryListingManager::createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir /*emptyString*/, ProfileToken aProfile /*SP_DEFAULT*/, bool isOwnList /*false*/) {
+void DirectoryListingManager::createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir /*emptyString*/, ProfileToken aProfile /*SP_DEFAULT*/, bool isOwnList /*false*/) noexcept {
 	DirectoryListing* dl = new DirectoryListing(aUser, true, Util::toString(aProfile), true, isOwnList);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aDir, aXml);
 
@@ -414,7 +414,7 @@ void DirectoryListingManager::createPartialList(const HintedUser& aUser, const s
 	viewedLists[aUser] = DirectoryListingPtr(dl);
 }
 
-bool DirectoryListingManager::hasList(const UserPtr& aUser) {
+bool DirectoryListingManager::hasList(const UserPtr& aUser) noexcept {
 	RLock l (cs);
 	auto p = viewedLists.find(aUser);
 	if (p != viewedLists.end()) {
@@ -425,7 +425,7 @@ bool DirectoryListingManager::hasList(const UserPtr& aUser) {
 	return false;
 }
 
-void DirectoryListingManager::removeList(const UserPtr& aUser) {
+void DirectoryListingManager::removeList(const UserPtr& aUser) noexcept {
 	WLock l (cs);
 	auto p = viewedLists.find(aUser);
 	if (p != viewedLists.end()) {

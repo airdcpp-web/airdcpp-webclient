@@ -140,7 +140,7 @@ void HttpConnection::abortRequest(bool disconnect) {
 	if(disconnect) socket->disconnect();
 
 	BufferedSocket::putSocket(socket);
-	socket = NULL;
+	socket = nullptr;
 }
 
 void HttpConnection::on(BufferedSocketListener::Connected) noexcept {

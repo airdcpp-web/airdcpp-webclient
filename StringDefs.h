@@ -1717,6 +1717,7 @@ enum Strings { // @DontAdd
 	SCAN_MONITORED_FOLDERS, // "Scan new directories in share for missing/extra files (monitoring only)"
 	FORCE_SHARE_SCAN,  // "Please fix the issue to have it rescanned automatically or for the directory to be added in share by performing a manual refresh"
 	SCAN_SHARE_DIR_FAILED, // "The directory %1% won't be shared because the following problems were found: %2%"
+	SCAN_SHARE_EXISTING_FAILED, // "Changes made in the directory %1% won't be applied to share because the following problems were found: %2%"
 	SCANNING_FAILED_X, // "Scanning failed: %1%"
 	X_FILES_FAILED_HASHING, // "%1% files failed to hash"
 	X_FAILED_SHARING, // "%1% (failed sharing)"

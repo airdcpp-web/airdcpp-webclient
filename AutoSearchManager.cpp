@@ -39,7 +39,7 @@ using boost::max_element;
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 #define CONFIG_NAME "AutoSearch.xml"
 
-AutoSearchManager::AutoSearchManager() : 
+AutoSearchManager::AutoSearchManager() noexcept :
 	lastSearch(SETTING(AUTOSEARCH_EVERY)-2), //start searching after 2 minutes.
 	recheckTime(SETTING(AUTOSEARCH_RECHECK_TIME)) 
 {
@@ -48,18 +48,18 @@ AutoSearchManager::AutoSearchManager() :
 	QueueManager::getInstance()->addListener(this);
 }
 
-AutoSearchManager::~AutoSearchManager() {
+AutoSearchManager::~AutoSearchManager() noexcept {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
 	QueueManager::getInstance()->removeListener(this);
 }
 
-void AutoSearchManager::logMessage(const string& aMsg, bool error) const {
+void AutoSearchManager::logMessage(const string& aMsg, bool error) const noexcept {
 	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, error ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
 }
 
 /* Adding new items for external use */
-AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove/*true*/) {
+AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove/*true*/) noexcept {
 	if (ss.length() <= 5) {
 		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(LINE_EMPTY_OR_TOO_SHORT)), true);
 		return nullptr;
@@ -76,7 +76,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	return as;
 }
 
-bool AutoSearchManager::hasNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch /*nullptr*/) const {
+bool AutoSearchManager::hasNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch /*nullptr*/) const noexcept {
 	RLock l(cs);
 	auto found = find_if(searchItems, [&](const AutoSearchPtr& as) { return as->getSearchString() == aName && (!thisSearch || as != thisSearch); }) != searchItems.end();
 	if (found && report) {
@@ -88,7 +88,7 @@ bool AutoSearchManager::hasNameDupe(const string& aName, bool report, const Auto
 
 
 /* List changes */
-void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
+void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) noexcept {
 	aAutoSearch->updatePattern();
 	aAutoSearch->updateSearchTime();
 	aAutoSearch->updateStatus();
@@ -107,7 +107,7 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) {
 	}
 }
 
-bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) {
+bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept {
 	if (as->getEnabled() == toActive) {
 		return false;
 	}
@@ -125,7 +125,7 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) {
 	return true;
 }
 
-bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) {
+bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) noexcept {
 	WLock l(cs);
 	ipw->prepareUserMatcher();
 	ipw->updatePattern();
@@ -140,12 +140,12 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) {
 	return true;
 }
 
-void AutoSearchManager::updateStatus(AutoSearchPtr& as, bool setTabDirty) {
+void AutoSearchManager::updateStatus(AutoSearchPtr& as, bool setTabDirty) noexcept {
 	as->updateStatus();
 	fire(AutoSearchManagerListener::UpdateItem(), as, setTabDirty);
 }
 
-void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) {
+void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) noexcept {
 	WLock l(cs);
 	as->changeNumber(increase);
 	as->setLastError(Util::emptyString);
@@ -153,7 +153,7 @@ void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) {
 	updateStatus(as, true);
 }
 
-void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) {
+void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) noexcept {
 	WLock l(cs);
 	auto i = find_if(searchItems, [aItem](const AutoSearchPtr& as) { return compare(as->getToken(), aItem->getToken()) == 0; });
 	if(i != searchItems.end()) {
@@ -169,21 +169,21 @@ void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) {
 
 
 /* Item lookup */
-AutoSearchPtr AutoSearchManager::getSearchByIndex(unsigned int index) const {
+AutoSearchPtr AutoSearchManager::getSearchByIndex(unsigned int index) const noexcept {
 	RLock l(cs);
 	if(searchItems.size() > index)
 		return searchItems[index];
 	return nullptr;
 }
 
-AutoSearchPtr AutoSearchManager::getSearchByToken(ProfileToken aToken) const {
+AutoSearchPtr AutoSearchManager::getSearchByToken(ProfileToken aToken) const noexcept {
 	auto p = find_if(searchItems, [&aToken](const AutoSearchPtr& as)  { return compare(as->getToken(), aToken) == 0; });
 	return p != searchItems.end() ? *p : nullptr;
 }
 
 
 /* GUI things */
-void AutoSearchManager::getMenuInfo(const AutoSearchPtr& as, BundleList& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const {
+void AutoSearchManager::getMenuInfo(const AutoSearchPtr& as, BundleList& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const noexcept {
 	{
 		RLock l(cs);
 		finishedPaths = as->getFinishedPaths();
@@ -191,7 +191,7 @@ void AutoSearchManager::getMenuInfo(const AutoSearchPtr& as, BundleList& bundleI
 	}
 }
 
-void AutoSearchManager::clearPaths(AutoSearchPtr as) {
+void AutoSearchManager::clearPaths(AutoSearchPtr as) noexcept {
 	{
 		WLock l (cs);
 		as->clearPaths();
@@ -201,7 +201,7 @@ void AutoSearchManager::clearPaths(AutoSearchPtr as) {
 	dirty = true;
 }
 
-string AutoSearchManager::getBundleStatuses(const AutoSearchPtr& as) const {
+string AutoSearchManager::getBundleStatuses(const AutoSearchPtr& as) const noexcept {
 	string statusString;
 	{
 		RLock l (cs);
@@ -237,12 +237,12 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr& as) const {
 
 /* Bundle updates */
 
-void AutoSearchManager::clearError(AutoSearchPtr& as) {
+void AutoSearchManager::clearError(AutoSearchPtr& as) noexcept {
 	as->setLastError(Util::emptyString);
 	fire(AutoSearchManagerListener::UpdateItem(), as, true);
 }
 
-void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch) {
+void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch) noexcept {
 	WLock l(cs);
 	auto as = getSearchByToken(aSearch);
 	if (as) {
@@ -251,7 +251,7 @@ void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const ProfileT
 	}
 }
 
-void AutoSearchManager::onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) {
+void AutoSearchManager::onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept {
 	RLock l(cs);
 	auto as = getSearchByToken(aSearch);
 	if (as) {
@@ -289,7 +289,7 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 	}
 }
 
-void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) {
+void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept {
 	AutoSearchList removed;
 
 	for(auto& as: searchItems) {
@@ -332,7 +332,7 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 		removeAutoSearch(as);
 }
 
-bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) {
+bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 	if (hasNameDupe(aBundle->getName(), false)) {
 		return false;
 	}
@@ -345,12 +345,12 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) {
 	return true;
 }
 
-string AutoSearch::getFormatedSearchString() const {
+string AutoSearch::getFormatedSearchString() const noexcept {
 	return useParams ? formatParams(false) : searchString;
 }
 
 /* Item searching */
-void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType) {
+void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType) noexcept {
 
 	//Get the search type
 	StringList extList;
@@ -428,7 +428,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 }
 
 
-bool AutoSearchManager::searchItem(AutoSearchPtr& as, SearchType aType) {
+bool AutoSearchManager::searchItem(AutoSearchPtr& as, SearchType aType) noexcept {
 	StringList allowedHubs;
 	ClientManager::getInstance()->getOnlineClients(allowedHubs);
 	//no hubs? no fun...
@@ -471,7 +471,7 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 }
 
 /* Scheduled searching */
-bool AutoSearchManager::checkItems() {
+bool AutoSearchManager::checkItems() noexcept {
 	AutoSearchList expired;
 	AutoSearchList il;
 	bool result = false;
@@ -544,7 +544,7 @@ bool AutoSearchManager::checkItems() {
 	return result;
 }
 
-void AutoSearchManager::runSearches() {
+void AutoSearchManager::runSearches() noexcept {
 	StringList allowedHubs;
 	ClientManager::getInstance()->getOnlineClients(allowedHubs);
 	//no hubs? no fun...
@@ -705,7 +705,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 	}
 }
 
-void AutoSearchManager::pickMatch(AutoSearchPtr as) {
+void AutoSearchManager::pickMatch(AutoSearchPtr as) noexcept {
 	SearchResultList results;
 	int64_t minWantedSize = -1;
 
@@ -802,7 +802,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) {
 	}
 }
 
-void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) {
+void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) noexcept {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
 			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getFileName(), sr->getUser(), as->getTarget(), as->getTargetType(), REPORT_SYSLOG,
@@ -848,7 +848,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 
 
 /* Loading and saving */
-void AutoSearchManager::AutoSearchSave() {
+void AutoSearchManager::AutoSearchSave() noexcept {
 	try {
 		dirty = false;
 		SimpleXML xml;

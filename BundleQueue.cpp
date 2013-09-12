@@ -34,18 +34,15 @@ namespace dcpp {
 
 using boost::range::find_if;
 
-BundleQueue::BundleQueue() : 
-	nextSearch(0),
-	nextRecentSearch(0)
-{ }
+BundleQueue::BundleQueue() { }
 
 BundleQueue::~BundleQueue() { }
 
-size_t BundleQueue::getTotalFiles() const {
+size_t BundleQueue::getTotalFiles() const noexcept {
 	return boost::accumulate(bundles | map_values, (size_t)0, [](int64_t old, const BundlePtr& b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
 }
 
-void BundleQueue::addBundle(BundlePtr& aBundle) {
+void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
 	aBundle->setStatus(Bundle::STATUS_QUEUED);
 	aBundle->setDownloadedBytes(0); //sets to downloaded segments
 	aBundle->updateSearchMode();
@@ -61,7 +58,7 @@ void BundleQueue::addBundle(BundlePtr& aBundle) {
 	}
 }
 
-void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const {
+void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept {
 	for(auto& b: bundles | map_values) {
 		const auto& sources = b->getSources();
 		auto s = find(sources.begin(), sources.end(), aUser);
@@ -75,7 +72,7 @@ void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& 
 	}
 }
 
-void BundleQueue::addSearchPrio(BundlePtr& aBundle) {
+void BundleQueue::addSearchPrio(BundlePtr& aBundle) noexcept{
 	if (aBundle->getPriority() < Bundle::LOW) {
 		return;
 	}
@@ -90,7 +87,7 @@ void BundleQueue::addSearchPrio(BundlePtr& aBundle) {
 	}
 }
 
-void BundleQueue::removeSearchPrio(BundlePtr& aBundle) {
+void BundleQueue::removeSearchPrio(BundlePtr& aBundle) noexcept {
 	if (aBundle->getPriority() < Bundle::LOW) {
 		return;
 	}
@@ -108,7 +105,7 @@ void BundleQueue::removeSearchPrio(BundlePtr& aBundle) {
 	}
 }
 
-BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */) {
+BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */) noexcept {
 	BundlePtr bundle = nullptr;
 	if(aTick >= nextSearch || force) {
 		bundle = findAutoSearch();
@@ -120,7 +117,7 @@ BundlePtr BundleQueue::findSearchBundle(uint64_t aTick, bool force /* =false */)
 	return bundle;
 }
 
-int64_t BundleQueue::recalculateSearchTimes(bool aRecent, bool isPrioChange) {
+int64_t BundleQueue::recalculateSearchTimes(bool aRecent, bool isPrioChange) noexcept {
 	if (!aRecent) {
 		int prioBundles = getPrioSum();
 		int minInterval = SETTING(SEARCH_TIME);
@@ -145,7 +142,7 @@ int64_t BundleQueue::recalculateSearchTimes(bool aRecent, bool isPrioChange) {
 	}
 }
 
-int BundleQueue::getRecentIntervalMs() const {
+int BundleQueue::getRecentIntervalMs() const noexcept {
 	int recentBundles = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](const BundlePtr& b) { return b->allowAutoSearch(); });
 	if (recentBundles == 1) {
 		return 15 * 60 * 1000;
@@ -156,7 +153,7 @@ int BundleQueue::getRecentIntervalMs() const {
 	}
 }
 
-BundlePtr BundleQueue::findRecent() {
+BundlePtr BundleQueue::findRecent() noexcept {
 	if (recentSearchQueue.size() == 0) {
 		return nullptr;
 	}
@@ -188,7 +185,7 @@ BundlePtr BundleQueue::findRecent() {
 boost::mt19937 gen;
 static vector<double> probabilities;
 
-int BundleQueue::getPrioSum() const {
+int BundleQueue::getPrioSum() const noexcept {
 	probabilities.clear();
 
 	int prioBundles = 0;
@@ -204,7 +201,7 @@ int BundleQueue::getPrioSum() const {
 	return prioBundles;
 }
 
-BundlePtr BundleQueue::findAutoSearch() {
+BundlePtr BundleQueue::findAutoSearch() noexcept{
 	int prioBundles = getPrioSum();
 
 	//do we have anything where to search from?
@@ -231,7 +228,7 @@ BundlePtr BundleQueue::findAutoSearch() {
 	return nullptr;
 }
 
-BundlePtr BundleQueue::findBundle(const string& bundleToken) const {
+BundlePtr BundleQueue::findBundle(const string& bundleToken) const noexcept {
 	auto i = bundles.find(bundleToken);
 	if (i != bundles.end()) {
 		return i->second;
@@ -239,7 +236,7 @@ BundlePtr BundleQueue::findBundle(const string& bundleToken) const {
 	return nullptr;
 }
 
-void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const {
+void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const noexcept {
 	if (aPath.size() < 3)
 		return;
 
@@ -288,7 +285,7 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 	}
 }
 
-void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const {
+void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const noexcept {
 	//find the matching bundles
 	for(auto& b: bundles | map_values) {
 		if (b->isFinished()) {
@@ -311,7 +308,7 @@ void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& fini
 	}
 }
 
-BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const {
+BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const noexcept {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
 	for(auto& compareBundle: bundles | map_values) {
 		if (!compareBundle->isFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParentOrExact(aTarget, compareBundle->getTarget()))) {
@@ -321,7 +318,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const {
 	return nullptr;
 }
 
-void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) const {
+void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept {
 	/* Returns bundles that are inside aTarget */
 	for(auto& compareBundle: bundles | map_values) {
 		if (AirUtil::isSub(compareBundle->getTarget(), aTarget)) {
@@ -330,50 +327,50 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 	}
 }
 
-void BundleQueue::addBundleItem(QueueItemPtr& qi, BundlePtr aBundle) {
+void BundleQueue::addBundleItem(QueueItemPtr& qi, BundlePtr aBundle) noexcept {
 	dcassert(!qi->getBundle());
 	if (aBundle->addQueue(qi) && !aBundle->isFileBundle()) {
 		addDirectory(qi->getFilePath(), aBundle);
 	}
 }
 
-void BundleQueue::removeBundleItem(QueueItemPtr& qi, bool finished) {
+void BundleQueue::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept {
 	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !qi->getBundle()->isFileBundle()) {
 		removeDirectory(qi->getFilePath());
 	}
 }
 
-void BundleQueue::addDirectory(const string& aPath, BundlePtr aBundle) {
+void BundleQueue::addDirectory(const string& aPath, BundlePtr aBundle) noexcept {
 	bundleDirs.emplace(Util::getLastDir(aPath), make_pair(aPath, aBundle));
 }
 
-void BundleQueue::removeDirectory(const string& aPath) {
+void BundleQueue::removeDirectory(const string& aPath) noexcept {
 	auto p = findLocalDir(aPath);
 	if (p != bundleDirs.end()) {
 		bundleDirs.erase(p);
 	}
 }
 
-Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) {
+Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) noexcept {
 	auto bdr = bundleDirs.equal_range(Util::getLastDir(aPath));
 	auto s = find_if(bdr | map_values, CompareFirst<string, BundlePtr>(aPath));
 	return s.base() != bdr.second ? s.base() : bundleDirs.end();
 }
 
-void BundleQueue::addFinishedItem(QueueItemPtr& qi, BundlePtr aBundle) {
+void BundleQueue::addFinishedItem(QueueItemPtr& qi, BundlePtr aBundle) noexcept {
 	dcassert(!qi->getBundle());
 	if (aBundle->addFinishedItem(qi, false) && !aBundle->isFileBundle()) {
 		addDirectory(qi->getFilePath(), aBundle);
 	}
 }
 
-void BundleQueue::removeFinishedItem(QueueItemPtr& qi) {
+void BundleQueue::removeFinishedItem(QueueItemPtr& qi) noexcept {
 	if (qi->getBundle()->removeFinishedItem(qi) && !qi->getBundle()->isFileBundle()) {
 		removeDirectory(qi->getFilePath());
 	}
 }
 
-void BundleQueue::removeBundle(BundlePtr& aBundle) {
+void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		return;
 	}
@@ -397,7 +394,7 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) {
 	aBundle->deleteBundleFile();
 }
 
-void BundleQueue::moveBundle(BundlePtr& aBundle, const string& newTarget) {
+void BundleQueue::moveBundle(BundlePtr& aBundle, const string& newTarget) noexcept {
 	//remove the old release dir
 	removeDirectory(aBundle->getTarget());
 
@@ -407,7 +404,7 @@ void BundleQueue::moveBundle(BundlePtr& aBundle, const string& newTarget) {
 	addDirectory(newTarget, aBundle);
 }
 
-void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const {
+void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept{
 	string tempVol;
 	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("%[targetdrive]") == string::npos);
 	if (useSingleTempDir) {

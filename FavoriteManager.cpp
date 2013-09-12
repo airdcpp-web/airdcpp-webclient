@@ -42,7 +42,7 @@ namespace dcpp {
 using boost::range::for_each;
 using boost::range::find_if;
 
-FavoriteManager::FavoriteManager() : lastId(0), useHttp(false), running(false), c(NULL), lastServer(0), listType(TYPE_NORMAL), dontSave(false) {
+FavoriteManager::FavoriteManager() : lastId(0), useHttp(false), running(false), c(nullptr), lastServer(0), listType(TYPE_NORMAL), dontSave(false) {
 	SettingsManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 
@@ -1068,7 +1068,7 @@ void FavoriteManager::refresh(bool forceDownload /* = false */) {
 			publicListMatrix[publicListServer].clear();
 		}
 		fire(FavoriteManagerListener::DownloadStarting(), publicListServer);
-		if(c == NULL)
+		if(!c)
 			c = new HttpConnection();
 		c->addListener(this);
 		c->downloadFile(publicListServer);

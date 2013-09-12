@@ -28,13 +28,13 @@
 namespace dcpp {
 
 
-void UserQueue::addQI(QueueItemPtr& qi, bool newBundle /*false*/) {
+void UserQueue::addQI(QueueItemPtr& qi, bool newBundle /*false*/) noexcept {
 	for(auto& i: qi->getSources()) {
 		addQI(qi, i.getUser(), newBundle);
 	}
 }
 
-void UserQueue::addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle /*false*/, bool isBadSource /*false*/) {
+void UserQueue::addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle /*false*/, bool isBadSource /*false*/) noexcept{
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
@@ -55,7 +55,7 @@ void UserQueue::addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle 
 	}
 }
 
-void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
+void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept{
 	/* Returns all queued items from an user */
 
 	/* Highest prio */
@@ -74,7 +74,9 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) {
 	}
 }
 
-QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap /*false*/) {
+QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, 
+	QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap /*false*/) noexcept {
+
 	/* Using the PAUSED priority will list all files */
 	QueueItemPtr qi = getNextPrioQI(aUser, onlineHubs, 0, 0, aType, allowOverlap);
 	if(!qi) {
@@ -88,7 +90,7 @@ QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const StringSet& runningBu
 	return qi;
 }
 
-QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept {
 	lastError = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
@@ -102,7 +104,9 @@ QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringS
 	return nullptr;
 }
 
-QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) {
+QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, 
+	QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept {
+
 	lastError = Util::emptyString;
 
 	auto bundleLimit = SETTING(MAX_RUNNING_BUNDLES);
@@ -126,27 +130,27 @@ QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const StringSet& r
 	return nullptr;
 }
 
-void UserQueue::addDownload(QueueItemPtr& qi, Download* d) {
+void UserQueue::addDownload(QueueItemPtr& qi, Download* d) noexcept {
 	qi->addDownload(d);
 }
 
-void UserQueue::removeDownload(QueueItemPtr& qi, const string& aToken) {
+void UserQueue::removeDownload(QueueItemPtr& qi, const string& aToken) noexcept {
 	qi->removeDownload(aToken);
 }
 
-void UserQueue::setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p) {
+void UserQueue::setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p) noexcept {
 	removeQI(qi, false);
 	qi->setPriority(p);
 	addQI(qi);
 }
 
-void UserQueue::removeQI(QueueItemPtr& qi, bool removeRunning /*true*/, bool fireSources /*false*/) {
+void UserQueue::removeQI(QueueItemPtr& qi, bool removeRunning /*true*/, bool fireSources /*false*/) noexcept{
 	for(const auto& i: qi->getSources()) {
 		removeQI(qi, i.getUser(), removeRunning, false, fireSources);
 	}
 }
 
-void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool fireSources /*false*/) {
+void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool fireSources /*false*/) noexcept {
 
 	if(removeRunning) {
 		qi->removeDownloads(aUser);
@@ -191,12 +195,12 @@ void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunn
 	}
 }
 
-void UserQueue::addBundle(BundlePtr& aBundle, const UserPtr& aUser) {
+void UserQueue::addBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept{
 	auto& s = userBundleQueue[aUser];
 	s.insert(upper_bound(s.begin(), s.end(), aBundle, Bundle::SortOrder()), aBundle);
 }
 
-void UserQueue::removeBundle(BundlePtr& aBundle, const UserPtr& aUser) {
+void UserQueue::removeBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept {
 	auto j = userBundleQueue.find(aUser);
 	dcassert(j != userBundleQueue.end());
 	if (j == userBundleQueue.end()) {
@@ -216,7 +220,7 @@ void UserQueue::removeBundle(BundlePtr& aBundle, const UserPtr& aUser) {
 	}
 }
 
-void UserQueue::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p) {
+void UserQueue::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p) noexcept {
 	dcassert(!aBundle->isFinished());
 
 	HintedUserList sources;
@@ -227,7 +231,7 @@ void UserQueue::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p)
 
 	aBundle->setPriority(p);
 
-	for(auto& u: sources) 
+	for(const auto& u: sources) 
 		addBundle(aBundle, u);
 }
 

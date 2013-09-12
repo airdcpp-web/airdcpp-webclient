@@ -44,21 +44,21 @@ namespace dcpp {
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, 
 		public TimerManagerListener {
 	public:
-		void openOwnList(ProfileToken aProfile, bool useADL=false);
-		void openFileList(const HintedUser& aUser, const string& aFile);
+		void openOwnList(ProfileToken aProfile, bool useADL=false) noexcept;
+		void openFileList(const HintedUser& aUser, const string& aFile) noexcept;
 		
-		void removeList(const UserPtr& aUser);
+		void removeList(const UserPtr& aUser) noexcept;
 
-		DirectoryListingManager();
-		~DirectoryListingManager();
+		DirectoryListingManager() noexcept;
+		~DirectoryListingManager() noexcept;
 
-		void processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags);
-		void processListAction(DirectoryListingPtr aList, const string& path, int flags);
+		void processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags) noexcept;
+		void processListAction(DirectoryListingPtr aList, const string& path, int flags) noexcept;
 
 		void addDirectoryDownload(const string& aRemoteDir, const string& aBundleName, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, SizeCheckMode aSizeCheckMode,
 			QueueItemBase::Priority p = QueueItem::DEFAULT, bool useFullList = false, ProfileToken aAutoSearch = 0, bool checkNameDupes = false, bool checkViewed = true) noexcept;
 
-		void removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList);
+		void removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList) noexcept;
 	private:
 		class DirectoryDownloadInfo : public intrusive_ptr_base<DirectoryDownloadInfo> {
 		public:
@@ -85,11 +85,11 @@ namespace dcpp {
 			GETSET(string, bundleName, BundleName);
 			GETSET(bool, recursiveListAttempted, RecursiveListAttempted);
 
-			string getFinishedDirName() { return target + bundleName + Util::toString(targetType); }
+			string getFinishedDirName() const noexcept { return target + bundleName + Util::toString(targetType); }
 
 			struct HasASItem {
 				HasASItem(ProfileToken aToken, const string& s) : a(s), t(aToken) { }
-				bool operator()(const DirectoryDownloadInfo::Ptr& ddi) const { return t == ddi->getAutoSearch() && Util::stricmp(a, ddi->getBundleName()) != 0; }
+				bool operator()(const DirectoryDownloadInfo::Ptr& ddi) const noexcept{ return t == ddi->getAutoSearch() && Util::stricmp(a, ddi->getBundleName()) != 0; }
 				const string& a;
 				ProfileToken t;
 			private:
@@ -121,13 +121,13 @@ namespace dcpp {
 				deleteListings();
 			}
 
-			void addInfo(DirectoryDownloadInfo::Ptr& aDDI) {
+			void addInfo(DirectoryDownloadInfo::Ptr& aDDI) noexcept {
 				downloadInfos.push_back(aDDI);
 				//if (aDDI->getAutoSearch() > 0)
 				//	autoSearches.insert(aDDI->getAutoSearch());
 			}
 
-			void setHandledState(bool accepted) {
+			void setHandledState(bool accepted) noexcept {
 				state = accepted ? ACCEPTED : REJECTED;
 				timeDownloaded = GET_TICK();
 				//deleteListings();
@@ -163,18 +163,18 @@ namespace dcpp {
 
 
 
-		bool download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget);
-		void handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList);
+		bool download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget) noexcept;
+		void handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList) noexcept;
 
 		friend class Singleton<DirectoryListingManager>;
 
 		mutable SharedMutex cs;
 
-		bool hasList(const UserPtr& aUser);
-		void createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir = Util::emptyString, bool isOwnList=false);
-		void createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir = Util::emptyString, ProfileToken aProfile = SETTING(DEFAULT_SP), bool isOwnList = false);
+		bool hasList(const UserPtr& aUser) noexcept;
+		void createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir = Util::emptyString, bool isOwnList = false) noexcept;
+		void createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir = Util::emptyString, ProfileToken aProfile = SETTING(DEFAULT_SP), bool isOwnList = false) noexcept;
 
-		void handleSizeConfirmation(FinishedDirectoryItem::Ptr& aFinishedItem, bool accept);
+		void handleSizeConfirmation(FinishedDirectoryItem::Ptr& aFinishedItem, bool accept) noexcept;
 
 		/** Directories queued for downloading */
 		unordered_multimap<UserPtr, DirectoryDownloadInfo::Ptr, User::Hash> dlDirectories;

@@ -55,9 +55,9 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 		userMatcher.prepare();
 };
 
-AutoSearch::~AutoSearch() {};
+AutoSearch::~AutoSearch() noexcept {};
 
-bool AutoSearch::allowNewItems() const {
+bool AutoSearch::allowNewItems() const noexcept {
 	if (!enabled)
 		return false;
 
@@ -70,7 +70,7 @@ bool AutoSearch::allowNewItems() const {
 	return !remove && !usingIncrementation();
 }
 
-void AutoSearch::changeNumber(bool increase) {
+void AutoSearch::changeNumber(bool increase) noexcept {
 	if (usingIncrementation()) {
 		for (auto i = bundles.begin(); i != bundles.end();) {
 			if ((*i)->getStatus() == Bundle::STATUS_QUEUED) {
@@ -89,7 +89,7 @@ void AutoSearch::changeNumber(bool increase) {
 	}
 }
 
-bool AutoSearch::isExcluded(const string& aString) {
+bool AutoSearch::isExcluded(const string& aString) noexcept {
 	for (auto& i : excluded) {
 		if (i.match(aString))
 			return true;
@@ -97,7 +97,7 @@ bool AutoSearch::isExcluded(const string& aString) {
 	return false;
 }
 
-void AutoSearch::updateExcluded() {
+void AutoSearch::updateExcluded() noexcept {
 	excluded.clear();
 	if (!excludedString.empty()) {
 		auto ex = move(AdcSearch::parseSearchString(excludedString));
@@ -106,7 +106,7 @@ void AutoSearch::updateExcluded() {
 	}
 }
 
-string AutoSearch::formatParams(bool formatMatcher) const {
+string AutoSearch::formatParams(bool formatMatcher) const noexcept {
 	ParamMap params;
 	if (usingIncrementation()) {
 		params["inc"] = [&] {
@@ -122,21 +122,21 @@ string AutoSearch::formatParams(bool formatMatcher) const {
 	return Util::formatParams(formatMatcher ? matcherString : searchString, params);
 }
 
-string AutoSearch::getDisplayName() {
+string AutoSearch::getDisplayName() noexcept {
 	if (!useParams)
 		return searchString;
 
 	return formatParams(false) + " (" + searchString + ")";
 }
 
-void AutoSearch::setTarget(const string& aTarget) {
+void AutoSearch::setTarget(const string& aTarget) noexcept {
 	target = Util::validateFileName(aTarget);
 	if (tType == TargetUtil::TARGET_PATH && !target.empty() && target[target.size() - 1] != PATH_SEPARATOR) {
 		target += PATH_SEPARATOR;
 	}
 }
 
-void AutoSearch::updatePattern() {
+void AutoSearch::updatePattern() noexcept {
 	if (matcherString.empty())
 		matcherString = searchString;
 
@@ -148,36 +148,36 @@ void AutoSearch::updatePattern() {
 	prepare();
 }
 
-string AutoSearch::getDisplayType() const {
+string AutoSearch::getDisplayType() const noexcept {
 	return SearchManager::isDefaultTypeStr(fileType) ? SearchManager::getTypeStr(fileType[0] - '0') : fileType;
 }
 
-void AutoSearch::addBundle(const BundlePtr& aBundle) {
+void AutoSearch::addBundle(const BundlePtr& aBundle) noexcept {
 	if (find(bundles, aBundle) == bundles.end())
 		bundles.push_back(aBundle);
 
 	updateStatus();
 }
 
-void AutoSearch::removeBundle(const BundlePtr& aBundle) {
+void AutoSearch::removeBundle(const BundlePtr& aBundle) noexcept {
 	auto p = find(bundles, aBundle);
 	if (p != bundles.end())
 		bundles.erase(p);
 }
 
-bool AutoSearch::hasBundle(const BundlePtr& aBundle) {
+bool AutoSearch::hasBundle(const BundlePtr& aBundle) noexcept {
 	return find(bundles, aBundle) != bundles.end();
 }
 
-void AutoSearch::addPath(const string& aPath, time_t aFinishTime) {
+void AutoSearch::addPath(const string& aPath, time_t aFinishTime) noexcept {
 	finishedPaths[aPath] = aFinishTime;
 }
 
-bool AutoSearch::usingIncrementation() const {
+bool AutoSearch::usingIncrementation() const noexcept {
 	return useParams && searchString.find("%[inc]") != string::npos;
 }
 
-string AutoSearch::getSearchingStatus() const {
+string AutoSearch::getSearchingStatus() const noexcept {
 	if (status == STATUS_DISABLED) {
 		return STRING(DISABLED);
 	} else if (status == STATUS_EXPIRED) {
@@ -207,7 +207,7 @@ string AutoSearch::getSearchingStatus() const {
 	return STRING(ACTIVE);
 }
 
-string AutoSearch::getExpiration() const {
+string AutoSearch::getExpiration() const noexcept {
 	if (expireTime == 0)
 		return STRING(NEVER);
 
@@ -219,7 +219,7 @@ string AutoSearch::getExpiration() const {
 	}
 }
 
-void AutoSearch::updateStatus() {
+void AutoSearch::updateStatus() noexcept {
 	if (!enabled) {
 		if (manualSearch) {
 			status = AutoSearch::STATUS_MANUAL;
@@ -255,7 +255,7 @@ void AutoSearch::updateStatus() {
 	}
 }
 
-bool AutoSearch::removePostSearch() {
+bool AutoSearch::removePostSearch() noexcept {
 	if (lastIncFinish > 0 && lastIncFinish + SETTING(AS_DELAY_HOURS) + 60 * 60 <= GET_TIME()) {
 		lastIncFinish = 0;
 		updateStatus();
@@ -266,14 +266,14 @@ bool AutoSearch::removePostSearch() {
 }
 
 
-time_t AutoSearch::nextAllowedSearch() {
+time_t AutoSearch::nextAllowedSearch() noexcept {
 	if (nextSearchChange == 0 || nextIsDisable)
 		return 0;
 
 	return nextSearchChange;
 }
 
-bool AutoSearch::updateSearchTime() {
+bool AutoSearch::updateSearchTime() noexcept {
 	if (!searchDays.all() || startTime.hour != 0 || endTime.minute != 59 || endTime.hour != 23 || startTime.minute != 0) {
 		//get the current time from the clock -- one second resolution
 		ptime now = second_clock::local_time();

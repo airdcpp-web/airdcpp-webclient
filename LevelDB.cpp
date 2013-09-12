@@ -220,7 +220,7 @@ void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aV
 // free up some space, https://code.google.com/p/leveldb/issues/detail?id=158
 // LevelDB will perform some kind of compaction on every startup but it's not as comprehensive as manual one
 void LevelDB::compact() {
-	db->CompactRange(NULL, NULL);
+	db->CompactRange(nullptr, nullptr);
 }
 
 leveldb::Status LevelDB::performDbOperation(function<leveldb::Status ()> f) {

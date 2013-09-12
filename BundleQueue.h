@@ -33,46 +33,46 @@ class BundleQueue {
 public:
 	BundleQueue();
 	~BundleQueue();
-	void addBundleItem(QueueItemPtr& qi, BundlePtr aBundle);
-	void removeBundleItem(QueueItemPtr& qi, bool finished);
+	void addBundleItem(QueueItemPtr& qi, BundlePtr aBundle) noexcept;
+	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
 
-	size_t getTotalFiles() const;
+	size_t getTotalFiles() const noexcept;
 
-	void addFinishedItem(QueueItemPtr& qi, BundlePtr aBundle);
-	void removeFinishedItem(QueueItemPtr& qi);
+	void addFinishedItem(QueueItemPtr& qi, BundlePtr aBundle) noexcept;
+	void removeFinishedItem(QueueItemPtr& qi) noexcept;
 
-	void addBundle(BundlePtr& aBundle);
+	void addBundle(BundlePtr& aBundle) noexcept;
 
-	void getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const;
-	BundlePtr findBundle(const string& bundleToken) const;
-	BundlePtr getMergeBundle(const string& aTarget) const;
-	void getSubBundles(const string& aTarget, BundleList& retBundles) const;
+	void getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const noexcept;
+	BundlePtr findBundle(const string& bundleToken) const noexcept;
+	BundlePtr getMergeBundle(const string& aTarget) const noexcept;
+	void getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept;
 
-	int getRecentIntervalMs() const;
-	int getPrioSum() const;
-	BundlePtr findRecent();
-	BundlePtr findAutoSearch();
-	BundlePtr findSearchBundle(uint64_t aTick, bool force=false);
-	int64_t recalculateSearchTimes(bool aRecent, bool prioChange);
+	int getRecentIntervalMs() const noexcept;
+	int getPrioSum() const noexcept;
+	BundlePtr findRecent() noexcept;
+	BundlePtr findAutoSearch() noexcept;
+	BundlePtr findSearchBundle(uint64_t aTick, bool force = false) noexcept;
+	int64_t recalculateSearchTimes(bool aRecent, bool prioChange) noexcept;
 
 	Bundle::StringBundleMap& getBundles() { return bundles; }
-	void moveBundle(BundlePtr& aBundle, const string& newTarget);
-	void removeBundle(BundlePtr& aBundle);
+	void moveBundle(BundlePtr& aBundle, const string& newTarget) noexcept;
+	void removeBundle(BundlePtr& aBundle) noexcept;
 
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const;
+	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept;
 
-	void addSearchPrio(BundlePtr& aBundle);
-	void removeSearchPrio(BundlePtr& aBundle);
+	void addSearchPrio(BundlePtr& aBundle) noexcept;
+	void removeSearchPrio(BundlePtr& aBundle) noexcept;
 
 	void saveQueue(bool force) noexcept;
 
 
-	void addDirectory(const string& aPath, BundlePtr aBundle);
-	void removeDirectory(const string& aPath);
-	Bundle::BundleDirMap::iterator findLocalDir(const string& aPath);
-	void findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const;
+	void addDirectory(const string& aPath, BundlePtr aBundle) noexcept;
+	void removeDirectory(const string& aPath) noexcept;
+	Bundle::BundleDirMap::iterator findLocalDir(const string& aPath) noexcept;
+	void findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const noexcept;
 
-	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const;
+	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
 private:
 	/** Bundles by priority (low-highest, for auto search) */
 	vector<BundlePtr> prioSearchQueue[Bundle::LAST];
@@ -84,9 +84,9 @@ private:
 	Bundle::StringBundleMap bundles;
 
 	/** Next bundle search */
-	uint64_t nextSearch;
+	uint64_t nextSearch = 0;
 	/** Next recent bundle search */
-	uint64_t nextRecentSearch;
+	uint64_t nextRecentSearch = 0;
 };
 
 } // namespace dcpp
