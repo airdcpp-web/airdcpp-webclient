@@ -23,39 +23,36 @@
 # pragma warning(disable: 4512) // assignment operator could not be generated (bimap)
 #endif
 
-#include "TimerManager.h"
-#include "ClientManager.h"
-
-#include "Exception.h"
-#include "User.h"
-#include "File.h"
-#include "QueueItem.h"
-#include "Singleton.h"
-#include "DirectoryListing.h"
-#include "MerkleTree.h"
-#include "Socket.h"
+#include "concurrency.h"
 
 #include "QueueManagerListener.h"
 #include "SearchManagerListener.h"
 #include "ClientManagerListener.h"
 #include "DownloadManagerListener.h"
-#include "LogManager.h"
-#include "HashManager.h"
-#include "TargetUtil.h"
-#include "StringMatch.h"
-#include "TaskQueue.h"
+#include "TimerManager.h"
 
 #include "BundleQueue.h"
-#include "FileQueue.h"
-#include "UserQueue.h"
+#include "ClientManager.h"
 #include "DelayedEvents.h"
+#include "DirectoryListing.h"
+#include "Exception.h"
+#include "File.h"
+#include "FileQueue.h"
 #include "HashBloom.h"
 #include "HashedFile.h"
+#include "HashManager.h"
+#include "MerkleTree.h"
+#include "QueueItem.h"
+#include "Singleton.h"
+#include "Socket.h"
+#include "StringMatch.h"
+#include "TargetUtil.h"
+#include "TaskQueue.h"
+#include "User.h"
+#include "UserQueue.h"
 
-#include "boost/bimap.hpp"
+#include <boost/bimap.hpp>
 #include <boost/bimap/unordered_multiset_of.hpp>
-
-#include "concurrency.h"
 
 
 namespace dcpp {

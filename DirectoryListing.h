@@ -21,27 +21,28 @@
 
 #include "forward.h"
 #include "noexcept.h"
-#include "Thread.h"
 
-#include "Bundle.h"
 #include "DirectoryListingListener.h"
-
 #include "ClientManagerListener.h"
 #include "SearchManagerListener.h"
 #include "TimerManager.h"
 
-#include "HintedUser.h"
-#include "FastAlloc.h"
-#include "MerkleTree.h"
-#include "Streams.h"
-#include "QueueItemBase.h"
-#include "UserInfoBase.h"
-#include "GetSet.h"
 #include "AirUtil.h"
-#include "TaskQueue.h"
-#include "SearchResult.h"
-#include "TargetUtil.h"
+#include "Bundle.h"
+#include "FastAlloc.h"
+#include "GetSet.h"
+#include "HintedUser.h"
+#include "MerkleTree.h"
 #include "Pointer.h"
+#include "QueueItemBase.h"
+//#include "QueueManager.h"
+#include "TaskQueue.h"
+#include "UserInfoBase.h"
+#include "SearchResult.h"
+#include "ShareManager.h"
+#include "Streams.h"
+#include "TargetUtil.h"
+#include "Thread.h"
 
 namespace dcpp {
 
@@ -70,7 +71,7 @@ public:
 		~File() { }
 
 
-		string getPath() const {
+		string getPath() const noexcept {
 			return parent->getPath() + name;
 		}
 
@@ -81,7 +82,7 @@ public:
 		GETSET(bool, adls, Adls);
 		GETSET(DupeType, dupe, Dupe);
 		GETSET(time_t, remoteDate, RemoteDate);
-		bool isQueued() {
+		bool isQueued() const noexcept {
 			return (dupe == QUEUE_DUPE || dupe == FINISHED_DUPE);
 		}
 	};
@@ -110,24 +111,24 @@ public:
 
 		virtual ~Directory();
 
-		size_t getTotalFileCount(bool countAdls) const;		
-		int64_t getTotalSize(bool countAdls) const;
-		void filterList(DirectoryListing& dirList);
-		void filterList(TTHSet& l);
-		void getHashList(TTHSet& l);
-		void clearAdls();
-		void clearAll();
+		size_t getTotalFileCount(bool countAdls) const noexcept;
+		int64_t getTotalSize(bool countAdls) const noexcept;
+		void filterList(DirectoryListing& dirList) noexcept;
+		void filterList(TTHSet& l) noexcept;
+		void getHashList(TTHSet& l) noexcept;
+		void clearAdls() noexcept;
+		void clearAll() noexcept;
 
-		bool findIncomplete() const;
-		void search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults);
-		void findFiles(const boost::regex& aReg, File::List& aResults) const;
+		bool findIncomplete() const noexcept;
+		void search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults) noexcept;
+		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
 		
-		size_t getFileCount() const { return files.size(); }
+		size_t getFileCount() const noexcept { return files.size(); }
 		
-		int64_t getFilesSize() const;
+		int64_t getFilesSize() const noexcept;
 
-		string getPath() const;
-		uint8_t checkShareDupes();
+		string getPath() const noexcept;
+		uint8_t checkShareDupes() noexcept;
 		
 		GETSET(string, name, Name);
 		GETSET(int64_t, partialSize, PartialSize);
@@ -138,11 +139,11 @@ public:
 		GETSET(time_t, updateDate, UpdateDate);
 		GETSET(bool, loading, Loading);
 
-		bool isComplete() const { return type == TYPE_ADLS || type == TYPE_NORMAL; }
-		void setComplete() { type = TYPE_NORMAL; }
-		bool getAdls() const { return type == TYPE_ADLS; }
+		bool isComplete() const noexcept { return type == TYPE_ADLS || type == TYPE_NORMAL; }
+		void setComplete() noexcept { type = TYPE_NORMAL; }
+		bool getAdls() const noexcept { return type == TYPE_ADLS; }
 
-		void download(const string& aTarget, BundleFileList& aFiles);
+		void download(const string& aTarget, BundleFileList& aFiles) noexcept;
 	};
 
 	class AdlDirectory : public Directory {
@@ -166,23 +167,23 @@ public:
 	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
 	bool createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 
-	void openFile(File* aFile, bool isClientView) const;
+	void openFile(File* aFile, bool isClientView) const throw(/*QueueException,*/ FileException);
 
-	int64_t getTotalListSize(bool adls = false) const { return root->getTotalSize(adls); }
-	int64_t getDirSize(const string& aDir) const;
-	size_t getTotalFileCount(bool adls = false) const { return root->getTotalFileCount(adls); }
+	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
+	int64_t getDirSize(const string& aDir) const noexcept;
+	size_t getTotalFileCount(bool adls = false) const noexcept { return root->getTotalFileCount(adls); }
 
 	const Directory* getRoot() const { return root; }
 	Directory* getRoot() { return root; }
-	void getLocalPaths(const Directory* d, StringList& ret) const;
-	void getLocalPaths(const File* f, StringList& ret) const;
+	void getLocalPaths(const Directory* d, StringList& ret) const throw(ShareException);
+	void getLocalPaths(const File* f, StringList& ret) const throw(ShareException);
 
-	bool isMyCID() const;
-	string getNick(bool firstOnly) const;
+	bool isMyCID() const noexcept;
+	string getNick(bool firstOnly) const noexcept;
 	static string getNickFromFilename(const string& fileName);
 	static UserPtr getUserFromFilename(const string& fileName);
-	void checkShareDupes();
-	bool findNfo(const string& aPath);
+	void checkShareDupes() noexcept;
+	bool findNfo(const string& aPath) noexcept;
 	
 	const UserPtr& getUser() const { return hintedUser.user; }
 	const HintedUser& getHintedUser() const { return hintedUser; }
@@ -197,32 +198,32 @@ public:
 	GETSET(bool, matchADL, MatchADL);
 	GETSET(bool, waiting, Waiting);	
 
-	void addMatchADLTask();
-	void addListDiffTask(const string& aFile, bool aOwnList);
-	void addPartialListTask(const string& aXml, const string& aBase, bool reloadAll = false, bool changeDir = true, std::function<void ()> f = nullptr);
-	void addFullListTask(const string& aDir);
-	void addQueueMatchTask();
+	void addMatchADLTask() noexcept;
+	void addListDiffTask(const string& aFile, bool aOwnList) noexcept;
+	void addPartialListTask(const string& aXml, const string& aBase, bool reloadAll = false, bool changeDir = true, std::function<void()> f = nullptr) noexcept;
+	void addFullListTask(const string& aDir) noexcept;
+	void addQueueMatchTask() noexcept;
 
-	void addAsyncTask(std::function<void ()> f);
-	void close();
+	void addAsyncTask(std::function<void()> f) noexcept;
+	void close() noexcept;
 
-	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
-	bool nextResult(bool prev);
+	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept;
+	bool nextResult(bool prev) noexcept;
 	unique_ptr<AdcSearch> curSearch;
 
-	bool isCurrentSearchPath(const string& path) const;
+	bool isCurrentSearchPath(const string& path) const noexcept;
 	size_t getResultCount() const { return searchResults.size(); }
 
-	Directory* findDirectory(const string& aName) const { return findDirectory(aName, root); }
-	Directory* findDirectory(const string& aName, const Directory* current) const;
+	Directory* findDirectory(const string& aName) const noexcept { return findDirectory(aName, root); }
+	Directory* findDirectory(const string& aName, const Directory* current) const noexcept;
 	
-	bool supportsASCH() const;
+	bool supportsASCH() const noexcept;
 
-	void onRemovedQueue(const string& aDir);
+	void onRemovedQueue(const string& aDir) noexcept;
 
 	/* only call from the file list thread*/
 	bool downloadDirImpl(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
-	void setActive();
+	void setActive() noexcept;
 private:
 	friend class ListLoader;
 
@@ -239,7 +240,7 @@ private:
 		CLOSE
 	};
 
-	void runTasks();
+	void runTasks() noexcept;
 	atomic_flag running;
 
 	TaskQueue tasks;
@@ -249,9 +250,9 @@ private:
 
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
-	void endSearch(bool timedOut=false);
+	void endSearch(bool timedOut = false) noexcept;
 
-	void changeDir(bool reload=false);
+	void changeDir(bool reload = false) noexcept;
 
 
 	OrderedStringSet searchResults;
@@ -268,9 +269,9 @@ private:
 	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void ()> completionF);
 	void matchAdlImpl();
 	void matchQueueImpl();
-	void removedQueueImpl(const string& aDir);
+	void removedQueueImpl(const string& aDir) noexcept;
 
-	void waitActionFinish() const;
+	void waitActionFinish() const noexcept;
 	HintedUser hintedUser;
 };
 

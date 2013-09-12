@@ -318,7 +318,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 					bool isDir = i->first.back() == PATH_SEPARATOR;
 					if (handleDeletedFile(i->first, isDir, dirtyProfiles_)) {
 						if (removed == 0) {
-							removedPath = i->first;
+							removedPath = i->first; // for reporting
 						}
 						removed++;
 					}
@@ -348,22 +348,24 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	//handle modified files
 	Directory::Ptr dir = nullptr;
 
-	//dirs with subdirectories will always be refreshed
+	// directories with subdirectories will always be refreshed
 	if (boost::algorithm::all_of(info.files | map_keys, [&info](const string& fileName) { return fileName.find(PATH_SEPARATOR, info.path.length() + 1) == string::npos; })) {
 		RLock l(cs);
 		dir = findDirectory(info.path, false, false, true);
 	}
 
+	// new directory?
 	if (!dir && !allowAddDir(info.path)) {
 		return true;
 	}
 
+	// fetch the queued bundles
 	if (!bundlePaths_) {
 		bundlePaths_ = StringList();
 		QueueManager::getInstance()->getUnfinishedPaths(*bundlePaths_);
 	}
 
-	//check bundles
+	// don't handle queued bundles in here
 	if (find_if(*bundlePaths_, [&info](const string& bundlePath) { return AirUtil::isParentOrExact(bundlePath, info.path); }) != (*bundlePaths_).end()) {
 		return true;
 	}
@@ -395,19 +397,18 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 
 		info.lastReportedError = 0;
 	} else if (info.lastReportedError > 0) {
+		// nothing has changed since the last error
 		return false;
 	}
 
 	vector<FileAddInfo> files;
-	bool failed = false;
 	bool hasValidFiles = false;
 
 	// Check that the file can be accessed, FileFindIter won't show it (also files being copied will come here)
 	for (const auto& fi : info.files | map_keys) {
 		//check for file bundles
 		if (binary_search((*bundlePaths_).begin(), (*bundlePaths_).end(), Text::toLower(fi))) {
-			failed = true;
-			break;
+			return false;
 		}
 
 		if (!Util::fileExists(fi))
@@ -420,20 +421,15 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 				files.emplace_back(Util::getFileName(fi), ff.getLastModified(), ff.getSize());
 			}
 		} catch (...) {
-			failed = true;
-			break;
+			// try again later
+			info.lastFileActivity = aTick;
+			return false;
 		}
 	}
 
 	if (!hasValidFiles && (!info.files.empty() || !Util::fileExists(info.path))) {
 		// no need to keep items in the list if all files have been removed...
 		return true;
-	}
-
-	if (failed) {
-		// keep it in the list and try again
-		info.lastFileActivity = aTick;
-		return false;
 	}
 
 	if (!dir) {
@@ -447,9 +443,6 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 
 		for (const auto& file : files) {
 			string pathLower = Text::toLower(info.path + file.name);
-			//if (!checkSharedName(info.path + file.name, pathLower, false, true, file.size))
-			//	continue;
-
 			if (addedFiles == 0)
 				addedFile = info.path + file.name;
 
@@ -461,8 +454,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 				{
 					WLock l(cs);
 					addFile(file.name, dir, fi, dirtyProfiles_);
-						}
-
+				}
 			} catch (...) {
 				hashSize += file.size;
 			}
@@ -523,6 +515,7 @@ void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPat
 
 	auto ret = checkModifiedPath(aPath);
 	if (ret) {
+		// modified directories won't matter at the moment
 		if ((*ret).second)
 			return;
 
@@ -840,16 +833,6 @@ void ShareManager::Directory::addType(uint32_t type) noexcept {
 	}
 }
 
-string ShareManager::getRealPath(const string& aFileName, int64_t aSize) const throw(ShareException) {
-	RLock l(cs);
-	for(const auto f: tthIndex | map_values) {
-		if(Util::stricmp(aFileName.c_str(), f->name.getLower().c_str()) == 0 && f->getSize() == aSize) {
-			return f->getRealPath();
-		}
-	}
-	return Util::emptyString;
-}
-
 string ShareManager::getRealPath(const TTHValue& root) const throw(ShareException) {
 	RLock l(cs);
 	const auto i = tthIndex.find(const_cast<TTHValue*>(&root)); 
@@ -886,7 +869,7 @@ string ShareManager::Directory::getRealPath(const string& path, bool checkExista
 	if(Util::fileExists(rootDir))
 		return rootDir;
 	else
-		return ShareManager::getInstance()->findRealRoot(name.getNormal(), path); // all display names should be compared really..
+		return getInstance()->findRealRoot(name.getNormal(), path); // all display names should be compared really..
 }
 
 string ShareManager::findRealRoot(const string& virtualRoot, const string& virtualPath) const throw(ShareException) {
@@ -3513,7 +3496,7 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	aStrings.include = old;
 }
 
-void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) noexcept {
+void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) throw(ShareException) {
 	totalSearches++;
 
 	RLock l(cs);
@@ -3711,7 +3694,7 @@ void ShareManager::onFileHashed(const string& fname, HashedFile& fileInfo) noexc
 	setProfilesDirty(dirtyProfiles);
 }
 
-void ShareManager::addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept{
+void ShareManager::addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept {
 	DualString dualName(aName);
 	auto i = aDir->files.find(dualName.getLower());
 	if(i != aDir->files.end()) {
@@ -3733,7 +3716,7 @@ void ShareManager::getExcludes(ProfileToken aProfile, StringList& excludes) cons
 	}
 }
 
-ShareProfileInfo::List ShareManager::getProfileInfos() const noexcept{
+ShareProfileInfo::List ShareManager::getProfileInfos() const noexcept {
 	ShareProfileInfo::List ret;
 	for (const auto& sp : shareProfiles) {
 		if (sp->getToken() != SP_HIDDEN) {
@@ -3750,7 +3733,7 @@ ShareProfileInfo::List ShareManager::getProfileInfos() const noexcept{
 	return ret;
 }
 
-void ShareManager::changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove) noexcept{
+void ShareManager::changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove) noexcept {
 	ProfileTokenSet dirtyProfiles;
 
 	{

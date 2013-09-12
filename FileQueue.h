@@ -20,13 +20,13 @@
 #define DCPLUSPLUS_DCPP_FILE_QUEUE_H
 
 #include "stdinc.h"
-
 #include "forward.h"
 #include "typedefs.h"
-#include "HintedUser.h"
-#include "QueueItem.h"
+
 #include "DirectoryListing.h"
 #include "HashBloom.h"
+#include "HintedUser.h"
+#include "QueueItem.h"
 
 namespace dcpp {
 

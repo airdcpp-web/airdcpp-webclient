@@ -164,7 +164,7 @@ public:
 	void rebuildTotalExcludes() noexcept;
 
 	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
-	void search(SearchResultList& l, AdcSearch& aSearch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) noexcept;
+	void search(SearchResultList& l, AdcSearch& aSearch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) throw(ShareException);
 
 	bool isDirShared(const string& aDir) const noexcept;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const noexcept;
@@ -207,7 +207,6 @@ public:
 	void getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const throw(ShareException);
 
 	string getRealPath(const TTHValue& root) const throw(ShareException);
-	string getRealPath(const string& aFileName, int64_t aSize) const throw(ShareException);
 
 	enum { 
 		REFRESH_STARTED = 0,
