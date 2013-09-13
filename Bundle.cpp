@@ -401,8 +401,11 @@ bool Bundle::isFailed() const noexcept {
 
 string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept {
 	/* returns the local path for nmdc and the remote path for adc */
-	string remoteDir = move(Util::getFilePath(aRemoteFile));
-	string bundleDir = move(Util::getFilePath(aLocalFile));
+	string remoteDir = Util::getNmdcFilePath(aRemoteFile);
+	string bundleDir = Util::getFilePath(aLocalFile);
+#ifndef _WIN32
+	bundleDir = Util::toNmdcFile(bundleDir);
+#endif
 
 	string path;
 	if (simpleMatching) {

@@ -57,7 +57,7 @@ uint64_t UploadBundle::getSecondsLeft() const {
 }
 
 string UploadBundle::getName() const {
-	if(target[target.size() -1] == '\\')
+	if(target.back() == PATH_SEPARATOR)
 		return Util::getLastDir(target);
 	else
 		return Util::getFilePath(target);

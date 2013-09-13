@@ -182,12 +182,23 @@ public:
 	static long getUptime() { return mUptimeSeconds; }
 	static void increaseUptime() { mUptimeSeconds++; }
 
-	static string getFilePath(const string& path);
-	static string getFileName(const string& path);
-	static string getFileExt(const string& path);
-	static string getLastDir(const string& path);
+	static string getFilePath(const string& path, const char separator = PATH_SEPARATOR);
+	inline static string getNmdcFilePath(const string& path) { return getFilePath(path, '\\'); }
+	inline static string getAdcFilePath(const string& path) { return getFilePath(path, '/'); }
 
-	static string getParentDir(const string& path, bool allowEmpty = false);
+	static string getFileName(const string& path, const char separator = PATH_SEPARATOR);
+	inline static string getNmdcFileName(const string& path) { return getFileName(path, '\\'); };
+	inline static string getAdcFileName(const string& path) { return getFileName(path, '/'); };
+
+	static string getLastDir(const string& path, const char separator = PATH_SEPARATOR);
+	inline static string getNmdcLastDir(const string& path) { return getLastDir(path, '\\'); };
+	inline static string getAdcLastDir(const string& path) { return getLastDir(path, '/'); };
+
+	static string getParentDir(const string& path, const char separator = PATH_SEPARATOR, bool allowEmpty = false);
+	inline static string getNmdcParentDir(const string& path) { return getParentDir(path, '\\', true); };
+	inline static string getAdcParentDir(const string& path) { return getParentDir(path, '/', false); };
+
+	static string getFileExt(const string& path);
 
 	static wstring getFilePath(const wstring& path);
 	static wstring getFileName(const wstring& path);

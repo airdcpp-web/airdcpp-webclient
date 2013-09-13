@@ -74,9 +74,10 @@
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/algorithm_ext/for_each.hpp>
 #include <boost/range/algorithm/find_if.hpp>
+#include <boost/range/algorithm/remove_if.hpp>
+#include <boost/algorithm/cxx11/copy_if.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/scoped_array.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/regex.hpp>
 #include <boost/optional.hpp>

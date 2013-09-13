@@ -1059,7 +1059,7 @@ void DirectoryListing::on(SearchManagerListener::SR, const SearchResultPtr& aSR)
 			path = aSR->getPath();
 		} else {
 			//convert the regular search results
-			path = aSR->getType() == SearchResult::TYPE_DIRECTORY ? Util::getParentDir(aSR->getPath()) : aSR->getFilePath();
+			path = aSR->getType() == SearchResult::TYPE_DIRECTORY ? Util::getNmdcParentDir(aSR->getPath()) : aSR->getFilePath();
 		}
 
 		auto insert = searchResults.insert(path);

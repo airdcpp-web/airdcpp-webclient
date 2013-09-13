@@ -89,19 +89,7 @@ string SearchResult::getFileName() const {
 	if(getType() == TYPE_FILE) 
 		return Util::getFileName(path); 
 
-	if(path.size() < 2)
-		return path;
-
-	string::size_type i = path.rfind('\\');
-	if (i == string::npos)
-		return path;
-
-	string::size_type j = path.rfind('\\', i - 1);
-	if (j == string::npos)
-		return i == path.length() - 1 ? path.substr(0, i) : path;
-
-	return path.substr(j + 1, i - j - 1);
-	//return Util::getLastDir(path);
+	return Util::getNmdcLastDir(path);
 }
 
 string SearchResult::getSlotString() const { 
@@ -150,7 +138,7 @@ void SearchResult::pickResults(SearchResultList& aResults, int pickedNum) {
 string SearchResult::getFilePath() const {
 	if (type == TYPE_DIRECTORY)
 		return path;
-	return Util::getFilePath(path);
+	return Util::getNmdcFilePath(path);
 }
 
 }

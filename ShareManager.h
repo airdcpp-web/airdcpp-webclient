@@ -204,6 +204,7 @@ public:
 
 	bool isTTHShared(const TTHValue& tth) const noexcept;
 
+	// Get real paths for an ADC virtual path
 	void getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const throw(ShareException);
 
 	string getRealPath(const TTHValue& root) const throw(ShareException);

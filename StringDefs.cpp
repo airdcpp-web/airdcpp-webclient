@@ -1808,6 +1808,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "File date format", 
 "Users with Advanced Search support: %1%/%2%", 
 "Do you want to continue with adding this item anyway?", 
+"There's an auto search with the same name associated to the bundle %1%.\r\n\r\nDo you want to remove the auto search item as well?", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3616,4 +3617,5 @@ std::string dcpp::ResourceManager::names[] = {
 "FileDateFormat", 
 "AschSupportCount", 
 "AsAddDupeConfirm", 
+"BundleRemovedAs", 
 };

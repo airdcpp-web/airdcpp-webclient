@@ -40,8 +40,6 @@
 
 #include "version.h"
 
-#include <boost/range/algorithm/remove_if.hpp>
-#include <boost/algorithm/cxx11/copy_if.hpp>
 #include <boost/range/algorithm/search.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/algorithm/count_if.hpp>
@@ -1087,7 +1085,7 @@ void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenS
 		RLock l (cs);
 		findVirtuals<ProfileTokenSet>(virtualFile, aProfiles, dirs);
 
-		auto fileName = Text::toLower(Util::getFileName(Util::toNmdcFile(virtualFile)));
+		auto fileName = Text::toLower(Util::getAdcFileName(virtualFile));
 		for(const auto& d: dirs) {
 			auto it = d->files.find(fileName);
 			if(it != d->files.end()) {
@@ -1204,20 +1202,20 @@ void ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) {
 	}
 }
 
-void ShareManager::getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const throw(ShareException) {
-	if(path.empty())
+void ShareManager::getRealPaths(const string& aPath, StringList& ret, ProfileToken aProfile) const throw(ShareException) {
+	if (aPath.empty())
 		throw ShareException("empty virtual path");
 
 	Directory::List dirs;
 
 	RLock l (cs);
-	findVirtuals<ProfileToken>(path, aProfile, dirs);
+	findVirtuals<ProfileToken>(aPath, aProfile, dirs);
 
-	if(*(path.end() - 1) == '/') {
+	if (aPath.back() == '/') {
 		for(const auto& d: dirs)
 			ret.push_back(d->getRealPath(true));
 	} else { //its a file
-		auto fileName = Text::toLower(Util::getFileName(Util::toNmdcFile(path)));
+		auto fileName = Text::toLower(Util::getAdcFileName(aPath));
 		for(const auto& d: dirs) {
 			auto it = d->files.find(fileName);
 			if(it != d->files.end()) {
@@ -3402,7 +3400,7 @@ void ShareManager::search(SearchResultList& results, const string& aString, int 
 }
 
 bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, AdcSearch& srch) const noexcept {
-	const string path = srch.addParents ? (Util::getParentDir(aPath, true)) : aPath;
+	const string path = srch.addParents ? (Util::getNmdcParentDir(aPath)) : aPath;
 
 	//have we added it already?
 	auto p = find_if(aResults, [&path](const SearchResultPtr& sr) { return sr->getPath() == path; });

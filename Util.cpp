@@ -1338,36 +1338,36 @@ string Util::toNmdcFile(const string& file) {
 	return ret;
 }
 
-string Util::getFilePath(const string& path) {
-	string::size_type i = path.rfind(PATH_SEPARATOR);
+string Util::getFilePath(const string& path, const char separator) {
+	string::size_type i = path.rfind(separator);
 	return (i != string::npos) ? path.substr(0, i + 1) : path;
 }
-string Util::getFileName(const string& path) {
-	string::size_type i = path.rfind(PATH_SEPARATOR);
+string Util::getFileName(const string& path, const char separator) {
+	string::size_type i = path.rfind(separator);
 	return (i != string::npos) ? path.substr(i + 1) : path;
 }
 string Util::getFileExt(const string& path) {
 	string::size_type i = path.rfind('.');
 	return (i != string::npos) ? path.substr(i) : Util::emptyString;
 }
-string Util::getLastDir(const string& path) {
-	string::size_type i = path.rfind(PATH_SEPARATOR);
+string Util::getLastDir(const string& path, const char separator) {
+	string::size_type i = path.rfind(separator);
 	if(i == string::npos)
 		return path;
 
-	string::size_type j = path.rfind(PATH_SEPARATOR, i-1);
+	string::size_type j = path.rfind(separator, i - 1);
 	if (j == string::npos)
 		return i == path.length()-1 ? path.substr(0, i) : path;
 
 	return path.substr(j+1, i-j-1);
 }
 
-string Util::getParentDir(const string& path, bool allowEmpty /*false*/) {
-	string::size_type i = path.rfind(PATH_SEPARATOR);
+string Util::getParentDir(const string& path, const char separator /*PATH_SEPARATOR*/, bool allowEmpty /*false*/) {
+	string::size_type i = path.rfind(separator);
 	if(i == string::npos)
 		return allowEmpty ? Util::emptyString : path;
 
-	string::size_type j = path.rfind(PATH_SEPARATOR, i-1);
+	string::size_type j = path.rfind(separator, i - 1);
 	if (j != string::npos) 
 		return path.substr(0, j+1);
 	
@@ -1589,7 +1589,7 @@ string Util::getReleaseDir(const string& aDir, bool cut) {
 	if (aDir.empty())
 		return aDir;
 
-	string dir = aDir[aDir.size() -1] != '\\' ? getFilePath(aDir) : aDir;
+	string dir = aDir.back() != '\\' ? getNmdcFilePath(aDir) : aDir;
 
 	boost::regex reg;
 	reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
@@ -1608,7 +1608,7 @@ string Util::getReleaseDir(const string& aDir, bool cut) {
 		}
 	}
 
-	return cut ? Util::getLastDir(dir) : dir;
+	return cut ? Util::getNmdcLastDir(dir) : dir;
 }
 
 string Util::getOsVersion(bool http /*false*/, bool doubleStr /*false*/) {

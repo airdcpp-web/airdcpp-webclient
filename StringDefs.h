@@ -1812,5 +1812,6 @@ enum Strings { // @DontAdd
 	FILE_DATE_FORMAT, // "File date format"
 	ASCH_SUPPORT_COUNT, // "Users with Advanced Search support: %1%/%2%"
 	AS_ADD_DUPE_CONFIRM, // "Do you want to continue with adding this item anyway?"
+	BUNDLE_REMOVED_AS, // "There's an auto search with the same name associated to the bundle %1%.\r\n\r\nDo you want to remove the auto search item as well?"
 	LAST // @DontAdd
 };

@@ -35,6 +35,7 @@ namespace dcpp {
 
 using boost::range::find_if;
 using boost::max_element;
+using boost::algorithm::copy_if;
 
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 #define CONFIG_NAME "AutoSearch.xml"
@@ -181,6 +182,22 @@ AutoSearchPtr AutoSearchManager::getSearchByToken(ProfileToken aToken) const noe
 	return p != searchItems.end() ? *p : nullptr;
 }
 
+AutoSearchList AutoSearchManager::getSearchesByBundle(const BundlePtr& aBundle) const noexcept{
+	AutoSearchList ret;
+
+	RLock l(cs);
+	copy_if(searchItems, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->hasBundle(aBundle); });
+	return ret;
+}
+
+AutoSearchList AutoSearchManager::getSearchesByString(const string& aSearchString) const noexcept{
+	AutoSearchList ret;
+
+	RLock l(cs);
+	copy_if(searchItems, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->getSearchString() == aSearchString; });
+	return ret;
+}
+
 
 /* GUI things */
 void AutoSearchManager::getMenuInfo(const AutoSearchPtr& as, BundleList& bundleInfo, AutoSearch::FinishedPathMap& finishedPaths) const noexcept {
@@ -290,46 +307,40 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 }
 
 void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept {
-	AutoSearchList removed;
+	auto items = getSearchesByBundle(aBundle);
+	for (auto& as : items) {
+		auto usingInc = as->usingIncrementation();
+		bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0)) && finished && (!usingInc || SETTING(AS_DELAY_HOURS) == 0);
+		{
+			WLock l (cs);
+			as->removeBundle(aBundle);
+			if (!as->getBundles().empty())
+				removeAs = false;
 
-	for(auto& as: searchItems) {
-		if (as->hasBundle(aBundle)) {
-			auto usingInc = as->usingIncrementation();
-			bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0)) && finished && (!usingInc || SETTING(AS_DELAY_HOURS) == 0);
-			{
-				WLock l (cs);
-				as->removeBundle(aBundle);
-				if (!as->getBundles().empty())
-					removeAs = false;
-
-				if (!removeAs) {
-					dirty = true;
-					if (finished) {
-						auto time = GET_TIME();
-						as->addPath(aBundle->getTarget(), time);
-						if (usingInc) {
-							if (SETTING(AS_DELAY_HOURS) > 0) {
-								as->setLastIncFinish(time);
-								as->setStatus(AutoSearch::STATUS_POSTSEARCH);
-							} else {
-								as->changeNumber(true);
-							}
+			if (!removeAs) {
+				dirty = true;
+				if (finished) {
+					auto time = GET_TIME();
+					as->addPath(aBundle->getTarget(), time);
+					if (usingInc) {
+						if (SETTING(AS_DELAY_HOURS) > 0) {
+							as->setLastIncFinish(time);
+							as->setStatus(AutoSearch::STATUS_POSTSEARCH);
+						} else {
+							as->changeNumber(true);
 						}
 					}
-					as->updateStatus();
 				}
-			}
-
-			if (removeAs) {
-				removed.push_back(as);
-			} else {
-				fire(AutoSearchManagerListener::UpdateItem(), as, true);
+				as->updateStatus();
 			}
 		}
-	}
 
-	for(auto& as: removed)
-		removeAutoSearch(as);
+		if (removeAs) {
+			removeAutoSearch(as);
+		} else {
+			fire(AutoSearchManagerListener::UpdateItem(), as, true);
+		}
+	}
 }
 
 bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
@@ -658,7 +669,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 	//extra checks outside the lock
 	for (auto& as: matches) {
 		if (as->getFileType() == SEARCH_TYPE_DIRECTORY) {
-			string dir = Util::getLastDir(sr->getPath());
+			string dir = Util::getNmdcLastDir(sr->getPath());
 
 			//check shared
 			if(as->getCheckAlreadyShared() && ShareManager::getInstance()->isDirShared(dir)) {

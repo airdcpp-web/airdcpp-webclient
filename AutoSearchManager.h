@@ -56,6 +56,8 @@ public:
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true) noexcept;
 	AutoSearchPtr getSearchByIndex(unsigned int index) const noexcept;
 	AutoSearchPtr getSearchByToken(ProfileToken aToken) const noexcept;
+	AutoSearchList getSearchesByBundle(const BundlePtr& aBundle) const noexcept;
+	AutoSearchList getSearchesByString(const string& aSearchString) const noexcept;
 
 	string getBundleStatuses(const AutoSearchPtr& as) const noexcept;
 	void clearPaths(AutoSearchPtr as) noexcept;
@@ -136,8 +138,8 @@ private:
 
 	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
 
-	virtual void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept { onRemoveBundle(aBundle, false); }
-	virtual void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
+	void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept { onRemoveBundle(aBundle, false); }
+	void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
 
 	//bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);
 	void onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept;
