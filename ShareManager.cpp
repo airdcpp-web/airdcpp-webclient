@@ -338,7 +338,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 		}
 
 		// no modified files?
-		if (info.files.empty()) {
+		if (info.files.empty() && info.dirAction == DirModifyInfo::ACTION_NONE) {
 			return true;
 		}
 	}
@@ -372,7 +372,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	if (info.lastReportedError == 0 || info.lastReportedError < info.lastFileActivity) {
 		string error_;
 		bool report = forced || info.lastReportedError == 0 || (info.lastReportedError + static_cast<uint64_t>(10 * 60 * 1000) < aTick); //don't spam with reports on every minute
-		if (!ShareScannerManager::getInstance()->onScanSharedDir(info.path, error_, forced)) {
+		if (!ShareScannerManager::getInstance()->onScanSharedDir(info.path, error_, report)) {
 			if (report) {
 				string logMsg;
 				if (dir) {
