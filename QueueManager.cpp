@@ -325,7 +325,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		fileQueue.findPFSSources(sl);
 
 		for(auto& i: sl) {
-			QueueItem::PartialSource::Ptr source = i.first->getPartialSource();
+			auto source = i.first->getPartialSource();
 			const QueueItemPtr qi = i.second;
 
 			PartsInfoReqParam* param = new PartsInfoReqParam;

@@ -479,7 +479,7 @@ int64_t DownloadManager::getRunningAverage() const {
 	return avg;
 }
 
-void DownloadManager::on(UserConnectionListener::MaxedOut, UserConnection* aSource, string param) noexcept {
+void DownloadManager::on(UserConnectionListener::MaxedOut, UserConnection* aSource, const string& param) noexcept {
 	noSlots(aSource, param);
 }
 void DownloadManager::noSlots(UserConnection* aSource, string param) {

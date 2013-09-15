@@ -65,20 +65,20 @@ bool StringSearch::match(const string& aText) const noexcept{
 }
 
 bool StringSearch::matchLower(const string& aText) const noexcept {
-	register const string::size_type plen = pattern.length();
-	register const string::size_type tlen = aText.length();
+	const string::size_type plen = pattern.length();
+	const string::size_type tlen = aText.length();
 
 	if (tlen < plen)// fix UTF-8 support
 		return false;
 
 	// uint8_t to avoid problems with signed char pointer arithmetic
-	register uint8_t *tx = (uint8_t*)aText.c_str();
-	register uint8_t *px = (uint8_t*)pattern.c_str();
+	uint8_t *tx = (uint8_t*)aText.c_str();
+	uint8_t *px = (uint8_t*)pattern.c_str();
 
-	register uint8_t *end = tx + tlen - plen + 1;
+	uint8_t *end = tx + tlen - plen + 1;
 	while (tx < end)
 	{
-		register size_t i = 0;
+		size_t i = 0;
 		for (; px[i] && (px[i] == tx[i]); ++i)
 			;       // Empty!
 

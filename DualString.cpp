@@ -57,7 +57,7 @@ DualString::DualString(const string& aStr) : charSizes(nullptr) {
 			if (lc != c) {
 				if (!charSizes) {
 					// Create an array with minumum possible length that will store the character sizes (unset=lowercase, set=uppercase)
-					auto arrSize = aStr.size() % ARRAY_BITS == 0 ? aStr.size() / ARRAY_BITS : (aStr.size() / ARRAY_BITS) + 1;
+					int arrSize = static_cast<int>(aStr.size() % ARRAY_BITS == 0 ? aStr.size() / ARRAY_BITS : (aStr.size() / ARRAY_BITS) + 1);
 					charSizes = new MaskType[arrSize];
 					for (int s = 0; s < arrSize; ++s) {
 						charSizes[s] = 0;
@@ -73,7 +73,7 @@ DualString::DualString(const string& aStr) : charSizes(nullptr) {
 		bitPos += n;
 
 		// move to the next array?
-		if (bitPos >= ARRAY_BITS) {
+		if (bitPos >= static_cast<int>(ARRAY_BITS)) {
 			bitPos = 0 + bitPos-ARRAY_BITS;
 			arrayPos++;
 		}
@@ -131,7 +131,7 @@ string DualString::getNormal() const {
 			p++;
 		}
 
-		if (bitPos >= ARRAY_BITS) {
+		if (bitPos >= static_cast<int>(ARRAY_BITS)) {
 			bitPos = 0 + bitPos-ARRAY_BITS;
 			arrayPos++;
 		}

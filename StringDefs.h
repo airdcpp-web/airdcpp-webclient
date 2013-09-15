@@ -369,7 +369,6 @@ enum Strings { // @DontAdd
 	NOTEPAD, // "Notepad"
 	NUMBER_OF_SEGMENTS, // "segment(s)"
 	OFFLINE, // "Offline"
-	OK, // "OK"
 	ONLINE, // "Online"
 	ONLY_FREE_SLOTS, // "Only users with free slots"
 	ONLY_WHERE_OP, // "Only where I'm op"

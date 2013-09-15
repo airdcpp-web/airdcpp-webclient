@@ -759,7 +759,7 @@ FileFindIter& FileFindIter::operator++() {
 		return *this;
 
 	// continue to the next one...
-	operator++();
+	return operator++();
 }
 
 bool FileFindIter::matchPattern() const {

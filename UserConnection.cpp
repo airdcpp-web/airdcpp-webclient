@@ -173,7 +173,7 @@ void UserConnection::setUser(const UserPtr& aUser) {
 		if (aUser->isSet(User::FAVORITE)) {
 			auto u = FavoriteManager::getInstance()->getFavoriteUser(aUser);
 			if (u) {
-				socket->setUseLimiter(!u->isSet(FavoriteUser::FLAG_GRANTSLOT));
+				socket->setUseLimiter(!u->isSet(FavoriteUser::FLAG_SUPERUSER));
 			}
 		}
 	}

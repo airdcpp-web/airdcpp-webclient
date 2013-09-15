@@ -109,7 +109,7 @@ uint64_t SearchQueue::add(SearchPtr s)
 SearchPtr SearchQueue::pop() {
 	uint64_t now = GET_TICK();
 	if(now <= lastSearchTime + nextInterval) 
-		return false;
+		return nullptr;
 	
 	{
 		Lock l(cs);

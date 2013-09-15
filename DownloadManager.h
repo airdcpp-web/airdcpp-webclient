@@ -106,7 +106,7 @@ private:
 	void on(Data, UserConnection*, const uint8_t*, size_t) noexcept;
 	void on(Failed, UserConnection* aSource, const string& aError) noexcept { onFailed(aSource, aError); }
 	void on(ProtocolError, UserConnection* aSource, const string& aError) noexcept { onFailed(aSource, aError); }
-	void on(MaxedOut, UserConnection*, string param = Util::emptyString) noexcept;
+	void on(MaxedOut, UserConnection*, const string& param) noexcept;
 	void on(FileNotAvailable, UserConnection*) noexcept;
 		
 	void on(AdcCommand::SND, UserConnection*, const AdcCommand&) noexcept;

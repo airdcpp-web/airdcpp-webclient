@@ -65,7 +65,7 @@ void FavoriteHubEntry::blockFailOver(const string& aServer) {
 	}
 }
 
-string FavoriteHubEntry::getServerStr() {
+string FavoriteHubEntry::getServerStr() const {
 	string ret;
 	if (!servers.empty()) {
 		for(auto& sbp: servers)

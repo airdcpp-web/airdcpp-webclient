@@ -110,7 +110,7 @@ public:
 	void addFailOvers(StringList&& addresses);
 	void validateFailOvers();
 	void blockFailOver(const string& aServer);
-	string getServerStr();
+	string getServerStr() const;
 };
 
 class RecentHubEntry : public intrusive_ptr_base<RecentHubEntry> {

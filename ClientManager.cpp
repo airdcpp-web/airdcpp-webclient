@@ -985,7 +985,7 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcep
 string ClientManager::getClientStats() const noexcept {
 	RLock l(cs);
 	map<CID, OnlineUser*> uniqueUserMap;
-	for(auto ou: onlineUsers | map_values) {
+	for(const auto& ou: onlineUsers | map_values) {
 		if (!ou->getIdentity().isBot() && !ou->isHidden())
 			uniqueUserMap.insert(make_pair(ou->getUser()->getCID(), ou));
 	}
@@ -997,8 +997,20 @@ string ClientManager::getClientStats() const noexcept {
 	}
 
 	int64_t totalShare = 0;
-	for(auto ou: uniqueUserMap | map_values) {
+	int64_t uploadSpeed = 0;
+	int64_t downloadSpeed = 0;
+	int64_t nmdcConnection = 0;
+	int nmdcUsers = 0, adcUsers = 0;
+	for(const auto& ou: uniqueUserMap | map_values) {
 		totalShare += Util::toInt64(ou->getIdentity().getShareSize());
+		if (ou->getUser()->isNMDC()) {
+			nmdcConnection += Util::toDouble(ou->getIdentity().getNmdcConnection()) * 1000 * 1000 / 8;
+			nmdcUsers++;
+		} else {
+			uploadSpeed += ou->getIdentity().getAdcConnectionSpeed(false);
+			downloadSpeed += ou->getIdentity().getAdcConnectionSpeed(true);
+			adcUsers++;
+		}
 	}
 
 	string lb = "\n";
@@ -1007,56 +1019,35 @@ string ClientManager::getClientStats() const noexcept {
 	ret += lb;
 	ret += "All users: " + Util::toString(allUsers) + lb;
 	ret += "Unique users: " + Util::toString(uniqueUsers) + " (" + Util::toString(((double)uniqueUsers/(double)allUsers)*100.00) + "%)" + lb;
-	ret += "Total share: " + Util::formatBytes(totalShare) + "(" + Util::formatBytes((double)totalShare / (double)uniqueUsers) + " per user)" + lb;
+	ret += "Protocol users (ADC/NMDC): " + Util::toString(adcUsers) + "/" + Util::toString(nmdcUsers) + lb;
+	ret += "Total share: " + Util::formatBytes(totalShare) + " (" + Util::formatBytes((double)totalShare / (double)uniqueUsers) + " per user)" + lb;
+	ret += "Average ADC connection speed: " + Util::formatConnectionSpeed((double) downloadSpeed / (double) adcUsers) + " down, " + Util::formatConnectionSpeed((double) uploadSpeed / (double) adcUsers) + " up" + lb;
+	ret += "Average NMDC connection speed: " + Util::formatConnectionSpeed((double) nmdcConnection / (double) nmdcUsers) + lb;
 	ret += lb;
 	ret += lb;
 	ret += "Clients (from unique users)";
 	ret += lb;
 
-	//typedef boost::bimaps::bimap<string, int> results_bimap;
-    //typedef results_bimap::value_type position;
-	//boost::bimaps::bimap<string, double> clientNames;
-
-	//results_bimap clientNames;
-
 	map<string, double> clientNames;
-	for(auto ou: uniqueUserMap | map_values) {
+	for(const auto& ou: uniqueUserMap | map_values) {
 		auto app = ou->getIdentity().getApplication();
 		auto pos = app.find(" ");
 
 		if (pos != string::npos) {
 			clientNames[app.substr(0, pos)]++;
-			//clientNames.value_comp();
-			//clientNames.insert(position(app, 0));
 		} else {
 			clientNames["Unknown"]++;
 		}
 	}
 
-	/*auto countCompare = [] (int i,int j) -> bool {
-		return (i<j);
-	};*/
-
 	auto countCompare = [] (const pair<string, int>& i, const pair<string, int>& j) -> bool {
 		return (i.second > j.second);
 	};
-	//bool myfunction (int i,int j) { return (i<j); }
-
-	//sort(clientNames.begin(), clientNames.end(), countCompare);
-	//vector<double> dv;
-	//boost::copy(countCompare | boost::adaptors::map_values, dv.begin());
 
 	vector<pair<string, int> > print(clientNames.begin(), clientNames.end());
 	sort(print.begin(), print.end(), countCompare);
 	for(auto& p: print) {
-		//std::stringstream a_stream;
-		//std::string the_string = Util::toString(i->second) + " (" + Util::toString((i->second/allUsers)*100.00) + "%)" + lb;
-		//a_stream << std::setiosflags ( std::ios_base::left ) << std::setw ( 20 ) << i->first << the_string.c_str() << std::endl;
-		//std::cout << the_string.c_str();
-		//ret += a_stream.get();
-		//ret += a_stream.str();
 		ret += p.first + ":\t\t" + Util::toString(p.second) + " (" + Util::toString(((double)p.second/(double)uniqueUsers)*100.00) + "%)" + lb;
-		//printf("%-20s", ret);
 	}
 
 	return ret;
