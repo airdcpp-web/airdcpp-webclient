@@ -202,7 +202,7 @@ const string SettingsManager::settingTags[] =
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
 	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
-	"SearchAschOnlyMan", "IgnoreIndirectSR",
+	"SearchAschOnlyMan", "IgnoreIndirectSR", "UseUploadBundles",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -835,7 +835,9 @@ SettingsManager::SettingsManager()
 	setDefault(FILTER_SEARCH_PARTIAL_DUPES, false);
 	setDefault(FILTER_SEARCH_RESET_CHANGE, true);
 
+	// not in GUI
 	setDefault(IGNORE_INDIRECT_SR, false);
+	setDefault(USE_UPLOAD_BUNDLES, true);
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else

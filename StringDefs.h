@@ -1341,7 +1341,7 @@ enum Strings { // @DontAdd
 	HASHING_FINISHED_DIR,  // "The directory %1% has finished hashing: %2% files (%3%) have been hashed in %4% (%5%)"
 	HASHING_FINISHED_FILE,  // "The file %1% (%2%) has finished hashing in %3% (%4%)"
 	HASHING_FINISHED_TOTAL_PLAIN, // "Hashing finished"
-	BUNDLE_X_SHARED, // "The bundle %1% has been added into share"
+	BUNDLE_X_SHARED, // "The bundle %1% has been added in share"
 	HOUR, // "Hour"
 	HOURS, // "Hours"
 	DAY, // "Day"

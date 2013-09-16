@@ -1337,7 +1337,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The directory %1% has finished hashing: %2% files (%3%) have been hashed in %4% (%5%)", 
 "The file %1% (%2%) has finished hashing in %3% (%4%)", 
 "Hashing finished", 
-"The bundle %1% has been added into share", 
+"The bundle %1% has been added in share", 
 "Hour", 
 "Hours", 
 "Day", 

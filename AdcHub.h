@@ -75,7 +75,6 @@ public:
 	static const string UCM0_SUPPORT;
 	static const string BLO0_SUPPORT;
 	static const string ZLIF_SUPPORT;
-	static const string BNDL_FEATURE;
 	static const string SUD1_FEATURE;
 	static const string HBRI_SUPPORT;
 	static const string ASCH_FEATURE;

@@ -64,20 +64,17 @@ ConnectionManager::ConnectionManager() : floodCounter(0), shuttingDown(false) {
 	features.push_back(UserConnection::FEATURE_MINISLOTS);
 	features.push_back(UserConnection::FEATURE_XML_BZLIST);
 	features.push_back(UserConnection::FEATURE_ADCGET);
-	if (!SettingsManager::lanMode) {
-		features.push_back(UserConnection::FEATURE_TTHL);
-		features.push_back(UserConnection::FEATURE_TTHF);
-	}
-	features.push_back(UserConnection::FEATURE_AIRDC);
+	features.push_back(UserConnection::FEATURE_TTHL);
+	features.push_back(UserConnection::FEATURE_TTHF);
 
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BAS0);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BASE);
 	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_BZIP);
-	if (!SettingsManager::lanMode) {
-		adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_TIGR);
-		adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_MCN1);
-	}
-	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_UBN1);
+	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_TIGR);
+	adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_MCN1);
+
+	if (SETTING(USE_UPLOAD_BUNDLES))
+		adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_UBN1);
 }
 
 void ConnectionManager::listen() {

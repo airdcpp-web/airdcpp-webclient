@@ -59,7 +59,6 @@ const string AdcHub::TIGR_SUPPORT("ADTIGR");
 const string AdcHub::UCM0_SUPPORT("ADUCM0");
 const string AdcHub::BLO0_SUPPORT("ADBLO0");
 const string AdcHub::ZLIF_SUPPORT("ADZLIF");
-const string AdcHub::BNDL_FEATURE("BNDL");
 const string AdcHub::SUD1_FEATURE("SUD1");
 const string AdcHub::HBRI_SUPPORT("ADHBRI");
 const string AdcHub::ASCH_FEATURE("ASCH");

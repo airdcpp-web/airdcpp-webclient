@@ -1335,7 +1335,7 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexc
 	setBundleStatus(aBundle, Bundle::STATUS_MOVED);
 
 	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
-		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 		setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
 	} else if (!scanBundle(aBundle)) {
 		return;
@@ -1543,6 +1543,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 				HashedFile fi;
 				HashManager::getInstance()->getFileInfo(Text::toLower(b->getFinishedFiles().front()->getTarget()), b->getFinishedFiles().front()->getTarget(), fi);
 				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
+				LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, b->getTarget()), LogManager::LOG_INFO);
 			} catch (...) { dcassert(0); }
 		}
 	}
