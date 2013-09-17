@@ -343,7 +343,7 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 		if (p != viewedLists.end()) {
 			if (p->second->getPartialList()) {
 				auto dl = p->second;
-				dl->setHubUrl(aUser.hint);
+				dl->setHubUrl(aUser.hint, false);
 				dl->addPartialListTask(aXML, aBase, false, true, [=] { dl->setActive(); });
 			}
 			return;

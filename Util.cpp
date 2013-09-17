@@ -203,19 +203,19 @@ void Util::initialize() {
 
 	if(localMode) {
 		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
+		paths[PATH_DOWNLOADS] = paths[PATH_USER_CONFIG] + "Downloads\\";
 	} else {
 		TCHAR buf[MAX_PATH+1] = { 0 };
 		if(::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK) {
 			paths[PATH_USER_CONFIG] = Text::fromT(buf) + "\\AirDC++\\";
 		}
 
+		paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 		paths[PATH_USER_LOCAL] = ::SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK ? Text::fromT(buf) + "\\AirDC++\\" : paths[PATH_USER_CONFIG];
 	}
 	
-	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 	paths[PATH_RESOURCES] = exePath;
 	paths[PATH_LOCALE] = (localMode ? exePath : paths[PATH_USER_LOCAL]) + "Language\\";
-	paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 
 	OSVERSIONINFOEX ver;
 	memzero(&ver, sizeof(OSVERSIONINFOEX));

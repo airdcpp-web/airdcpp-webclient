@@ -708,7 +708,7 @@ void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSiz
 	hashDbSize_ = hashDb->getSizeOnDisk();
 }
 
-void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
+void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) throw(DbException) {
 	uint32_t cacheSize = static_cast<uint32_t>(Util::convertSize(max(SETTING(DB_CACHE_SIZE), 1), Util::MB));
 	auto blockSize = File::getBlockSize(Util::getPath(Util::PATH_USER_CONFIG));
 
@@ -777,7 +777,7 @@ private:
 	unordered_map<TTHValue, int64_t> sizeMap;
 };
 
-void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
+void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException) {
 	auto dataFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat";
 	auto indexFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml";
 
@@ -793,7 +793,7 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 	if (migrating) {
 		auto ret = messageF(STRING_F(DB_MIGRATION_INFO, APPNAME " " SHORTVERSIONSTRING) + "\r\n\r\n" + STRING(WANT_CONTINUE), true, false);
 		if (!ret) {
-			exit(0);
+			throw HashException();
 		}
 
 		auto volume = File::getMountPath(Util::getPath(Util::PATH_USER_CONFIG));
@@ -801,14 +801,18 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 			auto freeSpace = File::getFreeSpace(volume);
 			if (hashDataSize + hashIndexSize > freeSpace) {
 				messageF(STRING_F(DB_MIGRATION_FREE_SPACE, Util::formatBytes(freeSpace) % volume % Util::formatBytes(hashDataSize + hashIndexSize)), false, true);
-				exit(0);
+				throw HashException();
 			}
 		}
 	}
 
 
 	//open the new database
-	openDb(stepF, messageF);
+	try {
+		openDb(stepF, messageF);
+	} catch (...) {
+		throw HashException();
+	}
 
 
 	//migrate the old database file
@@ -1029,7 +1033,7 @@ int HashManager::Optimizer::run() {
 	return 0;
 }
 
-void HashManager::startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
+void HashManager::startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException) {
 	hashers.push_back(new Hasher(false, 0));
 	store.load(stepF, progressF, messageF); 
 }

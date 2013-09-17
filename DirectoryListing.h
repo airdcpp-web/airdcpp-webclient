@@ -188,7 +188,7 @@ public:
 	const UserPtr& getUser() const { return hintedUser.user; }
 	const HintedUser& getHintedUser() const { return hintedUser; }
 	const string& getHubUrl() const { return hintedUser.hint; }	
-	void setHubUrl(const string& newUrl);
+	void setHubUrl(const string& newUrl, bool isGuiChange);
 		
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, abort, Abort);

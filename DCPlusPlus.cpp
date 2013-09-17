@@ -56,7 +56,7 @@ namespace dcpp {
 
 #define RUNNING_FLAG Util::getPath(Util::PATH_USER_LOCAL) + "RUNNING"
 
-void startup(function<void (const string&)> stepF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF, function<void ()> runWizard, function<void (float)> progressF) {
+void startup(function<void(const string&)> stepF, function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF, function<void()> runWizard, function<void(float)> progressF) throw(Exception) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
 	while(1) break;
@@ -130,7 +130,11 @@ void startup(function<void (const string&)> stepF, function<bool (const string& 
 	};
 
 	announce(STRING(HASH_DATABASE));
-	HashManager::getInstance()->startup(stepF, progressF, messageF);
+	try {
+		HashManager::getInstance()->startup(stepF, progressF, messageF);
+	} catch (const HashException&) {
+		throw Exception();
+	}
 
 	announce(STRING(DOWNLOAD_QUEUE));
 	QueueManager::getInstance()->loadQueue(progressF);

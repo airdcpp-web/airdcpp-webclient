@@ -21,6 +21,7 @@
 
 #include "compiler.h"
 #include "typedefs.h"
+#include "Exception.h"
 
 // Make sure we're using the templates from algorithm...
 #ifdef min
@@ -32,7 +33,7 @@
 
 namespace dcpp {
 
-extern void startup(function<void (const string&)> stepF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF, function<void ()> runWizard, function<void (float)> progressF);
+extern void startup(function<void (const string&)> stepF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF, function<void ()> runWizard, function<void (float)> progressF) throw(Exception);
 extern void shutdown(function<void (const string&)> stepf, function<void (float)> progressF);
 
 } // namespace dcpp

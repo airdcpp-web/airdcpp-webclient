@@ -96,7 +96,7 @@ public:
 	 */
 	void startMaintenance(bool verify);
 
-	void startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
+	void startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException);
 	void stop();
 	void shutdown(ProgressFunction progressF);
 
@@ -216,7 +216,7 @@ private:
 		void addFile(string&& aFilePathLower, const HashedFile& fi_);
 		bool renameFile(const string& oldPath, const string& newPath, const HashedFile& fi);
 
-		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
+		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException);
 
 		void optimize(bool doVerify);
 
@@ -235,7 +235,7 @@ private:
 
 		string getDbStats();
 
-		void openDb(StepFunction stepF, MessageFunction messageF);
+		void openDb(StepFunction stepF, MessageFunction messageF) throw(DbException);
 		void closeDb();
 
 		void onScheduleRepair(bool schedule);

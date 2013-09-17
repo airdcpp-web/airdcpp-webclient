@@ -90,9 +90,10 @@ string DirectoryListing::getNick(bool firstOnly) const noexcept {
 	return ret;
 }
 
-void DirectoryListing::setHubUrl(const string& newUrl) {
+void DirectoryListing::setHubUrl(const string& newUrl, bool isGuiChange) {
 	hintedUser.hint = newUrl;
-	fire(DirectoryListingListener::HubChanged());
+	if (!isGuiChange)
+		fire(DirectoryListingListener::HubChanged());
 }
 
 void stripExtensions(string& name) {

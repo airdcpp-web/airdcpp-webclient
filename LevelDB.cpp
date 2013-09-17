@@ -59,7 +59,7 @@ LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cach
 
 string LevelDB::getRepairFlag() const { return dbPath + "REPAIR"; }
 
-void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
+void LevelDB::open(StepFunction stepF, MessageFunction messageF) throw(DbException) {
 	bool forceRepair = Util::fileExists(getRepairFlag());
 	if (forceRepair) {
 		repair(stepF, messageF);
@@ -71,7 +71,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 		if (ret.IsIOError()) {
 			// most likely there's another instance running or the permissions are wrong
 			messageF(STRING_F(DB_OPEN_FAILED_IO, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME % dbPath % APPNAME), false, true);
-			exit(0);
+			throw DbException();
 		} else if (!forceRepair) {
 			// the database is corrupted?
 			messageF(STRING_F(DB_OPEN_FAILED_REPAIR, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME), false, false);
@@ -84,11 +84,11 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 
 	if (!ret.ok()) {
 		messageF(STRING_F(DB_OPEN_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME), false, true);
-		exit(0);
+		throw DbException();
 	}
 }
 
-void LevelDB::repair(StepFunction stepF, MessageFunction messageF) {
+void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbException) {
 	stepF(STRING_F(REPAIRING_X, getNameLower()));
 	
 	//remove any existing log
@@ -117,7 +117,7 @@ LevelDB::~LevelDB() {
 
 #define DBACTION(f) (performDbOperation([&] { return f; }))
 
-void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
+void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) throw(DbException) {
 	totalWrites++;
 	leveldb::Slice key((const char*)aKey, keyLen);
 	leveldb::Slice value((const char*)aValue, valueLen);
@@ -126,7 +126,7 @@ void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSn
 	DBACTION(db->Put(writeoptions, key, value));
 }
 
-bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
+bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool(void* aValue, size_t aValueLen)> loadF, DbSnapshot* /*aSnapshot*/ /*nullptr*/) throw(DbException) {
 	totalReads++;
 	string value;
 	leveldb::Slice key((const char*)aKey, keyLen);
@@ -138,7 +138,7 @@ bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::fu
 	return false;
 }
 
-string LevelDB::getStats() { 
+string LevelDB::getStats() throw(DbException) {
 	string ret;
 	ret += "\nStats for " + getFriendlyName() + "\n\n";
 	string value = "leveldb.stats";
@@ -154,23 +154,23 @@ string LevelDB::getStats() {
 	return ret;
 }
 
-bool LevelDB::hasKey(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
+bool LevelDB::hasKey(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) throw(DbException) {
 	string value;
 	leveldb::Slice key((const char*)aKey, keyLen);
 	auto ret = db->Get(iteroptions, key, &value);
 	return ret.ok();
 }
 
-void LevelDB::remove(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
+void LevelDB::remove(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) throw(DbException) {
 	leveldb::Slice key((const char*)aKey, keyLen);
 	DBACTION(db->Delete(writeoptions, key));
 }
 
-int64_t LevelDB::getSizeOnDisk() {
+int64_t LevelDB::getSizeOnDisk() throw(DbException) {
 	return File::getDirSize(getPath(), false);
 }
 
-size_t LevelDB::size(bool thorough, DbSnapshot* aSnapshot /*nullptr*/) {
+size_t LevelDB::size(bool thorough, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException) {
 	if (!thorough && lastSize > 0)
 		return lastSize;
 
@@ -195,7 +195,7 @@ DbSnapshot* LevelDB::getSnapshot() {
 	return new LevelSnapshot(db);
 }
 
-void LevelDB::remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/) {
+void LevelDB::remove_if(std::function<bool(void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException) {
 	leveldb::WriteBatch wb;
 	leveldb::ReadOptions options;
 	options.fill_cache = false;
@@ -223,7 +223,7 @@ void LevelDB::compact() {
 	db->CompactRange(nullptr, nullptr);
 }
 
-leveldb::Status LevelDB::performDbOperation(function<leveldb::Status ()> f) {
+leveldb::Status LevelDB::performDbOperation(function<leveldb::Status()> f) throw(DbException) {
 	int attempts = 0;
 	leveldb::Status ret;
 	for (;;) {
@@ -245,7 +245,7 @@ leveldb::Status LevelDB::performDbOperation(function<leveldb::Status ()> f) {
 	return ret;
 }
 
-void LevelDB::checkDbError(leveldb::Status aStatus) {
+void LevelDB::checkDbError(leveldb::Status aStatus) throw(DbException) {
 	if (aStatus.ok())
 		return;
 

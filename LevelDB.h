@@ -36,20 +36,20 @@ public:
 	LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize = 4096);
 	~LevelDB();
 
-	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSnapshot* aSnapshot /*nullptr*/);
-	bool get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool (void* aValue, size_t aValueLen)> loadF, DbSnapshot* aSnapshot /*nullptr*/);
-	void remove(void* aKey, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/);
-	bool hasKey(void* aKey, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/);
+	void put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException);
+	bool get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool(void* aValue, size_t aValueLen)> loadF, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException);
+	void remove(void* aKey, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException);
+	bool hasKey(void* aKey, size_t keyLen, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException);
 
-	string getStats();
+	string getStats() throw(DbException);
 
-	size_t size(bool /*thorough*/, DbSnapshot* aSnapshot /*nullptr*/);
-	int64_t getSizeOnDisk();
+	size_t size(bool /*thorough*/, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException);
+	int64_t getSizeOnDisk() throw(DbException);
 
-	void remove_if(std::function<bool (void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/);
+	void remove_if(std::function<bool(void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException);
 	void compact();
-	void repair(StepFunction stepF, MessageFunction messageF);
-	void open(StepFunction stepF, MessageFunction messageF);
+	void repair(StepFunction stepF, MessageFunction messageF) throw(DbException);
+	void open(StepFunction stepF, MessageFunction messageF) throw(DbException);
 private:
 	class LevelSnapshot : public DbSnapshot {
 	public:
@@ -66,8 +66,8 @@ private:
 	};
 
 	string getRepairFlag() const;
-	leveldb::Status performDbOperation(function<leveldb::Status ()> f);
-	void checkDbError(leveldb::Status aStatus);
+	leveldb::Status performDbOperation(function<leveldb::Status()> f) throw(DbException);
+	void checkDbError(leveldb::Status aStatus) throw(DbException);
 
 	leveldb::DB* db;
 
