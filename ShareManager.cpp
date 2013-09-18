@@ -364,7 +364,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	}
 
 	// don't handle queued bundles in here
-	if (find_if(*bundlePaths_, [&info](const string& bundlePath) { return AirUtil::isParentOrExact(bundlePath, info.path); }) != (*bundlePaths_).end()) {
+	if (find_if(*bundlePaths_, [&info](const string& bundlePath) { return AirUtil::isParentOrExact(bundlePath, info.path) || AirUtil::isSub(bundlePath, info.path); }) != (*bundlePaths_).end()) {
 		return true;
 	}
 
@@ -402,6 +402,8 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	vector<FileAddInfo> files;
 	bool hasValidFiles = false;
 
+	//auto startTime = GET_TICK();
+
 	// Check that the file can be accessed, FileFindIter won't show it (also files being copied will come here)
 	for (const auto& fi : info.files | map_keys) {
 		//check for file bundles
@@ -414,7 +416,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 
 		hasValidFiles = true;
 		try {
-			File ff(fi, File::READ, File::SHARED_WRITE | File::OPEN | File::NO_CACHE_HINT);
+			File ff(fi, File::READ, File::SHARED_WRITE | File::OPEN, File::BUFFER_AUTO);
 			if (dir) {
 				files.emplace_back(Util::getFileName(fi), ff.getLastModified(), ff.getSize());
 			}
@@ -424,6 +426,9 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 			return false;
 		}
 	}
+
+	//auto endTime = GET_TICK();
+	//LogManager::getInstance()->message("Files checked in " + Util::toString(endTime - startTime) + " ms (" + Util::toString((endTime - startTime) / 1000) + " seconds)", LogManager::LOG_INFO);
 
 	if (!hasValidFiles && (!info.files.empty() || !Util::fileExists(info.path))) {
 		// no need to keep items in the list if all files have been removed...
@@ -2734,7 +2739,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 			try {
 				//auto start = GET_TICK();
 				{
-					File f(tmpName, File::RW, File::TRUNCATE | File::CREATE, false);
+					File f(tmpName, File::RW, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL, false);
 
 					f.write(SimpleXML::utf8Header);
 					f.write("<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() + "\" Base=\"/\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n");
@@ -2765,7 +2770,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 
 					fl->setXmlListLen(f.getSize());
 
-					File bz(fl->getFileName(), File::WRITE, File::TRUNCATE | File::CREATE, false);
+					File bz(fl->getFileName(), File::WRITE, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL, false);
 					// We don't care about the leaves...
 					CalcOutputStream<TTFilter<1024 * 1024 * 1024>, false> bzTree(&bz);
 					FilteredOutputStream<BZFilter, false> bzipper(&bzTree);

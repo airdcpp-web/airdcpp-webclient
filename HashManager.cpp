@@ -877,7 +877,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				auto tth = TTHValue(root);
 				try {
 					if (!dataFile) {
-						dataFile.reset(new File(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat", File::READ, File::OPEN | File::SHARED_WRITE | File::RANDOM_ACCESS));
+						dataFile.reset(new File(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat", File::READ, File::OPEN | File::SHARED_WRITE, File::BUFFER_RANDOM));
 					}
 
 					if (dataFile) {

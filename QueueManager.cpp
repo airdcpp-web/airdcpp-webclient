@@ -2231,7 +2231,7 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 		if (Util::getFileExt(path) == ".xml") {
 			QueueLoader loader;
 			try {
-				File f(path, File::READ, File::OPEN, false);
+				File f(path, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL, false);
 				SimpleXMLReader(&loader).parse(f);
 			} catch(const Exception& e) {
 				LogManager::getInstance()->message(STRING_F(BUNDLE_LOAD_FAILED, path % e.getError().c_str()), LogManager::LOG_ERROR);

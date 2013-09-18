@@ -55,7 +55,7 @@ void FileList::saveList() {
 		bzXmlRef.reset();
 	}
 
-	bzXmlRef = unique_ptr<File>(new File(getFileName(), File::READ, File::OPEN, false));
+	bzXmlRef = unique_ptr<File>(new File(getFileName(), File::READ, File::OPEN, File::BUFFER_SEQUENTIAL, false));
 	bzXmlListLen = File::getSize(getFileName());
 
 	//cleanup old filelists we failed to delete before due to uploading them.

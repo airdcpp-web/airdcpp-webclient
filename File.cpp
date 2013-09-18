@@ -34,37 +34,37 @@
 namespace dcpp {
 
 #ifdef _WIN32
-File::File(const string& aFileName, int access, int mode, bool isAbsolute /*true*/, bool isDirectory /*false*/) {
+File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode, bool isAbsolute /*true*/, bool isDirectory /*false*/) {
 	dcassert(access == WRITE || access == READ || access == (READ | WRITE));
 
 	int m = 0;
-	if(mode & OPEN) {
-		if(mode & CREATE) {
+	if (mode & OPEN) {
+		if (mode & CREATE) {
 			m = (mode & TRUNCATE) ? CREATE_ALWAYS : OPEN_ALWAYS;
 		} else {
 			m = (mode & TRUNCATE) ? TRUNCATE_EXISTING : OPEN_EXISTING;
 		}
 	} else {
-		if(mode & CREATE) {
+		if (mode & CREATE) {
 			m = (mode & TRUNCATE) ? CREATE_ALWAYS : CREATE_NEW;
 		} else {
 			dcassert(0);
 		}
 	}
+
 	DWORD shared = FILE_SHARE_READ | (mode & SHARED_WRITE ? (FILE_SHARE_WRITE) : 0);
 	if (mode & SHARED_DELETE)
 		shared |= FILE_SHARE_DELETE;
 
-	DWORD dwFlags = mode & RANDOM_ACCESS ? FILE_FLAG_RANDOM_ACCESS : mode & NO_CACHE_HINT ? 0 : FILE_FLAG_SEQUENTIAL_SCAN;
+	DWORD dwFlags = aBufferMode;
 	string path = aFileName;
-	if(isAbsolute)
+	if (isAbsolute)
 		path = Util::FormatPath(aFileName);
 
 	if (isDirectory)
 		dwFlags |= FILE_FLAG_BACKUP_SEMANTICS;
 
 	h = ::CreateFile(Text::toT(path).c_str(), access, shared, NULL, m, dwFlags, NULL);
-
 	if(h == INVALID_HANDLE_VALUE) {
 		throw FileException(Util::translateError(GetLastError()));
 	}
@@ -215,7 +215,7 @@ bool File::deleteFile(const string& aFileName) noexcept {
 	return ::DeleteFile(Text::toT(Util::FormatPath(aFileName)).c_str()) > 0 ? true : false;
 }
 
-TimeKeeper::TimeKeeper(const string& aPath) : initialized(false), File(aPath, File::RW, File::OPEN | File::SHARED_WRITE, true, true) {
+TimeKeeper::TimeKeeper(const string& aPath) : initialized(false), File(aPath, File::RW, File::OPEN | File::SHARED_WRITE, File::BUFFER_NONE, true, true) {
 	if (::GetFileTime(h, NULL, NULL, &time) > 0)
 		initialized = true;
 }
@@ -307,7 +307,7 @@ int64_t File::getBlockSize(const string& aFileName) noexcept {
 
 #else // !_WIN32
 
-File::File(const string& aFileName, int access, int mode, bool /*isAbsolute*/, bool /*isDirectory*/) {
+File::File(const string& aFileName, int access, int mode, BufferMode /*aBufferMode*/, bool /*isAbsolute*/, bool /*isDirectory*/) {
 	dcassert(access == WRITE || access == READ || access == (READ | WRITE));
 
 	int m = 0;

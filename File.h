@@ -34,13 +34,18 @@ public:
 		CREATE = 0x02,
 		TRUNCATE = 0x04,
 		SHARED_WRITE = 0x08,
-		NO_CACHE_HINT = 0x10,
-		RANDOM_ACCESS = 0x20,
 #ifdef _WIN32
-		SHARED_DELETE = 0x40
+		SHARED_DELETE = 0x10
 #else
 		SHARED_DELETE = 0x00
 #endif
+	};
+
+	enum BufferMode {
+		BUFFER_SEQUENTIAL = FILE_FLAG_SEQUENTIAL_SCAN,
+		BUFFER_RANDOM = FILE_FLAG_RANDOM_ACCESS,
+		BUFFER_AUTO = 0,
+		BUFFER_NONE = FILE_FLAG_NO_BUFFERING
 	};
 
 #ifdef _WIN32
@@ -60,13 +65,21 @@ public:
 		RW = READ | WRITE
 	};
 
+	// not used here...
+	enum BufferMode {
+		BUFFER_SEQUENTIAL,
+		BUFFER_RANDOM,
+		BUFFER_AUTO,
+		BUFFER_NONE
+	};
+
 	// some ftruncate implementations can't extend files like SetEndOfFile,
 	// not sure if the client code needs this...
 	int extendFile(int64_t len) noexcept;
 
 #endif // !_WIN32
 
-	File(const string& aFileName, int access, int mode, bool isAbsolute = true, bool isDirectory = false);
+	File(const string& aFileName, int access, int mode, BufferMode aBufferMode = BUFFER_SEQUENTIAL, bool isAbsolute = true, bool isDirectory = false);
 
 	bool isOpen() const noexcept;
 	void close() noexcept;
