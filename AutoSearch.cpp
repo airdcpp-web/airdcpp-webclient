@@ -279,7 +279,7 @@ bool AutoSearch::updateSearchTime() noexcept {
 		ptime now = second_clock::local_time();
 		ptime nextSearch(now);
 
-		//have we already passed the end time from this day?
+		//have we passed the end time from this day already?
 		if (endTime.hour < nextSearch.time_of_day().hours() ||
 			(endTime.hour == nextSearch.time_of_day().hours() && endTime.minute < nextSearch.time_of_day().minutes())) {
 

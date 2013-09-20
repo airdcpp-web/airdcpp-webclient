@@ -600,16 +600,6 @@ void AirUtil::getRegexMatches(const string& aString, StringList& l, const boost:
 	}
 }
 
-bool AirUtil::isSub(const string& aDir, const string& aParent) {
-	/* returns true if aDir is a subdir of aParent */
-	return (aDir.length() > aParent.length() && (Util::stricmp(aDir.substr(0, aParent.length()), aParent) == 0));
-}
-
-bool AirUtil::isParentOrExact(const string& aDir, const string& aSub) {
-	/* returns true if aSub is a subdir of aDir OR both are the same dir */
-	return (aSub.length() >= aDir.length() && (Util::stricmp(aSub.substr(0, aDir.length()), aDir) == 0));
-}
-
 const string AirUtil::getLinkUrl() {
 	return R"(((?:[a-z][\w-]{0,10})?:/{1,3}|www\d{0,3}[.]|magnet:\?[^\s=]+=|spotify:|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))";
 }

@@ -763,7 +763,7 @@ private:
 	// Validates that the new/modified path can be shared and returns the full path (path separator is added for directories
 	optional<pair<string, bool>> checkModifiedPath(const string& aPath) const noexcept;
 
-	void addModifyInfo(const string& aPath, bool isDirectory, DirModifyInfo::ActionType aAction) noexcept;
+	void addModifyInfo(const string& aPath, bool isDirectory, DirModifyInfo::ActionType) noexcept;
 	bool handleDeletedFile(const string& aPath, bool isDirectory, ProfileTokenSet& dirtyProfiles_) noexcept;
 
 	// Recursively removes all notifications for the given path

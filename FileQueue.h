@@ -46,8 +46,7 @@ public:
 	QueueItemPtr findFile(const string& target) const noexcept;
 	void findFiles(const TTHValue& tth, QueueItemList& ql) const noexcept;
 	void matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) const noexcept;
-	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql) const noexcept;
-	void matchDir(const DirectoryListing::Directory* dir, QueueItem::StringItemList& ql, const QueueItem::StringMultiMap& qsm) const noexcept;
+	void matchDir(const DirectoryListing::Directory::Ptr& dir, QueueItem::StringItemList& ql) const noexcept;
 
 	// find some PFS sources to exchange parts info
 	void findPFSSources(PFSSourceList&) noexcept;

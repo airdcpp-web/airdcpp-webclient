@@ -471,10 +471,10 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 	}
 }
 
-void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory* currentDir, string& fullPath) {
+void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath) {
 	// Add to any substructure being stored
 	for(auto& id: destDirVector) {
-		if(id.subdir != NULL) {
+		if(id.subdir) {
 			DirectoryListing::Directory* newDir =
 				new DirectoryListing::AdlDirectory(fullPath.substr(1) + "\\", id.subdir, currentDir->getName());
 			id.subdir->directories.push_back(newDir);
@@ -488,7 +488,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 	}
 
 	for(auto& is: collection) {
-		if(destDirVector[is.ddIndex].subdir != NULL) {
+		if(destDirVector[is.ddIndex].subdir) {
 			continue;
 		}
 		if(is.matchesDirectory(currentDir->getName())) {
@@ -514,10 +514,10 @@ void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) {
 	}
 }
 
-void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory* root) {
+void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) {
 	// Load default destination directory (index = 0)
 	destDirs.clear();
-	DestDir dir = { "ADLSearch", new DirectoryListing::Directory(root, "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
+	DestDir dir = { "ADLSearch", new DirectoryListing::Directory(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
 	destDirs.push_back(std::move(dir));
 
 	// Scan all loaded searches
@@ -543,14 +543,14 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 
 		if(isNew) {
 			// Add new destination directory
-			DestDir dir = { is.destDir, new DirectoryListing::Directory(root, "<<<" + is.destDir + ">>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
+			DestDir dir = { is.destDir, new DirectoryListing::Directory(root.get(), "<<<" + is.destDir + ">>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
 			destDirs.push_back(std::move(dir));
 			is.ddIndex = ddIndex;
 		}
 	}
 }
 
-void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory* root) {
+void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) {
 	/*string szDiscard = "<<<" + STRING(ADLS_DISCARD) + ">>>";
 
 	// Add non-empty destination directories to the top level
@@ -581,19 +581,20 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 void ADLSearchManager::matchListing(DirectoryListing& aDirList) noexcept {
 	running++;
 	setUser(aDirList.getHintedUser());
+	auto root = aDirList.getRoot();
 
 	DestDirList destDirs;
-	PrepareDestinationDirectories(destDirs, aDirList.getRoot());
+	PrepareDestinationDirectories(destDirs, root);
 	setBreakOnFirst(SETTING(ADLS_BREAK_ON_FIRST));
 
 	string path(aDirList.getRoot()->getName());
 	matchRecurse(destDirs, aDirList.getRoot(), path, aDirList);
 
 	running--;
-	FinalizeDestinationDirectories(destDirs, aDirList.getRoot());
+	FinalizeDestinationDirectories(destDirs, root);
 }
 
-void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory* aDir, string &aPath, DirectoryListing& aDirList) {
+void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory::Ptr& aDir, string &aPath, DirectoryListing& aDirList) {
 	if(aDirList.getAbort())
 		throw AbortException();
 

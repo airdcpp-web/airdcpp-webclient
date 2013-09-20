@@ -87,7 +87,7 @@ public:
 		}
 	};
 
-	class Directory :  boost::noncopyable {
+	class Directory : boost::noncopyable, public intrusive_ptr_base<Directory> {
 	public:
 		enum DirType {
 			TYPE_NORMAL,
@@ -96,7 +96,8 @@ public:
 			TYPE_ADLS,
 		};
 
-		typedef Directory* Ptr;
+		//typedef Directory* Ptr;
+		typedef boost::intrusive_ptr<Directory> Ptr;
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
@@ -165,7 +166,7 @@ public:
 	int loadXML(InputStream& xml, bool updating, const string& aBase = "/", time_t aListDate = GET_TIME());
 
 	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
-	bool createBundle(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
+	bool createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 
 	void openFile(File* aFile, bool isClientView) const throw(/*QueueException,*/ FileException);
 
@@ -173,9 +174,9 @@ public:
 	int64_t getDirSize(const string& aDir) const noexcept;
 	size_t getTotalFileCount(bool adls = false) const noexcept { return root->getTotalFileCount(adls); }
 
-	const Directory* getRoot() const { return root; }
-	Directory* getRoot() { return root; }
-	void getLocalPaths(const Directory* d, StringList& ret) const throw(ShareException);
+	const Directory::Ptr getRoot() const { return root; }
+	Directory::Ptr getRoot() { return root; }
+	void getLocalPaths(const Directory::Ptr& d, StringList& ret) const throw(ShareException);
 	void getLocalPaths(const File* f, StringList& ret) const throw(ShareException);
 
 	bool isMyCID() const noexcept;
@@ -214,20 +215,20 @@ public:
 	bool isCurrentSearchPath(const string& path) const noexcept;
 	size_t getResultCount() const { return searchResults.size(); }
 
-	Directory* findDirectory(const string& aName) const noexcept { return findDirectory(aName, root); }
-	Directory* findDirectory(const string& aName, const Directory* current) const noexcept;
+	Directory::Ptr findDirectory(const string& aName) const noexcept { return findDirectory(aName, root); }
+	Directory::Ptr findDirectory(const string& aName, const Directory::Ptr& current) const noexcept;
 	
 	bool supportsASCH() const noexcept;
 
 	void onRemovedQueue(const string& aDir) noexcept;
 
 	/* only call from the file list thread*/
-	bool downloadDirImpl(Directory* aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
+	bool downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 	void setActive() noexcept;
 private:
 	friend class ListLoader;
 
-	Directory* root;
+	Directory::Ptr root;
 
 	//maps loaded base dirs with their full lowercase paths and whether they've been visited or not
 	typedef unordered_map<string, pair<Directory::Ptr, bool>> DirMap;

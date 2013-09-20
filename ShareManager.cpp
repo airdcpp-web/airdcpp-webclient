@@ -63,6 +63,8 @@ using boost::adaptors::filtered;
 using boost::range::find_if;
 using boost::range::for_each;
 using boost::range::copy;
+using boost::algorithm::copy_if;
+using boost::range::remove_if;
 
 #define SHARE_CACHE_VERSION "3"
 
@@ -232,7 +234,6 @@ void ShareManager::addModifyInfo(const string& aPath, bool isDirectory, DirModif
 }
 
 void ShareManager::DirModifyInfo::addFile(const string& aFile, ActionType aAction, const string& aOldPath /*Util::emptyString*/) noexcept {
-	//files[aFile.substr(path.length())] = aAction;
 	auto p = files.find(aFile);
 	if (p != files.end()) {
 		if (p->second.action == DirModifyInfo::ACTION_CREATED && aAction == DirModifyInfo::ACTION_DELETED) {
@@ -363,10 +364,39 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 		QueueManager::getInstance()->getUnfinishedPaths(*bundlePaths_);
 	}
 
-	// don't handle queued bundles in here
-	if (find_if(*bundlePaths_, [&info](const string& bundlePath) { return AirUtil::isParentOrExact(bundlePath, info.path) || AirUtil::isSub(bundlePath, info.path); }) != (*bundlePaths_).end()) {
+	// don't handle queued bundles in here (parent directories for bundles shouldn't be totally ignored really...)
+	if (find_if(*bundlePaths_, IsParentOrExactOrSub<false>(info.path)) != (*bundlePaths_).end()) {
 		return true;
-	}
+	} /*else {
+		// remove files inside bundle directories if this is a parent directory
+		StringList subBundles;
+		copy_if(*bundlePaths_, back_inserter(subBundles), IsSub<false>(info.path));
+		if (!subBundles.empty()) {
+			for (auto i = info.files.begin(); i != info.files.end();) {
+				auto p = find_if(subBundles, IsParentOrExact<false>(i->first));
+				if (p != subBundles.end()) {
+					i = info.files.erase(i);
+				} else {
+					i++;
+				}
+			}
+
+			// no other files? we don't care about the parent directory action
+			if (info.files.empty()) {
+				return true;
+			}
+
+			// break it
+			decltype(fileModifications) infosNew;
+			for (const auto& p : info.files) {
+				addModifyInfo(p.first, false, p.second.action);
+			}
+
+			for (const auto& i : infosNew) {
+
+			}
+		}
+	}*/
 
 	// scan for missing/extra files
 	if (info.lastReportedError == 0 || info.lastReportedError < info.lastFileActivity) {
@@ -671,7 +701,7 @@ void ShareManager::removeNotifications(DirModifyInfo::List::iterator p, const st
 	} else {
 		// remove subitems
 		for (auto i = p->files.begin(); i != p->files.end();) {
-			if (AirUtil::isParentOrExact(aPath, i->first)) {
+			if (AirUtil::isParentOrExactCase(aPath, i->first)) {
 				i = p->files.erase(i);
 			} else {
 				i++;
@@ -3624,7 +3654,7 @@ bool ShareManager::allowAddDir(const string& aPath) const noexcept {
 	//LogManager::getInstance()->message("QueueManagerListener::BundleFilesMoved");
 	{
 		RLock l(cs);
-		const auto mi = find_if(rootPaths | map_keys, [&aPath](const string& p) { return AirUtil::isParentOrExact(p, aPath); });
+		const auto mi = find_if(rootPaths | map_keys, IsParentOrExact<true>(aPath));
 		if (mi.base() != rootPaths.end()) {
 			string fullPathLower = *mi;
 			int pathPos = mi->length();
@@ -3650,7 +3680,7 @@ bool ShareManager::allowAddDir(const string& aPath) const noexcept {
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bool allowAdd, bool report, bool checkExcludes /*true*/) noexcept {
-	auto mi = find_if(rootPaths | map_keys, [&fname](const string& n) { return AirUtil::isParentOrExact(n, fname); }).base();
+	auto mi = find_if(rootPaths | map_keys, IsParentOrExact<true>(fname)).base();
 	if (mi != rootPaths.end()) {
 		auto curDir = mi->second;
 		StringList sl = StringTokenizer<string>(fname.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
