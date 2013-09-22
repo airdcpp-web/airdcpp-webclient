@@ -190,10 +190,6 @@ void ShareManager::removeMonitoring(const StringList& aPaths) noexcept {
 optional<pair<string, bool>> ShareManager::checkModifiedPath(const string& aPath) const noexcept {
 	FileFindIter f(aPath);
 	if (f != FileFindIter()) {
-		// filter directory modifications as they may come for parent folders too
-		//if (f->isDirectory() && !created)
-		//	return;
-
 		if (!SETTING(SHARE_HIDDEN) && f->isHidden())
 			return nullptr;
 
@@ -202,7 +198,7 @@ optional<pair<string, bool>> ShareManager::checkModifiedPath(const string& aPath
 
 		bool isDir = f->isDirectory();
 		auto path = isDir ? aPath + PATH_SEPARATOR : aPath;
-		if (!checkSharedName(path, Text::toLower(path), isDir))
+		if (!checkSharedName(path, Text::toLower(path), isDir, true, f->getSize()))
 			return nullptr;
 
 		return make_pair(path, isDir);
@@ -217,7 +213,6 @@ void ShareManager::addModifyInfo(const string& aPath, bool isDirectory, DirModif
 	auto p = findModifyInfo(filePath);
 	if (p == fileModifications.end()) {
 		//add a new modify info
-		//fileModifications.emplace_back(aPath, isDirectory, aAction);
 		fileModifications.emplace_front(aPath, isDirectory, aAction);
 	} else {
 		if (!isDirectory) {
@@ -249,16 +244,10 @@ void ShareManager::DirModifyInfo::addFile(const string& aFile, ActionType aActio
 }
 
 void ShareManager::DirModifyInfo::setPath(const string& aPath) noexcept {
-	/*if (!path.empty()) {
-		for (auto& f: files) {
-			//f.first
-		}
-	}*/
-
 	path = aPath;
 }
 
-ShareManager::DirModifyInfo::DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction, const string& aOldPath /*Util::emptyString*/) : lastFileActivity(GET_TICK()), lastReportedError(0) {
+ShareManager::DirModifyInfo::DirModifyInfo(const string& aFile, bool isDirectory, ActionType aAction, const string& aOldPath /*Util::emptyString*/) {
 	volume = File::getMountPath(aFile);
 	if (isDirectory) {
 		dirAction = aAction;
@@ -268,7 +257,6 @@ ShareManager::DirModifyInfo::DirModifyInfo(const string& aFile, bool isDirectory
 		dirAction = ACTION_NONE;
 		setPath(Util::getFilePath(aFile));
 		addFile(aFile, aAction, aOldPath);
-		//files.emplace(aFile, aAction);
 	}
 }
 

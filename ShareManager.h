@@ -738,10 +738,10 @@ private:
 
 		typedef unordered_map<string, FileInfo> FileInfoMap;
 		FileInfoMap files;
-		time_t lastFileActivity;
-		time_t lastReportedError;
+		time_t lastFileActivity = GET_TICK();
+		time_t lastReportedError = 0;
 
-		ActionType dirAction;
+		ActionType dirAction = ACTION_NONE;
 		string volume;
 		string path;
 		string oldPath;
