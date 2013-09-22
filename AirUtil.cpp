@@ -615,25 +615,28 @@ const string AirUtil::getReleaseRegBasic() {
 	return R"(((?=\S*[A-Za-z]\S*)[A-Z0-9]\S{3,})-([A-Za-z0-9_]{2,}))";
 }
 
-bool AirUtil::removeDirectoryIfEmpty(const string& aPath, int attempts /*0*/) {
+bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int attempts) {
 	/* recursive check for empty dirs */
-	for(FileFindIter i(aPath + "*"); i != FileFindIter(); ++i) {
+	for(FileFindIter i(aPath, "*"); i != FileFindIter(); ++i) {
 		try {
 			if(i->isDirectory()) {
 				if (i->getFileName().compare(".") == 0 || i->getFileName().compare("..") == 0)
 					continue;
 
 				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
-				if (!removeDirectoryIfEmpty(dir))
+				if (!removeDirectoryIfEmptyRe(dir, maxAttempts, 0))
 					return false;
 			} else if (Util::getFileExt(i->getFileName()) == ".dctmp") {
-				if (attempts == 3)
+				if (attempts == 3) {
+					LogManager::getInstance()->message("FAIL " + i->getFileName(), LogManager::LOG_ERROR);
 					return false;
+				}
 
 				Thread::sleep(500);
 				attempts++;
-				return removeDirectoryIfEmpty(aPath, attempts);
+				return removeDirectoryIfEmptyRe(aPath, maxAttempts, attempts);
 			} else {
+				LogManager::getInstance()->message("FAIL " + i->getFileName(), LogManager::LOG_ERROR);
 				return false;
 			}
 		} catch(const FileException&) { } 
@@ -642,8 +645,8 @@ bool AirUtil::removeDirectoryIfEmpty(const string& aPath, int attempts /*0*/) {
 	return true;
 }
 
-void AirUtil::removeIfEmpty(const string& tgt) {
-	if (!removeDirectoryIfEmpty(tgt)) {
+void AirUtil::removeDirectoryIfEmpty(const string& tgt, int maxAttempts /*3*/) {
+	if (!removeDirectoryIfEmptyRe(tgt, maxAttempts, 0)) {
 		LogManager::getInstance()->message(STRING_F(DIRECTORY_NOT_REMOVED, tgt), LogManager::LOG_INFO);
 	}
 }

@@ -63,7 +63,7 @@ bool HashManager::checkTTH(string&& aFileLower, const string& aFileName, HashedF
 	return true;
 }
 
-void HashManager::getFileInfo(string&& aFileLower, const string& aFileName, HashedFile& fi_) {
+void HashManager::getFileInfo(string&& aFileLower, const string& aFileName, HashedFile& fi_) throw(HashException) {
 	dcassert(Text::isLower(aFileLower));
 	auto found = store.getFileInfo(aFileLower, fi_);
 	if (!found) {
@@ -74,19 +74,19 @@ void HashManager::getFileInfo(string&& aFileLower, const string& aFileName, Hash
 	}
 }
 
-bool HashManager::getTree(const TTHValue& root, TigerTree& tt) {
+bool HashManager::getTree(const TTHValue& root, TigerTree& tt) noexcept {
 	return store.getTree(root, tt);
 }
 
-size_t HashManager::getBlockSize(const TTHValue& root) {
+size_t HashManager::getBlockSize(const TTHValue& root) noexcept {
 	return static_cast<size_t>(store.getRootInfo(root, HashStore::TYPE_BLOCKSIZE));
 }
 
-int64_t HashManager::Hasher::getTimeLeft() const {
+int64_t HashManager::Hasher::getTimeLeft() const noexcept {
 	return lastSpeed > 0 ? (totalBytesLeft / lastSpeed) : 0;
 }
 
-bool HashManager::Hasher::getPathVolume(const string& aPath, string& vol_) const { 
+bool HashManager::Hasher::getPathVolume(const string& aPath, string& vol_) const noexcept { 
 	auto p = find_if(devices | map_keys, [&aPath](const string& aVol) { return aPath.compare(0, aVol.length(), aVol.c_str()) == 0; });
 	if (p.base() != devices.end()) {
 		vol_ = *p;
@@ -95,7 +95,7 @@ bool HashManager::Hasher::getPathVolume(const string& aPath, string& vol_) const
 	return false;
 }
 
-bool HashManager::Hasher::hasFile(const string& aPath) const {
+bool HashManager::Hasher::hasFile(const string& aPath) const noexcept {
 	return w.find(aPath) != w.end();
 }
 
@@ -178,7 +178,7 @@ bool HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 	return h->hashFile(filePath, move(pathLower), size, move(vol));
 }
 
-void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void (int64_t, const string&)> updateF/*nullptr*/) {
+void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void(int64_t, const string&)> updateF/*nullptr*/) throw(HashException) {
 	auto pathLower = move(Text::toLower(aFile));
 	HashedFile fi(File::getLastModified(aFile), aSize);
 
@@ -225,7 +225,7 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 	}
 }
 
-void HashManager::hashDone(const string& aFileName, string&& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID /*0*/) {
+void HashManager::hashDone(const string& aFileName, string&& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID /*0*/) noexcept {
 	try {
 		store.addHashedFile(move(pathLower), tt, aFileInfo);
 	} catch (const Exception& e) {
@@ -249,7 +249,7 @@ void HashManager::hashDone(const string& aFileName, string&& pathLower, const Ti
 	}
 }
 
-bool HashManager::addFile(string&& aFilePathLower, const HashedFile& fi_) {
+bool HashManager::addFile(string&& aFilePathLower, const HashedFile& fi_) throw(HashException) {
 	//check that the file exists
 	if (File::getSize(aFilePathLower) != fi_.getSize()) {
 		return false;
@@ -267,12 +267,12 @@ bool HashManager::addFile(string&& aFilePathLower, const HashedFile& fi_) {
 	return true;
 }
 
-void HashManager::HashStore::addHashedFile(string&& aFileLower, const TigerTree& tt, const HashedFile& fi_) {
+void HashManager::HashStore::addHashedFile(string&& aFileLower, const TigerTree& tt, const HashedFile& fi_) throw(HashException) {
 	addTree(tt);
 	addFile(move(aFileLower), fi_);
 }
 
-void HashManager::HashStore::addFile(string&& aFileLower, const HashedFile& fi_) {
+void HashManager::HashStore::addFile(string&& aFileLower, const HashedFile& fi_) throw(HashException) {
 	auto sz = getFileInfoSize(fi_);
 	void* buf = malloc(sz);
 	saveFileInfo(buf, fi_);
@@ -280,31 +280,36 @@ void HashManager::HashStore::addFile(string&& aFileLower, const HashedFile& fi_)
 	try {
 		fileDb->put((void*)aFileLower.c_str(), aFileLower.length(), (void*)buf, sz);
 	} catch(DbException& e) {
-		LogManager::getInstance()->message(STRING_F(WRITE_FAILED_X, fileDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
+		throw HashException(STRING_F(WRITE_FAILED_X, fileDb->getNameLower() % e.getError()));
 	}
 
 	free(buf);
 }
 
-bool HashManager::renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi) {
+void HashManager::renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi) throw(HashException) {
 	return store.renameFile(aOldPath, aNewPath, fi);
 }
 
-bool HashManager::HashStore::renameFile(const string& oldPath, const string& newPath, const HashedFile& fi) {
+void HashManager::HashStore::renameFile(const string& oldPath, const string& newPath, const HashedFile& fi) throw(HashException) {
 	auto oldNameLower = Text::toLower(oldPath);
 	auto newNameLower = Text::toLower(newPath);
 	//HashedFile fi;
 	//if (getFileInfo(oldNameLower, fi)) {
-		fileDb->remove((void*)oldNameLower.c_str(), oldNameLower.length());
+		removeFile(move(oldNameLower));
 		addFile(move(newNameLower), fi);
 		//return true;
 	//}
-
-	return true;
 }
 
+void HashManager::HashStore::removeFile(string&& aFilePathLower) throw(HashException) {
+	try {
+		fileDb->remove((void*) aFilePathLower.c_str(), aFilePathLower.length());
+	} catch (DbException& e) {
+		throw HashException(STRING_F(WRITE_FAILED_X, fileDb->getNameLower() % e.getError()));
+	}
+}
 
-void HashManager::HashStore::addTree(const TigerTree& tt) {
+void HashManager::HashStore::addTree(const TigerTree& tt) throw(HashException) {
 	size_t treelen = tt.getLeaves().size() == 1 ? 0 : tt.getLeaves().size() * TTHValue::BYTES;
 	auto sz = sizeof(uint8_t) + sizeof(int64_t) + sizeof(int64_t) + treelen;
 
@@ -336,7 +341,6 @@ void HashManager::HashStore::addTree(const TigerTree& tt) {
 	} catch(DbException& e) {
 		free(buf);
 		throw HashException(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % e.getError()));
-		//LogManager::getInstance()->message(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
 	}
 
 	free(buf);
@@ -354,12 +358,12 @@ bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
 	return false;
 }
 
-bool HashManager::HashStore::hasTree(const TTHValue& root) {
+bool HashManager::HashStore::hasTree(const TTHValue& root) throw(HashException) {
 	bool ret = false;
 	try {
 		ret = hashDb->hasKey((void*)root.data, sizeof(TTHValue));
 	} catch(DbException& e) {
-		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogManager::LOG_ERROR);
+		throw HashException(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()));
 	}
 	return ret;
 }
@@ -455,7 +459,7 @@ uint32_t HashManager::HashStore::getFileInfoSize(const HashedFile& /*aTree*/) {
 	return sizeof(uint8_t) + sizeof(uint64_t) + sizeof(TTHValue) + sizeof(int64_t);
 }
 
-void HashManager::HashStore::loadLegacyTree(File& f, int64_t aSize, int64_t aIndex, int64_t aBlockSize, size_t datLen, const TTHValue& root, TigerTree& tt) {
+void HashManager::HashStore::loadLegacyTree(File& f, int64_t aSize, int64_t aIndex, int64_t aBlockSize, size_t datLen, const TTHValue& root, TigerTree& tt) throw(HashException) {
 	try {
 		f.setPos(aIndex);
 		boost::scoped_array<uint8_t> buf(new uint8_t[datLen]);
@@ -519,7 +523,7 @@ bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& f
 	return false;
 }
 
-void HashManager::HashStore::optimize(bool doVerify) {
+void HashManager::HashStore::optimize(bool doVerify) noexcept {
 	getInstance()->fire(HashManagerListener::MaintananceStarted());
 
 	int unusedTrees = 0;
@@ -667,7 +671,7 @@ void HashManager::HashStore::optimize(bool doVerify) {
 	getInstance()->fire(HashManagerListener::MaintananceFinished());
 }
 
-void HashManager::HashStore::compact() {
+void HashManager::HashStore::compact() noexcept {
 	LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogManager::LOG_INFO);
 	fileDb->compact();
 	LogManager::getInstance()->message(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogManager::LOG_INFO);
@@ -675,7 +679,7 @@ void HashManager::HashStore::compact() {
 	LogManager::getInstance()->message("Done", LogManager::LOG_INFO);
 }
 
-string HashManager::HashStore::getDbStats() {
+string HashManager::HashStore::getDbStats() noexcept {
 	string statMsg;
 
 	statMsg += fileDb->getStats();
@@ -699,11 +703,11 @@ void HashManager::HashStore::onScheduleRepair(bool schedule) {
 	}
 }
 
-bool HashManager::HashStore::isRepairScheduled() const {
+bool HashManager::HashStore::isRepairScheduled() const noexcept {
 	return Util::fileExists(hashDb->getRepairFlag()) && Util::fileExists(fileDb->getRepairFlag());
 }
 
-void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const {
+void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const noexcept {
 	fileDbSize_ = fileDb->getSizeOnDisk();
 	hashDbSize_ = hashDb->getSizeOnDisk();
 }
@@ -939,7 +943,7 @@ HashManager::HashStore::~HashStore() {
 	closeDb();
 }
 
-bool HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) {
+bool HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) noexcept {
 	//always locked
 	auto ret = w.emplace_sorted(filePathLower, fileName, size, devID);
 	if (ret.second) {
@@ -952,7 +956,7 @@ bool HashManager::Hasher::hashFile(const string& fileName, string&& filePathLowe
 	return false;
 }
 
-bool HashManager::Hasher::pause() {
+bool HashManager::Hasher::pause() noexcept {
 	paused = true;
 	return paused;
 }
@@ -962,11 +966,11 @@ void HashManager::Hasher::resume() {
 	t_resume();
 }
 
-bool HashManager::Hasher::isPaused() const {
+bool HashManager::Hasher::isPaused() const noexcept {
 	return paused;
 }
 
-void HashManager::Hasher::removeDevice(const string& aID) {
+void HashManager::Hasher::removeDevice(const string& aID) noexcept {
 	dcassert(!aID.empty());
 	auto dp = devices.find(aID);
 	if (dp != devices.end()) {
@@ -976,7 +980,7 @@ void HashManager::Hasher::removeDevice(const string& aID) {
 	}
 }
 
-void HashManager::Hasher::stopHashing(const string& baseDir) {
+void HashManager::Hasher::stopHashing(const string& baseDir) noexcept {
 	for (auto i = w.begin(); i != w.end();) {
 		if (Util::strnicmp(baseDir, i->filePath, baseDir.length()) == 0) {
 			totalBytesLeft -= i->fileSize;
@@ -988,19 +992,19 @@ void HashManager::Hasher::stopHashing(const string& baseDir) {
 	}
 }
 
-void HashManager::stopHashing(const string& baseDir) {
+void HashManager::stopHashing(const string& baseDir) noexcept {
 	WLock l(Hasher::hcs);
 	for (auto h: hashers)
 		h->stopHashing(baseDir); 
 }
 
-void HashManager::setPriority(Thread::Priority p) {
+void HashManager::setPriority(Thread::Priority p) noexcept {
 	RLock l(Hasher::hcs);
 	for (auto h: hashers)
 		h->setThreadPriority(p); 
 }
 
-void HashManager::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hasherCount) {
+void HashManager::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hasherCount) const noexcept {
 	RLock l(Hasher::hcs);
 	hasherCount = hashers.size();
 	for (auto i: hashers)
@@ -1038,7 +1042,7 @@ void HashManager::startup(StepFunction stepF, ProgressFunction progressF, Messag
 	store.load(stepF, progressF, messageF); 
 }
 
-void HashManager::stop() {
+void HashManager::stop() noexcept {
 	WLock l(Hasher::hcs);
 	for (auto h: hashers)
 		h->clear();
@@ -1052,7 +1056,7 @@ void HashManager::Hasher::shutdown() {
 	s.signal(); 
 }
 
-void HashManager::shutdown(ProgressFunction progressF) {
+void HashManager::shutdown(ProgressFunction progressF) noexcept {
 	aShutdown = true;
 
 	{
@@ -1074,13 +1078,13 @@ void HashManager::shutdown(ProgressFunction progressF) {
 	}
 }
 
-void HashManager::Hasher::clear() {
+void HashManager::Hasher::clear() noexcept {
 	w.clear();
 	devices.clear();
 	totalBytesLeft = 0;
 }
 
-void HashManager::Hasher::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) {
+void HashManager::Hasher::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) const noexcept {
 	curFile = currentFile;
 	filesLeft += w.size();
 	if (running)
@@ -1337,7 +1341,7 @@ HashManager::HashPauser::~HashPauser() {
 	HashManager::getInstance()->resumeHashing();
 }
 
-bool HashManager::pauseHashing() {
+bool HashManager::pauseHashing() noexcept {
 	pausers++;
 	if (pausers == 1) {
 		RLock l (Hasher::hcs);
@@ -1361,7 +1365,7 @@ void HashManager::resumeHashing(bool forced) {
 	}
 }
 
-bool HashManager::isHashingPaused(bool lock /*true*/) const {
+bool HashManager::isHashingPaused(bool lock /*true*/) const noexcept {
 	ConditionalRLock l(Hasher::hcs, lock);
 	return all_of(hashers.begin(), hashers.end(), [](const Hasher* h) { return h->isPaused(); });
 }

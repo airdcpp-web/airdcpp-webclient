@@ -239,7 +239,7 @@ SettingsManager::SettingsManager()
 	setDefault(DOWNLOAD_DIRECTORY, Util::getPath(Util::PATH_DOWNLOADS));
 	setDefault(TEMP_DOWNLOAD_DIRECTORY, Util::getPath(Util::PATH_USER_CONFIG) + "Incomplete" PATH_SEPARATOR_STR);
 	setDefault(SLOTS, 2);
-	setDefault(MAX_COMMAND_LENGTH, 16*1024*1024);
+	setDefault(MAX_COMMAND_LENGTH, 1*1024*1024);
 	setDefault(BIND_ADDRESS, "0.0.0.0");
 	setDefault(BIND_ADDRESS6, "::");
 	setDefault(TCP_PORT, 0);

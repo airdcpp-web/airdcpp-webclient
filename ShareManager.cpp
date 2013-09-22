@@ -482,15 +482,15 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 			addedFiles++;
 			try {
 				HashedFile fi(file.lastWrite, file.size);
-				HashManager::getInstance()->checkTTH(move(pathLower), info.path + file.name, fi);
-
-				{
+				if (HashManager::getInstance()->checkTTH(move(pathLower), info.path + file.name, fi)) {
 					WLock l(cs);
 					addFile(file.name, dir, fi, dirtyProfiles_);
+					continue;
 				}
-			} catch (...) {
-				hashSize += file.size;
-			}
+			} catch (...) { }
+
+			//failed
+			hashSize += file.size;
 		}
 
 		if (addedFiles > 0) {
@@ -557,12 +557,13 @@ void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPat
 }
 
 void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList& aRename) noexcept {
+	string path = aPath + name.getNormal() + PATH_SEPARATOR;
 	for (const auto& f: files) {
-		aRename.emplace_back(aPath + f->name.getNormal(), HashedFile(f->getTTH(), f->getLastWrite(), f->getSize()));
+		aRename.emplace_back(path + f->name.getNormal(), HashedFile(f->getTTH(), f->getLastWrite(), f->getSize()));
 	}
 
 	for (const auto& d: directories) {
-		d->getRenameInfoList(aPath + name.getNormal() + PATH_SEPARATOR, aRename);
+		d->getRenameInfoList(path + name.getNormal() + PATH_SEPARATOR, aRename);
 	}
 }
 
@@ -638,6 +639,9 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 		auto ret = checkModifiedPath(aNewPath);
 		if (ret)
 			addModifyInfo((*ret).first, (*ret).second, DirModifyInfo::ACTION_CREATED);
+
+		// remove possible queued notifications
+		onFileDeleted(aOldPath);
 		return;
 	}
 
@@ -649,7 +653,11 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 
 	//rename in hash database
 	for (const auto& ri: toRename) {
-		HashManager::getInstance()->renameFile(aOldPath + (ri.first.empty() ? Util::emptyString : PATH_SEPARATOR + ri.first), aNewPath + (ri.first.empty() ? Util::emptyString : PATH_SEPARATOR + ri.first), ri.second);
+		try {
+			HashManager::getInstance()->renameFile(aOldPath + (ri.first.empty() ? Util::emptyString : PATH_SEPARATOR + ri.first), aNewPath + (ri.first.empty() ? Util::emptyString : PATH_SEPARATOR + ri.first), ri.second);
+		} catch (const HashException&) {
+			//...
+		}
 	}
 
 	setProfilesDirty(dirtyProfiles, true);

@@ -103,7 +103,7 @@ int QueueManager::FileMover::run() {
 			moveFile_(mv->source, mv->target, mv->qi);
 		} else if (t.first == REMOVE_DIR) {
 			auto dir = static_cast<StringTask*>(t.second);
-			AirUtil::removeIfEmpty(dir->str);
+			AirUtil::removeDirectoryIfEmpty(dir->str, 6);
 		} else if (t.first == SHUTDOWN) {
 			break;
 		}
@@ -3345,7 +3345,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 			}
 		}
 
-		AirUtil::removeIfEmpty(aSource);
+		AirUtil::removeDirectoryIfEmpty(aSource);
 		for(auto& qi: ql) 
 			removeQI(qi);
 	} else {
@@ -3691,7 +3691,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 
 		fire(QueueManagerListener::BundleRemoved(), aBundle);
 		if (!aBundle->isFileBundle()) {
-			AirUtil::removeIfEmpty(aBundle->getTarget());
+			AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10);
 		}
 	}
 

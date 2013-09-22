@@ -120,8 +120,7 @@ public:
 
 	static const string getLinkUrl();
 
-	static void removeIfEmpty(const string& tgt);
-	static bool removeDirectoryIfEmpty(const string& tgt, int attempts = 0);
+	static void removeDirectoryIfEmpty(const string& tgt, int maxAttempts = 3);
 
 	static bool isAdcHub(const string& hubUrl);
 	static bool isHubLink(const string& hubUrl);
@@ -141,7 +140,7 @@ public:
 	static pair<string, string::size_type> getDirName(const string& aName, char separator);
 	static string getTitle(const string& searchTerm);
 private:
-
+	static bool removeDirectoryIfEmptyRe(const string& tgt, int maxAttempts, int curAttempts);
 	static AwayMode away;
 	static time_t awayTime;
 
