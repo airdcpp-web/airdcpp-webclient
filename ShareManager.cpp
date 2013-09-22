@@ -365,7 +365,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	}
 
 	// don't handle queued bundles in here (parent directories for bundles shouldn't be totally ignored really...)
-	if (find_if(*bundlePaths_, IsParentOrExactOrSub<false>(info.path)) != (*bundlePaths_).end()) {
+	if (find_if(*bundlePaths_, IsParentOrExactOrSub<false>(Text::toLower(info.path))) != (*bundlePaths_).end()) {
 		return true;
 	} /*else {
 		// remove files inside bundle directories if this is a parent directory
