@@ -41,6 +41,7 @@ public:
 #endif
 	};
 
+#ifdef _WIN32
 	enum BufferMode {
 		BUFFER_SEQUENTIAL = FILE_FLAG_SEQUENTIAL_SCAN,
 		BUFFER_RANDOM = FILE_FLAG_RANDOM_ACCESS,
@@ -48,7 +49,6 @@ public:
 		BUFFER_NONE = FILE_FLAG_NO_BUFFERING
 	};
 
-#ifdef _WIN32
 	enum Access {
 		READ = GENERIC_READ,
 		WRITE = GENERIC_WRITE,

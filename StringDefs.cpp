@@ -76,7 +76,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Copy all", 
 "Copy address to clipboard", 
 "Copy actual line", 
-"Copy MAGNET link to clipboard", 
+"MAGNET link", 
 "Use Coral network when downloading hub lists (improves reliability)", 
 "Could not open target file: ", 
 "Count", 
@@ -1808,6 +1808,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Users with Advanced Search support: %1%/%2%", 
 "Do you want to continue with adding this item anyway?", 
 "There's an auto search with the same name associated to the bundle %1%.\r\n\r\nDo you want to remove the auto search item as well?", 
+"Application directories cannot be shared because they may contain passwords and other sensitive information", 
+"All columns", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -1884,7 +1886,7 @@ std::string dcpp::ResourceManager::names[] = {
 "CopyAll", 
 "CopyHub", 
 "CopyLine", 
-"CopyMagnetLink", 
+"MagnetLink", 
 "Coral", 
 "CouldNotOpenTargetFile", 
 "Count", 
@@ -3616,4 +3618,6 @@ std::string dcpp::ResourceManager::names[] = {
 "AschSupportCount", 
 "AsAddDupeConfirm", 
 "BundleRemovedAs", 
+"DontShareAppDirectory", 
+"AllColumns", 
 };

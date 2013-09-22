@@ -142,13 +142,6 @@ string Util::getOpenPath(const string& aFileName) {
 	return getOpenPath() + fileName;
 }
 
-void Util::openFile(const string& aPath) {
-#ifdef _WIN32
-	if (fileExists(aPath))
-		ShellExecute(NULL, NULL, Text::toT(aPath).c_str(), NULL, NULL, SW_SHOWNORMAL);
-#endif
-}
-
 void Util::addParam(const string& aParam) {
 	if (find(params.begin(), params.end(), aParam) == params.end())
 		params.push_back(aParam);

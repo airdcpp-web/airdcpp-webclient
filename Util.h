@@ -158,7 +158,6 @@ public:
 
 	static string getOpenPath();
 	static string getOpenPath(const string& aFileName);
-	static void openFile(const string& aPath);
 
 	/** Path of configuration files */
 	static const string& getPath(Paths path) { return paths[path]; }

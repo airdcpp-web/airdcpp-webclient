@@ -1734,6 +1734,10 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 		throw ShareException(STRING_F(CHECK_FORBIDDEN, realPath));
 	}
 #endif
+
+	if (realPath == Util::getFilePath(Util::getAppName()) || realPath == Util::getPath(Util::PATH_USER_CONFIG) || realPath == Util::getPath(Util::PATH_USER_LOCAL)) {
+		throw ShareException(STRING(DONT_SHARE_APP_DIRECTORY));
+	}
 }
 
 void ShareManager::getByVirtual(const string& virtualName, ProfileToken aProfile, Directory::List& dirs) const noexcept {

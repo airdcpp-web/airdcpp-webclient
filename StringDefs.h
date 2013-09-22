@@ -79,7 +79,7 @@ enum Strings { // @DontAdd
 	COPY_ALL, // "Copy all"
 	COPY_HUB, // "Copy address to clipboard"
 	COPY_LINE, // "Copy actual line"
-	COPY_MAGNET_LINK, // "Copy MAGNET link to clipboard"
+	MAGNET_LINK, // "MAGNET link"
 	CORAL, // "Use Coral network when downloading hub lists (improves reliability)"
 	COULD_NOT_OPEN_TARGET_FILE, // "Could not open target file: "
 	COUNT, // "Count"
@@ -1812,5 +1812,7 @@ enum Strings { // @DontAdd
 	ASCH_SUPPORT_COUNT, // "Users with Advanced Search support: %1%/%2%"
 	AS_ADD_DUPE_CONFIRM, // "Do you want to continue with adding this item anyway?"
 	BUNDLE_REMOVED_AS, // "There's an auto search with the same name associated to the bundle %1%.\r\n\r\nDo you want to remove the auto search item as well?"
+	DONT_SHARE_APP_DIRECTORY, // "Application directories cannot be shared because they may contain passwords and other sensitive information"
+	ALL_COLUMNS, // "All columns"
 	LAST // @DontAdd
 };
