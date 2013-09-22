@@ -628,7 +628,6 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int
 					return false;
 			} else if (Util::getFileExt(i->getFileName()) == ".dctmp") {
 				if (attempts == 3) {
-					LogManager::getInstance()->message("FAIL " + i->getFileName(), LogManager::LOG_ERROR);
 					return false;
 				}
 
@@ -636,7 +635,6 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int
 				attempts++;
 				return removeDirectoryIfEmptyRe(aPath, maxAttempts, attempts);
 			} else {
-				LogManager::getInstance()->message("FAIL " + i->getFileName(), LogManager::LOG_ERROR);
 				return false;
 			}
 		} catch(const FileException&) { } 

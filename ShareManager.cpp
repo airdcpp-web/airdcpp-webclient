@@ -188,6 +188,7 @@ void ShareManager::removeMonitoring(const StringList& aPaths) noexcept {
 }
 
 optional<pair<string, bool>> ShareManager::checkModifiedPath(const string& aPath) const noexcept {
+	// TODO: FIX LINUX
 	FileFindIter f(aPath);
 	if (f != FileFindIter()) {
 		if (!SETTING(SHARE_HIDDEN) && f->isHidden())
@@ -3881,6 +3882,7 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 	}
 
 	if (!isDir) {
+		dcassert(File::getSize(aPath) == size);
 		string fileExt = Util::getFileExt(aNameLower);
 		if( (strcmp(aNameLower.c_str(), "dcplusplus.xml") == 0) || 
 			(strcmp(aNameLower.c_str(), "favorites.xml") == 0) ||

@@ -109,7 +109,7 @@ bool UpdateManager::verifyVersionData(const string& data, const ByteVector& sign
 
 void UpdateManager::cleanTempFiles(const string& tmpPath) {
 	FileFindIter end;
-	for(FileFindIter i(tmpPath + "*"); i != end; ++i) {
+	for(FileFindIter i(tmpPath, "*"); i != end; ++i) {
 		string name = i->getFileName();
 		if(name == "." || name == "..")
 			continue;

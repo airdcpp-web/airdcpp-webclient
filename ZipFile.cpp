@@ -263,11 +263,7 @@ void ZipFile::CreateZipFile(const string& dstPath, const StringPairList& files) 
 // dstPath: path inside zip file (use forward slashes, not backslashes)
 void ZipFile::CreateZipFileList(StringPairList& files, const string& srcPath, const string& dstPath, const string& aPattern, bool keepEmpty) noexcept {
 	FileFindIter end;
-#ifdef _WIN32
-	for(FileFindIter i(srcPath + "*"); i != end; ++i) {
-#else
-	for(FileFindIter i(srcPath); i != end; ++i) {
-#endif
+	for(FileFindIter i(srcPath, "*"); i != end; ++i) {
 		string name = i->getFileName();
 		if(name == "." || name == "..")
 			continue;
