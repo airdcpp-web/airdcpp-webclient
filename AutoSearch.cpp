@@ -70,19 +70,38 @@ bool AutoSearch::allowNewItems() const noexcept {
 	return !remove && !usingIncrementation();
 }
 
-void AutoSearch::changeNumber(bool increase) noexcept {
-	if (usingIncrementation()) {
-		for (auto i = bundles.begin(); i != bundles.end();) {
-			if ((*i)->getStatus() == Bundle::STATUS_QUEUED) {
-				i++;
+bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) {
+	removeBundle(aBundle);
+
+	auto usingInc = usingIncrementation();
+	auto expired = (remove || maxNumberReached()) && finished && (!usingInc || SETTING(AS_DELAY_HOURS) == 0) && bundles.empty();
+	if (finished) {
+		auto time = GET_TIME();
+		addPath(aBundle->getTarget(), time);
+		if (usingInc) {
+			if (SETTING(AS_DELAY_HOURS) > 0) {
+				lastIncFinish = time;
+				setStatus(AutoSearch::STATUS_POSTSEARCH);
 			} else {
-				if (Util::fileExists((*i)->getTarget())) {
-					addPath((*i)->getTarget(), GET_TIME());
-				}
-				i = bundles.erase(i);
+				changeNumber(true);
 			}
 		}
+	}
+	updateStatus();
 
+	return expired;
+}
+
+bool AutoSearch::maxNumberReached() const noexcept{
+	return useParams && curNumber >= maxNumber && maxNumber > 0 && lastIncFinish == 0;
+}
+
+bool AutoSearch::expirationTimeReached() const noexcept{
+	return expireTime > 0 && expireTime <= GET_TIME();
+}
+
+void AutoSearch::changeNumber(bool increase) noexcept {
+	if (usingIncrementation()) {
 		lastIncFinish = 0;
 		increase ? curNumber++ : curNumber--;
 		updatePattern();
@@ -223,8 +242,10 @@ void AutoSearch::updateStatus() noexcept {
 	if (!enabled) {
 		if (manualSearch) {
 			status = AutoSearch::STATUS_MANUAL;
+		} else if (expirationTimeReached() || maxNumberReached()) {
+			status = AutoSearch::STATUS_EXPIRED;
 		} else {
-			status = (expireTime > 0 && expireTime <= GET_TIME()) ? AutoSearch::STATUS_EXPIRED : AutoSearch::STATUS_DISABLED;
+			status = AutoSearch::STATUS_DISABLED;
 		}
 		return;
 	}
@@ -244,7 +265,7 @@ void AutoSearch::updateStatus() noexcept {
 	}
 
 	auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
-	if (maxBundle->getStatus() == Bundle::STATUS_QUEUED) {
+	if (maxBundle->getStatus() == Bundle::STATUS_QUEUED || maxBundle->getStatus() == Bundle::STATUS_FINISHED || maxBundle->getStatus() == Bundle::STATUS_HASHING || maxBundle->getStatus() == Bundle::STATUS_HASHED) {
 		status = AutoSearch::STATUS_QUEUED_OK;
 	} else if (maxBundle->getStatus() == Bundle::STATUS_FAILED_MISSING) {
 		status = AutoSearch::STATUS_FAILED_MISSING;
@@ -258,7 +279,6 @@ void AutoSearch::updateStatus() noexcept {
 bool AutoSearch::removePostSearch() noexcept {
 	if (lastIncFinish > 0 && lastIncFinish + SETTING(AS_DELAY_HOURS) + 60 * 60 <= GET_TIME()) {
 		lastIncFinish = 0;
-		updateStatus();
 		return true;
 	}
 

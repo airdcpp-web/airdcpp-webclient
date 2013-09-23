@@ -113,9 +113,12 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 		return false;
 	}
 
-	if (as->getExpireTime() > 0 && as->getExpireTime() < GET_TIME() && toActive) {
-		//move the expiration date
+	if (as->expirationTimeReached() && toActive) {
+		// move the expiration date
 		as->setExpireTime(GET_TIME() + SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60);
+	} else if (as->maxNumberReached() && toActive) {
+		// increase the maximum number by one
+		as->setMaxNumber(as->getMaxNumber()+1);
 	}
 
 	RLock l(cs);
@@ -307,38 +310,38 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 }
 
 void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept {
+	AutoSearchList expired;
 	auto items = getSearchesByBundle(aBundle);
-	for (auto& as : items) {
-		auto usingInc = as->usingIncrementation();
-		bool removeAs = (as->getRemove() || (as->getUseParams() && as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0)) && finished && (!usingInc || SETTING(AS_DELAY_HOURS) == 0);
-		{
-			WLock l (cs);
-			as->removeBundle(aBundle);
-			if (!as->getBundles().empty())
-				removeAs = false;
 
-			if (!removeAs) {
+	{
+		WLock l(cs);
+		for (auto& as : items) {
+			if (as->onBundleRemoved(aBundle, finished)) {
+				expired.push_back(as);
+			} else {
 				dirty = true;
-				if (finished) {
-					auto time = GET_TIME();
-					as->addPath(aBundle->getTarget(), time);
-					if (usingInc) {
-						if (SETTING(AS_DELAY_HOURS) > 0) {
-							as->setLastIncFinish(time);
-							as->setStatus(AutoSearch::STATUS_POSTSEARCH);
-						} else {
-							as->changeNumber(true);
-						}
-					}
-				}
-				as->updateStatus();
+				fire(AutoSearchManagerListener::UpdateItem(), as, true);
 			}
 		}
+	}
 
-		if (removeAs) {
+	handleExpiredItems(expired);
+}
+
+void AutoSearchManager::handleExpiredItems(AutoSearchList& expired) noexcept{
+	for (auto& as : expired) {
+		if (SETTING(REMOVE_EXPIRED_AS)) {
+			logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), false);
 			removeAutoSearch(as);
+		} else if (as->getEnabled()) {
+			logMessage(STRING_F(EXPIRED_AS_DISABLED, as->getSearchString()), false);
+			setItemActive(as, false);
 		} else {
-			fire(AutoSearchManagerListener::UpdateItem(), as, true);
+			// disabled already
+
+			RLock l(cs);
+			as->updateStatus();
+			fire(AutoSearchManagerListener::UpdateItem(), as, false);
 		}
 	}
 }
@@ -484,7 +487,6 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 /* Scheduled searching */
 bool AutoSearchManager::checkItems() noexcept {
 	AutoSearchList expired;
-	AutoSearchList il;
 	bool result = false;
 	auto curTime = GET_TIME();
 
@@ -502,13 +504,23 @@ bool AutoSearchManager::checkItems() noexcept {
 				search = false;
 			
 			//check expired, and remove them.
-			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->getExpireTime() > 0 && as->getExpireTime() <= curTime && as->getBundles().empty()) {
+			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->expirationTimeReached() && as->getBundles().empty()) {
 				expired.push_back(as);
 				search = false;
 			}
 
-			if (as->removePostSearch())
-				il.push_back(as);
+			// check post search items and whether we can change the number
+			if (as->removePostSearch() || as->maxNumberReached()) {
+				if (as->maxNumberReached()) {
+					expired.push_back(as);
+					continue;
+				} else {
+					dirty = true;
+					as->changeNumber(true);
+					as->updateStatus();
+					fire(AutoSearchManagerListener::UpdateItem(), as, false);
+				}
+			}
 
 			if (as->updateSearchTime() || as->getExpireTime() > 0)
 				fire(AutoSearchManagerListener::UpdateItem(), as, false);
@@ -519,35 +531,7 @@ bool AutoSearchManager::checkItems() noexcept {
 		}
 	}
 
-	for(auto& as: expired) {
-		if (SETTING(REMOVE_EXPIRED_AS)) {
-			logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), false);
-			removeAutoSearch(as);
-		} else if (as->getEnabled()) {
-			logMessage(STRING_F(EXPIRED_AS_DISABLED, as->getSearchString()), false);
-			setItemActive(as, false);
-		} else {
-			RLock l(cs);
-			as->updateStatus();
-			fire(AutoSearchManagerListener::UpdateItem(), as, false);
-		}
-	}
-
-	if (!il.empty()) {
-		for (auto& as: il) {
-			{
-				WLock l(cs);
-				as->changeNumber(true);
-			}
-
-			if (as->getCurNumber() >= as->getMaxNumber() && as->getMaxNumber() > 0) {
-				removeAutoSearch(as);
-			} else {
-				fire(AutoSearchManagerListener::UpdateItem(), as, false);
-			}
-		}
-		dirty = true;
-	}
+	handleExpiredItems(expired);
 
 	if(!result) //if no enabled items, start checking from the beginning with newly enabled ones.
 		curPos = 0;

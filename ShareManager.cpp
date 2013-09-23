@@ -680,20 +680,16 @@ void ShareManager::onFileDeleted(const string& aPath) {
 	}
 
 	string path = aPath;
+
 	// check if it's being added
 	auto p = findModifyInfo(aPath);
-	if (p == fileModifications.end()) {
-		path += PATH_SEPARATOR_STR;
-		p = findModifyInfo(path);
-	}
-
 	if (p != fileModifications.end()) {
 		removeNotifications(p, path);
 	}
 }
 
 void ShareManager::removeNotifications(DirModifyInfo::List::iterator p, const string& aPath) noexcept {
-	if (p->path == aPath) {
+	if (p->path == aPath || Util::strnicmp(p->path, aPath, aPath.length()) == 0) {
 		fileModifications.erase(p);
 	} else {
 		// remove subitems

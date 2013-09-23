@@ -120,7 +120,7 @@ public:
 
 	static const string getLinkUrl();
 
-	static void removeDirectoryIfEmpty(const string& tgt, int maxAttempts = 3);
+	static void removeDirectoryIfEmpty(const string& tgt, int maxAttempts, bool silent);
 
 	static bool isAdcHub(const string& hubUrl);
 	static bool isHubLink(const string& hubUrl);

@@ -643,8 +643,8 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int
 	return true;
 }
 
-void AirUtil::removeDirectoryIfEmpty(const string& tgt, int maxAttempts /*3*/) {
-	if (!removeDirectoryIfEmptyRe(tgt, maxAttempts, 0)) {
+void AirUtil::removeDirectoryIfEmpty(const string& tgt, int maxAttempts /*3*/, bool silent /*false*/) {
+	if (!removeDirectoryIfEmptyRe(tgt, maxAttempts, 0) && !silent) {
 		LogManager::getInstance()->message(STRING_F(DIRECTORY_NOT_REMOVED, tgt), LogManager::LOG_INFO);
 	}
 }

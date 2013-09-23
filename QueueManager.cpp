@@ -103,7 +103,7 @@ int QueueManager::FileMover::run() {
 			moveFile_(mv->source, mv->target, mv->qi);
 		} else if (t.first == REMOVE_DIR) {
 			auto dir = static_cast<StringTask*>(t.second);
-			AirUtil::removeDirectoryIfEmpty(dir->str, 6);
+			AirUtil::removeDirectoryIfEmpty(dir->str, 6, false);
 		} else if (t.first == SHUTDOWN) {
 			break;
 		}
@@ -1241,11 +1241,11 @@ void QueueManager::moveFile_(const string& source, const string& target, QueueIt
 		UploadManager::getInstance()->abortUpload(source);
 		File::renameFile(source, target);
 		
-		if (qi->getBundle() && !qi->getBundle()->isFileBundle() && compare(Util::getFilePath(source), Util::getFilePath(target)) != 0) {
+		if (SETTING(DCTMP_STORE_DESTINATION) && qi->getBundle() && !qi->getBundle()->isFileBundle() && compare(Util::getFilePath(source), Util::getFilePath(target)) != 0) {
 			// the bundle was moved? try to remove the old main bundle dir
 			auto p = source.find(qi->getBundle()->getName()); //was the bundle dir renamed?
 			auto dir = p != string::npos ? source.substr(0, p + qi->getBundle()->getName().length() + 1) : AirUtil::subtractCommonDirs(Util::getFilePath(target), Util::getFilePath(source), PATH_SEPARATOR);
-			AirUtil::removeDirectoryIfEmpty(dir);
+			AirUtil::removeDirectoryIfEmpty(dir, 3, true);
 		}
 	} catch(const FileException& e1) {
 		// Try to just rename it to the correct name at least
@@ -3345,7 +3345,7 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 			}
 		}
 
-		AirUtil::removeDirectoryIfEmpty(aSource);
+		AirUtil::removeDirectoryIfEmpty(aSource, 3, true);
 		for(auto& qi: ql) 
 			removeQI(qi);
 	} else {
@@ -3691,7 +3691,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 
 		fire(QueueManagerListener::BundleRemoved(), aBundle);
 		if (!aBundle->isFileBundle()) {
-			AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10);
+			AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, false);
 		}
 	}
 

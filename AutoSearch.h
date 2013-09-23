@@ -159,6 +159,12 @@ public:
 	bool isExcluded(const string& aString) noexcept;
 	void updateExcluded() noexcept;
 	string getFormatedSearchString() const noexcept;
+
+	/* Returns true if the item has expired */
+	bool onBundleRemoved(const BundlePtr& aBundle, bool finished) noexcept;
+
+	bool maxNumberReached() const noexcept;
+	bool expirationTimeReached() const noexcept;
 private:
 	StringMatch userMatcher;
 	time_t nextSearchChange = 0;

@@ -143,6 +143,7 @@ private:
 
 	//bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);
 	void onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept;
+	void handleExpiredItems(AutoSearchList& asList) noexcept;
 };
 }
 #endif
