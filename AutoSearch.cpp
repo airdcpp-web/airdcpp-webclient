@@ -82,6 +82,7 @@ bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) {
 			if (SETTING(AS_DELAY_HOURS) > 0) {
 				lastIncFinish = time;
 				setStatus(AutoSearch::STATUS_POSTSEARCH);
+				expired = false;
 			} else {
 				changeNumber(true);
 			}
@@ -265,7 +266,7 @@ void AutoSearch::updateStatus() noexcept {
 	}
 
 	auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
-	if (maxBundle->getStatus() == Bundle::STATUS_QUEUED || maxBundle->getStatus() == Bundle::STATUS_FINISHED || maxBundle->getStatus() == Bundle::STATUS_HASHING || maxBundle->getStatus() == Bundle::STATUS_HASHED) {
+	if (maxBundle->getStatus() == Bundle::STATUS_QUEUED || maxBundle->getStatus() == Bundle::STATUS_FINISHED || maxBundle->getStatus() == Bundle::STATUS_MOVED || maxBundle->getStatus() == Bundle::STATUS_DOWNLOADED) {
 		status = AutoSearch::STATUS_QUEUED_OK;
 	} else if (maxBundle->getStatus() == Bundle::STATUS_FAILED_MISSING) {
 		status = AutoSearch::STATUS_FAILED_MISSING;
