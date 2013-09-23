@@ -39,12 +39,8 @@ public:
 	typedef vector<pair<string, QueueItemPtr>> StringItemList;
 
 	struct Hash {
-		size_t operator()(const QueueItemPtr x) const { return hash<string>()(x->getTarget()); }
+		size_t operator()(const QueueItemPtr& x) const { return hash<string>()(x->getTarget()); }
 	};
-
-	bool operator==(const QueueItemPtr rhs) const {
-		return rhs->getTarget() == target;
-	}
 
 	/*struct TargetComp {
 		TargetComp(const string& s) : a(s) { }

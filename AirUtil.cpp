@@ -627,7 +627,7 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int
 				if (!removeDirectoryIfEmptyRe(dir, maxAttempts, 0))
 					return false;
 			} else if (Util::getFileExt(i->getFileName()) == ".dctmp") {
-				if (attempts == 3) {
+				if (attempts == maxAttempts) {
 					return false;
 				}
 
