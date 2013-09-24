@@ -70,11 +70,11 @@ bool AutoSearch::allowNewItems() const noexcept {
 	return !remove && !usingIncrementation();
 }
 
-bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) {
+bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) noexcept {
 	removeBundle(aBundle);
 
 	auto usingInc = usingIncrementation();
-	auto expired = (remove || maxNumberReached()) && finished && (!usingInc || SETTING(AS_DELAY_HOURS) == 0) && bundles.empty();
+	auto expired = usingInc && maxNumberReached() && finished && SETTING(AS_DELAY_HOURS) == 0 && bundles.empty();
 	if (finished) {
 		auto time = GET_TIME();
 		addPath(aBundle->getTarget(), time);
@@ -91,6 +91,10 @@ bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) {
 	updateStatus();
 
 	return expired;
+}
+
+bool AutoSearch::removeOnCompleted() const noexcept{
+	return remove && !usingIncrementation();
 }
 
 bool AutoSearch::maxNumberReached() const noexcept{

@@ -162,7 +162,7 @@ public:
 
 	/* Returns true if the item has expired */
 	bool onBundleRemoved(const BundlePtr& aBundle, bool finished) noexcept;
-
+	bool removeOnCompleted() const noexcept;
 	bool maxNumberReached() const noexcept;
 	bool expirationTimeReached() const noexcept;
 private:

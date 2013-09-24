@@ -310,13 +310,15 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 }
 
 void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept {
-	AutoSearchList expired;
+	AutoSearchList expired, removed;
 	auto items = getSearchesByBundle(aBundle);
 
 	{
 		WLock l(cs);
 		for (auto& as : items) {
-			if (as->onBundleRemoved(aBundle, finished)) {
+			if (as->removeOnCompleted()) {
+				removed.push_back(as);
+			} else if (as->onBundleRemoved(aBundle, finished)) {
 				expired.push_back(as);
 			} else {
 				dirty = true;
@@ -326,6 +328,10 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 	}
 
 	handleExpiredItems(expired);
+	for (auto& as : removed) {
+		removeAutoSearch(as);
+		logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), false);
+	}
 }
 
 void AutoSearchManager::handleExpiredItems(AutoSearchList& expired) noexcept{
@@ -725,7 +731,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) noexcept {
 
 	//sort results by the name
 	unordered_map<string, SearchResultList> dirList;
-	for (auto r: results) {
+	for (auto& r: results) {
 		dirList[Text::toLower(r->getFileName())].push_back(r);
 	}
 
@@ -754,7 +760,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) noexcept {
 	auto getDownloadSize = [] (const SearchResultList& srl, int64_t minSize) -> int64_t {
 		//pick the item that has most size matches
 		unordered_map<int64_t, int> sizeMap;
-		for(auto sr: srl) {
+		for(const auto& sr: srl) {
 			if (sr->getSize() > minSize)
 				sizeMap[sr->getSize()]++; 
 		}
@@ -834,6 +840,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 
 			if(as->getRemove()) {
 				removeAutoSearch(as);
+				logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), false);
 			}
 		}
 

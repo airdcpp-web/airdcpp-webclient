@@ -1809,7 +1809,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Do you want to continue with adding this item anyway?", 
 "There's an auto search with the same name associated to the bundle %1%.\r\n\r\nDo you want to remove the auto search item as well?", 
 "Application directories cannot be shared because they may contain passwords and other sensitive information", 
-"All columns", 
+"A completed item %1% has been removed", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3619,5 +3619,5 @@ std::string dcpp::ResourceManager::names[] = {
 "AsAddDupeConfirm", 
 "BundleRemovedAs", 
 "DontShareAppDirectory", 
-"AllColumns", 
+"CompleteItemXRemoved", 
 };

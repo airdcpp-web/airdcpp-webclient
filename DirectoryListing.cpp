@@ -418,7 +418,7 @@ bool DirectoryListing::Directory::findIncomplete() const noexcept {
 void DirectoryListing::Directory::download(const string& aTarget, BundleFileList& aFiles) noexcept {
 	// First, recurse over the directories
 	sort(directories.begin(), directories.end(), Directory::Sort());
-	for(auto d: directories) {
+	for(auto& d: directories) {
 		d->download(aTarget + d->getName() + PATH_SEPARATOR, aFiles);
 	}
 
@@ -468,7 +468,7 @@ bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarg
 			
 		/* Create bundles from each subfolder */
 		bool queued = false;
-		for(auto d: aDir->directories) {
+		for(auto& d: aDir->directories) {
 			if (createBundle(d, aTarget + d->getName() + PATH_SEPARATOR, prio, aAutoSearch))
 				queued = true;
 		}
@@ -588,7 +588,7 @@ void DirectoryListing::Directory::filterList(DirectoryListing& dirList) noexcept
 }
 
 void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet& l) noexcept {
-	for(auto d: directories) 
+	for(auto& d: directories) 
 		d->filterList(l);
 
 	directories.erase(remove_if(directories.begin(), directories.end(), DirectoryEmpty()), directories.end());
@@ -600,11 +600,11 @@ void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet
 }
 
 void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSet& l) noexcept {
-	for(auto d: directories)  
+	for(const auto& d: directories)  
 		d->getHashList(l);
 
-	for(auto d: files) 
-		l.insert(d->getTTH());
+	for(const auto& f: files) 
+		l.insert(f->getTTH());
 }
 	
 void DirectoryListing::getLocalPaths(const File* f, StringList& ret) const throw(ShareException) {
@@ -639,7 +639,7 @@ int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) const noexcept
 		return 0;
 	
 	int64_t x = getFilesSize();
-	for(auto d: directories) {
+	for(const auto& d: directories) {
 		if(!countAdls && d->getAdls())
 			continue;
 		x += d->getTotalSize(getAdls());
@@ -652,7 +652,7 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) const noex
 		return 0;
 
 	size_t x = getFileCount();
-	for(auto d: directories) {
+	for(const auto& d: directories) {
 		if(!countAdls && d->getAdls())
 			continue;
 		x += d->getTotalFileCount(getAdls());
@@ -695,7 +695,7 @@ int64_t DirectoryListing::Directory::getFilesSize() const noexcept {
 uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 	uint8_t result = DUPE_NONE;
 	bool first = true;
-	for(auto d: directories) {
+	for(auto& d: directories) {
 		result = d->checkShareDupes();
 		if(dupe == DUPE_NONE && first)
 			setDupe((DupeType)result);
@@ -719,7 +719,7 @@ uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 	}
 
 	first = true;
-	for(auto f: files) {
+	for(auto& f: files) {
 		//don't count 0 byte files since it'll give lots of partial dupes
 		//of no interest
 		if(f->getSize() > 0) {			
@@ -994,7 +994,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 				//also clean the visited dirs
 				for (auto i = baseDirs.begin(); i != baseDirs.end();) {
 					if (AirUtil::isSub(i->first, baseDir)) {
-						baseDirs.erase(i++);
+						i = baseDirs.erase(i);
 					}
 					else {
 						i++;

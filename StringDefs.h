@@ -1813,6 +1813,6 @@ enum Strings { // @DontAdd
 	AS_ADD_DUPE_CONFIRM, // "Do you want to continue with adding this item anyway?"
 	BUNDLE_REMOVED_AS, // "There's an auto search with the same name associated to the bundle %1%.\r\n\r\nDo you want to remove the auto search item as well?"
 	DONT_SHARE_APP_DIRECTORY, // "Application directories cannot be shared because they may contain passwords and other sensitive information"
-	ALL_COLUMNS, // "All columns"
+	COMPLETE_ITEM_X_REMOVED, // "A completed item %1% has been removed"
 	LAST // @DontAdd
 };
