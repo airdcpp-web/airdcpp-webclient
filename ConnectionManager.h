@@ -159,7 +159,9 @@ public:
 	const string& getSecurePort() const;
 
 	void addRunningMCN(const UserConnection *aSource) noexcept;
-	void failDownload(const string& aToken, const string& aError, bool protocolError);
+
+	// set fatalError to true if the client shouldn't try to reconnect automatically
+	void failDownload(const string& aToken, const string& aError, bool fatalError);
 private:
 	bool allowNewMCN(const ConnectionQueueItem* aCQI);
 	void createNewMCN(const HintedUser& aUser);

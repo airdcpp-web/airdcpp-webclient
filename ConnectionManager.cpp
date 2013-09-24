@@ -977,7 +977,7 @@ bool ConnectionManager::checkKeyprint(UserConnection *aSource) {
 	return true;
 }
 
-void ConnectionManager::failDownload(const string& aToken, const string& aError, bool protocolError) {
+void ConnectionManager::failDownload(const string& aToken, const string& aError, bool fatalError) {
 	optional<HintedUser> mcnUser;
 
 	{
@@ -1009,7 +1009,7 @@ void ConnectionManager::failDownload(const string& aToken, const string& aError,
 
 			cqi->setState(ConnectionQueueItem::WAITING);
 
-			cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1));
+			cqi->setErrors(fatalError ? -1 : (cqi->getErrors() + 1));
 			cqi->setLastAttempt(GET_TICK());
 			fire(ConnectionManagerListener::Failed(), cqi, aError);
 		}

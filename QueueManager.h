@@ -123,7 +123,7 @@ public:
 
 	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
 	Download* getDownload(UserConnection& aSource, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, QueueItemBase::DownloadType aType) noexcept;
-	void putDownload(Download* aDownload, bool finished, bool noAccess=false, bool rotateQueue=false) noexcept;
+	void putDownload(Download* aDownload, bool finished, bool noAccess=false, bool rotateQueue=false) throw(HashException);
 	
 	bool startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType) noexcept;
 	/** The same thing but only used before any connect requests */

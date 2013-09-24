@@ -1582,7 +1582,7 @@ void QueueManager::rechecked(QueueItemPtr& qi) {
 	}
 }
 
-void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess /*false*/, bool rotateQueue /*false*/) noexcept {
+void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess /*false*/, bool rotateQueue /*false*/) throw(HashException) {
 	HintedUserList getConn;
  	string fl_fname;
 	int fl_flag = 0;
