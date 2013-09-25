@@ -116,12 +116,12 @@ public:
 		int64_t getTotalSize(bool countAdls) const noexcept;
 		void filterList(DirectoryListing& dirList) noexcept;
 		void filterList(TTHSet& l) noexcept;
-		void getHashList(TTHSet& l) noexcept;
+		void getHashList(TTHSet& l) const noexcept;
 		void clearAdls() noexcept;
 		void clearAll() noexcept;
 
 		bool findIncomplete() const noexcept;
-		void search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults) noexcept;
+		void search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept;
 		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
 		
 		size_t getFileCount() const noexcept { return files.size(); }
@@ -157,18 +157,18 @@ public:
 	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, bool aIsOwnList=false);
 	~DirectoryListing();
 	
-	void loadFile();
+	void loadFile() throw(Exception, AbortException);
 
 	//return the number of loaded dirs
 	int updateXML(const string& aXml, const string& aBase);
 
 	//return the number of loaded dirs
-	int loadXML(InputStream& xml, bool updating, const string& aBase = "/", time_t aListDate = GET_TIME());
+	int loadXML(InputStream& xml, bool updating, const string& aBase = "/", time_t aListDate = GET_TIME()) throw(AbortException);
 
 	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
 	bool createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
 
-	void openFile(File* aFile, bool isClientView) const throw(/*QueueException,*/ FileException);
+	void openFile(const File* aFile, bool isClientView) const throw(/*QueueException,*/ FileException);
 
 	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const noexcept;
@@ -189,7 +189,7 @@ public:
 	const UserPtr& getUser() const { return hintedUser.user; }
 	const HintedUser& getHintedUser() const { return hintedUser; }
 	const string& getHubUrl() const { return hintedUser.hint; }	
-	void setHubUrl(const string& newUrl, bool isGuiChange);
+	void setHubUrl(const string& newUrl, bool isGuiChange) noexcept;
 		
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, abort, Abort);
@@ -264,10 +264,10 @@ private:
 	uint64_t lastResult = 0;
 	string searchToken;
 
-	void listDiffImpl(const string& aFile, bool aOwnList);
-	void loadFileImpl(const string& aInitialDir);
+	void listDiffImpl(const string& aFile, bool aOwnList) throw(Exception, AbortException);
+	void loadFileImpl(const string& aInitialDir) throw(Exception, AbortException);
 	void searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
-	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void ()> completionF);
+	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void()> completionF) throw(Exception, AbortException);
 	void matchAdlImpl();
 	void matchQueueImpl();
 	void removedQueueImpl(const string& aDir) noexcept;

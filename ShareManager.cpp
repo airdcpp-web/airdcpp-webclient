@@ -514,7 +514,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) noe
 		addRefreshTask(REFRESH_DIRS, refresh, TYPE_MONITORING, Util::emptyString);
 	}
 
-	setProfilesDirty(dirtyProfiles, true);
+	setProfilesDirty(dirtyProfiles);
 }
 
 void ShareManager::on(DirectoryMonitorListener::DirectoryFailed, const string& aPath, const string& aError) noexcept {
@@ -598,7 +598,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 			} else {
 				auto f = parent->files.find(fileNameOldLower);
 				if (f != parent->files.end()) {
-					if (!checkSharedName(aNewPath, Text::toLower(aNewPath), false)) {
+					if (!checkSharedName(aNewPath, Text::toLower(aNewPath), false, true, (*f)->getSize())) {
 						noSharing = true;
 					} else {
 						//get the info
@@ -649,7 +649,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 		}
 	}
 
-	setProfilesDirty(dirtyProfiles, true);
+	setProfilesDirty(dirtyProfiles);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept {
@@ -2304,7 +2304,7 @@ void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) noexcept {
 
 	if (add.empty()) {
 		//we are only modifying existing trees
-		setProfilesDirty(dirtyProfiles);
+		setProfilesDirty(dirtyProfiles, true);
 		return;
 	}
 
@@ -2384,7 +2384,7 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) noex
 	removeMonitoring(removeMonitors);
 
 	rebuildTotalExcludes();
-	setProfilesDirty(dirtyProfiles);
+	setProfilesDirty(dirtyProfiles, true);
 }
 
 void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs) noexcept {
@@ -2670,7 +2670,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			}
 		}
 
-		setProfilesDirty(dirtyProfiles);
+		setProfilesDirty(dirtyProfiles, t.first == ADD_DIR);
 			
 		if (task->type == TYPE_MANUAL)
 			ClientManager::getInstance()->infoUpdated();
@@ -3796,7 +3796,7 @@ void ShareManager::changeExcludedDirs(const ProfileTokenStringList& aAdd, const 
 		}
 	}
 
-	setProfilesDirty(dirtyProfiles);
+	setProfilesDirty(dirtyProfiles, true);
 	rebuildTotalExcludes();
 }
 

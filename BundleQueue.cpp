@@ -327,7 +327,7 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 	}
 }
 
-void BundleQueue::addBundleItem(QueueItemPtr& qi, BundlePtr aBundle) noexcept {
+void BundleQueue::addBundleItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept {
 	dcassert(!qi->getBundle());
 	if (aBundle->addQueue(qi) && !aBundle->isFileBundle()) {
 		addDirectory(qi->getFilePath(), aBundle);
@@ -340,7 +340,7 @@ void BundleQueue::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept {
 	}
 }
 
-void BundleQueue::addDirectory(const string& aPath, BundlePtr aBundle) noexcept {
+void BundleQueue::addDirectory(const string& aPath, BundlePtr& aBundle) noexcept {
 	bundleDirs.emplace(Util::getLastDir(aPath), make_pair(aPath, aBundle));
 }
 
@@ -357,7 +357,7 @@ Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) no
 	return s.base() != bdr.second ? s.base() : bundleDirs.end();
 }
 
-void BundleQueue::addFinishedItem(QueueItemPtr& qi, BundlePtr aBundle) noexcept {
+void BundleQueue::addFinishedItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept {
 	dcassert(!qi->getBundle());
 	if (aBundle->addFinishedItem(qi, false) && !aBundle->isFileBundle()) {
 		addDirectory(qi->getFilePath(), aBundle);
@@ -375,9 +375,11 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 		return;
 	}
 
-	for(auto d: aBundle->getBundleDirs() | map_keys) {
+	for(const auto& d: aBundle->getBundleDirs() | map_keys) {
 		removeDirectory(d);
 	}
+
+	removeDirectory(aBundle->getTarget());
 
 	//make sure that everything will be freed from the memory
 	dcassert(aBundle->getFinishedFiles().empty());
@@ -417,7 +419,7 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUti
 			auto s = dirMap.find(mountPath);
 			if (s != dirMap.end()) {
 				bool countAll = (useSingleTempDir && (mountPath != tempVol));
-				for(auto q: b->getQueueItems()) {
+				for(const auto& q: b->getQueueItems()) {
 					if (countAll || q->getDownloadedBytes() == 0) {
 						s->second.queued += q->getSize();
 					}

@@ -33,12 +33,12 @@ class BundleQueue {
 public:
 	BundleQueue();
 	~BundleQueue();
-	void addBundleItem(QueueItemPtr& qi, BundlePtr aBundle) noexcept;
+	void addBundleItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept;
 	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
 
 	size_t getTotalFiles() const noexcept;
 
-	void addFinishedItem(QueueItemPtr& qi, BundlePtr aBundle) noexcept;
+	void addFinishedItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept;
 	void removeFinishedItem(QueueItemPtr& qi) noexcept;
 
 	void addBundle(BundlePtr& aBundle) noexcept;
@@ -67,7 +67,7 @@ public:
 	void saveQueue(bool force) noexcept;
 
 
-	void addDirectory(const string& aPath, BundlePtr aBundle) noexcept;
+	void addDirectory(const string& aPath, BundlePtr& aBundle) noexcept;
 	void removeDirectory(const string& aPath) noexcept;
 	Bundle::BundleDirMap::iterator findLocalDir(const string& aPath) noexcept;
 	void findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const noexcept;

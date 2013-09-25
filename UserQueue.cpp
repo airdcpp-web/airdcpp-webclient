@@ -29,7 +29,7 @@ namespace dcpp {
 
 
 void UserQueue::addQI(QueueItemPtr& qi, bool newBundle /*false*/) noexcept {
-	for(auto& i: qi->getSources()) {
+	for(const auto& i: qi->getSources()) {
 		addQI(qi, i.getUser(), newBundle);
 	}
 }
@@ -121,7 +121,7 @@ QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const StringSet& r
 				break;
 			}
 
-			QueueItemPtr qi = b->getNextQI(aUser, onlineHubs, lastError, minPrio, wantedSize, lastSpeed, aType, allowOverlap);
+			auto qi = b->getNextQI(aUser, onlineHubs, lastError, minPrio, wantedSize, lastSpeed, aType, allowOverlap);
 			if (qi) {
 				return qi;
 			}
@@ -226,7 +226,7 @@ void UserQueue::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p)
 	HintedUserList sources;
 	aBundle->getSources(sources);
 
-	for(auto& u: sources)
+	for(const auto& u: sources)
 		removeBundle(aBundle, u);
 
 	aBundle->setPriority(p);

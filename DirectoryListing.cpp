@@ -89,7 +89,7 @@ string DirectoryListing::getNick(bool firstOnly) const noexcept {
 	return ret;
 }
 
-void DirectoryListing::setHubUrl(const string& newUrl, bool isGuiChange) {
+void DirectoryListing::setHubUrl(const string& newUrl, bool isGuiChange) noexcept {
 	hintedUser.hint = newUrl;
 	if (!isGuiChange)
 		fire(DirectoryListingListener::HubChanged());
@@ -152,7 +152,7 @@ bool DirectoryListing::supportsASCH() const noexcept {
 	return !partialList || isOwnList || hintedUser.user->isSet(User::ASCH);
 }
 
-void DirectoryListing::loadFile() {
+void DirectoryListing::loadFile() throw(Exception, AbortException) {
 	if (isOwnList) {
 		auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
 		if (mis) {
@@ -209,7 +209,7 @@ int DirectoryListing::updateXML(const string& xml, const string& aBase) {
 	return loadXML(mis, true, aBase);
 }
 
-int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBase, time_t aListDate) {
+int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBase, time_t aListDate) throw(AbortException) {
 	ListLoader ll(this, root.get(), aBase, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList, aListDate);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
@@ -309,7 +309,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& date = getAttrib(attribs, sBaseDate, 3);
 
 			StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
-			for(auto& name: sl) {
+			for(const auto& name: sl) {
 				auto s = find_if(cur->directories, [&name](const DirectoryListing::Directory::Ptr& dir) { return dir->getName() == name; });
 				if (s == cur->directories.end()) {
 					auto d = new DirectoryListing::Directory(cur, name, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, listDate, true);
@@ -374,7 +374,7 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	}
 }
 
-void DirectoryListing::Directory::search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults) noexcept {
+void DirectoryListing::Directory::search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept {
 	if (getAdls())
 		return;
 
@@ -424,7 +424,7 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileList
 
 	// Then add the files
 	sort(files.begin(), files.end(), File::Sort());
-	for(auto& f: files) {
+	for(const auto& f: files) {
 		aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize());
 	}
 }
@@ -496,11 +496,11 @@ int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	return 0;
 }
 
-void DirectoryListing::openFile(File* aFile, bool isClientView) const throw(/*QueueException,*/ FileException) {
+void DirectoryListing::openFile(const File* aFile, bool isClientView) const throw(/*QueueException,*/ FileException) {
 	QueueManager::getInstance()->addOpenedItem(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, isClientView);
 }
 
-DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& aName, const Directory::Ptr& current) const noexcept{
+DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& aName, const Directory::Ptr& current) const noexcept {
 	if (aName.empty())
 		return root;
 
@@ -519,7 +519,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& a
 }
 
 void DirectoryListing::Directory::findFiles(const boost::regex& aReg, File::List& aResults) const noexcept {
-	copy_if(files.begin(), files.end(), back_inserter(aResults), [&aReg](File* df) { return boost::regex_match(df->getName(), aReg); });
+	copy_if(files.begin(), files.end(), back_inserter(aResults), [&aReg](const File* df) { return boost::regex_match(df->getName(), aReg); });
 
 	for(auto d: directories)
 		d->findFiles(aReg, aResults); 
@@ -599,7 +599,7 @@ void DirectoryListing::Directory::filterList(DirectoryListing::Directory::TTHSet
 	}
 }
 
-void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSet& l) noexcept {
+void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSet& l) const noexcept {
 	for(const auto& d: directories)  
 		d->getHashList(l);
 
@@ -638,7 +638,7 @@ int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) const noexcept
 	if(!countAdls && getAdls())
 		return 0;
 	
-	int64_t x = getFilesSize();
+	auto x = getFilesSize();
 	for(const auto& d: directories) {
 		if(!countAdls && d->getAdls())
 			continue;
@@ -651,7 +651,7 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) const noex
 	if(!countAdls && getAdls())
 		return 0;
 
-	size_t x = getFileCount();
+	auto x = getFileCount();
 	for(const auto& d: directories) {
 		if(!countAdls && d->getAdls())
 			continue;
@@ -686,7 +686,7 @@ void DirectoryListing::setActive() noexcept {
 
 int64_t DirectoryListing::Directory::getFilesSize() const noexcept {
 	int64_t x = 0;
-	for(auto f: files) {
+	for(const auto& f: files) {
 		x += f->getSize();
 	}
 	return x;
@@ -707,9 +707,9 @@ uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 			setDupe(PARTIAL_QUEUE_DUPE);
 
 		//change to mixed dupe type
-		else if((getDupe() == SHARE_DUPE || dupe == PARTIAL_SHARE_DUPE) && (result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE))
+		else if((dupe == SHARE_DUPE || dupe == PARTIAL_SHARE_DUPE) && (result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE))
 			setDupe(SHARE_QUEUE_DUPE);
-		else if((getDupe() == QUEUE_DUPE || dupe == PARTIAL_QUEUE_DUPE) && (result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE))
+		else if ((dupe == QUEUE_DUPE || dupe == PARTIAL_QUEUE_DUPE) && (result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE))
 			setDupe(SHARE_QUEUE_DUPE);
 
 		else if (result == SHARE_QUEUE_DUPE)
@@ -724,39 +724,39 @@ uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 		//of no interest
 		if(f->getSize() > 0) {			
 			//if it's the first file in the dir and no sub-folders exist mark it as a dupe.
-			if(getDupe() == DUPE_NONE && f->getDupe() == SHARE_DUPE && directories.empty() && first)
+			if (dupe == DUPE_NONE && f->getDupe() == SHARE_DUPE && directories.empty() && first)
 				setDupe(SHARE_DUPE);
-			else if(getDupe() == DUPE_NONE && f->isQueued() && directories.empty() && first)
+			else if (dupe == DUPE_NONE && f->isQueued() && directories.empty() && first)
 				setDupe(QUEUE_DUPE);
 
 			//if it's the first file in the dir and we do have sub-folders but no dupes, mark as partial.
-			else if(getDupe() == DUPE_NONE && f->getDupe() == SHARE_DUPE && !directories.empty() && first)
+			else if (dupe == DUPE_NONE && f->getDupe() == SHARE_DUPE && !directories.empty() && first)
 				setDupe(PARTIAL_SHARE_DUPE);
-			else if(getDupe() == DUPE_NONE && f->isQueued() && !directories.empty() && first)
+			else if (dupe == DUPE_NONE && f->isQueued() && !directories.empty() && first)
 				setDupe(PARTIAL_QUEUE_DUPE);
 			
 			//if it's not the first file in the dir and we still don't have a dupe, mark it as partial.
-			else if(getDupe() == DUPE_NONE && f->getDupe() == SHARE_DUPE && !first)
+			else if (dupe == DUPE_NONE && f->getDupe() == SHARE_DUPE && !first)
 				setDupe(PARTIAL_SHARE_DUPE);
-			else if(getDupe() == DUPE_NONE && f->isQueued() && !first)
+			else if (dupe == DUPE_NONE && f->isQueued() && !first)
 				setDupe(PARTIAL_QUEUE_DUPE);
 			
 			//if it's a dupe and we find a non-dupe, mark as partial.
-			else if(getDupe() == SHARE_DUPE && f->getDupe() != SHARE_DUPE)
+			else if (dupe == SHARE_DUPE && f->getDupe() != SHARE_DUPE)
 				setDupe(PARTIAL_SHARE_DUPE);
-			else if(getDupe() == QUEUE_DUPE && !f->isQueued())
+			else if (dupe == QUEUE_DUPE && !f->isQueued())
 				setDupe(PARTIAL_QUEUE_DUPE);
 
 			//if we find different type of dupe, change to mixed
-			else if((getDupe() == SHARE_DUPE || getDupe() == PARTIAL_SHARE_DUPE) && f->isQueued())
+			else if ((dupe == SHARE_DUPE || dupe == PARTIAL_SHARE_DUPE) && f->isQueued())
 				setDupe(SHARE_QUEUE_DUPE);
-			else if((getDupe() == QUEUE_DUPE || getDupe() == PARTIAL_QUEUE_DUPE) && f->getDupe() == SHARE_DUPE)
+			else if ((dupe == QUEUE_DUPE || dupe == PARTIAL_QUEUE_DUPE) && f->getDupe() == SHARE_DUPE)
 				setDupe(SHARE_QUEUE_DUPE);
 
 			first = false;
 		}
 	}
-	return getDupe();
+	return dupe;
 }
 
 void DirectoryListing::checkShareDupes() noexcept {
@@ -851,7 +851,7 @@ int DirectoryListing::run() {
 	return 0;
 }
 
-void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) {
+void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) throw(Exception, AbortException) {
 	int64_t start = GET_TICK();
 	if (isOwnList && partialList) {
 		// we need the recursive list for this
@@ -859,9 +859,8 @@ void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) {
 		if (mis) {
 			loadXML(*mis, true);
 			partialList = false;
-		}
-		else {
-			throw CSTRING(FILE_NOT_AVAILABLE);
+		} else {
+			throw Exception(CSTRING(FILE_NOT_AVAILABLE));
 		}
 	}
 
@@ -879,7 +878,7 @@ void DirectoryListing::matchAdlImpl() {
 	fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true, false);
 }
 
-void DirectoryListing::loadFileImpl(const string& aInitialDir) {
+void DirectoryListing::loadFileImpl(const string& aInitialDir) throw(Exception, AbortException) {
 	int64_t start = GET_TICK();
 	partialList = false;
 
@@ -922,8 +921,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 		SearchResultList results;
 		try {
 			ShareManager::getInstance()->search(results, *curSearch, 50, Util::toInt(fileName), CID(), aDir);
-		}
-		catch (...) {}
+		} catch (...) {}
 
 		for (const auto& sr : results)
 			searchResults.insert(sr->getPath());
@@ -949,7 +947,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 	}
 }
 
-void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void ()> completionF) {
+void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void()> completionF) throw(Exception, AbortException) {
 	if (!partialList)
 		return;
 

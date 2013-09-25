@@ -22,6 +22,11 @@
 #include "ResourceManager.h"
 #include "Text.h"
 
+#ifndef _WIN32
+#include <sys/inotify.h>
+#include <sys/epoll.h>
+#endif
+
 namespace dcpp {
 
 
@@ -73,6 +78,20 @@ void DirectoryMonitor::Server::init() throw(MonitorException) {
 	if (!m_hIOCP) {
 		throw MonitorException(Util::translateError(::GetLastError()));
 	}
+#else
+	/*fd = inotify_init();
+	if (fd < 0)
+		throw MonitorException(Util::translateError(::GetLastError()));
+
+	efd = epoll_create(sizeof(int));
+	if (efd < 0)
+		throw MonitorException(Util::translateError(::GetLastError()));
+
+	ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+	cfg = epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev);
+	if (cfg < 0)
+		throw MonitorException(Util::translateError(::GetLastError()));*/
+
 #endif
 
 	start();
@@ -374,6 +393,19 @@ bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorEx
 #else
 
 bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
+	//int fd = inotify_init();
+	//if (fd < 0)
+	//	throw MonitorException(Util::translateError(::GetLastError()));
+
+	/*int wd = inotify_add_watch(fd, Text::fromUtf8(aPath), IN_MODIFY);
+	if (wd < 0)
+		throw MonitorException(Util::translateError(::GetLastError()));
+
+
+	int cfg = epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev);
+	if (cfg < 0)
+		throw MonitorException(Util::translateError(::GetLastError()));*/
+
 	return true;
 }
 
@@ -382,6 +414,18 @@ void DirectoryMonitor::Server::deleteDirectory(DirectoryMonitor::Server::Monitor
 }
 
 int DirectoryMonitor::Server::read() {
+	/*struct epoll_event ev;
+	ev.events = EPOLLIN|EPOLLOUT|EPOLLET;
+	int ret = epoll_wait(efd, &ev, 100, 86400000);
+	if (ret > 0) {
+		
+	} else if (ret < 0) {
+		perror("Error in the polling");
+		break;
+	} else {
+		perror("Timed Out");
+		break;
+	}*/
 	return 0;
 }
 

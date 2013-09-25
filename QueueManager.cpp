@@ -619,12 +619,7 @@ public:
 	}
 	
 	void clearMinor() {
-		for (auto i = errors.begin(); i != errors.end(); ) {
-			if (i->second.isMinor)
-				i = errors.erase(i);
-			else
-				i++;
-		}
+		errors.erase(boost::remove_if(errors | map_values, [](const Error& e) { return e.isMinor; }).base(), errors.end());
 	}
 
 	void setErrorMsg(string& errorMsg_) {
@@ -3242,13 +3237,11 @@ void QueueManager::readdBundle(BundlePtr& aBundle) noexcept {
 	//aBundle->setStatus(Bundle::STATUS_QUEUED);
 
 	//check that the finished files still exist
-	for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
-		QueueItemPtr q = *i;
-		if (!Util::fileExists(q->getTarget())) {
-			bundleQueue.removeFinishedItem(q);
-			fileQueue.remove(q);
-		} else {
-			++i;
+	auto files = aBundle->getFinishedFiles();
+	for(auto& qi: files) {
+		if (!Util::fileExists(qi->getTarget())) {
+			bundleQueue.removeFinishedItem(qi);
+			fileQueue.remove(qi);
 		}
 	}
 
@@ -3266,11 +3259,10 @@ int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget
 
 		for(auto& b: mBundles) {
 			fire(QueueManagerListener::BundleRemoved(), b);
-			for (auto j = b->getFinishedFiles().begin(); j != b->getFinishedFiles().end();) {
-				QueueItemPtr q = *j;
-				bundleQueue.removeFinishedItem(q);
-				bundleQueue.addFinishedItem(q, aBundle);
-				j = b->getFinishedFiles().begin();
+			auto files = b->getFinishedFiles();
+			for (auto& qi: files) {
+				bundleQueue.removeFinishedItem(qi);
+				bundleQueue.addFinishedItem(qi, aBundle);
 			}
 
 			for (auto& qi: b->getQueueItems())
@@ -3330,17 +3322,16 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 		{
 			WLock l(cs);
 			bundle->getDirQIs(aSource, ql);
-			for (auto i = bundle->getFinishedFiles().begin(); i != bundle->getFinishedFiles().end();) {
-				QueueItemPtr qi = *i;
+
+			auto finishedFiles = bundle->getFinishedFiles();
+			for (auto& qi: finishedFiles) {
 				if (AirUtil::isSub(qi->getTarget(), aSource)) {
-					UploadManager::getInstance()->abortUpload((*i)->getTarget());
+					UploadManager::getInstance()->abortUpload(qi->getTarget());
 					if (removeFinished) {
 						File::deleteFile(qi->getTarget());
 					}
 					fileQueue.remove(qi);
 					bundleQueue.removeFinishedItem(qi);
-				} else {
-					i++;
 				}
 			}
 		}
@@ -3355,8 +3346,8 @@ void QueueManager::removeDir(const string aSource, const BundleList& sourceBundl
 }
 
 void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarget, BundlePtr& sourceBundle, BundlePtr& targetBundle, bool moveFiles) noexcept {
-	for (auto i = sourceBundle->getFinishedFiles().begin(); i != sourceBundle->getFinishedFiles().end();) {
-		QueueItemPtr qi = *i;
+	auto finishedFiles = sourceBundle->getFinishedFiles();
+	for (auto& qi : finishedFiles) {
 		if (AirUtil::isSub(qi->getTarget(), aSource)) {
 			if (moveFiles) {
 				string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
@@ -3366,7 +3357,6 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 						mover.moveFile(qi->getTarget(), targetPath, qi);
 						if (targetBundle == sourceBundle) {
 							fileQueue.move(qi, targetPath);
-							i++;
 						} else {
 							bundleQueue.removeFinishedItem(qi);
 							fileQueue.move(qi, targetPath);
@@ -3380,8 +3370,6 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 			}
 			fileQueue.remove(qi);
 			bundleQueue.removeFinishedItem(qi);
-		} else {
-			i++;
 		}
 	}
 

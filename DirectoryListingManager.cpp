@@ -96,12 +96,11 @@ void DirectoryListingManager::addDirectoryDownload(const string& aRemoteDir, con
 		if (checkNameDupes && aAutoSearch > 0) {
 			//don't download different directories for auto search items that don't allow it
 			if (find_if(dlDirectories | map_values, DirectoryDownloadInfo::HasASItem(aAutoSearch, aBundleName)).base() != dlDirectories.end())  {
-					return;
+				return;
 			}
 		}
 		
 		auto dp = dlDirectories.equal_range(aUser);
-		
 		for(auto i = dp.first; i != dp.second; ++i) {
 			if (Util::stricmp(aRemoteDir.c_str(), i->second->getListPath().c_str()) == 0)
 				return;
@@ -382,7 +381,7 @@ void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*f
 	if (!useADL) {
 		createPartialList(me, Util::emptyString, Util::emptyString, aProfile, true);
 	} else {
-		DirectoryListing* dl = new DirectoryListing(me, false, Util::toString(aProfile), true, true);
+		auto dl = new DirectoryListing(me, false, Util::toString(aProfile), true, true);
 		dl->setMatchADL(true);
 		fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString, Util::emptyString);
 
@@ -399,7 +398,7 @@ void DirectoryListingManager::openFileList(const HintedUser& aUser, const string
 }
 
 void DirectoryListingManager::createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir /*empty*/, bool isOwnList /*false*/) noexcept {
-	DirectoryListing* dl = new DirectoryListing(aUser, false, aFile, true, isOwnList);
+	auto dl = new DirectoryListing(aUser, false, aFile, true, isOwnList);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aInitialDir, Util::emptyString);
 
 	WLock l(cs);
@@ -407,7 +406,7 @@ void DirectoryListingManager::createList(const HintedUser& aUser, const string& 
 }
 
 void DirectoryListingManager::createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir /*emptyString*/, ProfileToken aProfile /*SP_DEFAULT*/, bool isOwnList /*false*/) noexcept {
-	DirectoryListing* dl = new DirectoryListing(aUser, true, Util::toString(aProfile), true, isOwnList);
+	auto dl = new DirectoryListing(aUser, true, Util::toString(aProfile), true, isOwnList);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aDir, aXml);
 
 	WLock l(cs);

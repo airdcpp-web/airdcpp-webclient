@@ -99,6 +99,9 @@ private:
 
 #ifdef WIN32
 		HANDLE m_hIOCP;
+#else
+		int efd = -1;
+		int fd = -1;
 #endif
 		int	m_nThreads;
 	};
@@ -139,6 +142,8 @@ public:
 	void openDirectory(HANDLE iocp);
 	void beginRead();
 #else
+	//int addWatch(const string& aPath);
+
 	Monitor(const string& aPath, DirectoryMonitor::Server* aParent, int monitorFlags, size_t bufferSize);
 	~Monitor();
 #endif
@@ -169,6 +174,8 @@ private:
 	ByteVector m_Buffer;
 	int errorCount;
 	int key;
+#else
+
 #endif
 };
 
