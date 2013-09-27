@@ -379,6 +379,9 @@ bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValu
 		return false;
 	}
 
+	if (len < sizeof(uint8_t) -sizeof(int64_t) -sizeof(int64_t))
+		return false;
+
 	int64_t fileSize;
 	memcpy(&fileSize, p, sizeof(int64_t));
 	p += sizeof(int64_t);
@@ -536,8 +539,9 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 	int64_t failedSize = 0;
 
 	LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_STARTED), LogManager::LOG_INFO);
-	unordered_set<TTHValue> usedRoots;
 	{
+		unordered_set<TTHValue> usedRoots;
+
 		//make sure that the databases stay in sync so that trees added during this operation won't get removed
 		unique_ptr<DbSnapshot> fileSnapshot(fileDb->getSnapshot()); 
 		unique_ptr<DbSnapshot> hashSnapshot(hashDb->getSnapshot()); 
@@ -583,7 +587,8 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 				
 				if (!doVerify || loadTree(aValue, valueLen, curRoot, tt, false)) {
 					//valid tree
-					usedRoots.erase(i);
+					if (i != usedRoots.end())
+						usedRoots.erase(i);
 					validTrees++;
 					return false;
 				}

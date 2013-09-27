@@ -1370,13 +1370,13 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 	return nullptr;
 }
 
-optional<ProfileToken> ShareManager::getProfileByName(const string& aName) {
+optional<ProfileToken> ShareManager::getProfileByName(const string& aName) const noexcept {
 	string profile = aName;
 	if (profile.empty()) {
 		return SETTING(DEFAULT_SP);
 	}
 
-	auto p = find_if(shareProfiles, [&](const ShareProfilePtr& aProfile) { return aProfile->getPlainName() == profile; });
+	auto p = find_if(shareProfiles, [&](const ShareProfilePtr& aProfile) { return Util::stricmp(aProfile->getPlainName(), profile) == 0; });
 	if (p == shareProfiles.end())
 		return nullptr;
 	return (*p)->getToken();
@@ -1410,7 +1410,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 
 
 	void startTag(const string& name, StringPairList& attribs, bool simple) {
-		if(name == SDIRECTORY) {
+		if(compare(name, SDIRECTORY) == 0) {
 			const string& name = getAttrib(attribs, SNAME, 0);
 			const string& date = getAttrib(attribs, DATE, 1);
 
@@ -1441,7 +1441,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 					cur = cur->getParent();
 				}
 			}
-		} else if(cur && name == SFILE) {
+		} else if (cur && compare(name, SFILE) == 0) {
 			const string& fname = getAttrib(attribs, SNAME, 0);
 			if(fname.empty()) {
 				dcdebug("Invalid file found: %s\n", fname.c_str());
@@ -1458,7 +1458,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 				hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading file list %s \n", e.getError().c_str());
 			}
-		} else if (name == SHARE) {
+		} else if (compare(name, SHARE)) {
 			int version = Util::toInt(getAttrib(attribs, SVERSION, 0));
 			if (version > Util::toInt(SHARE_CACHE_VERSION))
 				throw("Newer cache version"); //don't load those...
@@ -1469,7 +1469,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 		}
 	}
 	void endTag(const string& name) {
-		if(name == SDIRECTORY) {
+		if(compare(name, SDIRECTORY) == 0) {
 			if(cur) {
 				//auto len = curDirPath.size()-lastPos;
 				//curDirPath.erase(lastPos, len);
