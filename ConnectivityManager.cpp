@@ -66,13 +66,13 @@ bool ConnectivityManager::get(SettingsManager::BoolSetting setting) const {
 
 int ConnectivityManager::get(SettingsManager::IntSetting setting) const {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
-		if (setting == SettingsManager::TCP_PORT) {
+		/*if (setting == SettingsManager::TCP_PORT) {
 			return Util::toInt(ConnectionManager::getInstance()->getPort());
 		} else if (setting == SettingsManager::UDP_PORT) {
 			return Util::toInt(SearchManager::getInstance()->getPort());
 		} else if (setting == SettingsManager::TLS_PORT) {
 			return Util::toInt(ConnectionManager::getInstance()->getSecurePort());
-		}
+		}*/
 
 		RLock l(cs);
 		auto i = autoSettings.find(setting);
