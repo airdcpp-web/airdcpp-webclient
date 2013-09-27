@@ -369,6 +369,9 @@ bool HashManager::HashStore::hasTree(const TTHValue& root) throw(HashException) 
 }
 
 bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree, bool reportCorruption) {
+	if (len < sizeof(uint8_t) +sizeof(int64_t) +sizeof(int64_t))
+		return false;
+
 	char *p = (char*)src;
 
 	uint8_t version;
@@ -378,9 +381,6 @@ bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValu
 	if (version > HASHDATA_VERSION) {
 		return false;
 	}
-
-	if (len < sizeof(uint8_t) -sizeof(int64_t) -sizeof(int64_t))
-		return false;
 
 	int64_t fileSize;
 	memcpy(&fileSize, p, sizeof(int64_t));
