@@ -67,7 +67,7 @@ private:
 
 	atomic_flag busy;
 	unique_ptr<Mapper> working; /// currently working implementation.
-	uint64_t renewal; /// when the next renewal should happen, if requested by the mapper.
+	uint64_t renewal = 0; /// when the next renewal should happen, if requested by the mapper.
 
 	int run();
 

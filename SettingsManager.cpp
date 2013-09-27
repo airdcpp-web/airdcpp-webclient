@@ -37,7 +37,19 @@ bool SettingsManager::lanMode = false;
 
 StringList SettingsManager::connectionSpeeds = { "0.1", "0.2", "0.5", "1", "2", "5", "8", "10", "20", "30", "40", "50", "60", "100", "200", "1000" };
 
-const SettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][9] = {
+
+const ResourceManager::Strings SettingsManager::encryptionStrings[TLS_LAST] { ResourceManager::DISABLED, ResourceManager::ENABLED, ResourceManager::ENCRYPTION_FORCED };
+const ResourceManager::Strings SettingsManager::delayStrings[DELAY_LAST] { ResourceManager::MONITOR_DELAY_DIR, ResourceManager::MONITOR_DELAY_VOLUME, ResourceManager::MONITOR_DELAY_ANY };
+const ResourceManager::Strings SettingsManager::bloomStrings[BLOOM_LAST] { ResourceManager::DISABLED, ResourceManager::ENABLED, ResourceManager::AUTO };
+const ResourceManager::Strings SettingsManager::profileStrings[PROFILE_LAST] { ResourceManager::NORMAL, ResourceManager::RAR_HUBS, ResourceManager::LAN_HUBS };
+const ResourceManager::Strings SettingsManager::refreshStrings[MULTITHREAD_LAST] { ResourceManager::NEVER, ResourceManager::MANUAL_REFRESHES, ResourceManager::ALWAYS };
+const ResourceManager::Strings SettingsManager::prioStrings[PRIO_LAST] { ResourceManager::DISABLED, ResourceManager::PRIOPAGE_ORDER_BALANCED, ResourceManager::PRIOPAGE_ORDER_PROGRESS };
+const ResourceManager::Strings SettingsManager::incomingStrings[INCOMING_LAST] { ResourceManager::DISABLED, ResourceManager::ACTIVE_MODE, ResourceManager::SETTINGS_ACTIVE_UPNP, ResourceManager::PASSIVE_MODE };
+const ResourceManager::Strings SettingsManager::outgoingStrings[OUTGOING_LAST] { ResourceManager::SETTINGS_DIRECT, ResourceManager::SETTINGS_SOCKS5 };
+const ResourceManager::Strings SettingsManager::monitoringStrings[MONITORING_LAST] { ResourceManager::DISABLED, ResourceManager::INCOMING_ONLY, ResourceManager::ALL_DIRS };
+const ResourceManager::Strings SettingsManager::dropStrings[QUEUE_LAST] { ResourceManager::FILE, ResourceManager::BUNDLE, ResourceManager::ALL };
+
+const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][9] = {
 
 { 
 	// profile normal
@@ -847,16 +859,16 @@ SettingsManager::SettingsManager()
 
 void SettingsManager::applyProfileDefaults() {
 	for (const auto& newSetting: profileSettings[get(SETTINGS_PROFILE)]) {
-		newSetting.setDefault(false);
+		newSetting.setProfileToDefault(false);
 	}
 }
 
-void SettingsManager::setProfile(int aProfile, const SettingItem::List& conflicts) {
+void SettingsManager::setProfile(int aProfile, const ProfileSettingItem::List& conflicts) {
 	set(SettingsManager::SETTINGS_PROFILE, aProfile);
 	applyProfileDefaults();
 
 	for (const auto& setting: conflicts) {
-		setting.setDefault(true);
+		setting.setProfileToDefault(true);
 	}
 }
 
@@ -985,6 +997,14 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 					case OLD_INCOMING_PASSIVE: set(INCOMING_CONNECTIONS, INCOMING_PASSIVE); break;
 					default: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE); break;
 				}
+
+				/*SettingItem restoredSettings [] {
+					{ SettingsManager::SHOW_JOINS, ResourceManager::FAV_SHOW_JOIN },
+					{ SettingsManager::LOG_MAIN_CHAT, ResourceManager::FAV_LOG_CHAT },
+					{ SettingsManager::MINIMUM_SEARCH_INTERVAL, ResourceManager::MINIMUM_SEARCH_INTERVAL },
+					{ SettingsManager::SHOW_CHAT_NOTIFY, ResourceManager::CHAT_NOTIFY },
+					{ SettingsManager::EXTERNAL_IP, ResourceManager::SETTINGS_EXTERNAL_IP }
+				};*/
 
 				//notify about changed fav hub settings
 				auto getSettingTextStr = [this] (const string& aSettingCaption, SettingsManager::StrSetting aSetting) -> string {

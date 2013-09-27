@@ -1370,6 +1370,18 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 	return nullptr;
 }
 
+optional<ProfileToken> ShareManager::getProfileByName(const string& aName) {
+	string profile = aName;
+	if (profile.empty()) {
+		return SETTING(DEFAULT_SP);
+	}
+
+	auto p = find_if(shareProfiles, [&](const ShareProfilePtr& aProfile) { return aProfile->getPlainName() == profile; });
+	if (p == shareProfiles.end())
+		return nullptr;
+	return (*p)->getToken();
+}
+
 ShareManager::Directory::Ptr ShareManager::Directory::create(DualString&& aName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr aRoot /*nullptr*/) {
 	auto dir = Ptr(new Directory(move(aName), aParent, aLastWrite, aRoot));
 	if (aParent)

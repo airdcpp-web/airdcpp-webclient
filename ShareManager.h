@@ -272,6 +272,7 @@ public:
 	const ShareProfileList& getProfiles() { return shareProfiles; }
 	ShareProfileInfo::List getProfileInfos() const noexcept;
 	void getExcludes(ProfileToken aProfile, StringList& excludes) const noexcept;
+	optional<ProfileToken> getProfileByName(const string& aName);
 
 	string getStats() const noexcept;
 	mutable SharedMutex cs;

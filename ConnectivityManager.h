@@ -95,10 +95,10 @@ private:
 	void listen();
 	void disconnect();
 
-	bool autoDetectedV4;
-	bool autoDetectedV6;
-	bool runningV4;
-	bool runningV6;
+	bool autoDetectedV4 = false;
+	bool autoDetectedV6 = false;
+	bool runningV4 = false;
+	bool runningV6 = false;
 
 	string statusV4;
 	string statusV6;

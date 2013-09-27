@@ -33,22 +33,16 @@ struct SettingItem {
 	typedef vector<SettingItem> List;
 
 	int key;
-	SettingValue profileValue;
-	ResourceManager::Strings name;
+	ResourceManager::Strings desc;
 
-	SettingValue getCurValue() const;
+	SettingValue getCurValue(bool useDefault = true) const;
+	SettingValue getDefaultValue() const;
 
+	void unset() const;
 	bool isSet() const;
 	bool isDefault() const;
 
-	/*void useProfileValue() const;*/
-
-	void setDefault(bool reset) const;
-
-	const string& getName() const;
-	bool isProfileCurrent() const;
-
-	string profileToString() const;
+	const string& getDescription() const;
 	string currentToString() const;
 
 	struct ToString : boost::static_visitor<string> {
@@ -74,6 +68,18 @@ struct SettingItem {
 	struct Hash {
 		size_t operator()(const SettingItem& x) const { return hash<int>()(x.key); }
 	};
+};
+
+struct ProfileSettingItem : public SettingItem {
+	ProfileSettingItem(int aKey, const SettingValue& aProfileValue, ResourceManager::Strings aName);
+
+	typedef vector<ProfileSettingItem> List;
+
+	SettingValue profileValue;
+
+	void setProfileToDefault(bool reset) const;
+	bool isProfileCurrent() const;
+	string profileToString() const;
 };
 
 }

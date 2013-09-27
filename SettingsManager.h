@@ -192,32 +192,44 @@ public:
 		INCOMING_DISABLED = -1, 
 		INCOMING_ACTIVE, 
 		INCOMING_ACTIVE_UPNP, 
-		INCOMING_PASSIVE 
+		INCOMING_PASSIVE,
+		INCOMING_LAST = 4
 	};
 
-	enum { MULTITHREAD_NEVER, MULTITHREAD_MANUAL, MULTITHREAD_ALWAYS };
+	enum { MULTITHREAD_NEVER, MULTITHREAD_MANUAL, MULTITHREAD_ALWAYS, MULTITHREAD_LAST };
 
-	enum { OUTGOING_DIRECT, OUTGOING_SOCKS5 };
+	enum { OUTGOING_DIRECT, OUTGOING_SOCKS5, OUTGOING_LAST };
 
 	enum {  MAGNET_SEARCH, MAGNET_DOWNLOAD, MAGNET_OPEN };
 	
 	enum SettingProfile {  PROFILE_NORMAL, PROFILE_RAR, PROFILE_LAN, PROFILE_LAST };
 
-	enum {  QUEUE_FILE, QUEUE_BUNDLE, QUEUE_ALL };
+	enum {  QUEUE_FILE, QUEUE_BUNDLE, QUEUE_ALL, QUEUE_LAST };
 
-	enum {  PRIO_DISABLED, PRIO_BALANCED, PRIO_PROGRESS };
+	enum {  PRIO_DISABLED, PRIO_BALANCED, PRIO_PROGRESS, PRIO_LAST };
 
-	enum {  TLS_DISABLED, TLS_ENABLED, TLS_FORCED };
+	enum {  TLS_DISABLED, TLS_ENABLED, TLS_FORCED, TLS_LAST };
 
-	enum {  BLOOM_DISABLED, BLOOM_ENABLED, BLOOM_AUTO };
+	enum {  BLOOM_DISABLED, BLOOM_ENABLED, BLOOM_AUTO, BLOOM_LAST };
 
-	enum {  MONITORING_DISABLED, MONITORING_INCOMING, MONITORING_ALL };
+	enum {  MONITORING_DISABLED, MONITORING_INCOMING, MONITORING_ALL, MONITORING_LAST };
 
-	enum {  DELAY_DIR, DELAY_VOLUME, DELAY_ANY };
+	enum {  DELAY_DIR, DELAY_VOLUME, DELAY_ANY, DELAY_LAST };
 
 	enum AutoSelectMethod { SELECT_MOST_SPACE, SELECT_LEAST_SPACE };
 
 	enum FileEvents { ON_FILE_COMPLETE, ON_DIR_CREATED};
+
+	static const ResourceManager::Strings encryptionStrings[TLS_LAST];
+	static const ResourceManager::Strings delayStrings[DELAY_LAST];
+	static const ResourceManager::Strings bloomStrings[BLOOM_LAST];
+	static const ResourceManager::Strings profileStrings[PROFILE_LAST];
+	static const ResourceManager::Strings refreshStrings[MULTITHREAD_LAST];
+	static const ResourceManager::Strings prioStrings[PRIO_LAST];
+	static const ResourceManager::Strings incomingStrings[INCOMING_LAST];
+	static const ResourceManager::Strings outgoingStrings[OUTGOING_LAST];
+	static const ResourceManager::Strings monitoringStrings[MONITORING_LAST];
+	static const ResourceManager::Strings dropStrings[QUEUE_LAST];
 
 	const string& get(StrSetting key, bool useDefault = true) const {
 		return (isSet[key] || !useDefault) ? strSettings[key - STR_FIRST] : strDefaults[key - STR_FIRST];
@@ -403,8 +415,8 @@ public:
 		return fileEvents[fe];
 	}
 
-	void setProfile(int aProfile, const SettingItem::List& conflicts);
-	static const SettingItem profileSettings[SettingsManager::PROFILE_LAST][9];
+	void setProfile(int aProfile, const ProfileSettingItem::List& conflicts);
+	static const ProfileSettingItem profileSettings[SettingsManager::PROFILE_LAST][9];
 	void applyProfileDefaults();
 	string getProfileName(int profile);
 private:

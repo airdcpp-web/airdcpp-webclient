@@ -172,10 +172,11 @@ int MappingManager::run() {
 
 		working = move(pMapper);
 
-		if(!CONNSETTING(NO_IP_OVERRIDE)) {
+		if ((!v6 && !CONNSETTING(NO_IP_OVERRIDE)) || (v6 && !CONNSETTING(NO_IP_OVERRIDE6))) {
+			auto setting = v6 ? SettingsManager::EXTERNAL_IP6 : SettingsManager::EXTERNAL_IP;
 			string externalIP = mapper.getExternalIP();
 			if(!externalIP.empty()) {
-				ConnectivityManager::getInstance()->set(SettingsManager::EXTERNAL_IP, externalIP);
+				ConnectivityManager::getInstance()->set(setting, externalIP);
 			} else {
 				// no cleanup because the mappings work and hubs will likely provide the correct IP.
 				log(STRING(MAPPER_IP_FAILED), LogManager::LOG_WARNING);
