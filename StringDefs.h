@@ -1814,5 +1814,6 @@ enum Strings { // @DontAdd
 	BUNDLE_REMOVED_AS, // "There's an auto search with the same name associated to the bundle %1%.\r\n\r\nDo you want to remove the auto search item as well?"
 	DONT_SHARE_APP_DIRECTORY, // "Application directories cannot be shared because they may contain passwords and other sensitive information"
 	COMPLETE_ITEM_X_REMOVED, // "A completed item %1% has been removed"
+	OVERRIDE_LIMITER, // "Override limiter"
 	LAST // @DontAdd
 };

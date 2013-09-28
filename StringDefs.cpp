@@ -1810,6 +1810,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "There's an auto search with the same name associated to the bundle %1%.\r\n\r\nDo you want to remove the auto search item as well?", 
 "Application directories cannot be shared because they may contain passwords and other sensitive information", 
 "A completed item %1% has been removed", 
+"Override limiter", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3620,4 +3621,5 @@ std::string dcpp::ResourceManager::names[] = {
 "BundleRemovedAs", 
 "DontShareAppDirectory", 
 "CompleteItemXRemoved", 
+"OverrideLimiter", 
 };
