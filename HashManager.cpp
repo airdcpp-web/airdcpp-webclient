@@ -1105,10 +1105,7 @@ void HashManager::Hasher::instantPause() {
 }
 
 HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : paused(isPaused), hasherID(aHasherID), totalBytesLeft(0), lastSpeed(0) {
-
 	start();
-	if (isPaused)
-		t_suspend();
 }
 
 void HashManager::log(const string& aMessage, int hasherID, bool isError, bool lock) {

@@ -229,6 +229,17 @@ std::string FavoriteManager::getUserURL(const UserPtr& aUser) const {
 	return Util::emptyString;
 }
 
+void FavoriteManager::changeLimiterOverride(const UserPtr& aUser) noexcept{
+	RLock l(cs);
+	auto i = users.find(aUser->getCID());
+	if (i != users.end()) {
+		if (!i->second.isSet(FavoriteUser::FLAG_SUPERUSER))
+			i->second.setFlag(FavoriteUser::FLAG_SUPERUSER);
+		else
+			i->second.unsetFlag(FavoriteUser::FLAG_SUPERUSER);
+	}
+}
+
 void FavoriteManager::addFavorite(const FavoriteHubEntryPtr& aEntry) {
 	auto i = getFavoriteHub(aEntry->getServers()[0].first);
 	if(i != favoriteHubs.end()) {

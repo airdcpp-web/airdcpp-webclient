@@ -134,21 +134,20 @@ public:
 
 	void setThreadPriority(Priority p) { ::SetThreadPriority(threadHandle, p); }
 
-	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources.
-	if(threadHandle == INVALID_HANDLE_VALUE) {
+	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources. Call only from the suspended thread because of non-win implementation
+		if(threadHandle == INVALID_HANDLE_VALUE) {
 			return;
 		}
 		::SuspendThread(threadHandle);
 	}
+
 	void t_resume() {
 		if(threadHandle == INVALID_HANDLE_VALUE) {
 			return;
 		}
 		::ResumeThread(threadHandle);
 	}
-	
 
-	
 
 	static void sleep(uint64_t millis) { ::Sleep(static_cast<DWORD>(millis)); }
 	static void yield() { ::Sleep(0); }
@@ -176,16 +175,19 @@ public:
 		}
 	}
 
-	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources.
-		//if(threadHandle) {
-		//	pthread_suspend(threadHandle);
-		//}
+	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources. Call only from the suspended thread
+		pthread_mutex_lock(&lock);
+		suspended = true;
+		while (suspended)
+			pthread_cond_wait(&cond, &lock);
+		pthread_mutex_unlock(&lock);
 	}
 
 	void t_resume() {
-		//if (threadHandle) {
-		//	pthread_resume_np(threadHandle);
-		//}
+		pthread_mutex_lock(&lock);
+		suspended = false;
+		pthread_cond_signal(&cond);
+		pthread_mutex_unlock(&lock);
 	}
 
 	void setThreadPriority(Priority p) { setpriority(PRIO_PROCESS, 0, p); }
@@ -208,6 +210,10 @@ protected:
 		return 0;
 	}
 #else
+	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+	bool suspended = false;
+
 	pthread_t threadHandle;
 	static void* starter(void* p) {
 		Thread* t = (Thread*)p;
