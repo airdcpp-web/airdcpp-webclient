@@ -44,8 +44,6 @@ namespace dcpp {
 
 const string Mapper_NATPMP::name = "NAT-PMP";
 
-static natpmp_t nat;
-
 Mapper_NATPMP::Mapper_NATPMP(const string& localIp, bool v6) :
 Mapper(localIp, v6),
 lifetime(0)
@@ -55,6 +53,10 @@ lifetime(0)
 bool Mapper_NATPMP::supportsProtocol(bool v6) const {
 	return !v6;
 }
+
+#ifdef HAVE_NATPMP_H
+
+static natpmp_t nat;
 
 bool Mapper_NATPMP::init() {
 	// the lib normally handles this but we call it manually to store the result (IP of the router).
@@ -147,5 +149,34 @@ string Mapper_NATPMP::getExternalIP() {
 	}
 	return Util::emptyString;
 }
+
+#else
+
+bool Mapper_NATPMP::init() {
+	return false;
+}
+
+void Mapper_NATPMP::uninit() {
+}
+
+bool Mapper_NATPMP::add(const string& /*port*/, const Protocol /*protocol*/, const string& /*description*/) {
+	return false;
+}
+
+bool Mapper_NATPMP::remove(const string& /*port*/, const Protocol /*protocol*/) {
+	return false;
+}
+
+string Mapper_NATPMP::getDeviceName() {
+	return Util::emptyString;
+}
+
+string Mapper_NATPMP::getExternalIP() {
+	return Util::emptyString;
+}
+
+#endif
+
+
 
 } // dcpp namespace

@@ -969,7 +969,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	if (getStealth()) {
 		dc = "++";
 	} else {
-		dc = "AirDC++";
+		dc = APPNAME;
 
 		status |= Identity::AIRDC;
 

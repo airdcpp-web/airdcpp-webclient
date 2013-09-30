@@ -817,7 +817,14 @@ SettingsManager::SettingsManager()
 	setDefault(PM_LOG_GROUP_CID, true);
 	setDefault(SHARE_FOLLOW_SYMLINKS, true);
 	setDefault(SCAN_MONITORED_FOLDERS, true);
+
+#ifdef _WIN32
 	setDefault(MONITORING_MODE, MONITORING_ALL);
+#else
+	// TODO: implement monitoring
+	setDefault(MONITORING_MODE, MONITORING_DISABLED);
+#endif
+
 	setDefault(FINISHED_NO_HASH, false);
 	setDefault(MONITORING_DELAY, 30);
 	setDefault(DELAY_COUNT_MODE, DELAY_VOLUME);

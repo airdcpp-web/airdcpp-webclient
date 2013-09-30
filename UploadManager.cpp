@@ -249,18 +249,16 @@ checkslots:
 				Upload* up = *i;
 				delayUploads.erase(i);
 
-				if (up->getSegment().getEnd() != fileSize) {
-					if (sourceFile != up->getPath()) {
-						if (up->isSet(Upload::FLAG_CHUNKED))
-							logUpload(up);
-					} else if (up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE) {
-						//we are resuming the same file, reuse the existing upload
-						countFilePositions();
-						up->resume(start, size);
-						dcassert(aSource.getUpload());
-						uploads.push_back(up);
-						goto end;
-					}
+				if(sourceFile != up->getPath()) {
+					if (up->isSet(Upload::FLAG_CHUNKED) && up->getSegment().getEnd() != up->getSize())
+						logUpload(up);
+				} else if (up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE && up->getSegment().getEnd() != fileSize) {
+					//we are resuming the same file, reuse the existing upload
+					countFilePositions();
+					up->resume(start, size);
+					dcassert(aSource.getUpload());
+					uploads.push_back(up);
+					goto end;
 				}
 
 				delete up;
@@ -1211,7 +1209,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		for(auto i = delayUploads.begin(); i != delayUploads.end();) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
-				if (u->isSet(Upload::FLAG_CHUNKED))
+				if (u->isSet(Upload::FLAG_CHUNKED) && u->getSegment().getEnd() != u->getSize())
 					logUpload(u);
 				
 				delete u;
