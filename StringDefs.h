@@ -1683,7 +1683,7 @@ enum Strings { // @DontAdd
 	ALLOW_AUTO_DETECT_V6, // "Let AirDC++ determine the best IPv6 connectivity settings"
 	PROFILE_NORMAL_DESC, // "The client is used in normal private/public hubs for transferring files via internet. Use this profile if unsure."
 	PROFILE_RAR_DESC, // "The client is used for transferring files that are split in RAR archives (or in other small-sized formats)."
-	PROFILE_LAN_DESC, // "The client is used for transferring files in local network (e.g. LAN parties) or in another closed network (e.g. university netwok)."
+	PROFILE_LAN_DESC, // "The client is used for transferring files in local network (e.g. LAN parties) or in another closed network (e.g. university network)."
 	WIZARD_GENERAL_INTRO, // "Please enter some general information that you want to be displayed to other users"
 	WIZARD_PROFILE_INTRO, // "Choose how you will use the client. This will optimize various client options to be most suitable for your usage case."
 	WIZARD_SHARING_INTRO, // "Choose the folders that you want to share to other users. This step isn't mandatory, but sharing files to other users will allow joining more hubs."
@@ -1815,5 +1815,6 @@ enum Strings { // @DontAdd
 	DONT_SHARE_APP_DIRECTORY, // "Application directories cannot be shared because they may contain passwords and other sensitive information"
 	COMPLETE_ITEM_X_REMOVED, // "A completed item %1% has been removed"
 	OVERRIDE_LIMITER, // "Override limiter"
+	AS_END_GREATER, // "End time must be greater than the start time!"
 	LAST // @DontAdd
 };

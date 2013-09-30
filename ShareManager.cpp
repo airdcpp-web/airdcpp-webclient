@@ -1371,12 +1371,11 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 }
 
 optional<ProfileToken> ShareManager::getProfileByName(const string& aName) const noexcept {
-	string profile = aName;
-	if (profile.empty()) {
+	if (aName.empty()) {
 		return SETTING(DEFAULT_SP);
 	}
 
-	auto p = find_if(shareProfiles, [&](const ShareProfilePtr& aProfile) { return Util::stricmp(aProfile->getPlainName(), profile) == 0; });
+	auto p = find_if(shareProfiles, [&](const ShareProfilePtr& aProfile) { return Util::stricmp(aProfile->getPlainName(), aName) == 0; });
 	if (p == shareProfiles.end())
 		return nullptr;
 	return (*p)->getToken();

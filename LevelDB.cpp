@@ -92,7 +92,7 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbExcep
 	stepF(STRING_F(REPAIRING_X, getNameLower()));
 	
 	//remove any existing log
-	string logPath = dbPath + "repair.log";
+	auto logPath = dbPath + "repair.log";
 	File::deleteFile(logPath);
 	options.env->NewLogger(Text::fromUtf8(logPath), &options.info_log);
 
@@ -219,6 +219,8 @@ void LevelDB::remove_if(std::function<bool(void* aKey, size_t key_len, void* aVa
 
 // free up some space, https://code.google.com/p/leveldb/issues/detail?id=158
 // LevelDB will perform some kind of compaction on every startup but it's not as comprehensive as manual one
+// The issue has been "fixed" in version 1.13 but it still won't match the manual one (possibly because only ranges that are iterated
+// through are compacted but there won't be that many reads to those ranges, not in the file index at least)
 void LevelDB::compact() {
 	db->CompactRange(nullptr, nullptr);
 }

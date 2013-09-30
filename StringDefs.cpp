@@ -1679,7 +1679,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Let AirDC++ determine the best IPv6 connectivity settings", 
 "The client is used in normal private/public hubs for transferring files via internet. Use this profile if unsure.", 
 "The client is used for transferring files that are split in RAR archives (or in other small-sized formats).", 
-"The client is used for transferring files in local network (e.g. LAN parties) or in another closed network (e.g. university netwok).", 
+"The client is used for transferring files in local network (e.g. LAN parties) or in another closed network (e.g. university network).", 
 "Please enter some general information that you want to be displayed to other users", 
 "Choose how you will use the client. This will optimize various client options to be most suitable for your usage case.", 
 "Choose the folders that you want to share to other users. This step isn't mandatory, but sharing files to other users will allow joining more hubs.", 
@@ -1811,6 +1811,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Application directories cannot be shared because they may contain passwords and other sensitive information", 
 "A completed item %1% has been removed", 
 "Override limiter", 
+"End time must be greater than the start time!", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3622,4 +3623,5 @@ std::string dcpp::ResourceManager::names[] = {
 "DontShareAppDirectory", 
 "CompleteItemXRemoved", 
 "OverrideLimiter", 
+"AsEndGreater", 
 };
