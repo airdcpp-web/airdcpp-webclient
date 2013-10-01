@@ -284,11 +284,15 @@ void ConnectivityManager::setup(bool v4SettingsChanged, bool v6SettingsChanged) 
 		}
 	}*/
 
-	if (v4SettingsChanged || (autoDetectedV4 && !autoDetect4))
+	if (v4SettingsChanged || (autoDetectedV4 && !autoDetect4)) {
 		mapperV4.close();
+		autoDetectedV4 = false;
+	}
 
-	if (v6SettingsChanged || (autoDetectedV6 &&! autoDetect6))
+	if (v6SettingsChanged || (autoDetectedV6 && !autoDetect6)) {
 		mapperV6.close();
+		autoDetectedV6 = false;
+	}
 
 
 	if(!autoDetect6 && autoDetectedV6)
@@ -300,14 +304,15 @@ void ConnectivityManager::setup(bool v4SettingsChanged, bool v6SettingsChanged) 
 
 	bool autoDetect = false;
 	if(autoDetect4  || autoDetect6) {
-		if((!autoDetectedV4 && autoDetect4) || (!autoDetectedV6 && autoDetect6) || autoSettings.empty()) {
+		if ((!autoDetectedV4 && autoDetect4) || (!autoDetectedV6 && autoDetect6) || autoSettings.empty()) {
 			detectConnection();
 			autoDetect = true;
 		}
 	}
 
-	if (!autoDetect && (v4SettingsChanged || v6SettingsChanged))
+	if (!autoDetect && (v4SettingsChanged || v6SettingsChanged)) {
 		startSocket();
+	}
 
 	if(!autoDetect4 && SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_ACTIVE_UPNP && !runningV4) // previous mappings had failed; try again
 		startMapping(false);
