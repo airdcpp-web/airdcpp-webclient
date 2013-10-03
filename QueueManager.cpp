@@ -1029,7 +1029,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const StringSet& ru
 		userQueue.addDownload(q, d);
 
 		fire(QueueManagerListener::SourcesUpdated(), q);
-		dcdebug("found %s for %s (%u, %u)\n", q->getTarget().c_str(), d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
+		dcdebug("found %s for %s (" I64_FMT ", " I64_FMT ")\n", q->getTarget().c_str(), d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
 		return d;
 	}
 }
@@ -1695,7 +1695,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				d->setOverlapped(false);
 				q->addFinishedSegment(d->getSegment());
 				//dcdebug("Finish segment");
-				dcdebug("Finish segment for %s (%u,%u)\n", d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
+				dcdebug("Finish segment for %s (" I64_FMT ", " I64_FMT ")\n", d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
 
 				if(q->isFinished()) {
 					// Disconnect all possible overlapped downloads

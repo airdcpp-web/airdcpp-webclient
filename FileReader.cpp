@@ -325,7 +325,7 @@ size_t FileReader::readMapped(const string& filename, const DataCallback& callba
 	void* buf = NULL;
 	int64_t size_read = 0;
 
-	uint64_t lastRead = GET_TICK();
+	//uint64_t lastRead = GET_TICK();
 	while (pos < size) {
 		size_read = std::min(size - pos, BUF_SIZE);
 		buf = mmap(0, size_read, PROT_READ, MAP_SHARED, fd, pos);

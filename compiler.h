@@ -60,7 +60,6 @@
 #define strtoll _strtoi64
 #define snprintf _snprintf
 #define snwprintf _snwprintf
-
 #else
 #define snwprintf snprintf
 #endif
@@ -76,22 +75,38 @@
 //#define _SECURE_SCL_THROWS 0
 #define memzero(dest, n) memset(dest, 0, n)
 
+#if !defined(_MSC_VER) && !defined(__BCPLUSPLUS__)
+#if !defined(SIZEOF_LONG_LONG) && !defined(SIZEOF_LONG)
+#if (defined(__alpha__) || defined(__ia64__) || defined(_ARCH_PPC64) \
+	|| defined(__mips64) || defined(__x86_64__))
+/* long should be 64bit */
+#define SIZEOF_LONG 8
+#elif defined(__i386__) || defined(__CORTEX_M3__)
+/* long long should be 64bit */
+#define SIZEOF_LONG_LONG 8
+#endif
+#endif
+#endif
+
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define _LL(x) x##ll
 #define _ULL(x) x##ull
 #define I64_FMT "%I64d"
 #define U64_FMT "%I64d"
+#define SIZET_FMT "%u"
 
 #elif defined(SIZEOF_LONG) && SIZEOF_LONG == 8
 #define _LL(x) x##l
 #define _ULL(x) x##ul
 #define I64_FMT "%ld"
-#define U64_FMT "%ld"
+#define U64_FMT "%lu"
+#define SIZET_FMT "%zu"
 #else
 #define _LL(x) x##ll
 #define _ULL(x) x##ull
 #define I64_FMT "%lld"
-#define U64_FMT "%lld"
+#define U64_FMT "%llu"
+#define SIZET_FMT "%zu"
 #endif
 
 #ifndef NOMINMAX

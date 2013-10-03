@@ -402,12 +402,12 @@ public:
 	}
 	static string toString(long long val) {
 		char buf[32];
-		snprintf(buf, sizeof(buf), I64_FMT, val);
+		snprintf(buf, sizeof(buf), "%lld", val);
 		return buf;
 	}
 	static string toString(unsigned long long val) {
 		char buf[32];
-		snprintf(buf, sizeof(buf), U64_FMT, val);
+		snprintf(buf, sizeof(buf), "%llu", val);
 		return buf;
 	}
 	static string toString(double val) {

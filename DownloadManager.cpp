@@ -630,7 +630,7 @@ void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser)
 					continue;
 				}
 			}
-			dcdebug("Trying to close connection for download 0x%X\n", d);
+			dcdebug("Trying to close connection for download %p\n", d);
 			d->getUserConnection().disconnect(true);
 		}
 	}

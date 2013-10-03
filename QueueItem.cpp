@@ -443,7 +443,7 @@ Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_
 
 	if(!neededParts.empty()) {
 		// select random chunk for download
-		dcdebug("Found chunks: %d\n", neededParts.size());
+		dcdebug("Found chunks: " U64_FMT "\n", neededParts.size());
 		
 		Segment& selected = neededParts[Util::rand(0, neededParts.size())];
 		selected.setSize(std::min(selected.getSize(), targetSize));	// request only wanted size
@@ -477,7 +477,7 @@ Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const Par
 			// new user should finish this chunk more than 2x faster
 			int64_t newChunkLeft = size / lastSpeed;
 			if(2 * newChunkLeft < d->getSecondsLeft()) {
-				dcdebug("Overlapping... old user: %I64d s, new user: %I64d s\n", d->getSecondsLeft(), newChunkLeft);
+				dcdebug("Overlapping... old user: " I64_FMT " s, new user: " I64_FMT " s\n", d->getSecondsLeft(), newChunkLeft);
 				return Segment(d->getStartPos() + pos, size, true);
 			}
 		}
@@ -534,7 +534,7 @@ void QueueItem::addFinishedSegment(const Segment& segment) {
 				done.erase(i++);
 				done.insert(big);
 				if (bundle && !added) {
-					dcdebug("added %u for the bundle (segments merged)\n", newBytes);
+					dcdebug("added " I64_FMT " for the bundle (segments merged)\n", newBytes);
 					bundle->addFinishedSegment(newBytes);
 				}
 				added = true;
@@ -545,7 +545,7 @@ void QueueItem::addFinishedSegment(const Segment& segment) {
 	}
 
 	if (!added && bundle) {
-		dcdebug("added %u for the bundle (no merging)\n", segment.getSize());
+		dcdebug("added " I64_FMT " for the bundle (no merging)\n", segment.getSize());
 		bundle->addFinishedSegment(segment.getSize());
 	}
 }

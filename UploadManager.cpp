@@ -330,6 +330,8 @@ checkslots:
 				is = move(mis);
 				break;
 			}
+		default:
+			dcassert(0);
 		}
 	} catch(const ShareException& e) {
 		aSource.sendError(e.getError());

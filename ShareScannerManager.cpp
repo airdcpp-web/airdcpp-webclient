@@ -569,7 +569,7 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 		int64_t size = File::getSize(sfv.getPath() + aFileName);
 		int64_t speed = 0;
 		if(checkEnd > checkStart) {
-			speed = size * _LL(1000) / (checkEnd - checkStart);
+			speed = size * 1000LL / (checkEnd - checkStart);
 		}
 
 		string message;

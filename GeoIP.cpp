@@ -42,7 +42,7 @@ GeoIP::~GeoIP() {
 const string& GeoIP::getCountry(const string& ip) const {
 	if(geo) {
 		auto id = (v6() ? GeoIP_id_by_addr_v6 : GeoIP_id_by_addr)(geo, ip.c_str());
-		if(id > 0 && id < cache.size()) {
+		if(id > 0 && id < static_cast<int>(cache.size())) {
 			return cache[id];
 		}
 	}
