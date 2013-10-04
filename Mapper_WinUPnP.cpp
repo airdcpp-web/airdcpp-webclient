@@ -37,9 +37,7 @@ namespace dcpp {
 const string Mapper_WinUPnP::name = "Windows UPnP";
 
 Mapper_WinUPnP::Mapper_WinUPnP(const string& localIp, bool v6) :
-Mapper(localIp, v6),
-pUN(0),
-lastPort(0)
+Mapper(localIp, v6)
 {
 }
 

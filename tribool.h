@@ -25,7 +25,7 @@ using boost::indeterminate;
 using boost::tribool;
 
 // conversions between tribools and ints, with 2 being the indeterminate value
-namespace {
+namespace dcpp {
 	inline tribool to3bool(int x) { if (x == 2) return tribool(indeterminate); return tribool(x == 1); }
 	inline int toInt(tribool x) { return x ? 1 : !x ? 0 : 2; }
 

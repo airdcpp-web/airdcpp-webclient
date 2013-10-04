@@ -794,7 +794,6 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 	Util::migrate(indexFile);
 	Util::migrate(dataFile);
 
-	//set the cache size
 	auto hashDataSize = File::getSize(dataFile);
 	auto hashIndexSize = File::getSize(indexFile);
 
@@ -805,6 +804,7 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 			throw HashException();
 		}
 
+		// check the free space for out new databases
 		auto volume = File::getMountPath(Util::getPath(Util::PATH_USER_CONFIG));
 		if (!volume.empty()) {
 			auto freeSpace = File::getFreeSpace(volume);

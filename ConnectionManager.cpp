@@ -875,7 +875,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		}
 
 
-		string remoteCID;
+		/*string remoteCID;
 		if (!cmd.getParam("ID", 0, remoteCID)) {
 			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID missing").addParam("FL", "ID"));
 			dcdebug("CM::onINF missing ID\n");
@@ -888,9 +888,9 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			dcdebug("CM::onINF ID mismatch\n");
 			aSource->disconnect();
 			return;
-		}
+		}*/
 
-		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+		auto user = ClientManager::getInstance()->findUser(CID(cid));
 		aSource->setUser(user);
 
 		if (!aSource->getUser()) {
@@ -905,6 +905,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	}
 
 	if(!checkKeyprint(aSource)) {
+		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Keyprint validation failed"));
 		putConnection(aSource);
 		return;
 	}

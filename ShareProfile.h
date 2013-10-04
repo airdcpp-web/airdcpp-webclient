@@ -60,7 +60,6 @@ class FileList {
 		CriticalSection cs;
 	private:
 		int listN = 0;
-		bool isSavedSuccessfully = false;
 };
 
 class ShareProfileInfo;

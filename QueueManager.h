@@ -312,7 +312,7 @@ private:
 
 	void addBundleUpdate(const BundlePtr& aBundle) noexcept;
 
-	void addFinishedItem(const TTHValue& tth, BundlePtr& aBundle, const string& aTarget, time_t aSize, int64_t aFinished) noexcept;
+	void addFinishedItem(const TTHValue& tth, BundlePtr& aBundle, const string& aTarget, int64_t aSize, time_t aFinished) noexcept;
 
 	void load(const SimpleXML& aXml);
 
