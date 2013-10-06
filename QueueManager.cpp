@@ -2218,20 +2218,24 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 	// multithreaded loading
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_BUNDLES), "Bundle*", File::TYPE_FILE);
 	atomic<long> loaded(0);
-	parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
-		if (Util::getFileExt(path) == ".xml") {
-			QueueLoader loader;
-			try {
-				File f(path, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL, false);
-				SimpleXMLReader(&loader).parse(f);
-			} catch(const Exception& e) {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_LOAD_FAILED, path % e.getError().c_str()), LogManager::LOG_ERROR);
-				File::deleteFile(path);
+	try {
+		parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
+			if (Util::getFileExt(path) == ".xml") {
+				QueueLoader loader;
+				try {
+					File f(path, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL, false);
+					SimpleXMLReader(&loader).parse(f);
+				} catch (const Exception& e) {
+					LogManager::getInstance()->message(STRING_F(BUNDLE_LOAD_FAILED, path % e.getError().c_str()), LogManager::LOG_ERROR);
+					File::deleteFile(path);
+				}
 			}
-		}
-		loaded++;
-		progressF(static_cast<float>(loaded) / static_cast<float>(fileList.size()));
-	});
+			loaded++;
+			progressF(static_cast<float>(loaded) / static_cast<float>(fileList.size()));
+		});
+	} catch (std::exception& e) {
+		LogManager::getInstance()->message("Loading the queue failed: " + string(e.what()), LogManager::LOG_INFO);
+	}
 
 	try {
 		//load the old queue file and delete it

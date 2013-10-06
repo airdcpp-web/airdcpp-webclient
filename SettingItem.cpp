@@ -37,11 +37,11 @@ SettingItem::SettingValue SettingItem::getCurValue(bool useDefault) const {
 }
 
 bool SettingItem::isSet() const {
-	return SettingsManager::getInstance()->isset(key);
+	return SettingsManager::getInstance()->isKeySet(key);
 }
 
 void SettingItem::unset() const {
-	SettingsManager::getInstance()->unset(key);
+	SettingsManager::getInstance()->unsetKey(key);
 }
 
 bool SettingItem::isDefault() const {
@@ -155,7 +155,7 @@ string ProfileSettingItem::profileToString() const {
 
 void ProfileSettingItem::setProfileToDefault(bool reset) const {
 	if (reset)
-		SettingsManager::getInstance()->unset(key);
+		SettingsManager::getInstance()->unsetKey(key);
 
 	if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
 		SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::StrSetting>(key), boost::get<string>(profileValue));

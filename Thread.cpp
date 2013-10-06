@@ -29,47 +29,6 @@ namespace dcpp {
 	
 #ifdef _WIN32
 
-SharedMutex::SharedMutex() {
-	InitializeSRWLock(&psrw);
-}
-
-SharedMutex::~SharedMutex() {
-
-}
-
-void SharedMutex::lock_shared() {
-	AcquireSRWLockShared(&psrw);
-}
-
-void SharedMutex::lock() {
-	AcquireSRWLockExclusive(&psrw);
-}
-
-void SharedMutex::unlock_shared() {
-	ReleaseSRWLockShared(&psrw);
-}
-
-void SharedMutex::unlock() {
-	ReleaseSRWLockExclusive(&psrw);
-}
-
-
-RLock::RLock(SharedMutex& aCS) : cs(&aCS) {
-	aCS.lock_shared();
-}
-
-RLock::~RLock() {
-	cs->unlock_shared();
-}
-
-WLock::WLock(SharedMutex& aCS) : cs(&aCS) {
-	aCS.lock();
-}
-
-WLock::~WLock() {
-	cs->unlock();
-}
-
 DWORD threadId;
 void Thread::start() {
 	join();
@@ -80,33 +39,12 @@ void Thread::start() {
 
 
 #else
-	void Thread::start() {
-		join();
-		if (pthread_create(&threadHandle, NULL, &starter, this) != 0) {
-			throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
-		}
+void Thread::start() {
+	join();
+	if (pthread_create(&threadHandle, NULL, &starter, this) != 0) {
+		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
 	}
+}
 #endif
-
-ConditionalRLock::ConditionalRLock(SharedMutex& aCS, bool aLock) : cs(&aCS), lock(aLock) {
-	if (lock)
-		aCS.lock_shared();
-}
-
-ConditionalRLock::~ConditionalRLock() {
-	if (lock)
-		cs->unlock_shared();
-}
-
-ConditionalWLock::ConditionalWLock(SharedMutex& aCS, bool aLock) : cs(&aCS), lock(aLock) {
-	if (lock)
-		aCS.lock();
-}
-
-ConditionalWLock::~ConditionalWLock() {
-	if (lock)
-		cs->unlock();
-}
-
 
 } // namespace dcpp

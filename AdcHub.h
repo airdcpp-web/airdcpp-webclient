@@ -22,6 +22,7 @@
 #include "typedefs.h"
 
 #include "Client.h"
+#include "CriticalSection.h"
 #include "AdcCommand.h"
 #include "Socket.h"
 

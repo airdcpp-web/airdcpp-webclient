@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Thread.h"
+#include "CriticalSection.h"
 #include "Search.h"
 
 namespace dcpp {

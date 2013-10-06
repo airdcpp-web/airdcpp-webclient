@@ -24,6 +24,8 @@
 #include <boost/noncopyable.hpp>
 
 #include "forward.h"
+
+#include "CriticalSection.h"
 #include "Flags.h"
 #include "FastAlloc.h"
 #include "GetSet.h"

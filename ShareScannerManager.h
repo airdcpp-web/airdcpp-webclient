@@ -25,6 +25,7 @@
 #include "atomic.h"
 
 #include "Bundle.h"
+#include "CriticalSection.h"
 #include "SFVReader.h"
 #include "Speaker.h"
 #include "Singleton.h"

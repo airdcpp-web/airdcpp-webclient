@@ -23,6 +23,7 @@
 #include "ClientManagerListener.h"
 #include "ConnectionManagerListener.h"
 
+#include "CriticalSection.h"
 #include "HintedUser.h"
 #include "Singleton.h"
 #include "UserConnection.h"

@@ -19,7 +19,7 @@
 #if !defined(FAST_ALLOC_H)
 #define FAST_ALLOC_H
 
-#include "Thread.h"
+#include "CriticalSection.h"
 #include "debug.h"
 #include <boost/pool/pool.hpp>
 

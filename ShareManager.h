@@ -26,6 +26,7 @@
 
 #include "AdcSearch.h"
 #include "BloomFilter.h"
+#include "CriticalSection.h"
 #include "Exception.h"
 #include "Flags.h"
 #include "HashBloom.h"

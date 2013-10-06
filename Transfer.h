@@ -20,10 +20,12 @@
 #define DCPLUSPLUS_DCPP_TRANSFER_H_
 
 #include "forward.h"
-#include "MerkleTree.h"
-#include "TimerManager.h"
+
+#include "CriticalSection.h"
 #include "GetSet.h"
+#include "MerkleTree.h"
 #include "Segment.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 

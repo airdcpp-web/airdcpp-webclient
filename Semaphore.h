@@ -22,9 +22,13 @@
 #ifdef _WIN32
 #include "w.h"
 #else
-#include <errno.h>
-#include <semaphore.h>
-#include <sys/time.h>
+	#ifdef APPLE
+		#include "CriticalSection.h"
+	#else
+		#include <errno.h>
+		#include <semaphore.h>
+	#endif
+	#include <sys/time.h>
 #endif
 
 #include "noexcept.h"
@@ -53,6 +57,49 @@ public:
 
 private:
 	HANDLE h;
+#elif defined(APPLE)
+public:
+	Semaphore() noexcept : count(0) { pthread_cond_init(&cond, NULL); }
+	~Semaphore() { pthread_cond_destroy(&cond); }
+	void signal() noexcept {
+		Lock l(cs);
+		count++;
+		pthread_cond_signal(&cond);
+	}
+
+	bool wait() noexcept {
+		Lock l(cs);
+		while (count == 0) {
+			pthread_cond_wait(&cond, &cs.getMutex());
+		}
+		count--;
+		return true;
+	}
+
+	bool wait(uint32_t millis) noexcept {
+		Lock l(cs);
+		if(count == 0) {
+			timeval timev;
+			timespec t;
+			gettimeofday(&timev, NULL);
+			millis+=timev.tv_usec/1000;
+			t.tv_sec = timev.tv_sec + (millis/1000);
+			t.tv_nsec = (millis%1000)*1000*1000;
+			int ret;
+			do {
+				ret = pthread_cond_timedwait(&cond, &cs.getMutex(), &t);
+			} while (ret==0 && count==0);
+			if(ret != 0) {
+				return false;
+			}
+		}
+		count--;
+		return true;
+	}
+private:
+	pthread_cond_t cond;
+	CriticalSection cs;
+	int count;
 #else
 public:
 	Semaphore() noexcept { 

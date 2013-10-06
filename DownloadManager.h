@@ -28,6 +28,7 @@
 #include "Speaker.h"
 
 #include "Bundle.h"
+#include "CriticalSection.h"
 #include "MerkleTree.h"
 
 namespace dcpp {

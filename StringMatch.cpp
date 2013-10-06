@@ -49,7 +49,8 @@ bool StringMatch::operator==(const StringMatch& rhs) const {
 }
 
 struct Prepare : boost::static_visitor<bool> {
-	Prepare(const string& aPattern, bool aWildCard) : pattern(aPattern), wildCard(aWildCard) { }
+	Prepare(const string& aPattern, bool aWildCard) : pattern(aPattern), wildCard(aWildCard) {}
+	Prepare& operator=(const Prepare&) = delete;
 
 	bool operator()(StringSearch::List& s) const {
 		s.clear();
@@ -92,6 +93,7 @@ bool StringMatch::prepare() {
 
 struct Match : boost::static_visitor<bool> {
 	Match(const string& aStr) : str(aStr) { }
+	Match& operator=(const Match&) = delete;
 
 	bool operator()(const StringSearch::List& s) const {
 		for(auto& i: s) {

@@ -22,10 +22,10 @@
 #include "ResourceManager.h"
 #include "Text.h"
 
-#ifndef _WIN32
+/*#ifndef _WIN32
 #include <sys/inotify.h>
 #include <sys/epoll.h>
-#endif
+#endif*/
 
 namespace dcpp {
 

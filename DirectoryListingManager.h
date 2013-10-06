@@ -19,19 +19,18 @@
 #ifndef DCPLUSPLUS_DCPP_DIRECTORYLISTINGMANAGER_H_
 #define DCPLUSPLUS_DCPP_DIRECTORYLISTINGMANAGER_H_
 
-#include "Pointer.h"
-
 #include "forward.h"
-#include "Exception.h"
-#include "Thread.h"
-#include "DirectoryListing.h"
+
 #include "QueueManagerListener.h"
 #include "DirectoryListingManagerListener.h"
+
+#include "CriticalSection.h"
+#include "Exception.h"
+#include "DirectoryListing.h"
+#include "Pointer.h"
 #include "Singleton.h"
 #include "TargetUtil.h"
 #include "TimerManager.h"
-
-#include "Singleton.h"
 
 namespace dcpp {
 

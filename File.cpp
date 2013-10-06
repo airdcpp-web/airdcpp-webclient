@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 #include "File.h"
+#include "Thread.h"
 
 #ifdef _WIN32
 #include "w.h"

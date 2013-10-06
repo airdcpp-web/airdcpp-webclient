@@ -22,6 +22,7 @@
 #include "forward.h"
 
 #include "ClientManagerListener.h"
+#include "CriticalSection.h"
 #include "FastAlloc.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"

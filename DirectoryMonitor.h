@@ -19,21 +19,19 @@
 #ifndef DCPLUSPLUS_DIRECTORY_MONITOR
 #define DCPLUSPLUS_DIRECTORY_MONITOR
 
-#include <functional>
-#include <string>
-
 #include "DirectoryMonitorListener.h"
 #include "Speaker.h"
 
 #include "typedefs.h"
 #include "noexcept.h"
 #include "atomic.h"
-#include "Exception.h"
-#include "Util.h"
 
+#include "Exception.h"
+#include "Semaphore.h"
 #include "TaskQueue.h"
 #include "Thread.h"
-#include "Semaphore.h"
+#include "Util.h"
+
 #include <boost/lockfree/queue.hpp>
 
 using std::string;

@@ -1496,7 +1496,7 @@ private:
 typedef shared_ptr<ShareManager::ShareLoader> ShareLoaderPtr;
 typedef vector<ShareLoaderPtr> LoaderList;
 
-bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
+bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	HashManager::HashPauser pauser;
 
 	Util::migrate(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*");
@@ -1504,7 +1504,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
 	StringList fileList = File::findFiles(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*", File::TYPE_FILE);
 
 	if (fileList.empty()) {
-		if (Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml"))	{
+		if (Util::fileExists(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml")) {
 			//delete the old cache
 			File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Shares.xml");
 		}
@@ -1514,15 +1514,15 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
 	DirMap parents;
 
 	//get the parent dirs
-	for(const auto& p: rootPaths) {
-		if (find_if(rootPaths | map_keys, [&p](const string& path) { return AirUtil::isSub(p.second->getProfileDir()->getPath(), path); } ).base() == rootPaths.end())
+	for (const auto& p : rootPaths) {
+		if (find_if(rootPaths | map_keys, [&p](const string& path) { return AirUtil::isSub(p.second->getProfileDir()->getPath(), path); }).base() == rootPaths.end())
 			parents.insert(p);
 	}
 
 	LoaderList ll;
 
 	//create the info dirs
-	for(const auto& p: fileList) {
+	for (const auto& p : fileList) {
 		if (Util::getFileExt(p) == ".xml") {
 			auto rp = find_if(parents | map_values, [&p](const Directory::Ptr& aDir) { return Util::stricmp(aDir->getProfileDir()->getCacheXmlPath(), p) == 0; });
 			if (rp.base() != parents.end()) { //make sure that subdirs are never listed here...
@@ -1530,7 +1530,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
 					auto loader = new ShareLoader(rp.base()->first, *rp, bloom.get());
 					ll.emplace_back(loader);
 					continue;
-				} catch(...) { }
+				} catch (...) {}
 			}
 		}
 
@@ -1546,25 +1546,29 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
 	atomic<long> loaded(0);
 	bool hasFailed = false;
 
-	//run_parallel<LoaderList, ShareLoader, SimpleXMLReader::ThreadedCallBack::Size>(ll, [&](ShareLoader& loader) {
-	parallel_for_each(ll.begin(), ll.end(), [&](ShareLoaderPtr& i) {
-		//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogManager::LOG_INFO);
-		auto& loader = *i;
-		try {
-			SimpleXMLReader(&loader).parse(*loader.file);
-		} catch(SimpleXMLException& e) {
-			LogManager::getInstance()->message("Error loading " + loader.xmlPath + ": "+  e.getError(), LogManager::LOG_ERROR);
-			hasFailed = true;
-			File::deleteFile(loader.xmlPath);
-		} catch(...) {
-			hasFailed = true;
-			File::deleteFile(loader.xmlPath);
-		}
+	try {
+		parallel_for_each(ll.begin(), ll.end(), [&](ShareLoaderPtr& i) {
+			//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogManager::LOG_INFO);
+			auto& loader = *i;
+			try {
+				SimpleXMLReader(&loader).parse(*loader.file);
+			} catch (SimpleXMLException& e) {
+				LogManager::getInstance()->message("Error loading " + loader.xmlPath + ": " + e.getError(), LogManager::LOG_ERROR);
+				hasFailed = true;
+				File::deleteFile(loader.xmlPath);
+			} catch (...) {
+				hasFailed = true;
+				File::deleteFile(loader.xmlPath);
+			}
 
-		if(progressF) {
-			progressF(static_cast<float>(loaded++) / static_cast<float>(dirCount));
-		}
-	});
+			if (progressF) {
+				progressF(static_cast<float>(loaded++) / static_cast<float>(dirCount));
+			}
+		});
+	} catch (std::exception& e) {
+		hasFailed = true;
+		LogManager::getInstance()->message("Loading the share cache failed: " + string(e.what()), LogManager::LOG_INFO);
+	}
 
 	if (hasFailed)
 		return false;
@@ -2601,14 +2605,19 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			}
 		};
 
-		if (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_ALWAYS || (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_MANUAL && (task->type == TYPE_MANUAL || task->type == TYPE_STARTUP_BLOCKING))) {
-			parallel_for_each(refreshDirs.begin(), refreshDirs.end(), doRefresh);
-		} else {
-			for_each(refreshDirs, doRefresh);
+		try {
+			if (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_ALWAYS || (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_MANUAL && (task->type == TYPE_MANUAL || task->type == TYPE_STARTUP_BLOCKING))) {
+				parallel_for_each(refreshDirs.begin(), refreshDirs.end(), doRefresh);
+			} else {
+				for_each(refreshDirs, doRefresh);
+			}
+		} catch (std::exception& e) {
+			LogManager::getInstance()->message("Refresh failed: " + string(e.what()), LogManager::LOG_INFO);
+			continue;
 		}
 
 		if (aShutdown)
-			goto end;
+			break;
 
 		int64_t totalHash=0;
 		ProfileTokenSet dirtyProfiles;
@@ -2691,7 +2700,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		addMonitoring(monitoring);
 	}
 
-end:
 	{
 		WLock l (dirNames);
 		bundleDirs.clear();
@@ -3070,46 +3078,50 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void(float)> pro
 		//boost::algorithm::copy_if(
 		boost::algorithm::copy_if(rootPaths | map_values, back_inserter(dirtyDirs), [](const Directory::Ptr& aDir) { return aDir->getProfileDir()->getCacheDirty() && !aDir->getParent(); });
 
-		parallel_for_each(dirtyDirs.begin(), dirtyDirs.end(), [&](const Directory::Ptr& d) {
-			string path = d->getProfileDir()->getCacheXmlPath();
-			try {
-				string indent, tmp;
+		try {
+			parallel_for_each(dirtyDirs.begin(), dirtyDirs.end(), [&](const Directory::Ptr& d) {
+				string path = d->getProfileDir()->getCacheXmlPath();
+				try {
+					string indent, tmp;
 
-				//create a backup first in case we get interrupted on creation.
-				File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
-				BufferedOutputStream<false> xmlFile(&ff);
+					//create a backup first in case we get interrupted on creation.
+					File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
+					BufferedOutputStream<false> xmlFile(&ff);
 
-				xmlFile.write(SimpleXML::utf8Header);
-				xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
-				xmlFile.write(LITERAL("\" Path=\""));
-				xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
+					xmlFile.write(SimpleXML::utf8Header);
+					xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
+					xmlFile.write(LITERAL("\" Path=\""));
+					xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
 
-				xmlFile.write(LITERAL("\" Date=\""));
-				xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
-				xmlFile.write(LITERAL("\">\r\n"));
-				indent +='\t';
+					xmlFile.write(LITERAL("\" Date=\""));
+					xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
+					xmlFile.write(LITERAL("\">\r\n"));
+					indent += '\t';
 
-				for(const auto& child: d->directories) {
-					child->toXmlList(xmlFile, d->getProfileDir()->getPath() + child->name.getNormal() + PATH_SEPARATOR, indent, tmp);
+					for (const auto& child : d->directories) {
+						child->toXmlList(xmlFile, d->getProfileDir()->getPath() + child->name.getNormal() + PATH_SEPARATOR, indent, tmp);
+					}
+					d->filesToXmlList(xmlFile, indent, tmp);
+
+					xmlFile.write(LITERAL("</Share>"));
+					xmlFile.flush();
+					ff.close();
+
+					File::deleteFile(path);
+					File::renameFile(path + ".tmp", path);
+				} catch (Exception& e) {
+					LogManager::getInstance()->message("Error saving " + path + ": " + e.getError(), LogManager::LOG_WARNING);
 				}
-				d->filesToXmlList(xmlFile, indent, tmp);
 
-				xmlFile.write(LITERAL("</Share>"));
-				xmlFile.flush();
-				ff.close();
-
-				File::deleteFile(path);
-				File::renameFile(path + ".tmp", path);
-			} catch(Exception& e){
-				LogManager::getInstance()->message("Error saving " + path + ": " + e.getError(), LogManager::LOG_WARNING);
-			}
-
-			d->getProfileDir()->setCacheDirty(false);
-			if (progressF) {
-				cur++;
-				progressF(static_cast<float>(cur) / static_cast<float>(dirtyDirs.size()));
-			}
-		});
+				d->getProfileDir()->setCacheDirty(false);
+				if (progressF) {
+					cur++;
+					progressF(static_cast<float>(cur) / static_cast<float>(dirtyDirs.size()));
+				}
+			});
+		} catch (std::exception& e) {
+			LogManager::getInstance()->message("Saving the share cache failed: " + string(e.what()), LogManager::LOG_INFO);
+		}
 	}
 
 	xml_saving = false;

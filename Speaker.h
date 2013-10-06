@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "Thread.h"
+#include "CriticalSection.h"
 
 #include "noexcept.h"
 

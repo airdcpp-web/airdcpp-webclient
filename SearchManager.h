@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 
 #include "AdcCommand.h"
+#include "CriticalSection.h"
 #include "Search.h"
 #include "SearchManagerListener.h"
 #include "SettingsManager.h"

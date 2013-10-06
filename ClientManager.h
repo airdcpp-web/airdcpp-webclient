@@ -24,6 +24,7 @@
 
 #include "CID.h"
 #include "Client.h"
+#include "CriticalSection.h"
 #include "HintedUser.h"
 #include "OnlineUser.h"
 #include "Search.h"
