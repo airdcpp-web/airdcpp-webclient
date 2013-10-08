@@ -19,10 +19,8 @@
 #define APPNAME "AirDC++"
 #define VERSIONSTRING "2.60"
 #define DCVERSIONSTRING "0.830"
-#define SVNVERSION "$WCREV$"
 
 #define BETAVER
-
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"
@@ -30,24 +28,20 @@
 # define CONFIGURATION_TYPE "x86-32"
 #endif
 
+namespace dcpp {
+	extern const std::string shortVersionString;
+	extern const std::string fullVersionString;
+	int getBuildNumber();
+	string getBuildNumberStr();
+}
+
+#define BUILD_NUMBER_STR getBuildNumberStr()
+#define BUILD_NUMBER getBuildNumber()
+
 #ifdef BETAVER
 #define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
 #else
 #define VERSION_URL "http://version.airdcpp.net/version.xml"
-#endif
-
-# define REVSEPARATOR "r"
-
-#ifdef BETAVER
-# define SHORTVERSIONSTRING	VERSIONSTRING REVSEPARATOR SVNVERSION
-#else
-# define SHORTVERSIONSTRING	VERSIONSTRING
-#endif
-
-#ifdef BETAVER
-# define COMPLETEVERSIONSTRING	_T(APPNAME) _T(" ") _T(VERSIONSTRING) _T(" ") _T(CONFIGURATION_TYPE) _T(" r") _T(SVNVERSION) _T(" / ") _T(DCVERSIONSTRING)
-#else
-# define COMPLETEVERSIONSTRING	_T(APPNAME) _T(" ") _T(VERSIONSTRING) _T(" ") _T(CONFIGURATION_TYPE) _T(" / ") _T(DCVERSIONSTRING)
 #endif
 
 #ifdef NDEBUG

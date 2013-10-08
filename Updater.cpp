@@ -26,7 +26,6 @@
 #include "ZipFile.h"
 #include "version.h"
 
-
 #include <boost/shared_array.hpp>
 
 #include <openssl/rsa.h>
@@ -93,8 +92,7 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath, s
 			DWORD type;
 			::RegQueryValueEx(hk, _T("InstallLocation"), 0, &type, (LPBYTE)Buf, &bufLen);
 			if(Util::stricmp(Text::toT(installPath).c_str(), Buf) == 0) {
-				string tmp = SHORTVERSIONSTRING;
-				::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE)Text::toT(tmp).c_str(), sizeof(TCHAR) * (tmp.length() + 1));
+				::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE) Text::toT(shortVersionString).c_str(), sizeof(TCHAR) * (shortVersionString.length() + 1));
 			}
 			::RegCloseKey(hk);
 		}
@@ -105,7 +103,7 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath, s
 
 void Updater::createUpdate() {
 	auto updaterFilePath = Util::getParentDir(Util::getAppName());
-	string updaterFile = "updater_" ARCH_STR "_" SVNVERSION ".zip";
+	string updaterFile = "updater_" ARCH_STR "_" + BUILD_NUMBER_STR + ".zip";
 
 	StringPairList files;
 	ZipFile::CreateZipFileList(files, Util::getFilePath(Util::getAppName()), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
@@ -129,7 +127,7 @@ void Updater::createUpdate() {
 				if(xml.findChild("UpdateURL")) {
 #endif
 					xml.replaceChildAttrib("TTH", TTH(updaterFilePath + updaterFile));
-					xml.replaceChildAttrib("Build", SVNVERSION);
+					xml.replaceChildAttrib("Build", BUILD_NUMBER_STR);
 					xml.stepIn();
 					xml.setData("http://builds.airdcpp.net/updater/" + updaterFile);
 

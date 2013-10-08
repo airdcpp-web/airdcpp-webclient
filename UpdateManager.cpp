@@ -225,7 +225,7 @@ bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_,
 
 							if(xml.findChild("BuildID")) {
 								xml.stepIn();
-								if (xml.getData() <= SVNVERSION || updated) {
+								if (Util::toInt(xml.getData()) <= BUILD_NUMBER || updated) {
 									//we have an old update for this instance, delete the files
 									cleanTempFiles(Util::getFilePath(updater_));
 									File::deleteFile(uiPath);
@@ -500,7 +500,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		xml.resetCurrentChild();
 
 
-		int ownBuild = Util::toInt(SVNVERSION);
+		int ownBuild = BUILD_NUMBER;
 		string versionString;
 		int remoteBuild = 0;
 

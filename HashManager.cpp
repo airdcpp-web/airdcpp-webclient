@@ -799,7 +799,7 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 
 	bool migrating = hashDataSize != -1 && hashIndexSize != -1;
 	if (migrating) {
-		auto ret = messageF(STRING_F(DB_MIGRATION_INFO, APPNAME " " SHORTVERSIONSTRING) + "\r\n\r\n" + STRING(WANT_CONTINUE), true, false);
+		auto ret = messageF(STRING_F(DB_MIGRATION_INFO, (APPNAME " " + shortVersionString)) + "\r\n\r\n" + STRING(WANT_CONTINUE), true, false);
 		if (!ret) {
 			throw HashException();
 		}

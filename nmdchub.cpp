@@ -964,17 +964,18 @@ void NmdcHub::myInfo(bool alwaysSend) {
 
 
 	string dc;
-	string version = DCVERSIONSTRING;
+	string version;
 
 	if (getStealth()) {
 		dc = "++";
+		version = DCVERSIONSTRING;
 	} else {
 		dc = APPNAME;
 
 		status |= Identity::AIRDC;
 
 
-		version = SHORTVERSIONSTRING;
+		version = shortVersionString;
 		if(AirUtil::getAway()) {
 			status |= Identity::AWAY;
 		}
