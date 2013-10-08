@@ -57,7 +57,7 @@ public:
 
 private:
 	HANDLE h;
-#elif defined(APPLE)
+#elif defined(__APPLE__)
 public:
 	Semaphore() noexcept : count(0) { pthread_cond_init(&cond, NULL); }
 	~Semaphore() { pthread_cond_destroy(&cond); }

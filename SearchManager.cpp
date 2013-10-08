@@ -306,7 +306,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		TTHValue th;
 		if (type == SearchResult::TYPE_DIRECTORY || SettingsManager::lanMode) {
 			//calculate a TTH from the directory name and size
-			th = AirUtil::getTTH(type == SearchResult::TYPE_FILE ? Util::getFileName(file) : Util::getLastDir(file), size);
+			th = AirUtil::getTTH(type == SearchResult::TYPE_FILE ? Util::getNmdcFileName(file) : Util::getLastDir(file), size);
 		} else {
 			th = TTHValue(tth);
 		}

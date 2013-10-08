@@ -303,7 +303,7 @@ SettingsManager::SettingsManager()
 	setDefault(LOG_FORMAT_SYSTEM, "[%Y-%m-%d %H:%M] %[message]");
 	setDefault(LOG_FILE_MAIN_CHAT, "%[hubURL].log");
 	setDefault(LOG_FILE_STATUS, "%[hubURL]_status.log");
-	setDefault(LOG_FILE_PRIVATE_CHAT, "PM\\%B - %Y\\%[userNI].log");
+	setDefault(LOG_FILE_PRIVATE_CHAT, "PM" + string(PATH_SEPARATOR_STR) + "%B - %Y" + string(PATH_SEPARATOR_STR) + "%[userNI].log");
 	setDefault(LOG_FILE_UPLOAD, "Uploads.log");
 	setDefault(LOG_FILE_DOWNLOAD, "Downloads.log");
 	setDefault(LOG_FILE_SYSTEM, "system.log");
@@ -800,7 +800,7 @@ SettingsManager::SettingsManager()
 	setDefault(SKIP_EMPTY_DIRS_SHARE, true);
 
 	setDefault(LOG_SHARE_SCANS, false);
-	setDefault(LOG_SHARE_SCAN_PATH, "Scan Results\\Scan %Y-%m-%d %H:%M.log");
+	setDefault(LOG_SHARE_SCAN_PATH, "Scan Results" + string(PATH_SEPARATOR_STR) + "Scan %Y-%m-%d %H:%M.log");
 
 	setDefault(LAST_FL_FILETYPE, "0");
 	setDefault(ACCEPT_FAILOVERS, true);

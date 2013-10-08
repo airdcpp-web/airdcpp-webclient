@@ -828,23 +828,23 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 		}
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
 		ClientManager* cm = ClientManager::getInstance();
-		cm->lockRead();
-		OnlineUser* u = cm->findOnlineUser(sr->getUser());
+		{
+			RLock l(cm->getCS());
+			OnlineUser* u = cm->findOnlineUser(sr->getUser());
 
-		if(u) {
-			Client* client = &u->getClient();
-			if(client && client->isConnected()) {
-				//TODO: use magnet link
-				client->Message(STRING(AUTO_SEARCH) + ": " + STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()));
-			}
+			if (u) {
+				Client* client = &u->getClient();
+				if (client && client->isConnected()) {
+					//TODO: use magnet link
+					client->Message(STRING(AUTO_SEARCH) + ": " + STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()));
+				}
 
-			if(as->getRemove()) {
-				removeAutoSearch(as);
-				logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), false);
+				if (as->getRemove()) {
+					removeAutoSearch(as);
+					logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), false);
+				}
 			}
 		}
-
-		cm->unlockRead();
 	}
 }
 

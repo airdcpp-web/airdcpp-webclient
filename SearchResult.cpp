@@ -87,7 +87,7 @@ AdcCommand SearchResult::toRES(char aType) const {
 
 string SearchResult::getFileName() const { 
 	if(getType() == TYPE_FILE) 
-		return Util::getFileName(path); 
+		return Util::getNmdcFileName(path); 
 
 	return Util::getNmdcLastDir(path);
 }

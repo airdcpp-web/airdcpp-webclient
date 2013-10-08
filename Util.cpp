@@ -143,7 +143,10 @@ string Util::getOpenPath(const string& aFileName) {
 }
 
 void Util::addParam(const string& aParam) {
-	if (find(params.begin(), params.end(), aParam) == params.end())
+	if (aParam.empty())
+		return;
+
+	if (!hasParam(aParam))
 		params.push_back(aParam);
 }
 
@@ -151,12 +154,22 @@ bool Util::hasParam(const string& aParam) {
 	return find(params.begin(), params.end(), aParam) != params.end();
 }
 
-tstring Util::getParams(bool isFirst) {
+string Util::getParams(bool isFirst) {
 	if (params.empty()) {
-		return Util::emptyStringT;
+		return Util::emptyString;
 	}
 
-	return Text::toT((isFirst ? Util::emptyString : " ") + Util::toString(" ", params)).c_str();
+	return string(isFirst ? Util::emptyString : " ") + Util::toString(" ", params);
+}
+
+optional<string> Util::getParam(const string& aKey) {
+	for (const auto& p : params) {
+		auto pos = p.find("=");
+		if (pos != string::npos && pos != p.length() && Util::strnicmp(p, aKey, pos) == 0)
+			return p.substr(pos + 1, p.length() - pos - 1);
+	}
+
+	return nullptr;
 }
 
 string Util::getAppName() {
@@ -302,6 +315,14 @@ void Util::migrate(const string& aDir, const string& aPattern) {
 }
 
 void Util::loadBootConfig() {
+#ifndef _WIN32
+	auto c = getParam("-c");
+	if (c) {
+		paths[PATH_USER_CONFIG] = *c;
+		return;
+	}
+#endif
+
 	// Load boot settings
 	try {
 		SimpleXML boot;

@@ -563,8 +563,9 @@ public:
 	static double randd() { return ((double)rand()) / ((double)0xffffffff); }
 
 	static bool hasParam(const string& aParam);
-	static tstring getParams(bool isFirst);
+	static string getParams(bool isFirst);
 	static void addParam(const string& aParam);
+	static optional<string> getParam(const string& aKey);
 
 	static bool usingLocalMode() { return localMode; }
 	static bool wasUncleanShutdown;
