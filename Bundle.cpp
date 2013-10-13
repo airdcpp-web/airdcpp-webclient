@@ -41,19 +41,18 @@ using boost::range::find_if;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr& qi, const string& aToken /*empty*/, bool aDirty /*true*/) noexcept : 
-	Bundle(qi->getTarget(), qi->getAdded(), qi->getPriority(), 0, aToken, aDirty, true) {
+Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, const string& aToken /*empty*/, bool aDirty /*true*/) noexcept :
+	Bundle(qi->getTarget(), qi->getAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
 
 	finishedSegments = qi->getDownloadedSegments();
 	currentDownloaded = qi->getDownloadedBytes();
 	setAutoPriority(qi->getAutoPriority());
 
-	qi->setBundle(this);
-	queueItems.push_back(qi);
+	addQueue(qi);
 }
 
-Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aDirDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
-	QueueItemBase(aTarget, 0, aPriority, aAdded), dirDate(aDirDate), fileBundle(isFileBundle), dirty(aDirty) {
+Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
+	QueueItemBase(aTarget, 0, aPriority, aAdded), bundleDate(aBundleDate), fileBundle(isFileBundle), dirty(aDirty) {
 
 	if (aToken.empty()) {
 		token = ConnectionManager::getInstance()->tokens.getToken();
@@ -63,15 +62,15 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t 
 
 	setTarget(aTarget);
 	auto time = GET_TIME();
-	if (dirDate > 0) {
+	if (bundleDate > 0) {
 		checkRecent();
 	} else {
 		//make sure that it won't be set as recent but that it will use the random order
-		dirDate = time - SETTING(RECENT_BUNDLE_HOURS)*60*60;
+		bundleDate = time - SETTING(RECENT_BUNDLE_HOURS) * 60 * 60;
 	}
 
 	/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
-	seqOrder = (dirDate + (7*24*60*60)) < time;
+	seqOrder = (bundleDate + (7 * 24 * 60 * 60)) < time;
 
 	if (aPriority != DEFAULT) {
 		setAutoPriority(false);
@@ -103,7 +102,7 @@ void Bundle::setTarget(const string& aTarget) noexcept {
 }
 
 bool Bundle::checkRecent() noexcept {
-	recent = (SETTING(RECENT_BUNDLE_HOURS) > 0 && (dirDate + (SETTING(RECENT_BUNDLE_HOURS)*60*60)) > GET_TIME());
+	recent = (SETTING(RECENT_BUNDLE_HOURS) > 0 && (bundleDate + (SETTING(RECENT_BUNDLE_HOURS) * 60 * 60)) > GET_TIME());
 	return recent;
 }
 
@@ -920,6 +919,8 @@ void Bundle::save() noexcept {
 		f.write(LIT("<File Version=\"" FILE_BUNDLE_VERSION));
 		f.write(LIT("\" Token=\""));
 		f.write(token);
+		f.write(LIT("\" Date=\""));
+		f.write(Util::toString(bundleDate));
 		f.write(LIT("\">\r\n"));
 		queueItems.front()->save(f, tmp, b32tmp);
 		f.write(LIT("</File>\r\n"));
@@ -932,7 +933,7 @@ void Bundle::save() noexcept {
 		f.write(LIT("\" Added=\""));
 		f.write(Util::toString(getAdded()));
 		f.write(LIT("\" Date=\""));
-		f.write(Util::toString(dirDate));
+		f.write(Util::toString(bundleDate));
 		if (!getAutoPriority()) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)getPriority()));

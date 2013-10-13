@@ -20,7 +20,7 @@
 #define VERSIONSTRING "2.60"
 #define DCVERSIONSTRING "0.830"
 
-#define BETAVER
+//#define BETAVER
 
 #ifdef _WIN64
 # define CONFIGURATION_TYPE "x86-64"

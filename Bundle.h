@@ -128,14 +128,14 @@ public:
 
 
 	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, const string& aToken = Util::emptyString, bool aDirty = true, bool isFileBundle = false) noexcept;
-	Bundle(QueueItemPtr& qi, const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
+	Bundle(QueueItemPtr& qi, time_t aBundleDate, const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
 	~Bundle() noexcept;
 
 	GETSET(string, token, Token);
 	GETSET(string, lastError, LastError);
 
 	IGETSET(Status, status, Status, STATUS_NEW);
-	IGETSET(time_t, dirDate, DirDate, 0);				// the directory modify date picked from the remote filelist when the bundle has been queued
+	IGETSET(time_t, bundleDate, BundleDate, 0);				// the file/directory modify date picked from the remote filelist when the bundle has been queued
 	IGETSET(uint64_t, start, Start, 0);
 	IGETSET(time_t, lastSearch, LastSearch, 0);				// last time when the bundle was searched for
 	IGETSET(bool, simpleMatching, SimpleMatching, true);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path

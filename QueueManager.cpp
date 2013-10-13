@@ -2204,6 +2204,7 @@ private:
 	bool inBundle;
 	bool inFile;
 	string curToken;
+	time_t bundleDate = 0;
 
 	int version;
 	QueueManager* qm;
@@ -2303,6 +2304,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		inDownloads = true;
 	} else if (!inFile && name == sFile) {
 		curToken = getAttrib(attribs, sToken, 1);
+		bundleDate = Util::toInt64(getAttrib(attribs, sDate, 2));
 		inFile = true;
 		version = Util::toInt(getAttrib(attribs, sVersion, 0));
 		if (version == 0 || version > Util::toInt(FILE_BUNDLE_VERSION))
@@ -2379,10 +2381,10 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 					qm->bundleQueue.addBundleItem(qi, curBundle);
 				} else if (inDownloads) {
 					//assign bundles for the items in the old queue file
-					curBundle = new Bundle(qi);
+					curBundle = new Bundle(qi, 0);
 				} else if (inFile && !curToken.empty()) {
 					if (ConnectionManager::getInstance()->tokens.addToken(curToken)) {
-						curBundle = new Bundle(qi, curToken, false);
+						curBundle = new Bundle(qi, bundleDate, curToken, false);
 					} else {
 						qm->fileQueue.remove(qi);
 						throw Exception("Duplicate token");
@@ -3390,7 +3392,7 @@ void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, B
 		WLock l(cs);
 		//get the target bundle
 
-		newBundle = getBundle(aTarget, sourceBundle->getPriority(), sourceBundle->getDirDate(), false);
+		newBundle = getBundle(aTarget, sourceBundle->getPriority(), sourceBundle->getBundleDate(), false);
 		if (newBundle->getStatus() == Bundle::STATUS_NEW && aSource == sourceBundle->getTarget()) {
 			//no need to create a new bundle
 			newBundle = sourceBundle;
@@ -3521,7 +3523,7 @@ void QueueManager::moveFiles(const StringPairList& sourceTargetList) noexcept {
 				}
 
 				auto oldBundle = qi->getBundle();
-				auto b = getBundle(qi->getTarget(), oldBundle->getPriority(), oldBundle->getDirDate(), true);
+				auto b = getBundle(qi->getTarget(), oldBundle->getPriority(), oldBundle->getBundleDate(), true);
 				if ((oldBundle->isFileBundle() && b->getStatus() == Bundle::STATUS_NEW) || b == oldBundle) {
 					//keep in the same bundle
 					if (qi->getBundle()->isFileBundle()) {
