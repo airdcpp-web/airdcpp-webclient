@@ -28,7 +28,7 @@
 
 namespace dcpp {
 #ifdef BETAVER
-	const std::string shortVersionString(VERSIONSTRING " r" xstrver(BUILD_NUMBER_INT));
+	const std::string shortVersionString(VERSIONSTRING "r" xstrver(BUILD_NUMBER_INT));
 	const std::string fullVersionString(APPNAME " " VERSIONSTRING " " CONFIGURATION_TYPE " r" xstrver(BUILD_NUMBER_INT) " / " DCVERSIONSTRING);
 #else
 	const std::string shortVersionString(VERSIONSTRING);
