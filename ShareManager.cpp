@@ -1457,7 +1457,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 				hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading file list %s \n", e.getError().c_str());
 			}
-		} else if (compare(name, SHARE)) {
+		} else if (compare(name, SHARE) == 0) {
 			int version = Util::toInt(getAttrib(attribs, SVERSION, 0));
 			if (version > Util::toInt(SHARE_CACHE_VERSION))
 				throw("Newer cache version"); //don't load those...
@@ -1580,13 +1580,15 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 
 	mergeRefreshChanges(ll, dirNameMap, newRoots, tthIndex, hashSize, sharedSize, nullptr);
 
+	//make sure that the subprofiles are added too
+	for (auto& p: newRoots)
+		rootPaths[p.first] = p.second;
+
 	//were all parents loaded?
 	StringList refreshPaths;
 	for (auto& i: parents) {
 		auto p = newRoots.find(i.first);
-		if (p != newRoots.end()) {
-			rootPaths[i.first] = p->second;
-		} else {
+		if (p == newRoots.end()) {
 			//add for refresh
 			refreshPaths.push_back(i.second->getProfileDir()->getPath());
 		}

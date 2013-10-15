@@ -163,6 +163,11 @@ public:
 
 	// set fatalError to true if the client shouldn't try to reconnect automatically
 	void failDownload(const string& aToken, const string& aError, bool fatalError);
+
+	SharedMutex& getCS() { return cs; }
+	const ConnectionQueueItem::List& getConnections(bool aDownloads) const {
+		return aDownloads ? downloads : uploads;
+	}
 private:
 	bool allowNewMCN(const ConnectionQueueItem* aCQI);
 	void createNewMCN(const HintedUser& aUser);

@@ -718,17 +718,26 @@ void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSiz
 }
 
 void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) throw(DbException) {
+	auto hashDataPath = Util::getPath(Util::PATH_USER_CONFIG) + "HashData" + PATH_SEPARATOR;
+	auto fileIndexPath = Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex" + PATH_SEPARATOR;
+
+	File::ensureDirectory(hashDataPath);
+	File::ensureDirectory(fileIndexPath);
+
+	Util::migrate(fileIndexPath, "*");
+	Util::migrate(hashDataPath, "*");
+
 	uint32_t cacheSize = static_cast<uint32_t>(Util::convertSize(max(SETTING(DB_CACHE_SIZE), 1), Util::MB));
 	auto blockSize = File::getBlockSize(Util::getPath(Util::PATH_USER_CONFIG));
 
 	// Use the file system block size in here. Using a block size smaller than that reduces the performance significantly especially when writing a lot of data (e.g. when migrating the data)
 	// The default cache size of 8 MB is able to hold approximately 256-512 trees with the block size of 16KB which should be enough for most common transfers (should the size be increased with larger block size?)
 	// The number of open files doesn't matter here since the tree lookups are very much random (20 is the minimum allowed by LevelDB). The data won't compress so no need to even try it.
-	hashDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData", STRING(HASH_DATA), cacheSize, 20, false, max(static_cast<int64_t>(16*1024), blockSize)));
+	hashDb.reset(new LevelDB(hashDataPath, STRING(HASH_DATA), cacheSize, 20, false, max(static_cast<int64_t>(16*1024), blockSize)));
 
 	// Use a large block size and allow more open files because the reads are nearly sequential in here (but done with multiple threads). 
 	// The default database sorting isn't perfect when having files and folders mixed within the same directory but that shouldn't be a big issue (avoid using custom comparison function for now...)
-	fileDb.reset(new LevelDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex", STRING(FILE_INDEX), cacheSize, 50, true, 64*1024));
+	fileDb.reset(new LevelDB(fileIndexPath, STRING(FILE_INDEX), cacheSize, 50, true, 64*1024));
 
 
 	//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));

@@ -140,6 +140,10 @@ public:
 	GETSET(uint8_t, extra, Extra);
 	GETSET(uint64_t, lastGrant, LastGrant);
 
+	SharedMutex& getCS() { return cs; }
+	const UploadList& getUploads() const {
+		return uploads;
+	}
 private:
 	StringMatch freeSlotMatcher;
 

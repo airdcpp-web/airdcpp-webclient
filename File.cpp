@@ -209,7 +209,7 @@ bool File::isHidden(const string& aPath) noexcept {
 		return ff->isHidden();
 	}
 
-	return true;
+	return false;
 }
 
 bool File::deleteFile(const string& aFileName) noexcept {

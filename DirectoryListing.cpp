@@ -817,7 +817,7 @@ void DirectoryListing::runTasks() noexcept {
 
 void DirectoryListing::waitActionFinish() const noexcept {
 	while (waiting)
-		sleep(50);
+		sleep(10);
 }
 
 int DirectoryListing::run() {

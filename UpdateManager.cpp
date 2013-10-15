@@ -59,7 +59,7 @@ UpdateManager::UpdateManager() : installedUpdate(0), lastIPUpdate(GET_TICK()) {
 	links.geoip6 = "http://geoip6.airdcpp.net";
 	links.geoip4 = "http://geoip4.airdcpp.net";
 	links.guides = links.homepage + "guides/";
-	links.customize = links.homepage + "c/customizations/";
+	links.customize = links.homepage + "customizations/";
 	links.discuss = links.homepage + "forum/";
 	links.ipcheck4 = "http://checkip.dyndns.org/";
 	links.ipcheck6 = "http://checkip.dyndns.org/";
