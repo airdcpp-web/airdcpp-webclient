@@ -159,7 +159,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 
 bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget) noexcept {
 	auto getList = [&] {
-		addDirectoryDownload(di->getListPath(), di->getBundleName(), aList->getHintedUser(), di->getTarget(), di->getTargetType(), di->getSizeConfirm(), di->getPriority(), di->getRecursiveListAttempted() ? true : false, 0, false, false);
+		addDirectoryDownload(di->getListPath(), di->getBundleName(), aList->getHintedUser(), di->getTarget(), di->getTargetType(), di->getSizeConfirm(), di->getPriority(), di->getRecursiveListAttempted() ? true : false, di->getAutoSearch(), false, false);
 	};
 
 	auto dir = aList->findDirectory(di->getListPath());
@@ -188,16 +188,14 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, Dir
 			//we have downloaded with this dirname before...
 			if (p->second->getState() == FinishedDirectoryItem::REJECTED) {
 				return;
-			}
-			else if (p->second->getState() == FinishedDirectoryItem::ACCEPTED) {
+			} else if (p->second->getState() == FinishedDirectoryItem::ACCEPTED) {
 				//download directly
 				di->setTargetType(TargetUtil::TARGET_PATH);
 				di->setTarget(p->second->getTargetPath());
 				di->setPriority(p->second->getUsePausedPrio() ? QueueItem::PAUSED : di->getPriority());
 				di->setSizeConfirm(NO_CHECK);
 				directDownload = true;
-			}
-			else if (p->second->getState() == FinishedDirectoryItem::WAITING_ACTION) {
+			} else if (p->second->getState() == FinishedDirectoryItem::WAITING_ACTION) {
 				//add in the list to wait for action
 				di->setListing(aList);
 				di->setTarget(p->second->getTargetPath());
@@ -238,8 +236,7 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, Dir
 
 		string msg = TargetUtil::getInsufficientSizeMessage(ti, dirSize);
 		fire(DirectoryListingManagerListener::PromptAction(), [&](bool accepted) { handleSizeConfirmation(fi, accepted); }, msg);
-	}
-	else {
+	} else {
 		if (download(di, aList, ti.targetDir)) {
 			WLock l(cs);
 			finishedListings.emplace(di->getFinishedDirName(), new FinishedDirectoryItem(false, ti.targetDir));
