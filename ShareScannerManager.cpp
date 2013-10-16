@@ -257,7 +257,7 @@ void ShareScannerManager::find(const string& aPath, const string& aPathLower, Sc
 	string dirLower;
 	
 	File::forEachFile(aPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
-		if (!isDir)
+		if (!isDir || stop)
 			return;
 
 		dir = aPath + aFileName;

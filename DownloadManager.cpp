@@ -233,7 +233,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	StringSet runningBundles;
 	getRunningBundles(runningBundles);
 
-	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType);
+	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType, aConn->getSpeed());
 
 	// not a finished download?
 	if(!start && aConn->getState() != UserConnection::STATE_RUNNING) {

@@ -353,7 +353,7 @@ void ConnectionManager::createNewMCN(const HintedUser& aUser) {
 	StringSet runningBundles;
 	DownloadManager::getInstance()->getRunningBundles(runningBundles);
 
-	auto start = QueueManager::getInstance()->startDownload(aUser, runningBundles, ClientManager::getInstance()->getHubSet(aUser.user->getCID()), QueueItem::TYPE_MCN_NORMAL);
+	auto start = QueueManager::getInstance()->startDownload(aUser, runningBundles, ClientManager::getInstance()->getHubSet(aUser.user->getCID()), QueueItem::TYPE_MCN_NORMAL, 0); // don't overlap...
 	if (start) {
 		WLock l (cs);
 		ConnectionQueueItem* cqiNew = getCQI(aUser, true);

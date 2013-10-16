@@ -1079,11 +1079,11 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runnin
 	return true;
 }
 
-bool QueueManager::startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType) noexcept {
+bool QueueManager::startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType, int64_t aLastSpeed) noexcept{
 	QueueItemPtr qi = nullptr;
 	{
 		RLock l(cs);
-		qi = userQueue.getNext(aUser, runningBundles, onlineHubs, QueueItem::LOWEST, 0, 0, aType);
+		qi = userQueue.getNext(aUser, runningBundles, onlineHubs, QueueItem::LOWEST, 0, aLastSpeed, aType);
 	}
 
 	return allowStartQI(qi, runningBundles);
