@@ -1813,6 +1813,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Application directories cannot be shared because they may contain passwords and other sensitive information", 
 "A completed item %1% has been removed", 
 "Override limiter", 
+"Clear", 
 "End time must be greater than the start time!", 
 };
 std::string dcpp::ResourceManager::names[] = {
@@ -3627,5 +3628,6 @@ std::string dcpp::ResourceManager::names[] = {
 "DontShareAppDirectory", 
 "CompleteItemXRemoved", 
 "OverrideLimiter", 
+"Clear", 
 "AsEndGreater", 
 };
