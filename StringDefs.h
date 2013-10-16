@@ -1817,7 +1817,6 @@ enum Strings { // @DontAdd
 	DONT_SHARE_APP_DIRECTORY, // "Application directories cannot be shared because they may contain passwords and other sensitive information"
 	COMPLETE_ITEM_X_REMOVED, // "A completed item %1% has been removed"
 	OVERRIDE_LIMITER, // "Override limiter"
-	CLEAR, // "Clear"
 	AS_END_GREATER, // "End time must be greater than the start time!"
 	LAST // @DontAdd
 };
