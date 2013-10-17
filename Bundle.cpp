@@ -908,7 +908,7 @@ void Bundle::sendSizeNameUpdate() noexcept {
 /* ONLY CALLED FROM DOWNLOADMANAGER END */
 
 
-void Bundle::save() noexcept {
+void Bundle::save() throw(FileException) {
 	File ff(getBundleFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 	BufferedOutputStream<false> f(&ff);
 	f.write(SimpleXML::utf8Header);
@@ -961,10 +961,9 @@ void Bundle::save() noexcept {
 
 	f.flush();
 	ff.close();
-	try {
-		File::deleteFile(getBundleFile());
-		File::renameFile(getBundleFile() + ".tmp", getBundleFile());
-	} catch(...) { }
+
+	File::deleteFile(getBundleFile());
+	File::renameFile(getBundleFile() + ".tmp", getBundleFile());
 	
 	dirty = false;
 }

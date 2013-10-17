@@ -434,8 +434,8 @@ void BundleQueue::saveQueue(bool force) noexcept {
 		if (!b->isFinished() && (b->getDirty() || force)) {
 			try {
 				b->save();
-			} catch(...) {
-				LogManager::getInstance()->message("Failed to save the bundle " + b->getName(), LogManager::LOG_ERROR);
+			} catch(FileException& e) {
+				LogManager::getInstance()->message("Failed to save the bundle " + b->getName() + ": " + e.getError(), LogManager::LOG_ERROR);
 			}
 		}
 	}

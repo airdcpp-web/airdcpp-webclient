@@ -107,7 +107,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 
 		{
 			WLock l(cs);
-			for(auto i: downloads) {
+			for(const auto& i: downloads) {
 				cqi = i;
 				if (cqi->getUser() == aUser.user && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 					if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1)) {
@@ -197,13 +197,13 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 
 void ConnectionManager::onUserUpdated(const UserPtr& aUser) {
 	RLock l(cs);
-	for(auto cqi: downloads) {
+	for(const auto& cqi: downloads) {
 		if(cqi->getUser() == aUser) {
 			fire(ConnectionManagerListener::UserUpdated(), cqi);
 		}
 	}
 
-	for(auto cqi: uploads) {
+	for(const auto& cqi: uploads) {
 		if(cqi->getUser() == aUser) {
 			fire(ConnectionManagerListener::UserUpdated(), cqi);
 		}
@@ -331,7 +331,7 @@ bool ConnectionManager::allowNewMCN(const ConnectionQueueItem* aCQI) {
 
 	//count the running MCN connections
 	int running = 0;
-	for(auto cqi: downloads) {
+	for(const auto& cqi: downloads) {
 		if (cqi->getUser() == aCQI->getUser() && cqi->getType() != ConnectionQueueItem::TYPE_SMALL_CONF && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 			if (cqi->getState() != ConnectionQueueItem::RUNNING && cqi->getState() != ConnectionQueueItem::ACTIVE) {
 				return false;

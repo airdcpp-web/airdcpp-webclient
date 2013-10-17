@@ -22,6 +22,7 @@
 #include <string>
 #include <set>
 
+#include "File.h"
 #include "HashValue.h"
 #include "TigerHash.h"
 #include "HintedUser.h"
@@ -192,7 +193,7 @@ public:
 
 	/* QueueManager */
 	bool isFailed() const noexcept;
-	void save() noexcept;
+	void save() throw(FileException);
 	bool removeQueue(QueueItemPtr& qi, bool finished) noexcept;
 	bool addQueue(QueueItemPtr& qi) noexcept;
 
