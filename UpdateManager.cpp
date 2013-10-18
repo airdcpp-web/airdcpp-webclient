@@ -50,7 +50,7 @@
 
 namespace dcpp {
 
-UpdateManager::UpdateManager() : installedUpdate(0), lastIPUpdate(GET_TICK()) {
+UpdateManager::UpdateManager() : installedUpdate(0,0), lastIPUpdate(GET_TICK()) {
 	TimerManager::getInstance()->addListener(this);
 	sessionToken = Util::toString(Util::rand());
 
@@ -129,7 +129,7 @@ void UpdateManager::cleanTempFiles(const string& tmpPath) {
 }
 
 #ifdef _WIN32
-void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
+void UpdateManager::completeUpdateDownload(double clientVersion, int buildID, bool manualCheck) {
 	auto& conn = conns[CONN_CLIENT];
 	ScopedFunctor([&conn] { conn.reset(); });
 
@@ -180,7 +180,10 @@ void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
 			xml.addTag("DestinationPath", dstPath);
 			xml.addTag("SourcePath", srcPath);
 			xml.addTag("UpdaterFile", updaterFile);
-			xml.addTag("BuildID", buildID);
+			xml.addTag("Version", Util::toString(clientVersion));
+			xml.addTag("BuildID");
+			xml.addChildAttrib("Version", Util::toString(clientVersion));
+			xml.addChildAttrib("Commit", buildID);
 			xml.stepOut();
 
 			File f(UPDATE_TEMP_DIR + "UpdateInfo_" + sessionToken + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
@@ -189,7 +192,7 @@ void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
 			f.close();
 
 			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogManager::LOG_INFO);
-			installedUpdate = buildID;
+			installedUpdate = { clientVersion, buildID };
 
 			conn.reset(); //prevent problems when closing
 			fire(UpdateManagerListener::UpdateComplete(), updaterFile);
@@ -223,9 +226,10 @@ bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_,
 							updater_ = xml.getData();
 							xml.stepOut();
 
-							if(xml.findChild("BuildID")) {
-								xml.stepIn();
-								if (Util::toInt(xml.getData()) <= BUILD_NUMBER || updated) {
+							if (xml.findChild("BuildID")) {
+								double v = Util::toDouble(xml.getChildAttrib("Version"));
+								int c = Util::toInt(xml.getChildAttrib("Commit"));
+								if ((v < Util::toDouble(VERSIONSTRING) || (v == Util::toDouble(VERSIONSTRING) && c <= COMMIT_NUMBER)) || updated) {
 									//we have an old update for this instance, delete the files
 									cleanTempFiles(Util::getFilePath(updater_));
 									File::deleteFile(uiPath);
@@ -252,7 +256,7 @@ bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_,
 	return false;
 }
 
-void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
+void UpdateManager::completeUpdateDownload(double clientVersion, int buildID, bool manualCheck) {
 
 }
 
@@ -402,7 +406,7 @@ void UpdateManager::completeLanguageDownload() {
 	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % conn->status), LogManager::LOG_WARNING);
 }
 
-bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {
+bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild, double& versionDouble) {
 	while (xml.findChild("VersionInfo")) {
 		//the latest OS must come first
 		if (Util::toDouble(xml.getChildAttrib("MinOsVersion")) > Util::toDouble(Util::getOsVersion(false, true)))
@@ -412,14 +416,15 @@ bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& r
 
 		if(xml.findChild("Version")) {
 			versionString = xml.getChildData();
+			versionDouble = Util::toDouble(versionString);
 			xml.resetCurrentChild();
 #ifdef BETAVER
 			if(xml.findChild(UPGRADE_TAG)) {
-				remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
-				versionString += "r" + Util::toString(remoteBuild);
+				remoteBuild = Util::toInt(xml.getChildAttrib("Commit"));
+				versionString += "-" + Util::toString(remoteBuild);
 			}
 #else
-			if (xml.findChild("Build")) {
+			if (xml.findChild("Commit")) {
 				remoteBuild = Util::toInt(xml.getChildData());
 			}
 #endif
@@ -500,11 +505,12 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		xml.resetCurrentChild();
 
 
-		int ownBuild = BUILD_NUMBER;
+		int ownBuild = COMMIT_NUMBER;
 		string versionString;
 		int remoteBuild = 0;
+		double versionDouble = 0;
 
-		if (getVersionInfo(xml, versionString, remoteBuild)) {
+		if (getVersionInfo(xml, versionString, remoteBuild, versionDouble)) {
 
 			//Get the update information from the XML
 			string updateUrl;
@@ -512,7 +518,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			if(xml.findChild(UPGRADE_TAG)) {
 				updateUrl = xml.getChildData();
 				updateTTH = xml.getChildAttrib("TTH");
-				autoUpdateEnabled = (verified && xml.getIntChildAttrib("MinUpdateRev") <= ownBuild);
+				autoUpdateEnabled = (verified && versionDouble > Util::toDouble(VERSIONSTRING) || versionDouble == Util::toDouble(VERSIONSTRING) &&  xml.getIntChildAttrib("MinUpdateRev") <= ownBuild);
 			}
 			xml.resetCurrentChild();
 
@@ -524,11 +530,11 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			//Check for bad version
 			auto reportBadVersion = [&] () -> void {
 				string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
-				fire(UpdateManagerListener::BadVersion(), msg, url, updateUrl, remoteBuild, autoUpdateEnabled);
+				fire(UpdateManagerListener::BadVersion(), msg, url, updateUrl, versionDouble, remoteBuild, autoUpdateEnabled);
 			};
 
-			if(verified && xml.findChild("VeryOldVersion")) {
-				if(Util::toInt(xml.getChildData()) >= ownBuild) {
+			if(verified && xml.findChild("TooOldVersion")) {
+				if (Util::toDouble(xml.getChildAttrib("Version")) >= versionDouble && Util::toInt(xml.getChildAttrib("Commit")) >= ownBuild) {
 					reportBadVersion();
 					return;
 				}
@@ -539,7 +545,8 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 				xml.stepIn();
 				while(xml.findChild("BadVersion")) {
 					double v = Util::toDouble(xml.getChildAttrib("Version"));
-					if(v == ownBuild) {
+					int c = Util::toDouble(xml.getChildAttrib("Commit"));
+					if(v == versionDouble && c == ownBuild) {
 						reportBadVersion();
 						return;
 					}
@@ -550,20 +557,21 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 
 			//Check for updated version
 
-			if((remoteBuild > ownBuild && remoteBuild > installedUpdate) || manualCheck) {
+			//if((remoteBuild > ownBuild && remoteBuild > installedUpdate) || manualCheck) {
+			if (compareVersions(Util::toDouble(VERSIONSTRING), ownBuild, versionDouble, remoteBuild) || manualCheck) {
 				auto updateMethod = SETTING(UPDATE_METHOD);
 				if ((!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) || manualCheck) {
 					if(xml.findChild("Title")) {
 						const string& title = xml.getChildData();
 						xml.resetCurrentChild();
 						if(xml.findChild("Message")) {
-							fire(UpdateManagerListener::UpdateAvailable(), title, xml.childToXML(), versionString, url, autoUpdateEnabled, remoteBuild, updateUrl);
+							fire(UpdateManagerListener::UpdateAvailable(), title, xml.childToXML(), versionString, url, autoUpdateEnabled, versionDouble, remoteBuild, updateUrl);
 						}
 					}
 					//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
 				} else if (updateMethod == UPDATE_AUTO) {
 					LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, versionString), LogManager::LOG_INFO);
-					downloadUpdate(updateUrl, remoteBuild, manualCheck);
+					downloadUpdate(updateUrl, versionDouble, remoteBuild, manualCheck);
 				}
 				xml.resetCurrentChild();
 			}
@@ -593,16 +601,26 @@ void UpdateManager::checkAdditionalUpdates(bool manualCheck) {
 	}
 }
 
+bool UpdateManager::compareVersions(double currentClientVersion, int currentBuildNumber, double newClientVersion, int newBuildNumber) {
+	if (newClientVersion > currentClientVersion && newClientVersion > installedUpdate.first) //allways update
+		return true;
+
+	if (currentClientVersion == newClientVersion && (newBuildNumber > currentBuildNumber && newBuildNumber > installedUpdate.second))
+		return true;
+
+	return false;
+}
+
 bool UpdateManager::isUpdating() {
 	return conns[CONN_CLIENT] ? true : false;
 }
 
-void UpdateManager::downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck) {
+void UpdateManager::downloadUpdate(const string& aUrl, double clientVersion, int newBuildID, bool manualCheck) {
 	if(conns[CONN_CLIENT])
 		return;
 
 	conns[CONN_CLIENT].reset(new HttpDownload(aUrl,
-		[this, newBuildID, manualCheck] { completeUpdateDownload(newBuildID, manualCheck); }, false));
+		[this, clientVersion, newBuildID, manualCheck] { completeUpdateDownload(clientVersion, newBuildID, manualCheck); }, false));
 }
 
 void UpdateManager::checkLanguage() {

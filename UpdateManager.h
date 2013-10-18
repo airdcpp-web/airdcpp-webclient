@@ -52,7 +52,7 @@ public:
 		string ipcheck6;
 	} links;
 
-	void downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck);
+	void downloadUpdate(const string& aUrl, double clientVersion, int newBuildID, bool manualCheck);
 
 	static bool verifyVersionData(const string& data, const ByteVector& singature);
 
@@ -92,10 +92,10 @@ public:
 	//void updateGeo();
 
 	void init(const string& aExeName);
-	int getInstalledUpdate() { return installedUpdate; }
+	pair<double,int> getInstalledUpdate() { return installedUpdate; }
 	bool isUpdating();
 
-	static bool getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
+	static bool getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild, double& versionDouble);
 	void checkAdditionalUpdates(bool manualCheck);
 private:
 	uint64_t lastIPUpdate;
@@ -105,19 +105,20 @@ private:
 	string updateTTH;
 	string sessionToken;
 
-	int installedUpdate;
+	pair<double,int> installedUpdate;
 
 	ByteVector versionSig;
 
 	void updateGeo(bool v6);
 	void checkGeoUpdate(bool v6);
+	bool compareVersions(double currentClientVersion, int currentBuildNumber, double newClientVersion, int newBuildNumber);
 
 	void completeSignatureDownload(bool manual);
 	void completeLanguageCheck();
 	void completeGeoDownload(bool v6);
 	void completeVersionDownload(bool manualCheck);
 	void completeLanguageDownload();
-	void completeUpdateDownload(int buildID, bool manualCheck);
+	void completeUpdateDownload(double clientVersion, int buildID, bool manualCheck);
 	void completeIPCheck(bool manualCheck, bool v6);
 
 	void failUpdateDownload(const string& aError, bool manualCheck);

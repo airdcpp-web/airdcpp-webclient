@@ -37,4 +37,5 @@ namespace dcpp {
 
 	int getBuildNumber() { return GIT_COMMIT_COUNT; }
 	string getBuildNumberStr() { return xstrver(GIT_COMMIT_COUNT); }
+	int getCommitNumber() { return GIT_COMMIT; }
 }
