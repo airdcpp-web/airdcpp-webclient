@@ -20,6 +20,8 @@
 #define VERSIONSTRING "2.61"
 #define DCVERSIONSTRING "0.830"
 
+#define COMPATIBILITY_BUILD_NUMBER_STR "1750"
+
 #define BETAVER
 
 #ifdef _WIN64
@@ -32,14 +34,19 @@ namespace dcpp {
 	extern const std::string shortVersionString;
 	extern const std::string fullVersionString;
 	int getBuildNumber();
+	int getCommitNumber();
 	string getBuildNumberStr();
 }
 
+//Total git commit commit count
 #define BUILD_NUMBER_STR getBuildNumberStr()
 #define BUILD_NUMBER getBuildNumber()
 
+//Git commit count for the current git tag
+#define COMMIT_NUMBER getCommitNumber()
+
 #ifdef BETAVER
-#define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
+#define VERSION_URL "http://test.airdcpp.net/version.xml" //"http://builds.airdcpp.net/version/version.xml"
 #else
 #define VERSION_URL "http://version.airdcpp.net/version.xml"
 #endif
