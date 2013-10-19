@@ -117,6 +117,11 @@ public:
 
 	static const string getReleaseRegLong(bool chat);
 	static const string getReleaseRegBasic();
+	static const string getSubDirReg();
+
+	static string getReleaseDir(const string& dir, bool cut, const char separator = PATH_SEPARATOR);
+	inline static string getNmdcReleaseDir(const string& path, bool cut) { return getReleaseDir(path, cut, '\\'); };
+	inline static string getAdcReleaseDir(const string& path, bool cut) { return getReleaseDir(path, cut, '/'); };
 
 	static const string getLinkUrl();
 

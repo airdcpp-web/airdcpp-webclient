@@ -1609,32 +1609,6 @@ string Util::base64_decode(string const& encoded_string) {
 	return ret;
 }
 
-string Util::getReleaseDir(const string& aDir, bool cut) {
-	if (aDir.empty())
-		return aDir;
-
-	string dir = aDir.back() != '\\' ? getNmdcFilePath(aDir) : aDir;
-
-	boost::regex reg;
-	reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
-	for (;;) {
-		if (regex_match(dir, reg)) {
-			if(dir[dir.size() -1] == '\\')
-				dir = dir.substr(0, dir.size()-1);
-			size_t dpos = dir.rfind("\\");
-			if(dpos != string::npos) {
-				dir = dir.substr(0,dpos+1);
-			} else {
-				break;
-			}
-		} else {
-			break;
-		}
-	}
-
-	return cut ? Util::getNmdcLastDir(dir) : dir;
-}
-
 string Util::getOsVersion(bool http /*false*/, bool doubleStr /*false*/) {
 #ifdef _WIN32
 	typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);

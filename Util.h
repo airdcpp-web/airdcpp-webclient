@@ -554,7 +554,6 @@ public:
 
 	static bool validatePath(const string &sPath);
 	static bool fileExists(const string &aFile);
-	static string getReleaseDir(const string& dir, bool cut);
 
 	static int randInt(int min=0, int max=std::numeric_limits<int>::max());
 	static uint32_t rand();
