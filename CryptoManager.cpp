@@ -66,7 +66,7 @@ CryptoManager::CryptoManager()
 :
 	certsLoaded(false),
 	lock("EXTENDEDPROTOCOLABCABCABCABCABCABC"),
-	pk("DCPLUSPLUS" VERSIONSTRING)
+	pk("DCPLUSPLUS" + VERSIONSTRING)
 {
 #ifdef HEADER_OPENSSLV_H
 	cs = new CriticalSection[CRYPTO_num_locks()];

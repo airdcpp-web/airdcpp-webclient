@@ -17,7 +17,7 @@
  */
 
 #define APPNAME "AirDC++"
-#define VERSIONSTRING "2.70"
+
 #define DCVERSIONSTRING "0.830"
 
 #define COMPATIBILITY_BUILD_NUMBER_STR "1750"
@@ -36,7 +36,9 @@ namespace dcpp {
 	int getBuildNumber();
 	int getCommitNumber();
 	string getBuildNumberStr();
+	string getVersionString();
 }
+#define VERSIONSTRING getVersionString()
 
 //Total git commit commit count
 #define BUILD_NUMBER_STR getBuildNumberStr()

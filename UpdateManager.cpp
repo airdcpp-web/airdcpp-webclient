@@ -353,7 +353,7 @@ void UpdateManager::checkGeoUpdate(bool v6) {
 		updateGeo(false);
 	} else {
 		//dwt::MessageBox(this).show(T_("IP -> country mappings are disabled. Turn them back on via Settings > Appearance."),
-			//_T(APPNAME) _T(" ") _T(VERSIONSTRING), dwt::MessageBox::BOX_OK, dwt::MessageBox::BOX_ICONEXCLAMATION);
+			//Text::toT(fullVersionString).c_str(), dwt::MessageBox::BOX_OK, dwt::MessageBox::BOX_ICONEXCLAMATION);
 	}
 }*/
 
