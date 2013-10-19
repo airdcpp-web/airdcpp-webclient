@@ -1188,17 +1188,18 @@ void FavoriteManager::on(UserDisconnected, const UserPtr& user, bool wentOffline
 }
 
 void FavoriteManager::on(UserConnected, const OnlineUser& aUser, bool /*wasOffline*/) noexcept {
-	bool isFav = false;
+	//bool isFav = false;
 	UserPtr user = aUser.getUser();
+	/*
 	{
 		RLock l(cs);
 		auto i = users.find(user->getCID());
 		if(i != users.end()) {
 			isFav = true;
 		}
-	}
+	}*/
 
-	if(isFav)
+	if(user->isSet(User::FAVORITE))
 		fire(FavoriteManagerListener::StatusChanged(), user);
 }
 

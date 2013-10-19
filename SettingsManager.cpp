@@ -49,7 +49,7 @@ const ResourceManager::Strings SettingsManager::outgoingStrings[OUTGOING_LAST] {
 const ResourceManager::Strings SettingsManager::monitoringStrings[MONITORING_LAST] { ResourceManager::DISABLED, ResourceManager::INCOMING_ONLY, ResourceManager::ALL_DIRS };
 const ResourceManager::Strings SettingsManager::dropStrings[QUEUE_LAST] { ResourceManager::FILE, ResourceManager::BUNDLE, ResourceManager::ALL };
 
-const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][9] = {
+const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][10] = {
 
 { 
 	// profile normal
@@ -63,6 +63,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
 }, {
 	// profile RAR
 	{ SettingsManager::MULTI_CHUNK, false, ResourceManager::SEGMENTS },
@@ -75,6 +76,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, false, ResourceManager::SETTINGS_AUTO_FOLLOW },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"1,-1,3,4,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
 }, {
 	// profile LAN
 	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
@@ -87,6 +89,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
 } 
 
 };
@@ -108,7 +111,7 @@ const string SettingsManager::settingTags[] =
 	"KickMsgRecent06", "KickMsgRecent07", "KickMsgRecent08", "KickMsgRecent09", "KickMsgRecent10", 
 	"KickMsgRecent11", "KickMsgRecent12", "KickMsgRecent13", "KickMsgRecent14", "KickMsgRecent15", 
 	"KickMsgRecent16", "KickMsgRecent17", "KickMsgRecent18", "KickMsgRecent19", "KickMsgRecent20",
-	"Toolbar", "ToolbarImage", "ToolbarHot", "UploadQueueFrameOrder", "UploadQueueFrameWidths",
+	"ToolbarOrder", "ToolbarImage", "ToolbarHot", "UploadQueueFrameOrder", "UploadQueueFrameWidths",
 	"SoundTTH", "SoundException", "SoundHubConnected", "SoundHubDisconnected", "SoundFavUserOnline", "SoundTypingNotify",
 	"LogFileMainChat", 
 	"LogFilePrivateChat", "LogFileStatus", "LogFileUpload", "LogFileDownload", "LogFileSystem", "LogFormatSystem", 
@@ -194,7 +197,7 @@ const string SettingsManager::settingTags[] =
 
 	"PrivateMessageBeep", "PrivateMessageBeepOpen", "ShowProgressBars", "MDIMaxmimized", "SearchPassiveAlways", "RemoveForbidden", "ShowInfoTips", "MinimizeOnStratup", "ConfirmDelete", "ExpandQueue",
 	"FilterEnter", "ShowShellMenu", "SpyFrameIgnoreTthSearches", "OpenWaitingUsers", "BoldWaitingUsers", "GroupSearchResults", "TabsOnTop", "OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue", "OpenFinishedDownloads",
-	"OpenFinishedUploads", "OpenSearchSpy", "OpenNetworkStatistics", "OpenNotepad", "SuppressMainChat", "ProgressbaroDCStyle", "MultiChunk", "PopupAway", "PopupMinimized", "Away", "PopupHubConnected", "PopupHubDisconnected", "PopupFavoriteConnected", 
+	"OpenFinishedUploads", "OpenSearchSpy", "OpenNotepad", "SuppressMainChat", "ProgressbaroDCStyle", "MultiChunk", "PopupAway", "PopupMinimized", "Away", "PopupHubConnected", "PopupHubDisconnected", "PopupFavoriteConnected", 
 	"PopupDownloadStart", "PopupDownloadFailed", "PopupDownloadFinished", "PopupUploadFinished", "PopupPm", "PopupNewPM", "UploadQueueFrameShowTree", "SegmentsManual", "SoundsDisabled", "ReportFoundAlternates",
 	"UseAutoPriorityByDefault", "UseOldSharingUI", "DefaultSearchFreeSlots", 
 
@@ -363,7 +366,6 @@ SettingsManager::SettingsManager()
 	setDefault(OPEN_FINISHED_DOWNLOADS, false);
 	setDefault(OPEN_FINISHED_UPLOADS, false);
 	setDefault(OPEN_SEARCH_SPY, false);
-	setDefault(OPEN_NETWORK_STATISTICS, false);
 	setDefault(OPEN_NOTEPAD, false);
 	setDefault(NO_IP_OVERRIDE, false);
 	setDefault(NO_IP_OVERRIDE6, false);
@@ -398,7 +400,7 @@ SettingsManager::SettingsManager()
 	setDefault(EXTRA_PARTIAL_SLOTS, 1);
 	setDefault(SHUTDOWN_TIMEOUT, 150);
 	setDefault(SEARCH_PASSIVE, false);
-	setDefault(TOOLBAR, "0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,16,17,-1,19,20,21,22,23");
+	setDefault(TOOLBAR_ORDER, "0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21");
 	setDefault(MEDIATOOLBAR, "0,-1,1,-1,2,3,4,5,6,7,8,9,-1");
 	setDefault(AUTO_PRIORITY_DEFAULT, false);
 	setDefault(TOOLBARIMAGE,"");
