@@ -620,8 +620,13 @@ const string AirUtil::getSubDirReg() {
 }
 
 string AirUtil::getReleaseDir(const string& aDir, bool cut, const char separator) {
-	auto dir = getDirName(aDir, separator).first;
-	return cut ? Util::getLastDir(dir, separator) : dir;
+	auto p = getDirName(aDir, separator);
+	if (cut) {
+		return p.first;
+	}
+
+	// return with the path
+	return p.second == string::npos ? aDir : aDir.substr(0, p.second);
 }
 
 bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int attempts) {
