@@ -48,7 +48,7 @@ namespace dcpp {
 #define COMMIT_NUMBER getCommitNumber()
 
 #ifdef BETAVER
-#define VERSION_URL "http://test.airdcpp.net/version.xml" //"http://builds.airdcpp.net/version/version.xml"
+#define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
 #else
 #define VERSION_URL "http://version.airdcpp.net/version.xml"
 #endif
