@@ -28,14 +28,15 @@
 
 namespace dcpp {
 #ifdef BETAVER
-	const std::string shortVersionString(GIT_TAG "-" xstrver(GIT_COMMIT) "-" GIT_HASH);
-	const std::string fullVersionString(APPNAME " " GIT_TAG "-" xstrver(GIT_COMMIT) "-" GIT_HASH " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
+	const std::string shortVersionString(xstrver(GIT_TAG) "-" xstrver(GIT_COMMIT) "-" GIT_HASH);
+	const std::string fullVersionString(APPNAME " " xstrver(GIT_TAG) "-" xstrver(GIT_COMMIT) "-" GIT_HASH " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
 #else
-	const std::string shortVersionString(GIT_TAG);
-	const std::string fullVersionString(APPNAME " " GIT_TAG " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
+	const std::string shortVersionString(xstrver(GIT_TAG));
+	const std::string fullVersionString(APPNAME " " xstrver(GIT_TAG) " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
 #endif
 
 	int getBuildNumber() { return GIT_COMMIT_COUNT; }
 	string getBuildNumberStr() { return xstrver(GIT_COMMIT_COUNT); }
 	int getCommitNumber() { return GIT_COMMIT; }
+	string getVersionString() { return xstrver(GIT_TAG); }
 }
