@@ -103,7 +103,7 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath, s
 
 void Updater::createUpdate() {
 	auto updaterFilePath = Util::getParentDir(Util::getAppName());
-	string updaterFile = "updater_" ARCH_STR "_" + VERSIONSTRING + "-" + Util::toString(COMMIT_NUMBER) + ".zip";
+	string updaterFile = "updater_" ARCH_STR "_" VERSIONSTRING "-" + Util::toString(COMMIT_NUMBER) + ".zip";
 
 	StringPairList files;
 	ZipFile::CreateZipFileList(files, Util::getFilePath(Util::getAppName()), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
