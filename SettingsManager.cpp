@@ -126,7 +126,7 @@ const string SettingsManager::settingTags[] =
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
 	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
-	"UsersFrmVisible2", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype",
+	"UsersFrmVisible2", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype", "NmdcEncoding",
 
 	"SENTRY", 
 	// Ints
@@ -859,6 +859,13 @@ SettingsManager::SettingsManager()
 	// not in GUI
 	setDefault(IGNORE_INDIRECT_SR, false);
 	setDefault(USE_UPLOAD_BUNDLES, true);
+
+#ifdef _WIN32
+	setDefault(NMDC_ENCODING, Text::systemCharset);
+#else
+	setDefault(NMDC_ENCODING, "CP1250");
+#endif
+
 #ifdef _WIN64
 	setDefault(DECREASE_RAM, false);  
 #else
@@ -1274,6 +1281,7 @@ HubSettings SettingsManager::getHubSettings() const {
 	ret.get(HubSettings::ChatNotify) = get(SHOW_CHAT_NOTIFY);
 	ret.get(HubSettings::AwayMsg) = get(DEFAULT_AWAY_MESSAGE);
 	ret.get(HubSettings::AcceptFailovers) = get(ACCEPT_FAILOVERS);
+	ret.get(HubSettings::NmdcEncoding) = get(NMDC_ENCODING);
 	return ret;
 }
 

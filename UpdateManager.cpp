@@ -518,7 +518,9 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			if(xml.findChild(UPGRADE_TAG)) {
 				updateUrl = xml.getChildData();
 				updateTTH = xml.getChildAttrib("TTH");
-				autoUpdateEnabled = (verified && versionDouble > Util::toDouble(VERSIONSTRING) || versionDouble == Util::toDouble(VERSIONSTRING) &&  xml.getIntChildAttrib("MinUpdateRev") <= ownBuild);
+				autoUpdateEnabled = verified && 
+					(versionDouble > Util::toDouble(VERSIONSTRING) || versionDouble == Util::toDouble(VERSIONSTRING)) && 
+					xml.getIntChildAttrib("MinUpdateRev") <= ownBuild;
 			}
 			xml.resetCurrentChild();
 

@@ -43,8 +43,8 @@ using boost::range::for_each;
 using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
-	hintedUser(aUser), abort(false), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial), waiting(false)
+	hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
+	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial) 
 {
 	running.clear();
 
@@ -235,7 +235,7 @@ static const string sSize = "Size";
 static const string sTTH = "TTH";
 static const string sDate = "Date";
 void ListLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
-	if(list->getAbort()) {
+	if(list->getClosing()) {
 		throw AbortException();
 	}
 
@@ -489,7 +489,7 @@ bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, Qu
 
 int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	dcassert(aDir.size() > 2);
-	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
+	dcassert(aDir.empty() || aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	auto d = findDirectory(aDir, root);
 	if(d)
 		return d->getTotalSize(false);
@@ -815,9 +815,12 @@ void DirectoryListing::runTasks() noexcept {
 	}
 }
 
-void DirectoryListing::waitActionFinish() const noexcept {
-	while (waiting)
+void DirectoryListing::waitActionFinish() const throw(AbortException) {
+	while (waiting) {
+		if (closing)
+			throw AbortException();
 		sleep(10);
+	}
 }
 
 int DirectoryListing::run() {
@@ -832,7 +835,7 @@ int DirectoryListing::run() {
 			if (t.first == CLOSE) {
 				fire(DirectoryListingListener::Close());
 				return 0;
-			} else if (t.first == ASYNC) {
+			} else if (t.first == ASYNC && !closing) {
 				static_cast<AsyncTask*>(t.second)->f();
 			}
 		} catch(const AbortException&) {

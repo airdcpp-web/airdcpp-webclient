@@ -41,6 +41,7 @@ struct HubSettings
 		UserIp,
 		UserIp6,
 		AwayMsg,
+		NmdcEncoding,
 		// don't forget to edit stringNames in HubSettings.cpp when adding a def here!
 
 		HubStrLast

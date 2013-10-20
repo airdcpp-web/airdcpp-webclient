@@ -25,10 +25,10 @@
 
 namespace dcpp {
 
-FavoriteHubEntry::FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), encoding(Text::systemCharset), chatusersplit(0), favnoPM(false),
+FavoriteHubEntry::FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false),
 	stealth(false), userliststate(true), token(Util::randInt())  { }
 
-FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), encoding(Text::systemCharset), description(rhs.getDescription()), connect(true), 
+FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), description(rhs.getDescription()), connect(true),
 	bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), stealth(false), userliststate(true), token(Util::randInt()) {
 
 		servers.emplace_back(rhs.getServer(), false);

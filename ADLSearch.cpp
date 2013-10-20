@@ -595,7 +595,7 @@ void ADLSearchManager::matchListing(DirectoryListing& aDirList) noexcept {
 }
 
 void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory::Ptr& aDir, string &aPath, DirectoryListing& aDirList) {
-	if(aDirList.getAbort())
+	if(aDirList.getClosing())
 		throw AbortException();
 
 	for(auto dirIt = aDir->directories.begin(); dirIt != aDir->directories.end(); ++dirIt) {
