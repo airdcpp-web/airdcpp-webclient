@@ -135,7 +135,7 @@ TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) {
 
 void AirUtil::init() {
 	releaseReg.assign(getReleaseRegBasic());
-	subDirRegPlain.assign(R"((((S(eason)?)|DVD|CD|(D|DIS(K|C))).?([0-9](0-9)?))|Sample.?|Proof.?|Cover.?|.{0,5}Sub(s|pack)?)", boost::regex::icase);
+	subDirRegPlain.assign(getSubDirReg(), boost::regex::icase);
 	crcReg.assign(R"(.{5,200}\s(\w{8})$)");
 }
 
@@ -613,6 +613,20 @@ const string AirUtil::getReleaseRegLong(bool chat) {
 
 const string AirUtil::getReleaseRegBasic() {
 	return R"(((?=\S*[A-Za-z]\S*)[A-Z0-9]\S{3,})-([A-Za-z0-9_]{2,}))";
+}
+
+const string AirUtil::getSubDirReg() {
+	return R"((((S(eason)?)|DVD|CD|(D|DIS(K|C))).?([0-9](0-9)?))|Sample.?|Proof.?|Cover.?|.{0,5}Sub(s|pack)?)";
+}
+
+string AirUtil::getReleaseDir(const string& aDir, bool cut, const char separator) {
+	auto p = getDirName(aDir, separator);
+	if (cut) {
+		return p.first;
+	}
+
+	// return with the path
+	return p.second == string::npos ? aDir : aDir.substr(0, p.second);
 }
 
 bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int attempts) {

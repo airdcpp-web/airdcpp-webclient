@@ -210,6 +210,8 @@ public:
 	void removeFinishedNotify(const UserPtr& aUser) noexcept;
 
 	pair<uint32_t, uint32_t> getPathInfo(const string& aDir) const noexcept;
+
+	/* Get the path for matching a file list (remote file must be in NMDC format) */
 	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept;
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	int countOnlineUsers() const noexcept;

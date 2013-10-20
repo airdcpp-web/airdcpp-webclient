@@ -283,7 +283,7 @@ void Util::migrate(const string& file) {
 	}
 
 	string fname = getFileName(file);
-	string old = paths[PATH_GLOBAL_CONFIG] + "Settings\\" + fname;
+	string old = paths[PATH_GLOBAL_CONFIG] + "Settings" + PATH_SEPARATOR + fname;
 	if(File::getSize(old) == -1) {
 		return;
 	}
@@ -296,22 +296,32 @@ void Util::migrate(const string& file) {
 	}
 }
 
-void Util::migrate(const string& aDir, const string& aPattern) {
+void Util::migrate(const string& aNewDir, const string& aPattern) {
 	if (localMode)
 		return;
 
-	string old = Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Settings\\" + Util::getLastDir(aDir) + "\\";
+	auto oldDir = Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Settings" + PATH_SEPARATOR + Util::getLastDir(aNewDir) + PATH_SEPARATOR;
 
-	if (Util::fileExists(old)) {
-		auto fileList = File::findFiles(old, aPattern);
-		for (auto& path: fileList) {
-			try {
-				File::renameFile(path, aDir + Util::getFileName(path));
-			} catch(const FileException& /*e*/) {
-				//LogManager::getInstance()->message("Settings migration for failed: " + e.getError());
+	if (Util::fileExists(oldDir)) {
+		// don't migrate if there are files in the new directory already
+		auto fileListNew = File::findFiles(aNewDir, aPattern);
+		if (fileListNew.empty()) {
+			auto fileList = File::findFiles(oldDir, aPattern);
+			for (auto& path : fileList) {
+				try {
+					File::renameFile(path, aNewDir + Util::getFileName(path));
+				} catch (const FileException& /*e*/) {
+					//LogManager::getInstance()->message("Settings migration for failed: " + e.getError());
+				}
 			}
 		}
 	}
+
+	/*try {
+		File::renameFile(oldDir, oldDir + ".old");
+	} catch (FileException& e) {
+		// ...
+	}*/
 }
 
 void Util::loadBootConfig() {
@@ -1597,32 +1607,6 @@ string Util::base64_decode(string const& encoded_string) {
 	}
 
 	return ret;
-}
-
-string Util::getReleaseDir(const string& aDir, bool cut) {
-	if (aDir.empty())
-		return aDir;
-
-	string dir = aDir.back() != '\\' ? getNmdcFilePath(aDir) : aDir;
-
-	boost::regex reg;
-	reg.assign("(.*\\\\((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Proof)|(Cover(s)?)|(.{0,5}Sub(s|pack)?))\\\\)", boost::regex_constants::icase);
-	for (;;) {
-		if (regex_match(dir, reg)) {
-			if(dir[dir.size() -1] == '\\')
-				dir = dir.substr(0, dir.size()-1);
-			size_t dpos = dir.rfind("\\");
-			if(dpos != string::npos) {
-				dir = dir.substr(0,dpos+1);
-			} else {
-				break;
-			}
-		} else {
-			break;
-		}
-	}
-
-	return cut ? Util::getNmdcLastDir(dir) : dir;
 }
 
 string Util::getOsVersion(bool http /*false*/, bool doubleStr /*false*/) {

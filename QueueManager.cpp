@@ -2436,7 +2436,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			const string& tth = getAttrib(attribs, sTTH, 0);
 			const string& target = getAttrib(attribs, sTarget, 0);
 			int64_t size = Util::toInt64(getAttrib(attribs, sSize, 1));
-			time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 4)));
+			time_t added = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sAdded, 4)));
 			if(size == 0 || tth.empty() || target.empty() || added == 0)
 				return;
 			if(!Util::fileExists(target))

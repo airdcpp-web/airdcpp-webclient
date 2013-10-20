@@ -412,7 +412,7 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 			if (Text::toLower(remoteDir).find(Text::toLower(getName())) != string::npos)
 				path = target;
 		} else {
-			path = Util::getReleaseDir(remoteDir, false);
+			path = AirUtil::getNmdcReleaseDir(remoteDir, false);
 		}
 	} else {
 		/* try to find the bundle name from the path */
@@ -630,7 +630,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 
 	QueueItemPtr searchItem = nullptr;
 	for (auto& i: bundleDirs | map_keys) {
-		string dir = Util::getReleaseDir(i, false);
+		string dir = AirUtil::getReleaseDir(i, false);
 		//don't add the same directory twice
 		if (searches.find(dir) != searches.end()) {
 			continue;
@@ -672,7 +672,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 void Bundle::updateSearchMode() noexcept {
 	StringList searches;
 	for (auto& i: bundleDirs | map_keys) {
-		string dir = Util::getReleaseDir(i, false);
+		string dir = AirUtil::getReleaseDir(i, false);
 		if (find(searches, dir) == searches.end()) {
 			searches.push_back(dir);
 		}
