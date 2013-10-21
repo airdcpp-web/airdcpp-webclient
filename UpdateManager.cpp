@@ -416,7 +416,10 @@ bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& r
 #ifdef BETAVER
 			if(xml.findChild(UPGRADE_TAG)) {
 				remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
-				versionString += "-" + xml.getChildAttrib("Commit");
+				//versionString += "-" + xml.getChildAttrib("Commit");
+				string tmp = xml.getChildAttrib("VersionString");
+				if (!tmp.empty()) 
+					versionString = tmp;
 			}
 #else
 			if (xml.findChild("Build")) {

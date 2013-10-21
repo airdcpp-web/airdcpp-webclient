@@ -103,7 +103,7 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath, s
 
 void Updater::createUpdate() {
 	auto updaterFilePath = Util::getParentDir(Util::getAppName());
-	string updaterFile = "updater_" ARCH_STR "_" + VERSIONSTRING + "-" + Util::toString(COMMIT_NUMBER) + ".zip";
+	string updaterFile = "updater_" ARCH_STR "_" + shortVersionString + ".zip";
 
 	StringPairList files;
 	ZipFile::CreateZipFileList(files, Util::getFilePath(Util::getAppName()), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
@@ -128,7 +128,8 @@ void Updater::createUpdate() {
 #endif
 					xml.replaceChildAttrib("TTH", TTH(updaterFilePath + updaterFile));
 					xml.replaceChildAttrib("Build", BUILD_NUMBER_STR);
-					xml.replaceChildAttrib("Commit", Util::toString(COMMIT_NUMBER));
+					//xml.replaceChildAttrib("Commit", Util::toString(COMMIT_NUMBER));
+					xml.replaceChildAttrib("VersionString", shortVersionString);
 					xml.stepIn();
 					xml.setData("http://builds.airdcpp.net/updater/" + updaterFile);
 
