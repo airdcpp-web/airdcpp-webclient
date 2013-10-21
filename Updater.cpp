@@ -127,10 +127,8 @@ void Updater::createUpdate() {
 				if(xml.findChild("UpdateURL")) {
 #endif
 					xml.replaceChildAttrib("TTH", TTH(updaterFilePath + updaterFile));
+					xml.replaceChildAttrib("Build", BUILD_NUMBER_STR);
 					xml.replaceChildAttrib("Commit", Util::toString(COMMIT_NUMBER));
-					//keep the old Build tag here for a while, manually changed from version.h
-					xml.replaceChildAttrib("Build", COMPATIBILITY_BUILD_NUMBER_STR);
-
 					xml.stepIn();
 					xml.setData("http://builds.airdcpp.net/updater/" + updaterFile);
 

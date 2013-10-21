@@ -42,8 +42,8 @@ public:
 	typedef X<6> LanguageFinished;
 	typedef X<7> LanguageFailed;
 
-	virtual void on(UpdateAvailable, const string& /*title*/, const string& /*message*/, const string& /*version*/, const string& /*url*/, bool /*autoUpdate*/, double /*version*/, int /*build*/, const string& /*updateUrl*/) noexcept { }
-	virtual void on(BadVersion, const string& /*message*/, const string& /*url*/, const string& /*update*/, double/*version*/, int /*build*/, bool /*autoUpdate*/) noexcept { }
+	virtual void on(UpdateAvailable, const string& /*title*/, const string& /*message*/, const string& /*version*/, const string& /*url*/, bool /*autoUpdate*/, int /*build*/, const string& /*updateUrl*/) noexcept { }
+	virtual void on(BadVersion, const string& /*message*/, const string& /*url*/, const string& /*update*/, int /*build*/, bool /*autoUpdate*/) noexcept { }
 	virtual void on(UpdateFailed, const string& /*line*/) noexcept { }
 	virtual void on(UpdateComplete, const string& /*updater*/) noexcept { }
 

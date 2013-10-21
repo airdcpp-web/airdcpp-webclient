@@ -20,8 +20,6 @@
 
 #define DCVERSIONSTRING "0.830"
 
-#define COMPATIBILITY_BUILD_NUMBER_STR "1750"
-
 #define BETAVER
 
 #ifdef _WIN64
@@ -48,7 +46,7 @@ namespace dcpp {
 #define COMMIT_NUMBER getCommitNumber()
 
 #ifdef BETAVER
-#define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
+#define VERSION_URL "http://test.airdcpp.net/version.xml" //"http://builds.airdcpp.net/version/version.xml"
 #else
 #define VERSION_URL "http://version.airdcpp.net/version.xml"
 #endif
