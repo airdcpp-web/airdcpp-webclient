@@ -44,7 +44,6 @@
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/algorithm/count_if.hpp>
 #include <boost/range/algorithm/copy.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/range/algorithm/min_element.hpp>
 #include <boost/algorithm/cxx11/all_of.hpp>
@@ -1790,24 +1789,27 @@ void ShareManager::Directory::getProfileInfo(ProfileToken aProfile, int64_t& tot
 }
 
 void ShareManager::getProfileInfo(ProfileToken aProfile, int64_t& size, size_t& files) const noexcept {
-	RLock l(cs);
-	//auto p = find_if(shareProfiles, [](const ShareProfilePtr& sp) { return sp->getToken() == aProfile; });
 	auto sp = getShareProfile(aProfile);
-	if (sp) {
-		if (sp->getProfileInfoDirty()) {
-			for(const auto& d: rootPaths | map_values) {
-				if(d->getProfileDir()->hasRootProfile(aProfile)) {
+	if (!sp)
+		return;
+
+	if (sp->getProfileInfoDirty()) {
+		{
+			RLock l(cs);
+			for (const auto& d : rootPaths | map_values) {
+				if (d->getProfileDir()->hasRootProfile(aProfile)) {
 					d->getProfileInfo(aProfile, size, files);
 				}
 			}
-			sp->setSharedFiles(files);
-			sp->setShareSize(size);
-			sp->setProfileInfoDirty(false);
 		}
 
-		size = sp->getShareSize();
-		files = sp->getSharedFiles();
+		sp->setSharedFiles(files);
+		sp->setShareSize(size);
+		sp->setProfileInfoDirty(false);
 	}
+
+	size = sp->getShareSize();
+	files = sp->getSharedFiles();
 }
 
 int64_t ShareManager::getTotalShareSize(ProfileToken aProfile) const noexcept {
