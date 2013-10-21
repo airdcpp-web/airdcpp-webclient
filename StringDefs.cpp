@@ -1813,6 +1813,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "A completed item %1% has been removed", 
 "Override limiter", 
 "End time must be greater than the start time!", 
+"Closing, please wait...", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3626,4 +3627,5 @@ std::string dcpp::ResourceManager::names[] = {
 "CompleteItemXRemoved", 
 "OverrideLimiter", 
 "AsEndGreater", 
+"ClosingWait", 
 };

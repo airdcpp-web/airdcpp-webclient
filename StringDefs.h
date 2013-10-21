@@ -1817,5 +1817,6 @@ enum Strings { // @DontAdd
 	COMPLETE_ITEM_X_REMOVED, // "A completed item %1% has been removed"
 	OVERRIDE_LIMITER, // "Override limiter"
 	AS_END_GREATER, // "End time must be greater than the start time!"
+	CLOSING_WAIT, // "Closing, please wait..."
 	LAST // @DontAdd
 };
