@@ -322,7 +322,7 @@ void UserConnection::send(const string& aString) {
 	socket->write(aString);
 }
 
-UserConnection::UserConnection(bool secure_) noexcept : encoding(Text::systemCharset), state(STATE_UNCONNECTED),
+UserConnection::UserConnection(bool secure_) noexcept : encoding(SETTING(NMDC_ENCODING)), state(STATE_UNCONNECTED),
 	lastActivity(0), speed(0), chunkSize(0), secure(secure_), socket(0), slotType(NOSLOT), lastBundle(Util::emptyString), download(nullptr) {
 }
 } // namespace dcpp

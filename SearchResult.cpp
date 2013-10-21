@@ -47,9 +47,9 @@ string SearchResult::toSR(const Client& c) const {
 	string tmp;
 	tmp.reserve(128);
 	tmp.append("$SR ", 4);
-	tmp.append(Text::fromUtf8(c.getMyNick(), c.getEncoding()));
+	tmp.append(Text::fromUtf8(c.getMyNick(), c.get(HubSettings::NmdcEncoding)));
 	tmp.append(1, ' ');
-	string acpFile = Text::fromUtf8(path, c.getEncoding());
+	string acpFile = Text::fromUtf8(path, c.get(HubSettings::NmdcEncoding));
 	if(type == TYPE_FILE) {
 		tmp.append(acpFile);
 		tmp.append(1, '\x05');

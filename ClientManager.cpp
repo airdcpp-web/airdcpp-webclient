@@ -372,9 +372,9 @@ const string& ClientManager::findHubEncoding(const string& aUrl) const noexcept 
 
 	auto i = clients.find(const_cast<string*>(&aUrl));
 	if(i != clients.end()) {
-		return i->second->getEncoding();
+		return i->second->get(HubSettings::NmdcEncoding);
 	}
-	return Text::systemCharset;
+	return SETTING(NMDC_ENCODING);
 }
 
 HintedUser ClientManager::findLegacyUser(const string& nick) const noexcept {
@@ -865,7 +865,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			for(const auto& sr: l) {
 				str += sr->toSR(*aClient);
 				str[str.length()-1] = 5;
-				str += Text::fromUtf8(name, aClient->getEncoding());
+				str += Text::fromUtf8(name, aClient->get(HubSettings::NmdcEncoding));
 				str += '|';
 			}
 			

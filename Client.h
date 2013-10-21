@@ -141,8 +141,6 @@ public:
 	GETSET(uint64_t, lastActivity, LastActivity);
 	GETSET(uint32_t, reconnDelay, ReconnDelay);
 	
-	GETSET(string, encoding, Encoding);	
-	
 	GETSET(bool, registered, Registered);
 	GETSET(bool, autoReconnect, AutoReconnect);
 	GETSET(bool, stealth, Stealth);

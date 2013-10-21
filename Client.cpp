@@ -38,7 +38,7 @@ uint32_t idCounter = 0;
 Client::Client(const string& hubURL, char separator_) : 
 	myIdentity(ClientManager::getInstance()->getMe(), 0), uniqueId(++idCounter),
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
-	encoding(Text::systemCharset), state(STATE_DISCONNECTED), sock(0),
+	state(STATE_DISCONNECTED), sock(0),
 	separator(separator_), closing(false),
 	countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0), favToken(0)
 {
@@ -112,9 +112,6 @@ void Client::reloadSettings(bool updateNick) {
 		//only set the token on the initial attempt. we may have other hubs in favs with failover addresses but keep on using the initial list for now.
 		if (favToken == 0)
 			favToken = fav->getToken();
-
-		if(!fav->getEncoding().empty())
-			setEncoding(fav->getEncoding());
 
 		if (isAdcHub) {
 			setShareProfile(fav->getShareProfile()->getToken());

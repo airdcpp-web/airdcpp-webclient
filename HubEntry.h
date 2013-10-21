@@ -96,7 +96,6 @@ public:
 	GETSET(uint16_t, left, Left);
 	GETSET(uint16_t, right, Right);
 	GETSET(bool, connect, Connect);
-	GETSET(string, encoding, Encoding);
 	GETSET(int, chatusersplit, ChatUserSplit);
 	GETSET(bool, stealth, Stealth);
 	GETSET(bool, userliststate, UserListState);

@@ -50,11 +50,11 @@ NmdcHub::~NmdcHub() {
 }
 
 string NmdcHub::toUtf8(const string& str) const { 
-	return Text::validateUtf8(str) ? str : Text::toUtf8(str, getEncoding()); 
+	return Text::validateUtf8(str) ? str : Text::toUtf8(str, get(HubSettings::NmdcEncoding)); 
 }
 
 string NmdcHub::fromUtf8(const string& str) const { 
-	return Text::fromUtf8(str, getEncoding()); 
+	return Text::fromUtf8(str, get(HubSettings::NmdcEncoding));
 }
 
 
@@ -556,7 +556,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 			// Trigger connection attempt sequence locally ...
 			ConnectionManager::getInstance()->nmdcConnect(server, port, Util::toString(sock->getLocalPort()), 
-				BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure && !getStealth());
+				BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), getStealth(), secure && !getStealth());
 
 			// ... and signal other client to do likewise.
 			send("$ConnectToMe " + senderNick + " " + localIp + ":" + Util::toString(sock->getLocalPort()) + (secure ? "RS" : "R") + "|");
@@ -566,7 +566,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				
 			// Trigger connection attempt sequence locally
 			ConnectionManager::getInstance()->nmdcConnect(server, port, Util::toString(sock->getLocalPort()), 
-				BufferedSocket::NAT_SERVER, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure);
+				BufferedSocket::NAT_SERVER, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), getStealth(), secure);
 			return;
 		}
 		
@@ -574,7 +574,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			return;
 			
 		// For simplicity, we make the assumption that users on a hub have the same character encoding
-		ConnectionManager::getInstance()->nmdcConnect(server, port, getMyNick(), getHubUrl(), getEncoding(), getStealth(), secure);
+		ConnectionManager::getInstance()->nmdcConnect(server, port, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), getStealth(), secure);
 	} else if(cmd == "RevConnectToMe") {
 		if(state != STATE_NORMAL) {
 			return;
