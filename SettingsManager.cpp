@@ -63,7 +63,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
 }, {
 	// profile RAR
 	{ SettingsManager::MULTI_CHUNK, false, ResourceManager::SEGMENTS },
@@ -76,7 +76,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, false, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"1,-1,3,4,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"1,-1,3,4,-1,6,7,8,9,-1,10,11,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
 }, {
 	// profile LAN
 	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
@@ -89,7 +89,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21", ResourceManager::TOOLBAR_ORDER },
 } 
 
 };
@@ -400,7 +400,7 @@ SettingsManager::SettingsManager()
 	setDefault(EXTRA_PARTIAL_SLOTS, 1);
 	setDefault(SHUTDOWN_TIMEOUT, 150);
 	setDefault(SEARCH_PASSIVE, false);
-	setDefault(TOOLBAR_ORDER, "0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,12,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21");
+	setDefault(TOOLBAR_ORDER, "0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,13,-1,14,15,-1,16,17,-1,18,19,-1,20,-1,21");
 	setDefault(MEDIATOOLBAR, "0,-1,1,-1,2,3,4,5,6,7,8,9,-1");
 	setDefault(AUTO_PRIORITY_DEFAULT, false);
 	setDefault(TOOLBARIMAGE,"");
