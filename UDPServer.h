@@ -19,11 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_UDP_SERVER_H
 #define DCPLUSPLUS_DCPP_UDP_SERVER_H
 
+#include "DispatcherQueue.h"
 #include "Socket.h"
-#include "Thread.h"
-#include "Semaphore.h"
-
-#include <boost/lockfree/queue.hpp>
 
 namespace dcpp {
 
@@ -42,30 +39,8 @@ private:
 	string port;
 	bool stop;
 
-
-	class PacketProcessor : public Thread {
-	public:
-		struct PacketTask {
-			PacketTask() : buf(nullptr) { }
-			PacketTask(uint8_t* aBuf, size_t aLen, const string& aRemoteIp) : buf(aBuf), len(aLen), remoteIp(move(aRemoteIp)) { }
-			//~PacketTask() { if (buf) delete buf; }
-
-			uint8_t* buf;
-			size_t len;
-			string remoteIp;
-		};
-
-		PacketProcessor();
-		virtual ~PacketProcessor();
-		virtual int run();
-
-		Semaphore s;
-		boost::lockfree::queue<PacketTask*> queue;
-	private:
-		bool stop;
-	};
-
-	PacketProcessor pp;
+	DispatcherQueue pp;
+	void handlePacket(uint8_t* aBuf, size_t aLen, const string& aRemoteIp);
 };
 
 }

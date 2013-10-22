@@ -30,31 +30,17 @@
 namespace dcpp {
 
 
-DirectoryMonitor::DirectoryMonitor(int numThreads, bool aUseDispatcherThread) : server(new Server(this, numThreads)), useDispatcherThread(aUseDispatcherThread), queue(1024), stop(false) {
-	if (useDispatcherThread)
-		start();
+DirectoryMonitor::DirectoryMonitor(int numThreads, bool aUseDispatcherThread) : server(new Server(this, numThreads)), dispatcher(aUseDispatcherThread) {
+
 }
 
-void DirectoryMonitor::callAsync(AsyncF aF) {
-	addTask(TYPE_ASYNC, new AsyncTask(aF));
-}
-
-void DirectoryMonitor::addTask(TaskType aType, Task* aTask) { 
-	queue.push(new TaskQueue::UniqueTaskPair(aType, unique_ptr<Task>(aTask))); 
-	if (useDispatcherThread) {
-		s.signal(); 
-	}
+void DirectoryMonitor::callAsync(const DispatcherQueue::Callback& aF) {
+	dispatcher.addTask(new DispatcherQueue::Callback(aF));
 }
 
 DirectoryMonitor::~DirectoryMonitor() {
-	stop = true;
 	stopMonitoring();
 	delete server;
-
-	if (useDispatcherThread) {
-		s.signal();
-		join();
-	}
 }
 
 void DirectoryMonitor::stopMonitoring() {
@@ -168,10 +154,11 @@ void Monitor::beginRead() {
 void Monitor::queueNotificationTask(int dwSize) {
 	// We could just swap back and forth between the two
 	// buffers, but this code is easier to understand and debug.
-	auto f = new DirectoryMonitor::NotifyTask(path);
-	f->buf.resize(dwSize);
-	memcpy(&f->buf[0], &m_Buffer[0], dwSize);
-	server->base->addTask(DirectoryMonitor::TYPE_NOTIFICATION, f);
+
+	ByteVector buf;
+	buf.resize(dwSize);
+	memcpy(&buf[0], &m_Buffer[0], dwSize);
+	server->base->callAsync([=] { server->base->processNotification(path, buf); });
 }
 
 void Monitor::stopMonitoring() {
@@ -231,31 +218,9 @@ DirectoryMonitor::Server::~Server() {
 
 #endif
 
-int DirectoryMonitor::run() {
-	while (true) {
-		s.wait();
-		if (stop)
-			break;
-
-		dispatch();
-	}
-	return 0;
-}
 
 bool DirectoryMonitor::dispatch() {
-	unique_ptr<TaskQueue::UniqueTaskPair> t;
-	if(!queue.pop(t)) {
-		return false;
-	}
-
-	if (t->first == TYPE_OVERFLOW) {
-		fire(DirectoryMonitorListener::Overflow(), static_cast<StringTask*>(t->second.get())->str);
-	} else if (t->first == TYPE_NOTIFICATION) {
-		processNotification(static_cast<NotifyTask*>(t->second.get())->path, static_cast<NotifyTask*>(t->second.get())->buf);
-	} else if (t->first == TYPE_ASYNC) {
-		static_cast<AsyncTask*>(t->second.get())->f();
-	}
-	return true;
+	return dispatcher.dispatch();
 }
 
 int DirectoryMonitor::Server::run() {
@@ -304,7 +269,8 @@ int DirectoryMonitor::Server::read() {
 					// (and ERROR_TOO_MANY_CMDS with network drives)
 					if (dwError == ERROR_NOTIFY_ENUM_DIR || dwError == ERROR_NOT_ENOUGH_QUOTA || dwError == ERROR_ALREADY_EXISTS || dwError == ERROR_TOO_MANY_CMDS) {
 						(*mon)->beginRead();
-						(*mon)->server->base->addTask(DirectoryMonitor::TYPE_OVERFLOW, new StringTask((*mon)->path));
+						auto base = (*mon)->server->base;
+						base->callAsync([=] { base->fire(DirectoryMonitorListener::Overflow(), (*mon)->path); });
 					} else {
 						throw MonitorException(getErrorStr(dwError));
 					}
@@ -429,7 +395,7 @@ int DirectoryMonitor::Server::read() {
 	return 0;
 }
 
-void DirectoryMonitor::processNotification(const string& aPath, ByteVector& aBuf) {
+void DirectoryMonitor::processNotification(const string& aPath, const ByteVector& aBuf) {
 
 }
 
@@ -491,7 +457,7 @@ bool DirectoryMonitor::Server::hasDirectories() const {
 
 #ifdef _WIN32
 
-void DirectoryMonitor::processNotification(const string& aPath, ByteVector& aBuf) {
+void DirectoryMonitor::processNotification(const string& aPath, const ByteVector& aBuf) {
 	char* pBase = (char*)&aBuf[0];
 	string oldPath;
 

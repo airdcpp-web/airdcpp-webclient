@@ -62,7 +62,7 @@ void UDPServer::disconnect() {
 	}
 }
 
-UDPServer::UDPServer() : stop(false) { }
+UDPServer::UDPServer() : stop(false), pp(true) { }
 UDPServer::~UDPServer() {
 	/*if(socket.get()) {
 		stop = true;
@@ -87,8 +87,7 @@ int UDPServer::run() {
 
 			buf = new uint8_t[BUFSIZE];
 			if((len = socket->read(buf, BUFSIZE, remoteAddr)) > 0) {
-				pp.queue.push(new PacketProcessor::PacketTask(buf, len, remoteAddr));
-				pp.s.signal();
+				pp.addTask(new DispatcherQueue::Callback([=] { handlePacket(buf, len, remoteAddr); }));
 				continue;
 			}
 
@@ -126,118 +125,87 @@ int UDPServer::run() {
 	return 0;
 }
 
-UDPServer::PacketProcessor::PacketProcessor() : stop(false), queue(1024) {
-	start();
-}
+void UDPServer::handlePacket(uint8_t* aBuf, size_t aLen, const string& aRemoteIp) {
+	string x((char*) aBuf, aLen);
 
-UDPServer::PacketProcessor::~PacketProcessor() {
-	stop = true;
-	s.signal();
-	join();
-}
-
-int UDPServer::PacketProcessor::run() {
-	while (true) {
-		s.wait();
-		if (stop)
-			break;
-
-		unique_ptr<PacketTask> t;
-		if(!queue.pop(t)) {
-			continue;
-		}
-
-		string x((char*)t->buf, t->len);
-		string remoteIp = move(t->remoteIp);
-
-		//check if this packet has been encrypted
-		if (SETTING(ENABLE_SUDP) && t->len >= 32 && ((t->len & 15) == 0)) {
-			SearchManager::getInstance()->decryptPacket(x, t->len, t->buf, BUFSIZE);
-		}
+	//check if this packet has been encrypted
+	if (SETTING(ENABLE_SUDP) && aLen >= 32 && ((aLen & 15) == 0)) {
+		SearchManager::getInstance()->decryptPacket(x, aLen, aBuf, BUFSIZE);
+	}
 			
-		delete t->buf;
-		if (x.empty())
-			continue;
+	delete aBuf;
+	if (x.empty())
+		return;
 
-		COMMAND_DEBUG(x, DebugManager::TYPE_CLIENT_UDP, DebugManager::INCOMING, remoteIp);
+	COMMAND_DEBUG(x, DebugManager::TYPE_CLIENT_UDP, DebugManager::INCOMING, aRemoteIp);
 
-		if(x.compare(0, 4, "$SR ") == 0) {
-			SearchManager::getInstance()->onSR(x, remoteIp);
-		} else if(x.compare(1, 4, "RES ") == 0 && x[x.length() - 1] == 0x0a) {
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
-			string cid = c.getParam(0);
-			if(cid.size() != 39)
-				continue;
+	if(x.compare(0, 4, "$SR ") == 0) {
+		SearchManager::getInstance()->onSR(x, aRemoteIp);
+	} else if(x.compare(1, 4, "RES ") == 0 && x[x.length() - 1] == 0x0a) {
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
+		string cid = c.getParam(0);
+		if(cid.size() != 39)
+			return;
 
-			UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-			if(!user)
-				continue;
+		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+		if(!user)
+			return;
 
-			// This should be handled by AdcCommand really...
-			c.getParameters().erase(c.getParameters().begin());
+		// This should be handled by AdcCommand really...
+		c.getParameters().erase(c.getParameters().begin());
 
-			SearchManager::getInstance()->onRES(c, user, remoteIp);
-		} else if (x.compare(1, 4, "PSR ") == 0 && x[x.length() - 1] == 0x0a) {
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
-			string cid = c.getParam(0);
-			if(cid.size() != 39)
-				continue;
+		SearchManager::getInstance()->onRES(c, user, aRemoteIp);
+	} else if (x.compare(1, 4, "PSR ") == 0 && x[x.length() - 1] == 0x0a) {
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
+		string cid = c.getParam(0);
+		if(cid.size() != 39)
+			return;
 
-			UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-			// when user == NULL then it is probably NMDC user, check it later
+		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+		// when user == NULL then it is probably NMDC user, check it later
 			
-			c.getParameters().erase(c.getParameters().begin());			
+		c.getParameters().erase(c.getParameters().begin());			
 			
-			SearchManager::getInstance()->onPSR(c, user, remoteIp);
+		SearchManager::getInstance()->onPSR(c, user, aRemoteIp);
 		
-		} else if (x.compare(1, 4, "PBD ") == 0 && x[x.length() - 1] == 0x0a) {
-			if (!SETTING(USE_PARTIAL_SHARING)) {
-				continue;
-			}
-			//LogManager::getInstance()->message("GOT PBD UDP: " + x);
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
-			string cid = c.getParam(0);
-			if(cid.size() != 39)
-				continue;
+	} else if (x.compare(1, 4, "PBD ") == 0 && x[x.length() - 1] == 0x0a) {
+		if (!SETTING(USE_PARTIAL_SHARING)) {
+			return;
+		}
+		//LogManager::getInstance()->message("GOT PBD UDP: " + x);
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
+		string cid = c.getParam(0);
+		if(cid.size() != 39)
+			return;
 
-			UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
 			
-			c.getParameters().erase(c.getParameters().begin());			
+		c.getParameters().erase(c.getParameters().begin());			
 			
-			if (user)
-				SearchManager::getInstance()->onPBD(c, user);
+		if (user)
+			SearchManager::getInstance()->onPBD(c, user);
 		
-		} else if ((x.compare(1, 4, "UBD ") == 0 || x.compare(1, 4, "UBN ") == 0) && x[x.length() - 1] == 0x0a) {
-			AdcCommand c(x.substr(0, x.length()-1));
-			if(c.getParameters().empty())
-				continue;
+	} else if ((x.compare(1, 4, "UBD ") == 0 || x.compare(1, 4, "UBN ") == 0) && x[x.length() - 1] == 0x0a) {
+		AdcCommand c(x.substr(0, x.length()-1));
+		if(c.getParameters().empty())
+			return;
 			
-			c.getParameters().erase(c.getParameters().begin());			
+		c.getParameters().erase(c.getParameters().begin());			
 			
-			if (x.compare(1, 4, "UBN ") == 0) {
-				//LogManager::getInstance()->message("GOT UBN UDP: " + x);
-				UploadManager::getInstance()->onUBN(c);
-			} else {
-				//LogManager::getInstance()->message("GOT UBD UDP: " + x);
-				UploadManager::getInstance()->onUBD(c);
-			}
+		if (x.compare(1, 4, "UBN ") == 0) {
+			//LogManager::getInstance()->message("GOT UBN UDP: " + x);
+			UploadManager::getInstance()->onUBN(c);
+		} else {
+			//LogManager::getInstance()->message("GOT UBD UDP: " + x);
+			UploadManager::getInstance()->onUBD(c);
 		}
 	}
-
-	return 0;
-
-	/*else if(x.compare(1, 4, "SCH ") == 0 && x[x.length() - 1] == 0x0a) {
-		try {
-			respond(AdcCommand(x.substr(0, x.length()-1)));
-		} catch(ParseException& ) {
-		}
-	}*/ // Needs further DoS investigation
 }
 
 }

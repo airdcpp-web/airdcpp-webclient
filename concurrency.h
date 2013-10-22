@@ -25,10 +25,12 @@
 
 #include <tbb/task_group.h>
 #include <tbb/parallel_for_each.h>
+#include <tbb/concurrent_queue.h>
 
 namespace dcpp
 {
 
+using tbb::concurrent_queue;
 using tbb::parallel_for_each;
 using tbb::task_group;
 
@@ -39,10 +41,12 @@ using tbb::task_group;
 #else
 
 #include <ppl.h>
+#include <concurrent_queue.h>
 
 namespace dcpp
 {
 
+using concurrency::concurrent_queue;
 using concurrency::task_group;
 using concurrency::parallel_for_each;
 

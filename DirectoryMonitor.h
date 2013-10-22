@@ -27,12 +27,10 @@
 #include "atomic.h"
 
 #include "Exception.h"
-#include "Semaphore.h"
-#include "TaskQueue.h"
 #include "Thread.h"
 #include "Util.h"
 
-#include <boost/lockfree/queue.hpp>
+#include "DispatcherQueue.h"
 
 using std::string;
 
@@ -43,7 +41,7 @@ typedef std::function<void ()> AsyncF;
 STANDARD_EXCEPTION(MonitorException);
 
 class Monitor;
-class DirectoryMonitor : public Speaker<DirectoryMonitorListener>, public Thread {
+class DirectoryMonitor : public Speaker<DirectoryMonitorListener> {
 public:
 	DirectoryMonitor(int numThreads, bool useDispatcherThread);
 	~DirectoryMonitor();
@@ -57,7 +55,7 @@ public:
 
 	// returns true as long as there are messages queued
 	bool dispatch();
-	void callAsync(AsyncF aF);
+	void callAsync(const DispatcherQueue::Callback& aF);
 	string getStats() const {
 		return server->getStats();
 	}
@@ -104,28 +102,10 @@ private:
 		int	m_nThreads;
 	};
 
-	enum TaskType {
-		TYPE_ASYNC,
-		TYPE_NOTIFICATION,
-		TYPE_OVERFLOW
-	};
-
-	struct NotifyTask : public Task {
-		NotifyTask(const string& aPath) : path(aPath) { }
-		ByteVector buf;
-		string path;
-	};
-
-	virtual int run();
-	boost::lockfree::queue<TaskQueue::UniqueTaskPair*> queue;
-	bool stop;
-	Semaphore s;
-	const bool useDispatcherThread;
-
 	Server* server;
 
-	void addTask(TaskType aType, Task* aTask);
-	void processNotification(const string& aPath, ByteVector& aBuf);
+	void processNotification(const string& aPath, const ByteVector& aBuf);
+	DispatcherQueue dispatcher;
 };
 
 class Monitor : boost::noncopyable {
