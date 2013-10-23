@@ -398,7 +398,7 @@ public:
 
 	HubSettings getHubSettings() const;
 
-	typedef deque<tstring> HistoryList;
+	typedef vector<string> HistoryList;
 
 	enum HistoryType {
 		HISTORY_SEARCH,
@@ -407,7 +407,7 @@ public:
 		HISTORY_LAST
 	};
 
-	bool addToHistory(const tstring& aString, HistoryType aType);
+	bool addToHistory(const string& aString, HistoryType aType);
 	void clearHistory(HistoryType aType);
 	const HistoryList& getHistory(HistoryType aType) const;
 
@@ -438,7 +438,7 @@ private:
 
 	bool isSet[SETTINGS_LAST];
 
-	deque<tstring> history[HISTORY_LAST];
+	HistoryList history[HISTORY_LAST];
 	static const string historyTags[HISTORY_LAST];
 
 	StringPairList fileEvents;

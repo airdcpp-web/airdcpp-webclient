@@ -967,7 +967,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 				if (xml.findChild(historyTags[i])) {
 					xml.stepIn();
 					while(xml.findChild("HistoryItem")) {
-						addToHistory(Text::toT(xml.getChildData()), (HistoryType)i);
+						addToHistory(xml.getChildData(), static_cast<HistoryType>(i));
 					}
 					xml.stepOut();
 				}
@@ -1145,7 +1145,7 @@ const string SettingsManager::historyTags[] = {
 	"DirectoryHistory"
 };
 
-bool SettingsManager::addToHistory(const tstring& aString, HistoryType aType) {
+bool SettingsManager::addToHistory(const string& aString, HistoryType aType) {
 	auto& hist = history[aType];
 
 	if(aString.empty() || get(maxLimits[aType]) == 0)
@@ -1157,7 +1157,7 @@ bool SettingsManager::addToHistory(const tstring& aString, HistoryType aType) {
 	}
 
 	if(static_cast<int>(hist.size()) == get(maxLimits[aType])) {
-		hist.pop_front();
+		hist.erase(hist.begin());
 	}
 
 	hist.push_back(aString);
@@ -1229,7 +1229,7 @@ void SettingsManager::save() {
 			xml.stepIn();
 			const auto& hist = history[i];
 			for (auto& hi: hist) {
-				xml.addTag("HistoryItem", Text::fromT(hi));
+				xml.addTag("HistoryItem", hi);
 			}
 			xml.stepOut();
 		}
