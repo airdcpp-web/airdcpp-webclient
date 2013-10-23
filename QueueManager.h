@@ -135,8 +135,11 @@ public:
 	void noDeleteFileList(const string& path);
 
 	//merging, adding, deletion
-	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException, FileException);
-	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException);
+	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, 
+		QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException, FileException);
+	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
+		Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException, DupeException);
+
 	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) noexcept;
 	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false) noexcept;
 
@@ -293,7 +296,7 @@ private:
 	void checkSource(const HintedUser& aUser) const throw(QueueException);
 
 	/** Check that we can download from this user */
-	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& aPrio) const throw(QueueException);
+	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& aPrio) const throw(QueueException, FileException, DupeException);
 
 	/** Sanity check for the target filename */
 	//static string checkTargetPath(const string& aTarget) throw(QueueException, FileException);

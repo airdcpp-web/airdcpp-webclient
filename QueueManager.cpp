@@ -472,7 +472,7 @@ void QueueManager::checkSource(const HintedUser& aUser) const throw(QueueExcepti
 	}
 }
 
-void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& aPrio) const throw(QueueException) {
+void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& aPrio) const throw(QueueException, FileException, DupeException) {
 
 	//check the skiplist
 	string::size_type i = 0;
@@ -770,7 +770,9 @@ string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate)
 	return Util::validateFileName(Util::formatTime(aPath, (SETTING(FORMAT_DIR_REMOTE_TIME) && aRemoteDate > 0) ? aRemoteDate : GET_TIME()));
 }
 
-BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, Flags::MaskType aFlags, QueueItemBase::Priority aPrio) throw(QueueException, FileException) {
+BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
+		Flags::MaskType aFlags, QueueItemBase::Priority aPrio) throw(QueueException, FileException, DupeException) {
+
 	string filePath = formatBundleTarget(Util::getFilePath(aTarget), aDate);
 	string fileName = Util::getFileName(aTarget);
 
