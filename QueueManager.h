@@ -241,8 +241,6 @@ public:
 	void shareBundle(const string& aName) noexcept;
 	void runAltSearch() noexcept;
 
-	RLock lockRead() { return RLock(cs); }
-
 	void setMatchers() noexcept;
 	void shutdown();
 private:

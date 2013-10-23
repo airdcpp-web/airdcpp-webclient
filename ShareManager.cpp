@@ -40,14 +40,9 @@
 
 #include "version.h"
 
-#include <boost/range/algorithm/search.hpp>
 #include <boost/range/adaptor/filtered.hpp>
-#include <boost/range/algorithm/count_if.hpp>
 #include <boost/range/algorithm/copy.hpp>
-#include <boost/range/numeric.hpp>
-#include <boost/range/algorithm/min_element.hpp>
 #include <boost/algorithm/cxx11/all_of.hpp>
-#include <boost/algorithm/cxx11/any_of.hpp>
 
 #include "concurrency.h"
 
@@ -336,7 +331,9 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	Directory::Ptr dir = nullptr;
 
 	// directories with subdirectories will always be refreshed
-	if (boost::algorithm::all_of(info.files | map_keys, [&info](const string& fileName) { return fileName.find(PATH_SEPARATOR, info.path.length() + 1) == string::npos; })) {
+	if (boost::algorithm::all_of(info.files | map_keys, [&info](const string& fileName) { 
+		return fileName.find(PATH_SEPARATOR, info.path.length() + 1) == string::npos; 
+	})) {
 		RLock l(cs);
 		dir = findDirectory(info.path, false, false, true);
 	}
