@@ -1225,6 +1225,10 @@ void ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) {
 		}
 	}
 }
+void ShareManager::clearTempShares() {
+	WLock l(cs);
+	tempShares.clear();
+}
 
 void ShareManager::getRealPaths(const string& aPath, StringList& ret, ProfileToken aProfile) const throw(ShareException) {
 	if (aPath.empty())
