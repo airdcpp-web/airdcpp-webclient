@@ -39,4 +39,12 @@ namespace dcpp {
 	string getBuildNumberStr() { return xstrver(GIT_COMMIT_COUNT); }
 	int getCommitNumber() { return GIT_COMMIT; }
 	string getVersionString() { return xstrver(GIT_TAG); }
+
+	time_t getVersionDate() {
+#ifdef _WIN32
+		return 0;
+#else
+		return VERSION_DATE;
+#endif
+	}
 }

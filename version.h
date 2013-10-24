@@ -35,6 +35,7 @@ namespace dcpp {
 	int getCommitNumber();
 	string getBuildNumberStr();
 	string getVersionString();
+	time_t getVersionDate();
 }
 #define VERSIONSTRING getVersionString()
 

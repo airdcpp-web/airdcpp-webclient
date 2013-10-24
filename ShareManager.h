@@ -257,6 +257,7 @@ public:
 
 	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback = false) const noexcept;
 	void getParentPaths(StringList& aDirs) const noexcept;
+	void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
 
 	void addDirectories(const ShareDirInfo::List& aNewDirs) noexcept;
 	void removeDirectories(const ShareDirInfo::List& removeDirs) noexcept;
@@ -275,7 +276,7 @@ public:
 	void getExcludes(ProfileToken aProfile, StringList& excludes) const noexcept;
 	optional<ProfileToken> getProfileByName(const string& aName) const noexcept;
 
-	string getStats() const noexcept;
+	string printStats() const noexcept;
 	mutable SharedMutex cs;
 
 	int addRefreshTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
@@ -446,7 +447,7 @@ private:
 
 		void addBloom(ShareBloom& aBloom) const noexcept;
 
-		void getStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
+		void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
 		DualString name;
 
 		void getRenameInfoList(const string& aPath, RenameList& aRename) noexcept;
