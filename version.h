@@ -32,7 +32,7 @@ namespace dcpp {
 	extern const std::string shortVersionString;
 	extern const std::string fullVersionString;
 	int getBuildNumber();
-	int getCommitNumber();
+	string getCommitNumber();
 	string getBuildNumberStr();
 	string getVersionString();
 	time_t getVersionDate();
