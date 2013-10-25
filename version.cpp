@@ -41,10 +41,6 @@ namespace dcpp {
 	string getVersionString() { return GIT_TAG; }
 
 	time_t getVersionDate() {
-#ifdef _WIN32
-		return 0;
-#else
 		return VERSION_DATE;
-#endif
 	}
 }
