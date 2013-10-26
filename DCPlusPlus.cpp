@@ -149,7 +149,6 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 		announce(STRING(COUNTRY_INFORMATION));
 		GeoManager::getInstance()->init();
 	}
-	announce(STRING(LOADING_GUI));
 }
 
 void shutdown(function<void (const string&)> stepF, function<void (float)> progressF) {
