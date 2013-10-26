@@ -82,8 +82,8 @@ void Localization::Language::setLanguageFile() {
 	SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, getLanguageFilePath());
 }
 
-string Localization::Language::getLanguageFilePath() {
-	return Util::getPath(Util::PATH_LOCALE) + locale + ".xml";
+string Localization::Language::getLanguageFilePath() const {
+	return isDefault() ? Util::emptyString : Util::getPath(Util::PATH_LOCALE) + locale + ".xml";
 }
 
 double Localization::Language::getLanguageVersion() {
@@ -160,8 +160,12 @@ string Localization::getSystemLocale() {
 #endif
 }
 
-bool Localization::usingInbuiltLanguage() {
-	return languageList[curLanguage].locale != "en-US";
+bool Localization::Language::isDefault() const {
+	return locale == "en-US";
+}
+
+bool Localization::usingDefaultLanguage() {
+	return languageList[curLanguage].isDefault();
 }
 
 double Localization::getCurLanguageVersion() {

@@ -39,8 +39,9 @@ class Localization {
 			const char* countryFlagCode;
 
 			void setLanguageFile();
-			string getLanguageFilePath();
+			string getLanguageFilePath() const;
 			double getLanguageVersion();
+			bool isDefault() const;
 
 			struct NameSort { 
 				bool operator()(const Language& l1, const Language& l2) const {
@@ -68,7 +69,7 @@ class Localization {
 		static uint8_t getFlagIndexByCode(const char* countryCode);
 		static uint8_t getFlagIndexByName(const char* countryName);
 
-		static bool usingInbuiltLanguage();
+		static bool usingDefaultLanguage();
 	};
 }
 #endif
