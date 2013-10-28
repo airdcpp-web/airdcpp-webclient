@@ -557,9 +557,9 @@ void DownloadManager::setTarget(const string& oldTarget, const string& newTarget
 void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path) {
 	UserConnectionList ucl;
 	{
-		WLock l (cs);
-		for(auto i = sourceBundle->getDownloads().begin(); i != sourceBundle->getDownloads().end();) {
-			Download* d = *i;
+		WLock l(cs);
+		auto downloads = sourceBundle->getDownloads();
+		for (auto& d : downloads) {
 			if (d->getPath() == path) {
 				targetBundle->addDownload(d);
 				d->setBundle(targetBundle);
@@ -567,8 +567,6 @@ void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundl
 				fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getToken(), d->getBundle()->getToken());
 				ucl.push_back(&d->getUserConnection());
 				sourceBundle->removeDownload(d);
-			} else {
-				i++;
 			}
 		}
 	}

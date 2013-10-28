@@ -3273,7 +3273,8 @@ int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget
 				bundleQueue.addFinishedItem(qi, aBundle);
 			}
 
-			for (auto& qi: b->getQueueItems())
+			auto items = b->getQueueItems();
+			for (auto& qi : items)
 				moveBundleItem(qi, aBundle);
 		}
 	}
@@ -3386,6 +3387,10 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 }
 
 void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) noexcept {
+	if (aSource.empty() || aTarget.empty() || !sourceBundle) {
+		return;
+	}
+
 	QueueItemList ql;
 	QueueItemList remove;
 

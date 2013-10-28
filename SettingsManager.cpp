@@ -1013,63 +1013,6 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 					case OLD_INCOMING_PASSIVE: set(INCOMING_CONNECTIONS, INCOMING_PASSIVE); break;
 					default: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE); break;
 				}
-
-				/*SettingItem restoredSettings [] {
-					{ SettingsManager::SHOW_JOINS, ResourceManager::FAV_SHOW_JOIN },
-					{ SettingsManager::LOG_MAIN_CHAT, ResourceManager::FAV_LOG_CHAT },
-					{ SettingsManager::MINIMUM_SEARCH_INTERVAL, ResourceManager::MINIMUM_SEARCH_INTERVAL },
-					{ SettingsManager::SHOW_CHAT_NOTIFY, ResourceManager::CHAT_NOTIFY },
-					{ SettingsManager::EXTERNAL_IP, ResourceManager::SETTINGS_EXTERNAL_IP }
-				};*/
-
-				//notify about changed fav hub settings
-				auto getSettingTextStr = [this] (const string& aSettingCaption, SettingsManager::StrSetting aSetting) -> string {
-					auto val = get(aSetting);
-					return aSettingCaption + "\t(globally " + (!val.empty() ? val : "not set") + ")";
-				};
-
-				auto getSettingTextBool = [this] (const string& aSettingCaption, SettingsManager::BoolSetting aSetting) -> string {
-					return aSettingCaption + "\t(globally " + (get(aSetting) ? "Enabled" : "Disabled") + ")";
-				};
-
-				auto getSettingTextInt = [this] (const string& aSettingCaption, SettingsManager::IntSetting aSetting) -> string {
-					return aSettingCaption + "\t(globally " + Util::toString(get(aSetting)) + " seconds)";
-				};
-
-				auto getConnection = [this] {
-					string text;
-
-					if (SETTING(AUTO_DETECT_CONNECTION)) {
-						text = "Auto detect";
-					} else {
-						switch(SETTING(INCOMING_CONNECTIONS)) {
-							case SettingsManager::INCOMING_ACTIVE: text = "Active (no router or manual config)"; break;
-							case SettingsManager::INCOMING_ACTIVE_UPNP: text = "Active (UPnP/NAT-PMP)"; break;
-							case SettingsManager::INCOMING_PASSIVE: text = "Passive"; break;
-						}
-					}
-
-					return "Incoming connection\t(globally " + text + ")";
-				};
-
-				string msg = boost::str(boost::format(
-					"\rAll favorite hubs have been reset to use the global values for the following settings:\r\n\r\n\
-	%s\r\n\
-	%s\r\n\
-	%s\r\n\
-	%s\r\n\r\n\
-	%s\r\n\
-	%s\r\n\r\n\
-	You can customize those settings for each favorite hub if needed")
-
-					% getSettingTextBool(STRING(FAV_SHOW_JOIN) + "\t", SettingsManager::SHOW_JOINS)
-					% getSettingTextBool(STRING(FAV_LOG_CHAT) + "\t\t", SettingsManager::LOG_MAIN_CHAT)
-					% getSettingTextInt(STRING(MINIMUM_SEARCH_INTERVAL) + "\t", SettingsManager::MINIMUM_SEARCH_INTERVAL)
-					% getSettingTextBool(STRING(CHAT_NOTIFY), SettingsManager::SHOW_CHAT_NOTIFY)
-					% getSettingTextStr(STRING(SETTINGS_EXTERNAL_IP) + "\t", SettingsManager::EXTERNAL_IP)
-					% getConnection());
-
-				messageF(msg, false, false);
 			}
 
 			if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
