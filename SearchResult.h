@@ -65,7 +65,7 @@ public:
 	int getFileCount() const { return files; }
 	const TTHValue& getTTH() const { return tth; }
 	
-	string getConnectionStr() const;
+	const string& getConnectionStr() const { return connection; }
 	int64_t getConnectionInt() const;
 	int64_t getSpeedPerSlot() const;
 

@@ -1818,5 +1818,10 @@ enum Strings { // @DontAdd
 	OVERRIDE_LIMITER, // "Override limiter"
 	AS_END_GREATER, // "End time must be greater than the start time!"
 	CLOSING_WAIT, // "Closing, please wait..."
+	PBITS, // "Pbit/s"
+	TBITS, // "Tbit/s"
+	GBITS, // "Gbit/s"
+	MBITS, // "Mbit/s"
+	KBITS, // "Kbit/s"
 	LAST // @DontAdd
 };

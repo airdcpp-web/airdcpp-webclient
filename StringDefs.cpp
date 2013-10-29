@@ -1814,6 +1814,11 @@ std::string dcpp::ResourceManager::strings[] = {
 "Override limiter", 
 "End time must be greater than the start time!", 
 "Closing, please wait...", 
+"Pbit/s", 
+"Tbit/s", 
+"Gbit/s", 
+"Mbit/s", 
+"Kbit/s", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3628,4 +3633,9 @@ std::string dcpp::ResourceManager::names[] = {
 "OverrideLimiter", 
 "AsEndGreater", 
 "ClosingWait", 
+"Pbits", 
+"Tbits", 
+"Gbits", 
+"Mbits", 
+"Kbits", 
 };
