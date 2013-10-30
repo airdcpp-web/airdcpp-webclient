@@ -155,7 +155,7 @@ int MappingManager::run() {
 		}
 
 		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) -> bool {
-			if(!port.empty() && !mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, APPNAME % description % port % Mapper::protocols[protocol]))) {
+			if (!port.empty() && !mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, APPNAME % description % port % Mapper::protocols[protocol]))) {
 				this->log(STRING_F(MAPPER_INTERFACE_FAILED, description % port % Mapper::protocols[protocol] % mapper.getName()), LogManager::LOG_WARNING);
 				mapper.close();
 				return false;

@@ -1461,7 +1461,7 @@ void AdcHub::infoImpl() {
 	addParam(lastInfoMap, c, "HR", Util::toString(counts[COUNT_REGISTERED]));
 	addParam(lastInfoMap, c, "HO", Util::toString(counts[COUNT_OP]));	
 
-	addParam(lastInfoMap, c, "VE", APPNAME " " + shortVersionString);
+	addParam(lastInfoMap, c, "VE", shortVersionString);
 	addParam(lastInfoMap, c, "AW", AirUtil::getAway() ? "1" : Util::emptyString);
 	addParam(lastInfoMap, c, "LC", Localization::getCurrentLocale());
 

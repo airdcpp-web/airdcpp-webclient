@@ -16,28 +16,26 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#define APPNAME "AirDC++"
-
 #define DCVERSIONSTRING "0.830"
 
 #define BETAVER
 
-#ifdef _WIN64
-# define CONFIGURATION_TYPE "x86-64"
-#else
-# define CONFIGURATION_TYPE "x86-32"
-#endif
-
 namespace dcpp {
 	extern const std::string shortVersionString;
 	extern const std::string fullVersionString;
+
 	int getBuildNumber();
 	string getCommitNumber();
 	string getBuildNumberStr();
 	string getVersionString();
 	time_t getVersionDate();
+	const char* getAppName();
+	string getConfigurationType();
 }
+
+#define APPNAME getAppName()
 #define VERSIONSTRING getVersionString()
+#define CONFIGURATION_TYPE getConfigurationType()
 
 //Total git commit commit count
 #define BUILD_NUMBER_STR getBuildNumberStr()

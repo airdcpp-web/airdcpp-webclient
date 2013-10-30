@@ -19,8 +19,11 @@
 #include "stdinc.h"
 #include "version.h"
 
-#include "version-revno.inc" // should #define GIT_TAG, GIT_COMMIT, GIT_HASH
+#include "version.inc"
 
+#ifndef _WIN32
+#include <sys/utsname.h>
+#endif
 
 #define xstrver(s) strver(s)
 #define strver(s) #s
@@ -28,19 +31,32 @@
 
 namespace dcpp {
 #ifdef BETAVER
-	const std::string shortVersionString(GIT_TAG "-" GIT_COMMIT "-" GIT_HASH);
-	const std::string fullVersionString(APPNAME " " GIT_TAG "-" GIT_COMMIT "-" GIT_HASH " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
+	const std::string shortVersionString(APPNAME_INC " " GIT_TAG "-" GIT_COMMIT "-" GIT_HASH);
+	const std::string fullVersionString(APPNAME_INC " " GIT_TAG "-" GIT_COMMIT "-" GIT_HASH " " + CONFIGURATION_TYPE + " / " DCVERSIONSTRING);
 #else
 	const std::string shortVersionString(xstrver(GIT_TAG));
 	const std::string fullVersionString(APPNAME " " xstrver(GIT_TAG) " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
 #endif
-
+	const char* getAppName() { return APPNAME_INC; }
 	int getBuildNumber() { return GIT_COMMIT_COUNT; }
 	string getBuildNumberStr() { return xstrver(GIT_COMMIT_COUNT); }
 	string getCommitNumber() { return GIT_COMMIT; }
 	string getVersionString() { return GIT_TAG; }
 
-	time_t getVersionDate() {
-		return VERSION_DATE;
+	time_t getVersionDate() { return VERSION_DATE; }
+
+	string getConfigurationType() {
+#ifdef _WIN64
+		return "x86-64";
+#elif _WIN32
+		return "x86-32";
+#else
+		utsname n;
+		if (uname(&n) != 0) {
+			return "(unknown architecture)";
+		}
+
+		return string(n.machine);
+#endif
 	}
 }

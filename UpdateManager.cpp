@@ -349,7 +349,7 @@ void UpdateManager::checkGeoUpdate(bool v6) {
 		updateGeo(false);
 	} else {
 		//dwt::MessageBox(this).show(T_("IP -> country mappings are disabled. Turn them back on via Settings > Appearance."),
-			//_T(APPNAME) _T(" ") _T(VERSIONSTRING), dwt::MessageBox::BOX_OK, dwt::MessageBox::BOX_ICONEXCLAMATION);
+			//_T(appName) _T(" ") _T(VERSIONSTRING), dwt::MessageBox::BOX_OK, dwt::MessageBox::BOX_ICONEXCLAMATION);
 	}
 }*/
 
@@ -413,19 +413,12 @@ bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& r
 		if(xml.findChild("Version")) {
 			versionString = xml.getChildData();
 			xml.resetCurrentChild();
-#ifdef BETAVER
 			if(xml.findChild(UPGRADE_TAG)) {
 				remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
-				//versionString += "-" + xml.getChildAttrib("Commit");
 				string tmp = xml.getChildAttrib("VersionString");
 				if (!tmp.empty()) 
 					versionString = tmp;
 			}
-#else
-			if (xml.findChild("Build")) {
-				remoteBuild = Util::toInt(xml.getChildData());
-			}
-#endif
 			xml.resetCurrentChild();
 			return true;
 		}
