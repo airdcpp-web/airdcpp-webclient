@@ -34,8 +34,8 @@ namespace dcpp {
 	const std::string shortVersionString(APPNAME_INC " " GIT_TAG "-" GIT_COMMIT "-" GIT_HASH);
 	const std::string fullVersionString(APPNAME_INC " " GIT_TAG "-" GIT_COMMIT "-" GIT_HASH " " + CONFIGURATION_TYPE + " / " DCVERSIONSTRING);
 #else
-	const std::string shortVersionString(xstrver(GIT_TAG));
-	const std::string fullVersionString(APPNAME " " xstrver(GIT_TAG) " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
+	const std::string shortVersionString(APPNAME_INC " " xstrver(GIT_TAG));
+	const std::string fullVersionString(APPNAME_INC " " xstrver(GIT_TAG) " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
 #endif
 	const char* getAppName() { return APPNAME_INC; }
 	int getBuildNumber() { return GIT_COMMIT_COUNT; }
