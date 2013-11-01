@@ -316,7 +316,7 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 	{
 		WLock l(cs);
 		for (auto& as : items) {
-			if (as->removeOnCompleted()) {
+			if (finished && as->removeOnCompleted()) {
 				removed.push_back(as);
 			} else if (as->onBundleRemoved(aBundle, finished)) {
 				expired.push_back(as);

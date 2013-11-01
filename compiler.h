@@ -57,6 +57,7 @@
 #define _CRT_NON_CONFORMING_SWPRINTFS 1
 
 #if defined(_MSC_VER)
+#define HAVE_LEVELDB_BLOOM
 #define strtoll _strtoi64
 #define snprintf _snprintf
 #define snwprintf _snwprintf
@@ -130,7 +131,6 @@
 #endif
 
 #define BOOST_MOVE_USE_STANDARD_LIBRARY_MOVE
-#define _VARIADIC_MAX 10
 
 #ifndef _REENTRANT
 # define _REENTRANT 1
