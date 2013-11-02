@@ -756,10 +756,9 @@ void ShareManager::shutdown(function<void(float)> progressF) noexcept {
 
 	try {
 		RLock l (cs);
-		StringList lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2", File::TYPE_FILE);
-
 		//clear refs so we can delete filelists.
-		for(auto f: shareProfiles) {
+		auto lists = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files?*.xml.bz2", File::TYPE_FILE);
+		for(auto& f: shareProfiles) {
 			if(f->getProfileList() && f->getProfileList()->bzXmlRef.get()) 
 				f->getProfileList()->bzXmlRef.reset(); 
 		}

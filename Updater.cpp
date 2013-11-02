@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "Updater.h"
 
+#ifdef WIN32
 #include "File.h"
 #include "HashCalc.h"
 #include "SimpleXML.h"
@@ -31,6 +32,7 @@
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/pem.h>
+#endif
 
 #ifdef _WIN64
 # define ARCH_STR "x64"
@@ -229,6 +231,6 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 	}
 }
 
-#endif
+#endif //WIN32
 
 }
