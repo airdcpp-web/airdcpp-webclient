@@ -221,15 +221,6 @@ optional<FavoriteUser> FavoriteManager::getFavoriteUser(const UserPtr &aUser) co
 	return i == users.end() ? optional<FavoriteUser>() : i->second;
 }
 
-std::string FavoriteManager::getUserURL(const UserPtr& aUser) const {
-	RLock l(cs);
-	auto i = users.find(aUser->getCID());
-	if(i != users.end()) {
-		const FavoriteUser& fu = i->second;
-		return fu.getUrl();
-	}
-	return Util::emptyString;
-}
 
 void FavoriteManager::changeLimiterOverride(const UserPtr& aUser) noexcept{
 	RLock l(cs);
@@ -1186,16 +1177,7 @@ void FavoriteManager::on(UserDisconnected, const UserPtr& user, bool wentOffline
 }
 
 void FavoriteManager::on(UserConnected, const OnlineUser& aUser, bool /*wasOffline*/) noexcept {
-	//bool isFav = false;
 	UserPtr user = aUser.getUser();
-	/*
-	{
-		RLock l(cs);
-		auto i = users.find(user->getCID());
-		if(i != users.end()) {
-			isFav = true;
-		}
-	}*/
 
 	if(user->isSet(User::FAVORITE))
 		fire(FavoriteManagerListener::StatusChanged(), user);

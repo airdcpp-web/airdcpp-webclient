@@ -254,11 +254,6 @@ int Identity::getTotalHubCount() const {
 	return Util::toInt(get("HN")) + Util::toInt(get("HR")) + Util::toInt(get("HO"));
 }
 
-void FavoriteUser::update(const OnlineUser& info) { 
-	//setNick(info.getIdentity().getNick()); 
-	setUrl(info.getClient().getHubUrl()); 
-}
-
 bool Identity::updateConnectMode(const Identity& me, const Client* aClient) {
 	Mode newMode = MODE_NOCONNECT_IP;
 	bool meSupports6 = !me.getIp6().empty();

@@ -283,6 +283,7 @@ StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint) cons
 		nick += Util::listToStringT<OnlineUserList, OnlineUser::Nick>(ouList, hinted ? true : false, hinted ? false : true);
 		
 	if (nick.empty()) {
+		//offline
 		auto i = nicks.find(const_cast<CID*>(&user->getCID()));
 		if(i != nicks.end()) {
 			nick = i->second;
