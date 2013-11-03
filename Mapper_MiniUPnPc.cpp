@@ -96,7 +96,11 @@ bool Mapper_MiniUPnPc::init() {
 	if(!url.empty())
 		return true;
 
+#ifdef HAVE_OLD_MINIUPNPC
+	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0);
+#else
 	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, v6, 0);
+#endif
 	if(!devices)
 		return false;
 
@@ -130,7 +134,13 @@ bool Mapper_MiniUPnPc::init() {
 
 		url = urls.controlURL;
 		service = data.first.servicetype;
+
+#ifdef _WIN32
 		device = data.CIF.friendlyName;
+#else
+		// Doesn't work on Linux
+		device = "Generic";
+#endif
 	}
 
 	if(ret) {
@@ -145,8 +155,13 @@ void Mapper_MiniUPnPc::uninit() {
 }
 
 bool Mapper_MiniUPnPc::add(const string& port, const Protocol protocol, const string& description) {
+#ifdef HAVE_OLD_MINIUPNPC
+	return UPNP_AddPortMapping(url.c_str(), service.c_str(), port.c_str(), port.c_str(),
+		localIp.c_str(), description.c_str(), protocols[protocol], 0) == UPNPCOMMAND_SUCCESS;
+#else
 	return UPNP_AddPortMapping(url.c_str(), service.c_str(), port.c_str(), port.c_str(),
 		localIp.c_str(), description.c_str(), protocols[protocol], 0, 0) == UPNPCOMMAND_SUCCESS;
+#endif
 }
 
 bool Mapper_MiniUPnPc::remove(const string& port, const Protocol protocol) {
