@@ -32,6 +32,7 @@
 #include "Singleton.h"
 #include "Socket.h"
 #include "ShareProfile.h"
+#include "OfflineUser.h"
 
 namespace dcpp {
 
@@ -136,8 +137,11 @@ public:
 
 	UserPtr findUserByNick(const string& aNick, const string& aHubUrl) const noexcept;
 	
-	void updateNick(const UserPtr& user, const string& nick) noexcept;
+	//Note; Lock usage
+	void addOfflineUser(const UserPtr& user, const string& nick, const string& url) noexcept;
+
 	string getMyNick(const string& hubUrl) const noexcept;
+	optional<OfflineUser> getOfflineUser(const CID& cid);
 	
 	void setIPUser(const UserPtr& user, const string& IP, const string& udpPort = Util::emptyString) noexcept;
 	
@@ -186,7 +190,7 @@ public:
 	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const noexcept;
 private:
 
-	typedef unordered_map<CID*, std::string> NickMap;
+	typedef unordered_map<CID*, OfflineUser> OfflineUserMap;
 
 	typedef unordered_multimap<CID*, OnlineUser*> OnlineMap;
 	typedef OnlineMap::iterator OnlineIter;
@@ -198,14 +202,16 @@ private:
 	mutable SharedMutex cs;
 	
 	UserMap users;
-	OnlineMap onlineUsers;	
-	NickMap nicks;
+	OnlineMap onlineUsers;
+
+	OfflineUserMap offlineUsers;
 
 	UserPtr me;
 
 	Socket udp;
 	
-	CID pid;	
+	CID pid;
+	uint64_t lastOfflineUserCleanup;
 
 	friend class Singleton<ClientManager>;
 
@@ -213,7 +219,8 @@ private:
 
 	virtual ~ClientManager();
 
-	void updateUser(const OnlineUser& user) noexcept;
+	//Note; Lock usage
+	void updateUser(const OnlineUser& user, bool wentOffline) noexcept;
 
 	OnlineUserPtr getUsers(const HintedUser& aUser, OnlineUserList& users) const noexcept;
 		

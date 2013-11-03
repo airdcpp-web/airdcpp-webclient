@@ -748,18 +748,22 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			const string& cid = aXml.getChildAttrib("CID");
 			const string& nick = aXml.getChildAttrib("Nick");
 			const string& hubUrl = aXml.getChildAttrib("URL");
+			ClientManager* cm = ClientManager::getInstance();
 
 			if(cid.length() != 39) {
 				if(nick.empty() || hubUrl.empty())
 					continue;
-				u = ClientManager::getInstance()->getUser(nick, hubUrl);
+				u = cm->getUser(nick, hubUrl);
 			} else {
-				u = ClientManager::getInstance()->getUser(CID(cid));
+				u = cm->getUser(CID(cid));
 			}
 			u->setFlag(User::FAVORITE);
 
 			auto i = users.emplace(u->getCID(), FavoriteUser(u, nick, hubUrl, cid)).first;
-			ClientManager::getInstance()->updateNick(u, nick);
+			{
+				WLock(cm->getCS());
+				cm->addOfflineUser(u, nick, hubUrl);
+			}
 
 			if(aXml.getBoolChildAttrib("GrantSlot"))
 				i->second.setFlag(FavoriteUser::FLAG_GRANTSLOT);

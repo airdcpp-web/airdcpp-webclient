@@ -2414,12 +2414,16 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				// Skip loading this source - sorry old users
 				return;
 			}
-			UserPtr user = ClientManager::getInstance()->getUser(CID(cid));
-			ClientManager::getInstance()->updateNick(user, getAttrib(attribs, sNick, 1));
+			ClientManager* cm = ClientManager::getInstance();
+			UserPtr user = cm->getUser(CID(cid));
 
 			try {
 				const string& hubHint = getAttrib(attribs, sHubHint, 1);
 				HintedUser hintedUser(user, hubHint);
+				{
+					WLock l(cm->getCS());
+					cm->addOfflineUser(user, getAttrib(attribs, sNick, 1), hubHint);
+				}
 				/*if (SettingsManager::lanMode) {
 					const string& remotePath = getAttrib(attribs, sRemotePath, 2);
 					if (remotePath.empty())
