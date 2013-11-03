@@ -1823,5 +1823,9 @@ enum Strings { // @DontAdd
 	GBITS, // "Gbit/s"
 	MBITS, // "Mbit/s"
 	KBITS, // "Kbit/s"
+	UPDATE_CHANNEL, // "Update channel"
+	CHANNEL_STABLE, // "Stable versions only"
+	CHANNEL_BETA, // "Stable and beta versions"
+	CHANNEL_NIGHTLY, // "Nightly builds"
 	LAST // @DontAdd
 };

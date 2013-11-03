@@ -97,7 +97,10 @@ public:
 
 	static bool getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
 	void checkAdditionalUpdates(bool manualCheck);
+	string getVersionUrl() const;
 private:
+	static const char* versionUrl[SettingsManager::UPDATE_LAST];
+
 	uint64_t lastIPUpdate;
 	static uint8_t publicKey[270];
 

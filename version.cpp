@@ -20,6 +20,7 @@
 #include "version.h"
 
 #include "version.inc"
+#include "SettingsManager.h"
 
 #ifndef _WIN32
 #include <sys/utsname.h>
@@ -30,17 +31,11 @@
 
 
 namespace dcpp {
-#ifdef BETAVER
-	const std::string shortVersionString(APPNAME_INC " " GIT_TAG "-" GIT_COMMIT "-" GIT_HASH);
-	const std::string fullVersionString(APPNAME_INC " " GIT_TAG "-" GIT_COMMIT "-" GIT_HASH " " + CONFIGURATION_TYPE + " / " DCVERSIONSTRING);
-#else
-	const std::string shortVersionString(APPNAME_INC " " xstrver(GIT_TAG));
-	const std::string fullVersionString(APPNAME_INC " " xstrver(GIT_TAG) " " CONFIGURATION_TYPE " / " DCVERSIONSTRING);
-#endif
+	const std::string shortVersionString(APPNAME_INC " " GIT_TAG);
+	const std::string fullVersionString(APPNAME_INC " " GIT_TAG " " + getConfigurationType() + " / " DCVERSIONSTRING);
 	const char* getAppName() { return APPNAME_INC; }
 	int getBuildNumber() { return GIT_COMMIT_COUNT; }
 	string getBuildNumberStr() { return xstrver(GIT_COMMIT_COUNT); }
-	string getCommitNumber() { return GIT_COMMIT; }
 	string getVersionString() { return GIT_TAG; }
 
 	time_t getVersionDate() { return VERSION_DATE; }
@@ -58,5 +53,18 @@ namespace dcpp {
 
 		return string(n.machine);
 #endif
+	}
+
+	VersionType getVersionType() {
+		string v = GIT_TAG;
+		if (v.length() > 4 && v[4] == 'a') {
+			return VERSION_NIGHTLY;
+		}
+
+		if (v.length() > 4 && v[4] == 'b') {
+			return VERSION_BETA;
+		}
+		
+		return VERSION_STABLE;
 	}
 }

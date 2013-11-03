@@ -18,19 +18,24 @@
 
 #define DCVERSIONSTRING "0.830"
 
-#define BETAVER
-
 namespace dcpp {
+	enum VersionType {
+		VERSION_STABLE,
+		VERSION_BETA,
+		VERSION_NIGHTLY,
+		VERSION_LAST
+	};
+
 	extern const std::string shortVersionString;
 	extern const std::string fullVersionString;
 
 	int getBuildNumber();
-	string getCommitNumber();
 	string getBuildNumberStr();
 	string getVersionString();
 	time_t getVersionDate();
 	const char* getAppName();
 	string getConfigurationType();
+	VersionType getVersionType();
 }
 
 #define APPNAME getAppName()
@@ -43,12 +48,6 @@ namespace dcpp {
 
 //Git commit count for the current git tag
 #define COMMIT_NUMBER getCommitNumber()
-
-#ifdef BETAVER
-#define VERSION_URL "http://builds.airdcpp.net/version/version.xml"
-#else
-#define VERSION_URL "http://version.airdcpp.net/version.xml"
-#endif
 
 #ifdef NDEBUG
 # define INST_NAME "{AIRDC-AEE8350A-B49A-4753-AB4B-E55479A48351}"

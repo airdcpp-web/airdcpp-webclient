@@ -50,6 +50,11 @@
 
 namespace dcpp {
 
+const char* UpdateManager::versionUrl[SettingsManager::UPDATE_LAST] = { "http://version.airdcpp.net/version.xml",
+	"http://beta.airdcpp.net/version/version.xml"
+	"http://builds.airdcpp.net/version/version.xml"
+};
+
 UpdateManager::UpdateManager() : installedUpdate(0), lastIPUpdate(GET_TICK()) {
 	TimerManager::getInstance()->addListener(this);
 	sessionToken = Util::toString(Util::rand());
@@ -268,7 +273,7 @@ void UpdateManager::completeSignatureDownload(bool manualCheck) {
 		versionSig.assign(conn->buf.begin(), conn->buf.end());
 	}
 
-	conns[CONN_VERSION].reset(new HttpDownload(VERSION_URL,
+	conns[CONN_VERSION].reset(new HttpDownload(getVersionUrl(),
 	//conns[CONN_VERSION] = make_unique<HttpDownload>("http://beta.airdcpp.net/testversion/version.xml",
 		[this, manualCheck] { completeVersionDownload(manualCheck); }, false));
 }
@@ -638,9 +643,13 @@ void UpdateManager::checkVersion(bool aManual) {
 	}
 
 	versionSig.clear();
-	conns[CONN_SIGNATURE].reset(new HttpDownload(static_cast<string>(VERSION_URL) + ".sign",
+	conns[CONN_SIGNATURE].reset(new HttpDownload(getVersionUrl() + ".sign",
 	//conns[CONN_SIGNATURE].reset(new HttpDownload("http://beta.airdcpp.net/testversion/version.xml.sign",
 		[this, aManual] { completeSignatureDownload(aManual); }, false));
+}
+
+string UpdateManager::getVersionUrl() const {
+	return versionUrl[SETTING(UPDATE_CHANNEL)];
 }
 
 void UpdateManager::init(const string& aExeName) {

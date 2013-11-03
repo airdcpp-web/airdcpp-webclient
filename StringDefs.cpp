@@ -1819,6 +1819,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Gbit/s", 
 "Mbit/s", 
 "Kbit/s", 
+"Update channel", 
+"Stable versions only", 
+"Stable and beta versions", 
+"Nightly builds", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3638,4 +3642,8 @@ std::string dcpp::ResourceManager::names[] = {
 "Gbits", 
 "Mbits", 
 "Kbits", 
+"UpdateChannel", 
+"ChannelStable", 
+"ChannelBeta", 
+"ChannelNightly", 
 };
