@@ -31,7 +31,7 @@ namespace dcpp {
 
 	int getBuildNumber();
 	string getBuildNumberStr();
-	string getVersionString();
+	string getVersionTag();
 	time_t getVersionDate();
 	const char* getAppName();
 	string getConfigurationType();
@@ -39,7 +39,7 @@ namespace dcpp {
 }
 
 #define APPNAME getAppName()
-#define VERSIONSTRING getVersionString()
+#define VERSIONSTRING getVersionTag()
 #define CONFIGURATION_TYPE getConfigurationType()
 
 //Total git commit commit count

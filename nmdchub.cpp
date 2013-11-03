@@ -975,7 +975,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 		status |= Identity::AIRDC;
 
 
-		version = shortVersionString.substr(dc.length() + 1);
+		version = VERSIONSTRING;
 		if(AirUtil::getAway()) {
 			status |= Identity::AWAY;
 		}

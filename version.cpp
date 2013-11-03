@@ -36,7 +36,7 @@ namespace dcpp {
 	const char* getAppName() { return APPNAME_INC; }
 	int getBuildNumber() { return GIT_COMMIT_COUNT; }
 	string getBuildNumberStr() { return xstrver(GIT_COMMIT_COUNT); }
-	string getVersionString() { return GIT_TAG; }
+	string getVersionTag() { return GIT_TAG; }
 
 	time_t getVersionDate() { return VERSION_DATE; }
 
