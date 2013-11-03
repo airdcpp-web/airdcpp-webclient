@@ -51,7 +51,7 @@
 namespace dcpp {
 
 const char* UpdateManager::versionUrl[SettingsManager::UPDATE_LAST] = { "http://version.airdcpp.net/version.xml",
-	"http://beta.airdcpp.net/version/version.xml"
+	"http://beta.airdcpp.net/version/version.xml",
 	"http://builds.airdcpp.net/version/version.xml"
 };
 
