@@ -221,15 +221,6 @@ optional<FavoriteUser> FavoriteManager::getFavoriteUser(const UserPtr &aUser) co
 	return i == users.end() ? optional<FavoriteUser>() : i->second;
 }
 
-std::string FavoriteManager::getUserURL(const UserPtr& aUser) const {
-	RLock l(cs);
-	auto i = users.find(aUser->getCID());
-	if(i != users.end()) {
-		const FavoriteUser& fu = i->second;
-		return fu.getUrl();
-	}
-	return Util::emptyString;
-}
 
 void FavoriteManager::changeLimiterOverride(const UserPtr& aUser) noexcept{
 	RLock l(cs);
@@ -757,18 +748,22 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			const string& cid = aXml.getChildAttrib("CID");
 			const string& nick = aXml.getChildAttrib("Nick");
 			const string& hubUrl = aXml.getChildAttrib("URL");
+			ClientManager* cm = ClientManager::getInstance();
 
 			if(cid.length() != 39) {
 				if(nick.empty() || hubUrl.empty())
 					continue;
-				u = ClientManager::getInstance()->getUser(nick, hubUrl);
+				u = cm->getUser(nick, hubUrl);
 			} else {
-				u = ClientManager::getInstance()->getUser(CID(cid));
+				u = cm->getUser(CID(cid));
 			}
 			u->setFlag(User::FAVORITE);
 
 			auto i = users.emplace(u->getCID(), FavoriteUser(u, nick, hubUrl, cid)).first;
-			ClientManager::getInstance()->updateNick(u, nick);
+			{
+				WLock(cm->getCS());
+				cm->addOfflineUser(u, nick, hubUrl);
+			}
 
 			if(aXml.getBoolChildAttrib("GrantSlot"))
 				i->second.setFlag(FavoriteUser::FLAG_GRANTSLOT);
@@ -1186,16 +1181,7 @@ void FavoriteManager::on(UserDisconnected, const UserPtr& user, bool wentOffline
 }
 
 void FavoriteManager::on(UserConnected, const OnlineUser& aUser, bool /*wasOffline*/) noexcept {
-	//bool isFav = false;
 	UserPtr user = aUser.getUser();
-	/*
-	{
-		RLock l(cs);
-		auto i = users.find(user->getCID());
-		if(i != users.end()) {
-			isFav = true;
-		}
-	}*/
 
 	if(user->isSet(User::FAVORITE))
 		fire(FavoriteManagerListener::StatusChanged(), user);

@@ -36,8 +36,6 @@ public:
 
 	UserPtr& getUser() { return user; }
 
-	void update(const OnlineUser& info);
-
 	GETSET(UserPtr, user, User);
 	GETSET(string, cid, Cid);
 	GETSET(string, nick, Nick);

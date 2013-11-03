@@ -86,7 +86,6 @@ public:
 	void setUserDescription(const UserPtr& aUser, const string& description);
 	void setAutoGrant(const UserPtr& aUser, bool grant);
 	time_t getLastSeen(const UserPtr& aUser) const;
-	string getUserURL(const UserPtr& aUser) const;
 	void changeLimiterOverride(const UserPtr& aUser) noexcept;
 // Favorite Hubs
 	void autoConnect();
