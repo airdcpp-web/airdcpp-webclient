@@ -653,7 +653,7 @@ void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onRES\n");
 		return;
 	}
-	SearchManager::getInstance()->onRES(c, ou->getUser());
+	SearchManager::getInstance()->onRES(c, ou->getUser(), ou->getIdentity().getIp());
 }
 
 void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
@@ -662,7 +662,7 @@ void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onPSR\n");
 		return;
 	}
-	SearchManager::getInstance()->onPSR(c, ou->getUser());
+	SearchManager::getInstance()->onPSR(c, ou->getUser(), ou->getIdentity().getIp());
 }
 
 void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {

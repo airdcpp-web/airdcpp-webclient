@@ -330,7 +330,7 @@ void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
-void SearchManager::onPBD(const AdcCommand& cmd, UserPtr from) {
+void SearchManager::onPBD(const AdcCommand& cmd, const UserPtr& from) {
 	string remoteBundle;
 	string hubIpPort;
 	string tth;
@@ -418,7 +418,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "U4") == 0) {
-			udpPort = static_cast<uint16_t>(Util::toInt(str.substr(2)));
+			udpPort = str.substr(2);
 		} else if(str.compare(0, 2, "NI") == 0) {
 			nick = str.substr(2);
 		} else if(str.compare(0, 2, "HI") == 0) {
@@ -467,7 +467,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 
 	QueueManager::getInstance()->handlePartialResult(HintedUser(from, url), TTHValue(tth), ps, outPartialInfo);
 	
-	if(!udpPort.empty() && !outPartialInfo.empty()) {
+	if(Util::toInt(udpPort) > 0 && !outPartialInfo.empty()) {
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(false, ps.getMyNick(), hubIpPort, tth, outPartialInfo);
 			ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true, Util::emptyString, url);
@@ -526,7 +526,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 
 		if (!partialInfo.empty()) {
 			//LogManager::getInstance()->message("SEARCH RESPOND: PARTIALINFO NOT EMPTY");
-			AdcCommand cmd = toPSR(true, Util::emptyString, hubIpPort, tth, partialInfo);
+			AdcCommand cmd = toPSR(isUdpActive, Util::emptyString, hubIpPort, tth, partialInfo);
 			ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl());
 		}
 		
@@ -578,7 +578,7 @@ AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const s
 		cmd.addParam("NI", Text::utf8ToAcp(myNick));
 		
 	cmd.addParam("HI", hubIpPort);
-	cmd.addParam("U4", (wantResponse && ClientManager::getInstance()->isActive(hubIpPort)) ? getPort() : "0");
+	cmd.addParam("U4", wantResponse ? getPort() : "0");
 	cmd.addParam("TR", tth);
 	cmd.addParam("PC", Util::toString(partialInfo.size() / 2));
 	cmd.addParam("PI", getPartsString(partialInfo));

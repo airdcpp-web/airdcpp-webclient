@@ -283,7 +283,7 @@ checkslots:
 					fileSize = size = xml.size();
 				} else {
 					countFilePositions();
-					unique_ptr<File> f(new File(sourceFile, File::READ, File::OPEN));
+					unique_ptr<File> f(new File(sourceFile, File::READ, File::OPEN | File::SHARED_WRITE)); // write for partial sharing
 			
 					f->setPos(start);
 					is = move(f);
