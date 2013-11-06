@@ -368,7 +368,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, const UserPtr& from) {
 		return;
 	}
 
-	string url = Util::emptyString; //TODO: fix
+	string url = ClientManager::getInstance()->findHub(hubIpPort, !from);
 
 	if (update) {
 		//LogManager::getInstance()->message("PBD UPDATE TTH");

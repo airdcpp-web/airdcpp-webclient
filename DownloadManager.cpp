@@ -711,7 +711,14 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
 		return;
 	}
 
-	fire(DownloadManagerListener::Failed(), d, (d->isSet(Download::FLAG_NFO) && isNmdc) ? STRING(NO_PARTIAL_SUPPORT) : noAccess ? STRING(NO_FILE_ACCESS) : STRING(FILE_NOT_AVAILABLE));
+	string error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
+	if (d->isSet(Download::FLAG_NFO) && isNmdc) {
+		error = STRING(NO_PARTIAL_SUPPORT);
+	} else if (noAccess) {
+		error = STRING(NO_FILE_ACCESS);
+	}
+
+	fire(DownloadManagerListener::Failed(), d, error);
 	if (!noAccess)
 		QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
 

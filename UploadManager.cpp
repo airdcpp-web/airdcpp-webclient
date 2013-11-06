@@ -156,17 +156,31 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 			return false;
 		}
 	} catch(const ShareException& e) {
-		if(aType == Transfer::names[Transfer::TYPE_FILE] && aFile.compare(0, 4, "TTH/") == 0) {
-
+		// Partial sharing
+		if (aFile.compare(0, 4, "TTH/") == 0 && SETTING(USE_PARTIAL_SHARING)) {
 			TTHValue fileHash(aFile.substr(4));
-
-			if(SETTING(USE_PARTIAL_SHARING) && QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, fileSize, sourceFile)){
-				//Todo: Do we need to set fileSize here?
-				partialFileSharing = true;
-				type = Transfer::TYPE_FILE;
-				goto checkslots;
+			if (aType == Transfer::names[Transfer::TYPE_TREE]) {
+				// The size isn't relevant here
+				auto targets = QueueManager::getInstance()->getTargets(fileHash);
+				if (!targets.empty()) {
+					sourceFile = targets.front();
+					partialFileSharing = true;
+					type = Transfer::TYPE_TREE;
+					miniSlot = true;
+					goto checkslots;
+				}
+			} else if (aType == Transfer::names[Transfer::TYPE_FILE]) {
+				if (QueueManager::getInstance()->isChunkDownloaded(fileHash, aStartPos, aBytes, fileSize, sourceFile)) {
+					partialFileSharing = true;
+					type = Transfer::TYPE_FILE;
+					goto checkslots;
+				}
+			} else {
+				aSource.sendError("Invalid file type");
+				return false;
 			}
 		}
+
 		aSource.sendError(e.getError(), noAccess ? AdcCommand::ERROR_FILE_ACCESS_DENIED : AdcCommand::ERROR_FILE_NOT_AVAILABLE);
 		return false;
 	}
