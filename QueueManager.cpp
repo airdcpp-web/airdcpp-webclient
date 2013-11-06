@@ -1900,6 +1900,8 @@ void QueueManager::removeFileSource(const string& aTarget, const UserPtr& aUser,
 	}
 }
 
+#define MAX_SIZE_WO_TREE 20*1024*1024
+
 void QueueManager::removeFileSource(QueueItemPtr& q, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
 	bool isRunning = false;
 	bool removeCompletely = false;
@@ -1916,9 +1918,11 @@ void QueueManager::removeFileSource(QueueItemPtr& q, const UserPtr& aUser, Flags
 			goto endCheck;
 		}
 
-		if(reason == QueueItem::Source::FLAG_NO_TREE) {
+		if (reason == QueueItem::Source::FLAG_NO_TREE) {
 			q->getSource(aUser)->setFlag(reason);
-			return;
+			if (q->getSize() < MAX_SIZE_WO_TREE) {
+				return;
+			}
 		}
 
 		if(q->isRunning()) {
