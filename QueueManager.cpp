@@ -1845,7 +1845,7 @@ void QueueManager::removeFile(const string aTarget) noexcept {
 }
 
 void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
-	UserConnectionList x;
+	StringList x;
 	dcassert(q);
 
 	// For partial-share
@@ -1863,8 +1863,8 @@ void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
 		}
 
 		if(q->isRunning()) {
-			for(auto d: q->getDownloads()) 
-				x.push_back(&d->getUserConnection());
+			for(const auto& d: q->getDownloads()) 
+				x.push_back(d->getToken());
 		} else if(!q->getTempTarget().empty() && q->getTempTarget() != q->getTarget()) {
 			File::deleteFile(q->getTempTarget());
 		}
@@ -1883,8 +1883,8 @@ void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
 	//	DirectoryListingManager::getInstance()->removeDirectoryDownload(u, q->getTempTarget(), q->isSet(QueueItem::FLAG_PARTIAL_LIST));
 
 	removeBundleItem(q, false, moved);
-	for(auto& u: x)
-		u->disconnect(true);
+	for (auto& token : x)
+		ConnectionManager::getInstance()->disconnect(token);
 }
 
 void QueueManager::removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn /* = true */) noexcept {
