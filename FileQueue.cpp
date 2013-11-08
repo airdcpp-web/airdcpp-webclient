@@ -93,15 +93,7 @@ void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) const noexcept
 }
 
 void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) const noexcept {
-	/*if (SettingsManager::lanMode) {
-		QueueItem::StringMultiMap qsm;
-		for(auto& q: tthIndex | map_values) {
-			qsm.emplace(q->getTargetFileName(), q);
-		}
-		matchDir(dl.getRoot(), ql, qsm);
-	} else*/ {
-		matchDir(dl.getRoot(), ql);
-	}
+	matchDir(dl.getRoot(), ql);
 }
 
 void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& dir, QueueItem::StringItemList& ql) const noexcept{

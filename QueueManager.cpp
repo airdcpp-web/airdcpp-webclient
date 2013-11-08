@@ -499,12 +499,6 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 	//validate the target and check the existance
 	aBundleFile = checkTarget(aBundleFile, aBundleDir);
 
-
-	/*auto onDupe = [&] (string&& aDupeDir, bool isShareDupe) -> void {
-		auto path = AirUtil::subtractCommonDirs(aBundleDir, aDupeDir);
-		throw QueueException(isShareDupe ? STRING_F(TTH_ALREADY_SHARED, path) : STRING_F(FILE_ALREADY_QUEUED, path));
-	};*/
-
 	//check share dupes
 	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aTTH)) {
 		try {
@@ -1850,14 +1844,9 @@ void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
 
 	// For partial-share
 	UploadManager::getInstance()->abortUpload(q->getTempTarget());
-	//UserPtr u = nullptr;
 
 	{
 		WLock l(cs);
-		//if(q->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD)) {
-	//		u = q->getSources()[0].getUser();
-		//}
-
 		if (q->isSet(QueueItem::FLAG_MATCH_BUNDLE)) {
 			matchLists.right.erase(q->getTarget());
 		}
@@ -1873,14 +1862,12 @@ void QueueManager::removeQI(QueueItemPtr& q, bool moved /*false*/) noexcept {
 			userQueue.removeQI(q);
 		}
 
-		if (!moved) {
-			fire(QueueManagerListener::Removed(), q, false);
-		}
 		fileQueue.remove(q);
 	}
 
-	//if (u)
-	//	DirectoryListingManager::getInstance()->removeDirectoryDownload(u, q->getTempTarget(), q->isSet(QueueItem::FLAG_PARTIAL_LIST));
+	if (!moved) {
+		fire(QueueManagerListener::Removed(), q, false);
+	}
 
 	removeBundleItem(q, false, moved);
 	for (auto& token : x)
@@ -2520,10 +2507,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		QueueItemList matches;
 
 		RLock l(cs);
-		if (SettingsManager::lanMode)
-			fileQueue.findFiles(AirUtil::getTTH(sr->getFileName(), sr->getSize()), matches);
-		else
-			fileQueue.findFiles(sr->getTTH(), matches);
+		fileQueue.findFiles(sr->getTTH(), matches);
 
 		for(const auto& q: matches) {
 			if (!q->getBundle())
@@ -3864,7 +3848,6 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) noexcept {
 			auto pos = searches.begin();
 			auto rand = Util::rand(searches.size());
 			advance(pos, rand);
-			//LogManager::getInstance()->message("QueueManager::searchBundle, ALT searchString: " + pos->second);
 			pos->second->searchAlternates();
 			searches.erase(pos);
 			k++;

@@ -516,7 +516,7 @@ bool AutoSearchManager::checkItems() noexcept {
 			}
 
 			// check post search items and whether we can change the number
-			if (as->removePostSearch() || as->maxNumberReached()) {
+			if (as->removePostSearch()) {
 				if (as->maxNumberReached()) {
 					expired.push_back(as);
 					continue;

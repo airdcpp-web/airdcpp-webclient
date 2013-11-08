@@ -70,6 +70,7 @@ public:
 	string getInformation() const;
 
 	void close();
+	void disconnect();
 	StringList getMappers(bool v6) const;
 private:
 	friend class Singleton<ConnectivityManager>;
@@ -95,7 +96,6 @@ private:
 
 	void startSocket();
 	void listen();
-	void disconnect();
 
 	bool autoDetectedV4 = false;
 	bool autoDetectedV6 = false;
