@@ -306,6 +306,8 @@ void AdcHub::handle(AdcCommand::SUP, AdcCommand& c) noexcept {
 			baseOk = true;
 		} else if(p == TIGR_SUPPORT) {
 			tigrOk = true;
+		} else if (p == HBRI_SUPPORT) {
+			supportsHBRI = true;
 		}
 	}
 	
@@ -611,6 +613,14 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 					string token;
 					if (c.getParam("TO", 2, token))
 						ConnectionManager::getInstance()->failDownload(token, STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, protocol), true);
+				}
+				return;
+			}
+
+		case AdcCommand::ERROR_HBRI_TIMEOUT:
+			{
+				if (c.getFrom() == AdcCommand::HUB_SID) {
+					fire(ClientListener::StatusMessage(), this, c.getParam(1), ClientListener::FLAG_NORMAL);
 				}
 				return;
 			}
@@ -1409,10 +1419,13 @@ void AdcHub::appendConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, 
 		} else {
 			addParam(lastInfoMap, c, "U4", "");
 		}
+	} else {
+		addParam(lastInfoMap, c, "I4", "");
+		addParam(lastInfoMap, c, "U4", "");
 	}
 
 	if (v6) {
-		if(CONNSETTING(NO_IP_OVERRIDE6) && !getUserIp6().empty()) {
+		if (CONNSETTING(NO_IP_OVERRIDE6) && !getUserIp6().empty()) {
 			addParam(lastInfoMap, c, "I6", Socket::resolve(getUserIp6(), AF_INET6));
 		} else {
 			addParam(lastInfoMap, c, "I6", "::");
@@ -1423,6 +1436,9 @@ void AdcHub::appendConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, 
 		} else {
 			addParam(lastInfoMap, c, "U6", "");
 		}
+	} else {
+		addParam(lastInfoMap, c, "I6", "");
+		addParam(lastInfoMap, c, "U6", "");
 	}
 }
 
@@ -1465,27 +1481,21 @@ void AdcHub::infoImpl() {
 	addParam(lastInfoMap, c, "AW", AirUtil::getAway() ? "1" : Util::emptyString);
 	addParam(lastInfoMap, c, "LC", Localization::getCurrentLocale());
 
-	int limit = ThrottleManager::getInstance()->getDownLimit();
-	if (limit > 0) {
-		addParam(lastInfoMap, c, "DS", Util::toString(limit * 1000));
-	} else {
-		addParam(lastInfoMap, c, "DS", Util::toString((long)(Util::toDouble(SETTING(DOWNLOAD_SPEED))*1000*1000/8)));
-	}
+	int64_t limit = ThrottleManager::getInstance()->getDownLimit() * 1000;
+	int64_t connSpeed = (Util::toDouble(SETTING(DOWNLOAD_SPEED)) * 1000.0 * 1000.0) / 8.0;
+	addParam(lastInfoMap, c, "DS", Util::toString(limit > 0 ? min(limit, connSpeed) : connSpeed));
 
-	limit = ThrottleManager::getInstance()->getUpLimit();
-	if (limit > 0) {
-		addParam(lastInfoMap, c, "US", Util::toString(limit * 1000));
-	} else {
-		addParam(lastInfoMap, c, "US", Util::toString((long)(Util::toDouble(SETTING(UPLOAD_SPEED))*1000*1000/8)));
-	}
+	limit = ThrottleManager::getInstance()->getUpLimit() * 1000.0;
+	connSpeed = (Util::toDouble(SETTING(UPLOAD_SPEED)) * 1000.0 * 1000.0) / 8.0;
+	addParam(lastInfoMap, c, "US", Util::toString(limit > 0 ? min(limit, connSpeed) : connSpeed));
 
 	if(CryptoManager::getInstance()->TLSOk()) {
 		auto &kp = CryptoManager::getInstance()->getKeyprint();
 		addParam(lastInfoMap, c, "KP", "SHA256/" + Encoder::toBase32(&kp[0], kp.size()));
 	}
 
-	bool addV4 = !sock->isV6Valid() || !getMyIdentity().getIp4().empty();
-	bool addV6 = sock->isV6Valid() || !getMyIdentity().getIp6().empty();
+	bool addV4 = !sock->isV6Valid() || (get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED && supportsHBRI);
+	bool addV6 = sock->isV6Valid() || (get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED && supportsHBRI);
 
 
 	// supports

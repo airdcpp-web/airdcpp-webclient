@@ -166,6 +166,7 @@ private:
 
 	void on(Second, uint64_t aTick) noexcept;
 
+	bool supportsHBRI = false;
 };
 
 } // namespace dcpp

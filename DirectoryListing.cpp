@@ -701,9 +701,13 @@ uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 			setDupe((DupeType)result);
 
 		//full dupe with same type for non-dupe dir, change to partial (or pass partial dupes to upper level folder)
-		else if((result == SHARE_DUPE || result == PARTIAL_SHARE_DUPE) && (dupe == DUPE_NONE || dupe == SHARE_DUPE) && !first)
+		else if (result == SHARE_DUPE && dupe == DUPE_NONE && !first)
 			setDupe(PARTIAL_SHARE_DUPE);
-		else if((result == QUEUE_DUPE || result == PARTIAL_QUEUE_DUPE) && (dupe == DUPE_NONE || dupe == QUEUE_DUPE) && !first)
+		else if(result == PARTIAL_SHARE_DUPE && (dupe == DUPE_NONE || dupe == SHARE_DUPE) && !first)
+			setDupe(PARTIAL_SHARE_DUPE);
+		else if (result == QUEUE_DUPE && dupe == DUPE_NONE && !first)
+			setDupe(PARTIAL_QUEUE_DUPE);
+		else if( result == PARTIAL_QUEUE_DUPE && (dupe == DUPE_NONE || dupe == QUEUE_DUPE) && !first)
 			setDupe(PARTIAL_QUEUE_DUPE);
 
 		//change to mixed dupe type

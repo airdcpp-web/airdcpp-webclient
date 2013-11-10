@@ -2698,7 +2698,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			}
 		}
 
-		setProfilesDirty(dirtyProfiles, t.first == ADD_DIR);
+		setProfilesDirty(dirtyProfiles, task->type == TYPE_MANUAL || t.first == REFRESH_ALL);
 			
 		if (task->type == TYPE_MANUAL)
 			ClientManager::getInstance()->infoUpdated();

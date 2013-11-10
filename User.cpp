@@ -96,7 +96,7 @@ int64_t Identity::getAdcConnectionSpeed(bool download) const {
 	auto us = Util::toInt64(download ? get("DS") : get("US"));
 
 	const auto& ver = get("VE");
-	if (ver.length() >= 12 && strncmp("AirDC++", ver.c_str(), 7) == 0) {
+	if (ver.length() >= 12 && strncmp("AirDC++ ", ver.c_str(), 8) == 0) {
 		auto version = Util::toDouble(ver.substr(8, 4));
 
 		//workaround for versions older than 2.40 that use wrong units.....

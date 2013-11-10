@@ -295,10 +295,10 @@ void ConnectivityManager::setup(bool v4SettingsChanged, bool v6SettingsChanged) 
 	}
 
 
-	if(!autoDetect6 && autoDetectedV6)
+	if(!autoDetect6)
 		clearAutoSettings(true, false);
 		
-	if (!autoDetect4 && autoDetectedV4) {
+	if (!autoDetect4) {
 		clearAutoSettings(false, false);
 	}
 

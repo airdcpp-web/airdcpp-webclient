@@ -620,7 +620,7 @@ const string AirUtil::getSubDirReg() {
 }
 
 string AirUtil::getReleaseDir(const string& aDir, bool cut, const char separator) {
-	auto p = getDirName(aDir, separator);
+	auto p = getDirName(Util::getFilePath(aDir, separator), separator);
 	if (cut) {
 		return p.first;
 	}

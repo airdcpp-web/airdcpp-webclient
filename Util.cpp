@@ -1376,7 +1376,7 @@ string Util::getLastDir(const string& path, const char separator) {
 
 	string::size_type j = path.rfind(separator, i - 1);
 	if (j == string::npos)
-		return i == path.length()-1 ? path.substr(0, i) : path;
+		return path.substr(0, i);
 
 	return path.substr(j+1, i-j-1);
 }
