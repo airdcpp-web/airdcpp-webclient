@@ -127,8 +127,6 @@ private:
 	void shutdown();
 	void clearUsers();
 	void appendConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, bool v6);
-	std::future<void> hbriThread;
-	void sendHBRI(const string& aIP, const string& aPort, const string& aToken, bool v6);
 
 	void handle(AdcCommand::SUP, AdcCommand& c) noexcept;
 	void handle(AdcCommand::SID, AdcCommand& c) noexcept;
@@ -167,6 +165,9 @@ private:
 	void on(Second, uint64_t aTick) noexcept;
 
 	bool supportsHBRI = false;
+	unique_ptr<std::thread> hbriThread;
+	void sendHBRI(const string& aIP, const string& aPort, const string& aToken, bool v6);
+	bool stopValidation = false;
 };
 
 } // namespace dcpp

@@ -75,9 +75,9 @@ AdcHub::~AdcHub() {
 }
 
 void AdcHub::shutdown() {
-	closing = true;
-	if (hbriThread.valid()) {
-		hbriThread.wait();
+	stopValidation = true;
+	if (hbriThread && hbriThread->joinable()) {
+		hbriThread->join();
 	}
 
 	Client::shutdown();
@@ -88,8 +88,8 @@ size_t AdcHub::getUserCount() const {
 	RLock l(cs); 
 	//return users.size();
 	size_t userCount = 0;
-	for(auto& i: users) {
-		if(!i.second->isHidden()) {
+	for(const auto& u: users | map_values) {
+		if(!u->isHidden()) {
 			++userCount;
 		}
 	}
@@ -619,7 +619,8 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 
 		case AdcCommand::ERROR_HBRI_TIMEOUT:
 			{
-				if (c.getFrom() == AdcCommand::HUB_SID) {
+				if (c.getFrom() == AdcCommand::HUB_SID && hbriThread && hbriThread->joinable()) {
+					stopValidation = true;
 					fire(ClientListener::StatusMessage(), this, c.getParam(1), ClientListener::FLAG_NORMAL);
 				}
 				return;
@@ -814,8 +815,10 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 	if (c.getType() != AdcCommand::TYPE_INFO)
 		return;
 
-	if (hbriThread.valid())
-		return;
+	if (hbriThread && hbriThread->joinable()) {
+		stopValidation = true;
+		hbriThread->join();
+	}
 
 	// Validate the command
 	if (c.getParameters().size() < 3 || c.getFrom() != AdcCommand::HUB_SID) {
@@ -837,25 +840,11 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 
 
 	fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")));
-
-	hbriThread = std::async(std::launch::async, [=] {
-		sendHBRI(hubUrl, port, token, v6);
-		callAsync([this] { 
-			hbriThread.get();
-			//if (state != STATE_NORMAL) {
-			//	info(true);
-			//}
-		});
-	});
+	stopValidation = false;
+	hbriThread.reset(new std::thread([=] { sendHBRI(hubUrl, port, token, v6); }));
 }
 
 void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aToken, bool v6) {
-	//ScopedFunctor([this] { hbriThread.get(); }); //make sure that it gets reset
-
-	// Parse the address
-	//string address, proto, query, fragment, port, file;
-	//Util::decodeUrl(aHubUrl, proto, address, port, file, query, fragment);
-
 	// Construct the command we are going to send
 	string su;
 	AdcCommand hbriCmd(AdcCommand::CMD_TCP, AdcCommand::TYPE_HUB);
@@ -863,7 +852,6 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 	StringMap dummyMap;
 	appendConnectivity(dummyMap, hbriCmd, !v6, v6);
 	hbriCmd.addParam("TO", aToken);
-
 	bool secure = Util::strnicmp("adcs://", getHubUrl().c_str(), 7) == 0;
 	try {
 		// Create the socket
@@ -882,10 +870,10 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 		// Connect
 		hbri->connect(aIP, aPort);
 
-		auto endTime = GET_TICK() + 5000; //wait max 5 seconds
+		auto endTime = GET_TICK() + 10000;
 		bool connSucceeded;
-		while(!(connSucceeded = hbri->waitConnected(250)) && endTime >= GET_TICK()) {
-			if(closing) throw Exception();
+		while (!(connSucceeded = hbri->waitConnected(100)) && endTime >= GET_TICK()) {
+			if (stopValidation) return;
 		}
 
 		if (connSucceeded) {
@@ -896,11 +884,11 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 			// Wait for the hub to reply
 			boost::scoped_array<char> buf(new char[8192]);
 
-			while (endTime >= GET_TICK()) {
+			while (endTime >= GET_TICK() && !stopValidation) {
 				int read = hbri->read(&buf[0], 8192);
 				if (read <= 0) {
-					if(closing) throw Exception();
-					Thread::sleep(250);
+					if (stopValidation) return;
+					Thread::sleep(100);
 					continue;
 				}
 
@@ -929,12 +917,12 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 			}
 		}
 	} catch (const Exception& e) {
-		if (!e.getError().empty())
-			fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, e.getError() % (v6 ? "IPv6" : "IPv4")));
+		fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, e.getError() % (v6 ? "IPv6" : "IPv4")));
 		return;
 	}
 
-	fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")));
+	if (!stopValidation)
+		fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")));
 }
 
 int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {

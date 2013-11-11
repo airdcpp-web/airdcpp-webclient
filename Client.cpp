@@ -39,7 +39,7 @@ Client::Client(const string& hubURL, char separator_) :
 	myIdentity(ClientManager::getInstance()->getMe(), 0), uniqueId(++idCounter),
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	state(STATE_DISCONNECTED), sock(0),
-	separator(separator_), closing(false),
+	separator(separator_),
 	countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0), favToken(0)
 {
 	setHubUrl(hubURL);
