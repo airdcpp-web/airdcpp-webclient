@@ -799,6 +799,9 @@ void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize,
 }
 
 void DirectoryListing::addAsyncTask(std::function<void()> f) noexcept {
+	if (closing)
+		return;
+
 	tasks.add(ASYNC, unique_ptr<AsyncTask>(new AsyncTask(f)));
 	runTasks();
 }
