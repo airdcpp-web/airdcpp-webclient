@@ -282,15 +282,15 @@ void Util::migrate(const string& file) {
 		return;
 	}
 
-	string fname = getFileName(file);
-	string old = paths[PATH_GLOBAL_CONFIG] + "Settings" + PATH_SEPARATOR + fname;
-	if(File::getSize(old) == -1) {
+	auto fname = getFileName(file);
+	auto oldPath = paths[PATH_GLOBAL_CONFIG] + "Settings" + PATH_SEPARATOR + fname;
+	if (File::getSize(oldPath) == -1) {
 		return;
 	}
 
-	File::copyFile(old.c_str(), old + ".bak");
 	try {
-		File::renameFile(old, file);
+		File::copyFile(oldPath.c_str(), oldPath + ".bak");
+		File::renameFile(oldPath, file);
 	} catch(const FileException& /*e*/) {
 		//LogManager::getInstance()->message("Settings migration for failed: " + e.getError());
 	}
