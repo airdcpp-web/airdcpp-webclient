@@ -308,7 +308,7 @@ void UserConnection::updateChunkSize(int64_t leafSize, int64_t lastChunk, uint64
 	} else if(msecs < SEGMENT_TIME * 1.25) {
 		// We're close to our target size - don't change it
 	} else if(msecs < SEGMENT_TIME * 4) {
-		targetSize = std::max(MIN_CHUNK_SIZE, targetSize - chunkSize);
+		targetSize = std::max(MIN_CHUNK_SIZE, targetSize - leafSize);
 	} else {
 		targetSize = std::max(MIN_CHUNK_SIZE, targetSize / 2);
 	}

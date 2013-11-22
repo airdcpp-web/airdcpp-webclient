@@ -60,7 +60,7 @@ namespace dcpp {
 
 using boost::range::for_each;
 
-QueueManager::FileMover::FileMover() { 
+/*QueueManager::FileMover::FileMover() { 
 	start();
 	setThreadPriority(Thread::LOW);
 }
@@ -75,11 +75,6 @@ struct MoverTask : public Task {
 	string target, source;
 	QueueItemPtr qi;
 };
-
-void QueueManager::FileMover::moveFile(const string& source, const string& target, QueueItemPtr q) {
-	tasks.add(MOVE_FILE, unique_ptr<Task>(new MoverTask(source, target, q)));
-	s.signal();
-}
 
 void QueueManager::FileMover::removeDir(const string& aDir) {
 	tasks.add(REMOVE_DIR, unique_ptr<StringTask>(new StringTask(aDir)));
@@ -113,11 +108,10 @@ int QueueManager::FileMover::run() {
 	}
 
 	return 0;
-}
+}*/
 
 void QueueManager::shutdown() {
 	saveQueue(false);
-	mover.shutdown();
 }
 
 void QueueManager::Rechecker::add(const string& file) {
@@ -254,7 +248,8 @@ QueueManager::QueueManager() :
 	lastSave(0),
 	lastAutoPrio(0),
 	rechecker(this),
-	udp(Socket::TYPE_UDP)
+	udp(Socket::TYPE_UDP),
+	tasks(true)
 { 
 	//add listeners in loadQueue
 	File::ensureDirectory(Util::getListPath());
@@ -279,8 +274,6 @@ QueueManager::~QueueManager() {
 		std::for_each(filelists.begin(), std::set_difference(filelists.begin(), filelists.end(),
 			protectedFileLists.begin(), protectedFileLists.end(), filelists.begin()), &File::deleteFile);
 	}
-
-	tasks.wait();
 }
 
 void QueueManager::getBloom(HashBloom& bloom) const noexcept {
@@ -1228,7 +1221,11 @@ void QueueManager::readLockedOperation(const function<void (const QueueItem::Str
 	if(currentQueue) currentQueue(fileQueue.getQueue());
 }
 
-void QueueManager::moveFile_(const string& source, const string& target, QueueItemPtr& qi) {
+void QueueManager::moveFile(const string& source, const string& target, const QueueItemPtr& q) {
+	tasks.addTask(new DispatcherQueue::Callback([=] { moveFileImpl(source, target, q); }));
+}
+
+void QueueManager::moveFileImpl(const string& source, const string& target, QueueItemPtr qi) {
 	try {
 		File::ensureDirectory(target);
 		UploadManager::getInstance()->abortUpload(source);
@@ -1545,8 +1542,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 }
 
 void QueueManager::moveStuckFile(QueueItemPtr& qi) {
-
-	mover.moveFile(qi->getTempTarget(), qi->getTarget(), nullptr);
+	moveFile(qi->getTempTarget(), qi->getTarget(), nullptr);
 
 	if(qi->isFinished()) {
 		WLock l(cs);
@@ -1742,7 +1738,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 
 		// Check if we need to move the file
 		if(!d->getTempTarget().empty() && (Util::stricmp(d->getPath().c_str(), d->getTempTarget().c_str()) != 0) ) {
-			mover.moveFile(d->getTempTarget(), d->getPath(), q);
+			moveFile(d->getTempTarget(), q->getTarget(), q);
 		}
 
 		fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
@@ -3154,10 +3150,10 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int itemsAdded, bool moving /*false*/) noexcept {
 	if (aBundle->getQueueItems().empty() && itemsAdded > 0) {
 		// it finished already? (only 0 byte files were added)
-		tasks.run([=] {
+		tasks.addTask(new DispatcherQueue::Callback([=] {
 			BundlePtr b = aBundle;
 			checkBundleFinished(b, false);
-		});
+		}));
 
 		return false;
 	}
@@ -3206,14 +3202,14 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 
 	if (statusChanged) {
 		aBundle->setStatus(Bundle::STATUS_QUEUED);
-		tasks.run([=] {
+		tasks.addTask(new DispatcherQueue::Callback([=] {
 			auto b = aBundle;
 			fire(QueueManagerListener::BundleStatusChanged(), aBundle);
 			if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && !b->isPausedPrio()) {
 				b->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
 				addBundleUpdate(b);
 			}
-		});
+		}));
 	}
 
 	return true;
@@ -3357,7 +3353,7 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 				if (!fileQueue.findFile(targetPath)) {
 					if(!Util::fileExists(targetPath)) {
 						qi->unsetFlag(QueueItem::FLAG_MOVED);
-						mover.moveFile(qi->getTarget(), targetPath, qi);
+						moveFile(qi->getTarget(), targetPath, qi);
 						if (targetBundle == sourceBundle) {
 							fileQueue.move(qi, targetPath);
 						} else {
@@ -3569,10 +3565,10 @@ void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noex
 
 	//check if the source is empty
 	if (sourceBundle->getQueueItems().empty()) {
-		tasks.run([=] { 
+		tasks.addTask(new DispatcherQueue::Callback([=] { 
 			auto b = sourceBundle;
 			removeBundle(b, false, false, false); 
-		});
+		}));
 	} else {
 		sourceBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 		addBundleUpdate(sourceBundle);

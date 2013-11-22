@@ -1827,5 +1827,6 @@ enum Strings { // @DontAdd
 	CHANNEL_STABLE, // "Stable versions only"
 	CHANNEL_BETA, // "Stable and beta versions"
 	CHANNEL_NIGHTLY, // "Nightly builds"
+	SYSTEM_DEFAULT, // "System default"
 	LAST // @DontAdd
 };

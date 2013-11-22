@@ -30,9 +30,11 @@ namespace dcpp {
 class DispatcherQueue : public Thread {
 public:
 	typedef std::function<void()> Callback;
-	DispatcherQueue(bool aUseDispatcherThread) : stop(false), useDispatcherThread(aUseDispatcherThread) {
-		if (useDispatcherThread)
+	DispatcherQueue(bool aUseDispatcherThread, Thread::Priority aThreadPrio = Thread::NORMAL) : stop(false), useDispatcherThread(aUseDispatcherThread) {
+		if (useDispatcherThread) {
 			start();
+			setThreadPriority(aThreadPrio);
+		}
 	}
 
 	~DispatcherQueue() {

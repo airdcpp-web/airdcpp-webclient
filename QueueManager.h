@@ -23,8 +23,6 @@
 # pragma warning(disable: 4512) // assignment operator could not be generated (bimap)
 #endif
 
-#include "concurrency.h"
-
 #include "QueueManagerListener.h"
 #include "SearchManagerListener.h"
 #include "ClientManagerListener.h"
@@ -203,7 +201,9 @@ public:
 	GETSET(uint64_t, lastSave, LastSave);
 	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);
 
-	class FileMover : public Thread {
+	DispatcherQueue tasks;
+
+	/*class FileMover : public Thread {
 	public:
 		enum Tasks {
 			MOVE_FILE,
@@ -222,7 +222,7 @@ public:
 
 		Semaphore s;
 		TaskQueue tasks;
-	} mover;
+	} mover;*/
 
 	class Rechecker : public Thread {
 
@@ -268,8 +268,6 @@ private:
 
 	/** File lists not to delete */
 	StringList protectedFileLists;
-
-	task_group tasks;
 
 	void connectBundleSources(BundlePtr& aBundle) noexcept;
 	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn = false) noexcept;
@@ -317,7 +315,8 @@ private:
 
 	void load(const SimpleXML& aXml);
 
-	static void moveFile_(const string& source, const string& target, QueueItemPtr& q);
+	void moveFile(const string& source, const string& target, const QueueItemPtr& aQI);
+	void moveFileImpl(const string& source, const string& target, QueueItemPtr q);
 
 	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
 	void checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexcept;

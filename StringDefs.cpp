@@ -1823,6 +1823,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Stable versions only", 
 "Stable and beta versions", 
 "Nightly builds", 
+"System default", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3646,4 +3647,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ChannelStable", 
 "ChannelBeta", 
 "ChannelNightly", 
+"SystemDefault", 
 };

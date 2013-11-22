@@ -47,6 +47,15 @@ enum DupeType {
 class AirUtil {
 	
 public:
+	class TimeCounter {
+	public:
+		TimeCounter(string aMsg);
+		~TimeCounter();
+	private:
+		time_t start;
+		string msg;
+	};
+
 	static boost::regex releaseReg;
 	static boost::regex subDirRegPlain;
 	static boost::regex crcReg;

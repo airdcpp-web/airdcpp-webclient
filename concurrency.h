@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_CONCURRENCY
 #define DCPLUSPLUS_DCPP_CONCURRENCY
 
-//#define USE_INTEL_TBB
+//#define HAVE_INTEL_TBB
 
-#if !defined(_MSC_VER) || defined(USE_INTEL_TBB)
+#if defined(HAVE_INTEL_TBB)
 
 #include <tbb/task_group.h>
 #include <tbb/parallel_for_each.h>
@@ -38,7 +38,7 @@ using tbb::task_group;
 
 }
 
-#else
+#elif _MSC_VER
 
 #include <ppl.h>
 #include <concurrent_queue.h>
@@ -50,6 +50,40 @@ using concurrency::concurrent_queue;
 using concurrency::task_group;
 using concurrency::parallel_for_each;
 
+}
+
+#else
+
+#include <deque>
+#include "CriticalSection.h"
+
+namespace dcpp {
+
+#define parallel_for_each for_each
+
+	template <typename T>
+	class concurrent_queue {
+	public:
+		bool push(const T& t) {
+			WLock l(cs);
+			queue.push_back(t);
+			return true;
+		}
+
+		template <typename U>
+		bool try_pop(U& t) {
+			WLock l(cs);
+			if (!queue.empty()) {
+				t = std::move(queue.front());
+				queue.pop_front();
+				return true;
+			}
+			return false;
+		}
+	private:
+		SharedMutex cs;
+		std::deque<T> queue;
+	};
 }
 
 #endif

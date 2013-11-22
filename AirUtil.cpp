@@ -66,6 +66,15 @@ string AirUtil::tempDLDir;
 AwayMode AirUtil::away = AWAY_OFF;
 time_t AirUtil::awayTime;
 
+AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMsg)) {
+
+}
+
+AirUtil::TimeCounter::~TimeCounter() {
+	auto end = GET_TICK();
+	LogManager::getInstance()->message(msg + ", took " + Util::toString(end - start) + " ms", LogManager::LOG_INFO);
+}
+
 string AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
 	if (aType == SHARE_DUPE || aType == PARTIAL_SHARE_DUPE) {
 		auto ret = ShareManager::getInstance()->getDirPaths(aPath);
