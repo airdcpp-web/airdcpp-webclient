@@ -1499,7 +1499,7 @@ enum Strings { // @DontAdd
 	POST_SEARCHING, // "Searching for proper"
 	INCREASE_NUM, // "Increase current number"
 	DECREASE_NUM, // "Decrease current number"
-	SETTINGS_DELAY_HOURS, // "Hours to search for proper when using incrementation"
+	SETTINGS_DELAY_HOURS, // "Hours to search for PROPER when using incrementation"
 	X_NO_RELEASE_FILES, // "%1% folders with no release files"
 	MENU_HIDE, // "Hide"
 	CLOSING_WINDOWS, // "Closing windows"
@@ -1828,5 +1828,7 @@ enum Strings { // @DontAdd
 	CHANNEL_BETA, // "Stable and beta versions"
 	CHANNEL_NIGHTLY, // "Nightly builds"
 	SYSTEM_DEFAULT, // "System default"
+	CLOSE_MINIMIZES, // "Close button minimizes AirDC"
+
 	LAST // @DontAdd
 };

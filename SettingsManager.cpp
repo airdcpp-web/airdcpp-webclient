@@ -218,7 +218,7 @@ const string SettingsManager::settingTags[] =
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
 	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
-	"SearchAschOnlyMan", "IgnoreIndirectSR", "UseUploadBundles",
+	"SearchAschOnlyMan", "IgnoreIndirectSR", "UseUploadBundles", "CloseMinimize",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -858,6 +858,7 @@ SettingsManager::SettingsManager()
 	setDefault(FILTER_SEARCH_RESET_CHANGE, true);
 
 	setDefault(UPDATE_CHANNEL, getVersionType() == VERSION_BETA ? UPDATE_BETA : UPDATE_STABLE);
+	setDefault(CLOSE_USE_MINIMIZE, false);
 
 	// not in GUI
 	setDefault(IGNORE_INDIRECT_SR, false);

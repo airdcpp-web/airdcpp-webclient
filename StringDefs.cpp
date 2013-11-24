@@ -1495,7 +1495,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Searching for proper", 
 "Increase current number", 
 "Decrease current number", 
-"Hours to search for proper when using incrementation", 
+"Hours to search for PROPER when using incrementation", 
 "%1% folders with no release files", 
 "Hide", 
 "Closing windows", 
@@ -1824,6 +1824,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Stable and beta versions", 
 "Nightly builds", 
 "System default", 
+"Close button minimizes AirDC", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3648,4 +3649,5 @@ std::string dcpp::ResourceManager::names[] = {
 "ChannelBeta", 
 "ChannelNightly", 
 "SystemDefault", 
+"CloseMinimizes", 
 };
