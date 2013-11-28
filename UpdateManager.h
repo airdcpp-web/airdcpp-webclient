@@ -22,9 +22,10 @@
 #include "Speaker.h"
 #include "Singleton.h"
 #include "UpdateManagerListener.h"
+
 #include "HttpDownload.h"
-#include "TimerManager.h"
 #include "SimpleXML.h"
+#include "TimerManager.h"
 
 #define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
 
@@ -99,7 +100,7 @@ public:
 	void checkAdditionalUpdates(bool manualCheck);
 	string getVersionUrl() const;
 private:
-	static const char* versionUrl[SettingsManager::UPDATE_LAST];
+	static const char* versionUrl[VERSION_LAST];
 
 	uint64_t lastIPUpdate;
 	static uint8_t publicKey[270];

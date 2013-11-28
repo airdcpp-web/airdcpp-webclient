@@ -123,18 +123,6 @@ DupeType AirUtil::checkFileDupe(const TTHValue& aTTH) {
 	return DUPE_NONE;
 }
 
-DupeType AirUtil::checkFileDupe(const string& aFileName, int64_t aSize) {
-	if (ShareManager::getInstance()->isFileShared(aFileName, aSize)) {
-		return SHARE_DUPE;
-	} else {
-		const int qd = QueueManager::getInstance()->isFileQueued(AirUtil::getTTH(aFileName, aSize));
-		if (qd > 0) {
-			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
-		}
-	}
-	return DUPE_NONE;
-}
-
 TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) {
 	TigerHash tmp;
 	string str = Text::toLower(aFileName) + Util::toString(aSize);

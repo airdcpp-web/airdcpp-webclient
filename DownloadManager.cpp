@@ -77,7 +77,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 	{
 		RLock l(cs);
-		for (auto b: runningBundles | map_values) {
+		for (auto& b: runningBundles | map_values) {
 			if (b->onDownloadTick(UBNList)) {
 				bundleTicks.push_back(b);
 			}

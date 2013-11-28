@@ -50,7 +50,7 @@
 
 namespace dcpp {
 
-const char* UpdateManager::versionUrl[SettingsManager::UPDATE_LAST] = { "http://version.airdcpp.net/version.xml",
+const char* UpdateManager::versionUrl[VERSION_LAST] = { "http://version.airdcpp.net/version.xml",
 	"http://beta.airdcpp.net/version/version.xml",
 	"http://builds.airdcpp.net/version/version.xml"
 };
@@ -649,7 +649,8 @@ void UpdateManager::checkVersion(bool aManual) {
 }
 
 string UpdateManager::getVersionUrl() const {
-	return versionUrl[SETTING(UPDATE_CHANNEL)];
+	// always use the specific update channel for pre-release versions (don't use setDefault so that manually changed channel gets saved)
+	return versionUrl[max(SETTING(UPDATE_CHANNEL), static_cast<int>(getVersionType()))];
 }
 
 void UpdateManager::init(const string& aExeName) {

@@ -48,7 +48,7 @@ const ResourceManager::Strings SettingsManager::incomingStrings[INCOMING_LAST] {
 const ResourceManager::Strings SettingsManager::outgoingStrings[OUTGOING_LAST] { ResourceManager::SETTINGS_DIRECT, ResourceManager::SETTINGS_SOCKS5 };
 const ResourceManager::Strings SettingsManager::monitoringStrings[MONITORING_LAST] { ResourceManager::DISABLED, ResourceManager::INCOMING_ONLY, ResourceManager::ALL_DIRS };
 const ResourceManager::Strings SettingsManager::dropStrings[QUEUE_LAST] { ResourceManager::FILE, ResourceManager::BUNDLE, ResourceManager::ALL };
-const ResourceManager::Strings SettingsManager::updateStrings[UPDATE_LAST] { ResourceManager::CHANNEL_STABLE, ResourceManager::CHANNEL_BETA, ResourceManager::CHANNEL_NIGHTLY };
+const ResourceManager::Strings SettingsManager::updateStrings[VERSION_LAST] { ResourceManager::CHANNEL_STABLE, ResourceManager::CHANNEL_BETA, ResourceManager::CHANNEL_NIGHTLY };
 
 const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][10] = {
 
@@ -857,7 +857,7 @@ SettingsManager::SettingsManager()
 	setDefault(FILTER_SEARCH_PARTIAL_DUPES, false);
 	setDefault(FILTER_SEARCH_RESET_CHANGE, true);
 
-	setDefault(UPDATE_CHANNEL, getVersionType() == VERSION_BETA ? UPDATE_BETA : UPDATE_STABLE);
+	setDefault(UPDATE_CHANNEL, VERSION_STABLE);
 	setDefault(CLOSE_USE_MINIMIZE, false);
 
 	// not in GUI

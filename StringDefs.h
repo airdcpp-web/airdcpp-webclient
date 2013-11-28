@@ -1829,6 +1829,5 @@ enum Strings { // @DontAdd
 	CHANNEL_NIGHTLY, // "Nightly builds"
 	SYSTEM_DEFAULT, // "System default"
 	CLOSE_MINIMIZES, // "Close button minimizes AirDC"
-
 	LAST // @DontAdd
 };

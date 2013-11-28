@@ -170,7 +170,6 @@ public:
 	bool isDirShared(const string& aDir) const noexcept;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const noexcept;
 	bool isFileShared(const TTHValue& aTTH) const noexcept;
-	bool isFileShared(const string& aFileName, int64_t aSize) const noexcept;
 	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const noexcept;
 
 	bool allowAddDir(const string& dir) const noexcept;

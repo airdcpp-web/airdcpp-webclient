@@ -16,6 +16,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifndef DCPLUSPLUS_VERSION_H
+#define DCPLUSPLUS_VERSION_H
+
 #define DCVERSIONSTRING "0.830"
 
 namespace dcpp {
@@ -53,6 +56,8 @@ namespace dcpp {
 # define INST_NAME "{AIRDC-AEE8350A-B49A-4753-AB4B-E55479A48351}"
 #else
 # define INST_NAME "{AIRDC-AEE8350A-B49A-4753-AB4B-E55479A48350}"
+#endif
+
 #endif
 
 /* Update the .rc file as well... */

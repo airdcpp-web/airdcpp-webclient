@@ -25,6 +25,7 @@
 #include "Singleton.h"
 #include "HubSettings.h"
 #include "SettingItem.h"
+#include "version.h"
 
 namespace dcpp {
 
@@ -216,8 +217,6 @@ public:
 
 	enum {  DELAY_DIR, DELAY_VOLUME, DELAY_ANY, DELAY_LAST };
 
-	enum UpdateChannel { UPDATE_STABLE, UPDATE_BETA, UPDATE_NIGHTLY, UPDATE_LAST };
-
 	enum AutoSelectMethod { SELECT_MOST_SPACE, SELECT_LEAST_SPACE };
 
 	enum FileEvents { ON_FILE_COMPLETE, ON_DIR_CREATED};
@@ -232,7 +231,7 @@ public:
 	static const ResourceManager::Strings outgoingStrings[OUTGOING_LAST];
 	static const ResourceManager::Strings monitoringStrings[MONITORING_LAST];
 	static const ResourceManager::Strings dropStrings[QUEUE_LAST];
-	static const ResourceManager::Strings updateStrings[UPDATE_LAST];
+	static const ResourceManager::Strings updateStrings[VERSION_LAST];
 
 	const string& get(StrSetting key, bool useDefault = true) const {
 		return (isSet[key] || !useDefault) ? strSettings[key - STR_FIRST] : strDefaults[key - STR_FIRST];

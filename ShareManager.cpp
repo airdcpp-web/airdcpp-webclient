@@ -310,7 +310,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 					i++;
 				}
 			}
-				}
+		}
 
 		// report deleted
 		if (removed > 0) {
@@ -417,8 +417,6 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	vector<FileAddInfo> files;
 	bool hasValidFiles = false;
 
-	//auto startTime = GET_TICK();
-
 	// Check that the file can be accessed, FileFindIter won't show it (also files being copied will come here)
 	for (const auto& fi : info.files | map_keys) {
 		//check for file bundles
@@ -441,9 +439,6 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 			return false;
 		}
 	}
-
-	//auto endTime = GET_TICK();
-	//LogManager::getInstance()->message("Files checked in " + Util::toString(endTime - startTime) + " ms (" + Util::toString((endTime - startTime) / 1000) + " seconds)", LogManager::LOG_INFO);
 
 	if (!hasValidFiles && (!info.files.empty() || !Util::fileExists(info.path))) {
 		// no need to keep items in the list if all files have been removed...
@@ -1046,8 +1041,6 @@ FileList* ShareManager::getFileList(ProfileToken aProfile) const throw(ShareExce
 	}
 
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
-	
-	//return shareProfiles[SP_DEFAULT]->second->getProfileList();
 }
 
 ShareProfilePtr ShareManager::getProfile(ProfileToken aProfile) const noexcept {
@@ -1848,27 +1841,23 @@ uint8_t ShareManager::isDirShared(const string& aDir, int64_t aSize) const noexc
 }
 
 StringList ShareManager::getDirPaths(const string& aDir) const noexcept{
-	Directory::List dirs;
 	StringList ret;
+	Directory::List dirs;
 
-	{
-		RLock l(cs);
-		getDirsByName(aDir, dirs);
-
-		for (const auto& dir : dirs) {
-			ret.push_back(dir->getRealPath(false));
-		}
+	RLock l(cs);
+	getDirsByName(aDir, dirs);
+	for (const auto& dir : dirs) {
+		ret.push_back(dir->getRealPath(false));
 	}
 
 	return ret;
 }
 
-/* This isn't optimized for matching subdirs but there shouldn't be need to match many of those 
-   at once (especially not in filelists, but there might be some when searching though) */
 void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) const noexcept {
 	if (aPath.size() < 3)
 		return;
 
+	// get the last meaningful directory to look up
 	auto p = AirUtil::getDirName(aPath, '\\');
 	const auto directories = dirNameMap.equal_range(&p.first);
 	if (directories.first == directories.second)
@@ -1876,6 +1865,7 @@ void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) co
 
 	for (auto s = directories.first; s != directories.second; ++s) {
 		if (p.second != string::npos) {
+			// confirm that we have the subdirectory as well
 			auto dir = s->second->findDirByPath(aPath.substr(p.second), '\\');
 			if (dir) {
 				dirs_.push_back(dir);
@@ -1909,17 +1899,6 @@ bool ShareManager::isFileShared(const TTHValue& aTTH, ProfileToken aProfile) con
 	const auto files = tthIndex.equal_range(const_cast<TTHValue*>(&aTTH));
 	for(auto i = files.first; i != files.second; ++i) {
 		if(i->second->getParent()->hasProfile(aProfile)) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool ShareManager::isFileShared(const string& aFileName, int64_t aSize) const noexcept{
-	RLock l (cs);
-	for(const auto f: tthIndex | map_values) {
-		if(Util::stricmp(aFileName.c_str(), f->name.getLower().c_str()) == 0 && f->getSize() == aSize) {
 			return true;
 		}
 	}
@@ -3678,7 +3657,6 @@ void ShareManager::removeNotifications(const string& aPath) noexcept {
 }
 
 bool ShareManager::allowAddDir(const string& aPath) const noexcept {
-	//LogManager::getInstance()->message("QueueManagerListener::BundleFilesMoved");
 	{
 		RLock l(cs);
 		const auto mi = find_if(rootPaths | map_keys, IsParentOrExact<true>(aPath));
