@@ -908,9 +908,14 @@ bool ShareManager::Directory::isRootLevel(ProfileToken aProfile) const noexcept 
 	return profileDir && profileDir->hasRootProfile(aProfile) ? true : false;
 }
 
-bool ShareManager::Directory::hasProfile(const ProfileTokenSet& aProfiles) const noexcept {
-	if (profileDir && profileDir->hasRootProfile(aProfiles))
-		return true;
+bool ShareManager::Directory::hasProfile(ProfileTokenSet& aProfiles) const noexcept {
+	if (profileDir) {
+		if (profileDir->hasRootProfile(aProfiles))
+			return true;
+		if (profileDir->isExcluded(aProfiles))
+			return false;
+	}
+
 	if (parent)
 		return parent->hasProfile(aProfiles);
 	return false;
@@ -954,23 +959,20 @@ bool ShareManager::ProfileDirectory::hasRootProfile(ProfileToken aProfile) const
 	return rootProfiles.find(aProfile) != rootProfiles.end();
 }
 
-bool ShareManager::ProfileDirectory::isExcluded(const ProfileTokenSet& aProfiles) const noexcept {
-	//return all_of(excludedProfiles.begin(), excludedProfiles.end(), [](const ProfileToken t) { return aProfiles.find(t) != aProfiles.end() });
+bool ShareManager::ProfileDirectory::isExcluded(ProfileTokenSet& aProfiles) const noexcept {
+	for (auto t : excludedProfiles) {
+		aProfiles.erase(t);
+	}
 
-	//TODO: FIX THIS (doesn't detect the excludes correctly but not really used now)
-	return std::search(excludedProfiles.begin(), excludedProfiles.end(), aProfiles.begin(), aProfiles.end()) != excludedProfiles.end();
+	return aProfiles.empty();
 }
 
 bool ShareManager::Directory::isLevelExcluded(ProfileToken aProfile) const noexcept {
-	if (profileDir && profileDir->isExcluded(aProfile))
-		return true;
-	return false;
+	return profileDir && profileDir->isExcluded(aProfile);
 }
 
-bool ShareManager::Directory::isLevelExcluded(const ProfileTokenSet& aProfiles) const noexcept {
-	if (profileDir && profileDir->isExcluded(aProfiles))
-		return true;
-	return false;
+bool ShareManager::Directory::isLevelExcluded(ProfileTokenSet& aProfiles) const noexcept {
+	return profileDir && profileDir->isExcluded(aProfiles);
 }
 
 bool ShareManager::ProfileDirectory::isExcluded(ProfileToken aProfile) const noexcept {
@@ -1074,7 +1076,8 @@ void ShareManager::toRealWithSize(const string& virtualFile, const ProfileTokenS
 			const auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&tth));
 			for(auto f = flst.first; f != flst.second; ++f) {
 				noAccess_ = false; //we may throw if the file doesn't exist on the disk so always reset this to prevent invalid access denied messages
-				if(f->second->getParent()->hasProfile(aProfiles)) {
+				auto profiles = aProfiles;
+				if (f->second->getParent()->hasProfile(profiles)) {
 					path_ = f->second->getRealPath();
 					size_ = f->second->getSize();
 					return;
@@ -2770,7 +2773,6 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 		if (fl->allowGenerateNew(forced)) {
 			auto tmpName = fl->getFileName().substr(0, fl->getFileName().length() - 4);
 			try {
-				//auto start = GET_TICK();
 				{
 					File f(tmpName, File::RW, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL, false);
 
@@ -2787,9 +2789,6 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 						for (const auto& d : rootPaths | map_values | filtered(Directory::HasRootProfile(aProfile))) {
 							d->toFileList(root, aProfile, true);
 						}
-
-						//auto end2 = GET_TICK();
-						//LogManager::getInstance()->message("Full list directories combined in " + Util::toString(end2-start2) + " ms (" + Util::toString((end2-start2)/1000) + " seconds)", LogManager::LOG_INFO);
 
 						for (const auto it2 : root->listDirs | map_values) {
 							it2->toXml(f, indent, tmp, true);
@@ -2818,9 +2817,6 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 					fl->setXmlRoot(newXmlFile.getFilter().getTree().getRoot());
 					fl->setBzXmlRoot(bzTree.getFilter().getTree().getRoot());
 				}
-
-				//auto end = GET_TICK();
-				//LogManager::getInstance()->message("Full list generated in " + Util::toString(end-start) + " ms (" + Util::toString((end-start)/1000) + " seconds)", LogManager::LOG_INFO);
 
 				fl->saveList();
 				fl->generationFinished(false);

@@ -319,7 +319,7 @@ private:
 			bool hasRootProfile(ProfileToken aProfile) const noexcept;
 			bool hasRootProfile(const ProfileTokenSet& aProfiles) const noexcept;
 			bool isExcluded(ProfileToken aProfile) const noexcept;
-			bool isExcluded(const ProfileTokenSet& aProfiles) const noexcept;
+			bool isExcluded(ProfileTokenSet& aProfiles) const noexcept;
 			void addRootProfile(const string& aName, ProfileToken aProfile) noexcept;
 			void addExclude(ProfileToken aProfile) noexcept;
 			bool removeRootProfile(ProfileToken aProfile) noexcept;
@@ -413,7 +413,7 @@ private:
 		string getFullName(ProfileToken aProfile) const noexcept; 
 		string getRealPath(bool checkExistance) const throw(ShareException)  { return getRealPath(Util::emptyString, checkExistance); };
 
-		bool hasProfile(const ProfileTokenSet& aProfiles) const noexcept;
+		bool hasProfile(ProfileTokenSet& aProfiles) const noexcept;
 		bool hasProfile(ProfileToken aProfiles) const noexcept;
 
 		void getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_, size_t& folders_) const noexcept;
@@ -442,7 +442,7 @@ private:
 		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const noexcept;
 		bool isRootLevel(ProfileToken aProfile) const noexcept;
 		bool isLevelExcluded(ProfileToken aProfile) const noexcept;
-		bool isLevelExcluded(const ProfileTokenSet& aProfiles) const noexcept;
+		bool isLevelExcluded(ProfileTokenSet& aProfiles) const noexcept;
 		int64_t size;
 
 		void addBloom(ShareBloom& aBloom) const noexcept;
@@ -627,10 +627,11 @@ private:
 			string::size_type j = i + 1;
 			d = *k;
 
+			auto profiles = aProfile; // copy in case we are comparing a set from where we may need to remove items while looping
 			while((i = virtualPath.find('/', j)) != string::npos) {
 				auto mi = d->directories.find(Text::toLower(virtualPath.substr(j, i - j)));
 				j = i + 1;
-				if(mi != d->directories.end() && !(*mi)->isLevelExcluded(aProfile)) {   //if we found something, look for more.
+				if (mi != d->directories.end() && !(*mi)->isLevelExcluded(profiles)) {   //if we found something, look for more.
 					d = *mi;
 				} else {
 					d = nullptr;   //make the pointer null so we can check if found something or not.

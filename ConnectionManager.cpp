@@ -115,6 +115,10 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 						if (cqi->getState() != ConnectionQueueItem::RUNNING) {
 							//already has a waiting item? small slot doesn't count
 							if (!smallSlot) {
+								// force in case we joined a new hub and there was a protocol error
+								if (cqi->getLastAttempt() == -1) {
+									cqi->setLastAttempt(0);
+								}
 								return;
 							}
 						} else {
@@ -123,8 +127,13 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 					} else if (cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF) {
 						supportMcn = true;
 						//no need to continue with small slot if an item with the same type exists already (no mather whether it's running or not)
-						if (smallSlot)
+						if (smallSlot) {
+							// force in case we joined a new hub and there was a protocol error
+							if (cqi->getLastAttempt() == -1) {
+								cqi->setLastAttempt(0);
+							}
 							return;
+						}
 					} else {
 						//no need to continue with non-MCN users
 						return;
@@ -873,22 +882,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			aSource->setHubUrl(i.second);
 			cid = i.first;
 		}
-
-
-		/*string remoteCID;
-		if (!cmd.getParam("ID", 0, remoteCID)) {
-			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID missing").addParam("FL", "ID"));
-			dcdebug("CM::onINF missing ID\n");
-			aSource->disconnect();
-			return;
-		}
-
-		if (remoteCID != cid) {
-			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_INF_MISSING, "ID doesn't match with the excepted one").addParam("FL", "ID"));
-			dcdebug("CM::onINF ID mismatch\n");
-			aSource->disconnect();
-			return;
-		}*/
 
 		auto user = ClientManager::getInstance()->findUser(CID(cid));
 		aSource->setUser(user);
