@@ -3703,7 +3703,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 					return nullptr;
 				}
 
-				curDir = Directory::create(move(dualName), curDir, GET_TIME(), m != profileDirs.end() ? m->second : nullptr);
+				curDir = Directory::create(move(dualName), curDir, File::getLastModified(fullPathLower), m != profileDirs.end() ? m->second : nullptr);
 				addDirName(curDir);
 				curDir->addBloom(*bloom.get());
 			}
