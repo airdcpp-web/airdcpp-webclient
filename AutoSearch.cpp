@@ -154,7 +154,7 @@ string AutoSearch::getDisplayName() noexcept {
 }
 
 void AutoSearch::setTarget(const string& aTarget) noexcept {
-	target = Util::validateFileName(aTarget);
+	target = Util::validatePath(aTarget);
 	if (tType == TargetUtil::TARGET_PATH && !target.empty() && target[target.size() - 1] != PATH_SEPARATOR) {
 		target += PATH_SEPARATOR;
 	}

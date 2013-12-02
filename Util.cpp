@@ -205,7 +205,7 @@ void Util::initialize() {
 		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
 	}
 
-	paths[PATH_USER_CONFIG] = validateFileName(paths[PATH_USER_CONFIG]);
+	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG]);
 
 	if(localMode) {
 		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
@@ -247,7 +247,7 @@ void Util::initialize() {
 		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
 	}
 
-	paths[PATH_USER_CONFIG] = validateFileName(paths[PATH_USER_CONFIG]);
+	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG]);
 
 	if(localMode) {
 		// @todo implement...
@@ -380,7 +380,7 @@ static const char badChars[] = {
  * Replaces all strange characters in a file with '_'
  * @todo Check for invalid names such as nul and aux...
  */
-string Util::validateFileName(string tmp) {
+string Util::cleanPathChars(string tmp, bool isFileName) {
 	string::size_type i = 0;
 
 	// First, eliminate forbidden chars
@@ -392,7 +392,7 @@ string Util::validateFileName(string tmp) {
 	// Then, eliminate all ':' that are not the second letter ("c:\...")
 	i = 0;
 	while( (i = tmp.find(':', i)) != string::npos) {
-		if(i == 1) {
+		if (i == 1 && !isFileName) {
 			i++;
 			continue;
 		}
@@ -411,11 +411,11 @@ string Util::validateFileName(string tmp) {
 	}
 
 	// Remove any double \\ that are not at the beginning of the path...
-	i = 1;
+	i = isFileName ? 0 : 1;
 	while( (i = tmp.find("\\\\", i)) != string::npos) {
 		tmp.erase(i+1, 1);
 	}
-	i = 1;
+	i = isFileName ? 0 : 1;
 	while( (i = tmp.find("//", i)) != string::npos) {
 		tmp.erase(i+1, 1);
 	}
@@ -450,6 +450,13 @@ string Util::validateFileName(string tmp) {
 		i += 1;
 	}
 
+	if (isFileName) {
+		i = 0;
+		while ((i = tmp.find(PATH_SEPARATOR, i)) != string::npos) {
+			tmp[i] = '_';
+		}
+	}
+
 
 	return tmp;
 }
@@ -464,15 +471,6 @@ bool Util::checkExtension(const string& tmp) {
 		return false;
 	}
 	return true;
-}
-
-string Util::cleanPathChars(const string& str) {
-	string ret(str);
-	string::size_type i = 0;
-	while((i = ret.find_first_of("/.\\", i)) != string::npos) {
-		ret[i] = '_';
-	}
-	return ret;
 }
 
 string Util::addBrackets(const string& s) {
@@ -1124,7 +1122,7 @@ string Util::formatParams(const string& msg, const ParamMap& params, FilterF fil
 	return result;
 }
 
-bool Util::validatePath(const string &sPath) {
+bool Util::isPathValid(const string &sPath) {
 	if(sPath.empty())
 		return false;
 

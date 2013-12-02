@@ -221,9 +221,11 @@ public:
 	static void decodeUrl(const string& aUrl, string& protocol, string& host, string& port, string& path, string& query, string& fragment);
 	static map<string, string> decodeQuery(const string& query);
 
-	static string validateFileName(string aFile);
+	static bool isPathValid(const string& sPath);
+	static inline string validatePath(const string& aPath) { return cleanPathChars(aPath, false); }
+	static inline string validateFileName(const string& aFileName) { return cleanPathChars(aFileName, true); }
 	static bool checkExtension(const string& tmp);
-	static string cleanPathChars(const string& str);
+
 	static string addBrackets(const string& s);
 
 	static string formatStatus(int iStatus);
@@ -552,7 +554,6 @@ public:
 	static string base64_encode(unsigned char const*, unsigned int len);
     static string base64_decode(string const& s);
 
-	static bool validatePath(const string &sPath);
 	static bool fileExists(const string &aFile);
 
 	static int randInt(int min=0, int max=std::numeric_limits<int>::max());
@@ -572,6 +573,8 @@ public:
 	static int getOsMinor() { return osMinor; }
 	static int getOsMajor() { return osMajor; }
 private:
+	static string cleanPathChars(string aPath, bool isFileName);
+
 	/** In local mode, all config and temp files are kept in the same dir as the executable */
 	static bool localMode;
 

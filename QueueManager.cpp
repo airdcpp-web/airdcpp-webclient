@@ -384,7 +384,7 @@ void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, cons
 		StringList nicks = ClientManager::getInstance()->getNicks(aUser);
 		if (nicks.empty())
 			throw QueueException(STRING(INVALID_TARGET_FILE));
-		target = Util::getListPath() + nicks[0] + ".partial[" + Util::cleanPathChars(aInitialDir) + "]";
+		target = Util::getListPath() + nicks[0] + ".partial[" + Util::validateFileName(aInitialDir) + "]";
 	} else {
 		target = getListPath(aUser);
 	}
@@ -415,8 +415,8 @@ void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, cons
 
 string QueueManager::getListPath(const HintedUser& user) const noexcept {
 	StringList nicks = ClientManager::getInstance()->getNicks(user);
-	string nick = nicks.empty() ? Util::emptyString : Util::cleanPathChars(nicks[0]) + ".";
-	return Util::validateFileName(Util::getListPath() + nick + user.user->getCID().toBase32());
+	string nick = nicks.empty() ? Util::emptyString : Util::validateFileName(nicks[0]) + ".";
+	return Util::getListPath() + nick + user.user->getCID().toBase32();
 }
 
 bool QueueManager::replaceItem(QueueItemPtr& q, int64_t aSize, const TTHValue& aTTH) throw(FileException, QueueException) {
@@ -542,7 +542,7 @@ void QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const T
 	}
 
 	//check the target
-	string target = Util::getOpenPath(Util::validateFileName(aFileName));
+	string target = Util::getOpenPath(Util::validatePath(aFileName));
 
 	//add in queue
 	QueueItemPtr qi = nullptr;
@@ -756,7 +756,7 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 }
 
 string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate) noexcept {
-	return Util::validateFileName(Util::formatTime(aPath, (SETTING(FORMAT_DIR_REMOTE_TIME) && aRemoteDate > 0) ? aRemoteDate : GET_TIME()));
+	return Util::validatePath(Util::formatTime(aPath, (SETTING(FORMAT_DIR_REMOTE_TIME) && aRemoteDate > 0) ? aRemoteDate : GET_TIME()));
 }
 
 BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
@@ -919,7 +919,7 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 	}
 #endif
 
-	string target = Util::validateFileName(toValidate);
+	string target = Util::validatePath(toValidate);
 
 	// Check that the file doesn't already exist...
 	int64_t size = File::getSize(aParentDir + target);

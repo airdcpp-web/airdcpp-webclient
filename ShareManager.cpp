@@ -3038,7 +3038,7 @@ ShareManager::FileListDir::~FileListDir() {
 }
 
 string ShareManager::ProfileDirectory::getCacheXmlPath() const noexcept {
-	return Util::validateFileName(Util::getPath(Util::PATH_SHARECACHE) + "ShareCache_" + Util::cleanPathChars(path) + ".xml");
+	return Util::getPath(Util::PATH_SHARECACHE) + "ShareCache_" + Util::validateFileName(path) + ".xml";
 }
 
 #define LITERAL(n) n, sizeof(n)-1
