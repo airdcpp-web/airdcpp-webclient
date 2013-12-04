@@ -149,10 +149,11 @@ bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::fu
 
 string LevelDB::getStats() throw(DbException) {
 	string ret;
-	ret += "\nStats for " + getFriendlyName() + "\n\n";
 	string value = "leveldb.stats";
 	leveldb::Slice prop(value.c_str(), value.length());
 	db->GetProperty(prop, &ret);
+
+	ret = "\r\n-=[ Stats for " + getFriendlyName() + " ]=-\n\n" + ret;
 	ret += "\r\n\r\nTotal entries: " + Util::toString(size(true, nullptr));
 	ret += "\r\nTotal reads: " + Util::toString(totalReads);
 	ret += "\r\nTotal Writes: " + Util::toString(totalWrites);
