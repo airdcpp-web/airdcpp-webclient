@@ -3869,15 +3869,26 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 	return ret;
 }
 
-bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower, bool isDir, bool report /*true*/, int64_t size /*0*/) const noexcept {
+string lastMessage;
+uint64_t messageTick = 0;
+bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower, bool isDir, bool aReport /*true*/, int64_t size /*0*/) const noexcept {
+	auto report = [&](const string& aMsg) {
+		// There may be sequential modification notifications for monitored files so don't spam the same message many times
+		if (aReport && (lastMessage != aMsg || messageTick + 3000 < GET_TICK())) {
+			LogManager::getInstance()->message(aMsg, LogManager::LOG_INFO);
+			lastMessage = aMsg;
+			messageTick = GET_TICK();
+		}
+	};
+
 	string aNameLower = isDir ? Util::getLastDir(aPathLower) : Util::getFileName(aPathLower);
 
 	if(aNameLower == "." || aNameLower == "..")
 		return false;
 
 	if (skipList.match(isDir ? Util::getLastDir(aPath) : Util::getFileName(aPath))) {
-		if(SETTING(REPORT_SKIPLIST) && report)
-			LogManager::getInstance()->message(STRING(SKIPLIST_HIT) + aPath, LogManager::LOG_INFO);
+		if(SETTING(REPORT_SKIPLIST))
+			report(STRING(SKIPLIST_HIT) + aPath);
 		return false;
 	}
 
@@ -3910,9 +3921,7 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 				(aNameLower.find("__padding_") == 0) ||			//BitComet padding
 				(aNameLower.find("__incomplete__") == 0)		//winmx
 				) {
-					if (report) {
-						LogManager::getInstance()->message(STRING(FORBIDDEN_FILE) + aPath, LogManager::LOG_INFO);
-					}
+					report(STRING(FORBIDDEN_FILE) + aPath);
 					return false;
 			}
 		}
@@ -3925,9 +3934,7 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 			return false;
 
 		if (SETTING(MAX_FILE_SIZE_SHARED) != 0 && size > Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB)) {
-			if (report) {
-				LogManager::getInstance()->message(STRING(BIG_FILE_NOT_SHARED) + " " + aPath + " (" + Util::formatBytes(size) + ")", LogManager::LOG_INFO);
-			}
+			report(STRING(BIG_FILE_NOT_SHARED) + " " + aPath + " (" + Util::formatBytes(size) + ")");
 			return false;
 		}
 	} else {
