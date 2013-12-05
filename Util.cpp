@@ -68,9 +68,6 @@ StringList Util::params;
 bool Util::localMode = true;
 bool Util::wasUncleanShutdown = false;
 
-int Util::osMinor;
-int Util::osMajor;
-
 static void sgenrand(unsigned long seed);
 
 extern "C" void bz_internal_error(int errcode) { 
@@ -223,17 +220,6 @@ void Util::initialize() {
 	paths[PATH_RESOURCES] = exePath;
 	paths[PATH_LOCALE] = (localMode ? exePath : paths[PATH_USER_LOCAL]) + "Language\\";
 
-	OSVERSIONINFOEX ver;
-	memzero(&ver, sizeof(OSVERSIONINFOEX));
-	if(!GetVersionEx((OSVERSIONINFO*)&ver)) 
-	{
-		ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	}
-	GetVersionEx((OSVERSIONINFO*)&ver);
-	ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-
-	osMajor = ver.dwMajorVersion;
-	osMinor = ver.dwMinorVersion;
 #else
 	paths[PATH_GLOBAL_CONFIG] = "/etc/";
 	const char* home_ = getenv("HOME");
@@ -1602,192 +1588,157 @@ string Util::base64_decode(string const& encoded_string) {
 	return ret;
 }
 
-string Util::getOsVersion(bool http /*false*/, bool doubleStr /*false*/) {
+bool Util::IsOSVersionOrGreater(int major, int minor) {
+#ifdef _WIN32
+	return IsWindowsVersionOrGreater(major, minor, 0);
+#else // _WIN32
+	return true;
+#endif
+}
+
+string Util::getOsVersion(bool http /*false*/) {
 #ifdef _WIN32
 	typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
-	typedef BOOL (WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
+	typedef BOOL(WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
 	string os;
 
-	OSVERSIONINFOEX ver;
-	memset(&ver, 0, sizeof(OSVERSIONINFOEX));
-	ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	SYSTEM_INFO si;
 	PGNSI pGNSI;
 	DWORD dwType;
 	PGPI pGPI;
 	ZeroMemory(&si, sizeof(SYSTEM_INFO));
-	pGNSI = (PGNSI) GetProcAddress(
+	pGNSI = (PGNSI)GetProcAddress(
 		GetModuleHandle(TEXT("kernel32.dll")), "GetNativeSystemInfo");
-	if(NULL != pGNSI)
+	if (NULL != pGNSI)
 		pGNSI(&si);
 	else GetSystemInfo(&si);
 
-	if(!GetVersionEx((OSVERSIONINFO*)&ver)) {
-		ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-		if(!GetVersionEx((OSVERSIONINFO*)&ver)) {
-			os = "Windows (version unknown)";
+	auto getProduct = [&](int major, int minor, string& os) -> void {
+		pGPI = (PGPI)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
+		pGPI(major, minor, 0, 0, &dwType);
+		switch (dwType)
+		{
+		case PRODUCT_ULTIMATE:
+			os += " Ultimate Edition";
+			break;
+		case PRODUCT_PROFESSIONAL:
+			os += " Professional";
+			break;
+		case PRODUCT_PROFESSIONAL_WMC:
+			os += " Professional with Media Center";
+			break;
+		case PRODUCT_HOME_PREMIUM:
+			os += " Home Premium Edition";
+			break;
+		case PRODUCT_HOME_BASIC:
+			os += " Home Basic Edition";
+			break;
+		case PRODUCT_ENTERPRISE:
+			os += " Enterprise Edition";
+			break;
+		case PRODUCT_BUSINESS:
+			os += " Business Edition";
+			break;
+		case PRODUCT_STARTER:
+			os += " Starter Edition";
+			break;
+		case PRODUCT_CLUSTER_SERVER:
+			os += " Cluster Server Edition";
+			break;
+		case PRODUCT_DATACENTER_SERVER:
+			os += " Datacenter Edition";
+			break;
+		case PRODUCT_DATACENTER_SERVER_CORE:
+			os += " Datacenter Edition (core installation)";
+			break;
+		case PRODUCT_ENTERPRISE_SERVER:
+			os += " Enterprise Edition";
+			break;
+		case PRODUCT_ENTERPRISE_SERVER_CORE:
+			os += " Enterprise Edition (core installation)";
+			break;
+		case PRODUCT_ENTERPRISE_SERVER_IA64:
+			os += " Enterprise Edition for Itanium-based Systems";
+			break;
+		case PRODUCT_SMALLBUSINESS_SERVER:
+			os += " Small Business Server";
+			break;
+		case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
+			os += " Small Business Server Premium Edition";
+			break;
+		case PRODUCT_STANDARD_SERVER:
+			os += " Standard Edition";
+			break;
+		case PRODUCT_STANDARD_SERVER_CORE:
+			os += " Standard Edition (core installation)";
+			break;
+		case PRODUCT_WEB_SERVER:
+			os += " Web Server Edition";
+			break;
 		}
-	}
 
-	if (http) {
+		if (major >= 6) {
+			if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+				os += " 64-bit";
+			else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL)
+				os += " 32-bit";
+		}
+
+		/*
+		TODO: service pack
+		tstring spver(ver.szCSDVersion);
+		if (!spver.empty()) {
+			os += " " + Text::fromT(spver);
+		}*/
+	};
+
+	auto formatHttp = [&](int major, int minor, string& os) -> string {
 		TCHAR buf[255];
 		_stprintf(buf, _T("%d.%d"),
-			(DWORD)ver.dwMajorVersion, (DWORD)ver.dwMinorVersion);
+		(DWORD)major, (DWORD)minor);
 
 		os = "(Windows " + Text::fromT(buf);
-		if ( si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64 )
-			os += "; WOW64)";
-		else 
-			os += ")";
-	} else if (doubleStr) {
-		TCHAR buf[255];
-		_stprintf(buf, _T("%d.%d"),
-			(DWORD)ver.dwMajorVersion, (DWORD)ver.dwMinorVersion);
-		return Text::fromT(buf);
-	} else {
-		if(os.empty()) {
-			if(ver.dwPlatformId != VER_PLATFORM_WIN32_NT) {
-				os = "Win9x/ME/Junk";
-			} else if(ver.dwMajorVersion == 4) {
-				os = "Windows NT4";
-			} else if(ver.dwMajorVersion == 5) {
-				switch(ver.dwMinorVersion) {
-					case 0: os = "Windows 2000"; break;
-					case 1:
-						if (ver.wSuiteMask & VER_SUITE_PERSONAL)
-							os = "Windows XP Home Edition";
-						else
-							os = "Windows XP Professional";
-						break;
-					case 2: 
-						if(GetSystemMetrics(SM_SERVERR2))
-							os = "Windows Server 2003 R2";
-						else if (ver.wProductType == VER_NT_WORKSTATION &&
-								si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64)
-							os = "Windows XP Professional x64 Edition";
-						else
-							os = "Windows Server 2003";
-						break;
-					default: os = "Unknown Windows NT5";
-				}
-			} else if(ver.dwMajorVersion == 6) {
-				switch(ver.dwMinorVersion) {
-					case 0:
-						if (ver.wProductType == VER_NT_WORKSTATION)
-							os = "Windows Vista";
-						else
-							os = "Windows Server 2008";
-						break;
-					case 1:
-						if (ver.wProductType == VER_NT_WORKSTATION)
-							os = "Windows 7";
-						else
-							os = "Windows Server 2008 R2";
-						break;
-					case 2:
-						{
-							// http://msdn.microsoft.com/en-us/library/windows/desktop/dn302074(v=vs.85).aspx
-							if (IsWindows8Point1OrGreater()) {
-								if (IsWindowsServer())
-									os = "Windows Server 2012 R2";
-								else
-									os = "Windows 8.1";
-							} else {
-								if (ver.wProductType == VER_NT_WORKSTATION)
-									os = "Windows 8";
-								else
-									os = "Windows Server 2012";
-							}
-						}
-						break;
-					case 3:
-						if (ver.wProductType == VER_NT_WORKSTATION)
-							os = "Windows 8.1";
-						else
-							os = "Windows Server 2012 R2";
-						break;
-					default: os = "Unknown Windows 6-family";
-				}
-			}
-		}
+		if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+		os += "; WOW64)";
+		else
+		os += ")";
+		return os;
+	};
 
-		if(ver.dwMajorVersion == 6) {
-			pGPI = (PGPI) GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
-			pGPI(ver.dwMajorVersion, ver.dwMinorVersion, 0, 0, &dwType);
-			 switch(dwType)
-			 {
-				case PRODUCT_ULTIMATE:
-				   os += " Ultimate Edition";
-				   break;
-				case PRODUCT_PROFESSIONAL:
-				   os += " Professional";
-				   break;
-				case PRODUCT_PROFESSIONAL_WMC:
-					os += " Professional with Media Center";
-					break;
-				case PRODUCT_HOME_PREMIUM:
-				   os += " Home Premium Edition";
-				   break;
-				case PRODUCT_HOME_BASIC:
-				   os += " Home Basic Edition";
-				   break;
-				case PRODUCT_ENTERPRISE:
-				   os += " Enterprise Edition";
-				   break;
-				case PRODUCT_BUSINESS:
-				   os += " Business Edition";
-				   break;
-				case PRODUCT_STARTER:
-				   os += " Starter Edition";
-				   break;
-				case PRODUCT_CLUSTER_SERVER:
-				   os += " Cluster Server Edition";
-				   break;
-				case PRODUCT_DATACENTER_SERVER:
-				   os += " Datacenter Edition";
-				   break;
-				case PRODUCT_DATACENTER_SERVER_CORE:
-				   os += " Datacenter Edition (core installation)";
-				   break;
-				case PRODUCT_ENTERPRISE_SERVER:
-				   os += " Enterprise Edition";
-				   break;
-				case PRODUCT_ENTERPRISE_SERVER_CORE:
-				   os += " Enterprise Edition (core installation)";
-				   break;
-				case PRODUCT_ENTERPRISE_SERVER_IA64:
-				   os += " Enterprise Edition for Itanium-based Systems";
-				   break;
-				case PRODUCT_SMALLBUSINESS_SERVER:
-				   os += " Small Business Server";
-				   break;
-				case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
-				   os += " Small Business Server Premium Edition";
-				   break;
-				case PRODUCT_STANDARD_SERVER:
-				   os += " Standard Edition";
-				   break;
-				case PRODUCT_STANDARD_SERVER_CORE:
-				   os += " Standard Edition (core installation)";
-				   break;
-				case PRODUCT_WEB_SERVER:
-				   os += " Web Server Edition";
-				   break;
-			 }
+	if (IsWindows8Point1OrGreater()) {
+		if (http) return formatHttp(6, 3, os);
+		if (IsWindowsServer())
+			os = "Windows Server 2012 R2";
+		else
+			os = "Windows 8.1";
 
-			if ( ver.dwMajorVersion >= 6 ) {
-				if ( si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64 )
-					os += " 64-bit";
-				else if (si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_INTEL )
-					os += " 32-bit";
-			}
-
-			tstring spver(ver.szCSDVersion);
-			if(!spver.empty()) {
-				os += " " + Text::fromT(spver);
-			}
-		}
+		getProduct(6, 3, os);
 	}
+	else if (IsWindows8OrGreater()) {
+		if (http) return formatHttp(6, 2, os);
+		if (IsWindowsServer())
+			os = "Windows Server 2012";
+		else
+			os = "Windows 8";
+		getProduct(6, 2, os);
+	}
+	else if (IsWindows7OrGreater()) {
+		if (http) return formatHttp(6, 1, os);
+		if (IsWindowsServer())
+			os = "Windows Server 2008 R2";
+		else
+			os = "Windows 7";
+		getProduct(6, 1, os);
+	}
+	else if (IsWindowsVistaOrGreater()) {
+		if (http) return formatHttp(6, 0, os);
+		if (IsWindowsServer())
+			os = "Windows Server 2008";
+		else
+			os = "Windows Vista";
+		getProduct(6, 0, os);
+	}
+
 	return os;
 
 #else // _WIN32

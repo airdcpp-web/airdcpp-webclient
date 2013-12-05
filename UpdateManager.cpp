@@ -35,6 +35,7 @@
 #include "Text.h"
 #include "TimerManager.h"
 #include "version.h"
+#include "StringTokenizer.h"
 
 #include "pubkey.h"
 
@@ -410,7 +411,10 @@ void UpdateManager::completeLanguageDownload() {
 bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {
 	while (xml.findChild("VersionInfo")) {
 		//the latest OS must come first
-		if (Util::toDouble(xml.getChildAttrib("MinOsVersion")) > Util::toDouble(Util::getOsVersion(false, true)))
+		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), _T('.'));
+		StringList& l = t.getTokens();
+
+		if (!Util::IsOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1])))
 			continue;
 
 		xml.stepIn();

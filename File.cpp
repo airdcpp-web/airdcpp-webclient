@@ -665,7 +665,7 @@ int64_t File::getDirSize(const string& aPath, bool recursive, const string& patt
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
 FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool dirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
-	if (Util::getOsMajor() >= 6 && Util::getOsMinor() >= 1) {
+	if (Util::IsOSVersionOrGreater(6, 1)) { //TODO: check is this not available in Vista??
 		handle = ::FindFirstFileEx(Text::toT(Util::FormatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
 	} else {
 		handle = ::FindFirstFile(Text::toT(Util::FormatPath(aPath) + aPattern).c_str(), &data);

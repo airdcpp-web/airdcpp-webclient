@@ -104,7 +104,8 @@ public:
 	static tstring emptyStringT;
 	static string emptyString;
 	static wstring emptyStringW;
-	static string getOsVersion(bool http = false, bool doubleStr = false);
+	static string getOsVersion(bool http = false);
+	static bool IsOSVersionOrGreater(int major, int minor);
 
 	enum Paths {
 		/** Global configuration */
@@ -569,9 +570,6 @@ public:
 
 	static bool usingLocalMode() { return localMode; }
 	static bool wasUncleanShutdown;
-
-	static int getOsMinor() { return osMinor; }
-	static int getOsMajor() { return osMajor; }
 private:
 	static string cleanPathChars(string aPath, bool isFileName);
 
