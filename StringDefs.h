@@ -1260,7 +1260,7 @@ enum Strings { // @DontAdd
 	AUTO_SELECT, // "Auto select based on free space"
 	GET_BROWSE_LIST, // "Get/browse file list"
 	SETTINGS_TOOLBAR_SIZE, // "Toolbar icon size"
-	SETTINGS_TOOLBAR_NOTE, // "Note! Changing toolbar images or icon size require a client restart to take effect."
+	SETTINGS_TOOLBAR_NOTE, // "Note! Changing toolbar icon size require a client restart to take effect."
 	SETTINGS_WTOOLBAR_SIZE, // "Media toolbar icon size"
 	TOGGLE_TBSTATUS, // "Toolbar progressbar\tCtrl+5"
 	X_FAV_PROFILES_RESET, // "%1% favorite hubs have been reset to use the default share profile"

@@ -1256,7 +1256,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Auto select based on free space", 
 "Get/browse file list", 
 "Toolbar icon size", 
-"Note! Changing toolbar images or icon size require a client restart to take effect.", 
+"Note! Changing toolbar icon size require a client restart to take effect.", 
 "Media toolbar icon size", 
 "Toolbar progressbar\tCtrl+5", 
 "%1% favorite hubs have been reset to use the default share profile", 
