@@ -12,71 +12,66 @@
 namespace dcpp {
 
 void IgnoreManager::load(SimpleXML& aXml) {
-	if(aXml.findChild("IgnoreList")) {
+
+	if (aXml.findChild("IgnoreItems")) {
 		aXml.stepIn();
-		while(aXml.findChild("User")) {	
-			ignoredUsers.insert(aXml.getChildAttrib("Nick"));
+		while (aXml.findChild("IgnoreItem")) {
+			ignoreItems.push_back(IgnoreItem(aXml.getChildAttrib("Nick"), aXml.getChildAttrib("Text"), 
+				(StringMatch::Method)aXml.getIntChildAttrib("NickMethod"), (StringMatch::Method)aXml.getIntChildAttrib("TextMethod"), 
+				aXml.getBoolChildAttrib("MC"), aXml.getBoolChildAttrib("PM")));
 		}
 		aXml.stepOut();
 	}
 }
 
 void IgnoreManager::save(SimpleXML& aXml) {
-	aXml.addTag("IgnoreList");
+	aXml.addTag("IgnoreItems");
 	aXml.stepIn();
 
-	for(const auto& def: ignoredUsers) {
-		aXml.addTag("User");
-		aXml.addChildAttrib("Nick", def);
+	for (const auto& i : ignoreItems) {
+		aXml.addTag("IgnoreItem");
+		aXml.addChildAttrib("Nick", i.getNickPattern());
+		aXml.addChildAttrib("NickMethod", i.getNickMethod());
+		aXml.addChildAttrib("Text", i.getTextPattern());
+		aXml.addChildAttrib("TextMethod", i.getTextMethod());
+		aXml.addChildAttrib("MC", i.matchMainchat);
+		aXml.addChildAttrib("PM", i.matchPM);
 	}
 	aXml.stepOut();
 }
 
-
 void IgnoreManager::storeIgnore(const string& aNick) {
-	ignoredUsers.insert(aNick);
+	auto i = find_if(ignoreItems.begin(), ignoreItems.end(), [aNick](const IgnoreItem& s) { return compare(s.getNickPattern(), aNick) == 0; });
+	if (i == ignoreItems.end())
+		ignoreItems.push_back(IgnoreItem(aNick, "", StringMatch::EXACT, StringMatch::EXACT, true, true));
 }
 
 void IgnoreManager::removeIgnore(const string& aNick) {
-	ignoredUsers.erase(aNick);
+	auto i = find_if(ignoreItems.begin(), ignoreItems.end(), [aNick](const IgnoreItem& s) { return compare(s.getNickPattern(), aNick) == 0; });
+	if (i != ignoreItems.end())
+		ignoreItems.erase(i);
 }
-
-StringSet IgnoreManager::getIgnoredUsers() const {
-	return ignoredUsers;
-	/*for(auto& def: ignoredUsers) {
-		lst.push_back(Text::toT(def));
-	}*/
-}
-
-void IgnoreManager::putIgnoredUsers(StringSet& newList) { 
-	ignoredUsers = newList;
-	/*ignoredUsers.clear();
-	for(auto& def: newList)
-		ignoredUsers.insert(Text::fromT(def));*/
-}
-
-
-bool IgnoreManager::isIgnored(const string& aNick) {
-	if (ignoredUsers.find(aNick) != ignoredUsers.end())
+/*
+bool IgnoreManager::addIgnore(const string& aNick, const string& aText, StringMatch::Method aNickMethod, StringMatch::Method aTextMethod, bool aMainChat, bool aPM) {
+	auto i = find_if(ignoreItems.begin(), ignoreItems.end(), [aNick, aText](const IgnoreItem& s) { 
+		return ((s.getNickPattern().empty() || compare(s.getNickPattern(), aNick) == 0) && (s.getTextPattern().empty() || compare(s.getTextPattern(), aText) == 0));
+	});
+	if (i == ignoreItems.end()){
+		ignoreItems.push_back(IgnoreItem(aNick, aText, aNickMethod, aTextMethod, aMainChat, aPM));
 		return true;
-
-	if(SETTING(IGNORE_USE_REGEXP_OR_WC)) {
-		for(auto& def: ignoredUsers) {
-			if(Util::strnicmp(def, "$Re:", 4) == 0 && def.length() > 4) {
-				string str1 = def.substr(4);
-				string str2 = aNick;
-				try {
-					boost::regex reg(str1);
-					if(boost::regex_search(str2.begin(), str2.end(), reg)){
-						return true;
-					};
-				} catch(...) { }
-			} else if(Wildcard::patternMatch(Text::toLower(aNick), Text::toLower(def), false)) {
-				return true;
-			}
-		}
 	}
+	return false;
+}
 
+void IgnoreManager::removeIgnore(int pos) {
+	ignoreItems.erase(ignoreItems.begin() + pos);
+}
+*/
+bool IgnoreManager::isIgnored(const string& aNick, const string& aText, IgnoreItem::Context aContext) {
+	for (auto& i : ignoreItems) {
+		if (i.match(aNick, aText, aContext))
+			return true;
+	}
 	return false;
 }
 

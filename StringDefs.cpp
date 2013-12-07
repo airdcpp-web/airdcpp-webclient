@@ -1825,6 +1825,12 @@ std::string dcpp::ResourceManager::strings[] = {
 "Nightly builds", 
 "System default", 
 "Close button minimizes AirDC", 
+"Nick match pattern", 
+"Text match pattern", 
+"Note: Nick pattern or text pattern can be empty.\r\nIf the nick pattern is empty, the text pattern is used, only incoming message will be matched with text pattern. \r\nIf both patterns are set the message is ignored only if both matches are found. ", 
+"Main chat", 
+"Private chat", 
+"No context selected, you need to select atleast one of: private chat / main chat", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3650,4 +3656,10 @@ std::string dcpp::ResourceManager::names[] = {
 "ChannelNightly", 
 "SystemDefault", 
 "CloseMinimizes", 
+"IgnoreNickMatch", 
+"IgnoreTextMatch", 
+"IgnoreHelp", 
+"MainChat", 
+"PrivateChat", 
+"IgnoreNoContext", 
 };

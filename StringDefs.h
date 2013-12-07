@@ -1829,5 +1829,11 @@ enum Strings { // @DontAdd
 	CHANNEL_NIGHTLY, // "Nightly builds"
 	SYSTEM_DEFAULT, // "System default"
 	CLOSE_MINIMIZES, // "Close button minimizes AirDC"
+	IGNORE_NICK_MATCH, // "Nick match pattern"
+	IGNORE_TEXT_MATCH, // "Text match pattern"
+	IGNORE_HELP, // "Note: Nick pattern or text pattern can be empty.\r\nIf the nick pattern is empty, the text pattern is used, only incoming message will be matched with text pattern. \r\nIf both patterns are set the message is ignored only if both matches are found. "
+	MAIN_CHAT, // "Main chat"
+	PRIVATE_CHAT, // "Private chat"
+	IGNORE_NO_CONTEXT, // "No context selected, you need to select atleast one of: private chat / main chat"
 	LAST // @DontAdd
 };
