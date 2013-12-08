@@ -1106,60 +1106,16 @@ const vector<StringList>& AdcHub::getSearchExts() {
 		return searchExts;
 
 	// the list is always immutable except for this function where it is initially being filled.
-	auto& xSearchExts = const_cast<vector<StringList>&>(searchExts);
+	const_cast<vector<StringList>&>(searchExts) = {
+		// these extensions *must* be sorted alphabetically!
+		{ "ape", "flac", "m4a", "mid", "mp3", "mpc", "ogg", "ra", "wav", "wma" },
+		{ "7z", "ace", "arj", "bz2", "gz", "lha", "lzh", "rar", "tar", "z", "zip" },
+		{ "doc", "docx", "htm", "html", "nfo", "odf", "odp", "ods", "odt", "pdf", "ppt", "pptx", "rtf", "txt", "xls", "xlsx", "xml", "xps" },
+		{ "app", "bat", "cmd", "com", "dll", "exe", "jar", "msi", "ps1", "vbs", "wsf" },
+		{ "bmp", "cdr", "eps", "gif", "ico", "img", "jpeg", "jpg", "png", "ps", "psd", "sfw", "tga", "tif", "webp" },
+		{ "3gp", "asf", "asx", "avi", "divx", "flv", "mkv", "mov", "mp4", "mpeg", "mpg", "ogm", "pxp", "qt", "rm", "rmvb", "swf", "vob", "webm", "wmv" }
+	};
 
-	xSearchExts.resize(6);
-
-	/// @todo simplify this as searchExts[0] = { "mp3", "etc" } when VC++ supports initializer lists
-
-	// these extensions *must* be sorted alphabetically!
-
-	{
-		StringList& l = xSearchExts[0];
-		l.push_back("ape"); l.push_back("flac"); l.push_back("m4a"); l.push_back("mid");
-		l.push_back("mp3"); l.push_back("mpc"); l.push_back("ogg"); l.push_back("ra");
-		l.push_back("wav"); l.push_back("wma");
-	}
-
-	{
-		StringList& l = xSearchExts[1];
-		l.push_back("7z"); l.push_back("ace"); l.push_back("arj"); l.push_back("bz2");
-		l.push_back("gz"); l.push_back("lha"); l.push_back("lzh"); l.push_back("rar");
-		l.push_back("tar"); l.push_back("z"); l.push_back("zip");
-	}
-
-	{
-		StringList& l = xSearchExts[2];
-		l.push_back("doc"); l.push_back("docx"); l.push_back("htm"); l.push_back("html");
-		l.push_back("nfo"); l.push_back("odf"); l.push_back("odp"); l.push_back("ods");
-		l.push_back("odt"); l.push_back("pdf"); l.push_back("ppt"); l.push_back("pptx");
-		l.push_back("rtf"); l.push_back("txt"); l.push_back("xls"); l.push_back("xlsx");
-		l.push_back("xml"); l.push_back("xps");
-	}
-
-	{
-		StringList& l = xSearchExts[3];
-		l.push_back("app"); l.push_back("bat"); l.push_back("cmd"); l.push_back("com");
-		l.push_back("dll"); l.push_back("exe"); l.push_back("jar"); l.push_back("msi");
-		l.push_back("ps1"); l.push_back("vbs"); l.push_back("wsf");
-	}
-
-	{
-		StringList& l = xSearchExts[4];
-		l.push_back("bmp"); l.push_back("cdr"); l.push_back("eps"); l.push_back("gif");
-		l.push_back("ico"); l.push_back("img"); l.push_back("jpeg"); l.push_back("jpg");
-		l.push_back("png"); l.push_back("ps"); l.push_back("psd"); l.push_back("sfw");
-		l.push_back("tga"); l.push_back("tif"); l.push_back("webp");
-	}
-
-	{
-		StringList& l = xSearchExts[5];
-		l.push_back("3gp"); l.push_back("asf"); l.push_back("asx"); l.push_back("avi");
-		l.push_back("divx"); l.push_back("flv"); l.push_back("mkv"); l.push_back("mov");
-		l.push_back("mp4"); l.push_back("mpeg"); l.push_back("mpg"); l.push_back("ogm");
-		l.push_back("pxp"); l.push_back("qt"); l.push_back("rm"); l.push_back("rmvb");
-		l.push_back("swf"); l.push_back("vob"); l.push_back("webm"); l.push_back("wmv");
-	}
 
 	return searchExts;
 }

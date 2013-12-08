@@ -59,9 +59,7 @@ void StringSearch::initDelta1() {
 
 bool StringSearch::match(const string& aText) const noexcept{
 	// Lower-case representation of UTF-8 string, since we no longer have that 1 char = 1 byte...
-	string lower;
-	Text::toLower(aText, lower);
-	return matchLower(lower);
+	return matchLower(Text::toLower(aText));
 }
 
 bool StringSearch::matchLower(const string& aText) const noexcept {

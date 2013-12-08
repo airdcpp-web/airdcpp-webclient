@@ -411,7 +411,7 @@ void UpdateManager::completeLanguageDownload() {
 bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {
 	while (xml.findChild("VersionInfo")) {
 		//the latest OS must come first
-		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), _T('.'));
+		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), '.');
 		StringList& l = t.getTokens();
 
 		if (!Util::IsOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1])))

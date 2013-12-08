@@ -248,8 +248,7 @@ int64_t File::getSize(const string& aFileName) noexcept {
 
 void File::ensureDirectory(const string& aFile) noexcept {
 	// Skip the first dir...
-	tstring file;
-	Text::toT(aFile, file);
+	tstring file(Text::toT(aFile));
 	tstring::size_type start = file.find_first_of(_T("\\/"));
 	if(start == string::npos)
 		return;
@@ -263,8 +262,7 @@ void File::ensureDirectory(const string& aFile) noexcept {
 bool File::createDirectory(const string& aFile) {
 	// Skip the first dir...
 	int result = 0;
-	tstring file;
-	Text::toT(aFile, file);
+	tstring file(Text::toT(aFile));
 	wstring::size_type start = file.find_first_of(L"\\/");
 	if(start == string::npos)
 		return false;

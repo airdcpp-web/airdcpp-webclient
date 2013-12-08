@@ -42,57 +42,27 @@ namespace Text {
 	extern string systemCharset;
 
 	void initialize();
+	wstring acpToWide(const string& str, const string& fromCharset = "") noexcept;
 
-	const string& acpToUtf8(const string& str, string& tmp, const string& fromCharset = "") noexcept;
-	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept {
-		string tmp;
-		return acpToUtf8(str, tmp, fromCharset);
-	}
+	wstring utf8ToWide(const string& str) noexcept;
 
-	const wstring& acpToWide(const string& str, wstring& tmp, const string& fromCharset = "") noexcept;
-	inline wstring acpToWide(const string& str, const string& fromCharset = "") noexcept {
-		wstring tmp;
-		return acpToWide(str, tmp, fromCharset);
-	}
-
-	const string& utf8ToAcp(const string& str, string& tmp, const string& toCharset = "") noexcept;
-	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept {
-		string tmp;
-		return utf8ToAcp(str, tmp, toCharset);
-	}
-
-	const wstring& utf8ToWide(const string& str, wstring& tmp) noexcept;
-	inline wstring utf8ToWide(const string& str) noexcept {
-		wstring tmp;
-		return utf8ToWide(str, tmp);
-	}
-
-	const string& wideToAcp(const wstring& str, string& tmp, const string& toCharset = "") noexcept;
-	inline string wideToAcp(const wstring& str, const string& toCharset = "") noexcept {
-		string tmp;
-		return wideToAcp(str, tmp, toCharset);
-	}
-
-	const string& wideToUtf8(const wstring& str, string& tmp) noexcept;
-	inline string wideToUtf8(const wstring& str) noexcept {
-		string tmp;
-		return wideToUtf8(str, tmp);
-	}
+	string wideToAcp(const wstring& str, const string& toCharset = "") noexcept;
+	string wideToUtf8(const wstring& str) noexcept;
 
 	int utf8ToWc(const char* str, wchar_t& c);
 	void wcToUtf8(wchar_t c, string& str);
 
+	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept{
+		return wideToUtf8(acpToWide(str, fromCharset));
+	}
+	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept{
+		return wideToAcp(utf8ToWide(str), toCharset);
+	}
 #ifdef UNICODE
-	inline const tstring& toT(const string& str, tstring& tmp) noexcept { return utf8ToWide(str, tmp); }
 	inline tstring toT(const string& str) noexcept { return utf8ToWide(str); }
-
-	inline const string& fromT(const tstring& str, string& tmp) noexcept { return wideToUtf8(str, tmp); }
 	inline string fromT(const tstring& str) noexcept { return wideToUtf8(str); }
 #else
-	inline const tstring& toT(const string& str, tstring& tmp) noexcept { return utf8ToAcp(str, tmp); }
 	inline tstring toT(const string& str) noexcept { return utf8ToAcp(str); }
-
-	inline const string& fromT(const tstring& str, string& tmp) noexcept { return acpToUtf8(str, tmp); }
 	inline string fromT(const tstring& str) noexcept { return acpToUtf8(str); }
 #endif
 
@@ -117,37 +87,17 @@ namespace Text {
 
 	wchar_t toLower(wchar_t c) noexcept;
 
-	const wstring& toLower(const wstring& str, wstring& tmp) noexcept;
-	inline wstring toLower(const wstring& str) noexcept {
-		wstring tmp;
-		return toLower(str, tmp);
-	}
+	wstring toLower(const wstring& str) noexcept;
 
 	bool isLower(const string& str) noexcept;
 
-	const string& toLower(const string& str, string& tmp) noexcept;
-	inline string toLower(const string& str) noexcept {
-		string tmp;
-		return toLower(str, tmp);
-	}
+	string toLower(const string& str) noexcept;
 
-	const string& convert(const string& str, string& tmp, const string& fromCharset, const string& toCharset) noexcept;
-	inline string convert(const string& str, const string& fromCharset, const string& toCharset) noexcept {
-		string tmp;
-		return convert(str, tmp, fromCharset, toCharset);
-	}
+	string convert(const string& str, const string& fromCharset, const string& toCharset = "") noexcept;
 
-	const string& toUtf8(const string& str, const string& fromCharset, string& tmp) noexcept;
-	inline string toUtf8(const string& str, const string& fromCharset = systemCharset) {
-		string tmp;
-		return toUtf8(str, fromCharset, tmp);
-	}
+	string toUtf8(const string& str, const string& fromCharset = "") noexcept;
 
-	const string& fromUtf8(const string& str, const string& toCharset, string& tmp) noexcept;
-	inline string fromUtf8(const string& str, const string& toCharset = systemCharset) noexcept {
-		string tmp;
-		return fromUtf8(str, toCharset, tmp);
-	}
+	string fromUtf8(const string& str, const string& toCharset = "") noexcept;
 
 	string toDOS(string tmp);
 	wstring toDOS(wstring tmp);

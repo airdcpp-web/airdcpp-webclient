@@ -475,8 +475,8 @@ void DirectoryMonitor::processNotification(const string& aPath, const ByteVector
 			// Convert to the long filename form. Unfortunately, this
 			// does not work for deletions, so it's an imperfect fix.
 			wchar_t wbuf[UNC_MAX_PATH];
-			if (::GetLongPathName(notifyPath.c_str(), wbuf, _countof (wbuf)) > 0)
-				notifyPath = wbuf;
+			if (::GetLongPathName(Text::toT(notifyPath).c_str(), wbuf, _countof (wbuf)) > 0)
+				notifyPath = Text::fromT(wbuf);
 		}*/
 
 		notifyPath = aPath + notifyPath;

@@ -74,8 +74,7 @@ void ResourceManager::loadLanguage(const string& aFile) {
 
 void ResourceManager::createWide() {
 	for(int i = 0; i < LAST; ++i) {
-		wstrings[i].clear();
-		Text::utf8ToWide(strings[i], wstrings[i]);
+		wstrings[i] = Text::utf8ToWide(strings[i]);
 	}
 }
 
