@@ -266,7 +266,7 @@ bool SimpleXMLReader::elementAttrValue() {
 		if((state == STATE_ELEMENT_ATTR_VALUE_APOS && c == '\'') || (state == STATE_ELEMENT_ATTR_VALUE_QUOT && c == '"')) {
 			append(attribs.back().second, MAX_VALUE_SIZE, buf.begin() + bufPos, buf.begin() + bufPos + i);
 
-			if(!encoding.empty() && encoding != Text::utf8) {
+			if(!encoding.empty() && compare(encoding, Text::utf8) != 0) {
 				attribs.back().second = Text::toUtf8(attribs.back().second, encoding);
 			}
 
@@ -726,7 +726,7 @@ bool SimpleXMLReader::process() {
 		}
 
 		if(oldState == STATE_CONTENT && state != oldState && !value.empty()) {
-			if(!encoding.empty() && encoding != Text::utf8) {
+			if(!encoding.empty() && compare(encoding, Text::utf8) != 0) {
 				value = Text::toUtf8(value, encoding);
 			}
 			cb->data(value);
