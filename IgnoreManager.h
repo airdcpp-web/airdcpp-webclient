@@ -12,12 +12,25 @@
 #endif // _MSC_VER > 1000
 
 #include "Singleton.h"
+#include "Speaker.h"
 #include "SettingsManager.h"
 #include "SimpleXML.h"
 #include "User.h"
 #include "StringMatch.h"
 
 namespace dcpp {
+
+class IgnoreManagerListener {
+public:
+	virtual ~IgnoreManagerListener() { }
+	template<int I>	struct X { enum { TYPE = I }; };
+
+	typedef X<0> IgnoreAdded;
+	typedef X<1> IgnoreRemoved;
+
+	virtual void on(IgnoreAdded, const UserPtr&) noexcept{}
+	virtual void on(IgnoreRemoved, const UserPtr&) noexcept{}
+};
 
 class IgnoreItem {
 public:
@@ -77,10 +90,10 @@ private:
 	StringMatch textMatcher;
 };
 
-class IgnoreManager: public Singleton<IgnoreManager>, private SettingsManagerListener
+class IgnoreManager : public Singleton<IgnoreManager>, public Speaker<IgnoreManagerListener>, private SettingsManagerListener
 {
 public:
-	IgnoreManager() { SettingsManager::getInstance()->addListener(this); }
+	IgnoreManager() : dirty(false) { SettingsManager::getInstance()->addListener(this); }
 	~IgnoreManager() { SettingsManager::getInstance()->removeListener(this); }
 
 	// store & remove ignores through/from hubframe
@@ -89,13 +102,15 @@ public:
 	bool isIgnored(const UserPtr& aUser);
 
 	// spam filter
-	bool isIgnored(const string& aNick, const string& aText, IgnoreItem::Context aContext = IgnoreItem::ALL);
+	bool isSpamFiltered(const string& aNick, const string& aText, IgnoreItem::Context aContext = IgnoreItem::ALL);
 	vector<IgnoreItem>& getIgnoreList() { return ignoreItems; }
 	void replaceList(vector<IgnoreItem>& newList) {
 		ignoreItems = newList;
 	}
 
 private:
+	friend class Singleton<IgnoreManager>;
+
 	typedef unordered_set<UserPtr, User::Hash> IgnoredUsersList;
 	IgnoredUsersList ignoredUsers;
 
@@ -105,6 +120,8 @@ private:
 
 	void saveUsers();
 	void loadUsers();
+
+	bool dirty;
 
 	// SettingsManagerListener
 	virtual void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;

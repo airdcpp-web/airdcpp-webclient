@@ -43,8 +43,9 @@ void IgnoreManager::save(SimpleXML& aXml) {
 		aXml.addChildAttrib("PM", i.matchPM);
 	}
 	aXml.stepOut();
-
-	saveUsers();
+	
+	if (dirty)
+		saveUsers();
 }
 
 void IgnoreManager::saveUsers() {
@@ -116,6 +117,8 @@ void IgnoreManager::loadUsers() {
 void IgnoreManager::storeIgnore(const UserPtr& aUser) {
 	ignoredUsers.emplace(aUser);
 	aUser->setFlag(User::IGNORED);
+	dirty = true;
+	fire(IgnoreManagerListener::IgnoreAdded(), aUser);
 }
 
 void IgnoreManager::removeIgnore(const UserPtr& aUser) {
@@ -123,6 +126,8 @@ void IgnoreManager::removeIgnore(const UserPtr& aUser) {
 	if (i != ignoredUsers.end())
 		ignoredUsers.erase(i);
 	aUser->unsetFlag(User::IGNORED);
+	dirty = true;
+	fire(IgnoreManagerListener::IgnoreRemoved(), aUser);
 }
 
 bool IgnoreManager::isIgnored(const UserPtr& aUser) {
@@ -130,7 +135,7 @@ bool IgnoreManager::isIgnored(const UserPtr& aUser) {
 	return (i != ignoredUsers.end());
 }
 
-bool IgnoreManager::isIgnored(const string& aNick, const string& aText, IgnoreItem::Context aContext) {
+bool IgnoreManager::isSpamFiltered(const string& aNick, const string& aText, IgnoreItem::Context aContext) {
 	for (auto& i : ignoreItems) {
 		if (i.match(aNick, aText, aContext))
 			return true;
