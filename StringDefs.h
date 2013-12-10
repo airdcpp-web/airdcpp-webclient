@@ -1835,5 +1835,8 @@ enum Strings { // @DontAdd
 	MAIN_CHAT, // "Main chat"
 	PRIVATE_CHAT, // "Private chat"
 	IGNORE_NO_CONTEXT, // "No context selected, you need to select atleast one of: private chat / main chat"
+	REPORT_IGNORED, // "Report ignored users sending messages in systemlog"
+	MC_MESSAGE_IGNORED, // "Main chat message from ignored user: "
+	PM_MESSAGE_IGNORED, // "Private chat message from ignored user: "
 	LAST // @DontAdd
 };

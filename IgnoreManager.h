@@ -14,6 +14,7 @@
 #include "Singleton.h"
 #include "SettingsManager.h"
 #include "SimpleXML.h"
+#include "User.h"
 #include "StringMatch.h"
 
 namespace dcpp {
@@ -83,27 +84,27 @@ public:
 	~IgnoreManager() { SettingsManager::getInstance()->removeListener(this); }
 
 	// store & remove ignores through/from hubframe
-	void storeIgnore(const string& aNick);
-	void removeIgnore(const string& aNick);
+	void storeIgnore(const UserPtr& aUser);
+	void removeIgnore(const UserPtr& aUser);
+	bool isIgnored(const UserPtr& aUser);
 
-	// check if user is ignored
+	// spam filter
 	bool isIgnored(const string& aNick, const string& aText, IgnoreItem::Context aContext = IgnoreItem::ALL);
 	vector<IgnoreItem>& getIgnoreList() { return ignoreItems; }
 	void replaceList(vector<IgnoreItem>& newList) {
 		ignoreItems = newList;
 	}
-	/*
-	bool addIgnore(const string& aNick, const string& aText, StringMatch::Method aNickMethod = StringMatch::EXACT, 
-		StringMatch::Method aTextMethod = StringMatch::PARTIAL, bool aMainChat = true, bool aPM = true);
-	void removeIgnore(int pos);
-	void clearIgnores() { ignoreItems.clear(); }
-	IgnoreItem getIgnore(int pos) { return ignoreItems[pos]; }
-	void updateIgnore(IgnoreItem& item, int pos) { ignoreItems[pos] = item; }
-	*/
+
 private:
+	typedef unordered_set<UserPtr, User::Hash> IgnoredUsersList;
+	IgnoredUsersList ignoredUsers;
+
 	// save & load
 	void load(SimpleXML& aXml);
 	void save(SimpleXML& aXml);
+
+	void saveUsers();
+	void loadUsers();
 
 	// SettingsManagerListener
 	virtual void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;

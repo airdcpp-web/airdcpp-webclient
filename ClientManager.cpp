@@ -1112,20 +1112,8 @@ void ClientManager::updateUser(const OnlineUser& user, bool wentOffline) noexcep
 	}
 }
 
-void ClientManager::addOfflineUser(const UserPtr& user, const string& nick, const string& url) noexcept{
-	/*
-	if (!nick.empty()) {
-		auto i = offlineUsers.find(const_cast<CID*>(&user->getCID()));
-		if (i != offlineUsers.end()) {
-			i->second.setNick(nick);
-			i->second.setUrl(url);
-			i->second.setLastSeen(GET_TIME());
-			return;
-		}
-	}
-	*/
-	//not found, insert new
-	offlineUsers.emplace(const_cast<CID*>(&user->getCID()), OfflineUser(nick, url, GET_TIME()));
+void ClientManager::addOfflineUser(const UserPtr& user, const string& nick, const string& url, uint32_t lastSeen/*GET_TIME()*/) noexcept{
+	offlineUsers.emplace(const_cast<CID*>(&user->getCID()), OfflineUser(nick, url, lastSeen));
 }
 
 string ClientManager::getMyNick(const string& hubUrl) const noexcept {

@@ -45,7 +45,8 @@ public:
 		NO_ADCS_0_10_PROTOCOL	= 0x100,	//< Doesn't support "ADCS/0.10"
 		NAT_TRAVERSAL			= 0x200,	//< Client supports NAT Traversal
 		FAVORITE				= 0x400,
-		ASCH					= 0x800
+		ASCH					= 0x800,
+		IGNORED					= 0x1000
 	};
 
 	struct Hash {
@@ -62,6 +63,7 @@ public:
 	bool isOnline() const { return isSet(ONLINE); }
 	bool isNMDC() const { return isSet(NMDC); }
 	bool isFavorite() const { return isSet(FAVORITE); }
+	bool isIgnored() const { return isSet(IGNORED); }
 
 	struct UserHubInfo {
 		UserHubInfo(const string& aHubUrl, const string& aHubName, int64_t aShared) : hubName(aHubName), hubUrl(aHubUrl), shared(aShared) { }

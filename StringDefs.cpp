@@ -1831,6 +1831,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Main chat", 
 "Private chat", 
 "No context selected, you need to select atleast one of: private chat / main chat", 
+"Report ignored users sending messages in systemlog", 
+"Main chat message from ignored user: ", 
+"Private chat message from ignored user: ", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3662,4 +3665,7 @@ std::string dcpp::ResourceManager::names[] = {
 "MainChat", 
 "PrivateChat", 
 "IgnoreNoContext", 
+"ReportIgnored", 
+"McMessageIgnored", 
+"PmMessageIgnored", 
 };
