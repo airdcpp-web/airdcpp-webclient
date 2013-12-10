@@ -58,7 +58,7 @@ void IgnoreManager::saveUsers() {
 		xml.addTag("Users");
 		xml.stepIn();
 
-		//TODO: cache this information
+		//TODO: cache this information?
 		for (const auto& u : ignoredUsers) {
 			xml.addTag("User");
 			xml.addChildAttrib("CID", u->getCID().toBase32());
