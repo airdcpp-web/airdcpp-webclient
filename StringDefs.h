@@ -1173,7 +1173,7 @@ enum Strings { // @DontAdd
 	KEY_IN_USE, // "Key already in use"
 	SETTINGS_WS_HOWTO, // "How to use"
 	SETTINGS_WS_CLEAN, // "Clean search term"
-	WEBSHORTCUTS, // "WebShortCuts"
+	WEBSHORTCUTS, // "Web shortcuts"
 	COUNTRY_INFORMATION, // "Country information"
 	SETTINGS_COUNTRY_FORMAT, // "Country format"
 	SETTINGS_COUNTRY_FORMAT_HELP_DESC, // "Country format help"
@@ -1300,7 +1300,7 @@ enum Strings { // @DontAdd
 	INCOMING_REFRESH_QUEUED, // "Incoming directories have been queued for refreshing"
 	REFRESH_QUEUED, // "File list refresh has been queued"
 	NO_ADDITIONAL_MATCHES, // "There are no additional matches available"
-	SEARCH_TYPES, // "Search Types"
+	SEARCH_TYPES, // "Search types"
 	RESET_TO_DEFAULTS, // "Reset to defaults"
 	PREDEFINED, // "Predefined"
 	INVALID_EXTENSION, // "Invalid extension: %1%"
@@ -1838,6 +1838,6 @@ enum Strings { // @DontAdd
 	REPORT_IGNORED, // "Report ignored and spam filtered chat messages in system log"
 	MC_MESSAGE_IGNORED, // "Main chat message from ignored user: "
 	PM_MESSAGE_IGNORED, // "Private chat message from ignored user: "
-	SETTINGS_CHATFILTER, // "Spam Filter"
+	SETTINGS_CHATFILTER, // "Spam filter"
 	LAST // @DontAdd
 };

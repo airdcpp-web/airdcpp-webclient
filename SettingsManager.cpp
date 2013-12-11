@@ -857,7 +857,7 @@ SettingsManager::SettingsManager()
 
 	setDefault(UPDATE_CHANNEL, VERSION_STABLE);
 	setDefault(CLOSE_USE_MINIMIZE, false);
-	setDefault(LOG_IGNORED, false);
+	setDefault(LOG_IGNORED, true);
 	setDefault(USERS_FILTER_IGNORE, false);
 
 	// not in GUI

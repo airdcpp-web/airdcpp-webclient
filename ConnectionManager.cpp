@@ -627,7 +627,7 @@ void ConnectionManager::on(UserConnectionListener::Connected, UserConnection* aS
 
 	if(SETTING(TLS_MODE) == SettingsManager::TLS_FORCED && !aSource->isSet(UserConnection::FLAG_NMDC) && !aSource->isSecure()) {
 		putConnection(aSource);
-		//QueueManager::getInstance()->removeSource(aSource->getUser(), QueueItem::Source::FLAG_UNENCRYPTED);
+		//QueueManager::getInstance()->removeSource(aSource->getUser(), QueueItem::Source::FLAG_UNENCRYPTED); TODO??
 		return;
 	}
 

@@ -1169,7 +1169,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Key already in use", 
 "How to use", 
 "Clean search term", 
-"WebShortCuts", 
+"Web shortcuts", 
 "Country information", 
 "Country format", 
 "Country format help", 
@@ -1296,7 +1296,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Incoming directories have been queued for refreshing", 
 "File list refresh has been queued", 
 "There are no additional matches available", 
-"Search Types", 
+"Search types", 
 "Reset to defaults", 
 "Predefined", 
 "Invalid extension: %1%", 
@@ -1834,7 +1834,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Report ignored and spam filtered chat messages in system log", 
 "Main chat message from ignored user: ", 
 "Private chat message from ignored user: ", 
-"Spam Filter", 
+"Spam filter", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
