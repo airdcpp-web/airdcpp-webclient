@@ -70,7 +70,7 @@ public:
 			return (textMatcher.pattern.empty() || textMatcher.match(aText));
 		}
 		//General text match ignore type, no nick pattern just match the text
-		if (!textMatcher.pattern.empty() && textMatcher.match(aText))
+		if (nickMatcher.pattern.empty() && !textMatcher.pattern.empty() && textMatcher.match(aText))
 			return true;
 
 		return false;
