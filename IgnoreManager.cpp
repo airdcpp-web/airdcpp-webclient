@@ -17,12 +17,12 @@ namespace dcpp {
 
 void IgnoreManager::load(SimpleXML& aXml) {
 
-	if (aXml.findChild("IgnoreItems")) {
+	if (aXml.findChild("ChatFilterItems")) {
 		aXml.stepIn();
-		while (aXml.findChild("IgnoreItem")) {
-			ignoreItems.push_back(IgnoreItem(aXml.getChildAttrib("Nick"), aXml.getChildAttrib("Text"), 
+		while (aXml.findChild("ChatFilterItem")) {
+			ChatFilterItems.push_back(ChatFilterItem(aXml.getChildAttrib("Nick"), aXml.getChildAttrib("Text"), 
 				(StringMatch::Method)aXml.getIntChildAttrib("NickMethod"), (StringMatch::Method)aXml.getIntChildAttrib("TextMethod"), 
-				aXml.getBoolChildAttrib("MC"), aXml.getBoolChildAttrib("PM")));
+				aXml.getBoolChildAttrib("MC"), aXml.getBoolChildAttrib("PM"), aXml.getBoolChildAttrib("Enabled")));
 		}
 		aXml.stepOut();
 	}
@@ -30,17 +30,18 @@ void IgnoreManager::load(SimpleXML& aXml) {
 }
 
 void IgnoreManager::save(SimpleXML& aXml) {
-	aXml.addTag("IgnoreItems");
+	aXml.addTag("ChatFilterItems");
 	aXml.stepIn();
 
-	for (const auto& i : ignoreItems) {
-		aXml.addTag("IgnoreItem");
+	for (const auto& i : ChatFilterItems) {
+		aXml.addTag("ChatFilterItem");
 		aXml.addChildAttrib("Nick", i.getNickPattern());
 		aXml.addChildAttrib("NickMethod", i.getNickMethod());
 		aXml.addChildAttrib("Text", i.getTextPattern());
 		aXml.addChildAttrib("TextMethod", i.getTextMethod());
 		aXml.addChildAttrib("MC", i.matchMainchat);
 		aXml.addChildAttrib("PM", i.matchPM);
+		aXml.addChildAttrib("Enabled", i.getEnabled());
 	}
 	aXml.stepOut();
 	
@@ -135,8 +136,8 @@ bool IgnoreManager::isIgnored(const UserPtr& aUser) {
 	return (i != ignoredUsers.end());
 }
 
-bool IgnoreManager::isSpamFiltered(const string& aNick, const string& aText, IgnoreItem::Context aContext) {
-	for (auto& i : ignoreItems) {
+bool IgnoreManager::isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext) {
+	for (auto& i : ChatFilterItems) {
 		if (i.match(aNick, aText, aContext))
 			return true;
 	}

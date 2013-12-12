@@ -1838,6 +1838,6 @@ enum Strings { // @DontAdd
 	REPORT_IGNORED, // "Report ignored and spam filtered chat messages in system log"
 	MC_MESSAGE_IGNORED, // "Main chat message from ignored user: "
 	PM_MESSAGE_IGNORED, // "Private chat message from ignored user: "
-	SETTINGS_CHATFILTER, // "Spam filter"
+	SETTINGS_CHATFILTER, // "Message filter"
 	LAST // @DontAdd
 };

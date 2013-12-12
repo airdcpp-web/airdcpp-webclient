@@ -1834,7 +1834,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Report ignored and spam filtered chat messages in system log", 
 "Main chat message from ignored user: ", 
 "Private chat message from ignored user: ", 
-"Spam filter", 
+"Message filter", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 

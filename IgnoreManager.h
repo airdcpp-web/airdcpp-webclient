@@ -32,10 +32,10 @@ public:
 	virtual void on(IgnoreRemoved, const UserPtr&) noexcept{}
 };
 
-class IgnoreItem {
+class ChatFilterItem {
 public:
-	IgnoreItem(const string& aNickMatch, const string& aTextMatch, StringMatch::Method aNickMethod,
-		StringMatch::Method aTextMethod, bool aMainchat, bool aPM) : matchPM(aPM), matchMainchat(aMainchat)
+	ChatFilterItem(const string& aNickMatch, const string& aTextMatch, StringMatch::Method aNickMethod,
+		StringMatch::Method aTextMethod, bool aMainchat, bool aPM, bool aEnabled = true) : matchPM(aPM), matchMainchat(aMainchat), enabled(aEnabled)
 	{
 		nickMatcher.setMethod(aNickMethod);
 		nickMatcher.pattern = aNickMatch;
@@ -45,7 +45,7 @@ public:
 		textMatcher.pattern = aTextMatch;
 		textMatcher.prepare();
 	}
-	~IgnoreItem() {}
+	~ChatFilterItem() {}
 
 	enum Context {
 		PM, // Private chat
@@ -59,6 +59,9 @@ public:
 	StringMatch::Method getTextMethod() const { return textMatcher.getMethod(); }
 	
 	bool match(const string& aNick, const string& aText, Context aContext) {
+		if (!getEnabled())
+			return false;
+
 		if (aContext == PM && !matchPM || aContext == MC && !matchMainchat)
 			return false;
 
@@ -82,6 +85,8 @@ public:
 		textMatcher.prepare();
 	}
 
+	GETSET(bool, enabled, Enabled)
+
 	bool matchPM;
 	bool matchMainchat;
 
@@ -101,11 +106,11 @@ public:
 	void removeIgnore(const UserPtr& aUser);
 	bool isIgnored(const UserPtr& aUser);
 
-	// spam filter
-	bool isSpamFiltered(const string& aNick, const string& aText, IgnoreItem::Context aContext = IgnoreItem::ALL);
-	vector<IgnoreItem>& getIgnoreList() { return ignoreItems; }
-	void replaceList(vector<IgnoreItem>& newList) {
-		ignoreItems = newList;
+	// chat filter
+	bool isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext = ChatFilterItem::ALL);
+	vector<ChatFilterItem>& getIgnoreList() { return ChatFilterItems; }
+	void replaceList(vector<ChatFilterItem>& newList) {
+		ChatFilterItems = newList;
 	}
 
 private:
@@ -128,7 +133,7 @@ private:
 	virtual void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept;
 
 	// contains the ignored nicks and patterns 
-	vector<IgnoreItem> ignoreItems;
+	vector<ChatFilterItem> ChatFilterItems;
 };
 
 }
