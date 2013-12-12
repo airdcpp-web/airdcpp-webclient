@@ -55,7 +55,6 @@ public:
 	BundlePtr findSearchBundle(uint64_t aTick, bool force = false) noexcept;
 	int64_t recalculateSearchTimes(bool aRecent, bool prioChange) noexcept;
 
-	Bundle::StringBundleMap& getBundles() { return bundles; }
 	void moveBundle(BundlePtr& aBundle, const string& newTarget) noexcept;
 	void removeBundle(BundlePtr& aBundle) noexcept;
 
@@ -73,6 +72,9 @@ public:
 	void findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const noexcept;
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
+
+	Bundle::StringBundleMap& getBundles() { return bundles; }
+	const Bundle::StringBundleMap& getBundles() const { return bundles; }
 private:
 	/** Bundles by priority (low-highest, for auto search) */
 	vector<BundlePtr> prioSearchQueue[Bundle::LAST];

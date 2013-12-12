@@ -138,7 +138,12 @@ public:
 	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
 		Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException, DupeException);
 
+	void moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished);
+
+	// TODO: Get rid of those functions when we have a proper queue tab (only moveBundle is needed then)
 	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) noexcept;
+	void moveFiles(const StringPairList& sourceTargetList) noexcept;
+
 	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false) noexcept;
 
 
@@ -169,8 +174,6 @@ public:
 
 	void handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle) noexcept;
 
-	/** Move the target location of a queued item. Running items are silently ignored */
-	void moveFiles(const StringPairList& sourceTargetList) noexcept;
 	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished) noexcept;
 
 	void searchBundle(BundlePtr& aBundle, bool manual) noexcept;
@@ -246,6 +249,9 @@ public:
 
 	void setMatchers() noexcept;
 	void shutdown();
+
+	SharedMutex& getCS() { return cs; }
+	const Bundle::StringBundleMap& getBundles() const { return bundleQueue.getBundles(); }
 private:
 	friend class QueueLoader;
 	friend class Singleton<QueueManager>;

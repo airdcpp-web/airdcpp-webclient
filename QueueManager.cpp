@@ -1440,6 +1440,7 @@ void QueueManager::removeFinishedBundle(BundlePtr& aBundle) noexcept {
 	}
 
 	bundleQueue.removeBundle(aBundle);
+	fire(QueueManagerListener::BundleRemoved(), aBundle);
 }
 
 void QueueManager::onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) noexcept {
@@ -3374,6 +3375,16 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 
 	//we may not be able to remove the directory instantly if we have finished files to move (moveFile will handle this)
 	//mover.removeDir(sourceBundle->getTarget());
+}
+
+void QueueManager::moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished) {
+	if (aBundle->isFileBundle()) {
+		StringPairList fileBundles;
+		fileBundles.emplace_back(aBundle->getTarget(), AirUtil::convertMovePath(aBundle->getTarget(), Util::getFilePath(aBundle->getTarget()), aTarget));
+		QueueManager::getInstance()->moveFiles(fileBundles);
+	} else {
+		moveBundleDir(aBundle->getTarget(), aTarget + aBundle->getName() + PATH_SEPARATOR, aBundle, moveFinished);
+	}
 }
 
 void QueueManager::moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) noexcept {

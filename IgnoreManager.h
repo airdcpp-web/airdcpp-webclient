@@ -62,7 +62,7 @@ public:
 		if (!getEnabled())
 			return false;
 
-		if (aContext == PM && !matchPM || aContext == MC && !matchMainchat)
+		if ((aContext == PM && !matchPM) || (aContext == MC && !matchMainchat))
 			return false;
 
 		if (!nickMatcher.pattern.empty() && nickMatcher.match(aNick)){
