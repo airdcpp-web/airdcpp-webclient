@@ -1837,6 +1837,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Message filter", 
 "Main chat message filtered from user: ", 
 "Private chat message filtered from user: ", 
+"New Font & TextStyles Applied, TextMatching colors will apply after this line", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3674,4 +3675,5 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsChatfilter", 
 "McMessageFiltered", 
 "PmMessageFiltered", 
+"NewTextStyleApplied", 
 };
