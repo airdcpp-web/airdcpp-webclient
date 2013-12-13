@@ -1839,5 +1839,7 @@ enum Strings { // @DontAdd
 	MC_MESSAGE_IGNORED, // "Main chat message from ignored user: "
 	PM_MESSAGE_IGNORED, // "Private chat message from ignored user: "
 	SETTINGS_CHATFILTER, // "Message filter"
+	MC_MESSAGE_FILTERED, // "Main chat message filtered from user: "
+	PM_MESSAGE_FILTERED, // "Private chat message filtered from user: "
 	LAST // @DontAdd
 };
