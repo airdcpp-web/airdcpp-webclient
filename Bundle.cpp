@@ -96,9 +96,7 @@ void Bundle::decreaseSize(int64_t aSize) noexcept {
 }
 
 void Bundle::setTarget(const string& aTarget) noexcept {
-	target = Util::validatePath(aTarget);
-	if (!fileBundle && target[target.length()-1] != PATH_SEPARATOR)
-		target += PATH_SEPARATOR;
+	target = Util::validatePath(aTarget, !fileBundle);
 }
 
 bool Bundle::checkRecent() noexcept {

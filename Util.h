@@ -223,7 +223,13 @@ public:
 	static map<string, string> decodeQuery(const string& query);
 
 	static bool isPathValid(const string& sPath);
-	static inline string validatePath(const string& aPath) { return cleanPathChars(aPath, false); }
+	static inline string validatePath(const string& aPath, bool requireEndSeparator = false) {
+		auto path = cleanPathChars(aPath, false);
+		if (requireEndSeparator && !path.empty() && path.back() != PATH_SEPARATOR) {
+			path += PATH_SEPARATOR;
+		}
+		return path; 
+	}
 	static inline string validateFileName(const string& aFileName) { return cleanPathChars(aFileName, true); }
 	static bool checkExtension(const string& tmp);
 

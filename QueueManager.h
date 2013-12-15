@@ -139,12 +139,13 @@ public:
 		Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException, DupeException);
 
 	void moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished);
+	void renameBundle(BundlePtr aBundle, const string& newName);
+	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false) noexcept;
 
-	// TODO: Get rid of those functions when we have a proper queue tab (only moveBundle is needed then)
+	// TODO: Get rid of the functions below when we have a proper queue tab
 	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) noexcept;
 	void moveFiles(const StringPairList& sourceTargetList) noexcept;
-
-	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false) noexcept;
+	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished) noexcept;
 
 
 	BundlePtr findBundle(const string& bundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
@@ -173,8 +174,6 @@ public:
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
 	void handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle) noexcept;
-
-	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished) noexcept;
 
 	void searchBundle(BundlePtr& aBundle, bool manual) noexcept;
 

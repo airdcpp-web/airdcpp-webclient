@@ -3249,11 +3249,11 @@ void QueueManager::readdBundle(BundlePtr& aBundle) noexcept {
 }
 
 int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget) noexcept{
-	BundleList mBundles;
+	bundleQueue.moveBundle(aBundle, newTarget); //set the new target
 
+	BundleList mBundles;
 	if (!aBundle->isFileBundle()) {
 		/* In this case we also need check if there are directory bundles inside the subdirectories */
-		bundleQueue.moveBundle(aBundle, newTarget); //set the new target
 		bundleQueue.getSubBundles(newTarget, mBundles);
 
 		for(auto& b: mBundles) {
@@ -3268,9 +3268,10 @@ int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget
 			for (auto& qi : items)
 				moveBundleItem(qi, aBundle);
 		}
+
+		aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	}
 
-	aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 	aBundle->setFlag(Bundle::FLAG_UPDATE_NAME);
 	addBundleUpdate(aBundle);
 	aBundle->setDirty();
@@ -3382,8 +3383,19 @@ void QueueManager::moveBundle(BundlePtr aBundle, const string& aTarget, bool mov
 		StringPairList fileBundles;
 		fileBundles.emplace_back(aBundle->getTarget(), AirUtil::convertMovePath(aBundle->getTarget(), Util::getFilePath(aBundle->getTarget()), aTarget));
 		QueueManager::getInstance()->moveFiles(fileBundles);
+		LogManager::getInstance()->message(STRING_F(FILEBUNDLE_MOVED, aBundle->getName() % aBundle->getTarget()), LogManager::LOG_INFO);
 	} else {
 		moveBundleDir(aBundle->getTarget(), aTarget + aBundle->getName() + PATH_SEPARATOR, aBundle, moveFinished);
+	}
+}
+
+void QueueManager::renameBundle(BundlePtr aBundle, const string& newName) {
+	if (aBundle->isFileBundle()) {
+		//StringPairList fileBundles;
+		//fileBundles.emplace_back(aBundle->getTarget(), AirUtil::convertMovePath(aBundle->getTarget(), Util::getFilePath(aBundle->getTarget()), aTarget));
+		//QueueManager::getInstance()->moveFiles(fileBundles);
+	} else {
+		moveBundleDir(aBundle->getTarget(), Util::getParentDir(aBundle->getTarget()) + newName + PATH_SEPARATOR, aBundle, true);
 	}
 }
 

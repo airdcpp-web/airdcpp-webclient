@@ -202,7 +202,7 @@ void Util::initialize() {
 		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
 	}
 
-	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG]);
+	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG], true);
 
 	if(localMode) {
 		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
@@ -233,7 +233,7 @@ void Util::initialize() {
 		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
 	}
 
-	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG]);
+	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG], true);
 
 	if(localMode) {
 		// @todo implement...
