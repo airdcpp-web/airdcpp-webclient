@@ -263,7 +263,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		state = STATE_NORMAL;
 		setAutoReconnect(true);
 		setMyIdentity(u->getIdentity());
-		updateCounts(false, true);
+		updateCounts(false);
 
 		if (oldState != STATE_NORMAL && u->getIdentity().getAdcConnectionSpeed(false) == 0)
 			fire(ClientListener::StatusMessage(), this, "WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.");
@@ -1393,7 +1393,7 @@ void AdcHub::infoImpl() {
 	AdcCommand c(AdcCommand::CMD_INF, AdcCommand::TYPE_BROADCAST);
 
 	if (state == STATE_NORMAL) {
-		if(!updateCounts(false, false))
+		if(!updateCounts(false))
 			return;
 	}
 
@@ -1548,6 +1548,7 @@ void AdcHub::on(Line l, const string& aLine) noexcept {
 void AdcHub::on(Failed f, const string& aLine) noexcept {
 	clearUsers();
 	Client::on(f, aLine);
+	updateCounts(true); //we are disconnected, remove the count like nmdc hubs do...
 }
 
 void AdcHub::on(Second s, uint64_t aTick) noexcept {

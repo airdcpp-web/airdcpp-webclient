@@ -157,6 +157,8 @@ public:
 		COUNT_OP = 0x04,
 		COUNT_UNCOUNTED = 0x08
 	};
+	CountType getCountType() { return countType; }
+
 protected:
 	friend class ClientManager;
 	Client(const string& hubURL, char separator);
@@ -178,7 +180,7 @@ protected:
 
 	int64_t availableBytes;
 
-	bool updateCounts(bool aRemove, bool updateIcons);
+	bool updateCounts(bool aRemove);
 	void updateActivity() { lastActivity = GET_TICK(); }
 
 	/** Reload details from favmanager or settings */
@@ -214,8 +216,6 @@ private:
 	string ip;
 	string localIp;
 	string keyprint;
-
-	int seticons;
 
 	string port;
 	char separator;

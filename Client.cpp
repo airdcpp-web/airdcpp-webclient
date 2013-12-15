@@ -40,7 +40,7 @@ Client::Client(const string& hubURL, char separator_) :
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	state(STATE_DISCONNECTED), sock(0),
 	separator(separator_),
-	countType(COUNT_UNCOUNTED), availableBytes(0), seticons(0), favToken(0)
+	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0)
 {
 	setHubUrl(hubURL);
 	TimerManager::getInstance()->addListener(this);
@@ -56,7 +56,7 @@ void Client::setHubUrl(const string& aUrl) {
 }
 
 Client::~Client() {
-	updateCounts(true, false);
+	updateCounts(true);
 }
 
 void Client::reconnect() {
@@ -243,7 +243,6 @@ void Client::on(Connected) noexcept {
 	
 	fire(ClientListener::Connected(), this);
 	state = STATE_PROTOCOL;
-	seticons = 0;
 }
 
 void Client::onPassword() {
@@ -302,7 +301,7 @@ vector<uint8_t> Client::getKeyprint() const {
 	return isReady() ? sock->getKeyprint() : vector<uint8_t>();
 }
 
-bool Client::updateCounts(bool aRemove, bool updateIcons) {
+bool Client::updateCounts(bool aRemove) {
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
 		counts[countType]--;
@@ -326,10 +325,6 @@ bool Client::updateCounts(bool aRemove, bool updateIcons) {
 			countType = COUNT_NORMAL;
 		}
 
-		if(updateIcons && seticons < 2) { //set more than once due to some nmdc hubs
-			fire(ClientListener::SetIcons(), this, countType);
-			seticons++;
-		}
 		counts[countType]++;
 	}
 	return true;

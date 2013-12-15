@@ -48,8 +48,7 @@ public:
 	typedef X<16> NmdcSearch;
 	typedef X<17> HubTopic;
 	typedef X<18> AddLine;
-	typedef X<19> SetIcons;
-	typedef X<20> SetActive;
+	typedef X<19> SetActive;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -75,7 +74,6 @@ public:
 	virtual void on(NmdcSearch, Client*, const string&, int, int64_t, int, const string&, bool) noexcept { }
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
-	virtual void on(SetIcons, const Client*, int) noexcept { }
 	virtual void on(SetActive, const Client*) noexcept {}
 };
 

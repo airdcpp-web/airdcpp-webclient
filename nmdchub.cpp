@@ -733,7 +733,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 			if(state == STATE_IDENTIFY && u.getUser() == getMyIdentity().getUser()) {
 				state = STATE_NORMAL;
-				updateCounts(false, true);
+				updateCounts(false);
 				fire(ClientListener::HubUpdated(), this);
 
 				version();
@@ -824,7 +824,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				v.push_back(&ou);
 			}
 
-			updateCounts(false, true);
+			updateCounts(false);
 			fire(ClientListener::UsersUpdated(), this, v);
 
 			// Special...to avoid op's complaining that their count is not correctly
@@ -1156,7 +1156,7 @@ void NmdcHub::on(Line, const string& aLine) noexcept {
 void NmdcHub::on(Failed, const string& aLine) noexcept {
 	clearUsers();
 	Client::on(Failed(), aLine);
-	updateCounts(true, false);	
+	updateCounts(true);	
 }
 
 void NmdcHub::on(Second, uint64_t aTick) noexcept {
