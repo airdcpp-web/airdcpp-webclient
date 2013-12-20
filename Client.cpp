@@ -265,7 +265,7 @@ void Client::on(Failed, const string& aLine) noexcept {
 		if (newUrl && !ClientManager::getInstance()->isConnected(*newUrl)) {
 			ClientManager::getInstance()->setClientUrl(hubUrl, *newUrl);
 
-			if (msg[msg.length()-1] != '.')
+			if (msg.back() != '.')
 				msg += ".";
 			msg += " " + STRING_F(SWITCHING_TO_ADDRESS, hubUrl);
 		}

@@ -48,7 +48,7 @@ LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cach
 	iteroptions.fill_cache = false;
 	readoptions.fill_cache = true;
 
-	writeoptions.sync = false;
+	writeoptions.sync = true;
 
 	options.env = leveldb::Env::Default();
 	options.compression = useCompression ? leveldb::kSnappyCompression : leveldb::kNoCompression;
@@ -101,7 +101,13 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbExcep
 	//remove any existing log
 	auto logPath = dbPath + "repair.log";
 	File::deleteFile(logPath);
+
+	// Set the options
+	// Paranoid checks is a bit cruel as it will remove the whole file when corruption is detected... 
+	// The verify function should be used instead to fix corruption 
+
 	options.env->NewLogger(Text::fromUtf8(logPath), &options.info_log);
+	//options.paranoid_checks = true;
 
 	auto ret = leveldb::RepairDB(Text::fromUtf8(dbPath), options);
 	if (!ret.ok()) {
@@ -110,8 +116,9 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbExcep
 
 	LogManager::getInstance()->message(STRING_F(DB_X_REPAIRED, friendlyName % logPath), LogManager::LOG_INFO);
 
-	//reset the log
+	//reset the options
 	delete options.info_log;
+	//options.paranoid_checks = false;
 	options.info_log = nullptr;
 }
 
@@ -209,7 +216,7 @@ void LevelDB::remove_if(std::function<bool(void* aKey, size_t key_len, void* aVa
 	leveldb::WriteBatch wb;
 	leveldb::ReadOptions options;
 	options.fill_cache = false;
-	options.verify_checksums = true;
+	options.verify_checksums = false; // it will stop iterating when a checksum mismatch is found otherwise
 	if (aSnapshot)
 		options.snapshot = static_cast<LevelSnapshot*>(aSnapshot)->snapshot;
 

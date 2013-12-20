@@ -629,16 +629,6 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 		}
 	}
 
-	/*auto maybeCompact = [&](const SettingsManager::IntSetting setting, const string& aName, DbHandler* aDB) {
-		int curRemoved = SettingsManager::getInstance()->get(setting)+;
-		SettingsManager::getInstance()->set(setting, SettingsManager::getInstance()->get(setting) + unusedFiles);
-		if ((static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
-			LogManager::getInstance()->message(STRING_F(COMPACTING_X, Text::toLower(aName)), LogManager::LOG_INFO);
-			fileDb->compact();
-			SettingsManager::getInstance()->set(setting, 0);
-		}
-	}*/
-
 	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles + missingTrees);
 	if (validFiles == 0 || (static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
 		LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogManager::LOG_INFO);
@@ -738,12 +728,6 @@ void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF
 	// Use a large block size and allow more open files because the reads are nearly sequential in here (but done with multiple threads). 
 	// The default database sorting isn't perfect when having files and folders mixed within the same directory but that shouldn't be a big issue (avoid using custom comparison function for now...)
 	fileDb.reset(new LevelDB(fileIndexPath, STRING(FILE_INDEX), cacheSize, 50, true, 64*1024));
-
-
-	//hashDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30, sizeof(TTHValue), true));
-	//fileDb.reset(new HamsterDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70, 255, false));
-	//hashDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.db", cacheSize*0.30));
-	//fileDb.reset(new BerkeleyDB(Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex.db", cacheSize*0.70));
 
 
 	hashDb->open(stepF, messageF);
