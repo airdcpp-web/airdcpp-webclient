@@ -1460,7 +1460,8 @@ void AdcHub::infoImpl() {
 		su += "," + UDP6_FEATURE;
 	}
 
-	if ((addV6 && !isActiveV6()) || (addV4 && !isActiveV4())) {
+	if ((addV6 && !isActiveV6() && get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED) || 
+		(addV4 && !isActiveV4() && get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED)) {
 		su += "," + NAT0_FEATURE;
 	}
 	su += "," + ASCH_FEATURE;
