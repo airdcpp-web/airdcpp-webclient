@@ -478,7 +478,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 
 	if(getMyIdentity().isTcpActive()) {
 		//we are active the other guy is not
-    	connect(*u, token, secure);
+    	connect(*u, token, secure, true);
 		return;
 	}
 
@@ -1019,10 +1019,10 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, stri
 	return AdcCommand::SUCCESS;
 }
 
-void AdcHub::connect(const OnlineUser& user, const string& token, bool secure) {
+void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, bool replyingRCM) {
 	const string* proto = secure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
-	if((user.getIdentity().allowV6Connections() && getMyIdentity().isTcp6Active()) || (user.getIdentity().allowV4Connections() && getMyIdentity().isTcp4Active())) {
+	if (replyingRCM || (user.getIdentity().allowV6Connections() && getMyIdentity().isTcp6Active()) || (user.getIdentity().allowV4Connections() && getMyIdentity().isTcp4Active())) {
 		const string& port = secure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(port.empty()) {
 			// Oops?

@@ -38,7 +38,7 @@ public:
 	using Client::connect;
 
 	int connect(const OnlineUser& user, const string& token, string& lastError_);
-	void connect(const OnlineUser& user, const string& token, bool secure);
+	void connect(const OnlineUser& user, const string& token, bool secure, bool replyingRCM = false);
 	
 	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false);
 	bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false);
