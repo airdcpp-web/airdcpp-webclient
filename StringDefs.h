@@ -1681,6 +1681,7 @@ enum Strings { // @DontAdd
 	MANUAL_CONNECTIVITY_SETUP, // "Manual connectivity setup"
 	ALLOW_AUTO_DETECT_V4, // "Let AirDC++ determine the best IPv4 connectivity settings"
 	ALLOW_AUTO_DETECT_V6, // "Let AirDC++ determine the best IPv6 connectivity settings"
+	CONN_DETECT_FINISHED, // "Automatic connectivity detection finished. Click \"Next\" to continue to the next step."
 	PROFILE_NORMAL_DESC, // "The client is used in normal private/public hubs for transferring files via internet. Use this profile if unsure."
 	PROFILE_RAR_DESC, // "The client is used for transferring files that are split in RAR archives (or in other small-sized formats)."
 	PROFILE_LAN_DESC, // "The client is used for transferring files in local network (e.g. LAN parties) or in another closed network (e.g. university network)."

@@ -415,6 +415,7 @@ UserPtr ClientManager::getUser(const string& aNick, const string& aHubUrl) noexc
 		RLock l(cs);
 		auto ui = users.find(const_cast<CID*>(&cid));
 		if(ui != users.end()) {
+			dcassert(ui->second->getCID() == cid);
 			ui->second->setFlag(User::NMDC);
 			return ui->second;
 		}
@@ -438,6 +439,7 @@ UserPtr ClientManager::getUser(const CID& cid) noexcept {
 		RLock l(cs);
 		auto ui = users.find(const_cast<CID*>(&cid));
 		if(ui != users.end()) {
+			dcassert(ui->second->getCID() == cid);
 			return ui->second;
 		}
 	}
@@ -991,6 +993,7 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		// Collect some garbage...
 		auto i = users.begin();
 		while(i != users.end()) {
+			dcassert(i->second->getCID() == *i->first);
 			if(i->second->unique()) {
 				auto n = offlineUsers.find(const_cast<CID*>(&i->second->getCID()));
 				if(n != offlineUsers.end()) 

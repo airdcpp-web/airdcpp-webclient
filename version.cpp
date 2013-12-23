@@ -20,7 +20,6 @@
 #include "version.h"
 
 #include "version.inc"
-#include "SettingsManager.h"
 
 #ifndef _WIN32
 #include <sys/utsname.h>

@@ -1447,7 +1447,7 @@ void AdcHub::infoImpl() {
 		su += "," + ADCS_FEATURE;
 	}
 
-	if (SETTING(ENABLE_SUDP) && isActive())
+	if (SETTING(ENABLE_SUDP))
 		su += "," + SUD1_FEATURE;
 
 	if(addV4 && isActiveV4()) {
