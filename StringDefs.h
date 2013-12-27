@@ -1602,8 +1602,8 @@ enum Strings { // @DontAdd
 	SCAN_RESULT_NOTE, // "Detailed scanning results are shown in a separate tab."
 	X_DIRECTORIES_REFRESHED, // "%1% directories have been refreshed"
 	SHOW_EMOTICON_BUTTON, // "Show emoticon button in chat windows"
-	SHOW_MULTILINE_BUTTON, //  "Show multiline message button in chat windows"
-	SHOW_MAGNET_BUTTON, //  "Show MAGNET button in chat windows"
+	SHOW_MULTILINE_BUTTON, // "Show multiline message button in chat windows"
+	SHOW_MAGNET_BUTTON, // "Show MAGNET button in chat windows"
 	FILE_LIST_REFRESH_INITIATED_X_PATHS, // "File list refresh initiated for %1% directories"
 	CANT_OPEN_EMPTY_FILE, // "A zero-byte file can't be opened"
 	LIST_ALREADY_QUEUED, // "The file list is queued already"
@@ -1844,5 +1844,7 @@ enum Strings { // @DontAdd
 	SAMPLE_TEXT, // "Sample text"
 	FONT, // "Font"
 	TOOLBAR_PROGRESS_STYLE, // "Toolbar progress bar text styles"
+	OWN_CERTIFICATE, // "Own certificate"
+	TRUSTED_CERTIFICATES, // "Trusted certificates"
 	LAST // @DontAdd
 };
