@@ -75,28 +75,31 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept{
 }
 
 QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, 
-	QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap /*false*/) noexcept {
+	string& lastError_, QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, 
+	bool allowOverlap /*false*/) noexcept {
 
 	/* Using the PAUSED priority will list all files */
-	QueueItemPtr qi = getNextPrioQI(aUser, onlineHubs, 0, 0, aType, allowOverlap);
+	QueueItemPtr qi = getNextPrioQI(aUser, onlineHubs, 0, 0, aType, allowOverlap, lastError_);
 	if(!qi) {
-		qi = getNextBundleQI(aUser, runningBundles, onlineHubs, (QueueItemBase::Priority)minPrio, wantedSize, lastSpeed, aType, allowOverlap);
+		qi = getNextBundleQI(aUser, runningBundles, onlineHubs, (QueueItemBase::Priority)minPrio, wantedSize, lastSpeed, aType, allowOverlap, lastError_);
 	}
 
 	if (!qi && !allowOverlap) {
 		//no free segments. let's do another round and now check if there are slow sources which can be overlapped
-		qi = getNext(aUser, runningBundles, onlineHubs, minPrio, wantedSize, lastSpeed, aType, true);
+		qi = getNext(aUser, runningBundles, onlineHubs, lastError_, minPrio, wantedSize, lastSpeed, aType, true);
 	}
 	return qi;
 }
 
-QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept {
-	lastError = Util::emptyString;
+QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, 
+	QueueItemBase::DownloadType aType, bool allowOverlap, string& lastError_) noexcept{
+
+	lastError_ = Util::emptyString;
 	auto i = userPrioQueue.find(aUser);
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
 		for(auto& q: i->second) {
-			if (q->hasSegment(aUser, onlineHubs, lastError, wantedSize, lastSpeed, aType, allowOverlap)) {
+			if (q->hasSegment(aUser, onlineHubs, lastError_, wantedSize, lastSpeed, aType, allowOverlap)) {
 				return q;
 			}
 		}
@@ -105,9 +108,10 @@ QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringS
 }
 
 QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, 
-	QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept {
+	QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap, 
+	string& lastError_) noexcept{
 
-	lastError = Util::emptyString;
+	lastError_ = Util::emptyString;
 
 	auto bundleLimit = SETTING(MAX_RUNNING_BUNDLES);
 	auto i = userBundleQueue.find(aUser);
@@ -121,7 +125,7 @@ QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const StringSet& r
 				break;
 			}
 
-			auto qi = b->getNextQI(aUser, onlineHubs, lastError, minPrio, wantedSize, lastSpeed, aType, allowOverlap);
+			auto qi = b->getNextQI(aUser, onlineHubs, lastError_, minPrio, wantedSize, lastSpeed, aType, allowOverlap);
 			if (qi) {
 				return qi;
 			}

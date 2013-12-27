@@ -33,11 +33,13 @@ public:
 	void addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle = false, bool isBadSource = false) noexcept;
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
-	QueueItemPtr getNext(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, 
+	QueueItemPtr getNext(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_,
 		QueueItemBase::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, QueueItemBase::DownloadType aType = QueueItem::TYPE_ANY, bool allowOverlap = false) noexcept;
-	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
+	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, 
+		QueueItemBase::DownloadType aType, bool allowOverlap, string& lastError_) noexcept;
 	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, 
-		QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
+		QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, 
+		bool allowOverlap, string& lastError_) noexcept;
 
 	void addDownload(QueueItemPtr& qi, Download* d) noexcept;
 	void removeDownload(QueueItemPtr& qi, const string& aToken) noexcept;
@@ -52,20 +54,11 @@ public:
 
 	unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }
 	unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }
-
-	string getLastError() noexcept{
-		string tmp = lastError;
-		lastError = Util::emptyString;
-		return tmp;
-	}
-
 private:
 	/** Bundles by priority and user (this is where the download order is determined) */
 	unordered_map<UserPtr, BundleList, User::Hash> userBundleQueue;
 	/** High priority QueueItems by user (this is where the download order is determined) */
 	unordered_map<UserPtr, QueueItemList, User::Hash> userPrioQueue;
-	/** Last error message to sent to TransferView */
-	string lastError;
 };
 
 } // namespace dcpp

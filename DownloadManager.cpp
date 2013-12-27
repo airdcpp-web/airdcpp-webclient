@@ -210,8 +210,12 @@ void DownloadManager::addConnection(UserConnection* conn) {
 
 void DownloadManager::getRunningBundles(StringSet& bundles_) const {
 	RLock l(cs);
-	for (auto& token : runningBundles | map_keys)
-		bundles_.insert(token);
+	for (auto& tbp : runningBundles) {
+		// we need to check this to ignore previous bundles for running connections 
+		// (non-running bundles are removed only when no next download was found)
+		if (!tbp.second->getDownloads().empty())
+			bundles_.insert(tbp.first);
+	}
 }
 
 void DownloadManager::checkDownloads(UserConnection* aConn) {
@@ -230,10 +234,11 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	//always make sure that the current hub is also compared even if it is offline
 	hubs.insert(aConn->getHubUrl());
 
+	string errorMessage;
 	StringSet runningBundles;
 	getRunningBundles(runningBundles);
 
-	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType, aConn->getSpeed());
+	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType, aConn->getSpeed(), errorMessage);
 
 	// not a finished download?
 	if(!start && aConn->getState() != UserConnection::STATE_RUNNING) {
@@ -243,7 +248,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		return;
 	}
 
-	string errorMessage, newUrl;
+	string newUrl;
 	Download* d = nullptr;
 
 	if (start)
@@ -255,6 +260,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
 		}
+
 		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
 			aConn->setState(UserConnection::STATE_IDLE);
 			removeRunningUser(aConn);

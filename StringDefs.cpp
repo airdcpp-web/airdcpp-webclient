@@ -1844,6 +1844,9 @@ std::string dcpp::ResourceManager::strings[] = {
 "Toolbar progress bar text styles", 
 "Own certificate", 
 "Trusted certificates", 
+"Maximum number of bundles running already", 
+"Bundles with lowest priority will start when no other bundles are running", 
+"Files with lowest priority will start when no other bundle downloads are running", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3688,4 +3691,7 @@ std::string dcpp::ResourceManager::names[] = {
 "ToolbarProgressStyle", 
 "OwnCertificate", 
 "TrustedCertificates", 
+"MaxBundlesRunning", 
+"LowestPrioErrBundles", 
+"LowestPrioErrFiles", 
 };

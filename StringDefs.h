@@ -1848,5 +1848,8 @@ enum Strings { // @DontAdd
 	TOOLBAR_PROGRESS_STYLE, // "Toolbar progress bar text styles"
 	OWN_CERTIFICATE, // "Own certificate"
 	TRUSTED_CERTIFICATES, // "Trusted certificates"
+	MAX_BUNDLES_RUNNING, // "Maximum number of bundles running already"
+	LOWEST_PRIO_ERR_BUNDLES, // "Bundles with lowest priority will start when no other bundles are running"
+	LOWEST_PRIO_ERR_FILES, // "Files with lowest priority will start when no other bundle downloads are running"
 	LAST // @DontAdd
 };

@@ -248,18 +248,19 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 					// TODO: no one can understand this code, fix!
 					cqi->setLastAttempt(aTick);
 
-					string bundleToken, hubHint = cqi->getHubUrl();
+					string bundleToken, lastError, hubHint = cqi->getHubUrl();
 					bool allowUrlChange = true;
 					bool hasDownload = false;
 
 					auto type = cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF ? QueueItem::TYPE_SMALL : cqi->getType() == ConnectionQueueItem::TYPE_MCN_NORMAL ? QueueItem::TYPE_MCN_NORMAL : QueueItem::TYPE_ANY;
 
 					//we'll also validate the hubhint (and that the user is online) before making any connection attempt
-					auto startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, type, bundleToken, allowUrlChange, hasDownload);
+					auto startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, type, bundleToken, allowUrlChange, hasDownload, lastError);
 					if (!hasDownload && cqi->getType() == ConnectionQueueItem::TYPE_SMALL && count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { return aCQI != cqi && aCQI->getUser() == cqi->getUser(); }) == 0) {
 						//the small file finished already? try with any type
 						cqi->setType(ConnectionQueueItem::TYPE_ANY);
-						startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY, bundleToken, allowUrlChange, hasDownload);
+						startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY, 
+							bundleToken, allowUrlChange, hasDownload, lastError);
 					} else if (cqi->getType() == ConnectionQueueItem::TYPE_ANY && startDown.first == QueueItem::TYPE_SMALL && 
 						 count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { 
 							 return aCQI->getUser() == cqi->getUser() && (cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF); 
@@ -279,8 +280,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 					if(cqi->getState() == ConnectionQueueItem::WAITING) {
 						if(startDown.second) {
-							cqi->setState(ConnectionQueueItem::CONNECTING);		
-							string lastError;
+							cqi->setState(ConnectionQueueItem::CONNECTING);
 							bool protocolError = false;
 
 							if (!ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken(), allowUrlChange, lastError, hubHint, protocolError)) {
@@ -366,7 +366,9 @@ void ConnectionManager::createNewMCN(const HintedUser& aUser) {
 	StringSet runningBundles;
 	DownloadManager::getInstance()->getRunningBundles(runningBundles);
 
-	auto start = QueueManager::getInstance()->startDownload(aUser, runningBundles, ClientManager::getInstance()->getHubSet(aUser.user->getCID()), QueueItem::TYPE_MCN_NORMAL, 0); // don't overlap...
+	string lastError;
+	auto start = QueueManager::getInstance()->startDownload(aUser, runningBundles, 
+		ClientManager::getInstance()->getHubSet(aUser.user->getCID()), QueueItem::TYPE_MCN_NORMAL, 0, lastError); // don't overlap...
 	if (start) {
 		WLock l (cs);
 		ConnectionQueueItem* cqiNew = getCQI(aUser, true);
@@ -1023,8 +1025,11 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 				// don't remove the CQI if we are only out of downloading slots
 
 				bool allowChange = false, hasDownload = false;
-				string tmp;
-				QueueManager::getInstance()->startDownload(aSource->getHintedUser(), tmp, aSource->isSet(UserConnection::FLAG_SMALL_SLOT) ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, tmp, allowChange, hasDownload);
+				string tmp, lastError;
+				QueueManager::getInstance()->startDownload(aSource->getHintedUser(), tmp,
+					aSource->isSet(UserConnection::FLAG_SMALL_SLOT) ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, 
+					tmp, allowChange, hasDownload, lastError);
+
 				if (hasDownload) {
 					failDownload(aSource->getToken(), STRING(ALL_DOWNLOAD_SLOTS_TAKEN), protocolError);
 				} else {

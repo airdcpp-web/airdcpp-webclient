@@ -120,12 +120,15 @@ public:
 	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
 
 	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
-	Download* getDownload(UserConnection& aSource, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, string& aMessage, string& newUrl, QueueItemBase::DownloadType aType) noexcept;
+	Download* getDownload(UserConnection& aSource, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept;
 	void putDownload(Download* aDownload, bool finished, bool noAccess=false, bool rotateQueue=false) throw(HashException);
 	
-	bool startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, QueueItemBase::DownloadType aType, int64_t aLastSpeed) noexcept;
+	bool startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, 
+		QueueItemBase::DownloadType aType, int64_t aLastSpeed, string& lastError_) noexcept;
+
 	/** The same thing but only used before any connect requests */
-	pair<QueueItem::DownloadType, bool> startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, string& bundleToken, bool& allowUrlChange, bool& hasDownload) noexcept;
+	pair<QueueItem::DownloadType, bool> startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, string& bundleToken, 
+		bool& allowUrlChange, bool& hasDownload, string& lastError_) noexcept;
 	
 	void loadQueue(function<void (float)> progressF) noexcept;
 	void saveQueue(bool force) noexcept;
@@ -275,7 +278,7 @@ private:
 	StringList protectedFileLists;
 
 	void connectBundleSources(BundlePtr& aBundle) noexcept;
-	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, bool mcn = false) noexcept;
+	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, string& lastError_, bool mcn = false) noexcept;
 
 	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget) noexcept;
 	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false) noexcept;
