@@ -646,7 +646,7 @@ Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, strin
 	return Bundle::STATUS_FINISHED;
 }
 
-bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_, bool report) noexcept {
+bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexcept {
 	if (!SETTING(SCAN_MONITORED_FOLDERS))
 		return true;
 
@@ -656,7 +656,19 @@ bool ShareScannerManager::onScanSharedDir(const string& aDir, string& error_, bo
 	find(aDir, Text::toLower(aDir), scanner);
 
 	if (scanner.hasMissing() || scanner.hasExtras()) {
-		error_ = scanner.getResults();
+		if (report) {
+			string logMsg;
+			if (ShareManager::getInstance()->isRealPathShared(aDir)) {
+				logMsg += STRING_F(SCAN_SHARE_EXISTING_FAILED, aDir % scanner.getResults());
+			} else {
+				logMsg += STRING_F(SCAN_SHARE_DIR_FAILED, aDir % scanner.getResults());
+			}
+
+			logMsg += ". ";
+			logMsg += STRING(FORCE_SHARE_SCAN);
+
+			LogManager::getInstance()->message(logMsg, LogManager::LOG_ERROR);
+		}
 		return false;
 	}
 

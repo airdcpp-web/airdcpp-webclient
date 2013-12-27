@@ -385,22 +385,9 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 
 	// scan for missing/extra files
 	if (info.lastReportedError == 0 || info.lastReportedError < info.lastFileActivity) {
-		string error_;
 		bool report = forced || info.lastReportedError == 0 || (info.lastReportedError + static_cast<uint64_t>(10 * 60 * 1000) < aTick); //don't spam with reports on every minute
-		if (!ShareScannerManager::getInstance()->onScanSharedDir(info.path, error_, report)) {
+		if (!ShareScannerManager::getInstance()->onScanSharedDir(info.path, report)) {
 			if (report) {
-				string logMsg;
-				if (dir) {
-					logMsg += STRING_F(SCAN_SHARE_EXISTING_FAILED, info.path % error_);
-				} else {
-					logMsg += STRING_F(SCAN_SHARE_DIR_FAILED, info.path % error_);
-				}
-
-				logMsg += ". ";
-				logMsg += STRING(FORCE_SHARE_SCAN);
-
-				LogManager::getInstance()->message(logMsg, LogManager::LOG_ERROR);
-
 				info.lastReportedError = aTick;
 			}
 
