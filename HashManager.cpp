@@ -54,22 +54,22 @@ HashManager::~HashManager() {
 	optimizer.join();
 }
 
-bool HashManager::checkTTH(string&& aFileLower, const string& aFileName, HashedFile& fi_) {
+bool HashManager::checkTTH(const string& aFileLower, const string& aFileName, HashedFile& fi_) {
 	dcassert(Text::isLower(aFileLower));
 	if (!store.checkTTH(aFileLower, fi_)) {
-		hashFile(aFileName, move(aFileLower), fi_.getSize());
+		hashFile(aFileName, aFileLower, fi_.getSize());
 		return false;
 	}
 	return true;
 }
 
-void HashManager::getFileInfo(string&& aFileLower, const string& aFileName, HashedFile& fi_) throw(HashException) {
+void HashManager::getFileInfo(const string& aFileLower, const string& aFileName, HashedFile& fi_) throw(HashException) {
 	dcassert(Text::isLower(aFileLower));
 	auto found = store.getFileInfo(aFileLower, fi_);
 	if (!found) {
 		auto size = File::getSize(aFileName);
 		if (size >= 0)
-			hashFile(aFileName, move(aFileLower), size);
+			hashFile(aFileName, aFileLower, size);
 		throw HashException();
 	}
 }
@@ -99,7 +99,7 @@ bool HashManager::Hasher::hasFile(const string& aPath) const noexcept {
 	return w.find(aPath) != w.end();
 }
 
-bool HashManager::hashFile(const string& filePath, string&& pathLower, int64_t size) {
+bool HashManager::hashFile(const string& filePath, const string& pathLower, int64_t size) {
 	if(aShutdown) //we cant allow adding more hashers if we are shutting down, it will result in infinite loop
 		return false;
 
@@ -175,11 +175,11 @@ bool HashManager::hashFile(const string& filePath, string&& pathLower, int64_t s
 	}
 
 	//queue the file for hashing
-	return h->hashFile(filePath, move(pathLower), size, move(vol));
+	return h->hashFile(filePath, pathLower, size, vol);
 }
 
 void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void(int64_t, const string&)> updateF/*nullptr*/) throw(HashException) {
-	auto pathLower = move(Text::toLower(aFile));
+	auto pathLower = Text::toLower(aFile);
 	HashedFile fi(File::getLastModified(aFile), aSize);
 
 	if (!store.checkTTH(pathLower, fi)) {
@@ -218,16 +218,16 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 
 		if (addStore && !aCancel) {
 			auto fi = HashedFile(tth_, timestamp, aSize);
-			store.addHashedFile(move(pathLower), tt, fi);
+			store.addHashedFile(pathLower, tt, fi);
 		}
 	} else {
 		tth_ = fi.getRoot();
 	}
 }
 
-void HashManager::hashDone(const string& aFileName, string&& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID /*0*/) noexcept {
+void HashManager::hashDone(const string& aFileName, const string& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID /*0*/) noexcept {
 	try {
-		store.addHashedFile(move(pathLower), tt, aFileInfo);
+		store.addHashedFile(pathLower, tt, aFileInfo);
 	} catch (const Exception& e) {
 		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true, true);
 	}
@@ -249,7 +249,7 @@ void HashManager::hashDone(const string& aFileName, string&& pathLower, const Ti
 	}
 }
 
-bool HashManager::addFile(string&& aFilePathLower, const HashedFile& fi_) throw(HashException) {
+bool HashManager::addFile(const string& aFilePathLower, const HashedFile& fi_) throw(HashException) {
 	//check that the file exists
 	if (File::getSize(aFilePathLower) != fi_.getSize()) {
 		return false;
@@ -263,16 +263,16 @@ bool HashManager::addFile(string&& aFilePathLower, const HashedFile& fi_) throw(
 		return false;
 	}
 
-	store.addFile(move(aFilePathLower), fi_);
+	store.addFile(aFilePathLower, fi_);
 	return true;
 }
 
-void HashManager::HashStore::addHashedFile(string&& aFileLower, const TigerTree& tt, const HashedFile& fi_) throw(HashException) {
+void HashManager::HashStore::addHashedFile(const string& aFileLower, const TigerTree& tt, const HashedFile& fi_) throw(HashException) {
 	addTree(tt);
-	addFile(move(aFileLower), fi_);
+	addFile(aFileLower, fi_);
 }
 
-void HashManager::HashStore::addFile(string&& aFileLower, const HashedFile& fi_) throw(HashException) {
+void HashManager::HashStore::addFile(const string& aFileLower, const HashedFile& fi_) throw(HashException) {
 	auto sz = getFileInfoSize(fi_);
 	void* buf = malloc(sz);
 	saveFileInfo(buf, fi_);
@@ -295,13 +295,13 @@ void HashManager::HashStore::renameFile(const string& oldPath, const string& new
 	auto newNameLower = Text::toLower(newPath);
 	//HashedFile fi;
 	//if (getFileInfo(oldNameLower, fi)) {
-		removeFile(move(oldNameLower));
-		addFile(move(newNameLower), fi);
+		removeFile(oldNameLower);
+		addFile(newNameLower, fi);
 		//return true;
 	//}
 }
 
-void HashManager::HashStore::removeFile(string&& aFilePathLower) throw(HashException) {
+void HashManager::HashStore::removeFile(const string& aFilePathLower) throw(HashException) {
 	try {
 		fileDb->remove((void*) aFilePathLower.c_str(), aFilePathLower.length());
 	} catch (DbException& e) {
@@ -911,7 +911,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				auto p = sizeMap.find(tth);
 				if (p != sizeMap.end()) {
 					auto fi = HashedFile(tth, timeStamp, p->second);
-					store.addFile(move(fileLower), fi);
+					store.addFile(fileLower, fi);
 					migratedFiles++;
 				}
 			}
@@ -941,7 +941,7 @@ HashManager::HashStore::~HashStore() {
 	closeDb();
 }
 
-bool HashManager::Hasher::hashFile(const string& fileName, string&& filePathLower, int64_t size, string&& devID) noexcept {
+bool HashManager::Hasher::hashFile(const string& fileName, const string& filePathLower, int64_t size, const string& devID) noexcept {
 	//always locked
 	auto ret = w.emplace_sorted(filePathLower, fileName, size, devID);
 	if (ret.second) {
@@ -1212,16 +1212,16 @@ int HashManager::Hasher::run() {
 				}
 
 				if(failed) {
-					HashManager::getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true, true);
-					HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
+					getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true, true);
+					getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
 				} else {
 					fi = HashedFile(tt.getRoot(), timestamp, size);
-					HashManager::getInstance()->hashDone(fname, move(pathLower), tt, averageSpeed, fi, hasherID);
+					getInstance()->hashDone(fname, pathLower, tt, averageSpeed, fi, hasherID);
 					//tth = tt.getRoot();
 				}
 			} catch(const FileException& e) {
-				HashManager::getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true, true);
-				HashManager::getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
+				getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true, true);
+				getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
 				failed = true;
 			}
 		
@@ -1230,12 +1230,12 @@ int HashManager::Hasher::run() {
 		auto onDirHashed = [&] () -> void {
 			if ((SETTING(HASHERS_PER_VOLUME) == 1 || w.empty()) && (dirFilesHashed > 1 || !failed)) {
 				if (dirFilesHashed == 1) {
-					HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_FILE, currentFile % 
+					getInstance()->log(STRING_F(HASHING_FINISHED_FILE, currentFile % 
 						Util::formatBytes(dirSizeHashed) % 
 						Util::formatTime(dirHashTime / 1000, true) % 
 						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false, false);
 				} else {
-					HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
+					getInstance()->log(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
 						dirFilesHashed %
 						Util::formatBytes(dirSizeHashed) % 
 						Util::formatTime(dirHashTime / 1000, true) % 
@@ -1263,13 +1263,13 @@ int HashManager::Hasher::run() {
 						//LogManager::getInstance()->message(STRING(HASHING_FINISHED_TOTAL_PLAIN), LogManager::LOG_INFO);
 					} else {
 						onDirHashed();
-						HashManager::getInstance()->log(STRING_F(HASHING_FINISHED_TOTAL, filesHashed % Util::formatBytes(sizeHashed) % dirsHashed % 
+						getInstance()->log(STRING_F(HASHING_FINISHED_TOTAL, filesHashed % Util::formatBytes(sizeHashed) % dirsHashed % 
 							Util::formatTime(hashTime / 1000, true) % 
 							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), hasherID, false, false);
 					}
 				} else if(!fname.empty()) {
 					//all files failed to hash?
-					HashManager::getInstance()->log(STRING(HASHING_FINISHED_TOTAL_PLAIN), hasherID, false, false);
+					getInstance()->log(STRING(HASHING_FINISHED_TOTAL_PLAIN), hasherID, false, false);
 
 					//always clear the directory so that the will be a fresh start when more files are added for hashing
 					initialDir.clear();
@@ -1289,7 +1289,7 @@ int HashManager::Hasher::run() {
 		}
 
 		if (!failed && !fname.empty())
-			HashManager::getInstance()->fire(HashManagerListener::TTHDone(), fname, fi);
+			getInstance()->fire(HashManagerListener::TTHDone(), fname, fi);
 
 		if (deleteThis) {
 			//check again if we have added new items while this was unlocked
@@ -1297,7 +1297,7 @@ int HashManager::Hasher::run() {
 			WLock l(hcs);
 			if (w.empty()) {
 				//Nothing more to has, delete this hasher
-				HashManager::getInstance()->removeHasher(this);
+				getInstance()->removeHasher(this);
 				break;
 			}
 		}

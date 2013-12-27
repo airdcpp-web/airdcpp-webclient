@@ -1333,6 +1333,8 @@ enum Strings { // @DontAdd
 	SEND_PM_VIA, // "Messages are sent via"
 	MESSAGES_SENT_THROUGH_REMOTE, // "Messages are now sent through the hub %1% (changed by the remote users)"
 	IP_UPDATE_FAILED, // "Failed to update the IP address"
+	FILE_X_ADDED_FOR_HASH, // "The file %1% (%2%) has been added for hashing"
+	X_FILES_ADDED_FOR_HASH, // "%1% files (%2%) from the directory %3% have been added for hashing; they won't be visible in the file list until they have finished hashing"
 	FILES_ADDED_FOR_HASH, // "(%1% of files have been added for hashing; they won't be visible in the file list until they have finished hashing)"
 	BUNDLE_ADDED_FOR_HASH,  // "The bundle %1% has been added for hashing (total size to hash: %2%)"
 	HASHING_FINISHED_TOTAL,  // "Hashing finished: %1% files (%2%) in %3% directories have been hashed in %4% (%5%)"

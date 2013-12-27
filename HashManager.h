@@ -71,13 +71,13 @@ public:
 	/**
 	 * Check if the TTH tree associated with the filename is current.
 	 */
-	bool checkTTH(string&& fileLower, const string& aFileName, HashedFile& fi_);
+	bool checkTTH(const string& fileLower, const string& aFileName, HashedFile& fi_);
 
 	void stopHashing(const string& baseDir) noexcept;
 	void setPriority(Thread::Priority p) noexcept;
 
 	/** @return HashedFileInfo */
-	void getFileInfo(string&& fileLower, const string& aFileName, HashedFile& aFileInfo) throw(HashException);
+	void getFileInfo(const string& fileLower, const string& aFileName, HashedFile& aFileInfo) throw(HashException);
 
 	bool getTree(const TTHValue& root, TigerTree& tt) noexcept;
 
@@ -120,14 +120,14 @@ public:
 	bool maintenanceRunning() const noexcept { return optimizer.isRunning(); }
 
 	void renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi) throw(HashException);
-	bool addFile(string&& aFilePathLower, const HashedFile& fi_) throw(HashException);
+	bool addFile(const string& aFilePathLower, const HashedFile& fi_) throw(HashException);
 private:
 	int pausers = 0;
 	class Hasher : public Thread {
 	public:
 		Hasher(bool isPaused, int aHasherID);
 
-		bool hashFile(const string& filePath, string&& filePathLower, int64_t size, string&& devID) noexcept;
+		bool hashFile(const string& filePath, const string& filePathLower, int64_t size, const string& devID) noexcept;
 
 		/// @return whether hashing was already paused
 		bool pause() noexcept;
@@ -212,10 +212,10 @@ private:
 		HashStore();
 		~HashStore();
 
-		void addHashedFile(string&& aFilePathLower, const TigerTree& tt, const HashedFile& fi_) throw(HashException);
-		void addFile(string&& aFilePathLower, const HashedFile& fi_) throw(HashException);
+		void addHashedFile(const string& aFilePathLower, const TigerTree& tt, const HashedFile& fi_) throw(HashException);
+		void addFile(const string& aFilePathLower, const HashedFile& fi_) throw(HashException);
 		void renameFile(const string& oldPath, const string& newPath, const HashedFile& fi)  throw(HashException);
-		void removeFile(string&& aFilePathLower) throw(HashException);
+		void removeFile(const string& aFilePathLower) throw(HashException);
 
 		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException);
 
@@ -265,7 +265,7 @@ private:
 
 	friend class HashLoader;
 
-	bool hashFile(const string& filePath, string&& pathLower, int64_t size);
+	bool hashFile(const string& filePath, const string& pathLower, int64_t size);
 	bool aShutdown = false;
 
 	typedef vector<Hasher*> HasherList;
@@ -276,7 +276,7 @@ private:
 	/** Single node tree where node = root, no storage in HashData.dat */
 	static const int64_t SMALL_TREE = -1;
 
-	void hashDone(const string& aFileName, string&& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID = 0) noexcept;
+	void hashDone(const string& aFileName, const string& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID = 0) noexcept;
 
 	class Optimizer : public Thread {
 	public:

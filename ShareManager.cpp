@@ -414,8 +414,12 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 		return false;
 	}
 
-	vector<FileAddInfo> files;
-	bool hasValidFiles = false;
+	bool hasExistingFiles = false;
+
+	int64_t hashSize = 0;
+	int filesToHash = 0;
+	int hashedFiles = 0;
+	string hashFile;
 
 	// Check that the file can be accessed, FileFindIter won't show it (also files being copied will come here)
 	for (const auto& fi : info.files | map_keys) {
@@ -427,11 +431,28 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 		if (!Util::fileExists(fi))
 			continue;
 
-		hasValidFiles = true;
+		hasExistingFiles = true;
 		try {
 			File ff(fi, File::READ, File::SHARED_WRITE | File::OPEN, File::BUFFER_AUTO);
 			if (dir) {
-				files.emplace_back(Util::getFileName(fi), ff.getLastModified(), ff.getSize());
+				// we can add it here
+				auto size = ff.getSize();
+				try {
+					HashedFile hashedFile(ff.getLastModified(), size);
+					if (HashManager::getInstance()->checkTTH(Text::toLower(fi), fi, hashedFile)) {
+						WLock l(cs);
+						addFile(Util::getFileName(fi), dir, hashedFile, dirtyProfiles_);
+						hashedFiles++;
+						continue;
+					}
+				} catch (...) {}
+
+				// not hashed
+				filesToHash++;
+				hashSize += size;
+				if (hashFile.empty()) {
+					hashFile = fi;
+				}
 			}
 		} catch (...) {
 			// try again later
@@ -440,7 +461,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 		}
 	}
 
-	if (!hasValidFiles && (!info.files.empty() || !Util::fileExists(info.path))) {
+	if (!hasExistingFiles && (!info.files.empty() || !Util::fileExists(info.path))) {
 		// no need to keep items in the list if all files have been removed...
 		return true;
 	}
@@ -448,39 +469,15 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	if (!dir) {
 		//add new directories via normal refresh
 		refresh_.push_back(info.path);
-	} else {
-		//add each file in the dir
-		int addedFiles = 0;
-		int64_t hashSize = 0;
-		string addedFile;
-
-		for (const auto& file : files) {
-			string pathLower = Text::toLower(info.path + file.name);
-			if (addedFiles == 0)
-				addedFile = info.path + file.name;
-
-			addedFiles++;
-			try {
-				HashedFile fi(file.lastWrite, file.size);
-				if (HashManager::getInstance()->checkTTH(move(pathLower), info.path + file.name, fi)) {
-					WLock l(cs);
-					addFile(file.name, dir, fi, dirtyProfiles_);
-					continue;
-				}
-			} catch (...) { }
-
-			//failed
-			hashSize += file.size;
-		}
-
-		if (addedFiles > 0) {
-			string msg = addedFiles > 1 ? STRING_F(X_SHARED_FILES_ADDED, addedFiles % info.path) : STRING_F(SHARED_FILE_ADDED, addedFile);
-			if (hashSize > 0) {
-				msg += STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(hashSize));
-			}
-
-			LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
-		}
+	} else if (hashedFiles > 0) {
+		LogManager::getInstance()->message(STRING_F(X_SHARED_FILES_ADDED, hashedFiles % info.path), LogManager::LOG_INFO);
+	}  
+	
+	if (hashSize > 0) {
+		if (filesToHash == 1)
+			LogManager::getInstance()->message(STRING_F(FILE_X_ADDED_FOR_HASH, hashFile % Util::formatBytes(hashSize)), LogManager::LOG_INFO);
+		else
+			LogManager::getInstance()->message(STRING_F(X_FILES_ADDED_FOR_HASH, filesToHash % Util::formatBytes(hashSize) % info.path), LogManager::LOG_INFO);
 	}
 
 	return true;
@@ -1972,7 +1969,6 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 			dir->addBloom(aBloom);
 		} else {
 			// Not a directory, assume it's a file...
-			//string path = aPath + name;
 			int64_t size = i->getSize();
 
 			DualString dualName(name);
@@ -2498,7 +2494,7 @@ ShareManager::RefreshInfo::~RefreshInfo() {
 }
 
 ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite) : path(aPath), oldRoot(aOldRoot), addedSize(0), hashSize(0) {
-	subProfiles = std::move(getInstance()->getSubProfileDirs(aPath));
+	subProfiles = getInstance()->getSubProfileDirs(aPath);
 
 	//create the new root
 	root = Directory::create(Util::getLastDir(aPath), nullptr, aLastWrite, aOldRoot ? aOldRoot->getProfileDir() : nullptr);
@@ -3006,7 +3002,7 @@ void ShareManager::Directory::filesToXmlList(OutputStream& xmlFile, string& inde
 	}
 }
 
-ShareManager::Directory::File::File(DualString&& aName, const Directory::Ptr& aParent, HashedFile& aFileInfo) : 
+ShareManager::Directory::File::File(DualString&& aName, const Directory::Ptr& aParent, const HashedFile& aFileInfo) : 
 	size(aFileInfo.getSize()), parent(aParent.get()), tth(aFileInfo.getRoot()), lastWrite(aFileInfo.getTimeStamp()), name(move(aName)) {
 	
 }
@@ -3728,7 +3724,7 @@ void ShareManager::onFileHashed(const string& fname, HashedFile& fileInfo) noexc
 	setProfilesDirty(dirtyProfiles);
 }
 
-void ShareManager::addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept {
+void ShareManager::addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept {
 	DualString dualName(aName);
 	auto i = aDir->files.find(dualName.getLower());
 	if(i != aDir->files.end()) {

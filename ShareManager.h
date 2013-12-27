@@ -356,7 +356,7 @@ private:
 			//typedef set<File, FileLess> Set;
 			typedef SortedVector<File*, std::vector, string, Compare, NameLower> Set;
 
-			File(DualString&& aName, const Directory::Ptr& aParent, HashedFile& aFileInfo);
+			File(DualString&& aName, const Directory::Ptr& aParent, const HashedFile& aFileInfo);
 			~File();
 
 			/*bool operator==(const File& rhs) const {
@@ -585,7 +585,7 @@ private:
 	}
 
 	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) noexcept;
-	void addFile(const string& aName, Directory::Ptr& aDir, HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
+	void addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
 
 	//void rebuildIndices();
 	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames) noexcept;
@@ -754,13 +754,6 @@ private:
 	};
 
 	typedef set<string, Util::PathSortOrderBool> PathSet;
-	struct FileAddInfo {
-		FileAddInfo(string&& aName, uint64_t aLastWrite, int64_t aSize) : name(aName), lastWrite(aLastWrite), size(aSize) { }
-
-		string name;
-		uint64_t lastWrite;
-		int64_t size;
-	};
 
 	DirModifyInfo::List fileModifications;
 
