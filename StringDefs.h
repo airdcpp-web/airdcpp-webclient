@@ -1851,5 +1851,11 @@ enum Strings { // @DontAdd
 	MAX_BUNDLES_RUNNING, // "Maximum number of bundles running already"
 	LOWEST_PRIO_ERR_BUNDLES, // "Bundles with lowest priority will start when no other bundles are running"
 	LOWEST_PRIO_ERR_FILES, // "Files with lowest priority will start when no other bundle downloads are running"
+	CHANGE_PASSWORD, // "Change password"
+	PASS_NO_MATCH, // "Passwords did not match"
+	WRONG_PASS, // "Wrong password"
+	OLD, // "Old"
+	CONFIRM_NEW, // "Confirm new"
+	SETUP_PASS, // "Setup password"
 	LAST // @DontAdd
 };

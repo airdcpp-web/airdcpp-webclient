@@ -1847,6 +1847,12 @@ std::string dcpp::ResourceManager::strings[] = {
 "Maximum number of bundles running already", 
 "Bundles with lowest priority will start when no other bundles are running", 
 "Files with lowest priority will start when no other bundle downloads are running", 
+"Change password", 
+"Passwords did not match", 
+"Wrong password", 
+"Old", 
+"Confirm new", 
+"Setup password", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3694,4 +3700,10 @@ std::string dcpp::ResourceManager::names[] = {
 "MaxBundlesRunning", 
 "LowestPrioErrBundles", 
 "LowestPrioErrFiles", 
+"ChangePassword", 
+"PassNoMatch", 
+"WrongPass", 
+"Old", 
+"ConfirmNew", 
+"SetupPass", 
 };
