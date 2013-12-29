@@ -324,7 +324,7 @@ bool QueueItem::isFinished() const {
 	return done.size() == 1 && *done.begin() == Segment(0, size);
 }
 
-Segment QueueItem::getNextSegment(int64_t  blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
+Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
 	if(size == -1 || blockSize == 0) {
 		return Segment(0, -1);
 	}

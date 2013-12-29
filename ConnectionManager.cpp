@@ -294,7 +294,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 								attempts++;
 							}
 						} else {
-							fire(ConnectionManagerListener::Failed(), cqi, STRING(ALL_DOWNLOAD_SLOTS_TAKEN));
+							fire(ConnectionManagerListener::Failed(), cqi, lastError);
 						}
 					}
 				} else if(cqi->getState() == ConnectionQueueItem::CONNECTING && cqi->getLastAttempt() + 50*1000 < aTick) {
@@ -1031,7 +1031,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 					tmp, allowChange, hasDownload, lastError);
 
 				if (hasDownload) {
-					failDownload(aSource->getToken(), STRING(ALL_DOWNLOAD_SLOTS_TAKEN), protocolError);
+					failDownload(aSource->getToken(), lastError, protocolError);
 				} else {
 					WLock l(cs);
 					auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
