@@ -142,7 +142,6 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 }
 
 void DownloadManager::sendSizeNameUpdate(BundlePtr& aBundle) {
-	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
 	RLock l (cs);
 	aBundle->sendSizeNameUpdate();
 }
@@ -150,7 +149,6 @@ void DownloadManager::sendSizeNameUpdate(BundlePtr& aBundle) {
 void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != aBundle->getToken()) {
 		if (!aSource->getLastBundle().empty()) {
-			//LogManager::getInstance()->message("LASTBUNDLE NOT EMPTY, REMOVE");
 			removeRunningUser(aSource);
 		} 
 
@@ -210,19 +208,19 @@ void DownloadManager::addConnection(UserConnection* conn) {
 
 void DownloadManager::getRunningBundles(StringSet& bundles_) const {
 	RLock l(cs);
-	for (auto& tbp : bundles) {
+	for (const auto& b : bundles | map_values) {
 		// we need to check this to ignore previous bundles for running connections 
 		// (non-running bundles are removed only when no next download was found)
-		if (tbp.second->getDownloads().empty())
+		if (b->getDownloads().empty())
 			continue;
 		
 		// these won't be included in the running bundle limit
-		if (tbp.second->getPriority() == QueueItemBase::HIGHEST)
+		if (b->getPriority() == QueueItemBase::HIGHEST)
 			continue;
-		if (all_of(tbp.second->getDownloads().begin(), tbp.second->getDownloads().end(), Flags::IsSet(Download::FLAG_HIGHEST_PRIO)))
+		if (all_of(b->getDownloads().begin(), b->getDownloads().end(), Flags::IsSet(Download::FLAG_HIGHEST_PRIO)))
 			continue;
 
-		bundles_.insert(tbp.first);
+		bundles_.insert(b->getToken());
 	}
 }
 

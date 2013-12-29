@@ -1521,7 +1521,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 	bool fireHashed = false;
 	{
 		RLock l(cs);
-		if (!b->getQueueItems().empty() || boost::find_if(b->getFinishedFiles(), [](QueueItemPtr q) { return !q->isSet(QueueItem::FLAG_HASHED); }) != b->getFinishedFiles().end())
+		if (!b->getQueueItems().empty() || !all_of(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), Flags::IsSet(QueueItem::FLAG_HASHED)))
 			return;
 
 
