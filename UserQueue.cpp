@@ -102,6 +102,10 @@ QueueItemPtr UserQueue::getNextPrioQI(const UserPtr& aUser, const OrderedStringS
 	if(i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
 		for(auto& q: i->second) {
+			// these would cause problems with the bundle limit...
+			if (q->getBundle() && q->getBundle()->getPriority() <= QueueItemBase::LOWEST)
+				continue;
+
 			if (q->hasSegment(aUser, onlineHubs, lastError_, wantedSize, lastSpeed, aType, allowOverlap)) {
 				return q;
 			}
