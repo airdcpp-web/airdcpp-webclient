@@ -37,7 +37,8 @@ public:
 		FLAG_QUEUE				= 0x400,
 		FLAG_NFO				= 0x800,
 		FLAG_TTHLIST            = 0x1000,
-		FLAG_TTHLIST_BUNDLE		= 0x2000
+		FLAG_TTHLIST_BUNDLE		= 0x2000,
+		FLAG_HIGHEST_PRIO		= 0x4000
 	};
 
 	bool operator==(const Download* d) const {

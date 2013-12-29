@@ -68,6 +68,8 @@ public:
 		return aBundle->getDownloads().size();
 	}
 
+	// This will ignore bundles with no downloads and 
+	// bundles using highest priority
 	void getRunningBundles(StringSet& bundles_) const;
 
 	SharedMutex& getCS() { return cs; }
@@ -78,7 +80,11 @@ private:
 	
 	mutable SharedMutex cs;
 	DownloadList downloads;
-	Bundle::StringBundleMap runningBundles;
+
+	// The list of bundles being download. Note that all of them may not be running
+	// as the bundle is removed from here only after the connection has been 
+	// switched to use another bundle (or no other downloads were found)
+	Bundle::StringBundleMap bundles;
 	UserConnectionList idlers;
 
 	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false);
@@ -100,8 +106,6 @@ private:
 	void checkDownloads(UserConnection* aConn);
 	void startData(UserConnection* aSource, int64_t start, int64_t newSize, bool z);
 	void startBundle(UserConnection* aSource, BundlePtr aBundle);
-	typedef unordered_map<string, BundlePtr> tokenMap;
-	tokenMap tokens;
 
 	void revive(UserConnection* uc);
 	void endData(UserConnection* aSource);

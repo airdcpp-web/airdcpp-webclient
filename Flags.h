@@ -27,6 +27,16 @@ class Flags {
 	public:
 		typedef uint32_t MaskType;
 
+		class IsSet {
+		public:
+			IsSet(MaskType compareTo) : a(compareTo) {}
+
+			template<typename T>
+			bool operator()(const T& item) { return item->isSet(a); }
+		private:
+			MaskType a;
+		};
+
 		Flags() : flags(0) { }
 		Flags(MaskType f) : flags(f) { }
 		bool isSet(MaskType aFlag) const { return (flags & aFlag) == aFlag; }
