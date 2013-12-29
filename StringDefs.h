@@ -479,7 +479,6 @@ enum Strings { // @DontAdd
 	SETCZDC_MAGNET_URI_HANDLER, // "Install MAGNET URI handler on startup"
 	SETCZDC_MIN_FILE_SIZE, // "And file size is more than"
 	SETCZDC_PASSIVE_SEARCH, // "Always use passive mode for search (use only if you know what this doing!)"
-	SETCZDC_PM_LINES, // "Lines from log on new PM"
 	SETCZDC_PREVIEW, // "Preview"
 	SETCZDC_PRIVATE_SOUND, // "Private message sound"
 	SETCZDC_PROGRESSBAR_COLORS, // "Progressbar colors"
@@ -1858,5 +1857,7 @@ enum Strings { // @DontAdd
 	OLD, // "Old"
 	CONFIRM_NEW, // "Confirm new"
 	SETUP_PASS, // "Setup password"
+	AS_OVER_MAX_NUMBER, // "The current number can't be bigger than the maximum number!"
+	FILE_NOT_FOUND, // "File not found"
 	LAST // @DontAdd
 };

@@ -476,7 +476,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Install MAGNET URI handler on startup", 
 "And file size is more than", 
 "Always use passive mode for search (use only if you know what this doing!)", 
-"Lines from log on new PM", 
 "Preview", 
 "Private message sound", 
 "Progressbar colors", 
@@ -1854,6 +1853,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Old", 
 "Confirm new", 
 "Setup password", 
+"The current number can't be bigger than the maximum number!", 
+"File not found", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -2330,7 +2331,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SetczdcMagnetUriHandler", 
 "SetczdcMinFileSize", 
 "SetczdcPassiveSearch", 
-"SetczdcPmLines", 
 "SetczdcPreview", 
 "SetczdcPrivateSound", 
 "SetczdcProgressbarColors", 
@@ -3708,4 +3708,6 @@ std::string dcpp::ResourceManager::names[] = {
 "Old", 
 "ConfirmNew", 
 "SetupPass", 
+"AsOverMaxNumber", 
+"FileNotFound", 
 };
