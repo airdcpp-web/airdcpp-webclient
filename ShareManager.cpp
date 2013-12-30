@@ -2815,7 +2815,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 }
 
 MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept {
-	if(dir[0] != '/' || dir[dir.size()-1] != '/')
+	if(dir.front() != '/' || dir.back() != '/')
 		return 0;
 
 	string xml = SimpleXML::utf8Header;
@@ -2826,7 +2826,6 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 
 		RLock l(cs);
 
-		//auto start = GET_TICK();
 		if(dir == "/") {
 			dcdebug("Generating partial from root folders");
 			for(const auto& sd: rootPaths | map_values) {
@@ -2868,12 +2867,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& dir, bool rec
 			ld->toXml(sos, indent, tmp, recurse);
 
 		root->filesToXml(sos, indent, tmp, !recurse);
-
-		//auto end = GET_TICK();
-		//LogManager::getInstance()->message("Partial list from path " + dir +  " generated in " + Util::toString(end-start) + " ms (" + Util::toString((end-start)/1000) + " seconds)", LogManager::LOG_INFO);
-
 		sos.write("</FileListing>");
-		//LogManager::getInstance()->message(xml, LogManager::LOG_WARNING);
 	}
 
 	if (xml.empty()) {
@@ -3142,7 +3136,6 @@ MemoryInputStream* ShareManager::generateTTHList(const string& dir, bool recurse
 		dcdebug("Partial NULL");
 		return nullptr;
 	} else {
-		//LogManager::getInstance()->message(tths);
 		return new MemoryInputStream(tths);
 	}
 }
