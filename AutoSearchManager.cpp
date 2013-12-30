@@ -413,7 +413,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	//Run the search
 	if (aType != TYPE_MANUAL_FG) {
 		uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchWord, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE,
-			"as", extList, AdcSearch::parseSearchString(as->getExcludedString()), aType == TYPE_MANUAL_BG ? Search::MANUAL : Search::AUTO_SEARCH, 0, SearchManager::DATE_DONTCARE, false);
+			"as", extList, SearchQuery::parseSearchString(as->getExcludedString()), aType == TYPE_MANUAL_BG ? Search::MANUAL : Search::AUTO_SEARCH, 0, SearchManager::DATE_DONTCARE, false);
 
 		//Report
 		string msg;

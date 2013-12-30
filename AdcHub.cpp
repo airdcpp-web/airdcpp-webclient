@@ -1170,7 +1170,7 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 			c.addParam("LE", Util::toString(aSize));
 		}
 
-		auto tmp = move(AdcSearch::parseSearchString(aString));
+		auto tmp = move(SearchQuery::parseSearchString(aString));
 		for(const auto& t: tmp)
 			c.addParam("AN", t);
 

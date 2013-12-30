@@ -30,7 +30,7 @@ namespace dcpp {
 
 class AdcCommand;
 
-class AdcSearch;
+class SearchQuery;
 
 class ADLSearch;
 

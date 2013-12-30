@@ -18,7 +18,7 @@
 
 #include "stdinc.h"
 
-#include "AdcSearch.h"
+#include "SearchQuery.h"
 #include "AutoSearch.h"
 #include "Bundle.h"
 #include "SearchManager.h"
@@ -124,7 +124,7 @@ bool AutoSearch::isExcluded(const string& aString) noexcept {
 void AutoSearch::updateExcluded() noexcept {
 	excluded.clear();
 	if (!excludedString.empty()) {
-		auto ex = move(AdcSearch::parseSearchString(excludedString));
+		auto ex = move(SearchQuery::parseSearchString(excludedString));
 		for (const auto& i : ex)
 			excluded.emplace_back(i);
 	}

@@ -769,7 +769,6 @@ void ShareManager::setProfilesDirty(ProfileTokenSet aProfiles, bool forceXmlRefr
 ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::Directory::Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr aProfileDir) :
 	size(0),
 	parent(aParent.get()),
-	fileTypes(1 << SearchManager::TYPE_DIRECTORY),
 	profileDir(aProfileDir),
 	lastWrite(aLastWrite),
 	name(move(aRealName))
@@ -832,14 +831,6 @@ string ShareManager::Directory::getFullName(ProfileToken aProfile) const noexcep
 		return profileDir->getName(aProfile) + '\\';
 	dcassert(parent);
 	return parent->getFullName(aProfile) + name.getNormal() + '\\';
-}
-
-void ShareManager::Directory::addType(uint32_t type) noexcept {
-	if(!hasType(type)) {
-		fileTypes |= (1 << type);
-		if(parent)
-			parent->addType(type);
-	}
 }
 
 string ShareManager::getRealPath(const TTHValue& root) const throw(ShareException) {
@@ -2015,8 +2006,6 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File* f, Share
 	dir.size += f->getSize();
 	sharedSize += f->getSize();
 
-	dir.addType(getType(f->name.getLower()));
-
 #ifdef _DEBUG
 	auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
 	auto p = find(flst | map_values, f);
@@ -3164,266 +3153,7 @@ void ShareManager::Directory::toTTHList(OutputStream& tthList, string& tmp2, boo
 	}
 }
 
-// These ones we can look up as ints (4 bytes...)...
-
-static const char* typeAudio[] = { ".mp3", ".mp2", ".mid", ".wav", ".ogg", ".wma", ".669", ".aac", ".aif", ".amf", ".ams", ".ape", ".dbm", ".dmf", ".dsm", ".far", ".mdl", ".med", ".mod", ".mol", ".mp1", ".mp4", ".mpa", ".mpc", ".mpp", ".mtm", ".nst", ".okt", ".psm", ".ptm", ".rmi", ".s3m", ".stm", ".ult", ".umx", ".wow" };
-static const char* typeCompressed[] = { ".rar", ".zip", ".ace", ".arj", ".hqx", ".lha", ".sea", ".tar", ".tgz", ".uc2" };
-static const char* typeDocument[] = { ".nfo", ".htm", ".doc", ".txt", ".pdf", ".chm" };
-static const char* typeExecutable[] = { ".exe", ".com" };
-static const char* typePicture[] = { ".jpg", ".gif", ".png", ".eps", ".img", ".pct", ".psp", ".pic", ".tif", ".rle", ".bmp", ".pcx", ".jpe", ".dcx", ".emf", ".ico", ".psd", ".tga", ".wmf", ".xif" };
-static const char* typeVideo[] = { ".vob", ".mpg", ".mov", ".asf", ".avi", ".wmv", ".ogm", ".mkv", ".pxp", ".m1v", ".m2v", ".mpe", ".mps", ".mpv", ".ram" };
-
-static const string type2Audio[] = { ".au", ".it", ".ra", ".xm", ".aiff", ".flac", ".midi", };
-static const string type2Compressed[] = { ".gz" };
-static const string type2Picture[] = { ".jpeg", ".ai", ".ps", ".pict", ".tiff" };
-static const string type2Video[] = { ".mpeg", ".rm", ".divx", ".mp1v", ".mp2v", ".mpv1", ".mpv2", ".qt", ".rv", ".vivo" };
-
-#define IS_TYPE(x) ( type == (*((uint32_t*)x)) )
-#define IS_TYPE2(x) (Util::stricmp(aString.c_str() + aString.length() - x.length(), x.c_str()) == 0) //hmm lower conversion...
-
-bool ShareManager::checkType(const string& aString, int aType) {
-
-	if(aType == SearchManager::TYPE_ANY)
-		return true;
-
-	if(aString.length() < 5)
-		return false;
-	
-	const char* c = aString.c_str() + aString.length() - 3;
-	if(!Text::isAscii(c))
-		return false;
-
-	uint32_t type = '.' | (Text::asciiToLower(c[0]) << 8) | (Text::asciiToLower(c[1]) << 16) | (((uint32_t)Text::asciiToLower(c[2])) << 24);
-
-	switch(aType) {
-	case SearchManager::TYPE_AUDIO:
-		{
-			for(size_t i = 0; i < (sizeof(typeAudio) / sizeof(typeAudio[0])); i++) {
-				if(IS_TYPE(typeAudio[i])) {
-					return true;
-				}
-			}
-			for(size_t i = 0; i < (sizeof(type2Audio) / sizeof(type2Audio[0])); i++) {
-				if(IS_TYPE2(type2Audio[i])) {
-					return true;
-				}
-			}
-		}
-		break;
-	case SearchManager::TYPE_COMPRESSED:
-		{
-			for(size_t i = 0; i < (sizeof(typeCompressed) / sizeof(typeCompressed[0])); i++) {
-				if(IS_TYPE(typeCompressed[i])) {
-					return true;
-				}
-			}
-			if( IS_TYPE2(type2Compressed[0]) ) {
-				return true;
-			}
-		}
-		break;
-	case SearchManager::TYPE_DOCUMENT:
-		for(size_t i = 0; i < (sizeof(typeDocument) / sizeof(typeDocument[0])); i++) {
-			if(IS_TYPE(typeDocument[i])) {
-				return true;
-			}
-		}
-		break;
-	case SearchManager::TYPE_EXECUTABLE:
-		if(IS_TYPE(typeExecutable[0]) || IS_TYPE(typeExecutable[1])) {
-			return true;
-		}
-		break;
-	case SearchManager::TYPE_PICTURE:
-		{
-			for(size_t i = 0; i < (sizeof(typePicture) / sizeof(typePicture[0])); i++) {
-				if(IS_TYPE(typePicture[i])) {
-					return true;
-				}
-			}
-			for(size_t i = 0; i < (sizeof(type2Picture) / sizeof(type2Picture[0])); i++) {
-				if(IS_TYPE2(type2Picture[i])) {
-					return true;
-				}
-			}
-		}
-		break;
-	case SearchManager::TYPE_VIDEO:
-		{
-			for(size_t i = 0; i < (sizeof(typeVideo) / sizeof(typeVideo[0])); i++) {
-				if(IS_TYPE(typeVideo[i])) {
-					return true;
-				}
-			}
-			for(size_t i = 0; i < (sizeof(type2Video) / sizeof(type2Video[0])); i++) {
-				if(IS_TYPE2(type2Video[i])) {
-					return true;
-				}
-			}
-		}
-		break;
-	default:
-		dcassert(0);
-		break;
-	}
-	return false;
-}
-
-SearchManager::TypeModes ShareManager::getType(const string& aFileName) noexcept {
-	if(aFileName[aFileName.length() - 1] == PATH_SEPARATOR) {
-		return SearchManager::TYPE_DIRECTORY;
-	}
-	 /*
-	 optimize, check for compressed(rar) and audio first, the ones sharing the most are probobly sharing rars or mp3.
-	 a test to match with regexp for rars first, otherwise it will match everything and end up setting type any for  .r01 ->
-	 */
-	try{ 
-		if(boost::regex_search(aFileName.substr(aFileName.length()-4), rxxReg))
-			return SearchManager::TYPE_COMPRESSED;
-	} catch(...) { } //not vital if it fails, just continue the type check.
-	
-	if(checkType(aFileName, SearchManager::TYPE_AUDIO))
-		return SearchManager::TYPE_AUDIO;
-	else if(checkType(aFileName, SearchManager::TYPE_VIDEO))
-		return SearchManager::TYPE_VIDEO;
-	else if(checkType(aFileName, SearchManager::TYPE_DOCUMENT))
-		return SearchManager::TYPE_DOCUMENT;
-	else if(checkType(aFileName, SearchManager::TYPE_COMPRESSED))
-		return SearchManager::TYPE_COMPRESSED;
-	else if(checkType(aFileName, SearchManager::TYPE_PICTURE))
-		return SearchManager::TYPE_PICTURE;
-	else if(checkType(aFileName, SearchManager::TYPE_EXECUTABLE))
-		return SearchManager::TYPE_EXECUTABLE;
-
-	return SearchManager::TYPE_ANY;
-}
-
-/**
- * Alright, the main point here is that when searching, a search string is most often found in 
- * the filename, not directory name, so we want to make that case faster. Also, we want to
- * avoid changing StringLists unless we absolutely have to --> this should only be done if a string
- * has been matched in the directory name. This new stringlist should also be used in all descendants,
- * but not the parents...
- */
-void ShareManager::Directory::search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
-	// Skip everything if there's nothing to find here (doh! =)
-	if(!hasType(aFileType))
-		return;
-
-	StringSearch::List* cur = &aStrings;
-	unique_ptr<StringSearch::List> newStr;
-
-	// Find any matches in the directory name
-	for(const auto& k: aStrings) {
-		if (k.matchLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : name.getLower())) {
-			if(!newStr.get()) {
-				newStr = unique_ptr<StringSearch::List>(new StringSearch::List(aStrings));
-			}
-			newStr->erase(remove(newStr->begin(), newStr->end(), k), newStr->end());
-		}
-	}
-
-	if(newStr.get() != 0) {
-		cur = newStr.get();
-	}
-
-	bool sizeOk = (aSearchType != SearchManager::SIZE_ATLEAST) || (aSize == 0);
-	if( (cur->empty()) && 
-		(((aFileType == SearchManager::TYPE_ANY) && sizeOk) || (aFileType == SearchManager::TYPE_DIRECTORY)) ) {
-		// We satisfied all the search words! Add the directory...(NMDC searches don't support directory size)
-		//getInstance()->addDirResult(getFullName(SP_DEFAULT), aResults, SP_DEFAULT, false);
-
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, 0, getFullName(aProfile), TTHValue(), 0, 0));
-		aResults.push_back(sr);
-	}
-
-	if(aFileType != SearchManager::TYPE_DIRECTORY) {
-		for(const auto& f: files) {
-			
-			if(aSearchType == SearchManager::SIZE_ATLEAST && aSize > f->getSize()) {
-				continue;
-			} else if(aSearchType == SearchManager::SIZE_ATMOST && aSize < f->getSize()) {
-				continue;
-			}
-
-			auto j = cur->begin();
-			for(; j != cur->end() && j->matchLower(f->name.getLower()); ++j) 
-				;	// Empty
-			
-			if(j != cur->end())
-				continue;
-			
-			// Check file type...
-			if(checkType(f->name.getLower(), aFileType)) {
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f->getSize(), getFullName(aProfile) + f->name.getNormal(), f->getTTH(), 0, 1));
-				aResults.push_back(sr);
-				if(aResults.size() >= maxResults) {
-					break;
-				}
-			}
-		}
-	}
-
-	for(auto l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
-		if ((*l)->isLevelExcluded(aProfile))
-			continue;
-		(*l)->search(aResults, *cur, aSearchType, aSize, aFileType, maxResults, aProfile);
-	}
-}
-//NMDC Search
-void ShareManager::search(SearchResultList& results, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept {
-	totalSearches++;
-	ProfileToken sp = SETTING(DEFAULT_SP);
-
-	if(aFileType == SearchManager::TYPE_TTH) {
-		if(aString.compare(0, 4, "TTH:") == 0) {
-			TTHValue tth(aString.substr(4));
-			
-			RLock l (cs);
-			if(!aHideShare) {
-				const auto i = tthIndex.find(const_cast<TTHValue*>(&tth));
-				if (i != tthIndex.end() && i->second->getParent()->hasProfile(sp)) {
-					i->second->addSR(results, sp, false);
-				} 
-			}
-
-			auto files = tempShares.equal_range(tth);
-			for(auto& i = files.first; i != files.second; ++i) {
-				if(i->second.key.empty()) { // nmdc shares are shared to everyone.
-					SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, i->second.size, "tmp\\" + Util::getFileName(i->second.path), i->first, 0, 1));
-					results.push_back(sr);
-				}
-			}
-		}
-		return;
-	} 
-	
-	if(aHideShare)
-		return;
-
-	StringTokenizer<string> t(aString, '$');
-	const StringList& sl = t.getTokens();
-
-	StringSearch::List ssl;
-	for(const auto& i: sl) {
-		if(!i.empty()) {
-			ssl.emplace_back(i);
-		}
-	}
-
-	if(ssl.empty())
-		return;
-
-	RLock l (cs);
-	if (bloom->match(ssl)) {
-		for(auto j = rootPaths.begin(); (j != rootPaths.end()) && (results.size() < maxResults); ++j) {
-			if(j->second->getProfileDir()->hasRootProfile(sp))
-				j->second->search(results, ssl, aSearchType, aSize, aFileType, maxResults, sp);
-		}
-	}
-}
-
-bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, AdcSearch& srch) const noexcept {
+bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, SearchQuery& srch) const noexcept {
 	const string path = srch.addParents ? (Util::getNmdcParentDir(aPath)) : aPath;
 
 	//have we added it already?
@@ -3471,7 +3201,19 @@ void ShareManager::Directory::File::addSR(SearchResultList& aResults, ProfileTok
 	}
 }
 
-void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
+void ShareManager::nmdcSearch(SearchResultList& l, const string& nmdcString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept{
+	auto query = SearchQuery(nmdcString, aSearchType, aSize, aFileType);
+	search(l, query, maxResults, aHideShare ? SP_HIDDEN : SETTING(DEFAULT_SP), CID(), Util::emptyString);
+}
+
+/**
+* Alright, the main point here is that when searching, a search string is most often found in
+* the filename, not directory name, so we want to make that case faster. Also, we want to
+* avoid changing StringLists unless we absolutely have to --> this should only be done if a string
+* has been matched in the directory name. This new stringlist should also be used in all descendants,
+* but not the parents...
+*/
+void ShareManager::Directory::search(SearchResultList& aResults, SearchQuery& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
 	for(const auto& i: aStrings.exclude) {
 		if(i.matchLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : name.getLower()))
 			return;
@@ -3481,17 +3223,17 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 
 	// Find any matches in the directory name
 	unique_ptr<StringSearch::List> newStr(aStrings.matchesDirectoryReLower(profileDir ? Text::toLower(profileDir->getName(aProfile)) : name.getLower()));
-	if(newStr.get() != 0 && aStrings.matchType == AdcSearch::MATCH_FULL_PATH) {
+	if(newStr.get() != 0 && aStrings.matchType == SearchQuery::MATCH_FULL_PATH) {
 		aStrings.include = newStr.get();
 	}
 
 	bool sizeOk = (aStrings.gt == 0) && aStrings.matchesDate(lastWrite);
-	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk && aStrings.itemType != AdcSearch::TYPE_FILE) {
+	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk && aStrings.itemType != SearchQuery::TYPE_FILE) {
 		// We satisfied all the search words! Add the directory...
 		getInstance()->addDirResult(getFullName(aProfile), aResults, aProfile, aStrings);
 	}
 
-	if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
+	if(aStrings.itemType != SearchQuery::TYPE_DIRECTORY) {
 		for(const auto& f: files) {
 			if (!aStrings.matchesFileLower(f->name.getLower(), f->getSize(), f->getLastWrite())) {
 				continue;
@@ -3518,8 +3260,11 @@ void ShareManager::Directory::search(SearchResultList& aResults, AdcSearch& aStr
 	aStrings.include = old;
 }
 
-void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) throw(ShareException) {
+void ShareManager::search(SearchResultList& results, SearchQuery& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) throw(ShareException) {
 	totalSearches++;
+	if (aProfile == SP_HIDDEN) {
+		return;
+	}
 
 	RLock l(cs);
 	if(srch.root) {
@@ -3542,11 +3287,11 @@ void ShareManager::search(SearchResultList& results, AdcSearch& srch, StringList
 		return;
 	}
 
-	if(!bloom->match(srch.includeX))
+	if (!bloom->match(srch.includeInit))
 		return;
 
-	if (srch.itemType == AdcSearch::TYPE_DIRECTORY && srch.matchType == AdcSearch::MATCH_EXACT) {
-		const auto i = dirNameMap.equal_range(const_cast<string*>(&srch.includeX.front().getPattern()));
+	if (srch.itemType == SearchQuery::TYPE_DIRECTORY && srch.matchType == SearchQuery::MATCH_EXACT) {
+		const auto i = dirNameMap.equal_range(const_cast<string*>(&srch.includeInit.front().getPattern()));
 		for(const auto& d: i | map_values) {
 			auto path = d->getADCPath(aProfile);
 			if (d->hasProfile(aProfile) && AirUtil::isParentOrExact(aDir, path) && srch.matchesDate(d->getLastWrite()) && addDirResult(path, results, aProfile, srch)) {

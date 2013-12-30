@@ -24,7 +24,7 @@
 #include "SettingsManager.h"
 #include "QueueManagerListener.h"
 
-#include "AdcSearch.h"
+#include "SearchQuery.h"
 #include "BloomFilter.h"
 #include "CriticalSection.h"
 #include "Exception.h"
@@ -58,7 +58,7 @@ class File;
 class OutputStream;
 class MemoryInputStream;
 //struct ShareLoader;
-class AdcSearch;
+class SearchQuery;
 class Worker;
 class TaskQueue;
 
@@ -164,8 +164,8 @@ public:
 	void changeExcludedDirs(const ProfileTokenStringList& aAdd, const ProfileTokenStringList& aRemove) noexcept;
 	void rebuildTotalExcludes() noexcept;
 
-	void search(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
-	void search(SearchResultList& l, AdcSearch& aSearch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) throw(ShareException);
+	void nmdcSearch(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
+	void search(SearchResultList& l, SearchQuery& aSearch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) throw(ShareException);
 
 	bool isDirShared(const string& aDir) const noexcept;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const noexcept;
@@ -178,7 +178,6 @@ public:
 	bool loadCache(function<void (float)> progressF) noexcept;
 
 	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
-	static bool checkType(const string& aString, int aType);
 	MemoryInputStream* generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept;
 	MemoryInputStream* generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept;
 	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const noexcept;
@@ -192,8 +191,6 @@ public:
 	void getProfileInfo(ProfileToken aProfile, int64_t& size, size_t& files) const noexcept;
 	
 	void getBloom(HashBloom& bloom) const noexcept;
-
-	static SearchManager::TypeModes getType(const string& fileName) noexcept;
 
 	string validateVirtual(const string& /*aVirt*/) const noexcept;
 	void addHits(uint32_t aHits) noexcept{
@@ -403,11 +400,6 @@ private:
 			}
 		};
 
-		bool hasType(uint32_t type) const noexcept {
-			return ( (type == SearchManager::TYPE_ANY) || (fileTypes & (1 << type)) );
-		}
-		void addType(uint32_t type) noexcept;
-
 		string getADCPath(ProfileToken aProfile) const noexcept;
 		string getVirtualName(ProfileToken aProfile) const noexcept;
 		string getFullName(ProfileToken aProfile) const noexcept; 
@@ -421,8 +413,7 @@ private:
 		int64_t getTotalSize() const noexcept;
 		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const noexcept;
 
-		void search(SearchResultList& aResults, StringSearch::List& aStrings, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
-		void search(SearchResultList& aResults, AdcSearch& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
+		void search(SearchResultList& aResults, SearchQuery& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
 
 		void toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList);
 		void toXml(SimpleXML& aXml, bool fullList, ProfileToken aProfile) const;
@@ -456,8 +447,6 @@ private:
 		Directory::Ptr findDirByPath(const string& aPath, char separator) const noexcept;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
-		/** Set of flags that say which SearchManager::TYPE_* a directory contains */
-		uint32_t fileTypes;
 
 		string getRealPath(const string& path, bool checkExistance) const throw(ShareException);
 	};
@@ -504,7 +493,7 @@ private:
 		int refreshOptions;
 	};
 
-	bool addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, AdcSearch& srch) const noexcept;
+	bool addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, SearchQuery& srch) const noexcept;
 
 	typedef unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
 	ProfileDirMap profileDirs;

@@ -121,7 +121,7 @@ public:
 		void clearAll() noexcept;
 
 		bool findIncomplete() const noexcept;
-		void search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept;
+		void search(OrderedStringSet& aResults, SearchQuery& aStrings, StringList::size_type maxResults) const noexcept;
 		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
 		
 		size_t getFileCount() const noexcept { return files.size(); }
@@ -210,7 +210,7 @@ public:
 
 	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept;
 	bool nextResult(bool prev) noexcept;
-	unique_ptr<AdcSearch> curSearch;
+	unique_ptr<SearchQuery> curSearch;
 
 	bool isCurrentSearchPath(const string& path) const noexcept;
 	size_t getResultCount() const { return searchResults.size(); }

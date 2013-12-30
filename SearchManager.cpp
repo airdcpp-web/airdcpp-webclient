@@ -494,7 +494,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	}
 
 	SearchResultList results;
-	AdcSearch srch(adc.getParameters());
+	SearchQuery srch(adc.getParameters());
 
 	string token;
 	adc.getParam("TO", 0, token);

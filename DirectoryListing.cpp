@@ -374,7 +374,7 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	}
 }
 
-void DirectoryListing::Directory::search(OrderedStringSet& aResults, AdcSearch& aStrings, StringList::size_type maxResults) const noexcept {
+void DirectoryListing::Directory::search(OrderedStringSet& aResults, SearchQuery& aStrings, StringList::size_type maxResults) const noexcept {
 	if (getAdls())
 		return;
 
@@ -392,7 +392,7 @@ void DirectoryListing::Directory::search(OrderedStringSet& aResults, AdcSearch& 
 			}
 		}
 
-		if(aStrings.itemType != AdcSearch::TYPE_DIRECTORY) {
+		if(aStrings.itemType != SearchQuery::TYPE_DIRECTORY) {
 			for(auto& f: files) {
 				if(aStrings.matchesFileLower(Text::toLower(f->getName()), f->getSize(), f->getRemoteDate())) {
 					aResults.insert(getPath());
@@ -923,7 +923,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 
 	fire(DirectoryListingListener::SearchStarted());
 
-	auto search = AdcSearch::getSearch(aSearchString, Util::emptyString, aSize, aTypeMode, aSizeMode, aExtList, AdcSearch::MATCH_NAME, true);
+	auto search = SearchQuery::getSearch(aSearchString, Util::emptyString, aSize, aTypeMode, aSizeMode, aExtList, SearchQuery::MATCH_NAME, true);
 	if (search)
 		curSearch.reset(search);
 
