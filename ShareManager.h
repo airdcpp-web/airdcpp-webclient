@@ -313,8 +313,8 @@ private:
 				FLAG_INCOMING			= 0x08
 			};
 
-			bool hasExcludes() const noexcept { return !excludedProfiles.empty(); }
-			bool hasRoots() const noexcept { return !rootProfiles.empty(); }
+			inline bool hasExcludes() const noexcept { return !excludedProfiles.empty(); }
+			inline bool hasRoots() const noexcept{ return !rootProfiles.empty(); }
 
 			bool hasRootProfile(ProfileToken aProfile) const noexcept;
 			bool hasRootProfile(const ProfileTokenSet& aProfiles) const noexcept;
@@ -363,10 +363,10 @@ private:
 				return name.getLower().compare(rhs.name.getLower()) == 0 && parent == rhs.getParent();
 			}*/
 		
-			string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + name.getNormal(); }
-			string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + name.getNormal(); }
-			string getRealPath(bool validate = true) const { return parent->getRealPath(name.getNormal(), validate); }
-			bool hasProfile(ProfileToken aProfile) const noexcept { return parent->hasProfile(aProfile); }
+			inline string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + name.getNormal(); }
+			inline string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + name.getNormal(); }
+			inline string getRealPath(bool validate = true) const { return parent->getRealPath(name.getNormal(), validate); }
+			inline bool hasProfile(ProfileToken aProfile) const noexcept{ return parent->hasProfile(aProfile); }
 
 			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 			void addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const noexcept;
@@ -411,7 +411,7 @@ private:
 		string getADCPath(ProfileToken aProfile) const noexcept;
 		string getVirtualName(ProfileToken aProfile) const noexcept;
 		string getFullName(ProfileToken aProfile) const noexcept; 
-		string getRealPath(bool checkExistance) const throw(ShareException)  { return getRealPath(Util::emptyString, checkExistance); };
+		inline string getRealPath(bool checkExistance) const throw(ShareException)  { return getRealPath(Util::emptyString, checkExistance); };
 
 		bool hasProfile(ProfileTokenSet& aProfiles) const noexcept;
 		bool hasProfile(ProfileToken aProfiles) const noexcept;
@@ -450,6 +450,8 @@ private:
 		void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
 		DualString name;
 
+		// check for an updated modify date from filesystem
+		void updateModifyDate();
 		void getRenameInfoList(const string& aPath, RenameList& aRename) noexcept;
 		Directory::Ptr findDirByPath(const string& aPath, char separator) const noexcept;
 	private:

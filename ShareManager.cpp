@@ -440,6 +440,8 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 				if (hashFile.empty()) {
 					hashFile = fi;
 				}
+
+				dir->updateModifyDate();
 			}
 		} catch (...) {
 			// try again later
@@ -560,6 +562,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 					parent->directories.erase(p);
 					d->name = DualString(Util::getFileName(aNewPath));
 					parent->directories.insert_sorted(d);
+					parent->updateModifyDate();
 
 					//add in bloom and dir name map
 					d->addBloom(*bloom.get());
@@ -585,6 +588,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 
 						//add new
 						addFile(Util::getFileName(aNewPath), parent, fi, dirtyProfiles);
+						parent->updateModifyDate();
 
 						//add for renaming in file index
 						toRename.emplace_back(Util::emptyString, fi);
@@ -706,6 +710,7 @@ bool ShareManager::handleDeletedFile(const string& aPath, bool isDirectory, Prof
 			}
 		}
 
+		parent->updateModifyDate();
 		if (SETTING(SKIP_EMPTY_DIRS_SHARE) && parent->directories.empty() && parent->files.empty() && parent->getParent()) {
 			//remove the parent
 			cleanIndices(*parent);
@@ -773,6 +778,10 @@ ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::D
 
 ShareManager::Directory::~Directory() { 
 	for_each(files, DeleteFunction());
+}
+
+void ShareManager::Directory::updateModifyDate() {
+	lastWrite = dcpp::File::getLastModified(getRealPath(false));
 }
 
 void ShareManager::Directory::getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_, size_t& folders_) const noexcept {
@@ -2639,6 +2648,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 						ri.root->setParent(parent.get());
 						parent->directories.erase_key(ri.root->name.getLower());
 						parent->directories.insert_sorted(ri.root);
+						parent->updateModifyDate();
 					}
 
 					p++;
@@ -3679,6 +3689,7 @@ ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bo
 					return nullptr;
 				}
 
+				curDir->updateModifyDate();
 				curDir = Directory::create(move(dualName), curDir, File::getLastModified(fullPathLower), m != profileDirs.end() ? m->second : nullptr);
 				addDirName(curDir);
 				curDir->addBloom(*bloom.get());
