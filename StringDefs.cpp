@@ -1856,6 +1856,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "File not found", 
 "Shell menu", 
 "Shell menus", 
+"Failed to load the menu for %1%", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3712,4 +3713,5 @@ std::string dcpp::ResourceManager::names[] = {
 "FileNotFound", 
 "ShellMenu", 
 "ShellMenus", 
+"ShellMenuFailed", 
 };

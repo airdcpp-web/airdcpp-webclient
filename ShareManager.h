@@ -201,7 +201,7 @@ public:
 	// Get real paths for an ADC virtual path
 	void getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const throw(ShareException);
 
-	StringList getRealPaths(const TTHValue& root) const throw(ShareException);
+	StringList getRealPaths(const TTHValue& root) const noexcept;
 
 	enum { 
 		REFRESH_STARTED = 0,
@@ -436,7 +436,7 @@ private:
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 
-		string getRealPath(const string& path) const throw(ShareException);
+		string getRealPath(const string& path) const noexcept;
 	};
 
 	struct FileListDir {

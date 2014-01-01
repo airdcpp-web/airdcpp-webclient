@@ -1860,5 +1860,6 @@ enum Strings { // @DontAdd
 	FILE_NOT_FOUND, // "File not found"
 	SHELL_MENU, // "Shell menu"
 	SHELL_MENUS, // "Shell menus"
+	SHELL_MENU_FAILED, // "Failed to load the menu for %1%"
 	LAST // @DontAdd
 };
