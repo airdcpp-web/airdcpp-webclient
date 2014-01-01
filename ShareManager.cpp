@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2014 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -776,7 +776,7 @@ ShareManager::Directory::~Directory() {
 }
 
 void ShareManager::Directory::updateModifyDate() {
-	lastWrite = dcpp::File::getLastModified(getRealPath(false));
+	lastWrite = dcpp::File::getLastModified(getRealPath());
 }
 
 void ShareManager::Directory::getResultInfo(ProfileToken aProfile, int64_t& size_, size_t& files_, size_t& folders_) const noexcept {

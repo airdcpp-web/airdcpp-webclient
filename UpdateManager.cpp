@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2011 Crise, crise<at>mail.berlios.de
+ * Copyright (C) 2012-2014 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
