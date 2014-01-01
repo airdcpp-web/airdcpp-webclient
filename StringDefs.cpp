@@ -616,7 +616,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Show infotips in lists", 
 "Show joins / parts in chat by default", 
 "Show progress bars for transfers (uses some CPU)", 
-"Show shell menu in finished transfers and own file list", 
 "Skip zero-byte files", 
 "SOCKS5", 
 "Socks IP", 
@@ -1855,6 +1854,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Setup password", 
 "The current number can't be bigger than the maximum number!", 
 "File not found", 
+"Shell menu", 
+"Shell menus", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -2471,7 +2472,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SettingsShowInfoTips", 
 "SettingsShowJoins", 
 "SettingsShowProgressBars", 
-"SettingsShowShellMenu", 
 "SettingsSkipZeroByte", 
 "SettingsSocks5", 
 "SettingsSocks5Ip", 
@@ -3710,4 +3710,6 @@ std::string dcpp::ResourceManager::names[] = {
 "SetupPass", 
 "AsOverMaxNumber", 
 "FileNotFound", 
+"ShellMenu", 
+"ShellMenus", 
 };

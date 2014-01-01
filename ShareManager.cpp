@@ -68,8 +68,6 @@ atomic_flag ShareManager::refreshing = ATOMIC_FLAG_INIT;
 atomic_flag ShareManager::refreshing;
 #endif
 
-boost::regex ShareManager::rxxReg;
-
 ShareDirInfo::ShareDirInfo(const ShareDirInfoPtr& aInfo, ProfileToken aNewProfile) : vname(aInfo->vname), profile(aNewProfile), path(aInfo->path), incoming(aInfo->incoming),
 	found(false), diffState(aInfo->diffState), state(STATE_NORMAL), size(aInfo->size) {
 
@@ -83,8 +81,6 @@ ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GE
 { 
 	SettingsManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
-
-	rxxReg.assign("[Rr0-9][Aa0-9][Rr0-9]");
 #ifdef _WIN32
 	// don't share Windows directory
 	TCHAR path[MAX_PATH];
@@ -833,19 +829,21 @@ string ShareManager::Directory::getFullName(ProfileToken aProfile) const noexcep
 	return parent->getFullName(aProfile) + name.getNormal() + '\\';
 }
 
-string ShareManager::getRealPath(const TTHValue& root) const throw(ShareException) {
+StringList ShareManager::getRealPaths(const TTHValue& root) const noexcept {
+	StringList ret;
+
 	RLock l(cs);
-	const auto i = tthIndex.find(const_cast<TTHValue*>(&root)); 
-	if(i != tthIndex.end()) {
-		return i->second->getRealPath();
+	const auto i = tthIndex.equal_range(const_cast<TTHValue*>(&root)); 
+	for (auto f = i.first; f != i.second; ++f) {
+		ret.push_back((*f).second->getRealPath());
 	}
 
 	const auto k = tempShares.find(root);
 	if (k != tempShares.end()) {
-		return k->second.path;
+		ret.push_back(k->second.path);
 	}
 
-	return Util::emptyString;
+	return ret;
 }
 
 
@@ -854,38 +852,12 @@ bool ShareManager::isTTHShared(const TTHValue& tth) const noexcept {
 	return tthIndex.find(const_cast<TTHValue*>(&tth)) != tthIndex.end();
 }
 
-string ShareManager::Directory::getRealPath(const string& path, bool checkExistance /*true*/) const throw(ShareException) {
+string ShareManager::Directory::getRealPath(const string& path) const noexcept {
 	if(getParent()) {
-		return getParent()->getRealPath(name.getNormal() + PATH_SEPARATOR_STR + path, checkExistance);
+		return getParent()->getRealPath(name.getNormal() + PATH_SEPARATOR_STR + path);
 	}
 
-	string rootDir = getProfileDir()->getPath() + path;
-
-	if(!checkExistance) //no extra checks for finding the file while loading share cache.
-		return rootDir;
-
-	/*check for the existance here if we have moved the file/folder and only refreshed the new location.
-	should we even look, what's moved is moved, user should refresh both locations.*/
-	if(Util::fileExists(rootDir))
-		return rootDir;
-	else
-		return getInstance()->findRealRoot(name.getNormal(), path); // all display names should be compared really..
-}
-
-string ShareManager::findRealRoot(const string& virtualRoot, const string& virtualPath) const throw(ShareException) {
-	for(const auto& s: rootPaths | map_values) {
-		for(const auto& vName: s->getProfileDir()->getRootProfiles() | map_values) {
-			if(Util::stricmp(vName, virtualRoot) == 0) {
-				string path = vName + virtualPath;
-				dcdebug("Matching %s\n", path.c_str());
-				if(FileFindIter(path) != FileFindIter()) {
-					return path;
-				}
-			}
-		}
-	}
-	
-	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
+	return getProfileDir()->getPath() + path;
 }
 
 bool ShareManager::Directory::isRootLevel(ProfileToken aProfile) const noexcept {
@@ -1220,7 +1192,7 @@ void ShareManager::getRealPaths(const string& aPath, StringList& ret, ProfileTok
 
 	if (aPath.back() == '/') {
 		for(const auto& d: dirs)
-			ret.push_back(d->getRealPath(true));
+			ret.push_back(d->getRealPath());
 	} else { //its a file
 		auto fileName = Text::toLower(Util::getAdcFileName(aPath));
 		for(const auto& d: dirs) {
@@ -1597,7 +1569,7 @@ void ShareManager::save(SimpleXML& aXml) {
 		for(const auto& d: rootPaths | map_values) {
 			if (!d->getProfileDir()->hasRootProfile(sp->getToken()))
 				continue;
-			aXml.addTag("Directory", d->getRealPath(false));
+			aXml.addTag("Directory", d->getRealPath());
 			aXml.addChildAttrib("Virtual", d->getProfileDir()->getName(sp->getToken()));
 			//if (p->second->getRoot()->hasFlag(ProfileDirectory::FLAG_INCOMING))
 			aXml.addChildAttrib("Incoming", d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING));
@@ -1834,7 +1806,7 @@ StringList ShareManager::getDirPaths(const string& aDir) const noexcept{
 	RLock l(cs);
 	getDirsByName(aDir, dirs);
 	for (const auto& dir : dirs) {
-		ret.push_back(dir->getRealPath(false));
+		ret.push_back(dir->getRealPath());
 	}
 
 	return ret;
@@ -2036,7 +2008,7 @@ int ShareManager::refresh(const string& aDir) noexcept {
 				// compare all virtual names for real paths
 				for(const auto& vName: d->getProfileDir()->getRootProfiles() | map_values) {
 					if(Util::stricmp(vName, aDir ) == 0) {
-						refreshPaths.push_back(d->getRealPath(false));
+						refreshPaths.push_back(d->getRealPath());
 						vNames.insert(vName);
 					}
 				}
@@ -2708,7 +2680,7 @@ void ShareManager::getShares(ShareDirInfo::Map& aDirs) const noexcept {
 	for(const auto& d: rootPaths | map_values) {
 		const auto& profiles = d->getProfileDir()->getRootProfiles();
 		for(const auto& pd: profiles) {
-			auto sdi = new ShareDirInfo(pd.second, pd.first, d->getRealPath(false), d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING));
+			auto sdi = new ShareDirInfo(pd.second, pd.first, d->getRealPath(), d->getProfileDir()->isSet(ProfileDirectory::FLAG_INCOMING));
 			sdi->size = d->getSize(pd.first);
 			aDirs[pd.first].push_back(sdi);
 		}
@@ -2967,7 +2939,7 @@ void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent
 	if (dupeFiles > 0 && SETTING(FL_REPORT_FILE_DUPES) && shareDirs.size() > 1) {
 		StringList paths;
 		for (const auto& d : shareDirs)
-			paths.push_back(d->getRealPath(false));
+			paths.push_back(d->getRealPath());
 
 		LogManager::getInstance()->message(STRING_F(DUPLICATE_FILES_DETECTED, dupeFiles % Util::toString(", ", paths)), LogManager::LOG_WARNING);
 	}
@@ -3583,15 +3555,14 @@ vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noe
 			for(const auto& vName: d->getProfileDir()->getRootProfiles() | map_values) {
 				auto retVirtual = find_if(ret, CompareFirst<string, StringList>(vName));
 
-				const auto& rp = d->getRealPath(false);
+				const auto& rp = d->getRealPath();
 				if (retVirtual != ret.end()) {
 					//insert under an old virtual node if the real path doesn't exist there already
 					if (find(retVirtual->second, rp) == retVirtual->second.end()) {
 						retVirtual->second.push_back(rp); //sorted
 					}
 				} else {
-					StringList tmp = { rp };
-					ret.emplace_back(vName, tmp);
+					ret.emplace_back(vName, StringList { rp });
 				}
 			}
 		}

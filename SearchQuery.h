@@ -47,6 +47,8 @@ namespace dcpp {
 		// General initialization
 		static SearchQuery* getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents);
 		static StringList parseSearchString(const string& aString);
+		SearchQuery(const string& aString, const string& aExcluded, const StringList& aExt, MatchType aMatchType);
+		SearchQuery(const TTHValue& aRoot);
 
 		// Protocol-specific
 		SearchQuery(const StringList& adcParams);
@@ -84,8 +86,6 @@ namespace dcpp {
 		bool matchesSize(int64_t aSize);
 		bool matchesDate(uint32_t aDate);
 	private:
-		SearchQuery(const string& aString, const string& aExcluded, const StringList& aExt, MatchType aMatchType);
-		SearchQuery(const TTHValue& aRoot);
 	};
 }
 

@@ -75,28 +75,26 @@ AirUtil::TimeCounter::~TimeCounter() {
 	LogManager::getInstance()->message(msg + ", took " + Util::toString(end - start) + " ms", LogManager::LOG_INFO);
 }
 
-string AirUtil::getDirDupePath(DupeType aType, const string& aPath) {
+StringList AirUtil::getDirDupePaths(DupeType aType, const string& aPath) {
+	StringList ret;
 	if (aType == SHARE_DUPE || aType == PARTIAL_SHARE_DUPE) {
-		auto ret = ShareManager::getInstance()->getDirPaths(aPath);
-		return ret.empty() ? Util::emptyString : ret.front();
+		ret = ShareManager::getInstance()->getDirPaths(aPath);
 	} else {
-		auto ret = QueueManager::getInstance()->getDirPaths(aPath);
-		return ret.empty() ? Util::emptyString : ret.front();
+		ret = QueueManager::getInstance()->getDirPaths(aPath);
 	}
+
+	return ret;
 }
 
-string AirUtil::getDupePath(DupeType aType, const TTHValue& aTTH) {
+StringList AirUtil::getDupePaths(DupeType aType, const TTHValue& aTTH) {
+	StringList ret;
 	if (aType == SHARE_DUPE) {
-		try {
-			return ShareManager::getInstance()->getRealPath(aTTH);
-		} catch(...) { }
+		ret = ShareManager::getInstance()->getRealPaths(aTTH);
 	} else {
-		StringList localPaths = QueueManager::getInstance()->getTargets(aTTH);
-		if (!localPaths.empty()) {
-			return localPaths.front();
-		}
+		ret = QueueManager::getInstance()->getTargets(aTTH);
 	}
-	return Util::emptyString;
+
+	return ret;
 }
 
 DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {

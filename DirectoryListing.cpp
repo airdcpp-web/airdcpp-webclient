@@ -611,13 +611,17 @@ void DirectoryListing::getLocalPaths(const File* f, StringList& ret) const throw
 	if(f->getParent()->getAdls() && (f->getParent()->getParent() == root || !isOwnList))
 		return;
 
-	string path;
-	if (f->getParent()->getAdls())
-		path = ((AdlDirectory*)f->getParent())->getFullPath();
-	else
-		path = f->getParent()->getPath();
+	if (isOwnList) {
+		string path;
+		if (f->getParent()->getAdls())
+			path = ((AdlDirectory*) f->getParent())->getFullPath();
+		else
+			path = f->getParent()->getPath();
 
-	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path + f->getName()), ret, Util::toInt(fileName));
+		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path + f->getName()), ret, Util::toInt(fileName));
+	} else {
+		ret = AirUtil::getDupePaths(f->getDupe(), f->getTTH());
+	}
 }
 
 void DirectoryListing::getLocalPaths(const Directory::Ptr& d, StringList& ret) const throw(ShareException) {
@@ -626,10 +630,15 @@ void DirectoryListing::getLocalPaths(const Directory::Ptr& d, StringList& ret) c
 
 	string path;
 	if (d->getAdls())
-		path = ((AdlDirectory*)d.get())->getFullPath();
+		path = ((AdlDirectory*) d.get())->getFullPath();
 	else
 		path = d->getPath();
-	ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path), ret, Util::toInt(fileName));
+
+	if (isOwnList) {
+		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path), ret, Util::toInt(fileName));
+	} else {
+		ret = ShareManager::getInstance()->getDirPaths(path);
+	}
 }
 
 int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) const noexcept {

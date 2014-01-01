@@ -197,7 +197,7 @@ const string SettingsManager::settingTags[] =
 	"AwayTimeStamp",
 
 	"PrivateMessageBeep", "PrivateMessageBeepOpen", "ShowProgressBars", "MDIMaxmimized", "SearchPassiveAlways", "RemoveForbidden", "ShowInfoTips", "MinimizeOnStratup", "ConfirmDelete", "ExpandQueue",
-	"FilterEnter", "ShowShellMenu", "SpyFrameIgnoreTthSearches", "OpenWaitingUsers", "BoldWaitingUsers", "GroupSearchResults", "TabsOnTop", "OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue", "OpenFinishedDownloads",
+	"FilterEnter", "SpyFrameIgnoreTthSearches", "OpenWaitingUsers", "BoldWaitingUsers", "GroupSearchResults", "TabsOnTop", "OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue", "OpenFinishedDownloads",
 	"OpenFinishedUploads", "OpenSearchSpy", "OpenNotepad", "SuppressMainChat", "ProgressbaroDCStyle", "MultiChunk", "PopupAway", "PopupMinimized", "Away", "PopupHubConnected", "PopupHubDisconnected", "PopupFavoriteConnected", 
 	"PopupDownloadStart", "PopupDownloadFailed", "PopupDownloadFinished", "PopupUploadFinished", "PopupPm", "PopupNewPM", "UploadQueueFrameShowTree", "SegmentsManual", "SoundsDisabled", "ReportFoundAlternates",
 	"UseAutoPriorityByDefault", "UseOldSharingUI", "DefaultSearchFreeSlots", 
@@ -391,7 +391,6 @@ SettingsManager::SettingsManager()
 	setDefault(ALLOW_UNTRUSTED_HUBS, true);
 	setDefault(ALLOW_UNTRUSTED_CLIENTS, true);		
 	setDefault(SORT_FAVUSERS_FIRST, false);
-	setDefault(SHOW_SHELL_MENU, true);	
 	setDefault(CORAL, true);	
 	setDefault(NUMBER_OF_SEGMENTS, 3);
 	setDefault(SEGMENTS_MANUAL, false);

@@ -494,12 +494,10 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 
 	//check share dupes
 	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aTTH)) {
-		try {
-			auto path = Util::getFilePath(ShareManager::getInstance()->getRealPath(aTTH));
-			path = AirUtil::subtractCommonDirs(aBundleDir, path, PATH_SEPARATOR);
+		auto paths = ShareManager::getInstance()->getRealPaths(aTTH);
+		if (!paths.empty()) {
+			auto path = AirUtil::subtractCommonDirs(aBundleDir, Util::getFilePath(paths.front()), PATH_SEPARATOR);
 			throw DupeException(STRING_F(TTH_ALREADY_SHARED, path));
-		} catch(ShareException& /*e*/) { 
-			//it doesn't exist on the disk, ignore
 		}
 	}
 

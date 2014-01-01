@@ -124,11 +124,6 @@ class FileList;
 class ShareManager : public Singleton<ShareManager>, private Thread, private SettingsManagerListener, private TimerManagerListener, private QueueManagerListener, private DirectoryMonitorListener
 {
 public:
-	/**
-	 * @param aDirectory Physical directory location
-	 * @param aName Virtual name
-	 */
-
 	void setSkipList();
 
 	bool matchSkipList(const string& aStr) const noexcept { return skipList.match(aStr); }
@@ -173,6 +168,8 @@ public:
 	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const noexcept;
 
 	bool allowAddDir(const string& dir) const noexcept;
+
+	// Returns the dupe paths by directory name/NMDC path
 	StringList getDirPaths(const string& aDir) const noexcept;
 
 	bool loadCache(function<void (float)> progressF) noexcept;
@@ -204,7 +201,7 @@ public:
 	// Get real paths for an ADC virtual path
 	void getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const throw(ShareException);
 
-	string getRealPath(const TTHValue& root) const throw(ShareException);
+	StringList getRealPaths(const TTHValue& root) const throw(ShareException);
 
 	enum { 
 		REFRESH_STARTED = 0,
@@ -342,10 +339,6 @@ private:
 
 		class File {
 		public:
-			/*struct FileLess {
-				bool operator()(const File& a, const File& b) const { return strcmp(a.name.getLower().c_str(), b.name.getLower().c_str()) < 0; }
-			};*/
-
 			struct NameLower {
 				const string& operator()(const File* a) const { return a->name.getLower(); }
 			};
@@ -355,15 +348,11 @@ private:
 
 			File(DualString&& aName, const Directory::Ptr& aParent, const HashedFile& aFileInfo);
 			~File();
-
-			/*bool operator==(const File& rhs) const {
-				return name.getLower().compare(rhs.name.getLower()) == 0 && parent == rhs.getParent();
-			}*/
 		
-			inline string getADCPath(ProfileToken aProfile) const { return parent->getADCPath(aProfile) + name.getNormal(); }
-			inline string getFullName(ProfileToken aProfile) const { return parent->getFullName(aProfile) + name.getNormal(); }
-			inline string getRealPath(bool validate = true) const { return parent->getRealPath(name.getNormal(), validate); }
-			inline bool hasProfile(ProfileToken aProfile) const noexcept{ return parent->hasProfile(aProfile); }
+			inline string getADCPath(ProfileToken aProfile) const noexcept{ return parent->getADCPath(aProfile) + name.getNormal(); }
+			inline string getFullName(ProfileToken aProfile) const noexcept{ return parent->getFullName(aProfile) + name.getNormal(); }
+			inline string getRealPath() const noexcept { return parent->getRealPath(name.getNormal()); }
+			inline bool hasProfile(ProfileToken aProfile) const noexcept { return parent->hasProfile(aProfile); }
 
 			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 			void addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const noexcept;
@@ -375,8 +364,6 @@ private:
 
 			DualString name;
 		};
-
-		//typedef set<Directory::Ptr, DirLess> Set;
 
 		typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;
 		Set directories;
@@ -403,7 +390,8 @@ private:
 		string getADCPath(ProfileToken aProfile) const noexcept;
 		string getVirtualName(ProfileToken aProfile) const noexcept;
 		string getFullName(ProfileToken aProfile) const noexcept; 
-		inline string getRealPath(bool checkExistance) const throw(ShareException)  { return getRealPath(Util::emptyString, checkExistance); };
+
+		inline string getRealPath() const noexcept{ return getRealPath(Util::emptyString); };
 
 		bool hasProfile(ProfileTokenSet& aProfiles) const noexcept;
 		bool hasProfile(ProfileToken aProfiles) const noexcept;
@@ -448,7 +436,7 @@ private:
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 
-		string getRealPath(const string& path, bool checkExistance) const throw(ShareException);
+		string getRealPath(const string& path) const throw(ShareException);
 	};
 
 	struct FileListDir {
@@ -468,6 +456,8 @@ private:
 	};
 
 	void addAsyncTask(AsyncF aF) noexcept;
+
+	// Returns the dupe directories by directory name/NMDC path
 	void getDirsByName(const string& aPath, Directory::List& dirs_) const noexcept;
 
 	/* Directory items mapped to realpath*/
@@ -547,18 +537,11 @@ private:
 		DirMap rootPathsNew;
 
 		string path;
-
-		/*struct FileCount {
-			int64_t operator()(const RefreshInfo& ri) const {
-				return ri.root->getProfileDir() ? ri.root->getProfileDir()->getRootProfiles();
-			}
-		};*/
 	};
 
 	typedef shared_ptr<RefreshInfo> RefreshInfoPtr;
 	typedef vector<RefreshInfoPtr> RefreshInfoList;
 
-	//void mergeRefreshChanges(RefreshInfoList& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles);
 	template<typename T>
 	void mergeRefreshChanges(T& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept {
 		for (const auto& i: aList) {
@@ -578,7 +561,6 @@ private:
 	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) noexcept;
 	void addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
 
-	//void rebuildIndices();
 	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames) noexcept;
 	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) noexcept;
 	void cleanIndices(Directory& dir) noexcept;
@@ -592,7 +574,6 @@ private:
 
 	void getByVirtual(const string& virtualName, ProfileToken aProfiles, Directory::List& dirs) const noexcept;
 	void getByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs) const noexcept;
-	//void findVirtuals(const string& virtualPath, ProfileToken aProfiles, Directory::List& dirs) const;
 
 	template<class T>
 	void findVirtuals(const string& virtualPath, const T& aProfile, Directory::List& dirs) const throw(ShareException) {
@@ -640,27 +621,6 @@ private:
 		}
 	}
 
-	/*template<class T>
-	Directory::Ptr findDirectory(const string& virtualPath, const T& aProfile, const Directory::Ptr& aDir) const noexcept {
-		string::size_type i = 0; // always start from the begin.
-		string::size_type j = 1;
-
-		Directory::Ptr d = aDir;
-		while((i = virtualPath.find('/', j)) != string::npos) {
-			auto mi = d->directories.find(virtualPath.substr(j, i - j));
-			j = i + 1;
-			if(mi != d->directories.end() && !(*mi)->isLevelExcluded(aProfile)) {   //if we found something, look for more.
-				d = *mi;
-			} else {
-				return nullptr;
-			}
-		}
-
-		return d;
-	}*/
-
-	string findRealRoot(const string& virtualRoot, const string& virtualLeaf) const throw(ShareException);
-
 	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report, bool checkExcludes=true) noexcept;
 
 	virtual int run();
@@ -692,8 +652,6 @@ private:
 	virtual void on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept;
 	virtual void on(DirectoryMonitorListener::Overflow, const string& aPath) noexcept;
 	virtual void on(DirectoryMonitorListener::DirectoryFailed, const string& aPath, const string& aError) noexcept;
-
-	//Directory::Ptr ShareManager::removeFileOrDirectory(Directory::Ptr& aDir, const string& aName) throw(ShareException);
 
 	void load(SimpleXML& aXml);
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);

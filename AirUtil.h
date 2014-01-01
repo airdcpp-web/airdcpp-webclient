@@ -67,8 +67,8 @@ public:
 	static DupeType checkDirDupe(const string& aDir, int64_t aSize);
 	static DupeType checkFileDupe(const TTHValue& aTTH);
 
-	static string getDirDupePath(DupeType aType, const string& aPath);
-	static string getDupePath(DupeType aType, const TTHValue& aTTH);
+	static StringList getDirDupePaths(DupeType aType, const string& aPath);
+	static StringList getDupePaths(DupeType aType, const TTHValue& aTTH);
 
 	static TTHValue getTTH(const string& aFileName, int64_t aSize);
 

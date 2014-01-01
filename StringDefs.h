@@ -619,7 +619,6 @@ enum Strings { // @DontAdd
 	SETTINGS_SHOW_INFO_TIPS, // "Show infotips in lists"
 	SETTINGS_SHOW_JOINS, // "Show joins / parts in chat by default"
 	SETTINGS_SHOW_PROGRESS_BARS, // "Show progress bars for transfers (uses some CPU)"
-	SETTINGS_SHOW_SHELL_MENU, // "Show shell menu in finished transfers and own file list"
 	SETTINGS_SKIP_ZERO_BYTE, // "Skip zero-byte files"
 	SETTINGS_SOCKS5, // "SOCKS5"
 	SETTINGS_SOCKS5_IP, // "Socks IP"
@@ -1859,5 +1858,7 @@ enum Strings { // @DontAdd
 	SETUP_PASS, // "Setup password"
 	AS_OVER_MAX_NUMBER, // "The current number can't be bigger than the maximum number!"
 	FILE_NOT_FOUND, // "File not found"
+	SHELL_MENU, // "Shell menu"
+	SHELL_MENUS, // "Shell menus"
 	LAST // @DontAdd
 };
