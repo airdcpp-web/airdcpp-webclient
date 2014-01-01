@@ -77,7 +77,7 @@ AirUtil::TimeCounter::~TimeCounter() {
 
 StringList AirUtil::getDirDupePaths(DupeType aType, const string& aPath) {
 	StringList ret;
-	if (aType == SHARE_DUPE || aType == PARTIAL_SHARE_DUPE) {
+	if (aType == DUPE_SHARE || aType == DUPE_SHARE_PARTIAL) {
 		ret = ShareManager::getInstance()->getDirPaths(aPath);
 	} else {
 		ret = QueueManager::getInstance()->getDirPaths(aPath);
@@ -88,7 +88,7 @@ StringList AirUtil::getDirDupePaths(DupeType aType, const string& aPath) {
 
 StringList AirUtil::getDupePaths(DupeType aType, const TTHValue& aTTH) {
 	StringList ret;
-	if (aType == SHARE_DUPE) {
+	if (aType == DUPE_SHARE) {
 		ret = ShareManager::getInstance()->getRealPaths(aTTH);
 	} else {
 		ret = QueueManager::getInstance()->getTargets(aTTH);
@@ -100,22 +100,22 @@ StringList AirUtil::getDupePaths(DupeType aType, const TTHValue& aTTH) {
 DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
 	const auto sd = ShareManager::getInstance()->isDirShared(aDir, aSize);
 	if (sd > 0) {
-		return sd == 2 ? SHARE_DUPE : PARTIAL_SHARE_DUPE;
+		return sd == 2 ? DUPE_SHARE : DUPE_SHARE_PARTIAL;
 	} else {
 		const auto qd = QueueManager::getInstance()->isDirQueued(aDir);
 		if (qd > 0)
-			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE;
+			return qd == 1 ? DUPE_QUEUE : DUPE_FINISHED;
 	}
 	return DUPE_NONE;
 }
 
 DupeType AirUtil::checkFileDupe(const TTHValue& aTTH) {
 	if (ShareManager::getInstance()->isFileShared(aTTH)) {
-		return SHARE_DUPE;
+		return DUPE_SHARE;
 	} else {
 		const int qd = QueueManager::getInstance()->isFileQueued(aTTH);
 		if (qd > 0) {
-			return qd == 1 ? QUEUE_DUPE : FINISHED_DUPE; 
+			return qd == 1 ? DUPE_QUEUE : DUPE_FINISHED; 
 		}
 	}
 	return DUPE_NONE;

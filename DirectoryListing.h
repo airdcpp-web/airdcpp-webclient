@@ -83,7 +83,7 @@ public:
 		GETSET(DupeType, dupe, Dupe);
 		GETSET(time_t, remoteDate, RemoteDate);
 		bool isQueued() const noexcept {
-			return (dupe == QUEUE_DUPE || dupe == FINISHED_DUPE);
+			return (dupe == DUPE_QUEUE || dupe == DUPE_FINISHED);
 		}
 	};
 

@@ -37,20 +37,20 @@ ChatLink::ChatLink(const string& aUrl, LinkType aLinkType, const UserPtr& aUser)
 DupeType ChatLink::updateDupeType(const UserPtr& aUser) {
 	if (type == TYPE_RELEASE) {
 		if (ShareManager::getInstance()->isDirShared(url)) {
-			dupe = SHARE_DUPE;
+			dupe = DUPE_SHARE;
 		} else {
 			auto qd = QueueManager::getInstance()->isDirQueued(url);
 			if (qd == 1) {
-				dupe = QUEUE_DUPE;
+				dupe = DUPE_QUEUE;
 			} else if (qd == 2) {
-				dupe = FINISHED_DUPE;
+				dupe = DUPE_FINISHED;
 			}
 		}
 	} else if (type == TYPE_MAGNET) {
 		Magnet m = Magnet(url);
 		dupe = m.getDupeType();
 		if (dupe == DUPE_NONE && ShareManager::getInstance()->ShareManager::getInstance()->isTempShared(aUser ? aUser->getCID().toBase32() : Util::emptyString, m.getTTH())) {
-			dupe = SHARE_DUPE;
+			dupe = DUPE_SHARE;
 		}
 	}
 	return dupe;
