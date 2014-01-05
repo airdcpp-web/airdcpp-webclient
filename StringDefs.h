@@ -1609,6 +1609,7 @@ enum Strings { // @DontAdd
 	LIST_ALREADY_QUEUED, // "The file list is queued already"
 	FILE_X_QUEUED, // "The file %1% has been added in queue (%2%)"
 	ADD_BUNDLE_ERRORS_OCC, // "The following error(s) occurred when queueing the bundle %1% from a user %2%: %3%"
+	ADD_FILE_ERROR, // "Failed to queue the file %1% from a user %2%: %3%"
 	X_FILE_COUNT, // "%1% (%2% out of %3% bundle files were affected)"
 	X_FILE_NAMES, // "%1% (affected file(s): %2%)"
 	FILE_ALREADY_QUEUED, // "A file with the same hash exists in a queued directory %1%"
