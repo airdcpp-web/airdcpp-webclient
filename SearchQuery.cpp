@@ -271,12 +271,12 @@ bool SearchQuery::matchesDirectory(const string& aName) {
 	return false;
 }
 
-StringSearch::List* SearchQuery::matchesDirectoryReLower(const string& aName) {
-	StringSearch::List* newStr = nullptr;
+unique_ptr<StringSearch::List> SearchQuery::matchesDirectoryReLower(const string& aName) {
+	unique_ptr<StringSearch::List> newStr = nullptr;
 	for(const auto& k: *include) {
 		if(k.matchLower(aName)) {
 			if(!newStr) {
-				newStr = new StringSearch::List(*include);
+				newStr.reset(new StringSearch::List(*include));
 			}
 			newStr->erase(remove(newStr->begin(), newStr->end(), k), newStr->end());
 		}

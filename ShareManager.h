@@ -287,6 +287,7 @@ private:
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
 		public:
 			typedef boost::intrusive_ptr<ProfileDirectory> Ptr;
+			typedef unordered_map<ProfileToken, DualString> ProfileNameMap;
 
 			ProfileDirectory(const string& aRootPath, const string& aVname, ProfileToken aProfile, bool incoming = false);
 			ProfileDirectory(const string& aRootPath, ProfileToken aProfile);
@@ -294,7 +295,7 @@ private:
 			GETSET(string, path, Path);
 
 			//lists the profiles where this directory is set as root and virtual names
-			GETSET(ProfileTokenStringMap, rootProfiles, RootProfiles);
+			GETSET(ProfileNameMap, rootProfiles, RootProfiles);
 			GETSET(ProfileTokenSet, excludedProfiles, ExcludedProfiles);
 			GETSET(bool, cacheDirty, CacheDirty);
 
@@ -318,7 +319,12 @@ private:
 			void addExclude(ProfileToken aProfile) noexcept;
 			bool removeRootProfile(ProfileToken aProfile) noexcept;
 			bool removeExcludedProfile(ProfileToken aProfile) noexcept;
-			string getName(ProfileToken aProfile) const noexcept;
+			inline string getName(ProfileToken aProfile) const noexcept{
+				return rootProfiles.at(aProfile).getNormal();
+			}
+			inline const string& getNameLower(ProfileToken aProfile) const noexcept{
+				return rootProfiles.at(aProfile).getLower();
+			}
 
 			string getCacheXmlPath() const noexcept;
 	};
@@ -334,7 +340,7 @@ private:
 		typedef std::vector<Directory::Ptr> List;
 
 		struct NameLower {
-			const string& operator()(const Ptr& a) const { return a->name.getLower(); }
+			const string& operator()(const Ptr& a) const { return a->realName.getLower(); }
 		};
 
 		class File {
@@ -389,6 +395,7 @@ private:
 
 		string getADCPath(ProfileToken aProfile) const noexcept;
 		string getVirtualName(ProfileToken aProfile) const noexcept;
+		const string& getVirtualNameLower(ProfileToken aProfile) const noexcept;
 		string getFullName(ProfileToken aProfile) const noexcept; 
 
 		inline string getRealPath() const noexcept{ return getRealPath(Util::emptyString); };
@@ -427,7 +434,7 @@ private:
 		void addBloom(ShareBloom& aBloom) const noexcept;
 
 		void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
-		DualString name;
+		DualString realName;
 
 		// check for an updated modify date from filesystem
 		void updateModifyDate();
@@ -440,7 +447,7 @@ private:
 	};
 
 	struct FileListDir {
-		typedef unordered_map<string, FileListDir*, noCaseStringHash, noCaseStringEq> ListDirectoryMap;
+		typedef unordered_map<string*, FileListDir*, noCaseStringHash, noCaseStringEq> ListDirectoryMap;
 		Directory::List shareDirs;
 
 		FileListDir(const string& aName, int64_t aSize, int aDate);

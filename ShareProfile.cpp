@@ -76,10 +76,10 @@ string ShareProfileInfo::getDisplayName() const {
 	return ret;
 }
 
-ShareProfile::ShareProfile(const string& aName, ProfileToken aToken) : token(aToken), plainName(aName), profileList(new FileList(aToken)){ }
+ShareProfile::ShareProfile(const string& aName, ProfileToken aToken) : token(aToken), plainName(aName), fileList(aToken) {}
 
 ShareProfile::~ShareProfile() {
-	delete profileList;
+
 }
 
 string ShareProfile::getDisplayName() const {
@@ -90,9 +90,8 @@ string ShareProfile::getDisplayName() const {
 	return ret;
 }
 
-FileList* ShareProfile::generateProfileList() {
-	profileList = new FileList(token);
-	return profileList;
+FileList* ShareProfile::getProfileList() {
+	return &fileList;
 }
 
 } //dcpp

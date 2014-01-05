@@ -108,15 +108,16 @@ public:
 	IGETSET(bool, profileInfoDirty, ProfileInfoDirty, true);
 	IGETSET(int64_t, shareSize, ShareSize, 0);
 	IGETSET(size_t, sharedFiles, SharedFiles, 0);
-	IGETSET(FileList*, profileList, ProfileList, nullptr);
 
 	string getDisplayName() const;
 	ShareProfile(const string& aName, ProfileToken aToken = Util::randInt(100));
 	~ShareProfile();
 
-	FileList* generateProfileList();
+	FileList* getProfileList();
 	typedef unordered_set<ShareProfilePtr, Hash> Set;
 	typedef vector<ShareProfilePtr> List;
+private:
+	FileList fileList;
 };
 
 inline bool operator==(const ShareProfilePtr& ptr, ProfileToken aToken) { return ptr->getToken() == aToken; }

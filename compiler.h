@@ -150,6 +150,7 @@
 # pragma warning(disable: 4428) // universal-character-name encountered in source
 # pragma warning(disable: 4201) // nonstadard extension used : nameless struct/union
 # pragma warning(disable: 4324) // structure was padded due to __declspec(align()), lockfree queue
+# pragma warning(disable: 4996) // Function call with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct.
 
 
 # pragma warning(disable: 4244) // conversion from 'xxx' to 'yyy', possible loss of data

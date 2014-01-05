@@ -81,7 +81,7 @@ namespace dcpp {
 		bool matchesDirectory(const string& aName);
 
 		//returns list of search terms that didn't match the name
-		StringSearch::List* matchesDirectoryReLower(const string& aName);
+		unique_ptr<StringSearch::List> matchesDirectoryReLower(const string& aName);
 
 		bool matchesSize(int64_t aSize);
 		bool matchesDate(uint32_t aDate);

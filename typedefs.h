@@ -71,7 +71,6 @@ typedef vector<Client*> ClientList;
 typedef int ProfileToken;
 typedef vector<ProfileToken> ProfileTokenList;
 typedef vector<pair<ProfileToken, string>> ProfileTokenStringList;
-typedef std::unordered_map <ProfileToken, string> ProfileTokenStringMap;
 
 #ifdef UNICODE
 
