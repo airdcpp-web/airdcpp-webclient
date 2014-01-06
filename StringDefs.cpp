@@ -1858,6 +1858,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Shell menu", 
 "Shell menus", 
 "Failed to load the menu for %1%", 
+"Could not open NFO via external viewer, Error: ", 
+"Open .nfo files externally", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3716,4 +3718,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ShellMenu", 
 "ShellMenus", 
 "ShellMenuFailed", 
+"ErrorOpeningNfoExternal", 
+"OpenNfoExternal", 
 };

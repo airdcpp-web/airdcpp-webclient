@@ -1862,5 +1862,7 @@ enum Strings { // @DontAdd
 	SHELL_MENU, // "Shell menu"
 	SHELL_MENUS, // "Shell menus"
 	SHELL_MENU_FAILED, // "Failed to load the menu for %1%"
+	ERROR_OPENING_NFO_EXTERNAL, // "Could not open NFO via external viewer, Error: "
+	OPEN_NFO_EXTERNAL, // "Open .nfo files externally"
 	LAST // @DontAdd
 };
