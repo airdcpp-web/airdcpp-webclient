@@ -44,10 +44,11 @@ public:
 
 	DualString(DualString&& rhs);
 	DualString& operator=(DualString&&);
-private:
 	DualString(const DualString&);
 	DualString& operator= (const DualString& other);
-	MaskType* charSizes;
+private:
+	size_t initSizeArray(size_t strLen);
+	MaskType* charSizes = nullptr;
 };
 
 #endif

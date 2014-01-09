@@ -41,7 +41,7 @@ wchar_t toUpper(wchar_t c) noexcept {
 
 #define ARRAY_BITS (sizeof(MaskType)*8)
 
-DualString::DualString(const string& aStr) : charSizes(nullptr) {
+DualString::DualString(const string& aStr) {
 	reserve(aStr.size());
 
 	//auto tmp = dcpp::Text::toLower(aStr);
@@ -56,12 +56,7 @@ DualString::DualString(const string& aStr) : charSizes(nullptr) {
 			auto lc = toLower(c);
 			if (lc != c) {
 				if (!charSizes) {
-					// Create an array with minumum possible length that will store the character sizes (unset=lowercase, set=uppercase)
-					int arrSize = static_cast<int>(aStr.size() % ARRAY_BITS == 0 ? aStr.size() / ARRAY_BITS : (aStr.size() / ARRAY_BITS) + 1);
-					charSizes = new MaskType[arrSize];
-					for (int s = 0; s < arrSize; ++s) {
-						charSizes[s] = 0;
-					}
+					initSizeArray(aStr.size());
 				}
 				charSizes[arrayPos] |= (1 << bitPos);
 			}
@@ -80,6 +75,17 @@ DualString::DualString(const string& aStr) : charSizes(nullptr) {
 	}
 }
 
+// Create an array with minumum possible length that will store the character sizes (unset=lowercase, set=uppercase)
+size_t DualString::initSizeArray(size_t strLen) {
+	size_t arrSize = strLen % ARRAY_BITS == 0 ? strLen / ARRAY_BITS : (strLen / ARRAY_BITS) + 1;
+	charSizes = new MaskType[arrSize];
+	for (int s = 0; s < arrSize; ++s) {
+		charSizes[s] = 0;
+	}
+
+	return arrSize;
+}
+
 DualString& DualString::operator=(DualString&& rhs) {
 	assign(rhs.begin(), rhs.end());
 	charSizes = rhs.charSizes;
@@ -87,18 +93,35 @@ DualString& DualString::operator=(DualString&& rhs) {
 	return *this; 
 }
 
-DualString::DualString(DualString&& rhs) {
+DualString::DualString(DualString&& rhs) : charSizes(rhs.charSizes) {
 	assign(rhs.begin(), rhs.end());
-	charSizes = rhs.charSizes;
 	rhs.charSizes = nullptr;
 }
 
-DualString::DualString(const DualString& /*other*/) {
-	dcassert(0);
+DualString::DualString(const DualString& rhs) {
+	assign(rhs.begin(), rhs.end());
+	if (rhs.charSizes) {
+		auto size = initSizeArray(rhs.size());
+		for (int s = 0; s < size; ++s) {
+			charSizes[s] = rhs.charSizes[s];
+		}
+	}
+	//dcassert(0);
 }
 
-DualString& DualString::operator= (const DualString& /*other*/) {
-	dcassert(0);
+DualString& DualString::operator= (const DualString& rhs) {
+	if (charSizes) {
+		delete charSizes;
+		charSizes = nullptr;
+	}
+
+	assign(rhs.begin(), rhs.end());
+	if (rhs.charSizes) {
+		auto size = initSizeArray(rhs.size());
+		for (int s = 0; s < size; ++s) {
+			charSizes[s] = rhs.charSizes[s];
+		}
+	}
 	return *this;
 }
 
