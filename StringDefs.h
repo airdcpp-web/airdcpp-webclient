@@ -1776,7 +1776,7 @@ enum Strings { // @DontAdd
 	MONITOR_DIR_FAILED, // "A failed directory %1% has been removed from monitoring: %2%"
 	NO_ASCH_NOTE, // "This user doesn't support the advanced searching features in partial lists, which may result in lower hit counts."
 	PARTIAL_SCH_NMDC_NOTE, // "Searching from the whole share via partial list isn't supported in NMDC hubs. It's recommended to use the full list instead."
-	USE_DEFAULT_CERT_PATHS, // "Store in the the default location"
+	USE_DEFAULT_CERT_PATHS, // "Store in the default location"
 	TRUSTED_CERT_NOTE, // "WARNING: Don't change the trusted certificate settings unless you know what you are doing"
 	NO_RESULTS_SPECIFIED_TIME, // "No results were received in the specified time"
 	MAX_RUNNING_BUNDLES, // "Maximum number of running bundles (0 = infinite)"
