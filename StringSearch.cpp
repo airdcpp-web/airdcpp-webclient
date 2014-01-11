@@ -144,7 +144,7 @@ int StringSearch::matchLower(const string& aText, bool aResumeOnNoMatch, ResultL
 				}
 			} else if (!aResumeOnNoMatch) {
 				if (results_) {
-					memset(&(*results_)[0], -1, listPos*sizeof((*results_)[0]));
+					fill_n((*results_).begin(), listPos, string::npos);
 				}
 				return 0;
 			}

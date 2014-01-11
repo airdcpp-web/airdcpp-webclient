@@ -266,8 +266,7 @@ StringSearch::ResultList SearchQuery::getResultPositions() const {
 
 void SearchQuery::resetPositions() {
 	if (lastIncludeMatches > 0) {
-		// reset all to string::npos
-		memset(&lastIncludePositions[0], -1, lastIncludePositions.size()*sizeof(lastIncludePositions[0]));
+		fill(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos);
 		lastIncludeMatches = 0;
 	}
 	dcassert(count(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos) == (int)lastIncludePositions.size());
