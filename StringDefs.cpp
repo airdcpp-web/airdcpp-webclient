@@ -1772,7 +1772,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "A failed directory %1% has been removed from monitoring: %2%", 
 "This user doesn't support the advanced searching features in partial lists, which may result in lower hit counts.", 
 "Searching from the whole share via partial list isn't supported in NMDC hubs. It's recommended to use the full list instead.", 
-"Store in the the default location", 
+"Store in the default location", 
 "WARNING: Don't change the trusted certificate settings unless you know what you are doing", 
 "No results were received in the specified time", 
 "Maximum number of running bundles (0 = infinite)", 

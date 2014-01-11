@@ -3251,7 +3251,7 @@ void ShareManager::Directory::search(SearchResultInfo::Set& results_, SearchQuer
 		if (aStrings.itemType != SearchQuery::TYPE_FILE && aStrings.positionsComplete()) {
 			if (aStrings.gt == 0 && aStrings.matchesDate(lastWrite)) {
 				// Full match
-				results_.emplace(this, aStrings, level);
+				results_.insert(Directory::SearchResultInfo(this, aStrings, level));
 				if (aStrings.matchType == SearchQuery::MATCH_FULL_PATH) {
 					return;
 				}
@@ -3290,7 +3290,7 @@ void ShareManager::Directory::search(SearchResultInfo::Set& results_, SearchQuer
 				continue;
 			}
 
-			results_.emplace(f, aStrings, level);
+			results_.insert(Directory::SearchResultInfo(f, aStrings, level));
 			if (aStrings.addParents)
 				break;
 		}
