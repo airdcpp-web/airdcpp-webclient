@@ -27,13 +27,13 @@
 namespace dcpp {
 
 StringMatch::Method StringMatch::getMethod() const {
-	return boost::get<StringSearch::List>(&search) ? PARTIAL : boost::get<string>(&search) ? EXACT : isWildCard ? WILDCARD : REGEX;
+	return boost::get<StringSearch>(&search) ? PARTIAL : boost::get<string>(&search) ? EXACT : isWildCard ? WILDCARD : REGEX;
 }
 
 void StringMatch::setMethod(Method method) {
 	isWildCard = false;
 	switch(method) {
-		case PARTIAL: search = StringSearch::List(); break;
+		case PARTIAL: search = StringSearch(); break;
 		case EXACT: search = string(); break;
 		case REGEX: search = boost::regex(); break;
 		case WILDCARD: search = boost::regex(); isWildCard=true; break;
@@ -52,13 +52,12 @@ struct Prepare : boost::static_visitor<bool> {
 	Prepare(const string& aPattern, bool aWildCard) : pattern(aPattern), wildCard(aWildCard) {}
 	Prepare& operator=(const Prepare&) = delete;
 
-	bool operator()(StringSearch::List& s) const {
+	bool operator()(StringSearch& s) const {
 		s.clear();
+
 		StringTokenizer<string> st(pattern, ' ');
 		for(auto& i: st.getTokens()) {
-			if(!i.empty()) {
-				s.emplace_back(i);
-			}
+			s.addString(i);
 		}
 		return true;
 	}
@@ -95,13 +94,8 @@ struct Match : boost::static_visitor<bool> {
 	Match(const string& aStr) : str(aStr) { }
 	Match& operator=(const Match&) = delete;
 
-	bool operator()(const StringSearch::List& s) const {
-		for(auto& i: s) {
-			if(!i.match(str)) {
-				return false;
-			}
-		}
-		return !s.empty();
+	bool operator()(const StringSearch& s) const {
+		return s.match_all(str);
 	}
 
 	bool operator()(const string& s) const {

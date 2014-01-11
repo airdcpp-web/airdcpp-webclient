@@ -52,7 +52,7 @@ struct StringMatch {
 	bool prepare();
 	bool match(const string& str) const;
 private:
-	boost::variant<StringSearch::List, string, boost::regex> search;
+	boost::variant<StringSearch, string, boost::regex> search;
 	bool isWildCard;
 	//Method m;
 };

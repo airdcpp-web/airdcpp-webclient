@@ -30,7 +30,7 @@ namespace {
 
 namespace dcpp {
 
-SearchQuery* SearchQuery::getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents) {
+SearchQuery* SearchQuery::getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents, size_t aMaxResults) {
 	SearchQuery* s = nullptr;
 
 	if(aTypeMode == SearchManager::TYPE_TTH) {
@@ -47,6 +47,7 @@ SearchQuery* SearchQuery::getSearch(const string& aSearchString, const string& a
 		s->addParents = returnParents;
 	}
 
+	s->maxResults = aMaxResults;
 	return s;
 }
 
@@ -86,7 +87,7 @@ StringList SearchQuery::parseSearchString(const string& aString) {
 	return ret;
 }
 
-SearchQuery::SearchQuery(const string& nmdcString, int searchType, int64_t size, int fileType) {
+SearchQuery::SearchQuery(const string& nmdcString, int searchType, int64_t size, int fileType, size_t aMaxResults) : maxResults(aMaxResults) {
 	if (fileType == SearchManager::TYPE_TTH && nmdcString.compare(0, 4, "TTH:") == 0) {
 		root = TTHValue(nmdcString.substr(4));
 
@@ -94,7 +95,7 @@ SearchQuery::SearchQuery(const string& nmdcString, int searchType, int64_t size,
 		StringTokenizer<string> tok(Text::toLower(nmdcString), '$');
 		for (auto& term : tok.getTokens()) {
 			if (!term.empty()) {
-				includeInit.emplace_back(term);
+				include.addString(term);
 			}
 		}
 
@@ -114,6 +115,8 @@ SearchQuery::SearchQuery(const string& nmdcString, int searchType, int64_t size,
 		case SearchManager::TYPE_DIRECTORY: itemType = SearchQuery::TYPE_DIRECTORY; break;
 		}
 	}
+
+	prepare();
 }
 
 SearchQuery::SearchQuery(const TTHValue& aRoot) : root(aRoot) {
@@ -124,24 +127,26 @@ SearchQuery::SearchQuery(const string& aSearch, const string& aExcluded, const S
 
 	//add included
 	if (matchType == MATCH_EXACT) {
-		includeInit.emplace_back(aSearch);
+		include.addString(aSearch);
 	} else {
 		auto inc = move(parseSearchString(aSearch));
 		for(auto& i: inc)
-			includeInit.emplace_back(i);
+			include.addString(i);
 	}
 
 
 	//add excluded
 	auto ex = move(parseSearchString(aExcluded));
 	for(auto& i: ex)
-		exclude.emplace_back(i);
+		exclude.addString(i);
 
 	for (auto& i : aExt)
 		ext.push_back(Text::toLower(i));
+
+	prepare();
 }
 
-SearchQuery::SearchQuery(const StringList& params) {
+SearchQuery::SearchQuery(const StringList& params, size_t aMaxResults) : maxResults(aMaxResults) {
 	for(const auto& p: params) {
 		if(p.length() <= 2)
 			continue;
@@ -151,9 +156,9 @@ SearchQuery::SearchQuery(const StringList& params) {
 			root = TTHValue(p.substr(2));
 			return;
 		} else if(toCode('A', 'N') == cmd) {
-			includeInit.emplace_back(p.substr(2));
+			include.addString(p.substr(2));
 		} else if(toCode('N', 'O') == cmd) {
-			exclude.emplace_back(p.substr(2));
+			exclude.addString(p.substr(2));
 		} else if(toCode('E', 'X') == cmd) {
 			ext.push_back(Text::toLower(p.substr(2)));
 		} else if(toCode('G', 'R') == cmd) {
@@ -172,33 +177,25 @@ SearchQuery::SearchQuery(const StringList& params) {
 		} else if(toCode('M', 'T') == cmd) {
 			matchType = static_cast<MatchType>(Util::toInt(p.substr(2)));
 		} else if(toCode('O', 'T') == cmd) {
-			maxDate = Util::toUInt32(p.substr(2));
+			maxDate = Util::toInt64(p.substr(2));
 		} else if(toCode('N', 'T') == cmd) {
-			minDate = Util::toUInt32(p.substr(2));
+			minDate = Util::toInt64(p.substr(2));
 		} else if(toCode('P', 'P') == cmd) {
 			addParents = (p[2] == '1');
 		}
 	}
+
+	prepare();
 }
 
-bool SearchQuery::anyIncludeMatches(const string& aName) const {
-	if (root)
-		return false;
+void SearchQuery::prepare() {
+	lastIncludePositions.resize(include.count());
+	for (auto& p : lastIncludePositions)
+		p = string::npos;
 
-	for (auto& i : includeInit) {
-		if (i.match(aName))
-			return false;
+	if (!ext.empty()) {
+		itemType = TYPE_FILE;
 	}
-
-	return true;
-}
-
-bool SearchQuery::isExcluded(const string& str) const {
-	for(auto& i: exclude) {
-		if(i.match(str))
-			return true;
-	}
-	return false;
 }
 
 bool SearchQuery::hasExt(const string& name) {
@@ -217,24 +214,31 @@ bool SearchQuery::hasExt(const string& name) {
 	return false;
 }
 
+bool SearchQuery::matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH) {
+	if (itemType == SearchQuery::TYPE_DIRECTORY) {
+		return false;
+	}
+
+	if (root) {
+		return aTTH == *root;
+	}
+
+	return matchesFileLower(Text::toLower(aName), aSize, aDate);
+}
+
 bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate) {
-	if(!(aSize >= gt)) {
-		return false;
-	} else if(!(aSize <= lt)) {
-		return false;
-	} else if (!(aDate == 0 || (aDate >= minDate && aDate <= maxDate))) {
+	if (!matchesDate(aDate) || !matchesSize(aSize)) {
 		return false;
 	}
 
 	if (matchType == MATCH_EXACT) {
-		if (compare((*include->begin()).getPattern(), aName) != 0)
+		if (compare(include.getPatterns().front().str(), aName) != 0)
 			return false;
 	} else {
-		auto j = include->begin();
-		for(; j != include->end() && j->matchLower(aName); ++j) 
-			;	// Empty
-
-		if(j != include->end())
+		resetPositions();
+		lastIncludeMatches = include.matchLower(aName, recursion ? true : false, &lastIncludePositions);
+		dcassert(count(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos) == (int)include.count() - lastIncludeMatches);
+		if (!positionsComplete())
 			return false;
 	}
 
@@ -243,54 +247,81 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 		return false;
 
 
-	if(isExcluded(aName))
+	if (isExcludedLower(aName))
 		return false;
 
 	return true;
+}
+
+StringSearch::ResultList SearchQuery::getResultPositions() const {
+	// Do we need to use matches from a lower level?
+	if (recursion && find(lastIncludePositions, string::npos) != lastIncludePositions.end()) {
+		StringSearch::ResultList ret(lastIncludePositions);
+		Recursion::merge(ret, recursion);
+		return ret;
+	}
+
+	return lastIncludePositions;
+}
+
+void SearchQuery::resetPositions() {
+	if (lastIncludeMatches > 0) {
+		// reset all to string::npos
+		memset(&lastIncludePositions[0], -1, lastIncludePositions.size()*sizeof(lastIncludePositions[0]));
+		lastIncludeMatches = 0;
+	}
+	dcassert(count(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos) == (int)lastIncludePositions.size());
 }
 
 bool SearchQuery::matchesDirectory(const string& aName) {
 	if (itemType == TYPE_FILE)
 		return false;
 
-	bool hasMatch = false;
-	for(const auto& k: *include) {
-		if(k.match(aName) && !isExcluded(aName))
-			hasMatch = true;
-		else {
-			hasMatch = false;
-			break;
-		}
-	}
-
 	//bool sizeOk = (aStrings.gt == 0);
-	if(hasMatch && ext.empty()) {
-		return true;
-	}
-
-	return false;
+	return include.match_all(aName);
 }
 
-unique_ptr<StringSearch::List> SearchQuery::matchesDirectoryReLower(const string& aName) {
-	unique_ptr<StringSearch::List> newStr = nullptr;
-	for(const auto& k: *include) {
-		if(k.matchLower(aName)) {
-			if(!newStr) {
-				newStr.reset(new StringSearch::List(*include));
-			}
-			newStr->erase(remove(newStr->begin(), newStr->end(), k), newStr->end());
+bool SearchQuery::matchesAnyDirectoryLower(const string& aName) {
+	if (matchType != MATCH_FULL_PATH && itemType == TYPE_FILE)
+		return false;
+
+	// no additional checks at this point to allow recursion to work
+
+	resetPositions();
+	lastIncludeMatches = include.matchLower(aName, true, &lastIncludePositions);
+	dcassert(count(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos) == (int)include.count() - lastIncludeMatches);
+	return lastIncludeMatches > 0;
+}
+
+SearchQuery::Recursion::Recursion(const SearchQuery& aSearch) : positions(aSearch.lastIncludePositions) {
+	merge(positions, aSearch.recursion);
+}
+
+bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo) const {
+	for (size_t j = 0; j < positions.size(); ++j) {
+		if (positions[j] == string::npos && compareTo[j] == string::npos)
+			return false;
+	}
+	return true;
+}
+
+void SearchQuery::Recursion::merge(StringSearch::ResultList& mergeTo, const Recursion* parent) {
+	if (parent) {
+		auto& old = parent->positions;
+		for (size_t j = 0; j < old.size(); ++j) {
+			if (mergeTo[j] == string::npos)
+				mergeTo[j] = old[j];
+			else
+				mergeTo[j] += parent->depthLen;
 		}
 	}
-
-	return newStr;
 }
 
-bool SearchQuery::matchesSize(int64_t aSize) {
-	return aSize >= gt && aSize <= lt;
-}
+bool SearchQuery::positionsComplete() const {
+	if (lastIncludeMatches == static_cast<int>(include.count()))
+		return true;
 
-bool SearchQuery::matchesDate(uint32_t aDate) {
-	return aDate == 0 || (aDate >= minDate && aDate <= maxDate);
+	return recursion && recursion->completes(lastIncludePositions);
 }
 
 } //dcpp

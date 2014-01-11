@@ -74,8 +74,7 @@ ShareDirInfo::ShareDirInfo(const ShareDirInfoPtr& aInfo, ProfileToken aNewProfil
 ShareDirInfo::ShareDirInfo(const string& aVname, ProfileToken aProfile, const string& aPath, bool aIncoming /*false*/, State aState /*STATE_NORMAL*/) : vname(aVname), profile(aProfile), path(aPath), incoming(aIncoming),
 	found(false), diffState(DIFF_NORMAL), state(aState), size(0) {}
 
-ShareManager::ShareManager() : lastFullUpdate(GET_TICK()), lastIncomingUpdate(GET_TICK()), sharedSize(0),
-	xml_saving(false), lastSave(0), aShutdown(false), refreshRunning(false), totalSearches(0), bloom(new ShareBloom(1<<20)), monitorDebug(false)
+ShareManager::ShareManager() : bloom(new ShareBloom(1<<20))
 { 
 	SettingsManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
@@ -927,16 +926,12 @@ bool ShareManager::ProfileDirectory::isExcluded(ProfileTokenSet& aProfiles) cons
 	return aProfiles.empty();
 }
 
-bool ShareManager::Directory::isLevelExcluded(ProfileToken aProfile) const noexcept {
-	return profileDir && profileDir->isExcluded(aProfile);
-}
-
 bool ShareManager::Directory::isLevelExcluded(ProfileTokenSet& aProfiles) const noexcept {
 	return profileDir && profileDir->isExcluded(aProfiles);
 }
 
 bool ShareManager::ProfileDirectory::isExcluded(ProfileToken aProfile) const noexcept {
-	return !excludedProfiles.empty() && excludedProfiles.find(aProfile) != excludedProfiles.end();
+	return excludedProfiles.find(aProfile) != excludedProfiles.end();
 }
 
 ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, const string& aVname, ProfileToken aProfile, bool incoming /*false*/) : path(aRootPath), cacheDirty(false) { 
@@ -1628,42 +1623,53 @@ string ShareManager::printStats() const noexcept {
 		uniqueTTHs.insert(tth);
 	}
 
-	/*auto dirSize1 = sizeof(Directory);
-	auto dirSize2 = sizeof(Directory::Ptr);
-	auto fileSize = sizeof(File);
-	auto bloomSize = 1<<20;*/
-
-	size_t memUsage = totalStrLen; // total length of all names
-	memUsage += sizeof(Directory)*totalDirs; //directories
-	memUsage += sizeof(File)*totalFiles; //files
-	memUsage += roots*(1<<20); //root blooms
-	memUsage += sizeof(Directory::Ptr)*totalDirs; //pointers stored in the vector for each directory
-
-	auto upMinutes = static_cast<double>(GET_TICK()) / 1000.00 / 60.00;
+	auto upseconds = static_cast<double>(GET_TICK()) / 1000.00;
 
 	string ret = boost::str(boost::format(
 "\r\n\r\n-=[ Share statistics ]=-\r\n\r\n\
 Share profiles: %d\r\n\
-Shared root paths: %d (of which %d%% have no parent)\r\n\
+Shared paths: %d (of which %d%% are roots)\r\n\
 Total share size: %s\r\n\
-Total incoming searches: %d (%d per minute)\r\n\
 Total shared files: %d (of which %d%% are lowercase)\r\n\
 Unique TTHs: %d (%d%%)\r\n\
 Total shared directories: %d (%d files per directory)\r\n\
-Estimated memory usage for the share: %d (this doesn't include the hash store)\r\n\
-Average age of a file: %s")
+Average age of a file: %s\r\n\
+Average name length of a shared item: %d bytes (total size %s)")
 
 		% shareProfiles.size()
-		% roots % ((static_cast<double>(roots == 0 ? 0 : rootPaths.size()) / roots)*100.00)
+		% roots % ((rootPaths.size() == 0 ? 0 : static_cast<double>(roots) / static_cast<double>(rootPaths.size())) *100.00)
 		% Util::formatBytes(totalSize)
-		% totalSearches % (totalSearches / upMinutes)
-		% totalFiles % ((static_cast<double>(lowerCaseFiles) / static_cast<double>(totalFiles))*100.00)
-		% uniqueTTHs.size() % ((static_cast<double>(uniqueTTHs.size()) / static_cast<double>(totalFiles))*100.00)
-		% totalDirs % (static_cast<double>(totalFiles) / static_cast<double>(totalDirs))
-		% Util::formatBytes(memUsage)
-		% Util::formatTime(GET_TIME() - (totalFiles > 0 ? (totalAge / totalFiles) : 0), false, true));
+		% totalFiles % (totalFiles == 0 ? 0 : (static_cast<double>(lowerCaseFiles) / static_cast<double>(totalFiles))*100.00)
+		% uniqueTTHs.size() % (totalFiles == 0 ? 0 : (static_cast<double>(uniqueTTHs.size()) / static_cast<double>(totalFiles))*100.00)
+		% totalDirs % (totalDirs == 0 ? 0 : static_cast<double>(totalFiles) / static_cast<double>(totalDirs))
+		% Util::formatTime(GET_TIME() - (totalFiles == 0 ? 0 : totalAge / totalFiles), false, true)
+		% (totalFiles + totalDirs == 0 ? 0 : static_cast<double>(totalStrLen) / static_cast<double>(totalFiles + totalDirs))
+		% Util::formatBytes(totalStrLen)
+	);
 
-	ret += "\r\n\r\n\r\n-=[ Monitoring statistics ]=-\r\n\r\n";
+	ret += boost::str(boost::format(
+"\r\n\r\n-=[ Search statistics ]=-\r\n\r\n\
+Total incoming searches: %d (%d per second)\r\n\
+Incoming text searches: %d (of which %d were matched per second)\r\n\
+Filtered text searches: %d%% (%d%% of the matched ones returned results)\r\n\
+Average search tokens (non-filtered only): %d (%d bytes per token)\r\n\
+Auto searches (text, ADC only): %d%%\r\n\
+Average time for matching a recursive search: %d ms\r\n\
+TTH searches: %d%% (hash bloom mode: %s)")
+
+		% totalSearches % (totalSearches / upseconds)
+		% recursiveSearches % ((recursiveSearches - filteredSearches) / upseconds)
+		% (recursiveSearches == 0 ? 0 : (static_cast<double>(filteredSearches) / static_cast<double>(recursiveSearches))*100.00) // filtered
+		% (recursiveSearches - filteredSearches == 0 ? 0 : (static_cast<double>(recursiveSearchesResponded) / static_cast<double>(recursiveSearches - filteredSearches))*100.00) // recursive searches with results
+		% (recursiveSearches - filteredSearches == 0 ? 0 : static_cast<double>(searchTokenCount) / static_cast<double>(recursiveSearches - filteredSearches)) // search token count
+		% (searchTokenCount == 0 ? 0 : static_cast<double>(searchTokenLength) / static_cast<double>(searchTokenCount)) // search token length
+		% (recursiveSearches == 0 ? 0 : (static_cast<double>(autoSearches) / static_cast<double>(recursiveSearches))*100.00) // auto searches
+		% (recursiveSearches - filteredSearches == 0 ? 0 : recursiveSearchTime / (recursiveSearches - filteredSearches)) // search matching time
+		% (totalSearches == 0 ? 0 : (static_cast<double>(tthSearches) / static_cast<double>(totalSearches))*100.00) // TTH searches
+		% (SETTING(BLOOM_MODE) != SettingsManager::BLOOM_DISABLED ? "Enabled" : "Disabled") // bloom mode
+	);
+
+	ret += "\r\n\r\n-=[ Monitoring statistics ]=-\r\n\r\n";
 	if (monitor->hasDirectories()) {
 		ret += "Debug mode: ";
 		ret += (monitorDebug ? "Enabled" : "Disabled");
@@ -3000,7 +3006,6 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void(float)> pro
 
 	{
 		RLock l(cs);
-		//boost::algorithm::copy_if(
 		boost::algorithm::copy_if(rootPaths | map_values, back_inserter(dirtyDirs), [](const Directory::Ptr& aDir) { return aDir->getProfileDir()->getCacheDirty() && !aDir->getParent(); });
 
 		try {
@@ -3133,7 +3138,7 @@ bool ShareManager::addDirResult(const string& aPath, SearchResultList& aResults,
 	try {
 		findVirtuals<ProfileToken>(Util::toAdcFile(path), aProfile, result);
 	} catch(...) {
-		dcassert(0);
+		dcassert(path.empty());
 	}
 
 	uint64_t date = 0;
@@ -3168,8 +3173,59 @@ void ShareManager::Directory::File::addSR(SearchResultList& aResults, ProfileTok
 }
 
 void ShareManager::nmdcSearch(SearchResultList& l, const string& nmdcString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept{
-	auto query = SearchQuery(nmdcString, aSearchType, aSize, aFileType);
-	search(l, query, maxResults, aHideShare ? SP_HIDDEN : SETTING(DEFAULT_SP), CID(), Util::emptyString);
+	auto query = SearchQuery(nmdcString, aSearchType, aSize, aFileType, maxResults);
+	search(l, query, aHideShare ? SP_HIDDEN : SETTING(DEFAULT_SP), CID(), Util::emptyString, false);
+}
+
+void ShareManager::Directory::SearchResultInfo::init(const SearchQuery& aSearch) {
+	auto positions = aSearch.getResultPositions();
+	dcassert(find(positions, string::npos) == positions.end());
+
+	hasMatchRecursion = aSearch.getLastIncludeMatches() != static_cast<int>(aSearch.include.count());
+	isSorted = is_sorted(positions.begin(), positions.end());
+	if (isSorted) {
+		auto minmaxpos = minmax_element(positions.begin(), positions.end());
+		distance = *minmaxpos.second - *minmaxpos.first;
+		startFromZero = positions[0] == 0;
+	}
+}
+
+bool ShareManager::Directory::SearchResultInfo::Sort::operator()(const SearchResultInfo& left, const SearchResultInfo& right) const {
+	// Check if the positions are sequential
+	if (left.isSorted != right.isSorted) {
+		return left.isSorted;
+	}
+
+	// Check recursion
+	if (left.hasMatchRecursion != right.hasMatchRecursion) {
+		return !left.hasMatchRecursion;
+	}
+	
+	// Check the starting position
+	if (left.startFromZero != right.startFromZero) {
+		return left.startFromZero;
+	}
+
+	// Check the distance of the matches
+	if (left.distance != right.distance) {
+		return left.distance < right.distance;
+	}
+
+	// Check the level
+	if (left.level != right.level) {
+		return left.level < right.level;
+	}
+
+	// Prefer directories over files
+	if (left.type != right.type) {
+		return left.type == DIRECTORY;
+	}
+
+	// Sort by the name
+	if (left.type == DIRECTORY) {
+		return compare(left.directory->realName.getLower(), right.directory->realName.getLower()) < 0;
+	}
+	return compare(left.file->name.getLower(), right.file->name.getLower()) < 0;
 }
 
 /**
@@ -3179,54 +3235,82 @@ void ShareManager::nmdcSearch(SearchResultList& l, const string& nmdcString, int
 * has been matched in the directory name. This new stringlist should also be used in all descendants,
 * but not the parents...
 */
-void ShareManager::Directory::search(SearchResultList& aResults, SearchQuery& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept {
-	for(const auto& i: aStrings.exclude) {
-		if (i.matchLower(getVirtualNameLower(aProfile)))
-			return;
+
+void ShareManager::Directory::search(SearchResultInfo::Set& results_, SearchQuery& aStrings, ProfileToken aProfile, int level) const noexcept{
+	const auto& dirName = getVirtualNameLower(aProfile);
+	if (aStrings.isExcludedLower(dirName)) {
+		return;
 	}
 
-	StringSearch::List* old = aStrings.include;
+	auto old = aStrings.recursion;
+
+	unique_ptr<SearchQuery::Recursion> rec = nullptr;
 
 	// Find any matches in the directory name
-	auto newStr = aStrings.matchesDirectoryReLower(getVirtualNameLower(aProfile));
-	if(newStr.get() && aStrings.matchType == SearchQuery::MATCH_FULL_PATH) {
-		aStrings.include = newStr.get();
+	if (aStrings.matchesAnyDirectoryLower(dirName)) {
+		if (aStrings.itemType != SearchQuery::TYPE_FILE && aStrings.positionsComplete()) {
+			if (aStrings.gt == 0 && aStrings.matchesDate(lastWrite)) {
+				// Full match
+				results_.emplace(this, aStrings, level);
+				if (aStrings.matchType == SearchQuery::MATCH_FULL_PATH) {
+					return;
+				}
+			}
+		} 
+		
+		if (aStrings.matchType == SearchQuery::MATCH_FULL_PATH) {
+			// Partial match; ignore if all matches are less than 3 chars in length
+			bool hasValidResult = false;
+			const auto& positions = aStrings.getLastPositions();
+			for (size_t j = 0; j < positions.size(); ++j) {
+				if (positions[j] != string::npos && aStrings.include.getPatterns()[j].size() > 2) {
+					hasValidResult = true;
+					break;
+				}
+			}
+
+			if (hasValidResult) {
+				rec.reset(new SearchQuery::Recursion(aStrings));
+				aStrings.recursion = rec.get();
+			}
+		}
 	}
 
-	bool sizeOk = (aStrings.gt == 0) && aStrings.matchesDate(lastWrite);
-	if((aStrings.include->empty() || (newStr.get() && newStr.get()->empty())) && aStrings.ext.empty() && sizeOk && aStrings.itemType != SearchQuery::TYPE_FILE) {
-		// We satisfied all the search words! Add the directory...
-		getInstance()->addDirResult(getFullName(aProfile), aResults, aProfile, aStrings);
+	// Moving up
+	level++;
+	if (aStrings.recursion) {
+		// increase depth
+		aStrings.recursion->depthLen += dirName.length();
 	}
 
+	// Match files
 	if(aStrings.itemType != SearchQuery::TYPE_DIRECTORY) {
 		for(const auto& f: files) {
 			if (!aStrings.matchesFileLower(f->name.getLower(), f->getSize(), f->getLastWrite())) {
 				continue;
 			}
 
-
-			f->addSR(aResults, aProfile, aStrings.addParents);
-
-			if(aResults.size() >= maxResults) {
-				return;
-			}
-
+			results_.emplace(f, aStrings, level);
 			if (aStrings.addParents)
 				break;
 		}
 	}
 
-	for(auto l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
-		if ((*l)->isLevelExcluded(aProfile))
+	// Match directories
+	for(const auto& d: directories) {
+		if (d->isLevelExcluded(aProfile))
 			continue;
-		(*l)->search(aResults, aStrings, maxResults, aProfile);
+		d->search(results_, aStrings, aProfile, level);
 	}
 
-	aStrings.include = old;
+	aStrings.recursion = old;
+	if (aStrings.recursion) {
+		// decrease depth
+		aStrings.recursion->depthLen -= dirName.length();
+	}
 }
 
-void ShareManager::search(SearchResultList& results, SearchQuery& srch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) throw(ShareException) {
+void ShareManager::search(SearchResultList& results, SearchQuery& srch, ProfileToken aProfile, const CID& cid, const string& aDir, bool isAutoSearch) throw(ShareException) {
 	totalSearches++;
 	if (aProfile == SP_HIDDEN) {
 		return;
@@ -3234,6 +3318,7 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, StringLi
 
 	RLock l(cs);
 	if(srch.root) {
+		tthSearches++;
 		const auto i = tthIndex.equal_range(const_cast<TTHValue*>(&(*srch.root)));
 		for(auto& f: i | map_values) {
 			if (f->hasProfile(aProfile) && AirUtil::isParentOrExact(aDir, f->getADCPath(aProfile))) {
@@ -3253,14 +3338,21 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, StringLi
 		return;
 	}
 
-	if (srch.includeInit.empty())
+	if (srch.include.empty())
 		return;
 
-	if (!bloom->match(srch.includeInit))
-		return;
+	recursiveSearches++;
+	if (isAutoSearch)
+		autoSearches++;
+	for (const auto& p : srch.include.getPatterns()) {
+		if (!bloom->match(p.str())) {
+			filteredSearches++;
+			return;
+		}
+	}
 
 	if (srch.itemType == SearchQuery::TYPE_DIRECTORY && srch.matchType == SearchQuery::MATCH_EXACT) {
-		const auto i = dirNameMap.equal_range(const_cast<string*>(&srch.includeInit.front().getPattern()));
+		const auto i = dirNameMap.equal_range(const_cast<string*>(&srch.include.getPatterns().front().str()));
 		for(const auto& d: i | map_values) {
 			auto path = d->getADCPath(aProfile);
 			if (d->hasProfile(aProfile) && AirUtil::isParentOrExact(aDir, path) && srch.matchesDate(d->getLastWrite()) && addDirResult(path, results, aProfile, srch)) {
@@ -3271,7 +3363,7 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, StringLi
 		return;
 	}
 
-	// get the roots
+	// get the search roots
 	Directory::List roots;
 	if (aDir.empty() || aDir == "/") {
 		copy(rootPaths | map_values | filtered(Directory::HasRootProfile(aProfile)), back_inserter(roots));
@@ -3279,9 +3371,33 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, StringLi
 		findVirtuals<ProfileToken>(aDir, aProfile, roots);
 	}
 
+	auto start = GET_TICK();
+
 	// go them through recursively
-	for (auto d = roots.begin(); (d != roots.end()) && (results.size() < maxResults); ++d) {
-		(*d)->search(results, srch, maxResults, aProfile);
+	Directory::SearchResultInfo::Set resultInfos;
+	for (const auto& d: roots) {
+		d->search(resultInfos, srch, aProfile, 0);
+	}
+
+	// update statistics
+	auto end = GET_TICK();
+	recursiveSearchTime += end - start;
+	searchTokenCount += srch.include.count();
+	for (const auto& p : srch.include.getPatterns()) 
+		searchTokenLength += p.size();
+
+	if (!results.empty())
+		recursiveSearchesResponded++;
+
+
+	// pick the results to return
+	for (auto l = resultInfos.begin(); (l != resultInfos.end()) && (results.size() < srch.maxResults); ++l) {
+		auto& info = *l;
+		if (info.getType() == Directory::SearchResultInfo::DIRECTORY) {
+			addDirResult(info.directory->getFullName(aProfile), results, aProfile, srch);
+		} else {
+			info.file->addSR(results, aProfile, srch.addParents);
+		}
 	}
 }
 

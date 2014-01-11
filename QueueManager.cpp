@@ -1449,13 +1449,16 @@ void QueueManager::hashBundle(BundlePtr& aBundle) noexcept {
 }
 
 void QueueManager::removeFinishedBundle(BundlePtr& aBundle) noexcept {
-	WLock l(cs);
-	for(auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end(); ) {
-		fileQueue.remove(*i);
-		i = aBundle->getFinishedFiles().erase(i);
+	{
+		WLock l(cs);
+		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
+			fileQueue.remove(*i);
+			i = aBundle->getFinishedFiles().erase(i);
+		}
+
+		bundleQueue.removeBundle(aBundle);
 	}
 
-	bundleQueue.removeBundle(aBundle);
 	fire(QueueManagerListener::BundleRemoved(), aBundle);
 }
 

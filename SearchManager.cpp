@@ -494,13 +494,13 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	}
 
 	SearchResultList results;
-	SearchQuery srch(adc.getParameters());
+	SearchQuery srch(adc.getParameters(), maxResults);
 
 	string token;
 	adc.getParam("TO", 0, token);
 
 	try {
-		ShareManager::getInstance()->search(results, srch, maxResults, aProfile, aUser.getUser()->getCID(), path);
+		ShareManager::getInstance()->search(results, srch, aProfile, aUser.getUser()->getCID(), path, token.find("/as") != string::npos);
 	} catch(const ShareException& e) {
 		if (replyDirect) {
 			//path not found (direct search)

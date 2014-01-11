@@ -19,45 +19,65 @@
 #ifndef DCPLUSPLUS_DCPP_STRING_SEARCH_H
 #define DCPLUSPLUS_DCPP_STRING_SEARCH_H
 
+#include "typedefs.h"
 #include "noexcept.h"
 
 namespace dcpp {
 
 /**
- * A class that implements a fast substring search algo suited for matching
- * one pattern against many strings (currently Quick Search, a variant of
- * Boyer-Moore. Code based on "A very fast substring search algorithm" by 
- * D. Sunday).
- * @todo Perhaps find an algo suitable for matching multiple substrings.
- */
+* A class that implements a fast substring search algo suited for matching
+* one pattern against many strings (currently Quick Search, a variant of
+* Boyer-Moore. Code based on "A very fast substring search algorithm" by
+* D. Sunday).
+* @todo Perhaps find an algo suitable for matching multiple substrings.
+*/
 class StringSearch {
 public:
-	typedef vector<StringSearch> List;
+	typedef vector<size_t> ResultList;
 
-	explicit StringSearch(const string& aPattern) noexcept;
-	StringSearch(const StringSearch& rhs) noexcept;
+	class Pattern {
+	public:
+		explicit Pattern(const string& aPattern) noexcept;
+		Pattern(const Pattern& rhs) noexcept;
 
-	const StringSearch& operator=(const StringSearch& rhs);
-	const StringSearch& operator=(const string& rhs);
-	
-	bool operator==(const StringSearch& rhs) { return pattern.compare(rhs.pattern) == 0; }
+		const Pattern& operator=(const Pattern& rhs);
+		const Pattern& operator=(const string& rhs);
 
-	const string& getPattern() const { return pattern; }
+		bool operator==(const Pattern& rhs) { return pattern.compare(rhs.pattern) == 0; }
 
-	bool match(const string& aText) const noexcept;
-	
-	/** Match a text against the pattern */
-	bool matchLower(const string& aText) const noexcept;
+		/** Match a text against the pattern */
+		size_t matchLower(const string& aText, int aStartPos = 0) const noexcept;
+
+		const string& str() const { return pattern; }
+		inline string::size_type size() const { return plen; }
+	private:
+		enum { ASIZE = 256 };
+		/**
+		* Delta1 shift, uint16_t because we expect all patterns to be shorter than 2^16
+		* chars.
+		*/
+		uint16_t delta1[ASIZE];
+		string pattern;
+		string::size_type plen;
+
+		void initDelta1();
+	};
+
+	typedef vector<Pattern> PatternList;
+
+	bool match_all(const string& aText) const;
+	bool match_any(const string& aText) const;
+	bool match_any_lower(const string& aText) const;
+
+	int matchLower(const string& aText, bool aResumeOnNoMatch, ResultList* results_ = nullptr) const;
+	void addString(const string& aPattern);
+	void clear();
+
+	inline size_t count() const { return patterns.size(); }
+	inline bool empty() const { return patterns.empty(); }
+	inline const PatternList& getPatterns() const { return patterns; }
 private:
-	enum { ASIZE = 256 };
-	/** 
-	 * Delta1 shift, uint16_t because we expect all patterns to be shorter than 2^16
-	 * chars.
-	 */
-	uint16_t delta1[ASIZE];
-	string pattern;
-
-	void initDelta1();
+	PatternList patterns;
 };
 
 } // namespace dcpp

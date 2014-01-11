@@ -45,47 +45,77 @@ namespace dcpp {
 		};
 
 		// General initialization
-		static SearchQuery* getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents);
+		static SearchQuery* getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents, size_t aMaxResults = 0);
 		static StringList parseSearchString(const string& aString);
 		SearchQuery(const string& aString, const string& aExcluded, const StringList& aExt, MatchType aMatchType);
 		SearchQuery(const TTHValue& aRoot);
 
 		// Protocol-specific
-		SearchQuery(const StringList& adcParams);
-		SearchQuery(const string& nmdcString, int searchType, int64_t size, int fileType);
+		SearchQuery(const StringList& adcParams, size_t maxResults);
+		SearchQuery(const string& nmdcString, int searchType, int64_t size, int fileType, size_t maxResults);
 
-		bool anyIncludeMatches(const string& aName) const;
-		bool isExcluded(const string& str) const;
+		inline bool isExcluded(const string& str) const { return exclude.match_any(str); }
+		inline bool isExcludedLower(const string& str) const { return exclude.match_any_lower(str); }
 		bool hasExt(const string& name);
 
-		StringSearch::List* include = &includeInit;
-		StringSearch::List includeInit;
-		StringSearch::List exclude;
+		StringSearch include;
+		StringSearch exclude;
 		StringList ext;
 		StringList noExt;
+
+		// get information about the previous matching
+		const StringSearch::ResultList& getLastPositions() const { return lastIncludePositions; }
+		int getLastIncludeMatches() const { return lastIncludeMatches; }
+
+		// get the merged positions
+		StringSearch::ResultList getResultPositions() const;
+		bool positionsComplete() const;
+
+
+		// We count the positions from the beginning of name of the first matching item
+		// This struct will keep the positions from the upper levels
+		struct Recursion{
+			Recursion(const SearchQuery& aSearch);
+
+			// are we complete after the new results?
+			bool completes(const StringSearch::ResultList& compareTo) const;
+
+			// merge old position to a new set of positions (new positions are preferred)
+			static void merge(StringSearch::ResultList& mergeTo, const Recursion* parent);
+
+			size_t depthLen = 0;
+			StringSearch::ResultList positions;
+		};
+
+		Recursion* recursion = nullptr;
 
 		int64_t gt = 0;
 		int64_t lt = numeric_limits<int64_t>::max();
 
-		uint32_t minDate = 0;
-		uint32_t maxDate = numeric_limits<uint32_t>::max();
+		time_t minDate = 0;
+		time_t maxDate = numeric_limits<time_t>::max();
 
 		optional<TTHValue> root;
+		size_t maxResults = 0;
 
 		MatchType matchType = MATCH_FULL_PATH;
 		bool addParents = false;
 
 		ItemType itemType = TYPE_ANY;
 
+		bool matchesAnyDirectoryLower(const string& aName);
 		bool matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate);
+
 		bool matchesDirectory(const string& aName);
+		bool matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH);
 
-		//returns list of search terms that didn't match the name
-		unique_ptr<StringSearch::List> matchesDirectoryReLower(const string& aName);
-
-		bool matchesSize(int64_t aSize);
-		bool matchesDate(uint32_t aDate);
+		inline bool matchesSize(int64_t aSize) { return aSize >= gt && aSize <= lt; }
+		inline bool matchesDate(time_t aDate) { return aDate == 0 || (aDate >= minDate && aDate <= maxDate); }
 	private:
+		void resetPositions();
+		void prepare();
+		StringSearch::ResultList lastIncludePositions;
+		int lastIncludeMatches = 0;
 	};
 }
 

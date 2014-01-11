@@ -121,7 +121,7 @@ public:
 		void clearAll() noexcept;
 
 		bool findIncomplete() const noexcept;
-		void search(OrderedStringSet& aResults, SearchQuery& aStrings, StringList::size_type maxResults) const noexcept;
+		void search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept;
 		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
 		
 		size_t getFileCount() const noexcept { return files.size(); }

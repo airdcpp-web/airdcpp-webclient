@@ -160,7 +160,7 @@ public:
 	void rebuildTotalExcludes() noexcept;
 
 	void nmdcSearch(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
-	void search(SearchResultList& l, SearchQuery& aSearch, StringList::size_type maxResults, ProfileToken aProfile, const CID& cid, const string& aDir) throw(ShareException);
+	void search(SearchResultList& l, SearchQuery& aSearch, ProfileToken aProfile, const CID& cid, const string& aDir, bool isAutoSearch = false) throw(ShareException);
 
 	bool isDirShared(const string& aDir) const noexcept;
 	uint8_t isDirShared(const string& aPath, int64_t aSize) const noexcept;
@@ -210,9 +210,9 @@ public:
 		REFRESH_ALREADY_QUEUED = 3
 	};
 
-	GETSET(bool, monitorDebug, MonitorDebug);
-	GETSET(size_t, hits, Hits);
-	GETSET(int64_t, sharedSize, SharedSize);
+	IGETSET(bool, monitorDebug, MonitorDebug, false);
+	IGETSET(size_t, hits, Hits, 0);
+	IGETSET(int64_t, sharedSize, SharedSize, 0);
 
 	//tempShares
 	struct TempShareInfo {
@@ -281,7 +281,15 @@ public:
 private:
 	unique_ptr<DirectoryMonitor> monitor;
 
-	uint64_t totalSearches;
+	uint64_t totalSearches = 0;
+	uint64_t tthSearches = 0;
+	uint64_t recursiveSearches = 0;
+	uint64_t recursiveSearchTime = 0;
+	uint64_t filteredSearches = 0;
+	uint64_t recursiveSearchesResponded = 0;
+	uint64_t searchTokenCount = 0;
+	uint64_t searchTokenLength = 0;
+	uint64_t autoSearches = 0;
 	typedef BloomFilter<5> ShareBloom;
 
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable, public Flags {
@@ -371,6 +379,46 @@ private:
 			DualString name;
 		};
 
+		class SearchResultInfo {
+		public:
+			struct Sort {
+				bool operator()(const SearchResultInfo& left, const SearchResultInfo& right) const;
+			};
+
+			explicit SearchResultInfo(const File* f, const SearchQuery& aSearch, int aLevel) :
+				file(f), type(FILE), level(aLevel) {
+
+				init(aSearch);
+			}
+
+			explicit SearchResultInfo(const Directory* d, const SearchQuery& aSearch, int aLevel) :
+				directory(d), type(DIRECTORY), level(aLevel) {
+
+				init(aSearch);
+			}
+
+			typedef multiset<SearchResultInfo, Sort> Set;
+			enum Type {
+				FILE,
+				DIRECTORY
+			};
+
+			union {
+				const Directory* directory;
+				const Directory::File* file;
+			};
+
+			void init(const SearchQuery& aSearch);
+			Type getType() const { return type; }
+		private:
+			Type type;
+			bool hasMatchRecursion = false; // are the matches from multiple levels?
+			size_t distance = 0; // distance of the match positions
+			bool isSorted = false; // are the results in a sequential order?
+			int level = 0; // level of the item counted from the root
+			bool startFromZero = false; // the first match is found from the beginning of the name, only set when the results are in sorted order
+		};
+
 		typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;
 		Set directories;
 		File::Set files;
@@ -408,7 +456,7 @@ private:
 		int64_t getTotalSize() const noexcept;
 		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const noexcept;
 
-		void search(SearchResultList& aResults, SearchQuery& aStrings, StringList::size_type maxResults, ProfileToken aProfile) const noexcept;
+		void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, ProfileToken aProfile, int level) const noexcept;
 
 		void toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList);
 		void toXml(SimpleXML& aXml, bool fullList, ProfileToken aProfile) const;
@@ -427,7 +475,7 @@ private:
 
 		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const noexcept;
 		bool isRootLevel(ProfileToken aProfile) const noexcept;
-		bool isLevelExcluded(ProfileToken aProfile) const noexcept;
+		inline bool isLevelExcluded(ProfileToken aProfile) const noexcept{ return profileDir && profileDir->isExcluded(aProfile); }
 		bool isLevelExcluded(ProfileTokenSet& aProfiles) const noexcept;
 		int64_t size;
 
@@ -502,23 +550,18 @@ private:
 	FileList* generateXmlList(ProfileToken aProfile, bool forced = false) throw(ShareException);
 	FileList* getFileList(ProfileToken aProfile) const throw(ShareException);
 
-	volatile bool aShutdown;
-
-	static boost::regex rxxReg;
+	volatile bool aShutdown = false;
 	
 	static atomic_flag refreshing;
-	bool refreshRunning;
+	bool refreshRunning = false;
 
-	uint64_t lastFullUpdate;
-	uint64_t lastIncomingUpdate;
-	uint64_t lastSave;
+	uint64_t lastFullUpdate = GET_TICK();
+	uint64_t lastIncomingUpdate = GET_TICK();
+	uint64_t lastSave = 0;
 	
-	//caching the share size so we dont need to loop tthindex everytime
-	bool xml_saving;
+	bool xml_saving = false;
 
 	mutable SharedMutex dirNames; // Bundledirs, releasedirs and excluded dirs
-
-	int refreshOptions;
 
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.

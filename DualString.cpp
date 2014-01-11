@@ -79,7 +79,7 @@ DualString::DualString(const string& aStr) {
 size_t DualString::initSizeArray(size_t strLen) {
 	size_t arrSize = strLen % ARRAY_BITS == 0 ? strLen / ARRAY_BITS : (strLen / ARRAY_BITS) + 1;
 	charSizes = new MaskType[arrSize];
-	for (int s = 0; s < arrSize; ++s) {
+	for (size_t s = 0; s < arrSize; ++s) {
 		charSizes[s] = 0;
 	}
 
@@ -102,7 +102,7 @@ DualString::DualString(const DualString& rhs) {
 	assign(rhs.begin(), rhs.end());
 	if (rhs.charSizes) {
 		auto size = initSizeArray(rhs.size());
-		for (int s = 0; s < size; ++s) {
+		for (size_t s = 0; s < size; ++s) {
 			charSizes[s] = rhs.charSizes[s];
 		}
 	}
@@ -118,7 +118,7 @@ DualString& DualString::operator= (const DualString& rhs) {
 	assign(rhs.begin(), rhs.end());
 	if (rhs.charSizes) {
 		auto size = initSizeArray(rhs.size());
-		for (int s = 0; s < size; ++s) {
+		for (size_t s = 0; s < size; ++s) {
 			charSizes[s] = rhs.charSizes[s];
 		}
 	}

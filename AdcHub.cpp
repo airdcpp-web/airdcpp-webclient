@@ -625,6 +625,14 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 				}
 				return;
 			}
+		case AdcCommand::ERROR_BAD_STATE:
+			{
+				string tmp;
+				if (c.getParam("FC", 1, tmp) && tmp.size() == 4) {
+					fire(ClientListener::StatusMessage(), this, c.getParam(1) + " (command " + tmp + ", client state " + Util::toString(state) + ")", ClientListener::FLAG_NORMAL);
+					return;
+				}
+			}
 		}
 
 		ChatMessage message = { c.getParam(1), u };

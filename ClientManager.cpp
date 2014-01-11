@@ -1015,8 +1015,7 @@ string ClientManager::getClientStats() const noexcept {
 	RLock l(cs);
 	map<CID, OnlineUser*> uniqueUserMap;
 	for(const auto& ou: onlineUsers | map_values) {
-		if (!ou->getIdentity().isBot() && !ou->isHidden())
-			uniqueUserMap.insert(make_pair(ou->getUser()->getCID(), ou));
+		uniqueUserMap.insert(make_pair(ou->getUser()->getCID(), ou));
 	}
 
 	int allUsers = onlineUsers.size();
@@ -1029,15 +1028,49 @@ string ClientManager::getClientStats() const noexcept {
 	int64_t uploadSpeed = 0;
 	int64_t downloadSpeed = 0;
 	int64_t nmdcConnection = 0;
-	int nmdcUsers = 0, adcUsers = 0;
+	int nmdcUsers = 0, adcUsers = 0, adcHasDownload = 0, adcHasUpload = 0, nmdcHasConnection = 0;
+	int hiddenUsers = 0, bots = 0, activeUsers = 0, operators = 0;
 	for(const auto& ou: uniqueUserMap | map_values) {
 		totalShare += Util::toInt64(ou->getIdentity().getShareSize());
+		if (ou->isHidden()) {
+			hiddenUsers++;
+			continue;
+		}
+
+		if (ou->getIdentity().isBot()) {
+			bots++;
+			if (!ou->getUser()->isNMDC()) {
+				continue;
+			}
+		}
+
+		if (ou->getIdentity().isOp()) {
+			operators++;
+		}
+
+		if (ou->getIdentity().isTcpActive()) {
+			activeUsers++;
+		}
+
 		if (ou->getUser()->isNMDC()) {
-			nmdcConnection += Util::toDouble(ou->getIdentity().getNmdcConnection()) * 1000 * 1000 / 8;
+			auto speed = Util::toDouble(ou->getIdentity().getNmdcConnection());
+			if (speed > 0) {
+				nmdcConnection += (speed * 1000.0 * 1000.0) / 8.0;
+				nmdcHasConnection++;
+			}
 			nmdcUsers++;
 		} else {
-			uploadSpeed += ou->getIdentity().getAdcConnectionSpeed(false);
-			downloadSpeed += ou->getIdentity().getAdcConnectionSpeed(true);
+			auto up = ou->getIdentity().getAdcConnectionSpeed(false);
+			if (up > 0) {
+				uploadSpeed += up;
+				adcHasUpload++;
+			}
+
+			auto down = ou->getIdentity().getAdcConnectionSpeed(true);
+			if (down > 0) {
+				downloadSpeed += ou->getIdentity().getAdcConnectionSpeed(true);
+				adcHasDownload++;
+			}
 			adcUsers++;
 		}
 	}
@@ -1048,6 +1081,10 @@ string ClientManager::getClientStats() const noexcept {
 	ret += lb;
 	ret += "All users: " + Util::toString(allUsers) + lb;
 	ret += "Unique users: " + Util::toString(uniqueUsers) + " (" + Util::toString(((double)uniqueUsers/(double)allUsers)*100.00) + "%)" + lb;
+	ret += "Active/operators/bots/hidden: " + Util::toString(activeUsers) + " (" + Util::toString(((double) activeUsers / (double) uniqueUsers)*100.00) + "%) / " +
+		Util::toString(operators) + " (" + Util::toString(((double) operators / (double) uniqueUsers)*100.00) + "%) / " +
+		Util::toString(bots) + " (" + Util::toString(((double) bots / (double) uniqueUsers)*100.00) + "%) / " +
+		Util::toString(hiddenUsers) + " (" + Util::toString(((double) hiddenUsers / (double) uniqueUsers)*100.00) + "%)" + lb;
 	ret += "Protocol users (ADC/NMDC): " + Util::toString(adcUsers) + "/" + Util::toString(nmdcUsers) + lb;
 	ret += "Total share: " + Util::formatBytes(totalShare) + " (" + Util::formatBytes((double)totalShare / (double)uniqueUsers) + " per user)" + lb;
 	ret += "Average ADC connection speed: " + Util::formatConnectionSpeed((double) downloadSpeed / (double) adcUsers) + " down, " + Util::formatConnectionSpeed((double) uploadSpeed / (double) adcUsers) + " up" + lb;

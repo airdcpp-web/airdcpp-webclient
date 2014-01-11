@@ -374,36 +374,28 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	}
 }
 
-void DirectoryListing::Directory::search(OrderedStringSet& aResults, SearchQuery& aStrings, StringList::size_type maxResults) const noexcept {
+void DirectoryListing::Directory::search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept {
 	if (getAdls())
 		return;
 
-	if (aStrings.root) {
-		auto pos = find_if(files, [aStrings](File* aFile) { return aFile->getTTH() == *aStrings.root; });
-		if (pos != files.end()) {
-			aResults.insert(getPath());
-		}
-	} else {
-		if(aStrings.matchesDirectory(name)) {
-			auto path = parent ? parent->getPath() : Util::emptyString;
-			auto res = find(aResults, path);
-			if (res == aResults.end() && aStrings.matchesSize(getTotalSize(false))) {
-				aResults.insert(path);
-			}
-		}
-
-		if(aStrings.itemType != SearchQuery::TYPE_DIRECTORY) {
-			for(auto& f: files) {
-				if(aStrings.matchesFileLower(Text::toLower(f->getName()), f->getSize(), f->getRemoteDate())) {
-					aResults.insert(getPath());
-					break;
-				}
-			}
+	if(aStrings.matchesDirectory(name)) {
+		auto path = parent ? parent->getPath() : Util::emptyString;
+		auto res = find(aResults, path);
+		if (res == aResults.end() && aStrings.matchesSize(getTotalSize(false))) {
+			aResults.insert(path);
 		}
 	}
 
-	for(auto l = directories.begin(); (l != directories.end()) && (aResults.size() < maxResults); ++l) {
-		(*l)->search(aResults, aStrings, maxResults);
+	for(auto& f: files) {
+		if(aStrings.matchesFile(f->getName(), f->getSize(), f->getRemoteDate(), f->getTTH())) {
+			aResults.insert(getPath());
+			break;
+		}
+	}
+
+	for(const auto& d: directories) {
+		d->search(aResults, aStrings);
+		if (aResults.size() >= aStrings.maxResults) return;
 	}
 }
 
@@ -932,14 +924,11 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 
 	fire(DirectoryListingListener::SearchStarted());
 
-	auto search = SearchQuery::getSearch(aSearchString, Util::emptyString, aSize, aTypeMode, aSizeMode, aExtList, SearchQuery::MATCH_NAME, true);
-	if (search)
-		curSearch.reset(search);
-
+	curSearch.reset(SearchQuery::getSearch(aSearchString, Util::emptyString, aSize, aTypeMode, aSizeMode, aExtList, SearchQuery::MATCH_NAME, true, 100));
 	if (isOwnList && partialList) {
 		SearchResultList results;
 		try {
-			ShareManager::getInstance()->search(results, *curSearch, 50, Util::toInt(fileName), CID(), aDir);
+			ShareManager::getInstance()->search(results, *curSearch, Util::toInt(fileName), CID(), aDir);
 		} catch (...) {}
 
 		for (const auto& sr : results)
@@ -958,7 +947,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 	} else {
 		const auto dir = (aDir.empty()) ? root : findDirectory(Util::toNmdcFile(aDir), root);
 		if (dir)
-			dir->search(searchResults, *curSearch, 100);
+			dir->search(searchResults, *curSearch);
 
 		curResultCount = searchResults.size();
 		maxResultCount = searchResults.size();

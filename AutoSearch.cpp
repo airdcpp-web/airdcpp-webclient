@@ -114,11 +114,7 @@ void AutoSearch::changeNumber(bool increase) noexcept {
 }
 
 bool AutoSearch::isExcluded(const string& aString) noexcept {
-	for (auto& i : excluded) {
-		if (i.match(aString))
-			return true;
-	}
-	return false;
+	return excluded.match_any(aString);
 }
 
 void AutoSearch::updateExcluded() noexcept {
@@ -126,7 +122,7 @@ void AutoSearch::updateExcluded() noexcept {
 	if (!excludedString.empty()) {
 		auto ex = move(SearchQuery::parseSearchString(excludedString));
 		for (const auto& i : ex)
-			excluded.emplace_back(i);
+			excluded.addString(i);
 	}
 }
 

@@ -170,7 +170,7 @@ private:
 	time_t nextSearchChange = 0;
 	bool nextIsDisable = false;
 	string target;
-	StringSearch::List excluded;
+	StringSearch excluded;
 };
 
 }
