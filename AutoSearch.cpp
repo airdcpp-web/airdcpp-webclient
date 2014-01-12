@@ -248,29 +248,28 @@ void AutoSearch::updateStatus() noexcept {
 		return;
 	}
 
-	if (nextAllowedSearch() > GET_TIME()) {
-		status = AutoSearch::STATUS_WAITING;
-		return;
-	}
-
 	if (bundles.empty()) {
 		if (lastIncFinish > 0) {
 			status = AutoSearch::STATUS_POSTSEARCH;
-			return;
+		} else {
+			status = AutoSearch::STATUS_SEARCHING;
 		}
-		status = AutoSearch::STATUS_SEARCHING;
-		return;
+	} else {
+		auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
+		if (maxBundle->getStatus() == Bundle::STATUS_QUEUED || maxBundle->getStatus() == Bundle::STATUS_FINISHED || maxBundle->getStatus() == Bundle::STATUS_MOVED || maxBundle->getStatus() == Bundle::STATUS_DOWNLOADED) {
+			status = AutoSearch::STATUS_QUEUED_OK;
+		} else if (maxBundle->getStatus() == Bundle::STATUS_FAILED_MISSING) {
+			status = AutoSearch::STATUS_FAILED_MISSING;
+		} else if (maxBundle->getStatus() == Bundle::STATUS_SHARING_FAILED) {
+			status = AutoSearch::STATUS_FAILED_EXTRAS;
+		} else {
+			dcassert(0);
+		}
 	}
 
-	auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
-	if (maxBundle->getStatus() == Bundle::STATUS_QUEUED || maxBundle->getStatus() == Bundle::STATUS_FINISHED || maxBundle->getStatus() == Bundle::STATUS_MOVED || maxBundle->getStatus() == Bundle::STATUS_DOWNLOADED) {
-		status = AutoSearch::STATUS_QUEUED_OK;
-	} else if (maxBundle->getStatus() == Bundle::STATUS_FAILED_MISSING) {
-		status = AutoSearch::STATUS_FAILED_MISSING;
-	} else if (maxBundle->getStatus() == Bundle::STATUS_SHARING_FAILED) {
-		status = AutoSearch::STATUS_FAILED_EXTRAS;
-	} else {
-		dcassert(0);
+	if (status != AutoSearch::STATUS_FAILED_MISSING && nextAllowedSearch() > GET_TIME()) {
+		status = AutoSearch::STATUS_WAITING;
+		return;
 	}
 }
 
@@ -285,77 +284,79 @@ bool AutoSearch::removePostSearch() noexcept {
 
 
 time_t AutoSearch::nextAllowedSearch() noexcept {
-	if (nextSearchChange == 0 || nextIsDisable)
+	if (nextSearchChange == 0 || nextIsDisable || status == STATUS_FAILED_MISSING)
 		return 0;
 
 	return nextSearchChange;
 }
 
 bool AutoSearch::updateSearchTime() noexcept {
-	if (!searchDays.all() || startTime.hour != 0 || endTime.minute != 59 || endTime.hour != 23 || startTime.minute != 0) {
-		//get the current time from the clock -- one second resolution
-		ptime now = second_clock::local_time();
-		ptime nextSearch(now);
-
-		//have we passed the end time from this day already?
-		if (endTime.hour < nextSearch.time_of_day().hours() ||
-			(endTime.hour == nextSearch.time_of_day().hours() && endTime.minute < nextSearch.time_of_day().minutes())) {
-
-				nextSearch = ptime(nextSearch.date() + days(1));
-		}
-
-		auto addTime = [this, &nextSearch](bool toEnabled) -> void {
-			//check the next weekday when the searching can be done (or when it's being disabled)
-			if (searchDays[nextSearch.date().day_of_week()] != toEnabled) {
-				//get the next day when we can search for it
-				int p = nextSearch.date().day_of_week();
-				if (!toEnabled)
-					p++; //start from the next day as we know already that we are able to search today
-
-				int d = 0;
-
-				for (d = 0; d < 6; d++) {
-					if (p == 7)
-						p = 0;
-
-					if (searchDays[p++] == toEnabled)
-						break;
-				}
-
-				nextSearch = ptime(nextSearch.date() + days(d)); // start from the midnight
-			}
-
-			//add the start (or end) hours and minutes (if needed)
-			auto& timeStruct = toEnabled ? startTime : endTime;
-			if (timeStruct.hour > nextSearch.time_of_day().hours()) {
-				nextSearch += (hours(timeStruct.hour) + minutes(timeStruct.minute)) - (hours(nextSearch.time_of_day().hours()) + minutes(nextSearch.time_of_day().minutes()));
-			} else if ((timeStruct.hour == nextSearch.time_of_day().hours() && timeStruct.minute > nextSearch.time_of_day().minutes())) {
-				nextSearch += minutes(timeStruct.minute - nextSearch.time_of_day().minutes());
-			}
-		};
-
-		addTime(true);
-
-		if (nextSearch == now) {
-			//we are allowed to search already, check when it's going to be disabled
-			addTime(false);
-			nextIsDisable = true;
-		} else {
-			nextIsDisable = false;
-		}
-
-		tm td_tm = to_tm(nextSearch);
-		time_t next = mktime(&td_tm);
-		if (next != nextSearchChange) {
-			nextSearchChange = next;
-			updateStatus();
-		}
-
-		return true;
+	if (searchDays.all() && startTime.hour == 0 && endTime.minute == 59 && endTime.hour == 23 && startTime.minute == 0) {
+		// always searching
+		nextSearchChange = 0;
+		return false;
 	}
 
-	nextSearchChange = 0;
-	return false;
+
+	//get the current time from the clock -- one second resolution
+	ptime now = second_clock::local_time();
+	ptime nextSearch(now);
+
+	//have we passed the end time from this day already?
+	if (endTime.hour < nextSearch.time_of_day().hours() ||
+		(endTime.hour == nextSearch.time_of_day().hours() && endTime.minute < nextSearch.time_of_day().minutes())) {
+
+			nextSearch = ptime(nextSearch.date() + days(1));
+	}
+
+	auto addTime = [this, &nextSearch](bool toEnabled) -> void {
+		//check the next weekday when the searching can be done (or when it's being disabled)
+		if (searchDays[nextSearch.date().day_of_week()] != toEnabled) {
+			//get the next day when we can search for it
+			int p = nextSearch.date().day_of_week();
+			if (!toEnabled)
+				p++; //start from the next day as we know already that we are able to search today
+
+			int d = 0;
+
+			for (d = 0; d < 6; d++) {
+				if (p == 7)
+					p = 0;
+
+				if (searchDays[p++] == toEnabled)
+					break;
+			}
+
+			nextSearch = ptime(nextSearch.date() + days(d)); // start from the midnight
+		}
+
+		//add the start (or end) hours and minutes (if needed)
+		auto& timeStruct = toEnabled ? startTime : endTime;
+		if (timeStruct.hour > nextSearch.time_of_day().hours()) {
+			nextSearch += (hours(timeStruct.hour) + minutes(timeStruct.minute)) - (hours(nextSearch.time_of_day().hours()) + minutes(nextSearch.time_of_day().minutes()));
+		} else if ((timeStruct.hour == nextSearch.time_of_day().hours() && timeStruct.minute > nextSearch.time_of_day().minutes())) {
+			nextSearch += minutes(timeStruct.minute - nextSearch.time_of_day().minutes());
+		}
+	};
+
+	addTime(true);
+
+	if (nextSearch == now) {
+		//we are allowed to search already, check when it's going to be disabled
+		addTime(false);
+		nextIsDisable = true;
+	} else {
+		nextIsDisable = false;
+	}
+
+	tm td_tm = to_tm(nextSearch);
+	time_t next = mktime(&td_tm);
+	if (next != nextSearchChange) {
+		nextSearchChange = next;
+		updateStatus();
+	}
+
+	return true;
 }
 
 }

@@ -66,7 +66,9 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 		return nullptr;
 	}
 
-	if (hasNameDupe(ss, true)) {
+	auto lst = getSearchesByString(ss);
+	if (!lst.empty()) {
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(ITEM_NAME_EXISTS)), true);
 		return nullptr;
 	}
 
@@ -75,16 +77,6 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 
 	addAutoSearch(as, true);
 	return as;
-}
-
-bool AutoSearchManager::hasNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch /*nullptr*/) const noexcept {
-	RLock l(cs);
-	auto found = find_if(searchItems, [&](const AutoSearchPtr& as) { return as->getSearchString() == aName && (!thisSearch || as != thisSearch); }) != searchItems.end();
-	if (found && report) {
-		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aName % STRING(ITEM_NAME_EXISTS)), true);
-	}
-
-	return found;
 }
 
 
@@ -193,11 +185,11 @@ AutoSearchList AutoSearchManager::getSearchesByBundle(const BundlePtr& aBundle) 
 	return ret;
 }
 
-AutoSearchList AutoSearchManager::getSearchesByString(const string& aSearchString) const noexcept{
+AutoSearchList AutoSearchManager::getSearchesByString(const string& aSearchString, const AutoSearchPtr& ignoredSearch) const noexcept{
 	AutoSearchList ret;
 
 	RLock l(cs);
-	copy_if(searchItems, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->getSearchString() == aSearchString; });
+	copy_if(searchItems, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->getSearchString() == aSearchString && (!ignoredSearch || as != ignoredSearch); });
 	return ret;
 }
 
@@ -321,6 +313,7 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 			} else if (as->onBundleRemoved(aBundle, finished)) {
 				expired.push_back(as);
 			} else {
+				as->setLastError(Util::emptyString);
 				dirty = true;
 				fire(AutoSearchManagerListener::UpdateItem(), as, true);
 			}
@@ -353,7 +346,8 @@ void AutoSearchManager::handleExpiredItems(AutoSearchList& expired) noexcept{
 }
 
 bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
-	if (hasNameDupe(aBundle->getName(), false)) {
+	auto lst = getSearchesByString(aBundle->getName());
+	if (!lst.empty()) {
 		return false;
 	}
 
@@ -658,19 +652,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 	//extra checks outside the lock
 	for (auto& as: matches) {
-		if (as->getFileType() == SEARCH_TYPE_DIRECTORY) {
-			string dir = Util::getNmdcLastDir(sr->getPath());
-
-			//check shared
-			if(as->getCheckAlreadyShared() && ShareManager::getInstance()->isDirShared(dir)) {
-				continue;
-			}
-
-			//check queued
-			if(as->getCheckAlreadyQueued() && as->getStatus() != AutoSearch::STATUS_FAILED_MISSING && QueueManager::getInstance()->isDirQueued(dir)) {
-				continue;
-			}
-		} else if (!SearchManager::isDefaultTypeStr(as->getFileType())) {
+		if (!SearchManager::isDefaultTypeStr(as->getFileType())) {
 			if (sr->getType() == SearchResult::TYPE_DIRECTORY)
 				continue;
 
@@ -702,11 +684,11 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			rl.push_back(sr);
 		}
 
-		resultCollector.addEvent(as->getToken(), [this, as] { pickMatch(as); }, 2000);
+		resultCollector.addEvent(as->getToken(), [this, as] { pickNameMatch(as); }, 2000);
 	}
 }
 
-void AutoSearchManager::pickMatch(AutoSearchPtr as) noexcept {
+void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 	SearchResultList results;
 	int64_t minWantedSize = -1;
 
@@ -735,7 +717,7 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) noexcept {
 		dirList[Text::toLower(r->getFileName())].push_back(r);
 	}
 
-	//we'll pick one name or all of them, depending on the auto search item
+	//we'll pick one name (or all of them, if the item isn't going to be removed after completion)
 	if (as->getRemove() || as->usingIncrementation()) {
 		auto p = find_if(dirList | map_keys, [](const string& s) { return s.find("proper") != string::npos; }).base();
 		if (p == dirList.end()) {
@@ -756,50 +738,77 @@ void AutoSearchManager::pickMatch(AutoSearchPtr as) noexcept {
 		dirList.swap(dirList2);
 	}
 
+	for (auto& p: dirList) {
+		// dupe check
+		if (as->getFileType() == SEARCH_TYPE_DIRECTORY) {
+			auto& dir = p.first;
 
-	auto getDownloadSize = [] (const SearchResultList& srl, int64_t minSize) -> int64_t {
-		//pick the item that has most size matches
-		unordered_map<int64_t, int> sizeMap;
-		for(const auto& sr: srl) {
-			if (sr->getSize() > minSize)
-				sizeMap[sr->getSize()]++; 
+			//check shared
+			if (as->getCheckAlreadyShared()) {
+				auto paths = ShareManager::getInstance()->getDirPaths(dir);
+				if (!paths.empty()) {
+					as->setLastError(STRING_F(DIR_SHARED_ALREADY, paths.front()));
+					fire(AutoSearchManagerListener::UpdateItem(), as, true);
+					continue;
+				}
+			}
+
+			//check queued
+			if (as->getCheckAlreadyQueued() && as->getStatus() != AutoSearch::STATUS_FAILED_MISSING) {
+				auto paths = QueueManager::getInstance()->getDirPaths(dir);
+				if (!paths.empty()) {
+					as->setLastError(STRING_F(DIR_QUEUED_ALREADY, dir));
+					fire(AutoSearchManagerListener::UpdateItem(), as, true);
+					continue;
+				}
+			}
 		}
 
-		auto p = max_element(sizeMap, [] (const pair<int64_t, int>& p1, const pair<int64_t, int>& p2)-> bool {
+		downloadList(p.second, as, minWantedSize);
+	}
+}
+
+void AutoSearchManager::downloadList(SearchResultList& srl, AutoSearchPtr& as, int64_t minWantedSize) noexcept{
+	auto getDownloadSize = [](const SearchResultList& srl, int64_t minSize) -> int64_t {
+		//pick the item that has most size matches
+		unordered_map<int64_t, int> sizeMap;
+		for (const auto& sr : srl) {
+			if (sr->getSize() > minSize)
+				sizeMap[sr->getSize()]++;
+		}
+
+		auto p = max_element(sizeMap, [](const pair<int64_t, int>& p1, const pair<int64_t, int>& p2)-> bool {
 			//NMDC results always come last
 			if (p1.first == 0)
 				return true;
 			if (p2.first == 0)
 				return false;
 
-			return p1.second < p2.second; 
+			return p1.second < p2.second;
 		});
 
 		return p != sizeMap.end() ? p->first : -1;
 	};
 
-
-	for (auto& srl: dirList | map_values) {
-		// if we have a bundle with missing files, try to find one that is bigger than it
-		auto dlSize = getDownloadSize(srl, minWantedSize);
-		if (dlSize == -1) {
-			//no bigger items found
-			dlSize = getDownloadSize(srl, -1);
-			if (minWantedSize == dlSize) {
-				//no need to match an identical bundle again
-				return;
-			}
+	// if we have a bundle with missing files, try to find one that is bigger than it
+	auto dlSize = getDownloadSize(srl, minWantedSize);
+	if (dlSize == -1) {
+		//no bigger items found
+		dlSize = getDownloadSize(srl, -1);
+		if (minWantedSize == dlSize) {
+			//no need to match an identical bundle again
+			return;
 		}
+	}
 
-		dcassert(dlSize > -1);
+	dcassert(dlSize > -1);
 
-		//download matches with the given size
-		srl.erase(remove_if(srl.begin(), srl.end(), [dlSize](const SearchResultPtr& aSR) { return aSR->getSize() != dlSize; }), srl.end());
-		SearchResult::pickResults(srl, SETTING(MAX_AUTO_MATCH_SOURCES));
+	//download matches with the given size
+	srl.erase(remove_if(srl.begin(), srl.end(), [dlSize](const SearchResultPtr& aSR) { return aSR->getSize() != dlSize; }), srl.end());
+	SearchResult::pickResults(srl, SETTING(MAX_AUTO_MATCH_SOURCES));
 
-		for(const auto& sr: srl) { 
-			handleAction(sr, as);
-		}
+	for (const auto& sr : srl) {
+		handleAction(sr, as);
 	}
 }
 

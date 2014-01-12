@@ -1864,5 +1864,7 @@ enum Strings { // @DontAdd
 	SHELL_MENU_FAILED, // "Failed to load the menu for %1%"
 	ERROR_OPENING_NFO_EXTERNAL, // "Could not open NFO via external viewer, Error: "
 	OPEN_NFO_EXTERNAL, // "Open .nfo files externally"
+	DIR_SHARED_ALREADY, // "The directory exists in share: %s"
+	DIR_QUEUED_ALREADY, // "The directory exists in queue: %s"
 	LAST // @DontAdd
 };

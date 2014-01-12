@@ -50,14 +50,14 @@ public:
 	AutoSearchManager() noexcept;
 	~AutoSearchManager() noexcept;
 
-	bool hasNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const noexcept;
+	//AutoSearchPtr getNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const noexcept;
 	bool addFailedBundle(const BundlePtr& aBundle) noexcept;
 	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search) noexcept;
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true) noexcept;
 	AutoSearchPtr getSearchByIndex(unsigned int index) const noexcept;
 	AutoSearchPtr getSearchByToken(ProfileToken aToken) const noexcept;
 	AutoSearchList getSearchesByBundle(const BundlePtr& aBundle) const noexcept;
-	AutoSearchList getSearchesByString(const string& aSearchString) const noexcept;
+	AutoSearchList getSearchesByString(const string& aSearchString, const AutoSearchPtr& ignoredSearch = nullptr) const noexcept;
 
 	string getBundleStatuses(const AutoSearchPtr& as) const noexcept;
 	void clearPaths(AutoSearchPtr as) noexcept;
@@ -124,7 +124,8 @@ private:
 	bool endOfListReached = false;
 
 	unordered_map<ProfileToken, SearchResultList> searchResults;
-	void pickMatch(AutoSearchPtr as) noexcept;
+	void pickNameMatch(AutoSearchPtr as) noexcept;
+	void downloadList(SearchResultList& sr, AutoSearchPtr& as, int64_t minWantedSize) noexcept;
 	void handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) noexcept;
 
 	void updateStatus(AutoSearchPtr& as, bool setTabDirty) noexcept;
