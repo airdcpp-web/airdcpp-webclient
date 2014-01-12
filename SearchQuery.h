@@ -76,14 +76,20 @@ namespace dcpp {
 		// This struct will keep the positions from the upper levels
 		struct Recursion{
 			Recursion(const SearchQuery& aSearch);
+			~Recursion() { dcassert(recursionLevel == 0); dcassert(depthLen == 0); }
+
+			inline void increase(string::size_type aLen) { recursionLevel++; depthLen += aLen; }
+			inline void decrease(string::size_type aLen) { recursionLevel--; depthLen -= aLen; }
 
 			// are we complete after the new results?
 			bool completes(const StringSearch::ResultList& compareTo) const;
 
 			// merge old position to a new set of positions (new positions are preferred)
-			static void merge(StringSearch::ResultList& mergeTo, const Recursion* parent);
+			// returns true if something from the parent list was needed
+			static bool merge(StringSearch::ResultList& mergeTo, const Recursion* parent);
 
 			size_t depthLen = 0;
+			int recursionLevel = 0;
 			StringSearch::ResultList positions;
 		};
 

@@ -190,8 +190,7 @@ SearchQuery::SearchQuery(const StringList& params, size_t aMaxResults) : maxResu
 
 void SearchQuery::prepare() {
 	lastIncludePositions.resize(include.count());
-	for (auto& p : lastIncludePositions)
-		p = string::npos;
+	fill(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos);
 
 	if (!ext.empty()) {
 		itemType = TYPE_FILE;
@@ -293,7 +292,10 @@ bool SearchQuery::matchesAnyDirectoryLower(const string& aName) {
 }
 
 SearchQuery::Recursion::Recursion(const SearchQuery& aSearch) : positions(aSearch.lastIncludePositions) {
-	merge(positions, aSearch.recursion);
+	if (aSearch.recursion && merge(positions, aSearch.recursion)) {
+		depthLen = aSearch.recursion->depthLen;
+		recursionLevel = aSearch.recursion->recursionLevel;
+	}
 }
 
 bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo) const {
@@ -304,16 +306,31 @@ bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo
 	return true;
 }
 
-void SearchQuery::Recursion::merge(StringSearch::ResultList& mergeTo, const Recursion* parent) {
-	if (parent) {
-		auto& old = parent->positions;
-		for (size_t j = 0; j < old.size(); ++j) {
+bool SearchQuery::Recursion::merge(StringSearch::ResultList& mergeTo, const Recursion* parent) {
+	auto& old = parent->positions;
+	int startPos = -1;
+
+	// do we have anything that needs to be merged?
+	for (int j = 0; j < old.size(); ++j) {
+		if (mergeTo[j] == string::npos && old[j] != string::npos) {
+			startPos = j;
+			break;
+		}
+	}
+
+	if (startPos != -1) {
+		// set the missing positions
+		for (int j = startPos; j < old.size(); ++j) {
 			if (mergeTo[j] == string::npos)
 				mergeTo[j] = old[j];
 			else
 				mergeTo[j] += parent->depthLen;
 		}
+
+		return true;
 	}
+
+	return false;
 }
 
 bool SearchQuery::positionsComplete() const {

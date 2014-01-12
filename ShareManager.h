@@ -412,11 +412,11 @@ private:
 			Type getType() const { return type; }
 		private:
 			Type type;
-			bool hasMatchRecursion = false; // are the matches from multiple levels?
 			size_t distance = 0; // distance of the match positions
 			bool isSorted = false; // are the results in a sequential order?
 			int level = 0; // level of the item counted from the root
 			bool startFromZero = false; // the first match is found from the beginning of the name, only set when the results are in sorted order
+			int recursionLevel = 0; // are the matches from multiple levels?
 		};
 
 		typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;
