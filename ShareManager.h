@@ -382,19 +382,19 @@ private:
 		class SearchResultInfo {
 		public:
 			struct Sort {
-				bool operator()(const SearchResultInfo& left, const SearchResultInfo& right) const;
+				bool operator()(const SearchResultInfo& left, const SearchResultInfo& right) const { return left.scores > right.scores; }
 			};
 
 			explicit SearchResultInfo(const File* f, const SearchQuery& aSearch, int aLevel) :
-				file(f), type(FILE), level(aLevel) {
+				file(f), type(FILE), scores(SearchQuery::getRelevancyScores(aSearch, aLevel, false, f->name.getLower())) {
 
-				init(aSearch);
+				//init(aSearch, aLevel);
 			}
 
 			explicit SearchResultInfo(const Directory* d, const SearchQuery& aSearch, int aLevel) :
-				directory(d), type(DIRECTORY), level(aLevel) {
+				directory(d), type(DIRECTORY), scores(SearchQuery::getRelevancyScores(aSearch, aLevel, true, d->realName.getLower())) {
 
-				init(aSearch);
+				//init(aSearch, aLevel);
 			}
 
 			typedef multiset<SearchResultInfo, Sort> Set;
@@ -408,15 +408,11 @@ private:
 				const Directory::File* file;
 			};
 
-			void init(const SearchQuery& aSearch);
+			//void init(const SearchQuery& aSearch, int aLevel);
 			Type getType() const { return type; }
 		private:
 			Type type;
-			size_t distance = 0; // distance of the match positions
-			bool isSorted = false; // are the results in a sequential order?
-			int level = 0; // level of the item counted from the root
-			bool startFromZero = false; // the first match is found from the beginning of the name, only set when the results are in sorted order
-			int recursionLevel = 0; // are the matches from multiple levels?
+			double scores;
 		};
 
 		typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;

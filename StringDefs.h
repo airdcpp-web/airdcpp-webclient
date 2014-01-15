@@ -1866,5 +1866,6 @@ enum Strings { // @DontAdd
 	OPEN_NFO_EXTERNAL, // "Open .nfo files externally"
 	DIR_SHARED_ALREADY, // "The directory exists in share: %s"
 	DIR_QUEUED_ALREADY, // "The directory exists in queue: %s"
+	RELEVANCY, // "Relevancy"
 	LAST // @DontAdd
 };

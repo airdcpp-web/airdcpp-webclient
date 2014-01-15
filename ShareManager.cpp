@@ -3177,78 +3177,6 @@ void ShareManager::nmdcSearch(SearchResultList& l, const string& nmdcString, int
 	search(l, query, aHideShare ? SP_HIDDEN : SETTING(DEFAULT_SP), CID(), Util::emptyString, false);
 }
 
-void ShareManager::Directory::SearchResultInfo::init(const SearchQuery& aSearch) {
-	auto positions = aSearch.getResultPositions();
-	dcassert(find(positions, string::npos) == positions.end());
-
-	if (aSearch.recursion && aSearch.getLastIncludeMatches() != static_cast<int>(aSearch.include.count()))
-		recursionLevel = aSearch.recursion->recursionLevel;
-
-	isSorted = is_sorted(positions.begin(), positions.end());
-	if (isSorted) {
-		// Count the distance of the first and last match
-		// Use a loop to take unwanted advantage of having matches like this: "imgoingtobefirst"
-		// TODO: the separator check could be checked when moving from one level to another
-		for (size_t j = 1; j < positions.size(); ++j) {
-			size_t len = positions[j] - positions[j - 1];
-			distance += max(len, aSearch.include.getPatterns()[j-1].size() + 1);
-		}
-
-		startFromZero = positions[0] == 0;
-	}
-}
-
-bool ShareManager::Directory::SearchResultInfo::Sort::operator()(const SearchResultInfo& left, const SearchResultInfo& right) const {
-	// Check if the positions are sequential
-	if (left.isSorted != right.isSorted) {
-		return left.isSorted;
-	}
-
-	// Check recursion
-	if (left.recursionLevel != right.recursionLevel) {
-		return left.recursionLevel < right.recursionLevel;
-	}
-	
-	// Check the starting position
-	if (left.startFromZero != right.startFromZero) {
-		return left.startFromZero;
-	}
-
-	// Check the distance of the matches
-	if (left.distance != right.distance) {
-		return left.distance < right.distance;
-	}
-
-	// Check the level
-	if (left.level != right.level) {
-		return left.level < right.level;
-	}
-
-	// Prefer directories over files
-	if (left.type != right.type) {
-		return left.type == DIRECTORY;
-	}
-
-	// Sort by the length
-	if (left.type == DIRECTORY) {
-		return left.directory->realName.getLower().length() < right.directory->realName.getLower().length();
-	}
-	return left.file->name.getLower().length() < right.file->name.getLower().length();
-
-	// Sort by the modify date (newer first)
-	//if (left.type == DIRECTORY) {
-	//	return left.directory->getLastWrite() > right.directory->getLastWrite();
-	//}
-
-	//return left.file->getLastWrite() > right.file->getLastWrite();
-
-	// Sort by the name (this will be slow with certain common search terms, avoid)
-	//if (left.type == DIRECTORY) {
-	//	return left.directory->realName.getLower().compare(right.directory->realName.getLower()) < 0;
-	//}
-	//return left.file->name.getLower().compare(right.file->name.getLower()) < 0;
-}
-
 /**
 * Alright, the main point here is that when searching, a search string is most often found in
 * the filename, not directory name, so we want to make that case faster. Also, we want to
@@ -3292,7 +3220,7 @@ void ShareManager::Directory::search(SearchResultInfo::Set& results_, SearchQuer
 			}
 
 			if (hasValidResult) {
-				rec.reset(new SearchQuery::Recursion(aStrings));
+				rec.reset(new SearchQuery::Recursion(aStrings, dirName));
 				aStrings.recursion = rec.get();
 			}
 		}

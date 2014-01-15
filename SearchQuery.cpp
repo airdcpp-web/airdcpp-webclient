@@ -30,6 +30,109 @@ namespace {
 
 namespace dcpp {
 
+double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) {
+	double scores = 0;
+	auto positions = aSearch.getResultPositions(aName);
+	dcassert(boost::find_if(positions, CompareFirst<size_t, int>(string::npos)) == positions.end());
+	typedef decltype(positions[0]) PosType;
+
+	// check the recursion level
+	int recursionLevel = 0;
+	if (aSearch.recursion && aSearch.getLastIncludeMatches() != static_cast<int>(aSearch.include.count()))
+		recursionLevel = aSearch.recursion->recursionLevel;
+
+	bool isSorted = is_sorted(positions.begin(), positions.end());
+	double maxPosPoints = (aSearch.include.count() * 20) + (20 * (recursionLevel+1));
+
+	// distance of the matched words
+	int extraDistance = -1;
+	if (isSorted) {
+		int minDistance = 0;
+		for (const auto& p : aSearch.include.getPatterns()) {
+			minDistance += p.size();
+		}
+		minDistance = minDistance + aSearch.include.count() - aSearch.include.getPatterns().back().size() - 1;
+
+		extraDistance = (positions.back().first - positions.front().first) - minDistance;
+	}
+
+
+	//int arrPos = 0;
+	int arr[] = { 120, 30, 30, 10, 5 };
+
+	// count the scores
+	if (isSorted)
+		scores += 120;
+
+	// start position
+	if (isSorted) {
+		auto startPos = positions[0].first;
+		scores += startPos > 0 ? (1 / static_cast<double>(startPos)) * 20 : 30;
+	}
+
+	// separators
+	double curPosPoints = 0;
+	for (auto i : positions) {
+		curPosPoints += i.second;
+	}
+
+	if (isSorted)
+		scores += curPosPoints;
+	else
+		scores += (curPosPoints / maxPosPoints) * 10;
+
+	// distance
+	if (isSorted)
+		scores += extraDistance > 0 ? max((1 / static_cast<double>(extraDistance)) * 20, 0.0) : 30;
+
+	// level
+	scores += aLevel > 0 ? 9 / static_cast<double>(aLevel) : 10;
+
+	// prefer directories
+	if (aIsDirectory)
+		scores += 5;
+
+	scores = scores / (accumulate(arr, arr + sizeof(arr) / sizeof(int), 0) + maxPosPoints);
+	dcassert(recursionLevel >= 0);
+	scores = scores / (recursionLevel+1);
+
+	return scores;
+}
+
+SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) const {
+	auto isSeparator = [](char c) {
+		return (c >= 32 && c <= 47) ||
+			(c >= 58 && c <= 64) ||
+			(c >= 91 && c <= 96) ||
+			(c >= 91 && c <= 96) ||
+			(c >= 123 && c <= 127);
+	};
+
+	ResultPointsList ret(lastIncludePositions.size());
+	for (int j = 0; j < lastIncludePositions.size(); ++j) {
+		int points = 0;
+		auto pos = lastIncludePositions[j];
+		if (pos != string::npos) {
+			if (pos == 0) {
+				points += 20;
+			} else if (!isSeparator(include.getPatterns()[j].str().front()) && isSeparator(aName[pos - 1])) {
+				points += 10;
+			}
+
+			auto endPos = pos + include.getPatterns()[j].size();
+			if (endPos == aName.size()) {
+				points += 20;
+			} else if (!isSeparator(include.getPatterns()[j].str().back()) && isSeparator(aName[endPos])) {
+				points += 10;
+			}
+		}
+
+		ret[j] = { pos, points };
+	}
+
+	return ret;
+}
+
 SearchQuery* SearchQuery::getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents, size_t aMaxResults) {
 	SearchQuery* s = nullptr;
 
@@ -252,15 +355,37 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 	return true;
 }
 
-StringSearch::ResultList SearchQuery::getResultPositions() const {
+bool SearchQuery::matchesNmdcPath(const string& aPath, Recursion& recursion_) {
+	auto sl = StringTokenizer<string>(aPath, '\\').getTokens();
+
+	int level = 0;
+	for (const auto& s : sl) {
+		if (recursion)
+			recursion->increase(s.size());
+
+		resetPositions();
+		lastIncludeMatches = include.matchLower(Text::toLower(s), true, &lastIncludePositions);
+		if (lastIncludeMatches == 0)
+			continue;
+
+		if (level < include.count()) {
+			recursion_ = Recursion(*this, s);
+			recursion = &recursion_;
+		}
+	}
+
+	return positionsComplete();
+}
+
+SearchQuery::ResultPointsList SearchQuery::getResultPositions(const string& aName) const {
 	// Do we need to use matches from a lower level?
+	auto ret = toPointList(aName);
 	if (recursion && find(lastIncludePositions, string::npos) != lastIncludePositions.end()) {
-		StringSearch::ResultList ret(lastIncludePositions);
 		Recursion::merge(ret, recursion);
 		return ret;
 	}
 
-	return lastIncludePositions;
+	return ret;
 }
 
 void SearchQuery::resetPositions() {
@@ -291,7 +416,7 @@ bool SearchQuery::matchesAnyDirectoryLower(const string& aName) {
 	return lastIncludeMatches > 0;
 }
 
-SearchQuery::Recursion::Recursion(const SearchQuery& aSearch) : positions(aSearch.lastIncludePositions) {
+SearchQuery::Recursion::Recursion(const SearchQuery& aSearch, const string& aName) : positions(aSearch.toPointList(aName)) {
 	if (aSearch.recursion && merge(positions, aSearch.recursion)) {
 		depthLen = aSearch.recursion->depthLen;
 		recursionLevel = aSearch.recursion->recursionLevel;
@@ -300,19 +425,19 @@ SearchQuery::Recursion::Recursion(const SearchQuery& aSearch) : positions(aSearc
 
 bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo) const {
 	for (size_t j = 0; j < positions.size(); ++j) {
-		if (positions[j] == string::npos && compareTo[j] == string::npos)
+		if (positions[j].first == string::npos && compareTo[j] == string::npos)
 			return false;
 	}
 	return true;
 }
 
-bool SearchQuery::Recursion::merge(StringSearch::ResultList& mergeTo, const Recursion* parent) {
+bool SearchQuery::Recursion::merge(ResultPointsList& mergeTo, const Recursion* parent) {
 	auto& old = parent->positions;
 	int startPos = -1;
 
 	// do we have anything that needs to be merged?
 	for (int j = 0; j < old.size(); ++j) {
-		if (mergeTo[j] == string::npos && old[j] != string::npos) {
+		if (mergeTo[j].first == string::npos && old[j].first != string::npos) {
 			startPos = j;
 			break;
 		}
@@ -321,10 +446,10 @@ bool SearchQuery::Recursion::merge(StringSearch::ResultList& mergeTo, const Recu
 	if (startPos != -1) {
 		// set the missing positions
 		for (int j = startPos; j < old.size(); ++j) {
-			if (mergeTo[j] == string::npos)
-				mergeTo[j] = old[j];
+			if (mergeTo[j].first == string::npos)
+				mergeTo[j].first = old[j].first;
 			else
-				mergeTo[j] += parent->depthLen;
+				mergeTo[j].first += parent->depthLen;
 		}
 
 		return true;

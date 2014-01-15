@@ -1031,6 +1031,11 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 				set(INCOMING_REFRESH_TIME, 0);
 				set(AUTO_REFRESH_TIME, 0);
 			}
+
+			if (prevVersion < 2.70) {
+				unsetKey(SEARCHFRAME_ORDER);
+				unsetKey(SEARCHFRAME_WIDTHS);
+			}
 		
 			fire(SettingsManagerListener::Load(), xml);
 
