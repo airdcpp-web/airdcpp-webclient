@@ -527,7 +527,7 @@ bool DirectoryListing::findNfo(const string& aPath) noexcept {
 
 		if (!results.empty()) {
 			try {
-				openFile(results.front(), true);
+				openFile(results.front(), !SETTING(NFO_EXTERNAL));
 			} catch(const Exception&) { }
 			return true;
 		}
