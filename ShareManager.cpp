@@ -3196,6 +3196,7 @@ void ShareManager::Directory::search(SearchResultInfo::Set& results_, SearchQuer
 	unique_ptr<SearchQuery::Recursion> rec = nullptr;
 
 	// Find any matches in the directory name
+	// Subdirectories of fully matched items won't match anything
 	if (aStrings.matchesAnyDirectoryLower(dirName)) {
 		bool positionsComplete = aStrings.positionsComplete();
 		if (aStrings.itemType != SearchQuery::TYPE_FILE && positionsComplete && aStrings.gt == 0 && aStrings.matchesDate(lastWrite)) {
@@ -3287,9 +3288,6 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, ProfileT
 		}
 		return;
 	}
-
-	if (srch.include.empty())
-		return;
 
 	recursiveSearches++;
 	if (isAutoSearch)

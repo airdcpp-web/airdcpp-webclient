@@ -1035,6 +1035,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 			if (prevVersion < 2.70) {
 				unsetKey(SEARCHFRAME_ORDER);
 				unsetKey(SEARCHFRAME_WIDTHS);
+				unsetKey(SEARCHFRAME_VISIBLE);
 			}
 		
 			fire(SettingsManagerListener::Load(), xml);

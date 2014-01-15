@@ -31,44 +31,34 @@ namespace {
 namespace dcpp {
 
 double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) {
-	double scores = 0;
+	// get the level scores first
+	double scores = aLevel > 0 ? 9 / static_cast<double>(aLevel) : 10;
+	double maxPoints = 10;
+
 	auto positions = aSearch.getResultPositions(aName);
+	if (positions.empty()) {
+		// "Find and view NFO" in own list is performed without include terms, but we still want to prefer lower-level items
+		return scores / maxPoints;
+	}
+
 	dcassert(boost::find_if(positions, CompareFirst<size_t, int>(string::npos)) == positions.end());
-	typedef decltype(positions[0]) PosType;
 
-	// check the recursion level
+	// check the recursion level (ignore recurions if the last item was fully matched)
 	int recursionLevel = 0;
-	if (aSearch.recursion && aSearch.getLastIncludeMatches() != static_cast<int>(aSearch.include.count()))
+	if (aSearch.recursion && aSearch.getLastIncludeMatches() != static_cast<int>(aSearch.include.count())) {
 		recursionLevel = aSearch.recursion->recursionLevel;
+	}
 
+	// Prefer sequential matches
 	bool isSorted = is_sorted(positions.begin(), positions.end());
-	double maxPosPoints = (aSearch.include.count() * 20) + (20 * (recursionLevel+1));
-
-	// distance of the matched words
-	int extraDistance = -1;
 	if (isSorted) {
-		int minDistance = 0;
-		for (const auto& p : aSearch.include.getPatterns()) {
-			minDistance += p.size();
-		}
-		minDistance = minDistance + aSearch.include.count() - aSearch.include.getPatterns().back().size() - 1;
-
-		extraDistance = (positions.back().first - positions.front().first) - minDistance;
-	}
-
-
-	//int arrPos = 0;
-	int arr[] = { 120, 30, 30, 10, 5 };
-
-	// count the scores
-	if (isSorted)
 		scores += 120;
-
-	// start position
-	if (isSorted) {
-		auto startPos = positions[0].first;
-		scores += startPos > 0 ? (1 / static_cast<double>(startPos)) * 20 : 30;
 	}
+	maxPoints += 120;
+
+
+	// maximum points from SearchQuery::toPointList based on the include count
+	double maxPosPoints = (aSearch.include.count() * 20) + (20 * (recursionLevel+1));
 
 	// separators
 	double curPosPoints = 0;
@@ -76,23 +66,47 @@ double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, b
 		curPosPoints += i.second;
 	}
 
-	if (isSorted)
+	if (isSorted) {
 		scores += curPosPoints;
-	else
+	} else {
 		scores += (curPosPoints / maxPosPoints) * 10;
+	}
+	maxPoints += maxPosPoints;
 
-	// distance
-	if (isSorted)
+
+	// distance of the matched words (ignores missing separators)
+	if (isSorted) {
+		int minDistance = 0;
+		for (const auto& p : aSearch.include.getPatterns()) {
+			minDistance += p.size();
+		}
+		minDistance = minDistance + aSearch.include.count() - aSearch.include.getPatterns().back().size() - 1;
+
+		int extraDistance = (positions.back().first - positions.front().first) - minDistance;
 		scores += extraDistance > 0 ? max((1 / static_cast<double>(extraDistance)) * 20, 0.0) : 30;
+	}
+	maxPoints += 30;
 
-	// level
-	scores += aLevel > 0 ? 9 / static_cast<double>(aLevel) : 10;
+
+	// positions of the first pattern (prefer the beginning)
+	if (isSorted) {
+		auto startPos = positions[0].first;
+		scores += startPos > 0 ? (1 / static_cast<double>(startPos)) * 20 : 30;
+	}
+	maxPoints += 30;
+
 
 	// prefer directories
-	if (aIsDirectory)
+	if (aIsDirectory) {
 		scores += 5;
+	}
+	maxPoints += 5;
 
-	scores = scores / (accumulate(arr, arr + sizeof(arr) / sizeof(int), 0) + maxPosPoints);
+
+	// scale the points
+	scores = scores / maxPoints;
+
+	// prefer matches on a single level
 	dcassert(recursionLevel >= 0);
 	scores = scores / (recursionLevel+1);
 

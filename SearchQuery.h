@@ -45,7 +45,11 @@ namespace dcpp {
 		};
 
 		typedef vector<pair<size_t, int>> ResultPointsList;
+
+		// Gets a score (0-1) based on how well the current item matches the provided search (which must have been fully matched first)
 		static double getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName);
+
+		// Count points per pattern based on the matching positions (based on the surrounding separators)
 		ResultPointsList toPointList(const string& aName) const;
 
 		// General initialization
@@ -113,16 +117,23 @@ namespace dcpp {
 
 		ItemType itemType = TYPE_ANY;
 
+		// Returns true if any of the include strings were matched
 		bool matchesAnyDirectoryLower(const string& aName);
+
+		// Returns true if the file is a valid result
 		bool matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate);
 
 		bool matchesDirectory(const string& aName);
 		bool matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH);
+
+		// Returns true if all include strings were matched (no other checks)
+		// The caller must ensure that recursion exists as long as the matches are used
 		bool matchesNmdcPath(const string& aPath, Recursion& recursion_);
 
 		inline bool matchesSize(int64_t aSize) { return aSize >= gt && aSize <= lt; }
 		inline bool matchesDate(time_t aDate) { return aDate == 0 || (aDate >= minDate && aDate <= maxDate); }
 	private:
+		// Reset positions from the previous matching
 		void resetPositions();
 		void prepare();
 		StringSearch::ResultList lastIncludePositions;
