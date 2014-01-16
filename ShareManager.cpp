@@ -3334,9 +3334,6 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, ProfileT
 	for (const auto& p : srch.include.getPatterns()) 
 		searchTokenLength += p.size();
 
-	if (!results.empty())
-		recursiveSearchesResponded++;
-
 
 	// pick the results to return
 	for (auto l = resultInfos.begin(); (l != resultInfos.end()) && (results.size() < srch.maxResults); ++l) {
@@ -3347,6 +3344,9 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, ProfileT
 			info.file->addSR(results, aProfile, srch.addParents);
 		}
 	}
+
+	if (!results.empty())
+		recursiveSearchesResponded++;
 }
 
 void ShareManager::cleanIndices(Directory& dir, const Directory::File* f) noexcept {
