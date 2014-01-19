@@ -1831,8 +1831,12 @@ enum Strings { // @DontAdd
 	SHELL_MENU_FAILED, // "Failed to load the menu for %1%"
 	ERROR_OPENING_NFO_EXTERNAL, // "Could not open NFO via external viewer, Error: "
 	OPEN_NFO_EXTERNAL, // "Open .nfo files externally"
-	DIR_SHARED_ALREADY, // "The directory exists in share: %s"
-	DIR_QUEUED_ALREADY, // "The directory exists in queue: %s"
+	DIR_SHARED_ALREADY, // "The directory exists in share: %1%"
+	DIR_QUEUED_ALREADY, // "The directory exists in queue: %1%"
 	RELEVANCY, // "Relevancy"
+	OUT_OF_MEMORY, // "Out of memory"
+	LIST_LOAD_FAILED, // "Failed to load the file list %1%: %2%"
+	DIR_REFRESH_FAILED, // "Failed to refresh the directory %1%: %2%"
+	BUNDLE_CREATION_FAILED, // "Failed to create the bundle %1%: %2%"
 	LAST // @DontAdd
 };

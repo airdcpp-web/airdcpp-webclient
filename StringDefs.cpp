@@ -1827,9 +1827,13 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to load the menu for %1%", 
 "Could not open NFO via external viewer, Error: ", 
 "Open .nfo files externally", 
-"The directory exists in share: %s", 
-"The directory exists in queue: %s", 
+"The directory exists in share: %1%", 
+"The directory exists in queue: %1%", 
 "Relevancy", 
+"Out of memory", 
+"Failed to load the file list %1%: %2%", 
+"Failed to refresh the directory %1%: %2%", 
+"Failed to create the bundle %1%: %2%", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3660,4 +3664,8 @@ std::string dcpp::ResourceManager::names[] = {
 "DirSharedAlready", 
 "DirQueuedAlready", 
 "Relevancy", 
+"OutOfMemory", 
+"ListLoadFailed", 
+"DirRefreshFailed", 
+"BundleCreationFailed", 
 };

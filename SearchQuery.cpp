@@ -123,7 +123,7 @@ SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) cons
 	};
 
 	ResultPointsList ret(lastIncludePositions.size());
-	for (int j = 0; j < lastIncludePositions.size(); ++j) {
+	for (size_t j = 0; j < lastIncludePositions.size(); ++j) {
 		int points = 0;
 		auto pos = lastIncludePositions[j];
 		if (pos != string::npos) {
@@ -372,7 +372,7 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 bool SearchQuery::matchesNmdcPath(const string& aPath, Recursion& recursion_) {
 	auto sl = StringTokenizer<string>(aPath, '\\').getTokens();
 
-	int level = 0;
+	size_t level = 0;
 	for (const auto& s : sl) {
 		if (recursion)
 			recursion->increase(s.size());
@@ -447,19 +447,19 @@ bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo
 
 bool SearchQuery::Recursion::merge(ResultPointsList& mergeTo, const Recursion* parent) {
 	auto& old = parent->positions;
-	int startPos = -1;
+	optional<size_t> startPos;
 
 	// do we have anything that needs to be merged?
-	for (int j = 0; j < old.size(); ++j) {
+	for (size_t j = 0; j < old.size(); ++j) {
 		if (mergeTo[j].first == string::npos && old[j].first != string::npos) {
 			startPos = j;
 			break;
 		}
 	}
 
-	if (startPos != -1) {
+	if (startPos) {
 		// set the missing positions
-		for (int j = startPos; j < old.size(); ++j) {
+		for (size_t j = *startPos; j < old.size(); ++j) {
 			if (mergeTo[j].first == string::npos)
 				mergeTo[j].first = old[j].first;
 			else

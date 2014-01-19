@@ -431,7 +431,15 @@ bool DirectoryListing::createBundle(Directory::Ptr& aDir, const string& aTarget,
 	}
 
 	string errorMsg;
-	BundlePtr b = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser, aFiles, prio, aDir->getRemoteDate(), errorMsg);
+	BundlePtr b = nullptr;
+	try {
+		b = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser,
+			aFiles, prio, aDir->getRemoteDate(), errorMsg);
+	} catch (const std::bad_alloc&) {
+		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogManager::LOG_ERROR);
+		return false;
+	}
+
 	if (!errorMsg.empty()) {
 		if (aAutoSearch == 0) {
 			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % getNick(false) % errorMsg), LogManager::LOG_WARNING);
@@ -846,7 +854,11 @@ int DirectoryListing::run() {
 			} else if (t.first == ASYNC && !closing) {
 				static_cast<AsyncTask*>(t.second)->f();
 			}
-		} catch(const AbortException&) {
+		} catch (const std::bad_alloc&) {
+			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % STRING(OUT_OF_MEMORY)), LogManager::LOG_ERROR);
+			fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
+			break;
+		} catch (const AbortException&) {
 			fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
 			break;
 		} catch(const ShareException& e) {
@@ -854,6 +866,7 @@ int DirectoryListing::run() {
 		} catch (const QueueException& e) {
 			fire(DirectoryListingListener::UpdateStatusMessage(), "Queueing failed:" + e.getError());
 		} catch (const Exception& e) {
+			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % e.getError()), LogManager::LOG_ERROR);
 			fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) + ": " + e.getError());
 		}
 	}

@@ -74,7 +74,7 @@ ShareDirInfo::ShareDirInfo(const ShareDirInfoPtr& aInfo, ProfileToken aNewProfil
 ShareDirInfo::ShareDirInfo(const string& aVname, ProfileToken aProfile, const string& aPath, bool aIncoming /*false*/, State aState /*STATE_NORMAL*/) : vname(aVname), profile(aProfile), path(aPath), incoming(aIncoming),
 	found(false), diffState(DIFF_NORMAL), state(aState), size(0) {}
 
-ShareManager::ShareManager() : bloom(new ShareBloom(1<<20))
+ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20))
 { 
 	SettingsManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
@@ -2540,14 +2540,18 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		ShareBloom* refreshBloom = t.first == REFRESH_ALL ? new ShareBloom(1<<20) : bloom.get();
 
 		auto doRefresh = [&](RefreshInfoPtr& i) {
-			auto& ri = *i;
-			//if (checkHidden(ri.path)) {
-				auto pathLower = Text::toLower(ri.path);
-				auto path = ri.path;
-				ri.root->addBloom(*refreshBloom);
+			auto& ri = *i.get();
+			auto pathLower = Text::toLower(ri.path);
+			auto path = ri.path;
+			ri.root->addBloom(*refreshBloom);
+			try {
 				buildTree(path, pathLower, ri.root, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
-				dcassert(ri.path == path);
-			//}
+			} catch (const std::bad_alloc&) {
+				LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogManager::LOG_ERROR);
+				return;
+			}
+
+			dcassert(ri.path == path);
 
 			if(progressF) {
 				progressF(static_cast<float>(progressCounter++) / static_cast<float>(dirCount));
