@@ -104,7 +104,7 @@ public:
 	string getDLSpeed(const CID& cid) const noexcept;
 	uint8_t getSlots(const CID& cid) const noexcept;
 
-	bool isConnected(const string& aUrl) const noexcept;
+	bool hasClient(const string& aUrl) const noexcept;
 	
 	uint64_t search(string& who, SearchPtr aSearch) noexcept;
 

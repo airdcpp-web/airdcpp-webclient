@@ -259,7 +259,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 	}
 
 	if(u->getUser() == getMyIdentity().getUser()) {
-		auto oldState = state;
+		State oldState = state;
 		state = STATE_NORMAL;
 		setAutoReconnect(true);
 		setMyIdentity(u->getIdentity());

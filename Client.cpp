@@ -213,7 +213,7 @@ void Client::info() {
 }
 
 void Client::send(const char* aMessage, size_t aLen) {
-	if(!isReady() || !sock) {
+	if (!isConnected() || !sock) {
 		dcassert(0);
 		return;
 	}
@@ -262,7 +262,7 @@ void Client::on(Failed, const string& aLine) noexcept {
 	string oldUrl = hubUrl;
 	if (state == STATE_CONNECTING || (state != STATE_NORMAL && FavoriteManager::getInstance()->isFailOverUrl(favToken, hubUrl))) {
 		auto newUrl = FavoriteManager::getInstance()->getFailOverUrl(favToken, hubUrl);
-		if (newUrl && !ClientManager::getInstance()->isConnected(*newUrl)) {
+		if (newUrl && !ClientManager::getInstance()->hasClient(*newUrl)) {
 			ClientManager::getInstance()->setClientUrl(hubUrl, *newUrl);
 
 			if (msg.back() != '.')
@@ -285,20 +285,25 @@ void Client::disconnect(bool graceLess) {
 		sock->disconnect(graceLess);
 }
 
+bool Client::isConnected() const {
+	State s = state;
+	return s != STATE_CONNECTING && s != STATE_DISCONNECTED; 
+}
+
 bool Client::isSecure() const {
-	return isReady() && sock->isSecure();
+	return isConnected() && sock->isSecure();
 }
 
 bool Client::isTrusted() const {
-	return isReady() && sock->isTrusted();
+	return isConnected() && sock->isTrusted();
 }
 
 std::string Client::getCipherName() const {
-	return isReady() ? sock->getCipherName() : Util::emptyString;
+	return isConnected() ? sock->getCipherName() : Util::emptyString;
 }
 
 vector<uint8_t> Client::getKeyprint() const {
-	return isReady() ? sock->getKeyprint() : vector<uint8_t>();
+	return isConnected() ? sock->getKeyprint() : vector<uint8_t>();
 }
 
 bool Client::updateCounts(bool aRemove) {

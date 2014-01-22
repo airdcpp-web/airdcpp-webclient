@@ -342,7 +342,7 @@ uint8_t ClientManager::getSlots(const CID& cid) const noexcept {
 	return 0;
 }
 
-bool ClientManager::isConnected(const string& aUrl) const noexcept {
+bool ClientManager::hasClient(const string& aUrl) const noexcept{
 	RLock l(cs);
 
 	auto i = clients.find(const_cast<string*>(&aUrl));
