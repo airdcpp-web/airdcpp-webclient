@@ -1839,5 +1839,6 @@ enum Strings { // @DontAdd
 	LIST_LOAD_FAILED, // "Failed to load the file list %1%: %2%"
 	DIR_REFRESH_FAILED, // "Failed to refresh the directory %1%: %2%"
 	BUNDLE_CREATION_FAILED, // "Failed to create the bundle %1%: %2%"
+	SINGLE_CLICK_TRAY, // "Single click on tray icon to open"
 	LAST // @DontAdd
 };
