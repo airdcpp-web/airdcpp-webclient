@@ -1872,7 +1872,7 @@ bool ShareManager::isFileShared(const TTHValue& aTTH, ProfileToken aProfile) con
 }
 
 void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, 
-	int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) noexcept {
+	int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom) {
 
 	FileFindIter end;
 	for(FileFindIter i(aPath, "*"); i != end && !aShutdown; ++i) {
@@ -2548,6 +2548,9 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 				buildTree(path, pathLower, ri.root, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
 			} catch (const std::bad_alloc&) {
 				LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogManager::LOG_ERROR);
+				return;
+			} catch (...) {
+				LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogManager::LOG_ERROR);
 				return;
 			}
 

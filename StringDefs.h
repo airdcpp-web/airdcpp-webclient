@@ -705,6 +705,7 @@ enum Strings { // @DontAdd
 	UNIGNORE_USER, // "Unignore user"
 	UNKNOWN, // "Unknown"
 	UNKNOWN_COMMAND, // "Unknown command: "
+	UNKNOWN_ERROR, // "Unknown error"
 	UPDATE_CHECK, // "Update check"
 	UPLOAD_FINISHED_IDLE, // "Upload finished, idle..."
 	UPLOAD_STARTING, // "Upload starting..."
