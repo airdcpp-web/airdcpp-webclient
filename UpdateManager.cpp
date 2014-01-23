@@ -288,6 +288,7 @@ void UpdateManager::failUpdateDownload(const string& aError, bool manualCheck) {
 	}
 
 	if (manualCheck) {
+		LogManager::getInstance()->message(msg, LogManager::LOG_ERROR);
 		fire(UpdateManagerListener::UpdateFailed(), msg);
 	} else {
 		LogManager::getInstance()->message(msg, LogManager::LOG_WARNING);
