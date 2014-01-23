@@ -1380,7 +1380,7 @@ void QueueManager::hashBundle(BundlePtr& aBundle) noexcept {
 		{
 			RLock l(cs);
 			for (auto& qi: aBundle->getFinishedFiles()) {
-				if (ShareManager::getInstance()->checkSharedName(qi->getTarget(), Text::toLower(qi->getTarget()), false, false, qi->getSize()) && Util::fileExists(qi->getTarget())) {
+				if (ShareManager::getInstance()->checkSharedName(qi->getTarget(), Text::toLower(qi->getTarget()), false, true, qi->getSize()) && Util::fileExists(qi->getTarget())) {
 					qi->unsetFlag(QueueItem::FLAG_HASHED);
 					hash.push_back(qi);
 				} else {
