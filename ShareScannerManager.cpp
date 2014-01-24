@@ -160,6 +160,7 @@ int ShareScannerManager::run() {
 		}
 
 		try {
+			TaskScheduler s;
 			parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
 				if (!s.rootPath.empty()) {
 					// TODO: FIX LINUX

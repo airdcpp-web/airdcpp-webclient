@@ -34,7 +34,14 @@ using tbb::concurrent_queue;
 using tbb::parallel_for_each;
 using tbb::task_group;
 
-//using namespace tbb;
+class TaskScheduler {
+public:
+	TaskScheduler() { }
+
+	~TaskScheduler() { }
+private:
+	task_scheduler_init init;
+};
 
 }
 
@@ -50,6 +57,17 @@ using concurrency::concurrent_queue;
 using concurrency::task_group;
 using concurrency::parallel_for_each;
 
+class TaskScheduler {
+public:
+	TaskScheduler() {
+		concurrency::CurrentScheduler::Create(concurrency::CurrentScheduler::GetPolicy());
+	}
+
+	~TaskScheduler() {
+		concurrency::CurrentScheduler::Detach();
+	}
+};
+
 }
 
 #else
@@ -58,6 +76,12 @@ using concurrency::parallel_for_each;
 #include "CriticalSection.h"
 
 namespace dcpp {
+
+class TaskScheduler {
+public:
+	TaskScheduler() { }
+	~TaskScheduler() { }
+};
 
 #define parallel_for_each for_each
 

@@ -2545,12 +2545,13 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 
 		try {
 			if (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_ALWAYS || (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_MANUAL && (task->type == TYPE_MANUAL || task->type == TYPE_STARTUP_BLOCKING))) {
+				TaskScheduler s;
 				parallel_for_each(refreshDirs.begin(), refreshDirs.end(), doRefresh);
 			} else {
 				for_each(refreshDirs, doRefresh);
 			}
 		} catch (std::exception& e) {
-			LogManager::getInstance()->message("Refresh failed: " + string(e.what()), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogManager::LOG_INFO);
 			continue;
 		}
 
