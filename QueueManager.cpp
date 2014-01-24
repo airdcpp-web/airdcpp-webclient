@@ -3918,7 +3918,7 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) noexcept {
 void QueueManager::onUseSeqOrder(BundlePtr& b) noexcept {
 	if (b) {
 		WLock l (cs);
-		b->setSeqOrder(true);
+		b->setSeqOrder(!b->getSeqOrder());
 		auto ql = b->getQueueItems();
 		for (auto& q: ql) {
 			if (!q->isPausedPrio()) {

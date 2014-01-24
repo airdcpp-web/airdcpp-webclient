@@ -1360,7 +1360,6 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 
 			if(!name.empty()) {
 				curDirPath += name + PATH_SEPARATOR;
-				//lastPos += cur->name.size()+1;
 
 				ShareManager::ProfileDirectory::Ptr pd = nullptr;
 				if (!subProfiles.empty()) {
@@ -1415,10 +1414,6 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 	void endTag(const string& name) {
 		if(compare(name, SDIRECTORY) == 0) {
 			if(cur) {
-				//auto len = curDirPath.size()-lastPos;
-				//curDirPath.erase(lastPos, len);
-				//curDirPathLower.erase(lastPos, len);
-				//lastPos -= len;
 				curDirPath = Util::getParentDir(curDirPath);
 				curDirPathLower = Util::getParentDir(curDirPathLower);
 				cur = cur->getParent();
@@ -1430,12 +1425,10 @@ private:
 	friend struct SizeSort;
 
 	ShareManager::Directory::Ptr cur;
-	//ShareManager::RefreshInfo& ri;
 
 	string curDirPathLower;
 	string curDirPath;
 	ShareManager::ShareBloom* bloom;
-	//int lastPos;
 };
 
 typedef shared_ptr<ShareManager::ShareLoader> ShareLoaderPtr;
@@ -2070,7 +2063,7 @@ void ShareManager::addAsyncTask(AsyncF aF) noexcept {
 	}
 }
 
-int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aRefreshType, const string& displayName /*Util::emptyString*/, function<void (float)> progressF /*nullptr*/) noexcept {
+int ShareManager::addRefreshTask(TaskType aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName /*Util::emptyString*/, function<void(float)> progressF /*nullptr*/) noexcept{
 	if (dirs.empty()) {
 		return REFRESH_PATH_NOT_FOUND;
 	}
@@ -2078,7 +2071,7 @@ int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aR
 	{
 		Lock l(tasks.cs);
 		auto& tq = tasks.getTasks();
-		if (aTask == REFRESH_ALL) {
+		if (aTaskType == REFRESH_ALL) {
 			//don't queue multiple full refreshes
 			const auto p = find_if(tq, [](const TaskQueue::UniqueTaskPair& tp) { return tp.first == REFRESH_ALL; });
 			if (p != tq.end())
@@ -2098,13 +2091,13 @@ int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aR
 		return REFRESH_ALREADY_QUEUED;
 	}
 
-	tasks.add(aTask, unique_ptr<Task>(new ShareTask(dirs, displayName, aRefreshType)));
+	tasks.add(aTaskType, unique_ptr<Task>(new ShareTask(dirs, displayName, aRefreshType)));
 
 	if(refreshing.test_and_set()) {
 		if (aRefreshType != TYPE_STARTUP_DELAYED) {
 			//this is always called from the task thread...
 			string msg;
-			switch (aTask) {
+			switch (aTaskType) {
 			case(REFRESH_ALL) :
 				msg = STRING(REFRESH_QUEUED);
 				break;
@@ -2136,7 +2129,7 @@ int ShareManager::addRefreshTask(uint8_t aTask, StringList& dirs, RefreshType aR
 		return REFRESH_IN_PROGRESS;
 	}
 
-	if(aRefreshType == TYPE_STARTUP_BLOCKING && aTask == REFRESH_ALL) { 
+	if (aRefreshType == TYPE_STARTUP_BLOCKING && aTaskType == REFRESH_ALL) {
 		runTasks(progressF);
 	} else {
 		try {
@@ -2193,17 +2186,6 @@ void ShareManager::renameProfiles(const ShareProfileInfo::List& aProfiles) noexc
 			(*p)->setPlainName(sp->name);
 		}
 	}
-
-	// sort the profiles
-	/*ShareProfileList newProfiles;
-	for (auto& sp : aProfiles) {
-		auto p = find(shareProfiles.begin(), shareProfiles.end(), sp->token);
-		if (p != shareProfiles.end()) {
-			newProfiles.push_back(*p);
-		}
-	}
-
-	shareProfiles = newProfiles;*/
 }
 
 void ShareManager::addDirectories(const ShareDirInfo::List& aNewDirs) noexcept {
@@ -2696,10 +2678,6 @@ void ShareManager::getShares(ShareDirInfo::Map& aDirs) const noexcept {
 	}
 
 }
-
-/*size_t ShareManager::getSharedFiles(ProfileToken aProfile) const noexcept {
-	return boost::count_if(tthIndex | map_values, [aProfile](Directory::File::Set::const_iterator f) { return f->getParent()->hasProfile(aProfile); });
-}*/
 		
 void ShareManager::getBloom(HashBloom& bloom) const noexcept {
 	RLock l(cs);

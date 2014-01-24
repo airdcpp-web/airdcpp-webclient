@@ -240,7 +240,7 @@ public:
 
 	void getShares(ShareDirInfo::Map& aDirs) const noexcept;
 
-	enum Tasks {
+	enum TaskType {
 		ASYNC,
 		ADD_DIR,
 		REFRESH_ALL,
@@ -273,7 +273,7 @@ public:
 	string printStats() const noexcept;
 	mutable SharedMutex cs;
 
-	int addRefreshTask(uint8_t aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName=Util::emptyString, function<void (float)> progressF = nullptr) noexcept;
+	int addRefreshTask(TaskType aTaskType, StringList& dirs, RefreshType aRefreshType, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
 	struct ShareLoader;
 
 	void rebuildMonitoring() noexcept;

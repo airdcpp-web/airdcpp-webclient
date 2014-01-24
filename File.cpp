@@ -233,17 +233,9 @@ void File::removeDirectory(const string& aPath) noexcept {
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
-	WIN32_FIND_DATA fd;
-	HANDLE hFind;
+	auto i = FileFindIter(aFileName);
+	return i != FileFindIter() ? i->getSize() : -1;
 
-	hFind = FindFirstFile(Text::toT(Util::FormatPath(aFileName)).c_str(), &fd);
-
-	if (hFind == INVALID_HANDLE_VALUE) {
-		return -1;
-	} else {
-		FindClose(hFind);
-		return ((int64_t)fd.nFileSizeHigh << 32 | (int64_t)fd.nFileSizeLow);
-	}
 }
 
 void File::ensureDirectory(const string& aFile) noexcept {
