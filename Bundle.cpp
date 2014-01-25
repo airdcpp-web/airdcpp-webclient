@@ -69,8 +69,8 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t 
 		bundleDate = time - SETTING(RECENT_BUNDLE_HOURS) * 60 * 60;
 	}
 
-	/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
-	seqOrder = (bundleDate + (7 * 24 * 60 * 60)) < time;
+	/* Randomize the downloading order for each user if the bundle dir date is newer than 5 days to boost partial bundle sharing */
+	seqOrder = (bundleDate + (5 * 24 * 60 * 60)) < time;
 
 	if (aPriority != DEFAULT) {
 		setAutoPriority(false);

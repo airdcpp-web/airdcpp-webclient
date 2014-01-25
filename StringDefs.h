@@ -1829,7 +1829,6 @@ enum Strings { // @DontAdd
 	SHELL_MENU, // "Shell menu"
 	SHELL_MENUS, // "Shell menus"
 	SHELL_MENU_FAILED, // "Failed to load the menu for %1%"
-	ERROR_OPENING_NFO_EXTERNAL, // "Could not open NFO via external viewer, Error: "
 	OPEN_NFO_EXTERNAL, // "Open .nfo files externally"
 	DIR_SHARED_ALREADY, // "The directory exists in share: %1%"
 	DIR_QUEUED_ALREADY, // "The directory exists in queue: %1%"
@@ -1839,5 +1838,6 @@ enum Strings { // @DontAdd
 	DIR_REFRESH_FAILED, // "Failed to refresh the directory %1%: %2%"
 	BUNDLE_CREATION_FAILED, // "Failed to create the bundle %1%: %2%"
 	SINGLE_CLICK_TRAY, // "Single click on tray icon to open"
+	NEW_NAME, // "New name"
 	LAST // @DontAdd
 };

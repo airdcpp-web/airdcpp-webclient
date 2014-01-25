@@ -60,56 +60,6 @@ namespace dcpp {
 
 using boost::range::for_each;
 
-/*QueueManager::FileMover::FileMover() { 
-	start();
-	setThreadPriority(Thread::LOW);
-}
-
-QueueManager::FileMover::~FileMover() { 
-	join();
-}
-
-struct MoverTask : public Task {
-	MoverTask(const string& aSource, const string& aTarget, QueueItemPtr aQI) : target(aTarget), source(aSource), qi(aQI) { }
-
-	string target, source;
-	QueueItemPtr qi;
-};
-
-void QueueManager::FileMover::removeDir(const string& aDir) {
-	tasks.add(REMOVE_DIR, unique_ptr<StringTask>(new StringTask(aDir)));
-	s.signal();
-}
-
-void QueueManager::FileMover::shutdown() {
-	tasks.add(SHUTDOWN, nullptr);
-	s.signal();
-}
-
-int QueueManager::FileMover::run() {
-	for(;;) {
-		s.wait();
-		TaskQueue::TaskPair t;
-		if (!tasks.getFront(t)) {
-			continue;
-		}
-
-		if (t.first == MOVE_FILE) {
-			auto mv = static_cast<MoverTask*>(t.second);
-			moveFile_(mv->source, mv->target, mv->qi);
-		} else if (t.first == REMOVE_DIR) {
-			auto dir = static_cast<StringTask*>(t.second);
-			AirUtil::removeDirectoryIfEmpty(dir->str, 10, false);
-		} else if (t.first == SHUTDOWN) {
-			break;
-		}
-
-		tasks.pop_front();
-	}
-
-	return 0;
-}*/
-
 void QueueManager::shutdown() {
 	saveQueue(false);
 }
@@ -3916,15 +3866,16 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) noexcept {
 }
 
 void QueueManager::onUseSeqOrder(BundlePtr& b) noexcept {
-	if (b) {
-		WLock l (cs);
-		b->setSeqOrder(!b->getSeqOrder());
-		auto ql = b->getQueueItems();
-		for (auto& q: ql) {
-			if (!q->isPausedPrio()) {
-				userQueue.removeQI(q, false, false);
-				userQueue.addQI(q, true);
-			}
+	if (!b)
+		return;
+
+	WLock l (cs);
+	b->setSeqOrder(!b->getSeqOrder());
+	auto ql = b->getQueueItems();
+	for (auto& q: ql) {
+		if (!q->isPausedPrio()) {
+			userQueue.removeQI(q, false, false);
+			userQueue.addQI(q, true);
 		}
 	}
 }

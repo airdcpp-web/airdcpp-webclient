@@ -1825,7 +1825,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Shell menu", 
 "Shell menus", 
 "Failed to load the menu for %1%", 
-"Could not open NFO via external viewer, Error: ", 
 "Open .nfo files externally", 
 "The directory exists in share: %1%", 
 "The directory exists in queue: %1%", 
@@ -1835,6 +1834,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to refresh the directory %1%: %2%", 
 "Failed to create the bundle %1%: %2%", 
 "Single click on tray icon to open", 
+"New name", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3660,7 +3660,6 @@ std::string dcpp::ResourceManager::names[] = {
 "ShellMenu", 
 "ShellMenus", 
 "ShellMenuFailed", 
-"ErrorOpeningNfoExternal", 
 "OpenNfoExternal", 
 "DirSharedAlready", 
 "DirQueuedAlready", 
@@ -3670,4 +3669,5 @@ std::string dcpp::ResourceManager::names[] = {
 "DirRefreshFailed", 
 "BundleCreationFailed", 
 "SingleClickTray", 
+"NewName", 
 };
