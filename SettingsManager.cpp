@@ -310,7 +310,7 @@ SettingsManager::SettingsManager()
 	setDefault(LOG_FILE_PRIVATE_CHAT, "PM" + string(PATH_SEPARATOR_STR) + "%B - %Y" + string(PATH_SEPARATOR_STR) + "%[userNI].log");
 	setDefault(LOG_FILE_UPLOAD, "Uploads.log");
 	setDefault(LOG_FILE_DOWNLOAD, "Downloads.log");
-	setDefault(LOG_FILE_SYSTEM, "system.log");
+	setDefault(LOG_FILE_SYSTEM, "%Y-%m-system.log");
 	setDefault(GET_USER_INFO, true);
 	setDefault(URL_HANDLER, true);
 	setDefault(AUTO_AWAY, false);
