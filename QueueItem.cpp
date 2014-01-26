@@ -472,7 +472,7 @@ Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const Par
 
 			// overlap current chunk at last block boundary
 			int64_t pos = d->getPos() - (d->getPos() % blockSize);
-			int64_t size = d->getSize() - pos;
+			int64_t size = d->getSegmentSize() - pos;
 
 			// new user should finish this chunk more than 2x faster
 			int64_t newChunkLeft = size / lastSpeed;

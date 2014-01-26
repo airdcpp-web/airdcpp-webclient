@@ -261,7 +261,7 @@ checkslots:
 				delayUploads.erase(i);
 
 				if(sourceFile != up->getPath()) {
-					if (up->isSet(Upload::FLAG_CHUNKED) && up->getSegment().getEnd() != up->getSize())
+					if (up->isSet(Upload::FLAG_CHUNKED) && up->getSegment().getEnd() != up->getFileSize())
 						logUpload(up);
 				} else if (up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE && up->getSegment().getEnd() != fileSize) {
 					//we are resuming the same file, reuse the existing upload
@@ -903,7 +903,7 @@ void UploadManager::on(UserConnectionListener::Get, UserConnection* aSource, con
 	int64_t bytes = -1;
 	if(prepareFile(*aSource, Transfer::names[Transfer::TYPE_FILE], Util::toAdcFile(aFile), aResume, bytes, Util::emptyString)) {
 		aSource->setState(UserConnection::STATE_SEND);
-		aSource->fileLength(Util::toString(aSource->getUpload()->getSize()));
+		aSource->fileLength(Util::toString(aSource->getUpload()->getSegmentSize()));
 	}
 }
 
@@ -946,7 +946,7 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 		AdcCommand cmd(AdcCommand::CMD_SND);
 		cmd.addParam(type).addParam(fname)
 			.addParam(Util::toString(u->getStartPos()))
-			.addParam(Util::toString(u->getSize()));
+			.addParam(Util::toString(u->getSegmentSize()));
 
 		if(c.hasFlag("ZL", 4)) {
 			u->setFiltered();
@@ -1222,7 +1222,7 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		for(auto i = delayUploads.begin(); i != delayUploads.end();) {
 			Upload* u = *i;
 			if(++u->delayTime > 10) {
-				if (u->isSet(Upload::FLAG_CHUNKED) && u->getSegment().getEnd() != u->getSize())
+				if (u->isSet(Upload::FLAG_CHUNKED) && u->getSegment().getEnd() != u->getFileSize())
 					logUpload(u);
 				
 				delete u;

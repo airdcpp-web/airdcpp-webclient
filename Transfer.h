@@ -61,8 +61,8 @@ public:
 
 	int64_t getActual() const { return actual; }
 
-	int64_t getSize() const { return getSegment().getSize(); }
-	void setSize(int64_t size) { segment.setSize(size); }
+	int64_t getSegmentSize() const { return getSegment().getSize(); }
+	void setSegmentSize(int64_t size) { segment.setSize(size); }
 
 	bool getOverlapped() const { return getSegment().getOverlapped(); }
 	void setOverlapped(bool overlap) { segment.setOverlapped(overlap); }

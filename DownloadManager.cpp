@@ -306,7 +306,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		}
 	}
 
-	dcdebug("Requesting " I64_FMT "/" I64_FMT "\n", d->getStartPos(), d->getSize());
+	dcdebug("Requesting " I64_FMT "/" I64_FMT "\n", d->getStartPos(), d->getSegmentSize());
 
 	//only update the hub if it has been changed
 	if (compare(newUrl, aConn->getHubUrl()) == 0) {
@@ -350,15 +350,15 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	Download* d = aSource->getDownload();
 	dcassert(d);
 
-	dcdebug("Preparing " I64_FMT ":" I64_FMT ", " I64_FMT ":" I64_FMT"\n", d->getStartPos(), start, d->getSize(), bytes);
-	if(d->getSize() == -1) {
+	dcdebug("Preparing " I64_FMT ":" I64_FMT ", " I64_FMT ":" I64_FMT"\n", d->getStartPos(), start, d->getSegmentSize(), bytes);
+	if (d->getSegmentSize() == -1) {
 		if(bytes >= 0) {
-			d->setSize(bytes);
+			d->setSegmentSize(bytes);
 		} else {
 			failDownload(aSource, STRING(INVALID_SIZE), true);
 			return;
 		}
-	} else if(d->getSize() != bytes || d->getStartPos() != start) {
+	} else if (d->getSegmentSize() != bytes || d->getStartPos() != start) {
 		// This is not what we requested...
 		failDownload(aSource, STRING(INVALID_SIZE), true);
 		return;
@@ -394,7 +394,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 		removeRunningUser(aSource, true);
 	}
 
-	if(d->getPos() == d->getSize()) {
+	if (d->getPos() == d->getSegmentSize()) {
 		try {
 			// Already finished? A zero-byte file list could cause this...
 			endData(aSource);
@@ -462,9 +462,9 @@ void DownloadManager::endData(UserConnection* aSource) {
 		}
 
 		aSource->setSpeed(static_cast<int64_t>(d->getAverageSpeed()));
-		aSource->updateChunkSize(d->getTigerTree().getBlockSize(), d->getSize(), GET_TICK() - d->getStart());
+		aSource->updateChunkSize(d->getTigerTree().getBlockSize(), d->getSegmentSize(), GET_TICK() - d->getStart());
 		
-		dcdebug("Download finished: %s, size " I64_FMT ", downloaded " I64_FMT "\n", d->getPath().c_str(), d->getSize(), d->getPos());
+		dcdebug("Download finished: %s, size " I64_FMT ", downloaded " I64_FMT "\n", d->getPath().c_str(), d->getSegmentSize(), d->getPos());
 	}
 
 	removeDownload(d);

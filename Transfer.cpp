@@ -75,7 +75,7 @@ double Transfer::getAverageSpeed() const {
 
 int64_t Transfer::getSecondsLeft(bool wholeFile) const {
 	double avg = getAverageSpeed();
-	int64_t bytesLeft =  (wholeFile ? ((Upload*)this)->getFileSize() : getSize()) - getPos();
+	int64_t bytesLeft =  (wholeFile ? ((Upload*)this)->getFileSize() : getSegmentSize()) - getPos();
 	return (avg > 0) ? static_cast<int64_t>(bytesLeft / avg) : 0;
 }
 
@@ -93,8 +93,8 @@ void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const 
 		return Util::listToString(hubs); 
 	};
 
-	params["fileSI"] = [&] { return Util::toString(getSize()); };
-	params["fileSIshort"] = [&] { return Util::formatBytes(getSize()); };
+	params["fileSI"] = [&] { return Util::toString(getSegmentSize()); };
+	params["fileSIshort"] = [&] { return Util::formatBytes(getSegmentSize()); };
 	params["fileSIchunk"] = [&] { return Util::toString(getPos()); };
 	params["fileSIchunkshort"] = [&] { return Util::formatBytes(getPos()); };
 	params["fileSIactual"] = [&] { return Util::toString(getActual()); };

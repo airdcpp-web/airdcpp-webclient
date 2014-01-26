@@ -82,7 +82,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), 0, 0, source->getPartialSource(), true));
 		}
 		
-		if((getStartPos() + getSize()) != qi.getSize() || (conn.getDownload() && conn.getDownload()->isSet(FLAG_CHUNKED))) {
+		if ((getStartPos() + getSegmentSize()) != qi.getSize() || (conn.getDownload() && conn.getDownload()->isSet(FLAG_CHUNKED))) {
 			setFlag(FLAG_CHUNKED);
 		}
 
@@ -127,7 +127,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
 	}
 
 	cmd.addParam(Util::toString(getStartPos()));
-	cmd.addParam(Util::toString(getSize()));
+	cmd.addParam(Util::toString(getSegmentSize()));
 	if(!mySID.empty()) //add requester's SID (mySID) to the filelist request, so he can find the hub we are calling from.
 		cmd.addParam("ID", mySID); 
 
