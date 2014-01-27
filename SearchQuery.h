@@ -92,6 +92,9 @@ namespace dcpp {
 			// are we complete after the new results?
 			bool completes(const StringSearch::ResultList& compareTo) const;
 
+			// are the positions complete already?
+			bool isComplete() const;
+
 			// merge old position to a new set of positions (new positions are preferred)
 			// returns true if something from the parent list was needed
 			static bool merge(ResultPointsList& mergeTo, const Recursion* parent);

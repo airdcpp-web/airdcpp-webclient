@@ -379,13 +379,13 @@ bool SearchQuery::matchesNmdcPath(const string& aPath, Recursion& recursion_) {
 
 		resetPositions();
 		lastIncludeMatches = include.matchLower(Text::toLower(s), true, &lastIncludePositions);
-		if (lastIncludeMatches == 0)
+		level++;
+		if (lastIncludeMatches == 0 || level == sl.size()) // no recursion if this is the last one
 			continue;
 
-		if (level < include.count()) {
-			recursion_ = Recursion(*this, s);
-			recursion = &recursion_;
-		}
+		// we got something worth of saving
+		recursion_ = Recursion(*this, s);
+		recursion = &recursion_;
 	}
 
 	return positionsComplete();
@@ -443,6 +443,10 @@ bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo
 			return false;
 	}
 	return true;
+}
+
+bool SearchQuery::Recursion::isComplete() const {
+	return none_of(positions.begin(), positions.end(), CompareFirst<size_t, int>(string::npos));
 }
 
 bool SearchQuery::Recursion::merge(ResultPointsList& mergeTo, const Recursion* parent) {
