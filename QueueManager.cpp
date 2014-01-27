@@ -987,12 +987,12 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runnin
 		return false;
 
 	size_t downloadCount = DownloadManager::getInstance()->getDownloadCount();
-	bool slotsFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t) AirUtil::getSlots(true));
+	bool slotsFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= static_cast<size_t>(AirUtil::getSlots(true)));
 	bool speedFull = (AirUtil::getSpeedLimit(true) != 0) && (DownloadManager::getInstance()->getRunningAverage() >= Util::convertSize(AirUtil::getSpeedLimit(true), Util::KB));
 	//LogManager::getInstance()->message("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
 
 	if (slotsFull | speedFull) {
-		bool extraFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= (size_t) (AirUtil::getSlots(true) + SETTING(EXTRA_DOWNLOAD_SLOTS)));
+		bool extraFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= static_cast<size_t>(AirUtil::getSlots(true) + SETTING(EXTRA_DOWNLOAD_SLOTS)));
 		if (extraFull || mcn || aQI->getPriority() != QueueItem::HIGHEST) {
 			lastError_ = slotsFull ? STRING(ALL_DOWNLOAD_SLOTS_TAKEN) : STRING(MAX_DL_SPEED_REACHED);
 			return false;
