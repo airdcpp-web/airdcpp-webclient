@@ -106,9 +106,10 @@ double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, b
 	// scale the points
 	scores = scores / maxPoints;
 
-	// prefer matches on a single level
-	dcassert(recursionLevel >= 0);
-	scores = scores / (recursionLevel+1);
+	// drop results with no direct matches 
+	if (recursionLevel > 0 && all_of(aSearch.getLastPositions().begin(), aSearch.getLastPositions().end(), [](size_t pos) { return pos == string::npos; })) {
+		scores = scores / (recursionLevel + 1);
+	}
 
 	return scores;
 }
@@ -373,19 +374,25 @@ bool SearchQuery::matchesNmdcPath(const string& aPath, Recursion& recursion_) {
 	auto sl = StringTokenizer<string>(aPath, '\\').getTokens();
 
 	size_t level = 0;
-	for (const auto& s : sl) {
-		if (recursion)
-			recursion->increase(s.size());
-
+	for (;;) {
+		const auto& s = sl[level];
 		resetPositions();
 		lastIncludeMatches = include.matchLower(Text::toLower(s), true, &lastIncludePositions);
-		level++;
-		if (lastIncludeMatches == 0 || level == sl.size()) // no recursion if this is the last one
-			continue;
 
-		// we got something worth of saving
-		recursion_ = Recursion(*this, s);
-		recursion = &recursion_;
+		level++;
+		if (lastIncludeMatches > 0 && (level < sl.size())) { // no recursion if this is the last one
+			// we got something worth of saving
+			recursion_ = Recursion(*this, s);
+			recursion = &recursion_;
+		}
+
+		if (level == sl.size())
+			break;
+
+		// moving to an upper level
+		if (recursion) {
+			recursion->increase(s.size());
+		}
 	}
 
 	return positionsComplete();
@@ -465,7 +472,7 @@ bool SearchQuery::Recursion::merge(ResultPointsList& mergeTo, const Recursion* p
 		// set the missing positions
 		for (size_t j = *startPos; j < old.size(); ++j) {
 			if (mergeTo[j].first == string::npos)
-				mergeTo[j].first = old[j].first;
+				mergeTo[j] = old[j];
 			else
 				mergeTo[j].first += parent->depthLen;
 		}
