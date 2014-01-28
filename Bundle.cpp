@@ -705,75 +705,76 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 		}
 	}
 
+	if (bundleSpeed <= 0) {
+		return false;
+	}
 
-	if (bundleSpeed > 0) {
-		setDownloadedBytes(bundlePos);
-		speed = bundleSpeed;
-		running = down;
+	// running
+	setDownloadedBytes(bundlePos);
+	speed = bundleSpeed;
 
-		bundleRatio = bundleRatio / down;
-		actual = ((int64_t)((double)(finishedSegments+bundlePos) * (bundleRatio == 0 ? 1.00 : bundleRatio)));
+	bundleRatio = bundleRatio / down;
+	actual = ((int64_t)((double)(finishedSegments+bundlePos) * (bundleRatio == 0 ? 1.00 : bundleRatio)));
 
-		if (!singleUser && !uploadReports.empty()) {
+	if (runningUsers.size() > 1 && !uploadReports.empty()) {
+		string speedStr;
+		double percent = 0;
 
-			string speedStr;
-			double percent = 0;
-
-			if (abs(speed-lastSpeed) > (lastSpeed / 10)) {
-				//LogManager::getInstance()->message("SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is more than " + Util::toString(lastSpeed / 10));
-				auto formatSpeed = [this] () -> string {
-					char buf[64];
-					if(speed < 1024) {
-						snprintf(buf, sizeof(buf), "%d%s", (int)(speed&0xffffffff), "b");
-					} else if(speed < 1048576) {
-						snprintf(buf, sizeof(buf), "%.02f%s", (double)speed/(1024.0), "k");
-					} else {
-						snprintf(buf, sizeof(buf), "%.02f%s", (double)speed/(1048576.0), "m");
-					}
-					return buf;
-				};
-
-				speedStr = formatSpeed();
-				lastSpeed = speed;
-			} else {
-				//LogManager::getInstance()->message("DON'T SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is less than " + Util::toString(lastSpeed / 10));
-			}
-
-			if (abs(lastDownloaded-getDownloadedBytes()) > (size / 200)) {
-				//LogManager::getInstance()->message("SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is more than " + Util::toString(size / 200));
-				percent = (static_cast<float>(getDownloadedBytes()) / static_cast<float>(size)) * 100.;
-				dcassert(percent <= 100.00);
-				lastDownloaded = getDownloadedBytes();
-			} else {
-				//LogManager::getInstance()->message("DON'T SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is less than " + Util::toString(size / 200));
-			}
-
-			if (!speedStr.empty() || percent > 0) {
-				for(auto& i: uploadReports) {
-					AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
-
-					cmd.addParam("HI", i.hint);
-					cmd.addParam("BU", token);
-					if (!speedStr.empty())
-						cmd.addParam("DS", speedStr);
-					if (percent > 0)
-						cmd.addParam("PE", Util::toString(percent));
-
-					UBNList.emplace_back(i.user->getCID(), cmd);
+		if (abs(speed-lastSpeed) > (lastSpeed / 10)) {
+			//LogManager::getInstance()->message("SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is more than " + Util::toString(lastSpeed / 10));
+			auto formatSpeed = [this] () -> string {
+				char buf[64];
+				if(speed < 1024) {
+					snprintf(buf, sizeof(buf), "%d%s", (int)(speed&0xffffffff), "b");
+				} else if(speed < 1048576) {
+					snprintf(buf, sizeof(buf), "%.02f%s", (double)speed/(1024.0), "k");
+				} else {
+					snprintf(buf, sizeof(buf), "%.02f%s", (double)speed/(1048576.0), "m");
 				}
+				return buf;
+			};
+
+			speedStr = formatSpeed();
+			lastSpeed = speed;
+		} else {
+			//LogManager::getInstance()->message("DON'T SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is less than " + Util::toString(lastSpeed / 10));
+		}
+
+		if (abs(lastDownloaded-getDownloadedBytes()) > (size / 200)) {
+			//LogManager::getInstance()->message("SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is more than " + Util::toString(size / 200));
+			percent = (static_cast<float>(getDownloadedBytes()) / static_cast<float>(size)) * 100.;
+			dcassert(percent <= 100.00);
+			lastDownloaded = getDownloadedBytes();
+		} else {
+			//LogManager::getInstance()->message("DON'T SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is less than " + Util::toString(size / 200));
+		}
+
+		if (!speedStr.empty() || percent > 0) {
+			for(auto& i: uploadReports) {
+				AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
+
+				cmd.addParam("HI", i.hint);
+				cmd.addParam("BU", token);
+				if (!speedStr.empty())
+					cmd.addParam("DS", speedStr);
+				if (percent > 0)
+					cmd.addParam("PE", Util::toString(percent));
+
+				UBNList.emplace_back(i.user->getCID(), cmd);
 			}
 		}
-		return true;
 	}
-	return false;
+
+	return true;
 }
 
 bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
-	bool updateOnly = false;
+	bool updateOnly = false, singleUser = false;
 	auto y = runningUsers.find(aSource->getUser());
 	if (y == runningUsers.end()) {
 		if (runningUsers.size() == 1) {
 			setBundleMode(false);
+			singleUser = false;
 		}
 		runningUsers[aSource->getUser()]++;
 	} else {
@@ -814,10 +815,7 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 void Bundle::setBundleMode(bool setSingleUser) noexcept {
 	if (setSingleUser) {
 		lastSpeed = 0;
-		lastDownloaded= 0;
-		singleUser= true;
-	} else {
-		singleUser = false;
+		lastDownloaded = 0;
 	}
 
 	if (!uploadReports.empty()) {
@@ -829,7 +827,7 @@ void Bundle::setBundleMode(bool setSingleUser) noexcept {
 		cmd.addParam("HI", u.hint);
 		cmd.addParam("BU", token);
 		cmd.addParam("UD1");
-		if (singleUser) {
+		if (setSingleUser) {
 			cmd.addParam("SU1");
 			cmd.addParam("DL", Util::toString(finishedSegments));
 		} else {
@@ -913,7 +911,7 @@ void Bundle::save() throw(FileException) {
 	string tmp;
 	string b32tmp;
 
-	if (isFileBundle()) {
+	if (fileBundle) {
 		f.write(LIT("<File Version=\"" FILE_BUNDLE_VERSION));
 		f.write(LIT("\" Token=\""));
 		f.write(token);
