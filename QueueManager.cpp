@@ -3618,6 +3618,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished, bool moved 
 		for (auto& aSource: qi->getSources())
 			fire(QueueManagerListener::SourceFilesUpdated(), aSource.getUser());
 		bundle->setDirty();
+		addBundleUpdate(bundle);
 	}
 }
 
