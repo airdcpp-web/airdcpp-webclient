@@ -1841,6 +1841,7 @@ enum Strings { // @DontAdd
 	DIR_REFRESH_FAILED, // "Failed to refresh the directory %1%: %2%"
 	BUNDLE_CREATION_FAILED, // "Failed to create the bundle %1%: %2%"
 	SINGLE_CLICK_TRAY, // "Single click on tray icon to open"
+	SOURCES, // "Sources"
 	NEW_NAME, // "New name"
 	SAVE_FAILED_X, // "Failed to save the file %1%: %2%"
 	LOAD_FAILED_X, // "Failed to load the file %1%: %2%"
