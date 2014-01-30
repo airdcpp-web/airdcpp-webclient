@@ -102,7 +102,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 					{
 						if(aTick - d->getLastTick() > (uint32_t)SETTING(DISCONNECT_TIME) * 1000)
 						{
-							if (static_cast<int>(d->getBundle()->getRunningUsers().size()) >= SETTING(DISCONNECT_MIN_SOURCES) && QueueManager::getInstance()->dropSource(d))
+							if(QueueManager::getInstance()->dropSource(d))
 							{
 								dropTargets.emplace_back(d->getPath(), d->getBundle(), d->getUser());
 							}
@@ -156,7 +156,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 			WLock l (cs);
 			if (aBundle->addRunningUser(aSource)) {
 				//this is the first running user for this bundle
-				aBundle->setBundleBegin(GET_TICK());
+				aBundle->setStart(GET_TICK());
 				bundles[aBundle->getToken()] = aBundle;
 			}
 		}

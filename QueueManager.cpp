@@ -2828,19 +2828,21 @@ bool QueueManager::dropSource(Download* d) noexcept {
 	BundlePtr b = d->getBundle();
 	size_t onlineUsers = 0;
 
-	int iHighSpeed = SETTING(DISCONNECT_FILE_SPEED);
-	{
-		RLock l (cs);
-		onlineUsers = b->countOnlineUsers();
-	}
+	if(b->getRunning() >= SETTING(DISCONNECT_MIN_SOURCES)) {
+		int iHighSpeed = SETTING(DISCONNECT_FILE_SPEED);
+		{
+			RLock l (cs);
+			onlineUsers = b->countOnlineUsers();
+		}
 
-	if((iHighSpeed == 0 || b->getSpeed() > Util::convertSize(iHighSpeed, Util::KB)) && onlineUsers >= 2) {
-		d->setFlag(Download::FLAG_SLOWUSER);
+		if((iHighSpeed == 0 || b->getSpeed() > Util::convertSize(iHighSpeed, Util::KB)) && onlineUsers >= 2) {
+			d->setFlag(Download::FLAG_SLOWUSER);
 
-		if(d->getAverageSpeed() < Util::convertSize(SETTING(REMOVE_SPEED), Util::KB)) {
-			return true;
-		} else {
-			d->getUserConnection().disconnect();
+			if(d->getAverageSpeed() < Util::convertSize(SETTING(REMOVE_SPEED), Util::KB)) {
+				return true;
+			} else {
+				d->getUserConnection().disconnect();
+			}
 		}
 	}
 

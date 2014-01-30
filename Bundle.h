@@ -137,15 +137,21 @@ public:
 
 	IGETSET(Status, status, Status, STATUS_NEW);
 	IGETSET(time_t, bundleDate, BundleDate, 0);				// the file/directory modify date picked from the remote filelist when the bundle has been queued
+	IGETSET(uint64_t, start, Start, 0);
 	IGETSET(time_t, lastSearch, LastSearch, 0);				// last time when the bundle was searched for
 	IGETSET(bool, simpleMatching, SimpleMatching, true);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
 	IGETSET(bool, seqOrder, SeqOrder, false);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
 
+	IGETSET(uint16_t, running, Running, 0);				// number of running users
 	IGETSET(uint64_t, bundleBegin, BundleBegin, 0);		// time that is being reset every time when a waiting the bundle gets running downloads (GUI purposes really)
+	IGETSET(bool, singleUser, SingleUser, true);		// the bundle is downloaded from a single user (may have multiple connections)
 
 	IGETSET(int64_t, actual, Actual, 0); 
 	IGETSET(int64_t, speed, Speed, 0);					// the speed calculated on every second in downloadmanager
 	//GETSET(int, transferFlags, TransferFlags);		// combined transfer flags checked from running downloads
+
+	IGETSET(int64_t, lastSpeed, LastSpeed, 0); // the speed sent on last time to UBN sources
+	IGETSET(double, lastDownloaded, LastDownloaded, 0); // the progress percent sent on last time to UBN sources
 
 
 	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);	// partial bundle sharing sources (mapped to their local tokens)
@@ -240,6 +246,9 @@ public:
 
 	void setDownloadedBytes(int64_t aSize) noexcept;
 
+	void increaseRunning() noexcept { running++; }
+	void decreaseRunning() noexcept { running--; }
+
 	/* Sources*/
 	void getSources(HintedUserList& l) const noexcept;
 	bool isSource(const UserPtr& aUser) const noexcept;
@@ -258,9 +267,6 @@ public:
 	//moves the file back in userqueue for the given user (only within the same priority)
 	void rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept;
 private:
-	int64_t lastSpeed = 0; // the speed sent on last time to UBN sources
-	double lastDownloaded = 0; // the progress percent sent on last time to UBN sources
-
 	int64_t finishedSegments = 0;
 	int64_t currentDownloaded = 0; //total downloaded for the running downloads
 	bool fileBundle = false;
