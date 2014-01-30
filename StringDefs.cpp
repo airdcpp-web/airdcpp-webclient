@@ -1835,6 +1835,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to create the bundle %1%: %2%", 
 "Single click on tray icon to open", 
 "New name", 
+"Failed to save the file %1%: %2%", 
+"Failed to load the file %1%: %2%", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3670,4 +3672,6 @@ std::string dcpp::ResourceManager::names[] = {
 "BundleCreationFailed", 
 "SingleClickTray", 
 "NewName", 
+"SaveFailedX", 
+"LoadFailedX", 
 };

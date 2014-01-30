@@ -4,6 +4,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #include "stdinc.h"
+
+#include "LogManager.h"
 #include "IgnoreManager.h"
 #include "ClientManager.h"
 
@@ -50,47 +52,42 @@ void IgnoreManager::save(SimpleXML& aXml) {
 }
 
 void IgnoreManager::saveUsers() {
-	try {
-		SimpleXML xml;
+	SimpleXML xml;
 
-		xml.addTag("Ignored");
-		xml.stepIn();
+	xml.addTag("Ignored");
+	xml.stepIn();
 
-		xml.addTag("Users");
-		xml.stepIn();
+	xml.addTag("Users");
+	xml.stepIn();
 
-		//TODO: cache this information?
-		for (const auto& u : ignoredUsers) {
-			xml.addTag("User");
-			xml.addChildAttrib("CID", u->getCID().toBase32());
-			auto ou = ClientManager::getInstance()->findOnlineUser(u->getCID(), "");
-			if (ou) {
-				xml.addChildAttrib("Nick", ou->getIdentity().getNick());
-				xml.addChildAttrib("Hub", ou->getHubUrl());
-				xml.addChildAttrib("LastSeen", GET_TIME());
-			} else {
-				auto ofu = ClientManager::getInstance()->getOfflineUser(u->getCID());
-				xml.addChildAttrib("Nick", ofu ? ofu->getNick() : "");
-				xml.addChildAttrib("Hub", ofu ? ofu->getUrl() : "");
-				xml.addChildAttrib("LastSeen", ofu ? ofu->getLastSeen() : GET_TIME());
-			}
+	//TODO: cache this information?
+	for (const auto& u : ignoredUsers) {
+		xml.addTag("User");
+		xml.addChildAttrib("CID", u->getCID().toBase32());
+		auto ou = ClientManager::getInstance()->findOnlineUser(u->getCID(), "");
+		if (ou) {
+			xml.addChildAttrib("Nick", ou->getIdentity().getNick());
+			xml.addChildAttrib("Hub", ou->getHubUrl());
+			xml.addChildAttrib("LastSeen", GET_TIME());
+		} else {
+			auto ofu = ClientManager::getInstance()->getOfflineUser(u->getCID());
+			xml.addChildAttrib("Nick", ofu ? ofu->getNick() : "");
+			xml.addChildAttrib("Hub", ofu ? ofu->getUrl() : "");
+			xml.addChildAttrib("LastSeen", ofu ? ofu->getLastSeen() : GET_TIME());
 		}
-
-		xml.stepOut();
-		xml.stepOut();
-
-		xml.saveSettingFile(CONFIG_DIR, CONFIG_NAME);
 	}
-	catch (const Exception& e) {
-		dcdebug("ignored save: %s\n", e.getError().c_str());
-	}
+
+	xml.stepOut();
+	xml.stepOut();
+
+	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 }
 
 void IgnoreManager::loadUsers() {
 	try {
 		SimpleXML xml;
-		xml.loadSettingFile(CONFIG_DIR, CONFIG_NAME);
-		ClientManager* cm = ClientManager::getInstance();
+		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
+		auto cm = ClientManager::getInstance();
 		if (xml.findChild("Ignored")) {
 			xml.stepIn();
 			xml.resetCurrentChild();
@@ -109,9 +106,8 @@ void IgnoreManager::loadUsers() {
 			}
 			xml.stepOut();
 		}
-	}
-	catch (const Exception& e) {
-		dcdebug("ignored load: %s\n", e.getError().c_str());
+	} catch (const Exception& e) {
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
 }
 

@@ -553,7 +553,7 @@ void FavoriteManager::save() {
 		xml.stepOut();
 
 
-		xml.saveSettingFile(CONFIG_DIR, CONFIG_FAV_NAME);
+		SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_FAV_NAME);
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::save: %s\n", e.getError().c_str());
 	}
@@ -585,38 +585,33 @@ void FavoriteManager::previewsave(SimpleXML& aXml){
 }
 
 void FavoriteManager::recentsave() {
-	try {
-		SimpleXML xml;
+	SimpleXML xml;
 
-		xml.addTag("Recents");
-		xml.stepIn();
+	xml.addTag("Recents");
+	xml.stepIn();
 
-		xml.addTag("Hubs");
-		xml.stepIn();
+	xml.addTag("Hubs");
+	xml.stepIn();
 
-		for(const auto rhe: recentHubs) {
-			xml.addTag("Hub");
-			xml.addChildAttrib("Name", rhe->getName());
-			xml.addChildAttrib("Description", rhe->getDescription());
-			xml.addChildAttrib("Users", rhe->getUsers());
-			xml.addChildAttrib("Shared", rhe->getShared());
-			xml.addChildAttrib("Server", rhe->getServer());
-		}
-
-		xml.stepOut();
-		xml.stepOut();
-		
-		xml.saveSettingFile(CONFIG_DIR, CONFIG_RECENTS_NAME);
-	} catch(const Exception& e) {
-		dcdebug("FavoriteManager::recentsave: %s\n", e.getError().c_str());
+	for(const auto rhe: recentHubs) {
+		xml.addTag("Hub");
+		xml.addChildAttrib("Name", rhe->getName());
+		xml.addChildAttrib("Description", rhe->getDescription());
+		xml.addChildAttrib("Users", rhe->getUsers());
+		xml.addChildAttrib("Shared", rhe->getShared());
+		xml.addChildAttrib("Server", rhe->getServer());
 	}
+
+	xml.stepOut();
+	xml.stepOut();
+		
+	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_RECENTS_NAME);
 }
 
 void FavoriteManager::loadCID() {
 	try {
 		SimpleXML xml;
-
-		xml.loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME);
+		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_FAV_NAME);
 
 		if(xml.findChild("Favorites")) {
 			xml.stepIn();
@@ -629,7 +624,7 @@ void FavoriteManager::loadCID() {
 			xml.stepOut();
 		}
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message("Error Loading CID : " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
 }
 
@@ -651,34 +646,31 @@ void FavoriteManager::load() {
 
 	try {
 		SimpleXML xml;
-		if (xml.loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME, false)) { //we have migrated already when loading the CID
-			if(xml.findChild("Favorites")) {
-				xml.stepIn();
-				load(xml);
-				xml.stepOut();
-			}
-
-			//we have load it fine now, so make a backup of a working favorites.xml
-			auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
-			File::deleteFile(f + ".bak");
-			File::copyFile(f, f + ".bak");
+		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_FAV_NAME, false); //we have migrated already when loading the CID
+		if(xml.findChild("Favorites")) {
+			xml.stepIn();
+			load(xml);
+			xml.stepOut();
 		}
+
+		//we have load it fine now, so make a backup of a working favorites.xml
+		auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
+		File::deleteFile(f + ".bak");
+		File::copyFile(f, f + ".bak");
 	} catch(const Exception& e) {
-		dcdebug("FavoriteManager::load: %s\n", e.getError().c_str());
-		LogManager::getInstance()->message("Error Loading Favorites.xml : " + e.getError(), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
 
 	try {
 		SimpleXML xml;
-		xml.loadSettingFile(CONFIG_DIR, CONFIG_RECENTS_NAME);
-		
+		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_RECENTS_NAME);
 		if(xml.findChild("Recents")) {
 			xml.stepIn();
 			recentload(xml);
 			xml.stepOut();
 		}
 	} catch(const Exception& e) {
-		dcdebug("FavoriteManager::recentload: %s\n", e.getError().c_str());
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_RECENTS_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
 }
 

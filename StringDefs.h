@@ -1839,5 +1839,7 @@ enum Strings { // @DontAdd
 	BUNDLE_CREATION_FAILED, // "Failed to create the bundle %1%: %2%"
 	SINGLE_CLICK_TRAY, // "Single click on tray icon to open"
 	NEW_NAME, // "New name"
+	SAVE_FAILED_X, // "Failed to save the file %1%: %2%"
+	LOAD_FAILED_X, // "Failed to load the file %1%: %2%"
 	LAST // @DontAdd
 };

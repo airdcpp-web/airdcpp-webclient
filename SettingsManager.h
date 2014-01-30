@@ -20,11 +20,12 @@
 #ifndef DCPLUSPLUS_DCPP_SETTINGS_MANAGER_H
 #define DCPLUSPLUS_DCPP_SETTINGS_MANAGER_H
 
-#include "Util.h"
-#include "Speaker.h"
-#include "Singleton.h"
+#include "Exception.h"
 #include "HubSettings.h"
 #include "SettingItem.h"
+#include "Singleton.h"
+#include "Speaker.h"
+#include "Util.h"
 #include "version.h"
 
 namespace dcpp {
@@ -421,6 +422,9 @@ public:
 	static const ProfileSettingItem profileSettings[SettingsManager::PROFILE_LAST][10];
 	void applyProfileDefaults();
 	string getProfileName(int profile);
+
+	static void saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName) noexcept;
+	static void loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool migrate = true) throw(Exception);
 private:
 	friend class Singleton<SettingsManager>;
 	SettingsManager();

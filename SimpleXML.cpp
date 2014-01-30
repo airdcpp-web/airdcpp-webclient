@@ -78,37 +78,6 @@ string& SimpleXML::escape(string& aString, bool aAttrib, bool aLoading /* = fals
 	return aString;
 }
 
-bool SimpleXML::loadSettingFile(Util::Paths aPath, const string& aFileName, bool migrate /*true*/) {
-	string fname = Util::getPath(aPath) + aFileName;
-
-	if (migrate)
-		Util::migrate(fname);
-
-	if (!Util::fileExists(fname))
-		return false;
-
-	fromXML(File(fname, File::READ, File::OPEN).read());
-	return true;
-}
-
-void SimpleXML::saveSettingFile(Util::Paths aPath, const string& aFileName) {
-	string fname = Util::getPath(aPath) + aFileName;
-
-	//try {
-		File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
-		f.write(SimpleXML::utf8Header);
-		f.write(toXML());
-		f.close();
-
-		//dont overWrite with empty file.
-		if(File::getSize(fname + ".tmp") > 0) {
-			File::deleteFile(fname);
-			File::renameFile(fname + ".tmp", fname);
-		}
-	//} catch(const FileException&) {
-	//}
-}
-
 void SimpleXML::Tag::appendAttribString(string& tmp) {
 	for(auto& i: attribs) {
 		tmp.append(i.first);

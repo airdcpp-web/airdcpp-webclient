@@ -860,80 +860,76 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 
 /* Loading and saving */
 void AutoSearchManager::AutoSearchSave() noexcept {
-	try {
-		dirty = false;
-		SimpleXML xml;
+	dirty = false;
+	SimpleXML xml;
 
-		xml.addTag("Autosearch");
-		xml.addChildAttrib("LastPosition", curPos);
-		xml.stepIn();
-		xml.addTag("Autosearch");
-		xml.stepIn();
+	xml.addTag("Autosearch");
+	xml.addChildAttrib("LastPosition", curPos);
+	xml.stepIn();
+	xml.addTag("Autosearch");
+	xml.stepIn();
 
-		{
-			RLock l(cs);
-			for(auto& as: searchItems) {
-				xml.addTag("Autosearch");
-				xml.addChildAttrib("Enabled", as->getEnabled());
-				xml.addChildAttrib("SearchString", as->getSearchString());
-				xml.addChildAttrib("FileType", as->getFileType());
-				xml.addChildAttrib("Action", as->getAction());
-				xml.addChildAttrib("Remove", as->getRemove());
-				xml.addChildAttrib("Target", as->getTarget());
-				xml.addChildAttrib("TargetType", as->getTargetType());
-				xml.addChildAttrib("MatcherType", as->getMethod()),
-				xml.addChildAttrib("MatcherString", as->getMatcherString()),
-				xml.addChildAttrib("UserMatch", as->getNickPattern());
-				xml.addChildAttrib("ExpireTime", as->getExpireTime());
-				xml.addChildAttrib("CheckAlreadyQueued", as->getCheckAlreadyQueued());
-				xml.addChildAttrib("CheckAlreadyShared", as->getCheckAlreadyShared());
-				xml.addChildAttrib("SearchDays", as->searchDays.to_string());
-				xml.addChildAttrib("StartTime", as->startTime.toString());
-				xml.addChildAttrib("EndTime", as->endTime.toString());
-				xml.addChildAttrib("LastSearchTime", Util::toString(as->getLastSearch()));
-				xml.addChildAttrib("MatchFullPath", as->getMatchFullPath());
-				xml.addChildAttrib("ExcludedWords", as->getExcludedString());
-				xml.addChildAttrib("Token", Util::toString(as->getToken()));
+	{
+		RLock l(cs);
+		for(auto& as: searchItems) {
+			xml.addTag("Autosearch");
+			xml.addChildAttrib("Enabled", as->getEnabled());
+			xml.addChildAttrib("SearchString", as->getSearchString());
+			xml.addChildAttrib("FileType", as->getFileType());
+			xml.addChildAttrib("Action", as->getAction());
+			xml.addChildAttrib("Remove", as->getRemove());
+			xml.addChildAttrib("Target", as->getTarget());
+			xml.addChildAttrib("TargetType", as->getTargetType());
+			xml.addChildAttrib("MatcherType", as->getMethod()),
+			xml.addChildAttrib("MatcherString", as->getMatcherString()),
+			xml.addChildAttrib("UserMatch", as->getNickPattern());
+			xml.addChildAttrib("ExpireTime", as->getExpireTime());
+			xml.addChildAttrib("CheckAlreadyQueued", as->getCheckAlreadyQueued());
+			xml.addChildAttrib("CheckAlreadyShared", as->getCheckAlreadyShared());
+			xml.addChildAttrib("SearchDays", as->searchDays.to_string());
+			xml.addChildAttrib("StartTime", as->startTime.toString());
+			xml.addChildAttrib("EndTime", as->endTime.toString());
+			xml.addChildAttrib("LastSearchTime", Util::toString(as->getLastSearch()));
+			xml.addChildAttrib("MatchFullPath", as->getMatchFullPath());
+			xml.addChildAttrib("ExcludedWords", as->getExcludedString());
+			xml.addChildAttrib("Token", Util::toString(as->getToken()));
 
+			xml.stepIn();
+
+			xml.addTag("Params");
+			xml.addChildAttrib("Enabled", as->getUseParams());
+			xml.addChildAttrib("CurNumber", as->getCurNumber());
+			xml.addChildAttrib("MaxNumber", as->getMaxNumber());
+			xml.addChildAttrib("MinNumberLen", as->getNumberLen());
+			xml.addChildAttrib("LastIncFinish", as->getLastIncFinish());
+
+
+			if (!as->getFinishedPaths().empty()) {
+				xml.addTag("FinishedPaths");
 				xml.stepIn();
-
-				xml.addTag("Params");
-				xml.addChildAttrib("Enabled", as->getUseParams());
-				xml.addChildAttrib("CurNumber", as->getCurNumber());
-				xml.addChildAttrib("MaxNumber", as->getMaxNumber());
-				xml.addChildAttrib("MinNumberLen", as->getNumberLen());
-				xml.addChildAttrib("LastIncFinish", as->getLastIncFinish());
-
-
-				if (!as->getFinishedPaths().empty()) {
-					xml.addTag("FinishedPaths");
-					xml.stepIn();
-					for(auto& p: as->getFinishedPaths()) {
-						xml.addTag("Path", p.first);
-						xml.addChildAttrib("FinishTime", p.second);
-					}
-					xml.stepOut();
-				}
-
-				if (!as->getBundles().empty()) {
-					xml.addTag("Bundles");
-					xml.stepIn();
-					for (const auto& b: as->getBundles()) {
-						xml.addTag("Bundle", b->getToken());
-					}
-					xml.stepOut();
+				for(auto& p: as->getFinishedPaths()) {
+					xml.addTag("Path", p.first);
+					xml.addChildAttrib("FinishTime", p.second);
 				}
 				xml.stepOut();
 			}
-		}
 
-		xml.stepOut();
-		xml.stepOut();
-		
-		xml.saveSettingFile(CONFIG_DIR, CONFIG_NAME);
-	} catch(const Exception& e) {
-		dcdebug("FavoriteManager::recentsave: %s\n", e.getError().c_str());
+			if (!as->getBundles().empty()) {
+				xml.addTag("Bundles");
+				xml.stepIn();
+				for (const auto& b: as->getBundles()) {
+					xml.addTag("Bundle", b->getToken());
+				}
+				xml.stepOut();
+			}
+			xml.stepOut();
+		}
 	}
+
+	xml.stepOut();
+	xml.stepOut();
+		
+	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 }
 
 void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
@@ -1034,7 +1030,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 void AutoSearchManager::AutoSearchLoad() {
 	try {
 		SimpleXML xml;
-		xml.loadSettingFile(CONFIG_DIR, CONFIG_NAME);
+		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 
 		if(xml.findChild("Autosearch")) {
 			curPos = xml.getIntChildAttrib("LastPosition");
@@ -1045,7 +1041,7 @@ void AutoSearchManager::AutoSearchLoad() {
 		if(curPos >= searchItems.size())
 			curPos = 0;
 	} catch(const Exception& e) {
-		dcdebug("AutoSearchManager::load: %s\n", e.getError().c_str());
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
 }
 }

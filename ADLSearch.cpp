@@ -223,7 +223,7 @@ void ADLSearchManager::load()
 	// Load file as a string
 	try {
 		SimpleXML xml;
-		xml.loadSettingFile(CONFIG_DIR, CONFIG_NAME);
+		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 
 		if(xml.findChild("ADLSearch")) {
 			xml.stepIn();
@@ -325,10 +325,9 @@ void ADLSearchManager::load()
 				}
 			}
 		}
+	} catch(const Exception& e) { 
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
-
-	catch(const SimpleXMLException&) { }
-	catch(const FileException&) { }
 
 	for(auto& s: collection) {
 		s.prepare();
@@ -390,42 +389,41 @@ void ADLSearchManager::save(bool force /*false*/) {
 		return;
 
 	dirty = false;
-	try {
-		SimpleXML xml;
 
-		xml.addTag("ADLSearch");
+	SimpleXML xml;
+
+	xml.addTag("ADLSearch");
+	xml.stepIn();
+
+	// Predicted several groups of searches to be differentiated
+	// in multiple categories. Not implemented yet.
+	xml.addTag("SearchGroup");
+	xml.stepIn();
+
+	// Save all	searches
+	for(auto& search: collection) {
+		xml.addTag("Search");
 		xml.stepIn();
 
-		// Predicted several groups of searches to be differentiated
-		// in multiple categories. Not implemented yet.
-		xml.addTag("SearchGroup");
-		xml.stepIn();
-
-		// Save all	searches
-		for(auto& search: collection) {
-			xml.addTag("Search");
-			xml.stepIn();
-
-			xml.addTag("SearchString", search.match.pattern);
-			xml.addChildAttrib("RegEx", search.isRegEx());
-			xml.addTag("SourceType", search.SourceTypeToString(search.sourceType));
-			xml.addTag("DestDirectory", search.destDir);
-			xml.addTag("AdlsComment", search.adlsComment);
-			xml.addTag("IsActive", search.isActive);
-			xml.addTag("MaxSize", search.maxFileSize);
-			xml.addTag("MinSize", search.minFileSize);
-			xml.addTag("SizeType", search.SizeTypeToString(search.typeFileSize));
-			xml.addTag("IsAutoQueue", search.isAutoQueue);
-
-			xml.stepOut();
-		}
+		xml.addTag("SearchString", search.match.pattern);
+		xml.addChildAttrib("RegEx", search.isRegEx());
+		xml.addTag("SourceType", search.SourceTypeToString(search.sourceType));
+		xml.addTag("DestDirectory", search.destDir);
+		xml.addTag("AdlsComment", search.adlsComment);
+		xml.addTag("IsActive", search.isActive);
+		xml.addTag("MaxSize", search.maxFileSize);
+		xml.addTag("MinSize", search.minFileSize);
+		xml.addTag("SizeType", search.SizeTypeToString(search.typeFileSize));
+		xml.addTag("IsAutoQueue", search.isAutoQueue);
 
 		xml.stepOut();
+	}
 
-		xml.stepOut();
+	xml.stepOut();
 
-		xml.saveSettingFile(CONFIG_DIR, CONFIG_NAME);
-	} catch(const SimpleXMLException&) { }
+	xml.stepOut();
+
+	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 }
 
 void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath) {
