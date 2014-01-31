@@ -26,6 +26,7 @@
 #include <tbb/task_group.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/concurrent_queue.h>
+#include "tbb/task_scheduler_init.h"
 
 namespace dcpp
 {
@@ -40,7 +41,7 @@ public:
 
 	~TaskScheduler() { }
 private:
-	task_scheduler_init init;
+	tbb::task_scheduler_init init;
 };
 
 }
