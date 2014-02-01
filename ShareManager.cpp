@@ -947,6 +947,7 @@ ShareManager::ProfileDirectory::ProfileDirectory(const string& aRootPath, Profil
 }
 
 void ShareManager::ProfileDirectory::addRootProfile(const string& aName, ProfileToken aProfile) noexcept {
+	rootProfiles.erase(aProfile);
 	rootProfiles.emplace(aProfile, aName);
 	setFlag(FLAG_ROOT);
 }
